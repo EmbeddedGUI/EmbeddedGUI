@@ -1,0 +1,8 @@
+/output
+/porting/cm0/GCC/output
+/porting/cm0/Projects/main/GCC/output
+/.vscode/settings.json
+/porting/stm32g0/Debug
+/porting/stm32g0/.settings
+/porting/stm32g0_empty/Debug
+/porting/stm32g0_empty/.settings

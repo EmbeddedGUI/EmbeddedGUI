@@ -1,0 +1,478 @@
+# 简介
+
+本项目主要面对RAM资源有限（<8KB），ROM资源有限（<64KB，主要看所需字体和贴图资源），CPU资源还充裕（<100MHz，不支持浮点，FPS在30左右）。需要支持触控、ViewPage等主流的UI控制行为。Framebuffer采用PFB设计，用户可以根据需要选择不同尺寸的PFB大小来平衡屏幕刷新率。
+
+本项目提供一套基于PFB设计的GUI架构。基于面向对象的编码方式，UI参考Android UI架构，用户可以轻松定义项目所需的控件。
+
+本项目主要参考：[GuiLite](https://gitee.com/idea4good/GuiLite)、[Arm-2D](https://github.com/ARM-software/Arm-2D)、[EasyGUI](https://github.com/MaJerle/EasyGUI)、[lvgl](https://github.com/lvgl/lvgl)和Android GUI框架。
+
+
+
+# 产品特点
+
+- 易于移植，全部由C代码编写，支持C++调用，无第三方依赖库。
+- 基于轮询结构，可以在任何MCU环境下运行，无需OS支持。
+- 支持多种显示支持，RGB8、RGB565、RGB32。
+- 基于MIT协议，随便使用。
+- 只需要不到4KB RAM（包含Framebuffer）和64KB CODE，针对PFB有特别优化，小PFB和大PFB性能差异不大。
+- UTF-8字体支持。
+- 图片透明通道支持。
+- Mask支持，可以绘制圆角图片等功能。
+- 动画支持，支持Android的全部动画效果。
+- 抗锯齿支持，基本图形，线，圆，圆环，圆角矩阵，扇形等都支持抗锯齿。
+- 脏矩阵支持，平时只绘制需要绘制的区域，不仅省功耗，同时对于特定页面，可以实现高帧率。
+- 定点支持，所有代码全部用定点运算实现，避免在没有浮点运算单元的芯片上，运行太卡。
+- PFB支持，只需要简单一点点RAM。
+- 双缓存支持，可以充分利用SPI写入屏幕时间间隙。
+- PC调试，C部署，可以在PC上运行调试，而后在嵌入式项目上运行。
+- Makefile组织编译，没有乱七八糟的配置。
+
+
+
+# 例程演示
+
+有点丑，但是核心机制已经演示出来了，剩下基于这个框架加自己东西就行。
+
+| 例程名称               | 效果图                                                       |
+| ---------------------- | ------------------------------------------------------------ |
+| HelloSimple            | ![bbgq1-zg4av](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/bbgq1-zg4av.gif) |
+| HelloViewPageAndScroll | ![7cd1j-vnj2z](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/7cd1j-vnj2z.gif) |
+| HelloActivity          | ![ty6sb-byumu](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/ty6sb-byumu.gif) |
+| HelloTest              | ![4riwf-3j8ki](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/4riwf-3j8ki.gif) |
+
+
+
+
+
+
+
+# 需求说明
+
+作为芯片从业人员，国产芯片普遍资源有限（ROM和RAM比较少-都是成本，CPU速度比较高-100MHz），需要在512KB ROM，20KB左右RAM资源上实现手环之类的GUI操作（要有触摸），CPU可以跑96MHz。
+
+第一次搞嵌入式GUI，问了一圈朋友，LVGL直接放弃（太绚丽了，个人觉得也不可能跑得动，而且代码应该也比较复杂，魔改会比较困难），有人建议`手撸`，那要死人了。
+
+有朋友推荐了[GuiLite](https://github.com/idea4good/GuiLite)，看了下介绍，GUI简单直接，所需的ROM和RAM也比较少，效果图里面也有很多所需的场景，持续有更新，[ Apache-2.0 license](https://github.com/idea4good/egui#Apache-2.0-1-ov-file)，比较符合我的需求。但是实际看了下，Framebuffer设计所需资源太多了，并没有PFB设计，多个Surface需要多个Framebuffer（跟着屏幕大小来的）；此外自定义控件需要考虑自己清除像素，涉及到透明度和滑动等业务场景时，就非常痛苦了。当然项目也有优势，用户完全掌握UI操作代码（4000行代码，可以轻松看懂）后，基本就不会有多余的MIPS浪费了。
+
+又有朋友推荐了[Arm-2D](https://github.com/ARM-software/Arm-2D)，看了下介绍，很有吸引力，支持PFB，小资源芯片就可以跑高帧率，大公司靠谱。实际一看，各种宏定义，由于设计考虑的是卖芯片，所以基本不会去实现GUI的控件管理和触摸管理，脏矩阵还得自己去定义，不要太麻烦。里面实现了很多酷炫的效果，有很好的借鉴意义。
+
+[lvgl](https://github.com/lvgl/lvgl)，很成熟的一个架构了，玩家也很多，看了下最新的代码v9.1.0，找了一会没找到底层canvas实现，看来是我能力太弱了，效果很酷炫，公司芯片基本没有能跑动的可能，想了下，还是放弃。
+
+综上所述，还是自己写一套吧，什么都可控，酷炫的效果无法实现，那就贴图好了。
+
+
+
+# 所需资源分析
+
+资源分GUI代码和控件所需的资源以及Framebuffer。PFB用户根据需要自己定义。
+
+## GUI代码和控件所需资源
+
+对于嵌入式环境而言，code size和ram size至关重要。所以以典型的cm0嵌入式开发环境为例，对code size和ram size进行分析。编译出来的大小见下表。
+
+可以看到不同的例程所需资源差异巨大，这个涉及到GUI用到了哪些控件，字库，图片等。
+
+注意：由于不同lib库对于printf、malloc等接口影响较大，库这些接口都不实现。资源紧张的场景可以按需简易实现。
+
+注意：直接在根目录运行`python .\scripts\utils_analysis_elf_size.py`脚本，可以打印下面的表格保存在`output\README.md`。
+
+| app                      | Code(Bytes) | Resource(Bytes) | RAM(Bytes) | PFB(Bytes) |
+| ------------------------ | ----------- | --------------- | ---------- | ---------- |
+| HelloActivity            | 20464       | 9968            | 1384       | 1536       |
+| HelloBasic(anim)         | 13500       | 3500            | 656        | 2400       |
+| HelloBasic(button)       | 15124       | 9132            | 648        | 2400       |
+| HelloBasic(button_img)   | 17852       | 27840           | 624        | 2400       |
+| HelloBasic(image)        | 17748       | 7756            | 624        | 2400       |
+| HelloBasic(label)        | 7584        | 5728            | 624        | 2400       |
+| HelloBasic(linearlayout) | 15188       | 9140            | 768        | 2400       |
+| HelloBasic(mask)         | 19460       | 31136           | 720        | 2400       |
+| HelloBasic(progress_bar) | 8512        | 3472            | 624        | 2400       |
+| HelloBasic(scroll)       | 17572       | 9248            | 936        | 2400       |
+| HelloBasic(switch)       | 8116        | 3468            | 632        | 2400       |
+| HelloBasic(viewpage)     | 17708       | 9248            | 936        | 2400       |
+| HelloPerformace          | 35172       | 443544          | 640        | 1536       |
+| HelloSimple              | 15360       | 6620            | 800        | 1536       |
+| HelloTest                | 32616       | 56224           | 1536       | 1536       |
+| HelloViewPageAndScroll   | 20024       | 15552           | 1760       | 1536       |
+
+可以看到，项目的Code基本上远小于Resource，变量RAM也远小于PFB所需的RAM空间。
+
+以`HelloSimple`为例，实现1个button+1个label只需要`15360`的code size和`800`字节的ram size，资源占用`6620`Bytes，PFB占用`1536`Bytes。
+
+![bbgq1-zg4av](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/bbgq1-zg4av.gif)
+
+
+
+## Framebuffer
+
+GUI设计之初就支持PFB（Partial Frame-buffer），唯一的要求是PFB的Width和Height是屏幕尺寸的整数倍。如屏幕尺寸是`240*320`，那PFB尺寸为`24*32`，RGB565的屏幕，所需的RAM为：1536Bytes，可以说很小了。
+
+
+
+
+
+
+
+
+# 代码架构
+
+没什么东西，也就是源代码，例程和编译配置。
+
+- **example**：各种GUI例程。
+- **porting**：程序的主入口，根据平台不同，有一些不同实现。pc支持windows、linux和macos。嵌入式支持stm32g0。
+- **src**：EmbeddedGUI代码实现部分。
+- **build.mk和Makefile**：Makefile文件。
+
+```
+EmbeddedGUI
+ ├── build.mk
+ ├── Makefile
+ ├── example
+ │   ...
+ ├── porting
+ │   ...
+ └── src
+     ...
+```
+
+
+
+
+
+# 使用说明
+
+## 环境搭建-Windows
+
+Windows编译，最终生成exe，可以直接在PC上跑。
+
+目前需要安装如下环境：
+
+- GCC环境，笔者用的msys64+mingw，用于编译生成exe，参考这个文章安装即可。[Win7下msys64安装mingw工具链 - Milton - 博客园 (cnblogs.com)](https://www.cnblogs.com/milton/p/11808091.html)。
+
+## 环境搭建-Linux/Mac
+
+参考[ARM-software/Arm-2D: 2D Graphic Library optimized for Cortex-M processors (github.com)](https://github.com/ARM-software/Arm-2D)搭建MAC环境。
+
+
+
+## 编译说明
+
+本项目都是由makefile组织编译的，编译整个项目只需要执行`make all`即可，调用`make run`可以运行。
+
+根据具体需要可以调整一些参数，目前Makefile支持如下参数配置。
+
+- **APP**：选择example中的例程，默认选择为`Hello3D`。
+- **PORT**：选择porting中的环境，也就是当前平台，默认选择为`windows`，stm32g0需要专门的开发板环境，平时可以用于评估code size和ram size。
+
+也就是可以通过如下指令来编译工程：
+
+```shell
+make all APP=HelloSimple
+```
+
+执行`make run`后，在windows环境就会弹出一个窗口，演示GUI效果了。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 面向对象编程代码结构说明
+
+为了代码结构清晰点，项目中有继承需要的代码采用面向对象的编程思维，主要用到类继承和虚函数的定义。
+
+### 类
+
+所有类用struct来实现，为方便使用，都用typedef声明下。
+
+```c
+// C++ class impl
+class AAA
+{
+}
+
+
+
+// C struct impl
+typedef struct AAA AAA;
+struct AAA
+{
+
+}
+```
+
+
+
+### 类-成员
+
+成员用结构体成员来实现。
+
+```c
+// C++ class impl
+class AAA
+{
+    int aaa;
+}
+
+
+
+// C struct impl
+typedef struct AAA AAA;
+struct AAA
+{
+	int aaa;
+}
+
+```
+
+
+
+### 类-构造函数、方法
+
+public、protect和private就不区分了，软件自己控制操作空间。直接在方法名前面加入`class_`来区分。第一个传参调整为类对象的指针，名称为self。
+
+注意：为方便后续部分方法调整为虚函数，以及代码统一，所有类对象代码的第一个参数都为**基类**的class指针对象。
+
+对于构造函数（析构也一样，不过本项目没有），定义函数`class_init`来实现，**因为编译器不会帮你调用，所以需要自己手动调用**。
+
+为了避免后续维护麻烦，init只做基本的操作，如默认值配置，主题加载等。参数的负责由外界其他操作方法来实现。
+
+```c
+// C++ class impl
+class AAA
+{
+    AAA(aaa) {}
+public:
+    void func_1(void)
+    {
+        
+    }
+    
+protect:
+    void func_2(void)
+    {
+        
+    }
+    
+private:
+    void func_3(void)
+    {
+        
+    }
+    
+    int aaa;
+}
+
+
+
+// C struct impl
+typedef struct AAA AAA;
+struct AAA
+{
+}
+void AAA_func_1(AAA *self)
+{
+
+}
+
+void AAA_func_2(AAA *self)
+{
+
+}
+
+void AAA_func_3(AAA *self)
+{
+    
+}
+void AAA_init(AAA *self)
+{
+	self->aaa = 0;
+}
+```
+
+
+
+
+
+
+
+
+### 类-虚函数
+
+这里最麻烦的就是**虚函数**了处理了，因为涉及到类继承，函数覆盖等处理。简单的处理就是一个虚函数一个函数指针，但是这样当类里面的虚函数比较多时，所以RAM就很多了。
+
+所以这里用一个麻烦的处理，用函数列表来做，所有集成类的构造函数（也就是`class_init`）需要重新赋值虚函数表。
+
+为区分，虚函数的函数命令需要在函数前面加入`class_`。还要声明一个结构体为`struct class_api`来定义虚函数表，同时类的成员加入`const class_api *api`来存储函数列表指针。
+
+```c
+// C++ class impl
+class AAA
+{
+    AAA(aaa) {}
+
+    virtual void func_virtual_1(void)
+    {
+        
+    }
+    
+    int aaa;
+}
+
+
+
+// C virtual api impl
+typedef struct AAA_api AAA_api;
+struct AAA_api
+{
+    void (*func_virtual_1)(AAA *self);
+}
+
+// C struct impl
+typedef struct AAA AAA;
+struct AAA
+{
+    const AAA_api* api; // virtual api
+}
+void AAA_func_virtual_1(AAA *self)
+{
+
+}
+
+static const AAA_api AAA_api_table = {
+        AAA_func_virtual_1,
+};
+
+void AAA_init(AAA *self)
+{
+	self->aaa = 0;
+    
+    self->api = &AAA_api_table; // set virtual api.
+}
+```
+
+
+
+
+
+### 类-继承
+
+暂时只考虑只继承一个父类，不考虑继承多个父类的处理。
+
+子类需要定义第一个成员为父类`base`，构造函数需要先调用父类的构造函数，有虚函数重写的，需要重新定义虚函数表，并覆盖。
+
+所有涉及虚函数，使用基类作为函数self传参。虚函数实现的api接口，传参为基类的api，需要转一下`BBB *b= (BBB*)self;`。
+
+```c
+// C++ class impl
+class AAA
+{
+    virtual void func_virtual_1(void)
+    {
+        
+    }
+}
+
+class BBB : public AAA
+{
+    virtual void func_virtual_1(void)
+    {
+        
+    }
+}
+
+
+// C virtual api impl
+typedef struct AAA_api AAA_api;
+struct AAA_api
+{
+    void (*func_virtual_1)(AAA *self);
+}
+
+// C struct impl
+typedef struct AAA AAA;
+struct AAA
+{
+    const AAA_api* api; // virtual api
+}
+void AAA_func_virtual_1(AAA *self)
+{
+
+}
+
+static const AAA_api AAA_api_table = {
+        AAA_func_virtual_1,
+};
+
+void AAA_init(AAA *self)
+{
+    self->api = &AAA_api_table; // set virtual api.
+}
+
+
+
+
+// C struct impl
+typedef struct BBB BBB_t;
+struct BBB
+{
+    AAA base; // base class
+}
+void BBB_func_virtual_1(AAA *self)
+{
+	BBB *bbb = (BBB *)self;
+}
+
+static const AAA_api BBB_api_table = {
+        BBB_func_virtual_1,
+};
+
+void BBB_init(BBB *self)
+{
+	AAA_init(&self->base); // call base init func
+    
+    self->base.api = &BBB_api_table; // set virtual api.
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

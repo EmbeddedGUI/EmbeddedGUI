@@ -1,0 +1,343 @@
+#
+# 'make'        build executable file 'main'
+# 'make clean'  removes all .o and executable files
+#
+.DEFAULT_GOAL := all
+
+ifeq ($(OS),Windows_NT)
+TOOLCHAIN_DIR 	= D:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\12.2 mpacbti-rel1
+JLINK_DIR = C:\Program Files\SEGGER\JLink
+JLINK = "$(JLINK_DIR)/JLink.exe"
+JLINK_GDB = "$(JLINK_DIR)/JLinkGDBServer.exe"
+else
+TOOLCHAIN_DIR = /usr/gcc-arm-none-eabi-7-2018-q2-update
+JLINK = JLinkExe 
+JLINK_GDB = JLinkGDBServerExe
+endif
+
+COMPILE_PREFIX 	+= $(TOOLCHAIN_DIR)/bin/arm-none-eabi-
+
+# define output directory
+OUTPUT_PATH	:= output
+
+# define the C object files 
+OBJ_PATH 	:= $(OUTPUT_PATH)/obj/1/2/3/4/5
+
+# define the target
+TARGET		  	?= $(OUTPUT_PATH)/main
+
+
+
+
+SRC += $(DRIVER_DIR)/src $(CMSIS_DEVICE_DIR)/Source
+INCLUDE += $(DRIVER_DIR)/inc $(CMSIS_DEVICE_DIR)/Include $(CMSIS_DIR)/Include
+
+
+
+
+
+
+# define the C compiler to use
+CC      := $(COMPILE_PREFIX)gcc
+CXX     := $(COMPILE_PREFIX)g++
+OBJDUMP := $(COMPILE_PREFIX)objdump
+OBJCOPY := $(COMPILE_PREFIX)objcopy
+GDB     := $(COMPILE_PREFIX)gdb
+AR      := $(COMPILE_PREFIX)ar
+SIZE    := $(COMPILE_PREFIX)size
+NM      := $(COMPILE_PREFIX)nm
+OPENOCD := openocd
+
+## cpu setting ##
+CPU_ARCH ?= cortex-m0
+
+LINKER_SCRIPT ?= 
+
+## Small Functions ##
+get_csrcs = $(foreach subdir, $(1), $(wildcard $(subdir)/*.c $(subdir)/*.C))
+get_asmsrcs = $(foreach subdir, $(1), $(wildcard $(subdir)/*.s $(subdir)/*.S))
+get_cxxsrcs = $(foreach subdir, $(1), $(wildcard $(subdir)/*.cpp $(subdir)/*.CPP))
+check_item_exist = $(strip $(if $(filter 1, $(words $(1))),$(filter $(1), $(sort $(2))),))
+# ----------------------------------------------------------------------------
+# Function:  unique
+# Arguments: 1: A list from which to remove repeated elements
+# Returns:   The list with duplicate elements removed without reordering
+# ----------------------------------------------------------------------------
+unique = $(strip $(__gmsl_tr1) $(if $1,$(firstword $1) \
+                               $(call unique,$(filter-out $(firstword $1),$1))))
+
+
+## MAKEFILE COMPILE MESSAGE CONTROL ##
+ifeq ($(V),1)
+	Q=
+else
+	Q=@
+endif
+
+## Suppress All Message ##
+ifeq ($(SILENT), 1)
+	TRACE_CREATE_DIR    =
+	TRACE_COMPILE       =
+	TRACE_ASSEMBLE      =
+	TRACE_LINK          =
+	TRACE_ARCHIVE       =
+	## Overwrite Q Value set by V option ##
+	override Q=@
+else
+	TRACE_CREATE_DIR    = @$(ECHO) Creating Directory : "$(@D)"
+	TRACE_COMPILE       = @$(ECHO) Compiling  : "$<"
+	TRACE_ASSEMBLE      = @$(ECHO) Assembling : "$<"
+	TRACE_LINK          = @$(ECHO) Linking    : "$@"
+	TRACE_ARCHIVE       = @$(ECHO) Archiving  : "$@"
+endif
+
+###
+# For Windows, in Win9x, COMSPEC is defined, WinNT, ComSpec is defined
+###
+ifdef ComSpec
+	WINCMD:=$(ComSpec)
+endif
+ifdef COMSPEC
+	WINCMD:=$(COMSPEC)
+endif
+
+ifneq "$(WINCMD)" ""
+ifneq "$(findstring /cygdrive/,$(PATH))" ""
+	HOST_OS:=Cygwin
+else
+	HOST_OS:=Windows
+endif
+else
+	HOST_OS:=$(shell uname)
+endif
+
+##
+# Define one space
+##
+nullstring=
+space=$(nullstring) # one space
+
+RM=rm -rf
+RMD=rm -rf
+ECHO=echo
+CP=cp -rf
+MKD = mkdir -p
+PS=/$(nullstring)
+NULL=/dev/null
+FIXPATH = $1
+PATHCHECK = 
+
+## Check OS ##
+## Check OS == Windows ##
+ifeq "$(HOST_OS)" "Windows"
+	PS=\$(nullstring)
+	NULL=NUL
+	DOS_CMD=$(WINCMD) /C
+	# when OS is windows, force SHELL to be cmd
+	# or if in your evironment path there is
+	# a mingw shell, the make process will go wrong
+	SHELL:=$(WINCMD)
+
+	RM=del /q /s
+	RMD=del /q /s
+	MKD = mkdir
+	FIXPATH = $(subst /,\,$1)
+	PATHCHECK = $(Q)if not exist "$@"
+endif
+
+## Check OS == Linux ##
+ifeq "$(HOST_OS)" "Linux"
+	PS=/$(nullstring)
+	NULL=/dev/null
+endif
+
+## Check OS == Darwin ##
+ifeq "$(HOST_OS)" "Darwin"
+	PS=/$(nullstring)
+	NULL=/dev/null
+endif
+
+
+MKDEP_OPT = -MMD -MT $@ -MF $@.d
+C_INCLUDE_OPT = $(foreach dir,$(sort $(INCLUDE) $(C_INCDIRS)),-I$(dir))
+CXX_INCLUDE_OPT = $(foreach dir,$(sort $(INCLUDE) $(CXX_INCDIRS)),-I$(dir))
+ASM_INCLUDE_OPT = $(foreach dir,$(sort $(INCLUDE) $(ASM_INCDIRS)),-I$(dir))
+
+ifeq ($(NOGC),1)
+GC_CFLAGS =
+GC_LDFLAGS =
+else
+GC_CFLAGS = -ffunction-sections -fdata-sections
+GC_LDFLAGS = -Wl,--gc-sections -Wl,--check-sections
+endif
+
+## Common flags ##
+COMMON_FLAGS += -g
+
+
+STDCLIB_LDFLAGS ?= -lc_nano -lnosys -lgcc
+#STDCLIB_LDFLAGS ?= --specs=nano.specs --specs=nosys.specs
+#STDCLIB_LDFLAGS := -nostdlib -nostdinc
+#STDCLIB_LDFLAGS := -nostdlib
+
+
+
+
+COMMON_FLAGS += -mthumb -mcpu=$(CPU_ARCH)
+
+# COMMON_FLAGS += -munaligned-access
+
+# warning param setting
+COMMON_FLAGS	+= -Wall
+# think use -Os.
+# COMMON_FLAGS	+= -Wno-unused-function
+# COMMON_FLAGS	+= -Wno-unused-variable
+
+# COMMON_FLAGS	+= -Wstrict-prototypes
+# COMMON_FLAGS	+= -Wshadow
+# COMMON_FLAGS	+= -Werror
+COMMON_FLAGS	+= -Wno-implicit-function-declaration
+COMMON_FLAGS	+= -Wno-unused-variable
+
+# spec c version
+#COMMON_FLAGS  += -std=c99
+
+# for makefile depend tree create
+COMMON_FLAGS  += -MMD -MP
+
+# for weak.
+COMMON_FLAGS  += -fno-common
+
+# other config.
+COMMON_FLAGS += $(APP_COMMON_FLAGS) $(GC_CFLAGS)
+
+CFLAGS += $(COMMON_FLAGS) $(APP_CFLAGS) $(C_INCLUDE_OPT)
+CXXFLAGS += $(COMMON_FLAGS) $(APP_CXXFLAGS) $(CXX_INCLUDE_OPT)
+ASMFLAGS += -x assembler-with-cpp $(COMMON_FLAGS) $(APP_ASMFLAGS) $(ASM_INCLUDE_OPT)
+
+LIB_OPT = $(addprefix -L, $(sort $(LIBDIRS)))
+
+LDFLAGS += -T $(LINKER_SCRIPT) -Wl,-Map=$(TARGET).map -Wl,--no-warn-rwx-segments\
+		$(APP_LDFLAGS) $(GC_LDFLAGS) $(STDCLIB_LDFLAGS) \
+		$(LIB_OPT) -Wl,--start-group $(LDLIBS) -Wl,--end-group
+
+
+# Prerequesties
+MAKEFILE_PREREQS += Makefile
+#MAKEFILE_PREREQS += build.mk
+
+LINK_PREREQS += $(LINKER_SCRIPT)
+
+COMMON_PREREQS = $(MAKEFILE_PREREQS) $(LINK_PREREQS)
+
+
+# Set your GDB port using variable GDB_PORT
+GDB_PORT ?= 2331
+
+GDB_CMDS += -ex "set remotetimeout 240"
+GDB_CMDS += -ex "target extended-remote localhost:$(GDB_PORT)"
+
+# define the C source files
+ALL_CSRCS = $(filter-out $(wildcard $(EXCLUDE_SRCS)), $(sort $(wildcard $(C_SRCS)) $(call get_csrcs, $(SRC) $(C_SRCDIRS))))
+ALL_CXXSRCS = $(filter-out $(wildcard $(EXCLUDE_SRCS)), $(sort $(wildcard $(CXX_SRCS)) $(call get_cxxsrcs, $(SRC) $(CXX_SRCDIRS))))
+ALL_ASMSRCS = $(filter-out $(wildcard $(EXCLUDE_SRCS)), $(sort $(wildcard $(ASM_SRCS)) $(call get_asmsrcs, $(SRC) $(ASM_SRCDIRS))))
+
+
+
+ALL_ASM_OBJS := $(addprefix $(OBJ_PATH)/, $(ALL_ASMSRCS:=.o))
+ALL_C_OBJS := $(addprefix $(OBJ_PATH)/, $(ALL_CSRCS:=.o))
+ALL_CXX_OBJS := $(addprefix $(OBJ_PATH)/, $(ALL_CXXSRCS:=.o))
+
+ALL_OBJS += $(ALL_ASM_OBJS) $(ALL_C_OBJS) $(ALL_CXX_OBJS)
+
+ALL_DEPS := $(ALL_OBJS:=.d)
+
+ALL_OBJ_PATH := $(call unique, $(dir $(ALL_OBJS)))
+
+CLEAN_OBJS += $(OUTPUT_PATH) openocd.log
+
+
+
+
+
+
+# include dependency files of application
+ifneq ($(MAKECMDGOALS),clean)
+-include $(ALL_DEPS)
+endif
+
+#
+# The following part of the makefile is generic; it can be used to 
+# build any executable just by changing the definitions above and by
+# deleting dependencies appended to the file from 'make depend'
+#
+
+.PHONY: all clean
+
+# Default goal, placed before dependency includes
+all: $(ALL_OBJ_PATH) $(TARGET).elf
+
+# Create all outpath.
+$(ALL_OBJ_PATH):
+	$(PATHCHECK) $(Q)$(MKD) $(call FIXPATH, $@)
+
+$(TARGET).elf: $(ALL_OBJS)
+	$(TRACE_LINK)
+	$(Q)$(CC) $(CFLAGS) $(ALL_OBJS) -o $@ $(LDFLAGS)
+	$(Q)$(SIZE) $@
+
+$(ALL_ASM_OBJS): $(OBJ_PATH)/%.o: % $(COMMON_PREREQS)
+	$(TRACE_ASSEMBLE)
+	$(Q)$(CC) $(ASMFLAGS) $(MKDEP_OPT) -c -o $@ $<
+
+$(ALL_C_OBJS): $(OBJ_PATH)/%.o: % $(COMMON_PREREQS)
+	$(TRACE_COMPILE)
+	$(Q)$(CC) $(CFLAGS) $(MKDEP_OPT) -c -o $@ $<
+
+$(ALL_CXX_OBJS): $(OBJ_PATH)/%.o: % $(COMMON_PREREQS)
+	$(TRACE_COMPILE)
+	$(Q)$(CXX) $(CXXFLAGS) $(MKDEP_OPT) -c -o $@ $<
+
+dasm: $(TARGET).elf hex bin
+	-"$(OBJDUMP)" -S -d $< > $(TARGET).dump
+	-"$(OBJDUMP)" -d $< > $(TARGET).dasm
+	-$(OBJCOPY) $< -O srec $(TARGET).srec
+	-$(OBJCOPY) $< -O verilog $(TARGET).verilog
+
+# https://blog.csdn.net/qq_41017902/article/details/107363409
+symbol: $(TARGET).elf
+	-"$(NM)" -n -g -l $< > $(TARGET).symbol
+#-"$(NM)" -n -g $< > $(TARGET).symbol
+
+bin: $(TARGET).elf
+	$(OBJCOPY) $< -O binary $(TARGET).bin
+
+hex: $(TARGET).elf
+	-$(OBJCOPY) $< -O ihex $(TARGET).hex
+
+size: $(TARGET).elf
+	$(Q)$(SIZE) $<
+
+run: hex
+	@$(ECHO) "Download and run $<"
+	$(JLINK) -autoconnect 1 -device $(JLINK_DEVICE) -if swd -speed 4000 -commandfile $(GCC_DIR)/$(JLINK_DEVICE).jlink >./output/jlink.log
+
+upload: hex
+	@$(ECHO) "Download and run $<"
+	$(JLINK) -autoconnect 1 -device $(JLINK_DEVICE) -if swd -speed 4000 -commandfile $(GCC_DIR)/$(JLINK_DEVICE).jlink >./output/jlink.log
+
+gdb_server:
+	@$(ECHO) "Start JLinkGDBServer"
+	$(JLINK_GDB) -select USB -device $(JLINK_DEVICE) -endian little -if SWD -speed 4000 -noir -noreset -LocalhostOnly -logtofile -log ./output/jlink_gdb.log -port $(GDB_PORT)
+
+debug: $(TARGET).elf
+	@$(ECHO) "Download and debug $<"
+	$(GDB) $< $(GDB_CMDS)
+
+clean:
+#	$(RM) $(OUTPUT_MAIN)
+#	$(RM) $(OBJECTS)
+#	$(RM) $(OBJDIR)
+	$(Q)$(RM) $(call FIXPATH, $(CLEAN_OBJS))
+	@$(ECHO) Cleanup complete!
+

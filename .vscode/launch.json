@@ -1,0 +1,66 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug(macos lldb)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/output/main",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "gdb.exe",
+            "program": "${workspaceFolder}/output/main.exe",
+            "preLaunchTask": "build"
+        },
+        
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            //"request": "attach",
+            "name": "Debug cm0",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/output/main.elf",
+            "serverpath": "${config:cortex-debug.JLinkGDBServerPath}",
+            "servertype": "jlink",
+            "device": "STM32F030C8",
+            "interface": "swd",
+            "serialNumber": "", //If you have more than one J-Link probe, add the serial number here.
+            "runToMain": true,
+            "preLaunchTask": "build_cm0"
+        },
+        
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            //"request": "attach",
+            "name": "Debug stm32g0",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/output/main.elf",
+            "serverpath": "${config:cortex-debug.JLinkGDBServerPath}",
+            "servertype": "jlink",
+            "device": "STM32G0B0RE",
+            "interface": "swd",
+            "serialNumber": "", //If you have more than one J-Link probe, add the serial number here.
+            "runToMain": true,
+            "preLaunchTask": "build_stm32g0"
+        }
+    ]
+}
