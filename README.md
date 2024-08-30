@@ -6,6 +6,8 @@
 
 本项目主要参考：[GuiLite](https://gitee.com/idea4good/GuiLite)、[Arm-2D](https://github.com/ARM-software/Arm-2D)、[EasyGUI](https://github.com/MaJerle/EasyGUI)、[lvgl](https://github.com/lvgl/lvgl)和Android GUI框架。
 
+本项目仓库路径：[EmbeddedGUI(gitee.com)](https://gitee.com/embeddedgui/EmbeddedGUI)，[EmbeddedGUI(github.com)](https://github.com/EmbeddedGUI/EmbeddedGUI)。
+
 
 
 # 产品特点
