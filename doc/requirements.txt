@@ -1,0 +1,5 @@
+# DOC: used to generate docs
+
+sphinx
+sphinx_rtd_theme
+myst-parser
