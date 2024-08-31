@@ -1,5 +1,7 @@
 # 简介
 
+[![Documentation Status](https://readthedocs.org/projects/embeddedgui/badge/?version=latest)](https://embeddedgui.readthedocs.io/en/latest/?badge=latest)
+
 本项目主要面对RAM资源有限（<8KB），ROM资源有限（<64KB，主要看所需字体和贴图资源），CPU资源还充裕（<100MHz，不支持浮点，FPS在30左右）。需要支持触控、ViewPage等主流的UI控制行为。Framebuffer采用PFB设计，用户可以根据需要选择不同尺寸的PFB大小来平衡屏幕刷新率。
 
 本项目提供一套基于PFB设计的GUI架构。基于面向对象的编码方式，UI参考Android UI架构，用户可以轻松定义项目所需的控件。
