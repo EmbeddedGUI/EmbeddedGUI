@@ -46,7 +46,26 @@
     <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/ty6sb-byumu.gif" width="200px;"/><br /><sub><b>HelloActivity</b></sub></a>
     <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/4riwf-3j8ki.gif" width="200px;"/><br /><sub><b>HelloTest</b></sub></a>
   </tr>
+  <tr>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/20240831_140522_anim.gif" width="200px;"/><br /><sub><b>HelloBasic(anim)</b></sub></a>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/20240831_163738_button.gif" width="200px;"/><br /><sub><b>HelloBasic(button)</b></sub></a>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/20240831_163834_button_img.gif" width="200px;"/><br /><sub><b>HelloBasic(button_img)</b></sub></a>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/20240831_163916_image.gif" width="200px;"/><br /><sub><b>HelloBasic(image)</b></sub></a>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/20240831_163934_label.gif" width="200px;"/><br /><sub><b>HelloBasic(label)</b></sub></a>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/20240831_163953_linearlayout.gif" width="200px;"/><br /><sub><b>HelloBasic(linearlayout)</b></sub></a>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/20240831_164042_mask.gif" width="200px;"/><br /><sub><b>HelloBasic(mask)</b></sub></a>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/20240831_164122_scroll.gif" width="200px;"/><br /><sub><b>HelloBasic(scroll)</b></sub></a>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/20240831_164159_switch.gif" width="200px;"/><br /><sub><b>HelloBasic(switch)</b></sub></a>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/20240831_164234_viewpage.gif" width="200px;"/><br /><sub><b>HelloBasic(viewpage)</b></sub></a>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/20240831_164411_progress_bar.gif" width="200px;"/><br /><sub><b>HelloBasic(progress_bar)</b></sub></a>
+    <td align="center"><img src="" width="200px;"/><br /><sub><b></b></sub></a>
+  </tr>
 </table>
+
 
 
 
