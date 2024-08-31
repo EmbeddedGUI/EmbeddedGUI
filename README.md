@@ -182,7 +182,11 @@ make all APP=HelloSimple
 
 
 
+# 社区交流
 
+欢迎大家入群交流讨论。
+
+<img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/23901725079354_.pic.jpg" alt="23901725079354_.pic" style="zoom:50%;" />
 
 
 
