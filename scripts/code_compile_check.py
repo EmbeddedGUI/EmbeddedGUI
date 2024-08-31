@@ -2,6 +2,8 @@ import os
 import sys
 import argparse
 
+mutil_work = True
+
 def get_example_list():
     path = 'example'
     app_list = []
@@ -34,7 +36,10 @@ def compile_code(params):
     res = os.system(cmd)
     if res != 0:
         return res
-    cmd = 'make all -j' + params
+    if mutil_work:
+        cmd = 'make -j' + params
+    else:
+        cmd = 'make' + params
     print(cmd)
     res = os.system(cmd)
     if res != 0:
@@ -43,7 +48,9 @@ def compile_code(params):
     return 0
 
 
-port_sets = ['pc', 'stm32g0_empty']
+port_sets = ['pc'
+             , 'stm32g0_empty'
+             ]
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -51,11 +58,15 @@ def parse_args():
                         action="store_true",
                         default=False,
                         help="For normal build.")
+    
+    parser.add_argument("--actions",
+                        action="store_true",
+                        default=False,
+                        help="For normal build.")
                         
     return parser.parse_args()
 
 def process_app(current_work_cnt, total_work_cnt, app, port, app_basic, params):
-    current_work_cnt += 1
     print("=================================================================================")
     print("Total Work Cnt: %d, Current Cnt: %d, Process: %.2f%%" 
         % (total_work_cnt, current_work_cnt, current_work_cnt * 100.0 / total_work_cnt))
@@ -74,6 +85,11 @@ def process_app(current_work_cnt, total_work_cnt, app, port, app_basic, params):
 if __name__ == '__main__':
     args = parse_args()
 
+    actions = args.actions
+    if actions:
+        port_sets = ['pc']
+        mutil_work = False
+
     #params = ' V=1'
     params = ''
 
@@ -85,7 +101,6 @@ if __name__ == '__main__':
         sys.exit(res)
 
     full_check = args.full_check
-    full_check = True
     if full_check:
         total_work_cnt = 0
         for app in app_sets:
@@ -101,8 +116,10 @@ if __name__ == '__main__':
             for port in port_sets:
                 if app == "HelloBasic":
                     for app_basic in app_basic_sets:
+                            current_work_cnt += 1
                             process_app(current_work_cnt, total_work_cnt, app, port, app_basic, params)
                 else:
+                    current_work_cnt += 1
                     process_app(current_work_cnt, total_work_cnt, app, port, None, params)
     
     sys.exit(0)

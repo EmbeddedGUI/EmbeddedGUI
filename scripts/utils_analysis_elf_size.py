@@ -129,7 +129,6 @@ def compile_code(params):
 
 
 def process_app(current_work_cnt, total_work_cnt, app, app_basic, params):
-    current_work_cnt += 1
     print("=================================================================================")
     print("Total Work Cnt: %d, Current Cnt: %d, Process: %.2f%%" 
         % (total_work_cnt, current_work_cnt, current_work_cnt * 100.0 / total_work_cnt))
@@ -180,8 +179,10 @@ if __name__ == '__main__':
     for app in app_sets:
         if app == "HelloBasic":
             for app_basic in app_basic_sets:
+                current_work_cnt += 1
                 info_str += process_app(current_work_cnt, total_work_cnt, app, app_basic, params)
         else:
+            current_work_cnt += 1
             info_str += process_app(current_work_cnt, total_work_cnt, app, None, params)
     
     with open('output/README.md', 'w', encoding='utf-8') as f:

@@ -13,5 +13,5 @@ jobs:
         uses: rlalik/setup-cpp-compiler@v1.2
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       - name: Start Compile Test, full compile check.
-        run: python scripts\code_compile_check.py --full-check
+        run: python scripts\code_compile_check.py --full-check --actions
       - run: echo "🍏 This job's status is ${{ job.status }}."
