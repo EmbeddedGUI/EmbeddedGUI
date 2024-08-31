@@ -39,12 +39,14 @@
 
 有点丑，但是核心机制已经演示出来了，剩下基于这个框架加自己东西就行。
 
-| 例程名称               | 效果图                                                       |
-| ---------------------- | ------------------------------------------------------------ |
-| HelloSimple            | ![bbgq1-zg4av](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/bbgq1-zg4av.gif) |
-| HelloViewPageAndScroll | ![7cd1j-vnj2z](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/7cd1j-vnj2z.gif) |
-| HelloActivity          | ![ty6sb-byumu](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/ty6sb-byumu.gif) |
-| HelloTest              | ![4riwf-3j8ki](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/4riwf-3j8ki.gif) |
+<table>
+  <tr>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/bbgq1-zg4av.gif" width="200px;"/><br /><sub><b>HelloSimple</b></sub></a>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/7cd1j-vnj2z.gif" width="200px;"/><br /><sub><b>HelloViewPageAndScroll</b></sub></a>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/ty6sb-byumu.gif" width="200px;"/><br /><sub><b>HelloActivity</b></sub></a>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/4riwf-3j8ki.gif" width="200px;"/><br /><sub><b>HelloTest</b></sub></a>
+  </tr>
+</table>
 
 
 
@@ -106,6 +108,8 @@
 以`HelloSimple`为例，实现1个button+1个label只需要`15360`的code size和`800`字节的ram size，资源占用`6620`Bytes，PFB占用`1536`Bytes。
 
 ![bbgq1-zg4av](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/bbgq1-zg4av.gif)
+
+
 
 
 
@@ -186,7 +190,7 @@ make all APP=HelloSimple
 
 欢迎大家入群交流讨论。
 
-<img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/23901725079354_.pic.jpg" alt="23901725079354_.pic" style="zoom:50%;" />
+<img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/23901725079354_.pic.jpg" alt="23901725079354_.pic"  width="400px;" />
 
 
 
