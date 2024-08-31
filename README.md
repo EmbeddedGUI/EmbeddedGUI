@@ -1,6 +1,8 @@
 # 简介
 
-[![Documentation Status](https://readthedocs.org/projects/embeddedgui/badge/?version=latest)](https://embeddedgui.readthedocs.io/en/latest/?badge=latest)
+[![Compile Check](https://github.com/EmbeddedGUI/EmbeddedGUI/actions/workflows/github-actions-demo.yml/badge.svg)](https://github.com/bobwenstudy/zephyr_polling/actions/workflows/github-actions-demo.yml) [![Documentation Status](https://readthedocs.org/projects/embeddedgui/badge/?version=latest)](https://embeddedgui.readthedocs.io/en/latest/?badge=latest)
+
+文档地址：[欢迎来到EmbeddedGUI的文档](https://embeddedgui.readthedocs.io/en/latest/)
 
 本项目主要面对RAM资源有限（<8KB），ROM资源有限（<64KB，主要看所需字体和贴图资源），CPU资源还充裕（<100MHz，不支持浮点，FPS在30左右）。需要支持触控、ViewPage等主流的UI控制行为。Framebuffer采用PFB设计，用户可以根据需要选择不同尺寸的PFB大小来平衡屏幕刷新率。
 
@@ -175,7 +177,6 @@ make all APP=HelloSimple
 ```
 
 执行`make run`后，在windows环境就会弹出一个窗口，演示GUI效果了。
-
 
 
 
