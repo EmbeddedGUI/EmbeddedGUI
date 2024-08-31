@@ -190,8 +190,8 @@ Windows编译，最终生成exe，可以直接在PC上跑。
 
 根据具体需要可以调整一些参数，目前Makefile支持如下参数配置。
 
-- **APP**：选择example中的例程，默认选择为`Hello3D`。
-- **PORT**：选择porting中的环境，也就是当前平台，默认选择为`windows`，stm32g0需要专门的开发板环境，平时可以用于评估code size和ram size。
+- **APP**：选择example中的例程，默认选择为`HelloSimple`。
+- **PORT**：选择porting中的环境，也就是当前平台，默认选择为`pc`，stm32g0需要专门的开发板环境，平时可以用于评估code size和ram size。
 
 也就是可以通过如下指令来编译工程：
 
