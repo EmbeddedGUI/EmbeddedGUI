@@ -7,8 +7,9 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <SDL2/SDL.h>
 #include "egui.h"
+#define SDL_MAIN_HANDLED
+#include <SDL2/SDL.h>
 
 #define VT_WIDTH       EGUI_CONFIG_SCEEN_WIDTH
 #define VT_HEIGHT      EGUI_CONFIG_SCEEN_HEIGHT

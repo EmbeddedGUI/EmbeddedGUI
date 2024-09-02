@@ -7,10 +7,11 @@ INCLUDE	+= $(PORT_PATH)
 # define lib directory
 LIB		+=
 
+BITS ?= 32
 
 ifeq ($(OS),Windows_NT)
-	INCLUDE  += porting/pc/sdl2/32/include
-	LIB  += porting/pc/sdl2/32/lib/x86
+	INCLUDE  += porting/pc/sdl2/$(BITS)/include
+	LIB  += porting/pc/sdl2/$(BITS)/lib
 	LFLAGS  += -lSDL2main -lSDL2 -lpthread
 	COMMON_FLAGS  +=  -flto
 	LDFLAGS  +=  -Wl,--warn-common -flto
@@ -37,7 +38,7 @@ endif
 
 output/SDL2.dll:
 	@$(ECHO) Copy SDL2.dll
-	@-cmd /c copy $(call FIXPATH, porting\pc\sdl2\32\bin\SDL2.dll) $(OUTPUT_PATH)\SDL2.dll
+	@-cmd /c copy $(call FIXPATH, porting\pc\sdl2\$(BITS)\bin\SDL2.dll) $(OUTPUT_PATH)\SDL2.dll
 
 
 include $(PORT_PATH)/Makefile.base

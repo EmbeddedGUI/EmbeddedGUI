@@ -24,6 +24,7 @@ void app_set_gpio(uint8_t pin, uint8_t state)
 
 static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
 
+
 int main(int argc, char *argv[])
 {
     printf("Hello, egui!\n");

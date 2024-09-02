@@ -63,6 +63,11 @@ def parse_args():
                         action="store_true",
                         default=False,
                         help="For normal build.")
+    
+    parser.add_argument("--bits64",
+                        action="store_true",
+                        default=False,
+                        help="For 64bit build.")
                         
     return parser.parse_args()
 
@@ -92,6 +97,9 @@ if __name__ == '__main__':
 
     #params = ' V=1'
     params = ''
+
+    if args.bits64:
+        params += ' BITS=64'
 
     app_sets = get_example_list()
     app_basic_sets = get_example_basic_list()
