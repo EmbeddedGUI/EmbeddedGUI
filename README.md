@@ -199,7 +199,7 @@ Windows编译，最终生成exe，可以直接在PC上跑。
 make all APP=HelloSimple
 ```
 
-执行`make run`后，在windows环境就会弹出一个窗口，演示GUI效果了。
+执行`make run`后，在PC环境就会弹出一个窗口，演示GUI效果了。
 
 
 
@@ -209,9 +209,12 @@ make all APP=HelloSimple
 
 欢迎大家入群交流讨论。
 
-<img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/23901725079354_.pic.jpg" alt="23901725079354_.pic"  width="400px;" />
-
-
+<table>
+  <tr>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/23901725079354_.pic.jpg" width="300px;" height="400px"/><br /><sub><b>QQ</b></sub></a>
+    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/微信图片_20240902154325.jpg" width="300px;" height="400px"/><br /><sub><b>WeChat</b></sub></a>
+  </tr>
+</table>
 
 
 

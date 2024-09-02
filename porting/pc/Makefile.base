@@ -203,7 +203,7 @@ size:
 	$(Q)@$(SIZE) --format=berkeley $(OUTPUT_MAIN)
 
 .PHONY: all
-all: | info $(MAIN) $(USER_COMPILE_TARGETS)
+all: | info $(MAIN)
 	@$(ECHO) Executing 'all' complete!
 
 # @$(ECHO) Print Size
@@ -226,7 +226,7 @@ $(OUTPUT_MAIN): $(OBJECTS)
 	@$(ECHO) Linking    : "$@"
 	$(Q)$(CC) $(COMMON_FLAGS) $(LDFLAGS) $(INCLUDES) -o $(OUTPUT_MAIN) $(OBJECTS) $(LFLAGS) $(LIBS) $(OUTPUT_BT_LIB)
 
-$(MAIN): | $(OUTPUT_PATH) $(OBJDIR) $(OBJ_MD) $(OUTPUT_MAIN)
+$(MAIN): | $(OUTPUT_PATH) $(OBJDIR) $(OBJ_MD) $(USER_COMPILE_TARGETS) $(OUTPUT_MAIN)
 	@$(ECHO) Building   : "$(OUTPUT_MAIN)"
 
 # Static Pattern Rules [targets ...: target-pattern: prereq-patterns ...]
