@@ -153,6 +153,12 @@ void st7789_init(void)
     ST7789_RST_SET();
     HAL_Delay(20);
 
+    // Change to little enddian.
+    st7789_write_command(0xB0); //	RAMCTRL
+    {
+        uint8_t data[] = {0x00, 0xF8}; // Little Enddian
+        st7789_write_data(data, sizeof(data));
+    }
     st7789_write_command(ST7789_COLMOD); //	Set color mode
     st7789_write_small_data(ST7789_COLOR_MODE_16bit);
     st7789_write_command(0xB2); //	Porch control
