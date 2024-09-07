@@ -24,6 +24,20 @@ const uint8_t egui_image_alpha_change_table_4[] = {
         EGUI_FONT_ALPHA_VALUE_4(0x0c), EGUI_FONT_ALPHA_VALUE_4(0x0d), EGUI_FONT_ALPHA_VALUE_4(0x0e), EGUI_FONT_ALPHA_VALUE_4(0x0f),
 };
 
+
+const uint8_t egui_image_data_type_size_table[] = {
+        4, /* EGUI_IMAGE_DATA_TYPE_RGB32 */
+        2, /* EGUI_IMAGE_DATA_TYPE_RGB565 */
+        1, /* EGUI_IMAGE_DATA_TYPE_GRAY8 */
+};
+
+const uint8_t egui_image_alpha_type_size_table[] = {
+        1, /* EGUI_IMAGE_ALPHA_TYPE_1 */
+        2, /* EGUI_IMAGE_ALPHA_TYPE_2 */
+        4, /* EGUI_IMAGE_ALPHA_TYPE_4 */
+        8, /* EGUI_IMAGE_ALPHA_TYPE_8 */
+};
+
 typedef void(egui_image_std_get_pixel)(egui_image_std_info_t *image, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha);
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32
@@ -36,18 +50,20 @@ __EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb32(egui_image_std_info_t
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565
-__EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565_limit(egui_image_std_info_t *image, egui_dim_t x, egui_dim_t y, egui_color_t *color)
+__EGUI_STATIC_INLINE__ void egui_image_std_get_col_pixel_rgb565_limit(const uint16_t *p_data, egui_dim_t col_index, egui_color_t *color)
 {
-    uint16_t sel_color = 0;
-    uint16_t width = image->width;
-    uint16_t height = image->height;
-    const uint16_t *p_data = image->data_buf;
-    const uint8_t *p_alpha = image->alpha_buf;
-    uint32_t sel_pos = x + y * image->width;
-
-    sel_color = p_data[sel_pos];
+    uint32_t sel_pos = col_index;
+    uint16_t sel_color = p_data[sel_pos];
 
     color->full = EGUI_COLOR_RGB565_TRANS(sel_color);
+}
+
+__EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565_limit(egui_image_std_info_t *image, egui_dim_t x, egui_dim_t y, egui_color_t *color)
+{
+    uint32_t row_start = y * image->width;
+    const uint16_t *p_data = image->data_buf;
+
+    egui_image_std_get_col_pixel_rgb565_limit(&p_data[row_start], x, color);
 }
 
 __EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565(egui_image_std_info_t *image, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
@@ -55,107 +71,121 @@ __EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565(egui_image_std_info_
     egui_image_std_get_pixel_rgb565_limit(image, x, y, color);
     *alpha = EGUI_ALPHA_100;
 }
+
+__EGUI_STATIC_INLINE__ void egui_image_std_get_col_pixel_rgb565(const uint16_t *p_data, const uint8_t *p_alpha, egui_dim_t col_index, egui_color_t *color, egui_alpha_t *alpha)
+{
+    egui_image_std_get_col_pixel_rgb565_limit(p_data, col_index, color);
+    *alpha = EGUI_ALPHA_100;
+}
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8
-__EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565_8(egui_image_std_info_t *image, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
+__EGUI_STATIC_INLINE__ void egui_image_std_get_col_pixel_rgb565_8(const uint16_t *p_data, const uint8_t *p_alpha, egui_dim_t col_index, egui_color_t *color, egui_alpha_t *alpha)
 {
-    uint16_t sel_color;
-    uint8_t sel_alpha;
-    uint16_t width = image->width;
-    uint16_t height = image->height;
-    const uint16_t *p_data = image->data_buf;
-    const uint8_t *p_alpha = image->alpha_buf;
-    uint32_t sel_pos = x + y * image->width;
-
-    sel_alpha = p_alpha[sel_pos];
-    sel_color = p_data[sel_pos];
+    uint32_t sel_pos = col_index;
+    uint16_t sel_color = p_data[sel_pos];
+    uint8_t sel_alpha = p_alpha[sel_pos];
 
     color->full = EGUI_COLOR_RGB565_TRANS(sel_color);
     *alpha = sel_alpha;
 }
+
+__EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565_8(egui_image_std_info_t *image, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
+{
+    uint32_t row_start = y * image->width;
+    const uint16_t *p_data = image->data_buf;
+    const uint8_t *p_alpha = image->alpha_buf;
+
+    egui_image_std_get_col_pixel_rgb565_8(&p_data[row_start], &p_alpha[row_start], x, color, alpha);
+}
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_4
-__EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565_4(egui_image_std_info_t *image, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
+__EGUI_STATIC_INLINE__ void egui_image_std_get_col_pixel_rgb565_4(const uint16_t *p_data, const uint8_t *p_alpha, egui_dim_t col_index, egui_color_t *color, egui_alpha_t *alpha)
 {
-    uint16_t sel_color;
-    uint8_t sel_alpha_data;
-    uint8_t sel_alpha;
     uint8_t bit_pos;
-    uint16_t width = image->width;
-    uint16_t height = image->height;
-    const uint16_t *p_data = image->data_buf;
-    const uint8_t *p_alpha = image->alpha_buf;
-    uint32_t sel_pos = x + y * image->width;
-    uint32_t sel_alpha_pos = y * ((image->width + 1) >> 1); // same to: ((image->width + 1) / 2);
+    uint32_t sel_pos = col_index;
+    // get alpha row position.
+    uint32_t sel_alpha_pos = col_index >> 1; // same to: x / 2
+    uint16_t sel_color = p_data[sel_pos];
+    uint8_t sel_alpha;
 
-    bit_pos = x & 0x01;     // 0x01
+    bit_pos = col_index & 0x01;     // 0x01
     bit_pos = bit_pos << 2; // same to: bit_pos * 4
 
-    // get alpha row position.
-    sel_alpha_pos += x >> 1; // same to: x / 2
-
     sel_alpha = ((p_alpha[sel_alpha_pos]) >> bit_pos) & 0x0F;
-    sel_color = p_data[sel_pos];
 
     color->full = EGUI_COLOR_RGB565_TRANS(sel_color);
     *alpha = egui_image_alpha_change_table_4[sel_alpha];
 }
+
+__EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565_4(egui_image_std_info_t *image, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
+{
+    uint32_t row_start = y * image->width;
+    uint32_t row_start_alpha = y * ((image->width + 1) >> 1); // same to: ((image->width + 1) / 2);
+    const uint16_t *p_data = image->data_buf;
+    const uint8_t *p_alpha = image->alpha_buf;
+
+    egui_image_std_get_col_pixel_rgb565_4(&p_data[row_start], &p_alpha[row_start_alpha], x, color, alpha);
+}
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_4
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2
-__EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565_2(egui_image_std_info_t *image, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
+__EGUI_STATIC_INLINE__ void egui_image_std_get_col_pixel_rgb565_2(const uint16_t *p_data, const uint8_t *p_alpha, egui_dim_t col_index, egui_color_t *color, egui_alpha_t *alpha)
 {
-    uint16_t sel_color;
-    uint8_t sel_alpha_data;
-    uint8_t sel_alpha;
     uint8_t bit_pos;
-    uint16_t width = image->width;
-    uint16_t height = image->height;
-    const uint16_t *p_data = image->data_buf;
-    const uint8_t *p_alpha = image->alpha_buf;
-    uint32_t sel_pos = x + y * image->width;
-    uint32_t sel_alpha_pos = y * ((image->width + 3) >> 2); // same to: ((image->width + 3) / 4);
+    uint32_t sel_pos = col_index;
+    // get alpha row position.
+    uint32_t sel_alpha_pos = col_index >> 2; // same to: x / 4
+    uint16_t sel_color = p_data[sel_pos];
+    uint8_t sel_alpha;
 
-    bit_pos = x & 0x03;     // 0x03
+    bit_pos = col_index & 0x03;     // 0x03
     bit_pos = bit_pos << 1; // same to: bit_pos * 2
 
-    // get alpha row position.
-    sel_alpha_pos += x >> 2; // same to: x / 4
-
     sel_alpha = ((p_alpha[sel_alpha_pos]) >> bit_pos) & 0x03;
-    sel_color = p_data[sel_pos];
 
     color->full = EGUI_COLOR_RGB565_TRANS(sel_color);
     *alpha = egui_image_alpha_change_table_2[sel_alpha];
 }
+
+__EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565_2(egui_image_std_info_t *image, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
+{
+    uint32_t row_start = y * image->width;
+    uint32_t row_start_alpha = y * ((image->width + 3) >> 2); // same to: ((image->width + 3) / 4);
+    const uint16_t *p_data = image->data_buf;
+    const uint8_t *p_alpha = image->alpha_buf;
+
+    egui_image_std_get_col_pixel_rgb565_2(&p_data[row_start], &p_alpha[row_start_alpha], x, color, alpha);
+}
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1
-__EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565_1(egui_image_std_info_t *image, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
+__EGUI_STATIC_INLINE__ void egui_image_std_get_col_pixel_rgb565_1(const uint16_t *p_data, const uint8_t *p_alpha, egui_dim_t col_index, egui_color_t *color, egui_alpha_t *alpha)
 {
-    uint16_t sel_color;
-    uint8_t sel_alpha_data;
-    uint8_t sel_alpha;
     uint8_t bit_pos;
-    uint16_t width = image->width;
-    uint16_t height = image->height;
-    const uint16_t *p_data = image->data_buf;
-    const uint8_t *p_alpha = image->alpha_buf;
-    uint32_t sel_pos = x + y * image->width;
-    uint32_t sel_alpha_pos = y * ((image->width + 7) >> 3); // same to ((image->width + 7) / 8);
-
-    bit_pos = x & 0x07; // 0x07
-
+    uint32_t sel_pos = col_index;
     // get alpha row position.
-    sel_alpha_pos += x >> 3; // same to x / 8
+    uint32_t sel_alpha_pos = col_index >> 3; // same to x / 8
+    uint16_t sel_color = p_data[sel_pos];
+    uint8_t sel_alpha;
+
+    bit_pos = col_index & 0x07; // 0x07
 
     sel_alpha = ((p_alpha[sel_alpha_pos]) >> bit_pos) & 0x01;
-    sel_color = p_data[sel_pos];
 
     color->full = EGUI_COLOR_RGB565_TRANS(sel_color);
     *alpha = (sel_alpha ? 0xff : 0x00);
+}
+
+__EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565_1(egui_image_std_info_t *image, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
+{
+    uint32_t row_start = y * image->width;
+    uint32_t row_start_alpha = y * ((image->width + 7) >> 3); // same to ((image->width + 7) / 8);
+    const uint16_t *p_data = image->data_buf;
+    const uint8_t *p_alpha = image->alpha_buf;
+
+    egui_image_std_get_col_pixel_rgb565_1(&p_data[row_start], &p_alpha[row_start_alpha], x, color, alpha);
 }
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1
 
@@ -428,44 +458,291 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8
 void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t x_total, egui_dim_t y_total, egui_dim_t x_base, egui_dim_t y_base)
 {
-    EGUI_IMAGE_STD_DRAW_IMAGE_FUNC_DEFINE(egui_image_std_get_pixel_rgb565_8, self, x, y, x_total, y_total, x_base, y_base);
+    // EGUI_IMAGE_STD_DRAW_IMAGE_FUNC_DEFINE(egui_image_std_get_pixel_rgb565_8, self, x, y, x_total, y_total, x_base, y_base);
+
+    egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
+    egui_color_t color;
+    egui_alpha_t alpha;
+    egui_canvas_t *canvas = egui_canvas_get_canvas();
+    uint16_t data_row_size = image->width * 2;
+    uint16_t alpha_row_size = image->width;
+#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+    void *data_buf = egui_malloc(data_row_size); 
+    void *alpha_buf = egui_malloc(alpha_row_size);
+#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+
+    for (egui_dim_t y_ = y; y_ < y_total; y_++)
+    {
+        uint32_t row_start = y_ * image->width;
+#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+        const void* p_data = data_buf;
+        const void* p_alpha = alpha_buf;
+        uint32_t start_pos = x;
+        uint32_t end_pos = x_total;
+
+        egui_memcpy((void *)((uint32_t)p_data + (start_pos << 1))
+            , (const void *)((uint32_t)image->data_buf + ((row_start + start_pos) << 1)), (end_pos - start_pos) << 1);
+        egui_memcpy((void *)((uint32_t)p_alpha + (start_pos))
+            , (const void *)((uint32_t)image->alpha_buf + ((row_start + start_pos))), (end_pos - start_pos));
+#else
+        const void *p_data = (const void *)((uint32_t)image->data_buf + (row_start << 1));
+        const void *p_alpha = (const void *)((uint32_t)image->alpha_buf + (row_start));
+#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+        if(canvas->mask != NULL)
+        {
+            for (egui_dim_t x_ = x; x_ < x_total; x_++)
+            {
+                egui_image_std_get_col_pixel_rgb565_8(p_data, p_alpha, x_, &color, &alpha);
+
+                /* change to real position in canvas. */ 
+                egui_canvas_draw_point_limit((x_base + x_), (y_base + y_), color, alpha);
+            }
+        }
+        else
+        {
+            for (egui_dim_t x_ = x; x_ < x_total; x_++)
+            {
+                egui_image_std_get_col_pixel_rgb565_8(p_data, p_alpha, x_, &color, &alpha);
+
+                /* change to real position in canvas. */ 
+                egui_canvas_draw_point_limit_skip_mask((x_base + x_), (y_base + y_), color, alpha);
+            }
+        }
+    }
+#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+    egui_free(data_buf); 
+    egui_free(alpha_buf);
+#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
 }
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_4
 void egui_image_std_set_image_rgb565_4(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t x_total, egui_dim_t y_total, egui_dim_t x_base, egui_dim_t y_base)
 {
-    EGUI_IMAGE_STD_DRAW_IMAGE_FUNC_DEFINE(egui_image_std_get_pixel_rgb565_4, self, x, y, x_total, y_total, x_base, y_base);
+    // EGUI_IMAGE_STD_DRAW_IMAGE_FUNC_DEFINE(egui_image_std_get_pixel_rgb565_4, self, x, y, x_total, y_total, x_base, y_base);
+    
+    egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
+    egui_color_t color;
+    egui_alpha_t alpha;
+    egui_canvas_t *canvas = egui_canvas_get_canvas();
+    uint16_t data_row_size = image->width * 2;
+    uint16_t alpha_row_size = ((image->width + 1) >> 1); // same to: ((image->width + 1) / 2);
+#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+    void *data_buf = egui_malloc(data_row_size); 
+    void *alpha_buf = egui_malloc(alpha_row_size);
+#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+
+    for (egui_dim_t y_ = y; y_ < y_total; y_++)
+    {
+        uint32_t row_start = y_ * image->width;
+        uint32_t row_start_alpha = y_ * alpha_row_size;
+#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+        const void* p_data = data_buf;
+        const void* p_alpha = alpha_buf;
+        uint32_t start_pos = x;
+        uint32_t start_pos_alpha = x >> 1; // same to: x / 2
+        uint32_t end_pos = x_total;
+        uint32_t end_pos_alpha = (x_total + 1) >> 1; // same to: x / 2
+
+        egui_memcpy((void *)((uint32_t)p_data + (start_pos << 1))
+            , (const void *)((uint32_t)image->data_buf + ((row_start + start_pos) << 1)), (end_pos - start_pos) << 1);
+        egui_memcpy((void *)((uint32_t)p_alpha + (start_pos_alpha))
+            , (const void *)((uint32_t)image->alpha_buf + ((row_start_alpha + start_pos_alpha))), (end_pos_alpha - start_pos_alpha));
+#else
+        const void *p_data = (const void *)((uint32_t)image->data_buf + (row_start << 1));
+        const void *p_alpha = (const void *)((uint32_t)image->alpha_buf + (row_start_alpha));
+#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+            
+        if(canvas->mask != NULL)
+        {
+            for (egui_dim_t x_ = x; x_ < x_total; x_++)
+            {
+                egui_image_std_get_col_pixel_rgb565_4(p_data, p_alpha, x_, &color, &alpha);
+
+                /* change to real position in canvas. */ 
+                egui_canvas_draw_point_limit((x_base + x_), (y_base + y_), color, alpha);
+            }
+        }
+        else
+        {
+            for (egui_dim_t x_ = x; x_ < x_total; x_++)
+            {
+                egui_image_std_get_col_pixel_rgb565_4(p_data, p_alpha, x_, &color, &alpha);
+
+                /* change to real position in canvas. */ 
+                egui_canvas_draw_point_limit_skip_mask((x_base + x_), (y_base + y_), color, alpha);
+            }
+        }
+    }
+#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+    egui_free(data_buf); 
+    egui_free(alpha_buf);
+#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
 }
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_4
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2
 void egui_image_std_set_image_rgb565_2(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t x_total, egui_dim_t y_total, egui_dim_t x_base, egui_dim_t y_base)
 {
-    EGUI_IMAGE_STD_DRAW_IMAGE_FUNC_DEFINE(egui_image_std_get_pixel_rgb565_2, self, x, y, x_total, y_total, x_base, y_base);
+    // EGUI_IMAGE_STD_DRAW_IMAGE_FUNC_DEFINE(egui_image_std_get_pixel_rgb565_2, self, x, y, x_total, y_total, x_base, y_base);
+    
+    egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
+    egui_color_t color;
+    egui_alpha_t alpha;
+    egui_canvas_t *canvas = egui_canvas_get_canvas();
+    uint16_t data_row_size = image->width * 2;
+    uint16_t alpha_row_size = ((image->width + 3) >> 2); // same to: ((image->width + 3) / 4);
+#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+    void *data_buf = egui_malloc(data_row_size); 
+    void *alpha_buf = egui_malloc(alpha_row_size);
+#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+
+    for (egui_dim_t y_ = y; y_ < y_total; y_++)
+    {
+        uint32_t row_start = y_ * image->width;
+        uint32_t row_start_alpha = y_ * alpha_row_size;
+#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+        const void* p_data = data_buf;
+        const void* p_alpha = alpha_buf;
+        uint32_t start_pos = x;
+        uint32_t start_pos_alpha = x >> 2; // same to: x / 4
+        uint32_t end_pos = x_total;
+        uint32_t end_pos_alpha = ((x_total + 3) >> 2); // same to: x / 4
+
+        egui_memcpy((void *)((uint32_t)p_data + (start_pos << 1))
+            , (const void *)((uint32_t)image->data_buf + ((row_start + start_pos) << 1)), (end_pos - start_pos) << 1);
+        egui_memcpy((void *)((uint32_t)p_alpha + (start_pos_alpha))
+            , (const void *)((uint32_t)image->alpha_buf + ((row_start_alpha + start_pos_alpha))), (end_pos_alpha - start_pos_alpha));
+#else
+        const void *p_data = (const void *)((uint32_t)image->data_buf + (row_start << 1));
+        const void *p_alpha = (const void *)((uint32_t)image->alpha_buf + (row_start_alpha));
+#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+            
+        if(canvas->mask != NULL)
+        {
+            for (egui_dim_t x_ = x; x_ < x_total; x_++)
+            {
+                egui_image_std_get_col_pixel_rgb565_2(p_data, p_alpha, x_, &color, &alpha);
+
+                /* change to real position in canvas. */ 
+                egui_canvas_draw_point_limit((x_base + x_), (y_base + y_), color, alpha);
+            }
+        }
+        else
+        {
+            for (egui_dim_t x_ = x; x_ < x_total; x_++)
+            {
+                egui_image_std_get_col_pixel_rgb565_2(p_data, p_alpha, x_, &color, &alpha);
+
+                /* change to real position in canvas. */ 
+                egui_canvas_draw_point_limit_skip_mask((x_base + x_), (y_base + y_), color, alpha);
+            }
+        }
+    }
+#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+    egui_free(data_buf); 
+    egui_free(alpha_buf);
+#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
 }
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1
 void egui_image_std_set_image_rgb565_1(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t x_total, egui_dim_t y_total, egui_dim_t x_base, egui_dim_t y_base)
 {
-    EGUI_IMAGE_STD_DRAW_IMAGE_FUNC_DEFINE(egui_image_std_get_pixel_rgb565_1, self, x, y, x_total, y_total, x_base, y_base);
+    // EGUI_IMAGE_STD_DRAW_IMAGE_FUNC_DEFINE(egui_image_std_get_pixel_rgb565_1, self, x, y, x_total, y_total, x_base, y_base);
+
+    egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
+    egui_color_t color;
+    egui_alpha_t alpha;
+    egui_canvas_t *canvas = egui_canvas_get_canvas();
+    uint16_t data_row_size = image->width * 2;
+    uint16_t alpha_row_size = ((image->width + 7) >> 3); // same to ((image->width + 7) / 8);
+#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+    void *data_buf = egui_malloc(data_row_size); 
+    void *alpha_buf = egui_malloc(alpha_row_size);
+#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+
+    for (egui_dim_t y_ = y; y_ < y_total; y_++)
+    {
+        uint32_t row_start = y_ * image->width;
+        uint32_t row_start_alpha = y_ * alpha_row_size;
+#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+        const void* p_data = data_buf;
+        const void* p_alpha = alpha_buf;
+        uint32_t start_pos = x;
+        uint32_t start_pos_alpha = x  >> 3; // same to x / 8
+        uint32_t end_pos = x_total;
+        uint32_t end_pos_alpha = ((x_total + 7)  >> 3); // same to x / 8
+
+        egui_memcpy((void *)((uint32_t)p_data + (start_pos << 1))
+            , (const void *)((uint32_t)image->data_buf + ((row_start + start_pos) << 1)), (end_pos - start_pos) << 1);
+        egui_memcpy((void *)((uint32_t)p_alpha + (start_pos_alpha))
+            , (const void *)((uint32_t)image->alpha_buf + ((row_start_alpha + start_pos_alpha))), (end_pos_alpha - start_pos_alpha));
+#else
+        const void *p_data = (const void *)((uint32_t)image->data_buf + (row_start << 1));
+        const void *p_alpha = (const void *)((uint32_t)image->alpha_buf + (row_start_alpha));
+#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+            
+        if(canvas->mask != NULL)
+        {
+            for (egui_dim_t x_ = x; x_ < x_total; x_++)
+            {
+                egui_image_std_get_col_pixel_rgb565_1(p_data, p_alpha, x_, &color, &alpha);
+
+                /* change to real position in canvas. */ 
+                egui_canvas_draw_point_limit((x_base + x_), (y_base + y_), color, alpha);
+            }
+        }
+        else
+        {
+            for (egui_dim_t x_ = x; x_ < x_total; x_++)
+            {
+                egui_image_std_get_col_pixel_rgb565_1(p_data, p_alpha, x_, &color, &alpha);
+
+                /* change to real position in canvas. */ 
+                egui_canvas_draw_point_limit_skip_mask((x_base + x_), (y_base + y_), color, alpha);
+            }
+        }
+    }
+#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+    egui_free(data_buf); 
+    egui_free(alpha_buf);
+#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
 }
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1
+
+
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565
 void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t x_total, egui_dim_t y_total, egui_dim_t x_base, egui_dim_t y_base)
 {
     if((egui_canvas_get_canvas()->alpha == EGUI_ALPHA_100) && (egui_canvas_get_canvas()->mask == NULL))
     {
         egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
+#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+        void *data_buf = egui_malloc(image->width * 2);
+#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
         egui_color_t color;
         for (egui_dim_t y_ = y; y_ < y_total; y_++)
         {
+            uint32_t row_start = y_ * image->width;
+#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+            const void* p_data = data_buf;
+            uint32_t start_pos = x;
+            uint32_t end_pos = x_total;
+            egui_memcpy((void *)((uint32_t)p_data + ((start_pos) << 1))
+                , (const void *)((uint32_t)image->data_buf + ((row_start + start_pos) << 1)), (end_pos - start_pos) << 1);
+#else
+            const void *p_data = (const void *)((uint32_t)image->data_buf + (row_start << 1));
+#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+
             for (egui_dim_t x_ = x; x_ < x_total; x_++)
             {
-                egui_image_std_get_pixel_rgb565_limit(image, x_, y_, &color);
+                egui_image_std_get_col_pixel_rgb565_limit(p_data, x_, &color);
 
                 // change to real position in canvas.
                 egui_canvas_set_point_color(egui_canvas_get_canvas(), (x_base + x_), (y_base + y_), color);
             }
         }
+#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+        egui_free(data_buf);
+#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
     }
     else
     {

@@ -137,6 +137,14 @@ extern "C" {
 #endif
 
 /**
+ * Performance options.
+ * Load image in ram for speed.
+ */
+#ifndef EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#define EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM 0
+#endif
+
+/**
  * Resource options.
  * Select the default font
  */

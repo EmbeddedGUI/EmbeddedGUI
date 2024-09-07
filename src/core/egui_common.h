@@ -352,6 +352,28 @@ __EGUI_STATIC_INLINE__ void egui_rgb_mix_ptr(egui_color_t *p_back_color, egui_co
 #endif
 }
 
+
+__EGUI_STATIC_INLINE__ void egui_memcpy(void *dest, const void *src, uint32_t n)
+{
+    uint32_t size_32 = n >> 2;
+    uint32_t size_8 = n & 0x03;
+    uint32_t i;
+    uint8_t *p_dest = (uint8_t*)dest;
+    const uint8_t *p_src = (const uint8_t*)src;
+    for (i = 0; i < size_32; i++)
+    {
+        *((uint32_t*)p_dest) = *((uint32_t*)p_src);
+        p_src += 4;
+        p_dest += 4;
+    }
+    for (i = 0; i < size_8; i++)
+    {
+        *p_dest = *p_src;
+        p_src += 1;
+        p_dest += 1;
+    }
+}
+
 void egui_argb8888_mix_rgb565(egui_color_rgb565_t *p_back_color, egui_color_bgra8888_t *p_fore_color, egui_color_rgb565_t *p_out_color);
 void egui_argb8888_mix_argb8888(egui_color_bgra8888_t *p_back_color, egui_color_bgra8888_t *p_fore_color, egui_color_bgra8888_t *p_out_color);
 
@@ -360,6 +382,9 @@ void egui_rgb_mix_ptr(egui_color_t *p_back_color, egui_color_t *p_fore_color, eg
 
 void egui_common_align_get_x_y(egui_dim_t parent_width, egui_dim_t parent_height, egui_dim_t child_width, egui_dim_t child_height, uint8_t align_type,
                                egui_dim_t *x, egui_dim_t *y);
+
+void* egui_malloc(int size);
+void egui_free(void* ptr);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

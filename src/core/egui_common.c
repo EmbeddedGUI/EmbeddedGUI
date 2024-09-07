@@ -66,3 +66,14 @@ void egui_common_align_get_x_y(egui_dim_t parent_width, egui_dim_t parent_height
         break;
     }
 }
+
+
+void* egui_malloc(int size)
+{
+    return egui_api_malloc(size);
+}
+
+void egui_free(void* ptr)
+{
+    egui_api_free(ptr);
+}
