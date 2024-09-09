@@ -4,6 +4,30 @@
 #include "egui_view_test_performance.h"
 #include "egui.h"
 
+#if EGUI_CONFIG_SCEEN_WIDTH == 320 && EGUI_CONFIG_SCEEN_HEIGHT == 240
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_0    egui_res_image_test_img_1_1280_960_rgb565##_0
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_1    egui_res_image_test_img_1_1280_960_rgb565##_1
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_2    egui_res_image_test_img_1_1280_960_rgb565##_2
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_4    egui_res_image_test_img_1_1280_960_rgb565##_4
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_8    egui_res_image_test_img_1_1280_960_rgb565##_8
+#elif EGUI_CONFIG_SCEEN_WIDTH == 240 && EGUI_CONFIG_SCEEN_HEIGHT == 240
+// #define EGUI_TEST_PERFORMANCE_IMAGE_NAME egui_res_image_test_img_4_1280_1280_rgb565
+// #define EGUI_TEST_PERFORMANCE_IMAGE_NAME egui_res_image_test_img_5_1280_1280_rgb565
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_0    egui_res_image_test_img_2_1280_1280_rgb565##_0
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_1    egui_res_image_test_img_2_1280_1280_rgb565##_1
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_2    egui_res_image_test_img_2_1280_1280_rgb565##_2
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_4    egui_res_image_test_img_2_1280_1280_rgb565##_4
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_8    egui_res_image_test_img_2_1280_1280_rgb565##_8
+#else
+// default is 240*320
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_0    egui_res_image_test_img_0_960_1280_rgb565##_0
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_1    egui_res_image_test_img_0_960_1280_rgb565##_1
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_2    egui_res_image_test_img_0_960_1280_rgb565##_2
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_4    egui_res_image_test_img_0_960_1280_rgb565##_4
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_8    egui_res_image_test_img_0_960_1280_rgb565##_8
+#endif
+
+
 uint16_t egui_view_test_performance_adjust_circle(uint16_t radius)
 {
     return EGUI_MIN(radius, EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE);
@@ -20,26 +44,62 @@ static void egui_view_test_performance_test_line(egui_view_t *self)
 
 static void egui_view_test_performance_test_image_565(egui_view_t *self)
 {
-    extern const egui_image_std_t egui_res_image_test_big_rgb565_0;
-    egui_canvas_draw_image((egui_image_t *)&egui_res_image_test_big_rgb565_0, 0, 0);
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_0;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_0, 0, 0);
+}
+
+static void egui_view_test_performance_test_image_565_1(egui_view_t *self)
+{
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_1;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_1, 0, 0);
+}
+
+static void egui_view_test_performance_test_image_565_2(egui_view_t *self)
+{
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_2;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_2, 0, 0);
+}
+
+static void egui_view_test_performance_test_image_565_4(egui_view_t *self)
+{
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_4;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_4, 0, 0);
 }
 
 static void egui_view_test_performance_test_image_565_8(egui_view_t *self)
 {
-    extern const egui_image_std_t egui_res_image_test_big_rgb565_8;
-    egui_canvas_draw_image((egui_image_t *)&egui_res_image_test_big_rgb565_8, 0, 0);
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_8;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_8, 0, 0);
 }
 
 static void egui_view_test_performance_test_image_resize_565(egui_view_t *self)
 {
-    extern const egui_image_std_t egui_res_image_test_big_rgb565_0;
-    egui_canvas_draw_image_resize((egui_image_t *)&egui_res_image_test_big_rgb565_0, 0, 0, self->region.size.width, self->region.size.height);
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_0;
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_0, 0, 0, self->region.size.width, self->region.size.height);
+}
+
+static void egui_view_test_performance_test_image_resize_565_1(egui_view_t *self)
+{
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_1;
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_1, 0, 0, self->region.size.width, self->region.size.height);
+}
+
+static void egui_view_test_performance_test_image_resize_565_2(egui_view_t *self)
+{
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_2;
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_2, 0, 0, self->region.size.width, self->region.size.height);
+}
+
+static void egui_view_test_performance_test_image_resize_565_4(egui_view_t *self)
+{
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_4;
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_4, 0, 0, self->region.size.width, self->region.size.height);
 }
 
 static void egui_view_test_performance_test_image_resize_565_8(egui_view_t *self)
 {
-    extern const egui_image_std_t egui_res_image_test_big_rgb565_8;
-    egui_canvas_draw_image_resize((egui_image_t *)&egui_res_image_test_big_rgb565_8, 0, 0, self->region.size.width, self->region.size.height);
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_8;
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_8, 0, 0, self->region.size.width, self->region.size.height);
 }
 
 const char test_str[] =
@@ -239,11 +299,29 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565:
         egui_view_test_performance_test_image_565(self);
         break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_1:
+        egui_view_test_performance_test_image_565_1(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_2:
+        egui_view_test_performance_test_image_565_2(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_4:
+        egui_view_test_performance_test_image_565_4(self);
+        break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_8:
         egui_view_test_performance_test_image_565_8(self);
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_565:
         egui_view_test_performance_test_image_resize_565(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_565_1:
+        egui_view_test_performance_test_image_resize_565_1(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_565_2:
+        egui_view_test_performance_test_image_resize_565_2(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_565_4:
+        egui_view_test_performance_test_image_resize_565_4(self);
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_565_8:
         egui_view_test_performance_test_image_resize_565_8(self);

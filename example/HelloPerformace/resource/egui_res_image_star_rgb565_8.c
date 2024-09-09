@@ -7,12 +7,12 @@
 
 
 /**
- * Image File : star.png
+ * Image File : /Users/wenbo/gitee/EmbeddedGUI/example/HelloPerformace/resource/star.png
  * Format : rgb565
  * Alpha Type : 8
  * Re-sized : True
  * Rotation : 0.0
- * options: -i star.png -n star -f rgb565 -a 8 -d 50 50
+ * options: -i /Users/wenbo/gitee/EmbeddedGUI/example/HelloPerformace/resource/star.png -n star -f rgb565 -a 8 -d 50 50
  */
 
 

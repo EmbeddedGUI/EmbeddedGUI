@@ -55,10 +55,22 @@ static const char *egui_view_test_performance_type_string(int test_mode)
         return "LINE";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565:
         return "IMAGE_565";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_1:
+        return "IMAGE_565_1";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_2:
+        return "IMAGE_565_2";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_4:
+        return "IMAGE_565_4";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_8:
         return "IMAGE_565_8";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_565:
         return "IMAGE_RESIZE_565";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_565_1:
+        return "IMAGE_RESIZE_565_1";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_565_2:
+        return "IMAGE_RESIZE_565_2";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_565_4:
+        return "IMAGE_RESIZE_565_4";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_565_8:
         return "IMAGE_RESIZE_565_8";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT:
@@ -118,7 +130,7 @@ void egui_view_test_performance_process(void)
     }
 
     // Test Single
-    // egui_view_test_performance_with_test_mode(EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILL_RECT);
+    // egui_view_test_performance_with_test_mode(EGUI_VIEW_TEST_PERFORMANCE_TYPE_RECTANGLE_FILL);
 }
 
 static egui_timer_t ui_timer;

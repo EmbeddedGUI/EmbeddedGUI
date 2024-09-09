@@ -7,16 +7,15 @@
 
 
 /**
- * Image File : star.png
+ * Image File : /Users/wenbo/gitee/EmbeddedGUI/example/HelloPerformace/resource/star.png
  * Format : rgb32
  * Alpha Type : 8
  * Re-sized : True
  * Rotation : 0.0
- * options: -i star.png -n star -f rgb32 -a 8 -d 50 50
+ * options: -i /Users/wenbo/gitee/EmbeddedGUI/example/HelloPerformace/resource/star.png -n star -f rgb32 -a 8 -d 50 50
  */
 
 
-static const uint8_t egui_res_image_star_rgb32_8_alpha_buf[] = {};
 
 static const uint32_t egui_res_image_star_rgb32_8_data_buf[50*50] = {
 /* -0- */
@@ -275,7 +274,7 @@ static const uint32_t egui_res_image_star_rgb32_8_data_buf[50*50] = {
 
 static const egui_image_std_info_t egui_res_image_star_rgb32_8_info = {
     .data_buf = (void *)egui_res_image_star_rgb32_8_data_buf,
-    .alpha_buf = (void *)egui_res_image_star_rgb32_8_alpha_buf,
+    .alpha_buf = (void *)NULL,
     .data_type = EGUI_IMAGE_DATA_TYPE_RGB32,
     .alpha_type = EGUI_IMAGE_ALPHA_TYPE_8,
     .width = 50,

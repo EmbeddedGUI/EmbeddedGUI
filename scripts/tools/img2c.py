@@ -97,7 +97,8 @@ def main(argv):
         options += f" -d {args.dim[0]} {args.dim[1]}"
 
     name = f"egui_res_image_{args.name.lower()}_{args.format}_{args.alpha}"
-    outfilename = f"{name}.c"
+
+    outfilename = os.path.join(os.path.dirname(inputfile), f"{name}.c")
 
     mode = image.mode
 
