@@ -4,27 +4,10 @@
 #include "egui_font_std.h"
 #include "core/egui_api.h"
 
+
+
 #define FONT_ERROR_LATTICE_SIZE(_height) (_height >> 1)
 
-#define EGUI_FONT_ALPHA_VALUE(_val, _bit_size) ((255 * (_val)) / ((1 << (_bit_size)) - 1))
-
-#define EGUI_FONT_ALPHA_VALUE_2(_val) EGUI_FONT_ALPHA_VALUE(_val, 2)
-// we don't use multiple alpha value, so we don't need to calculate it.
-const uint8_t egui_font_alpha_change_table_2[] = {
-        EGUI_FONT_ALPHA_VALUE_2(0x00),
-        EGUI_FONT_ALPHA_VALUE_2(0x01),
-        EGUI_FONT_ALPHA_VALUE_2(0x02),
-        EGUI_FONT_ALPHA_VALUE_2(0x03),
-};
-
-#define EGUI_FONT_ALPHA_VALUE_4(_val) EGUI_FONT_ALPHA_VALUE(_val, 4)
-// we don't use multiple alpha value, so we don't need to calculate it.
-const uint8_t egui_font_alpha_change_table_4[] = {
-        EGUI_FONT_ALPHA_VALUE_4(0x00), EGUI_FONT_ALPHA_VALUE_4(0x01), EGUI_FONT_ALPHA_VALUE_4(0x02), EGUI_FONT_ALPHA_VALUE_4(0x03),
-        EGUI_FONT_ALPHA_VALUE_4(0x04), EGUI_FONT_ALPHA_VALUE_4(0x05), EGUI_FONT_ALPHA_VALUE_4(0x06), EGUI_FONT_ALPHA_VALUE_4(0x07),
-        EGUI_FONT_ALPHA_VALUE_4(0x08), EGUI_FONT_ALPHA_VALUE_4(0x09), EGUI_FONT_ALPHA_VALUE_4(0x0a), EGUI_FONT_ALPHA_VALUE_4(0x0b),
-        EGUI_FONT_ALPHA_VALUE_4(0x0c), EGUI_FONT_ALPHA_VALUE_4(0x0d), EGUI_FONT_ALPHA_VALUE_4(0x0e), EGUI_FONT_ALPHA_VALUE_4(0x0f),
-};
 
 static const egui_font_std_char_descriptor_t *egui_font_std_get_desc(const egui_font_std_info_t *font, uint32_t utf8_code)
 {
@@ -102,7 +85,7 @@ static void egui_font_std_draw_2(egui_dim_t x, egui_dim_t y, egui_dim_t width, e
             sel_value = (sel_data >> bit_pos) & 0x03;
             if (sel_value)
             {
-                egui_canvas_draw_point((x + x_), (y + y_), color, egui_font_alpha_change_table_2[sel_value]);
+                egui_canvas_draw_point((x + x_), (y + y_), color, egui_alpha_change_table_2[sel_value]);
             }
 
             // update bit position.
@@ -135,7 +118,7 @@ static void egui_font_std_draw_4(egui_dim_t x, egui_dim_t y, egui_dim_t width, e
             sel_value = (sel_data >> bit_pos) & 0x0F;
             if (sel_value)
             {
-                egui_canvas_draw_point((x + x_), (y + y_), color, egui_font_alpha_change_table_4[sel_value]);
+                egui_canvas_draw_point((x + x_), (y + y_), color, egui_alpha_change_table_4[sel_value]);
             }
 
             // update bit position.

@@ -4,6 +4,17 @@
 #include "egui_view_test_performance.h"
 #include "egui.h"
 
+// Becouse of flash size limit, we can only enable some test cases.
+#define EGUI_TEST_CONFIG_IMAGE_565     1
+#define EGUI_TEST_CONFIG_IMAGE_565_1   0
+#define EGUI_TEST_CONFIG_IMAGE_565_2   0
+#define EGUI_TEST_CONFIG_IMAGE_565_4   0
+#define EGUI_TEST_CONFIG_IMAGE_565_8   0
+
+// Test real alpha 
+#define EGUI_TEST_REAL_ALPHA_IMAGE     0
+
+#if EGUI_TEST_REAL_ALPHA_IMAGE == 0
 #if EGUI_CONFIG_SCEEN_WIDTH == 320 && EGUI_CONFIG_SCEEN_HEIGHT == 240
 #define EGUI_TEST_PERFORMANCE_IMAGE_NAME_0    egui_res_image_test_img_1_1280_960_rgb565##_0
 #define EGUI_TEST_PERFORMANCE_IMAGE_NAME_1    egui_res_image_test_img_1_1280_960_rgb565##_1
@@ -18,6 +29,12 @@
 #define EGUI_TEST_PERFORMANCE_IMAGE_NAME_2    egui_res_image_test_img_2_1280_1280_rgb565##_2
 #define EGUI_TEST_PERFORMANCE_IMAGE_NAME_4    egui_res_image_test_img_2_1280_1280_rgb565##_4
 #define EGUI_TEST_PERFORMANCE_IMAGE_NAME_8    egui_res_image_test_img_2_1280_1280_rgb565##_8
+#elif EGUI_CONFIG_SCEEN_WIDTH == 320 && EGUI_CONFIG_SCEEN_HEIGHT == 172
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_0    egui_res_image_test_img_6_1280_688_rgb565##_0
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_1    egui_res_image_test_img_6_1280_688_rgb565##_1
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_2    egui_res_image_test_img_6_1280_688_rgb565##_2
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_4    egui_res_image_test_img_6_1280_688_rgb565##_4
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_8    egui_res_image_test_img_6_1280_688_rgb565##_8
 #else
 // default is 240*320
 #define EGUI_TEST_PERFORMANCE_IMAGE_NAME_0    egui_res_image_test_img_0_960_1280_rgb565##_0
@@ -25,6 +42,13 @@
 #define EGUI_TEST_PERFORMANCE_IMAGE_NAME_2    egui_res_image_test_img_0_960_1280_rgb565##_2
 #define EGUI_TEST_PERFORMANCE_IMAGE_NAME_4    egui_res_image_test_img_0_960_1280_rgb565##_4
 #define EGUI_TEST_PERFORMANCE_IMAGE_NAME_8    egui_res_image_test_img_0_960_1280_rgb565##_8
+#endif
+#else
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_0    egui_res_image_star_rgb565##_0
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_1    egui_res_image_star_rgb565##_1
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_2    egui_res_image_star_rgb565##_2
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_4    egui_res_image_star_rgb565##_4
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_8    egui_res_image_star_rgb565##_8
 #endif
 
 
@@ -44,62 +68,82 @@ static void egui_view_test_performance_test_line(egui_view_t *self)
 
 static void egui_view_test_performance_test_image_565(egui_view_t *self)
 {
+#if EGUI_TEST_CONFIG_IMAGE_565
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_0;
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_0, 0, 0);
+#endif // EGUI_TEST_CONFIG_IMAGE_565
 }
 
 static void egui_view_test_performance_test_image_565_1(egui_view_t *self)
 {
+#if EGUI_TEST_CONFIG_IMAGE_565_1
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_1;
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_1, 0, 0);
+#endif // EGUI_TEST_CONFIG_IMAGE_565_1
 }
 
 static void egui_view_test_performance_test_image_565_2(egui_view_t *self)
 {
+#if EGUI_TEST_CONFIG_IMAGE_565_2
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_2;
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_2, 0, 0);
+#endif // EGUI_TEST_CONFIG_IMAGE_565_2
 }
 
 static void egui_view_test_performance_test_image_565_4(egui_view_t *self)
 {
+#if EGUI_TEST_CONFIG_IMAGE_565_4
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_4;
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_4, 0, 0);
+#endif // EGUI_TEST_CONFIG_IMAGE_565_4
 }
 
 static void egui_view_test_performance_test_image_565_8(egui_view_t *self)
 {
+#if EGUI_TEST_CONFIG_IMAGE_565_8
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_8;
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_8, 0, 0);
+#endif // EGUI_TEST_CONFIG_IMAGE_565_8
 }
 
 static void egui_view_test_performance_test_image_resize_565(egui_view_t *self)
 {
+#if EGUI_TEST_CONFIG_IMAGE_565
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_0;
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_0, 0, 0, self->region.size.width, self->region.size.height);
+#endif // EGUI_TEST_CONFIG_IMAGE_565
 }
 
 static void egui_view_test_performance_test_image_resize_565_1(egui_view_t *self)
 {
+#if EGUI_TEST_CONFIG_IMAGE_565_1
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_1;
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_1, 0, 0, self->region.size.width, self->region.size.height);
+#endif // EGUI_TEST_CONFIG_IMAGE_565_1
 }
 
 static void egui_view_test_performance_test_image_resize_565_2(egui_view_t *self)
 {
+#if EGUI_TEST_CONFIG_IMAGE_565_2
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_2;
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_2, 0, 0, self->region.size.width, self->region.size.height);
+#endif // EGUI_TEST_CONFIG_IMAGE_565_2
 }
 
 static void egui_view_test_performance_test_image_resize_565_4(egui_view_t *self)
 {
+#if EGUI_TEST_CONFIG_IMAGE_565_4
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_4;
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_4, 0, 0, self->region.size.width, self->region.size.height);
+#endif // EGUI_TEST_CONFIG_IMAGE_565_4
 }
 
 static void egui_view_test_performance_test_image_resize_565_8(egui_view_t *self)
 {
+#if EGUI_TEST_CONFIG_IMAGE_565_8
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_8;
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_8, 0, 0, self->region.size.width, self->region.size.height);
+#endif // EGUI_TEST_CONFIG_IMAGE_565_8
 }
 
 const char test_str[] =

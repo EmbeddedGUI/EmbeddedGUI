@@ -798,8 +798,8 @@ void egui_core_pfb_set_buffer(egui_color_int_t *pfb, uint16_t width, uint16_t he
     egui_core.pfb_total_buffer_size = width * height * egui_core.color_bytes;
 
     // Calculate the number of pixels in each row and column of the PFB
-    egui_core.pfb_width_count = EGUI_CONFIG_SCEEN_WIDTH / width;
-    egui_core.pfb_height_count = EGUI_CONFIG_SCEEN_HEIGHT / height;
+    egui_core.pfb_width_count = (EGUI_CONFIG_SCEEN_WIDTH + width - 1) / width;
+    egui_core.pfb_height_count = (EGUI_CONFIG_SCEEN_HEIGHT + height - 1) / height;
 }
 
 void egui_init(egui_color_int_t *pfb)

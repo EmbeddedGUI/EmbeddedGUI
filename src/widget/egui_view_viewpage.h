@@ -36,6 +36,7 @@ void egui_view_viewpage_start_container_scroll(egui_view_t *self, int diff_x);
 void egui_view_viewpage_fling(egui_view_t *self, egui_float_t velocity_x);
 void egui_view_viewpage_scroll_to_page(egui_view_t *self, int page_index);
 void egui_view_viewpage_slow_scroll_to_page(egui_view_t *self);
+void egui_view_viewpage_set_current_page(egui_view_t *self, int page_index);
 void egui_view_viewpage_compute_scroll(egui_view_t *self);
 void egui_view_viewpage_check_begin_dragged(egui_view_t *self, egui_dim_t delta);
 int egui_view_viewpage_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event);

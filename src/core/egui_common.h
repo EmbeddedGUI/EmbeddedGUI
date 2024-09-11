@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "egui_config.h"
 #include "utils/egui_fixmath.h"
@@ -99,8 +100,11 @@ extern "C" {
 #elif EGUI_CONFIG_COLOR_DEPTH == 16
 #define EGUI_COLOR_RGB888_TRANS(_color)                                                                                                                        \
     EGUI_COLOR_MAKE(((egui_color_rgb888_t *)&_color)->red, ((egui_color_rgb888_t *)&_color)->green, ((egui_color_rgb888_t *)&_color)->blue).full
+#if EGUI_CONFIG_COLOR_16_SWAP_IMG565
+#define EGUI_COLOR_RGB565_TRANS(_color) EGUI_COLOR_MAKE((_color & 0xF800) >> (11 - 3), (_color & 0x7E0) >> (5 - 2), (_color & 0x1F) << 3).full
+#else
 #define EGUI_COLOR_RGB565_TRANS(_color) _color
-// #define EGUI_COLOR_RGB565_TRANS(_color) EGUI_COLOR_MAKE((_color & 0xF800) >> (11 - 3), (_color & 0x7E0) >> (5 - 2), (_color & 0x1F) << 3).full
+#endif
 #elif EGUI_CONFIG_COLOR_DEPTH == 32
 #define EGUI_COLOR_RGB888_TRANS(_color) _color
 #define EGUI_COLOR_RGB565_TRANS(_color)                                                                                                                        \
@@ -285,6 +289,10 @@ typedef uint8_t egui_alpha_t; /*!< Alpha value in range 0-255 */
 
 #define egui_id_t uint16_t /*!< GUI resource identifier */
 
+
+extern uint8_t egui_alpha_change_table_2[4];
+extern uint8_t egui_alpha_change_table_4[16];
+
 __EGUI_STATIC_INLINE__ egui_alpha_t egui_color_alpha_mix(egui_alpha_t alpha_0, egui_alpha_t alpha_1)
 {
     if (alpha_0 == EGUI_ALPHA_100)
@@ -353,27 +361,6 @@ __EGUI_STATIC_INLINE__ void egui_rgb_mix_ptr(egui_color_t *p_back_color, egui_co
 }
 
 
-__EGUI_STATIC_INLINE__ void egui_memcpy(void *dest, const void *src, uint32_t n)
-{
-    uint32_t size_32 = n >> 2;
-    uint32_t size_8 = n & 0x03;
-    uint32_t i;
-    uint8_t *p_dest = (uint8_t*)dest;
-    const uint8_t *p_src = (const uint8_t*)src;
-    for (i = 0; i < size_32; i++)
-    {
-        *((uint32_t*)p_dest) = *((uint32_t*)p_src);
-        p_src += 4;
-        p_dest += 4;
-    }
-    for (i = 0; i < size_8; i++)
-    {
-        *p_dest = *p_src;
-        p_src += 1;
-        p_dest += 1;
-    }
-}
-
 void egui_argb8888_mix_rgb565(egui_color_rgb565_t *p_back_color, egui_color_bgra8888_t *p_fore_color, egui_color_rgb565_t *p_out_color);
 void egui_argb8888_mix_argb8888(egui_color_bgra8888_t *p_back_color, egui_color_bgra8888_t *p_fore_color, egui_color_bgra8888_t *p_out_color);
 
@@ -383,6 +370,7 @@ void egui_rgb_mix_ptr(egui_color_t *p_back_color, egui_color_t *p_fore_color, eg
 void egui_common_align_get_x_y(egui_dim_t parent_width, egui_dim_t parent_height, egui_dim_t child_width, egui_dim_t child_height, uint8_t align_type,
                                egui_dim_t *x, egui_dim_t *y);
 
+void egui_memcpy(void *dest, const void *src, uint32_t n);
 void* egui_malloc(int size);
 void egui_free(void* ptr);
 

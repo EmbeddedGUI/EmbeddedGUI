@@ -63,6 +63,7 @@ def main(argv):
     parser.add_argument('-a', '--alpha', nargs='?',type = int, default=8, required=False, help="Alpha Format (0, 1, 2, 4, 8)")
     parser.add_argument('-d', '--dim', nargs=2,type = int, required=False, help="Resize the image with the given width and height")
     parser.add_argument('-r', '--rot', nargs='?',type = float, default=0.0, required=False, help="Rotate the image with the given angle in degrees")
+    parser.add_argument('-s', '--swap', nargs='?',type = int, default=0, required=False, help="Swap the high and low bytes of the 16-bit RGB565 format")
 
     args = parser.parse_args()
 
@@ -80,8 +81,10 @@ def main(argv):
         print("Cannot open image file %s" % (inputfile))
         sys.exit(2)
 
+    # just get file name.
+    filename = os.path.basename(inputfile)
     # get the options
-    options = f"-i {args.input} -n {args.name} -f {args.format} -a {args.alpha}"
+    options = f"-i {filename} -n {args.name} -f {args.format} -a {args.alpha}"
 
     # rotation
     if args.rot != 0.0:
@@ -95,6 +98,8 @@ def main(argv):
         image = image.resize((args.dim[0], args.dim[1]))
         resized = True
         options += f" -d {args.dim[0]} {args.dim[1]}"
+
+    options += f" -s {args.swap}"
 
     name = f"egui_res_image_{args.name.lower()}_{args.format}_{args.alpha}"
 
@@ -148,7 +153,7 @@ def main(argv):
     with open(outfilename,"w+") as o:
         # insert header
         print(c_head_string, file=o)
-        print(c_head_debug_string.format(args.input, args.format, args.alpha, resized, args.rot, options), file=o)
+        print(c_head_debug_string.format(filename, args.format, args.alpha, resized, args.rot, options), file=o)
 
         alpha_buf = "NULL"
 
@@ -315,6 +320,10 @@ def main(argv):
             B = (data[...,2]>>3).astype(np.uint16)
             # merge
             RGB = R | G | B
+
+            # swap high low byte
+            if args.swap == 1:
+                RGB = (RGB >> 8) | ((RGB & 0xff) << 8)
 
             print('',file=o)
             print('static const uint16_t %s_data_buf[%d*%d] = {' % (name, row, col), file=o)

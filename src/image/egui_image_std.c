@@ -4,26 +4,6 @@
 #include "egui_image_std.h"
 #include "core/egui_api.h"
 
-#define EGUI_FONT_ALPHA_VALUE(_val, _bit_size) ((255 * (_val)) / ((1 << (_bit_size)) - 1))
-
-#define EGUI_FONT_ALPHA_VALUE_2(_val) EGUI_FONT_ALPHA_VALUE(_val, 2)
-// we don't use multiple alpha value, so we don't need to calculate it.
-const uint8_t egui_image_alpha_change_table_2[] = {
-        EGUI_FONT_ALPHA_VALUE_2(0x00),
-        EGUI_FONT_ALPHA_VALUE_2(0x01),
-        EGUI_FONT_ALPHA_VALUE_2(0x02),
-        EGUI_FONT_ALPHA_VALUE_2(0x03),
-};
-
-#define EGUI_FONT_ALPHA_VALUE_4(_val) EGUI_FONT_ALPHA_VALUE(_val, 4)
-// we don't use multiple alpha value, so we don't need to calculate it.
-const uint8_t egui_image_alpha_change_table_4[] = {
-        EGUI_FONT_ALPHA_VALUE_4(0x00), EGUI_FONT_ALPHA_VALUE_4(0x01), EGUI_FONT_ALPHA_VALUE_4(0x02), EGUI_FONT_ALPHA_VALUE_4(0x03),
-        EGUI_FONT_ALPHA_VALUE_4(0x04), EGUI_FONT_ALPHA_VALUE_4(0x05), EGUI_FONT_ALPHA_VALUE_4(0x06), EGUI_FONT_ALPHA_VALUE_4(0x07),
-        EGUI_FONT_ALPHA_VALUE_4(0x08), EGUI_FONT_ALPHA_VALUE_4(0x09), EGUI_FONT_ALPHA_VALUE_4(0x0a), EGUI_FONT_ALPHA_VALUE_4(0x0b),
-        EGUI_FONT_ALPHA_VALUE_4(0x0c), EGUI_FONT_ALPHA_VALUE_4(0x0d), EGUI_FONT_ALPHA_VALUE_4(0x0e), EGUI_FONT_ALPHA_VALUE_4(0x0f),
-};
-
 
 const uint8_t egui_image_data_type_size_table[] = {
         4, /* EGUI_IMAGE_DATA_TYPE_RGB32 */
@@ -116,7 +96,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_get_col_pixel_rgb565_4(const uint16_t
     sel_alpha = ((p_alpha[sel_alpha_pos]) >> bit_pos) & 0x0F;
 
     color->full = EGUI_COLOR_RGB565_TRANS(sel_color);
-    *alpha = egui_image_alpha_change_table_4[sel_alpha];
+    *alpha = egui_alpha_change_table_4[sel_alpha];
 }
 
 __EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565_4(egui_image_std_info_t *image, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
@@ -146,7 +126,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_get_col_pixel_rgb565_2(const uint16_t
     sel_alpha = ((p_alpha[sel_alpha_pos]) >> bit_pos) & 0x03;
 
     color->full = EGUI_COLOR_RGB565_TRANS(sel_color);
-    *alpha = egui_image_alpha_change_table_2[sel_alpha];
+    *alpha = egui_alpha_change_table_2[sel_alpha];
 }
 
 __EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565_2(egui_image_std_info_t *image, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
@@ -316,6 +296,10 @@ void egui_image_std_draw_image(const egui_image_t *self, egui_dim_t x, egui_dim_
     // only work within intersection of base_view_work_region and the rectangle to be drawn
     EGUI_REGION_DEFINE(region, x, y, width, height);
     egui_region_intersect(&region, egui_canvas_get_base_view_work_region(), &region);
+    if(egui_region_is_empty(&region))
+    {
+        return;
+    }
 
     // change to image coordinate.
     region.location.x -= x;
@@ -376,6 +360,10 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
     // only work within intersection of base_view_work_region and the rectangle to be drawn
     EGUI_REGION_DEFINE(region, x, y, width, height);
     egui_region_intersect(&region, egui_canvas_get_base_view_work_region(), &region);
+    if(egui_region_is_empty(&region))
+    {
+        return;
+    }
 
     // change to image coordinate.
     region.location.x -= x;
@@ -464,11 +452,16 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
     egui_color_t color;
     egui_alpha_t alpha;
     egui_canvas_t *canvas = egui_canvas_get_canvas();
-    uint16_t data_row_size = image->width * 2;
+    uint16_t data_row_size = image->width << 1; // same to image->width * 2
     uint16_t alpha_row_size = image->width;
 #if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
     void *data_buf = egui_malloc(data_row_size); 
     void *alpha_buf = egui_malloc(alpha_row_size);
+    if(data_buf == NULL || alpha_buf == NULL)
+    {
+        EGUI_ASSERT(0);
+        return;
+    }
 #endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
 
     for (egui_dim_t y_ = y; y_ < y_total; y_++)
@@ -480,7 +473,7 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
         uint32_t start_pos = x;
         uint32_t end_pos = x_total;
 
-        egui_memcpy((void *)((uint8_t *_t)p_data + (start_pos << 1))
+        egui_memcpy((void *)((uint8_t *)p_data + (start_pos << 1))
             , (const void *)((const uint8_t *)image->data_buf + ((row_start + start_pos) << 1)), (end_pos - start_pos) << 1);
         egui_memcpy((void *)((uint8_t *)p_alpha + (start_pos))
             , (const void *)((const uint8_t *)image->alpha_buf + ((row_start + start_pos))), (end_pos - start_pos));
@@ -524,11 +517,16 @@ void egui_image_std_set_image_rgb565_4(const egui_image_t *self, egui_dim_t x, e
     egui_color_t color;
     egui_alpha_t alpha;
     egui_canvas_t *canvas = egui_canvas_get_canvas();
-    uint16_t data_row_size = image->width * 2;
+    uint16_t data_row_size = image->width << 1; // same to image->width * 2
     uint16_t alpha_row_size = ((image->width + 1) >> 1); // same to: ((image->width + 1) / 2);
 #if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
     void *data_buf = egui_malloc(data_row_size); 
     void *alpha_buf = egui_malloc(alpha_row_size);
+    if(data_buf == NULL || alpha_buf == NULL)
+    {
+        EGUI_ASSERT(0);
+        return;
+    }
 #endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
 
     for (egui_dim_t y_ = y; y_ < y_total; y_++)
@@ -588,11 +586,16 @@ void egui_image_std_set_image_rgb565_2(const egui_image_t *self, egui_dim_t x, e
     egui_color_t color;
     egui_alpha_t alpha;
     egui_canvas_t *canvas = egui_canvas_get_canvas();
-    uint16_t data_row_size = image->width * 2;
+    uint16_t data_row_size = image->width << 1; // same to image->width * 2
     uint16_t alpha_row_size = ((image->width + 3) >> 2); // same to: ((image->width + 3) / 4);
 #if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
     void *data_buf = egui_malloc(data_row_size); 
     void *alpha_buf = egui_malloc(alpha_row_size);
+    if(data_buf == NULL || alpha_buf == NULL)
+    {
+        EGUI_ASSERT(0);
+        return;
+    }
 #endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
 
     for (egui_dim_t y_ = y; y_ < y_total; y_++)
@@ -652,11 +655,16 @@ void egui_image_std_set_image_rgb565_1(const egui_image_t *self, egui_dim_t x, e
     egui_color_t color;
     egui_alpha_t alpha;
     egui_canvas_t *canvas = egui_canvas_get_canvas();
-    uint16_t data_row_size = image->width * 2;
+    uint16_t data_row_size = image->width << 1; // same to image->width * 2
     uint16_t alpha_row_size = ((image->width + 7) >> 3); // same to ((image->width + 7) / 8);
 #if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
     void *data_buf = egui_malloc(data_row_size); 
     void *alpha_buf = egui_malloc(alpha_row_size);
+    if(data_buf == NULL || alpha_buf == NULL)
+    {
+        EGUI_ASSERT(0);
+        return;
+    }
 #endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
 
     for (egui_dim_t y_ = y; y_ < y_total; y_++)
@@ -716,7 +724,12 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
     {
         egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
 #if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
-        void *data_buf = egui_malloc(image->width * 2);
+        void *data_buf = egui_malloc(image->width << 1);
+        if(data_buf == NULL)
+        {
+            EGUI_ASSERT(0);
+            return;
+        }
 #endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
         egui_color_t color;
         for (egui_dim_t y_ = y; y_ < y_total; y_++)
@@ -771,6 +784,11 @@ void egui_image_std_draw_image(const egui_image_t *self, egui_dim_t x, egui_dim_
     // only work within intersection of base_view_work_region and the rectangle to be drawn
     EGUI_REGION_DEFINE(region, x, y, width, height);
     egui_region_intersect(&region, egui_canvas_get_base_view_work_region(), &region);
+
+    if(egui_region_is_empty(&region))
+    {
+        return;
+    }
 
     // change to image coordinate.
     region.location.x -= x;
@@ -967,6 +985,11 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
     // only work within intersection of base_view_work_region and the rectangle to be drawn
     EGUI_REGION_DEFINE(region, x, y, width, height);
     egui_region_intersect(&region, egui_canvas_get_base_view_work_region(), &region);
+
+    if(egui_region_is_empty(&region))
+    {
+        return;
+    }
 
     // change to image coordinate.
     region.location.x -= x;

@@ -145,11 +145,12 @@ void egui_view_viewpage_scroll_to_page(egui_view_t *self, int page_index)
     egui_dim_t diff_x = target_x - container->region.location.x;
 
     // EGUI_LOG_DBG("egui_view_viewpage_scroll_to_page target_x: %d, location: %d, diff_x: %d\n", target_x, container->region.location.x, diff_x);
+    // EGUI_LOG_DBG("egui_view_viewpage_scroll_to_page target_x: %d, location: %d, diff_x: %d\n", target_x, EGUI_ABS(container->region.location.x), EGUI_ABS(diff_x));
 
     local->current_page_index = page_index;
 
     // egui_view_viewpage_start_container_scroll(self, diff_x);
-    egui_scroller_start_scroll(&local->scroller, diff_x, EGUI_ABS(diff_x) * 2);
+    egui_scroller_start_scroll(&local->scroller, diff_x, EGUI_ABS(diff_x) * 1.5);
 }
 
 void egui_view_viewpage_slow_scroll_to_page(egui_view_t *self)
@@ -160,9 +161,31 @@ void egui_view_viewpage_slow_scroll_to_page(egui_view_t *self)
     egui_view_t *container = (egui_view_t *)&local->container;
 
     // EGUI_LOG_DBG("egui_view_viewpage_scroll_to_page location: %d, width: %d\n", container->region.location.x, self->region.size.width);
+    // EGUI_LOG_DBG("egui_view_viewpage_slow_scroll_to_page location: %d, width: %d\n", EGUI_ABS(container->region.location.x), self->region.size.width);
 
     uint8_t page_index_next = (EGUI_ABS(container->region.location.x) + (self->region.size.width >> 1)) / self->region.size.width;
     egui_view_viewpage_scroll_to_page(self, page_index_next);
+}
+
+void egui_view_viewpage_set_current_page(egui_view_t *self, int page_index)
+{
+    egui_view_viewpage_t *local = (egui_view_viewpage_t *)self;
+
+    egui_view_t *container = (egui_view_t *)&local->container;
+    int container_count = egui_view_group_get_child_count(container);
+
+    if (page_index < 0 || page_index >= container_count)
+    {
+        page_index = container_count - 1;
+    }
+
+    egui_dim_t target_x = -page_index * self->region.size.width;
+
+    container->region.location.x = target_x;
+
+    local->current_page_index = page_index;
+
+    egui_view_invalidate(self);
 }
 
 void egui_view_viewpage_compute_scroll(egui_view_t *self)

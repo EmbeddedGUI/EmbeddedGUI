@@ -30,16 +30,24 @@ extern "C" {
 #define EGUI_CONFIG_COLOR_16_SWAP 0
 #endif
 
+/**
+ * Color options.
+ * Swap the 2 bytes of RGB565 color. Useful if the image is 16bit.
+ */
+#ifndef EGUI_CONFIG_COLOR_16_SWAP_IMG565
+#define EGUI_CONFIG_COLOR_16_SWAP_IMG565 0
+#endif
+
 // For speed, we assume that the PFB width and height are multiples of the screen width and height
 
 // Width of the PFB block
-// The width of your PFB block size, must be a multiple of EGUI_CONFIG_SCEEN_WIDTH
+// The width of your PFB block size, suggest be a multiple of EGUI_CONFIG_SCEEN_WIDTH
 #ifndef EGUI_CONFIG_PFB_WIDTH
 #define EGUI_CONFIG_PFB_WIDTH (EGUI_CONFIG_SCEEN_WIDTH / 8)
 #endif
 
 // Height of the PFB block
-// The height of your PFB block size, must be a multiple of EGUI_CONFIG_SCEEN_HEIGHT
+// The height of your PFB block size, suggest be a multiple of EGUI_CONFIG_SCEEN_HEIGHT
 #ifndef EGUI_CONFIG_PFB_HEIGHT
 #define EGUI_CONFIG_PFB_HEIGHT (EGUI_CONFIG_SCEEN_HEIGHT / 8)
 #endif
