@@ -1,14 +1,14 @@
-SRC		+= $(EGUI_PATH)
-SRC		+= $(EGUI_PATH)/app
-SRC		+= $(EGUI_PATH)/anim
-SRC		+= $(EGUI_PATH)/background
-SRC		+= $(EGUI_PATH)/core
-SRC		+= $(EGUI_PATH)/widget
-SRC		+= $(EGUI_PATH)/font
-SRC		+= $(EGUI_PATH)/image
-SRC		+= $(EGUI_PATH)/mask
-SRC		+= $(EGUI_PATH)/resource
-SRC		+= $(EGUI_PATH)/utils
-SRC		+= $(EGUI_PATH)/utils/simple_ringbuffer
+EGUI_CODE_SRC		+= $(EGUI_PATH)
+EGUI_CODE_SRC		+= $(EGUI_PATH)/app
+EGUI_CODE_SRC		+= $(EGUI_PATH)/anim
+EGUI_CODE_SRC		+= $(EGUI_PATH)/background
+EGUI_CODE_SRC		+= $(EGUI_PATH)/core
+EGUI_CODE_SRC		+= $(EGUI_PATH)/widget
+EGUI_CODE_SRC		+= $(EGUI_PATH)/font
+EGUI_CODE_SRC		+= $(EGUI_PATH)/image
+EGUI_CODE_SRC		+= $(EGUI_PATH)/mask
+EGUI_CODE_SRC		+= $(EGUI_PATH)/resource
+EGUI_CODE_SRC		+= $(EGUI_PATH)/utils
+EGUI_CODE_SRC		+= $(EGUI_PATH)/utils/simple_ringbuffer
 
-INCLUDE	+= $(EGUI_PATH)
+EGUI_CODE_INCLUDE	+= $(EGUI_PATH)

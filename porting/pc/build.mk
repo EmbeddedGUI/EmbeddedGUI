@@ -1,8 +1,8 @@
 # define source directory
-SRC		+= $(PORT_PATH)
+SRC		+= $(EGUI_PORT_PATH)
 
 # define include directory
-INCLUDE	+= $(PORT_PATH)
+INCLUDE	+= $(EGUI_PORT_PATH)
 
 # define lib directory
 LIB		+=
@@ -41,4 +41,4 @@ output/SDL2.dll:
 	@-cmd /c copy $(call FIXPATH, porting\pc\sdl2\$(BITS)\bin\SDL2.dll) $(OUTPUT_PATH)\SDL2.dll
 
 
-include $(PORT_PATH)/Makefile.base
+include $(EGUI_PORT_PATH)/Makefile.base

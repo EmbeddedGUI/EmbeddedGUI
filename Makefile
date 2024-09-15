@@ -2,8 +2,8 @@
 # APP ?= HelloActivity
 # APP ?= HelloBasic
 # APP ?= HelloPerformace
-# APP ?= HelloSimple
-APP ?= HelloTest
+APP ?= HelloSimple
+# APP ?= HelloTest
 # APP ?= HelloViewPageAndScroll
 
 # include port info
@@ -33,20 +33,23 @@ endif
 
 
 
-
+EGUI_CODE_SRC := 
+EGUI_CODE_INCLUDE := 
 
 # don't edit below this line.
 # include app info
-APP_ROOT_PATH = example
-APP_PATH = $(APP_ROOT_PATH)/$(APP)
-include $(APP_PATH)/build.mk
+EGUI_APP_ROOT_PATH = example
+EGUI_APP_PATH = $(EGUI_APP_ROOT_PATH)/$(APP)
+include $(EGUI_APP_PATH)/build.mk
 
 # include egui src
 EGUI_PATH := src
 include $(EGUI_PATH)/build.mk
 
+SRC += $(EGUI_CODE_SRC)
+INCLUDE += $(EGUI_CODE_INCLUDE)
 
 # include port info
-PORT_ROOT_PATH = porting
-PORT_PATH = $(PORT_ROOT_PATH)/$(PORT)
-include $(PORT_PATH)/build.mk
+EGUI_PORT_ROOT_PATH = porting
+EGUI_PORT_PATH = $(EGUI_PORT_ROOT_PATH)/$(PORT)
+include $(EGUI_PORT_PATH)/build.mk
