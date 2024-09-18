@@ -12,6 +12,13 @@ void egui_view_viewpage_add_child(egui_view_t *self, egui_view_t *child)
     egui_view_group_add_child((egui_view_t *)&local->container, child);
 }
 
+void egui_view_viewpage_remove_child(egui_view_t *self, egui_view_t *child)
+{
+    egui_view_viewpage_t *local = (egui_view_viewpage_t *)self;
+
+    egui_view_group_remove_child((egui_view_t *)&local->container, child);
+}
+
 void egui_view_viewpage_layout_childs(egui_view_t *self)
 {
     egui_view_viewpage_t *local = (egui_view_viewpage_t *)self;

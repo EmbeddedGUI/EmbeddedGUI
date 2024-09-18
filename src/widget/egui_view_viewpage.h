@@ -30,6 +30,7 @@ struct egui_view_viewpage
 };
 
 void egui_view_viewpage_add_child(egui_view_t *self, egui_view_t *child);
+void egui_view_viewpage_remove_child(egui_view_t *self, egui_view_t *child);
 void egui_view_viewpage_layout_childs(egui_view_t *self);
 void egui_view_viewpage_set_size(egui_view_t *self, egui_dim_t width, egui_dim_t height);
 void egui_view_viewpage_start_container_scroll(egui_view_t *self, int diff_x);

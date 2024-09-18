@@ -35,6 +35,7 @@ struct egui_view_group
 
 void egui_view_group_add_child(egui_view_t *self, egui_view_t *child);
 void egui_view_group_remove_child(egui_view_t *self, egui_view_t *child);
+void egui_view_group_clear_childs(egui_view_t *self);
 int egui_view_group_get_child_count(egui_view_t *self);
 egui_view_t *egui_view_group_get_first_child(egui_view_t *self);
 

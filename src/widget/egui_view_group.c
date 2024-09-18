@@ -19,6 +19,13 @@ void egui_view_group_remove_child(egui_view_t *self, egui_view_t *child)
     egui_dlist_remove(&child->node);
 }
 
+void egui_view_group_clear_childs(egui_view_t *self)
+{
+    egui_view_group_t *local = (egui_view_group_t *)self;
+
+    egui_dlist_init(&local->childs);
+}
+
 int egui_view_group_get_child_count(egui_view_t *self)
 {
     egui_view_group_t *local = (egui_view_group_t *)self;

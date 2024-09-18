@@ -60,6 +60,7 @@
 #include "widget/egui_view_scroll.h"
 #include "widget/egui_view_switch.h"
 #include "widget/egui_view_viewpage.h"
+#include "widget/egui_view_viewpage_cache.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus

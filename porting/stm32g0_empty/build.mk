@@ -1,12 +1,12 @@
 # define source directory
-SRC		+= $(PORT_PATH)
-SRC		+= $(PORT_PATH)/Core/Src
-SRC		+= $(PORT_PATH)/Core/Startup
-SRC		+= $(PORT_PATH)/Porting
+SRC		+= $(EGUI_PORT_PATH)
+SRC		+= $(EGUI_PORT_PATH)/Core/Src
+SRC		+= $(EGUI_PORT_PATH)/Core/Startup
+SRC		+= $(EGUI_PORT_PATH)/Porting
 
 # define include directory
-INCLUDE	+= $(PORT_PATH)
-INCLUDE	+= $(PORT_PATH)/Core/Inc
+INCLUDE	+= $(EGUI_PORT_PATH)
+INCLUDE	+= $(EGUI_PORT_PATH)/Core/Inc
 
 # define lib directory
 LIB		+=
@@ -16,9 +16,9 @@ LIB		+=
 
 
 
-GCC_DIR = $(PORT_PATH)/GCC
+GCC_DIR = $(EGUI_PORT_PATH)/GCC
 
-ROOT_DIR = $(PORT_PATH)
+ROOT_DIR = $(EGUI_PORT_PATH)
 
 LIB_DIR = $(ROOT_DIR)/Drivers
 
@@ -37,6 +37,6 @@ COMMON_FLAGS  += -DSTM32G0B0xx
 CPU_ARCH := cortex-m0plus
 JLINK_DEVICE  := STM32G0B0RE
 
-LINKER_SCRIPT ?= $(PORT_PATH)/STM32G0B0RETX_FLASH.ld
+LINKER_SCRIPT ?= $(EGUI_PORT_PATH)/STM32G0B0RETX_FLASH.ld
 
-include $(PORT_PATH)/GCC/Makefile.base
+include $(EGUI_PORT_PATH)/GCC/Makefile.base
