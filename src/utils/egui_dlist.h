@@ -15,22 +15,22 @@ extern "C" {
  * @{
  */
 
-struct _dnode
+struct _egui_dnode
 {
     union
     {
-        struct _dnode *head; /* ptr to head of list (egui_dlist_t) */
-        struct _dnode *next; /* ptr to next node    (egui_dnode_t) */
+        struct _egui_dnode *head; /* ptr to head of list (egui_dlist_t) */
+        struct _egui_dnode *next; /* ptr to next node    (egui_dnode_t) */
     };
     union
     {
-        struct _dnode *tail; /* ptr to tail of list (egui_dlist_t) */
-        struct _dnode *prev; /* ptr to previous node (egui_dnode_t) */
+        struct _egui_dnode *tail; /* ptr to tail of list (egui_dlist_t) */
+        struct _egui_dnode *prev; /* ptr to previous node (egui_dnode_t) */
     };
 };
 
-typedef struct _dnode egui_dlist_t;
-typedef struct _dnode egui_dnode_t;
+typedef struct _egui_dnode egui_dlist_t;
+typedef struct _egui_dnode egui_dnode_t;
 
 #ifndef egui_dlist_container_of
 #define egui_dlist_container_of(ptr, type, member) ((type *)(((const char *)(ptr)) - offsetof(type, member)))

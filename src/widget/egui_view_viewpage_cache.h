@@ -51,6 +51,7 @@ void egui_view_viewpage_cache_set_on_page_changed_listener(egui_view_t *self, eg
 void egui_view_viewpage_cache_set_on_page_load_listener(egui_view_t *self, egui_view_viewpage_cache_on_page_load_listener_t listener);
 void egui_view_viewpage_cache_set_on_page_free_listener(egui_view_t *self, egui_view_viewpage_cache_on_page_free_listener_t listener);
 
+void egui_view_viewpage_cache_on_paged_free_all(egui_view_t *self);
 void egui_view_viewpage_cache_add_child(egui_view_t *self, egui_view_t *child);
 void egui_view_viewpage_cache_remove_child(egui_view_t *self, egui_view_t *child);
 void egui_view_viewpage_cache_layout_childs(egui_view_t *self);

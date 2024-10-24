@@ -25,13 +25,13 @@ struct _egui_snode
 
 typedef struct _egui_snode egui_snode_t;
 
-struct _slist
+struct _egui_slist
 {
     egui_snode_t *head;
     egui_snode_t *tail;
 };
 
-typedef struct _slist egui_slist_t;
+typedef struct _egui_slist egui_slist_t;
 
 #ifndef egui_slist_container_of
 #define egui_slist_container_of(ptr, type, member) ((type *)(((const char *)(ptr)) - offsetof(type, member)))

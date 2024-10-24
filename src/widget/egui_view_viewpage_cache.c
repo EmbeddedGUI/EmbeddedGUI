@@ -79,6 +79,7 @@ void egui_view_viewpage_cache_reload_page(egui_view_t *self, int center_page_ind
     // Free last childs
     egui_view_group_t *container = (egui_view_group_t *)&local->container;
     egui_dnode_t *p_head;
+    egui_dnode_t *p_next;
     egui_view_t *tmp;
 
     index = last_center_page_index - EGUI_VIEW_VIEWPAGE_CACHE_BASE_OFFSET;
@@ -88,7 +89,7 @@ void egui_view_viewpage_cache_reload_page(egui_view_t *self, int center_page_ind
     }
     if (!egui_dlist_is_empty(&container->childs))
     {
-        EGUI_DLIST_FOR_EACH_NODE(&container->childs, p_head)
+        EGUI_DLIST_FOR_EACH_NODE_SAFE(&container->childs, p_head, p_next)
         {
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
             
@@ -104,7 +105,7 @@ void egui_view_viewpage_cache_reload_page(egui_view_t *self, int center_page_ind
     index = center_page_index - EGUI_VIEW_VIEWPAGE_CACHE_BASE_OFFSET;
     for(int i = 0; i < EGUI_VIEW_VIEWPAGE_CACHE_MAX_PAGE_CNT; i++)
     {
-        if(index >= 0)
+        if((index >= 0) && (index < local->total_page_cnt))
         {
             egui_view_t *view = egui_view_viewpage_cache_on_paged_load(self, index);
             if(view != NULL)
@@ -121,6 +122,39 @@ void egui_view_viewpage_cache_reload_page(egui_view_t *self, int center_page_ind
         }
         index ++;
     }
+}
+
+void egui_view_viewpage_cache_on_paged_free_all(egui_view_t *self)
+{
+    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    egui_view_t* page_cache_tmp[EGUI_VIEW_VIEWPAGE_CACHE_MAX_PAGE_CNT] = {NULL};
+    int last_center_page_index = local->current_page_index;
+    int index = 0;
+
+    // Free last childs
+    egui_view_group_t *container = (egui_view_group_t *)&local->container;
+    egui_dnode_t *p_head;
+    egui_dnode_t *p_next;
+    egui_view_t *tmp;
+
+    index = last_center_page_index - EGUI_VIEW_VIEWPAGE_CACHE_BASE_OFFSET;
+    if(index < 0)
+    {
+        index = 0;
+    }
+    if (!egui_dlist_is_empty(&container->childs))
+    {
+        EGUI_DLIST_FOR_EACH_NODE_SAFE(&container->childs, p_head, p_next)
+        {
+            tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
+            
+            egui_view_viewpage_cache_on_paged_free(self, index, tmp);
+            index++;
+        }
+    }
+
+    // clear all childs.
+    egui_view_group_clear_childs((egui_view_t *)&local->container);
 }
 
 void egui_view_viewpage_cache_on_paged_changed(egui_view_t *self, int index)

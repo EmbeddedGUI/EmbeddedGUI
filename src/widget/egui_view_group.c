@@ -15,7 +15,11 @@ void egui_view_group_add_child(egui_view_t *self, egui_view_t *child)
 void egui_view_group_remove_child(egui_view_t *self, egui_view_t *child)
 {
     egui_view_group_t *local = (egui_view_group_t *)self;
-
+    if(child == local->first_touch_target)
+    {
+        // Clear.
+        local->first_touch_target = NULL;
+    }
     egui_dlist_remove(&child->node);
 }
 
