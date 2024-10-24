@@ -13,6 +13,7 @@
 
    introduction/index.rst
    code/index.rst
+   basic/index.rst
 
 
 

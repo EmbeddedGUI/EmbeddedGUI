@@ -194,6 +194,14 @@ extern "C" {
 
 /**
  * Debug options.
+ * Skip gui draw to reduce cpu usage, for debug GUI performance.
+ */
+#ifndef EGUI_CONFIG_DEBUG_SKIP_DRAW_ALL
+#define EGUI_CONFIG_DEBUG_SKIP_DRAW_ALL 0
+#endif
+
+/**
+ * Debug options.
  * For checking the refresh of the PFB.
  */
 #ifndef EGUI_CONFIG_DEBUG_PFB_REFRESH

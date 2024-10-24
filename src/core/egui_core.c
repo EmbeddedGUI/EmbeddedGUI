@@ -259,7 +259,9 @@ void egui_polling_refresh_display(void)
                 egui_canvas_calc_work_region(&region);
 
                 egui_canvas_draw_rectangle(0, 0, egui_core.pfb_width, egui_core.pfb_height, 1, EGUI_COLOR_RED, EGUI_ALPHA_100);
+#if !EGUI_CONFIG_DEBUG_SKIP_DRAW_ALL
                 egui_api_draw_data(x_pos, y_pos, egui_core.pfb_width, egui_core.pfb_height, egui_core.pfb);
+#endif
                 egui_api_refresh_display();
                 memcpy(egui_core.pfb, egui_pfb_debug_saved, sizeof(egui_pfb_debug_saved)); // restore last pfb data
 
@@ -268,11 +270,15 @@ void egui_polling_refresh_display(void)
 #endif
 
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+#if !EGUI_CONFIG_DEBUG_SKIP_DRAW_ALL
             egui_api_draw_data(x_pos, y_pos, egui_core.pfb_width, egui_core.pfb_height, egui_core.pfb);
+#endif
 #else
             if (is_update)
             {
+#if !EGUI_CONFIG_DEBUG_SKIP_DRAW_ALL
                 egui_api_draw_data(x_pos, y_pos, egui_core.pfb_width, egui_core.pfb_height, egui_core.pfb);
+#endif
             }
 #endif
 

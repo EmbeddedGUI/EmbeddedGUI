@@ -212,7 +212,6 @@ make all APP=HelloSimple
 <table>
   <tr>
     <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/23901725079354_.pic.jpg" width="300px;" height="400px"/><br /><sub><b>QQ</b></sub></a>
-    <td align="center"><img src="https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/微信图片_20240902154325.jpg" width="300px;" height="400px"/><br /><sub><b>WeChat</b></sub></a>
   </tr>
 </table>
 

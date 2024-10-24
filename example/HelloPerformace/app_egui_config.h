@@ -13,6 +13,11 @@ extern "C" {
 
 #define EGUI_CONFIG_DEBUG_LOG_LEVEL EGUI_LOG_IMPL_LEVEL_INF
 
+// For performance test
+// #define EGUI_CONFIG_DEBUG_SKIP_DRAW_ALL 1
+// #define EGUI_CONFIG_PFB_WIDTH 12
+// #define EGUI_CONFIG_PFB_HEIGHT 8
+
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }
