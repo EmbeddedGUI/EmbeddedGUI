@@ -67,6 +67,7 @@ static void _timer_refresh_timeout(void)
 static int _timer_remove(egui_timer_t *handle)
 {
     int is_refresh = 0;
+    __egui_disable_isr();
     egui_timer_t *current = _timer_root();
     egui_timer_t *prev = NULL;
 
@@ -88,7 +89,11 @@ static int _timer_remove(egui_timer_t *handle)
 
             is_refresh = 1;
         }
+
+        // clear next pointer
+        handle->next = NULL;
     }
+    __egui_enable_isr();
 
     return is_refresh;
 }
@@ -122,9 +127,15 @@ static int _timer_check_in_queue(egui_timer_t *handle)
  */
 static int _timer_insert(egui_timer_t *handle)
 {
-    int is_refresh = 0;
-    egui_timer_t *current = _timer_root();
+    int is_refresh;
+    __egui_disable_isr();
+    egui_timer_t *current;
     egui_timer_t *prev = NULL;
+
+    /* Force stop timer */
+    is_refresh = _timer_remove(handle);
+
+    current = _timer_root();
 
     while ((current != NULL) && _timer_past(current->expiry_time, handle->expiry_time))
     {
@@ -145,6 +156,7 @@ static int _timer_insert(egui_timer_t *handle)
     {
         prev->next = handle;
     }
+    __egui_enable_isr();
 
     return is_refresh;
 }
@@ -156,14 +168,12 @@ static int _timer_insert(egui_timer_t *handle)
  */
 static int _start_timer(egui_timer_t *handle, uint32_t time)
 {
-    int is_refresh = 0;
+    int is_refresh;
 
-    /* Force stop timer */
-    is_refresh = _timer_remove(handle);
     /* The timer is already started */
     handle->expiry_time = time;
 
-    is_refresh |= _timer_insert(handle);
+    is_refresh = _timer_insert(handle);
 
     return is_refresh;
 }
@@ -196,6 +206,11 @@ static void _timer_expire(void)
     {
         _timer_refresh_timeout();
     }
+}
+
+void egui_timer_force_refresh_timer(void)
+{
+    _timer_refresh_timeout();
 }
 
 void egui_timer_polling_work(void)

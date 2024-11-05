@@ -58,4 +58,12 @@ __EGUI_WEAK__ void egui_api_pfb_clear(void *s, int n)
 {
 }
 
+__EGUI_WEAK__ egui_base_t egui_hw_interrupt_disable(void)
+{
+    return 0;
+}
+
+__EGUI_WEAK__ void egui_hw_interrupt_enable(egui_base_t level)
+{
+}
 

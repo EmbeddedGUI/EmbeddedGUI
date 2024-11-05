@@ -94,6 +94,15 @@ __EGUI_STATIC_INLINE__ char egui_level_to_char(int level)
             egui_api_assert(__FILE__, __LINE__);                                                                                                                   \
     } while (0)
 
+
+    
+typedef int egui_base_t;
+extern egui_base_t egui_hw_interrupt_disable(void);
+extern void egui_hw_interrupt_enable(egui_base_t level);
+
+#define __egui_disable_isr() egui_base_t _egui_isr_level = egui_hw_interrupt_disable()
+#define __egui_enable_isr()  egui_hw_interrupt_enable(_egui_isr_level)
+
 void egui_api_log(const char *format, ...);
 void egui_api_assert(const char *file, int line);
 void egui_api_free(void *ptr);

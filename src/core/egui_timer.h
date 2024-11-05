@@ -23,6 +23,7 @@ struct egui_timer
     void *user_data;
 };
 
+void egui_timer_force_refresh_timer(void);
 void egui_timer_polling_work(void);
 int egui_timer_start_timer(egui_timer_t *handle, uint32_t ms, uint32_t period);
 void egui_timer_stop_timer(egui_timer_t *handle);
