@@ -145,6 +145,14 @@ extern "C" {
 #endif
 
 /**
+ * Function options.
+ * Select support app resource manager.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
+#define EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER 0
+#endif
+
+/**
  * Performance options.
  * Load image in ram for speed.
  */

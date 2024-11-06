@@ -24,10 +24,27 @@ void app_set_gpio(uint8_t pin, uint8_t state)
 
 static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
 
+char input_file_path[0x1000];
 
-int main(int argc, char *argv[])
+char* pc_get_input_file_path(void)
+{
+    return input_file_path;
+}
+
+static void pasre_input_params(int argc, const char *argv[])
+{
+    if (argc > 1)
+    {
+        // printf("input params: %s\n", argv[1]);
+        strcpy(input_file_path, argv[1]);
+    }
+}
+
+int main(int argc, const char *argv[])
 {
     printf("Hello, egui!\n");
+    
+    pasre_input_params(argc, argv);
 
     VT_init();
 

@@ -1,0 +1,85 @@
+
+
+#ifndef _APP_EGUI_RESOURCE_GENERATE_H_
+#define _APP_EGUI_RESOURCE_GENERATE_H_
+
+/* Set up for C function definitions, even when using C++ */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "egui.h"
+
+extern const egui_image_std_t egui_res_image_star_gray8_0;
+extern const egui_image_std_t egui_res_image_star_gray8_0_bin;
+extern const egui_image_std_t egui_res_image_star_gray8_1;
+extern const egui_image_std_t egui_res_image_star_gray8_1_bin;
+extern const egui_image_std_t egui_res_image_star_gray8_2;
+extern const egui_image_std_t egui_res_image_star_gray8_2_bin;
+extern const egui_image_std_t egui_res_image_star_gray8_4;
+extern const egui_image_std_t egui_res_image_star_gray8_4_bin;
+extern const egui_image_std_t egui_res_image_star_gray8_8;
+extern const egui_image_std_t egui_res_image_star_gray8_8_bin;
+extern const egui_image_std_t egui_res_image_star_rgb32_0;
+extern const egui_image_std_t egui_res_image_star_rgb32_0_bin;
+extern const egui_image_std_t egui_res_image_star_rgb32_1;
+extern const egui_image_std_t egui_res_image_star_rgb32_1_bin;
+extern const egui_image_std_t egui_res_image_star_rgb32_2;
+extern const egui_image_std_t egui_res_image_star_rgb32_2_bin;
+extern const egui_image_std_t egui_res_image_star_rgb32_4;
+extern const egui_image_std_t egui_res_image_star_rgb32_4_bin;
+extern const egui_image_std_t egui_res_image_star_rgb32_8;
+extern const egui_image_std_t egui_res_image_star_rgb32_8_bin;
+extern const egui_image_std_t egui_res_image_star_rgb565_0;
+extern const egui_image_std_t egui_res_image_star_rgb565_0_bin;
+extern const egui_image_std_t egui_res_image_star_rgb565_1;
+extern const egui_image_std_t egui_res_image_star_rgb565_1_bin;
+extern const egui_image_std_t egui_res_image_star_rgb565_2;
+extern const egui_image_std_t egui_res_image_star_rgb565_2_bin;
+extern const egui_image_std_t egui_res_image_star_rgb565_4;
+extern const egui_image_std_t egui_res_image_star_rgb565_4_bin;
+extern const egui_image_std_t egui_res_image_star_rgb565_8;
+extern const egui_image_std_t egui_res_image_star_rgb565_8_bin;
+extern const egui_image_std_t egui_res_image_test_rgb565_4_bin;
+
+
+enum {
+EGUI_EXT_RES_ID_BASE = 0x00, // avoid conflict with NULL.
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_GRAY8_0_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_GRAY8_1_ALPHA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_GRAY8_1_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_GRAY8_2_ALPHA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_GRAY8_2_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_GRAY8_4_ALPHA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_GRAY8_4_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_GRAY8_8_ALPHA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_GRAY8_8_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB32_0_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB32_1_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB32_2_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB32_4_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB32_8_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB565_0_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB565_1_ALPHA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB565_1_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB565_2_ALPHA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB565_2_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB565_4_ALPHA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB565_4_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB565_8_ALPHA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB565_8_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_TEST_RGB565_4_ALPHA,
+EGUI_EXT_RES_ID_EGUI_RES_IMAGE_TEST_RGB565_4_DATA,
+
+EGUI_EXT_RES_ID_MAX,
+};
+
+extern const uint32_t egui_ext_res_id_map[EGUI_EXT_RES_ID_MAX];
+
+/* Ends C function definitions when using C++ */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _APP_EGUI_RESOURCE_GENERATE_H_ */
+

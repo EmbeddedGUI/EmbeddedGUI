@@ -243,5 +243,9 @@ clean:
 	@$(ECHO) Cleanup complete!
 
 run: all
-	./$(OUTPUT_MAIN)
+	./$(OUTPUT_MAIN) $(OUTPUT_PATH)/app_egui_resource_merge.bin
 	@$(ECHO) Executing 'run: all' complete!
+
+resource:
+	python .\scripts\app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH)
+	

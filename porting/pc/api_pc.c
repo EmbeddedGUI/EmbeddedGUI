@@ -85,3 +85,27 @@ void egui_api_pfb_clear(void *s, int n)
     memset(s, 0, n);
 }
 
+#if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
+void egui_api_load_external_resource(void *dest, const uint32_t res_id, uint32_t start_offset, uint32_t size)
+{
+    // printf("api_load_external_resource, name: %s\n", name);
+    FILE *file;
+    uint32_t res_offset = egui_ext_res_id_map[res_id];
+ 
+    // Open file for reading
+    extern char* pc_get_input_file_path(void);
+    file = fopen(pc_get_input_file_path(), "r");
+    if (file == NULL) {
+        EGUI_LOG_ERR("Error opening file\r\n");
+        return;
+    }
+ 
+    fseek(file, res_offset + start_offset, SEEK_SET);
+
+    // read data from file
+    fread(dest, 1, size, file);
+ 
+    // close file
+    fclose(file);
+}
+#endif

@@ -62,6 +62,10 @@
 #include "widget/egui_view_viewpage.h"
 #include "widget/egui_view_viewpage_cache.h"
 
+#if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
+#include "app_egui_resource_generate.h"
+#endif
+
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {

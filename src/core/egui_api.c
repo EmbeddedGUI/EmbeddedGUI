@@ -58,6 +58,12 @@ __EGUI_WEAK__ void egui_api_pfb_clear(void *s, int n)
 {
 }
 
+
+__EGUI_WEAK__ void egui_api_load_external_resource(void *dest, const uint32_t res_id, uint32_t start_offset, uint32_t size)
+{
+
+}
+
 __EGUI_WEAK__ egui_base_t egui_hw_interrupt_disable(void)
 {
     return 0;

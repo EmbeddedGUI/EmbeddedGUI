@@ -2,6 +2,7 @@
 # APP ?= HelloActivity
 # APP ?= HelloBasic
 # APP ?= HelloPerformace
+# APP ?= HelloResourceManager
 APP ?= HelloSimple
 # APP ?= HelloTest
 # APP ?= HelloViewPageAndScroll

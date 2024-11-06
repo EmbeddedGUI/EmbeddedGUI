@@ -21,8 +21,9 @@ typedef struct
 {
     const void *data_buf;
     const void *alpha_buf;
-    uint8_t data_type;  // image bit size 1, 2, 4, 8
+    uint8_t data_type;  // image data type, EGUI_IMAGE_DATA_TYPE_RGB32, EGUI_IMAGE_DATA_TYPE_RGB565, EGUI_IMAGE_DATA_TYPE_GRAY8
     uint8_t alpha_type; // image bit size 1, 2, 4, 8
+    uint8_t res_type; // EGUI_RESOURCE_TYPE_INTERNAL, EGUI_RESOURCE_TYPE_EXTERNAL
     uint16_t width;     // image width
     uint16_t height;    // image height
 } egui_image_std_info_t;

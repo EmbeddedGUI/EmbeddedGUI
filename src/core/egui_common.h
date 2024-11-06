@@ -17,6 +17,9 @@ extern "C" {
 #define EGUI_PORT_TYPE_PC  0
 #define EGUI_PORT_TYPE_MCU 1
 
+#define EGUI_RESOURCE_TYPE_INTERNAL 0 /* Resource is code */
+#define EGUI_RESOURCE_TYPE_EXTERNAL 1 /* Resource is flash/file */
+
 /* Apparently this is needed by several Windows compilers */
 // #if !defined(__MACH__)
 #ifndef NULL

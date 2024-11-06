@@ -274,6 +274,35 @@ int egui_image_std_get_point_resize(const egui_image_t *self, egui_dim_t x, egui
     return 1;
 }
 
+void egui_image_std_load_data_resource(void *dest, egui_image_std_info_t *image, uint32_t start_offset, uint32_t size)
+{
+    // EGUI_LOG_INF("egui_image_std_load_data_resource, start_offset: %d, size: %d\n", start_offset, size);
+    if(image->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
+    {
+        egui_memcpy(dest, (const void *)((const uint8_t *)image->data_buf + start_offset), size);
+    }
+    else
+    {
+        egui_api_load_external_resource(dest, (uint32_t)image->data_buf, start_offset, size);
+    }
+    
+    // EGUI_LOG_INF("egui_image_std_load_data_resource, data: %08x:%08x:%08x:%08x:%08x:%08x:%08x:%08x\n", ((uint32_t *)dest)[0], ((uint32_t *)dest)[1], ((uint32_t *)dest)[2], ((uint32_t *)dest)[3], ((uint32_t *)dest)[4], ((uint32_t *)dest)[5], ((uint32_t *)dest)[6], ((uint32_t *)dest)[7]);
+}
+
+void egui_image_std_load_alpha_resource(void *dest, egui_image_std_info_t *image, uint32_t start_offset, uint32_t size)
+{
+    // EGUI_LOG_INF("egui_image_std_load_alpha_resource, start_offset: %d, size: %d\n", start_offset, size);
+    if(image->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
+    {
+        egui_memcpy(dest, (const void *)((const uint8_t *)image->alpha_buf + start_offset), size);
+    }
+    else
+    {
+        egui_api_load_external_resource(dest, (uint32_t)image->alpha_buf, start_offset, size);
+    }
+    // EGUI_LOG_INF("egui_image_std_load_alpha_resource, data: %08x:%08x:%08x:%08x:%08x:%08x:%08x:%08x\n", ((uint32_t *)dest)[0], ((uint32_t *)dest)[1], ((uint32_t *)dest)[2], ((uint32_t *)dest)[3], ((uint32_t *)dest)[4], ((uint32_t *)dest)[5], ((uint32_t *)dest)[6], ((uint32_t *)dest)[7]);
+}
+
 
 #if EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE
 void egui_image_std_draw_image(const egui_image_t *self, egui_dim_t x, egui_dim_t y)
@@ -473,10 +502,8 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
         uint32_t start_pos = x;
         uint32_t end_pos = x_total;
 
-        egui_memcpy((void *)((uint8_t *)p_data + (start_pos << 1))
-            , (const void *)((const uint8_t *)image->data_buf + ((row_start + start_pos) << 1)), (end_pos - start_pos) << 1);
-        egui_memcpy((void *)((uint8_t *)p_alpha + (start_pos))
-            , (const void *)((const uint8_t *)image->alpha_buf + ((row_start + start_pos))), (end_pos - start_pos));
+        egui_image_std_load_data_resource((uint8_t *)p_data + (start_pos << 1), image, (row_start + start_pos) << 1, (end_pos - start_pos) << 1);
+        egui_image_std_load_alpha_resource((uint8_t *)p_alpha + (start_pos), image, (row_start + start_pos), (end_pos - start_pos));
 #else
         const void *p_data = (const void *)((const uint8_t *)image->data_buf + (row_start << 1));
         const void *p_alpha = (const void *)((const uint8_t *)image->alpha_buf + (row_start));
@@ -508,6 +535,7 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
 #endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
 }
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8
+
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_4
 void egui_image_std_set_image_rgb565_4(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t x_total, egui_dim_t y_total, egui_dim_t x_base, egui_dim_t y_base)
 {
@@ -541,10 +569,8 @@ void egui_image_std_set_image_rgb565_4(const egui_image_t *self, egui_dim_t x, e
         uint32_t end_pos = x_total;
         uint32_t end_pos_alpha = (x_total + 1) >> 1; // same to: x / 2
 
-        egui_memcpy((void *)((uint8_t *)p_data + (start_pos << 1))
-            , (const void *)((const uint8_t *)image->data_buf + ((row_start + start_pos) << 1)), (end_pos - start_pos) << 1);
-        egui_memcpy((void *)((uint8_t *)p_alpha + (start_pos_alpha))
-            , (const void *)((const uint8_t *)image->alpha_buf + ((row_start_alpha + start_pos_alpha))), (end_pos_alpha - start_pos_alpha));
+        egui_image_std_load_data_resource((uint8_t *)p_data + (start_pos << 1), image, (row_start + start_pos) << 1, (end_pos - start_pos) << 1);
+        egui_image_std_load_alpha_resource((uint8_t *)p_alpha + (start_pos_alpha), image, (row_start_alpha + start_pos_alpha), (end_pos_alpha - start_pos_alpha));
 #else
         const void *p_data = (const void *)((const uint8_t *)image->data_buf + (row_start << 1));
         const void *p_alpha = (const void *)((const uint8_t *)image->alpha_buf + (row_start_alpha));
@@ -610,10 +636,8 @@ void egui_image_std_set_image_rgb565_2(const egui_image_t *self, egui_dim_t x, e
         uint32_t end_pos = x_total;
         uint32_t end_pos_alpha = ((x_total + 3) >> 2); // same to: x / 4
 
-        egui_memcpy((void *)((uint8_t *)p_data + (start_pos << 1))
-            , (const void *)((const uint8_t *)image->data_buf + ((row_start + start_pos) << 1)), (end_pos - start_pos) << 1);
-        egui_memcpy((void *)((uint8_t *)p_alpha + (start_pos_alpha))
-            , (const void *)((const uint8_t *)image->alpha_buf + ((row_start_alpha + start_pos_alpha))), (end_pos_alpha - start_pos_alpha));
+        egui_image_std_load_data_resource((uint8_t *)p_data + (start_pos << 1), image, (row_start + start_pos) << 1, (end_pos - start_pos) << 1);
+        egui_image_std_load_alpha_resource((uint8_t *)p_alpha + (start_pos_alpha), image, (row_start_alpha + start_pos_alpha), (end_pos_alpha - start_pos_alpha));
 #else
         const void *p_data = (const void *)((const uint8_t *)image->data_buf + (row_start << 1));
         const void *p_alpha = (const void *)((const uint8_t *)image->alpha_buf + (row_start_alpha));
@@ -679,10 +703,8 @@ void egui_image_std_set_image_rgb565_1(const egui_image_t *self, egui_dim_t x, e
         uint32_t end_pos = x_total;
         uint32_t end_pos_alpha = ((x_total + 7)  >> 3); // same to x / 8
 
-        egui_memcpy((void *)((uint8_t *)p_data + (start_pos << 1))
-            , (const void *)((const uint8_t *)image->data_buf + ((row_start + start_pos) << 1)), (end_pos - start_pos) << 1);
-        egui_memcpy((void *)((uint8_t *)p_alpha + (start_pos_alpha))
-            , (const void *)((const uint8_t *)image->alpha_buf + ((row_start_alpha + start_pos_alpha))), (end_pos_alpha - start_pos_alpha));
+        egui_image_std_load_data_resource((uint8_t *)p_data + (start_pos << 1), image, (row_start + start_pos) << 1, (end_pos - start_pos) << 1);
+        egui_image_std_load_alpha_resource((uint8_t *)p_alpha + (start_pos_alpha), image, (row_start_alpha + start_pos_alpha), (end_pos_alpha - start_pos_alpha));
 #else
         const void *p_data = (const void *)((const uint8_t *)image->data_buf + (row_start << 1));
         const void *p_alpha = (const void *)((const uint8_t *)image->alpha_buf + (row_start_alpha));
@@ -739,8 +761,7 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
             const void* p_data = data_buf;
             uint32_t start_pos = x;
             uint32_t end_pos = x_total;
-            egui_memcpy((void *)((uint8_t *)p_data + ((start_pos) << 1))
-                , (const void *)((const uint8_t *)image->data_buf + ((row_start + start_pos) << 1)), (end_pos - start_pos) << 1);
+            egui_image_std_load_data_resource((uint8_t *)p_data + (start_pos << 1), image, (row_start + start_pos) << 1, (end_pos - start_pos) << 1);
 #else
             const void *p_data = (const void *)((const uint8_t *)image->data_buf + (row_start << 1));
 #endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM

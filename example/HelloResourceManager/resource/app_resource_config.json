@@ -1,0 +1,50 @@
+{
+    // image generation parameters.
+    // Item parameters:
+    // file_name: The name of the image file to be generated.
+    // external: Storage format (all, 0: internal, 1: external)
+    // format: RGB Format (all, rgb32, rgb565, gray8)
+    // alpha: Alpha Format (all, 0, 1, 2, 4, 8)
+    // dim: Resize the image with the given width and height, -1,-1 to disable resizing.
+    // rot: Rotate the image with the given angle in degrees, -1 to disable rotation.
+    // swap: Swap the high and low bytes of the 16-bit RGB565 format
+    "img": [
+        {
+            "file": "star.png",
+            "external": "all",
+            "format": "all",
+            "alpha": "all",
+        },
+        {
+            "file": "test.png",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "4",
+        },
+        // {
+        //     "file": "test.png",
+        //     "external": "1",
+        //     "format": "rgb565",
+        //     "alpha": "4",
+        //     "dim": "50,50",
+        // },
+    ],
+    // font generation parameters.
+    // Item parameters:
+    "font": [
+        {
+            "file": "test.font",
+            "text": "supported_text_test.txt",
+            "external": "all",
+            "pixelsize": "all",
+            "fontbitsize": "all",
+        },
+        // {
+        //     "file": "test.png",
+        //     "external": "1",
+        //     "format": "rgb565",
+        //     "alpha": "4",
+        //     "dim": "50,50",
+        // },
+    ],
+}

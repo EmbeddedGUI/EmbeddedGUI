@@ -7,11 +7,21 @@ import numpy as np
 import time;
 import argparse
 import os
+from io import StringIO
 
 
 c_head_string="""
 
 #include "image/egui_image_std.h"
+
+// clang-format off
+
+"""
+
+c_head_string_bin="""
+
+#include "image/egui_image_std.h"
+#include "app_egui_resource_generate.h"
 
 // clang-format off
 
@@ -34,12 +44,32 @@ c_body_string="""
 
 
 static const egui_image_std_info_t {0}_info = {{
-    .data_buf = (void *){0}_data_buf,
-    .alpha_buf = (void *){1},
-    .data_type = {2},
-    .alpha_type = {3},
-    .width = {4},
-    .height = {5},
+    .data_buf = (void *){1},
+    .alpha_buf = (void *){2},
+    .data_type = {3},
+    .alpha_type = {4},
+    .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
+    .width = {5},
+    .height = {6},
+}};
+
+extern const egui_image_std_t {0};
+EGUI_IMAGE_SUB_DEFINE_CONST(egui_image_std_t, {0}, &{0}_info);
+
+"""
+
+
+c_body_string_bin="""
+
+
+static const egui_image_std_info_t {0}_info = {{
+    .data_buf = (void *){1},
+    .alpha_buf = (void *){2},
+    .data_type = {3},
+    .alpha_type = {4},
+    .res_type = EGUI_RESOURCE_TYPE_EXTERNAL,
+    .width = {5},
+    .height = {6},
 }};
 
 extern const egui_image_std_t {0};
@@ -53,9 +83,10 @@ c_tail_string="""
 
 """
 
+
 def main(argv):
 
-    parser = argparse.ArgumentParser(description='image to C array converter (v1.2.2)')
+    parser = argparse.ArgumentParser(description='image to C array converter (v1.0.0)')
 
     parser.add_argument('-i', "--input", nargs='?', type = str,  required=True, help="Input file (png, bmp, etc..)")
     parser.add_argument('-n', "--name", nargs='?',type = str, required=True, help="The customized UTF8 image name")
@@ -64,10 +95,13 @@ def main(argv):
     parser.add_argument('-d', '--dim', nargs=2,type = int, required=False, help="Resize the image with the given width and height")
     parser.add_argument('-r', '--rot', nargs='?',type = float, default=0.0, required=False, help="Rotate the image with the given angle in degrees")
     parser.add_argument('-s', '--swap', nargs='?',type = int, default=0, required=False, help="Swap the high and low bytes of the 16-bit RGB565 format")
+    parser.add_argument('-ext', '--external', nargs='?',type = int, default=0, required=False, help="Storage format (0: internal, 1: external)")
+    parser.add_argument('-o', '--output', nargs='?',type = str, default="", required=False, help="Specify the output file name (default: input file name with.c extension)")
 
     args = parser.parse_args()
 
     inputfile = args.input
+    external_type = args.external
 
     if args.format != 'rgb32' and \
         args.format != 'rgb565' and \
@@ -84,7 +118,7 @@ def main(argv):
     # just get file name.
     filename = os.path.basename(inputfile)
     # get the options
-    options = f"-i {filename} -n {args.name} -f {args.format} -a {args.alpha}"
+    options = f"-i {filename} -n {args.name} -f {args.format} -a {args.alpha} -s {args.swap} -ext {args.external}"
 
     # rotation
     if args.rot != 0.0:
@@ -101,9 +135,24 @@ def main(argv):
 
     options += f" -s {args.swap}"
 
-    name = f"egui_res_image_{args.name.lower()}_{args.format}_{args.alpha}"
+    name_raw = f"egui_res_image_{args.name.lower()}_{args.format}_{args.alpha}"
+    name = name_raw
 
-    outfilename = os.path.join(os.path.dirname(inputfile), f"{name}.c")
+    if external_type == 1:
+        name += "_bin"
+
+    output_path = ""
+    if args.output != "":
+        output_path = args.output
+    else:
+        output_path = os.path.dirname(inputfile)
+
+    data_bin_name = f"{name_raw}_data"
+    alpha_bin_name = f"{name_raw}_alpha"
+
+    outfilename = os.path.join(output_path, f"{name}.c")
+    outfilename_data_bin = os.path.join(output_path, f"{data_bin_name}.bin")
+    outfilename_alpha_bin = os.path.join(output_path, f"{alpha_bin_name}.bin")
 
     mode = image.mode
 
@@ -152,50 +201,61 @@ def main(argv):
 
     with open(outfilename,"w+") as o:
         # insert header
-        print(c_head_string, file=o)
+        if external_type == 1:
+            print(c_head_string_bin, file=o)
+        else:
+            print(c_head_string, file=o)
         print(c_head_debug_string.format(filename, args.format, args.alpha, resized, args.rot, options), file=o)
 
-        alpha_buf = "NULL"
+        alpha_buf_name = "NULL"
+        data_buf_name = "NULL"
 
         alpha_type = "EGUI_IMAGE_ALPHA_TYPE_8"
         data_type = "EGUI_IMAGE_DATA_TYPE_RGB32"
+        
+        alpha_bin_data = []
+        data_bin_data = []
+
+        alpha_str_io = StringIO()
+        data_str_io = StringIO()
         if mode == "RGBA":
-            alpha_buf = '%s_alpha_buf' % (name)
+            alpha_buf_name = '%s_alpha_buf' % (name)
             if args.format == 'rgb32':
                 # empty alpha.
-                alpha_buf = "NULL"
+                alpha_buf_name = "NULL"
             else:
                 # 8-bit Alpha channel
                 if args.alpha == 8:
                     alpha_type = "EGUI_IMAGE_ALPHA_TYPE_8"
                     # alpha channel array available
-                    print('static const uint8_t %s_alpha_buf[%d*%d] = {' % (name, row, col),file=o)
+                    print('static const uint8_t %s_alpha_buf[%d*%d] = {' % (name, row, col), file=alpha_str_io)
                     cnt = 0
                     for eachRow in data:
                         lineWidth=0
-                        print("/* -%d- */" % (cnt), file=o)
+                        print("/* -%d- */" % (cnt), file=alpha_str_io)
                         for eachPix in eachRow:
                             alpha = eachPix[3]
+                            alpha_bin_data.append(alpha)
                             if lineWidth % WIDTH_ALPHA == (WIDTH_ALPHA - 1):
-                                print("0x%02x," %(alpha) ,file=o)
+                                print("0x%02x," %(alpha) , file=alpha_str_io)
                             else:
-                                print("0x%02x" %(alpha), end =", ",file=o)
+                                print("0x%02x" %(alpha), end =", ", file=alpha_str_io)
                             lineWidth+=1
                         cnt+=1
-                        print('',file=o)
-                    print('};', file=o)
+                        print('', file=alpha_str_io)
+                    print('};', file=alpha_str_io)
                 # 4-bit Alpha channel
                 elif args.alpha == 4:
                     alpha_type = "EGUI_IMAGE_ALPHA_TYPE_4"
                     def RevBitQuadPerByte(byteArr):
                         return ((byteArr & 0x0f) << 4) |  ((byteArr & 0xf0) >> 4)
 
-                    print('static const uint8_t %s_alpha_buf[%d*%d] = {' % (name, (row+1)/2, col),file=o)
+                    print('static const uint8_t %s_alpha_buf[%d*%d] = {' % (name, (row+1)/2, col), file=alpha_str_io)
                     cnt = 0
                     alpha = data[...,3].astype(np.uint8)
                     for eachRow in alpha:
                         lineWidth=0
-                        print("/* -%d- */" % (cnt), file=o)
+                        print("/* -%d- */" % (cnt), file=alpha_str_io)
 
                         bitsArr = np.unpackbits(eachRow.astype(np.uint8))
 
@@ -209,26 +269,27 @@ def main(argv):
                         packedBytes = RevBitQuadPerByte(np.packbits(bitsArr[idx]))
 
                         for elt in packedBytes:
+                            alpha_bin_data.append(elt)
                             if lineWidth % WIDTH_ALPHA == (WIDTH_ALPHA - 1):
-                                print("0x%02x," %(elt) ,file=o)
+                                print("0x%02x," %(elt) ,file=alpha_str_io)
                             else:
-                                print("0x%02x" %(elt), end =", ",file=o)
+                                print("0x%02x" %(elt), end =", ",file=alpha_str_io)
                             lineWidth+=1
                         cnt+=1
-                        print('',file=o)
-                    print('};', file=o)
+                        print('', file=alpha_str_io)
+                    print('};', file=alpha_str_io)
                 # 2-bit Alpha channel
                 elif args.alpha == 2:
                     alpha_type = "EGUI_IMAGE_ALPHA_TYPE_2"
                     def RevBitPairPerByte(byteArr):
                         return ((byteArr & 0x03) << 6) |  ((byteArr & 0xc0) >> 6) | ((byteArr & 0x30) >> 2 ) | ((byteArr & 0x0c) << 2)
 
-                    print('static const uint8_t %s_alpha_buf[%d*%d] = {' % (name, (row+3)/4, col),file=o)
+                    print('static const uint8_t %s_alpha_buf[%d*%d] = {' % (name, (row+3)/4, col), file=alpha_str_io)
                     cnt = 0
                     alpha = data[...,3].astype(np.uint8)
                     for eachRow in alpha:
                         lineWidth=0
-                        print("/* -%d- */" % (cnt), file=o)
+                        print("/* -%d- */" % (cnt), file=alpha_str_io)
 
                         bitsArr = np.unpackbits(eachRow.astype(np.uint8))
 
@@ -240,14 +301,15 @@ def main(argv):
                         packedBytes = RevBitPairPerByte(np.packbits(bitsArr[idx]))
 
                         for elt in packedBytes:
+                            alpha_bin_data.append(elt)
                             if lineWidth % WIDTH_ALPHA == (WIDTH_ALPHA-1):
-                                print("0x%02x," %(elt) ,file=o)
+                                print("0x%02x," %(elt) ,file=alpha_str_io)
                             else:
-                                print("0x%02x" %(elt), end =", ",file=o)
+                                print("0x%02x" %(elt), end =", ",file=alpha_str_io)
                             lineWidth+=1
                         cnt+=1
-                        print('',file=o)
-                    print('};', file=o)
+                        print('', file=alpha_str_io)
+                    print('};', file=alpha_str_io)
                 # 1-bit Alpha channel
                 elif args.alpha == 1:
                     alpha_type = "EGUI_IMAGE_ALPHA_TYPE_1"
@@ -257,12 +319,12 @@ def main(argv):
                             ((byteArr & 0x04) << 3) | ((byteArr & 0x20) >> 3) | \
                             ((byteArr & 0x08) << 1) | ((byteArr & 0x10) >> 1)
 
-                    print('static const uint8_t %s_alpha_buf[%d*%d] = {' % (name, (row+7)/8, col),file=o)
+                    print('static const uint8_t %s_alpha_buf[%d*%d] = {' % (name, (row+7)/8, col), file=alpha_str_io)
                     cnt = 0
                     alpha = data[...,3].astype(np.uint8)
                     for eachRow in alpha:
                         lineWidth=0
-                        print("/* -%d- */" % (cnt), file=o)
+                        print("/* -%d- */" % (cnt), file=alpha_str_io)
 
                         bitsArr = np.unpackbits(eachRow.astype(np.uint8))
 
@@ -273,19 +335,30 @@ def main(argv):
                         packedBytes = RevBitPairPerByte(np.packbits(bitsArr[idx]))
 
                         for elt in packedBytes:
+                            alpha_bin_data.append(elt)
                             if lineWidth % WIDTH_ALPHA == (WIDTH_ALPHA-1):
-                                print("0x%02x," %(elt) ,file=o)
+                                print("0x%02x," %(elt) ,file=alpha_str_io)
                             else:
-                                print("0x%02x" %(elt), end =", ",file=o)
+                                print("0x%02x" %(elt), end =", ",file=alpha_str_io)
                             lineWidth+=1
                         cnt+=1
-                        print('',file=o)
-                    print('};', file=o)
+                        print('', file=alpha_str_io)
+                    print('};', file=alpha_str_io)
                 else:
-                    alpha_buf = "NULL"
+                    alpha_buf_name = "NULL"
+
+        # write alpha buffer to file
+        if alpha_buf_name != "NULL":
+            if external_type == 1:
+                # print(alpha_bin_data)
+                with open(outfilename_alpha_bin,"wb+") as f:
+                    f.write(bytearray(alpha_bin_data))
+                alpha_buf_name = f"EGUI_EXT_RES_ID_{alpha_bin_name}".upper()
+            else:
+                print(alpha_str_io.getvalue(), file=o)
 
 
-
+        data_buf_name = '%s_data_buf' % (name)
         # Gray8 channel array
         if args.format == 'gray8':
             data_type = "EGUI_IMAGE_DATA_TYPE_GRAY8"
@@ -296,21 +369,22 @@ def main(argv):
             # merge
             RGB = np.rint((R + G + B)/3).astype(np.uint8)
 
-            print('',file=o)
-            print('static const uint8_t %s_data_buf[%d*%d] = {' % (name, row, col), file=o)
+            print('', file=data_str_io)
+            print('static const uint8_t %s_data_buf[%d*%d] = {' % (name, row, col), file=data_str_io)
             cnt = 0
             for eachRow in RGB:
                 lineWidth=0
-                print("/* -%d- */" % (cnt), file=o)
+                print("/* -%d- */" % (cnt), file=data_str_io)
                 for eachPix in eachRow:
+                    data_bin_data.append(eachPix)
                     if lineWidth % WIDTH_GRAY8 == (WIDTH_GRAY8 - 1):
-                        print("0x%02x," %(eachPix) ,file=o)
+                        print("0x%02x," %(eachPix) ,file=data_str_io)
                     else:
-                        print("0x%02x" %(eachPix), end =", ", file=o)
+                        print("0x%02x" %(eachPix), end =", ", file=data_str_io)
                     lineWidth+=1
-                print('',file=o)
+                print('',file=data_str_io)
                 cnt+=1
-            print('};', file=o)
+            print('};', file=data_str_io)
 
         # RGB565 channel array
         elif args.format == 'rgb565':
@@ -325,21 +399,23 @@ def main(argv):
             if args.swap == 1:
                 RGB = (RGB >> 8) | ((RGB & 0xff) << 8)
 
-            print('',file=o)
-            print('static const uint16_t %s_data_buf[%d*%d] = {' % (name, row, col), file=o)
+            print('', file=data_str_io)
+            print('static const uint16_t %s_data_buf[%d*%d] = {' % (name, row, col), file=data_str_io)
             cnt = 0
             for eachRow in RGB:
                 lineWidth=0
-                print("/* -%d- */" % (cnt), file=o)
+                print("/* -%d- */" % (cnt), file=data_str_io)
                 for eachPix in eachRow:
+                    data_bin_data.append((eachPix >> 0) & 0x0ff)
+                    data_bin_data.append((eachPix >> 8) & 0x0ff)
                     if lineWidth % WIDTH_RGB565 == (WIDTH_RGB565 - 1):
-                        print("0x%04x," %(eachPix) ,file=o)
+                        print("0x%04x," %(eachPix) ,file=data_str_io)
                     else:
-                        print("0x%04x" %(eachPix), end =", ", file=o)
+                        print("0x%04x" %(eachPix), end =", ", file=data_str_io)
                     lineWidth+=1
-                print('',file=o)
+                print('',file=data_str_io)
                 cnt+=1
-            print('};', file=o)
+            print('};', file=data_str_io)
 
         elif args.format == 'rgb32':
             data_type = "EGUI_IMAGE_DATA_TYPE_RGB32"
@@ -354,31 +430,55 @@ def main(argv):
             # merge
             RGB = R | G | B | A
 
-            print('',file=o)
-            print('static const uint32_t %s_data_buf[%d*%d] = {' % (name, row, col), file=o)
+            print('',file=data_str_io)
+            print('static const uint32_t %s_data_buf[%d*%d] = {' % (name, row, col), file=data_str_io)
 
             cnt = 0
             for eachRow in RGB:
                 lineWidth=0
-                print("/* -%d- */" % (cnt), file=o)
+                print("/* -%d- */" % (cnt), file=data_str_io)
                 for eachPix in eachRow:
+                    data_bin_data.append((eachPix >> 0) & 0x0ff)
+                    data_bin_data.append((eachPix >> 8) & 0x0ff)
+                    data_bin_data.append((eachPix >> 16) & 0x0ff)
+                    data_bin_data.append((eachPix >> 24) & 0x0ff)
                     if lineWidth % WIDTH_RGB32 == (WIDTH_RGB32 - 1):
-                        print("0x%08x," %(eachPix) ,file=o)
+                        print("0x%08x," %(eachPix) ,file=data_str_io)
                     else:
-                        print("0x%08x" %(eachPix), end =", ", file=o)
+                        print("0x%08x" %(eachPix), end =", ", file=data_str_io)
                     lineWidth+=1
-                print('',file=o)
+                print('',file=data_str_io)
                 cnt+=1
-            print('};', file=o)
+            print('};', file=data_str_io)
         
+        # write data buffer to file
+        if external_type == 1:
+            # print(data_bin_data)
+            with open(outfilename_data_bin,"wb+") as f:
+                f.write(bytearray(data_bin_data))
+            data_buf_name = f"EGUI_EXT_RES_ID_{data_bin_name}".upper()
+        else:
+            print(data_str_io.getvalue(), file=o)
+
         # insert tail
-        print(c_body_string.format( name,
-                                    alpha_buf,
-                                    data_type,
-                                    alpha_type,
-                                    row,
-                                    col
-                                    ), file=o)
+        if external_type == 1:
+            print(c_body_string_bin.format( name,
+                                        data_buf_name,
+                                        alpha_buf_name,
+                                        data_type,
+                                        alpha_type,
+                                        row,
+                                        col
+                                        ), file=o)
+        else:
+            print(c_body_string.format( name,
+                                        data_buf_name,
+                                        alpha_buf_name,
+                                        data_type,
+                                        alpha_type,
+                                        row,
+                                        col
+                                        ), file=o)
 
 
         print(c_tail_string, file=o)

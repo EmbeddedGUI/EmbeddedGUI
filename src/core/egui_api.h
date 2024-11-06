@@ -115,6 +115,7 @@ void egui_api_timer_stop(void);
 uint32_t egui_api_timer_get_current(void);
 void egui_api_delay(uint32_t ms);
 void egui_api_pfb_clear(void *s, int n);
+void egui_api_load_external_resource(void *dest, const uint32_t res_id, uint32_t start_offset, uint32_t size);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
