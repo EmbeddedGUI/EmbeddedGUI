@@ -9,7 +9,7 @@
 /**
  * Font size: 16
  * Font bit size: 8
- * TTF file: example/HelloResourceManager/resource/test.ttf
+ * TTF file: test.ttf
  * options: -i test.ttf -n test -t supported_text_test.txt -p 16 -s 8
  */
 

@@ -320,7 +320,7 @@ def main():
 
     with open(outfilename, "w", encoding="utf-8") as outputfile:
         print(c_head_string, file=outputfile)
-        print(c_head_debug_string.format(args.pixelsize, args.fontbitsize, args.input, options), file=outputfile)
+        print(c_head_debug_string.format(args.pixelsize, args.fontbitsize, filename, options), file=outputfile)
 
     # Convert the text file to a list of characters
     with open(args.text, 'r', encoding='utf-8') as f:

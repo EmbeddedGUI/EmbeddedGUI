@@ -230,7 +230,8 @@ class FontResourceInfo:
 
 def generate_resource(resource_path, output_path):
     # 解析app_resource_config.json文件
-    config_file_path = os.path.join(resource_path, 'app_resource_config.json')
+    resource_src_path = os.path.join(resource_path, 'src')
+    config_file_path = os.path.join(resource_src_path, 'app_resource_config.json')
     config_info = load_config_info(config_file_path)
     if config_info is None:
         print("app_resource_config.json is not exist")
@@ -256,7 +257,7 @@ def generate_resource(resource_path, output_path):
         for img_config in config_info_img:
             img_info = ImageResourceInfo(img_config)
             file_name = img_info.file_name
-            img_file_path = os.path.join(resource_path, file_name)
+            img_file_path = os.path.join(resource_src_path, file_name)
             c_file_name = format_file_name(file_name.split('.')[0])
 
             generate_resource_img(img_util_path, img_res_output_path, img_file_path, c_file_name, img_info.rgb_list, img_info.alpha_list, img_info.external_list, img_info.dim, img_info.rot, img_info.swap)
@@ -266,8 +267,8 @@ def generate_resource(resource_path, output_path):
         for font_config in config_info_font:
             font_info = FontResourceInfo(font_config)
             file_name = font_info.file_name
-            font_file_path = os.path.join(resource_path, file_name)
-            text_file_path = os.path.join(resource_path, font_info.text_file_name)
+            font_file_path = os.path.join(resource_src_path, file_name)
+            text_file_path = os.path.join(resource_src_path, font_info.text_file_name)
             c_file_name = format_file_name(file_name.split('.')[0])
 
             generate_resource_font(ttf_util_path, font_res_output_path, font_file_path, c_file_name, text_file_path, font_info.pixelsize_list, font_info.fontbitsize_list, font_info.external_list)
