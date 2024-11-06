@@ -1076,6 +1076,14 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
 #endif // EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE
 
 
+
+void egui_image_std_get_width_height(egui_image_t *self, egui_dim_t *width, egui_dim_t *height)
+{
+    egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
+    *width = image->width;
+    *height = image->height;
+}
+
 const egui_image_api_t egui_image_std_t_api_table = {.get_point = egui_image_std_get_point,
                                                      .get_point_resize = egui_image_std_get_point_resize,
                                                      .draw_image = egui_image_std_draw_image,

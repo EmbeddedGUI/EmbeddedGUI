@@ -26,6 +26,8 @@ struct egui_view_image
 void egui_view_image_on_draw(egui_view_t *self);
 void egui_view_image_set_image_type(egui_view_t *self, int image_type);
 void egui_view_image_set_image(egui_view_t *self, egui_image_t *image);
+
+void egui_view_image_std_normal_init(egui_view_t *self, egui_image_t *image, egui_dim_t x, egui_dim_t y);
 void egui_view_image_init(egui_view_t *self);
 
 /* Ends C function definitions when using C++ */

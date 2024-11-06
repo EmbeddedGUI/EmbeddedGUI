@@ -36,6 +36,8 @@ struct egui_image_std
 
 void egui_image_std_draw_image(const egui_image_t *self, egui_dim_t x, egui_dim_t y);
 void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height);
+
+void egui_image_std_get_width_height(egui_image_t *self, egui_dim_t *width, egui_dim_t *height);
 void egui_image_std_init(egui_image_t *self, const void *res);
 
 /* Ends C function definitions when using C++ */
