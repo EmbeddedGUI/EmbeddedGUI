@@ -5,12 +5,14 @@
 
 #include "app_egui_resource_generate.h"
 
-// views in test_view_group_1
+// views in root
 static egui_view_image_t image_1;
+static egui_view_label_t label_1;
 
 void uicode_init_ui(void)
 {
-    // Init all views
+    // Init all views    
+
     // image_1
     egui_view_image_init((egui_view_t *)&image_1);
     egui_view_set_position((egui_view_t *)&image_1, 10, 10);
@@ -29,8 +31,20 @@ void uicode_init_ui(void)
 
     egui_view_image_set_image((egui_view_t *)&image_1, (egui_image_t *)&egui_res_image_test_rgb565_4_bin);
 
+
+    
+    // label_1
+    egui_view_label_init((egui_view_t *)&label_1);
+    egui_view_set_position((egui_view_t *)&label_1, 10, 10);
+    egui_view_set_size((egui_view_t *)&label_1, 160, 160);
+    egui_view_label_set_text((egui_view_t *)&label_1, "Hello World!");
+    egui_view_label_set_align_type((egui_view_t *)&label_1, EGUI_ALIGN_CENTER);
+    egui_view_label_set_font((egui_view_t *)&label_1, (egui_font_t *)&egui_res_font_test_16_4);
+    egui_view_label_set_font_color((egui_view_t *)&label_1, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+
     // Add To Root
     egui_core_add_user_root_view((egui_view_t *)&image_1);
+    egui_core_add_user_root_view((egui_view_t *)&label_1);
 }
 
 static egui_timer_t ui_timer;

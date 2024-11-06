@@ -280,25 +280,36 @@ def write_c_code(glyphs_data, text, output_file, name, char_max_width, char_max_
 
 
 def main():
-    parser = argparse.ArgumentParser(description='TrueTypeFont to C array converter (v1.1.4)')
+    parser = argparse.ArgumentParser(description='TrueTypeFont to C array converter (v1.0.0)')
     parser.add_argument("-i", "--input",    type=str,   help="Path to the TTF file",                     required=True)
     parser.add_argument("-n", "--name",     type=str,   help="The customized UTF8 font name",            required=True)
     parser.add_argument("-t", "--text",     type=str,   help="Path to the text file",                    required=True)
     parser.add_argument("-p", "--pixelsize",type=int,   help="Font size in pixels, fixed in height",     required=False,    default=32)
-    parser.add_argument("-s", "--fontbitsize",type=int, help="font bit size (1,2,4,8)",                  required=False,    default=1)
+    parser.add_argument("-s", "--fontbitsize",type=int, help="Font bit size (1,2,4,8)",                  required=False,    default=1)
+    parser.add_argument('-ext', '--external', nargs='?',type = int, default=0, required=False, help="Storage format (0: internal, 1: external)")
+    parser.add_argument('-o', '--output', nargs='?',type = str, default="", required=False, help="Specify the output file name (default: input file name with.c extension)")
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
         sys.exit(1)
 
     args = parser.parse_args()
+    
+    inputfile = args.input
+    external_type = args.external
 
     if args.fontbitsize not in [1, 2, 4, 8]:
         print(f'Invalid alpha size={args.fontbitsize}')
         sys.exit(1)
 
+    output_path = ""
+    if args.output != "":
+        output_path = args.output
+    else:
+        output_path = os.path.dirname(inputfile)
+
     name = f"egui_res_font_{args.name.lower()}_{args.pixelsize}_{args.fontbitsize}"
-    outfilename = f"{name}.c"
+    outfilename = os.path.join(output_path, f"{name}.c")
 
     # get the options
     options = f"-i {args.input} -n {args.name} -t {args.text} -p {args.pixelsize} -s {args.fontbitsize}"

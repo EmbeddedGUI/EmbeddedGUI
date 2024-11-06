@@ -65,16 +65,32 @@ def format_file_name(file_name):
 # print("Generating 8 px")
 # os.system("python ../ttf2c.py -i Montserrat-Medium.ttf -n montserrat -t supported_text.txt -p 8 -s 4")
 
-def generate_resource_font(font_path, font_file_name, font_name, output_path):
-    ttf_util_path = ('scripts/tools/ttf2c.py')
-    font_file_path = os.path.join(font_path, font_file_name)
-    suported_text_path = os.path.join(output_path,'supported_text.txt')
-    for px in range(6, 60):
-        for alpha in [1, 2, 4, 8]:
-            os.system(f"python {ttf_util_path} -i \"{font_file_path}\" -n {font_name} -t {suported_text_path} -p {px} -s {alpha} -o {output_path}")
-    pass
-# os.system("python ../img2c.py -i star.png -n star -f rgb565 -a 8 -d 50 50")
-# 
+def generate_resource_font(ttf_util_path, font_res_output_path, font_file_path, font_name, suported_text_path, pixelsize_list, fontbitsize_list, external_list):
+    if not os.path.exists(font_res_output_path):
+        os.makedirs(font_res_output_path)
+    
+    for pixelsize in pixelsize_list:
+        for fontbitsize in fontbitsize_list:
+            for external in external_list:
+                if external == 1:
+                    # temp
+                    continue
+
+                print(f"Generating {font_name}_{pixelsize}_{fontbitsize}")
+                
+                # output_path = os.path.join(font_res_output_path, f"{font_name}_{pixelsize}_{fontbitsize}_{external}")
+                output_path = font_res_output_path
+                if not os.path.exists(output_path):
+                    os.makedirs(output_path)
+                cmd = f"python {ttf_util_path} -i \"{font_file_path}\" -n {font_name} -t {suported_text_path} -p {pixelsize} -s {fontbitsize} -o {output_path}"
+
+                if external == 1:
+                    cmd += " -ext 1"
+
+                print(cmd)
+                os.system(cmd)
+
+
 def generate_resource_img(img_util_path, img_res_output_path, img_file_path, img_name, rgb_list, alpha_list, external_list, dim, rot, swap):
     if not os.path.exists(img_res_output_path):
         os.makedirs(img_res_output_path)
@@ -156,7 +172,7 @@ class ImageResourceInfo:
             self.external_info = config['external']
             
         self.external_list = []
-        if self.alpha_info == 'all':
+        if self.external_info == 'all':
             self.external_list = [0, 1]
         else:
             self.external_list.append(int(self.external_info))
@@ -174,6 +190,43 @@ class ImageResourceInfo:
         if config.get('swap'):
             self.swap = int(config['swap'])
 
+class FontResourceInfo:
+    def __init__(self, config):
+        self.file_name = config['file']
+        self.text_file_name = config['text']
+
+        self.pixelsize_info = 'all'
+        if config.get('pixelsize'):
+            self.pixelsize_info = config['pixelsize']
+
+        self.pixelsize_list = []
+        if self.pixelsize_info == 'all':
+            # 4-32
+            self.pixelsize_list = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
+        else:
+            self.pixelsize_list.append(int(self.pixelsize_info))
+        
+        self.fontbitsize_info = 'all'
+        if config.get('fontbitsize'):
+            self.fontbitsize_info = config['fontbitsize']
+
+        self.fontbitsize_list = []
+        if self.fontbitsize_info == 'all':
+            self.fontbitsize_list = [1, 2, 4, 8]
+        else:
+            self.fontbitsize_list.append(int(self.fontbitsize_info))
+        
+        
+        self.external_info = 'all'
+        if config.get('external'):
+            self.external_info = config['external']
+            
+        self.external_list = []
+        if self.external_info == 'all':
+            self.external_list = [0, 1]
+        else:
+            self.external_list.append(int(self.external_info))
+
 
 def generate_resource(resource_path, output_path):
     # 解析app_resource_config.json文件
@@ -188,6 +241,7 @@ def generate_resource(resource_path, output_path):
     clear_last_resource(img_res_output_path)
 
     img_util_path = ('scripts/tools/img2c.py')
+    ttf_util_path = ('scripts/tools/ttf2c.py')
 
     font_res_output_path = os.path.join(resource_path, 'font')
     clear_last_resource(font_res_output_path)
@@ -206,6 +260,17 @@ def generate_resource(resource_path, output_path):
             c_file_name = format_file_name(file_name.split('.')[0])
 
             generate_resource_img(img_util_path, img_res_output_path, img_file_path, c_file_name, img_info.rgb_list, img_info.alpha_list, img_info.external_list, img_info.dim, img_info.rot, img_info.swap)
+
+    config_info_font = config_info['font']
+    if config_info_font:
+        for font_config in config_info_font:
+            font_info = FontResourceInfo(font_config)
+            file_name = font_info.file_name
+            font_file_path = os.path.join(resource_path, file_name)
+            text_file_path = os.path.join(resource_path, font_info.text_file_name)
+            c_file_name = format_file_name(file_name.split('.')[0])
+
+            generate_resource_font(ttf_util_path, font_res_output_path, font_file_path, c_file_name, text_file_path, font_info.pixelsize_list, font_info.fontbitsize_list, font_info.external_list)
 
     # 遍历路径根目录下所有图片文件，只找根目录的文件
     # for file in os.listdir(resource_path):
@@ -245,6 +310,27 @@ def generate_resource(resource_path, output_path):
                         target_file.write(content)
 
 
+
+    # 遍历font_res_output_path目录下所有c文件，包括子目录
+    for root, dirs, files in os.walk(font_res_output_path):
+        for file in files:
+            if file.endswith('.c'):
+                resource_extern_string += f"extern const egui_font_std_t {file.split('.')[0]};\n"
+            elif file.endswith('.bin'):
+                id_str = f"EGUI_EXT_RES_ID_{file.split('.')[0]}".upper()
+                resource_id_string += id_str + ",\n"
+
+                resource_id_map_string += f"0x{resource_bin_offset:08X}, // {id_str} \n"
+
+                file_path = os.path.join(root, file)
+                with open(file_path, 'rb') as bin_file:
+                    content = bin_file.read()
+                    resource_bin_offset += len(content)
+
+                    # 通过添加写入到resource_bin_merge_file
+                    with open(resource_bin_merge_file, 'ab+') as target_file:
+                        target_file.write(content)
+
     # 生成app_egui_resource_generate.h文件
     app_egui_resource_generate_h_file_path = os.path.join(resource_path, 'app_egui_resource_generate.h')
     print(f"Generating {app_egui_resource_generate_h_file_path}")
@@ -260,7 +346,8 @@ def generate_resource(resource_path, output_path):
 
 
     # 拷贝bin文件到Output目录
-    shutil.copy(resource_bin_merge_file, resource_bin_merge_file_output)
+    if os.path.exists(resource_bin_merge_file):
+        shutil.copy(resource_bin_merge_file, resource_bin_merge_file_output)
     pass
 
 

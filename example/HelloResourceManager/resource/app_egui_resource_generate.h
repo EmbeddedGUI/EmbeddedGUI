@@ -41,6 +41,10 @@ extern const egui_image_std_t egui_res_image_star_rgb565_4_bin;
 extern const egui_image_std_t egui_res_image_star_rgb565_8;
 extern const egui_image_std_t egui_res_image_star_rgb565_8_bin;
 extern const egui_image_std_t egui_res_image_test_rgb565_4_bin;
+extern const egui_font_std_t egui_res_font_test_16_1;
+extern const egui_font_std_t egui_res_font_test_16_2;
+extern const egui_font_std_t egui_res_font_test_16_4;
+extern const egui_font_std_t egui_res_font_test_16_8;
 
 
 enum {

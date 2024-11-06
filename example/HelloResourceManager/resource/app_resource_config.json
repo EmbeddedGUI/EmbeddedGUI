@@ -31,20 +31,18 @@
     ],
     // font generation parameters.
     // Item parameters:
+    // file_name: The name of the font file to be generated.
+    // text: The customized UTF8 font name
+    // external: Storage format (all, 0: internal, 1: external)
+    // pixelsize: Font size in pixels, fixed in height.(all, 4-32)
+    // fontbitsize: Font bit size (all, 1, 2, 4, 8)
     "font": [
         {
-            "file": "test.font",
+            "file": "test.ttf",
             "text": "supported_text_test.txt",
             "external": "all",
-            "pixelsize": "all",
+            "pixelsize": "16",
             "fontbitsize": "all",
         },
-        // {
-        //     "file": "test.png",
-        //     "external": "1",
-        //     "format": "rgb565",
-        //     "alpha": "4",
-        //     "dim": "50,50",
-        // },
     ],
 }
