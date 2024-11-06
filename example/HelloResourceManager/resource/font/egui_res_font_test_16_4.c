@@ -9,8 +9,8 @@
 /**
  * Font size: 16
  * Font bit size: 4
- * TTF file: example/HelloResourceManager/resource\test.ttf
- * options: -i example/HelloResourceManager/resource\test.ttf -n test -t example/HelloResourceManager/resource\supported_text_test.txt -p 16 -s 4
+ * TTF file: example/HelloResourceManager/resource/test.ttf
+ * options: -i test.ttf -n test -t supported_text_test.txt -p 16 -s 4
  */
 
 

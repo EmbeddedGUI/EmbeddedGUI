@@ -290,8 +290,9 @@ def generate_resource(resource_path, output_path):
     resource_id_map_string = ""
 
     # 遍历img_res_output_path目录下所有c文件，包括子目录
+    # 按照字母顺序排序
     for root, dirs, files in os.walk(img_res_output_path):
-        for file in files:
+        for file in sorted(files):
             if file.endswith('.c'):
                 resource_extern_string += f"extern const egui_image_std_t {file.split('.')[0]};\n"
             elif file.endswith('.bin'):
@@ -313,7 +314,7 @@ def generate_resource(resource_path, output_path):
 
     # 遍历font_res_output_path目录下所有c文件，包括子目录
     for root, dirs, files in os.walk(font_res_output_path):
-        for file in files:
+        for file in sorted(files):
             if file.endswith('.c'):
                 resource_extern_string += f"extern const egui_font_std_t {file.split('.')[0]};\n"
             elif file.endswith('.bin'):

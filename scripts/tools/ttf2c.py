@@ -297,6 +297,7 @@ def main():
     
     inputfile = args.input
     external_type = args.external
+    textfile = args.text
 
     if args.fontbitsize not in [1, 2, 4, 8]:
         print(f'Invalid alpha size={args.fontbitsize}')
@@ -311,8 +312,11 @@ def main():
     name = f"egui_res_font_{args.name.lower()}_{args.pixelsize}_{args.fontbitsize}"
     outfilename = os.path.join(output_path, f"{name}.c")
 
+    # just get file name.
+    filename = os.path.basename(inputfile)
+    textfilename = os.path.basename(textfile)
     # get the options
-    options = f"-i {args.input} -n {args.name} -t {args.text} -p {args.pixelsize} -s {args.fontbitsize}"
+    options = f"-i {filename} -n {args.name} -t {textfilename} -p {args.pixelsize} -s {args.fontbitsize}"
 
     with open(outfilename, "w", encoding="utf-8") as outputfile:
         print(c_head_string, file=outputfile)
