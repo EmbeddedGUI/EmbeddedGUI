@@ -228,9 +228,22 @@ class FontResourceInfo:
             self.external_list.append(int(self.external_info))
 
 
-def generate_resource(resource_path, output_path):
+def generate_resource(resource_path, output_path, force):
     # 解析app_resource_config.json文件
     resource_src_path = os.path.join(resource_path, 'src')
+    img_res_output_path = os.path.join(resource_path, 'img')
+    font_res_output_path = os.path.join(resource_path, 'font')
+
+    resource_bin_merge_file = os.path.join(resource_path, 'app_egui_resource_merge.bin')
+    resource_bin_merge_file_output = os.path.join(output_path, 'app_egui_resource_merge.bin')
+    if not force:
+        if os.path.exists(resource_bin_merge_file):
+            shutil.copy(resource_bin_merge_file, resource_bin_merge_file_output)
+            return
+
+    if os.path.exists(resource_bin_merge_file):
+        os.remove(resource_bin_merge_file)
+
     config_file_path = os.path.join(resource_src_path, 'app_resource_config.json')
     config_info = load_config_info(config_file_path)
     if config_info is None:
@@ -238,19 +251,12 @@ def generate_resource(resource_path, output_path):
         return
 
     # 先清除上一次的资源
-    img_res_output_path = os.path.join(resource_path, 'img')
     clear_last_resource(img_res_output_path)
 
     img_util_path = ('scripts/tools/img2c.py')
     ttf_util_path = ('scripts/tools/ttf2c.py')
 
-    font_res_output_path = os.path.join(resource_path, 'font')
     clear_last_resource(font_res_output_path)
-
-    resource_bin_merge_file = os.path.join(resource_path, 'app_egui_resource_merge.bin')
-    resource_bin_merge_file_output = os.path.join(output_path, 'app_egui_resource_merge.bin')
-    if os.path.exists(resource_bin_merge_file):
-        os.remove(resource_bin_merge_file)
 
     config_info_img = config_info['img']
     if config_info_img:
@@ -357,10 +363,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Generate resource files for egui example.')
     parser.add_argument('-r', "--resource", nargs='?', type = str,  required=True, help="Resource path")
     parser.add_argument('-o', "--output", nargs='?', type = str,  required=True, help="Output path")
+    parser.add_argument('-f', "--force", nargs='?', type = bool,  required=False, default=False, help="Force to generate resource files")
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = parse_args()
-    generate_resource(args.resource, args.output)
+    generate_resource(args.resource, args.output, args.force)
 
 

@@ -182,7 +182,8 @@ endif
 # deleting dependencies appended to the file from 'make depend'
 #
 
-OUTPUT_MAIN		:= $(OUTPUT_PATH)/$(MAIN)
+OUTPUT_MAIN           := $(OUTPUT_PATH)/$(MAIN)
+OUTPUT_MAIN_RESOURCE  := $(OUTPUT_PATH)/app_egui_resource_merge.bin
 
 # Fix path error.
 #OUTPUT_MAIN := $(call FIXPATH,$(OUTPUT_MAIN))
@@ -203,7 +204,7 @@ size:
 	$(Q)@$(SIZE) --format=berkeley $(OUTPUT_MAIN)
 
 .PHONY: all
-all: | info $(MAIN)
+all: | info $(OUTPUT_MAIN_RESOURCE) $(MAIN)
 	@$(ECHO) Executing 'all' complete!
 
 # @$(ECHO) Print Size
@@ -243,9 +244,14 @@ clean:
 	@$(ECHO) Cleanup complete!
 
 run: all
-	./$(OUTPUT_MAIN) $(OUTPUT_PATH)/app_egui_resource_merge.bin
+	./$(OUTPUT_MAIN) $(OUTPUT_MAIN_RESOURCE)
 	@$(ECHO) Executing 'run: all' complete!
+
+$(OUTPUT_MAIN_RESOURCE):resource
+	@$(ECHO) Generating resource file complete!
 
 resource:
 	python .\scripts\app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH)
 	
+resource_refresh:
+	python .\scripts\app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH) -f ture

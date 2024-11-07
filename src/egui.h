@@ -62,6 +62,8 @@
 #include "widget/egui_view_viewpage.h"
 #include "widget/egui_view_viewpage_cache.h"
 
+#include "utils/egui_utils.h"
+
 #if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
 #include "app_egui_resource_generate.h"
 #endif
