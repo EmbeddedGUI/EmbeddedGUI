@@ -238,9 +238,14 @@ def generate_resource(resource_path, output_path, force):
 
     resource_bin_merge_file = os.path.join(resource_path, 'app_egui_resource_merge.bin')
     resource_bin_merge_file_output = os.path.join(output_path, 'app_egui_resource_merge.bin')
+    app_egui_resource_generate_h_file_path = os.path.join(resource_path, 'app_egui_resource_generate.h')
+    app_egui_resource_generate_c_file_path = os.path.join(resource_path, 'app_egui_resource_generate.c')
     if not force:
         if os.path.exists(resource_bin_merge_file):
             shutil.copy(resource_bin_merge_file, resource_bin_merge_file_output)
+            return
+
+        if os.path.exists(app_egui_resource_generate_h_file_path) and os.path.exists(app_egui_resource_generate_c_file_path):
             return
 
     if os.path.exists(resource_bin_merge_file):
@@ -342,14 +347,12 @@ def generate_resource(resource_path, output_path, force):
                         target_file.write(content)
 
     # 生成app_egui_resource_generate.h文件
-    app_egui_resource_generate_h_file_path = os.path.join(resource_path, 'app_egui_resource_generate.h')
     print(f"Generating {app_egui_resource_generate_h_file_path}")
     with open(app_egui_resource_generate_h_file_path, 'w', encoding='utf-8') as f:
         f.write(app_egui_resource_generate_h_string.format(resource_extern_string, resource_id_string))
 
 
     # 生成app_egui_resource_generate.c文件
-    app_egui_resource_generate_c_file_path = os.path.join(resource_path, 'app_egui_resource_generate.c')
     print(f"Generating {app_egui_resource_generate_c_file_path}")
     with open(app_egui_resource_generate_c_file_path, 'w', encoding='utf-8') as f:
         f.write(app_egui_resource_generate_c_string.format(resource_id_map_string))
