@@ -39,7 +39,7 @@ EGUI_CODE_INCLUDE :=
 
 # don't edit below this line.
 # include app info
-EGUI_APP_ROOT_PATH = example
+EGUI_APP_ROOT_PATH ?= example
 EGUI_APP_PATH = $(EGUI_APP_ROOT_PATH)/$(APP)
 include $(EGUI_APP_PATH)/build.mk
 
