@@ -131,6 +131,8 @@ def clear_last_resource(resource_path):
                 shutil.rmtree(file_path)
 
 def load_config_info(config_file_path):
+    if not os.path.exists(config_file_path):
+        return None
     with open(config_file_path, 'r', encoding='utf-8') as f:
         return json5.load(f)
     return None
