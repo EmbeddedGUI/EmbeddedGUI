@@ -1,5 +1,5 @@
-﻿#ifndef _EFUI_TOAST_STD_H_
-#define _EFUI_TOAST_STD_H_
+﻿#ifndef _EGUI_TOAST_STD_H_
+#define _EGUI_TOAST_STD_H_
 
 #include "egui_toast.h"
 #include "widget/egui_view_label.h"
@@ -26,4 +26,4 @@ void egui_toast_std_init(egui_toast_t *self);
 }
 #endif
 
-#endif /* _EFUI_TOAST_STD_H_ */
+#endif /* _EGUI_TOAST_STD_H_ */

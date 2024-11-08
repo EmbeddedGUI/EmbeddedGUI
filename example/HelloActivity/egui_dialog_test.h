@@ -1,5 +1,5 @@
-﻿#ifndef _EFUI_DIALOG_TEST_H_
-#define _EFUI_DIALOG_TEST_H_
+﻿#ifndef _EGUI_DIALOG_TEST_H_
+#define _EGUI_DIALOG_TEST_H_
 
 #include "egui.h"
 
@@ -26,4 +26,4 @@ void egui_dialog_test_init(egui_dialog_t *self);
 }
 #endif
 
-#endif /* _EFUI_DIALOG_TEST_H_ */
+#endif /* _EGUI_DIALOG_TEST_H_ */

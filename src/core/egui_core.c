@@ -26,6 +26,7 @@ static egui_core_t egui_core;
 //     EGUI_VIEW_TREE_INIT(&test_view_group_1, EGUI_ID_TEST_VIEW_GROUP_1, 50, 50, 100, 100),
 // };
 
+
 egui_view_group_t *egui_core_get_root_view(void)
 {
     return &egui_core.root_view_group;
@@ -92,6 +93,11 @@ void egui_core_update_region_dirty_all(void)
 {
     EGUI_REGION_DEFINE(region_screen, 0, 0, egui_core.screen_width, egui_core.screen_height);
     egui_core_update_region_dirty(&region_screen);
+}
+
+void egui_core_force_refresh(void)
+{
+    egui_core_update_region_dirty_all();
 }
 
 egui_view_group_t *egui_core_get_user_root_view(void)
@@ -467,6 +473,49 @@ void egui_core_activity_finish(egui_activity_t *self)
         else
         {
             tmp->api->on_resume(tmp);
+        }
+    }
+
+    // refresh the screen
+    egui_core_update_region_dirty_all();
+}
+
+egui_activity_t *egui_core_activity_get_current(void)
+{
+    egui_dnode_t *tmp = egui_dlist_peek_tail(&egui_core.activitys);
+    if(tmp == NULL)
+    {
+        return NULL;
+    }
+    egui_activity_t *p_activity = EGUI_DLIST_ENTRY(tmp, egui_activity_t, node);
+    return p_activity;
+}
+
+void egui_core_activity_force_finish_all(void)
+{
+    // find the activity in the activitys list
+    egui_dnode_t *p_head;
+    egui_dnode_t *p_next;
+    egui_activity_t *tmp;
+
+    EGUI_LOG_DBG("egui_core_activity_force_finish_all(), %d\n", egui_dlist_is_empty(&egui_core.activitys));
+    if (!egui_dlist_is_empty(&egui_core.activitys))
+    {
+        EGUI_LOG_DBG("egui_core_activity_force_finish_all() work\n");
+        EGUI_DLIST_FOR_EACH_NODE_SAFE(&egui_core.activitys, p_head, p_next)
+        {
+            tmp = EGUI_DLIST_ENTRY(p_head, egui_activity_t, node);
+#if EGUI_CONFIG_DEBUG_CLASS_NAME
+            EGUI_LOG_DBG("force finish activity: %s, state: %d\n", tmp->name, tmp->state);
+#endif
+            if (tmp->state < EGUI_ACTIVITY_STATE_STOP)
+            {
+                tmp->api->on_stop(tmp);
+            }
+            if (tmp->state < EGUI_ACTIVITY_STATE_DESTROY)
+            {
+                tmp->api->on_destroy(tmp);
+            }
         }
     }
 

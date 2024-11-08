@@ -1,5 +1,5 @@
-﻿#ifndef _EFUI_VIEW_PAGE_1_H_
-#define _EFUI_VIEW_PAGE_1_H_
+﻿#ifndef _EGUI_VIEW_PAGE_1_H_
+#define _EGUI_VIEW_PAGE_1_H_
 
 #include "egui.h"
 
@@ -27,4 +27,4 @@ void egui_view_page_test_init(egui_view_t *self);
 }
 #endif
 
-#endif /* _EFUI_VIEW_PAGE_1_H_ */
+#endif /* _EGUI_VIEW_PAGE_1_H_ */

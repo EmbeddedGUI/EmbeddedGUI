@@ -53,6 +53,7 @@ struct egui_core
     egui_region_t region_dirty_arr[EGUI_CONFIG_DIRTY_AREA_COUNT]; // dirty region of screen
 };
 
+void egui_core_force_refresh(void);
 egui_view_group_t *egui_core_get_root_view(void);
 void egui_core_add_root_view(egui_view_t *view);
 int egui_core_check_region_dirty_intersect(egui_region_t *region_dirty);
@@ -73,6 +74,8 @@ egui_color_int_t *egui_core_get_pfb_buffer_ptr(void);
 void egui_core_pfb_set_buffer(egui_color_int_t *pfb, uint16_t width, uint16_t height);
 void egui_init(egui_color_int_t *pfb);
 
+egui_activity_t *egui_core_activity_get_current(void);
+void egui_core_activity_force_finish_all(void);
 void egui_core_activity_append(egui_activity_t *activity);
 void egui_core_activity_remove(egui_activity_t *activity);
 void egui_core_activity_start(egui_activity_t *self, egui_activity_t *prev_activity);

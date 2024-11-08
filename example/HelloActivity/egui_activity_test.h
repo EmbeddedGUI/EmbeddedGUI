@@ -1,5 +1,5 @@
-﻿#ifndef _EFUI_ACTIVITY_TEST_H_
-#define _EFUI_ACTIVITY_TEST_H_
+﻿#ifndef _EGUI_ACTIVITY_TEST_H_
+#define _EGUI_ACTIVITY_TEST_H_
 
 #include "egui.h"
 
@@ -31,4 +31,4 @@ void egui_activity_test_init(egui_activity_t *self);
 }
 #endif
 
-#endif /* _EFUI_ACTIVITY_TEST_H_ */
+#endif /* _EGUI_ACTIVITY_TEST_H_ */
