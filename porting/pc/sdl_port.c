@@ -115,6 +115,11 @@ static void monitor_sdl_init(void)
     sdl_inited = true;
 }
 
+__EGUI_WEAK__ void egui_port_hanlde_key_event(int key, int event)
+{
+    // printf("key event: %d, %d\n", key, event);
+}
+
 void VT_sdl_refresh_task(void)
 {
     if (sdl_refr_qry != false)
@@ -183,6 +188,28 @@ void VT_sdl_refresh_task(void)
             }
             break;
 
+        case SDL_KEYDOWN:
+            // 检测按键按下事件
+            if (event.key.keysym.sym == SDLK_ESCAPE) {
+                break;
+            } else {
+                // printf("Key pressed: %c\n", event.key.keysym.sym);
+                if(event.key.keysym.sym >= '0' && event.key.keysym.sym <= '9') {
+                    egui_hanlde_key_event(event.key.keysym.sym - '0', 1);
+                }
+            }
+            break;
+        case SDL_KEYUP:
+            // 检测按键按下事件
+            if (event.key.keysym.sym == SDLK_ESCAPE) {
+                break;
+            } else {
+                // printf("Key pressed: %c\n", event.key.keysym.sym);
+                if(event.key.keysym.sym >= '0' && event.key.keysym.sym <= '9') {
+                    egui_hanlde_key_event(event.key.keysym.sym - '0', 0);
+                }
+            }
+            break;
         default:
             break;
         }

@@ -251,7 +251,7 @@ $(OUTPUT_MAIN_RESOURCE):resource
 	@$(ECHO) Generating resource file complete!
 
 resource:
-	python .\scripts\app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH)
+	python ./scripts/app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH)
 	
 resource_refresh:
-	python .\scripts\app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH) -f ture
+	python ./scripts/app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH) -f ture
