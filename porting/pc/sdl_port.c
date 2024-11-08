@@ -195,7 +195,7 @@ void VT_sdl_refresh_task(void)
             } else {
                 // printf("Key pressed: %c\n", event.key.keysym.sym);
                 if(event.key.keysym.sym >= '0' && event.key.keysym.sym <= '9') {
-                    egui_hanlde_key_event(event.key.keysym.sym - '0', 1);
+                    egui_port_hanlde_key_event(event.key.keysym.sym - '0', 1);
                 }
             }
             break;
@@ -206,7 +206,7 @@ void VT_sdl_refresh_task(void)
             } else {
                 // printf("Key pressed: %c\n", event.key.keysym.sym);
                 if(event.key.keysym.sym >= '0' && event.key.keysym.sym <= '9') {
-                    egui_hanlde_key_event(event.key.keysym.sym - '0', 0);
+                    egui_port_hanlde_key_event(event.key.keysym.sym - '0', 0);
                 }
             }
             break;
