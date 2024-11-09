@@ -380,6 +380,29 @@ egui_activity_t *egui_core_activity_get_by_view(egui_view_t *view)
     return NULL;
 }
 
+
+int egui_core_activity_check_in_process(egui_activity_t *activity)
+{
+    // find the activity in the activitys list
+    egui_dnode_t *p_head;
+    egui_activity_t *tmp;
+
+    if (!egui_dlist_is_empty(&egui_core.activitys))
+    {
+        EGUI_DLIST_FOR_EACH_NODE(&egui_core.activitys, p_head)
+        {
+            tmp = EGUI_DLIST_ENTRY(p_head, egui_activity_t, node);
+
+            if (activity == tmp)
+            {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
 void egui_core_activity_append(egui_activity_t *activity)
 {
     egui_dlist_append(&egui_core.activitys, &activity->node);
@@ -394,6 +417,11 @@ void egui_core_activity_start(egui_activity_t *self, egui_activity_t *prev_activ
 {
     egui_core.activity_open = self;
     egui_core.activity_close = prev_activity;
+
+    if(self == prev_activity)
+    {
+        return;
+    }
 
     self->api->on_create(self);
 
@@ -425,6 +453,8 @@ void egui_core_activity_start(egui_activity_t *self, egui_activity_t *prev_activ
 
 void egui_core_activity_finish(egui_activity_t *self)
 {
+    // find a last activity to start
+    egui_dnode_t *p_prev = egui_dlist_peek_prev(&egui_core.activitys, &self->node);
     egui_core.activity_close = self;
 
     // avoid enter twice
@@ -456,8 +486,6 @@ void egui_core_activity_finish(egui_activity_t *self)
         }
     }
 
-    // find a last activity to start
-    egui_dnode_t *p_prev = egui_dlist_peek_prev(&egui_core.activitys, &self->node);
     if (p_prev)
     {
         egui_activity_t *tmp = EGUI_DLIST_ENTRY(p_prev, egui_activity_t, node);
