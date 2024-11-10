@@ -451,6 +451,12 @@ void egui_core_activity_start(egui_activity_t *self, egui_activity_t *prev_activ
     }
 }
 
+
+void egui_core_activity_start_with_current(egui_activity_t *self)
+{
+    egui_core_activity_start(self, egui_core_activity_get_current());
+}
+
 void egui_core_activity_finish(egui_activity_t *self)
 {
     // find a last activity to start

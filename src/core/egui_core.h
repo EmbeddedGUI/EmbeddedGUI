@@ -80,6 +80,7 @@ int egui_core_activity_check_in_process(egui_activity_t *activity);
 void egui_core_activity_append(egui_activity_t *activity);
 void egui_core_activity_remove(egui_activity_t *activity);
 void egui_core_activity_start(egui_activity_t *self, egui_activity_t *prev_activity);
+void egui_core_activity_start_with_current(egui_activity_t *self);
 void egui_core_activity_finish(egui_activity_t *self);
 void egui_core_activity_set_start_anim(egui_animation_t *open_anim, egui_animation_t *close_anim);
 void egui_core_activity_set_finish_anim(egui_animation_t *open_anim, egui_animation_t *close_anim);

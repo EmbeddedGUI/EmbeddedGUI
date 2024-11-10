@@ -250,8 +250,8 @@ run: all
 $(OUTPUT_MAIN_RESOURCE):resource
 	@$(ECHO) Generating resource file complete!
 
-resource:
+resource: $(OUTPUT_PATH)
 	python ./scripts/app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH)
 	
-resource_refresh:
+resource_refresh: $(OUTPUT_PATH)
 	python ./scripts/app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH) -f ture

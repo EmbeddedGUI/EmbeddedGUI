@@ -24,7 +24,8 @@ void app_set_gpio(uint8_t pin, uint8_t state)
 
 static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
 
-char input_file_path[0x1000];
+#define MAX_PATH 0x1000
+char input_file_path[MAX_PATH];
 
 char* pc_get_input_file_path(void)
 {
@@ -37,6 +38,10 @@ static void pasre_input_params(int argc, const char *argv[])
     {
         // printf("input params: %s\n", argv[1]);
         strcpy(input_file_path, argv[1]);
+    }
+    else
+    {
+        strcpy(input_file_path, "app_egui_resource_merge.bin");
     }
 }
 
