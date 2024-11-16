@@ -525,6 +525,57 @@ egui_activity_t *egui_core_activity_get_current(void)
     return p_activity;
 }
 
+void egui_core_activity_force_finish_to_activity(egui_activity_t *activity)
+{
+    // find the activity in the activitys list
+    egui_dnode_t *p_head;
+    egui_dnode_t *p_next;
+    egui_activity_t *tmp;
+
+    EGUI_LOG_DBG("egui_core_activity_force_finish_to_activity(), %d\n", egui_dlist_is_empty(&egui_core.activitys));
+    if (!egui_dlist_is_empty(&egui_core.activitys))
+    {
+        EGUI_LOG_DBG("egui_core_activity_force_finish_to_activity() work\n");
+        EGUI_DLIST_FOR_EACH_NODE_REVERSE_SAFE(&egui_core.activitys, p_head, p_next)
+        {
+            tmp = EGUI_DLIST_ENTRY(p_head, egui_activity_t, node);
+            if (tmp == activity)
+            {
+                break;
+            }
+#if EGUI_CONFIG_DEBUG_CLASS_NAME
+            EGUI_LOG_INF("force finish activity: %s, state: %d\n", tmp->name, tmp->state);
+#endif
+            if (tmp->state < EGUI_ACTIVITY_STATE_STOP)
+            {
+                tmp->api->on_stop(tmp);
+            }
+            if (tmp->state < EGUI_ACTIVITY_STATE_DESTROY)
+            {
+                tmp->api->on_destroy(tmp);
+            }
+        }
+    }
+
+#if EGUI_CONFIG_DEBUG_CLASS_NAME
+    EGUI_LOG_INF("restart activity: %s, state: %d\n", activity->name, activity->state);
+#endif
+    if (activity->state == EGUI_ACTIVITY_STATE_STOP)
+    {
+        activity->api->on_start(tmp);
+    }
+    if (activity->state == EGUI_ACTIVITY_STATE_START)
+    {
+        activity->api->on_resume(tmp);
+
+        egui_view_set_position((egui_view_t *)&activity->root_view, 0, 0);
+        egui_view_set_size((egui_view_t *)&activity->root_view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    }
+
+    // refresh the screen
+    egui_core_update_region_dirty_all();
+}
+
 void egui_core_activity_force_finish_all(void)
 {
     // find the activity in the activitys list

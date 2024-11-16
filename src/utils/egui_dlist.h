@@ -56,6 +56,25 @@ typedef struct _egui_dnode egui_dnode_t;
 #define EGUI_DLIST_FOR_EACH_NODE_REVERSE(__dl, __dn) for (__dn = egui_dlist_peek_tail(__dl); __dn != NULL; __dn = egui_dlist_peek_prev(__dl, __dn))
 
 /**
+ * @brief Provide the primitive to safely iterate on a list
+ * Note: __dn can be removed, it will not break the loop.
+ *
+ * User _MUST_ add the loop statement curly braces enclosing its own code:
+ *
+ *     EGUI_DLIST_FOR_EACH_NODE_SAFE(l, n, s) {
+ *         <user code>
+ *     }
+ *
+ * This and other EGUI_DLIST_*() macros are not thread safe.
+ *
+ * @param __dl A pointer on a egui_dlist_t to iterate on
+ * @param __dn A egui_dnode_t pointer to peek each node of the list
+ * @param __dns A egui_dnode_t pointer for the loop to run safely
+ */
+#define EGUI_DLIST_FOR_EACH_NODE_REVERSE_SAFE(__dl, __dn, __dns)                                                                                                       \
+    for (__dn = egui_dlist_peek_tail(__dl), __dns = egui_dlist_peek_prev(__dl, __dn); __dn != NULL; __dn = __dns, __dns = egui_dlist_peek_prev(__dl, __dn))
+
+/**
  * @brief Provide the primitive to iterate on a list
  * Note: the loop is unsafe and thus __dn should not be removed
  *

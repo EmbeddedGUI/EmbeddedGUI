@@ -76,6 +76,7 @@ void egui_init(egui_color_int_t *pfb);
 
 egui_activity_t *egui_core_activity_get_current(void);
 void egui_core_activity_force_finish_all(void);
+void egui_core_activity_force_finish_to_activity(egui_activity_t *activity);
 int egui_core_activity_check_in_process(egui_activity_t *activity);
 void egui_core_activity_append(egui_activity_t *activity);
 void egui_core_activity_remove(egui_activity_t *activity);
