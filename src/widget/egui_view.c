@@ -12,6 +12,10 @@ void egui_view_invalidate(egui_view_t *self)
 
 void egui_view_set_background(egui_view_t *self, egui_background_t *background)
 {
+    if (background == self->background)
+    {
+        return;
+    }
     self->background = background;
     egui_view_invalidate(self);
 }

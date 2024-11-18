@@ -28,6 +28,10 @@ void egui_view_image_on_draw(egui_view_t *self)
 void egui_view_image_set_image_type(egui_view_t *self, int image_type)
 {
     egui_view_image_t *local = (egui_view_image_t *)self;
+    if(local->image_type == image_type)
+    {
+        return;
+    }
     local->image_type = image_type;
     egui_view_invalidate(self);
 }
@@ -35,10 +39,13 @@ void egui_view_image_set_image_type(egui_view_t *self, int image_type)
 void egui_view_image_set_image(egui_view_t *self, egui_image_t *image)
 {
     egui_view_image_t *local = (egui_view_image_t *)self;
+    if(local->image == image)
+    {
+        return;
+    }
     local->image = image;
     egui_view_invalidate(self);
 }
-
 
 
 EGUI_VIEW_API_DEFINE(egui_view_image_t, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, egui_view_image_on_draw, NULL);

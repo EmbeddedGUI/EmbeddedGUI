@@ -20,6 +20,10 @@ void egui_view_label_on_draw(egui_view_t *self)
 void egui_view_label_set_font(egui_view_t *self, egui_font_t *font)
 {
     egui_view_label_t *local = (egui_view_label_t *)self;
+    if (local->font == font)
+    {
+        return;
+    }
     local->font = font;
     egui_view_invalidate(self);
 }
@@ -27,6 +31,10 @@ void egui_view_label_set_font(egui_view_t *self, egui_font_t *font)
 void egui_view_label_set_font_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha)
 {
     egui_view_label_t *local = (egui_view_label_t *)self;
+    if ((local->color.full == color.full) && (local->alpha == alpha))
+    {
+        return;
+    }
     local->color = color;
     local->alpha = alpha;
     egui_view_invalidate(self);
@@ -35,6 +43,10 @@ void egui_view_label_set_font_color(egui_view_t *self, egui_color_t color, egui_
 void egui_view_label_set_align_type(egui_view_t *self, uint8_t align_type)
 {
     egui_view_label_t *local = (egui_view_label_t *)self;
+    if (local->align_type == align_type)
+    {
+        return;
+    }
     local->align_type = align_type;
     egui_view_invalidate(self);
 }
