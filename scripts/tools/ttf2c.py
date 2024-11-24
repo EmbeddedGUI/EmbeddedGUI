@@ -230,7 +230,8 @@ def utf8_to_c_array(utf8_bytes):
     return '{' + ', '.join([f'0x{byte:02x}' for byte in utf8_bytes]) + '}'
 
 def write_c_code(glyphs_data, text, output_file, name, char_max_width, char_max_height, pixel_size, font_bit_size):
-
+    index = 0
+    bin_data = []
     with open(output_file, "a", encoding="utf-8") as f:
         print("/**", file=f)
         print(" * Total character count: {0} Support Text: ".format(len(text)), file=f)
@@ -243,6 +244,7 @@ def write_c_code(glyphs_data, text, output_file, name, char_max_width, char_max_
             utf8_value = int.from_bytes(utf8_encoding, byteorder='big')
             utf8_value_str = ("0x%08x" % utf8_value)
             utf8_c_array = utf8_to_c_array(utf8_encoding)
+            bin_data += data.tolist()
             # print(("// Glyph for character - %s - %s" % (char, utf8_value_str)))
             f.write(("\n    /* Glyph for character \"%s\" %s */\n" % (char, utf8_value_str)))
             hex_str = binascii.hexlify(data).decode()
@@ -258,7 +260,6 @@ def write_c_code(glyphs_data, text, output_file, name, char_max_width, char_max_
 
         print("static const egui_font_std_char_descriptor_t {0}_char_array[] = {{\n".format(name), file=f)
 
-        index = 0
         for char, data, width, height, advance_width, offset_x, offset_y, utf8_encoding in glyphs_data:
             utf8_value = int.from_bytes(utf8_encoding, byteorder='big')
             utf8_value_str = ("0x%08x" % utf8_value)
@@ -277,6 +278,8 @@ def write_c_code(glyphs_data, text, output_file, name, char_max_width, char_max_
                                     pixel_size,
                                     len(glyphs_data)
                                     ), file=f)
+        
+    return bin_data
 
 class ttf2c_tool:
     def __init__(self, input_font_file, name, text_file, pixel_size, font_bit_size, external_type, output_path):
@@ -314,6 +317,8 @@ class ttf2c_tool:
         self.support_text = support_text
         self.options = options
 
+        self.data_bin_data = None
+
     def write_c_file(self):
         with open(self.outfile_name, "w", encoding="utf-8") as outputfile:
             print(c_head_string, file=outputfile)
@@ -321,8 +326,9 @@ class ttf2c_tool:
 
         # Convert the text file to a list of characters
         glyphs_data, char_max_width, char_max_height = generate_glyphs_data(self.input_font_file, self.support_text, self.pixel_size, self.font_bit_size)
-        write_c_code(glyphs_data, self.support_text, self.outfile_name, self.font_name, char_max_width, char_max_height, self.pixel_size, self.font_bit_size)
-
+        self.data_bin_data = write_c_code(glyphs_data, self.support_text, self.outfile_name, self.font_name, char_max_width, char_max_height, self.pixel_size, self.font_bit_size)
+        # print(f"Total character count: {len(self.support_text)} Support Text: {self.support_text}")
+        # print(f"Total data size: {len(self.data_bin_data)} bytes")
         # write the tail of the c file
         with open(self.outfile_name, "a", encoding="utf-8") as outputfile:
             print(c_tail_string, file=outputfile)

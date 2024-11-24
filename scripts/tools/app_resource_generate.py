@@ -133,7 +133,7 @@ class ImageResourceInfo:
         if config.get('rot'):
             self.rot = float(config['rot'])
         
-        self.swap = -1
+        self.swap = 0
         if config.get('swap'):
             self.swap = int(config['swap'])
 
@@ -275,6 +275,8 @@ def generate_resource(resource_path, output_path, force):
     resource_bin_merge_file_output = os.path.join(output_path, 'app_egui_resource_merge.bin')
     app_egui_resource_generate_h_file_path = os.path.join(resource_path, 'app_egui_resource_generate.h')
     app_egui_resource_generate_c_file_path = os.path.join(resource_path, 'app_egui_resource_generate.c')
+
+    app_egui_resource_generate_report_file_path = os.path.join(resource_path, 'app_egui_resource_generate_report.md')
     if not force:
         if os.path.exists(resource_bin_merge_file):
             shutil.copy(resource_bin_merge_file, resource_bin_merge_file_output)
@@ -368,6 +370,116 @@ def generate_resource(resource_path, output_path, force):
     print(f"Generating {app_egui_resource_generate_c_file_path}")
     with open(app_egui_resource_generate_c_file_path, 'w', encoding='utf-8') as f:
         f.write(app_egui_resource_generate_c_string.format(resource_id_map_string))
+
+
+
+
+    # 生成报告
+    print(f"Generating {app_egui_resource_generate_report_file_path}")
+    with open(app_egui_resource_generate_report_file_path, 'w', encoding='utf-8') as f:
+        img_data_total_size = 0
+        img_alpha_total_size = 0
+        img_total_size = 0
+
+        img_ext_data_total_size = 0
+        img_ext_alpha_total_size = 0
+        img_ext_total_size = 0
+
+        font_total_size = 0
+        font_ext_total_size = 0
+        f.write("# 图像\n")
+        f.write("## 内部\n")
+        f.write("| 名称 | data大小 | alpha大小 | 总大小 | Image |\n")
+        f.write("| ---- | -------- | --------- | ------ | ------ |\n")
+        for tool in sorted(img2c_tool_list, key=lambda x: x.img_name):
+            if tool.external_type:
+                continue
+            img_data_total_size += len(tool.data_bin_data)
+            img_alpha_total_size += len(tool.alpha_bin_data)
+            img_total_size += len(tool.data_bin_data) + len(tool.alpha_bin_data)
+            # f"![{tool.img_name}](src/{tool.filename})"
+            f.write(f"| {tool.img_name} | {len(tool.data_bin_data)} | {len(tool.alpha_bin_data)} | {len(tool.data_bin_data) + len(tool.alpha_bin_data)} | ![{tool.img_name}](src/{tool.filename}) |\n")
+        f.write(f"| 总计 | {img_data_total_size} | {img_alpha_total_size} | {img_total_size} |\n")
+
+        f.write("\n")
+        f.write("\n")
+        f.write("\n")
+        f.write("## 外部\n")
+        f.write("| 名称 | data大小 | alpha大小 | 总大小 | Image |\n")
+        f.write("| ---- | -------- | --------- | ------ | ------ |\n")
+        for tool in sorted(img2c_tool_list, key=lambda x: x.img_name):
+            if not tool.external_type:
+                continue
+            img_ext_data_total_size += len(tool.data_bin_data)
+            img_ext_alpha_total_size += len(tool.alpha_bin_data)
+            img_ext_total_size += len(tool.data_bin_data) + len(tool.alpha_bin_data)
+            f.write(f"| {tool.img_name} | {len(tool.data_bin_data)} | {len(tool.alpha_bin_data)} | {len(tool.data_bin_data) + len(tool.alpha_bin_data)} | ![{tool.img_name}](src/{tool.filename}) |\n")
+        f.write(f"| 总计 | {img_ext_data_total_size} | {img_ext_alpha_total_size} | {img_ext_total_size} |\n")
+
+# [tttt](src/supported_text_title.txt)
+        f.write("\n")
+        f.write("\n")
+        f.write("\n")
+        f.write("# 字体\n")
+        f.write("## 内部\n")
+        f.write("| 名称 | 总大小 | Font | Text |\n")
+        f.write("| ---- | ------ | ------ | ------ |\n")
+        for tool in sorted(ttf2c_tool_list, key=lambda x: x.font_name):
+            if tool.external_type:
+                continue
+            font_total_size += len(tool.data_bin_data)
+            font_file_string = f"[{tool.input_font_file_name}](src/{tool.input_font_file_name})"
+
+            text_file_string = ""
+            for file in tool.text_file:
+                text_file_name = os.path.basename(file)
+                text_file_string += f"[{text_file_name}](src/{text_file_name})"
+                text_file_string += " "
+            f.write(f"| {tool.font_name} | {len(tool.data_bin_data)} | {font_file_string} | {text_file_string} |\n")
+        f.write(f"| 总计 | {font_total_size} |\n")
+
+        f.write("\n")
+        f.write("\n")
+        f.write("\n")
+        f.write("## 外部\n")
+        f.write("| 名称 | 总大小 |\n")
+        f.write("| ---- | ------ |\n")
+        for tool in sorted(ttf2c_tool_list, key=lambda x: x.font_name):
+            if not tool.external_type:
+                continue
+            font_ext_total_size += len(tool.data_bin_data)
+            f.write(f"| {tool.font_name} | {len(tool.data_bin_data)} |\n")
+        f.write(f"| 总计 | {font_ext_total_size} |\n")
+
+
+
+        f.write("# 总计\n")
+        f.write("| 名称 | 总大小 |\n")
+        f.write("| ---- | ------ |\n")
+        f.write(f"| 图像-内部 | {img_total_size} |\n")
+        f.write(f"| 字体-内部 | {font_total_size} |\n")
+        f.write(f"| 内部总计 | {img_total_size + font_total_size} |\n")
+        f.write(f"| 图像-外部 | {img_ext_total_size} |\n")
+        f.write(f"| 字体-外部 | {font_ext_total_size} |\n")
+        f.write(f"| 外部总计 | {img_ext_total_size + font_ext_total_size} |\n")
+        f.write(f"| 总计 | {img_ext_total_size + font_ext_total_size + img_total_size + font_total_size} |\n")
+
+
+        total_report_info = ""
+        total_report_info += f"{"内部".center(32, "=")}\n"
+        total_report_info += f"{"Image".center(10)} {"Font".center(10)} {"Total".center(10)}\n"
+        total_report_info += f"{str(img_total_size).center(10)} {str(font_total_size).center(10)} {str(img_total_size + font_total_size).center(10)}\n"
+        total_report_info += f"{"外部".center(32, "=")}\n"
+        total_report_info += f"{"Image".center(10)} {"Font".center(10)} {"Total".center(10)}\n"
+        total_report_info += f"{str(img_ext_total_size).center(10)} {str(font_ext_total_size).center(10)} {str(img_ext_total_size + font_ext_total_size).center(10)}\n"
+        total_report_info += f"{"总计".center(32, "=")}\n"
+        total_report_info += f"{"Image".center(10)} {"Font".center(10)} {"Total".center(10)}\n"
+        total_report_info += f"{str(img_ext_total_size + img_total_size).center(10)} {str(font_ext_total_size + font_total_size).center(10)} {str(img_ext_total_size + font_ext_total_size + img_total_size + font_total_size).center(10)}\n"
+        print(total_report_info)
+
+
+
+
 
 
     # 拷贝bin文件到Output目录
