@@ -278,12 +278,60 @@ def write_c_code(glyphs_data, text, output_file, name, char_max_width, char_max_
                                     len(glyphs_data)
                                     ), file=f)
 
+class ttf2c_tool:
+    def __init__(self, input_font_file, name, text_file, pixel_size, font_bit_size, external_type, output_path):
+        if output_path == None:
+            output_path = os.path.dirname(input_font_file)
+
+        font_name = f"egui_res_font_{name.lower()}_{pixel_size}_{font_bit_size}"
+        outfile_name = os.path.join(output_path, f"{font_name}.c")
+
+        # just get file name.
+        input_font_file_name = os.path.basename(input_font_file)
+
+        # get the options
+        options = f"-i {input_font_file_name} -n {name} -p {pixel_size} -s {font_bit_size}"
+
+        support_text = ""
+        for file in text_file:
+            with open(file, 'r', encoding='utf-8') as f:
+                support_text += f.read()
+            text_file_name = os.path.basename(file)
+            options += f" -t {text_file_name}"
+
+        # save info
+        self.input_font_file = input_font_file
+        self.name = name
+        self.text_file = text_file
+        self.pixel_size = pixel_size
+        self.font_bit_size = font_bit_size
+        self.external_type = external_type
+        self.output_path = output_path
+
+        self.font_name = font_name
+        self.outfile_name = outfile_name
+        self.input_font_file_name = input_font_file_name
+        self.support_text = support_text
+        self.options = options
+
+    def write_c_file(self):
+        with open(self.outfile_name, "w", encoding="utf-8") as outputfile:
+            print(c_head_string, file=outputfile)
+            print(c_head_debug_string.format(self.pixel_size, self.font_bit_size, self.input_font_file_name, self.options), file=outputfile)
+
+        # Convert the text file to a list of characters
+        glyphs_data, char_max_width, char_max_height = generate_glyphs_data(self.input_font_file, self.support_text, self.pixel_size, self.font_bit_size)
+        write_c_code(glyphs_data, self.support_text, self.outfile_name, self.font_name, char_max_width, char_max_height, self.pixel_size, self.font_bit_size)
+
+        # write the tail of the c file
+        with open(self.outfile_name, "a", encoding="utf-8") as outputfile:
+            print(c_tail_string, file=outputfile)
 
 def main():
     parser = argparse.ArgumentParser(description='TrueTypeFont to C array converter (v1.0.0)')
     parser.add_argument("-i", "--input",    type=str,   help="Path to the TTF file",                     required=True)
     parser.add_argument("-n", "--name",     type=str,   help="The customized UTF8 font name",            required=True)
-    parser.add_argument("-t", "--text",     type=str,   help="Path to the text file",                    required=True)
+    parser.add_argument("-t", "--text",     action='append', type=str,   help="Path to the text file",                    required=True)
     parser.add_argument("-p", "--pixelsize",type=int,   help="Font size in pixels, fixed in height",     required=False,    default=32)
     parser.add_argument("-s", "--fontbitsize",type=int, help="Font bit size (1,2,4,8)",                  required=False,    default=1)
     parser.add_argument('-ext', '--external', nargs='?',type = int, default=0, required=False, help="Storage format (0: internal, 1: external)")
@@ -295,43 +343,9 @@ def main():
 
     args = parser.parse_args()
     
-    inputfile = args.input
-    external_type = args.external
-    textfile = args.text
+    tool = ttf2c_tool(args.input, args.name, args.text, args.pixelsize, args.fontbitsize, args.external, args.output)
 
-    if args.fontbitsize not in [1, 2, 4, 8]:
-        print(f'Invalid alpha size={args.fontbitsize}')
-        sys.exit(1)
-
-    output_path = ""
-    if args.output != "":
-        output_path = args.output
-    else:
-        output_path = os.path.dirname(inputfile)
-
-    name = f"egui_res_font_{args.name.lower()}_{args.pixelsize}_{args.fontbitsize}"
-    outfilename = os.path.join(output_path, f"{name}.c")
-
-    # just get file name.
-    filename = os.path.basename(inputfile)
-    textfilename = os.path.basename(textfile)
-    # get the options
-    options = f"-i {filename} -n {args.name} -t {textfilename} -p {args.pixelsize} -s {args.fontbitsize}"
-
-    with open(outfilename, "w", encoding="utf-8") as outputfile:
-        print(c_head_string, file=outputfile)
-        print(c_head_debug_string.format(args.pixelsize, args.fontbitsize, filename, options), file=outputfile)
-
-    # Convert the text file to a list of characters
-    with open(args.text, 'r', encoding='utf-8') as f:
-        text = f.read()
-
-        glyphs_data, char_max_width, char_max_height = generate_glyphs_data(args.input, text, args.pixelsize, args.fontbitsize)
-        write_c_code(glyphs_data, text, outfilename, name, char_max_width, char_max_height, args.pixelsize, args.fontbitsize)
-
-    # write the tail of the c file
-    with open(outfilename, "a", encoding="utf-8") as outputfile:
-        print(c_tail_string, file=outputfile)
+    tool.write_c_file()
 
 
 if __name__ == '__main__':

@@ -2,6 +2,8 @@ import os
 import shutil
 import argparse
 import json5
+import ttf2c
+import img2c
 
 
 app_egui_resource_generate_h_string="""
@@ -62,63 +64,6 @@ def format_file_name(file_name):
     file_name = file_name.lower()
     return file_name
 
-# print("Generating 8 px")
-# os.system("python ../ttf2c.py -i Montserrat-Medium.ttf -n montserrat -t supported_text.txt -p 8 -s 4")
-
-def generate_resource_font(ttf_util_path, font_res_output_path, font_file_path, font_name, suported_text_path, pixelsize_list, fontbitsize_list, external_list):
-    if not os.path.exists(font_res_output_path):
-        os.makedirs(font_res_output_path)
-    
-    for pixelsize in pixelsize_list:
-        for fontbitsize in fontbitsize_list:
-            for external in external_list:
-                if external == 1:
-                    # temp
-                    continue
-
-                print(f"Generating {font_name}_{pixelsize}_{fontbitsize}")
-                
-                # output_path = os.path.join(font_res_output_path, f"{font_name}_{pixelsize}_{fontbitsize}_{external}")
-                output_path = font_res_output_path
-                if not os.path.exists(output_path):
-                    os.makedirs(output_path)
-                cmd = f"python {ttf_util_path} -i \"{font_file_path}\" -n {font_name} -t {suported_text_path} -p {pixelsize} -s {fontbitsize} -o {output_path}"
-
-                if external == 1:
-                    cmd += " -ext 1"
-
-                print(cmd)
-                os.system(cmd)
-
-
-def generate_resource_img(img_util_path, img_res_output_path, img_file_path, img_name, rgb_list, alpha_list, external_list, dim, rot, swap):
-    if not os.path.exists(img_res_output_path):
-        os.makedirs(img_res_output_path)
-    for rgb in rgb_list:
-        for alpha in alpha_list:
-            for external in external_list:
-
-                print(f"Generating {img_name}_{rgb}_{alpha}px")
-
-                # output_path = os.path.join(img_res_output_path, f"{rgb}_{alpha}")
-                output_path = img_res_output_path
-                if not os.path.exists(output_path):
-                    os.makedirs(output_path)
-                cmd = f"python {img_util_path} -i \"{img_file_path}\" -n {img_name} -f {rgb} -a {alpha} -o {output_path}"
-
-                if dim[0] != -1 and dim[1]:
-                    cmd += f" -d {dim[0]} {dim[1]}"
-                if rot != -1:
-                    cmd += f" -r {rot}"
-                if swap != -1:
-                    cmd += f" -s {swap}"
-
-                if external == 1:
-                    cmd += " -ext 1"
-
-                print(cmd)
-                os.system(cmd)
-    pass
 
 def clear_last_resource(resource_path):
     if os.path.exists(resource_path):
@@ -179,12 +124,12 @@ class ImageResourceInfo:
         else:
             self.external_list.append(int(self.external_info))
         
-        self.dim = [-1, -1]
+        self.dim = None
         if config.get('dim'):
             self.dim = [int(x) for x in config['dim'].split(',')]
         
         
-        self.rot = -1
+        self.rot = 0.0
         if config.get('rot'):
             self.rot = float(config['rot'])
         
@@ -196,6 +141,8 @@ class FontResourceInfo:
     def __init__(self, config):
         self.file_name = config['file']
         self.text_file_name = config['text']
+        self.text_file_list = []
+        self.text_file_list.append(self.text_file_name)
 
         self.pixelsize_info = 'all'
         if config.get('pixelsize'):
@@ -229,6 +176,94 @@ class FontResourceInfo:
         else:
             self.external_list.append(int(self.external_info))
 
+def generate_font_resource(resource_src_path, font_res_output_path, config_info_font):
+    if not config_info_font:
+        return
+    # 检查重复的font配置
+    font_config_list = []
+    for font_config in config_info_font:
+        # print(font_config)
+        font_info = FontResourceInfo(font_config)
+        for pixelsize in font_info.pixelsize_list:
+            for fontbitsize in font_info.fontbitsize_list:
+                for external in font_info.external_list:
+                    # print(f"{font_info.file_name} {pixelsize} {fontbitsize} {external}")
+                    is_conflit = False
+                    for font_config_item in font_config_list:
+                        if font_config_item[0].file_name == font_info.file_name and font_config_item[1] == pixelsize and font_config_item[2] == fontbitsize and font_config_item[3] == external:
+                            is_conflit = True
+                            font_config_item[0].text_file_list.append(font_info.text_file_name)
+                            break
+                    if is_conflit:
+                        continue
+                    font_config_list.append([font_info, pixelsize, fontbitsize, external])
+    
+    ttf2c_tool_list = []
+    for font_config_item in font_config_list:
+        # print(font_config_item)
+        font_info = font_config_item[0]
+        file_name = font_info.file_name
+        font_file_path = os.path.join(resource_src_path, file_name)
+        c_file_name = format_file_name(file_name.split('.')[0])
+
+        output_path = font_res_output_path
+        suported_text_list = []
+        for text_file_path in font_info.text_file_list:
+            suported_text_list.append(os.path.join(resource_src_path, text_file_path))
+        font_name = c_file_name
+
+        pixelsize = font_config_item[1]
+        fontbitsize = font_config_item[2]
+        external = font_config_item[3]
+        tool = ttf2c.ttf2c_tool(font_file_path, font_name, suported_text_list, pixelsize, fontbitsize, external, output_path)
+
+        ttf2c_tool_list.append(tool)
+
+        print(f"Generating {tool.font_name} with {font_info.text_file_list}")
+
+        tool.write_c_file()
+        # generate_resource_font(ttf_util_path, font_res_output_path, font_file_path, c_file_name, text_file_path, font_config_item[1], font_config_item[2], font_config_item[3])
+    return ttf2c_tool_list
+
+
+def generate_img_resource(resource_src_path, img_res_output_path, config_info_img):
+    if not config_info_img:
+        return
+
+    img_config_list = []
+    for img_config in config_info_img:
+        img_info = ImageResourceInfo(img_config)
+        for rgb in img_info.rgb_list:
+            for alpha in img_info.alpha_list:
+                for external in img_info.external_list:
+                    img_config_list.append([img_info, rgb, alpha, external, img_info.dim, img_info.rot, img_info.swap])
+    
+    img2c_tool_list = []
+    for img_config_item in img_config_list:
+        img_info = img_config_item[0]
+        file_name = img_info.file_name
+        img_file_path = os.path.join(resource_src_path, file_name)
+        c_file_name = format_file_name(file_name.split('.')[0])
+
+        img_name = c_file_name
+
+        output_path = img_res_output_path
+        rgb = img_config_item[1]
+        alpha = img_config_item[2]
+        external = img_config_item[3]
+        dim = img_config_item[4]
+        rot = img_config_item[5]
+        swap = img_config_item[6]
+
+        tool = img2c.img2c_tool(img_file_path, img_name, rgb, alpha, dim, rot, swap, external, output_path)
+
+        img2c_tool_list.append(tool)
+
+        print(f"Generating {tool.img_name}")
+
+        tool.write_c_file()
+        
+    return img2c_tool_list
 
 def generate_resource(resource_path, output_path, force):
     # 解析app_resource_config.json文件
@@ -259,41 +294,18 @@ def generate_resource(resource_path, output_path, force):
 
     # 先清除上一次的资源
     clear_last_resource(img_res_output_path)
+    clear_last_resource(font_res_output_path)
 
-    img_util_path = ('scripts/tools/img2c.py')
-    ttf_util_path = ('scripts/tools/ttf2c.py')
+    if not os.path.exists(img_res_output_path):
+        os.makedirs(img_res_output_path)
+
+    if not os.path.exists(font_res_output_path):
+        os.makedirs(font_res_output_path)
 
     clear_last_resource(font_res_output_path)
 
-    config_info_img = config_info['img']
-    if config_info_img:
-        for img_config in config_info_img:
-            img_info = ImageResourceInfo(img_config)
-            file_name = img_info.file_name
-            img_file_path = os.path.join(resource_src_path, file_name)
-            c_file_name = format_file_name(file_name.split('.')[0])
-
-            generate_resource_img(img_util_path, img_res_output_path, img_file_path, c_file_name, img_info.rgb_list, img_info.alpha_list, img_info.external_list, img_info.dim, img_info.rot, img_info.swap)
-
-    config_info_font = config_info['font']
-    if config_info_font:
-        for font_config in config_info_font:
-            font_info = FontResourceInfo(font_config)
-            file_name = font_info.file_name
-            font_file_path = os.path.join(resource_src_path, file_name)
-            text_file_path = os.path.join(resource_src_path, font_info.text_file_name)
-            c_file_name = format_file_name(file_name.split('.')[0])
-
-            generate_resource_font(ttf_util_path, font_res_output_path, font_file_path, c_file_name, text_file_path, font_info.pixelsize_list, font_info.fontbitsize_list, font_info.external_list)
-
-    # 遍历路径根目录下所有图片文件，只找根目录的文件
-    # for file in os.listdir(resource_path):
-    #     if file.endswith('.png') or file.endswith('.jpg') or file.endswith('.jpeg') or file.endswith('.bmp'):
-    #         c_file_name = format_file_name(file.split('.')[0])
-    #         img_file_path = os.path.join(resource_path, file)
-    #         generate_resource_img(img_util_path, img_res_output_path, img_file_path, c_file_name)
-        # elif file.endswith('.ttf') or file.endswith('.otf'):
-        #     generate_resource_font(root, file, file.split('.')[0], resource_path)
+    img2c_tool_list = generate_img_resource(resource_src_path, img_res_output_path, config_info['img'])
+    ttf2c_tool_list = generate_font_resource(resource_src_path, font_res_output_path, config_info['font'])
 
 
     # 遍历生成app_egui_resource_generate.h文件
@@ -303,48 +315,48 @@ def generate_resource(resource_path, output_path, force):
     resource_bin_offset = 0
     resource_id_map_string = ""
 
-    # 遍历img_res_output_path目录下所有c文件，包括子目录
-    # 按照字母顺序排序
-    for root, dirs, files in os.walk(img_res_output_path):
-        for file in sorted(files):
-            if file.endswith('.c'):
-                resource_extern_string += f"extern const egui_image_std_t {file.split('.')[0]};\n"
-            elif file.endswith('.bin'):
-                id_str = f"EGUI_EXT_RES_ID_{file.split('.')[0]}".upper()
+
+    for tool in sorted(img2c_tool_list, key=lambda x: x.img_name):
+        resource_extern_string += f"extern const egui_image_std_t {tool.img_name};\n"
+        if tool.external_type:
+            if tool.alpha_bin_data:
+                id_str = tool.alpha_bin_name_res_id
                 resource_id_string += id_str + ",\n"
 
                 resource_id_map_string += f"0x{resource_bin_offset:08X}, // {id_str} \n"
 
-                file_path = os.path.join(root, file)
-                with open(file_path, 'rb') as bin_file:
-                    content = bin_file.read()
-                    resource_bin_offset += len(content)
+                resource_bin_offset += len(tool.alpha_bin_data)
 
-                    # 通过添加写入到resource_bin_merge_file
-                    with open(resource_bin_merge_file, 'ab+') as target_file:
-                        target_file.write(content)
+                # 通过添加写入到resource_bin_merge_file
+                with open(resource_bin_merge_file, 'ab+') as target_file:
+                    target_file.write(bytearray(tool.alpha_bin_data))
 
 
+            id_str = tool.data_bin_name_res_id
+            resource_id_string += id_str + ",\n"
 
-    # 遍历font_res_output_path目录下所有c文件，包括子目录
-    for root, dirs, files in os.walk(font_res_output_path):
-        for file in sorted(files):
-            if file.endswith('.c'):
-                resource_extern_string += f"extern const egui_font_std_t {file.split('.')[0]};\n"
-            elif file.endswith('.bin'):
-                id_str = f"EGUI_EXT_RES_ID_{file.split('.')[0]}".upper()
-                resource_id_string += id_str + ",\n"
+            resource_id_map_string += f"0x{resource_bin_offset:08X}, // {id_str} \n"
 
-                resource_id_map_string += f"0x{resource_bin_offset:08X}, // {id_str} \n"
+            resource_bin_offset += len(tool.data_bin_data)
 
-                file_path = os.path.join(root, file)
-                with open(file_path, 'rb') as bin_file:
-                    content = bin_file.read()
-                    resource_bin_offset += len(content)
+            # 通过添加写入到resource_bin_merge_file
+            with open(resource_bin_merge_file, 'ab+') as target_file:
+                target_file.write(bytearray(tool.data_bin_data))
 
-                    # 通过添加写入到resource_bin_merge_file
-                    with open(resource_bin_merge_file, 'ab+') as target_file:
-                        target_file.write(content)
+
+    for tool in sorted(ttf2c_tool_list, key=lambda x: x.font_name):
+        resource_extern_string += f"extern const egui_font_std_t {tool.font_name};\n"
+        if tool.external_type:
+            id_str = f"EGUI_EXT_RES_ID_{tool.font_name}".upper()
+            resource_id_string += id_str + ",\n"
+
+            resource_id_map_string += f"0x{resource_bin_offset:08X}, // {id_str} \n"
+
+            resource_bin_offset += len(tool.data_bin_data)
+
+            # 通过添加写入到resource_bin_merge_file
+            with open(resource_bin_merge_file, 'ab+') as target_file:
+                target_file.write(bytearray(tool.data_bin_data))
 
     # 生成app_egui_resource_generate.h文件
     print(f"Generating {app_egui_resource_generate_h_file_path}")

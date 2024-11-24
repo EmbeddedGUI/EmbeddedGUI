@@ -7,3 +7,4 @@
 /porting/stm32g0_empty/Debug
 /porting/stm32g0_empty/.settings
 /doc/build
+*.pyc
