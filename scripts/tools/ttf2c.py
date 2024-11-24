@@ -295,10 +295,14 @@ class ttf2c_tool:
         # get the options
         options = f"-i {input_font_file_name} -n {name} -p {pixel_size} -s {font_bit_size}"
 
+        index = 0
         support_text = ""
         for file in text_file:
+            index += 1
             with open(file, 'r', encoding='utf-8') as f:
                 support_text += f.read()
+                if index < len(text_file):
+                    support_text += "\n"
             text_file_name = os.path.basename(file)
             options += f" -t {text_file_name}"
 
