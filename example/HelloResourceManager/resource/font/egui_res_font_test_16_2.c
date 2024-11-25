@@ -10,7 +10,7 @@
  * Font size: 16
  * Font bit size: 2
  * TTF file: test.ttf
- * options: -i test.ttf -n test -t supported_text_test.txt -p 16 -s 2
+ * options: -i test.ttf -n test -p 16 -s 2 -t supported_text_test.txt
  */
 
 

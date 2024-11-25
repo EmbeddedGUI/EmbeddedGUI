@@ -13,7 +13,7 @@
  * Alpha Type : 4
  * Re-sized : False
  * Rotation : 0.0
- * options: -i test.png -n test -f rgb565 -a 4 -s 0 -ext 1 -s 0
+ * options: -i test.png -n test -f rgb565 -a 4 -s 0 -ext 1
  */
 
 

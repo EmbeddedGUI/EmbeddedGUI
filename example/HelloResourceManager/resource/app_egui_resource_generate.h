@@ -42,8 +42,12 @@ extern const egui_image_std_t egui_res_image_star_rgb565_8;
 extern const egui_image_std_t egui_res_image_star_rgb565_8_bin;
 extern const egui_image_std_t egui_res_image_test_rgb565_4_bin;
 extern const egui_font_std_t egui_res_font_test_16_1;
+extern const egui_font_std_t egui_res_font_test_16_1;
+extern const egui_font_std_t egui_res_font_test_16_2;
 extern const egui_font_std_t egui_res_font_test_16_2;
 extern const egui_font_std_t egui_res_font_test_16_4;
+extern const egui_font_std_t egui_res_font_test_16_4;
+extern const egui_font_std_t egui_res_font_test_16_8;
 extern const egui_font_std_t egui_res_font_test_16_8;
 
 
@@ -74,6 +78,10 @@ EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB565_8_ALPHA,
 EGUI_EXT_RES_ID_EGUI_RES_IMAGE_STAR_RGB565_8_DATA,
 EGUI_EXT_RES_ID_EGUI_RES_IMAGE_TEST_RGB565_4_ALPHA,
 EGUI_EXT_RES_ID_EGUI_RES_IMAGE_TEST_RGB565_4_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_FONT_TEST_16_1,
+EGUI_EXT_RES_ID_EGUI_RES_FONT_TEST_16_2,
+EGUI_EXT_RES_ID_EGUI_RES_FONT_TEST_16_4,
+EGUI_EXT_RES_ID_EGUI_RES_FONT_TEST_16_8,
 
 EGUI_EXT_RES_ID_MAX,
 };

@@ -394,11 +394,15 @@ def generate_resource(resource_path, output_path, force):
         for tool in sorted(img2c_tool_list, key=lambda x: x.img_name):
             if tool.external_type:
                 continue
-            img_data_total_size += len(tool.data_bin_data)
-            img_alpha_total_size += len(tool.alpha_bin_data)
-            img_total_size += len(tool.data_bin_data) + len(tool.alpha_bin_data)
+            tmp_data_size = len(tool.data_bin_data)
+            tmp_alpha_size = 0
+            if tool.alpha_bin_data:
+                tmp_alpha_size = len(tool.alpha_bin_data)
+            img_data_total_size += tmp_data_size
+            img_alpha_total_size += tmp_alpha_size
+            img_total_size += tmp_data_size + tmp_alpha_size
             # f"![{tool.img_name}](src/{tool.filename})"
-            f.write(f"| {tool.img_name} | {len(tool.data_bin_data)} | {len(tool.alpha_bin_data)} | {len(tool.data_bin_data) + len(tool.alpha_bin_data)} | ![{tool.img_name}](src/{tool.filename}) |\n")
+            f.write(f"| {tool.img_name} | {tmp_data_size} | {tmp_alpha_size} | {tmp_data_size + tmp_alpha_size} | ![{tool.img_name}](src/{tool.filename}) |\n")
         f.write(f"| 总计 | {img_data_total_size} | {img_alpha_total_size} | {img_total_size} |\n")
 
         f.write("\n")
@@ -410,10 +414,14 @@ def generate_resource(resource_path, output_path, force):
         for tool in sorted(img2c_tool_list, key=lambda x: x.img_name):
             if not tool.external_type:
                 continue
-            img_ext_data_total_size += len(tool.data_bin_data)
-            img_ext_alpha_total_size += len(tool.alpha_bin_data)
-            img_ext_total_size += len(tool.data_bin_data) + len(tool.alpha_bin_data)
-            f.write(f"| {tool.img_name} | {len(tool.data_bin_data)} | {len(tool.alpha_bin_data)} | {len(tool.data_bin_data) + len(tool.alpha_bin_data)} | ![{tool.img_name}](src/{tool.filename}) |\n")
+            tmp_data_size = len(tool.data_bin_data)
+            tmp_alpha_size = 0
+            if tool.alpha_bin_data:
+                tmp_alpha_size = len(tool.alpha_bin_data)
+            img_ext_data_total_size += tmp_data_size
+            img_ext_alpha_total_size += tmp_alpha_size
+            img_ext_total_size += tmp_data_size + tmp_alpha_size
+            f.write(f"| {tool.img_name} | {tmp_data_size} | {tmp_alpha_size} | {tmp_data_size + tmp_alpha_size} | ![{tool.img_name}](src/{tool.filename}) |\n")
         f.write(f"| 总计 | {img_ext_data_total_size} | {img_ext_alpha_total_size} | {img_ext_total_size} |\n")
 
 # [tttt](src/supported_text_title.txt)
@@ -466,14 +474,14 @@ def generate_resource(resource_path, output_path, force):
 
 
         total_report_info = ""
-        total_report_info += f"{"内部".center(32, "=")}\n"
-        total_report_info += f"{"Image".center(10)} {"Font".center(10)} {"Total".center(10)}\n"
+        total_report_info += f"{'内部'.center(32, '=')}\n"
+        total_report_info += f"{'Image'.center(10)} {'Font'.center(10)} {'Total'.center(10)}\n"
         total_report_info += f"{str(img_total_size).center(10)} {str(font_total_size).center(10)} {str(img_total_size + font_total_size).center(10)}\n"
-        total_report_info += f"{"外部".center(32, "=")}\n"
-        total_report_info += f"{"Image".center(10)} {"Font".center(10)} {"Total".center(10)}\n"
+        total_report_info += f"{'外部'.center(32, '=')}\n"
+        total_report_info += f"{'Image'.center(10)} {'Font'.center(10)} {'Total'.center(10)}\n"
         total_report_info += f"{str(img_ext_total_size).center(10)} {str(font_ext_total_size).center(10)} {str(img_ext_total_size + font_ext_total_size).center(10)}\n"
-        total_report_info += f"{"总计".center(32, "=")}\n"
-        total_report_info += f"{"Image".center(10)} {"Font".center(10)} {"Total".center(10)}\n"
+        total_report_info += f"{'总计'.center(32, '=')}\n"
+        total_report_info += f"{'Image'.center(10)} {'Font'.center(10)} {'Total'.center(10)}\n"
         total_report_info += f"{str(img_ext_total_size + img_total_size).center(10)} {str(font_ext_total_size + font_total_size).center(10)} {str(img_ext_total_size + font_ext_total_size + img_total_size + font_total_size).center(10)}\n"
         print(total_report_info)
 

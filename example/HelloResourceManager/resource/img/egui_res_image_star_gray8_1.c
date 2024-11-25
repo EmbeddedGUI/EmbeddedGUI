@@ -12,7 +12,7 @@
  * Alpha Type : 1
  * Re-sized : False
  * Rotation : 0.0
- * options: -i star.png -n star -f gray8 -a 1 -s 0 -ext 0 -s 0
+ * options: -i star.png -n star -f gray8 -a 1 -s 0 -ext 0
  */
 
 
