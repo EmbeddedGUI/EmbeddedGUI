@@ -13,9 +13,9 @@
 
 
 #if (EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE >= 0)
-static const egui_circle_item_t egui_res_circle_info_item_arr_sub_0[0] = {
+static const egui_circle_item_t egui_res_circle_info_item_arr_sub_0[1] = {
 };
-static const uint8_t egui_res_circle_info_data_arr_sub_0[0] = {
+static const uint8_t egui_res_circle_info_data_arr_sub_0[1] = {
 
 };
 #endif // (EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE >= 0)

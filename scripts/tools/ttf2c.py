@@ -31,9 +31,10 @@ c_body_string="""
 
 
 static const egui_font_std_info_t {0}_info = {{
-    .font_bit_mode = {1},
-    .height = {2},
-    .count = {3},
+    .font_size = {1},
+    .font_bit_mode = {2},
+    .height = {3},
+    .count = {4},
     .char_array = {0}_char_array,
     .pixel_buffer = {0}_pixel_buffer,
 }};
@@ -66,14 +67,28 @@ def generate_glyphs_data(input_file, text, pixel_size, font_bit_size):
     height_max = 0
     baseline_max = 0
 
+    ascender = face.size.ascender / 64.0
+    descender = face.size.descender / 64.0
+    char_max_height = (int)(ascender - descender)
+
+    # print("ascender: %f, descender: %f" % (ascender, descender))
+
     # foreach all the char in the text, to get the max width and height
     for char in set(text):
         # Get the glyph bitmap
         face.load_char(char)
         bitmap = face.glyph.bitmap
         utf8_encoding = char.encode('utf-8')
+        
+        advance_width = face.glyph.advance.x / 64.0
+        width = bitmap.width
+        height = bitmap.rows
+        bearing_x = face.glyph.bitmap_left
+        bearing_y = face.glyph.bitmap_top
 
-        # print("%c: %d, %d" % (char, bitmap.width, bitmap.rows))
+        # height = face.size.height / 64.0
+
+        # print("%c: width: %f, height: %f, bearing_x: %f, bearing_y: %f, advance_width: %f" % (char, width, height, bearing_x, bearing_y, advance_width))
         # print(bitmap.buffer)
 
         if len(bitmap.buffer) == 0:
@@ -81,16 +96,8 @@ def generate_glyphs_data(input_file, text, pixel_size, font_bit_size):
         if list(utf8_encoding) == [0xef, 0xbb, 0xbf]:
             continue
 
-        width_max = max(bitmap.width, width_max)
-        height_max = max(bitmap.rows, height_max)
-
-        bearing_y = face.glyph.bitmap_top
-        
-        if bearing_y >= 0 and bearing_y < bitmap.rows:
-            baseline = bitmap.rows - bearing_y
-
-            baseline_max = max(baseline, baseline_max)
-
+        width_max = max(width, width_max)
+        height_max = max(height, height_max)
 
     # sorted the text, and generate the glyphs data.
     # foreach all the char in the text, to get the glyphs data.
@@ -107,7 +114,7 @@ def generate_glyphs_data(input_file, text, pixel_size, font_bit_size):
             if list(utf8_encoding) == [0xef, 0xbb, 0xbf]:
                 continue
 
-            advance_width = math.ceil(face.glyph.advance.x / 64.0)
+            advance_width = face.glyph.advance.x / 64.0
             width = bitmap.width
             height = bitmap.rows
             bearing_x = face.glyph.bitmap_left
@@ -117,22 +124,24 @@ def generate_glyphs_data(input_file, text, pixel_size, font_bit_size):
             if bearing_x < 0:
                 advance_width += -bearing_x
                 bearing_x = 0
+
             # TODO: handle advance_width < width?
             if advance_width < width:
                 advance_width = width
+
             # TODO: handle bearing_y < 0?
             if bearing_y < 0:
                 bearing_y = 0
             
             offset_x = bearing_x
-            offset_y = pixel_size - (bearing_y + baseline_max)
+            offset_y = ascender - bearing_y
 
             # TODO: handle offset_y < 0?
             if offset_y < 0:
                 offset_y = 0
 
-            # print("char: %s, bitmap.width: %d, bitmap.height: %d, bitmap_left: %d, bitmap_top: %d, width: %d, height: %d, advance_width: %d, offset_x: %d, offset_y: %d" 
-            #       % (char, bitmap.width, bitmap.rows, face.glyph.bitmap_left, face.glyph.bitmap_top, width, height, advance_width, offset_x, offset_y))
+            # print("char: %s, width: %f, height: %f, bearing_x: %f, bearing_y: %f, advance_width: %f, offset_x: %f, offset_y: %f" 
+            #       % (char, width, height, bearing_x, bearing_y, advance_width, offset_x, offset_y))
 
             bitmap_array = np.array(bitmap.buffer, dtype=np.uint8).reshape((height, width))
         else:
@@ -223,7 +232,7 @@ def generate_glyphs_data(input_file, text, pixel_size, font_bit_size):
 
         glyphs_data.append((char, char_mask_array, width, height, advance_width, offset_x, offset_y, utf8_encoding))
 
-    return glyphs_data, width_max, height_max
+    return glyphs_data, width_max, char_max_height
 
 
 def utf8_to_c_array(utf8_bytes):
@@ -274,8 +283,9 @@ def write_c_code(glyphs_data, text, output_file, name, char_max_width, char_max_
         f.write("};\n")
 
         print(c_body_string.format( name,
-                                    font_bit_size,
                                     pixel_size,
+                                    font_bit_size,
+                                    char_max_height,
                                     len(glyphs_data)
                                     ), file=f)
         

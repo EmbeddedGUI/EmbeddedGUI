@@ -10,7 +10,7 @@
  * Font size: 10
  * Font bit size: 4
  * TTF file: Montserrat-Medium.ttf
- * options: -i Montserrat-Medium.ttf -n montserrat -t supported_text.txt -p 10 -s 4
+ * options: -i Montserrat-Medium.ttf -n montserrat -p 10 -s 4 -t supported_text.txt
  */
 
 
@@ -447,105 +447,106 @@ static const uint8_t egui_res_font_montserrat_10_4_pixel_buffer[] = {
 static const egui_font_std_char_descriptor_t egui_res_font_montserrat_10_4_char_array[] = {
 
     {.idx=     0, .box_w=  5, .box_h=  1, .adv=  5, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000020}, /* " " */
-    {.idx=     3, .box_w=  2, .box_h=  8, .adv=  3, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000021}, /* "!" */
-    {.idx=    11, .box_w=  4, .box_h=  3, .adv=  4, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000022}, /* """ */
-    {.idx=    17, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000023}, /* "#" */
-    {.idx=    49, .box_w=  6, .box_h= 11, .adv=  6, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000024}, /* "$" */
-    {.idx=    82, .box_w=  9, .box_h=  8, .adv=  9, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000025}, /* "%" */
-    {.idx=   122, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000026}, /* "&" */
-    {.idx=   154, .box_w=  2, .box_h=  3, .adv=  2, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000027}, /* "'" */
-    {.idx=   157, .box_w=  4, .box_h= 10, .adv=  4, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000028}, /* "(" */
-    {.idx=   177, .box_w=  3, .box_h= 10, .adv=  3, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000029}, /* ")" */
-    {.idx=   197, .box_w=  4, .box_h=  4, .adv=  4, .off_x=  0, .off_y=  0, .code_len=1, .code=0x0000002a}, /* "*" */
-    {.idx=   205, .box_w=  6, .box_h=  5, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000002b}, /* "+" */
-    {.idx=   220, .box_w=  2, .box_h=  3, .adv=  2, .off_x=  0, .off_y=  7, .code_len=1, .code=0x0000002c}, /* "," */
-    {.idx=   223, .box_w=  4, .box_h=  1, .adv=  4, .off_x=  0, .off_y=  4, .code_len=1, .code=0x0000002d}, /* "-" */
-    {.idx=   225, .box_w=  2, .box_h=  1, .adv=  2, .off_x=  0, .off_y=  7, .code_len=1, .code=0x0000002e}, /* "." */
+    {.idx=     3, .box_w=  2, .box_h=  8, .adv=  3, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000021}, /* "!" */
+    {.idx=    11, .box_w=  4, .box_h=  3, .adv=  4, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000022}, /* """ */
+    {.idx=    17, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000023}, /* "#" */
+    {.idx=    49, .box_w=  6, .box_h= 11, .adv=  6, .off_x=  0, .off_y=  1, .code_len=1, .code=0x00000024}, /* "$" */
+    {.idx=    82, .box_w=  9, .box_h=  8, .adv=  9, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000025}, /* "%" */
+    {.idx=   122, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000026}, /* "&" */
+    {.idx=   154, .box_w=  2, .box_h=  3, .adv=  2, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000027}, /* "'" */
+    {.idx=   157, .box_w=  4, .box_h= 10, .adv=  4, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000028}, /* "(" */
+    {.idx=   177, .box_w=  3, .box_h= 10, .adv=  3, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000029}, /* ")" */
+    {.idx=   197, .box_w=  4, .box_h=  4, .adv=  4, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000002a}, /* "*" */
+    {.idx=   205, .box_w=  6, .box_h=  5, .adv=  6, .off_x=  0, .off_y=  4, .code_len=1, .code=0x0000002b}, /* "+" */
+    {.idx=   220, .box_w=  2, .box_h=  3, .adv=  2, .off_x=  0, .off_y=  9, .code_len=1, .code=0x0000002c}, /* "," */
+    {.idx=   223, .box_w=  4, .box_h=  1, .adv=  4, .off_x=  0, .off_y=  6, .code_len=1, .code=0x0000002d}, /* "-" */
+    {.idx=   225, .box_w=  2, .box_h=  1, .adv=  2, .off_x=  0, .off_y=  9, .code_len=1, .code=0x0000002e}, /* "." */
     {.idx=   226, .box_w=  5, .box_h= 11, .adv=  5, .off_x=  0, .off_y=  0, .code_len=1, .code=0x0000002f}, /* "/" */
-    {.idx=   259, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000030}, /* "0" */
-    {.idx=   291, .box_w=  3, .box_h=  8, .adv=  4, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000031}, /* "1" */
-    {.idx=   307, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000032}, /* "2" */
-    {.idx=   331, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000033}, /* "3" */
-    {.idx=   355, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000034}, /* "4" */
-    {.idx=   387, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000035}, /* "5" */
-    {.idx=   411, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000036}, /* "6" */
-    {.idx=   435, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000037}, /* "7" */
-    {.idx=   459, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000038}, /* "8" */
-    {.idx=   483, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000039}, /* "9" */
-    {.idx=   507, .box_w=  2, .box_h=  5, .adv=  2, .off_x=  0, .off_y=  3, .code_len=1, .code=0x0000003a}, /* ":" */
-    {.idx=   512, .box_w=  2, .box_h=  7, .adv=  2, .off_x=  0, .off_y=  3, .code_len=1, .code=0x0000003b}, /* ";" */
-    {.idx=   519, .box_w=  6, .box_h=  5, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000003c}, /* "<" */
-    {.idx=   534, .box_w=  6, .box_h=  4, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000003d}, /* "=" */
-    {.idx=   546, .box_w=  6, .box_h=  5, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000003e}, /* ">" */
-    {.idx=   561, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  0, .code_len=1, .code=0x0000003f}, /* "?" */
-    {.idx=   585, .box_w= 10, .box_h= 10, .adv= 10, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000040}, /* "@" */
-    {.idx=   635, .box_w=  9, .box_h=  8, .adv=  9, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000041}, /* "A" */
-    {.idx=   675, .box_w=  7, .box_h=  8, .adv=  8, .off_x=  1, .off_y=  0, .code_len=1, .code=0x00000042}, /* "B" */
-    {.idx=   707, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000043}, /* "C" */
-    {.idx=   739, .box_w=  7, .box_h=  8, .adv=  8, .off_x=  1, .off_y=  0, .code_len=1, .code=0x00000044}, /* "D" */
-    {.idx=   771, .box_w=  6, .box_h=  8, .adv=  7, .off_x=  1, .off_y=  0, .code_len=1, .code=0x00000045}, /* "E" */
-    {.idx=   795, .box_w=  5, .box_h=  8, .adv=  6, .off_x=  1, .off_y=  0, .code_len=1, .code=0x00000046}, /* "F" */
-    {.idx=   819, .box_w=  7, .box_h=  8, .adv=  8, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000047}, /* "G" */
-    {.idx=   851, .box_w=  7, .box_h=  8, .adv=  8, .off_x=  1, .off_y=  0, .code_len=1, .code=0x00000048}, /* "H" */
-    {.idx=   883, .box_w=  2, .box_h=  8, .adv=  3, .off_x=  1, .off_y=  0, .code_len=1, .code=0x00000049}, /* "I" */
-    {.idx=   891, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  0, .code_len=1, .code=0x0000004a}, /* "J" */
-    {.idx=   915, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  1, .off_y=  0, .code_len=1, .code=0x0000004b}, /* "K" */
-    {.idx=   947, .box_w=  5, .box_h=  8, .adv=  6, .off_x=  1, .off_y=  0, .code_len=1, .code=0x0000004c}, /* "L" */
-    {.idx=   971, .box_w=  8, .box_h=  8, .adv= 10, .off_x=  1, .off_y=  0, .code_len=1, .code=0x0000004d}, /* "M" */
-    {.idx=  1003, .box_w=  7, .box_h=  8, .adv=  8, .off_x=  1, .off_y=  0, .code_len=1, .code=0x0000004e}, /* "N" */
-    {.idx=  1035, .box_w=  8, .box_h=  8, .adv=  8, .off_x=  0, .off_y=  0, .code_len=1, .code=0x0000004f}, /* "O" */
-    {.idx=  1067, .box_w=  6, .box_h=  8, .adv=  7, .off_x=  1, .off_y=  0, .code_len=1, .code=0x00000050}, /* "P" */
-    {.idx=  1091, .box_w=  9, .box_h= 10, .adv=  9, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000051}, /* "Q" */
-    {.idx=  1141, .box_w=  6, .box_h=  8, .adv=  7, .off_x=  1, .off_y=  0, .code_len=1, .code=0x00000052}, /* "R" */
-    {.idx=  1165, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000053}, /* "S" */
-    {.idx=  1189, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000054}, /* "T" */
-    {.idx=  1213, .box_w=  7, .box_h=  8, .adv=  8, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000055}, /* "U" */
-    {.idx=  1245, .box_w=  9, .box_h=  8, .adv=  9, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000056}, /* "V" */
-    {.idx=  1285, .box_w= 11, .box_h=  8, .adv= 11, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000057}, /* "W" */
-    {.idx=  1333, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000058}, /* "X" */
-    {.idx=  1365, .box_w=  8, .box_h=  8, .adv=  8, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000059}, /* "Y" */
-    {.idx=  1397, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  0, .code_len=1, .code=0x0000005a}, /* "Z" */
-    {.idx=  1429, .box_w=  3, .box_h= 10, .adv=  3, .off_x=  1, .off_y=  0, .code_len=1, .code=0x0000005b}, /* "[" */
+    {.idx=   259, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000030}, /* "0" */
+    {.idx=   291, .box_w=  3, .box_h=  8, .adv=  4, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000031}, /* "1" */
+    {.idx=   307, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000032}, /* "2" */
+    {.idx=   331, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000033}, /* "3" */
+    {.idx=   355, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000034}, /* "4" */
+    {.idx=   387, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000035}, /* "5" */
+    {.idx=   411, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000036}, /* "6" */
+    {.idx=   435, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000037}, /* "7" */
+    {.idx=   459, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000038}, /* "8" */
+    {.idx=   483, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000039}, /* "9" */
+    {.idx=   507, .box_w=  2, .box_h=  5, .adv=  2, .off_x=  0, .off_y=  5, .code_len=1, .code=0x0000003a}, /* ":" */
+    {.idx=   512, .box_w=  2, .box_h=  7, .adv=  2, .off_x=  0, .off_y=  5, .code_len=1, .code=0x0000003b}, /* ";" */
+    {.idx=   519, .box_w=  6, .box_h=  5, .adv=  6, .off_x=  0, .off_y=  4, .code_len=1, .code=0x0000003c}, /* "<" */
+    {.idx=   534, .box_w=  6, .box_h=  4, .adv=  6, .off_x=  0, .off_y=  4, .code_len=1, .code=0x0000003d}, /* "=" */
+    {.idx=   546, .box_w=  6, .box_h=  5, .adv=  6, .off_x=  0, .off_y=  4, .code_len=1, .code=0x0000003e}, /* ">" */
+    {.idx=   561, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000003f}, /* "?" */
+    {.idx=   585, .box_w= 10, .box_h= 10, .adv= 10, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000040}, /* "@" */
+    {.idx=   635, .box_w=  9, .box_h=  8, .adv=  9, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000041}, /* "A" */
+    {.idx=   675, .box_w=  7, .box_h=  8, .adv=  8, .off_x=  1, .off_y=  2, .code_len=1, .code=0x00000042}, /* "B" */
+    {.idx=   707, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000043}, /* "C" */
+    {.idx=   739, .box_w=  7, .box_h=  8, .adv=  8, .off_x=  1, .off_y=  2, .code_len=1, .code=0x00000044}, /* "D" */
+    {.idx=   771, .box_w=  6, .box_h=  8, .adv=  7, .off_x=  1, .off_y=  2, .code_len=1, .code=0x00000045}, /* "E" */
+    {.idx=   795, .box_w=  5, .box_h=  8, .adv=  6, .off_x=  1, .off_y=  2, .code_len=1, .code=0x00000046}, /* "F" */
+    {.idx=   819, .box_w=  7, .box_h=  8, .adv=  8, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000047}, /* "G" */
+    {.idx=   851, .box_w=  7, .box_h=  8, .adv=  8, .off_x=  1, .off_y=  2, .code_len=1, .code=0x00000048}, /* "H" */
+    {.idx=   883, .box_w=  2, .box_h=  8, .adv=  3, .off_x=  1, .off_y=  2, .code_len=1, .code=0x00000049}, /* "I" */
+    {.idx=   891, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000004a}, /* "J" */
+    {.idx=   915, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  1, .off_y=  2, .code_len=1, .code=0x0000004b}, /* "K" */
+    {.idx=   947, .box_w=  5, .box_h=  8, .adv=  6, .off_x=  1, .off_y=  2, .code_len=1, .code=0x0000004c}, /* "L" */
+    {.idx=   971, .box_w=  8, .box_h=  8, .adv= 10, .off_x=  1, .off_y=  2, .code_len=1, .code=0x0000004d}, /* "M" */
+    {.idx=  1003, .box_w=  7, .box_h=  8, .adv=  8, .off_x=  1, .off_y=  2, .code_len=1, .code=0x0000004e}, /* "N" */
+    {.idx=  1035, .box_w=  8, .box_h=  8, .adv=  8, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000004f}, /* "O" */
+    {.idx=  1067, .box_w=  6, .box_h=  8, .adv=  7, .off_x=  1, .off_y=  2, .code_len=1, .code=0x00000050}, /* "P" */
+    {.idx=  1091, .box_w=  9, .box_h= 10, .adv=  9, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000051}, /* "Q" */
+    {.idx=  1141, .box_w=  6, .box_h=  8, .adv=  7, .off_x=  1, .off_y=  2, .code_len=1, .code=0x00000052}, /* "R" */
+    {.idx=  1165, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000053}, /* "S" */
+    {.idx=  1189, .box_w=  6, .box_h=  8, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000054}, /* "T" */
+    {.idx=  1213, .box_w=  7, .box_h=  8, .adv=  8, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000055}, /* "U" */
+    {.idx=  1245, .box_w=  9, .box_h=  8, .adv=  9, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000056}, /* "V" */
+    {.idx=  1285, .box_w= 11, .box_h=  8, .adv= 11, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000057}, /* "W" */
+    {.idx=  1333, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000058}, /* "X" */
+    {.idx=  1365, .box_w=  8, .box_h=  8, .adv=  8, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000059}, /* "Y" */
+    {.idx=  1397, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000005a}, /* "Z" */
+    {.idx=  1429, .box_w=  3, .box_h= 10, .adv=  3, .off_x=  1, .off_y=  2, .code_len=1, .code=0x0000005b}, /* "[" */
     {.idx=  1449, .box_w=  5, .box_h= 11, .adv=  5, .off_x=  0, .off_y=  0, .code_len=1, .code=0x0000005c}, /* "\" */
-    {.idx=  1482, .box_w=  3, .box_h= 10, .adv=  3, .off_x=  0, .off_y=  0, .code_len=1, .code=0x0000005d}, /* "]" */
-    {.idx=  1502, .box_w=  6, .box_h=  5, .adv=  6, .off_x=  0, .off_y=  1, .code_len=1, .code=0x0000005e}, /* "^" */
-    {.idx=  1517, .box_w=  5, .box_h=  1, .adv=  5, .off_x=  0, .off_y=  8, .code_len=1, .code=0x0000005f}, /* "_" */
-    {.idx=  1520, .box_w=  6, .box_h=  6, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000061}, /* "a" */
-    {.idx=  1538, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000062}, /* "b" */
-    {.idx=  1570, .box_w=  6, .box_h=  6, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000063}, /* "c" */
-    {.idx=  1588, .box_w=  6, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000064}, /* "d" */
-    {.idx=  1612, .box_w=  6, .box_h=  6, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000065}, /* "e" */
-    {.idx=  1630, .box_w=  4, .box_h=  8, .adv=  4, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000066}, /* "f" */
-    {.idx=  1646, .box_w=  6, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000067}, /* "g" */
-    {.idx=  1670, .box_w=  6, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000068}, /* "h" */
-    {.idx=  1694, .box_w=  3, .box_h=  8, .adv=  3, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000069}, /* "i" */
-    {.idx=  1710, .box_w=  4, .box_h= 10, .adv=  4, .off_x=  0, .off_y=  0, .code_len=1, .code=0x0000006a}, /* "j" */
-    {.idx=  1730, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  0, .code_len=1, .code=0x0000006b}, /* "k" */
-    {.idx=  1762, .box_w=  2, .box_h=  8, .adv=  3, .off_x=  0, .off_y=  0, .code_len=1, .code=0x0000006c}, /* "l" */
-    {.idx=  1770, .box_w= 10, .box_h=  6, .adv= 11, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000006d}, /* "m" */
-    {.idx=  1800, .box_w=  6, .box_h=  6, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000006e}, /* "n" */
-    {.idx=  1818, .box_w=  6, .box_h=  6, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000006f}, /* "o" */
-    {.idx=  1836, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000070}, /* "p" */
-    {.idx=  1868, .box_w=  6, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000071}, /* "q" */
-    {.idx=  1892, .box_w=  4, .box_h=  6, .adv=  4, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000072}, /* "r" */
-    {.idx=  1904, .box_w=  5, .box_h=  6, .adv=  5, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000073}, /* "s" */
-    {.idx=  1922, .box_w=  4, .box_h=  8, .adv=  4, .off_x=  0, .off_y=  0, .code_len=1, .code=0x00000074}, /* "t" */
-    {.idx=  1938, .box_w=  6, .box_h=  6, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000075}, /* "u" */
-    {.idx=  1956, .box_w=  7, .box_h=  6, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000076}, /* "v" */
-    {.idx=  1980, .box_w=  9, .box_h=  6, .adv=  9, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000077}, /* "w" */
-    {.idx=  2010, .box_w=  6, .box_h=  6, .adv=  6, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000078}, /* "x" */
-    {.idx=  2028, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000079}, /* "y" */
-    {.idx=  2060, .box_w=  5, .box_h=  6, .adv=  5, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000007a}, /* "z" */
-    {.idx=  2078, .box_w=  4, .box_h= 10, .adv=  4, .off_x=  0, .off_y=  0, .code_len=1, .code=0x0000007b}, /* "{" */
-    {.idx=  2098, .box_w=  1, .box_h= 10, .adv=  3, .off_x=  1, .off_y=  0, .code_len=1, .code=0x0000007c}, /* "|" */
-    {.idx=  2108, .box_w=  3, .box_h= 10, .adv=  4, .off_x=  0, .off_y=  0, .code_len=1, .code=0x0000007d}, /* "}" */
+    {.idx=  1482, .box_w=  3, .box_h= 10, .adv=  3, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000005d}, /* "]" */
+    {.idx=  1502, .box_w=  6, .box_h=  5, .adv=  6, .off_x=  0, .off_y=  3, .code_len=1, .code=0x0000005e}, /* "^" */
+    {.idx=  1517, .box_w=  5, .box_h=  1, .adv=  5, .off_x=  0, .off_y= 10, .code_len=1, .code=0x0000005f}, /* "_" */
+    {.idx=  1520, .box_w=  6, .box_h=  6, .adv=  6, .off_x=  0, .off_y=  4, .code_len=1, .code=0x00000061}, /* "a" */
+    {.idx=  1538, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000062}, /* "b" */
+    {.idx=  1570, .box_w=  6, .box_h=  6, .adv=  6, .off_x=  0, .off_y=  4, .code_len=1, .code=0x00000063}, /* "c" */
+    {.idx=  1588, .box_w=  6, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000064}, /* "d" */
+    {.idx=  1612, .box_w=  6, .box_h=  6, .adv=  6, .off_x=  0, .off_y=  4, .code_len=1, .code=0x00000065}, /* "e" */
+    {.idx=  1630, .box_w=  4, .box_h=  8, .adv=  4, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000066}, /* "f" */
+    {.idx=  1646, .box_w=  6, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  4, .code_len=1, .code=0x00000067}, /* "g" */
+    {.idx=  1670, .box_w=  6, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000068}, /* "h" */
+    {.idx=  1694, .box_w=  3, .box_h=  8, .adv=  3, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000069}, /* "i" */
+    {.idx=  1710, .box_w=  4, .box_h= 10, .adv=  4, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000006a}, /* "j" */
+    {.idx=  1730, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000006b}, /* "k" */
+    {.idx=  1762, .box_w=  2, .box_h=  8, .adv=  3, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000006c}, /* "l" */
+    {.idx=  1770, .box_w= 10, .box_h=  6, .adv= 11, .off_x=  0, .off_y=  4, .code_len=1, .code=0x0000006d}, /* "m" */
+    {.idx=  1800, .box_w=  6, .box_h=  6, .adv=  7, .off_x=  0, .off_y=  4, .code_len=1, .code=0x0000006e}, /* "n" */
+    {.idx=  1818, .box_w=  6, .box_h=  6, .adv=  6, .off_x=  0, .off_y=  4, .code_len=1, .code=0x0000006f}, /* "o" */
+    {.idx=  1836, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  4, .code_len=1, .code=0x00000070}, /* "p" */
+    {.idx=  1868, .box_w=  6, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  4, .code_len=1, .code=0x00000071}, /* "q" */
+    {.idx=  1892, .box_w=  4, .box_h=  6, .adv=  4, .off_x=  0, .off_y=  4, .code_len=1, .code=0x00000072}, /* "r" */
+    {.idx=  1904, .box_w=  5, .box_h=  6, .adv=  5, .off_x=  0, .off_y=  4, .code_len=1, .code=0x00000073}, /* "s" */
+    {.idx=  1922, .box_w=  4, .box_h=  8, .adv=  4, .off_x=  0, .off_y=  2, .code_len=1, .code=0x00000074}, /* "t" */
+    {.idx=  1938, .box_w=  6, .box_h=  6, .adv=  7, .off_x=  0, .off_y=  4, .code_len=1, .code=0x00000075}, /* "u" */
+    {.idx=  1956, .box_w=  7, .box_h=  6, .adv=  7, .off_x=  0, .off_y=  4, .code_len=1, .code=0x00000076}, /* "v" */
+    {.idx=  1980, .box_w=  9, .box_h=  6, .adv=  9, .off_x=  0, .off_y=  4, .code_len=1, .code=0x00000077}, /* "w" */
+    {.idx=  2010, .box_w=  6, .box_h=  6, .adv=  6, .off_x=  0, .off_y=  4, .code_len=1, .code=0x00000078}, /* "x" */
+    {.idx=  2028, .box_w=  7, .box_h=  8, .adv=  7, .off_x=  0, .off_y=  4, .code_len=1, .code=0x00000079}, /* "y" */
+    {.idx=  2060, .box_w=  5, .box_h=  6, .adv=  5, .off_x=  0, .off_y=  4, .code_len=1, .code=0x0000007a}, /* "z" */
+    {.idx=  2078, .box_w=  4, .box_h= 10, .adv=  4, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000007b}, /* "{" */
+    {.idx=  2098, .box_w=  1, .box_h= 10, .adv=  3, .off_x=  1, .off_y=  2, .code_len=1, .code=0x0000007c}, /* "|" */
+    {.idx=  2108, .box_w=  3, .box_h= 10, .adv=  4, .off_x=  0, .off_y=  2, .code_len=1, .code=0x0000007d}, /* "}" */
 };
 
 
 
 static const egui_font_std_info_t egui_res_font_montserrat_10_4_info = {
+    .font_size = 10,
     .font_bit_mode = 4,
-    .height = 10,
+    .height = 13,
     .count = 93,
     .char_array = egui_res_font_montserrat_10_4_char_array,
     .pixel_buffer = egui_res_font_montserrat_10_4_pixel_buffer,

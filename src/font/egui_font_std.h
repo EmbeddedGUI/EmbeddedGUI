@@ -22,6 +22,7 @@ typedef struct
 
 typedef struct
 {
+    uint8_t font_size;        // font size
     uint8_t font_bit_mode; // font bit size 1, 2, 4, 8
     uint8_t height;        // font height
     uint16_t count;        // total char count, only support 65535
