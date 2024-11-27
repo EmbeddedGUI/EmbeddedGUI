@@ -562,11 +562,11 @@ void egui_core_activity_force_finish_to_activity(egui_activity_t *activity)
 #endif
     if (activity->state == EGUI_ACTIVITY_STATE_STOP)
     {
-        activity->api->on_start(tmp);
+        activity->api->on_start(activity);
     }
     if (activity->state == EGUI_ACTIVITY_STATE_START)
     {
-        activity->api->on_resume(tmp);
+        activity->api->on_resume(activity);
 
         egui_view_set_position((egui_view_t *)&activity->root_view, 0, 0);
         egui_view_set_size((egui_view_t *)&activity->root_view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
@@ -993,7 +993,7 @@ void egui_init(egui_color_int_t *pfb)
 
     egui_view_label_init((egui_view_t *)&label_debug);
     egui_view_set_position((egui_view_t *)&label_debug, 0, EGUI_CONFIG_SCEEN_HEIGHT - 40);
-    egui_view_set_size((egui_view_t *)&label_debug, EGUI_CONFIG_SCEEN_WIDTH, 10);
+    egui_view_set_size((egui_view_t *)&label_debug, EGUI_CONFIG_SCEEN_WIDTH, EGUI_FONT_STD_GET_FONT_HEIGHT((egui_font_t *)&egui_res_font_montserrat_10_4));
     egui_view_label_set_text((egui_view_t *)&label_debug, NULL);
     egui_view_label_set_align_type((egui_view_t *)&label_debug, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
     egui_view_label_set_font((egui_view_t *)&label_debug, (egui_font_t *)&egui_res_font_montserrat_10_4);

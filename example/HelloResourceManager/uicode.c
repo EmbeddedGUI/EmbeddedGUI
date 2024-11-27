@@ -8,6 +8,7 @@
 // views in root
 static egui_view_image_t image_1;
 static egui_view_label_t label_1;
+static egui_view_label_t label_2;
 
 void uicode_init_ui(void)
 {
@@ -41,10 +42,21 @@ void uicode_init_ui(void)
     egui_view_label_set_align_type((egui_view_t *)&label_1, EGUI_ALIGN_CENTER);
     egui_view_label_set_font((egui_view_t *)&label_1, (egui_font_t *)&egui_res_font_test_16_4);
     egui_view_label_set_font_color((egui_view_t *)&label_1, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    
+    // label_2
+    egui_view_label_init((egui_view_t *)&label_2);
+    egui_view_set_position((egui_view_t *)&label_2, 10, 100);
+    egui_view_set_size((egui_view_t *)&label_2, 160, 160);
+    egui_view_label_set_text((egui_view_t *)&label_2, "External Resource!");
+    egui_view_label_set_align_type((egui_view_t *)&label_2, EGUI_ALIGN_CENTER);
+    // egui_view_label_set_font((egui_view_t *)&label_2, (egui_font_t *)&egui_res_font_test_16_4);
+    egui_view_label_set_font((egui_view_t *)&label_2, (egui_font_t *)&egui_res_font_test_16_4_bin);
+    egui_view_label_set_font_color((egui_view_t *)&label_2, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 
     // Add To Root
     egui_core_add_user_root_view((egui_view_t *)&image_1);
     egui_core_add_user_root_view((egui_view_t *)&label_1);
+    egui_core_add_user_root_view((egui_view_t *)&label_2);
 }
 
 static egui_timer_t ui_timer;

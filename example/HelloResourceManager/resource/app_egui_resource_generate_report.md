@@ -48,29 +48,29 @@
 ## 内部
 | 名称 | 总大小 | Font | Text |
 | ---- | ------ | ------ | ------ |
-| egui_res_font_test_16_1 | 1702 | [test.ttf](src/test.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
-| egui_res_font_test_16_2 | 2706 | [test.ttf](src/test.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
-| egui_res_font_test_16_4 | 4842 | [test.ttf](src/test.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
-| egui_res_font_test_16_8 | 9153 | [test.ttf](src/test.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
-| 总计 | 18403 |
+| egui_res_font_test_16_1 | 2818 | [test.ttf](src/test.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
+| egui_res_font_test_16_2 | 3822 | [test.ttf](src/test.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
+| egui_res_font_test_16_4 | 5958 | [test.ttf](src/test.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
+| egui_res_font_test_16_8 | 10269 | [test.ttf](src/test.ttf) | [supported_text_test.txt](src/supported_text_test.txt)  |
+| 总计 | 22867 |
 
 
 
 ## 外部
 | 名称 | 总大小 |
 | ---- | ------ |
-| egui_res_font_test_16_1 | 1702 |
-| egui_res_font_test_16_2 | 2706 |
-| egui_res_font_test_16_4 | 4842 |
-| egui_res_font_test_16_8 | 9153 |
-| 总计 | 18403 |
+| egui_res_font_test_16_1_bin | 2818 |
+| egui_res_font_test_16_2_bin | 3822 |
+| egui_res_font_test_16_4_bin | 5958 |
+| egui_res_font_test_16_8_bin | 10269 |
+| 总计 | 22867 |
 # 总计
 | 名称 | 总大小 |
 | ---- | ------ |
 | 图像-内部 | 387600 |
-| 字体-内部 | 18403 |
-| 内部总计 | 406003 |
+| 字体-内部 | 22867 |
+| 内部总计 | 410467 |
 | 图像-外部 | 423600 |
-| 字体-外部 | 18403 |
-| 外部总计 | 442003 |
-| 总计 | 848006 |
+| 字体-外部 | 22867 |
+| 外部总计 | 446467 |
+| 总计 | 856934 |

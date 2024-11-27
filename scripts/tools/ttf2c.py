@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import struct
 import sys
 import argparse
 import freetype
@@ -12,6 +13,15 @@ import binascii
 c_head_string="""
 
 #include "font/egui_font_std.h"
+
+// clang-format off
+
+"""
+
+c_head_string_bin="""
+
+#include "font/egui_font_std.h"
+#include "app_egui_resource_generate.h"
 
 // clang-format off
 
@@ -34,9 +44,11 @@ static const egui_font_std_info_t {0}_info = {{
     .font_size = {1},
     .font_bit_mode = {2},
     .height = {3},
-    .count = {4},
-    .char_array = {0}_char_array,
-    .pixel_buffer = {0}_pixel_buffer,
+    .res_type = {4},
+    .count = {5},
+    .code_array = {0}_code_array,
+    .char_array = (void *){6},
+    .pixel_buffer = (void *){7},
 }};
 
 extern const egui_font_std_t {0};
@@ -238,72 +250,33 @@ def generate_glyphs_data(input_file, text, pixel_size, font_bit_size):
 def utf8_to_c_array(utf8_bytes):
     return '{' + ', '.join([f'0x{byte:02x}' for byte in utf8_bytes]) + '}'
 
-def write_c_code(glyphs_data, text, output_file, name, char_max_width, char_max_height, pixel_size, font_bit_size):
-    index = 0
-    bin_data = []
-    with open(output_file, "a", encoding="utf-8") as f:
-        print("/**", file=f)
-        print(" * Total character count: {0} Support Text: ".format(len(text)), file=f)
-        print("{0}".format(text), file=f)
-        print(" */\n", file=f)
-
-        print("static const uint8_t {0}_pixel_buffer[] = {{\n".format(name), file=f)
-
-        for char, data, width, height, advance_width, offset_x, offset_y, utf8_encoding in glyphs_data:
-            utf8_value = int.from_bytes(utf8_encoding, byteorder='big')
-            utf8_value_str = ("0x%08x" % utf8_value)
-            utf8_c_array = utf8_to_c_array(utf8_encoding)
-            bin_data += data.tolist()
-            # print(("// Glyph for character - %s - %s" % (char, utf8_value_str)))
-            f.write(("\n    /* Glyph for character \"%s\" %s */\n" % (char, utf8_value_str)))
-            hex_str = binascii.hexlify(data).decode()
-
-            for i in range(0, len(hex_str), char_max_width*2):
-                line = hex_str[i:i+char_max_width*2]
-                spaced_line = ' '.join(f"0x{line[j:j+2]}," for j in range(0, len(line), 2))
-                f.write("    ")
-                f.write(spaced_line)
-                f.write("\n")
-
-        f.write("\n};\n\n")
-
-        print("static const egui_font_std_char_descriptor_t {0}_char_array[] = {{\n".format(name), file=f)
-
-        for char, data, width, height, advance_width, offset_x, offset_y, utf8_encoding in glyphs_data:
-            utf8_value = int.from_bytes(utf8_encoding, byteorder='big')
-            utf8_value_str = ("0x%08x" % utf8_value)
-            utf8_c_array = utf8_to_c_array(utf8_encoding)
-            # f.write(f"    {{ .idx={index}, .box_w={width}, .box_h={height}, .adv={advance_width}, .off_x={offset_x}, .off_y={offset_y}, .code_len={len(utf8_encoding)}, .code={utf8_value_str} }}, /* \"{char}\" */\n")
-            f.write(("    {.idx=%6d, .box_w=%3d, .box_h=%3d, .adv=%3d, .off_x=%3d, .off_y=%3d, .code_len=%d, .code=%s}, /* \"%s\" */\n" % (index, width, height, advance_width, offset_x, offset_y, len(utf8_encoding), utf8_value_str, char)))
-            # update index
-            raw_data_size = len(data)
-            index += raw_data_size
-
-
-        f.write("};\n")
-
-        print(c_body_string.format( name,
-                                    pixel_size,
-                                    font_bit_size,
-                                    char_max_height,
-                                    len(glyphs_data)
-                                    ), file=f)
-        
-    return bin_data
 
 class ttf2c_tool:
     def __init__(self, input_font_file, name, text_file, pixel_size, font_bit_size, external_type, output_path):
         if output_path == None:
             output_path = os.path.dirname(input_font_file)
 
-        font_name = f"egui_res_font_{name.lower()}_{pixel_size}_{font_bit_size}"
-        outfile_name = os.path.join(output_path, f"{font_name}.c")
+        name_raw = f"egui_res_font_{name.lower()}_{pixel_size}_{font_bit_size}"
+        font_name = name_raw
+
+        if external_type == 1:
+            font_name += "_bin"
+
+        pixel_buffer_bin_name = f"{name_raw}_pixel_buffer"
+        char_desc_bin_name = f"{name_raw}_char_desc"
+
+        pixel_buffer_bin_name_res_id = f"EGUI_EXT_RES_ID_{pixel_buffer_bin_name}".upper()
+        char_desc_bin_name_res_id = f"EGUI_EXT_RES_ID_{char_desc_bin_name}".upper()
+
+        outfilename = os.path.join(output_path, f"{font_name}.c")
+        outfilename_pixel_buffer_bin = os.path.join(output_path, f"{pixel_buffer_bin_name}.bin")
+        outfilename_char_desc_bin = os.path.join(output_path, f"{char_desc_bin_name}.bin")
 
         # just get file name.
         input_font_file_name = os.path.basename(input_font_file)
 
         # get the options
-        options = f"-i {input_font_file_name} -n {name} -p {pixel_size} -s {font_bit_size}"
+        options = f"-i {input_font_file_name} -n {name} -p {pixel_size} -s {font_bit_size} -ext {external_type}"
 
         index = 0
         support_text = ""
@@ -326,26 +299,201 @@ class ttf2c_tool:
         self.output_path = output_path
 
         self.font_name = font_name
-        self.outfile_name = outfile_name
+        self.pixel_buffer_bin_name = pixel_buffer_bin_name
+        self.char_desc_bin_name = char_desc_bin_name
+        self.pixel_buffer_bin_name_res_id = pixel_buffer_bin_name_res_id
+        self.char_desc_bin_name_res_id = char_desc_bin_name_res_id
+        self.outfilename = outfilename
+        self.outfilename_pixel_buffer_bin = outfilename_pixel_buffer_bin
+        self.outfilename_char_desc_bin = outfilename_char_desc_bin
         self.input_font_file_name = input_font_file_name
         self.support_text = support_text
         self.options = options
 
-        self.data_bin_data = None
+        self.pixel_buffer_bin_data = None
+        self.char_desc_bin_data = None
 
     def write_c_file(self):
-        with open(self.outfile_name, "w", encoding="utf-8") as outputfile:
-            print(c_head_string, file=outputfile)
+        with open(self.outfilename, "w", encoding="utf-8") as outputfile:
+            # insert header
+            if self.external_type == 1:
+                print(c_head_string_bin, file=outputfile)
+            else:
+                print(c_head_string, file=outputfile)
             print(c_head_debug_string.format(self.pixel_size, self.font_bit_size, self.input_font_file_name, self.options), file=outputfile)
 
         # Convert the text file to a list of characters
         glyphs_data, char_max_width, char_max_height = generate_glyphs_data(self.input_font_file, self.support_text, self.pixel_size, self.font_bit_size)
-        self.data_bin_data = write_c_code(glyphs_data, self.support_text, self.outfile_name, self.font_name, char_max_width, char_max_height, self.pixel_size, self.font_bit_size)
-        # print(f"Total character count: {len(self.support_text)} Support Text: {self.support_text}")
-        # print(f"Total data size: {len(self.data_bin_data)} bytes")
+        self.pixel_buffer_bin_data, self.char_desc_bin_data = self.write_c_code(glyphs_data, char_max_width, char_max_height)
+
         # write the tail of the c file
-        with open(self.outfile_name, "a", encoding="utf-8") as outputfile:
+        with open(self.outfilename, "a", encoding="utf-8") as outputfile:
             print(c_tail_string, file=outputfile)
+    
+        if self.external_type == 1:
+            # print(pixel_buffer_bin_data)
+            with open(self.outfilename_pixel_buffer_bin,"wb+") as f:
+                f.write(bytearray(self.pixel_buffer_bin_data))
+                
+            # print(char_desc_bin_data)
+            with open(self.outfilename_char_desc_bin,"wb+") as f:
+                f.write(bytearray(self.char_desc_bin_data))
+    
+    def write_c_code(self, glyphs_data, char_max_width, char_max_height):
+        index = 0
+        bin_pixel_buffer = []
+        bin_char_desc = []
+
+        text = self.support_text
+        output_file = self.outfilename
+        name = self.font_name
+        pixel_size = self.pixel_size
+        font_bit_size = self.font_bit_size
+        external_type = self.external_type
+
+        pixel_buffer_buf_name = '%s_pixel_buffer' % (name)
+        char_desc_buf_name = '%s_char_array' % (name)
+
+        res_type = "EGUI_RESOURCE_TYPE_INTERNAL"
+
+        with open(output_file, "a", encoding="utf-8") as f:
+            print("/**", file=f)
+            print(" * Total character count: {0} Support Text: ".format(len(text)), file=f)
+            print("{0}".format(text), file=f)
+            print(" */\n", file=f)
+
+            if external_type == 1:
+                res_type = "EGUI_RESOURCE_TYPE_EXTERNAL"
+                # pixel buffer
+                pixel_buffer_buf_name = self.pixel_buffer_bin_name_res_id
+                for char, data, width, height, advance_width, offset_x, offset_y, utf8_encoding in glyphs_data:
+                    utf8_value = int.from_bytes(utf8_encoding, byteorder='big')
+                    utf8_value_str = ("0x%08x" % utf8_value)
+                    utf8_c_array = utf8_to_c_array(utf8_encoding)
+                    bin_pixel_buffer += data.tolist()
+                    # print(data)
+
+                # char buffer
+                char_desc_buf_name = self.char_desc_bin_name_res_id
+                for char, data, width, height, advance_width, offset_x, offset_y, utf8_encoding in glyphs_data:
+                    utf8_value = int.from_bytes(utf8_encoding, byteorder='big')
+                    utf8_value_str = ("0x%08x" % utf8_value)
+                    utf8_c_array = utf8_to_c_array(utf8_encoding)
+                    raw_data_size = len(data)
+
+                    # typedef struct
+                    # {
+                    #     uint32_t idx;     // the buffer size is 32bit
+                    #     uint16_t size;    // the buffer size
+                    #     uint8_t box_w;    // we never use big font, so we don't need to support big font
+                    #     uint8_t box_h;    // we never use big font, so we don't need to support big font
+                    #     uint8_t adv;      // the distance from the origin to the next character
+                    #     int8_t off_x;     // the x offset of the character
+                    #     int8_t off_y;     // the y offset of the character
+                    # } egui_font_std_char_descriptor_t;
+
+                    char_desc_data = bytearray()
+                    char_desc_data.extend(struct.pack('I', index))
+                    char_desc_data.extend(struct.pack('H', raw_data_size))
+                    char_desc_data.extend(struct.pack('B', width))
+                    char_desc_data.extend(struct.pack('B', height))
+                    char_desc_data.extend(struct.pack('B', int(advance_width)))
+                    char_desc_data.extend(struct.pack('b', int(offset_x)))
+                    char_desc_data.extend(struct.pack('b', int(offset_y)))
+                    char_desc_data.extend(struct.pack('b', 0)) # align to 4 bytes
+
+                    bin_char_desc += list(char_desc_data)
+
+                    # update index
+                    index += raw_data_size
+            else:
+                # pixel buffer
+                print("static const uint8_t {0}[] = {{\n".format(pixel_buffer_buf_name), file=f)
+
+                for char, data, width, height, advance_width, offset_x, offset_y, utf8_encoding in glyphs_data:
+                    utf8_value = int.from_bytes(utf8_encoding, byteorder='big')
+                    utf8_value_str = ("0x%08x" % utf8_value)
+                    utf8_c_array = utf8_to_c_array(utf8_encoding)
+                    bin_pixel_buffer += data.tolist()
+                    # print(("// Glyph for character - %s - %s" % (char, utf8_value_str)))
+                    f.write(("\n    /* Glyph for character \"%s\" %s */\n" % (char, utf8_value_str)))
+                    hex_str = binascii.hexlify(data).decode()
+
+                    for i in range(0, len(hex_str), char_max_width*2):
+                        line = hex_str[i:i+char_max_width*2]
+                        spaced_line = ' '.join(f"0x{line[j:j+2]}," for j in range(0, len(line), 2))
+                        f.write("    ")
+                        f.write(spaced_line)
+                        f.write("\n")
+
+                f.write("\n};\n\n")
+
+                # char buffer
+                print("static const egui_font_std_char_descriptor_t {0}[] = {{\n".format(char_desc_buf_name), file=f)
+
+                for char, data, width, height, advance_width, offset_x, offset_y, utf8_encoding in glyphs_data:
+                    utf8_value = int.from_bytes(utf8_encoding, byteorder='big')
+                    utf8_value_str = ("0x%08x" % utf8_value)
+                    utf8_c_array = utf8_to_c_array(utf8_encoding)
+                    raw_data_size = len(data)
+                    f.write(("    {.idx=%6d, .size=%6d, .box_w=%3d, .box_h=%3d, .adv=%3d, .off_x=%3d, .off_y=%3d}, /* \"%s\" %s */\n" % (index, raw_data_size, width, height, advance_width, offset_x, offset_y, char, utf8_value_str)))
+                    
+                    # typedef struct
+                    # {
+                    #     uint32_t idx;     // the buffer size is 32bit
+                    #     uint16_t size;    // the buffer size
+                    #     uint8_t box_w;    // we never use big font, so we don't need to support big font
+                    #     uint8_t box_h;    // we never use big font, so we don't need to support big font
+                    #     uint8_t adv;      // the distance from the origin to the next character
+                    #     int8_t off_x;     // the x offset of the character
+                    #     int8_t off_y;     // the y offset of the character
+                    # } egui_font_std_char_descriptor_t;
+
+                    char_desc_data = bytearray()
+                    char_desc_data.extend(struct.pack('I', index))
+                    char_desc_data.extend(struct.pack('H', raw_data_size))
+                    char_desc_data.extend(struct.pack('B', width))
+                    char_desc_data.extend(struct.pack('B', height))
+                    char_desc_data.extend(struct.pack('B', int(advance_width)))
+                    char_desc_data.extend(struct.pack('b', int(offset_x)))
+                    char_desc_data.extend(struct.pack('b', int(offset_y)))
+                    char_desc_data.extend(struct.pack('b', 0)) # align to 4 bytes
+
+                    bin_char_desc += list(char_desc_data)
+                    
+                    # update index
+                    index += raw_data_size
+
+
+                f.write("};\n")
+
+            
+            # code buffer
+            print("static const egui_font_std_code_descriptor_t {0}_code_array[] = {{\n".format(name), file=f)
+
+            for char, data, width, height, advance_width, offset_x, offset_y, utf8_encoding in glyphs_data:
+                utf8_value = int.from_bytes(utf8_encoding, byteorder='big')
+                utf8_value_str = ("0x%08x" % utf8_value)
+                utf8_c_array = utf8_to_c_array(utf8_encoding)
+                raw_data_size = len(data)
+                f.write(("    {.code=%s}, /* \"%s\" */\n" % (utf8_value_str, char)))
+                # update index
+                index += raw_data_size
+
+
+            f.write("};\n")
+
+            print(c_body_string.format( name,
+                                        pixel_size,
+                                        font_bit_size,
+                                        char_max_height,
+                                        res_type,
+                                        len(glyphs_data),
+                                        char_desc_buf_name,
+                                        pixel_buffer_buf_name,
+                                        ), file=f)
+            
+        return bin_pixel_buffer, bin_char_desc
 
 def main():
     parser = argparse.ArgumentParser(description='TrueTypeFont to C array converter (v1.0.0)')

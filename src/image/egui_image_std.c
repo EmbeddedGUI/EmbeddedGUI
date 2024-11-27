@@ -283,7 +283,7 @@ void egui_image_std_load_data_resource(void *dest, egui_image_std_info_t *image,
     }
     else
     {
-        egui_api_load_external_resource(dest, (uint32_t)image->data_buf, start_offset, size);
+        egui_api_load_external_resource(dest, (uint32_t)(image->data_buf), start_offset, size);
     }
     
     // EGUI_LOG_INF("egui_image_std_load_data_resource, data: %08x:%08x:%08x:%08x:%08x:%08x:%08x:%08x\n", ((uint32_t *)dest)[0], ((uint32_t *)dest)[1], ((uint32_t *)dest)[2], ((uint32_t *)dest)[3], ((uint32_t *)dest)[4], ((uint32_t *)dest)[5], ((uint32_t *)dest)[6], ((uint32_t *)dest)[7]);
@@ -298,7 +298,7 @@ void egui_image_std_load_alpha_resource(void *dest, egui_image_std_info_t *image
     }
     else
     {
-        egui_api_load_external_resource(dest, (uint32_t)image->alpha_buf, start_offset, size);
+        egui_api_load_external_resource(dest, (uint32_t)(image->alpha_buf), start_offset, size);
     }
     // EGUI_LOG_INF("egui_image_std_load_alpha_resource, data: %08x:%08x:%08x:%08x:%08x:%08x:%08x:%08x\n", ((uint32_t *)dest)[0], ((uint32_t *)dest)[1], ((uint32_t *)dest)[2], ((uint32_t *)dest)[3], ((uint32_t *)dest)[4], ((uint32_t *)dest)[5], ((uint32_t *)dest)[6], ((uint32_t *)dest)[7]);
 }
@@ -483,7 +483,7 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
     egui_canvas_t *canvas = egui_canvas_get_canvas();
     uint16_t data_row_size = image->width << 1; // same to image->width * 2
     uint16_t alpha_row_size = image->width;
-#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     void *data_buf = egui_malloc(data_row_size); 
     void *alpha_buf = egui_malloc(alpha_row_size);
     if(data_buf == NULL || alpha_buf == NULL)
@@ -491,12 +491,12 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
         EGUI_ASSERT(0);
         return;
     }
-#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 
     for (egui_dim_t y_ = y; y_ < y_total; y_++)
     {
         uint32_t row_start = y_ * image->width;
-#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         const void* p_data = data_buf;
         const void* p_alpha = alpha_buf;
         uint32_t start_pos = x;
@@ -507,7 +507,7 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
 #else
         const void *p_data = (const void *)((const uint8_t *)image->data_buf + (row_start << 1));
         const void *p_alpha = (const void *)((const uint8_t *)image->alpha_buf + (row_start));
-#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         if(canvas->mask != NULL)
         {
             for (egui_dim_t x_ = x; x_ < x_total; x_++)
@@ -529,10 +529,10 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
             }
         }
     }
-#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     egui_free(data_buf); 
     egui_free(alpha_buf);
-#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 }
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8
 
@@ -547,7 +547,7 @@ void egui_image_std_set_image_rgb565_4(const egui_image_t *self, egui_dim_t x, e
     egui_canvas_t *canvas = egui_canvas_get_canvas();
     uint16_t data_row_size = image->width << 1; // same to image->width * 2
     uint16_t alpha_row_size = ((image->width + 1) >> 1); // same to: ((image->width + 1) / 2);
-#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     void *data_buf = egui_malloc(data_row_size); 
     void *alpha_buf = egui_malloc(alpha_row_size);
     if(data_buf == NULL || alpha_buf == NULL)
@@ -555,13 +555,13 @@ void egui_image_std_set_image_rgb565_4(const egui_image_t *self, egui_dim_t x, e
         EGUI_ASSERT(0);
         return;
     }
-#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 
     for (egui_dim_t y_ = y; y_ < y_total; y_++)
     {
         uint32_t row_start = y_ * image->width;
         uint32_t row_start_alpha = y_ * alpha_row_size;
-#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         const void* p_data = data_buf;
         const void* p_alpha = alpha_buf;
         uint32_t start_pos = x;
@@ -574,7 +574,7 @@ void egui_image_std_set_image_rgb565_4(const egui_image_t *self, egui_dim_t x, e
 #else
         const void *p_data = (const void *)((const uint8_t *)image->data_buf + (row_start << 1));
         const void *p_alpha = (const void *)((const uint8_t *)image->alpha_buf + (row_start_alpha));
-#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
             
         if(canvas->mask != NULL)
         {
@@ -597,10 +597,10 @@ void egui_image_std_set_image_rgb565_4(const egui_image_t *self, egui_dim_t x, e
             }
         }
     }
-#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     egui_free(data_buf); 
     egui_free(alpha_buf);
-#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 }
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_4
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2
@@ -614,7 +614,7 @@ void egui_image_std_set_image_rgb565_2(const egui_image_t *self, egui_dim_t x, e
     egui_canvas_t *canvas = egui_canvas_get_canvas();
     uint16_t data_row_size = image->width << 1; // same to image->width * 2
     uint16_t alpha_row_size = ((image->width + 3) >> 2); // same to: ((image->width + 3) / 4);
-#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     void *data_buf = egui_malloc(data_row_size); 
     void *alpha_buf = egui_malloc(alpha_row_size);
     if(data_buf == NULL || alpha_buf == NULL)
@@ -622,13 +622,13 @@ void egui_image_std_set_image_rgb565_2(const egui_image_t *self, egui_dim_t x, e
         EGUI_ASSERT(0);
         return;
     }
-#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 
     for (egui_dim_t y_ = y; y_ < y_total; y_++)
     {
         uint32_t row_start = y_ * image->width;
         uint32_t row_start_alpha = y_ * alpha_row_size;
-#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         const void* p_data = data_buf;
         const void* p_alpha = alpha_buf;
         uint32_t start_pos = x;
@@ -641,7 +641,7 @@ void egui_image_std_set_image_rgb565_2(const egui_image_t *self, egui_dim_t x, e
 #else
         const void *p_data = (const void *)((const uint8_t *)image->data_buf + (row_start << 1));
         const void *p_alpha = (const void *)((const uint8_t *)image->alpha_buf + (row_start_alpha));
-#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
             
         if(canvas->mask != NULL)
         {
@@ -664,10 +664,10 @@ void egui_image_std_set_image_rgb565_2(const egui_image_t *self, egui_dim_t x, e
             }
         }
     }
-#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     egui_free(data_buf); 
     egui_free(alpha_buf);
-#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 }
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1
@@ -681,7 +681,7 @@ void egui_image_std_set_image_rgb565_1(const egui_image_t *self, egui_dim_t x, e
     egui_canvas_t *canvas = egui_canvas_get_canvas();
     uint16_t data_row_size = image->width << 1; // same to image->width * 2
     uint16_t alpha_row_size = ((image->width + 7) >> 3); // same to ((image->width + 7) / 8);
-#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     void *data_buf = egui_malloc(data_row_size); 
     void *alpha_buf = egui_malloc(alpha_row_size);
     if(data_buf == NULL || alpha_buf == NULL)
@@ -689,13 +689,13 @@ void egui_image_std_set_image_rgb565_1(const egui_image_t *self, egui_dim_t x, e
         EGUI_ASSERT(0);
         return;
     }
-#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 
     for (egui_dim_t y_ = y; y_ < y_total; y_++)
     {
         uint32_t row_start = y_ * image->width;
         uint32_t row_start_alpha = y_ * alpha_row_size;
-#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         const void* p_data = data_buf;
         const void* p_alpha = alpha_buf;
         uint32_t start_pos = x;
@@ -708,7 +708,7 @@ void egui_image_std_set_image_rgb565_1(const egui_image_t *self, egui_dim_t x, e
 #else
         const void *p_data = (const void *)((const uint8_t *)image->data_buf + (row_start << 1));
         const void *p_alpha = (const void *)((const uint8_t *)image->alpha_buf + (row_start_alpha));
-#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
             
         if(canvas->mask != NULL)
         {
@@ -731,10 +731,10 @@ void egui_image_std_set_image_rgb565_1(const egui_image_t *self, egui_dim_t x, e
             }
         }
     }
-#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     egui_free(data_buf); 
     egui_free(alpha_buf);
-#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 }
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1
 
@@ -745,26 +745,26 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
     if((egui_canvas_get_canvas()->alpha == EGUI_ALPHA_100) && (egui_canvas_get_canvas()->mask == NULL))
     {
         egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
-#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         void *data_buf = egui_malloc(image->width << 1);
         if(data_buf == NULL)
         {
             EGUI_ASSERT(0);
             return;
         }
-#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         egui_color_t color;
         for (egui_dim_t y_ = y; y_ < y_total; y_++)
         {
             uint32_t row_start = y_ * image->width;
-#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
             const void* p_data = data_buf;
             uint32_t start_pos = x;
             uint32_t end_pos = x_total;
             egui_image_std_load_data_resource((uint8_t *)p_data + (start_pos << 1), image, (row_start + start_pos) << 1, (end_pos - start_pos) << 1);
 #else
             const void *p_data = (const void *)((const uint8_t *)image->data_buf + (row_start << 1));
-#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 
             for (egui_dim_t x_ = x; x_ < x_total; x_++)
             {
@@ -774,9 +774,9 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
                 egui_canvas_set_point_color(egui_canvas_get_canvas(), (x_base + x_), (y_base + y_), color);
             }
         }
-#if EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         egui_free(data_buf);
-#endif // EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     }
     else
     {

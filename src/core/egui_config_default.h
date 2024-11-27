@@ -146,18 +146,24 @@ extern "C" {
 
 /**
  * Function options.
+ * Select support external resource manager.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+#define EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE 0
+#endif
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+// If external resource is enabled, must enable resource manager.
+#undef EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
+#define EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER 1
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+
+/**
+ * Function options.
  * Select support app resource manager.
  */
 #ifndef EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
 #define EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER 0
-#endif
-
-/**
- * Performance options.
- * Load image in ram for speed.
- */
-#ifndef EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM
-#define EGUI_CONFIG_PERFORMANCE_LOAD_IMAGE_IN_RAM 0
 #endif
 
 /**

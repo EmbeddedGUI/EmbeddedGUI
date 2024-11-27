@@ -96,8 +96,8 @@ void egui_memcpy(void *dest, const void *src, uint32_t n)
     uint8_t *p_dest = (uint8_t*)dest;
     const uint8_t *p_src = (const uint8_t*)src;
     // Check base offset alignment
-    uint8_t base_offset_dest = (int)p_dest & 0x03;
-    uint8_t base_offset_src = (int)p_src & 0x03;
+    uint8_t base_offset_dest = ((uint8_t)p_dest) & 0x03;
+    uint8_t base_offset_src = ((uint8_t)p_src) & 0x03;
     if((base_offset_dest != base_offset_src)
         || (n < 4))
     {

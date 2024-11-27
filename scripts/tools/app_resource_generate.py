@@ -349,16 +349,28 @@ def generate_resource(resource_path, output_path, force):
     for tool in sorted(ttf2c_tool_list, key=lambda x: x.font_name):
         resource_extern_string += f"extern const egui_font_std_t {tool.font_name};\n"
         if tool.external_type:
-            id_str = f"EGUI_EXT_RES_ID_{tool.font_name}".upper()
+            id_str = tool.pixel_buffer_bin_name_res_id
             resource_id_string += id_str + ",\n"
 
             resource_id_map_string += f"0x{resource_bin_offset:08X}, // {id_str} \n"
 
-            resource_bin_offset += len(tool.data_bin_data)
+            resource_bin_offset += len(tool.pixel_buffer_bin_data)
 
             # 通过添加写入到resource_bin_merge_file
             with open(resource_bin_merge_file, 'ab+') as target_file:
-                target_file.write(bytearray(tool.data_bin_data))
+                target_file.write(bytearray(tool.pixel_buffer_bin_data))
+
+                
+            id_str = tool.char_desc_bin_name_res_id
+            resource_id_string += id_str + ",\n"
+
+            resource_id_map_string += f"0x{resource_bin_offset:08X}, // {id_str} \n"
+
+            resource_bin_offset += len(tool.char_desc_bin_data)
+
+            # 通过添加写入到resource_bin_merge_file
+            with open(resource_bin_merge_file, 'ab+') as target_file:
+                target_file.write(bytearray(tool.char_desc_bin_data))
 
     # 生成app_egui_resource_generate.h文件
     print(f"Generating {app_egui_resource_generate_h_file_path}")
@@ -435,7 +447,9 @@ def generate_resource(resource_path, output_path, force):
         for tool in sorted(ttf2c_tool_list, key=lambda x: x.font_name):
             if tool.external_type:
                 continue
-            font_total_size += len(tool.data_bin_data)
+            tmp_pixel_size = len(tool.pixel_buffer_bin_data)
+            tmp_char_size = len(tool.char_desc_bin_data)
+            font_total_size += tmp_pixel_size + tmp_char_size
             font_file_string = f"[{tool.input_font_file_name}](src/{tool.input_font_file_name})"
 
             text_file_string = ""
@@ -443,7 +457,7 @@ def generate_resource(resource_path, output_path, force):
                 text_file_name = os.path.basename(file)
                 text_file_string += f"[{text_file_name}](src/{text_file_name})"
                 text_file_string += " "
-            f.write(f"| {tool.font_name} | {len(tool.data_bin_data)} | {font_file_string} | {text_file_string} |\n")
+            f.write(f"| {tool.font_name} | {tmp_pixel_size + tmp_char_size} | {font_file_string} | {text_file_string} |\n")
         f.write(f"| 总计 | {font_total_size} |\n")
 
         f.write("\n")
@@ -455,8 +469,10 @@ def generate_resource(resource_path, output_path, force):
         for tool in sorted(ttf2c_tool_list, key=lambda x: x.font_name):
             if not tool.external_type:
                 continue
-            font_ext_total_size += len(tool.data_bin_data)
-            f.write(f"| {tool.font_name} | {len(tool.data_bin_data)} |\n")
+            tmp_pixel_size = len(tool.pixel_buffer_bin_data)
+            tmp_char_size = len(tool.char_desc_bin_data)
+            font_ext_total_size += tmp_pixel_size + tmp_char_size
+            f.write(f"| {tool.font_name} | {tmp_pixel_size + tmp_char_size} |\n")
         f.write(f"| 总计 | {font_ext_total_size} |\n")
 
 
