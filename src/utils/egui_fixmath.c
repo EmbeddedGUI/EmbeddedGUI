@@ -3,6 +3,7 @@
 #include "egui_fixmath.h"
 #include "core/egui_api.h"
 
+#if !EGUI_CONFIG_PERFORMANCE_USE_FLOAT
 /**
  *  Base-2 fractional logarithm.
  *  Computes log2(1 + x), where x is an unsigned Q.32 fractional number
@@ -323,3 +324,4 @@ egui_fixed_t egui_fx_powx(egui_fixed_t xval, unsigned xfrac, egui_fixed_t yval, 
     /* Convert to output fixed-point format */
     return EGUI_FX_SHIFT(value, shift);
 }
+#endif /* EGUI_CONFIG_PERFORMANCE_USE_FLOAT */

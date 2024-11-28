@@ -540,6 +540,8 @@ def main(argv):
                 data_info_array, data_value_array = get_filled_circle_info(i)
                 data_info_array_saved.append(data_info_array)
 
+                if i == 0:
+                    continue
                 
                 print('#if (EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE >= %d)' % (i), file=f)
                 print('static const egui_circle_item_t %s_item_arr_sub_%d[%d] = {' % (name, i, len(data_info_array)), file=f)
@@ -576,7 +578,10 @@ def main(argv):
             print('const egui_circle_info_t %s_arr[EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE + 1] = {' % (name),file=f)
             for i in range(args.range):
                 print('#if (EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE >= %d)' % (i), file=f)
-                f.write(("    {.radius=%3d, .item_count=%3d, .items=%s_item_arr_sub_%d, .data=%s_data_arr_sub_%d}, \n" % (i, len(data_info_array_saved[i]), name, i, name, i)))
+                if i == 0:
+                    f.write(("    {.radius=%3d, .item_count=%3d, .items=NULL, .data=NULL}, \n" % (i, len(data_info_array_saved[i]))))
+                else:
+                    f.write(("    {.radius=%3d, .item_count=%3d, .items=%s_item_arr_sub_%d, .data=%s_data_arr_sub_%d}, \n" % (i, len(data_info_array_saved[i]), name, i, name, i)))
                 print('#endif // (EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE >= %d)' % (i), file=f)
             print('};', file=f)
 

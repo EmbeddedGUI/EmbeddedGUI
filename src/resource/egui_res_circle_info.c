@@ -12,13 +12,6 @@
  */
 
 
-#if (EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE >= 0)
-static const egui_circle_item_t egui_res_circle_info_item_arr_sub_0[1] = {
-};
-static const uint8_t egui_res_circle_info_data_arr_sub_0[1] = {
-
-};
-#endif // (EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE >= 0)
 #if (EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE >= 1)
 static const egui_circle_item_t egui_res_circle_info_item_arr_sub_1[1] = {
     {.start_offset=  0, .valid_count=  1, .data_offset=  0}, 
@@ -16446,7 +16439,7 @@ static const uint8_t egui_res_circle_info_data_arr_sub_300[232] = {
 
 const egui_circle_info_t egui_res_circle_info_arr[EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE + 1] = {
 #if (EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE >= 0)
-    {.radius=  0, .item_count=  0, .items=egui_res_circle_info_item_arr_sub_0, .data=egui_res_circle_info_data_arr_sub_0}, 
+    {.radius=  0, .item_count=  0, .items=NULL, .data=NULL}, 
 #endif // (EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE >= 0)
 #if (EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE >= 1)
     {.radius=  1, .item_count=  1, .items=egui_res_circle_info_item_arr_sub_1, .data=egui_res_circle_info_data_arr_sub_1}, 
