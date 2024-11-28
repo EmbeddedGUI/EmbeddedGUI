@@ -3,6 +3,7 @@
 
 #include "egui_view_label.h"
 #include "font/egui_font.h"
+#include "font/egui_font_std.h"
 
 void egui_view_label_on_draw(egui_view_t *self)
 {
@@ -25,6 +26,19 @@ void egui_view_label_set_font(egui_view_t *self, egui_font_t *font)
         return;
     }
     local->font = font;
+    egui_view_invalidate(self);
+}
+
+void egui_view_label_set_font_with_std_height(egui_view_t *self, egui_font_t *font)
+{
+    egui_view_label_t *local = (egui_view_label_t *)self;
+    egui_dim_t height = EGUI_FONT_STD_GET_FONT_HEIGHT(font);
+    egui_view_label_set_font(self, font);
+    if(height == self->region.size.height)
+    {
+        return;
+    }
+    egui_view_set_size(self, self->region.size.width, height);
     egui_view_invalidate(self);
 }
 

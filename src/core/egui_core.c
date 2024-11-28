@@ -993,10 +993,10 @@ void egui_init(egui_color_int_t *pfb)
 
     egui_view_label_init((egui_view_t *)&label_debug);
     egui_view_set_position((egui_view_t *)&label_debug, 0, EGUI_CONFIG_SCEEN_HEIGHT - 40);
-    egui_view_set_size((egui_view_t *)&label_debug, EGUI_CONFIG_SCEEN_WIDTH, EGUI_FONT_STD_GET_FONT_HEIGHT((egui_font_t *)&egui_res_font_montserrat_10_4));
+    egui_view_set_size((egui_view_t *)&label_debug, EGUI_CONFIG_SCEEN_WIDTH, 0);
     egui_view_label_set_text((egui_view_t *)&label_debug, NULL);
     egui_view_label_set_align_type((egui_view_t *)&label_debug, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
-    egui_view_label_set_font((egui_view_t *)&label_debug, (egui_font_t *)&egui_res_font_montserrat_10_4);
+    egui_view_label_set_font_with_std_height((egui_view_t *)&label_debug, (egui_font_t *)&egui_res_font_montserrat_10_4);
     egui_view_label_set_font_color((egui_view_t *)&label_debug, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
     egui_view_set_background((egui_view_t *)&label_debug, (egui_background_t *)&bg_debug);
 

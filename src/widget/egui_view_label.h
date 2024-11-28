@@ -29,6 +29,7 @@ struct egui_view_label
                          _on_attach_to_window, _on_draw == NULL ? egui_view_label_on_draw : _on_draw, _on_detach_from_window)
 
 void egui_view_label_on_draw(egui_view_t *self);
+void egui_view_label_set_font_with_std_height(egui_view_t *self, egui_font_t *font);
 void egui_view_label_set_font(egui_view_t *self, egui_font_t *font);
 void egui_view_label_set_font_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha);
 void egui_view_label_set_align_type(egui_view_t *self, uint8_t align_type);
