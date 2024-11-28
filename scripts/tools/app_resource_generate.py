@@ -85,6 +85,12 @@ def load_config_info(config_file_path):
 class ImageResourceInfo:
     def __init__(self, config):
         self.file_name = config['file']
+        self.name = None
+        if config.get('name'):
+            self.name = config['name']
+        else:
+            c_file_name = format_file_name(self.file_name.split('.')[0])
+            self.name = c_file_name
 
         self.rgb_info = 'all'
         if config.get('format'):
@@ -140,6 +146,14 @@ class ImageResourceInfo:
 class FontResourceInfo:
     def __init__(self, config):
         self.file_name = config['file']
+        self.name = None
+        if config.get('name'):
+            self.name = config['name']
+        else:
+            c_file_name = format_file_name(self.file_name.split('.')[0])
+            self.name = c_file_name
+                
+
         self.text_file_name = config['text']
         self.text_file_list = []
         self.text_file_list.append(self.text_file_name)
@@ -190,7 +204,7 @@ def generate_font_resource(resource_src_path, font_res_output_path, config_info_
                     # print(f"{font_info.file_name} {pixelsize} {fontbitsize} {external}")
                     is_conflit = False
                     for font_config_item in font_config_list:
-                        if font_config_item[0].file_name == font_info.file_name and font_config_item[1] == pixelsize and font_config_item[2] == fontbitsize and font_config_item[3] == external:
+                        if font_config_item[0].name == font_info.name and font_config_item[1] == pixelsize and font_config_item[2] == fontbitsize and font_config_item[3] == external:
                             is_conflit = True
                             font_config_item[0].text_file_list.append(font_info.text_file_name)
                             break
@@ -210,7 +224,7 @@ def generate_font_resource(resource_src_path, font_res_output_path, config_info_
         suported_text_list = []
         for text_file_path in font_info.text_file_list:
             suported_text_list.append(os.path.join(resource_src_path, text_file_path))
-        font_name = c_file_name
+        font_name = font_info.name
 
         pixelsize = font_config_item[1]
         fontbitsize = font_config_item[2]
@@ -245,7 +259,7 @@ def generate_img_resource(resource_src_path, img_res_output_path, config_info_im
         img_file_path = os.path.join(resource_src_path, file_name)
         c_file_name = format_file_name(file_name.split('.')[0])
 
-        img_name = c_file_name
+        img_name = img_info.name
 
         output_path = img_res_output_path
         rgb = img_config_item[1]
