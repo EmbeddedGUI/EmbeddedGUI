@@ -224,15 +224,6 @@ extern "C" {
 
 /**
  * Debug options.
- * Delay for checking the refresh of the PFB.
- * /ref EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
- */
-#ifndef EGUI_CONFIG_DEBUG_PFB_REFRESH_DELAY
-#define EGUI_CONFIG_DEBUG_PFB_REFRESH_DELAY 1
-#endif
-
-/**
- * Debug options.
  * For checking the refresh of the Dirty Region.
  */
 #ifndef EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
@@ -241,11 +232,11 @@ extern "C" {
 
 /**
  * Debug options.
- * Delay for checking the refresh of the Dirty Region.
- * /ref EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+ * Delay for checking the refresh of the PFB/Dirty Region.
+ * /ref EGUI_CONFIG_DEBUG_PFB_REFRESH and EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
  */
-#ifndef EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH_DELAY
-#define EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH_DELAY 10
+#ifndef EGUI_CONFIG_DEBUG_REFRESH_DELAY
+#define EGUI_CONFIG_DEBUG_REFRESH_DELAY 1
 #endif
 
 /**
