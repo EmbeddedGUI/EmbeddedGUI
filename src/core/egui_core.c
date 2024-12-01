@@ -54,29 +54,47 @@ int egui_core_check_region_dirty_intersect(egui_region_t *region_dirty)
 
 void egui_core_update_region_dirty(egui_region_t *region_dirty)
 {
-    int i;
+    int i, j;
+    int is_changed;
+
+    // change to the window dirty region
+    EGUI_REGION_DEFINE(region_new_in_window, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_region_intersect(&region_new_in_window, region_dirty, &region_new_in_window);
+
+    if(egui_region_is_empty(&region_new_in_window))
+    {
+        return;
+    }
     for (i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
     {
-        egui_region_t *p_region = &egui_core.region_dirty_arr[i];
-        if (egui_region_is_intersect(p_region, region_dirty))
+        egui_region_t *p_ditry_region = &egui_core.region_dirty_arr[i];
+        if(!egui_region_is_empty(&region_new_in_window))
         {
-            break;
-        }
-        else if (egui_region_is_empty(p_region))
-        {
-            break;
-        }
-    }
+            if (egui_region_is_intersect(p_ditry_region, &region_new_in_window) || egui_region_is_empty(p_ditry_region))
+            {
+                egui_region_union(p_ditry_region, &region_new_in_window, p_ditry_region);
+                egui_region_init_empty(&region_new_in_window);
 
-    // TODO: select neareast region to update
-    if (i == EGUI_CONFIG_DIRTY_AREA_COUNT)
-    {
-        i = 0;
+                is_changed = 1;
+            }
+        }
+
+        // merge other region
+        if(!is_changed)
+        {
+            continue;
+        }
+
+        for(j = i + 1; j < EGUI_CONFIG_DIRTY_AREA_COUNT; j++)
+        {
+            if (egui_region_is_intersect(p_ditry_region, &egui_core.region_dirty_arr[j]) || egui_region_is_empty(p_ditry_region))
+            {
+                egui_region_union(p_ditry_region, &egui_core.region_dirty_arr[j], p_ditry_region);
+                // clear the intersect region
+                egui_region_init_empty(&egui_core.region_dirty_arr[j]);
+            }
+        }
     }
-    egui_region_union(&egui_core.region_dirty_arr[i], region_dirty, &egui_core.region_dirty_arr[i]);
-    // EGUI_LOG_DBG("update region dirty: %d, %d, %d, %d\n", region_dirty->location.x, region_dirty->location.y, region_dirty->size.width,
-    // region_dirty->size.height); EGUI_LOG_DBG("region dirty: %d, %d, %d, %d\n", egui_core.region_dirty_arr[i].location.x,
-    // egui_core.region_dirty_arr[i].location.y, egui_core.region_dirty_arr[i].size.width, egui_core.region_dirty_arr[i].size.height);
 }
 
 void egui_core_clear_region_dirty(void)
@@ -122,49 +140,85 @@ void egui_core_layout_childs_user_root_view(uint8_t is_orientation_horizontal, u
     egui_view_group_layout_childs((egui_view_t *)&egui_core.user_root_view_group, is_orientation_horizontal, 0, 0, align_type);
 }
 
-int egui_core_draw_view_group(void)
+void egui_core_draw_data(egui_region_t *p_region)
+{
+    egui_api_draw_data(p_region->location.x, p_region->location.y, p_region->size.width, p_region->size.height, egui_core.pfb);
+}
+
+void egui_core_draw_view_group(egui_dim_t x_pos, egui_dim_t y_pos, egui_dim_t pfb_width, egui_dim_t pfb_height)
 {
     egui_view_group_t *view_group = &egui_core.root_view_group;
 
-    // EGUI_LOG_DBG("================= draw view group =================\n");
+#if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+    {
+        // clear last all dirty region
+        EGUI_REGION_DEFINE(region, x_pos, y_pos, pfb_width, pfb_height);
+        egui_canvas_init(egui_core.pfb, &region);
 
-    // Check and only update the dirty region
+        int pfb_total_buffer_size = region.size.width * region.size.height * sizeof(egui_color_int_t);
+        egui_api_pfb_clear(egui_core.pfb, pfb_total_buffer_size);
+
+        view_group->base.api->draw((egui_view_t *)view_group);
+
+        egui_core_draw_data(&region);
+
+        egui_api_refresh_display();
+    }
+#endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+
+    for(int i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
+    {
+        egui_region_t *p_region_dirty = &egui_core.region_dirty_arr[i];
+        EGUI_REGION_DEFINE(region, x_pos, y_pos, pfb_width, pfb_height);
+
+        // EGUI_LOG_DBG("pfb_region before %d, %d, %d, %d\n", region.location.x, region.location.y, region.size.width,
+        //     region.size.height);
+
+        // check if the dirty region intersect with the pfb region
+        egui_region_intersect(&region, p_region_dirty, &region);
+        if (egui_region_is_empty(&region))
+        {
+            continue;
+        }
+        // EGUI_LOG_DBG("pfb_region after %d, %d, %d, %d\n", region.location.x, region.location.y, region.size.width,
+        //     region.size.height);
+
+        egui_canvas_init(egui_core.pfb, &region);
+
+        int pfb_total_buffer_size = region.size.width * region.size.height * sizeof(egui_color_int_t);
+        egui_api_pfb_clear(egui_core.pfb, pfb_total_buffer_size);
+
+        view_group->base.api->draw((egui_view_t *)view_group);
+
+#if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+        egui_region_t *p_region;
+        // change to screen coordinate 
+        EGUI_REGION_DEFINE(region_screen, 0, 0, egui_core.screen_width, egui_core.screen_height);
+        egui_canvas_calc_work_region(&region_screen);
+
+#if EGUI_CONFIG_DEBUG_PFB_REFRESH
+        p_region = egui_canvas_get_pfb_region();
+        egui_canvas_draw_rectangle(p_region->location.x, p_region->location.y, p_region->size.width, p_region->size.height, 1, EGUI_COLOR_RED,
+                                EGUI_ALPHA_100);
+#endif // EGUI_CONFIG_DEBUG_PFB_REFRESH
+
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
-    {
-        egui_api_pfb_clear(egui_core.pfb, egui_core.pfb_total_buffer_size);
+        p_region = p_region_dirty;
+        egui_canvas_draw_rectangle(p_region->location.x, p_region->location.y, p_region->size.width, p_region->size.height, 2, EGUI_COLOR_BLUE,
+                                EGUI_ALPHA_100);
+#endif // EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+#endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
 
-        view_group->base.api->draw((egui_view_t *)view_group);
+        egui_core_draw_data(&region);
 
-        {
-            EGUI_REGION_DEFINE(region_screen, 0, 0, egui_core.screen_width, egui_core.screen_height);
-            egui_canvas_calc_work_region(&region_screen);
-            for (int i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
-            {
-                egui_region_t *p_region = &egui_core.region_dirty_arr[i];
-                egui_canvas_draw_rectangle(p_region->location.x, p_region->location.y, p_region->size.width, p_region->size.height, 1, EGUI_COLOR_RED,
-                                           EGUI_ALPHA_100);
-            }
-        }
-
-        if (egui_core_check_region_dirty_intersect(egui_canvas_get_pfb_region()))
-        {
-            return 1;
-        }
+#if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+        egui_api_delay(EGUI_CONFIG_DEBUG_REFRESH_DELAY);
+        egui_api_refresh_display();
+#endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
     }
-#else
-    if (egui_core_check_region_dirty_intersect(egui_canvas_get_pfb_region()) || EGUI_CONFIG_DEBUG_FORCE_REFRESH_ALL)
-    {
-        egui_api_pfb_clear(egui_core.pfb, egui_core.pfb_total_buffer_size);
-        // EGUI_LOG_DBG("pfb_region %d, %d, %d, %d\n", canvas->pfb_region.location.x, canvas->pfb_region.location.y, canvas->pfb_region.size.width,
-        // canvas->pfb_region.size.height);
-        view_group->base.api->draw((egui_view_t *)view_group);
-
-        return 1;
-    }
-#endif
-
-    return 0;
 }
+
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 void egui_core_process_input_motion(egui_motion_event_t *motion_event)
 {
@@ -213,27 +267,12 @@ static void egui_debug_update_work_time(uint32_t work_time)
 }
 #endif
 
-static int test_color_value;
-int32_t test_pfb_data(void)
-{
-    int y_pos, x_pos;
-    test_color_value += 5;
-    for (y_pos = 0; y_pos < egui_core.pfb_height; y_pos++)
-    {
-        for (x_pos = 0; x_pos < egui_core.pfb_width; x_pos++)
-        {
-            egui_core.pfb[y_pos * egui_core.pfb_width + x_pos] = 0; // EGUI_COLOR_MAKE(test_color_value, test_color_value, test_color_value);
-        }
-    }
-
-    return 0;
-}
-
 void egui_polling_refresh_display(void)
 {
     egui_dim_t x, y;
     egui_dim_t x_pos = 0;
     egui_dim_t y_pos = 0;
+    egui_dim_t pfb_width, pfb_height;
 
 #if EGUI_CONFIG_DEBUG_INFO_SHOW
     uint32_t start_time = egui_api_timer_get_current();
@@ -242,53 +281,15 @@ void egui_polling_refresh_display(void)
     for (y = 0; y < egui_core.pfb_height_count; y++)
     {
         x_pos = 0;
-        // test_pfb_data(); // For test
         for (x = 0; x < egui_core.pfb_width_count; x++)
         {
-            // create a new canvas for the view group
-            EGUI_REGION_DEFINE(region, x_pos, y_pos, egui_core.pfb_width, egui_core.pfb_height);
-            egui_canvas_init(egui_core.pfb, &region);
+            pfb_width = EGUI_MIN(egui_core.pfb_width, egui_core.screen_width - x_pos);
+            pfb_height = EGUI_MIN(egui_core.pfb_height, egui_core.screen_height - y_pos);
+            // EGUI_LOG_INF("pfb_region, x_pos: %d, y_pos: %d, pfb_width: %d, pfb_height: %d\n", x_pos, y_pos, pfb_width, pfb_height);
 
-            // EGUI_LOG_DBG("draw view group: %d, %d, %d, %d\n", x_pos, y_pos, egui_core.pfb_width, egui_core.pfb_height);
-            // test_pfb_data(); // For test
-            int is_update = egui_core_draw_view_group();
+            egui_core_draw_view_group(x_pos, y_pos, pfb_width, pfb_height);
 
-            // EGUI_LOG_DBG("is_update: %d\n", is_update);
-
-#if EGUI_CONFIG_DEBUG_PFB_REFRESH
-            if (is_update)
-            {
-                egui_color_int_t egui_pfb_debug_saved[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
-                egui_api_refresh_display();
-                memcpy(egui_pfb_debug_saved, egui_core.pfb, sizeof(egui_pfb_debug_saved)); // svae last pfb data
-                // draw a rectangle on the canvas to show the refresh area
-                egui_canvas_calc_work_region(&region);
-
-                egui_canvas_draw_rectangle(0, 0, egui_core.pfb_width, egui_core.pfb_height, 1, EGUI_COLOR_RED, EGUI_ALPHA_100);
-#if !EGUI_CONFIG_DEBUG_SKIP_DRAW_ALL
-                egui_api_draw_data(x_pos, y_pos, egui_core.pfb_width, egui_core.pfb_height, egui_core.pfb);
-#endif
-                egui_api_refresh_display();
-                memcpy(egui_core.pfb, egui_pfb_debug_saved, sizeof(egui_pfb_debug_saved)); // restore last pfb data
-
-                egui_api_delay(EGUI_CONFIG_DEBUG_PFB_REFRESH_DELAY);
-            }
-#endif
-
-#if EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
-#if !EGUI_CONFIG_DEBUG_SKIP_DRAW_ALL
-            egui_api_draw_data(x_pos, y_pos, egui_core.pfb_width, egui_core.pfb_height, egui_core.pfb);
-#endif
-#else
-            if (is_update)
-            {
-#if !EGUI_CONFIG_DEBUG_SKIP_DRAW_ALL
-                egui_api_draw_data(x_pos, y_pos, egui_core.pfb_width, egui_core.pfb_height, egui_core.pfb);
-#endif
-            }
-#endif
-
-            x_pos += egui_core.pfb_width;
+            x_pos += pfb_width;
         }
         y_pos += egui_core.pfb_height;
     }
@@ -890,10 +891,10 @@ void egui_core_refresh_screen(void)
         // after drawing, refresh the display
         egui_api_refresh_display();
 
-#if EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+#if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
         // wait for a while to see the result
-        egui_api_delay(EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH_DELAY);
-#endif
+        egui_api_delay(EGUI_CONFIG_DEBUG_REFRESH_DELAY);
+#endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
     }
 }
 

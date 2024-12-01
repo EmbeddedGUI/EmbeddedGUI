@@ -64,7 +64,7 @@ egui_view_group_t *egui_core_get_user_root_view(void);
 void egui_core_add_user_root_view(egui_view_t *view);
 void egui_core_remove_user_root_view(egui_view_t *view);
 void egui_core_layout_childs_user_root_view(uint8_t is_orientation_horizontal, uint8_t align_type);
-int egui_core_draw_view_group(void);
+void egui_core_draw_view_group(egui_dim_t x_pos, egui_dim_t y_pos, egui_dim_t pfb_width, egui_dim_t pfb_height);
 void egui_core_process_input_motion(egui_motion_event_t *motion_event);
 uint16_t egui_core_get_unique_id(void);
 void egui_core_refresh_screen(void);

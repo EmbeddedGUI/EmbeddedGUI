@@ -33,16 +33,18 @@ EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_1_param_normal_1, EGUI_COLOR_GREEN, EG
 EGUI_BACKGROUND_PARAM_INIT(bg_1_params_1, &bg_1_param_normal_1, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_1_1, &bg_1_params_1);
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_2_param_normal_0, EGUI_COLOR_BLUE, EGUI_ALPHA_90);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_2_param_normal_0, EGUI_COLOR_PURPLE, EGUI_ALPHA_90);
 EGUI_BACKGROUND_PARAM_INIT(bg_2_params_0, &bg_2_param_normal_0, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_2_0, &bg_2_params_0);
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_2_param_normal_1, EGUI_COLOR_BLUE, EGUI_ALPHA_60);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_2_param_normal_1, EGUI_COLOR_PURPLE, EGUI_ALPHA_60);
 EGUI_BACKGROUND_PARAM_INIT(bg_2_params_1, &bg_2_param_normal_1, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_2_1, &bg_2_params_1);
 
 #define LABEL_WIDTH  100
 #define LABEL_HEIGHT 50
+
+#define LABEL_DIFF_DIM 10
 void uicode_init_ui(void)
 {
     // Init all views
@@ -75,7 +77,7 @@ void uicode_init_ui(void)
 
     // label_2
     egui_view_label_init((egui_view_t *)&label_2);
-    egui_view_set_position((egui_view_t *)&label_2, LABEL_WIDTH + 10, LABEL_HEIGHT * 2 + 10);
+    egui_view_set_position((egui_view_t *)&label_2, LABEL_WIDTH + LABEL_DIFF_DIM, LABEL_HEIGHT * 2 + LABEL_DIFF_DIM);
     egui_view_set_size((egui_view_t *)&label_2, LABEL_WIDTH, LABEL_HEIGHT);
     egui_view_label_set_text((egui_view_t *)&label_2, "Single 2");
     egui_view_label_set_align_type((egui_view_t *)&label_2, EGUI_ALIGN_CENTER);
@@ -158,18 +160,86 @@ static void egui_test_refresh_timer_callback(egui_timer_t *timer)
         egui_test_change_background_horizontal();
         break;
     case 2:
-        EGUI_LOG_INF("Test Single Label 1\r\n");
+        EGUI_LOG_INF("Test Single Label1\r\n");
         egui_test_change_background_1();
         break;
     case 3:
-        EGUI_LOG_INF("Test Single Label 2\r\n");
+        EGUI_LOG_INF("Test Single Label2\r\n");
+        egui_test_change_background_2();
+        break;
+
+    case 4:
+        EGUI_LOG_INF("Test Two Vertical Horizontal\r\n");
+        egui_test_change_background_vertical();
+        egui_test_change_background_horizontal();
+        break;
+    case 5:
+        EGUI_LOG_INF("Test Two Label1 Label2\r\n");
+        egui_test_change_background_1();
+        egui_test_change_background_2();
+        break;
+    case 6:
+        EGUI_LOG_INF("Test Two Vertical Label1\r\n");
+        egui_test_change_background_vertical();
+        egui_test_change_background_1();
+        break;
+    case 7:
+        EGUI_LOG_INF("Test Two Vertical Label2\r\n");
+        egui_test_change_background_vertical();
+        egui_test_change_background_2();
+        break;
+    case 8:
+        EGUI_LOG_INF("Test Two Horizontal Label1\r\n");
+        egui_test_change_background_horizontal();
+        egui_test_change_background_1();
+        break;
+    case 9:
+        EGUI_LOG_INF("Test Two Horizontal Label2\r\n");
+        egui_test_change_background_horizontal();
         egui_test_change_background_2();
         break;
     
+    case 10:
+        EGUI_LOG_INF("Test Move Label1\r\n");
+        egui_view_scroll_by((egui_view_t *)&label_1, 10, 10);
+        break;
+    case 11:
+        EGUI_LOG_INF("Test Move Label1 Back\r\n");
+        egui_view_scroll_by((egui_view_t *)&label_1, -10, -10);
+        break;
+    case 12:
+        EGUI_LOG_INF("Test Move Label2\r\n");
+        egui_view_scroll_by((egui_view_t *)&label_2, 10, 10);
+        break;
+    case 13:
+        EGUI_LOG_INF("Test Move Label2 Back\r\n");
+        egui_view_scroll_by((egui_view_t *)&label_2, -10, -10);
+        break;
+    
+    case 14:
+        EGUI_LOG_INF("Test Move Big Label2\r\n");
+        egui_view_scroll_by((egui_view_t *)&label_2, 0, (LABEL_HEIGHT + 5));
+        break;
+    case 15:
+        EGUI_LOG_INF("Test Move Big Label2 Back\r\n");
+        egui_view_scroll_by((egui_view_t *)&label_2, 0, -(LABEL_HEIGHT + 5));
+        break;
+
+    case 16:
+        EGUI_LOG_INF("Test Two Move Big Label2 Label1\r\n");
+        egui_view_scroll_by((egui_view_t *)&label_2, 0, (LABEL_HEIGHT + 5));
+        egui_view_scroll_by((egui_view_t *)&label_1, LABEL_DIFF_DIM, LABEL_DIFF_DIM + 5);
+        break;
+    case 17:
+        EGUI_LOG_INF("Test Two Move Big Label2 Label1\r\n");
+        egui_view_scroll_by((egui_view_t *)&label_2, 0, -(LABEL_HEIGHT + 5));
+        egui_view_scroll_by((egui_view_t *)&label_1, -(LABEL_DIFF_DIM), -(LABEL_DIFF_DIM + 5));
+        break;
+
     default:
         break;
     }
-    if(test_count++ > 4)
+    if(++test_count > 17)
     {
         test_count = 0;
     }
@@ -180,5 +250,5 @@ void uicode_create_ui(void)
     uicode_init_ui();
 
     egui_test_refresh_timer.callback = egui_test_refresh_timer_callback;
-    egui_timer_start_timer(&egui_test_refresh_timer, 5000, 5000);
+    egui_timer_start_timer(&egui_test_refresh_timer, 1000, 3000);
 }
