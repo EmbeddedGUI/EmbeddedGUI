@@ -67,12 +67,12 @@ void egui_core_update_region_dirty(egui_region_t *region_dirty)
     }
     for (i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
     {
-        egui_region_t *p_ditry_region = &egui_core.region_dirty_arr[i];
+        egui_region_t *p_region_dirty = &egui_core.region_dirty_arr[i];
         if(!egui_region_is_empty(&region_new_in_window))
         {
-            if (egui_region_is_intersect(p_ditry_region, &region_new_in_window) || egui_region_is_empty(p_ditry_region))
+            if (egui_region_is_intersect(p_region_dirty, &region_new_in_window) || egui_region_is_empty(p_region_dirty))
             {
-                egui_region_union(p_ditry_region, &region_new_in_window, p_ditry_region);
+                egui_region_union(p_region_dirty, &region_new_in_window, p_region_dirty);
                 egui_region_init_empty(&region_new_in_window);
 
                 is_changed = 1;
@@ -87,9 +87,9 @@ void egui_core_update_region_dirty(egui_region_t *region_dirty)
 
         for(j = i + 1; j < EGUI_CONFIG_DIRTY_AREA_COUNT; j++)
         {
-            if (egui_region_is_intersect(p_ditry_region, &egui_core.region_dirty_arr[j]) || egui_region_is_empty(p_ditry_region))
+            if (egui_region_is_intersect(p_region_dirty, &egui_core.region_dirty_arr[j]) || egui_region_is_empty(p_region_dirty))
             {
-                egui_region_union(p_ditry_region, &egui_core.region_dirty_arr[j], p_ditry_region);
+                egui_region_union(p_region_dirty, &egui_core.region_dirty_arr[j], p_region_dirty);
                 // clear the intersect region
                 egui_region_init_empty(&egui_core.region_dirty_arr[j]);
             }
@@ -145,79 +145,99 @@ void egui_core_draw_data(egui_region_t *p_region)
     egui_api_draw_data(p_region->location.x, p_region->location.y, p_region->size.width, p_region->size.height, egui_core.pfb);
 }
 
-void egui_core_draw_view_group(egui_dim_t x_pos, egui_dim_t y_pos, egui_dim_t pfb_width, egui_dim_t pfb_height)
+
+void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode)
 {
     egui_view_group_t *view_group = &egui_core.root_view_group;
+    egui_dim_t x, y, x_pos, y_pos;
+    egui_dim_t x_pos_base = p_region_dirty->location.x;
+    egui_dim_t y_pos_base = p_region_dirty->location.y;
+    egui_dim_t width_dirty = p_region_dirty->size.width;
+    egui_dim_t height_dirty = p_region_dirty->size.height;
+    egui_dim_t pfb_width = egui_core.pfb_width;
+    egui_dim_t pfb_height = egui_core.pfb_height;
+    egui_dim_t tmp_pfb_width;
+    egui_dim_t tmp_pfb_height;
+    egui_dim_t pfb_width_count, pfb_height_count;
 
-#if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+    EGUI_LOG_DBG("region_dirty, x: %d, y: %d, width: %d, height: %d\n"
+        , p_region_dirty->location.x, p_region_dirty->location.y, p_region_dirty->size.width, p_region_dirty->size.height);
+
+    // change pfb size to fit the dirty region
+    if(pfb_width > width_dirty)
     {
-        // clear last all dirty region
-        EGUI_REGION_DEFINE(region, x_pos, y_pos, pfb_width, pfb_height);
-        egui_canvas_init(egui_core.pfb, &region);
-
-        int pfb_total_buffer_size = region.size.width * region.size.height * sizeof(egui_color_int_t);
-        egui_api_pfb_clear(egui_core.pfb, pfb_total_buffer_size);
-
-        view_group->base.api->draw((egui_view_t *)view_group);
-
-        egui_core_draw_data(&region);
-
-        egui_api_refresh_display();
+        pfb_width = width_dirty;
+        pfb_height = (egui_core.pfb_total_buffer_size / sizeof(egui_color_int_t)) / pfb_width;
     }
-#endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
-
-    for(int i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
+    else if(pfb_height > height_dirty)
     {
-        egui_region_t *p_region_dirty = &egui_core.region_dirty_arr[i];
-        EGUI_REGION_DEFINE(region, x_pos, y_pos, pfb_width, pfb_height);
+        pfb_height = height_dirty;
+        pfb_width = (egui_core.pfb_total_buffer_size / sizeof(egui_color_int_t)) / pfb_height;
+    }
 
-        // EGUI_LOG_DBG("pfb_region before %d, %d, %d, %d\n", region.location.x, region.location.y, region.size.width,
-        //     region.size.height);
+    pfb_width_count = (width_dirty + pfb_width - 1) / pfb_width;
+    pfb_height_count = (height_dirty + pfb_height - 1) / pfb_height;
 
-        // check if the dirty region intersect with the pfb region
-        egui_region_intersect(&region, p_region_dirty, &region);
-        if (egui_region_is_empty(&region))
+    EGUI_LOG_DBG("pfb_update, pfb_width_count: %d, pfb_height_count: %d, pfb_width: %d, pfb_height: %d\n"
+        , pfb_width_count, pfb_height_count, pfb_width, pfb_height);
+
+    // start draw
+    y_pos = y_pos_base;
+    for (y = 0; y < pfb_height_count; y++)
+    {
+        x_pos = x_pos_base;
+        for (x = 0; x < pfb_width_count; x++)
         {
-            continue;
-        }
-        // EGUI_LOG_DBG("pfb_region after %d, %d, %d, %d\n", region.location.x, region.location.y, region.size.width,
-        //     region.size.height);
+            tmp_pfb_width = EGUI_MIN(pfb_width, x_pos_base + width_dirty- x_pos);
+            tmp_pfb_height = EGUI_MIN(pfb_height, y_pos_base + height_dirty - y_pos);
+            EGUI_LOG_DBG("pfb_region, x_pos: %d, y_pos: %d, pfb_width: %d, pfb_height: %d\n", x_pos, y_pos, tmp_pfb_width, tmp_pfb_height);
 
-        egui_canvas_init(egui_core.pfb, &region);
+            EGUI_REGION_DEFINE(region, x_pos, y_pos, tmp_pfb_width, tmp_pfb_height);
 
-        int pfb_total_buffer_size = region.size.width * region.size.height * sizeof(egui_color_int_t);
-        egui_api_pfb_clear(egui_core.pfb, pfb_total_buffer_size);
+            egui_canvas_init(egui_core.pfb, &region);
 
-        view_group->base.api->draw((egui_view_t *)view_group);
+            int pfb_total_buffer_size = region.size.width * region.size.height * sizeof(egui_color_int_t);
+            egui_api_pfb_clear(egui_core.pfb, pfb_total_buffer_size);
+
+            view_group->base.api->draw((egui_view_t *)view_group);
 
 #if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
-        egui_region_t *p_region;
-        // change to screen coordinate 
-        EGUI_REGION_DEFINE(region_screen, 0, 0, egui_core.screen_width, egui_core.screen_height);
-        egui_canvas_calc_work_region(&region_screen);
+            if(is_debug_mode)
+            {
+                egui_region_t *p_region;
+                // change to screen coordinate 
+                EGUI_REGION_DEFINE(region_screen, 0, 0, egui_core.screen_width, egui_core.screen_height);
+                egui_canvas_calc_work_region(&region_screen);
 
 #if EGUI_CONFIG_DEBUG_PFB_REFRESH
-        p_region = egui_canvas_get_pfb_region();
-        egui_canvas_draw_rectangle(p_region->location.x, p_region->location.y, p_region->size.width, p_region->size.height, 1, EGUI_COLOR_RED,
-                                EGUI_ALPHA_100);
+                p_region = egui_canvas_get_pfb_region();
+                egui_canvas_draw_rectangle(p_region->location.x, p_region->location.y, p_region->size.width, p_region->size.height, 1, EGUI_COLOR_RED,
+                                        EGUI_ALPHA_100);
 #endif // EGUI_CONFIG_DEBUG_PFB_REFRESH
 
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
-        p_region = p_region_dirty;
-        egui_canvas_draw_rectangle(p_region->location.x, p_region->location.y, p_region->size.width, p_region->size.height, 2, EGUI_COLOR_BLUE,
-                                EGUI_ALPHA_100);
+                p_region = p_region_dirty;
+                egui_canvas_draw_rectangle(p_region->location.x, p_region->location.y, p_region->size.width, p_region->size.height, 2, EGUI_COLOR_BLUE,
+                                        EGUI_ALPHA_100);
 #endif // EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+            }
 #endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
 
-        egui_core_draw_data(&region);
+            egui_core_draw_data(&region);
 
 #if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
-        egui_api_delay(EGUI_CONFIG_DEBUG_REFRESH_DELAY);
-        egui_api_refresh_display();
+            if(is_debug_mode)
+            {
+                egui_api_delay(EGUI_CONFIG_DEBUG_REFRESH_DELAY);
+                egui_api_refresh_display();
+            }
 #endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+
+            x_pos += pfb_width;
+        }
+        y_pos += pfb_height;
     }
 }
-
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 void egui_core_process_input_motion(egui_motion_event_t *motion_event)
@@ -269,29 +289,26 @@ static void egui_debug_update_work_time(uint32_t work_time)
 
 void egui_polling_refresh_display(void)
 {
-    egui_dim_t x, y;
-    egui_dim_t x_pos = 0;
-    egui_dim_t y_pos = 0;
-    egui_dim_t pfb_width, pfb_height;
-
 #if EGUI_CONFIG_DEBUG_INFO_SHOW
     uint32_t start_time = egui_api_timer_get_current();
 #endif
 
-    for (y = 0; y < egui_core.pfb_height_count; y++)
+#if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+    // clear last all dirty region
+    EGUI_REGION_DEFINE(region, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_core_draw_view_group(&region, false);
+#endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+
+    for(int i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
     {
-        x_pos = 0;
-        for (x = 0; x < egui_core.pfb_width_count; x++)
+        egui_region_t *p_region_dirty = &egui_core.region_dirty_arr[i];
+
+        if (egui_region_is_empty(p_region_dirty))
         {
-            pfb_width = EGUI_MIN(egui_core.pfb_width, egui_core.screen_width - x_pos);
-            pfb_height = EGUI_MIN(egui_core.pfb_height, egui_core.screen_height - y_pos);
-            // EGUI_LOG_INF("pfb_region, x_pos: %d, y_pos: %d, pfb_width: %d, pfb_height: %d\n", x_pos, y_pos, pfb_width, pfb_height);
-
-            egui_core_draw_view_group(x_pos, y_pos, pfb_width, pfb_height);
-
-            x_pos += pfb_width;
+            break;
         }
-        y_pos += egui_core.pfb_height;
+
+        egui_core_draw_view_group(p_region_dirty, EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH);
     }
 
     // clear the dirty region
