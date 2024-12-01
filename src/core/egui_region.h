@@ -99,6 +99,7 @@ void egui_region_copy(egui_region_t *self, const egui_region_t *rect);
 void egui_region_intersect_with_size(egui_region_t *self, egui_dim_t width, egui_dim_t height, egui_region_t *result);
 int egui_region_is_intersect(egui_region_t *self, const egui_region_t *rect);
 void egui_region_union(egui_region_t *self, const egui_region_t *rect, egui_region_t *result);
+int egui_region_is_same(egui_region_t *self, const egui_region_t *other);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

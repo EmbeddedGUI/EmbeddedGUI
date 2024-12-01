@@ -52,10 +52,15 @@ int egui_core_check_region_dirty_intersect(egui_region_t *region_dirty)
     return 0;
 }
 
+egui_region_t *egui_core_get_region_dirty_arr(void)
+{
+    return egui_core.region_dirty_arr;
+}
+
 void egui_core_update_region_dirty(egui_region_t *region_dirty)
 {
     int i, j;
-    int is_changed;
+    int is_changed = 0;
 
     // change to the window dirty region
     EGUI_REGION_DEFINE(region_new_in_window, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
@@ -65,15 +70,15 @@ void egui_core_update_region_dirty(egui_region_t *region_dirty)
     {
         return;
     }
+
     for (i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
     {
         egui_region_t *p_region_dirty = &egui_core.region_dirty_arr[i];
-        if(!egui_region_is_empty(&region_new_in_window))
+        if(!is_changed)
         {
             if (egui_region_is_intersect(p_region_dirty, &region_new_in_window) || egui_region_is_empty(p_region_dirty))
             {
                 egui_region_union(p_region_dirty, &region_new_in_window, p_region_dirty);
-                egui_region_init_empty(&region_new_in_window);
 
                 is_changed = 1;
             }
@@ -94,6 +99,13 @@ void egui_core_update_region_dirty(egui_region_t *region_dirty)
                 egui_region_init_empty(&egui_core.region_dirty_arr[j]);
             }
         }
+    }
+
+    // if no region intersect, let all region dirty
+    if(!is_changed)
+    {
+        egui_core_clear_region_dirty();
+        egui_region_init(&egui_core.region_dirty_arr[0], 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     }
 }
 

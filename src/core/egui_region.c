@@ -83,3 +83,11 @@ void egui_region_union(egui_region_t *self, const egui_region_t *rect, egui_regi
     result->location.x = x;
     result->location.y = y;
 }
+
+int egui_region_is_same(egui_region_t *self, const egui_region_t *other)
+{
+    return (self->location.x == other->location.x &&
+            self->location.y == other->location.y &&
+            self->size.width == other->size.width &&
+            self->size.height == other->size.height);
+}
