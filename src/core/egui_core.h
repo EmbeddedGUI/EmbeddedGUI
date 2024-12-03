@@ -73,6 +73,8 @@ void egui_core_stop_auto_refresh_screen(void);
 void egui_core_set_pfb_buffer_ptr(egui_color_int_t *pfb);
 egui_color_int_t *egui_core_get_pfb_buffer_ptr(void);
 void egui_core_pfb_set_buffer(egui_color_int_t *pfb, uint16_t width, uint16_t height);
+void egui_core_power_off(void);
+void egui_core_power_on(void);
 void egui_init(egui_color_int_t *pfb);
 
 egui_activity_t *egui_core_activity_get_current(void);

@@ -972,6 +972,16 @@ void egui_core_pfb_set_buffer(egui_color_int_t *pfb, uint16_t width, uint16_t he
     egui_core.pfb_height_count = (EGUI_CONFIG_SCEEN_HEIGHT + height - 1) / height;
 }
 
+void egui_core_power_off(void)
+{
+    egui_timer_stop_timer(&egui_refresh_timer);
+}
+
+void egui_core_power_on(void)
+{
+    egui_timer_start_timer(&egui_refresh_timer, 0, 0);
+}
+
 void egui_init(egui_color_int_t *pfb)
 {
     egui_core.screen_width = EGUI_CONFIG_SCEEN_WIDTH;
@@ -1040,3 +1050,4 @@ void egui_init(egui_color_int_t *pfb)
 
     // egui_canvas_test_circle();
 }
+
