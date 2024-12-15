@@ -8,3 +8,4 @@
 /porting/stm32g0_empty/.settings
 /doc/build
 *.pyc
+/build

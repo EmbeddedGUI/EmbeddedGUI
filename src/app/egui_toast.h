@@ -10,8 +10,6 @@
 extern "C" {
 #endif
 
-typedef struct egui_toast egui_toast_t;
-
 typedef struct egui_toast_api egui_toast_api_t;
 struct egui_toast_api
 {

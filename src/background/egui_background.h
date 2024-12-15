@@ -16,10 +16,6 @@ extern "C" {
             .disabled_param = _disabled_param,                                                                                                                 \
     }
 
-typedef struct egui_view egui_view_t;
-
-typedef struct egui_background egui_background_t;
-
 typedef struct egui_background_api egui_background_api_t;
 struct egui_background_api
 {

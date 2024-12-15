@@ -8,10 +8,6 @@
 extern "C" {
 #endif
 
-typedef struct egui_canvas egui_canvas_t;
-
-typedef struct egui_font egui_font_t;
-
 typedef struct egui_font_api egui_font_api_t;
 struct egui_font_api
 {

@@ -18,10 +18,6 @@ enum
     EGUI_ANIMATION_REPEAT_MODE_REVERSE,
 };
 
-typedef struct egui_view egui_view_t;
-
-typedef struct egui_animation egui_animation_t;
-
 typedef struct egui_animation_api egui_animation_api_t;
 struct egui_animation_api
 {

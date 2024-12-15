@@ -9,7 +9,6 @@
 extern "C" {
 #endif
 
-typedef struct egui_toast_std egui_toast_std_t;
 struct egui_toast_std
 {
     egui_toast_t base;

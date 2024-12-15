@@ -8,7 +8,6 @@
 extern "C" {
 #endif
 
-typedef struct egui_location egui_location_t;
 struct egui_location
 {
     egui_dim_t x; // x in Cartesian coordinate system
@@ -18,14 +17,12 @@ struct egui_location
 #define EGUI_LOCATION_DEFINE_EMPTY(_name)   egui_location_t _name = {0, 0}
 #define EGUI_LOCATION_DEFINE(_name, _x, _y) egui_location_t _name = {_x, _y}
 
-typedef struct egui_size egui_size_t;
 struct egui_size
 {
     egui_dim_t width;  // width of an rectangular area
     egui_dim_t height; // height of an rectangular area
 };
 
-typedef struct egui_region egui_region_t;
 struct egui_region
 {
     egui_location_t location; // origin of the region

@@ -20,8 +20,6 @@ enum
     EGUI_ACTIVITY_STATE_DESTROY
 };
 
-typedef struct egui_activity egui_activity_t;
-
 typedef struct egui_activity_api egui_activity_api_t;
 struct egui_activity_api
 {

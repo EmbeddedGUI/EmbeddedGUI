@@ -9,8 +9,6 @@
 extern "C" {
 #endif
 
-typedef struct egui_mask egui_mask_t;
-
 typedef struct egui_mask_api egui_mask_api_t;
 struct egui_mask_api
 {

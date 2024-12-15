@@ -12,11 +12,6 @@
 extern "C" {
 #endif
 
-typedef struct egui_view egui_view_t;
-
-typedef struct egui_view_group egui_view_group_t;
-
-typedef struct egui_canvas egui_canvas_t;
 
 typedef struct egui_view_api egui_view_api_t;
 struct egui_view_api

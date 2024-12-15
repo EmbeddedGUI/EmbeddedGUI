@@ -9,8 +9,6 @@
 extern "C" {
 #endif
 
-typedef struct egui_interpolator egui_interpolator_t;
-
 typedef struct egui_interpolator_api egui_interpolator_api_t;
 struct egui_interpolator_api
 {

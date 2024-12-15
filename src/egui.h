@@ -49,7 +49,6 @@
 
 #include "resource/egui_resource.h"
 
-#include "widget/widgets.h"
 #include "widget/egui_view.h"
 #include "widget/egui_view_group.h"
 #include "widget/egui_view_button.h"

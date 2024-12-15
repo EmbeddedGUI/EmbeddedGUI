@@ -41,7 +41,6 @@ typedef struct
     const uint8_t *pixel_buffer;
 } egui_font_std_info_t;
 
-typedef struct egui_font_std egui_font_std_t;
 struct egui_font_std
 {
     egui_font_t base;

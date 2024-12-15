@@ -20,10 +20,6 @@ enum
     EGUI_DIALOG_STATE_DESTROY
 };
 
-typedef struct egui_activity egui_activity_t;
-
-typedef struct egui_dialog egui_dialog_t;
-
 typedef struct egui_dialog_api egui_dialog_api_t;
 struct egui_dialog_api
 {

@@ -14,7 +14,6 @@
 extern "C" {
 #endif
 
-typedef struct egui_core egui_core_t;
 struct egui_core
 {
     egui_color_int_t *pfb;     // pointer to frame buffer

@@ -10,10 +10,6 @@
 extern "C" {
 #endif
 
-typedef struct egui_font egui_font_t;
-typedef struct egui_image egui_image_t;
-typedef struct egui_mask egui_mask_t;
-
 typedef struct egui_circle_item egui_circle_item_t;
 struct egui_circle_item
 {
@@ -31,7 +27,6 @@ struct egui_circle_info
     const uint8_t *data; // point to data buffer for circle drawing
 };
 
-typedef struct egui_canvas egui_canvas_t;
 struct egui_canvas
 {
     egui_color_int_t *pfb;    // pointer to frame buffer

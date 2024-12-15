@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "egui_config.h"
+#include "egui_typedef.h"
 #include "utils/egui_fixmath.h"
 
 /* Set up for C function definitions, even when using C++ */

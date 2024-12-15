@@ -95,8 +95,7 @@ __EGUI_STATIC_INLINE__ char egui_level_to_char(int level)
     } while (0)
 
 
-    
-typedef int egui_base_t;
+
 extern egui_base_t egui_hw_interrupt_disable(void);
 extern void egui_hw_interrupt_enable(egui_base_t level);
 
