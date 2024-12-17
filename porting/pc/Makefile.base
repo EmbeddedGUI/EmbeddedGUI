@@ -136,6 +136,7 @@ else ifeq ($(shell uname), Darwin)
 	MD_CHECK	:=
 else
 	MAIN	:= $(TARGET)
+	ECHO=echo
 	
 	SOURCEDIRS	:= $(SRC)
 	INCLUDEDIRS	:= $(INCLUDE)

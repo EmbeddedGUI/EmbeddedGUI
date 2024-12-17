@@ -19,6 +19,9 @@ COMMON_FLAGS  := -O2
 # show compile debug info.
 # V := 1
 
+# for 64bit system
+# BITS=64
+
 # For user show current app info.
 COMMON_FLAGS += -DEGUI_APP=\"$(APP)\"
 ifeq ($(PORT),pc)
