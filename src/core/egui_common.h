@@ -74,23 +74,23 @@ extern "C" {
  * The order of bit field is different on Big-endian and Little-endian machines*/
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 #if EGUI_CONFIG_COLOR_DEPTH == 8
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){{(_b8) >> 6, (_g8) >> 5, (_r8) >> 5}})
+#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){.color={(_b8) >> 6, (_g8) >> 5, (_r8) >> 5}})
 #elif EGUI_CONFIG_COLOR_DEPTH == 16
 #if EGUI_CONFIG_COLOR_16_SWAP == 0
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){.blue = (_b8) >> 3, .green = (_g8) >> 2, .red = (_r8) >> 3})
+#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){.color={.blue = (_b8) >> 3, .green = (_g8) >> 2, .red = (_r8) >> 3}})
 #else
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){.green_h = (_g8) >> 5, .red = (_r8) >> 3, .blue = (_b8) >> 3, .green_l = ((_g8) >> 2) & 0x7})
+#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){.color={.green_h = (_g8) >> 5, .red = (_r8) >> 3, .blue = (_b8) >> 3, .green_l = ((_g8) >> 2) & 0x7}})
 #endif
 #elif EGUI_CONFIG_COLOR_DEPTH == 32
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){{(_b8), (_g8), (_r8), 0xff}}) /*Fix 0xff alpha*/
+#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){.color={(_b8), (_g8), (_r8), 0xff}}) /*Fix 0xff alpha*/
 #endif
 #else
 #if EGUI_CONFIG_COLOR_DEPTH == 8
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){{(_r8) >> 6, (_g8) >> 5, (_b8) >> 5}})
+#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){.color={(_r8) >> 6, (_g8) >> 5, (_b8) >> 5}})
 #elif EGUI_CONFIG_COLOR_DEPTH == 16
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){{(_r8) >> 3, (_g8) >> 2, (_b8) >> 3}})
+#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){.color={(_r8) >> 3, (_g8) >> 2, (_b8) >> 3}})
 #elif EGUI_CONFIG_COLOR_DEPTH == 32
-#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){{0xff, (_r8), (_g8), (_b8)}}) /*Fix 0xff alpha*/
+#define EGUI_COLOR_MAKE(_r8, _g8, _b8) ((egui_color_t){.color={0xff, (_r8), (_g8), (_b8)}}) /*Fix 0xff alpha*/
 #endif
 #endif
 
@@ -98,12 +98,12 @@ extern "C" {
 
 #if EGUI_CONFIG_COLOR_DEPTH == 8
 #define EGUI_COLOR_RGB888_TRANS(_color)                                                                                                                        \
-    EGUI_COLOR_MAKE(((egui_color_rgb888_t *)&_color)->red, ((egui_color_rgb888_t *)&_color)->green, ((egui_color_rgb888_t *)&_color)->blue).full
+    EGUI_COLOR_MAKE(((egui_color_rgb888_t *)&_color)->color.red, ((egui_color_rgb888_t *)&_color)->color.green, ((egui_color_rgb888_t *)&_color)->color.blue).full
 #define EGUI_COLOR_RGB565_TRANS(_color)                                                                                                                        \
-    EGUI_COLOR_MAKE(((egui_color_rgb565_t *)&_color)->red, ((egui_color_rgb565_t *)&_color)->green, ((egui_color_rgb565_t *)&_color)->blue).full
+    EGUI_COLOR_MAKE(((egui_color_rgb565_t *)&_color)->color.red, ((egui_color_rgb565_t *)&_color)->color.green, ((egui_color_rgb565_t *)&_color)->color.blue).full
 #elif EGUI_CONFIG_COLOR_DEPTH == 16
 #define EGUI_COLOR_RGB888_TRANS(_color)                                                                                                                        \
-    EGUI_COLOR_MAKE(((egui_color_rgb888_t *)&_color)->red, ((egui_color_rgb888_t *)&_color)->green, ((egui_color_rgb888_t *)&_color)->blue).full
+    EGUI_COLOR_MAKE(((egui_color_rgb888_t *)&_color)->color.red, ((egui_color_rgb888_t *)&_color)->color.green, ((egui_color_rgb888_t *)&_color)->color.blue).full
 #if EGUI_CONFIG_COLOR_16_SWAP_IMG565
 #define EGUI_COLOR_RGB565_TRANS(_color) EGUI_COLOR_MAKE((_color & 0xF800) >> (11 - 3), (_color & 0x7E0) >> (5 - 2), (_color & 0x1F) << 3).full
 #else
@@ -112,7 +112,7 @@ extern "C" {
 #elif EGUI_CONFIG_COLOR_DEPTH == 32
 #define EGUI_COLOR_RGB888_TRANS(_color) _color
 #define EGUI_COLOR_RGB565_TRANS(_color)                                                                                                                        \
-    EGUI_COLOR_MAKE(((egui_color_rgb565_t *)&_color)->red, ((egui_color_rgb565_t *)&_color)->green, ((egui_color_rgb565_t *)&_color)->blue).full
+    EGUI_COLOR_MAKE(((egui_color_rgb565_t *)&_color)->color.red, ((egui_color_rgb565_t *)&_color)->color.green, ((egui_color_rgb565_t *)&_color)->color.blue).full
 #endif
 
 #if 0
@@ -212,7 +212,7 @@ typedef union egui_color_rgb565_t
         uint16_t blue : 5;
         uint16_t green_l : 3;
 #endif
-    };
+    }color;
 } egui_color_rgb565_t;
 
 /*!
@@ -236,7 +236,7 @@ typedef union egui_color_bgra8888_t
         uint32_t green : 8;
         uint32_t red : 8;
         uint32_t alpha : 8;
-    };
+    }color;
 } egui_color_bgra8888_t;
 
 /*!
@@ -259,7 +259,7 @@ typedef union egui_color_rgb888_t
         uint32_t green : 8;
         uint32_t red : 8;
         uint32_t : 8;
-    };
+    }color;
 } egui_color_rgb888_t;
 
 /*
@@ -342,9 +342,9 @@ __EGUI_STATIC_INLINE__ egui_color_t egui_rgb_mix(egui_color_t back_color, egui_c
     ret.green_h = (green >> 3);
     ret.green_l = (green & 0x7);
 #else
-    ret.red = (((uint16_t)(fore_alpha) * (fore_color.red)) + (uint16_t)(255 - fore_alpha) * back_color.red) >> 8;       // For speed avoid use division 255
-    ret.green = (((uint16_t)(fore_alpha) * (fore_color.green)) + (uint16_t)(255 - fore_alpha) * back_color.green) >> 8; // For speed avoid use division 255
-    ret.blue = (((uint16_t)(fore_alpha) * (fore_color.blue)) + (uint16_t)(255 - fore_alpha) * back_color.blue) >> 8;    // For speed avoid use division 255
+    ret.color.red = (((uint16_t)(fore_alpha) * (fore_color.color.red)) + (uint16_t)(255 - fore_alpha) * back_color.color.red) >> 8;       // For speed avoid use division 255
+    ret.color.green = (((uint16_t)(fore_alpha) * (fore_color.color.green)) + (uint16_t)(255 - fore_alpha) * back_color.color.green) >> 8; // For speed avoid use division 255
+    ret.color.blue = (((uint16_t)(fore_alpha) * (fore_color.color.blue)) + (uint16_t)(255 - fore_alpha) * back_color.color.blue) >> 8;    // For speed avoid use division 255
 #endif
 
     return ret;
@@ -355,12 +355,12 @@ __EGUI_STATIC_INLINE__ void egui_rgb_mix_ptr(egui_color_t *p_back_color, egui_co
 #if EGUI_CONFIG_COLOR_DEPTH == 16 && EGUI_CONFIG_COLOR_16_SWAP == 1
     *p_out_color = egui_rgb_mix(*p_back_color, *p_fore_color, fore_alpha);
 #else
-    p_out_color->red =
-            (((uint16_t)(fore_alpha) * (p_fore_color->red)) + (uint16_t)(255 - fore_alpha) * p_back_color->red) >> 8; // For speed avoid use division 255
-    p_out_color->green =
-            (((uint16_t)(fore_alpha) * (p_fore_color->green)) + (uint16_t)(255 - fore_alpha) * p_back_color->green) >> 8; // For speed avoid use division 255
-    p_out_color->blue =
-            (((uint16_t)(fore_alpha) * (p_fore_color->blue)) + (uint16_t)(255 - fore_alpha) * p_back_color->blue) >> 8; // For speed avoid use division 255
+    p_out_color->color.red =
+            (((uint16_t)(fore_alpha) * (p_fore_color->color.red)) + (uint16_t)(255 - fore_alpha) * p_back_color->color.red) >> 8; // For speed avoid use division 255
+    p_out_color->color.green =
+            (((uint16_t)(fore_alpha) * (p_fore_color->color.green)) + (uint16_t)(255 - fore_alpha) * p_back_color->color.green) >> 8; // For speed avoid use division 255
+    p_out_color->color.blue =
+            (((uint16_t)(fore_alpha) * (p_fore_color->color.blue)) + (uint16_t)(255 - fore_alpha) * p_back_color->color.blue) >> 8; // For speed avoid use division 255
 #endif
 }
 

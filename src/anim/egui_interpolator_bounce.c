@@ -16,6 +16,7 @@ static egui_float_t bounce(egui_float_t t)
 egui_float_t egui_interpolator_bounce_get_interpolation(egui_interpolator_t *self, egui_float_t t)
 {
     egui_interpolator_bounce_t *local = (egui_interpolator_bounce_t *)self;
+    EGUI_UNUSED(local);
     // _b(t) = t * t * 8
     // bs(t) = _b(t) for t < 0.3535
     // bs(t) = _b(t - 0.54719) + 0.7 for t < 0.7408
@@ -42,6 +43,7 @@ const egui_interpolator_api_t egui_interpolator_bounce_t_api_table = {
 void egui_interpolator_bounce_init(egui_interpolator_t *self)
 {
     egui_interpolator_bounce_t *local = (egui_interpolator_bounce_t *)self;
+    EGUI_UNUSED(local);
     // call super init.
     egui_interpolator_init(self);
     // update api.

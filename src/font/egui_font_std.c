@@ -39,8 +39,8 @@ static int egui_font_std_get_code_index(const egui_font_std_info_t *font, uint32
 
 static const egui_font_std_char_descriptor_t *egui_font_std_get_desc(const egui_font_std_info_t *font, uint32_t utf8_code)
 {
-    const void *p_pixer_buffer;
-    void *data_buf;
+    // const void *p_pixer_buffer;
+    // void *data_buf;
     egui_font_std_char_descriptor_t *p_char_desc = &g_selected_char_desc;
     // uint8_t ext_data_buf[EGUI_FONT_STD_EXT_CHAR_DESC_ITEM_SIZE];
     
@@ -371,6 +371,7 @@ const egui_font_api_t egui_font_std_t_api_table = {
 void egui_font_std_init(egui_font_t *self, const void *res)
 {
     egui_font_std_t *local = (egui_font_std_t *)self;
+    EGUI_UNUSED(local);
     // call super init.
     egui_font_init(self, res);
 

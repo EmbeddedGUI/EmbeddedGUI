@@ -20,6 +20,7 @@ const egui_interpolator_api_t egui_interpolator_linear_t_api_table = {
 void egui_interpolator_linear_init(egui_interpolator_t *self)
 {
     egui_interpolator_linear_t *local = (egui_interpolator_linear_t *)self;
+    EGUI_UNUSED(local);
     // call super init.
     egui_interpolator_init(self);
     // update api.

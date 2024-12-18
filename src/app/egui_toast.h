@@ -22,9 +22,9 @@ struct egui_toast_api
 
 #define EGUI_TOAST_API_DEFINE(_name, _on_show, _on_hide, _get_str_buf)                                                                                         \
     static const egui_toast_api_t EGUI_TOAST_API_TABLE_NAME(_name) = {                                                                                         \
-            .on_show = _on_show == NULL ? egui_toast_on_show : _on_show,                                                                                       \
-            .on_hide = _on_hide == NULL ? egui_toast_on_hide : _on_hide,                                                                                       \
-            .get_str_buf = _get_str_buf == NULL ? egui_toast_get_str_buf : _get_str_buf,                                                                       \
+            .on_show = _on_show,                                                                                       \
+            .on_hide = _on_hide,                                                                                       \
+            .get_str_buf = _get_str_buf,                                                                       \
     };
 
 struct egui_toast

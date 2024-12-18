@@ -228,7 +228,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_with_mask(egui_canvas_t 
     egui_dim_t pos_x = x - self->pfb_location_in_base_view.x;
     egui_dim_t pos_y = y - self->pfb_location_in_base_view.y;
 
-    egui_color_t *back_color = (egui_color_t *)&self->pfb[pos_y * self->pfb_region.size.width + pos_x];
+    // egui_color_t *back_color = (egui_color_t *)&self->pfb[pos_y * self->pfb_region.size.width + pos_x];
 
     if (alpha == EGUI_ALPHA_100)
     {

@@ -5,7 +5,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define EGUI_CONFIG_DEBUG_FORCE_REFRESH_ALL 1
 
 #define EGUI_CONFIG_MAX_FPS 1
 

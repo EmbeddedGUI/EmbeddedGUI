@@ -1,11 +1,11 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import os
 
 def generate_all_format(img, width, height):
     img_format_list = ["rgb565", "rgb32"]
     alpha_list = [0, 1, 2, 4, 8]
-    # 获取文件名称
+    # get file name
     name = os.path.basename(img).split(".")[0]
 
     for img_format in img_format_list:

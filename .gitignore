@@ -9,3 +9,15 @@
 /doc/build
 *.pyc
 /build
+*.o
+*.d
+*.crf
+*.hex
+*.dep
+*.lst
+*.map
+
+*.axf
+*.htm
+*.lnp
+*.sct

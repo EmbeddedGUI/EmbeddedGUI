@@ -144,7 +144,7 @@ static uint32_t egui_fx_core_exp2(uint32_t fpart32)
 static uint32_t egui_fx_core_sin(uint32_t fpart32)
 {
     /* The 320 bytes large lookup table of polynomial coefficients */
-    static const uint32_t table[16][5] =
+    static const int32_t table[16][5] =
             /*   c0 2**32      c1 2**35  (s)c2 2**38    -c3 2**44     c4 2**49 */
             {{0000000001UL, 0xc90fd9a3UL, 0x00003fb0L, 0xa58a7e76UL, 0x065f386bUL},  {0x1917a6bdUL, 0xc817ffc8UL, -0x07bcf80fL, 0xa4be44bcUL, 0x130df3a4UL},
              {0x31f17079UL, 0xc532d541UL, -0x0f671be3L, 0xa25be1b9UL, 0x1f8db4a9UL}, {0x4a5018bcUL, 0xc0677d57UL, -0x16eb464bL, 0x9e693649UL, 0x2bbfaac2UL},

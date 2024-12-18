@@ -200,14 +200,6 @@ extern "C" {
 
 /**
  * Debug options.
- * Force refresh all, for debug performance.
- */
-#ifndef EGUI_CONFIG_DEBUG_FORCE_REFRESH_ALL
-#define EGUI_CONFIG_DEBUG_FORCE_REFRESH_ALL 0
-#endif
-
-/**
- * Debug options.
  * Skip gui draw to reduce cpu usage, for debug GUI performance.
  */
 #ifndef EGUI_CONFIG_DEBUG_SKIP_DRAW_ALL

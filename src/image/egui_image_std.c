@@ -52,11 +52,11 @@ __EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565(egui_image_std_info_
     *alpha = EGUI_ALPHA_100;
 }
 
-__EGUI_STATIC_INLINE__ void egui_image_std_get_col_pixel_rgb565(const uint16_t *p_data, const uint8_t *p_alpha, egui_dim_t col_index, egui_color_t *color, egui_alpha_t *alpha)
-{
-    egui_image_std_get_col_pixel_rgb565_limit(p_data, col_index, color);
-    *alpha = EGUI_ALPHA_100;
-}
+// __EGUI_STATIC_INLINE__ void egui_image_std_get_col_pixel_rgb565(const uint16_t *p_data, const uint8_t *p_alpha, egui_dim_t col_index, egui_color_t *color, egui_alpha_t *alpha)
+// {
+//     egui_image_std_get_col_pixel_rgb565_limit(p_data, col_index, color);
+//     *alpha = EGUI_ALPHA_100;
+// }
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8
@@ -481,8 +481,8 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
     egui_color_t color;
     egui_alpha_t alpha;
     egui_canvas_t *canvas = egui_canvas_get_canvas();
-    uint16_t data_row_size = image->width << 1; // same to image->width * 2
-    uint16_t alpha_row_size = image->width;
+    // uint16_t data_row_size = image->width << 1; // same to image->width * 2
+    // uint16_t alpha_row_size = image->width;
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     void *data_buf = egui_malloc(data_row_size); 
     void *alpha_buf = egui_malloc(alpha_row_size);
@@ -545,7 +545,7 @@ void egui_image_std_set_image_rgb565_4(const egui_image_t *self, egui_dim_t x, e
     egui_color_t color;
     egui_alpha_t alpha;
     egui_canvas_t *canvas = egui_canvas_get_canvas();
-    uint16_t data_row_size = image->width << 1; // same to image->width * 2
+    // uint16_t data_row_size = image->width << 1; // same to image->width * 2
     uint16_t alpha_row_size = ((image->width + 1) >> 1); // same to: ((image->width + 1) / 2);
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     void *data_buf = egui_malloc(data_row_size); 
@@ -612,7 +612,7 @@ void egui_image_std_set_image_rgb565_2(const egui_image_t *self, egui_dim_t x, e
     egui_color_t color;
     egui_alpha_t alpha;
     egui_canvas_t *canvas = egui_canvas_get_canvas();
-    uint16_t data_row_size = image->width << 1; // same to image->width * 2
+    // uint16_t data_row_size = image->width << 1; // same to image->width * 2
     uint16_t alpha_row_size = ((image->width + 3) >> 2); // same to: ((image->width + 3) / 4);
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     void *data_buf = egui_malloc(data_row_size); 
@@ -679,7 +679,7 @@ void egui_image_std_set_image_rgb565_1(const egui_image_t *self, egui_dim_t x, e
     egui_color_t color;
     egui_alpha_t alpha;
     egui_canvas_t *canvas = egui_canvas_get_canvas();
-    uint16_t data_row_size = image->width << 1; // same to image->width * 2
+    // uint16_t data_row_size = image->width << 1; // same to image->width * 2
     uint16_t alpha_row_size = ((image->width + 7) >> 3); // same to ((image->width + 7) / 8);
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     void *data_buf = egui_malloc(data_row_size); 
@@ -794,8 +794,8 @@ void egui_image_std_set_image_rgb32(const egui_image_t *self, egui_dim_t x, egui
 void egui_image_std_draw_image(const egui_image_t *self, egui_dim_t x, egui_dim_t y)
 {
     egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
-    egui_color_t color;
-    egui_alpha_t alpha;
+    // egui_color_t color;
+    // egui_alpha_t alpha;
     egui_dim_t width = image->width;
     egui_dim_t height = image->height;
 
@@ -991,14 +991,14 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
     {
         return;
     }
-    egui_color_t color;
-    egui_alpha_t alpha;
+    // egui_color_t color;
+    // egui_alpha_t alpha;
     egui_float_t width_radio = EGUI_FLOAT_DIV(EGUI_FLOAT_VALUE_INT(image->width), EGUI_FLOAT_VALUE_INT(width));
     egui_float_t height_radio = EGUI_FLOAT_DIV(EGUI_FLOAT_VALUE_INT(image->height), EGUI_FLOAT_VALUE_INT(height));
-    const uint32_t *p_data = image->data_buf;
+    // const uint32_t *p_data = image->data_buf;
     // const uint8_t* p_alpha = image->alpha_buf;
-    egui_dim_t src_x;
-    egui_dim_t src_y;
+    // egui_dim_t src_x;
+    // egui_dim_t src_y;
 
     egui_dim_t x_total;
     egui_dim_t y_total;
@@ -1092,6 +1092,7 @@ const egui_image_api_t egui_image_std_t_api_table = {.get_point = egui_image_std
 void egui_image_std_init(egui_image_t *self, const void *res)
 {
     egui_image_std_t *local = (egui_image_std_t *)self;
+    EGUI_UNUSED(local);
     // call super init.
     egui_image_init(self, res);
 

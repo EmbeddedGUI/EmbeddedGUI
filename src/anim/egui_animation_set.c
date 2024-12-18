@@ -72,12 +72,13 @@ void egui_animation_set_on_start(egui_animation_t *self)
 void egui_animation_set_on_update(egui_animation_t *self, egui_float_t fraction)
 {
     egui_animation_set_t *local = (egui_animation_set_t *)self;
+    EGUI_UNUSED(local);
 }
 
 void egui_animation_set_update(egui_animation_t *self, uint32_t current_time)
 {
     egui_animation_set_t *local = (egui_animation_set_t *)self;
-    uint32_t duration = self->duration;
+    // uint32_t duration = self->duration;
 
     int started = 0;
     int ended = 1;
@@ -85,6 +86,7 @@ void egui_animation_set_update(egui_animation_t *self, uint32_t current_time)
     egui_snode_t *p_head;
     egui_snode_t *p_next;
     egui_animation_t *tmp;
+    EGUI_UNUSED(local);
 
     if (!egui_slist_is_empty(&local->childs))
     {

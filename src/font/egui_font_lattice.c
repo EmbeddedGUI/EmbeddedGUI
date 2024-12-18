@@ -123,6 +123,7 @@ const egui_font_api_t egui_font_lattice_t_api_table = {
 void egui_font_lattice_init(egui_font_t *self, const void *res)
 {
     egui_font_lattice_t *local = (egui_font_lattice_t *)self;
+    EGUI_UNUSED(local);
     // call super init.
     egui_font_init(self, res);
 

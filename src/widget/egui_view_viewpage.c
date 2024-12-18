@@ -354,8 +354,18 @@ int egui_view_viewpage_on_touch_event(egui_view_t *self, egui_motion_event_t *ev
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
-EGUI_VIEW_API_DEFINE_BASE_GROUP(egui_view_viewpage_t, NULL, egui_view_viewpage_on_touch_event, egui_view_viewpage_on_intercept_touch_event,
-                                egui_view_viewpage_compute_scroll, NULL, NULL, NULL, NULL, NULL, NULL);
+const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_viewpage_t) = {
+    .dispatch_touch_event = egui_view_group_dispatch_touch_event,
+    .on_touch_event = egui_view_viewpage_on_touch_event, // changed
+    .on_intercept_touch_event = egui_view_viewpage_on_intercept_touch_event, // changed
+    .compute_scroll = egui_view_viewpage_compute_scroll, // changed
+    .calculate_layout = egui_view_group_calculate_layout,
+    .request_layout = egui_view_group_request_layout,
+    .draw = egui_view_group_draw,
+    .on_attach_to_window = egui_view_group_on_attach_to_window,
+    .on_draw = egui_view_on_draw,
+    .on_detach_from_window = egui_view_group_on_detach_from_window,
+};
 
 void egui_view_viewpage_init(egui_view_t *self)
 {

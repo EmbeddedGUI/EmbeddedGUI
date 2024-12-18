@@ -38,12 +38,12 @@ img2c.py [-h] [--format <FORMAT>] [--name <NAME\>] [--dim <Width> <Height>] [--r
 ## Example
 
 ```sh
-python img2c.py -i ..\examples\benchmark\asset\HeliumRes.jpg --name Helium
+ img2c.py -i ..\examples\benchmark\asset\HeliumRes.jpg --name Helium
 ```
 
 ## Installation
 
-Needs ***python3***, ***pillow*** (<https://python-pillow.org/>) & ***numpy***
+Needs ***python***, ***pillow*** (<https://python-pillow.org/>) & ***numpy***
 
 ```sh
 pip install Pillow
@@ -76,7 +76,7 @@ ttf2c.py [-h] <-i <Input File Path>> <-t <Text File Path>>[-o <Output File Path>
 
 ## 3. Installation
 
-Needs ***python3***, ***numpy*** and **freetype**:
+Needs ***python***, ***numpy*** and **freetype**:
 
 ```sh
 pip install freetype-py

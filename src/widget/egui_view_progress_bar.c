@@ -24,12 +24,13 @@ void egui_view_progress_bar_set_process(egui_view_t *self, uint8_t process)
     }
 }
 
-static void egui_view_progress_bar_on_click(egui_view_t *self)
-{
-    egui_view_progress_bar_t *local = (egui_view_progress_bar_t *)self;
+// static void egui_view_progress_bar_on_click(egui_view_t *self)
+// {
+//     egui_view_progress_bar_t *local = (egui_view_progress_bar_t *)self;
+//     EGUI_UNUSED(local);
 
-    // egui_view_progress_bar_set_switch_on(self, !local->is_checked);
-}
+//     // egui_view_progress_bar_set_switch_on(self, !local->is_checked);
+// }
 
 void egui_view_progress_bar_on_draw(egui_view_t *self)
 {
@@ -70,14 +71,23 @@ void egui_view_progress_bar_on_draw(egui_view_t *self)
     }
 }
 
-EGUI_VIEW_API_DEFINE(egui_view_progress_bar_t, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, egui_view_progress_bar_on_draw, NULL);
+const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_progress_bar_t) = {
+    .dispatch_touch_event = egui_view_dispatch_touch_event,
+    .on_touch_event = egui_view_on_touch_event,
+    .on_intercept_touch_event = egui_view_on_intercept_touch_event,
+    .compute_scroll = egui_view_compute_scroll,
+    .calculate_layout = egui_view_calculate_layout,
+    .request_layout = egui_view_request_layout,
+    .draw = egui_view_draw,
+    .on_attach_to_window = egui_view_on_attach_to_window,
+    .on_draw = egui_view_progress_bar_on_draw, // changed
+    .on_detach_from_window = egui_view_on_detach_from_window,
+};
 
 void egui_view_progress_bar_init(egui_view_t *self)
 {
     egui_view_progress_bar_t *local = (egui_view_progress_bar_t *)self;
-#if EGUI_CONFIG_AC5	
-	  EGUI_VIEW_API_INIT(egui_view_progress_bar_t, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, egui_view_progress_bar_on_draw, NULL);
-#endif
+
     // call super init.
     egui_view_init(self);
     // update api.

@@ -416,7 +416,18 @@ void egui_view_calculate_layout(egui_view_t *self)
     }
 }
 
-EGUI_VIEW_API_DEFINE(egui_view_t, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_t) = {
+    .dispatch_touch_event = egui_view_dispatch_touch_event,
+    .on_touch_event = egui_view_on_touch_event,
+    .on_intercept_touch_event = egui_view_on_intercept_touch_event,
+    .compute_scroll = egui_view_compute_scroll,
+    .calculate_layout = egui_view_calculate_layout,
+    .request_layout = egui_view_request_layout,
+    .draw = egui_view_draw,
+    .on_attach_to_window = egui_view_on_attach_to_window,
+    .on_draw = egui_view_on_draw,
+    .on_detach_from_window = egui_view_on_detach_from_window,
+};
 
 void egui_view_init(egui_view_t *self)
 {

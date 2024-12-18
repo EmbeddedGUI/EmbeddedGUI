@@ -68,6 +68,7 @@ const egui_animation_api_t egui_animation_scale_size_t_api_table = {
 void egui_animation_scale_size_init(egui_animation_t *self)
 {
     egui_animation_scale_size_t *local = (egui_animation_scale_size_t *)self;
+    EGUI_UNUSED(local);
     // call super init.
     egui_animation_init(self);
     // update api.

@@ -86,7 +86,7 @@ void egui_animation_start(egui_animation_t *self)
     {
         return;
     }
-    self->start_time = -1;
+    self->start_time = (uint32_t)-1;
     self->is_running = true;
     self->is_started = false;
     self->is_ended = false;

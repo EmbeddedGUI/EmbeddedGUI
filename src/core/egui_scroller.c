@@ -87,7 +87,7 @@ int egui_scroller_compute_scroll_offset(egui_scroller_t *self)
     egui_dim_t offset = 0;
     egui_dim_t cur_delta;
     uint32_t time_elapsed = egui_api_timer_get_current() - self->start_time;
-    uint16_t old_offset = self->delta_offset;
+    // uint16_t old_offset = self->delta_offset;
     // EGUI_LOG_DBG("egui_scroller_compute_scroll_offset, time_elapsed: %d, old_offset: %d\n", time_elapsed, old_offset);
     if (time_elapsed >= self->duration)
     {

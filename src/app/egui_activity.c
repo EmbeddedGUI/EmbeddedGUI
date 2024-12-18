@@ -7,9 +7,9 @@
 #include "core/egui_api.h"
 #include "background/egui_background_color.h"
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_activity_param_normal, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
-EGUI_BACKGROUND_PARAM_INIT(bg_activity_params, &bg_activity_param_normal, NULL, NULL);
-EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_activity, &bg_activity_params);
+// EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_activity_param_normal, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
+// EGUI_BACKGROUND_PARAM_INIT(bg_activity_params, &bg_activity_param_normal, NULL, NULL);
+// EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_activity, &bg_activity_params);
 
 const char activity_state_str[][16] = {
         "NONE", "CREATE", "START", "RESUME", "PAUSE", "STOP", "DESTROY",

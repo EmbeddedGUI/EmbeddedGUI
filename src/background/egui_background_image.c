@@ -10,6 +10,7 @@
 void egui_background_image_on_draw(egui_background_t *self, egui_region_t *region, const void *param)
 {
     egui_background_image_t *local = (egui_background_image_t *)self;
+    EGUI_UNUSED(local);
     const egui_background_image_param_t *img_param = param;
 
     if (img_param->img != NULL)
@@ -27,6 +28,7 @@ const egui_background_api_t egui_background_image_t_api_table = {
 void egui_background_image_init(egui_background_t *self)
 {
     egui_background_image_t *local = (egui_background_image_t *)self;
+    EGUI_UNUSED(local);
     // call super init.
     egui_background_init(self);
     // update api.

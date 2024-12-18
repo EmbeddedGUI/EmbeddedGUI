@@ -10,6 +10,7 @@
 void egui_mask_circle_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
     egui_mask_circle_t *local = (egui_mask_circle_t *)self;
+    EGUI_UNUSED(local);
 
     if (egui_region_pt_in_rect(&self->region, x, y))
     {
@@ -65,6 +66,7 @@ const egui_mask_api_t egui_mask_circle_t_api_table = {
 void egui_mask_circle_init(egui_mask_t *self)
 {
     egui_mask_circle_t *local = (egui_mask_circle_t *)self;
+    EGUI_UNUSED(local);
     // call super init.
     egui_mask_init(self);
     // update api.

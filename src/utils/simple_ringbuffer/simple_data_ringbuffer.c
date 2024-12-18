@@ -89,7 +89,7 @@ void simple_data_ringbuffer_enqueue(simple_data_ringbuffer_t *ringbuf, uint16_t 
 
 void *simple_data_ringbuffer_dequeue_peek(simple_data_ringbuffer_t *ringbuf)
 {
-    uint16_t read_index;
+    // uint16_t read_index;
     uint16_t rptr;
     if (simple_data_ringbuffer_size(ringbuf) == 0)
     {

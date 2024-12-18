@@ -24,14 +24,14 @@ COMMON_FLAGS  += -g
 # warning param setting
 COMMON_FLAGS	+= -Wall
 # think use -Os.
-COMMON_FLAGS	+= -Wno-unused-function
-COMMON_FLAGS	+= -Wno-unused-variable
+# COMMON_FLAGS	+= -Wno-unused-function
+# COMMON_FLAGS	+= -Wno-unused-variable
 
 COMMON_FLAGS	+= -Wstrict-prototypes
 COMMON_FLAGS	+= -Wshadow
 # COMMON_FLAGS	+= -Werror
 
-COMMON_FLAGS	+= -Wno-typedef-redefinition
+# COMMON_FLAGS	+= -Wno-typedef-redefinition
 
 # spec c version
 COMMON_FLAGS  += -std=c99

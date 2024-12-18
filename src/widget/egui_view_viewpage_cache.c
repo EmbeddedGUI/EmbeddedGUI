@@ -72,7 +72,7 @@ void egui_view_viewpage_cache_on_paged_free(egui_view_t *self, int index, egui_v
 void egui_view_viewpage_cache_reload_page(egui_view_t *self, int center_page_index)
 {
     egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
-    egui_view_t* page_cache_tmp[EGUI_VIEW_VIEWPAGE_CACHE_MAX_PAGE_CNT] = {NULL};
+    // egui_view_t* page_cache_tmp[EGUI_VIEW_VIEWPAGE_CACHE_MAX_PAGE_CNT] = {NULL};
     int last_center_page_index = local->current_page_index;
     int index = 0;
 
@@ -127,7 +127,7 @@ void egui_view_viewpage_cache_reload_page(egui_view_t *self, int center_page_ind
 void egui_view_viewpage_cache_on_paged_free_all(egui_view_t *self)
 {
     egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
-    egui_view_t* page_cache_tmp[EGUI_VIEW_VIEWPAGE_CACHE_MAX_PAGE_CNT] = {NULL};
+    // egui_view_t* page_cache_tmp[EGUI_VIEW_VIEWPAGE_CACHE_MAX_PAGE_CNT] = {NULL};
     int last_center_page_index = local->current_page_index;
     int index = 0;
 
@@ -533,8 +533,18 @@ int egui_view_viewpage_cache_on_touch_event(egui_view_t *self, egui_motion_event
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
-EGUI_VIEW_API_DEFINE_BASE_GROUP(egui_view_viewpage_cache_t, NULL, egui_view_viewpage_cache_on_touch_event, egui_view_viewpage_cache_on_intercept_touch_event,
-                                egui_view_viewpage_cache_compute_scroll, NULL, NULL, NULL, NULL, NULL, NULL);
+const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_viewpage_cache_t) = {
+    .dispatch_touch_event = egui_view_group_dispatch_touch_event,
+    .on_touch_event = egui_view_viewpage_cache_on_touch_event, // changed
+    .on_intercept_touch_event = egui_view_viewpage_cache_on_intercept_touch_event, // changed
+    .compute_scroll = egui_view_viewpage_cache_compute_scroll, // changed
+    .calculate_layout = egui_view_group_calculate_layout,
+    .request_layout = egui_view_group_request_layout,
+    .draw = egui_view_group_draw,
+    .on_attach_to_window = egui_view_group_on_attach_to_window,
+    .on_draw = egui_view_on_draw,
+    .on_detach_from_window = egui_view_group_on_detach_from_window,
+};
 
 void egui_view_viewpage_cache_init(egui_view_t *self)
 {

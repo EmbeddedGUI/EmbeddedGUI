@@ -36,6 +36,7 @@ const egui_animation_api_t egui_animation_alpha_t_api_table = {
 void egui_animation_alpha_init(egui_animation_t *self)
 {
     egui_animation_alpha_t *local = (egui_animation_alpha_t *)self;
+    EGUI_UNUSED(local);
     // call super init.
     egui_animation_init(self);
     // update api.

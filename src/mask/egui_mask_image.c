@@ -40,6 +40,7 @@ const egui_mask_api_t egui_mask_image_t_api_table = {
 void egui_mask_image_init(egui_mask_t *self)
 {
     egui_mask_image_t *local = (egui_mask_image_t *)self;
+    EGUI_UNUSED(local);
     // call super init.
     egui_mask_init(self);
     // update api.

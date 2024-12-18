@@ -27,6 +27,7 @@ void uicode_init_ui(void)
 static void user_manu_refresh_screen(void)
 {
     // Manual refresh screen three time to test performance.
+    egui_core_force_refresh();
     egui_core_refresh_screen();
 
 #if EGUI_PORT == EGUI_PORT_TYPE_PC
@@ -37,6 +38,7 @@ static void user_manu_refresh_screen(void)
     uint32_t start_time = egui_api_timer_get_current();
     for (int i = 0; i < TEST_REPEAT_COUNT; i++)
     {
+        egui_core_force_refresh();
         egui_polling_refresh_display();
     }
     // get time.

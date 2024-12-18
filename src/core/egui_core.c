@@ -913,7 +913,7 @@ void egui_core_refresh_screen(void)
 {
     egui_core_animation_polling_work();
     egui_core_draw_view_group_pre_work();
-    if (egui_check_need_refresh() || EGUI_CONFIG_DEBUG_FORCE_REFRESH_ALL)
+    if (egui_check_need_refresh())
     {
         egui_polling_refresh_display();
 
