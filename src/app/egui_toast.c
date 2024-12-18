@@ -48,7 +48,11 @@ char *egui_toast_get_str_buf(egui_toast_t *self)
     return NULL;
 }
 
-EGUI_TOAST_API_DEFINE(egui_toast_t, NULL, NULL, NULL);
+static const egui_toast_api_t EGUI_TOAST_API_TABLE_NAME(egui_toast_t) = {
+        .on_show = egui_toast_on_show,
+        .on_hide = egui_toast_on_hide,
+        .get_str_buf = egui_toast_get_str_buf,
+};
 
 void egui_toast_init(egui_toast_t *self)
 {

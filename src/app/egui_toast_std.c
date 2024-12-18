@@ -42,7 +42,11 @@ char *egui_toast_std_get_str_buf(egui_toast_t *self)
     return local->toast_str;
 }
 
-EGUI_TOAST_API_DEFINE(egui_toast_std_t, egui_toast_std_on_show, egui_toast_std_on_hide, egui_toast_std_get_str_buf);
+static const egui_toast_api_t EGUI_TOAST_API_TABLE_NAME(egui_toast_std_t) = {
+        .on_show = egui_toast_std_on_show, // changed
+        .on_hide = egui_toast_std_on_hide, // changed
+        .get_str_buf = egui_toast_std_get_str_buf, // changed
+};
 
 void egui_toast_std_init(egui_toast_t *self)
 {

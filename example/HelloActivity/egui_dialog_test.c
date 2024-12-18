@@ -95,6 +95,7 @@ void egui_dialog_test_on_create(egui_dialog_t *self)
 void egui_dialog_test_on_destroy(egui_dialog_t *self)
 {
     egui_dialog_test_t *local = (egui_dialog_test_t *)self;
+    EGUI_UNUSED(local);
     // Call super on_destroy
     egui_dialog_on_destroy(self);
 
@@ -103,11 +104,19 @@ void egui_dialog_test_on_destroy(egui_dialog_t *self)
 #endif
 }
 
-EGUI_DIALOG_API_DEFINE(egui_dialog_test_t, egui_dialog_test_on_create, NULL, NULL, NULL, NULL, egui_dialog_test_on_destroy);
+static const egui_dialog_api_t EGUI_DIALOG_API_TABLE_NAME(egui_dialog_test_t) = {
+            .on_create = egui_dialog_test_on_create, // changed
+            .on_start = egui_dialog_on_start,
+            .on_resume = egui_dialog_on_resume,
+            .on_pause = egui_dialog_on_pause,
+            .on_stop = egui_dialog_on_stop,
+            .on_destroy = egui_dialog_test_on_destroy, // changed
+};
 
 void egui_dialog_test_init(egui_dialog_t *self)
 {
     egui_dialog_test_t *local = (egui_dialog_test_t *)self;
+    EGUI_UNUSED(local);
     // call super init.
     egui_dialog_init(self);
     // update api.

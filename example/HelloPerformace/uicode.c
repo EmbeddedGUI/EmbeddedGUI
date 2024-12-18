@@ -105,7 +105,9 @@ static const char *egui_view_test_performance_type_string(int test_mode)
     }
 }
 
+#if TEST_FOR_FULL_SCREEN_COMPARE
 static egui_color_int_t test_full_screen_pfb[EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT];
+#endif
 void egui_view_test_performance_with_test_mode(int test_mode)
 {
     EGUI_LOG_INF("=========== Test Mode: %s ===========\r\n", egui_view_test_performance_type_string(test_mode));

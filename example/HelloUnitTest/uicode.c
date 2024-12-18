@@ -6,14 +6,13 @@
 // views in root
 static egui_view_label_t label_1;
 static egui_view_label_t label_2;
-static egui_view_button_t button_1;
+// static egui_view_button_t button_1;
 static egui_view_linearlayout_t layout_1;
-static egui_view_linearlayout_t layout_2;
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(bg_button_param_normal, EGUI_COLOR_WHITE, EGUI_ALPHA_100, 15);
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(bg_button_param_pressed, EGUI_COLOR_DARK_GREY, EGUI_ALPHA_100, 15);
-EGUI_BACKGROUND_PARAM_INIT(bg_button_params, &bg_button_param_normal, &bg_button_param_pressed, NULL);
-EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_button, &bg_button_params);
+// EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(bg_button_param_normal, EGUI_COLOR_WHITE, EGUI_ALPHA_100, 15);
+// EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(bg_button_param_pressed, EGUI_COLOR_DARK_GREY, EGUI_ALPHA_100, 15);
+// EGUI_BACKGROUND_PARAM_INIT(bg_button_params, &bg_button_param_normal, &bg_button_param_pressed, NULL);
+// EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_button, &bg_button_params);
 
 #if EGUI_CONFIG_DIRTY_AREA_COUNT != 2
 #error "EGUI_CONFIG_DIRTY_AREA_COUNT should be 2"

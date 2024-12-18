@@ -231,7 +231,7 @@ int test_on_touch_event_cb(egui_view_t *self, egui_motion_event_t *event)
 
     return 1;
 }
-
+#if 0
 static void test_animation_basic(void)
 {
     // anim_1
@@ -275,7 +275,9 @@ static void test_animation_basic(void)
 
     egui_animation_start((egui_animation_t *)&anim_1);
 }
+#endif
 
+#if 0
 static void test_animation_set(void)
 {
 
@@ -314,7 +316,7 @@ static void test_animation_set(void)
 
     egui_animation_start((egui_animation_t *)&anim_set);
 }
-
+#endif
 static void test_animation_set_1(void)
 {
     // anim_translate

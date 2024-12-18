@@ -5,6 +5,7 @@
 # APP ?= HelloResourceManager
 APP ?= HelloSimple
 # APP ?= HelloTest
+# APP ?= HelloUnitTest
 # APP ?= HelloViewPageAndScroll
 
 # include port info

@@ -481,8 +481,10 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
     egui_color_t color;
     egui_alpha_t alpha;
     egui_canvas_t *canvas = egui_canvas_get_canvas();
-    // uint16_t data_row_size = image->width << 1; // same to image->width * 2
-    // uint16_t alpha_row_size = image->width;
+    uint16_t data_row_size = image->width << 1; // same to image->width * 2
+    uint16_t alpha_row_size = image->width;
+    EGUI_UNUSED(data_row_size);
+    EGUI_UNUSED(alpha_row_size);
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     void *data_buf = egui_malloc(data_row_size); 
     void *alpha_buf = egui_malloc(alpha_row_size);
@@ -545,8 +547,10 @@ void egui_image_std_set_image_rgb565_4(const egui_image_t *self, egui_dim_t x, e
     egui_color_t color;
     egui_alpha_t alpha;
     egui_canvas_t *canvas = egui_canvas_get_canvas();
-    // uint16_t data_row_size = image->width << 1; // same to image->width * 2
+    uint16_t data_row_size = image->width << 1; // same to image->width * 2
     uint16_t alpha_row_size = ((image->width + 1) >> 1); // same to: ((image->width + 1) / 2);
+    EGUI_UNUSED(data_row_size);
+    EGUI_UNUSED(alpha_row_size);
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     void *data_buf = egui_malloc(data_row_size); 
     void *alpha_buf = egui_malloc(alpha_row_size);
@@ -612,8 +616,10 @@ void egui_image_std_set_image_rgb565_2(const egui_image_t *self, egui_dim_t x, e
     egui_color_t color;
     egui_alpha_t alpha;
     egui_canvas_t *canvas = egui_canvas_get_canvas();
-    // uint16_t data_row_size = image->width << 1; // same to image->width * 2
+    uint16_t data_row_size = image->width << 1; // same to image->width * 2
     uint16_t alpha_row_size = ((image->width + 3) >> 2); // same to: ((image->width + 3) / 4);
+    EGUI_UNUSED(data_row_size);
+    EGUI_UNUSED(alpha_row_size);
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     void *data_buf = egui_malloc(data_row_size); 
     void *alpha_buf = egui_malloc(alpha_row_size);
@@ -679,8 +685,10 @@ void egui_image_std_set_image_rgb565_1(const egui_image_t *self, egui_dim_t x, e
     egui_color_t color;
     egui_alpha_t alpha;
     egui_canvas_t *canvas = egui_canvas_get_canvas();
-    // uint16_t data_row_size = image->width << 1; // same to image->width * 2
+    uint16_t data_row_size = image->width << 1; // same to image->width * 2
     uint16_t alpha_row_size = ((image->width + 7) >> 3); // same to ((image->width + 7) / 8);
+    EGUI_UNUSED(data_row_size);
+    EGUI_UNUSED(alpha_row_size);
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     void *data_buf = egui_malloc(data_row_size); 
     void *alpha_buf = egui_malloc(alpha_row_size);

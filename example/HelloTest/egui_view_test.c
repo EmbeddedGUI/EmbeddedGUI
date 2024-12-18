@@ -74,7 +74,7 @@ void egui_view_test_on_draw(egui_view_t *self)
 
 #if 1
     extern const egui_image_std_t egui_res_image_test_rgb565_8;
-    extern const egui_image_std_t egui_res_image_test_rgb32_8;
+    // extern const egui_image_std_t egui_res_image_test_rgb32_8;
 
     egui_mask_circle_t mask;
     egui_mask_circle_init((egui_mask_t *)&mask);

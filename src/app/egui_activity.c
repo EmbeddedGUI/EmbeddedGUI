@@ -103,7 +103,14 @@ void egui_activity_on_destroy(egui_activity_t *self)
     egui_core_activity_remove(self);
 }
 
-EGUI_ACTIVITY_API_DEFINE(egui_activity_t, NULL, NULL, NULL, NULL, NULL, NULL);
+static const egui_activity_api_t EGUI_ACTIVITY_API_TABLE_NAME(egui_activity_t) = {
+        .on_create = egui_activity_on_create,
+        .on_start = egui_activity_on_start,
+        .on_resume = egui_activity_on_resume,
+        .on_pause = egui_activity_on_pause,
+        .on_stop = egui_activity_on_stop,
+        .on_destroy = egui_activity_on_destroy,
+};
 
 void egui_activity_init(egui_activity_t *self)
 {

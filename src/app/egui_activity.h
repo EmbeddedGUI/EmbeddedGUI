@@ -33,16 +33,6 @@ struct egui_activity_api
 
 #define EGUI_ACTIVITY_API_TABLE_NAME(_name) _name##_api_table
 
-#define EGUI_ACTIVITY_API_DEFINE(_name, _on_create, _on_start, _on_resume, _on_pause, _on_stop, _on_destroy)                                                   \
-    static const egui_activity_api_t EGUI_ACTIVITY_API_TABLE_NAME(_name) = {                                                                                   \
-            .on_create = _on_create == NULL ? egui_activity_on_create : _on_create,                                                                            \
-            .on_start = _on_start == NULL ? egui_activity_on_start : _on_start,                                                                                \
-            .on_resume = _on_resume == NULL ? egui_activity_on_resume : _on_resume,                                                                            \
-            .on_pause = _on_pause == NULL ? egui_activity_on_pause : _on_pause,                                                                                \
-            .on_stop = _on_stop == NULL ? egui_activity_on_stop : _on_stop,                                                                                    \
-            .on_destroy = _on_destroy == NULL ? egui_activity_on_destroy : _on_destroy,                                                                        \
-    };
-
 struct egui_activity
 {
     egui_dnode_t node;      // node of the activity in the activity list

@@ -120,7 +120,14 @@ void egui_dialog_on_destroy(egui_dialog_t *self)
     egui_core_remove_user_root_view((egui_view_t *)&self->root_view);
 }
 
-EGUI_DIALOG_API_DEFINE(egui_dialog_t, NULL, NULL, NULL, NULL, NULL, NULL);
+static const egui_dialog_api_t EGUI_DIALOG_API_TABLE_NAME(egui_dialog_t) = {
+            .on_create = egui_dialog_on_create,
+            .on_start = egui_dialog_on_start,
+            .on_resume = egui_dialog_on_resume,
+            .on_pause = egui_dialog_on_pause,
+            .on_stop = egui_dialog_on_stop,
+            .on_destroy = egui_dialog_on_destroy,
+};
 
 void egui_dialog_init(egui_dialog_t *self)
 {

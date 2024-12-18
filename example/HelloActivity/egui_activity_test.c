@@ -151,6 +151,7 @@ void egui_activity_test_on_create(egui_activity_t *self)
 void egui_activity_test_on_destroy(egui_activity_t *self)
 {
     egui_activity_test_t *local = (egui_activity_test_t *)self;
+    EGUI_UNUSED(local);
     // Call super on_destroy
     egui_activity_on_destroy(self);
 
@@ -169,7 +170,14 @@ void egui_activity_test_set_index(egui_activity_t *self, int index)
     egui_activity_set_name(self, local->label_str);
 }
 
-EGUI_ACTIVITY_API_DEFINE(egui_activity_test_t, egui_activity_test_on_create, NULL, NULL, NULL, NULL, egui_activity_test_on_destroy);
+static const egui_activity_api_t EGUI_ACTIVITY_API_TABLE_NAME(egui_activity_test_t) = {
+        .on_create = egui_activity_test_on_create, // changed
+        .on_start = egui_activity_on_start,
+        .on_resume = egui_activity_on_resume,
+        .on_pause = egui_activity_on_pause,
+        .on_stop = egui_activity_on_stop,
+        .on_destroy = egui_activity_test_on_destroy, // changed
+};
 
 void egui_activity_test_init(egui_activity_t *self)
 {
