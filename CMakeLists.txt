@@ -5,6 +5,9 @@ project(EGUI_Project C)
 # 设置 C 标准
 set(CMAKE_C_STANDARD 99)
 
+# set(CMAKE_CXX_COMPILER "g++")
+# set(CMAKE_C_COMPILER "gcc")
+
 option(BUILD_HELLO_ACTIVITY "Build HelloActivity example" OFF)
 option(BUILD_HELLO_BASIC "Build HelloBasic example" ON)
 option(BUILD_HELLO_PERFORMANCE "Build HelloPerformance example" OFF)

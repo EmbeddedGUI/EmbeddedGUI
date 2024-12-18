@@ -21,8 +21,8 @@ ifeq ($(OS),Windows_NT)
 
 else ifeq ($(shell uname), Darwin)
     # Code for OS X
-	COMMON_FLAGS  += -DSDL_DISABLE_ARM_NEON_H -D_THREAD_SAFE
-	INCLUDE  += /opt/homebrew/include
+# COMMON_FLAGS  += -DSDL_DISABLE_ARM_NEON_H -D_THREAD_SAFE
+# INCLUDE  += /opt/homebrew/include
 # LIB  += /opt/homebrew/lib
 	LFLAGS  += -lSDL2 -lSDL2main
 
