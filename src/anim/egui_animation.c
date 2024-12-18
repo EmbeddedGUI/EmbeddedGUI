@@ -124,7 +124,7 @@ void egui_animation_update(egui_animation_t *self, uint32_t current_time)
         egui_animation_notify_start(self);
     }
 
-    if (self->start_time == -1)
+    if (self->start_time == (uint32_t)-1)
     {
         self->start_time = current_time;
     }
@@ -181,7 +181,7 @@ void egui_animation_update(egui_animation_t *self, uint32_t current_time)
             }
 
             // Restart animation
-            self->start_time = -1;
+            self->start_time = (uint32_t)-1;
             egui_animation_notify_repeat(self);
         }
     }

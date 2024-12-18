@@ -550,7 +550,7 @@ void egui_view_viewpage_cache_init(egui_view_t *self)
     local->last_motion_x = 0;
     local->is_begin_dragged = 0;
 
-    local->current_page_index = -1;
+    local->current_page_index = (uint8_t)-1;
     local->total_page_cnt = 0;
 
     local->listener = NULL;

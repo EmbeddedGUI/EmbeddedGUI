@@ -34,6 +34,7 @@ struct egui_view_api
 #define EGUI_VIEW_API_TABLE_NAME(_name) _name##_api_table
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+#if !EGUI_CONFIG_AC5
 #define EGUI_VIEW_API_DEFINE(_name, _dispatch_touch_event, _on_touch_event, _on_intercept_touch_event, _compute_scroll, _calculate_layout, _request_layout,    \
                              _draw, _on_attach_to_window, _on_draw, _on_detach_from_window)                                                                    \
     const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(_name) = {                                                                                                  \
@@ -49,7 +50,22 @@ struct egui_view_api
             .on_detach_from_window = _on_detach_from_window == NULL ? egui_view_on_detach_from_window : _on_detach_from_window,                                \
     };
 #else
-
+#define EGUI_VIEW_API_DEFINE(_name, _dispatch_touch_event, _on_touch_event, _on_intercept_touch_event, _compute_scroll, _calculate_layout, _request_layout,    \
+                             _draw, _on_attach_to_window, _on_draw, _on_detach_from_window)                                                                    \
+           egui_view_api_t EGUI_VIEW_API_TABLE_NAME(_name);
+		
+#define EGUI_VIEW_API_INIT(_name, _dispatch_touch_event, _on_touch_event, _on_intercept_touch_event, _compute_scroll, _calculate_layout, _request_layout,    \
+                             _draw, _on_attach_to_window, _on_draw, _on_detach_from_window)                                                                    \
+            EGUI_VIEW_API_TABLE_NAME(_name).compute_scroll = _compute_scroll == NULL ? egui_view_compute_scroll : _compute_scroll;                                                           \
+            EGUI_VIEW_API_TABLE_NAME(_name).calculate_layout = _calculate_layout == NULL ? egui_view_calculate_layout : _calculate_layout;                                                    \
+            EGUI_VIEW_API_TABLE_NAME(_name).request_layout = _request_layout == NULL ? egui_view_request_layout : _request_layout;                                                            \
+            EGUI_VIEW_API_TABLE_NAME(_name).draw = _draw == NULL ? egui_view_draw : _draw;                                                                                                    \
+            EGUI_VIEW_API_TABLE_NAME(_name).on_attach_to_window = _on_attach_to_window == NULL ? egui_view_on_attach_to_window : _on_attach_to_window;                                        \
+            EGUI_VIEW_API_TABLE_NAME(_name).on_draw = _on_draw == NULL ? egui_view_on_draw : _on_draw;                                                                                        \
+            EGUI_VIEW_API_TABLE_NAME(_name).on_detach_from_window = _on_detach_from_window == NULL ? egui_view_on_detach_from_window : _on_detach_from_window;  
+#endif // EGUI_CONFIG_AC5						
+#else
+#if !EGUI_CONFIG_AC5
 #define EGUI_VIEW_API_DEFINE(_name, _dispatch_touch_event, _on_touch_event, _on_intercept_touch_event, _compute_scroll, _calculate_layout, _request_layout,    \
                              _draw, _on_attach_to_window, _on_draw, _on_detach_from_window)                                                                    \
     const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(_name) = { \
@@ -61,6 +77,23 @@ struct egui_view_api
             .on_draw = _on_draw == NULL ? egui_view_on_draw : _on_draw,                                                                                        \
             .on_detach_from_window = _on_detach_from_window == NULL ? egui_view_on_detach_from_window : _on_detach_from_window,                                \
     };
+
+#else
+#define EGUI_VIEW_API_DEFINE(_name, _dispatch_touch_event, _on_touch_event, _on_intercept_touch_event, _compute_scroll, _calculate_layout, _request_layout,    \
+                             _draw, _on_attach_to_window, _on_draw, _on_detach_from_window)                                                                    \
+           egui_view_api_t EGUI_VIEW_API_TABLE_NAME(_name);
+		
+#define EGUI_VIEW_API_INIT(_name, _dispatch_touch_event, _on_touch_event, _on_intercept_touch_event, _compute_scroll, _calculate_layout, _request_layout,    \
+                             _draw, _on_attach_to_window, _on_draw, _on_detach_from_window)                                                                    \
+            EGUI_VIEW_API_TABLE_NAME(_name).compute_scroll = _compute_scroll == NULL ? egui_view_compute_scroll : _compute_scroll;                                                           \
+            EGUI_VIEW_API_TABLE_NAME(_name).calculate_layout = _calculate_layout == NULL ? egui_view_calculate_layout : _calculate_layout;                                                    \
+            EGUI_VIEW_API_TABLE_NAME(_name).request_layout = _request_layout == NULL ? egui_view_request_layout : _request_layout;                                                            \
+            EGUI_VIEW_API_TABLE_NAME(_name).draw = _draw == NULL ? egui_view_draw : _draw;                                                                                                    \
+            EGUI_VIEW_API_TABLE_NAME(_name).on_attach_to_window = _on_attach_to_window == NULL ? egui_view_on_attach_to_window : _on_attach_to_window;                                        \
+            EGUI_VIEW_API_TABLE_NAME(_name).on_draw = _on_draw == NULL ? egui_view_on_draw : _on_draw;                                                                                        \
+            EGUI_VIEW_API_TABLE_NAME(_name).on_detach_from_window = _on_detach_from_window == NULL ? egui_view_on_detach_from_window : _on_detach_from_window;                                
+						
+#endif // EGUI_CONFIG_AC5		
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
 typedef struct egui_view_padding egui_view_padding_t;

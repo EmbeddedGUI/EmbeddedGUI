@@ -54,6 +54,9 @@ void egui_view_image_init(egui_view_t *self)
 {
     egui_view_image_t *local = (egui_view_image_t *)self;
     EGUI_UNUSED(local);
+#if EGUI_CONFIG_AC5		
+	  EGUI_VIEW_API_INIT(egui_view_image_t, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, egui_view_image_on_draw, NULL);
+#endif
     // call super init.
     egui_view_init(self);
     // update api.

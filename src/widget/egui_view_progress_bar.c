@@ -75,6 +75,9 @@ EGUI_VIEW_API_DEFINE(egui_view_progress_bar_t, NULL, NULL, NULL, NULL, NULL, NUL
 void egui_view_progress_bar_init(egui_view_t *self)
 {
     egui_view_progress_bar_t *local = (egui_view_progress_bar_t *)self;
+#if EGUI_CONFIG_AC5		
+	  EGUI_VIEW_API_INIT(egui_view_image_t, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, egui_view_image_on_draw, NULL);
+#endif
     // call super init.
     egui_view_init(self);
     // update api.
