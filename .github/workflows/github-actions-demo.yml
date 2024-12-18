@@ -12,6 +12,8 @@ jobs:
       - name: Setup C/C++ env
         uses: rlalik/setup-cpp-compiler@v1.2
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
+      - name: Start python env and install requirements
+        run: python -m pip install -r requirements.txt
       - name: Start Compile Test, full compile check.
         run: python scripts\code_compile_check.py --full-check --actions --bits64
       - run: echo "🍏 This job's status is ${{ job.status }}."
