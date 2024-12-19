@@ -16,12 +16,10 @@ extern "C" {
 typedef struct egui_view_api egui_view_api_t;
 struct egui_view_api
 {
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     int (*dispatch_touch_event)(egui_view_t *self, egui_motion_event_t *event);
     int (*on_touch_event)(egui_view_t *self, egui_motion_event_t *event);
     // to reduce code size, just put the function pointer here, and implement it in egui_view_group.c
     int (*on_intercept_touch_event)(egui_view_t *self, egui_motion_event_t *event);
-#endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     void (*compute_scroll)(egui_view_t *self);
     void (*calculate_layout)(egui_view_t *self);
     void (*request_layout)(egui_view_t *self);

@@ -313,6 +313,21 @@ int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 
     return 0;
 }
+#else
+int egui_view_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event)
+{
+    return 0;
+}
+
+int egui_view_dispatch_touch_event(egui_view_t *self, egui_motion_event_t *event)
+{
+    return 0;
+}
+
+int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
+{
+    return 0;
+}
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
 void egui_view_on_attach_to_window(egui_view_t *self)

@@ -355,9 +355,15 @@ int egui_view_viewpage_on_touch_event(egui_view_t *self, egui_motion_event_t *ev
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_viewpage_t) = {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     .dispatch_touch_event = egui_view_group_dispatch_touch_event,
     .on_touch_event = egui_view_viewpage_on_touch_event, // changed
     .on_intercept_touch_event = egui_view_viewpage_on_intercept_touch_event, // changed
+#else // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    .dispatch_touch_event = egui_view_group_dispatch_touch_event,
+    .on_touch_event = NULL, // changed
+    .on_intercept_touch_event = NULL, // changed
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     .compute_scroll = egui_view_viewpage_compute_scroll, // changed
     .calculate_layout = egui_view_group_calculate_layout,
     .request_layout = egui_view_group_request_layout,

@@ -415,6 +415,31 @@ int egui_view_group_on_touch_event(egui_view_t *self, egui_motion_event_t *event
 
     return 0;
 }
+#else // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+
+void egui_view_group_request_disallow_intercept_touch_event(egui_view_t *self, int disallow)
+{
+}
+
+int egui_view_group_dispatch_transformed_touch_event(egui_view_t *self, int is_canceled, egui_view_t *child, egui_motion_event_t *event)
+{
+    return 0;
+}
+
+int egui_view_group_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event)
+{
+    return 0;
+}
+
+int egui_view_group_dispatch_touch_event(egui_view_t *self, egui_motion_event_t *event)
+{
+    return 0;
+}
+
+int egui_view_group_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
+{
+    return 0;
+}
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
 void egui_view_group_on_attach_to_window(egui_view_t *self)
