@@ -283,7 +283,7 @@ void egui_image_std_load_data_resource(void *dest, egui_image_std_info_t *image,
     }
     else
     {
-        egui_api_load_external_resource(dest, (uint32_t)(image->data_buf), start_offset, size);
+        egui_api_load_external_resource(dest, (egui_uintptr_t)(image->data_buf), start_offset, size);
     }
     
     // EGUI_LOG_INF("egui_image_std_load_data_resource, data: %08x:%08x:%08x:%08x:%08x:%08x:%08x:%08x\n", ((uint32_t *)dest)[0], ((uint32_t *)dest)[1], ((uint32_t *)dest)[2], ((uint32_t *)dest)[3], ((uint32_t *)dest)[4], ((uint32_t *)dest)[5], ((uint32_t *)dest)[6], ((uint32_t *)dest)[7]);
@@ -298,7 +298,7 @@ void egui_image_std_load_alpha_resource(void *dest, egui_image_std_info_t *image
     }
     else
     {
-        egui_api_load_external_resource(dest, (uint32_t)(image->alpha_buf), start_offset, size);
+        egui_api_load_external_resource(dest, (egui_uintptr_t)(image->alpha_buf), start_offset, size);
     }
     // EGUI_LOG_INF("egui_image_std_load_alpha_resource, data: %08x:%08x:%08x:%08x:%08x:%08x:%08x:%08x\n", ((uint32_t *)dest)[0], ((uint32_t *)dest)[1], ((uint32_t *)dest)[2], ((uint32_t *)dest)[3], ((uint32_t *)dest)[4], ((uint32_t *)dest)[5], ((uint32_t *)dest)[6], ((uint32_t *)dest)[7]);
 }

@@ -56,8 +56,8 @@ static const egui_font_std_char_descriptor_t *egui_font_std_get_desc(const egui_
     }
     else
     {
-        egui_api_load_external_resource(p_char_desc, (uint32_t)font->char_array, code_index * sizeof(egui_font_std_char_descriptor_t), sizeof(egui_font_std_char_descriptor_t));
-        // egui_api_load_external_resource(ext_data_buf, (uint32_t)font->char_array, code_index * EGUI_FONT_STD_EXT_CHAR_DESC_ITEM_SIZE, EGUI_FONT_STD_EXT_CHAR_DESC_ITEM_SIZE);
+        egui_api_load_external_resource(p_char_desc, (egui_uintptr_t)font->char_array, code_index * sizeof(egui_font_std_char_descriptor_t), sizeof(egui_font_std_char_descriptor_t));
+        // egui_api_load_external_resource(ext_data_buf, (egui_uintptr_t)font->char_array, code_index * EGUI_FONT_STD_EXT_CHAR_DESC_ITEM_SIZE, EGUI_FONT_STD_EXT_CHAR_DESC_ITEM_SIZE);
         // p_char_desc->idx = *(uint32_t *)ext_data_buf;
         // p_char_desc->size = *(uint16_t *)(ext_data_buf + 4);
         // p_char_desc->box_w = *(uint8_t *)(ext_data_buf + 6);
@@ -215,7 +215,7 @@ static int egui_font_std_draw_single_char(const egui_font_t *self, uint32_t utf8
             }
             else
             {
-                egui_api_load_external_resource(data_buf, (uint32_t)(font->pixel_buffer), p_char_desc->idx, p_char_desc->size);
+                egui_api_load_external_resource(data_buf, (egui_uintptr_t)(font->pixel_buffer), p_char_desc->idx, p_char_desc->size);
                 // EGUI_LOG_INF("load external resource, idx:%d, size:%d, data_buf:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\r\n", p_char_desc->idx, p_char_desc->size
                 //     , ((uint8_t *)data_buf)[0], ((uint8_t *)data_buf)[1], ((uint8_t *)data_buf)[2], ((uint8_t *)data_buf)[3], ((uint8_t *)data_buf)[4], ((uint8_t *)data_buf)[5], ((uint8_t *)data_buf)[6], ((uint8_t *)data_buf)[7]);
             }

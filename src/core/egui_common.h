@@ -293,6 +293,7 @@ typedef uint8_t egui_alpha_t; /*!< Alpha value in range 0-255 */
 
 #define egui_id_t uint16_t /*!< GUI resource identifier */
 
+#define egui_uintptr_t uintptr_t
 
 extern uint8_t egui_alpha_change_table_2[4];
 extern uint8_t egui_alpha_change_table_4[16];
