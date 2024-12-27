@@ -12,8 +12,9 @@
    :caption: 目录:
 
    introduction/index.rst
-   code/index.rst
    basic/index.rst
+   resource/index.rst
+   code/index.rst
 
 
 

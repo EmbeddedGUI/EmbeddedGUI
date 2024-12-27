@@ -1,15 +1,17 @@
 # 介绍
 
+## 概述
+
 EmbeddedGUI是专为嵌入式打造的GUI框架，项目支持PFB、脏矩阵、动画和抗锯齿支持。
 
 本项目仓库路径：[EmbeddedGUI(gitee.com)](https://gitee.com/embeddedgui/EmbeddedGUI)，[EmbeddedGUI(github.com)](https://github.com/EmbeddedGUI/EmbeddedGUI)。
 
 
 
-# 功能特点
+## 功能特点
 
 
-# 产品特点
+## 产品特点
 
 - 易于移植，全部由C代码编写，支持C++调用，无第三方依赖库。
 - 基于轮询结构，可以在任何MCU环境下运行，无需OS支持。
@@ -28,7 +30,7 @@ EmbeddedGUI是专为嵌入式打造的GUI框架，项目支持PFB、脏矩阵、
 - PC调试，C部署，可以在PC上运行调试，而后在嵌入式项目上运行。
 - Makefile组织编译，没有乱七八糟的配置。
 
-# License
+## License
 
 遵循`MIT`协议。
 

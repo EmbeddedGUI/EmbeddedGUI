@@ -2,8 +2,8 @@
 # APP ?= HelloActivity
 # APP ?= HelloBasic
 # APP ?= HelloPerformace
-# APP ?= HelloResourceManager
-APP ?= HelloSimple
+APP ?= HelloResourceManager
+# APP ?= HelloSimple
 # APP ?= HelloTest
 # APP ?= HelloUnitTest
 # APP ?= HelloViewPageAndScroll
@@ -21,7 +21,7 @@ COMMON_FLAGS  := -O2
 # V := 1
 
 # for 64bit system
-# BITS=64
+BITS=64
 
 # For user show current app info.
 COMMON_FLAGS += -DEGUI_APP=\"$(APP)\"
