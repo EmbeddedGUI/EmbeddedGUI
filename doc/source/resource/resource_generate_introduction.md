@@ -14,9 +14,111 @@
 
 本项目对资源的管理既支持**内部管理**，也支持**外部管理**。
 
+## 资源管理
+
+通常在嵌入式项目中，资源如图片和字体并不是直接将jpg或者ttf存在芯片中，这样对芯片的资源要求太高了。通常都需要将各个文件翻译成单片机所能识别的字节数组和配置信息等。
+
+而一个项目的资源文件会比较多而杂，如果手动用脚本对文件进行处理，会遇到几个问题。
+
+1. 图片资源更新，当一个图片不满足要求时，需要更新文件时，又要手动用脚本对文件处理一遍。
+2. 字体资源更新，当一些文本需要更换字体时，并且不同字体有不同文本时，需要管理一堆的txt和font size信息。
+3. 外部资源管理，多个图片、文本资源需要保存外部资源时，如何管理这些资源的存储位置也很重要。
+4. 统计资源信息，需要全局预览项目所使用的资源信息，不可能一个个手工统计。
+
+有一些GUI项目是通过IDE来做的，但是本项目人力有限，不可能做一个IDE出来。所以本项目提供了一套基于**json配置文件**的资源管理方案，只需要将资源在json文件中配置好，通过脚本就会自动生成嵌入式项目所需的资源文件，对于外部资源，会将所有外部资源打包成一个二进制bin文件，并生成资源所在的偏移地址。
+
+输入包括：
+
+1. JSON文件，也就是`app_resource_config.json`，按照格式要求，配置各个资源文件的输出格式。
+2. 图片资源文件，目前支持`*.png/*.jpg/*.bmp`格式的图片资源，需要将原始文件放入项目中。
+3. 字体资源文件，需要一个txt存放所需的文本信息，一个ttf字体文件。
+
+经过`app_resource_generate.py`解析脚本后，会输出一系列项目所需文件。输出包括：
+
+1. 资源索引文件，`app_egui_resource_generate.h`主要存放一些资源的结构体声明（方便应用引用资源，避免到处引用结构体），外部资源偏移地址的Index信息。
+2. 外部资源偏移文件，`app_egui_resource_generate.c`主要存放一个`egui_ext_res_id_map`表，存所有外部资源的偏移地址信息。
+3. 外部资源二进制文件，`app_egui_resource_merge.bin`将所有的资源文件打包成一个二进制bin文件，可以直接烧录到外部flash中。
+4. 资源统计报告，`app_egui_resource_generate_report.md`，Markdown格式，直接看到所有资源的code size占用情况。
+5. 各个资源的配置文件（编译），这些主要是编译所需的结构体。内部资源会将资源以数组保存；外部资源会保存资源的配置信息。
+
+
+![image-20241227214036468](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/image-20241227214036468.png)
 
 
 
+### 总体结构
+
+项目提供了`HelloResourceManager`示例工程演示如何使用资源管理功能。
+
+![image-20241227215322163](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/image-20241227215322163.png)
+
+
+
+### 使用说明
+
+直接`make resource_refresh`强制更新，建议当资源有更新都调用这个。
+
+会检查`app_egui_resource_merge.bin`是否存在，不存在才会更新资源文件。
+
+![image-20241227215515539](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/image-20241227215515539.png)
+
+
+
+## app_resource_config.json配置说明
+
+为了加注释，使用`json5`文件格式。包含`img`和`font`两个数组。
+
+
+
+### 图片资源配置
+
+配置在`img`数组里，每个资源文件需要一个，使用说明详见注释。没配置的参数使用默认值。
+
+`external`，配置是外部资源还是内部资源。
+
+**注意**，参数中`all`主要是满足测试需要，实际项目中建议配置为所需值，不然会导致生成各种配置的资源，但是这些资源并没有使用。
+
+![image-20241227215727106](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/image-20241227215727106.png)
+
+
+
+### 文字资源配置
+
+配置在`font`数组里，每个资源文件需要一个，使用说明详见注释。没配置的参数使用默认值。
+
+`external`，配置是外部资源还是内部资源。
+
+`file`，为`ttf`字体文件。
+
+`text`，为需要用`ttf`生成的文本，一般嵌入式项目只讲需要的字体解析出来就行。
+
+**注意**，参数中`all`主要是满足测试需要，实际项目中建议配置为所需值，不然会导致生成各种配置的资源，但是这些资源并没有使用。
+
+
+
+![image-20241227220153617](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/image-20241227220153617.png)
+
+
+
+**注意**，考虑到项目中管理方便，相同的字体文件可以支持合并，如下2个配置项目，因为参数都相同，最终会将`supported_text_test_0.txt`和`supported_text_test_1.txt`合并，重复的文字会删除。
+
+![image-20241227220644128](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/image-20241227220644128.png)
+
+
+
+## 资源统计
+
+可以直观的看到各个资源所占用的code size大小。
+
+![image-20241227220828555](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/image-20241227220828555.png)
+
+
+
+![image-20241227220844199](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/image-20241227220844199.png)
+
+
+
+![image-20241227220909631](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/image-20241227220909631.png)
 
 
 
