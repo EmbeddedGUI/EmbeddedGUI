@@ -20,15 +20,15 @@
 
 ## 内部资源
 
-只会生成一个`xxxxx.c`文件，里面保持了所有图片信息，生成的内部资源包括，
+只会生成一个`egui_res_image_xxxxx.c`文件，里面保持了所有图片信息，生成的内部资源包括，
 
-`xxxxx_alpha_buf`，透明通道数组。
+`egui_res_image_xxxxx_alpha_buf`，透明通道数组。
 
-`xxxxx_data_buf`，RGB像素点数组。
+`egui_res_image_xxxxx_data_buf`，RGB像素点数组。
 
-`xxxxx_info`，图片配置信息。
+`egui_res_image_xxxxx_info`，图片配置信息。
 
-`egui_image_std_t xxxxx`，结构体。
+`egui_image_std_t egui_res_image_xxxxx`，结构体。
 
 ![image-20241227222514952](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/image-20241227222514952.png)
 
@@ -42,11 +42,11 @@
 
 ## 外部资源
 
-会生成3个文件，`xxxxx_bin.c`文件，里面保持了图片配置信息，`xxxxx_alpha.bin`透明通道二进制文件，`xxxxx_data.bin`RGB像素点二进制文件，生成的外部资源包括，
+会生成3个文件，`egui_res_image_xxxxx_bin.c`文件，里面保持了图片配置信息；`egui_res_image_xxxxx_alpha.bin`透明通道二进制文件，也就是`egui_res_image_xxxxx_alpha_buf`；`egui_res_image_xxxxx_data.bin`RGB像素点二进制文件，也就是`egui_res_image_xxxxx_data_buf`。生成的外部资源包括，
 
-`xxxxx_bin_info`，图片配置信息。
+`egui_res_image_xxxxx_bin_info`，图片配置信息。
 
-`egui_image_std_t xxxxx_bin`，结构体。
+`egui_image_std_t egui_res_image_xxxxx_bin`，结构体。
 
 **注意**，为了方便管理，有外部资源需求，最好用`app_resource_config.json`统一管理。
 
