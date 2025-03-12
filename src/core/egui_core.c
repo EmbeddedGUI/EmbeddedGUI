@@ -68,6 +68,7 @@ void egui_core_update_region_dirty(egui_region_t *region_dirty)
 
     if(egui_region_is_empty(&region_new_in_window))
     {
+        // EGUI_LOG_WRN("region_new_in_window is empty\r\n"); // change EGUI_CONFIG_DIRTY_AREA_COUNT
         return;
     }
 

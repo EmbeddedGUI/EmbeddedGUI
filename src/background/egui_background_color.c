@@ -56,7 +56,7 @@ void egui_background_color_on_draw(egui_background_t *self, egui_region_t *regio
             egui_canvas_draw_round_rectangle_corners_fill(
                     0, 0, region->size.width, region->size.height, color_param->shape.round_rectangle_corners.radius_left_top,
                     color_param->shape.round_rectangle_corners.radius_left_bottom, color_param->shape.round_rectangle_corners.radius_right_top,
-                    color_param->shape.round_rectangle_corners.radius_right_top, color_param->color, color_param->alpha);
+                    color_param->shape.round_rectangle_corners.radius_right_bottom, color_param->color, color_param->alpha);
         }
         else
         {
@@ -67,12 +67,12 @@ void egui_background_color_on_draw(egui_background_t *self, egui_region_t *regio
                         region->size.height - color_param->stroke_width, color_param->shape.round_rectangle_corners.radius_left_top - color_param->stroke_width / 2,
                         color_param->shape.round_rectangle_corners.radius_left_bottom - color_param->stroke_width / 2,
                         color_param->shape.round_rectangle_corners.radius_right_top - color_param->stroke_width / 2,
-                        color_param->shape.round_rectangle_corners.radius_right_top - color_param->stroke_width / 2, color_param->color, color_param->alpha);
+                        color_param->shape.round_rectangle_corners.radius_right_bottom - color_param->stroke_width / 2, color_param->color, color_param->alpha);
             }
             egui_canvas_draw_round_rectangle_corners(
                     0, 0, region->size.width, region->size.height, color_param->shape.round_rectangle_corners.radius_left_top,
                     color_param->shape.round_rectangle_corners.radius_left_bottom, color_param->shape.round_rectangle_corners.radius_right_top,
-                    color_param->shape.round_rectangle_corners.radius_right_top, color_param->stroke_width, color_param->stroke_color, color_param->stroke_alpha);
+                    color_param->shape.round_rectangle_corners.radius_right_bottom, color_param->stroke_width, color_param->stroke_color, color_param->stroke_alpha);
         }
         break;
     case EGUI_BACKGROUND_COLOR_TYPE_CIRCLE:

@@ -5,9 +5,32 @@
 #include "core/egui_core.h"
 #include "core/egui_api.h"
 
+int egui_view_is_visible(egui_view_t *self)
+{
+    if((!self->is_visible) || (self->is_gone))
+    {
+        return 0;
+    }
+    egui_view_t *p = (egui_view_t *)self->parent;
+    while (p)
+    {
+        if((!p->is_visible) || (p->is_gone))
+        {
+            return 0;
+        }
+
+        p = (egui_view_t *)p->parent;
+    }
+
+    return 1;
+}
+
 void egui_view_invalidate(egui_view_t *self)
 {
-    self->api->request_layout(self);
+    if(egui_view_is_visible(self))
+    {
+        self->api->request_layout(self);
+    }
 }
 
 void egui_view_set_background(egui_view_t *self, egui_background_t *background)
@@ -180,8 +203,16 @@ int egui_view_get_pressed(egui_view_t *self)
 
 void egui_view_set_visible(egui_view_t *self, int is_visible)
 {
+    if(is_visible == self->is_visible)
+    {
+        return;
+    }
+    // avoid self change to invisible.
+    egui_view_invalidate(self);
+
     self->is_visible = is_visible;
 
+    // avoid self change to invisible.
     egui_view_invalidate(self);
 }
 
@@ -192,8 +223,17 @@ int egui_view_get_visible(egui_view_t *self)
 
 void egui_view_set_gone(egui_view_t *self, int is_gone)
 {
+    if(is_gone == self->is_gone)
+    {
+        return;
+    }
+
+    // avoid self change to invisible.
+    egui_view_invalidate(self);
+
     self->is_gone = is_gone;
 
+    // avoid self change to invisible.
     egui_view_invalidate(self);
 }
 
