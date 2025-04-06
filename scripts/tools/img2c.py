@@ -227,7 +227,10 @@ class img2c_tool:
 
             alpha_str_io = StringIO()
             data_str_io = StringIO()
-            if mode == "RGBA":
+
+            if mode == "RGB":
+                alpha_buf_name = "NULL"
+            elif mode == "RGBA":
                 if self.format == 'rgb32':
                     # empty alpha.
                     alpha_buf_name = "NULL"
