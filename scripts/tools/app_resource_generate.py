@@ -57,6 +57,9 @@ def format_file_name(file_name):
     file_name = file_name.replace(')', '_')
     file_name = file_name.replace(',', '_')
     file_name = file_name.replace(' ', '_')
+    file_name = file_name.replace('//', '_')
+    file_name = file_name.replace('/', '_')
+    file_name = file_name.replace('\\', '_')
     # avoid too long file name
     file_name = file_name.replace('__', '_')
     file_name = file_name.replace('__', '_')

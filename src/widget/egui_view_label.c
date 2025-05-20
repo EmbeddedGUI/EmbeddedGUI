@@ -18,7 +18,7 @@ void egui_view_label_on_draw(egui_view_t *self)
     egui_canvas_draw_text_in_rect(local->font, local->text, &region, local->align_type, local->color, local->alpha);
 }
 
-void egui_view_label_set_font(egui_view_t *self, egui_font_t *font)
+void egui_view_label_set_font(egui_view_t *self, const egui_font_t *font)
 {
     egui_view_label_t *local = (egui_view_label_t *)self;
     if (local->font == font)
@@ -29,7 +29,7 @@ void egui_view_label_set_font(egui_view_t *self, egui_font_t *font)
     egui_view_invalidate(self);
 }
 
-void egui_view_label_set_font_with_std_height(egui_view_t *self, egui_font_t *font)
+void egui_view_label_set_font_with_std_height(egui_view_t *self, const egui_font_t *font)
 {
     egui_view_label_t *local = (egui_view_label_t *)self;
     egui_dim_t height = EGUI_FONT_STD_GET_FONT_HEIGHT(font);

@@ -19,13 +19,13 @@ struct egui_view_label
     egui_alpha_t alpha;
     egui_color_t color;
 
-    egui_font_t *font;
+    const egui_font_t *font;
     const char *text;
 };
 
 void egui_view_label_on_draw(egui_view_t *self);
-void egui_view_label_set_font_with_std_height(egui_view_t *self, egui_font_t *font);
-void egui_view_label_set_font(egui_view_t *self, egui_font_t *font);
+void egui_view_label_set_font_with_std_height(egui_view_t *self, const egui_font_t *font);
+void egui_view_label_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_label_set_font_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha);
 void egui_view_label_set_align_type(egui_view_t *self, uint8_t align_type);
 void egui_view_label_set_text(egui_view_t *self, const char *text);

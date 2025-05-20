@@ -52,6 +52,7 @@
 #include "widget/egui_view.h"
 #include "widget/egui_view_group.h"
 #include "widget/egui_view_button.h"
+#include "widget/egui_view_dynamic_label.h"
 #include "widget/egui_view_label.h"
 #include "widget/egui_view_linearlayout.h"
 #include "widget/egui_view_progress_bar.h"
