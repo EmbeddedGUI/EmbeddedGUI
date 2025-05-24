@@ -55,6 +55,7 @@
 #include "widget/egui_view_dynamic_label.h"
 #include "widget/egui_view_label.h"
 #include "widget/egui_view_linearlayout.h"
+#include "widget/egui_view_mp4.h"
 #include "widget/egui_view_progress_bar.h"
 #include "widget/egui_view_image.h"
 #include "widget/egui_view_scroll.h"

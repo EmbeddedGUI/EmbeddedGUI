@@ -194,8 +194,9 @@ class FontResourceInfo:
             self.external_list.append(int(self.external_info))
 
 def generate_font_resource(resource_src_path, font_res_output_path, config_info_font):
+    ttf2c_tool_list = []
     if not config_info_font:
-        return
+        return ttf2c_tool_list
     # 检查重复的font配置
     font_config_list = []
     for font_config in config_info_font:
@@ -215,7 +216,6 @@ def generate_font_resource(resource_src_path, font_res_output_path, config_info_
                         continue
                     font_config_list.append([font_info, pixelsize, fontbitsize, external])
     
-    ttf2c_tool_list = []
     for font_config_item in font_config_list:
         # print(font_config_item)
         font_info = font_config_item[0]
@@ -244,8 +244,9 @@ def generate_font_resource(resource_src_path, font_res_output_path, config_info_
 
 
 def generate_img_resource(resource_src_path, img_res_output_path, config_info_img):
+    img2c_tool_list = []
     if not config_info_img:
-        return
+        return img2c_tool_list
 
     img_config_list = []
     for img_config in config_info_img:
@@ -255,7 +256,6 @@ def generate_img_resource(resource_src_path, img_res_output_path, config_info_im
                 for external in img_info.external_list:
                     img_config_list.append([img_info, rgb, alpha, external, img_info.dim, img_info.rot, img_info.swap])
     
-    img2c_tool_list = []
     for img_config_item in img_config_list:
         img_info = img_config_item[0]
         file_name = img_info.file_name
@@ -326,14 +326,12 @@ def generate_resource(resource_path, output_path, force):
     img2c_tool_list = generate_img_resource(resource_src_path, img_res_output_path, config_info['img'])
     ttf2c_tool_list = generate_font_resource(resource_src_path, font_res_output_path, config_info['font'])
 
-
     # 遍历生成app_egui_resource_generate.h文件
     resource_id_string = ""
     resource_extern_string = ""
 
     resource_bin_offset = 0
     resource_id_map_string = ""
-
 
     for tool in sorted(img2c_tool_list, key=lambda x: x.img_name):
         resource_extern_string += f"extern const egui_image_std_t {tool.img_name};\n"
@@ -431,7 +429,14 @@ def generate_resource(resource_path, output_path, force):
             img_alpha_total_size += tmp_alpha_size
             img_total_size += tmp_data_size + tmp_alpha_size
             # f"![{tool.img_name}](src/{tool.filename})"
-            f.write(f"| {tool.img_name} | {tmp_data_size} | {tmp_alpha_size} | {tmp_data_size + tmp_alpha_size} | ![{tool.img_name}](src/{tool.filename}) |\n")
+            img_file_path = tool.input_img_file
+            # 只保留img_file_path中src之后的路径信息
+            if 'src/' in img_file_path:
+                img_file_path = img_file_path.split('src/')[1]
+            elif 'src\\' in img_file_path:
+                img_file_path = img_file_path.split('src\\')[1]
+                
+            f.write(f"| {tool.img_name} | {tmp_data_size} | {tmp_alpha_size} | {tmp_data_size + tmp_alpha_size} | ![{tool.img_name}](src/{img_file_path}) |\n")
         f.write(f"| 总计 | {img_data_total_size} | {img_alpha_total_size} | {img_total_size} |\n")
 
         f.write("\n")

@@ -1,0 +1,323 @@
+{
+    // image generation parameters.
+    // Item parameters:
+    // file_name: The name of the image file to be generated.
+    // external: Storage format (all, 0: internal, 1: external)
+    // format: RGB Format (all, rgb32, rgb565, gray8)
+    // alpha: Alpha Format (all, 0, 1, 2, 4, 8)
+    // dim: Resize the image with the given width and height, -1,-1 to disable resizing.
+    // rot: Rotate the image with the given angle in degrees, -1 to disable rotation.
+    // swap: Swap the high and low bytes of the 16-bit RGB565 format
+    "img": [
+
+        {
+            "file": "test/frame_test_0001.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0002.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0003.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0004.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0005.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0006.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0007.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0008.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0009.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0010.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0011.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0012.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0013.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0014.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0015.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0016.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0017.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0018.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0019.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0020.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0021.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0022.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0023.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0024.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0025.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0026.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0027.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0028.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0029.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0030.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0031.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0032.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0033.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0034.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0035.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0036.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0037.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0038.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0039.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0040.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0041.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0042.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0043.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0044.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0045.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0046.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0047.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0048.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0049.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+        {
+            "file": "test/frame_test_0050.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+        },
+    ],
+    // font generation parameters.
+    // Item parameters:
+    // file_name: The name of the font file to be generated.
+    // text: The customized UTF8 font name
+    // external: Storage format (all, 0: internal, 1: external)
+    // pixelsize: Font size in pixels, fixed in height.(all, 4-32)
+    // fontbitsize: Font bit size (all, 1, 2, 4, 8)
+    "font": [
+    ],
+}
