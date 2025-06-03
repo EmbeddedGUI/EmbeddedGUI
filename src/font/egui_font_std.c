@@ -68,6 +68,10 @@ static const egui_font_std_char_descriptor_t *egui_font_std_get_desc(const egui_
         
         // EGUI_LOG_INF("utf8_code: 0x%08x, idx:%d, size:%d, box_w:%d, box_h:%d, adv:%d, off_x:%d, off_y:%d\r\n"
         //              , utf8_code, p_char_desc->idx, p_char_desc->size, p_char_desc->box_w, p_char_desc->box_h, p_char_desc->adv, p_char_desc->off_x, p_char_desc->off_y);
+        if(p_char_desc->size == 0)
+        {
+            return NULL;
+        }
     }
 
     return p_char_desc;

@@ -454,6 +454,7 @@ void egui_canvas_draw_text_in_rect(const egui_font_t *font, const void *string, 
 void egui_canvas_draw_image(const egui_image_t *img, egui_dim_t x, egui_dim_t y);
 void egui_canvas_draw_image_resize(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height);
 void egui_canvas_calc_work_region(egui_region_t *base_region);
+void egui_canvas_register_spec_circle_info(uint16_t res_circle_info_count_spec, const egui_circle_info_t *res_circle_info_spec_arr);
 void egui_canvas_init(egui_color_int_t *pfb, egui_region_t *region);
 
 int egui_canvas_get_circle_left_top(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y,

@@ -30,7 +30,7 @@ void egui_utils_view_label_std_normal_init(egui_view_t *self, const egui_font_t 
     egui_view_label_set_font_color(self, color, EGUI_ALPHA_100);
 }
 
-void egui_utils_view_cust_label_std_normal_init(egui_view_t *self, const egui_font_t *font, egui_color_t color, const char *str, egui_dim_t x, egui_dim_t y)
+void egui_utils_view_dynamic_label_std_normal_init(egui_view_t *self, const egui_font_t *font, egui_color_t color, const char *str, egui_dim_t x, egui_dim_t y)
 {
     egui_dim_t width, height;
 
