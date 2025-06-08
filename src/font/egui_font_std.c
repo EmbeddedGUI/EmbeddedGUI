@@ -297,7 +297,13 @@ int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_
 
     while ((*s != '\0'))
     {
-        if(*s == '\n')
+        if(*s == '\r')
+        {
+            s++;
+            str_cnt ++;
+            continue;
+        }
+        else if(*s == '\n')
         {
             str_cnt ++;
             break;
@@ -359,6 +365,7 @@ int egui_font_std_get_str_size(const egui_font_t *self, const void *string, uint
     {
         if(*s == '\r')
         {
+            s++;
             continue;
         }
         else if(*s == '\n')
