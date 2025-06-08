@@ -354,39 +354,56 @@ int egui_font_std_get_str_size(const egui_font_t *self, const void *string, uint
     int utf8_bytes;
     const egui_font_std_char_descriptor_t *p_char_desc;
 
+    int is_line_full = 0;
     while ((*s != '\0'))
     {
         if(*s == '\r')
         {
             continue;
         }
-        if(*s == '\n')
+        else if(*s == '\n')
         {
             if(is_multi_line == 0)
             {
                 break;
             }
+            // update max width.
+            if(font_max_width < font_width)
+            {
+                font_max_width = font_width;
+            }
             font_height += font->height + line_space;
             font_width = 0;
+
+            is_line_full = 0;
         }
+
         utf8_bytes = egui_font_get_utf8_code(s, &utf8_code);
-        p_char_desc = egui_font_std_get_desc(font, utf8_code);
-        font_width += p_char_desc ? p_char_desc->adv : FONT_ERROR_FONT_SIZE(font->height);
         s += utf8_bytes;
 
-        if(font_max_width < font_width)
+        // caculate font width.
+        if(!is_line_full)
         {
-            font_max_width = font_width;
-        }
+            p_char_desc = egui_font_std_get_desc(font, utf8_code);
+            font_width += p_char_desc ? p_char_desc->adv : FONT_ERROR_FONT_SIZE(font->height);
 
-        if(*width != 0)
-        {
-            if (font_width >= *width)
+            if(*width != 0)
             {
-                font_width = *width;
-                continue;
+                if (font_width > *width)
+                {
+                    font_width = *width;
+                    is_line_full = 1;
+                    continue;
+                }
             }
         }
+
+    }
+
+    // update max width.
+    if(font_max_width < font_width)
+    {
+        font_max_width = font_width;
     }
 
     *width = font_max_width;
