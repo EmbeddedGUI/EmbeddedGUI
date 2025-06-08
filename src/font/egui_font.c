@@ -102,28 +102,32 @@ void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, 
         return;
     }
     egui_dim_t x, y;
-    egui_dim_t start_y;
     int str_bytes;
     egui_dim_t x_size, y_size;
     egui_region_t tmp_rect = *rect;
 
     // Get all text start position.
-    egui_font_get_string_pos(self, s, rect, align_type, 1, 0, &x, &y);
+    egui_font_get_string_pos(self, s, rect, align_type, 1, line_space, &x, &y);
     // Get string height.
     self->api->get_str_size(self, "t", 0, 0, &x_size, &y_size);
 
+    // EGUI_LOG_INF("egui_font_draw_string_in_rect. string:%s, rect:%d,%d,%d,%d, x:%d, y:%d, x_size:%d, y_size:%d\n"
+    //     , string, rect->location.x, rect->location.y, rect->size.width, rect->size.height, x, y, x_size, y_size);
+
     align_type &= ~EGUI_ALIGN_VMASK;
-    start_y = y;
+    tmp_rect.location.y += y;
 
     while (*s)
     {
-        tmp_rect.location.y = start_y;
         egui_font_get_string_pos(self, s, rect, align_type, 0, line_space, &x, &y);
 
         str_bytes = self->api->draw_string(self, s, tmp_rect.location.x + x, tmp_rect.location.y + y, color, alpha);
 
         s += str_bytes;
-        start_y += y_size + line_space;
+        tmp_rect.location.y += y_size + line_space;
+
+        // EGUI_LOG_INF("egui_font_draw_string_in_rect. string:%s, rect:%d,%d,%d,%d, x:%d, y:%d, str_bytes:%d\n"
+        //     , string, tmp_rect.location.x, tmp_rect.location.y, tmp_rect.size.width, tmp_rect.size.height, x, y, str_bytes);
     }
 
 }
