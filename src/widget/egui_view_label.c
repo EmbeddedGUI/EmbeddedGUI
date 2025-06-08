@@ -15,7 +15,7 @@ void egui_view_label_on_draw(egui_view_t *self)
     egui_region_t region;
     egui_view_get_work_region(self, &region);
 
-    egui_canvas_draw_text_in_rect(local->font, local->text, &region, local->align_type, local->line_space, local->color, local->alpha);
+    egui_canvas_draw_text_in_rect_with_line_space(local->font, local->text, &region, local->align_type, local->line_space, local->color, local->alpha);
 }
 
 void egui_view_label_set_font(egui_view_t *self, const egui_font_t *font)
