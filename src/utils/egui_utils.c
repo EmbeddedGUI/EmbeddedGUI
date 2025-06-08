@@ -19,7 +19,7 @@ void egui_utils_view_label_std_normal_init(egui_view_t *self, const egui_font_t 
 {
     egui_dim_t width, height;
 
-    egui_font_std_get_str_size(font, str, &width, &height);
+    font->api->get_str_size(font, str, 1, 0, &width, &height);
 
     egui_view_label_init(self);
     egui_view_set_position(self, x, y);
@@ -34,7 +34,7 @@ void egui_utils_view_dynamic_label_std_normal_init(egui_view_t *self, const egui
 {
     egui_dim_t width, height;
 
-    egui_font_std_get_str_size(font, str, &width, &height);
+    font->api->get_str_size(font, str, 1, 0, &width, &height);
 
     egui_view_dynamic_label_init(self);
     egui_view_set_position(self, x, y);

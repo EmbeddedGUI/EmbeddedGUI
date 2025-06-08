@@ -262,16 +262,18 @@ static int egui_font_std_draw_single_char(const egui_font_t *self, uint32_t utf8
     return FONT_ERROR_FONT_SIZE(font->height);
 }
 
-void egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
+int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
 {
     const char *s = (const char *)string;
+    int str_cnt = 0;
     if (0 == s)
     {
-        return;
+        return 0;
     }
 
     int offset = x;
     uint32_t utf8_code;
+    int char_bytes;
 
     egui_font_std_info_t *font = (egui_font_std_info_t *)self->res;
     egui_region_t* base_region = egui_canvas_get_base_view_work_region();
@@ -279,19 +281,46 @@ void egui_font_std_draw_string(const egui_font_t *self, const void *string, egui
     if (y > (base_region->location.y + base_region->size.height) ||
         (y + font->height) < base_region->location.y)
     {
-        return;
+        while((*s != '\0'))
+        {
+            if(*s == '\n')
+            {
+                str_cnt ++;
+                break;
+            }
+            char_bytes = egui_font_get_utf8_code(s, &utf8_code);
+            s += char_bytes;
+            str_cnt += char_bytes;
+        }
+        return str_cnt;
     }
 
-    // printf("draw string: region(%d, %d, %d, %d)\n", base_region->location.x, base_region->location.y,
-    // base_region->size.width, base_region->size.height);
-    while (*s)
+    while ((*s != '\0'))
     {
-        s += egui_font_get_utf8_code(s, &utf8_code);
+        if(*s == '\n')
+        {
+            str_cnt ++;
+            break;
+        }
+        char_bytes = egui_font_get_utf8_code(s, &utf8_code);
+        s += char_bytes;
+        str_cnt += char_bytes;
 
         // printf("draw char: %c, offset(%d)\n", utf8_code, offset);
         // only check x-axis intersection, since y-axis is fixed.
         if (offset > base_region->location.x + base_region->size.width)
         {
+            while((*s != '\0'))
+            {
+                if(*s == '\n')
+                {
+                    str_cnt ++;
+                    break;
+                }
+                char_bytes = egui_font_get_utf8_code(s, &utf8_code);
+                s += char_bytes;
+                str_cnt += char_bytes;
+            }
             break;
         }
         else if ((offset + font->height) < base_region->location.x) // max font width is font->height
@@ -304,9 +333,11 @@ void egui_font_std_draw_string(const egui_font_t *self, const void *string, egui
             offset += egui_font_std_draw_single_char(self, utf8_code, offset, y, color, alpha);
         }
     }
+
+    return str_cnt;
 }
 
-int egui_font_std_get_str_size(const egui_font_t *self, const void *string, egui_dim_t *width, egui_dim_t *height)
+int egui_font_std_get_str_size(const egui_font_t *self, const void *string, uint8_t is_multi_line, egui_dim_t line_space, egui_dim_t *width, egui_dim_t *height)
 {
     const char *s = (const char *)string;
     egui_font_std_info_t *font = (egui_font_std_info_t *)self->res;
@@ -317,59 +348,55 @@ int egui_font_std_get_str_size(const egui_font_t *self, const void *string, egui
     }
 
     int font_width = 0;
+    int font_height = font->height;
+    int font_max_width = 0;
     uint32_t utf8_code;
     int utf8_bytes;
     const egui_font_std_char_descriptor_t *p_char_desc;
-    while (*s)
-    {
-        utf8_bytes = egui_font_get_utf8_code(s, &utf8_code);
-        p_char_desc = egui_font_std_get_desc(font, utf8_code);
-        font_width += p_char_desc ? p_char_desc->adv : FONT_ERROR_FONT_SIZE(font->height);
-        s += utf8_bytes;
-    }
-    *width = font_width;
-    *height = font->height;
-    return 0;
-}
 
-int egui_font_std_get_str_size_with_limit(const egui_font_t *self, const void *string, egui_dim_t *width, egui_dim_t *height)
-{
-    const char *s = (const char *)string;
-    egui_font_std_info_t *font = (egui_font_std_info_t *)self->res;
-    if (NULL == s || NULL == font)
+    while ((*s != '\0'))
     {
-        *width = *height = 0;
-        return -1;
-    }
-
-    int font_width = 0;
-    uint32_t utf8_code;
-    int utf8_bytes;
-    const egui_font_std_char_descriptor_t *p_char_desc;
-    while (*s)
-    {
-        utf8_bytes = egui_font_get_utf8_code(s, &utf8_code);
-        p_char_desc = egui_font_std_get_desc(font, utf8_code);
-        font_width += p_char_desc ? p_char_desc->adv : FONT_ERROR_FONT_SIZE(font->height);
-        s += utf8_bytes;
-
-        if (font_width >= *width)
+        if(*s == '\r')
         {
-            font_width = *width;
-            break;
+            continue;
+        }
+        if(*s == '\n')
+        {
+            if(is_multi_line == 0)
+            {
+                break;
+            }
+            font_height += font->height + line_space;
+            font_width = 0;
+        }
+        utf8_bytes = egui_font_get_utf8_code(s, &utf8_code);
+        p_char_desc = egui_font_std_get_desc(font, utf8_code);
+        font_width += p_char_desc ? p_char_desc->adv : FONT_ERROR_FONT_SIZE(font->height);
+        s += utf8_bytes;
+
+        if(font_max_width < font_width)
+        {
+            font_max_width = font_width;
+        }
+
+        if(*width != 0)
+        {
+            if (font_width >= *width)
+            {
+                font_width = *width;
+                continue;
+            }
         }
     }
-    *width = font_width;
-    *height = font->height;
+
+    *width = font_max_width;
+    *height = font_height;
     return 0;
 }
 
 const egui_font_api_t egui_font_std_t_api_table = {
         .draw_string = egui_font_std_draw_string,
-        .draw_string_in_rect = egui_font_draw_string_in_rect,
         .get_str_size = egui_font_std_get_str_size,
-        .get_str_size_with_limit = egui_font_std_get_str_size_with_limit,
-        .get_string_pos = egui_font_get_string_pos,
 };
 
 void egui_font_std_init(egui_font_t *self, const void *res)

@@ -15,6 +15,8 @@ struct egui_view_label
 {
     egui_view_t base;
 
+    egui_dim_t line_space;
+
     uint8_t align_type;
     egui_alpha_t alpha;
     egui_color_t color;
@@ -24,6 +26,7 @@ struct egui_view_label
 };
 
 void egui_view_label_on_draw(egui_view_t *self);
+void egui_view_label_set_line_space(egui_view_t *self, egui_dim_t line_space);
 void egui_view_label_set_font_with_std_height(egui_view_t *self, const egui_font_t *font);
 void egui_view_label_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_label_set_font_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha);

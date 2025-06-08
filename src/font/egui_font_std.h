@@ -46,9 +46,6 @@ struct egui_font_std
     egui_font_t base;
 };
 
-void egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color,
-                               egui_alpha_t alpha);
-int egui_font_std_get_str_size(const egui_font_t *self, const void *string, egui_dim_t *width, egui_dim_t *height);
 void egui_font_std_init(egui_font_t *self, const void *res);
 
 /* Ends C function definitions when using C++ */

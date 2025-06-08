@@ -69,13 +69,13 @@ static int egui_font_lattice_draw_single_char(const egui_font_t *self, uint32_t 
     return FONT_ERROR_LATTICE_SIZE(font->height);
 }
 
-void egui_font_lattice_draw_string(const egui_font_t *self, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color,
+int egui_font_lattice_draw_string(const egui_font_t *self, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color,
                                    egui_alpha_t alpha)
 {
     const char *s = (const char *)string;
     if (0 == s)
     {
-        return;
+        return 0;
     }
 
     int offset = 0;
@@ -85,9 +85,11 @@ void egui_font_lattice_draw_string(const egui_font_t *self, const void *string, 
         s += egui_font_get_utf8_code(s, &utf8_code);
         offset += egui_font_lattice_draw_single_char(self, utf8_code, (x + offset), y, color, alpha);
     }
+
+    return ((uint32_t)string - (uint32_t)s);
 }
 
-int egui_font_lattice_get_str_size(const egui_font_t *self, const void *string, egui_dim_t *width, egui_dim_t *height)
+int egui_font_lattice_get_str_size(const egui_font_t *self, const void *string, uint8_t is_multi_line, egui_dim_t line_space, egui_dim_t *width, egui_dim_t *height)
 {
     const char *s = (const char *)string;
     LATTICE_FONT_INFO *font = (LATTICE_FONT_INFO *)self->res;
@@ -114,10 +116,7 @@ int egui_font_lattice_get_str_size(const egui_font_t *self, const void *string, 
 
 const egui_font_api_t egui_font_lattice_t_api_table = {
         .draw_string = egui_font_lattice_draw_string,
-        .draw_string_in_rect = egui_font_draw_string_in_rect,
         .get_str_size = egui_font_lattice_get_str_size,
-        .get_str_size_with_limit = egui_font_lattice_get_str_size,
-        .get_string_pos = egui_font_get_string_pos,
 };
 
 void egui_font_lattice_init(egui_font_t *self, const void *res)

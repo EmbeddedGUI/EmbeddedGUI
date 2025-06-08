@@ -2461,10 +2461,10 @@ void egui_canvas_draw_text(const egui_font_t *font, const void *string, egui_dim
     font->api->draw_string(font, string, x, y, color, alpha);
 }
 
-void egui_canvas_draw_text_in_rect(const egui_font_t *font, const void *string, egui_region_t *rect, uint8_t align_type, egui_color_t color,
+void egui_canvas_draw_text_in_rect(const egui_font_t *font, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space, egui_color_t color,
                                    egui_alpha_t alpha)
 {
-    font->api->draw_string_in_rect(font, string, rect, align_type, color, alpha);
+    egui_font_draw_string_in_rect(font, string, rect, align_type, line_space, color, alpha);
 }
 
 void egui_canvas_draw_image(const egui_image_t *img, egui_dim_t x, egui_dim_t y)

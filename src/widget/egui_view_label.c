@@ -15,7 +15,7 @@ void egui_view_label_on_draw(egui_view_t *self)
     egui_region_t region;
     egui_view_get_work_region(self, &region);
 
-    egui_canvas_draw_text_in_rect(local->font, local->text, &region, local->align_type, local->color, local->alpha);
+    egui_canvas_draw_text_in_rect(local->font, local->text, &region, local->align_type, local->line_space, local->color, local->alpha);
 }
 
 void egui_view_label_set_font(egui_view_t *self, const egui_font_t *font)
@@ -74,11 +74,18 @@ void egui_view_label_set_text(egui_view_t *self, const char *text)
     egui_view_invalidate(self);
 }
 
+void egui_view_label_set_line_space(egui_view_t *self, egui_dim_t line_space)
+{
+    egui_view_label_t *local = (egui_view_label_t *)self;
+    local->line_space = line_space;
+    egui_view_invalidate(self);
+}
+
 int egui_view_label_get_str_size(egui_view_t *self, const void *string, egui_dim_t *width, egui_dim_t *height)
 {
     egui_view_label_t *local = (egui_view_label_t *)self;
 
-    local->font->api->get_str_size(local->font, string, width, height);
+    local->font->api->get_str_size(local->font, string, 1, local->line_space, width, height);
 
     return 0;
 }

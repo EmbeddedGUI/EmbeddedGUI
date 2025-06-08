@@ -449,7 +449,7 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
 // void egui_canvas_draw_circle_corner(egui_dim_t x0, egui_dim_t y0, egui_dim_t r, uint8_t c, egui_color_t color, egui_alpha_t alpha);
 // void egui_canvas_draw_circle_corner_fill(egui_dim_t x0, egui_dim_t y0, egui_dim_t r, uint8_t c, egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_text(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha);
-void egui_canvas_draw_text_in_rect(const egui_font_t *font, const void *string, egui_region_t *rect, uint8_t align_type, egui_color_t color,
+void egui_canvas_draw_text_in_rect(const egui_font_t *font, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space, egui_color_t color,
                                    egui_alpha_t alpha);
 void egui_canvas_draw_image(const egui_image_t *img, egui_dim_t x, egui_dim_t y);
 void egui_canvas_draw_image_resize(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height);
