@@ -5,7 +5,7 @@
 
 void egui_utils_view_image_std_normal_init(egui_view_t *self, egui_image_t *image, egui_dim_t x, egui_dim_t y)
 {
-    egui_dim_t width, height;
+    egui_dim_t width = 0, height = 0;
 
     egui_image_std_get_width_height(image, &width, &height);
     egui_view_image_init(self);
@@ -17,7 +17,7 @@ void egui_utils_view_image_std_normal_init(egui_view_t *self, egui_image_t *imag
 
 void egui_utils_view_label_std_normal_init(egui_view_t *self, const egui_font_t *font, egui_color_t color, const char *str, egui_dim_t x, egui_dim_t y)
 {
-    egui_dim_t width, height;
+    egui_dim_t width = 0, height = 0;
 
     font->api->get_str_size(font, str, 1, 0, &width, &height);
 
@@ -32,7 +32,7 @@ void egui_utils_view_label_std_normal_init(egui_view_t *self, const egui_font_t 
 
 void egui_utils_view_dynamic_label_std_normal_init(egui_view_t *self, const egui_font_t *font, egui_color_t color, const char *str, egui_dim_t x, egui_dim_t y)
 {
-    egui_dim_t width, height;
+    egui_dim_t width = 0, height = 0;
 
     font->api->get_str_size(font, str, 1, 0, &width, &height);
 

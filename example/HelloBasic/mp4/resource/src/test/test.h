@@ -1,5 +1,8 @@
 #define MP4_IMAGE_COUNT_TEST 50
-extern const egui_image_t *mp4_arr_test[MP4_IMAGE_COUNT_TEST] = 
+extern const egui_image_t *mp4_arr_test[MP4_IMAGE_COUNT_TEST];
+
+
+const egui_image_t *mp4_arr_test[MP4_IMAGE_COUNT_TEST] = 
 {
     (const egui_image_t *)&egui_res_image_test_frame_test_0001_rgb565_0,
     (const egui_image_t *)&egui_res_image_test_frame_test_0002_rgb565_0,

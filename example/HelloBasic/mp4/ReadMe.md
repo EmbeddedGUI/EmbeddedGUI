@@ -4,7 +4,7 @@ MP4这个控件其实就是对一堆图片按照特定帧率进行图片顺序�
 
 那主要问题就是如何从mp4中提取出特定帧率的图片集合来，在`scripts/tools/app_mp4_image_generate.py`提供了脚本来实现mp4转图片集的工作。
 
-同时这个脚本参数比较多，当有多个mp4需要处理是，还需要用户自己写一个脚本管理如何调用`scripts/tools/app_mp4_image_generate.py`脚本。
+同时这个脚本参数比较多，当有多个mp4需要处理时，还需要用户自己写一个脚本管理如何调用`scripts/tools/app_mp4_image_generate.py`脚本。
 
 本例程提供的`resource\src\app_resource_mp4_work.py`脚本其实就是去配置了如何调用脚本的一个脚本。
 
@@ -32,7 +32,8 @@ def generate_mp4_image(script_path, input_video, target_fps, width_px, height_px
               + " -ext " + str(target_ext))
 
 # basic param
-script_path = "../../../"
+current_path = os.path.dirname(os.path.abspath(__file__))
+script_path = os.path.join(current_path, "../../../../../")
 script_path = os.path.join(script_path, "scripts/tools/app_mp4_image_generate.py")
 # print(script_path)
 target_fps = 10
@@ -42,10 +43,14 @@ target_format = "rgb565"
 target_alpha = 0
 target_ext = 0
 
-input_video = "test.mp4"
+input_video = os.path.join(current_path, "test.mp4")
 generate_mp4_image(script_path, input_video, target_fps, target_width, target_height, target_format, target_alpha, target_ext)
 
 ```
+
+
+
+Windows电脑也可以直接运行`app_resource_mp4_work.bat`脚本。自己项目中，需要按需调整`app_resource_mp4_work.py`中的`script_path`相对路径，也就是`script_path = os.path.join(current_path, "../../../../../")`。
 
 
 

@@ -13,7 +13,8 @@ def generate_mp4_image(script_path, input_video, target_fps, width_px, height_px
               + " -ext " + str(target_ext))
 
 # basic param
-script_path = "../../../"
+current_path = os.path.dirname(os.path.abspath(__file__))
+script_path = os.path.join(current_path, "../../../../../")
 script_path = os.path.join(script_path, "scripts/tools/app_mp4_image_generate.py")
 # print(script_path)
 target_fps = 10
@@ -23,5 +24,5 @@ target_format = "rgb565"
 target_alpha = 0
 target_ext = 0
 
-input_video = "test.mp4"
+input_video = os.path.join(current_path, "test.mp4")
 generate_mp4_image(script_path, input_video, target_fps, target_width, target_height, target_format, target_alpha, target_ext)
