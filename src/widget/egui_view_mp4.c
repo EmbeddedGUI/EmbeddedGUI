@@ -11,6 +11,10 @@ void egui_view_mp4_on_draw(egui_view_t *self)
 {
     egui_view_mp4_t *local = (egui_view_mp4_t *)self;
 
+    if(!local->mp4_image_list || local->mp4_image_count == 0)
+    {
+        return;
+    }
     const egui_image_t *image = (const egui_image_t *)local->mp4_image_list[local->mp4_image_index];
 
     // printf("on_draw, mp4_image_index=%d, image: %p\n", local->mp4_image_index, image);
