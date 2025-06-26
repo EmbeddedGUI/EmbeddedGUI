@@ -86,7 +86,7 @@ int egui_font_lattice_draw_string(const egui_font_t *self, const void *string, e
         offset += egui_font_lattice_draw_single_char(self, utf8_code, (x + offset), y, color, alpha);
     }
 
-    return ((uint32_t)string - (uint32_t)s);
+    return ((void *)string - (void *)s);
 }
 
 int egui_font_lattice_get_str_size(const egui_font_t *self, const void *string, uint8_t is_multi_line, egui_dim_t line_space, egui_dim_t *width, egui_dim_t *height)

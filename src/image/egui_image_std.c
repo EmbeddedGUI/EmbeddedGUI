@@ -1085,7 +1085,7 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
 
 
 
-void egui_image_std_get_width_height(egui_image_t *self, egui_dim_t *width, egui_dim_t *height)
+void egui_image_std_get_width_height(const egui_image_t *self, egui_dim_t *width, egui_dim_t *height)
 {
     egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
     *width = image->width;

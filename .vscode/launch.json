@@ -6,7 +6,9 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/output/main",
-            "args": [],
+            "args": [
+                "${workspaceFolder}/output/app_egui_resource_merge.bin",
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -18,7 +20,9 @@
             "name": "Debug",
             "type": "cppdbg",
             "request": "launch",
-            "args": [],
+            "args": [
+                "${workspaceFolder}/output/app_egui_resource_merge.bin",
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
