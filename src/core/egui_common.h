@@ -325,23 +325,23 @@ __EGUI_STATIC_INLINE__ egui_color_t egui_rgb_mix(egui_color_t back_color, egui_c
     uint8_t green = 0;
     uint8_t blue = 0;
 
-    uint8_t fore_color_blue = fore_color.blue;
-    uint8_t fore_color_red = fore_color.red;
+    uint8_t fore_color_blue = fore_color.color.blue;
+    uint8_t fore_color_red = fore_color.color.red;
 
-    uint8_t back_color_blue = back_color.blue;
-    uint8_t back_color_red = back_color.red;
+    uint8_t back_color_blue = back_color.color.blue;
+    uint8_t back_color_red = back_color.color.red;
 
-    uint8_t fore_color_green = ((fore_color.green_h << 3) + fore_color.green_l);
-    uint8_t back_color_green = ((back_color.green_h << 3) + back_color.green_l);
+    uint8_t fore_color_green = ((fore_color.color.green_h << 3) + fore_color.color.green_l);
+    uint8_t back_color_green = ((back_color.color.green_h << 3) + back_color.color.green_l);
 
     red = (((uint16_t)(fore_alpha) * (fore_color_red)) + (uint16_t)(255 - fore_alpha) * back_color_red) >> 8;       // For speed avoid use division 255
     green = (((uint16_t)(fore_alpha) * (fore_color_green)) + (uint16_t)(255 - fore_alpha) * back_color_green) >> 8; // For speed avoid use division 255
     blue = (((uint16_t)(fore_alpha) * (fore_color_blue)) + (uint16_t)(255 - fore_alpha) * back_color_blue) >> 8;    // For speed avoid use division 255
 
-    ret.red = red;
-    ret.blue = blue;
-    ret.green_h = (green >> 3);
-    ret.green_l = (green & 0x7);
+    ret.color.red = red;
+    ret.color.blue = blue;
+    ret.color.green_h = (green >> 3);
+    ret.color.green_l = (green & 0x7);
 #else
     ret.color.red = (((uint16_t)(fore_alpha) * (fore_color.color.red)) + (uint16_t)(255 - fore_alpha) * back_color.color.red) >> 8;       // For speed avoid use division 255
     ret.color.green = (((uint16_t)(fore_alpha) * (fore_color.color.green)) + (uint16_t)(255 - fore_alpha) * back_color.color.green) >> 8; // For speed avoid use division 255
