@@ -779,9 +779,14 @@ void egui_core_dialog_finish(egui_dialog_t *self)
     {
         return;
     }
+    if(self->state == EGUI_DIALOG_STATE_NONE)
+    {
+        return;
+    }
 
     self->is_need_finish = true;
     self->api->on_pause(self);
+
     if (self->state < EGUI_DIALOG_STATE_STOP)
     {
         // check anim
@@ -794,6 +799,7 @@ void egui_core_dialog_finish(egui_dialog_t *self)
         {
             self->api->on_stop(self);
             self->bind_activity->api->on_resume(self->bind_activity);
+            egui_core.dialog = NULL;
         }
     }
     else
