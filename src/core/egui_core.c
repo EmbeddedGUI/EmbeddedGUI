@@ -764,6 +764,12 @@ void egui_core_dialog_start(egui_activity_t *activity, egui_dialog_t *self)
     }
 }
 
+void egui_core_dialog_start_with_current(egui_dialog_t *self)
+{
+    egui_core_dialog_start(egui_core_activity_get_current(), self);
+}
+
+
 void egui_core_dialog_finish(egui_dialog_t *self)
 {
     egui_core.dialog = self;

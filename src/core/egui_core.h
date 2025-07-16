@@ -91,6 +91,7 @@ egui_activity_t *egui_core_activity_get_by_view(egui_view_t *view);
 
 egui_dialog_t *egui_core_dialog_get(void);
 void egui_core_dialog_start(egui_activity_t *activity, egui_dialog_t *self);
+void egui_core_dialog_start_with_current(egui_dialog_t *self);
 void egui_core_dialog_finish(egui_dialog_t *self);
 void egui_core_dialog_set_anim(egui_animation_t *open_anim, egui_animation_t *close_anim);
 
