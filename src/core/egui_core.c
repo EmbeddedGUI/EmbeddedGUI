@@ -769,6 +769,14 @@ void egui_core_dialog_start_with_current(egui_dialog_t *self)
     egui_core_dialog_start(egui_core_activity_get_current(), self);
 }
 
+int egui_core_dialog_check_in_process(egui_dialog_t *dialog)
+{
+    if (egui_core.dialog == dialog)
+    {
+        return 1;
+    }
+    return 0;
+}
 
 void egui_core_dialog_finish(egui_dialog_t *self)
 {
