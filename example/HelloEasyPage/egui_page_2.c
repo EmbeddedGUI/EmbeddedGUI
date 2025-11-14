@@ -123,6 +123,8 @@ void egui_page_2_on_close(egui_page_base_t *self)
     EGUI_UNUSED(local);
     // Call super on_destroy
     egui_page_base_on_close(self);
+    // stop timer
+    egui_timer_stop_timer(&local->timer);
 }
 
 void egui_page_2_on_key_pressed(egui_page_base_t *self, uint16_t keycode)

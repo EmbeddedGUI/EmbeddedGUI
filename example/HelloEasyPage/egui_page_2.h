@@ -18,12 +18,12 @@ struct egui_page_2
     int index;
     char label_str[20];
 
-    egui_timer_t timer;
-
     egui_view_linearlayout_t layout_1;
     egui_view_label_t label_1;
     egui_view_button_t button_1;
     egui_view_button_t button_2;
+
+    egui_timer_t timer;
 };
 
 void egui_page_2_set_index(egui_page_base_t *self, int index);

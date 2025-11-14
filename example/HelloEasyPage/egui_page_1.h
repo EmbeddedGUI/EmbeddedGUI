@@ -15,15 +15,15 @@ struct egui_page_1
 {
     egui_page_base_t base;
 
-    int index;
-    char label_str[20];
-
     egui_timer_t timer;
 
     egui_view_linearlayout_t layout_1;
     egui_view_label_t label_1;
     egui_view_button_t button_1;
     egui_view_button_t button_2;
+
+    int index;
+    char label_str[20];
 };
 
 void egui_page_1_set_index(egui_page_base_t *self, int index);
