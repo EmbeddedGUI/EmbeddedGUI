@@ -128,7 +128,14 @@ static void egui_font_std_draw_2(egui_dim_t x, egui_dim_t y, egui_dim_t width, e
             sel_value = (sel_data >> bit_pos) & 0x03;
             if (sel_value)
             {
-                egui_canvas_draw_point((x + x_), (y + y_), color, egui_alpha_change_table_2[sel_value]);
+                if(alpha == EGUI_ALPHA_100)
+                {
+                    egui_canvas_draw_point((x + x_), (y + y_), color, egui_alpha_change_table_2[sel_value]);
+                }
+                else
+                {
+                    egui_canvas_draw_point((x + x_), (y + y_), color, egui_alpha_change_table_2[sel_value] * alpha / EGUI_ALPHA_100);
+                }
             }
 
             // update bit position.
@@ -161,7 +168,14 @@ static void egui_font_std_draw_4(egui_dim_t x, egui_dim_t y, egui_dim_t width, e
             sel_value = (sel_data >> bit_pos) & 0x0F;
             if (sel_value)
             {
-                egui_canvas_draw_point((x + x_), (y + y_), color, egui_alpha_change_table_4[sel_value]);
+                if(alpha == EGUI_ALPHA_100)
+                {
+                    egui_canvas_draw_point((x + x_), (y + y_), color, egui_alpha_change_table_4[sel_value]);
+                }
+                else
+                {
+                    egui_canvas_draw_point((x + x_), (y + y_), color, egui_alpha_change_table_4[sel_value] * alpha / EGUI_ALPHA_100);
+                }
             }
 
             // update bit position.
@@ -186,7 +200,14 @@ static void egui_font_std_draw_8(egui_dim_t x, egui_dim_t y, egui_dim_t width, e
 
             if (sel_value)
             {
-                egui_canvas_draw_point((x + x_), (y + y_), color, sel_value);
+                if(alpha == EGUI_ALPHA_100)
+                {
+                    egui_canvas_draw_point((x + x_), (y + y_), color, sel_value);
+                }
+                else
+                {
+                    egui_canvas_draw_point((x + x_), (y + y_), color, sel_value * alpha / EGUI_ALPHA_100);
+                }
             }
         }
     }

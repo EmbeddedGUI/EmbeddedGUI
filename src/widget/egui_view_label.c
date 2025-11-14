@@ -118,12 +118,21 @@ void egui_view_label_init(egui_view_t *self)
 {
     egui_view_label_t *local = (egui_view_label_t *)self;
     EGUI_UNUSED(local);
+
     // call super init.
     egui_view_init(self);
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_label_t);
 
     // init local data.
+    local->line_space = 0;
+
+    local->align_type = EGUI_ALIGN_CENTER;
+    local->alpha = EGUI_ALPHA_100;
+    local->color = EGUI_COLOR_BLACK;
+
+    local->font = NULL;
+    local->text = NULL;
 
     egui_view_set_view_name(self, "egui_view_label");
 }

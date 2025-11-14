@@ -571,6 +571,7 @@ void egui_view_viewpage_cache_init(egui_view_t *self)
 
     local->listener = NULL;
     local->load_listener = NULL;
+    local->free_listener = NULL;
 
     egui_view_linearlayout_init((egui_view_t *)&local->container);
     egui_view_set_position((egui_view_t *)&local->container, 0, 0);

@@ -387,6 +387,8 @@ void egui_view_viewpage_init(egui_view_t *self)
     local->last_motion_x = 0;
     local->is_begin_dragged = 0;
 
+    local->current_page_index = 0;
+
     egui_view_linearlayout_init((egui_view_t *)&local->container);
     egui_view_set_position((egui_view_t *)&local->container, 0, 0);
     egui_view_linearlayout_set_align_type((egui_view_t *)&local->container, 0);

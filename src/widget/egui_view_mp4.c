@@ -118,11 +118,13 @@ void egui_view_mp4_init(egui_view_t *self)
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_mp4_t);
 
     // init local data.
+    local->callback = NULL;
+
+    local->align_type = EGUI_ALIGN_CENTER;
+
     local->mp4_image_list = NULL;
     local->mp4_image_count = 0;
     local->mp4_image_index = 0;
-
-    local->align_type = EGUI_ALIGN_CENTER;
     
     local->anim_timer.callback = anim_timer_callback;
     local->anim_timer.user_data = self;

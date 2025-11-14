@@ -94,6 +94,8 @@ void egui_view_progress_bar_init(egui_view_t *self)
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_progress_bar_t);
 
     // init local data.
+    local->on_progress_changed = NULL;
+
     local->process = 10;
     local->bk_color = EGUI_COLOR_DARK_GREY;
     local->progress_color = EGUI_COLOR_WHITE;
