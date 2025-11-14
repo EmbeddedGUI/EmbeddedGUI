@@ -8,3 +8,5 @@
 
    introduction_base.md
    use_in_pc.md
+   easy_app.md
+   easy_page.md
