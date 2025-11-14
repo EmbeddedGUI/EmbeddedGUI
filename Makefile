@@ -1,5 +1,6 @@
 # include app info
 # APP ?= HelloActivity
+# APP ?= HelloAPP
 # APP ?= HelloBasic
 # APP ?= HelloEasyPage
 # APP ?= HelloPerformace

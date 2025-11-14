@@ -1,0 +1,50 @@
+{
+    // image generation parameters.
+    // Item parameters:
+    // file_name: The name of the image file to be generated.
+    // name: The name of the image resource to be generated, if not provided, the file name will be used.
+    // external: Storage format (all, 0: internal, 1: external)
+    // format: RGB Format (all, rgb32, rgb565, gray8)
+    // alpha: Alpha Format (all, 0, 1, 2, 4, 8)
+    // dim: Resize the image with the given width and height, -1,-1 to disable resizing.
+    // rot: Rotate the image with the given angle in degrees, -1 to disable rotation.
+    // swap: Swap the high and low bytes of the 16-bit RGB565 format
+    "img": [
+        {
+            "file": "star.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "4",
+        },
+        {
+            "file": "test.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "4",
+        },
+    ],
+    // font generation parameters.
+    // Item parameters:
+    // file_name: The name of the font file to be generated.
+    // name: The name of the font resource to be generated, if not provided, the file name will be used.
+    // text: The customized UTF8 font name
+    // external: Storage format (all, 0: internal, 1: external)
+    // pixelsize: Font size in pixels, fixed in height.(all, 4-32)
+    // fontbitsize: Font bit size (all, 1, 2, 4, 8)
+    "font": [
+        {
+            "file": "test.ttf",
+            "text": "supported_text_page0.txt",
+            "external": "0",
+            "pixelsize": "25",
+            "fontbitsize": "4",
+        },
+        {
+            "file": "DejaVuSans.ttf",
+            "text": "supported_text_page1.txt",
+            "external": "0",
+            "pixelsize": "30",
+            "fontbitsize": "4",
+        },
+    ],
+}
