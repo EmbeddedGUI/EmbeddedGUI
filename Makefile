@@ -1,12 +1,14 @@
 # include app info
 # APP ?= HelloActivity
 # APP ?= HelloBasic
+# APP ?= HelloEasyPage
 # APP ?= HelloPerformace
 # APP ?= HelloResourceManager
 APP ?= HelloSimple
 # APP ?= HelloTest
 # APP ?= HelloUnitTest
 # APP ?= HelloViewPageAndScroll
+# APP ?= gui
 
 # include port info
 PORT ?= pc
