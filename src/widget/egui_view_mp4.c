@@ -5,8 +5,6 @@
 #include "egui_view_mp4.h"
 #include "egui.h"
 
-#include "uicode.h"
-
 void egui_view_mp4_on_draw(egui_view_t *self)
 {
     egui_view_mp4_t *local = (egui_view_mp4_t *)self;
