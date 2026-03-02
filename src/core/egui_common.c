@@ -5,7 +5,6 @@
 
 #include "egui_api.h"
 
-
 #define EGUI_ALPHA_VALUE(_val, _bit_size) ((255 * (_val)) / ((1 << (_bit_size)) - 1))
 
 #define EGUI_ALPHA_VALUE_2(_val) EGUI_ALPHA_VALUE(_val, 2)
@@ -25,7 +24,6 @@ uint8_t egui_alpha_change_table_4[16] = {
         EGUI_ALPHA_VALUE_4(0x08), EGUI_ALPHA_VALUE_4(0x09), EGUI_ALPHA_VALUE_4(0x0a), EGUI_ALPHA_VALUE_4(0x0b),
         EGUI_ALPHA_VALUE_4(0x0c), EGUI_ALPHA_VALUE_4(0x0d), EGUI_ALPHA_VALUE_4(0x0e), EGUI_ALPHA_VALUE_4(0x0f),
 };
-
 
 #if 0
 void egui_argb8888_mix_rgb565(egui_color_rgb565_t *p_back_color, egui_color_bgra8888_t *p_fore_color, egui_color_rgb565_t *p_out_color)
@@ -93,13 +91,12 @@ void egui_common_align_get_x_y(egui_dim_t parent_width, egui_dim_t parent_height
 void egui_memcpy(void *dest, const void *src, uint32_t n)
 {
     uint32_t i;
-    uint8_t *p_dest = (uint8_t*)dest;
-    const uint8_t *p_src = (const uint8_t*)src;
+    uint8_t *p_dest = (uint8_t *)dest;
+    const uint8_t *p_src = (const uint8_t *)src;
     // Check base offset alignment
     uint8_t base_offset_dest = (uint8_t)((egui_uintptr_t)(p_dest) & 0x03);
     uint8_t base_offset_src = (uint8_t)((egui_uintptr_t)(p_src) & 0x03);
-    if((base_offset_dest != base_offset_src)
-        || (n < 4))
+    if ((base_offset_dest != base_offset_src) || (n < 4))
     {
         for (i = 0; i < n; i++)
         {
@@ -111,26 +108,25 @@ void egui_memcpy(void *dest, const void *src, uint32_t n)
     else
     {
         uint32_t size_before;
-        switch(base_offset_dest)
+        switch (base_offset_dest)
         {
-            case 1:
-                size_before = 3;
-                break;
-            case 2:
-                size_before = 2;
-                break;
-            case 3:
-                size_before = 1;
-                break;
-            default:
-                size_before = 0;
-                break;
+        case 1:
+            size_before = 3;
+            break;
+        case 2:
+            size_before = 2;
+            break;
+        case 3:
+            size_before = 1;
+            break;
+        default:
+            size_before = 0;
+            break;
         }
         n = n - size_before;
         uint32_t size_32 = n >> 2;
         uint32_t size_8 = n & 0x03;
 
-        
         for (i = 0; i < size_before; i++)
         {
             *p_dest = *p_src;
@@ -139,7 +135,7 @@ void egui_memcpy(void *dest, const void *src, uint32_t n)
         }
         for (i = 0; i < size_32; i++)
         {
-            *((uint32_t*)p_dest) = *((uint32_t*)p_src);
+            *((uint32_t *)p_dest) = *((uint32_t *)p_src);
             p_src += 4;
             p_dest += 4;
         }
@@ -152,13 +148,12 @@ void egui_memcpy(void *dest, const void *src, uint32_t n)
     }
 }
 
-
-void* egui_malloc(int size)
+void *egui_malloc(int size)
 {
     return egui_api_malloc(size);
 }
 
-void egui_free(void* ptr)
+void egui_free(void *ptr)
 {
     egui_api_free(ptr);
 }

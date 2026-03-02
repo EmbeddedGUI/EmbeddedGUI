@@ -1,0 +1,81 @@
+#include <stdio.h>
+#include <assert.h>
+
+#include "egui_animation_color.h"
+#include "widget/egui_view.h"
+#include "widget/egui_view_label.h"
+#include "core/egui_api.h"
+
+void egui_animation_color_on_start(egui_animation_t *self)
+{
+    EGUI_LOCAL_INIT(egui_animation_color_t);
+    if (local->params == NULL)
+    {
+        return;
+    }
+}
+
+void egui_animation_color_on_update(egui_animation_t *self, egui_float_t fraction)
+{
+    EGUI_LOCAL_INIT(egui_animation_color_t);
+
+    egui_color_t from = local->params->from_color;
+    egui_color_t to = local->params->to_color;
+    egui_color_t result;
+
+    // Per-channel linear interpolation using native color fields.
+    // Works for all color depths (8/16/32) since we operate on
+    // the struct fields directly.
+#if EGUI_CONFIG_COLOR_DEPTH == 16 && EGUI_CONFIG_COLOR_16_SWAP == 1
+    // Swapped RGB565: red(5), blue(5), green split into green_h(3)+green_l(3)
+    uint8_t from_r = from.color.red;
+    uint8_t to_r = to.color.red;
+    uint8_t from_g = (from.color.green_h << 3) | from.color.green_l;
+    uint8_t to_g = (to.color.green_h << 3) | to.color.green_l;
+    uint8_t from_b = from.color.blue;
+    uint8_t to_b = to.color.blue;
+
+    int16_t r = from_r + (int16_t)EGUI_FLOAT_MULT_LIMIT((to_r - from_r), fraction);
+    int16_t g = from_g + (int16_t)EGUI_FLOAT_MULT_LIMIT((to_g - from_g), fraction);
+    int16_t b = from_b + (int16_t)EGUI_FLOAT_MULT_LIMIT((to_b - from_b), fraction);
+
+    result.color.red = (uint16_t)r;
+    result.color.green_h = ((uint16_t)g >> 3) & 0x7;
+    result.color.green_l = (uint16_t)g & 0x7;
+    result.color.blue = (uint16_t)b;
+#else
+    // Standard layout (RGB565 non-swap, RGB888, Gray8)
+    int16_t r = from.color.red + (int16_t)EGUI_FLOAT_MULT_LIMIT((to.color.red - from.color.red), fraction);
+    int16_t g = from.color.green + (int16_t)EGUI_FLOAT_MULT_LIMIT((to.color.green - from.color.green), fraction);
+    int16_t b = from.color.blue + (int16_t)EGUI_FLOAT_MULT_LIMIT((to.color.blue - from.color.blue), fraction);
+
+    result.color.red = (uint16_t)r;
+    result.color.green = (uint16_t)g;
+    result.color.blue = (uint16_t)b;
+#endif
+
+    // Apply to target view as label font color
+    egui_view_label_set_font_color(self->target_view, result, EGUI_ALPHA_100);
+}
+
+void egui_animation_color_params_set(egui_animation_color_t *self, const egui_animation_color_params_t *params)
+{
+    self->params = params;
+}
+
+const egui_animation_api_t egui_animation_color_t_api_table = {
+        .on_start = egui_animation_color_on_start,
+        .update = egui_animation_update,
+        .on_update = egui_animation_color_on_update,
+};
+
+void egui_animation_color_init(egui_animation_t *self)
+{
+    EGUI_LOCAL_INIT(egui_animation_color_t);
+    // call super init.
+    egui_animation_init(self);
+    // update api.
+    self->api = &egui_animation_color_t_api_table;
+
+    // init local data.
+}

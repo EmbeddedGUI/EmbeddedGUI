@@ -15,7 +15,7 @@ void egui_view_mp4_on_draw(egui_view_t *self)
     egui_dim_t child_height;
     egui_dim_t x, y;
 
-    if(!local->mp4_image_list || local->mp4_image_count == 0)
+    if (!local->mp4_image_list || local->mp4_image_count == 0)
     {
         return;
     }
@@ -38,7 +38,7 @@ static void anim_timer_callback(egui_timer_t *timer)
     if (local->mp4_image_index >= local->mp4_image_count - 1)
     {
         egui_timer_stop_timer(timer);
-        if(local->callback)
+        if (local->callback)
         {
             local->callback(local, 1);
         }
@@ -50,7 +50,6 @@ static void anim_timer_callback(egui_timer_t *timer)
         egui_view_invalidate((egui_view_t *)local);
     }
 }
-
 
 void egui_view_mp4_set_align_type(egui_view_t *self, uint8_t align_type)
 {
@@ -70,7 +69,7 @@ void egui_view_mp4_set_callback(egui_view_t *self, egui_view_mp4_callback_func c
     local->callback = callback;
 }
 
-void egui_view_mp4_set_mp4_image_list(egui_view_t *self, const egui_image_t** mp4_image_list, uint16_t mp4_image_count)
+void egui_view_mp4_set_mp4_image_list(egui_view_t *self, const egui_image_t **mp4_image_list, uint16_t mp4_image_count)
 {
     egui_view_mp4_t *local = (egui_view_mp4_t *)self;
 
@@ -95,16 +94,20 @@ void egui_view_mp4_stop_work(egui_view_t *self)
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_mp4_t) = {
-    .dispatch_touch_event = egui_view_dispatch_touch_event,
-    .on_touch_event = egui_view_on_touch_event,
-    .on_intercept_touch_event = egui_view_on_intercept_touch_event,
-    .compute_scroll = egui_view_compute_scroll,
-    .calculate_layout = egui_view_calculate_layout,
-    .request_layout = egui_view_request_layout,
-    .draw = egui_view_draw,
-    .on_attach_to_window = egui_view_on_attach_to_window,
-    .on_draw = egui_view_mp4_on_draw, // changed
-    .on_detach_from_window = egui_view_on_detach_from_window,
+        .dispatch_touch_event = egui_view_dispatch_touch_event,
+        .on_touch_event = egui_view_on_touch_event,
+        .on_intercept_touch_event = egui_view_on_intercept_touch_event,
+        .compute_scroll = egui_view_compute_scroll,
+        .calculate_layout = egui_view_calculate_layout,
+        .request_layout = egui_view_request_layout,
+        .draw = egui_view_draw,
+        .on_attach_to_window = egui_view_on_attach_to_window,
+        .on_draw = egui_view_mp4_on_draw, // changed
+        .on_detach_from_window = egui_view_on_detach_from_window,
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+        .dispatch_key_event = egui_view_dispatch_key_event,
+        .on_key_event = egui_view_on_key_event,
+#endif
 };
 
 void egui_view_mp4_init(egui_view_t *self)
@@ -123,8 +126,21 @@ void egui_view_mp4_init(egui_view_t *self)
     local->mp4_image_list = NULL;
     local->mp4_image_count = 0;
     local->mp4_image_index = 0;
-    
+
     local->anim_timer.callback = anim_timer_callback;
     local->anim_timer.user_data = self;
     egui_timer_stop_timer(&local->anim_timer);
+}
+
+void egui_view_mp4_apply_params(egui_view_t *self, const egui_view_mp4_params_t *params)
+{
+    self->region = params->region;
+
+    egui_view_invalidate(self);
+}
+
+void egui_view_mp4_init_with_params(egui_view_t *self, const egui_view_mp4_params_t *params)
+{
+    egui_view_mp4_init(self);
+    egui_view_mp4_apply_params(self, params);
 }

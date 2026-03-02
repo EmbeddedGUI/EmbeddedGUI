@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EmbeddedGUI - Online Demos</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="page-grid">
+    <header>
+        <div class="header-inner">
+            <h1>EmbeddedGUI</h1>
+            <p>Lightweight C GUI framework for embedded systems. Try the demos below.</p>
+            <div class="links">
+                <a href="https://gitee.com/aspect-build/EmbeddedGUI" target="_blank">Gitee</a>
+                <a href="https://github.com/aspect-build/EmbeddedGUI" target="_blank">GitHub</a>
+                <a href="basic.html" class="nav-link">HelloBasic Widgets →</a>
+            </div>
+        </div>
+    </header>
+    <main>
+        <div id="demo-list-grid"></div>
+    </main>
+
+    <script src="lib/marked.min.js"></script>
+    <script src="doc-render.js"></script>
+    <script>
+        function renderGrid(demos) {
+            var container = document.getElementById('demo-list-grid');
+            demos.forEach(function(d) {
+                if (d.category === 'HelloBasic') return;
+                var app = d.app || d.name;
+                var section = document.createElement('section');
+                section.className = 'demo-section';
+                section.innerHTML =
+                    '<div class="demo-section-left">' +
+                        '<div class="demo-title">' + d.name.replace(/_/g, ' ') + '</div>' +
+                        '<iframe class="demo-iframe" src="demos/' + d.name + '/' + app + '.html" loading="lazy"></iframe>' +
+                    '</div>' +
+                    '<div class="demo-section-right doc-panel"></div>';
+                container.appendChild(section);
+                if (d.doc) {
+                    renderDoc(section.querySelector('.doc-panel'), d.doc);
+                }
+            });
+        }
+
+        fetch('demos/demos.json')
+            .then(function(r) { return r.json(); })
+            .then(renderGrid)
+            .catch(function() {
+                renderGrid([
+                    { name: 'HelloSimple', app: 'HelloSimple', category: 'Standalone' }
+                ]);
+            });
+    </script>
+</body>
+</html>

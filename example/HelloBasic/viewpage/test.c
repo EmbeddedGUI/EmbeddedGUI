@@ -1,11 +1,11 @@
-﻿#include "egui.h"
+#include "egui.h"
 #include <stdlib.h>
 #include "uicode.h"
 
 // views in root
 static egui_view_viewpage_t viewpage_1;
 
-// views in scroll_1
+// views in viewpage_1
 static egui_view_label_t label_1;
 static egui_view_label_t label_2;
 static egui_view_label_t label_3;
@@ -22,51 +22,90 @@ EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_3_param_normal, EGUI_COLOR_BLUE, EGUI_
 EGUI_BACKGROUND_PARAM_INIT(bg_3_params, &bg_3_param_normal, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_3, &bg_3_params);
 
+#define LABEL_WIDTH  EGUI_CONFIG_SCEEN_WIDTH
+#define LABEL_HEIGHT EGUI_CONFIG_SCEEN_HEIGHT
+
+// View params
+EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_1_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+EGUI_VIEW_LABEL_PARAMS_INIT(label_1_params, 0, 0, LABEL_WIDTH, LABEL_HEIGHT, "Item1", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
+EGUI_VIEW_LABEL_PARAMS_INIT(label_2_params, 0, 0, LABEL_WIDTH, LABEL_HEIGHT, "Item2", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
+EGUI_VIEW_LABEL_PARAMS_INIT(label_3_params, 0, 0, LABEL_WIDTH, LABEL_HEIGHT, "Item3", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
+
 void test_init_ui(void)
 {
     // Init all views
     // viewpage_1
-    egui_view_viewpage_init((egui_view_t *)&viewpage_1);
-    egui_view_set_position((egui_view_t *)&viewpage_1, 0, 0);
-    egui_view_viewpage_set_size((egui_view_t *)&viewpage_1, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage_1), &viewpage_1_params);
 
     // label_1
-    egui_view_label_init((egui_view_t *)&label_1);
-    egui_view_set_size((egui_view_t *)&label_1, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-    egui_view_label_set_text((egui_view_t *)&label_1, "Item1");
-    egui_view_label_set_align_type((egui_view_t *)&label_1, EGUI_ALIGN_CENTER);
-    egui_view_label_set_font((egui_view_t *)&label_1, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
-    egui_view_label_set_font_color((egui_view_t *)&label_1, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_1), &label_1_params);
 
     // label_2
-    egui_view_label_init((egui_view_t *)&label_2);
-    egui_view_set_size((egui_view_t *)&label_2, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-    egui_view_label_set_text((egui_view_t *)&label_2, "Item2");
-    egui_view_label_set_align_type((egui_view_t *)&label_2, EGUI_ALIGN_CENTER);
-    egui_view_label_set_font((egui_view_t *)&label_2, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
-    egui_view_label_set_font_color((egui_view_t *)&label_2, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_2), &label_2_params);
 
     // label_3
-    egui_view_label_init((egui_view_t *)&label_3);
-    egui_view_set_size((egui_view_t *)&label_3, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-    egui_view_label_set_text((egui_view_t *)&label_3, "Item3");
-    egui_view_label_set_align_type((egui_view_t *)&label_3, EGUI_ALIGN_CENTER);
-    egui_view_label_set_font((egui_view_t *)&label_3, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
-    egui_view_label_set_font_color((egui_view_t *)&label_3, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_3), &label_3_params);
 
     // background
-    egui_view_set_background((egui_view_t *)&label_1, (egui_background_t *)&bg_1);
-    egui_view_set_background((egui_view_t *)&label_2, (egui_background_t *)&bg_2);
-    egui_view_set_background((egui_view_t *)&label_3, (egui_background_t *)&bg_3);
+    egui_view_set_background(EGUI_VIEW_OF(&label_1), EGUI_BG_OF(&bg_1));
+    egui_view_set_background(EGUI_VIEW_OF(&label_2), EGUI_BG_OF(&bg_2));
+    egui_view_set_background(EGUI_VIEW_OF(&label_3), EGUI_BG_OF(&bg_3));
 
-    // Add childs to scroll_1
-    egui_view_viewpage_add_child((egui_view_t *)&viewpage_1, (egui_view_t *)&label_1);
-    egui_view_viewpage_add_child((egui_view_t *)&viewpage_1, (egui_view_t *)&label_2);
-    egui_view_viewpage_add_child((egui_view_t *)&viewpage_1, (egui_view_t *)&label_3);
+    // Add childs to viewpage_1
+    egui_view_viewpage_add_child(EGUI_VIEW_OF(&viewpage_1), EGUI_VIEW_OF(&label_1));
+    egui_view_viewpage_add_child(EGUI_VIEW_OF(&viewpage_1), EGUI_VIEW_OF(&label_2));
+    egui_view_viewpage_add_child(EGUI_VIEW_OF(&viewpage_1), EGUI_VIEW_OF(&label_3));
 
     // Re-layout childs
-    egui_view_viewpage_layout_childs((egui_view_t *)&viewpage_1);
+    egui_view_viewpage_layout_childs(EGUI_VIEW_OF(&viewpage_1));
 
     // Add To Root
-    egui_core_add_user_root_view((egui_view_t *)&viewpage_1);
+    egui_core_add_user_root_view(EGUI_VIEW_OF(&viewpage_1));
 }
+
+#if EGUI_CONFIG_RECORDING_TEST
+bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
+{
+    switch (action_index)
+    {
+    case 0: // swipe left -> page 2
+        p_action->type = EGUI_SIM_ACTION_SWIPE;
+        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
+        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 4;
+        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->steps = 5;
+        p_action->interval_ms = 800;
+        return true;
+    case 1: // swipe left -> page 3
+        p_action->type = EGUI_SIM_ACTION_SWIPE;
+        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
+        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 4;
+        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->steps = 5;
+        p_action->interval_ms = 800;
+        return true;
+    case 2: // swipe right -> page 2
+        p_action->type = EGUI_SIM_ACTION_SWIPE;
+        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 4;
+        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
+        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->steps = 5;
+        p_action->interval_ms = 800;
+        return true;
+    case 3: // swipe right -> page 1
+        p_action->type = EGUI_SIM_ACTION_SWIPE;
+        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 4;
+        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH * 3 / 4;
+        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->steps = 5;
+        p_action->interval_ms = 800;
+        return true;
+    default:
+        return false;
+    }
+}
+#endif

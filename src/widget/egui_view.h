@@ -7,11 +7,14 @@
 #include "core/egui_motion_event.h"
 #include "background/egui_background.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+#include "core/egui_key_event.h"
+#endif
+
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 typedef struct egui_view_api egui_view_api_t;
 struct egui_view_api
@@ -27,6 +30,10 @@ struct egui_view_api
     void (*on_attach_to_window)(egui_view_t *self);
     void (*on_draw)(egui_view_t *self);
     void (*on_detach_from_window)(egui_view_t *self);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+    int (*dispatch_key_event)(egui_view_t *self, egui_key_event_t *event);
+    int (*on_key_event)(egui_view_t *self, egui_key_event_t *event);
+#endif
 };
 
 #define EGUI_VIEW_API_TABLE_NAME(_name) _name##_api_table
@@ -52,6 +59,14 @@ struct egui_view_margin
 typedef int (*egui_view_on_touch_listener_t)(egui_view_t *self, egui_motion_event_t *event);
 typedef void (*egui_view_on_click_listener_t)(egui_view_t *self);
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+typedef int (*egui_view_on_key_listener_t)(egui_view_t *self, egui_key_event_t *event);
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+typedef void (*egui_view_on_focus_change_listener_t)(egui_view_t *self, int is_focused);
+#endif
+
 struct egui_view
 {
     // id is used to identify the view, it should be unique in the view tree, and it is only for debugging purpose.
@@ -59,10 +74,18 @@ struct egui_view
 
     uint8_t is_enable : 1;         // whether the view is enabled
     uint8_t is_visible : 1;        // whether the view is visible
-    uint8_t is_gone : 1;        // whether the view is gone
+    uint8_t is_gone : 1;           // whether the view is gone
     uint8_t is_pressed : 1;        // whether the view is pressed
     uint8_t is_clickable : 1;      // whether the view is clickable
     uint8_t is_request_layout : 1; // whether the view is requested to layout
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    uint8_t is_focusable : 1; // whether the view can receive focus
+    uint8_t is_focused : 1;   // whether the view currently has focus
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
+    uint8_t layer; // layer for z-ordering within parent (higher = on top)
+#endif
 
     egui_alpha_t alpha; // alpha of the view
 
@@ -82,8 +105,20 @@ struct egui_view
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     egui_view_on_touch_listener_t on_touch_listener; // touch listener
 
-    egui_view_on_click_listener_t on_click_listener; // clcick listener
-#endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    egui_view_on_click_listener_t on_click_listener; // click listener
+#endif                                               // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+    egui_view_on_key_listener_t on_key_listener; // key event listener
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    egui_view_on_focus_change_listener_t on_focus_change_listener; // focus change listener
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+    const egui_shadow_t *shadow; // shadow effect
+#endif
 
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
     const char *name; // name of the view
@@ -117,13 +152,17 @@ void egui_view_set_visible(egui_view_t *self, int is_visible);
 int egui_view_get_visible(egui_view_t *self);
 void egui_view_set_gone(egui_view_t *self, int is_gone);
 int egui_view_get_gone(egui_view_t *self);
-void egui_view_set_padding(egui_view_t *self, egui_dim_margin_padding_t left, egui_dim_margin_padding_t right, egui_dim_margin_padding_t top, egui_dim_margin_padding_t bottom);
+void egui_view_set_padding(egui_view_t *self, egui_dim_margin_padding_t left, egui_dim_margin_padding_t right, egui_dim_margin_padding_t top,
+                           egui_dim_margin_padding_t bottom);
 void egui_view_set_padding_all(egui_view_t *self, egui_dim_margin_padding_t padding);
-void egui_view_set_margin(egui_view_t *self, egui_dim_margin_padding_t left, egui_dim_margin_padding_t right, egui_dim_margin_padding_t top, egui_dim_margin_padding_t bottom);
+void egui_view_set_margin(egui_view_t *self, egui_dim_margin_padding_t left, egui_dim_margin_padding_t right, egui_dim_margin_padding_t top,
+                          egui_dim_margin_padding_t bottom);
 void egui_view_set_margin_all(egui_view_t *self, egui_dim_margin_padding_t margin);
 
 void egui_view_set_position(egui_view_t *self, egui_dim_t x, egui_dim_t y);
 void egui_view_set_size(egui_view_t *self, egui_dim_t width, egui_dim_t height);
+
+void egui_view_set_shadow(egui_view_t *self, const egui_shadow_t *shadow);
 
 void egui_view_set_view_name(egui_view_t *self, const char *name);
 
@@ -140,6 +179,31 @@ void egui_view_request_layout(egui_view_t *self);
 void egui_view_compute_scroll(egui_view_t *self);
 void egui_view_calculate_layout(egui_view_t *self);
 void egui_view_init(egui_view_t *self);
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+int egui_view_dispatch_key_event(egui_view_t *self, egui_key_event_t *event);
+int egui_view_on_key_event(egui_view_t *self, egui_key_event_t *event);
+void egui_view_set_on_key_listener(egui_view_t *self, egui_view_on_key_listener_t listener);
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+void egui_view_set_focusable(egui_view_t *self, int is_focusable);
+int egui_view_get_focusable(egui_view_t *self);
+void egui_view_request_focus(egui_view_t *self);
+void egui_view_clear_focus(egui_view_t *self);
+void egui_view_set_on_focus_change_listener(egui_view_t *self, egui_view_on_focus_change_listener_t listener);
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
+#define EGUI_VIEW_LAYER_BACKGROUND 0
+#define EGUI_VIEW_LAYER_DEFAULT    0
+#define EGUI_VIEW_LAYER_CONTENT    64
+#define EGUI_VIEW_LAYER_OVERLAY    192
+#define EGUI_VIEW_LAYER_TOP        255
+
+void egui_view_set_layer(egui_view_t *self, uint8_t layer);
+uint8_t egui_view_get_layer(egui_view_t *self);
+#endif
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

@@ -26,6 +26,20 @@ struct egui_view_switch
     egui_color_t bk_color_off;
 };
 
+// ============== Switch Params ==============
+typedef struct egui_view_switch_params egui_view_switch_params_t;
+struct egui_view_switch_params
+{
+    egui_region_t region;
+    uint8_t is_checked;
+};
+
+#define EGUI_VIEW_SWITCH_PARAMS_INIT(_name, _x, _y, _w, _h, _checked)                                                                                          \
+    static const egui_view_switch_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .is_checked = (_checked)}
+
+void egui_view_switch_apply_params(egui_view_t *self, const egui_view_switch_params_t *params);
+void egui_view_switch_init_with_params(egui_view_t *self, const egui_view_switch_params_t *params);
+
 void egui_view_switch_set_on_checked_listener(egui_view_t *self, egui_view_on_checked_listener_t listener);
 void egui_view_switch_set_checked(egui_view_t *self, uint8_t is_checked);
 void egui_view_switch_on_draw(egui_view_t *self);

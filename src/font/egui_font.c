@@ -43,14 +43,22 @@ int egui_font_get_utf8_code(const char *s, uint32_t *output_utf8_code)
     return utf8_bytes;
 }
 
-void egui_font_get_string_pos(const egui_font_t *self, const void *string, egui_region_t *rect, uint8_t align_type, uint8_t is_multi_line, egui_dim_t line_space, egui_dim_t *x, egui_dim_t *y)
+void egui_font_get_string_pos(const egui_font_t *self, const void *string, egui_region_t *rect, uint8_t align_type, uint8_t is_multi_line,
+                              egui_dim_t line_space, egui_dim_t *x, egui_dim_t *y)
 {
     egui_dim_t height = rect->size.height;
     egui_dim_t width = rect->size.width;
     egui_dim_t x_size = width, y_size = height;
-    // get string size.
-    self->api->get_str_size(self, string, is_multi_line, line_space, &x_size, &y_size);
+
     *x = *y = 0;
+
+    // Only calculate string size if needed for alignment
+    if (((align_type & EGUI_ALIGN_HMASK) != EGUI_ALIGN_LEFT && (align_type & EGUI_ALIGN_HMASK) != 0) ||
+        ((align_type & EGUI_ALIGN_VMASK) != EGUI_ALIGN_TOP && (align_type & EGUI_ALIGN_VMASK) != 0))
+    {
+        self->api->get_str_size(self, string, is_multi_line, line_space, &x_size, &y_size);
+    }
+
     switch (align_type & EGUI_ALIGN_HMASK)
     {
     case EGUI_ALIGN_HCENTER:
@@ -93,8 +101,8 @@ void egui_font_get_string_pos(const egui_font_t *self, const void *string, egui_
     }
 }
 
-void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space, egui_color_t color,
-                                   egui_alpha_t alpha)
+void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space,
+                                   egui_color_t color, egui_alpha_t alpha)
 {
     const char *s = (const char *)string;
     if (NULL == s)
@@ -129,9 +137,7 @@ void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, 
         // EGUI_LOG_INF("egui_font_draw_string_in_rect. string:%s, rect:%d,%d,%d,%d, x:%d, y:%d, str_bytes:%d\n"
         //     , string, tmp_rect.location.x, tmp_rect.location.y, tmp_rect.size.width, tmp_rect.size.height, x, y, str_bytes);
     }
-
 }
-
 
 int egui_font_draw_string(const egui_font_t *self, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
 {

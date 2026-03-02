@@ -12,7 +12,6 @@
 extern "C" {
 #endif
 
-
 #define EGUI_LOG_IMPL_LEVEL_NONE 0U
 #define EGUI_LOG_IMPL_LEVEL_ERR  1U
 #define EGUI_LOG_IMPL_LEVEL_WRN  2U
@@ -21,7 +20,6 @@ extern "C" {
 
 #define EGUI_LOG_LEVEL EGUI_CONFIG_DEBUG_LOG_LEVEL
 // #define EGUI_LOG_LEVEL EGUI_LOG_IMPL_LEVEL_DBG
-
 
 __EGUI_STATIC_INLINE__ char egui_level_to_char(int level)
 {
@@ -40,21 +38,18 @@ __EGUI_STATIC_INLINE__ char egui_level_to_char(int level)
     }
 }
 
-#define __EGUI_LOG_IMPL_TO_PRINT(_fun, _line, _level, fmt, ...)                                   \
-    do                                                                                             \
-    {                                                                                              \
-        egui_api_log("%c: "                                                                      \
-                           "%s():%d: " fmt,                                                   \
-                           egui_level_to_char(_level), _fun, _line,               \
-                           ##__VA_ARGS__);                                                         \
+#define __EGUI_LOG_IMPL_TO_PRINT(_fun, _line, _level, fmt, ...)                                                                                                \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        egui_api_log("%c: "                                                                                                                                    \
+                     "%s():%d: " fmt,                                                                                                                          \
+                     egui_level_to_char(_level), _fun, _line, ##__VA_ARGS__);                                                                                  \
     } while (false);
 
 #if EGUI_CONFIG_DEBUG_LOG_SIMPLE
-#define __EGUI_LOG_IMPL(_level, fmt, ...)                                                \
-    egui_api_log(fmt, ##__VA_ARGS__)
+#define __EGUI_LOG_IMPL(_level, fmt, ...) egui_api_log(fmt, ##__VA_ARGS__)
 #else
-#define __EGUI_LOG_IMPL(_level, ...)                                                \
-    __EGUI_LOG_IMPL_TO_PRINT(__func__, __LINE__, _level, __VA_ARGS__)
+#define __EGUI_LOG_IMPL(_level, ...) __EGUI_LOG_IMPL_TO_PRINT(__func__, __LINE__, _level, __VA_ARGS__)
 #endif
 
 #define EGUI_LOG_IMPL_ERR(...) __EGUI_LOG_IMPL(EGUI_LOG_IMPL_LEVEL_ERR, __VA_ARGS__)
@@ -62,39 +57,33 @@ __EGUI_STATIC_INLINE__ char egui_level_to_char(int level)
 #define EGUI_LOG_IMPL_INF(...) __EGUI_LOG_IMPL(EGUI_LOG_IMPL_LEVEL_INF, __VA_ARGS__)
 #define EGUI_LOG_IMPL_DBG(...) __EGUI_LOG_IMPL(EGUI_LOG_IMPL_LEVEL_DBG, __VA_ARGS__)
 
-
 #if EGUI_LOG_LEVEL >= EGUI_LOG_IMPL_LEVEL_ERR
-#define EGUI_LOG_ERR(fmt, ...)  EGUI_LOG_IMPL_ERR(fmt, ##__VA_ARGS__)
+#define EGUI_LOG_ERR(fmt, ...) EGUI_LOG_IMPL_ERR(fmt, ##__VA_ARGS__)
 #else
 #define EGUI_LOG_ERR(fmt, ...)
 #endif
 #if EGUI_LOG_LEVEL >= EGUI_LOG_IMPL_LEVEL_WRN
-#define EGUI_LOG_WRN(fmt, ...)  EGUI_LOG_IMPL_WRN(fmt, ##__VA_ARGS__)
+#define EGUI_LOG_WRN(fmt, ...) EGUI_LOG_IMPL_WRN(fmt, ##__VA_ARGS__)
 #else
 #define EGUI_LOG_WRN(fmt, ...)
 #endif
 #if EGUI_LOG_LEVEL >= EGUI_LOG_IMPL_LEVEL_INF
-#define EGUI_LOG_INF(fmt, ...)  EGUI_LOG_IMPL_INF(fmt, ##__VA_ARGS__)
+#define EGUI_LOG_INF(fmt, ...) EGUI_LOG_IMPL_INF(fmt, ##__VA_ARGS__)
 #else
 #define EGUI_LOG_INF(fmt, ...)
 #endif
 #if EGUI_LOG_LEVEL >= EGUI_LOG_IMPL_LEVEL_DBG
-#define EGUI_LOG_DBG(fmt, ...)  EGUI_LOG_IMPL_DBG(fmt, ##__VA_ARGS__)
+#define EGUI_LOG_DBG(fmt, ...) EGUI_LOG_IMPL_DBG(fmt, ##__VA_ARGS__)
 #else
 #define EGUI_LOG_DBG(fmt, ...)
 #endif
-
-
-
 
 #define EGUI_ASSERT(condition)                                                                                                                                 \
     do                                                                                                                                                         \
     {                                                                                                                                                          \
         if (!(condition))                                                                                                                                      \
-            egui_api_assert(__FILE__, __LINE__);                                                                                                                   \
+            egui_api_assert(__FILE__, __LINE__);                                                                                                               \
     } while (0)
-
-
 
 extern egui_base_t egui_hw_interrupt_disable(void);
 extern void egui_hw_interrupt_enable(egui_base_t level);

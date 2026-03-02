@@ -45,7 +45,6 @@ __EGUI_STATIC_INLINE__ int egui_region_equal(const egui_region_t *self, const eg
            (self->size.width == rect->size.width && self->size.height == rect->size.height);
 }
 
-
 // Initialize an empty rectangle
 __EGUI_STATIC_INLINE__ void egui_region_init_empty(egui_region_t *self)
 {

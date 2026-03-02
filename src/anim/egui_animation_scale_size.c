@@ -7,7 +7,7 @@
 
 void egui_animation_scale_size_on_start(egui_animation_t *self)
 {
-    egui_animation_scale_size_t *local = (egui_animation_scale_size_t *)self;
+    EGUI_LOCAL_INIT(egui_animation_scale_size_t);
     if (local->params == NULL)
     {
         return;
@@ -18,7 +18,7 @@ void egui_animation_scale_size_on_start(egui_animation_t *self)
 
 void egui_animation_scale_size_on_update(egui_animation_t *self, egui_float_t fraction)
 {
-    egui_animation_scale_size_t *local = (egui_animation_scale_size_t *)self;
+    EGUI_LOCAL_INIT(egui_animation_scale_size_t);
     egui_float_t delta = EGUI_FLOAT_MULT_LIMIT((local->params->to_scale - local->params->from_scale), fraction);
     egui_float_t value = local->params->from_scale + delta;
 
@@ -67,8 +67,7 @@ const egui_animation_api_t egui_animation_scale_size_t_api_table = {
 
 void egui_animation_scale_size_init(egui_animation_t *self)
 {
-    egui_animation_scale_size_t *local = (egui_animation_scale_size_t *)self;
-    EGUI_UNUSED(local);
+    EGUI_LOCAL_INIT(egui_animation_scale_size_t);
     // call super init.
     egui_animation_init(self);
     // update api.

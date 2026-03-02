@@ -7,7 +7,7 @@
 
 void egui_animation_alpha_on_start(egui_animation_t *self)
 {
-    egui_animation_alpha_t *local = (egui_animation_alpha_t *)self;
+    EGUI_LOCAL_INIT(egui_animation_alpha_t);
     if (local->params == NULL)
     {
         return;
@@ -16,7 +16,7 @@ void egui_animation_alpha_on_start(egui_animation_t *self)
 
 void egui_animation_alpha_on_update(egui_animation_t *self, egui_float_t fraction)
 {
-    egui_animation_alpha_t *local = (egui_animation_alpha_t *)self;
+    EGUI_LOCAL_INIT(egui_animation_alpha_t);
     egui_alpha_t value = local->params->from_alpha + (egui_alpha_t)EGUI_FLOAT_MULT_LIMIT((local->params->to_alpha - local->params->from_alpha), fraction);
 
     egui_view_set_alpha(self->target_view, value);
@@ -35,8 +35,7 @@ const egui_animation_api_t egui_animation_alpha_t_api_table = {
 
 void egui_animation_alpha_init(egui_animation_t *self)
 {
-    egui_animation_alpha_t *local = (egui_animation_alpha_t *)self;
-    EGUI_UNUSED(local);
+    EGUI_LOCAL_INIT(egui_animation_alpha_t);
     // call super init.
     egui_animation_init(self);
     // update api.

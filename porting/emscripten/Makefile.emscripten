@@ -1,0 +1,163 @@
+#
+# Makefile.emscripten - Emscripten build rules
+# Simplified from Makefile.base for WebAssembly output
+#
+.DEFAULT_GOAL := all
+
+TARGET ?= main.html
+
+# Emscripten compiler (may be overridden by build.mk for Windows compatibility)
+CC ?= emcc
+
+# Compile flags
+COMMON_FLAGS ?=
+COMPILE_OPT_LEVEL ?= -O2
+COMPILE_DEBUG ?=
+
+COMMON_FLAGS += $(COMPILE_OPT_LEVEL)
+COMMON_FLAGS += $(COMPILE_DEBUG)
+
+# User-defined extra CFLAGS
+USER_CFLAGS ?=
+COMMON_FLAGS += $(USER_CFLAGS)
+
+# Warning settings
+COMMON_FLAGS += -Wall
+COMMON_FLAGS += -Wstrict-prototypes
+COMMON_FLAGS += -Wshadow
+
+# C99 standard
+COMMON_FLAGS += -std=c99
+
+# Dependency generation
+COMMON_FLAGS += -MMD -MP
+
+# Weak symbol support
+COMMON_FLAGS += -fno-common
+
+## Verbosity control ##
+ifeq ($(V),1)
+	Q=
+else
+	Q=@
+endif
+
+NOGC ?= 1
+ifeq ($(NOGC),1)
+GC_CFLAGS =
+GC_LDFLAGS =
+else
+GC_CFLAGS = -ffunction-sections -fdata-sections
+GC_LDFLAGS =
+endif
+
+COMMON_FLAGS += $(GC_CFLAGS)
+
+# Linker flags
+LDFLAGS ?=
+LDFLAGS += $(GC_LDFLAGS)
+
+# Link flags
+LFLAGS ?=
+
+# Output directory
+OUTPUT_PATH := output
+
+# Source, include, lib directories
+SRC ?=
+INCLUDE ?=
+LIB ?=
+
+OUTPUT_TARGET := $(OUTPUT_PATH)/$(TARGET)
+APP_OBJ_SUFFIX ?= $(if $(APP),$(APP),default)
+OBJDIR = $(OUTPUT_PATH)/obj/$(APP_OBJ_SUFFIX)
+
+# Makefile prerequisites for rebuild
+MAKEFILE_PREREQS += Makefile
+MAKEFILE_PREREQS += $(EGUI_PORT_PATH)/Makefile.emscripten
+MAKEFILE_PREREQS += $(EGUI_APP_PATH)/build.mk
+COMMON_PREREQS = $(MAKEFILE_PREREQS)
+
+# Emscripten uses Unix-style commands
+MAIN := $(TARGET)
+ECHO = echo
+SOURCEDIRS := $(SRC)
+INCLUDEDIRS := $(INCLUDE)
+LIBDIRS := $(LIB)
+FIXPATH = $1
+RM = rm -rf
+MD := mkdir -p
+MD_CHECK :=
+
+# Include paths
+INCLUDES := $(patsubst %,-I%, $(INCLUDEDIRS:%/=%))
+
+# Library paths
+LIBS := $(patsubst %,-L%, $(LIBDIRS:%/=%))
+
+# Source files - exclude PC's main.c (we use main_emscripten.c)
+ALL_SOURCES := $(wildcard $(patsubst %,%/*.c, $(SOURCEDIRS)))
+SOURCES := $(filter-out porting/pc/main.c,$(ALL_SOURCES))
+# Also exclude PC's egui_port_pc.c (we use egui_port_emscripten.c)
+SOURCES := $(filter-out porting/pc/egui_port_pc.c,$(SOURCES))
+
+# Object files
+OBJECTS := $(patsubst %, $(OBJDIR)/%, $(SOURCES:.c=.o))
+OBJ_MD := $(addprefix $(OBJDIR)/, $(SOURCEDIRS))
+
+ALL_DEPS := $(OBJECTS:.o=.d)
+
+ifneq ($(MAKECMDGOALS),clean)
+-include $(ALL_DEPS)
+endif
+
+OUTPUT_MAIN := $(OUTPUT_PATH)/$(MAIN)
+OUTPUT_MAIN_RESOURCE := $(OUTPUT_PATH)/app_egui_resource_merge.bin
+
+.PHONY: all clean info
+
+info:
+	@$(ECHO) Current Configuration: APP=$(APP) PORT=$(PORT)
+
+.PHONY: all
+all: | info $(OUTPUT_MAIN_RESOURCE) $(MAIN)
+	@$(ECHO) Executing 'all' complete!
+
+# Create object directories
+$(OBJ_MD):
+	$(Q)$(MD) $@
+
+$(OUTPUT_PATH):
+	$(Q)$(MD) $@
+
+$(OBJDIR):
+	$(Q)$(MD) $@
+
+# Link: emcc outputs .html + .js + .wasm
+$(OUTPUT_MAIN): $(OBJECTS)
+	@$(ECHO) Linking    : "$@"
+	$(Q)$(CC) $(COMMON_FLAGS) $(LDFLAGS) $(INCLUDES) -o $(OUTPUT_MAIN) $(OBJECTS) $(LFLAGS) $(LIBS)
+
+$(MAIN): | $(OUTPUT_PATH) $(OBJDIR) $(OBJ_MD) $(OUTPUT_MAIN)
+	@$(ECHO) Building   : "$(OUTPUT_MAIN)"
+
+# Compile
+$(OBJECTS): $(OBJDIR)/%.o : %.c $(COMMON_PREREQS)
+	@$(ECHO) Compiling  : "$<"
+	$(Q)$(CC) $(COMMON_FLAGS) $(INCLUDES) -c $< -o $@
+
+clean:
+	$(Q)$(RM) $(OUTPUT_PATH)
+	@$(ECHO) Cleanup complete!
+
+run: all
+	@$(ECHO) "Run 'python3 -m http.server 8000' in output/ and open http://localhost:8000/$(TARGET)"
+
+$(OUTPUT_MAIN_RESOURCE): resource
+	@$(ECHO) Generating resource file complete!
+
+resource: $(OUTPUT_PATH)
+	python ./scripts/tools/app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH)
+
+resource_refresh: $(OUTPUT_PATH)
+	python ./scripts/tools/app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH) -f ture

@@ -31,11 +31,20 @@ typedef struct egui_view egui_view_t;
 typedef struct egui_view_group egui_view_group_t;
 
 typedef struct egui_canvas egui_canvas_t;
+typedef struct egui_shadow egui_shadow_t;
 
 typedef struct egui_location egui_location_t;
 typedef struct egui_size egui_size_t;
 typedef struct egui_region egui_region_t;
 
+typedef struct egui_key_event egui_key_event_t;
+typedef struct egui_focus_manager egui_focus_manager_t;
+
+typedef struct egui_display_driver egui_display_driver_t;
+typedef struct egui_display_driver_ops egui_display_driver_ops_t;
+typedef struct egui_platform egui_platform_t;
+typedef struct egui_platform_ops egui_platform_ops_t;
+typedef struct egui_pfb_manager egui_pfb_manager_t;
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

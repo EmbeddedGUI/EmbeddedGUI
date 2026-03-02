@@ -4,18 +4,32 @@
 
 #include "egui_view_group.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
+static int egui_view_group_layer_insert_cond(egui_dnode_t *dnode, void *data)
+{
+    egui_view_t *current = EGUI_DLIST_ENTRY(dnode, egui_view_t, node);
+    egui_view_t *to_insert = (egui_view_t *)data;
+    // Insert before the first node with a higher layer
+    return (current->layer > to_insert->layer);
+}
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
+
 void egui_view_group_add_child(egui_view_t *self, egui_view_t *child)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     egui_view_set_parent(child, local);
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
+    egui_dlist_insert_at(&local->childs, &child->node, egui_view_group_layer_insert_cond, child);
+#else
     egui_dlist_append(&local->childs, &child->node);
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
 }
 
 void egui_view_group_remove_child(egui_view_t *self, egui_view_t *child)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
-    if(child == local->first_touch_target)
+    EGUI_LOCAL_INIT(egui_view_group_t);
+    if (child == local->first_touch_target)
     {
         // Clear.
         local->first_touch_target = NULL;
@@ -25,20 +39,20 @@ void egui_view_group_remove_child(egui_view_t *self, egui_view_t *child)
 
 void egui_view_group_clear_childs(egui_view_t *self)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
 
     egui_dlist_init(&local->childs);
 }
 
 int egui_view_group_get_child_count(egui_view_t *self)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     return egui_dlist_size(&local->childs);
 }
 
 egui_view_t *egui_view_group_get_first_child(egui_view_t *self)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *snode = egui_dlist_peek_head(&local->childs);
     if (snode == NULL)
     {
@@ -49,13 +63,13 @@ egui_view_t *egui_view_group_get_first_child(egui_view_t *self)
 
 void egui_view_group_set_disallow_process_touch_event(egui_view_t *self, int disallow)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     local->is_disallow_process_touch_event = disallow;
 }
 
 void egui_view_group_calculate_all_child_width(egui_view_t *self, egui_dim_t *width)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
 
@@ -66,7 +80,7 @@ void egui_view_group_calculate_all_child_width(egui_view_t *self, egui_dim_t *wi
         {
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
 
-            if(tmp->is_gone)
+            if (tmp->is_gone)
             {
                 continue;
             }
@@ -77,7 +91,7 @@ void egui_view_group_calculate_all_child_width(egui_view_t *self, egui_dim_t *wi
 
 void egui_view_group_calculate_all_child_height(egui_view_t *self, egui_dim_t *height)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
 
@@ -88,7 +102,7 @@ void egui_view_group_calculate_all_child_height(egui_view_t *self, egui_dim_t *h
         {
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
 
-            if(tmp->is_gone)
+            if (tmp->is_gone)
             {
                 continue;
             }
@@ -99,7 +113,7 @@ void egui_view_group_calculate_all_child_height(egui_view_t *self, egui_dim_t *h
 
 void egui_view_group_get_max_child_width(egui_view_t *self, egui_dim_t *width)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
 
@@ -110,7 +124,7 @@ void egui_view_group_get_max_child_width(egui_view_t *self, egui_dim_t *width)
         {
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
 
-            if(tmp->is_gone)
+            if (tmp->is_gone)
             {
                 continue;
             }
@@ -124,7 +138,7 @@ void egui_view_group_get_max_child_width(egui_view_t *self, egui_dim_t *width)
 
 void egui_view_group_get_max_child_height(egui_view_t *self, egui_dim_t *height)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
 
@@ -135,7 +149,7 @@ void egui_view_group_get_max_child_height(egui_view_t *self, egui_dim_t *height)
         {
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
 
-            if(tmp->is_gone)
+            if (tmp->is_gone)
             {
                 continue;
             }
@@ -147,10 +161,9 @@ void egui_view_group_get_max_child_height(egui_view_t *self, egui_dim_t *height)
     }
 }
 
-
 void egui_view_group_layout_childs(egui_view_t *self, uint8_t is_orientation_horizontal, uint8_t is_auto_width, uint8_t is_auto_height, uint8_t align_type)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
 
     // get all child's height.
     egui_dim_t total_child_width = 0;
@@ -170,12 +183,15 @@ void egui_view_group_layout_childs(egui_view_t *self, uint8_t is_orientation_hor
 
     if (is_auto_width || is_auto_height)
     {
-        egui_view_set_size(self, is_auto_width ? total_child_width : self->region.size.width,
-                           is_auto_height ? total_child_height : self->region.size.height);
+        egui_view_set_size(self, is_auto_width ? (total_child_width + self->padding.left + self->padding.right) : self->region.size.width,
+                           is_auto_height ? (total_child_height + self->padding.top + self->padding.bottom) : self->region.size.height);
     }
 
-    egui_dim_t parent_width = self->region.size.width;
-    egui_dim_t parent_height = self->region.size.height;
+    // Use content area (region minus padding) as the available space for children.
+    // In egui_view_calculate_layout, children's local coordinate origin is at the padding edge,
+    // so layout should compute positions within the content area dimensions.
+    egui_dim_t parent_width = self->region.size.width - self->padding.left - self->padding.right;
+    egui_dim_t parent_height = self->region.size.height - self->padding.top - self->padding.bottom;
 
     // get base position.
     egui_dim_t x, y;
@@ -192,15 +208,14 @@ void egui_view_group_layout_childs(egui_view_t *self, uint8_t is_orientation_hor
         {
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
 
-            if(tmp->is_gone)
+            if (tmp->is_gone)
             {
                 continue;
             }
             if (is_orientation_horizontal)
             {
                 egui_common_align_get_x_y(total_child_width, total_child_height, tmp->region.size.width + tmp->margin.left + tmp->margin.right,
-                                          tmp->region.size.height + tmp->margin.top + tmp->margin.bottom, align_type & EGUI_ALIGN_VMASK, &child_x,
-                                          &child_y);
+                                          tmp->region.size.height + tmp->margin.top + tmp->margin.bottom, align_type & EGUI_ALIGN_VMASK, &child_x, &child_y);
 
                 egui_view_set_position(tmp, x + child_x + tmp->margin.left, y + child_y + tmp->margin.top);
 
@@ -209,8 +224,7 @@ void egui_view_group_layout_childs(egui_view_t *self, uint8_t is_orientation_hor
             else
             {
                 egui_common_align_get_x_y(total_child_width, total_child_height, tmp->region.size.width + tmp->margin.left + tmp->margin.right,
-                                          tmp->region.size.height + tmp->margin.top + tmp->margin.bottom, align_type & EGUI_ALIGN_HMASK, &child_x,
-                                          &child_y);
+                                          tmp->region.size.height + tmp->margin.top + tmp->margin.bottom, align_type & EGUI_ALIGN_HMASK, &child_x, &child_y);
 
                 egui_view_set_position(tmp, x + child_x + tmp->margin.left, y + child_y + tmp->margin.top);
 
@@ -223,7 +237,7 @@ void egui_view_group_layout_childs(egui_view_t *self, uint8_t is_orientation_hor
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 void egui_view_group_request_disallow_intercept_touch_event(egui_view_t *self, int disallow)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     // EGUI_LOG_DBG("egui_view_group_request_disallow_intercept_touch_event id: 0x%x, old: %d, new: %d\n", self->id, local->is_disallow_intercept, disallow);
     if (local->is_disallow_intercept == disallow)
     {
@@ -240,7 +254,7 @@ void egui_view_group_request_disallow_intercept_touch_event(egui_view_t *self, i
 
 int egui_view_group_dispatch_transformed_touch_event(egui_view_t *self, int is_canceled, egui_view_t *child, egui_motion_event_t *event)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     egui_motion_event_t transformed_event;
     memcpy(&transformed_event, event, sizeof(egui_motion_event_t));
 
@@ -265,8 +279,7 @@ int egui_view_group_on_intercept_touch_event(egui_view_t *self, egui_motion_even
 {
     // view object should not work here. just return 0.
     // EGUI_LOG_DBG("egui_view_group_on_intercept_touch_event id: 0x%x, %s\n", self->id, egui_motion_event_string(event->type));
-    egui_view_group_t *local = (egui_view_group_t *)self;
-    EGUI_UNUSED(local);
+    EGUI_LOCAL_INIT(egui_view_group_t);
 
     // if(event->type == EGUI_MOTION_EVENT_ACTION_DOWN
     //     && isOnScrollbarThumb())
@@ -284,7 +297,7 @@ int egui_view_group_dispatch_touch_event(egui_view_t *self, egui_motion_event_t 
     int is_already_dispatched_to_new_touch_target = 0;
 
     // EGUI_LOG_DBG("egui_view_group_dispatch_touch_event id: 0x%x, %s\n", self->id, egui_motion_event_string(event->type));
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
 
     // disallow process touch event if is_disallow_process_touch_event is 1.
     if (local->is_disallow_process_touch_event)
@@ -359,7 +372,8 @@ int egui_view_group_dispatch_touch_event(egui_view_t *self, egui_motion_event_t 
         }
     }
 
-    // EGUI_LOG_DBG("id: 0x%x, is_intercepted: %d, is_canceled: %d, is_handled: %d, first_touch_target: 0x%x\n", self->id, is_intercepted, is_canceled, is_handled,
+    // EGUI_LOG_DBG("id: 0x%x, is_intercepted: %d, is_canceled: %d, is_handled: %d, first_touch_target: 0x%x\n", self->id, is_intercepted, is_canceled,
+    // is_handled,
     //        local->first_touch_target);
 
     // Step3: Check first_touch_target and dispatch the event to it.
@@ -390,8 +404,7 @@ int egui_view_group_dispatch_touch_event(egui_view_t *self, egui_motion_event_t 
 int egui_view_group_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     // EGUI_LOG_DBG("egui_view_group_on_touch_event id: 0x%x, %s\n", self->id, egui_motion_event_string(event->type));
-    egui_view_group_t *local = (egui_view_group_t *)self;
-    EGUI_UNUSED(local);
+    EGUI_LOCAL_INIT(egui_view_group_t);
     if (self->is_clickable)
     {
         switch (event->type)
@@ -415,7 +428,7 @@ int egui_view_group_on_touch_event(egui_view_t *self, egui_motion_event_t *event
 
     return 0;
 }
-#else // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+#else  // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
 void egui_view_group_request_disallow_intercept_touch_event(egui_view_t *self, int disallow)
 {
@@ -444,7 +457,7 @@ int egui_view_group_on_touch_event(egui_view_t *self, egui_motion_event_t *event
 
 void egui_view_group_on_attach_to_window(egui_view_t *self)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
 
@@ -461,7 +474,7 @@ void egui_view_group_on_attach_to_window(egui_view_t *self)
 
 void egui_view_group_on_detach_from_window(egui_view_t *self)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
 
@@ -478,7 +491,7 @@ void egui_view_group_on_detach_from_window(egui_view_t *self)
 
 void egui_view_group_draw(egui_view_t *self)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
     egui_alpha_t alpha = egui_canvas_get_alpha();
@@ -497,6 +510,12 @@ void egui_view_group_draw(egui_view_t *self)
         {
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
 
+            // Early culling: skip children that don't intersect the current PFB tile
+            if (tmp->is_visible && !tmp->is_gone && !egui_region_is_intersect(&tmp->region_screen, egui_canvas_get_pfb_region()))
+            {
+                continue;
+            }
+
             // set canvase alpha
             egui_canvas_mix_alpha(self->alpha);
             tmp->api->draw(tmp);
@@ -509,7 +528,7 @@ void egui_view_group_draw(egui_view_t *self)
 
 void egui_view_group_request_layout(egui_view_t *self)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
 
@@ -529,7 +548,7 @@ void egui_view_group_request_layout(egui_view_t *self)
 
 void egui_view_group_compute_scroll(egui_view_t *self)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
 
@@ -549,7 +568,7 @@ void egui_view_group_compute_scroll(egui_view_t *self)
 
 void egui_view_group_calculate_layout(egui_view_t *self)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_LOCAL_INIT(egui_view_group_t);
     egui_dnode_t *p_head;
     egui_view_t *tmp;
 
@@ -567,22 +586,82 @@ void egui_view_group_calculate_layout(egui_view_t *self)
     }
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+int egui_view_group_dispatch_key_event(egui_view_t *self, egui_key_event_t *event)
+{
+    EGUI_LOCAL_INIT(egui_view_group_t);
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    // If there is a focused child, dispatch key event to it
+    egui_dnode_t *p_head;
+    egui_view_t *tmp;
+
+    if (!egui_dlist_is_empty(&local->childs))
+    {
+        EGUI_DLIST_FOR_EACH_NODE(&local->childs, p_head)
+        {
+            tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
+
+            if (tmp->is_focused)
+            {
+                if (tmp->api->dispatch_key_event(tmp, event))
+                {
+                    return 1;
+                }
+                break;
+            }
+        }
+    }
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+
+    // If no focused child consumed the event, handle it ourselves
+    return egui_view_dispatch_key_event(self, event);
+}
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
+void egui_view_group_reorder_child(egui_view_t *self, egui_view_t *child)
+{
+    EGUI_LOCAL_INIT(egui_view_group_t);
+
+    // Remove from current position
+    egui_dlist_remove(&child->node);
+
+    // Re-insert at correct position based on layer
+    egui_dlist_insert_at(&local->childs, &child->node, egui_view_group_layer_insert_cond, child);
+}
+
+void egui_view_group_bring_child_to_front(egui_view_t *self, egui_view_t *child)
+{
+    egui_view_set_layer(child, EGUI_VIEW_LAYER_TOP);
+}
+
+void egui_view_group_send_child_to_back(egui_view_t *self, egui_view_t *child)
+{
+    egui_view_set_layer(child, EGUI_VIEW_LAYER_BACKGROUND);
+}
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
+
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_group_t) = {
-    .dispatch_touch_event = egui_view_group_dispatch_touch_event,
-    .on_touch_event = egui_view_group_on_touch_event,
-    .on_intercept_touch_event = egui_view_group_on_intercept_touch_event,
-    .compute_scroll = egui_view_group_compute_scroll,
-    .calculate_layout = egui_view_group_calculate_layout,
-    .request_layout = egui_view_group_request_layout,
-    .draw = egui_view_group_draw,
-    .on_attach_to_window = egui_view_group_on_attach_to_window,
-    .on_draw = egui_view_on_draw,
-    .on_detach_from_window = egui_view_group_on_detach_from_window,
+        .dispatch_touch_event = egui_view_group_dispatch_touch_event,
+        .on_touch_event = egui_view_group_on_touch_event,
+        .on_intercept_touch_event = egui_view_group_on_intercept_touch_event,
+        .compute_scroll = egui_view_group_compute_scroll,
+        .calculate_layout = egui_view_group_calculate_layout,
+        .request_layout = egui_view_group_request_layout,
+        .draw = egui_view_group_draw,
+        .on_attach_to_window = egui_view_group_on_attach_to_window,
+        .on_draw = egui_view_on_draw,
+        .on_detach_from_window = egui_view_group_on_detach_from_window,
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+        .dispatch_key_event = egui_view_group_dispatch_key_event,
+        .on_key_event = egui_view_on_key_event,
+#endif
 };
 
 void egui_view_group_init(egui_view_t *self)
 {
-    egui_view_group_t *local = (egui_view_group_t *)self;
+    EGUI_INIT_LOCAL(egui_view_group_t);
     // call super init.
     egui_view_init(self);
     // update api.
@@ -596,4 +675,17 @@ void egui_view_group_init(egui_view_t *self)
     egui_dlist_init(&local->childs);
 
     egui_view_set_view_name(self, "egui_view_group");
+}
+
+void egui_view_group_apply_params(egui_view_t *self, const egui_view_group_params_t *params)
+{
+    self->region = params->region;
+
+    egui_view_invalidate(self);
+}
+
+void egui_view_group_init_with_params(egui_view_t *self, const egui_view_group_params_t *params)
+{
+    egui_view_group_init(self);
+    egui_view_group_apply_params(self, params);
 }

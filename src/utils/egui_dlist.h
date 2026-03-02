@@ -71,7 +71,7 @@ typedef struct _egui_dnode egui_dnode_t;
  * @param __dn A egui_dnode_t pointer to peek each node of the list
  * @param __dns A egui_dnode_t pointer for the loop to run safely
  */
-#define EGUI_DLIST_FOR_EACH_NODE_REVERSE_SAFE(__dl, __dn, __dns)                                                                                                       \
+#define EGUI_DLIST_FOR_EACH_NODE_REVERSE_SAFE(__dl, __dn, __dns)                                                                                               \
     for (__dn = egui_dlist_peek_tail(__dl), __dns = egui_dlist_peek_prev(__dl, __dn); __dn != NULL; __dn = __dns, __dns = egui_dlist_peek_prev(__dl, __dn))
 
 /**

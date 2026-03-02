@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "egui.h"
 #include "uicode.h"
@@ -27,7 +28,7 @@ static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT]
 #define MAX_PATH 0x1000
 char input_file_path[MAX_PATH];
 
-char* pc_get_input_file_path(void)
+char *pc_get_input_file_path(void)
 {
     return input_file_path;
 }
@@ -45,16 +46,45 @@ static void pasre_input_params(int argc, const char *argv[])
     }
 }
 
+static void parse_recording_params(int argc, const char *argv[])
+{
+    for (int i = 1; i < argc; i++)
+    {
+        if (strcmp(argv[i], "--record") == 0 && i + 3 < argc)
+        {
+            const char *output_dir = argv[i + 1];
+            int fps = atoi(argv[i + 2]);
+            int duration = atoi(argv[i + 3]);
+            recording_init(output_dir, fps, duration);
+        }
+        else if (strcmp(argv[i], "--speed") == 0 && i + 1 < argc)
+        {
+            int speed = atoi(argv[i + 1]);
+            recording_set_speed(speed);
+        }
+    }
+}
+
 int main(int argc, const char *argv[])
 {
     printf("Hello, egui!\n");
-    
+
     pasre_input_params(argc, argv);
+    parse_recording_params(argc, argv);
 
     VT_init();
 
-    egui_init(egui_pfb);
+    // Register display and platform drivers before egui_init
+    extern void egui_port_init(void);
+    egui_port_init();
+
+    egui_init_config_t init_config = {
+            .pfb = egui_pfb,
+            .pfb_backup = NULL,
+    };
+    egui_init(&init_config);
     uicode_create_ui();
+    egui_screen_on();
 
     SDL_CreateThread(egui_main_thread, "egui thread", NULL);
 

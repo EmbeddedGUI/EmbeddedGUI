@@ -13,6 +13,14 @@ def format_all_file(root):
         # foreach file in current directory
         for f in files:
             if f.endswith('.c') or f.endswith('.h'):
+                if '.venv' in root:
+                    continue
+                if 'tools' in root:
+                    continue
+                if '.claude' in root:
+                    continue
+                if '.eguiproject' in root:
+                    continue
                 if 'resource' in root:
                     continue
                 if 'CMSIS' in root:

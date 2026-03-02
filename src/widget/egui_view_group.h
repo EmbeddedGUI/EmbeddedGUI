@@ -19,6 +19,18 @@ struct egui_view_group
     egui_dlist_t childs;             // used for child views
 };
 
+// ============== Group Params ==============
+typedef struct egui_view_group_params egui_view_group_params_t;
+struct egui_view_group_params
+{
+    egui_region_t region;
+};
+
+#define EGUI_VIEW_GROUP_PARAMS_INIT(_name, _x, _y, _w, _h) static const egui_view_group_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}}
+
+void egui_view_group_apply_params(egui_view_t *self, const egui_view_group_params_t *params);
+void egui_view_group_init_with_params(egui_view_t *self, const egui_view_group_params_t *params);
+
 #define EGUI_VIEW_GROUP_ADD_CHILD_TREE(_group, _child_tree) egui_view_group_add_child_tree((_group), (_child_tree), EGUI_ARRAY_SIZE(_child_tree))
 
 void egui_view_group_add_child(egui_view_t *self, egui_view_t *child);
@@ -45,6 +57,16 @@ void egui_view_group_draw(egui_view_t *self);
 void egui_view_group_request_layout(egui_view_t *self);
 void egui_view_group_calculate_layout(egui_view_t *self);
 void egui_view_group_init(egui_view_t *self);
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+int egui_view_group_dispatch_key_event(egui_view_t *self, egui_key_event_t *event);
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
+void egui_view_group_reorder_child(egui_view_t *self, egui_view_t *child);
+void egui_view_group_bring_child_to_front(egui_view_t *self, egui_view_t *child);
+void egui_view_group_send_child_to_back(egui_view_t *self, egui_view_t *child);
+#endif
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

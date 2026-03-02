@@ -1,0 +1,364 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+GIF Recorder for EmbeddedGUI examples
+Automatically records GIF demos for each example application
+"""
+
+import os
+import sys
+import subprocess
+import shutil
+import argparse
+import platform
+from pathlib import Path
+
+# Configuration
+DEFAULT_FPS = 10
+DEFAULT_DURATION = 5  # seconds
+OUTPUT_GIF_DIR = "doc/source/images/examples"
+TEMP_FRAMES_DIR = "output/frames"
+
+# Default skip list - examples not suitable for demo
+DEFAULT_SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformace"]
+
+
+def get_example_list():
+    """Get list of all example applications"""
+    path = 'example'
+    app_list = []
+    if not os.path.exists(path):
+        return app_list
+
+    for file in os.listdir(path):
+        file_path = os.path.join(path, file)
+        if os.path.isdir(file_path):
+            app_list.append(file)
+
+    return sorted(app_list)
+
+
+def get_example_basic_list():
+    """Get list of HelloBasic sub-applications"""
+    path = 'example/HelloBasic'
+    app_list = []
+    if not os.path.exists(path):
+        return app_list
+
+    for file in os.listdir(path):
+        file_path = os.path.join(path, file)
+        if os.path.isdir(file_path):
+            app_list.append(file)
+
+    return sorted(app_list)
+
+
+def compile_app(app, app_sub=None, bits64=False):
+    """Compile specified application"""
+    print(f"Compiling: {app}" + (f"/{app_sub}" if app_sub else ""))
+
+    # Clean first - need to pass APP to avoid build.mk include error
+    cmd = ['make', 'clean', f'APP={app}']
+    if app_sub:
+        cmd.append(f'APP_SUB={app_sub}')
+    result = subprocess.run(cmd, capture_output=True)
+    if result.returncode != 0:
+        print(f"Clean failed: {result.stderr.decode()}")
+        return False
+
+    # Build
+    cmd = ['make', '-j']
+    cmd.append(f'APP={app}')
+    cmd.append('PORT=pc')
+    if app_sub:
+        cmd.append(f'APP_SUB={app_sub}')
+    if bits64:
+        cmd.append('BITS=64')
+
+    result = subprocess.run(cmd, capture_output=True)
+    if result.returncode != 0:
+        print(f"Build failed: {result.stderr.decode()}")
+        return False
+
+    return True
+
+
+def run_and_record(app_name, fps=DEFAULT_FPS, duration=DEFAULT_DURATION):
+    """Run application and record frames"""
+    frames_dir = os.path.join(TEMP_FRAMES_DIR, app_name)
+    os.makedirs(frames_dir, exist_ok=True)
+
+    # Determine executable path
+    if platform.system() == 'Windows':
+        exe_path = 'output/main.exe'
+    else:
+        exe_path = 'output/main'
+
+    if not os.path.exists(exe_path):
+        print(f"Executable not found: {exe_path}")
+        return False
+
+    resource_path = 'output/app_egui_resource_merge.bin'
+
+    # Run with recording enabled
+    cmd = [exe_path, resource_path, '--record', frames_dir, str(fps), str(duration)]
+    print(f"Running: {' '.join(cmd)}")
+
+    # Set environment for headless display if needed (Linux)
+    env = os.environ.copy()
+    if platform.system() == 'Linux' and 'DISPLAY' not in env:
+        print("Warning: No DISPLAY set. SDL requires a graphical environment.")
+        print("Try: export DISPLAY=:0 or run from a desktop session")
+
+    try:
+        # Add extra time for startup/shutdown
+        timeout_sec = duration + 10
+        result = subprocess.run(cmd, timeout=timeout_sec, capture_output=True, text=True, env=env)
+        if result.stdout:
+            print(result.stdout)
+        if result.stderr:
+            print(f"stderr: {result.stderr}")
+    except subprocess.TimeoutExpired:
+        print(f"Warning: {app_name} timeout after {timeout_sec}s")
+        return False
+    except Exception as e:
+        print(f"Error running {app_name}: {e}")
+        return False
+
+    # Check if frames were generated
+    frame_files = list(Path(frames_dir).glob("frame_*.bmp"))
+    if not frame_files:
+        print(f"No frames generated for {app_name}")
+        return False
+
+    print(f"Generated {len(frame_files)} frames")
+    return True
+
+
+def frames_to_gif(app_name, fps=DEFAULT_FPS):
+    """Convert frame sequence to GIF using FFmpeg or Pillow"""
+    frames_dir = os.path.join(TEMP_FRAMES_DIR, app_name)
+    output_gif = os.path.join(OUTPUT_GIF_DIR, f"{app_name}.gif")
+
+    os.makedirs(OUTPUT_GIF_DIR, exist_ok=True)
+
+    # Check if frames exist
+    frame_pattern = os.path.join(frames_dir, 'frame_%04d.bmp')
+    if not os.path.exists(os.path.join(frames_dir, 'frame_0000.bmp')):
+        print(f"No frames found in {frames_dir}")
+        return None
+
+    # Try FFmpeg first (better quality)
+    if shutil.which('ffmpeg'):
+        print("Using FFmpeg for GIF generation...")
+        cmd = [
+            'ffmpeg', '-y',
+            '-framerate', str(fps),
+            '-i', frame_pattern,
+            '-vf', f'fps={fps},split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
+            output_gif
+        ]
+        try:
+            subprocess.run(cmd, check=True, capture_output=True)
+            print(f"Generated: {output_gif}")
+            return output_gif
+        except subprocess.CalledProcessError as e:
+            print(f"FFmpeg failed: {e.stderr.decode()}")
+            # Fall through to Pillow
+
+    # Fallback to Pillow
+    try:
+        from PIL import Image
+        print("Using Pillow for GIF generation...")
+
+        frames = []
+        frame_files = sorted(Path(frames_dir).glob("frame_*.bmp"))
+
+        for frame_file in frame_files:
+            img = Image.open(frame_file)
+            # Convert to RGB if needed
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            frames.append(img)
+
+        if frames:
+            # Calculate duration per frame in milliseconds
+            duration_per_frame = 1000 // fps
+            frames[0].save(
+                output_gif,
+                save_all=True,
+                append_images=frames[1:],
+                duration=duration_per_frame,
+                loop=0,
+                optimize=True
+            )
+            print(f"Generated: {output_gif}")
+            return output_gif
+        else:
+            print("No frames to convert")
+            return None
+
+    except ImportError:
+        print("Error: Neither FFmpeg nor Pillow available")
+        print("Install FFmpeg or run: pip install Pillow")
+        return None
+
+
+def cleanup_frames(app_name):
+    """Remove temporary frame files"""
+    frames_dir = os.path.join(TEMP_FRAMES_DIR, app_name)
+    if os.path.exists(frames_dir):
+        shutil.rmtree(frames_dir, ignore_errors=True)
+
+
+def record_single_app(app, app_sub=None, fps=DEFAULT_FPS, duration=DEFAULT_DURATION, bits64=False, keep_frames=False):
+    """Record single application"""
+    app_name = f"{app}_{app_sub}" if app_sub else app
+    print(f"\n{'='*60}")
+    print(f"Recording: {app_name}")
+    print(f"{'='*60}")
+
+    # Compile
+    if not compile_app(app, app_sub, bits64):
+        return (app_name, None, "compile failed")
+
+    # Record
+    if not run_and_record(app_name, fps, duration):
+        cleanup_frames(app_name)
+        return (app_name, None, "recording failed")
+
+    # Convert to GIF
+    gif_path = frames_to_gif(app_name, fps)
+
+    # Cleanup frames
+    if not keep_frames:
+        cleanup_frames(app_name)
+
+    if gif_path:
+        return (app_name, gif_path, "success")
+    else:
+        return (app_name, None, "gif conversion failed")
+
+
+def record_all_apps(fps=DEFAULT_FPS, duration=DEFAULT_DURATION, skip_list=None, bits64=False, keep_frames=False):
+    """Record all example applications"""
+    if skip_list is None:
+        skip_list = DEFAULT_SKIP_LIST.copy()
+
+    results = []
+    app_sets = get_example_list()
+    app_basic_sets = get_example_basic_list()
+
+    # Calculate total count
+    total = 0
+    for app in app_sets:
+        if app in skip_list:
+            continue
+        if app == "HelloBasic":
+            for app_sub in app_basic_sets:
+                if f"HelloBasic_{app_sub}" not in skip_list:
+                    total += 1
+        else:
+            total += 1
+
+    current = 0
+    for app in app_sets:
+        if app in skip_list:
+            print(f"\nSkipping: {app}")
+            continue
+
+        if app == "HelloBasic":
+            for app_sub in app_basic_sets:
+                full_name = f"HelloBasic_{app_sub}"
+                if full_name in skip_list:
+                    print(f"\nSkipping: {full_name}")
+                    continue
+
+                current += 1
+                print(f"\n[{current}/{total}] Processing {full_name}")
+                result = record_single_app(app, app_sub, fps, duration, bits64, keep_frames)
+                results.append(result)
+        else:
+            current += 1
+            print(f"\n[{current}/{total}] Processing {app}")
+            result = record_single_app(app, None, fps, duration, bits64, keep_frames)
+            results.append(result)
+
+    return results
+
+
+def print_summary(results):
+    """Print recording summary"""
+    print(f"\n{'='*60}")
+    print("Recording Summary")
+    print(f"{'='*60}")
+
+    success = 0
+    failed = 0
+    for name, path, status in results:
+        if status == "success":
+            print(f"  [OK] {name} -> {path}")
+            success += 1
+        else:
+            print(f"  [FAIL] {name}: {status}")
+            failed += 1
+
+    print(f"\nTotal: {success} succeeded, {failed} failed")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Record GIF demos for EmbeddedGUI examples',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  %(prog)s --app HelloSimple              Record single app
+  %(prog)s --app HelloBasic --app-sub anim  Record HelloBasic sub-app
+  %(prog)s --all                          Record all (skips test examples)
+  %(prog)s --all --no-skip                Record all including test examples
+  %(prog)s --list                         List all available examples
+        """
+    )
+    parser.add_argument('--app', type=str, help='Specific app to record')
+    parser.add_argument('--app-sub', type=str, help='Sub-app for HelloBasic')
+    parser.add_argument('--fps', type=int, default=DEFAULT_FPS, help=f'Recording FPS (default: {DEFAULT_FPS})')
+    parser.add_argument('--duration', type=int, default=DEFAULT_DURATION,
+                        help=f'Recording duration in seconds (default: {DEFAULT_DURATION})')
+    parser.add_argument('--all', action='store_true', help='Record all examples')
+    parser.add_argument('--no-skip', action='store_true', help='Do not skip test examples')
+    parser.add_argument('--skip', nargs='+', default=[], help='Additional apps to skip')
+    parser.add_argument('--bits64', action='store_true', help='Build for 64-bit')
+    parser.add_argument('--keep-frames', action='store_true', help='Keep intermediate BMP frames')
+    parser.add_argument('--list', action='store_true', help='List all available examples')
+
+    args = parser.parse_args()
+
+    # List mode
+    if args.list:
+        print("Available examples:")
+        for app in get_example_list():
+            skip_marker = " (skipped by default)" if app in DEFAULT_SKIP_LIST else ""
+            print(f"  - {app}{skip_marker}")
+            if app == "HelloBasic":
+                for sub in get_example_basic_list():
+                    print(f"      - {sub}")
+        return
+
+    # Record all
+    if args.all:
+        skip_list = [] if args.no_skip else DEFAULT_SKIP_LIST.copy()
+        skip_list.extend(args.skip)
+        results = record_all_apps(args.fps, args.duration, skip_list, args.bits64, args.keep_frames)
+        print_summary(results)
+
+    # Record single app
+    elif args.app:
+        result = record_single_app(args.app, args.app_sub, args.fps, args.duration, args.bits64, args.keep_frames)
+        print_summary([result])
+
+    else:
+        parser.print_help()
+
+
+if __name__ == '__main__':
+    main()

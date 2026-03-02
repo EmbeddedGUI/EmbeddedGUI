@@ -41,7 +41,6 @@ static void egui_page_1_timer_callback(egui_timer_t *timer)
     egui_view_label_set_text((egui_view_t *)&local->label_1, local->label_str);
 }
 
-
 #define BUTTON_WIDTH  150
 #define BUTTON_HEIGHT 30
 
@@ -95,13 +94,12 @@ void egui_page_1_on_open(egui_page_base_t *self)
     egui_view_label_set_font((egui_view_t *)&local->button_2, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_label_set_font_color((egui_view_t *)&local->button_2, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
     egui_view_set_on_click_listener((egui_view_t *)&local->button_2, button_2_click_cb);
-    
+
     // image_1
     egui_utils_view_image_std_normal_init((egui_view_t *)&local->image_1, (egui_image_t *)&egui_res_image_test_rgb565_4, 0, 0);
 
     // bg_button
-    egui_background_color_init((egui_background_t *)&bg_button);
-    egui_background_set_params((egui_background_t *)&bg_button, &bg_button_params);
+    egui_background_color_init_with_params((egui_background_t *)&bg_button, &bg_button_params);
     egui_view_set_background((egui_view_t *)&local->button_1, (egui_background_t *)&bg_button);
     egui_view_set_background((egui_view_t *)&local->button_2, (egui_background_t *)&bg_button);
 
@@ -135,20 +133,20 @@ void egui_page_1_on_key_pressed(egui_page_base_t *self, uint16_t keycode)
 {
     egui_page_1_t *local = (egui_page_1_t *)self;
     EGUI_UNUSED(local);
-    
-    if(keycode == 1)
+
+    if (keycode == 1)
     {
         uicode_start_prev_page();
     }
-    else if(keycode == 2)
+    else if (keycode == 2)
     {
         uicode_start_next_page();
     }
 }
 
 static const egui_page_base_api_t EGUI_VIEW_API_TABLE_NAME(egui_page_1_t) = {
-        .on_open = egui_page_1_on_open, // changed
-        .on_close = egui_page_1_on_close, // changed
+        .on_open = egui_page_1_on_open,               // changed
+        .on_close = egui_page_1_on_close,             // changed
         .on_key_pressed = egui_page_1_on_key_pressed, // changed
 };
 

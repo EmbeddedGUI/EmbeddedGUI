@@ -140,7 +140,8 @@ def process_app(current_work_cnt, total_work_cnt, app, app_basic, params):
         params_full = params + (' PORT=stm32g0_empty APP=%s') % (app)
     res = compile_code(params_full)
     if(res != 0):
-        sys.exit(res)
+        print("Compile failed, skip this app.")
+        return None
         
     elf_size_info = utils_process_elf_file('output/main.elf')
     
@@ -180,10 +181,14 @@ if __name__ == '__main__':
         if app == "HelloBasic":
             for app_basic in app_basic_sets:
                 current_work_cnt += 1
-                info_str += process_app(current_work_cnt, total_work_cnt, app, app_basic, params)
+                result = process_app(current_work_cnt, total_work_cnt, app, app_basic, params)
+                if result is not None:
+                    info_str += result
         else:
             current_work_cnt += 1
-            info_str += process_app(current_work_cnt, total_work_cnt, app, None, params)
+            result = process_app(current_work_cnt, total_work_cnt, app, None, params)
+            if result is not None:
+                info_str += result
     
     with open('output/README.md', 'w', encoding='utf-8') as f:
         f.write(info_str)

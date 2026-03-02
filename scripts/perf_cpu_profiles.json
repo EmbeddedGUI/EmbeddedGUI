@@ -1,0 +1,66 @@
+{
+    "profiles": {
+        "cortex-m3": {
+            "cpu_arch": "cortex-m3",
+            "qemu_cpu": "cortex-m3",
+            "qemu_machine": "mps2-an385",
+            "description": "Cortex-M3 (e.g., STM32F1, STM32F2)"
+        },
+        "cortex-m4": {
+            "cpu_arch": "cortex-m4",
+            "qemu_cpu": "cortex-m4",
+            "qemu_machine": "mps2-an386",
+            "description": "Cortex-M4 (e.g., STM32F4, STM32L4)"
+        },
+        "cortex-m7": {
+            "cpu_arch": "cortex-m7",
+            "qemu_cpu": "cortex-m7",
+            "qemu_machine": "mps2-an500",
+            "description": "Cortex-M7 (e.g., STM32F7, STM32H7)"
+        }
+    },
+    "defaults": {
+        "repeat_count": 100,
+        "regression_threshold_percent": 10,
+        "timeout_seconds": 300
+    },
+    "pfb_configs": {
+        "default": {
+            "pfb_width": 30,
+            "pfb_height": 40,
+            "description": "Default (30x40, 64 tiles, 2.4KB)"
+        },
+        "small": {
+            "pfb_width": 15,
+            "pfb_height": 20,
+            "description": "Small (15x20, 256 tiles, 600B)"
+        },
+        "medium": {
+            "pfb_width": 60,
+            "pfb_height": 40,
+            "description": "Medium (60x40, 32 tiles, 4.8KB)"
+        },
+        "large": {
+            "pfb_width": 120,
+            "pfb_height": 80,
+            "description": "Large (120x80, 8 tiles, 19.2KB)"
+        },
+        "fullwidth": {
+            "pfb_width": 240,
+            "pfb_height": 20,
+            "description": "Full-width strip (240x20, 16 tiles, 9.6KB)"
+        },
+        "fullscreen": {
+            "pfb_width": 240,
+            "pfb_height": 320,
+            "description": "Full-screen (240x320, 1 tile, 153.6KB)"
+        }
+    },
+    "spi_configs": [
+        {"name": "no_spi", "buffer_count": 1, "spi_mhz": 0, "desc": "No SPI (CPU only)"},
+        {"name": "spi32_buf1", "buffer_count": 1, "spi_mhz": 32, "desc": "32MHz SPI, single buffer"},
+        {"name": "spi32_buf2", "buffer_count": 2, "spi_mhz": 32, "desc": "32MHz SPI, double buffer"},
+        {"name": "spi32_buf3", "buffer_count": 3, "spi_mhz": 32, "desc": "32MHz SPI, triple buffer"},
+        {"name": "spi32_buf4", "buffer_count": 4, "spi_mhz": 32, "desc": "32MHz SPI, quad buffer"}
+    ]
+}

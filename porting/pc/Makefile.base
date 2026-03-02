@@ -15,11 +15,31 @@ OBJCOPY 		:= $(CROSS_COMPILE)objcopy
 OBJDUMP 		:= $(CROSS_COMPILE)objdump
 SIZE			:= $(CROSS_COMPILE)size
 
+# Auto-detect BITS from compiler target (x86_64/aarch64 → 64, otherwise → 32)
+ifndef BITS
+  _CC_MACHINE := $(shell $(CC) -dumpmachine)
+  ifneq ($(filter x86_64% aarch64%,$(_CC_MACHINE)),)
+    BITS := 64
+  else
+    BITS := 32
+  endif
+endif
+
 
 # define any compile-time flags
 COMMON_FLAGS  ?= 
-COMMON_FLAGS  += -O0
-COMMON_FLAGS  += -g
+COMPILE_OPT_LEVEL ?= -O0
+# COMPILE_OPT_LEVEL ?= -O2
+# COMPILE_OPT_LEVEL ?= -Os
+# COMPILE_DEBUG ?=
+COMPILE_DEBUG ?= -g
+
+COMMON_FLAGS  += $(COMPILE_OPT_LEVEL)
+COMMON_FLAGS  += $(COMPILE_DEBUG)
+
+# User-defined extra CFLAGS (for runtime testing, resolution overrides, etc.)
+USER_CFLAGS ?=
+COMMON_FLAGS += $(USER_CFLAGS)
 
 # warning param setting
 COMMON_FLAGS	+= -Wall
@@ -50,7 +70,7 @@ else
 	Q=@
 endif
 
-NOGC = 1
+NOGC ?= 1
 # Put functions and data in their own binary sections so that ld can
 # garbage collect them
 ifeq ($(NOGC),1)
@@ -89,9 +109,15 @@ LIB		?=
 
 OUTPUT_TARGET	:= $(OUTPUT_PATH)/$(TARGET)
 
-OBJDIR = $(OUTPUT_PATH)/obj
+APP_OBJ_SUFFIX ?= $(if $(APP),$(APP),default)
+OBJDIR = $(OUTPUT_PATH)/obj/$(APP_OBJ_SUFFIX)
 
+# Prerequisites for rebuild when makefiles change
+MAKEFILE_PREREQS += Makefile
+MAKEFILE_PREREQS += $(EGUI_PORT_PATH)/Makefile.base
+MAKEFILE_PREREQS += $(EGUI_APP_PATH)/build.mk
 
+COMMON_PREREQS = $(MAKEFILE_PREREQS)
 
 
 
@@ -205,7 +231,11 @@ size:
 	$(Q)@$(SIZE) --format=berkeley $(OUTPUT_MAIN)
 
 .PHONY: all
+ifneq ($(wildcard $(EGUI_APP_RESOURCE_PATH)),)
 all: | info $(OUTPUT_MAIN_RESOURCE) $(MAIN)
+else
+all: | info $(MAIN)
+endif
 	@$(ECHO) Executing 'all' complete!
 
 # @$(ECHO) Print Size
@@ -232,7 +262,7 @@ $(MAIN): | $(OUTPUT_PATH) $(OBJDIR) $(OBJ_MD) $(USER_COMPILE_TARGETS) $(OUTPUT_M
 	@$(ECHO) Building   : "$(OUTPUT_MAIN)"
 
 # Static Pattern Rules [targets ...: target-pattern: prereq-patterns ...]
-$(OBJECTS): $(OBJDIR)/%.o : %.c
+$(OBJECTS): $(OBJDIR)/%.o : %.c $(COMMON_PREREQS)
 	@$(ECHO) Compiling  : "$<"
 	$(Q)$(CC) $(COMMON_FLAGS) $(INCLUDES) -c $<  -o $@
 

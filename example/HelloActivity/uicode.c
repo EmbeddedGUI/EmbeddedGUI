@@ -1,4 +1,4 @@
-﻿#include "egui.h"
+#include "egui.h"
 #include <stdlib.h>
 #include <math.h>
 #include "uicode.h"
@@ -103,46 +103,46 @@ int uicode_start_dialog(egui_activity_t *activity)
 void uicode_init_ui(void)
 {
     // anim_dialog_start
-    egui_animation_translate_init((egui_animation_t *)&anim_dialog_start);
+    egui_animation_translate_init(EGUI_ANIM_OF(&anim_dialog_start));
     egui_animation_translate_params_set(&anim_dialog_start, &anim_dialog_start_param);
-    egui_animation_duration_set((egui_animation_t *)&anim_dialog_start, 500);
+    egui_animation_duration_set(EGUI_ANIM_OF(&anim_dialog_start), 500);
 
     // anim_dialog_finish
-    egui_animation_translate_init((egui_animation_t *)&anim_dialog_finish);
+    egui_animation_translate_init(EGUI_ANIM_OF(&anim_dialog_finish));
     egui_animation_translate_params_set(&anim_dialog_finish, &anim_dialog_finish_param);
-    egui_animation_duration_set((egui_animation_t *)&anim_dialog_finish, 500);
-    egui_animation_is_fill_before_set((egui_animation_t *)&anim_dialog_finish, true);
+    egui_animation_duration_set(EGUI_ANIM_OF(&anim_dialog_finish), 500);
+    egui_animation_is_fill_before_set(EGUI_ANIM_OF(&anim_dialog_finish), true);
 
     // Init dialog
     egui_dialog_test_init((egui_dialog_t *)&dialog);
     // Set dialog start/finish animation
-    egui_core_dialog_set_anim((egui_animation_t *)&anim_dialog_start, (egui_animation_t *)&anim_dialog_finish);
+    egui_core_dialog_set_anim(EGUI_ANIM_OF(&anim_dialog_start), EGUI_ANIM_OF(&anim_dialog_finish));
 
     // anim_start_open
-    egui_animation_translate_init((egui_animation_t *)&anim_start_open);
+    egui_animation_translate_init(EGUI_ANIM_OF(&anim_start_open));
     egui_animation_translate_params_set(&anim_start_open, &anim_start_open_param);
-    egui_animation_duration_set((egui_animation_t *)&anim_start_open, 300);
+    egui_animation_duration_set(EGUI_ANIM_OF(&anim_start_open), 300);
 
     // anim_start_close
-    egui_animation_translate_init((egui_animation_t *)&anim_start_close);
+    egui_animation_translate_init(EGUI_ANIM_OF(&anim_start_close));
     egui_animation_translate_params_set(&anim_start_close, &anim_start_close_param);
-    egui_animation_duration_set((egui_animation_t *)&anim_start_close, 300);
-    egui_animation_is_fill_before_set((egui_animation_t *)&anim_start_close, true);
+    egui_animation_duration_set(EGUI_ANIM_OF(&anim_start_close), 300);
+    egui_animation_is_fill_before_set(EGUI_ANIM_OF(&anim_start_close), true);
 
     // anim_finish_open
-    egui_animation_translate_init((egui_animation_t *)&anim_finish_open);
+    egui_animation_translate_init(EGUI_ANIM_OF(&anim_finish_open));
     egui_animation_translate_params_set(&anim_finish_open, &anim_finish_open_param);
-    egui_animation_duration_set((egui_animation_t *)&anim_finish_open, 300);
+    egui_animation_duration_set(EGUI_ANIM_OF(&anim_finish_open), 300);
 
     // anim_finish_close
-    egui_animation_translate_init((egui_animation_t *)&anim_finish_close);
+    egui_animation_translate_init(EGUI_ANIM_OF(&anim_finish_close));
     egui_animation_translate_params_set(&anim_finish_close, &anim_finish_close_param);
-    egui_animation_duration_set((egui_animation_t *)&anim_finish_close, 300);
-    egui_animation_is_fill_before_set((egui_animation_t *)&anim_finish_close, true);
+    egui_animation_duration_set(EGUI_ANIM_OF(&anim_finish_close), 300);
+    egui_animation_is_fill_before_set(EGUI_ANIM_OF(&anim_finish_close), true);
 
     // Set activity start/finish animation
-    egui_core_activity_set_start_anim((egui_animation_t *)&anim_start_open, (egui_animation_t *)&anim_start_close);
-    egui_core_activity_set_finish_anim((egui_animation_t *)&anim_finish_open, (egui_animation_t *)&anim_finish_close);
+    egui_core_activity_set_start_anim(EGUI_ANIM_OF(&anim_start_open), EGUI_ANIM_OF(&anim_start_close));
+    egui_core_activity_set_finish_anim(EGUI_ANIM_OF(&anim_finish_open), EGUI_ANIM_OF(&anim_finish_close));
     // Start activity
     uicode_start_next_activity(NULL);
 
@@ -155,3 +155,49 @@ void uicode_create_ui(void)
 {
     uicode_init_ui();
 }
+
+#if EGUI_CONFIG_RECORDING_TEST
+// Recording actions: navigate activities and open dialog
+// Activity transitions have 300ms animation, 500ms interval ensures completion
+bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
+{
+    switch (action_index)
+    {
+    case 0:
+        EGUI_SIM_SET_WAIT(p_action, 500);
+        return true;
+    case 1:
+        p_action->type = EGUI_SIM_ACTION_CLICK;
+        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2 - 20;
+        p_action->interval_ms = 500;
+        return true;
+    case 2:
+        p_action->type = EGUI_SIM_ACTION_CLICK;
+        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2 - 20;
+        p_action->interval_ms = 500;
+        return true;
+    case 3:
+        p_action->type = EGUI_SIM_ACTION_CLICK;
+        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2 + 60;
+        p_action->interval_ms = 500;
+        return true;
+    case 4:
+        p_action->type = EGUI_SIM_ACTION_CLICK;
+        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2 + 20;
+        p_action->interval_ms = 500;
+        return true;
+    case 5:
+        p_action->type = EGUI_SIM_ACTION_CLICK;
+        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT / 2 + 20;
+        p_action->interval_ms = 500;
+        return true;
+    default:
+        return false;
+    }
+}
+#endif

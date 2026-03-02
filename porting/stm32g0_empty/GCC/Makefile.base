@@ -5,13 +5,16 @@
 .DEFAULT_GOAL := all
 
 ifeq ($(OS),Windows_NT)
-TOOLCHAIN_DIR 	= D:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\12.2 mpacbti-rel1
-JLINK_DIR = C:\Program Files\SEGGER\JLink
+TOOLCHAIN_DIR 	?= $(ARM_GCC_PATH)
+ifeq ($(TOOLCHAIN_DIR),)
+$(error ARM_GCC_PATH not set. Run setup.bat or set ARM_GCC_PATH to your ARM GCC toolchain directory)
+endif
+JLINK_DIR ?= $(SEGGER_JLINK_PATH)
 JLINK = "$(JLINK_DIR)/JLink.exe"
 JLINK_GDB = "$(JLINK_DIR)/JLinkGDBServer.exe"
 else
-TOOLCHAIN_DIR = /usr/gcc-arm-none-eabi-7-2018-q2-update
-JLINK = JLinkExe 
+TOOLCHAIN_DIR ?= /usr/gcc-arm-none-eabi-7-2018-q2-update
+JLINK = JLinkExe
 JLINK_GDB = JLinkGDBServerExe
 endif
 
@@ -21,7 +24,8 @@ COMPILE_PREFIX 	+= $(TOOLCHAIN_DIR)/bin/arm-none-eabi-
 OUTPUT_PATH	:= output
 
 # define the C object files 
-OBJ_PATH 	:= $(OUTPUT_PATH)/obj/1/2/3/4/5
+APP_OBJ_SUFFIX ?= $(if $(APP),$(APP),default)
+OBJ_PATH 	:= $(OUTPUT_PATH)/obj/$(APP_OBJ_SUFFIX)
 
 # define the target
 TARGET		  	?= $(OUTPUT_PATH)/main
@@ -172,7 +176,10 @@ GC_LDFLAGS = -Wl,--gc-sections -Wl,--check-sections
 endif
 
 ## Common flags ##
-COMMON_FLAGS += -g
+COMPILE_OPT_LEVEL ?= -O0
+COMPILE_DEBUG ?= -g
+COMMON_FLAGS += $(COMPILE_OPT_LEVEL)
+COMMON_FLAGS += $(COMPILE_DEBUG)
 
 
 STDCLIB_LDFLAGS ?= -lc_nano -lnosys -lgcc

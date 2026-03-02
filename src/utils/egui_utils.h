@@ -16,8 +16,6 @@ void egui_utils_view_image_std_normal_init(egui_view_t *self, egui_image_t *imag
 void egui_utils_view_label_std_normal_init(egui_view_t *self, const egui_font_t *font, egui_color_t color, const char *str, egui_dim_t x, egui_dim_t y);
 void egui_utils_view_dynamic_label_std_normal_init(egui_view_t *self, const egui_font_t *font, egui_color_t color, const char *str, egui_dim_t x, egui_dim_t y);
 
-
-
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

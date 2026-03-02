@@ -1,0 +1,31 @@
+# Headless designer port - no SDL, pipe-based IPC
+
+# define source directory
+SRC		+= $(EGUI_PORT_PATH)
+
+# define include directory
+INCLUDE	+= $(EGUI_PORT_PATH)
+
+# PC port identifier (reuse PC color depth config)
+COMMON_FLAGS += -DEGUI_PORT_PC=1
+COMMON_FLAGS += -DEGUI_PORT_DESIGNER=1
+
+# define lib directory
+LIB		+=
+
+ifeq ($(OS),Windows_NT)
+	LFLAGS  += -lpthread
+	LDFLAGS  +=  -Wl,--warn-common
+	ifeq ($(NOGC),0)
+		COMMON_FLAGS  +=  -flto
+		LDFLAGS  +=  -flto
+	endif
+else ifeq ($(shell uname), Darwin)
+	LFLAGS += -lpthread
+	NOGC := 1
+else
+	LFLAGS += -lpthread
+	LDFLAGS +=  -Wl,--warn-common -Wl,--gc-sections
+endif
+
+include $(EGUI_PORT_PATH)/Makefile.base

@@ -5,6 +5,7 @@
 #include "egui_canvas.h"
 #include "font/egui_font.h"
 #include "image/egui_image.h"
+#include "image/egui_image_std.h"
 #include "egui_api.h"
 
 #define TEST_CANVAS_TEST_WOKR 0
@@ -65,6 +66,27 @@ static const egui_float_t ctan_val_list[91] = {
         EGUI_FLOAT_VALUE(0.0f),
 };
 
+static const egui_float_t cos_val_list[91] = {
+        EGUI_FLOAT_VALUE(1.000000f), EGUI_FLOAT_VALUE(0.999848f), EGUI_FLOAT_VALUE(0.999391f), EGUI_FLOAT_VALUE(0.998630f), EGUI_FLOAT_VALUE(0.997564f),
+        EGUI_FLOAT_VALUE(0.996195f), EGUI_FLOAT_VALUE(0.994522f), EGUI_FLOAT_VALUE(0.992546f), EGUI_FLOAT_VALUE(0.990268f), EGUI_FLOAT_VALUE(0.987688f),
+        EGUI_FLOAT_VALUE(0.984808f), EGUI_FLOAT_VALUE(0.981627f), EGUI_FLOAT_VALUE(0.978148f), EGUI_FLOAT_VALUE(0.974370f), EGUI_FLOAT_VALUE(0.970296f),
+        EGUI_FLOAT_VALUE(0.965926f), EGUI_FLOAT_VALUE(0.961262f), EGUI_FLOAT_VALUE(0.956305f), EGUI_FLOAT_VALUE(0.951057f), EGUI_FLOAT_VALUE(0.945519f),
+        EGUI_FLOAT_VALUE(0.939693f), EGUI_FLOAT_VALUE(0.933580f), EGUI_FLOAT_VALUE(0.927184f), EGUI_FLOAT_VALUE(0.920505f), EGUI_FLOAT_VALUE(0.913545f),
+        EGUI_FLOAT_VALUE(0.906308f), EGUI_FLOAT_VALUE(0.898794f), EGUI_FLOAT_VALUE(0.891007f), EGUI_FLOAT_VALUE(0.882948f), EGUI_FLOAT_VALUE(0.874620f),
+        EGUI_FLOAT_VALUE(0.866025f), EGUI_FLOAT_VALUE(0.857167f), EGUI_FLOAT_VALUE(0.848048f), EGUI_FLOAT_VALUE(0.838671f), EGUI_FLOAT_VALUE(0.829038f),
+        EGUI_FLOAT_VALUE(0.819152f), EGUI_FLOAT_VALUE(0.809017f), EGUI_FLOAT_VALUE(0.798636f), EGUI_FLOAT_VALUE(0.788011f), EGUI_FLOAT_VALUE(0.777146f),
+        EGUI_FLOAT_VALUE(0.766044f), EGUI_FLOAT_VALUE(0.754710f), EGUI_FLOAT_VALUE(0.743145f), EGUI_FLOAT_VALUE(0.731354f), EGUI_FLOAT_VALUE(0.719340f),
+        EGUI_FLOAT_VALUE(0.707107f), EGUI_FLOAT_VALUE(0.694658f), EGUI_FLOAT_VALUE(0.681998f), EGUI_FLOAT_VALUE(0.669131f), EGUI_FLOAT_VALUE(0.656059f),
+        EGUI_FLOAT_VALUE(0.642788f), EGUI_FLOAT_VALUE(0.629320f), EGUI_FLOAT_VALUE(0.615661f), EGUI_FLOAT_VALUE(0.601815f), EGUI_FLOAT_VALUE(0.587785f),
+        EGUI_FLOAT_VALUE(0.573576f), EGUI_FLOAT_VALUE(0.559193f), EGUI_FLOAT_VALUE(0.544639f), EGUI_FLOAT_VALUE(0.529919f), EGUI_FLOAT_VALUE(0.515038f),
+        EGUI_FLOAT_VALUE(0.500000f), EGUI_FLOAT_VALUE(0.484810f), EGUI_FLOAT_VALUE(0.469472f), EGUI_FLOAT_VALUE(0.453990f), EGUI_FLOAT_VALUE(0.438371f),
+        EGUI_FLOAT_VALUE(0.422618f), EGUI_FLOAT_VALUE(0.406737f), EGUI_FLOAT_VALUE(0.390731f), EGUI_FLOAT_VALUE(0.374607f), EGUI_FLOAT_VALUE(0.358368f),
+        EGUI_FLOAT_VALUE(0.342020f), EGUI_FLOAT_VALUE(0.325568f), EGUI_FLOAT_VALUE(0.309017f), EGUI_FLOAT_VALUE(0.292372f), EGUI_FLOAT_VALUE(0.275637f),
+        EGUI_FLOAT_VALUE(0.258819f), EGUI_FLOAT_VALUE(0.241922f), EGUI_FLOAT_VALUE(0.224951f), EGUI_FLOAT_VALUE(0.207912f), EGUI_FLOAT_VALUE(0.190809f),
+        EGUI_FLOAT_VALUE(0.173648f), EGUI_FLOAT_VALUE(0.156434f), EGUI_FLOAT_VALUE(0.139173f), EGUI_FLOAT_VALUE(0.121869f), EGUI_FLOAT_VALUE(0.104528f),
+        EGUI_FLOAT_VALUE(0.087156f), EGUI_FLOAT_VALUE(0.069756f), EGUI_FLOAT_VALUE(0.052336f), EGUI_FLOAT_VALUE(0.034899f), EGUI_FLOAT_VALUE(0.017452f),
+        EGUI_FLOAT_VALUE(0.000000f),
+};
 
 void egui_canvas_draw_point(egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
 {
@@ -104,279 +126,7 @@ void egui_canvas_draw_point(egui_dim_t x, egui_dim_t y, egui_color_t color, egui
     }
 }
 
-
-
-
-
-__EGUI_STATIC_INLINE__ void egui_canvas_draw_fillrect(egui_dim_t x, egui_dim_t y, egui_dim_t xSize, egui_dim_t ySize, egui_color_t color, egui_alpha_t alpha)
-{
-    egui_canvas_t *self = &canvas_data;
-
-    // only work within intersection of base_view_work_region and the rectangle to be drawn
-    EGUI_REGION_DEFINE(region, x, y, xSize, ySize);
-    egui_region_intersect(&region, &self->base_view_work_region, &region);
-    if(egui_region_is_empty(&region))
-    {
-        return;
-    }
-
-    // step1: mix alpha
-    alpha = egui_color_alpha_mix(self->alpha, alpha);
-    // if color is fully transparent, do not draw anything.
-    if (alpha == 0)
-    {
-        return;
-    }
-    
-    if (self->mask != NULL)
-    {
-        egui_canvas_set_rect_color_with_mask(region.location.x, region.location.y, region.size.width, region.size.height, color, alpha);
-    }
-    else
-    {
-        if(alpha == EGUI_ALPHA_100)
-        {
-            egui_canvas_set_rect_color(region.location.x, region.location.y, region.size.width, region.size.height, color);
-        }
-        else
-        {
-            egui_canvas_set_rect_color_with_alpha(region.location.x, region.location.y, region.size.width, region.size.height, color, alpha);
-        }
-    }
-
-    // for (yp = 0; yp < ySize; yp++)
-    // {
-    //     for (xp = 0; xp < xSize; xp++)
-    //     {
-    //         egui_canvas_draw_point(x + xp, y + yp, color);
-    //     }
-    // }
-}
-
-
-
-__EGUI_STATIC_INLINE__ void egui_canvas_draw_vline(egui_dim_t x, egui_dim_t y, egui_dim_t length, egui_color_t color, egui_alpha_t alpha)
-{
-    egui_canvas_draw_fillrect(x, y, 1, length, color, alpha);
-}
-
-__EGUI_STATIC_INLINE__ void egui_canvas_draw_hline(egui_dim_t x, egui_dim_t y, egui_dim_t length, egui_color_t color, egui_alpha_t alpha)
-{
-    egui_canvas_draw_fillrect(x, y, length, 1, color, alpha);
-}
-
-/**
- * \brief           Draw line from point 1 to point 2
- * \param[in]       x1: Line start X position
- * \param[in]       y1: Line start Y position
- * \param[in]       x2: Line end X position
- * \param[in]       y2: Line end Y position
- * \param[in]       color: Color used for drawing operation
- * \sa              egui_canvas_draw_vline, egui_canvas_draw_hline
- */
-void egui_canvas_draw_line(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
-                           egui_alpha_t alpha)
-{
-    egui_canvas_t *self = &canvas_data;
-
-    egui_dim_t deltax, deltay, steep, yinc;
-    yinc = 1;
-
-    deltax = EGUI_ABS(x2 - x1);
-    deltay = EGUI_ABS(y2 - y1);
-
-    if (deltax == 0)
-    { /* Straight vertical line */
-        egui_canvas_draw_fillrect(x1, EGUI_MIN(y1, y2), stroke_width, deltay, color, alpha);
-        return;
-    }
-    if (deltay == 0)
-    { /* Straight horizontal line */
-        egui_canvas_draw_fillrect(EGUI_MIN(x1, x2), y1, deltax, stroke_width, color, alpha);
-        return;
-    }
-
-    // only work within intersection of base_view_work_region and the rectangle to be drawn
-    EGUI_REGION_DEFINE(region, EGUI_MIN(x1, x2), EGUI_MIN(y1, y2), EGUI_ABS(x2 - x1) + stroke_width, EGUI_ABS(y2 - y1) + stroke_width);
-    if (!egui_region_is_intersect(&region, &self->base_view_work_region))
-    {
-        return;
-    }
-
-    steep = deltay > deltax;
-
-    // swap the co-ordinates if slope > 1 or we
-    // draw backwards
-    if (steep)
-    {
-        EGUI_SWAP(x1, y1);
-        EGUI_SWAP(x2, y2);
-    }
-    if (x1 > x2)
-    {
-        EGUI_SWAP(x1, x2);
-        EGUI_SWAP(y1, y2);
-    }
-
-    // compute the slope
-    egui_dim_t dx = x2 - x1;
-    egui_dim_t dy = y2 - y1;
-    if (dy < 0)
-    {
-        dy = -dy;
-        yinc = -1;
-    }
-    egui_float_t gradient = EGUI_FLOAT_DIV_LIMIT(dy, dx);
-    egui_float_t tmp_e = 0;
-
-    egui_dim_t x, y;
-    y = y1;
-
-    egui_alpha_t alpha_0, alpha_1;
-
-    egui_dim_t x_start = self->base_view_work_region.location.x;
-    egui_dim_t x_end = self->base_view_work_region.location.x + self->base_view_work_region.size.width;
-    egui_dim_t y_start = self->base_view_work_region.location.y;
-    egui_dim_t y_end = self->base_view_work_region.location.y + self->base_view_work_region.size.height;
-
-    if (yinc > 0)
-    {
-        if (steep)
-        {
-            for (x = x1; x <= x2; x++)
-            {
-                if (((x >= y_start) && (x < y_end)) && ((y < x_end) && (y + stroke_width >= x_start)))
-                {
-#if !EGUI_CONFIG_PERFORMANCE_USE_FLOAT
-                    alpha_0 = tmp_e >> (EGUI_FLOAT_FRAC - 8); // For speed
-#else
-                    alpha_0 = EGUI_FLOAT_MULT(tmp_e, EGUI_ALPHA_100);
-#endif
-                    alpha_1 = EGUI_ALPHA_100 - alpha_0;
-
-                    if (alpha != EGUI_ALPHA_100)
-                    {
-                        alpha_0 = egui_color_alpha_mix(alpha, alpha_0);
-                        alpha_1 = egui_color_alpha_mix(alpha, alpha_1);
-                    }
-                    // pixel coverage is determined by fractional
-                    // part of y co-ordinate
-                    egui_canvas_draw_point(y, x, color, alpha_1);
-                    egui_canvas_draw_hline(y + 1, x, stroke_width - 1, color, alpha);
-                    egui_canvas_draw_point(y + stroke_width, x, color, alpha_0);
-                }
-                tmp_e += gradient;
-                if (tmp_e >= EGUI_FLOAT_VALUE(1.0f))
-                {
-                    y++;
-                    tmp_e -= EGUI_FLOAT_VALUE(1.0f);
-                }
-            }
-        }
-        else
-        {
-            for (x = x1; x <= x2; x++)
-            {
-                if (((x >= x_start) && (x < x_end)) && ((y < y_end) && (y + stroke_width >= y_start)))
-                {
-#if !EGUI_CONFIG_PERFORMANCE_USE_FLOAT
-                    alpha_0 = tmp_e >> (EGUI_FLOAT_FRAC - 8); // For speed
-#else
-                    alpha_0 = EGUI_FLOAT_MULT(tmp_e, EGUI_ALPHA_100);
-#endif
-                    alpha_1 = EGUI_ALPHA_100 - alpha_0;
-
-                    if (alpha != EGUI_ALPHA_100)
-                    {
-                        alpha_0 = egui_color_alpha_mix(alpha, alpha_0);
-                        alpha_1 = egui_color_alpha_mix(alpha, alpha_1);
-                    }
-                    // pixel coverage is determined by fractional
-                    // part of y co-ordinate
-                    egui_canvas_draw_point(x, y, color, alpha_1);
-                    egui_canvas_draw_vline(x, y + 1, stroke_width - 1, color, alpha);
-                    egui_canvas_draw_point(x, y + stroke_width, color, alpha_0);
-                }
-                tmp_e += gradient;
-                if (tmp_e >= EGUI_FLOAT_VALUE(1.0f))
-                {
-                    y++;
-                    tmp_e -= EGUI_FLOAT_VALUE(1.0f);
-                }
-            }
-        }
-    }
-    else
-    {
-
-        if (steep)
-        {
-            for (x = x1; x <= x2; x++)
-            {
-                if (((x >= y_start) && (x < y_end)) && ((y < x_end) && (y + stroke_width >= x_start)))
-                {
-#if !EGUI_CONFIG_PERFORMANCE_USE_FLOAT
-                    alpha_0 = (EGUI_FLOAT_VALUE(1.0f) - tmp_e) >> (EGUI_FLOAT_FRAC - 8); // For speed
-#else
-                    alpha_0 = EGUI_FLOAT_MULT((EGUI_FLOAT_VALUE(1.0f) - tmp_e), EGUI_ALPHA_100);
-#endif
-                    alpha_1 = EGUI_ALPHA_100 - alpha_0;
-
-                    if (alpha != EGUI_ALPHA_100)
-                    {
-                        alpha_0 = egui_color_alpha_mix(alpha, alpha_0);
-                        alpha_1 = egui_color_alpha_mix(alpha, alpha_1);
-                    }
-                    // pixel coverage is determined by fractional
-                    // part of y co-ordinate
-                    egui_canvas_draw_point(y, x, color, alpha_1);
-                    egui_canvas_draw_hline(y + 1, x, stroke_width - 1, color, alpha);
-                    egui_canvas_draw_point(y + stroke_width, x, color, alpha_0);
-                }
-                tmp_e += gradient;
-                if (tmp_e >= EGUI_FLOAT_VALUE(1.0f))
-                {
-                    y--;
-                    tmp_e -= EGUI_FLOAT_VALUE(1.0f);
-                }
-            }
-        }
-        else
-        {
-            for (x = x1; x <= x2; x++)
-            {
-                if (((x >= x_start) && (x < x_end)) && ((y < y_end) && (y + stroke_width >= y_start)))
-                {
-#if !EGUI_CONFIG_PERFORMANCE_USE_FLOAT
-                    alpha_0 = (EGUI_FLOAT_VALUE(1.0f) - tmp_e) >> (EGUI_FLOAT_FRAC - 8); // For speed
-#else
-                    alpha_0 = EGUI_FLOAT_MULT((EGUI_FLOAT_VALUE(1.0f) - tmp_e), EGUI_ALPHA_100);
-#endif
-                    alpha_1 = EGUI_ALPHA_100 - alpha_0;
-
-                    if (alpha != EGUI_ALPHA_100)
-                    {
-                        alpha_0 = egui_color_alpha_mix(alpha, alpha_0);
-                        alpha_1 = egui_color_alpha_mix(alpha, alpha_1);
-                    }
-                    // pixel coverage is determined by fractional
-                    // part of y co-ordinate
-                    egui_canvas_draw_point(x, y, color, alpha_1);
-                    egui_canvas_draw_vline(x, y + 1, stroke_width - 1, color, alpha);
-                    egui_canvas_draw_point(x, y + stroke_width, color, alpha_0);
-                }
-                tmp_e += gradient;
-                if (tmp_e >= EGUI_FLOAT_VALUE(1.0f))
-                {
-                    y--;
-                    tmp_e -= EGUI_FLOAT_VALUE(1.0f);
-                }
-            }
-        }
-    }
-}
-
-__EGUI_STATIC_INLINE__ const egui_circle_info_t *egui_canvas_get_circle_item(egui_dim_t r)
+const egui_circle_info_t *egui_canvas_get_circle_item(egui_dim_t r)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -396,23 +146,16 @@ __EGUI_STATIC_INLINE__ const egui_circle_info_t *egui_canvas_get_circle_item(egu
     return NULL;
 }
 
-
-
-
-
 void egui_canvas_draw_circle_corner_fill(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int type, egui_color_t color, egui_alpha_t alpha)
 {
     egui_canvas_t *self = &canvas_data;
 
-    egui_dim_t row_index = 0;
+    egui_dim_t row_index;
     egui_dim_t col_index;
     egui_alpha_t mix_alpha;
     egui_dim_t sel_x;
     egui_dim_t sel_y;
     egui_dim_t len;
-    uint16_t start_offset;
-    uint16_t valid_count;
-    uint16_t data_value_offset;
 
     // only work within intersection of base_view_work_region and the rectangle to be drawn
     egui_region_t region;
@@ -441,18 +184,63 @@ void egui_canvas_draw_circle_corner_fill(egui_dim_t center_x, egui_dim_t center_
     const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
     if (info == NULL)
     {
-        // TODO: select spec item.
+        EGUI_LOG_WRN("Circle radius %d not supported, increase EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE or register spec circle.\n", radius);
         return;
     }
 
-    for (row_index = 0; row_index < info->item_count; row_index++)
+    // Compute visible row/col ranges from intersection (same as circle_corner outline)
+    egui_dim_t diff_x = region_intersect.location.x - region.location.x;
+    egui_dim_t diff_y = region_intersect.location.y - region.location.y;
+    egui_dim_t row_start, row_end, col_start, col_end;
+
+    switch (type)
+    {
+    case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
+        row_start = diff_y;
+        row_end = row_start + region_intersect.size.height;
+        col_start = diff_x;
+        col_end = col_start + region_intersect.size.width;
+        break;
+    case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
+        row_end = radius - diff_y;
+        row_start = row_end - region_intersect.size.height;
+        col_start = diff_x;
+        col_end = col_start + region_intersect.size.width;
+        break;
+    case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
+        row_start = diff_y;
+        row_end = row_start + region_intersect.size.height;
+        col_end = radius - diff_x;
+        col_start = col_end - region_intersect.size.width;
+        break;
+    case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
+        row_end = radius - diff_y;
+        row_start = row_end - region_intersect.size.height;
+        col_end = radius - diff_x;
+        col_start = col_end - region_intersect.size.width;
+        break;
+    }
+
+    // Effective iteration range: union of rows producing visible primary [row_start, row_end)
+    // and rows producing visible mirror output [col_start, col_end)
+    egui_dim_t iter_start = EGUI_MAX(EGUI_MIN(row_start, col_start), 0);
+    egui_dim_t iter_end = EGUI_MIN(EGUI_MAX(row_end, col_end), (egui_dim_t)info->item_count);
+
+    for (row_index = iter_start; row_index < iter_end; row_index++)
     {
         const egui_circle_item_t *ptr = &((const egui_circle_item_t *)info->items)[row_index];
-        start_offset = ptr->start_offset;
-        valid_count = ptr->valid_count;
-        data_value_offset = ptr->data_offset;
+        uint16_t start_offset = ptr->start_offset;
+        uint16_t valid_count = ptr->valid_count;
+        uint16_t data_value_offset = ptr->data_offset;
 
         sel_y = radius - row_index;
+
+        // Primary row visible: row_index acts as y-offset in corner coords
+        int primary_visible = (row_index >= row_start && row_index < row_end);
+        // Mirror column visible: row_index acts as x-offset in corner coords (mirrored)
+        int mirror_visible = (row_index >= col_start && row_index < col_end);
+
+        // Edge pixels
         for (int i = 0; i < valid_count; i++)
         {
             col_index = start_offset + i;
@@ -461,175 +249,122 @@ void egui_canvas_draw_circle_corner_fill(egui_dim_t center_x, egui_dim_t center_
 
             mix_alpha = egui_color_alpha_mix(alpha, mix_alpha);
 
-            switch (type)
+            // Primary pixel: visible when row_index in Y-range AND col_index in X-range
+            if (primary_visible && col_index >= col_start && col_index < col_end)
             {
-            case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
-                egui_canvas_draw_point(center_x + (-sel_x), center_y + (-sel_y), color, mix_alpha);
-                break;
-            case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
-                egui_canvas_draw_point(center_x + (-sel_x), center_y + (sel_y), color, mix_alpha);
-                break;
-            case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
-                egui_canvas_draw_point(center_x + (sel_x), center_y + (-sel_y), color, mix_alpha);
-                break;
-            case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
-                egui_canvas_draw_point(center_x + (sel_x), center_y + (sel_y), color, mix_alpha);
-                break;
+                switch (type)
+                {
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
+                    egui_canvas_draw_point_limit(center_x + (-sel_x), center_y + (-sel_y), color, mix_alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
+                    egui_canvas_draw_point_limit(center_x + (-sel_x), center_y + (sel_y), color, mix_alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
+                    egui_canvas_draw_point_limit(center_x + (sel_x), center_y + (-sel_y), color, mix_alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
+                    egui_canvas_draw_point_limit(center_x + (sel_x), center_y + (sel_y), color, mix_alpha);
+                    break;
+                }
             }
             // skip the diagonal write twice
             if (sel_x == sel_y)
             {
                 continue;
             }
-            switch (type)
+            // Mirror pixel: visible when row_index in X-range AND col_index in Y-range
+            if (mirror_visible && col_index >= row_start && col_index < row_end)
             {
-            case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
-                egui_canvas_draw_point(center_x + (-sel_y), center_y + (-sel_x), color, mix_alpha);
-                break;
-            case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
-                egui_canvas_draw_point(center_x + (-sel_y), center_y + (sel_x), color, mix_alpha);
-                break;
-            case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
-                egui_canvas_draw_point(center_x + (sel_y), center_y + (-sel_x), color, mix_alpha);
-                break;
-            case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
-                egui_canvas_draw_point(center_x + (sel_y), center_y + (sel_x), color, mix_alpha);
-                break;
+                switch (type)
+                {
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
+                    egui_canvas_draw_point_limit(center_x + (-sel_y), center_y + (-sel_x), color, mix_alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
+                    egui_canvas_draw_point_limit(center_x + (-sel_y), center_y + (sel_x), color, mix_alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
+                    egui_canvas_draw_point_limit(center_x + (sel_y), center_y + (-sel_x), color, mix_alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
+                    egui_canvas_draw_point_limit(center_x + (sel_y), center_y + (sel_x), color, mix_alpha);
+                    break;
+                }
             }
         }
 
         // write the reserve value to reserve the space, here can use write line or write column
         egui_dim_t offset = start_offset + valid_count;
         len = radius - offset;
-        switch (type)
+        if (len > 0)
         {
-        case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
-            sel_x = radius - offset;
-            egui_canvas_draw_hline(center_x + (-sel_x), center_y + (-sel_y), len, color, alpha);
-            egui_canvas_draw_vline(center_x + (-sel_y), center_y + (-sel_x), len, color, alpha);
-            break;
-        case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
-            sel_x = radius - offset;
-            egui_canvas_draw_hline(center_x + (-sel_x), center_y + (sel_y), len, color, alpha);
-
-            // change direction
-            sel_x = 1;
-            egui_canvas_draw_vline(center_x + (-sel_y), center_y + (sel_x), len, color, alpha);
-            break;
-        case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
-            sel_x = 1;
-            egui_canvas_draw_hline(center_x + (sel_x), center_y + (-sel_y), len, color, alpha);
-
-            // change direction
-            sel_x = radius - offset;
-            egui_canvas_draw_vline(center_x + (sel_y), center_y + (-sel_x), len, color, alpha);
-            break;
-        case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
-            sel_x = 1;
-            egui_canvas_draw_hline(center_x + (sel_x), center_y + (sel_y), len, color, alpha);
-            egui_canvas_draw_vline(center_x + (sel_y), center_y + (sel_x), len, color, alpha);
-            break;
+            // hline: at primary y position, visible when row_index in Y-range
+            if (primary_visible)
+            {
+                switch (type)
+                {
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
+                    egui_canvas_draw_hline(center_x + (-(radius - offset)), center_y + (-sel_y), len, color, alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
+                    egui_canvas_draw_hline(center_x + (-(radius - offset)), center_y + (sel_y), len, color, alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
+                    egui_canvas_draw_hline(center_x + 1, center_y + (-sel_y), len, color, alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
+                    egui_canvas_draw_hline(center_x + 1, center_y + (sel_y), len, color, alpha);
+                    break;
+                }
+            }
+            // vline: at mirror x position, visible when row_index in X-range
+            if (mirror_visible)
+            {
+                switch (type)
+                {
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
+                    egui_canvas_draw_vline(center_x + (-sel_y), center_y + (-(radius - offset)), len, color, alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
+                    egui_canvas_draw_vline(center_x + (-sel_y), center_y + 1, len, color, alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
+                    egui_canvas_draw_vline(center_x + (sel_y), center_y + (-(radius - offset)), len, color, alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
+                    egui_canvas_draw_vline(center_x + (sel_y), center_y + 1, len, color, alpha);
+                    break;
+                }
+            }
         }
     }
 
     // write reserve value with rect
-    len = radius - row_index;
-    if (len != 0)
+    len = radius - info->item_count;
+    if (len > 0)
     {
-
         switch (type)
         {
         case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
-            sel_x = len;
-            sel_y = len;
-            egui_canvas_draw_fillrect(center_x + (-sel_x), center_y + (-sel_y), len, len, color, alpha);
+            egui_canvas_draw_fillrect(center_x + (-len), center_y + (-len), len, len, color, alpha);
             break;
         case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
-            sel_x = len;
-            sel_y = 1;
-            egui_canvas_draw_fillrect(center_x + (-sel_x), center_y + (sel_y), len, len, color, alpha);
+            egui_canvas_draw_fillrect(center_x + (-len), center_y + 1, len, len, color, alpha);
             break;
         case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
-            sel_x = 1;
-            sel_y = len;
-            egui_canvas_draw_fillrect(center_x + (sel_x), center_y + (-sel_y), len, len, color, alpha);
+            egui_canvas_draw_fillrect(center_x + 1, center_y + (-len), len, len, color, alpha);
             break;
         case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
-            sel_x = 1;
-            sel_y = 1;
-            egui_canvas_draw_fillrect(center_x + (sel_x), center_y + (sel_y), len, len, color, alpha);
+            egui_canvas_draw_fillrect(center_x + 1, center_y + 1, len, len, color, alpha);
             break;
         }
     }
 }
 
+/* egui_canvas_get_circle_corner_value moved to egui_canvas.h for reuse by gradient code */
 
-
-
-
-
-
-
-
-
-
-
-
-__EGUI_STATIC_INLINE__ egui_alpha_t egui_canvas_get_circle_corner_value(egui_dim_t pos_row, egui_dim_t pos_col, const egui_circle_info_t *info)
-{
-    egui_dim_t offset;
-    const egui_circle_item_t *ptr;
-    uint16_t start_offset;
-    uint16_t valid_count;
-    uint16_t data_value_offset;
-
-    // get min pos_row and pos_col
-    egui_dim_t min_pos;
-    egui_dim_t max_pos;
-    if(pos_row < pos_col)
-    {
-        min_pos = pos_row;
-        max_pos = pos_col;
-    }
-    else
-    {
-        min_pos = pos_col;
-        max_pos = pos_row;
-    }
-
-    // if in minddle of circle, return 0xFF
-    if (min_pos >= info->item_count)
-    {
-        return EGUI_ALPHA_100;
-    }
-
-    int item_index = min_pos;
-
-    ptr = &((const egui_circle_item_t *)info->items)[item_index];
-    start_offset = ptr->start_offset;
-
-    // get the offset
-    offset = max_pos;
-
-    // if out of circle, return 0
-    if (offset < start_offset)
-    {
-        return EGUI_ALPHA_0;
-    }
-
-    valid_count = ptr->valid_count;
-    // if in circle, return 0xFF
-    if (offset >= start_offset + valid_count)
-    {
-        return EGUI_ALPHA_100;
-    }
-
-    data_value_offset = ptr->data_offset;
-    return info->data[data_value_offset + offset - start_offset];
-}
-
-int egui_canvas_get_circle_left_top(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y,
-                                    egui_alpha_t *alpha)
+int egui_canvas_get_circle_left_top(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y, egui_alpha_t *alpha)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -656,7 +391,7 @@ int egui_canvas_get_circle_left_top(egui_dim_t center_x, egui_dim_t center_y, eg
     const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
     if (info == NULL)
     {
-        // TODO: select spec item.
+        EGUI_LOG_WRN("Circle radius %d not supported, increase EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE or register spec circle.\n", radius);
         return 0;
     }
 
@@ -679,8 +414,7 @@ int egui_canvas_get_circle_left_top(egui_dim_t center_x, egui_dim_t center_y, eg
     return 1;
 }
 
-int egui_canvas_get_circle_left_bottom(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y,
-                                       egui_alpha_t *alpha)
+int egui_canvas_get_circle_left_bottom(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y, egui_alpha_t *alpha)
 {
     // egui_canvas_t *self = &canvas_data;
 
@@ -705,7 +439,7 @@ int egui_canvas_get_circle_left_bottom(egui_dim_t center_x, egui_dim_t center_y,
     const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
     if (info == NULL)
     {
-        // TODO: select spec item.
+        EGUI_LOG_WRN("Circle radius %d not supported, increase EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE or register spec circle.\n", radius);
         return 0;
     }
 
@@ -728,15 +462,14 @@ int egui_canvas_get_circle_left_bottom(egui_dim_t center_x, egui_dim_t center_y,
     return 1;
 }
 
-int egui_canvas_get_circle_right_top(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y,
-                                     egui_alpha_t *alpha)
+int egui_canvas_get_circle_right_top(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y, egui_alpha_t *alpha)
 {
     // egui_canvas_t *self = &canvas_data;
 
     egui_dim_t row_index;
     egui_dim_t col_index;
-    //int info_type;
-    // int info_type_inner;
+    // int info_type;
+    //  int info_type_inner;
     egui_alpha_t mix_alpha;
     egui_dim_t sel_x;
     egui_dim_t sel_y;
@@ -755,7 +488,7 @@ int egui_canvas_get_circle_right_top(egui_dim_t center_x, egui_dim_t center_y, e
     const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
     if (info == NULL)
     {
-        // TODO: select spec item.
+        EGUI_LOG_WRN("Circle radius %d not supported, increase EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE or register spec circle.\n", radius);
         return 0;
     }
 
@@ -778,8 +511,7 @@ int egui_canvas_get_circle_right_top(egui_dim_t center_x, egui_dim_t center_y, e
     return 1;
 }
 
-int egui_canvas_get_circle_right_bottom(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y,
-                                        egui_alpha_t *alpha)
+int egui_canvas_get_circle_right_bottom(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y, egui_alpha_t *alpha)
 {
     // egui_canvas_t *self = &canvas_data;
 
@@ -805,7 +537,7 @@ int egui_canvas_get_circle_right_bottom(egui_dim_t center_x, egui_dim_t center_y
     const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
     if (info == NULL)
     {
-        // TODO: select spec item.
+        EGUI_LOG_WRN("Circle radius %d not supported, increase EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE or register spec circle.\n", radius);
         return 0;
     }
 
@@ -828,14 +560,8 @@ int egui_canvas_get_circle_right_bottom(egui_dim_t center_x, egui_dim_t center_y
     return 1;
 }
 
-
-
-
-
-
-
-void egui_canvas_draw_circle_corner(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t stroke_width,
-                                            int type, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_circle_corner(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t stroke_width, int type, egui_color_t color,
+                                    egui_alpha_t alpha)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -884,7 +610,7 @@ void egui_canvas_draw_circle_corner(egui_dim_t center_x, egui_dim_t center_y, eg
     const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
     if (info == NULL)
     {
-        // TODO: select spec item.
+        EGUI_LOG_WRN("Circle radius %d not supported, increase EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE or register spec circle.\n", radius);
         return;
     }
 
@@ -892,7 +618,7 @@ void egui_canvas_draw_circle_corner(egui_dim_t center_x, egui_dim_t center_y, eg
     const egui_circle_info_t *info_inner = egui_canvas_get_circle_item(radius_inner);
     if (info_inner == NULL)
     {
-        // TODO: select spec item.
+        EGUI_LOG_WRN("Circle radius %d not supported, increase EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE or register spec circle.\n", radius_inner);
         return;
     }
 
@@ -905,7 +631,7 @@ void egui_canvas_draw_circle_corner(egui_dim_t center_x, egui_dim_t center_y, eg
 
     col_index_start = 0;
     col_index_end = radius;
-    
+
     egui_dim_t diff_x = region_intersect.location.x - region.location.x;
     egui_dim_t diff_y = region_intersect.location.y - region.location.y;
 
@@ -914,28 +640,28 @@ void egui_canvas_draw_circle_corner(egui_dim_t center_x, egui_dim_t center_y, eg
     case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
         row_index_start = diff_y;
         row_index_end = row_index_start + region_intersect.size.height;
-        
+
         col_index_start = diff_x;
         col_index_end = col_index_start + region_intersect.size.width;
         break;
     case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
         row_index_end = radius - diff_y;
         row_index_start = row_index_end - region_intersect.size.height;
-        
+
         col_index_start = diff_x;
         col_index_end = col_index_start + region_intersect.size.width;
         break;
     case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
         row_index_start = diff_y;
         row_index_end = row_index_start + region_intersect.size.height;
-        
+
         col_index_end = radius - diff_x;
         col_index_start = col_index_end - region_intersect.size.width;
         break;
     case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
         row_index_end = radius - diff_y;
         row_index_start = row_index_end - region_intersect.size.height;
-        
+
         col_index_end = radius - diff_x;
         col_index_start = col_index_end - region_intersect.size.width;
         break;
@@ -944,12 +670,12 @@ void egui_canvas_draw_circle_corner(egui_dim_t center_x, egui_dim_t center_y, eg
     for (row_index = row_index_start; row_index < row_index_end; row_index++)
     {
         sel_y = radius - row_index;
-        
+
         circle_alpha = EGUI_ALPHA_0;
         col_index = 0;
-        
+
         // get the start index of the valid data
-        if(row_index < info->item_count)
+        if (row_index < info->item_count)
         {
             col_index = ((const egui_circle_item_t *)info->items)[row_index].start_offset;
         }
@@ -959,7 +685,7 @@ void egui_canvas_draw_circle_corner(egui_dim_t center_x, egui_dim_t center_y, eg
             sel_x = radius - col_index;
 
             // get the alpha value
-            if(circle_alpha != EGUI_ALPHA_100)
+            if (circle_alpha != EGUI_ALPHA_100)
             {
                 circle_alpha = egui_canvas_get_circle_corner_value(row_index, col_index, info);
                 // check if the point is inside the arc
@@ -1008,116 +734,84 @@ void egui_canvas_draw_circle_corner(egui_dim_t center_x, egui_dim_t center_y, eg
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-__EGUI_STATIC_INLINE__ int check_in_arc(egui_float_t x, egui_float_t y, egui_float_t start_k, egui_float_t end_k)
+__EGUI_STATIC_INLINE__ egui_alpha_t arc_edge_smoothstep_alpha(egui_float_t signed_dist)
 {
-    if (y <= 0)
+// 1.5-pixel wide AA transition zone with smoothstep for smoother radial edges
+// half_transition = 0.75 in Q16.16 = 49152
+#define ARC_AA_HALF_TRANSITION 49152
+
+    if (signed_dist >= ARC_AA_HALF_TRANSITION)
     {
-        return 1;
+        return EGUI_ALPHA_100;
     }
-    if (x <= 0)
+    if (signed_dist <= -ARC_AA_HALF_TRANSITION)
     {
-        return 1;
-    }
-    if (start_k != tan_val_list[0])
-    {
-        egui_float_t start_y = EGUI_FLOAT_MULT(x, start_k);
-        if (y <= start_y)
-        {
-            return 0;
-        }
+        return EGUI_ALPHA_0;
     }
 
-    if (end_k != tan_val_list[90])
+    // Smoothstep interpolation: map [-0.75, 0.75] to [0, 255]
+    // t = (signed_dist + 0.75) / 1.5,  then smoothstep(t) = t^2 * (3 - 2t)
+    int32_t coverage = signed_dist + ARC_AA_HALF_TRANSITION; // [0, 1.5] in Q16.16, max = 98304
+    // Normalize to [0, 1.0]: t = coverage * (2/3),  2/3 in Q16.16 ≈ 43691
+    int32_t t = (int32_t)(((int64_t)coverage * 43691) >> EGUI_FLOAT_FRAC); // [0, 65536]
+    if (t < 0)
     {
-        egui_float_t end_y = EGUI_FLOAT_MULT(x, end_k);
-        if (y >= end_y)
-        {
-            return 0;
-        }
+        t = 0;
     }
-
-    return 1;
+    else if (t > (1 << EGUI_FLOAT_FRAC))
+    {
+        t = (1 << EGUI_FLOAT_FRAC);
+    }
+    // smoothstep: t^2 * (3 - 2t)
+    int32_t t_sq = (int32_t)(((int64_t)t * t) >> EGUI_FLOAT_FRAC);
+    int32_t smooth = (int32_t)(((int64_t)t_sq * (3 * (1 << EGUI_FLOAT_FRAC) - 2 * t)) >> EGUI_FLOAT_FRAC);
+    egui_alpha_t alpha = (egui_alpha_t)((smooth * EGUI_ALPHA_100) >> EGUI_FLOAT_FRAC);
+    if (alpha > EGUI_ALPHA_100)
+    {
+        alpha = EGUI_ALPHA_100;
+    }
+    return alpha;
 }
 
-#if 0
-static const egui_alpha_t alpha_val_list_9[] = {
-        EGUI_ALPHA_0,
-        (EGUI_ALPHA_100 * 1) / 9,
-        (EGUI_ALPHA_100 * 2) / 9,
-        (EGUI_ALPHA_100 * 3) / 9,
-        (EGUI_ALPHA_100 * 4) / 9,
-        (EGUI_ALPHA_100 * 5) / 9,
-        (EGUI_ALPHA_100 * 6) / 9,
-        (EGUI_ALPHA_100 * 7) / 9,
-        (EGUI_ALPHA_100 * 8) / 9,
-        EGUI_ALPHA_100,
-};
-#endif
-
-static const egui_alpha_t alpha_val_list_5[] = {
-        EGUI_ALPHA_0,
-        (EGUI_ALPHA_100 * 1) / 5,
-        (EGUI_ALPHA_100 * 2) / 5,
-        (EGUI_ALPHA_100 * 3) / 5,
-        (EGUI_ALPHA_100 * 4) / 5,
-        EGUI_ALPHA_100,
-};
-__EGUI_STATIC_INLINE__ egui_alpha_t arc_get_point_alpha(egui_dim_t x, egui_dim_t y, egui_float_t start_k, egui_float_t end_k)
+__EGUI_STATIC_INLINE__ egui_alpha_t arc_get_point_alpha(egui_dim_t x, egui_dim_t y, egui_float_t start_k, egui_float_t end_k, egui_float_t start_cos,
+                                                        egui_float_t end_cos, int16_t start_angle, int16_t end_angle)
 {
-    egui_alpha_t sum = 0;
-// need ANA?
-#if 1
-#if 0
-    // For speed, just check nearby points is in arc
-    egui_float_t tmp_x, tmp_y;
+    egui_float_t px = EGUI_FLOAT_VALUE_INT(x);
+    egui_float_t py = EGUI_FLOAT_VALUE_INT(y);
+    egui_alpha_t alpha_start = EGUI_ALPHA_100;
+    egui_alpha_t alpha_end = EGUI_ALPHA_100;
 
-    for (tmp_x = EGUI_FLOAT_VALUE_INT(x) - EGUI_FLOAT_VALUE(0.5f); tmp_x <= EGUI_FLOAT_VALUE_INT(x) + EGUI_FLOAT_VALUE(0.5f); tmp_x += EGUI_FLOAT_VALUE(0.5f))
+    // Start edge: line y = start_k * x, inside when y > start_k * x (above the line)
+    if (start_angle != 0)
     {
-        for (tmp_y = EGUI_FLOAT_VALUE_INT(y) - EGUI_FLOAT_VALUE(0.5f); tmp_y <= EGUI_FLOAT_VALUE_INT(y) + EGUI_FLOAT_VALUE(0.5f); tmp_y += EGUI_FLOAT_VALUE(0.5f))
+        egui_float_t raw_dist = py - EGUI_FLOAT_MULT(start_k, px);
+        egui_float_t signed_dist = EGUI_FLOAT_MULT(raw_dist, start_cos);
+
+        alpha_start = arc_edge_smoothstep_alpha(signed_dist);
+        if (alpha_start == EGUI_ALPHA_0)
         {
-            sum += check_in_arc(tmp_x, tmp_y, start_k, end_k);
+            return EGUI_ALPHA_0;
         }
     }
 
-    sum = alpha_val_list_9[sum];
-#else
-
-    // For speed, just check nearby points is in arc
-    // egui_float_t tmp_x, tmp_y;
-
-    sum += check_in_arc(EGUI_FLOAT_VALUE_INT(x) - EGUI_FLOAT_VALUE(0.5f), EGUI_FLOAT_VALUE_INT(y) - EGUI_FLOAT_VALUE(0.5f), start_k, end_k);
-    sum += check_in_arc(EGUI_FLOAT_VALUE_INT(x) - EGUI_FLOAT_VALUE(0.5f), EGUI_FLOAT_VALUE_INT(y) + EGUI_FLOAT_VALUE(0.5f), start_k, end_k);
-    sum += check_in_arc(EGUI_FLOAT_VALUE_INT(x) + EGUI_FLOAT_VALUE(0.5f), EGUI_FLOAT_VALUE_INT(y) - EGUI_FLOAT_VALUE(0.5f), start_k, end_k);
-    sum += check_in_arc(EGUI_FLOAT_VALUE_INT(x) + EGUI_FLOAT_VALUE(0.5f), EGUI_FLOAT_VALUE_INT(y) + EGUI_FLOAT_VALUE(0.5f), start_k, end_k);
-    sum += check_in_arc(EGUI_FLOAT_VALUE_INT(x) + 0                     , EGUI_FLOAT_VALUE_INT(y) + 0                     , start_k, end_k);
-
-    sum = alpha_val_list_5[sum];
-#endif
-#else
-    if (check_in_arc(x, y, start_k, end_k))
+    // End edge: line y = end_k * x, inside when y < end_k * x (below the line)
+    if (end_angle != 90)
     {
-        sum = EGUI_ALPHA_100;
-    }
-#endif
+        egui_float_t raw_dist = EGUI_FLOAT_MULT(end_k, px) - py;
+        egui_float_t signed_dist = EGUI_FLOAT_MULT(raw_dist, end_cos);
 
-    return sum;
+        alpha_end = arc_edge_smoothstep_alpha(signed_dist);
+        if (alpha_end == EGUI_ALPHA_0)
+        {
+            return EGUI_ALPHA_0;
+        }
+    }
+
+    return egui_color_alpha_mix(alpha_start, alpha_end);
 }
 
-
-
-void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle,
-                                      int type, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle, int type,
+                                      egui_color_t color, egui_alpha_t alpha)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -1126,10 +820,6 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
     egui_alpha_t mix_alpha;
     egui_dim_t sel_x;
     egui_dim_t sel_y;
-    // egui_dim_t len;
-    // uint16_t start_offset;
-    // uint16_t valid_count;
-    // uint16_t data_value_offset;
     egui_alpha_t circle_alpha;
 
     // only work within intersection of base_view_work_region and the rectangle to be drawn
@@ -1159,7 +849,7 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
     const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
     if (info == NULL)
     {
-        // TODO: select spec item.
+        EGUI_LOG_WRN("Circle radius %d not supported, increase EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE or register spec circle.\n", radius);
         return;
     }
 
@@ -1207,7 +897,7 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
 
     col_index_start = 0;
     col_index_end = radius;
-    
+
     egui_dim_t diff_x = region_intersect.location.x - region.location.x;
     egui_dim_t diff_y = region_intersect.location.y - region.location.y;
 
@@ -1216,40 +906,41 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
     case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
         row_index_start = diff_y;
         row_index_end = row_index_start + region_intersect.size.height;
-        
+
         col_index_start = diff_x;
         col_index_end = col_index_start + region_intersect.size.width;
         break;
     case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
         row_index_end = radius - diff_y;
         row_index_start = row_index_end - region_intersect.size.height;
-        
+
         col_index_start = diff_x;
         col_index_end = col_index_start + region_intersect.size.width;
         break;
     case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
         row_index_start = diff_y;
         row_index_end = row_index_start + region_intersect.size.height;
-        
+
         col_index_end = radius - diff_x;
         col_index_start = col_index_end - region_intersect.size.width;
         break;
     case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
         row_index_end = radius - diff_y;
         row_index_start = row_index_end - region_intersect.size.height;
-        
+
         col_index_end = radius - diff_x;
         col_index_start = col_index_end - region_intersect.size.width;
         break;
     }
-
-
 
     egui_float_t start_k = tan_val_list[start_angle];
     egui_float_t end_k = tan_val_list[end_angle];
 
     egui_float_t start_ck = ctan_val_list[start_angle];
     egui_float_t end_ck = ctan_val_list[end_angle];
+
+    egui_float_t start_cos = cos_val_list[start_angle];
+    egui_float_t end_cos = cos_val_list[end_angle];
 
     egui_dim_t last_start_x;
     egui_dim_t last_end_x;
@@ -1259,14 +950,12 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
 
     egui_dim_t next_start_x;
     egui_dim_t next_end_x;
-    
+
     egui_dim_t x_allow_min;
     egui_dim_t x_allow_max;
-    
+
     egui_dim_t x_arc_allow_min;
     egui_dim_t x_arc_allow_max;
-
-
 
     // for speed, calculate the first value
     sel_y = radius;
@@ -1295,27 +984,6 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
     last_start_x = cur_start_x;
     last_end_x = cur_end_x;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     for (row_index = row_index_start; row_index < row_index_end; row_index++)
     {
         sel_y = radius - row_index;
@@ -1335,17 +1003,17 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
             next_end_x = EGUI_FLOAT_MULT_LIMIT((sel_y - 1), end_ck);
         }
 
-        x_allow_min = next_end_x - 1;
-        x_allow_max = last_start_x + 1;
+        x_allow_min = next_end_x - 2;
+        x_allow_max = last_start_x + 2;
 
-        x_arc_allow_min = next_start_x - 1;
-        x_arc_allow_max = last_end_x + 1;
+        x_arc_allow_min = next_start_x - 2;
+        x_arc_allow_max = last_end_x + 2;
 
         circle_alpha = EGUI_ALPHA_0;
         col_index = 0;
-        
+
         // get the start index of the valid data
-        if(row_index < info->item_count)
+        if (row_index < info->item_count)
         {
             col_index = ((const egui_circle_item_t *)info->items)[row_index].start_offset;
         }
@@ -1361,7 +1029,7 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
             }
 
             // get the alpha value
-            if(circle_alpha != EGUI_ALPHA_100)
+            if (circle_alpha != EGUI_ALPHA_100)
             {
                 circle_alpha = egui_canvas_get_circle_corner_value(row_index, col_index, info);
                 // check if the point is inside the arc
@@ -1375,7 +1043,7 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
             // For speed, check need x range
             if (!((sel_x > x_arc_allow_max) && ((next_start_x > radius) || (sel_x < x_arc_allow_min))))
             {
-                egui_alpha_t point_alpha = arc_get_point_alpha(sel_x, sel_y, start_k, end_k);
+                egui_alpha_t point_alpha = arc_get_point_alpha(sel_x, sel_y, start_k, end_k, start_cos, end_cos, start_angle, end_angle);
                 if (point_alpha == 0)
                 {
                     continue;
@@ -1415,8 +1083,7 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
  * \param[in]       color: Color used for drawing operation
  * \sa              egui_canvas_draw_rectangle, egui_canvas_draw_round_rectangle, egui_canvas_draw_round_rectangle_fill
  */
-void egui_canvas_draw_rectangle_fill(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
-                                     egui_alpha_t alpha)
+void egui_canvas_draw_rectangle_fill(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color, egui_alpha_t alpha)
 {
     // egui_canvas_t *self = &canvas_data;
 
@@ -1433,8 +1100,8 @@ void egui_canvas_draw_rectangle_fill(egui_dim_t x, egui_dim_t y, egui_dim_t widt
  * \param[in]       color: Color used for drawing operation
  * \sa              egui_canvas_draw_rectangle_fill, egui_canvas_draw_round_rectangle, egui_canvas_draw_round_rectangle_fill
  */
-void egui_canvas_draw_rectangle(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t stroke_width,
-                                egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_rectangle(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t stroke_width, egui_color_t color,
+                                egui_alpha_t alpha)
 {
     // egui_canvas_t *self = &canvas_data;
 
@@ -1468,8 +1135,8 @@ void egui_canvas_draw_rectangle(egui_dim_t x, egui_dim_t y, egui_dim_t width, eg
  * \param[in]       color: Color used for drawing operation
  * \sa              egui_canvas_draw_rectangle, egui_canvas_draw_rectangle_fill, egui_canvas_draw_round_rectangle
  */
-void egui_canvas_draw_round_rectangle_fill(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t radius,
-                                           egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_round_rectangle_fill(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t radius, egui_color_t color,
+                                           egui_alpha_t alpha)
 {
     // egui_canvas_t *self = &canvas_data;
 
@@ -1513,8 +1180,8 @@ void egui_canvas_draw_round_rectangle_fill(egui_dim_t x, egui_dim_t y, egui_dim_
  * \param[in]       color: Color used for drawing operation
  * \sa              egui_canvas_draw_rectangle, egui_canvas_draw_rectangle_fill, egui_canvas_draw_round_rectangle_fill
  */
-void egui_canvas_draw_round_rectangle(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t radius,
-                                      egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_round_rectangle(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t radius, egui_dim_t stroke_width,
+                                      egui_color_t color, egui_alpha_t alpha)
 {
     // egui_canvas_t *self = &canvas_data;
 
@@ -1552,7 +1219,8 @@ void egui_canvas_draw_round_rectangle(egui_dim_t x, egui_dim_t y, egui_dim_t wid
         egui_canvas_draw_circle_corner(x + radius, y + radius, radius, stroke_width, EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP, color, alpha);
         egui_canvas_draw_circle_corner(x + radius, y + height - radius - 1, radius, stroke_width, EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM, color, alpha);
         egui_canvas_draw_circle_corner(x + width - radius - 1, y + radius, radius, stroke_width, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP, color, alpha);
-        egui_canvas_draw_circle_corner(x + width - radius - 1, y + height - radius - 1, radius, stroke_width, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM, color, alpha);
+        egui_canvas_draw_circle_corner(x + width - radius - 1, y + height - radius - 1, radius, stroke_width, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM, color,
+                                       alpha);
     }
     else
     {
@@ -1571,9 +1239,9 @@ void egui_canvas_draw_round_rectangle(egui_dim_t x, egui_dim_t y, egui_dim_t wid
  * \param[in]       color: Color used for drawing operation
  * \sa              egui_canvas_draw_rectangle, egui_canvas_draw_rectangle_fill, egui_canvas_draw_round_rectangle
  */
-void egui_canvas_draw_round_rectangle_corners_fill(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
-                                                   egui_dim_t radius_left_top, egui_dim_t radius_left_bottom, egui_dim_t radius_right_top,
-                                                   egui_dim_t radius_right_bottom, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_round_rectangle_corners_fill(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t radius_left_top,
+                                                   egui_dim_t radius_left_bottom, egui_dim_t radius_right_top, egui_dim_t radius_right_bottom,
+                                                   egui_color_t color, egui_alpha_t alpha)
 {
     // egui_canvas_t *self = &canvas_data;
 
@@ -1604,7 +1272,8 @@ void egui_canvas_draw_round_rectangle_corners_fill(egui_dim_t x, egui_dim_t y, e
     if (radius_left_bottom)
     {
         // draw the corners
-        egui_canvas_draw_circle_corner_fill(x + radius_left_bottom, y + height - radius_left_bottom - 1, radius_left_bottom, EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM, color, alpha);
+        egui_canvas_draw_circle_corner_fill(x + radius_left_bottom, y + height - radius_left_bottom - 1, radius_left_bottom,
+                                            EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM, color, alpha);
     }
 
     // right top corner
@@ -1619,7 +1288,8 @@ void egui_canvas_draw_round_rectangle_corners_fill(egui_dim_t x, egui_dim_t y, e
     if (radius_right_top)
     {
         // draw the corners
-        egui_canvas_draw_circle_corner_fill(x + width - radius_right_top - 1, y + radius_right_top, radius_right_top, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP, color, alpha);
+        egui_canvas_draw_circle_corner_fill(x + width - radius_right_top - 1, y + radius_right_top, radius_right_top, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP, color,
+                                            alpha);
     }
 
     // right bottom corner
@@ -1635,7 +1305,7 @@ void egui_canvas_draw_round_rectangle_corners_fill(egui_dim_t x, egui_dim_t y, e
     {
         // draw the corners
         egui_canvas_draw_circle_corner_fill(x + width - radius_right_bottom - 1, y + height - radius_right_bottom - 1, radius_right_bottom,
-                                                         EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM, color, alpha);
+                                            EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM, color, alpha);
     }
 
     // draw the middle rectangle
@@ -1668,8 +1338,8 @@ void egui_canvas_draw_round_rectangle_corners_fill(egui_dim_t x, egui_dim_t y, e
     }
     else if (radius_right_bottom < radius_right_top)
     {
-        egui_canvas_draw_rectangle_fill(x + width - right_width, y + height - radius_right_bottom, radius_right_top - radius_right_bottom,
-                                        radius_right_bottom, color, alpha);
+        egui_canvas_draw_rectangle_fill(x + width - right_width, y + height - radius_right_bottom, radius_right_top - radius_right_bottom, radius_right_bottom,
+                                        color, alpha);
     }
 }
 
@@ -1696,8 +1366,8 @@ void egui_canvas_draw_round_rectangle_corners(egui_dim_t x, egui_dim_t y, egui_d
     }
     if (stroke_width >= (width >> 1) || stroke_width >= (height >> 1))
     {
-        egui_canvas_draw_round_rectangle_corners_fill(x, y, width, height, radius_left_top, radius_left_bottom, radius_right_top, radius_right_bottom,
-                                                      color, alpha);
+        egui_canvas_draw_round_rectangle_corners_fill(x, y, width, height, radius_left_top, radius_left_bottom, radius_right_top, radius_right_bottom, color,
+                                                      alpha);
         return;
     }
     // left top corner
@@ -1727,8 +1397,8 @@ void egui_canvas_draw_round_rectangle_corners(egui_dim_t x, egui_dim_t y, egui_d
     if (radius_left_bottom)
     {
         // draw the corners
-        egui_canvas_draw_circle_corner(x + radius_left_bottom, y + height - radius_left_bottom - 1, radius_left_bottom, stroke_width, EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM, color,
-                                                   alpha);
+        egui_canvas_draw_circle_corner(x + radius_left_bottom, y + height - radius_left_bottom - 1, radius_left_bottom, stroke_width,
+                                       EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM, color, alpha);
     }
 
     // right top corner
@@ -1743,7 +1413,8 @@ void egui_canvas_draw_round_rectangle_corners(egui_dim_t x, egui_dim_t y, egui_d
     if (radius_right_top)
     {
         // draw the corners
-        egui_canvas_draw_circle_corner(x + width - radius_right_top - 1, y + radius_right_top, radius_right_top, stroke_width, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP, color, alpha);
+        egui_canvas_draw_circle_corner(x + width - radius_right_top - 1, y + radius_right_top, radius_right_top, stroke_width,
+                                       EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP, color, alpha);
     }
 
     // right bottom corner
@@ -1758,14 +1429,14 @@ void egui_canvas_draw_round_rectangle_corners(egui_dim_t x, egui_dim_t y, egui_d
     if (radius_right_bottom)
     {
         // draw the corners
-        egui_canvas_draw_circle_corner(x + width - radius_right_bottom - 1, y + height - radius_right_bottom - 1, radius_right_bottom,
-                                                    stroke_width, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM, color, alpha);
+        egui_canvas_draw_circle_corner(x + width - radius_right_bottom - 1, y + height - radius_right_bottom - 1, radius_right_bottom, stroke_width,
+                                       EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM, color, alpha);
     }
 
     // draw the left and right rectangles
     egui_canvas_draw_rectangle_fill(x, y + radius_left_top, stroke_width, height - (radius_left_top + radius_left_bottom), color, alpha);
-    egui_canvas_draw_rectangle_fill(x + width - stroke_width, y + radius_right_top, stroke_width, height - (radius_right_top + radius_right_bottom),
-                                    color, alpha);
+    egui_canvas_draw_rectangle_fill(x + width - stroke_width, y + radius_right_top, stroke_width, height - (radius_right_top + radius_right_bottom), color,
+                                    alpha);
 
     // draw the top and bottom rectangles
     // Think stroke_width is bigger than radius_left_top, radius_left_bottom, radius_right_top, radius_right_bottom
@@ -1785,14 +1456,13 @@ void egui_canvas_draw_round_rectangle_corners(egui_dim_t x, egui_dim_t y, egui_d
                               width - (EGUI_MAX(radius_left_bottom, stroke_width) + EGUI_MAX(radius_right_bottom, stroke_width)), stroke_width, color, alpha);
     if (radius_left_bottom < stroke_width)
     {
-        egui_canvas_draw_fillrect(x + radius_left_bottom, y + height - radius_left_bottom, stroke_width - radius_left_bottom, radius_left_bottom, color,
-                                  alpha);
+        egui_canvas_draw_fillrect(x + radius_left_bottom, y + height - radius_left_bottom, stroke_width - radius_left_bottom, radius_left_bottom, color, alpha);
     }
 
     if (radius_right_bottom < stroke_width)
     {
-        egui_canvas_draw_fillrect(x + width - stroke_width, y + height - radius_right_bottom, stroke_width - radius_right_bottom, radius_right_bottom,
-                                  color, alpha);
+        egui_canvas_draw_fillrect(x + width - stroke_width, y + height - radius_right_bottom, stroke_width - radius_right_bottom, radius_right_bottom, color,
+                                  alpha);
     }
 
     // egui_canvas_draw_fillrect(x + radius_left_top,    y,                      width - (radius_left_top + radius_right_top), stroke_width, color,
@@ -1807,9 +1477,9 @@ void egui_canvas_draw_round_rectangle_corners(egui_dim_t x, egui_dim_t y, egui_d
  * \param[in]       y: X position of circle center
  * \param[in]       r: Circle radius
  * \param[in]       color: Color used for drawing operation
- * \sa              egui_canvas_draw_circle, egui_canvas_draw_circle_corner, egui_canvas_draw_circle_corner_fill
+ * \sa              egui_canvas_draw_circle_basic, egui_canvas_draw_circle_corner, egui_canvas_draw_circle_corner_fill
  */
-void egui_canvas_draw_circle_fill(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_circle_fill_basic(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_color_t color, egui_alpha_t alpha)
 {
     // egui_canvas_t *self = &canvas_data;
 
@@ -1831,10 +1501,10 @@ void egui_canvas_draw_circle_fill(egui_dim_t center_x, egui_dim_t center_y, egui
  * \param[in]       y: X position of circle center
  * \param[in]       r: Circle radius
  * \param[in]       color: Color used for drawing operation
- * \sa              egui_canvas_draw_circle, egui_canvas_draw_circle_corner, egui_canvas_draw_circle_corner_fill
+ * \sa              egui_canvas_draw_circle_basic, egui_canvas_draw_circle_corner, egui_canvas_draw_circle_corner_fill
  */
-void egui_canvas_draw_arc_fill(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle,
-                               egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_arc_fill_basic(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle, egui_color_t color,
+                                     egui_alpha_t alpha)
 {
     // egui_canvas_t *self = &canvas_data;
 
@@ -1874,15 +1544,14 @@ void egui_canvas_draw_arc_fill(egui_dim_t center_x, egui_dim_t center_y, egui_di
         {
             start_angle_tmp = start_angle;
             end_angle_tmp = end_angle;
-            egui_canvas_draw_arc_corner_fill(center_x, center_y, radius, start_angle_tmp, end_angle_tmp, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM, color,
-                                             alpha);
+            egui_canvas_draw_arc_corner_fill(center_x, center_y, radius, start_angle_tmp, end_angle_tmp, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM, color, alpha);
         }
         if (start_angle < 180)
         {
             start_angle_tmp = start_angle - 90;
             end_angle_tmp = end_angle - 90;
-            egui_canvas_draw_arc_corner_fill(center_x, center_y, radius, 90 - end_angle_tmp, 90 - start_angle_tmp, EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM,
-                                             color, alpha);
+            egui_canvas_draw_arc_corner_fill(center_x, center_y, radius, 90 - end_angle_tmp, 90 - start_angle_tmp, EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM, color,
+                                             alpha);
         }
 
         if (start_angle < 270)
@@ -1896,8 +1565,8 @@ void egui_canvas_draw_arc_fill(egui_dim_t center_x, egui_dim_t center_y, egui_di
         {
             start_angle_tmp = start_angle - 270;
             end_angle_tmp = end_angle - 270;
-            egui_canvas_draw_arc_corner_fill(center_x, center_y, radius, 90 - end_angle_tmp, 90 - start_angle_tmp, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP,
-                                             color, alpha);
+            egui_canvas_draw_arc_corner_fill(center_x, center_y, radius, 90 - end_angle_tmp, 90 - start_angle_tmp, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP, color,
+                                             alpha);
         }
 
         // draw the line
@@ -1943,20 +1612,19 @@ void egui_canvas_draw_arc_fill(egui_dim_t center_x, egui_dim_t center_y, egui_di
  * \param[in]       y: X position of circle center
  * \param[in]       r: Circle radius
  * \param[in]       color: Color used for drawing operation
- * \sa              egui_canvas_draw_circle_fill, egui_canvas_draw_circle_corner, egui_canvas_draw_circle_corner_fill
+ * \sa              egui_canvas_draw_circle_fill_basic, egui_canvas_draw_circle_corner, egui_canvas_draw_circle_corner_fill
  */
-void egui_canvas_draw_circle(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
-                             egui_alpha_t alpha)
+void egui_canvas_draw_circle_basic(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
 {
     // egui_canvas_t *self = &canvas_data;
 
     // if radius <= stroke_width, draw a filled circle
     if (radius <= stroke_width)
     {
-        egui_canvas_draw_circle_fill(center_x, center_y, radius, color, alpha);
+        egui_canvas_draw_circle_fill_basic(center_x, center_y, radius, color, alpha);
         return;
     }
-    
+
     egui_canvas_draw_circle_corner(center_x, center_y, radius, stroke_width, EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP, color, alpha);
     egui_canvas_draw_circle_corner(center_x, center_y, radius, stroke_width, EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM, color, alpha);
     egui_canvas_draw_circle_corner(center_x, center_y, radius, stroke_width, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP, color, alpha);
@@ -1970,8 +1638,8 @@ void egui_canvas_draw_circle(egui_dim_t center_x, egui_dim_t center_y, egui_dim_
     egui_canvas_draw_vline(center_x, center_y + radius - stroke_width + 1, stroke_width, color, alpha);
 }
 
-void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle,
-                                 int stroke_width, int type, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle, int stroke_width,
+                                 int type, egui_color_t color, egui_alpha_t alpha)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -2013,7 +1681,7 @@ void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_
     const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
     if (info == NULL)
     {
-        // TODO: select spec item.
+        EGUI_LOG_WRN("Circle radius %d not supported, increase EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE or register spec circle.\n", radius);
         return;
     }
 
@@ -2021,7 +1689,7 @@ void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_
     const egui_circle_info_t *info_inner = egui_canvas_get_circle_item(radius_inner);
     if (info_inner == NULL)
     {
-        // TODO: select spec item.
+        EGUI_LOG_WRN("Circle radius %d not supported, increase EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE or register spec circle.\n", radius_inner);
         return;
     }
 
@@ -2055,7 +1723,7 @@ void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_
 
     col_index_start = 0;
     col_index_end = radius;
-    
+
     egui_dim_t diff_x = region_intersect.location.x - region.location.x;
     egui_dim_t diff_y = region_intersect.location.y - region.location.y;
 
@@ -2064,28 +1732,28 @@ void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_
     case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
         row_index_start = diff_y;
         row_index_end = row_index_start + region_intersect.size.height;
-        
+
         col_index_start = diff_x;
         col_index_end = col_index_start + region_intersect.size.width;
         break;
     case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
         row_index_end = radius - diff_y;
         row_index_start = row_index_end - region_intersect.size.height;
-        
+
         col_index_start = diff_x;
         col_index_end = col_index_start + region_intersect.size.width;
         break;
     case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
         row_index_start = diff_y;
         row_index_end = row_index_start + region_intersect.size.height;
-        
+
         col_index_end = radius - diff_x;
         col_index_start = col_index_end - region_intersect.size.width;
         break;
     case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
         row_index_end = radius - diff_y;
         row_index_start = row_index_end - region_intersect.size.height;
-        
+
         col_index_end = radius - diff_x;
         col_index_start = col_index_end - region_intersect.size.width;
         break;
@@ -2097,6 +1765,9 @@ void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_
     egui_float_t start_ck = ctan_val_list[start_angle];
     egui_float_t end_ck = ctan_val_list[end_angle];
 
+    egui_float_t start_cos = cos_val_list[start_angle];
+    egui_float_t end_cos = cos_val_list[end_angle];
+
     egui_dim_t last_start_x;
     egui_dim_t last_end_x;
 
@@ -2105,14 +1776,12 @@ void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_
 
     egui_dim_t next_start_x;
     egui_dim_t next_end_x;
-    
+
     egui_dim_t x_allow_min;
     egui_dim_t x_allow_max;
-    
+
     egui_dim_t x_arc_allow_min;
     egui_dim_t x_arc_allow_max;
-
-
 
     // for speed, calculate the first value
     sel_y = radius;
@@ -2141,25 +1810,6 @@ void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_
     last_start_x = cur_start_x;
     last_end_x = cur_end_x;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     for (row_index = row_index_start; row_index < row_index_end; row_index++)
     {
         sel_y = radius - row_index;
@@ -2179,17 +1829,17 @@ void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_
             next_end_x = EGUI_FLOAT_MULT_LIMIT((sel_y - 1), end_ck);
         }
 
-        x_allow_min = next_end_x - 1;
-        x_allow_max = last_start_x + 1;
+        x_allow_min = next_end_x - 2;
+        x_allow_max = last_start_x + 2;
 
-        x_arc_allow_min = next_start_x - 1;
-        x_arc_allow_max = last_end_x + 1;
+        x_arc_allow_min = next_start_x - 2;
+        x_arc_allow_max = last_end_x + 2;
 
         circle_alpha = EGUI_ALPHA_0;
         col_index = 0;
-        
+
         // get the start index of the valid data
-        if(row_index < info->item_count)
+        if (row_index < info->item_count)
         {
             col_index = ((const egui_circle_item_t *)info->items)[row_index].start_offset;
         }
@@ -2205,7 +1855,7 @@ void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_
             }
 
             // get the alpha value
-            if(circle_alpha != EGUI_ALPHA_100)
+            if (circle_alpha != EGUI_ALPHA_100)
             {
                 circle_alpha = egui_canvas_get_circle_corner_value(row_index, col_index, info);
                 // check if the point is inside the arc
@@ -2238,14 +1888,14 @@ void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_
             // For speed, check need x range
             if (!((sel_x > x_arc_allow_max) && ((next_start_x > radius) || (sel_x < x_arc_allow_min))))
             {
-                egui_alpha_t point_alpha = arc_get_point_alpha(sel_x, sel_y, start_k, end_k);
+                egui_alpha_t point_alpha = arc_get_point_alpha(sel_x, sel_y, start_k, end_k, start_cos, end_cos, start_angle, end_angle);
                 if (point_alpha == 0)
                 {
                     continue;
                 }
                 mix_alpha = egui_color_alpha_mix(mix_alpha, point_alpha);
             }
-            
+
             switch (type)
             {
             case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
@@ -2275,10 +1925,10 @@ void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_
  * \param[in]       y: X position of circle center
  * \param[in]       r: Circle radius
  * \param[in]       color: Color used for drawing operation
- * \sa              egui_canvas_draw_circle, egui_canvas_draw_circle_corner, egui_canvas_draw_circle_corner_fill
+ * \sa              egui_canvas_draw_circle_basic, egui_canvas_draw_circle_corner, egui_canvas_draw_circle_corner_fill
  */
-void egui_canvas_draw_arc(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle,
-                          egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_arc_basic(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle, egui_dim_t stroke_width,
+                                egui_color_t color, egui_alpha_t alpha)
 {
     // egui_canvas_t *self = &canvas_data;
 
@@ -2288,7 +1938,7 @@ void egui_canvas_draw_arc(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t r
     // if radius <= stroke_width, draw a filled circle
     if (radius <= stroke_width)
     {
-        egui_canvas_draw_arc_fill(center_x, center_y, radius, start_angle, end_angle, color, alpha);
+        egui_canvas_draw_arc_fill_basic(center_x, center_y, radius, start_angle, end_angle, color, alpha);
         return;
     }
 
@@ -2324,15 +1974,15 @@ void egui_canvas_draw_arc(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t r
         {
             start_angle_tmp = start_angle;
             end_angle_tmp = end_angle;
-            egui_canvas_draw_arc_corner(center_x, center_y, radius, start_angle_tmp, end_angle_tmp, stroke_width, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM,
-                                        color, alpha);
+            egui_canvas_draw_arc_corner(center_x, center_y, radius, start_angle_tmp, end_angle_tmp, stroke_width, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM, color,
+                                        alpha);
         }
         if (start_angle < 180)
         {
             start_angle_tmp = start_angle - 90;
             end_angle_tmp = end_angle - 90;
-            egui_canvas_draw_arc_corner(center_x, center_y, radius, 90 - end_angle_tmp, 90 - start_angle_tmp, stroke_width,
-                                        EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM, color, alpha);
+            egui_canvas_draw_arc_corner(center_x, center_y, radius, 90 - end_angle_tmp, 90 - start_angle_tmp, stroke_width, EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM,
+                                        color, alpha);
         }
 
         if (start_angle < 270)
@@ -2347,8 +1997,8 @@ void egui_canvas_draw_arc(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t r
         {
             start_angle_tmp = start_angle - 270;
             end_angle_tmp = end_angle - 270;
-            egui_canvas_draw_arc_corner(center_x, center_y, radius, 90 - end_angle_tmp, 90 - start_angle_tmp, stroke_width,
-                                        EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP, color, alpha);
+            egui_canvas_draw_arc_corner(center_x, center_y, radius, 90 - end_angle_tmp, 90 - start_angle_tmp, stroke_width, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP,
+                                        color, alpha);
         }
 
         // draw the line
@@ -2455,20 +2105,18 @@ void egui_canvas_test_circle(void)
 }
 #endif
 
-
 void egui_canvas_draw_text(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
 {
     font->api->draw_string(font, string, x, y, color, alpha);
 }
 
-void egui_canvas_draw_text_in_rect_with_line_space(const egui_font_t *font, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space, egui_color_t color,
-                                   egui_alpha_t alpha)
+void egui_canvas_draw_text_in_rect_with_line_space(const egui_font_t *font, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space,
+                                                   egui_color_t color, egui_alpha_t alpha)
 {
     egui_font_draw_string_in_rect(font, string, rect, align_type, line_space, color, alpha);
 }
 
-void egui_canvas_draw_text_in_rect(const egui_font_t *font, const void *string, egui_region_t *rect, uint8_t align_type, egui_color_t color,
-                                   egui_alpha_t alpha)
+void egui_canvas_draw_text_in_rect(const egui_font_t *font, const void *string, egui_region_t *rect, uint8_t align_type, egui_color_t color, egui_alpha_t alpha)
 {
     egui_font_draw_string_in_rect(font, string, rect, align_type, 0, color, alpha);
 }
@@ -2481,6 +2129,17 @@ void egui_canvas_draw_image(const egui_image_t *img, egui_dim_t x, egui_dim_t y)
 void egui_canvas_draw_image_resize(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
     img->api->draw_image_resize(img, x, y, width, height);
+}
+
+void egui_canvas_draw_image_color(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
+{
+    egui_image_std_draw_image_color(img, x, y, color, alpha);
+}
+
+void egui_canvas_draw_image_resize_color(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
+                                         egui_alpha_t alpha)
+{
+    egui_image_std_draw_image_resize_color(img, x, y, width, height, color, alpha);
 }
 
 void egui_canvas_calc_work_region(egui_region_t *base_region)

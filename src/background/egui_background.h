@@ -16,6 +16,16 @@ extern "C" {
             .disabled_param = _disabled_param,                                                                                                                 \
     }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+#define EGUI_BACKGROUND_PARAM_INIT_WITH_FOCUS(_name, _normal_param, _pressed_param, _disabled_param, _focused_param)                                           \
+    static const egui_background_params_t _name = {                                                                                                            \
+            .normal_param = _normal_param,                                                                                                                     \
+            .pressed_param = _pressed_param,                                                                                                                   \
+            .disabled_param = _disabled_param,                                                                                                                 \
+            .focused_param = _focused_param,                                                                                                                   \
+    }
+#endif
+
 typedef struct egui_background_api egui_background_api_t;
 struct egui_background_api
 {
@@ -29,6 +39,9 @@ struct egui_background_params
     const void *normal_param;   // parameters of the normal background
     const void *pressed_param;  // parameters of the pressed background
     const void *disabled_param; // parameters of the disabled background
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    const void *focused_param; // parameters of the focused background
+#endif
 };
 
 struct egui_background

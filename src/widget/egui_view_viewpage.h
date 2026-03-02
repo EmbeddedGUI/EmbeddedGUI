@@ -13,6 +13,8 @@
 extern "C" {
 #endif
 
+typedef void (*egui_view_viewpage_on_page_changed_t)(egui_view_t *self, int page_index);
+
 typedef struct egui_view_viewpage egui_view_viewpage_t;
 struct egui_view_viewpage
 {
@@ -27,7 +29,26 @@ struct egui_view_viewpage
     uint8_t current_page_index;
 
     egui_scroller_t scroller;
+
+    egui_view_viewpage_on_page_changed_t on_page_changed;
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
+    uint8_t is_scrollbar_enabled;
+    uint8_t is_scrollbar_dragging;
+#endif
 };
+
+// ============== ViewPage Params ==============
+typedef struct egui_view_viewpage_params egui_view_viewpage_params_t;
+struct egui_view_viewpage_params
+{
+    egui_region_t region;
+};
+
+#define EGUI_VIEW_VIEWPAGE_PARAMS_INIT(_name, _x, _y, _w, _h) static const egui_view_viewpage_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}}
+
+void egui_view_viewpage_apply_params(egui_view_t *self, const egui_view_viewpage_params_t *params);
+void egui_view_viewpage_init_with_params(egui_view_t *self, const egui_view_viewpage_params_t *params);
 
 void egui_view_viewpage_add_child(egui_view_t *self, egui_view_t *child);
 void egui_view_viewpage_remove_child(egui_view_t *self, egui_view_t *child);
@@ -42,7 +63,12 @@ void egui_view_viewpage_compute_scroll(egui_view_t *self);
 void egui_view_viewpage_check_begin_dragged(egui_view_t *self, egui_dim_t delta);
 int egui_view_viewpage_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event);
 int egui_view_viewpage_on_touch_event(egui_view_t *self, egui_motion_event_t *event);
+void egui_view_viewpage_set_on_page_changed(egui_view_t *self, egui_view_viewpage_on_page_changed_t callback);
 void egui_view_viewpage_init(egui_view_t *self);
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
+void egui_view_viewpage_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled);
+#endif
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

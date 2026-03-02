@@ -5,7 +5,7 @@
 #include "uicode.h"
 #include "egui_activity_test.h"
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_activity_1_param_normal, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_activity_1_param_normal, EGUI_COLOR_DARK_GREEN, EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(bg_activity_1_params, &bg_activity_1_param_normal, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_activity_1, &bg_activity_1_params);
 
@@ -22,13 +22,6 @@ static const egui_background_color_t *bg_activity_list[] = {
         &bg_activity_2,
         &bg_activity_3,
 };
-
-// bg_button
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_button_param_normal, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_button_param_pressed, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_button_param_disabled, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
-EGUI_BACKGROUND_PARAM_INIT(bg_button_params, &bg_button_param_normal, &bg_button_param_pressed, &bg_button_param_disabled);
-static egui_background_color_t bg_button;
 
 static void button_1_click_cb(egui_view_t *self)
 {
@@ -123,13 +116,6 @@ void egui_activity_test_on_create(egui_activity_t *self)
     egui_view_label_set_font((egui_view_t *)&local->button_3, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_label_set_font_color((egui_view_t *)&local->button_3, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
     egui_view_set_on_click_listener((egui_view_t *)&local->button_3, button_3_click_cb);
-
-    // bg_button
-    egui_background_color_init((egui_background_t *)&bg_button);
-    egui_background_set_params((egui_background_t *)&bg_button, &bg_button_params);
-    egui_view_set_background((egui_view_t *)&local->button_1, (egui_background_t *)&bg_button);
-    egui_view_set_background((egui_view_t *)&local->button_2, (egui_background_t *)&bg_button);
-    egui_view_set_background((egui_view_t *)&local->button_3, (egui_background_t *)&bg_button);
 
     // Add childs to layout_1
     egui_view_group_add_child((egui_view_t *)&local->layout_1, (egui_view_t *)&local->label_1);

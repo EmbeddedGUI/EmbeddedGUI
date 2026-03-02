@@ -132,8 +132,8 @@ typedef int32_t egui_fixed_t;
 #define EGUI_FLOAT_FRAC 16
 
 #define EGUI_FLOAT_VALUE_INT(_val) ((int32_t)(_val) << EGUI_FLOAT_FRAC)
-#define EGUI_FLOAT_VALUE(_val) EGUI_FX_FTOX(_val, EGUI_FLOAT_FRAC)
-#define egui_float_t           int32_t // Q16.16 fixed-point type
+#define EGUI_FLOAT_VALUE(_val)     EGUI_FX_FTOX(_val, EGUI_FLOAT_FRAC)
+#define egui_float_t               int32_t // Q16.16 fixed-point type
 
 // In performance-critical code, use the following macros to avoid
 // but need make sure that the result is int32_t.
@@ -157,8 +157,8 @@ typedef int32_t egui_fixed_t;
 #define EGUI_FLOAT_FRAC 0
 
 #define EGUI_FLOAT_VALUE_INT(_val) _val
-#define EGUI_FLOAT_VALUE(_val) _val
-#define egui_float_t           float // Q16.16 fixed-point type
+#define EGUI_FLOAT_VALUE(_val)     _val
+#define egui_float_t               float // Q16.16 fixed-point type
 
 #define EGUI_FLOAT_MULT_LIMIT(x1, x2) (x1) * (x2)
 #define EGUI_FLOAT_DIV_LIMIT(x1, x2)  (float)(x1) / (float)(x2)

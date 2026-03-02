@@ -22,6 +22,24 @@ struct egui_view_linearlayout
     uint8_t is_orientation_horizontal;
 };
 
+// ============== LinearLayout Params ==============
+typedef struct egui_view_linearlayout_params egui_view_linearlayout_params_t;
+struct egui_view_linearlayout_params
+{
+    egui_region_t region;
+    uint8_t align_type;
+    uint8_t is_orientation_horizontal;
+};
+
+#define EGUI_VIEW_LINEARLAYOUT_PARAMS_INIT(_name, _x, _y, _w, _h, _align)                                                                                      \
+    static const egui_view_linearlayout_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .align_type = (_align), .is_orientation_horizontal = 0}
+
+#define EGUI_VIEW_LINEARLAYOUT_PARAMS_INIT_H(_name, _x, _y, _w, _h, _align)                                                                                    \
+    static const egui_view_linearlayout_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .align_type = (_align), .is_orientation_horizontal = 1}
+
+void egui_view_linearlayout_apply_params(egui_view_t *self, const egui_view_linearlayout_params_t *params);
+void egui_view_linearlayout_init_with_params(egui_view_t *self, const egui_view_linearlayout_params_t *params);
+
 void egui_view_linearlayout_set_align_type(egui_view_t *self, uint8_t align_type);
 void egui_view_linearlayout_set_auto_width(egui_view_t *self, uint8_t is_auto_width);
 void egui_view_linearlayout_set_auto_height(egui_view_t *self, uint8_t is_auto_height);

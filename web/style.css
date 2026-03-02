@@ -1,0 +1,317 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+    --bg-primary: #0d1117;
+    --bg-card: #161b22;
+    --bg-sidebar: #161b22;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --accent-hover: #79c0ff;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #484f58;
+
+    /* Layout tokens — reference these in all layout rules */
+    --content-max-width: 1200px;
+    --sidebar-width: 240px;
+    --sidebar-width-md: 200px;
+    --doc-line-width: 72ch;
+}
+
+body {
+    background: var(--bg-primary);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Links */
+.links { margin-top: 10px; }
+
+.links a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85em;
+    margin-right: 16px;
+    transition: color 0.15s;
+}
+
+.links a:hover { color: var(--accent-hover); }
+
+.nav-link { font-weight: 600; }
+
+/* ============================================
+   Grid page (index.html)
+   ============================================ */
+.page-grid { min-height: 100vh; }
+
+.page-grid header {
+    text-align: center;
+    padding: 40px 20px 28px;
+}
+
+.page-grid .header-inner {
+    max-width: 860px;
+    margin: 0 auto;
+}
+
+.page-grid header h1 {
+    font-size: 1.6em;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+}
+
+.page-grid header p {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    margin-top: 6px;
+}
+
+/* Demo grid */
+.demo-section {
+    display: flex;
+    gap: 20px;
+    max-width: var(--content-max-width);
+    margin: 0 auto 28px;
+    padding: 0 24px;
+}
+
+.demo-section-left {
+    flex-shrink: 0;
+    width: 320px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.demo-section-right {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    max-height: 340px;
+    overflow-y: auto;
+}
+
+.demo-title {
+    padding: 10px 14px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    text-transform: capitalize;
+}
+
+.demo-iframe {
+    width: 100%;
+    height: 280px;
+    border: none;
+    background: #000;
+}
+
+/* ============================================
+   Sidebar page (basic.html)
+   ============================================ */
+.page-sidebar {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.page-sidebar aside {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sidebar-header {
+    padding: 20px 16px 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebar-header h1 {
+    font-size: 1.1em;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.sidebar-header p {
+    font-size: 0.78em;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+#demo-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+}
+
+.demo-item {
+    display: block;
+    padding: 8px 16px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85em;
+    border-left: 3px solid transparent;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    text-transform: capitalize;
+}
+
+.demo-item:hover {
+    background: rgba(88, 166, 255, 0.06);
+    color: var(--text);
+}
+
+.demo-item.active {
+    background: rgba(88, 166, 255, 0.1);
+    color: var(--accent);
+    border-left-color: var(--accent);
+}
+
+.demo-item strong {
+    font-weight: 500;
+}
+
+.page-sidebar main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-primary);
+    position: relative;
+    overflow: auto;
+}
+
+#placeholder {
+    color: var(--text-dim);
+    font-size: 0.9em;
+}
+
+/* Demo wrapper (sidebar page: iframe + doc) */
+#demo-wrapper {
+    flex-direction: column;
+    width: 100%;
+    max-width: var(--content-max-width);
+    height: 100%;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+#demo-wrapper #demo-frame {
+    width: 100%;
+    height: 55vh;
+    min-height: 200px;
+    max-height: 70vh;
+    border: none;
+    background: #000;
+    flex-shrink: 0;
+}
+
+#demo-wrapper #demo-doc {
+    flex: 1;
+    overflow-y: auto;
+    /* Center-constrain long-form text for readability */
+    padding-left: max(20px, calc(50% - var(--doc-line-width) / 2));
+    padding-right: max(20px, calc(50% - var(--doc-line-width) / 2));
+}
+
+/* ============================================
+   Documentation panel
+   ============================================ */
+.doc-panel {
+    padding: 16px 20px;
+    font-size: 0.85em;
+    line-height: 1.6;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+}
+
+.doc-panel h1, .doc-panel h2, .doc-panel h3 {
+    color: var(--text);
+    margin: 12px 0 6px;
+    font-size: 1em;
+}
+
+.doc-panel h1 { font-size: 1.15em; }
+
+.doc-panel p { margin: 6px 0; }
+
+.doc-panel ul, .doc-panel ol {
+    padding-left: 20px;
+    margin: 6px 0;
+}
+
+.doc-panel table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0;
+    font-size: 0.9em;
+}
+
+.doc-panel th, .doc-panel td {
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    text-align: left;
+}
+
+.doc-panel th {
+    background: rgba(88, 166, 255, 0.08);
+    color: var(--text);
+}
+
+.doc-panel code {
+    background: rgba(110, 118, 129, 0.15);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+.doc-loading {
+    color: var(--text-dim);
+    font-style: italic;
+}
+
+/* Grid page: doc panel in section */
+.demo-section-right.doc-panel {
+    border-top: none;
+}
+
+/* Scrollbar */
+#demo-list::-webkit-scrollbar { width: 4px; }
+#demo-list::-webkit-scrollbar-track { background: transparent; }
+#demo-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ============================================
+   Responsive — 3-tier breakpoints
+   ============================================ */
+
+/* Tier 2: tablet / mid-size (769px – 1199px) */
+@media (min-width: 769px) and (max-width: 1199px) {
+    .page-sidebar aside {
+        width: var(--sidebar-width-md);
+        min-width: var(--sidebar-width-md);
+    }
+    .demo-item { font-size: 0.8em; padding: 7px 12px; }
+    #demo-wrapper #demo-frame { height: 50vh; }
+}
+
+/* Tier 1: mobile (≤ 768px) */
+@media (max-width: 768px) {
+    .demo-section { flex-direction: column; padding: 0 12px; }
+    .demo-section-left { width: 100%; }
+    .page-sidebar { flex-direction: column; }
+    .page-sidebar aside { width: 100%; min-width: 0; max-height: 40vh; border-right: none; border-bottom: 1px solid var(--border); }
+    #demo-wrapper #demo-frame { height: 42vh; }
+    #demo-wrapper #demo-doc {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+}

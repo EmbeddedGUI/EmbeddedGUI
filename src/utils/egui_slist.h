@@ -116,10 +116,7 @@ static inline void egui_slist_init(egui_slist_t *list)
     list->tail = NULL;
 }
 
-#define EGUI_SLIST_STATIC_INIT(ptr_to_list)                                                                                                                    \
-    {                                                                                                                                                          \
-        NULL, NULL                                                                                                                                             \
-    }
+#define EGUI_SLIST_STATIC_INIT(ptr_to_list) {NULL, NULL}
 
 static inline egui_snode_t *_egui_snode_next_peek(egui_snode_t *node)
 {

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EmbeddedGUI - HelloBasic Widgets</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="page-sidebar">
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <h1>HelloBasic</h1>
+            <p>Widget demos</p>
+            <div class="links">
+                <a href="index.html">← Back to Demos</a>
+            </div>
+        </div>
+        <nav id="demo-list"></nav>
+    </aside>
+    <main id="content">
+        <div id="placeholder">
+            <p>Select a widget from the sidebar</p>
+        </div>
+        <div id="demo-wrapper" style="display:none">
+            <iframe id="demo-frame"></iframe>
+            <div id="demo-doc" class="doc-panel"></div>
+        </div>
+    </main>
+
+    <script src="lib/marked.min.js"></script>
+    <script src="doc-render.js"></script>
+    <script>
+        var list = document.getElementById('demo-list');
+        var placeholder = document.getElementById('placeholder');
+        var wrapper = document.getElementById('demo-wrapper');
+        var demoMap = {};
+
+        function loadDemo(name) {
+            var d = demoMap[name];
+            if (!d) return;
+            var app = d.app || d.name;
+            placeholder.style.display = 'none';
+            wrapper.style.display = 'flex';
+            document.getElementById('demo-frame').src = 'demos/' + name + '/' + app + '.html';
+            renderDoc(document.getElementById('demo-doc'), d.doc);
+            document.querySelectorAll('.demo-item').forEach(function(el) {
+                el.classList.toggle('active', el.dataset.name === name);
+            });
+            history.replaceState(null, '', '#' + name);
+        }
+
+        function renderList(demos) {
+            demos.forEach(function(d) {
+                if (d.category !== 'HelloBasic') return;
+                demoMap[d.name] = d;
+                var item = document.createElement('a');
+                item.className = 'demo-item';
+                item.href = '#' + d.name;
+                item.dataset.name = d.name;
+                var label = d.name.replace(/^HelloBasic_/, '').replace(/_/g, ' ');
+                item.innerHTML = '<strong>' + label + '</strong>';
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    loadDemo(d.name);
+                });
+                list.appendChild(item);
+            });
+            if (location.hash) {
+                loadDemo(location.hash.slice(1));
+            }
+        }
+
+        fetch('demos/demos.json')
+            .then(function(r) { return r.json(); })
+            .then(renderList)
+            .catch(function() {
+                renderList([]);
+            });
+    </script>
+</body>
+</html>

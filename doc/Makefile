@@ -12,7 +12,12 @@ BUILDDIR      = build
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile
+.PHONY: help perf-doc Makefile
+
+# Generate performance report charts into source/performance/images/
+perf-doc:
+	python ../scripts/utils_analysis_elf_size.py
+	@echo "Performance docs generated."
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

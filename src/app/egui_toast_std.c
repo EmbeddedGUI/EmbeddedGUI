@@ -10,7 +10,7 @@ EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_toast, &bg_toast_params);
 
 void egui_toast_std_on_show(egui_toast_t *self, const char *text)
 {
-    egui_toast_std_t *local = (egui_toast_std_t *)self;
+    EGUI_LOCAL_INIT(egui_toast_std_t);
     // Call super on_show
     egui_toast_on_show(self, text);
 
@@ -26,7 +26,7 @@ void egui_toast_std_on_show(egui_toast_t *self, const char *text)
 
 void egui_toast_std_on_hide(egui_toast_t *self)
 {
-    egui_toast_std_t *local = (egui_toast_std_t *)self;
+    EGUI_LOCAL_INIT(egui_toast_std_t);
     // Call super on_hide
     egui_toast_on_hide(self);
 
@@ -36,20 +36,20 @@ void egui_toast_std_on_hide(egui_toast_t *self)
 
 char *egui_toast_std_get_str_buf(egui_toast_t *self)
 {
-    egui_toast_std_t *local = (egui_toast_std_t *)self;
+    EGUI_LOCAL_INIT(egui_toast_std_t);
 
     return local->toast_str;
 }
 
 static const egui_toast_api_t EGUI_TOAST_API_TABLE_NAME(egui_toast_std_t) = {
-        .on_show = egui_toast_std_on_show, // changed
-        .on_hide = egui_toast_std_on_hide, // changed
+        .on_show = egui_toast_std_on_show,         // changed
+        .on_hide = egui_toast_std_on_hide,         // changed
         .get_str_buf = egui_toast_std_get_str_buf, // changed
 };
 
 void egui_toast_std_init(egui_toast_t *self)
 {
-    egui_toast_std_t *local = (egui_toast_std_t *)self;
+    EGUI_LOCAL_INIT(egui_toast_std_t);
     // call super init.
     egui_toast_init(self);
     // update api.

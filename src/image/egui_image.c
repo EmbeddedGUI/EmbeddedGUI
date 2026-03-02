@@ -10,7 +10,8 @@ int egui_image_get_point(const egui_image_t *self, egui_dim_t x, egui_dim_t y, e
     return 0;
 }
 
-int egui_image_get_point_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t *color, egui_alpha_t *alpha)
+int egui_image_get_point_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t *color,
+                                egui_alpha_t *alpha)
 {
     // implement is sub-class.
     return 0;

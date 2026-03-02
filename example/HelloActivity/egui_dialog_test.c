@@ -9,13 +9,6 @@ EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(bg_dialog_param_normal, EGUI_CO
 EGUI_BACKGROUND_PARAM_INIT(bg_dialog_params, &bg_dialog_param_normal, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_dialog, &bg_dialog_params);
 
-// bg_button
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_button_param_normal, EGUI_COLOR_BLUE, EGUI_ALPHA_100);
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_button_param_pressed, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_button_param_disabled, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
-EGUI_BACKGROUND_PARAM_INIT(bg_button_params, &bg_button_param_normal, &bg_button_param_pressed, &bg_button_param_disabled);
-static egui_background_color_t bg_button;
-
 extern int uicode_start_next_dialog(egui_dialog_t *current_dialog);
 static void button_1_click_cb(egui_view_t *self)
 {
@@ -70,11 +63,6 @@ void egui_dialog_test_on_create(egui_dialog_t *self)
     egui_view_label_set_font_color((egui_view_t *)&local->button_1, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_set_on_click_listener((egui_view_t *)&local->button_1, button_1_click_cb);
 
-    // bg_button
-    egui_background_color_init((egui_background_t *)&bg_button);
-    egui_background_set_params((egui_background_t *)&bg_button, &bg_button_params);
-    egui_view_set_background((egui_view_t *)&local->button_1, (egui_background_t *)&bg_button);
-
     // Add childs to layout_1
     egui_view_group_add_child((egui_view_t *)&local->layout_1, (egui_view_t *)&local->label_1);
     egui_view_group_add_child((egui_view_t *)&local->layout_1, (egui_view_t *)&local->button_1);
@@ -105,12 +93,12 @@ void egui_dialog_test_on_destroy(egui_dialog_t *self)
 }
 
 static const egui_dialog_api_t EGUI_DIALOG_API_TABLE_NAME(egui_dialog_test_t) = {
-            .on_create = egui_dialog_test_on_create, // changed
-            .on_start = egui_dialog_on_start,
-            .on_resume = egui_dialog_on_resume,
-            .on_pause = egui_dialog_on_pause,
-            .on_stop = egui_dialog_on_stop,
-            .on_destroy = egui_dialog_test_on_destroy, // changed
+        .on_create = egui_dialog_test_on_create, // changed
+        .on_start = egui_dialog_on_start,
+        .on_resume = egui_dialog_on_resume,
+        .on_pause = egui_dialog_on_pause,
+        .on_stop = egui_dialog_on_stop,
+        .on_destroy = egui_dialog_test_on_destroy, // changed
 };
 
 void egui_dialog_test_init(egui_dialog_t *self)

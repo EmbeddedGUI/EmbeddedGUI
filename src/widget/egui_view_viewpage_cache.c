@@ -8,21 +8,21 @@
 
 void egui_view_viewpage_cache_add_child(egui_view_t *self, egui_view_t *child)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
     egui_view_group_add_child((egui_view_t *)&local->container, child);
 }
 
 void egui_view_viewpage_cache_remove_child(egui_view_t *self, egui_view_t *child)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
     egui_view_group_remove_child((egui_view_t *)&local->container, child);
 }
 
 void egui_view_viewpage_cache_layout_childs(egui_view_t *self)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
     // egui_view_linearlayout_layout_childs((egui_view_t *)&local->container);
     egui_view_set_size((egui_view_t *)&local->container, local->total_page_cnt * self->region.size.width, self->region.size.height);
@@ -30,30 +30,31 @@ void egui_view_viewpage_cache_layout_childs(egui_view_t *self)
 
 void egui_view_viewpage_cache_set_on_page_changed_listener(egui_view_t *self, egui_view_viewpage_cache_on_page_changed_listener_t listener)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
     local->listener = listener;
 }
 
 void egui_view_viewpage_cache_set_on_page_load_listener(egui_view_t *self, egui_view_viewpage_cache_on_page_load_listener_t listener)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
     local->load_listener = listener;
 }
 
 void egui_view_viewpage_cache_set_on_page_free_listener(egui_view_t *self, egui_view_viewpage_cache_on_page_free_listener_t listener)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
     local->free_listener = listener;
 }
 
-void* egui_view_viewpage_cache_on_paged_load(egui_view_t *self, int index)
+void *egui_view_viewpage_cache_on_paged_load(egui_view_t *self, int index)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
-    if(local->load_listener != NULL) {
+    if (local->load_listener != NULL)
+    {
         return local->load_listener(self, index);
     }
 
@@ -62,16 +63,17 @@ void* egui_view_viewpage_cache_on_paged_load(egui_view_t *self, int index)
 
 void egui_view_viewpage_cache_on_paged_free(egui_view_t *self, int index, egui_view_t *view)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
-    if(local->free_listener != NULL) {
+    if (local->free_listener != NULL)
+    {
         local->free_listener(self, index, view);
     }
 }
 
 void egui_view_viewpage_cache_reload_page(egui_view_t *self, int center_page_index)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
     // egui_view_t* page_cache_tmp[EGUI_VIEW_VIEWPAGE_CACHE_MAX_PAGE_CNT] = {NULL};
     int last_center_page_index = local->current_page_index;
     int index = 0;
@@ -83,7 +85,7 @@ void egui_view_viewpage_cache_reload_page(egui_view_t *self, int center_page_ind
     egui_view_t *tmp;
 
     index = last_center_page_index - EGUI_VIEW_VIEWPAGE_CACHE_BASE_OFFSET;
-    if(index < 0)
+    if (index < 0)
     {
         index = 0;
     }
@@ -92,7 +94,7 @@ void egui_view_viewpage_cache_reload_page(egui_view_t *self, int center_page_ind
         EGUI_DLIST_FOR_EACH_NODE_SAFE(&container->childs, p_head, p_next)
         {
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
-            
+
             egui_view_viewpage_cache_on_paged_free(self, index, tmp);
             index++;
         }
@@ -103,12 +105,12 @@ void egui_view_viewpage_cache_reload_page(egui_view_t *self, int center_page_ind
 
     // Create new childs.
     index = center_page_index - EGUI_VIEW_VIEWPAGE_CACHE_BASE_OFFSET;
-    for(int i = 0; i < EGUI_VIEW_VIEWPAGE_CACHE_MAX_PAGE_CNT; i++)
+    for (int i = 0; i < EGUI_VIEW_VIEWPAGE_CACHE_MAX_PAGE_CNT; i++)
     {
-        if((index >= 0) && (index < local->total_page_cnt))
+        if ((index >= 0) && (index < local->total_page_cnt))
         {
             egui_view_t *view = egui_view_viewpage_cache_on_paged_load(self, index);
-            if(view != NULL)
+            if (view != NULL)
             {
                 // location the view in container view.
                 egui_view_set_position(view, index * self->region.size.width, 0);
@@ -120,13 +122,13 @@ void egui_view_viewpage_cache_reload_page(egui_view_t *self, int center_page_ind
                 EGUI_ASSERT(0);
             }
         }
-        index ++;
+        index++;
     }
 }
 
 void egui_view_viewpage_cache_on_paged_free_all(egui_view_t *self)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
     // egui_view_t* page_cache_tmp[EGUI_VIEW_VIEWPAGE_CACHE_MAX_PAGE_CNT] = {NULL};
     int last_center_page_index = local->current_page_index;
     int index = 0;
@@ -138,7 +140,7 @@ void egui_view_viewpage_cache_on_paged_free_all(egui_view_t *self)
     egui_view_t *tmp;
 
     index = last_center_page_index - EGUI_VIEW_VIEWPAGE_CACHE_BASE_OFFSET;
-    if(index < 0)
+    if (index < 0)
     {
         index = 0;
     }
@@ -147,7 +149,7 @@ void egui_view_viewpage_cache_on_paged_free_all(egui_view_t *self)
         EGUI_DLIST_FOR_EACH_NODE_SAFE(&container->childs, p_head, p_next)
         {
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
-            
+
             egui_view_viewpage_cache_on_paged_free(self, index, tmp);
             index++;
         }
@@ -159,14 +161,15 @@ void egui_view_viewpage_cache_on_paged_free_all(egui_view_t *self)
 
 void egui_view_viewpage_cache_on_paged_changed(egui_view_t *self, int index)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
-    if(index != local->current_page_index)
+    if (index != local->current_page_index)
     {
         EGUI_LOG_DBG("egui_view_viewpage_cache_on_paged_changed index: %d\n", index);
         egui_view_viewpage_cache_reload_page(self, index);
         local->current_page_index = index;
-        if(local->listener != NULL) {
+        if (local->listener != NULL)
+        {
             local->listener(self, local->current_page_index);
         }
     }
@@ -174,7 +177,7 @@ void egui_view_viewpage_cache_on_paged_changed(egui_view_t *self, int index)
 
 void egui_view_viewpage_cache_set_child_total_cnt(egui_view_t *self, int cnt)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
     local->total_page_cnt = cnt;
     egui_view_viewpage_cache_layout_childs(self);
@@ -182,7 +185,7 @@ void egui_view_viewpage_cache_set_child_total_cnt(egui_view_t *self, int cnt)
 
 void egui_view_viewpage_cache_set_size(egui_view_t *self, egui_dim_t width, egui_dim_t height)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
     self->region.size.width = width;
     self->region.size.height = height;
 
@@ -195,7 +198,7 @@ void egui_view_viewpage_cache_set_size(egui_view_t *self, egui_dim_t width, egui
 
 void egui_view_viewpage_cache_start_container_scroll(egui_view_t *self, int diff_x)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
     // EGUI_LOG_DBG("egui_view_viewpage_cache_start_container_scroll diff_x: %d\n", diff_x);
     // get container view.
     egui_view_t *container = (egui_view_t *)&local->container;
@@ -204,8 +207,8 @@ void egui_view_viewpage_cache_start_container_scroll(egui_view_t *self, int diff
         return;
     }
 
-    // EGUI_LOG_DBG("egui_view_viewpage_cache_start_container_scroll container region: %d, %d, %d, %d\n", container->region.location.x, container->region.location.x,
-    // container->region.size.width, container->region.size.height);
+    // EGUI_LOG_DBG("egui_view_viewpage_cache_start_container_scroll container region: %d, %d, %d, %d\n", container->region.location.x,
+    // container->region.location.x, container->region.size.width, container->region.size.height);
     if (diff_x < 0)
     {
         // EGUI_LOG_DBG("egui_view_viewpage_cache_start_container_scroll up\n");
@@ -252,7 +255,7 @@ void egui_view_viewpage_cache_start_container_scroll(egui_view_t *self, int diff
  */
 void egui_view_viewpage_cache_fling(egui_view_t *self, egui_float_t velocity_x)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
     // get container view.
     egui_view_t *container = (egui_view_t *)&local->container;
 
@@ -292,13 +295,13 @@ void egui_view_viewpage_cache_fling(egui_view_t *self, egui_float_t velocity_x)
 
 int egui_view_viewpage_cache_cal_current_page(egui_view_t *self)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
     egui_view_t *container = (egui_view_t *)&local->container;
 
-    for(int i = 0; i < local->total_page_cnt; i++)
+    for (int i = 0; i < local->total_page_cnt; i++)
     {
-        if(i * self->region.size.width == -container->region.location.x)
+        if (i * self->region.size.width == -container->region.location.x)
         {
             return i;
         }
@@ -311,7 +314,7 @@ int egui_view_viewpage_cache_cal_current_page(egui_view_t *self)
 
 void egui_view_viewpage_cache_scroll_to_page(egui_view_t *self, int page_index)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
     // EGUI_LOG_DBG("egui_view_viewpage_cache_scroll_to_page page_index: %d\n", page_index);
 
     // get container view.
@@ -325,15 +328,16 @@ void egui_view_viewpage_cache_scroll_to_page(egui_view_t *self, int page_index)
     egui_dim_t diff_x = target_x - container->region.location.x;
 
     // EGUI_LOG_DBG("egui_view_viewpage_cache_scroll_to_page target_x: %d, location: %d, diff_x: %d\n", target_x, container->region.location.x, diff_x);
-    // EGUI_LOG_DBG("egui_view_viewpage_cache_scroll_to_page target_x: %d, location: %d, diff_x: %d\n", target_x, EGUI_ABS(container->region.location.x), EGUI_ABS(diff_x));
+    // EGUI_LOG_DBG("egui_view_viewpage_cache_scroll_to_page target_x: %d, location: %d, diff_x: %d\n", target_x, EGUI_ABS(container->region.location.x),
+    // EGUI_ABS(diff_x));
 
     // egui_view_viewpage_cache_start_container_scroll(self, diff_x);
-    egui_scroller_start_scroll(&local->scroller, diff_x, EGUI_ABS(diff_x) * 1.5);
+    egui_scroller_start_scroll(&local->scroller, diff_x, EGUI_ABS(diff_x) * 3 / 2);
 }
 
 void egui_view_viewpage_cache_slow_scroll_to_page(egui_view_t *self)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
     // get container view.
     egui_view_t *container = (egui_view_t *)&local->container;
@@ -347,7 +351,7 @@ void egui_view_viewpage_cache_slow_scroll_to_page(egui_view_t *self)
 
 void egui_view_viewpage_cache_set_current_page(egui_view_t *self, int page_index)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
     egui_view_t *container = (egui_view_t *)&local->container;
     int total_page_cnt = local->total_page_cnt;
@@ -368,7 +372,7 @@ void egui_view_viewpage_cache_set_current_page(egui_view_t *self, int page_index
 
 void egui_view_viewpage_cache_compute_scroll(egui_view_t *self)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
     // call super compute_scroll.
     egui_view_group_compute_scroll(self);
@@ -384,7 +388,7 @@ void egui_view_viewpage_cache_compute_scroll(egui_view_t *self)
     else
     {
         int page_index = egui_view_viewpage_cache_cal_current_page(self);
-        if(page_index >= 0)
+        if (page_index >= 0)
         {
             egui_view_viewpage_cache_on_paged_changed(self, page_index);
         }
@@ -394,7 +398,7 @@ void egui_view_viewpage_cache_compute_scroll(egui_view_t *self)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 void egui_view_viewpage_cache_check_begin_dragged(egui_view_t *self, egui_dim_t delta)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
     // EGUI_LOG_DBG("egui_view_viewpage_cache_check_begin_dragged id: %d, delta_x: %d\n", self->id, delta);
     if (!local->is_begin_dragged)
     {
@@ -413,7 +417,7 @@ void egui_view_viewpage_cache_check_begin_dragged(egui_view_t *self, egui_dim_t 
 
 int egui_view_viewpage_cache_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
     // EGUI_LOG_DBG("egui_view_viewpage_cache_on_intercept_touch_event id: 0x%x, %s\n", self->id, egui_motion_event_string(event->type));
     if ((event->type == EGUI_MOTION_EVENT_ACTION_MOVE) && (local->is_begin_dragged))
     {
@@ -462,7 +466,7 @@ int egui_view_viewpage_cache_on_intercept_touch_event(egui_view_t *self, egui_mo
 int egui_view_viewpage_cache_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     // EGUI_LOG_DBG("egui_view_viewpage_cache_on_touch_event id: 0x%x, %s\n", self->id, egui_motion_event_string(event->type));
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
 
     switch (event->type)
     {
@@ -535,26 +539,30 @@ int egui_view_viewpage_cache_on_touch_event(egui_view_t *self, egui_motion_event
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_viewpage_cache_t) = {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-    .dispatch_touch_event = egui_view_group_dispatch_touch_event,
-    .on_touch_event = egui_view_viewpage_cache_on_touch_event, // changed
-    .on_intercept_touch_event = egui_view_viewpage_cache_on_intercept_touch_event, // changed
-#else // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-    .dispatch_touch_event = egui_view_group_dispatch_touch_event,
-    .on_touch_event = NULL, // changed
-    .on_intercept_touch_event = NULL, // changed
-#endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-    .compute_scroll = egui_view_viewpage_cache_compute_scroll, // changed
-    .calculate_layout = egui_view_group_calculate_layout,
-    .request_layout = egui_view_group_request_layout,
-    .draw = egui_view_group_draw,
-    .on_attach_to_window = egui_view_group_on_attach_to_window,
-    .on_draw = egui_view_on_draw,
-    .on_detach_from_window = egui_view_group_on_detach_from_window,
+        .dispatch_touch_event = egui_view_group_dispatch_touch_event,
+        .on_touch_event = egui_view_viewpage_cache_on_touch_event,                     // changed
+        .on_intercept_touch_event = egui_view_viewpage_cache_on_intercept_touch_event, // changed
+#else                                                                                  // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+        .dispatch_touch_event = egui_view_group_dispatch_touch_event,
+        .on_touch_event = NULL,           // changed
+        .on_intercept_touch_event = NULL, // changed
+#endif                                                                                 // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+        .compute_scroll = egui_view_viewpage_cache_compute_scroll,                     // changed
+        .calculate_layout = egui_view_group_calculate_layout,
+        .request_layout = egui_view_group_request_layout,
+        .draw = egui_view_group_draw,
+        .on_attach_to_window = egui_view_group_on_attach_to_window,
+        .on_draw = egui_view_on_draw,
+        .on_detach_from_window = egui_view_group_on_detach_from_window,
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+        .dispatch_key_event = egui_view_group_dispatch_key_event,
+        .on_key_event = egui_view_on_key_event,
+#endif
 };
 
 void egui_view_viewpage_cache_init(egui_view_t *self)
 {
-    egui_view_viewpage_cache_t *local = (egui_view_viewpage_cache_t *)self;
+    EGUI_INIT_LOCAL(egui_view_viewpage_cache_t);
     // call super init.
     egui_view_group_init(self);
 
@@ -584,4 +592,17 @@ void egui_view_viewpage_cache_init(egui_view_t *self)
     egui_scroller_init(&local->scroller);
 
     egui_view_set_view_name(self, "egui_view_viewpage_cache");
+}
+
+void egui_view_viewpage_cache_apply_params(egui_view_t *self, const egui_view_viewpage_cache_params_t *params)
+{
+    self->region = params->region;
+
+    egui_view_invalidate(self);
+}
+
+void egui_view_viewpage_cache_init_with_params(egui_view_t *self, const egui_view_viewpage_cache_params_t *params)
+{
+    egui_view_viewpage_cache_init(self);
+    egui_view_viewpage_cache_apply_params(self, params);
 }

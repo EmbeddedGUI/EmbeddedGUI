@@ -30,7 +30,7 @@ struct egui_font
     extern const egui_font_api_t _type##_api_table;                                                                                                            \
     static _type _name = {.base = {.res = _res, .api = &_type##_api_table}}
 
-#define EGUI_FONT_SUB_DEFINE_CONST(_type, _name, _res)                                                                                                               \
+#define EGUI_FONT_SUB_DEFINE_CONST(_type, _name, _res)                                                                                                         \
     extern const egui_font_api_t _type##_api_table;                                                                                                            \
     _type const _name = {.base = {.res = _res, .api = &_type##_api_table}}
 
@@ -39,8 +39,8 @@ struct egui_font
     _type _name = {.base = {.res = _res, .api = &_type##_api_table}}
 
 int egui_font_get_utf8_code(const char *s, uint32_t *output_utf8_code);
-void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space, egui_color_t color,
-                                   egui_alpha_t alpha);
+void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space,
+                                   egui_color_t color, egui_alpha_t alpha);
 void egui_font_init(egui_font_t *self, const void *res);
 
 /* Ends C function definitions when using C++ */

@@ -9,13 +9,6 @@ EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_page_1_param_normal, EGUI_COLOR_RED, E
 EGUI_BACKGROUND_PARAM_INIT(bg_page_1_params, &bg_page_1_param_normal, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_page_1, &bg_page_1_params);
 
-// bg_button
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_button_param_normal, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_button_param_pressed, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_button_param_disabled, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
-EGUI_BACKGROUND_PARAM_INIT(bg_button_params, &bg_button_param_normal, &bg_button_param_pressed, &bg_button_param_disabled);
-static egui_background_color_t bg_button;
-
 static void button_1_click_cb(egui_view_t *self)
 {
     EGUI_LOG_INF("button_1_click_cb\n");
@@ -40,7 +33,6 @@ static void egui_page_2_timer_callback(egui_timer_t *timer)
 
     egui_view_label_set_text((egui_view_t *)&local->label_1, local->label_str);
 }
-
 
 #define BUTTON_WIDTH  150
 #define BUTTON_HEIGHT 30
@@ -96,12 +88,6 @@ void egui_page_2_on_open(egui_page_base_t *self)
     egui_view_label_set_font_color((egui_view_t *)&local->button_2, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
     egui_view_set_on_click_listener((egui_view_t *)&local->button_2, button_2_click_cb);
 
-    // bg_button
-    egui_background_color_init((egui_background_t *)&bg_button);
-    egui_background_set_params((egui_background_t *)&bg_button, &bg_button_params);
-    egui_view_set_background((egui_view_t *)&local->button_1, (egui_background_t *)&bg_button);
-    egui_view_set_background((egui_view_t *)&local->button_2, (egui_background_t *)&bg_button);
-
     // Add childs to layout_1
     egui_view_group_add_child((egui_view_t *)&local->layout_1, (egui_view_t *)&local->label_1);
     egui_view_group_add_child((egui_view_t *)&local->layout_1, (egui_view_t *)&local->button_1);
@@ -131,20 +117,20 @@ void egui_page_2_on_key_pressed(egui_page_base_t *self, uint16_t keycode)
 {
     egui_page_2_t *local = (egui_page_2_t *)self;
     EGUI_UNUSED(local);
-    
-    if(keycode == 1)
+
+    if (keycode == 1)
     {
         uicode_start_prev_page();
     }
-    else if(keycode == 2)
+    else if (keycode == 2)
     {
         uicode_start_next_page();
     }
 }
 
 static const egui_page_base_api_t EGUI_VIEW_API_TABLE_NAME(egui_page_2_t) = {
-        .on_open = egui_page_2_on_open, // changed
-        .on_close = egui_page_2_on_close, // changed
+        .on_open = egui_page_2_on_open,               // changed
+        .on_close = egui_page_2_on_close,             // changed
         .on_key_pressed = egui_page_2_on_key_pressed, // changed
 };
 

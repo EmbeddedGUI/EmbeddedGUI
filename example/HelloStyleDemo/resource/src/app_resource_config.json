@@ -1,0 +1,42 @@
+{
+    "img": [
+        {
+            "file": "album_cover.png",
+            "name": "album_cover",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "4",
+            "dim": "80,80"
+        }
+    ],
+    "font": [
+        {
+            "file": "MaterialSymbolsOutlined-Regular.ttf",
+            "pixelsize": "20",
+            "fontbitsize": "4",
+            "external": "0",
+            "text": "_generated_text_materialsymbolsoutlined_regular_20_4.txt"
+        },
+        {
+            "file": "MaterialSymbolsOutlined-Regular.ttf",
+            "pixelsize": "14",
+            "fontbitsize": "4",
+            "external": "0",
+            "text": "_generated_text_materialsymbolsoutlined_regular_14_4.txt"
+        },
+        {
+            "file": "Montserrat-Medium.ttf",
+            "pixelsize": "20",
+            "fontbitsize": "4",
+            "external": "0",
+            "text": "_generated_text_montserrat_medium_20_4.txt"
+        },
+        {
+            "file": "Montserrat-Medium.ttf",
+            "pixelsize": "14",
+            "fontbitsize": "4",
+            "external": "0",
+            "text": "_generated_text_montserrat_medium_14_4.txt"
+        }
+    ]
+}

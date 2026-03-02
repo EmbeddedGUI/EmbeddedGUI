@@ -7,8 +7,7 @@
 
 void egui_animation_set_add_animation(egui_animation_set_t *self, egui_animation_t *anim)
 {
-    egui_animation_set_t *local = (egui_animation_set_t *)self;
-    egui_slist_append(&local->childs, (egui_snode_t *)&anim->node);
+    egui_slist_append(&self->childs, (egui_snode_t *)&anim->node);
 
     anim->is_inside_animation = true;
 }
@@ -16,18 +15,16 @@ void egui_animation_set_add_animation(egui_animation_set_t *self, egui_animation
 void egui_animation_set_set_mask(egui_animation_set_t *self, int is_mask_repeat_count, int is_mask_repeat_mode, int is_mask_duration, int is_mask_target_view,
                                  int is_mask_interpolator)
 {
-    egui_animation_set_t *local = (egui_animation_set_t *)self;
-
-    local->is_mask_repeat_count = is_mask_repeat_count;
-    local->is_mask_repeat_mode = is_mask_repeat_mode;
-    local->is_mask_duration = is_mask_duration;
-    local->is_mask_target_view = is_mask_target_view;
-    local->is_mask_interpolator = is_mask_interpolator;
+    self->is_mask_repeat_count = is_mask_repeat_count;
+    self->is_mask_repeat_mode = is_mask_repeat_mode;
+    self->is_mask_duration = is_mask_duration;
+    self->is_mask_target_view = is_mask_target_view;
+    self->is_mask_interpolator = is_mask_interpolator;
 }
 
 void egui_animation_set_on_start(egui_animation_t *self)
 {
-    egui_animation_set_t *local = (egui_animation_set_t *)self;
+    EGUI_LOCAL_INIT(egui_animation_set_t);
 
     egui_snode_t *p_head;
     egui_snode_t *p_next;
@@ -71,13 +68,12 @@ void egui_animation_set_on_start(egui_animation_t *self)
 
 void egui_animation_set_on_update(egui_animation_t *self, egui_float_t fraction)
 {
-    egui_animation_set_t *local = (egui_animation_set_t *)self;
-    EGUI_UNUSED(local);
+    EGUI_LOCAL_INIT(egui_animation_set_t);
 }
 
 void egui_animation_set_update(egui_animation_t *self, uint32_t current_time)
 {
-    egui_animation_set_t *local = (egui_animation_set_t *)self;
+    EGUI_LOCAL_INIT(egui_animation_set_t);
     // uint32_t duration = self->duration;
 
     int started = 0;
@@ -86,8 +82,6 @@ void egui_animation_set_update(egui_animation_t *self, uint32_t current_time)
     egui_snode_t *p_head;
     egui_snode_t *p_next;
     egui_animation_t *tmp;
-    EGUI_UNUSED(local);
-
     if (!egui_slist_is_empty(&local->childs))
     {
         EGUI_SLIST_FOR_EACH_NODE_SAFE(&local->childs, p_head, p_next)
@@ -124,7 +118,7 @@ const egui_animation_api_t egui_animation_set_t_api_table = {
 
 void egui_animation_set_init(egui_animation_t *self)
 {
-    egui_animation_set_t *local = (egui_animation_set_t *)self;
+    EGUI_LOCAL_INIT(egui_animation_set_t);
     // call super init.
     egui_animation_init(self);
     // update api.

@@ -4,7 +4,6 @@
 #include "egui_region.h"
 #include "egui_api.h"
 
-
 // Initialize a rectangle
 void egui_region_init(egui_region_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
@@ -86,8 +85,6 @@ void egui_region_union(egui_region_t *self, const egui_region_t *rect, egui_regi
 
 int egui_region_is_same(egui_region_t *self, const egui_region_t *other)
 {
-    return (self->location.x == other->location.x &&
-            self->location.y == other->location.y &&
-            self->size.width == other->size.width &&
+    return (self->location.x == other->location.x && self->location.y == other->location.y && self->size.width == other->size.width &&
             self->size.height == other->size.height);
 }

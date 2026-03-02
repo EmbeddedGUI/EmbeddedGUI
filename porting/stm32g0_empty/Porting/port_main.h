@@ -42,10 +42,8 @@ extern "C" {
 #define APP_EGUI_TOUCH_INT_PORT APP_EGUI_FUNCTION_IO_4_PORT
 #define APP_EGUI_TOUCH_INT_PIN  APP_EGUI_FUNCTION_IO_4_PIN
 
-
-
-#define APP_EGUI_CONFIG_PFB_SECTION  __attribute__((section(".bss.pfb_area")))
-#define APP_EGUI_CONFIG_LCD_ENABLE_BACKUP_PFB 1
+#define APP_EGUI_CONFIG_PFB_SECTION                 __attribute__((section(".bss.pfb_area")))
+#define APP_EGUI_CONFIG_LCD_ENABLE_BACKUP_PFB       1
 #define APP_EGUI_CONFIG_USE_DMA_TO_RESET_PFB_BUFFER 1
 
 void app_set_gpio(uint8_t pin, uint8_t state);

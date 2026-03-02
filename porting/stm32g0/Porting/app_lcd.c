@@ -80,6 +80,19 @@ void app_lcd_draw_data(int16_t x, int16_t y, int16_t width, int16_t height, void
 #endif
 }
 
+/**
+ * SPI DMA transmit complete callback.
+ * Called from HAL SPI interrupt handler when DMA transfer finishes.
+ * Notifies the PFB ring buffer manager to advance and chain next transfer.
+ */
+void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+    if (hspi->Instance == ST7789_SPI_PORT.Instance)
+    {
+        egui_pfb_notify_flush_complete();
+    }
+}
+
 void app_lcd_power_on(void)
 {
     // Enable LCD backlight.

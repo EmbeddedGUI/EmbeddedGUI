@@ -4,18 +4,23 @@ SRC		+= $(EGUI_PORT_PATH)
 # define include directory
 INCLUDE	+= $(EGUI_PORT_PATH)
 
+# PC port identifier
+COMMON_FLAGS += -DEGUI_PORT_PC=1
+
 # define lib directory
 LIB		+=
-
-BITS ?= 32
 
 ifeq ($(OS),Windows_NT)
 	INCLUDE  += porting/pc/sdl2/$(BITS)/include
 	LIB  += porting/pc/sdl2/$(BITS)/lib
 	LFLAGS  += -lSDL2main -lSDL2 -lpthread
-	COMMON_FLAGS  +=  -flto
-	LDFLAGS  +=  -Wl,--warn-common -flto
-	LDFLAGS  +=  -Wl,--gc-sections
+	LDFLAGS  +=  -Wl,--warn-common
+# 	LDFLAGS  +=  -Wl,--gc-sections
+	# LTO only when NOGC=0 (release build)
+	ifeq ($(NOGC),0)
+		COMMON_FLAGS  +=  -flto
+		LDFLAGS  +=  -flto
+	endif
 
 	USER_COMPILE_TARGETS := output/SDL2.dll
 

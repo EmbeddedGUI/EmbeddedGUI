@@ -26,11 +26,20 @@ extern void plaftorm_api_init(void);
 static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT] APP_EGUI_CONFIG_PFB_SECTION;
 void port_main(void)
 {
-    egui_init(egui_pfb);
+    extern void egui_port_init(void);
+    egui_port_init();
+
+    egui_init_config_t init_config = {
+            .pfb = egui_pfb,
+            .pfb_backup = NULL,
+    };
+    egui_init(&init_config);
 
     EGUI_LOG_DBG("Hello EGUI\r\n");
 
     uicode_create_ui();
+
+    egui_screen_on();
 
     while (1)
     {

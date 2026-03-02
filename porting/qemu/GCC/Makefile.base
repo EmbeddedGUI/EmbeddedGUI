@@ -1,0 +1,216 @@
+#
+# QEMU ARM build rules (simplified from stm32g0)
+# 'make'        build executable file
+# 'make clean'  removes all .o and executable files
+# 'make qemu'   run in QEMU
+#
+.DEFAULT_GOAL := all
+
+ifeq ($(OS),Windows_NT)
+TOOLCHAIN_DIR 	?= $(ARM_GCC_PATH)
+ifeq ($(TOOLCHAIN_DIR),)
+$(error ARM_GCC_PATH not set. Run setup.bat or set ARM_GCC_PATH to your ARM GCC toolchain directory)
+endif
+ifdef QEMU_PATH
+QEMU_CMD ?= "$(QEMU_PATH)/qemu-system-arm"
+else
+QEMU_CMD ?= qemu-system-arm
+endif
+else
+TOOLCHAIN_DIR ?= /usr/gcc-arm-none-eabi-7-2018-q2-update
+QEMU_CMD ?= qemu-system-arm
+endif
+
+COMPILE_PREFIX 	+= $(TOOLCHAIN_DIR)/bin/arm-none-eabi-
+
+# define output directory
+OUTPUT_PATH	:= output
+
+# define the C object files
+APP_OBJ_SUFFIX ?= $(if $(APP),$(APP),default)
+OBJ_PATH 	:= $(OUTPUT_PATH)/obj/$(APP_OBJ_SUFFIX)
+
+# define the target
+TARGET		  	?= $(OUTPUT_PATH)/main
+
+# define the C compiler to use
+CC      := $(COMPILE_PREFIX)gcc
+CXX     := $(COMPILE_PREFIX)g++
+OBJDUMP := $(COMPILE_PREFIX)objdump
+OBJCOPY := $(COMPILE_PREFIX)objcopy
+AR      := $(COMPILE_PREFIX)ar
+SIZE    := $(COMPILE_PREFIX)size
+NM      := $(COMPILE_PREFIX)nm
+
+## cpu setting ##
+CPU_ARCH ?= cortex-m3
+
+LINKER_SCRIPT ?=
+
+## Small Functions ##
+get_csrcs = $(foreach subdir, $(1), $(wildcard $(subdir)/*.c $(subdir)/*.C))
+get_asmsrcs = $(foreach subdir, $(1), $(wildcard $(subdir)/*.s $(subdir)/*.S))
+unique = $(strip $(__gmsl_tr1) $(if $1,$(firstword $1) \
+                               $(call unique,$(filter-out $(firstword $1),$1))))
+
+## MAKEFILE COMPILE MESSAGE CONTROL ##
+ifeq ($(V),1)
+	Q=
+else
+	Q=@
+endif
+
+ifeq ($(SILENT), 1)
+	TRACE_COMPILE       =
+	TRACE_ASSEMBLE      =
+	TRACE_LINK          =
+	override Q=@
+else
+	TRACE_COMPILE       = @$(ECHO) Compiling  : "$<"
+	TRACE_ASSEMBLE      = @$(ECHO) Assembling : "$<"
+	TRACE_LINK          = @$(ECHO) Linking    : "$@"
+endif
+
+## OS detection ##
+ifdef ComSpec
+	WINCMD:=$(ComSpec)
+endif
+ifdef COMSPEC
+	WINCMD:=$(COMSPEC)
+endif
+
+ifneq "$(WINCMD)" ""
+ifneq "$(findstring /cygdrive/,$(PATH))" ""
+	HOST_OS:=Cygwin
+else
+	HOST_OS:=Windows
+endif
+else
+	HOST_OS:=$(shell uname)
+endif
+
+nullstring=
+space=$(nullstring) # one space
+
+RM=rm -rf
+ECHO=echo
+MKD = mkdir -p
+FIXPATH = $1
+PATHCHECK =
+
+ifeq "$(HOST_OS)" "Windows"
+	SHELL:=$(WINCMD)
+	RM=del /q /s
+	MKD = mkdir
+	FIXPATH = $(subst /,\,$1)
+	PATHCHECK = $(Q)if not exist "$@"
+endif
+
+MKDEP_OPT = -MMD -MT $@ -MF $@.d
+C_INCLUDE_OPT = $(foreach dir,$(sort $(INCLUDE) $(C_INCDIRS)),-I$(dir))
+ASM_INCLUDE_OPT = $(foreach dir,$(sort $(INCLUDE) $(ASM_INCDIRS)),-I$(dir))
+
+ifeq ($(NOGC),1)
+GC_CFLAGS =
+GC_LDFLAGS =
+else
+GC_CFLAGS = -ffunction-sections -fdata-sections
+GC_LDFLAGS = -Wl,--gc-sections -Wl,--check-sections
+endif
+
+## Common flags ##
+COMMON_FLAGS += -g
+
+STDCLIB_LDFLAGS ?= --specs=rdimon.specs -lc -lrdimon -lgcc
+
+COMMON_FLAGS += -mthumb -mcpu=$(CPU_ARCH)
+
+COMMON_FLAGS	+= -Wall
+COMMON_FLAGS	+= -Wno-implicit-function-declaration
+COMMON_FLAGS	+= -Wno-unused-variable
+
+COMMON_FLAGS  += -MMD -MP
+COMMON_FLAGS  += -fno-common
+COMMON_FLAGS += $(APP_COMMON_FLAGS) $(GC_CFLAGS)
+
+CFLAGS += $(COMMON_FLAGS) $(APP_CFLAGS) $(C_INCLUDE_OPT)
+ASMFLAGS += -x assembler-with-cpp $(COMMON_FLAGS) $(APP_ASMFLAGS) $(ASM_INCLUDE_OPT)
+
+LDFLAGS += -T $(LINKER_SCRIPT) -Wl,-Map=$(TARGET).map -Wl,--no-warn-rwx-segments\
+		$(APP_LDFLAGS) $(GC_LDFLAGS) $(STDCLIB_LDFLAGS)
+
+MAKEFILE_PREREQS += Makefile
+LINK_PREREQS += $(LINKER_SCRIPT)
+COMMON_PREREQS = $(MAKEFILE_PREREQS) $(LINK_PREREQS)
+
+# Source files
+ALL_CSRCS = $(filter-out $(wildcard $(EXCLUDE_SRCS)), $(sort $(wildcard $(C_SRCS)) $(call get_csrcs, $(SRC) $(C_SRCDIRS))))
+ALL_ASMSRCS = $(filter-out $(wildcard $(EXCLUDE_SRCS)), $(sort $(wildcard $(ASM_SRCS)) $(call get_asmsrcs, $(SRC) $(ASM_SRCDIRS))))
+
+ALL_ASM_OBJS := $(addprefix $(OBJ_PATH)/, $(ALL_ASMSRCS:=.o))
+ALL_C_OBJS := $(addprefix $(OBJ_PATH)/, $(ALL_CSRCS:=.o))
+
+ALL_OBJS += $(ALL_ASM_OBJS) $(ALL_C_OBJS)
+ALL_DEPS := $(ALL_OBJS:=.d)
+ALL_OBJ_PATH := $(call unique, $(dir $(ALL_OBJS)))
+
+CLEAN_OBJS += $(OUTPUT_PATH)
+
+ifneq ($(MAKECMDGOALS),clean)
+-include $(ALL_DEPS)
+endif
+
+.PHONY: all clean qemu
+
+all: $(ALL_OBJ_PATH) $(TARGET).elf
+
+$(ALL_OBJ_PATH):
+	$(PATHCHECK) $(Q)$(MKD) $(call FIXPATH, $@)
+
+$(TARGET).elf: $(ALL_OBJS)
+	$(TRACE_LINK)
+	$(Q)$(CC) $(CFLAGS) $(ALL_OBJS) -o $@ $(LDFLAGS)
+	$(Q)$(SIZE) $@
+
+$(ALL_ASM_OBJS): $(OBJ_PATH)/%.o: % $(COMMON_PREREQS)
+	$(TRACE_ASSEMBLE)
+	$(Q)$(CC) $(ASMFLAGS) $(MKDEP_OPT) -c -o $@ $<
+
+$(ALL_C_OBJS): $(OBJ_PATH)/%.o: % $(COMMON_PREREQS)
+	$(TRACE_COMPILE)
+	$(Q)$(CC) $(CFLAGS) $(MKDEP_OPT) -c -o $@ $<
+
+size: $(TARGET).elf
+	$(Q)$(SIZE) $<
+
+bin: $(TARGET).elf
+	$(OBJCOPY) $< -O binary $(TARGET).bin
+
+## QEMU machine selection based on CPU_ARCH ##
+ifeq ($(CPU_ARCH),cortex-m0plus)
+QEMU_MACHINE ?= microbit
+QEMU_CPU ?= cortex-m0
+else ifeq ($(CPU_ARCH),cortex-m0)
+QEMU_MACHINE ?= microbit
+QEMU_CPU ?= cortex-m0
+else ifeq ($(CPU_ARCH),cortex-m4)
+QEMU_MACHINE ?= mps2-an386
+QEMU_CPU ?= cortex-m4
+else ifeq ($(CPU_ARCH),cortex-m7)
+QEMU_MACHINE ?= mps2-an500
+QEMU_CPU ?= cortex-m7
+else
+QEMU_MACHINE ?= mps2-an385
+QEMU_CPU ?= cortex-m3
+endif
+
+qemu: $(TARGET).elf
+	@$(ECHO) "Running in QEMU: machine=$(QEMU_MACHINE) cpu=$(QEMU_CPU)"
+	$(QEMU_CMD) -machine $(QEMU_MACHINE) -cpu $(QEMU_CPU) \
+		-nographic -semihosting-config enable=on,target=native \
+		-icount shift=0 \
+		-kernel $(TARGET).elf
+
+clean:
+	$(Q)$(RM) $(call FIXPATH, $(CLEAN_OBJS))
+	@$(ECHO) Cleanup complete!

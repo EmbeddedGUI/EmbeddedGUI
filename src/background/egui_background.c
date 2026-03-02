@@ -33,6 +33,15 @@ void egui_background_draw(egui_background_t *self, egui_view_t *view)
             sel_param = params->pressed_param;
         }
     }
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    else if (view->is_focused)
+    {
+        if (params->focused_param != NULL)
+        {
+            sel_param = params->focused_param;
+        }
+    }
+#endif
 
     self->api->on_draw(self, &view->region, sel_param);
 }

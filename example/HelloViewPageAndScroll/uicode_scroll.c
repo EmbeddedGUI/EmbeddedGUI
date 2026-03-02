@@ -1,4 +1,4 @@
-﻿#include "egui.h"
+#include "egui.h"
 #include <stdlib.h>
 #include <math.h>
 #include "uicode.h"
@@ -47,78 +47,60 @@ static void button_click_cb(egui_view_t *self)
     cnt++;
 }
 
+// View params
+EGUI_VIEW_SCROLL_PARAMS_INIT(test_scroll_view_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+EGUI_VIEW_LABEL_PARAMS_INIT(scroll_label_1_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, TEST_ITEM_HEIGHT, "Item 1", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_BLACK,
+                            EGUI_ALPHA_100);
+EGUI_VIEW_LABEL_PARAMS_INIT(scroll_label_2_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, TEST_ITEM_HEIGHT, "Item 2", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_BLACK,
+                            EGUI_ALPHA_100);
+EGUI_VIEW_LABEL_PARAMS_INIT(scroll_label_3_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, TEST_ITEM_HEIGHT, "Item 3", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_WHITE,
+                            EGUI_ALPHA_100);
+EGUI_VIEW_LABEL_PARAMS_INIT(scroll_button_1_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, TEST_ITEM_HEIGHT, NULL, EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_BLACK,
+                            EGUI_ALPHA_100);
+
 egui_view_t *uicode_init_ui_scroll(void)
 {
     // Init all views
     // test_view
-    egui_view_scroll_init((egui_view_t *)&test_scroll_view);
-    egui_view_set_position((egui_view_t *)&test_scroll_view, 0, 0);
-    egui_view_scroll_set_size((egui_view_t *)&test_scroll_view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_scroll_init_with_params(EGUI_VIEW_OF(&test_scroll_view), &test_scroll_view_params);
 
     // label_1
-    egui_view_label_init((egui_view_t *)&label_1);
-    egui_view_set_position((egui_view_t *)&label_1, 0, 0);
-    egui_view_set_size((egui_view_t *)&label_1, EGUI_CONFIG_SCEEN_WIDTH, TEST_ITEM_HEIGHT);
-    egui_view_label_set_text((egui_view_t *)&label_1, "Item 1");
-    egui_view_label_set_align_type((egui_view_t *)&label_1, EGUI_ALIGN_CENTER);
-    egui_view_label_set_font((egui_view_t *)&label_1, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
-    egui_view_label_set_font_color((egui_view_t *)&label_1, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_1), &scroll_label_1_params);
 
     // label_2
-    egui_view_label_init((egui_view_t *)&label_2);
-    egui_view_set_position((egui_view_t *)&label_2, 0, 0);
-    egui_view_set_size((egui_view_t *)&label_2, EGUI_CONFIG_SCEEN_WIDTH, TEST_ITEM_HEIGHT);
-    egui_view_label_set_text((egui_view_t *)&label_2, "Item 2");
-    egui_view_label_set_align_type((egui_view_t *)&label_2, EGUI_ALIGN_CENTER);
-    egui_view_label_set_font((egui_view_t *)&label_2, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
-    egui_view_label_set_font_color((egui_view_t *)&label_2, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_2), &scroll_label_2_params);
 
     // label_3
-    egui_view_label_init((egui_view_t *)&label_3);
-    egui_view_set_position((egui_view_t *)&label_3, 0, 0);
-    egui_view_set_size((egui_view_t *)&label_3, EGUI_CONFIG_SCEEN_WIDTH, TEST_ITEM_HEIGHT);
-    egui_view_label_set_text((egui_view_t *)&label_3, "Item 3");
-    egui_view_label_set_align_type((egui_view_t *)&label_3, EGUI_ALIGN_CENTER);
-    egui_view_label_set_font((egui_view_t *)&label_3, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
-    egui_view_label_set_font_color((egui_view_t *)&label_3, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_3), &scroll_label_3_params);
 
     // button_1
-    egui_view_button_init((egui_view_t *)&button_1);
-    egui_view_set_position((egui_view_t *)&button_1, 0, 0);
-    egui_view_set_size((egui_view_t *)&button_1, EGUI_CONFIG_SCEEN_WIDTH, TEST_ITEM_HEIGHT);
-    egui_view_label_set_text((egui_view_t *)&button_1, button_str);
-    egui_view_label_set_align_type((egui_view_t *)&button_1, EGUI_ALIGN_CENTER);
-    egui_view_label_set_font((egui_view_t *)&button_1, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
-    egui_view_label_set_font_color((egui_view_t *)&button_1, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
-    egui_view_set_on_click_listener((egui_view_t *)&button_1, button_click_cb);
+    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_1), &scroll_button_1_params);
+    egui_view_label_set_text(EGUI_VIEW_OF(&button_1), button_str);
+    egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_1), button_click_cb);
 
     // bg_1
-    egui_background_color_init((egui_background_t *)&bg_1);
-    egui_background_set_params((egui_background_t *)&bg_1, &bg_1_params);
-    egui_view_set_background((egui_view_t *)&label_1, (egui_background_t *)&bg_1);
+    egui_background_color_init_with_params(EGUI_BG_OF(&bg_1), &bg_1_params);
+    egui_view_set_background(EGUI_VIEW_OF(&label_1), EGUI_BG_OF(&bg_1));
 
     // bg_2
-    egui_background_color_init((egui_background_t *)&bg_2);
-    egui_background_set_params((egui_background_t *)&bg_2, &bg_2_params);
-    egui_view_set_background((egui_view_t *)&label_2, (egui_background_t *)&bg_2);
+    egui_background_color_init_with_params(EGUI_BG_OF(&bg_2), &bg_2_params);
+    egui_view_set_background(EGUI_VIEW_OF(&label_2), EGUI_BG_OF(&bg_2));
 
     // bg_3
-    egui_background_color_init((egui_background_t *)&bg_3);
-    egui_background_set_params((egui_background_t *)&bg_3, &bg_3_params);
-    egui_view_set_background((egui_view_t *)&label_3, (egui_background_t *)&bg_3);
+    egui_background_color_init_with_params(EGUI_BG_OF(&bg_3), &bg_3_params);
+    egui_view_set_background(EGUI_VIEW_OF(&label_3), EGUI_BG_OF(&bg_3));
 
     // bg_button
-    egui_background_color_init((egui_background_t *)&bg_button);
-    egui_background_set_params((egui_background_t *)&bg_button, &bg_button_params);
-    egui_view_set_background((egui_view_t *)&button_1, (egui_background_t *)&bg_button);
+    egui_background_color_init_with_params(EGUI_BG_OF(&bg_button), &bg_button_params);
+    egui_view_set_background(EGUI_VIEW_OF(&button_1), EGUI_BG_OF(&bg_button));
 
     // Add To Scroll View
-    egui_view_scroll_add_child((egui_view_t *)&test_scroll_view, (egui_view_t *)&label_1);
-    egui_view_scroll_add_child((egui_view_t *)&test_scroll_view, (egui_view_t *)&label_2);
-    egui_view_scroll_add_child((egui_view_t *)&test_scroll_view, (egui_view_t *)&label_3);
-    egui_view_scroll_add_child((egui_view_t *)&test_scroll_view, (egui_view_t *)&button_1);
+    egui_view_scroll_add_child(EGUI_VIEW_OF(&test_scroll_view), EGUI_VIEW_OF(&label_1));
+    egui_view_scroll_add_child(EGUI_VIEW_OF(&test_scroll_view), EGUI_VIEW_OF(&label_2));
+    egui_view_scroll_add_child(EGUI_VIEW_OF(&test_scroll_view), EGUI_VIEW_OF(&label_3));
+    egui_view_scroll_add_child(EGUI_VIEW_OF(&test_scroll_view), EGUI_VIEW_OF(&button_1));
 
-    egui_view_scroll_layout_childs((egui_view_t *)&test_scroll_view);
+    egui_view_scroll_layout_childs(EGUI_VIEW_OF(&test_scroll_view));
 
-    return (egui_view_t *)&test_scroll_view;
+    return EGUI_VIEW_OF(&test_scroll_view);
 }

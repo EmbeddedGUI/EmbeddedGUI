@@ -34,6 +34,7 @@ void egui_background_image_param_init(egui_background_image_param_t *param, egui
 
 void egui_background_image_draw(egui_background_t *self, egui_region_t *region, int is_disabled, int is_pressed);
 void egui_background_image_init(egui_background_t *self);
+void egui_background_image_init_with_params(egui_background_t *self, const egui_background_params_t *params);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

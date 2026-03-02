@@ -246,7 +246,7 @@ int egui_timer_check_timer_start(egui_timer_t *handle)
     return _timer_check_in_queue(handle);
 }
 
-void egui_timer_init_timer(egui_timer_t *handle, void* user_data, egui_timer_callback_func callback)
+void egui_timer_init_timer(egui_timer_t *handle, void *user_data, egui_timer_callback_func callback)
 {
     handle->user_data = user_data;
     handle->callback = callback;

@@ -8,19 +8,16 @@ static egui_view_label_t label_1;
 static egui_view_button_t button_1;
 static egui_view_linearlayout_t layout_1;
 
-// EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID_STROKE(bg_button_param_normal, EGUI_COLOR_WHITE, EGUI_ALPHA_60, 10, EGUI_COLOR_GREEN, EGUI_ALPHA_60);
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(bg_button_param_normal, EGUI_COLOR_WHITE, EGUI_ALPHA_100, 15, 5, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-// EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_CORNERS_STROKE(bg_button_param_normal, EGUI_COLOR_WHITE, EGUI_ALPHA_60, 20, 25, 30, 35, 10,
-// EGUI_COLOR_GREEN, EGUI_ALPHA_60);
-// EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(bg_button_param_normal, EGUI_COLOR_WHITE, EGUI_ALPHA_100, 10);
-// EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_CORNERS(bg_button_param_pressed, EGUI_COLOR_RED, EGUI_ALPHA_100, 5, 10, 15, 20);
-// EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE(bg_button_param_pressed, EGUI_COLOR_RED, EGUI_ALPHA_100, 20);
-// EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE_STROKE(bg_button_param_pressed, EGUI_COLOR_WHITE, EGUI_ALPHA_60, 20, 10, EGUI_COLOR_GREEN, EGUI_ALPHA_60);
-// EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(bg_button_param_pressed, EGUI_COLOR_GREEN, EGUI_ALPHA_100, 10);
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(bg_button_param_pressed, EGUI_COLOR_DARK_GREY, EGUI_ALPHA_100, 15, 5, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_button_param_disabled, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
-EGUI_BACKGROUND_PARAM_INIT(bg_button_params, &bg_button_param_normal, &bg_button_param_pressed, &bg_button_param_disabled);
-static egui_background_color_t bg_button;
+#define BUTTON_WIDTH  150
+#define BUTTON_HEIGHT 50
+
+#define LABEL_WIDTH  150
+#define LABEL_HEIGHT 50
+
+// View params
+EGUI_VIEW_LINEARLAYOUT_PARAMS_INIT(layout_1_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, EGUI_ALIGN_CENTER);
+EGUI_VIEW_LABEL_PARAMS_INIT(label_1_params, 0, 0, LABEL_WIDTH, LABEL_HEIGHT, "Hello World!", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+EGUI_VIEW_LABEL_PARAMS_INIT(button_1_params, 0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, NULL, EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 
 static char button_str[20] = "Click me!";
 static void button_click_cb(egui_view_t *self)
@@ -35,58 +32,46 @@ static void button_click_cb(egui_view_t *self)
     cnt++;
 }
 
-#define BUTTON_WIDTH  150
-#define BUTTON_HEIGHT 50
-
-#define LABEL_WIDTH  150
-#define LABEL_HEIGHT 50
 void uicode_init_ui(void)
 {
     // Init all views
     // layout_1
-    egui_view_linearlayout_init((egui_view_t *)&layout_1);
-    egui_view_set_position((egui_view_t *)&layout_1, 0, 0);
-    egui_view_set_size((egui_view_t *)&layout_1, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-    egui_view_linearlayout_set_align_type((egui_view_t *)&layout_1, EGUI_ALIGN_CENTER);
+    egui_view_linearlayout_init_with_params(EGUI_VIEW_OF(&layout_1), &layout_1_params);
 
     // label_1
-    egui_view_label_init((egui_view_t *)&label_1);
-    egui_view_set_position((egui_view_t *)&label_1, 0, 0);
-    egui_view_set_size((egui_view_t *)&label_1, LABEL_WIDTH, LABEL_HEIGHT);
-    egui_view_label_set_text((egui_view_t *)&label_1, "Hello World!");
-    egui_view_label_set_align_type((egui_view_t *)&label_1, EGUI_ALIGN_CENTER);
-    egui_view_label_set_font((egui_view_t *)&label_1, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
-    egui_view_label_set_font_color((egui_view_t *)&label_1, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-
-    // egui_color_t color = {{.blue=255, .red=0, .green=0}};
+    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_1), &label_1_params);
 
     // button_1
-    egui_view_button_init((egui_view_t *)&button_1);
-    egui_view_set_position((egui_view_t *)&button_1, 0, 0);
-    egui_view_set_size((egui_view_t *)&button_1, BUTTON_WIDTH, BUTTON_HEIGHT);
-    egui_view_label_set_text((egui_view_t *)&button_1, button_str);
-    egui_view_label_set_align_type((egui_view_t *)&button_1, EGUI_ALIGN_CENTER);
-    egui_view_label_set_font((egui_view_t *)&button_1, (egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
-    egui_view_label_set_font_color((egui_view_t *)&button_1, EGUI_COLOR_BLACK, EGUI_ALPHA_100);
-    egui_view_set_on_click_listener((egui_view_t *)&button_1, button_click_cb);
-
-    // bg_button
-    egui_background_color_init((egui_background_t *)&bg_button);
-    egui_background_set_params((egui_background_t *)&bg_button, &bg_button_params);
-    egui_view_set_background((egui_view_t *)&button_1, (egui_background_t *)&bg_button);
+    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_1), &button_1_params);
+    egui_view_label_set_text(EGUI_VIEW_OF(&button_1), button_str);
+    egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_1), button_click_cb);
 
     // Add childs to layout_1
-    egui_view_group_add_child((egui_view_t *)&layout_1, (egui_view_t *)&label_1);
-    egui_view_group_add_child((egui_view_t *)&layout_1, (egui_view_t *)&button_1);
+    egui_view_group_add_child(EGUI_VIEW_OF(&layout_1), EGUI_VIEW_OF(&label_1));
+    egui_view_group_add_child(EGUI_VIEW_OF(&layout_1), EGUI_VIEW_OF(&button_1));
 
     // Re-layout childs
-    egui_view_linearlayout_layout_childs((egui_view_t *)&layout_1);
+    egui_view_linearlayout_layout_childs(EGUI_VIEW_OF(&layout_1));
 
     // Add To Root
-    egui_core_add_user_root_view((egui_view_t *)&layout_1);
+    egui_core_add_user_root_view(EGUI_VIEW_OF(&layout_1));
 }
 
 void uicode_create_ui(void)
 {
     uicode_init_ui();
 }
+
+#if EGUI_CONFIG_RECORDING_TEST
+// Custom actions for GIF recording - click button 3 times
+bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
+{
+    if (action_index >= 3)
+    {
+        return false;
+    }
+
+    EGUI_SIM_SET_CLICK_VIEW(p_action, &button_1, 1000);
+    return true;
+}
+#endif

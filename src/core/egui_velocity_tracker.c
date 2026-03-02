@@ -32,14 +32,16 @@ void egui_velocity_tracker_add_point(egui_velocity_tracker_t *self, egui_dim_t x
         drop--;
     }
 
-    // drop oldleast points if necessary.
+    // drop oldest points if necessary.
     if (drop >= 0)
     {
         int start = drop + 1;
-        int count = EGUI_VELOCITY_TRACKER_MAX_POINTS - drop - 1;
-        memcpy(&self->points[start], &self->points[0], count * sizeof(egui_velocity_tracker_point_t));
-
-        i -= drop + 1;
+        int count = i - start;
+        if (count > 0)
+        {
+            memmove(&self->points[0], &self->points[start], count * sizeof(egui_velocity_tracker_point_t));
+        }
+        i = count;
     }
 
     self->points[i].x = x;

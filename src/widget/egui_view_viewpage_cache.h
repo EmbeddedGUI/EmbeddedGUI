@@ -13,12 +13,12 @@
 extern "C" {
 #endif
 
-#define EGUI_VIEW_VIEWPAGE_CACHE_MAX_PAGE_CNT    3
-#define EGUI_VIEW_VIEWPAGE_CACHE_BASE_OFFSET    ((EGUI_VIEW_VIEWPAGE_CACHE_MAX_PAGE_CNT) / 2)
+#define EGUI_VIEW_VIEWPAGE_CACHE_MAX_PAGE_CNT 3
+#define EGUI_VIEW_VIEWPAGE_CACHE_BASE_OFFSET  ((EGUI_VIEW_VIEWPAGE_CACHE_MAX_PAGE_CNT) / 2)
 
 typedef void (*egui_view_viewpage_cache_on_page_changed_listener_t)(egui_view_t *self, int current_page_index);
 
-typedef void* (*egui_view_viewpage_cache_on_page_load_listener_t)(egui_view_t *self, int current_page_index);
+typedef void *(*egui_view_viewpage_cache_on_page_load_listener_t)(egui_view_t *self, int current_page_index);
 
 typedef void (*egui_view_viewpage_cache_on_page_free_listener_t)(egui_view_t *self, int current_page_index, egui_view_t *page);
 
@@ -44,6 +44,19 @@ struct egui_view_viewpage_cache
 
     egui_scroller_t scroller;
 };
+
+// ============== ViewPage Cache Params ==============
+typedef struct egui_view_viewpage_cache_params egui_view_viewpage_cache_params_t;
+struct egui_view_viewpage_cache_params
+{
+    egui_region_t region;
+};
+
+#define EGUI_VIEW_VIEWPAGE_CACHE_PARAMS_INIT(_name, _x, _y, _w, _h)                                                                                            \
+    static const egui_view_viewpage_cache_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}}
+
+void egui_view_viewpage_cache_apply_params(egui_view_t *self, const egui_view_viewpage_cache_params_t *params);
+void egui_view_viewpage_cache_init_with_params(egui_view_t *self, const egui_view_viewpage_cache_params_t *params);
 
 void egui_view_viewpage_cache_set_child_total_cnt(egui_view_t *self, int cnt);
 

@@ -9,13 +9,13 @@
 
 void egui_interpolator_accelerate_factor_set(egui_interpolator_t *self, egui_float_t factor)
 {
-    egui_interpolator_accelerate_t *local = (egui_interpolator_accelerate_t *)self;
+    EGUI_LOCAL_INIT(egui_interpolator_accelerate_t);
     local->factor = factor;
 }
 
 egui_float_t egui_interpolator_accelerate_get_interpolation(egui_interpolator_t *self, egui_float_t input)
 {
-    egui_interpolator_accelerate_t *local = (egui_interpolator_accelerate_t *)self;
+    EGUI_LOCAL_INIT(egui_interpolator_accelerate_t);
     if (local->factor == EGUI_FLOAT_VALUE(1.0f))
     {
         // input * input;
@@ -35,7 +35,7 @@ const egui_interpolator_api_t egui_interpolator_accelerate_t_api_table = {
 
 void egui_interpolator_accelerate_init(egui_interpolator_t *self)
 {
-    egui_interpolator_accelerate_t *local = (egui_interpolator_accelerate_t *)self;
+    EGUI_LOCAL_INIT(egui_interpolator_accelerate_t);
     // call super init.
     egui_interpolator_init(self);
     // update api.

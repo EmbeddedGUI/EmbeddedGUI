@@ -13,7 +13,7 @@ struct egui_view_test_mask
 {
     egui_view_image_t base;
 
-    egui_mask_t* mask;
+    egui_mask_t *mask;
 };
 
 void egui_view_test_mask_set_mask(egui_view_t *self, egui_mask_t *mask);

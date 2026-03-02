@@ -17,27 +17,35 @@ PORT ?= pc
 # PORT ?= stm32g0_empty
 
 # set special cflag, if need.
-COMMON_FLAGS  := -O2
-# COMMON_FLAGS  := -Os
+# COMPILE_OPT_LEVEL ?= -O0
+COMPILE_OPT_LEVEL ?= -O2
+# COMPILE_OPT_LEVEL ?= -Os
+COMPILE_DEBUG ?= -g
 
 # show compile debug info.
 # V := 1
 
-# for 64bit system
-# BITS=64
+# BITS is auto-detected from compiler target in porting/*/build.mk
+# Override manually if needed: make BITS=32
 
 # For user show current app info.
 COMMON_FLAGS += -DEGUI_APP=\"$(APP)\"
 ifeq ($(PORT),pc)
+COMMON_FLAGS += -DEGUI_PORT=EGUI_PORT_TYPE_PC
+else ifeq ($(PORT),designer)
+COMMON_FLAGS += -DEGUI_PORT=EGUI_PORT_TYPE_PC
+else ifeq ($(PORT),qemu)
+COMMON_FLAGS += -DEGUI_PORT=EGUI_PORT_TYPE_QEMU
+else ifeq ($(PORT),emscripten)
 COMMON_FLAGS += -DEGUI_PORT=EGUI_PORT_TYPE_PC
 else
 COMMON_FLAGS += -DEGUI_PORT=EGUI_PORT_TYPE_MCU
 endif
 
 
-
-
-
+# Set default toolchain paths, can be overridden by environment variables or command line.
+ARM_GCC_PATH ?= D:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/12.2 mpacbti-rel1
+QEMU_PATH ?= C:/Program Files/qemu/
 
 
 
@@ -45,6 +53,9 @@ EGUI_CODE_SRC :=
 EGUI_CODE_INCLUDE := 
 
 # don't edit below this line.
+# include egui src path (defined early so app build.mk can reference it)
+EGUI_PATH := src
+
 # include app info
 EGUI_APP_ROOT_PATH ?= example
 # EGUI_APP_ROOT_PATH ?= ..
@@ -56,7 +67,6 @@ EGUI_APP_RESOURCE_PATH ?= $(EGUI_APP_PATH)/resource
 
 
 # include egui src
-EGUI_PATH := src
 include $(EGUI_PATH)/build.mk
 
 SRC += $(EGUI_CODE_SRC)

@@ -1,4 +1,4 @@
-﻿#include "egui.h"
+#include "egui.h"
 #include <stdlib.h>
 #include <math.h>
 #include "uicode.h"

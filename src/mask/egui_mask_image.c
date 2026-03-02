@@ -9,14 +9,14 @@
 
 void egui_mask_image_set_image(egui_mask_t *self, egui_image_t *img)
 {
-    egui_mask_image_t *local = (egui_mask_image_t *)self;
+    EGUI_LOCAL_INIT(egui_mask_image_t);
     local->img = img;
 }
 
 void egui_mask_image_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
-    egui_mask_image_t *local = (egui_mask_image_t *)self;
-    if(local->img == NULL)
+    EGUI_LOCAL_INIT(egui_mask_image_t);
+    if (local->img == NULL)
     {
         return;
     }
@@ -35,12 +35,12 @@ void egui_mask_image_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, e
 // name must be _type##_api_table, it will be used by EGUI_VIEW_DEFINE to init api.
 const egui_mask_api_t egui_mask_image_t_api_table = {
         .mask_point = egui_mask_image_mask_point,
+        .mask_get_row_range = NULL,
 };
 
 void egui_mask_image_init(egui_mask_t *self)
 {
-    egui_mask_image_t *local = (egui_mask_image_t *)self;
-    EGUI_UNUSED(local);
+    EGUI_LOCAL_INIT(egui_mask_image_t);
     // call super init.
     egui_mask_init(self);
     // update api.

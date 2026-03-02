@@ -1,0 +1,232 @@
+#include <assert.h>
+
+#include "egui_view_number_picker.h"
+#include "utils/egui_sprintf.h"
+#include "font/egui_font_std.h"
+#include "resource/egui_resource.h"
+
+void egui_view_number_picker_set_on_value_changed_listener(egui_view_t *self, egui_view_on_number_changed_listener_t listener)
+{
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    local->on_value_changed = listener;
+}
+
+void egui_view_number_picker_set_value(egui_view_t *self, int16_t value)
+{
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    if (value < local->min_value)
+    {
+        value = local->min_value;
+    }
+    if (value > local->max_value)
+    {
+        value = local->max_value;
+    }
+    if (value != local->value)
+    {
+        local->value = value;
+        if (local->on_value_changed)
+        {
+            local->on_value_changed(self, value);
+        }
+        egui_view_invalidate(self);
+    }
+}
+
+int16_t egui_view_number_picker_get_value(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    return local->value;
+}
+
+void egui_view_number_picker_set_range(egui_view_t *self, int16_t min_value, int16_t max_value)
+{
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    local->min_value = min_value;
+    local->max_value = max_value;
+    // Clamp current value
+    if (local->value < min_value)
+    {
+        local->value = min_value;
+    }
+    if (local->value > max_value)
+    {
+        local->value = max_value;
+    }
+    egui_view_invalidate(self);
+}
+
+void egui_view_number_picker_set_step(egui_view_t *self, int16_t step)
+{
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    local->step = step;
+}
+
+void egui_view_number_picker_on_draw(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+
+    egui_region_t region;
+    egui_view_get_work_region(self, &region);
+
+    egui_dim_t third_h = region.size.height / 3;
+    egui_dim_t w = region.size.width;
+
+    // Top 1/3: up arrow (chevron drawn with two lines)
+    {
+        egui_dim_t cx = region.location.x + w / 2;
+        egui_dim_t top_y = region.location.y + 4;
+        egui_dim_t bot_y = region.location.y + third_h - 4;
+        egui_dim_t half_w = w / 4;
+        egui_canvas_draw_line(cx - half_w, bot_y, cx, top_y, 2, local->button_color, local->alpha);
+        egui_canvas_draw_line(cx, top_y, cx + half_w, bot_y, 2, local->button_color, local->alpha);
+    }
+
+    // Middle 1/3: number text
+    {
+        egui_sprintf_int(local->text_buf, sizeof(local->text_buf), local->value);
+
+        egui_region_t mid_rect;
+        mid_rect.location.x = region.location.x;
+        mid_rect.location.y = region.location.y + third_h;
+        mid_rect.size.width = w;
+        mid_rect.size.height = third_h;
+
+        if (local->font != NULL)
+        {
+            egui_canvas_draw_text_in_rect(local->font, local->text_buf, &mid_rect, EGUI_ALIGN_CENTER, local->text_color, local->alpha);
+        }
+    }
+
+    // Bottom 1/3: down arrow (chevron drawn with two lines)
+    {
+        egui_dim_t cx = region.location.x + w / 2;
+        egui_dim_t top_y = region.location.y + third_h * 2 + 4;
+        egui_dim_t bot_y = region.location.y + region.size.height - 4;
+        egui_dim_t half_w = w / 4;
+        egui_canvas_draw_line(cx - half_w, top_y, cx, bot_y, 2, local->button_color, local->alpha);
+        egui_canvas_draw_line(cx, bot_y, cx + half_w, top_y, 2, local->button_color, local->alpha);
+    }
+}
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
+{
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+
+    if (self->is_enable == false)
+    {
+        return 0;
+    }
+
+    switch (event->type)
+    {
+    case EGUI_MOTION_EVENT_ACTION_DOWN:
+    {
+        egui_view_set_pressed(self, true);
+        break;
+    }
+    case EGUI_MOTION_EVENT_ACTION_UP:
+    {
+        egui_view_set_pressed(self, false);
+
+        // Determine which third was tapped
+        egui_dim_t local_y = event->location.y - self->region_screen.location.y;
+        egui_dim_t third_h = self->region.size.height / 3;
+
+        if (local_y < third_h)
+        {
+            // Top area: increment
+            int16_t new_val = local->value + local->step;
+            if (new_val > local->max_value)
+            {
+                new_val = local->max_value;
+            }
+            egui_view_number_picker_set_value(self, new_val);
+        }
+        else if (local_y >= third_h * 2)
+        {
+            // Bottom area: decrement
+            int16_t new_val = local->value - local->step;
+            if (new_val < local->min_value)
+            {
+                new_val = local->min_value;
+            }
+            egui_view_number_picker_set_value(self, new_val);
+        }
+        break;
+    }
+    case EGUI_MOTION_EVENT_ACTION_CANCEL:
+    {
+        egui_view_set_pressed(self, false);
+        break;
+    }
+    default:
+        break;
+    }
+
+    return 1;
+}
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+
+const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_number_picker_t) = {
+        .dispatch_touch_event = egui_view_dispatch_touch_event,
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+        .on_touch_event = egui_view_number_picker_on_touch_event,
+#else
+        .on_touch_event = egui_view_on_touch_event,
+#endif
+        .on_intercept_touch_event = egui_view_on_intercept_touch_event,
+        .compute_scroll = egui_view_compute_scroll,
+        .calculate_layout = egui_view_calculate_layout,
+        .request_layout = egui_view_request_layout,
+        .draw = egui_view_draw,
+        .on_attach_to_window = egui_view_on_attach_to_window,
+        .on_draw = egui_view_number_picker_on_draw,
+        .on_detach_from_window = egui_view_on_detach_from_window,
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+        .dispatch_key_event = egui_view_dispatch_key_event,
+        .on_key_event = egui_view_on_key_event,
+#endif
+};
+
+void egui_view_number_picker_init(egui_view_t *self)
+{
+    EGUI_INIT_LOCAL(egui_view_number_picker_t);
+    // call super init.
+    egui_view_init(self);
+    // update api.
+    self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_number_picker_t);
+
+    // init local data.
+    local->on_value_changed = NULL;
+    local->value = 0;
+    local->min_value = 0;
+    local->max_value = 100;
+    local->step = 1;
+    local->alpha = EGUI_ALPHA_100;
+    local->text_color = EGUI_THEME_TEXT_PRIMARY;
+    local->button_color = EGUI_THEME_PRIMARY;
+    local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+
+    egui_view_set_view_name(self, "egui_view_number_picker");
+}
+
+void egui_view_number_picker_apply_params(egui_view_t *self, const egui_view_number_picker_params_t *params)
+{
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+
+    self->region = params->region;
+
+    local->value = params->value;
+    local->min_value = params->min_value;
+    local->max_value = params->max_value;
+
+    egui_view_invalidate(self);
+}
+
+void egui_view_number_picker_init_with_params(egui_view_t *self, const egui_view_number_picker_params_t *params)
+{
+    egui_view_number_picker_init(self);
+    egui_view_number_picker_apply_params(self, params);
+}

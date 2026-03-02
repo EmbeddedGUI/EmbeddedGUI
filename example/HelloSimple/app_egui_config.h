@@ -1,4 +1,4 @@
-﻿#ifndef _APP_EGUI_CONFIG_H_
+#ifndef _APP_EGUI_CONFIG_H_
 #define _APP_EGUI_CONFIG_H_
 
 /* Set up for C function definitions, even when using C++ */
@@ -8,6 +8,7 @@ extern "C" {
 
 #define EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE 20
 
+// Enable auto-click simulation for GIF recording
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

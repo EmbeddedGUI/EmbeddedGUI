@@ -9,13 +9,13 @@
 
 void egui_interpolator_anticipate_tension_set(egui_interpolator_t *self, egui_float_t tension)
 {
-    egui_interpolator_anticipate_t *local = (egui_interpolator_anticipate_t *)self;
+    EGUI_LOCAL_INIT(egui_interpolator_anticipate_t);
     local->tension = tension;
 }
 
 egui_float_t egui_interpolator_anticipate_get_interpolation(egui_interpolator_t *self, egui_float_t input)
 {
-    egui_interpolator_anticipate_t *local = (egui_interpolator_anticipate_t *)self;
+    EGUI_LOCAL_INIT(egui_interpolator_anticipate_t);
     // a(t) = t * t * ((tension + 1) * t - tension)
     return (EGUI_FLOAT_MULT_LIMIT(EGUI_FLOAT_MULT_LIMIT(input, input), EGUI_FLOAT_MULT_LIMIT((local->tension + EGUI_FLOAT_VALUE(1.0f)), input)) -
             local->tension);
@@ -28,7 +28,7 @@ const egui_interpolator_api_t egui_interpolator_anticipate_t_api_table = {
 
 void egui_interpolator_anticipate_init(egui_interpolator_t *self)
 {
-    egui_interpolator_anticipate_t *local = (egui_interpolator_anticipate_t *)self;
+    EGUI_LOCAL_INIT(egui_interpolator_anticipate_t);
     // call super init.
     egui_interpolator_init(self);
     // update api.

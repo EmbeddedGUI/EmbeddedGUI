@@ -1,4 +1,4 @@
-﻿#ifndef _APP_EGUI_CONFIG_H_
+#ifndef _APP_EGUI_CONFIG_H_
 #define _APP_EGUI_CONFIG_H_
 
 /* Set up for C function definitions, even when using C++ */
@@ -18,6 +18,7 @@ extern "C" {
 #define EGUI_CONFIG_PFB_WIDTH  8
 #define EGUI_CONFIG_PFB_HEIGHT 320
 
+// Enable auto-click simulation for GIF recording
 #define EGUI_CONFIG_DEBUG_LOG_LEVEL EGUI_LOG_IMPL_LEVEL_INF
 
 // debug options
@@ -26,7 +27,6 @@ extern "C" {
 #define EGUI_CONFIG_DEBUG_INFO_SHOW            0
 
 #define EGUI_CONFIG_DEBUG_REFRESH_DELAY 50
-
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

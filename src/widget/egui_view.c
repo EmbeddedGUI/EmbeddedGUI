@@ -4,17 +4,23 @@
 #include "egui_view.h"
 #include "core/egui_core.h"
 #include "core/egui_api.h"
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+#include "shadow/egui_shadow.h"
+#endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+#include "core/egui_focus.h"
+#endif
 
 int egui_view_is_visible(egui_view_t *self)
 {
-    if((!self->is_visible) || (self->is_gone))
+    if ((!self->is_visible) || (self->is_gone))
     {
         return 0;
     }
     egui_view_t *p = (egui_view_t *)self->parent;
     while (p)
     {
-        if((!p->is_visible) || (p->is_gone))
+        if ((!p->is_visible) || (p->is_gone))
         {
             return 0;
         }
@@ -27,7 +33,7 @@ int egui_view_is_visible(egui_view_t *self)
 
 void egui_view_invalidate(egui_view_t *self)
 {
-    if(egui_view_is_visible(self))
+    if (egui_view_is_visible(self))
     {
         self->api->request_layout(self);
     }
@@ -203,7 +209,7 @@ int egui_view_get_pressed(egui_view_t *self)
 
 void egui_view_set_visible(egui_view_t *self, int is_visible)
 {
-    if(is_visible == self->is_visible)
+    if (is_visible == self->is_visible)
     {
         return;
     }
@@ -223,7 +229,7 @@ int egui_view_get_visible(egui_view_t *self)
 
 void egui_view_set_gone(egui_view_t *self, int is_gone)
 {
-    if(is_gone == self->is_gone)
+    if (is_gone == self->is_gone)
     {
         return;
     }
@@ -242,7 +248,8 @@ int egui_view_get_gone(egui_view_t *self)
     return self->is_gone;
 }
 
-void egui_view_set_padding(egui_view_t *self, egui_dim_margin_padding_t left, egui_dim_margin_padding_t right, egui_dim_margin_padding_t top, egui_dim_margin_padding_t bottom)
+void egui_view_set_padding(egui_view_t *self, egui_dim_margin_padding_t left, egui_dim_margin_padding_t right, egui_dim_margin_padding_t top,
+                           egui_dim_margin_padding_t bottom)
 {
     self->padding.left = left;
     self->padding.right = right;
@@ -257,7 +264,8 @@ void egui_view_set_padding_all(egui_view_t *self, egui_dim_margin_padding_t padd
     egui_view_set_padding(self, padding, padding, padding, padding);
 }
 
-void egui_view_set_margin(egui_view_t *self, egui_dim_margin_padding_t left, egui_dim_margin_padding_t right, egui_dim_margin_padding_t top, egui_dim_margin_padding_t bottom)
+void egui_view_set_margin(egui_view_t *self, egui_dim_margin_padding_t left, egui_dim_margin_padding_t right, egui_dim_margin_padding_t top,
+                          egui_dim_margin_padding_t bottom)
 {
     self->margin.left = left;
     self->margin.right = right;
@@ -270,6 +278,17 @@ void egui_view_set_margin(egui_view_t *self, egui_dim_margin_padding_t left, egu
 void egui_view_set_margin_all(egui_view_t *self, egui_dim_margin_padding_t margin)
 {
     egui_view_set_margin(self, margin, margin, margin, margin);
+}
+
+void egui_view_set_shadow(egui_view_t *self, const egui_shadow_t *shadow)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+    self->shadow = shadow;
+    egui_view_invalidate(self);
+#else
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(shadow);
+#endif
 }
 
 void egui_view_set_view_name(egui_view_t *self, const char *name)
@@ -337,6 +356,12 @@ int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
             break;
         case EGUI_MOTION_EVENT_ACTION_DOWN:
             egui_view_set_pressed(self, true);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+            if (self->is_focusable)
+            {
+                egui_view_request_focus(self);
+            }
+#endif
             break;
         case EGUI_MOTION_EVENT_ACTION_MOVE:
             break;
@@ -408,10 +433,25 @@ void egui_view_draw(egui_view_t *self)
 
     // clear canvas mask
     egui_canvas_clear_mask();
-    // For fast drawing, we only draw the region that is intersected with the canvas.
-    egui_canvas_calc_work_region(&self->region_screen);
     // set canvase alpha
     egui_canvas_mix_alpha(self->alpha);
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+    // draw shadow with expanded work region (shadow extends beyond view bounds)
+    if (self->shadow != NULL)
+    {
+        egui_region_t shadow_region;
+        egui_shadow_get_region(self->shadow, &self->region_screen, &shadow_region);
+        egui_canvas_calc_work_region(&shadow_region);
+        if (!egui_region_is_empty(egui_canvas_get_base_view_work_region()))
+        {
+            egui_shadow_draw(self->shadow, &self->region_screen);
+        }
+    }
+#endif
+
+    // For fast drawing, we only draw the region that is intersected with the canvas.
+    egui_canvas_calc_work_region(&self->region_screen);
 
     if (!egui_region_is_empty(egui_canvas_get_base_view_work_region()))
     {
@@ -468,20 +508,132 @@ void egui_view_calculate_layout(egui_view_t *self)
 
         // update dirty region
         egui_core_update_region_dirty(p_raw_region);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+        if (self->shadow != NULL)
+        {
+            egui_region_t shadow_region;
+            egui_shadow_get_region(self->shadow, p_raw_region, &shadow_region);
+            egui_core_update_region_dirty(&shadow_region);
+        }
+#endif
     }
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+int egui_view_dispatch_key_event(egui_view_t *self, egui_key_event_t *event)
+{
+    if (self->is_enable && self->on_key_listener != NULL && self->on_key_listener(self, event))
+    {
+        return 1;
+    }
+
+    return self->api->on_key_event(self, event);
+}
+
+int egui_view_on_key_event(egui_view_t *self, egui_key_event_t *event)
+{
+    if (self->is_enable == false)
+    {
+        return 0;
+    }
+
+    // If clickable, ENTER key triggers click
+    if (self->is_clickable)
+    {
+        if (event->type == EGUI_KEY_EVENT_ACTION_UP && event->key_code == EGUI_KEY_CODE_ENTER)
+        {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+            egui_view_perform_click(self);
+#endif
+            return 1;
+        }
+        if (event->type == EGUI_KEY_EVENT_ACTION_DOWN && event->key_code == EGUI_KEY_CODE_ENTER)
+        {
+            return 1; // consume the down event
+        }
+    }
+
+    return 0;
+}
+
+void egui_view_set_on_key_listener(egui_view_t *self, egui_view_on_key_listener_t listener)
+{
+    self->on_key_listener = listener;
+}
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+void egui_view_set_focusable(egui_view_t *self, int is_focusable)
+{
+    self->is_focusable = is_focusable;
+}
+
+int egui_view_get_focusable(egui_view_t *self)
+{
+    return self->is_focusable;
+}
+
+void egui_view_request_focus(egui_view_t *self)
+{
+    if (self->is_focusable && self->is_enable && self->is_visible && !self->is_gone)
+    {
+        egui_focus_manager_set_focus(self);
+    }
+}
+
+void egui_view_clear_focus(egui_view_t *self)
+{
+    if (self->is_focused)
+    {
+        egui_focus_manager_clear_focus();
+    }
+}
+
+void egui_view_set_on_focus_change_listener(egui_view_t *self, egui_view_on_focus_change_listener_t listener)
+{
+    self->on_focus_change_listener = listener;
+}
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
+void egui_view_set_layer(egui_view_t *self, uint8_t layer)
+{
+    if (self->layer == layer)
+    {
+        return;
+    }
+
+    self->layer = layer;
+
+    if (self->parent != NULL)
+    {
+        egui_view_group_reorder_child((egui_view_t *)self->parent, self);
+    }
+
+    egui_view_invalidate(self);
+}
+
+uint8_t egui_view_get_layer(egui_view_t *self)
+{
+    return self->layer;
+}
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
+
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_t) = {
-    .dispatch_touch_event = egui_view_dispatch_touch_event,
-    .on_touch_event = egui_view_on_touch_event,
-    .on_intercept_touch_event = egui_view_on_intercept_touch_event,
-    .compute_scroll = egui_view_compute_scroll,
-    .calculate_layout = egui_view_calculate_layout,
-    .request_layout = egui_view_request_layout,
-    .draw = egui_view_draw,
-    .on_attach_to_window = egui_view_on_attach_to_window,
-    .on_draw = egui_view_on_draw,
-    .on_detach_from_window = egui_view_on_detach_from_window,
+        .dispatch_touch_event = egui_view_dispatch_touch_event,
+        .on_touch_event = egui_view_on_touch_event,
+        .on_intercept_touch_event = egui_view_on_intercept_touch_event,
+        .compute_scroll = egui_view_compute_scroll,
+        .calculate_layout = egui_view_calculate_layout,
+        .request_layout = egui_view_request_layout,
+        .draw = egui_view_draw,
+        .on_attach_to_window = egui_view_on_attach_to_window,
+        .on_draw = egui_view_on_draw,
+        .on_detach_from_window = egui_view_on_detach_from_window,
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+        .dispatch_key_event = egui_view_dispatch_key_event,
+        .on_key_event = egui_view_on_key_event,
+#endif
 };
 
 void egui_view_init(egui_view_t *self)
@@ -514,10 +666,27 @@ void egui_view_init(egui_view_t *self)
     self->is_request_layout = true;
 
     self->background = NULL;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+    self->shadow = NULL;
+#endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     self->on_touch_listener = NULL;
     self->on_click_listener = NULL;
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+    self->on_key_listener = NULL;
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    self->is_focusable = false;
+    self->is_focused = false;
+    self->on_focus_change_listener = NULL;
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
+    self->layer = EGUI_VIEW_LAYER_DEFAULT;
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
 
     self->alpha = EGUI_ALPHA_100;
 

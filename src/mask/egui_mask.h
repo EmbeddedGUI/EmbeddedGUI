@@ -9,10 +9,20 @@
 extern "C" {
 #endif
 
+typedef enum
+{
+    EGUI_MASK_ROW_OUTSIDE = 0, // Entire row invisible (masked out)
+    EGUI_MASK_ROW_INSIDE,      // Entire row fully visible (no AA)
+    EGUI_MASK_ROW_PARTIAL,     // Partially visible, [x_start, x_end) is opaque span
+} egui_mask_row_result_t;
+
 typedef struct egui_mask_api egui_mask_api_t;
 struct egui_mask_api
 {
     void (*mask_point)(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha);
+    // Optional: row-range query for batch optimization. NULL means not supported (fallback to per-pixel).
+    // Given row y and horizontal range [x_min, x_max), returns the opaque span [*x_start, *x_end).
+    int (*mask_get_row_range)(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start, egui_dim_t *x_end);
 };
 
 struct egui_mask

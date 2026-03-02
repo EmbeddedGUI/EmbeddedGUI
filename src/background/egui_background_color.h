@@ -39,10 +39,10 @@ extern "C" {
                                                         .stroke_width = 0,                                                                                     \
                                                         .stroke_alpha = 0,                                                                                     \
                                                         .stroke_color = {0},                                                                                   \
-                                                        .shape.round_rectangle_corners = {.radius_left_top = _radius_left_top,                                       \
-                                                                                    .radius_left_bottom = _radius_left_bottom,                                 \
-                                                                                    .radius_right_top = _radius_right_top,                                     \
-                                                                                    .radius_right_bottom = _radius_right_bottom}}
+                                                        .shape.round_rectangle_corners = {.radius_left_top = _radius_left_top,                                 \
+                                                                                          .radius_left_bottom = _radius_left_bottom,                           \
+                                                                                          .radius_right_top = _radius_right_top,                               \
+                                                                                          .radius_right_bottom = _radius_right_bottom}}
 
 #define EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE(_name, _color, _alpha, _radius)                                                                                \
     static const egui_background_color_param_t _name = {.type = EGUI_BACKGROUND_COLOR_TYPE_CIRCLE,                                                             \
@@ -79,10 +79,10 @@ extern "C" {
                                                         .stroke_width = _stroke_width,                                                                         \
                                                         .stroke_alpha = _stroke_alpha,                                                                         \
                                                         .stroke_color = _stroke_color,                                                                         \
-                                                        .shape.round_rectangle_corners = {.radius_left_top = _radius_left_top,                                       \
-                                                                                    .radius_left_bottom = _radius_left_bottom,                                 \
-                                                                                    .radius_right_top = _radius_right_top,                                     \
-                                                                                    .radius_right_bottom = _radius_right_bottom}}
+                                                        .shape.round_rectangle_corners = {.radius_left_top = _radius_left_top,                                 \
+                                                                                          .radius_left_bottom = _radius_left_bottom,                           \
+                                                                                          .radius_right_top = _radius_right_top,                               \
+                                                                                          .radius_right_bottom = _radius_right_bottom}}
 
 #define EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE_STROKE(_name, _color, _alpha, _radius, _stroke_width, _stroke_color, _stroke_alpha)                            \
     static const egui_background_color_param_t _name = {.type = EGUI_BACKGROUND_COLOR_TYPE_CIRCLE,                                                             \
@@ -135,6 +135,7 @@ struct egui_background_color
 
 void egui_background_color_on_draw(egui_background_t *self, egui_region_t *region, const void *param);
 void egui_background_color_init(egui_background_t *self);
+void egui_background_color_init_with_params(egui_background_t *self, const egui_background_params_t *params);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

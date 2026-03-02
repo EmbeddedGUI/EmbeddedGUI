@@ -46,7 +46,6 @@ struct egui_canvas
 
 extern egui_canvas_t canvas_data;
 
-
 __EGUI_STATIC_INLINE__ void egui_canvas_set_alpha(egui_alpha_t alpha)
 {
     egui_canvas_t *self = &canvas_data;
@@ -184,8 +183,6 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_raw(egui_canvas_t *self,
     *(egui_color_t *)&self->pfb[y * self->pfb_region.size.width + x] = color;
 }
 
-
-
 // In pfb coordinates
 __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_with_alpha_raw(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
 {
@@ -193,7 +190,6 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_with_alpha_raw(egui_canv
 
     egui_rgb_mix_ptr(back_color, &color, back_color, alpha);
 }
-
 
 // In screen coordinates
 __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_color_t color)
@@ -203,8 +199,6 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color(egui_canvas_t *self, egu
     egui_canvas_set_point_color_raw(self, pos_x, pos_y, color);
 }
 
-
-
 // In screen coordinates
 __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_with_alpha(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
 {
@@ -213,12 +207,11 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_with_alpha(egui_canvas_t
     egui_canvas_set_point_color_with_alpha_raw(self, pos_x, pos_y, color, alpha);
 }
 
-
 // In screen coordinates
 __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_with_mask(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
 {
     self->mask->api->mask_point(self->mask, x, y, &color, &alpha);
-            
+
     // if color is fully transparent, do not draw anything.
     if (alpha == 0)
     {
@@ -240,9 +233,6 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_with_mask(egui_canvas_t 
     }
 }
 
-
-
-
 // In screen coordinates
 __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_check(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_color_t color)
 {
@@ -252,17 +242,15 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_check(egui_canvas_t *sel
     }
 }
 
-
-
 // In screen coordinates
-__EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_with_alpha_check(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
+__EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_with_alpha_check(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_color_t color,
+                                                                         egui_alpha_t alpha)
 {
     if (egui_region_pt_in_rect(&self->base_view_work_region, x, y))
     {
         egui_canvas_set_point_color_with_alpha(self, x, y, color, alpha);
     }
 }
-
 
 // In screen coordinates
 __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_with_mask_check(egui_canvas_t *self, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
@@ -273,11 +261,8 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_with_mask_check(egui_can
     }
 }
 
-
-
-
-
-__EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color, egui_alpha_t alpha)
+__EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
+                                                                 egui_alpha_t alpha)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -288,19 +273,89 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
     x_total = x + width;
     y_total = y + height;
 
-    
-    for (yp = y; yp < y_total; yp++)
+    // Check if row-range optimization is available
+    if (self->mask->api->mask_get_row_range != NULL)
     {
-        for (xp = x; xp < x_total; xp++)
+        egui_dim_t x_start, x_end;
+        egui_dim_t pfb_x_offset = self->pfb_location_in_base_view.x;
+        egui_dim_t pfb_y_offset = self->pfb_location_in_base_view.y;
+
+        for (yp = y; yp < y_total; yp++)
         {
-            egui_canvas_set_point_color_with_mask(self, xp, yp, color, alpha);
+            int result = self->mask->api->mask_get_row_range(self->mask, yp, x, x_total, &x_start, &x_end);
+            if (result == EGUI_MASK_ROW_OUTSIDE)
+            {
+                continue; // Skip entire row
+            }
+
+            egui_dim_t pfb_y = yp - pfb_y_offset;
+
+            if (result == EGUI_MASK_ROW_INSIDE)
+            {
+                // Fast fill: entire row is fully opaque through mask
+                if (alpha == EGUI_ALPHA_100)
+                {
+                    for (xp = x_start - pfb_x_offset; xp < x_end - pfb_x_offset; xp++)
+                    {
+                        egui_canvas_set_point_color_raw(self, xp, pfb_y, color);
+                    }
+                }
+                else
+                {
+                    for (xp = x_start - pfb_x_offset; xp < x_end - pfb_x_offset; xp++)
+                    {
+                        egui_canvas_set_point_color_with_alpha_raw(self, xp, pfb_y, color, alpha);
+                    }
+                }
+            }
+            else // EGUI_MASK_ROW_PARTIAL
+            {
+                // Left edge: per-pixel with mask
+                for (xp = x; xp < x_start; xp++)
+                {
+                    egui_canvas_set_point_color_with_mask(self, xp, yp, color, alpha);
+                }
+                // Middle: fast fill (guaranteed fully opaque through mask)
+                if (x_start < x_end)
+                {
+                    if (alpha == EGUI_ALPHA_100)
+                    {
+                        for (xp = x_start - pfb_x_offset; xp < x_end - pfb_x_offset; xp++)
+                        {
+                            egui_canvas_set_point_color_raw(self, xp, pfb_y, color);
+                        }
+                    }
+                    else
+                    {
+                        for (xp = x_start - pfb_x_offset; xp < x_end - pfb_x_offset; xp++)
+                        {
+                            egui_canvas_set_point_color_with_alpha_raw(self, xp, pfb_y, color, alpha);
+                        }
+                    }
+                }
+                // Right edge: per-pixel with mask
+                for (xp = x_end; xp < x_total; xp++)
+                {
+                    egui_canvas_set_point_color_with_mask(self, xp, yp, color, alpha);
+                }
+            }
+        }
+    }
+    else
+    {
+        // Fallback: original per-pixel path
+        for (yp = y; yp < y_total; yp++)
+        {
+            for (xp = x; xp < x_total; xp++)
+            {
+                egui_canvas_set_point_color_with_mask(self, xp, yp, color, alpha);
+            }
         }
     }
 }
 
-
-
-__EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_alpha(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color, egui_alpha_t alpha)
+__EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_alpha(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
+                                                                  egui_alpha_t alpha)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -311,7 +366,6 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_alpha(egui_dim_t x, 
     x_total = x + width - self->pfb_location_in_base_view.x;
     y_total = y + height - self->pfb_location_in_base_view.y;
 
-    
     for (yp = y - self->pfb_location_in_base_view.y; yp < y_total; yp++)
     {
         for (xp = x - self->pfb_location_in_base_view.x; xp < x_total; xp++)
@@ -320,8 +374,6 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_alpha(egui_dim_t x, 
         }
     }
 }
-
-
 
 __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color)
 {
@@ -334,7 +386,6 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color(egui_dim_t x, egui_dim_t 
     x_total = x + width - self->pfb_location_in_base_view.x;
     y_total = y + height - self->pfb_location_in_base_view.y;
 
-    
     for (yp = y - self->pfb_location_in_base_view.y; yp < y_total; yp++)
     {
         for (xp = x - self->pfb_location_in_base_view.x; xp < x_total; xp++)
@@ -344,21 +395,15 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color(egui_dim_t x, egui_dim_t 
     }
 }
 
-
-
-
-
-
-
-
-__EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask_intersect(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color, egui_alpha_t alpha)
+__EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask_intersect(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
+                                                                           egui_alpha_t alpha)
 {
     egui_canvas_t *self = &canvas_data;
 
     // only work within intersection of base_view_work_region and the rectangle to be drawn
     EGUI_REGION_DEFINE(region, x, y, width, height);
     egui_region_intersect(&region, &self->base_view_work_region, &region);
-    if(egui_region_is_empty(&region))
+    if (egui_region_is_empty(&region))
     {
         return;
     }
@@ -366,25 +411,21 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask_intersect(egui_
     egui_canvas_set_rect_color_with_mask(region.location.x, region.location.y, region.size.width, region.size.height, color, alpha);
 }
 
-
-
-
-__EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_alpha_intersect(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color, egui_alpha_t alpha)
+__EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_alpha_intersect(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
+                                                                            egui_alpha_t alpha)
 {
     egui_canvas_t *self = &canvas_data;
 
     // only work within intersection of base_view_work_region and the rectangle to be drawn
     EGUI_REGION_DEFINE(region, x, y, width, height);
     egui_region_intersect(&region, &self->base_view_work_region, &region);
-    if(egui_region_is_empty(&region))
+    if (egui_region_is_empty(&region))
     {
         return;
     }
 
     egui_canvas_set_rect_color_with_alpha(region.location.x, region.location.y, region.size.width, region.size.height, color, alpha);
 }
-
-
 
 __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_intersect(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color)
 {
@@ -393,19 +434,14 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_intersect(egui_dim_t x, e
     // only work within intersection of base_view_work_region and the rectangle to be drawn
     EGUI_REGION_DEFINE(region, x, y, width, height);
     egui_region_intersect(&region, &self->base_view_work_region, &region);
-    if(egui_region_is_empty(&region))
+    if (egui_region_is_empty(&region))
     {
         return;
     }
     egui_canvas_set_rect_color(region.location.x, region.location.y, region.size.width, region.size.height, color);
 }
 
-
-
-
-
-
-__EGUI_STATIC_INLINE__ egui_canvas_t* egui_canvas_get_canvas(void)
+__EGUI_STATIC_INLINE__ egui_canvas_t *egui_canvas_get_canvas(void)
 {
     return &canvas_data;
 }
@@ -414,59 +450,214 @@ void egui_canvas_set_alpha(egui_alpha_t alpha);
 egui_alpha_t egui_canvas_get_alpha(void);
 void egui_canvas_mix_alpha(egui_alpha_t alpha);
 
+const egui_circle_info_t *egui_canvas_get_circle_item(egui_dim_t r);
+
+__EGUI_STATIC_INLINE__ egui_alpha_t egui_canvas_get_circle_corner_value(egui_dim_t pos_row, egui_dim_t pos_col, const egui_circle_info_t *info)
+{
+    egui_dim_t offset;
+    const egui_circle_item_t *ptr;
+    uint16_t start_offset;
+    uint16_t valid_count;
+    uint16_t data_value_offset;
+
+    // get min pos_row and pos_col
+    egui_dim_t min_pos;
+    egui_dim_t max_pos;
+    if (pos_row < pos_col)
+    {
+        min_pos = pos_row;
+        max_pos = pos_col;
+    }
+    else
+    {
+        min_pos = pos_col;
+        max_pos = pos_row;
+    }
+
+    // if in middle of circle, return 0xFF
+    if (min_pos >= info->item_count)
+    {
+        return EGUI_ALPHA_100;
+    }
+
+    int item_index = min_pos;
+
+    ptr = &((const egui_circle_item_t *)info->items)[item_index];
+    start_offset = ptr->start_offset;
+
+    // get the offset
+    offset = max_pos;
+
+    // if out of circle, return 0
+    if (offset < start_offset)
+    {
+        return EGUI_ALPHA_0;
+    }
+
+    valid_count = ptr->valid_count;
+    // if in circle, return 0xFF
+    if (offset >= start_offset + valid_count)
+    {
+        return EGUI_ALPHA_100;
+    }
+
+    data_value_offset = ptr->data_offset;
+    return info->data[data_value_offset + offset - start_offset];
+}
+
 // void egui_canvas_draw_point_limit(egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_point(egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha);
-// void egui_canvas_draw_fillrect(egui_dim_t x, egui_dim_t y, egui_dim_t xSize, egui_dim_t ySize, egui_color_t color, egui_alpha_t alpha);
-// static inline void egui_canvas_draw_vline(egui_dim_t x, egui_dim_t y, egui_dim_t length, egui_color_t color, egui_alpha_t alpha);
-// static inline void egui_canvas_draw_hline(egui_dim_t x, egui_dim_t y, egui_dim_t length, egui_color_t color, egui_alpha_t alpha);
-void egui_canvas_draw_line(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
-                           egui_alpha_t alpha);
-void egui_canvas_draw_rectangle(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t stroke_width,
-                                egui_color_t color, egui_alpha_t alpha);
-void egui_canvas_draw_rectangle_fill(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
-                                     egui_alpha_t alpha);
-void egui_canvas_draw_round_rectangle_corners_fill(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
-                                                   egui_dim_t radius_left_top, egui_dim_t radius_left_bottom, egui_dim_t radius_right_top,
-                                                   egui_dim_t radius_right_bottom, egui_color_t color, egui_alpha_t alpha);
+
+__EGUI_STATIC_INLINE__ void egui_canvas_draw_fillrect(egui_dim_t x, egui_dim_t y, egui_dim_t xSize, egui_dim_t ySize, egui_color_t color, egui_alpha_t alpha)
+{
+    egui_canvas_t *self = &canvas_data;
+
+    // only work within intersection of base_view_work_region and the rectangle to be drawn
+    EGUI_REGION_DEFINE(region, x, y, xSize, ySize);
+    egui_region_intersect(&region, &self->base_view_work_region, &region);
+    if (egui_region_is_empty(&region))
+    {
+        return;
+    }
+
+    // step1: mix alpha
+    alpha = egui_color_alpha_mix(self->alpha, alpha);
+    // if color is fully transparent, do not draw anything.
+    if (alpha == 0)
+    {
+        return;
+    }
+
+    if (self->mask != NULL)
+    {
+        egui_canvas_set_rect_color_with_mask(region.location.x, region.location.y, region.size.width, region.size.height, color, alpha);
+    }
+    else
+    {
+        if (alpha == EGUI_ALPHA_100)
+        {
+            egui_canvas_set_rect_color(region.location.x, region.location.y, region.size.width, region.size.height, color);
+        }
+        else
+        {
+            egui_canvas_set_rect_color_with_alpha(region.location.x, region.location.y, region.size.width, region.size.height, color, alpha);
+        }
+    }
+}
+
+__EGUI_STATIC_INLINE__ void egui_canvas_draw_vline(egui_dim_t x, egui_dim_t y, egui_dim_t length, egui_color_t color, egui_alpha_t alpha)
+{
+    egui_canvas_draw_fillrect(x, y, 1, length, color, alpha);
+}
+
+__EGUI_STATIC_INLINE__ void egui_canvas_draw_hline(egui_dim_t x, egui_dim_t y, egui_dim_t length, egui_color_t color, egui_alpha_t alpha)
+{
+    egui_canvas_draw_fillrect(x, y, length, 1, color, alpha);
+}
+void egui_canvas_draw_line(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_line_segment(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_rectangle(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t stroke_width, egui_color_t color,
+                                egui_alpha_t alpha);
+void egui_canvas_draw_rectangle_fill(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_round_rectangle_corners_fill(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t radius_left_top,
+                                                   egui_dim_t radius_left_bottom, egui_dim_t radius_right_top, egui_dim_t radius_right_bottom,
+                                                   egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_round_rectangle_corners(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t radius_left_top,
                                               egui_dim_t radius_left_bottom, egui_dim_t radius_right_top, egui_dim_t radius_right_bottom,
                                               egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
-void egui_canvas_draw_round_rectangle(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t radius,
-                                      egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
-void egui_canvas_draw_round_rectangle_fill(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t r,
-                                           egui_color_t color, egui_alpha_t alpha);
-void egui_canvas_draw_circle(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
-                             egui_alpha_t alpha);
-void egui_canvas_draw_circle_fill(egui_dim_t x, egui_dim_t y, egui_dim_t r, egui_color_t color, egui_alpha_t alpha);
-void egui_canvas_draw_arc(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle,
-                          egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
-void egui_canvas_draw_arc_fill(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle,
-                               egui_color_t color, egui_alpha_t alpha);
-void egui_canvas_draw_triangle(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3,
-                               egui_color_t color, egui_alpha_t alpha);
-void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3,
-                                    egui_color_t color, egui_alpha_t alpha);
-// void egui_canvas_draw_circle_corner(egui_dim_t x0, egui_dim_t y0, egui_dim_t r, uint8_t c, egui_color_t color, egui_alpha_t alpha);
-// void egui_canvas_draw_circle_corner_fill(egui_dim_t x0, egui_dim_t y0, egui_dim_t r, uint8_t c, egui_color_t color, egui_alpha_t alpha);
-void egui_canvas_draw_text(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha);
-void egui_canvas_draw_text_in_rect_with_line_space(const egui_font_t *font, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space, egui_color_t color,
+void egui_canvas_draw_round_rectangle(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t radius, egui_dim_t stroke_width,
+                                      egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_round_rectangle_fill(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t r, egui_color_t color,
+                                           egui_alpha_t alpha);
+
+// Basic (performance) circle/arc - always available, uses precomputed lookup tables
+void egui_canvas_draw_circle_basic(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
                                    egui_alpha_t alpha);
+void egui_canvas_draw_circle_fill_basic(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_arc_basic(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle, egui_dim_t stroke_width,
+                                egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_arc_fill_basic(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle, egui_color_t color,
+                                     egui_alpha_t alpha);
+
+// HQ (quality) circle/arc - runtime sub-pixel sampling, better anti-aliasing, no radius limit
+#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
+void egui_canvas_draw_circle_hq(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_circle_fill_hq(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_arc_hq(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle, egui_dim_t stroke_width,
+                             egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_arc_fill_hq(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle, egui_color_t color,
+                                  egui_alpha_t alpha);
+#endif
+
+// Default circle/arc API - controlled by EGUI_CONFIG_CIRCLE_DEFAULT_ALGO_HQ
+#if EGUI_CONFIG_CIRCLE_DEFAULT_ALGO_HQ
+#define egui_canvas_draw_circle      egui_canvas_draw_circle_hq
+#define egui_canvas_draw_circle_fill egui_canvas_draw_circle_fill_hq
+#define egui_canvas_draw_arc         egui_canvas_draw_arc_hq
+#define egui_canvas_draw_arc_fill    egui_canvas_draw_arc_fill_hq
+#else
+#define egui_canvas_draw_circle      egui_canvas_draw_circle_basic
+#define egui_canvas_draw_circle_fill egui_canvas_draw_circle_fill_basic
+#define egui_canvas_draw_arc         egui_canvas_draw_arc_basic
+#define egui_canvas_draw_arc_fill    egui_canvas_draw_arc_fill_basic
+#endif
+void egui_canvas_draw_triangle(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3, egui_color_t color,
+                               egui_alpha_t alpha);
+void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3, egui_color_t color,
+                                    egui_alpha_t alpha);
+
+#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE
+void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius_x, egui_dim_t radius_y, egui_dim_t stroke_width, egui_color_t color,
+                              egui_alpha_t alpha);
+void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius_x, egui_dim_t radius_y, egui_color_t color, egui_alpha_t alpha);
+#endif
+
+#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON
+void egui_canvas_draw_polygon(const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_polyline(const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
+#endif
+
+// HQ (quality) line/polyline - runtime sub-pixel sampling, better anti-aliasing
+#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
+void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_line_segment_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
+                                      egui_alpha_t alpha);
+void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
+                                        egui_alpha_t alpha);
+void egui_canvas_draw_polyline_hq(const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_polyline_round_cap_hq(const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
+#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
+void egui_canvas_draw_arc_round_cap_hq(egui_dim_t cx, egui_dim_t cy, egui_dim_t radius, int16_t start_angle, int16_t end_angle, egui_dim_t stroke_width,
+                                       egui_color_t color, egui_alpha_t alpha);
+#endif
+#endif
+
+#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_BEZIER
+void egui_canvas_draw_bezier_quad(egui_dim_t x0, egui_dim_t y0, egui_dim_t cx, egui_dim_t cy, egui_dim_t x1, egui_dim_t y1, egui_dim_t stroke_width,
+                                  egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_bezier_cubic(egui_dim_t x0, egui_dim_t y0, egui_dim_t cx0, egui_dim_t cy0, egui_dim_t cx1, egui_dim_t cy1, egui_dim_t x1, egui_dim_t y1,
+                                   egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
+#endif
+
+void egui_canvas_draw_text(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_text_in_rect_with_line_space(const egui_font_t *font, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space,
+                                                   egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_text_in_rect(const egui_font_t *font, const void *string, egui_region_t *rect, uint8_t align_type, egui_color_t color,
                                    egui_alpha_t alpha);
 void egui_canvas_draw_image(const egui_image_t *img, egui_dim_t x, egui_dim_t y);
 void egui_canvas_draw_image_resize(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height);
+void egui_canvas_draw_image_color(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_image_resize_color(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
+                                         egui_alpha_t alpha);
 void egui_canvas_calc_work_region(egui_region_t *base_region);
 void egui_canvas_register_spec_circle_info(uint16_t res_circle_info_count_spec, const egui_circle_info_t *res_circle_info_spec_arr);
 void egui_canvas_init(egui_color_int_t *pfb, egui_region_t *region);
 
-int egui_canvas_get_circle_left_top(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y,
-                                    egui_alpha_t *alpha);
-int egui_canvas_get_circle_left_bottom(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y,
-                                       egui_alpha_t *alpha);
-int egui_canvas_get_circle_right_top(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y,
-                                     egui_alpha_t *alpha);
-int egui_canvas_get_circle_right_bottom(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y,
-                                        egui_alpha_t *alpha);
+int egui_canvas_get_circle_left_top(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y, egui_alpha_t *alpha);
+int egui_canvas_get_circle_left_bottom(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y, egui_alpha_t *alpha);
+int egui_canvas_get_circle_right_top(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y, egui_alpha_t *alpha);
+int egui_canvas_get_circle_right_bottom(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t x, egui_dim_t y, egui_alpha_t *alpha);
 
 void egui_canvas_clear_mask(void);
 void egui_canvas_set_mask(egui_mask_t *mask);
@@ -474,6 +665,9 @@ egui_mask_t *egui_canvas_get_mask(void);
 
 egui_region_t *egui_canvas_get_base_view_work_region(void);
 egui_region_t *egui_canvas_get_pfb_region(void);
+
+#include "egui_canvas_gradient.h"
+
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

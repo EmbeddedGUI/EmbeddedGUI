@@ -3,6 +3,7 @@
 
 #include "egui_common.h"
 #include "egui_motion_event.h"
+#include "egui_pfb_manager.h"
 #include "widget/egui_view_group.h"
 #include "anim/egui_animation.h"
 #include "app/egui_activity.h"
@@ -50,7 +51,21 @@ struct egui_core
     egui_view_group_t user_root_view_group; // user root view group
 
     egui_region_t region_dirty_arr[EGUI_CONFIG_DIRTY_AREA_COUNT]; // dirty region of screen
+
+    egui_pfb_manager_t pfb_mgr; // PFB double buffer manager
+
+    uint8_t is_suspended; // 1 if GUI refresh is paused
 };
+
+/**
+ * Initialization configuration for egui_init().
+ * Users fill this struct and pass it to egui_init().
+ */
+typedef struct egui_init_config
+{
+    egui_color_int_t *pfb;        // Primary PFB buffer (required)
+    egui_color_int_t *pfb_backup; // Backup PFB buffer for double buffering (NULL = single buffer)
+} egui_init_config_t;
 
 void egui_core_force_refresh(void);
 egui_view_group_t *egui_core_get_root_view(void);
@@ -66,6 +81,9 @@ void egui_core_layout_childs_user_root_view(uint8_t is_orientation_horizontal, u
 egui_region_t *egui_core_get_region_dirty_arr(void);
 void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode);
 void egui_core_process_input_motion(egui_motion_event_t *motion_event);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+void egui_core_process_input_key(egui_key_event_t *key_event);
+#endif
 uint16_t egui_core_get_unique_id(void);
 void egui_core_refresh_screen(void);
 void egui_core_stop_auto_refresh_screen(void);
@@ -74,7 +92,47 @@ egui_color_int_t *egui_core_get_pfb_buffer_ptr(void);
 void egui_core_pfb_set_buffer(egui_color_int_t *pfb, uint16_t width, uint16_t height);
 void egui_core_power_off(void);
 void egui_core_power_on(void);
-void egui_init(egui_color_int_t *pfb);
+void egui_core_set_screen_size(int16_t width, int16_t height);
+void egui_core_suspend(void);
+void egui_core_resume(void);
+int egui_core_is_suspended(void);
+void egui_init(const egui_init_config_t *config);
+
+/**
+ * Notify that an async DMA flush has completed.
+ * Call this from the DMA completion ISR.
+ * Safe to call from interrupt context.
+ */
+void egui_pfb_notify_flush_complete(void);
+
+/**
+ * Add an extra PFB buffer to the ring queue.
+ * Call after egui_init() but before egui_screen_on().
+ * Each call adds one buffer; up to EGUI_PFB_BUFFER_MAX total.
+ */
+void egui_pfb_add_buffer(egui_color_int_t *buf);
+
+/**
+ * Acquire/release SPI bus for non-display access.
+ * Called internally by egui_api_load_external_resource().
+ * Users normally don't need to call these directly.
+ */
+void egui_pfb_bus_acquire(void);
+void egui_pfb_bus_release(void);
+
+/**
+ * Fill the entire screen with black using PFB tiles.
+ * Used during screen-on to avoid garbage display.
+ */
+void egui_core_clear_screen(void);
+
+/**
+ * High-level screen power management.
+ * egui_screen_off: suspend core, stop timers, turn off display.
+ * egui_screen_on: turn on display, clear screen, resume core + timers.
+ */
+void egui_screen_off(void);
+void egui_screen_on(void);
 
 egui_activity_t *egui_core_activity_get_current(void);
 void egui_core_activity_force_finish_all(void);

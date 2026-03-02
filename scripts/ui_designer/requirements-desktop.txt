@@ -1,0 +1,7 @@
+PyQt5>=5.15,<6
+PyQt-Fluent-Widgets>=1.4.0
+Pillow>=9.0
+numpy>=1.20
+freetype_py>=2.3
+json5>=0.9
+pyelftools>=0.29

@@ -1,7 +1,9 @@
-# 定义应用程序源文件
-set(EXAMPLE_FILES egui_page_base.c
-	egui_page_0.c
-	egui_page_1.c
-	uicode.c)
+# Source files
+file(GLOB EXAMPLE_FILES *.c)
+file(GLOB_RECURSE RESOURCE_SRC_FILES resource/*.c)
 
-add_library(example_lib ${EXAMPLE_FILES})
+# Additional include directories for resources
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/resource/font)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/resource/img)
+
+add_library(example_lib ${EXAMPLE_FILES} ${RESOURCE_SRC_FILES})

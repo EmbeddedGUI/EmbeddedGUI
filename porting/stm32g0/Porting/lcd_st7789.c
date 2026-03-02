@@ -124,6 +124,20 @@ void st7789_draw_image_dma_cache(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
     st7789_write_data_dma_without_wait((uint8_t *)data, sizeof(uint16_t) * w * h);
 }
 
+void st7789_draw_image_dma_async(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *data)
+{
+    st7789_set_address_window(x, y, x + w - 1, y + h - 1);
+    st7789_write_data_dma_without_wait((uint8_t *)data, sizeof(uint16_t) * w * h);
+}
+
+void st7789_wait_dma_complete(void)
+{
+    while (ST7789_SPI_PORT.hdmatx->State != HAL_DMA_STATE_READY)
+    {
+        continue;
+    }
+}
+
 /**
  * @brief Draw a Pixel
  * @param x&y -> coordinate to Draw

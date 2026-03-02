@@ -1,4 +1,4 @@
-﻿#ifndef _APP_EGUI_CONFIG_H_
+#ifndef _APP_EGUI_CONFIG_H_
 #define _APP_EGUI_CONFIG_H_
 
 /* Set up for C function definitions, even when using C++ */
@@ -19,7 +19,6 @@ extern "C" {
 #define EGUI_CONFIG_DEBUG_INFO_SHOW            1
 
 #define EGUI_CONFIG_FONT_DEFAULT &egui_res_font_montserrat_18_4
-
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

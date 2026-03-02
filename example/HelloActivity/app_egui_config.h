@@ -1,4 +1,4 @@
-﻿#ifndef _APP_EGUI_CONFIG_H_
+#ifndef _APP_EGUI_CONFIG_H_
 #define _APP_EGUI_CONFIG_H_
 
 /* Set up for C function definitions, even when using C++ */
@@ -6,6 +6,7 @@
 extern "C" {
 #endif
 
+// Enable auto-click simulation for GIF recording
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

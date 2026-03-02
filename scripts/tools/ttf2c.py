@@ -283,7 +283,11 @@ class ttf2c_tool:
         for file in text_file:
             index += 1
             with open(file, 'r', encoding='utf-8') as f:
-                support_text += f.read()
+                raw = f.read()
+                # Resolve &#xHHHH; entities to Unicode characters
+                import re as _re
+                raw = _re.sub(r'&#x([0-9A-Fa-f]+);', lambda m: chr(int(m.group(1), 16)), raw)
+                support_text += raw
                 if index < len(text_file):
                     support_text += "\n"
             text_file_name = os.path.basename(file)

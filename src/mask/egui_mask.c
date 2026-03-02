@@ -23,6 +23,7 @@ void egui_mask_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_co
 
 const egui_mask_api_t egui_mask_t_api_table = {
         .mask_point = egui_mask_mask_point,
+        .mask_get_row_range = NULL,
 };
 
 void egui_mask_init(egui_mask_t *self)

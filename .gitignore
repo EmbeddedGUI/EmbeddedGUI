@@ -9,6 +9,7 @@
 /doc/build
 *.pyc
 /build
+/build_cmake
 *.o
 *.d
 *.crf
@@ -21,3 +22,32 @@
 *.htm
 *.lnp
 *.sct
+
+example/HelloDesigner
+example/HelloDesigner_1
+example/HelloDesigner_temp
+/runtime_check_output
+/perf_output
+
+example/HelloSmartHome
+nul
+smart_home_dashboard_(320x480)
+figma_make_battery
+example/HelloBattery
+
+example/HelloTempControl
+node_modules
+/web/demos
+/web/docs
+/.venv/
+/tools/w64devkit/
+dist/
+
+# Plan/design documents (local only)
+.claude/*.md
+docs/plans/
+
+# UI Designer local config
+scripts/ui_designer/.config/
+
+__pycache__

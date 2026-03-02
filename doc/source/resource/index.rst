@@ -1,11 +1,12 @@
-.. _resource:
-
 资源管理
-##############
+========
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-   resource_generate_introduction.md
-   image_generate.md
-   font_generate.md
+   resource_overview
+   font_generate
+   image_generate
+   resource_manager
+   size_analysis
+   optimization_tips

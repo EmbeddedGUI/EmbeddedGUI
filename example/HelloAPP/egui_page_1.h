@@ -3,8 +3,6 @@
 
 #include "egui.h"
 
-#include "egui_page_base.h"
-
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {

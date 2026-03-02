@@ -12,7 +12,8 @@ typedef struct egui_image_api egui_image_api_t;
 struct egui_image_api
 {
     int (*get_point)(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha);
-    int (*get_point_resize)(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t *color, egui_alpha_t *alpha);
+    int (*get_point_resize)(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t *color,
+                            egui_alpha_t *alpha);
     void (*draw_image)(const egui_image_t *self, egui_dim_t x, egui_dim_t y);
     void (*draw_image_resize)(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height);
 };
@@ -32,7 +33,7 @@ struct egui_image
     extern const egui_image_api_t _type##_api_table;                                                                                                           \
     static _type _name = {.base = {.res = _res, .api = &_type##_api_table}}
 
-#define EGUI_IMAGE_SUB_DEFINE_CONST(_type, _name, _res)                                                                                                              \
+#define EGUI_IMAGE_SUB_DEFINE_CONST(_type, _name, _res)                                                                                                        \
     extern const egui_image_api_t _type##_api_table;                                                                                                           \
     const _type _name = {.base = {.res = _res, .api = &_type##_api_table}}
 

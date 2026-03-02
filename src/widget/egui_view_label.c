@@ -7,8 +7,8 @@
 
 void egui_view_label_on_draw(egui_view_t *self)
 {
-    egui_view_label_t *local = (egui_view_label_t *)self;
-    if(local->font == NULL || local->text == NULL)
+    EGUI_LOCAL_INIT(egui_view_label_t);
+    if (local->font == NULL || local->text == NULL)
     {
         return;
     }
@@ -20,7 +20,7 @@ void egui_view_label_on_draw(egui_view_t *self)
 
 void egui_view_label_set_font(egui_view_t *self, const egui_font_t *font)
 {
-    egui_view_label_t *local = (egui_view_label_t *)self;
+    EGUI_LOCAL_INIT(egui_view_label_t);
     if (local->font == font)
     {
         return;
@@ -31,12 +31,11 @@ void egui_view_label_set_font(egui_view_t *self, const egui_font_t *font)
 
 void egui_view_label_set_font_with_std_height(egui_view_t *self, const egui_font_t *font)
 {
-    egui_view_label_t *local = (egui_view_label_t *)self;
+    EGUI_LOCAL_INIT(egui_view_label_t);
     egui_dim_t height = EGUI_FONT_STD_GET_FONT_HEIGHT(font);
-    EGUI_UNUSED(local);
 
     egui_view_label_set_font(self, font);
-    if(height == self->region.size.height)
+    if (height == self->region.size.height)
     {
         return;
     }
@@ -46,7 +45,7 @@ void egui_view_label_set_font_with_std_height(egui_view_t *self, const egui_font
 
 void egui_view_label_set_font_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha)
 {
-    egui_view_label_t *local = (egui_view_label_t *)self;
+    EGUI_LOCAL_INIT(egui_view_label_t);
     if ((local->color.full == color.full) && (local->alpha == alpha))
     {
         return;
@@ -58,7 +57,7 @@ void egui_view_label_set_font_color(egui_view_t *self, egui_color_t color, egui_
 
 void egui_view_label_set_align_type(egui_view_t *self, uint8_t align_type)
 {
-    egui_view_label_t *local = (egui_view_label_t *)self;
+    EGUI_LOCAL_INIT(egui_view_label_t);
     if (local->align_type == align_type)
     {
         return;
@@ -69,21 +68,21 @@ void egui_view_label_set_align_type(egui_view_t *self, uint8_t align_type)
 
 void egui_view_label_set_text(egui_view_t *self, const char *text)
 {
-    egui_view_label_t *local = (egui_view_label_t *)self;
+    EGUI_LOCAL_INIT(egui_view_label_t);
     local->text = text;
     egui_view_invalidate(self);
 }
 
 void egui_view_label_set_line_space(egui_view_t *self, egui_dim_t line_space)
 {
-    egui_view_label_t *local = (egui_view_label_t *)self;
+    EGUI_LOCAL_INIT(egui_view_label_t);
     local->line_space = line_space;
     egui_view_invalidate(self);
 }
 
 int egui_view_label_get_str_size(egui_view_t *self, const void *string, egui_dim_t *width, egui_dim_t *height)
 {
-    egui_view_label_t *local = (egui_view_label_t *)self;
+    EGUI_LOCAL_INIT(egui_view_label_t);
 
     local->font->api->get_str_size(local->font, string, 1, local->line_space, width, height);
 
@@ -102,22 +101,25 @@ int egui_view_label_get_str_size_with_padding(egui_view_t *self, const void *str
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_label_t) = {
-    .dispatch_touch_event = egui_view_dispatch_touch_event,
-    .on_touch_event = egui_view_on_touch_event,
-    .on_intercept_touch_event = egui_view_on_intercept_touch_event,
-    .compute_scroll = egui_view_compute_scroll,
-    .calculate_layout = egui_view_calculate_layout,
-    .request_layout = egui_view_request_layout,
-    .draw = egui_view_draw,
-    .on_attach_to_window = egui_view_on_attach_to_window,
-    .on_draw = egui_view_label_on_draw, // changed
-    .on_detach_from_window = egui_view_on_detach_from_window,
+        .dispatch_touch_event = egui_view_dispatch_touch_event,
+        .on_touch_event = egui_view_on_touch_event,
+        .on_intercept_touch_event = egui_view_on_intercept_touch_event,
+        .compute_scroll = egui_view_compute_scroll,
+        .calculate_layout = egui_view_calculate_layout,
+        .request_layout = egui_view_request_layout,
+        .draw = egui_view_draw,
+        .on_attach_to_window = egui_view_on_attach_to_window,
+        .on_draw = egui_view_label_on_draw, // changed
+        .on_detach_from_window = egui_view_on_detach_from_window,
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+        .dispatch_key_event = egui_view_dispatch_key_event,
+        .on_key_event = egui_view_on_key_event,
+#endif
 };
 
 void egui_view_label_init(egui_view_t *self)
 {
-    egui_view_label_t *local = (egui_view_label_t *)self;
-    EGUI_UNUSED(local);
+    EGUI_INIT_LOCAL(egui_view_label_t);
 
     // call super init.
     egui_view_init(self);
@@ -129,10 +131,31 @@ void egui_view_label_init(egui_view_t *self)
 
     local->align_type = EGUI_ALIGN_CENTER;
     local->alpha = EGUI_ALPHA_100;
-    local->color = EGUI_COLOR_BLACK;
+    local->color = EGUI_THEME_TEXT_PRIMARY;
 
     local->font = NULL;
     local->text = NULL;
 
     egui_view_set_view_name(self, "egui_view_label");
+}
+
+void egui_view_label_apply_params(egui_view_t *self, const egui_view_label_params_t *params)
+{
+    EGUI_LOCAL_INIT(egui_view_label_t);
+
+    self->region = params->region;
+
+    local->text = params->text;
+    local->font = params->font;
+    local->color = params->color;
+    local->alpha = params->alpha;
+    local->align_type = params->align_type;
+
+    egui_view_invalidate(self);
+}
+
+void egui_view_label_init_with_params(egui_view_t *self, const egui_view_label_params_t *params)
+{
+    egui_view_label_init(self);
+    egui_view_label_apply_params(self, params);
 }

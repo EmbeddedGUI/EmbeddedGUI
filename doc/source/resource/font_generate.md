@@ -124,3 +124,101 @@ freetype一般来说，就是下面这个图比较典型了，当然还有纵向
 
 
 ![image-20241228085605955](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/image-20241228085605955.png)
+
+
+
+## Icon Font 支持
+
+除了常规文本字体外，项目还支持 Icon Font（图标字体），可以将矢量图标作为字体字符使用。最常用的图标字体是 Google 的 MaterialSymbols。
+
+### 使用 MaterialSymbols 图标字体
+
+1. 下载 MaterialSymbols 的 TTF 文件（如 `MaterialSymbolsOutlined.ttf`）
+2. 在 `supported_text.txt` 中写入所需图标的 Unicode 字符
+3. 在 `app_resource_config.json` 中配置：
+
+```json
+{
+    "font": [
+        {
+            "file": "MaterialSymbolsOutlined.ttf",
+            "text": "supported_icons.txt",
+            "external": "0",
+            "pixelsize": "24",
+            "fontbitsize": "4"
+        }
+    ]
+}
+```
+
+### 在代码中使用图标字体
+
+图标字体和普通字体的使用方式完全一致，通过 UTF-8 编码引用对应的图标字符：
+
+```c
+// 设置图标字体
+egui_view_label_set_font(EGUI_VIEW_OF(&icon_label),
+                         (egui_font_t *)&egui_res_font_material_symbols_24_4);
+// 设置图标文本（UTF-8 编码的图标字符）
+egui_view_label_set_text(EGUI_VIEW_OF(&icon_label), "\xEF\x80\x8C");
+```
+
+### 图标字体的优势
+
+- 矢量渲染，不同大小都清晰
+- 支持抗锯齿（通过 `fontbitsize` 控制）
+- 占用空间远小于位图图标
+- 可以和文本混排
+
+## 多语言字体合并
+
+嵌入式项目经常需要支持多国语言，不同语言可能使用不同的字体文件。项目支持将多个字体配置合并，减少资源冗余。
+
+### 自动合并规则
+
+当 `app_resource_config.json` 中多个字体配置项满足以下条件时，会自动合并：
+
+- 相同的 `file`（字体文件）
+- 相同的 `pixelsize`（字体大小）
+- 相同的 `fontbitsize`（位深）
+- 相同的 `external`（存储位置）
+
+合并时，多个 `text` 文件中的文本会被合并，重复字符自动去重。
+
+### 多语言配置示例
+
+```json
+{
+    "font": [
+        {
+            "file": "NotoSansSC-Regular.ttf",
+            "text": "chinese_text.txt",
+            "external": "0",
+            "pixelsize": "16",
+            "fontbitsize": "4"
+        },
+        {
+            "file": "NotoSansSC-Regular.ttf",
+            "text": "english_text.txt",
+            "external": "0",
+            "pixelsize": "16",
+            "fontbitsize": "4"
+        }
+    ]
+}
+```
+
+上述配置中，`chinese_text.txt` 和 `english_text.txt` 的内容会被合并为一个字体资源，共享同一个 `egui_res_font_xxxxx` 结构体。
+
+### 多字体文件的多语言方案
+
+如果不同语言需要不同的字体文件（如中文用思源黑体，西文用 Roboto），则需要分别配置，在代码中根据语言切换字体：
+
+```c
+// 中文标签使用中文字体
+egui_view_label_set_font(EGUI_VIEW_OF(&label_cn),
+                         (egui_font_t *)&egui_res_font_noto_sans_sc_16_4);
+// 英文标签使用英文字体
+egui_view_label_set_font(EGUI_VIEW_OF(&label_en),
+                         (egui_font_t *)&egui_res_font_roboto_16_4);
+```

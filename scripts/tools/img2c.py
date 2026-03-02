@@ -91,7 +91,8 @@ class img2c_tool:
 
         if format != 'rgb32' and \
             format != 'rgb565' and \
-            format != 'gray8':
+            format != 'gray8' and \
+            format != 'alpha':
             print("Invalid format %s" % (format))
             return
 
@@ -221,14 +222,17 @@ class img2c_tool:
 
             alpha_type = "EGUI_IMAGE_ALPHA_TYPE_8"
             data_type = "EGUI_IMAGE_DATA_TYPE_RGB32"
-            
+
             alpha_bin_data = []
             data_bin_data = []
 
             alpha_str_io = StringIO()
             data_str_io = StringIO()
 
-            if mode == "RGB":
+            # For alpha format, we skip the normal alpha extraction and handle everything in the data section
+            if self.format == 'alpha':
+                alpha_buf_name = "NULL"
+            elif mode == "RGB":
                 alpha_buf_name = "NULL"
             elif mode == "RGBA":
                 if self.format == 'rgb32':
@@ -461,6 +465,140 @@ class img2c_tool:
                     print('',file=data_str_io)
                     cnt+=1
                 print('};', file=data_str_io)
+
+            elif self.format == 'alpha':
+                data_type = "EGUI_IMAGE_DATA_TYPE_ALPHA"
+                # Extract alpha channel - use alpha channel from RGBA, or luminance from RGB/L
+                if mode == "RGBA":
+                    alpha_data = data[...,3].astype(np.uint8)
+                elif mode == "RGB":
+                    # Use luminance as alpha
+                    R = data[...,0].astype(np.uint16)
+                    G = data[...,1].astype(np.uint16)
+                    B = data[...,2].astype(np.uint16)
+                    alpha_data = np.rint((R + G + B) / 3).astype(np.uint8)
+                else:
+                    alpha_data = data.astype(np.uint8)
+
+                # Pack alpha data into data_buf using same packing as alpha_buf
+                if self.alpha == 8:
+                    alpha_type = "EGUI_IMAGE_ALPHA_TYPE_8"
+                    print('', file=data_str_io)
+                    print('static const uint8_t %s[%d*%d] = {' % (data_buf_name, row, col), file=data_str_io)
+                    cnt = 0
+                    for eachRow in alpha_data:
+                        lineWidth = 0
+                        print("/* -%d- */" % (cnt), file=data_str_io)
+                        for val in eachRow:
+                            data_bin_data.append(int(val))
+                            if lineWidth % WIDTH_ALPHA == (WIDTH_ALPHA - 1):
+                                print("0x%02x," % (val), file=data_str_io)
+                            else:
+                                print("0x%02x" % (val), end=", ", file=data_str_io)
+                            lineWidth += 1
+                        cnt += 1
+                        print('', file=data_str_io)
+                    print('};', file=data_str_io)
+
+                elif self.alpha == 4:
+                    alpha_type = "EGUI_IMAGE_ALPHA_TYPE_4"
+                    def RevBitQuadPerByte_alpha(byteArr):
+                        return ((byteArr & 0x0f) << 4) | ((byteArr & 0xf0) >> 4)
+
+                    print('', file=data_str_io)
+                    print('static const uint8_t %s[%d*%d] = {' % (data_buf_name, (row + 1) // 2, col), file=data_str_io)
+                    cnt = 0
+                    for eachRow in alpha_data:
+                        lineWidth = 0
+                        print("/* -%d- */" % (cnt), file=data_str_io)
+
+                        bitsArr = np.unpackbits(eachRow.astype(np.uint8))
+
+                        # generate indexes for MSB bit quadruplet every byte
+                        idx = np.arange(0, np.size(bitsArr), 8)
+                        idx = np.reshape(np.column_stack(
+                                (np.column_stack((idx + 0, idx + 1)), np.column_stack((idx + 2, idx + 3)))),
+                                (1, -1)),
+
+                        # extraction + endianness conversion
+                        packedBytes = RevBitQuadPerByte_alpha(np.packbits(bitsArr[idx]))
+
+                        for elt in packedBytes:
+                            data_bin_data.append(int(elt))
+                            if lineWidth % WIDTH_ALPHA == (WIDTH_ALPHA - 1):
+                                print("0x%02x," % (elt), file=data_str_io)
+                            else:
+                                print("0x%02x" % (elt), end=", ", file=data_str_io)
+                            lineWidth += 1
+                        cnt += 1
+                        print('', file=data_str_io)
+                    print('};', file=data_str_io)
+
+                elif self.alpha == 2:
+                    alpha_type = "EGUI_IMAGE_ALPHA_TYPE_2"
+                    def RevBitPairPerByte_alpha(byteArr):
+                        return ((byteArr & 0x03) << 6) | ((byteArr & 0xc0) >> 6) | ((byteArr & 0x30) >> 2) | ((byteArr & 0x0c) << 2)
+
+                    print('', file=data_str_io)
+                    print('static const uint8_t %s[%d*%d] = {' % (data_buf_name, (row + 3) // 4, col), file=data_str_io)
+                    cnt = 0
+                    for eachRow in alpha_data:
+                        lineWidth = 0
+                        print("/* -%d- */" % (cnt), file=data_str_io)
+
+                        bitsArr = np.unpackbits(eachRow.astype(np.uint8))
+
+                        # generate indexes for MSB bit pair every byte
+                        idx = np.arange(0, np.size(bitsArr), 8)
+                        idx = np.reshape(np.column_stack((idx + 0, idx + 1)), (1, -1))
+
+                        # extraction + endianness conversion
+                        packedBytes = RevBitPairPerByte_alpha(np.packbits(bitsArr[idx]))
+
+                        for elt in packedBytes:
+                            data_bin_data.append(int(elt))
+                            if lineWidth % WIDTH_ALPHA == (WIDTH_ALPHA - 1):
+                                print("0x%02x," % (elt), file=data_str_io)
+                            else:
+                                print("0x%02x" % (elt), end=", ", file=data_str_io)
+                            lineWidth += 1
+                        cnt += 1
+                        print('', file=data_str_io)
+                    print('};', file=data_str_io)
+
+                elif self.alpha == 1:
+                    alpha_type = "EGUI_IMAGE_ALPHA_TYPE_1"
+                    def RevBitPerByte_alpha(byteArr):
+                        return ((byteArr & 0x01) << 7) | ((byteArr & 0x80) >> 7) | \
+                            ((byteArr & 0x02) << 5) | ((byteArr & 0x40) >> 5) | \
+                            ((byteArr & 0x04) << 3) | ((byteArr & 0x20) >> 3) | \
+                            ((byteArr & 0x08) << 1) | ((byteArr & 0x10) >> 1)
+
+                    print('', file=data_str_io)
+                    print('static const uint8_t %s[%d*%d] = {' % (data_buf_name, (row + 7) // 8, col), file=data_str_io)
+                    cnt = 0
+                    for eachRow in alpha_data:
+                        lineWidth = 0
+                        print("/* -%d- */" % (cnt), file=data_str_io)
+
+                        bitsArr = np.unpackbits(eachRow.astype(np.uint8))
+
+                        # generate indexes for MSB bit pair every byte
+                        idx = np.arange(0, np.size(bitsArr), 8)
+
+                        # extraction + endianness conversion
+                        packedBytes = RevBitPerByte_alpha(np.packbits(bitsArr[idx]))
+
+                        for elt in packedBytes:
+                            data_bin_data.append(int(elt))
+                            if lineWidth % WIDTH_ALPHA == (WIDTH_ALPHA - 1):
+                                print("0x%02x," % (elt), file=data_str_io)
+                            else:
+                                print("0x%02x" % (elt), end=", ", file=data_str_io)
+                            lineWidth += 1
+                        cnt += 1
+                        print('', file=data_str_io)
+                    print('};', file=data_str_io)
             
             # write data buffer to file
             self.data_bin_data = data_bin_data
@@ -502,7 +640,7 @@ def main(argv):
 
     parser.add_argument('-i', "--input", nargs='?', type = str,  required=True, help="Input file (png, bmp, etc..)")
     parser.add_argument('-n', "--name", nargs='?',type = str, required=True, help="The customized UTF8 image name")
-    parser.add_argument('-f', '--format', nargs='?',type = str, default="rgb565", required=False, help="RGB Format (rgb32, rgb565, gray8)")
+    parser.add_argument('-f', '--format', nargs='?',type = str, default="rgb565", required=False, help="RGB Format (rgb32, rgb565, gray8, alpha)")
     parser.add_argument('-a', '--alpha', nargs='?',type = int, default=8, required=False, help="Alpha Format (0, 1, 2, 4, 8)")
     parser.add_argument('-d', '--dim', nargs=2,type = int, required=False, help="Resize the image with the given width and height")
     parser.add_argument('-r', '--rot', nargs='?',type = float, default=0.0, required=False, help="Rotate the image with the given angle in degrees")

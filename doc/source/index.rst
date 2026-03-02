@@ -1,27 +1,62 @@
-.. EmbeddedGUI documentation master file, created by
-   sphinx-quickstart on Sat Aug 31 10:27:50 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-欢迎来到EmbeddedGUI的文档
-=========================
-
+欢迎来到 EmbeddedGUI 的文档
+===========================
 
 .. toctree::
    :maxdepth: 2
-   :caption: 目录:
+   :caption: 快速入门
 
-   introduction/index.rst
-   basic/index.rst
-   resource/index.rst
-   code/index.rst
+   getting_started/index
 
+.. toctree::
+   :maxdepth: 2
+   :caption: 架构原理
 
+   architecture/index
 
+.. toctree::
+   :maxdepth: 2
+   :caption: 控件参考
 
-索引和表格
-==========
+   widgets/index
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. toctree::
+   :maxdepth: 2
+   :caption: 动画系统
+
+   animation/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: 资源管理
+
+   resource/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: 性能测试
+
+   performance/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: 移植指南
+
+   porting/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: 应用开发
+
+   app/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: UI Designer
+
+   ui_designer/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: 附录
+
+   appendix/index

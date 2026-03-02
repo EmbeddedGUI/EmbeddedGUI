@@ -9,7 +9,7 @@
 
 void egui_interpolator_anticipate_overshoot_tension_set(egui_interpolator_t *self, egui_float_t tension)
 {
-    egui_interpolator_anticipate_overshoot_t *local = (egui_interpolator_anticipate_overshoot_t *)self;
+    EGUI_LOCAL_INIT(egui_interpolator_anticipate_overshoot_t);
     local->tension = EGUI_FLOAT_MULT(tension, EGUI_FLOAT_VALUE(1.5f));
 }
 
@@ -27,7 +27,7 @@ static egui_float_t o(egui_float_t t, egui_float_t s)
 
 egui_float_t egui_interpolator_anticipate_overshoot_get_interpolation(egui_interpolator_t *self, egui_float_t t)
 {
-    egui_interpolator_anticipate_overshoot_t *local = (egui_interpolator_anticipate_overshoot_t *)self;
+    EGUI_LOCAL_INIT(egui_interpolator_anticipate_overshoot_t);
     // a(t, s) = t * t * ((s + 1) * t - s)
     // o(t, s) = t * t * ((s + 1) * t + s)
     // f(t) = 0.5 * a(t * 2, tension * extraTension), when t < 0.5
@@ -50,7 +50,7 @@ const egui_interpolator_api_t egui_interpolator_anticipate_overshoot_t_api_table
 
 void egui_interpolator_anticipate_overshoot_init(egui_interpolator_t *self)
 {
-    egui_interpolator_anticipate_overshoot_t *local = (egui_interpolator_anticipate_overshoot_t *)self;
+    EGUI_LOCAL_INIT(egui_interpolator_anticipate_overshoot_t);
     // call super init.
     egui_interpolator_init(self);
     // update api.

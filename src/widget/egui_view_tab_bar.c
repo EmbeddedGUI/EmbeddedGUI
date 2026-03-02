@@ -1,0 +1,207 @@
+#include <stdio.h>
+#include <assert.h>
+
+#include "egui_view_tab_bar.h"
+#include "core/egui_canvas_gradient.h"
+#include "font/egui_font_std.h"
+#include "resource/egui_resource.h"
+
+void egui_view_tab_bar_set_tabs(egui_view_t *self, const char **tab_texts, uint8_t tab_count)
+{
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    local->tab_texts = tab_texts;
+    local->tab_count = tab_count;
+    if (local->current_index >= tab_count)
+    {
+        local->current_index = 0;
+    }
+    egui_view_invalidate(self);
+}
+
+void egui_view_tab_bar_set_current_index(egui_view_t *self, uint8_t index)
+{
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    if (index >= local->tab_count)
+    {
+        return;
+    }
+    if (local->current_index == index)
+    {
+        return;
+    }
+    local->current_index = index;
+    if (local->on_tab_changed)
+    {
+        local->on_tab_changed(self, index);
+    }
+    egui_view_invalidate(self);
+}
+
+void egui_view_tab_bar_set_on_tab_changed_listener(egui_view_t *self, egui_view_on_tab_changed_listener_t listener)
+{
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    local->on_tab_changed = listener;
+}
+
+void egui_view_tab_bar_on_draw(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+
+    if (local->tab_count == 0 || local->tab_texts == NULL || local->font == NULL)
+    {
+        return;
+    }
+
+    egui_region_t region;
+    egui_view_get_work_region(self, &region);
+
+    egui_dim_t tab_w = region.size.width / local->tab_count;
+    egui_dim_t indicator_h = 3;
+
+    uint8_t i;
+    for (i = 0; i < local->tab_count; i++)
+    {
+        egui_region_t tab_rect;
+        tab_rect.location.x = region.location.x + i * tab_w;
+        tab_rect.location.y = region.location.y;
+        tab_rect.size.width = tab_w;
+        tab_rect.size.height = region.size.height - indicator_h;
+
+        egui_color_t color = (i == local->current_index) ? local->active_text_color : local->text_color;
+        egui_canvas_draw_text_in_rect(local->font, local->tab_texts[i], &tab_rect, EGUI_ALIGN_CENTER, color, local->alpha);
+
+        // Draw indicator under current tab
+        if (i == local->current_index)
+        {
+#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+            {
+                egui_color_t color_light = egui_rgb_mix(local->indicator_color, EGUI_COLOR_WHITE, 80);
+                egui_gradient_stop_t stops[2] = {
+                        {.position = 0, .color = color_light},
+                        {.position = 255, .color = local->indicator_color},
+                };
+                egui_gradient_t grad = {
+                        .type = EGUI_GRADIENT_TYPE_LINEAR_VERTICAL,
+                        .stop_count = 2,
+                        .alpha = local->alpha,
+                        .stops = stops,
+                };
+                egui_canvas_draw_rectangle_fill_gradient(tab_rect.location.x, region.location.y + region.size.height - indicator_h, tab_w, indicator_h, &grad);
+            }
+#else
+            egui_canvas_draw_rectangle_fill(tab_rect.location.x, region.location.y + region.size.height - indicator_h, tab_w, indicator_h,
+                                            local->indicator_color, local->alpha);
+#endif
+        }
+    }
+}
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+int egui_view_tab_bar_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
+{
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+
+    if (self->is_enable == false || local->tab_count == 0)
+    {
+        return 0;
+    }
+
+    switch (event->type)
+    {
+    case EGUI_MOTION_EVENT_ACTION_DOWN:
+    {
+        egui_view_set_pressed(self, true);
+        break;
+    }
+    case EGUI_MOTION_EVENT_ACTION_UP:
+    {
+        egui_view_set_pressed(self, false);
+
+        // Determine which tab was tapped
+        egui_dim_t local_x = event->location.x - self->region_screen.location.x;
+        egui_dim_t tab_w = self->region.size.width / local->tab_count;
+
+        if (tab_w > 0)
+        {
+            uint8_t index = (uint8_t)(local_x / tab_w);
+            if (index >= local->tab_count)
+            {
+                index = local->tab_count - 1;
+            }
+            egui_view_tab_bar_set_current_index(self, index);
+        }
+        break;
+    }
+    case EGUI_MOTION_EVENT_ACTION_CANCEL:
+    {
+        egui_view_set_pressed(self, false);
+        break;
+    }
+    default:
+        break;
+    }
+
+    return 1;
+}
+#endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+
+const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_tab_bar_t) = {
+        .dispatch_touch_event = egui_view_dispatch_touch_event,
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+        .on_touch_event = egui_view_tab_bar_on_touch_event,
+#else
+        .on_touch_event = egui_view_on_touch_event,
+#endif
+        .on_intercept_touch_event = egui_view_on_intercept_touch_event,
+        .compute_scroll = egui_view_compute_scroll,
+        .calculate_layout = egui_view_calculate_layout,
+        .request_layout = egui_view_request_layout,
+        .draw = egui_view_draw,
+        .on_attach_to_window = egui_view_on_attach_to_window,
+        .on_draw = egui_view_tab_bar_on_draw,
+        .on_detach_from_window = egui_view_on_detach_from_window,
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+        .dispatch_key_event = egui_view_dispatch_key_event,
+        .on_key_event = egui_view_on_key_event,
+#endif
+};
+
+void egui_view_tab_bar_init(egui_view_t *self)
+{
+    EGUI_INIT_LOCAL(egui_view_tab_bar_t);
+    // call super init.
+    egui_view_init(self);
+    // update api.
+    self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_tab_bar_t);
+
+    // init local data.
+    local->on_tab_changed = NULL;
+    local->tab_texts = NULL;
+    local->tab_count = 0;
+    local->current_index = 0;
+    local->alpha = EGUI_ALPHA_100;
+    local->text_color = EGUI_THEME_TEXT_SECONDARY;
+    local->active_text_color = EGUI_THEME_PRIMARY;
+    local->indicator_color = EGUI_THEME_PRIMARY;
+    local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+
+    egui_view_set_view_name(self, "egui_view_tab_bar");
+}
+
+void egui_view_tab_bar_apply_params(egui_view_t *self, const egui_view_tab_bar_params_t *params)
+{
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+
+    self->region = params->region;
+
+    local->tab_texts = params->tab_texts;
+    local->tab_count = params->tab_count;
+
+    egui_view_invalidate(self);
+}
+
+void egui_view_tab_bar_init_with_params(egui_view_t *self, const egui_view_tab_bar_params_t *params)
+{
+    egui_view_tab_bar_init(self);
+    egui_view_tab_bar_apply_params(self, params);
+}

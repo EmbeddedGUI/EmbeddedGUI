@@ -1,5 +1,6 @@
 # DOC: used to generate docs
 
 sphinx
-sphinx_rtd_theme
+furo
 myst-parser
+matplotlib

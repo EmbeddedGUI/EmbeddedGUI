@@ -147,6 +147,8 @@ extern SPI_HandleTypeDef ST7789_SPI_PORT;
 #define ST7789_DC_SET() HAL_GPIO_WritePin(ST7789_DC_PORT, ST7789_DC_PIN, GPIO_PIN_SET)
 
 void st7789_draw_image_dma_cache(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *data);
+void st7789_draw_image_dma_async(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *data);
+void st7789_wait_dma_complete(void);
 void st7789_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *data);
 void st7789_draw_pixel(uint16_t x, uint16_t y, uint16_t color);
 void st7789_init(void);
