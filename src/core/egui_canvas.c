@@ -191,7 +191,10 @@ void egui_canvas_draw_circle_corner_fill(egui_dim_t center_x, egui_dim_t center_
     // Compute visible row/col ranges from intersection (same as circle_corner outline)
     egui_dim_t diff_x = region_intersect.location.x - region.location.x;
     egui_dim_t diff_y = region_intersect.location.y - region.location.y;
-    egui_dim_t row_start, row_end, col_start, col_end;
+    egui_dim_t row_start = 0;
+    egui_dim_t row_end = 0;
+    egui_dim_t col_start = 0;
+    egui_dim_t col_end = 0;
 
     switch (type)
     {

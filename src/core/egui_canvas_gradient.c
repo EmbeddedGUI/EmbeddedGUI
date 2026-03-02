@@ -2527,51 +2527,6 @@ void egui_canvas_draw_round_rectangle_ring_fill_gradient(egui_dim_t x, egui_dim_
 
 /* ========================== Capsule Line Fill Gradient ========================== */
 
-/* Integer distance squared from point (px, py) to segment (x1,y1)-(x2,y2).
- * Also returns the closest point via *qx, *qy. */
-static uint32_t gradient_point_to_segment_dist_sq(int32_t px, int32_t py, int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t *qx, int32_t *qy)
-{
-    int32_t abx = x2 - x1;
-    int32_t aby = y2 - y1;
-    int32_t apx = px - x1;
-    int32_t apy = py - y1;
-
-    int32_t ab_sq = abx * abx + aby * aby;
-
-    if (ab_sq == 0)
-    {
-        /* Degenerate segment: point */
-        *qx = x1;
-        *qy = y1;
-        return (uint32_t)(apx * apx + apy * apy);
-    }
-
-    /* t = dot(AP, AB) / |AB|^2, scaled by 256 */
-    int32_t dot = apx * abx + apy * aby;
-    /* Clamp t to [0, ab_sq] (i.e., t in [0,1]) */
-    if (dot <= 0)
-    {
-        *qx = x1;
-        *qy = y1;
-    }
-    else if (dot >= ab_sq)
-    {
-        *qx = x2;
-        *qy = y2;
-    }
-    else
-    {
-        /* t = dot / ab_sq, use fixed-point: scale by 1024 */
-        int32_t t_scaled = (int32_t)(((int64_t)dot << 10) / ab_sq);
-        *qx = x1 + (int32_t)(((int64_t)abx * t_scaled) >> 10);
-        *qy = y1 + (int32_t)(((int64_t)aby * t_scaled) >> 10);
-    }
-
-    int32_t ddx = px - *qx;
-    int32_t ddy = py - *qy;
-    return (uint32_t)(ddx * ddx + ddy * ddy);
-}
-
 void egui_canvas_draw_line_capsule_fill_gradient(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_w,
                                                  const egui_gradient_t *gradient)
 {
