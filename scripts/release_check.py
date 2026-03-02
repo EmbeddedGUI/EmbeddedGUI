@@ -35,6 +35,7 @@ ALL_STEP_NAMES = [
     "compile",
     "runtime",
     "size",
+    "size_doc",
     "perf",
     "perf_doc",
 ]
@@ -45,6 +46,7 @@ STEP_DESCRIPTIONS = {
     "compile":  "Full compile check (all examples)",
     "runtime":  "Runtime verification (screenshots)",
     "size":     "Binary size analysis (ELF)",
+    "size_doc": "Size report generation",
     "perf":     "QEMU performance regression test",
     "perf_doc": "Performance report generation",
 }
@@ -77,6 +79,9 @@ def build_steps(args):
 
         ("size",     STEP_DESCRIPTIONS["size"],
          [py, str(SCRIPT_DIR / "utils_analysis_elf_size.py")]),
+
+        ("size_doc", STEP_DESCRIPTIONS["size_doc"],
+         [py, str(SCRIPT_DIR / "size_to_doc.py")]),
 
         ("perf",     STEP_DESCRIPTIONS["perf"],
          perf_cmd),

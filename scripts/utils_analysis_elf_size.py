@@ -1,6 +1,9 @@
 # coding=utf8
 import sys
 import os
+import json
+import subprocess
+from datetime import datetime
 
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
@@ -130,7 +133,7 @@ def compile_code(params):
 
 def process_app(current_work_cnt, total_work_cnt, app, app_basic, params):
     print("=================================================================================")
-    print("Total Work Cnt: %d, Current Cnt: %d, Process: %.2f%%" 
+    print("Total Work Cnt: %d, Current Cnt: %d, Process: %.2f%%"
         % (total_work_cnt, current_work_cnt, current_work_cnt * 100.0 / total_work_cnt))
     print("=================================================================================")
 
@@ -141,17 +144,24 @@ def process_app(current_work_cnt, total_work_cnt, app, app_basic, params):
     res = compile_code(params_full)
     if(res != 0):
         print("Compile failed, skip this app.")
-        return None
-        
+        return None, None
+
     elf_size_info = utils_process_elf_file('output/main.elf')
-    
-    # info = elf_size_info.get_analysis_data()
-    # print(info)
+
     app_name = app
     if app_basic != None:
         app_name = app + '(' + app_basic + ')'
-    return ("|%24s|%21s|%21s|%21s|%21s|\n" % (app_name, elf_size_info.code_size, elf_size_info.rodata_size
+
+    md_row = ("|%24s|%21s|%21s|%21s|%21s|\n" % (app_name, elf_size_info.code_size, elf_size_info.rodata_size
                                                     , elf_size_info.data_size + elf_size_info.bss_size - elf_size_info.bss_pfb_size, elf_size_info.bss_pfb_size))
+    json_entry = {
+        "name": app_name,
+        "code_bytes": elf_size_info.code_size,
+        "resource_bytes": elf_size_info.rodata_size,
+        "ram_bytes": elf_size_info.data_size + elf_size_info.bss_size - elf_size_info.bss_pfb_size,
+        "pfb_bytes": elf_size_info.bss_pfb_size,
+    }
+    return md_row, json_entry
 
 
 if __name__ == '__main__':
@@ -176,23 +186,44 @@ if __name__ == '__main__':
     info_str += ("| app                    | Code(Bytes)         | Resource(Bytes)     | RAM(Bytes)          | PFB(Bytes)          |\n")
     info_str += ("| ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |\n")
 
+    size_results = []
     current_work_cnt = 0
     for app in app_sets:
         if app == "HelloBasic":
             for app_basic in app_basic_sets:
                 current_work_cnt += 1
-                result = process_app(current_work_cnt, total_work_cnt, app, app_basic, params)
-                if result is not None:
-                    info_str += result
+                md_row, json_entry = process_app(current_work_cnt, total_work_cnt, app, app_basic, params)
+                if md_row is not None:
+                    info_str += md_row
+                    size_results.append(json_entry)
         else:
             current_work_cnt += 1
-            result = process_app(current_work_cnt, total_work_cnt, app, None, params)
-            if result is not None:
-                info_str += result
+            md_row, json_entry = process_app(current_work_cnt, total_work_cnt, app, None, params)
+            if md_row is not None:
+                info_str += md_row
+                size_results.append(json_entry)
     
     with open('output/README.md', 'w', encoding='utf-8') as f:
         f.write(info_str)
-    
+
     print(info_str)
+
+    # Also save JSON for doc generation
+    try:
+        git_commit = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL
+        ).decode().strip()
+    except Exception:
+        git_commit = "unknown"
+
+    json_data = {
+        "timestamp": datetime.now().isoformat(),
+        "git_commit": git_commit,
+        "apps": size_results,
+    }
+    with open('output/size_results.json', 'w', encoding='utf-8') as f:
+        json.dump(json_data, f, indent=2, ensure_ascii=False)
+    print("JSON saved: output/size_results.json")
 
     sys.exit(0)
