@@ -4,6 +4,10 @@
 
 #include "egui_view_group.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+#include "shadow/egui_shadow.h"
+#endif
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
 static int egui_view_group_layer_insert_cond(egui_dnode_t *dnode, void *data)
 {
@@ -510,10 +514,28 @@ void egui_view_group_draw(egui_view_t *self)
         {
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
 
-            // Early culling: skip children that don't intersect the current PFB tile
+            // Early culling: skip children that don't intersect the current PFB tile.
+            // When a child has a shadow, also check the shadow region since shadows
+            // can extend beyond the widget body bounds.
             if (tmp->is_visible && !tmp->is_gone && !egui_region_is_intersect(&tmp->region_screen, egui_canvas_get_pfb_region()))
             {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+                if (tmp->shadow != NULL)
+                {
+                    egui_region_t shadow_region;
+                    egui_shadow_get_region(tmp->shadow, &tmp->region_screen, &shadow_region);
+                    if (!egui_region_is_intersect(&shadow_region, egui_canvas_get_pfb_region()))
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    continue;
+                }
+#else
                 continue;
+#endif
             }
 
             // set canvase alpha

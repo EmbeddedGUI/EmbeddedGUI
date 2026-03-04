@@ -781,6 +781,56 @@ static void recording_execute_action_step(void)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     egui_sim_action_t *action = &g_recording_current_action;
 
+#if EGUI_CONFIG_SOFTWARE_ROTATION
+    // Recording actions use logical coordinates (from view region_screen),
+    // but egui_input_add_motion expects physical coordinates (the polling layer
+    // will transform physical -> logical). Convert logical -> physical here.
+    {
+        egui_display_driver_t *drv = egui_display_driver_get();
+        if (drv != NULL && drv->rotation != EGUI_DISPLAY_ROTATION_0 && drv->ops->set_rotation == NULL)
+        {
+            int16_t pw = drv->physical_width;
+            int16_t ph = drv->physical_height;
+            int lx, ly;
+
+            switch (drv->rotation)
+            {
+            case EGUI_DISPLAY_ROTATION_90:
+                // Inverse: lx,ly -> px=pw-1-ly, py=lx
+                lx = action->x1;
+                ly = action->y1;
+                action->x1 = pw - 1 - ly;
+                action->y1 = lx;
+                lx = action->x2;
+                ly = action->y2;
+                action->x2 = pw - 1 - ly;
+                action->y2 = lx;
+                break;
+            case EGUI_DISPLAY_ROTATION_180:
+                // Inverse: lx,ly -> px=pw-1-lx, py=ph-1-ly
+                action->x1 = pw - 1 - action->x1;
+                action->y1 = ph - 1 - action->y1;
+                action->x2 = pw - 1 - action->x2;
+                action->y2 = ph - 1 - action->y2;
+                break;
+            case EGUI_DISPLAY_ROTATION_270:
+                // Inverse: lx,ly -> px=ly, py=ph-1-lx
+                lx = action->x1;
+                ly = action->y1;
+                action->x1 = ly;
+                action->y1 = ph - 1 - lx;
+                lx = action->x2;
+                ly = action->y2;
+                action->x2 = ly;
+                action->y2 = ph - 1 - lx;
+                break;
+            default:
+                break;
+            }
+        }
+    }
+#endif
+
     switch (action->type)
     {
     case EGUI_SIM_ACTION_CLICK:

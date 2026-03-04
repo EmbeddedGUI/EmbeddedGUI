@@ -186,6 +186,28 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
     egui_dim_t scan_y_start = EGUI_MAX(vy0, work_y_start);
     egui_dim_t scan_y_end = EGUI_MIN(vy2, work_y_end - 1);
 
+    // For flat-top (vy0 == vy1): draw the top horizontal edge as a plain hline,
+    // then skip that row in the SDF loop to avoid horizontal-edge cross=0 bleed.
+    if (vy0 == vy1 && vy0 >= work_y_start && vy0 < work_y_end)
+    {
+        egui_dim_t left = EGUI_MAX(EGUI_MIN(vx0, vx1), work_x_start);
+        egui_dim_t right = EGUI_MIN(EGUI_MAX(vx0, vx1), work_x_end);
+        if (left <= right)
+            egui_canvas_draw_hline(left, vy0, right - left + 1, color, alpha);
+        scan_y_start = EGUI_MAX(vy0 + 1, work_y_start);
+    }
+
+    // For flat-bottom (vy1 == vy2): draw the bottom horizontal edge as a plain hline,
+    // then skip that row in the SDF loop to avoid horizontal-edge cross=0 bleed.
+    if (vy1 == vy2 && vy2 >= work_y_start && vy2 < work_y_end)
+    {
+        egui_dim_t left = EGUI_MAX(EGUI_MIN(vx1, vx2), work_x_start);
+        egui_dim_t right = EGUI_MIN(EGUI_MAX(vx1, vx2), work_x_end);
+        if (left <= right)
+            egui_canvas_draw_hline(left, vy2, right - left + 1, color, alpha);
+        scan_y_end = EGUI_MIN(vy2 - 1, work_y_end - 1);
+    }
+
 // AA zone width: 2 pixels on each side of the edge crossing
 #define TRI_AA_MARGIN 2
 

@@ -2151,8 +2151,17 @@ void egui_canvas_calc_work_region(egui_region_t *base_region)
 
     egui_region_t *region = &self->base_view_work_region;
 
-    // in screen coordinate.
+    // Intersect base view region with PFB tile in screen coordinates.
     egui_region_intersect(base_region, &self->pfb_region, region);
+
+    // If an extra clip is set (e.g. scroll view viewport), also intersect with it.
+    // This prevents children of scroll views from rendering outside the visible viewport.
+    if (self->extra_clip_region != NULL)
+    {
+        egui_region_t clipped;
+        egui_region_intersect(region, self->extra_clip_region, &clipped);
+        *region = clipped;
+    }
 
     // change to base_region coordinate.
     region->location.x -= base_region->location.x;
@@ -2179,4 +2188,5 @@ void egui_canvas_init(egui_color_int_t *pfb, egui_region_t *region)
     egui_region_copy(&self->pfb_region, region);
 
     self->alpha = EGUI_ALPHA_100;
+    self->extra_clip_region = NULL;
 }

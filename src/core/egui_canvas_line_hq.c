@@ -1,5 +1,4 @@
 #include "egui_canvas.h"
-#include "utils/egui_fixmath.h"
 
 /**
  * @brief High-quality line/polyline drawing with sub-pixel sampling.
@@ -33,6 +32,42 @@ static const egui_alpha_t line_hq_alpha_table[] = {
         0, 16, 32, 48, 64, 80, 96, 112, 128, 143, 159, 175, 191, 207, 223, 239, 255,
 };
 #endif
+
+/* Use the same degree trig approximation style as arc gradient round-cap path.
+ * sin_q1[i] = sin(i*5 deg) * 256, i=0..18.
+ */
+static const int16_t line_hq_sin_q1[19] = {
+        0, 22, 44, 66, 88, 108, 128, 147, 165, 181, 196, 210, 222, 232, 241, 247, 252, 255, 256,
+};
+
+static int32_t line_hq_sin_deg(int32_t deg)
+{
+    deg = ((deg % 360) + 360) % 360;
+    int32_t sign = 1;
+    if (deg > 180)
+    {
+        deg = 360 - deg;
+        sign = -1;
+    }
+    if (deg > 90)
+    {
+        deg = 180 - deg;
+    }
+
+    int32_t idx = deg / 5;
+    int32_t frac = deg % 5;
+    int32_t value = line_hq_sin_q1[idx];
+    if (frac > 0 && idx < 18)
+    {
+        value = value + ((line_hq_sin_q1[idx + 1] - value) * frac + 2) / 5;
+    }
+    return value * sign;
+}
+
+static int32_t line_hq_cos_deg(int32_t deg)
+{
+    return line_hq_sin_deg(deg + 90);
+}
 
 /* ========================== Sub-pixel Edge Sampling ========================== */
 
@@ -705,6 +740,24 @@ static void line_hq_draw_polyline_internal(const egui_dim_t *points, uint8_t cou
             }
         }
     }
+
+    // Fill interior joints to avoid tiny seam pixels between adjacent segments
+    // at sharp direction changes.
+    if (count > 2)
+    {
+        egui_dim_t joint_r = stroke_width >> 1;
+        if (joint_r > 0)
+        {
+            for (uint8_t i = 1; i < count - 1; i++)
+            {
+#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
+                egui_canvas_draw_circle_fill_hq(points[i * 2], points[i * 2 + 1], joint_r, color, alpha);
+#else
+                egui_canvas_draw_circle_fill(points[i * 2], points[i * 2 + 1], joint_r, color, alpha);
+#endif
+            }
+        }
+    }
 }
 
 void egui_canvas_draw_polyline_hq(const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
@@ -730,36 +783,55 @@ void egui_canvas_draw_polyline_round_cap_hq(const egui_dim_t *points, uint8_t co
 void egui_canvas_draw_arc_round_cap_hq(egui_dim_t cx, egui_dim_t cy, egui_dim_t radius, int16_t start_angle, int16_t end_angle, egui_dim_t stroke_width,
                                        egui_color_t color, egui_alpha_t alpha)
 {
+    if (radius <= stroke_width)
+    {
+        egui_canvas_draw_arc_fill_hq(cx, cy, radius, start_angle, end_angle, color, alpha);
+        return;
+    }
+    if (start_angle < 0 || end_angle < 0 || start_angle > end_angle || start_angle == end_angle)
+        return;
+    if (start_angle > 720 || end_angle > 720)
+        return;
+
     // Draw the arc stroke
     egui_canvas_draw_arc_hq(cx, cy, radius, start_angle, end_angle, stroke_width, color, alpha);
 
-    // Compute cap radius and middle radius
-    egui_dim_t cap_r = stroke_width >> 1;
+    // Compute cap radius and middle radius (align with activity_ring cap geometry)
+    egui_dim_t half_sw = stroke_width >> 1;
+    egui_dim_t cap_r = half_sw;
     if (cap_r <= 0)
     {
         return;
     }
-    egui_dim_t mid_r = radius - cap_r;
+    egui_dim_t mid_r = radius - half_sw;
     if (mid_r <= 0)
     {
         return;
     }
 
-    // Compute start and end points on the arc at mid_r
-    // Angle convention: 0=right, 90=down (screen coords), clockwise
-    // Convert degrees to fixed-point radians: rad = deg * PI / 180
-    // PI/180 in fixed-point
-    egui_float_t deg_to_rad = EGUI_FLOAT_DIV(EGUI_FLOAT_VALUE(3.14159f), EGUI_FLOAT_VALUE_INT(180));
+    // Normalize angles to [0, 360)
+    int16_t sa_norm = start_angle % 360;
+    int16_t ea_norm = end_angle % 360;
+    if (sa_norm < 0)
+        sa_norm += 360;
+    if (ea_norm < 0)
+        ea_norm += 360;
 
-    // Start point
-    egui_float_t sa_rad = EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(start_angle), deg_to_rad);
-    egui_dim_t sx = cx + (egui_dim_t)(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(mid_r), EGUI_FLOAT_COS(sa_rad)) >> EGUI_FLOAT_FRAC);
-    egui_dim_t sy = cy + (egui_dim_t)(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(mid_r), EGUI_FLOAT_SIN(sa_rad)) >> EGUI_FLOAT_FRAC);
+    // Start/end points using integer trig (scale=256) + signed rounding.
+    int32_t sa_cos = line_hq_cos_deg(sa_norm);
+    int32_t sa_sin = line_hq_sin_deg(sa_norm);
+    int32_t ea_cos = line_hq_cos_deg(ea_norm);
+    int32_t ea_sin = line_hq_sin_deg(ea_norm);
 
-    // End point
-    egui_float_t ea_rad = EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(end_angle), deg_to_rad);
-    egui_dim_t ex = cx + (egui_dim_t)(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(mid_r), EGUI_FLOAT_COS(ea_rad)) >> EGUI_FLOAT_FRAC);
-    egui_dim_t ey = cy + (egui_dim_t)(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(mid_r), EGUI_FLOAT_SIN(ea_rad)) >> EGUI_FLOAT_FRAC);
+    int32_t sx_raw = (int32_t)mid_r * sa_cos;
+    int32_t sy_raw = (int32_t)mid_r * sa_sin;
+    int32_t ex_raw = (int32_t)mid_r * ea_cos;
+    int32_t ey_raw = (int32_t)mid_r * ea_sin;
+
+    egui_dim_t sx = cx + (egui_dim_t)((sx_raw + (sx_raw >= 0 ? 128 : -128)) / 256);
+    egui_dim_t sy = cy + (egui_dim_t)((sy_raw + (sy_raw >= 0 ? 128 : -128)) / 256);
+    egui_dim_t ex = cx + (egui_dim_t)((ex_raw + (ex_raw >= 0 ? 128 : -128)) / 256);
+    egui_dim_t ey = cy + (egui_dim_t)((ey_raw + (ey_raw >= 0 ? 128 : -128)) / 256);
 
     // Draw round caps as filled circles
     egui_canvas_draw_circle_fill_hq(sx, sy, cap_r, color, alpha);

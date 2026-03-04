@@ -40,6 +40,10 @@ struct egui_canvas
 
     egui_mask_t *mask; // current mask for alpha blending
 
+    // Optional extra clip region in screen coordinates (used by scroll views to clip children).
+    // When set, egui_canvas_calc_work_region also intersects with this region.
+    const egui_region_t *extra_clip_region;
+
     uint16_t res_circle_info_count_spec;
     const egui_circle_info_t *res_circle_info_spec_arr;
 };
@@ -72,6 +76,20 @@ __EGUI_STATIC_INLINE__ void egui_canvas_clear_mask(void)
     egui_canvas_t *self = &canvas_data;
 
     self->mask = NULL;
+}
+
+/**
+ * Set an extra clip region for restricting child view drawing within a scroll viewport.
+ * Pass NULL to disable. Used by egui_view_scroll to prevent items rendering outside bounds.
+ */
+__EGUI_STATIC_INLINE__ void egui_canvas_set_extra_clip(const egui_region_t *clip_region)
+{
+    canvas_data.extra_clip_region = clip_region;
+}
+
+__EGUI_STATIC_INLINE__ void egui_canvas_clear_extra_clip(void)
+{
+    canvas_data.extra_clip_region = NULL;
 }
 
 __EGUI_STATIC_INLINE__ void egui_canvas_set_mask(egui_mask_t *mask)

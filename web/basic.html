@@ -35,13 +35,29 @@
         var wrapper = document.getElementById('demo-wrapper');
         var demoMap = {};
 
+        function resolveFrameHeight(d) {
+            var configured = Number(d && d.height);
+            if (Number.isFinite(configured) && configured > 0) {
+                return configured;
+            }
+            var app = (d && (d.app || d.name)) || '';
+            var fallback = {
+                'HelloShowcase': 1024,
+                'HelloCanvas': 480,
+                'HelloGradient': 480
+            };
+            return fallback[app] || 320;
+        }
+
         function loadDemo(name) {
             var d = demoMap[name];
             if (!d) return;
             var app = d.app || d.name;
             placeholder.style.display = 'none';
             wrapper.style.display = 'flex';
-            document.getElementById('demo-frame').src = 'demos/' + name + '/' + app + '.html';
+            var frame = document.getElementById('demo-frame');
+            frame.style.height = resolveFrameHeight(d) + 'px';
+            frame.src = 'demos/' + name + '/' + app + '.html';
             renderDoc(document.getElementById('demo-doc'), d.doc);
             document.querySelectorAll('.demo-item').forEach(function(el) {
                 el.classList.toggle('active', el.dataset.name === name);

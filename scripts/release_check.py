@@ -9,7 +9,7 @@ QEMU performance regression, and performance documentation generation.
 
 Usage:
     python scripts/release_check.py
-    python scripts/release_check.py --skip perf,perf_doc
+    python scripts/release_check.py --skip perf,perf_doc,wasm,doc,ui_package
     python scripts/release_check.py --keep-going
     python scripts/release_check.py --cmake
     python scripts/release_check.py --skip runtime --keep-going
@@ -32,29 +32,36 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 ALL_STEP_NAMES = [
     "format",
     "pytest",
+    "ui_package",
     "compile",
+    "wasm",
     "runtime",
     "size",
     "size_doc",
     "perf",
     "perf_doc",
+    "doc",
 ]
 
 STEP_DESCRIPTIONS = {
     "format":   "Code formatting (clang-format)",
     "pytest":   "UI Designer unit tests (pytest)",
+    "ui_package": "UI Designer package build (PyInstaller)",
     "compile":  "Full compile check (all examples)",
+    "wasm":     "WASM demos build",
     "runtime":  "Runtime verification (screenshots)",
     "size":     "Binary size analysis (ELF)",
     "size_doc": "Size report generation",
     "perf":     "QEMU performance regression test",
     "perf_doc": "Performance report generation",
+    "doc":      "Sphinx documentation build",
 }
 
 
 def build_steps(args):
     """Build the list of (name, description, command) tuples based on CLI args."""
     py = sys.executable  # use the same Python interpreter
+    emsdk_path = os.environ.get("EMSDK_PATH") or os.environ.get("EMSDK")
 
     compile_cmd = [py, str(SCRIPT_DIR / "code_compile_check.py"), "--full-check"]
     if args.bits64:
@@ -64,6 +71,10 @@ def build_steps(args):
 
     perf_cmd = [py, str(SCRIPT_DIR / "code_perf_check.py"), "--full-check"]
 
+    wasm_cmd = [py, str(SCRIPT_DIR / "wasm_build_demos.py")]
+    if emsdk_path:
+        wasm_cmd += ["--emsdk-path", emsdk_path]
+
     steps = [
         ("format",   STEP_DESCRIPTIONS["format"],
          [py, str(SCRIPT_DIR / "code_format.py")]),
@@ -71,8 +82,14 @@ def build_steps(args):
         ("pytest",   STEP_DESCRIPTIONS["pytest"],
          [py, "-m", "pytest", "-c", str(SCRIPT_DIR / "ui_designer" / "pyproject.toml"), str(SCRIPT_DIR / "ui_designer" / "tests"), "-v", "--tb=short"]),
 
+        ("ui_package", STEP_DESCRIPTIONS["ui_package"],
+         [py, "-m", "PyInstaller", str(SCRIPT_DIR / "ui_designer" / "ui_designer.spec"), "--distpath", str(PROJECT_ROOT / "dist"), "--workpath", str(PROJECT_ROOT / "build" / "pyinstaller"), "--clean"]),
+
         ("compile",  STEP_DESCRIPTIONS["compile"],
          compile_cmd),
+
+        ("wasm",     STEP_DESCRIPTIONS["wasm"],
+         wasm_cmd),
 
         ("runtime",  STEP_DESCRIPTIONS["runtime"],
          [py, str(SCRIPT_DIR / "code_runtime_check.py"), "--full-check"]),
@@ -88,6 +105,9 @@ def build_steps(args):
 
         ("perf_doc", STEP_DESCRIPTIONS["perf_doc"],
          [py, str(SCRIPT_DIR / "perf_to_doc.py")]),
+
+        ("doc",      STEP_DESCRIPTIONS["doc"],
+         [py, "-m", "sphinx", "-M", "html", str(PROJECT_ROOT / "doc" / "source"), str(PROJECT_ROOT / "doc" / "build")]),
     ]
     return steps
 
@@ -165,7 +185,7 @@ def parse_args():
         epilog=f"Available steps: {', '.join(ALL_STEP_NAMES)}\n"
                f"\nExamples:\n"
                f"  python scripts/release_check.py\n"
-               f"  python scripts/release_check.py --skip perf,perf_doc\n"
+               f"  python scripts/release_check.py --skip perf,perf_doc,wasm,doc,ui_package\n"
                f"  python scripts/release_check.py --keep-going\n"
                f"  python scripts/release_check.py --cmake --skip runtime\n",
     )

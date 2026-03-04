@@ -116,7 +116,7 @@ void egui_view_radio_button_on_draw(egui_view_t *self)
     egui_dim_t center_x = region.location.x + size / 2;
     egui_dim_t center_y = region.location.y + size / 2;
     egui_dim_t outer_radius = size / 2 - 1;
-    egui_dim_t stroke = EGUI_MAX(EGUI_THEME_STROKE_WIDTH, 1);
+    egui_dim_t stroke = 2;
 
     if (local->text != NULL)
     {

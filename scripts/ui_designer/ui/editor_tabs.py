@@ -13,10 +13,10 @@ Bidirectional sync:
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget,
     QPlainTextEdit, QSplitter, QPushButton, QButtonGroup,
-    QLabel, QFrame, QShortcut,
+    QLabel, QFrame,
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QFont, QColor, QPalette, QKeySequence
+from PyQt5.QtGui import QFont, QColor, QPalette
 
 from .xml_highlighter import XmlSyntaxHighlighter
 from .preview_panel import PreviewPanel
@@ -47,13 +47,6 @@ class XmlEditor(QPlainTextEdit):
         self.setPalette(pal)
         # Syntax highlighter
         self._highlighter = XmlSyntaxHighlighter(self.document())
-
-    def keyPressEvent(self, event):
-        """Let Ctrl+S propagate to the main window for Save."""
-        if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_S:
-            event.ignore()
-            return
-        super().keyPressEvent(event)
 
 
 class EditorTabs(QWidget):
@@ -146,9 +139,8 @@ class EditorTabs(QWidget):
         tb_layout.addStretch()
         layout.addWidget(toolbar)
 
-        # Ctrl+S shortcut — propagated from XmlEditor.keyPressEvent ignore
-        save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
-        save_shortcut.activated.connect(self.save_requested.emit)
+        # Ctrl+S is handled by the main window QAction (no local QShortcut
+        # here — creating one would cause an ambiguous shortcut conflict).
 
     # ── Public API ─────────────────────────────────────────────────
 

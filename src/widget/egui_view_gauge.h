@@ -3,6 +3,7 @@
 
 #include "egui_view.h"
 #include "core/egui_theme.h"
+#include "font/egui_font.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
@@ -16,11 +17,14 @@ struct egui_view_gauge
 
     uint8_t value; // 0-100
     egui_dim_t stroke_width;
-    int16_t start_angle; // default 150 (~7 o'clock, 0=3 o'clock clockwise)
-    int16_t sweep_angle; // default 240 (sweep 240 degrees, gap at bottom)
+    egui_dim_t needle_width; // needle line width, independent of arc stroke
+    int16_t start_angle;     // default 150 (~7 o'clock, 0=3 o'clock clockwise)
+    int16_t sweep_angle;     // default 240 (sweep 240 degrees, gap at bottom)
     egui_color_t bk_color;
     egui_color_t progress_color;
     egui_color_t needle_color;
+    egui_color_t text_color;
+    const egui_font_t *font;
 };
 
 // ============== Gauge Params ==============
@@ -38,6 +42,8 @@ void egui_view_gauge_apply_params(egui_view_t *self, const egui_view_gauge_param
 void egui_view_gauge_init_with_params(egui_view_t *self, const egui_view_gauge_params_t *params);
 
 void egui_view_gauge_set_value(egui_view_t *self, uint8_t value);
+void egui_view_gauge_set_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_gauge_set_text_color(egui_view_t *self, egui_color_t color);
 void egui_view_gauge_on_draw(egui_view_t *self);
 void egui_view_gauge_init(egui_view_t *self);
 

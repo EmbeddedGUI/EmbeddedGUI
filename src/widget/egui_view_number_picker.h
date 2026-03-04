@@ -27,6 +27,7 @@ struct egui_view_number_picker
     egui_color_t button_color;
     const egui_font_t *font;
     char text_buf[8];
+    int8_t pressed_zone; /* 0=none, 1=top zone pressed, -1=bottom zone pressed */
 };
 
 // ============== NumberPicker Params ==============

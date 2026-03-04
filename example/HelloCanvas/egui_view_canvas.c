@@ -126,8 +126,13 @@ static void draw_page_polygons(void)
     // Row 2: Hexagon
     draw_section_label("hexagon outline & fill", 4, 185);
     {
+#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
+        const egui_dim_t closed_pts[] = {70, 215, 150, 215, 190, 250, 150, 285, 70, 285, 30, 250, 70, 215};
+        egui_canvas_draw_polyline_hq(closed_pts, 7, 2, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
+#else
         const egui_dim_t pts[] = {70, 215, 150, 215, 190, 250, 150, 285, 70, 285, 30, 250};
         egui_canvas_draw_polygon(pts, 6, 2, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
+#endif
     }
     {
         const egui_dim_t pts[] = {310, 215, 390, 215, 430, 250, 390, 285, 310, 285, 270, 250};
@@ -138,7 +143,11 @@ static void draw_page_polygons(void)
     draw_section_label("polyline (wave)", 4, 310);
     {
         const egui_dim_t wave[] = {20, 380, 80, 340, 140, 380, 200, 340, 260, 380, 320, 340, 380, 380, 440, 340};
+#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
+        egui_canvas_draw_polyline_hq(wave, 8, 2, EGUI_COLOR_CYAN, EGUI_ALPHA_100);
+#else
         egui_canvas_draw_polyline(wave, 8, 2, EGUI_COLOR_CYAN, EGUI_ALPHA_100);
+#endif
     }
 #else
     draw_section_label("(disabled by config)", 4, 200);
@@ -348,20 +357,20 @@ static void draw_page_arc_round_cap(void)
     egui_canvas_draw_line(240, 28, 240, 470, 1, EGUI_COLOR_MAKE(80, 80, 80), EGUI_ALPHA_60);
 
 #if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ && EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
-    // Row 1: open arc, medium width
-    draw_section_label("20-160 w=8", 162, 55);
-    egui_canvas_draw_arc_hq(110, 125, 44, 20, 160, 8, EGUI_COLOR_RED, EGUI_ALPHA_100);
-    egui_canvas_draw_arc_round_cap_hq(350, 125, 44, 20, 160, 8, EGUI_COLOR_RED, EGUI_ALPHA_100);
+    // Row 1: activity_ring-like 75% progress (start=270, end=540)
+    draw_section_label("270-540 w=12", 150, 55);
+    egui_canvas_draw_arc_hq(110, 125, 44, 270, 540, 12, EGUI_COLOR_RED, EGUI_ALPHA_100);
+    egui_canvas_draw_arc_round_cap_hq(350, 125, 44, 270, 540, 12, EGUI_COLOR_RED, EGUI_ALPHA_100);
 
-    // Row 2: wide sweep arc
-    draw_section_label("210-20 w=8", 160, 205);
-    egui_canvas_draw_arc_hq(110, 275, 46, 210, 20, 8, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-    egui_canvas_draw_arc_round_cap_hq(350, 275, 46, 210, 20, 8, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+    // Row 2: activity_ring-like 50% progress (start=270, end=450)
+    draw_section_label("270-450 w=10", 150, 205);
+    egui_canvas_draw_arc_hq(110, 275, 46, 270, 450, 10, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+    egui_canvas_draw_arc_round_cap_hq(350, 275, 46, 270, 450, 10, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 
-    // Row 3: short arc, thick width
-    draw_section_label("300-30 w=12", 154, 355);
-    egui_canvas_draw_arc_hq(110, 420, 40, 300, 30, 12, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
-    egui_canvas_draw_arc_round_cap_hq(350, 420, 40, 300, 30, 12, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
+    // Row 3: activity_ring-like 30% progress (start=270, end=378)
+    draw_section_label("270-378 w=12", 150, 355);
+    egui_canvas_draw_arc_hq(110, 420, 40, 270, 378, 12, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
+    egui_canvas_draw_arc_round_cap_hq(350, 420, 40, 270, 378, 12, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
 #else
     draw_section_label("(HQ disabled)", 4, 200);
 #endif

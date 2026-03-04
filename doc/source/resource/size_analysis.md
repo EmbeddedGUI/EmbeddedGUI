@@ -93,7 +93,7 @@ python scripts/utils_analysis_elf_size.py
 
 在你的链接脚本（`.ld` 文件）中添加以下符号定义：
 
-```ld
+```text
 /* 在 .text 段末尾 */
 __code_size = SIZEOF(.text);
 

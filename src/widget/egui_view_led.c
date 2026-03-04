@@ -150,7 +150,7 @@ void egui_view_led_init(egui_view_t *self)
     local->on_color = EGUI_THEME_PRIMARY;
     local->off_color = EGUI_THEME_TRACK_OFF;
     local->border_color = EGUI_THEME_BORDER;
-    local->border_width = EGUI_THEME_STROKE_WIDTH;
+    local->border_width = 2;
 
     egui_timer_init_timer(&local->blink_timer, local, egui_view_led_blink_callback);
 

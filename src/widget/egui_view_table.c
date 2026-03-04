@@ -134,7 +134,7 @@ void egui_view_table_on_draw(egui_view_t *self)
         // Vertical lines
         for (c = 0; c <= local->col_count; c++)
         {
-            egui_dim_t lx = x + c * col_w;
+            egui_dim_t lx = (c == local->col_count) ? (x + w - 1) : (x + c * col_w);
             egui_canvas_draw_line(lx, y, lx, y + local->row_count * rh - 1, 1, local->grid_color, EGUI_ALPHA_100);
         }
     }

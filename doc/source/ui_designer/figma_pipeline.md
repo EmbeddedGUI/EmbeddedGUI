@@ -96,7 +96,7 @@ python scripts/html2egui_helper.py figmamake-extract \
 
 输出 JSON 格式：
 
-```json
+```none
 {
   "source": "figma-make",
   "screen": {"width": 320, "height": 240},

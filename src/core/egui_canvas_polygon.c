@@ -389,7 +389,7 @@ void egui_canvas_draw_polygon(const egui_dim_t *points, uint8_t count, egui_dim_
     for (uint8_t i = 0; i < count; i++)
     {
         uint8_t j = (i + 1) % count;
-        egui_canvas_draw_line(points[i * 2], points[i * 2 + 1], points[j * 2], points[j * 2 + 1], stroke_width, color, alpha);
+        egui_canvas_draw_line_segment(points[i * 2], points[i * 2 + 1], points[j * 2], points[j * 2 + 1], stroke_width, color, alpha);
     }
 }
 
@@ -410,7 +410,23 @@ void egui_canvas_draw_polyline(const egui_dim_t *points, uint8_t count, egui_dim
 
     for (uint8_t i = 0; i + 1 < count; i++)
     {
-        egui_canvas_draw_line(points[i * 2], points[i * 2 + 1], points[(i + 1) * 2], points[(i + 1) * 2 + 1], stroke_width, color, alpha);
+        egui_canvas_draw_line_segment(points[i * 2], points[i * 2 + 1], points[(i + 1) * 2], points[(i + 1) * 2 + 1], stroke_width, color, alpha);
+    }
+
+    // Bridge tiny AA pinholes at internal joints with minimal fill
+    // (center + 4-neighbors) to avoid visible seams without large bulges.
+    if (stroke_width > 1 && count > 2)
+    {
+        for (uint8_t i = 1; i + 1 < count; i++)
+        {
+            egui_dim_t x = points[i * 2];
+            egui_dim_t y = points[i * 2 + 1];
+            egui_canvas_draw_point(x, y, color, alpha);
+            egui_canvas_draw_point(x - 1, y, color, alpha);
+            egui_canvas_draw_point(x + 1, y, color, alpha);
+            egui_canvas_draw_point(x, y - 1, color, alpha);
+            egui_canvas_draw_point(x, y + 1, color, alpha);
+        }
     }
 }
 

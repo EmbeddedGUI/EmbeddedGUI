@@ -76,7 +76,7 @@ void egui_core_update_region_dirty(egui_region_t *region_dirty)
     int is_changed = 0;
 
     // change to the window dirty region
-    EGUI_REGION_DEFINE(region_new_in_window, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    EGUI_REGION_DEFINE(region_new_in_window, 0, 0, egui_core.screen_width, egui_core.screen_height);
     egui_region_intersect(&region_new_in_window, region_dirty, &region_new_in_window);
 
     if (egui_region_is_empty(&region_new_in_window))

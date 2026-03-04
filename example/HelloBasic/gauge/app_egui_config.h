@@ -7,6 +7,7 @@ extern "C" {
 #endif
 
 #define EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE 53
+#define EGUI_CONFIG_WIDGET_ENHANCED_DRAW              1
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

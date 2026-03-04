@@ -47,6 +47,31 @@ from ..engine.layout_engine import compute_layout, compute_page_layout
 from .theme import apply_theme
 
 
+def delete_page_generated_files(project_dir, page_name):
+    """Delete the three generated C files for a removed page.
+
+    Removes {page_name}.h, {page_name}_layout.c, {page_name}.c from
+    project_dir so they are no longer picked up by EGUI_CODE_SRC.
+    Silently ignores missing files and permission errors.
+
+    Only deletes files that resolve to paths strictly inside project_dir
+    (path traversal via page_name like '../other_project/file' is blocked).
+    """
+    if not page_name or not project_dir:
+        return
+    project_real = os.path.realpath(project_dir)
+    for suffix in (f"{page_name}.h", f"{page_name}_layout.c", f"{page_name}.c"):
+        fpath = os.path.realpath(os.path.join(project_dir, suffix))
+        # Safety check: only files directly inside project_real
+        if not fpath.startswith(project_real + os.sep):
+            continue
+        try:
+            if os.path.isfile(fpath):
+                os.remove(fpath)
+        except OSError:
+            pass
+
+
 class MainWindow(QMainWindow):
     """Main designer window with project explorer, editor, tree, and properties."""
 
@@ -798,6 +823,10 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Error", f"Failed to open project:\n{e}")
 
     def _save_project(self):
+        if self.project is None:
+            self.statusBar().showMessage("No project to save")
+            return
+
         # Flush any pending XML edits into the model before saving
         self._flush_pending_xml()
 
@@ -828,6 +857,10 @@ class MainWindow(QMainWindow):
             self._save_project_as()
 
     def _save_project_as(self):
+        if self.project is None:
+            self.statusBar().showMessage("No project to save")
+            return
+
         path = QFileDialog.getExistingDirectory(
             self, "Save Project To Directory"
         )
@@ -1393,6 +1426,10 @@ class MainWindow(QMainWindow):
             self._undo_manager.remove_stack(page_name)
             self.project_dock.set_project(self.project)
             self._remove_page_tab(page_name)
+            # Delete generated files for the removed page so they are not
+            # picked up by EGUI_CODE_SRC on the next build.
+            if self._project_dir:
+                delete_page_generated_files(self._project_dir, page_name)
             # Switch to another page
             if self.project.pages:
                 self._switch_page(self.project.pages[0].name)

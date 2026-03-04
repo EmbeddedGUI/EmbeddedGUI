@@ -21,6 +21,19 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QIcon, QFont
 
+# Page names that collide with egui internal module names.
+# A page named "test" generates egui_test_init() which conflicts with
+# src/test/egui_test.h's egui_test_init(void).
+_RESERVED_PAGE_NAMES = {
+    "activity", "animation", "api", "background", "canvas", "common",
+    "config", "core", "dialog", "display_driver", "dlist", "fixmath",
+    "focus", "font", "i18n", "image", "input", "interpolator",
+    "key_event", "mask", "motion_event", "oop", "page_base", "pfb_manager",
+    "platform", "region", "resource", "rotation", "scroller", "shadow",
+    "sprite", "slist", "style", "test", "theme", "timer", "toast",
+    "touch_driver", "utils", "view",
+}
+
 
 class ProjectExplorerDock(QDockWidget):
     """Dock widget showing project pages and resources.
@@ -184,6 +197,13 @@ class ProjectExplorerDock(QDockWidget):
         if ok and name:
             # Sanitize: remove extension, replace spaces
             name = name.replace(" ", "_").replace(".xml", "")
+            if name in _RESERVED_PAGE_NAMES:
+                QMessageBox.warning(
+                    self, "Reserved Name",
+                    f"'{name}' is a reserved egui module name and cannot be used as a page name.\n"
+                    f"Please choose a different name (e.g. '{name}_page')."
+                )
+                return
             if self._project and self._project.get_page_by_name(name):
                 QMessageBox.warning(self, "Error", f"Page '{name}' already exists.")
                 return
@@ -195,6 +215,13 @@ class ProjectExplorerDock(QDockWidget):
         )
         if ok and new_name and new_name != old_name:
             new_name = new_name.replace(" ", "_").replace(".xml", "")
+            if new_name in _RESERVED_PAGE_NAMES:
+                QMessageBox.warning(
+                    self, "Reserved Name",
+                    f"'{new_name}' is a reserved egui module name and cannot be used as a page name.\n"
+                    f"Please choose a different name (e.g. '{new_name}_page')."
+                )
+                return
             if self._project and self._project.get_page_by_name(new_name):
                 QMessageBox.warning(self, "Error", f"Page '{new_name}' already exists.")
                 return

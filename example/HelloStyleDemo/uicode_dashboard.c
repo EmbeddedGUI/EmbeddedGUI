@@ -265,6 +265,24 @@ void uicode_page_dashboard_update_theme_icon(void)
     egui_view_label_set_text(EGUI_VIEW_OF(&db_theme_btn), icon);
 }
 
+void uicode_page_dashboard_update_theme_labels(void)
+{
+    if (uicode_is_dark_theme())
+    {
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&db_title), EGUI_COLOR_MAKE(0xE2, 0xE8, 0xF0), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&db_kpi1_name), EGUI_COLOR_MAKE(0x94, 0xA3, 0xB8), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&db_kpi2_name), EGUI_COLOR_MAKE(0x94, 0xA3, 0xB8), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&db_kpi3_name), EGUI_COLOR_MAKE(0x94, 0xA3, 0xB8), EGUI_ALPHA_100);
+    }
+    else
+    {
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&db_title), EGUI_COLOR_MAKE(0x1E, 0x29, 0x3B), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&db_kpi1_name), EGUI_COLOR_MAKE(0x64, 0x74, 0x8B), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&db_kpi2_name), EGUI_COLOR_MAKE(0x64, 0x74, 0x8B), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&db_kpi3_name), EGUI_COLOR_MAKE(0x64, 0x74, 0x8B), EGUI_ALPHA_100);
+    }
+}
+
 void uicode_page_dashboard_on_enter(void)
 {
     // Reset animation state

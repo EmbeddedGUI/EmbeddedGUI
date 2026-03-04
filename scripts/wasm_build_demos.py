@@ -13,11 +13,15 @@ Works on both Windows (local dev) and Linux (CI).
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
+
+
+WASM_SKIP_APPS = {"HelloUnitTest"}
 
 
 def get_example_list():
@@ -41,6 +45,47 @@ def run_cmd(cmd, cwd=None):
     if result.returncode != 0:
         return False, result.stderr
     return True, ""
+
+
+def parse_define_int(content, macro_name, default):
+    """Parse integer value from #define macro."""
+    match = re.search(rf'^\s*#\s*define\s+{re.escape(macro_name)}\s+(.+)$', content, re.MULTILINE)
+    if not match:
+        return default
+    value = match.group(1).split('//', 1)[0].strip()
+    number_match = re.search(r'\d+', value)
+    if not number_match:
+        return default
+    return int(number_match.group(0))
+
+
+def get_screen_size(root_dir, app):
+    """Read app screen size from example/<APP>/app_egui_config.h."""
+    config_path = os.path.join(root_dir, "example", app, "app_egui_config.h")
+    if not os.path.exists(config_path):
+        return 240, 320
+
+    with open(config_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    width = parse_define_int(content, "EGUI_CONFIG_SCEEN_WIDTH", 240)
+    height = parse_define_int(content, "EGUI_CONFIG_SCEEN_HEIGHT", 320)
+    return width, height
+
+
+def make_demo_entry(root_dir, result, category):
+    """Create one demos.json entry with screen metadata."""
+    width, height = get_screen_size(root_dir, result["app"])
+    entry = {
+        "name": result["name"],
+        "app": result["app"],
+        "category": category,
+        "width": width,
+        "height": height,
+    }
+    if result.get("has_doc"):
+        entry["doc"] = "demos/" + result["name"] + "/README.md"
+    return entry
 
 
 def build_demo(root_dir, app, app_sub, emsdk_path, output_dir):
@@ -145,6 +190,8 @@ def main():
         app_sets = get_example_list()
         app_basic_sets = get_example_basic_list()
         for app in app_sets:
+            if app in WASM_SKIP_APPS:
+                continue
             if app == "HelloBasic":
                 for sub in app_basic_sets:
                     build_list.append((app, sub, "HelloBasic"))
@@ -176,10 +223,7 @@ def main():
                 failed.append(result["name"])
             else:
                 print(f"  OK -> {os.path.join(output_dir, result['name'])}")
-                entry = {"name": result["name"], "app": result["app"], "category": category}
-                if result.get("has_doc"):
-                    entry["doc"] = "demos/" + result["name"] + "/README.md"
-                demos_built.append(entry)
+                demos_built.append(make_demo_entry(root_dir, result, category))
 
     # Build standalone apps (can be parallel - each has its own OBJDIR)
     if standalone_list:
@@ -206,11 +250,7 @@ def main():
                         failed.append(result["name"])
                     else:
                         print(f"[{count}/{total}] {name} OK")
-                        entry = {"name": result["name"], "app": result["app"],
-                                 "category": category}
-                        if result.get("has_doc"):
-                            entry["doc"] = "demos/" + result["name"] + "/README.md"
-                        demos_built.append(entry)
+                        demos_built.append(make_demo_entry(root_dir, result, category))
         else:
             for app, sub, category in standalone_list:
                 count += 1
@@ -223,11 +263,7 @@ def main():
                     failed.append(result["name"])
                 else:
                     print(f"  OK -> {os.path.join(output_dir, result['name'])}")
-                    entry = {"name": result["name"], "app": result["app"],
-                             "category": category}
-                    if result.get("has_doc"):
-                        entry["doc"] = "demos/" + result["name"] + "/README.md"
-                    demos_built.append(entry)
+                    demos_built.append(make_demo_entry(root_dir, result, category))
 
     elapsed = time.time() - start_time
 

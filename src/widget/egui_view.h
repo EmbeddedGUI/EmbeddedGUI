@@ -79,8 +79,9 @@ struct egui_view
     uint8_t is_clickable : 1;      // whether the view is clickable
     uint8_t is_request_layout : 1; // whether the view is requested to layout
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-    uint8_t is_focusable : 1; // whether the view can receive focus
-    uint8_t is_focused : 1;   // whether the view currently has focus
+    uint8_t is_focusable : 1;      // whether the view can receive focus
+    uint8_t is_focused : 1;        // whether the view currently has focus
+    uint8_t is_no_focus_clear : 1; // when touched, do not clear other views' focus (used by keyboard keys)
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER

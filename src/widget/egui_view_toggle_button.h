@@ -46,6 +46,8 @@ void egui_view_toggle_button_set_on_toggled_listener(egui_view_t *self, egui_vie
 void egui_view_toggle_button_set_toggled(egui_view_t *self, uint8_t is_toggled);
 uint8_t egui_view_toggle_button_is_toggled(egui_view_t *self);
 void egui_view_toggle_button_set_text(egui_view_t *self, const char *text);
+void egui_view_toggle_button_set_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_toggle_button_set_text_color(egui_view_t *self, egui_color_t color);
 void egui_view_toggle_button_on_draw(egui_view_t *self);
 void egui_view_toggle_button_init(egui_view_t *self);
 

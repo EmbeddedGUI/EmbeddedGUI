@@ -27,6 +27,9 @@ OUTPUT_PATH	:= output
 APP_OBJ_SUFFIX ?= $(if $(APP),$(APP),default)
 OBJ_PATH 	:= $(OUTPUT_PATH)/obj/$(APP_OBJ_SUFFIX)
 
+# Configuration stamp - forces relink when APP changes.
+APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(APP_OBJ_SUFFIX)
+
 # define the target
 TARGET		  	?= $(OUTPUT_PATH)/main
 
@@ -285,7 +288,15 @@ all: $(ALL_OBJ_PATH) $(TARGET).elf
 $(ALL_OBJ_PATH):
 	$(PATHCHECK) $(Q)$(MKD) $(call FIXPATH, $@)
 
-$(TARGET).elf: $(ALL_OBJS)
+$(APP_CONFIG_STAMP): | $(ALL_OBJ_PATH)
+ifeq "$(HOST_OS)" "Windows"
+	-$(Q)$(RM) $(call FIXPATH, $(OUTPUT_PATH)/.app_stamp_*) >NUL 2>NUL
+else
+	-$(Q)rm -f $(OUTPUT_PATH)/.app_stamp_*
+endif
+	$(Q)$(ECHO) stamp > $(call FIXPATH, $@)
+
+$(TARGET).elf: $(ALL_OBJS) $(APP_CONFIG_STAMP)
 	$(TRACE_LINK)
 	$(Q)$(CC) $(CFLAGS) $(ALL_OBJS) -o $@ $(LDFLAGS)
 	$(Q)$(SIZE) $@

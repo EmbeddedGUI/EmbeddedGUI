@@ -44,12 +44,16 @@ static void bezier_quad_recursive(egui_dim_t x0, egui_dim_t y0, egui_dim_t cx, e
 
     if (dist_sq <= flatness_thresh || depth >= EGUI_CANVAS_BEZIER_MAX_DEPTH)
     {
-        // Flat enough, draw as a line segment (butt cap for thick to avoid joint bumps)
+        // Flat enough, draw as a line.
+        // For thick curves, prefer HQ line (if enabled) to avoid tiny gaps
+        // between adjacent flattened segments.
+#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
         if (stroke_width > 1)
         {
-            egui_canvas_draw_line_segment(x0, y0, x1, y1, stroke_width, color, alpha);
+            egui_canvas_draw_line_hq(x0, y0, x1, y1, stroke_width, color, alpha);
         }
         else
+#endif
         {
             egui_canvas_draw_line(x0, y0, x1, y1, stroke_width, color, alpha);
         }
@@ -126,11 +130,13 @@ static void bezier_cubic_recursive(egui_dim_t x0, egui_dim_t y0, egui_dim_t cx0,
 
     if (max_cross_sq <= threshold_sq || depth >= EGUI_CANVAS_BEZIER_MAX_DEPTH)
     {
+#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
         if (stroke_width > 1)
         {
-            egui_canvas_draw_line_segment(x0, y0, x1, y1, stroke_width, color, alpha);
+            egui_canvas_draw_line_hq(x0, y0, x1, y1, stroke_width, color, alpha);
         }
         else
+#endif
         {
             egui_canvas_draw_line(x0, y0, x1, y1, stroke_width, color, alpha);
         }

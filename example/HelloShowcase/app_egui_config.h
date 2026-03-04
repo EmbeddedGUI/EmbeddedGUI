@@ -1,0 +1,31 @@
+#ifndef _APP_EGUI_CONFIG_H_
+#define _APP_EGUI_CONFIG_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Large showcase canvas
+#define EGUI_CONFIG_SCEEN_WIDTH  1280
+#define EGUI_CONFIG_SCEEN_HEIGHT 1024
+
+// PFB: 1280/32=40, 1024/32=32
+#define EGUI_CONFIG_PFB_WIDTH  320
+#define EGUI_CONFIG_PFB_HEIGHT 32
+
+#define EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE 150
+
+// Enable enhanced rendering features
+#define EGUI_CONFIG_WIDGET_ENHANCED_DRAW          1
+#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT 1
+#define EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW       1
+#define EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS        1
+#define EGUI_CONFIG_FUNCTION_SUPPORT_LAYER        1
+#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ  1
+#define EGUI_CONFIG_FUNCTION_SUPPORT_KEY          1
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _APP_EGUI_CONFIG_H_ */

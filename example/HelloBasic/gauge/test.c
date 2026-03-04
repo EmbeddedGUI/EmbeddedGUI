@@ -34,6 +34,12 @@ void test_init_ui(void)
     egui_view_gauge_init_with_params(EGUI_VIEW_OF(&gauge_m), &gauge_m_params);
     egui_view_gauge_init_with_params(EGUI_VIEW_OF(&gauge_l), &gauge_l_params);
 
+    // Set text color for better visibility
+    egui_view_gauge_set_text_color(EGUI_VIEW_OF(&gauge_xs), EGUI_COLOR_WHITE);
+    egui_view_gauge_set_text_color(EGUI_VIEW_OF(&gauge_s), EGUI_COLOR_WHITE);
+    egui_view_gauge_set_text_color(EGUI_VIEW_OF(&gauge_m), EGUI_COLOR_WHITE);
+    egui_view_gauge_set_text_color(EGUI_VIEW_OF(&gauge_l), EGUI_COLOR_WHITE);
+
     // Set margins
     egui_view_set_margin_all(EGUI_VIEW_OF(&gauge_xs), 6);
     egui_view_set_margin_all(EGUI_VIEW_OF(&gauge_s), 6);

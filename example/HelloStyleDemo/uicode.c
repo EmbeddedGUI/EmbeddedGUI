@@ -20,13 +20,21 @@ EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_smarthome_param, EGUI_COLOR_MAKE(0xF0,
 EGUI_BACKGROUND_PARAM_INIT(bg_smarthome_params, &bg_smarthome_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_smarthome, &bg_smarthome_params);
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_music_param, EGUI_COLOR_MAKE(0x1A, 0x1A, 0x2E), EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_smarthome_dark_param, EGUI_COLOR_MAKE(0x0F, 0x17, 0x2A), EGUI_ALPHA_100);
+EGUI_BACKGROUND_PARAM_INIT(bg_smarthome_dark_params, &bg_smarthome_dark_param, NULL, NULL);
+EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_smarthome_dark, &bg_smarthome_dark_params);
+
+EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_music_param, EGUI_COLOR_MAKE(0x0D, 0x11, 0x18), EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(bg_music_params, &bg_music_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_music, &bg_music_params);
 
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_dashboard_param, EGUI_COLOR_MAKE(0xF0, 0xF4, 0xF8), EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(bg_dashboard_params, &bg_dashboard_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_dashboard, &bg_dashboard_params);
+
+EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_dashboard_dark_param, EGUI_COLOR_MAKE(0x0F, 0x17, 0x2A), EGUI_ALPHA_100);
+EGUI_BACKGROUND_PARAM_INIT(bg_dashboard_dark_params, &bg_dashboard_dark_param, NULL, NULL);
+EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_dashboard_dark, &bg_dashboard_dark_params);
 
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_watch_param, EGUI_COLOR_MAKE(0x0A, 0x0A, 0x1A), EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(bg_watch_params, &bg_watch_param, NULL, NULL);
@@ -75,6 +83,17 @@ void uicode_toggle_theme(void)
         egui_theme_set(&egui_theme_dark);
         is_dark_theme = 1;
     }
+    // Update page backgrounds to match new theme
+    if (is_dark_theme)
+    {
+        egui_view_set_background(EGUI_VIEW_OF(&page_smarthome), EGUI_BG_OF(&bg_smarthome_dark));
+        egui_view_set_background(EGUI_VIEW_OF(&page_dashboard), EGUI_BG_OF(&bg_dashboard_dark));
+    }
+    else
+    {
+        egui_view_set_background(EGUI_VIEW_OF(&page_smarthome), EGUI_BG_OF(&bg_smarthome));
+        egui_view_set_background(EGUI_VIEW_OF(&page_dashboard), EGUI_BG_OF(&bg_dashboard));
+    }
     uicode_update_theme_icons();
 }
 
@@ -83,6 +102,8 @@ void uicode_update_theme_icons(void)
     uicode_page_smarthome_update_theme_icon();
     uicode_page_dashboard_update_theme_icon();
     uicode_page_watch_update_theme_icon();
+    uicode_page_smarthome_update_theme_labels();
+    uicode_page_dashboard_update_theme_labels();
 }
 
 void uicode_create_ui(void)

@@ -6,7 +6,7 @@ import pytest
 
 from ui_designer.model.widget_registry import WidgetRegistry
 
-# The 29 widget types that should be loaded from custom_widgets/ plugins
+# Core widget types that should be loaded from custom_widgets/ plugins
 _EXPECTED_TYPES = {
     "label", "button", "image", "group", "linearlayout", "scroll",
     "viewpage", "viewpage_cache", "switch", "progress_bar",
@@ -14,7 +14,7 @@ _EXPECTED_TYPES = {
     "circular_progress_bar", "spinner", "led", "toggle_button",
     "image_button", "textblock", "dynamic_label", "number_picker",
     "combobox", "roller", "page_indicator", "tab_bar", "chart",
-    "card", "gridlayout",
+    "card", "gridlayout", "divider", "gauge", "mp4", "textinput", "keyboard",
 }
 
 _EXPECTED_TAGS = {
@@ -31,6 +31,7 @@ _EXPECTED_TAGS = {
     "Combobox": "combobox", "Roller": "roller",
     "PageIndicator": "page_indicator", "TabBar": "tab_bar",
     "Chart": "chart", "Card": "card", "GridLayout": "gridlayout",
+    "Divider": "divider", "Gauge": "gauge", "Mp4": "mp4", "Textinput": "textinput", "Keyboard": "keyboard",
 }
 
 
@@ -85,7 +86,14 @@ class TestWidgetRegistryBuiltins:
         addable = reg.addable_types()
         type_names = [tn for _, tn in addable]
         for type_name in _EXPECTED_TYPES:
+            if type_name == "keyboard":
+                continue
             assert type_name in type_names, f"Missing from addable: {type_name}"
+
+    def test_keyboard_is_not_addable_by_default(self):
+        reg = WidgetRegistry.instance()
+        type_names = [tn for _, tn in reg.addable_types()]
+        assert "keyboard" not in type_names
 
     def test_container_types(self):
         reg = WidgetRegistry.instance()

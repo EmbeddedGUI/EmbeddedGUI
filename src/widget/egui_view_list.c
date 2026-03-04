@@ -54,6 +54,17 @@ int8_t egui_view_list_add_item(egui_view_t *self, const char *text)
     egui_view_label_set_text(item_view, text);
     egui_dim_t horizontal_margin = 12;
     egui_dim_t item_width = self->region.size.width;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
+    // Reserve space for scrollbar on the right so item corners do not overlap it.
+    if (local->base.is_scrollbar_enabled)
+    {
+        egui_dim_t scrollbar_reserve = EGUI_THEME_SCROLLBAR_THICKNESS + EGUI_THEME_SCROLLBAR_MARGIN;
+        if (item_width > scrollbar_reserve)
+        {
+            item_width -= scrollbar_reserve;
+        }
+    }
+#endif
     if (item_width > horizontal_margin)
     {
         item_width -= horizontal_margin;

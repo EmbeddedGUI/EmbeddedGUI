@@ -25,21 +25,62 @@
     <script src="lib/marked.min.js"></script>
     <script src="doc-render.js"></script>
     <script>
+        function resolveFrameHeight(d) {
+            var configured = Number(d && d.height);
+            if (Number.isFinite(configured) && configured > 0) {
+                return configured;
+            }
+            var app = (d && (d.app || d.name)) || '';
+            var fallback = {
+                'HelloShowcase': 1024,
+                'HelloCanvas': 480,
+                'HelloGradient': 480
+            };
+            return fallback[app] || 320;
+        }
+
+        function sortDemosForIndex(demos) {
+            var priority = {
+                'HelloShowcase': 0,
+                'HelloStyleDemo': 1
+            };
+            return demos.slice().sort(function(a, b) {
+                var an = a.name || '';
+                var bn = b.name || '';
+                var ap = Object.prototype.hasOwnProperty.call(priority, an) ? priority[an] : 100;
+                var bp = Object.prototype.hasOwnProperty.call(priority, bn) ? priority[bn] : 100;
+                if (ap !== bp) return ap - bp;
+                return an.localeCompare(bn);
+            });
+        }
+
         function renderGrid(demos) {
             var container = document.getElementById('demo-list-grid');
-            demos.forEach(function(d) {
+            sortDemosForIndex(demos).forEach(function(d) {
                 if (d.category === 'HelloBasic') return;
                 var app = d.app || d.name;
+                var hasDoc = !!d.doc;
+                var frameHeight = resolveFrameHeight(d);
                 var section = document.createElement('section');
-                section.className = 'demo-section';
-                section.innerHTML =
-                    '<div class="demo-section-left">' +
-                        '<div class="demo-title">' + d.name.replace(/_/g, ' ') + '</div>' +
-                        '<iframe class="demo-iframe" src="demos/' + d.name + '/' + app + '.html" loading="lazy"></iframe>' +
-                    '</div>' +
-                    '<div class="demo-section-right doc-panel"></div>';
+                section.className = hasDoc ? 'demo-section' : 'demo-section single-column';
+
+                if (hasDoc) {
+                    section.innerHTML =
+                        '<div class="demo-section-left">' +
+                            '<div class="demo-title">' + d.name.replace(/_/g, ' ') + '</div>' +
+                            '<iframe class="demo-iframe" style="height:' + frameHeight + 'px" src="demos/' + d.name + '/' + app + '.html" loading="lazy"></iframe>' +
+                        '</div>' +
+                        '<div class="demo-section-right doc-panel"></div>';
+                } else {
+                    section.innerHTML =
+                        '<div class="demo-section-left">' +
+                            '<div class="demo-title">' + d.name.replace(/_/g, ' ') + '</div>' +
+                            '<iframe class="demo-iframe" style="height:' + frameHeight + 'px" src="demos/' + d.name + '/' + app + '.html" loading="lazy"></iframe>' +
+                        '</div>';
+                }
+
                 container.appendChild(section);
-                if (d.doc) {
+                if (hasDoc) {
                     renderDoc(section.querySelector('.doc-panel'), d.doc);
                 }
             });

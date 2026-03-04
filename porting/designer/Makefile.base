@@ -103,6 +103,9 @@ OUTPUT_TARGET	:= $(OUTPUT_PATH)/$(TARGET)
 APP_OBJ_SUFFIX ?= $(if $(APP),$(APP),default)
 OBJDIR = $(OUTPUT_PATH)/obj/$(APP_OBJ_SUFFIX)
 
+# Configuration stamp - forces relink when APP changes.
+APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(APP_OBJ_SUFFIX)
+
 # Prerequisites for rebuild when makefiles change
 MAKEFILE_PREREQS += Makefile
 MAKEFILE_PREREQS += $(EGUI_PORT_PATH)/Makefile.base
@@ -261,7 +264,11 @@ $(OUTPUT_LIB): $(LIB_OBJECTS)
 	@$(ECHO) Archiving  : "$@"
 	$(Q)$(AR) rcs $@ $^
 
-$(OUTPUT_MAIN): $(APP_OBJECTS) $(OUTPUT_LIB)
+$(APP_CONFIG_STAMP): | $(OUTPUT_PATH)
+	-$(Q)$(RM) $(call FIXPATH, $(OUTPUT_PATH)/.app_stamp_*)
+	$(Q)$(ECHO) stamp > $(call FIXPATH, $@)
+
+$(OUTPUT_MAIN): $(APP_OBJECTS) $(OUTPUT_LIB) $(APP_CONFIG_STAMP)
 	@$(ECHO) Linking    : "$@"
 	$(Q)$(CC) $(COMMON_FLAGS) $(LDFLAGS) $(INCLUDES) -o $(OUTPUT_MAIN) $(APP_OBJECTS) $(OUTPUT_LIB) $(LFLAGS) $(LIBS) $(OUTPUT_BT_LIB)
 

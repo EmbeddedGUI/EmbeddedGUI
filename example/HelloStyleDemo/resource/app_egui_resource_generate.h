@@ -10,9 +10,9 @@ extern "C" {
 
 #include "egui.h"
 
-extern const egui_image_std_t egui_res_image_album_cover_rgb565_4;
 extern const egui_font_std_t egui_res_font_materialsymbolsoutlined_regular_14_4;
 extern const egui_font_std_t egui_res_font_materialsymbolsoutlined_regular_20_4;
+extern const egui_font_std_t egui_res_font_materialsymbolsoutlined_regular_40_4;
 extern const egui_font_std_t egui_res_font_montserrat_medium_14_4;
 extern const egui_font_std_t egui_res_font_montserrat_medium_20_4;
 

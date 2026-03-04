@@ -16,7 +16,11 @@ COMMON_FLAGS += -DEGUI_CONFIG_RECORDING_TEST=0
 
 # Emscripten compiler - EMSDK_PATH can be overridden
 EMSDK_PATH ?= $(EMSDK)
-ifdef EMSDK_PATH
+ifeq ($(strip $(EMSDK_PATH)),)
+CC := emcc
+else ifneq ($(wildcard $(EMSDK_PATH)/upstream/emscripten/emcc.bat),)
+CC := $(EMSDK_PATH)/upstream/emscripten/emcc.bat
+else ifneq ($(wildcard $(EMSDK_PATH)/upstream/emscripten/emcc.py),)
 CC := python $(EMSDK_PATH)/upstream/emscripten/emcc.py
 else
 CC := emcc
@@ -31,6 +35,10 @@ LFLAGS += -s STACK_SIZE=5242880
 LFLAGS += -s EXPORTED_FUNCTIONS='["_main"]'
 LFLAGS += -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]'
 LFLAGS += --shell-file $(EGUI_PORT_PATH)/shell.html
+
+# OUTPUT_PATH must be defined here (same default as Makefile.emscripten) so the
+# wildcard check below resolves before Makefile.emscripten is included.
+OUTPUT_PATH ?= output
 
 # Preload resource file into Emscripten virtual filesystem
 ifneq ($(wildcard $(OUTPUT_PATH)/app_egui_resource_merge.bin),)

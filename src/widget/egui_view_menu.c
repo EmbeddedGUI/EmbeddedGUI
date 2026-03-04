@@ -8,6 +8,10 @@
 #include "core/egui_canvas_gradient.h"
 #endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+#include "shadow/egui_shadow.h"
+#endif
+
 #define EGUI_VIEW_MENU_PRESSED_NONE (-1)
 #define EGUI_VIEW_MENU_PRESSED_BACK (-2)
 #define EGUI_VIEW_MENU_TEXT_PADDING 6
@@ -72,6 +76,13 @@ void egui_view_menu_set_item_height(egui_view_t *self, egui_dim_t height)
     egui_view_invalidate(self);
 }
 
+void egui_view_menu_set_header_text_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    local->header_text_color = color;
+    egui_view_invalidate(self);
+}
+
 void egui_view_menu_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_menu_t);
@@ -97,6 +108,10 @@ void egui_view_menu_on_draw(egui_view_t *self)
     egui_dim_t hdr_h = local->header_height;
     egui_dim_t item_h = local->item_height;
 
+    // Fill full widget background first to prevent shadow inner-rect bleed-through
+    // in rows below the last item when items don't span the full widget height.
+    egui_canvas_draw_rectangle_fill(x, y, w, region.size.height, local->item_color, EGUI_ALPHA_100);
+
     // Draw header background
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
     {
@@ -121,23 +136,20 @@ void egui_view_menu_on_draw(egui_view_t *self)
     if (local->stack_depth > 0)
     {
         egui_region_t back_rect = {{x, y}, {hdr_h, hdr_h}};
-        egui_canvas_draw_text_in_rect(font, "<", &back_rect, EGUI_ALIGN_CENTER, EGUI_THEME_TEXT, EGUI_ALPHA_100);
+        egui_canvas_draw_text_in_rect(font, "<", &back_rect, EGUI_ALIGN_CENTER, local->header_text_color, EGUI_ALPHA_100);
     }
 
     // Draw title centered in header
     {
         egui_region_t title_rect = {{x, y}, {w, hdr_h}};
-        egui_canvas_draw_text_in_rect(font, page->title, &title_rect, EGUI_ALIGN_CENTER, EGUI_THEME_TEXT, EGUI_ALPHA_100);
+        egui_canvas_draw_text_in_rect(font, page->title, &title_rect, EGUI_ALIGN_CENTER, local->header_text_color, EGUI_ALPHA_100);
     }
-
-    // Draw separator line under header
-    egui_canvas_draw_rectangle_fill(x, y + hdr_h, w, 1, EGUI_THEME_BORDER, EGUI_ALPHA_100);
 
     // Draw items
     uint8_t i;
     for (i = 0; i < page->item_count; i++)
     {
-        egui_dim_t item_y = y + hdr_h + 1 + (egui_dim_t)i * item_h;
+        egui_dim_t item_y = y + hdr_h + (egui_dim_t)i * item_h;
 
         // Highlight pressed item
         if (local->pressed_index == (int8_t)i)
@@ -152,18 +164,21 @@ void egui_view_menu_on_draw(egui_view_t *self)
         // Draw item text left-aligned with padding
         {
             egui_region_t text_rect = {{x + EGUI_VIEW_MENU_TEXT_PADDING, item_y}, {w - 2 * EGUI_VIEW_MENU_TEXT_PADDING, item_h}};
-            egui_canvas_draw_text_in_rect(font, page->items[i].text, &text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, EGUI_THEME_TEXT_PRIMARY, EGUI_ALPHA_100);
+            egui_canvas_draw_text_in_rect(font, page->items[i].text, &text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, local->text_color, EGUI_ALPHA_100);
         }
 
         // Draw ">" arrow for sub-menu items
         if (page->items[i].sub_page_index != EGUI_VIEW_MENU_ITEM_LEAF)
         {
             egui_region_t arrow_rect = {{x + w - hdr_h, item_y}, {hdr_h, item_h}};
-            egui_canvas_draw_text_in_rect(font, ">", &arrow_rect, EGUI_ALIGN_CENTER, EGUI_THEME_TEXT_SECONDARY, EGUI_ALPHA_100);
+            egui_canvas_draw_text_in_rect(font, ">", &arrow_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
         }
 
-        // Draw separator between items
-        egui_canvas_draw_rectangle_fill(x, item_y + item_h, w, 1, EGUI_THEME_BORDER, EGUI_ALPHA_100);
+        // Draw separator between items only (not after the last item)
+        if (i < page->item_count - 1)
+        {
+            egui_canvas_draw_rectangle_fill(x, item_y + item_h, w, 1, local->highlight_color, EGUI_ALPHA_100);
+        }
     }
 }
 
@@ -192,10 +207,10 @@ int egui_view_menu_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
         {
             local->pressed_index = EGUI_VIEW_MENU_PRESSED_BACK;
         }
-        else if (touch_y >= hdr_h + 1)
+        else if (touch_y >= hdr_h)
         {
             // Check which item was pressed
-            int8_t idx = (int8_t)((touch_y - hdr_h - 1) / item_h);
+            int8_t idx = (int8_t)((touch_y - hdr_h) / item_h);
             if (idx >= 0 && idx < (int8_t)page->item_count)
             {
                 local->pressed_index = idx;
@@ -287,10 +302,26 @@ void egui_view_menu_init(egui_view_t *self)
     local->header_color = EGUI_THEME_PRIMARY_DARK;
     local->item_color = EGUI_THEME_SURFACE;
     local->text_color = EGUI_THEME_TEXT_PRIMARY;
+    local->header_text_color = EGUI_COLOR_WHITE;
     local->highlight_color = EGUI_THEME_TRACK_BG;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
     local->pressed_index = EGUI_VIEW_MENU_PRESSED_NONE;
     local->on_item_click = NULL;
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+    {
+        static const egui_shadow_t menu_shadow = {
+                .width = EGUI_THEME_SHADOW_WIDTH_MD,
+                .ofs_x = 0,
+                .ofs_y = EGUI_THEME_SHADOW_OFS_Y_MD,
+                .spread = 0,
+                .opa = EGUI_THEME_SHADOW_OPA,
+                .color = EGUI_COLOR_BLACK,
+                .corner_radius = 0,
+        };
+        egui_view_set_shadow(self, &menu_shadow);
+    }
+#endif
 
     egui_view_set_view_name(self, "egui_view_menu");
 }

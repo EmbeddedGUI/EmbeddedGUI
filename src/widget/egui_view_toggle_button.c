@@ -41,6 +41,20 @@ void egui_view_toggle_button_set_text(egui_view_t *self, const char *text)
     egui_view_invalidate(self);
 }
 
+void egui_view_toggle_button_set_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+    local->font = font;
+    egui_view_invalidate(self);
+}
+
+void egui_view_toggle_button_set_text_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+    local->text_color = color;
+    egui_view_invalidate(self);
+}
+
 void egui_view_toggle_button_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);

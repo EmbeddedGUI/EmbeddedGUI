@@ -1,13 +1,5 @@
 {
     "img": [
-        {
-            "file": "album_cover.png",
-            "name": "album_cover",
-            "external": "0",
-            "format": "rgb565",
-            "alpha": "4",
-            "dim": "80,80"
-        }
     ],
     "font": [
         {
@@ -16,6 +8,13 @@
             "fontbitsize": "4",
             "external": "0",
             "text": "_generated_text_materialsymbolsoutlined_regular_20_4.txt"
+        },
+        {
+            "file": "MaterialSymbolsOutlined-Regular.ttf",
+            "pixelsize": "40",
+            "fontbitsize": "4",
+            "external": "0",
+            "text": "_generated_text_materialsymbolsoutlined_regular_40_4.txt"
         },
         {
             "file": "MaterialSymbolsOutlined-Regular.ttf",

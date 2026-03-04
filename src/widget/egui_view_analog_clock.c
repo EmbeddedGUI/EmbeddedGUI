@@ -105,14 +105,14 @@ void egui_view_analog_clock_on_draw(egui_view_t *self)
             egui_dim_t inner_r, outer_r, tick_w;
             if (i % 5 == 0)
             {
-                inner_r = radius - 8;
-                outer_r = radius - 2;
+                inner_r = radius - 10;
+                outer_r = radius - 4;
                 tick_w = 2;
             }
             else
             {
-                inner_r = radius - 4;
-                outer_r = radius - 2;
+                inner_r = radius - 6;
+                outer_r = radius - 4;
                 tick_w = 1;
             }
 

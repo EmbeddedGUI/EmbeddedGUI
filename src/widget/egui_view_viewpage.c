@@ -373,7 +373,7 @@ int egui_view_viewpage_on_touch_event(egui_view_t *self, egui_motion_event_t *ev
                         egui_dim_t max_scroll = content_width - view_width;
                         egui_dim_t target_offset = (egui_dim_t)(((int32_t)thumb_pos * max_scroll) / thumb_travel);
 
-                        container->region.location.x = -target_offset;
+                        egui_view_scroll_to(container, -target_offset, 0);
                         egui_view_invalidate(self);
                     }
                 }

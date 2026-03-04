@@ -6,8 +6,6 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QColorDialog
 from PyQt5.QtCore import pyqtSignal, Qt, QSize
 from PyQt5.QtGui import QColor, QPainter, QBrush
 
-from qfluentwidgets import EditableComboBox, ToolButton
-
 from ...model.widget_model import COLORS, COLOR_RGB
 
 
@@ -74,6 +72,8 @@ class EguiColorPicker(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        from qfluentwidgets import EditableComboBox, ToolButton
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)

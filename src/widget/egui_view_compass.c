@@ -75,7 +75,7 @@ void egui_view_compass_on_draw(egui_view_t *self)
         {
             // N/E/S/W (every 90 degrees) - major tick
             inner_r = radius - 10;
-            outer_r = radius - 2;
+            outer_r = radius - 4;
             line_w = 2;
             tick_color = (i == 0) ? local->north_color : local->dial_color;
         }
@@ -83,15 +83,15 @@ void egui_view_compass_on_draw(egui_view_t *self)
         {
             // every 30 degrees
             inner_r = radius - 7;
-            outer_r = radius - 2;
+            outer_r = radius - 4;
             line_w = 2;
             tick_color = local->dial_color;
         }
         else
         {
             // every 10 degrees
-            inner_r = radius - 4;
-            outer_r = radius - 2;
+            inner_r = radius - 6;
+            outer_r = radius - 4;
             line_w = 1;
             tick_color = local->dial_color;
         }

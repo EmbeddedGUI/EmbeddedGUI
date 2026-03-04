@@ -97,9 +97,40 @@ static egui_alpha_t egui_shadow_get_alpha(egui_dim_t distance, egui_dim_t width,
 static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t bx1, egui_dim_t by1, egui_dim_t cx, egui_dim_t cy, egui_dim_t R, egui_dim_t W,
                                     egui_color_t color, egui_alpha_t opa, egui_alpha_t center_opa)
 {
-    uint32_t R_scaled = (uint32_t)R << EGUI_SHADOW_DIST_SHIFT;
     uint32_t W_scaled = (uint32_t)W << EGUI_SHADOW_DIST_SHIFT;
     uint32_t lut_range = EGUI_SHADOW_LUT_SIZE - 1 - EGUI_SHADOW_LUT_INNER_OFFSET;
+
+    // When corner_radius == 0 (rectangular shadow), use the L-infinity norm
+    // max(|dx|, |dy|) as the effective distance so that corner pixels receive
+    // the same shadow strength as the adjacent straight edge pixels.  The
+    // Euclidean formula would give a lighter diagonal and create a visible
+    // "missing corner" artifact on rectangular widgets.
+    if (R == 0)
+    {
+        for (egui_dim_t py = by0; py < by1; py++)
+        {
+            uint32_t dy = (uint32_t)EGUI_ABS(py - cy);
+            uint32_t sdy = dy << EGUI_SHADOW_DIST_SHIFT;
+            for (egui_dim_t px = bx0; px < bx1; px++)
+            {
+                uint32_t dx = (uint32_t)EGUI_ABS(px - cx);
+                uint32_t sdx = dx << EGUI_SHADOW_DIST_SHIFT;
+                uint32_t max_sd = (sdx > sdy) ? sdx : sdy; // L∞ distance
+                if (max_sd < W_scaled)
+                {
+                    uint8_t idx = EGUI_SHADOW_LUT_INNER_OFFSET + (max_sd * lut_range) / W_scaled;
+                    egui_alpha_t alpha = ((uint16_t)egui_shadow_alpha_lut[idx] * opa) >> 8;
+                    if (alpha > 0)
+                    {
+                        egui_canvas_draw_point_limit(px, py, color, alpha);
+                    }
+                }
+            }
+        }
+        return;
+    }
+
+    uint32_t R_scaled = (uint32_t)R << EGUI_SHADOW_DIST_SHIFT;
     uint32_t R_scaled_sq = R_scaled * R_scaled;
     uint32_t RW_scaled = R_scaled + W_scaled;
     uint32_t RW_scaled_sq = RW_scaled * RW_scaled;

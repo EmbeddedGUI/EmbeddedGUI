@@ -20,7 +20,7 @@ set "HAS_PLAYWRIGHT=0"
 
 
 set "ARM_GCC_PATH=D:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\12.2 mpacbti-rel1"
-set "QEMU_PATH=C:\Program Files\qemu"
+:: QEMU_PATH default is set in Step 6 only if not already defined by user
 
 :: ========================================
 :: Step 1: Check make.exe
@@ -210,14 +210,18 @@ echo.
 :: ========================================
 echo [6/8] Checking QEMU ARM emulator ...
 
-if defined QEMU_PATH (
-    if exist "!QEMU_PATH!\qemu-system-arm.exe" (
-        echo       [OK] QEMU configured: !QEMU_PATH!
-        set "HAS_QEMU=1"
-    ) else (
-        echo       [!!] QEMU_PATH set but invalid: !QEMU_PATH!
-    )
+:: Apply default only if user has not set QEMU_PATH
+if not defined QEMU_PATH set "QEMU_PATH=C:\Program Files\qemu"
+
+if exist "!QEMU_PATH!\qemu-system-arm.exe" (
+    echo       [OK] QEMU configured: !QEMU_PATH!
+    set "PATH=!QEMU_PATH!;!PATH!"
+    set "HAS_QEMU=1"
 ) else (
+    if not "!QEMU_PATH!"=="C:\Program Files\qemu" (
+        echo       [!!] QEMU_PATH set but qemu-system-arm.exe not found: !QEMU_PATH!
+    )
+    set "QEMU_PATH="
     where qemu-system-arm.exe >nul 2>&1
     if !ERRORLEVEL! == 0 (
         echo       [OK] qemu-system-arm found in PATH
@@ -238,18 +242,44 @@ echo [7/8] Checking Emscripten ^(WASM^) ...
 where emcc.bat >nul 2>&1
 if !ERRORLEVEL! == 0 (
     echo       [OK] emcc found in PATH
-    set "HAS_EMSDK=1"
-) else if defined EMSDK (
-    if exist "!EMSDK!\emsdk_env.bat" (
-        echo       [OK] EMSDK configured: !EMSDK!
-        echo            Run first: !EMSDK!\emsdk_env.bat
-        set "HAS_EMSDK=1"
-    ) else (
-        echo       [!!] EMSDK set but invalid: !EMSDK!
+    for /f "delims=" %%i in ('where emcc.bat') do (
+        if not defined EMSDK set "EMCC_BIN_DIR=%%~dpi"
     )
+    if defined EMCC_BIN_DIR (
+        for %%i in ("!EMCC_BIN_DIR!\..\..") do set "EMSDK_FROM_PATH=%%~fi"
+        if exist "!EMSDK_FROM_PATH!\emsdk_env.bat" (
+            set "EMSDK=!EMSDK_FROM_PATH!"
+            set "EMSDK_PATH=!EMSDK_FROM_PATH!"
+            echo            EMSDK_PATH auto-detected: !EMSDK_PATH!
+        )
+    )
+    set "HAS_EMSDK=1"
 ) else (
-    echo       [  ] Emscripten not found ^(needed for WASM builds^)
-    echo            Install: https://emscripten.org/docs/getting_started/downloads.html
+    set "EMSDK_CANDIDATE="
+    if defined EMSDK_PATH set "EMSDK_CANDIDATE=!EMSDK_PATH!"
+    if not defined EMSDK_CANDIDATE if defined EMSDK set "EMSDK_CANDIDATE=!EMSDK!"
+    if not defined EMSDK_CANDIDATE if exist "%USERPROFILE%\emsdk\emsdk_env.bat" set "EMSDK_CANDIDATE=%USERPROFILE%\emsdk"
+
+    if defined EMSDK_CANDIDATE (
+        if exist "!EMSDK_CANDIDATE!\emsdk_env.bat" (
+            set "EMSDK=!EMSDK_CANDIDATE!"
+            set "EMSDK_PATH=!EMSDK_CANDIDATE!"
+            if exist "!EMSDK_PATH!\upstream\emscripten\emcc.bat" (
+                set "PATH=!EMSDK_PATH!\upstream\emscripten;!PATH!"
+            )
+            echo       [OK] EMSDK configured: !EMSDK!
+            echo            EMSDK_PATH set for this session
+            echo            To initialize full env, run: !EMSDK!\emsdk_env.bat
+            set "HAS_EMSDK=1"
+        ) else (
+            echo       [!!] EMSDK path invalid: !EMSDK_CANDIDATE!
+            echo            Expected file missing: !EMSDK_CANDIDATE!\emsdk_env.bat
+        )
+    ) else (
+        echo       [  ] Emscripten not found ^(needed for WASM builds^)
+        echo            Install: https://emscripten.org/docs/getting_started/downloads.html
+        echo            Then set EMSDK or EMSDK_PATH to emsdk root
+    )
 )
 echo.
 

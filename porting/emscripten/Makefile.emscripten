@@ -71,6 +71,10 @@ LIB ?=
 OUTPUT_TARGET := $(OUTPUT_PATH)/$(TARGET)
 APP_OBJ_SUFFIX ?= $(if $(APP),$(APP),default)
 OBJDIR = $(OUTPUT_PATH)/obj/$(APP_OBJ_SUFFIX)
+OBJLIST_FILE := $(OUTPUT_PATH)/$(APP_OBJ_SUFFIX)_objects.rsp
+
+# Configuration stamp - forces relink when APP changes.
+APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(APP_OBJ_SUFFIX)
 
 # Makefile prerequisites for rebuild
 MAKEFILE_PREREQS += Makefile
@@ -84,9 +88,15 @@ ECHO = echo
 SOURCEDIRS := $(SRC)
 INCLUDEDIRS := $(INCLUDE)
 LIBDIRS := $(LIB)
-FIXPATH = $1
+ifeq ($(OS),Windows_NT)
+RM = rmdir /S /Q
+MD := mkdir
+FIXPATH = $(subst /,\,$1)
+else
 RM = rm -rf
 MD := mkdir -p
+FIXPATH = $1
+endif
 MD_CHECK :=
 
 # Include paths
@@ -125,18 +135,23 @@ all: | info $(OUTPUT_MAIN_RESOURCE) $(MAIN)
 
 # Create object directories
 $(OBJ_MD):
-	$(Q)$(MD) $@
+	$(Q)$(MD) $(call FIXPATH,$@)
 
 $(OUTPUT_PATH):
-	$(Q)$(MD) $@
+	$(Q)$(MD) $(call FIXPATH,$@)
 
 $(OBJDIR):
-	$(Q)$(MD) $@
+	$(Q)$(MD) $(call FIXPATH,$@)
+
+$(APP_CONFIG_STAMP): | $(OUTPUT_PATH)
+	-$(Q)rm -f $(OUTPUT_PATH)/.app_stamp_*
+	$(Q)$(ECHO) stamp > $@
 
 # Link: emcc outputs .html + .js + .wasm
-$(OUTPUT_MAIN): $(OBJECTS)
+$(OUTPUT_MAIN): $(OBJECTS) $(APP_CONFIG_STAMP)
 	@$(ECHO) Linking    : "$@"
-	$(Q)$(CC) $(COMMON_FLAGS) $(LDFLAGS) $(INCLUDES) -o $(OUTPUT_MAIN) $(OBJECTS) $(LFLAGS) $(LIBS)
+	$(Q)$(file >$(OBJLIST_FILE),$(OBJECTS))
+	$(Q)$(CC) $(COMMON_FLAGS) $(LDFLAGS) $(INCLUDES) -o $(OUTPUT_MAIN) @$(OBJLIST_FILE) $(LFLAGS) $(LIBS)
 
 $(MAIN): | $(OUTPUT_PATH) $(OBJDIR) $(OBJ_MD) $(OUTPUT_MAIN)
 	@$(ECHO) Building   : "$(OUTPUT_MAIN)"

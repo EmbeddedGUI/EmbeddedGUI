@@ -114,6 +114,11 @@ def _emit_property_code(widget, prop_name, prop_def, cg, cast, indent):
     Returns a string (one C statement) or None if nothing to emit.
     """
     kind = cg["kind"]
+
+    # Kinds that carry no runtime setter (used only for params / struct init)
+    if kind in ("param_only", "param"):
+        return None
+
     func = cg["func"]
     value = widget.properties.get(prop_name, prop_def.get("default"))
 
@@ -151,6 +156,9 @@ def _emit_property_code(widget, prop_name, prop_def, cg, cast, indent):
             return None
         # Collect values from multiple properties referenced in args template
         args_tpl = cg["args"]
+        # Normalize list form to comma-separated string (e.g. ["{year}", "{month}"])
+        if isinstance(args_tpl, list):
+            args_tpl = ", ".join(args_tpl)
         props = widget.properties
         # Replace {prop_name} placeholders with actual values
         import re as _re

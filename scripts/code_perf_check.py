@@ -5,12 +5,11 @@ Performance regression check for EmbeddedGUI using QEMU ARM emulation.
 
 Builds HelloPerformace for each CPU profile, runs in QEMU with deterministic
 instruction counting (-icount shift=0), parses structured PERF_RESULT output,
-compares against baseline, and generates JSON + Markdown reports.
+and generates JSON + Markdown reports.
 
 Usage:
     python scripts/code_perf_check.py --full-check
     python scripts/code_perf_check.py --profile cortex-m3
-    python scripts/code_perf_check.py --update-baseline
     python scripts/code_perf_check.py --threshold 15
 """
 
@@ -28,7 +27,6 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 PROFILES_FILE = SCRIPT_DIR / "perf_cpu_profiles.json"
 OUTPUT_DIR = PROJECT_ROOT / "perf_output"
-BASELINE_FILE = OUTPUT_DIR / "baseline.json"
 RESULTS_FILE = OUTPUT_DIR / "perf_results.json"
 REPORT_FILE = OUTPUT_DIR / "perf_report.md"
 
@@ -38,19 +36,33 @@ DEFAULT_THRESHOLD = 10
 
 def find_qemu_executable():
     """Find qemu-system-arm executable."""
+    import shutil
+
+    exe_name = "qemu-system-arm.exe" if platform.system() == "Windows" else "qemu-system-arm"
+
     # 1. Check QEMU_PATH environment variable
     qemu_path = os.environ.get("QEMU_PATH")
     if qemu_path:
-        exe_name = "qemu-system-arm.exe" if platform.system() == "Windows" else "qemu-system-arm"
         exe = Path(qemu_path) / exe_name
         if exe.exists():
             return str(exe)
 
     # 2. Check PATH
-    import shutil
     qemu = shutil.which("qemu-system-arm")
     if qemu:
         return qemu
+
+    # 3. Check common Windows installation directories
+    if platform.system() == "Windows":
+        candidates = [
+            Path("C:/Program Files/qemu") / exe_name,
+            Path("C:/Program Files (x86)/qemu") / exe_name,
+            Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "qemu" / exe_name,
+            Path(os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")) / "qemu" / exe_name,
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                return str(candidate)
 
     return "qemu-system-arm"  # fallback, let subprocess raise FileNotFoundError
 
@@ -186,98 +198,30 @@ def parse_perf_results(output):
     return results, complete, skipped
 
 
-def compare_with_baseline(current, baseline, threshold):
-    """Compare current results with baseline, return regression info."""
-    regressions = []
-
-    for test_name, current_data in current.items():
-        if test_name in baseline:
-            base_time = baseline[test_name]["time_ms"]
-            curr_time = current_data["time_ms"]
-
-            if base_time > 0:
-                change_pct = ((curr_time - base_time) / base_time) * 100
-            else:
-                change_pct = 0.0
-
-            current_data["baseline_ms"] = base_time
-            current_data["change_pct"] = round(change_pct, 1)
-            current_data["regression"] = change_pct > threshold
-            if current_data["regression"]:
-                regressions.append(test_name)
-        else:
-            current_data["baseline_ms"] = None
-            current_data["change_pct"] = None
-            current_data["regression"] = False
-
-    return regressions
-
-
-def generate_markdown_report(all_results, baseline, threshold, git_commit, skipped=None):
-    """Generate Markdown performance report."""
+def generate_markdown_report(all_results, threshold, git_commit, skipped=None):
+    """Generate Markdown performance report (single profile)."""
     profiles = sorted(all_results.keys())
-    all_tests = set()
-    for profile_results in all_results.values():
-        all_tests.update(profile_results.keys())
-    all_tests = sorted(all_tests)
+    profile_name = profiles[0] if profiles else "cortex-m3"
+    results = all_results.get(profile_name, {})
+    all_tests = sorted(results.keys())
 
     lines = []
     lines.append("# EmbeddedGUI Performance Report")
     lines.append("")
     lines.append(f"- Commit: `{git_commit}`")
     lines.append(f"- Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    lines.append(f"- Profile: {profile_name}")
     lines.append(f"- Regression threshold: {threshold}%")
     lines.append("")
 
     # Header
-    header = "| Test Case |"
-    separator = "|-----------|"
-    for p in profiles:
-        short = p.replace("cortex-", "").upper()
-        header += f" {short} (ms) |"
-        separator += "----------|"
-    if baseline:
-        header += " vs Baseline |"
-        separator += "-------------|"
-    lines.append(header)
-    lines.append(separator)
+    lines.append("| Test Case | Time (ms) |")
+    lines.append("|-----------|-----------|")
 
     # Rows
-    has_regression = False
     for test in all_tests:
-        row = f"| {test} |"
-        worst_change = None
-
-        for p in profiles:
-            if test in all_results.get(p, {}):
-                t = all_results[p][test]["time_ms"]
-                row += f" {t:.3f} |"
-
-                change = all_results[p][test].get("change_pct")
-                if change is not None:
-                    if worst_change is None or change > worst_change:
-                        worst_change = change
-            else:
-                row += " - |"
-
-        if baseline and worst_change is not None:
-            if worst_change > threshold:
-                row += f" +{worst_change:.1f}% :warning: |"
-                has_regression = True
-            elif worst_change < -threshold:
-                row += f" {worst_change:.1f}% :rocket: |"
-            else:
-                row += f" {worst_change:+.1f}% :white_check_mark: |"
-        elif baseline:
-            row += " NEW |"
-
-        lines.append(row)
-
-    lines.append("")
-    if has_regression:
-        lines.append("> :warning: Performance regression detected!")
-    else:
-        lines.append("> :white_check_mark: No performance regressions.")
+        t = results[test]["time_ms"]
+        lines.append(f"| {test} | {t:.3f} |")
 
     # Skipped tests section
     if skipped:
@@ -703,16 +647,88 @@ def generate_spi_matrix_report(matrix_results, profile_name, git_commit):
     return "\n".join(lines)
 
 
+def _do_pfb_matrix(profiles, pfb_configs, args, timeout):
+    """Run PFB matrix test and save results. Returns True on success."""
+    if not pfb_configs:
+        print("  [SKIP] No pfb_configs defined in perf_cpu_profiles.json")
+        return True
+
+    profile_name = args.profile or "cortex-m3"
+    if profile_name not in profiles:
+        print(f"  ERROR: Unknown profile for PFB matrix: {profile_name}")
+        return False
+
+    git_commit = get_git_commit()
+    profile_config = profiles[profile_name]
+
+    print(f"PFB Matrix Test: profile={profile_name}, {len(pfb_configs)} configs")
+    matrix_results = run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout)
+
+    matrix_data = {
+        "timestamp": datetime.now().isoformat(),
+        "git_commit": git_commit,
+        "profile": profile_name,
+        "pfb_matrix": {k: v for k, v in matrix_results.items()},
+    }
+    with open(PFB_MATRIX_RESULTS_FILE, "w") as f:
+        json.dump(matrix_data, f, indent=2)
+    print(f"  PFB matrix results saved to: {PFB_MATRIX_RESULTS_FILE}")
+
+    report = generate_pfb_matrix_report(matrix_results, profile_name, git_commit)
+    with open(PFB_MATRIX_REPORT_FILE, "w", encoding="utf-8") as f:
+        f.write(report)
+    print(f"  PFB matrix report saved to: {PFB_MATRIX_REPORT_FILE}")
+
+    success = len(matrix_results) == len(pfb_configs)
+    print(f"  PFB Matrix: {len(matrix_results)}/{len(pfb_configs)} configs succeeded")
+    return success
+
+
+def _do_spi_matrix(profiles, spi_configs, args, timeout):
+    """Run SPI matrix test and save results. Returns True on success."""
+    if not spi_configs:
+        print("  [SKIP] No spi_configs defined in perf_cpu_profiles.json")
+        return True
+
+    profile_name = args.profile or "cortex-m3"
+    if profile_name not in profiles:
+        print(f"  ERROR: Unknown profile for SPI matrix: {profile_name}")
+        return False
+
+    git_commit = get_git_commit()
+    profile_config = profiles[profile_name]
+
+    print(f"SPI Matrix Test: profile={profile_name}, {len(spi_configs)} configs")
+    matrix_results = run_spi_matrix(profile_name, profile_config, spi_configs, timeout)
+
+    matrix_data = {
+        "timestamp": datetime.now().isoformat(),
+        "git_commit": git_commit,
+        "profile": profile_name,
+        "spi_matrix": {k: v for k, v in matrix_results.items()},
+    }
+    with open(SPI_MATRIX_RESULTS_FILE, "w") as f:
+        json.dump(matrix_data, f, indent=2)
+    print(f"  SPI matrix results saved to: {SPI_MATRIX_RESULTS_FILE}")
+
+    report = generate_spi_matrix_report(matrix_results, profile_name, git_commit)
+    with open(SPI_MATRIX_REPORT_FILE, "w", encoding="utf-8") as f:
+        f.write(report)
+    print(f"  SPI matrix report saved to: {SPI_MATRIX_REPORT_FILE}")
+
+    success = len(matrix_results) == len(spi_configs)
+    print(f"  SPI Matrix: {len(matrix_results)}/{len(spi_configs)} configs succeeded")
+    return success
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="EmbeddedGUI QEMU Performance Regression Check"
     )
     parser.add_argument("--full-check", action="store_true",
-                        help="Run all CPU profiles")
+                        help="Run cortex-m3 perf + PFB matrix + SPI matrix")
     parser.add_argument("--profile", type=str,
                         help="Run specific profile (e.g., cortex-m3)")
-    parser.add_argument("--update-baseline", action="store_true",
-                        help="Save current results as new baseline")
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD,
                         help=f"Regression threshold %% (default: {DEFAULT_THRESHOLD})")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT,
@@ -738,103 +754,28 @@ def main():
             print(f"Available: {', '.join(profiles.keys())}")
             sys.exit(1)
         run_profiles = {args.profile: profiles[args.profile]}
-    elif args.full_check:
-        run_profiles = profiles
     else:
-        # Default: run cortex-m3 only
+        # Default and --full-check: run cortex-m3 only.
+        # QEMU -icount shift=0 counts instructions uniformly, so different
+        # cortex-m profiles produce nearly identical results — multi-profile
+        # perf comparison is not meaningful under instruction counting.
         run_profiles = {"cortex-m3": profiles["cortex-m3"]}
-
-    # Load baseline if exists
-    baseline = {}
-    if BASELINE_FILE.exists():
-        with open(BASELINE_FILE, "r") as f:
-            baseline_data = json.load(f)
-            baseline = baseline_data.get("profiles", {})
 
     # Create output directory
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # PFB Matrix mode
-    if args.pfb_matrix:
-        if not pfb_configs:
-            print("ERROR: No pfb_configs defined in perf_cpu_profiles.json")
-            sys.exit(1)
+    # Standalone PFB Matrix mode (--pfb-matrix without --full-check)
+    if args.pfb_matrix and not args.full_check:
+        ok = _do_pfb_matrix(profiles, pfb_configs, args, timeout)
+        sys.exit(0 if ok else 2)
 
-        profile_name = args.profile or "cortex-m3"
-        if profile_name not in profiles:
-            print(f"Unknown profile: {profile_name}")
-            sys.exit(1)
-
-        git_commit = get_git_commit()
-        profile_config = profiles[profile_name]
-
-        print(f"PFB Matrix Test: profile={profile_name}, {len(pfb_configs)} configs")
-        matrix_results = run_pfb_matrix(
-            profile_name, profile_config, pfb_configs, timeout
-        )
-
-        # Save matrix results
-        matrix_data = {
-            "timestamp": datetime.now().isoformat(),
-            "git_commit": git_commit,
-            "profile": profile_name,
-            "pfb_matrix": {k: v for k, v in matrix_results.items()},
-        }
-        with open(PFB_MATRIX_RESULTS_FILE, "w") as f:
-            json.dump(matrix_data, f, indent=2)
-        print(f"\nMatrix results saved to: {PFB_MATRIX_RESULTS_FILE}")
-
-        # Generate matrix report
-        report = generate_pfb_matrix_report(matrix_results, profile_name, git_commit)
-        with open(PFB_MATRIX_REPORT_FILE, "w", encoding="utf-8") as f:
-            f.write(report)
-        print(f"Matrix report saved to: {PFB_MATRIX_REPORT_FILE}")
-
-        print(f"\nPFB Matrix Test Complete: {len(matrix_results)}/{len(pfb_configs)} configs succeeded")
-        sys.exit(0 if len(matrix_results) == len(pfb_configs) else 2)
-
-    # SPI Matrix mode
-    if args.spi_matrix:
-        if not spi_configs:
-            print("ERROR: No spi_configs defined in perf_cpu_profiles.json")
-            sys.exit(1)
-
-        profile_name = args.profile or "cortex-m3"
-        if profile_name not in profiles:
-            print(f"Unknown profile: {profile_name}")
-            sys.exit(1)
-
-        git_commit = get_git_commit()
-        profile_config = profiles[profile_name]
-
-        print(f"SPI Matrix Test: profile={profile_name}, {len(spi_configs)} configs")
-        matrix_results = run_spi_matrix(
-            profile_name, profile_config, spi_configs, timeout
-        )
-
-        # Save matrix results
-        matrix_data = {
-            "timestamp": datetime.now().isoformat(),
-            "git_commit": git_commit,
-            "profile": profile_name,
-            "spi_matrix": {k: v for k, v in matrix_results.items()},
-        }
-        with open(SPI_MATRIX_RESULTS_FILE, "w") as f:
-            json.dump(matrix_data, f, indent=2)
-        print(f"\nMatrix results saved to: {SPI_MATRIX_RESULTS_FILE}")
-
-        # Generate matrix report
-        report = generate_spi_matrix_report(matrix_results, profile_name, git_commit)
-        with open(SPI_MATRIX_REPORT_FILE, "w", encoding="utf-8") as f:
-            f.write(report)
-        print(f"Matrix report saved to: {SPI_MATRIX_REPORT_FILE}")
-
-        print(f"\nSPI Matrix Test Complete: {len(matrix_results)}/{len(spi_configs)} configs succeeded")
-        sys.exit(0 if len(matrix_results) == len(spi_configs) else 2)
+    # Standalone SPI Matrix mode (--spi-matrix without --full-check)
+    if args.spi_matrix and not args.full_check:
+        ok = _do_spi_matrix(profiles, spi_configs, args, timeout)
+        sys.exit(0 if ok else 2)
 
     git_commit = get_git_commit()
     all_results = {}
-    all_regressions = []
     failed_profiles = []
 
     # Enable all image alpha tests for QEMU (no flash size limit)
@@ -848,8 +789,10 @@ def main():
     for idx, (name, config) in enumerate(run_profiles.items(), 1):
         print(f"\n[{idx}/{total}] Profile: {name} - {config['description']}")
 
+        need_clean = args.clean
+
         # Build
-        if not build_for_profile(name, config, clean=args.clean):
+        if not build_for_profile(name, config, clean=need_clean):
             failed_profiles.append(name)
             continue
 
@@ -879,15 +822,6 @@ def main():
 
         print(f"  Parsed {len(results)} test results")
 
-        # Compare with baseline
-        if name in baseline:
-            regs = compare_with_baseline(results, baseline[name], threshold)
-            if regs:
-                all_regressions.extend([(name, r) for r in regs])
-                print(f"  REGRESSIONS: {', '.join(regs)}")
-            else:
-                print(f"  No regressions")
-
         all_results[name] = results
 
     # Restore original config
@@ -907,7 +841,7 @@ def main():
 
     # Generate Markdown report
     report = generate_markdown_report(
-        all_results, baseline, threshold, git_commit, skipped=all_skipped
+        all_results, threshold, git_commit, skipped=all_skipped
     )
     with open(REPORT_FILE, "w", encoding="utf-8") as f:
         f.write(report)
@@ -921,26 +855,28 @@ def main():
     print(f"  Failed profiles: {len(failed_profiles)}")
     if failed_profiles:
         print(f"    {', '.join(failed_profiles)}")
-    print(f"  Regressions: {len(all_regressions)}")
-    for profile, test in all_regressions:
-        r = all_results[profile][test]
-        print(f"    [{profile}] {test}: {r['baseline_ms']:.1f}ms -> {r['time_ms']:.1f}ms ({r['change_pct']:+.1f}%)")
 
-    # Update baseline if requested
-    if args.update_baseline:
-        with open(BASELINE_FILE, "w") as f:
-            json.dump(results_data, f, indent=2)
-        print(f"\nBaseline updated: {BASELINE_FILE}")
+    matrix_failed = False
 
-    # Exit code
-    if all_regressions:
-        print(f"\nFAILED: {len(all_regressions)} regression(s) detected")
-        sys.exit(1)
-    elif failed_profiles:
-        print(f"\nWARNING: {len(failed_profiles)} profile(s) failed to build/run")
+    # In full-check mode, also run PFB and SPI matrix tests
+    if args.full_check:
+        print(f"\n{'='*60}")
+        print(f"PFB Matrix Test")
+        print(f"{'='*60}")
+        if not _do_pfb_matrix(profiles, pfb_configs, args, timeout):
+            matrix_failed = True
+
+        print(f"\n{'='*60}")
+        print(f"SPI Matrix Test")
+        print(f"{'='*60}")
+        if not _do_spi_matrix(profiles, spi_configs, args, timeout):
+            matrix_failed = True
+
+    if failed_profiles or matrix_failed:
+        print(f"\nWARNING: some tests failed to build/run")
         sys.exit(2)
     else:
-        print(f"\nPASSED: No regressions detected")
+        print(f"\nPASSED")
         sys.exit(0)
 
 

@@ -167,7 +167,7 @@ _extract_colors_from_tailwind_config(html)
 
 `extract-layout` 命令输出结构化 JSON：
 
-```json
+```none
 {
   "screen": {"width": 320, "height": 480},
   "colors": {"cyan-400": "0x22D3EE", "gray-400": "0x9CA3AF"},
@@ -209,7 +209,7 @@ _extract_colors_from_tailwind_config(html)
 {"layout_type": "flex-col-start", "gap": 8}
 ```
 
-```xml
+```none
 <LinearLayout id="vlist" orientation="vertical" align_type="EGUI_ALIGN_CENTER">
     <Label id="item1" margin="4" ... />
     <Label id="item2" margin="4" ... />
@@ -224,7 +224,7 @@ _extract_colors_from_tailwind_config(html)
 {"layout_type": "flex-row-center"}
 ```
 
-```xml
+```none
 <LinearLayout id="hlist" orientation="horizontal" align_type="EGUI_ALIGN_VCENTER">
     <Image id="icon" ... />
     <Label id="name" margin="4" ... />
@@ -239,7 +239,7 @@ _extract_colors_from_tailwind_config(html)
 {"layout_type": "flex-row-between"}
 ```
 
-```xml
+```none
 <Group id="header" x="0" y="0" width="320" height="32">
     <Label id="time" x="16" y="4" ... />
     <Image id="wifi" x="280" y="4" ... />
@@ -252,7 +252,7 @@ _extract_colors_from_tailwind_config(html)
 {"layout_type": "grid-2col", "gap": 16}
 ```
 
-```xml
+```none
 <GridLayout id="grid" col_count="2" align_type="EGUI_ALIGN_CENTER">
     <Card id="cell1" margin="4" ... />
     <Card id="cell2" margin="4" ... />

@@ -129,12 +129,66 @@ extern const egui_font_t egui_res_font_simhei_14_4;
 egui_view_label_set_font(view, &egui_res_font_simhei_14_4);
 ```
 
+## 内置共享字体库
+
+常用开源字体已预置于 `scripts/tools/build_in/`（均为 Apache 2.0 授权），直接复制使用，无需自行查找：
+
+| 文件 | 用途 |
+|------|------|
+| `NotoSansSC-VF.ttf` | 中文（简体）+ 英文，可变字重 |
+| `MaterialSymbolsOutlined-Regular.ttf` | Material Design 图标符号 |
+| `Montserrat-Medium.ttf` / `Montserrat-Bold.ttf` | 英文西文正文/标题 |
+| `DejaVuSans.ttf` | 英文通用，字符集全 |
+| `unscii-8.ttf` | 等宽像素字体 |
+
+新建应用时，从此目录复制所需字体到 `example/{APP}/resource/src/`，无需从系统字体目录或其他项目中搜索。
+
+## 自动提取字符集（中文 / 图标）
+
+代码中的文本字符串需要写入字体的字符集文件（如 `cn_text.txt`、`icon_text.txt`），才能被编译进字体资源。手动维护容易遗漏——应使用自动提取脚本。
+
+```bash
+# 提取 HelloShowcase 中所有中文字符串和图标字符，写入对应 text 文件
+python scripts/tools/extract_font_text.py --app HelloShowcase
+
+# 先预览提取结果（不写入文件）
+python scripts/tools/extract_font_text.py --app HelloShowcase --dry-run
+
+# 覆盖模式（重建 text 文件，丢弃旧内容，适合首次生成）
+python scripts/tools/extract_font_text.py --app HelloShowcase --overwrite
+```
+
+脚本自动执行的操作：
+1. 读取 `example/{APP}/resource/src/app_resource_config.json`，根据字体文件名判断类型（CN / 图标 / 拉丁）
+2. 扫描 `example/{APP}/*.c *.h`，提取：
+   - `S("EN", "中文")` 双语宏的中文部分
+   - `flag ? "EN" : "中文"` / `flag ? "中文" : "EN"` 三元表达式的**两侧**（因为同一 widget 用 CN 字体渲染两种状态）
+   - `xxx_cn[]` 静态数组中的中文字符串
+   - 代码中直接出现的 CJK 字符串
+   - `\xNN\xNN` 等 hex 转义解码后属于 PUA 范围的图标字符
+3. 每个字符串单独写一行（便于维护，`app_resource_generate.py` 会去重）
+4. icon 字符输出为 `&#xNNNN;` HTML 实体格式（`ttf2c.py` 原生支持）
+5. 默认**追加**模式：不删除已有行，只补充新字符串
+
+**多字体场景**：如果同一应用有多个 CN 字体（不同字号），脚本会为每个字体的 text 文件都补充完整字符集（安全做法）。如需按字号拆分，手动从生成的 text 文件中删除不需要的行即可。
+
+**字体类型判断规则**（基于文件名关键词）：
+- CN 字体：`noto`、`sc`、`hans`、`simhei`、`cjk` 等
+- 图标字体：`material`、`symbol`、`icon`、`fontawesome` 等
+- 拉丁字体：其余（跳过，ASCII 使用默认字体）
+
+每次在代码中新增中文文本或图标字符后，都应重新运行脚本，然后执行 `make resource_refresh`。
+
 ## 添加新资源的流程
 
 1. 将源文件（PNG/TTF）放入 `example/{APP}/resource/src/`
+   - 字体优先从 `scripts/tools/build_in/` 复制
 2. 编辑 `app_resource_config.json` 添加配置条目
-3. 如果是字体，确保字符集文件包含所有需要的字符
-4. 运行 `make resource_refresh` 重新生成
+3. 运行字符集提取脚本填充 text 文件：
+   ```bash
+   python scripts/tools/extract_font_text.py --app {APP}
+   ```
+4. 运行 `make resource_refresh APP={APP}` 重新生成 C 源文件
 5. 在代码中 `#include "app_egui_resource_generate.h"` 并引用资源
 
 ## 常见问题排查
@@ -164,6 +218,7 @@ EGUI_CODE_INCLUDE += example/{APP}/resource
 
 | 文件 | 说明 |
 |------|------|
+| `scripts/tools/extract_font_text.py` | 自动提取 C 源码中文/图标字符串到字体 text 文件 |
 | `scripts/tools/app_resource_generate.py` | 资源生成主脚本 |
 | `scripts/tools/img2c.py` | 图片转C数组 |
 | `scripts/tools/ttf2c.py` | 字体转C数组 |

@@ -98,10 +98,30 @@ void egui_view_arc_slider_on_draw(egui_view_t *self)
         return;
     }
 
+    egui_dim_t inner_r = radius - local->stroke_width;
+    if (inner_r < 0)
+        inner_r = 0;
+
     // Background track arc
     int16_t bg_start = local->start_angle;
     int16_t bg_end = local->start_angle + local->sweep_angle;
+#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+    {
+        egui_gradient_stop_t bg_stops[2] = {
+                {.position = 0, .color = local->track_color},
+                {.position = 255, .color = local->track_color},
+        };
+        egui_gradient_t bg_grad = {
+                .type = EGUI_GRADIENT_TYPE_RADIAL,
+                .stop_count = 2,
+                .alpha = EGUI_ALPHA_100,
+                .stops = bg_stops,
+        };
+        egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, radius, inner_r, bg_start, bg_end, &bg_grad);
+    }
+#else
     egui_canvas_draw_arc(center_x, center_y, radius, bg_start, bg_end, local->stroke_width, local->track_color, EGUI_ALPHA_100);
+#endif
 
     // Active progress arc
     int16_t progress_end = local->start_angle + (int16_t)((int32_t)local->sweep_angle * local->value / 100);
@@ -120,7 +140,7 @@ void egui_view_arc_slider_on_draw(egui_view_t *self)
                     .alpha = EGUI_ALPHA_100,
                     .stops = stops,
             };
-            egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, radius, radius - local->stroke_width, bg_start, progress_end, &grad);
+            egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, radius, inner_r, bg_start, progress_end, &grad);
         }
 #else
         egui_canvas_draw_arc(center_x, center_y, radius, bg_start, progress_end, local->stroke_width, local->active_color, EGUI_ALPHA_100);

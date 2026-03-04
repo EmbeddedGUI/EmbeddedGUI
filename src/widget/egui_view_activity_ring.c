@@ -138,8 +138,29 @@ void egui_view_activity_ring_on_draw(egui_view_t *self)
             break;
         }
 
+        egui_dim_t inner_r = cur_radius - local->stroke_width;
+        if (inner_r < 0)
+            inner_r = 0;
+
         // Background arc (full 360)
+        // In Enhanced mode use ring fill so geometry matches the progress ring fill below
+#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+        {
+            egui_gradient_stop_t bg_stops[2] = {
+                    {.position = 0, .color = local->ring_bg_colors[i]},
+                    {.position = 255, .color = local->ring_bg_colors[i]},
+            };
+            egui_gradient_t bg_grad = {
+                    .type = EGUI_GRADIENT_TYPE_RADIAL,
+                    .stop_count = 2,
+                    .alpha = EGUI_ALPHA_100,
+                    .stops = bg_stops,
+            };
+            egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, cur_radius, inner_r, 0, 360, &bg_grad);
+        }
+#else
         egui_canvas_draw_arc(center_x, center_y, cur_radius, 0, 360, local->stroke_width, local->ring_bg_colors[i], EGUI_ALPHA_100);
+#endif
 
         // Progress arc
         if (local->values[i] > 0)
@@ -158,9 +179,6 @@ void egui_view_activity_ring_on_draw(egui_view_t *self)
                         .alpha = EGUI_ALPHA_100,
                         .stops = stops,
                 };
-                egui_dim_t inner_r = cur_radius - local->stroke_width;
-                if (inner_r < 0)
-                    inner_r = 0;
                 egui_canvas_draw_arc_ring_fill_gradient_round_cap(center_x, center_y, cur_radius, inner_r, local->start_angle, end_angle, &grad,
                                                                   local->show_round_cap ? EGUI_ARC_CAP_BOTH : EGUI_ARC_CAP_NONE);
             }

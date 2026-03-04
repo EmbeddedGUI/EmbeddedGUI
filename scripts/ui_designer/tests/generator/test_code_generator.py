@@ -652,3 +652,77 @@ class TestCodeQualityOptimizations:
         lines = _gen_widget_init_lines(w)
         text = "\n".join(lines)
         assert "set_align_type" not in text
+
+
+# ======================================================================
+# TestParamOnlyKindWidgets
+# Regression tests for: KeyError: 'func' when code_gen kind is
+# "param_only" or "param" (no function call, used only for struct init).
+# ======================================================================
+
+
+class TestParamOnlyKindWidgets:
+    """Widgets with 'param_only'/'param' code_gen kinds must not raise KeyError."""
+
+    def _make_page_with(self, widget):
+        root = WidgetModel("group", name="root", x=0, y=0, width=240, height=320)
+        root.add_child(widget)
+        page = _make_page("test_page", root)
+        proj = _make_project([page])
+        return page, proj
+
+    def test_scale_widget_no_key_error(self):
+        """Scale has param_only/param entries - must not raise KeyError."""
+        w = WidgetModel("scale", name="sc1", x=0, y=0, width=200, height=40)
+        w.properties["min_value"] = 0
+        w.properties["max_value"] = 100
+        w.properties["major_count"] = 5
+        w.properties["value"] = 60
+        page, proj = self._make_page_with(w)
+        # Must not raise
+        output = generate_page_layout_source(page, proj)
+        assert "egui_view_scale_init" in output
+        assert "set_value" in output
+
+    def test_table_widget_no_key_error(self):
+        """Table has param_only entries - must not raise KeyError."""
+        w = WidgetModel("table", name="tbl1", x=0, y=0, width=200, height=160)
+        w.properties["col_count"] = 3
+        w.properties["row_count"] = 4
+        w.properties["row_height"] = 40
+        page, proj = self._make_page_with(w)
+        output = generate_page_layout_source(page, proj)
+        assert "egui_view_table_init" in output
+
+    def test_mini_calendar_widget_no_key_error(self):
+        """MiniCalendar has param_only entries - must not raise KeyError."""
+        w = WidgetModel("mini_calendar", name="cal1", x=0, y=0, width=200, height=200)
+        w.properties["year"] = 2026
+        w.properties["month"] = 3
+        page, proj = self._make_page_with(w)
+        output = generate_page_layout_source(page, proj)
+        assert "egui_view_mini_calendar_init" in output
+
+    def test_gen_widget_init_lines_scale_no_key_error(self):
+        """_gen_widget_init_lines with scale must not raise KeyError."""
+        w = WidgetModel("scale", name="sc2", x=10, y=10, width=180, height=30)
+        # Should not raise
+        lines = _gen_widget_init_lines(w)
+        assert any("egui_view_scale_init" in l for l in lines)
+
+    def test_multiple_param_kind_widgets_on_same_page(self):
+        """Multiple param_only widgets on one page - all must succeed."""
+        root = WidgetModel("group", name="root", x=0, y=0, width=240, height=320)
+        scale = WidgetModel("scale", name="sc", x=0, y=0, width=200, height=30)
+        table = WidgetModel("table", name="tbl", x=0, y=100, width=200, height=160)
+        cal = WidgetModel("mini_calendar", name="cal", x=0, y=270, width=200, height=200)
+        root.add_child(scale)
+        root.add_child(table)
+        root.add_child(cal)
+        page = _make_page("multi_param", root)
+        proj = _make_project([page])
+        # Must not raise
+        output = generate_page_layout_source(page, proj)
+        assert "egui_view_scale_init" in output
+        assert "egui_view_table_init" in output
+        assert "egui_view_mini_calendar_init" in output

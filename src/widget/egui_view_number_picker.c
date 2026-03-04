@@ -72,25 +72,44 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
     egui_dim_t third_h = region.size.height / 3;
     egui_dim_t w = region.size.width;
 
-    // Top 1/3: up arrow (chevron drawn with two lines)
+    // Horizontal divider lines between sections (subtle, semi-transparent)
     {
-        egui_dim_t cx = region.location.x + w / 2;
-        egui_dim_t top_y = region.location.y + 4;
-        egui_dim_t bot_y = region.location.y + third_h - 4;
-        egui_dim_t half_w = w / 4;
-        egui_canvas_draw_line(cx - half_w, bot_y, cx, top_y, 2, local->button_color, local->alpha);
-        egui_canvas_draw_line(cx, top_y, cx + half_w, bot_y, 2, local->button_color, local->alpha);
+        egui_dim_t margin = 8;
+        egui_dim_t div1_y = region.location.y + third_h;
+        egui_dim_t div2_y = region.location.y + region.size.height - third_h;
+        egui_canvas_draw_line(region.location.x + margin, div1_y, region.location.x + w - margin, div1_y, 1, local->button_color, 60);
+        egui_canvas_draw_line(region.location.x + margin, div2_y, region.location.x + w - margin, div2_y, 1, local->button_color, 60);
     }
 
-    // Middle 1/3: number text
+    // Top 1/3: up arrow (filled triangle pointing up, flat base at bottom)
     {
+        egui_dim_t cx = region.location.x + w / 2;
+        egui_dim_t tri_h = third_h / 2;
+        if (tri_h > 14)
+            tri_h = 14;
+        egui_dim_t half_w = tri_h * 3 / 4;
+        egui_dim_t cy = region.location.y + third_h / 2;
+        egui_dim_t tip_y = cy - tri_h / 2;
+        egui_dim_t base_y = cy + tri_h / 2;
+        // Press highlight overlay
+        if (local->pressed_zone == 1)
+        {
+            egui_canvas_draw_fillrect(region.location.x, region.location.y, w, third_h, EGUI_COLOR_MAKE(255, 255, 255), 30);
+        }
+        egui_canvas_draw_triangle_fill(cx, tip_y, cx - half_w, base_y, cx + half_w, base_y, local->button_color, local->alpha);
+    }
+
+    // Middle 1/3: number text (between div1 and div2, using actual boundaries)
+    {
+        egui_dim_t div1_y = region.location.y + third_h;
+        egui_dim_t div2_y = region.location.y + region.size.height - third_h;
         egui_sprintf_int(local->text_buf, sizeof(local->text_buf), local->value);
 
         egui_region_t mid_rect;
         mid_rect.location.x = region.location.x;
-        mid_rect.location.y = region.location.y + third_h;
+        mid_rect.location.y = div1_y;
         mid_rect.size.width = w;
-        mid_rect.size.height = third_h;
+        mid_rect.size.height = div2_y - div1_y;
 
         if (local->font != NULL)
         {
@@ -98,14 +117,25 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
         }
     }
 
-    // Bottom 1/3: down arrow (chevron drawn with two lines)
+    // Bottom 1/3: down arrow (filled triangle pointing down, flat base at top)
+    // Use actual bottom zone boundaries (mirror of top zone)
     {
         egui_dim_t cx = region.location.x + w / 2;
-        egui_dim_t top_y = region.location.y + third_h * 2 + 4;
-        egui_dim_t bot_y = region.location.y + region.size.height - 4;
-        egui_dim_t half_w = w / 4;
-        egui_canvas_draw_line(cx - half_w, top_y, cx, bot_y, 2, local->button_color, local->alpha);
-        egui_canvas_draw_line(cx, bot_y, cx + half_w, top_y, 2, local->button_color, local->alpha);
+        egui_dim_t tri_h = third_h / 2;
+        if (tri_h > 14)
+            tri_h = 14;
+        egui_dim_t half_w = tri_h * 3 / 4;
+        egui_dim_t zone_top = region.location.y + region.size.height - third_h;
+        egui_dim_t zone_bot = region.location.y + region.size.height;
+        egui_dim_t cy = (zone_top + zone_bot) / 2;
+        egui_dim_t tip_y = cy + tri_h / 2;
+        egui_dim_t base_y = cy - tri_h / 2;
+        // Press highlight overlay
+        if (local->pressed_zone == -1)
+        {
+            egui_canvas_draw_fillrect(region.location.x, zone_top, w, third_h, EGUI_COLOR_MAKE(255, 255, 255), 30);
+        }
+        egui_canvas_draw_triangle_fill(cx, tip_y, cx - half_w, base_y, cx + half_w, base_y, local->button_color, local->alpha);
     }
 }
 
@@ -124,11 +154,25 @@ int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_
     case EGUI_MOTION_EVENT_ACTION_DOWN:
     {
         egui_view_set_pressed(self, true);
+        // Record which zone is being pressed for visual feedback
+        {
+            egui_dim_t local_y = event->location.y - self->region_screen.location.y;
+            egui_dim_t th = self->region.size.height / 3;
+            if (local_y < th)
+                local->pressed_zone = 1;
+            else if (local_y >= th * 2)
+                local->pressed_zone = -1;
+            else
+                local->pressed_zone = 0;
+        }
+        egui_view_invalidate(self);
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_UP:
     {
         egui_view_set_pressed(self, false);
+        local->pressed_zone = 0;
+        egui_view_invalidate(self);
 
         // Determine which third was tapped
         egui_dim_t local_y = event->location.y - self->region_screen.location.y;
@@ -159,6 +203,8 @@ int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_
     case EGUI_MOTION_EVENT_ACTION_CANCEL:
     {
         egui_view_set_pressed(self, false);
+        local->pressed_zone = 0;
+        egui_view_invalidate(self);
         break;
     }
     default:
@@ -208,6 +254,7 @@ void egui_view_number_picker_init(egui_view_t *self)
     local->text_color = EGUI_THEME_TEXT_PRIMARY;
     local->button_color = EGUI_THEME_PRIMARY;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    local->pressed_zone = 0;
 
     egui_view_set_view_name(self, "egui_view_number_picker");
 }

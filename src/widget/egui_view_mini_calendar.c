@@ -96,10 +96,10 @@ void egui_view_mini_calendar_on_draw(egui_view_t *self)
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
     {
-        egui_color_t color_light = egui_rgb_mix(EGUI_THEME_SURFACE, EGUI_COLOR_WHITE, 80);
+        egui_color_t color_light = egui_rgb_mix(local->bg_color, EGUI_COLOR_WHITE, 40);
         egui_gradient_stop_t stops[2] = {
                 {.position = 0, .color = color_light},
-                {.position = 255, .color = EGUI_THEME_SURFACE},
+                {.position = 255, .color = local->bg_color},
         };
         egui_gradient_t grad = {
                 .type = EGUI_GRADIENT_TYPE_LINEAR_VERTICAL,
@@ -110,7 +110,7 @@ void egui_view_mini_calendar_on_draw(egui_view_t *self)
         egui_canvas_draw_round_rectangle_fill_gradient(x, y, w, h, EGUI_THEME_RADIUS_MD, &grad);
     }
 #else
-    egui_canvas_draw_round_rectangle_fill(x, y, w, h, EGUI_THEME_RADIUS_MD, EGUI_THEME_SURFACE, EGUI_ALPHA_100);
+    egui_canvas_draw_round_rectangle_fill(x, y, w, h, EGUI_THEME_RADIUS_MD, local->bg_color, EGUI_ALPHA_100);
 #endif
     egui_canvas_draw_round_rectangle(x, y, w, h, EGUI_THEME_RADIUS_MD, EGUI_THEME_STROKE_WIDTH, EGUI_THEME_BORDER, EGUI_ALPHA_100);
 
@@ -292,6 +292,7 @@ void egui_view_mini_calendar_init(egui_view_t *self)
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_mini_calendar_t);
 
     // init local data.
+    local->bg_color = EGUI_THEME_SURFACE;
     local->year = 2026;
     local->month = 1;
     local->day = 1;

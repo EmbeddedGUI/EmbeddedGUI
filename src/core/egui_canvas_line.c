@@ -341,8 +341,10 @@ void egui_canvas_draw_line_segment(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, 
         return;
     }
 
-    // For thin lines or axis-aligned, delegate to normal draw_line
-    if (stroke_width <= 1 || deltax == 0 || deltay == 0)
+    // For thin lines, delegate to normal draw_line.
+    // Keep axis-aligned thick segments in this function to avoid draw_line's
+    // endpoint extension, which can cause joint bulges in polygon/polyline.
+    if (stroke_width <= 1)
     {
         egui_canvas_draw_line(x1, y1, x2, y2, stroke_width, color, alpha);
         return;
@@ -414,10 +416,6 @@ void egui_canvas_draw_line_segment(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, 
     }
     int32_t aa_range_shifted = (int32_t)(aa_range >> aa_shift);
 
-    // Extend butt cap by ~1 pixel at each end to prevent gaps at joints
-    // between adjacent segments (used by bezier curves).
-    int32_t extend = EGUI_MAX((int32_t)dx, (int32_t)EGUI_ABS(dy));
-
     for (egui_dim_t py = scan_y1; py <= scan_y2; py++)
     {
         for (egui_dim_t px = scan_x1; px <= scan_x2; px++)
@@ -425,7 +423,10 @@ void egui_canvas_draw_line_segment(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, 
             int32_t cross = (int32_t)dx * (y1 - py) - (int32_t)(x1 - px) * dy;
             int32_t dot = (int32_t)(px - x1) * dx + (int32_t)(py - y1) * dy;
 
-            if (dot < -extend || dot > line_len_sq + extend)
+            // Closed projection interval [start, end].
+            // This preserves continuity at shared vertices without endpoint
+            // extension.
+            if (dot < 0 || dot > line_len_sq)
             {
                 continue;
             }

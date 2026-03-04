@@ -19,6 +19,7 @@ from qfluentwidgets import (
 )
 
 from ..model.config import get_config
+from ..utils.scaffold import make_app_build_mk_content
 
 
 class AppSelectorDialog(QDialog):
@@ -197,12 +198,7 @@ class AppSelectorDialog(QDialog):
             # Create minimal build.mk
             build_mk = os.path.join(app_dir, "build.mk")
             with open(build_mk, "w", encoding="utf-8") as f:
-                f.write(f"# Build configuration for {app_name}\n\n")
-                f.write("EGUI_CODE_SRC += \\\n")
-                f.write(f"    $(EGUI_APP_PATH)/uicode.c \\\n")
-                f.write("\n")
-                f.write("EGUI_CODE_INCLUDE += \\\n")
-                f.write("    -I$(EGUI_APP_PATH) \\\n")
+                f.write(make_app_build_mk_content(app_name))
 
             # Create minimal app_egui_config.h
             config_h = os.path.join(app_dir, "app_egui_config.h")

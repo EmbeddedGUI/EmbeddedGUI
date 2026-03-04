@@ -68,9 +68,11 @@ c_tail_string="""
 
 
 
-def generate_glyphs_data(input_file, text, pixel_size, font_bit_size):
+def generate_glyphs_data(input_file, text, pixel_size, font_bit_size, weight=None):
     face = freetype.Face(input_file)
     face.set_pixel_sizes(0, pixel_size)
+    if weight is not None:
+        face.set_var_design_coords([weight])
 
     glyphs_data = []
     current_index = 0
@@ -252,7 +254,7 @@ def utf8_to_c_array(utf8_bytes):
 
 
 class ttf2c_tool:
-    def __init__(self, input_font_file, name, text_file, pixel_size, font_bit_size, external_type, output_path):
+    def __init__(self, input_font_file, name, text_file, pixel_size, font_bit_size, external_type, output_path, weight=None):
         if output_path == None:
             output_path = os.path.dirname(input_font_file)
 
@@ -314,6 +316,7 @@ class ttf2c_tool:
         self.support_text = support_text
         self.options = options
 
+        self.weight = weight
         self.pixel_buffer_bin_data = None
         self.char_desc_bin_data = None
 
@@ -327,7 +330,7 @@ class ttf2c_tool:
             print(c_head_debug_string.format(self.pixel_size, self.font_bit_size, self.input_font_file_name, self.options), file=outputfile)
 
         # Convert the text file to a list of characters
-        glyphs_data, char_max_width, char_max_height = generate_glyphs_data(self.input_font_file, self.support_text, self.pixel_size, self.font_bit_size)
+        glyphs_data, char_max_width, char_max_height = generate_glyphs_data(self.input_font_file, self.support_text, self.pixel_size, self.font_bit_size, self.weight)
         self.pixel_buffer_bin_data, self.char_desc_bin_data = self.write_c_code(glyphs_data, char_max_width, char_max_height)
 
         # write the tail of the c file
@@ -508,6 +511,7 @@ def main():
     parser.add_argument("-s", "--fontbitsize",type=int, help="Font bit size (1,2,4,8)",                  required=False,    default=1)
     parser.add_argument('-ext', '--external', nargs='?',type = int, default=0, required=False, help="Storage format (0: internal, 1: external)")
     parser.add_argument('-o', '--output', nargs='?',type = str, default="", required=False, help="Specify the output file name (default: input file name with.c extension)")
+    parser.add_argument('-w', '--weight', nargs='?',type = int, default=None, required=False, help="Variable font weight axis value (e.g. 400=Regular, 500=Medium, 700=Bold)")
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
@@ -515,7 +519,7 @@ def main():
 
     args = parser.parse_args()
     
-    tool = ttf2c_tool(args.input, args.name, args.text, args.pixelsize, args.fontbitsize, args.external, args.output)
+    tool = ttf2c_tool(args.input, args.name, args.text, args.pixelsize, args.fontbitsize, args.external, args.output, args.weight)
 
     tool.write_c_file()
 

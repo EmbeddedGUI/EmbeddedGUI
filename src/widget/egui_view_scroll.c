@@ -43,10 +43,20 @@ void egui_view_scroll_start_container_scroll(egui_view_t *self, int diff_y)
             diff_y = EGUI_MAX(diff_y, -bottom_limit);
             // EGUI_LOG_DBG("egui_view_scroll_start_container_scroll up limit: %d\n", diff_y);
             egui_view_scroll_by(container, 0, diff_y);
+            egui_view_invalidate(self);
             return;
         }
         else
         {
+            // Clamp: content already at or past bottom boundary.
+            egui_dim_t content_h = container->region.size.height;
+            egui_dim_t view_h = self->region.size.height;
+            int max_scroll = (content_h > view_h) ? (int)(content_h - view_h) : 0;
+            if (-(container->region.location.y) > max_scroll)
+            {
+                // Use scroll_to so region_screen and dirty regions are properly updated.
+                egui_view_scroll_to(container, 0, -(egui_dim_t)max_scroll);
+            }
             egui_scroller_about_animation(&local->scroller);
         }
     }
@@ -60,10 +70,17 @@ void egui_view_scroll_start_container_scroll(egui_view_t *self, int diff_y)
             diff_y = EGUI_MIN(diff_y, -real_top);
             // EGUI_LOG_DBG("egui_view_scroll_start_container_scroll down limit: %d\n", diff_y);
             egui_view_scroll_by(container, 0, diff_y);
+            egui_view_invalidate(self);
             return;
         }
         else
         {
+            // Clamp: container drifted above top boundary (container.y > 0).
+            if (container->region.location.y > 0)
+            {
+                // Use scroll_to so region_screen and dirty regions are properly updated.
+                egui_view_scroll_to(container, 0, 0);
+            }
             egui_scroller_about_animation(&local->scroller);
         }
     }
@@ -294,7 +311,7 @@ int egui_view_scroll_on_touch_event(egui_view_t *self, egui_motion_event_t *even
                         egui_dim_t max_scroll = content_height - view_height;
                         egui_dim_t target_offset = (egui_dim_t)(((int32_t)thumb_pos * max_scroll) / thumb_travel);
 
-                        container->region.location.y = -target_offset;
+                        egui_view_scroll_to(container, 0, -target_offset);
                         egui_view_invalidate(self);
                     }
                 }
@@ -383,8 +400,15 @@ void egui_view_scroll_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_scroll_t);
 
+    // Set canvas extra clip to this scroll view's screen region so that scrolled
+    // children (items above/below the viewport) are properly clipped and not drawn
+    // outside the scroll area.
+    egui_canvas_set_extra_clip(&self->region_screen);
+
     // Draw the view group normally (self + children)
     egui_view_group_draw(self);
+
+    egui_canvas_clear_extra_clip();
 
     if (!local->is_scrollbar_enabled || !self->is_visible || self->is_gone)
     {

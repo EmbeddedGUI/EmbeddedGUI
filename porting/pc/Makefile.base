@@ -112,6 +112,12 @@ OUTPUT_TARGET	:= $(OUTPUT_PATH)/$(TARGET)
 APP_OBJ_SUFFIX ?= $(if $(APP),$(APP),default)
 OBJDIR = $(OUTPUT_PATH)/obj/$(APP_OBJ_SUFFIX)
 
+# Configuration stamp - forces relink when APP changes.
+# The stamp filename encodes the current APP; switching APP means the old
+# stamp is missing, which triggers its recipe (delete stale stamps, create
+# new one).  The fresh timestamp then makes OUTPUT_MAIN out-of-date.
+APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(APP_OBJ_SUFFIX)
+
 # Prerequisites for rebuild when makefiles change
 MAKEFILE_PREREQS += Makefile
 MAKEFILE_PREREQS += $(EGUI_PORT_PATH)/Makefile.base
@@ -254,7 +260,15 @@ $(OUTPUT_PATH):
 $(OBJDIR):
 	$(MD_CHECK) $(Q)$(MD) $(call FIXPATH, $@)
 
-$(OUTPUT_MAIN): $(OBJECTS)
+$(APP_CONFIG_STAMP): | $(OUTPUT_PATH)
+ifeq ($(OS),Windows_NT)
+	-$(Q)$(RM) $(call FIXPATH, $(OUTPUT_PATH)/.app_stamp_*) >NUL 2>NUL
+else
+	-$(Q)rm -f $(OUTPUT_PATH)/.app_stamp_*
+endif
+	$(Q)$(ECHO) stamp > $(call FIXPATH, $@)
+
+$(OUTPUT_MAIN): $(OBJECTS) $(APP_CONFIG_STAMP)
 	@$(ECHO) Linking    : "$@"
 	$(Q)$(CC) $(COMMON_FLAGS) $(LDFLAGS) $(INCLUDES) -o $(OUTPUT_MAIN) $(OBJECTS) $(LFLAGS) $(LIBS) $(OUTPUT_BT_LIB)
 

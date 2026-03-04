@@ -1,0 +1,22 @@
+{
+    "img": [],
+    "font": [
+        {
+            "file": "NotoSansSC-VF.ttf",
+            "name": "notosanssc",
+            "pixelsize": "14",
+            "fontbitsize": "4",
+            "external": "0",
+            "weight": "500",
+            "text": "cn_text.txt"
+        },
+        {
+            "file": "MaterialSymbolsOutlined-Regular.ttf",
+            "name": "materialicon",
+            "pixelsize": "20",
+            "fontbitsize": "4",
+            "external": "0",
+            "text": "icon_text.txt"
+        }
+    ]
+}

@@ -260,3 +260,23 @@ void uicode_page_smarthome_update_theme_icon(void)
     const char *icon = uicode_is_dark_theme() ? ICON_DARK_MODE : ICON_LIGHT_MODE;
     egui_view_label_set_text(EGUI_VIEW_OF(&sh_theme_btn), icon);
 }
+
+void uicode_page_smarthome_update_theme_labels(void)
+{
+    if (uicode_is_dark_theme())
+    {
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&sh_title), EGUI_COLOR_MAKE(0xE2, 0xE8, 0xF0), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&sh_card1_name), EGUI_COLOR_MAKE(0xCB, 0xD5, 0xE1), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&sh_card2_name), EGUI_COLOR_MAKE(0xCB, 0xD5, 0xE1), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&sh_card3_name), EGUI_COLOR_MAKE(0xCB, 0xD5, 0xE1), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&sh_card4_name), EGUI_COLOR_MAKE(0xCB, 0xD5, 0xE1), EGUI_ALPHA_100);
+    }
+    else
+    {
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&sh_title), EGUI_COLOR_MAKE(0x1E, 0x29, 0x3B), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&sh_card1_name), EGUI_COLOR_MAKE(0x1E, 0x29, 0x3B), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&sh_card2_name), EGUI_COLOR_MAKE(0x1E, 0x29, 0x3B), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&sh_card3_name), EGUI_COLOR_MAKE(0x1E, 0x29, 0x3B), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&sh_card4_name), EGUI_COLOR_MAKE(0x1E, 0x29, 0x3B), EGUI_ALPHA_100);
+    }
+}

@@ -57,84 +57,51 @@ def setup_matplotlib():
 def load_json(path):
     """Load a JSON file, return None if missing."""
     if not path.exists():
-        print(f"  [WARN] File not found: {path}")
+        print(f"  [INFO] File not found (skipping): {path.name}")
         return None
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 # ---------------------------------------------------------------------------
-# 1. Performance Report (perf_results.json + baseline.json)
+# 1. Performance Report (perf_results.json)
 # ---------------------------------------------------------------------------
 
 def generate_perf_report():
-    """Generate performance comparison report with bar chart."""
+    """Generate single-profile performance report with horizontal bar chart."""
     plt = setup_matplotlib()
 
     results = load_json(PERF_OUTPUT / "perf_results.json")
-    baseline = load_json(PERF_OUTPUT / "baseline.json")
     if not results:
         print("  [SKIP] perf_results.json not found")
         return
 
     timestamp = results.get("timestamp", "N/A")
     commit = results.get("git_commit", "N/A")
-    threshold = results.get("threshold_percent", 10)
 
-    # Collect all profile data
+    # Collect profile data (use first / only profile)
     profiles = results.get("profiles", {})
     if not profiles:
         print("  [SKIP] No profile data in perf_results.json")
         return
 
-    # Use first profile for chart
     profile_name = list(profiles.keys())[0]
     data = profiles[profile_name]
+    all_tests = list(data.keys())
+    times = [data[t].get("time_ms", 0) for t in all_tests]
 
-    test_names = list(data.keys())
-    current_times = [data[t]["time_ms"] for t in test_names]
-    baseline_times = [data[t].get("baseline_ms") for t in test_names]
-    change_pcts = [data[t].get("change_pct") for t in test_names]
+    # --- Horizontal bar chart ---
+    n_tests = len(all_tests)
+    fig, ax = plt.subplots(figsize=(12, max(6, n_tests * 0.25)), dpi=150)
 
-    # --- Bar chart ---
-    fig, ax = plt.subplots(figsize=(14, 8), dpi=150)
-
-    colors = []
-    for i, t in enumerate(test_names):
-        pct = change_pcts[i]
-        bl = baseline_times[i]
-        if bl is None or pct is None:
-            colors.append("#4A90D9")  # blue = new test
-        elif pct < -5:
-            colors.append("#27AE60")  # green = improved
-        elif pct > threshold:
-            colors.append("#E74C3C")  # red = regression
-        else:
-            colors.append("#95A5A6")  # gray = stable
-
-    y_pos = range(len(test_names))
-    bars = ax.barh(y_pos, current_times, color=colors, edgecolor="none", height=0.7)
-
-    # Overlay baseline markers
-    for i, bl in enumerate(baseline_times):
-        if bl is not None:
-            ax.plot(bl, i, marker="|", color="black", markersize=10, markeredgewidth=1.5)
+    y_pos = range(n_tests)
+    ax.barh(y_pos, times, height=0.6, color="#4A90D9", edgecolor="none")
 
     ax.set_yticks(y_pos)
-    ax.set_yticklabels(test_names, fontsize=7)
+    ax.set_yticklabels(all_tests, fontsize=7)
     ax.set_xlabel("Time (ms)")
-    ax.set_title(f"EGUI Performance - {profile_name} (commit {commit})")
+    ax.set_title(f"EGUI Performance ({profile_name}) - commit {commit}")
     ax.invert_yaxis()
-
-    # Legend
-    from matplotlib.patches import Patch
-    legend_items = [
-        Patch(facecolor="#27AE60", label="Improved (>5%)"),
-        Patch(facecolor="#E74C3C", label=f"Regression (>{threshold}%)"),
-        Patch(facecolor="#95A5A6", label="Stable"),
-        Patch(facecolor="#4A90D9", label="New (no baseline)"),
-    ]
-    ax.legend(handles=legend_items, loc="lower right", fontsize=8)
 
     plt.tight_layout()
     IMG_DIR.mkdir(parents=True, exist_ok=True)
@@ -143,35 +110,23 @@ def generate_perf_report():
     plt.close(fig)
     print(f"  Chart saved: {chart_path}")
 
-    # --- Markdown ---
+    # --- Markdown table (single column) ---
     lines = [
         "# Performance Report",
         "",
         f"- Commit: `{commit}`",
         f"- Date: {timestamp}",
         f"- Profile: {profile_name}",
-        f"- Regression threshold: {threshold}%",
         "",
         "![Performance Chart](images/perf_report.png)",
         "",
-        "| Test Case | Current (ms) | Baseline (ms) | Change (%) | Status |",
-        "|-----------|-------------|---------------|-----------|--------|",
+        "| Test Case | Time (ms) |",
+        "|-----------|-----------|",
     ]
 
-    for t in test_names:
-        d = data[t]
-        cur = f"{d['time_ms']:.3f}"
-        bl = f"{d['baseline_ms']:.3f}" if d.get("baseline_ms") is not None else "N/A"
-        pct = f"{d['change_pct']:+.1f}" if d.get("change_pct") is not None else "N/A"
-        if d.get("regression"):
-            status = "REGRESSION"
-        elif d.get("baseline_ms") is None:
-            status = "NEW"
-        elif d.get("change_pct", 0) and d["change_pct"] < -5:
-            status = "IMPROVED"
-        else:
-            status = "OK"
-        lines.append(f"| {t} | {cur} | {bl} | {pct} | {status} |")
+    for t in all_tests:
+        val = data[t].get("time_ms", 0)
+        lines.append(f"| {t} | {val:.3f} |")
 
     md_path = DOC_DIR / "perf_report.md"
     md_path.write_text("\n".join(lines), encoding="utf-8")

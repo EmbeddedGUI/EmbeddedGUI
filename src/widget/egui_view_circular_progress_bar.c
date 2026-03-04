@@ -2,6 +2,9 @@
 #include <assert.h>
 
 #include "egui_view_circular_progress_bar.h"
+#include "font/egui_font_std.h"
+#include "resource/egui_resource.h"
+#include "utils/egui_sprintf.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
 #include "core/egui_canvas_gradient.h"
@@ -56,6 +59,20 @@ void egui_view_circular_progress_bar_set_bk_color(egui_view_t *self, egui_color_
     egui_view_invalidate(self);
 }
 
+void egui_view_circular_progress_bar_set_text_color(egui_view_t *self, egui_color_t color)
+{
+    EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
+    local->text_color = color;
+    egui_view_invalidate(self);
+}
+
+void egui_view_circular_progress_bar_set_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
+    local->font = font;
+    egui_view_invalidate(self);
+}
+
 void egui_view_circular_progress_bar_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
@@ -73,8 +90,29 @@ void egui_view_circular_progress_bar_on_draw(egui_view_t *self)
         return;
     }
 
+    egui_dim_t inner_r = radius - local->stroke_width;
+    if (inner_r < 0)
+        inner_r = 0;
+
     // Draw background arc (full 360 degrees)
+    // In Enhanced mode use ring fill so geometry matches the progress ring fill below
+#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+    {
+        egui_gradient_stop_t bg_stops[2] = {
+                {.position = 0, .color = local->bk_color},
+                {.position = 255, .color = local->bk_color},
+        };
+        egui_gradient_t bg_grad = {
+                .type = EGUI_GRADIENT_TYPE_RADIAL,
+                .stop_count = 2,
+                .alpha = EGUI_ALPHA_100,
+                .stops = bg_stops,
+        };
+        egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, radius, inner_r, 0, 360, &bg_grad);
+    }
+#else
     egui_canvas_draw_arc(center_x, center_y, radius, 0, 360, local->stroke_width, local->bk_color, EGUI_ALPHA_100);
+#endif
 
     // Draw progress arc
     if (local->process > 0)
@@ -93,11 +131,48 @@ void egui_view_circular_progress_bar_on_draw(egui_view_t *self)
                     .alpha = EGUI_ALPHA_100,
                     .stops = stops,
             };
-            egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, radius, radius - local->stroke_width, local->start_angle, end_angle, &grad);
+            egui_canvas_draw_arc_ring_fill_gradient_round_cap(center_x, center_y, radius, inner_r, local->start_angle, end_angle, &grad, EGUI_ARC_CAP_BOTH);
         }
 #else
         egui_canvas_draw_arc(center_x, center_y, radius, local->start_angle, end_angle, local->stroke_width, local->progress_color, EGUI_ALPHA_100);
 #endif
+    }
+
+    // Center percentage text — auto-select font by inner_r
+    {
+        const egui_font_t *text_font = local->font;
+        if (text_font == NULL)
+        {
+            if (inner_r >= 40)
+                text_font = (const egui_font_t *)&egui_res_font_montserrat_14_4;
+            else if (inner_r >= 28)
+                text_font = (const egui_font_t *)&egui_res_font_montserrat_12_4;
+            else if (inner_r >= 18)
+                text_font = (const egui_font_t *)&egui_res_font_montserrat_8_4;
+        }
+        if (text_font != NULL)
+        {
+            char val_buf[8];
+            egui_sprintf_int(val_buf, sizeof(val_buf) - 1, (int32_t)local->process);
+            // append '%'
+            int len = 0;
+            while (val_buf[len])
+                len++;
+            if (len < (int)(sizeof(val_buf) - 2))
+            {
+                val_buf[len] = '%';
+                val_buf[len + 1] = '\0';
+            }
+            egui_dim_t font_h = (egui_dim_t)EGUI_FONT_STD_GET_FONT_HEIGHT(text_font);
+            egui_dim_t lbl_w = inner_r * 2 - 4;
+            egui_dim_t lbl_h = font_h + 4;
+            egui_region_t text_rect;
+            text_rect.location.x = center_x - lbl_w / 2;
+            text_rect.location.y = center_y - lbl_h / 2;
+            text_rect.size.width = lbl_w;
+            text_rect.size.height = lbl_h;
+            egui_canvas_draw_text_in_rect(text_font, val_buf, &text_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+        }
     }
 }
 
@@ -129,10 +204,12 @@ void egui_view_circular_progress_bar_init(egui_view_t *self)
     // init local data.
     local->on_progress_changed = NULL;
     local->process = 0;
-    local->stroke_width = 4;
+    local->stroke_width = EGUI_THEME_TRACK_THICKNESS;
     local->start_angle = -90;
-    local->bk_color = EGUI_COLOR_DARK_GREY;
-    local->progress_color = EGUI_COLOR_GREEN;
+    local->bk_color = EGUI_THEME_TRACK_BG;
+    local->progress_color = EGUI_THEME_PRIMARY;
+    local->text_color = EGUI_THEME_TEXT_PRIMARY;
+    local->font = NULL; // NULL = auto-select based on inner_r
 
     egui_view_set_view_name(self, "egui_view_circular_progress_bar");
 }

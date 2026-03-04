@@ -47,6 +47,7 @@ struct egui_view_menu
     egui_color_t header_color;
     egui_color_t item_color;
     egui_color_t text_color;
+    egui_color_t header_text_color;
     egui_color_t highlight_color;
     const egui_font_t *font;
 
@@ -72,6 +73,7 @@ void egui_view_menu_go_back(egui_view_t *self);
 void egui_view_menu_set_on_item_click(egui_view_t *self, egui_view_menu_item_click_cb_t callback);
 void egui_view_menu_set_header_height(egui_view_t *self, egui_dim_t height);
 void egui_view_menu_set_item_height(egui_view_t *self, egui_dim_t height);
+void egui_view_menu_set_header_text_color(egui_view_t *self, egui_color_t color);
 void egui_view_menu_on_draw(egui_view_t *self);
 void egui_view_menu_init(egui_view_t *self);
 void egui_view_menu_apply_params(egui_view_t *self, const egui_view_menu_params_t *params);

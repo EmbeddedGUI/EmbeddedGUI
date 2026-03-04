@@ -39,6 +39,8 @@ example/HelloTempControl
 node_modules
 /web/demos
 /web/docs
+web\demos
+web\docs
 /.venv/
 /tools/w64devkit/
 dist/

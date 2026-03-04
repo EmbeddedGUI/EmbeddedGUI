@@ -26,7 +26,9 @@ void uicode_page_watch_on_enter(void);
 // Theme icon update for all pages
 void uicode_update_theme_icons(void);
 void uicode_page_smarthome_update_theme_icon(void);
+void uicode_page_smarthome_update_theme_labels(void);
 void uicode_page_dashboard_update_theme_icon(void);
+void uicode_page_dashboard_update_theme_labels(void);
 void uicode_page_watch_update_theme_icon(void);
 
 /* Ends C function definitions when using C++ */

@@ -193,6 +193,10 @@ class FontResourceInfo:
         else:
             self.external_list.append(int(self.external_info))
 
+        self.weight = None
+        if config.get('weight'):
+            self.weight = int(config['weight'])
+
 def generate_font_resource(resource_src_path, font_res_output_path, config_info_font):
     ttf2c_tool_list = []
     if not config_info_font:
@@ -232,7 +236,7 @@ def generate_font_resource(resource_src_path, font_res_output_path, config_info_
         pixelsize = font_config_item[1]
         fontbitsize = font_config_item[2]
         external = font_config_item[3]
-        tool = ttf2c.ttf2c_tool(font_file_path, font_name, suported_text_list, pixelsize, fontbitsize, external, output_path)
+        tool = ttf2c.ttf2c_tool(font_file_path, font_name, suported_text_list, pixelsize, fontbitsize, external, output_path, font_info.weight)
 
         ttf2c_tool_list.append(tool)
 

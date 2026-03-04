@@ -3,6 +3,7 @@
 
 #include "egui_view.h"
 #include "core/egui_theme.h"
+#include "core/egui_timer.h"
 #include "font/egui_font.h"
 
 /* Set up for C function definitions, even when using C++ */
@@ -16,12 +17,16 @@ struct egui_view_heart_rate
     egui_view_t base;
 
     uint8_t bpm;
-    uint8_t pulse_phase;
     uint8_t animate;
     egui_color_t heart_color;
     egui_color_t text_color;
     const egui_font_t *font;
     char text_buffer[8];
+
+    // Internal animation state
+    egui_timer_t anim_timer;
+    uint8_t ecg_offset; // 0-31: current scroll position in ECG template
+    uint8_t beat_phase; // 0-15: heart scale animation (>0 means heart is enlarged)
 };
 
 // ============== Heart Rate Params ==============

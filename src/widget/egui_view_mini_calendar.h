@@ -28,6 +28,7 @@ struct egui_view_mini_calendar
     egui_color_t today_color;
     egui_color_t selected_color;
     egui_color_t weekend_color;
+    egui_color_t bg_color;
 
     const egui_font_t *font;
     egui_view_on_date_selected_listener_t on_date_selected;

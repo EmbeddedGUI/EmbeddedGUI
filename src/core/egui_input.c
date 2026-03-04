@@ -9,6 +9,11 @@
 
 #include "utils/simple_ringbuffer/simple_pool.h"
 
+#if EGUI_CONFIG_SOFTWARE_ROTATION
+#include "egui_rotation.h"
+#include "egui_display_driver.h"
+#endif
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 #include "egui_key_event.h"
 #endif
@@ -193,6 +198,18 @@ void egui_input_polling_work(void)
         }
 
         // EGUI_LOG_DBG("egui_input_polling_work type:%d x:%d y:%d\n", motion_event->type, motion_event->location.x, motion_event->location.y);
+
+#if EGUI_CONFIG_SOFTWARE_ROTATION
+        // Transform physical touch coordinates to logical coordinates when software rotation is active
+        {
+            egui_display_driver_t *drv = egui_display_driver_get();
+            if (drv != NULL && drv->rotation != EGUI_DISPLAY_ROTATION_0 && drv->ops->set_rotation == NULL)
+            {
+                egui_rotation_transform_touch(drv->rotation, drv->physical_width, drv->physical_height, &motion_event->location.x, &motion_event->location.y);
+            }
+        }
+#endif
+
         // handle motion event
         egui_core_process_input_motion(motion_event);
 

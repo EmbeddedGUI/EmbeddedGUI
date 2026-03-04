@@ -361,6 +361,13 @@ int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
             {
                 egui_view_request_focus(self);
             }
+            else if (!self->is_no_focus_clear)
+            {
+                // Clear focus when a non-focusable widget is touched
+                // (e.g. dismiss on-screen keyboard when tapping other controls).
+                // Skip if is_no_focus_clear is set (e.g. keyboard keys must not dismiss the keyboard).
+                egui_focus_manager_clear_focus();
+            }
 #endif
             break;
         case EGUI_MOTION_EVENT_ACTION_MOVE:
@@ -681,6 +688,7 @@ void egui_view_init(egui_view_t *self)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     self->is_focusable = false;
     self->is_focused = false;
+    self->is_no_focus_clear = 0;
     self->on_focus_change_listener = NULL;
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 

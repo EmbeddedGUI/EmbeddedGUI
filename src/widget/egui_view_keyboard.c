@@ -326,6 +326,9 @@ static void egui_view_keyboard_init_key(egui_view_keyboard_t *keyboard, int key_
     egui_view_set_on_click_listener(key_view, egui_view_keyboard_key_click_cb);
     egui_view_set_background(key_view, is_special ? EGUI_BG_OF(&bg_kb_special) : EGUI_BG_OF(&bg_kb_key));
     egui_view_set_margin(key_view, 1, 1, 1, 1);
+    // Keyboard keys must not trigger focus-clear on touch, or they would dismiss the keyboard
+    // before the click handler fires (ACTION_DOWN clears focus, ACTION_UP fires click).
+    key_view->is_no_focus_clear = 1;
     egui_view_group_add_child(EGUI_VIEW_OF(row), key_view);
 }
 
@@ -343,6 +346,8 @@ void egui_view_keyboard_init(egui_view_t *self)
 
     // Make keyboard clickable to consume touch events on gaps between keys
     self->is_clickable = true;
+    // Do not let touches on the keyboard root (gap areas) clear the textinput focus
+    self->is_no_focus_clear = 1;
 
     local->mode = EGUI_KEYBOARD_MODE_LOWERCASE;
     local->target = NULL;

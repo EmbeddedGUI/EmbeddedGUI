@@ -287,6 +287,17 @@ WidgetRegistry.instance().register(
 - 将 React/Framer Motion 语义映射为 EGUI Timer/Animation API
 - 参考实现：`example/HelloStyleDemo/uicode_dashboard.c`
 
+## 资源生成（图片 & 字体）
+
+为应用添加图片、字体、图标时，必须通过资源生成管线，**不要直接把 `.c` 文件放到 `src/resource/`**。详见 `.claude/skills/resource-generation.md`。
+
+核心要点：
+- 资源放在 `example/{APP}/resource/src/`，配置文件为 `app_resource_config.json`
+- 公用字体库位于 `scripts/tools/build_in/`，直接从那里复制到 `resource/src/`
+- **新增中文或图标字符后**，运行 `python scripts/tools/extract_font_text.py --app {APP}` 自动提取字符串到 text 文件（每行一个字符串，按字体分文件）
+- 运行 `make resource_refresh APP={APP}` 生成 C 源文件
+- 代码中通过 `#include "app_egui_resource_generate.h"` 引用资源
+
 ## GitHub Pages 在线 Demo 站点
 
 在线 Demo 站点以 `web/` 目录为根，通过 GitHub Actions 自动构建 WASM 并部署。
@@ -297,6 +308,25 @@ WidgetRegistry.instance().register(
 - **WASM 构建强制禁用录制模式**（`EGUI_CONFIG_RECORDING_TEST=0`），用户直接与 canvas 交互
 - 所有页面内容由 `web/demos/demos.json` 驱动，**不要手动编辑 `index.html` / `basic.html` 的 demo 列表**
 - 响应式布局通过 CSS 变量令牌（`--content-max-width` 等）统一控制，新增页面直接套用已有 class
+
+## Skills 技能文件说明
+
+项目技能文件位于 `.claude/skills/`，**在当前 VS Code + Copilot 环境下不会自动触发**——需要 AI 根据任务类型主动阅读对应文件。下表列出所有技能及触发时机：
+
+| 技能文件 | 触发时机 |
+|----------|----------|
+| `resource-generation.md` | 添加图片/字体/图标；资源构建报 undefined reference；需要配置 `app_resource_config.json` |
+| `runtime-verification.md` | 修改代码后验证；截图检查渲染；诊断黑屏/控件缺失/布局错位 |
+| `html-to-egui.md` | 将 Stitch HTML 或 Figma Make JSX/TSX 设计稿转换为 EGUI C 代码 |
+| `figmamake-to-egui.md` | 处理 Figma Make `.eguiproject` 工程转换 |
+| `figma-mcp-to-egui.md` | 通过 Figma MCP 插件获取设计稿并转换 |
+| `dynamic-effects.md` | 静态布局完成后补充动画/交互效果 |
+| `performance-analysis.md` | 性能测试、帧率分析、QEMU 基准 |
+| `recording-simulation.md` | 配置录制动作用于 CI 运行时验证 |
+| `build-and-debug.md` | 构建失败排查、链接错误、平台移植问题 |
+| `github-pages-web.md` | 添加/修改 GitHub Pages Demo 页面 |
+
+**使用方式**：遇到上述场景时，先阅读对应 `.claude/skills/*.md` 文件，按其流程操作，不得跳过。
 
 ## Plan说明
 

@@ -9,6 +9,10 @@
 #include "core/egui_canvas_gradient.h"
 #endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+#include "shadow/egui_shadow.h"
+#endif
+
 void egui_view_window_set_title(egui_view_t *self, const char *title)
 {
     EGUI_LOCAL_INIT(egui_view_window_t);
@@ -109,7 +113,7 @@ void egui_view_window_init(egui_view_t *self)
     // Init title label
     egui_view_label_init(EGUI_VIEW_OF(&local->title_label));
     egui_view_label_set_font(EGUI_VIEW_OF(&local->title_label), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&local->title_label), EGUI_THEME_TEXT, EGUI_ALPHA_100);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&local->title_label), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&local->title_label), EGUI_ALIGN_CENTER);
     egui_view_set_position(EGUI_VIEW_OF(&local->title_label), 0, 0);
 
@@ -119,6 +123,21 @@ void egui_view_window_init(egui_view_t *self)
     // Add title and content as children of the window
     egui_view_group_add_child(self, EGUI_VIEW_OF(&local->title_label));
     egui_view_group_add_child(self, EGUI_VIEW_OF(&local->content));
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+    {
+        static const egui_shadow_t window_shadow = {
+                .width = EGUI_THEME_SHADOW_WIDTH_MD,
+                .ofs_x = 0,
+                .ofs_y = EGUI_THEME_SHADOW_OFS_Y_MD,
+                .spread = 0,
+                .opa = EGUI_THEME_SHADOW_OPA,
+                .color = EGUI_COLOR_BLACK,
+                .corner_radius = 0,
+        };
+        egui_view_set_shadow(self, &window_shadow);
+    }
+#endif
 
     egui_view_set_view_name(self, "egui_view_window");
 }
