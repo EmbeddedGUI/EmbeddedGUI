@@ -18,6 +18,8 @@ COMMON_FLAGS += -DEGUI_CONFIG_RECORDING_TEST=0
 EMSDK_PATH ?= $(EMSDK)
 ifeq ($(strip $(EMSDK_PATH)),)
 CC := emcc
+else ifneq ($(wildcard $(EMSDK_PATH)/upstream/emscripten/emcc),)
+CC := $(EMSDK_PATH)/upstream/emscripten/emcc
 else ifneq ($(wildcard $(EMSDK_PATH)/upstream/emscripten/emcc.bat),)
 CC := $(EMSDK_PATH)/upstream/emscripten/emcc.bat
 else ifneq ($(wildcard $(EMSDK_PATH)/upstream/emscripten/emcc.py),)
