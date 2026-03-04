@@ -145,6 +145,7 @@ endif
 
 	MAIN	:= $(TARGET).exe
 	ECHO=echo
+	PYTHON=python
 	
 	SOURCEDIRS	:= $(SRC)
 	INCLUDEDIRS	:= $(INCLUDE)
@@ -158,6 +159,7 @@ else ifeq ($(shell uname), Darwin)
     # Code for OS X
 	MAIN	:= $(TARGET)
 	ECHO=echo
+	PYTHON=python3
 	
 	SOURCEDIRS	:= $(SRC)
 	INCLUDEDIRS	:= $(INCLUDE)
@@ -169,6 +171,7 @@ else ifeq ($(shell uname), Darwin)
 else
 	MAIN	:= $(TARGET)
 	ECHO=echo
+	PYTHON=python3
 	
 	SOURCEDIRS	:= $(SRC)
 	INCLUDEDIRS	:= $(INCLUDE)
@@ -296,7 +299,7 @@ $(OUTPUT_MAIN_RESOURCE):resource
 	@$(ECHO) Generating resource file complete!
 
 resource: $(OUTPUT_PATH)
-	python ./scripts/tools/app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH)
+	$(PYTHON) ./scripts/tools/app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH)
 	
 resource_refresh: $(OUTPUT_PATH)
-	python ./scripts/tools/app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH) -f ture
+	$(PYTHON) ./scripts/tools/app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH) -f ture
