@@ -45,8 +45,8 @@ jobs:
             artifact_name: EmbeddedGUI-Designer-windows-x64
           - os: ubuntu-22.04
             artifact_name: EmbeddedGUI-Designer-linux-x64
-          - os: macos-13
-            artifact_name: EmbeddedGUI-Designer-macos-x64
+          - os: macos-latest
+            artifact_name: EmbeddedGUI-Designer-macos-arm64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
