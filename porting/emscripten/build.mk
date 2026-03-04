@@ -18,14 +18,10 @@ COMMON_FLAGS += -DEGUI_CONFIG_RECORDING_TEST=0
 EMSDK_PATH ?= $(EMSDK)
 ifeq ($(strip $(EMSDK_PATH)),)
 CC := emcc
-else ifneq ($(wildcard $(EMSDK_PATH)/upstream/emscripten/emcc),)
-CC := $(EMSDK_PATH)/upstream/emscripten/emcc
-else ifneq ($(wildcard $(EMSDK_PATH)/upstream/emscripten/emcc.bat),)
+else ifeq ($(OS),Windows_NT)
 CC := $(EMSDK_PATH)/upstream/emscripten/emcc.bat
-else ifneq ($(wildcard $(EMSDK_PATH)/upstream/emscripten/emcc.py),)
-CC := python $(EMSDK_PATH)/upstream/emscripten/emcc.py
 else
-CC := emcc
+CC := $(EMSDK_PATH)/upstream/emscripten/emcc
 endif
 
 # SDL2 via Emscripten port (needed for both compile and link)
