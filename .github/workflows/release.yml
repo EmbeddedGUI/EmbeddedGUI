@@ -26,9 +26,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: |
-          python -m pip install -r requirements.txt
-          python -m pip install pytest PyQt5 PyQt-Fluent-Widgets
+        run: python -m pip install -r scripts/ui_designer/requirements-desktop.txt
 
       - name: Run UI Designer tests
         run: python -m pytest -c scripts/ui_designer/pyproject.toml scripts/ui_designer/tests -v --tb=short
@@ -119,7 +117,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install Python dependencies
-        run: pip install pillow
+        run: pip install -r requirements.txt
 
       - name: Build all WASM demos
         run: python scripts/wasm_build_demos.py

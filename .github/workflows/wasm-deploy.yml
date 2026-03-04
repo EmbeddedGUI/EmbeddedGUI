@@ -31,7 +31,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install Python dependencies
-        run: pip install pillow
+        run: pip install -r requirements.txt
 
       - name: Build all WASM demos
         run: python scripts/wasm_build_demos.py

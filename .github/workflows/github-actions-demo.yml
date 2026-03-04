@@ -13,9 +13,7 @@ jobs:
         uses: rlalik/setup-cpp-compiler@v1.2
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       - name: Start python env and install requirements
-        run: python -m pip install -r requirements.txt
-      - name: Install Python test dependencies
-        run: python -m pip install pytest PyQt5 PyQt-Fluent-Widgets
+        run: python -m pip install -r scripts/ui_designer/requirements-desktop.txt
       - name: Run UI Designer Python tests
         run: python -m pytest -c scripts/ui_designer/pyproject.toml scripts/ui_designer/tests -v --tb=short
       - name: Start Compile Test, full compile check.
