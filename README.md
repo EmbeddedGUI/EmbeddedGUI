@@ -35,13 +35,13 @@ HelloShowcase，所有控件的简单示例。
 
 
 
-![HelloShowcase](doc\source\images\HelloShowcase.gif)
+![HelloShowcase](doc/source/images/HelloShowcase.gif)
 
 
 
 HelloStyleDemo，一个常规的多页面应用。
 
-![HelloStyleDemo](doc\source\images\HelloStyleDemo.gif)
+![HelloStyleDemo](doc/source/images/HelloStyleDemo.gif)
 
 
 
@@ -309,7 +309,7 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 
 
 
-![UI_Designer](doc\source\images\UI_Designer.gif)
+![UI_Designer](doc/source/images/UI_Designer.gif)
 
 ---
 
