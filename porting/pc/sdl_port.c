@@ -102,7 +102,7 @@ static bool g_recording_drag_in_progress = false;
 static int g_recording_drag_current_step = 0;
 static egui_sim_action_t g_recording_current_action;
 // Snapshot-driven frame capture (replaces fixed-time settle)
-static bool g_recording_snapshot_requested = false;  // Snapshot requested by user code or auto-fallback
+static bool g_recording_snapshot_requested = false; // Snapshot requested by user code or auto-fallback
 static uint32_t g_recording_snapshot_request_time = 0;
 static uint32_t g_recording_snapshot_last_hash = 0;
 static int g_recording_snapshot_same_hash_count = 0;

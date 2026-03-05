@@ -344,23 +344,10 @@ void egui_view_pattern_lock_on_draw(egui_view_t *self)
         error_color = egui_rgb_mix(error_color, EGUI_THEME_DISABLED, EGUI_ALPHA_60);
     }
 
-    egui_canvas_draw_round_rectangle_fill(
-            layout.region.location.x,
-            layout.region.location.y,
-            layout.region.size.width,
-            layout.region.size.height,
-            EGUI_THEME_RADIUS_MD,
-            bg_color,
-            local->alpha);
-    egui_canvas_draw_round_rectangle(
-            layout.region.location.x,
-            layout.region.location.y,
-            layout.region.size.width,
-            layout.region.size.height,
-            EGUI_THEME_RADIUS_MD,
-            1,
-            border_color,
-            local->alpha);
+    egui_canvas_draw_round_rectangle_fill(layout.region.location.x, layout.region.location.y, layout.region.size.width, layout.region.size.height,
+                                          EGUI_THEME_RADIUS_MD, bg_color, local->alpha);
+    egui_canvas_draw_round_rectangle(layout.region.location.x, layout.region.location.y, layout.region.size.width, layout.region.size.height,
+                                     EGUI_THEME_RADIUS_MD, 1, border_color, local->alpha);
 
     if (local->node_count > 1)
     {

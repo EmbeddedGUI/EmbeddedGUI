@@ -26,9 +26,9 @@ struct egui_view_chips_params
     uint8_t gap;
 };
 
-#define EGUI_VIEW_CHIPS_PARAMS_INIT(_name, _x, _y, _w, _h, _labels, _count, _cols, _gap)                                                                     \
-    static const egui_view_chips_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .labels = (_labels), .chip_count = (_count), .cols = (_cols),   \
-                                                    .gap = (_gap)}
+#define EGUI_VIEW_CHIPS_PARAMS_INIT(_name, _x, _y, _w, _h, _labels, _count, _cols, _gap)                                                                       \
+    static const egui_view_chips_params_t _name = {                                                                                                            \
+            .region = {{(_x), (_y)}, {(_w), (_h)}}, .labels = (_labels), .chip_count = (_count), .cols = (_cols), .gap = (_gap)}
 
 void egui_view_chips_apply_params(egui_view_t *self, const egui_view_chips_params_t *params);
 void egui_view_chips_init_with_params(egui_view_t *self, const egui_view_chips_params_t *params);

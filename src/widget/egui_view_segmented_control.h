@@ -10,8 +10,8 @@
 extern "C" {
 #endif
 
-#define EGUI_VIEW_SEGMENTED_CONTROL_MAX_SEGMENTS  8
-#define EGUI_VIEW_SEGMENTED_CONTROL_PRESSED_NONE  0xFF
+#define EGUI_VIEW_SEGMENTED_CONTROL_MAX_SEGMENTS 8
+#define EGUI_VIEW_SEGMENTED_CONTROL_PRESSED_NONE 0xFF
 
 typedef void (*egui_view_on_segment_changed_listener_t)(egui_view_t *self, uint8_t index);
 

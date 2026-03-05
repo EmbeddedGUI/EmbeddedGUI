@@ -25,9 +25,9 @@ struct egui_view_autocomplete_params
     uint8_t current_index;
 };
 
-#define EGUI_VIEW_AUTOCOMPLETE_PARAMS_INIT(_name, _x, _y, _w, _h, _suggestions, _count, _index)                                                            \
-    static const egui_view_autocomplete_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .suggestions = (_suggestions),                           \
-                                                           .suggestion_count = (_count), .current_index = (_index)}
+#define EGUI_VIEW_AUTOCOMPLETE_PARAMS_INIT(_name, _x, _y, _w, _h, _suggestions, _count, _index)                                                                \
+    static const egui_view_autocomplete_params_t _name = {                                                                                                     \
+            .region = {{(_x), (_y)}, {(_w), (_h)}}, .suggestions = (_suggestions), .suggestion_count = (_count), .current_index = (_index)}
 
 void egui_view_autocomplete_apply_params(egui_view_t *self, const egui_view_autocomplete_params_t *params);
 void egui_view_autocomplete_init_with_params(egui_view_t *self, const egui_view_autocomplete_params_t *params);

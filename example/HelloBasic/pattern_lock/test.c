@@ -55,7 +55,8 @@ static void on_pattern_finish(egui_view_t *self, const uint8_t *nodes, uint8_t n
     (void)self;
     if (!valid)
     {
-        snprintf(status_text, sizeof(status_text), "Need >= %u nodes (now %u)", (unsigned int)egui_view_pattern_lock_get_min_nodes(EGUI_VIEW_OF(&pattern_lock_view)), (unsigned int)node_count);
+        snprintf(status_text, sizeof(status_text), "Need >= %u nodes (now %u)",
+                 (unsigned int)egui_view_pattern_lock_get_min_nodes(EGUI_VIEW_OF(&pattern_lock_view)), (unsigned int)node_count);
         egui_view_label_set_text(EGUI_VIEW_OF(&status_label), status_text);
         egui_view_label_set_font_color(EGUI_VIEW_OF(&status_label), EGUI_THEME_DANGER, EGUI_ALPHA_100);
         EGUI_LOG_INF("pattern_lock invalid, node_count=%d\r\n", node_count);
@@ -122,12 +123,8 @@ static void report_if_clipped(const char *name, egui_view_t *view)
     }
 
     clip_fail_reported = 1;
-    printf("[RUNTIME_CHECK_FAIL] %s clipped: screen(%d,%d) logic(%d,%d)\n",
-           name,
-           (int)view->region_screen.size.width,
-           (int)view->region_screen.size.height,
-           (int)view->region.size.width,
-           (int)view->region.size.height);
+    printf("[RUNTIME_CHECK_FAIL] %s clipped: screen(%d,%d) logic(%d,%d)\n", name, (int)view->region_screen.size.width, (int)view->region_screen.size.height,
+           (int)view->region.size.width, (int)view->region.size.height);
 }
 
 static void report_if_layout_clipped(void)

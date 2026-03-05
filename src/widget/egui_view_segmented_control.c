@@ -319,28 +319,16 @@ void egui_view_segmented_control_on_draw(egui_view_t *self)
         selected_text_color = egui_rgb_mix(selected_text_color, selected_bg, EGUI_ALPHA_50);
     }
 
-    egui_canvas_draw_round_rectangle_fill(
-            layout.region.location.x,
-            layout.region.location.y,
-            layout.region.size.width,
-            layout.region.size.height,
-            layout.outer_radius,
-            base_bg,
-            local->alpha);
+    egui_canvas_draw_round_rectangle_fill(layout.region.location.x, layout.region.location.y, layout.region.size.width, layout.region.size.height,
+                                          layout.outer_radius, base_bg, local->alpha);
 
-    egui_canvas_draw_round_rectangle(
-            layout.region.location.x,
-            layout.region.location.y,
-            layout.region.size.width,
-            layout.region.size.height,
-            layout.outer_radius,
-            1,
-            border_color,
-            local->alpha);
+    egui_canvas_draw_round_rectangle(layout.region.location.x, layout.region.location.y, layout.region.size.width, layout.region.size.height,
+                                     layout.outer_radius, 1, border_color, local->alpha);
 
     egui_dim_t selected_x = layout.segment_x[layout.active_index];
     egui_dim_t selected_width = layout.segment_width[layout.active_index];
-    egui_canvas_draw_round_rectangle_fill(selected_x, layout.content_y, selected_width, layout.content_height, layout.segment_radius, selected_bg, local->alpha);
+    egui_canvas_draw_round_rectangle_fill(selected_x, layout.content_y, selected_width, layout.content_height, layout.segment_radius, selected_bg,
+                                          local->alpha);
 
     if (is_enabled && local->pressed_index < layout.count)
     {
@@ -375,14 +363,16 @@ void egui_view_segmented_control_on_draw(egui_view_t *self)
             text = "";
         }
         egui_region_t text_region = {
-                .location = {
-                        .x = layout.segment_x[i],
-                        .y = layout.content_y,
-                },
-                .size = {
-                        .width = layout.segment_width[i],
-                        .height = layout.content_height,
-                },
+                .location =
+                        {
+                                .x = layout.segment_x[i],
+                                .y = layout.content_y,
+                        },
+                .size =
+                        {
+                                .width = layout.segment_width[i],
+                                .height = layout.content_height,
+                        },
         };
         egui_color_t color = (i == layout.active_index) ? selected_text_color : text_color;
         egui_canvas_draw_text_in_rect(local->font, text, &text_region, EGUI_ALIGN_CENTER, color, local->alpha);

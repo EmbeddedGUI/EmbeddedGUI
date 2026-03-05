@@ -83,12 +83,8 @@ static void report_if_clipped(const char *name, egui_view_t *view)
     }
 
     clip_fail_reported = 1;
-    printf("[RUNTIME_CHECK_FAIL] %s clipped: screen(%d,%d) logic(%d,%d)\n",
-           name,
-           (int)view->region_screen.size.width,
-           (int)view->region_screen.size.height,
-           (int)view->region.size.width,
-           (int)view->region.size.height);
+    printf("[RUNTIME_CHECK_FAIL] %s clipped: screen(%d,%d) logic(%d,%d)\n", name, (int)view->region_screen.size.width, (int)view->region_screen.size.height,
+           (int)view->region.size.width, (int)view->region.size.height);
 }
 
 static void report_if_layout_clipped(void)

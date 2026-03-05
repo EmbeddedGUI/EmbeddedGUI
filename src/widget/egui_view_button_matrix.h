@@ -9,8 +9,8 @@
 extern "C" {
 #endif
 
-#define EGUI_VIEW_BUTTON_MATRIX_MAX_BUTTONS  16
-#define EGUI_VIEW_BUTTON_MATRIX_PRESSED_NONE 0xFF
+#define EGUI_VIEW_BUTTON_MATRIX_MAX_BUTTONS   16
+#define EGUI_VIEW_BUTTON_MATRIX_PRESSED_NONE  0xFF
 #define EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE 0xFF
 
 typedef void (*egui_view_button_matrix_click_cb_t)(egui_view_t *self, uint8_t btn_index);
