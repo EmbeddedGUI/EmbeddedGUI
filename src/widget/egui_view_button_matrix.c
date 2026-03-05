@@ -21,6 +21,10 @@ void egui_view_button_matrix_set_labels(egui_view_t *self, const char **labels, 
     }
     local->btn_count = count;
     local->cols = cols;
+    if (local->selected_index >= local->btn_count)
+    {
+        local->selected_index = EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE;
+    }
     egui_view_invalidate(self);
 }
 
@@ -28,6 +32,47 @@ void egui_view_button_matrix_set_on_click(egui_view_t *self, egui_view_button_ma
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
     local->on_click = callback;
+}
+
+void egui_view_button_matrix_set_selection_enabled(egui_view_t *self, uint8_t enabled)
+{
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    enabled = enabled ? 1 : 0;
+    if (local->selection_enabled == enabled)
+    {
+        return;
+    }
+    local->selection_enabled = enabled;
+    if (!enabled)
+    {
+        local->selected_index = EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE;
+    }
+    egui_view_invalidate(self);
+}
+
+void egui_view_button_matrix_set_selected_index(egui_view_t *self, uint8_t index)
+{
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    if (index == EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE || local->btn_count == 0)
+    {
+        index = EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE;
+    }
+    else if (index >= local->btn_count)
+    {
+        index = (uint8_t)(local->btn_count - 1U);
+    }
+    if (local->selected_index == index)
+    {
+        return;
+    }
+    local->selected_index = index;
+    egui_view_invalidate(self);
+}
+
+uint8_t egui_view_button_matrix_get_selected_index(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    return local->selected_index;
 }
 
 void egui_view_button_matrix_set_btn_color(egui_view_t *self, egui_color_t color)
@@ -114,7 +159,15 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
         egui_dim_t btn_x = x + col * (btn_w + gap);
         egui_dim_t btn_y = y + row * (btn_h + gap);
 
-        egui_color_t bg_color = (i == local->pressed_index) ? local->btn_pressed_color : local->btn_color;
+        egui_color_t bg_color = local->btn_color;
+        if (i == local->pressed_index)
+        {
+            bg_color = local->btn_pressed_color;
+        }
+        else if (local->selection_enabled && i == local->selected_index)
+        {
+            bg_color = local->btn_pressed_color;
+        }
 
         egui_dim_t r = local->corner_radius;
         if (r > btn_h / 2)
@@ -146,12 +199,37 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
         egui_canvas_draw_round_rectangle_fill(btn_x, btn_y, btn_w, btn_h, r, bg_color, EGUI_ALPHA_100);
 #endif
 
-        // Draw border
-        egui_canvas_draw_round_rectangle(btn_x, btn_y, btn_w, btn_h, r, 1, local->border_color, EGUI_ALPHA_100);
+        // Draw border, emphasize selected/pressed state for better affordance.
+        egui_dim_t border_w = 1;
+        egui_color_t border_color = local->border_color;
+        if (i == local->pressed_index || (local->selection_enabled && i == local->selected_index))
+        {
+            border_w = 2;
+            border_color = EGUI_COLOR_WHITE;
+        }
+        egui_canvas_draw_round_rectangle(btn_x, btn_y, btn_w, btn_h, r, border_w, border_color, EGUI_ALPHA_100);
 
-        // Draw centered text label
-        egui_region_t text_rect = {{btn_x, btn_y}, {btn_w, btn_h}};
-        egui_canvas_draw_text_in_rect(font, local->labels[i], &text_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+        // Draw centered text label with per-cell clip to avoid text overflow into neighboring cells
+        egui_region_t text_rect = {{btn_x + 2, btn_y}, {btn_w > 4 ? (btn_w - 4) : btn_w, btn_h}};
+        egui_region_t text_clip = text_rect;
+        const egui_region_t *prev_clip = egui_canvas_get_extra_clip();
+        if (prev_clip != NULL)
+        {
+            egui_region_intersect(&text_clip, prev_clip, &text_clip);
+        }
+        if (!egui_region_is_empty(&text_clip))
+        {
+            egui_canvas_set_extra_clip(&text_clip);
+            egui_canvas_draw_text_in_rect(font, local->labels[i], &text_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+            if (prev_clip != NULL)
+            {
+                egui_canvas_set_extra_clip(prev_clip);
+            }
+            else
+            {
+                egui_canvas_clear_extra_clip();
+            }
+        }
     }
 }
 
@@ -221,6 +299,10 @@ static int egui_view_button_matrix_on_touch_event(egui_view_t *self, egui_motion
     {
         if (hit_index == local->pressed_index && hit_index != EGUI_VIEW_BUTTON_MATRIX_PRESSED_NONE)
         {
+            if (local->selection_enabled)
+            {
+                local->selected_index = hit_index;
+            }
             if (local->on_click)
             {
                 local->on_click(self, hit_index);
@@ -274,6 +356,8 @@ void egui_view_button_matrix_init(egui_view_t *self)
     local->cols = 4;
     local->gap = 2;
     local->pressed_index = EGUI_VIEW_BUTTON_MATRIX_PRESSED_NONE;
+    local->selected_index = EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE;
+    local->selection_enabled = 0;
     local->btn_color = EGUI_COLOR_DARK_GREY;
     local->btn_pressed_color = EGUI_COLOR_LIGHT_GREY;
     local->text_color = EGUI_COLOR_WHITE;

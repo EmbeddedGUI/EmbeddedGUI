@@ -34,7 +34,7 @@ python scripts/utils_analysis_elf_size.py
 python scripts/code_format.py
 
 # 完整编译检查（CI 使用）
-python scripts/code_compile_check.py --full-check --bits64
+python scripts/code_compile_check.py --full-check
 
 # 使用 CMake 构建
 cmake -B build_cmake/HelloSimple -DAPP=HelloSimple -DPORT=pc -G "MinGW Makefiles"
@@ -48,9 +48,9 @@ cmake --build build_cmake/HelloBasic_button -j
 python scripts/code_compile_check.py --cmake --full-check
 ```
 
-**可用示例：** HelloSimple, HelloActivity, HelloAPP, HelloBasic, HelloBattery, HelloEasyPage, HelloPerformance, HelloPFB, HelloResourceManager, HelloTest, HelloUnitTest, HelloViewPageAndScroll
+**可用示例：** HelloActivity, HelloAPP, HelloBasic, HelloCanvas, HelloChart, HelloEasyPage, HelloGradient, HelloLayer, HelloPerformace, HelloPFB, HelloResourceManager, HelloShowcase, HelloSimple, HelloStyleDemo, HelloTest, HelloUnitTest, HelloViewPageAndScroll
 
-**HelloBasic 子应用：** anim, button, button_img, image, label, linearlayout, mask, progress_bar, scroll, switch, viewpage, viewpage_cache, mp4, checkbox, radio_button, slider, circular_progress_bar, image_button, divider, page_indicator, gauge, number_picker, tab_bar, gridlayout, led, toggle_button, spinner, card, arc_slider, roller, textinput, textblock, combobox, notification_badge, activity_ring, analog_clock, heart_rate, compass, stopwatch, digital_clock, mini_calendar, line, scale, button_matrix, table, animated_image, list, spangroup, tileview, window, menu, enhanced_widgets
+**HelloBasic 子应用：** activity_ring, analog_clock, anim, animated_image, arc_slider, button, button_img, button_matrix, card, checkbox, circular_progress_bar, combobox, compass, digital_clock, divider, enhanced_widgets, gauge, gridlayout, heart_rate, image, image_button, label, led, line, linearlayout, list, mask, menu, mini_calendar, mp4, notification_badge, number_picker, page_indicator, progress_bar, radio_button, roller, rotation, scale, scroll, slider, spangroup, spinner, stopwatch, switch, table, tab_bar, textblock, textinput, tileview, toggle_button, viewpage, viewpage_cache, window
 
 ## 架构说明
 
@@ -165,7 +165,7 @@ python scripts/code_runtime_check.py --full-check
 ```
 scripts/ui_designer/custom_widgets/   ← Widget 注册插件（每控件一个 .py）
 scripts/ui_designer/model/widget_registry.py  ← 注册中心
-scripts/ui_designer/codegen/          ← 代码生成器（读注册信息生成 C）
+scripts/ui_designer/generator/        ← 代码生成器（读注册信息生成 C）
 src/widget/                           ← C 层控件实现（头文件中有实际 API）
 ```
 
@@ -246,14 +246,19 @@ WidgetRegistry.instance().register(
 | `Led` | led | led.py |
 | `ToggleButton` | toggle_button | toggle_button.py |
 | `ImageButton` | image_button | image_button.py |
+| `Divider` | divider | divider.py |
 | `Textblock` | textblock | textblock.py |
+| `Textinput` | textinput | textinput.py |
 | `DynamicLabel` | dynamic_label | dynamic_label.py |
 | `NumberPicker` | number_picker | number_picker.py |
 | `ArcSlider` | arc_slider | arc_slider.py |
 | `Combobox` | combobox | combobox.py |
 | `Roller` | roller | roller.py |
+| `Gauge` | gauge | gauge.py |
 | `TabBar` | tab_bar | tab_bar.py |
 | `PageIndicator` | page_indicator | page_indicator.py |
+| `Keyboard` | keyboard | keyboard.py |
+| `Mp4` | mp4 | mp4.py |
 | `ChartLine` | chart_line | chart_line.py |
 | `ChartScatter` | chart_scatter | chart_scatter.py |
 | `ChartBar` | chart_bar | chart_bar.py |
@@ -274,6 +279,7 @@ WidgetRegistry.instance().register(
 | `List` | list | list.py |
 | `Spangroup` | spangroup | spangroup.py |
 | `TileView` | tileview | tileview.py |
+| `ViewPageCache` | viewpage_cache | viewpage_cache.py |
 | `Window` | window | window.py |
 | `Menu` | menu | menu.py |
 

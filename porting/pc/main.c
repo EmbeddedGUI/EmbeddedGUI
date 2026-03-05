@@ -50,6 +50,10 @@ static void parse_recording_params(int argc, const char *argv[])
 {
     for (int i = 1; i < argc; i++)
     {
+        if (strcmp(argv[i], "--headless") == 0)
+        {
+            sdl_port_set_headless(true);
+        }
         if (strcmp(argv[i], "--record") == 0 && i + 3 < argc)
         {
             const char *output_dir = argv[i + 1];
@@ -61,6 +65,26 @@ static void parse_recording_params(int argc, const char *argv[])
         {
             int speed = atoi(argv[i + 1]);
             recording_set_speed(speed);
+        }
+        else if (strcmp(argv[i], "--clock-scale") == 0 && i + 1 < argc)
+        {
+            int clock_scale = atoi(argv[i + 1]);
+            recording_set_clock_scale(clock_scale);
+        }
+        else if (strcmp(argv[i], "--snapshot-settle-ms") == 0 && i + 1 < argc)
+        {
+            int settle_ms = atoi(argv[i + 1]);
+            recording_set_snapshot_settle_ms(settle_ms);
+        }
+        else if (strcmp(argv[i], "--snapshot-stable-cycles") == 0 && i + 1 < argc)
+        {
+            int stable_cycles = atoi(argv[i + 1]);
+            recording_set_snapshot_stability(stable_cycles, -1);
+        }
+        else if (strcmp(argv[i], "--snapshot-max-wait-ms") == 0 && i + 1 < argc)
+        {
+            int max_wait_ms = atoi(argv[i + 1]);
+            recording_set_snapshot_stability(-1, max_wait_ms);
         }
     }
 }

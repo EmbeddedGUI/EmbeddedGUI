@@ -454,7 +454,7 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 ---
 
 
-## 写在最后
+## 📝 写在最后
 
 作为芯片从业人员，国产芯片普遍资源有限（ROM和RAM比较少-都是成本，CPU速度比较高-100MHz），需要在512KB ROM，20KB左右RAM资源上实现手环之类的GUI操作（要有触摸），CPU可以跑96MHz。
 
@@ -469,8 +469,6 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 综上所述，还是自己写一套吧，什么都可控，酷炫的效果无法实现，那就贴图好了。
 
 现在又有AI了，加入更多渐变、KEY输入、Focus系统、Layer和UI Designer功能，这个固件越来越好用，而且方便维护。
-
-
 
 ---
 

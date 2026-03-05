@@ -92,6 +92,11 @@ __EGUI_STATIC_INLINE__ void egui_canvas_clear_extra_clip(void)
     canvas_data.extra_clip_region = NULL;
 }
 
+__EGUI_STATIC_INLINE__ const egui_region_t *egui_canvas_get_extra_clip(void)
+{
+    return canvas_data.extra_clip_region;
+}
+
 __EGUI_STATIC_INLINE__ void egui_canvas_set_mask(egui_mask_t *mask)
 {
     egui_canvas_t *self = &canvas_data;

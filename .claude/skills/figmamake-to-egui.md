@@ -55,16 +55,13 @@ example/{APP}/.eguiproject/
 服务器不支持渲染截图，必须在本地执行：
 
 ```bash
-cd example/{APP}/.eguiproject/figmamake_src
-npm install
-npm run dev &   # 用户手动启动 dev server
-
-# AI 等待用户确认 dev server 已启动后，执行截图
 python scripts/figmamake/figmamake_capture.py \
-    --url "http://localhost:5173" \
+    --tsx-dir example/{APP}/.eguiproject/figmamake_src \
     --output-dir example/{APP}/.eguiproject/reference_frames/ \
     --width {WIDTH} --height {HEIGHT}
 ```
+
+默认会自动启动本地 dev server；若已手动启动，可加 `--no-server`。
 
 需要截取的内容（每个页面）：
 1. **静态终态图** — 等待所有动画完成后 500ms 截图
@@ -110,8 +107,8 @@ AI 必须逐个读取 TSX 组件文件，提取：
 
 **字体符号图标（Material Symbols）**:
 1. 查找对应 Unicode 码点
-2. 用 `scripts/tools/generate_icon_png.py` 生成 PNG
-3. 或直接用 Label + Material Symbols 字体渲染
+2. 优先直接用 Label + Material Symbols 字体渲染
+3. 如必须转图片，使用 `python scripts/html2egui_helper.py export-icons ...` 生成 PNG
 
 ### 2.3 生成 XML 布局
 
@@ -170,11 +167,11 @@ python scripts/code_runtime_check.py --app {APP} --keep-screenshots
 
 或手动运行模拟器截帧。
 
-截图保存到 `.eguiproject/rendered_frames/{page}/`。
+截图默认输出到 `runtime_check_output/{APP}/default/`，如需统一归档可复制到 `.eguiproject/rendered_frames/`。
 
 ### 3.3 AI 视觉检查
 
-AI 必须用 Read 工具读取每个页面的渲染截图，确认：
+AI 必须逐页检查每个页面的渲染截图，确认：
 - 不是黑屏/空白
 - 控件可见且位置合理
 - 文字可读
@@ -193,7 +190,7 @@ AI 必须用 Read 工具读取每个页面的渲染截图，确认：
 ```bash
 python scripts/figmamake/figma_visual_compare.py \
     --design example/{APP}/.eguiproject/reference_frames/{page}/static.png \
-    --rendered example/{APP}/.eguiproject/rendered_frames/{page}/frame_final.png \
+    --rendered runtime_check_output/{APP}/default/frame_0000.png \
     --output example/{APP}/.eguiproject/comparison/{page}_compare.png
 ```
 
@@ -201,8 +198,8 @@ python scripts/figmamake/figma_visual_compare.py \
 
 ```bash
 python scripts/figmamake/figmamake_regression.py \
-    --reference-dir example/{APP}/.eguiproject/reference_frames/ \
-    --rendered-dir example/{APP}/.eguiproject/rendered_frames/ \
+    --reference-dir example/{APP}/.eguiproject/reference_frames/{page}/ \
+    --rendered-dir runtime_check_output/{APP}/default/ \
     --output example/{APP}/.eguiproject/comparison/regression_report.html
 ```
 
@@ -216,7 +213,7 @@ python scripts/figmamake/figmamake_regression.py \
 
 ### 4.4 AI 视觉对比
 
-AI 必须用 Read 工具读取对比图，逐页检查：
+AI 必须读取对比图，逐页检查：
 1. 读取 `comparison/{page}_compare.png`（三栏：设计稿 | 渲染 | 差异）
 2. 差异图中红色/亮色区域 = 不匹配区域
 3. 定位对应控件，修复 XML/C 代码

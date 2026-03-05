@@ -18,9 +18,30 @@ DEFAULT_FPS = 10
 DEFAULT_DURATION = 5  # seconds
 OUTPUT_GIF_DIR = "doc/source/images/examples"
 TEMP_FRAMES_DIR = "output/frames"
+DEFAULT_RECORDING_CLOCK_SCALE = 6
+DEFAULT_SNAPSHOT_SETTLE_MS = 0
+DEFAULT_SNAPSHOT_STABLE_CYCLES = 1
+DEFAULT_SNAPSHOT_MAX_WAIT_MS = 1500
 
 # Default skip list - examples not suitable for demo
 DEFAULT_SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformace"]
+
+
+def get_windows_hidden_run_kwargs():
+    if platform.system() != 'Windows':
+        return {}
+
+    kwargs = {}
+    if hasattr(subprocess, "CREATE_NO_WINDOW"):
+        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+    if hasattr(subprocess, "STARTUPINFO"):
+        startupinfo = subprocess.STARTUPINFO()
+        if hasattr(subprocess, "STARTF_USESHOWWINDOW"):
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        if hasattr(subprocess, "SW_HIDE"):
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+        kwargs["startupinfo"] = startupinfo
+    return kwargs
 
 
 def get_example_list():
@@ -83,7 +104,11 @@ def compile_app(app, app_sub=None, bits64=False):
     return True
 
 
-def run_and_record(app_name, fps=DEFAULT_FPS, duration=DEFAULT_DURATION):
+def run_and_record(app_name, fps=DEFAULT_FPS, duration=DEFAULT_DURATION,
+                   clock_scale=DEFAULT_RECORDING_CLOCK_SCALE,
+                   snapshot_settle_ms=DEFAULT_SNAPSHOT_SETTLE_MS,
+                   snapshot_stable_cycles=DEFAULT_SNAPSHOT_STABLE_CYCLES,
+                   snapshot_max_wait_ms=DEFAULT_SNAPSHOT_MAX_WAIT_MS):
     """Run application and record frames"""
     frames_dir = os.path.join(TEMP_FRAMES_DIR, app_name)
     os.makedirs(frames_dir, exist_ok=True)
@@ -101,7 +126,23 @@ def run_and_record(app_name, fps=DEFAULT_FPS, duration=DEFAULT_DURATION):
     resource_path = 'output/app_egui_resource_merge.bin'
 
     # Run with recording enabled
-    cmd = [exe_path, resource_path, '--record', frames_dir, str(fps), str(duration)]
+    cmd = [
+        exe_path,
+        resource_path,
+        '--record',
+        frames_dir,
+        str(fps),
+        str(duration),
+        '--clock-scale',
+        str(clock_scale),
+        '--snapshot-settle-ms',
+        str(snapshot_settle_ms),
+        '--snapshot-stable-cycles',
+        str(snapshot_stable_cycles),
+        '--snapshot-max-wait-ms',
+        str(snapshot_max_wait_ms),
+        '--headless',
+    ]
     print(f"Running: {' '.join(cmd)}")
 
     # Set environment for headless display if needed (Linux)
@@ -113,7 +154,14 @@ def run_and_record(app_name, fps=DEFAULT_FPS, duration=DEFAULT_DURATION):
     try:
         # Add extra time for startup/shutdown
         timeout_sec = duration + 10
-        result = subprocess.run(cmd, timeout=timeout_sec, capture_output=True, text=True, env=env)
+        result = subprocess.run(
+            cmd,
+            timeout=timeout_sec,
+            capture_output=True,
+            text=True,
+            env=env,
+            **get_windows_hidden_run_kwargs(),
+        )
         if result.stdout:
             print(result.stdout)
         if result.stderr:
@@ -126,7 +174,9 @@ def run_and_record(app_name, fps=DEFAULT_FPS, duration=DEFAULT_DURATION):
         return False
 
     # Check if frames were generated
-    frame_files = list(Path(frames_dir).glob("frame_*.bmp"))
+    frame_files = list(Path(frames_dir).glob("frame_*.png"))
+    if not frame_files:
+        frame_files = list(Path(frames_dir).glob("frame_*.bmp"))
     if not frame_files:
         print(f"No frames generated for {app_name}")
         return False
@@ -143,8 +193,9 @@ def frames_to_gif(app_name, fps=DEFAULT_FPS):
     os.makedirs(OUTPUT_GIF_DIR, exist_ok=True)
 
     # Check if frames exist
-    frame_pattern = os.path.join(frames_dir, 'frame_%04d.bmp')
-    if not os.path.exists(os.path.join(frames_dir, 'frame_0000.bmp')):
+    frame_ext = 'png' if os.path.exists(os.path.join(frames_dir, 'frame_0000.png')) else 'bmp'
+    frame_pattern = os.path.join(frames_dir, f'frame_%04d.{frame_ext}')
+    if not os.path.exists(os.path.join(frames_dir, f'frame_0000.{frame_ext}')):
         print(f"No frames found in {frames_dir}")
         return None
 
@@ -172,7 +223,7 @@ def frames_to_gif(app_name, fps=DEFAULT_FPS):
         print("Using Pillow for GIF generation...")
 
         frames = []
-        frame_files = sorted(Path(frames_dir).glob("frame_*.bmp"))
+        frame_files = sorted(Path(frames_dir).glob(f"frame_*.{frame_ext}"))
 
         for frame_file in frame_files:
             img = Image.open(frame_file)
@@ -211,7 +262,12 @@ def cleanup_frames(app_name):
         shutil.rmtree(frames_dir, ignore_errors=True)
 
 
-def record_single_app(app, app_sub=None, fps=DEFAULT_FPS, duration=DEFAULT_DURATION, bits64=False, keep_frames=False):
+def record_single_app(app, app_sub=None, fps=DEFAULT_FPS, duration=DEFAULT_DURATION,
+                      bits64=False, keep_frames=False,
+                      clock_scale=DEFAULT_RECORDING_CLOCK_SCALE,
+                      snapshot_settle_ms=DEFAULT_SNAPSHOT_SETTLE_MS,
+                      snapshot_stable_cycles=DEFAULT_SNAPSHOT_STABLE_CYCLES,
+                      snapshot_max_wait_ms=DEFAULT_SNAPSHOT_MAX_WAIT_MS):
     """Record single application"""
     app_name = f"{app}_{app_sub}" if app_sub else app
     print(f"\n{'='*60}")
@@ -223,7 +279,7 @@ def record_single_app(app, app_sub=None, fps=DEFAULT_FPS, duration=DEFAULT_DURAT
         return (app_name, None, "compile failed")
 
     # Record
-    if not run_and_record(app_name, fps, duration):
+    if not run_and_record(app_name, fps, duration, clock_scale, snapshot_settle_ms, snapshot_stable_cycles, snapshot_max_wait_ms):
         cleanup_frames(app_name)
         return (app_name, None, "recording failed")
 
@@ -240,7 +296,12 @@ def record_single_app(app, app_sub=None, fps=DEFAULT_FPS, duration=DEFAULT_DURAT
         return (app_name, None, "gif conversion failed")
 
 
-def record_all_apps(fps=DEFAULT_FPS, duration=DEFAULT_DURATION, skip_list=None, bits64=False, keep_frames=False):
+def record_all_apps(fps=DEFAULT_FPS, duration=DEFAULT_DURATION, skip_list=None,
+                    bits64=False, keep_frames=False,
+                    clock_scale=DEFAULT_RECORDING_CLOCK_SCALE,
+                    snapshot_settle_ms=DEFAULT_SNAPSHOT_SETTLE_MS,
+                    snapshot_stable_cycles=DEFAULT_SNAPSHOT_STABLE_CYCLES,
+                    snapshot_max_wait_ms=DEFAULT_SNAPSHOT_MAX_WAIT_MS):
     """Record all example applications"""
     if skip_list is None:
         skip_list = DEFAULT_SKIP_LIST.copy()
@@ -276,12 +337,34 @@ def record_all_apps(fps=DEFAULT_FPS, duration=DEFAULT_DURATION, skip_list=None, 
 
                 current += 1
                 print(f"\n[{current}/{total}] Processing {full_name}")
-                result = record_single_app(app, app_sub, fps, duration, bits64, keep_frames)
+                result = record_single_app(
+                    app,
+                    app_sub,
+                    fps,
+                    duration,
+                    bits64,
+                    keep_frames,
+                    clock_scale,
+                    snapshot_settle_ms,
+                    snapshot_stable_cycles,
+                    snapshot_max_wait_ms,
+                )
                 results.append(result)
         else:
             current += 1
             print(f"\n[{current}/{total}] Processing {app}")
-            result = record_single_app(app, None, fps, duration, bits64, keep_frames)
+            result = record_single_app(
+                app,
+                None,
+                fps,
+                duration,
+                bits64,
+                keep_frames,
+                clock_scale,
+                snapshot_settle_ms,
+                snapshot_stable_cycles,
+                snapshot_max_wait_ms,
+            )
             results.append(result)
 
     return results
@@ -330,6 +413,14 @@ Examples:
     parser.add_argument('--bits64', action='store_true', help='Build for 64-bit')
     parser.add_argument('--keep-frames', action='store_true', help='Keep intermediate BMP frames')
     parser.add_argument('--list', action='store_true', help='List all available examples')
+    parser.add_argument('--clock-scale', type=int, default=DEFAULT_RECORDING_CLOCK_SCALE,
+                        help=f'Recording clock acceleration factor (default: {DEFAULT_RECORDING_CLOCK_SCALE})')
+    parser.add_argument('--snapshot-settle-ms', type=int, default=DEFAULT_SNAPSHOT_SETTLE_MS,
+                        help=f'Snapshot settle time in ms (default: {DEFAULT_SNAPSHOT_SETTLE_MS})')
+    parser.add_argument('--snapshot-stable-cycles', type=int, default=DEFAULT_SNAPSHOT_STABLE_CYCLES,
+                        help=f'Unchanged frame cycles required before snapshot (default: {DEFAULT_SNAPSHOT_STABLE_CYCLES})')
+    parser.add_argument('--snapshot-max-wait-ms', type=int, default=DEFAULT_SNAPSHOT_MAX_WAIT_MS,
+                        help=f'Snapshot force-capture timeout in ms (default: {DEFAULT_SNAPSHOT_MAX_WAIT_MS})')
 
     args = parser.parse_args()
 
@@ -348,12 +439,24 @@ Examples:
     if args.all:
         skip_list = [] if args.no_skip else DEFAULT_SKIP_LIST.copy()
         skip_list.extend(args.skip)
-        results = record_all_apps(args.fps, args.duration, skip_list, args.bits64, args.keep_frames)
+        results = record_all_apps(
+            args.fps,
+            args.duration,
+            skip_list,
+            args.bits64,
+            args.keep_frames,
+            args.clock_scale,
+            args.snapshot_settle_ms,
+            args.snapshot_stable_cycles,
+            args.snapshot_max_wait_ms,
+        )
         print_summary(results)
 
     # Record single app
     elif args.app:
-        result = record_single_app(args.app, args.app_sub, args.fps, args.duration, args.bits64, args.keep_frames)
+        result = record_single_app(args.app, args.app_sub, args.fps, args.duration,
+                                   args.bits64, args.keep_frames, args.clock_scale, args.snapshot_settle_ms,
+                                   args.snapshot_stable_cycles, args.snapshot_max_wait_ms)
         print_summary([result])
 
     else:

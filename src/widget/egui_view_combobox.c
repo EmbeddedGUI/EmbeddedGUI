@@ -10,6 +10,80 @@
 #include "core/egui_canvas_gradient.h"
 #endif
 
+static uint8_t egui_view_combobox_get_max_visible_count(const egui_view_combobox_t *local)
+{
+    uint8_t visible_count = local->item_count;
+    if (visible_count > local->max_visible_items)
+    {
+        visible_count = local->max_visible_items;
+    }
+    return visible_count;
+}
+
+static uint8_t egui_view_combobox_get_visible_count_for_height(const egui_view_combobox_t *local, egui_dim_t total_height, uint8_t max_visible_count)
+{
+    if (max_visible_count == 0 || local->item_height <= 0 || total_height <= local->collapsed_height)
+    {
+        return 0;
+    }
+
+    egui_dim_t item_space = total_height - local->collapsed_height;
+    uint8_t fit_count = (uint8_t)(item_space / local->item_height);
+    if (fit_count > max_visible_count)
+    {
+        fit_count = max_visible_count;
+    }
+    return fit_count;
+}
+
+static egui_dim_t egui_view_combobox_get_parent_content_height(egui_view_t *self)
+{
+    if (self->parent != NULL)
+    {
+        egui_view_t *parent = (egui_view_t *)self->parent;
+        egui_dim_t parent_height = parent->region.size.height;
+        egui_dim_t parent_padding = parent->padding.top + parent->padding.bottom;
+        if (parent_height > parent_padding)
+        {
+            return parent_height - parent_padding;
+        }
+        return 0;
+    }
+
+    return EGUI_CONFIG_SCEEN_HEIGHT;
+}
+
+static uint8_t egui_view_combobox_get_expand_fit_count(egui_view_t *self, const egui_view_combobox_t *local)
+{
+    uint8_t max_visible_count = egui_view_combobox_get_max_visible_count(local);
+    if (max_visible_count == 0)
+    {
+        return 0;
+    }
+
+    egui_dim_t available_height = EGUI_CONFIG_SCEEN_HEIGHT;
+    if (self->parent != NULL)
+    {
+        egui_dim_t parent_content_height = egui_view_combobox_get_parent_content_height(self);
+        if (self->region.location.y < parent_content_height)
+        {
+            available_height = parent_content_height - self->region.location.y;
+        }
+        else
+        {
+            available_height = 0;
+        }
+    }
+
+    return egui_view_combobox_get_visible_count_for_height(local, available_height, max_visible_count);
+}
+
+static uint8_t egui_view_combobox_get_current_visible_count(egui_view_t *self, const egui_view_combobox_t *local)
+{
+    uint8_t max_visible_count = egui_view_combobox_get_max_visible_count(local);
+    return egui_view_combobox_get_visible_count_for_height(local, self->region.size.height, max_visible_count);
+}
+
 void egui_view_combobox_set_on_selected_listener(egui_view_t *self, egui_view_on_combobox_selected_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
@@ -81,15 +155,16 @@ void egui_view_combobox_expand(egui_view_t *self)
     EGUI_LOCAL_INIT(egui_view_combobox_t);
     if (!local->is_expanded && local->item_count > 0)
     {
+        uint8_t visible_count = egui_view_combobox_get_expand_fit_count(self, local);
+        if (visible_count == 0)
+        {
+            return;
+        }
+
         local->is_expanded = 1;
 #if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
         egui_view_set_layer(self, EGUI_VIEW_LAYER_TOP);
 #endif
-        uint8_t visible_count = local->item_count;
-        if (visible_count > local->max_visible_items)
-        {
-            visible_count = local->max_visible_items;
-        }
         egui_dim_t expanded_height = local->collapsed_height + visible_count * local->item_height;
         // Mark old region dirty before changing size
         egui_core_update_region_dirty(&self->region_screen);
@@ -222,11 +297,7 @@ void egui_view_combobox_on_draw(egui_view_t *self)
     if (local->is_expanded && local->items != NULL)
     {
         egui_dim_t item_y = region.location.y + header_height;
-        uint8_t visible_count = local->item_count;
-        if (visible_count > local->max_visible_items)
-        {
-            visible_count = local->max_visible_items;
-        }
+        uint8_t visible_count = egui_view_combobox_get_current_visible_count(self, local);
 
         for (uint8_t i = 0; i < visible_count; i++)
         {
@@ -273,11 +344,7 @@ int egui_view_combobox_on_touch_event(egui_view_t *self, egui_motion_event_t *ev
                 egui_dim_t item_y = local_y - local->collapsed_height;
                 uint8_t clicked_index = item_y / local->item_height;
 
-                uint8_t visible_count = local->item_count;
-                if (visible_count > local->max_visible_items)
-                {
-                    visible_count = local->max_visible_items;
-                }
+                uint8_t visible_count = egui_view_combobox_get_current_visible_count(self, local);
 
                 if (clicked_index < visible_count)
                 {

@@ -27,6 +27,7 @@ example/HelloDesigner
 example/HelloDesigner_1
 example/HelloDesigner_temp
 /runtime_check_output
+/runtime_baseline
 /perf_output
 
 example/HelloSmartHome

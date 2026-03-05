@@ -104,11 +104,11 @@ egui_view_chart_line_set_series(EGUI_VIEW_OF(&chart), series, count);
 
 ## 参考实现
 
-- `example/HelloBattery/uicode.c` — 导航点击回调 + 页面切换防重复
-- `example/HelloBattery/dashboard.c` — 完整动效参考（growth/pulse/clock 三定时器）
-- `example/HelloBattery/cell_details.c` — 级联延迟动画
-- `example/HelloBattery/settings.c` — toggle 开关交互
-- `example/HelloStyleDemo/uicode_dashboard.c` — 另一个完整动效参考
+- `example/HelloStyleDemo/uicode.c` — 页面切换与公共回调入口
+- `example/HelloStyleDemo/uicode_dashboard.c` — 仪表盘类页面动效参考
+- `example/HelloStyleDemo/uicode_smarthome.c` — 开关/状态交互参考
+- `example/HelloStyleDemo/uicode_music.c` — 列表/进度类交互参考
+- `example/HelloStyleDemo/uicode_watch.c` — 定时刷新与时钟类逻辑参考
 - TSX 源文件: `.eguiproject/figmamake_src/src/app/components/*.tsx` — 动效定义的唯一权威来源
 
 ## 导航栏点击回调模式

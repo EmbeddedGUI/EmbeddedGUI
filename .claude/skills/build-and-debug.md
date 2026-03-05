@@ -25,11 +25,11 @@ Makefile (根)
 # 基本构建（默认 APP=HelloSimple PORT=pc）
 make all APP={APP} PORT=pc
 
-# 64位构建（推荐，避免指针截断问题）
-make all APP={APP} PORT=pc BITS=64
+# 默认位宽自动识别（无需手动配置 BITS）
+make all APP={APP} PORT=pc
 
 # HelloBasic 子应用
-make all APP=HelloBasic APP_SUB={SUB} PORT=pc BITS=64
+make all APP=HelloBasic APP_SUB={SUB} PORT=pc
 
 # 清理
 make clean
@@ -51,7 +51,7 @@ make run
 | `APP` | 应用名 | HelloSimple, HelloAPP, HelloStyleDemo |
 | `APP_SUB` | HelloBasic子应用 | button, label, viewpage, chart_line |
 | `PORT` | 平台 | pc, stm32g0, qemu |
-| `BITS` | 位宽 | 64（推荐PC用64位） |
+| `BITS` | 位宽（可选） | 一般无需设置，构建系统自动识别 |
 | `COMPILE_OPT_LEVEL` | 优化级别 | -O0（快速编译）, -O2 |
 | `USER_CFLAGS` | 自定义编译标志 | `-DEGUI_CONFIG_SCEEN_WIDTH=320` |
 
@@ -62,10 +62,10 @@ make run
 python scripts/code_compile_check.py
 
 # 全量检查（所有应用 + HelloBasic所有子应用）
-python scripts/code_compile_check.py --full-check --bits64
+python scripts/code_compile_check.py --full-check
 
 # 清理后检查
-python scripts/code_compile_check.py --clean --full-check --bits64
+python scripts/code_compile_check.py --clean --full-check
 ```
 
 特点：使用快速编译标志（`-O0`，无调试符号），per-app OBJDIR 避免应用间 clean，自动运行单元测试。
@@ -77,7 +77,7 @@ python scripts/code_compile_check.py --clean --full-check --bits64
 | `undefined reference to 'egui_res_image_xxx'` | 资源未生成或配置不匹配 | `make resource_refresh` 或检查 `app_resource_config.json` |
 | `undefined reference to 'egui_res_font_xxx'` | 字体资源缺失 | 检查字体配置，确认 ttf 文件存在 |
 | `conflicting types for 'xxx'` | 头文件声明与实现不一致，或旧 obj 残留 | `make clean` 后重新编译 |
-| `SDL2.dll not found` (Windows) | SDL2 库缺失 | 构建系统自动从 `porting/pc/sdl2/{BITS}/bin/` 复制 |
+| `SDL2.dll not found` (Windows) | SDL2 库缺失 | 构建系统会按当前位宽自动复制对应 SDL2 目录 |
 | `implicit declaration of function` | 缺少 `#include` 或函数签名变更 | 添加正确的头文件引用 |
 | `multiple definition of 'xxx'` | 全局变量/函数在头文件中定义而非声明 | 头文件用 `extern` 声明，`.c` 文件中定义 |
 | `No rule to make target` | build.mk 中源文件路径错误 | 检查 `EGUI_CODE_SRC` 路径 |
@@ -97,7 +97,7 @@ PC 模拟器基于 SDL2，可直接用 GDB/LLDB 或 IDE 调试：
 
 ```bash
 # 编译带调试符号
-make all APP={APP} PORT=pc BITS=64 COMPILE_DEBUG=-g COMPILE_OPT_LEVEL=-O0
+make all APP={APP} PORT=pc COMPILE_DEBUG=-g COMPILE_OPT_LEVEL=-O0
 
 # GDB 调试
 gdb output/main.exe

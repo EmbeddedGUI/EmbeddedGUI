@@ -308,8 +308,8 @@ The `generate-code` command:
 python scripts/html2egui_helper.py verify --app MyApp
 
 # Or separately:
-make all APP=MyApp PORT=pc BITS=64
-python scripts/code_runtime_check.py --app MyApp --bits64 --keep-screenshots
+make all APP=MyApp PORT=pc
+python scripts/code_runtime_check.py --app MyApp --keep-screenshots
 ```
 
 Read the screenshot from `runtime_check_output/MyApp/` and compare with the design PNG.
@@ -336,8 +336,8 @@ Read the screenshot from `runtime_check_output/MyApp/` and compare with the desi
 When fixing rendering issues, edit the XML file and re-run:
 ```bash
 python scripts/html2egui_helper.py generate-code --app MyApp
-make all APP=MyApp PORT=pc BITS=64
-python scripts/code_runtime_check.py --app MyApp --bits64 --keep-screenshots
+make all APP=MyApp PORT=pc
+python scripts/code_runtime_check.py --app MyApp --keep-screenshots
 ```
 
 The layout C code is fully regenerated each time. Never edit `*_layout.c` manually.
@@ -708,4 +708,8 @@ Map routes to page names based on the `pages[].route` field.
 
 ## Complete Reference
 
-See `example/HelloDesigner/` for a complete UI Designer project reference with XML layouts and generated C code.
+当前仓库没有固定的 `HelloDesigner` 示例工程。可参考：
+
+- `scripts/ui_designer/tests/test_data/sample_page_simple.xml`
+- `scripts/ui_designer/tests/test_data/sample_page_complex.xml`
+- `scripts/ui_designer/tests/generator/test_generate_all_files_preserved.py`

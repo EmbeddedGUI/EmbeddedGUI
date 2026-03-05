@@ -23,14 +23,36 @@ RECORDING_DURATION = 30
 # With snapshot-driven recording, actions auto-quit after completion,
 # so speed acceleration is no longer needed.
 RECORDING_SPEED = 1
+RECORDING_CLOCK_SCALE = 6
+RECORDING_SNAPSHOT_SETTLE_MS = 0
+RECORDING_SNAPSHOT_STABLE_CYCLES = 1
+RECORDING_SNAPSHOT_MAX_WAIT_MS = 1500
 # Speed up compilation: disable debug symbols, use -O0 (same as ui_designer)
 COMPILE_FAST_FLAGS = ['COMPILE_DEBUG=', 'COMPILE_OPT_LEVEL=-O0']
 # Retry count for intermittent crashes (e.g., race conditions in PC simulator threading)
 RUN_RETRY_COUNT = 2
+RUNTIME_FAIL_MARKERS = ("[RUNTIME_CHECK_FAIL]",)
 
 # Examples not suitable for runtime testing (headless/performance/test-only)
 SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformace", "HelloPerformance",
              "HelloDesigner", "HelloDesigner_temp"]
+
+
+def get_windows_hidden_run_kwargs():
+    if platform.system() != 'Windows':
+        return {}
+
+    kwargs = {}
+    if hasattr(subprocess, "CREATE_NO_WINDOW"):
+        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+    if hasattr(subprocess, "STARTUPINFO"):
+        startupinfo = subprocess.STARTUPINFO()
+        if hasattr(subprocess, "STARTF_USESHOWWINDOW"):
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        if hasattr(subprocess, "SW_HIDE"):
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+        kwargs["startupinfo"] = startupinfo
+    return kwargs
 
 
 def get_example_list():
@@ -88,7 +110,11 @@ def compile_app(app, app_sub=None, bits64=False, user_cflags=""):
     return result.returncode == 0
 
 
-def run_app(app_name, output_subdir, timeout=DEFAULT_TIMEOUT, duration=RECORDING_DURATION, speed=RECORDING_SPEED):
+def run_app(app_name, output_subdir, timeout=DEFAULT_TIMEOUT, duration=RECORDING_DURATION,
+            speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
+            clock_scale=RECORDING_CLOCK_SCALE,
+            snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
+            snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
     """Run app with recording mode, capture screenshot, verify exit.
     Retries on crash (access violation) since PC simulator has known
     race conditions between main thread and egui thread.
@@ -109,16 +135,21 @@ def run_app(app_name, output_subdir, timeout=DEFAULT_TIMEOUT, duration=RECORDING
 
     # Run with recording: RECORDING_FPS fps, duration seconds, speed multiplier
     cmd = [exe_path, resource_path, '--record', frames_dir,
-           str(RECORDING_FPS), str(duration), '--speed', str(speed)]
+           str(RECORDING_FPS), str(duration), '--speed', str(speed),
+           '--clock-scale', str(clock_scale),
+           '--snapshot-settle-ms', str(snapshot_settle_ms),
+           '--snapshot-stable-cycles', str(snapshot_stable_cycles),
+           '--snapshot-max-wait-ms', str(snapshot_max_wait_ms), '--headless']
 
     last_error = ""
+    hidden_kwargs = get_windows_hidden_run_kwargs()
     for attempt in range(RUN_RETRY_COUNT):
         # Clean old frames before each attempt
         for old_frame in Path(frames_dir).glob("frame_*.*"):
             old_frame.unlink()
 
         try:
-            result = subprocess.run(cmd, timeout=timeout, capture_output=True, text=True)
+            result = subprocess.run(cmd, timeout=timeout, capture_output=True, text=True, **hidden_kwargs)
             if result.returncode != 0:
                 stderr_msg = result.stderr.strip() if result.stderr else ""
                 last_error = "exit code %d%s" % (result.returncode,
@@ -131,6 +162,16 @@ def run_app(app_name, output_subdir, timeout=DEFAULT_TIMEOUT, duration=RECORDING
             return False, "timeout after %ds" % timeout
         except Exception as e:
             return False, "run error: %s" % str(e)
+
+        combined_output = "%s\n%s" % ((result.stdout or ""), (result.stderr or ""))
+        for marker in RUNTIME_FAIL_MARKERS:
+            if marker in combined_output:
+                marker_line = marker
+                for line in combined_output.splitlines():
+                    if marker in line:
+                        marker_line = line.strip()
+                        break
+                return False, "runtime self-check failed: %s" % marker_line
 
         # Success - verify frames
         break
@@ -149,7 +190,11 @@ def run_app(app_name, output_subdir, timeout=DEFAULT_TIMEOUT, duration=RECORDING
     return True, "%d frames captured -> %s" % (len(frame_files), frames_dir)
 
 
-def check_default_resolution(app, app_sub, bits64, explicit_timeout=None, speed=RECORDING_SPEED):
+def check_default_resolution(app, app_sub, bits64, explicit_timeout=None,
+                             speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
+                             clock_scale=RECORDING_CLOCK_SCALE,
+                             snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
+                             snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
     """Test app at default resolution (no CFLAGS override).
     Apps auto-quit after all actions complete; RECORDING_DURATION is a safety timeout.
     Returns (success: bool, message: str).
@@ -162,11 +207,19 @@ def check_default_resolution(app, app_sub, bits64, explicit_timeout=None, speed=
 
     # Timeout must be >= recording duration + margin to allow auto-quit
     timeout = max(RECORDING_DURATION + 5, explicit_timeout if explicit_timeout is not None else DEFAULT_TIMEOUT)
-    return run_app(app_name, "default", timeout=timeout, duration=RECORDING_DURATION, speed=speed)
+    return run_app(app_name, "default", timeout=timeout, duration=RECORDING_DURATION,
+                   speed=speed, snapshot_settle_ms=snapshot_settle_ms,
+                   clock_scale=clock_scale,
+                   snapshot_stable_cycles=snapshot_stable_cycles,
+                   snapshot_max_wait_ms=snapshot_max_wait_ms)
 
 
 
-def capture_animation_frames(app_name, output_dir, fps=10, duration=5, speed=1):
+def capture_animation_frames(app_name, output_dir, fps=10, duration=5,
+                             speed=1, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
+                             clock_scale=RECORDING_CLOCK_SCALE,
+                             snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
+                             snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
     """Capture animation frames at higher FPS for regression verification.
 
     This is the programmatic API used by figmamake_regression.py.
@@ -199,11 +252,15 @@ def capture_animation_frames(app_name, output_dir, fps=10, duration=5, speed=1):
         old_frame.unlink()
 
     cmd = [exe_path, resource_path, '--record', output_dir,
-           str(fps), str(duration), '--speed', str(speed)]
+           str(fps), str(duration), '--speed', str(speed),
+           '--clock-scale', str(clock_scale),
+           '--snapshot-settle-ms', str(snapshot_settle_ms),
+           '--snapshot-stable-cycles', str(snapshot_stable_cycles),
+           '--snapshot-max-wait-ms', str(snapshot_max_wait_ms), '--headless']
 
     try:
         result = subprocess.run(cmd, timeout=duration + 10,
-                                capture_output=True, text=True)
+                                capture_output=True, text=True, **get_windows_hidden_run_kwargs())
         if result.returncode != 0:
             stderr_msg = result.stderr.strip() if result.stderr else ""
             return False, [], "exit code %d: %s" % (result.returncode, stderr_msg)
@@ -245,7 +302,10 @@ def extract_keyframes(frame_files, keyframe_pcts=None):
     return result
 
 
-def run_full_check(bits64, speed=RECORDING_SPEED):
+def run_full_check(bits64, speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
+                   clock_scale=RECORDING_CLOCK_SCALE,
+                   snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
+                   snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
     """Run runtime check on all examples.
     Returns list of (app_name, success, message) tuples.
     """
@@ -279,7 +339,16 @@ def run_full_check(bits64, speed=RECORDING_SPEED):
                 print("[%d/%d] %s" % (current, total, app_name))
                 print("=" * 60)
 
-                success, msg = check_default_resolution(app, app_sub, bits64, speed=speed)
+                success, msg = check_default_resolution(
+                    app,
+                    app_sub,
+                    bits64,
+                    speed=speed,
+                    snapshot_settle_ms=snapshot_settle_ms,
+                    clock_scale=clock_scale,
+                    snapshot_stable_cycles=snapshot_stable_cycles,
+                    snapshot_max_wait_ms=snapshot_max_wait_ms,
+                )
                 status = "PASS" if success else "FAIL"
                 print("  %s (%s)" % (status, msg))
                 results.append((app_name, success, msg))
@@ -289,7 +358,16 @@ def run_full_check(bits64, speed=RECORDING_SPEED):
             print("[%d/%d] %s" % (current, total, app))
             print("=" * 60)
 
-            success, msg = check_default_resolution(app, None, bits64, speed=speed)
+            success, msg = check_default_resolution(
+                app,
+                None,
+                bits64,
+                speed=speed,
+                snapshot_settle_ms=snapshot_settle_ms,
+                clock_scale=clock_scale,
+                snapshot_stable_cycles=snapshot_stable_cycles,
+                snapshot_max_wait_ms=snapshot_max_wait_ms,
+            )
             status = "PASS" if success else "FAIL"
             print("  %s (%s)" % (status, msg))
             results.append((app, success, msg))
@@ -347,14 +425,33 @@ Examples:
                         help='Test all example applications')
     parser.add_argument('--speed', type=int, default=RECORDING_SPEED,
                         help='Action speed multiplier (default: %d, 1=normal)' % RECORDING_SPEED)
+    parser.add_argument('--clock-scale', type=int, default=RECORDING_CLOCK_SCALE,
+                        help='Recording clock acceleration factor (default: %d)' % RECORDING_CLOCK_SCALE)
+    parser.add_argument('--snapshot-settle-ms', type=int, default=RECORDING_SNAPSHOT_SETTLE_MS,
+                        help='Snapshot settle time in ms (default: %d)' % RECORDING_SNAPSHOT_SETTLE_MS)
+    parser.add_argument('--snapshot-stable-cycles', type=int, default=RECORDING_SNAPSHOT_STABLE_CYCLES,
+                        help='Required unchanged frame cycles before snapshot (default: %d)' % RECORDING_SNAPSHOT_STABLE_CYCLES)
+    parser.add_argument('--snapshot-max-wait-ms', type=int, default=RECORDING_SNAPSHOT_MAX_WAIT_MS,
+                        help='Snapshot force-capture timeout in ms (default: %d)' % RECORDING_SNAPSHOT_MAX_WAIT_MS)
 
     args = parser.parse_args()
 
     all_passed = True
     speed = args.speed
+    clock_scale = args.clock_scale
+    snapshot_settle_ms = args.snapshot_settle_ms
+    snapshot_stable_cycles = args.snapshot_stable_cycles
+    snapshot_max_wait_ms = args.snapshot_max_wait_ms
 
     if args.full_check:
-        results = run_full_check(args.bits64, speed=speed)
+        results = run_full_check(
+            args.bits64,
+            speed=speed,
+            clock_scale=clock_scale,
+            snapshot_settle_ms=snapshot_settle_ms,
+            snapshot_stable_cycles=snapshot_stable_cycles,
+            snapshot_max_wait_ms=snapshot_max_wait_ms,
+        )
         all_passed = print_summary(results)
 
     elif args.app:
@@ -367,7 +464,11 @@ Examples:
 
         success, msg = check_default_resolution(args.app, args.app_sub, args.bits64,
                                                  explicit_timeout=args.timeout,
-                                                 speed=speed)
+                                                 speed=speed,
+                                                 clock_scale=clock_scale,
+                                                 snapshot_settle_ms=snapshot_settle_ms,
+                                                 snapshot_stable_cycles=snapshot_stable_cycles,
+                                                 snapshot_max_wait_ms=snapshot_max_wait_ms)
         results.append((app_name, success, msg))
 
         all_passed = print_summary(results)

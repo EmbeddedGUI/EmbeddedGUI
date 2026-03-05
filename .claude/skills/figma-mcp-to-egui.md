@@ -51,7 +51,8 @@ MCP call: get_node(file_key, node_id)
 Save the JSON response to a file:
 ```bash
 # Save MCP response to file
-echo '<MCP JSON>' > /tmp/figma_node.json
+# ensure directory exists: example/MyApp/.eguiproject/tmp/
+echo '<MCP JSON>' > example/MyApp/.eguiproject/tmp/figma_node.json
 ```
 
 ## Step 3: Save Design Screenshot
@@ -74,7 +75,7 @@ python scripts/html2egui_helper.py scaffold --app MyApp --width 320 --height 480
 
 ```bash
 python scripts/html2egui_helper.py figma-mcp \
-    --input /tmp/figma_node.json \
+    --input example/MyApp/.eguiproject/tmp/figma_node.json \
     --app MyApp \
     --target 320x480 \
     --page main_page

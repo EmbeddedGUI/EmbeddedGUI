@@ -39,9 +39,13 @@ extern void sdl_port_sleep(uint32_t nMS);
 // Recording functions for GIF generation
 extern void recording_init(const char *output_dir, int fps, int duration_sec);
 extern void recording_set_speed(int speed);
+extern void recording_set_clock_scale(int scale);
+extern void recording_set_snapshot_settle_ms(int settle_ms);
+extern void recording_set_snapshot_stability(int stable_cycles, int max_wait_ms);
 extern bool recording_is_enabled(void);
 extern bool recording_is_finished(void);
 extern void recording_request_snapshot(void);
+extern void sdl_port_set_headless(bool headless);
 
 #if EGUI_CONFIG_RECORDING_TEST
 #include "core/egui_input_simulator.h"
