@@ -10,11 +10,13 @@
       <TargetName>proj_stm32g0_empty</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
+      <pCCUsed>5060960::V5.06 update 7 (build 960)::.\ARMCC</pCCUsed>
+      <uAC6>0</uAC6>
       <TargetOption>
         <TargetCommonOption>
           <Device>ARMCM0P</Device>
           <Vendor>ARM</Vendor>
-          <PackID>ARM.CMSIS.4.2.0</PackID>
+          <PackID>ARM.CMSIS.5.9.0</PackID>
           <PackURL>http://www.keil.com/pack/</PackURL>
           <Cpu>IROM(0x00000000,0x40000) IRAM(0x20000000,0x20000) CPUTYPE("Cortex-M0+") CLOCK(12000000) ESEL ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
@@ -84,6 +86,8 @@
             <UserProg2Name></UserProg2Name>
             <UserProg1Dos16Mode>0</UserProg1Dos16Mode>
             <UserProg2Dos16Mode>0</UserProg2Dos16Mode>
+            <nStopA1X>0</nStopA1X>
+            <nStopA2X>0</nStopA2X>
           </AfterMake>
           <SelectedForBatchBuild>1</SelectedForBatchBuild>
           <SVCSIdString></SVCSIdString>
@@ -122,47 +126,6 @@
             <HexOffset>0</HexOffset>
             <Oh166RecLen>16</Oh166RecLen>
           </OPTHX>
-          <Simulator>
-            <UseSimulator>0</UseSimulator>
-            <LoadApplicationAtStartup>1</LoadApplicationAtStartup>
-            <RunToMain>1</RunToMain>
-            <RestoreBreakpoints>1</RestoreBreakpoints>
-            <RestoreWatchpoints>1</RestoreWatchpoints>
-            <RestoreMemoryDisplay>1</RestoreMemoryDisplay>
-            <RestoreFunctions>1</RestoreFunctions>
-            <RestoreToolbox>1</RestoreToolbox>
-            <LimitSpeedToRealTime>0</LimitSpeedToRealTime>
-            <RestoreSysVw>1</RestoreSysVw>
-          </Simulator>
-          <Target>
-            <UseTarget>1</UseTarget>
-            <LoadApplicationAtStartup>1</LoadApplicationAtStartup>
-            <RunToMain>1</RunToMain>
-            <RestoreBreakpoints>1</RestoreBreakpoints>
-            <RestoreWatchpoints>1</RestoreWatchpoints>
-            <RestoreMemoryDisplay>1</RestoreMemoryDisplay>
-            <RestoreFunctions>1</RestoreFunctions>
-            <RestoreToolbox>1</RestoreToolbox>
-            <RestoreTracepoints>1</RestoreTracepoints>
-            <RestoreSysVw>1</RestoreSysVw>
-          </Target>
-          <RunDebugAfterBuild>0</RunDebugAfterBuild>
-          <TargetSelection>11</TargetSelection>
-          <SimDlls>
-            <CpuDll></CpuDll>
-            <CpuDllArguments></CpuDllArguments>
-            <PeripheralDll></PeripheralDll>
-            <PeripheralDllArguments></PeripheralDllArguments>
-            <InitializationFile></InitializationFile>
-          </SimDlls>
-          <TargetDlls>
-            <CpuDll></CpuDll>
-            <CpuDllArguments></CpuDllArguments>
-            <PeripheralDll></PeripheralDll>
-            <PeripheralDllArguments></PeripheralDllArguments>
-            <InitializationFile></InitializationFile>
-            <Driver>STLink\ST-LINKIII-KEIL_SWO.dll</Driver>
-          </TargetDlls>
         </DebugOption>
         <Utilities>
           <Flash1>
@@ -174,7 +137,7 @@
             <DriverSelection>4101</DriverSelection>
           </Flash1>
           <bUseTDR>1</bUseTDR>
-          <Flash2>BIN\UL2V8M.DLL</Flash2>
+          <Flash2>BIN\UL2CM3.DLL</Flash2>
           <Flash3></Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
@@ -221,12 +184,16 @@
             <hadXRAM>0</hadXRAM>
             <uocXRam>0</uocXRam>
             <RvdsVP>0</RvdsVP>
+            <RvdsMve>0</RvdsMve>
+            <RvdsCdeCp>0</RvdsCdeCp>
+            <nBranchProt>0</nBranchProt>
             <hadIRAM2>0</hadIRAM2>
             <hadIROM2>0</hadIROM2>
             <StupSel>8</StupSel>
             <useUlib>0</useUlib>
             <EndSel>1</EndSel>
             <uLtcg>0</uLtcg>
+            <nSecure>0</nSecure>
             <RoSelD>3</RoSelD>
             <RwSelD>3</RwSelD>
             <CodeSel>0</CodeSel>
@@ -360,7 +327,15 @@
             <uThumb>0</uThumb>
             <uSurpInc>0</uSurpInc>
             <uC99>1</uC99>
+            <uGnu>0</uGnu>
             <useXO>0</useXO>
+            <v6Lang>1</v6Lang>
+            <v6LangP>1</v6LangP>
+            <vShortEn>1</vShortEn>
+            <vShortWch>1</vShortWch>
+            <v6Lto>0</v6Lto>
+            <v6WtE>0</v6WtE>
+            <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls>--gnu</MiscControls>
               <Define>USE_HAL_DRIVER,STM32G0B0xx</Define>
@@ -378,6 +353,7 @@
             <NoWarn>0</NoWarn>
             <uSurpInc>0</uSurpInc>
             <useXO>0</useXO>
+            <ClangAsOpt>1</ClangAsOpt>
             <VariousControls>
               <MiscControls></MiscControls>
               <Define></Define>
@@ -529,6 +505,16 @@
               <FilePath>..\..\..\src\anim\egui_animation_alpha.c</FilePath>
             </File>
             <File>
+              <FileName>egui_animation_color.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\anim\egui_animation_color.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_animation_resize.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\anim\egui_animation_resize.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_animation_scale_size.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\anim\egui_animation_scale_size.c</FilePath>
@@ -604,6 +590,11 @@
               <FilePath>..\..\..\src\app\egui_dialog.c</FilePath>
             </File>
             <File>
+              <FileName>egui_page_base.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\app\egui_page_base.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_toast.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\app\egui_toast.c</FilePath>
@@ -624,6 +615,11 @@
               <FilePath>..\..\..\src\background\egui_background_color.c</FilePath>
             </File>
             <File>
+              <FileName>egui_background_gradient.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\background\egui_background_gradient.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_background_image.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\background\egui_background_image.c</FilePath>
@@ -639,6 +635,46 @@
               <FilePath>..\..\..\src\core\egui_canvas.c</FilePath>
             </File>
             <File>
+              <FileName>egui_canvas_bezier.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_canvas_bezier.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_circle_hq.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_canvas_circle_hq.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_ellipse.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_canvas_ellipse.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_gradient.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_canvas_gradient.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_line.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_canvas_line.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_line_hq.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_canvas_line_hq.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_polygon.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_canvas_polygon.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_canvas_triangle.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_canvas_triangle.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_common.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_common.c</FilePath>
@@ -649,9 +685,39 @@
               <FilePath>..\..\..\src\core\egui_core.c</FilePath>
             </File>
             <File>
+              <FileName>egui_core_activity.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_activity.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_dialog.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_dialog.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_toast.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_toast.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_display_driver.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_display_driver.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_focus.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_focus.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_input.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_input.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_key_event.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_key_event.c</FilePath>
             </File>
             <File>
               <FileName>egui_motion_event.c</FileName>
@@ -659,9 +725,24 @@
               <FilePath>..\..\..\src\core\egui_motion_event.c</FilePath>
             </File>
             <File>
+              <FileName>egui_pfb_manager.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_pfb_manager.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_platform.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_platform.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_region.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_region.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_rotation.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_rotation.c</FilePath>
             </File>
             <File>
               <FileName>egui_scroller.c</FileName>
@@ -677,6 +758,11 @@
               <FileName>egui_timer.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_touch_driver.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_touch_driver.c</FilePath>
             </File>
             <File>
               <FileName>egui_velocity_tracker.c</FileName>
@@ -719,6 +805,11 @@
               <FilePath>..\..\..\src\mask\egui_mask_circle.c</FilePath>
             </File>
             <File>
+              <FileName>egui_mask_gradient.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\mask\egui_mask_gradient.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_mask_image.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\mask\egui_mask_image.c</FilePath>
@@ -729,14 +820,14 @@
               <FilePath>..\..\..\src\mask\egui_mask_round_rectangle.c</FilePath>
             </File>
             <File>
+              <FileName>egui_i18n.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\resource\egui_i18n.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_res_circle_info.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\resource\egui_res_circle_info.c</FilePath>
-            </File>
-            <File>
-              <FileName>egui_res_font_montserrat_8_4.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\resource\egui_res_font_montserrat_8_4.c</FilePath>
             </File>
             <File>
               <FileName>egui_res_font_montserrat_10_4.c</FileName>
@@ -839,9 +930,49 @@
               <FilePath>..\..\..\src\resource\egui_res_font_montserrat_48_4.c</FilePath>
             </File>
             <File>
+              <FileName>egui_res_font_montserrat_8_4.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\resource\egui_res_font_montserrat_8_4.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_shadow.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\shadow\egui_shadow.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_style.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\style\egui_style.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_style_transition.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\style\egui_style_transition.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_theme.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\style\egui_theme.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_theme_dark.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\style\egui_theme_dark.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_theme_light.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\style\egui_theme_light.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_fixmath.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\utils\egui_fixmath.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_sprintf.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\utils\egui_sprintf.c</FilePath>
             </File>
             <File>
               <FileName>egui_utils.c</FileName>
@@ -864,9 +995,124 @@
               <FilePath>..\..\..\src\widget\egui_view.c</FilePath>
             </File>
             <File>
+              <FileName>egui_view_activity_ring.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_activity_ring.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_analog_clock.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_analog_clock.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_animated_image.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_animated_image.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_arc_slider.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_arc_slider.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_autocomplete.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_autocomplete.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_view_button.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view_button.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_button_matrix.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_button_matrix.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_card.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_card.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_chart_axis.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_chart_axis.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_chart_bar.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_chart_bar.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_chart_common.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_chart_common.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_chart_line.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_chart_line.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_chart_pie.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_chart_pie.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_chart_scatter.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_chart_scatter.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_checkbox.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_checkbox.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_chips.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_chips.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_circular_progress_bar.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_circular_progress_bar.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_combobox.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_combobox.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_compass.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_compass.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_digital_clock.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_digital_clock.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_divider.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_divider.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_dynamic_label.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_dynamic_label.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_gauge.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_gauge.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_gridlayout.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_gridlayout.c</FilePath>
             </File>
             <File>
               <FileName>egui_view_group.c</FileName>
@@ -874,9 +1120,24 @@
               <FilePath>..\..\..\src\widget\egui_view_group.c</FilePath>
             </File>
             <File>
+              <FileName>egui_view_heart_rate.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_heart_rate.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_view_image.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view_image.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_image_button.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_image_button.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_keyboard.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_keyboard.c</FilePath>
             </File>
             <File>
               <FileName>egui_view_label.c</FileName>
@@ -884,9 +1145,59 @@
               <FilePath>..\..\..\src\widget\egui_view_label.c</FilePath>
             </File>
             <File>
+              <FileName>egui_view_led.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_led.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_line.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_line.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_view_linearlayout.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view_linearlayout.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_list.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_list.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_menu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_menu.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_mini_calendar.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_mini_calendar.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_mp4.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_mp4.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_notification_badge.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_notification_badge.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_number_picker.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_number_picker.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_page_indicator.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_page_indicator.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_pattern_lock.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_pattern_lock.c</FilePath>
             </File>
             <File>
               <FileName>egui_view_progress_bar.c</FileName>
@@ -894,14 +1205,89 @@
               <FilePath>..\..\..\src\widget\egui_view_progress_bar.c</FilePath>
             </File>
             <File>
+              <FileName>egui_view_radio_button.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_radio_button.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_roller.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_roller.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_scale.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_scale.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_view_scroll.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view_scroll.c</FilePath>
             </File>
             <File>
+              <FileName>egui_view_segmented_control.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_segmented_control.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_slider.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_slider.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_spangroup.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_spangroup.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_spinner.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_spinner.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_stepper.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_stepper.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_stopwatch.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_stopwatch.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_view_switch.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view_switch.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_tab_bar.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_tab_bar.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_table.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_table.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_textblock.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_textblock.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_textinput.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_textinput.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_tileview.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_tileview.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_toggle_button.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_toggle_button.c</FilePath>
             </File>
             <File>
               <FileName>egui_view_viewpage.c</FileName>
@@ -913,15 +1299,20 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view_viewpage_cache.c</FilePath>
             </File>
+            <File>
+              <FileName>egui_view_window.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_window.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>Porting</GroupName>
           <Files>
             <File>
-              <FileName>api_mcu.c</FileName>
+              <FileName>egui_port_mcu.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Porting\api_mcu.c</FilePath>
+              <FilePath>..\Porting\egui_port_mcu.c</FilePath>
             </File>
             <File>
               <FileName>port_main.c</FileName>

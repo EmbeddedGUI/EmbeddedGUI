@@ -38,6 +38,24 @@ def get_example_basic_list():
                    if os.path.isdir(os.path.join(path, f))])
 
 
+def get_custom_widgets_list():
+    """Discover HelloCustomWidgets sub-apps."""
+    base = 'example/HelloCustomWidgets'
+    if not os.path.isdir(base):
+        return []
+
+    result = []
+    for cat in sorted(os.listdir(base)):
+        cat_path = os.path.join(base, cat)
+        if not os.path.isdir(cat_path):
+            continue
+        for widget in sorted(os.listdir(cat_path)):
+            widget_path = os.path.join(cat_path, widget)
+            if os.path.isdir(widget_path) and os.path.exists(os.path.join(widget_path, 'test.c')):
+                result.append((cat, widget))
+    return result
+
+
 def run_cmd(cmd, cwd=None):
     """Run a shell command, return success status."""
     result = subprocess.run(cmd, shell=True, cwd=cwd,
@@ -94,7 +112,7 @@ def build_demo(root_dir, app, app_sub, emsdk_path, output_dir):
     Uses per-app OBJDIR (set in Makefile) so no make clean is needed.
     """
     if app_sub:
-        demo_name = f"{app}_{app_sub}"
+        demo_name = f"{app}_{app_sub.replace('/', '_')}"
         make_extra = f"APP_SUB={app_sub}"
     else:
         demo_name = app
@@ -195,6 +213,9 @@ def main():
             if app == "HelloBasic":
                 for sub in app_basic_sets:
                     build_list.append((app, sub, "HelloBasic"))
+            elif app == "HelloCustomWidgets":
+                for cat, widget in get_custom_widgets_list():
+                    build_list.append((app, f"{cat}/{widget}", "HelloCustomWidgets"))
             else:
                 build_list.append((app, None, "Standalone"))
 
@@ -203,7 +224,8 @@ def main():
 
     # Split into groups: HelloBasic (must be sequential, shared OBJDIR) and standalone apps
     basic_group = [(a, s, c) for a, s, c in build_list if c == "HelloBasic"]
-    standalone_list = [(a, s, c) for a, s, c in build_list if c != "HelloBasic"]
+    custom_group = [(a, s, c) for a, s, c in build_list if c == "HelloCustomWidgets"]
+    standalone_list = [(a, s, c) for a, s, c in build_list if c not in ("HelloBasic", "HelloCustomWidgets")]
 
     demos_built = []
     failed = []
@@ -215,6 +237,22 @@ def main():
         for app, sub, category in basic_group:
             count += 1
             name = f"{app}_{sub}" if sub else app
+            print(f"\n[{count}/{total}] {name}")
+            result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir)
+            result["category"] = category
+            if "error" in result:
+                print(f"  FAILED: {result['error']}")
+                failed.append(result["name"])
+            else:
+                print(f"  OK -> {os.path.join(output_dir, result['name'])}")
+                demos_built.append(make_demo_entry(root_dir, result, category))
+
+    # Build HelloCustomWidgets sub-apps sequentially
+    if custom_group:
+        print(f"\n--- HelloCustomWidgets ({len(custom_group)} demos, sequential) ---")
+        for app, sub, category in custom_group:
+            count += 1
+            name = f"{app}_{sub.replace('/', '_')}" if sub else app
             print(f"\n[{count}/{total}] {name}")
             result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir)
             result["category"] = category

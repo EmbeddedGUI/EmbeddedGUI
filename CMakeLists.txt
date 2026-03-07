@@ -30,7 +30,7 @@ include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/example/${APP})
 
 # For HelloBasic with sub-app, add sub-app include paths
-if(APP STREQUAL "HelloBasic" AND NOT APP_SUB STREQUAL "")
+if((APP STREQUAL "HelloBasic" OR APP STREQUAL "HelloCustomWidgets") AND NOT APP_SUB STREQUAL "")
     include_directories(${CMAKE_SOURCE_DIR}/example/${APP}/${APP_SUB})
     if(EXISTS "${CMAKE_SOURCE_DIR}/example/${APP}/${APP_SUB}/resource")
         include_directories(${CMAKE_SOURCE_DIR}/example/${APP}/${APP_SUB}/resource)

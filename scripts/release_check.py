@@ -31,6 +31,7 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 
 ALL_STEP_NAMES = [
     "format",
+    "keil_sync",
     "pytest",
     "ui_package",
     "compile",
@@ -45,6 +46,7 @@ ALL_STEP_NAMES = [
 
 STEP_DESCRIPTIONS = {
     "format":   "Code formatting (clang-format)",
+    "keil_sync": "Keil project file sync (src/ vs .uvprojx)",
     "pytest":   "UI Designer unit tests (pytest)",
     "ui_package": "UI Designer package build (PyInstaller)",
     "compile":  "Full compile check (all examples)",
@@ -78,6 +80,9 @@ def build_steps(args):
     steps = [
         ("format",   STEP_DESCRIPTIONS["format"],
          [py, str(SCRIPT_DIR / "code_format.py")]),
+
+        ("keil_sync", STEP_DESCRIPTIONS["keil_sync"],
+         [py, str(SCRIPT_DIR / "keil_project_sync.py")]),
 
         ("pytest",   STEP_DESCRIPTIONS["pytest"],
          [py, "-m", "pytest", "-c", str(SCRIPT_DIR / "ui_designer" / "pyproject.toml"), str(SCRIPT_DIR / "ui_designer" / "tests"), "-v", "--tb=short"]),

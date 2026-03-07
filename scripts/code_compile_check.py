@@ -38,6 +38,26 @@ def get_example_basic_list():
 
     return sorted(app_list)
 
+def get_custom_widgets_list(category=None):
+    """Discover HelloCustomWidgets sub-apps (category/widget_name pairs)."""
+    base = 'example/HelloCustomWidgets'
+    if not os.path.isdir(base):
+        return []
+
+    result = []
+    categories = os.listdir(base)
+    for cat in sorted(categories):
+        cat_path = os.path.join(base, cat)
+        if not os.path.isdir(cat_path):
+            continue
+        if category and cat != category:
+            continue
+        for widget in sorted(os.listdir(cat_path)):
+            widget_path = os.path.join(cat_path, widget)
+            if os.path.isdir(widget_path) and os.path.exists(os.path.join(widget_path, 'test.c')):
+                result.append(f"{cat}/{widget}")
+    return result
+
 def compile_code(params):
     """Compile code using per-app OBJDIR (no make clean needed).
 
@@ -200,6 +220,16 @@ def parse_args():
                         default=False,
                         help="Use CMake build system instead of Make.")
 
+    parser.add_argument("--custom-widgets",
+                        action="store_true",
+                        default=False,
+                        help="Check HelloCustomWidgets instead of standard apps.")
+
+    parser.add_argument("--category",
+                        type=str,
+                        default=None,
+                        help="Only check specific category (e.g. input, display).")
+
     return parser.parse_args()
 
 def process_app(current_work_cnt, total_work_cnt, app, port, app_basic, params):
@@ -253,11 +283,29 @@ if __name__ == '__main__':
     if(res != 0):
         sys.exit(res)
 
+    # Custom widgets check mode
+    if args.custom_widgets:
+        custom_list = get_custom_widgets_list(args.category)
+        total_work_cnt = len(custom_list)
+        current_work_cnt = 0
+        for widget_sub in custom_list:
+            current_work_cnt += 1
+            process_app(current_work_cnt, total_work_cnt, "HelloCustomWidgets", "pc", widget_sub, params)
+
+        elapsed = time.time() - start_time
+        print("=================================================================================")
+        print("Custom widgets check passed! Time: %.1fs" % elapsed)
+        print("=================================================================================")
+        sys.exit(0)
+
     full_check = args.full_check
     if full_check:
         total_work_cnt = 0
         for app in app_sets:
             for port in port_sets:
+                if app == "HelloCustomWidgets":
+                    # Custom widgets checked separately via --custom-widgets
+                    continue
                 if app == "HelloBasic":
                     for app_basic in app_basic_sets:
                         total_work_cnt += 1
@@ -267,6 +315,9 @@ if __name__ == '__main__':
         current_work_cnt = 0
         for app in app_sets:
             for port in port_sets:
+                if app == "HelloCustomWidgets":
+                    # Custom widgets checked separately via --custom-widgets
+                    continue
                 if app == "HelloBasic":
                     for app_basic in app_basic_sets:
                             current_work_cnt += 1
