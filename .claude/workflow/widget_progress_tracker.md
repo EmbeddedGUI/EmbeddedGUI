@@ -25,7 +25,7 @@
 
 | 序号 | 控件名 | 分类 | 完成日期 | 迭代次数 | 创新关键词 | 与现有控件差异边界 | 关键路径 | 验收结果 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | radial_menu | navigation | 2026-03-08 | 30 | 极坐标菜单、中心触发、拖拽选择、状态分层 | 区别于 menu/button_matrix/tab_bar/compass，核心在中心触发 + 扇区命中 + 拖拽释放确认 | `example/HelloCustomWidgets/navigation/radial_menu/`; `runtime_check_output/HelloCustomWidgets_navigation/radial_menu/default/` | runtime PASS；截图已展示；30 次迭代完成 | 准备提交单控件 commit |
+| 1 | radial_menu | navigation | 2026-03-08 | 30 | 极坐标菜单、中心触发、拖拽选择、状态分层 | 区别于 menu/button_matrix/tab_bar/compass，核心在中心触发 + 扇区命中 + 拖拽释放确认 | `example/HelloCustomWidgets/navigation/radial_menu/`; `runtime_check_output/HelloCustomWidgets_navigation/radial_menu/default/` | runtime PASS；截图已展示；30 次迭代完成 | 已提交：`aaaa7bb` |`r`n| 2 | radar_chart | chart | 2026-03-08 | 30 | 多维极坐标、闭合轮廓、双组对比、面板分层 | 区别于 chart_line/chart_bar/chart_pie/chart_scatter/compass，核心在多维极坐标 + 闭合轮廓 + 多组对比 | `example/HelloCustomWidgets/chart/radar_chart/`; `runtime_check_output/HelloCustomWidgets_chart/radar_chart/default/` | runtime PASS；截图已展示；30 次迭代完成 | 准备提交单控件 commit |
 
 ## 已搁置 / 待恢复
 
@@ -51,7 +51,7 @@
 
 | 状态 | 控件名 | 分类 | 开始日期 | 当前阶段 | 目标创新点 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 进行中 | radial_menu | navigation | 2026-03-07 | Step 1 设计文档 | 极坐标扇区布局、中心触发区、拖拽释放选择 | 目录：`example/HelloCustomWidgets/navigation/radial_menu/` |
+| 进行中 | radial_menu | navigation | 2026-03-07 | Step 5 首轮可视化打磨 | 极坐标扇区布局、中心触发区、拖拽释放选择 | 目录：`example/HelloCustomWidgets/navigation/radial_menu/` |
 
 ### 控件完成时
 
