@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 RUNTIME_ROOT = Path("runtime_check_output")
-DEFAULT_MIN_CYCLES = 10
+DEFAULT_MIN_CYCLES = 30
 
 
 def normalize_widget_name(name: str) -> str:

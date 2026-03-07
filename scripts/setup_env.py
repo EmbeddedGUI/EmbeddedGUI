@@ -25,6 +25,7 @@ VENV_DIR = ".venv"
 REQUIREMENTS_BASIC = "requirements.txt"
 REQUIREMENTS_DESKTOP = os.path.join("scripts", "ui_designer", "requirements-desktop.txt")
 PIP_MIRROR = "https://pypi.tuna.tsinghua.edu.cn/simple"
+PIP_INDEX_URLS = [("TUNA mirror", PIP_MIRROR), ("PyPI", "https://pypi.org/simple")]
 
 # Minimum Python version required
 MIN_PYTHON_VERSION = (3, 8)
@@ -86,17 +87,61 @@ def create_venv(project_root):
     return venv_python
 
 
+def _run_pip_install(venv_python, args, index_url):
+    """Run a pip install command against a specific package index."""
+    cmd = [
+        venv_python,
+        "-m",
+        "pip",
+        "install",
+        "--disable-pip-version-check",
+        "--progress-bar",
+        "off",
+        "-i",
+        index_url,
+    ] + args
+    return subprocess.run(cmd, capture_output=True, text=True)
+
+
+def _print_pip_failure(result, max_lines=8):
+    """Print a short tail of pip output for debugging."""
+    lines = []
+    for stream in (result.stdout, result.stderr):
+        if not stream:
+            continue
+        for line in stream.splitlines():
+            line = line.strip()
+            if line:
+                lines.append(line)
+
+    if not lines:
+        return
+
+    print("     pip output:")
+    for line in lines[-max_lines:]:
+        print("       %s" % line)
+
+
 def pip_install(venv_python, args, desc=""):
-    """Run pip install with mirror and given arguments."""
-    cmd = [venv_python, "-m", "pip", "install", "-i", PIP_MIRROR] + args
+    """Run pip install with mirror first, then fall back to official PyPI."""
     if desc:
-        print("正在安装%s..." % desc)
-    ret = subprocess.run(cmd)
-    if ret.returncode != 0:
-        print("[!!] 安装失败: %s" % " ".join(args))
-        print("     请检查网络连接，或尝试配置代理")
-        return False
-    return True
+        print("Installing %s..." % desc)
+
+    last_result = None
+    for attempt, (index_name, index_url) in enumerate(PIP_INDEX_URLS, start=1):
+        if attempt > 1:
+            print("Retrying with %s..." % index_name)
+        ret = _run_pip_install(venv_python, args, index_url)
+        last_result = ret
+        if ret.returncode == 0:
+            return True
+        print("[!!] pip install failed via %s: %s" % (index_name, " ".join(args)))
+
+    if last_result is not None:
+        _print_pip_failure(last_result)
+    print("[!!] Failed to install: %s" % " ".join(args))
+    print("     Check network/proxy settings, or run pip manually with another index.")
+    return False
 
 
 def install_dependencies(venv_python, project_root, mode):
@@ -279,7 +324,8 @@ def setup_python(project_root, mode):
     if not install_dependencies(venv_python, project_root, mode):
         return False
 
-    verify_imports(venv_python)
+    if not verify_imports(venv_python):
+        return False
 
     print()
     print("提示: 使用前请先激活虚拟环境:")
@@ -293,11 +339,13 @@ def setup_python(project_root, mode):
 
 def main():
     parser = argparse.ArgumentParser(description="EmbeddedGUI environment setup")
-    parser.add_argument("--mode", choices=["0", "1", "2"], default="1",
-                        help="0=skip Python setup, 1=basic deps, 2=basic + UI Designer")
+    parser.add_argument("--mode", choices=["0", "1", "2", "3"], default="1",
+                        help="0/3=skip Python setup, 1=basic deps, 2=basic + UI Designer")
     parser.add_argument("--install-toolchain", action="store_true",
                         help="Download and install w64devkit (GCC + Make)")
     args = parser.parse_args()
+    if args.mode == "3":
+        args.mode = "0"
 
     project_root = get_project_root()
     os.chdir(project_root)
@@ -311,8 +359,8 @@ def main():
         if not download_w64devkit(project_root):
             sys.exit(1)
 
-    if args.mode != "0":
-        setup_python(project_root, args.mode)
+    if args.mode != "0" and not setup_python(project_root, args.mode):
+        sys.exit(1)
 
 
 if __name__ == "__main__":

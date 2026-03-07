@@ -14,6 +14,7 @@ CUSTOM_WIDGET_DIR = Path("scripts/ui_designer/custom_widgets")
 HELLOBASIC_DIR = Path("example/HelloBasic")
 
 PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
+INNOVATION_PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 DUPLICATION_RISK_ORDER = {"low": 0, "medium": 1, "high": 2}
 DUPLICATION_HIGH_SCORE = 75
 DUPLICATION_MEDIUM_SCORE = 45
@@ -21,57 +22,64 @@ MAX_SIMILAR_WIDGETS = 5
 
 SCORE_CRITERIA = [
     {
+        "id": "design_novelty",
+        "name": "Design novelty",
+        "description": "Is the widget visually or interactively fresh enough to justify being a phase-1 priority candidate?",
+        "weight": 0.20,
+        "critical": True,
+    },
+    {
         "id": "problem_value",
         "name": "Problem clarity",
         "description": "Is the target scenario and user value clearly defined?",
-        "weight": 0.17,
+        "weight": 0.15,
         "critical": True,
     },
     {
         "id": "interaction_model",
         "name": "Interaction model",
         "description": "Is the interaction path natural and aligned with existing framework habits?",
-        "weight": 0.17,
+        "weight": 0.15,
         "critical": True,
     },
     {
         "id": "visual_spec",
         "name": "Visual spec quality",
         "description": "Are size, spacing, hierarchy, and color constraints actionable?",
-        "weight": 0.12,
+        "weight": 0.10,
         "critical": False,
     },
     {
         "id": "state_coverage",
         "name": "State coverage",
         "description": "Are key states (normal/active/disabled/error) covered?",
-        "weight": 0.12,
+        "weight": 0.10,
         "critical": True,
     },
     {
         "id": "resource_cost",
         "name": "Resource cost",
         "description": "Does the design fit RAM/ROM/CPU limits for embedded targets?",
-        "weight": 0.12,
+        "weight": 0.10,
         "critical": True,
     },
     {
         "id": "implementation_feasibility",
         "name": "Implementation feasibility",
         "description": "Can it be mapped quickly to C layer, UI Designer registration, and HelloBasic acceptance?",
-        "weight": 0.15,
+        "weight": 0.10,
         "critical": True,
     },
     {
         "id": "differentiation",
         "name": "Differentiation",
         "description": "Is there enough functional difference vs existing widgets?",
-        "weight": 0.15,
+        "weight": 0.10,
         "critical": True,
     },
 ]
 DEFAULT_REVIEW_THRESHOLD = {"overall_min": 80, "critical_min": 3}
-DEFAULT_MIN_ITERATION_CYCLES = 10
+DEFAULT_MIN_ITERATION_CYCLES = 30
 
 
 def resolve_catalog_path(catalog_path: Path) -> Path:
@@ -117,11 +125,15 @@ def load_catalog(catalog_path: Path) -> list[dict]:
         priority = normalize_name(item.get("priority", "medium"))
         if priority not in PRIORITY_ORDER:
             priority = "medium"
+        innovation_priority = normalize_name(item.get("innovation_priority", priority))
+        if innovation_priority not in INNOVATION_PRIORITY_ORDER:
+            innovation_priority = priority
         normalized.append(
             {
                 "name": name,
                 "display_name": item.get("display_name", name),
                 "priority": priority,
+                "innovation_priority": innovation_priority,
                 "category": item.get("category", "general"),
                 "description": item.get("description", ""),
                 "design_focus": normalize_str_list(item.get("design_focus", [])),
@@ -219,8 +231,9 @@ def rank_missing(catalog: list[dict], registered: set[str]) -> list[dict]:
 
     missing.sort(
         key=lambda x: (
-            PRIORITY_ORDER.get(x["priority"], 9),
+            INNOVATION_PRIORITY_ORDER.get(x["innovation_priority"], 9),
             DUPLICATION_RISK_ORDER.get(x["duplication"]["risk"], 9),
+            PRIORITY_ORDER.get(x["priority"], 9),
             x["duplication"]["score"],
             x["name"],
         )
@@ -287,6 +300,7 @@ def render_design_brief(target: dict, similar_existing: list[str], has_hello_sub
 Generated at: {now}
 Category: {target['category']}
 Priority: {target['priority']}
+Innovation priority: {target['innovation_priority']}
 
 ## 1. Goal and value
 {target['description'] or 'Fill a missing foundational interaction capability.'}
@@ -348,6 +362,7 @@ Key interactions:
   - runtime pass
   - non-blank frame pass
   - baseline regression SSIM pass
+  - recursive iteration gate: at least {DEFAULT_MIN_ITERATION_CYCLES} cycles
 
 ## 8. Execution split
 
@@ -370,6 +385,7 @@ def write_report(report_path: Path, catalog: list[dict], registered: set[str], m
             {
                 "name": x["name"],
                 "priority": x["priority"],
+                "innovation_priority": x["innovation_priority"],
                 "category": x["category"],
                 "display_name": x["display_name"],
                 "duplication": x.get("duplication", {}),

@@ -10,6 +10,7 @@ echo.
 set "PROJECT_DIR=%~dp0"
 set "TOOLS_DIR=%PROJECT_DIR%tools\win32"
 set "DEVKIT_DIR=%PROJECT_DIR%tools\w64devkit"
+set "VENV_PYTHON=%PROJECT_DIR%.venv\Scripts\python.exe"
 set "HAS_MAKE=0"
 set "HAS_GCC=0"
 set "HAS_PYTHON=0"
@@ -19,7 +20,7 @@ set "HAS_EMSDK=0"
 set "HAS_PLAYWRIGHT=0"
 
 
-set "ARM_GCC_PATH=D:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\12.2 mpacbti-rel1"
+:: ARM_GCC_PATH can be preset by the user; otherwise Step 5 checks PATH.
 :: QEMU_PATH default is set in Step 6 only if not already defined by user
 
 :: ========================================
@@ -169,10 +170,11 @@ echo         3. Skip Python dependency installation
 echo.
 set /p "SETUP_MODE=      Choose [1/2/3]: "
 
-if "%SETUP_MODE%"=="3" goto :skip_python
-if "%SETUP_MODE%"=="" set "SETUP_MODE=1"
+if "!SETUP_MODE!"=="" set "SETUP_MODE=1"
+if "!SETUP_MODE!"=="3" set "SETUP_MODE=0"
 
-python "%PROJECT_DIR%scripts\setup_env.py" --mode %SETUP_MODE%
+python "%PROJECT_DIR%scripts\setup_env.py" --mode !SETUP_MODE!
+if "!SETUP_MODE!"=="0" goto :skip_python
 if !ERRORLEVEL! neq 0 (
     echo.
     echo       [!!] Python dependency installation failed, check messages above
@@ -187,10 +189,10 @@ echo [5/8] Checking ARM GCC cross-compiler ...
 
 if defined ARM_GCC_PATH (
     if exist "!ARM_GCC_PATH!\bin\arm-none-eabi-gcc.exe" (
-        echo       [OK] ARM GCC configured: !ARM_GCC_PATH!
+        echo(      [OK] ARM GCC configured: !ARM_GCC_PATH!
         set "HAS_ARM_GCC=1"
     ) else (
-        echo       [!!] ARM_GCC_PATH set but invalid: !ARM_GCC_PATH!
+        echo(      [!!] ARM_GCC_PATH set but invalid: !ARM_GCC_PATH!
     )
 ) else (
     where arm-none-eabi-gcc.exe >nul 2>&1
@@ -214,12 +216,12 @@ echo [6/8] Checking QEMU ARM emulator ...
 if not defined QEMU_PATH set "QEMU_PATH=C:\Program Files\qemu"
 
 if exist "!QEMU_PATH!\qemu-system-arm.exe" (
-    echo       [OK] QEMU configured: !QEMU_PATH!
+    echo(      [OK] QEMU configured: !QEMU_PATH!
     set "PATH=!QEMU_PATH!;!PATH!"
     set "HAS_QEMU=1"
 ) else (
     if not "!QEMU_PATH!"=="C:\Program Files\qemu" (
-        echo       [!!] QEMU_PATH set but qemu-system-arm.exe not found: !QEMU_PATH!
+        echo(      [!!] QEMU_PATH set but qemu-system-arm.exe not found: !QEMU_PATH!
     )
     set "QEMU_PATH="
     where qemu-system-arm.exe >nul 2>&1
@@ -250,7 +252,7 @@ if !ERRORLEVEL! == 0 (
         if exist "!EMSDK_FROM_PATH!\emsdk_env.bat" (
             set "EMSDK=!EMSDK_FROM_PATH!"
             set "EMSDK_PATH=!EMSDK_FROM_PATH!"
-            echo            EMSDK_PATH auto-detected: !EMSDK_PATH!
+            echo(           EMSDK_PATH auto-detected: !EMSDK_PATH!
         )
     )
     set "HAS_EMSDK=1"
@@ -267,13 +269,13 @@ if !ERRORLEVEL! == 0 (
             if exist "!EMSDK_PATH!\upstream\emscripten\emcc.bat" (
                 set "PATH=!EMSDK_PATH!\upstream\emscripten;!PATH!"
             )
-            echo       [OK] EMSDK configured: !EMSDK!
+            echo(      [OK] EMSDK configured: !EMSDK!
             echo            EMSDK_PATH set for this session
-            echo            To initialize full env, run: !EMSDK!\emsdk_env.bat
+            echo(           To initialize full env, run: !EMSDK!\emsdk_env.bat
             set "HAS_EMSDK=1"
         ) else (
-            echo       [!!] EMSDK path invalid: !EMSDK_CANDIDATE!
-            echo            Expected file missing: !EMSDK_CANDIDATE!\emsdk_env.bat
+            echo(      [!!] EMSDK path invalid: !EMSDK_CANDIDATE!
+            echo(           Expected file missing: !EMSDK_CANDIDATE!\emsdk_env.bat
         )
     ) else (
         echo       [  ] Emscripten not found ^(needed for WASM builds^)
@@ -288,7 +290,16 @@ echo.
 :: ========================================
 echo [8/8] Checking Playwright ...
 
-if "!HAS_PYTHON!"=="1" (
+if exist "%VENV_PYTHON%" (
+    "%VENV_PYTHON%" -c "from playwright.sync_api import sync_playwright; print('ok')" >nul 2>&1
+    if !ERRORLEVEL! == 0 (
+        echo       [OK] Playwright installed in .venv
+        set "HAS_PLAYWRIGHT=1"
+    ) else (
+        echo       [  ] Playwright not found in .venv ^(needed for Figma design screenshots^)
+        echo            Install: .venv\Scripts\python -m pip install playwright ^&^& .venv\Scripts\python -m playwright install chromium
+    )
+) else if "!HAS_PYTHON!"=="1" (
     python -c "from playwright.sync_api import sync_playwright; print('ok')" >nul 2>&1
     if !ERRORLEVEL! == 0 (
         echo       [OK] Playwright installed

@@ -410,7 +410,7 @@ def main() -> int:
         default=str(BASELINE_ROOT),
         help="Local baseline root directory (default: runtime_check_output/baseline_local or EGUI_BASELINE_DIR)",
     )
-    parser.add_argument("--min-iterations", type=int, default=10, help="Required minimum recursive quality iteration cycles")
+    parser.add_argument("--min-iterations", type=int, default=30, help="Required minimum recursive quality iteration cycles")
     parser.add_argument("--iteration-dir", default="", help="Iteration data directory (default: runtime_check_output/HelloBasic_<widget>/iteration_records)")
     parser.add_argument("--iteration-report-dir", default="", help="Iteration gate report directory (default: runtime_check_output/HelloBasic_<widget>/iteration_reports)")
     parser.add_argument("--skip-iteration-gate", action="store_true", help="Skip recursive iteration gate (for baseline maintenance only)")
