@@ -2,7 +2,6 @@
 #define _EGUI_VIEW_COMPASS_H_
 
 #include "egui_view.h"
-#include "core/egui_theme.h"
 #include "font/egui_font.h"
 
 /* Set up for C function definitions, even when using C++ */

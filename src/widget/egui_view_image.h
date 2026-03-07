@@ -2,7 +2,6 @@
 #define _EGUI_VIEW_IMAGE_H_
 
 #include "egui_view.h"
-#include "core/egui_theme.h"
 #include "image/egui_image.h"
 
 /* Set up for C function definitions, even when using C++ */

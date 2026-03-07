@@ -7,7 +7,6 @@
 #include "egui_core.h"
 #include "egui_core_internal.h"
 #include "egui_timer.h"
-#include "egui_theme.h"
 #include "egui_input.h"
 #include "egui_display_driver.h"
 #include "egui_touch_driver.h"
@@ -735,7 +734,6 @@ void egui_init(const egui_init_config_t *config)
     egui_core.unique_id = 0;
     egui_core.is_suspended = 1; // Start suspended; user calls egui_screen_on() when ready
 
-    egui_theme_init();
     egui_timer_init();
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     egui_input_init();

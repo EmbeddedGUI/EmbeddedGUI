@@ -2,7 +2,6 @@
 #define _EGUI_VIEW_VIEWPAGE_H_
 
 #include "egui_view_group.h"
-#include "core/egui_theme.h"
 #include "core/egui_scroller.h"
 #include "font/egui_font.h"
 

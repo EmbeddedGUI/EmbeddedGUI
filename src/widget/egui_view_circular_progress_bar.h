@@ -3,7 +3,6 @@
 
 #include "egui_view.h"
 #include "egui_view_progress_bar.h"
-#include "core/egui_theme.h"
 #include "font/egui_font.h"
 
 /* Set up for C function definitions, even when using C++ */

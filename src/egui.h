@@ -35,7 +35,6 @@
 #include "core/egui_api.h"
 #include "core/egui_common.h"
 #include "core/egui_oop.h"
-#include "core/egui_theme.h"
 #include "core/egui_timer.h"
 #include "core/egui_core.h"
 #include "core/egui_input.h"

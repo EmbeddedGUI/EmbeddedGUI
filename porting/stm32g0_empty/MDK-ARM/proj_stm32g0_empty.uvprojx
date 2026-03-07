@@ -750,11 +750,6 @@
               <FilePath>..\..\..\src\core\egui_scroller.c</FilePath>
             </File>
             <File>
-              <FileName>egui_theme.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_theme.c</FilePath>
-            </File>
-            <File>
               <FileName>egui_timer.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_timer.c</FilePath>

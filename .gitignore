@@ -54,3 +54,5 @@ docs/plans/
 scripts/ui_designer/.config/
 
 __pycache__
+
+MDK-ARM/

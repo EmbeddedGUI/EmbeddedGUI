@@ -2,7 +2,6 @@
 #define _EGUI_VIEW_SPINNER_H_
 
 #include "egui_view.h"
-#include "core/egui_theme.h"
 #include "core/egui_timer.h"
 
 /* Set up for C function definitions, even when using C++ */

@@ -3,7 +3,6 @@
 
 #include "egui_view.h"
 #include "egui_view_switch.h"
-#include "core/egui_theme.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus

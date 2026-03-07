@@ -2,7 +2,6 @@
 #define _EGUI_VIEW_IMAGE_BUTTON_H_
 
 #include "egui_view_image.h"
-#include "core/egui_theme.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus

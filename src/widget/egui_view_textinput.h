@@ -2,7 +2,6 @@
 #define _EGUI_VIEW_TEXTINPUT_H_
 
 #include "egui_view.h"
-#include "core/egui_theme.h"
 #include "core/egui_timer.h"
 #include "font/egui_font.h"
 

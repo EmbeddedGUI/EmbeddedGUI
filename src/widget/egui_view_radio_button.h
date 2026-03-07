@@ -2,7 +2,6 @@
 #define _EGUI_VIEW_RADIO_BUTTON_H_
 
 #include "egui_view.h"
-#include "core/egui_theme.h"
 #include "utils/egui_slist.h"
 
 /* Set up for C function definitions, even when using C++ */

@@ -2,7 +2,6 @@
 #define _EGUI_VIEW_TEXTBLOCK_H_
 
 #include "egui_view.h"
-#include "core/egui_theme.h"
 #include "font/egui_font.h"
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS

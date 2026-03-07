@@ -2,7 +2,6 @@
 #define _EGUI_VIEW_SCROLL_H_
 
 #include "egui_view_group.h"
-#include "core/egui_theme.h"
 #include "core/egui_scroller.h"
 
 #include "egui_view_linearlayout.h"

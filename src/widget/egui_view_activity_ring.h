@@ -2,7 +2,6 @@
 #define _EGUI_VIEW_ACTIVITY_RING_H_
 
 #include "egui_view.h"
-#include "core/egui_theme.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
