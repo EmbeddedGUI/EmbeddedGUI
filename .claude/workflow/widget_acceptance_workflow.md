@@ -1,363 +1,214 @@
 # Widget Acceptance Workflow
 
-Manual trigger workflow for advancing basic widget quality without repeated manual confirmation.
+本工作流适用于后续所有新控件，默认目标目录为：
 
-Phase-1 portfolio mode for the 1000-widget rollout:
+- `example/HelloCustomWidgets/<category>/<widget>/`
 
-- novelty-first: prioritize visually or interaction-wise distinctive widgets before incremental variants
-- one widget at a time: do not start a second widget while another widget is still active
-- recursive iteration floor: every widget must complete 30 quality cycles before closure
+## Phase-1 固定规则
 
-## Step -1: Portfolio tracker sync (required)
+- 设计新颖优先：优先做交互模式、视觉语言、布局结构明显不同的控件。
+- 单控件串行：同一时刻只允许 1 个控件处于进行中状态。
+- 30 次迭代门槛：每个控件至少完成 30 次递归质量迭代。
+- 一控件一提交：每个控件验收收口后，先更新追踪表，再单独提交一次 commit。
+- 运行截图进对话框：每次完成 runtime 检查后，要把关键截图直接贴到对话框里，避免来回切目录查看。
 
-Before choosing a new widget, read and update `.claude/workflow/widget_progress_tracker.md`.
+## Step -1：同步进度追踪表（必做）
 
-Rules:
+开始新控件前，先读取并更新：
 
-- if `当前进行中` is not empty, continue that widget first; do not open a different widget in parallel
-- only after the current widget is accepted or explicitly marked as shelved may a new widget be selected
-- when a new widget is selected, register it in `当前进行中` immediately with date/category/novelty goal
-
-
-## Step 0: Novelty-first gap discovery + design brief
-
-```bash
-# Generate gap report and recommend next widget
-python scripts/widget/widget_design_bootstrap.py
-
-# Generate design brief for a specific missing widget
-python scripts/widget/widget_design_bootstrap.py --widget segmented_control --overwrite
-```
-
-The script includes duplication analysis by default:
-
-- computes a duplication risk score (`low`/`medium`/`high`)
-- lists overlapping existing widgets
-- blocks high-duplication candidates by default
-- override only when needed: `--allow-high-duplication`
-
-Phase-1 candidate selection rule:
-
-- sort by `innovation_priority` first, then duplication risk, then normal priority
-- prefer widgets with new interaction models, fresh visual language, or new composition patterns
-- defer minor variants and thin wrappers unless they unlock a clearly different scenario
-- cross-check the recommendation against `.claude/workflow/widget_progress_tracker.md` before locking the target
-
-
-Artifacts:
-
-- `runtime_check_output/widget_gap_report.json`
-- `runtime_check_output/widget_candidate_catalog.json`
-- `runtime_check_output/HelloBasic_<widget>/widget_designs/<widget>.md`
-- `runtime_check_output/HelloBasic_<widget>/widget_design_reviews/<widget>.json`
-- `runtime_check_output/HelloBasic_<widget>/widget_design_gate_reports/<widget>.json`
-- `runtime_check_output/HelloBasic_<widget>/iteration_records/<widget>.json`
 - `.claude/workflow/widget_progress_tracker.md`
 
-## Step 0.5: Design score gate
+规则：
 
-Fill the scorecard first (0-5 per criterion), then run:
+- 如果 `当前进行中` 不为空，优先继续该控件，不允许切换到新控件。
+- 只有当前控件完成验收，或明确转入 `已搁置 / 待恢复`，才能开始下一个控件。
+- 一旦选定新控件，立即把控件名、分类、日期、目标创新点写入 `当前进行中`。
 
-```bash
-python scripts/widget/widget_design_review_gate.py --widget segmented_control
-```
+## Step 0：选择下一个控件
 
-Default gate:
+选择原则：
 
-- weighted overall score >= 80
-- all critical criteria >= 3
-- in phase-1 novelty mode, `design_novelty` should normally score >= 4 before implementation
+- 先看 `已完成控件`，避免能力边界重复。
+- 优先选择具有以下特征的候选项：
+  - 新交互模型
+  - 新视觉结构
+  - 新布局组织方式
+  - 新的复合控件模式
+- 仅做小变体、换皮、轻包装的控件默认后移。
+- 控件命名统一使用小写下划线风格，例如：`radial_menu`。
+- 分类目录统一使用语义化英文，例如：`navigation`、`input`、`display`、`chart`。
 
-If the gate fails, implementation and baseline flow must stop.
+## Step 1：创建控件目录与设计文档（必做）
 
-## Step 0.8: Duplication decision gate (required)
+目标目录：
 
-Before implementation, confirm the candidate is not functionally redundant:
+- `example/HelloCustomWidgets/<category>/<widget>/`
 
-- if duplication risk is `high`, do not continue by default
-- continue only when there is explicit business value and clear differentiation notes
-- required output must include a "differentiation" section and concrete non-overlap goals
+本步骤至少创建：
 
-## Step 1: Generate HelloBasic design doc (required)
+- `example/HelloCustomWidgets/<category>/<widget>/readme.md`
+- `example/HelloCustomWidgets/<category>/<widget>/iteration_log.md`
 
-Before implementation, create a detailed design doc in the widget demo directory:
+要求：
 
-- target path: `example/HelloBasic/<widget>/readme.md`
-- this file is required, and must be updated together with `test.c`
-- use `example/HelloBasic/gridlayout/readme.md` style as base, but keep the new doc more detailed
-- readme language/encoding requirement: Chinese content, UTF-8 encoding
+- `readme.md` 使用中文、UTF-8。
+- `readme.md` 与后续 `test.c` 必须同步维护。
+- `iteration_log.md` 用于记录 30 次迭代，不允许只口头说明。
 
-Required sections in `readme.md`:
+`readme.md` 必须包含以下内容：
 
-1. Why this widget exists (problem/value/motivation).
-2. Why existing widgets are not enough (must explicitly explain non-substitutability).
-3. App overview and usage scenario.
-4. Visual/layout spec (size, spacing, alignment, color intent).
-5. Widget list with variable name, type, size, initial state, and purpose.
-6. State coverage matrix (normal/selected/pressed/disabled/boundary).
-7. Recording action table mapped to `egui_port_get_recording_action()`.
-8. Runtime + baseline acceptance criteria and pass conditions.
-9. Known limits and next iteration plan.
-10. Functional overlap analysis with existing widgets and explicit differentiation plan.
+1. 为什么需要这个控件。
+2. 为什么现有控件不够用。
+3. 目标场景与示例概览。
+4. 视觉与布局规格。
+5. 控件清单（变量名、类型、尺寸、初始状态、用途）。
+6. 状态覆盖矩阵。
+7. `egui_port_get_recording_action()` 录制动作设计。
+8. 编译、runtime、截图验收标准。
+9. 已知限制与下一轮迭代计划。
+10. 与现有控件的重叠分析与差异化边界。
 
-## Step 2: Implement C widget
+## Step 2：实现 HelloCustomWidgets 控件
 
-- Add `src/widget/egui_view_<widget>.h/.c`.
-- Expose header in `src/egui.h`.
+在 `example/HelloCustomWidgets/<category>/<widget>/` 中实现：
 
-## Step 3: Register in UI Designer
+- `egui_view_<widget>.h`
+- `egui_view_<widget>.c`
+- `test.c`
 
-- Add `scripts/ui_designer/custom_widgets/<widget>.py`.
-- Keep `type_name`, `xml_tag`, params struct, properties/events aligned with C APIs.
+按需要增加：
 
-## Step 4: Add HelloBasic demo
+- `resource/`
+- `resource/img/`
+- `resource/font/`
 
-- Add `example/HelloBasic/<widget>/test.c`.
-- Add `example/HelloBasic/<widget>/app_egui_config.h`.
-- Update `example/HelloBasic/build.mk` comment list with the new `APP_SUB`.
-- Implement `egui_port_get_recording_action()` so key states are captured.
+说明：
 
-## Step 4.5: Recursive quality iteration gate (required)
+- 当前阶段默认先做 `HelloCustomWidgets` 版本，不要求一开始就放进 `src/widget/`。
+- 只有当该控件已经稳定、确定需要复用到框架层时，再单独规划升级为核心控件，并补 `scripts/ui_designer/custom_widgets/<widget>.py`。
 
-Each new widget must complete at least 30 recursive iteration cycles before the flow can be closed.
+## Step 3：编译验证（必做）
 
-```bash
-# initialize template (auto-generated by Step 0, but can be created manually)
-python scripts/widget/widget_iteration_gate.py --widget segmented_control --init
-
-# record one cycle (run this repeatedly during refinement)
-python scripts/widget/widget_iteration_gate.py --widget segmented_control --record \
-  --goal "improve disabled contrast" \
-  --changes "adjust disabled state color and spacing" \
-  --verification "runtime_check + screenshot diff" \
-  --visual-validation "checked latest screenshots and selected state contrast" \
-  --interaction-validation "verified click/tap behavior and state transition are correct" \
-  --changed-files "src/widget/egui_view_segmented_control.c,example/HelloBasic/segmented_control/test.c" \
-  --visual-artifacts "runtime_check_output/HelloBasic_segmented_control/default/frame_0000.png,runtime_check_output/HelloBasic_segmented_control/visual_report.json" \
-  --result PASS
-
-# check gate status
-python scripts/widget/widget_iteration_gate.py --widget segmented_control
-```
-
-Rule:
-
-- `completed_cycles >= 30`
-- latest cycle result must be `PASS`
-- each cycle must include visual validation notes
-- each cycle must include interaction validation notes
-- each cycle must include changed file proof (`--changed-files`) and runtime proof (`visual_report` + `interaction_report` must be PASS at record time)
-- gate requires enough real iteration diversity:
-  - `unique_change_cycles >= max(3, min_cycles/2)` (default 30 cycles => >=15)
-  - `visual_delta_cycles >= max(3, min_cycles/2)` (default 30 cycles => >=15)
-- missing/invalid cycle entries are blocked
-
-## Step 5: Runtime check + baseline acceptance (includes iteration gate)
+先编译：
 
 ```bash
-# first run: runtime + first acceptance only (no baseline pass yet)
-python scripts/widget/widget_acceptance_flow.py --widget segmented_control
-
-# explicit baseline promotion
-python scripts/widget/widget_acceptance_flow.py --widget segmented_control --promote-baseline
-
-# regression mode
-python scripts/widget/widget_acceptance_flow.py --widget segmented_control
+make all APP=HelloCustomWidgets APP_SUB=<category>/<widget> PORT=pc
 ```
 
-Step 5 includes interaction validation by default:
+要求：
 
-- checks frame-to-frame transition changes from recording actions
-- fails when changed transitions are below threshold (default `>=2`)
-- for passive/non-interactive widgets, explicitly pass `--skip-interaction-check`
-- runtime self-check marker is enforced: any app log containing `[RUNTIME_CHECK_FAIL]` fails runtime check immediately
-- runtime clipping self-check rule is enforced by default:
-  - `example/HelloBasic/<widget>/test.c` must include `[RUNTIME_CHECK_FAIL]` marker output
-  - must include boundary clipping checks using `region_screen` vs `region` (width/height)
-  - required for detecting hidden clipping issues (e.g., bottom button cut off but baseline still passes)
+- 编译必须成功。
+- 若控件依赖资源，资源路径必须与该子目录保持一致。
+- 若编译失败，先修复，再进入 runtime 验证。
 
-## Step 6: API + init_params usability gate (required final step)
+## Step 4：Runtime 验证（必做）
+
+运行：
 
 ```bash
-python scripts/widget/widget_api_review_gate.py --widget segmented_control
+python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub <category>/<widget> --timeout 10 --keep-screenshots
 ```
 
-Rules:
+截图输出目录约定：
 
-- header/source public API must expose `init/apply_params/init_with_params`
-- `params` struct must include `egui_region_t region`
-- `init_with_params` must call `init()` + `apply_params()`
-- setters must map to real implementation and trigger invalidation on changes
+- `runtime_check_output/HelloCustomWidgets_<category>/<widget>/default/frame_*.png`
 
-`widget_acceptance_flow.py` runs this gate automatically as the final pass condition.
+检查要求：
 
-## Step 6.5: Readme rationale gate (required final step)
+- 不能黑屏、白屏、全空白。
+- 控件主体必须完整可见，不能被裁切。
+- 文本、边界、关键反馈状态必须可辨认。
+- 交互型控件必须能从截图中看出状态变化。
+- 若日志出现 `[RUNTIME_CHECK_FAIL]`，必须先修复，再重跑。
 
-`widget_acceptance_flow.py` now runs readme rationale gate by default:
+## Step 4.5：截图直接贴到对话框（必做）
+
+每次 runtime 通过后，在对话回复里直接附上关键截图，使用绝对路径图片引用。
+
+建议最少附 1 张，交互型控件建议附 3 张：
+
+1. 初始状态帧
+2. 交互中间帧
+3. 最终结果帧
+
+回复时要同时写清楚：
+
+- 截图对应的状态
+- 是否看到了预期交互反馈
+- 是否还存在视觉问题
+
+图片引用示例：
+
+```md
+![radial menu runtime](D:/workspace/gitee/EmbeddedGUI/runtime_check_output/HelloCustomWidgets_navigation/radial_menu/default/frame_0000.png)
+```
+
+## Step 5：记录 30 次递归迭代（必做）
+
+在 `example/HelloCustomWidgets/<category>/<widget>/iteration_log.md` 中持续记录。
+
+每次迭代至少要写：
+
+- 迭代序号
+- 本轮目标
+- 代码改动摘要
+- 视觉验证结论
+- 交互验证结论
+- 对应截图或产物路径
+- 本轮结果（PASS / FAIL / HOLD）
+
+通过门槛：
+
+- 累计不少于 30 次迭代
+- 最新一轮结果必须是 `PASS`
+- 不能只有代码改动，没有截图或交互观察结论
+
+## Step 6：验收收口
+
+控件可收口前，必须同时满足：
+
+- `readme.md` 完整且与当前实现一致
+- `iteration_log.md` 已记录至少 30 次迭代
+- `make all APP=HelloCustomWidgets APP_SUB=<category>/<widget> PORT=pc` 通过
+- `code_runtime_check.py` 运行通过
+- 关键截图已在对话框中展示并人工确认
+- 当前控件与既有控件的差异化边界仍然成立
+
+## Step 7：更新追踪表并提交（必做）
+
+完成后立即更新：
+
+- `.claude/workflow/widget_progress_tracker.md`
+
+更新规则：
+
+- 从 `当前进行中` 移除该控件
+- 在 `已完成控件` 中追加该控件
+- 写明分类、完成日期、实际迭代次数、创新关键词、差异边界、关键路径、验收结果
+- 如果只是暂停，不要伪装成完成，必须移到 `已搁置 / 待恢复`
+
+随后执行：
+
+- 为该控件单独创建一次 commit
+- 提交内容只围绕该控件，不混入下一个控件的改动
+
+提交信息示例：
 
 ```bash
-python scripts/widget/widget_readme_review_gate.py --widget segmented_control
+git commit -m "feat: add radial_menu custom widget"
 ```
 
-Rules:
+## 当前阶段推荐最小交付物
 
-- readme must explicitly include:
-  - why this widget exists
-  - why existing widgets are not enough
-  - overlap/differentiation boundary
-- readme must be Chinese content with UTF-8 encoding
-- if widget is wrapper/composition-based, readme must name wrapped base widget(s)
+每个新控件至少应包含：
 
-## Step 7: Portfolio tracker update (required before switching widgets)
+- `example/HelloCustomWidgets/<category>/<widget>/readme.md`
+- `example/HelloCustomWidgets/<category>/<widget>/iteration_log.md`
+- `example/HelloCustomWidgets/<category>/<widget>/egui_view_<widget>.h`
+- `example/HelloCustomWidgets/<category>/<widget>/egui_view_<widget>.c`
+- `example/HelloCustomWidgets/<category>/<widget>/test.c`
 
-Before closing the current widget and before starting the next one, update `.claude/workflow/widget_progress_tracker.md`:
+## 备注
 
-- keep at most one active row in `当前进行中`
-- when acceptance passes and baseline is promoted, move the widget into `已完成控件`
-- record widget slug, category, completion date, accepted iteration count, innovation keywords, non-overlap notes, and key artifact paths
-- if the widget is paused, move it to `已搁置/待恢复` with reason and next action; do not silently leave stale active records
-- clear `当前进行中` only after the bookkeeping is finished
-
-## Scope
-
-For each `HelloBasic` widget/sub-app:
-
-1. Widget is implemented in C layer.
-2. Widget is registered in `scripts/ui_designer/custom_widgets/`.
-3. Widget demo exists under `example/HelloBasic/<widget>/`.
-4. Detailed design doc exists at `example/HelloBasic/<widget>/readme.md`.
-5. Recursive iteration gate passes (`>=30` cycles and latest PASS).
-6. Runtime render passes and visual diff gate passes.
-7. API + init_params usability gate passes.
-8. Portfolio tracker is updated in `.claude/workflow/widget_progress_tracker.md`.
-
-## Result Artifacts
-
-- Runtime frames: `runtime_check_output/HelloBasic_<widget>/default/frame_*.png`
-- Visual report: `runtime_check_output/HelloBasic_<widget>/visual_report.json`
-- Interaction report: `runtime_check_output/HelloBasic_<widget>/interaction_report.json`
-- API review report: `runtime_check_output/HelloBasic_<widget>/api_review_report.json`
-- Failed frame diffs: `runtime_check_output/HelloBasic_<widget>/visual_diff/`
-- Baseline frames (local default): `runtime_check_output/baseline_local/HelloBasic_<widget>/default/frame_*.png`
-- Iteration gate report: `runtime_check_output/HelloBasic_<widget>/iteration_reports/<widget>.json`
-- Portfolio tracker: `.claude/workflow/widget_progress_tracker.md`
-
-## Gate Rules
-
-- Runtime check must pass (`code_runtime_check.py` returns success).
-- Runtime self-check marker must be clean (no `[RUNTIME_CHECK_FAIL]` in app output).
-- Runtime clipping self-check rule must be present in `test.c`.
-- Interaction validation must pass (changed transitions from recording actions).
-- Frames must not be blank (`min stddev` guard).
-- Recursive iteration gate must pass (`min-iterations >= 30`, latest cycle PASS).
-- Recursive iteration gate must include strict proof:
-  - changed files tracked per cycle
-  - visual/interaction runtime proof tracked per cycle
-  - minimum unique change cycles and visual delta cycles reached
-- API + init_params usability gate must pass.
-- Readme rationale gate must pass.
-- Portfolio tracker must be updated before moving to the next widget.
-- **If baseline is missing**: only run first acceptance checks; regression is `NOT_EVALUATED` (not a regression PASS).
-- **After explicit baseline promotion**: frame names/count must match baseline and each frame SSIM must be >= threshold (default `0.92`).
-
-For animated widgets, recorder uses frame-stability capture:
-
-- waits for unchanged framebuffer cycles (`snapshot-stable-cycles`)
-- has timeout fallback (`snapshot-max-wait-ms`) to avoid hangs
-- supports accelerated recording clock (`clock-scale`) for faster iteration
-
-Important: keep `clock-scale` consistent between baseline capture and regression comparison.
-
-Recommended fast profile (validated on `HelloStyleDemo` + `HelloBasic_heart_rate`):
-
-- `clock-scale=6`
-- `snapshot-settle-ms=0`
-- `snapshot-stable-cycles=1`
-- `snapshot-max-wait-ms=1500`
-
-Fallback for unstable animated pages:
-
-- keep `clock-scale=6`
-- raise `snapshot-max-wait-ms` to `2500`
-
-Runtime step can be skipped when fresh frames already exist:
-
-```bash
-python scripts/widget/widget_acceptance_flow.py --widget checkbox --skip-runtime-check
-```
-
-## Exit Code
-
-- `0`: Passed (regression pass, or baseline explicitly promoted)
-- `1`: Failed (runtime/render/compare issue)
-- `2`: Hold (baseline not promoted yet, or recursive iteration gate not satisfied)
-
-## Useful Options
-
-```bash
---threshold <float>          # default 0.92
---min-stddev <float>         # default 2.0
---timeout <seconds>          # default 20
---speed <int>                # default 1
---clock-scale <int>          # default 6 (accelerate recording timeline)
---skip-runtime-check         # only compare existing frames
---skip-runtime-self-check-rule # emergency baseline maintenance only
---promote-baseline           # explicit baseline promotion/refresh
---baseline-dir <path>        # custom local baseline directory
---allow-frame-mismatch       # compare only common frames (for timing jitter scenarios)
---snapshot-settle-ms <ms>    # default 0
---snapshot-stable-cycles <n> # default 1
---snapshot-max-wait-ms <ms>  # default 1500
---min-interaction-transitions <n>  # default 2
---interaction-diff-threshold <f>   # default 0.1
---skip-interaction-check      # only for passive/non-interactive widgets
---skip-api-review-gate        # only for emergency baseline maintenance
---api-review-report <path>    # custom API review report output path
---skip-readme-gate            # only for emergency baseline maintenance
---readme-review-report <path> # custom readme gate report output path
---min-iterations <n>         # default 30
---skip-iteration-gate        # for baseline maintenance only
-
-# widget_iteration_gate proof options
---changed-files <csv>             # required for strict cycle proof
---visual-artifacts <csv>          # optional extra artifact links
---min-unique-change-cycles <n>    # default max(3, min_cycles/2)
---min-visual-delta-cycles <n>     # default max(3, min_cycles/2)
---skip-proof-validation           # emergency fallback only
-```
-
-Runtime recorder options:
-
-```bash
-python scripts/code_runtime_check.py --app HelloBasic --app-sub spinner \
-  --clock-scale 6 --snapshot-settle-ms 0 --snapshot-stable-cycles 1 --snapshot-max-wait-ms 1500
-```
-
-Environment variable:
-
-```bash
-EGUI_BASELINE_DIR=<path>     # default baseline directory for both scripts
-```
-
-## Bootstrap Existing Baselines
-
-```bash
-# registered widgets only (default)
-python scripts/widget/widget_baseline_bootstrap.py
-
-# refresh existing baseline too
-python scripts/widget/widget_baseline_bootstrap.py --refresh
-
-# all HelloBasic sub-apps (including non-widget demos)
-python scripts/widget/widget_baseline_bootstrap.py --scope hellobasic
-
-# capture current node before starting a new widget
-python scripts/widget/widget_baseline_bootstrap.py --scope registered --refresh
-
-# reuse existing fresh runtime frames
-python scripts/widget/widget_baseline_bootstrap.py --scope registered --refresh --skip-runtime-check
-```
-
-Output report:
-
-- `runtime_check_output/baseline_local/baseline_bootstrap_report.json`
+- 当前工作流的主目标是批量推进 `HelloCustomWidgets` 下的 1000 个控件，而不是优先把控件沉入框架核心层。
+- 如果后续某个控件确定要升级为框架公共控件，再单独补一轮 `src/widget/`、`src/egui.h`、`scripts/ui_designer/custom_widgets/` 的升级计划。

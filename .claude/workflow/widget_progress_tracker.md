@@ -12,7 +12,8 @@
 - 第一优先级：设计新颖，优先做交互模式、视觉语言、组合方式明显不同的控件。
 - 执行节奏：一次只做 1 个控件，当前控件未验收完成前不启动下一个。
 - 质量门槛：每个控件至少完成 30 次递归迭代，并通过工作流中的全部 gate。
-- 收尾动作：控件完成后，必须先更新本文件，再开始下一轮选题。
+- 截图要求：runtime 检查后的关键截图要直接放进对话框，不再只让人去目录里查看。
+- 收尾动作：控件完成后，必须先更新本文件，再提交一次该控件专属 commit，随后才能开始下一轮选题。
 
 ## 当前进行中
 
@@ -24,7 +25,7 @@
 
 | 序号 | 控件名 | 分类 | 完成日期 | 迭代次数 | 创新关键词 | 与现有控件差异边界 | 关键路径 | 验收结果 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0 | 暂无 | - | - | - | - | - | - | - | 首个控件完成后替换本行 |
+| 1 | radial_menu | navigation | 2026-03-08 | 30 | 极坐标菜单、中心触发、拖拽选择、状态分层 | 区别于 menu/button_matrix/tab_bar/compass，核心在中心触发 + 扇区命中 + 拖拽释放确认 | `example/HelloCustomWidgets/navigation/radial_menu/`; `runtime_check_output/HelloCustomWidgets_navigation/radial_menu/default/` | runtime PASS；截图已展示；30 次迭代完成 | 准备提交单控件 commit |
 
 ## 已搁置 / 待恢复
 
@@ -38,7 +39,9 @@
 2. 拟选控件是否与 `已完成控件` 中的能力边界重叠；如重叠，需要在 readme 中明确新的差异化目标。
 3. 拟选控件是否满足“设计新颖优先”；如果只是小变体，默认后移。
 4. 是否已经为新控件写明分类、创新目标、预期状态覆盖、录制动作范围。
-5. 是否确认本次仍按 30 次迭代门槛执行。
+5. 是否已经确认目录放在 `example/HelloCustomWidgets/<category>/<widget>/`。
+6. 是否确认本次仍按 30 次迭代门槛执行。
+7. 是否记得 runtime 后把关键截图直接贴到对话框。
 
 ## 录入模板
 
@@ -48,7 +51,7 @@
 
 | 状态 | 控件名 | 分类 | 开始日期 | 当前阶段 | 目标创新点 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 进行中 | segmented_control | input | 2026-03-07 | Step 0 设计简报 | 强调多段切换的紧凑布局与状态层次 | 首次进入工作流 |
+| 进行中 | radial_menu | navigation | 2026-03-07 | Step 1 设计文档 | 极坐标扇区布局、中心触发区、拖拽释放选择 | 目录：`example/HelloCustomWidgets/navigation/radial_menu/` |
 
 ### 控件完成时
 
@@ -63,5 +66,6 @@
 - 实际通过验收的迭代次数
 - 2~4 个创新关键词
 - 与现有控件的差异边界说明
-- `src/widget/`、`scripts/ui_designer/custom_widgets/`、`example/HelloBasic/`、`runtime_check_output/` 里的关键路径
-- baseline / runtime / API / readme gate 的最终结果
+- `example/HelloCustomWidgets/` 与 `runtime_check_output/` 里的关键路径
+- runtime 截图是否已在对话框展示
+- baseline / runtime / 交互 / readme 等最终结果
