@@ -1,4 +1,4 @@
-# Widget Progress Tracker
+﻿# Widget Progress Tracker
 
 ## 用途说明
 
@@ -12,20 +12,46 @@
 - 第一优先级：设计新颖，优先做交互模式、视觉语言、组合方式明显不同的控件。
 - 执行节奏：一次只做 1 个控件，当前控件未验收完成前不启动下一个。
 - 质量门槛：每个控件至少完成 30 次递归迭代，并通过工作流中的全部 gate。
-- 截图要求：runtime 检查后的关键截图要直接放进对话框，不再只让人去目录里查看。
+- 截图要求：runtime 检查后的关键截图要复制到各应用目录下的 `iteration_log/`，并在 `iteration_log/iteration_log.md` 中用相对路径组织，便于阶段性 review。
 - 收尾动作：控件完成后，必须先更新本文件，再提交一次该控件专属 commit，随后才能开始下一轮选题。
 
 ## 当前进行中
 
 | 状态 | 控件名 | 分类 | 开始日期 | 当前阶段 | 目标创新点 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 空 | - | - | - | - | - | 当前没有进行中的控件 |
+| ?? | - | - | - | - | - | - |
 
 ## 已完成控件
 
 | 序号 | 控件名 | 分类 | 完成日期 | 迭代次数 | 创新关键词 | 与现有控件差异边界 | 关键路径 | 验收结果 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | radial_menu | navigation | 2026-03-08 | 30 | 极坐标菜单、中心触发、拖拽选择、状态分层 | 区别于 menu/button_matrix/tab_bar/compass，核心在中心触发 + 扇区命中 + 拖拽释放确认 | `example/HelloCustomWidgets/navigation/radial_menu/`; `runtime_check_output/HelloCustomWidgets_navigation/radial_menu/default/` | runtime PASS；截图已展示；30 次迭代完成 | 已提交：`aaaa7bb` |`r`n| 2 | radar_chart | chart | 2026-03-08 | 30 | 多维极坐标、闭合轮廓、双组对比、面板分层 | 区别于 chart_line/chart_bar/chart_pie/chart_scatter/compass，核心在多维极坐标 + 闭合轮廓 + 多组对比 | `example/HelloCustomWidgets/chart/radar_chart/`; `runtime_check_output/HelloCustomWidgets_chart/radar_chart/default/` | runtime PASS；截图已展示；30 次迭代完成 | 准备提交单控件 commit |
+| 1 | radial_menu | navigation | 2026-03-08 | 30 | 极坐标菜单、中心触发、拖拽选择、状态分层 | 区别于 menu/button_matrix/tab_bar/compass，核心在中心触发 + 扇区命中 + 拖拽释放确认 | `example/HelloCustomWidgets/navigation/radial_menu/`; `runtime_check_output/HelloCustomWidgets_navigation/radial_menu/default/` | runtime PASS；截图已展示；30 次迭代完成 | 已提交：`aaaa7bb` |
+| 2 | radar_chart | chart | 2026-03-08 | 30 | 多维极坐标、闭合轮廓、双组对比、面板分层 | 区别于 chart_line/chart_bar/chart_pie/chart_scatter/compass，核心在多维极坐标 + 闭合轮廓 + 多组对比 | `example/HelloCustomWidgets/chart/radar_chart/`; `runtime_check_output/HelloCustomWidgets_chart/radar_chart/default/` | runtime PASS；截图已展示；30 次迭代完成 | 已提交：`23f116f` |
+| 3 | treemap_chart | chart | 2026-03-08 | 30 | 面积编码、递归切分布局、紧凑多维占比呈现 | 区别于 chart_bar/chart_pie/table/radar_chart，核心在总量固定下的矩形面积切分 + 多 profile 结构对比 | `example/HelloCustomWidgets/chart/treemap_chart/`; `runtime_check_output/HelloCustomWidgets_chart/treemap_chart/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：treemap_chart 专属 commit |
+| 4 | heatmap_chart | chart | 2026-03-08 | 30 | 二维格点色温编码、热点导引、焦点联动反馈 | 区别于 chart_line/chart_bar/chart_pie/treemap_chart，核心在二维热区分布 + 峰值行列导引 + 多层焦点反馈 | `example/HelloCustomWidgets/chart/heatmap_chart/`; `runtime_check_output/HelloCustomWidgets_chart/heatmap_chart/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：heatmap_chart 专属 commit |
+| 5 | candlestick_chart | chart | 2026-03-08 | 30 | OHLC 实体影线、趋势胶囊、波动高亮列 | 区别于 chart_line/chart_bar/heatmap_chart/treemap_chart，核心在开高低收四值结构 + 涨跌方向 + 波动热点定位 | `example/HelloCustomWidgets/chart/candlestick_chart/`; `runtime_check_output/HelloCustomWidgets_chart/candlestick_chart/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：candlestick_chart 专属 commit |
+| 6 | boxplot_chart | chart | 2026-03-08 | 30 | 五数概括箱线结构、分位区间表达、紧凑态统计对比 | 区别于 candlestick_chart/chart_line/chart_bar，核心在 min/q1/median/q3/max 的统计分位表达 + 主图/紧凑态双层对比 | `example/HelloCustomWidgets/chart/boxplot_chart/`; `runtime_check_output/HelloCustomWidgets_chart/boxplot_chart/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：boxplot_chart 专属 commit |
+| 7 | kanban_board | layout | 2026-03-08 | 30 | 多列泳道布局、卡片堆叠密度、焦点列与只读预览对比 | 区别于 table/list/gridlayout，核心在阶段泳道并列 + 卡片堆叠摘要 + focus lane 与 locked preview 语义 | `example/HelloCustomWidgets/layout/kanban_board/`; `runtime_check_output/HelloCustomWidgets_layout/kanban_board/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：kanban_board 专属 commit |
+| 8 | status_timeline | display | 2026-03-08 | 30 | 纵向节点时间线、阶段状态胶囊、聚焦节点与只读预览对比 | 区别于 list/table/stepper，核心在阶段顺序链路 + 当前节点高亮 + compact/locked 双预览语义 | `example/HelloCustomWidgets/display/status_timeline/`; `runtime_check_output/HelloCustomWidgets_display/status_timeline/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：status_timeline 专属 commit |
+| 9 | avatar_stack | decoration | 2026-03-08 | 30 | 重叠头像组、聚焦成员描边、计数徽标与只读预览对比 | 区别于 image/notification_badge/list，核心在多人头像重叠 + focus member 高亮 + group badge 与 locked preview | `example/HelloCustomWidgets/decoration/avatar_stack/`; `runtime_check_output/HelloCustomWidgets_decoration/avatar_stack/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：avatar_stack 专属 commit |
+| 10 | notification_stack | feedback | 2026-03-08 | 30 | 多层提示卡堆叠、主卡严重级别强调、紧凑预览与只读预览对比 | 区别于 notification_badge/card/list，核心在多提示卡前后层级 + severity 色条 + focus card 与 locked preview | `example/HelloCustomWidgets/feedback/notification_stack/`; `runtime_check_output/HelloCustomWidgets_feedback/notification_stack/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：notification_stack 专属 commit |
+| 11 | breadcrumb_trail | navigation | 2026-03-08 | 30 | 层级路径胶囊、当前节点高亮、紧凑路径预览与只读对比 | 区别于 tab_bar/menu/button_matrix，核心在层级路径链 + current crumb 高亮 + compact/locked 路径语义 | `example/HelloCustomWidgets/navigation/breadcrumb_trail/`; `runtime_check_output/HelloCustomWidgets_navigation/breadcrumb_trail/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：breadcrumb_trail 专属 commit |
+| 12 | waveform_strip | media | 2026-03-08 | 30 | 音频波形条、播放头定位、紧凑预览与只读预览对比 | 区别于 chart_bar/progress_bar/slider，核心在 waveform 振幅分布 + playhead + cue highlight 与 locked preview | `example/HelloCustomWidgets/media/waveform_strip/`; `runtime_check_output/HelloCustomWidgets_media/waveform_strip/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：waveform_strip 专属 commit |
+| 13 | swatch_picker | input | 2026-03-08 | 30 | 多色板选择、当前色描边高亮、紧凑预览与只读预览对比 | 区别于 radio_button/chips/image_button，核心在离散色样选择 + current swatch 高亮 + compact/locked 预览 | `example/HelloCustomWidgets/input/swatch_picker/`; `runtime_check_output/HelloCustomWidgets_input/swatch_picker/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：swatch_picker 专属 commit |
+| 14 | tag_cloud | display | 2026-03-08 | 30 | 权重词云气泡、当前词高亮、紧凑预览与只读预览对比 | 区别于 chips/list/chart_bar，核心在 weighted tag 气泡 + current word 高亮 + compact/locked 词云语义 | `example/HelloCustomWidgets/display/tag_cloud/`; `runtime_check_output/HelloCustomWidgets_display/tag_cloud/default/` | runtime PASS；截图已展示；30 次迭代完成 | 待提交：tag_cloud 专属 commit |
+| 15 | skeleton_loader | feedback | 2026-03-08 | 30 | 骨架占位块、当前高亮块、紧凑预览与只读预览对比 | 区别于 spinner/progress_bar/card，核心在内容未到达前的布局骨架占位 + focus block 高亮 + compact/locked 预览 | `example/HelloCustomWidgets/feedback/skeleton_loader/`; `runtime_check_output/HelloCustomWidgets_feedback/skeleton_loader/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：skeleton_loader 专属 commit |
+| 16 | node_topology | display | 2026-03-08 | 30 | 拓扑节点连线、焦点节点高亮、紧凑预览与只读预览对比 | 区别于 status_timeline/breadcrumb_trail/chart_line，核心在网状拓扑节点 + 依赖链路 + focus node 高亮 + compact/locked 预览 | `example/HelloCustomWidgets/display/node_topology/`; `runtime_check_output/HelloCustomWidgets_display/node_topology/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：node_topology 专属 commit |
+| 17 | server_rack | display | 2026-03-08 | 30 | 机架单元分层、焦点机位高亮、紧凑预览与只读预览对比 | 区别于 progress_bar/node_topology/list，核心在垂直机架单元 + 状态灯 + 负载条 + focus slot 高亮 + compact/locked 预览 | `example/HelloCustomWidgets/display/server_rack/`; `runtime_check_output/HelloCustomWidgets_display/server_rack/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：server_rack 专属 commit |
+| 18 | seat_map | layout | 2026-03-08 | 30 | 座位网格分区、当前排高亮、紧凑预览与只读预览对比 | 区别于 gridlayout/table/swatch_picker，核心在排列化座位矩阵 + 过道断点 + focus row/seat 高亮 + compact/locked 预览 | `example/HelloCustomWidgets/layout/seat_map/`; `runtime_check_output/HelloCustomWidgets_layout/seat_map/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：seat_map 专属 commit |
+| 19 | level_meter | media | 2026-03-08 | 30 | 多通道电平柱、峰值保持线、紧凑预览与只读预览对比 | 区别于 waveform_strip/progress_bar/chart_bar，核心在 multi-channel 电平柱 + peak hold 线 + focus channel 高亮 + compact/locked 预览 | `example/HelloCustomWidgets/media/level_meter/`; `runtime_check_output/HelloCustomWidgets_media/level_meter/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：level_meter 专属 commit |
+| 20 | fader_bank | input | 2026-03-08 | 30 | 多通道推子、当前通道高亮、紧凑预览与只读预览对比 | 区别于 slider/level_meter/button_matrix，核心在 multi-channel 推子 + mute/solo 双按钮 + focus channel 高亮 + compact/locked 预览 | `example/HelloCustomWidgets/input/fader_bank/`; `runtime_check_output/HelloCustomWidgets_input/fader_bank/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：fader_bank 专属 commit |
+| 21 | alert_banner | feedback | 2026-03-08 | 30 | 横向告警条、焦点横幅高亮、紧凑预览与只读预览对比 | 区别于 notification_stack/status_timeline/list，核心在 alert banner 行 + severity 色条 + focus banner 高亮 + compact/locked 预览 | `example/HelloCustomWidgets/feedback/alert_banner/`; `runtime_check_output/HelloCustomWidgets_feedback/alert_banner/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：alert_banner 专属 commit |
+| 22 | pin_cluster | decoration | 2026-03-08 | 30 | 地图图钉聚类、焦点图钉高亮、紧凑预览与只读预览对比 | 区别于 avatar_stack/node_topology/tag_cloud，核心在 map pin 热点分布 + badge 计数 + focus pin 高亮 + compact/locked 预览 | `example/HelloCustomWidgets/decoration/pin_cluster/`; `runtime_check_output/HelloCustomWidgets_decoration/pin_cluster/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：pin_cluster 专属 commit |
+| 23 | split_flap_board | display | 2026-03-08 | 30 | 机械翻牌、离散字符窗格、状态胶囊、紧凑出发牌布局 | 区别于 label/card/table/status_timeline，核心在多字符离散翻牌窗格 + 机械牌分割线 + 主牌/紧凑牌组合状态语义 | `example/HelloCustomWidgets/display/split_flap_board/`; `runtime_check_output/HelloCustomWidgets_display/split_flap_board/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 待提交：split_flap_board 专属 commit |
+| 24 | signal_beacon | feedback | 2026-03-09 | 30 | 环形脉冲信标、核心节点、侧节点联动、状态胶囊反馈 | 区别于 alert_banner/notification_stack/progress_bar/node_topology，核心在中心信标 + 左右节点 + 脉冲层级反馈 + 主卡/compact 卡组合语义 | `example/HelloCustomWidgets/feedback/signal_beacon/`; `runtime_check_output/HelloCustomWidgets_feedback/signal_beacon/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 待提交：signal_beacon 专属 commit |
+| 25 | patch_bay | input | 2026-03-09 | 30 | 左右端口列、定向路由连线、插孔激活态、主卡/compact 卡双层 patch 预览 | 区别于 fader_bank/node_topology/table/list/signal_beacon，核心在左右端口列 + 单条激活 patch 路径 + 主卡/compact 卡双层路由语义 | `example/HelloCustomWidgets/input/patch_bay/`; `runtime_check_output/HelloCustomWidgets_input/patch_bay/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 待提交：patch_bay 专属 commit |
+| 26 | step_sequencer | input | 2026-03-09 | 30 | 时间步进网格、播放头高亮、轨道摘要、主卡/compact 卡双层节拍预览 | 区别于 button_matrix/fader_bank/table/list/patch_bay，核心在离散时间步进 + 播放头列高亮 + 多轨 pattern 摘要 + 主卡/compact 卡双层节拍语义 | `example/HelloCustomWidgets/input/step_sequencer/`; `runtime_check_output/HelloCustomWidgets_input/step_sequencer/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 已提交：`c89bcaa` |
+| 27 | xy_pad | input | 2026-03-09 | 30 | ???????????????????/compact ??????? | ??? slider/fader_bank/swatch_picker/step_sequencer?????????? + ???? + ??/compact ??????? + ?????? | `example/HelloCustomWidgets/input/xy_pad/`; `runtime_check_output/HelloCustomWidgets_input/xy_pad/default/` | make + runtime ? PASS???????30 ????? | ???????? |
 
 ## 已搁置 / 待恢复
 
@@ -41,31 +67,7 @@
 4. 是否已经为新控件写明分类、创新目标、预期状态覆盖、录制动作范围。
 5. 是否已经确认目录放在 `example/HelloCustomWidgets/<category>/<widget>/`。
 6. 是否确认本次仍按 30 次迭代门槛执行。
-7. 是否记得 runtime 后把关键截图直接贴到对话框。
+7. 是否记得 runtime 后把关键截图复制到 `iteration_log/images/`，并在 `iteration_log/iteration_log.md` 中用相对路径更新本轮记录。
+8. 是否记得检查关键文字、图标、中心按钮等元素的视觉居中，以及左右/上下边距是否平衡。
+9. 是否记得检查文字与按钮/圆形/胶囊边框之间是否留有合理空隙，避免贴边或某一侧内边距明显偏小。
 
-## 录入模板
-
-### 新控件开始时
-
-把 `当前进行中` 改成一条真实记录，例如：
-
-| 状态 | 控件名 | 分类 | 开始日期 | 当前阶段 | 目标创新点 | 备注 |
-| --- | --- | --- | --- | --- | --- | --- |
-| 进行中 | radial_menu | navigation | 2026-03-07 | Step 5 首轮可视化打磨 | 极坐标扇区布局、中心触发区、拖拽释放选择 | 目录：`example/HelloCustomWidgets/navigation/radial_menu/` |
-
-### 控件完成时
-
-1. 将 `当前进行中` 清空。
-2. 在 `已完成控件` 追加一行真实记录。
-3. 如中途暂停，则不要删除记录，移到 `已搁置 / 待恢复`。
-
-建议完成记录字段：
-
-- 控件名 / 分类
-- 完成日期
-- 实际通过验收的迭代次数
-- 2~4 个创新关键词
-- 与现有控件的差异边界说明
-- `example/HelloCustomWidgets/` 与 `runtime_check_output/` 里的关键路径
-- runtime 截图是否已在对话框展示
-- baseline / runtime / 交互 / readme 等最终结果
