@@ -19,7 +19,7 @@
 
 | 状态 | 控件名 | 分类 | 开始日期 | 当前阶段 | 目标创新点 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- |
-| ?? | - | - | - | - | - | - |
+| 暂无 | - | - | - | - | - | - |
 
 ## 已完成控件
 
@@ -51,7 +51,7 @@
 | 24 | signal_beacon | feedback | 2026-03-09 | 30 | 环形脉冲信标、核心节点、侧节点联动、状态胶囊反馈 | 区别于 alert_banner/notification_stack/progress_bar/node_topology，核心在中心信标 + 左右节点 + 脉冲层级反馈 + 主卡/compact 卡组合语义 | `example/HelloCustomWidgets/feedback/signal_beacon/`; `runtime_check_output/HelloCustomWidgets_feedback/signal_beacon/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 待提交：signal_beacon 专属 commit |
 | 25 | patch_bay | input | 2026-03-09 | 30 | 左右端口列、定向路由连线、插孔激活态、主卡/compact 卡双层 patch 预览 | 区别于 fader_bank/node_topology/table/list/signal_beacon，核心在左右端口列 + 单条激活 patch 路径 + 主卡/compact 卡双层路由语义 | `example/HelloCustomWidgets/input/patch_bay/`; `runtime_check_output/HelloCustomWidgets_input/patch_bay/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 待提交：patch_bay 专属 commit |
 | 26 | step_sequencer | input | 2026-03-09 | 30 | 时间步进网格、播放头高亮、轨道摘要、主卡/compact 卡双层节拍预览 | 区别于 button_matrix/fader_bank/table/list/patch_bay，核心在离散时间步进 + 播放头列高亮 + 多轨 pattern 摘要 + 主卡/compact 卡双层节拍语义 | `example/HelloCustomWidgets/input/step_sequencer/`; `runtime_check_output/HelloCustomWidgets_input/step_sequencer/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 已提交：`c89bcaa` |
-| 27 | xy_pad | input | 2026-03-09 | 30 | ???????????????????/compact ??????? | ??? slider/fader_bank/swatch_picker/step_sequencer?????????? + ???? + ??/compact ??????? + ?????? | `example/HelloCustomWidgets/input/xy_pad/`; `runtime_check_output/HelloCustomWidgets_input/xy_pad/default/` | make + runtime ? PASS???????30 ????? | ???????? |
+| 27 | xy_pad | input | 2026-03-09 | 30 | 二维连续控制、触点准线、平面定位、主卡/compact 卡双层坐标预览 | 区别于 slider/fader_bank/swatch_picker/step_sequencer，核心在二维平面定位 + 十字准线 + 主卡/compact 卡双层坐标预览 + 状态胶囊反馈 | `example/HelloCustomWidgets/input/xy_pad/`; `runtime_check_output/HelloCustomWidgets_input/xy_pad/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 已提交：`3f69f2d` |
 
 ## 已搁置 / 待恢复
 
