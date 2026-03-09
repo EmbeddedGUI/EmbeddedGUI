@@ -53,6 +53,7 @@
 | 26 | step_sequencer | input | 2026-03-09 | 30 | 时间步进网格、播放头高亮、轨道摘要、主卡/compact 卡双层节拍预览 | 区别于 button_matrix/fader_bank/table/list/patch_bay，核心在离散时间步进 + 播放头列高亮 + 多轨 pattern 摘要 + 主卡/compact 卡双层节拍语义 | `example/HelloCustomWidgets/input/step_sequencer/`; `runtime_check_output/HelloCustomWidgets_input/step_sequencer/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 已提交：`c89bcaa` |
 | 27 | xy_pad | input | 2026-03-09 | 30 | 二维连续控制、触点准线、平面定位、主卡/compact 卡双层坐标预览 | 区别于 slider/fader_bank/swatch_picker/step_sequencer，核心在二维平面定位 + 十字准线 + 主卡/compact 卡双层坐标预览 + 状态胶囊反馈 | `example/HelloCustomWidgets/input/xy_pad/`; `runtime_check_output/HelloCustomWidgets_input/xy_pad/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 已提交：`3f69f2d` |
 | 28 | dock_launcher | navigation | 2026-03-09 | 30 | 停靠栏聚焦放大、运行态指示、徽标反馈、主卡/compact 卡双层预览 | 区别于 breadcrumb_trail/radial_menu/button_matrix/notification_stack，核心在横向 dock 停靠条 + 焦点入口放大 + 运行点和徽标反馈 + 主卡/compact 卡双层预览语义 | `example/HelloCustomWidgets/navigation/dock_launcher/`; `runtime_check_output/HelloCustomWidgets_navigation/dock_launcher/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 已提交：本次提交 |
+| 29 | command_palette | navigation | 2026-03-09 | 30 | 搜索驱动命令面板、查询框、结果高亮、快捷键提示、主卡/compact 双预览 | 区别于 menu/list/breadcrumb_trail/dock_launcher/textinput，核心在搜索即执行 + 查询框 + 结果行高亮 + 快捷键胶囊 + 主卡/compact 双预览语义 | `example/HelloCustomWidgets/navigation/command_palette/`; `runtime_check_output/HelloCustomWidgets_navigation/command_palette/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 已提交：本次提交 |
 
 ## 已搁置 / 待恢复
 
