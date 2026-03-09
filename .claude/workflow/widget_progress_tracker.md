@@ -63,6 +63,7 @@
 | 36 | conversion_funnel | chart | 2026-03-10 | 30 | 转化漏斗收窄层级、阶段焦点切换、主卡/compact 双预览、只读审计态 | 区别于 sankey_flow/treemap_chart/chart_bar/chart_line，核心在单路径四层收窄 + 焦点阶段强调 + compact/locked 双预览 | `example/HelloCustomWidgets/chart/conversion_funnel/`; `runtime_check_output/HelloCustomWidgets_chart/conversion_funnel/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 已提交：`477b9a8` |
 | 37 | range_band_editor | input | 2026-03-10 | 30 | 双端范围带、选区高亮、焦点刻度、主卡/compact 双预览、只读限制态 | 区别于 slider/progress_bar/xy_pad，核心在双端范围带 + 焦点刻度 + compact/locked 双预览 | `example/HelloCustomWidgets/input/range_band_editor/`; `runtime_check_output/HelloCustomWidgets_input/range_band_editor/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 已提交：`565b44b` |
 | 38 | signal_matrix | display | 2026-03-10 | 30 | 多通道信号格阵、焦点列高亮、主卡/compact/locked 三层预览、只读限制态 | 区别于 heatmap_chart/status_timeline/node_topology，核心在 5x4 离散信号格阵 + 焦点列 marker + compact/locked 双对照 | `example/HelloCustomWidgets/display/signal_matrix/`; `runtime_check_output/HelloCustomWidgets_display/signal_matrix/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 已提交：`d823966` |
+| 39 | coverflow_strip | navigation | 2026-03-10 | 30 | 中央主卡、左右透视侧卡、索引切换、底部状态带 | 区别于 dock_launcher/tab_expose/command_palette，核心在中心主卡 + 左右后景侧卡 + 当前索引轮转 | `example/HelloCustomWidgets/navigation/coverflow_strip/`; `runtime_check_output/HelloCustomWidgets_navigation/coverflow_strip/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 待提交：coverflow_strip 专属 commit |
 
 ## 已搁置 / 待恢复
 
