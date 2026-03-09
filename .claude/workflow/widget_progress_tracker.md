@@ -19,7 +19,7 @@
 
 | 状态 | 控件名 | 分类 | 开始日期 | 当前阶段 | 目标创新点 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 暂无 | - | - | - | - | - | 等待选择下一个控件 |
+| 暂无 | - | - | - | - | - | - |
 
 ## 已完成控件
 
@@ -59,7 +59,8 @@
 | 32 | layer_stack | display | 2026-03-09 | 30 | 分层卡片堆叠、当前层高亮、深度刻度、主卡/compact 双层组预览 | 区别于 tab_expose/node_topology/kanban_board/server_rack，核心在前后层堆叠 + active layer 焦点 + mask/render 双 preview 语义 | `example/HelloCustomWidgets/display/layer_stack/`; `runtime_check_output/HelloCustomWidgets_display/layer_stack/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 已提交：本次提交 |
 | 33 | split_resizer | layout | 2026-03-10 | 30 | 分栏比例预览、拖拽柄高亮、主卡/compact 双预览、横竖分栏切换 | 区别于 window_snap_grid/kanban_board/layer_stack，核心在 pane ratio + resizer handle + locked preview 三组 split 语义 | `example/HelloCustomWidgets/layout/split_resizer/`; `runtime_check_output/HelloCustomWidgets_layout/split_resizer/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 已提交：`5521d3d` |
 | 34 | priority_matrix | layout | 2026-03-10 | 30 | 四象限优先级矩阵、焦点象限切换、任务标记分布、主卡/compact 双预览 | 区别于 heatmap_chart/kanban_board/seat_map/split_resizer，核心在四象限优先级语义 + 焦点象限切换 + compact/locked 双预览 | `example/HelloCustomWidgets/layout/priority_matrix/`; `runtime_check_output/HelloCustomWidgets_layout/priority_matrix/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 已提交：`aa74ee0` |
-| 35 | sankey_flow | chart | 2026-03-10 | 30 | 分阶段流向带宽、节点列组织、主卡/compact 双预览、只读流量校验 | 区别于 node_topology/treemap_chart/chart_bar/chart_line，核心在三阶段节点列 + 流带宽度编码 + compact/locked 双预览 | `example/HelloCustomWidgets/chart/sankey_flow/`; `runtime_check_output/HelloCustomWidgets_chart/sankey_flow/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 已提交：本次提交 |
+| 35 | sankey_flow | chart | 2026-03-10 | 30 | 分阶段流向带宽、节点列组织、主卡/compact 双预览、只读流量校验 | 区别于 node_topology/treemap_chart/chart_bar/chart_line，核心在三阶段节点列 + 流带宽度编码 + compact/locked 双预览 | `example/HelloCustomWidgets/chart/sankey_flow/`; `runtime_check_output/HelloCustomWidgets_chart/sankey_flow/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 已提交：`7a67a72` |
+| 36 | conversion_funnel | chart | 2026-03-10 | 30 | 转化漏斗收窄层级、阶段焦点切换、主卡/compact 双预览、只读审计态 | 区别于 sankey_flow/treemap_chart/chart_bar/chart_line，核心在单路径四层收窄 + 焦点阶段强调 + compact/locked 双预览 | `example/HelloCustomWidgets/chart/conversion_funnel/`; `runtime_check_output/HelloCustomWidgets_chart/conversion_funnel/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 已提交：待回填 hash |
 
 ## 已搁置 / 待恢复
 
