@@ -1,4 +1,4 @@
-# Widget Acceptance Workflow
+﻿# Widget Acceptance Workflow
 
 本工作流适用于后续所有新控件，默认目标目录为：
 
@@ -8,9 +8,9 @@
 
 - 设计新颖优先：优先做交互模式、视觉语言、布局结构明显不同的控件。
 - 单控件串行：同一时刻只允许 1 个控件处于进行中状态。
-- 30 次迭代门槛：每个控件至少完成 30 次递归质量迭代。
+- 30 次迭代门槛：每个控件至少完成 30 次递归质量迭代；默认做满 30 轮再向用户统一同步，中途不逐轮汇报，除非用户明确要求。
 - 一控件一提交：每个控件验收收口后，先更新追踪表，再单独提交一次 commit。
-- 运行截图进对话框：每次完成 runtime 检查后，要把关键截图直接贴到对话框里，避免来回切目录查看。
+- 运行截图归档：每次完成 runtime 检查后，要把关键截图复制到 `iteration_log/images/`，并在 `iteration_log/iteration_log.md` 中用相对路径记录，作为后续 review 依据。
 
 ## Step -1：同步进度追踪表（必做）
 
@@ -47,13 +47,16 @@
 本步骤至少创建：
 
 - `example/HelloCustomWidgets/<category>/<widget>/readme.md`
-- `example/HelloCustomWidgets/<category>/<widget>/iteration_log.md`
+- `example/HelloCustomWidgets/<category>/<widget>/iteration_log/`
+- `example/HelloCustomWidgets/<category>/<widget>/iteration_log/iteration_log.md`
+- `example/HelloCustomWidgets/<category>/<widget>/iteration_log/images/`
 
 要求：
 
 - `readme.md` 使用中文、UTF-8。
 - `readme.md` 与后续 `test.c` 必须同步维护。
-- `iteration_log.md` 用于记录 30 次迭代，不允许只口头说明。
+- `iteration_log/iteration_log.md` 用于记录 30 次迭代，不允许只口头说明。
+- `iteration_log/images/` 用于保存从 `runtime_check_output/` 复制出的本轮关键截图，供阶段性 review。
 
 `readme.md` 必须包含以下内容：
 
@@ -118,34 +121,49 @@ python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub <categor
 - 不能黑屏、白屏、全空白。
 - 控件主体必须完整可见，不能被裁切。
 - 文本、边界、关键反馈状态必须可辨认。
+- 文本、图标、中心按钮等关键元素必须检查视觉居中是否准确，左右/上下留白是否平衡；不能只因为“没有裁切”就判定通过。
+- 文本与圆形、按钮、胶囊等边框之间必须保留合理空隙，不能出现文字贴边或某一侧内边距明显小于另一侧。
+- 顶部圆圈内文案、状态胶囊短词、按钮短词都要单独检查是否真实居中，像 `Open`、`Pause` 这类文本要避免左右内边距失衡或视觉偏心。
 - 交互型控件必须能从截图中看出状态变化。
 - 若日志出现 `[RUNTIME_CHECK_FAIL]`，必须先修复，再重跑。
 
-## Step 4.5：截图直接贴到对话框（必做）
+## Step 4.5：归档 iteration_log（必做）
 
-每次 runtime 通过后，在对话回复里直接附上关键截图，使用绝对路径图片引用。
+每次 runtime 通过后，必须立刻把关键截图整理进当前控件目录下的 `iteration_log/`，并同步更新 `iteration_log/iteration_log.md`，不能只在对话里口头说明，也不能只保留 `runtime_check_output/` 临时结果。
 
-建议最少附 1 张，交互型控件建议附 3 张：
+归档路径：
 
-1. 初始状态帧
-2. 交互中间帧
-3. 最终结果帧
+- `example/HelloCustomWidgets/<category>/<widget>/iteration_log/iteration_log.md`
+- `example/HelloCustomWidgets/<category>/<widget>/iteration_log/images/iter_01/`
+- `example/HelloCustomWidgets/<category>/<widget>/iteration_log/images/iter_02/`
 
-回复时要同时写清楚：
+要求：
 
-- 截图对应的状态
-- 是否看到了预期交互反馈
-- 是否还存在视觉问题
-
-图片引用示例：
+- 每轮至少归档 1 张关键截图；交互型控件建议归档 2 到 3 张，覆盖初始态、交互态、结果态。
+- 必须先从 `runtime_check_output/...` 复制截图到 `iteration_log/images/iter_xx/`，再在日志中使用相对路径引用。
+- `iteration_log/iteration_log.md` 必须记录本轮目标、代码改动摘要、编译结果、runtime 结果、视觉结论、交互结论和最终判定。
+- `iteration_log/iteration_log.md` 中必须额外记录：关键文字、图标、中心按钮是否视觉居中，左右/上下边距是否平衡。
+- `iteration_log/iteration_log.md` 中必须额外记录：文字与按钮/圆形/胶囊边框之间是否留有合理空隙，是否存在贴边或内边距失衡。
+- 顶部圆形按钮、短文本胶囊、短词按钮必须单独检查视觉居中与左右留白，例如 `Open`、`Pause` 这类短文本不能出现视觉偏心或贴边。
 
 ```md
-![radial menu runtime](D:/workspace/gitee/EmbeddedGUI/runtime_check_output/HelloCustomWidgets_navigation/radial_menu/default/frame_0000.png)
+![iter 01 frame 0000](images/iter_01/frame_0000.png)
 ```
+
+- `iteration_log/` 只作为本地审阅产物，不纳入 git commit。
 
 ## Step 5：记录 30 次递归迭代（必做）
 
-在 `example/HelloCustomWidgets/<category>/<widget>/iteration_log.md` 中持续记录。
+在 `example/HelloCustomWidgets/<category>/<widget>/iteration_log/iteration_log.md` 中持续记录。
+
+每次迭代都必须完整执行以下闭环，不允许只编译通过就进入下一轮：
+
+1. 改代码
+2. 执行 `make all APP=HelloCustomWidgets APP_SUB=<category>/<widget> PORT=pc`
+3. 执行 `python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub <category>/<widget> --timeout 10 --keep-screenshots`
+4. 检查截图中的视觉问题
+5. 复制关键截图到 `iteration_log/images/iter_xx/`
+6. 更新 `iteration_log/iteration_log.md`
 
 每次迭代至少要写：
 
@@ -168,10 +186,10 @@ python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub <categor
 控件可收口前，必须同时满足：
 
 - `readme.md` 完整且与当前实现一致
-- `iteration_log.md` 已记录至少 30 次迭代
+- `iteration_log/iteration_log.md` 已记录至少 30 次迭代
 - `make all APP=HelloCustomWidgets APP_SUB=<category>/<widget> PORT=pc` 通过
 - `code_runtime_check.py` 运行通过
-- 关键截图已在对话框中展示并人工确认
+- 关键截图已整理到 `iteration_log/` 且能通过 `iteration_log/iteration_log.md` 直接 review
 - 当前控件与既有控件的差异化边界仍然成立
 
 ## Step 7：更新追踪表并提交（必做）
@@ -191,6 +209,7 @@ python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub <categor
 
 - 为该控件单独创建一次 commit
 - 提交内容只围绕该控件，不混入下一个控件的改动
+- `iteration_log/` 目录保持本地，不纳入本次 commit
 
 提交信息示例：
 
@@ -200,15 +219,20 @@ git commit -m "feat: add radial_menu custom widget"
 
 ## 当前阶段推荐最小交付物
 
-每个新控件至少应包含：
+每个新控件至少应包含（提交到 git 的交付物）：
 
 - `example/HelloCustomWidgets/<category>/<widget>/readme.md`
-- `example/HelloCustomWidgets/<category>/<widget>/iteration_log.md`
 - `example/HelloCustomWidgets/<category>/<widget>/egui_view_<widget>.h`
 - `example/HelloCustomWidgets/<category>/<widget>/egui_view_<widget>.c`
 - `example/HelloCustomWidgets/<category>/<widget>/test.c`
+
+每个新控件还应维护（本地审阅产物，不提交 git）：
+
+- `example/HelloCustomWidgets/<category>/<widget>/iteration_log/iteration_log.md`
+- `example/HelloCustomWidgets/<category>/<widget>/iteration_log/images/`
 
 ## 备注
 
 - 当前工作流的主目标是批量推进 `HelloCustomWidgets` 下的 1000 个控件，而不是优先把控件沉入框架核心层。
 - 如果后续某个控件确定要升级为框架公共控件，再单独补一轮 `src/widget/`、`src/egui.h`、`scripts/ui_designer/custom_widgets/` 的升级计划。
+
