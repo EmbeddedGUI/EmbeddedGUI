@@ -55,6 +55,7 @@
 | 28 | dock_launcher | navigation | 2026-03-09 | 30 | 停靠栏聚焦放大、运行态指示、徽标反馈、主卡/compact 卡双层预览 | 区别于 breadcrumb_trail/radial_menu/button_matrix/notification_stack，核心在横向 dock 停靠条 + 焦点入口放大 + 运行点和徽标反馈 + 主卡/compact 卡双层预览语义 | `example/HelloCustomWidgets/navigation/dock_launcher/`; `runtime_check_output/HelloCustomWidgets_navigation/dock_launcher/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 已提交：本次提交 |
 | 29 | command_palette | navigation | 2026-03-09 | 30 | 搜索驱动命令面板、查询框、结果高亮、快捷键提示、主卡/compact 双预览 | 区别于 menu/list/breadcrumb_trail/dock_launcher/textinput，核心在搜索即执行 + 查询框 + 结果行高亮 + 快捷键胶囊 + 主卡/compact 双预览语义 | `example/HelloCustomWidgets/navigation/command_palette/`; `runtime_check_output/HelloCustomWidgets_navigation/command_palette/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 已提交：本次提交 |
 | 30 | window_snap_grid | layout | 2026-03-09 | 30 | 窗口吸附分区、屏幕预览、布局高亮、主卡/compact 双预览 | 区别于 gridlayout/seat_map/kanban_board/dock_launcher，核心在屏幕吸附预设 + 分区块预览 + 当前高亮区域 + 主卡/compact 双预览语义 | `example/HelloCustomWidgets/layout/window_snap_grid/`; `runtime_check_output/HelloCustomWidgets_layout/window_snap_grid/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 已提交：本次提交 |
+| 31 | tab_expose | navigation | 2026-03-09 | 30 | 标签页总览、页签高亮、内容预览、保存页组与最近页组双紧凑预览 | 区别于 tab_bar/breadcrumb_trail/dock_launcher/command_palette，核心在多 tab 总览 + 当前页缩略图高亮 + saved/recent 双 preview 语义 | `example/HelloCustomWidgets/navigation/tab_expose/`; `runtime_check_output/HelloCustomWidgets_navigation/tab_expose/default/` | make + runtime 均 PASS；截图已归档；30 次迭代完成 | 已提交：本次提交 |
 
 ## 已搁置 / 待恢复
 
