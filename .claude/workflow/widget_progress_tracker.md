@@ -64,6 +64,7 @@
 | 37 | range_band_editor | input | 2026-03-10 | 30 | 双端范围带、选区高亮、焦点刻度、主卡/compact 双预览、只读限制态 | 区别于 slider/progress_bar/xy_pad，核心在双端范围带 + 焦点刻度 + compact/locked 双预览 | `example/HelloCustomWidgets/input/range_band_editor/`; `runtime_check_output/HelloCustomWidgets_input/range_band_editor/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 已提交：`565b44b` |
 | 38 | signal_matrix | display | 2026-03-10 | 30 | 多通道信号格阵、焦点列高亮、主卡/compact/locked 三层预览、只读限制态 | 区别于 heatmap_chart/status_timeline/node_topology，核心在 5x4 离散信号格阵 + 焦点列 marker + compact/locked 双对照 | `example/HelloCustomWidgets/display/signal_matrix/`; `runtime_check_output/HelloCustomWidgets_display/signal_matrix/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 已提交：`d823966` |
 | 39 | coverflow_strip | navigation | 2026-03-10 | 30 | 中央主卡、左右透视侧卡、索引切换、底部状态带 | 区别于 dock_launcher/tab_expose/command_palette，核心在中心主卡 + 左右后景侧卡 + 当前索引轮转 | `example/HelloCustomWidgets/navigation/coverflow_strip/`; `runtime_check_output/HelloCustomWidgets_navigation/coverflow_strip/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 已提交：`c8eb3d0` |
+| 40 | frame_scrubber | media | 2026-03-10 | 30 | 缩略帧带、播放头、左右预读窗、marker 切换 | 区别于 waveform_strip/range_band_editor/coverflow_strip，核心在线性缩略帧时间轴 + 左右预读窗 + playhead/marker 双锚点 | `example/HelloCustomWidgets/media/frame_scrubber/`; `runtime_check_output/HelloCustomWidgets_media/frame_scrubber/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 已提交：`e5b16fd` |
 
 ## 已搁置 / 待恢复
 
