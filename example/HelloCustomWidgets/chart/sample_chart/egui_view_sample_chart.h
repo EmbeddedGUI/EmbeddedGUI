@@ -12,7 +12,14 @@ typedef struct egui_view_sample_chart egui_view_sample_chart_t;
 struct egui_view_sample_chart
 {
     egui_view_t base;
-    // TODO: add widget fields
+
+    const egui_font_t *font;
+
+    egui_color_t surface_color;
+    egui_color_t border_color;
+    egui_color_t text_color;
+    egui_color_t muted_text_color;
+    egui_color_t accent_color;
 };
 
 void egui_view_sample_chart_init(egui_view_t *self);
