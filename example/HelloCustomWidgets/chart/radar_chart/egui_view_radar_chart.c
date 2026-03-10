@@ -129,6 +129,17 @@ void egui_view_radar_chart_set_grid_levels(egui_view_t *self, uint8_t grid_level
     egui_view_invalidate(self);
 }
 
+void egui_view_radar_chart_set_label_padding(egui_view_t *self, uint8_t label_padding)
+{
+    EGUI_LOCAL_INIT(egui_view_radar_chart_t);
+    if (label_padding < 8)
+    {
+        label_padding = 8;
+    }
+    local->label_padding = label_padding;
+    egui_view_invalidate(self);
+}
+
 void egui_view_radar_chart_set_show_axis_labels(egui_view_t *self, uint8_t show_axis_labels)
 {
     EGUI_LOCAL_INIT(egui_view_radar_chart_t);
@@ -176,6 +187,9 @@ static void egui_view_radar_chart_on_draw(egui_view_t *self)
     egui_dim_t outer_radius;
     egui_dim_t label_radius;
     egui_dim_t background_radius;
+    egui_dim_t chart_padding;
+    egui_dim_t label_width;
+    egui_dim_t label_height;
     egui_dim_t polygon_points[EGUI_VIEW_RADAR_CHART_MAX_AXES * 2];
     egui_dim_t compare_points[EGUI_VIEW_RADAR_CHART_MAX_AXES * 2];
     egui_dim_t current_points[EGUI_VIEW_RADAR_CHART_MAX_AXES * 2];
@@ -197,13 +211,16 @@ static void egui_view_radar_chart_on_draw(egui_view_t *self)
     font = local->font ? local->font : (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
     center_x = region.location.x + region.size.width / 2;
     center_y = region.location.y + region.size.height / 2;
-    outer_radius = EGUI_MIN(region.size.width, region.size.height) / 2 - (local->show_axis_labels ? 16 : 8);
+    chart_padding = local->show_axis_labels ? 20 : 8;
+    outer_radius = EGUI_MIN(region.size.width, region.size.height) / 2 - chart_padding;
     if (outer_radius <= 8)
     {
         return;
     }
-    label_radius = outer_radius + 12;
-    background_radius = outer_radius + 4;
+    label_radius = outer_radius + (local->show_axis_labels ? local->label_padding : 10);
+    background_radius = outer_radius + 5;
+    label_width = EGUI_MAX(region.size.width / 4, 28);
+    label_height = 13;
     current_values = local->value_sets[local->current_value_set];
     if (current_values == NULL)
     {
@@ -257,8 +274,6 @@ static void egui_view_radar_chart_on_draw(egui_view_t *self)
 
     if (local->show_axis_labels && local->axis_labels != NULL)
     {
-        egui_dim_t label_width = EGUI_MAX(region.size.width / 4, 26);
-        egui_dim_t label_height = 12;
         for (i = 0; i < local->axis_count; i++)
         {
             egui_dim_t label_x;
@@ -273,19 +288,19 @@ static void egui_view_radar_chart_on_draw(egui_view_t *self)
             text_region.size.height = label_height;
             if (angle > 120 || angle < -120)
             {
-                text_region.location.x -= 6;
+                text_region.location.x -= 8;
             }
             else if (angle > -60 && angle < 60)
             {
-                text_region.location.x += 6;
+                text_region.location.x += 8;
             }
             if (angle >= 60 && angle <= 120)
             {
-                text_region.location.y += 2;
+                text_region.location.y += 4;
             }
             else if (angle <= -60 && angle >= -120)
             {
-                text_region.location.y -= 2;
+                text_region.location.y -= 4;
             }
             if (text_region.location.x < region.location.x)
             {
@@ -353,6 +368,7 @@ void egui_view_radar_chart_init(egui_view_t *self)
     local->value_set_count = 0;
     local->current_value_set = 0;
     local->grid_levels = 4;
+    local->label_padding = 16;
     local->show_compare = 0;
     local->show_axis_labels = 1;
 }

@@ -31,6 +31,7 @@ struct egui_view_radar_chart
     uint8_t value_set_count;
     uint8_t current_value_set;
     uint8_t grid_levels;
+    uint8_t label_padding;
     uint8_t show_compare;
     uint8_t show_axis_labels;
 };
@@ -43,6 +44,7 @@ uint8_t egui_view_radar_chart_get_current_value_set(egui_view_t *self);
 void egui_view_radar_chart_set_compare_values(egui_view_t *self, const uint8_t *values);
 void egui_view_radar_chart_set_show_compare(egui_view_t *self, uint8_t show_compare);
 void egui_view_radar_chart_set_grid_levels(egui_view_t *self, uint8_t grid_levels);
+void egui_view_radar_chart_set_label_padding(egui_view_t *self, uint8_t label_padding);
 void egui_view_radar_chart_set_show_axis_labels(egui_view_t *self, uint8_t show_axis_labels);
 void egui_view_radar_chart_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_radar_chart_set_palette(

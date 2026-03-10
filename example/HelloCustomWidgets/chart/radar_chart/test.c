@@ -24,7 +24,7 @@ static egui_view_radar_chart_t radar_mini;
 
 static const char *title_text = "Radar Chart";
 static const char *guide_text = "Tap charts to cycle profiles";
-static const egui_view_line_point_t section_divider_points[] = {{0, 0}, {147, 0}};
+static const egui_view_line_point_t section_divider_points[] = {{0, 0}, {149, 0}};
 static const char *compare_titles[] = {"Compare A", "Compare B"};
 static const char *mini_titles[] = {"Mini A", "Mini B"};
 static const char *primary_labels[] = {"CPU", "MEM", "IO", "TEMP", "NET", "UI"};
@@ -38,6 +38,7 @@ static const uint8_t compare_set_b[] = {54, 78, 68, 60, 52, 86};
 static const char *mini_labels[] = {"S", "P", "Q", "E", "R"};
 static const uint8_t mini_set_a[] = {78, 52, 68, 74, 60};
 static const uint8_t mini_set_b[] = {58, 80, 50, 66, 84};
+static const egui_color_t primary_status_color = EGUI_COLOR_HEX(0x31AFE4);
 
 static void set_status(const char *text, egui_color_t color)
 {
@@ -52,32 +53,32 @@ static void apply_compare_state(uint8_t index, int is_active)
     {
         egui_view_label_set_font_color(
                 EGUI_VIEW_OF(&compare_label),
-                ((index % 2) == 0) ? EGUI_COLOR_HEX(0x34D399) : EGUI_COLOR_HEX(0x6EE7B7),
+                ((index % 2) == 0) ? EGUI_COLOR_HEX(0x3ADEA0) : EGUI_COLOR_HEX(0x74E8BE),
                 EGUI_ALPHA_100);
         egui_view_radar_chart_set_palette(
                 EGUI_VIEW_OF(&radar_compare),
                 EGUI_COLOR_HEX(0x0B1F1A),
-                EGUI_COLOR_HEX(0x34D399),
-                EGUI_COLOR_HEX(0x6EE7B7),
-                EGUI_COLOR_HEX(0xF59E0B),
-                EGUI_COLOR_HEX(0xFBBF24),
+                EGUI_COLOR_HEX(0x39D8A2),
+                EGUI_COLOR_HEX(0x7FF0C8),
+                EGUI_COLOR_HEX(0xE9A923),
+                EGUI_COLOR_HEX(0xF8C94A),
                 EGUI_COLOR_HEX(0x334155),
                 EGUI_COLOR_HEX(0xCBD5E1),
                 EGUI_COLOR_HEX(0x94A3B8));
     }
     else
     {
-        egui_view_label_set_font_color(EGUI_VIEW_OF(&compare_label), EGUI_COLOR_HEX(0x35584B), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&compare_label), EGUI_COLOR_HEX(0x3F6257), EGUI_ALPHA_100);
         egui_view_radar_chart_set_palette(
                 EGUI_VIEW_OF(&radar_compare),
-                EGUI_COLOR_HEX(0x08110F),
-                EGUI_COLOR_HEX(0x1F7E62),
-                EGUI_COLOR_HEX(0x3FA58C),
+                EGUI_COLOR_HEX(0x0A1613),
+                EGUI_COLOR_HEX(0x257B63),
+                EGUI_COLOR_HEX(0x46A48D),
                 EGUI_COLOR_HEX(0x8A5B0D),
                 EGUI_COLOR_HEX(0xB7791F),
-                EGUI_COLOR_HEX(0x253240),
-                EGUI_COLOR_HEX(0x94A3B8),
-                EGUI_COLOR_HEX(0x64748B));
+                EGUI_COLOR_HEX(0x2B3A45),
+                EGUI_COLOR_HEX(0x9FB2C6),
+                EGUI_COLOR_HEX(0x6F8194));
     }
 }
 
@@ -88,32 +89,32 @@ static void apply_mini_state(uint8_t index, int is_active)
     {
         egui_view_label_set_font_color(
                 EGUI_VIEW_OF(&mini_label),
-                ((index % 2) == 0) ? EGUI_COLOR_HEX(0xF59E0B) : EGUI_COLOR_HEX(0xFBBF24),
+                ((index % 2) == 0) ? EGUI_COLOR_HEX(0xEDA51A) : EGUI_COLOR_HEX(0xF8C53A),
                 EGUI_ALPHA_100);
         egui_view_radar_chart_set_palette(
                 EGUI_VIEW_OF(&radar_mini),
                 EGUI_COLOR_HEX(0x26170A),
-                EGUI_COLOR_HEX(0xF59E0B),
-                EGUI_COLOR_HEX(0xFBBF24),
-                EGUI_COLOR_HEX(0x7C3AED),
-                EGUI_COLOR_HEX(0xA78BFA),
+                EGUI_COLOR_HEX(0xF0A21B),
+                EGUI_COLOR_HEX(0xFFD04A),
+                EGUI_COLOR_HEX(0x8444F0),
+                EGUI_COLOR_HEX(0xB59AFF),
                 EGUI_COLOR_HEX(0x3F2A1D),
                 EGUI_COLOR_HEX(0xFDE68A),
                 EGUI_COLOR_HEX(0xF59E0B));
     }
     else
     {
-        egui_view_label_set_font_color(EGUI_VIEW_OF(&mini_label), EGUI_COLOR_HEX(0x6B4F16), EGUI_ALPHA_100);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&mini_label), EGUI_COLOR_HEX(0x75581A), EGUI_ALPHA_100);
         egui_view_radar_chart_set_palette(
                 EGUI_VIEW_OF(&radar_mini),
-                EGUI_COLOR_HEX(0x171108),
-                EGUI_COLOR_HEX(0xA86809),
-                EGUI_COLOR_HEX(0xC98B1A),
+                EGUI_COLOR_HEX(0x151008),
+                EGUI_COLOR_HEX(0x99640A),
+                EGUI_COLOR_HEX(0xB97D18),
                 EGUI_COLOR_HEX(0x5B21B6),
                 EGUI_COLOR_HEX(0x7C3AED),
-                EGUI_COLOR_HEX(0x2D2114),
-                EGUI_COLOR_HEX(0xD6B15A),
-                EGUI_COLOR_HEX(0xA86809));
+                EGUI_COLOR_HEX(0x2A1F14),
+                EGUI_COLOR_HEX(0xCAA85A),
+                EGUI_COLOR_HEX(0x99640A));
     }
 }
 
@@ -125,11 +126,11 @@ static void on_primary_click(egui_view_t *self)
     apply_mini_state(egui_view_radar_chart_get_current_value_set(EGUI_VIEW_OF(&radar_mini)), 0);
     if (next == 0)
     {
-        set_status("Primary profile A", EGUI_COLOR_HEX(0x38BDF8));
+        set_status("Primary profile A", primary_status_color);
     }
     else
     {
-        set_status("Primary profile B", EGUI_COLOR_HEX(0x38BDF8));
+        set_status("Primary profile B", primary_status_color);
     }
 }
 
@@ -142,12 +143,12 @@ static void on_compare_click(egui_view_t *self)
     if (next == 0)
     {
         egui_view_radar_chart_set_compare_values(self, compare_set_b);
-        set_status("Compare focus A", EGUI_COLOR_HEX(0x34D399));
+        set_status("Compare focus A", EGUI_COLOR_HEX(0x2FBE89));
     }
     else
     {
         egui_view_radar_chart_set_compare_values(self, compare_set_a);
-        set_status("Compare focus B", EGUI_COLOR_HEX(0x34D399));
+        set_status("Compare focus B", EGUI_COLOR_HEX(0x2FBE89));
     }
 }
 
@@ -159,18 +160,18 @@ static void on_mini_click(egui_view_t *self)
     apply_mini_state(next, 1);
     if (next == 0)
     {
-        set_status("Mini profile A", EGUI_COLOR_HEX(0xF59E0B));
+        set_status("Mini profile A", EGUI_COLOR_HEX(0xD89112));
     }
     else
     {
-        set_status("Mini profile B", EGUI_COLOR_HEX(0xF59E0B));
+        set_status("Mini profile B", EGUI_COLOR_HEX(0xD89112));
     }
 }
 
 void test_init_ui(void)
 {
     egui_view_linearlayout_init(EGUI_VIEW_OF(&root_layout));
-    egui_view_set_size(EGUI_VIEW_OF(&root_layout), 220, 312);
+    egui_view_set_size(EGUI_VIEW_OF(&root_layout), 220, 308);
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&root_layout), 0);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&root_layout), EGUI_ALIGN_HCENTER);
 
@@ -180,6 +181,7 @@ void test_init_ui(void)
     egui_view_label_set_align_type(EGUI_VIEW_OF(&title_label), EGUI_ALIGN_CENTER);
     egui_view_label_set_font(EGUI_VIEW_OF(&title_label), (const egui_font_t *)&egui_res_font_montserrat_12_4);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&title_label), EGUI_COLOR_HEX(0x38BDF8), EGUI_ALPHA_100);
+    egui_view_set_margin(EGUI_VIEW_OF(&title_label), 0, 0, 0, 1);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&title_label));
 
     egui_view_label_init(EGUI_VIEW_OF(&guide_label));
@@ -187,17 +189,18 @@ void test_init_ui(void)
     egui_view_label_set_text(EGUI_VIEW_OF(&guide_label), guide_text);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&guide_label), EGUI_ALIGN_CENTER);
     egui_view_label_set_font(EGUI_VIEW_OF(&guide_label), (const egui_font_t *)&egui_res_font_montserrat_10_4);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&guide_label), EGUI_COLOR_HEX(0x64748B), EGUI_ALPHA_100);
-    egui_view_set_margin(EGUI_VIEW_OF(&guide_label), 0, 0, 0, 1);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&guide_label), EGUI_COLOR_HEX(0x4B5666), EGUI_ALPHA_100);
+    egui_view_set_margin(EGUI_VIEW_OF(&guide_label), 0, 0, 0, 3);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&guide_label));
 
     egui_view_radar_chart_init(EGUI_VIEW_OF(&radar_primary));
-    egui_view_set_size(EGUI_VIEW_OF(&radar_primary), 160, 148);
+    egui_view_set_size(EGUI_VIEW_OF(&radar_primary), 158, 146);
     egui_view_radar_chart_set_axis_labels(EGUI_VIEW_OF(&radar_primary), primary_labels, 6);
     egui_view_radar_chart_set_value_set(EGUI_VIEW_OF(&radar_primary), 0, primary_set_a);
     egui_view_radar_chart_set_value_set(EGUI_VIEW_OF(&radar_primary), 1, primary_set_b);
     egui_view_radar_chart_set_current_value_set(EGUI_VIEW_OF(&radar_primary), 0);
     egui_view_radar_chart_set_grid_levels(EGUI_VIEW_OF(&radar_primary), 4);
+    egui_view_radar_chart_set_label_padding(EGUI_VIEW_OF(&radar_primary), 17);
     egui_view_radar_chart_set_palette(
             EGUI_VIEW_OF(&radar_primary),
             EGUI_COLOR_HEX(0x0D1724),
@@ -209,48 +212,49 @@ void test_init_ui(void)
             EGUI_COLOR_HEX(0xCBD5E1),
             EGUI_COLOR_HEX(0x94A3B8));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&radar_primary), on_primary_click);
-    egui_view_set_margin(EGUI_VIEW_OF(&radar_primary), 0, 0, 0, 4);
+    egui_view_set_margin(EGUI_VIEW_OF(&radar_primary), 0, 0, 0, 6);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&radar_primary));
 
     egui_view_label_init(EGUI_VIEW_OF(&status_label));
     egui_view_set_size(EGUI_VIEW_OF(&status_label), 220, 13);
     egui_view_label_set_text(EGUI_VIEW_OF(&status_label), "Primary profile A");
     egui_view_label_set_align_type(EGUI_VIEW_OF(&status_label), EGUI_ALIGN_CENTER);
-    egui_view_label_set_font(EGUI_VIEW_OF(&status_label), (const egui_font_t *)&egui_res_font_montserrat_10_4);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&status_label), EGUI_COLOR_HEX(0x38BDF8), EGUI_ALPHA_100);
-    egui_view_set_margin(EGUI_VIEW_OF(&status_label), 0, 0, 0, 3);
+    egui_view_label_set_font(EGUI_VIEW_OF(&status_label), (const egui_font_t *)&egui_res_font_montserrat_8_4);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&status_label), primary_status_color, EGUI_ALPHA_100);
+    egui_view_set_margin(EGUI_VIEW_OF(&status_label), 0, 0, 0, 4);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&status_label));
 
     egui_view_line_init(EGUI_VIEW_OF(&section_divider));
-    egui_view_set_size(EGUI_VIEW_OF(&section_divider), 148, 2);
+    egui_view_set_size(EGUI_VIEW_OF(&section_divider), 150, 2);
     egui_view_line_set_points(EGUI_VIEW_OF(&section_divider), section_divider_points, 2);
     egui_view_line_set_line_width(EGUI_VIEW_OF(&section_divider), 1);
-    egui_view_line_set_line_color(EGUI_VIEW_OF(&section_divider), EGUI_COLOR_HEX(0x475569));
-    egui_view_set_margin(EGUI_VIEW_OF(&section_divider), 0, 0, 0, 4);
+    egui_view_line_set_line_color(EGUI_VIEW_OF(&section_divider), EGUI_COLOR_HEX(0x334155));
+    egui_view_set_margin(EGUI_VIEW_OF(&section_divider), 0, 0, 0, 5);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&section_divider));
 
     egui_view_linearlayout_init(EGUI_VIEW_OF(&bottom_row));
-    egui_view_set_size(EGUI_VIEW_OF(&bottom_row), 220, 108);
+    egui_view_set_size(EGUI_VIEW_OF(&bottom_row), 214, 108);
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&bottom_row), 1);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&bottom_row), EGUI_ALIGN_VCENTER);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&bottom_row));
 
     egui_view_linearlayout_init(EGUI_VIEW_OF(&compare_column));
-    egui_view_set_size(EGUI_VIEW_OF(&compare_column), 128, 112);
-    egui_view_set_margin(EGUI_VIEW_OF(&compare_column), 0, 4, 0, 0);
+    egui_view_set_size(EGUI_VIEW_OF(&compare_column), 120, 112);
+    egui_view_set_margin(EGUI_VIEW_OF(&compare_column), 2, 0, 0, 0);
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&compare_column), 0);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&compare_column), EGUI_ALIGN_HCENTER);
     egui_view_group_add_child(EGUI_VIEW_OF(&bottom_row), EGUI_VIEW_OF(&compare_column));
 
     egui_view_label_init(EGUI_VIEW_OF(&compare_label));
-    egui_view_set_size(EGUI_VIEW_OF(&compare_label), 128, 12);
+    egui_view_set_size(EGUI_VIEW_OF(&compare_label), 120, 12);
     egui_view_label_set_text(EGUI_VIEW_OF(&compare_label), compare_titles[0]);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&compare_label), EGUI_ALIGN_CENTER);
     egui_view_label_set_font(EGUI_VIEW_OF(&compare_label), (const egui_font_t *)&egui_res_font_montserrat_10_4);
+    egui_view_set_margin(EGUI_VIEW_OF(&compare_label), 0, 1, 0, 2);
     egui_view_group_add_child(EGUI_VIEW_OF(&compare_column), EGUI_VIEW_OF(&compare_label));
 
     egui_view_radar_chart_init(EGUI_VIEW_OF(&radar_compare));
-    egui_view_set_size(EGUI_VIEW_OF(&radar_compare), 128, 96);
+    egui_view_set_size(EGUI_VIEW_OF(&radar_compare), 120, 94);
     egui_view_radar_chart_set_axis_labels(EGUI_VIEW_OF(&radar_compare), compare_labels, 6);
     egui_view_radar_chart_set_value_set(EGUI_VIEW_OF(&radar_compare), 0, compare_set_a);
     egui_view_radar_chart_set_value_set(EGUI_VIEW_OF(&radar_compare), 1, compare_set_b);
@@ -258,27 +262,29 @@ void test_init_ui(void)
     egui_view_radar_chart_set_compare_values(EGUI_VIEW_OF(&radar_compare), compare_set_b);
     egui_view_radar_chart_set_show_compare(EGUI_VIEW_OF(&radar_compare), 1);
     egui_view_radar_chart_set_grid_levels(EGUI_VIEW_OF(&radar_compare), 3);
+    egui_view_radar_chart_set_label_padding(EGUI_VIEW_OF(&radar_compare), 18);
     egui_view_radar_chart_set_font(EGUI_VIEW_OF(&radar_compare), (const egui_font_t *)&egui_res_font_montserrat_8_4);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&radar_compare), on_compare_click);
     egui_view_group_add_child(EGUI_VIEW_OF(&compare_column), EGUI_VIEW_OF(&radar_compare));
     apply_compare_state(0, 0);
 
     egui_view_linearlayout_init(EGUI_VIEW_OF(&mini_column));
-    egui_view_set_size(EGUI_VIEW_OF(&mini_column), 84, 112);
+    egui_view_set_size(EGUI_VIEW_OF(&mini_column), 90, 112);
     egui_view_set_margin(EGUI_VIEW_OF(&mini_column), 4, 0, 0, 0);
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&mini_column), 0);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&mini_column), EGUI_ALIGN_HCENTER);
     egui_view_group_add_child(EGUI_VIEW_OF(&bottom_row), EGUI_VIEW_OF(&mini_column));
 
     egui_view_label_init(EGUI_VIEW_OF(&mini_label));
-    egui_view_set_size(EGUI_VIEW_OF(&mini_label), 84, 12);
+    egui_view_set_size(EGUI_VIEW_OF(&mini_label), 90, 12);
     egui_view_label_set_text(EGUI_VIEW_OF(&mini_label), mini_titles[0]);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&mini_label), EGUI_ALIGN_CENTER);
     egui_view_label_set_font(EGUI_VIEW_OF(&mini_label), (const egui_font_t *)&egui_res_font_montserrat_10_4);
+    egui_view_set_margin(EGUI_VIEW_OF(&mini_label), 0, 1, 0, 2);
     egui_view_group_add_child(EGUI_VIEW_OF(&mini_column), EGUI_VIEW_OF(&mini_label));
 
     egui_view_radar_chart_init(EGUI_VIEW_OF(&radar_mini));
-    egui_view_set_size(EGUI_VIEW_OF(&radar_mini), 84, 92);
+    egui_view_set_size(EGUI_VIEW_OF(&radar_mini), 90, 94);
     egui_view_radar_chart_set_axis_labels(EGUI_VIEW_OF(&radar_mini), mini_labels, 5);
     egui_view_radar_chart_set_value_set(EGUI_VIEW_OF(&radar_mini), 0, mini_set_a);
     egui_view_radar_chart_set_value_set(EGUI_VIEW_OF(&radar_mini), 1, mini_set_b);
