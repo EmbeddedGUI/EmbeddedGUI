@@ -1,16 +1,25 @@
 #include <stdlib.h>
 #include "egui_view_sample_widget.h"
 
+#define SAMPLE_WIDGET_RADIUS 6
+
 static void egui_view_sample_widget_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_sample_widget_t);
+    egui_region_t region;
+
+    egui_view_get_work_region(self, &region);
+    if (region.size.width <= 0 || region.size.height <= 0)
+    {
+        return;
+    }
+
+    egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, SAMPLE_WIDGET_RADIUS,
+                                         EGUI_COLOR_HEX(0x0F172A), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_40));
 
     // Draw border
     if (local->border_width > 0)
     {
-        egui_region_t region;
-        egui_view_get_work_region(self, &region);
-
         egui_dim_t x = region.location.x;
         egui_dim_t y = region.location.y;
         egui_dim_t w = region.size.width;
@@ -54,6 +63,9 @@ void egui_view_sample_widget_init(egui_view_t *self)
 
     // Init base label
     egui_view_label_init(self);
+    egui_view_label_set_font(self, (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
+    egui_view_label_set_font_color(self, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    egui_view_set_padding_all(self, 4);
 
     // Override draw API
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_sample_widget_t);
