@@ -126,9 +126,11 @@ void egui_view_label_set_text(egui_view_t *self, const char *text)
 
 ## 交互说明
 
-交互都用中文
+- 交互都用简体中文
 
-代码用utf-8英文，代码里面不要出现中文。
+- 代码用utf-8英文，代码里面不要出现中文。
+
+- 文档使用utf-8简体中文
 
 ## 代码风格
 
@@ -152,6 +154,10 @@ python scripts/code_runtime_check.py --full-check
 验证要点：
 - 构建成功后必须运行 `code_runtime_check.py` 进行运行时验证
 - 检查截图输出（`runtime_check_output/` 目录下的 PNG 文件）确认渲染正确
+- 检查文本、图标、中心按钮等关键元素的视觉居中是否准确，左右/上下留白是否平衡；不能只以“没截断”作为通过标准
+- 检查文字与按钮/圆形/胶囊等边框之间是否保留合理空隙，不能出现文字贴边、视觉压迫或左右内边距明显失衡
+- HelloCustomWidgets 逐轮迭代时，必须在各应用目录下维护 iteration_log/iteration_log.md，并把关键截图复制到 iteration_log/images/ 后使用相对路径引用，作为后续 review 依据
+- iteration_log/ 属于本地审阅产物，不纳入 git 提交
 - 如果运行时检查失败（卡死、崩溃），必须排查修复后重新验证
 - **多页面应用必须验证所有页面渲染**：对于包含多个页面的应用，运行时验证必须覆盖每一个页面，不能只验证首页。代码生成器会自动为多页面项目生成 `egui_port_get_recording_action()` 录制动作，通过 `uicode_switch_page()` 依次切换所有页面。验证时需检查截图确认每个页面都有正确渲染输出
 - **性能测试必须使用 QEMU 验证**：PC 模拟器的计时器精度只有 1ms，不适合做性能基准测试。性能数据必须通过 QEMU 运行获取（使用微秒级计时器 `qemu_get_tick_us`）。PC 运行仅用于方便查看渲染效果，不作为性能数据依据
@@ -337,3 +343,4 @@ WidgetRegistry.instance().register(
 ## Plan说明
 
 每次进行Plan完成时，需要将Plan整理成文档，放入.claude路径下，文档按照Plan简写来，用中文utf-8编码。
+
