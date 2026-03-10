@@ -16,6 +16,8 @@ void egui_view_sample_input_init(egui_view_t *self, egui_dim_t x, egui_dim_t y, 
     egui_view_label_init(EGUI_VIEW_OF(&local->label));
     egui_view_set_size(EGUI_VIEW_OF(&local->label), w, 20);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&local->label), EGUI_ALIGN_CENTER);
+    egui_view_label_set_font(EGUI_VIEW_OF(&local->label), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&local->label), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_group_add_child(self, EGUI_VIEW_OF(&local->label));
 
     // Init slider child
