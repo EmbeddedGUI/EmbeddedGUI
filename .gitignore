@@ -56,3 +56,5 @@ scripts/ui_designer/.config/
 __pycache__
 
 MDK-ARM/
+
+iteration_log/
