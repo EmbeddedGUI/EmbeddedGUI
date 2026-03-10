@@ -144,6 +144,7 @@ python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub <categor
 - `iteration_log/iteration_log.md` 必须记录本轮目标、代码改动摘要、编译结果、runtime 结果、视觉结论、交互结论和最终判定。
 - `iteration_log/iteration_log.md` 中必须额外记录：关键文字、图标、中心按钮是否视觉居中，左右/上下边距是否平衡。
 - `iteration_log/iteration_log.md` 中必须额外记录：文字与按钮/圆形/胶囊边框之间是否留有合理空隙，是否存在贴边或内边距失衡。
+- Windows 上如通过 PowerShell 管道把脚本内容喂给 `python -` 来写入中文日志，必须先设置 `$OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8`，否则中文可能被写成问号占位符。
 - 顶部圆形按钮、短文本胶囊、短词按钮必须单独检查视觉居中与左右留白，例如 `Open`、`Pause` 这类短文本不能出现视觉偏心或贴边。
 
 ```md
