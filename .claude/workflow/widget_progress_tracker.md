@@ -66,6 +66,7 @@
 | 39 | coverflow_strip | navigation | 2026-03-10 | 30 | 中央主卡、左右透视侧卡、索引切换、底部状态带 | 区别于 dock_launcher/tab_expose/command_palette，核心在中心主卡 + 左右后景侧卡 + 当前索引轮转 | `example/HelloCustomWidgets/navigation/coverflow_strip/`; `runtime_check_output/HelloCustomWidgets_navigation/coverflow_strip/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 已提交：`c8eb3d0` |
 | 40 | frame_scrubber | media | 2026-03-10 | 30 | 缩略帧带、播放头、左右预读窗、marker 切换 | 区别于 waveform_strip/range_band_editor/coverflow_strip，核心在线性缩略帧时间轴 + 左右预读窗 + playhead/marker 双锚点 | `example/HelloCustomWidgets/media/frame_scrubber/`; `runtime_check_output/HelloCustomWidgets_media/frame_scrubber/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 已提交：`e5b16fd` |
 | 41 | subtitle_timeline | media | 2026-03-10 | 30 | 字幕块时间轴、当前 cue 高亮、前后 cue 预读、时长分段对齐 | 区别于 frame_scrubber/waveform_strip/range_band_editor，核心在字幕 cue 分段 + 当前 cue 焦点 + 前后 cue 预读 + 文本阅读流 | `example/HelloCustomWidgets/media/subtitle_timeline/`; `runtime_check_output/HelloCustomWidgets_media/subtitle_timeline/default/` | make + runtime 均 PASS；iteration_log 已归档；30 次迭代完成 | 已提交：`5556560` |
+| 42 | equalizer_curve_editor | input | 2026-03-10 | 31 | 多频段均衡曲线、焦点 band、前后预读、参数摘要、状态胶囊 | 区别于 xy_pad/range_band_editor/waveform_strip/level_meter，核心在多 band 曲线编辑语义 + 当前焦点节点 + 前后预读窗 + 参数摘要与状态反馈联动 | `example/HelloCustomWidgets/input/equalizer_curve_editor/`; `runtime_check_output/HelloCustomWidgets_input/equalizer_curve_editor/default/` | make + runtime 均 PASS；iteration_log 已归档；31 次迭代完成 | 待提交：equalizer_curve_editor 专属 commit |
 
 ## 已搁置 / 待恢复
 
