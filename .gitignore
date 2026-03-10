@@ -58,3 +58,5 @@ __pycache__
 MDK-ARM/
 
 iteration_log/
+
+eq_debug_*.txt
