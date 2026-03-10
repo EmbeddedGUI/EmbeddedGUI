@@ -1,4 +1,4 @@
-﻿# Widget Progress Tracker
+# Widget Progress Tracker
 
 ## 用途说明
 
@@ -31,7 +31,7 @@
 | 4 | heatmap_chart | chart | 2026-03-11 | 30 | 二维格点色温编码、热点导引、焦点联动反馈 | 区别于 chart_line/chart_bar/chart_pie/treemap_chart，核心在二维热区分布 + 峰值行列导引 + 多层焦点反馈 | `example/HelloCustomWidgets/chart/heatmap_chart/`; `runtime_check_output/HelloCustomWidgets_chart/heatmap_chart/default/` | make + runtime 均 PASS；iteration_log 已补齐并归档；30 次迭代完成 | 已提交：`f8c2e3b` |
 | 5 | candlestick_chart | chart | 2026-03-11 | 30 | OHLC 实体影线、趋势胶囊、波动高亮列 | 区别于 chart_line/chart_bar/heatmap_chart/treemap_chart，核心在开高低收四值结构 + 涨跌方向 + 波动热点定位 | `example/HelloCustomWidgets/chart/candlestick_chart/`; `runtime_check_output/HelloCustomWidgets_chart/candlestick_chart/default/` | make + runtime 均 PASS；iteration_log 已补齐并归档；30 次迭代完成 | 已提交：`3cacf03` |
 | 6 | boxplot_chart | chart | 2026-03-10 | 30 | 五数概括箱线结构、分位区间表达、紧凑态统计对比 | 区别于 candlestick_chart/chart_line/chart_bar，核心在 min/q1/median/q3/max 的统计分位表达 + 主图/紧凑态双层对比 | `example/HelloCustomWidgets/chart/boxplot_chart/`; `runtime_check_output/HelloCustomWidgets_chart/boxplot_chart/default/` | make + runtime 均 PASS；iteration_log 已补齐并归档；30 次迭代完成 | 待提交：boxplot_chart 专属 commit |
-| 7 | kanban_board | layout | 2026-03-08 | 30 | 多列泳道布局、卡片堆叠密度、焦点列与只读预览对比 | 区别于 table/list/gridlayout，核心在阶段泳道并列 + 卡片堆叠摘要 + focus lane 与 locked preview 语义 | `example/HelloCustomWidgets/layout/kanban_board/`; `runtime_check_output/HelloCustomWidgets_layout/kanban_board/default/` | make + runtime 均 PASS；截图已展示；30 次迭代完成 | 待提交：kanban_board 专属 commit |
+| 7 | kanban_board | layout | 2026-03-11 | 30 | 多列泳道布局、卡片堆叠密度、焦点列与只读预览对比 | 区别于 table/list/gridlayout，核心在阶段泳道并列 + 卡片堆叠摘要 + focus lane 与 locked preview 语义 | `example/HelloCustomWidgets/layout/kanban_board/`; `runtime_check_output/HelloCustomWidgets_layout/kanban_board/default/` | make + runtime 均 PASS；iteration_log 已补齐并归档；30 次迭代完成 | 已提交：本次提交 |
 | 8 | status_timeline | display | 2026-03-11 | 30 | 纵向节点时间线、阶段状态胶囊、聚焦节点与只读预览对比 | 区别于 list/table/stepper，核心在阶段顺序链路 + 当前节点高亮 + compact/locked 双预览语义 | `example/HelloCustomWidgets/display/status_timeline/`; `runtime_check_output/HelloCustomWidgets_display/status_timeline/default/` | make + runtime 均 PASS；iteration_log 已补齐并归档；30 次迭代完成 | 已提交：本次提交 |
 | 9 | avatar_stack | decoration | 2026-03-11 | 30 | 重叠头像组、聚焦成员描边、计数徽标与只读预览对比 | 区别于 image/notification_badge/list，核心在多人头像重叠 + focus member 高亮 + group badge 与 locked preview | `example/HelloCustomWidgets/decoration/avatar_stack/`; `runtime_check_output/HelloCustomWidgets_decoration/avatar_stack/default/` | make + runtime 均 PASS；iteration_log 已补齐并归档；30 次迭代完成 | 已提交：`27e1233` |
 | 10 | notification_stack | feedback | 2026-03-11 | 30 | 多层提示卡堆叠、主卡严重级别强调、紧凑预览与只读预览对比 | 区别于 notification_badge/card/list，核心在多提示卡前后层级 + severity 色条 + focus card 与 locked preview | `example/HelloCustomWidgets/feedback/notification_stack/`; `runtime_check_output/HelloCustomWidgets_feedback/notification_stack/default/` | make + runtime 均 PASS；iteration_log 已补齐并归档；30 次迭代完成 | 已提交：本次提交 |
