@@ -46,7 +46,7 @@ static const egui_view_line_point_t divider_points[] = {{0, 0}, {135, 0}};
 static void set_hint_state(const char *text, egui_color_t color)
 {
     egui_view_label_set_text(EGUI_VIEW_OF(&hint_label), text);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&hint_label), color, EGUI_ALPHA_100);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&hint_label), color, EGUI_ALPHA_80);
 }
 
 static void on_primary_changed(egui_view_t *self, uint8_t index)
@@ -79,7 +79,7 @@ void test_init_ui(void)
     egui_view_label_set_text(EGUI_VIEW_OF(&title_label), title_text);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&title_label), EGUI_ALIGN_CENTER);
     egui_view_label_set_font(EGUI_VIEW_OF(&title_label), (const egui_font_t *)&egui_res_font_montserrat_12_4);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&title_label), EGUI_COLOR_HEX(0x38BDF8), EGUI_ALPHA_100);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&title_label), EGUI_COLOR_HEX(0x38BDF8), EGUI_ALPHA_90);
     egui_view_set_size(EGUI_VIEW_OF(&title_label), 220, 18);
     egui_view_set_margin(EGUI_VIEW_OF(&title_label), 0, 0, 0, 0);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&title_label));
@@ -89,7 +89,7 @@ void test_init_ui(void)
     egui_view_label_set_text(EGUI_VIEW_OF(&guide_label), "Tap center and drag to choose");
     egui_view_label_set_align_type(EGUI_VIEW_OF(&guide_label), EGUI_ALIGN_CENTER);
     egui_view_label_set_font(EGUI_VIEW_OF(&guide_label), (const egui_font_t *)&egui_res_font_montserrat_10_4);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&guide_label), EGUI_COLOR_DARK_GREY, EGUI_ALPHA_100);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&guide_label), EGUI_COLOR_HEX(0x94A3B8), EGUI_ALPHA_80);
     egui_view_set_margin(EGUI_VIEW_OF(&guide_label), 0, 0, 0, 2);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&guide_label));
 
@@ -106,8 +106,8 @@ void test_init_ui(void)
     egui_view_label_set_text(EGUI_VIEW_OF(&hint_label), primary_messages[2]);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&hint_label), EGUI_ALIGN_CENTER);
     egui_view_label_set_font(EGUI_VIEW_OF(&hint_label), (const egui_font_t *)&egui_res_font_montserrat_10_4);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&hint_label), EGUI_COLOR_HEX(0x38BDF8), EGUI_ALPHA_100);
-    egui_view_set_margin(EGUI_VIEW_OF(&hint_label), 0, 0, 0, 2);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&hint_label), EGUI_COLOR_HEX(0x38BDF8), EGUI_ALPHA_80);
+    egui_view_set_margin(EGUI_VIEW_OF(&hint_label), 0, 0, 0, 3);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&hint_label));
 
     egui_view_line_init(EGUI_VIEW_OF(&variants_divider));
@@ -123,8 +123,8 @@ void test_init_ui(void)
     egui_view_label_set_text(EGUI_VIEW_OF(&variants_label), "Compact and Disabled States");
     egui_view_label_set_align_type(EGUI_VIEW_OF(&variants_label), EGUI_ALIGN_CENTER);
     egui_view_label_set_font(EGUI_VIEW_OF(&variants_label), (const egui_font_t *)&egui_res_font_montserrat_10_4);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&variants_label), EGUI_COLOR_DARK_GREY, EGUI_ALPHA_100);
-    egui_view_set_margin(EGUI_VIEW_OF(&variants_label), 0, 0, 0, 2);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&variants_label), EGUI_COLOR_HEX(0x94A3B8), EGUI_ALPHA_80);
+    egui_view_set_margin(EGUI_VIEW_OF(&variants_label), 0, 0, 0, 4);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&variants_label));
 
     egui_view_linearlayout_init(EGUI_VIEW_OF(&bottom_row));
@@ -134,8 +134,8 @@ void test_init_ui(void)
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&bottom_row));
 
     egui_view_linearlayout_init(EGUI_VIEW_OF(&compact_column));
-    egui_view_set_size(EGUI_VIEW_OF(&compact_column), 102, 108);
-    egui_view_set_margin(EGUI_VIEW_OF(&compact_column), 0, 6, 0, 0);
+    egui_view_set_size(EGUI_VIEW_OF(&compact_column), 104, 108);
+    egui_view_set_margin(EGUI_VIEW_OF(&compact_column), 0, 4, 0, 0);
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&compact_column), 0);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&compact_column), EGUI_ALIGN_HCENTER);
     egui_view_group_add_child(EGUI_VIEW_OF(&bottom_row), EGUI_VIEW_OF(&compact_column));
@@ -151,24 +151,25 @@ void test_init_ui(void)
             EGUI_COLOR_HEX(0xD97706));
     egui_view_radial_menu_set_decoration_colors(
             EGUI_VIEW_OF(&radial_compact),
-            EGUI_COLOR_HEX(0xFBBF24),
-            EGUI_COLOR_HEX(0xFDE68A),
-            EGUI_COLOR_HEX(0xFCD34D));
+            EGUI_COLOR_HEX(0xF59E0B),
+            EGUI_COLOR_HEX(0xFCD34D),
+            EGUI_COLOR_HEX(0xFBBF24));
     egui_view_radial_menu_set_font(EGUI_VIEW_OF(&radial_compact), (const egui_font_t *)&egui_res_font_montserrat_10_4);
     egui_view_radial_menu_set_on_selection_changed_listener(EGUI_VIEW_OF(&radial_compact), on_compact_changed);
     egui_view_group_add_child(EGUI_VIEW_OF(&compact_column), EGUI_VIEW_OF(&radial_compact));
 
     egui_view_label_init(EGUI_VIEW_OF(&compact_label));
-    egui_view_set_size(EGUI_VIEW_OF(&compact_label), 102, 12);
+    egui_view_set_size(EGUI_VIEW_OF(&compact_label), 104, 12);
+    egui_view_set_margin(EGUI_VIEW_OF(&compact_label), 2, 0, 0, 0);
     egui_view_label_set_text(EGUI_VIEW_OF(&compact_label), "Compact");
     egui_view_label_set_align_type(EGUI_VIEW_OF(&compact_label), EGUI_ALIGN_CENTER);
     egui_view_label_set_font(EGUI_VIEW_OF(&compact_label), (const egui_font_t *)&egui_res_font_montserrat_10_4);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0xFBBF24), EGUI_ALPHA_100);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0xFBBF24), EGUI_ALPHA_80);
     egui_view_group_add_child(EGUI_VIEW_OF(&compact_column), EGUI_VIEW_OF(&compact_label));
 
     egui_view_linearlayout_init(EGUI_VIEW_OF(&disabled_column));
-    egui_view_set_size(EGUI_VIEW_OF(&disabled_column), 102, 108);
-    egui_view_set_margin(EGUI_VIEW_OF(&disabled_column), 6, 0, 0, 0);
+    egui_view_set_size(EGUI_VIEW_OF(&disabled_column), 104, 108);
+    egui_view_set_margin(EGUI_VIEW_OF(&disabled_column), 4, 0, 0, 0);
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&disabled_column), 0);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&disabled_column), EGUI_ALIGN_HCENTER);
     egui_view_group_add_child(EGUI_VIEW_OF(&bottom_row), EGUI_VIEW_OF(&disabled_column));
@@ -179,24 +180,25 @@ void test_init_ui(void)
     egui_view_radial_menu_set_palette(
             EGUI_VIEW_OF(&radial_disabled),
             EGUI_COLOR_HEX(0x1F2937),
-            EGUI_COLOR_HEX(0x9CA3AF),
+            EGUI_COLOR_HEX(0xA7B4C4),
             EGUI_COLOR_HEX(0x475569));
     egui_view_radial_menu_set_decoration_colors(
             EGUI_VIEW_OF(&radial_disabled),
-            EGUI_COLOR_HEX(0x94A3B8),
-            EGUI_COLOR_HEX(0xE2E8F0),
-            EGUI_COLOR_HEX(0xCBD5E1));
+            EGUI_COLOR_HEX(0xB8C4D3),
+            EGUI_COLOR_HEX(0xF1F5F9),
+            EGUI_COLOR_HEX(0xD5DDE8));
     egui_view_radial_menu_set_font(EGUI_VIEW_OF(&radial_disabled), (const egui_font_t *)&egui_res_font_montserrat_12_4);
     egui_view_radial_menu_set_current_index(EGUI_VIEW_OF(&radial_disabled), 4);
     egui_view_set_enable(EGUI_VIEW_OF(&radial_disabled), 0);
     egui_view_group_add_child(EGUI_VIEW_OF(&disabled_column), EGUI_VIEW_OF(&radial_disabled));
 
     egui_view_label_init(EGUI_VIEW_OF(&disabled_label));
-    egui_view_set_size(EGUI_VIEW_OF(&disabled_label), 102, 12);
+    egui_view_set_size(EGUI_VIEW_OF(&disabled_label), 104, 12);
+    egui_view_set_margin(EGUI_VIEW_OF(&disabled_label), 2, 0, 0, 0);
     egui_view_label_set_text(EGUI_VIEW_OF(&disabled_label), "Disabled");
     egui_view_label_set_align_type(EGUI_VIEW_OF(&disabled_label), EGUI_ALIGN_CENTER);
     egui_view_label_set_font(EGUI_VIEW_OF(&disabled_label), (const egui_font_t *)&egui_res_font_montserrat_10_4);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&disabled_label), EGUI_COLOR_HEX(0xCBD5E1), EGUI_ALPHA_100);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&disabled_label), EGUI_COLOR_HEX(0xCBD5E1), EGUI_ALPHA_80);
     egui_view_group_add_child(EGUI_VIEW_OF(&disabled_column), EGUI_VIEW_OF(&disabled_label));
 
     egui_view_linearlayout_layout_childs(EGUI_VIEW_OF(&compact_column));

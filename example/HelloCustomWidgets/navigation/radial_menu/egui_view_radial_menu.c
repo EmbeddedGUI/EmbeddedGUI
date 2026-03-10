@@ -341,8 +341,20 @@ static void egui_view_radial_menu_on_draw(egui_view_t *self)
         }
 
         egui_canvas_draw_circle_fill(layout.center_x, layout.center_y, layout.inner_radius, EGUI_COLOR_HEX(0x0F172A), self->alpha);
-        egui_canvas_draw_circle(layout.center_x, layout.center_y, layout.outer_radius, 1, border_color, self->alpha);
-        egui_canvas_draw_circle(layout.center_x, layout.center_y, layout.inner_radius, 1, border_color, self->alpha);
+        egui_canvas_draw_circle(
+                layout.center_x,
+                layout.center_y,
+                layout.outer_radius,
+                1,
+                border_color,
+                egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
+        egui_canvas_draw_circle(
+                layout.center_x,
+                layout.center_y,
+                layout.inner_radius,
+                1,
+                border_color,
+                egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
 
         if (layout.count > 1)
         {
@@ -356,8 +368,24 @@ static void egui_view_radial_menu_on_draw(egui_view_t *self)
                 int16_t angle = layout.start_angle + layout.step_angle * boundary_index;
                 egui_view_radial_menu_get_point(layout.center_x, layout.center_y, layout.inner_radius, angle, &x1, &y1);
                 egui_view_radial_menu_get_point(layout.center_x, layout.center_y, layout.outer_radius, angle, &x2, &y2);
-                egui_canvas_draw_line(x1, y1, x2, y2, 1, border_color, EGUI_ALPHA_30);
+                egui_canvas_draw_line(x1, y1, x2, y2, 1, border_color, EGUI_ALPHA_20);
             }
+        }
+
+        if (layout.region.size.width <= 100 && local->current_index < layout.count && local->current_index != local->hot_index)
+        {
+            int16_t current_start = layout.start_angle + layout.step_angle * local->current_index + 8;
+            int16_t current_end = layout.start_angle + layout.step_angle * (local->current_index + 1) - 8;
+            egui_color_t current_trace_color = egui_rgb_mix(accent_color, EGUI_COLOR_WHITE, EGUI_ALPHA_30);
+            egui_canvas_draw_arc(
+                    layout.center_x,
+                    layout.center_y,
+                    layout.inner_radius + 5,
+                    current_start,
+                    current_end,
+                    1,
+                    current_trace_color,
+                    egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
         }
 
         {
@@ -379,10 +407,23 @@ static void egui_view_radial_menu_on_draw(egui_view_t *self)
                 marker_start = layout.start_angle + layout.step_angle * marker_index + 6;
                 marker_end = layout.start_angle + layout.step_angle * (marker_index + 1) - 6;
                 egui_view_radial_menu_get_point(layout.center_x, layout.center_y, layout.outer_radius - 6, marker_angle, &marker_x, &marker_y);
-                marker_color = (marker_index == local->hot_index) ? EGUI_COLOR_WHITE : accent_color;
-                marker_radius = (marker_index == local->hot_index) ? 4 : 3;
-                egui_canvas_draw_arc(layout.center_x, layout.center_y, layout.outer_radius - 2, marker_start, marker_end, (marker_index == local->hot_index) ? 3 : 2, marker_color, (marker_index == local->hot_index) ? self->alpha : egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
-                egui_canvas_draw_circle_fill(marker_x, marker_y, marker_radius + 2, marker_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+                marker_color = (marker_index == local->hot_index) ? accent_color : egui_rgb_mix(accent_color, EGUI_COLOR_WHITE, EGUI_ALPHA_20);
+                marker_radius = (marker_index == local->hot_index) ? 4 : 2;
+                egui_canvas_draw_arc(
+                        layout.center_x,
+                        layout.center_y,
+                        layout.outer_radius - 2,
+                        marker_start,
+                        marker_end,
+                        (marker_index == local->hot_index) ? 3 : 1,
+                        marker_color,
+                        (marker_index == local->hot_index) ? self->alpha : egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
+                egui_canvas_draw_circle_fill(
+                        marker_x,
+                        marker_y,
+                        marker_radius + ((marker_index == local->hot_index) ? 2 : 1),
+                        marker_color,
+                        egui_color_alpha_mix(self->alpha, (marker_index == local->hot_index) ? EGUI_ALPHA_30 : EGUI_ALPHA_20));
                 egui_canvas_draw_circle_fill(marker_x, marker_y, marker_radius, marker_color, self->alpha);
             }
         }
@@ -398,7 +439,7 @@ static void egui_view_radial_menu_on_draw(egui_view_t *self)
                 egui_color_t chip_bg = chip_color;
                 egui_color_t color = muted_text_color;
                 egui_alpha_t current_chip_alpha = egui_color_alpha_mix(self->alpha, EGUI_ALPHA_40);
-                egui_alpha_t text_alpha = egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60);
+                egui_alpha_t text_alpha = egui_color_alpha_mix(self->alpha, EGUI_ALPHA_40);
                 int show_single_label = (layout.region.size.width <= 100);
                 int draw_chip = show_single_label;
                 int16_t angle = layout.start_angle + layout.step_angle * label_index + layout.step_angle / 2;
@@ -446,13 +487,18 @@ static void egui_view_radial_menu_on_draw(egui_view_t *self)
                 if (show_single_label)
                 {
                     text_region.location.x = layout.center_x - (layout.label_width + 10) / 2;
-                    text_region.location.y = layout.region.location.y + 4;
+                    text_region.location.y = layout.region.location.y + 8;
                     text_region.size.width = layout.label_width + 10;
                     text_region.size.height = layout.label_height;
                 }
                 else
                 {
-                    egui_view_radial_menu_get_point(layout.center_x, layout.center_y, layout.label_radius, angle, &label_x, &label_y);
+                    egui_dim_t label_radius = layout.label_radius;
+                    if (label_index != local->hot_index)
+                    {
+                        label_radius += 4;
+                    }
+                    egui_view_radial_menu_get_point(layout.center_x, layout.center_y, label_radius, angle, &label_x, &label_y);
                     text_region.location.x = label_x - layout.label_width / 2;
                     text_region.location.y = label_y - layout.label_height / 2;
                     text_region.size.width = layout.label_width;
@@ -482,23 +528,43 @@ static void egui_view_radial_menu_on_draw(egui_view_t *self)
     {
         uint8_t i;
         egui_canvas_draw_circle_fill(layout.center_x, layout.center_y, layout.inner_radius + 4, ring_back_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
+        egui_canvas_draw_circle(
+                layout.center_x,
+                layout.center_y,
+                layout.label_radius,
+                1,
+                border_color,
+                egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
         for (i = 0; i < layout.count; i++)
         {
             egui_dim_t dot_x;
             egui_dim_t dot_y;
             egui_dim_t dot_radius = (i == local->current_index) ? 4 : 3;
             egui_color_t dot_color = (i == local->current_index) ? accent_color : muted_text_color;
+            egui_alpha_t dot_alpha = (i == local->current_index) ? self->alpha : egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70);
             int16_t angle = layout.start_angle + layout.step_angle * i + layout.step_angle / 2;
             egui_view_radial_menu_get_point(layout.center_x, layout.center_y, layout.label_radius, angle, &dot_x, &dot_y);
-            egui_canvas_draw_circle_fill(dot_x, dot_y, dot_radius, dot_color, self->alpha);
+            if (i == local->current_index)
+            {
+                egui_canvas_draw_circle_fill(dot_x, dot_y, dot_radius + 2, dot_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+            }
+            egui_canvas_draw_circle_fill(dot_x, dot_y, dot_radius, dot_color, dot_alpha);
         }
         egui_canvas_draw_circle(layout.center_x, layout.center_y, layout.outer_radius, 1, border_color, EGUI_ALPHA_40);
     }
 
     {
         const char *center_text = "OPEN";
+        const egui_font_t *center_font = local->font;
         egui_color_t draw_center_color = center_color;
         egui_color_t center_text_color = EGUI_COLOR_WHITE;
+        egui_color_t center_border_color = border_color;
+        egui_color_t center_outer_ring_color = accent_color;
+        egui_alpha_t center_halo_alpha = egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20);
+        egui_alpha_t center_outer_ring_alpha = 0;
+        egui_dim_t center_halo_radius = layout.center_radius + 4;
+        egui_dim_t center_text_width = 0;
+        egui_dim_t center_text_height = 0;
         egui_region_t center_region;
 
         if (!egui_view_get_enable(self))
@@ -510,8 +576,23 @@ static void egui_view_radial_menu_on_draw(egui_view_t *self)
         {
             if (local->hot_index != EGUI_VIEW_RADIAL_MENU_INDEX_NONE)
             {
-                center_text = egui_view_radial_menu_get_item_text(local, local->hot_index);
-                draw_center_color = accent_color;
+                if (layout.region.size.width <= 100 && local->item_count > 0 && local->hot_index != local->current_index)
+                {
+                    center_text = egui_view_radial_menu_get_item_text(local, local->current_index);
+                    draw_center_color = egui_rgb_mix(center_color, accent_color, EGUI_ALPHA_30);
+                    center_border_color = accent_color;
+                    center_halo_alpha = egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30);
+                    center_halo_radius = layout.center_radius + 5;
+                }
+                else
+                {
+                    center_text = egui_view_radial_menu_get_item_text(local, local->hot_index);
+                    draw_center_color = accent_color;
+                    center_border_color = accent_color;
+                    center_halo_alpha = egui_color_alpha_mix(self->alpha, EGUI_ALPHA_40);
+                    center_outer_ring_alpha = egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60);
+                    center_halo_radius = layout.center_radius + 7;
+                }
             }
             else if (local->expanded_on_down)
             {
@@ -521,6 +602,7 @@ static void egui_view_radial_menu_on_draw(egui_view_t *self)
             {
                 center_text = egui_view_radial_menu_get_item_text(local, local->current_index);
                 draw_center_color = egui_rgb_mix(center_color, accent_color, EGUI_ALPHA_30);
+                center_halo_alpha = egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30);
             }
             else
             {
@@ -533,21 +615,37 @@ static void egui_view_radial_menu_on_draw(egui_view_t *self)
             center_text_color = text_color;
         }
 
-        egui_canvas_draw_circle_fill(layout.center_x, layout.center_y, layout.center_radius + 4, draw_center_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+        egui_canvas_draw_circle_fill(layout.center_x, layout.center_y, center_halo_radius, draw_center_color, center_halo_alpha);
+        if (center_outer_ring_alpha > 0)
+        {
+            egui_canvas_draw_circle(
+                    layout.center_x,
+                    layout.center_y,
+                    layout.center_radius + 3,
+                    1,
+                    center_outer_ring_color,
+                    center_outer_ring_alpha);
+        }
         if (egui_view_get_pressed(self))
         {
             draw_center_color = egui_rgb_mix(draw_center_color, EGUI_COLOR_WHITE, EGUI_ALPHA_30);
         }
 
         egui_canvas_draw_circle_fill(layout.center_x, layout.center_y, layout.center_radius, draw_center_color, self->alpha);
-        egui_canvas_draw_circle(layout.center_x, layout.center_y, layout.center_radius, 1, border_color, self->alpha);
+        egui_canvas_draw_circle(layout.center_x, layout.center_y, layout.center_radius, 1, center_border_color, self->alpha);
         egui_canvas_draw_circle_fill(layout.center_x, layout.center_y, EGUI_MAX(layout.center_radius / 6, 2), EGUI_COLOR_WHITE, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_80));
 
-        center_region.location.x = layout.center_x - layout.center_radius + 4;
-        center_region.location.y = layout.center_y - 10;
-        center_region.size.width = layout.center_radius * 2 - 8;
-        center_region.size.height = 20;
-        egui_canvas_draw_text_in_rect(local->font, center_text, &center_region, EGUI_ALIGN_CENTER, center_text_color, self->alpha);
+        center_font->api->get_str_size(center_font, center_text, 0, 0, &center_text_width, &center_text_height);
+        if (center_text_width > layout.center_radius * 2 - 10 && center_text[4] != '\0')
+        {
+            center_font = (const egui_font_t *)&egui_res_font_montserrat_10_4;
+            center_font->api->get_str_size(center_font, center_text, 0, 0, &center_text_width, &center_text_height);
+        }
+        center_region.size.width = center_text_width + 8;
+        center_region.size.height = center_text_height + 2;
+        center_region.location.x = layout.center_x - center_region.size.width / 2;
+        center_region.location.y = layout.center_y - center_region.size.height / 2;
+        egui_canvas_draw_text_in_rect(center_font, center_text, &center_region, EGUI_ALIGN_CENTER, center_text_color, self->alpha);
     }
 }
 
