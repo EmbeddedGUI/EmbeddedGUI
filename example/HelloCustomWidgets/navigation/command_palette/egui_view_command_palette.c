@@ -163,10 +163,10 @@ static void egui_view_command_palette_draw_row(
 
     egui_canvas_draw_circle_fill(x + 8, y + h / 2, 2, accent_color, egui_color_alpha_mix(self->alpha, highlighted ? 92 : 70));
 
-    text_right_padding = local->compact_mode ? 8 : 30;
+    text_right_padding = local->compact_mode ? 8 : 32;
     if (!local->compact_mode)
     {
-        chip_w = 22;
+        chip_w = 24;
         egui_view_command_palette_draw_shortcut(self, local, x + w - chip_w - 6, y + 3, chip_w, h - 6, shortcut, accent_color);
     }
 
