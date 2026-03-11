@@ -15,7 +15,9 @@ struct egui_page_base_api
 {
     void (*on_open)(egui_page_base_t *self);
     void (*on_close)(egui_page_base_t *self);
-
+    
+    void (*on_refresh)(egui_page_base_t *self);
+    
     void (*on_key_pressed)(egui_page_base_t *self, uint16_t keycode);
 };
 
@@ -34,6 +36,7 @@ void egui_page_base_set_name(egui_page_base_t *self, const char *name);
 
 void egui_page_base_open(egui_page_base_t *self);
 void egui_page_base_close(egui_page_base_t *self);
+void egui_page_base_refresh(egui_page_base_t *self);
 void egui_page_base_key_pressed(egui_page_base_t *self, uint16_t keycode);
 
 void egui_page_base_on_open(egui_page_base_t *self);

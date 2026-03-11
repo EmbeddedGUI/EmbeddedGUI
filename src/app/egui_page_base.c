@@ -38,6 +38,17 @@ void egui_page_base_close(egui_page_base_t *self)
     self->api->on_close(self);
 }
 
+void egui_page_base_refresh(egui_page_base_t *self)
+{
+#if EGUI_CONFIG_DEBUG_CLASS_NAME
+    EGUI_LOG_DBG("refresh, name: %s\n", self->name);
+#endif
+    if(self->api->on_refresh)
+    {
+        self->api->on_refresh(self);
+    }
+}
+
 void egui_page_base_key_pressed(egui_page_base_t *self, uint16_t keycode)
 {
     self->api->on_key_pressed(self, keycode);

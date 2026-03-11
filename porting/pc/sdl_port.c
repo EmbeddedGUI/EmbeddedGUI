@@ -29,10 +29,11 @@
 #if EGUI_CONFIG_COLOR_16_SWAP == 0
 #define RGB565_2_RGB888(color) (((color & 0xF800) << 8) + ((color & 0x7E0) << 5) + ((color & 0x1F) << 3))
 #else
-#define RGB565_2_RGB888(color)                                                                                                                                 \
-    (((((egui_color_rgb565_t *)&color)->red) << (16 + 3)) +                                                                                                    \
-     (((((egui_color_rgb565_t *)&color)->green_h << 3) + (((egui_color_rgb565_t *)&color)->green_l)) << (8 + 2)) +                                             \
-     ((((egui_color_rgb565_t *)&color)->blue) << 3))
+#define RGB565_2_RGB888(_c)                                                                                                                                    \
+    ({                                                                                                                                                         \
+        egui_color_rgb565_t _tmp = *(egui_color_rgb565_t *)&(_c);                                                                                              \
+        ((_tmp.color.red << (16 + 3)) + (((_tmp.color.green_h << 3) + _tmp.color.green_l) << (8 + 2)) + (_tmp.color.blue << 3));                               \
+    })
 #endif
 
 #define RGB888_2_monochrome(color) ((color) ? 0 : 1)
