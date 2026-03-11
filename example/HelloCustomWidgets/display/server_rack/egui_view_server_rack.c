@@ -99,13 +99,8 @@ void egui_view_server_rack_set_compact_mode(egui_view_t *self, uint8_t compact_m
     egui_view_invalidate(self);
 }
 
-void egui_view_server_rack_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t active_color)
+void egui_view_server_rack_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                       egui_color_t muted_text_color, egui_color_t active_color)
 {
     EGUI_LOCAL_INIT(egui_view_server_rack_t);
     local->surface_color = surface_color;
@@ -153,8 +148,10 @@ static void egui_view_server_rack_on_draw(egui_view_t *self)
         panel_color = egui_view_server_rack_mix_disabled(panel_color);
     }
 
-    egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, 8, panel_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
-    egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, region.size.height, 8, 1, local->border_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_50));
+    egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, 8, panel_color,
+                                          egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
+    egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, region.size.height, 8, 1, local->border_color,
+                                     egui_color_alpha_mix(self->alpha, EGUI_ALPHA_50));
 
     content_x = region.location.x + 6;
     content_y = region.location.y + 4;
@@ -167,7 +164,8 @@ static void egui_view_server_rack_on_draw(egui_view_t *self)
         header_region.location.y = content_y;
         header_region.size.width = content_width;
         header_region.size.height = 12;
-        egui_canvas_draw_text_in_rect(local->font, is_enabled ? snapshot->title : "Locked", &header_region, EGUI_ALIGN_LEFT, is_enabled ? local->muted_text_color : local->text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, is_enabled ? snapshot->title : "Locked", &header_region, EGUI_ALIGN_LEFT,
+                                      is_enabled ? local->muted_text_color : local->text_color, self->alpha);
         content_y += 14;
         content_height -= 14;
     }
@@ -221,7 +219,8 @@ static void egui_view_server_rack_on_draw(egui_view_t *self)
         }
 
         egui_canvas_draw_round_rectangle_fill(unit_x, unit_y, unit_w, unit_h, 4, fill_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_50));
-        egui_canvas_draw_round_rectangle(unit_x, unit_y, unit_w, unit_h, 4, is_current ? 2 : 1, border_color, egui_color_alpha_mix(self->alpha, is_current ? EGUI_ALPHA_80 : EGUI_ALPHA_40));
+        egui_canvas_draw_round_rectangle(unit_x, unit_y, unit_w, unit_h, 4, is_current ? 2 : 1, border_color,
+                                         egui_color_alpha_mix(self->alpha, is_current ? EGUI_ALPHA_80 : EGUI_ALPHA_40));
 
         meter_x = unit_x + (local->compact_mode ? 8 : 34);
         meter_y = unit_y + (unit_h / 2) - 3;
@@ -231,8 +230,10 @@ static void egui_view_server_rack_on_draw(egui_view_t *self)
         {
             meter_w = 12;
         }
-        egui_canvas_draw_round_rectangle_fill(meter_x, meter_y, meter_w, meter_h, 3, egui_rgb_mix(local->surface_color, local->border_color, EGUI_ALPHA_20), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
-        egui_canvas_draw_round_rectangle_fill(meter_x, meter_y, (meter_w * unit->meter_level) / 100, meter_h, 3, status_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_80));
+        egui_canvas_draw_round_rectangle_fill(meter_x, meter_y, meter_w, meter_h, 3, egui_rgb_mix(local->surface_color, local->border_color, EGUI_ALPHA_20),
+                                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
+        egui_canvas_draw_round_rectangle_fill(meter_x, meter_y, (meter_w * unit->meter_level) / 100, meter_h, 3, status_color,
+                                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_80));
 
         led_x = unit_x + unit_w - 14;
         egui_canvas_draw_circle_fill(led_x, unit_y + unit_h / 2, 2, status_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_90));
@@ -244,7 +245,8 @@ static void egui_view_server_rack_on_draw(egui_view_t *self)
             text_region.location.y = unit_y + 1;
             text_region.size.width = 26;
             text_region.size.height = unit_h - 2;
-            egui_canvas_draw_text_in_rect(local->font, unit->label, &text_region, EGUI_ALIGN_LEFT, is_focus ? local->text_color : local->muted_text_color, self->alpha);
+            egui_canvas_draw_text_in_rect(local->font, unit->label, &text_region, EGUI_ALIGN_LEFT, is_focus ? local->text_color : local->muted_text_color,
+                                          self->alpha);
         }
     }
 
@@ -255,13 +257,16 @@ static void egui_view_server_rack_on_draw(egui_view_t *self)
         text_region.location.y = content_y + content_height + 2;
         text_region.size.width = content_width;
         text_region.size.height = 10;
-        egui_canvas_draw_text_in_rect(local->font, caption, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, caption, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
     }
 
     if (!is_enabled)
     {
-        egui_canvas_draw_line(content_x + 2, content_y + 2, content_x + content_width - 3, content_y + content_height - 3, 1, local->muted_text_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
-        egui_canvas_draw_line(content_x + 2, content_y + content_height - 3, content_x + content_width - 3, content_y + 2, 1, local->muted_text_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
+        egui_canvas_draw_line(content_x + 2, content_y + 2, content_x + content_width - 3, content_y + content_height - 3, 1, local->muted_text_color,
+                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
+        egui_canvas_draw_line(content_x + 2, content_y + content_height - 3, content_x + content_width - 3, content_y + 2, 1, local->muted_text_color,
+                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
     }
 }
 

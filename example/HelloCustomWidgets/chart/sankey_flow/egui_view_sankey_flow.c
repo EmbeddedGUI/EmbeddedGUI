@@ -109,7 +109,8 @@ static void draw_round_fill_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, radius, color, alpha);
 }
 
-static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
     if (w <= 0 || h <= 0)
     {
@@ -208,14 +209,7 @@ static void resolve_stage_rects(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_d
     rects[1].size.height = second_h;
 }
 
-static void draw_flow_band(
-        egui_view_t *self,
-        egui_dim_t x1,
-        egui_dim_t y1,
-        egui_dim_t x2,
-        egui_dim_t y2,
-        egui_dim_t thickness,
-        egui_color_t color)
+static void draw_flow_band(egui_view_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t thickness, egui_color_t color)
 {
     egui_dim_t min_x;
     egui_dim_t max_x;
@@ -261,16 +255,8 @@ static void draw_flow_band(
     }
 }
 
-static void draw_sankey_preview(
-        egui_view_t *self,
-        const sankey_palette_t *palette,
-        const egui_view_sankey_flow_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t compact,
-        uint8_t locked)
+static void draw_sankey_preview(egui_view_t *self, const sankey_palette_t *palette, const egui_view_sankey_flow_snapshot_t *snapshot, egui_dim_t x,
+                                egui_dim_t y, egui_dim_t w, egui_dim_t h, uint8_t compact, uint8_t locked)
 {
     const sankey_profile_t *profile;
     egui_region_t stage_a[2];
@@ -319,38 +305,18 @@ static void draw_sankey_preview(
     resolve_stage_rects(stage_x2, y, stage_w, h, profile->stage_c, stage_c, compact);
 
     band_width = compact ? 4 : 5;
-    draw_flow_band(
-            self,
-            stage_a[0].location.x + stage_a[0].size.width,
-            stage_a[0].location.y + stage_a[0].size.height / 2,
-            stage_b[0].location.x,
-            stage_b[0].location.y + stage_b[0].size.height / 2,
-            band_width + profile->band_widths[0] / 2,
-            snapshot->focus_stage == 0 ? focus_color : base_band_color);
-    draw_flow_band(
-            self,
-            stage_a[1].location.x + stage_a[1].size.width,
-            stage_a[1].location.y + stage_a[1].size.height / 2,
-            stage_b[1].location.x,
-            stage_b[1].location.y + stage_b[1].size.height / 2,
-            band_width + profile->band_widths[1] / 2,
-            snapshot->focus_stage == 0 ? egui_rgb_mix(focus_color, palette->border, 30) : quiet_color);
-    draw_flow_band(
-            self,
-            stage_b[0].location.x + stage_b[0].size.width,
-            stage_b[0].location.y + stage_b[0].size.height / 2,
-            stage_c[0].location.x,
-            stage_c[0].location.y + stage_c[0].size.height / 2,
-            band_width + profile->band_widths[2] / 2,
-            snapshot->focus_stage == 1 ? focus_color : base_band_color);
-    draw_flow_band(
-            self,
-            stage_b[1].location.x + stage_b[1].size.width,
-            stage_b[1].location.y + stage_b[1].size.height / 2,
-            stage_c[1].location.x,
-            stage_c[1].location.y + stage_c[1].size.height / 2,
-            band_width + profile->band_widths[3] / 2,
-            snapshot->focus_stage == 2 ? focus_color : quiet_color);
+    draw_flow_band(self, stage_a[0].location.x + stage_a[0].size.width, stage_a[0].location.y + stage_a[0].size.height / 2, stage_b[0].location.x,
+                   stage_b[0].location.y + stage_b[0].size.height / 2, band_width + profile->band_widths[0] / 2,
+                   snapshot->focus_stage == 0 ? focus_color : base_band_color);
+    draw_flow_band(self, stage_a[1].location.x + stage_a[1].size.width, stage_a[1].location.y + stage_a[1].size.height / 2, stage_b[1].location.x,
+                   stage_b[1].location.y + stage_b[1].size.height / 2, band_width + profile->band_widths[1] / 2,
+                   snapshot->focus_stage == 0 ? egui_rgb_mix(focus_color, palette->border, 30) : quiet_color);
+    draw_flow_band(self, stage_b[0].location.x + stage_b[0].size.width, stage_b[0].location.y + stage_b[0].size.height / 2, stage_c[0].location.x,
+                   stage_c[0].location.y + stage_c[0].size.height / 2, band_width + profile->band_widths[2] / 2,
+                   snapshot->focus_stage == 1 ? focus_color : base_band_color);
+    draw_flow_band(self, stage_b[1].location.x + stage_b[1].size.width, stage_b[1].location.y + stage_b[1].size.height / 2, stage_c[1].location.x,
+                   stage_c[1].location.y + stage_c[1].size.height / 2, band_width + profile->band_widths[3] / 2,
+                   snapshot->focus_stage == 2 ? focus_color : quiet_color);
 
     for (i = 0; i < 2; i++)
     {
@@ -362,30 +328,12 @@ static void draw_sankey_preview(
         node_color_b = snapshot->focus_stage == 1 ? focus_color : base_node_color;
         node_color_c = snapshot->focus_stage == 2 ? focus_color : base_node_color;
 
-        draw_round_fill_safe(
-                stage_a[i].location.x,
-                stage_a[i].location.y,
-                stage_a[i].size.width,
-                stage_a[i].size.height,
-                compact ? 4 : 5,
-                node_color_a,
-                egui_color_alpha_mix(self->alpha, i == 0 ? 68 : 46));
-        draw_round_fill_safe(
-                stage_b[i].location.x,
-                stage_b[i].location.y,
-                stage_b[i].size.width,
-                stage_b[i].size.height,
-                compact ? 4 : 5,
-                node_color_b,
-                egui_color_alpha_mix(self->alpha, i == 0 ? 62 : 44));
-        draw_round_fill_safe(
-                stage_c[i].location.x,
-                stage_c[i].location.y,
-                stage_c[i].size.width,
-                stage_c[i].size.height,
-                compact ? 4 : 5,
-                node_color_c,
-                egui_color_alpha_mix(self->alpha, i == 0 ? 58 : 40));
+        draw_round_fill_safe(stage_a[i].location.x, stage_a[i].location.y, stage_a[i].size.width, stage_a[i].size.height, compact ? 4 : 5, node_color_a,
+                             egui_color_alpha_mix(self->alpha, i == 0 ? 68 : 46));
+        draw_round_fill_safe(stage_b[i].location.x, stage_b[i].location.y, stage_b[i].size.width, stage_b[i].size.height, compact ? 4 : 5, node_color_b,
+                             egui_color_alpha_mix(self->alpha, i == 0 ? 62 : 44));
+        draw_round_fill_safe(stage_c[i].location.x, stage_c[i].location.y, stage_c[i].size.width, stage_c[i].size.height, compact ? 4 : 5, node_color_c,
+                             egui_color_alpha_mix(self->alpha, i == 0 ? 58 : 40));
     }
 
     draw_round_fill_safe(stage_x0 + 1, y + 4, stage_w - 2, 2, 1, palette->text, egui_color_alpha_mix(self->alpha, compact ? 30 : 36));
@@ -393,16 +341,8 @@ static void draw_sankey_preview(
     draw_round_fill_safe(stage_x2 + 1, y + 4, stage_w - 2, 2, 1, palette->muted, egui_color_alpha_mix(self->alpha, compact ? 22 : 26));
 }
 
-static void draw_card(
-        egui_view_t *self,
-        const sankey_palette_t *palette,
-        const egui_view_sankey_flow_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t compact,
-        uint8_t locked)
+static void draw_card(egui_view_t *self, const sankey_palette_t *palette, const egui_view_sankey_flow_snapshot_t *snapshot, egui_dim_t x, egui_dim_t y,
+                      egui_dim_t w, egui_dim_t h, uint8_t compact, uint8_t locked)
 {
     egui_region_t text_region;
     egui_color_t shell_color;
@@ -423,10 +363,8 @@ static void draw_card(
     shell_color = egui_rgb_mix(EGUI_COLOR_BLACK, palette->surface, compact ? 28 : 20);
     status_color = get_status_color(palette, snapshot);
     title_color = compact ? egui_rgb_mix(palette->muted, status_color, locked ? 24 : 42) : palette->muted;
-    summary_color = locked ? egui_rgb_mix(palette->text, palette->muted, 42)
-                           : egui_rgb_mix(palette->text, palette->muted, compact ? 8 : 12);
-    footer_color = locked ? egui_rgb_mix(palette->muted, palette->border, 30)
-                          : egui_rgb_mix(palette->muted, palette->text, compact ? 24 : 28);
+    summary_color = locked ? egui_rgb_mix(palette->text, palette->muted, 42) : egui_rgb_mix(palette->text, palette->muted, compact ? 8 : 12);
+    footer_color = locked ? egui_rgb_mix(palette->muted, palette->border, 30) : egui_rgb_mix(palette->muted, palette->text, compact ? 24 : 28);
     outer_padding = compact ? 12 : 15;
     pill_w = get_pill_width(snapshot, compact);
     pill_x = x + w - outer_padding - pill_w;
@@ -570,8 +508,8 @@ static void egui_view_sankey_flow_on_draw(egui_view_t *self)
     egui_color_t status_color;
 
     egui_view_get_work_region(self, &region);
-    if (region.size.width <= 0 || region.size.height <= 0 || local->primary_snapshots == NULL || local->compact_snapshots == NULL
-        || local->locked_snapshots == NULL || local->primary_snapshot_count == 0 || local->compact_snapshot_count == 0 || local->locked_snapshot_count == 0)
+    if (region.size.width <= 0 || region.size.height <= 0 || local->primary_snapshots == NULL || local->compact_snapshots == NULL ||
+        local->locked_snapshots == NULL || local->primary_snapshot_count == 0 || local->compact_snapshot_count == 0 || local->locked_snapshot_count == 0)
     {
         return;
     }

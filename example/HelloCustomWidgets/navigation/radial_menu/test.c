@@ -27,12 +27,7 @@ static const char *primary_items[] = {"Log", "Pause", "Mark", "Export", "Locate"
 static const char *compact_items[] = {"Map", "Zoom", "Tag", "More"};
 static const char *title_text = "Radial Menu";
 static const char *primary_messages[] = {
-        "Log selected",
-        "Pause selected",
-        "Mark selected",
-        "Export selected",
-        "Locate selected",
-        "Layer selected",
+        "Log selected", "Pause selected", "Mark selected", "Export selected", "Locate selected", "Layer selected",
 };
 static const char *compact_messages[] = {
         "Compact Map",
@@ -144,16 +139,8 @@ void test_init_ui(void)
     egui_view_set_size(EGUI_VIEW_OF(&radial_compact), 96, 96);
     egui_view_radial_menu_set_items(EGUI_VIEW_OF(&radial_compact), compact_items, 4);
     egui_view_radial_menu_set_current_index(EGUI_VIEW_OF(&radial_compact), 1);
-    egui_view_radial_menu_set_palette(
-            EGUI_VIEW_OF(&radial_compact),
-            EGUI_COLOR_HEX(0x3F2A1D),
-            EGUI_COLOR_HEX(0xF59E0B),
-            EGUI_COLOR_HEX(0xD97706));
-    egui_view_radial_menu_set_decoration_colors(
-            EGUI_VIEW_OF(&radial_compact),
-            EGUI_COLOR_HEX(0xF59E0B),
-            EGUI_COLOR_HEX(0xFCD34D),
-            EGUI_COLOR_HEX(0xFBBF24));
+    egui_view_radial_menu_set_palette(EGUI_VIEW_OF(&radial_compact), EGUI_COLOR_HEX(0x3F2A1D), EGUI_COLOR_HEX(0xF59E0B), EGUI_COLOR_HEX(0xD97706));
+    egui_view_radial_menu_set_decoration_colors(EGUI_VIEW_OF(&radial_compact), EGUI_COLOR_HEX(0xF59E0B), EGUI_COLOR_HEX(0xFCD34D), EGUI_COLOR_HEX(0xFBBF24));
     egui_view_radial_menu_set_font(EGUI_VIEW_OF(&radial_compact), (const egui_font_t *)&egui_res_font_montserrat_10_4);
     egui_view_radial_menu_set_on_selection_changed_listener(EGUI_VIEW_OF(&radial_compact), on_compact_changed);
     egui_view_group_add_child(EGUI_VIEW_OF(&compact_column), EGUI_VIEW_OF(&radial_compact));
@@ -177,16 +164,8 @@ void test_init_ui(void)
     egui_view_radial_menu_init(EGUI_VIEW_OF(&radial_disabled));
     egui_view_set_size(EGUI_VIEW_OF(&radial_disabled), 96, 96);
     egui_view_radial_menu_set_items(EGUI_VIEW_OF(&radial_disabled), primary_items, 6);
-    egui_view_radial_menu_set_palette(
-            EGUI_VIEW_OF(&radial_disabled),
-            EGUI_COLOR_HEX(0x1F2937),
-            EGUI_COLOR_HEX(0xA7B4C4),
-            EGUI_COLOR_HEX(0x475569));
-    egui_view_radial_menu_set_decoration_colors(
-            EGUI_VIEW_OF(&radial_disabled),
-            EGUI_COLOR_HEX(0xB8C4D3),
-            EGUI_COLOR_HEX(0xF1F5F9),
-            EGUI_COLOR_HEX(0xD5DDE8));
+    egui_view_radial_menu_set_palette(EGUI_VIEW_OF(&radial_disabled), EGUI_COLOR_HEX(0x1F2937), EGUI_COLOR_HEX(0xA7B4C4), EGUI_COLOR_HEX(0x475569));
+    egui_view_radial_menu_set_decoration_colors(EGUI_VIEW_OF(&radial_disabled), EGUI_COLOR_HEX(0xB8C4D3), EGUI_COLOR_HEX(0xF1F5F9), EGUI_COLOR_HEX(0xD5DDE8));
     egui_view_radial_menu_set_font(EGUI_VIEW_OF(&radial_disabled), (const egui_font_t *)&egui_res_font_montserrat_12_4);
     egui_view_radial_menu_set_current_index(EGUI_VIEW_OF(&radial_disabled), 4);
     egui_view_set_enable(EGUI_VIEW_OF(&radial_disabled), 0);

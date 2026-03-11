@@ -87,13 +87,8 @@ void egui_view_breadcrumb_trail_set_compact_mode(egui_view_t *self, uint8_t comp
     egui_view_invalidate(self);
 }
 
-void egui_view_breadcrumb_trail_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t active_color)
+void egui_view_breadcrumb_trail_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                            egui_color_t muted_text_color, egui_color_t active_color)
 {
     EGUI_LOCAL_INIT(egui_view_breadcrumb_trail_t);
     local->surface_color = surface_color;
@@ -150,7 +145,8 @@ static void egui_view_breadcrumb_trail_on_draw(egui_view_t *self)
                                           egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
     egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, 8, panel_color,
                                           egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
-    egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, region.size.height, 8, 1, local->border_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_50));
+    egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, region.size.height, 8, 1, local->border_color,
+                                     egui_color_alpha_mix(self->alpha, EGUI_ALPHA_50));
     egui_canvas_draw_round_rectangle(region.location.x + 2, region.location.y + 2, region.size.width - 4, region.size.height - 4, 6, 1,
                                      egui_rgb_mix(local->active_color, local->border_color, EGUI_ALPHA_30), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
     if (local->compact_mode)
@@ -177,10 +173,13 @@ static void egui_view_breadcrumb_trail_on_draw(egui_view_t *self)
         header_region.size.width = 28;
         header_region.size.height = 8;
         egui_canvas_draw_round_rectangle_fill(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 4,
-                                              egui_rgb_mix(local->surface_color, local->active_color, EGUI_ALPHA_10), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
+                                              egui_rgb_mix(local->surface_color, local->active_color, EGUI_ALPHA_10),
+                                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
         egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 4, 1,
-                                         egui_rgb_mix(local->border_color, local->active_color, EGUI_ALPHA_20), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
-        egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+                                         egui_rgb_mix(local->border_color, local->active_color, EGUI_ALPHA_20),
+                                         egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+        egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
         content_y += 12;
         content_height -= 12;
     }
@@ -201,14 +200,16 @@ static void egui_view_breadcrumb_trail_on_draw(egui_view_t *self)
         header_region.size.width = pill_w;
         header_region.size.height = 13;
         egui_canvas_draw_round_rectangle_fill(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 6,
-                                              egui_rgb_mix(local->surface_color, local->active_color, EGUI_ALPHA_10), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
+                                              egui_rgb_mix(local->surface_color, local->active_color, EGUI_ALPHA_10),
+                                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
         egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 6, 1,
-                                         egui_rgb_mix(local->border_color, local->active_color, EGUI_ALPHA_20), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
+                                         egui_rgb_mix(local->border_color, local->active_color, EGUI_ALPHA_20),
+                                         egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
         egui_canvas_draw_text_in_rect(local->font, is_enabled ? snapshot->title : "Locked", &header_region, EGUI_ALIGN_CENTER,
                                       is_enabled ? local->text_color : local->muted_text_color, self->alpha);
         egui_canvas_draw_line(header_region.location.x + 6, header_region.location.y + header_region.size.height - 2,
-                              header_region.location.x + header_region.size.width - 7, header_region.location.y + header_region.size.height - 2, 1, local->active_color,
-                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+                              header_region.location.x + header_region.size.width - 7, header_region.location.y + header_region.size.height - 2, 1,
+                              local->active_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
         egui_canvas_draw_line(content_x + 5, content_y + 16, content_x + content_width - 6, content_y + 16, 1, local->border_color,
                               egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
         content_y += 19;
@@ -228,9 +229,12 @@ static void egui_view_breadcrumb_trail_on_draw(egui_view_t *self)
         uint8_t is_current = i == snapshot->current_item;
         uint8_t is_focus = i == local->focus_item;
         egui_dim_t chip_w = local->compact_mode ? 28 : 34;
-        egui_color_t fill_color = egui_rgb_mix(local->surface_color, is_current ? local->active_color : local->border_color, is_current ? EGUI_ALPHA_40 : EGUI_ALPHA_20);
-        egui_color_t border_color = is_focus ? local->active_color : egui_rgb_mix(local->border_color, is_current ? local->active_color : local->border_color, EGUI_ALPHA_30);
-        egui_color_t text_color = is_current ? local->text_color : (is_focus ? egui_rgb_mix(local->text_color, local->muted_text_color, EGUI_ALPHA_20) : local->muted_text_color);
+        egui_color_t fill_color =
+                egui_rgb_mix(local->surface_color, is_current ? local->active_color : local->border_color, is_current ? EGUI_ALPHA_40 : EGUI_ALPHA_20);
+        egui_color_t border_color =
+                is_focus ? local->active_color : egui_rgb_mix(local->border_color, is_current ? local->active_color : local->border_color, EGUI_ALPHA_30);
+        egui_color_t text_color =
+                is_current ? local->text_color : (is_focus ? egui_rgb_mix(local->text_color, local->muted_text_color, EGUI_ALPHA_20) : local->muted_text_color);
 
         if (!is_enabled)
         {
@@ -266,10 +270,12 @@ static void egui_view_breadcrumb_trail_on_draw(egui_view_t *self)
 
         if (is_focus)
         {
-            egui_canvas_draw_round_rectangle_fill(chip_x - 1, chip_y - 1, chip_w + 2, chip_h + 2, 6, border_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_10));
+            egui_canvas_draw_round_rectangle_fill(chip_x - 1, chip_y - 1, chip_w + 2, chip_h + 2, 6, border_color,
+                                                  egui_color_alpha_mix(self->alpha, EGUI_ALPHA_10));
         }
         egui_canvas_draw_round_rectangle_fill(chip_x, chip_y, chip_w, chip_h, 5, fill_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_40));
-        egui_canvas_draw_round_rectangle(chip_x, chip_y, chip_w, chip_h, 5, is_focus ? 2 : 1, border_color, egui_color_alpha_mix(self->alpha, is_focus ? EGUI_ALPHA_80 : EGUI_ALPHA_50));
+        egui_canvas_draw_round_rectangle(chip_x, chip_y, chip_w, chip_h, 5, is_focus ? 2 : 1, border_color,
+                                         egui_color_alpha_mix(self->alpha, is_focus ? EGUI_ALPHA_80 : EGUI_ALPHA_50));
 
         text_region.location.x = chip_x + 5;
         text_region.location.y = chip_y + 2;
@@ -284,8 +290,10 @@ static void egui_view_breadcrumb_trail_on_draw(egui_view_t *self)
             if (arrow_x + 6 < content_x + content_width)
             {
                 egui_color_t arrow_color = is_current ? local->active_color : local->muted_text_color;
-                egui_canvas_draw_line(arrow_x, arrow_y - 3, arrow_x + 4, arrow_y, 1, arrow_color, egui_color_alpha_mix(self->alpha, is_current ? EGUI_ALPHA_70 : EGUI_ALPHA_60));
-                egui_canvas_draw_line(arrow_x, arrow_y + 3, arrow_x + 4, arrow_y, 1, arrow_color, egui_color_alpha_mix(self->alpha, is_current ? EGUI_ALPHA_70 : EGUI_ALPHA_60));
+                egui_canvas_draw_line(arrow_x, arrow_y - 3, arrow_x + 4, arrow_y, 1, arrow_color,
+                                      egui_color_alpha_mix(self->alpha, is_current ? EGUI_ALPHA_70 : EGUI_ALPHA_60));
+                egui_canvas_draw_line(arrow_x, arrow_y + 3, arrow_x + 4, arrow_y, 1, arrow_color,
+                                      egui_color_alpha_mix(self->alpha, is_current ? EGUI_ALPHA_70 : EGUI_ALPHA_60));
             }
             chip_x += chip_w + 12;
         }
@@ -314,16 +322,20 @@ static void egui_view_breadcrumb_trail_on_draw(egui_view_t *self)
         egui_canvas_draw_round_rectangle_fill(content_x + (content_width - caption_w) / 2, content_y + content_height - 14, caption_w, 11, 5, panel_color,
                                               egui_color_alpha_mix(self->alpha, EGUI_ALPHA_40));
         egui_canvas_draw_round_rectangle(content_x + (content_width - caption_w) / 2, content_y + content_height - 14, caption_w, 11, 5, 1,
-                                         egui_rgb_mix(local->border_color, local->active_color, EGUI_ALPHA_20), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
-        egui_canvas_draw_text_in_rect(local->font, caption, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+                                         egui_rgb_mix(local->border_color, local->active_color, EGUI_ALPHA_20),
+                                         egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+        egui_canvas_draw_text_in_rect(local->font, caption, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
     }
 
     if (!is_enabled)
     {
         egui_canvas_draw_round_rectangle_fill(content_x + 1, content_y + 1, content_width - 2, content_height - 2, 5, EGUI_COLOR_BLACK,
                                               egui_color_alpha_mix(self->alpha, EGUI_ALPHA_10));
-        egui_canvas_draw_line(content_x + 4, content_y + 4, content_x + content_width - 5, content_y + content_height - 5, 1, local->muted_text_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
-        egui_canvas_draw_line(content_x + 4, content_y + content_height - 5, content_x + content_width - 5, content_y + 4, 1, local->muted_text_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+        egui_canvas_draw_line(content_x + 4, content_y + 4, content_x + content_width - 5, content_y + content_height - 5, 1, local->muted_text_color,
+                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+        egui_canvas_draw_line(content_x + 4, content_y + content_height - 5, content_x + content_width - 5, content_y + 4, 1, local->muted_text_color,
+                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
     }
 }
 

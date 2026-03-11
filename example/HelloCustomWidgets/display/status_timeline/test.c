@@ -1,35 +1,35 @@
-#define TIMELINE_ROOT_WIDTH 230
-#define TIMELINE_ROOT_HEIGHT 306
-#define TIMELINE_TITLE_COLOR 0x63DDFF
-#define TIMELINE_GUIDE_TEXT "Tap cards to cycle"
-#define TIMELINE_GUIDE_COLOR 0x839AB6
-#define TIMELINE_GUIDE_MARGIN_BOTTOM 3
-#define TIMELINE_PRIMARY_WIDTH 188
-#define TIMELINE_PRIMARY_HEIGHT 138
+#define TIMELINE_ROOT_WIDTH            230
+#define TIMELINE_ROOT_HEIGHT           306
+#define TIMELINE_TITLE_COLOR           0x63DDFF
+#define TIMELINE_GUIDE_TEXT            "Tap cards to cycle"
+#define TIMELINE_GUIDE_COLOR           0x839AB6
+#define TIMELINE_GUIDE_MARGIN_BOTTOM   3
+#define TIMELINE_PRIMARY_WIDTH         188
+#define TIMELINE_PRIMARY_HEIGHT        138
 #define TIMELINE_PRIMARY_MARGIN_BOTTOM 4
-#define TIMELINE_STATUS_TEXT_A "Core A"
-#define TIMELINE_STATUS_TEXT_B "Core B"
+#define TIMELINE_STATUS_TEXT_A         "Core A"
+#define TIMELINE_STATUS_TEXT_B         "Core B"
 #define TIMELINE_STATUS_TEXT_COMPACT_A "Compact A"
 #define TIMELINE_STATUS_TEXT_COMPACT_B "Compact B"
-#define TIMELINE_STATUS_PRIMARY_COLOR 0x56D3FF
-#define TIMELINE_STATUS_COMPACT_COLOR 0xF59E0B
-#define TIMELINE_STATUS_MARGIN_BOTTOM 4
-#define TIMELINE_DIVIDER_WIDTH 170
-#define TIMELINE_DIVIDER_POINTS 169
-#define TIMELINE_DIVIDER_PRIMARY 0x5C8BBC
-#define TIMELINE_DIVIDER_COMPACT 0x9A6A32
+#define TIMELINE_STATUS_PRIMARY_COLOR  0x56D3FF
+#define TIMELINE_STATUS_COMPACT_COLOR  0xF59E0B
+#define TIMELINE_STATUS_MARGIN_BOTTOM  4
+#define TIMELINE_DIVIDER_WIDTH         170
+#define TIMELINE_DIVIDER_POINTS        169
+#define TIMELINE_DIVIDER_PRIMARY       0x5C8BBC
+#define TIMELINE_DIVIDER_COMPACT       0x9A6A32
 #define TIMELINE_DIVIDER_MARGIN_BOTTOM 5
-#define TIMELINE_BOTTOM_ROW_WIDTH 230
-#define TIMELINE_BOTTOM_ROW_HEIGHT 106
-#define TIMELINE_COLUMN_WIDTH 108
-#define TIMELINE_COLUMN_HEIGHT 108
-#define TIMELINE_COLUMN_GAP 6
-#define TIMELINE_CARD_HEIGHT 92
-#define TIMELINE_COMPACT_LABEL_TEXT "Compact"
-#define TIMELINE_LOCKED_LABEL_TEXT "Locked"
-#define TIMELINE_COMPACT_LABEL_IDLE 0xB7C5D4
-#define TIMELINE_COMPACT_LABEL_ACTIVE 0xF4C96D
-#define TIMELINE_LOCKED_LABEL_COLOR 0xCCD6E1
+#define TIMELINE_BOTTOM_ROW_WIDTH      230
+#define TIMELINE_BOTTOM_ROW_HEIGHT     106
+#define TIMELINE_COLUMN_WIDTH          108
+#define TIMELINE_COLUMN_HEIGHT         108
+#define TIMELINE_COLUMN_GAP            6
+#define TIMELINE_CARD_HEIGHT           92
+#define TIMELINE_COMPACT_LABEL_TEXT    "Compact"
+#define TIMELINE_LOCKED_LABEL_TEXT     "Locked"
+#define TIMELINE_COMPACT_LABEL_IDLE    0xB7C5D4
+#define TIMELINE_COMPACT_LABEL_ACTIVE  0xF4C96D
+#define TIMELINE_LOCKED_LABEL_COLOR    0xCCD6E1
 
 #include <stdlib.h>
 
@@ -106,26 +106,14 @@ static void apply_compact_state(uint8_t index, uint8_t is_active)
     if (is_active)
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(TIMELINE_COMPACT_LABEL_ACTIVE), EGUI_ALPHA_100);
-        egui_view_status_timeline_set_palette(
-                EGUI_VIEW_OF(&timeline_compact),
-                EGUI_COLOR_HEX(0x23160A),
-                EGUI_COLOR_HEX(0x8B5E1A),
-                EGUI_COLOR_HEX(0xFDE68A),
-                EGUI_COLOR_HEX(0xD6A15B),
-                EGUI_COLOR_HEX(0xF59E0B),
-                EGUI_COLOR_HEX(0x84CC16));
+        egui_view_status_timeline_set_palette(EGUI_VIEW_OF(&timeline_compact), EGUI_COLOR_HEX(0x23160A), EGUI_COLOR_HEX(0x8B5E1A), EGUI_COLOR_HEX(0xFDE68A),
+                                              EGUI_COLOR_HEX(0xD6A15B), EGUI_COLOR_HEX(0xF59E0B), EGUI_COLOR_HEX(0x84CC16));
     }
     else
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(TIMELINE_COMPACT_LABEL_IDLE), EGUI_ALPHA_100);
-        egui_view_status_timeline_set_palette(
-                EGUI_VIEW_OF(&timeline_compact),
-                EGUI_COLOR_HEX(0x121A28),
-                EGUI_COLOR_HEX(0x3D5068),
-                EGUI_COLOR_HEX(0xCBD5E1),
-                EGUI_COLOR_HEX(0x7F92A7),
-                EGUI_COLOR_HEX(0x60A5FA),
-                EGUI_COLOR_HEX(0x34D399));
+        egui_view_status_timeline_set_palette(EGUI_VIEW_OF(&timeline_compact), EGUI_COLOR_HEX(0x121A28), EGUI_COLOR_HEX(0x3D5068), EGUI_COLOR_HEX(0xCBD5E1),
+                                              EGUI_COLOR_HEX(0x7F92A7), EGUI_COLOR_HEX(0x60A5FA), EGUI_COLOR_HEX(0x34D399));
     }
 }
 
@@ -179,14 +167,8 @@ void test_init_ui(void)
     egui_view_status_timeline_set_snapshots(EGUI_VIEW_OF(&timeline_primary), primary_snapshots, 2);
     egui_view_status_timeline_set_current_snapshot(EGUI_VIEW_OF(&timeline_primary), 0);
     egui_view_status_timeline_set_focus_step(EGUI_VIEW_OF(&timeline_primary), 2);
-    egui_view_status_timeline_set_palette(
-            EGUI_VIEW_OF(&timeline_primary),
-            EGUI_COLOR_HEX(0x0F1728),
-            EGUI_COLOR_HEX(0x536379),
-            EGUI_COLOR_HEX(0xE2E8F0),
-            EGUI_COLOR_HEX(0x93A5BC),
-            EGUI_COLOR_HEX(0x38BDF8),
-            EGUI_COLOR_HEX(0x22C55E));
+    egui_view_status_timeline_set_palette(EGUI_VIEW_OF(&timeline_primary), EGUI_COLOR_HEX(0x0F1728), EGUI_COLOR_HEX(0x536379), EGUI_COLOR_HEX(0xE2E8F0),
+                                          EGUI_COLOR_HEX(0x93A5BC), EGUI_COLOR_HEX(0x38BDF8), EGUI_COLOR_HEX(0x22C55E));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&timeline_primary), on_primary_click);
     egui_view_set_margin(EGUI_VIEW_OF(&timeline_primary), 0, 0, 0, TIMELINE_PRIMARY_MARGIN_BOTTOM);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&timeline_primary));
@@ -264,14 +246,8 @@ void test_init_ui(void)
     egui_view_status_timeline_set_focus_step(EGUI_VIEW_OF(&timeline_locked), 1);
     egui_view_status_timeline_set_show_header(EGUI_VIEW_OF(&timeline_locked), 0);
     egui_view_status_timeline_set_compact_mode(EGUI_VIEW_OF(&timeline_locked), 1);
-    egui_view_status_timeline_set_palette(
-            EGUI_VIEW_OF(&timeline_locked),
-            EGUI_COLOR_HEX(0x0E1522),
-            EGUI_COLOR_HEX(0x46566B),
-            EGUI_COLOR_HEX(0xCBD5E1),
-            EGUI_COLOR_HEX(0x8695A9),
-            EGUI_COLOR_HEX(0x758E83),
-            EGUI_COLOR_HEX(0x93A5BC));
+    egui_view_status_timeline_set_palette(EGUI_VIEW_OF(&timeline_locked), EGUI_COLOR_HEX(0x0E1522), EGUI_COLOR_HEX(0x46566B), EGUI_COLOR_HEX(0xCBD5E1),
+                                          EGUI_COLOR_HEX(0x8695A9), EGUI_COLOR_HEX(0x758E83), EGUI_COLOR_HEX(0x93A5BC));
     egui_view_set_enable(EGUI_VIEW_OF(&timeline_locked), 0);
     egui_view_group_add_child(EGUI_VIEW_OF(&locked_column), EGUI_VIEW_OF(&timeline_locked));
 

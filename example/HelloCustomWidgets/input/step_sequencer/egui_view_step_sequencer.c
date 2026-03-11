@@ -67,17 +67,9 @@ void egui_view_step_sequencer_set_locked_mode(egui_view_t *self, uint8_t locked_
     egui_view_invalidate(self);
 }
 
-void egui_view_step_sequencer_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t panel_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t accent_color,
-        egui_color_t warn_color,
-        egui_color_t lock_color,
-        egui_color_t playhead_color)
+void egui_view_step_sequencer_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t panel_color, egui_color_t border_color,
+                                          egui_color_t text_color, egui_color_t muted_text_color, egui_color_t accent_color, egui_color_t warn_color,
+                                          egui_color_t lock_color, egui_color_t playhead_color)
 {
     EGUI_LOCAL_INIT(egui_view_step_sequencer_t);
     local->surface_color = surface_color;
@@ -105,15 +97,8 @@ static egui_color_t egui_view_step_sequencer_get_status_color(egui_view_step_seq
     return local->accent_color;
 }
 
-static void egui_view_step_sequencer_draw_text(
-        egui_view_step_sequencer_t *local,
-        egui_view_t *self,
-        const char *text,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t width,
-        uint8_t align,
-        egui_color_t color)
+static void egui_view_step_sequencer_draw_text(egui_view_step_sequencer_t *local, egui_view_t *self, const char *text, egui_dim_t x, egui_dim_t y,
+                                               egui_dim_t width, uint8_t align, egui_color_t color)
 {
     egui_region_t text_region;
 
@@ -187,14 +172,8 @@ static void egui_view_step_sequencer_on_draw(egui_view_t *self)
     text_region.size.height = 11;
     egui_canvas_draw_text_in_rect(local->font, snapshot->title ? snapshot->title : "STEP", &text_region, EGUI_ALIGN_LEFT, local->muted_text_color, self->alpha);
 
-    egui_canvas_draw_round_rectangle_fill(
-            pill_x,
-            panel_y + header_top,
-            pill_w,
-            11,
-            5,
-            status_color,
-            egui_color_alpha_mix(self->alpha, local->locked_mode ? 32 : 62));
+    egui_canvas_draw_round_rectangle_fill(pill_x, panel_y + header_top, pill_w, 11, 5, status_color,
+                                          egui_color_alpha_mix(self->alpha, local->locked_mode ? 32 : 62));
     text_region.location.x = pill_x + 1;
     text_region.location.y = panel_y + header_top;
     text_region.size.width = pill_w - 2;
@@ -221,14 +200,8 @@ static void egui_view_step_sequencer_on_draw(egui_view_t *self)
     egui_canvas_draw_round_rectangle(grid_x, grid_y, grid_w, grid_h, 8, 1, local->border_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_40));
 
     playhead_x = step_origin_x + snapshot->playhead_step * (cell_size + cell_gap) - 1;
-    egui_canvas_draw_round_rectangle_fill(
-            playhead_x,
-            grid_y + 5,
-            cell_size + 2,
-            grid_h - 10,
-            4,
-            local->playhead_color,
-            egui_color_alpha_mix(self->alpha, local->locked_mode ? 18 : 26));
+    egui_canvas_draw_round_rectangle_fill(playhead_x, grid_y + 5, cell_size + 2, grid_h - 10, 4, local->playhead_color,
+                                          egui_color_alpha_mix(self->alpha, local->locked_mode ? 18 : 26));
 
     for (track = 0; track < EGUI_VIEW_STEP_SEQUENCER_TRACK_COUNT; track++)
     {
@@ -236,15 +209,8 @@ static void egui_view_step_sequencer_on_draw(egui_view_t *self)
 
         if (!local->compact_mode)
         {
-            egui_view_step_sequencer_draw_text(
-                    local,
-                    self,
-                    step_sequencer_track_labels[track],
-                    grid_x + 1,
-                    row_y - 1,
-                    10,
-                    EGUI_ALIGN_CENTER,
-                    track == snapshot->emphasis_track ? local->text_color : local->muted_text_color);
+            egui_view_step_sequencer_draw_text(local, self, step_sequencer_track_labels[track], grid_x + 1, row_y - 1, 10, EGUI_ALIGN_CENTER,
+                                               track == snapshot->emphasis_track ? local->text_color : local->muted_text_color);
         }
 
         for (step = 0; step < 8; step++)
@@ -266,15 +232,7 @@ static void egui_view_step_sequencer_on_draw(egui_view_t *self)
             fill_alpha = is_active ? (is_playhead ? 95 : (is_emphasis_track ? 82 : 72)) : (is_playhead ? 35 : 18);
 
             egui_canvas_draw_round_rectangle_fill(cell_x, row_y, cell_size, cell_size, 2, fill_color, egui_color_alpha_mix(self->alpha, fill_alpha));
-            egui_canvas_draw_round_rectangle(
-                    cell_x,
-                    row_y,
-                    cell_size,
-                    cell_size,
-                    2,
-                    1,
-                    stroke_color,
-                    egui_color_alpha_mix(self->alpha, is_active ? 65 : 28));
+            egui_canvas_draw_round_rectangle(cell_x, row_y, cell_size, cell_size, 2, 1, stroke_color, egui_color_alpha_mix(self->alpha, is_active ? 65 : 28));
         }
     }
 
@@ -285,13 +243,15 @@ static void egui_view_step_sequencer_on_draw(egui_view_t *self)
     text_region.location.y = footer_y;
     text_region.size.width = panel_w - outer_padding * 2 - (local->compact_mode ? 8 : 6);
     text_region.size.height = local->compact_mode ? footer_h : 10;
-    egui_canvas_draw_text_in_rect(local->font, snapshot->pattern ? snapshot->pattern : "Pattern", &text_region, EGUI_ALIGN_CENTER, local->text_color, self->alpha);
+    egui_canvas_draw_text_in_rect(local->font, snapshot->pattern ? snapshot->pattern : "Pattern", &text_region, EGUI_ALIGN_CENTER, local->text_color,
+                                  self->alpha);
 
     if (!local->compact_mode)
     {
         text_region.location.y = footer_y + 9;
         text_region.size.height = EGUI_MAX(footer_h - 10, 10);
-        egui_canvas_draw_text_in_rect(local->font, snapshot->footer ? snapshot->footer : "swing", &text_region, EGUI_ALIGN_CENTER, local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, snapshot->footer ? snapshot->footer : "swing", &text_region, EGUI_ALIGN_CENTER, local->muted_text_color,
+                                      self->alpha);
     }
 }
 

@@ -41,10 +41,7 @@ static uint8_t clamp_count(uint8_t count)
     return count;
 }
 
-void egui_view_range_band_editor_set_primary_snapshots(
-        egui_view_t *self,
-        const egui_view_range_band_editor_snapshot_t *snapshots,
-        uint8_t snapshot_count)
+void egui_view_range_band_editor_set_primary_snapshots(egui_view_t *self, const egui_view_range_band_editor_snapshot_t *snapshots, uint8_t snapshot_count)
 {
     EGUI_LOCAL_INIT(egui_view_range_band_editor_t);
     local->primary_snapshots = snapshots;
@@ -56,10 +53,7 @@ void egui_view_range_band_editor_set_primary_snapshots(
     egui_view_invalidate(self);
 }
 
-void egui_view_range_band_editor_set_compact_snapshots(
-        egui_view_t *self,
-        const egui_view_range_band_editor_snapshot_t *snapshots,
-        uint8_t snapshot_count)
+void egui_view_range_band_editor_set_compact_snapshots(egui_view_t *self, const egui_view_range_band_editor_snapshot_t *snapshots, uint8_t snapshot_count)
 {
     EGUI_LOCAL_INIT(egui_view_range_band_editor_t);
     local->compact_snapshots = snapshots;
@@ -71,10 +65,7 @@ void egui_view_range_band_editor_set_compact_snapshots(
     egui_view_invalidate(self);
 }
 
-void egui_view_range_band_editor_set_locked_snapshots(
-        egui_view_t *self,
-        const egui_view_range_band_editor_snapshot_t *snapshots,
-        uint8_t snapshot_count)
+void egui_view_range_band_editor_set_locked_snapshots(egui_view_t *self, const egui_view_range_band_editor_snapshot_t *snapshots, uint8_t snapshot_count)
 {
     EGUI_LOCAL_INIT(egui_view_range_band_editor_t);
     local->locked_snapshots = snapshots;
@@ -102,7 +93,8 @@ static void draw_round_fill_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, radius, color, alpha);
 }
 
-static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
     if (w <= 0 || h <= 0)
     {
@@ -156,28 +148,13 @@ static egui_dim_t get_pill_width(const egui_view_range_band_editor_snapshot_t *s
     return width;
 }
 
-static void draw_tick(
-        egui_view_t *self,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_color_t color,
-        egui_alpha_t alpha)
+static void draw_tick(egui_view_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_color_t color, egui_alpha_t alpha)
 {
     draw_round_fill_safe(x, y, w, h, w / 2, color, alpha);
 }
 
-static void draw_band_preview(
-        egui_view_t *self,
-        const range_palette_t *palette,
-        const egui_view_range_band_editor_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t compact,
-        uint8_t locked)
+static void draw_band_preview(egui_view_t *self, const range_palette_t *palette, const egui_view_range_band_editor_snapshot_t *snapshot, egui_dim_t x,
+                              egui_dim_t y, egui_dim_t w, egui_dim_t h, uint8_t compact, uint8_t locked)
 {
     egui_dim_t lane_y;
     egui_dim_t lane_h;
@@ -222,11 +199,15 @@ static void draw_band_preview(
     }
     focus_x = lane_x + (lane_w * snapshot->focus_tick) / 100;
 
-    draw_round_fill_safe(start_x, lane_y - (compact ? 3 : 4), end_x - start_x, lane_h + (compact ? 6 : 8), (lane_h + 6) / 2, status_color, egui_color_alpha_mix(self->alpha, compact ? 76 : 84));
-    draw_round_stroke_safe(start_x, lane_y - (compact ? 3 : 4), end_x - start_x, lane_h + (compact ? 6 : 8), (lane_h + 6) / 2, 1, palette->focus, egui_color_alpha_mix(self->alpha, compact ? 52 : 60));
+    draw_round_fill_safe(start_x, lane_y - (compact ? 3 : 4), end_x - start_x, lane_h + (compact ? 6 : 8), (lane_h + 6) / 2, status_color,
+                         egui_color_alpha_mix(self->alpha, compact ? 76 : 84));
+    draw_round_stroke_safe(start_x, lane_y - (compact ? 3 : 4), end_x - start_x, lane_h + (compact ? 6 : 8), (lane_h + 6) / 2, 1, palette->focus,
+                           egui_color_alpha_mix(self->alpha, compact ? 52 : 60));
 
-    draw_round_fill_safe(start_x - 1, lane_y - (compact ? 5 : 6), compact ? 6 : 7, lane_h + (compact ? 10 : 12), compact ? 3 : 4, palette->text, egui_color_alpha_mix(self->alpha, compact ? 60 : 68));
-    draw_round_fill_safe(end_x - (compact ? 5 : 6), lane_y - (compact ? 5 : 6), compact ? 6 : 7, lane_h + (compact ? 10 : 12), compact ? 3 : 4, palette->text, egui_color_alpha_mix(self->alpha, compact ? 60 : 68));
+    draw_round_fill_safe(start_x - 1, lane_y - (compact ? 5 : 6), compact ? 6 : 7, lane_h + (compact ? 10 : 12), compact ? 3 : 4, palette->text,
+                         egui_color_alpha_mix(self->alpha, compact ? 60 : 68));
+    draw_round_fill_safe(end_x - (compact ? 5 : 6), lane_y - (compact ? 5 : 6), compact ? 6 : 7, lane_h + (compact ? 10 : 12), compact ? 3 : 4, palette->text,
+                         egui_color_alpha_mix(self->alpha, compact ? 60 : 68));
 
     tick_gap = lane_w / 6;
     tick_y = lane_y + lane_h + (compact ? 7 : 9);
@@ -247,19 +228,12 @@ static void draw_band_preview(
         draw_tick(self, tx, tick_y, compact ? 2 : 3, compact ? 6 : 8, tick_color, tick_alpha);
     }
 
-    draw_round_fill_safe(focus_x - 1, lane_y - (compact ? 8 : 10), compact ? 4 : 5, lane_h + (compact ? 16 : 20), compact ? 2 : 3, palette->focus, egui_color_alpha_mix(self->alpha, compact ? 46 : 52));
+    draw_round_fill_safe(focus_x - 1, lane_y - (compact ? 8 : 10), compact ? 4 : 5, lane_h + (compact ? 16 : 20), compact ? 2 : 3, palette->focus,
+                         egui_color_alpha_mix(self->alpha, compact ? 46 : 52));
 }
 
-static void draw_card(
-        egui_view_t *self,
-        const range_palette_t *palette,
-        const egui_view_range_band_editor_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t compact,
-        uint8_t locked)
+static void draw_card(egui_view_t *self, const range_palette_t *palette, const egui_view_range_band_editor_snapshot_t *snapshot, egui_dim_t x, egui_dim_t y,
+                      egui_dim_t w, egui_dim_t h, uint8_t compact, uint8_t locked)
 {
     egui_region_t text_region;
     egui_color_t shell_color;
@@ -280,10 +254,8 @@ static void draw_card(
     shell_color = egui_rgb_mix(EGUI_COLOR_BLACK, palette->surface, compact ? 26 : 18);
     status_color = get_status_color(palette, snapshot);
     title_color = compact ? egui_rgb_mix(palette->muted, status_color, locked ? 20 : 38) : egui_rgb_mix(palette->muted, status_color, 30);
-    summary_color = locked ? egui_rgb_mix(palette->text, palette->muted, 42)
-                           : egui_rgb_mix(palette->text, palette->muted, compact ? 10 : 12);
-    footer_color = locked ? egui_rgb_mix(palette->muted, palette->border, 40)
-                          : egui_rgb_mix(palette->muted, palette->text, compact ? 30 : 38);
+    summary_color = locked ? egui_rgb_mix(palette->text, palette->muted, 42) : egui_rgb_mix(palette->text, palette->muted, compact ? 10 : 12);
+    footer_color = locked ? egui_rgb_mix(palette->muted, palette->border, 40) : egui_rgb_mix(palette->muted, palette->text, compact ? 30 : 38);
     outer_padding = compact ? 11 : 16;
     pill_w = get_pill_width(snapshot, compact);
     pill_x = x + w - outer_padding - pill_w;
@@ -427,8 +399,8 @@ static void egui_view_range_band_editor_on_draw(egui_view_t *self)
     egui_color_t status_color;
 
     egui_view_get_work_region(self, &region);
-    if (region.size.width <= 0 || region.size.height <= 0 || local->primary_snapshots == NULL || local->compact_snapshots == NULL
-        || local->locked_snapshots == NULL || local->primary_snapshot_count == 0 || local->compact_snapshot_count == 0 || local->locked_snapshot_count == 0)
+    if (region.size.width <= 0 || region.size.height <= 0 || local->primary_snapshots == NULL || local->compact_snapshots == NULL ||
+        local->locked_snapshots == NULL || local->primary_snapshot_count == 0 || local->compact_snapshot_count == 0 || local->locked_snapshot_count == 0)
     {
         return;
     }

@@ -54,24 +54,14 @@ static void apply_compact_state(uint8_t index, uint8_t is_active)
     if (is_active)
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0xF2B226), EGUI_ALPHA_100);
-        egui_view_breadcrumb_trail_set_palette(
-                EGUI_VIEW_OF(&trail_compact),
-                EGUI_COLOR_HEX(0x24170B),
-                EGUI_COLOR_HEX(0x9A651B),
-                EGUI_COLOR_HEX(0xFDE7A4),
-                EGUI_COLOR_HEX(0xC89A57),
-                EGUI_COLOR_HEX(0xF2B226));
+        egui_view_breadcrumb_trail_set_palette(EGUI_VIEW_OF(&trail_compact), EGUI_COLOR_HEX(0x24170B), EGUI_COLOR_HEX(0x9A651B), EGUI_COLOR_HEX(0xFDE7A4),
+                                               EGUI_COLOR_HEX(0xC89A57), EGUI_COLOR_HEX(0xF2B226));
     }
     else
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0x8EACC8), EGUI_ALPHA_100);
-        egui_view_breadcrumb_trail_set_palette(
-                EGUI_VIEW_OF(&trail_compact),
-                EGUI_COLOR_HEX(0x111A29),
-                EGUI_COLOR_HEX(0x405A7A),
-                EGUI_COLOR_HEX(0xD8E3F0),
-                EGUI_COLOR_HEX(0x7E93AD),
-                EGUI_COLOR_HEX(0x67B6FF));
+        egui_view_breadcrumb_trail_set_palette(EGUI_VIEW_OF(&trail_compact), EGUI_COLOR_HEX(0x111A29), EGUI_COLOR_HEX(0x405A7A), EGUI_COLOR_HEX(0xD8E3F0),
+                                               EGUI_COLOR_HEX(0x7E93AD), EGUI_COLOR_HEX(0x67B6FF));
     }
 }
 
@@ -121,13 +111,8 @@ void test_init_ui(void)
     egui_view_breadcrumb_trail_set_snapshots(EGUI_VIEW_OF(&trail_primary), primary_snapshots, 2);
     egui_view_breadcrumb_trail_set_current_snapshot(EGUI_VIEW_OF(&trail_primary), 0);
     egui_view_breadcrumb_trail_set_focus_item(EGUI_VIEW_OF(&trail_primary), 2);
-    egui_view_breadcrumb_trail_set_palette(
-            EGUI_VIEW_OF(&trail_primary),
-            EGUI_COLOR_HEX(0x0F1728),
-            EGUI_COLOR_HEX(0x536379),
-            EGUI_COLOR_HEX(0xE2E8F0),
-            EGUI_COLOR_HEX(0x93A5BC),
-            EGUI_COLOR_HEX(0x38BDF8));
+    egui_view_breadcrumb_trail_set_palette(EGUI_VIEW_OF(&trail_primary), EGUI_COLOR_HEX(0x0F1728), EGUI_COLOR_HEX(0x536379), EGUI_COLOR_HEX(0xE2E8F0),
+                                           EGUI_COLOR_HEX(0x93A5BC), EGUI_COLOR_HEX(0x38BDF8));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&trail_primary), on_primary_click);
     egui_view_set_margin(EGUI_VIEW_OF(&trail_primary), 0, 0, 0, 4);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&trail_primary));
@@ -204,13 +189,8 @@ void test_init_ui(void)
     egui_view_breadcrumb_trail_set_focus_item(EGUI_VIEW_OF(&trail_locked), 1);
     egui_view_breadcrumb_trail_set_show_header(EGUI_VIEW_OF(&trail_locked), 0);
     egui_view_breadcrumb_trail_set_compact_mode(EGUI_VIEW_OF(&trail_locked), 1);
-    egui_view_breadcrumb_trail_set_palette(
-            EGUI_VIEW_OF(&trail_locked),
-            EGUI_COLOR_HEX(0x0E1522),
-            EGUI_COLOR_HEX(0x4B5D71),
-            EGUI_COLOR_HEX(0xC6CED8),
-            EGUI_COLOR_HEX(0x8694A3),
-            EGUI_COLOR_HEX(0x6B7787));
+    egui_view_breadcrumb_trail_set_palette(EGUI_VIEW_OF(&trail_locked), EGUI_COLOR_HEX(0x0E1522), EGUI_COLOR_HEX(0x4B5D71), EGUI_COLOR_HEX(0xC6CED8),
+                                           EGUI_COLOR_HEX(0x8694A3), EGUI_COLOR_HEX(0x6B7787));
     egui_view_set_enable(EGUI_VIEW_OF(&trail_locked), 0);
     egui_view_group_add_child(EGUI_VIEW_OF(&locked_column), EGUI_VIEW_OF(&trail_locked));
 

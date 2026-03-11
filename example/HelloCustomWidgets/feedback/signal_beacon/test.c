@@ -162,16 +162,9 @@ void test_init_ui(void)
     egui_view_signal_beacon_set_snapshots(EGUI_VIEW_OF(&beacon_field), field_snapshots, 3);
     egui_view_signal_beacon_set_font(EGUI_VIEW_OF(&beacon_field), (const egui_font_t *)&egui_res_font_montserrat_8_4);
     egui_view_signal_beacon_set_compact_mode(EGUI_VIEW_OF(&beacon_field), 1);
-    egui_view_signal_beacon_set_palette(
-            EGUI_VIEW_OF(&beacon_field),
-            EGUI_COLOR_HEX(0x11251E),
-            EGUI_COLOR_HEX(0x2A6653),
-            EGUI_COLOR_HEX(0xD9FFF0),
-            EGUI_COLOR_HEX(0x8BB6A4),
-            EGUI_COLOR_HEX(0x3DDBA0),
-            EGUI_COLOR_HEX(0xD7B04B),
-            EGUI_COLOR_HEX(0xF07575),
-            EGUI_COLOR_HEX(0x0B1512));
+    egui_view_signal_beacon_set_palette(EGUI_VIEW_OF(&beacon_field), EGUI_COLOR_HEX(0x11251E), EGUI_COLOR_HEX(0x2A6653), EGUI_COLOR_HEX(0xD9FFF0),
+                                        EGUI_COLOR_HEX(0x8BB6A4), EGUI_COLOR_HEX(0x3DDBA0), EGUI_COLOR_HEX(0xD7B04B), EGUI_COLOR_HEX(0xF07575),
+                                        EGUI_COLOR_HEX(0x0B1512));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&beacon_field), on_field_click);
     egui_view_group_add_child(EGUI_VIEW_OF(&bottom_row), EGUI_VIEW_OF(&beacon_field));
 
@@ -181,16 +174,9 @@ void test_init_ui(void)
     egui_view_signal_beacon_set_font(EGUI_VIEW_OF(&beacon_lock), (const egui_font_t *)&egui_res_font_montserrat_8_4);
     egui_view_signal_beacon_set_compact_mode(EGUI_VIEW_OF(&beacon_lock), 1);
     egui_view_signal_beacon_set_locked_mode(EGUI_VIEW_OF(&beacon_lock), 1);
-    egui_view_signal_beacon_set_palette(
-            EGUI_VIEW_OF(&beacon_lock),
-            EGUI_COLOR_HEX(0x241B14),
-            EGUI_COLOR_HEX(0x6E4D2A),
-            EGUI_COLOR_HEX(0xFFF2D9),
-            EGUI_COLOR_HEX(0xC7A98B),
-            EGUI_COLOR_HEX(0xEAC66A),
-            EGUI_COLOR_HEX(0xF59E0B),
-            EGUI_COLOR_HEX(0xF07878),
-            EGUI_COLOR_HEX(0x140F0B));
+    egui_view_signal_beacon_set_palette(EGUI_VIEW_OF(&beacon_lock), EGUI_COLOR_HEX(0x241B14), EGUI_COLOR_HEX(0x6E4D2A), EGUI_COLOR_HEX(0xFFF2D9),
+                                        EGUI_COLOR_HEX(0xC7A98B), EGUI_COLOR_HEX(0xEAC66A), EGUI_COLOR_HEX(0xF59E0B), EGUI_COLOR_HEX(0xF07878),
+                                        EGUI_COLOR_HEX(0x140F0B));
     egui_view_set_margin(EGUI_VIEW_OF(&beacon_lock), 2, 0, 0, 0);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&beacon_lock), on_lock_click);
     egui_view_group_add_child(EGUI_VIEW_OF(&bottom_row), EGUI_VIEW_OF(&beacon_lock));

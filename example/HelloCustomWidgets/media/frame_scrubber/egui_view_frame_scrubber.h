@@ -32,10 +32,7 @@ struct egui_view_frame_scrubber
     uint8_t last_zone;
 };
 
-void egui_view_frame_scrubber_set_snapshots(
-        egui_view_t *self,
-        const egui_view_frame_scrubber_snapshot_t *snapshots,
-        uint8_t snapshot_count);
+void egui_view_frame_scrubber_set_snapshots(egui_view_t *self, const egui_view_frame_scrubber_snapshot_t *snapshots, uint8_t snapshot_count);
 void egui_view_frame_scrubber_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_frame_scrubber_init(egui_view_t *self);
 

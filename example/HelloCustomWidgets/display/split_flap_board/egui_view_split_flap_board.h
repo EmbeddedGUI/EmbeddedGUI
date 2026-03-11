@@ -45,15 +45,8 @@ void egui_view_split_flap_board_set_current_snapshot(egui_view_t *self, uint8_t 
 uint8_t egui_view_split_flap_board_get_current_snapshot(egui_view_t *self);
 void egui_view_split_flap_board_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_split_flap_board_set_compact_mode(egui_view_t *self, uint8_t compact_mode);
-void egui_view_split_flap_board_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t accent_color,
-        egui_color_t alert_color,
-        egui_color_t split_color);
+void egui_view_split_flap_board_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                            egui_color_t muted_text_color, egui_color_t accent_color, egui_color_t alert_color, egui_color_t split_color);
 
 #ifdef __cplusplus
 }

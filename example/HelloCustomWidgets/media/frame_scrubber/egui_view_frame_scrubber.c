@@ -31,10 +31,7 @@ static uint8_t clamp_count(uint8_t count)
     return count;
 }
 
-void egui_view_frame_scrubber_set_snapshots(
-        egui_view_t *self,
-        const egui_view_frame_scrubber_snapshot_t *snapshots,
-        uint8_t snapshot_count)
+void egui_view_frame_scrubber_set_snapshots(egui_view_t *self, const egui_view_frame_scrubber_snapshot_t *snapshots, uint8_t snapshot_count)
 {
     EGUI_LOCAL_INIT(egui_view_frame_scrubber_t);
     local->snapshots = snapshots;
@@ -62,15 +59,8 @@ static void draw_round_fill_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, radius, color, alpha);
 }
 
-static void draw_round_stroke_safe(
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_dim_t radius,
-        egui_dim_t stroke_width,
-        egui_color_t color,
-        egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
     if (w <= 0 || h <= 0)
     {
@@ -92,13 +82,7 @@ static egui_color_t get_accent_color(const egui_view_frame_scrubber_snapshot_t *
     return scrubber_palette.accent;
 }
 
-static void draw_thumbnail_strip(
-        egui_view_t *self,
-        const egui_view_frame_scrubber_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h)
+static void draw_thumbnail_strip(egui_view_t *self, const egui_view_frame_scrubber_snapshot_t *snapshot, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h)
 {
     egui_dim_t thumb_w;
     egui_dim_t gap;
@@ -124,15 +108,18 @@ static void draw_thumbnail_strip(
         frame_color = egui_rgb_mix(scrubber_palette.panel, scrubber_palette.surface, (i == snapshot->playhead_index) ? 4 : 24);
         alpha = egui_color_alpha_mix(self->alpha, (i == snapshot->playhead_index) ? 76 : 46);
         draw_round_fill_safe(local_x, y + 4, thumb_w, h - 8, 6, frame_color, alpha);
-        draw_round_stroke_safe(local_x, y + 4, thumb_w, h - 8, 6, 1, scrubber_palette.border, egui_color_alpha_mix(self->alpha, (i == snapshot->playhead_index) ? 46 : 26));
+        draw_round_stroke_safe(local_x, y + 4, thumb_w, h - 8, 6, 1, scrubber_palette.border,
+                               egui_color_alpha_mix(self->alpha, (i == snapshot->playhead_index) ? 46 : 26));
         if (i == snapshot->playhead_index)
         {
             draw_round_stroke_safe(local_x - 1, y + 3, thumb_w + 2, h - 6, 7, 1, accent_color, egui_color_alpha_mix(self->alpha, 34));
         }
         inner_w = thumb_w - ((i == snapshot->playhead_index) ? 8 : 10);
         draw_round_fill_safe(local_x + 4, y + 10, inner_w, 2, 1, accent_color, egui_color_alpha_mix(self->alpha, (i == snapshot->playhead_index) ? 84 : 30));
-        draw_round_fill_safe(local_x + 4, y + 18, thumb_w - 12, 2, 1, scrubber_palette.text, egui_color_alpha_mix(self->alpha, (i == snapshot->playhead_index) ? 40 : 22));
-        draw_round_fill_safe(local_x + 6, y + 24, thumb_w - 16, 2, 1, scrubber_palette.muted, egui_color_alpha_mix(self->alpha, (i == snapshot->marker_index) ? 38 : 18));
+        draw_round_fill_safe(local_x + 4, y + 18, thumb_w - 12, 2, 1, scrubber_palette.text,
+                             egui_color_alpha_mix(self->alpha, (i == snapshot->playhead_index) ? 40 : 22));
+        draw_round_fill_safe(local_x + 6, y + 24, thumb_w - 16, 2, 1, scrubber_palette.muted,
+                             egui_color_alpha_mix(self->alpha, (i == snapshot->marker_index) ? 38 : 18));
     }
 
     thumb_x = x + 4 + snapshot->playhead_index * (thumb_w + gap);
@@ -142,14 +129,8 @@ static void draw_thumbnail_strip(
     draw_round_fill_safe(x + 6 + snapshot->marker_index * (thumb_w + gap), y + h - 9, thumb_w - 4, 4, 2, accent_color, egui_color_alpha_mix(self->alpha, 68));
 }
 
-static void draw_preview_card(
-        egui_view_t *self,
-        const egui_view_frame_scrubber_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t right_side)
+static void draw_preview_card(egui_view_t *self, const egui_view_frame_scrubber_snapshot_t *snapshot, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h,
+                              uint8_t right_side)
 {
     egui_color_t accent_color;
 
@@ -287,19 +268,25 @@ static void egui_view_frame_scrubber_on_draw(egui_view_t *self)
 
     text_region.location.y = region.location.y + 25;
     text_region.size.height = 11;
-    egui_canvas_draw_text_in_rect(body_font, "Tap sides or center to scrub frames", &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(scrubber_palette.text, scrubber_palette.muted, 24), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, "Tap sides or center to scrub frames", &text_region, EGUI_ALIGN_CENTER,
+                                  egui_rgb_mix(scrubber_palette.text, scrubber_palette.muted, 24), self->alpha);
 
     get_zone_rects_local(self, &main_rect, &left_rect, &right_rect);
     draw_preview_card(self, left_snapshot, left_rect.location.x, left_rect.location.y, left_rect.size.width, left_rect.size.height, 0);
     draw_preview_card(self, right_snapshot, right_rect.location.x, right_rect.location.y, right_rect.size.width, right_rect.size.height, 1);
 
-    draw_round_fill_safe(main_rect.location.x + 2, main_rect.location.y + 4, main_rect.size.width, main_rect.size.height, 14, scrubber_palette.shadow, egui_color_alpha_mix(self->alpha, 42));
-    draw_round_fill_safe(main_rect.location.x, main_rect.location.y, main_rect.size.width, main_rect.size.height, 14, scrubber_palette.panel, egui_color_alpha_mix(self->alpha, 78));
-    draw_round_stroke_safe(main_rect.location.x, main_rect.location.y, main_rect.size.width, main_rect.size.height, 14, 1, scrubber_palette.border, egui_color_alpha_mix(self->alpha, 74));
+    draw_round_fill_safe(main_rect.location.x + 2, main_rect.location.y + 4, main_rect.size.width, main_rect.size.height, 14, scrubber_palette.shadow,
+                         egui_color_alpha_mix(self->alpha, 42));
+    draw_round_fill_safe(main_rect.location.x, main_rect.location.y, main_rect.size.width, main_rect.size.height, 14, scrubber_palette.panel,
+                         egui_color_alpha_mix(self->alpha, 78));
+    draw_round_stroke_safe(main_rect.location.x, main_rect.location.y, main_rect.size.width, main_rect.size.height, 14, 1, scrubber_palette.border,
+                           egui_color_alpha_mix(self->alpha, 74));
     draw_round_fill_safe(main_rect.location.x + 16, main_rect.location.y + 16, 36, 3, 1, accent_color, egui_color_alpha_mix(self->alpha, 78));
     draw_round_fill_safe(main_rect.location.x + 16, main_rect.location.y + 23, 26, 2, 1, scrubber_palette.text, egui_color_alpha_mix(self->alpha, 18));
-    draw_round_fill_safe(main_rect.location.x + 12, main_rect.location.y + 52, main_rect.size.width - 24, 78, 10, scrubber_palette.surface, egui_color_alpha_mix(self->alpha, 22));
-    draw_round_stroke_safe(main_rect.location.x + 12, main_rect.location.y + 52, main_rect.size.width - 24, 78, 10, 1, scrubber_palette.border, egui_color_alpha_mix(self->alpha, 14));
+    draw_round_fill_safe(main_rect.location.x + 12, main_rect.location.y + 52, main_rect.size.width - 24, 78, 10, scrubber_palette.surface,
+                         egui_color_alpha_mix(self->alpha, 22));
+    draw_round_stroke_safe(main_rect.location.x + 12, main_rect.location.y + 52, main_rect.size.width - 24, 78, 10, 1, scrubber_palette.border,
+                           egui_color_alpha_mix(self->alpha, 14));
 
     pill_w = (egui_dim_t)(44 + strlen(current->status) * 5);
     if (pill_w < 68)
@@ -308,7 +295,8 @@ static void egui_view_frame_scrubber_on_draw(egui_view_t *self)
     }
     pill_x = main_rect.location.x + main_rect.size.width - pill_w - 14;
     draw_round_fill_safe(pill_x, main_rect.location.y + 14, pill_w, 13, 6, accent_color, egui_color_alpha_mix(self->alpha, 68));
-    draw_round_stroke_safe(pill_x, main_rect.location.y + 14, pill_w, 13, 6, 1, egui_rgb_mix(accent_color, scrubber_palette.text, 28), egui_color_alpha_mix(self->alpha, 52));
+    draw_round_stroke_safe(pill_x, main_rect.location.y + 14, pill_w, 13, 6, 1, egui_rgb_mix(accent_color, scrubber_palette.text, 28),
+                           egui_color_alpha_mix(self->alpha, 52));
     text_region.location.x = pill_x + 5;
     text_region.location.y = main_rect.location.y + 14;
     text_region.size.width = pill_w - 10;
@@ -319,11 +307,13 @@ static void egui_view_frame_scrubber_on_draw(egui_view_t *self)
     text_region.location.y = main_rect.location.y + 38;
     text_region.size.width = main_rect.size.width - 40;
     text_region.size.height = 16;
-    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->title, &text_region, EGUI_ALIGN_LEFT, scrubber_palette.text, self->alpha);
+    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->title, &text_region, EGUI_ALIGN_LEFT, scrubber_palette.text,
+                                  self->alpha);
 
     text_region.location.y = main_rect.location.y + 60;
     text_region.size.height = 12;
-    egui_canvas_draw_text_in_rect(body_font, current->summary, &text_region, EGUI_ALIGN_LEFT, egui_rgb_mix(scrubber_palette.text, scrubber_palette.muted, 24), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, current->summary, &text_region, EGUI_ALIGN_LEFT, egui_rgb_mix(scrubber_palette.text, scrubber_palette.muted, 24),
+                                  self->alpha);
 
     draw_thumbnail_strip(self, current, main_rect.location.x + 16, main_rect.location.y + 84, main_rect.size.width - 32, 34);
 
@@ -331,7 +321,8 @@ static void egui_view_frame_scrubber_on_draw(egui_view_t *self)
     text_region.location.y = main_rect.location.y + main_rect.size.height - 22;
     text_region.size.width = main_rect.size.width - 48;
     text_region.size.height = 12;
-    egui_canvas_draw_text_in_rect(body_font, current->footer, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(scrubber_palette.text, accent_color, 20), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, current->footer, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(scrubber_palette.text, accent_color, 20),
+                                  self->alpha);
 
     if (local->last_zone == 0)
     {
@@ -353,7 +344,8 @@ static void egui_view_frame_scrubber_on_draw(egui_view_t *self)
     text_region.location.y = region.location.y + 243;
     text_region.size.width = 156;
     text_region.size.height = 12;
-    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_8_4, status_text, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(scrubber_palette.text, accent_color, 20), self->alpha);
+    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_8_4, status_text, &text_region, EGUI_ALIGN_CENTER,
+                                  egui_rgb_mix(scrubber_palette.text, accent_color, 20), self->alpha);
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_frame_scrubber_t) = {

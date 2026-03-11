@@ -32,10 +32,7 @@ struct egui_view_equalizer_curve_editor
     uint8_t last_zone;
 };
 
-void egui_view_equalizer_curve_editor_set_bands(
-        egui_view_t *self,
-        const egui_view_equalizer_curve_editor_band_t *bands,
-        uint8_t band_count);
+void egui_view_equalizer_curve_editor_set_bands(egui_view_t *self, const egui_view_equalizer_curve_editor_band_t *bands, uint8_t band_count);
 void egui_view_equalizer_curve_editor_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_equalizer_curve_editor_init(egui_view_t *self);
 

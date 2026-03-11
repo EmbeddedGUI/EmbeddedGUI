@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-#define EGUI_VIEW_AVATAR_STACK_MAX_MEMBERS 6
+#define EGUI_VIEW_AVATAR_STACK_MAX_MEMBERS   6
 #define EGUI_VIEW_AVATAR_STACK_MAX_SNAPSHOTS 3
 
 typedef struct egui_view_avatar_stack_snapshot egui_view_avatar_stack_snapshot_t;
@@ -47,13 +47,8 @@ void egui_view_avatar_stack_set_focus_member(egui_view_t *self, uint8_t member_i
 void egui_view_avatar_stack_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_avatar_stack_set_show_header(egui_view_t *self, uint8_t show_header);
 void egui_view_avatar_stack_set_compact_mode(egui_view_t *self, uint8_t compact_mode);
-void egui_view_avatar_stack_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t focus_color);
+void egui_view_avatar_stack_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                        egui_color_t muted_text_color, egui_color_t focus_color);
 
 #ifdef __cplusplus
 }

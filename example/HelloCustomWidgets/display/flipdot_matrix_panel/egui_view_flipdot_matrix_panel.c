@@ -82,15 +82,8 @@ static void draw_round_fill_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, radius, color, alpha);
 }
 
-static void draw_round_stroke_safe(
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_dim_t radius,
-        egui_dim_t stroke_width,
-        egui_color_t color,
-        egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
     radius = clamp_round_radius(w, h, radius);
     if (w <= 0 || h <= 0)
@@ -142,10 +135,7 @@ static void get_zone_rects_screen(egui_view_t *self, egui_region_t *main_rect, e
     right_rect->size.height = 104;
 }
 
-void egui_view_flipdot_matrix_panel_set_states(
-        egui_view_t *self,
-        const egui_view_flipdot_matrix_panel_state_t *states,
-        uint8_t state_count)
+void egui_view_flipdot_matrix_panel_set_states(egui_view_t *self, const egui_view_flipdot_matrix_panel_state_t *states, uint8_t state_count)
 {
     EGUI_LOCAL_INIT(egui_view_flipdot_matrix_panel_t);
     local->states = states;
@@ -227,15 +217,8 @@ static void draw_matrix_row(egui_view_t *self, egui_dim_t x, egui_dim_t y, uint1
     }
 }
 
-static void draw_preview(
-        egui_view_t *self,
-        const egui_view_flipdot_matrix_panel_state_t *state,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t right_side,
-        uint8_t pattern_index)
+static void draw_preview(egui_view_t *self, const egui_view_flipdot_matrix_panel_state_t *state, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h,
+                         uint8_t right_side, uint8_t pattern_index)
 {
     egui_color_t accent_color = get_accent_color(state);
     egui_dim_t strip_x = right_side ? (x + w - 10) : (x + 6);
@@ -345,8 +328,7 @@ static void egui_view_flipdot_matrix_panel_on_draw(egui_view_t *self)
         uint8_t focused = (uint8_t)(row == current->focus_row);
         draw_round_fill_safe(main_rect.location.x + 28, row_y - 4, main_rect.size.width - 56, 16, 8, accent_color,
                              egui_color_alpha_mix(self->alpha, focused ? 22 : 6));
-        draw_round_fill_safe(main_rect.location.x + 40, row_y + 4, 8, 4, 2, accent_color,
-                             egui_color_alpha_mix(self->alpha, focused ? 52 : 18));
+        draw_round_fill_safe(main_rect.location.x + 40, row_y + 4, 8, 4, 2, accent_color, egui_color_alpha_mix(self->alpha, focused ? 52 : 18));
         draw_round_fill_safe(main_rect.location.x + main_rect.size.width - 48, row_y + 4, 8, 4, 2, accent_color,
                              egui_color_alpha_mix(self->alpha, focused ? 52 : 18));
         draw_matrix_row(self, main_rect.location.x + 56, row_y, flipdot_patterns[pattern_index][row], accent_color, focused);
@@ -356,11 +338,13 @@ static void egui_view_flipdot_matrix_panel_on_draw(egui_view_t *self)
     text_region.location.y = main_rect.location.y + 124;
     text_region.size.width = main_rect.size.width - 36;
     text_region.size.height = 14;
-    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->preset, &text_region, EGUI_ALIGN_CENTER, flipdot_palette.text, self->alpha);
+    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->preset, &text_region, EGUI_ALIGN_CENTER, flipdot_palette.text,
+                                  self->alpha);
 
     text_region.location.y = main_rect.location.y + 138;
     text_region.size.height = 12;
-    egui_canvas_draw_text_in_rect(body_font, current->summary, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(flipdot_palette.text, flipdot_palette.muted, 20), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, current->summary, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(flipdot_palette.text, flipdot_palette.muted, 20),
+                                  self->alpha);
 
     draw_round_fill_safe(main_rect.location.x + 38, main_rect.location.y + 152, main_rect.size.width - 76, 18, 9, flipdot_palette.surface,
                          egui_color_alpha_mix(self->alpha, 18));
@@ -373,7 +357,8 @@ static void egui_view_flipdot_matrix_panel_on_draw(egui_view_t *self)
     text_region.location.y = main_rect.location.y + 154;
     text_region.size.width = main_rect.size.width - 76;
     text_region.size.height = 14;
-    egui_canvas_draw_text_in_rect(body_font, current->footer, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(flipdot_palette.text, accent_color, 16), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, current->footer, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(flipdot_palette.text, accent_color, 16),
+                                  self->alpha);
 
     if (local->last_zone == 0)
     {

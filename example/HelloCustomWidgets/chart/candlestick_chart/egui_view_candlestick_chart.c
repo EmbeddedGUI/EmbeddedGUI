@@ -1,20 +1,20 @@
-#define CANDLE_PANEL_SHADOW_ALPHA 20
-#define CANDLE_PANEL_FILL_ALPHA 32
-#define CANDLE_PANEL_BORDER_ALPHA 52
-#define CANDLE_INNER_BORDER_ALPHA 20
-#define CANDLE_HEADER_PILL_MIN_WIDTH 82
-#define CANDLE_HEADER_LINE_ALPHA 22
-#define CANDLE_FOOTER_WIDTH 88
-#define CANDLE_FOOTER_FILL_ALPHA 44
-#define CANDLE_FOOTER_BORDER_ALPHA 22
-#define CANDLE_MINI_BADGE_WIDTH 30
-#define CANDLE_MINI_BADGE_FILL_ALPHA 70
+#define CANDLE_PANEL_SHADOW_ALPHA      20
+#define CANDLE_PANEL_FILL_ALPHA        32
+#define CANDLE_PANEL_BORDER_ALPHA      52
+#define CANDLE_INNER_BORDER_ALPHA      20
+#define CANDLE_HEADER_PILL_MIN_WIDTH   82
+#define CANDLE_HEADER_LINE_ALPHA       22
+#define CANDLE_FOOTER_WIDTH            88
+#define CANDLE_FOOTER_FILL_ALPHA       44
+#define CANDLE_FOOTER_BORDER_ALPHA     22
+#define CANDLE_MINI_BADGE_WIDTH        30
+#define CANDLE_MINI_BADGE_FILL_ALPHA   70
 #define CANDLE_MINI_BADGE_BORDER_ALPHA 20
-#define CANDLE_MINI_TOP_STRIP_ALPHA 18
+#define CANDLE_MINI_TOP_STRIP_ALPHA    18
 #define CANDLE_MINI_BOTTOM_STRIP_ALPHA 18
-#define CANDLE_DISABLED_OVERLAY_ALPHA 14
-#define CANDLE_DISABLED_CROSS_ALPHA 12
-#define CANDLE_DISABLED_MIX_ALPHA 70
+#define CANDLE_DISABLED_OVERLAY_ALPHA  14
+#define CANDLE_DISABLED_CROSS_ALPHA    12
+#define CANDLE_DISABLED_MIX_ALPHA      70
 
 #include <stdlib.h>
 #include <string.h>
@@ -53,10 +53,7 @@ static const char *egui_view_candlestick_chart_get_header_text(egui_view_candles
     return (local->current_value_set == 0) ? "Series A" : ((local->current_value_set == 1) ? "Series B" : "Series C");
 }
 
-static const char *egui_view_candlestick_chart_get_footer_text(
-        const uint8_t *open_values,
-        const uint8_t *close_values,
-        uint8_t item_count)
+static const char *egui_view_candlestick_chart_get_footer_text(const uint8_t *open_values, const uint8_t *close_values, uint8_t item_count)
 {
     uint8_t first_open;
     uint8_t last_close;
@@ -109,14 +106,8 @@ static egui_dim_t egui_view_candlestick_chart_value_to_y(uint8_t value, uint8_t 
     return (egui_dim_t)(top + (((int32_t)max_value - (int32_t)value) * (height - 1)) / range);
 }
 
-static void egui_view_candlestick_chart_find_bounds(
-        const uint8_t *open_values,
-        const uint8_t *high_values,
-        const uint8_t *low_values,
-        const uint8_t *close_values,
-        uint8_t count,
-        uint8_t *out_min_value,
-        uint8_t *out_max_value)
+static void egui_view_candlestick_chart_find_bounds(const uint8_t *open_values, const uint8_t *high_values, const uint8_t *low_values,
+                                                    const uint8_t *close_values, uint8_t count, uint8_t *out_min_value, uint8_t *out_max_value)
 {
     uint8_t i;
     uint8_t min_value = 100;
@@ -168,11 +159,7 @@ static void egui_view_candlestick_chart_find_bounds(
     *out_max_value = max_value;
 }
 
-static uint8_t egui_view_candlestick_chart_find_max_range_index(
-        const uint8_t *high_values,
-        const uint8_t *low_values,
-        uint8_t count,
-        uint8_t *out_range_value)
+static uint8_t egui_view_candlestick_chart_find_max_range_index(const uint8_t *high_values, const uint8_t *low_values, uint8_t count, uint8_t *out_range_value)
 {
     uint8_t i;
     uint8_t max_index = 0;
@@ -205,10 +192,7 @@ static uint8_t egui_view_candlestick_chart_find_max_range_index(
     return max_index;
 }
 
-static void egui_view_candlestick_chart_draw_labels(
-        egui_view_candlestick_chart_t *local,
-        egui_region_t label_region,
-        egui_alpha_t alpha)
+static void egui_view_candlestick_chart_draw_labels(egui_view_candlestick_chart_t *local, egui_region_t label_region, egui_alpha_t alpha)
 {
     uint8_t i;
     egui_region_t text_region;
@@ -232,21 +216,9 @@ static void egui_view_candlestick_chart_draw_labels(
     }
 }
 
-static void egui_view_candlestick_chart_draw_candle(
-        egui_view_candlestick_chart_t *local,
-        uint8_t open_value,
-        uint8_t high_value,
-        uint8_t low_value,
-        uint8_t close_value,
-        uint8_t is_latest,
-        uint8_t min_value,
-        uint8_t max_value,
-        egui_dim_t chart_top,
-        egui_dim_t chart_height,
-        egui_dim_t x0,
-        egui_dim_t x1,
-        egui_alpha_t alpha,
-        uint8_t is_enabled)
+static void egui_view_candlestick_chart_draw_candle(egui_view_candlestick_chart_t *local, uint8_t open_value, uint8_t high_value, uint8_t low_value,
+                                                    uint8_t close_value, uint8_t is_latest, uint8_t min_value, uint8_t max_value, egui_dim_t chart_top,
+                                                    egui_dim_t chart_height, egui_dim_t x0, egui_dim_t x1, egui_alpha_t alpha, uint8_t is_enabled)
 {
     egui_dim_t center_x;
     egui_dim_t open_y;
@@ -331,36 +303,16 @@ static void egui_view_candlestick_chart_draw_candle(
     egui_canvas_draw_round_rectangle(body_x, body_y, body_width, body_height, 2, 1, border_color, egui_color_alpha_mix(alpha, EGUI_ALPHA_70));
     if (is_latest && is_enabled)
     {
-        egui_canvas_draw_round_rectangle(
-                body_x - 1,
-                body_y - 1,
-                body_width + 2,
-                body_height + 2,
-                3,
-                1,
-                candle_color,
-                egui_color_alpha_mix(alpha, EGUI_ALPHA_60));
+        egui_canvas_draw_round_rectangle(body_x - 1, body_y - 1, body_width + 2, body_height + 2, 3, 1, candle_color,
+                                         egui_color_alpha_mix(alpha, EGUI_ALPHA_60));
         egui_dim_t close_marker_y = close_y;
         egui_canvas_draw_circle_fill(center_x, close_marker_y, 2, candle_color, egui_color_alpha_mix(alpha, EGUI_ALPHA_90));
-        egui_canvas_draw_line(
-                center_x + 3,
-                close_marker_y,
-                x1 - 1,
-                close_marker_y,
-                1,
-                border_color,
-                egui_color_alpha_mix(alpha, EGUI_ALPHA_50));
+        egui_canvas_draw_line(center_x + 3, close_marker_y, x1 - 1, close_marker_y, 1, border_color, egui_color_alpha_mix(alpha, EGUI_ALPHA_50));
     }
 }
 
-static void egui_view_candlestick_chart_draw_close_path(
-        egui_view_candlestick_chart_t *local,
-        const uint8_t *close_values,
-        uint8_t count,
-        uint8_t min_value,
-        uint8_t max_value,
-        egui_region_t chart_region,
-        egui_alpha_t alpha)
+static void egui_view_candlestick_chart_draw_close_path(egui_view_candlestick_chart_t *local, const uint8_t *close_values, uint8_t count, uint8_t min_value,
+                                                        uint8_t max_value, egui_region_t chart_region, egui_alpha_t alpha)
 {
     uint8_t i;
 
@@ -379,19 +331,18 @@ static void egui_view_candlestick_chart_draw_close_path(
         egui_dim_t x2 = chart_region.location.x + (egui_dim_t)(((int32_t)chart_region.size.width * (i + 1)) / count);
         egui_dim_t c0 = (egui_dim_t)((x0 + x1) / 2);
         egui_dim_t c1 = (egui_dim_t)((x1 + x2) / 2);
-        egui_dim_t y0 = egui_view_candlestick_chart_value_to_y(close_values[i - 1], min_value, max_value, chart_region.location.y + 1, chart_region.size.height - 2);
-        egui_dim_t y1 = egui_view_candlestick_chart_value_to_y(close_values[i], min_value, max_value, chart_region.location.y + 1, chart_region.size.height - 2);
+        egui_dim_t y0 =
+                egui_view_candlestick_chart_value_to_y(close_values[i - 1], min_value, max_value, chart_region.location.y + 1, chart_region.size.height - 2);
+        egui_dim_t y1 =
+                egui_view_candlestick_chart_value_to_y(close_values[i], min_value, max_value, chart_region.location.y + 1, chart_region.size.height - 2);
         egui_color_t path_color = (close_values[i] >= close_values[i - 1]) ? local->rise_color : local->fall_color;
         path_color = egui_rgb_mix(path_color, local->muted_text_color, EGUI_ALPHA_40);
         egui_canvas_draw_line(c0, y0, c1, y1, 1, path_color, egui_color_alpha_mix(alpha, EGUI_ALPHA_40));
     }
 }
 
-static void egui_view_candlestick_chart_draw_reference_lines(
-        egui_view_candlestick_chart_t *local,
-        egui_region_t chart_region,
-        egui_alpha_t alpha,
-        uint8_t is_enabled)
+static void egui_view_candlestick_chart_draw_reference_lines(egui_view_candlestick_chart_t *local, egui_region_t chart_region, egui_alpha_t alpha,
+                                                             uint8_t is_enabled)
 {
     egui_color_t line_color;
     egui_dim_t top_y;
@@ -408,38 +359,16 @@ static void egui_view_candlestick_chart_draw_reference_lines(
     mid_y = chart_region.location.y + chart_region.size.height / 2;
     bottom_y = chart_region.location.y + chart_region.size.height - 2;
 
-    egui_canvas_draw_line(
-            chart_region.location.x + 1,
-            top_y,
-            chart_region.location.x + chart_region.size.width - 2,
-            top_y,
-            1,
-            line_color,
-            egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
-    egui_canvas_draw_line(
-            chart_region.location.x + 1,
-            mid_y,
-            chart_region.location.x + chart_region.size.width - 2,
-            mid_y,
-            1,
-            line_color,
-            egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
-    egui_canvas_draw_line(
-            chart_region.location.x + 1,
-            bottom_y,
-            chart_region.location.x + chart_region.size.width - 2,
-            bottom_y,
-            1,
-            line_color,
-            egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
+    egui_canvas_draw_line(chart_region.location.x + 1, top_y, chart_region.location.x + chart_region.size.width - 2, top_y, 1, line_color,
+                          egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
+    egui_canvas_draw_line(chart_region.location.x + 1, mid_y, chart_region.location.x + chart_region.size.width - 2, mid_y, 1, line_color,
+                          egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
+    egui_canvas_draw_line(chart_region.location.x + 1, bottom_y, chart_region.location.x + chart_region.size.width - 2, bottom_y, 1, line_color,
+                          egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
 }
 
-static void egui_view_candlestick_chart_draw_bound_labels(
-        egui_view_candlestick_chart_t *local,
-        egui_region_t chart_region,
-        uint8_t min_value,
-        uint8_t max_value,
-        egui_alpha_t alpha)
+static void egui_view_candlestick_chart_draw_bound_labels(egui_view_candlestick_chart_t *local, egui_region_t chart_region, uint8_t min_value,
+                                                          uint8_t max_value, egui_alpha_t alpha)
 {
     egui_region_t text_region;
     char max_text[4] = {0};
@@ -466,13 +395,8 @@ static void egui_view_candlestick_chart_draw_bound_labels(
     egui_canvas_draw_text_in_rect(local->font, min_text, &text_region, EGUI_ALIGN_LEFT, local->muted_text_color, alpha);
 }
 
-static void egui_view_candlestick_chart_draw_range_highlight(
-        egui_view_candlestick_chart_t *local,
-        egui_region_t chart_region,
-        uint8_t item_count,
-        uint8_t max_range_index,
-        uint8_t range_value,
-        egui_alpha_t alpha)
+static void egui_view_candlestick_chart_draw_range_highlight(egui_view_candlestick_chart_t *local, egui_region_t chart_region, uint8_t item_count,
+                                                             uint8_t max_range_index, uint8_t range_value, egui_alpha_t alpha)
 {
     egui_dim_t x0;
     egui_dim_t x1;
@@ -493,14 +417,8 @@ static void egui_view_candlestick_chart_draw_range_highlight(
         return;
     }
     highlight_color = egui_rgb_mix(local->surface_color, local->text_color, EGUI_ALPHA_20);
-    egui_canvas_draw_round_rectangle_fill(
-            x0 + 1,
-            chart_region.location.y + 1,
-            x1 - x0 - 2,
-            chart_region.size.height - 2,
-            2,
-            highlight_color,
-            egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
+    egui_canvas_draw_round_rectangle_fill(x0 + 1, chart_region.location.y + 1, x1 - x0 - 2, chart_region.size.height - 2, 2, highlight_color,
+                                          egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
 }
 
 void egui_view_candlestick_chart_set_item_labels(egui_view_t *self, const char **item_labels, uint8_t item_count)
@@ -515,13 +433,8 @@ void egui_view_candlestick_chart_set_item_labels(egui_view_t *self, const char *
     egui_view_invalidate(self);
 }
 
-void egui_view_candlestick_chart_set_value_set(
-        egui_view_t *self,
-        uint8_t set_index,
-        const uint8_t *open_values,
-        const uint8_t *high_values,
-        const uint8_t *low_values,
-        const uint8_t *close_values)
+void egui_view_candlestick_chart_set_value_set(egui_view_t *self, uint8_t set_index, const uint8_t *open_values, const uint8_t *high_values,
+                                               const uint8_t *low_values, const uint8_t *close_values)
 {
     EGUI_LOCAL_INIT(egui_view_candlestick_chart_t);
     if (set_index >= EGUI_VIEW_CANDLESTICK_CHART_MAX_VALUE_SETS)
@@ -582,15 +495,8 @@ void egui_view_candlestick_chart_set_show_header(egui_view_t *self, uint8_t show
     egui_view_invalidate(self);
 }
 
-void egui_view_candlestick_chart_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t rise_color,
-        egui_color_t fall_color,
-        egui_color_t neutral_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color)
+void egui_view_candlestick_chart_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t rise_color,
+                                             egui_color_t fall_color, egui_color_t neutral_color, egui_color_t text_color, egui_color_t muted_text_color)
 {
     EGUI_LOCAL_INIT(egui_view_candlestick_chart_t);
     local->surface_color = surface_color;
@@ -652,43 +558,18 @@ static void egui_view_candlestick_chart_on_draw(egui_view_t *self)
     }
     if (CANDLE_PANEL_SHADOW_ALPHA > 0)
     {
-        egui_canvas_draw_round_rectangle_fill(
-                region.location.x + 1,
-                region.location.y + 2,
-                region.size.width,
-                region.size.height,
-                8,
-                shadow_color,
-                egui_color_alpha_mix(self->alpha, CANDLE_PANEL_SHADOW_ALPHA));
+        egui_canvas_draw_round_rectangle_fill(region.location.x + 1, region.location.y + 2, region.size.width, region.size.height, 8, shadow_color,
+                                              egui_color_alpha_mix(self->alpha, CANDLE_PANEL_SHADOW_ALPHA));
     }
-    egui_canvas_draw_round_rectangle_fill(
-            region.location.x,
-            region.location.y,
-            region.size.width,
-            region.size.height,
-            8,
-            panel_color,
-            egui_color_alpha_mix(self->alpha, CANDLE_PANEL_FILL_ALPHA));
-    egui_canvas_draw_round_rectangle(
-            region.location.x,
-            region.location.y,
-            region.size.width,
-            region.size.height,
-            8,
-            1,
-            local->border_color,
-            egui_color_alpha_mix(self->alpha, CANDLE_PANEL_BORDER_ALPHA));
+    egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, 8, panel_color,
+                                          egui_color_alpha_mix(self->alpha, CANDLE_PANEL_FILL_ALPHA));
+    egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, region.size.height, 8, 1, local->border_color,
+                                     egui_color_alpha_mix(self->alpha, CANDLE_PANEL_BORDER_ALPHA));
     if (CANDLE_INNER_BORDER_ALPHA > 0)
     {
-        egui_canvas_draw_round_rectangle(
-                region.location.x + 2,
-                region.location.y + 2,
-                region.size.width - 4,
-                region.size.height - 4,
-                6,
-                1,
-                egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
-                egui_color_alpha_mix(self->alpha, CANDLE_INNER_BORDER_ALPHA));
+        egui_canvas_draw_round_rectangle(region.location.x + 2, region.location.y + 2, region.size.width - 4, region.size.height - 4, 6, 1,
+                                         egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
+                                         egui_color_alpha_mix(self->alpha, CANDLE_INNER_BORDER_ALPHA));
     }
 
     content_region.location.x = region.location.x + 4;
@@ -705,37 +586,22 @@ static void egui_view_candlestick_chart_on_draw(egui_view_t *self)
         }
         if (CANDLE_MINI_TOP_STRIP_ALPHA > 0)
         {
-            egui_canvas_draw_round_rectangle_fill(
-                    region.location.x + 12,
-                    region.location.y + 6,
-                    region.size.width - 20,
-                    2,
-                    1,
-                    is_enabled ? local->text_color : local->muted_text_color,
-                    egui_color_alpha_mix(self->alpha, CANDLE_MINI_TOP_STRIP_ALPHA));
+            egui_canvas_draw_round_rectangle_fill(region.location.x + 12, region.location.y + 6, region.size.width - 20, 2, 1,
+                                                  is_enabled ? local->text_color : local->muted_text_color,
+                                                  egui_color_alpha_mix(self->alpha, CANDLE_MINI_TOP_STRIP_ALPHA));
         }
         header_region.location.x = content_region.location.x + (content_region.size.width - CANDLE_MINI_BADGE_WIDTH) / 2;
         header_region.location.y = content_region.location.y + 6;
         header_region.size.width = CANDLE_MINI_BADGE_WIDTH;
         header_region.size.height = 10;
-        egui_canvas_draw_round_rectangle_fill(
-                header_region.location.x,
-                header_region.location.y,
-                header_region.size.width,
-                header_region.size.height,
-                4,
-                egui_rgb_mix(local->surface_color, local->border_color, EGUI_ALPHA_10),
-                egui_color_alpha_mix(self->alpha, CANDLE_MINI_BADGE_FILL_ALPHA));
-        egui_canvas_draw_round_rectangle(
-                header_region.location.x,
-                header_region.location.y,
-                header_region.size.width,
-                header_region.size.height,
-                4,
-                1,
-                egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
-                egui_color_alpha_mix(self->alpha, CANDLE_MINI_BADGE_BORDER_ALPHA));
-        egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+        egui_canvas_draw_round_rectangle_fill(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 4,
+                                              egui_rgb_mix(local->surface_color, local->border_color, EGUI_ALPHA_10),
+                                              egui_color_alpha_mix(self->alpha, CANDLE_MINI_BADGE_FILL_ALPHA));
+        egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 4, 1,
+                                         egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
+                                         egui_color_alpha_mix(self->alpha, CANDLE_MINI_BADGE_BORDER_ALPHA));
+        egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
         content_region.location.y += 12;
         content_region.size.height -= 12;
     }
@@ -758,34 +624,18 @@ static void egui_view_candlestick_chart_on_draw(egui_view_t *self)
         header_region.location.y = content_region.location.y;
         header_region.size.width = pill_w;
         header_region.size.height = 14;
-        egui_canvas_draw_round_rectangle_fill(
-                header_region.location.x,
-                header_region.location.y,
-                header_region.size.width,
-                header_region.size.height,
-                6,
-                egui_rgb_mix(local->surface_color, local->border_color, EGUI_ALPHA_10),
-                egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
-        egui_canvas_draw_round_rectangle(
-                header_region.location.x,
-                header_region.location.y,
-                header_region.size.width,
-                header_region.size.height,
-                6,
-                1,
-                egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
-                egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
-        egui_canvas_draw_text_in_rect(local->font, header_text, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+        egui_canvas_draw_round_rectangle_fill(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 6,
+                                              egui_rgb_mix(local->surface_color, local->border_color, EGUI_ALPHA_10),
+                                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
+        egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 6, 1,
+                                         egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
+                                         egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+        egui_canvas_draw_text_in_rect(local->font, header_text, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
         if (CANDLE_HEADER_LINE_ALPHA > 0)
         {
-            egui_canvas_draw_line(
-                    content_region.location.x + 5,
-                    content_region.location.y + 17,
-                    content_region.location.x + content_region.size.width - 6,
-                    content_region.location.y + 17,
-                    1,
-                    local->border_color,
-                    egui_color_alpha_mix(self->alpha, CANDLE_HEADER_LINE_ALPHA));
+            egui_canvas_draw_line(content_region.location.x + 5, content_region.location.y + 17, content_region.location.x + content_region.size.width - 6,
+                                  content_region.location.y + 17, 1, local->border_color, egui_color_alpha_mix(self->alpha, CANDLE_HEADER_LINE_ALPHA));
         }
         content_region.location.y += 20;
         content_region.size.height -= 20;
@@ -830,53 +680,26 @@ static void egui_view_candlestick_chart_on_draw(egui_view_t *self)
     {
         egui_dim_t x0 = content_region.location.x + (egui_dim_t)(((int32_t)content_region.size.width * i) / local->item_count);
         egui_dim_t x1 = content_region.location.x + (egui_dim_t)(((int32_t)content_region.size.width * (i + 1)) / local->item_count);
-        egui_view_candlestick_chart_draw_candle(
-                local,
-                open_values[i],
-                high_values[i],
-                low_values[i],
-                close_values[i],
-                (uint8_t)(local->show_labels && i == (uint8_t)(local->item_count - 1)),
-                min_value,
-                max_value,
-                content_region.location.y + 1,
-                content_region.size.height - 2,
-                x0,
-                x1,
-                self->alpha,
-                is_enabled);
+        egui_view_candlestick_chart_draw_candle(local, open_values[i], high_values[i], low_values[i], close_values[i],
+                                                (uint8_t)(local->show_labels && i == (uint8_t)(local->item_count - 1)), min_value, max_value,
+                                                content_region.location.y + 1, content_region.size.height - 2, x0, x1, self->alpha, is_enabled);
     }
     if (!is_enabled)
     {
         if (CANDLE_DISABLED_OVERLAY_ALPHA > 0)
         {
-            egui_canvas_draw_round_rectangle_fill(
-                    content_region.location.x + 1,
-                    content_region.location.y + 1,
-                    content_region.size.width - 2,
-                    content_region.size.height - 2,
-                    4,
-                    EGUI_COLOR_BLACK,
-                    egui_color_alpha_mix(self->alpha, CANDLE_DISABLED_OVERLAY_ALPHA));
+            egui_canvas_draw_round_rectangle_fill(content_region.location.x + 1, content_region.location.y + 1, content_region.size.width - 2,
+                                                  content_region.size.height - 2, 4, EGUI_COLOR_BLACK,
+                                                  egui_color_alpha_mix(self->alpha, CANDLE_DISABLED_OVERLAY_ALPHA));
         }
         if (CANDLE_DISABLED_CROSS_ALPHA > 0)
         {
-            egui_canvas_draw_line(
-                    content_region.location.x + 2,
-                    content_region.location.y + 2,
-                    content_region.location.x + content_region.size.width - 3,
-                    content_region.location.y + content_region.size.height - 3,
-                    1,
-                    local->muted_text_color,
-                    egui_color_alpha_mix(self->alpha, CANDLE_DISABLED_CROSS_ALPHA));
-            egui_canvas_draw_line(
-                    content_region.location.x + 2,
-                    content_region.location.y + content_region.size.height - 3,
-                    content_region.location.x + content_region.size.width - 3,
-                    content_region.location.y + 2,
-                    1,
-                    local->muted_text_color,
-                    egui_color_alpha_mix(self->alpha, CANDLE_DISABLED_CROSS_ALPHA));
+            egui_canvas_draw_line(content_region.location.x + 2, content_region.location.y + 2, content_region.location.x + content_region.size.width - 3,
+                                  content_region.location.y + content_region.size.height - 3, 1, local->muted_text_color,
+                                  egui_color_alpha_mix(self->alpha, CANDLE_DISABLED_CROSS_ALPHA));
+            egui_canvas_draw_line(content_region.location.x + 2, content_region.location.y + content_region.size.height - 3,
+                                  content_region.location.x + content_region.size.width - 3, content_region.location.y + 2, 1, local->muted_text_color,
+                                  egui_color_alpha_mix(self->alpha, CANDLE_DISABLED_CROSS_ALPHA));
         }
     }
 
@@ -895,35 +718,19 @@ static void egui_view_candlestick_chart_on_draw(egui_view_t *self)
         text_region.location.y = content_region.location.y + content_region.size.height + 3;
         text_region.size.width = content_region.size.width;
         text_region.size.height = 11;
-        egui_canvas_draw_round_rectangle_fill(
-                footer_x,
-                content_region.location.y + content_region.size.height + 2,
-                CANDLE_FOOTER_WIDTH,
-                11,
-                5,
-                panel_color,
-                egui_color_alpha_mix(self->alpha, CANDLE_FOOTER_FILL_ALPHA));
-        egui_canvas_draw_round_rectangle(
-                footer_x,
-                content_region.location.y + content_region.size.height + 2,
-                CANDLE_FOOTER_WIDTH,
-                11,
-                5,
-                1,
-                egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
-                egui_color_alpha_mix(self->alpha, CANDLE_FOOTER_BORDER_ALPHA));
-        egui_canvas_draw_text_in_rect(local->font, footer_text, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+        egui_canvas_draw_round_rectangle_fill(footer_x, content_region.location.y + content_region.size.height + 2, CANDLE_FOOTER_WIDTH, 11, 5, panel_color,
+                                              egui_color_alpha_mix(self->alpha, CANDLE_FOOTER_FILL_ALPHA));
+        egui_canvas_draw_round_rectangle(footer_x, content_region.location.y + content_region.size.height + 2, CANDLE_FOOTER_WIDTH, 11, 5, 1,
+                                         egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
+                                         egui_color_alpha_mix(self->alpha, CANDLE_FOOTER_BORDER_ALPHA));
+        egui_canvas_draw_text_in_rect(local->font, footer_text, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
     }
     else if (CANDLE_MINI_BOTTOM_STRIP_ALPHA > 0)
     {
-        egui_canvas_draw_round_rectangle_fill(
-                content_region.location.x + 8,
-                region.location.y + region.size.height - 8,
-                content_region.size.width - 14,
-                2,
-                1,
-                is_enabled ? local->text_color : local->muted_text_color,
-                egui_color_alpha_mix(self->alpha, CANDLE_MINI_BOTTOM_STRIP_ALPHA));
+        egui_canvas_draw_round_rectangle_fill(content_region.location.x + 8, region.location.y + region.size.height - 8, content_region.size.width - 14, 2, 1,
+                                              is_enabled ? local->text_color : local->muted_text_color,
+                                              egui_color_alpha_mix(self->alpha, CANDLE_MINI_BOTTOM_STRIP_ALPHA));
     }
 }
 

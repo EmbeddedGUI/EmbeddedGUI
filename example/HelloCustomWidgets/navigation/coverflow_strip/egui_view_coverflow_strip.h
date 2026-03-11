@@ -32,10 +32,7 @@ struct egui_view_coverflow_strip
     uint8_t last_zone;
 };
 
-void egui_view_coverflow_strip_set_snapshots(
-        egui_view_t *self,
-        const egui_view_coverflow_strip_snapshot_t *snapshots,
-        uint8_t snapshot_count);
+void egui_view_coverflow_strip_set_snapshots(egui_view_t *self, const egui_view_coverflow_strip_snapshot_t *snapshots, uint8_t snapshot_count);
 void egui_view_coverflow_strip_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_coverflow_strip_init(egui_view_t *self);
 

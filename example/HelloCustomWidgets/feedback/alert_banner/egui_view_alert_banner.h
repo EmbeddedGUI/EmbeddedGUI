@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-#define EGUI_VIEW_ALERT_BANNER_MAX_ITEMS 5
+#define EGUI_VIEW_ALERT_BANNER_MAX_ITEMS     5
 #define EGUI_VIEW_ALERT_BANNER_MAX_SNAPSHOTS 3
 
 typedef struct egui_view_alert_banner_item egui_view_alert_banner_item_t;
@@ -54,13 +54,8 @@ void egui_view_alert_banner_set_focus_item(egui_view_t *self, uint8_t item_index
 void egui_view_alert_banner_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_alert_banner_set_show_header(egui_view_t *self, uint8_t show_header);
 void egui_view_alert_banner_set_compact_mode(egui_view_t *self, uint8_t compact_mode);
-void egui_view_alert_banner_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t active_color);
+void egui_view_alert_banner_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                        egui_color_t muted_text_color, egui_color_t active_color);
 
 #ifdef __cplusplus
 }

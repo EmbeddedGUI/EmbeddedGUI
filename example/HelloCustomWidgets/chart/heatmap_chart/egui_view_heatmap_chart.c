@@ -1,23 +1,23 @@
-#define HEATMAP_PANEL_SHADOW_ALPHA 20
-#define HEATMAP_PANEL_FILL_ALPHA 32
-#define HEATMAP_PANEL_BORDER_ALPHA 52
-#define HEATMAP_INNER_BORDER_ALPHA 20
-#define HEATMAP_HEADER_MODE 2
-#define HEATMAP_HEADER_PILL_MIN_WIDTH 82
-#define HEATMAP_HEADER_LINE_ALPHA 22
-#define HEATMAP_FOOTER_MODE 2
-#define HEATMAP_FOOTER_WIDTH 80
-#define HEATMAP_FOOTER_FILL_ALPHA 46
-#define HEATMAP_FOOTER_BORDER_ALPHA 22
-#define HEATMAP_MINI_BADGE_MODE 2
-#define HEATMAP_MINI_BADGE_WIDTH 30
-#define HEATMAP_MINI_BADGE_FILL_ALPHA 70
+#define HEATMAP_PANEL_SHADOW_ALPHA      20
+#define HEATMAP_PANEL_FILL_ALPHA        32
+#define HEATMAP_PANEL_BORDER_ALPHA      52
+#define HEATMAP_INNER_BORDER_ALPHA      20
+#define HEATMAP_HEADER_MODE             2
+#define HEATMAP_HEADER_PILL_MIN_WIDTH   82
+#define HEATMAP_HEADER_LINE_ALPHA       22
+#define HEATMAP_FOOTER_MODE             2
+#define HEATMAP_FOOTER_WIDTH            80
+#define HEATMAP_FOOTER_FILL_ALPHA       46
+#define HEATMAP_FOOTER_BORDER_ALPHA     22
+#define HEATMAP_MINI_BADGE_MODE         2
+#define HEATMAP_MINI_BADGE_WIDTH        30
+#define HEATMAP_MINI_BADGE_FILL_ALPHA   70
 #define HEATMAP_MINI_BADGE_BORDER_ALPHA 20
-#define HEATMAP_MINI_TOP_STRIP_ALPHA 18
+#define HEATMAP_MINI_TOP_STRIP_ALPHA    18
 #define HEATMAP_MINI_BOTTOM_STRIP_ALPHA 18
-#define HEATMAP_DISABLED_OVERLAY_ALPHA 14
-#define HEATMAP_DISABLED_CROSS_ALPHA 12
-#define HEATMAP_DISABLED_MIX_ALPHA 70
+#define HEATMAP_DISABLED_OVERLAY_ALPHA  14
+#define HEATMAP_DISABLED_CROSS_ALPHA    12
+#define HEATMAP_DISABLED_MIX_ALPHA      70
 
 #include <stdlib.h>
 #include <string.h>
@@ -114,13 +114,8 @@ static void egui_view_heatmap_chart_format_value(uint8_t value, char out_text[4]
     out_text[1] = 0;
 }
 
-static void egui_view_heatmap_chart_draw_cell(
-        egui_view_heatmap_chart_t *local,
-        egui_region_t cell_region,
-        uint8_t value,
-        uint8_t is_hotspot,
-        egui_alpha_t alpha,
-        uint8_t is_enabled)
+static void egui_view_heatmap_chart_draw_cell(egui_view_heatmap_chart_t *local, egui_region_t cell_region, uint8_t value, uint8_t is_hotspot,
+                                              egui_alpha_t alpha, uint8_t is_enabled)
 {
     egui_color_t cell_color;
     egui_color_t border_color;
@@ -150,39 +145,16 @@ static void egui_view_heatmap_chart_draw_cell(
         border_color = egui_rgb_mix(local->border_color, local->hot_color, EGUI_ALPHA_50);
     }
 
-    egui_canvas_draw_round_rectangle_fill(
-            cell_region.location.x + 1,
-            cell_region.location.y + 1,
-            cell_region.size.width - 2,
-            cell_region.size.height - 2,
-            3,
-            cell_color,
-            alpha);
-    egui_canvas_draw_rectangle(
-            cell_region.location.x,
-            cell_region.location.y,
-            cell_region.size.width,
-            cell_region.size.height,
-            is_hotspot ? 2 : 1,
-            border_color,
-            egui_color_alpha_mix(alpha, EGUI_ALPHA_40));
+    egui_canvas_draw_round_rectangle_fill(cell_region.location.x + 1, cell_region.location.y + 1, cell_region.size.width - 2, cell_region.size.height - 2, 3,
+                                          cell_color, alpha);
+    egui_canvas_draw_rectangle(cell_region.location.x, cell_region.location.y, cell_region.size.width, cell_region.size.height, is_hotspot ? 2 : 1,
+                               border_color, egui_color_alpha_mix(alpha, EGUI_ALPHA_40));
     if (is_hotspot && is_enabled && cell_region.size.width > 10 && cell_region.size.height > 10)
     {
-        egui_canvas_draw_round_rectangle(
-                cell_region.location.x + 2,
-                cell_region.location.y + 2,
-                cell_region.size.width - 4,
-                cell_region.size.height - 4,
-                2,
-                1,
-                local->hot_color,
-                egui_color_alpha_mix(alpha, EGUI_ALPHA_60));
-        egui_canvas_draw_circle_fill(
-                cell_region.location.x + cell_region.size.width - 4,
-                cell_region.location.y + 4,
-                2,
-                local->hot_color,
-                egui_color_alpha_mix(alpha, EGUI_ALPHA_80));
+        egui_canvas_draw_round_rectangle(cell_region.location.x + 2, cell_region.location.y + 2, cell_region.size.width - 4, cell_region.size.height - 4, 2, 1,
+                                         local->hot_color, egui_color_alpha_mix(alpha, EGUI_ALPHA_60));
+        egui_canvas_draw_circle_fill(cell_region.location.x + cell_region.size.width - 4, cell_region.location.y + 4, 2, local->hot_color,
+                                     egui_color_alpha_mix(alpha, EGUI_ALPHA_80));
     }
 
     if (!local->show_values || cell_region.size.width < 20 || cell_region.size.height < 14)
@@ -214,35 +186,19 @@ static void egui_view_heatmap_chart_draw_grid_overlay(egui_view_heatmap_chart_t 
     for (r = 1; r < local->rows; r++)
     {
         egui_dim_t y = content_region.location.y + (egui_dim_t)(((int32_t)content_region.size.height * r) / local->rows);
-        egui_canvas_draw_line(
-                content_region.location.x + 1,
-                y,
-                content_region.location.x + content_region.size.width - 2,
-                y,
-                1,
-                line_color,
-                egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
+        egui_canvas_draw_line(content_region.location.x + 1, y, content_region.location.x + content_region.size.width - 2, y, 1, line_color,
+                              egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
     }
     for (c = 1; c < local->cols; c++)
     {
         egui_dim_t x = content_region.location.x + (egui_dim_t)(((int32_t)content_region.size.width * c) / local->cols);
-        egui_canvas_draw_line(
-                x,
-                content_region.location.y + 1,
-                x,
-                content_region.location.y + content_region.size.height - 2,
-                1,
-                line_color,
-                egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
+        egui_canvas_draw_line(x, content_region.location.y + 1, x, content_region.location.y + content_region.size.height - 2, 1, line_color,
+                              egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
     }
 }
 
-static void egui_view_heatmap_chart_draw_hotspot_guides(
-        egui_view_heatmap_chart_t *local,
-        egui_region_t content_region,
-        uint8_t max_index,
-        egui_alpha_t alpha,
-        uint8_t is_enabled)
+static void egui_view_heatmap_chart_draw_hotspot_guides(egui_view_heatmap_chart_t *local, egui_region_t content_region, uint8_t max_index, egui_alpha_t alpha,
+                                                        uint8_t is_enabled)
 {
     egui_color_t guide_color;
     uint8_t max_row;
@@ -269,22 +225,10 @@ static void egui_view_heatmap_chart_draw_hotspot_guides(
     cx = (egui_dim_t)((x0 + x1) / 2);
 
     guide_color = egui_rgb_mix(local->hot_color, local->border_color, EGUI_ALPHA_50);
-    egui_canvas_draw_line(
-            content_region.location.x + 1,
-            cy,
-            content_region.location.x + content_region.size.width - 2,
-            cy,
-            1,
-            guide_color,
-            egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
-    egui_canvas_draw_line(
-            cx,
-            content_region.location.y + 1,
-            cx,
-            content_region.location.y + content_region.size.height - 2,
-            1,
-            guide_color,
-            egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
+    egui_canvas_draw_line(content_region.location.x + 1, cy, content_region.location.x + content_region.size.width - 2, cy, 1, guide_color,
+                          egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
+    egui_canvas_draw_line(cx, content_region.location.y + 1, cx, content_region.location.y + content_region.size.height - 2, 1, guide_color,
+                          egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
 }
 
 static uint8_t egui_view_heatmap_chart_find_max_index(const uint8_t *values, uint8_t count)
@@ -309,12 +253,8 @@ static uint8_t egui_view_heatmap_chart_find_max_index(const uint8_t *values, uin
     return max_index;
 }
 
-static void egui_view_heatmap_chart_draw_axis_labels(
-        egui_view_heatmap_chart_t *local,
-        egui_region_t content_region,
-        egui_dim_t axis_left_width,
-        egui_dim_t axis_top_height,
-        egui_alpha_t alpha)
+static void egui_view_heatmap_chart_draw_axis_labels(egui_view_heatmap_chart_t *local, egui_region_t content_region, egui_dim_t axis_left_width,
+                                                     egui_dim_t axis_top_height, egui_alpha_t alpha)
 {
     egui_region_t text_region;
     egui_color_t chip_color = egui_rgb_mix(local->surface_color, EGUI_COLOR_BLACK, EGUI_ALPHA_50);
@@ -337,14 +277,8 @@ static void egui_view_heatmap_chart_draw_axis_labels(
             text_region.size.height = y1 - y0;
             if (text_region.size.width > 5 && text_region.size.height > 4)
             {
-                egui_canvas_draw_round_rectangle_fill(
-                        text_region.location.x + 1,
-                        text_region.location.y + 1,
-                        text_region.size.width - 1,
-                        text_region.size.height - 2,
-                        2,
-                        chip_color,
-                        egui_color_alpha_mix(alpha, EGUI_ALPHA_40));
+                egui_canvas_draw_round_rectangle_fill(text_region.location.x + 1, text_region.location.y + 1, text_region.size.width - 1,
+                                                      text_region.size.height - 2, 2, chip_color, egui_color_alpha_mix(alpha, EGUI_ALPHA_40));
             }
             egui_canvas_draw_text_in_rect(local->font, local->row_labels[r], &text_region, EGUI_ALIGN_RIGHT, local->muted_text_color, alpha);
         }
@@ -361,14 +295,8 @@ static void egui_view_heatmap_chart_draw_axis_labels(
             text_region.size.height = axis_top_height - 1;
             if (text_region.size.width > 7 && text_region.size.height > 4)
             {
-                egui_canvas_draw_round_rectangle_fill(
-                        text_region.location.x + 1,
-                        text_region.location.y,
-                        text_region.size.width - 2,
-                        text_region.size.height,
-                        2,
-                        chip_color,
-                        egui_color_alpha_mix(alpha, EGUI_ALPHA_40));
+                egui_canvas_draw_round_rectangle_fill(text_region.location.x + 1, text_region.location.y, text_region.size.width - 2, text_region.size.height,
+                                                      2, chip_color, egui_color_alpha_mix(alpha, EGUI_ALPHA_40));
             }
             egui_canvas_draw_text_in_rect(local->font, local->col_labels[c], &text_region, EGUI_ALIGN_CENTER, local->muted_text_color, alpha);
         }
@@ -456,14 +384,8 @@ void egui_view_heatmap_chart_set_show_axis_labels(egui_view_t *self, uint8_t sho
     egui_view_invalidate(self);
 }
 
-void egui_view_heatmap_chart_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t cold_color,
-        egui_color_t hot_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color)
+void egui_view_heatmap_chart_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t cold_color,
+                                         egui_color_t hot_color, egui_color_t text_color, egui_color_t muted_text_color)
 {
     EGUI_LOCAL_INIT(egui_view_heatmap_chart_t);
     local->surface_color = surface_color;
@@ -528,43 +450,18 @@ static void egui_view_heatmap_chart_on_draw(egui_view_t *self)
 
     if (HEATMAP_PANEL_SHADOW_ALPHA > 0)
     {
-        egui_canvas_draw_round_rectangle_fill(
-                region.location.x + 1,
-                region.location.y + 2,
-                region.size.width,
-                region.size.height,
-                8,
-                shadow_color,
-                egui_color_alpha_mix(self->alpha, HEATMAP_PANEL_SHADOW_ALPHA));
+        egui_canvas_draw_round_rectangle_fill(region.location.x + 1, region.location.y + 2, region.size.width, region.size.height, 8, shadow_color,
+                                              egui_color_alpha_mix(self->alpha, HEATMAP_PANEL_SHADOW_ALPHA));
     }
-    egui_canvas_draw_round_rectangle_fill(
-            region.location.x,
-            region.location.y,
-            region.size.width,
-            region.size.height,
-            8,
-            panel_color,
-            egui_color_alpha_mix(self->alpha, HEATMAP_PANEL_FILL_ALPHA));
-    egui_canvas_draw_round_rectangle(
-            region.location.x,
-            region.location.y,
-            region.size.width,
-            region.size.height,
-            8,
-            1,
-            local->border_color,
-            egui_color_alpha_mix(self->alpha, HEATMAP_PANEL_BORDER_ALPHA));
+    egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, 8, panel_color,
+                                          egui_color_alpha_mix(self->alpha, HEATMAP_PANEL_FILL_ALPHA));
+    egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, region.size.height, 8, 1, local->border_color,
+                                     egui_color_alpha_mix(self->alpha, HEATMAP_PANEL_BORDER_ALPHA));
     if (HEATMAP_INNER_BORDER_ALPHA > 0)
     {
-        egui_canvas_draw_round_rectangle(
-                region.location.x + 2,
-                region.location.y + 2,
-                region.size.width - 4,
-                region.size.height - 4,
-                6,
-                1,
-                egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
-                egui_color_alpha_mix(self->alpha, HEATMAP_INNER_BORDER_ALPHA));
+        egui_canvas_draw_round_rectangle(region.location.x + 2, region.location.y + 2, region.size.width - 4, region.size.height - 4, 6, 1,
+                                         egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
+                                         egui_color_alpha_mix(self->alpha, HEATMAP_INNER_BORDER_ALPHA));
     }
 
     content_region.location.x = region.location.x + 4;
@@ -581,14 +478,9 @@ static void egui_view_heatmap_chart_on_draw(egui_view_t *self)
         }
         if (HEATMAP_MINI_TOP_STRIP_ALPHA > 0)
         {
-            egui_canvas_draw_round_rectangle_fill(
-                    region.location.x + 12,
-                    region.location.y + 6,
-                    region.size.width - 20,
-                    2,
-                    1,
-                    is_enabled ? local->text_color : local->muted_text_color,
-                    egui_color_alpha_mix(self->alpha, HEATMAP_MINI_TOP_STRIP_ALPHA));
+            egui_canvas_draw_round_rectangle_fill(region.location.x + 12, region.location.y + 6, region.size.width - 20, 2, 1,
+                                                  is_enabled ? local->text_color : local->muted_text_color,
+                                                  egui_color_alpha_mix(self->alpha, HEATMAP_MINI_TOP_STRIP_ALPHA));
         }
         if (HEATMAP_MINI_BADGE_MODE > 0)
         {
@@ -598,25 +490,15 @@ static void egui_view_heatmap_chart_on_draw(egui_view_t *self)
             header_region.size.height = 10;
             if (HEATMAP_MINI_BADGE_MODE > 1)
             {
-                egui_canvas_draw_round_rectangle_fill(
-                        header_region.location.x,
-                        header_region.location.y,
-                        header_region.size.width,
-                        header_region.size.height,
-                        4,
-                        egui_rgb_mix(local->surface_color, local->border_color, EGUI_ALPHA_10),
-                        egui_color_alpha_mix(self->alpha, HEATMAP_MINI_BADGE_FILL_ALPHA));
-                egui_canvas_draw_round_rectangle(
-                        header_region.location.x,
-                        header_region.location.y,
-                        header_region.size.width,
-                        header_region.size.height,
-                        4,
-                        1,
-                        egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
-                        egui_color_alpha_mix(self->alpha, HEATMAP_MINI_BADGE_BORDER_ALPHA));
+                egui_canvas_draw_round_rectangle_fill(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height,
+                                                      4, egui_rgb_mix(local->surface_color, local->border_color, EGUI_ALPHA_10),
+                                                      egui_color_alpha_mix(self->alpha, HEATMAP_MINI_BADGE_FILL_ALPHA));
+                egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 4, 1,
+                                                 egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
+                                                 egui_color_alpha_mix(self->alpha, HEATMAP_MINI_BADGE_BORDER_ALPHA));
             }
-            egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+            egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER,
+                                          is_enabled ? local->text_color : local->muted_text_color, self->alpha);
             content_region.location.y += 12;
             content_region.size.height -= 12;
         }
@@ -634,47 +516,26 @@ static void egui_view_heatmap_chart_on_draw(egui_view_t *self)
         {
             pill_w = content_region.size.width;
         }
-        header_region.location.x = (HEATMAP_HEADER_MODE == 0) ? (content_region.location.x + 4) : (content_region.location.x + (content_region.size.width - pill_w) / 2);
+        header_region.location.x =
+                (HEATMAP_HEADER_MODE == 0) ? (content_region.location.x + 4) : (content_region.location.x + (content_region.size.width - pill_w) / 2);
         header_region.location.y = content_region.location.y;
         header_region.size.width = (HEATMAP_HEADER_MODE == 0) ? (content_region.size.width - 8) : pill_w;
         header_region.size.height = 14;
         if (HEATMAP_HEADER_MODE == 2)
         {
-            egui_canvas_draw_round_rectangle_fill(
-                    header_region.location.x,
-                    header_region.location.y,
-                    header_region.size.width,
-                    header_region.size.height,
-                    6,
-                    egui_rgb_mix(local->surface_color, local->border_color, EGUI_ALPHA_10),
-                    egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
-            egui_canvas_draw_round_rectangle(
-                    header_region.location.x,
-                    header_region.location.y,
-                    header_region.size.width,
-                    header_region.size.height,
-                    6,
-                    1,
-                    egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
-                    egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+            egui_canvas_draw_round_rectangle_fill(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 6,
+                                                  egui_rgb_mix(local->surface_color, local->border_color, EGUI_ALPHA_10),
+                                                  egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
+            egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 6, 1,
+                                             egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
+                                             egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
         }
-        egui_canvas_draw_text_in_rect(
-                local->font,
-                header_text,
-                &header_region,
-                (HEATMAP_HEADER_MODE == 0) ? EGUI_ALIGN_LEFT : EGUI_ALIGN_CENTER,
-                is_enabled ? local->text_color : local->muted_text_color,
-                self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, header_text, &header_region, (HEATMAP_HEADER_MODE == 0) ? EGUI_ALIGN_LEFT : EGUI_ALIGN_CENTER,
+                                      is_enabled ? local->text_color : local->muted_text_color, self->alpha);
         if (HEATMAP_HEADER_LINE_ALPHA > 0)
         {
-            egui_canvas_draw_line(
-                    content_region.location.x + 5,
-                    content_region.location.y + 17,
-                    content_region.location.x + content_region.size.width - 6,
-                    content_region.location.y + 17,
-                    1,
-                    local->border_color,
-                    egui_color_alpha_mix(self->alpha, HEATMAP_HEADER_LINE_ALPHA));
+            egui_canvas_draw_line(content_region.location.x + 5, content_region.location.y + 17, content_region.location.x + content_region.size.width - 6,
+                                  content_region.location.y + 17, 1, local->border_color, egui_color_alpha_mix(self->alpha, HEATMAP_HEADER_LINE_ALPHA));
         }
         content_region.location.y += 20;
         content_region.size.height -= 20;
@@ -731,46 +592,26 @@ static void egui_view_heatmap_chart_on_draw(egui_view_t *self)
     }
     if (!local->show_header && HEATMAP_MINI_BOTTOM_STRIP_ALPHA > 0)
     {
-        egui_canvas_draw_round_rectangle_fill(
-                content_region.location.x + 8,
-                region.location.y + region.size.height - 8,
-                content_region.size.width - 14,
-                2,
-                1,
-                is_enabled ? local->text_color : local->muted_text_color,
-                egui_color_alpha_mix(self->alpha, HEATMAP_MINI_BOTTOM_STRIP_ALPHA));
+        egui_canvas_draw_round_rectangle_fill(content_region.location.x + 8, region.location.y + region.size.height - 8, content_region.size.width - 14, 2, 1,
+                                              is_enabled ? local->text_color : local->muted_text_color,
+                                              egui_color_alpha_mix(self->alpha, HEATMAP_MINI_BOTTOM_STRIP_ALPHA));
     }
     if (!is_enabled)
     {
         if (HEATMAP_DISABLED_OVERLAY_ALPHA > 0)
         {
-            egui_canvas_draw_round_rectangle_fill(
-                    content_region.location.x + 1,
-                    content_region.location.y + 1,
-                    content_region.size.width - 2,
-                    content_region.size.height - 2,
-                    4,
-                    EGUI_COLOR_BLACK,
-                    egui_color_alpha_mix(self->alpha, HEATMAP_DISABLED_OVERLAY_ALPHA));
+            egui_canvas_draw_round_rectangle_fill(content_region.location.x + 1, content_region.location.y + 1, content_region.size.width - 2,
+                                                  content_region.size.height - 2, 4, EGUI_COLOR_BLACK,
+                                                  egui_color_alpha_mix(self->alpha, HEATMAP_DISABLED_OVERLAY_ALPHA));
         }
         if (HEATMAP_DISABLED_CROSS_ALPHA > 0)
         {
-            egui_canvas_draw_line(
-                    content_region.location.x + 2,
-                    content_region.location.y + 2,
-                    content_region.location.x + content_region.size.width - 3,
-                    content_region.location.y + content_region.size.height - 3,
-                    1,
-                    local->muted_text_color,
-                    egui_color_alpha_mix(self->alpha, HEATMAP_DISABLED_CROSS_ALPHA));
-            egui_canvas_draw_line(
-                    content_region.location.x + 2,
-                    content_region.location.y + content_region.size.height - 3,
-                    content_region.location.x + content_region.size.width - 3,
-                    content_region.location.y + 2,
-                    1,
-                    local->muted_text_color,
-                    egui_color_alpha_mix(self->alpha, HEATMAP_DISABLED_CROSS_ALPHA));
+            egui_canvas_draw_line(content_region.location.x + 2, content_region.location.y + 2, content_region.location.x + content_region.size.width - 3,
+                                  content_region.location.y + content_region.size.height - 3, 1, local->muted_text_color,
+                                  egui_color_alpha_mix(self->alpha, HEATMAP_DISABLED_CROSS_ALPHA));
+            egui_canvas_draw_line(content_region.location.x + 2, content_region.location.y + content_region.size.height - 3,
+                                  content_region.location.x + content_region.size.width - 3, content_region.location.y + 2, 1, local->muted_text_color,
+                                  egui_color_alpha_mix(self->alpha, HEATMAP_DISABLED_CROSS_ALPHA));
         }
     }
 
@@ -784,25 +625,14 @@ static void egui_view_heatmap_chart_on_draw(egui_view_t *self)
         text_region.size.height = 11;
         if (HEATMAP_FOOTER_MODE > 1)
         {
-            egui_canvas_draw_round_rectangle_fill(
-                    footer_x,
-                    content_region.location.y + content_region.size.height + 2,
-                    HEATMAP_FOOTER_WIDTH,
-                    11,
-                    5,
-                    panel_color,
-                    egui_color_alpha_mix(self->alpha, HEATMAP_FOOTER_FILL_ALPHA));
-            egui_canvas_draw_round_rectangle(
-                    footer_x,
-                    content_region.location.y + content_region.size.height + 2,
-                    HEATMAP_FOOTER_WIDTH,
-                    11,
-                    5,
-                    1,
-                    egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
-                    egui_color_alpha_mix(self->alpha, HEATMAP_FOOTER_BORDER_ALPHA));
+            egui_canvas_draw_round_rectangle_fill(footer_x, content_region.location.y + content_region.size.height + 2, HEATMAP_FOOTER_WIDTH, 11, 5,
+                                                  panel_color, egui_color_alpha_mix(self->alpha, HEATMAP_FOOTER_FILL_ALPHA));
+            egui_canvas_draw_round_rectangle(footer_x, content_region.location.y + content_region.size.height + 2, HEATMAP_FOOTER_WIDTH, 11, 5, 1,
+                                             egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
+                                             egui_color_alpha_mix(self->alpha, HEATMAP_FOOTER_BORDER_ALPHA));
         }
-        egui_canvas_draw_text_in_rect(local->font, footer_text, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, footer_text, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
     }
 }
 

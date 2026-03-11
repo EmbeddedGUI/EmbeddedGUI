@@ -20,9 +20,9 @@ struct crossfader_palette
 };
 
 static const crossfader_palette_t crossfader_palette = {
-        EGUI_COLOR_HEX(0x090F15), EGUI_COLOR_HEX(0x16212B), EGUI_COLOR_HEX(0x0F171F), EGUI_COLOR_HEX(0x425667), EGUI_COLOR_HEX(0xF2F6FB),
-        EGUI_COLOR_HEX(0x8EA1B4), EGUI_COLOR_HEX(0x63D0FF), EGUI_COLOR_HEX(0xDDA35E), EGUI_COLOR_HEX(0x8BE3B7), EGUI_COLOR_HEX(0xDA7A9F),
-        EGUI_COLOR_HEX(0x02060B),
+        EGUI_COLOR_HEX(0x090F15), EGUI_COLOR_HEX(0x16212B), EGUI_COLOR_HEX(0x0F171F), EGUI_COLOR_HEX(0x425667),
+        EGUI_COLOR_HEX(0xF2F6FB), EGUI_COLOR_HEX(0x8EA1B4), EGUI_COLOR_HEX(0x63D0FF), EGUI_COLOR_HEX(0xDDA35E),
+        EGUI_COLOR_HEX(0x8BE3B7), EGUI_COLOR_HEX(0xDA7A9F), EGUI_COLOR_HEX(0x02060B),
 };
 
 static uint8_t clamp_count(uint8_t count)
@@ -76,15 +76,8 @@ static void draw_round_fill_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, clamp_round_radius(w, h, radius), color, alpha);
 }
 
-static void draw_round_stroke_safe(
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_dim_t radius,
-        egui_dim_t stroke_width,
-        egui_color_t color,
-        egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
     if (w <= 0 || h <= 0)
     {
@@ -184,15 +177,8 @@ static int egui_view_scene_crossfader_on_touch_event(egui_view_t *self, egui_mot
     return 1;
 }
 
-static void draw_preview(
-        egui_view_t *self,
-        const egui_view_scene_crossfader_state_t *state,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t inward_edge,
-        uint8_t is_right)
+static void draw_preview(egui_view_t *self, const egui_view_scene_crossfader_state_t *state, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h,
+                         uint8_t inward_edge, uint8_t is_right)
 {
     egui_color_t accent = get_accent(state);
     egui_region_t text_region;
@@ -226,8 +212,8 @@ static void draw_preview(
     text_region.location.y = y + 20;
     text_region.size.width = w - 12;
     text_region.size.height = 10;
-    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_10_4, is_right ? state->right_tag : state->left_tag, &text_region, EGUI_ALIGN_CENTER,
-                                  crossfader_palette.text, self->alpha);
+    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_10_4, is_right ? state->right_tag : state->left_tag, &text_region,
+                                  EGUI_ALIGN_CENTER, crossfader_palette.text, self->alpha);
 }
 
 static void egui_view_scene_crossfader_on_draw(egui_view_t *self)
@@ -331,9 +317,11 @@ static void egui_view_scene_crossfader_on_draw(egui_view_t *self)
     egui_canvas_draw_text_in_rect(body_font, current->mode, &text_region, EGUI_ALIGN_CENTER, crossfader_palette.text, self->alpha);
 
     draw_round_fill_safe(main_rect.location.x + 18, main_rect.location.y + 42, 54, 16, 8, accent, egui_color_alpha_mix(self->alpha, 14));
-    draw_round_stroke_safe(main_rect.location.x + 18, main_rect.location.y + 42, 54, 16, 8, 1, crossfader_palette.border, egui_color_alpha_mix(self->alpha, 18));
+    draw_round_stroke_safe(main_rect.location.x + 18, main_rect.location.y + 42, 54, 16, 8, 1, crossfader_palette.border,
+                           egui_color_alpha_mix(self->alpha, 18));
     draw_round_fill_safe(main_rect.location.x + main_rect.size.width - 72, main_rect.location.y + 42, 54, 16, 8, accent, egui_color_alpha_mix(self->alpha, 10));
-    draw_round_stroke_safe(main_rect.location.x + main_rect.size.width - 72, main_rect.location.y + 42, 54, 16, 8, 1, crossfader_palette.border, egui_color_alpha_mix(self->alpha, 18));
+    draw_round_stroke_safe(main_rect.location.x + main_rect.size.width - 72, main_rect.location.y + 42, 54, 16, 8, 1, crossfader_palette.border,
+                           egui_color_alpha_mix(self->alpha, 18));
     text_region.location.x = main_rect.location.x + 24;
     text_region.location.y = main_rect.location.y + 45;
     text_region.size.width = 42;
@@ -342,9 +330,10 @@ static void egui_view_scene_crossfader_on_draw(egui_view_t *self)
     text_region.location.x = main_rect.location.x + main_rect.size.width - 66;
     egui_canvas_draw_text_in_rect(body_font, current->right_tag, &text_region, EGUI_ALIGN_CENTER, crossfader_palette.text, self->alpha);
     draw_round_fill_safe(main_rect.location.x + 24, main_rect.location.y + 62, 28 + current->left_level, 2, 1, accent, egui_color_alpha_mix(self->alpha, 22));
-    draw_round_fill_safe(main_rect.location.x + main_rect.size.width - 24 - (28 + current->right_level), main_rect.location.y + 62, 28 + current->right_level, 2, 1,
-                         accent, egui_color_alpha_mix(self->alpha, 18));
-    draw_round_fill_safe(main_rect.location.x + 83, main_rect.location.y + 50, main_rect.size.width - 166, 2, 1, crossfader_palette.border, egui_color_alpha_mix(self->alpha, 12));
+    draw_round_fill_safe(main_rect.location.x + main_rect.size.width - 24 - (28 + current->right_level), main_rect.location.y + 62, 28 + current->right_level,
+                         2, 1, accent, egui_color_alpha_mix(self->alpha, 18));
+    draw_round_fill_safe(main_rect.location.x + 83, main_rect.location.y + 50, main_rect.size.width - 166, 2, 1, crossfader_palette.border,
+                         egui_color_alpha_mix(self->alpha, 12));
 
     mix_x = main_rect.location.x + 18;
     mix_y = main_rect.location.y + 72;
@@ -373,7 +362,8 @@ static void egui_view_scene_crossfader_on_draw(egui_view_t *self)
     draw_round_fill_safe(mix_x + mix_w - 14, mix_y + 24, 6, 6, 3, accent, egui_color_alpha_mix(self->alpha, 24));
     draw_round_fill_safe(mix_x + (mix_w / 2) - 1, mix_y + 20, 2, 14, 1, crossfader_palette.text, egui_color_alpha_mix(self->alpha, 12));
     draw_round_fill_safe(mix_x + 22, mix_y + 38, 16 + current->curve_bias * 6, 2, 1, accent, egui_color_alpha_mix(self->alpha, 16));
-    draw_round_fill_safe(mix_x + mix_w - 38 - current->curve_bias * 4, mix_y + 38, 16 + current->curve_bias * 4, 2, 1, accent, egui_color_alpha_mix(self->alpha, 12));
+    draw_round_fill_safe(mix_x + mix_w - 38 - current->curve_bias * 4, mix_y + 38, 16 + current->curve_bias * 4, 2, 1, accent,
+                         egui_color_alpha_mix(self->alpha, 12));
     text_region.location.x = mix_x + 6;
     text_region.location.y = mix_y + 31;
     text_region.size.width = 10;
@@ -395,7 +385,8 @@ static void egui_view_scene_crossfader_on_draw(egui_view_t *self)
     text_region.location.y = mix_y + 54;
     text_region.size.width = mix_w - 20;
     text_region.size.height = 20;
-    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->preset, &text_region, EGUI_ALIGN_CENTER, crossfader_palette.text, self->alpha);
+    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->preset, &text_region, EGUI_ALIGN_CENTER,
+                                  crossfader_palette.text, self->alpha);
     draw_round_fill_safe(main_rect.location.x + 70, mix_y + 72, main_rect.size.width - 140, 2, 1, accent, egui_color_alpha_mix(self->alpha, 14));
 
     text_region.location.y = mix_y + 68;
@@ -407,7 +398,8 @@ static void egui_view_scene_crossfader_on_draw(egui_view_t *self)
 
     footer_pill_x = main_rect.location.x + (main_rect.size.width - footer_pill_w) / 2;
     draw_round_fill_safe(footer_pill_x, main_rect.location.y + 152, footer_pill_w, 18, 9, crossfader_palette.bg, egui_color_alpha_mix(self->alpha, 20));
-    draw_round_stroke_safe(footer_pill_x, main_rect.location.y + 152, footer_pill_w, 18, 9, 1, crossfader_palette.border, egui_color_alpha_mix(self->alpha, 26));
+    draw_round_stroke_safe(footer_pill_x, main_rect.location.y + 152, footer_pill_w, 18, 9, 1, crossfader_palette.border,
+                           egui_color_alpha_mix(self->alpha, 26));
     draw_round_fill_safe(footer_pill_x + 16, main_rect.location.y + 159, 5, 5, 2, accent, egui_color_alpha_mix(self->alpha, 54));
     draw_round_fill_safe(footer_pill_x + 24, main_rect.location.y + 160, 10, 2, 1, accent, egui_color_alpha_mix(self->alpha, 18));
     draw_round_fill_safe(footer_pill_x + footer_pill_w - 34, main_rect.location.y + 160, 10, 2, 1, accent, egui_color_alpha_mix(self->alpha, 18));
@@ -443,7 +435,8 @@ static void egui_view_scene_crossfader_on_draw(egui_view_t *self)
     draw_round_fill_safe(status_pill_x + 28, region.location.y + 251, 10, 2, 1, accent, egui_color_alpha_mix(self->alpha, 22));
     draw_round_fill_safe(status_pill_x + 46, region.location.y + 251, 10, 2, 1, crossfader_palette.border, egui_color_alpha_mix(self->alpha, 12));
     draw_round_fill_safe(status_pill_x + status_pill_w - 46, region.location.y + 251, 10, 2, 1, accent, egui_color_alpha_mix(self->alpha, 16));
-    draw_round_fill_safe(status_pill_x + status_pill_w - 28, region.location.y + 251, 10, 2, 1, crossfader_palette.border, egui_color_alpha_mix(self->alpha, 12));
+    draw_round_fill_safe(status_pill_x + status_pill_w - 28, region.location.y + 251, 10, 2, 1, crossfader_palette.border,
+                         egui_color_alpha_mix(self->alpha, 12));
     draw_round_fill_safe(status_pill_x + status_pill_w - 19, region.location.y + 249, 7, 7, 3, accent, egui_color_alpha_mix(self->alpha, 60));
     text_region.location.x = status_pill_x + 34;
     text_region.location.y = region.location.y + 246;

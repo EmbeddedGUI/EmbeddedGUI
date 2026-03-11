@@ -26,23 +26,19 @@ static const char *title_text = "Skeleton Loader";
 static const char *guide_text = "Tap loaders to rotate phase";
 static const egui_view_line_point_t section_divider_points[] = {{0, 0}, {147, 0}};
 
-static const egui_view_skeleton_loader_block_t primary_blocks_a[] = {
-        {0, 0, 22, 22, 11}, {28, 2, 72, 8, 4}, {28, 14, 56, 7, 4},
-        {0, 32, 100, 8, 4}, {0, 44, 86, 8, 4}, {0, 62, 136, 34, 6},
-        {0, 104, 40, 10, 5}, {48, 104, 34, 10, 5}};
-static const egui_view_skeleton_loader_block_t primary_blocks_b[] = {
-        {0, 0, 136, 34, 6}, {0, 42, 90, 8, 4}, {0, 54, 110, 8, 4},
-        {0, 72, 22, 22, 11}, {28, 74, 62, 8, 4}, {28, 86, 48, 7, 4},
-        {0, 104, 34, 10, 5}, {42, 104, 46, 10, 5}};
+static const egui_view_skeleton_loader_block_t primary_blocks_a[] = {{0, 0, 22, 22, 11}, {28, 2, 72, 8, 4},   {28, 14, 56, 7, 4},  {0, 32, 100, 8, 4},
+                                                                     {0, 44, 86, 8, 4},  {0, 62, 136, 34, 6}, {0, 104, 40, 10, 5}, {48, 104, 34, 10, 5}};
+static const egui_view_skeleton_loader_block_t primary_blocks_b[] = {{0, 0, 136, 34, 6}, {0, 42, 90, 8, 4},  {0, 54, 110, 8, 4},  {0, 72, 22, 22, 11},
+                                                                     {28, 74, 62, 8, 4}, {28, 86, 48, 7, 4}, {0, 104, 34, 10, 5}, {42, 104, 46, 10, 5}};
 static const egui_view_skeleton_loader_snapshot_t primary_snapshots[] = {
         {"Layout A", primary_blocks_a, 8, 5},
         {"Layout B", primary_blocks_b, 8, 0},
 };
 
-static const egui_view_skeleton_loader_block_t compact_blocks_a[] = {
-        {0, 2, 16, 16, 8}, {22, 4, 44, 6, 3}, {22, 14, 34, 6, 3}, {0, 30, 72, 22, 5}, {0, 58, 32, 8, 4}, {38, 58, 24, 8, 4}};
-static const egui_view_skeleton_loader_block_t compact_blocks_b[] = {
-        {0, 2, 72, 22, 5}, {0, 30, 44, 6, 3}, {0, 40, 54, 6, 3}, {0, 54, 16, 16, 8}, {22, 56, 36, 6, 3}, {22, 66, 26, 6, 3}};
+static const egui_view_skeleton_loader_block_t compact_blocks_a[] = {{0, 2, 16, 16, 8},  {22, 4, 44, 6, 3}, {22, 14, 34, 6, 3},
+                                                                     {0, 30, 72, 22, 5}, {0, 58, 32, 8, 4}, {38, 58, 24, 8, 4}};
+static const egui_view_skeleton_loader_block_t compact_blocks_b[] = {{0, 2, 72, 22, 5},  {0, 30, 44, 6, 3},  {0, 40, 54, 6, 3},
+                                                                     {0, 54, 16, 16, 8}, {22, 56, 36, 6, 3}, {22, 66, 26, 6, 3}};
 static const egui_view_skeleton_loader_snapshot_t compact_snapshots[] = {
         {"Compact A", compact_blocks_a, 6, 3},
         {"Compact B", compact_blocks_b, 6, 0},
@@ -61,24 +57,14 @@ static void apply_compact_state(uint8_t index, uint8_t is_active)
     if (is_active)
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0xF59E0B), EGUI_ALPHA_100);
-        egui_view_skeleton_loader_set_palette(
-                EGUI_VIEW_OF(&loader_compact),
-                EGUI_COLOR_HEX(0x23160A),
-                EGUI_COLOR_HEX(0x8B5E1A),
-                EGUI_COLOR_HEX(0xFDE68A),
-                EGUI_COLOR_HEX(0xD6A15B),
-                EGUI_COLOR_HEX(0xF59E0B));
+        egui_view_skeleton_loader_set_palette(EGUI_VIEW_OF(&loader_compact), EGUI_COLOR_HEX(0x23160A), EGUI_COLOR_HEX(0x8B5E1A), EGUI_COLOR_HEX(0xFDE68A),
+                                              EGUI_COLOR_HEX(0xD6A15B), EGUI_COLOR_HEX(0xF59E0B));
     }
     else
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0x8B5E1A), EGUI_ALPHA_100);
-        egui_view_skeleton_loader_set_palette(
-                EGUI_VIEW_OF(&loader_compact),
-                EGUI_COLOR_HEX(0x121A28),
-                EGUI_COLOR_HEX(0x3D5068),
-                EGUI_COLOR_HEX(0xCBD5E1),
-                EGUI_COLOR_HEX(0x7F92A7),
-                EGUI_COLOR_HEX(0x60A5FA));
+        egui_view_skeleton_loader_set_palette(EGUI_VIEW_OF(&loader_compact), EGUI_COLOR_HEX(0x121A28), EGUI_COLOR_HEX(0x3D5068), EGUI_COLOR_HEX(0xCBD5E1),
+                                              EGUI_COLOR_HEX(0x7F92A7), EGUI_COLOR_HEX(0x60A5FA));
     }
 }
 
@@ -128,13 +114,8 @@ void test_init_ui(void)
     egui_view_skeleton_loader_set_snapshots(EGUI_VIEW_OF(&loader_primary), primary_snapshots, 2);
     egui_view_skeleton_loader_set_current_snapshot(EGUI_VIEW_OF(&loader_primary), 0);
     egui_view_skeleton_loader_set_focus_block(EGUI_VIEW_OF(&loader_primary), 5);
-    egui_view_skeleton_loader_set_palette(
-            EGUI_VIEW_OF(&loader_primary),
-            EGUI_COLOR_HEX(0x0F1728),
-            EGUI_COLOR_HEX(0x536379),
-            EGUI_COLOR_HEX(0xE2E8F0),
-            EGUI_COLOR_HEX(0x93A5BC),
-            EGUI_COLOR_HEX(0x38BDF8));
+    egui_view_skeleton_loader_set_palette(EGUI_VIEW_OF(&loader_primary), EGUI_COLOR_HEX(0x0F1728), EGUI_COLOR_HEX(0x536379), EGUI_COLOR_HEX(0xE2E8F0),
+                                          EGUI_COLOR_HEX(0x93A5BC), EGUI_COLOR_HEX(0x38BDF8));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&loader_primary), on_primary_click);
     egui_view_set_margin(EGUI_VIEW_OF(&loader_primary), 0, 0, 0, 4);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&loader_primary));
@@ -211,13 +192,8 @@ void test_init_ui(void)
     egui_view_skeleton_loader_set_focus_block(EGUI_VIEW_OF(&loader_locked), 3);
     egui_view_skeleton_loader_set_show_header(EGUI_VIEW_OF(&loader_locked), 0);
     egui_view_skeleton_loader_set_compact_mode(EGUI_VIEW_OF(&loader_locked), 1);
-    egui_view_skeleton_loader_set_palette(
-            EGUI_VIEW_OF(&loader_locked),
-            EGUI_COLOR_HEX(0x0E1522),
-            EGUI_COLOR_HEX(0x46566B),
-            EGUI_COLOR_HEX(0xCBD5E1),
-            EGUI_COLOR_HEX(0x8695A9),
-            EGUI_COLOR_HEX(0x758E83));
+    egui_view_skeleton_loader_set_palette(EGUI_VIEW_OF(&loader_locked), EGUI_COLOR_HEX(0x0E1522), EGUI_COLOR_HEX(0x46566B), EGUI_COLOR_HEX(0xCBD5E1),
+                                          EGUI_COLOR_HEX(0x8695A9), EGUI_COLOR_HEX(0x758E83));
     egui_view_set_enable(EGUI_VIEW_OF(&loader_locked), 0);
     egui_view_group_add_child(EGUI_VIEW_OF(&locked_column), EGUI_VIEW_OF(&loader_locked));
 

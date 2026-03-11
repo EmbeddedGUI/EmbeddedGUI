@@ -65,17 +65,9 @@ void egui_view_xy_pad_set_locked_mode(egui_view_t *self, uint8_t locked_mode)
     egui_view_invalidate(self);
 }
 
-void egui_view_xy_pad_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t pad_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t accent_color,
-        egui_color_t warn_color,
-        egui_color_t lock_color,
-        egui_color_t focus_color)
+void egui_view_xy_pad_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t pad_color, egui_color_t border_color, egui_color_t text_color,
+                                  egui_color_t muted_text_color, egui_color_t accent_color, egui_color_t warn_color, egui_color_t lock_color,
+                                  egui_color_t focus_color)
 {
     EGUI_LOCAL_INIT(egui_view_xy_pad_t);
     local->surface_color = surface_color;
@@ -103,13 +95,7 @@ static egui_color_t egui_view_xy_pad_get_status_color(egui_view_xy_pad_t *local,
     return local->accent_color;
 }
 
-static void egui_view_xy_pad_draw_grid(
-        egui_view_xy_pad_t *local,
-        egui_view_t *self,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t width,
-        egui_dim_t height)
+static void egui_view_xy_pad_draw_grid(egui_view_xy_pad_t *local, egui_view_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
     egui_dim_t col_step;
     egui_dim_t row_step;
@@ -119,22 +105,10 @@ static void egui_view_xy_pad_draw_grid(
     row_step = height / 4;
     for (i = 1; i < 4; i++)
     {
-        egui_canvas_draw_line(
-                x + col_step * i,
-                y + 2,
-                x + col_step * i,
-                y + height - 3,
-                1,
-                local->border_color,
-                egui_color_alpha_mix(self->alpha, i == 2 ? 35 : EGUI_ALPHA_20));
-        egui_canvas_draw_line(
-                x + 2,
-                y + row_step * i,
-                x + width - 3,
-                y + row_step * i,
-                1,
-                local->border_color,
-                egui_color_alpha_mix(self->alpha, i == 2 ? 35 : EGUI_ALPHA_20));
+        egui_canvas_draw_line(x + col_step * i, y + 2, x + col_step * i, y + height - 3, 1, local->border_color,
+                              egui_color_alpha_mix(self->alpha, i == 2 ? 35 : EGUI_ALPHA_20));
+        egui_canvas_draw_line(x + 2, y + row_step * i, x + width - 3, y + row_step * i, 1, local->border_color,
+                              egui_color_alpha_mix(self->alpha, i == 2 ? 35 : EGUI_ALPHA_20));
     }
 }
 
@@ -192,16 +166,11 @@ static void egui_view_xy_pad_on_draw(egui_view_t *self)
     text_region.location.y = panel_y + header_top;
     text_region.size.width = title_w;
     text_region.size.height = 11;
-    egui_canvas_draw_text_in_rect(local->font, snapshot->title ? snapshot->title : "XY PAD", &text_region, EGUI_ALIGN_LEFT, local->muted_text_color, self->alpha);
+    egui_canvas_draw_text_in_rect(local->font, snapshot->title ? snapshot->title : "XY PAD", &text_region, EGUI_ALIGN_LEFT, local->muted_text_color,
+                                  self->alpha);
 
-    egui_canvas_draw_round_rectangle_fill(
-            pill_x,
-            panel_y + header_top,
-            pill_w,
-            11,
-            5,
-            status_color,
-            egui_color_alpha_mix(self->alpha, local->locked_mode ? 32 : 62));
+    egui_canvas_draw_round_rectangle_fill(pill_x, panel_y + header_top, pill_w, 11, 5, status_color,
+                                          egui_color_alpha_mix(self->alpha, local->locked_mode ? 32 : 62));
     text_region.location.x = pill_x + 1;
     text_region.location.y = panel_y + header_top;
     text_region.size.width = pill_w - 2;
@@ -246,7 +215,8 @@ static void egui_view_xy_pad_on_draw(egui_view_t *self)
     {
         text_region.location.y = footer_y + 7;
         text_region.size.height = EGUI_MAX(footer_h - 9, 10);
-        egui_canvas_draw_text_in_rect(local->font, snapshot->footer ? snapshot->footer : "tilt", &text_region, EGUI_ALIGN_CENTER, local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, snapshot->footer ? snapshot->footer : "tilt", &text_region, EGUI_ALIGN_CENTER, local->muted_text_color,
+                                      self->alpha);
     }
 }
 

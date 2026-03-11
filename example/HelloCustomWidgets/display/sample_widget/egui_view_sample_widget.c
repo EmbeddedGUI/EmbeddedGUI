@@ -15,7 +15,7 @@ static void egui_view_sample_widget_on_draw(egui_view_t *self)
     }
 
     egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, SAMPLE_WIDGET_RADIUS,
-                                         EGUI_COLOR_HEX(0x0F172A), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_40));
+                                          EGUI_COLOR_HEX(0x0F172A), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_40));
 
     // Draw border
     if (local->border_width > 0)

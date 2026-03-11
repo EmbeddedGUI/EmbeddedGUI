@@ -1,19 +1,19 @@
-#define TIMELINE_PANEL_SHADOW_ALPHA 20
-#define TIMELINE_PANEL_FILL_ALPHA 32
-#define TIMELINE_PANEL_BORDER_ALPHA 52
-#define TIMELINE_INNER_BORDER_ALPHA 20
-#define TIMELINE_HEADER_PILL_MIN_WIDTH 82
-#define TIMELINE_HEADER_LINE_ALPHA 22
-#define TIMELINE_FOOTER_WIDTH 84
-#define TIMELINE_FOOTER_FILL_ALPHA 44
-#define TIMELINE_FOOTER_BORDER_ALPHA 22
-#define TIMELINE_MINI_BADGE_WIDTH 30
-#define TIMELINE_MINI_BADGE_FILL_ALPHA 70
+#define TIMELINE_PANEL_SHADOW_ALPHA      20
+#define TIMELINE_PANEL_FILL_ALPHA        32
+#define TIMELINE_PANEL_BORDER_ALPHA      52
+#define TIMELINE_INNER_BORDER_ALPHA      20
+#define TIMELINE_HEADER_PILL_MIN_WIDTH   82
+#define TIMELINE_HEADER_LINE_ALPHA       22
+#define TIMELINE_FOOTER_WIDTH            84
+#define TIMELINE_FOOTER_FILL_ALPHA       44
+#define TIMELINE_FOOTER_BORDER_ALPHA     22
+#define TIMELINE_MINI_BADGE_WIDTH        30
+#define TIMELINE_MINI_BADGE_FILL_ALPHA   70
 #define TIMELINE_MINI_BADGE_BORDER_ALPHA 20
-#define TIMELINE_MINI_TOP_STRIP_ALPHA 18
+#define TIMELINE_MINI_TOP_STRIP_ALPHA    18
 #define TIMELINE_MINI_BOTTOM_STRIP_ALPHA 18
-#define TIMELINE_DISABLED_OVERLAY_ALPHA 14
-#define TIMELINE_DISABLED_CROSS_ALPHA 12
+#define TIMELINE_DISABLED_OVERLAY_ALPHA  14
+#define TIMELINE_DISABLED_CROSS_ALPHA    12
 
 #include <stdlib.h>
 #include <string.h>
@@ -74,15 +74,8 @@ static const char *egui_view_status_timeline_get_footer_text(egui_view_status_ti
     return (local->current_snapshot == 0) ? "Stage A" : ((local->current_snapshot == 1) ? "Stage B" : "Stage C");
 }
 
-static void egui_view_status_timeline_draw_tag(
-        const egui_font_t *font,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t width,
-        egui_color_t fill_color,
-        egui_color_t text_color,
-        const char *text,
-        egui_alpha_t alpha)
+static void egui_view_status_timeline_draw_tag(const egui_font_t *font, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_color_t fill_color,
+                                               egui_color_t text_color, const char *text, egui_alpha_t alpha)
 {
     egui_region_t text_region;
 
@@ -98,14 +91,8 @@ static void egui_view_status_timeline_draw_tag(
     egui_canvas_draw_text_in_rect(font, text, &text_region, EGUI_ALIGN_CENTER, text_color, alpha);
 }
 
-static void egui_view_status_timeline_draw_step(
-        egui_view_status_timeline_t *local,
-        const egui_view_status_timeline_step_t *step,
-        uint8_t step_index,
-        uint8_t current_step,
-        egui_view_status_timeline_rect_t rect,
-        egui_alpha_t alpha,
-        uint8_t is_enabled)
+static void egui_view_status_timeline_draw_step(egui_view_status_timeline_t *local, const egui_view_status_timeline_step_t *step, uint8_t step_index,
+                                                uint8_t current_step, egui_view_status_timeline_rect_t rect, egui_alpha_t alpha, uint8_t is_enabled)
 {
     egui_region_t text_region;
     egui_color_t node_color;
@@ -234,14 +221,8 @@ void egui_view_status_timeline_set_compact_mode(egui_view_t *self, uint8_t compa
     egui_view_invalidate(self);
 }
 
-void egui_view_status_timeline_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t active_color,
-        egui_color_t done_color)
+void egui_view_status_timeline_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                           egui_color_t muted_text_color, egui_color_t active_color, egui_color_t done_color)
 {
     EGUI_LOCAL_INIT(egui_view_status_timeline_t);
     local->surface_color = surface_color;
@@ -335,7 +316,8 @@ static void egui_view_status_timeline_on_draw(egui_view_t *self)
         egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 4, 1,
                                          egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
                                          egui_color_alpha_mix(self->alpha, TIMELINE_MINI_BADGE_BORDER_ALPHA));
-        egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
         content.y += 12;
         content.height -= 12;
     }
@@ -364,7 +346,8 @@ static void egui_view_status_timeline_on_draw(egui_view_t *self)
         egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 6, 1,
                                          egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
                                          egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
-        egui_canvas_draw_text_in_rect(local->font, header_text, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, header_text, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
         if (TIMELINE_HEADER_LINE_ALPHA > 0)
         {
             egui_canvas_draw_line(content.x + 5, content.y + 17, content.x + content.width - 6, content.y + 17, 1, local->border_color,
@@ -420,12 +403,13 @@ static void egui_view_status_timeline_on_draw(egui_view_t *self)
         text_region.location.y = content.y + content.height + 3;
         text_region.size.width = content.width;
         text_region.size.height = 11;
-        egui_canvas_draw_round_rectangle_fill(content.x + (content.width - TIMELINE_FOOTER_WIDTH) / 2, content.y + content.height + 2, TIMELINE_FOOTER_WIDTH, 11, 5,
-                                              panel_color, egui_color_alpha_mix(self->alpha, TIMELINE_FOOTER_FILL_ALPHA));
-        egui_canvas_draw_round_rectangle(content.x + (content.width - TIMELINE_FOOTER_WIDTH) / 2, content.y + content.height + 2, TIMELINE_FOOTER_WIDTH, 11, 5, 1,
-                                         egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
+        egui_canvas_draw_round_rectangle_fill(content.x + (content.width - TIMELINE_FOOTER_WIDTH) / 2, content.y + content.height + 2, TIMELINE_FOOTER_WIDTH,
+                                              11, 5, panel_color, egui_color_alpha_mix(self->alpha, TIMELINE_FOOTER_FILL_ALPHA));
+        egui_canvas_draw_round_rectangle(content.x + (content.width - TIMELINE_FOOTER_WIDTH) / 2, content.y + content.height + 2, TIMELINE_FOOTER_WIDTH, 11, 5,
+                                         1, egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
                                          egui_color_alpha_mix(self->alpha, TIMELINE_FOOTER_BORDER_ALPHA));
-        egui_canvas_draw_text_in_rect(local->font, footer_text, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, footer_text, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
     }
     else if (TIMELINE_MINI_BOTTOM_STRIP_ALPHA > 0)
     {

@@ -31,10 +31,7 @@ struct egui_view_jog_shuttle_wheel
     uint8_t last_zone;
 };
 
-void egui_view_jog_shuttle_wheel_set_modes(
-        egui_view_t *self,
-        const egui_view_jog_shuttle_wheel_mode_t *modes,
-        uint8_t mode_count);
+void egui_view_jog_shuttle_wheel_set_modes(egui_view_t *self, const egui_view_jog_shuttle_wheel_mode_t *modes, uint8_t mode_count);
 void egui_view_jog_shuttle_wheel_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_jog_shuttle_wheel_init(egui_view_t *self);
 

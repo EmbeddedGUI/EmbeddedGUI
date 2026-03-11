@@ -163,17 +163,9 @@ void test_init_ui(void)
     egui_view_dock_launcher_set_snapshots(EGUI_VIEW_OF(&dock_favorites), favorites_snapshots, 3);
     egui_view_dock_launcher_set_font(EGUI_VIEW_OF(&dock_favorites), (const egui_font_t *)&egui_res_font_montserrat_8_4);
     egui_view_dock_launcher_set_compact_mode(EGUI_VIEW_OF(&dock_favorites), 1);
-    egui_view_dock_launcher_set_palette(
-            EGUI_VIEW_OF(&dock_favorites),
-            EGUI_COLOR_HEX(0x122117),
-            EGUI_COLOR_HEX(0x1A3122),
-            EGUI_COLOR_HEX(0x3D6D58),
-            EGUI_COLOR_HEX(0xECFFF5),
-            EGUI_COLOR_HEX(0x8DB6A2),
-            EGUI_COLOR_HEX(0x61D9A9),
-            EGUI_COLOR_HEX(0xE1B35C),
-            EGUI_COLOR_HEX(0xCCAA78),
-            EGUI_COLOR_HEX(0x98F2C7));
+    egui_view_dock_launcher_set_palette(EGUI_VIEW_OF(&dock_favorites), EGUI_COLOR_HEX(0x122117), EGUI_COLOR_HEX(0x1A3122), EGUI_COLOR_HEX(0x3D6D58),
+                                        EGUI_COLOR_HEX(0xECFFF5), EGUI_COLOR_HEX(0x8DB6A2), EGUI_COLOR_HEX(0x61D9A9), EGUI_COLOR_HEX(0xE1B35C),
+                                        EGUI_COLOR_HEX(0xCCAA78), EGUI_COLOR_HEX(0x98F2C7));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&dock_favorites), on_favorites_click);
     egui_view_group_add_child(EGUI_VIEW_OF(&bottom_row), EGUI_VIEW_OF(&dock_favorites));
 
@@ -183,17 +175,9 @@ void test_init_ui(void)
     egui_view_dock_launcher_set_font(EGUI_VIEW_OF(&dock_recent), (const egui_font_t *)&egui_res_font_montserrat_8_4);
     egui_view_dock_launcher_set_compact_mode(EGUI_VIEW_OF(&dock_recent), 1);
     egui_view_dock_launcher_set_locked_mode(EGUI_VIEW_OF(&dock_recent), 1);
-    egui_view_dock_launcher_set_palette(
-            EGUI_VIEW_OF(&dock_recent),
-            EGUI_COLOR_HEX(0x261B14),
-            EGUI_COLOR_HEX(0x35261D),
-            EGUI_COLOR_HEX(0x6B5644),
-            EGUI_COLOR_HEX(0xFFF2E6),
-            EGUI_COLOR_HEX(0xD2AE93),
-            EGUI_COLOR_HEX(0xF0BC7E),
-            EGUI_COLOR_HEX(0xF2B05E),
-            EGUI_COLOR_HEX(0xD6A36E),
-            EGUI_COLOR_HEX(0xFFD7AA));
+    egui_view_dock_launcher_set_palette(EGUI_VIEW_OF(&dock_recent), EGUI_COLOR_HEX(0x261B14), EGUI_COLOR_HEX(0x35261D), EGUI_COLOR_HEX(0x6B5644),
+                                        EGUI_COLOR_HEX(0xFFF2E6), EGUI_COLOR_HEX(0xD2AE93), EGUI_COLOR_HEX(0xF0BC7E), EGUI_COLOR_HEX(0xF2B05E),
+                                        EGUI_COLOR_HEX(0xD6A36E), EGUI_COLOR_HEX(0xFFD7AA));
     egui_view_set_margin(EGUI_VIEW_OF(&dock_recent), 4, 0, 0, 0);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&dock_recent), on_recent_click);
     egui_view_group_add_child(EGUI_VIEW_OF(&bottom_row), EGUI_VIEW_OF(&dock_recent));

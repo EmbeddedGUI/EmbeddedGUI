@@ -31,16 +31,11 @@ void test_init_ui(void)
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static const egui_sim_action_t actions[] = {
-            EGUI_SIM_WAIT(400),
-            EGUI_SIM_CLICK(200, 136, 700),
-            EGUI_SIM_WAIT(300),
-            EGUI_SIM_CLICK(40, 136, 700),
-            EGUI_SIM_WAIT(300),
-            EGUI_SIM_CLICK(120, 132, 700),
-            EGUI_SIM_WAIT(300),
-            EGUI_SIM_CLICK(200, 136, 700),
-            EGUI_SIM_WAIT(500),
-            EGUI_SIM_END(),
+            EGUI_SIM_WAIT(400), EGUI_SIM_CLICK(200, 136, 700),
+            EGUI_SIM_WAIT(300), EGUI_SIM_CLICK(40, 136, 700),
+            EGUI_SIM_WAIT(300), EGUI_SIM_CLICK(120, 132, 700),
+            EGUI_SIM_WAIT(300), EGUI_SIM_CLICK(200, 136, 700),
+            EGUI_SIM_WAIT(500), EGUI_SIM_END(),
     };
 
     if (actions[action_index].type == EGUI_SIM_ACTION_NONE)

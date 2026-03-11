@@ -31,10 +31,7 @@ static uint8_t clamp_count(uint8_t count)
     return count;
 }
 
-void egui_view_coverflow_strip_set_snapshots(
-        egui_view_t *self,
-        const egui_view_coverflow_strip_snapshot_t *snapshots,
-        uint8_t snapshot_count)
+void egui_view_coverflow_strip_set_snapshots(egui_view_t *self, const egui_view_coverflow_strip_snapshot_t *snapshots, uint8_t snapshot_count)
 {
     EGUI_LOCAL_INIT(egui_view_coverflow_strip_t);
     local->snapshots = snapshots;
@@ -62,15 +59,8 @@ static void draw_round_fill_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, radius, color, alpha);
 }
 
-static void draw_round_stroke_safe(
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_dim_t radius,
-        egui_dim_t stroke_width,
-        egui_color_t color,
-        egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
     if (w <= 0 || h <= 0)
     {
@@ -114,14 +104,8 @@ static uint8_t get_right_index(const egui_view_coverflow_strip_t *local)
     return (uint8_t)((local->current_index + 1) % local->snapshot_count);
 }
 
-static void draw_side_card(
-        egui_view_t *self,
-        const egui_view_coverflow_strip_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t right_side)
+static void draw_side_card(egui_view_t *self, const egui_view_coverflow_strip_snapshot_t *snapshot, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h,
+                           uint8_t right_side)
 {
     egui_region_t text_region;
     egui_color_t accent_color;
@@ -178,15 +162,7 @@ static void draw_center_card(egui_view_t *self, const egui_view_coverflow_strip_
     draw_round_fill_safe(x + 16, y + 16, 42, 3, 1, accent_color, egui_color_alpha_mix(self->alpha, 78));
 
     draw_round_fill_safe(pill_x, y + 14, pill_w, 12, 6, accent_color, egui_color_alpha_mix(self->alpha, 68));
-    draw_round_stroke_safe(
-            pill_x,
-            y + 14,
-            pill_w,
-            12,
-            6,
-            1,
-            egui_rgb_mix(accent_color, coverflow_palette.text, 28),
-            egui_color_alpha_mix(self->alpha, 56));
+    draw_round_stroke_safe(pill_x, y + 14, pill_w, 12, 6, 1, egui_rgb_mix(accent_color, coverflow_palette.text, 28), egui_color_alpha_mix(self->alpha, 56));
     text_region.location.x = pill_x + 4;
     text_region.location.y = y + 14;
     text_region.size.width = pill_w - 8;
@@ -201,7 +177,8 @@ static void draw_center_card(egui_view_t *self, const egui_view_coverflow_strip_
 
     text_region.location.y = y + 57;
     text_region.size.height = 12;
-    egui_canvas_draw_text_in_rect(body_font, snapshot->summary, &text_region, EGUI_ALIGN_LEFT, egui_rgb_mix(coverflow_palette.text, coverflow_palette.muted, 24), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, snapshot->summary, &text_region, EGUI_ALIGN_LEFT,
+                                  egui_rgb_mix(coverflow_palette.text, coverflow_palette.muted, 24), self->alpha);
 
     draw_round_fill_safe(x + 16, y + 82, w - 32, 30, 9, coverflow_palette.surface, egui_color_alpha_mix(self->alpha, 42));
     draw_round_stroke_safe(x + 16, y + 82, w - 32, 30, 9, 1, coverflow_palette.border, egui_color_alpha_mix(self->alpha, 36));
@@ -210,7 +187,8 @@ static void draw_center_card(egui_view_t *self, const egui_view_coverflow_strip_
 
     text_region.location.y = y + h - 24;
     text_region.size.height = 12;
-    egui_canvas_draw_text_in_rect(body_font, snapshot->footer, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(coverflow_palette.text, accent_color, 28), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, snapshot->footer, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(coverflow_palette.text, accent_color, 28),
+                                  self->alpha);
 }
 
 static void get_zone_rects_local(egui_view_t *self, egui_region_t *left_rect, egui_region_t *center_rect, egui_region_t *right_rect)
@@ -337,7 +315,8 @@ static void egui_view_coverflow_strip_on_draw(egui_view_t *self)
 
     text_region.location.y = region.location.y + 24;
     text_region.size.height = 11;
-    egui_canvas_draw_text_in_rect(guide_font, "Tap side cards to rotate scenes", &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(coverflow_palette.text, coverflow_palette.muted, 32), self->alpha);
+    egui_canvas_draw_text_in_rect(guide_font, "Tap side cards to rotate scenes", &text_region, EGUI_ALIGN_CENTER,
+                                  egui_rgb_mix(coverflow_palette.text, coverflow_palette.muted, 32), self->alpha);
 
     get_zone_rects_local(self, &left_rect, &center_rect, &right_rect);
     draw_side_card(self, left_snapshot, left_rect.location.x, left_rect.location.y, left_rect.size.width, left_rect.size.height, 0);

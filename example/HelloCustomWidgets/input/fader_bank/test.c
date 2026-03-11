@@ -35,10 +35,8 @@ static const egui_view_fader_bank_snapshot_t primary_snapshots[] = {
         {"Scene B", primary_channels_b, 5, 3},
 };
 
-static const egui_view_fader_bank_channel_t compact_channels_a[] = {
-        {"A", 28, 0, 0, 0}, {"B", 60, 1, 0, 2}, {"C", 44, 0, 1, 1}, {"D", 52, 0, 0, 0}};
-static const egui_view_fader_bank_channel_t compact_channels_b[] = {
-        {"A", 40, 0, 0, 1}, {"B", 72, 0, 1, 2}, {"C", 30, 1, 0, 0}, {"D", 58, 0, 0, 1}};
+static const egui_view_fader_bank_channel_t compact_channels_a[] = {{"A", 28, 0, 0, 0}, {"B", 60, 1, 0, 2}, {"C", 44, 0, 1, 1}, {"D", 52, 0, 0, 0}};
+static const egui_view_fader_bank_channel_t compact_channels_b[] = {{"A", 40, 0, 0, 1}, {"B", 72, 0, 1, 2}, {"C", 30, 1, 0, 0}, {"D", 58, 0, 0, 1}};
 static const egui_view_fader_bank_snapshot_t compact_snapshots[] = {
         {"Compact A", compact_channels_a, 4, 1},
         {"Compact B", compact_channels_b, 4, 1},
@@ -58,24 +56,14 @@ static void apply_compact_state(uint8_t index, uint8_t is_active)
     if (is_active)
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0xF2B226), EGUI_ALPHA_100);
-        egui_view_fader_bank_set_palette(
-                EGUI_VIEW_OF(&bank_compact),
-                EGUI_COLOR_HEX(0x24170B),
-                EGUI_COLOR_HEX(0x9A651B),
-                EGUI_COLOR_HEX(0xFDE7A4),
-                EGUI_COLOR_HEX(0xC89A57),
-                EGUI_COLOR_HEX(0xF2B226));
+        egui_view_fader_bank_set_palette(EGUI_VIEW_OF(&bank_compact), EGUI_COLOR_HEX(0x24170B), EGUI_COLOR_HEX(0x9A651B), EGUI_COLOR_HEX(0xFDE7A4),
+                                         EGUI_COLOR_HEX(0xC89A57), EGUI_COLOR_HEX(0xF2B226));
     }
     else
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0x8EACC8), EGUI_ALPHA_100);
-        egui_view_fader_bank_set_palette(
-                EGUI_VIEW_OF(&bank_compact),
-                EGUI_COLOR_HEX(0x111A29),
-                EGUI_COLOR_HEX(0x405A7A),
-                EGUI_COLOR_HEX(0xD8E3F0),
-                EGUI_COLOR_HEX(0x7E93AD),
-                EGUI_COLOR_HEX(0x67B6FF));
+        egui_view_fader_bank_set_palette(EGUI_VIEW_OF(&bank_compact), EGUI_COLOR_HEX(0x111A29), EGUI_COLOR_HEX(0x405A7A), EGUI_COLOR_HEX(0xD8E3F0),
+                                         EGUI_COLOR_HEX(0x7E93AD), EGUI_COLOR_HEX(0x67B6FF));
     }
 }
 
@@ -125,13 +113,8 @@ void test_init_ui(void)
     egui_view_fader_bank_set_snapshots(EGUI_VIEW_OF(&bank_primary), primary_snapshots, 2);
     egui_view_fader_bank_set_current_snapshot(EGUI_VIEW_OF(&bank_primary), 0);
     egui_view_fader_bank_set_focus_channel(EGUI_VIEW_OF(&bank_primary), 2);
-    egui_view_fader_bank_set_palette(
-            EGUI_VIEW_OF(&bank_primary),
-            EGUI_COLOR_HEX(0x0F1728),
-            EGUI_COLOR_HEX(0x536379),
-            EGUI_COLOR_HEX(0xE2E8F0),
-            EGUI_COLOR_HEX(0x93A5BC),
-            EGUI_COLOR_HEX(0x38BDF8));
+    egui_view_fader_bank_set_palette(EGUI_VIEW_OF(&bank_primary), EGUI_COLOR_HEX(0x0F1728), EGUI_COLOR_HEX(0x536379), EGUI_COLOR_HEX(0xE2E8F0),
+                                     EGUI_COLOR_HEX(0x93A5BC), EGUI_COLOR_HEX(0x38BDF8));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&bank_primary), on_primary_click);
     egui_view_set_margin(EGUI_VIEW_OF(&bank_primary), 0, 0, 0, 4);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&bank_primary));
@@ -208,13 +191,8 @@ void test_init_ui(void)
     egui_view_fader_bank_set_focus_channel(EGUI_VIEW_OF(&bank_locked), 1);
     egui_view_fader_bank_set_show_header(EGUI_VIEW_OF(&bank_locked), 0);
     egui_view_fader_bank_set_compact_mode(EGUI_VIEW_OF(&bank_locked), 1);
-    egui_view_fader_bank_set_palette(
-            EGUI_VIEW_OF(&bank_locked),
-            EGUI_COLOR_HEX(0x0E1522),
-            EGUI_COLOR_HEX(0x4B5D71),
-            EGUI_COLOR_HEX(0xC6CED8),
-            EGUI_COLOR_HEX(0x8694A3),
-            EGUI_COLOR_HEX(0x6B7787));
+    egui_view_fader_bank_set_palette(EGUI_VIEW_OF(&bank_locked), EGUI_COLOR_HEX(0x0E1522), EGUI_COLOR_HEX(0x4B5D71), EGUI_COLOR_HEX(0xC6CED8),
+                                     EGUI_COLOR_HEX(0x8694A3), EGUI_COLOR_HEX(0x6B7787));
     egui_view_set_enable(EGUI_VIEW_OF(&bank_locked), 0);
     egui_view_group_add_child(EGUI_VIEW_OF(&locked_column), EGUI_VIEW_OF(&bank_locked));
 

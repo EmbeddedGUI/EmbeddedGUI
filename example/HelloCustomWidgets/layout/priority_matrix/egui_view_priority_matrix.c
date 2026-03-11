@@ -146,14 +146,7 @@ static egui_dim_t get_pill_width(const egui_view_priority_matrix_snapshot_t *sna
     return width;
 }
 
-static void draw_round_fill_safe(
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_dim_t radius,
-        egui_color_t color,
-        egui_alpha_t alpha)
+static void draw_round_fill_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_color_t color, egui_alpha_t alpha)
 {
     if (w <= 0 || h <= 0)
     {
@@ -162,15 +155,8 @@ static void draw_round_fill_safe(
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, radius, color, alpha);
 }
 
-static void draw_round_stroke_safe(
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_dim_t radius,
-        egui_dim_t stroke_width,
-        egui_color_t color,
-        egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
     if (w <= 0 || h <= 0)
     {
@@ -196,16 +182,8 @@ static uint8_t get_quadrant_from_percent(uint8_t x, uint8_t y)
     return 3;
 }
 
-static void draw_marker(
-        egui_view_t *self,
-        const priority_palette_t *palette,
-        const egui_view_priority_matrix_snapshot_t *snapshot,
-        egui_dim_t board_x,
-        egui_dim_t board_y,
-        egui_dim_t board_w,
-        egui_dim_t board_h,
-        const priority_marker_t *marker,
-        uint8_t compact)
+static void draw_marker(egui_view_t *self, const priority_palette_t *palette, const egui_view_priority_matrix_snapshot_t *snapshot, egui_dim_t board_x,
+                        egui_dim_t board_y, egui_dim_t board_w, egui_dim_t board_h, const priority_marker_t *marker, uint8_t compact)
 {
     egui_dim_t x;
     egui_dim_t y;
@@ -235,15 +213,8 @@ static void draw_marker(
     draw_round_fill_safe(x - size / 2, y - size / 2, size, size, size / 2, color, egui_color_alpha_mix(self->alpha, compact ? 84 : 92));
 }
 
-static void draw_quadrant_badges(
-        egui_view_t *self,
-        const priority_palette_t *palette,
-        const egui_view_priority_matrix_snapshot_t *snapshot,
-        egui_dim_t board_x,
-        egui_dim_t board_y,
-        egui_dim_t board_w,
-        egui_dim_t board_h,
-        uint8_t compact)
+static void draw_quadrant_badges(egui_view_t *self, const priority_palette_t *palette, const egui_view_priority_matrix_snapshot_t *snapshot, egui_dim_t board_x,
+                                 egui_dim_t board_y, egui_dim_t board_w, egui_dim_t board_h, uint8_t compact)
 {
     egui_dim_t badge_w;
     egui_dim_t badge_h;
@@ -280,16 +251,8 @@ static void draw_quadrant_badges(
     }
 }
 
-static void draw_priority_preview(
-        egui_view_t *self,
-        const priority_palette_t *palette,
-        const egui_view_priority_matrix_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t compact,
-        uint8_t locked)
+static void draw_priority_preview(egui_view_t *self, const priority_palette_t *palette, const egui_view_priority_matrix_snapshot_t *snapshot, egui_dim_t x,
+                                  egui_dim_t y, egui_dim_t w, egui_dim_t h, uint8_t compact, uint8_t locked)
 {
     egui_dim_t chrome_x;
     egui_dim_t chrome_y;
@@ -355,16 +318,12 @@ static void draw_priority_preview(
     draw_round_stroke_safe(chrome_x, chrome_y, chrome_w, chrome_h, compact ? 6 : 7, 1, palette->border, egui_color_alpha_mix(self->alpha, compact ? 42 : 36));
     draw_round_fill_safe(board_x, board_y, board_w, board_h, compact ? 5 : 6, calm_color, egui_color_alpha_mix(self->alpha, compact ? 44 : 52));
     draw_round_fill_safe(board_x + 2, board_y + 2, half_w - quad_gap, half_h - quad_gap, compact ? 4 : 5, quad_color, egui_color_alpha_mix(self->alpha, 28));
-    draw_round_fill_safe(board_x + half_w + quad_gap - 2, board_y + 2, board_w - half_w - quad_gap, half_h - quad_gap, compact ? 4 : 5, quad_color, egui_color_alpha_mix(self->alpha, 24));
-    draw_round_fill_safe(board_x + 2, board_y + half_h + quad_gap - 2, half_w - quad_gap, board_h - half_h - quad_gap, compact ? 4 : 5, quad_color, egui_color_alpha_mix(self->alpha, 20));
-    draw_round_fill_safe(
-            board_x + half_w + quad_gap - 2,
-            board_y + half_h + quad_gap - 2,
-            board_w - half_w - quad_gap,
-            board_h - half_h - quad_gap,
-            compact ? 4 : 5,
-            quad_color,
-            egui_color_alpha_mix(self->alpha, 18));
+    draw_round_fill_safe(board_x + half_w + quad_gap - 2, board_y + 2, board_w - half_w - quad_gap, half_h - quad_gap, compact ? 4 : 5, quad_color,
+                         egui_color_alpha_mix(self->alpha, 24));
+    draw_round_fill_safe(board_x + 2, board_y + half_h + quad_gap - 2, half_w - quad_gap, board_h - half_h - quad_gap, compact ? 4 : 5, quad_color,
+                         egui_color_alpha_mix(self->alpha, 20));
+    draw_round_fill_safe(board_x + half_w + quad_gap - 2, board_y + half_h + quad_gap - 2, board_w - half_w - quad_gap, board_h - half_h - quad_gap,
+                         compact ? 4 : 5, quad_color, egui_color_alpha_mix(self->alpha, 18));
     draw_round_fill_safe(focus_x, focus_y, focus_w, focus_h, compact ? 5 : 6, status_color, egui_color_alpha_mix(self->alpha, locked ? 28 : 48));
     draw_round_stroke_safe(focus_x, focus_y, focus_w, focus_h, compact ? 5 : 6, 1, palette->focus, egui_color_alpha_mix(self->alpha, compact ? 68 : 84));
 
@@ -372,17 +331,14 @@ static void draw_priority_preview(
     center_y = board_y + half_h;
     draw_round_fill_safe(center_x - 1, board_y + 4, 2, board_h - 8, 1, palette->border, egui_color_alpha_mix(self->alpha, compact ? 58 : 64));
     draw_round_fill_safe(board_x + 4, center_y - 1, board_w - 8, 2, 1, palette->border, egui_color_alpha_mix(self->alpha, compact ? 58 : 64));
-    draw_round_fill_safe(board_x + 6, board_y + 6, 5, 3, 2, snapshot->focus_quadrant == 0 ? status_color : palette->muted, egui_color_alpha_mix(self->alpha, 70));
-    draw_round_fill_safe(board_x + board_w - 11, board_y + 6, 5, 3, 2, snapshot->focus_quadrant == 1 ? status_color : palette->muted, egui_color_alpha_mix(self->alpha, 66));
-    draw_round_fill_safe(board_x + 6, board_y + board_h - 9, 5, 3, 2, snapshot->focus_quadrant == 2 ? status_color : palette->muted, egui_color_alpha_mix(self->alpha, 62));
-    draw_round_fill_safe(
-            board_x + board_w - 11,
-            board_y + board_h - 9,
-            5,
-            3,
-            2,
-            snapshot->focus_quadrant == 3 ? status_color : palette->muted,
-            egui_color_alpha_mix(self->alpha, 58));
+    draw_round_fill_safe(board_x + 6, board_y + 6, 5, 3, 2, snapshot->focus_quadrant == 0 ? status_color : palette->muted,
+                         egui_color_alpha_mix(self->alpha, 70));
+    draw_round_fill_safe(board_x + board_w - 11, board_y + 6, 5, 3, 2, snapshot->focus_quadrant == 1 ? status_color : palette->muted,
+                         egui_color_alpha_mix(self->alpha, 66));
+    draw_round_fill_safe(board_x + 6, board_y + board_h - 9, 5, 3, 2, snapshot->focus_quadrant == 2 ? status_color : palette->muted,
+                         egui_color_alpha_mix(self->alpha, 62));
+    draw_round_fill_safe(board_x + board_w - 11, board_y + board_h - 9, 5, 3, 2, snapshot->focus_quadrant == 3 ? status_color : palette->muted,
+                         egui_color_alpha_mix(self->alpha, 58));
     draw_round_fill_safe(board_x + 5, board_y + 5, 6, 2, 1, palette->text, egui_color_alpha_mix(self->alpha, compact ? 30 : 36));
     draw_round_fill_safe(board_x + board_w - 11, board_y + board_h - 7, 6, 2, 1, palette->muted, egui_color_alpha_mix(self->alpha, compact ? 22 : 28));
 
@@ -400,16 +356,8 @@ static void draw_priority_preview(
     draw_quadrant_badges(self, palette, snapshot, board_x, board_y, board_w, board_h, compact);
 }
 
-static void draw_card(
-        egui_view_t *self,
-        const priority_palette_t *palette,
-        const egui_view_priority_matrix_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t compact,
-        uint8_t locked)
+static void draw_card(egui_view_t *self, const priority_palette_t *palette, const egui_view_priority_matrix_snapshot_t *snapshot, egui_dim_t x, egui_dim_t y,
+                      egui_dim_t w, egui_dim_t h, uint8_t compact, uint8_t locked)
 {
     egui_region_t text_region;
     egui_color_t shell_color;
@@ -430,10 +378,8 @@ static void draw_card(
     shell_color = egui_rgb_mix(EGUI_COLOR_BLACK, palette->surface, compact ? 30 : 22);
     status_color = get_status_color(palette, snapshot);
     title_color = compact ? egui_rgb_mix(palette->muted, status_color, locked ? 26 : 44) : palette->muted;
-    summary_color = locked ? egui_rgb_mix(palette->text, palette->muted, 42)
-                           : (compact ? palette->text : egui_rgb_mix(palette->text, palette->muted, 12));
-    footer_color = locked ? egui_rgb_mix(palette->muted, palette->border, 34)
-                          : egui_rgb_mix(palette->muted, palette->text, compact ? 20 : 22);
+    summary_color = locked ? egui_rgb_mix(palette->text, palette->muted, 42) : (compact ? palette->text : egui_rgb_mix(palette->text, palette->muted, 12));
+    footer_color = locked ? egui_rgb_mix(palette->muted, palette->border, 34) : egui_rgb_mix(palette->muted, palette->text, compact ? 20 : 22);
     outer_padding = compact ? 12 : 15;
     pill_w = get_pill_width(snapshot, compact);
     pill_x = x + w - outer_padding - pill_w;
@@ -577,8 +523,8 @@ static void egui_view_priority_matrix_on_draw(egui_view_t *self)
     egui_color_t status_color;
 
     egui_view_get_work_region(self, &region);
-    if (region.size.width <= 0 || region.size.height <= 0 || local->primary_snapshots == NULL || local->compact_snapshots == NULL
-        || local->locked_snapshots == NULL || local->primary_snapshot_count == 0 || local->compact_snapshot_count == 0 || local->locked_snapshot_count == 0)
+    if (region.size.width <= 0 || region.size.height <= 0 || local->primary_snapshots == NULL || local->compact_snapshots == NULL ||
+        local->locked_snapshots == NULL || local->primary_snapshot_count == 0 || local->compact_snapshot_count == 0 || local->locked_snapshot_count == 0)
     {
         return;
     }

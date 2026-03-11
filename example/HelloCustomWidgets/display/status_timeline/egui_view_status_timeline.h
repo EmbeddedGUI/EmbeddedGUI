@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-#define EGUI_VIEW_STATUS_TIMELINE_MAX_STEPS 5
+#define EGUI_VIEW_STATUS_TIMELINE_MAX_STEPS     5
 #define EGUI_VIEW_STATUS_TIMELINE_MAX_SNAPSHOTS 3
 
 typedef struct egui_view_status_timeline_step egui_view_status_timeline_step_t;
@@ -53,14 +53,8 @@ void egui_view_status_timeline_set_focus_step(egui_view_t *self, uint8_t step_in
 void egui_view_status_timeline_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_status_timeline_set_show_header(egui_view_t *self, uint8_t show_header);
 void egui_view_status_timeline_set_compact_mode(egui_view_t *self, uint8_t compact_mode);
-void egui_view_status_timeline_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t active_color,
-        egui_color_t done_color);
+void egui_view_status_timeline_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                           egui_color_t muted_text_color, egui_color_t active_color, egui_color_t done_color);
 
 #ifdef __cplusplus
 }

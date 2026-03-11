@@ -77,17 +77,9 @@ void egui_view_patch_bay_set_locked_mode(egui_view_t *self, uint8_t locked_mode)
     egui_view_invalidate(self);
 }
 
-void egui_view_patch_bay_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t panel_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t accent_color,
-        egui_color_t warn_color,
-        egui_color_t lock_color,
-        egui_color_t route_bg_color)
+void egui_view_patch_bay_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t panel_color, egui_color_t border_color,
+                                     egui_color_t text_color, egui_color_t muted_text_color, egui_color_t accent_color, egui_color_t warn_color,
+                                     egui_color_t lock_color, egui_color_t route_bg_color)
 {
     EGUI_LOCAL_INIT(egui_view_patch_bay_t);
     local->surface_color = surface_color;
@@ -115,42 +107,28 @@ static egui_color_t egui_view_patch_bay_get_signal_color(egui_view_patch_bay_t *
     return local->accent_color;
 }
 
-static void egui_view_patch_bay_draw_port(
-        egui_view_patch_bay_t *local,
-        egui_view_t *self,
-        egui_dim_t cx,
-        egui_dim_t cy,
-        egui_dim_t radius,
-        egui_color_t signal_color,
-        uint8_t is_active)
+static void egui_view_patch_bay_draw_port(egui_view_patch_bay_t *local, egui_view_t *self, egui_dim_t cx, egui_dim_t cy, egui_dim_t radius,
+                                          egui_color_t signal_color, uint8_t is_active)
 {
     egui_color_t fill_color;
 
     fill_color = is_active ? egui_rgb_mix(local->route_bg_color, signal_color, EGUI_ALPHA_30) : local->route_bg_color;
     egui_canvas_draw_circle_fill(cx, cy, radius + (is_active ? 2 : 1), fill_color, egui_color_alpha_mix(self->alpha, is_active ? EGUI_ALPHA_90 : 55));
-    egui_canvas_draw_circle(cx, cy, radius, is_active ? 2 : 1, is_active ? signal_color : local->border_color, egui_color_alpha_mix(self->alpha, is_active ? EGUI_ALPHA_90 : EGUI_ALPHA_50));
-    egui_canvas_draw_circle_fill(cx, cy, EGUI_MAX(radius / 2, 2), is_active ? signal_color : local->muted_text_color, egui_color_alpha_mix(self->alpha, is_active ? EGUI_ALPHA_90 : 45));
+    egui_canvas_draw_circle(cx, cy, radius, is_active ? 2 : 1, is_active ? signal_color : local->border_color,
+                            egui_color_alpha_mix(self->alpha, is_active ? EGUI_ALPHA_90 : EGUI_ALPHA_50));
+    egui_canvas_draw_circle_fill(cx, cy, EGUI_MAX(radius / 2, 2), is_active ? signal_color : local->muted_text_color,
+                                 egui_color_alpha_mix(self->alpha, is_active ? EGUI_ALPHA_90 : 45));
 }
 
-static void egui_view_patch_bay_draw_route(
-        egui_view_patch_bay_t *local,
-        egui_view_t *self,
-        egui_dim_t x1,
-        egui_dim_t y1,
-        egui_dim_t x2,
-        egui_dim_t y2,
-        egui_dim_t hub_x,
-        egui_color_t signal_color,
-        uint8_t is_active)
+static void egui_view_patch_bay_draw_route(egui_view_patch_bay_t *local, egui_view_t *self, egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2,
+                                           egui_dim_t hub_x, egui_color_t signal_color, uint8_t is_active)
 {
     egui_alpha_t alpha;
     egui_color_t color;
     egui_dim_t stroke;
     egui_dim_t joint_radius;
 
-    alpha = egui_color_alpha_mix(
-            self->alpha,
-            is_active ? (local->locked_mode ? 60 : 90) : (local->compact_mode ? EGUI_ALPHA_10 : 12));
+    alpha = egui_color_alpha_mix(self->alpha, is_active ? (local->locked_mode ? 60 : 90) : (local->compact_mode ? EGUI_ALPHA_10 : 12));
     color = is_active ? signal_color : local->border_color;
     stroke = is_active ? (local->compact_mode ? 2 : 3) : 1;
     joint_radius = is_active ? (local->compact_mode ? 2 : 3) : 1;
@@ -162,15 +140,8 @@ static void egui_view_patch_bay_draw_route(
     egui_canvas_draw_circle_fill(hub_x, y2, joint_radius, color, alpha);
 }
 
-static void egui_view_patch_bay_draw_label(
-        egui_view_patch_bay_t *local,
-        egui_view_t *self,
-        const char *text,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t width,
-        uint8_t align,
-        egui_color_t color)
+static void egui_view_patch_bay_draw_label(egui_view_patch_bay_t *local, egui_view_t *self, const char *text, egui_dim_t x, egui_dim_t y, egui_dim_t width,
+                                           uint8_t align, egui_color_t color)
 {
     egui_region_t text_region;
 
@@ -246,16 +217,11 @@ static void egui_view_patch_bay_on_draw(egui_view_t *self)
     text_region.location.y = panel_y + header_top;
     text_region.size.width = title_w;
     text_region.size.height = 11;
-    egui_canvas_draw_text_in_rect(local->font, snapshot->title ? snapshot->title : "PATCH", &text_region, EGUI_ALIGN_LEFT, local->muted_text_color, self->alpha);
+    egui_canvas_draw_text_in_rect(local->font, snapshot->title ? snapshot->title : "PATCH", &text_region, EGUI_ALIGN_LEFT, local->muted_text_color,
+                                  self->alpha);
 
-    egui_canvas_draw_round_rectangle_fill(
-            pill_x,
-            panel_y + header_top,
-            pill_w,
-            11,
-            5,
-            signal_color,
-            egui_color_alpha_mix(self->alpha, local->locked_mode ? 32 : 62));
+    egui_canvas_draw_round_rectangle_fill(pill_x, panel_y + header_top, pill_w, 11, 5, signal_color,
+                                          egui_color_alpha_mix(self->alpha, local->locked_mode ? 32 : 62));
     text_region.location.x = pill_x + 1;
     text_region.location.y = panel_y + header_top;
     text_region.size.width = pill_w - 2;
@@ -279,24 +245,10 @@ static void egui_view_patch_bay_on_draw(egui_view_t *self)
     stub_len = local->compact_mode ? 6 : 8;
     hub_x = bay_x + bay_w / 2;
 
-    egui_view_patch_bay_draw_label(
-            local,
-            self,
-            "IN",
-            left_port_x - (local->compact_mode ? 7 : 8),
-            label_y,
-            local->compact_mode ? 14 : 16,
-            EGUI_ALIGN_CENTER,
-            local->muted_text_color);
-    egui_view_patch_bay_draw_label(
-            local,
-            self,
-            "OUT",
-            right_port_x - (local->compact_mode ? 8 : 9),
-            label_y,
-            local->compact_mode ? 16 : 18,
-            EGUI_ALIGN_CENTER,
-            local->muted_text_color);
+    egui_view_patch_bay_draw_label(local, self, "IN", left_port_x - (local->compact_mode ? 7 : 8), label_y, local->compact_mode ? 14 : 16, EGUI_ALIGN_CENTER,
+                                   local->muted_text_color);
+    egui_view_patch_bay_draw_label(local, self, "OUT", right_port_x - (local->compact_mode ? 8 : 9), label_y, local->compact_mode ? 16 : 18, EGUI_ALIGN_CENTER,
+                                   local->muted_text_color);
 
     active_left = egui_view_patch_bay_clamp_port_index(snapshot->left_port);
     active_right = egui_view_patch_bay_clamp_port_index(snapshot->right_port);
@@ -315,43 +267,17 @@ static void egui_view_patch_bay_on_draw(egui_view_t *self)
 
         egui_view_patch_bay_draw_port(local, self, left_port_x, port_y, port_radius, signal_color, is_left_active);
         egui_view_patch_bay_draw_port(local, self, right_port_x, port_y, port_radius, signal_color, is_right_active);
-        egui_canvas_draw_line(
-                left_port_x + port_radius + 2,
-                port_y,
-                left_port_x + port_radius + 2 + stub_len,
-                port_y,
-                1,
-                local->border_color,
-                egui_color_alpha_mix(self->alpha, is_left_active ? 45 : EGUI_ALPHA_20));
-        egui_canvas_draw_line(
-                right_port_x - port_radius - 2 - stub_len,
-                port_y,
-                right_port_x - port_radius - 2,
-                port_y,
-                1,
-                local->border_color,
-                egui_color_alpha_mix(self->alpha, is_right_active ? 45 : EGUI_ALPHA_20));
+        egui_canvas_draw_line(left_port_x + port_radius + 2, port_y, left_port_x + port_radius + 2 + stub_len, port_y, 1, local->border_color,
+                              egui_color_alpha_mix(self->alpha, is_left_active ? 45 : EGUI_ALPHA_20));
+        egui_canvas_draw_line(right_port_x - port_radius - 2 - stub_len, port_y, right_port_x - port_radius - 2, port_y, 1, local->border_color,
+                              egui_color_alpha_mix(self->alpha, is_right_active ? 45 : EGUI_ALPHA_20));
 
         if (!local->compact_mode)
         {
-            egui_view_patch_bay_draw_label(
-                    local,
-                    self,
-                    patch_bay_left_labels[i],
-                    left_port_x - 10,
-                    port_y - 4 + label_y_offset,
-                    8,
-                    EGUI_ALIGN_CENTER,
-                    is_left_active ? local->text_color : local->muted_text_color);
-            egui_view_patch_bay_draw_label(
-                    local,
-                    self,
-                    patch_bay_right_labels[i],
-                    right_port_x + 3,
-                    port_y - 4 + label_y_offset,
-                    8,
-                    EGUI_ALIGN_CENTER,
-                    is_right_active ? local->text_color : local->muted_text_color);
+            egui_view_patch_bay_draw_label(local, self, patch_bay_left_labels[i], left_port_x - 10, port_y - 4 + label_y_offset, 8, EGUI_ALIGN_CENTER,
+                                           is_left_active ? local->text_color : local->muted_text_color);
+            egui_view_patch_bay_draw_label(local, self, patch_bay_right_labels[i], right_port_x + 3, port_y - 4 + label_y_offset, 8, EGUI_ALIGN_CENTER,
+                                           is_right_active ? local->text_color : local->muted_text_color);
         }
     }
 
@@ -360,46 +286,19 @@ static void egui_view_patch_bay_on_draw(egui_view_t *self)
         egui_dim_t ghost_y;
 
         ghost_y = port_y0 + i * port_gap;
-        egui_view_patch_bay_draw_route(
-                local,
-                self,
-                left_port_x + port_radius + 2 + stub_len,
-                ghost_y,
-                right_port_x - port_radius - 2 - stub_len,
-                ghost_y,
-                hub_x,
-                signal_color,
-                0);
+        egui_view_patch_bay_draw_route(local, self, left_port_x + port_radius + 2 + stub_len, ghost_y, right_port_x - port_radius - 2 - stub_len, ghost_y,
+                                       hub_x, signal_color, 0);
     }
 
-    egui_view_patch_bay_draw_route(
-            local,
-            self,
-            left_port_x + port_radius + 2 + stub_len,
-            port_y0 + active_left * port_gap,
-            right_port_x - port_radius - 2 - stub_len,
-            port_y0 + active_right * port_gap,
-            hub_x,
-            signal_color,
-            1);
+    egui_view_patch_bay_draw_route(local, self, left_port_x + port_radius + 2 + stub_len, port_y0 + active_left * port_gap,
+                                   right_port_x - port_radius - 2 - stub_len, port_y0 + active_right * port_gap, hub_x, signal_color, 1);
 
-    egui_canvas_draw_round_rectangle_fill(
-            hub_x - (local->compact_mode ? 5 : 8),
-            bay_y + (local->compact_mode ? 5 : 8),
-            local->compact_mode ? 10 : 16,
-            bay_h - (local->compact_mode ? 10 : 16),
-            local->compact_mode ? 4 : 6,
-            egui_rgb_mix(local->route_bg_color, signal_color, 8),
-            egui_color_alpha_mix(self->alpha, 28));
-    egui_canvas_draw_round_rectangle(
-            hub_x - (local->compact_mode ? 5 : 8),
-            bay_y + (local->compact_mode ? 5 : 8),
-            local->compact_mode ? 10 : 16,
-            bay_h - (local->compact_mode ? 10 : 16),
-            local->compact_mode ? 4 : 6,
-            1,
-            local->border_color,
-            egui_color_alpha_mix(self->alpha, 24));
+    egui_canvas_draw_round_rectangle_fill(hub_x - (local->compact_mode ? 5 : 8), bay_y + (local->compact_mode ? 5 : 8), local->compact_mode ? 10 : 16,
+                                          bay_h - (local->compact_mode ? 10 : 16), local->compact_mode ? 4 : 6,
+                                          egui_rgb_mix(local->route_bg_color, signal_color, 8), egui_color_alpha_mix(self->alpha, 28));
+    egui_canvas_draw_round_rectangle(hub_x - (local->compact_mode ? 5 : 8), bay_y + (local->compact_mode ? 5 : 8), local->compact_mode ? 10 : 16,
+                                     bay_h - (local->compact_mode ? 10 : 16), local->compact_mode ? 4 : 6, 1, local->border_color,
+                                     egui_color_alpha_mix(self->alpha, 24));
 
     footer_y = bay_y + bay_h + (local->compact_mode ? 3 : 5);
     footer_h = panel_h - (footer_y - panel_y) - (local->compact_mode ? 6 : 7);
@@ -409,13 +308,15 @@ static void egui_view_patch_bay_on_draw(egui_view_t *self)
     text_region.location.y = footer_y;
     text_region.size.width = route_text_w - (local->compact_mode ? 4 : 4);
     text_region.size.height = local->compact_mode ? footer_h : 10;
-    egui_canvas_draw_text_in_rect(local->font, snapshot->route ? snapshot->route : "Input -> Bus", &text_region, EGUI_ALIGN_CENTER, local->text_color, self->alpha);
+    egui_canvas_draw_text_in_rect(local->font, snapshot->route ? snapshot->route : "Input -> Bus", &text_region, EGUI_ALIGN_CENTER, local->text_color,
+                                  self->alpha);
 
     if (!local->compact_mode)
     {
         text_region.location.y = footer_y + 10;
         text_region.size.height = EGUI_MAX(footer_h - 10, 10);
-        egui_canvas_draw_text_in_rect(local->font, snapshot->footer ? snapshot->footer : "route stable", &text_region, EGUI_ALIGN_CENTER, local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, snapshot->footer ? snapshot->footer : "route stable", &text_region, EGUI_ALIGN_CENTER,
+                                      local->muted_text_color, self->alpha);
     }
 }
 
@@ -460,4 +361,3 @@ void egui_view_patch_bay_init(egui_view_t *self)
     local->compact_mode = 0;
     local->locked_mode = 0;
 }
-

@@ -30,13 +30,8 @@ static void egui_view_radar_chart_get_point(egui_dim_t center_x, egui_dim_t cent
     *y = center_y + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(radius), sin_val));
 }
 
-static void egui_view_radar_chart_build_polygon_points(
-        egui_dim_t center_x,
-        egui_dim_t center_y,
-        egui_dim_t radius,
-        uint8_t axis_count,
-        const uint8_t *values,
-        egui_dim_t *points)
+static void egui_view_radar_chart_build_polygon_points(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, uint8_t axis_count, const uint8_t *values,
+                                                       egui_dim_t *points)
 {
     uint8_t i;
     for (i = 0; i < axis_count; i++)
@@ -154,16 +149,9 @@ void egui_view_radar_chart_set_font(egui_view_t *self, const egui_font_t *font)
     egui_view_invalidate(self);
 }
 
-void egui_view_radar_chart_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t primary_fill_color,
-        egui_color_t primary_line_color,
-        egui_color_t secondary_fill_color,
-        egui_color_t secondary_line_color,
-        egui_color_t grid_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color)
+void egui_view_radar_chart_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t primary_fill_color, egui_color_t primary_line_color,
+                                       egui_color_t secondary_fill_color, egui_color_t secondary_line_color, egui_color_t grid_color, egui_color_t text_color,
+                                       egui_color_t muted_text_color)
 {
     EGUI_LOCAL_INIT(egui_view_radar_chart_t);
     local->surface_color = surface_color;
@@ -235,7 +223,8 @@ static void egui_view_radar_chart_on_draw(egui_view_t *self)
     {
         egui_dim_t level_radius = (egui_dim_t)((int32_t)outer_radius * i / local->grid_levels);
         egui_color_t level_color = (i == local->grid_levels) ? local->axis_color : local->grid_color;
-        egui_alpha_t level_alpha = (i == local->grid_levels) ? egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30) : egui_color_alpha_mix(self->alpha, EGUI_ALPHA_10);
+        egui_alpha_t level_alpha =
+                (i == local->grid_levels) ? egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30) : egui_color_alpha_mix(self->alpha, EGUI_ALPHA_10);
         egui_view_radar_chart_build_polygon_points(center_x, center_y, level_radius, local->axis_count, NULL, polygon_points);
         egui_canvas_draw_polygon(polygon_points, local->axis_count, 1, level_color, level_alpha);
     }
@@ -256,8 +245,10 @@ static void egui_view_radar_chart_on_draw(egui_view_t *self)
         egui_canvas_draw_polygon(compare_points, local->axis_count, 1, local->secondary_line_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
         for (i = 0; i < local->axis_count; i++)
         {
-            egui_canvas_draw_circle_fill(compare_points[i * 2], compare_points[i * 2 + 1], 3, local->secondary_line_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_10));
-            egui_canvas_draw_circle_fill(compare_points[i * 2], compare_points[i * 2 + 1], 1, local->secondary_line_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
+            egui_canvas_draw_circle_fill(compare_points[i * 2], compare_points[i * 2 + 1], 3, local->secondary_line_color,
+                                         egui_color_alpha_mix(self->alpha, EGUI_ALPHA_10));
+            egui_canvas_draw_circle_fill(compare_points[i * 2], compare_points[i * 2 + 1], 1, local->secondary_line_color,
+                                         egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
         }
     }
 
@@ -266,7 +257,8 @@ static void egui_view_radar_chart_on_draw(egui_view_t *self)
     egui_canvas_draw_polygon(current_points, local->axis_count, 2, local->primary_line_color, self->alpha);
     for (i = 0; i < local->axis_count; i++)
     {
-        egui_canvas_draw_circle_fill(current_points[i * 2], current_points[i * 2 + 1], 5, local->primary_line_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+        egui_canvas_draw_circle_fill(current_points[i * 2], current_points[i * 2 + 1], 5, local->primary_line_color,
+                                     egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
         egui_canvas_draw_circle_fill(current_points[i * 2], current_points[i * 2 + 1], 3, local->primary_line_color, self->alpha);
     }
 

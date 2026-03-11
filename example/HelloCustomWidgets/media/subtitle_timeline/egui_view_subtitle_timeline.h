@@ -31,10 +31,7 @@ struct egui_view_subtitle_timeline
     uint8_t last_zone;
 };
 
-void egui_view_subtitle_timeline_set_cues(
-        egui_view_t *self,
-        const egui_view_subtitle_timeline_cue_t *cues,
-        uint8_t cue_count);
+void egui_view_subtitle_timeline_set_cues(egui_view_t *self, const egui_view_subtitle_timeline_cue_t *cues, uint8_t cue_count);
 void egui_view_subtitle_timeline_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_subtitle_timeline_init(egui_view_t *self);
 

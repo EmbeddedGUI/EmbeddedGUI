@@ -51,18 +51,9 @@ uint8_t egui_view_command_palette_get_current_snapshot(egui_view_t *self);
 void egui_view_command_palette_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_command_palette_set_compact_mode(egui_view_t *self, uint8_t compact_mode);
 void egui_view_command_palette_set_locked_mode(egui_view_t *self, uint8_t locked_mode);
-void egui_view_command_palette_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t track_color,
-        egui_color_t query_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t accent_color,
-        egui_color_t warn_color,
-        egui_color_t lock_color,
-        egui_color_t focus_color);
+void egui_view_command_palette_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t track_color,
+                                           egui_color_t query_color, egui_color_t text_color, egui_color_t muted_text_color, egui_color_t accent_color,
+                                           egui_color_t warn_color, egui_color_t lock_color, egui_color_t focus_color);
 void egui_view_command_palette_init(egui_view_t *self);
 
 #ifdef __cplusplus

@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-#define EGUI_VIEW_KANBAN_BOARD_MAX_LANES 4
+#define EGUI_VIEW_KANBAN_BOARD_MAX_LANES     4
 #define EGUI_VIEW_KANBAN_BOARD_MAX_SNAPSHOTS 3
 
 typedef struct egui_view_kanban_lane egui_view_kanban_lane_t;
@@ -55,13 +55,8 @@ void egui_view_kanban_board_set_focus_lane(egui_view_t *self, uint8_t lane_index
 void egui_view_kanban_board_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_kanban_board_set_show_card_text(egui_view_t *self, uint8_t show_card_text);
 void egui_view_kanban_board_set_show_header(egui_view_t *self, uint8_t show_header);
-void egui_view_kanban_board_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t focus_color);
+void egui_view_kanban_board_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                        egui_color_t muted_text_color, egui_color_t focus_color);
 
 #ifdef __cplusplus
 }

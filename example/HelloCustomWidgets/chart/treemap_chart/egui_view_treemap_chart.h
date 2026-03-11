@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-#define EGUI_VIEW_TREEMAP_CHART_MAX_ITEMS 6
+#define EGUI_VIEW_TREEMAP_CHART_MAX_ITEMS      6
 #define EGUI_VIEW_TREEMAP_CHART_MAX_VALUE_SETS 3
 
 typedef struct egui_view_treemap_chart egui_view_treemap_chart_t;
@@ -36,7 +36,8 @@ uint8_t egui_view_treemap_chart_get_current_value_set(egui_view_t *self);
 void egui_view_treemap_chart_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_treemap_chart_set_show_labels(egui_view_t *self, uint8_t show_labels);
 void egui_view_treemap_chart_set_show_header(egui_view_t *self, uint8_t show_header);
-void egui_view_treemap_chart_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color, egui_color_t muted_text_color);
+void egui_view_treemap_chart_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                         egui_color_t muted_text_color);
 
 #ifdef __cplusplus
 }

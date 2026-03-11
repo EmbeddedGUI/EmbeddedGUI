@@ -1,52 +1,52 @@
-#define TREEMAP_ROOT_WIDTH 230
-#define TREEMAP_ROOT_HEIGHT 300
-#define TREEMAP_TITLE_WIDTH 230
-#define TREEMAP_TITLE_COLOR 0x54D8FF
-#define TREEMAP_GUIDE_TEXT "Tap cards to cycle"
-#define TREEMAP_GUIDE_COLOR 0x7E96B4
-#define TREEMAP_GUIDE_MARGIN_BOTTOM 3
-#define TREEMAP_PRIMARY_WIDTH 188
-#define TREEMAP_PRIMARY_HEIGHT 138
-#define TREEMAP_PRIMARY_MARGIN_BOTTOM 4
-#define TREEMAP_STATUS_TEXT_A "Core A"
-#define TREEMAP_STATUS_TEXT_B "Core B"
-#define TREEMAP_COMPACT_STATUS_A "Compact A"
-#define TREEMAP_COMPACT_STATUS_B "Compact B"
-#define TREEMAP_STATUS_COLOR_PRIMARY 0x38BDF8
-#define TREEMAP_STATUS_COLOR_COMPACT 0xF59E0B
-#define TREEMAP_STATUS_MARGIN_BOTTOM 4
-#define TREEMAP_DIVIDER_WIDTH 170
-#define TREEMAP_DIVIDER_POINTS 169
-#define TREEMAP_DIVIDER_COLOR 0x5C8BBC
-#define TREEMAP_DIVIDER_MARGIN_BOTTOM 5
-#define TREEMAP_BOTTOM_ROW_WIDTH 230
-#define TREEMAP_BOTTOM_ROW_HEIGHT 104
-#define TREEMAP_COLUMN_WIDTH 108
-#define TREEMAP_COLUMN_HEIGHT 106
-#define TREEMAP_COLUMN_GAP 6
-#define TREEMAP_COMPACT_LABEL_TEXT "Compact"
-#define TREEMAP_LOCKED_LABEL_TEXT "Locked"
-#define TREEMAP_COMPACT_LABEL_COLOR_IDLE 0xB6C4D3
+#define TREEMAP_ROOT_WIDTH                 230
+#define TREEMAP_ROOT_HEIGHT                300
+#define TREEMAP_TITLE_WIDTH                230
+#define TREEMAP_TITLE_COLOR                0x54D8FF
+#define TREEMAP_GUIDE_TEXT                 "Tap cards to cycle"
+#define TREEMAP_GUIDE_COLOR                0x7E96B4
+#define TREEMAP_GUIDE_MARGIN_BOTTOM        3
+#define TREEMAP_PRIMARY_WIDTH              188
+#define TREEMAP_PRIMARY_HEIGHT             138
+#define TREEMAP_PRIMARY_MARGIN_BOTTOM      4
+#define TREEMAP_STATUS_TEXT_A              "Core A"
+#define TREEMAP_STATUS_TEXT_B              "Core B"
+#define TREEMAP_COMPACT_STATUS_A           "Compact A"
+#define TREEMAP_COMPACT_STATUS_B           "Compact B"
+#define TREEMAP_STATUS_COLOR_PRIMARY       0x38BDF8
+#define TREEMAP_STATUS_COLOR_COMPACT       0xF59E0B
+#define TREEMAP_STATUS_MARGIN_BOTTOM       4
+#define TREEMAP_DIVIDER_WIDTH              170
+#define TREEMAP_DIVIDER_POINTS             169
+#define TREEMAP_DIVIDER_COLOR              0x5C8BBC
+#define TREEMAP_DIVIDER_MARGIN_BOTTOM      5
+#define TREEMAP_BOTTOM_ROW_WIDTH           230
+#define TREEMAP_BOTTOM_ROW_HEIGHT          104
+#define TREEMAP_COLUMN_WIDTH               108
+#define TREEMAP_COLUMN_HEIGHT              106
+#define TREEMAP_COLUMN_GAP                 6
+#define TREEMAP_COMPACT_LABEL_TEXT         "Compact"
+#define TREEMAP_LOCKED_LABEL_TEXT          "Locked"
+#define TREEMAP_COMPACT_LABEL_COLOR_IDLE   0xB6C4D3
 #define TREEMAP_COMPACT_LABEL_COLOR_ACTIVE 0xF4C96D
-#define TREEMAP_LOCKED_LABEL_COLOR 0xCBD5E1
-#define TREEMAP_COMPACT_SHOW_LABELS_IDLE 0
+#define TREEMAP_LOCKED_LABEL_COLOR         0xCBD5E1
+#define TREEMAP_COMPACT_SHOW_LABELS_IDLE   0
 #define TREEMAP_COMPACT_SHOW_LABELS_ACTIVE 1
-#define TREEMAP_COMPACT_ACTIVE_BG 0x22160B
-#define TREEMAP_COMPACT_ACTIVE_BORDER 0x9A6B2A
-#define TREEMAP_COMPACT_ACTIVE_TEXT 0xF7D488
-#define TREEMAP_COMPACT_ACTIVE_MUTED 0xCC8A2E
-#define TREEMAP_COMPACT_IDLE_BG 0x101A27
-#define TREEMAP_COMPACT_IDLE_BORDER 0x4B6B8B
-#define TREEMAP_COMPACT_IDLE_TEXT 0xD7E4F2
-#define TREEMAP_COMPACT_IDLE_MUTED 0x8EA3BA
-#define TREEMAP_PRIMARY_BG 0x0D1724
-#define TREEMAP_PRIMARY_BORDER 0x5B6B82
-#define TREEMAP_PRIMARY_TEXT 0xE2E8F0
-#define TREEMAP_PRIMARY_MUTED 0x94A3B8
-#define TREEMAP_LOCKED_BG 0x101723
-#define TREEMAP_LOCKED_BORDER 0x5E7184
-#define TREEMAP_LOCKED_TEXT 0xC6D0DB
-#define TREEMAP_LOCKED_MUTED 0x94A3B6
+#define TREEMAP_COMPACT_ACTIVE_BG          0x22160B
+#define TREEMAP_COMPACT_ACTIVE_BORDER      0x9A6B2A
+#define TREEMAP_COMPACT_ACTIVE_TEXT        0xF7D488
+#define TREEMAP_COMPACT_ACTIVE_MUTED       0xCC8A2E
+#define TREEMAP_COMPACT_IDLE_BG            0x101A27
+#define TREEMAP_COMPACT_IDLE_BORDER        0x4B6B8B
+#define TREEMAP_COMPACT_IDLE_TEXT          0xD7E4F2
+#define TREEMAP_COMPACT_IDLE_MUTED         0x8EA3BA
+#define TREEMAP_PRIMARY_BG                 0x0D1724
+#define TREEMAP_PRIMARY_BORDER             0x5B6B82
+#define TREEMAP_PRIMARY_TEXT               0xE2E8F0
+#define TREEMAP_PRIMARY_MUTED              0x94A3B8
+#define TREEMAP_LOCKED_BG                  0x101723
+#define TREEMAP_LOCKED_BORDER              0x5E7184
+#define TREEMAP_LOCKED_TEXT                0xC6D0DB
+#define TREEMAP_LOCKED_MUTED               0x94A3B6
 #include <stdlib.h>
 
 #include "egui.h"
@@ -95,23 +95,17 @@ static void apply_compact_state(uint8_t index, int is_active)
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(TREEMAP_COMPACT_LABEL_COLOR_ACTIVE), EGUI_ALPHA_100);
         egui_view_treemap_chart_set_show_labels(EGUI_VIEW_OF(&treemap_compact), TREEMAP_COMPACT_SHOW_LABELS_ACTIVE);
-        egui_view_treemap_chart_set_palette(
-                EGUI_VIEW_OF(&treemap_compact),
-                EGUI_COLOR_HEX(TREEMAP_COMPACT_ACTIVE_BG),
-                EGUI_COLOR_HEX(TREEMAP_COMPACT_ACTIVE_BORDER),
-                EGUI_COLOR_HEX(TREEMAP_COMPACT_ACTIVE_TEXT),
-                EGUI_COLOR_HEX(TREEMAP_COMPACT_ACTIVE_MUTED));
+        egui_view_treemap_chart_set_palette(EGUI_VIEW_OF(&treemap_compact), EGUI_COLOR_HEX(TREEMAP_COMPACT_ACTIVE_BG),
+                                            EGUI_COLOR_HEX(TREEMAP_COMPACT_ACTIVE_BORDER), EGUI_COLOR_HEX(TREEMAP_COMPACT_ACTIVE_TEXT),
+                                            EGUI_COLOR_HEX(TREEMAP_COMPACT_ACTIVE_MUTED));
     }
     else
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(TREEMAP_COMPACT_LABEL_COLOR_IDLE), EGUI_ALPHA_100);
         egui_view_treemap_chart_set_show_labels(EGUI_VIEW_OF(&treemap_compact), TREEMAP_COMPACT_SHOW_LABELS_IDLE);
-        egui_view_treemap_chart_set_palette(
-                EGUI_VIEW_OF(&treemap_compact),
-                EGUI_COLOR_HEX(TREEMAP_COMPACT_IDLE_BG),
-                EGUI_COLOR_HEX(TREEMAP_COMPACT_IDLE_BORDER),
-                EGUI_COLOR_HEX(TREEMAP_COMPACT_IDLE_TEXT),
-                EGUI_COLOR_HEX(TREEMAP_COMPACT_IDLE_MUTED));
+        egui_view_treemap_chart_set_palette(EGUI_VIEW_OF(&treemap_compact), EGUI_COLOR_HEX(TREEMAP_COMPACT_IDLE_BG),
+                                            EGUI_COLOR_HEX(TREEMAP_COMPACT_IDLE_BORDER), EGUI_COLOR_HEX(TREEMAP_COMPACT_IDLE_TEXT),
+                                            EGUI_COLOR_HEX(TREEMAP_COMPACT_IDLE_MUTED));
     }
 }
 
@@ -161,7 +155,8 @@ void test_init_ui(void)
     egui_view_treemap_chart_set_value_set(EGUI_VIEW_OF(&treemap_primary), 0, primary_values_a);
     egui_view_treemap_chart_set_value_set(EGUI_VIEW_OF(&treemap_primary), 1, primary_values_b);
     egui_view_treemap_chart_set_current_value_set(EGUI_VIEW_OF(&treemap_primary), 0);
-    egui_view_treemap_chart_set_palette(EGUI_VIEW_OF(&treemap_primary), EGUI_COLOR_HEX(TREEMAP_PRIMARY_BG), EGUI_COLOR_HEX(TREEMAP_PRIMARY_BORDER), EGUI_COLOR_HEX(TREEMAP_PRIMARY_TEXT), EGUI_COLOR_HEX(TREEMAP_PRIMARY_MUTED));
+    egui_view_treemap_chart_set_palette(EGUI_VIEW_OF(&treemap_primary), EGUI_COLOR_HEX(TREEMAP_PRIMARY_BG), EGUI_COLOR_HEX(TREEMAP_PRIMARY_BORDER),
+                                        EGUI_COLOR_HEX(TREEMAP_PRIMARY_TEXT), EGUI_COLOR_HEX(TREEMAP_PRIMARY_MUTED));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&treemap_primary), on_primary_click);
     egui_view_set_margin(EGUI_VIEW_OF(&treemap_primary), 0, 0, 0, TREEMAP_PRIMARY_MARGIN_BOTTOM);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&treemap_primary));
@@ -239,7 +234,8 @@ void test_init_ui(void)
     egui_view_treemap_chart_set_value_set(EGUI_VIEW_OF(&treemap_disabled), 0, compact_values_a);
     egui_view_treemap_chart_set_current_value_set(EGUI_VIEW_OF(&treemap_disabled), 0);
     egui_view_treemap_chart_set_show_labels(EGUI_VIEW_OF(&treemap_disabled), 0);
-    egui_view_treemap_chart_set_palette(EGUI_VIEW_OF(&treemap_disabled), EGUI_COLOR_HEX(TREEMAP_LOCKED_BG), EGUI_COLOR_HEX(TREEMAP_LOCKED_BORDER), EGUI_COLOR_HEX(TREEMAP_LOCKED_TEXT), EGUI_COLOR_HEX(TREEMAP_LOCKED_MUTED));
+    egui_view_treemap_chart_set_palette(EGUI_VIEW_OF(&treemap_disabled), EGUI_COLOR_HEX(TREEMAP_LOCKED_BG), EGUI_COLOR_HEX(TREEMAP_LOCKED_BORDER),
+                                        EGUI_COLOR_HEX(TREEMAP_LOCKED_TEXT), EGUI_COLOR_HEX(TREEMAP_LOCKED_MUTED));
     egui_view_treemap_chart_set_show_header(EGUI_VIEW_OF(&treemap_disabled), 0);
     egui_view_set_enable(EGUI_VIEW_OF(&treemap_disabled), 0);
     egui_view_group_add_child(EGUI_VIEW_OF(&disabled_column), EGUI_VIEW_OF(&treemap_disabled));

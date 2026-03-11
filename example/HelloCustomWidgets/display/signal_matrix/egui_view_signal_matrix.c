@@ -41,10 +41,7 @@ static uint8_t clamp_count(uint8_t count)
     return count;
 }
 
-void egui_view_signal_matrix_set_primary_snapshots(
-        egui_view_t *self,
-        const egui_view_signal_matrix_snapshot_t *snapshots,
-        uint8_t snapshot_count)
+void egui_view_signal_matrix_set_primary_snapshots(egui_view_t *self, const egui_view_signal_matrix_snapshot_t *snapshots, uint8_t snapshot_count)
 {
     EGUI_LOCAL_INIT(egui_view_signal_matrix_t);
     local->primary_snapshots = snapshots;
@@ -56,10 +53,7 @@ void egui_view_signal_matrix_set_primary_snapshots(
     egui_view_invalidate(self);
 }
 
-void egui_view_signal_matrix_set_compact_snapshots(
-        egui_view_t *self,
-        const egui_view_signal_matrix_snapshot_t *snapshots,
-        uint8_t snapshot_count)
+void egui_view_signal_matrix_set_compact_snapshots(egui_view_t *self, const egui_view_signal_matrix_snapshot_t *snapshots, uint8_t snapshot_count)
 {
     EGUI_LOCAL_INIT(egui_view_signal_matrix_t);
     local->compact_snapshots = snapshots;
@@ -71,10 +65,7 @@ void egui_view_signal_matrix_set_compact_snapshots(
     egui_view_invalidate(self);
 }
 
-void egui_view_signal_matrix_set_locked_snapshots(
-        egui_view_t *self,
-        const egui_view_signal_matrix_snapshot_t *snapshots,
-        uint8_t snapshot_count)
+void egui_view_signal_matrix_set_locked_snapshots(egui_view_t *self, const egui_view_signal_matrix_snapshot_t *snapshots, uint8_t snapshot_count)
 {
     EGUI_LOCAL_INIT(egui_view_signal_matrix_t);
     local->locked_snapshots = snapshots;
@@ -102,7 +93,8 @@ static void draw_round_fill_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, radius, color, alpha);
 }
 
-static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
     if (w <= 0 || h <= 0)
     {
@@ -156,16 +148,8 @@ static egui_dim_t get_pill_width(const egui_view_signal_matrix_snapshot_t *snaps
     return width;
 }
 
-static void draw_signal_preview(
-        egui_view_t *self,
-        const signal_palette_t *palette,
-        const egui_view_signal_matrix_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t compact,
-        uint8_t locked)
+static void draw_signal_preview(egui_view_t *self, const signal_palette_t *palette, const egui_view_signal_matrix_snapshot_t *snapshot, egui_dim_t x,
+                                egui_dim_t y, egui_dim_t w, egui_dim_t h, uint8_t compact, uint8_t locked)
 {
     egui_dim_t pad_x;
     egui_dim_t pad_y;
@@ -239,22 +223,15 @@ static void draw_signal_preview(
 
             if (col < meter_h)
             {
-                draw_round_fill_safe(cell_x + 1, cell_y + 1, cell_w - 2, cell_h - 2, compact ? 1 : 2, status_color, egui_color_alpha_mix(self->alpha, compact ? 84 : 88));
+                draw_round_fill_safe(cell_x + 1, cell_y + 1, cell_w - 2, cell_h - 2, compact ? 1 : 2, status_color,
+                                     egui_color_alpha_mix(self->alpha, compact ? 84 : 88));
             }
         }
     }
 }
 
-static void draw_card(
-        egui_view_t *self,
-        const signal_palette_t *palette,
-        const egui_view_signal_matrix_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t compact,
-        uint8_t locked)
+static void draw_card(egui_view_t *self, const signal_palette_t *palette, const egui_view_signal_matrix_snapshot_t *snapshot, egui_dim_t x, egui_dim_t y,
+                      egui_dim_t w, egui_dim_t h, uint8_t compact, uint8_t locked)
 {
     egui_region_t text_region;
     egui_color_t shell_color;
@@ -275,10 +252,8 @@ static void draw_card(
     shell_color = egui_rgb_mix(EGUI_COLOR_BLACK, palette->surface, compact ? (locked ? 22 : 28) : 18);
     status_color = get_status_color(palette, snapshot);
     title_color = compact ? egui_rgb_mix(palette->muted, status_color, locked ? 26 : 44) : egui_rgb_mix(palette->muted, status_color, 36);
-    summary_color = locked ? egui_rgb_mix(palette->text, palette->muted, 42)
-                           : egui_rgb_mix(palette->text, palette->muted, compact ? 14 : 16);
-    footer_color = locked ? egui_rgb_mix(palette->muted, palette->border, 46)
-                          : egui_rgb_mix(palette->muted, palette->text, compact ? 34 : 40);
+    summary_color = locked ? egui_rgb_mix(palette->text, palette->muted, 42) : egui_rgb_mix(palette->text, palette->muted, compact ? 14 : 16);
+    footer_color = locked ? egui_rgb_mix(palette->muted, palette->border, 46) : egui_rgb_mix(palette->muted, palette->text, compact ? 34 : 40);
     outer_padding = compact ? 11 : 16;
     pill_w = get_pill_width(snapshot, compact);
     pill_x = x + w - outer_padding - pill_w - 1;
@@ -293,25 +268,12 @@ static void draw_card(
     text_region.size.width = title_w - 4;
     text_region.size.height = 11;
     egui_canvas_draw_text_in_rect(card_font, snapshot->title, &text_region, EGUI_ALIGN_LEFT, title_color, self->alpha);
-    draw_round_fill_safe(
-            x + outer_padding + 4,
-            y + (compact ? 25 : 29),
-            compact ? 18 : 28,
-            2,
-            1,
-            status_color,
-            egui_color_alpha_mix(self->alpha, compact ? 56 : 62));
+    draw_round_fill_safe(x + outer_padding + 4, y + (compact ? 25 : 29), compact ? 18 : 28, 2, 1, status_color,
+                         egui_color_alpha_mix(self->alpha, compact ? 56 : 62));
 
     draw_round_fill_safe(pill_x, y + (compact ? 11 : 12), pill_w, 11, 5, status_color, egui_color_alpha_mix(self->alpha, locked ? 40 : 66));
-    draw_round_stroke_safe(
-            pill_x,
-            y + (compact ? 11 : 12),
-            pill_w,
-            11,
-            5,
-            1,
-            egui_rgb_mix(status_color, palette->text, locked ? 22 : 28),
-            egui_color_alpha_mix(self->alpha, locked ? 46 : 54));
+    draw_round_stroke_safe(pill_x, y + (compact ? 11 : 12), pill_w, 11, 5, 1, egui_rgb_mix(status_color, palette->text, locked ? 22 : 28),
+                           egui_color_alpha_mix(self->alpha, locked ? 46 : 54));
     text_region.location.x = pill_x + 3;
     text_region.location.y = y + (compact ? 11 : 12);
     text_region.size.width = pill_w - 6;
@@ -439,8 +401,8 @@ static void egui_view_signal_matrix_on_draw(egui_view_t *self)
     egui_color_t status_color;
 
     egui_view_get_work_region(self, &region);
-    if (region.size.width <= 0 || region.size.height <= 0 || local->primary_snapshots == NULL || local->compact_snapshots == NULL
-        || local->locked_snapshots == NULL || local->primary_snapshot_count == 0 || local->compact_snapshot_count == 0 || local->locked_snapshot_count == 0)
+    if (region.size.width <= 0 || region.size.height <= 0 || local->primary_snapshots == NULL || local->compact_snapshots == NULL ||
+        local->locked_snapshots == NULL || local->primary_snapshot_count == 0 || local->compact_snapshot_count == 0 || local->locked_snapshot_count == 0)
     {
         return;
     }

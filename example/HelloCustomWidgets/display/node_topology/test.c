@@ -27,21 +27,13 @@ static const char *guide_text = "Tap maps to rotate route";
 static const egui_view_line_point_t section_divider_points[] = {{0, 0}, {147, 0}};
 
 static const egui_view_node_topology_node_t primary_nodes_a[] = {
-        {80, 10, 9, "Core", 0},
-        {34, 42, 8, "API", 1},
-        {126, 42, 8, "Cache", 0},
-        {28, 74, 8, "DB", 2},
-        {132, 74, 8, "Queue", 1},
+        {80, 10, 9, "Core", 0}, {34, 42, 8, "API", 1}, {126, 42, 8, "Cache", 0}, {28, 74, 8, "DB", 2}, {132, 74, 8, "Queue", 1},
 };
 static const egui_view_node_topology_link_t primary_links_a[] = {
         {0, 1, 1}, {0, 2, 1}, {1, 3, 1}, {2, 4, 1}, {1, 4, 0}, {2, 3, 0},
 };
 static const egui_view_node_topology_node_t primary_nodes_b[] = {
-        {80, 12, 9, "Hub", 0},
-        {24, 44, 8, "Edge", 1},
-        {136, 44, 8, "Index", 2},
-        {44, 72, 8, "Bill", 0},
-        {116, 72, 8, "Jobs", 1},
+        {80, 12, 9, "Hub", 0}, {24, 44, 8, "Edge", 1}, {136, 44, 8, "Index", 2}, {44, 72, 8, "Bill", 0}, {116, 72, 8, "Jobs", 1},
 };
 static const egui_view_node_topology_link_t primary_links_b[] = {
         {0, 1, 1}, {0, 2, 1}, {1, 3, 1}, {2, 4, 1}, {0, 4, 0}, {1, 2, 0},
@@ -58,7 +50,10 @@ static const egui_view_node_topology_node_t compact_nodes_a[] = {
         {38, 70, 7, "D", 2},
 };
 static const egui_view_node_topology_link_t compact_links_a[] = {
-        {0, 1, 1}, {0, 2, 1}, {1, 3, 1}, {2, 3, 0},
+        {0, 1, 1},
+        {0, 2, 1},
+        {1, 3, 1},
+        {2, 3, 0},
 };
 static const egui_view_node_topology_node_t compact_nodes_b[] = {
         {38, 12, 7, "A", 1},
@@ -67,7 +62,10 @@ static const egui_view_node_topology_node_t compact_nodes_b[] = {
         {38, 70, 7, "D", 1},
 };
 static const egui_view_node_topology_link_t compact_links_b[] = {
-        {0, 1, 0}, {0, 2, 1}, {1, 3, 1}, {2, 3, 1},
+        {0, 1, 0},
+        {0, 2, 1},
+        {1, 3, 1},
+        {2, 3, 1},
 };
 static const egui_view_node_topology_snapshot_t compact_snapshots[] = {
         {"Compact A", compact_nodes_a, compact_links_a, 4, 4, 3},
@@ -87,24 +85,14 @@ static void apply_compact_state(uint8_t index, uint8_t is_active)
     if (is_active)
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0xF59E0B), EGUI_ALPHA_100);
-        egui_view_node_topology_set_palette(
-                EGUI_VIEW_OF(&topology_compact),
-                EGUI_COLOR_HEX(0x23160A),
-                EGUI_COLOR_HEX(0x8B5E1A),
-                EGUI_COLOR_HEX(0xFDE68A),
-                EGUI_COLOR_HEX(0xD6A15B),
-                EGUI_COLOR_HEX(0xF59E0B));
+        egui_view_node_topology_set_palette(EGUI_VIEW_OF(&topology_compact), EGUI_COLOR_HEX(0x23160A), EGUI_COLOR_HEX(0x8B5E1A), EGUI_COLOR_HEX(0xFDE68A),
+                                            EGUI_COLOR_HEX(0xD6A15B), EGUI_COLOR_HEX(0xF59E0B));
     }
     else
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0x8B5E1A), EGUI_ALPHA_100);
-        egui_view_node_topology_set_palette(
-                EGUI_VIEW_OF(&topology_compact),
-                EGUI_COLOR_HEX(0x121A28),
-                EGUI_COLOR_HEX(0x3D5068),
-                EGUI_COLOR_HEX(0xCBD5E1),
-                EGUI_COLOR_HEX(0x7F92A7),
-                EGUI_COLOR_HEX(0x60A5FA));
+        egui_view_node_topology_set_palette(EGUI_VIEW_OF(&topology_compact), EGUI_COLOR_HEX(0x121A28), EGUI_COLOR_HEX(0x3D5068), EGUI_COLOR_HEX(0xCBD5E1),
+                                            EGUI_COLOR_HEX(0x7F92A7), EGUI_COLOR_HEX(0x60A5FA));
     }
 }
 
@@ -154,13 +142,8 @@ void test_init_ui(void)
     egui_view_node_topology_set_snapshots(EGUI_VIEW_OF(&topology_primary), primary_snapshots, 2);
     egui_view_node_topology_set_current_snapshot(EGUI_VIEW_OF(&topology_primary), 0);
     egui_view_node_topology_set_focus_node(EGUI_VIEW_OF(&topology_primary), 1);
-    egui_view_node_topology_set_palette(
-            EGUI_VIEW_OF(&topology_primary),
-            EGUI_COLOR_HEX(0x0F1728),
-            EGUI_COLOR_HEX(0x536379),
-            EGUI_COLOR_HEX(0xE2E8F0),
-            EGUI_COLOR_HEX(0x93A5BC),
-            EGUI_COLOR_HEX(0x38BDF8));
+    egui_view_node_topology_set_palette(EGUI_VIEW_OF(&topology_primary), EGUI_COLOR_HEX(0x0F1728), EGUI_COLOR_HEX(0x536379), EGUI_COLOR_HEX(0xE2E8F0),
+                                        EGUI_COLOR_HEX(0x93A5BC), EGUI_COLOR_HEX(0x38BDF8));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&topology_primary), on_primary_click);
     egui_view_set_margin(EGUI_VIEW_OF(&topology_primary), 0, 0, 0, 4);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&topology_primary));
@@ -237,13 +220,8 @@ void test_init_ui(void)
     egui_view_node_topology_set_focus_node(EGUI_VIEW_OF(&topology_locked), 3);
     egui_view_node_topology_set_show_header(EGUI_VIEW_OF(&topology_locked), 0);
     egui_view_node_topology_set_compact_mode(EGUI_VIEW_OF(&topology_locked), 1);
-    egui_view_node_topology_set_palette(
-            EGUI_VIEW_OF(&topology_locked),
-            EGUI_COLOR_HEX(0x0E1522),
-            EGUI_COLOR_HEX(0x46566B),
-            EGUI_COLOR_HEX(0xCBD5E1),
-            EGUI_COLOR_HEX(0x8695A9),
-            EGUI_COLOR_HEX(0x758E83));
+    egui_view_node_topology_set_palette(EGUI_VIEW_OF(&topology_locked), EGUI_COLOR_HEX(0x0E1522), EGUI_COLOR_HEX(0x46566B), EGUI_COLOR_HEX(0xCBD5E1),
+                                        EGUI_COLOR_HEX(0x8695A9), EGUI_COLOR_HEX(0x758E83));
     egui_view_set_enable(EGUI_VIEW_OF(&topology_locked), 0);
     egui_view_group_add_child(EGUI_VIEW_OF(&locked_column), EGUI_VIEW_OF(&topology_locked));
 

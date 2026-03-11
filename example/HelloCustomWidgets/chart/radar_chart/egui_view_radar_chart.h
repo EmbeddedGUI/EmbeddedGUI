@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-#define EGUI_VIEW_RADAR_CHART_MAX_AXES 8
+#define EGUI_VIEW_RADAR_CHART_MAX_AXES       8
 #define EGUI_VIEW_RADAR_CHART_MAX_VALUE_SETS 3
 
 typedef struct egui_view_radar_chart egui_view_radar_chart_t;
@@ -47,16 +47,9 @@ void egui_view_radar_chart_set_grid_levels(egui_view_t *self, uint8_t grid_level
 void egui_view_radar_chart_set_label_padding(egui_view_t *self, uint8_t label_padding);
 void egui_view_radar_chart_set_show_axis_labels(egui_view_t *self, uint8_t show_axis_labels);
 void egui_view_radar_chart_set_font(egui_view_t *self, const egui_font_t *font);
-void egui_view_radar_chart_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t primary_fill_color,
-        egui_color_t primary_line_color,
-        egui_color_t secondary_fill_color,
-        egui_color_t secondary_line_color,
-        egui_color_t grid_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color);
+void egui_view_radar_chart_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t primary_fill_color, egui_color_t primary_line_color,
+                                       egui_color_t secondary_fill_color, egui_color_t secondary_line_color, egui_color_t grid_color, egui_color_t text_color,
+                                       egui_color_t muted_text_color);
 
 #ifdef __cplusplus
 }

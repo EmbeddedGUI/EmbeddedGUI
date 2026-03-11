@@ -53,24 +53,14 @@ static void apply_compact_state(uint8_t index, uint8_t is_active)
     if (is_active)
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0xF59E0B), EGUI_ALPHA_100);
-        egui_view_waveform_strip_set_palette(
-                EGUI_VIEW_OF(&waveform_compact),
-                EGUI_COLOR_HEX(0x23160A),
-                EGUI_COLOR_HEX(0x8B5E1A),
-                EGUI_COLOR_HEX(0xFDE68A),
-                EGUI_COLOR_HEX(0xD6A15B),
-                EGUI_COLOR_HEX(0xF59E0B));
+        egui_view_waveform_strip_set_palette(EGUI_VIEW_OF(&waveform_compact), EGUI_COLOR_HEX(0x23160A), EGUI_COLOR_HEX(0x8B5E1A), EGUI_COLOR_HEX(0xFDE68A),
+                                             EGUI_COLOR_HEX(0xD6A15B), EGUI_COLOR_HEX(0xF59E0B));
     }
     else
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0x8B5E1A), EGUI_ALPHA_100);
-        egui_view_waveform_strip_set_palette(
-                EGUI_VIEW_OF(&waveform_compact),
-                EGUI_COLOR_HEX(0x121A28),
-                EGUI_COLOR_HEX(0x3D5068),
-                EGUI_COLOR_HEX(0xCBD5E1),
-                EGUI_COLOR_HEX(0x7F92A7),
-                EGUI_COLOR_HEX(0x60A5FA));
+        egui_view_waveform_strip_set_palette(EGUI_VIEW_OF(&waveform_compact), EGUI_COLOR_HEX(0x121A28), EGUI_COLOR_HEX(0x3D5068), EGUI_COLOR_HEX(0xCBD5E1),
+                                             EGUI_COLOR_HEX(0x7F92A7), EGUI_COLOR_HEX(0x60A5FA));
     }
 }
 
@@ -120,13 +110,8 @@ void test_init_ui(void)
     egui_view_waveform_strip_set_snapshots(EGUI_VIEW_OF(&waveform_primary), primary_snapshots, 2);
     egui_view_waveform_strip_set_current_snapshot(EGUI_VIEW_OF(&waveform_primary), 0);
     egui_view_waveform_strip_set_focus_bar(EGUI_VIEW_OF(&waveform_primary), 12);
-    egui_view_waveform_strip_set_palette(
-            EGUI_VIEW_OF(&waveform_primary),
-            EGUI_COLOR_HEX(0x0F1728),
-            EGUI_COLOR_HEX(0x536379),
-            EGUI_COLOR_HEX(0xE2E8F0),
-            EGUI_COLOR_HEX(0x93A5BC),
-            EGUI_COLOR_HEX(0x38BDF8));
+    egui_view_waveform_strip_set_palette(EGUI_VIEW_OF(&waveform_primary), EGUI_COLOR_HEX(0x0F1728), EGUI_COLOR_HEX(0x536379), EGUI_COLOR_HEX(0xE2E8F0),
+                                         EGUI_COLOR_HEX(0x93A5BC), EGUI_COLOR_HEX(0x38BDF8));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&waveform_primary), on_primary_click);
     egui_view_set_margin(EGUI_VIEW_OF(&waveform_primary), 0, 0, 0, 4);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&waveform_primary));
@@ -203,13 +188,8 @@ void test_init_ui(void)
     egui_view_waveform_strip_set_focus_bar(EGUI_VIEW_OF(&waveform_locked), 7);
     egui_view_waveform_strip_set_show_header(EGUI_VIEW_OF(&waveform_locked), 0);
     egui_view_waveform_strip_set_compact_mode(EGUI_VIEW_OF(&waveform_locked), 1);
-    egui_view_waveform_strip_set_palette(
-            EGUI_VIEW_OF(&waveform_locked),
-            EGUI_COLOR_HEX(0x0E1522),
-            EGUI_COLOR_HEX(0x46566B),
-            EGUI_COLOR_HEX(0xCBD5E1),
-            EGUI_COLOR_HEX(0x8695A9),
-            EGUI_COLOR_HEX(0x758E83));
+    egui_view_waveform_strip_set_palette(EGUI_VIEW_OF(&waveform_locked), EGUI_COLOR_HEX(0x0E1522), EGUI_COLOR_HEX(0x46566B), EGUI_COLOR_HEX(0xCBD5E1),
+                                         EGUI_COLOR_HEX(0x8695A9), EGUI_COLOR_HEX(0x758E83));
     egui_view_set_enable(EGUI_VIEW_OF(&waveform_locked), 0);
     egui_view_group_add_child(EGUI_VIEW_OF(&locked_column), EGUI_VIEW_OF(&waveform_locked));
 

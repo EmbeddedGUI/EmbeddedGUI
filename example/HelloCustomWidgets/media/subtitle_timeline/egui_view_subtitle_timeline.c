@@ -53,15 +53,8 @@ static void draw_round_fill_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, radius, color, alpha);
 }
 
-static void draw_round_stroke_safe(
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_dim_t radius,
-        egui_dim_t stroke_width,
-        egui_color_t color,
-        egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
     if (w <= 0 || h <= 0)
     {
@@ -70,10 +63,7 @@ static void draw_round_stroke_safe(
     egui_canvas_draw_round_rectangle(x, y, w, h, radius, stroke_width, color, alpha);
 }
 
-void egui_view_subtitle_timeline_set_cues(
-        egui_view_t *self,
-        const egui_view_subtitle_timeline_cue_t *cues,
-        uint8_t cue_count)
+void egui_view_subtitle_timeline_set_cues(egui_view_t *self, const egui_view_subtitle_timeline_cue_t *cues, uint8_t cue_count)
 {
     EGUI_LOCAL_INIT(egui_view_subtitle_timeline_t);
     local->cues = cues;
@@ -174,14 +164,8 @@ static int egui_view_subtitle_timeline_on_touch_event(egui_view_t *self, egui_mo
     return 1;
 }
 
-static void draw_preview_card(
-        egui_view_t *self,
-        const egui_view_subtitle_timeline_cue_t *cue,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t right_side)
+static void draw_preview_card(egui_view_t *self, const egui_view_subtitle_timeline_cue_t *cue, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h,
+                              uint8_t right_side)
 {
     egui_color_t accent_color;
 
@@ -200,13 +184,7 @@ static void draw_preview_card(
     draw_round_fill_safe(x + 12, y + h - 16, w - 24, 2, 1, accent_color, egui_color_alpha_mix(self->alpha, 54));
 }
 
-static void draw_timeline_strip(
-        egui_view_t *self,
-        const egui_view_subtitle_timeline_cue_t *cue,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h)
+static void draw_timeline_strip(egui_view_t *self, const egui_view_subtitle_timeline_cue_t *cue, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h)
 {
     egui_dim_t gap;
     egui_dim_t seg_x;
@@ -236,7 +214,8 @@ static void draw_timeline_strip(
         seg_color = egui_rgb_mix(subtitle_palette.panel, subtitle_palette.surface, (i == cue->active_index) ? 4 : 22);
         alpha = egui_color_alpha_mix(self->alpha, (i == cue->active_index) ? 76 : 44);
         draw_round_fill_safe(seg_x, y + 5, local_w, h - 10, 6, seg_color, alpha);
-        draw_round_stroke_safe(seg_x, y + 5, local_w, h - 10, 6, 1, subtitle_palette.border, egui_color_alpha_mix(self->alpha, (i == cue->active_index) ? 42 : 22));
+        draw_round_stroke_safe(seg_x, y + 5, local_w, h - 10, 6, 1, subtitle_palette.border,
+                               egui_color_alpha_mix(self->alpha, (i == cue->active_index) ? 42 : 22));
         if (i == cue->active_index)
         {
             draw_round_stroke_safe(seg_x - 1, y + 4, local_w + 2, h - 8, 7, 1, accent_color, egui_color_alpha_mix(self->alpha, 28));
@@ -244,7 +223,8 @@ static void draw_timeline_strip(
             draw_round_fill_safe(seg_x + local_w / 2 - 3, y + h - 9, 6, 5, 2, accent_color, egui_color_alpha_mix(self->alpha, 64));
         }
         draw_round_fill_safe(seg_x + 4, y + 11, local_w - 8, 3, 1, accent_color, egui_color_alpha_mix(self->alpha, (i == cue->active_index) ? 82 : 26));
-        draw_round_fill_safe(seg_x + 4, y + 19, local_w - 10, 2, 1, subtitle_palette.text, egui_color_alpha_mix(self->alpha, (i == cue->active_index) ? 34 : 16));
+        draw_round_fill_safe(seg_x + 4, y + 19, local_w - 10, 2, 1, subtitle_palette.text,
+                             egui_color_alpha_mix(self->alpha, (i == cue->active_index) ? 34 : 16));
         seg_x += widths[i] + gap;
         if (i < 4)
         {
@@ -293,19 +273,25 @@ static void egui_view_subtitle_timeline_on_draw(egui_view_t *self)
 
     text_region.location.y = region.location.y + 25;
     text_region.size.height = 11;
-    egui_canvas_draw_text_in_rect(body_font, "Tap sides or center to step subtitle cues", &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(subtitle_palette.text, subtitle_palette.muted, 28), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, "Tap sides or center to step subtitle cues", &text_region, EGUI_ALIGN_CENTER,
+                                  egui_rgb_mix(subtitle_palette.text, subtitle_palette.muted, 28), self->alpha);
 
     get_zone_rects_local(self, &main_rect, &left_rect, &right_rect);
     draw_preview_card(self, left_cue, left_rect.location.x, left_rect.location.y, left_rect.size.width, left_rect.size.height, 0);
     draw_preview_card(self, right_cue, right_rect.location.x, right_rect.location.y, right_rect.size.width, right_rect.size.height, 1);
 
-    draw_round_fill_safe(main_rect.location.x + 2, main_rect.location.y + 4, main_rect.size.width, main_rect.size.height, 14, subtitle_palette.shadow, egui_color_alpha_mix(self->alpha, 38));
-    draw_round_fill_safe(main_rect.location.x, main_rect.location.y, main_rect.size.width, main_rect.size.height, 14, subtitle_palette.panel, egui_color_alpha_mix(self->alpha, 78));
-    draw_round_stroke_safe(main_rect.location.x, main_rect.location.y, main_rect.size.width, main_rect.size.height, 14, 1, subtitle_palette.border, egui_color_alpha_mix(self->alpha, 72));
+    draw_round_fill_safe(main_rect.location.x + 2, main_rect.location.y + 4, main_rect.size.width, main_rect.size.height, 14, subtitle_palette.shadow,
+                         egui_color_alpha_mix(self->alpha, 38));
+    draw_round_fill_safe(main_rect.location.x, main_rect.location.y, main_rect.size.width, main_rect.size.height, 14, subtitle_palette.panel,
+                         egui_color_alpha_mix(self->alpha, 78));
+    draw_round_stroke_safe(main_rect.location.x, main_rect.location.y, main_rect.size.width, main_rect.size.height, 14, 1, subtitle_palette.border,
+                           egui_color_alpha_mix(self->alpha, 72));
     draw_round_fill_safe(main_rect.location.x + 16, main_rect.location.y + 16, 38, 3, 1, accent_color, egui_color_alpha_mix(self->alpha, 74));
     draw_round_fill_safe(main_rect.location.x + 16, main_rect.location.y + 23, 28, 2, 1, subtitle_palette.text, egui_color_alpha_mix(self->alpha, 18));
-    draw_round_fill_safe(main_rect.location.x + 12, main_rect.location.y + 54, main_rect.size.width - 24, 76, 10, subtitle_palette.surface, egui_color_alpha_mix(self->alpha, 20));
-    draw_round_stroke_safe(main_rect.location.x + 12, main_rect.location.y + 54, main_rect.size.width - 24, 76, 10, 1, subtitle_palette.border, egui_color_alpha_mix(self->alpha, 12));
+    draw_round_fill_safe(main_rect.location.x + 12, main_rect.location.y + 54, main_rect.size.width - 24, 76, 10, subtitle_palette.surface,
+                         egui_color_alpha_mix(self->alpha, 20));
+    draw_round_stroke_safe(main_rect.location.x + 12, main_rect.location.y + 54, main_rect.size.width - 24, 76, 10, 1, subtitle_palette.border,
+                           egui_color_alpha_mix(self->alpha, 12));
 
     pill_w = (egui_dim_t)(46 + strlen(current->status) * 5);
     if (pill_w < 72)
@@ -314,7 +300,8 @@ static void egui_view_subtitle_timeline_on_draw(egui_view_t *self)
     }
     pill_x = main_rect.location.x + main_rect.size.width - pill_w - 14;
     draw_round_fill_safe(pill_x, main_rect.location.y + 14, pill_w, 13, 6, accent_color, egui_color_alpha_mix(self->alpha, 66));
-    draw_round_stroke_safe(pill_x, main_rect.location.y + 14, pill_w, 13, 6, 1, egui_rgb_mix(accent_color, subtitle_palette.text, 28), egui_color_alpha_mix(self->alpha, 46));
+    draw_round_stroke_safe(pill_x, main_rect.location.y + 14, pill_w, 13, 6, 1, egui_rgb_mix(accent_color, subtitle_palette.text, 28),
+                           egui_color_alpha_mix(self->alpha, 46));
     text_region.location.x = pill_x + 5;
     text_region.location.y = main_rect.location.y + 14;
     text_region.size.width = pill_w - 10;
@@ -326,11 +313,13 @@ static void egui_view_subtitle_timeline_on_draw(egui_view_t *self)
     text_region.size.width = main_rect.size.width - 40;
     text_region.size.height = 12;
     draw_round_fill_safe(main_rect.location.x + 18, main_rect.location.y + 43, 3, 8, 1, accent_color, egui_color_alpha_mix(self->alpha, 62));
-    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->speaker, &text_region, EGUI_ALIGN_LEFT, subtitle_palette.text, self->alpha);
+    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->speaker, &text_region, EGUI_ALIGN_LEFT, subtitle_palette.text,
+                                  self->alpha);
 
     text_region.location.y = main_rect.location.y + 62;
     text_region.size.height = 22;
-    egui_canvas_draw_text_in_rect(body_font, current->line, &text_region, EGUI_ALIGN_LEFT, egui_rgb_mix(subtitle_palette.text, subtitle_palette.muted, 16), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, current->line, &text_region, EGUI_ALIGN_LEFT, egui_rgb_mix(subtitle_palette.text, subtitle_palette.muted, 16),
+                                  self->alpha);
 
     draw_timeline_strip(self, current, main_rect.location.x + 16, main_rect.location.y + 92, main_rect.size.width - 32, 32);
 
@@ -338,7 +327,8 @@ static void egui_view_subtitle_timeline_on_draw(egui_view_t *self)
     text_region.location.y = main_rect.location.y + main_rect.size.height - 23;
     text_region.size.width = main_rect.size.width - 56;
     text_region.size.height = 12;
-    egui_canvas_draw_text_in_rect(body_font, current->footer, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(subtitle_palette.text, accent_color, 18), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, current->footer, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(subtitle_palette.text, accent_color, 18),
+                                  self->alpha);
 
     if (local->last_zone == 0)
     {
@@ -360,7 +350,8 @@ static void egui_view_subtitle_timeline_on_draw(egui_view_t *self)
     text_region.location.y = region.location.y + 243;
     text_region.size.width = 158;
     text_region.size.height = 12;
-    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_8_4, status_text, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(subtitle_palette.text, accent_color, 20), self->alpha);
+    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_8_4, status_text, &text_region, EGUI_ALIGN_CENTER,
+                                  egui_rgb_mix(subtitle_palette.text, accent_color, 20), self->alpha);
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_subtitle_timeline_t) = {

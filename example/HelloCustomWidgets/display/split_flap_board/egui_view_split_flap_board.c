@@ -74,15 +74,8 @@ void egui_view_split_flap_board_set_compact_mode(egui_view_t *self, uint8_t comp
     egui_view_invalidate(self);
 }
 
-void egui_view_split_flap_board_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t accent_color,
-        egui_color_t alert_color,
-        egui_color_t split_color)
+void egui_view_split_flap_board_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                            egui_color_t muted_text_color, egui_color_t accent_color, egui_color_t alert_color, egui_color_t split_color)
 {
     EGUI_LOCAL_INIT(egui_view_split_flap_board_t);
     local->surface_color = surface_color;
@@ -95,15 +88,8 @@ void egui_view_split_flap_board_set_palette(
     egui_view_invalidate(self);
 }
 
-static void egui_view_split_flap_board_draw_slot(
-        egui_view_split_flap_board_t *local,
-        egui_view_t *self,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t width,
-        egui_dim_t height,
-        char symbol,
-        uint8_t is_focus)
+static void egui_view_split_flap_board_draw_slot(egui_view_split_flap_board_t *local, egui_view_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width,
+                                                 egui_dim_t height, char symbol, uint8_t is_focus)
 {
     egui_region_t text_region;
     egui_color_t top_color;
@@ -118,7 +104,8 @@ static void egui_view_split_flap_board_draw_slot(
     egui_canvas_draw_round_rectangle_fill(x, y, width, height, 6, local->surface_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
     egui_canvas_draw_round_rectangle_fill(x + 1, y + 1, width - 2, height / 2 - 1, 5, top_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
     egui_canvas_draw_round_rectangle_fill(x + 1, y + height / 2, width - 2, height / 2 - 1, 5, bottom_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_80));
-    egui_canvas_draw_round_rectangle(x, y, width, height, 6, is_focus ? 2 : 1, ring_color, egui_color_alpha_mix(self->alpha, is_focus ? EGUI_ALPHA_90 : EGUI_ALPHA_60));
+    egui_canvas_draw_round_rectangle(x, y, width, height, 6, is_focus ? 2 : 1, ring_color,
+                                     egui_color_alpha_mix(self->alpha, is_focus ? EGUI_ALPHA_90 : EGUI_ALPHA_60));
     egui_canvas_draw_line(x + 2, y + height / 2, x + width - 3, y + height / 2, 1, local->split_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
 
     text_value[0] = symbol ? symbol : ' ';
@@ -127,7 +114,8 @@ static void egui_view_split_flap_board_draw_slot(
     text_region.location.y = y + (local->compact_mode ? 6 : 10);
     text_region.size.width = width;
     text_region.size.height = local->compact_mode ? 14 : 20;
-    egui_canvas_draw_text_in_rect(local->font, text_value, &text_region, EGUI_ALIGN_CENTER, (symbol == ' ') ? local->muted_text_color : local->text_color, self->alpha);
+    egui_canvas_draw_text_in_rect(local->font, text_value, &text_region, EGUI_ALIGN_CENTER, (symbol == ' ') ? local->muted_text_color : local->text_color,
+                                  self->alpha);
 }
 
 static void egui_view_split_flap_board_on_draw(egui_view_t *self)
@@ -181,23 +169,19 @@ static void egui_view_split_flap_board_on_draw(egui_view_t *self)
     side_padding = local->compact_mode ? 8 : 10;
     pill_right_padding = 8;
 
-    egui_canvas_draw_round_rectangle_fill(panel_x, panel_y, panel_w, panel_h, 8, egui_rgb_mix(EGUI_COLOR_BLACK, local->surface_color, EGUI_ALPHA_30), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_40));
+    egui_canvas_draw_round_rectangle_fill(panel_x, panel_y, panel_w, panel_h, 8, egui_rgb_mix(EGUI_COLOR_BLACK, local->surface_color, EGUI_ALPHA_30),
+                                          egui_color_alpha_mix(self->alpha, EGUI_ALPHA_40));
     egui_canvas_draw_round_rectangle(panel_x, panel_y, panel_w, panel_h, 8, 1, local->border_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
 
     text_region.location.x = panel_x + side_padding;
     text_region.location.y = panel_y + header_top_padding;
     text_region.size.width = panel_w - pill_w - side_padding - pill_right_padding - 4;
     text_region.size.height = 12;
-    egui_canvas_draw_text_in_rect(local->font, snapshot->title ? snapshot->title : "BOARD", &text_region, EGUI_ALIGN_LEFT, local->muted_text_color, self->alpha);
+    egui_canvas_draw_text_in_rect(local->font, snapshot->title ? snapshot->title : "BOARD", &text_region, EGUI_ALIGN_LEFT, local->muted_text_color,
+                                  self->alpha);
 
-    egui_canvas_draw_round_rectangle_fill(
-            panel_x + panel_w - pill_w - pill_right_padding,
-            panel_y + header_top_padding,
-            pill_w,
-            10,
-            4,
-            snapshot->is_alert ? local->alert_color : local->accent_color,
-            egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
+    egui_canvas_draw_round_rectangle_fill(panel_x + panel_w - pill_w - pill_right_padding, panel_y + header_top_padding, pill_w, 10, 4,
+                                          snapshot->is_alert ? local->alert_color : local->accent_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
     text_region.location.x = panel_x + panel_w - pill_w - pill_right_padding;
     text_region.location.y = panel_y + header_top_padding;
     text_region.size.width = pill_w;
@@ -215,15 +199,8 @@ static void egui_view_split_flap_board_on_draw(egui_view_t *self)
 
     for (i = 0; i < slot_count; i++)
     {
-        egui_view_split_flap_board_draw_slot(
-                local,
-                self,
-                start_x + i * (slot_w + slot_gap),
-                slot_y,
-                slot_w,
-                slot_h,
-                snapshot->value_text[i],
-                i == snapshot->focus_slot);
+        egui_view_split_flap_board_draw_slot(local, self, start_x + i * (slot_w + slot_gap), slot_y, slot_w, slot_h, snapshot->value_text[i],
+                                             i == snapshot->focus_slot);
     }
 
     footer_y = slot_y + slot_h + (local->compact_mode ? 6 : 11);
@@ -234,12 +211,15 @@ static void egui_view_split_flap_board_on_draw(egui_view_t *self)
     text_region.size.height = 12;
     if (local->compact_mode)
     {
-        egui_canvas_draw_text_in_rect(local->font, snapshot->route_text ? snapshot->route_text : "STANDBY", &text_region, EGUI_ALIGN_CENTER, local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, snapshot->route_text ? snapshot->route_text : "STANDBY", &text_region, EGUI_ALIGN_CENTER,
+                                      local->muted_text_color, self->alpha);
     }
     else
     {
-        egui_canvas_draw_text_in_rect(local->font, snapshot->route_text ? snapshot->route_text : "ROUTE", &text_region, EGUI_ALIGN_LEFT, local->muted_text_color, self->alpha);
-        egui_canvas_draw_text_in_rect(local->font, snapshot->time_text ? snapshot->time_text : "--:--", &text_region, EGUI_ALIGN_RIGHT, local->text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, snapshot->route_text ? snapshot->route_text : "ROUTE", &text_region, EGUI_ALIGN_LEFT,
+                                      local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, snapshot->time_text ? snapshot->time_text : "--:--", &text_region, EGUI_ALIGN_RIGHT, local->text_color,
+                                      self->alpha);
     }
 }
 

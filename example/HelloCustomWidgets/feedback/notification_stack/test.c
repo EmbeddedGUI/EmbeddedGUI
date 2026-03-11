@@ -1,35 +1,35 @@
-#define NOTIFY_ROOT_WIDTH 230
-#define NOTIFY_ROOT_HEIGHT 306
-#define NOTIFY_TITLE_COLOR 0x63DDFF
-#define NOTIFY_GUIDE_TEXT "Tap stacks to cycle"
-#define NOTIFY_GUIDE_COLOR 0x839AB6
-#define NOTIFY_GUIDE_MARGIN_BOTTOM 3
-#define NOTIFY_PRIMARY_WIDTH 188
-#define NOTIFY_PRIMARY_HEIGHT 138
+#define NOTIFY_ROOT_WIDTH            230
+#define NOTIFY_ROOT_HEIGHT           306
+#define NOTIFY_TITLE_COLOR           0x63DDFF
+#define NOTIFY_GUIDE_TEXT            "Tap stacks to cycle"
+#define NOTIFY_GUIDE_COLOR           0x839AB6
+#define NOTIFY_GUIDE_MARGIN_BOTTOM   3
+#define NOTIFY_PRIMARY_WIDTH         188
+#define NOTIFY_PRIMARY_HEIGHT        138
 #define NOTIFY_PRIMARY_MARGIN_BOTTOM 4
-#define NOTIFY_STATUS_TEXT_A "Core A"
-#define NOTIFY_STATUS_TEXT_B "Core B"
+#define NOTIFY_STATUS_TEXT_A         "Core A"
+#define NOTIFY_STATUS_TEXT_B         "Core B"
 #define NOTIFY_STATUS_TEXT_COMPACT_A "Compact A"
 #define NOTIFY_STATUS_TEXT_COMPACT_B "Compact B"
-#define NOTIFY_STATUS_PRIMARY_COLOR 0x56D3FF
-#define NOTIFY_STATUS_COMPACT_COLOR 0xF59E0B
-#define NOTIFY_STATUS_MARGIN_BOTTOM 4
-#define NOTIFY_DIVIDER_WIDTH 170
-#define NOTIFY_DIVIDER_POINTS 169
-#define NOTIFY_DIVIDER_PRIMARY 0x5C8BBC
-#define NOTIFY_DIVIDER_COMPACT 0x9A6A32
+#define NOTIFY_STATUS_PRIMARY_COLOR  0x56D3FF
+#define NOTIFY_STATUS_COMPACT_COLOR  0xF59E0B
+#define NOTIFY_STATUS_MARGIN_BOTTOM  4
+#define NOTIFY_DIVIDER_WIDTH         170
+#define NOTIFY_DIVIDER_POINTS        169
+#define NOTIFY_DIVIDER_PRIMARY       0x5C8BBC
+#define NOTIFY_DIVIDER_COMPACT       0x9A6A32
 #define NOTIFY_DIVIDER_MARGIN_BOTTOM 5
-#define NOTIFY_BOTTOM_ROW_WIDTH 230
-#define NOTIFY_BOTTOM_ROW_HEIGHT 106
-#define NOTIFY_COLUMN_WIDTH 108
-#define NOTIFY_COLUMN_HEIGHT 108
-#define NOTIFY_COLUMN_GAP 6
-#define NOTIFY_CARD_HEIGHT 92
-#define NOTIFY_COMPACT_LABEL_TEXT "Compact"
-#define NOTIFY_LOCKED_LABEL_TEXT "Locked"
-#define NOTIFY_COMPACT_LABEL_IDLE 0xB7C5D4
-#define NOTIFY_COMPACT_LABEL_ACTIVE 0xF4C96D
-#define NOTIFY_LOCKED_LABEL_COLOR 0xCCD6E1
+#define NOTIFY_BOTTOM_ROW_WIDTH      230
+#define NOTIFY_BOTTOM_ROW_HEIGHT     106
+#define NOTIFY_COLUMN_WIDTH          108
+#define NOTIFY_COLUMN_HEIGHT         108
+#define NOTIFY_COLUMN_GAP            6
+#define NOTIFY_CARD_HEIGHT           92
+#define NOTIFY_COMPACT_LABEL_TEXT    "Compact"
+#define NOTIFY_LOCKED_LABEL_TEXT     "Locked"
+#define NOTIFY_COMPACT_LABEL_IDLE    0xB7C5D4
+#define NOTIFY_COMPACT_LABEL_ACTIVE  0xF4C96D
+#define NOTIFY_LOCKED_LABEL_COLOR    0xCCD6E1
 
 #include <stdlib.h>
 
@@ -96,24 +96,14 @@ static void apply_compact_state(uint8_t index, uint8_t is_active)
     if (is_active)
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(NOTIFY_COMPACT_LABEL_ACTIVE), EGUI_ALPHA_100);
-        egui_view_notification_stack_set_palette(
-                EGUI_VIEW_OF(&stack_compact),
-                EGUI_COLOR_HEX(0x23160A),
-                EGUI_COLOR_HEX(0x8B5E1A),
-                EGUI_COLOR_HEX(0xFDE68A),
-                EGUI_COLOR_HEX(0xD6A15B),
-                EGUI_COLOR_HEX(0xF59E0B));
+        egui_view_notification_stack_set_palette(EGUI_VIEW_OF(&stack_compact), EGUI_COLOR_HEX(0x23160A), EGUI_COLOR_HEX(0x8B5E1A), EGUI_COLOR_HEX(0xFDE68A),
+                                                 EGUI_COLOR_HEX(0xD6A15B), EGUI_COLOR_HEX(0xF59E0B));
     }
     else
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(NOTIFY_COMPACT_LABEL_IDLE), EGUI_ALPHA_100);
-        egui_view_notification_stack_set_palette(
-                EGUI_VIEW_OF(&stack_compact),
-                EGUI_COLOR_HEX(0x121A28),
-                EGUI_COLOR_HEX(0x3D5068),
-                EGUI_COLOR_HEX(0xCBD5E1),
-                EGUI_COLOR_HEX(0x7F92A7),
-                EGUI_COLOR_HEX(0x60A5FA));
+        egui_view_notification_stack_set_palette(EGUI_VIEW_OF(&stack_compact), EGUI_COLOR_HEX(0x121A28), EGUI_COLOR_HEX(0x3D5068), EGUI_COLOR_HEX(0xCBD5E1),
+                                                 EGUI_COLOR_HEX(0x7F92A7), EGUI_COLOR_HEX(0x60A5FA));
     }
 }
 
@@ -124,8 +114,8 @@ static void on_primary_click(egui_view_t *self)
     egui_view_notification_stack_set_current_snapshot(self, next);
     egui_view_notification_stack_set_focus_card(self, next == 0 ? 0 : 1);
     apply_compact_state(egui_view_notification_stack_get_current_snapshot(EGUI_VIEW_OF(&stack_compact)), 0);
-    set_status((next == 0) ? NOTIFY_STATUS_TEXT_A : NOTIFY_STATUS_TEXT_B, EGUI_COLOR_HEX(NOTIFY_STATUS_PRIMARY_COLOR),
-               EGUI_COLOR_HEX(NOTIFY_GUIDE_COLOR), EGUI_COLOR_HEX(NOTIFY_DIVIDER_PRIMARY));
+    set_status((next == 0) ? NOTIFY_STATUS_TEXT_A : NOTIFY_STATUS_TEXT_B, EGUI_COLOR_HEX(NOTIFY_STATUS_PRIMARY_COLOR), EGUI_COLOR_HEX(NOTIFY_GUIDE_COLOR),
+               EGUI_COLOR_HEX(NOTIFY_DIVIDER_PRIMARY));
 }
 
 static void on_compact_click(egui_view_t *self)
@@ -134,8 +124,8 @@ static void on_compact_click(egui_view_t *self)
 
     egui_view_notification_stack_set_current_snapshot(self, next);
     apply_compact_state(next, 1);
-    set_status((next == 0) ? NOTIFY_STATUS_TEXT_COMPACT_A : NOTIFY_STATUS_TEXT_COMPACT_B, EGUI_COLOR_HEX(NOTIFY_STATUS_COMPACT_COLOR),
-               EGUI_COLOR_HEX(0xA07A42), EGUI_COLOR_HEX(NOTIFY_DIVIDER_COMPACT));
+    set_status((next == 0) ? NOTIFY_STATUS_TEXT_COMPACT_A : NOTIFY_STATUS_TEXT_COMPACT_B, EGUI_COLOR_HEX(NOTIFY_STATUS_COMPACT_COLOR), EGUI_COLOR_HEX(0xA07A42),
+               EGUI_COLOR_HEX(NOTIFY_DIVIDER_COMPACT));
 }
 
 void test_init_ui(void)
@@ -167,13 +157,8 @@ void test_init_ui(void)
     egui_view_notification_stack_set_snapshots(EGUI_VIEW_OF(&stack_primary), primary_snapshots, 2);
     egui_view_notification_stack_set_current_snapshot(EGUI_VIEW_OF(&stack_primary), 0);
     egui_view_notification_stack_set_focus_card(EGUI_VIEW_OF(&stack_primary), 0);
-    egui_view_notification_stack_set_palette(
-            EGUI_VIEW_OF(&stack_primary),
-            EGUI_COLOR_HEX(0x0F1728),
-            EGUI_COLOR_HEX(0x536379),
-            EGUI_COLOR_HEX(0xE2E8F0),
-            EGUI_COLOR_HEX(0x93A5BC),
-            EGUI_COLOR_HEX(0x38BDF8));
+    egui_view_notification_stack_set_palette(EGUI_VIEW_OF(&stack_primary), EGUI_COLOR_HEX(0x0F1728), EGUI_COLOR_HEX(0x536379), EGUI_COLOR_HEX(0xE2E8F0),
+                                             EGUI_COLOR_HEX(0x93A5BC), EGUI_COLOR_HEX(0x38BDF8));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&stack_primary), on_primary_click);
     egui_view_set_margin(EGUI_VIEW_OF(&stack_primary), 0, 0, 0, NOTIFY_PRIMARY_MARGIN_BOTTOM);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&stack_primary));
@@ -251,13 +236,8 @@ void test_init_ui(void)
     egui_view_notification_stack_set_focus_card(EGUI_VIEW_OF(&stack_locked), 1);
     egui_view_notification_stack_set_show_header(EGUI_VIEW_OF(&stack_locked), 0);
     egui_view_notification_stack_set_compact_mode(EGUI_VIEW_OF(&stack_locked), 1);
-    egui_view_notification_stack_set_palette(
-            EGUI_VIEW_OF(&stack_locked),
-            EGUI_COLOR_HEX(0x0E1522),
-            EGUI_COLOR_HEX(0x46566B),
-            EGUI_COLOR_HEX(0xCBD5E1),
-            EGUI_COLOR_HEX(0x8695A9),
-            EGUI_COLOR_HEX(0x758E83));
+    egui_view_notification_stack_set_palette(EGUI_VIEW_OF(&stack_locked), EGUI_COLOR_HEX(0x0E1522), EGUI_COLOR_HEX(0x46566B), EGUI_COLOR_HEX(0xCBD5E1),
+                                             EGUI_COLOR_HEX(0x8695A9), EGUI_COLOR_HEX(0x758E83));
     egui_view_set_enable(EGUI_VIEW_OF(&stack_locked), 0);
     egui_view_group_add_child(EGUI_VIEW_OF(&locked_column), EGUI_VIEW_OF(&stack_locked));
 

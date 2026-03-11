@@ -159,17 +159,9 @@ void test_init_ui(void)
     egui_view_xy_pad_set_snapshots(EGUI_VIEW_OF(&xy_macro), macro_snapshots, 3);
     egui_view_xy_pad_set_font(EGUI_VIEW_OF(&xy_macro), (const egui_font_t *)&egui_res_font_montserrat_8_4);
     egui_view_xy_pad_set_compact_mode(EGUI_VIEW_OF(&xy_macro), 1);
-    egui_view_xy_pad_set_palette(
-            EGUI_VIEW_OF(&xy_macro),
-            EGUI_COLOR_HEX(0x0F201A),
-            EGUI_COLOR_HEX(0x173127),
-            EGUI_COLOR_HEX(0x34685A),
-            EGUI_COLOR_HEX(0xE6FBF1),
-            EGUI_COLOR_HEX(0x8FB5AB),
-            EGUI_COLOR_HEX(0x58D5A8),
-            EGUI_COLOR_HEX(0xE2AE57),
-            EGUI_COLOR_HEX(0xD0A56F),
-            EGUI_COLOR_HEX(0x88F1C9));
+    egui_view_xy_pad_set_palette(EGUI_VIEW_OF(&xy_macro), EGUI_COLOR_HEX(0x0F201A), EGUI_COLOR_HEX(0x173127), EGUI_COLOR_HEX(0x34685A),
+                                 EGUI_COLOR_HEX(0xE6FBF1), EGUI_COLOR_HEX(0x8FB5AB), EGUI_COLOR_HEX(0x58D5A8), EGUI_COLOR_HEX(0xE2AE57),
+                                 EGUI_COLOR_HEX(0xD0A56F), EGUI_COLOR_HEX(0x88F1C9));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&xy_macro), on_macro_click);
     egui_view_group_add_child(EGUI_VIEW_OF(&bottom_row), EGUI_VIEW_OF(&xy_macro));
 
@@ -179,17 +171,9 @@ void test_init_ui(void)
     egui_view_xy_pad_set_font(EGUI_VIEW_OF(&xy_latch), (const egui_font_t *)&egui_res_font_montserrat_8_4);
     egui_view_xy_pad_set_compact_mode(EGUI_VIEW_OF(&xy_latch), 1);
     egui_view_xy_pad_set_locked_mode(EGUI_VIEW_OF(&xy_latch), 1);
-    egui_view_xy_pad_set_palette(
-            EGUI_VIEW_OF(&xy_latch),
-            EGUI_COLOR_HEX(0x241A14),
-            EGUI_COLOR_HEX(0x33261D),
-            EGUI_COLOR_HEX(0x6D5542),
-            EGUI_COLOR_HEX(0xFFF1E2),
-            EGUI_COLOR_HEX(0xD1AB92),
-            EGUI_COLOR_HEX(0xF0BF79),
-            EGUI_COLOR_HEX(0xF2B05E),
-            EGUI_COLOR_HEX(0xD8AB78),
-            EGUI_COLOR_HEX(0xFFD4A0));
+    egui_view_xy_pad_set_palette(EGUI_VIEW_OF(&xy_latch), EGUI_COLOR_HEX(0x241A14), EGUI_COLOR_HEX(0x33261D), EGUI_COLOR_HEX(0x6D5542),
+                                 EGUI_COLOR_HEX(0xFFF1E2), EGUI_COLOR_HEX(0xD1AB92), EGUI_COLOR_HEX(0xF0BF79), EGUI_COLOR_HEX(0xF2B05E),
+                                 EGUI_COLOR_HEX(0xD8AB78), EGUI_COLOR_HEX(0xFFD4A0));
     egui_view_set_margin(EGUI_VIEW_OF(&xy_latch), 4, 0, 0, 0);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&xy_latch), on_latch_click);
     egui_view_group_add_child(EGUI_VIEW_OF(&bottom_row), EGUI_VIEW_OF(&xy_latch));

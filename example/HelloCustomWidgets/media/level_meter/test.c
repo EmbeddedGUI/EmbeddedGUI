@@ -27,20 +27,16 @@ static const char *guide_text = "Tap cards to cycle";
 static const egui_view_line_point_t section_divider_points[] = {{0, 0}, {171, 0}};
 
 static const egui_view_level_meter_channel_t primary_channels_a[] = {
-        {"K", 28, 34, 0}, {"S", 44, 58, 1}, {"VX", 72, 84, 2},
-        {"BS", 56, 64, 1}, {"PD", 38, 46, 0}};
+        {"K", 28, 34, 0}, {"S", 44, 58, 1}, {"VX", 72, 84, 2}, {"BS", 56, 64, 1}, {"PD", 38, 46, 0}};
 static const egui_view_level_meter_channel_t primary_channels_b[] = {
-        {"K", 36, 42, 0}, {"S", 62, 74, 2}, {"VX", 48, 60, 1},
-        {"BS", 78, 88, 2}, {"PD", 42, 50, 0}};
+        {"K", 36, 42, 0}, {"S", 62, 74, 2}, {"VX", 48, 60, 1}, {"BS", 78, 88, 2}, {"PD", 42, 50, 0}};
 static const egui_view_level_meter_snapshot_t primary_snapshots[] = {
         {"Bus A", primary_channels_a, 5, 2},
         {"Bus B", primary_channels_b, 5, 3},
 };
 
-static const egui_view_level_meter_channel_t compact_channels_a[] = {
-        {"L", 26, 32, 0}, {"M", 58, 68, 1}, {"H", 76, 84, 2}, {"FX", 44, 52, 0}};
-static const egui_view_level_meter_channel_t compact_channels_b[] = {
-        {"L", 42, 50, 1}, {"M", 72, 82, 2}, {"H", 34, 42, 0}, {"FX", 64, 74, 1}};
+static const egui_view_level_meter_channel_t compact_channels_a[] = {{"L", 26, 32, 0}, {"M", 58, 68, 1}, {"H", 76, 84, 2}, {"FX", 44, 52, 0}};
+static const egui_view_level_meter_channel_t compact_channels_b[] = {{"L", 42, 50, 1}, {"M", 72, 82, 2}, {"H", 34, 42, 0}, {"FX", 64, 74, 1}};
 static const egui_view_level_meter_snapshot_t compact_snapshots[] = {
         {"Compact A", compact_channels_a, 4, 2},
         {"Compact B", compact_channels_b, 4, 1},
@@ -58,24 +54,14 @@ static void apply_compact_state(uint8_t index, uint8_t is_active)
     if (is_active)
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0xF7C15A), EGUI_ALPHA_100);
-        egui_view_level_meter_set_palette(
-                EGUI_VIEW_OF(&meter_compact),
-                EGUI_COLOR_HEX(0x261A0D),
-                EGUI_COLOR_HEX(0xB17831),
-                EGUI_COLOR_HEX(0xFDE7A1),
-                EGUI_COLOR_HEX(0xD8AF67),
-                EGUI_COLOR_HEX(0xF59E0B));
+        egui_view_level_meter_set_palette(EGUI_VIEW_OF(&meter_compact), EGUI_COLOR_HEX(0x261A0D), EGUI_COLOR_HEX(0xB17831), EGUI_COLOR_HEX(0xFDE7A1),
+                                          EGUI_COLOR_HEX(0xD8AF67), EGUI_COLOR_HEX(0xF59E0B));
     }
     else
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0xAFBCCC), EGUI_ALPHA_100);
-        egui_view_level_meter_set_palette(
-                EGUI_VIEW_OF(&meter_compact),
-                EGUI_COLOR_HEX(0x111A28),
-                EGUI_COLOR_HEX(0x5A7693),
-                EGUI_COLOR_HEX(0xDEE7F1),
-                EGUI_COLOR_HEX(0x97AABD),
-                EGUI_COLOR_HEX(0x60A5FA));
+        egui_view_level_meter_set_palette(EGUI_VIEW_OF(&meter_compact), EGUI_COLOR_HEX(0x111A28), EGUI_COLOR_HEX(0x5A7693), EGUI_COLOR_HEX(0xDEE7F1),
+                                          EGUI_COLOR_HEX(0x97AABD), EGUI_COLOR_HEX(0x60A5FA));
     }
 }
 
@@ -125,13 +111,8 @@ void test_init_ui(void)
     egui_view_level_meter_set_snapshots(EGUI_VIEW_OF(&meter_primary), primary_snapshots, 2);
     egui_view_level_meter_set_current_snapshot(EGUI_VIEW_OF(&meter_primary), 0);
     egui_view_level_meter_set_focus_channel(EGUI_VIEW_OF(&meter_primary), 2);
-    egui_view_level_meter_set_palette(
-            EGUI_VIEW_OF(&meter_primary),
-            EGUI_COLOR_HEX(0x0F1728),
-            EGUI_COLOR_HEX(0x597088),
-            EGUI_COLOR_HEX(0xE2E8F0),
-            EGUI_COLOR_HEX(0x93A5BC),
-            EGUI_COLOR_HEX(0x4FD1FF));
+    egui_view_level_meter_set_palette(EGUI_VIEW_OF(&meter_primary), EGUI_COLOR_HEX(0x0F1728), EGUI_COLOR_HEX(0x597088), EGUI_COLOR_HEX(0xE2E8F0),
+                                      EGUI_COLOR_HEX(0x93A5BC), EGUI_COLOR_HEX(0x4FD1FF));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&meter_primary), on_primary_click);
     egui_view_set_margin(EGUI_VIEW_OF(&meter_primary), 0, 0, 0, 5);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&meter_primary));
@@ -208,13 +189,8 @@ void test_init_ui(void)
     egui_view_level_meter_set_focus_channel(EGUI_VIEW_OF(&meter_locked), 2);
     egui_view_level_meter_set_show_header(EGUI_VIEW_OF(&meter_locked), 0);
     egui_view_level_meter_set_compact_mode(EGUI_VIEW_OF(&meter_locked), 1);
-    egui_view_level_meter_set_palette(
-            EGUI_VIEW_OF(&meter_locked),
-            EGUI_COLOR_HEX(0x0E1522),
-            EGUI_COLOR_HEX(0x556477),
-            EGUI_COLOR_HEX(0xD5E0EA),
-            EGUI_COLOR_HEX(0x92A2B5),
-            EGUI_COLOR_HEX(0x748680));
+    egui_view_level_meter_set_palette(EGUI_VIEW_OF(&meter_locked), EGUI_COLOR_HEX(0x0E1522), EGUI_COLOR_HEX(0x556477), EGUI_COLOR_HEX(0xD5E0EA),
+                                      EGUI_COLOR_HEX(0x92A2B5), EGUI_COLOR_HEX(0x748680));
     egui_view_set_enable(EGUI_VIEW_OF(&meter_locked), 0);
     egui_view_group_add_child(EGUI_VIEW_OF(&locked_column), EGUI_VIEW_OF(&meter_locked));
 

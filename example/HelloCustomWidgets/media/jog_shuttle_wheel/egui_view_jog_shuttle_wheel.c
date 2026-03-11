@@ -86,15 +86,8 @@ static void draw_round_fill_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, radius, color, alpha);
 }
 
-static void draw_round_stroke_safe(
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_dim_t radius,
-        egui_dim_t stroke_width,
-        egui_color_t color,
-        egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
     radius = clamp_round_radius(w, h, radius);
     if (w <= 0 || h <= 0)
@@ -104,10 +97,7 @@ static void draw_round_stroke_safe(
     egui_canvas_draw_round_rectangle(x, y, w, h, radius, stroke_width, color, alpha);
 }
 
-void egui_view_jog_shuttle_wheel_set_modes(
-        egui_view_t *self,
-        const egui_view_jog_shuttle_wheel_mode_t *modes,
-        uint8_t mode_count)
+void egui_view_jog_shuttle_wheel_set_modes(egui_view_t *self, const egui_view_jog_shuttle_wheel_mode_t *modes, uint8_t mode_count)
 {
     EGUI_LOCAL_INIT(egui_view_jog_shuttle_wheel_t);
     local->modes = modes;
@@ -208,14 +198,8 @@ static int egui_view_jog_shuttle_wheel_on_touch_event(egui_view_t *self, egui_mo
     return 1;
 }
 
-static void draw_side_preview(
-        egui_view_t *self,
-        const egui_view_jog_shuttle_wheel_mode_t *mode,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t right_side)
+static void draw_side_preview(egui_view_t *self, const egui_view_jog_shuttle_wheel_mode_t *mode, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h,
+                              uint8_t right_side)
 {
     egui_color_t accent_color = get_accent_color(mode);
 
@@ -231,13 +215,7 @@ static void draw_side_preview(
     draw_round_fill_safe(x + 10, y + h - 16, w - 20, 2, 1, accent_color, egui_color_alpha_mix(self->alpha, 46));
 }
 
-static void draw_wheel(
-        egui_view_t *self,
-        const egui_view_jog_shuttle_wheel_mode_t *mode,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h)
+static void draw_wheel(egui_view_t *self, const egui_view_jog_shuttle_wheel_mode_t *mode, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h)
 {
     const egui_font_t *body_font = (const egui_font_t *)&egui_res_font_montserrat_10_4;
     const egui_font_t *title_font = (const egui_font_t *)&egui_res_font_montserrat_12_4;
@@ -278,7 +256,8 @@ static void draw_wheel(
 
     text_region.location.y = y + 110;
     text_region.size.height = 12;
-    egui_canvas_draw_text_in_rect(body_font, mode->summary, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(shuttle_palette.text, shuttle_palette.muted, 16), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, mode->summary, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(shuttle_palette.text, shuttle_palette.muted, 16),
+                                  self->alpha);
 }
 
 static void egui_view_jog_shuttle_wheel_on_draw(egui_view_t *self)
@@ -344,16 +323,18 @@ static void egui_view_jog_shuttle_wheel_on_draw(egui_view_t *self)
     text_region.size.height = 16;
     egui_canvas_draw_text_in_rect(body_font, current->status, &text_region, EGUI_ALIGN_CENTER, shuttle_palette.text, self->alpha);
 
-    draw_round_fill_safe(wheel_rect.location.x + 46, wheel_rect.location.y + wheel_rect.size.height - 28, wheel_rect.size.width - 92, 18, 9, shuttle_palette.surface,
-                         egui_color_alpha_mix(self->alpha, 18));
-    draw_round_stroke_safe(wheel_rect.location.x + 46, wheel_rect.location.y + wheel_rect.size.height - 28, wheel_rect.size.width - 92, 18, 9, 1, shuttle_palette.border,
-                           egui_color_alpha_mix(self->alpha, 20));
-    draw_round_fill_safe(wheel_rect.location.x + 58, wheel_rect.location.y + wheel_rect.size.height - 21, 5, 5, 2, accent_color, egui_color_alpha_mix(self->alpha, 52));
+    draw_round_fill_safe(wheel_rect.location.x + 46, wheel_rect.location.y + wheel_rect.size.height - 28, wheel_rect.size.width - 92, 18, 9,
+                         shuttle_palette.surface, egui_color_alpha_mix(self->alpha, 18));
+    draw_round_stroke_safe(wheel_rect.location.x + 46, wheel_rect.location.y + wheel_rect.size.height - 28, wheel_rect.size.width - 92, 18, 9, 1,
+                           shuttle_palette.border, egui_color_alpha_mix(self->alpha, 20));
+    draw_round_fill_safe(wheel_rect.location.x + 58, wheel_rect.location.y + wheel_rect.size.height - 21, 5, 5, 2, accent_color,
+                         egui_color_alpha_mix(self->alpha, 52));
     text_region.location.x = wheel_rect.location.x + 30;
     text_region.location.y = wheel_rect.location.y + wheel_rect.size.height - 26;
     text_region.size.width = wheel_rect.size.width - 60;
     text_region.size.height = 14;
-    egui_canvas_draw_text_in_rect(body_font, current->footer, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(shuttle_palette.text, accent_color, 18), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, current->footer, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(shuttle_palette.text, accent_color, 18),
+                                  self->alpha);
 
     if (local->last_zone == 0)
     {

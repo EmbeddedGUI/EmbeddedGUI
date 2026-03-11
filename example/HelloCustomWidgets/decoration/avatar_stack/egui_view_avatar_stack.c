@@ -1,19 +1,19 @@
-#define AVATAR_PANEL_SHADOW_ALPHA 20
-#define AVATAR_PANEL_FILL_ALPHA 32
-#define AVATAR_PANEL_BORDER_ALPHA 52
-#define AVATAR_INNER_BORDER_ALPHA 20
-#define AVATAR_HEADER_PILL_MIN_WIDTH 82
-#define AVATAR_HEADER_LINE_ALPHA 22
-#define AVATAR_FOOTER_WIDTH 84
-#define AVATAR_FOOTER_FILL_ALPHA 44
-#define AVATAR_FOOTER_BORDER_ALPHA 22
-#define AVATAR_MINI_BADGE_WIDTH 30
-#define AVATAR_MINI_BADGE_FILL_ALPHA 70
+#define AVATAR_PANEL_SHADOW_ALPHA      20
+#define AVATAR_PANEL_FILL_ALPHA        32
+#define AVATAR_PANEL_BORDER_ALPHA      52
+#define AVATAR_INNER_BORDER_ALPHA      20
+#define AVATAR_HEADER_PILL_MIN_WIDTH   82
+#define AVATAR_HEADER_LINE_ALPHA       22
+#define AVATAR_FOOTER_WIDTH            84
+#define AVATAR_FOOTER_FILL_ALPHA       44
+#define AVATAR_FOOTER_BORDER_ALPHA     22
+#define AVATAR_MINI_BADGE_WIDTH        30
+#define AVATAR_MINI_BADGE_FILL_ALPHA   70
 #define AVATAR_MINI_BADGE_BORDER_ALPHA 20
-#define AVATAR_MINI_TOP_STRIP_ALPHA 18
+#define AVATAR_MINI_TOP_STRIP_ALPHA    18
 #define AVATAR_MINI_BOTTOM_STRIP_ALPHA 18
-#define AVATAR_DISABLED_OVERLAY_ALPHA 14
-#define AVATAR_DISABLED_CROSS_ALPHA 12
+#define AVATAR_DISABLED_OVERLAY_ALPHA  14
+#define AVATAR_DISABLED_CROSS_ALPHA    12
 
 #include <stdlib.h>
 #include <string.h>
@@ -21,12 +21,8 @@
 #include "egui_view_avatar_stack.h"
 
 static const egui_color_t avatar_palette[] = {
-        EGUI_COLOR_HEX(0x38BDF8),
-        EGUI_COLOR_HEX(0xFB7185),
-        EGUI_COLOR_HEX(0x22C55E),
-        EGUI_COLOR_HEX(0xF59E0B),
-        EGUI_COLOR_HEX(0xA78BFA),
-        EGUI_COLOR_HEX(0x14B8A6),
+        EGUI_COLOR_HEX(0x38BDF8), EGUI_COLOR_HEX(0xFB7185), EGUI_COLOR_HEX(0x22C55E),
+        EGUI_COLOR_HEX(0xF59E0B), EGUI_COLOR_HEX(0xA78BFA), EGUI_COLOR_HEX(0x14B8A6),
 };
 
 static uint8_t egui_view_avatar_stack_clamp_snapshot_count(uint8_t count)
@@ -61,15 +57,8 @@ static const char *egui_view_avatar_stack_get_footer_text(egui_view_avatar_stack
     return (local->current_snapshot == 0) ? "Group A" : ((local->current_snapshot == 1) ? "Group B" : "Group C");
 }
 
-static void egui_view_avatar_stack_draw_badge(
-        const egui_font_t *font,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t width,
-        const char *text,
-        egui_color_t fill_color,
-        egui_color_t text_color,
-        egui_alpha_t alpha)
+static void egui_view_avatar_stack_draw_badge(const egui_font_t *font, egui_dim_t x, egui_dim_t y, egui_dim_t width, const char *text, egui_color_t fill_color,
+                                              egui_color_t text_color, egui_alpha_t alpha)
 {
     egui_region_t text_region;
 
@@ -142,13 +131,8 @@ void egui_view_avatar_stack_set_compact_mode(egui_view_t *self, uint8_t compact_
     egui_view_invalidate(self);
 }
 
-void egui_view_avatar_stack_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t focus_color)
+void egui_view_avatar_stack_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                        egui_color_t muted_text_color, egui_color_t focus_color)
 {
     EGUI_LOCAL_INIT(egui_view_avatar_stack_t);
     local->surface_color = surface_color;
@@ -252,7 +236,8 @@ static void egui_view_avatar_stack_on_draw(egui_view_t *self)
         egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 4, 1,
                                          egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
                                          egui_color_alpha_mix(self->alpha, AVATAR_MINI_BADGE_BORDER_ALPHA));
-        egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
         content_y += 12;
         content_height -= 12;
     }
@@ -281,7 +266,8 @@ static void egui_view_avatar_stack_on_draw(egui_view_t *self)
         egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 6, 1,
                                          egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
                                          egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
-        egui_canvas_draw_text_in_rect(local->font, header_text, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, header_text, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
         if (AVATAR_HEADER_LINE_ALPHA > 0)
         {
             egui_canvas_draw_line(content_x + 5, content_y + 17, content_x + content_width - 6, content_y + 17, 1, local->border_color,
@@ -309,15 +295,10 @@ static void egui_view_avatar_stack_on_draw(egui_view_t *self)
         badge_text[1] = badge_text[2];
         badge_text[2] = 0;
     }
-    egui_view_avatar_stack_draw_badge(
-            local->font,
-            region.location.x + region.size.width - 25,
-            region.location.y + 7,
-            18,
-            badge_text,
-            is_enabled ? egui_rgb_mix(local->focus_color, EGUI_COLOR_WHITE, EGUI_ALPHA_20) : egui_view_avatar_stack_mix_disabled(local->focus_color),
-            local->text_color,
-            egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
+    egui_view_avatar_stack_draw_badge(local->font, region.location.x + region.size.width - 25, region.location.y + 7, 18, badge_text,
+                                      is_enabled ? egui_rgb_mix(local->focus_color, EGUI_COLOR_WHITE, EGUI_ALPHA_20)
+                                                 : egui_view_avatar_stack_mix_disabled(local->focus_color),
+                                      local->text_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
 
     radius = local->compact_mode ? 10 : 14;
     if (content_height < radius * 2 + 12)
@@ -406,7 +387,8 @@ static void egui_view_avatar_stack_on_draw(egui_view_t *self)
         egui_canvas_draw_round_rectangle(content_x + (content_width - AVATAR_FOOTER_WIDTH) / 2, content_y + content_height + 2, AVATAR_FOOTER_WIDTH, 11, 5, 1,
                                          egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
                                          egui_color_alpha_mix(self->alpha, AVATAR_FOOTER_BORDER_ALPHA));
-        egui_canvas_draw_text_in_rect(local->font, footer_text, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, footer_text, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
     }
     else if (AVATAR_MINI_BOTTOM_STRIP_ALPHA > 0)
     {

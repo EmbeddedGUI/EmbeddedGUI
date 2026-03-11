@@ -74,15 +74,8 @@ static void draw_round_fill_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, radius, color, alpha);
 }
 
-static void draw_round_stroke_safe(
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_dim_t radius,
-        egui_dim_t stroke_width,
-        egui_color_t color,
-        egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
     radius = clamp_round_radius(w, h, radius);
     if (w <= 0 || h <= 0)
@@ -134,10 +127,7 @@ static void get_zone_rects_screen(egui_view_t *self, egui_region_t *main_rect, e
     right_rect->size.height = 98;
 }
 
-void egui_view_tape_loop_editor_set_states(
-        egui_view_t *self,
-        const egui_view_tape_loop_editor_state_t *states,
-        uint8_t state_count)
+void egui_view_tape_loop_editor_set_states(egui_view_t *self, const egui_view_tape_loop_editor_state_t *states, uint8_t state_count)
 {
     EGUI_LOCAL_INIT(egui_view_tape_loop_editor_t);
     local->states = states;
@@ -193,14 +183,8 @@ static int egui_view_tape_loop_editor_on_touch_event(egui_view_t *self, egui_mot
     return 1;
 }
 
-static void draw_preview_card(
-        egui_view_t *self,
-        const egui_view_tape_loop_editor_state_t *state,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t right_side)
+static void draw_preview_card(egui_view_t *self, const egui_view_tape_loop_editor_state_t *state, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h,
+                              uint8_t right_side)
 {
     egui_color_t accent_color = get_accent_color(state);
     egui_dim_t strip_x = right_side ? (x + w - 10) : (x + 6);
@@ -226,8 +210,8 @@ static void draw_reel(egui_view_t *self, egui_dim_t cx, egui_dim_t cy, egui_dim_
                          egui_color_alpha_mix(self->alpha, focused ? 18 : 8));
     draw_round_fill_safe(cx - size / 2, cy - size / 2, size, size, size / 2, tape_palette.panel, egui_color_alpha_mix(self->alpha, 60));
     draw_round_stroke_safe(cx - size / 2, cy - size / 2, size, size, size / 2, 1, tape_palette.border, egui_color_alpha_mix(self->alpha, 28));
-    draw_round_stroke_safe(cx - size / 2 + 7, cy - size / 2 + 7, size - 14, size - 14, (size - 14) / 2, 1,
-                           egui_rgb_mix(tape_palette.border, accent_color, 22), egui_color_alpha_mix(self->alpha, focused ? 32 : 16));
+    draw_round_stroke_safe(cx - size / 2 + 7, cy - size / 2 + 7, size - 14, size - 14, (size - 14) / 2, 1, egui_rgb_mix(tape_palette.border, accent_color, 22),
+                           egui_color_alpha_mix(self->alpha, focused ? 32 : 16));
     draw_round_fill_safe(cx - 4, cy - 4, 8, 8, 4, accent_color, egui_color_alpha_mix(self->alpha, 58));
     draw_round_fill_safe(cx - 2, cy - size / 2 + 8, 4, 10, 2, accent_color, egui_color_alpha_mix(self->alpha, focused ? 78 : 34));
 }
@@ -330,17 +314,20 @@ static void egui_view_tape_loop_editor_on_draw(egui_view_t *self)
     text_region.location.y = main_rect.location.y + 124;
     text_region.size.width = main_rect.size.width - 36;
     text_region.size.height = 14;
-    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->preset, &text_region, EGUI_ALIGN_CENTER, tape_palette.text, self->alpha);
+    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->preset, &text_region, EGUI_ALIGN_CENTER, tape_palette.text,
+                                  self->alpha);
 
     text_region.location.y = main_rect.location.y + 142;
     text_region.size.height = 12;
-    egui_canvas_draw_text_in_rect(body_font, current->summary, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(tape_palette.text, tape_palette.muted, 20), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, current->summary, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(tape_palette.text, tape_palette.muted, 20),
+                                  self->alpha);
 
     draw_round_fill_safe(main_rect.location.x + 38, main_rect.location.y + main_rect.size.height - 22, main_rect.size.width - 76, 18, 9, tape_palette.surface,
                          egui_color_alpha_mix(self->alpha, 18));
-    draw_round_stroke_safe(main_rect.location.x + 38, main_rect.location.y + main_rect.size.height - 22, main_rect.size.width - 76, 18, 9, 1, tape_palette.border,
-                           egui_color_alpha_mix(self->alpha, 24));
-    draw_round_fill_safe(main_rect.location.x + 60, main_rect.location.y + main_rect.size.height - 16, 5, 5, 2, accent_color, egui_color_alpha_mix(self->alpha, 52));
+    draw_round_stroke_safe(main_rect.location.x + 38, main_rect.location.y + main_rect.size.height - 22, main_rect.size.width - 76, 18, 9, 1,
+                           tape_palette.border, egui_color_alpha_mix(self->alpha, 24));
+    draw_round_fill_safe(main_rect.location.x + 60, main_rect.location.y + main_rect.size.height - 16, 5, 5, 2, accent_color,
+                         egui_color_alpha_mix(self->alpha, 52));
     text_region.location.x = main_rect.location.x + 34;
     text_region.location.y = main_rect.location.y + main_rect.size.height - 19;
     text_region.size.width = main_rect.size.width - 68;

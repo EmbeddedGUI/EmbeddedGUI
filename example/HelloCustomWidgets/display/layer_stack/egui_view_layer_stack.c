@@ -66,17 +66,9 @@ void egui_view_layer_stack_set_locked_mode(egui_view_t *self, uint8_t locked_mod
     egui_view_invalidate(self);
 }
 
-void egui_view_layer_stack_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t panel_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t accent_color,
-        egui_color_t warn_color,
-        egui_color_t lock_color,
-        egui_color_t focus_color)
+void egui_view_layer_stack_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t panel_color, egui_color_t border_color,
+                                       egui_color_t text_color, egui_color_t muted_text_color, egui_color_t accent_color, egui_color_t warn_color,
+                                       egui_color_t lock_color, egui_color_t focus_color)
 {
     EGUI_LOCAL_INIT(egui_view_layer_stack_t);
     local->surface_color = surface_color;
@@ -136,16 +128,8 @@ static egui_dim_t egui_view_layer_stack_get_pill_width(const egui_view_layer_sta
     return width;
 }
 
-static void egui_view_layer_stack_draw_layer(
-        egui_view_t *self,
-        egui_view_layer_stack_t *local,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t visible,
-        uint8_t active,
-        egui_color_t accent_color)
+static void egui_view_layer_stack_draw_layer(egui_view_t *self, egui_view_layer_stack_t *local, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h,
+                                             uint8_t visible, uint8_t active, egui_color_t accent_color)
 {
     egui_color_t fill_color;
     egui_color_t stroke_color;
@@ -153,50 +137,18 @@ static void egui_view_layer_stack_draw_layer(
     fill_color = active ? accent_color : egui_rgb_mix(local->panel_color, local->surface_color, visible ? 24 : 18);
     stroke_color = active ? local->focus_color : (visible ? local->border_color : egui_rgb_mix(local->border_color, local->surface_color, 26));
 
-    egui_canvas_draw_round_rectangle_fill(
-            x,
-            y,
-            w,
-            h,
-            local->compact_mode ? 5 : 7,
-            fill_color,
-            egui_color_alpha_mix(self->alpha, active ? 74 : (visible ? 42 : 26)));
-    egui_canvas_draw_round_rectangle(
-            x,
-            y,
-            w,
-            h,
-            local->compact_mode ? 5 : 7,
-            1,
-            stroke_color,
-            egui_color_alpha_mix(self->alpha, active ? 82 : (visible ? 42 : 24)));
+    egui_canvas_draw_round_rectangle_fill(x, y, w, h, local->compact_mode ? 5 : 7, fill_color,
+                                          egui_color_alpha_mix(self->alpha, active ? 74 : (visible ? 42 : 26)));
+    egui_canvas_draw_round_rectangle(x, y, w, h, local->compact_mode ? 5 : 7, 1, stroke_color,
+                                     egui_color_alpha_mix(self->alpha, active ? 82 : (visible ? 42 : 24)));
 
-    egui_canvas_draw_round_rectangle_fill(
-            x + 5,
-            y + 5,
-            w - 10,
-            2,
-            1,
-            local->text_color,
-            egui_color_alpha_mix(self->alpha, active ? 66 : (visible ? 26 : 12)));
-    egui_canvas_draw_round_rectangle_fill(
-            x + 7,
-            y + h - 8,
-            w - 14,
-            2,
-            1,
-            local->muted_text_color,
-            egui_color_alpha_mix(self->alpha, active ? 54 : (visible ? 24 : 10)));
+    egui_canvas_draw_round_rectangle_fill(x + 5, y + 5, w - 10, 2, 1, local->text_color, egui_color_alpha_mix(self->alpha, active ? 66 : (visible ? 26 : 12)));
+    egui_canvas_draw_round_rectangle_fill(x + 7, y + h - 8, w - 14, 2, 1, local->muted_text_color,
+                                          egui_color_alpha_mix(self->alpha, active ? 54 : (visible ? 24 : 10)));
     if (active)
     {
-        egui_canvas_draw_round_rectangle_fill(
-                x + w / 2 - (local->compact_mode ? 4 : 6),
-                y + 10,
-                local->compact_mode ? 8 : 12,
-                2,
-                1,
-                local->focus_color,
-                egui_color_alpha_mix(self->alpha, 92));
+        egui_canvas_draw_round_rectangle_fill(x + w / 2 - (local->compact_mode ? 4 : 6), y + 10, local->compact_mode ? 8 : 12, 2, 1, local->focus_color,
+                                              egui_color_alpha_mix(self->alpha, 92));
     }
 }
 
@@ -254,23 +206,10 @@ static void egui_view_layer_stack_on_draw(egui_view_t *self)
     header_top = local->compact_mode ? 8 : 10;
     pill_w = egui_view_layer_stack_get_pill_width(snapshot, local->compact_mode);
 
-    egui_canvas_draw_round_rectangle_fill(
-            panel_x,
-            panel_y,
-            panel_w,
-            panel_h,
-            10,
-            shell_color,
-            egui_color_alpha_mix(self->alpha, local->compact_mode ? 36 : 52));
-    egui_canvas_draw_round_rectangle(
-            panel_x,
-            panel_y,
-            panel_w,
-            panel_h,
-            10,
-            1,
-            local->border_color,
-            egui_color_alpha_mix(self->alpha, local->compact_mode ? 52 : 68));
+    egui_canvas_draw_round_rectangle_fill(panel_x, panel_y, panel_w, panel_h, 10, shell_color,
+                                          egui_color_alpha_mix(self->alpha, local->compact_mode ? 36 : 52));
+    egui_canvas_draw_round_rectangle(panel_x, panel_y, panel_w, panel_h, 10, 1, local->border_color,
+                                     egui_color_alpha_mix(self->alpha, local->compact_mode ? 52 : 68));
 
     pill_x = panel_x + panel_w - outer_padding - pill_w;
     title_w = pill_x - panel_x - outer_padding - (local->compact_mode ? 10 : 14);
@@ -281,14 +220,8 @@ static void egui_view_layer_stack_on_draw(egui_view_t *self)
     text_region.size.height = 11;
     egui_canvas_draw_text_in_rect(local->font, snapshot->title, &text_region, EGUI_ALIGN_LEFT, title_color, self->alpha);
 
-    egui_canvas_draw_round_rectangle_fill(
-            pill_x,
-            panel_y + header_top,
-            pill_w,
-            11,
-            5,
-            status_color,
-            egui_color_alpha_mix(self->alpha, local->locked_mode ? 32 : 64));
+    egui_canvas_draw_round_rectangle_fill(pill_x, panel_y + header_top, pill_w, 11, 5, status_color,
+                                          egui_color_alpha_mix(self->alpha, local->locked_mode ? 32 : 64));
     text_region.location.x = pill_x + 2;
     text_region.location.y = panel_y + header_top;
     text_region.size.width = pill_w - 4;
@@ -338,14 +271,8 @@ static void egui_view_layer_stack_on_draw(egui_view_t *self)
 
         active = (snapshot->active_layer == i) ? 1 : 0;
         dot_y = stack_y + (local->compact_mode ? 4 : 5) + i * (local->compact_mode ? 8 : 11);
-        egui_canvas_draw_round_rectangle_fill(
-                rail_x,
-                dot_y,
-                local->compact_mode ? 4 : 4,
-                local->compact_mode ? 4 : 4,
-                2,
-                active ? local->focus_color : local->muted_text_color,
-                egui_color_alpha_mix(self->alpha, active ? 96 : 28));
+        egui_canvas_draw_round_rectangle_fill(rail_x, dot_y, local->compact_mode ? 4 : 4, local->compact_mode ? 4 : 4, 2,
+                                              active ? local->focus_color : local->muted_text_color, egui_color_alpha_mix(self->alpha, active ? 96 : 28));
     }
 
     footer_y = stack_y + stack_h + (local->compact_mode ? 9 : 10);

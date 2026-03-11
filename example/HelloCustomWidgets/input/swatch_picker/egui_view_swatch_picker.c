@@ -87,13 +87,8 @@ void egui_view_swatch_picker_set_compact_mode(egui_view_t *self, uint8_t compact
     egui_view_invalidate(self);
 }
 
-void egui_view_swatch_picker_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t active_color)
+void egui_view_swatch_picker_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                         egui_color_t muted_text_color, egui_color_t active_color)
 {
     EGUI_LOCAL_INIT(egui_view_swatch_picker_t);
     local->surface_color = surface_color;
@@ -151,7 +146,8 @@ static void egui_view_swatch_picker_on_draw(egui_view_t *self)
                                           egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
     egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, 8, panel_color,
                                           egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
-    egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, region.size.height, 8, 1, local->border_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_50));
+    egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, region.size.height, 8, 1, local->border_color,
+                                     egui_color_alpha_mix(self->alpha, EGUI_ALPHA_50));
     egui_canvas_draw_round_rectangle(region.location.x + 2, region.location.y + 2, region.size.width - 4, region.size.height - 4, 6, 1,
                                      egui_rgb_mix(local->active_color, local->border_color, EGUI_ALPHA_30), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
     if (local->compact_mode)
@@ -178,10 +174,13 @@ static void egui_view_swatch_picker_on_draw(egui_view_t *self)
         header_region.size.width = 28;
         header_region.size.height = 8;
         egui_canvas_draw_round_rectangle_fill(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 4,
-                                              egui_rgb_mix(local->surface_color, local->active_color, EGUI_ALPHA_10), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
+                                              egui_rgb_mix(local->surface_color, local->active_color, EGUI_ALPHA_10),
+                                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
         egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 4, 1,
-                                         egui_rgb_mix(local->border_color, local->active_color, EGUI_ALPHA_20), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
-        egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+                                         egui_rgb_mix(local->border_color, local->active_color, EGUI_ALPHA_20),
+                                         egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+        egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
         content_y += 12;
         content_height -= 12;
     }
@@ -202,9 +201,11 @@ static void egui_view_swatch_picker_on_draw(egui_view_t *self)
         header_region.size.width = pill_w;
         header_region.size.height = 13;
         egui_canvas_draw_round_rectangle_fill(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 6,
-                                              egui_rgb_mix(local->surface_color, local->active_color, EGUI_ALPHA_10), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
+                                              egui_rgb_mix(local->surface_color, local->active_color, EGUI_ALPHA_10),
+                                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
         egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 6, 1,
-                                         egui_rgb_mix(local->border_color, local->active_color, EGUI_ALPHA_20), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
+                                         egui_rgb_mix(local->border_color, local->active_color, EGUI_ALPHA_20),
+                                         egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
         egui_canvas_draw_text_in_rect(local->font, is_enabled ? snapshot->title : "Locked", &header_region, EGUI_ALIGN_CENTER,
                                       is_enabled ? local->text_color : local->muted_text_color, self->alpha);
         egui_canvas_draw_line(content_x + 5, content_y + 16, content_x + content_width - 6, content_y + 16, 1, local->border_color,
@@ -257,7 +258,8 @@ static void egui_view_swatch_picker_on_draw(egui_view_t *self)
         }
 
         egui_canvas_draw_circle_fill(cx, cy, chip_size / 2, fill_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_80));
-        egui_canvas_draw_circle(cx, cy, chip_size / 2, is_current ? 2 : 1, ring_color, egui_color_alpha_mix(self->alpha, is_current ? EGUI_ALPHA_90 : EGUI_ALPHA_50));
+        egui_canvas_draw_circle(cx, cy, chip_size / 2, is_current ? 2 : 1, ring_color,
+                                egui_color_alpha_mix(self->alpha, is_current ? EGUI_ALPHA_90 : EGUI_ALPHA_50));
         egui_canvas_draw_circle_fill(cx - chip_size / 6, cy - chip_size / 6, 2, EGUI_COLOR_WHITE, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
 
         if (!local->compact_mode)
@@ -271,10 +273,12 @@ static void egui_view_swatch_picker_on_draw(egui_view_t *self)
                                                   egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
             egui_canvas_draw_round_rectangle(text_region.location.x + 4, text_region.location.y + 1, text_region.size.width - 8, 9, 4, 1,
                                              egui_rgb_mix(ring_color, fill_color, EGUI_ALPHA_20), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_10));
-            egui_canvas_draw_text_in_rect(local->font, snapshot->labels[i], &text_region, EGUI_ALIGN_CENTER,
-                                          is_enabled ? (is_current ? local->text_color : (is_focus ? egui_rgb_mix(local->text_color, local->muted_text_color, EGUI_ALPHA_20) : local->muted_text_color))
-                                                     : local->muted_text_color,
-                                          self->alpha);
+            egui_canvas_draw_text_in_rect(
+                    local->font, snapshot->labels[i], &text_region, EGUI_ALIGN_CENTER,
+                    is_enabled ? (is_current ? local->text_color
+                                             : (is_focus ? egui_rgb_mix(local->text_color, local->muted_text_color, EGUI_ALPHA_20) : local->muted_text_color))
+                               : local->muted_text_color,
+                    self->alpha);
         }
 
         if (is_focus)
@@ -302,16 +306,20 @@ static void egui_view_swatch_picker_on_draw(egui_view_t *self)
         egui_canvas_draw_round_rectangle_fill(content_x + (content_width - caption_w) / 2, content_y + content_height - 12, caption_w, 10, 5, panel_color,
                                               egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
         egui_canvas_draw_round_rectangle(content_x + (content_width - caption_w) / 2, content_y + content_height - 12, caption_w, 10, 5, 1,
-                                         egui_rgb_mix(local->border_color, local->active_color, EGUI_ALPHA_20), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
-        egui_canvas_draw_text_in_rect(local->font, caption, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+                                         egui_rgb_mix(local->border_color, local->active_color, EGUI_ALPHA_20),
+                                         egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+        egui_canvas_draw_text_in_rect(local->font, caption, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
     }
 
     if (!is_enabled)
     {
         egui_canvas_draw_round_rectangle_fill(content_x + 1, content_y + 1, content_width - 2, content_height - 2, 5, EGUI_COLOR_BLACK,
                                               egui_color_alpha_mix(self->alpha, EGUI_ALPHA_10));
-        egui_canvas_draw_line(content_x + 4, content_y + 4, content_x + content_width - 5, content_y + content_height - 5, 1, local->muted_text_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
-        egui_canvas_draw_line(content_x + 4, content_y + content_height - 5, content_x + content_width - 5, content_y + 4, 1, local->muted_text_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+        egui_canvas_draw_line(content_x + 4, content_y + 4, content_x + content_width - 5, content_y + content_height - 5, 1, local->muted_text_color,
+                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+        egui_canvas_draw_line(content_x + 4, content_y + content_height - 5, content_x + content_width - 5, content_y + 4, 1, local->muted_text_color,
+                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
     }
 }
 

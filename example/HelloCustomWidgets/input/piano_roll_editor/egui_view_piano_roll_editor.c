@@ -20,9 +20,9 @@ struct piano_roll_palette
 };
 
 static const piano_roll_palette_t piano_roll_palette = {
-        EGUI_COLOR_HEX(0x0A0E14), EGUI_COLOR_HEX(0x16202A), EGUI_COLOR_HEX(0x111821), EGUI_COLOR_HEX(0x415264), EGUI_COLOR_HEX(0xEEF5FF),
-        EGUI_COLOR_HEX(0x8EA2B6), EGUI_COLOR_HEX(0x6BC9FF), EGUI_COLOR_HEX(0xDBA75A), EGUI_COLOR_HEX(0x87D88A), EGUI_COLOR_HEX(0xD86E8E),
-        EGUI_COLOR_HEX(0x02050A),
+        EGUI_COLOR_HEX(0x0A0E14), EGUI_COLOR_HEX(0x16202A), EGUI_COLOR_HEX(0x111821), EGUI_COLOR_HEX(0x415264),
+        EGUI_COLOR_HEX(0xEEF5FF), EGUI_COLOR_HEX(0x8EA2B6), EGUI_COLOR_HEX(0x6BC9FF), EGUI_COLOR_HEX(0xDBA75A),
+        EGUI_COLOR_HEX(0x87D88A), EGUI_COLOR_HEX(0xD86E8E), EGUI_COLOR_HEX(0x02050A),
 };
 
 static const uint8_t piano_roll_blocks[4][5][3] = {
@@ -88,15 +88,8 @@ static void draw_round_fill_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, radius, color, alpha);
 }
 
-static void draw_round_stroke_safe(
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_dim_t radius,
-        egui_dim_t stroke_width,
-        egui_color_t color,
-        egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
     radius = clamp_round_radius(w, h, radius);
     if (w <= 0 || h <= 0)
@@ -148,10 +141,7 @@ static void get_zone_rects_screen(egui_view_t *self, egui_region_t *main_rect, e
     right_rect->size.height = 102;
 }
 
-void egui_view_piano_roll_editor_set_states(
-        egui_view_t *self,
-        const egui_view_piano_roll_editor_state_t *states,
-        uint8_t state_count)
+void egui_view_piano_roll_editor_set_states(egui_view_t *self, const egui_view_piano_roll_editor_state_t *states, uint8_t state_count)
 {
     EGUI_LOCAL_INIT(egui_view_piano_roll_editor_t);
     local->states = states;
@@ -200,14 +190,7 @@ static int egui_view_piano_roll_editor_on_touch_event(egui_view_t *self, egui_mo
     return 1;
 }
 
-static void draw_note_block(
-        egui_view_t *self,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_color_t accent,
-        uint8_t focused)
+static void draw_note_block(egui_view_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_color_t accent, uint8_t focused)
 {
     draw_round_fill_safe(x + 1, y + 1, w, h, 5, piano_roll_palette.shadow, egui_color_alpha_mix(self->alpha, 18));
     draw_round_fill_safe(x, y, w, h, 5, accent, egui_color_alpha_mix(self->alpha, focused ? 70 : 48));
@@ -216,14 +199,8 @@ static void draw_note_block(
     draw_round_fill_safe(x + 6, y + 4, w - 12, 2, 1, piano_roll_palette.text, egui_color_alpha_mix(self->alpha, focused ? 20 : 10));
 }
 
-static void draw_preview(
-        egui_view_t *self,
-        const egui_view_piano_roll_editor_state_t *state,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t pattern_index)
+static void draw_preview(egui_view_t *self, const egui_view_piano_roll_editor_state_t *state, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h,
+                         uint8_t pattern_index)
 {
     egui_color_t accent = get_accent(state);
     uint8_t i;
@@ -399,8 +376,8 @@ static void egui_view_piano_roll_editor_on_draw(egui_view_t *self)
     text_region.location.y = main_rect.location.y + 127;
     text_region.size.width = main_rect.size.width - 36;
     text_region.size.height = 14;
-    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->clip, &text_region, EGUI_ALIGN_CENTER,
-                                  piano_roll_palette.text, self->alpha);
+    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->clip, &text_region, EGUI_ALIGN_CENTER, piano_roll_palette.text,
+                                  self->alpha);
 
     text_region.location.y = main_rect.location.y + 139;
     text_region.size.height = 12;
@@ -446,8 +423,7 @@ static void egui_view_piano_roll_editor_on_draw(egui_view_t *self)
     text_region.location.y = region.location.y + 247;
     text_region.size.width = 134;
     text_region.size.height = 14;
-    egui_canvas_draw_text_in_rect(body_font, status_text, &text_region, EGUI_ALIGN_CENTER,
-                                  egui_rgb_mix(piano_roll_palette.text, accent, 22), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, status_text, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(piano_roll_palette.text, accent, 22), self->alpha);
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_piano_roll_editor_t) = {

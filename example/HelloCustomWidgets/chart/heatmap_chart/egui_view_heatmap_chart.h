@@ -8,8 +8,8 @@ extern "C" {
 #endif
 
 #define EGUI_VIEW_HEATMAP_CHART_MAX_VALUE_SETS 3
-#define EGUI_VIEW_HEATMAP_CHART_MAX_ROWS 6
-#define EGUI_VIEW_HEATMAP_CHART_MAX_COLS 6
+#define EGUI_VIEW_HEATMAP_CHART_MAX_ROWS       6
+#define EGUI_VIEW_HEATMAP_CHART_MAX_COLS       6
 
 typedef struct egui_view_heatmap_chart egui_view_heatmap_chart_t;
 struct egui_view_heatmap_chart
@@ -44,14 +44,8 @@ void egui_view_heatmap_chart_set_font(egui_view_t *self, const egui_font_t *font
 void egui_view_heatmap_chart_set_show_values(egui_view_t *self, uint8_t show_values);
 void egui_view_heatmap_chart_set_show_header(egui_view_t *self, uint8_t show_header);
 void egui_view_heatmap_chart_set_show_axis_labels(egui_view_t *self, uint8_t show_axis_labels);
-void egui_view_heatmap_chart_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t cold_color,
-        egui_color_t hot_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color);
+void egui_view_heatmap_chart_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t cold_color,
+                                         egui_color_t hot_color, egui_color_t text_color, egui_color_t muted_text_color);
 
 #ifdef __cplusplus
 }

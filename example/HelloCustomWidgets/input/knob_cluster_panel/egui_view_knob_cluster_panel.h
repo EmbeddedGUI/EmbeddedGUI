@@ -31,10 +31,7 @@ struct egui_view_knob_cluster_panel
     uint8_t last_zone;
 };
 
-void egui_view_knob_cluster_panel_set_states(
-        egui_view_t *self,
-        const egui_view_knob_cluster_panel_state_t *states,
-        uint8_t state_count);
+void egui_view_knob_cluster_panel_set_states(egui_view_t *self, const egui_view_knob_cluster_panel_state_t *states, uint8_t state_count);
 void egui_view_knob_cluster_panel_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_knob_cluster_panel_init(egui_view_t *self);
 

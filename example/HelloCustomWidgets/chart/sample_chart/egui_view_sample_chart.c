@@ -3,10 +3,10 @@
 
 #include "egui_view_sample_chart.h"
 
-#define SAMPLE_CHART_RADIUS 10
-#define SAMPLE_CHART_HEADER_H 14
-#define SAMPLE_CHART_PAD_X 8
-#define SAMPLE_CHART_PAD_Y 6
+#define SAMPLE_CHART_RADIUS     10
+#define SAMPLE_CHART_HEADER_H   14
+#define SAMPLE_CHART_PAD_X      8
+#define SAMPLE_CHART_PAD_Y      6
 #define SAMPLE_CHART_GRID_ALPHA 28
 #define SAMPLE_CHART_LINE_ALPHA 220
 
@@ -41,7 +41,7 @@ static void egui_view_sample_chart_on_draw(egui_view_t *self)
     line_color = local->accent_color;
 
     egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, SAMPLE_CHART_RADIUS, panel_color,
-                                         egui_color_alpha_mix(a, EGUI_ALPHA_40));
+                                          egui_color_alpha_mix(a, EGUI_ALPHA_40));
     egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, region.size.height, SAMPLE_CHART_RADIUS, 1, local->border_color,
                                      egui_color_alpha_mix(a, EGUI_ALPHA_60));
 
@@ -70,7 +70,7 @@ static void egui_view_sample_chart_on_draw(egui_view_t *self)
     }
 
     egui_canvas_draw_round_rectangle_fill(chart_region.location.x, chart_region.location.y, chart_region.size.width, chart_region.size.height, 6,
-                                         egui_rgb_mix(local->surface_color, EGUI_COLOR_BLACK, EGUI_ALPHA_30), egui_color_alpha_mix(a, EGUI_ALPHA_30));
+                                          egui_rgb_mix(local->surface_color, EGUI_COLOR_BLACK, EGUI_ALPHA_30), egui_color_alpha_mix(a, EGUI_ALPHA_30));
     egui_canvas_draw_round_rectangle(chart_region.location.x, chart_region.location.y, chart_region.size.width, chart_region.size.height, 6, 1,
                                      local->border_color, egui_color_alpha_mix(a, EGUI_ALPHA_40));
 

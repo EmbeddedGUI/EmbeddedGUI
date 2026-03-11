@@ -1,23 +1,23 @@
-#define TREEMAP_PANEL_SHADOW_ALPHA 20
-#define TREEMAP_PANEL_FILL_ALPHA 32
-#define TREEMAP_PANEL_BORDER_ALPHA 52
-#define TREEMAP_INNER_BORDER_ALPHA 22
-#define TREEMAP_HEADER_MODE 2
-#define TREEMAP_HEADER_PILL_MIN_WIDTH 80
-#define TREEMAP_HEADER_LINE_ALPHA 22
-#define TREEMAP_FOOTER_MODE 2
-#define TREEMAP_FOOTER_WIDTH 76
-#define TREEMAP_FOOTER_FILL_ALPHA 46
-#define TREEMAP_FOOTER_BORDER_ALPHA 24
-#define TREEMAP_MINI_BADGE_MODE 2
-#define TREEMAP_MINI_BADGE_WIDTH 28
-#define TREEMAP_MINI_BADGE_FILL_ALPHA 70
+#define TREEMAP_PANEL_SHADOW_ALPHA      20
+#define TREEMAP_PANEL_FILL_ALPHA        32
+#define TREEMAP_PANEL_BORDER_ALPHA      52
+#define TREEMAP_INNER_BORDER_ALPHA      22
+#define TREEMAP_HEADER_MODE             2
+#define TREEMAP_HEADER_PILL_MIN_WIDTH   80
+#define TREEMAP_HEADER_LINE_ALPHA       22
+#define TREEMAP_FOOTER_MODE             2
+#define TREEMAP_FOOTER_WIDTH            76
+#define TREEMAP_FOOTER_FILL_ALPHA       46
+#define TREEMAP_FOOTER_BORDER_ALPHA     24
+#define TREEMAP_MINI_BADGE_MODE         2
+#define TREEMAP_MINI_BADGE_WIDTH        28
+#define TREEMAP_MINI_BADGE_FILL_ALPHA   70
 #define TREEMAP_MINI_BADGE_BORDER_ALPHA 20
-#define TREEMAP_MINI_TOP_STRIP_ALPHA 20
+#define TREEMAP_MINI_TOP_STRIP_ALPHA    20
 #define TREEMAP_MINI_BOTTOM_STRIP_ALPHA 20
-#define TREEMAP_DISABLED_OVERLAY_ALPHA 14
-#define TREEMAP_DISABLED_CROSS_ALPHA 6
-#define TREEMAP_DISABLED_MIX_ALPHA 70
+#define TREEMAP_DISABLED_OVERLAY_ALPHA  14
+#define TREEMAP_DISABLED_CROSS_ALPHA    6
+#define TREEMAP_DISABLED_MIX_ALPHA      70
 #include <stdlib.h>
 #include <string.h>
 
@@ -53,12 +53,8 @@ static uint8_t egui_view_treemap_chart_clamp_value_set_count(uint8_t count)
 static egui_color_t egui_view_treemap_chart_get_item_color(uint8_t index)
 {
     static const egui_color_t palette[] = {
-            EGUI_COLOR_HEX(0x38BDF8),
-            EGUI_COLOR_HEX(0x22C55E),
-            EGUI_COLOR_HEX(0xF59E0B),
-            EGUI_COLOR_HEX(0xA855F7),
-            EGUI_COLOR_HEX(0xF43F5E),
-            EGUI_COLOR_HEX(0x14B8A6),
+            EGUI_COLOR_HEX(0x38BDF8), EGUI_COLOR_HEX(0x22C55E), EGUI_COLOR_HEX(0xF59E0B),
+            EGUI_COLOR_HEX(0xA855F7), EGUI_COLOR_HEX(0xF43F5E), EGUI_COLOR_HEX(0x14B8A6),
     };
     return palette[index % (sizeof(palette) / sizeof(palette[0]))];
 }
@@ -94,12 +90,8 @@ static uint32_t egui_view_treemap_chart_get_total(const uint8_t *values, uint8_t
     return total;
 }
 
-static void egui_view_treemap_chart_draw_item(
-        egui_view_treemap_chart_t *local,
-        uint8_t item_index,
-        egui_view_treemap_chart_region_t region,
-        egui_alpha_t alpha,
-        uint8_t is_enabled)
+static void egui_view_treemap_chart_draw_item(egui_view_treemap_chart_t *local, uint8_t item_index, egui_view_treemap_chart_region_t region, egui_alpha_t alpha,
+                                              uint8_t is_enabled)
 {
     egui_color_t base_color = egui_view_treemap_chart_get_item_color(item_index);
     egui_color_t fill_color;
@@ -147,15 +139,8 @@ static void egui_view_treemap_chart_draw_item(
     egui_canvas_draw_text_in_rect(local->font, draw_label, &text_region, EGUI_ALIGN_CENTER, local->text_color, alpha);
 }
 
-static void egui_view_treemap_chart_draw_items(
-        egui_view_treemap_chart_t *local,
-        const uint8_t *values,
-        uint8_t start_index,
-        uint8_t count,
-        egui_view_treemap_chart_region_t region,
-        uint8_t split_vertical,
-        egui_alpha_t alpha,
-        uint8_t is_enabled)
+static void egui_view_treemap_chart_draw_items(egui_view_treemap_chart_t *local, const uint8_t *values, uint8_t start_index, uint8_t count,
+                                               egui_view_treemap_chart_region_t region, uint8_t split_vertical, egui_alpha_t alpha, uint8_t is_enabled)
 {
     uint32_t total = egui_view_treemap_chart_get_total(values + start_index, count);
     egui_view_treemap_chart_region_t current = region;
@@ -284,7 +269,8 @@ void egui_view_treemap_chart_set_show_header(egui_view_t *self, uint8_t show_hea
     egui_view_invalidate(self);
 }
 
-void egui_view_treemap_chart_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color, egui_color_t muted_text_color)
+void egui_view_treemap_chart_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                         egui_color_t muted_text_color)
 {
     EGUI_LOCAL_INIT(egui_view_treemap_chart_t);
     local->surface_color = surface_color;
@@ -348,7 +334,8 @@ static void egui_view_treemap_chart_on_draw(egui_view_t *self)
     if (TREEMAP_INNER_BORDER_ALPHA > 0)
     {
         egui_canvas_draw_round_rectangle(region.location.x + 2, region.location.y + 2, region.size.width - 4, region.size.height - 4, 6, 1,
-                                         egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20), egui_color_alpha_mix(self->alpha, TREEMAP_INNER_BORDER_ALPHA));
+                                         egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
+                                         egui_color_alpha_mix(self->alpha, TREEMAP_INNER_BORDER_ALPHA));
     }
 
     content.x = region.location.x + 4;
@@ -377,14 +364,15 @@ static void egui_view_treemap_chart_on_draw(egui_view_t *self)
             header_region.size.height = 10;
             if (TREEMAP_MINI_BADGE_MODE > 1)
             {
-                egui_canvas_draw_round_rectangle_fill(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 4,
-                                                      egui_rgb_mix(local->surface_color, local->border_color, EGUI_ALPHA_10),
+                egui_canvas_draw_round_rectangle_fill(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height,
+                                                      4, egui_rgb_mix(local->surface_color, local->border_color, EGUI_ALPHA_10),
                                                       egui_color_alpha_mix(self->alpha, TREEMAP_MINI_BADGE_FILL_ALPHA));
                 egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 4, 1,
                                                  egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
                                                  egui_color_alpha_mix(self->alpha, TREEMAP_MINI_BADGE_BORDER_ALPHA));
             }
-            egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+            egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER,
+                                          is_enabled ? local->text_color : local->muted_text_color, self->alpha);
             content.y += 12;
             content.height -= 12;
         }
@@ -411,9 +399,11 @@ static void egui_view_treemap_chart_on_draw(egui_view_t *self)
         if (TREEMAP_HEADER_MODE == 2)
         {
             egui_canvas_draw_round_rectangle_fill(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 6,
-                                                  egui_rgb_mix(local->surface_color, local->border_color, EGUI_ALPHA_10), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
+                                                  egui_rgb_mix(local->surface_color, local->border_color, EGUI_ALPHA_10),
+                                                  egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
             egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 6, 1,
-                                             egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+                                             egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
+                                             egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
         }
 
         egui_canvas_draw_text_in_rect(local->font, header_text, &header_region, (TREEMAP_HEADER_MODE == 0) ? EGUI_ALIGN_LEFT : EGUI_ALIGN_CENTER,
@@ -477,7 +467,8 @@ static void egui_view_treemap_chart_on_draw(egui_view_t *self)
                                              egui_rgb_mix(local->border_color, local->surface_color, EGUI_ALPHA_20),
                                              egui_color_alpha_mix(self->alpha, TREEMAP_FOOTER_BORDER_ALPHA));
         }
-        egui_canvas_draw_text_in_rect(local->font, footer_text, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, footer_text, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
     }
 }
 

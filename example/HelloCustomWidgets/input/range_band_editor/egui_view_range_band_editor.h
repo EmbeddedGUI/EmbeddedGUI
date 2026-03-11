@@ -39,18 +39,9 @@ struct egui_view_range_band_editor
     uint8_t last_zone;
 };
 
-void egui_view_range_band_editor_set_primary_snapshots(
-        egui_view_t *self,
-        const egui_view_range_band_editor_snapshot_t *snapshots,
-        uint8_t snapshot_count);
-void egui_view_range_band_editor_set_compact_snapshots(
-        egui_view_t *self,
-        const egui_view_range_band_editor_snapshot_t *snapshots,
-        uint8_t snapshot_count);
-void egui_view_range_band_editor_set_locked_snapshots(
-        egui_view_t *self,
-        const egui_view_range_band_editor_snapshot_t *snapshots,
-        uint8_t snapshot_count);
+void egui_view_range_band_editor_set_primary_snapshots(egui_view_t *self, const egui_view_range_band_editor_snapshot_t *snapshots, uint8_t snapshot_count);
+void egui_view_range_band_editor_set_compact_snapshots(egui_view_t *self, const egui_view_range_band_editor_snapshot_t *snapshots, uint8_t snapshot_count);
+void egui_view_range_band_editor_set_locked_snapshots(egui_view_t *self, const egui_view_range_band_editor_snapshot_t *snapshots, uint8_t snapshot_count);
 void egui_view_range_band_editor_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_range_band_editor_init(egui_view_t *self);
 

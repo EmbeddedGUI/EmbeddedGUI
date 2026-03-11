@@ -20,9 +20,9 @@ struct envelope_palette
 };
 
 static const envelope_palette_t envelope_palette = {
-        EGUI_COLOR_HEX(0x0A0F16), EGUI_COLOR_HEX(0x18212B), EGUI_COLOR_HEX(0x10171F), EGUI_COLOR_HEX(0x445462), EGUI_COLOR_HEX(0xF2F7FC),
-        EGUI_COLOR_HEX(0x8A9DAE), EGUI_COLOR_HEX(0x68CCFF), EGUI_COLOR_HEX(0xD7A45A), EGUI_COLOR_HEX(0x8CDCA2), EGUI_COLOR_HEX(0xD87496),
-        EGUI_COLOR_HEX(0x02060B),
+        EGUI_COLOR_HEX(0x0A0F16), EGUI_COLOR_HEX(0x18212B), EGUI_COLOR_HEX(0x10171F), EGUI_COLOR_HEX(0x445462),
+        EGUI_COLOR_HEX(0xF2F7FC), EGUI_COLOR_HEX(0x8A9DAE), EGUI_COLOR_HEX(0x68CCFF), EGUI_COLOR_HEX(0xD7A45A),
+        EGUI_COLOR_HEX(0x8CDCA2), EGUI_COLOR_HEX(0xD87496), EGUI_COLOR_HEX(0x02060B),
 };
 
 static uint8_t clamp_count(uint8_t count)
@@ -81,15 +81,8 @@ static void draw_round_fill_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, radius, color, alpha);
 }
 
-static void draw_round_stroke_safe(
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_dim_t radius,
-        egui_dim_t stroke_width,
-        egui_color_t color,
-        egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
     radius = clamp_round_radius(w, h, radius);
     if (w <= 0 || h <= 0)
@@ -141,10 +134,7 @@ static void get_zone_rects_screen(egui_view_t *self, egui_region_t *main_rect, e
     right_rect->size.height = 100;
 }
 
-void egui_view_envelope_stage_editor_set_states(
-        egui_view_t *self,
-        const egui_view_envelope_stage_editor_state_t *states,
-        uint8_t state_count)
+void egui_view_envelope_stage_editor_set_states(egui_view_t *self, const egui_view_envelope_stage_editor_state_t *states, uint8_t state_count)
 {
     EGUI_LOCAL_INIT(egui_view_envelope_stage_editor_t);
     local->states = states;
@@ -193,14 +183,8 @@ static int egui_view_envelope_stage_editor_on_touch_event(egui_view_t *self, egu
     return 1;
 }
 
-static void draw_preview(
-        egui_view_t *self,
-        const egui_view_envelope_stage_editor_state_t *state,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t inward_edge)
+static void draw_preview(egui_view_t *self, const egui_view_envelope_stage_editor_state_t *state, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h,
+                         uint8_t inward_edge)
 {
     egui_color_t accent = get_accent(state);
     uint8_t i;
@@ -421,8 +405,8 @@ static void egui_view_envelope_stage_editor_on_draw(egui_view_t *self)
         text_region.location.y = base_y + 4;
         text_region.size.width = stage_w + 4;
         text_region.size.height = 10;
-        egui_canvas_draw_text_in_rect(body_font, stage_labels[i], &text_region, EGUI_ALIGN_CENTER,
-                                      focused ? envelope_palette.text : envelope_palette.muted, self->alpha);
+        egui_canvas_draw_text_in_rect(body_font, stage_labels[i], &text_region, EGUI_ALIGN_CENTER, focused ? envelope_palette.text : envelope_palette.muted,
+                                      self->alpha);
     }
 
     draw_round_fill_safe(env_x + 12, base_y - 2, stage_mid_x[0] - (env_x + 12), 3, 1, accent, egui_color_alpha_mix(self->alpha, 28));
@@ -483,20 +467,19 @@ static void egui_view_envelope_stage_editor_on_draw(egui_view_t *self)
     text_region.location.y = main_rect.location.y + 128;
     text_region.size.width = main_rect.size.width - 36;
     text_region.size.height = 14;
-    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->preset, &text_region, EGUI_ALIGN_CENTER,
-                                  envelope_palette.text, self->alpha);
-    draw_round_fill_safe(main_rect.location.x + 72, main_rect.location.y + 141, main_rect.size.width - 144, 2, 1, accent, egui_color_alpha_mix(self->alpha, 16));
+    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->preset, &text_region, EGUI_ALIGN_CENTER, envelope_palette.text,
+                                  self->alpha);
+    draw_round_fill_safe(main_rect.location.x + 72, main_rect.location.y + 141, main_rect.size.width - 144, 2, 1, accent,
+                         egui_color_alpha_mix(self->alpha, 16));
 
     text_region.location.y = main_rect.location.y + 140;
     text_region.size.height = 12;
-    egui_canvas_draw_text_in_rect(body_font, current->summary, &text_region, EGUI_ALIGN_CENTER,
-                                  egui_rgb_mix(envelope_palette.text, envelope_palette.muted, 18), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, current->summary, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(envelope_palette.text, envelope_palette.muted, 18),
+                                  self->alpha);
 
     footer_pill_x = main_rect.location.x + (main_rect.size.width - footer_pill_w) / 2;
-    draw_round_fill_safe(footer_pill_x, main_rect.location.y + 152, footer_pill_w, 18, 9, envelope_palette.bg,
-                         egui_color_alpha_mix(self->alpha, 18));
-    draw_round_stroke_safe(footer_pill_x, main_rect.location.y + 152, footer_pill_w, 18, 9, 1, envelope_palette.border,
-                           egui_color_alpha_mix(self->alpha, 26));
+    draw_round_fill_safe(footer_pill_x, main_rect.location.y + 152, footer_pill_w, 18, 9, envelope_palette.bg, egui_color_alpha_mix(self->alpha, 18));
+    draw_round_stroke_safe(footer_pill_x, main_rect.location.y + 152, footer_pill_w, 18, 9, 1, envelope_palette.border, egui_color_alpha_mix(self->alpha, 26));
     draw_round_fill_safe(footer_pill_x + 24, main_rect.location.y + 160, 10, 2, 1, accent, egui_color_alpha_mix(self->alpha, 20));
     draw_round_fill_safe(footer_pill_x + footer_pill_w - 34, main_rect.location.y + 160, 10, 2, 1, accent, egui_color_alpha_mix(self->alpha, 20));
     draw_round_fill_safe(footer_pill_x + 16, main_rect.location.y + 159, 5, 5, 2, accent, egui_color_alpha_mix(self->alpha, 54));
@@ -534,8 +517,7 @@ static void egui_view_envelope_stage_editor_on_draw(egui_view_t *self)
     text_region.location.y = region.location.y + 246;
     text_region.size.width = status_pill_w - 68;
     text_region.size.height = 14;
-    egui_canvas_draw_text_in_rect(body_font, status_text, &text_region, EGUI_ALIGN_CENTER,
-                                  egui_rgb_mix(envelope_palette.text, accent, 22), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, status_text, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(envelope_palette.text, accent, 22), self->alpha);
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_envelope_stage_editor_t) = {

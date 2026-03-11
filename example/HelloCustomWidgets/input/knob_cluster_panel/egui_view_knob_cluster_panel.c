@@ -74,15 +74,8 @@ static void draw_round_fill_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, radius, color, alpha);
 }
 
-static void draw_round_stroke_safe(
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_dim_t radius,
-        egui_dim_t stroke_width,
-        egui_color_t color,
-        egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
     radius = clamp_round_radius(w, h, radius);
     if (w <= 0 || h <= 0)
@@ -92,10 +85,7 @@ static void draw_round_stroke_safe(
     egui_canvas_draw_round_rectangle(x, y, w, h, radius, stroke_width, color, alpha);
 }
 
-void egui_view_knob_cluster_panel_set_states(
-        egui_view_t *self,
-        const egui_view_knob_cluster_panel_state_t *states,
-        uint8_t state_count)
+void egui_view_knob_cluster_panel_set_states(egui_view_t *self, const egui_view_knob_cluster_panel_state_t *states, uint8_t state_count)
 {
     EGUI_LOCAL_INIT(egui_view_knob_cluster_panel_t);
     local->states = states;
@@ -193,14 +183,8 @@ static int egui_view_knob_cluster_panel_on_touch_event(egui_view_t *self, egui_m
     return 1;
 }
 
-static void draw_side_preview(
-        egui_view_t *self,
-        const egui_view_knob_cluster_panel_state_t *state,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t right_side)
+static void draw_side_preview(egui_view_t *self, const egui_view_knob_cluster_panel_state_t *state, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h,
+                              uint8_t right_side)
 {
     egui_color_t accent_color = get_accent_color(state);
     egui_dim_t edge_x = right_side ? (x + w - 14) : (x + 12);
@@ -223,19 +207,12 @@ static void draw_side_preview(
     draw_round_fill_safe(x + 12, y + h - 16, w - 24, 2, 1, accent_color, egui_color_alpha_mix(self->alpha, 44));
 }
 
-static void draw_knob(
-        egui_view_t *self,
-        egui_dim_t cx,
-        egui_dim_t cy,
-        egui_dim_t size,
-        egui_color_t accent_color,
-        uint8_t focused)
+static void draw_knob(egui_view_t *self, egui_dim_t cx, egui_dim_t cy, egui_dim_t size, egui_color_t accent_color, uint8_t focused)
 {
     egui_dim_t ring_size = focused ? size + 8 : size + 4;
     if (focused)
     {
-        draw_round_fill_safe(cx - ring_size / 2, cy - ring_size / 2, ring_size, ring_size, ring_size / 2, accent_color,
-                             egui_color_alpha_mix(self->alpha, 18));
+        draw_round_fill_safe(cx - ring_size / 2, cy - ring_size / 2, ring_size, ring_size, ring_size / 2, accent_color, egui_color_alpha_mix(self->alpha, 18));
     }
     draw_round_fill_safe(cx - size / 2, cy - size / 2, size, size, size / 2, knob_palette.panel, egui_color_alpha_mix(self->alpha, 64));
     draw_round_stroke_safe(cx - size / 2, cy - size / 2, size, size, size / 2, 1, knob_palette.border, egui_color_alpha_mix(self->alpha, 28));
@@ -320,13 +297,14 @@ static void egui_view_knob_cluster_panel_on_draw(egui_view_t *self)
     text_region.size.height = 16;
     egui_canvas_draw_text_in_rect(body_font, current->status, &text_region, EGUI_ALIGN_CENTER, knob_palette.text, self->alpha);
 
-    draw_round_fill_safe(main_rect.location.x + 18, main_rect.location.y + 18, pill_x - main_rect.location.x - 26, 2, 1, accent_color, egui_color_alpha_mix(self->alpha, 34));
+    draw_round_fill_safe(main_rect.location.x + 18, main_rect.location.y + 18, pill_x - main_rect.location.x - 26, 2, 1, accent_color,
+                         egui_color_alpha_mix(self->alpha, 34));
     draw_round_fill_safe(pill_x + pill_w + 8, main_rect.location.y + 18, main_rect.location.x + main_rect.size.width - pill_x - pill_w - 26, 2, 1, accent_color,
                          egui_color_alpha_mix(self->alpha, 34));
     draw_round_fill_safe(main_rect.location.x + 28, main_rect.location.y + 24, pill_x - main_rect.location.x - 38, 2, 1, knob_palette.text,
                          egui_color_alpha_mix(self->alpha, 12));
-    draw_round_fill_safe(pill_x + pill_w + 18, main_rect.location.y + 24, main_rect.location.x + main_rect.size.width - pill_x - pill_w - 38, 2, 1, knob_palette.text,
-                         egui_color_alpha_mix(self->alpha, 12));
+    draw_round_fill_safe(pill_x + pill_w + 18, main_rect.location.y + 24, main_rect.location.x + main_rect.size.width - pill_x - pill_w - 38, 2, 1,
+                         knob_palette.text, egui_color_alpha_mix(self->alpha, 12));
 
     draw_round_fill_safe(main_rect.location.x + 22, main_rect.location.y + 44, 136, 58, 26, knob_palette.surface, egui_color_alpha_mix(self->alpha, 36));
     draw_round_stroke_safe(main_rect.location.x + 22, main_rect.location.y + 44, 136, 58, 26, 1, knob_palette.border, egui_color_alpha_mix(self->alpha, 22));
@@ -353,17 +331,20 @@ static void egui_view_knob_cluster_panel_on_draw(egui_view_t *self)
     text_region.location.y = main_rect.location.y + 102;
     text_region.size.width = main_rect.size.width - 44;
     text_region.size.height = 14;
-    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->preset, &text_region, EGUI_ALIGN_CENTER, knob_palette.text, self->alpha);
+    egui_canvas_draw_text_in_rect((const egui_font_t *)&egui_res_font_montserrat_12_4, current->preset, &text_region, EGUI_ALIGN_CENTER, knob_palette.text,
+                                  self->alpha);
 
     text_region.location.y = main_rect.location.y + 116;
     text_region.size.height = 12;
-    egui_canvas_draw_text_in_rect(body_font, current->summary, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(knob_palette.text, knob_palette.muted, 18), self->alpha);
+    egui_canvas_draw_text_in_rect(body_font, current->summary, &text_region, EGUI_ALIGN_CENTER, egui_rgb_mix(knob_palette.text, knob_palette.muted, 18),
+                                  self->alpha);
 
     draw_round_fill_safe(main_rect.location.x + 40, main_rect.location.y + main_rect.size.height - 30, main_rect.size.width - 80, 20, 10, knob_palette.surface,
                          egui_color_alpha_mix(self->alpha, 18));
-    draw_round_stroke_safe(main_rect.location.x + 40, main_rect.location.y + main_rect.size.height - 30, main_rect.size.width - 80, 20, 10, 1, knob_palette.border,
-                           egui_color_alpha_mix(self->alpha, 22));
-    draw_round_fill_safe(main_rect.location.x + 59, main_rect.location.y + main_rect.size.height - 22, 5, 5, 2, accent_color, egui_color_alpha_mix(self->alpha, 52));
+    draw_round_stroke_safe(main_rect.location.x + 40, main_rect.location.y + main_rect.size.height - 30, main_rect.size.width - 80, 20, 10, 1,
+                           knob_palette.border, egui_color_alpha_mix(self->alpha, 22));
+    draw_round_fill_safe(main_rect.location.x + 59, main_rect.location.y + main_rect.size.height - 22, 5, 5, 2, accent_color,
+                         egui_color_alpha_mix(self->alpha, 52));
     text_region.location.x = main_rect.location.x + 36;
     text_region.location.y = main_rect.location.y + main_rect.size.height - 26;
     text_region.size.width = main_rect.size.width - 72;

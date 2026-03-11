@@ -65,16 +65,9 @@ void egui_view_signal_beacon_set_locked_mode(egui_view_t *self, uint8_t locked_m
     egui_view_invalidate(self);
 }
 
-void egui_view_signal_beacon_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t accent_color,
-        egui_color_t warn_color,
-        egui_color_t critical_color,
-        egui_color_t node_fill_color)
+void egui_view_signal_beacon_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                         egui_color_t muted_text_color, egui_color_t accent_color, egui_color_t warn_color, egui_color_t critical_color,
+                                         egui_color_t node_fill_color)
 {
     EGUI_LOCAL_INIT(egui_view_signal_beacon_t);
     local->surface_color = surface_color;
@@ -101,19 +94,14 @@ static egui_color_t egui_view_signal_beacon_get_signal_color(egui_view_signal_be
     return local->accent_color;
 }
 
-static void egui_view_signal_beacon_draw_node(
-        egui_view_signal_beacon_t *local,
-        egui_view_t *self,
-        egui_dim_t cx,
-        egui_dim_t cy,
-        egui_dim_t radius,
-        egui_color_t signal_color,
-        uint8_t is_focus)
+static void egui_view_signal_beacon_draw_node(egui_view_signal_beacon_t *local, egui_view_t *self, egui_dim_t cx, egui_dim_t cy, egui_dim_t radius,
+                                              egui_color_t signal_color, uint8_t is_focus)
 {
     egui_color_t fill_color;
     fill_color = is_focus ? egui_rgb_mix(local->node_fill_color, signal_color, EGUI_ALPHA_30) : local->node_fill_color;
     egui_canvas_draw_circle_fill(cx, cy, radius, fill_color, egui_color_alpha_mix(self->alpha, is_focus ? EGUI_ALPHA_90 : EGUI_ALPHA_70));
-    egui_canvas_draw_circle(cx, cy, radius, is_focus ? 2 : 1, is_focus ? signal_color : local->border_color, egui_color_alpha_mix(self->alpha, is_focus ? EGUI_ALPHA_90 : EGUI_ALPHA_50));
+    egui_canvas_draw_circle(cx, cy, radius, is_focus ? 2 : 1, is_focus ? signal_color : local->border_color,
+                            egui_color_alpha_mix(self->alpha, is_focus ? EGUI_ALPHA_90 : EGUI_ALPHA_50));
     egui_canvas_draw_circle_fill(cx, cy, EGUI_MAX(radius / 3, 2), signal_color, egui_color_alpha_mix(self->alpha, is_focus ? EGUI_ALPHA_90 : EGUI_ALPHA_50));
 }
 
@@ -168,14 +156,8 @@ static void egui_view_signal_beacon_on_draw(egui_view_t *self)
     pill_right_padding = local->compact_mode ? 9 : 11;
     header_top_padding = 6;
 
-    egui_canvas_draw_round_rectangle_fill(
-            panel_x,
-            panel_y,
-            panel_w,
-            panel_h,
-            10,
-            egui_rgb_mix(EGUI_COLOR_BLACK, local->surface_color, EGUI_ALPHA_30),
-            egui_color_alpha_mix(self->alpha, EGUI_ALPHA_40));
+    egui_canvas_draw_round_rectangle_fill(panel_x, panel_y, panel_w, panel_h, 10, egui_rgb_mix(EGUI_COLOR_BLACK, local->surface_color, EGUI_ALPHA_30),
+                                          egui_color_alpha_mix(self->alpha, EGUI_ALPHA_40));
     egui_canvas_draw_round_rectangle(panel_x, panel_y, panel_w, panel_h, 10, 1, local->border_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
 
     pill_x = panel_x + panel_w - pill_w - pill_right_padding;
@@ -185,16 +167,11 @@ static void egui_view_signal_beacon_on_draw(egui_view_t *self)
     text_region.location.y = panel_y + header_top_padding;
     text_region.size.width = title_w;
     text_region.size.height = 12;
-    egui_canvas_draw_text_in_rect(local->font, snapshot->title ? snapshot->title : "BEACON", &text_region, EGUI_ALIGN_LEFT, local->muted_text_color, self->alpha);
+    egui_canvas_draw_text_in_rect(local->font, snapshot->title ? snapshot->title : "BEACON", &text_region, EGUI_ALIGN_LEFT, local->muted_text_color,
+                                  self->alpha);
 
-    egui_canvas_draw_round_rectangle_fill(
-            pill_x,
-            panel_y + header_top_padding,
-            pill_w,
-            11,
-            5,
-            signal_color,
-            egui_color_alpha_mix(self->alpha, local->locked_mode ? EGUI_ALPHA_30 : EGUI_ALPHA_60));
+    egui_canvas_draw_round_rectangle_fill(pill_x, panel_y + header_top_padding, pill_w, 11, 5, signal_color,
+                                          egui_color_alpha_mix(self->alpha, local->locked_mode ? EGUI_ALPHA_30 : EGUI_ALPHA_60));
     text_region.location.x = pill_x;
     text_region.location.y = panel_y + header_top_padding;
     text_region.size.width = pill_w;
@@ -216,21 +193,20 @@ static void egui_view_signal_beacon_on_draw(egui_view_t *self)
         {
             break;
         }
-        egui_canvas_draw_circle(
-                center_x,
-                center_y,
-                outer_radius - i * (local->compact_mode ? 4 : 5),
-                1,
-                signal_color,
-                egui_color_alpha_mix(self->alpha, (i == 0) ? EGUI_ALPHA_60 : EGUI_ALPHA_30));
+        egui_canvas_draw_circle(center_x, center_y, outer_radius - i * (local->compact_mode ? 4 : 5), 1, signal_color,
+                                egui_color_alpha_mix(self->alpha, (i == 0) ? EGUI_ALPHA_60 : EGUI_ALPHA_30));
     }
 
-    egui_canvas_draw_circle_fill(center_x, center_y, mid_radius, egui_rgb_mix(local->surface_color, signal_color, EGUI_ALPHA_20), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_80));
+    egui_canvas_draw_circle_fill(center_x, center_y, mid_radius, egui_rgb_mix(local->surface_color, signal_color, EGUI_ALPHA_20),
+                                 egui_color_alpha_mix(self->alpha, EGUI_ALPHA_80));
     egui_canvas_draw_circle(center_x, center_y, mid_radius, 1, signal_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
-    egui_canvas_draw_circle_fill(center_x, center_y, core_radius, signal_color, egui_color_alpha_mix(self->alpha, local->locked_mode ? EGUI_ALPHA_40 : EGUI_ALPHA_90));
+    egui_canvas_draw_circle_fill(center_x, center_y, core_radius, signal_color,
+                                 egui_color_alpha_mix(self->alpha, local->locked_mode ? EGUI_ALPHA_40 : EGUI_ALPHA_90));
 
-    egui_canvas_draw_line(center_x - node_offset + node_radius, center_y, center_x - outer_radius - 3, center_y, 1, local->border_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_50));
-    egui_canvas_draw_line(center_x + outer_radius + 3, center_y, center_x + node_offset - node_radius, center_y, 1, local->border_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_50));
+    egui_canvas_draw_line(center_x - node_offset + node_radius, center_y, center_x - outer_radius - 3, center_y, 1, local->border_color,
+                          egui_color_alpha_mix(self->alpha, EGUI_ALPHA_50));
+    egui_canvas_draw_line(center_x + outer_radius + 3, center_y, center_x + node_offset - node_radius, center_y, 1, local->border_color,
+                          egui_color_alpha_mix(self->alpha, EGUI_ALPHA_50));
 
     egui_view_signal_beacon_draw_node(local, self, center_x - node_offset, center_y, node_radius, signal_color, snapshot->focus_node == 0);
     egui_view_signal_beacon_draw_node(local, self, center_x + node_offset, center_y, node_radius, signal_color, snapshot->focus_node == 2);
@@ -242,14 +218,8 @@ static void egui_view_signal_beacon_on_draw(egui_view_t *self)
     {
         egui_dim_t pulse_x;
         pulse_x = center_x - ((pulse_w * 3 + pulse_gap * 2) / 2) + i * (pulse_w + pulse_gap);
-        egui_canvas_draw_round_rectangle_fill(
-                pulse_x,
-                pulse_y,
-                pulse_w,
-                3,
-                1,
-                (i < snapshot->signal_level) ? signal_color : local->border_color,
-                egui_color_alpha_mix(self->alpha, (i < snapshot->signal_level) ? EGUI_ALPHA_80 : EGUI_ALPHA_20));
+        egui_canvas_draw_round_rectangle_fill(pulse_x, pulse_y, pulse_w, 3, 1, (i < snapshot->signal_level) ? signal_color : local->border_color,
+                                              egui_color_alpha_mix(self->alpha, (i < snapshot->signal_level) ? EGUI_ALPHA_80 : EGUI_ALPHA_20));
     }
 
     footer_y = pulse_y + (local->compact_mode ? 5 : 5);
@@ -260,12 +230,15 @@ static void egui_view_signal_beacon_on_draw(egui_view_t *self)
     text_region.size.height = 12;
     if (local->compact_mode)
     {
-        egui_canvas_draw_text_in_rect(local->font, snapshot->caption ? snapshot->caption : "LINK", &text_region, EGUI_ALIGN_CENTER, local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, snapshot->caption ? snapshot->caption : "LINK", &text_region, EGUI_ALIGN_CENTER, local->muted_text_color,
+                                      self->alpha);
     }
     else
     {
-        egui_canvas_draw_text_in_rect(local->font, snapshot->caption ? snapshot->caption : "Signal stable", &text_region, EGUI_ALIGN_LEFT, local->muted_text_color, self->alpha);
-        egui_canvas_draw_text_in_rect(local->font, snapshot->footer ? snapshot->footer : "node clear", &text_region, EGUI_ALIGN_RIGHT, local->locked_mode ? local->muted_text_color : local->text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, snapshot->caption ? snapshot->caption : "Signal stable", &text_region, EGUI_ALIGN_LEFT,
+                                      local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, snapshot->footer ? snapshot->footer : "node clear", &text_region, EGUI_ALIGN_RIGHT,
+                                      local->locked_mode ? local->muted_text_color : local->text_color, self->alpha);
     }
 }
 

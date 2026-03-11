@@ -45,7 +45,8 @@ static egui_dim_t egui_view_boxplot_chart_value_to_y(uint8_t value, uint8_t min_
     return (egui_dim_t)(top + (((int32_t)max_value - (int32_t)value) * (height - 1)) / range);
 }
 
-static void egui_view_boxplot_chart_find_bounds(const uint8_t *min_values, const uint8_t *max_values, uint8_t count, uint8_t *out_min_value, uint8_t *out_max_value)
+static void egui_view_boxplot_chart_find_bounds(const uint8_t *min_values, const uint8_t *max_values, uint8_t count, uint8_t *out_min_value,
+                                                uint8_t *out_max_value)
 {
     uint8_t i;
     uint8_t min_value = 100;
@@ -102,21 +103,9 @@ static void egui_view_boxplot_chart_draw_labels(egui_view_boxplot_chart_t *local
     }
 }
 
-static void egui_view_boxplot_chart_draw_item(
-        egui_view_boxplot_chart_t *local,
-        uint8_t min_value,
-        uint8_t q1_value,
-        uint8_t median_value,
-        uint8_t q3_value,
-        uint8_t max_value,
-        uint8_t min_bound,
-        uint8_t max_bound,
-        egui_dim_t chart_top,
-        egui_dim_t chart_height,
-        egui_dim_t x0,
-        egui_dim_t x1,
-        egui_alpha_t alpha,
-        uint8_t is_enabled)
+static void egui_view_boxplot_chart_draw_item(egui_view_boxplot_chart_t *local, uint8_t min_value, uint8_t q1_value, uint8_t median_value, uint8_t q3_value,
+                                              uint8_t max_value, uint8_t min_bound, uint8_t max_bound, egui_dim_t chart_top, egui_dim_t chart_height,
+                                              egui_dim_t x0, egui_dim_t x1, egui_alpha_t alpha, uint8_t is_enabled)
 {
     egui_dim_t center_x;
     egui_dim_t min_y;
@@ -202,14 +191,8 @@ void egui_view_boxplot_chart_set_item_labels(egui_view_t *self, const char **ite
     egui_view_invalidate(self);
 }
 
-void egui_view_boxplot_chart_set_value_set(
-        egui_view_t *self,
-        uint8_t set_index,
-        const uint8_t *min_values,
-        const uint8_t *q1_values,
-        const uint8_t *median_values,
-        const uint8_t *q3_values,
-        const uint8_t *max_values)
+void egui_view_boxplot_chart_set_value_set(egui_view_t *self, uint8_t set_index, const uint8_t *min_values, const uint8_t *q1_values,
+                                           const uint8_t *median_values, const uint8_t *q3_values, const uint8_t *max_values)
 {
     EGUI_LOCAL_INIT(egui_view_boxplot_chart_t);
     if (set_index >= EGUI_VIEW_BOXPLOT_CHART_MAX_VALUE_SETS)
@@ -271,15 +254,8 @@ void egui_view_boxplot_chart_set_show_header(egui_view_t *self, uint8_t show_hea
     egui_view_invalidate(self);
 }
 
-void egui_view_boxplot_chart_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t whisker_color,
-        egui_color_t box_fill_color,
-        egui_color_t median_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color)
+void egui_view_boxplot_chart_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t whisker_color,
+                                         egui_color_t box_fill_color, egui_color_t median_color, egui_color_t text_color, egui_color_t muted_text_color)
 {
     EGUI_LOCAL_INIT(egui_view_boxplot_chart_t);
     local->surface_color = surface_color;
@@ -368,10 +344,13 @@ static void egui_view_boxplot_chart_on_draw(egui_view_t *self)
         header_region.size.width = 28;
         header_region.size.height = 10;
         egui_canvas_draw_round_rectangle_fill(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 4,
-                                              egui_rgb_mix(local->surface_color, local->box_fill_color, EGUI_ALPHA_10), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
+                                              egui_rgb_mix(local->surface_color, local->box_fill_color, EGUI_ALPHA_10),
+                                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_70));
         egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 4, 1,
-                                         egui_rgb_mix(local->border_color, local->box_fill_color, EGUI_ALPHA_20), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
-        egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+                                         egui_rgb_mix(local->border_color, local->box_fill_color, EGUI_ALPHA_20),
+                                         egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+        egui_canvas_draw_text_in_rect(local->font, compact_badge, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
         content_region.location.y += 12;
         content_region.size.height -= 12;
     }
@@ -394,10 +373,13 @@ static void egui_view_boxplot_chart_on_draw(egui_view_t *self)
         header_region.size.width = pill_w;
         header_region.size.height = 14;
         egui_canvas_draw_round_rectangle_fill(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 6,
-                                              egui_rgb_mix(local->surface_color, local->box_fill_color, EGUI_ALPHA_10), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
+                                              egui_rgb_mix(local->surface_color, local->box_fill_color, EGUI_ALPHA_10),
+                                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
         egui_canvas_draw_round_rectangle(header_region.location.x, header_region.location.y, header_region.size.width, header_region.size.height, 6, 1,
-                                         egui_rgb_mix(local->border_color, local->box_fill_color, EGUI_ALPHA_20), egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
-        egui_canvas_draw_text_in_rect(local->font, header_text, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+                                         egui_rgb_mix(local->border_color, local->box_fill_color, EGUI_ALPHA_20),
+                                         egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
+        egui_canvas_draw_text_in_rect(local->font, header_text, &header_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
         egui_canvas_draw_line(content_region.location.x + 5, content_region.location.y + 17, content_region.location.x + content_region.size.width - 6,
                               content_region.location.y + 17, 1, local->border_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
         content_region.location.y += 20;
@@ -440,8 +422,8 @@ static void egui_view_boxplot_chart_on_draw(egui_view_t *self)
 
     if (!is_enabled)
     {
-        egui_canvas_draw_round_rectangle_fill(content_region.location.x + 1, content_region.location.y + 1, content_region.size.width - 2, content_region.size.height - 2,
-                                              4, EGUI_COLOR_BLACK, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
+        egui_canvas_draw_round_rectangle_fill(content_region.location.x + 1, content_region.location.y + 1, content_region.size.width - 2,
+                                              content_region.size.height - 2, 4, EGUI_COLOR_BLACK, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
         egui_canvas_draw_line(content_region.location.x + 8, content_region.location.y + 7, content_region.location.x + content_region.size.width - 9,
                               content_region.location.y + content_region.size.height - 8, 1, local->muted_text_color,
                               egui_color_alpha_mix(self->alpha, EGUI_ALPHA_10));
@@ -468,7 +450,8 @@ static void egui_view_boxplot_chart_on_draw(egui_view_t *self)
         egui_canvas_draw_round_rectangle(footer_x, content_region.location.y + content_region.size.height + 2, footer_width, 11, 5, 1,
                                          egui_rgb_mix(local->border_color, local->box_fill_color, EGUI_ALPHA_20),
                                          egui_color_alpha_mix(self->alpha, EGUI_ALPHA_20));
-        egui_canvas_draw_text_in_rect(local->font, footer_text, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, footer_text, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
     }
     else
     {

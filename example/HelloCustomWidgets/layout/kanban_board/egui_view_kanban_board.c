@@ -38,16 +38,8 @@ static egui_color_t egui_view_kanban_board_mix_disabled(egui_color_t color)
     return egui_rgb_mix(color, EGUI_COLOR_DARK_GREY, EGUI_ALPHA_70);
 }
 
-static void egui_view_kanban_board_draw_chip(
-        const egui_font_t *font,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t width,
-        egui_dim_t height,
-        egui_color_t fill_color,
-        egui_color_t text_color,
-        const char *text,
-        egui_alpha_t alpha)
+static void egui_view_kanban_board_draw_chip(const egui_font_t *font, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t fill_color,
+                                             egui_color_t text_color, const char *text, egui_alpha_t alpha)
 {
     egui_region_t text_region;
 
@@ -64,14 +56,8 @@ static void egui_view_kanban_board_draw_chip(
     egui_canvas_draw_text_in_rect(font, text, &text_region, EGUI_ALIGN_CENTER, text_color, alpha);
 }
 
-static void egui_view_kanban_board_draw_card(
-        egui_view_kanban_board_t *local,
-        egui_view_kanban_lane_rect_t rect,
-        egui_color_t base_color,
-        const char *title,
-        uint8_t draw_text,
-        egui_alpha_t alpha,
-        uint8_t is_enabled)
+static void egui_view_kanban_board_draw_card(egui_view_kanban_board_t *local, egui_view_kanban_lane_rect_t rect, egui_color_t base_color, const char *title,
+                                             uint8_t draw_text, egui_alpha_t alpha, uint8_t is_enabled)
 {
     egui_region_t text_region;
     egui_color_t fill_color = egui_rgb_mix(local->surface_color, base_color, EGUI_ALPHA_40);
@@ -100,13 +86,8 @@ static void egui_view_kanban_board_draw_card(
     egui_canvas_draw_text_in_rect(local->font, title, &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color, alpha);
 }
 
-static void egui_view_kanban_board_draw_lane(
-        egui_view_kanban_board_t *local,
-        const egui_view_kanban_lane_t *lane,
-        egui_view_kanban_lane_rect_t rect,
-        egui_alpha_t alpha,
-        uint8_t is_enabled,
-        uint8_t is_focused)
+static void egui_view_kanban_board_draw_lane(egui_view_kanban_board_t *local, const egui_view_kanban_lane_t *lane, egui_view_kanban_lane_rect_t rect,
+                                             egui_alpha_t alpha, uint8_t is_enabled, uint8_t is_focused)
 {
     egui_region_t text_region;
     egui_color_t accent_color;
@@ -141,8 +122,10 @@ static void egui_view_kanban_board_draw_lane(
     }
 
     egui_canvas_draw_round_rectangle_fill(rect.x, rect.y, rect.width, rect.height, 6, lane_fill, egui_color_alpha_mix(alpha, EGUI_ALPHA_30));
-    egui_canvas_draw_round_rectangle(rect.x, rect.y, rect.width, rect.height, 6, is_focused ? 2 : 1, lane_border, egui_color_alpha_mix(alpha, is_focused ? EGUI_ALPHA_90 : EGUI_ALPHA_50));
-    egui_canvas_draw_round_rectangle_fill(rect.x + 2, rect.y + 2, rect.width - 4, 4, 2, accent_color, egui_color_alpha_mix(alpha, is_focused ? EGUI_ALPHA_90 : EGUI_ALPHA_50));
+    egui_canvas_draw_round_rectangle(rect.x, rect.y, rect.width, rect.height, 6, is_focused ? 2 : 1, lane_border,
+                                     egui_color_alpha_mix(alpha, is_focused ? EGUI_ALPHA_90 : EGUI_ALPHA_50));
+    egui_canvas_draw_round_rectangle_fill(rect.x + 2, rect.y + 2, rect.width - 4, 4, 2, accent_color,
+                                          egui_color_alpha_mix(alpha, is_focused ? EGUI_ALPHA_90 : EGUI_ALPHA_50));
 
     text_region.location.x = rect.x + 4;
     text_region.location.y = rect.y + 6;
@@ -159,15 +142,8 @@ static void egui_view_kanban_board_draw_lane(
         chip_text[1] = 0;
     }
     egui_view_kanban_board_draw_chip(
-            local->font,
-            rect.x + rect.width - chip_width - 4,
-            rect.y + 5,
-            chip_width,
-            10,
-            egui_rgb_mix(accent_color, EGUI_COLOR_WHITE, EGUI_ALPHA_20),
-            is_enabled ? local->text_color : egui_view_kanban_board_mix_disabled(local->text_color),
-            chip_text,
-            egui_color_alpha_mix(alpha, EGUI_ALPHA_70));
+            local->font, rect.x + rect.width - chip_width - 4, rect.y + 5, chip_width, 10, egui_rgb_mix(accent_color, EGUI_COLOR_WHITE, EGUI_ALPHA_20),
+            is_enabled ? local->text_color : egui_view_kanban_board_mix_disabled(local->text_color), chip_text, egui_color_alpha_mix(alpha, EGUI_ALPHA_70));
 
     card_top = rect.y + header_height + 4;
     card_count = lane->visible_card_count;
@@ -198,14 +174,8 @@ static void egui_view_kanban_board_draw_lane(
         card_rect.y = card_top + i * (card_height + gap);
         card_rect.width = rect.width - 8;
         card_rect.height = card_height;
-        egui_view_kanban_board_draw_card(
-                local,
-                card_rect,
-                accent_color,
-                (lane->card_titles != NULL) ? lane->card_titles[i] : "",
-                local->show_card_text,
-                alpha,
-                is_enabled);
+        egui_view_kanban_board_draw_card(local, card_rect, accent_color, (lane->card_titles != NULL) ? lane->card_titles[i] : "", local->show_card_text, alpha,
+                                         is_enabled);
     }
 
     if (lane->total_card_count > card_count)
@@ -290,13 +260,8 @@ void egui_view_kanban_board_set_show_header(egui_view_t *self, uint8_t show_head
     egui_view_invalidate(self);
 }
 
-void egui_view_kanban_board_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t focus_color)
+void egui_view_kanban_board_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                        egui_color_t muted_text_color, egui_color_t focus_color)
 {
     EGUI_LOCAL_INIT(egui_view_kanban_board_t);
     local->surface_color = surface_color;
@@ -341,8 +306,10 @@ static void egui_view_kanban_board_on_draw(egui_view_t *self)
         panel_color = egui_view_kanban_board_mix_disabled(panel_color);
     }
 
-    egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, 8, panel_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
-    egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, region.size.height, 8, 1, local->border_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_50));
+    egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, 8, panel_color,
+                                          egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
+    egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, region.size.height, 8, 1, local->border_color,
+                                     egui_color_alpha_mix(self->alpha, EGUI_ALPHA_50));
 
     content.x = region.location.x + 4;
     content.y = region.location.y + 4;
@@ -355,7 +322,9 @@ static void egui_view_kanban_board_on_draw(egui_view_t *self)
         header_region.location.y = content.y;
         header_region.size.width = content.width - 2;
         header_region.size.height = 12;
-        egui_canvas_draw_text_in_rect(local->font, is_enabled ? snapshot->title : "Locked", &header_region, (region.size.width < 120) ? EGUI_ALIGN_CENTER : EGUI_ALIGN_LEFT, is_enabled ? local->muted_text_color : local->text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, is_enabled ? snapshot->title : "Locked", &header_region,
+                                      (region.size.width < 120) ? EGUI_ALIGN_CENTER : EGUI_ALIGN_LEFT, is_enabled ? local->muted_text_color : local->text_color,
+                                      self->alpha);
         content.y += 14;
         content.height -= 14;
     }
@@ -386,22 +355,10 @@ static void egui_view_kanban_board_on_draw(egui_view_t *self)
 
     if (!is_enabled)
     {
-        egui_canvas_draw_line(
-                content.x + 2,
-                content.y + 2,
-                content.x + content.width - 3,
-                content.y + content.height - 3,
-                1,
-                local->muted_text_color,
-                egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
-        egui_canvas_draw_line(
-                content.x + 2,
-                content.y + content.height - 3,
-                content.x + content.width - 3,
-                content.y + 2,
-                1,
-                local->muted_text_color,
-                egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
+        egui_canvas_draw_line(content.x + 2, content.y + 2, content.x + content.width - 3, content.y + content.height - 3, 1, local->muted_text_color,
+                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
+        egui_canvas_draw_line(content.x + 2, content.y + content.height - 3, content.x + content.width - 3, content.y + 2, 1, local->muted_text_color,
+                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
     }
 }
 

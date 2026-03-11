@@ -65,17 +65,9 @@ void egui_view_window_snap_grid_set_locked_mode(egui_view_t *self, uint8_t locke
     egui_view_invalidate(self);
 }
 
-void egui_view_window_snap_grid_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t panel_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t accent_color,
-        egui_color_t warn_color,
-        egui_color_t lock_color,
-        egui_color_t focus_color)
+void egui_view_window_snap_grid_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t panel_color, egui_color_t border_color,
+                                            egui_color_t text_color, egui_color_t muted_text_color, egui_color_t accent_color, egui_color_t warn_color,
+                                            egui_color_t lock_color, egui_color_t focus_color)
 {
     EGUI_LOCAL_INIT(egui_view_window_snap_grid_t);
     local->surface_color = surface_color;
@@ -90,9 +82,7 @@ void egui_view_window_snap_grid_set_palette(
     egui_view_invalidate(self);
 }
 
-static egui_color_t egui_view_window_snap_grid_get_status_color(
-        egui_view_window_snap_grid_t *local,
-        const egui_view_window_snap_grid_snapshot_t *snapshot)
+static egui_color_t egui_view_window_snap_grid_get_status_color(egui_view_window_snap_grid_t *local, const egui_view_window_snap_grid_snapshot_t *snapshot)
 {
     if (snapshot->accent_mode >= 2)
     {
@@ -105,14 +95,9 @@ static egui_color_t egui_view_window_snap_grid_get_status_color(
     return local->accent_color;
 }
 
-static void egui_view_window_snap_grid_draw_layout(
-        egui_view_t *self,
-        egui_view_window_snap_grid_t *local,
-        const egui_view_window_snap_grid_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h)
+static void egui_view_window_snap_grid_draw_layout(egui_view_t *self, egui_view_window_snap_grid_t *local,
+                                                   const egui_view_window_snap_grid_snapshot_t *snapshot, egui_dim_t x, egui_dim_t y, egui_dim_t w,
+                                                   egui_dim_t h)
 {
     egui_color_t status_color;
     egui_dim_t zone_gap;
@@ -168,23 +153,10 @@ static void egui_view_window_snap_grid_draw_layout(
             }
 
             highlighted = (snapshot->highlight_mask & (1u << i)) ? 1 : 0;
-            egui_canvas_draw_round_rectangle_fill(
-                    zx,
-                    zy,
-                    zw,
-                    zh,
-                    6,
-                    highlighted ? status_color : egui_rgb_mix(local->panel_color, local->border_color, 26),
-                    egui_color_alpha_mix(self->alpha, highlighted ? 76 : 42));
-            egui_canvas_draw_round_rectangle(
-                    zx,
-                    zy,
-                    zw,
-                    zh,
-                    6,
-                    1,
-                    highlighted ? local->focus_color : local->border_color,
-                    egui_color_alpha_mix(self->alpha, highlighted ? 72 : 34));
+            egui_canvas_draw_round_rectangle_fill(zx, zy, zw, zh, 6, highlighted ? status_color : egui_rgb_mix(local->panel_color, local->border_color, 26),
+                                                  egui_color_alpha_mix(self->alpha, highlighted ? 76 : 42));
+            egui_canvas_draw_round_rectangle(zx, zy, zw, zh, 6, 1, highlighted ? local->focus_color : local->border_color,
+                                             egui_color_alpha_mix(self->alpha, highlighted ? 72 : 34));
         }
     }
     else if (snapshot->layout_mode == 1)
@@ -196,23 +168,11 @@ static void egui_view_window_snap_grid_draw_layout(
 
             zx = x + i * (third_w + zone_gap);
             highlighted = (snapshot->highlight_mask & (1u << i)) ? 1 : 0;
-            egui_canvas_draw_round_rectangle_fill(
-                    zx,
-                    y,
-                    (i == 2) ? (w - (third_w + zone_gap) * 2) : third_w,
-                    h,
-                    6,
-                    highlighted ? status_color : egui_rgb_mix(local->panel_color, local->border_color, 26),
-                    egui_color_alpha_mix(self->alpha, highlighted ? 76 : 42));
-            egui_canvas_draw_round_rectangle(
-                    zx,
-                    y,
-                    (i == 2) ? (w - (third_w + zone_gap) * 2) : third_w,
-                    h,
-                    6,
-                    1,
-                    highlighted ? local->focus_color : local->border_color,
-                    egui_color_alpha_mix(self->alpha, highlighted ? 72 : 34));
+            egui_canvas_draw_round_rectangle_fill(zx, y, (i == 2) ? (w - (third_w + zone_gap) * 2) : third_w, h, 6,
+                                                  highlighted ? status_color : egui_rgb_mix(local->panel_color, local->border_color, 26),
+                                                  egui_color_alpha_mix(self->alpha, highlighted ? 76 : 42));
+            egui_canvas_draw_round_rectangle(zx, y, (i == 2) ? (w - (third_w + zone_gap) * 2) : third_w, h, 6, 1,
+                                             highlighted ? local->focus_color : local->border_color, egui_color_alpha_mix(self->alpha, highlighted ? 72 : 34));
         }
     }
     else
@@ -226,23 +186,11 @@ static void egui_view_window_snap_grid_draw_layout(
             zx = x + ((i % 2) ? (half_w + zone_gap) : 0);
             zy = y + ((i / 2) ? (half_h + zone_gap) : 0);
             highlighted = (snapshot->highlight_mask & (1u << i)) ? 1 : 0;
-            egui_canvas_draw_round_rectangle_fill(
-                    zx,
-                    zy,
-                    (i % 2) ? (w - half_w - zone_gap) : half_w,
-                    (i / 2) ? (h - half_h - zone_gap) : half_h,
-                    6,
-                    highlighted ? status_color : egui_rgb_mix(local->panel_color, local->border_color, 26),
-                    egui_color_alpha_mix(self->alpha, highlighted ? 76 : 42));
-            egui_canvas_draw_round_rectangle(
-                    zx,
-                    zy,
-                    (i % 2) ? (w - half_w - zone_gap) : half_w,
-                    (i / 2) ? (h - half_h - zone_gap) : half_h,
-                    6,
-                    1,
-                    highlighted ? local->focus_color : local->border_color,
-                    egui_color_alpha_mix(self->alpha, highlighted ? 72 : 34));
+            egui_canvas_draw_round_rectangle_fill(zx, zy, (i % 2) ? (w - half_w - zone_gap) : half_w, (i / 2) ? (h - half_h - zone_gap) : half_h, 6,
+                                                  highlighted ? status_color : egui_rgb_mix(local->panel_color, local->border_color, 26),
+                                                  egui_color_alpha_mix(self->alpha, highlighted ? 76 : 42));
+            egui_canvas_draw_round_rectangle(zx, zy, (i % 2) ? (w - half_w - zone_gap) : half_w, (i / 2) ? (h - half_h - zone_gap) : half_h, 6, 1,
+                                             highlighted ? local->focus_color : local->border_color, egui_color_alpha_mix(self->alpha, highlighted ? 72 : 34));
         }
     }
 
@@ -311,14 +259,8 @@ static void egui_view_window_snap_grid_on_draw(egui_view_t *self)
     text_region.size.height = 11;
     egui_canvas_draw_text_in_rect(local->font, snapshot->title, &text_region, EGUI_ALIGN_LEFT, local->muted_text_color, self->alpha);
 
-    egui_canvas_draw_round_rectangle_fill(
-            pill_x,
-            panel_y + header_top,
-            pill_w,
-            11,
-            5,
-            status_color,
-            egui_color_alpha_mix(self->alpha, local->locked_mode ? 30 : 62));
+    egui_canvas_draw_round_rectangle_fill(pill_x, panel_y + header_top, pill_w, 11, 5, status_color,
+                                          egui_color_alpha_mix(self->alpha, local->locked_mode ? 30 : 62));
     text_region.location.x = pill_x + 1;
     text_region.location.y = panel_y + header_top;
     text_region.size.width = pill_w - 2;

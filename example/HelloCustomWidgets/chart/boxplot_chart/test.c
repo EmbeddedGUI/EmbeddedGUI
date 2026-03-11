@@ -62,29 +62,15 @@ static void apply_compact_state(uint8_t index, int is_active)
     {
         egui_view_boxplot_chart_set_show_labels(EGUI_VIEW_OF(&boxplot_compact), 1);
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0xF9C96A), EGUI_ALPHA_100);
-        egui_view_boxplot_chart_set_palette(
-                EGUI_VIEW_OF(&boxplot_compact),
-                EGUI_COLOR_HEX(0x23170C),
-                EGUI_COLOR_HEX(0x9E6D2D),
-                EGUI_COLOR_HEX(0xE2BA78),
-                EGUI_COLOR_HEX(0xC26D15),
-                EGUI_COLOR_HEX(0xFCD34D),
-                EGUI_COLOR_HEX(0xFDE7A1),
-                EGUI_COLOR_HEX(0xD29A35));
+        egui_view_boxplot_chart_set_palette(EGUI_VIEW_OF(&boxplot_compact), EGUI_COLOR_HEX(0x23170C), EGUI_COLOR_HEX(0x9E6D2D), EGUI_COLOR_HEX(0xE2BA78),
+                                            EGUI_COLOR_HEX(0xC26D15), EGUI_COLOR_HEX(0xFCD34D), EGUI_COLOR_HEX(0xFDE7A1), EGUI_COLOR_HEX(0xD29A35));
     }
     else
     {
         egui_view_boxplot_chart_set_show_labels(EGUI_VIEW_OF(&boxplot_compact), 0);
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0xB2C0D0), EGUI_ALPHA_100);
-        egui_view_boxplot_chart_set_palette(
-                EGUI_VIEW_OF(&boxplot_compact),
-                EGUI_COLOR_HEX(0x121A28),
-                EGUI_COLOR_HEX(0x4C6A89),
-                EGUI_COLOR_HEX(0x9AAEC2),
-                EGUI_COLOR_HEX(0x2563EB),
-                EGUI_COLOR_HEX(0xF59E0B),
-                EGUI_COLOR_HEX(0xDEE7F1),
-                EGUI_COLOR_HEX(0x8FA2B6));
+        egui_view_boxplot_chart_set_palette(EGUI_VIEW_OF(&boxplot_compact), EGUI_COLOR_HEX(0x121A28), EGUI_COLOR_HEX(0x4C6A89), EGUI_COLOR_HEX(0x9AAEC2),
+                                            EGUI_COLOR_HEX(0x2563EB), EGUI_COLOR_HEX(0xF59E0B), EGUI_COLOR_HEX(0xDEE7F1), EGUI_COLOR_HEX(0x8FA2B6));
     }
 }
 
@@ -131,20 +117,11 @@ void test_init_ui(void)
     egui_view_boxplot_chart_init(EGUI_VIEW_OF(&boxplot_primary));
     egui_view_set_size(EGUI_VIEW_OF(&boxplot_primary), 188, 142);
     egui_view_boxplot_chart_set_item_labels(EGUI_VIEW_OF(&boxplot_primary), primary_labels, 5);
-    egui_view_boxplot_chart_set_value_set(
-            EGUI_VIEW_OF(&boxplot_primary), 0, primary_min_a, primary_q1_a, primary_median_a, primary_q3_a, primary_max_a);
-    egui_view_boxplot_chart_set_value_set(
-            EGUI_VIEW_OF(&boxplot_primary), 1, primary_min_b, primary_q1_b, primary_median_b, primary_q3_b, primary_max_b);
+    egui_view_boxplot_chart_set_value_set(EGUI_VIEW_OF(&boxplot_primary), 0, primary_min_a, primary_q1_a, primary_median_a, primary_q3_a, primary_max_a);
+    egui_view_boxplot_chart_set_value_set(EGUI_VIEW_OF(&boxplot_primary), 1, primary_min_b, primary_q1_b, primary_median_b, primary_q3_b, primary_max_b);
     egui_view_boxplot_chart_set_current_value_set(EGUI_VIEW_OF(&boxplot_primary), 0);
-    egui_view_boxplot_chart_set_palette(
-            EGUI_VIEW_OF(&boxplot_primary),
-            EGUI_COLOR_HEX(0x0F1728),
-            EGUI_COLOR_HEX(0x617A92),
-            EGUI_COLOR_HEX(0xA6B9CC),
-            EGUI_COLOR_HEX(0x2563EB),
-            EGUI_COLOR_HEX(0xF59E0B),
-            EGUI_COLOR_HEX(0xE2E8F0),
-            EGUI_COLOR_HEX(0xA5B4C4));
+    egui_view_boxplot_chart_set_palette(EGUI_VIEW_OF(&boxplot_primary), EGUI_COLOR_HEX(0x0F1728), EGUI_COLOR_HEX(0x617A92), EGUI_COLOR_HEX(0xA6B9CC),
+                                        EGUI_COLOR_HEX(0x2563EB), EGUI_COLOR_HEX(0xF59E0B), EGUI_COLOR_HEX(0xE2E8F0), EGUI_COLOR_HEX(0xA5B4C4));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&boxplot_primary), on_primary_click);
     egui_view_set_margin(EGUI_VIEW_OF(&boxplot_primary), 0, 0, 0, 5);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&boxplot_primary));
@@ -190,10 +167,8 @@ void test_init_ui(void)
     egui_view_boxplot_chart_init(EGUI_VIEW_OF(&boxplot_compact));
     egui_view_set_size(EGUI_VIEW_OF(&boxplot_compact), 108, 94);
     egui_view_boxplot_chart_set_item_labels(EGUI_VIEW_OF(&boxplot_compact), compact_labels, 4);
-    egui_view_boxplot_chart_set_value_set(
-            EGUI_VIEW_OF(&boxplot_compact), 0, compact_min_a, compact_q1_a, compact_median_a, compact_q3_a, compact_max_a);
-    egui_view_boxplot_chart_set_value_set(
-            EGUI_VIEW_OF(&boxplot_compact), 1, compact_min_b, compact_q1_b, compact_median_b, compact_q3_b, compact_max_b);
+    egui_view_boxplot_chart_set_value_set(EGUI_VIEW_OF(&boxplot_compact), 0, compact_min_a, compact_q1_a, compact_median_a, compact_q3_a, compact_max_a);
+    egui_view_boxplot_chart_set_value_set(EGUI_VIEW_OF(&boxplot_compact), 1, compact_min_b, compact_q1_b, compact_median_b, compact_q3_b, compact_max_b);
     egui_view_boxplot_chart_set_current_value_set(EGUI_VIEW_OF(&boxplot_compact), 0);
     egui_view_boxplot_chart_set_font(EGUI_VIEW_OF(&boxplot_compact), (const egui_font_t *)&egui_res_font_montserrat_8_4);
     egui_view_boxplot_chart_set_show_header(EGUI_VIEW_OF(&boxplot_compact), 0);
@@ -220,20 +195,12 @@ void test_init_ui(void)
     egui_view_boxplot_chart_init(EGUI_VIEW_OF(&boxplot_locked));
     egui_view_set_size(EGUI_VIEW_OF(&boxplot_locked), 108, 94);
     egui_view_boxplot_chart_set_item_labels(EGUI_VIEW_OF(&boxplot_locked), compact_labels, 4);
-    egui_view_boxplot_chart_set_value_set(
-            EGUI_VIEW_OF(&boxplot_locked), 0, compact_min_a, compact_q1_a, compact_median_a, compact_q3_a, compact_max_a);
+    egui_view_boxplot_chart_set_value_set(EGUI_VIEW_OF(&boxplot_locked), 0, compact_min_a, compact_q1_a, compact_median_a, compact_q3_a, compact_max_a);
     egui_view_boxplot_chart_set_current_value_set(EGUI_VIEW_OF(&boxplot_locked), 0);
     egui_view_boxplot_chart_set_show_labels(EGUI_VIEW_OF(&boxplot_locked), 0);
     egui_view_boxplot_chart_set_show_header(EGUI_VIEW_OF(&boxplot_locked), 0);
-    egui_view_boxplot_chart_set_palette(
-            EGUI_VIEW_OF(&boxplot_locked),
-            EGUI_COLOR_HEX(0x0E1522),
-            EGUI_COLOR_HEX(0x5D6E82),
-            EGUI_COLOR_HEX(0x8EA2B6),
-            EGUI_COLOR_HEX(0x758E83),
-            EGUI_COLOR_HEX(0xC89D67),
-            EGUI_COLOR_HEX(0xD7E0E9),
-            EGUI_COLOR_HEX(0x97A8BC));
+    egui_view_boxplot_chart_set_palette(EGUI_VIEW_OF(&boxplot_locked), EGUI_COLOR_HEX(0x0E1522), EGUI_COLOR_HEX(0x5D6E82), EGUI_COLOR_HEX(0x8EA2B6),
+                                        EGUI_COLOR_HEX(0x758E83), EGUI_COLOR_HEX(0xC89D67), EGUI_COLOR_HEX(0xD7E0E9), EGUI_COLOR_HEX(0x97A8BC));
     egui_view_set_enable(EGUI_VIEW_OF(&boxplot_locked), 0);
     egui_view_group_add_child(EGUI_VIEW_OF(&locked_column), EGUI_VIEW_OF(&boxplot_locked));
 

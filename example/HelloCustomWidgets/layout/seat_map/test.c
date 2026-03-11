@@ -27,16 +27,10 @@ static const char *guide_text = "Tap maps to rotate block";
 static const egui_view_line_point_t section_divider_points[] = {{0, 0}, {147, 0}};
 
 static const uint8_t primary_states_a[] = {
-        0, 0, 1, 0, 0, 2,
-        0, 1, 2, 0, 0, 0,
-        2, 0, 0, 1, 0, 0,
-        0, 0, 1, 0, 2, 0,
+        0, 0, 1, 0, 0, 2, 0, 1, 2, 0, 0, 0, 2, 0, 0, 1, 0, 0, 0, 0, 1, 0, 2, 0,
 };
 static const uint8_t primary_states_b[] = {
-        0, 1, 1, 0, 2, 0,
-        0, 0, 2, 0, 1, 0,
-        1, 0, 0, 2, 0, 0,
-        0, 2, 0, 0, 1, 0,
+        0, 1, 1, 0, 2, 0, 0, 0, 2, 0, 1, 0, 1, 0, 0, 2, 0, 0, 0, 2, 0, 0, 1, 0,
 };
 static const egui_view_seat_map_snapshot_t primary_snapshots[] = {
         {"Block A", primary_states_a, 4, 6, 3, 1, 8},
@@ -44,14 +38,10 @@ static const egui_view_seat_map_snapshot_t primary_snapshots[] = {
 };
 
 static const uint8_t compact_states_a[] = {
-        0, 1, 0, 0,
-        2, 0, 1, 0,
-        0, 0, 2, 0,
+        0, 1, 0, 0, 2, 0, 1, 0, 0, 0, 2, 0,
 };
 static const uint8_t compact_states_b[] = {
-        1, 0, 0, 2,
-        0, 2, 0, 1,
-        0, 1, 0, 0,
+        1, 0, 0, 2, 0, 2, 0, 1, 0, 1, 0, 0,
 };
 static const egui_view_seat_map_snapshot_t compact_snapshots[] = {
         {"Compact A", compact_states_a, 3, 4, 2, 1, 6},
@@ -72,24 +62,14 @@ static void apply_compact_state(uint8_t index, uint8_t is_active)
     if (is_active)
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0xF59E0B), EGUI_ALPHA_100);
-        egui_view_seat_map_set_palette(
-                EGUI_VIEW_OF(&map_compact),
-                EGUI_COLOR_HEX(0x23160A),
-                EGUI_COLOR_HEX(0x8B5E1A),
-                EGUI_COLOR_HEX(0xFDE68A),
-                EGUI_COLOR_HEX(0xD6A15B),
-                EGUI_COLOR_HEX(0xF59E0B));
+        egui_view_seat_map_set_palette(EGUI_VIEW_OF(&map_compact), EGUI_COLOR_HEX(0x23160A), EGUI_COLOR_HEX(0x8B5E1A), EGUI_COLOR_HEX(0xFDE68A),
+                                       EGUI_COLOR_HEX(0xD6A15B), EGUI_COLOR_HEX(0xF59E0B));
     }
     else
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compact_label), EGUI_COLOR_HEX(0x8B5E1A), EGUI_ALPHA_100);
-        egui_view_seat_map_set_palette(
-                EGUI_VIEW_OF(&map_compact),
-                EGUI_COLOR_HEX(0x121A28),
-                EGUI_COLOR_HEX(0x3D5068),
-                EGUI_COLOR_HEX(0xCBD5E1),
-                EGUI_COLOR_HEX(0x7F92A7),
-                EGUI_COLOR_HEX(0x60A5FA));
+        egui_view_seat_map_set_palette(EGUI_VIEW_OF(&map_compact), EGUI_COLOR_HEX(0x121A28), EGUI_COLOR_HEX(0x3D5068), EGUI_COLOR_HEX(0xCBD5E1),
+                                       EGUI_COLOR_HEX(0x7F92A7), EGUI_COLOR_HEX(0x60A5FA));
     }
 }
 
@@ -141,13 +121,8 @@ void test_init_ui(void)
     egui_view_seat_map_set_current_snapshot(EGUI_VIEW_OF(&map_primary), 0);
     egui_view_seat_map_set_focus_row(EGUI_VIEW_OF(&map_primary), 1);
     egui_view_seat_map_set_focus_seat(EGUI_VIEW_OF(&map_primary), 8);
-    egui_view_seat_map_set_palette(
-            EGUI_VIEW_OF(&map_primary),
-            EGUI_COLOR_HEX(0x0F1728),
-            EGUI_COLOR_HEX(0x536379),
-            EGUI_COLOR_HEX(0xE2E8F0),
-            EGUI_COLOR_HEX(0x93A5BC),
-            EGUI_COLOR_HEX(0x38BDF8));
+    egui_view_seat_map_set_palette(EGUI_VIEW_OF(&map_primary), EGUI_COLOR_HEX(0x0F1728), EGUI_COLOR_HEX(0x536379), EGUI_COLOR_HEX(0xE2E8F0),
+                                   EGUI_COLOR_HEX(0x93A5BC), EGUI_COLOR_HEX(0x38BDF8));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&map_primary), on_primary_click);
     egui_view_set_margin(EGUI_VIEW_OF(&map_primary), 0, 0, 0, 4);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&map_primary));
@@ -225,13 +200,8 @@ void test_init_ui(void)
     egui_view_seat_map_set_focus_seat(EGUI_VIEW_OF(&map_locked), 6);
     egui_view_seat_map_set_show_header(EGUI_VIEW_OF(&map_locked), 0);
     egui_view_seat_map_set_compact_mode(EGUI_VIEW_OF(&map_locked), 1);
-    egui_view_seat_map_set_palette(
-            EGUI_VIEW_OF(&map_locked),
-            EGUI_COLOR_HEX(0x0E1522),
-            EGUI_COLOR_HEX(0x46566B),
-            EGUI_COLOR_HEX(0xCBD5E1),
-            EGUI_COLOR_HEX(0x8695A9),
-            EGUI_COLOR_HEX(0x758E83));
+    egui_view_seat_map_set_palette(EGUI_VIEW_OF(&map_locked), EGUI_COLOR_HEX(0x0E1522), EGUI_COLOR_HEX(0x46566B), EGUI_COLOR_HEX(0xCBD5E1),
+                                   EGUI_COLOR_HEX(0x8695A9), EGUI_COLOR_HEX(0x758E83));
     egui_view_set_enable(EGUI_VIEW_OF(&map_locked), 0);
     egui_view_group_add_child(EGUI_VIEW_OF(&locked_column), EGUI_VIEW_OF(&map_locked));
 

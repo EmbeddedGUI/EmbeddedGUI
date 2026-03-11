@@ -151,15 +151,8 @@ static void draw_grip(egui_view_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t 
     }
 }
 
-static void draw_round_fill_safe(
-        egui_view_t *self,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_dim_t radius,
-        egui_color_t color,
-        egui_alpha_t alpha)
+static void draw_round_fill_safe(egui_view_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_color_t color,
+                                 egui_alpha_t alpha)
 {
     if (w <= 0 || h <= 0)
     {
@@ -168,16 +161,8 @@ static void draw_round_fill_safe(
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, radius, color, alpha);
 }
 
-static void draw_round_stroke_safe(
-        egui_view_t *self,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        egui_dim_t radius,
-        egui_dim_t stroke_width,
-        egui_color_t color,
-        egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_view_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width,
+                                   egui_color_t color, egui_alpha_t alpha)
 {
     EGUI_UNUSED(self);
     if (w <= 0 || h <= 0)
@@ -257,15 +242,8 @@ static void resolve_segments(egui_dim_t total, uint8_t primary_ratio, uint8_t se
     }
 }
 
-static void draw_layout_preview(
-        egui_view_t *self,
-        const split_palette_t *palette,
-        const egui_view_split_resizer_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t compact)
+static void draw_layout_preview(egui_view_t *self, const split_palette_t *palette, const egui_view_split_resizer_snapshot_t *snapshot, egui_dim_t x,
+                                egui_dim_t y, egui_dim_t w, egui_dim_t h, uint8_t compact)
 {
     egui_dim_t content_x;
     egui_dim_t content_y;
@@ -317,15 +295,8 @@ static void draw_layout_preview(
         draw_round_fill_safe(self, content_x, primary_y, content_w, sizes[0], panel_radius, status_color, egui_color_alpha_mix(self->alpha, 60));
         draw_round_fill_safe(self, content_x, secondary_y, content_w, sizes[1], panel_radius, chrome_color, egui_color_alpha_mix(self->alpha, 54));
         draw_round_fill_safe(self, content_x, tertiary_y, content_w, sizes[2], panel_radius, chrome_color, egui_color_alpha_mix(self->alpha, 32));
-        draw_round_fill_safe(
-                self,
-                content_x + 3,
-                primary_y + sizes[0],
-                content_w - 6,
-                separator,
-                separator,
-                palette->panel,
-                egui_color_alpha_mix(self->alpha, 88));
+        draw_round_fill_safe(self, content_x + 3, primary_y + sizes[0], content_w - 6, separator, separator, palette->panel,
+                             egui_color_alpha_mix(self->alpha, 88));
         draw_grip(self, content_x + 3, primary_y + sizes[0], content_w - 6, separator, 0, palette->focus);
     }
     else
@@ -342,29 +313,14 @@ static void draw_layout_preview(
         draw_round_fill_safe(self, primary_x, content_y, sizes[0], content_h, panel_radius, status_color, egui_color_alpha_mix(self->alpha, 60));
         draw_round_fill_safe(self, secondary_x, content_y, sizes[1], content_h, panel_radius, chrome_color, egui_color_alpha_mix(self->alpha, 54));
         draw_round_fill_safe(self, tertiary_x, content_y, sizes[2], content_h, panel_radius, chrome_color, egui_color_alpha_mix(self->alpha, 32));
-        draw_round_fill_safe(
-                self,
-                primary_x + sizes[0],
-                content_y + 2,
-                separator,
-                content_h - 4,
-                separator,
-                palette->panel,
-                egui_color_alpha_mix(self->alpha, compact ? 88 : 94));
+        draw_round_fill_safe(self, primary_x + sizes[0], content_y + 2, separator, content_h - 4, separator, palette->panel,
+                             egui_color_alpha_mix(self->alpha, compact ? 88 : 94));
         draw_grip(self, primary_x + sizes[0], content_y + 2, separator, content_h - 4, 1, palette->focus);
     }
 }
 
-static void draw_card(
-        egui_view_t *self,
-        const split_palette_t *palette,
-        const egui_view_split_resizer_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t compact,
-        uint8_t locked)
+static void draw_card(egui_view_t *self, const split_palette_t *palette, const egui_view_split_resizer_snapshot_t *snapshot, egui_dim_t x, egui_dim_t y,
+                      egui_dim_t w, egui_dim_t h, uint8_t compact, uint8_t locked)
 {
     egui_region_t text_region;
     egui_color_t shell_color;
@@ -385,8 +341,7 @@ static void draw_card(
     shell_color = egui_rgb_mix(EGUI_COLOR_BLACK, palette->surface, 28);
     status_color = get_status_color(palette, snapshot);
     title_color = compact ? egui_rgb_mix(palette->muted, status_color, locked ? 30 : 50) : palette->muted;
-    summary_color = locked ? egui_rgb_mix(palette->text, palette->muted, 38)
-                           : (compact ? palette->text : egui_rgb_mix(palette->text, palette->muted, 10));
+    summary_color = locked ? egui_rgb_mix(palette->text, palette->muted, 38) : (compact ? palette->text : egui_rgb_mix(palette->text, palette->muted, 10));
     footer_color = locked ? egui_rgb_mix(palette->muted, palette->border, 34)
                           : (compact ? egui_rgb_mix(palette->muted, palette->text, 16) : egui_rgb_mix(palette->muted, palette->text, 24));
     outer_padding = compact ? 12 : 15;
@@ -404,8 +359,7 @@ static void draw_card(
     text_region.size.height = 11;
     egui_canvas_draw_text_in_rect(card_font, snapshot->title, &text_region, EGUI_ALIGN_LEFT, title_color, self->alpha);
 
-    egui_canvas_draw_round_rectangle_fill(
-            pill_x, y + (compact ? 9 : 10), pill_w, 11, 5, status_color, egui_color_alpha_mix(self->alpha, locked ? 40 : 64));
+    egui_canvas_draw_round_rectangle_fill(pill_x, y + (compact ? 9 : 10), pill_w, 11, 5, status_color, egui_color_alpha_mix(self->alpha, locked ? 40 : 64));
     text_region.location.x = pill_x + 1;
     text_region.location.y = y + (compact ? 9 : 10);
     text_region.size.width = pill_w - 2;
@@ -431,11 +385,7 @@ static void draw_card(
     egui_canvas_draw_text_in_rect(card_font, snapshot->footer, &text_region, EGUI_ALIGN_CENTER, footer_color, self->alpha);
 }
 
-static void get_zone_rects_local(
-        egui_view_t *self,
-        egui_region_t *main_rect,
-        egui_region_t *left_rect,
-        egui_region_t *right_rect)
+static void get_zone_rects_local(egui_view_t *self, egui_region_t *main_rect, egui_region_t *left_rect, egui_region_t *right_rect)
 {
     egui_region_t region;
 
@@ -457,11 +407,7 @@ static void get_zone_rects_local(
     right_rect->size.height = 87;
 }
 
-static void get_zone_rects_screen(
-        egui_view_t *self,
-        egui_region_t *main_rect,
-        egui_region_t *left_rect,
-        egui_region_t *right_rect)
+static void get_zone_rects_screen(egui_view_t *self, egui_region_t *main_rect, egui_region_t *left_rect, egui_region_t *right_rect)
 {
     egui_dim_t origin_x;
     egui_dim_t origin_y;
@@ -541,8 +487,8 @@ static void egui_view_split_resizer_on_draw(egui_view_t *self)
     const egui_font_t *status_font;
 
     egui_view_get_work_region(self, &region);
-    if (region.size.width <= 0 || region.size.height <= 0 || local->primary_snapshots == NULL || local->column_snapshots == NULL
-        || local->locked_snapshots == NULL || local->primary_snapshot_count == 0 || local->column_snapshot_count == 0 || local->locked_snapshot_count == 0)
+    if (region.size.width <= 0 || region.size.height <= 0 || local->primary_snapshots == NULL || local->column_snapshots == NULL ||
+        local->locked_snapshots == NULL || local->primary_snapshot_count == 0 || local->column_snapshot_count == 0 || local->locked_snapshot_count == 0)
     {
         return;
     }

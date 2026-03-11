@@ -65,17 +65,9 @@ void egui_view_dock_launcher_set_locked_mode(egui_view_t *self, uint8_t locked_m
     egui_view_invalidate(self);
 }
 
-void egui_view_dock_launcher_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t strip_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t accent_color,
-        egui_color_t warn_color,
-        egui_color_t lock_color,
-        egui_color_t focus_color)
+void egui_view_dock_launcher_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t strip_color, egui_color_t border_color,
+                                         egui_color_t text_color, egui_color_t muted_text_color, egui_color_t accent_color, egui_color_t warn_color,
+                                         egui_color_t lock_color, egui_color_t focus_color)
 {
     EGUI_LOCAL_INIT(egui_view_dock_launcher_t);
     local->surface_color = surface_color;
@@ -103,14 +95,8 @@ static egui_color_t egui_view_dock_launcher_get_status_color(egui_view_dock_laun
     return local->accent_color;
 }
 
-static void egui_view_dock_launcher_draw_icons(
-        egui_view_dock_launcher_t *local,
-        egui_view_t *self,
-        const egui_view_dock_launcher_snapshot_t *snapshot,
-        egui_dim_t strip_x,
-        egui_dim_t strip_y,
-        egui_dim_t strip_w,
-        egui_dim_t strip_h)
+static void egui_view_dock_launcher_draw_icons(egui_view_dock_launcher_t *local, egui_view_t *self, const egui_view_dock_launcher_snapshot_t *snapshot,
+                                               egui_dim_t strip_x, egui_dim_t strip_y, egui_dim_t strip_w, egui_dim_t strip_h)
 {
     egui_dim_t icon_count;
     egui_dim_t i;
@@ -141,56 +127,27 @@ static void egui_view_dock_launcher_draw_icons(
         icon_fill = (i == focus_index) ? status_color : egui_rgb_mix(local->surface_color, local->border_color, 38);
         alpha = (uint8_t)((i == focus_index) ? 92 : 72);
 
-        egui_canvas_draw_round_rectangle_fill(
-                icon_x,
-                icon_y,
-                icon_size,
-                icon_size,
-                local->compact_mode ? 4 : 5,
-                icon_fill,
-                egui_color_alpha_mix(self->alpha, alpha));
-        egui_canvas_draw_round_rectangle(
-                icon_x,
-                icon_y,
-                icon_size,
-                icon_size,
-                local->compact_mode ? 4 : 5,
-                1,
-                (i == focus_index) ? local->focus_color : local->border_color,
-                egui_color_alpha_mix(self->alpha, (i == focus_index) ? 70 : 42));
-        egui_canvas_draw_circle_fill(
-                center_x,
-                center_y,
-                (i == focus_index) ? (local->compact_mode ? 2 : 3) : 1,
-                local->text_color,
-                egui_color_alpha_mix(self->alpha, (i == focus_index) ? 92 : 76));
+        egui_canvas_draw_round_rectangle_fill(icon_x, icon_y, icon_size, icon_size, local->compact_mode ? 4 : 5, icon_fill,
+                                              egui_color_alpha_mix(self->alpha, alpha));
+        egui_canvas_draw_round_rectangle(icon_x, icon_y, icon_size, icon_size, local->compact_mode ? 4 : 5, 1,
+                                         (i == focus_index) ? local->focus_color : local->border_color,
+                                         egui_color_alpha_mix(self->alpha, (i == focus_index) ? 70 : 42));
+        egui_canvas_draw_circle_fill(center_x, center_y, (i == focus_index) ? (local->compact_mode ? 2 : 3) : 1, local->text_color,
+                                     egui_color_alpha_mix(self->alpha, (i == focus_index) ? 92 : 76));
 
         if (snapshot->active_mask & (1u << i))
         {
-            egui_canvas_draw_circle_fill(
-                    center_x,
-                    strip_y + strip_h - (local->compact_mode ? 4 : 5),
-                    1,
-                    status_color,
-                    egui_color_alpha_mix(self->alpha, 92));
+            egui_canvas_draw_circle_fill(center_x, strip_y + strip_h - (local->compact_mode ? 4 : 5), 1, status_color, egui_color_alpha_mix(self->alpha, 92));
         }
     }
 
     if (snapshot->badge_count > 0)
     {
         center_x = strip_x + slot_step * (focus_index + 1);
-        egui_canvas_draw_circle_fill(
-                center_x + (local->compact_mode ? 7 : 9),
-                center_y - (local->compact_mode ? 6 : 8),
-                local->compact_mode ? 3 : 4,
-                status_color,
-                egui_color_alpha_mix(self->alpha, 96));
-        egui_canvas_draw_circle_fill(
-                center_x + (local->compact_mode ? 7 : 9),
-                center_y - (local->compact_mode ? 6 : 8),
-                1,
-                local->text_color,
-                egui_color_alpha_mix(self->alpha, 96));
+        egui_canvas_draw_circle_fill(center_x + (local->compact_mode ? 7 : 9), center_y - (local->compact_mode ? 6 : 8), local->compact_mode ? 3 : 4,
+                                     status_color, egui_color_alpha_mix(self->alpha, 96));
+        egui_canvas_draw_circle_fill(center_x + (local->compact_mode ? 7 : 9), center_y - (local->compact_mode ? 6 : 8), 1, local->text_color,
+                                     egui_color_alpha_mix(self->alpha, 96));
     }
 }
 
@@ -248,14 +205,8 @@ static void egui_view_dock_launcher_on_draw(egui_view_t *self)
     text_region.size.height = 11;
     egui_canvas_draw_text_in_rect(local->font, snapshot->title ? snapshot->title : "DOCK", &text_region, EGUI_ALIGN_LEFT, local->muted_text_color, self->alpha);
 
-    egui_canvas_draw_round_rectangle_fill(
-            pill_x,
-            panel_y + header_top,
-            pill_w,
-            11,
-            5,
-            status_color,
-            egui_color_alpha_mix(self->alpha, local->locked_mode ? 30 : 62));
+    egui_canvas_draw_round_rectangle_fill(pill_x, panel_y + header_top, pill_w, 11, 5, status_color,
+                                          egui_color_alpha_mix(self->alpha, local->locked_mode ? 30 : 62));
     text_region.location.x = pill_x + 2;
     text_region.location.y = panel_y + header_top;
     text_region.size.width = pill_w - 4;
@@ -267,13 +218,15 @@ static void egui_view_dock_launcher_on_draw(egui_view_t *self)
     text_region.location.y = summary_y;
     text_region.size.width = panel_w - outer_padding * 2 - (local->compact_mode ? 4 : 12);
     text_region.size.height = 10;
-    egui_canvas_draw_text_in_rect(local->font, snapshot->summary ? snapshot->summary : "Summary", &text_region, EGUI_ALIGN_CENTER, local->text_color, self->alpha);
+    egui_canvas_draw_text_in_rect(local->font, snapshot->summary ? snapshot->summary : "Summary", &text_region, EGUI_ALIGN_CENTER, local->text_color,
+                                  self->alpha);
 
     if (!local->compact_mode)
     {
         text_region.location.y = summary_y + 7;
         text_region.size.height = 10;
-        egui_canvas_draw_text_in_rect(local->font, snapshot->footer ? snapshot->footer : "Footer", &text_region, EGUI_ALIGN_CENTER, local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, snapshot->footer ? snapshot->footer : "Footer", &text_region, EGUI_ALIGN_CENTER, local->muted_text_color,
+                                      self->alpha);
     }
 
     strip_x = panel_x + outer_padding;
@@ -284,14 +237,8 @@ static void egui_view_dock_launcher_on_draw(egui_view_t *self)
     egui_canvas_draw_round_rectangle_fill(strip_x, strip_y, strip_w, strip_h, 8, local->strip_color, egui_color_alpha_mix(self->alpha, 78));
     egui_canvas_draw_round_rectangle(strip_x, strip_y, strip_w, strip_h, 8, 1, local->border_color, egui_color_alpha_mix(self->alpha, 44));
 
-    egui_canvas_draw_line(
-            strip_x + 8,
-            strip_y + strip_h / 2,
-            strip_x + strip_w - 9,
-            strip_y + strip_h / 2,
-            1,
-            local->border_color,
-            egui_color_alpha_mix(self->alpha, 22));
+    egui_canvas_draw_line(strip_x + 8, strip_y + strip_h / 2, strip_x + strip_w - 9, strip_y + strip_h / 2, 1, local->border_color,
+                          egui_color_alpha_mix(self->alpha, 22));
 
     egui_view_dock_launcher_draw_icons(local, self, snapshot, strip_x, strip_y, strip_w, strip_h);
 
@@ -302,7 +249,8 @@ static void egui_view_dock_launcher_on_draw(egui_view_t *self)
         text_region.location.y = footer_y;
         text_region.size.width = panel_w - outer_padding * 2 - 16;
         text_region.size.height = EGUI_MAX(panel_h - (footer_y - panel_y) - 6, 10);
-        egui_canvas_draw_text_in_rect(local->font, snapshot->footer ? snapshot->footer : "footer", &text_region, EGUI_ALIGN_CENTER, local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, snapshot->footer ? snapshot->footer : "footer", &text_region, EGUI_ALIGN_CENTER, local->muted_text_color,
+                                      self->alpha);
     }
 }
 

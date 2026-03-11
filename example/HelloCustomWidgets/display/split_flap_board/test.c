@@ -124,15 +124,8 @@ void test_init_ui(void)
     egui_view_set_size(EGUI_VIEW_OF(&board_primary), 192, 116);
     egui_view_split_flap_board_set_snapshots(EGUI_VIEW_OF(&board_primary), primary_snapshots, 3);
     egui_view_split_flap_board_set_font(EGUI_VIEW_OF(&board_primary), (const egui_font_t *)&egui_res_font_montserrat_10_4);
-    egui_view_split_flap_board_set_palette(
-            EGUI_VIEW_OF(&board_primary),
-            EGUI_COLOR_HEX(0x18212D),
-            EGUI_COLOR_HEX(0x4B5D73),
-            EGUI_COLOR_HEX(0xE2E8F0),
-            EGUI_COLOR_HEX(0x94A3B8),
-            EGUI_COLOR_HEX(0x38BDF8),
-            EGUI_COLOR_HEX(0xF59E0B),
-            EGUI_COLOR_HEX(0x0F172A));
+    egui_view_split_flap_board_set_palette(EGUI_VIEW_OF(&board_primary), EGUI_COLOR_HEX(0x18212D), EGUI_COLOR_HEX(0x4B5D73), EGUI_COLOR_HEX(0xE2E8F0),
+                                           EGUI_COLOR_HEX(0x94A3B8), EGUI_COLOR_HEX(0x38BDF8), EGUI_COLOR_HEX(0xF59E0B), EGUI_COLOR_HEX(0x0F172A));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&board_primary), on_primary_click);
     egui_view_set_margin(EGUI_VIEW_OF(&board_primary), 0, 0, 0, 6);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&board_primary));
@@ -165,15 +158,8 @@ void test_init_ui(void)
     egui_view_split_flap_board_set_snapshots(EGUI_VIEW_OF(&board_compact), compact_snapshots, 3);
     egui_view_split_flap_board_set_font(EGUI_VIEW_OF(&board_compact), (const egui_font_t *)&egui_res_font_montserrat_8_4);
     egui_view_split_flap_board_set_compact_mode(EGUI_VIEW_OF(&board_compact), 1);
-    egui_view_split_flap_board_set_palette(
-            EGUI_VIEW_OF(&board_compact),
-            EGUI_COLOR_HEX(0x132019),
-            EGUI_COLOR_HEX(0x34584B),
-            EGUI_COLOR_HEX(0xD9FBE8),
-            EGUI_COLOR_HEX(0x8AA99A),
-            EGUI_COLOR_HEX(0x34D399),
-            EGUI_COLOR_HEX(0xF59E0B),
-            EGUI_COLOR_HEX(0x0A120E));
+    egui_view_split_flap_board_set_palette(EGUI_VIEW_OF(&board_compact), EGUI_COLOR_HEX(0x132019), EGUI_COLOR_HEX(0x34584B), EGUI_COLOR_HEX(0xD9FBE8),
+                                           EGUI_COLOR_HEX(0x8AA99A), EGUI_COLOR_HEX(0x34D399), EGUI_COLOR_HEX(0xF59E0B), EGUI_COLOR_HEX(0x0A120E));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&board_compact), on_compact_click);
     egui_view_group_add_child(EGUI_VIEW_OF(&bottom_row), EGUI_VIEW_OF(&board_compact));
 
@@ -182,15 +168,8 @@ void test_init_ui(void)
     egui_view_split_flap_board_set_snapshots(EGUI_VIEW_OF(&board_standby), standby_snapshots, 3);
     egui_view_split_flap_board_set_font(EGUI_VIEW_OF(&board_standby), (const egui_font_t *)&egui_res_font_montserrat_8_4);
     egui_view_split_flap_board_set_compact_mode(EGUI_VIEW_OF(&board_standby), 1);
-    egui_view_split_flap_board_set_palette(
-            EGUI_VIEW_OF(&board_standby),
-            EGUI_COLOR_HEX(0x241B10),
-            EGUI_COLOR_HEX(0x6B4F16),
-            EGUI_COLOR_HEX(0xFDE68A),
-            EGUI_COLOR_HEX(0xC3A85A),
-            EGUI_COLOR_HEX(0xF59E0B),
-            EGUI_COLOR_HEX(0xEF4444),
-            EGUI_COLOR_HEX(0x130E08));
+    egui_view_split_flap_board_set_palette(EGUI_VIEW_OF(&board_standby), EGUI_COLOR_HEX(0x241B10), EGUI_COLOR_HEX(0x6B4F16), EGUI_COLOR_HEX(0xFDE68A),
+                                           EGUI_COLOR_HEX(0xC3A85A), EGUI_COLOR_HEX(0xF59E0B), EGUI_COLOR_HEX(0xEF4444), EGUI_COLOR_HEX(0x130E08));
     egui_view_set_margin(EGUI_VIEW_OF(&board_standby), 3, 0, 0, 0);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&board_standby), on_standby_click);
     egui_view_group_add_child(EGUI_VIEW_OF(&bottom_row), EGUI_VIEW_OF(&board_standby));

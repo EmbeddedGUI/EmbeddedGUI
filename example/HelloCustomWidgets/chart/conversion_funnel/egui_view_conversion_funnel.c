@@ -54,10 +54,7 @@ static uint8_t clamp_count(uint8_t count)
     return count;
 }
 
-void egui_view_conversion_funnel_set_primary_snapshots(
-        egui_view_t *self,
-        const egui_view_conversion_funnel_snapshot_t *snapshots,
-        uint8_t snapshot_count)
+void egui_view_conversion_funnel_set_primary_snapshots(egui_view_t *self, const egui_view_conversion_funnel_snapshot_t *snapshots, uint8_t snapshot_count)
 {
     EGUI_LOCAL_INIT(egui_view_conversion_funnel_t);
     local->primary_snapshots = snapshots;
@@ -69,10 +66,7 @@ void egui_view_conversion_funnel_set_primary_snapshots(
     egui_view_invalidate(self);
 }
 
-void egui_view_conversion_funnel_set_compact_snapshots(
-        egui_view_t *self,
-        const egui_view_conversion_funnel_snapshot_t *snapshots,
-        uint8_t snapshot_count)
+void egui_view_conversion_funnel_set_compact_snapshots(egui_view_t *self, const egui_view_conversion_funnel_snapshot_t *snapshots, uint8_t snapshot_count)
 {
     EGUI_LOCAL_INIT(egui_view_conversion_funnel_t);
     local->compact_snapshots = snapshots;
@@ -84,10 +78,7 @@ void egui_view_conversion_funnel_set_compact_snapshots(
     egui_view_invalidate(self);
 }
 
-void egui_view_conversion_funnel_set_locked_snapshots(
-        egui_view_t *self,
-        const egui_view_conversion_funnel_snapshot_t *snapshots,
-        uint8_t snapshot_count)
+void egui_view_conversion_funnel_set_locked_snapshots(egui_view_t *self, const egui_view_conversion_funnel_snapshot_t *snapshots, uint8_t snapshot_count)
 {
     EGUI_LOCAL_INIT(egui_view_conversion_funnel_t);
     local->locked_snapshots = snapshots;
@@ -115,7 +106,8 @@ static void draw_round_fill_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_
     egui_canvas_draw_round_rectangle_fill(x, y, w, h, radius, color, alpha);
 }
 
-static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+static void draw_round_stroke_safe(egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color,
+                                   egui_alpha_t alpha)
 {
     if (w <= 0 || h <= 0)
     {
@@ -169,16 +161,8 @@ static egui_dim_t get_pill_width(const egui_view_conversion_funnel_snapshot_t *s
     return width;
 }
 
-static void draw_funnel_preview(
-        egui_view_t *self,
-        const funnel_palette_t *palette,
-        const egui_view_conversion_funnel_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t compact,
-        uint8_t locked)
+static void draw_funnel_preview(egui_view_t *self, const funnel_palette_t *palette, const egui_view_conversion_funnel_snapshot_t *snapshot, egui_dim_t x,
+                                egui_dim_t y, egui_dim_t w, egui_dim_t h, uint8_t compact, uint8_t locked)
 {
     const funnel_profile_t *profile;
     egui_dim_t lane_h;
@@ -221,11 +205,11 @@ static void draw_funnel_preview(
         }
         layer_x = x + (w - layer_w) / 2;
         layer_color = i == snapshot->focus_stage ? status_color : base_color;
-        layer_alpha = i == snapshot->focus_stage ? egui_color_alpha_mix(self->alpha, compact ? 84 : 90)
-                                                 : egui_color_alpha_mix(self->alpha, compact ? 48 : 56);
+        layer_alpha = i == snapshot->focus_stage ? egui_color_alpha_mix(self->alpha, compact ? 84 : 90) : egui_color_alpha_mix(self->alpha, compact ? 48 : 56);
 
         draw_round_fill_safe(layer_x, current_y, layer_w, lane_h, compact ? 4 : 5, layer_color, layer_alpha);
-        draw_round_stroke_safe(layer_x, current_y, layer_w, lane_h, compact ? 4 : 5, 1, palette->focus, egui_color_alpha_mix(self->alpha, i == snapshot->focus_stage ? 62 : 18));
+        draw_round_stroke_safe(layer_x, current_y, layer_w, lane_h, compact ? 4 : 5, 1, palette->focus,
+                               egui_color_alpha_mix(self->alpha, i == snapshot->focus_stage ? 62 : 18));
 
         if (i < 3)
         {
@@ -242,31 +226,19 @@ static void draw_funnel_preview(
             next_x = x + (w - next_w) / 2;
             bridge_w = layer_w > next_w ? next_w + 8 : layer_w + 8;
             bridge_x = x + (w - bridge_w) / 2;
-            draw_round_fill_safe(
-                    bridge_x,
-                    current_y + lane_h,
-                    bridge_w,
-                    gap_h,
-                    gap_h / 2,
-                    i == snapshot->focus_stage ? status_color : egui_rgb_mix(palette->border, palette->surface, locked ? 38 : 30),
-                    egui_color_alpha_mix(self->alpha, compact ? 66 : 74));
-            draw_round_fill_safe(next_x + 1, current_y + lane_h + gap_h / 2, next_w - 2, 2, 1, palette->text, egui_color_alpha_mix(self->alpha, compact ? 18 : 22));
+            draw_round_fill_safe(bridge_x, current_y + lane_h, bridge_w, gap_h, gap_h / 2,
+                                 i == snapshot->focus_stage ? status_color : egui_rgb_mix(palette->border, palette->surface, locked ? 38 : 30),
+                                 egui_color_alpha_mix(self->alpha, compact ? 66 : 74));
+            draw_round_fill_safe(next_x + 1, current_y + lane_h + gap_h / 2, next_w - 2, 2, 1, palette->text,
+                                 egui_color_alpha_mix(self->alpha, compact ? 18 : 22));
         }
 
         current_y += lane_h + gap_h;
     }
 }
 
-static void draw_card(
-        egui_view_t *self,
-        const funnel_palette_t *palette,
-        const egui_view_conversion_funnel_snapshot_t *snapshot,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        uint8_t compact,
-        uint8_t locked)
+static void draw_card(egui_view_t *self, const funnel_palette_t *palette, const egui_view_conversion_funnel_snapshot_t *snapshot, egui_dim_t x, egui_dim_t y,
+                      egui_dim_t w, egui_dim_t h, uint8_t compact, uint8_t locked)
 {
     egui_region_t text_region;
     egui_color_t shell_color;
@@ -287,10 +259,8 @@ static void draw_card(
     shell_color = egui_rgb_mix(EGUI_COLOR_BLACK, palette->surface, compact ? 28 : 20);
     status_color = get_status_color(palette, snapshot);
     title_color = compact ? egui_rgb_mix(palette->muted, status_color, locked ? 24 : 42) : egui_rgb_mix(palette->muted, status_color, 26);
-    summary_color = locked ? egui_rgb_mix(palette->text, palette->muted, 42)
-                           : egui_rgb_mix(palette->text, palette->muted, compact ? 8 : 12);
-    footer_color = locked ? egui_rgb_mix(palette->muted, palette->border, 36)
-                          : egui_rgb_mix(palette->muted, palette->text, compact ? 28 : 34);
+    summary_color = locked ? egui_rgb_mix(palette->text, palette->muted, 42) : egui_rgb_mix(palette->text, palette->muted, compact ? 8 : 12);
+    footer_color = locked ? egui_rgb_mix(palette->muted, palette->border, 36) : egui_rgb_mix(palette->muted, palette->text, compact ? 28 : 34);
     outer_padding = compact ? 11 : 16;
     pill_w = get_pill_width(snapshot, compact);
     pill_x = x + w - outer_padding - pill_w;
@@ -434,8 +404,8 @@ static void egui_view_conversion_funnel_on_draw(egui_view_t *self)
     egui_color_t status_color;
 
     egui_view_get_work_region(self, &region);
-    if (region.size.width <= 0 || region.size.height <= 0 || local->primary_snapshots == NULL || local->compact_snapshots == NULL
-        || local->locked_snapshots == NULL || local->primary_snapshot_count == 0 || local->compact_snapshot_count == 0 || local->locked_snapshot_count == 0)
+    if (region.size.width <= 0 || region.size.height <= 0 || local->primary_snapshots == NULL || local->compact_snapshots == NULL ||
+        local->locked_snapshots == NULL || local->primary_snapshot_count == 0 || local->compact_snapshot_count == 0 || local->locked_snapshot_count == 0)
     {
         return;
     }

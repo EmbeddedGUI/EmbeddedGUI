@@ -108,13 +108,8 @@ void egui_view_node_topology_set_compact_mode(egui_view_t *self, uint8_t compact
     egui_view_invalidate(self);
 }
 
-void egui_view_node_topology_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t active_color)
+void egui_view_node_topology_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t text_color,
+                                         egui_color_t muted_text_color, egui_color_t active_color)
 {
     EGUI_LOCAL_INIT(egui_view_node_topology_t);
     local->surface_color = surface_color;
@@ -169,8 +164,10 @@ static void egui_view_node_topology_on_draw(egui_view_t *self)
         panel_color = egui_view_node_topology_mix_disabled(panel_color);
     }
 
-    egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, 8, panel_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
-    egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, region.size.height, 8, 1, local->border_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_50));
+    egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, 8, panel_color,
+                                          egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
+    egui_canvas_draw_round_rectangle(region.location.x, region.location.y, region.size.width, region.size.height, 8, 1, local->border_color,
+                                     egui_color_alpha_mix(self->alpha, EGUI_ALPHA_50));
 
     content_x = region.location.x + 6;
     content_y = region.location.y + 4;
@@ -183,7 +180,8 @@ static void egui_view_node_topology_on_draw(egui_view_t *self)
         header_region.location.y = content_y;
         header_region.size.width = content_width;
         header_region.size.height = 12;
-        egui_canvas_draw_text_in_rect(local->font, is_enabled ? snapshot->title : "Locked", &header_region, EGUI_ALIGN_LEFT, is_enabled ? local->muted_text_color : local->text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, is_enabled ? snapshot->title : "Locked", &header_region, EGUI_ALIGN_LEFT,
+                                      is_enabled ? local->muted_text_color : local->text_color, self->alpha);
         content_y += 14;
         content_height -= 14;
     }
@@ -219,7 +217,8 @@ static void egui_view_node_topology_on_draw(egui_view_t *self)
         from_node = &nodes[link->from_index];
         to_node = &nodes[link->to_index];
         is_focus_link = link->from_index == current_node || link->to_index == current_node;
-        line_color = egui_rgb_mix(local->border_color, is_focus_link ? local->active_color : local->surface_color, is_focus_link ? EGUI_ALPHA_50 : EGUI_ALPHA_20);
+        line_color =
+                egui_rgb_mix(local->border_color, is_focus_link ? local->active_color : local->surface_color, is_focus_link ? EGUI_ALPHA_50 : EGUI_ALPHA_20);
         if (link->active)
         {
             line_color = egui_rgb_mix(line_color, local->active_color, EGUI_ALPHA_40);
@@ -229,14 +228,8 @@ static void egui_view_node_topology_on_draw(egui_view_t *self)
             line_color = egui_view_node_topology_mix_disabled(line_color);
         }
 
-        egui_canvas_draw_line(
-                content_x + from_node->x,
-                content_y + from_node->y,
-                content_x + to_node->x,
-                content_y + to_node->y,
-                link->active ? 2 : 1,
-                line_color,
-                egui_color_alpha_mix(self->alpha, link->active ? EGUI_ALPHA_70 : EGUI_ALPHA_40));
+        egui_canvas_draw_line(content_x + from_node->x, content_y + from_node->y, content_x + to_node->x, content_y + to_node->y, link->active ? 2 : 1,
+                              line_color, egui_color_alpha_mix(self->alpha, link->active ? EGUI_ALPHA_70 : EGUI_ALPHA_40));
     }
 
     for (i = 0; i < node_count; i++)
@@ -267,8 +260,10 @@ static void egui_view_node_topology_on_draw(egui_view_t *self)
             egui_canvas_draw_circle(cx, cy, node->radius + 3, 1, ring_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
         }
         egui_canvas_draw_circle_fill(cx, cy, node->radius, fill_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_60));
-        egui_canvas_draw_circle(cx, cy, node->radius, is_current ? 2 : 1, ring_color, egui_color_alpha_mix(self->alpha, is_current ? EGUI_ALPHA_80 : EGUI_ALPHA_50));
-        egui_canvas_draw_circle_fill(cx, cy, EGUI_MAX(node->radius / 3, 2), status_color, egui_color_alpha_mix(self->alpha, is_enabled ? EGUI_ALPHA_90 : EGUI_ALPHA_40));
+        egui_canvas_draw_circle(cx, cy, node->radius, is_current ? 2 : 1, ring_color,
+                                egui_color_alpha_mix(self->alpha, is_current ? EGUI_ALPHA_80 : EGUI_ALPHA_50));
+        egui_canvas_draw_circle_fill(cx, cy, EGUI_MAX(node->radius / 3, 2), status_color,
+                                     egui_color_alpha_mix(self->alpha, is_enabled ? EGUI_ALPHA_90 : EGUI_ALPHA_40));
 
         if (!local->compact_mode && node->label != NULL)
         {
@@ -287,13 +282,16 @@ static void egui_view_node_topology_on_draw(egui_view_t *self)
         text_region.location.y = content_y + content_height + 2;
         text_region.size.width = content_width;
         text_region.size.height = 10;
-        egui_canvas_draw_text_in_rect(local->font, caption, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color, self->alpha);
+        egui_canvas_draw_text_in_rect(local->font, caption, &text_region, EGUI_ALIGN_CENTER, is_enabled ? local->text_color : local->muted_text_color,
+                                      self->alpha);
     }
 
     if (!is_enabled)
     {
-        egui_canvas_draw_line(content_x + 2, content_y + 2, content_x + content_width - 3, content_y + content_height - 3, 1, local->muted_text_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
-        egui_canvas_draw_line(content_x + 2, content_y + content_height - 3, content_x + content_width - 3, content_y + 2, 1, local->muted_text_color, egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
+        egui_canvas_draw_line(content_x + 2, content_y + 2, content_x + content_width - 3, content_y + content_height - 3, 1, local->muted_text_color,
+                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
+        egui_canvas_draw_line(content_x + 2, content_y + content_height - 3, content_x + content_width - 3, content_y + 2, 1, local->muted_text_color,
+                              egui_color_alpha_mix(self->alpha, EGUI_ALPHA_30));
     }
 }
 

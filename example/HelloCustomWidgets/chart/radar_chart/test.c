@@ -51,34 +51,17 @@ static void apply_compare_state(uint8_t index, int is_active)
     egui_view_label_set_text(EGUI_VIEW_OF(&compare_label), compare_titles[index % 2]);
     if (is_active)
     {
-        egui_view_label_set_font_color(
-                EGUI_VIEW_OF(&compare_label),
-                ((index % 2) == 0) ? EGUI_COLOR_HEX(0x3ADEA0) : EGUI_COLOR_HEX(0x74E8BE),
-                EGUI_ALPHA_100);
-        egui_view_radar_chart_set_palette(
-                EGUI_VIEW_OF(&radar_compare),
-                EGUI_COLOR_HEX(0x0B1F1A),
-                EGUI_COLOR_HEX(0x39D8A2),
-                EGUI_COLOR_HEX(0x7FF0C8),
-                EGUI_COLOR_HEX(0xE9A923),
-                EGUI_COLOR_HEX(0xF8C94A),
-                EGUI_COLOR_HEX(0x334155),
-                EGUI_COLOR_HEX(0xCBD5E1),
-                EGUI_COLOR_HEX(0x94A3B8));
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&compare_label), ((index % 2) == 0) ? EGUI_COLOR_HEX(0x3ADEA0) : EGUI_COLOR_HEX(0x74E8BE), EGUI_ALPHA_100);
+        egui_view_radar_chart_set_palette(EGUI_VIEW_OF(&radar_compare), EGUI_COLOR_HEX(0x0B1F1A), EGUI_COLOR_HEX(0x39D8A2), EGUI_COLOR_HEX(0x7FF0C8),
+                                          EGUI_COLOR_HEX(0xE9A923), EGUI_COLOR_HEX(0xF8C94A), EGUI_COLOR_HEX(0x334155), EGUI_COLOR_HEX(0xCBD5E1),
+                                          EGUI_COLOR_HEX(0x94A3B8));
     }
     else
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&compare_label), EGUI_COLOR_HEX(0x3F6257), EGUI_ALPHA_100);
-        egui_view_radar_chart_set_palette(
-                EGUI_VIEW_OF(&radar_compare),
-                EGUI_COLOR_HEX(0x0A1613),
-                EGUI_COLOR_HEX(0x257B63),
-                EGUI_COLOR_HEX(0x46A48D),
-                EGUI_COLOR_HEX(0x8A5B0D),
-                EGUI_COLOR_HEX(0xB7791F),
-                EGUI_COLOR_HEX(0x2B3A45),
-                EGUI_COLOR_HEX(0x9FB2C6),
-                EGUI_COLOR_HEX(0x6F8194));
+        egui_view_radar_chart_set_palette(EGUI_VIEW_OF(&radar_compare), EGUI_COLOR_HEX(0x0A1613), EGUI_COLOR_HEX(0x257B63), EGUI_COLOR_HEX(0x46A48D),
+                                          EGUI_COLOR_HEX(0x8A5B0D), EGUI_COLOR_HEX(0xB7791F), EGUI_COLOR_HEX(0x2B3A45), EGUI_COLOR_HEX(0x9FB2C6),
+                                          EGUI_COLOR_HEX(0x6F8194));
     }
 }
 
@@ -87,34 +70,17 @@ static void apply_mini_state(uint8_t index, int is_active)
     egui_view_label_set_text(EGUI_VIEW_OF(&mini_label), mini_titles[index % 2]);
     if (is_active)
     {
-        egui_view_label_set_font_color(
-                EGUI_VIEW_OF(&mini_label),
-                ((index % 2) == 0) ? EGUI_COLOR_HEX(0xEDA51A) : EGUI_COLOR_HEX(0xF8C53A),
-                EGUI_ALPHA_100);
-        egui_view_radar_chart_set_palette(
-                EGUI_VIEW_OF(&radar_mini),
-                EGUI_COLOR_HEX(0x26170A),
-                EGUI_COLOR_HEX(0xF0A21B),
-                EGUI_COLOR_HEX(0xFFD04A),
-                EGUI_COLOR_HEX(0x8444F0),
-                EGUI_COLOR_HEX(0xB59AFF),
-                EGUI_COLOR_HEX(0x3F2A1D),
-                EGUI_COLOR_HEX(0xFDE68A),
-                EGUI_COLOR_HEX(0xF59E0B));
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&mini_label), ((index % 2) == 0) ? EGUI_COLOR_HEX(0xEDA51A) : EGUI_COLOR_HEX(0xF8C53A), EGUI_ALPHA_100);
+        egui_view_radar_chart_set_palette(EGUI_VIEW_OF(&radar_mini), EGUI_COLOR_HEX(0x26170A), EGUI_COLOR_HEX(0xF0A21B), EGUI_COLOR_HEX(0xFFD04A),
+                                          EGUI_COLOR_HEX(0x8444F0), EGUI_COLOR_HEX(0xB59AFF), EGUI_COLOR_HEX(0x3F2A1D), EGUI_COLOR_HEX(0xFDE68A),
+                                          EGUI_COLOR_HEX(0xF59E0B));
     }
     else
     {
         egui_view_label_set_font_color(EGUI_VIEW_OF(&mini_label), EGUI_COLOR_HEX(0x75581A), EGUI_ALPHA_100);
-        egui_view_radar_chart_set_palette(
-                EGUI_VIEW_OF(&radar_mini),
-                EGUI_COLOR_HEX(0x151008),
-                EGUI_COLOR_HEX(0x99640A),
-                EGUI_COLOR_HEX(0xB97D18),
-                EGUI_COLOR_HEX(0x5B21B6),
-                EGUI_COLOR_HEX(0x7C3AED),
-                EGUI_COLOR_HEX(0x2A1F14),
-                EGUI_COLOR_HEX(0xCAA85A),
-                EGUI_COLOR_HEX(0x99640A));
+        egui_view_radar_chart_set_palette(EGUI_VIEW_OF(&radar_mini), EGUI_COLOR_HEX(0x151008), EGUI_COLOR_HEX(0x99640A), EGUI_COLOR_HEX(0xB97D18),
+                                          EGUI_COLOR_HEX(0x5B21B6), EGUI_COLOR_HEX(0x7C3AED), EGUI_COLOR_HEX(0x2A1F14), EGUI_COLOR_HEX(0xCAA85A),
+                                          EGUI_COLOR_HEX(0x99640A));
     }
 }
 
@@ -201,16 +167,9 @@ void test_init_ui(void)
     egui_view_radar_chart_set_current_value_set(EGUI_VIEW_OF(&radar_primary), 0);
     egui_view_radar_chart_set_grid_levels(EGUI_VIEW_OF(&radar_primary), 4);
     egui_view_radar_chart_set_label_padding(EGUI_VIEW_OF(&radar_primary), 17);
-    egui_view_radar_chart_set_palette(
-            EGUI_VIEW_OF(&radar_primary),
-            EGUI_COLOR_HEX(0x0D1724),
-            EGUI_COLOR_HEX(0x38BDF8),
-            EGUI_COLOR_HEX(0x7DD3FC),
-            EGUI_COLOR_HEX(0x1D4ED8),
-            EGUI_COLOR_HEX(0x60A5FA),
-            EGUI_COLOR_HEX(0x334155),
-            EGUI_COLOR_HEX(0xCBD5E1),
-            EGUI_COLOR_HEX(0x94A3B8));
+    egui_view_radar_chart_set_palette(EGUI_VIEW_OF(&radar_primary), EGUI_COLOR_HEX(0x0D1724), EGUI_COLOR_HEX(0x38BDF8), EGUI_COLOR_HEX(0x7DD3FC),
+                                      EGUI_COLOR_HEX(0x1D4ED8), EGUI_COLOR_HEX(0x60A5FA), EGUI_COLOR_HEX(0x334155), EGUI_COLOR_HEX(0xCBD5E1),
+                                      EGUI_COLOR_HEX(0x94A3B8));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&radar_primary), on_primary_click);
     egui_view_set_margin(EGUI_VIEW_OF(&radar_primary), 0, 0, 0, 6);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&radar_primary));

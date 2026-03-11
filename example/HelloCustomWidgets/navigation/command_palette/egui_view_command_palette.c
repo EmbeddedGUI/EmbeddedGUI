@@ -65,18 +65,9 @@ void egui_view_command_palette_set_locked_mode(egui_view_t *self, uint8_t locked
     egui_view_invalidate(self);
 }
 
-void egui_view_command_palette_set_palette(
-        egui_view_t *self,
-        egui_color_t surface_color,
-        egui_color_t border_color,
-        egui_color_t track_color,
-        egui_color_t query_color,
-        egui_color_t text_color,
-        egui_color_t muted_text_color,
-        egui_color_t accent_color,
-        egui_color_t warn_color,
-        egui_color_t lock_color,
-        egui_color_t focus_color)
+void egui_view_command_palette_set_palette(egui_view_t *self, egui_color_t surface_color, egui_color_t border_color, egui_color_t track_color,
+                                           egui_color_t query_color, egui_color_t text_color, egui_color_t muted_text_color, egui_color_t accent_color,
+                                           egui_color_t warn_color, egui_color_t lock_color, egui_color_t focus_color)
 {
     EGUI_LOCAL_INIT(egui_view_command_palette_t);
     local->surface_color = surface_color;
@@ -105,15 +96,8 @@ static egui_color_t egui_view_command_palette_get_status_color(egui_view_command
     return local->accent_color;
 }
 
-static void egui_view_command_palette_draw_shortcut(
-        egui_view_t *self,
-        egui_view_command_palette_t *local,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        const char *text,
-        egui_color_t fill_color)
+static void egui_view_command_palette_draw_shortcut(egui_view_t *self, egui_view_command_palette_t *local, egui_dim_t x, egui_dim_t y, egui_dim_t w,
+                                                    egui_dim_t h, const char *text, egui_color_t fill_color)
 {
     egui_region_t text_region;
 
@@ -127,39 +111,17 @@ static void egui_view_command_palette_draw_shortcut(
     egui_canvas_draw_text_in_rect(local->font, text, &text_region, EGUI_ALIGN_CENTER, local->text_color, self->alpha);
 }
 
-static void egui_view_command_palette_draw_row(
-        egui_view_t *self,
-        egui_view_command_palette_t *local,
-        egui_dim_t x,
-        egui_dim_t y,
-        egui_dim_t w,
-        egui_dim_t h,
-        const char *text,
-        const char *shortcut,
-        uint8_t highlighted,
-        egui_color_t accent_color)
+static void egui_view_command_palette_draw_row(egui_view_t *self, egui_view_command_palette_t *local, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h,
+                                               const char *text, const char *shortcut, uint8_t highlighted, egui_color_t accent_color)
 {
     egui_region_t text_region;
     egui_dim_t chip_w;
     egui_dim_t text_right_padding;
 
-    egui_canvas_draw_round_rectangle_fill(
-            x,
-            y,
-            w,
-            h,
-            7,
-            highlighted ? local->query_color : local->track_color,
-            egui_color_alpha_mix(self->alpha, highlighted ? 88 : 58));
-    egui_canvas_draw_round_rectangle(
-            x,
-            y,
-            w,
-            h,
-            7,
-            1,
-            highlighted ? local->focus_color : local->border_color,
-            egui_color_alpha_mix(self->alpha, highlighted ? 62 : 34));
+    egui_canvas_draw_round_rectangle_fill(x, y, w, h, 7, highlighted ? local->query_color : local->track_color,
+                                          egui_color_alpha_mix(self->alpha, highlighted ? 88 : 58));
+    egui_canvas_draw_round_rectangle(x, y, w, h, 7, 1, highlighted ? local->focus_color : local->border_color,
+                                     egui_color_alpha_mix(self->alpha, highlighted ? 62 : 34));
 
     egui_canvas_draw_circle_fill(x + 8, y + h / 2, 2, accent_color, egui_color_alpha_mix(self->alpha, highlighted ? 92 : 70));
 
@@ -232,14 +194,8 @@ static void egui_view_command_palette_on_draw(egui_view_t *self)
     text_region.size.height = 11;
     egui_canvas_draw_text_in_rect(local->font, snapshot->title, &text_region, EGUI_ALIGN_LEFT, local->muted_text_color, self->alpha);
 
-    egui_canvas_draw_round_rectangle_fill(
-            pill_x,
-            panel_y + header_top,
-            pill_w,
-            11,
-            5,
-            status_color,
-            egui_color_alpha_mix(self->alpha, local->locked_mode ? 28 : 62));
+    egui_canvas_draw_round_rectangle_fill(pill_x, panel_y + header_top, pill_w, 11, 5, status_color,
+                                          egui_color_alpha_mix(self->alpha, local->locked_mode ? 28 : 62));
 
     text_region.location.x = pill_x + 1;
     text_region.location.y = panel_y + header_top;
@@ -249,33 +205,15 @@ static void egui_view_command_palette_on_draw(egui_view_t *self)
 
     query_y = panel_y + (local->compact_mode ? 24 : 28);
     query_h = local->compact_mode ? 15 : 18;
-    egui_canvas_draw_round_rectangle_fill(
-            panel_x + outer_padding,
-            query_y,
-            panel_w - outer_padding * 2,
-            query_h,
-            query_h / 2,
-            local->query_color,
-            egui_color_alpha_mix(self->alpha, 78));
-    egui_canvas_draw_round_rectangle(
-            panel_x + outer_padding,
-            query_y,
-            panel_w - outer_padding * 2,
-            query_h,
-            query_h / 2,
-            1,
-            (snapshot->highlight_index == 0) ? local->focus_color : local->border_color,
-            egui_color_alpha_mix(self->alpha, (snapshot->highlight_index == 0) ? 64 : 38));
+    egui_canvas_draw_round_rectangle_fill(panel_x + outer_padding, query_y, panel_w - outer_padding * 2, query_h, query_h / 2, local->query_color,
+                                          egui_color_alpha_mix(self->alpha, 78));
+    egui_canvas_draw_round_rectangle(panel_x + outer_padding, query_y, panel_w - outer_padding * 2, query_h, query_h / 2, 1,
+                                     (snapshot->highlight_index == 0) ? local->focus_color : local->border_color,
+                                     egui_color_alpha_mix(self->alpha, (snapshot->highlight_index == 0) ? 64 : 38));
     egui_canvas_draw_circle_fill(panel_x + outer_padding + 9, query_y + query_h / 2, 3, status_color, egui_color_alpha_mix(self->alpha, 88));
     egui_canvas_draw_circle_fill(panel_x + outer_padding + 9, query_y + query_h / 2, 1, local->surface_color, egui_color_alpha_mix(self->alpha, 96));
-    egui_canvas_draw_line(
-            panel_x + outer_padding + 11,
-            query_y + query_h / 2 + 2,
-            panel_x + outer_padding + 14,
-            query_y + query_h / 2 + 5,
-            1,
-            status_color,
-            egui_color_alpha_mix(self->alpha, 92));
+    egui_canvas_draw_line(panel_x + outer_padding + 11, query_y + query_h / 2 + 2, panel_x + outer_padding + 14, query_y + query_h / 2 + 5, 1, status_color,
+                          egui_color_alpha_mix(self->alpha, 92));
 
     text_region.location.x = panel_x + outer_padding + (local->compact_mode ? 18 : 17);
     text_region.location.y = query_y;
@@ -283,15 +221,8 @@ static void egui_view_command_palette_on_draw(egui_view_t *self)
     text_region.size.height = query_h;
     egui_canvas_draw_text_in_rect(local->font, snapshot->query, &text_region, EGUI_ALIGN_LEFT, local->text_color, self->alpha);
 
-    egui_view_command_palette_draw_shortcut(
-            self,
-            local,
-            panel_x + panel_w - outer_padding - (local->compact_mode ? 19 : 25),
-            query_y + 2,
-            local->compact_mode ? 14 : 20,
-            query_h - 4,
-            "GO",
-            status_color);
+    egui_view_command_palette_draw_shortcut(self, local, panel_x + panel_w - outer_padding - (local->compact_mode ? 19 : 25), query_y + 2,
+                                            local->compact_mode ? 14 : 20, query_h - 4, "GO", status_color);
 
     row_x = panel_x + outer_padding;
     row_y = query_y + query_h + (local->compact_mode ? 5 : 8);
@@ -302,17 +233,8 @@ static void egui_view_command_palette_on_draw(egui_view_t *self)
 
     if (!local->compact_mode)
     {
-        egui_view_command_palette_draw_row(
-                self,
-                local,
-                row_x,
-                row_y + row_h + 5,
-                row_w,
-                row_h,
-                snapshot->secondary,
-                "TAB",
-                snapshot->highlight_index == 2,
-                status_color);
+        egui_view_command_palette_draw_row(self, local, row_x, row_y + row_h + 5, row_w, row_h, snapshot->secondary, "TAB", snapshot->highlight_index == 2,
+                                           status_color);
         footer_y = row_y + row_h * 2 + 12;
     }
     else
