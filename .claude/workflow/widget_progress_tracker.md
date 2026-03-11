@@ -1,4 +1,4 @@
-﻿# Widget Progress Tracker
+# Widget Progress Tracker
 
 ## 用途说明
 

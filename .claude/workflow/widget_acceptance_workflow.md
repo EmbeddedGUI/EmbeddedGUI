@@ -1,4 +1,4 @@
-﻿# Widget Acceptance Workflow
+# Widget Acceptance Workflow
 
 本工作流适用于后续所有新控件，默认目标目录为：
 
