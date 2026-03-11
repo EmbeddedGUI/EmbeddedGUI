@@ -113,10 +113,30 @@ static int egui_view_radial_menu_build_layout(egui_view_t *self, egui_view_radia
     }
 
     layout->label_radius = layout->inner_radius + ((layout->outer_radius - layout->inner_radius) * 4) / 5;
-    layout->label_width = EGUI_MAX(layout->region.size.width / 5, 30);
+    layout->label_width = EGUI_MAX(layout->region.size.width / 4, 32);
     layout->label_width = EGUI_MIN(layout->label_width, layout->region.size.width / 3);
     layout->label_height = EGUI_MAX(layout->region.size.height / 9, 16);
     layout->label_height = EGUI_MIN(layout->label_height, 22);
+
+    /*
+     * Keep label chips away from the view edge to avoid clipping (e.g. "Pause" on the right side).
+     * We reserve extra pixels for the chip background (+4) and the per-item radius bump (+4).
+     */
+    {
+        egui_dim_t edge_pad = 6;
+        egui_dim_t safe_x = layout->region.size.width / 2 - (layout->label_width + 4) / 2 - edge_pad;
+        egui_dim_t safe_y = layout->region.size.height / 2 - (layout->label_height + 2) / 2 - edge_pad;
+        egui_dim_t safe_radius = EGUI_MIN(safe_x, safe_y);
+
+        if (safe_radius > 12 && layout->label_radius > safe_radius - 4)
+        {
+            layout->label_radius = safe_radius - 4;
+        }
+        if (layout->label_radius < layout->inner_radius + 6)
+        {
+            layout->label_radius = layout->inner_radius + 6;
+        }
+    }
 
     if (layout->count > 0)
     {
@@ -641,11 +661,11 @@ static void egui_view_radial_menu_on_draw(egui_view_t *self)
             center_font = (const egui_font_t *)&egui_res_font_montserrat_10_4;
             center_font->api->get_str_size(center_font, center_text, 0, 0, &center_text_width, &center_text_height);
         }
-        center_region.size.width = center_text_width + 8;
-        center_region.size.height = center_text_height + 2;
-        center_region.location.x = layout.center_x - center_region.size.width / 2;
-        center_region.location.y = layout.center_y - center_region.size.height / 2;
-        egui_canvas_draw_text_in_rect(center_font, center_text, &center_region, EGUI_ALIGN_CENTER, center_text_color, self->alpha);
+        center_region.location.x = layout.center_x - layout.center_radius + 5;
+        center_region.location.y = layout.center_y - layout.center_radius + 4;
+        center_region.size.width = layout.center_radius * 2 - 10;
+        center_region.size.height = layout.center_radius * 2 - 8;
+        egui_canvas_draw_text_in_rect(center_font, center_text, &center_region, EGUI_ALIGN_CENTER | EGUI_ALIGN_VCENTER, center_text_color, self->alpha);
     }
 }
 
