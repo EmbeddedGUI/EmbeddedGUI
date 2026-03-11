@@ -289,9 +289,9 @@ static void egui_view_layer_stack_on_draw(egui_view_t *self)
             5,
             status_color,
             egui_color_alpha_mix(self->alpha, local->locked_mode ? 32 : 64));
-    text_region.location.x = pill_x + 1;
+    text_region.location.x = pill_x + 2;
     text_region.location.y = panel_y + header_top;
-    text_region.size.width = pill_w - 2;
+    text_region.size.width = pill_w - 4;
     text_region.size.height = 11;
     egui_canvas_draw_text_in_rect(local->font, snapshot->status, &text_region, EGUI_ALIGN_CENTER, local->text_color, self->alpha);
 
