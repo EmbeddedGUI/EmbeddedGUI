@@ -792,6 +792,20 @@ void egui_init(const egui_init_config_t *config)
         drv->ops->init();
     }
 
+    // Apply initial display configuration from driver struct
+    if (drv != NULL)
+    {
+        if (drv->ops->set_rotation != NULL)
+        {
+            drv->ops->set_rotation(drv->rotation);
+        }
+        if (drv->ops->set_brightness != NULL)
+        {
+            drv->ops->set_brightness(drv->brightness);
+        }
+        // power_on is not applied here — egui_screen_on() handles power, clear screen, and resume together
+    }
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     egui_touch_driver_t *touch = egui_touch_driver_get();
     if (touch != NULL && touch->ops->init != NULL)
