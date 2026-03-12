@@ -41,12 +41,6 @@ porting/stm32g0/
 
 ```c
 static void mcu_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h,
-                                   const egui_color_int_t *data)
-{
-    app_lcd_draw_data(x, y, w, h, (void *)data);
-}
-
-static void mcu_display_draw_area_async(int16_t x, int16_t y, int16_t w, int16_t h,
                                          const egui_color_int_t *data)
 {
     st7789_draw_image_dma_async(x, y, w, h, (const uint16_t *)data);

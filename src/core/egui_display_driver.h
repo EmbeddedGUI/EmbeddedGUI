@@ -29,18 +29,18 @@ struct egui_display_driver_ops
     /** Initialize display hardware. Called once during egui_init. */
     void (*init)(void);
 
-    /** Draw pixel data to a rectangular area on the display (blocking). */
-    void (*draw_area)(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data);
-
     /**
-     * Draw pixel data asynchronously (non-blocking, e.g., DMA).
-     * NULL if not supported -- core will fall back to draw_area.
+     * Draw pixel data to a rectangular area on the display.
+     * Can be synchronous (blocking) or asynchronous (e.g., DMA).
      * When used with multi-buffer PFB, the DMA completion ISR must call
      * egui_pfb_notify_flush_complete() to advance the ring buffer.
      */
-    void (*draw_area_async)(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data);
+    void (*draw_area)(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data);
 
-    /** Wait for async draw to complete. Used by wait_all_complete for drain. */
+    /**
+     * Wait for draw_area to complete. Used to drain pending DMA transfers.
+     * NULL if draw_area is synchronous (blocking) -- no waiting needed.
+     */
     void (*wait_draw_complete)(void);
 
     /** Signal that a full frame has been flushed. May trigger display refresh. */

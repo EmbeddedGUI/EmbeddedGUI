@@ -201,9 +201,12 @@ void egui_core_draw_data(egui_region_t *p_region)
     // Apply software rotation if hardware doesn't support it
     if (drv != NULL && drv->rotation != EGUI_DISPLAY_ROTATION_0 && drv->ops->set_rotation == NULL)
     {
+        // PFB manager async DMA sends from mgr->buffers[] (i.e. egui_core.pfb),
+        // not from the data pointer. So we must ensure the rotated pixels end up
+        // in egui_core.pfb. Use scratch as intermediate, then copy back.
         egui_rotation_transform_pfb(drv->rotation, drv->physical_width, drv->physical_height, &x, &y, &w, &h, data, egui_rotation_scratch,
                                     EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT);
-        data = egui_rotation_scratch;
+        egui_memcpy((void *)data, egui_rotation_scratch, w * h * sizeof(egui_color_int_t));
     }
 #endif
 

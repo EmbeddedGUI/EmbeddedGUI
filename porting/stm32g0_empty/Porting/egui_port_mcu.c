@@ -37,7 +37,6 @@ static void mcu_display_flush(void)
 static const egui_display_driver_ops_t mcu_display_ops = {
         .init = mcu_display_init,
         .draw_area = mcu_display_draw_area,
-        .draw_area_async = NULL,
         .wait_draw_complete = NULL,
         .flush = mcu_display_flush,
         .set_brightness = NULL,

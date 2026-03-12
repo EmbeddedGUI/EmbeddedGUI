@@ -46,8 +46,7 @@ typedef struct egui_display_driver_ops {
     void (*flush)(void);
 
     // --- 可选 ---
-    void (*draw_area_async)(...);
-    void (*wait_draw_complete)(void);
+    void (*wait_draw_complete)(void);  // 等待 draw_area 完成（NULL = draw_area 是同步阻塞的）
     void (*set_brightness)(uint8_t level);
     void (*set_power)(uint8_t on);
     void (*set_rotation)(egui_display_rotation_t rotation);
@@ -120,7 +119,7 @@ typedef struct egui_platform_ops {
 
 ### 异步 DMA 传输
 
-实现 `draw_area_async` 和 `wait_draw_complete`，配合双缓冲使用：
+如果 `draw_area` 启动 DMA 异步传输，需实现 `wait_draw_complete`，配合双缓冲使用：
 
 ```c
 // app_egui_config.h

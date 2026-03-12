@@ -79,7 +79,6 @@ static void designer_display_set_power(uint8_t on)
 static const egui_display_driver_ops_t designer_display_ops = {
         .init = designer_display_init,
         .draw_area = designer_display_draw_area,
-        .draw_area_async = NULL,
         .wait_draw_complete = NULL,
         .flush = designer_display_flush,
         .set_brightness = designer_display_set_brightness,

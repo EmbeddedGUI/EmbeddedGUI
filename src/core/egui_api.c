@@ -75,6 +75,11 @@ void egui_api_draw_data(int16_t x, int16_t y, int16_t width, int16_t height, con
     if (drv != NULL && drv->ops->draw_area != NULL)
     {
         drv->ops->draw_area(x, y, width, height, data);
+        // wait_draw_complete == NULL means draw_area is synchronous, no wait needed
+        if (drv->ops->wait_draw_complete != NULL)
+        {
+            drv->ops->wait_draw_complete();
+        }
     }
 }
 

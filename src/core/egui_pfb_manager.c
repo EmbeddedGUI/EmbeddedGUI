@@ -78,31 +78,27 @@ egui_color_int_t *egui_pfb_manager_get_render_buffer(egui_pfb_manager_t *mgr)
 static void egui_pfb_manager_start_flush(egui_pfb_manager_t *mgr)
 {
     egui_display_driver_t *drv = egui_display_driver_get();
-    if (drv == NULL || drv->ops->draw_area_async == NULL)
+    if (drv == NULL || drv->ops->draw_area == NULL)
     {
         return;
     }
 
     egui_pfb_flush_params_t *p = &mgr->flush_params[mgr->flush_idx];
     mgr->dma_busy = 1;
-    drv->ops->draw_area_async(p->x, p->y, p->w, p->h, mgr->buffers[mgr->flush_idx]);
+    drv->ops->draw_area(p->x, p->y, p->w, p->h, mgr->buffers[mgr->flush_idx]);
 }
 
 void egui_pfb_manager_submit(egui_pfb_manager_t *mgr, int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
 {
-    egui_display_driver_t *drv = egui_display_driver_get();
+    EGUI_UNUSED(data);
 
-    // Single buffer: synchronous draw
-    if (mgr->buffer_count <= 1 || drv == NULL || drv->ops->draw_area_async == NULL)
+    egui_display_driver_t *drv = egui_display_driver_get();
+    if (drv == NULL || drv->ops->draw_area == NULL)
     {
-        if (drv != NULL && drv->ops->draw_area != NULL)
-        {
-            drv->ops->draw_area(x, y, w, h, data);
-        }
         return;
     }
 
-    // Multi-buffer async path: store params and enqueue
+    // Store flush params and enqueue
     egui_pfb_flush_params_t *p = &mgr->flush_params[mgr->render_idx];
     p->x = x;
     p->y = y;
@@ -123,6 +119,13 @@ void egui_pfb_manager_submit(egui_pfb_manager_t *mgr, int16_t x, int16_t y, int1
     if (was_idle && !locked)
     {
         egui_pfb_manager_start_flush(mgr);
+
+        // wait_draw_complete == NULL means draw_area is synchronous (blocking),
+        // mark flush as complete immediately since transfer already finished.
+        if (drv->ops->wait_draw_complete == NULL)
+        {
+            egui_pfb_manager_notify_flush_complete(mgr);
+        }
     }
 }
 
@@ -170,7 +173,7 @@ int egui_pfb_manager_is_async(egui_pfb_manager_t *mgr)
         return 0;
     }
     egui_display_driver_t *drv = egui_display_driver_get();
-    return (drv != NULL && drv->ops->draw_area_async != NULL) ? 1 : 0;
+    return (drv != NULL && drv->ops->draw_area != NULL) ? 1 : 0;
 }
 
 void egui_pfb_manager_swap(egui_pfb_manager_t *mgr)

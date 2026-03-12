@@ -54,12 +54,11 @@ typedef struct egui_display_driver_ops {
     // ---- 必须实现 ----
     void (*init)(void);                    // 初始化 LCD 硬件
     void (*draw_area)(int16_t x, int16_t y, int16_t w, int16_t h,
-                      const egui_color_int_t *data);  // 同步绘制像素数据
+                      const egui_color_int_t *data);  // 绘制像素数据（可同步或异步）
     void (*flush)(void);                   // 帧刷新完成通知
 
-    // ---- 可选：异步 DMA 传输 ----
-    void (*draw_area_async)(...);          // 异步绘制（NULL = 不支持）
-    void (*wait_draw_complete)(void);      // 等待异步完成
+    // ---- 可选：异步 DMA 完成等待 ----
+    void (*wait_draw_complete)(void);      // 等待 draw_area 完成（NULL = draw_area 是同步阻塞的）
 
     // ---- 可选：电源管理 ----
     void (*set_brightness)(uint8_t level); // 亮度 0-255（NULL = 不支持）
@@ -117,8 +116,7 @@ static void my_display_flush(void)
 static const egui_display_driver_ops_t my_display_ops = {
     .init               = my_display_init,
     .draw_area          = my_display_draw_area,
-    .draw_area_async    = NULL,    // 不支持异步
-    .wait_draw_complete = NULL,
+    .wait_draw_complete = NULL,    // draw_area 是同步阻塞的，无需等待
     .flush              = my_display_flush,
     .set_brightness     = NULL,    // 不支持亮度调节
     .set_power          = NULL,    // 不支持电源控制
@@ -155,10 +153,10 @@ static egui_display_driver_t my_display = {
 
 ### 3.5 异步 DMA 传输（可选）
 
-如果你的平台支持 SPI DMA，可以实现 `draw_area_async` 来提升性能：
+如果你的平台支持 SPI DMA，可以在 `draw_area` 中启动 DMA 异步传输，并实现 `wait_draw_complete` 来提升性能：
 
 ```c
-static void my_draw_area_async(int16_t x, int16_t y, int16_t w, int16_t h,
+static void my_draw_area(int16_t x, int16_t y, int16_t w, int16_t h,
                                 const egui_color_int_t *data)
 {
     lcd_set_window(x, y, x + w - 1, y + h - 1);

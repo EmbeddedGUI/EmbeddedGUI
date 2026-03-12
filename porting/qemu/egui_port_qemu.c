@@ -14,7 +14,7 @@
  *
  * SPI simulation uses tick-based deadline for async transfers.
  * When QEMU_SPI_SPEED_MHZ > 0, draw_area() busy-waits for the transfer time,
- * and draw_area_async() sets a tick deadline polled by SysTick_Handler.
+ * and draw_area() sets a tick deadline polled by SysTick_Handler.
  */
 
 /* ============================================================================
@@ -220,7 +220,7 @@ static void qemu_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h, c
 #endif
 }
 
-static void qemu_display_draw_area_async(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
+static void qemu_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
 {
     EGUI_UNUSED(x);
     EGUI_UNUSED(y);
@@ -250,7 +250,6 @@ static void qemu_display_flush(void)
 static const egui_display_driver_ops_t qemu_display_ops = {
         .init = qemu_display_init,
         .draw_area = qemu_display_draw_area,
-        .draw_area_async = qemu_display_draw_area_async,
         .wait_draw_complete = qemu_display_wait_draw_complete,
         .flush = qemu_display_flush,
         .set_brightness = NULL,

@@ -34,7 +34,6 @@ static void test_display_flush(void)
 static const egui_display_driver_ops_t test_display_ops = {
         .init = test_display_init,
         .draw_area = test_display_draw_area,
-        .draw_area_async = NULL,
         .wait_draw_complete = NULL,
         .flush = test_display_flush,
         .set_brightness = NULL,

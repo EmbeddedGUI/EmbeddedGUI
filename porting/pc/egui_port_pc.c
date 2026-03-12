@@ -45,7 +45,6 @@ static void pc_display_set_power(uint8_t on)
 static const egui_display_driver_ops_t pc_display_ops = {
         .init = pc_display_init,
         .draw_area = pc_display_draw_area,
-        .draw_area_async = NULL,
         .wait_draw_complete = NULL,
         .flush = pc_display_flush,
         .set_brightness = pc_display_set_brightness,

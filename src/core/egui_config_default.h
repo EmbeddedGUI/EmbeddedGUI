@@ -569,7 +569,7 @@ extern "C" {
  * Port must provide buffers via egui_pfb_manager_add_buffer() after egui_init(),
  * or via egui_init_config_t.pfb_backup for 2-buffer legacy mode.
  *
- * Requires display driver to implement draw_area_async for count >= 2.
+ * Requires display driver to implement draw_area for count >= 2.
  * DMA completion ISR must call egui_pfb_notify_flush_complete().
  */
 #ifndef EGUI_CONFIG_PFB_BUFFER_COUNT

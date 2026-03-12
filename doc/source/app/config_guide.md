@@ -78,7 +78,7 @@ PFB_RAM = PFB_WIDTH * PFB_HEIGHT * (COLOR_DEPTH / 8) * BUFFER_COUNT
 #define EGUI_CONFIG_PFB_DOUBLE_BUFFER 0
 ```
 
-多缓冲需要显示驱动实现 `draw_area_async`，DMA 完成中断中调用 `egui_pfb_notify_flush_complete()`。
+多缓冲需要显示驱动的 `draw_area` 支持异步传输，DMA 完成中断中调用 `egui_pfb_notify_flush_complete()`。
 
 ## 性能参数
 

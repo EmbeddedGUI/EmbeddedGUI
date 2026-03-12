@@ -87,8 +87,7 @@ static void my_display_flush(void)
 static const egui_display_driver_ops_t my_display_ops = {
     .init               = my_display_init,
     .draw_area          = my_display_draw_area,
-    .draw_area_async    = NULL,
-    .wait_draw_complete = NULL,
+    .wait_draw_complete = NULL,    // draw_area 是同步阻塞的，无需等待
     .flush              = my_display_flush,
     .set_brightness     = NULL,
     .set_power          = NULL,
