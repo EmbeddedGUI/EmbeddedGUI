@@ -53,7 +53,19 @@ egui_color_int_t *egui_pfb_manager_get_render_buffer(egui_pfb_manager_t *mgr)
     // Wait for DMA to free one.
     while (mgr->pending_count >= mgr->buffer_count)
     {
-        // Busy-wait; DMA ISR will decrement pending_count
+        // Try polling: use wait_draw_complete + manual notify for non-interrupt mode
+        if (mgr->dma_busy)
+        {
+            egui_display_driver_t *drv = egui_display_driver_get();
+            if (drv != NULL && drv->ops->wait_draw_complete != NULL)
+            {
+                drv->ops->wait_draw_complete();
+            }
+            if (mgr->dma_busy)
+            {
+                egui_pfb_manager_notify_flush_complete(mgr);
+            }
+        }
     }
 
     return mgr->buffers[mgr->render_idx];
@@ -135,7 +147,19 @@ void egui_pfb_manager_wait_all_complete(egui_pfb_manager_t *mgr)
 {
     while (mgr->pending_count > 0 || mgr->dma_busy)
     {
-        // Busy-wait for all DMA transfers to complete
+        // Try polling: use wait_draw_complete + manual notify for non-interrupt mode
+        if (mgr->dma_busy)
+        {
+            egui_display_driver_t *drv = egui_display_driver_get();
+            if (drv != NULL && drv->ops->wait_draw_complete != NULL)
+            {
+                drv->ops->wait_draw_complete();
+            }
+            if (mgr->dma_busy)
+            {
+                egui_pfb_manager_notify_flush_complete(mgr);
+            }
+        }
     }
 }
 
