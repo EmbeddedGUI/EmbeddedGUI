@@ -419,9 +419,6 @@ void egui_polling_refresh_display(void)
         egui_core_draw_view_group(p_region_dirty, EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH);
     }
 
-    // Wait for all pending async DMA transfers to complete before frame ends
-    egui_pfb_manager_wait_all_complete(&egui_core.pfb_mgr);
-
     // clear the dirty region
     egui_core_clear_region_dirty();
 
@@ -660,12 +657,6 @@ int egui_core_is_suspended(void)
 
 void egui_core_clear_screen(void)
 {
-    egui_display_driver_t *drv = egui_display_driver_get();
-    if (drv == NULL || drv->ops->draw_area == NULL)
-    {
-        return;
-    }
-
     int16_t screen_w = egui_display_get_width();
     int16_t screen_h = egui_display_get_height();
     int16_t pfb_w = egui_core.pfb_width;
@@ -681,14 +672,12 @@ void egui_core_clear_screen(void)
         {
             int16_t w = (x + pfb_w > screen_w) ? (screen_w - x) : pfb_w;
             int16_t h = (y + pfb_h > screen_h) ? (screen_h - y) : pfb_h;
-            drv->ops->draw_area(x, y, w, h, egui_core.pfb);
+            EGUI_REGION_DEFINE(region, x, y, w, h);
+            egui_core_draw_data(&region);
         }
     }
 
-    if (drv->ops->flush != NULL)
-    {
-        drv->ops->flush();
-    }
+    egui_pfb_manager_wait_all_complete(&egui_core.pfb_mgr);
 }
 
 void egui_screen_off(void)
