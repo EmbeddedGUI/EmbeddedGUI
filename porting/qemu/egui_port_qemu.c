@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "egui.h"
+#include "egui_driver_bridge.h"
 
 /**
  * QEMU ARM port: display with optional SPI timing simulation + semihosting I/O + SysTick timing.
@@ -12,9 +13,10 @@
  * With QEMU -icount shift=0, each instruction takes 1 virtual ns,
  * giving deterministic, reproducible timing results.
  *
- * SPI simulation uses tick-based deadline for async transfers.
- * When QEMU_SPI_SPEED_MHZ > 0, draw_area() busy-waits for the transfer time,
- * and draw_area() sets a tick deadline polled by SysTick_Handler.
+ * SPI simulation uses tick-based deadlines for async transfers.
+ * The QEMU LCD HAL driver is registered through the common bridge layer.
+ * When QEMU_SPI_SPEED_MHZ > 0, SysTick polls the transfer deadline and the ISR
+ * path completes PFB flushes via egui_pfb_notify_flush_complete().
  */
 
 /* ============================================================================
@@ -149,16 +151,12 @@ static volatile uint32_t spi_sim_end_tick = 0;
  * ticks = ceil(transfer_us / SYSTICK_PERIOD_US)
  * transfer_us = bytes * 8 / SPI_MHz
  */
+#if QEMU_SPI_SPEED_MHZ > 0
 static uint32_t spi_calc_ticks(uint32_t bytes)
 {
-#if QEMU_SPI_SPEED_MHZ > 0
     uint32_t us = bytes * 8 / QEMU_SPI_SPEED_MHZ;
     uint32_t ticks = (us + SYSTICK_PERIOD_US - 1) / SYSTICK_PERIOD_US;
     return ticks > 0 ? ticks : 1;
-#else
-    EGUI_UNUSED(bytes);
-    return 0;
-#endif
 }
 
 /**
@@ -167,14 +165,11 @@ static uint32_t spi_calc_ticks(uint32_t bytes)
  */
 static void spi_sim_start_async(uint32_t bytes)
 {
-#if QEMU_SPI_SPEED_MHZ > 0
     uint32_t ticks = spi_calc_ticks(bytes);
     spi_sim_end_tick = g_raw_tick_count + ticks;
     spi_sim_busy = 1;
-#else
-    EGUI_UNUSED(bytes);
-#endif
 }
+#endif
 
 /**
  * Poll for SPI completion — called from SysTick_Handler.
@@ -194,81 +189,72 @@ static void spi_sim_poll(void)
 }
 
 /* ============================================================================
- * Display driver
+ * Display HAL driver
  * ============================================================================ */
 
-static void qemu_display_init(void)
+static egui_hal_lcd_driver_t s_qemu_lcd_driver;
+
+static int qemu_lcd_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t *config)
 {
+    memcpy(&self->config, config, sizeof(*config));
+    return 0;
 }
 
-static void qemu_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
+static void qemu_lcd_deinit(egui_hal_lcd_driver_t *self)
 {
+    EGUI_UNUSED(self);
+}
+
+static void qemu_lcd_set_window(egui_hal_lcd_driver_t *self, int16_t x, int16_t y, int16_t w, int16_t h)
+{
+    EGUI_UNUSED(self);
     EGUI_UNUSED(x);
     EGUI_UNUSED(y);
+    EGUI_UNUSED(w);
+    EGUI_UNUSED(h);
+}
+
+static void qemu_lcd_write_pixels(egui_hal_lcd_driver_t *self, const void *data, uint32_t len)
+{
+    EGUI_UNUSED(self);
     EGUI_UNUSED(data);
 
 #if QEMU_SPI_SPEED_MHZ > 0
-    /* Synchronous SPI simulation: busy-wait for transfer time */
-    uint32_t bytes = (uint32_t)w * h * sizeof(egui_color_int_t);
-    uint32_t ticks = spi_calc_ticks(bytes);
-    uint32_t end_tick = g_raw_tick_count + ticks;
-    while ((int32_t)(g_raw_tick_count - end_tick) < 0)
-        ;
+    spi_sim_start_async(len);
 #else
-    EGUI_UNUSED(w);
-    EGUI_UNUSED(h);
+    EGUI_UNUSED(len);
 #endif
 }
 
-static void qemu_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
-{
-    EGUI_UNUSED(x);
-    EGUI_UNUSED(y);
-    EGUI_UNUSED(data);
-
 #if QEMU_SPI_SPEED_MHZ > 0
-    uint32_t bytes = (uint32_t)w * h * sizeof(egui_color_int_t);
-    spi_sim_start_async(bytes);
-#else
-    EGUI_UNUSED(w);
-    EGUI_UNUSED(h);
-#endif
-}
-
-static void qemu_display_wait_draw_complete(void)
+static void qemu_lcd_wait_dma_complete(egui_hal_lcd_driver_t *self)
 {
-#if QEMU_SPI_SPEED_MHZ > 0
+    EGUI_UNUSED(self);
+
     while (spi_sim_busy)
         ;
+}
+
 #endif
-}
-
-static void qemu_display_flush(void)
+static void qemu_lcd_setup(egui_hal_lcd_driver_t *storage)
 {
+    memset(storage, 0, sizeof(*storage));
+    storage->name = "QEMU_LCD";
+    storage->bus_type = EGUI_BUS_TYPE_SPI;
+    storage->init = qemu_lcd_init;
+    storage->deinit = qemu_lcd_deinit;
+    storage->set_window = qemu_lcd_set_window;
+    storage->write_pixels = qemu_lcd_write_pixels;
+#if QEMU_SPI_SPEED_MHZ > 0
+    storage->wait_dma_complete = qemu_lcd_wait_dma_complete;
+#else
+    storage->wait_dma_complete = NULL;
+#endif
+    storage->set_rotation = NULL;
+    storage->set_brightness = NULL;
+    storage->set_power = NULL;
+    storage->set_invert = NULL;
 }
-
-static const egui_display_driver_ops_t qemu_display_ops = {
-        .init = qemu_display_init,
-        .draw_area = qemu_display_draw_area,
-        .wait_draw_complete = qemu_display_wait_draw_complete,
-        .flush = qemu_display_flush,
-        .set_brightness = NULL,
-        .set_power = NULL,
-        .set_rotation = NULL,
-        .fill_rect = NULL,
-        .blit = NULL,
-        .blend = NULL,
-        .wait_vsync = NULL,
-};
-
-static egui_display_driver_t qemu_display_driver = {
-        .ops = &qemu_display_ops,
-        .physical_width = EGUI_CONFIG_SCEEN_WIDTH,
-        .physical_height = EGUI_CONFIG_SCEEN_HEIGHT,
-        .rotation = EGUI_DISPLAY_ROTATION_0,
-        .brightness = 255,
-        .power_on = 1,
-};
 
 /* ============================================================================
  * Platform driver
@@ -365,6 +351,20 @@ void egui_port_init(void)
     uint32_t cal_end = qemu_get_tick_us();
     printf("TIMING_CAL: loop=%luus delay10ms=%luus\n", (unsigned long)(cal_mid - cal_start), (unsigned long)(cal_end - cal_mid));
 #endif
-    egui_display_driver_register(&qemu_display_driver);
+    egui_hal_lcd_config_t lcd_config = {
+            .width = EGUI_CONFIG_SCEEN_WIDTH,
+            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .color_depth = EGUI_CONFIG_COLOR_DEPTH,
+            .color_swap = EGUI_CONFIG_COLOR_16_SWAP,
+            .x_offset = 0,
+            .y_offset = 0,
+            .invert_color = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
+    };
+
+    qemu_lcd_setup(&s_qemu_lcd_driver);
+    s_qemu_lcd_driver.init(&s_qemu_lcd_driver, &lcd_config);
+    egui_display_driver_register(egui_display_driver_from_lcd(&s_qemu_lcd_driver));
     egui_platform_register(&qemu_platform);
 }

@@ -23,7 +23,6 @@ typedef enum egui_display_rotation
  * Display driver operations (vtable).
  * Port implements a static const instance of this struct.
  */
-typedef struct egui_display_driver_ops egui_display_driver_ops_t;
 struct egui_display_driver_ops
 {
     /** Initialize display hardware. Called once during egui_init. */
@@ -77,7 +76,6 @@ struct egui_display_driver_ops
  * Display driver instance. One per display.
  * Statically allocated by the port.
  */
-typedef struct egui_display_driver egui_display_driver_t;
 struct egui_display_driver
 {
     const egui_display_driver_ops_t *ops;

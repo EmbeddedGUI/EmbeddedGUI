@@ -1,4 +1,4 @@
-#ifndef _EGUI_CONFIG_DEFAULT_H_
+﻿#ifndef _EGUI_CONFIG_DEFAULT_H_
 #define _EGUI_CONFIG_DEFAULT_H_
 
 /* Set up for C function definitions, even when using C++ */
@@ -566,8 +566,9 @@ extern "C" {
  *
  * More buffers smooth out CPU time variance at the cost of RAM.
  * Each buffer costs PFB_WIDTH * PFB_HEIGHT * COLOR_BYTES.
- * Port must provide buffers via egui_pfb_manager_add_buffer() after egui_init(),
- * or via egui_init_config_t.pfb_backup for 2-buffer legacy mode.
+ * Port provides buffers by declaring:
+ *   egui_color_int_t pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT]
+ * and passing it to egui_init(pfb).
  *
  * Requires display driver to implement draw_area for count >= 2.
  * DMA completion ISR must call egui_pfb_notify_flush_complete().
@@ -766,3 +767,5 @@ extern "C" {
 #endif
 
 #endif /* _EGUI_CONFIG_DEFAULT_H_ */
+
+

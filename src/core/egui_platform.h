@@ -15,7 +15,6 @@ extern "C" {
  * Platform operations (vtable).
  * Separates OS/platform services from hardware drivers.
  */
-typedef struct egui_platform_ops egui_platform_ops_t;
 struct egui_platform_ops
 {
     /** Memory allocation (can be NULL if malloc not available) */
@@ -85,7 +84,6 @@ struct egui_platform_ops
 /**
  * Platform driver instance.
  */
-typedef struct egui_platform egui_platform_t;
 struct egui_platform
 {
     const egui_platform_ops_t *ops;

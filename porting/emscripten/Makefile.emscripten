@@ -68,13 +68,14 @@ SRC ?=
 INCLUDE ?=
 LIB ?=
 
-OUTPUT_TARGET := $(OUTPUT_PATH)/$(TARGET)
 APP_OBJ_SUFFIX ?= $(if $(APP),$(APP),default)
-OBJDIR = $(OUTPUT_PATH)/obj/$(APP_OBJ_SUFFIX)
-OBJLIST_FILE := $(OUTPUT_PATH)/$(APP_OBJ_SUFFIX)_objects.rsp
+OUTPUT_TARGET := $(OUTPUT_PATH)/$(TARGET)
+BUILD_OBJ_SUFFIX := $(APP_OBJ_SUFFIX)$(if $(PORT),_$(PORT),)
+OBJDIR = $(OUTPUT_PATH)/obj/$(BUILD_OBJ_SUFFIX)
+OBJLIST_FILE := $(OUTPUT_PATH)/$(BUILD_OBJ_SUFFIX)_objects.rsp
 
 # Configuration stamp - forces relink when APP changes.
-APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(APP_OBJ_SUFFIX)
+APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(BUILD_OBJ_SUFFIX)
 
 # Makefile prerequisites for rebuild
 MAKEFILE_PREREQS += Makefile

@@ -462,10 +462,7 @@ void egui_polling_work(void)
     egui_timer_polling_work();
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-    if (!egui_input_check_idle())
-    {
-        egui_input_polling_work();
-    }
+    egui_input_polling_work();
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
@@ -586,11 +583,6 @@ void egui_pfb_notify_flush_complete(void)
     egui_pfb_manager_notify_flush_complete(&egui_core.pfb_mgr);
 }
 
-void egui_pfb_add_buffer(egui_color_int_t *buf)
-{
-    egui_pfb_manager_add_buffer(&egui_core.pfb_mgr, buf);
-}
-
 void egui_pfb_bus_acquire(void)
 {
     egui_pfb_manager_bus_acquire(&egui_core.pfb_mgr);
@@ -705,21 +697,24 @@ void egui_screen_on(void)
     egui_core_resume();
 }
 
-void egui_init(const egui_init_config_t *config)
+void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT])
 {
     egui_core.screen_width = EGUI_CONFIG_SCEEN_WIDTH;
     egui_core.screen_height = EGUI_CONFIG_SCEEN_HEIGHT;
     egui_core.color_bytes = EGUI_CONFIG_COLOR_DEPTH >> 3;
 
-    egui_core_pfb_set_buffer(config->pfb, EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT);
+    egui_core_pfb_set_buffer(pfb[0], EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT);
 
-    // Initialize PFB manager
-    egui_pfb_manager_init(&egui_core.pfb_mgr, config->pfb, EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT, egui_core.color_bytes);
+    // Initialize PFB manager with first buffer
+    egui_pfb_manager_init(&egui_core.pfb_mgr, pfb[0], EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT, egui_core.color_bytes);
 
-    // Enable double buffering if backup buffer is provided
-    if (config->pfb_backup != NULL)
+    // Auto-add extra buffers based on EGUI_CONFIG_PFB_BUFFER_COUNT
     {
-        egui_pfb_manager_set_backup_buffer(&egui_core.pfb_mgr, config->pfb_backup);
+        int i;
+        for (i = 1; i < EGUI_CONFIG_PFB_BUFFER_COUNT; i++)
+        {
+            egui_pfb_manager_add_buffer(&egui_core.pfb_mgr, pfb[i]);
+        }
     }
 
     // reset the unique id

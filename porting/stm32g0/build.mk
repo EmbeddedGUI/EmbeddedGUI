@@ -7,6 +7,9 @@ SRC		+= $(EGUI_PORT_PATH)/Porting
 # define include directory
 INCLUDE	+= $(EGUI_PORT_PATH)
 INCLUDE	+= $(EGUI_PORT_PATH)/Core/Inc
+INCLUDE	+= $(EGUI_PORT_PATH)/Porting
+
+# EGUI driver sources/includes are provided by driver/build.mk
 
 # define lib directory
 LIB		+=

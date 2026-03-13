@@ -28,10 +28,11 @@ OUTPUT_PATH	:= output
 
 # define the C object files
 APP_OBJ_SUFFIX ?= $(if $(APP),$(APP),default)
-OBJ_PATH 	:= $(OUTPUT_PATH)/obj/$(APP_OBJ_SUFFIX)
+BUILD_OBJ_SUFFIX := $(APP_OBJ_SUFFIX)$(if $(PORT),_$(PORT),)
+OBJ_PATH 	:= $(OUTPUT_PATH)/obj/$(BUILD_OBJ_SUFFIX)
 
 # Configuration stamp - forces relink when APP changes.
-APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(APP_OBJ_SUFFIX)
+APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(BUILD_OBJ_SUFFIX)
 
 # define the target
 TARGET		  	?= $(OUTPUT_PATH)/main

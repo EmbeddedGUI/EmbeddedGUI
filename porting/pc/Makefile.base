@@ -107,16 +107,16 @@ INCLUDE	?=
 LIB		?= 
 
 
-OUTPUT_TARGET	:= $(OUTPUT_PATH)/$(TARGET)
-
 APP_OBJ_SUFFIX ?= $(if $(APP),$(APP),default)
-OBJDIR = $(OUTPUT_PATH)/obj/$(APP_OBJ_SUFFIX)
+BUILD_OBJ_SUFFIX := $(APP_OBJ_SUFFIX)$(if $(PORT),_$(PORT),)
+OUTPUT_TARGET	:= $(OUTPUT_PATH)/$(TARGET)
+OBJDIR = $(OUTPUT_PATH)/obj/$(BUILD_OBJ_SUFFIX)
 
 # Configuration stamp - forces relink when APP changes.
 # The stamp filename encodes the current APP; switching APP means the old
 # stamp is missing, which triggers its recipe (delete stale stamps, create
 # new one).  The fresh timestamp then makes OUTPUT_MAIN out-of-date.
-APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(APP_OBJ_SUFFIX)
+APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(BUILD_OBJ_SUFFIX)
 
 # Prerequisites for rebuild when makefiles change
 MAKEFILE_PREREQS += Makefile

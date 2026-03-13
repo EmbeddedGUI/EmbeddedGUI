@@ -26,6 +26,8 @@ SIMPLE_POOL_DEFINE(input_motion_pool, EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT, size
 
 /** Previous touch state for edge detection */
 static uint8_t egui_touch_prev_pressed = 0;
+static int16_t egui_touch_prev_x = 0;
+static int16_t egui_touch_prev_y = 0;
 
 int egui_input_add_motion(uint8_t type, egui_dim_t x, egui_dim_t y)
 {
@@ -177,13 +179,18 @@ void egui_input_polling_work(void)
         }
         else if (pressed && egui_touch_prev_pressed)
         {
-            egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_MOVE, tx, ty);
+            if (tx != egui_touch_prev_x || ty != egui_touch_prev_y)
+            {
+                egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_MOVE, tx, ty);
+            }
         }
         else if (!pressed && egui_touch_prev_pressed)
         {
             egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_UP, tx, ty);
         }
         egui_touch_prev_pressed = pressed;
+        egui_touch_prev_x = tx;
+        egui_touch_prev_y = ty;
     }
 
     while (1)
@@ -227,6 +234,8 @@ void egui_input_init(void)
     egui_slist_init(&egui_input_info.motion_list);
     egui_velocity_tracker_init(&egui_input_info.velocity_tracker);
     egui_touch_prev_pressed = 0;
+    egui_touch_prev_x = 0;
+    egui_touch_prev_y = 0;
 
     // Initialize touch driver if registered
     egui_touch_driver_t *tdrv = egui_touch_driver_get();

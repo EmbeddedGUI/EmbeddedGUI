@@ -4,55 +4,55 @@
 #include <stdarg.h>
 
 #include "egui.h"
+#include "egui_driver_bridge.h"
 
 /**
- * PC test port (headless): display and platform driver registration.
- * Replaces the old port_api.c which directly implemented egui_api_* functions.
+ * PC test port (headless): platform registration plus a no-op LCD HAL driver.
  */
 
+static egui_hal_lcd_driver_t s_test_lcd_driver;
+
 // ============================================================================
-// Display driver (headless - no-op)
+// Display HAL driver (headless - no-op)
 // ============================================================================
 
-static void test_display_init(void)
+static int test_lcd_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t *config)
 {
+    memcpy(&self->config, config, sizeof(*config));
+    return 0;
 }
 
-static void test_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
+static void test_lcd_deinit(egui_hal_lcd_driver_t *self)
 {
+    EGUI_UNUSED(self);
+}
+
+static void test_lcd_set_window(egui_hal_lcd_driver_t *self, int16_t x, int16_t y, int16_t w, int16_t h)
+{
+    EGUI_UNUSED(self);
     EGUI_UNUSED(x);
     EGUI_UNUSED(y);
     EGUI_UNUSED(w);
     EGUI_UNUSED(h);
-    EGUI_UNUSED(data);
 }
 
-static void test_display_flush(void)
+static void test_lcd_write_pixels(egui_hal_lcd_driver_t *self, const void *data, uint32_t len)
 {
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(data);
+    EGUI_UNUSED(len);
 }
 
-static const egui_display_driver_ops_t test_display_ops = {
-        .init = test_display_init,
-        .draw_area = test_display_draw_area,
-        .wait_draw_complete = NULL,
-        .flush = test_display_flush,
-        .set_brightness = NULL,
-        .set_power = NULL,
-        .set_rotation = NULL,
-        .fill_rect = NULL,
-        .blit = NULL,
-        .blend = NULL,
-        .wait_vsync = NULL,
-};
-
-static egui_display_driver_t test_display_driver = {
-        .ops = &test_display_ops,
-        .physical_width = EGUI_CONFIG_SCEEN_WIDTH,
-        .physical_height = EGUI_CONFIG_SCEEN_HEIGHT,
-        .rotation = EGUI_DISPLAY_ROTATION_0,
-        .brightness = 255,
-        .power_on = 1,
-};
+static void test_lcd_setup(egui_hal_lcd_driver_t *storage)
+{
+    memset(storage, 0, sizeof(*storage));
+    storage->name = "PC_TEST_LCD";
+    storage->bus_type = EGUI_BUS_TYPE_SPI;
+    storage->init = test_lcd_init;
+    storage->deinit = test_lcd_deinit;
+    storage->set_window = test_lcd_set_window;
+    storage->write_pixels = test_lcd_write_pixels;
+}
 
 // ============================================================================
 // Platform driver
@@ -140,6 +140,20 @@ static egui_platform_t test_platform = {
 
 void egui_port_init(void)
 {
-    egui_display_driver_register(&test_display_driver);
+    egui_hal_lcd_config_t lcd_config = {
+            .width = EGUI_CONFIG_SCEEN_WIDTH,
+            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .color_depth = EGUI_CONFIG_COLOR_DEPTH,
+            .color_swap = EGUI_CONFIG_COLOR_16_SWAP,
+            .x_offset = 0,
+            .y_offset = 0,
+            .invert_color = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
+    };
+
+    test_lcd_setup(&s_test_lcd_driver);
+    s_test_lcd_driver.init(&s_test_lcd_driver, &lcd_config);
+    egui_display_driver_register(egui_display_driver_from_lcd(&s_test_lcd_driver));
     egui_platform_register(&test_platform);
 }

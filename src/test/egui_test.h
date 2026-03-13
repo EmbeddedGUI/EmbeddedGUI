@@ -129,7 +129,6 @@ void egui_test_case_end(void);
 void egui_test_fail(const char *file, int line, const char *expr, const char *msg);
 void egui_test_fail_int(const char *file, int line, const char *expr, int expected, int actual);
 
-typedef struct egui_region egui_region_t;
 int egui_test_region_is_same(const egui_region_t *a, const egui_region_t *b);
 void egui_test_fail_region(const char *file, int line, const char *expr, const egui_region_t *expected, const egui_region_t *actual);
 

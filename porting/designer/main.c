@@ -10,8 +10,11 @@ extern void egui_port_init(void);
 extern void designer_fb_to_rgb888(void);
 extern uint8_t *designer_get_rgb888(void);
 extern uint32_t designer_get_rgb888_size(void);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+extern void designer_touch_set_state(uint8_t pressed, int16_t x, int16_t y);
+#endif
 
-static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
+static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
 
 #define MAX_PATH_LEN 0x1000
 char input_file_path[MAX_PATH_LEN];
@@ -44,11 +47,7 @@ int main(int argc, const char *argv[])
 
     /* Init EGUI */
     egui_port_init();
-    egui_init_config_t init_config = {
-            .pfb = egui_pfb,
-            .pfb_backup = NULL,
-    };
-    egui_init(&init_config);
+    egui_init(egui_pfb);
     uicode_create_ui();
     egui_screen_on();
 
@@ -79,23 +78,13 @@ int main(int argc, const char *argv[])
 
         case DESIGNER_CMD_TOUCH:
         {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
             uint8_t action = payload[0];
             uint16_t x = payload[1] | (payload[2] << 8);
             uint16_t y = payload[3] | (payload[4] << 8);
-            int egui_action;
-            if (action == DESIGNER_TOUCH_DOWN)
-            {
-                egui_action = EGUI_MOTION_EVENT_ACTION_DOWN;
-            }
-            else if (action == DESIGNER_TOUCH_UP)
-            {
-                egui_action = EGUI_MOTION_EVENT_ACTION_UP;
-            }
-            else
-            {
-                egui_action = EGUI_MOTION_EVENT_ACTION_MOVE;
-            }
-            egui_input_add_motion(egui_action, x, y);
+            uint8_t pressed = (action != DESIGNER_TOUCH_UP);
+            designer_touch_set_state(pressed, (int16_t)x, (int16_t)y);
+#endif
             break;
         }
 

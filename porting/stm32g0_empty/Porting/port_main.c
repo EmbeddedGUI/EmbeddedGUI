@@ -23,17 +23,13 @@ void app_set_gpio(uint8_t pin, uint8_t state)
  * @retval None
  */
 extern void plaftorm_api_init(void);
-static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT] APP_EGUI_CONFIG_PFB_SECTION;
+static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT] APP_EGUI_CONFIG_PFB_SECTION;
 void port_main(void)
 {
     extern void egui_port_init(void);
     egui_port_init();
 
-    egui_init_config_t init_config = {
-            .pfb = egui_pfb,
-            .pfb_backup = NULL,
-    };
-    egui_init(&init_config);
+    egui_init(egui_pfb);
 
     EGUI_LOG_DBG("Hello EGUI\r\n");
 

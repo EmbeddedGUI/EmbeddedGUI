@@ -77,6 +77,93 @@ static volatile bool sdl_refr_cpl = false;
 static volatile bool sdl_quit_qry = false;
 
 static bool sdl_mouse_left_down = false;
+static SDL_mutex *sdl_touch_mutex = NULL;
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+typedef struct sdl_touch_event {
+    uint8_t pressed;
+    int16_t x;
+    int16_t y;
+} sdl_touch_event_t;
+
+#define SDL_TOUCH_EVENT_QUEUE_SIZE 64
+static sdl_touch_event_t sdl_touch_event_queue[SDL_TOUCH_EVENT_QUEUE_SIZE];
+static uint8_t sdl_touch_event_head = 0;
+static uint8_t sdl_touch_event_tail = 0;
+static uint8_t sdl_touch_event_count = 0;
+static sdl_touch_event_t sdl_touch_last_state = {0, 0, 0};
+
+static void sdl_touch_lock(void)
+{
+    if (sdl_touch_mutex == NULL)
+    {
+        sdl_touch_mutex = SDL_CreateMutex();
+    }
+    if (sdl_touch_mutex != NULL)
+    {
+        SDL_LockMutex(sdl_touch_mutex);
+    }
+}
+
+static void sdl_touch_unlock(void)
+{
+    if (sdl_touch_mutex != NULL)
+    {
+        SDL_UnlockMutex(sdl_touch_mutex);
+    }
+}
+
+static void sdl_port_touch_push_event(uint8_t pressed, int16_t x, int16_t y)
+{
+    sdl_touch_lock();
+
+    sdl_touch_last_state.pressed = pressed;
+    sdl_touch_last_state.x = x;
+    sdl_touch_last_state.y = y;
+
+    if (sdl_touch_event_count >= SDL_TOUCH_EVENT_QUEUE_SIZE)
+    {
+        sdl_touch_event_head = (uint8_t)((sdl_touch_event_head + 1) % SDL_TOUCH_EVENT_QUEUE_SIZE);
+        sdl_touch_event_count--;
+    }
+
+    sdl_touch_event_queue[sdl_touch_event_tail] = sdl_touch_last_state;
+    sdl_touch_event_tail = (uint8_t)((sdl_touch_event_tail + 1) % SDL_TOUCH_EVENT_QUEUE_SIZE);
+    sdl_touch_event_count++;
+
+    sdl_touch_unlock();
+}
+
+void sdl_port_touch_read(uint8_t *pressed, int16_t *x, int16_t *y)
+{
+    sdl_touch_event_t event;
+
+    if (pressed == NULL || x == NULL || y == NULL)
+    {
+        return;
+    }
+
+    sdl_touch_lock();
+
+    if (sdl_touch_event_count > 0)
+    {
+        event = sdl_touch_event_queue[sdl_touch_event_head];
+        sdl_touch_event_head = (uint8_t)((sdl_touch_event_head + 1) % SDL_TOUCH_EVENT_QUEUE_SIZE);
+        sdl_touch_event_count--;
+        sdl_touch_last_state = event;
+    }
+    else
+    {
+        event = sdl_touch_last_state;
+    }
+
+    sdl_touch_unlock();
+
+    *pressed = event.pressed;
+    *x = event.x;
+    *y = event.y;
+}
+#endif
 
 // Recording state for GIF generation
 #define RECORDING_MAX_FRAMES 1000
@@ -146,6 +233,11 @@ static void monitor_sdl_clean_up(void)
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    if (sdl_touch_mutex != NULL)
+    {
+        SDL_DestroyMutex(sdl_touch_mutex);
+        sdl_touch_mutex = NULL;
+    }
     SDL_Quit();
 }
 
@@ -154,6 +246,10 @@ static void monitor_sdl_init(void)
 
     /*Initialize the SDL*/
     SDL_Init(SDL_INIT_VIDEO);
+    if (sdl_touch_mutex == NULL)
+    {
+        sdl_touch_mutex = SDL_CreateMutex();
+    }
 
     SDL_SetEventFilter(quit_filter, NULL);
 
@@ -224,8 +320,8 @@ void VT_sdl_refresh_task(void)
                 sdl_mouse_left_down = false;
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-                egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_UP, (&event)->motion.x, (&event)->motion.y);
-#endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+                sdl_port_touch_push_event(0, (&event)->button.x, (&event)->button.y);
+#endif
             }
             break;
         case SDL_MOUSEBUTTONDOWN:
@@ -234,16 +330,16 @@ void VT_sdl_refresh_task(void)
                 sdl_mouse_left_down = true;
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-                egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_DOWN, (&event)->motion.x, (&event)->motion.y);
-#endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+                sdl_port_touch_push_event(1, (&event)->button.x, (&event)->button.y);
+#endif
             }
             break;
         case SDL_MOUSEMOTION:
             if (sdl_mouse_left_down)
             {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-                egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_MOVE, (&event)->motion.x, (&event)->motion.y);
-#endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+                sdl_port_touch_push_event(1, (&event)->motion.x, (&event)->motion.y);
+#endif
             }
             break;
 
@@ -535,17 +631,21 @@ void VT_sdl_flush(int32_t nMS)
 {
 #ifdef __EMSCRIPTEN__
     // Single-threaded: set flag and return, VT_sdl_refresh_task() handles rendering
-    sdl_refr_cpl = false;
-    sdl_refr_qry = true;
+    sdl_port_request_refresh();
 #else
     nMS = EGUI_MAX(1, nMS);
     while (!sdl_refr_cpl)
     {
         SDL_Delay(nMS);
     }
+    sdl_port_request_refresh();
+#endif
+}
+
+void sdl_port_request_refresh(void)
+{
     sdl_refr_cpl = false;
     sdl_refr_qry = true;
-#endif
 }
 
 void sdl_port_sleep(uint32_t nMS)
@@ -967,9 +1067,8 @@ static void recording_execute_action_step(void)
     switch (action->type)
     {
     case EGUI_SIM_ACTION_CLICK:
-        // Single click: down + up
-        egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_DOWN, action->x1, action->y1);
-        egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_UP, action->x1, action->y1);
+        sdl_port_touch_push_event(1, action->x1, action->y1);
+        sdl_port_touch_push_event(0, action->x1, action->y1);
         break;
 
     case EGUI_SIM_ACTION_DRAG:
@@ -980,22 +1079,19 @@ static void recording_execute_action_step(void)
 
         if (step == 0)
         {
-            // First step: touch down at start position
-            egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_DOWN, action->x1, action->y1);
+            sdl_port_touch_push_event(1, action->x1, action->y1);
             g_recording_drag_in_progress = true;
         }
         else if (step <= steps)
         {
-            // Intermediate steps: move
             int x = action->x1 + (action->x2 - action->x1) * step / steps;
             int y = action->y1 + (action->y2 - action->y1) * step / steps;
-            egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_MOVE, x, y);
+            sdl_port_touch_push_event(1, x, y);
         }
 
         if (step >= steps)
         {
-            // Last step: touch up at end position
-            egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_UP, action->x2, action->y2);
+            sdl_port_touch_push_event(0, action->x2, action->y2);
             g_recording_drag_in_progress = false;
         }
         break;

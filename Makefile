@@ -69,6 +69,10 @@ EGUI_APP_RESOURCE_PATH ?= $(EGUI_APP_PATH)/resource
 # include egui src
 include $(EGUI_PATH)/build.mk
 
+# include driver layer (HAL)
+EGUI_DRIVER_PATH := driver
+include $(EGUI_DRIVER_PATH)/build.mk
+
 SRC += $(EGUI_CODE_SRC)
 INCLUDE += $(EGUI_CODE_INCLUDE)
 

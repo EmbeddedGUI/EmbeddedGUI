@@ -6,17 +6,7 @@ extern void qemu_systick_init(void);
 extern void qemu_exit(int code);
 extern void initialise_monitor_handles(void);
 
-static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
-
-#if EGUI_CONFIG_PFB_BUFFER_COUNT >= 2
-static egui_color_int_t egui_pfb2[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
-#endif
-#if EGUI_CONFIG_PFB_BUFFER_COUNT >= 3
-static egui_color_int_t egui_pfb3[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
-#endif
-#if EGUI_CONFIG_PFB_BUFFER_COUNT >= 4
-static egui_color_int_t egui_pfb4[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
-#endif
+static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
 
 /* Flag set by benchmark code when all tests are done */
 volatile int g_qemu_perf_complete = 0;
@@ -38,22 +28,7 @@ int main(void)
     extern void egui_port_init(void);
     egui_port_init();
 
-    egui_init_config_t init_config = {
-            .pfb = egui_pfb,
-            .pfb_backup = NULL,
-    };
-    egui_init(&init_config);
-
-    /* Add extra PFB buffers for multi-buffering */
-#if EGUI_CONFIG_PFB_BUFFER_COUNT >= 2
-    egui_pfb_add_buffer(egui_pfb2);
-#endif
-#if EGUI_CONFIG_PFB_BUFFER_COUNT >= 3
-    egui_pfb_add_buffer(egui_pfb3);
-#endif
-#if EGUI_CONFIG_PFB_BUFFER_COUNT >= 4
-    egui_pfb_add_buffer(egui_pfb4);
-#endif
+    egui_init(egui_pfb);
 
     printf("QEMU EGUI Performance Benchmark\n");
 

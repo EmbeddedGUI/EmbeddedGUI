@@ -58,14 +58,14 @@ struct egui_core
 };
 
 /**
- * Initialization configuration for egui_init().
- * Users fill this struct and pass it to egui_init().
+ * Initialize EGUI with PFB buffer.
+ *
+ * @param pfb  2D PFB buffer array, declared as:
+ *             egui_color_int_t pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT]
+ *
+ * egui_init() will automatically use all buffers based on EGUI_CONFIG_PFB_BUFFER_COUNT.
  */
-typedef struct egui_init_config
-{
-    egui_color_int_t *pfb;        // Primary PFB buffer (required)
-    egui_color_int_t *pfb_backup; // Backup PFB buffer for double buffering (NULL = single buffer)
-} egui_init_config_t;
+void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT]);
 
 void egui_core_force_refresh(void);
 egui_view_group_t *egui_core_get_root_view(void);
@@ -96,7 +96,6 @@ void egui_core_set_screen_size(int16_t width, int16_t height);
 void egui_core_suspend(void);
 void egui_core_resume(void);
 int egui_core_is_suspended(void);
-void egui_init(const egui_init_config_t *config);
 
 /**
  * Notify that an async DMA flush has completed.
@@ -104,13 +103,6 @@ void egui_init(const egui_init_config_t *config);
  * Safe to call from interrupt context.
  */
 void egui_pfb_notify_flush_complete(void);
-
-/**
- * Add an extra PFB buffer to the ring queue.
- * Call after egui_init() but before egui_screen_on().
- * Each call adds one buffer; up to EGUI_PFB_BUFFER_MAX total.
- */
-void egui_pfb_add_buffer(egui_color_int_t *buf);
 
 /**
  * Acquire/release SPI bus for non-display access.

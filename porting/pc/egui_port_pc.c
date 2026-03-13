@@ -4,6 +4,8 @@
 #include <stdarg.h>
 
 #include "egui.h"
+#include "egui_driver_bridge.h"
+#include "egui_hal_sdl_sim.h"
 #include "sdl_port.h"
 
 /**
@@ -11,59 +13,10 @@
  * Replaces the old api_pc.c which directly implemented egui_api_* functions.
  */
 
-// ============================================================================
-// Display driver
-// ============================================================================
-
-static void pc_display_init(void)
-{
-    // SDL init is handled separately in main.c (VT_init)
-}
-
-static void pc_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
-{
-    VT_Fill_Multiple_Colors(x, y, x + w - 1, y + h - 1, (egui_color_int_t *)data);
-}
-
-static void pc_display_flush(void)
-{
-    VT_sdl_flush(1);
-}
-
-static void pc_display_set_brightness(uint8_t level)
-{
-    // PC simulator: no-op for brightness
-    EGUI_UNUSED(level);
-}
-
-static void pc_display_set_power(uint8_t on)
-{
-    // PC simulator: no-op for power
-    EGUI_UNUSED(on);
-}
-
-static const egui_display_driver_ops_t pc_display_ops = {
-        .init = pc_display_init,
-        .draw_area = pc_display_draw_area,
-        .wait_draw_complete = NULL,
-        .flush = pc_display_flush,
-        .set_brightness = pc_display_set_brightness,
-        .set_power = pc_display_set_power,
-        .set_rotation = NULL, // Use software rotation
-        .fill_rect = NULL,
-        .blit = NULL,
-        .blend = NULL,
-        .wait_vsync = NULL,
-};
-
-static egui_display_driver_t pc_display_driver = {
-        .ops = &pc_display_ops,
-        .physical_width = EGUI_CONFIG_SCEEN_WIDTH,
-        .physical_height = EGUI_CONFIG_SCEEN_HEIGHT,
-        .rotation = EGUI_DISPLAY_ROTATION_0,
-        .brightness = 255,
-        .power_on = 1,
-};
+static egui_hal_lcd_driver_t s_pc_lcd_driver;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+static egui_hal_touch_driver_t s_pc_touch_driver;
+#endif
 
 // ============================================================================
 // Platform driver
@@ -223,6 +176,35 @@ static egui_platform_t pc_platform = {
 
 void egui_port_init(void)
 {
-    egui_display_driver_register(&pc_display_driver);
+    egui_hal_lcd_config_t lcd_config = {
+            .width = EGUI_CONFIG_SCEEN_WIDTH,
+            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .color_depth = EGUI_CONFIG_COLOR_DEPTH,
+            .color_swap = EGUI_CONFIG_COLOR_16_SWAP,
+            .x_offset = 0,
+            .y_offset = 0,
+            .invert_color = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
+    };
+
+    egui_hal_sdl_lcd_setup(&s_pc_lcd_driver);
+    s_pc_lcd_driver.init(&s_pc_lcd_driver, &lcd_config);
+    egui_display_driver_register(egui_display_driver_from_lcd(&s_pc_lcd_driver));
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    egui_hal_touch_config_t touch_config = {
+            .width = EGUI_CONFIG_SCEEN_WIDTH,
+            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .swap_xy = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
+    };
+
+    egui_hal_sdl_touch_setup(&s_pc_touch_driver);
+    s_pc_touch_driver.init(&s_pc_touch_driver, &touch_config);
+    egui_touch_driver_bridge_register(&s_pc_touch_driver);
+#endif
+
     egui_platform_register(&pc_platform);
 }

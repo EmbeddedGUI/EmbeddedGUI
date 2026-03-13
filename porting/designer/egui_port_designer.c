@@ -4,6 +4,7 @@
 #include <stdarg.h>
 
 #include "egui.h"
+#include "egui_driver_bridge.h"
 
 /**
  * Headless designer port: display and platform driver.
@@ -42,62 +43,147 @@ uint32_t designer_get_rgb888_size(void)
 }
 
 /* ============================================================================
- * Display driver
+ * Display HAL driver
  * ============================================================================ */
 
-static void designer_display_init(void)
+static egui_hal_lcd_driver_t designer_lcd_driver;
+static struct {
+    int16_t x;
+    int16_t y;
+    int16_t w;
+    int16_t h;
+} designer_window;
+
+static int designer_lcd_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t *config)
 {
+    memcpy(&self->config, config, sizeof(*config));
     memset(designer_fb, 0, sizeof(designer_fb));
+    memset(&designer_window, 0, sizeof(designer_window));
+    return 0;
 }
 
-static void designer_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
+static void designer_lcd_deinit(egui_hal_lcd_driver_t *self)
 {
-    for (int16_t row = 0; row < h; row++)
+    EGUI_UNUSED(self);
+}
+
+static void designer_lcd_set_window(egui_hal_lcd_driver_t *self, int16_t x, int16_t y, int16_t w, int16_t h)
+{
+    EGUI_UNUSED(self);
+    designer_window.x = x;
+    designer_window.y = y;
+    designer_window.w = w;
+    designer_window.h = h;
+}
+
+static void designer_lcd_write_pixels(egui_hal_lcd_driver_t *self, const void *data, uint32_t len)
+{
+    EGUI_UNUSED(self);
+
+    const egui_color_int_t *pixels = (const egui_color_int_t *)data;
+    uint32_t pixel_count = len / sizeof(egui_color_int_t);
+    uint32_t index = 0;
+
+    for (int16_t row = 0; row < designer_window.h && index < pixel_count; row++)
     {
-        for (int16_t col = 0; col < w; col++)
+        for (int16_t col = 0; col < designer_window.w && index < pixel_count; col++)
         {
-            designer_fb[(y + row) * EGUI_CONFIG_SCEEN_WIDTH + (x + col)] = *data++;
+            designer_fb[(designer_window.y + row) * EGUI_CONFIG_SCEEN_WIDTH + (designer_window.x + col)] = pixels[index++];
         }
     }
 }
 
-static void designer_display_flush(void)
+static void designer_lcd_set_brightness(egui_hal_lcd_driver_t *self, uint8_t level)
 {
-    /* No-op: frame stays in memory, sent on CMD_RENDER */
-}
-
-static void designer_display_set_brightness(uint8_t level)
-{
+    EGUI_UNUSED(self);
     EGUI_UNUSED(level);
 }
 
-static void designer_display_set_power(uint8_t on)
+static void designer_lcd_set_power(egui_hal_lcd_driver_t *self, uint8_t on)
 {
+    EGUI_UNUSED(self);
     EGUI_UNUSED(on);
 }
 
-static const egui_display_driver_ops_t designer_display_ops = {
-        .init = designer_display_init,
-        .draw_area = designer_display_draw_area,
-        .wait_draw_complete = NULL,
-        .flush = designer_display_flush,
-        .set_brightness = designer_display_set_brightness,
-        .set_power = designer_display_set_power,
-        .set_rotation = NULL,
-        .fill_rect = NULL,
-        .blit = NULL,
-        .blend = NULL,
-        .wait_vsync = NULL,
-};
+static void designer_lcd_setup(egui_hal_lcd_driver_t *storage)
+{
+    memset(storage, 0, sizeof(*storage));
+    storage->name = "DESIGNER_FB";
+    storage->bus_type = EGUI_BUS_TYPE_SPI;
+    storage->init = designer_lcd_init;
+    storage->deinit = designer_lcd_deinit;
+    storage->set_window = designer_lcd_set_window;
+    storage->write_pixels = designer_lcd_write_pixels;
+    storage->wait_dma_complete = NULL;
+    storage->set_rotation = NULL;
+    storage->set_brightness = designer_lcd_set_brightness;
+    storage->set_power = designer_lcd_set_power;
+    storage->set_invert = NULL;
+}
 
-static egui_display_driver_t designer_display_driver = {
-        .ops = &designer_display_ops,
-        .physical_width = EGUI_CONFIG_SCEEN_WIDTH,
-        .physical_height = EGUI_CONFIG_SCEEN_HEIGHT,
-        .rotation = EGUI_DISPLAY_ROTATION_0,
-        .brightness = 255,
-        .power_on = 1,
-};
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+/* ============================================================================
+ * Touch HAL driver
+ * ============================================================================ */
+
+static egui_hal_touch_driver_t designer_touch_driver;
+static struct {
+    uint8_t pressed;
+    int16_t x;
+    int16_t y;
+} designer_touch_state;
+
+static int designer_touch_init(egui_hal_touch_driver_t *self, const egui_hal_touch_config_t *config)
+{
+    memcpy(&self->config, config, sizeof(*config));
+    designer_touch_state.pressed = 0;
+    designer_touch_state.x = 0;
+    designer_touch_state.y = 0;
+    return 0;
+}
+
+static void designer_touch_deinit(egui_hal_touch_driver_t *self)
+{
+    EGUI_UNUSED(self);
+}
+
+static int designer_touch_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
+{
+    EGUI_UNUSED(self);
+
+    memset(data, 0, sizeof(*data));
+    if (!designer_touch_state.pressed)
+    {
+        return 0;
+    }
+
+    data->point_count = 1;
+    data->points[0].x = designer_touch_state.x;
+    data->points[0].y = designer_touch_state.y;
+    data->points[0].id = 0;
+    data->points[0].pressure = 1;
+    return 0;
+}
+
+static void designer_touch_setup(egui_hal_touch_driver_t *storage)
+{
+    memset(storage, 0, sizeof(*storage));
+    storage->name = "DESIGNER_TOUCH";
+    storage->bus_type = EGUI_BUS_TYPE_SPI;
+    storage->max_points = 1;
+    storage->init = designer_touch_init;
+    storage->deinit = designer_touch_deinit;
+    storage->read = designer_touch_read;
+}
+
+void designer_touch_set_state(uint8_t pressed, int16_t x, int16_t y)
+{
+    designer_touch_state.pressed = pressed;
+    designer_touch_state.x = x;
+    designer_touch_state.y = y;
+}
+#endif
 
 /* ============================================================================
  * Platform driver
@@ -241,6 +327,35 @@ static egui_platform_t designer_platform = {
 
 void egui_port_init(void)
 {
-    egui_display_driver_register(&designer_display_driver);
+    egui_hal_lcd_config_t lcd_config = {
+            .width = EGUI_CONFIG_SCEEN_WIDTH,
+            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .color_depth = EGUI_CONFIG_COLOR_DEPTH,
+            .color_swap = EGUI_CONFIG_COLOR_16_SWAP,
+            .x_offset = 0,
+            .y_offset = 0,
+            .invert_color = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
+    };
+
+    designer_lcd_setup(&designer_lcd_driver);
+    designer_lcd_driver.init(&designer_lcd_driver, &lcd_config);
+    egui_display_driver_register(egui_display_driver_from_lcd(&designer_lcd_driver));
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    egui_hal_touch_config_t touch_config = {
+            .width = EGUI_CONFIG_SCEEN_WIDTH,
+            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .swap_xy = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
+    };
+
+    designer_touch_setup(&designer_touch_driver);
+    designer_touch_driver.init(&designer_touch_driver, &touch_config);
+    egui_touch_driver_bridge_register(&designer_touch_driver);
+#endif
+
     egui_platform_register(&designer_platform);
 }

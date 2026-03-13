@@ -1,67 +1,33 @@
+/**
+ * @file egui_port_mcu.c
+ * @brief STM32G0 port using new HAL driver architecture
+ *
+ * Uses egui_lcd_st7789 and egui_touch_ft6336 drivers through the bridge layer.
+ */
+
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
 
 #include "egui.h"
 #include "port_main.h"
-#include "app_lcd.h"
-#include "lcd_st7789.h"
 
-/**
- * STM32G0 port: display and platform driver registration.
- * Replaces the old api_mcu.c which directly implemented egui_api_* functions.
- */
+/* New HAL drivers */
+#include "egui_hal_stm32g0.h"
+#include "egui_lcd_st7789.h"
+#include "egui_touch_ft6336.h"
+#include "egui_driver_bridge.h"
 
-// ============================================================================
-// Display driver
-// ============================================================================
+/* ============================================================
+ * Driver instances (static allocation)
+ * ============================================================ */
 
-static void mcu_display_init(void)
-{
-    // LCD init is handled in app_lcd_init() called from port_main
-}
+static egui_hal_lcd_driver_t s_lcd_driver;
+static egui_hal_touch_driver_t s_touch_driver;
 
-static void mcu_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
-{
-    st7789_draw_image_dma_async(x, y, w, h, (const uint16_t *)data);
-}
-
-static void mcu_display_wait_draw_complete(void)
-{
-    st7789_wait_dma_complete();
-}
-
-static void mcu_display_flush(void)
-{
-    // No-op for STM32 port
-}
-
-static const egui_display_driver_ops_t mcu_display_ops = {
-        .init = mcu_display_init,
-        .draw_area = mcu_display_draw_area,
-        .wait_draw_complete = mcu_display_wait_draw_complete,
-        .flush = mcu_display_flush,
-        .set_brightness = NULL,
-        .set_power = NULL,
-        .set_rotation = NULL,
-        .fill_rect = NULL,
-        .blit = NULL,
-        .blend = NULL,
-        .wait_vsync = NULL,
-};
-
-static egui_display_driver_t mcu_display_driver = {
-        .ops = &mcu_display_ops,
-        .physical_width = EGUI_CONFIG_SCEEN_WIDTH,
-        .physical_height = EGUI_CONFIG_SCEEN_HEIGHT,
-        .rotation = EGUI_DISPLAY_ROTATION_0,
-        .brightness = 255,
-        .power_on = 1,
-};
-
-// ============================================================================
-// Platform driver
-// ============================================================================
+/* ============================================================
+ * Platform driver
+ * ============================================================ */
 
 static void mcu_vlog(const char *format, va_list args)
 {
@@ -134,37 +100,77 @@ static void mcu_interrupt_enable(egui_base_t level)
 }
 
 static const egui_platform_ops_t mcu_platform_ops = {
-        .malloc = mcu_malloc,
-        .free = mcu_free,
-        .vlog = mcu_vlog,
-        .assert_handler = mcu_assert_handler,
-        .vsprintf = mcu_vsprintf,
-        .delay = mcu_delay,
-        .get_tick_ms = mcu_get_tick_ms,
-        .pfb_clear = mcu_pfb_clear,
-        .interrupt_disable = mcu_interrupt_disable,
-        .interrupt_enable = mcu_interrupt_enable,
-        .load_external_resource = NULL,
-        .mutex_create = NULL,
-        .mutex_lock = NULL,
-        .mutex_unlock = NULL,
-        .mutex_destroy = NULL,
-        .timer_start = NULL,
-        .timer_stop = NULL,
-        .memcpy_fast = NULL,
-        .watchdog_feed = NULL,
+    .malloc = mcu_malloc,
+    .free = mcu_free,
+    .vlog = mcu_vlog,
+    .assert_handler = mcu_assert_handler,
+    .vsprintf = mcu_vsprintf,
+    .delay = mcu_delay,
+    .get_tick_ms = mcu_get_tick_ms,
+    .pfb_clear = mcu_pfb_clear,
+    .interrupt_disable = mcu_interrupt_disable,
+    .interrupt_enable = mcu_interrupt_enable,
+    .load_external_resource = NULL,
+    .mutex_create = NULL,
+    .mutex_lock = NULL,
+    .mutex_unlock = NULL,
+    .mutex_destroy = NULL,
+    .timer_start = NULL,
+    .timer_stop = NULL,
+    .memcpy_fast = NULL,
+    .watchdog_feed = NULL,
 };
 
 static egui_platform_t mcu_platform = {
-        .ops = &mcu_platform_ops,
+    .ops = &mcu_platform_ops,
 };
 
-// ============================================================================
-// Port initialization
-// ============================================================================
+/* ============================================================
+ * Port initialization
+ * ============================================================ */
 
 void egui_port_init(void)
 {
-    egui_display_driver_register(&mcu_display_driver);
+    /* Initialize LCD driver using new HAL */
+    egui_lcd_st7789_init(&s_lcd_driver,
+                         egui_hal_stm32g0_get_lcd_spi_ops(),
+                         egui_hal_stm32g0_get_lcd_gpio_ops());
+
+    /* Set backlight control callback */
+    s_lcd_driver.set_brightness = egui_hal_stm32g0_set_backlight;
+
+    /* Configure and initialize LCD */
+    egui_hal_lcd_config_t lcd_config = {
+        .width = EGUI_CONFIG_SCEEN_WIDTH,
+        .height = EGUI_CONFIG_SCEEN_HEIGHT,
+        .x_offset = 0,
+        .y_offset = 0,
+        .invert_color = 1,
+    };
+    s_lcd_driver.init(&s_lcd_driver, &lcd_config);
+
+    /* Create display driver from LCD driver via bridge */
+    egui_display_driver_t *display = egui_display_driver_from_lcd(&s_lcd_driver);
+
+    /* Initialize Touch driver using new HAL */
+    egui_touch_ft6336_init(&s_touch_driver,
+                           egui_hal_stm32g0_get_touch_i2c_ops(),
+                           egui_hal_stm32g0_get_touch_gpio_ops());
+
+    /* Configure and initialize Touch */
+    egui_hal_touch_config_t touch_config = {
+        .width = EGUI_CONFIG_SCEEN_WIDTH,
+        .height = EGUI_CONFIG_SCEEN_HEIGHT,
+        .swap_xy = 0,
+        .mirror_x = 0,
+        .mirror_y = 0,
+    };
+    s_touch_driver.init(&s_touch_driver, &touch_config);
+
+    /* Register touch driver with bridge - this also registers with Core */
+    egui_touch_driver_bridge_register(&s_touch_driver);
+
+    /* Register drivers with Core */
+    egui_display_driver_register(display);
     egui_platform_register(&mcu_platform);
 }
