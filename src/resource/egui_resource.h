@@ -4,17 +4,14 @@
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
 
-
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
-
-
 // Used id.
-enum {
+enum
+{
     EGUI_VIEW_ID_ROOT_VIEW_GROUP = 0x00,
 
     EGUI_VIEW_ID_USER_ROOT_VIEW_GROUP = 0x10,
@@ -24,7 +21,7 @@ enum {
     EGUI_VIEW_ID_USER_ID_BEGIN = 0x100,
 };
 
-extern const egui_font_std_t egui_res_font_montserrat_8_4; 
+extern const egui_font_std_t egui_res_font_montserrat_8_4;
 extern const egui_font_std_t egui_res_font_montserrat_10_4;
 extern const egui_font_std_t egui_res_font_montserrat_12_4;
 extern const egui_font_std_t egui_res_font_montserrat_14_4;
@@ -40,11 +37,13 @@ extern const egui_font_std_t egui_res_font_montserrat_32_4;
 extern const egui_font_std_t egui_res_font_montserrat_34_4;
 extern const egui_font_std_t egui_res_font_montserrat_36_4;
 extern const egui_font_std_t egui_res_font_montserrat_38_4;
-extern const egui_font_std_t egui_res_font_montserrat_30_4;
+extern const egui_font_std_t egui_res_font_montserrat_40_4;
 extern const egui_font_std_t egui_res_font_montserrat_42_4;
 extern const egui_font_std_t egui_res_font_montserrat_44_4;
 extern const egui_font_std_t egui_res_font_montserrat_46_4;
 extern const egui_font_std_t egui_res_font_montserrat_48_4;
+
+#include "egui_icon_material_symbols.h"
 
 // BITMAP
 typedef struct struct_bitmap_info
@@ -55,13 +54,9 @@ typedef struct struct_bitmap_info
     const unsigned short *pixel_color_array;
 } BITMAP_INFO;
 
-
-
-
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif /* _EGUI_RESOURCE_H_ */

@@ -57,14 +57,18 @@ static const mu_song_info_t mu_songs[] = {
 #define MU_SONG_COUNT 3
 static int mu_current_song = 0;
 
-static char mu_time_cur_buf[8];
-static char mu_time_total_buf[8];
+static char mu_time_cur_buf[16];
+static char mu_time_total_buf[16];
 
 static void mu_format_time(char *buf, int seconds)
 {
+    if (seconds < 0)
+    {
+        seconds = 0;
+    }
     int min = seconds / 60;
     int sec = seconds % 60;
-    sprintf(buf, "%d:%02d", min, sec);
+    snprintf(buf, 16, "%d:%02d", min, sec);
 }
 
 static void mu_update_time_display(void)

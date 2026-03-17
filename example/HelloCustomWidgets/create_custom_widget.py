@@ -2,7 +2,7 @@
 """Create a new custom widget from template.
 
 Usage:
-    python scripts/create_custom_widget.py --category display --name weather_icon
+    python example/HelloCustomWidgets/create_custom_widget.py --category display --name weather_icon
 """
 
 import argparse

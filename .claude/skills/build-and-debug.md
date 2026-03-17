@@ -61,14 +61,46 @@ make run
 # 快速检查（默认应用）
 python scripts/code_compile_check.py
 
-# 全量检查（所有应用 + HelloBasic所有子应用）
+# 全量检查（所有应用 + HelloBasic所有子应用 + 示例 icon font 约定检查）
 python scripts/code_compile_check.py --full-check
 
 # 清理后检查
 python scripts/code_compile_check.py --clean --full-check
 ```
 
-特点：使用快速编译标志（`-O0`，无调试符号），per-app OBJDIR 避免应用间 clean，自动运行单元测试。
+特点：使用快速编译标志（`-O0`，无调试符号），per-app OBJDIR 避免应用间 clean，自动运行单元测试；`--full-check` 还会执行示例 icon font 显式配置检查。
+
+## 示例 icon font 检查
+
+```bash
+# 默认只检查 git 已跟踪的 example 源文件
+python scripts/check_example_icon_font.py
+
+# 连同本地未跟踪目录一起检查
+python scripts/check_example_icon_font.py --include-untracked
+```
+
+用途：防止示例代码只设置图标字符串、不设置对应的 `*_set_icon_font()`，从而回退到控件内部的隐式推断逻辑。
+
+## 发布前一键检查
+
+```bash
+# 完整发布前检查
+python scripts/release_check.py
+
+# 常用快速组合（跳过较重步骤）
+python scripts/release_check.py --skip perf,perf_doc,wasm,doc,ui_package
+
+# 失败后继续跑完后续步骤，便于一次性收集问题
+python scripts/release_check.py --keep-going
+```
+
+用途：串联格式化、示例 icon font 检查、Keil 同步、UI Designer 测试与打包、全量编译、运行时验证、体积分析、性能检查和文档构建，适合收尾阶段统一验收。
+
+补充：
+
+- `code_compile_check.py --full-check` 默认会执行示例 icon font 检查
+- 如果外层流程已经先单独跑过 `check_example_icon_font.py`，可以追加 `--skip-icon-font-check` 避免重复执行
 
 ## 常见编译错误诊断
 
@@ -128,7 +160,9 @@ EGUI_LOG_INF("value: %d\n", some_value);
 |------|------|
 | `Makefile` | 根构建配置 |
 | `porting/pc/Makefile.base` | 核心构建逻辑 |
-| `scripts/code_compile_check.py` | 全量编译检查 |
+| `scripts/code_compile_check.py` | 全量编译检查（`--full-check` 含示例 icon font 检查） |
+| `scripts/check_example_icon_font.py` | 示例 icon font 显式配置检查 |
 | `scripts/code_format.py` | clang-format 代码格式化 |
+| `scripts/release_check.py` | 发布前多步骤一键检查 |
 | `example/{APP}/build.mk` | 应用构建模块 |
 | `example/{APP}/app_egui_config.h` | 应用配置（屏幕尺寸、PFB、颜色深度） |

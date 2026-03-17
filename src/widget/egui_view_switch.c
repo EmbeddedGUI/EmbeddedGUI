@@ -2,12 +2,31 @@
 #include <assert.h>
 
 #include "egui_view_switch.h"
+#include "resource/egui_resource.h"
 #include "style/egui_theme.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
 #include "core/egui_canvas_gradient.h"
 #include "shadow/egui_shadow.h"
 #endif
+
+static const egui_font_t *egui_view_switch_get_icon_font(egui_view_switch_t *local, egui_dim_t area_size)
+{
+    if (local->icon_font != NULL)
+    {
+        return local->icon_font;
+    }
+
+    if (area_size <= 18)
+    {
+        return EGUI_FONT_ICON_MS_16;
+    }
+    if (area_size <= 22)
+    {
+        return EGUI_FONT_ICON_MS_20;
+    }
+    return EGUI_FONT_ICON_MS_24;
+}
 
 void egui_view_switch_set_on_checked_listener(egui_view_t *self, egui_view_on_checked_listener_t listener)
 {
@@ -28,6 +47,31 @@ void egui_view_switch_set_checked(egui_view_t *self, uint8_t is_checked)
 
         egui_view_invalidate(self);
     }
+}
+
+void egui_view_switch_set_state_icons(egui_view_t *self, const char *icon_on, const char *icon_off)
+{
+    EGUI_LOCAL_INIT(egui_view_switch_t);
+    if (local->icon_on == icon_on && local->icon_off == icon_off)
+    {
+        return;
+    }
+
+    local->icon_on = icon_on;
+    local->icon_off = icon_off;
+    egui_view_invalidate(self);
+}
+
+void egui_view_switch_set_icon_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_switch_t);
+    if (local->icon_font == font)
+    {
+        return;
+    }
+
+    local->icon_font = font;
+    egui_view_invalidate(self);
 }
 
 static void egui_view_switch_on_click(egui_view_t *self)
@@ -146,6 +190,20 @@ void egui_view_switch_on_draw(egui_view_t *self)
     egui_canvas_draw_circle_fill(thumb_x, thumb_y, thumb_radius, thumb_color, local->alpha);
     egui_canvas_draw_circle(thumb_x, thumb_y, thumb_radius, 1, EGUI_THEME_BORDER, local->alpha);
 #endif
+
+    {
+        const char *icon_text = local->is_checked ? local->icon_on : local->icon_off;
+        if (icon_text != NULL)
+        {
+            egui_region_t icon_region = {
+                    {thumb_x - thumb_radius, thumb_y - thumb_radius},
+                    {thumb_radius * 2, thumb_radius * 2},
+            };
+            egui_color_t icon_color = egui_view_get_enable(self) ? track_color : EGUI_THEME_DISABLED;
+            egui_canvas_draw_text_in_rect(egui_view_switch_get_icon_font(local, thumb_radius * 2), icon_text, &icon_region, EGUI_ALIGN_CENTER, icon_color,
+                                          local->alpha);
+        }
+    }
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_switch_t) = {
@@ -179,6 +237,9 @@ void egui_view_switch_init(egui_view_t *self)
     local->bk_color_off = EGUI_THEME_TRACK_OFF;
     local->switch_color_on = EGUI_THEME_THUMB;
     local->switch_color_off = EGUI_THEME_THUMB;
+    local->icon_on = NULL;
+    local->icon_off = NULL;
+    local->icon_font = NULL;
     local->alpha = EGUI_ALPHA_100;
     egui_view_set_on_click_listener(self, egui_view_switch_on_click);
 

@@ -21,6 +21,7 @@ struct egui_view_button_matrix
     egui_view_t base;
 
     const char **labels;
+    const char **icons;
     uint8_t btn_count;
     uint8_t cols;
     uint8_t gap;
@@ -33,6 +34,8 @@ struct egui_view_button_matrix
     egui_color_t border_color;
     uint8_t corner_radius;
     const egui_font_t *font;
+    const egui_font_t *icon_font;
+    egui_dim_t icon_text_gap;
     egui_view_button_matrix_click_cb_t on_click;
 };
 
@@ -63,6 +66,9 @@ void egui_view_button_matrix_set_gap(egui_view_t *self, uint8_t gap);
 void egui_view_button_matrix_set_corner_radius(egui_view_t *self, uint8_t radius);
 void egui_view_button_matrix_set_border_color(egui_view_t *self, egui_color_t color);
 void egui_view_button_matrix_set_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_button_matrix_set_icons(egui_view_t *self, const char **icons);
+void egui_view_button_matrix_set_icon_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_button_matrix_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
 void egui_view_button_matrix_on_draw(egui_view_t *self);
 void egui_view_button_matrix_init(egui_view_t *self);
 

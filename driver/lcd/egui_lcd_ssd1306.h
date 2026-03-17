@@ -24,9 +24,7 @@ extern "C" {
  *
  * Use this in environments without malloc.
  */
-void egui_lcd_ssd1306_init_i2c(egui_hal_lcd_driver_t *storage,
-                                const egui_bus_i2c_ops_t *i2c,
-                                const egui_lcd_gpio_ops_t *gpio);
+void egui_lcd_ssd1306_init_i2c(egui_hal_lcd_driver_t *storage, const egui_bus_i2c_ops_t *i2c, const egui_lcd_gpio_ops_t *gpio);
 
 /**
  * Initialize SSD1306 driver via SPI in user-provided storage.
@@ -37,9 +35,7 @@ void egui_lcd_ssd1306_init_i2c(egui_hal_lcd_driver_t *storage,
  *
  * Use this in environments without malloc.
  */
-void egui_lcd_ssd1306_init_spi(egui_hal_lcd_driver_t *storage,
-                                const egui_bus_spi_ops_t *spi,
-                                const egui_lcd_gpio_ops_t *gpio);
+void egui_lcd_ssd1306_init_spi(egui_hal_lcd_driver_t *storage, const egui_bus_spi_ops_t *spi, const egui_lcd_gpio_ops_t *gpio);
 
 /**
  * Set display contrast.

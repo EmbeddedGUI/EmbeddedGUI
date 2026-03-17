@@ -29,12 +29,14 @@
 选择原则：
 
 - 先看 `已完成控件`，避免能力边界重复。
+- 优先选择能在选定开源参考体系（`Fluent 2 / WPF UI`）中找到稳定原型的候选项。
 - 优先选择具有以下特征的候选项：
   - 新交互模型
   - 新视觉结构
   - 新布局组织方式
   - 新的复合控件模式
 - 仅做小变体、换皮、轻包装的控件默认后移。
+- 强行业场景、强叙事和强装饰语法控件默认后移，除非用户明确要求。
 - 控件命名统一使用小写下划线风格，例如：`radial_menu`。
 - 分类目录统一使用语义化英文，例如：`navigation`、`input`、`display`、`chart`。
 
@@ -70,6 +72,10 @@
 8. 编译、runtime、截图验收标准。
 9. 已知限制与下一轮迭代计划。
 10. 与现有控件的重叠分析与差异化边界。
+11. 参考设计系统与开源母本（例如 `Fluent 2`、`WPF UI`）。
+12. 对应组件名，以及本次保留的核心状态。
+13. 相比参考原型删掉了哪些效果或装饰。
+14. EGUI 适配时的简化点与约束。
 
 ## Step 2：实现 HelloCustomWidgets 控件
 
@@ -190,6 +196,7 @@ python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub <categor
 - `iteration_log/iteration_log.md` 已记录至少 30 次迭代
 - `make all APP=HelloCustomWidgets APP_SUB=<category>/<widget> PORT=pc` 通过
 - `code_runtime_check.py` 运行通过
+- 已对当前控件相关代码执行格式化，并确认格式化后仍可通过构建与 runtime 验证
 - 关键截图已整理到 `iteration_log/` 且能通过 `iteration_log/iteration_log.md` 直接 review
 - 当前控件与既有控件的差异化边界仍然成立
 
@@ -208,6 +215,7 @@ python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub <categor
 
 随后执行：
 
+- 先执行 `python scripts/code_format.py`，并确保格式化后没有引入新的构建或 runtime 问题
 - 为该控件单独创建一次 commit
 - 提交内容只围绕该控件，不混入下一个控件的改动
 - `iteration_log/` 目录保持本地，不纳入本次 commit

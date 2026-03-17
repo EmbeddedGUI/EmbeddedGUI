@@ -5,6 +5,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS 1
+
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

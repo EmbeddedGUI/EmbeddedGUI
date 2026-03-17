@@ -1,4 +1,14 @@
 // doc-render.js - Shared markdown doc rendering for demo pages
+function getDocLoadingText() {
+    if (window.EmbeddedGUII18n) {
+        return window.EmbeddedGUII18n.format({
+            "zh-CN": "加载中...",
+            "en": "Loading..."
+        });
+    }
+    return "加载中...";
+}
+
 function renderDoc(container, docPath) {
     if (!docPath) {
         container.innerHTML = '';
@@ -6,7 +16,7 @@ function renderDoc(container, docPath) {
         return;
     }
     container.style.display = 'block';
-    container.innerHTML = '<p class="doc-loading">Loading...</p>';
+    container.innerHTML = '<p class="doc-loading">' + getDocLoadingText() + '</p>';
     fetch(docPath)
         .then(function(r) {
             if (!r.ok) throw new Error('Not found');

@@ -8,18 +8,19 @@ static egui_view_stepper_t stepper_view;
 static egui_view_button_t next_button;
 static egui_view_label_t status_label;
 static char status_text[48];
+static const char *step_titles[] = {"Draft", "Review", "Verify", "Ship", "Done"};
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t clip_fail_reported = 0;
 #endif
 
 EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, 220, 180, 1, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
-EGUI_VIEW_STEPPER_PARAMS_INIT(stepper_params, 0, 0, 180, 28, 5, 0);
-EGUI_VIEW_LABEL_PARAMS_INIT(next_button_params, 0, 0, 120, 36, "Next", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+EGUI_VIEW_STEPPER_PARAMS_INIT(stepper_params, 0, 0, 190, 32, 5, 0);
+EGUI_VIEW_LABEL_PARAMS_INIT(next_button_params, 0, 0, 132, 36, "Advance", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 EGUI_VIEW_LABEL_PARAMS_INIT(status_label_params, 0, 0, 210, 24, "", EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT_PRIMARY, EGUI_ALPHA_100);
 
 static void update_status(uint8_t current)
 {
-    snprintf(status_text, sizeof(status_text), "Stage %u / 5  (tap Next)", (unsigned int)(current + 1U));
+    snprintf(status_text, sizeof(status_text), "%s  %u / 5", step_titles[current], (unsigned int)(current + 1U));
     egui_view_label_set_text(EGUI_VIEW_OF(&status_label), status_text);
     if (current >= 4)
     {
@@ -53,6 +54,9 @@ void test_init_ui(void)
     egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
 
     egui_view_stepper_init_with_params(EGUI_VIEW_OF(&stepper_view), &stepper_params);
+    egui_view_stepper_set_mark_style(EGUI_VIEW_OF(&stepper_view), EGUI_VIEW_STEPPER_MARK_STYLE_ICON);
+    egui_view_stepper_set_completed_icon(EGUI_VIEW_OF(&stepper_view), EGUI_ICON_MS_DONE);
+    egui_view_stepper_set_icon_font(EGUI_VIEW_OF(&stepper_view), EGUI_FONT_ICON_MS_20);
     egui_view_set_margin_all(EGUI_VIEW_OF(&stepper_view), 8);
 
     egui_view_button_init_with_params(EGUI_VIEW_OF(&next_button), &next_button_params);

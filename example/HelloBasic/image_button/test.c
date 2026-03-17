@@ -8,8 +8,6 @@ static egui_view_image_button_t imgbtn_s;
 static egui_view_image_button_t imgbtn_m;
 static egui_view_image_button_t imgbtn_l;
 
-extern const egui_image_std_t egui_res_image_star_rgb565_8;
-
 // Grid container
 static egui_view_gridlayout_t grid;
 
@@ -17,13 +15,13 @@ static egui_view_gridlayout_t grid;
 EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, 230, 300, 2, EGUI_ALIGN_CENTER);
 
 // Size XS (54x54)
-EGUI_VIEW_IMAGE_BUTTON_PARAMS_INIT(imgbtn_xs_params, 0, 0, 54, 54, (egui_image_t *)&egui_res_image_star_rgb565_8);
+EGUI_VIEW_IMAGE_BUTTON_PARAMS_INIT(imgbtn_xs_params, 0, 0, 60, 60, NULL);
 // Size S (68x68)
-EGUI_VIEW_IMAGE_BUTTON_PARAMS_INIT(imgbtn_s_params, 0, 0, 68, 68, (egui_image_t *)&egui_res_image_star_rgb565_8);
+EGUI_VIEW_IMAGE_BUTTON_PARAMS_INIT(imgbtn_s_params, 0, 0, 72, 72, NULL);
 // Size M (82x82)
-EGUI_VIEW_IMAGE_BUTTON_PARAMS_INIT(imgbtn_m_params, 0, 0, 82, 82, (egui_image_t *)&egui_res_image_star_rgb565_8);
+EGUI_VIEW_IMAGE_BUTTON_PARAMS_INIT(imgbtn_m_params, 0, 0, 84, 84, NULL);
 // Size L (96x96)
-EGUI_VIEW_IMAGE_BUTTON_PARAMS_INIT(imgbtn_l_params, 0, 0, 96, 96, (egui_image_t *)&egui_res_image_star_rgb565_8);
+EGUI_VIEW_IMAGE_BUTTON_PARAMS_INIT(imgbtn_l_params, 0, 0, 96, 96, NULL);
 
 static void image_button_click_cb(egui_view_t *self)
 {
@@ -37,19 +35,31 @@ void test_init_ui(void)
 
     // Init all image buttons
     egui_view_image_button_init_with_params(EGUI_VIEW_OF(&imgbtn_xs), &imgbtn_xs_params);
-    egui_view_image_set_image_type(EGUI_VIEW_OF(&imgbtn_xs), EGUI_VIEW_IMAGE_TYPE_RESIZE);
+    egui_view_image_button_set_icon(EGUI_VIEW_OF(&imgbtn_xs), EGUI_ICON_MS_PLAY_ARROW);
+    egui_view_image_button_set_icon_font(EGUI_VIEW_OF(&imgbtn_xs), EGUI_FONT_ICON_MS_16);
+    egui_view_image_button_set_text(EGUI_VIEW_OF(&imgbtn_xs), "Play");
+    egui_view_image_button_set_icon_text_gap(EGUI_VIEW_OF(&imgbtn_xs), 1);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&imgbtn_xs), image_button_click_cb);
 
     egui_view_image_button_init_with_params(EGUI_VIEW_OF(&imgbtn_s), &imgbtn_s_params);
-    egui_view_image_set_image_type(EGUI_VIEW_OF(&imgbtn_s), EGUI_VIEW_IMAGE_TYPE_RESIZE);
+    egui_view_image_button_set_icon(EGUI_VIEW_OF(&imgbtn_s), EGUI_ICON_MS_SEARCH);
+    egui_view_image_button_set_icon_font(EGUI_VIEW_OF(&imgbtn_s), EGUI_FONT_ICON_MS_20);
+    egui_view_image_button_set_text(EGUI_VIEW_OF(&imgbtn_s), "Find");
+    egui_view_image_button_set_icon_text_gap(EGUI_VIEW_OF(&imgbtn_s), 2);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&imgbtn_s), image_button_click_cb);
 
     egui_view_image_button_init_with_params(EGUI_VIEW_OF(&imgbtn_m), &imgbtn_m_params);
-    egui_view_image_set_image_type(EGUI_VIEW_OF(&imgbtn_m), EGUI_VIEW_IMAGE_TYPE_RESIZE);
+    egui_view_image_button_set_icon(EGUI_VIEW_OF(&imgbtn_m), EGUI_ICON_MS_SYNC);
+    egui_view_image_button_set_icon_font(EGUI_VIEW_OF(&imgbtn_m), EGUI_FONT_ICON_MS_20);
+    egui_view_image_button_set_text(EGUI_VIEW_OF(&imgbtn_m), "Sync");
+    egui_view_image_button_set_icon_text_gap(EGUI_VIEW_OF(&imgbtn_m), 2);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&imgbtn_m), image_button_click_cb);
 
     egui_view_image_button_init_with_params(EGUI_VIEW_OF(&imgbtn_l), &imgbtn_l_params);
-    egui_view_image_set_image_type(EGUI_VIEW_OF(&imgbtn_l), EGUI_VIEW_IMAGE_TYPE_RESIZE);
+    egui_view_image_button_set_icon(EGUI_VIEW_OF(&imgbtn_l), EGUI_ICON_MS_HEART);
+    egui_view_image_button_set_icon_font(EGUI_VIEW_OF(&imgbtn_l), EGUI_FONT_ICON_MS_24);
+    egui_view_image_button_set_text(EGUI_VIEW_OF(&imgbtn_l), "Like");
+    egui_view_image_button_set_icon_text_gap(EGUI_VIEW_OF(&imgbtn_l), 3);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&imgbtn_l), image_button_click_cb);
 
     // Set margins

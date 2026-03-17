@@ -6,6 +6,7 @@
 #include "core/egui_api.h"
 #include "core/egui_core.h"
 #include "background/egui_background_color.h"
+#include "resource/egui_resource.h"
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 
@@ -16,18 +17,105 @@
 // Row3: [28]=mode, [29]=space, [30]=enter
 
 static const char *keyboard_labels_lowercase[EGUI_KEYBOARD_TOTAL_KEYS] = {
-        "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "a", "s", "d",    "f", "g",  "h",
-        "j", "k", "l", "^", "z", "x", "c", "v", "b", "n", "m", "<", "?123", " ", "OK",
+        "q",
+        "w",
+        "e",
+        "r",
+        "t",
+        "y",
+        "u",
+        "i",
+        "o",
+        "p",
+        "a",
+        "s",
+        "d",
+        "f",
+        "g",
+        "h",
+        "j",
+        "k",
+        "l",
+        EGUI_ICON_MS_KEYBOARD_ARROW_UP,
+        "z",
+        "x",
+        "c",
+        "v",
+        "b",
+        "n",
+        "m",
+        EGUI_ICON_MS_BACKSPACE,
+        "?123",
+        " ",
+        EGUI_ICON_MS_DONE,
 };
 
 static const char *keyboard_labels_uppercase[EGUI_KEYBOARD_TOTAL_KEYS] = {
-        "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "A", "S", "D",    "F", "G",  "H",
-        "J", "K", "L", "^", "Z", "X", "C", "V", "B", "N", "M", "<", "?123", " ", "OK",
+        "Q",
+        "W",
+        "E",
+        "R",
+        "T",
+        "Y",
+        "U",
+        "I",
+        "O",
+        "P",
+        "A",
+        "S",
+        "D",
+        "F",
+        "G",
+        "H",
+        "J",
+        "K",
+        "L",
+        EGUI_ICON_MS_KEYBOARD_ARROW_UP,
+        "Z",
+        "X",
+        "C",
+        "V",
+        "B",
+        "N",
+        "M",
+        EGUI_ICON_MS_BACKSPACE,
+        "?123",
+        " ",
+        EGUI_ICON_MS_DONE,
 };
 
 static const char *keyboard_labels_symbols[EGUI_KEYBOARD_TOTAL_KEYS] = {
-        "1", "2", "3", "4",    "5", "6", "7", "8", "9", "0", "@", "#", "$",   "%", "&",  "-",
-        "+", "(", ")", "?123", "!", "?", ",", ".", ";", ":", "'", "<", "ABC", " ", "OK",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "0",
+        "@",
+        "#",
+        "$",
+        "%",
+        "&",
+        "-",
+        "+",
+        "(",
+        ")",
+        "ABC",
+        "!",
+        "?",
+        ",",
+        ".",
+        ";",
+        ":",
+        "'",
+        EGUI_ICON_MS_BACKSPACE,
+        "ABC",
+        " ",
+        EGUI_ICON_MS_DONE,
 };
 
 // ============== Character output tables ==============
@@ -113,6 +201,86 @@ static const char *egui_view_keyboard_get_char_table(uint8_t mode)
     default:
         return keyboard_chars_lowercase;
     }
+}
+
+static const egui_font_t *egui_view_keyboard_get_icon_font(const egui_view_keyboard_t *keyboard)
+{
+    if (keyboard->icon_font != NULL)
+    {
+        return keyboard->icon_font;
+    }
+
+    return EGUI_FONT_ICON_MS_20;
+}
+
+static const char *egui_view_keyboard_get_mode_label_table(uint8_t mode, int key_idx)
+{
+    switch (mode)
+    {
+    case EGUI_KEYBOARD_MODE_UPPERCASE:
+        return keyboard_labels_uppercase[key_idx];
+    case EGUI_KEYBOARD_MODE_SYMBOLS:
+        return keyboard_labels_symbols[key_idx];
+    default:
+        return keyboard_labels_lowercase[key_idx];
+    }
+}
+
+static const char *egui_view_keyboard_get_key_label_for_mode(const egui_view_keyboard_t *keyboard, uint8_t mode, int key_idx)
+{
+    if (key_idx == EGUI_KEYBOARD_KEY_IDX_SHIFT && mode != EGUI_KEYBOARD_MODE_SYMBOLS)
+    {
+        return keyboard->shift_icon;
+    }
+
+    if (key_idx == EGUI_KEYBOARD_KEY_IDX_BACKSPACE)
+    {
+        return keyboard->backspace_icon;
+    }
+
+    if (key_idx == EGUI_KEYBOARD_KEY_IDX_ENTER)
+    {
+        return keyboard->enter_icon;
+    }
+
+    return egui_view_keyboard_get_mode_label_table(mode, key_idx);
+}
+
+static int egui_view_keyboard_key_uses_icon(const egui_view_keyboard_t *keyboard, int key_idx)
+{
+    if (key_idx == EGUI_KEYBOARD_KEY_IDX_BACKSPACE || key_idx == EGUI_KEYBOARD_KEY_IDX_ENTER)
+    {
+        return 1;
+    }
+
+    if (key_idx == EGUI_KEYBOARD_KEY_IDX_SHIFT && keyboard->mode != EGUI_KEYBOARD_MODE_SYMBOLS)
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
+static const egui_font_t *egui_view_keyboard_get_label_font(const egui_view_keyboard_t *keyboard, int key_idx)
+{
+    if (egui_view_keyboard_key_uses_icon(keyboard, key_idx))
+    {
+        return egui_view_keyboard_get_icon_font(keyboard);
+    }
+
+    if (keyboard->font != NULL)
+    {
+        return keyboard->font;
+    }
+
+    return (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+}
+
+static void egui_view_keyboard_apply_key_label(egui_view_keyboard_t *keyboard, int key_idx, const char *label)
+{
+    egui_view_t *key_view = EGUI_VIEW_OF(&keyboard->keys[key_idx]);
+    egui_view_label_set_text(key_view, label);
+    egui_view_label_set_font(key_view, egui_view_keyboard_get_label_font(keyboard, key_idx));
 }
 
 // ============== Key click callback ==============
@@ -202,6 +370,7 @@ static void egui_view_keyboard_key_click_cb(egui_view_t *self)
 void egui_view_keyboard_set_mode(egui_view_t *self, uint8_t mode)
 {
     EGUI_LOCAL_INIT(egui_view_keyboard_t);
+    uint8_t i;
 
     if (mode > EGUI_KEYBOARD_MODE_SYMBOLS)
     {
@@ -210,35 +379,73 @@ void egui_view_keyboard_set_mode(egui_view_t *self, uint8_t mode)
 
     local->mode = mode;
 
-    const char **labels;
-    switch (mode)
+    for (i = 0; i < EGUI_KEYBOARD_TOTAL_KEYS; i++)
     {
-    case EGUI_KEYBOARD_MODE_UPPERCASE:
-        labels = keyboard_labels_uppercase;
-        break;
-    case EGUI_KEYBOARD_MODE_SYMBOLS:
-        labels = keyboard_labels_symbols;
-        break;
-    default:
-        labels = keyboard_labels_lowercase;
-        break;
-    }
-
-    for (int i = 0; i < EGUI_KEYBOARD_TOTAL_KEYS; i++)
-    {
-        egui_view_label_set_text(EGUI_VIEW_OF(&local->keys[i]), labels[i]);
+        egui_view_keyboard_apply_key_label(local, i, egui_view_keyboard_get_key_label_for_mode(local, mode, i));
     }
 }
 
 void egui_view_keyboard_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_keyboard_t);
-    local->font = font;
+    uint8_t i;
 
-    for (int i = 0; i < EGUI_KEYBOARD_TOTAL_KEYS; i++)
+    local->font = font != NULL ? font : (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+
+    for (i = 0; i < EGUI_KEYBOARD_TOTAL_KEYS; i++)
     {
-        egui_view_label_set_font(EGUI_VIEW_OF(&local->keys[i]), font);
+        egui_view_label_set_font(EGUI_VIEW_OF(&local->keys[i]), egui_view_keyboard_get_label_font(local, i));
     }
+}
+
+void egui_view_keyboard_set_icon_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_keyboard_t);
+    uint8_t i;
+
+    if (local->icon_font == font)
+    {
+        return;
+    }
+
+    local->icon_font = font;
+
+    for (i = 0; i < EGUI_KEYBOARD_TOTAL_KEYS; i++)
+    {
+        if (!egui_view_keyboard_key_uses_icon(local, i))
+        {
+            continue;
+        }
+        egui_view_label_set_font(EGUI_VIEW_OF(&local->keys[i]), egui_view_keyboard_get_label_font(local, i));
+    }
+}
+
+void egui_view_keyboard_set_special_key_icons(egui_view_t *self, const char *shift_icon, const char *backspace_icon, const char *enter_icon)
+{
+    EGUI_LOCAL_INIT(egui_view_keyboard_t);
+
+    if (shift_icon == NULL)
+    {
+        shift_icon = EGUI_ICON_MS_KEYBOARD_ARROW_UP;
+    }
+    if (backspace_icon == NULL)
+    {
+        backspace_icon = EGUI_ICON_MS_BACKSPACE;
+    }
+    if (enter_icon == NULL)
+    {
+        enter_icon = EGUI_ICON_MS_DONE;
+    }
+
+    if (local->shift_icon == shift_icon && local->backspace_icon == backspace_icon && local->enter_icon == enter_icon)
+    {
+        return;
+    }
+
+    local->shift_icon = shift_icon;
+    local->backspace_icon = backspace_icon;
+    local->enter_icon = enter_icon;
+    egui_view_keyboard_set_mode(self, local->mode);
 }
 
 void egui_view_keyboard_show(egui_view_t *self, egui_view_t *target_textinput)
@@ -351,11 +558,13 @@ void egui_view_keyboard_init(egui_view_t *self)
 
     local->mode = EGUI_KEYBOARD_MODE_LOWERCASE;
     local->target = NULL;
-    local->font = NULL;
+    local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    local->icon_font = NULL;
+    local->shift_icon = EGUI_ICON_MS_KEYBOARD_ARROW_UP;
+    local->backspace_icon = EGUI_ICON_MS_BACKSPACE;
+    local->enter_icon = EGUI_ICON_MS_DONE;
     local->adjusted_view = NULL;
     local->saved_y = 0;
-
-    const char **labels = keyboard_labels_lowercase;
     int key_idx = 0;
 
     // Initialize 4 row LinearLayouts
@@ -370,13 +579,15 @@ void egui_view_keyboard_init(egui_view_t *self)
     // --- Row 0: 10 normal keys ---
     for (int i = 0; i < EGUI_KEYBOARD_ROW0_KEY_COUNT; i++, key_idx++)
     {
-        egui_view_keyboard_init_key(local, key_idx, EGUI_KEYBOARD_KEY_WIDTH_NORMAL, labels[key_idx], 0, &local->rows[0]);
+        egui_view_keyboard_init_key(local, key_idx, EGUI_KEYBOARD_KEY_WIDTH_NORMAL, egui_view_keyboard_get_key_label_for_mode(local, local->mode, key_idx), 0,
+                                    &local->rows[0]);
     }
 
     // --- Row 1: 9 normal keys ---
     for (int i = 0; i < EGUI_KEYBOARD_ROW1_KEY_COUNT; i++, key_idx++)
     {
-        egui_view_keyboard_init_key(local, key_idx, EGUI_KEYBOARD_KEY_WIDTH_NORMAL, labels[key_idx], 0, &local->rows[1]);
+        egui_view_keyboard_init_key(local, key_idx, EGUI_KEYBOARD_KEY_WIDTH_NORMAL, egui_view_keyboard_get_key_label_for_mode(local, local->mode, key_idx), 0,
+                                    &local->rows[1]);
     }
 
     // --- Row 2: shift + 7 letters + backspace ---
@@ -400,7 +611,7 @@ void egui_view_keyboard_init(egui_view_t *self)
             w = EGUI_KEYBOARD_KEY_WIDTH_SMALL;
         }
 
-        egui_view_keyboard_init_key(local, key_idx, w, labels[key_idx], is_special, &local->rows[2]);
+        egui_view_keyboard_init_key(local, key_idx, w, egui_view_keyboard_get_key_label_for_mode(local, local->mode, key_idx), is_special, &local->rows[2]);
     }
 
     // --- Row 3: mode + space + enter ---
@@ -425,7 +636,7 @@ void egui_view_keyboard_init(egui_view_t *self)
             is_special = 1;
         }
 
-        egui_view_keyboard_init_key(local, key_idx, w, labels[key_idx], is_special, &local->rows[3]);
+        egui_view_keyboard_init_key(local, key_idx, w, egui_view_keyboard_get_key_label_for_mode(local, local->mode, key_idx), is_special, &local->rows[3]);
     }
 
     // Layout each row's children horizontally, then add row to keyboard
@@ -444,6 +655,8 @@ void egui_view_keyboard_init(egui_view_t *self)
     // Start hidden
     self->is_visible = false;
     self->is_gone = true;
+
+    egui_view_keyboard_set_mode(self, local->mode);
 
     egui_view_set_view_name(self, "egui_view_keyboard");
 }

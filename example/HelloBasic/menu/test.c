@@ -6,20 +6,20 @@ static egui_view_menu_t menu_1;
 
 // Define menu items for each page
 static const egui_view_menu_item_t main_items[] = {
-        {"Settings", 1}, // sub-page index 1
-        {"About", 2},    // sub-page index 2
-        {"Exit", 0xFF},  // leaf item
+        {"Settings", 1, EGUI_ICON_MS_SETTINGS},
+        {"About", 2, EGUI_ICON_MS_INFO},
+        {"Exit", EGUI_VIEW_MENU_ITEM_LEAF, EGUI_ICON_MS_CLOSE},
 };
 
 static const egui_view_menu_item_t settings_items[] = {
-        {"Display", 0xFF},
-        {"Sound", 0xFF},
-        {"Network", 0xFF},
+        {"Display", EGUI_VIEW_MENU_ITEM_LEAF, EGUI_ICON_MS_VISIBILITY},
+        {"Sound", EGUI_VIEW_MENU_ITEM_LEAF, EGUI_ICON_MS_MUSIC_NOTE},
+        {"Network", EGUI_VIEW_MENU_ITEM_LEAF, EGUI_ICON_MS_WIFI},
 };
 
 static const egui_view_menu_item_t about_items[] = {
-        {"Version", 0xFF},
-        {"License", 0xFF},
+        {"Version", EGUI_VIEW_MENU_ITEM_LEAF, EGUI_ICON_MS_INFO},
+        {"License", EGUI_VIEW_MENU_ITEM_LEAF, EGUI_ICON_MS_SECURITY},
 };
 
 // Define pages
@@ -35,6 +35,9 @@ void test_init_ui(void)
 {
     egui_view_menu_init_with_params(EGUI_VIEW_OF(&menu_1), &menu_1_params);
     egui_view_menu_set_pages(EGUI_VIEW_OF(&menu_1), pages, 3);
+    egui_view_menu_set_icon_font(EGUI_VIEW_OF(&menu_1), EGUI_FONT_ICON_MS_20);
+    egui_view_menu_set_navigation_icons(EGUI_VIEW_OF(&menu_1), EGUI_ICON_MS_ARROW_BACK, EGUI_ICON_MS_ARROW_FORWARD);
+    egui_view_menu_set_icon_text_gap(EGUI_VIEW_OF(&menu_1), 10);
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&menu_1));
 }

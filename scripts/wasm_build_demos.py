@@ -2,7 +2,7 @@
 """Build all EmbeddedGUI WASM demos and prepare web deployment directory.
 
 Usage:
-    python scripts/wasm_build_demos.py [--emsdk-path PATH] [--output-dir DIR] [--app APP]
+    python scripts/wasm_build_demos.py [--emsdk-path PATH] [--output-dir DIR] [--app APP] [--app-sub SUB]
 
 Optimization: per-app OBJDIR avoids recompiling shared core library.
 HelloBasic sub-apps share OBJDIR, so core is compiled once and reused.
@@ -12,6 +12,7 @@ Works on both Windows (local dev) and Linux (CI).
 
 import argparse
 import json
+import locale
 import os
 import re
 import shutil
@@ -19,6 +20,7 @@ import subprocess
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from pathlib import Path
 
 
 WASM_SKIP_APPS = {"HelloUnitTest"}
@@ -58,8 +60,15 @@ def get_custom_widgets_list():
 
 def run_cmd(cmd, cwd=None):
     """Run a shell command, return success status."""
-    result = subprocess.run(cmd, shell=True, cwd=cwd,
-                            capture_output=True, text=True)
+    result = subprocess.run(
+        cmd,
+        shell=True,
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        encoding=locale.getpreferredencoding(False) or "utf-8",
+        errors="replace",
+    )
     if result.returncode != 0:
         return False, result.stderr
     return True, ""
@@ -101,7 +110,11 @@ def make_demo_entry(root_dir, result, category):
         "width": width,
         "height": height,
     }
-    if result.get("has_doc"):
+    if result.get("app_sub"):
+        entry["appSub"] = result["app_sub"]
+    if result.get("docPath"):
+        entry["doc"] = result["docPath"]
+    elif result.get("has_doc"):
         entry["doc"] = "demos/" + result["name"] + "/README.md"
     return entry
 
@@ -122,9 +135,16 @@ def build_demo(root_dir, app, app_sub, emsdk_path, output_dir):
     res_cmd = f"make resource APP={app} {make_extra}".strip()
     run_cmd(res_cmd, cwd=root_dir)
 
+    if not app_sub:
+        objdir = Path(root_dir) / "output" / "obj" / app
+        stale_pc_port = objdir / "porting" / "pc"
+        if stale_pc_port.exists():
+            shutil.rmtree(objdir, ignore_errors=True)
+
     # Build (no make clean - per-app OBJDIR handles isolation)
     emsdk_arg = f"EMSDK_PATH={emsdk_path}" if emsdk_path else ""
-    build_cmd = f"make -j all APP={app} {make_extra} PORT=emscripten {emsdk_arg}".strip()
+    make_parallel_flag = "-j " if os.name != "nt" else ""
+    build_cmd = f"make {make_parallel_flag}all APP={app} {make_extra} PORT=emscripten {emsdk_arg}".strip()
     ok, stderr = run_cmd(build_cmd, cwd=root_dir)
     if not ok:
         err_lines = stderr.strip().split('\n')[-3:] if stderr else []
@@ -141,17 +161,20 @@ def build_demo(root_dir, app, app_sub, emsdk_path, output_dir):
             dst = os.path.join(demo_dir, app + ext)
             shutil.copy2(src, dst)
 
+    has_doc = False
+    result = {"name": demo_name, "has_doc": has_doc, "app": app, "app_sub": app_sub}
+
     # Copy readme.md into demo directory
     if app_sub:
         readme_src = os.path.join(root_dir, "example", app, app_sub, "readme.md")
     else:
         readme_src = os.path.join(root_dir, "example", app, "readme.md")
-    has_doc = False
     if os.path.exists(readme_src):
         shutil.copy2(readme_src, os.path.join(demo_dir, "README.md"))
-        has_doc = True
+        result["has_doc"] = True
+        result["docPath"] = f"demos/{demo_name}/README.md"
 
-    return {"name": demo_name, "has_doc": has_doc, "app": app}
+    return result
 
 
 def build_group_sequential(group, root_dir, emsdk_path, output_dir):
@@ -164,6 +187,29 @@ def build_group_sequential(group, root_dir, emsdk_path, output_dir):
     return results
 
 
+def resolve_single_build(app_name, app_sub):
+    """Resolve single-build flags into one build list entry."""
+    if app_sub:
+        if app_name == "HelloCustomWidgets" or "/" in app_sub:
+            return ("HelloCustomWidgets", app_sub, "HelloCustomWidgets")
+        return ("HelloBasic", app_sub, "HelloBasic")
+
+    if not app_name:
+        return None
+
+    if app_name.startswith("HelloBasic_"):
+        sub = app_name[len("HelloBasic_"):]
+        return ("HelloBasic", sub, "HelloBasic")
+
+    if app_name.startswith("HelloCustomWidgets_"):
+        raw = app_name[len("HelloCustomWidgets_"):]
+        parts = raw.split("_", 1)
+        if len(parts) == 2:
+            return ("HelloCustomWidgets", parts[0] + "/" + parts[1], "HelloCustomWidgets")
+
+    return (app_name, None, "Standalone")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Build WASM demos")
     parser.add_argument("--emsdk-path", default=os.environ.get("EMSDK", ""),
@@ -171,9 +217,9 @@ def main():
     parser.add_argument("--output-dir", default="web/demos",
                         help="Output directory (default: web/demos)")
     parser.add_argument("--app", default=None,
-                        help="Build single app (e.g. HelloSimple or HelloBasic_button)")
+                        help="Build single app (e.g. HelloSimple, HelloBasic_button, or HelloCustomWidgets_chart_radar_chart)")
     parser.add_argument("--app-sub", default=None,
-                        help="Build single HelloBasic sub-app (e.g. button)")
+                        help="Build single sub-app (e.g. button or chart/radar_chart)")
     parser.add_argument("--clean", action="store_true",
                         help="Clean output directory before building")
     parser.add_argument("--jobs", "-j", type=int, default=1,
@@ -196,14 +242,9 @@ def main():
 
     # Build task list from directory scan
     build_list = []
-    if args.app_sub:
-        build_list.append(("HelloBasic", args.app_sub, "HelloBasic"))
-    elif args.app:
-        if args.app.startswith("HelloBasic_"):
-            sub = args.app[len("HelloBasic_"):]
-            build_list.append(("HelloBasic", sub, "HelloBasic"))
-        else:
-            build_list.append((args.app, None, "Standalone"))
+    single_build = resolve_single_build(args.app, args.app_sub)
+    if single_build:
+        build_list.append(single_build)
     else:
         app_sets = get_example_list()
         app_basic_sets = get_example_basic_list()

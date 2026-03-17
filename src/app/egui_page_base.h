@@ -15,9 +15,9 @@ struct egui_page_base_api
 {
     void (*on_open)(egui_page_base_t *self);
     void (*on_close)(egui_page_base_t *self);
-    
+
     void (*on_refresh)(egui_page_base_t *self);
-    
+
     void (*on_key_pressed)(egui_page_base_t *self, uint16_t keycode);
 };
 

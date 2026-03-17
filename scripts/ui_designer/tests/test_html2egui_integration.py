@@ -23,7 +23,13 @@ def _run_helper(*cmd_args, check=True):
     """Run html2egui_helper.py with given arguments."""
     result = subprocess.run(
         [sys.executable, SCRIPT_PATH] + list(cmd_args),
-        capture_output=True, text=True, cwd=EGUI_ROOT, timeout=30,
+        # Avoid inheriting a potentially invalid stdin handle on Windows CI,
+        # which can raise WinError 6 during subprocess setup.
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        cwd=EGUI_ROOT,
+        timeout=30,
     )
     if check and result.returncode != 0:
         raise RuntimeError(

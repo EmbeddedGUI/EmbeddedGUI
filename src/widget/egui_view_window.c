@@ -13,6 +13,88 @@
 #include "shadow/egui_shadow.h"
 #endif
 
+static const egui_font_t *egui_view_window_get_icon_font(egui_dim_t area_size)
+{
+    if (area_size <= 18)
+    {
+        return EGUI_FONT_ICON_MS_16;
+    }
+    if (area_size <= 22)
+    {
+        return EGUI_FONT_ICON_MS_20;
+    }
+    return EGUI_FONT_ICON_MS_24;
+}
+
+static const egui_font_t *egui_view_window_get_close_icon_font(egui_view_window_t *local)
+{
+    if (local->close_icon_font != NULL)
+    {
+        return local->close_icon_font;
+    }
+
+    return egui_view_window_get_icon_font(local->header_height);
+}
+
+static void egui_view_window_update_layout(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_window_t);
+
+    egui_dim_t header_height = local->header_height;
+    egui_dim_t window_width = self->region.size.width;
+    egui_dim_t window_height = self->region.size.height;
+    egui_dim_t close_width = header_height;
+    egui_dim_t title_width;
+    egui_dim_t content_height;
+
+    if (close_width * 3 > window_width)
+    {
+        close_width = window_width / 3;
+    }
+
+    title_width = window_width - close_width * 2;
+    if (title_width < 0)
+    {
+        title_width = 0;
+    }
+
+    content_height = window_height - header_height;
+    if (content_height < 0)
+    {
+        content_height = 0;
+    }
+
+    egui_view_set_position(EGUI_VIEW_OF(&local->title_label), close_width, 0);
+    egui_view_set_size(EGUI_VIEW_OF(&local->title_label), title_width, header_height);
+
+    egui_view_set_position(EGUI_VIEW_OF(&local->close_label), window_width - close_width, 0);
+    egui_view_set_size(EGUI_VIEW_OF(&local->close_label), close_width, header_height);
+    egui_view_label_set_font(EGUI_VIEW_OF(&local->close_label), egui_view_window_get_close_icon_font(local));
+
+    egui_view_set_position(EGUI_VIEW_OF(&local->content), 0, header_height);
+    egui_view_set_size(EGUI_VIEW_OF(&local->content), window_width, content_height);
+}
+
+static void egui_view_window_on_close_click(egui_view_t *self)
+{
+    egui_view_t *window_view = EGUI_VIEW_PARENT(self);
+    egui_view_window_t *local;
+    if (window_view == NULL)
+    {
+        return;
+    }
+
+    local = (egui_view_window_t *)window_view;
+
+    if (local->on_close != NULL)
+    {
+        local->on_close(window_view);
+        return;
+    }
+
+    egui_view_set_gone(window_view, 1);
+}
+
 void egui_view_window_set_title(egui_view_t *self, const char *title)
 {
     EGUI_LOCAL_INIT(egui_view_window_t);
@@ -26,11 +108,37 @@ void egui_view_window_set_header_height(egui_view_t *self, egui_dim_t height)
     if (local->header_height != height)
     {
         local->header_height = height;
-        egui_view_set_size(EGUI_VIEW_OF(&local->title_label), self->region.size.width, height);
-        egui_view_set_position(EGUI_VIEW_OF(&local->content), 0, height);
-        egui_view_set_size(EGUI_VIEW_OF(&local->content), self->region.size.width, self->region.size.height - height);
+        egui_view_window_update_layout(self);
         egui_view_invalidate(self);
     }
+}
+
+void egui_view_window_set_close_icon(egui_view_t *self, const char *icon)
+{
+    EGUI_LOCAL_INIT(egui_view_window_t);
+
+    if (local->close_icon == icon)
+    {
+        return;
+    }
+
+    local->close_icon = icon;
+    egui_view_label_set_text(EGUI_VIEW_OF(&local->close_label), local->close_icon);
+    egui_view_invalidate(self);
+}
+
+void egui_view_window_set_close_icon_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_window_t);
+
+    if (local->close_icon_font == font)
+    {
+        return;
+    }
+
+    local->close_icon_font = font;
+    egui_view_label_set_font(EGUI_VIEW_OF(&local->close_label), egui_view_window_get_close_icon_font(local));
+    egui_view_invalidate(self);
 }
 
 void egui_view_window_add_content(egui_view_t *self, egui_view_t *child)
@@ -73,6 +181,21 @@ void egui_view_window_on_draw(egui_view_t *self)
     egui_canvas_draw_rectangle_fill(region.location.x, region.location.y, region.size.width, local->header_height, local->header_color, EGUI_ALPHA_100);
 #endif
 
+    if (egui_view_get_pressed(EGUI_VIEW_OF(&local->close_label)))
+    {
+        egui_view_t *close_view = EGUI_VIEW_OF(&local->close_label);
+        egui_dim_t inset = close_view->region.size.width / 5;
+        egui_dim_t hotspot_w = close_view->region.size.width - inset * 2;
+        egui_dim_t hotspot_h = close_view->region.size.height - inset * 2;
+        egui_dim_t hotspot_r = hotspot_h / 2;
+
+        if (hotspot_w > 0 && hotspot_h > 0)
+        {
+            egui_canvas_draw_round_rectangle_fill(close_view->region.location.x + inset, close_view->region.location.y + inset, hotspot_w, hotspot_h, hotspot_r,
+                                                  EGUI_COLOR_WHITE, 36);
+        }
+    }
+
     // Draw content background
     egui_canvas_draw_rectangle_fill(region.location.x, region.location.y + local->header_height, region.size.width, region.size.height - local->header_height,
                                     local->content_bg_color, EGUI_ALPHA_100);
@@ -108,6 +231,8 @@ void egui_view_window_init(egui_view_t *self)
     local->header_height = 30;
     local->header_color = EGUI_THEME_PRIMARY_DARK;
     local->content_bg_color = EGUI_THEME_SURFACE;
+    local->close_icon = EGUI_ICON_MS_CROSS;
+    local->close_icon_font = NULL;
     local->on_close = NULL;
 
     // Init title label
@@ -115,13 +240,21 @@ void egui_view_window_init(egui_view_t *self)
     egui_view_label_set_font(EGUI_VIEW_OF(&local->title_label), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&local->title_label), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&local->title_label), EGUI_ALIGN_CENTER);
-    egui_view_set_position(EGUI_VIEW_OF(&local->title_label), 0, 0);
+
+    // Init close icon label
+    egui_view_label_init(EGUI_VIEW_OF(&local->close_label));
+    egui_view_label_set_text(EGUI_VIEW_OF(&local->close_label), local->close_icon);
+    egui_view_label_set_font(EGUI_VIEW_OF(&local->close_label), egui_view_window_get_close_icon_font(local));
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&local->close_label), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    egui_view_label_set_align_type(EGUI_VIEW_OF(&local->close_label), EGUI_ALIGN_CENTER);
+    egui_view_set_on_click_listener(EGUI_VIEW_OF(&local->close_label), egui_view_window_on_close_click);
 
     // Init content group
     egui_view_group_init(EGUI_VIEW_OF(&local->content));
 
     // Add title and content as children of the window
     egui_view_group_add_child(self, EGUI_VIEW_OF(&local->title_label));
+    egui_view_group_add_child(self, EGUI_VIEW_OF(&local->close_label));
     egui_view_group_add_child(self, EGUI_VIEW_OF(&local->content));
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
@@ -152,13 +285,7 @@ void egui_view_window_apply_params(egui_view_t *self, const egui_view_window_par
     // Set title
     egui_view_label_set_text(EGUI_VIEW_OF(&local->title_label), params->title);
 
-    // Layout title label
-    egui_view_set_position(EGUI_VIEW_OF(&local->title_label), 0, 0);
-    egui_view_set_size(EGUI_VIEW_OF(&local->title_label), params->region.size.width, params->header_height);
-
-    // Layout content area
-    egui_view_set_position(EGUI_VIEW_OF(&local->content), 0, params->header_height);
-    egui_view_set_size(EGUI_VIEW_OF(&local->content), params->region.size.width, params->region.size.height - params->header_height);
+    egui_view_window_update_layout(self);
 
     egui_view_invalidate(self);
 }

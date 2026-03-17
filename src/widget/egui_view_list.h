@@ -19,8 +19,13 @@ struct egui_view_list
     egui_view_scroll_t base;
 
     egui_view_button_t items[EGUI_VIEW_LIST_MAX_ITEMS];
+    const char *item_icons[EGUI_VIEW_LIST_MAX_ITEMS];
+    const char *item_texts[EGUI_VIEW_LIST_MAX_ITEMS];
     uint8_t item_count;
     egui_dim_t item_height;
+    egui_dim_t icon_gap;
+    egui_color_t icon_color;
+    const egui_font_t *icon_font;
     egui_view_list_item_click_cb_t on_item_click;
 };
 
@@ -39,8 +44,13 @@ void egui_view_list_apply_params(egui_view_t *self, const egui_view_list_params_
 void egui_view_list_init_with_params(egui_view_t *self, const egui_view_list_params_t *params);
 
 int8_t egui_view_list_add_item(egui_view_t *self, const char *text);
+int8_t egui_view_list_add_item_with_icon(egui_view_t *self, const char *icon, const char *text);
 void egui_view_list_clear(egui_view_t *self);
 void egui_view_list_set_item_height(egui_view_t *self, egui_dim_t height);
+void egui_view_list_set_item_icon(egui_view_t *self, uint8_t index, const char *icon);
+void egui_view_list_set_icon_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_list_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
+void egui_view_list_set_icon_color(egui_view_t *self, egui_color_t color);
 void egui_view_list_set_on_item_click(egui_view_t *self, egui_view_list_item_click_cb_t callback);
 void egui_view_list_init(egui_view_t *self);
 

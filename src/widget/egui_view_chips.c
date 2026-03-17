@@ -18,6 +18,11 @@ void egui_view_chips_set_chips(egui_view_t *self, const char **labels, uint8_t c
     egui_view_button_matrix_set_labels(self, labels, count, egui_view_chips_resolve_cols(count, cols));
 }
 
+void egui_view_chips_set_chip_icons(egui_view_t *self, const char **icons)
+{
+    egui_view_button_matrix_set_icons(self, icons);
+}
+
 void egui_view_chips_set_on_selected_listener(egui_view_t *self, egui_view_on_chip_selected_listener_t listener)
 {
     egui_view_button_matrix_set_on_click(self, listener);
@@ -108,6 +113,26 @@ void egui_view_chips_set_font(egui_view_t *self, const egui_font_t *font)
     egui_view_button_matrix_set_font(self, font);
 }
 
+void egui_view_chips_set_icon_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    if (local->icon_font == font)
+    {
+        return;
+    }
+    egui_view_button_matrix_set_icon_font(self, font);
+}
+
+void egui_view_chips_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
+{
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    if (local->icon_text_gap == gap)
+    {
+        return;
+    }
+    egui_view_button_matrix_set_icon_text_gap(self, gap);
+}
+
 void egui_view_chips_init(egui_view_t *self)
 {
     egui_view_button_matrix_init(self);
@@ -124,6 +149,7 @@ void egui_view_chips_apply_params(egui_view_t *self, const egui_view_chips_param
     };
     egui_view_button_matrix_apply_params(self, &matrix_params);
     egui_view_chips_set_chips(self, params->labels, params->chip_count, matrix_params.cols);
+    egui_view_chips_set_chip_icons(self, params->icons);
 }
 
 void egui_view_chips_init_with_params(egui_view_t *self, const egui_view_chips_params_t *params)

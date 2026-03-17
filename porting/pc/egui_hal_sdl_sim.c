@@ -3,7 +3,8 @@
 #include "egui_hal_sdl_sim.h"
 #include "sdl_port.h"
 
-typedef struct egui_hal_sdl_lcd_priv {
+typedef struct egui_hal_sdl_lcd_priv
+{
     int16_t x;
     int16_t y;
     int16_t w;

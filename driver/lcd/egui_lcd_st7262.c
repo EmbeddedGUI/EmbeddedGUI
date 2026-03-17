@@ -8,18 +8,18 @@
 #include "core/egui_api.h"
 
 /* ST7262 Commands */
-#define ST7262_SWRESET   0x01
-#define ST7262_SLPIN     0x10
-#define ST7262_SLPOUT    0x11
-#define ST7262_INVOFF    0x20
-#define ST7262_INVON     0x21
-#define ST7262_DISPOFF   0x28
-#define ST7262_DISPON    0x29
-#define ST7262_CASET     0x2A
-#define ST7262_RASET     0x2B
-#define ST7262_RAMWR     0x2C
-#define ST7262_MADCTL    0x36
-#define ST7262_COLMOD    0x3A
+#define ST7262_SWRESET 0x01
+#define ST7262_SLPIN   0x10
+#define ST7262_SLPOUT  0x11
+#define ST7262_INVOFF  0x20
+#define ST7262_INVON   0x21
+#define ST7262_DISPOFF 0x28
+#define ST7262_DISPON  0x29
+#define ST7262_CASET   0x2A
+#define ST7262_RASET   0x2B
+#define ST7262_RAMWR   0x2C
+#define ST7262_MADCTL  0x36
+#define ST7262_COLMOD  0x3A
 
 /* MADCTL bits */
 #define ST7262_MADCTL_MY  0x80
@@ -28,18 +28,20 @@
 #define ST7262_MADCTL_BGR 0x08
 
 /* Color modes */
-#define ST7262_COLOR_MODE_16BIT 0x55  /* RGB565 */
-#define ST7262_COLOR_MODE_18BIT 0x66  /* RGB666 */
-#define ST7262_COLOR_MODE_24BIT 0x77  /* RGB888 */
+#define ST7262_COLOR_MODE_16BIT 0x55 /* RGB565 */
+#define ST7262_COLOR_MODE_18BIT 0x66 /* RGB666 */
+#define ST7262_COLOR_MODE_24BIT 0x77 /* RGB888 */
 
 /* Helper: write command */
 static void st7262_write_cmd(egui_hal_lcd_driver_t *self, uint8_t cmd)
 {
-    if (self->gpio && self->gpio->set_dc) {
-        self->gpio->set_dc(0);  /* Command mode */
+    if (self->gpio && self->gpio->set_dc)
+    {
+        self->gpio->set_dc(0); /* Command mode */
     }
     self->bus.spi->write(&cmd, 1);
-    if (self->bus.spi->wait_complete) {
+    if (self->bus.spi->wait_complete)
+    {
         self->bus.spi->wait_complete();
     }
 }
@@ -47,11 +49,13 @@ static void st7262_write_cmd(egui_hal_lcd_driver_t *self, uint8_t cmd)
 /* Helper: write data byte */
 static void st7262_write_data_byte(egui_hal_lcd_driver_t *self, uint8_t data)
 {
-    if (self->gpio && self->gpio->set_dc) {
-        self->gpio->set_dc(1);  /* Data mode */
+    if (self->gpio && self->gpio->set_dc)
+    {
+        self->gpio->set_dc(1); /* Data mode */
     }
     self->bus.spi->write(&data, 1);
-    if (self->bus.spi->wait_complete) {
+    if (self->bus.spi->wait_complete)
+    {
         self->bus.spi->wait_complete();
     }
 }
@@ -59,11 +63,13 @@ static void st7262_write_data_byte(egui_hal_lcd_driver_t *self, uint8_t data)
 /* Helper: write data buffer */
 static void st7262_write_data(egui_hal_lcd_driver_t *self, const uint8_t *data, uint32_t len)
 {
-    if (self->gpio && self->gpio->set_dc) {
-        self->gpio->set_dc(1);  /* Data mode */
+    if (self->gpio && self->gpio->set_dc)
+    {
+        self->gpio->set_dc(1); /* Data mode */
     }
     self->bus.spi->write(data, len);
-    if (self->bus.spi->wait_complete) {
+    if (self->bus.spi->wait_complete)
+    {
         self->bus.spi->wait_complete();
     }
 }
@@ -71,7 +77,8 @@ static void st7262_write_data(egui_hal_lcd_driver_t *self, const uint8_t *data, 
 /* Helper: hardware reset */
 static void st7262_hw_reset(egui_hal_lcd_driver_t *self)
 {
-    if (self->gpio && self->gpio->set_rst) {
+    if (self->gpio && self->gpio->set_rst)
+    {
         self->gpio->set_rst(0);
         /* Simple delay - platform should provide proper delay */
         egui_api_delay(10);
@@ -87,10 +94,12 @@ static int st7262_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t 
     memcpy(&self->config, config, sizeof(egui_hal_lcd_config_t));
 
     /* Initialize bus and GPIO */
-    if (self->bus.spi->init) {
+    if (self->bus.spi->init)
+    {
         self->bus.spi->init();
     }
-    if (self->gpio && self->gpio->init) {
+    if (self->gpio && self->gpio->init)
+    {
         self->gpio->init();
     }
 
@@ -99,11 +108,11 @@ static int st7262_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t 
 
     /* Software reset */
     st7262_write_cmd(self, ST7262_SWRESET);
-    egui_api_delay(120);  /* Wait 150ms */
+    egui_api_delay(120); /* Wait 150ms */
 
     /* Sleep out */
     st7262_write_cmd(self, ST7262_SLPOUT);
-    egui_api_delay(120);  /* Wait 500ms */
+    egui_api_delay(120); /* Wait 500ms */
 
     /* Set color mode to 16-bit RGB565 */
     st7262_write_cmd(self, ST7262_COLMOD);
@@ -114,9 +123,12 @@ static int st7262_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t 
     st7262_write_data_byte(self, ST7262_MADCTL_MX | ST7262_MADCTL_MY);
 
     /* Inversion control */
-    if (config->invert_color) {
+    if (config->invert_color)
+    {
         st7262_write_cmd(self, ST7262_INVON);
-    } else {
+    }
+    else
+    {
         st7262_write_cmd(self, ST7262_INVOFF);
     }
 
@@ -124,7 +136,8 @@ static int st7262_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t 
     st7262_write_cmd(self, ST7262_DISPON);
 
     /* Backlight on - porting layer should set driver->set_brightness */
-    if (self->set_brightness) {
+    if (self->set_brightness)
+    {
         self->set_brightness(self, 255);
     }
 
@@ -135,7 +148,8 @@ static int st7262_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t 
 static void st7262_deinit(egui_hal_lcd_driver_t *self)
 {
     /* Backlight off */
-    if (self->set_brightness) {
+    if (self->set_brightness)
+    {
         self->set_brightness(self, 0);
     }
 
@@ -146,17 +160,18 @@ static void st7262_deinit(egui_hal_lcd_driver_t *self)
     st7262_write_cmd(self, ST7262_SLPIN);
 
     /* Deinit bus and GPIO */
-    if (self->bus.spi->deinit) {
+    if (self->bus.spi->deinit)
+    {
         self->bus.spi->deinit();
     }
-    if (self->gpio && self->gpio->deinit) {
+    if (self->gpio && self->gpio->deinit)
+    {
         self->gpio->deinit();
     }
 }
 
 /* Driver: set_window */
-static void st7262_set_window(egui_hal_lcd_driver_t *self, int16_t x, int16_t y,
-                               int16_t w, int16_t h)
+static void st7262_set_window(egui_hal_lcd_driver_t *self, int16_t x, int16_t y, int16_t w, int16_t h)
 {
     uint16_t x0 = x + self->config.x_offset;
     uint16_t y0 = y + self->config.y_offset;
@@ -190,8 +205,9 @@ static void st7262_set_window(egui_hal_lcd_driver_t *self, int16_t x, int16_t y,
 static void st7262_write_pixels(egui_hal_lcd_driver_t *self, const void *data, uint32_t len)
 {
 
-    if (self->gpio && self->gpio->set_dc) {
-        self->gpio->set_dc(1);  /* Data mode */
+    if (self->gpio && self->gpio->set_dc)
+    {
+        self->gpio->set_dc(1); /* Data mode */
     }
     self->bus.spi->write((const uint8_t *)data, len);
     /* Note: don't wait here - let caller decide via wait_dma_complete */
@@ -201,7 +217,8 @@ static void st7262_write_pixels(egui_hal_lcd_driver_t *self, const void *data, u
 static void st7262_wait_dma_complete(egui_hal_lcd_driver_t *self)
 {
 
-    if (self->bus.spi->wait_complete) {
+    if (self->bus.spi->wait_complete)
+    {
         self->bus.spi->wait_complete();
     }
 }
@@ -211,7 +228,8 @@ static void st7262_set_rotation(egui_hal_lcd_driver_t *self, uint8_t rotation)
 {
     uint8_t madctl = 0;
 
-    switch (rotation) {
+    switch (rotation)
+    {
     case 0:
         madctl = ST7262_MADCTL_MX | ST7262_MADCTL_MY;
         break;
@@ -233,11 +251,14 @@ static void st7262_set_rotation(egui_hal_lcd_driver_t *self, uint8_t rotation)
 /* Driver: set_power */
 static void st7262_set_power(egui_hal_lcd_driver_t *self, uint8_t on)
 {
-    if (on) {
+    if (on)
+    {
         st7262_write_cmd(self, ST7262_SLPOUT);
         egui_api_delay(120);
         st7262_write_cmd(self, ST7262_DISPON);
-    } else {
+    }
+    else
+    {
         st7262_write_cmd(self, ST7262_DISPOFF);
         st7262_write_cmd(self, ST7262_SLPIN);
     }
@@ -250,9 +271,7 @@ static void st7262_set_invert(egui_hal_lcd_driver_t *self, uint8_t invert)
 }
 
 /* Internal: setup driver function pointers */
-static void st7262_setup_driver(egui_hal_lcd_driver_t *driver,
-                                 const egui_bus_spi_ops_t *spi,
-                                 const egui_lcd_gpio_ops_t *gpio)
+static void st7262_setup_driver(egui_hal_lcd_driver_t *driver, const egui_bus_spi_ops_t *spi, const egui_lcd_gpio_ops_t *gpio)
 {
     memset(driver, 0, sizeof(egui_hal_lcd_driver_t));
 
@@ -265,7 +284,7 @@ static void st7262_setup_driver(egui_hal_lcd_driver_t *driver,
     driver->write_pixels = st7262_write_pixels;
     driver->wait_dma_complete = st7262_wait_dma_complete;
     driver->set_rotation = st7262_set_rotation;
-    driver->set_brightness = NULL;  /* Porting layer should set this */
+    driver->set_brightness = NULL; /* Porting layer should set this */
     driver->set_power = st7262_set_power;
     driver->set_invert = st7262_set_invert;
 
@@ -274,11 +293,10 @@ static void st7262_setup_driver(egui_hal_lcd_driver_t *driver,
 }
 
 /* Public: init */
-void egui_lcd_st7262_init(egui_hal_lcd_driver_t *storage,
-                          const egui_bus_spi_ops_t *spi,
-                          const egui_lcd_gpio_ops_t *gpio)
+void egui_lcd_st7262_init(egui_hal_lcd_driver_t *storage, const egui_bus_spi_ops_t *spi, const egui_lcd_gpio_ops_t *gpio)
 {
-    if (!storage || !spi || !spi->write) {
+    if (!storage || !spi || !spi->write)
+    {
         return;
     }
 

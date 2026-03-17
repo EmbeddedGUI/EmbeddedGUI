@@ -96,10 +96,11 @@ AI 代理弥合了这些差距：解析设计稿语义 → 生成 XML 布局 →
 
 | 脚本 | 功能 |
 |------|------|
-| `scripts/code_compile_check.py` | 全量编译检查（支持 Make/CMake，CI 集成） |
+| `scripts/code_compile_check.py` | 全量编译检查（支持 Make/CMake，CI 集成；`--full-check` 含示例 icon font 检查） |
 | `scripts/code_runtime_check.py` | 运行时验证（启动程序、截图、超时检测） |
 | `scripts/code_format.py` | clang-format 代码格式化 |
-| `scripts/release_check.py` | 一键发布验证（7 步流水线） |
+| `scripts/check_example_icon_font.py` | 示例图标字体显式配置检查 |
+| `scripts/release_check.py` | 一键发布验证（多步骤发布前流水线） |
 
 ## 三条输入路径
 
@@ -280,7 +281,7 @@ python scripts/figmamake/figmamake_regression.py \
 
 ### 发布验证
 
-`scripts/release_check.py` 提供一键式发布前检查，串联 7 个验证步骤：
+`scripts/release_check.py` 提供一键式发布前检查，串联完整的发布前流水线：
 
 ```bash
 python scripts/release_check.py
@@ -289,12 +290,26 @@ python scripts/release_check.py
 | 步骤 | 说明 |
 |------|------|
 | 1. 代码格式化检查 | clang-format 验证 |
-| 2. UI Designer 单元测试 | pytest 运行 248+ 测试 |
-| 3. 全量编译 | 编译所有示例应用 |
-| 4. 运行时截图验证 | 启动所有应用并截图 |
-| 5. 二进制大小分析 | ELF 内存占用分析 |
-| 6. QEMU 性能回归 | 微秒级性能基准测试 |
-| 7. 性能文档生成 | 生成性能报告 |
+| 2. 示例图标字体检查 | 检查示例是否显式设置 `icon_font` |
+| 3. Keil 工程同步检查 | 校验源码与 `.uvprojx` 配置一致 |
+| 4. UI Designer 单元测试 | pytest 运行 UI Designer 测试 |
+| 5. UI Designer 打包 | PyInstaller 构建桌面工具 |
+| 6. 全量编译 | 编译所有示例应用 |
+| 7. WASM Demo 构建 | 构建 WebAssembly 演示站点 |
+| 8. 运行时截图验证 | 启动应用并截图检查渲染结果 |
+| 9. 二进制大小分析 | ELF 内存占用分析 |
+| 10. 大小文档生成 | 生成体积报告文档 |
+| 11. QEMU 性能回归 | 微秒级性能基准测试 |
+| 12. 性能文档生成 | 生成性能报告 |
+| 13. Sphinx 文档构建 | 验证文档可正常生成 |
+
+常见用法：
+
+```bash
+python scripts/release_check.py --keep-going
+python scripts/release_check.py --skip perf,perf_doc,wasm,doc,ui_package
+python scripts/release_check.py --cmake --skip runtime
+```
 
 ## 框架扩展驱动机制
 

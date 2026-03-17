@@ -11,6 +11,53 @@
 #include "core/egui_canvas_gradient.h"
 #endif
 
+static const egui_font_t *egui_view_button_matrix_get_icon_font(egui_view_button_matrix_t *local, egui_dim_t area_size)
+{
+    if (local->icon_font != NULL)
+    {
+        return local->icon_font;
+    }
+
+    if (area_size <= 18)
+    {
+        return EGUI_FONT_ICON_MS_16;
+    }
+    if (area_size <= 22)
+    {
+        return EGUI_FONT_ICON_MS_20;
+    }
+    return EGUI_FONT_ICON_MS_24;
+}
+
+static void egui_view_button_matrix_draw_text_clipped(const egui_font_t *font, const char *text, const egui_region_t *text_rect, const egui_region_t *clip_rect,
+                                                      uint8_t align, egui_color_t color, egui_alpha_t alpha)
+{
+    egui_region_t draw_rect = *text_rect;
+    egui_region_t text_clip = *clip_rect;
+    const egui_region_t *prev_clip = egui_canvas_get_extra_clip();
+
+    if (prev_clip != NULL)
+    {
+        egui_region_intersect(&text_clip, prev_clip, &text_clip);
+    }
+
+    if (egui_region_is_empty(&text_clip))
+    {
+        return;
+    }
+
+    egui_canvas_set_extra_clip(&text_clip);
+    egui_canvas_draw_text_in_rect(font, text, &draw_rect, align, color, alpha);
+    if (prev_clip != NULL)
+    {
+        egui_canvas_set_extra_clip(prev_clip);
+    }
+    else
+    {
+        egui_canvas_clear_extra_clip();
+    }
+}
+
 void egui_view_button_matrix_set_labels(egui_view_t *self, const char **labels, uint8_t count, uint8_t cols)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -124,11 +171,47 @@ void egui_view_button_matrix_set_font(egui_view_t *self, const egui_font_t *font
     egui_view_invalidate(self);
 }
 
+void egui_view_button_matrix_set_icons(egui_view_t *self, const char **icons)
+{
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    if (local->icons == icons)
+    {
+        return;
+    }
+
+    local->icons = icons;
+    egui_view_invalidate(self);
+}
+
+void egui_view_button_matrix_set_icon_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    if (local->icon_font == font)
+    {
+        return;
+    }
+
+    local->icon_font = font;
+    egui_view_invalidate(self);
+}
+
+void egui_view_button_matrix_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
+{
+    EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    if (local->icon_text_gap == gap)
+    {
+        return;
+    }
+
+    local->icon_text_gap = gap;
+    egui_view_invalidate(self);
+}
+
 void egui_view_button_matrix_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
 
-    if (local->labels == NULL || local->btn_count == 0 || local->cols == 0)
+    if ((local->labels == NULL && local->icons == NULL) || local->btn_count == 0 || local->cols == 0)
     {
         return;
     }
@@ -155,6 +238,8 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
     {
         uint8_t col = i % cols;
         uint8_t row = i / cols;
+        const char *label = (local->labels != NULL) ? local->labels[i] : NULL;
+        const char *icon = (local->icons != NULL) ? local->icons[i] : NULL;
 
         egui_dim_t btn_x = x + col * (btn_w + gap);
         egui_dim_t btn_y = y + row * (btn_h + gap);
@@ -209,26 +294,79 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
         }
         egui_canvas_draw_round_rectangle(btn_x, btn_y, btn_w, btn_h, r, border_w, border_color, EGUI_ALPHA_100);
 
-        // Draw centered text label with per-cell clip to avoid text overflow into neighboring cells
-        egui_region_t text_rect = {{btn_x + 2, btn_y}, {btn_w > 4 ? (btn_w - 4) : btn_w, btn_h}};
-        egui_region_t text_clip = text_rect;
-        const egui_region_t *prev_clip = egui_canvas_get_extra_clip();
-        if (prev_clip != NULL)
+        // Draw centered content with per-cell clip to avoid overflow into neighboring cells.
+        egui_region_t content_rect = {{btn_x + 4, btn_y + 4}, {btn_w > 8 ? (btn_w - 8) : btn_w, btn_h > 8 ? (btn_h - 8) : btn_h}};
+        if (icon != NULL)
         {
-            egui_region_intersect(&text_clip, prev_clip, &text_clip);
-        }
-        if (!egui_region_is_empty(&text_clip))
-        {
-            egui_canvas_set_extra_clip(&text_clip);
-            egui_canvas_draw_text_in_rect(font, local->labels[i], &text_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
-            if (prev_clip != NULL)
+            if (label != NULL && label[0] != '\0')
             {
-                egui_canvas_set_extra_clip(prev_clip);
+                egui_dim_t text_w = 0;
+                egui_dim_t text_h = 0;
+                egui_dim_t icon_area_h;
+                egui_dim_t content_h;
+                egui_dim_t content_y;
+                egui_dim_t text_gap = local->icon_text_gap;
+                egui_region_t icon_rect;
+                egui_region_t text_rect;
+
+                if (font->api != NULL && font->api->get_str_size != NULL)
+                {
+                    font->api->get_str_size(font, label, 0, 0, &text_w, &text_h);
+                }
+                if (text_h < 0)
+                {
+                    text_h = 0;
+                }
+                if (text_gap < 0)
+                {
+                    text_gap = 0;
+                }
+                if (text_w <= 0)
+                {
+                    text_gap = 0;
+                }
+
+                icon_area_h = content_rect.size.height - text_h - text_gap;
+                if (icon_area_h < content_rect.size.height / 2)
+                {
+                    icon_area_h = content_rect.size.height / 2;
+                }
+                if (icon_area_h > content_rect.size.height)
+                {
+                    icon_area_h = content_rect.size.height;
+                }
+
+                content_h = icon_area_h + ((text_h > 0) ? (text_h + text_gap) : 0);
+                if (content_h > content_rect.size.height)
+                {
+                    content_h = content_rect.size.height;
+                }
+                content_y = content_rect.location.y + (content_rect.size.height - content_h) / 2;
+
+                icon_rect.location.x = content_rect.location.x;
+                icon_rect.location.y = content_y;
+                icon_rect.size.width = content_rect.size.width;
+                icon_rect.size.height = icon_area_h;
+
+                text_rect.location.x = content_rect.location.x;
+                text_rect.location.y = content_y + icon_area_h;
+                text_rect.size.width = content_rect.size.width;
+                text_rect.size.height = content_rect.location.y + content_rect.size.height - text_rect.location.y;
+
+                egui_view_button_matrix_draw_text_clipped(egui_view_button_matrix_get_icon_font(local, EGUI_MIN(icon_rect.size.width, icon_rect.size.height)),
+                                                          icon, &icon_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+                egui_view_button_matrix_draw_text_clipped(font, label, &text_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
             }
             else
             {
-                egui_canvas_clear_extra_clip();
+                egui_view_button_matrix_draw_text_clipped(
+                        egui_view_button_matrix_get_icon_font(local, EGUI_MIN(content_rect.size.width, content_rect.size.height)), icon, &content_rect,
+                        &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
             }
+        }
+        else if (label != NULL)
+        {
+            egui_view_button_matrix_draw_text_clipped(font, label, &content_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
         }
     }
 }
@@ -243,7 +381,7 @@ static int egui_view_button_matrix_on_touch_event(egui_view_t *self, egui_motion
         return 0;
     }
 
-    if (local->labels == NULL || local->btn_count == 0 || local->cols == 0)
+    if ((local->labels == NULL && local->icons == NULL) || local->btn_count == 0 || local->cols == 0)
     {
         return 0;
     }
@@ -352,6 +490,7 @@ void egui_view_button_matrix_init(egui_view_t *self)
 
     // init local data.
     local->labels = NULL;
+    local->icons = NULL;
     local->btn_count = 0;
     local->cols = 4;
     local->gap = 2;
@@ -364,6 +503,8 @@ void egui_view_button_matrix_init(egui_view_t *self)
     local->border_color = EGUI_COLOR_WHITE;
     local->corner_radius = 4;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    local->icon_font = NULL;
+    local->icon_text_gap = 2;
     local->on_click = NULL;
 
     egui_view_set_view_name(self, "egui_view_button_matrix");

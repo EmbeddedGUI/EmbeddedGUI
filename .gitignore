@@ -61,3 +61,4 @@ iteration_log/
 
 eq_debug_*.txt
 ref
+build_switch.log

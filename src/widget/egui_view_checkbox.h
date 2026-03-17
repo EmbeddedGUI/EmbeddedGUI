@@ -10,6 +10,13 @@ extern "C" {
 #endif
 
 typedef struct egui_view_checkbox egui_view_checkbox_t;
+
+typedef enum
+{
+    EGUI_VIEW_CHECKBOX_MARK_STYLE_VECTOR = 0,
+    EGUI_VIEW_CHECKBOX_MARK_STYLE_ICON = 1,
+} egui_view_checkbox_mark_style_t;
+
 struct egui_view_checkbox
 {
     egui_view_t base;
@@ -25,6 +32,9 @@ struct egui_view_checkbox
     const egui_font_t *font;
     egui_color_t text_color;
     egui_dim_t text_gap;
+    uint8_t mark_style;
+    const char *mark_icon;
+    const egui_font_t *icon_font;
 };
 
 // ============== Checkbox Params ==============
@@ -50,6 +60,10 @@ void egui_view_checkbox_set_checked(egui_view_t *self, uint8_t is_checked);
 void egui_view_checkbox_set_text(egui_view_t *self, const char *text);
 void egui_view_checkbox_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_checkbox_set_text_color(egui_view_t *self, egui_color_t color);
+void egui_view_checkbox_set_mark_style(egui_view_t *self, egui_view_checkbox_mark_style_t style);
+void egui_view_checkbox_set_mark_icon(egui_view_t *self, const char *icon);
+void egui_view_checkbox_set_icon_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_checkbox_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
 void egui_view_checkbox_on_draw(egui_view_t *self);
 void egui_view_checkbox_init(egui_view_t *self);
 

@@ -2,27 +2,19 @@
 #include <stdlib.h>
 #include "uicode.h"
 
-// 4 radio buttons: XS / S / M / L
-static egui_view_radio_button_t radio_xs;
-static egui_view_radio_button_t radio_s;
-static egui_view_radio_button_t radio_m;
-static egui_view_radio_button_t radio_l;
+static egui_view_radio_button_t radio_home;
+static egui_view_radio_button_t radio_alerts;
+static egui_view_radio_button_t radio_privacy;
+static egui_view_radio_button_t radio_settings;
 static egui_view_radio_group_t radio_group;
 
-// Grid container
 static egui_view_gridlayout_t grid;
 
-// View params
 EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, 230, 300, 1, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
-
-// Size XS (160x26)
-EGUI_VIEW_RADIO_BUTTON_PARAMS_INIT_WITH_TEXT(radio_xs_params, 0, 0, 160, 26, 1, "Radio XS");
-// Size S (170x34)
-EGUI_VIEW_RADIO_BUTTON_PARAMS_INIT_WITH_TEXT(radio_s_params, 0, 0, 170, 34, 0, "Radio S");
-// Size M (180x42)
-EGUI_VIEW_RADIO_BUTTON_PARAMS_INIT_WITH_TEXT(radio_m_params, 0, 0, 180, 42, 0, "Radio M");
-// Size L (190x52)
-EGUI_VIEW_RADIO_BUTTON_PARAMS_INIT_WITH_TEXT(radio_l_params, 0, 0, 190, 52, 0, "Radio L");
+EGUI_VIEW_RADIO_BUTTON_PARAMS_INIT_WITH_TEXT(radio_home_params, 0, 0, 176, 30, 1, "Home");
+EGUI_VIEW_RADIO_BUTTON_PARAMS_INIT_WITH_TEXT(radio_alerts_params, 0, 0, 188, 36, 0, "Notifications");
+EGUI_VIEW_RADIO_BUTTON_PARAMS_INIT_WITH_TEXT(radio_privacy_params, 0, 0, 196, 42, 0, "Privacy");
+EGUI_VIEW_RADIO_BUTTON_PARAMS_INIT_WITH_TEXT(radio_settings_params, 0, 0, 204, 50, 0, "Settings");
 
 static void radio_changed_cb(egui_view_t *self, int index)
 {
@@ -31,45 +23,51 @@ static void radio_changed_cb(egui_view_t *self, int index)
 
 void test_init_ui(void)
 {
-    // Init grid
     egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
 
-    // Init radio group
     egui_view_radio_group_init(&radio_group);
     egui_view_radio_group_set_on_changed_listener(&radio_group, radio_changed_cb);
 
-    // Init all radio buttons
-    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_xs), &radio_xs_params);
-    egui_view_radio_group_add(&radio_group, EGUI_VIEW_OF(&radio_xs));
+    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_home), &radio_home_params);
+    egui_view_radio_button_set_mark_style(EGUI_VIEW_OF(&radio_home), EGUI_VIEW_RADIO_BUTTON_MARK_STYLE_ICON);
+    egui_view_radio_button_set_mark_icon(EGUI_VIEW_OF(&radio_home), EGUI_ICON_MS_HOME);
+    egui_view_radio_button_set_icon_font(EGUI_VIEW_OF(&radio_home), EGUI_FONT_ICON_MS_20);
+    egui_view_radio_button_set_icon_text_gap(EGUI_VIEW_OF(&radio_home), 10);
+    egui_view_radio_group_add(&radio_group, EGUI_VIEW_OF(&radio_home));
 
-    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_s), &radio_s_params);
-    egui_view_radio_group_add(&radio_group, EGUI_VIEW_OF(&radio_s));
+    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_alerts), &radio_alerts_params);
+    egui_view_radio_button_set_mark_style(EGUI_VIEW_OF(&radio_alerts), EGUI_VIEW_RADIO_BUTTON_MARK_STYLE_ICON);
+    egui_view_radio_button_set_mark_icon(EGUI_VIEW_OF(&radio_alerts), EGUI_ICON_MS_NOTIFICATIONS);
+    egui_view_radio_button_set_icon_font(EGUI_VIEW_OF(&radio_alerts), EGUI_FONT_ICON_MS_24);
+    egui_view_radio_button_set_icon_text_gap(EGUI_VIEW_OF(&radio_alerts), 10);
+    egui_view_radio_group_add(&radio_group, EGUI_VIEW_OF(&radio_alerts));
 
-    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_m), &radio_m_params);
-    egui_view_radio_group_add(&radio_group, EGUI_VIEW_OF(&radio_m));
+    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_privacy), &radio_privacy_params);
+    egui_view_radio_button_set_mark_style(EGUI_VIEW_OF(&radio_privacy), EGUI_VIEW_RADIO_BUTTON_MARK_STYLE_ICON);
+    egui_view_radio_button_set_mark_icon(EGUI_VIEW_OF(&radio_privacy), EGUI_ICON_MS_VISIBILITY);
+    egui_view_radio_button_set_icon_font(EGUI_VIEW_OF(&radio_privacy), EGUI_FONT_ICON_MS_24);
+    egui_view_radio_button_set_icon_text_gap(EGUI_VIEW_OF(&radio_privacy), 10);
+    egui_view_radio_group_add(&radio_group, EGUI_VIEW_OF(&radio_privacy));
 
-    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_l), &radio_l_params);
-    egui_view_radio_group_add(&radio_group, EGUI_VIEW_OF(&radio_l));
+    egui_view_radio_button_init_with_params(EGUI_VIEW_OF(&radio_settings), &radio_settings_params);
+    egui_view_radio_button_set_mark_style(EGUI_VIEW_OF(&radio_settings), EGUI_VIEW_RADIO_BUTTON_MARK_STYLE_ICON);
+    egui_view_radio_button_set_mark_icon(EGUI_VIEW_OF(&radio_settings), EGUI_ICON_MS_SETTINGS);
+    egui_view_radio_button_set_icon_font(EGUI_VIEW_OF(&radio_settings), EGUI_FONT_ICON_MS_24);
+    egui_view_radio_button_set_icon_text_gap(EGUI_VIEW_OF(&radio_settings), 10);
+    egui_view_radio_group_add(&radio_group, EGUI_VIEW_OF(&radio_settings));
 
-    // Set margins
-    egui_view_set_margin_all(EGUI_VIEW_OF(&radio_xs), 6);
-    egui_view_set_margin_all(EGUI_VIEW_OF(&radio_s), 6);
-    egui_view_set_margin_all(EGUI_VIEW_OF(&radio_m), 6);
-    egui_view_set_margin_all(EGUI_VIEW_OF(&radio_l), 6);
+    egui_view_set_margin_all(EGUI_VIEW_OF(&radio_home), 6);
+    egui_view_set_margin_all(EGUI_VIEW_OF(&radio_alerts), 6);
+    egui_view_set_margin_all(EGUI_VIEW_OF(&radio_privacy), 6);
+    egui_view_set_margin_all(EGUI_VIEW_OF(&radio_settings), 6);
 
-    // Add children to grid
-    egui_view_group_add_child(EGUI_VIEW_OF(&grid), EGUI_VIEW_OF(&radio_xs));
-    egui_view_group_add_child(EGUI_VIEW_OF(&grid), EGUI_VIEW_OF(&radio_s));
-    egui_view_group_add_child(EGUI_VIEW_OF(&grid), EGUI_VIEW_OF(&radio_m));
-    egui_view_group_add_child(EGUI_VIEW_OF(&grid), EGUI_VIEW_OF(&radio_l));
+    egui_view_group_add_child(EGUI_VIEW_OF(&grid), EGUI_VIEW_OF(&radio_home));
+    egui_view_group_add_child(EGUI_VIEW_OF(&grid), EGUI_VIEW_OF(&radio_alerts));
+    egui_view_group_add_child(EGUI_VIEW_OF(&grid), EGUI_VIEW_OF(&radio_privacy));
+    egui_view_group_add_child(EGUI_VIEW_OF(&grid), EGUI_VIEW_OF(&radio_settings));
 
-    // Layout grid children
     egui_view_gridlayout_layout_childs(EGUI_VIEW_OF(&grid));
-
-    // Add grid to root
     egui_core_add_user_root_view(EGUI_VIEW_OF(&grid));
-
-    // Center grid on screen
     egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 }
 
@@ -79,16 +77,16 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     switch (action_index)
     {
     case 0:
-        EGUI_SIM_SET_CLICK_VIEW(p_action, &radio_s, 1000);
+        EGUI_SIM_SET_CLICK_VIEW(p_action, &radio_alerts, 1000);
         return true;
     case 1:
-        EGUI_SIM_SET_CLICK_VIEW(p_action, &radio_m, 1000);
+        EGUI_SIM_SET_CLICK_VIEW(p_action, &radio_privacy, 1000);
         return true;
     case 2:
-        EGUI_SIM_SET_CLICK_VIEW(p_action, &radio_l, 1000);
+        EGUI_SIM_SET_CLICK_VIEW(p_action, &radio_settings, 1000);
         return true;
     case 3:
-        EGUI_SIM_SET_CLICK_VIEW(p_action, &radio_xs, 1000);
+        EGUI_SIM_SET_CLICK_VIEW(p_action, &radio_home, 1000);
         return true;
     default:
         return false;

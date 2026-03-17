@@ -8,20 +8,21 @@
 #include "core/egui_api.h"
 
 /* CHSC6540 I2C address (7-bit, shifted for HAL) */
-#define CHSC6540_ADDR             0x5C  /* 0x2E << 1 */
+#define CHSC6540_ADDR 0x5C /* 0x2E << 1 */
 
 /* CHSC6540 Registers */
-#define CHSC6540_REG_DATA_START   0x00  /* Touch report start register */
-#define CHSC6540_REG_POWER_MODE   0xA5  /* Power mode register */
+#define CHSC6540_REG_DATA_START 0x00 /* Touch report start register */
+#define CHSC6540_REG_POWER_MODE 0xA5 /* Power mode register */
 
 /* Maximum touch points */
-#define CHSC6540_MAX_POINTS       1
-#define CHSC6540_REPORT_SIZE      15
+#define CHSC6540_MAX_POINTS  1
+#define CHSC6540_REPORT_SIZE 15
 
 /* Helper: hardware reset */
 static void chsc6540_hw_reset(egui_hal_touch_driver_t *self)
 {
-    if (self->gpio && self->gpio->set_rst) {
+    if (self->gpio && self->gpio->set_rst)
+    {
         self->gpio->set_rst(0);
         egui_api_delay(200);
         self->gpio->set_rst(1);
@@ -41,17 +42,20 @@ static void chsc6540_transform_point(egui_hal_touch_driver_t *self, int16_t *x, 
     int16_t tx = *x;
     int16_t ty = *y;
 
-    if (self->config.swap_xy) {
+    if (self->config.swap_xy)
+    {
         int16_t tmp = tx;
         tx = ty;
         ty = tmp;
     }
 
-    if (self->config.mirror_x) {
+    if (self->config.mirror_x)
+    {
         tx = self->config.width - 1 - tx;
     }
 
-    if (self->config.mirror_y) {
+    if (self->config.mirror_y)
+    {
         ty = self->config.height - 1 - ty;
     }
 
@@ -64,10 +68,12 @@ static int chsc6540_init(egui_hal_touch_driver_t *self, const egui_hal_touch_con
 {
     memcpy(&self->config, config, sizeof(egui_hal_touch_config_t));
 
-    if (self->bus.i2c->init) {
+    if (self->bus.i2c->init)
+    {
         self->bus.i2c->init();
     }
-    if (self->gpio && self->gpio->init) {
+    if (self->gpio && self->gpio->init)
+    {
         self->gpio->init();
     }
 
@@ -79,10 +85,12 @@ static int chsc6540_init(egui_hal_touch_driver_t *self, const egui_hal_touch_con
 /* Driver: deinit */
 static void chsc6540_deinit(egui_hal_touch_driver_t *self)
 {
-    if (self->bus.i2c->deinit) {
+    if (self->bus.i2c->deinit)
+    {
         self->bus.i2c->deinit();
     }
-    if (self->gpio && self->gpio->deinit) {
+    if (self->gpio && self->gpio->deinit)
+    {
         self->gpio->deinit();
     }
 }
@@ -98,22 +106,26 @@ static int chsc6540_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *d
     memset(data, 0, sizeof(egui_hal_touch_data_t));
     memset(buf, 0, sizeof(buf));
 
-    if (chsc6540_read_reg(self, CHSC6540_REG_DATA_START, buf, sizeof(buf)) != 0) {
+    if (chsc6540_read_reg(self, CHSC6540_REG_DATA_START, buf, sizeof(buf)) != 0)
+    {
         return -1;
     }
 
     point_count = buf[2];
-    if (point_count == 0) {
+    if (point_count == 0)
+    {
         return 0;
     }
-    if (point_count > CHSC6540_MAX_POINTS) {
+    if (point_count > CHSC6540_MAX_POINTS)
+    {
         point_count = CHSC6540_MAX_POINTS;
     }
 
     x = (int16_t)(((buf[3] & 0x0F) << 8) | buf[4]);
     y = (int16_t)(((buf[5] & 0x0F) << 8) | buf[6]);
 
-    if ((x >= self->config.width) || (y >= self->config.height)) {
+    if ((x >= self->config.width) || (y >= self->config.height))
+    {
         return 0;
     }
 
@@ -131,7 +143,7 @@ static int chsc6540_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *d
 /* Driver: enter_sleep */
 static void chsc6540_enter_sleep(egui_hal_touch_driver_t *self)
 {
-    uint8_t mode = 0x03;  /* Sleep mode */
+    uint8_t mode = 0x03; /* Sleep mode */
     self->bus.i2c->write_reg(CHSC6540_ADDR, CHSC6540_REG_POWER_MODE, &mode, 1);
 }
 
@@ -142,9 +154,7 @@ static void chsc6540_exit_sleep(egui_hal_touch_driver_t *self)
 }
 
 /* Internal: setup driver function pointers */
-static void chsc6540_setup_driver(egui_hal_touch_driver_t *driver,
-                                  const egui_bus_i2c_ops_t *i2c,
-                                  const egui_touch_gpio_ops_t *gpio)
+static void chsc6540_setup_driver(egui_hal_touch_driver_t *driver, const egui_bus_i2c_ops_t *i2c, const egui_touch_gpio_ops_t *gpio)
 {
     memset(driver, 0, sizeof(egui_hal_touch_driver_t));
 
@@ -164,11 +174,10 @@ static void chsc6540_setup_driver(egui_hal_touch_driver_t *driver,
 }
 
 /* Public: init (static allocation) */
-void egui_touch_chsc6540_init(egui_hal_touch_driver_t *storage,
-                              const egui_bus_i2c_ops_t *i2c,
-                              const egui_touch_gpio_ops_t *gpio)
+void egui_touch_chsc6540_init(egui_hal_touch_driver_t *storage, const egui_bus_i2c_ops_t *i2c, const egui_touch_gpio_ops_t *gpio)
 {
-    if (!storage || !i2c || !i2c->read_reg || !i2c->write_reg) {
+    if (!storage || !i2c || !i2c->read_reg || !i2c->write_reg)
+    {
         return;
     }
 

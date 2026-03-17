@@ -5,6 +5,24 @@
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
 
+static const egui_font_t *egui_view_number_picker_get_icon_font(egui_view_number_picker_t *local, egui_dim_t area_size)
+{
+    if (local->icon_font != NULL)
+    {
+        return local->icon_font;
+    }
+
+    if (area_size <= 18)
+    {
+        return EGUI_FONT_ICON_MS_16;
+    }
+    if (area_size <= 22)
+    {
+        return EGUI_FONT_ICON_MS_20;
+    }
+    return EGUI_FONT_ICON_MS_24;
+}
+
 void egui_view_number_picker_set_on_value_changed_listener(egui_view_t *self, egui_view_on_number_changed_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_number_picker_t);
@@ -62,6 +80,33 @@ void egui_view_number_picker_set_step(egui_view_t *self, int16_t step)
     local->step = step;
 }
 
+void egui_view_number_picker_set_button_icons(egui_view_t *self, const char *icon_inc, const char *icon_dec)
+{
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+
+    if (local->icon_inc == icon_inc && local->icon_dec == icon_dec)
+    {
+        return;
+    }
+
+    local->icon_inc = icon_inc;
+    local->icon_dec = icon_dec;
+    egui_view_invalidate(self);
+}
+
+void egui_view_number_picker_set_icon_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_number_picker_t);
+
+    if (local->icon_font == font)
+    {
+        return;
+    }
+
+    local->icon_font = font;
+    egui_view_invalidate(self);
+}
+
 void egui_view_number_picker_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_number_picker_t);
@@ -81,22 +126,17 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
         egui_canvas_draw_line(region.location.x + margin, div2_y, region.location.x + w - margin, div2_y, 1, local->button_color, 60);
     }
 
-    // Top 1/3: up arrow (filled triangle pointing up, flat base at bottom)
+    // Top 1/3: up arrow icon
     {
-        egui_dim_t cx = region.location.x + w / 2;
-        egui_dim_t tri_h = third_h / 2;
-        if (tri_h > 14)
-            tri_h = 14;
-        egui_dim_t half_w = tri_h * 3 / 4;
-        egui_dim_t cy = region.location.y + third_h / 2;
-        egui_dim_t tip_y = cy - tri_h / 2;
-        egui_dim_t base_y = cy + tri_h / 2;
+        egui_region_t top_rect = {{region.location.x, region.location.y}, {w, third_h}};
+        const egui_font_t *icon_font = egui_view_number_picker_get_icon_font(local, EGUI_MIN(w, third_h) - 4);
+
         // Press highlight overlay
         if (local->pressed_zone == 1)
         {
             egui_canvas_draw_fillrect(region.location.x, region.location.y, w, third_h, EGUI_COLOR_MAKE(255, 255, 255), 30);
         }
-        egui_canvas_draw_triangle_fill(cx, tip_y, cx - half_w, base_y, cx + half_w, base_y, local->button_color, local->alpha);
+        egui_canvas_draw_text_in_rect(icon_font, local->icon_inc, &top_rect, EGUI_ALIGN_CENTER, local->button_color, local->alpha);
     }
 
     // Middle 1/3: number text (between div1 and div2, using actual boundaries)
@@ -117,25 +157,18 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
         }
     }
 
-    // Bottom 1/3: down arrow (filled triangle pointing down, flat base at top)
-    // Use actual bottom zone boundaries (mirror of top zone)
+    // Bottom 1/3: down arrow icon
     {
-        egui_dim_t cx = region.location.x + w / 2;
-        egui_dim_t tri_h = third_h / 2;
-        if (tri_h > 14)
-            tri_h = 14;
-        egui_dim_t half_w = tri_h * 3 / 4;
         egui_dim_t zone_top = region.location.y + region.size.height - third_h;
-        egui_dim_t zone_bot = region.location.y + region.size.height;
-        egui_dim_t cy = (zone_top + zone_bot) / 2;
-        egui_dim_t tip_y = cy + tri_h / 2;
-        egui_dim_t base_y = cy - tri_h / 2;
+        egui_region_t bottom_rect = {{region.location.x, zone_top}, {w, third_h}};
+        const egui_font_t *icon_font = egui_view_number_picker_get_icon_font(local, EGUI_MIN(w, third_h) - 4);
+
         // Press highlight overlay
         if (local->pressed_zone == -1)
         {
             egui_canvas_draw_fillrect(region.location.x, zone_top, w, third_h, EGUI_COLOR_MAKE(255, 255, 255), 30);
         }
-        egui_canvas_draw_triangle_fill(cx, tip_y, cx - half_w, base_y, cx + half_w, base_y, local->button_color, local->alpha);
+        egui_canvas_draw_text_in_rect(icon_font, local->icon_dec, &bottom_rect, EGUI_ALIGN_CENTER, local->button_color, local->alpha);
     }
 }
 
@@ -254,6 +287,9 @@ void egui_view_number_picker_init(egui_view_t *self)
     local->text_color = EGUI_THEME_TEXT_PRIMARY;
     local->button_color = EGUI_THEME_PRIMARY;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    local->icon_inc = EGUI_ICON_MS_KEYBOARD_ARROW_UP;
+    local->icon_dec = EGUI_ICON_MS_KEYBOARD_ARROW_DOWN;
+    local->icon_font = NULL;
     local->pressed_zone = 0;
 
     egui_view_set_view_name(self, "egui_view_number_picker");

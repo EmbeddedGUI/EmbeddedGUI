@@ -767,5 +767,3 @@ extern "C" {
 #endif
 
 #endif /* _EGUI_CONFIG_DEFAULT_H_ */
-
-

@@ -21,9 +21,7 @@ extern "C" {
  * @param i2c      I2C bus operations (must not be NULL)
  * @param gpio     GPIO operations (may be NULL if RST not needed)
  */
-void egui_touch_st1633_init(egui_hal_touch_driver_t *storage,
-                            const egui_bus_i2c_ops_t *i2c,
-                            const egui_touch_gpio_ops_t *gpio);
+void egui_touch_st1633_init(egui_hal_touch_driver_t *storage, const egui_bus_i2c_ops_t *i2c, const egui_touch_gpio_ops_t *gpio);
 
 #ifdef __cplusplus
 }

@@ -3,9 +3,11 @@
 """
 Release readiness check for EmbeddedGUI.
 
-Runs all release-quality checks in sequence: code formatting, unit tests,
-full compile check, runtime verification, binary size analysis,
-QEMU performance regression, and performance documentation generation.
+Runs all release-quality checks in sequence: code formatting, example icon font
+explicitness, Keil project sync, UI Designer tests and packaging, full compile
+check, WASM build, runtime verification, binary size analysis, size report
+generation, QEMU performance regression, performance report generation,
+and Sphinx documentation build.
 
 Usage:
     python scripts/release_check.py
@@ -31,6 +33,7 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 
 ALL_STEP_NAMES = [
     "format",
+    "icon_font",
     "keil_sync",
     "pytest",
     "ui_package",
@@ -46,6 +49,7 @@ ALL_STEP_NAMES = [
 
 STEP_DESCRIPTIONS = {
     "format":   "Code formatting (clang-format)",
+    "icon_font": "Example icon font explicitness check",
     "keil_sync": "Keil project file sync (src/ vs .uvprojx)",
     "pytest":   "UI Designer unit tests (pytest)",
     "ui_package": "UI Designer package build (PyInstaller)",
@@ -70,6 +74,7 @@ def build_steps(args):
         compile_cmd.append("--bits64")
     if args.cmake:
         compile_cmd.append("--cmake")
+    compile_cmd.append("--skip-icon-font-check")
 
     perf_cmd = [py, str(SCRIPT_DIR / "code_perf_check.py"), "--full-check"]
 
@@ -80,6 +85,9 @@ def build_steps(args):
     steps = [
         ("format",   STEP_DESCRIPTIONS["format"],
          [py, str(SCRIPT_DIR / "code_format.py")]),
+
+        ("icon_font", STEP_DESCRIPTIONS["icon_font"],
+         [py, str(SCRIPT_DIR / "check_example_icon_font.py")]),
 
         ("keil_sync", STEP_DESCRIPTIONS["keil_sync"],
          [py, str(SCRIPT_DIR / "keil_project_sync.py")]),
@@ -127,9 +135,9 @@ BANNER_WIDTH = 72
 
 
 def banner(text):
-    print("\n" + "=" * BANNER_WIDTH)
-    print(f"  {text}")
-    print("=" * BANNER_WIDTH)
+    print("\n" + "=" * BANNER_WIDTH, flush=True)
+    print(f"  {text}", flush=True)
+    print("=" * BANNER_WIDTH, flush=True)
 
 
 def format_duration(seconds):
@@ -261,8 +269,8 @@ def main():
             continue
 
         banner(f"[{name}] {desc}")
-        print(f"  Command: {' '.join(cmd)}")
-        print()
+        print(f"  Command: {' '.join(cmd)}", flush=True)
+        print(flush=True)
 
         step_start = time.time()
         try:

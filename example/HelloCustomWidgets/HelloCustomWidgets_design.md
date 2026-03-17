@@ -20,7 +20,6 @@ example/HelloCustomWidgets/
 │   │   ├── egui_view_color_picker.c    # 控件实现
 │   │   ├── egui_view_color_picker.h    # 控件头文件
 │   │   ├── test.c                      # 示例/演示代码
-│   │   ├── widget_register.py          # 可选：UI Designer 注册
 │   │   └── resource/src/              # 可选：控件专用资源
 │   ├── date_picker/
 │   └── ...
@@ -43,7 +42,6 @@ example/HelloCustomWidgets/
 ├── egui_view_{widget_name}.c       # 必须：控件实现
 ├── egui_view_{widget_name}.h       # 必须：控件头文件
 ├── test.c                          # 必须：可独立编译运行的示例
-├── widget_register.py              # 可选：UI Designer 注册文件
 └── resource/src/                   # 可选：控件专用图片/字体资源
 ```
 
@@ -127,35 +125,6 @@ custom-widgets-check:
 ```
 
 8 个分类矩阵并行，每个分类 ~125 个控件，预估 2-3 分钟/分类。
-
-## UI Designer 集成
-
-### 按需加载
-
-```python
-# widget_registry.py 扩展
-def _load_builtins(self):
-    load_custom_widgets("scripts/ui_designer/custom_widgets")  # 核心控件
-
-def load_extended_widgets(self, category=None):
-    """按需加载自定义控件注册"""
-    base = "example/HelloCustomWidgets"
-    if category:
-        load_custom_widgets(f"{base}/{category}/*/widget_register.py")
-    else:
-        load_custom_widgets(f"{base}/**/widget_register.py")
-```
-
-核心控件默认加载，自定义控件按需加载。
-
-## 控件索引
-
-```python
-# scripts/generate_widget_index.py
-# 扫描 example/HelloCustomWidgets/**/egui_view_*.h
-# 输出 example/HelloCustomWidgets/INDEX.md
-# 内容：分类、控件名、描述、截图链接
-```
 
 ## 分类参考（8 大类）
 

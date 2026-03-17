@@ -1,6 +1,24 @@
 #include "egui_view_segmented_control.h"
 #include "resource/egui_resource.h"
 
+static const egui_font_t *egui_view_segmented_control_get_icon_font(egui_view_segmented_control_t *local, egui_dim_t area_size)
+{
+    if (local->icon_font != NULL)
+    {
+        return local->icon_font;
+    }
+
+    if (area_size <= 18)
+    {
+        return EGUI_FONT_ICON_MS_16;
+    }
+    if (area_size <= 22)
+    {
+        return EGUI_FONT_ICON_MS_20;
+    }
+    return EGUI_FONT_ICON_MS_24;
+}
+
 static uint8_t egui_view_segmented_control_clamp_count(uint8_t count)
 {
     if (count > EGUI_VIEW_SEGMENTED_CONTROL_MAX_SEGMENTS)
@@ -105,6 +123,96 @@ static bool egui_view_segmented_control_build_layout(egui_view_t *self, egui_vie
     return true;
 }
 
+static void egui_view_segmented_control_draw_segment_content(egui_view_segmented_control_t *local, const egui_region_t *segment_region, const char *icon,
+                                                             const char *text, egui_color_t color)
+{
+    if (icon != NULL)
+    {
+        if (text != NULL && text[0] != '\0')
+        {
+            egui_dim_t text_w = 0;
+            egui_dim_t text_h = 0;
+            egui_dim_t icon_area_h;
+            egui_dim_t content_h;
+            egui_dim_t content_y;
+            egui_dim_t text_gap = local->icon_text_gap;
+            egui_region_t icon_region;
+            egui_region_t text_region;
+            egui_region_t content_region = *segment_region;
+
+            if (content_region.size.width > 4)
+            {
+                content_region.location.x += 2;
+                content_region.size.width -= 4;
+            }
+            if (content_region.size.height > 4)
+            {
+                content_region.location.y += 2;
+                content_region.size.height -= 4;
+            }
+
+            if (local->font != NULL && local->font->api != NULL && local->font->api->get_str_size != NULL)
+            {
+                local->font->api->get_str_size(local->font, text, 0, 0, &text_w, &text_h);
+            }
+            if (text_h < 0)
+            {
+                text_h = 0;
+            }
+            if (text_gap < 0)
+            {
+                text_gap = 0;
+            }
+            if (text_w <= 0)
+            {
+                text_gap = 0;
+            }
+
+            icon_area_h = content_region.size.height - text_h - text_gap;
+            if (icon_area_h < content_region.size.height / 2)
+            {
+                icon_area_h = content_region.size.height / 2;
+            }
+            if (icon_area_h > content_region.size.height)
+            {
+                icon_area_h = content_region.size.height;
+            }
+
+            content_h = icon_area_h + ((text_h > 0) ? (text_h + text_gap) : 0);
+            if (content_h > content_region.size.height)
+            {
+                content_h = content_region.size.height;
+            }
+            content_y = content_region.location.y + (content_region.size.height - content_h) / 2;
+
+            icon_region.location.x = content_region.location.x;
+            icon_region.location.y = content_y;
+            icon_region.size.width = content_region.size.width;
+            icon_region.size.height = icon_area_h;
+
+            text_region.location.x = content_region.location.x;
+            text_region.location.y = content_y + icon_area_h;
+            text_region.size.width = content_region.size.width;
+            text_region.size.height = content_region.location.y + content_region.size.height - text_region.location.y;
+
+            egui_canvas_draw_text_in_rect(egui_view_segmented_control_get_icon_font(local, EGUI_MIN(icon_region.size.width, icon_region.size.height)), icon,
+                                          &icon_region, EGUI_ALIGN_CENTER, color, local->alpha);
+            egui_canvas_draw_text_in_rect(local->font, text, &text_region, EGUI_ALIGN_CENTER, color, local->alpha);
+        }
+        else
+        {
+            egui_region_t icon_region = *segment_region;
+            egui_canvas_draw_text_in_rect(egui_view_segmented_control_get_icon_font(local, EGUI_MIN(icon_region.size.width, icon_region.size.height)), icon,
+                                          &icon_region, EGUI_ALIGN_CENTER, color, local->alpha);
+        }
+    }
+    else if (text != NULL)
+    {
+        egui_region_t text_region = *segment_region;
+        egui_canvas_draw_text_in_rect(local->font, text, &text_region, EGUI_ALIGN_CENTER, color, local->alpha);
+    }
+}
+
 static uint8_t egui_view_segmented_control_get_hit_index(egui_view_t *self, egui_dim_t local_x, egui_dim_t local_y)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -133,6 +241,10 @@ static uint8_t egui_view_segmented_control_get_hit_index(egui_view_t *self, egui
     return EGUI_VIEW_SEGMENTED_CONTROL_PRESSED_NONE;
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static int egui_view_segmented_control_on_key_event(egui_view_t *self, egui_key_event_t *event);
+#endif
+
 void egui_view_segmented_control_set_segments(egui_view_t *self, const char **segment_texts, uint8_t segment_count)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -152,6 +264,18 @@ void egui_view_segmented_control_set_segments(egui_view_t *self, const char **se
         local->current_index = local->segment_count - 1;
     }
     local->pressed_index = EGUI_VIEW_SEGMENTED_CONTROL_PRESSED_NONE;
+    egui_view_invalidate(self);
+}
+
+void egui_view_segmented_control_set_segment_icons(egui_view_t *self, const char **segment_icons)
+{
+    EGUI_LOCAL_INIT(egui_view_segmented_control_t);
+    if (local->segment_icons == segment_icons)
+    {
+        return;
+    }
+
+    local->segment_icons = segment_icons;
     egui_view_invalidate(self);
 }
 
@@ -289,10 +413,34 @@ void egui_view_segmented_control_set_font(egui_view_t *self, const egui_font_t *
     egui_view_invalidate(self);
 }
 
+void egui_view_segmented_control_set_icon_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_segmented_control_t);
+    if (local->icon_font == font)
+    {
+        return;
+    }
+
+    local->icon_font = font;
+    egui_view_invalidate(self);
+}
+
+void egui_view_segmented_control_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
+{
+    EGUI_LOCAL_INIT(egui_view_segmented_control_t);
+    if (local->icon_text_gap == gap)
+    {
+        return;
+    }
+
+    local->icon_text_gap = gap;
+    egui_view_invalidate(self);
+}
+
 void egui_view_segmented_control_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
-    if (local->segment_count == 0 || local->segment_texts == NULL || local->font == NULL)
+    if (local->segment_count == 0 || (local->segment_texts == NULL && local->segment_icons == NULL) || local->font == NULL)
     {
         return;
     }
@@ -304,12 +452,18 @@ void egui_view_segmented_control_on_draw(egui_view_t *self)
     }
 
     bool is_enabled = egui_view_get_enable(self);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    bool is_focused = self->is_focused ? true : false;
+#else
+    bool is_focused = false;
+#endif
 
     egui_color_t base_bg = local->bg_color;
     egui_color_t selected_bg = local->selected_bg_color;
     egui_color_t text_color = local->text_color;
     egui_color_t selected_text_color = local->selected_text_color;
     egui_color_t border_color = local->border_color;
+    egui_color_t focus_color = EGUI_THEME_FOCUS;
     if (!is_enabled)
     {
         base_bg = egui_rgb_mix(base_bg, EGUI_THEME_DISABLED, EGUI_ALPHA_40);
@@ -317,6 +471,7 @@ void egui_view_segmented_control_on_draw(egui_view_t *self)
         border_color = egui_rgb_mix(border_color, EGUI_THEME_DISABLED, EGUI_ALPHA_50);
         text_color = egui_rgb_mix(text_color, base_bg, EGUI_ALPHA_40);
         selected_text_color = egui_rgb_mix(selected_text_color, selected_bg, EGUI_ALPHA_50);
+        focus_color = egui_rgb_mix(focus_color, EGUI_THEME_DISABLED, EGUI_ALPHA_50);
     }
 
     egui_canvas_draw_round_rectangle_fill(layout.region.location.x, layout.region.location.y, layout.region.size.width, layout.region.size.height,
@@ -329,6 +484,19 @@ void egui_view_segmented_control_on_draw(egui_view_t *self)
     egui_dim_t selected_width = layout.segment_width[layout.active_index];
     egui_canvas_draw_round_rectangle_fill(selected_x, layout.content_y, selected_width, layout.content_height, layout.segment_radius, selected_bg,
                                           local->alpha);
+
+    if (is_focused && is_enabled && layout.region.size.width > 4 && layout.region.size.height > 4)
+    {
+        egui_dim_t focus_x = layout.region.location.x + 2;
+        egui_dim_t focus_y = layout.region.location.y + 2;
+        egui_dim_t focus_w = layout.region.size.width - 4;
+        egui_dim_t focus_h = layout.region.size.height - 4;
+        egui_dim_t focus_radius = layout.outer_radius > 2 ? (layout.outer_radius - 2) : layout.outer_radius;
+
+        egui_canvas_draw_round_rectangle(layout.region.location.x, layout.region.location.y, layout.region.size.width, layout.region.size.height,
+                                         layout.outer_radius, 2, focus_color, egui_color_alpha_mix(local->alpha, 100));
+        egui_canvas_draw_round_rectangle(focus_x, focus_y, focus_w, focus_h, focus_radius, 1, focus_color, egui_color_alpha_mix(local->alpha, 56));
+    }
 
     if (is_enabled && local->pressed_index < layout.count)
     {
@@ -357,7 +525,8 @@ void egui_view_segmented_control_on_draw(egui_view_t *self)
     uint8_t i;
     for (i = 0; i < layout.count; i++)
     {
-        const char *text = local->segment_texts[i];
+        const char *text = (local->segment_texts != NULL) ? local->segment_texts[i] : NULL;
+        const char *icon = (local->segment_icons != NULL) ? local->segment_icons[i] : NULL;
         if (text == NULL)
         {
             text = "";
@@ -375,7 +544,7 @@ void egui_view_segmented_control_on_draw(egui_view_t *self)
                         },
         };
         egui_color_t color = (i == layout.active_index) ? selected_text_color : text_color;
-        egui_canvas_draw_text_in_rect(local->font, text, &text_region, EGUI_ALIGN_CENTER, color, local->alpha);
+        egui_view_segmented_control_draw_segment_content(local, &text_region, icon, text, color);
     }
 }
 
@@ -383,7 +552,7 @@ void egui_view_segmented_control_on_draw(egui_view_t *self)
 static int egui_view_segmented_control_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
-    if (!egui_view_get_enable(self) || local->segment_count == 0 || local->segment_texts == NULL)
+    if (!egui_view_get_enable(self) || local->segment_count == 0 || (local->segment_texts == NULL && local->segment_icons == NULL))
     {
         return 0;
     }
@@ -395,6 +564,12 @@ static int egui_view_segmented_control_on_touch_event(egui_view_t *self, egui_mo
     switch (event->type)
     {
     case EGUI_MOTION_EVENT_ACTION_DOWN:
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        if (self->is_focusable)
+        {
+            egui_view_request_focus(self);
+        }
+#endif
         if (local->pressed_index != hit_index)
         {
             local->pressed_index = hit_index;
@@ -431,6 +606,74 @@ static int egui_view_segmented_control_on_touch_event(egui_view_t *self, egui_mo
 }
 #endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+static int egui_view_segmented_control_on_key_event(egui_view_t *self, egui_key_event_t *event)
+{
+    EGUI_LOCAL_INIT(egui_view_segmented_control_t);
+    uint8_t count = egui_view_segmented_control_clamp_count(local->segment_count);
+    uint8_t next_index;
+
+    if (!egui_view_get_enable(self) || count == 0)
+    {
+        return 0;
+    }
+
+    if (event->type != EGUI_KEY_EVENT_ACTION_UP)
+    {
+        if ((event->key_code == EGUI_KEY_CODE_ENTER || event->key_code == EGUI_KEY_CODE_SPACE) && event->type == EGUI_KEY_EVENT_ACTION_DOWN)
+        {
+            return 1;
+        }
+        return 0;
+    }
+
+    next_index = local->current_index;
+    if (next_index >= count)
+    {
+        next_index = 0;
+    }
+
+    switch (event->key_code)
+    {
+    case EGUI_KEY_CODE_LEFT:
+    case EGUI_KEY_CODE_UP:
+        if (next_index > 0)
+        {
+            next_index--;
+        }
+        egui_view_segmented_control_set_current_index(self, next_index);
+        return 1;
+    case EGUI_KEY_CODE_RIGHT:
+    case EGUI_KEY_CODE_DOWN:
+        if (next_index + 1 < count)
+        {
+            next_index++;
+        }
+        egui_view_segmented_control_set_current_index(self, next_index);
+        return 1;
+    case EGUI_KEY_CODE_HOME:
+        egui_view_segmented_control_set_current_index(self, 0);
+        return 1;
+    case EGUI_KEY_CODE_END:
+        egui_view_segmented_control_set_current_index(self, count - 1);
+        return 1;
+    case EGUI_KEY_CODE_TAB:
+        next_index++;
+        if (next_index >= count)
+        {
+            next_index = 0;
+        }
+        egui_view_segmented_control_set_current_index(self, next_index);
+        return 1;
+    case EGUI_KEY_CODE_ENTER:
+    case EGUI_KEY_CODE_SPACE:
+        return 1;
+    default:
+        return egui_view_on_key_event(self, event);
+    }
+}
+#endif
+
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_segmented_control_t) = {
         .dispatch_touch_event = egui_view_dispatch_touch_event,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -448,7 +691,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_segmented_control_t) = 
         .on_detach_from_window = egui_view_on_detach_from_window,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_dispatch_key_event,
-        .on_key_event = egui_view_on_key_event,
+        .on_key_event = egui_view_segmented_control_on_key_event,
 #endif
 };
 
@@ -459,6 +702,7 @@ void egui_view_segmented_control_init(egui_view_t *self)
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_segmented_control_t);
 
     local->segment_texts = NULL;
+    local->segment_icons = NULL;
     local->segment_count = 0;
     local->current_index = 0;
     local->pressed_index = EGUI_VIEW_SEGMENTED_CONTROL_PRESSED_NONE;
@@ -472,9 +716,14 @@ void egui_view_segmented_control_init(egui_view_t *self)
     local->selected_text_color = EGUI_COLOR_WHITE;
     local->border_color = EGUI_THEME_BORDER;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    local->icon_font = NULL;
+    local->icon_text_gap = 1;
     local->on_segment_changed = NULL;
 
     egui_view_set_view_name(self, "egui_view_segmented_control");
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    egui_view_set_focusable(self, true);
+#endif
 }
 
 void egui_view_segmented_control_apply_params(egui_view_t *self, const egui_view_segmented_control_params_t *params)
@@ -482,6 +731,7 @@ void egui_view_segmented_control_apply_params(egui_view_t *self, const egui_view
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
     self->region = params->region;
     local->segment_texts = params->segment_texts;
+    local->segment_icons = params->segment_icons;
     local->segment_count = egui_view_segmented_control_clamp_count(params->segment_count);
     if (local->segment_count == 0)
     {

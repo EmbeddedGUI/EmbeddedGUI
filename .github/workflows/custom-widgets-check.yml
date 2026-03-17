@@ -3,7 +3,9 @@ name: Custom Widgets Check
 on:
   push:
     paths:
+      - '.github/workflows/custom-widgets-check.yml'
       - 'example/HelloCustomWidgets/**'
+      - 'scripts/code_compile_check.py'
       - 'src/widget/**'
       - 'src/core/**'
 

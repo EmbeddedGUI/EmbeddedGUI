@@ -9,6 +9,13 @@ extern "C" {
 #endif
 
 typedef struct egui_view_page_indicator egui_view_page_indicator_t;
+
+typedef enum
+{
+    EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_DOT = 0,
+    EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_ICON = 1,
+} egui_view_page_indicator_mark_style_t;
+
 struct egui_view_page_indicator
 {
     egui_view_t base;
@@ -20,6 +27,9 @@ struct egui_view_page_indicator
     egui_alpha_t alpha;
     egui_color_t active_color;
     egui_color_t inactive_color;
+    uint8_t mark_style;
+    const char *const *icons;
+    const egui_font_t *icon_font;
 };
 
 // ============== PageIndicator Params ==============
@@ -39,6 +49,9 @@ void egui_view_page_indicator_init_with_params(egui_view_t *self, const egui_vie
 
 void egui_view_page_indicator_set_total_count(egui_view_t *self, uint8_t total_count);
 void egui_view_page_indicator_set_current_index(egui_view_t *self, uint8_t current_index);
+void egui_view_page_indicator_set_mark_style(egui_view_t *self, egui_view_page_indicator_mark_style_t style);
+void egui_view_page_indicator_set_icons(egui_view_t *self, const char *const *icons);
+void egui_view_page_indicator_set_icon_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_page_indicator_on_draw(egui_view_t *self);
 void egui_view_page_indicator_init(egui_view_t *self);
 

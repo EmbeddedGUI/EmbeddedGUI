@@ -21,10 +21,10 @@ static void bridge_display_init(void)
     /* LCD init is called separately via lcd->init() */
 }
 
-static void bridge_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h,
-                                      const egui_color_int_t *data)
+static void bridge_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
 {
-    if (s_lcd_driver) {
+    if (s_lcd_driver)
+    {
         s_lcd_driver->set_window(s_lcd_driver, x, y, w, h);
         s_lcd_driver->write_pixels(s_lcd_driver, data, w * h * sizeof(egui_color_int_t));
     }
@@ -32,7 +32,8 @@ static void bridge_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h,
 
 static void bridge_display_wait_draw_complete(void)
 {
-    if (s_lcd_driver && s_lcd_driver->wait_dma_complete) {
+    if (s_lcd_driver && s_lcd_driver->wait_dma_complete)
+    {
         s_lcd_driver->wait_dma_complete(s_lcd_driver);
     }
 }
@@ -44,28 +45,32 @@ static void bridge_display_flush(void)
 
 static void bridge_display_set_brightness(uint8_t level)
 {
-    if (s_lcd_driver && s_lcd_driver->set_brightness) {
+    if (s_lcd_driver && s_lcd_driver->set_brightness)
+    {
         s_lcd_driver->set_brightness(s_lcd_driver, level);
     }
 }
 
 static void bridge_display_set_power(uint8_t on)
 {
-    if (s_lcd_driver && s_lcd_driver->set_power) {
+    if (s_lcd_driver && s_lcd_driver->set_power)
+    {
         s_lcd_driver->set_power(s_lcd_driver, on);
     }
 }
 
 static void bridge_display_set_rotation(egui_display_rotation_t rotation)
 {
-    if (s_lcd_driver && s_lcd_driver->set_rotation) {
+    if (s_lcd_driver && s_lcd_driver->set_rotation)
+    {
         s_lcd_driver->set_rotation(s_lcd_driver, (uint8_t)rotation);
     }
 }
 
 egui_display_driver_t *egui_display_driver_from_lcd(egui_hal_lcd_driver_t *lcd)
 {
-    if (!lcd) {
+    if (!lcd)
+    {
         return NULL;
     }
 
@@ -113,23 +118,28 @@ static void bridge_touch_read(uint8_t *pressed, int16_t *x, int16_t *y)
     *x = s_last_touch_x;
     *y = s_last_touch_y;
 
-    if (!s_hal_touch_driver || !s_hal_touch_driver->read) {
+    if (!s_hal_touch_driver || !s_hal_touch_driver->read)
+    {
         return;
     }
 
     /* Check INT pin if available - skip read if no interrupt pending */
-    if (s_hal_touch_driver->gpio && s_hal_touch_driver->gpio->get_int) {
-        if (!s_hal_touch_driver->gpio->get_int()) {
-            return;  /* No interrupt pending */
+    if (s_hal_touch_driver->gpio && s_hal_touch_driver->gpio->get_int)
+    {
+        if (!s_hal_touch_driver->gpio->get_int())
+        {
+            return; /* No interrupt pending */
         }
     }
 
     egui_hal_touch_data_t data;
-    if (s_hal_touch_driver->read(s_hal_touch_driver, &data) != 0) {
-        return;  /* Read failed */
+    if (s_hal_touch_driver->read(s_hal_touch_driver, &data) != 0)
+    {
+        return; /* Read failed */
     }
 
-    if (data.point_count > 0) {
+    if (data.point_count > 0)
+    {
         *pressed = 1;
         *x = data.points[0].x;
         *y = data.points[0].y;
@@ -145,7 +155,7 @@ void egui_touch_driver_bridge_register(egui_hal_touch_driver_t *touch)
     s_last_touch_y = 0;
 
     /* Setup Core touch driver ops */
-    s_core_touch_ops.init = NULL;  /* HAL driver init is called separately */
+    s_core_touch_ops.init = NULL; /* HAL driver init is called separately */
     s_core_touch_ops.read = bridge_touch_read;
 
     /* Setup Core touch driver */

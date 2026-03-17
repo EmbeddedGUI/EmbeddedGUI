@@ -66,6 +66,10 @@ struct egui_view_keyboard
 
     // Font for key labels
     const egui_font_t *font;
+    const egui_font_t *icon_font;
+    const char *shift_icon;
+    const char *backspace_icon;
+    const char *enter_icon;
 
     // Keyboard avoidance: saved state for restoring position when keyboard hides
     egui_view_t *adjusted_view; // view whose Y position was adjusted (NULL if none)
@@ -74,6 +78,8 @@ struct egui_view_keyboard
 
 void egui_view_keyboard_init(egui_view_t *self);
 void egui_view_keyboard_set_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_keyboard_set_icon_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_keyboard_set_special_key_icons(egui_view_t *self, const char *shift_icon, const char *backspace_icon, const char *enter_icon);
 void egui_view_keyboard_show(egui_view_t *self, egui_view_t *target_textinput);
 void egui_view_keyboard_hide(egui_view_t *self);
 void egui_view_keyboard_set_mode(egui_view_t *self, uint8_t mode);

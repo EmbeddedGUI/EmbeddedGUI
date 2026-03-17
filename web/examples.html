@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EmbeddedGUI 独立示例集</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="page-sidebar">
+    <div class="lang-toggle" role="group" aria-label="Language switch">
+        <button type="button" class="lang-toggle-button" data-lang-switch="zh-CN">中文</button>
+        <button type="button" class="lang-toggle-button" data-lang-switch="en">EN</button>
+    </div>
+
+    <aside class="sidebar-shell">
+        <div class="sidebar-header">
+            <div class="eyebrow">其他例程</div>
+            <h1>独立示例集</h1>
+            <p>
+                这个页面汇总了 <span class="code-inline">example/</span> 下除 <span class="code-inline">HelloBasic</span>
+                和 <span class="code-inline">HelloCustomWidgets</span> 之外的已生成示例。
+                <span class="code-inline">HelloShowcase</span> 仍然保留在首页。
+            </p>
+            <div class="hero-links">
+                <a class="button-link ghost" href="index.html">返回首页</a>
+                <a class="button-link ghost" href="basic.html">基础控件浏览</a>
+                <a class="button-link ghost" href="custom.html">自定义控件目录</a>
+            </div>
+        </div>
+        <div class="sidebar-tools">
+            <input id="filter-input" class="filter-input" type="search" placeholder="筛选例程">
+        </div>
+        <nav class="sidebar-list" id="demo-list"></nav>
+    </aside>
+
+    <main class="content-shell">
+        <div class="content-header">
+            <div>
+                <div class="eyebrow">独立示例</div>
+                <h2 id="content-title">选择一个示例</h2>
+                <p id="content-description">
+                    从左侧选择一个独立示例，在同一页里查看实时 WebAssembly 预览和 README。
+                </p>
+                <div class="meta-row" id="content-meta">
+                    <span class="metric-chip">不含 HelloShowcase</span>
+                </div>
+            </div>
+            <div class="demo-actions" id="header-actions"></div>
+        </div>
+
+        <div class="content-body">
+            <div id="placeholder" class="empty-fill">
+                <div class="placeholder-stack">
+                    <h3>把独立例程集中在一页里</h3>
+                    <p>
+                        这个页面专门承接 <span class="code-inline">example/</span> 下剩余的独立示例，
+                        不再和首页的 <span class="code-inline">HelloShowcase</span> 或专门的控件页混在一起。
+                    </p>
+                </div>
+            </div>
+
+            <div id="demo-wrapper" class="demo-panel hidden">
+                <section class="demo-stage">
+                    <div class="demo-stage-header">
+                        <span id="stage-label">实时预览</span>
+                        <span id="stage-size"></span>
+                    </div>
+                    <div class="demo-stage-body">
+                        <iframe id="demo-frame" class="demo-frame" title="EmbeddedGUI 独立示例"></iframe>
+                    </div>
+                </section>
+                <section class="demo-doc-shell">
+                    <div class="demo-stage-header">
+                        <span id="doc-title">README</span>
+                        <span id="doc-status">README 可用时一并展示</span>
+                    </div>
+                    <div id="demo-doc" class="doc-panel"></div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <script src="lib/marked.min.js"></script>
+    <script src="i18n.js"></script>
+    <script src="doc-render.js"></script>
+    <script>
+        var i18n = window.EmbeddedGUII18n;
+        var list = document.getElementById("demo-list");
+        var filterInput = document.getElementById("filter-input");
+        var placeholder = document.getElementById("placeholder");
+        var wrapper = document.getElementById("demo-wrapper");
+        var contentTitle = document.getElementById("content-title");
+        var contentDescription = document.getElementById("content-description");
+        var contentMeta = document.getElementById("content-meta");
+        var headerActions = document.getElementById("header-actions");
+        var stageSize = document.getElementById("stage-size");
+        var docStatus = document.getElementById("doc-status");
+        var docPanel = document.getElementById("demo-doc");
+        var demoMap = {};
+        var catalogData = null;
+        var catalogMissing = false;
+        var translations = {
+            pageTitle: {
+                "zh-CN": "EmbeddedGUI 独立示例集",
+                "en": "EmbeddedGUI Standalone Examples"
+            },
+            sidebarEyebrow: {
+                "zh-CN": "其他例程",
+                "en": "Examples"
+            },
+            sidebarTitle: {
+                "zh-CN": "独立示例集",
+                "en": "Standalone example demos"
+            },
+            sidebarDescription: {
+                "zh-CN": "这个页面汇总了 <span class=\"code-inline\">example/</span> 下除 <span class=\"code-inline\">HelloBasic</span> 和 <span class=\"code-inline\">HelloCustomWidgets</span> 之外的已生成示例。<span class=\"code-inline\">HelloShowcase</span> 仍然保留在首页。",
+                "en": "This page collects the generated demos from <span class=\"code-inline\">example/</span> that are not part of <span class=\"code-inline\">HelloBasic</span> or <span class=\"code-inline\">HelloCustomWidgets</span>. <span class=\"code-inline\">HelloShowcase</span> stays on the homepage."
+            },
+            backHome: {
+                "zh-CN": "返回首页",
+                "en": "Back to demo home"
+            },
+            coreWidgetBrowser: {
+                "zh-CN": "基础控件浏览",
+                "en": "Core widget browser"
+            },
+            customCatalog: {
+                "zh-CN": "自定义控件目录",
+                "en": "Custom widget catalog"
+            },
+            filterPlaceholder: {
+                "zh-CN": "筛选例程",
+                "en": "Filter examples"
+            },
+            contentEyebrow: {
+                "zh-CN": "独立示例",
+                "en": "Standalone demos"
+            },
+            contentTitle: {
+                "zh-CN": "选择一个示例",
+                "en": "Select an example demo"
+            },
+            contentDescription: {
+                "zh-CN": "从左侧选择一个独立示例，在同一页里查看实时 WebAssembly 预览和 README。",
+                "en": "Pick a standalone demo from the sidebar to load the generated WebAssembly preview and its README in one place."
+            },
+            excludeShowcase: {
+                "zh-CN": "不含 HelloShowcase",
+                "en": "Excludes HelloShowcase"
+            },
+            placeholderTitle: {
+                "zh-CN": "把独立例程集中在一页里",
+                "en": "Standalone examples in one page"
+            },
+            placeholderDescription: {
+                "zh-CN": "这个页面专门承接 <span class=\"code-inline\">example/</span> 下剩余的独立示例，不再和首页的 <span class=\"code-inline\">HelloShowcase</span> 或专门的控件页混在一起。",
+                "en": "This surface groups the remaining generated demos under <span class=\"code-inline\">example/</span> so they do not compete with the homepage showcase or the dedicated widget pages."
+            },
+            livePreview: {
+                "zh-CN": "实时预览",
+                "en": "Live preview"
+            },
+            readmeTitle: {
+                "zh-CN": "README",
+                "en": "README"
+            },
+            docStatusDefault: {
+                "zh-CN": "README 可用时一并展示",
+                "en": "Bundled when available"
+            },
+            openDemo: {
+                "zh-CN": "打开示例",
+                "en": "Open demo"
+            },
+            openReadme: {
+                "zh-CN": "打开 README",
+                "en": "Open README"
+            },
+            noBundledReadmeTitle: {
+                "zh-CN": "当前没有随包 README",
+                "en": "No bundled README"
+            },
+            noBundledReadmeBody1: {
+                "zh-CN": "<span class='code-inline'>{name}</span> 当前可以作为 WebAssembly 示例运行，但这次网页导出没有附带对应 README。",
+                "en": "<span class='code-inline'>{name}</span> is available as a runnable WebAssembly demo, but the current web bundle does not include a generated README for this example."
+            },
+            noBundledReadmeBody2: {
+                "zh-CN": "你可以直接打开示例，或者去 <span class='code-inline'>example/</span> 目录查看对应源码。",
+                "en": "Open the live demo directly or inspect the matching folder under <span class='code-inline'>example/</span>."
+            },
+            standaloneDemoWithReadme: {
+                "zh-CN": "当前展示的是独立示例，右侧同步渲染随包 README。",
+                "en": "Live standalone example with the bundled README rendered alongside it."
+            },
+            standaloneDemoWithoutReadme: {
+                "zh-CN": "当前展示的是独立示例，但这次网页导出没有附带 README。",
+                "en": "Live standalone example without a bundled README in the current web export."
+            },
+            standaloneExampleChip: {
+                "zh-CN": "独立示例",
+                "en": "Standalone example"
+            },
+            readmeBundledShort: {
+                "zh-CN": "README 已包含",
+                "en": "README bundled"
+            },
+            readmeUnavailableShort: {
+                "zh-CN": "README 不可用",
+                "en": "README unavailable"
+            },
+            docStatusBundled: {
+                "zh-CN": "随网页示例一起生成",
+                "en": "Bundled with the generated web demo"
+            },
+            docStatusMissing: {
+                "zh-CN": "当前没有随包 README",
+                "en": "No bundled README"
+            },
+            noStandaloneDemosTitle: {
+                "zh-CN": "没有可用的独立示例",
+                "en": "No standalone demos found"
+            },
+            noStandaloneDemosDescription: {
+                "zh-CN": "这个页面期望在 <span class=\"code-inline\">web/demos/demos.json</span> 中找到 Standalone 类别的已生成示例。",
+                "en": "This page expects generated Standalone demos in <span class=\"code-inline\">web/demos/demos.json</span>."
+            },
+            missingCatalogTitle: {
+                "zh-CN": "缺少已生成的示例清单",
+                "en": "Missing generated demo catalog"
+            },
+            missingCatalogDescription: {
+                "zh-CN": "这个页面依赖 <span class=\"code-inline\">web/demos/demos.json</span>。请先运行 <span class=\"code-inline\">python scripts/wasm_build_demos.py</span>，再刷新页面。",
+                "en": "This page needs <span class=\"code-inline\">web/demos/demos.json</span>. Run <span class=\"code-inline\">python scripts/wasm_build_demos.py</span> and refresh."
+            },
+            demoFrameTitle: {
+                "zh-CN": "EmbeddedGUI 独立示例",
+                "en": "EmbeddedGUI standalone demo"
+            }
+        };
+
+        function t(key, params) {
+            return i18n.format(translations[key], params);
+        }
+
+        function resolveFrameHeight(demo) {
+            var configured = Number(demo && demo.height);
+            if (Number.isFinite(configured) && configured > 0) {
+                return Math.min(configured, 720);
+            }
+            return 360;
+        }
+
+        function getInitialTarget() {
+            var params = new URLSearchParams(window.location.search);
+            var queryValue = params.get("app") || params.get("demo");
+            if (queryValue) {
+                return queryValue;
+            }
+            if (window.location.hash) {
+                return window.location.hash.slice(1);
+            }
+            return "";
+        }
+
+        function updateLocation(name) {
+            var params = new URLSearchParams(window.location.search);
+            params.set("app", name);
+            history.replaceState(null, "", "?" + params.toString() + "#" + name);
+        }
+
+        function updateActions(demo, demoPath) {
+            var actions = [
+                '<a class="button-link secondary" href="' + demoPath + '" target="_blank" rel="noreferrer">' + t("openDemo") + '</a>'
+            ];
+
+            if (demo.doc) {
+                actions.push('<a class="button-link ghost" href="' + demo.doc + '" target="_blank" rel="noreferrer">' + t("openReadme") + '</a>');
+            }
+
+            headerActions.innerHTML = actions.join("");
+        }
+
+        function renderFallbackDoc(demo) {
+            docPanel.style.display = "block";
+            docPanel.innerHTML =
+                "<h3>" + t("noBundledReadmeTitle") + "</h3>" +
+                "<p>" + t("noBundledReadmeBody1", { name: demo.name }) + "</p>" +
+                "<p>" + t("noBundledReadmeBody2") + "</p>";
+        }
+
+        function loadDemo(name) {
+            var demo = demoMap[name];
+            if (!demo) {
+                return;
+            }
+
+            var demoPath = "demos/" + name + "/" + (demo.app || demo.name) + ".html";
+            placeholder.classList.add("hidden");
+            wrapper.classList.remove("hidden");
+
+            contentTitle.textContent = demo.name;
+            contentDescription.textContent = demo.doc ? t("standaloneDemoWithReadme") : t("standaloneDemoWithoutReadme");
+            contentMeta.innerHTML = [
+                "<span class='metric-chip'>" + t("standaloneExampleChip") + "</span>",
+                "<span class='metric-chip'>" + (demo.width || "?") + " x " + (demo.height || "?") + "</span>",
+                "<span class='metric-chip'>" + (demo.doc ? t("readmeBundledShort") : t("readmeUnavailableShort")) + "</span>"
+            ].join("");
+            stageSize.textContent = (demo.width || "?") + " x " + (demo.height || "?");
+
+            var frame = document.getElementById("demo-frame");
+            frame.style.height = resolveFrameHeight(demo) + "px";
+            frame.src = demoPath;
+            frame.title = t("demoFrameTitle");
+
+            if (demo.doc) {
+                docStatus.textContent = t("docStatusBundled");
+                renderDoc(docPanel, demo.doc);
+            } else {
+                docStatus.textContent = t("docStatusMissing");
+                renderFallbackDoc(demo);
+            }
+
+            updateActions(demo, demoPath);
+            updateLocation(name);
+
+            document.querySelectorAll(".demo-item").forEach(function(item) {
+                item.classList.toggle("active", item.dataset.name === name);
+            });
+        }
+
+        function renderList(demos) {
+            catalogData = demos;
+            catalogMissing = false;
+            list.innerHTML = "";
+            demoMap = {};
+
+            var standaloneDemos = demos
+                .filter(function(demo) {
+                    return demo.category === "Standalone" && demo.name !== "HelloShowcase";
+                })
+                .sort(function(a, b) {
+                    return a.name.localeCompare(b.name);
+                });
+
+            if (!standaloneDemos.length) {
+                showNoStandaloneDemos();
+                return;
+            }
+
+            standaloneDemos.forEach(function(demo) {
+                demoMap[demo.name] = demo;
+                var item = document.createElement("a");
+                item.className = "demo-item";
+                item.href = "#" + demo.name;
+                item.dataset.name = demo.name;
+                item.dataset.search = (demo.name + " " + (demo.app || "")).toLowerCase();
+                item.innerHTML =
+                    "<strong>" + demo.name + "</strong>" +
+                    '<div class="demo-item-meta">' +
+                        (demo.width || "?") + " x " + (demo.height || "?") +
+                        " / " + (demo.doc ? t("readmeBundledShort") : t("readmeUnavailableShort")) +
+                    "</div>";
+                item.addEventListener("click", function(event) {
+                    event.preventDefault();
+                    loadDemo(demo.name);
+                });
+                list.appendChild(item);
+            });
+
+            var initialTarget = getInitialTarget();
+            if (initialTarget && demoMap[initialTarget]) {
+                loadDemo(initialTarget);
+                return;
+            }
+
+            loadDemo(standaloneDemos[0].name);
+        }
+
+        function applyStaticLanguage() {
+            document.title = t("pageTitle");
+            document.querySelector(".sidebar-header .eyebrow").textContent = t("sidebarEyebrow");
+            document.querySelector(".sidebar-header h1").textContent = t("sidebarTitle");
+            document.querySelector(".sidebar-header p").innerHTML = t("sidebarDescription");
+
+            var sidebarLinks = document.querySelectorAll(".sidebar-header .hero-links a");
+            sidebarLinks[0].textContent = t("backHome");
+            sidebarLinks[1].textContent = t("coreWidgetBrowser");
+            sidebarLinks[2].textContent = t("customCatalog");
+
+            filterInput.placeholder = t("filterPlaceholder");
+            document.querySelector(".content-header .eyebrow").textContent = t("contentEyebrow");
+            document.getElementById("stage-label").textContent = t("livePreview");
+            document.getElementById("doc-title").textContent = t("readmeTitle");
+            document.getElementById("demo-frame").title = t("demoFrameTitle");
+
+            if (!wrapper.classList.contains("hidden")) {
+                return;
+            }
+
+            contentTitle.textContent = t("contentTitle");
+            contentDescription.innerHTML = t("contentDescription");
+            contentMeta.innerHTML = '<span class="metric-chip">' + t("excludeShowcase") + '</span>';
+            placeholder.querySelector(".placeholder-stack").innerHTML =
+                "<h3>" + t("placeholderTitle") + "</h3>" +
+                "<p>" + t("placeholderDescription") + "</p>";
+            docStatus.textContent = t("docStatusDefault");
+        }
+
+        function showMissingCatalog() {
+            catalogMissing = true;
+            wrapper.classList.add("hidden");
+            placeholder.classList.remove("hidden");
+            headerActions.innerHTML = "";
+            contentTitle.textContent = t("missingCatalogTitle");
+            contentDescription.innerHTML = t("missingCatalogDescription");
+            contentMeta.innerHTML = '<span class="metric-chip">' + t("missingCatalogTitle") + '</span>';
+            placeholder.querySelector(".placeholder-stack").innerHTML =
+                "<h3>" + t("missingCatalogTitle") + "</h3>" +
+                "<p>" + t("missingCatalogDescription") + "</p>";
+        }
+
+        function showNoStandaloneDemos() {
+            wrapper.classList.add("hidden");
+            placeholder.classList.remove("hidden");
+            headerActions.innerHTML = "";
+            contentTitle.textContent = t("noStandaloneDemosTitle");
+            contentDescription.innerHTML = t("noStandaloneDemosDescription");
+            contentMeta.innerHTML = '<span class="metric-chip">' + t("noStandaloneDemosTitle") + '</span>';
+            placeholder.querySelector(".placeholder-stack").innerHTML =
+                "<h3>" + t("noStandaloneDemosTitle") + "</h3>" +
+                "<p>" + t("noStandaloneDemosDescription") + "</p>";
+        }
+
+        function applyLanguage() {
+            applyStaticLanguage();
+            if (catalogData) {
+                renderList(catalogData);
+                return;
+            }
+            if (catalogMissing) {
+                showMissingCatalog();
+            }
+        }
+
+        filterInput.addEventListener("input", function() {
+            var query = filterInput.value.trim().toLowerCase();
+            document.querySelectorAll(".demo-item").forEach(function(item) {
+                var visible = !query || item.dataset.search.indexOf(query) !== -1;
+                item.classList.toggle("hidden", !visible);
+            });
+        });
+
+        document.addEventListener("embeddedgui:languagechange", applyLanguage);
+        i18n.bindLanguageToggle(document);
+        applyLanguage();
+
+        fetch("demos/demos.json")
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error("Missing demos.json");
+                }
+                return response.json();
+            })
+            .then(renderList)
+            .catch(showMissingCatalog);
+    </script>
+</body>
+</html>

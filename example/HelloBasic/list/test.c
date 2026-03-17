@@ -16,19 +16,22 @@ void test_init_ui(void)
     // Init list
     egui_view_list_init_with_params(EGUI_VIEW_OF(&list_1), &list_1_params);
     egui_view_scroll_set_scrollbar_enabled(EGUI_VIEW_OF(&list_1), 1);
+    egui_view_list_set_icon_font(EGUI_VIEW_OF(&list_1), EGUI_FONT_ICON_MS_20);
+    egui_view_list_set_icon_color(EGUI_VIEW_OF(&list_1), EGUI_COLOR_WHITE);
+    egui_view_list_set_icon_text_gap(EGUI_VIEW_OF(&list_1), 10);
     egui_view_list_set_on_item_click(EGUI_VIEW_OF(&list_1), list_item_click_cb);
 
     // Add items
-    egui_view_list_add_item(EGUI_VIEW_OF(&list_1), "Overview");
-    egui_view_list_add_item(EGUI_VIEW_OF(&list_1), "Notifications");
-    egui_view_list_add_item(EGUI_VIEW_OF(&list_1), "Display");
-    egui_view_list_add_item(EGUI_VIEW_OF(&list_1), "Sound");
-    egui_view_list_add_item(EGUI_VIEW_OF(&list_1), "Connectivity");
-    egui_view_list_add_item(EGUI_VIEW_OF(&list_1), "Privacy");
-    egui_view_list_add_item(EGUI_VIEW_OF(&list_1), "Storage");
-    egui_view_list_add_item(EGUI_VIEW_OF(&list_1), "Accessibility");
-    egui_view_list_add_item(EGUI_VIEW_OF(&list_1), "About Device");
-    egui_view_list_add_item(EGUI_VIEW_OF(&list_1), "Support");
+    egui_view_list_add_item_with_icon(EGUI_VIEW_OF(&list_1), EGUI_ICON_MS_HOME, "Overview");
+    egui_view_list_add_item_with_icon(EGUI_VIEW_OF(&list_1), EGUI_ICON_MS_NOTIFICATIONS, "Notifications");
+    egui_view_list_add_item_with_icon(EGUI_VIEW_OF(&list_1), EGUI_ICON_MS_VISIBILITY, "Display");
+    egui_view_list_add_item_with_icon(EGUI_VIEW_OF(&list_1), EGUI_ICON_MS_MUSIC_NOTE, "Sound");
+    egui_view_list_add_item_with_icon(EGUI_VIEW_OF(&list_1), EGUI_ICON_MS_WIFI, "Connectivity");
+    egui_view_list_add_item_with_icon(EGUI_VIEW_OF(&list_1), EGUI_ICON_MS_LOCK, "Privacy");
+    egui_view_list_add_item_with_icon(EGUI_VIEW_OF(&list_1), EGUI_ICON_MS_CLOUD, "Storage");
+    egui_view_list_add_item_with_icon(EGUI_VIEW_OF(&list_1), EGUI_ICON_MS_PERSON, "Accessibility");
+    egui_view_list_add_item_with_icon(EGUI_VIEW_OF(&list_1), EGUI_ICON_MS_INFO, "About Device");
+    egui_view_list_add_item_with_icon(EGUI_VIEW_OF(&list_1), EGUI_ICON_MS_HELP, "Support");
 
     // Add To Root
     egui_core_add_user_root_view(EGUI_VIEW_OF(&list_1));

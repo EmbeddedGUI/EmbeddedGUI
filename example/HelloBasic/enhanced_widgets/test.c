@@ -63,11 +63,15 @@ void test_init_ui(void)
     egui_view_switch_init(EGUI_VIEW_OF(&sw_on));
     egui_view_set_size(EGUI_VIEW_OF(&sw_on), 50, 26);
     egui_view_switch_set_checked(EGUI_VIEW_OF(&sw_on), 1);
+    egui_view_switch_set_state_icons(EGUI_VIEW_OF(&sw_on), EGUI_ICON_MS_DONE, EGUI_ICON_MS_CROSS);
+    egui_view_switch_set_icon_font(EGUI_VIEW_OF(&sw_on), EGUI_FONT_ICON_MS_20);
     egui_view_set_margin_all(EGUI_VIEW_OF(&sw_on), 3);
 
     // Switch OFF
     egui_view_switch_init(EGUI_VIEW_OF(&sw_off));
     egui_view_set_size(EGUI_VIEW_OF(&sw_off), 50, 26);
+    egui_view_switch_set_state_icons(EGUI_VIEW_OF(&sw_off), EGUI_ICON_MS_DONE, EGUI_ICON_MS_CROSS);
+    egui_view_switch_set_icon_font(EGUI_VIEW_OF(&sw_off), EGUI_FONT_ICON_MS_20);
     egui_view_set_margin_all(EGUI_VIEW_OF(&sw_off), 3);
 
     // Slider
@@ -87,12 +91,16 @@ void test_init_ui(void)
     egui_view_set_size(EGUI_VIEW_OF(&cb_on), 120, 20);
     egui_view_checkbox_set_text(EGUI_VIEW_OF(&cb_on), "Checked");
     egui_view_checkbox_set_checked(EGUI_VIEW_OF(&cb_on), 1);
+    egui_view_checkbox_set_mark_style(EGUI_VIEW_OF(&cb_on), EGUI_VIEW_CHECKBOX_MARK_STYLE_ICON);
+    egui_view_checkbox_set_icon_font(EGUI_VIEW_OF(&cb_on), EGUI_FONT_ICON_MS_20);
     egui_view_set_margin_all(EGUI_VIEW_OF(&cb_on), 3);
 
     // Checkbox unchecked
     egui_view_checkbox_init(EGUI_VIEW_OF(&cb_off));
     egui_view_set_size(EGUI_VIEW_OF(&cb_off), 120, 20);
     egui_view_checkbox_set_text(EGUI_VIEW_OF(&cb_off), "Unchecked");
+    egui_view_checkbox_set_mark_style(EGUI_VIEW_OF(&cb_off), EGUI_VIEW_CHECKBOX_MARK_STYLE_ICON);
+    egui_view_checkbox_set_icon_font(EGUI_VIEW_OF(&cb_off), EGUI_FONT_ICON_MS_20);
     egui_view_set_margin_all(EGUI_VIEW_OF(&cb_off), 3);
 
     // Card
@@ -121,14 +129,22 @@ void test_init_ui(void)
 
     // Toggle buttons
     egui_view_toggle_button_init(EGUI_VIEW_OF(&tb_on));
-    egui_view_set_size(EGUI_VIEW_OF(&tb_on), 100, 32);
-    egui_view_toggle_button_set_text(EGUI_VIEW_OF(&tb_on), "ON");
+    egui_view_set_size(EGUI_VIEW_OF(&tb_on), 132, 32);
+    egui_view_toggle_button_set_icon(EGUI_VIEW_OF(&tb_on), EGUI_ICON_MS_HEART);
+    egui_view_toggle_button_set_text(EGUI_VIEW_OF(&tb_on), "Favorite");
+    egui_view_toggle_button_set_icon_font(EGUI_VIEW_OF(&tb_on), EGUI_FONT_ICON_MS_16);
+    egui_view_toggle_button_set_icon_text_gap(EGUI_VIEW_OF(&tb_on), 4);
+    egui_view_toggle_button_set_text_color(EGUI_VIEW_OF(&tb_on), EGUI_COLOR_WHITE);
     egui_view_toggle_button_set_toggled(EGUI_VIEW_OF(&tb_on), 1);
     egui_view_set_margin_all(EGUI_VIEW_OF(&tb_on), 3);
 
     egui_view_toggle_button_init(EGUI_VIEW_OF(&tb_off));
-    egui_view_set_size(EGUI_VIEW_OF(&tb_off), 100, 32);
-    egui_view_toggle_button_set_text(EGUI_VIEW_OF(&tb_off), "OFF");
+    egui_view_set_size(EGUI_VIEW_OF(&tb_off), 132, 32);
+    egui_view_toggle_button_set_icon(EGUI_VIEW_OF(&tb_off), EGUI_ICON_MS_VISIBILITY_OFF);
+    egui_view_toggle_button_set_text(EGUI_VIEW_OF(&tb_off), "Hidden");
+    egui_view_toggle_button_set_icon_font(EGUI_VIEW_OF(&tb_off), EGUI_FONT_ICON_MS_16);
+    egui_view_toggle_button_set_icon_text_gap(EGUI_VIEW_OF(&tb_off), 4);
+    egui_view_toggle_button_set_text_color(EGUI_VIEW_OF(&tb_off), EGUI_COLOR_WHITE);
     egui_view_set_margin_all(EGUI_VIEW_OF(&tb_off), 3);
 
     // LEDs

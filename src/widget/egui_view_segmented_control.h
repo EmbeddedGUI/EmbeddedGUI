@@ -20,6 +20,7 @@ struct egui_view_segmented_control
     egui_view_t base;
 
     const char **segment_texts;
+    const char **segment_icons;
     uint8_t segment_count;
     uint8_t current_index;
     uint8_t pressed_index;
@@ -33,6 +34,8 @@ struct egui_view_segmented_control
     egui_color_t selected_text_color;
     egui_color_t border_color;
     const egui_font_t *font;
+    const egui_font_t *icon_font;
+    egui_dim_t icon_text_gap;
     egui_view_on_segment_changed_listener_t on_segment_changed;
 };
 
@@ -41,16 +44,19 @@ struct egui_view_segmented_control_params
 {
     egui_region_t region;
     const char **segment_texts;
+    const char **segment_icons;
     uint8_t segment_count;
 };
 
 #define EGUI_VIEW_SEGMENTED_CONTROL_PARAMS_INIT(_name, _x, _y, _w, _h, _texts, _count)                                                                         \
-    static const egui_view_segmented_control_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}, .segment_texts = (_texts), .segment_count = (_count)}
+    static const egui_view_segmented_control_params_t _name = {                                                                                                \
+            .region = {{(_x), (_y)}, {(_w), (_h)}}, .segment_texts = (_texts), .segment_icons = NULL, .segment_count = (_count)}
 
 void egui_view_segmented_control_apply_params(egui_view_t *self, const egui_view_segmented_control_params_t *params);
 void egui_view_segmented_control_init_with_params(egui_view_t *self, const egui_view_segmented_control_params_t *params);
 
 void egui_view_segmented_control_set_segments(egui_view_t *self, const char **segment_texts, uint8_t segment_count);
+void egui_view_segmented_control_set_segment_icons(egui_view_t *self, const char **segment_icons);
 void egui_view_segmented_control_set_current_index(egui_view_t *self, uint8_t index);
 uint8_t egui_view_segmented_control_get_current_index(egui_view_t *self);
 void egui_view_segmented_control_set_on_segment_changed_listener(egui_view_t *self, egui_view_on_segment_changed_listener_t listener);
@@ -64,6 +70,8 @@ void egui_view_segmented_control_set_corner_radius(egui_view_t *self, uint8_t ra
 void egui_view_segmented_control_set_segment_gap(egui_view_t *self, uint8_t gap);
 void egui_view_segmented_control_set_horizontal_padding(egui_view_t *self, uint8_t padding);
 void egui_view_segmented_control_set_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_segmented_control_set_icon_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_segmented_control_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
 
 void egui_view_segmented_control_on_draw(egui_view_t *self);
 void egui_view_segmented_control_init(egui_view_t *self);

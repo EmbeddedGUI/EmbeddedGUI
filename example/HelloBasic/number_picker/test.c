@@ -37,21 +37,29 @@ void test_init_ui(void)
     egui_view_number_picker_init_with_params(EGUI_VIEW_OF(&picker_xs), &picker_xs_params);
     egui_view_number_picker_set_on_value_changed_listener(EGUI_VIEW_OF(&picker_xs), picker_value_changed_cb);
     egui_view_number_picker_set_step(EGUI_VIEW_OF(&picker_xs), 5);
+    egui_view_number_picker_set_button_icons(EGUI_VIEW_OF(&picker_xs), EGUI_ICON_MS_ADD, EGUI_ICON_MS_REMOVE);
+    egui_view_number_picker_set_icon_font(EGUI_VIEW_OF(&picker_xs), EGUI_FONT_ICON_MS_16);
     picker_xs.text_color = EGUI_THEME_TEXT_SECONDARY;
 
     egui_view_number_picker_init_with_params(EGUI_VIEW_OF(&picker_s), &picker_s_params);
     egui_view_number_picker_set_on_value_changed_listener(EGUI_VIEW_OF(&picker_s), picker_value_changed_cb);
     egui_view_number_picker_set_step(EGUI_VIEW_OF(&picker_s), 5);
+    egui_view_number_picker_set_button_icons(EGUI_VIEW_OF(&picker_s), EGUI_ICON_MS_EXPAND_LESS, EGUI_ICON_MS_EXPAND_MORE);
+    egui_view_number_picker_set_icon_font(EGUI_VIEW_OF(&picker_s), EGUI_FONT_ICON_MS_20);
     picker_s.text_color = EGUI_THEME_TEXT;
 
     egui_view_number_picker_init_with_params(EGUI_VIEW_OF(&picker_m), &picker_m_params);
     egui_view_number_picker_set_on_value_changed_listener(EGUI_VIEW_OF(&picker_m), picker_value_changed_cb);
     egui_view_number_picker_set_step(EGUI_VIEW_OF(&picker_m), 5);
+    egui_view_number_picker_set_button_icons(EGUI_VIEW_OF(&picker_m), EGUI_ICON_MS_ADD, EGUI_ICON_MS_REMOVE);
+    egui_view_number_picker_set_icon_font(EGUI_VIEW_OF(&picker_m), EGUI_FONT_ICON_MS_24);
     picker_m.text_color = EGUI_THEME_PRIMARY_DARK;
 
     egui_view_number_picker_init_with_params(EGUI_VIEW_OF(&picker_l), &picker_l_params);
     egui_view_number_picker_set_on_value_changed_listener(EGUI_VIEW_OF(&picker_l), picker_value_changed_cb);
     egui_view_number_picker_set_step(EGUI_VIEW_OF(&picker_l), 5);
+    egui_view_number_picker_set_button_icons(EGUI_VIEW_OF(&picker_l), EGUI_ICON_MS_EXPAND_LESS, EGUI_ICON_MS_EXPAND_MORE);
+    egui_view_number_picker_set_icon_font(EGUI_VIEW_OF(&picker_l), EGUI_FONT_ICON_MS_24);
     picker_l.text_color = EGUI_THEME_PRIMARY;
 
     // Set margins

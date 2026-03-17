@@ -27,9 +27,7 @@ extern "C" {
  * Note: set_brightness is NULL by default. Porting layer should set
  * driver->set_brightness after init if backlight control is needed.
  */
-void egui_lcd_gc9a01_init(egui_hal_lcd_driver_t *storage,
-                          const egui_bus_spi_ops_t *spi,
-                          const egui_lcd_gpio_ops_t *gpio);
+void egui_lcd_gc9a01_init(egui_hal_lcd_driver_t *storage, const egui_bus_spi_ops_t *spi, const egui_lcd_gpio_ops_t *gpio);
 
 #ifdef __cplusplus
 }

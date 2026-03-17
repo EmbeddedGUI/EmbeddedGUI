@@ -68,9 +68,9 @@ static int db_growth_frame = 0;
 #define DB_GROWTH_INTERVAL 40
 
 // KPI text buffers
-static char db_kpi1_buf[8];
-static char db_kpi2_buf[8];
-static char db_kpi3_buf[8];
+static char db_kpi1_buf[16];
+static char db_kpi2_buf[16];
+static char db_kpi3_buf[16];
 
 static void db_update_kpi_display(int decel)
 {
@@ -78,9 +78,9 @@ static void db_update_kpi_display(int decel)
     int val2 = (127 * decel) / 100;
     int val3_x10 = (42 * decel) / 100;
 
-    sprintf(db_kpi1_buf, "%d%%", val1);
-    sprintf(db_kpi2_buf, "%d", val2);
-    sprintf(db_kpi3_buf, "%d.%d", val3_x10 / 10, val3_x10 % 10);
+    snprintf(db_kpi1_buf, sizeof(db_kpi1_buf), "%d%%", val1);
+    snprintf(db_kpi2_buf, sizeof(db_kpi2_buf), "%d", val2);
+    snprintf(db_kpi3_buf, sizeof(db_kpi3_buf), "%d.%d", val3_x10 / 10, val3_x10 % 10);
 
     egui_view_label_set_text(EGUI_VIEW_OF(&db_kpi1_val), db_kpi1_buf);
     egui_view_label_set_text(EGUI_VIEW_OF(&db_kpi2_val), db_kpi2_buf);

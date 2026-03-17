@@ -6,6 +6,24 @@
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
 
+static const egui_font_t *egui_view_tab_bar_get_icon_font(egui_view_tab_bar_t *local, egui_dim_t area_size)
+{
+    if (local->icon_font != NULL)
+    {
+        return local->icon_font;
+    }
+
+    if (area_size <= 18)
+    {
+        return EGUI_FONT_ICON_MS_16;
+    }
+    if (area_size <= 22)
+    {
+        return EGUI_FONT_ICON_MS_20;
+    }
+    return EGUI_FONT_ICON_MS_24;
+}
+
 void egui_view_tab_bar_set_tabs(egui_view_t *self, const char **tab_texts, uint8_t tab_count)
 {
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
@@ -43,11 +61,54 @@ void egui_view_tab_bar_set_on_tab_changed_listener(egui_view_t *self, egui_view_
     local->on_tab_changed = listener;
 }
 
+void egui_view_tab_bar_set_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    local->font = font;
+    egui_view_invalidate(self);
+}
+
+void egui_view_tab_bar_set_tab_icons(egui_view_t *self, const char **tab_icons)
+{
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    if (local->tab_icons == tab_icons)
+    {
+        return;
+    }
+
+    local->tab_icons = tab_icons;
+    egui_view_invalidate(self);
+}
+
+void egui_view_tab_bar_set_icon_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    if (local->icon_font == font)
+    {
+        return;
+    }
+
+    local->icon_font = font;
+    egui_view_invalidate(self);
+}
+
+void egui_view_tab_bar_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
+{
+    EGUI_LOCAL_INIT(egui_view_tab_bar_t);
+    if (local->icon_text_gap == gap)
+    {
+        return;
+    }
+
+    local->icon_text_gap = gap;
+    egui_view_invalidate(self);
+}
+
 void egui_view_tab_bar_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
 
-    if (local->tab_count == 0 || local->tab_texts == NULL || local->font == NULL)
+    if (local->tab_count == 0 || (local->tab_texts == NULL && local->tab_icons == NULL) || local->font == NULL)
     {
         return;
     }
@@ -62,13 +123,85 @@ void egui_view_tab_bar_on_draw(egui_view_t *self)
     for (i = 0; i < local->tab_count; i++)
     {
         egui_region_t tab_rect;
+        const char *tab_text = (local->tab_texts != NULL) ? local->tab_texts[i] : NULL;
+        const char *tab_icon = (local->tab_icons != NULL) ? local->tab_icons[i] : NULL;
+        if (tab_text == NULL)
+        {
+            tab_text = "";
+        }
         tab_rect.location.x = region.location.x + i * tab_w;
         tab_rect.location.y = region.location.y;
         tab_rect.size.width = tab_w;
         tab_rect.size.height = region.size.height - indicator_h;
 
         egui_color_t color = (i == local->current_index) ? local->active_text_color : local->text_color;
-        egui_canvas_draw_text_in_rect(local->font, local->tab_texts[i], &tab_rect, EGUI_ALIGN_CENTER, color, local->alpha);
+        if (tab_icon != NULL)
+        {
+            if (tab_text != NULL && tab_text[0] != '\0')
+            {
+                egui_dim_t text_w = 0;
+                egui_dim_t text_h = 0;
+                egui_dim_t text_gap = local->icon_text_gap;
+                egui_dim_t icon_area_height;
+                egui_dim_t content_height;
+                egui_dim_t content_y;
+                egui_region_t icon_rect;
+                egui_region_t text_rect;
+
+                if (local->font->api != NULL)
+                {
+                    local->font->api->get_str_size(local->font, tab_text, 0, 0, &text_w, &text_h);
+                }
+                if (text_h < 0)
+                {
+                    text_h = 0;
+                }
+                if (text_gap < 0)
+                {
+                    text_gap = 0;
+                }
+
+                icon_area_height = tab_rect.size.height - text_h - text_gap;
+                if (icon_area_height < tab_rect.size.height / 2)
+                {
+                    icon_area_height = tab_rect.size.height / 2;
+                }
+                if (icon_area_height > tab_rect.size.height)
+                {
+                    icon_area_height = tab_rect.size.height;
+                }
+
+                content_height = icon_area_height + ((text_h > 0) ? (text_h + text_gap) : 0);
+                if (content_height > tab_rect.size.height)
+                {
+                    content_height = tab_rect.size.height;
+                }
+                content_y = tab_rect.location.y + (tab_rect.size.height - content_height) / 2;
+
+                icon_rect.location.x = tab_rect.location.x;
+                icon_rect.location.y = content_y;
+                icon_rect.size.width = tab_rect.size.width;
+                icon_rect.size.height = icon_area_height;
+
+                text_rect.location.x = tab_rect.location.x;
+                text_rect.location.y = content_y + icon_area_height;
+                text_rect.size.width = tab_rect.size.width;
+                text_rect.size.height = tab_rect.location.y + tab_rect.size.height - text_rect.location.y;
+
+                egui_canvas_draw_text_in_rect(egui_view_tab_bar_get_icon_font(local, icon_area_height), tab_icon, &icon_rect, EGUI_ALIGN_CENTER, color,
+                                              local->alpha);
+                egui_canvas_draw_text_in_rect(local->font, tab_text, &text_rect, EGUI_ALIGN_CENTER, color, local->alpha);
+            }
+            else
+            {
+                egui_canvas_draw_text_in_rect(egui_view_tab_bar_get_icon_font(local, tab_rect.size.height), tab_icon, &tab_rect, EGUI_ALIGN_CENTER, color,
+                                              local->alpha);
+            }
+        }
+        else
+        {
+            egui_canvas_draw_text_in_rect(local->font, tab_text, &tab_rect, EGUI_ALIGN_CENTER, color, local->alpha);
+        }
 
         // Draw indicator under current tab
         if (i == local->current_index)
@@ -177,6 +310,7 @@ void egui_view_tab_bar_init(egui_view_t *self)
     // init local data.
     local->on_tab_changed = NULL;
     local->tab_texts = NULL;
+    local->tab_icons = NULL;
     local->tab_count = 0;
     local->current_index = 0;
     local->alpha = EGUI_ALPHA_100;
@@ -184,6 +318,8 @@ void egui_view_tab_bar_init(egui_view_t *self)
     local->active_text_color = EGUI_THEME_PRIMARY;
     local->indicator_color = EGUI_THEME_PRIMARY;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    local->icon_font = NULL;
+    local->icon_text_gap = 2;
 
     egui_view_set_view_name(self, "egui_view_tab_bar");
 }

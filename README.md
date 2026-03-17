@@ -7,8 +7,6 @@
 
 **[在线体验](https://embeddedgui.github.io/EmbeddedGUI/) · [完整文档](https://embeddedgui.readthedocs.io/en/latest/) · [Gitee](https://gitee.com/embeddedgui/EmbeddedGUI) · [GitHub](https://github.com/EmbeddedGUI/EmbeddedGUI)**
 
----
-
 ## ✨ 为什么选 EmbeddedGUI
 
 | | |

@@ -12,10 +12,14 @@ static egui_view_combobox_t combo_l;
 static egui_view_gridlayout_t grid;
 
 // Items
-static const char *items_xs[] = {"A", "B", "C"};
-static const char *items_s[] = {"Red", "Green", "Blue"};
-static const char *items_m[] = {"Small", "Medium", "Large"};
-static const char *items_l[] = {"Option 1", "Option 2", "Option 3", "Option 4"};
+static const char *items_xs[] = {"Home", "Cloud", "Lock"};
+static const char *item_icons_xs[] = {EGUI_ICON_MS_HOME, EGUI_ICON_MS_CLOUD, EGUI_ICON_MS_LOCK};
+static const char *items_s[] = {"Info", "Warn", "Error"};
+static const char *item_icons_s[] = {EGUI_ICON_MS_INFO, EGUI_ICON_MS_WARNING, EGUI_ICON_MS_ERROR};
+static const char *items_m[] = {"Play", "Pause", "Sync"};
+static const char *item_icons_m[] = {EGUI_ICON_MS_PLAY_ARROW, EGUI_ICON_MS_PAUSE, EGUI_ICON_MS_SYNC};
+static const char *items_l[] = {"Person", "Camera", "Music", "Settings"};
+static const char *item_icons_l[] = {EGUI_ICON_MS_PERSON, EGUI_ICON_MS_CAMERA, EGUI_ICON_MS_MUSIC_NOTE, EGUI_ICON_MS_SETTINGS};
 
 // View params
 EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, 230, 300, 1, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
@@ -42,18 +46,34 @@ void test_init_ui(void)
     // Init all comboboxes
     egui_view_combobox_init_with_params(EGUI_VIEW_OF(&combo_xs), &combo_xs_params);
     egui_view_combobox_set_on_selected_listener(EGUI_VIEW_OF(&combo_xs), on_combo_selected);
+    egui_view_combobox_set_item_icons(EGUI_VIEW_OF(&combo_xs), item_icons_xs);
+    egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&combo_xs), EGUI_FONT_ICON_MS_16);
+    egui_view_combobox_set_arrow_icons(EGUI_VIEW_OF(&combo_xs), EGUI_ICON_MS_KEYBOARD_ARROW_DOWN, EGUI_ICON_MS_KEYBOARD_ARROW_UP);
+    egui_view_combobox_set_icon_text_gap(EGUI_VIEW_OF(&combo_xs), 4);
     egui_view_combobox_set_max_visible_items(EGUI_VIEW_OF(&combo_xs), 3);
 
     egui_view_combobox_init_with_params(EGUI_VIEW_OF(&combo_s), &combo_s_params);
     egui_view_combobox_set_on_selected_listener(EGUI_VIEW_OF(&combo_s), on_combo_selected);
+    egui_view_combobox_set_item_icons(EGUI_VIEW_OF(&combo_s), item_icons_s);
+    egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&combo_s), EGUI_FONT_ICON_MS_20);
+    egui_view_combobox_set_arrow_icons(EGUI_VIEW_OF(&combo_s), EGUI_ICON_MS_KEYBOARD_ARROW_DOWN, EGUI_ICON_MS_KEYBOARD_ARROW_UP);
+    egui_view_combobox_set_icon_text_gap(EGUI_VIEW_OF(&combo_s), 4);
     egui_view_combobox_set_max_visible_items(EGUI_VIEW_OF(&combo_s), 3);
 
     egui_view_combobox_init_with_params(EGUI_VIEW_OF(&combo_m), &combo_m_params);
     egui_view_combobox_set_on_selected_listener(EGUI_VIEW_OF(&combo_m), on_combo_selected);
+    egui_view_combobox_set_item_icons(EGUI_VIEW_OF(&combo_m), item_icons_m);
+    egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&combo_m), EGUI_FONT_ICON_MS_20);
+    egui_view_combobox_set_arrow_icons(EGUI_VIEW_OF(&combo_m), EGUI_ICON_MS_EXPAND_MORE, EGUI_ICON_MS_EXPAND_LESS);
+    egui_view_combobox_set_icon_text_gap(EGUI_VIEW_OF(&combo_m), 5);
     egui_view_combobox_set_max_visible_items(EGUI_VIEW_OF(&combo_m), 3);
 
     egui_view_combobox_init_with_params(EGUI_VIEW_OF(&combo_l), &combo_l_params);
     egui_view_combobox_set_on_selected_listener(EGUI_VIEW_OF(&combo_l), on_combo_selected);
+    egui_view_combobox_set_item_icons(EGUI_VIEW_OF(&combo_l), item_icons_l);
+    egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&combo_l), EGUI_FONT_ICON_MS_24);
+    egui_view_combobox_set_arrow_icons(EGUI_VIEW_OF(&combo_l), EGUI_ICON_MS_EXPAND_MORE, EGUI_ICON_MS_EXPAND_LESS);
+    egui_view_combobox_set_icon_text_gap(EGUI_VIEW_OF(&combo_l), 6);
     egui_view_combobox_set_max_visible_items(EGUI_VIEW_OF(&combo_l), 4);
 
     // Set margins
@@ -84,15 +104,6 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     switch (action_index)
     {
     case 0:
-        EGUI_SIM_SET_WAIT(p_action, 500);
-        return true;
-    case 1:
-        // Click to expand combo_m
-        p_action->type = EGUI_SIM_ACTION_CLICK;
-        egui_sim_get_view_pos(&combo_m, 0.5f, 0.5f, &p_action->x1, &p_action->y1);
-        p_action->interval_ms = 500;
-        return true;
-    case 2:
         EGUI_SIM_SET_WAIT(p_action, 1000);
         return true;
     default:

@@ -1,8 +1,11 @@
+"""Compile-check helper for EmbeddedGUI examples and widget demos."""
+
 import os
 import sys
 import argparse
 import time
 import shutil
+import subprocess
 
 mutil_work = True
 
@@ -11,6 +14,7 @@ COMPILE_FAST_FLAGS = ' COMPILE_DEBUG= COMPILE_OPT_LEVEL=-O0'
 
 # Build system: 'make' or 'cmake'
 build_system = 'make'
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def get_example_list():
     path = 'example'
@@ -187,6 +191,22 @@ def run_unit_tests(params):
     return 0
 
 
+def run_example_icon_font_check():
+    print("=================================================================================")
+    print("Checking Example Icon Fonts")
+    print("=================================================================================")
+
+    cmd = [sys.executable, os.path.join(SCRIPT_DIR, 'check_example_icon_font.py')]
+    print(' '.join('"%s"' % part if ' ' in part else part for part in cmd))
+    res = subprocess.call(cmd)
+    if res != 0:
+        print("Example icon font check FAILED!")
+        return res
+
+    print("Example icon font check PASSED!")
+    return 0
+
+
 # port_sets = ['pc'
 #              , 'stm32g0_empty'
 #              ]
@@ -194,26 +214,35 @@ port_sets = ['pc'
              ]
 
 def parse_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Compile EmbeddedGUI examples, optional custom widget demos, and unit tests.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  python scripts/code_compile_check.py --full-check\n"
+            "  python scripts/code_compile_check.py --full-check --cmake\n"
+            "  python scripts/code_compile_check.py --custom-widgets --category input\n"
+        ),
+    )
     parser.add_argument("--full-check",
                         action="store_true",
                         default=False,
-                        help="For normal build.")
+                        help="Compile all tracked standard examples and HelloBasic sub-apps.")
 
     parser.add_argument("--actions",
                         action="store_true",
                         default=False,
-                        help="For normal build.")
+                        help="Use GitHub Actions friendly settings (single-threaded app loop).")
 
     parser.add_argument("--bits64",
                         action="store_true",
                         default=False,
-                        help="For 64bit build.")
+                        help="Build 64-bit binaries.")
 
     parser.add_argument("--clean",
                         action="store_true",
                         default=False,
-                        help="Clean output before building.")
+                        help="Clean existing build output before compiling.")
 
     parser.add_argument("--cmake",
                         action="store_true",
@@ -223,7 +252,12 @@ def parse_args():
     parser.add_argument("--custom-widgets",
                         action="store_true",
                         default=False,
-                        help="Check HelloCustomWidgets instead of standard apps.")
+                        help="Compile HelloCustomWidgets demos instead of standard example apps.")
+
+    parser.add_argument("--skip-icon-font-check",
+                        action="store_true",
+                        default=False,
+                        help="Skip example icon font explicitness check in full-check mode.")
 
     parser.add_argument("--category",
                         type=str,
@@ -325,6 +359,11 @@ if __name__ == '__main__':
                 else:
                     current_work_cnt += 1
                     process_app(current_work_cnt, total_work_cnt, app, port, None, params)
+
+        if not args.skip_icon_font_check:
+            res = run_example_icon_font_check()
+            if res != 0:
+                sys.exit(res)
 
     # Run unit tests
     res = run_unit_tests(params)

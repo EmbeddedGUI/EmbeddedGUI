@@ -8,6 +8,115 @@
 #include "core/egui_canvas_gradient.h"
 #endif
 
+static const egui_font_t *egui_view_toggle_button_get_icon_font(egui_view_toggle_button_t *local, egui_dim_t area_size)
+{
+    if (local->icon_font != NULL)
+    {
+        return local->icon_font;
+    }
+
+    if (area_size <= 20)
+    {
+        return EGUI_FONT_ICON_MS_16;
+    }
+    if (area_size <= 26)
+    {
+        return EGUI_FONT_ICON_MS_20;
+    }
+    return EGUI_FONT_ICON_MS_24;
+}
+
+static void egui_view_toggle_button_draw_content(egui_view_toggle_button_t *local, const egui_region_t *region, egui_color_t text_color)
+{
+    const char *icon = local->icon;
+    const char *text = local->text;
+    const egui_font_t *text_font = (local->font != NULL) ? local->font : (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    egui_region_t draw_region = *region;
+
+    if ((icon == NULL || icon[0] == '\0') && (text == NULL || text[0] == '\0'))
+    {
+        return;
+    }
+
+    if (icon == NULL || icon[0] == '\0')
+    {
+        egui_canvas_draw_text_in_rect(text_font, text, &draw_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
+        return;
+    }
+
+    if (text == NULL || text[0] == '\0')
+    {
+        egui_canvas_draw_text_in_rect(egui_view_toggle_button_get_icon_font(local, EGUI_MIN(region->size.width, region->size.height)), icon, &draw_region,
+                                      EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
+        return;
+    }
+
+    {
+        const egui_font_t *icon_font = egui_view_toggle_button_get_icon_font(local, region->size.height);
+        egui_dim_t icon_width = 0;
+        egui_dim_t icon_height = 0;
+        egui_dim_t text_width = 0;
+        egui_dim_t text_height = 0;
+        egui_dim_t content_width;
+        egui_dim_t start_x;
+        egui_dim_t gap = local->icon_text_gap;
+        egui_region_t icon_region;
+        egui_region_t text_region;
+
+        if (icon_font != NULL && icon_font->api != NULL && icon_font->api->get_str_size != NULL)
+        {
+            icon_font->api->get_str_size(icon_font, icon, 0, 0, &icon_width, &icon_height);
+        }
+        if (text_font != NULL && text_font->api != NULL && text_font->api->get_str_size != NULL)
+        {
+            text_font->api->get_str_size(text_font, text, 0, 0, &text_width, &text_height);
+        }
+        (void)icon_height;
+        (void)text_height;
+
+        if (icon_width <= 0)
+        {
+            icon_width = EGUI_MIN(region->size.height, 20);
+        }
+        if (text_width <= 0)
+        {
+            gap = 0;
+        }
+        if (gap < 0)
+        {
+            gap = 0;
+        }
+
+        content_width = icon_width + gap + text_width;
+        if (content_width < 0)
+        {
+            content_width = 0;
+        }
+
+        start_x = region->location.x + (region->size.width - content_width) / 2;
+        if (start_x < region->location.x)
+        {
+            start_x = region->location.x;
+        }
+
+        icon_region.location.x = start_x;
+        icon_region.location.y = region->location.y;
+        icon_region.size.width = EGUI_MIN(icon_width, region->size.width);
+        icon_region.size.height = region->size.height;
+
+        text_region.location.x = icon_region.location.x + icon_region.size.width + gap;
+        text_region.location.y = region->location.y;
+        text_region.size.width = region->location.x + region->size.width - text_region.location.x;
+        text_region.size.height = region->size.height;
+
+        egui_canvas_draw_text_in_rect(icon_font, icon, &icon_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
+        if (text_region.size.width > 0)
+        {
+            egui_canvas_draw_text_in_rect(text_font, text, &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color, EGUI_ALPHA_100);
+        }
+    }
+}
+
 void egui_view_toggle_button_set_on_toggled_listener(egui_view_t *self, egui_view_on_toggled_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
@@ -34,6 +143,19 @@ uint8_t egui_view_toggle_button_is_toggled(egui_view_t *self)
     return local->is_toggled;
 }
 
+void egui_view_toggle_button_set_icon(egui_view_t *self, const char *icon)
+{
+    EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+
+    if (local->icon == icon)
+    {
+        return;
+    }
+
+    local->icon = icon;
+    egui_view_invalidate(self);
+}
+
 void egui_view_toggle_button_set_text(egui_view_t *self, const char *text)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
@@ -45,6 +167,32 @@ void egui_view_toggle_button_set_font(egui_view_t *self, const egui_font_t *font
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
     local->font = font;
+    egui_view_invalidate(self);
+}
+
+void egui_view_toggle_button_set_icon_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+
+    if (local->icon_font == font)
+    {
+        return;
+    }
+
+    local->icon_font = font;
+    egui_view_invalidate(self);
+}
+
+void egui_view_toggle_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
+{
+    EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+
+    if (local->icon_text_gap == gap)
+    {
+        return;
+    }
+
+    local->icon_text_gap = gap;
     egui_view_invalidate(self);
 }
 
@@ -97,8 +245,7 @@ void egui_view_toggle_button_on_draw(egui_view_t *self)
                                               EGUI_THEME_PRESS_OVERLAY, EGUI_THEME_PRESS_OVERLAY_ALPHA);
     }
 
-    // Draw centered text
-    if (local->text && local->font)
+    if ((local->icon != NULL && local->icon[0] != '\0') || (local->text != NULL && local->text[0] != '\0'))
     {
         egui_color_t text_color;
         if (!egui_view_get_enable(self))
@@ -113,7 +260,8 @@ void egui_view_toggle_button_on_draw(egui_view_t *self)
         {
             text_color = EGUI_THEME_TEXT_PRIMARY;
         }
-        egui_canvas_draw_text_in_rect(local->font, local->text, &region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
+
+        egui_view_toggle_button_draw_content(local, &region, text_color);
     }
 }
 
@@ -185,12 +333,15 @@ void egui_view_toggle_button_init(egui_view_t *self)
     // init local data.
     local->on_toggled = NULL;
     local->is_toggled = 0;
+    local->icon = NULL;
     local->text = NULL;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    local->icon_font = NULL;
     local->text_color = EGUI_THEME_TEXT;
     local->on_color = EGUI_THEME_PRIMARY;
     local->off_color = EGUI_THEME_TRACK_OFF;
     local->corner_radius = EGUI_THEME_RADIUS_MD;
+    local->icon_text_gap = 6;
 
     egui_view_set_view_name(self, "egui_view_toggle_button");
 }

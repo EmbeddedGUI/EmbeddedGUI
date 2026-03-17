@@ -47,7 +47,8 @@ uint32_t designer_get_rgb888_size(void)
  * ============================================================================ */
 
 static egui_hal_lcd_driver_t designer_lcd_driver;
-static struct {
+static struct
+{
     int16_t x;
     int16_t y;
     int16_t w;
@@ -121,14 +122,14 @@ static void designer_lcd_setup(egui_hal_lcd_driver_t *storage)
     storage->set_invert = NULL;
 }
 
-
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 /* ============================================================================
  * Touch HAL driver
  * ============================================================================ */
 
 static egui_hal_touch_driver_t designer_touch_driver;
-static struct {
+static struct
+{
     uint8_t pressed;
     int16_t x;
     int16_t y;

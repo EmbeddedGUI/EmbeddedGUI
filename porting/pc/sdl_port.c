@@ -80,7 +80,8 @@ static bool sdl_mouse_left_down = false;
 static SDL_mutex *sdl_touch_mutex = NULL;
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-typedef struct sdl_touch_event {
+typedef struct sdl_touch_event
+{
     uint8_t pressed;
     int16_t x;
     int16_t y;
@@ -1212,8 +1213,13 @@ static void recording_save_frame(void)
     {
         g_recording_start_time = now;
         g_recording_last_frame_time = now;
-        // Save the initial frame (page 1 before any action)
-        recording_do_save_frame();
+#if EGUI_CONFIG_RECORDING_TEST
+        if (!g_recording_snapshot_requested)
+#endif
+        {
+            // Save the initial frame (page 1 before any action)
+            recording_do_save_frame();
+        }
     }
 
     // Check if recording finished (timeout safety)

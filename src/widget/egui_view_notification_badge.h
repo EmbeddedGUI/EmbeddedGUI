@@ -10,6 +10,13 @@ extern "C" {
 #endif
 
 typedef struct egui_view_notification_badge egui_view_notification_badge_t;
+
+typedef enum
+{
+    EGUI_VIEW_NOTIFICATION_BADGE_CONTENT_STYLE_COUNT = 0,
+    EGUI_VIEW_NOTIFICATION_BADGE_CONTENT_STYLE_ICON = 1,
+} egui_view_notification_badge_content_style_t;
+
 struct egui_view_notification_badge
 {
     egui_view_t base;
@@ -19,6 +26,9 @@ struct egui_view_notification_badge
     egui_color_t badge_color;
     egui_color_t text_color;
     const egui_font_t *font;
+    uint8_t content_style;
+    const char *icon;
+    const egui_font_t *icon_font;
     char text_buffer[8];
 };
 
@@ -42,6 +52,9 @@ void egui_view_notification_badge_set_max_display(egui_view_t *self, uint8_t max
 void egui_view_notification_badge_set_badge_color(egui_view_t *self, egui_color_t color);
 void egui_view_notification_badge_set_text_color(egui_view_t *self, egui_color_t color);
 void egui_view_notification_badge_set_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_notification_badge_set_content_style(egui_view_t *self, egui_view_notification_badge_content_style_t style);
+void egui_view_notification_badge_set_icon(egui_view_t *self, const char *icon);
+void egui_view_notification_badge_set_icon_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_notification_badge_on_draw(egui_view_t *self);
 void egui_view_notification_badge_init(egui_view_t *self);
 

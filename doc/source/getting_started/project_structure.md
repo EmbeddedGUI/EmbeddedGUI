@@ -181,10 +181,12 @@ src/
 
 | 脚本 | 说明 |
 |------|------|
-| `code_compile_check.py` | 完整编译检查 (CI 使用) |
+| `code_compile_check.py` | 完整编译检查 (CI 使用，含示例 icon font 检查) |
 | `code_runtime_check.py` | 运行时验证 (截图对比) |
 | `code_format.py` | 代码格式化 |
+| `check_example_icon_font.py` | 示例图标字体显式配置检查 |
 | `code_perf_check.py` | 性能测试 |
+| `release_check.py` | 发布前多步骤一键检查 |
 | `setup_env.py` | 环境配置辅助脚本 |
 | `utils_analysis_elf_size.py` | ELF 二进制大小分析 |
 | `wasm_build_demos.py` | WebAssembly 演示构建 |

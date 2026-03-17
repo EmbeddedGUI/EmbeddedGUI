@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "core/egui_region.h"
+
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {

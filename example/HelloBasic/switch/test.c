@@ -35,15 +35,23 @@ void test_init_ui(void)
 
     // Init all views
     egui_view_switch_init_with_params(EGUI_VIEW_OF(&switch_xs), &switch_xs_params);
+    egui_view_switch_set_state_icons(EGUI_VIEW_OF(&switch_xs), EGUI_ICON_MS_DONE, EGUI_ICON_MS_CROSS);
+    egui_view_switch_set_icon_font(EGUI_VIEW_OF(&switch_xs), EGUI_FONT_ICON_MS_20);
     egui_view_switch_set_on_checked_listener(EGUI_VIEW_OF(&switch_xs), switch_checked_cb);
 
     egui_view_switch_init_with_params(EGUI_VIEW_OF(&switch_s), &switch_s_params);
+    egui_view_switch_set_state_icons(EGUI_VIEW_OF(&switch_s), EGUI_ICON_MS_DONE, EGUI_ICON_MS_CROSS);
+    egui_view_switch_set_icon_font(EGUI_VIEW_OF(&switch_s), EGUI_FONT_ICON_MS_20);
     egui_view_switch_set_on_checked_listener(EGUI_VIEW_OF(&switch_s), switch_checked_cb);
 
     egui_view_switch_init_with_params(EGUI_VIEW_OF(&switch_m), &switch_m_params);
+    egui_view_switch_set_state_icons(EGUI_VIEW_OF(&switch_m), EGUI_ICON_MS_DONE, EGUI_ICON_MS_CROSS);
+    egui_view_switch_set_icon_font(EGUI_VIEW_OF(&switch_m), EGUI_FONT_ICON_MS_24);
     egui_view_switch_set_on_checked_listener(EGUI_VIEW_OF(&switch_m), switch_checked_cb);
 
     egui_view_switch_init_with_params(EGUI_VIEW_OF(&switch_l), &switch_l_params);
+    egui_view_switch_set_state_icons(EGUI_VIEW_OF(&switch_l), EGUI_ICON_MS_DONE, EGUI_ICON_MS_CROSS);
+    egui_view_switch_set_icon_font(EGUI_VIEW_OF(&switch_l), EGUI_FONT_ICON_MS_24);
     egui_view_switch_set_on_checked_listener(EGUI_VIEW_OF(&switch_l), switch_checked_cb);
 
     // Set margins

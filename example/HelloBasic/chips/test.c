@@ -6,13 +6,21 @@
 static egui_view_gridlayout_t grid;
 static egui_view_chips_t chips_view;
 static egui_view_label_t status_label;
-static char status_text[32];
+static char status_text[48];
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t clip_fail_reported = 0;
 #endif
 
 static const char *chip_labels[] = {
-        "All", "Open", "Close", "Warn", "Error", "Mute",
+        "Home", "Search", "Alerts", "Warning", "Error", "Mute",
+};
+
+static const char *chip_icons[] = {
+        EGUI_ICON_MS_HOME, EGUI_ICON_MS_SEARCH, EGUI_ICON_MS_NOTIFICATIONS, EGUI_ICON_MS_WARNING, EGUI_ICON_MS_ERROR, EGUI_ICON_MS_VISIBILITY_OFF,
+};
+
+static const char *chip_names[] = {
+        "home", "search", "notifications", "warning", "error", "mute",
 };
 
 EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, 228, 180, 1, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
@@ -21,13 +29,13 @@ EGUI_VIEW_LABEL_PARAMS_INIT(status_label_params, 0, 0, 220, 28, "", EGUI_CONFIG_
 
 static void update_status_text(uint8_t index)
 {
-    if (index < 6)
+    if (index < (sizeof(chip_names) / sizeof(chip_names[0])))
     {
-        snprintf(status_text, sizeof(status_text), "Selected: %s", chip_labels[index]);
+        snprintf(status_text, sizeof(status_text), "Selected filter: %s", chip_names[index]);
     }
     else
     {
-        snprintf(status_text, sizeof(status_text), "Selected: -");
+        snprintf(status_text, sizeof(status_text), "Selected filter: -");
     }
     egui_view_label_set_text(EGUI_VIEW_OF(&status_label), status_text);
 }
@@ -52,6 +60,10 @@ void test_init_ui(void)
     egui_view_chips_set_bg_color(EGUI_VIEW_OF(&chips_view), EGUI_COLOR_DARK_GREY);
     egui_view_chips_set_selected_bg_color(EGUI_VIEW_OF(&chips_view), EGUI_COLOR_BLUE);
     egui_view_chips_set_border_color(EGUI_VIEW_OF(&chips_view), EGUI_COLOR_LIGHT_GREY);
+    egui_view_chips_set_text_color(EGUI_VIEW_OF(&chips_view), EGUI_COLOR_WHITE);
+    egui_view_chips_set_chip_icons(EGUI_VIEW_OF(&chips_view), chip_icons);
+    egui_view_chips_set_icon_font(EGUI_VIEW_OF(&chips_view), EGUI_FONT_ICON_MS_20);
+    egui_view_chips_set_icon_text_gap(EGUI_VIEW_OF(&chips_view), 1);
     egui_view_chips_set_selected_index(EGUI_VIEW_OF(&chips_view), 0);
     egui_view_set_margin_all(EGUI_VIEW_OF(&chips_view), 6);
 

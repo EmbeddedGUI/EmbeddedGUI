@@ -12,9 +12,48 @@
 #include "shadow/egui_shadow.h"
 #endif
 
-#define EGUI_VIEW_MENU_PRESSED_NONE (-1)
-#define EGUI_VIEW_MENU_PRESSED_BACK (-2)
-#define EGUI_VIEW_MENU_TEXT_PADDING 6
+#define EGUI_VIEW_MENU_PRESSED_NONE     (-1)
+#define EGUI_VIEW_MENU_PRESSED_BACK     (-2)
+#define EGUI_VIEW_MENU_TEXT_PADDING     6
+#define EGUI_VIEW_MENU_ICON_GAP_DEFAULT 6
+
+static const egui_font_t *egui_view_menu_get_icon_font(egui_view_menu_t *local, egui_dim_t area_size)
+{
+    if (local->icon_font != NULL)
+    {
+        return local->icon_font;
+    }
+
+    if (area_size <= 18)
+    {
+        return EGUI_FONT_ICON_MS_16;
+    }
+    if (area_size <= 22)
+    {
+        return EGUI_FONT_ICON_MS_20;
+    }
+    return EGUI_FONT_ICON_MS_24;
+}
+
+static const char *egui_view_menu_get_back_icon(const egui_view_menu_t *local)
+{
+    if (local->back_icon != NULL)
+    {
+        return local->back_icon;
+    }
+
+    return EGUI_ICON_MS_ARROW_BACK;
+}
+
+static const char *egui_view_menu_get_submenu_icon(const egui_view_menu_t *local)
+{
+    if (local->submenu_icon != NULL)
+    {
+        return local->submenu_icon;
+    }
+
+    return EGUI_ICON_MS_ARROW_FORWARD;
+}
 
 void egui_view_menu_set_pages(egui_view_t *self, const egui_view_menu_page_t *pages, uint8_t page_count)
 {
@@ -83,6 +122,60 @@ void egui_view_menu_set_header_text_color(egui_view_t *self, egui_color_t color)
     egui_view_invalidate(self);
 }
 
+void egui_view_menu_set_icon_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+    if (local->icon_font == font)
+    {
+        return;
+    }
+
+    local->icon_font = font;
+    egui_view_invalidate(self);
+}
+
+void egui_view_menu_set_navigation_icons(egui_view_t *self, const char *back_icon, const char *submenu_icon)
+{
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+
+    if (back_icon == NULL)
+    {
+        back_icon = EGUI_ICON_MS_ARROW_BACK;
+    }
+
+    if (submenu_icon == NULL)
+    {
+        submenu_icon = EGUI_ICON_MS_ARROW_FORWARD;
+    }
+
+    if (local->back_icon == back_icon && local->submenu_icon == submenu_icon)
+    {
+        return;
+    }
+
+    local->back_icon = back_icon;
+    local->submenu_icon = submenu_icon;
+    egui_view_invalidate(self);
+}
+
+void egui_view_menu_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
+{
+    EGUI_LOCAL_INIT(egui_view_menu_t);
+
+    if (gap < 0)
+    {
+        gap = 0;
+    }
+
+    if (local->icon_text_gap == gap)
+    {
+        return;
+    }
+
+    local->icon_text_gap = gap;
+    egui_view_invalidate(self);
+}
+
 void egui_view_menu_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_menu_t);
@@ -107,6 +200,8 @@ void egui_view_menu_on_draw(egui_view_t *self)
     egui_dim_t w = region.size.width;
     egui_dim_t hdr_h = local->header_height;
     egui_dim_t item_h = local->item_height;
+    const egui_font_t *header_icon_font = egui_view_menu_get_icon_font(local, hdr_h);
+    const egui_font_t *item_icon_font = egui_view_menu_get_icon_font(local, item_h);
 
     // Fill full widget background first to prevent shadow inner-rect bleed-through
     // in rows below the last item when items don't span the full widget height.
@@ -136,12 +231,18 @@ void egui_view_menu_on_draw(egui_view_t *self)
     if (local->stack_depth > 0)
     {
         egui_region_t back_rect = {{x, y}, {hdr_h, hdr_h}};
-        egui_canvas_draw_text_in_rect(font, "<", &back_rect, EGUI_ALIGN_CENTER, local->header_text_color, EGUI_ALPHA_100);
+        egui_canvas_draw_text_in_rect(header_icon_font, egui_view_menu_get_back_icon(local), &back_rect, EGUI_ALIGN_CENTER, local->header_text_color,
+                                      EGUI_ALPHA_100);
     }
 
     // Draw title centered in header
     {
         egui_region_t title_rect = {{x, y}, {w, hdr_h}};
+        if (local->stack_depth > 0 && w > hdr_h * 2)
+        {
+            title_rect.location.x += hdr_h;
+            title_rect.size.width -= hdr_h * 2;
+        }
         egui_canvas_draw_text_in_rect(font, page->title, &title_rect, EGUI_ALIGN_CENTER, local->header_text_color, EGUI_ALPHA_100);
     }
 
@@ -163,15 +264,38 @@ void egui_view_menu_on_draw(egui_view_t *self)
 
         // Draw item text left-aligned with padding
         {
-            egui_region_t text_rect = {{x + EGUI_VIEW_MENU_TEXT_PADDING, item_y}, {w - 2 * EGUI_VIEW_MENU_TEXT_PADDING, item_h}};
+            egui_dim_t text_x = x + EGUI_VIEW_MENU_TEXT_PADDING;
+            egui_dim_t trailing_width = 0;
+            egui_dim_t leading_width = 0;
+            egui_dim_t text_width;
+
+            if (page->items[i].icon != NULL)
+            {
+                egui_region_t icon_rect = {{x, item_y}, {item_h, item_h}};
+                egui_canvas_draw_text_in_rect(item_icon_font, page->items[i].icon, &icon_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+                leading_width = item_h + local->icon_text_gap;
+            }
+
+            if (page->items[i].sub_page_index != EGUI_VIEW_MENU_ITEM_LEAF)
+            {
+                trailing_width = item_h;
+            }
+            text_x += leading_width;
+            text_width = w - (text_x - x) - EGUI_VIEW_MENU_TEXT_PADDING - trailing_width;
+            if (text_width < 0)
+            {
+                text_width = 0;
+            }
+            egui_region_t text_rect = {{text_x, item_y}, {text_width, item_h}};
             egui_canvas_draw_text_in_rect(font, page->items[i].text, &text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, local->text_color, EGUI_ALPHA_100);
         }
 
-        // Draw ">" arrow for sub-menu items
+        // Draw trailing arrow icon for sub-menu items
         if (page->items[i].sub_page_index != EGUI_VIEW_MENU_ITEM_LEAF)
         {
-            egui_region_t arrow_rect = {{x + w - hdr_h, item_y}, {hdr_h, item_h}};
-            egui_canvas_draw_text_in_rect(font, ">", &arrow_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+            egui_region_t arrow_rect = {{x + w - item_h, item_y}, {item_h, item_h}};
+            egui_canvas_draw_text_in_rect(item_icon_font, egui_view_menu_get_submenu_icon(local), &arrow_rect, EGUI_ALIGN_CENTER, local->text_color,
+                                          EGUI_ALPHA_100);
         }
 
         // Draw separator between items only (not after the last item)
@@ -304,7 +428,11 @@ void egui_view_menu_init(egui_view_t *self)
     local->text_color = EGUI_THEME_TEXT_PRIMARY;
     local->header_text_color = EGUI_COLOR_WHITE;
     local->highlight_color = EGUI_THEME_TRACK_BG;
+    local->icon_text_gap = EGUI_VIEW_MENU_ICON_GAP_DEFAULT;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    local->icon_font = NULL;
+    local->back_icon = EGUI_ICON_MS_ARROW_BACK;
+    local->submenu_icon = EGUI_ICON_MS_ARROW_FORWARD;
     local->pressed_index = EGUI_VIEW_MENU_PRESSED_NONE;
     local->on_item_click = NULL;
 

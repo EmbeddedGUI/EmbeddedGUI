@@ -62,17 +62,60 @@ c_tail_string="""
 // clang-format on
 
 """
+def parse_var_coords(var_coords):
+    if var_coords is None:
+        return None
+
+    if isinstance(var_coords, (list, tuple)):
+        return [float(item) for item in var_coords]
+
+    values = []
+    for item in str(var_coords).split(','):
+        item = item.strip()
+        if item == "":
+            continue
+        values.append(float(item))
+    return values if values else None
 
 
+def resolve_var_coords(face, weight=None, var_coords=None):
+    parsed_coords = parse_var_coords(var_coords)
+    if parsed_coords is not None:
+        return parsed_coords
+
+    if weight is None or not face.has_multiple_masters:
+        return None
+
+    try:
+        variation_info = face.get_variation_info()
+    except Exception:
+        return [float(weight)]
+
+    coords = [float(axis.default) for axis in variation_info.axes]
+    axis_names = [str(axis.name).strip().lower() for axis in variation_info.axes]
+
+    for index, axis_name in enumerate(axis_names):
+        if axis_name in ("weight", "wght"):
+            coords[index] = float(weight)
+            return coords
+
+    if len(coords) == 1:
+        coords[0] = float(weight)
+        return coords
+
+    return None
 
 
+def is_ignored_char(char):
+    return ord(char) < 0x20 and char != ' '
 
 
-def generate_glyphs_data(input_file, text, pixel_size, font_bit_size, weight=None):
+def generate_glyphs_data(input_file, text, pixel_size, font_bit_size, weight=None, var_coords=None):
     face = freetype.Face(input_file)
     face.set_pixel_sizes(0, pixel_size)
-    if weight is not None:
-        face.set_var_design_coords([weight])
+    resolved_var_coords = resolve_var_coords(face, weight, var_coords)
+    if resolved_var_coords is not None:
+        face.set_var_design_coords(resolved_var_coords)
 
     glyphs_data = []
     current_index = 0
@@ -93,6 +136,9 @@ def generate_glyphs_data(input_file, text, pixel_size, font_bit_size, weight=Non
         face.load_char(char)
         bitmap = face.glyph.bitmap
         utf8_encoding = char.encode('utf-8')
+
+        if is_ignored_char(char):
+            continue
         
         advance_width = face.glyph.advance.x / 64.0
         width = bitmap.width
@@ -118,6 +164,9 @@ def generate_glyphs_data(input_file, text, pixel_size, font_bit_size, weight=Non
     # print("text: %s" % text)
     for char in sorted(set(text)):
         # print("char: %s" % char)
+        if is_ignored_char(char):
+            continue
+
         face.load_char(char)
         bitmap = face.glyph.bitmap
         utf8_encoding = char.encode('utf-8')
@@ -254,7 +303,7 @@ def utf8_to_c_array(utf8_bytes):
 
 
 class ttf2c_tool:
-    def __init__(self, input_font_file, name, text_file, pixel_size, font_bit_size, external_type, output_path, weight=None):
+    def __init__(self, input_font_file, name, text_file, pixel_size, font_bit_size, external_type, output_path, weight=None, var_coords=None):
         if output_path == None:
             output_path = os.path.dirname(input_font_file)
 
@@ -279,6 +328,10 @@ class ttf2c_tool:
 
         # get the options
         options = f"-i {input_font_file_name} -n {name} -p {pixel_size} -s {font_bit_size} -ext {external_type}"
+        if weight is not None:
+            options += f" -w {weight}"
+        if var_coords is not None:
+            options += f" --var-coords {var_coords}"
 
         index = 0
         support_text = ""
@@ -317,6 +370,7 @@ class ttf2c_tool:
         self.options = options
 
         self.weight = weight
+        self.var_coords = parse_var_coords(var_coords)
         self.pixel_buffer_bin_data = None
         self.char_desc_bin_data = None
 
@@ -330,7 +384,7 @@ class ttf2c_tool:
             print(c_head_debug_string.format(self.pixel_size, self.font_bit_size, self.input_font_file_name, self.options), file=outputfile)
 
         # Convert the text file to a list of characters
-        glyphs_data, char_max_width, char_max_height = generate_glyphs_data(self.input_font_file, self.support_text, self.pixel_size, self.font_bit_size, self.weight)
+        glyphs_data, char_max_width, char_max_height = generate_glyphs_data(self.input_font_file, self.support_text, self.pixel_size, self.font_bit_size, self.weight, self.var_coords)
         self.pixel_buffer_bin_data, self.char_desc_bin_data = self.write_c_code(glyphs_data, char_max_width, char_max_height)
 
         # write the tail of the c file
@@ -351,7 +405,7 @@ class ttf2c_tool:
         bin_pixel_buffer = []
         bin_char_desc = []
 
-        text = self.support_text
+        text = ''.join(char for char in self.support_text if not is_ignored_char(char))
         output_file = self.outfilename
         name = self.font_name
         pixel_size = self.pixel_size
@@ -512,6 +566,7 @@ def main():
     parser.add_argument('-ext', '--external', nargs='?',type = int, default=0, required=False, help="Storage format (0: internal, 1: external)")
     parser.add_argument('-o', '--output', nargs='?',type = str, default="", required=False, help="Specify the output file name (default: input file name with.c extension)")
     parser.add_argument('-w', '--weight', nargs='?',type = int, default=None, required=False, help="Variable font weight axis value (e.g. 400=Regular, 500=Medium, 700=Bold)")
+    parser.add_argument('--var-coords', type=str, default=None, required=False, help="Comma-separated variable font coordinates (e.g. 0,0,24,400)")
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
@@ -519,7 +574,7 @@ def main():
 
     args = parser.parse_args()
     
-    tool = ttf2c_tool(args.input, args.name, args.text, args.pixelsize, args.fontbitsize, args.external, args.output, args.weight)
+    tool = ttf2c_tool(args.input, args.name, args.text, args.pixelsize, args.fontbitsize, args.external, args.output, args.weight, args.var_coords)
 
     tool.write_c_file()
 

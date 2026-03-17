@@ -318,7 +318,7 @@ STM32 平台的 `build.mk` 会自动设置交叉编译器前缀 `CROSS_COMPILE` 
 除了 `make` 命令，项目还提供了多个 Python 辅助脚本:
 
 ```bash
-# 完整编译检查 (CI 使用，编译所有示例)
+# 完整编译检查 (CI 使用，编译所有示例，并包含示例 icon font 约定检查)
 python scripts/code_compile_check.py --full-check --bits64
 
 # 运行时验证 (截图对比)
@@ -327,12 +327,26 @@ python scripts/code_runtime_check.py --app HelloBasic --app-sub button --timeout
 # 代码格式化
 python scripts/code_format.py
 
+# 示例图标字体显式配置检查
+python scripts/check_example_icon_font.py
+
+# 如果要把本地未跟踪目录也一起扫描
+python scripts/check_example_icon_font.py --include-untracked
+
+# 发布前一键检查
+python scripts/release_check.py --skip perf,perf_doc,wasm,doc,ui_package
+
 # ELF 二进制大小分析
 python scripts/utils_analysis_elf_size.py
 
 # 资源生成
 python scripts/tools/app_resource_generate.py -r example/HelloSimple/resource -o output
 ```
+
+说明：
+
+- `check_example_icon_font.py` 默认只扫描 git 已跟踪的 `example/` 源文件，避免本地临时目录影响 CI 风格检查
+- `code_compile_check.py --full-check` 默认会包含这一步；如果你在外层已经单独跑过 icon font 检查，可用 `--skip-icon-font-check` 避免重复执行
 
 ## 下一步
 

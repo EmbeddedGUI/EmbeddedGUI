@@ -43,7 +43,7 @@ void egui_page_base_refresh(egui_page_base_t *self)
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
     EGUI_LOG_DBG("refresh, name: %s\n", self->name);
 #endif
-    if(self->api->on_refresh)
+    if (self->api->on_refresh)
     {
         self->api->on_refresh(self);
     }

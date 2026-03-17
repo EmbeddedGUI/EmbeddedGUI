@@ -169,7 +169,11 @@ endif
 all: $(ALL_OBJ_PATH) $(TARGET).elf
 
 $(ALL_OBJ_PATH):
+ifeq "$(HOST_OS)" "Windows"
+	-$(Q)$(MKD) $(call FIXPATH, $@) >NUL 2>NUL
+else
 	$(PATHCHECK) $(Q)$(MKD) $(call FIXPATH, $@)
+endif
 
 $(APP_CONFIG_STAMP): | $(ALL_OBJ_PATH)
 ifeq "$(HOST_OS)" "Windows"

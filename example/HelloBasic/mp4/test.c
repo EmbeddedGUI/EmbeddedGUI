@@ -13,8 +13,9 @@ static egui_view_mp4_t view_mp4;
 // View params
 EGUI_VIEW_MP4_PARAMS_INIT(view_mp4_params, 0, 0, MP4_WIDTH, MP4_HEIGHT);
 
+#if defined(EGUI_PORT_PC)
 #define MP4_IMAGE_COUNT_TEST 50
-extern const egui_image_t *mp4_arr_test[MP4_IMAGE_COUNT_TEST] = {
+static const egui_image_t *mp4_arr_test[MP4_IMAGE_COUNT_TEST] = {
         (const egui_image_t *)&egui_res_image_test_frame_test_0001_rgb565_0, (const egui_image_t *)&egui_res_image_test_frame_test_0002_rgb565_0,
         (const egui_image_t *)&egui_res_image_test_frame_test_0003_rgb565_0, (const egui_image_t *)&egui_res_image_test_frame_test_0004_rgb565_0,
         (const egui_image_t *)&egui_res_image_test_frame_test_0005_rgb565_0, (const egui_image_t *)&egui_res_image_test_frame_test_0006_rgb565_0,
@@ -41,6 +42,13 @@ extern const egui_image_t *mp4_arr_test[MP4_IMAGE_COUNT_TEST] = {
         (const egui_image_t *)&egui_res_image_test_frame_test_0047_rgb565_0, (const egui_image_t *)&egui_res_image_test_frame_test_0048_rgb565_0,
         (const egui_image_t *)&egui_res_image_test_frame_test_0049_rgb565_0, (const egui_image_t *)&egui_res_image_test_frame_test_0050_rgb565_0,
 };
+#else
+#define MP4_IMAGE_COUNT_TEST 2
+static const egui_image_t *mp4_arr_test[MP4_IMAGE_COUNT_TEST] = {
+        (const egui_image_t *)&egui_res_image_test_frame_test_0001_rgb565_0,
+        (const egui_image_t *)&egui_res_image_test_frame_test_0002_rgb565_0,
+};
+#endif
 
 static void mp4_callback(egui_view_mp4_t *view, int is_end)
 {

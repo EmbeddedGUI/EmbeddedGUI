@@ -7,14 +7,17 @@ static egui_view_segmented_control_t segmented_compact;
 static egui_view_segmented_control_t segmented_disabled;
 static egui_view_gridlayout_t grid;
 
-static const char *segments_primary[] = {"Day", "Week", "Month", "Year"};
-static const char *segments_compact[] = {"All", "Warn", "Error"};
-static const char *segments_disabled[] = {"Low", "Mid", "High", "Auto"};
+static const char *segments_primary[] = {"Home", "Search", "Alert", "Prefs"};
+static const char *segment_icons_primary[] = {EGUI_ICON_MS_HOME, EGUI_ICON_MS_SEARCH, EGUI_ICON_MS_NOTIFICATIONS, EGUI_ICON_MS_SETTINGS};
+static const char *segments_compact[] = {"View", "Warn", "Error"};
+static const char *segment_icons_compact[] = {EGUI_ICON_MS_VISIBILITY, EGUI_ICON_MS_WARNING, EGUI_ICON_MS_ERROR};
+static const char *segments_disabled[] = {"Heart", "Star", "Lock", "Done"};
+static const char *segment_icons_disabled[] = {EGUI_ICON_MS_HEART, EGUI_ICON_MS_STAR, EGUI_ICON_MS_LOCK, EGUI_ICON_MS_DONE};
 
 EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, 232, 300, 1, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
-EGUI_VIEW_SEGMENTED_CONTROL_PARAMS_INIT(segmented_primary_params, 0, 0, 208, 34, segments_primary, 4);
-EGUI_VIEW_SEGMENTED_CONTROL_PARAMS_INIT(segmented_compact_params, 0, 0, 208, 30, segments_compact, 3);
-EGUI_VIEW_SEGMENTED_CONTROL_PARAMS_INIT(segmented_disabled_params, 0, 0, 220, 34, segments_disabled, 4);
+EGUI_VIEW_SEGMENTED_CONTROL_PARAMS_INIT(segmented_primary_params, 0, 0, 208, 46, segments_primary, 4);
+EGUI_VIEW_SEGMENTED_CONTROL_PARAMS_INIT(segmented_compact_params, 0, 0, 208, 42, segments_compact, 3);
+EGUI_VIEW_SEGMENTED_CONTROL_PARAMS_INIT(segmented_disabled_params, 0, 0, 220, 46, segments_disabled, 4);
 
 static void on_segment_changed(egui_view_t *self, uint8_t index)
 {
@@ -22,6 +25,7 @@ static void on_segment_changed(egui_view_t *self, uint8_t index)
     EGUI_LOG_INF("Segment changed: %d\r\n", index);
 }
 
+#if EGUI_CONFIG_RECORDING_TEST
 static int resolve_segment_gap(int content_width, uint8_t count, int gap)
 {
     if (count <= 1)
@@ -98,6 +102,7 @@ static void get_segment_center(egui_view_t *view, uint8_t count, uint8_t index, 
     *x = view->region_screen.location.x + width / 2;
     *y = view->region_screen.location.y + height / 2;
 }
+#endif
 
 void test_init_ui(void)
 {
@@ -112,6 +117,9 @@ void test_init_ui(void)
     egui_view_segmented_control_set_bg_color(EGUI_VIEW_OF(&segmented_primary), EGUI_THEME_SURFACE_VARIANT);
     egui_view_segmented_control_set_selected_bg_color(EGUI_VIEW_OF(&segmented_primary), EGUI_THEME_PRIMARY);
     egui_view_segmented_control_set_selected_text_color(EGUI_VIEW_OF(&segmented_primary), EGUI_COLOR_WHITE);
+    egui_view_segmented_control_set_segment_icons(EGUI_VIEW_OF(&segmented_primary), segment_icons_primary);
+    egui_view_segmented_control_set_icon_font(EGUI_VIEW_OF(&segmented_primary), EGUI_FONT_ICON_MS_24);
+    egui_view_segmented_control_set_icon_text_gap(EGUI_VIEW_OF(&segmented_primary), 1);
 
     egui_view_segmented_control_init_with_params(EGUI_VIEW_OF(&segmented_compact), &segmented_compact_params);
     egui_view_segmented_control_set_on_segment_changed_listener(EGUI_VIEW_OF(&segmented_compact), on_segment_changed);
@@ -124,6 +132,9 @@ void test_init_ui(void)
     egui_view_segmented_control_set_text_color(EGUI_VIEW_OF(&segmented_compact), EGUI_THEME_TEXT_PRIMARY);
     egui_view_segmented_control_set_selected_text_color(EGUI_VIEW_OF(&segmented_compact), EGUI_COLOR_BLACK);
     egui_view_segmented_control_set_border_color(EGUI_VIEW_OF(&segmented_compact), EGUI_THEME_TRACK_OFF);
+    egui_view_segmented_control_set_segment_icons(EGUI_VIEW_OF(&segmented_compact), segment_icons_compact);
+    egui_view_segmented_control_set_icon_font(EGUI_VIEW_OF(&segmented_compact), EGUI_FONT_ICON_MS_24);
+    egui_view_segmented_control_set_icon_text_gap(EGUI_VIEW_OF(&segmented_compact), 1);
 
     egui_view_segmented_control_init_with_params(EGUI_VIEW_OF(&segmented_disabled), &segmented_disabled_params);
     egui_view_segmented_control_set_on_segment_changed_listener(EGUI_VIEW_OF(&segmented_disabled), on_segment_changed);
@@ -134,6 +145,9 @@ void test_init_ui(void)
     egui_view_segmented_control_set_bg_color(EGUI_VIEW_OF(&segmented_disabled), EGUI_THEME_SURFACE_VARIANT);
     egui_view_segmented_control_set_selected_bg_color(EGUI_VIEW_OF(&segmented_disabled), EGUI_THEME_SECONDARY);
     egui_view_segmented_control_set_text_color(EGUI_VIEW_OF(&segmented_disabled), EGUI_THEME_TEXT_SECONDARY);
+    egui_view_segmented_control_set_segment_icons(EGUI_VIEW_OF(&segmented_disabled), segment_icons_disabled);
+    egui_view_segmented_control_set_icon_font(EGUI_VIEW_OF(&segmented_disabled), EGUI_FONT_ICON_MS_24);
+    egui_view_segmented_control_set_icon_text_gap(EGUI_VIEW_OF(&segmented_disabled), 1);
     egui_view_set_enable(EGUI_VIEW_OF(&segmented_disabled), false);
 
     // boundary input should be ignored

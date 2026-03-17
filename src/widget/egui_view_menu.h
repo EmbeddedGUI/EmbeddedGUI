@@ -19,6 +19,7 @@ typedef struct egui_view_menu_item
 {
     const char *text;
     uint8_t sub_page_index; // 0xFF = leaf item (no sub-page)
+    const char *icon;
 } egui_view_menu_item_t;
 
 typedef struct egui_view_menu_page
@@ -48,7 +49,11 @@ struct egui_view_menu
     egui_color_t text_color;
     egui_color_t header_text_color;
     egui_color_t highlight_color;
+    egui_dim_t icon_text_gap;
     const egui_font_t *font;
+    const egui_font_t *icon_font;
+    const char *back_icon;
+    const char *submenu_icon;
 
     int8_t pressed_index; // -1 = none, -2 = back button
     egui_view_menu_item_click_cb_t on_item_click;
@@ -73,6 +78,9 @@ void egui_view_menu_set_on_item_click(egui_view_t *self, egui_view_menu_item_cli
 void egui_view_menu_set_header_height(egui_view_t *self, egui_dim_t height);
 void egui_view_menu_set_item_height(egui_view_t *self, egui_dim_t height);
 void egui_view_menu_set_header_text_color(egui_view_t *self, egui_color_t color);
+void egui_view_menu_set_icon_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_menu_set_navigation_icons(egui_view_t *self, const char *back_icon, const char *submenu_icon);
+void egui_view_menu_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
 void egui_view_menu_on_draw(egui_view_t *self);
 void egui_view_menu_init(egui_view_t *self);
 void egui_view_menu_apply_params(egui_view_t *self, const egui_view_menu_params_t *params);

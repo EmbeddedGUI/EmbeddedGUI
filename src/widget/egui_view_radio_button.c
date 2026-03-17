@@ -8,6 +8,24 @@
 #include "core/egui_canvas_gradient.h"
 #endif
 
+static const egui_font_t *egui_view_radio_button_get_icon_font(egui_view_radio_button_t *local, egui_dim_t area_size)
+{
+    if (local->icon_font != NULL)
+    {
+        return local->icon_font;
+    }
+
+    if (area_size <= 18)
+    {
+        return EGUI_FONT_ICON_MS_16;
+    }
+    if (area_size <= 22)
+    {
+        return EGUI_FONT_ICON_MS_20;
+    }
+    return EGUI_FONT_ICON_MS_24;
+}
+
 void egui_view_radio_button_set_text(egui_view_t *self, const char *text)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
@@ -26,6 +44,60 @@ void egui_view_radio_button_set_text_color(egui_view_t *self, egui_color_t color
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
     local->text_color = color;
+    egui_view_invalidate(self);
+}
+
+void egui_view_radio_button_set_mark_style(egui_view_t *self, egui_view_radio_button_mark_style_t style)
+{
+    EGUI_LOCAL_INIT(egui_view_radio_button_t);
+    if (local->mark_style == (uint8_t)style)
+    {
+        return;
+    }
+
+    local->mark_style = (uint8_t)style;
+    egui_view_invalidate(self);
+}
+
+void egui_view_radio_button_set_mark_icon(egui_view_t *self, const char *icon)
+{
+    EGUI_LOCAL_INIT(egui_view_radio_button_t);
+    if (local->mark_icon == icon)
+    {
+        return;
+    }
+
+    local->mark_icon = icon;
+    egui_view_invalidate(self);
+}
+
+void egui_view_radio_button_set_icon_font(egui_view_t *self, const egui_font_t *font)
+{
+    EGUI_LOCAL_INIT(egui_view_radio_button_t);
+    if (local->icon_font == font)
+    {
+        return;
+    }
+
+    local->icon_font = font;
+    egui_view_invalidate(self);
+}
+
+void egui_view_radio_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap)
+{
+    EGUI_LOCAL_INIT(egui_view_radio_button_t);
+
+    if (gap < 0)
+    {
+        gap = 0;
+    }
+
+    if (local->text_gap == gap)
+    {
+        return;
+    }
+
+    local->text_gap = gap;
     egui_view_invalidate(self);
 }
 
@@ -131,30 +203,48 @@ void egui_view_radio_button_on_draw(egui_view_t *self)
 
     if (local->is_checked)
     {
-        // Draw inner filled circle (about 50% of outer radius)
-        egui_dim_t inner_radius = outer_radius * 5 / 10;
         egui_color_t fill_color = egui_view_get_enable(self) ? local->dot_color : EGUI_THEME_DISABLED;
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+        if (local->mark_style == EGUI_VIEW_RADIO_BUTTON_MARK_STYLE_ICON && local->mark_icon != NULL)
         {
-            egui_color_t dot_light = egui_rgb_mix(fill_color, EGUI_COLOR_WHITE, 80);
-            egui_gradient_stop_t dot_stops[2] = {
-                    {.position = 0, .color = dot_light},
-                    {.position = 255, .color = fill_color},
+            egui_dim_t icon_size = size - 8;
+            if (icon_size < 8)
+            {
+                icon_size = size;
+            }
+
+            egui_region_t icon_region = {
+                    {center_x - icon_size / 2, center_y - icon_size / 2},
+                    {icon_size, icon_size},
             };
-            egui_gradient_t dot_grad = {
-                    .type = EGUI_GRADIENT_TYPE_RADIAL,
-                    .stop_count = 2,
-                    .alpha = local->alpha,
-                    .stops = dot_stops,
-                    .center_x = 0,
-                    .center_y = 0,
-                    .radius = inner_radius,
-            };
-            egui_canvas_draw_circle_fill_gradient(center_x, center_y, inner_radius, &dot_grad);
+            egui_canvas_draw_text_in_rect(egui_view_radio_button_get_icon_font(local, icon_size), local->mark_icon, &icon_region, EGUI_ALIGN_CENTER, fill_color,
+                                          local->alpha);
         }
+        else
+        {
+            // Draw inner filled circle (about 50% of outer radius)
+            egui_dim_t inner_radius = outer_radius * 5 / 10;
+#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+            {
+                egui_color_t dot_light = egui_rgb_mix(fill_color, EGUI_COLOR_WHITE, 80);
+                egui_gradient_stop_t dot_stops[2] = {
+                        {.position = 0, .color = dot_light},
+                        {.position = 255, .color = fill_color},
+                };
+                egui_gradient_t dot_grad = {
+                        .type = EGUI_GRADIENT_TYPE_RADIAL,
+                        .stop_count = 2,
+                        .alpha = local->alpha,
+                        .stops = dot_stops,
+                        .center_x = 0,
+                        .center_y = 0,
+                        .radius = inner_radius,
+                };
+                egui_canvas_draw_circle_fill_gradient(center_x, center_y, inner_radius, &dot_grad);
+            }
 #else
-        egui_canvas_draw_circle_fill(center_x, center_y, inner_radius, fill_color, local->alpha);
+            egui_canvas_draw_circle_fill(center_x, center_y, inner_radius, fill_color, local->alpha);
 #endif
+        }
     }
 
     if (local->text != NULL)
@@ -210,6 +300,9 @@ void egui_view_radio_button_init(egui_view_t *self)
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
     local->text_color = EGUI_THEME_TEXT;
     local->text_gap = 6;
+    local->mark_style = EGUI_VIEW_RADIO_BUTTON_MARK_STYLE_DOT;
+    local->mark_icon = EGUI_ICON_MS_DONE;
+    local->icon_font = NULL;
 
     egui_view_set_on_click_listener(self, egui_view_radio_button_on_click);
 

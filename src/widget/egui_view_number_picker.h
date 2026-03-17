@@ -25,6 +25,9 @@ struct egui_view_number_picker
     egui_color_t text_color;
     egui_color_t button_color;
     const egui_font_t *font;
+    const char *icon_inc;
+    const char *icon_dec;
+    const egui_font_t *icon_font;
     char text_buf[8];
     int8_t pressed_zone; /* 0=none, 1=top zone pressed, -1=bottom zone pressed */
 };
@@ -50,6 +53,8 @@ void egui_view_number_picker_set_value(egui_view_t *self, int16_t value);
 int16_t egui_view_number_picker_get_value(egui_view_t *self);
 void egui_view_number_picker_set_range(egui_view_t *self, int16_t min_value, int16_t max_value);
 void egui_view_number_picker_set_step(egui_view_t *self, int16_t step);
+void egui_view_number_picker_set_button_icons(egui_view_t *self, const char *icon_inc, const char *icon_dec);
+void egui_view_number_picker_set_icon_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_number_picker_on_draw(egui_view_t *self);
 void egui_view_number_picker_init(egui_view_t *self);
 

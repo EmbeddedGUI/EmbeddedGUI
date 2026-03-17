@@ -18,6 +18,7 @@ struct egui_view_tab_bar
 
     egui_view_on_tab_changed_listener_t on_tab_changed;
     const char **tab_texts;
+    const char **tab_icons;
     uint8_t tab_count;
     uint8_t current_index;
     egui_alpha_t alpha;
@@ -25,6 +26,8 @@ struct egui_view_tab_bar
     egui_color_t active_text_color;
     egui_color_t indicator_color;
     const egui_font_t *font;
+    const egui_font_t *icon_font;
+    egui_dim_t icon_text_gap;
 };
 
 // ============== TabBar Params ==============
@@ -45,6 +48,10 @@ void egui_view_tab_bar_init_with_params(egui_view_t *self, const egui_view_tab_b
 void egui_view_tab_bar_set_tabs(egui_view_t *self, const char **tab_texts, uint8_t tab_count);
 void egui_view_tab_bar_set_current_index(egui_view_t *self, uint8_t index);
 void egui_view_tab_bar_set_on_tab_changed_listener(egui_view_t *self, egui_view_on_tab_changed_listener_t listener);
+void egui_view_tab_bar_set_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_tab_bar_set_tab_icons(egui_view_t *self, const char **tab_icons);
+void egui_view_tab_bar_set_icon_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_tab_bar_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
 void egui_view_tab_bar_on_draw(egui_view_t *self);
 void egui_view_tab_bar_init(egui_view_t *self);
 

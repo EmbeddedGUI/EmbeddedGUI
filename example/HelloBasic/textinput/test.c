@@ -157,6 +157,8 @@ void test_init_ui(void)
     // Initialize keyboard (positioned at bottom of screen, added as overlay)
     egui_view_keyboard_init(EGUI_VIEW_OF(&keyboard));
     egui_view_keyboard_set_font(EGUI_VIEW_OF(&keyboard), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
+    egui_view_keyboard_set_icon_font(EGUI_VIEW_OF(&keyboard), EGUI_FONT_ICON_MS_20);
+    egui_view_keyboard_set_special_key_icons(EGUI_VIEW_OF(&keyboard), EGUI_ICON_MS_KEYBOARD_ARROW_UP, EGUI_ICON_MS_BACKSPACE, EGUI_ICON_MS_DONE);
     egui_view_set_position(EGUI_VIEW_OF(&keyboard), 0, EGUI_CONFIG_SCEEN_HEIGHT - EGUI_KEYBOARD_DEFAULT_HEIGHT);
     egui_core_add_user_root_view(EGUI_VIEW_OF(&keyboard));
 

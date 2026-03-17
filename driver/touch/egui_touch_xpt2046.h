@@ -21,11 +21,12 @@ extern "C" {
  * Used to map raw ADC values to screen coordinates.
  * Formula: screen_coord = (raw_value - offset) * scale / 4096
  */
-typedef struct egui_touch_xpt2046_calibration {
-    int16_t x_min;      /**< Raw X value at left edge */
-    int16_t x_max;      /**< Raw X value at right edge */
-    int16_t y_min;      /**< Raw Y value at top edge */
-    int16_t y_max;      /**< Raw Y value at bottom edge */
+typedef struct egui_touch_xpt2046_calibration
+{
+    int16_t x_min; /**< Raw X value at left edge */
+    int16_t x_max; /**< Raw X value at right edge */
+    int16_t y_min; /**< Raw Y value at top edge */
+    int16_t y_max; /**< Raw Y value at bottom edge */
 } egui_touch_xpt2046_calibration_t;
 
 /**
@@ -33,7 +34,8 @@ typedef struct egui_touch_xpt2046_calibration {
  *
  * User must provide storage for this structure when calling init.
  */
-typedef struct egui_touch_xpt2046_priv {
+typedef struct egui_touch_xpt2046_priv
+{
     egui_touch_xpt2046_calibration_t cal;
     uint16_t pressure_threshold;
 } egui_touch_xpt2046_priv_t;
@@ -46,10 +48,8 @@ typedef struct egui_touch_xpt2046_priv {
  * @param spi          SPI bus operations (must not be NULL)
  * @param gpio         GPIO operations (may be NULL if CS/IRQ not needed)
  */
-void egui_touch_xpt2046_init(egui_hal_touch_driver_t *storage,
-                              egui_touch_xpt2046_priv_t *priv_storage,
-                              const egui_bus_spi_ops_t *spi,
-                              const egui_touch_gpio_ops_t *gpio);
+void egui_touch_xpt2046_init(egui_hal_touch_driver_t *storage, egui_touch_xpt2046_priv_t *priv_storage, const egui_bus_spi_ops_t *spi,
+                             const egui_touch_gpio_ops_t *gpio);
 
 /**
  * Set calibration data for coordinate mapping.
@@ -60,8 +60,7 @@ void egui_touch_xpt2046_init(egui_hal_touch_driver_t *storage,
  * Default calibration assumes raw values 0-4095 map to screen coordinates.
  * Call this after init() to set proper calibration for your touch panel.
  */
-void egui_touch_xpt2046_set_calibration(egui_hal_touch_driver_t *driver,
-                                         const egui_touch_xpt2046_calibration_t *cal);
+void egui_touch_xpt2046_set_calibration(egui_hal_touch_driver_t *driver, const egui_touch_xpt2046_calibration_t *cal);
 
 /**
  * Set pressure threshold for touch detection.
@@ -71,8 +70,7 @@ void egui_touch_xpt2046_set_calibration(egui_hal_touch_driver_t *driver,
  *
  * Lower values = more sensitive, higher values = less sensitive.
  */
-void egui_touch_xpt2046_set_pressure_threshold(egui_hal_touch_driver_t *driver,
-                                                uint16_t threshold);
+void egui_touch_xpt2046_set_pressure_threshold(egui_hal_touch_driver_t *driver, uint16_t threshold);
 
 #ifdef __cplusplus
 }

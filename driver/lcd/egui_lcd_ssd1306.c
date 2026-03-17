@@ -37,9 +37,9 @@
 #define SSD1306_DEACTIVATE_SCROLL   0x2E
 
 /* I2C address and control bytes */
-#define SSD1306_I2C_ADDR            0x3C  /* Default I2C address (can also be 0x3D) */
-#define SSD1306_I2C_CMD             0x00  /* Co=0, D/C#=0: Command */
-#define SSD1306_I2C_DATA            0x40  /* Co=0, D/C#=1: Data */
+#define SSD1306_I2C_ADDR 0x3C /* Default I2C address (can also be 0x3D) */
+#define SSD1306_I2C_CMD  0x00 /* Co=0, D/C#=0: Command */
+#define SSD1306_I2C_DATA 0x40 /* Co=0, D/C#=1: Data */
 
 /* ============================================================
  * SPI Interface Implementation
@@ -48,11 +48,13 @@
 /* Helper: write command via SPI */
 static void ssd1306_spi_write_cmd(egui_hal_lcd_driver_t *self, uint8_t cmd)
 {
-    if (self->gpio && self->gpio->set_dc) {
-        self->gpio->set_dc(0);  /* Command mode */
+    if (self->gpio && self->gpio->set_dc)
+    {
+        self->gpio->set_dc(0); /* Command mode */
     }
     self->bus.spi->write(&cmd, 1);
-    if (self->bus.spi->wait_complete) {
+    if (self->bus.spi->wait_complete)
+    {
         self->bus.spi->wait_complete();
     }
 }
@@ -60,11 +62,13 @@ static void ssd1306_spi_write_cmd(egui_hal_lcd_driver_t *self, uint8_t cmd)
 /* Helper: write data via SPI */
 static void ssd1306_spi_write_data(egui_hal_lcd_driver_t *self, const uint8_t *data, uint32_t len)
 {
-    if (self->gpio && self->gpio->set_dc) {
-        self->gpio->set_dc(1);  /* Data mode */
+    if (self->gpio && self->gpio->set_dc)
+    {
+        self->gpio->set_dc(1); /* Data mode */
     }
     self->bus.spi->write(data, len);
-    if (self->bus.spi->wait_complete) {
+    if (self->bus.spi->wait_complete)
+    {
         self->bus.spi->wait_complete();
     }
 }
@@ -85,7 +89,8 @@ static void ssd1306_i2c_write_data(egui_hal_lcd_driver_t *self, const uint8_t *d
 {
     /* Use control byte as register address, pixel data as data */
     /* Write in chunks to avoid large stack buffers */
-    while (len > 0) {
+    while (len > 0)
+    {
         uint16_t chunk = (len > 128) ? 128 : (uint16_t)len;
         self->bus.i2c->write_reg(SSD1306_I2C_ADDR, SSD1306_I2C_DATA, data, chunk);
         data += chunk;
@@ -100,7 +105,8 @@ static void ssd1306_i2c_write_data(egui_hal_lcd_driver_t *self, const uint8_t *d
 /* Helper: hardware reset */
 static void ssd1306_hw_reset(egui_hal_lcd_driver_t *self)
 {
-    if (self->gpio && self->gpio->set_rst) {
+    if (self->gpio && self->gpio->set_rst)
+    {
         self->gpio->set_rst(0);
         egui_api_delay(10);
         self->gpio->set_rst(1);
@@ -111,9 +117,12 @@ static void ssd1306_hw_reset(egui_hal_lcd_driver_t *self)
 /* Helper: write command (dispatch based on bus type) */
 static void ssd1306_write_cmd(egui_hal_lcd_driver_t *self, uint8_t cmd)
 {
-    if (self->bus_type == EGUI_BUS_TYPE_SPI) {
+    if (self->bus_type == EGUI_BUS_TYPE_SPI)
+    {
         ssd1306_spi_write_cmd(self, cmd);
-    } else {
+    }
+    else
+    {
         ssd1306_i2c_write_cmd(self, cmd);
     }
 }
@@ -121,9 +130,12 @@ static void ssd1306_write_cmd(egui_hal_lcd_driver_t *self, uint8_t cmd)
 /* Helper: write data (dispatch based on bus type) */
 static void ssd1306_write_data(egui_hal_lcd_driver_t *self, const uint8_t *data, uint32_t len)
 {
-    if (self->bus_type == EGUI_BUS_TYPE_SPI) {
+    if (self->bus_type == EGUI_BUS_TYPE_SPI)
+    {
         ssd1306_spi_write_data(self, data, len);
-    } else {
+    }
+    else
+    {
         ssd1306_i2c_write_data(self, data, len);
     }
 }
@@ -135,16 +147,22 @@ static int ssd1306_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t
     memcpy(&self->config, config, sizeof(egui_hal_lcd_config_t));
 
     /* Initialize bus and GPIO */
-    if (self->bus_type == EGUI_BUS_TYPE_SPI) {
-        if (self->bus.spi->init) {
+    if (self->bus_type == EGUI_BUS_TYPE_SPI)
+    {
+        if (self->bus.spi->init)
+        {
             self->bus.spi->init();
         }
-    } else {
-        if (self->bus.i2c->init) {
+    }
+    else
+    {
+        if (self->bus.i2c->init)
+        {
             self->bus.i2c->init();
         }
     }
-    if (self->gpio && self->gpio->init) {
+    if (self->gpio && self->gpio->init)
+    {
         self->gpio->init();
     }
 
@@ -171,7 +189,7 @@ static int ssd1306_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t
 
     /* Charge pump */
     ssd1306_write_cmd(self, SSD1306_CHARGEPUMP);
-    ssd1306_write_cmd(self, 0x14);  /* Enable charge pump */
+    ssd1306_write_cmd(self, 0x14); /* Enable charge pump */
 
     /* Memory mode: horizontal addressing */
     ssd1306_write_cmd(self, SSD1306_MEMORYMODE);
@@ -185,17 +203,22 @@ static int ssd1306_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t
 
     /* COM pins hardware configuration */
     ssd1306_write_cmd(self, SSD1306_SETCOMPINS);
-    if (config->height == 64) {
+    if (config->height == 64)
+    {
         ssd1306_write_cmd(self, 0x12);
-    } else if (config->height == 32) {
+    }
+    else if (config->height == 32)
+    {
         ssd1306_write_cmd(self, 0x02);
-    } else {
-        ssd1306_write_cmd(self, 0x12);  /* Default */
+    }
+    else
+    {
+        ssd1306_write_cmd(self, 0x12); /* Default */
     }
 
     /* Set contrast */
     ssd1306_write_cmd(self, SSD1306_SETCONTRAST);
-    ssd1306_write_cmd(self, 0x7F);  /* Default contrast */
+    ssd1306_write_cmd(self, 0x7F); /* Default contrast */
 
     /* Set precharge period */
     ssd1306_write_cmd(self, SSD1306_SETPRECHARGE);
@@ -209,9 +232,12 @@ static int ssd1306_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t
     ssd1306_write_cmd(self, SSD1306_DISPLAYALLON_RESUME);
 
     /* Normal display (not inverted) */
-    if (config->invert_color) {
+    if (config->invert_color)
+    {
         ssd1306_write_cmd(self, SSD1306_INVERTDISPLAY);
-    } else {
+    }
+    else
+    {
         ssd1306_write_cmd(self, SSD1306_NORMALDISPLAY);
     }
 
@@ -231,23 +257,28 @@ static void ssd1306_deinit(egui_hal_lcd_driver_t *self)
     ssd1306_write_cmd(self, SSD1306_DISPLAYOFF);
 
     /* Deinit bus and GPIO */
-    if (self->bus_type == EGUI_BUS_TYPE_SPI) {
-        if (self->bus.spi->deinit) {
+    if (self->bus_type == EGUI_BUS_TYPE_SPI)
+    {
+        if (self->bus.spi->deinit)
+        {
             self->bus.spi->deinit();
         }
-    } else {
-        if (self->bus.i2c->deinit) {
+    }
+    else
+    {
+        if (self->bus.i2c->deinit)
+        {
             self->bus.i2c->deinit();
         }
     }
-    if (self->gpio && self->gpio->deinit) {
+    if (self->gpio && self->gpio->deinit)
+    {
         self->gpio->deinit();
     }
 }
 
 /* Driver: set_window */
-static void ssd1306_set_window(egui_hal_lcd_driver_t *self, int16_t x, int16_t y,
-                                int16_t w, int16_t h)
+static void ssd1306_set_window(egui_hal_lcd_driver_t *self, int16_t x, int16_t y, int16_t w, int16_t h)
 {
     /* SSD1306 uses page addressing for vertical */
     /* Convert pixel coordinates to page/column */
@@ -276,7 +307,8 @@ static void ssd1306_write_pixels(egui_hal_lcd_driver_t *self, const void *data, 
 /* Driver: wait_dma_complete (SPI only) */
 static void ssd1306_wait_dma_complete(egui_hal_lcd_driver_t *self)
 {
-    if (self->bus_type == EGUI_BUS_TYPE_SPI && self->bus.spi->wait_complete) {
+    if (self->bus_type == EGUI_BUS_TYPE_SPI && self->bus.spi->wait_complete)
+    {
         self->bus.spi->wait_complete();
     }
 }
@@ -284,7 +316,8 @@ static void ssd1306_wait_dma_complete(egui_hal_lcd_driver_t *self)
 /* Driver: set_rotation */
 static void ssd1306_set_rotation(egui_hal_lcd_driver_t *self, uint8_t rotation)
 {
-    switch (rotation) {
+    switch (rotation)
+    {
     case 0:
         ssd1306_write_cmd(self, SSD1306_SEGREMAP | 0x01);
         ssd1306_write_cmd(self, SSD1306_COMSCANDEC);
@@ -318,9 +351,7 @@ static void ssd1306_set_invert(egui_hal_lcd_driver_t *self, uint8_t invert)
  * Public API - SPI Interface
  * ============================================================ */
 
-static void ssd1306_setup_driver_spi(egui_hal_lcd_driver_t *driver,
-                                      const egui_bus_spi_ops_t *spi,
-                                      const egui_lcd_gpio_ops_t *gpio)
+static void ssd1306_setup_driver_spi(egui_hal_lcd_driver_t *driver, const egui_bus_spi_ops_t *spi, const egui_lcd_gpio_ops_t *gpio)
 {
     memset(driver, 0, sizeof(egui_hal_lcd_driver_t));
 
@@ -333,7 +364,7 @@ static void ssd1306_setup_driver_spi(egui_hal_lcd_driver_t *driver,
     driver->write_pixels = ssd1306_write_pixels;
     driver->wait_dma_complete = spi->wait_complete ? ssd1306_wait_dma_complete : NULL;
     driver->set_rotation = ssd1306_set_rotation;
-    driver->set_brightness = NULL;  /* Porting layer should set this */
+    driver->set_brightness = NULL; /* Porting layer should set this */
     driver->set_power = ssd1306_set_power;
     driver->set_invert = ssd1306_set_invert;
 
@@ -341,11 +372,10 @@ static void ssd1306_setup_driver_spi(egui_hal_lcd_driver_t *driver,
     driver->gpio = gpio;
 }
 
-void egui_lcd_ssd1306_init_spi(egui_hal_lcd_driver_t *storage,
-                                const egui_bus_spi_ops_t *spi,
-                                const egui_lcd_gpio_ops_t *gpio)
+void egui_lcd_ssd1306_init_spi(egui_hal_lcd_driver_t *storage, const egui_bus_spi_ops_t *spi, const egui_lcd_gpio_ops_t *gpio)
 {
-    if (!storage || !spi || !spi->write) {
+    if (!storage || !spi || !spi->write)
+    {
         return;
     }
 
@@ -356,9 +386,7 @@ void egui_lcd_ssd1306_init_spi(egui_hal_lcd_driver_t *storage,
  * Public API - I2C Interface
  * ============================================================ */
 
-static void ssd1306_setup_driver_i2c(egui_hal_lcd_driver_t *driver,
-                                      const egui_bus_i2c_ops_t *i2c,
-                                      const egui_lcd_gpio_ops_t *gpio)
+static void ssd1306_setup_driver_i2c(egui_hal_lcd_driver_t *driver, const egui_bus_i2c_ops_t *i2c, const egui_lcd_gpio_ops_t *gpio)
 {
     memset(driver, 0, sizeof(egui_hal_lcd_driver_t));
 
@@ -369,9 +397,9 @@ static void ssd1306_setup_driver_i2c(egui_hal_lcd_driver_t *driver,
     driver->deinit = ssd1306_deinit;
     driver->set_window = ssd1306_set_window;
     driver->write_pixels = ssd1306_write_pixels;
-    driver->wait_dma_complete = NULL;  /* I2C is synchronous */
+    driver->wait_dma_complete = NULL; /* I2C is synchronous */
     driver->set_rotation = ssd1306_set_rotation;
-    driver->set_brightness = NULL;  /* Porting layer should set this */
+    driver->set_brightness = NULL; /* Porting layer should set this */
     driver->set_power = ssd1306_set_power;
     driver->set_invert = ssd1306_set_invert;
 
@@ -379,11 +407,10 @@ static void ssd1306_setup_driver_i2c(egui_hal_lcd_driver_t *driver,
     driver->gpio = gpio;
 }
 
-void egui_lcd_ssd1306_init_i2c(egui_hal_lcd_driver_t *storage,
-                                const egui_bus_i2c_ops_t *i2c,
-                                const egui_lcd_gpio_ops_t *gpio)
+void egui_lcd_ssd1306_init_i2c(egui_hal_lcd_driver_t *storage, const egui_bus_i2c_ops_t *i2c, const egui_lcd_gpio_ops_t *gpio)
 {
-    if (!storage || !i2c || !i2c->write_reg) {
+    if (!storage || !i2c || !i2c->write_reg)
+    {
         return;
     }
 
@@ -396,7 +423,8 @@ void egui_lcd_ssd1306_init_i2c(egui_hal_lcd_driver_t *storage,
 
 void egui_lcd_ssd1306_set_contrast(egui_hal_lcd_driver_t *self, uint8_t contrast)
 {
-    if (!self) {
+    if (!self)
+    {
         return;
     }
     ssd1306_write_cmd(self, SSD1306_SETCONTRAST);

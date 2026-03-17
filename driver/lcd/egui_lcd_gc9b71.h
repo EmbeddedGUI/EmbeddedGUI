@@ -24,9 +24,7 @@ extern "C" {
  *
  * Use this in environments without malloc.
  */
-void egui_lcd_gc9b71_init(egui_hal_lcd_driver_t *storage,
-                          const egui_bus_spi_ops_t *spi,
-                          const egui_lcd_gpio_ops_t *gpio);
+void egui_lcd_gc9b71_init(egui_hal_lcd_driver_t *storage, const egui_bus_spi_ops_t *spi, const egui_lcd_gpio_ops_t *gpio);
 
 #ifdef __cplusplus
 }

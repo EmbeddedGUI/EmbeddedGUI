@@ -1,98 +1,541 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>EmbeddedGUI - Online Demos</title>
+    <title>EmbeddedGUI 在线示例</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="page-grid">
-    <header>
-        <div class="header-inner">
-            <h1>EmbeddedGUI</h1>
-            <p>Lightweight C GUI framework for embedded systems. Try the demos below.</p>
-            <div class="links">
-                <a href="https://gitee.com/embeddedgui/EmbeddedGUI" target="_blank">Gitee</a>
-                <a href="https://github.com/EmbeddedGUI/EmbeddedGUI" target="_blank">GitHub</a>
-                <a href="basic.html" class="nav-link">HelloBasic Widgets →</a>
+    <div class="lang-toggle" role="group" aria-label="Language switch">
+        <button type="button" class="lang-toggle-button" data-lang-switch="zh-CN">中文</button>
+        <button type="button" class="lang-toggle-button" data-lang-switch="en">EN</button>
+    </div>
+
+    <div class="page-shell home-shell">
+        <section class="hero">
+            <div class="hero-grid">
+                <div class="hero-copy">
+                    <div class="eyebrow">EmbeddedGUI</div>
+                    <h1>先看 HelloShowcase，再深入控件细节。</h1>
+                    <p>
+                        首页只保留一个完整示例和三个清晰入口：基础控件、其他例程、自定义控件。不再混入场景页、报价导航或额外包装层。
+                    </p>
+                    <div class="hero-actions">
+                        <a class="button-link" href="#showcase">打开首页示例</a>
+                        <a class="button-link secondary" href="basic.html">HelloBasic</a>
+                        <a class="button-link secondary" href="examples.html">其他例程</a>
+                        <a class="button-link secondary" href="custom.html">HelloCustomWidgets</a>
+                    </div>
+                    <div class="hero-links">
+                        <a class="button-link ghost" href="https://github.com/EmbeddedGUI/EmbeddedGUI/blob/main/README.md" target="_blank" rel="noreferrer">打开 README</a>
+                        <a class="button-link ghost" href="https://embeddedgui.readthedocs.io/en/latest/" target="_blank" rel="noreferrer">打开文档</a>
+                        <a class="button-link ghost" href="https://github.com/EmbeddedGUI/EmbeddedGUI" target="_blank" rel="noreferrer">GitHub</a>
+                        <a class="button-link ghost" href="https://gitee.com/embeddedgui/EmbeddedGUI" target="_blank" rel="noreferrer">Gitee</a>
+                    </div>
+                </div>
+                <div class="stat-stack">
+                    <div class="stat-card">
+                        <div class="stat-label">首页主示例</div>
+                        <div class="stat-value">HelloShowcase</div>
+                        <div class="stat-detail">
+                            先用主示例判断整体编排、动效和资源体量，再进入更聚焦的演示页。
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">网页示例清单</div>
+                        <div class="stat-value" id="total-demo-count">等待加载 demos.json</div>
+                        <div class="stat-detail" id="catalog-note">
+                            运行 <span class="code-inline">python scripts/wasm_build_demos.py</span> 刷新网页示例包。
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">浏览入口</div>
+                        <div class="stat-value" id="route-summary">基础控件 / 其他例程 / 自定义控件</div>
+                        <div class="stat-detail" id="route-detail">
+                            分类数量会从 <span class="code-inline">web/demos/demos.json</span> 动态读取。
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </header>
-    <main>
-        <div id="demo-list-grid"></div>
-    </main>
+        </section>
 
-    <script src="lib/marked.min.js"></script>
-    <script src="doc-render.js"></script>
+        <section class="section-block" id="showcase">
+            <div class="section-heading">
+                <div>
+                    <h2>首页直接展示 HelloShowcase</h2>
+                    <p>
+                        这里就是默认首页预览，只保留一个完整示例，不再混入额外场景页或其他落地页包装。
+                    </p>
+                </div>
+                <div class="demo-actions">
+                    <a id="showcase-open-demo" class="button-link secondary" href="demos/HelloShowcase/HelloShowcase.html" target="_blank" rel="noreferrer">打开示例</a>
+                </div>
+            </div>
+
+            <div class="demo-panel showcase-panel">
+                <section class="demo-stage">
+                    <div class="demo-stage-header">
+                        <span id="showcase-preview-label">实时预览</span>
+                        <span id="showcase-size">1280 x 1024</span>
+                    </div>
+                    <div class="demo-stage-body">
+                        <iframe
+                            id="showcase-frame"
+                            class="demo-frame showcase-frame"
+                            title="HelloShowcase 示例"
+                            src="demos/HelloShowcase/HelloShowcase.html"
+                            style="height: min(80vh, 920px);"
+                        ></iframe>
+                    </div>
+                </section>
+
+                <section class="demo-doc-shell">
+                    <div class="demo-stage-header">
+                        <span id="overview-title">页面说明</span>
+                        <span id="homepage-guide">首页导航说明</span>
+                    </div>
+                    <div class="doc-panel">
+                        <h3 id="homepage-only-heading">首页保留什么</h3>
+                        <p id="homepage-only-body">
+                            首页只保留 <span class="code-inline">HelloShowcase</span>。站点剩余内容按用途拆分，而不是继续按产品场景组织。
+                        </p>
+                        <h3 id="where-next-heading">接下来去哪里</h3>
+                        <div id="where-next-body">
+                            <ul>
+                                <li>去 <span class="code-inline">basic.html</span> 查看单个基础控件。</li>
+                                <li>去 <span class="code-inline">examples.html</span> 查看 <span class="code-inline">example/</span> 下剩余独立例程。</li>
+                                <li>去 <span class="code-inline">custom.html</span> 查看自定义控件和对应 README。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <section class="section-block">
+            <div class="section-heading">
+                <div>
+                    <h2 id="focused-pages-heading">选择一个聚焦页面</h2>
+                    <p id="focused-pages-description">
+                        现在的入口直接对应仓库结构：<span class="code-inline">HelloBasic</span>、
+                        <span class="code-inline">example/</span> 下的独立示例，以及 <span class="code-inline">HelloCustomWidgets</span>。
+                    </p>
+                </div>
+            </div>
+
+            <div class="entry-grid">
+                <article class="entry-card">
+                    <div class="badge">HelloBasic</div>
+                    <h3>基础控件浏览</h3>
+                    <p>
+                        逐个打开基础控件的 WebAssembly 演示和 README，适合按钮、输入框、进度条、时钟、表格等核心控件快速查阅。
+                    </p>
+                    <div class="metric-row">
+                        <span class="metric-chip" id="basic-count">0 个控件示例</span>
+                        <span class="metric-chip" id="basic-chip">支持深链</span>
+                    </div>
+                    <div class="hero-links">
+                        <a class="button-link secondary" href="basic.html">打开 HelloBasic</a>
+                        <a class="button-link ghost" href="basic.html?app=button">打开 button 示例</a>
+                    </div>
+                </article>
+
+                <article class="entry-card">
+                    <div class="badge" id="standalone-badge">独立示例</div>
+                    <h3>其他例程页面</h3>
+                    <p>
+                        把 <span class="code-inline">HelloSimple</span>、<span class="code-inline">HelloCanvas</span>、
+                        <span class="code-inline">HelloChart</span>、<span class="code-inline">HelloStyleDemo</span> 等独立应用放到单独页面查看。
+                    </p>
+                    <div class="metric-row">
+                        <span class="metric-chip" id="example-count">0 个独立示例</span>
+                        <span class="metric-chip" id="example-chip">不含 HelloShowcase</span>
+                    </div>
+                    <div class="hero-links">
+                        <a class="button-link secondary" href="examples.html">打开其他例程</a>
+                        <a class="button-link ghost" href="examples.html?app=HelloSimple">打开 HelloSimple</a>
+                    </div>
+                </article>
+
+                <article class="entry-card">
+                    <div class="badge" id="custom-badge">自定义控件</div>
+                    <h3>HelloCustomWidgets 目录</h3>
+                    <p>
+                        按分类浏览可复用自定义控件，直接查看实时预览和同目录 README，不必手工翻仓库树。
+                    </p>
+                    <div class="metric-row">
+                        <span class="metric-chip" id="custom-count">0 个自定义控件示例</span>
+                        <span class="metric-chip" id="custom-chip">按分类浏览</span>
+                    </div>
+                    <div class="hero-links">
+                        <a class="button-link secondary" href="custom.html">打开自定义控件目录</a>
+                        <a class="button-link ghost" href="custom.html#HelloCustomWidgets_input_xy_pad">打开 XY Pad</a>
+                    </div>
+                </article>
+            </div>
+        </section>
+    </div>
+
+    <script src="i18n.js"></script>
     <script>
-        function resolveFrameHeight(d) {
-            var configured = Number(d && d.height);
-            if (Number.isFinite(configured) && configured > 0) {
-                return configured;
+        var i18n = window.EmbeddedGUII18n;
+        var latestDemos = null;
+        var catalogFailed = false;
+        var translations = {
+            pageTitle: {
+                "zh-CN": "EmbeddedGUI 在线示例",
+                "en": "EmbeddedGUI Web Demos"
+            },
+            heroTitle: {
+                "zh-CN": "先看 HelloShowcase，再深入控件细节。",
+                "en": "Start with HelloShowcase, then drill into widgets."
+            },
+            heroSummary: {
+                "zh-CN": "首页只保留一个完整示例和三个清晰入口：基础控件、其他例程、自定义控件。不再混入场景页、报价导航或额外包装层。",
+                "en": "The homepage now stays focused on one full example and three clear browsing routes: core widgets, standalone examples, and custom widgets. No scenario pages, no quote navigation, no extra layers."
+            },
+            openHomepageDemo: {
+                "zh-CN": "打开首页示例",
+                "en": "Open homepage demo"
+            },
+            otherExamples: {
+                "zh-CN": "其他例程",
+                "en": "Other examples"
+            },
+            openReadme: {
+                "zh-CN": "打开 README",
+                "en": "Open README"
+            },
+            openDocs: {
+                "zh-CN": "打开文档",
+                "en": "Open docs"
+            },
+            homepageDemoLabel: {
+                "zh-CN": "首页主示例",
+                "en": "Homepage Demo"
+            },
+            homepageDemoDetail: {
+                "zh-CN": "先用主示例判断整体编排、动效和资源体量，再进入更聚焦的演示页。",
+                "en": "Use the main example to judge composition, motion, and asset scale before opening focused demo pages."
+            },
+            webCatalogLabel: {
+                "zh-CN": "网页示例清单",
+                "en": "Web Catalog"
+            },
+            browseRoutesLabel: {
+                "zh-CN": "浏览入口",
+                "en": "Browse Routes"
+            },
+            routeSummary: {
+                "zh-CN": "基础控件 / 其他例程 / 自定义控件",
+                "en": "Basic / Examples / Custom"
+            },
+            showcaseHeading: {
+                "zh-CN": "首页直接展示 HelloShowcase",
+                "en": "HelloShowcase on the homepage"
+            },
+            showcaseDescription: {
+                "zh-CN": "这里就是默认首页预览，只保留一个完整示例，不再混入额外场景页或其他落地页包装。",
+                "en": "This is the default top-level preview. It keeps one complete example visible without mixing in extra scenario pages or alternate landing surfaces."
+            },
+            openDemo: {
+                "zh-CN": "打开示例",
+                "en": "Open demo"
+            },
+            livePreview: {
+                "zh-CN": "实时预览",
+                "en": "Live preview"
+            },
+            overviewTitle: {
+                "zh-CN": "页面说明",
+                "en": "Overview"
+            },
+            homepageGuide: {
+                "zh-CN": "首页导航说明",
+                "en": "Homepage guide"
+            },
+            homepageOnlyHeading: {
+                "zh-CN": "首页保留什么",
+                "en": "What stays on the homepage"
+            },
+            homepageOnlyBody: {
+                "zh-CN": "首页只保留 <span class=\"code-inline\">HelloShowcase</span>。站点剩余内容按用途拆分，而不是继续按产品场景组织。",
+                "en": "Only the <span class=\"code-inline\">HelloShowcase</span> example remains here. The rest of the site is split by purpose instead of by product scenario."
+            },
+            whereNextHeading: {
+                "zh-CN": "接下来去哪里",
+                "en": "Where to go next"
+            },
+            whereNextBody: {
+                "zh-CN": "<ul><li>去 <span class=\"code-inline\">basic.html</span> 查看单个基础控件。</li><li>去 <span class=\"code-inline\">examples.html</span> 查看 <span class=\"code-inline\">example/</span> 下剩余独立例程。</li><li>去 <span class=\"code-inline\">custom.html</span> 查看自定义控件和对应 README。</li></ul>",
+                "en": "<ul><li>Use <span class=\"code-inline\">basic.html</span> when you want one widget at a time.</li><li>Use <span class=\"code-inline\">examples.html</span> for the remaining standalone example apps under <span class=\"code-inline\">example/</span>.</li><li>Use <span class=\"code-inline\">custom.html</span> for grouped reusable custom widgets and their README files.</li></ul>"
+            },
+            focusedPagesHeading: {
+                "zh-CN": "选择一个聚焦页面",
+                "en": "Choose a focused page"
+            },
+            focusedPagesDescription: {
+                "zh-CN": "现在的入口直接对应仓库结构：<span class=\"code-inline\">HelloBasic</span>、<span class=\"code-inline\">example/</span> 下的独立示例，以及 <span class=\"code-inline\">HelloCustomWidgets</span>。",
+                "en": "Each route now maps directly to one part of the repository: <span class=\"code-inline\">HelloBasic</span>, standalone demos under <span class=\"code-inline\">example/</span>, and <span class=\"code-inline\">HelloCustomWidgets</span>."
+            },
+            basicCardTitle: {
+                "zh-CN": "基础控件浏览",
+                "en": "Core widget browser"
+            },
+            basicCardDescription: {
+                "zh-CN": "逐个打开基础控件的 WebAssembly 演示和 README，适合按钮、输入框、进度条、时钟、表格等核心控件快速查阅。",
+                "en": "Open one basic widget demo at a time with its generated README. This is the fastest route for buttons, text input, progress bars, clocks, tables, and other core controls."
+            },
+            basicChip: {
+                "zh-CN": "支持深链",
+                "en": "Deep-link ready"
+            },
+            openHelloBasic: {
+                "zh-CN": "打开 HelloBasic",
+                "en": "Open HelloBasic"
+            },
+            openButtonDemo: {
+                "zh-CN": "打开 button 示例",
+                "en": "Open button demo"
+            },
+            standaloneBadge: {
+                "zh-CN": "独立示例",
+                "en": "Standalone"
+            },
+            exampleCardTitle: {
+                "zh-CN": "其他例程页面",
+                "en": "Other example apps"
+            },
+            exampleCardDescription: {
+                "zh-CN": "把 <span class=\"code-inline\">HelloSimple</span>、<span class=\"code-inline\">HelloCanvas</span>、<span class=\"code-inline\">HelloChart</span>、<span class=\"code-inline\">HelloStyleDemo</span> 等独立应用放到单独页面查看。",
+                "en": "Browse the remaining example applications such as <span class=\"code-inline\">HelloSimple</span>, <span class=\"code-inline\">HelloCanvas</span>, <span class=\"code-inline\">HelloChart</span>, and <span class=\"code-inline\">HelloStyleDemo</span> on one dedicated page."
+            },
+            exampleChip: {
+                "zh-CN": "不含 HelloShowcase",
+                "en": "Excludes HelloShowcase"
+            },
+            openExamples: {
+                "zh-CN": "打开其他例程",
+                "en": "Open examples"
+            },
+            openHelloSimple: {
+                "zh-CN": "打开 HelloSimple",
+                "en": "Open HelloSimple"
+            },
+            customBadge: {
+                "zh-CN": "自定义控件",
+                "en": "Custom"
+            },
+            customCardTitle: {
+                "zh-CN": "HelloCustomWidgets 目录",
+                "en": "HelloCustomWidgets catalog"
+            },
+            customCardDescription: {
+                "zh-CN": "按分类浏览可复用自定义控件，直接查看实时预览和同目录 README，不必手工翻仓库树。",
+                "en": "Browse reusable widgets by category, load the live demo, and open the bundled README without scanning the repository tree by hand."
+            },
+            customChip: {
+                "zh-CN": "按分类浏览",
+                "en": "Category browsing"
+            },
+            openCustomCatalog: {
+                "zh-CN": "打开自定义控件目录",
+                "en": "Open custom catalog"
+            },
+            openXyPad: {
+                "zh-CN": "打开 XY Pad",
+                "en": "Open XY pad"
+            },
+            catalogWaiting: {
+                "zh-CN": "等待加载 demos.json",
+                "en": "Waiting for demos.json"
+            },
+            catalogNote: {
+                "zh-CN": "运行 <span class=\"code-inline\">python scripts/wasm_build_demos.py</span> 刷新网页示例包。",
+                "en": "Run <span class=\"code-inline\">python scripts/wasm_build_demos.py</span> to refresh the web bundle."
+            },
+            routeDetailWaiting: {
+                "zh-CN": "分类数量会从 <span class=\"code-inline\">web/demos/demos.json</span> 动态读取。",
+                "en": "Counts are loaded from <span class=\"code-inline\">web/demos/demos.json</span>."
+            },
+            generatedDemoCount: {
+                "zh-CN": "{count} 个已生成示例",
+                "en": "{count} generated demos"
+            },
+            basicDemoCount: {
+                "zh-CN": "{count} 个控件示例",
+                "en": "{count} widget demos"
+            },
+            exampleDemoCount: {
+                "zh-CN": "{count} 个独立示例",
+                "en": "{count} example demos"
+            },
+            customDemoCount: {
+                "zh-CN": "{count} 个自定义控件示例",
+                "en": "{count} custom widget demos"
+            },
+            routeDetail: {
+                "zh-CN": "基础控件 {basic} / 其他例程 {examples} / 自定义控件 {custom}",
+                "en": "{basic} basic / {examples} examples / {custom} custom"
+            },
+            catalogUnavailable: {
+                "zh-CN": "示例清单不可用",
+                "en": "Catalog unavailable"
+            },
+            catalogUnavailableNote: {
+                "zh-CN": "请先运行 python scripts/wasm_build_demos.py 生成网页示例，再刷新当前页面。",
+                "en": "Generate the web bundle with python scripts/wasm_build_demos.py and reload this page."
+            },
+            routeDetailUnavailable: {
+                "zh-CN": "在 demos.json 生成前，分类数量无法显示。",
+                "en": "Counts are unavailable until demos.json is generated."
+            },
+            showcaseFrameTitle: {
+                "zh-CN": "HelloShowcase 示例",
+                "en": "HelloShowcase demo"
             }
-            var app = (d && (d.app || d.name)) || '';
-            var fallback = {
-                'HelloShowcase': 1024,
-                'HelloCanvas': 480,
-                'HelloGradient': 480
+        };
+
+        function t(key, params) {
+            return i18n.format(translations[key], params);
+        }
+
+        function applyStaticLanguage() {
+            document.title = t("pageTitle");
+
+            var heroCopy = document.querySelector(".hero-copy");
+            heroCopy.querySelector("h1").textContent = t("heroTitle");
+            heroCopy.querySelector("p").textContent = t("heroSummary");
+
+            var heroActions = heroCopy.querySelectorAll(".hero-actions a");
+            heroActions[0].textContent = t("openHomepageDemo");
+            heroActions[2].textContent = t("otherExamples");
+
+            var topLinks = heroCopy.querySelectorAll(".hero-links a");
+            topLinks[0].textContent = t("openReadme");
+            topLinks[1].textContent = t("openDocs");
+
+            var statCards = document.querySelectorAll(".stat-card");
+            statCards[0].querySelector(".stat-label").textContent = t("homepageDemoLabel");
+            statCards[0].querySelector(".stat-detail").textContent = t("homepageDemoDetail");
+            statCards[1].querySelector(".stat-label").textContent = t("webCatalogLabel");
+            statCards[2].querySelector(".stat-label").textContent = t("browseRoutesLabel");
+
+            document.getElementById("route-summary").textContent = t("routeSummary");
+            document.querySelector("#showcase .section-heading h2").textContent = t("showcaseHeading");
+            document.querySelector("#showcase .section-heading p").textContent = t("showcaseDescription");
+            document.getElementById("showcase-open-demo").textContent = t("openDemo");
+            document.getElementById("showcase-preview-label").textContent = t("livePreview");
+            document.getElementById("overview-title").textContent = t("overviewTitle");
+            document.getElementById("homepage-guide").textContent = t("homepageGuide");
+            document.getElementById("homepage-only-heading").textContent = t("homepageOnlyHeading");
+            document.getElementById("homepage-only-body").innerHTML = t("homepageOnlyBody");
+            document.getElementById("where-next-heading").textContent = t("whereNextHeading");
+            document.getElementById("where-next-body").innerHTML = t("whereNextBody");
+            document.getElementById("focused-pages-heading").textContent = t("focusedPagesHeading");
+            document.getElementById("focused-pages-description").innerHTML = t("focusedPagesDescription");
+            document.getElementById("showcase-frame").title = t("showcaseFrameTitle");
+
+            var cards = document.querySelectorAll(".entry-card");
+            cards[0].querySelector("h3").textContent = t("basicCardTitle");
+            cards[0].querySelector("p").textContent = t("basicCardDescription");
+            document.getElementById("basic-chip").textContent = t("basicChip");
+            var basicLinks = cards[0].querySelectorAll(".hero-links a");
+            basicLinks[0].textContent = t("openHelloBasic");
+            basicLinks[1].textContent = t("openButtonDemo");
+
+            document.getElementById("standalone-badge").textContent = t("standaloneBadge");
+            cards[1].querySelector("h3").textContent = t("exampleCardTitle");
+            cards[1].querySelector("p").innerHTML = t("exampleCardDescription");
+            document.getElementById("example-chip").textContent = t("exampleChip");
+            var exampleLinks = cards[1].querySelectorAll(".hero-links a");
+            exampleLinks[0].textContent = t("openExamples");
+            exampleLinks[1].textContent = t("openHelloSimple");
+
+            document.getElementById("custom-badge").textContent = t("customBadge");
+            cards[2].querySelector("h3").textContent = t("customCardTitle");
+            cards[2].querySelector("p").textContent = t("customCardDescription");
+            document.getElementById("custom-chip").textContent = t("customChip");
+            var customLinks = cards[2].querySelectorAll(".hero-links a");
+            customLinks[0].textContent = t("openCustomCatalog");
+            customLinks[1].textContent = t("openXyPad");
+        }
+
+        function renderCatalogCounts(demos) {
+            var counts = {
+                total: demos.length,
+                basic: demos.filter(function(demo) { return demo.category === "HelloBasic"; }).length,
+                examples: demos.filter(function(demo) {
+                    return demo.category === "Standalone" && demo.name !== "HelloShowcase";
+                }).length,
+                custom: demos.filter(function(demo) { return demo.category === "HelloCustomWidgets"; }).length
             };
-            return fallback[app] || 320;
-        }
 
-        function sortDemosForIndex(demos) {
-            var priority = {
-                'HelloShowcase': 0,
-                'HelloStyleDemo': 1
-            };
-            return demos.slice().sort(function(a, b) {
-                var an = a.name || '';
-                var bn = b.name || '';
-                var ap = Object.prototype.hasOwnProperty.call(priority, an) ? priority[an] : 100;
-                var bp = Object.prototype.hasOwnProperty.call(priority, bn) ? priority[bn] : 100;
-                if (ap !== bp) return ap - bp;
-                return an.localeCompare(bn);
-            });
-        }
+            document.getElementById("route-summary").textContent = t("routeSummary");
+            document.getElementById("total-demo-count").textContent = t("generatedDemoCount", { count: counts.total });
+            document.getElementById("catalog-note").innerHTML = t("catalogNote");
+            document.getElementById("basic-count").textContent = t("basicDemoCount", { count: counts.basic });
+            document.getElementById("example-count").textContent = t("exampleDemoCount", { count: counts.examples });
+            document.getElementById("custom-count").textContent = t("customDemoCount", { count: counts.custom });
+            document.getElementById("route-detail").textContent = t("routeDetail", counts);
 
-        function renderGrid(demos) {
-            var container = document.getElementById('demo-list-grid');
-            sortDemosForIndex(demos).forEach(function(d) {
-                if (d.category === 'HelloBasic') return;
-                var app = d.app || d.name;
-                var hasDoc = !!d.doc;
-                var frameHeight = resolveFrameHeight(d);
-                var section = document.createElement('section');
-                section.className = hasDoc ? 'demo-section' : 'demo-section single-column';
-
-                if (hasDoc) {
-                    section.innerHTML =
-                        '<div class="demo-section-left">' +
-                            '<div class="demo-title">' + d.name.replace(/_/g, ' ') + '</div>' +
-                            '<iframe class="demo-iframe" style="height:' + frameHeight + 'px" src="demos/' + d.name + '/' + app + '.html" loading="lazy"></iframe>' +
-                        '</div>' +
-                        '<div class="demo-section-right doc-panel"></div>';
-                } else {
-                    section.innerHTML =
-                        '<div class="demo-section-left">' +
-                            '<div class="demo-title">' + d.name.replace(/_/g, ' ') + '</div>' +
-                            '<iframe class="demo-iframe" style="height:' + frameHeight + 'px" src="demos/' + d.name + '/' + app + '.html" loading="lazy"></iframe>' +
-                        '</div>';
+            var showcase = demos.find(function(demo) { return demo.name === "HelloShowcase"; });
+            if (showcase) {
+                var showcasePath = "demos/" + showcase.name + "/" + (showcase.app || showcase.name) + ".html";
+                var showcaseFrame = document.getElementById("showcase-frame");
+                document.getElementById("showcase-size").textContent =
+                    (showcase.width || "?") + " x " + (showcase.height || "?");
+                document.getElementById("showcase-open-demo").href = showcasePath;
+                if (showcaseFrame.getAttribute("src") !== showcasePath) {
+                    showcaseFrame.src = showcasePath;
                 }
-
-                container.appendChild(section);
-                if (hasDoc) {
-                    renderDoc(section.querySelector('.doc-panel'), d.doc);
-                }
-            });
+            }
         }
 
-        fetch('demos/demos.json')
-            .then(function(r) { return r.json(); })
-            .then(renderGrid)
+        function renderCatalogError() {
+            document.getElementById("route-summary").textContent = t("routeSummary");
+            document.getElementById("total-demo-count").textContent = t("catalogUnavailable");
+            document.getElementById("catalog-note").textContent = t("catalogUnavailableNote");
+            document.getElementById("route-detail").textContent = t("routeDetailUnavailable");
+        }
+
+        function applyLanguage() {
+            applyStaticLanguage();
+            if (catalogFailed) {
+                renderCatalogError();
+                return;
+            }
+            if (latestDemos) {
+                renderCatalogCounts(latestDemos);
+                return;
+            }
+            document.getElementById("total-demo-count").textContent = t("catalogWaiting");
+            document.getElementById("catalog-note").innerHTML = t("catalogNote");
+            document.getElementById("route-detail").innerHTML = t("routeDetailWaiting");
+        }
+
+        document.addEventListener("embeddedgui:languagechange", applyLanguage);
+        i18n.bindLanguageToggle(document);
+        applyLanguage();
+
+        fetch("demos/demos.json")
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error("Missing demos.json");
+                }
+                return response.json();
+            })
+            .then(function(demos) {
+                latestDemos = demos;
+                catalogFailed = false;
+                renderCatalogCounts(demos);
+            })
             .catch(function() {
-                renderGrid([
-                    { name: 'HelloSimple', app: 'HelloSimple', category: 'Standalone' }
-                ]);
+                latestDemos = null;
+                catalogFailed = true;
+                renderCatalogError();
             });
     </script>
 </body>

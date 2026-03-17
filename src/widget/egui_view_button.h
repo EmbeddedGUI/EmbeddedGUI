@@ -13,6 +13,10 @@ typedef struct egui_view_button egui_view_button_t;
 struct egui_view_button
 {
     egui_view_label_t base;
+
+    const char *icon;
+    const egui_font_t *icon_font;
+    egui_dim_t icon_text_gap;
 };
 
 // ============== Button Params (reuse Label) ==============
@@ -22,6 +26,9 @@ struct egui_view_button
 
 void egui_view_button_init(egui_view_t *self);
 void egui_view_button_init_with_params(egui_view_t *self, const egui_view_label_params_t *params);
+void egui_view_button_set_icon(egui_view_t *self, const char *icon);
+void egui_view_button_set_icon_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

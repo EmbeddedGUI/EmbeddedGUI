@@ -18,12 +18,15 @@ struct egui_view_toggle_button
 
     egui_view_on_toggled_listener_t on_toggled;
     uint8_t is_toggled;
+    const char *icon;
     const char *text;
     const egui_font_t *font;
+    const egui_font_t *icon_font;
     egui_color_t text_color;
     egui_color_t on_color;
     egui_color_t off_color;
     egui_dim_t corner_radius;
+    egui_dim_t icon_text_gap;
 };
 
 // ============== ToggleButton Params ==============
@@ -44,8 +47,11 @@ void egui_view_toggle_button_init_with_params(egui_view_t *self, const egui_view
 void egui_view_toggle_button_set_on_toggled_listener(egui_view_t *self, egui_view_on_toggled_listener_t listener);
 void egui_view_toggle_button_set_toggled(egui_view_t *self, uint8_t is_toggled);
 uint8_t egui_view_toggle_button_is_toggled(egui_view_t *self);
+void egui_view_toggle_button_set_icon(egui_view_t *self, const char *icon);
 void egui_view_toggle_button_set_text(egui_view_t *self, const char *text);
 void egui_view_toggle_button_set_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_toggle_button_set_icon_font(egui_view_t *self, const egui_font_t *font);
+void egui_view_toggle_button_set_icon_text_gap(egui_view_t *self, egui_dim_t gap);
 void egui_view_toggle_button_set_text_color(egui_view_t *self, egui_color_t color);
 void egui_view_toggle_button_on_draw(egui_view_t *self);
 void egui_view_toggle_button_init(egui_view_t *self);

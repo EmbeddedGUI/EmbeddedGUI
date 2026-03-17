@@ -100,29 +100,29 @@ static void mcu_interrupt_enable(egui_base_t level)
 }
 
 static const egui_platform_ops_t mcu_platform_ops = {
-    .malloc = mcu_malloc,
-    .free = mcu_free,
-    .vlog = mcu_vlog,
-    .assert_handler = mcu_assert_handler,
-    .vsprintf = mcu_vsprintf,
-    .delay = mcu_delay,
-    .get_tick_ms = mcu_get_tick_ms,
-    .pfb_clear = mcu_pfb_clear,
-    .interrupt_disable = mcu_interrupt_disable,
-    .interrupt_enable = mcu_interrupt_enable,
-    .load_external_resource = NULL,
-    .mutex_create = NULL,
-    .mutex_lock = NULL,
-    .mutex_unlock = NULL,
-    .mutex_destroy = NULL,
-    .timer_start = NULL,
-    .timer_stop = NULL,
-    .memcpy_fast = NULL,
-    .watchdog_feed = NULL,
+        .malloc = mcu_malloc,
+        .free = mcu_free,
+        .vlog = mcu_vlog,
+        .assert_handler = mcu_assert_handler,
+        .vsprintf = mcu_vsprintf,
+        .delay = mcu_delay,
+        .get_tick_ms = mcu_get_tick_ms,
+        .pfb_clear = mcu_pfb_clear,
+        .interrupt_disable = mcu_interrupt_disable,
+        .interrupt_enable = mcu_interrupt_enable,
+        .load_external_resource = NULL,
+        .mutex_create = NULL,
+        .mutex_lock = NULL,
+        .mutex_unlock = NULL,
+        .mutex_destroy = NULL,
+        .timer_start = NULL,
+        .timer_stop = NULL,
+        .memcpy_fast = NULL,
+        .watchdog_feed = NULL,
 };
 
 static egui_platform_t mcu_platform = {
-    .ops = &mcu_platform_ops,
+        .ops = &mcu_platform_ops,
 };
 
 /* ============================================================
@@ -132,20 +132,18 @@ static egui_platform_t mcu_platform = {
 void egui_port_init(void)
 {
     /* Initialize LCD driver using new HAL */
-    egui_lcd_st7789_init(&s_lcd_driver,
-                         egui_hal_stm32g0_get_lcd_spi_ops(),
-                         egui_hal_stm32g0_get_lcd_gpio_ops());
+    egui_lcd_st7789_init(&s_lcd_driver, egui_hal_stm32g0_get_lcd_spi_ops(), egui_hal_stm32g0_get_lcd_gpio_ops());
 
     /* Set backlight control callback */
     s_lcd_driver.set_brightness = egui_hal_stm32g0_set_backlight;
 
     /* Configure and initialize LCD */
     egui_hal_lcd_config_t lcd_config = {
-        .width = EGUI_CONFIG_SCEEN_WIDTH,
-        .height = EGUI_CONFIG_SCEEN_HEIGHT,
-        .x_offset = 0,
-        .y_offset = 0,
-        .invert_color = 1,
+            .width = EGUI_CONFIG_SCEEN_WIDTH,
+            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .x_offset = 0,
+            .y_offset = 0,
+            .invert_color = 1,
     };
     s_lcd_driver.init(&s_lcd_driver, &lcd_config);
 
@@ -153,17 +151,15 @@ void egui_port_init(void)
     egui_display_driver_t *display = egui_display_driver_from_lcd(&s_lcd_driver);
 
     /* Initialize Touch driver using new HAL */
-    egui_touch_ft6336_init(&s_touch_driver,
-                           egui_hal_stm32g0_get_touch_i2c_ops(),
-                           egui_hal_stm32g0_get_touch_gpio_ops());
+    egui_touch_ft6336_init(&s_touch_driver, egui_hal_stm32g0_get_touch_i2c_ops(), egui_hal_stm32g0_get_touch_gpio_ops());
 
     /* Configure and initialize Touch */
     egui_hal_touch_config_t touch_config = {
-        .width = EGUI_CONFIG_SCEEN_WIDTH,
-        .height = EGUI_CONFIG_SCEEN_HEIGHT,
-        .swap_xy = 0,
-        .mirror_x = 0,
-        .mirror_y = 0,
+            .width = EGUI_CONFIG_SCEEN_WIDTH,
+            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .swap_xy = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
     };
     s_touch_driver.init(&s_touch_driver, &touch_config);
 

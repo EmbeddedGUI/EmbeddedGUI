@@ -14,6 +14,19 @@
 #include "test/test_interpolator.h"
 #include "test/test_animation.h"
 #include "test/test_view_layer.h"
+#include "test/test_calendar_view.h"
+#include "test/test_chapter_strip.h"
+#include "test/test_color_picker.h"
+#include "test/test_flip_view.h"
+#include "test/test_menu_bar.h"
+#include "test/test_password_box.h"
+#include "test/test_pips_pager.h"
+#include "test/test_rating_control.h"
+#include "test/test_scroll_bar.h"
+#include "test/test_swipe_control.h"
+#include "test/test_toggle_split_button.h"
+#include "test/test_transport_bar.h"
+#include "test/test_token_input.h"
 
 void uicode_init_ui(void)
 {
@@ -37,4 +50,17 @@ void uicode_create_ui(void)
     test_animation_run();
     test_dirty_region_run();
     test_view_layer_run();
+    test_calendar_view_run();
+    test_chapter_strip_run();
+    test_color_picker_run();
+    test_flip_view_run();
+    test_menu_bar_run();
+    test_password_box_run();
+    test_pips_pager_run();
+    test_rating_control_run();
+    test_scroll_bar_run();
+    test_swipe_control_run();
+    test_toggle_split_button_run();
+    test_transport_bar_run();
+    test_token_input_run();
 }

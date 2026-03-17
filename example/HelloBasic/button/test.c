@@ -23,10 +23,10 @@ EGUI_VIEW_BUTTON_PARAMS_INIT(button_m_params, 0, 0, 160, 38, NULL, EGUI_CONFIG_F
 // Size L (200x44)
 EGUI_VIEW_BUTTON_PARAMS_INIT(button_l_params, 0, 0, 200, 44, NULL, EGUI_CONFIG_FONT_DEFAULT, EGUI_THEME_TEXT, EGUI_ALPHA_100);
 
-static char button_str_xs[20] = "XS";
-static char button_str_s[20] = "S";
-static char button_str_m[20] = "M";
-static char button_str_l[20] = "L";
+static char button_str_xs[20] = "Run";
+static char button_str_s[20] = "Sync";
+static char button_str_m[20] = "Search";
+static char button_str_l[20] = "Settings";
 
 static void button_click_cb(egui_view_t *self)
 {
@@ -41,20 +41,32 @@ void test_init_ui(void)
     // Init button XS
     egui_view_button_init_with_params(EGUI_VIEW_OF(&button_xs), &button_xs_params);
     egui_view_label_set_text(EGUI_VIEW_OF(&button_xs), button_str_xs);
+    egui_view_button_set_icon(EGUI_VIEW_OF(&button_xs), EGUI_ICON_MS_PLAY_ARROW);
+    egui_view_button_set_icon_font(EGUI_VIEW_OF(&button_xs), EGUI_FONT_ICON_MS_16);
+    egui_view_button_set_icon_text_gap(EGUI_VIEW_OF(&button_xs), 4);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_xs), button_click_cb);
     // Init button S
     egui_view_button_init_with_params(EGUI_VIEW_OF(&button_s), &button_s_params);
     egui_view_label_set_text(EGUI_VIEW_OF(&button_s), button_str_s);
+    egui_view_button_set_icon(EGUI_VIEW_OF(&button_s), EGUI_ICON_MS_SYNC);
+    egui_view_button_set_icon_font(EGUI_VIEW_OF(&button_s), EGUI_FONT_ICON_MS_16);
+    egui_view_button_set_icon_text_gap(EGUI_VIEW_OF(&button_s), 4);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_s), button_click_cb);
 
     // Init button M
     egui_view_button_init_with_params(EGUI_VIEW_OF(&button_m), &button_m_params);
     egui_view_label_set_text(EGUI_VIEW_OF(&button_m), button_str_m);
+    egui_view_button_set_icon(EGUI_VIEW_OF(&button_m), EGUI_ICON_MS_SEARCH);
+    egui_view_button_set_icon_font(EGUI_VIEW_OF(&button_m), EGUI_FONT_ICON_MS_20);
+    egui_view_button_set_icon_text_gap(EGUI_VIEW_OF(&button_m), 5);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_m), button_click_cb);
 
     // Init button L
     egui_view_button_init_with_params(EGUI_VIEW_OF(&button_l), &button_l_params);
     egui_view_label_set_text(EGUI_VIEW_OF(&button_l), button_str_l);
+    egui_view_button_set_icon(EGUI_VIEW_OF(&button_l), EGUI_ICON_MS_SETTINGS);
+    egui_view_button_set_icon_font(EGUI_VIEW_OF(&button_l), EGUI_FONT_ICON_MS_20);
+    egui_view_button_set_icon_text_gap(EGUI_VIEW_OF(&button_l), 6);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_l), button_click_cb);
 
     // Set margins

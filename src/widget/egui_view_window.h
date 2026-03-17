@@ -17,10 +17,13 @@ struct egui_view_window
     egui_view_group_t base;
 
     egui_view_label_t title_label;
+    egui_view_label_t close_label;
     egui_view_group_t content;
     egui_dim_t header_height;
     egui_color_t header_color;
     egui_color_t content_bg_color;
+    const char *close_icon;
+    const egui_font_t *close_icon_font;
     egui_view_window_close_cb_t on_close;
 };
 
@@ -41,6 +44,8 @@ void egui_view_window_init_with_params(egui_view_t *self, const egui_view_window
 
 void egui_view_window_set_title(egui_view_t *self, const char *title);
 void egui_view_window_set_header_height(egui_view_t *self, egui_dim_t height);
+void egui_view_window_set_close_icon(egui_view_t *self, const char *icon);
+void egui_view_window_set_close_icon_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_window_add_content(egui_view_t *self, egui_view_t *child);
 void egui_view_window_set_on_close(egui_view_t *self, egui_view_window_close_cb_t callback);
 void egui_view_window_on_draw(egui_view_t *self);

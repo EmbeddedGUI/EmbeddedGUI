@@ -4,7 +4,7 @@ EGUI_CODE_INCLUDE	+= $(EGUI_APP_PATH)
 
 
 # select the sub app
-APP_SUB ?= display/sample_widget
+APP_SUB ?= input/xy_pad
 
 EGUI_APP_SUB_PATH := $(EGUI_APP_PATH)/$(APP_SUB)
 
