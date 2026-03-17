@@ -19,7 +19,7 @@
 
 | 状态 | 控件名 | 分类 | 开始日期 | 当前阶段 | 目标创新点 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 进行中 | toggle_button | input | 2026-03-17 | Iteration 15 完成，已收主按钮左右内边距并保持底部摘要态稳定；make + runtime + HelloUnitTest 已通过 | Fluent 2 / WPF UI `ToggleButton` 参考语义、单入口 on/off 切换、标准页内命令态、compact / read-only 对照 | 区别于 `switch` 的即时设置拨杆、`split_button` / `drop_down_button` 的命令展开入口与 `toggle_split_button` 的 checked + menu 复合结构；本轮继续收口标准单按钮切换语义 |
+| 暂无 | - | - | - | - | - | - |
 
 ## 已完成控件
 
@@ -116,6 +116,7 @@
 | 87 | transport_bar | media | 2026-03-17 | 30 | Fluent 2 / Windows media transport 语义、center play/pause hub、seek rail、compact / read-only 对照 | 区别于 `jog_shuttle_wheel` 的环形穿梭、`frame_scrubber` 的时间轴编辑、`waveform_strip` 的波形展示和 `command_bar` 的通用工具栏；核心在标准播放控制栏与 seek 反馈 | `example/HelloCustomWidgets/media/transport_bar/`; `example/HelloUnitTest/test/test_transport_bar.c`; `runtime_check_output/HelloCustomWidgets_media/transport_bar/default/` | make + runtime + HelloUnitTest 均 PASS；iteration_log 已归档；30 次迭代完成 | 已补齐 previous / play_pause / next / seek 四部件、键盘/触摸统一状态机与 compact / read-only 双预览 |
 | 88 | chapter_strip | media | 2026-03-17 | 30 | Fluent 2 / Windows media 章节导航、离散 chapter rail、当前章节摘要、compact / read-only 对照 | 区别于 `transport_bar` 的播放控制、`frame_scrubber` 的连续时间轴编辑、`subtitle_timeline` 的 cue 文本流和 `pips_pager` 的通用分页点阵；核心在媒体章节切换、摘要卡和双预览对照 | `example/HelloCustomWidgets/media/chapter_strip/`; `example/HelloUnitTest/test/test_chapter_strip.c`; `runtime_check_output/HelloCustomWidgets_media/chapter_strip/default/` | make + runtime + HelloUnitTest 均 PASS；iteration_log 已归档；30 次迭代完成 | 已补齐标准主态、guide 换组、章节摘要、compact / read-only 双预览和 30 轮视觉收口；已并入提交 `4f1cec8` 并推送 |
 | 89 | drop_down_button | input | 2026-03-17 | 30 | Fluent 2 / WPF UI `DropDownButton` 语义、整按钮展开 flyout、单入口命令触发、compact / read-only 对照 | 区别于 `split_button` 的主动作 + 菜单段双入口、`toggle_split_button` 的 checked 复合按钮和 `menu_flyout` 的纯弹出面板；核心在标准整按钮展开语义 | `example/HelloCustomWidgets/input/drop_down_button/`; `example/HelloUnitTest/test/test_drop_down_button.c`; `runtime_check_output/HelloCustomWidgets_input/drop_down_button/default/` | make + runtime + HelloUnitTest 均 PASS；iteration_log 已归档；30 次迭代完成 | 已完成 30 轮视觉收口，当前未提交 |
+| 90 | toggle_button | input | 2026-03-17 | 30 | Fluent 2 / WPF UI `ToggleButton` 语义、单入口 on/off 切换、标准页内命令态、compact / read-only 对照 | 区别于 `switch` 的即时设置拨杆、`split_button` / `drop_down_button` 的命令展开入口与 `toggle_split_button` 的 checked + menu 复合结构；核心在标准单段 toggle command 语义 | `example/HelloCustomWidgets/input/toggle_button/`; `example/HelloUnitTest/test/test_toggle_button.c`; `runtime_check_output/HelloCustomWidgets_input/toggle_button/default/` | make + runtime + HelloUnitTest 均 PASS；iteration_log 已归档；30 次迭代完成 | 已完成 30 轮视觉收口并同步 readme / tracker；当前未提交 |
 
 ## 已搁置 / 待恢复
 

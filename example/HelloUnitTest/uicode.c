@@ -25,6 +25,7 @@
 #include "test/test_rating_control.h"
 #include "test/test_scroll_bar.h"
 #include "test/test_swipe_control.h"
+#include "test/test_toggle_button.h"
 #include "test/test_toggle_split_button.h"
 #include "test/test_transport_bar.h"
 #include "test/test_token_input.h"
@@ -62,6 +63,7 @@ void uicode_create_ui(void)
     test_rating_control_run();
     test_scroll_bar_run();
     test_swipe_control_run();
+    test_toggle_button_run();
     test_toggle_split_button_run();
     test_transport_bar_run();
     test_token_input_run();
