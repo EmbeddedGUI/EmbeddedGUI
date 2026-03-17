@@ -17,6 +17,7 @@
 #include "test/test_calendar_view.h"
 #include "test/test_chapter_strip.h"
 #include "test/test_color_picker.h"
+#include "test/test_drop_down_button.h"
 #include "test/test_flip_view.h"
 #include "test/test_menu_bar.h"
 #include "test/test_password_box.h"
@@ -53,6 +54,7 @@ void uicode_create_ui(void)
     test_calendar_view_run();
     test_chapter_strip_run();
     test_color_picker_run();
+    test_drop_down_button_run();
     test_flip_view_run();
     test_menu_bar_run();
     test_password_box_run();
