@@ -24,8 +24,7 @@ extern "C" {
 /**
  * 8080 Parallel Bus operations interface
  */
-typedef struct egui_bus_8080_ops
-{
+typedef struct egui_bus_8080_ops {
     /**
      * Initialize 8080 interface.
      * Called once during driver init. May be NULL if already initialized.

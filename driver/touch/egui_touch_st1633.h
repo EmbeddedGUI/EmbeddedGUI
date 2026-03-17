@@ -18,10 +18,16 @@ extern "C" {
  * Initialize ST1633 driver in user-provided storage.
  *
  * @param storage  User-provided storage for driver instance
- * @param i2c      I2C bus operations (must not be NULL)
- * @param gpio     GPIO operations (may be NULL if RST not needed)
+ * @param io       Panel IO handle for register read/write (must not be NULL)
+ * @param set_rst  RST pin control callback (NULL if not available)
+ * @param set_int  INT pin control callback (NULL if not used)
+ * @param get_int  INT pin read callback (NULL if not used)
  */
-void egui_touch_st1633_init(egui_hal_touch_driver_t *storage, const egui_bus_i2c_ops_t *i2c, const egui_touch_gpio_ops_t *gpio);
+void egui_touch_st1633_init(egui_hal_touch_driver_t *storage,
+                            egui_panel_io_handle_t io,
+                            void (*set_rst)(uint8_t level),
+                            void (*set_int)(uint8_t level),
+                            uint8_t (*get_int)(void));
 
 #ifdef __cplusplus
 }

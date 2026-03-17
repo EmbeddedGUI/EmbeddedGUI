@@ -4,10 +4,9 @@
 EGUI_CODE_INCLUDE += \
     driver/bus \
     driver/lcd \
-    driver/touch \
-    driver/bridge
+    driver/touch
 
 EGUI_CODE_SRC += \
+    driver/bus \
     driver/lcd \
-    driver/touch \
-    driver/bridge
+    driver/touch

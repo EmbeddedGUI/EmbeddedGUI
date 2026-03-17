@@ -26,8 +26,7 @@ extern "C" {
 /**
  * LCD GPIO operations interface
  */
-typedef struct egui_lcd_gpio_ops
-{
+typedef struct egui_lcd_gpio_ops {
     /**
      * Initialize GPIO pins.
      * Called once during driver init. May be NULL if already initialized.
@@ -65,8 +64,7 @@ typedef struct egui_lcd_gpio_ops
 /**
  * Touch GPIO operations interface
  */
-typedef struct egui_touch_gpio_ops
-{
+typedef struct egui_touch_gpio_ops {
     /**
      * Initialize GPIO pins.
      * Called once during driver init. May be NULL if already initialized.
@@ -113,8 +111,7 @@ typedef struct egui_touch_gpio_ops
 /**
  * Unified GPIO operations (for backward compatibility or generic use)
  */
-typedef union egui_bus_gpio_ops
-{
+typedef union egui_bus_gpio_ops {
     egui_lcd_gpio_ops_t lcd;
     egui_touch_gpio_ops_t touch;
 } egui_bus_gpio_ops_t;

@@ -4,6 +4,8 @@
  *
  * FT6336 is a common I2C capacitive touch controller supporting up to 2 touch points.
  * Compatible with FT6236, FT6336G, FT6336U variants.
+ *
+ * Uses unified Panel IO interface for bus communication.
  */
 
 #ifndef _EGUI_TOUCH_FT6336_H_
@@ -19,10 +21,16 @@ extern "C" {
  * Initialize FT6336 driver in user-provided storage.
  *
  * @param storage  User-provided storage for driver instance
- * @param i2c      I2C bus operations (must not be NULL)
- * @param gpio     GPIO operations (may be NULL if RST not needed)
+ * @param io       Panel IO handle for I2C communication (must not be NULL)
+ * @param set_rst  RST pin control function (may be NULL if not available)
+ * @param set_int  INT pin control function (may be NULL)
+ * @param get_int  INT pin read function (may be NULL)
  */
-void egui_touch_ft6336_init(egui_hal_touch_driver_t *storage, const egui_bus_i2c_ops_t *i2c, const egui_touch_gpio_ops_t *gpio);
+void egui_touch_ft6336_init(egui_hal_touch_driver_t *storage,
+                            egui_panel_io_handle_t io,
+                            void (*set_rst)(uint8_t level),
+                            void (*set_int)(uint8_t level),
+                            uint8_t (*get_int)(void));
 
 #ifdef __cplusplus
 }

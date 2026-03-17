@@ -214,12 +214,6 @@ void egui_core_draw_data(egui_region_t *p_region)
     // Single buffer: synchronous draw.
     // Multi-buffer: async DMA with ring queue.
     egui_pfb_manager_submit(&egui_core.pfb_mgr, x, y, w, h, data);
-
-    // For multi-buffer mode, get next render buffer
-    if (egui_pfb_manager_is_async(&egui_core.pfb_mgr))
-    {
-        egui_core.pfb = egui_pfb_manager_get_render_buffer(&egui_core.pfb_mgr);
-    }
 }
 
 void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode)
@@ -269,6 +263,8 @@ void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode)
             EGUI_LOG_DBG("pfb_region, x_pos: %d, y_pos: %d, pfb_width: %d, pfb_height: %d\n", x_pos, y_pos, tmp_pfb_width, tmp_pfb_height);
 
             EGUI_REGION_DEFINE(region, x_pos, y_pos, tmp_pfb_width, tmp_pfb_height);
+
+            egui_core.pfb = egui_pfb_manager_get_render_buffer(&egui_core.pfb_mgr);
 
             egui_canvas_init(egui_core.pfb, &region);
 
@@ -424,6 +420,9 @@ void egui_polling_refresh_display(void)
 
     // clear the dirty region
     egui_core_clear_region_dirty();
+    
+    // wait for all PFB flush complete before next frame, to avoid too many pending buffers in the PFB manager when the screen is updated frequently.
+    egui_pfb_manager_wait_all_complete(&egui_core.pfb_mgr);
 
 #if EGUI_CONFIG_DEBUG_INFO_SHOW
     // refresh in next frame.
@@ -568,11 +567,6 @@ void egui_core_stop_auto_refresh_screen(void)
     egui_timer_stop_timer(&egui_refresh_timer);
 }
 
-void egui_core_set_pfb_buffer_ptr(egui_color_int_t *pfb)
-{
-    egui_core.pfb = pfb;
-}
-
 egui_color_int_t *egui_core_get_pfb_buffer_ptr(void)
 {
     return egui_core.pfb;
@@ -668,6 +662,14 @@ void egui_core_clear_screen(void)
             int16_t w = (x + pfb_w > screen_w) ? (screen_w - x) : pfb_w;
             int16_t h = (y + pfb_h > screen_h) ? (screen_h - y) : pfb_h;
             EGUI_REGION_DEFINE(region, x, y, w, h);
+
+            if(egui_core.pfb_mgr.buffer_count > 1)
+            {
+                egui_core.pfb = egui_pfb_manager_get_render_buffer(&egui_core.pfb_mgr);
+                // Clear PFB buffer to black
+                egui_api_pfb_clear(egui_core.pfb, egui_core.pfb_total_buffer_size);
+            }
+
             egui_core_draw_data(&region);
         }
     }

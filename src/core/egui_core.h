@@ -87,7 +87,6 @@ void egui_core_process_input_key(egui_key_event_t *key_event);
 uint16_t egui_core_get_unique_id(void);
 void egui_core_refresh_screen(void);
 void egui_core_stop_auto_refresh_screen(void);
-void egui_core_set_pfb_buffer_ptr(egui_color_int_t *pfb);
 egui_color_int_t *egui_core_get_pfb_buffer_ptr(void);
 void egui_core_pfb_set_buffer(egui_color_int_t *pfb, uint16_t width, uint16_t height);
 void egui_core_power_off(void);

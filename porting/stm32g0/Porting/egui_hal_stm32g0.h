@@ -2,7 +2,8 @@
  * @file egui_hal_stm32g0.h
  * @brief STM32G0 HAL Bus IO implementations for EGUI
  *
- * Provides SPI, I2C, and GPIO operations for LCD and Touch drivers.
+ * Provides SPI, I2C bus operations and individual GPIO functions
+ * for LCD and Touch drivers using the unified Panel IO interface.
  */
 
 #ifndef _EGUI_HAL_STM32G0_H_
@@ -14,8 +15,6 @@ extern "C" {
 
 #include "egui_bus_spi.h"
 #include "egui_bus_i2c.h"
-#include "egui_bus_gpio.h"
-#include "egui_lcd.h"
 
 /**
  * Get SPI bus operations for LCD.
@@ -24,27 +23,30 @@ extern "C" {
 const egui_bus_spi_ops_t *egui_hal_stm32g0_get_lcd_spi_ops(void);
 
 /**
- * Get GPIO operations for LCD (RST, DC pins).
- */
-const egui_lcd_gpio_ops_t *egui_hal_stm32g0_get_lcd_gpio_ops(void);
-
-/**
- * Set LCD backlight brightness.
- * Use this as driver->set_brightness callback.
- * @param self   LCD driver instance (unused)
- * @param level  0 = off, >0 = on
- */
-void egui_hal_stm32g0_set_backlight(egui_hal_lcd_driver_t *self, uint8_t level);
-
-/**
  * Get I2C bus operations for Touch.
  */
 const egui_bus_i2c_ops_t *egui_hal_stm32g0_get_touch_i2c_ops(void);
 
 /**
- * Get GPIO operations for Touch (RST, INT pins).
+ * LCD GPIO control functions.
+ * These are used individually with Panel IO and LCD driver init.
  */
-const egui_touch_gpio_ops_t *egui_hal_stm32g0_get_touch_gpio_ops(void);
+void egui_hal_stm32g0_lcd_set_rst(uint8_t level);
+void egui_hal_stm32g0_lcd_set_dc(uint8_t level);
+void egui_hal_stm32g0_lcd_set_cs(uint8_t level);
+
+/**
+ * Touch GPIO control functions.
+ * Used individually with Panel IO and Touch driver init.
+ */
+void egui_hal_stm32g0_touch_set_rst(uint8_t level);
+uint8_t egui_hal_stm32g0_touch_get_int(void);
+
+/**
+ * LCD backlight brightness control.
+ * @param level  0 = off, >0 = on
+ */
+void egui_hal_stm32g0_set_backlight_level(uint8_t level);
 
 #ifdef __cplusplus
 }

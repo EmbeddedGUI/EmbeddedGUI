@@ -37,40 +37,6 @@ void egui_pfb_manager_set_backup_buffer(egui_pfb_manager_t *mgr, egui_color_int_
     egui_pfb_manager_add_buffer(mgr, backup);
 }
 
-egui_color_int_t *egui_pfb_manager_get_active(egui_pfb_manager_t *mgr)
-{
-    return mgr->buffers[mgr->render_idx];
-}
-
-egui_color_int_t *egui_pfb_manager_get_render_buffer(egui_pfb_manager_t *mgr)
-{
-    if (mgr->buffer_count <= 1)
-    {
-        return mgr->buffers[0];
-    }
-
-    // Ring full: all buffers occupied by pending/sending data.
-    // Wait for DMA to free one.
-    while (mgr->pending_count >= mgr->buffer_count)
-    {
-        // Try polling: use wait_draw_complete + manual notify for non-interrupt mode
-        if (mgr->dma_busy)
-        {
-            egui_display_driver_t *drv = egui_display_driver_get();
-            if (drv != NULL && drv->ops->wait_draw_complete != NULL)
-            {
-                drv->ops->wait_draw_complete();
-            }
-            if (mgr->dma_busy)
-            {
-                egui_pfb_manager_notify_flush_complete(mgr);
-            }
-        }
-    }
-
-    return mgr->buffers[mgr->render_idx];
-}
-
 /**
  * Start DMA for the buffer at flush_idx.
  * Called from submit() or from notify_flush_complete() to chain next transfer.
@@ -86,6 +52,54 @@ static void egui_pfb_manager_start_flush(egui_pfb_manager_t *mgr)
     egui_pfb_flush_params_t *p = &mgr->flush_params[mgr->flush_idx];
     mgr->dma_busy = 1;
     drv->ops->draw_area(p->x, p->y, p->w, p->h, mgr->buffers[mgr->flush_idx]);
+}
+
+void egui_pfb_manager_notify_flush_complete(egui_pfb_manager_t *mgr)
+{
+    // Advance flush index
+    mgr->flush_idx = (mgr->flush_idx + 1) % mgr->buffer_count;
+    mgr->pending_count--;
+
+    // Chain next transfer if more pending and bus is not locked
+    if (mgr->pending_count > 0 && !mgr->bus_locked)
+    {
+        egui_pfb_manager_start_flush(mgr);
+    }
+    else
+    {
+        mgr->dma_busy = 0;
+    }
+}
+
+static void egui_pfb_manager_wait_last_complete(egui_pfb_manager_t *mgr)
+{
+    if (mgr->dma_busy)
+    {
+        egui_display_driver_t *drv = egui_display_driver_get();
+        if (drv != NULL && drv->ops->wait_draw_complete != NULL)
+        {
+            drv->ops->wait_draw_complete();
+        }
+        egui_pfb_manager_notify_flush_complete(mgr);
+    }
+}
+
+egui_color_int_t *egui_pfb_manager_get_active(egui_pfb_manager_t *mgr)
+{
+    return mgr->buffers[mgr->render_idx];
+}
+
+egui_color_int_t *egui_pfb_manager_get_render_buffer(egui_pfb_manager_t *mgr)
+{
+    // Ring full: all buffers occupied by pending/sending data.
+    // Wait for DMA to free one.
+    while (mgr->pending_count >= mgr->buffer_count)
+    {
+        // Try polling: use wait_draw_complete + manual notify for non-interrupt mode
+        egui_pfb_manager_wait_last_complete(mgr);
+    }
+
+    return mgr->buffers[mgr->render_idx];
 }
 
 void egui_pfb_manager_submit(egui_pfb_manager_t *mgr, int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
@@ -108,6 +122,12 @@ void egui_pfb_manager_submit(egui_pfb_manager_t *mgr, int16_t x, int16_t y, int1
     // Advance render index
     mgr->render_idx = (mgr->render_idx + 1) % mgr->buffer_count;
 
+    // make sure the new render buffer is not still pending in DMA, wait if necessary
+    while (mgr->pending_count >= mgr->buffer_count)
+    {
+        egui_pfb_manager_wait_last_complete(mgr);
+    }
+
     // Atomically increment pending count
     egui_base_t level = egui_hw_interrupt_disable();
     mgr->pending_count++;
@@ -129,51 +149,23 @@ void egui_pfb_manager_submit(egui_pfb_manager_t *mgr, int16_t x, int16_t y, int1
     }
 }
 
-void egui_pfb_manager_notify_flush_complete(egui_pfb_manager_t *mgr)
-{
-    // Advance flush index
-    mgr->flush_idx = (mgr->flush_idx + 1) % mgr->buffer_count;
-    mgr->pending_count--;
-
-    // Chain next transfer if more pending and bus is not locked
-    if (mgr->pending_count > 0 && !mgr->bus_locked)
-    {
-        egui_pfb_manager_start_flush(mgr);
-    }
-    else
-    {
-        mgr->dma_busy = 0;
-    }
-}
-
 void egui_pfb_manager_wait_all_complete(egui_pfb_manager_t *mgr)
 {
     while (mgr->pending_count > 0 || mgr->dma_busy)
     {
         // Try polling: use wait_draw_complete + manual notify for non-interrupt mode
-        if (mgr->dma_busy)
-        {
-            egui_display_driver_t *drv = egui_display_driver_get();
-            if (drv != NULL && drv->ops->wait_draw_complete != NULL)
-            {
-                drv->ops->wait_draw_complete();
-            }
-            if (mgr->dma_busy)
-            {
-                egui_pfb_manager_notify_flush_complete(mgr);
-            }
-        }
+        egui_pfb_manager_wait_last_complete(mgr);
     }
 }
 
 int egui_pfb_manager_is_async(egui_pfb_manager_t *mgr)
 {
-    if (mgr->buffer_count < 2)
-    {
-        return 0;
-    }
     egui_display_driver_t *drv = egui_display_driver_get();
-    return (drv != NULL && drv->ops->draw_area != NULL) ? 1 : 0;
+    if (drv != NULL && drv->ops->wait_draw_complete != NULL)
+    {
+        return 1;
+    }
+    return 0;
 }
 
 void egui_pfb_manager_swap(egui_pfb_manager_t *mgr)
@@ -188,23 +180,7 @@ void egui_pfb_manager_bus_acquire(egui_pfb_manager_t *mgr)
     mgr->bus_locked = 1;
 
     // Wait for any in-progress DMA transfer to complete
-    if (mgr->dma_busy)
-    {
-        // Use display driver's wait callback (works for both interrupt and polling modes)
-        egui_display_driver_t *drv = egui_display_driver_get();
-        if (drv != NULL && drv->ops->wait_draw_complete != NULL)
-        {
-            drv->ops->wait_draw_complete();
-        }
-
-        // In polling mode (no ISR), dma_busy is still set.
-        // Manually advance the ring buffer.
-        if (mgr->dma_busy)
-        {
-            // notify_flush_complete sees bus_locked, won't chain next transfer
-            egui_pfb_manager_notify_flush_complete(mgr);
-        }
-    }
+    egui_pfb_manager_wait_last_complete(mgr);
 }
 
 void egui_pfb_manager_bus_release(egui_pfb_manager_t *mgr)

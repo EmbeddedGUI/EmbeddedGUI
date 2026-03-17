@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file egui_lcd_st77922.h
  * @brief ST77922 LCD driver
  *
@@ -7,6 +7,8 @@
  * The upstream driver supports multiple interface variants (general SPI, RGB, MIPI/QSPI depending on SoC).
  * Current EGUI implementation only models the generic SPI-style command/RAMWR path,
  * so RGB/MIPI-specific paths are not production-verified here.
+ *
+ * Uses unified Panel IO interface for bus communication.
  */
 
 #ifndef _EGUI_LCD_ST77922_H_
@@ -22,15 +24,17 @@ extern "C" {
  * Initialize ST77922 driver in user-provided storage.
  *
  * @param storage  User-provided storage for driver instance
- * @param spi      SPI bus operations (must not be NULL)
- * @param gpio     GPIO operations (may be NULL if all pins hardware-controlled)
+ * @param io       Panel IO handle for bus communication (must not be NULL)
+ * @param set_rst  RST pin control function (may be NULL if not available)
  *
  * Use this in environments without malloc.
  *
- * Note: set_brightness is NULL by default. Porting layer should set
- * driver->set_brightness after init if backlight control is needed.
+ * Note: Brightness/backlight control is handled externally by the
+ * porting layer or bridge layer.
  */
-void egui_lcd_st77922_init(egui_hal_lcd_driver_t *storage, const egui_bus_spi_ops_t *spi, const egui_lcd_gpio_ops_t *gpio);
+void egui_lcd_st77922_init(egui_hal_lcd_driver_t *storage,
+                            egui_panel_io_handle_t io,
+                            void (*set_rst)(uint8_t level));
 
 #ifdef __cplusplus
 }

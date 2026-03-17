@@ -4,7 +4,7 @@
 #include <stdarg.h>
 
 #include "egui.h"
-#include "egui_driver_bridge.h"
+#include "egui_touch.h"
 #include "egui_hal_sdl_sim.h"
 #include "sdl_port.h"
 
@@ -17,6 +17,17 @@ static egui_hal_lcd_driver_t s_pc_lcd_driver;
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static egui_hal_touch_driver_t s_pc_touch_driver;
 #endif
+
+static egui_display_driver_ops_t port_display_ops = {0};
+
+static egui_display_driver_t port_display_driver = {
+        .ops = &port_display_ops,
+        .physical_width = EGUI_CONFIG_SCEEN_WIDTH,
+        .physical_height = EGUI_CONFIG_SCEEN_HEIGHT,
+        .rotation = EGUI_DISPLAY_ROTATION_0,
+        .brightness = 255,
+        .power_on = 1,
+};
 
 // ============================================================================
 // Platform driver
@@ -186,11 +197,11 @@ void egui_port_init(void)
             .invert_color = 0,
             .mirror_x = 0,
             .mirror_y = 0,
+            .custom_init = NULL,
     };
 
     egui_hal_sdl_lcd_setup(&s_pc_lcd_driver);
-    s_pc_lcd_driver.init(&s_pc_lcd_driver, &lcd_config);
-    egui_display_driver_register(egui_display_driver_from_lcd(&s_pc_lcd_driver));
+    egui_hal_lcd_register(&port_display_driver, &s_pc_lcd_driver, &lcd_config);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     egui_hal_touch_config_t touch_config = {
@@ -202,8 +213,7 @@ void egui_port_init(void)
     };
 
     egui_hal_sdl_touch_setup(&s_pc_touch_driver);
-    s_pc_touch_driver.init(&s_pc_touch_driver, &touch_config);
-    egui_touch_driver_bridge_register(&s_pc_touch_driver);
+    egui_hal_touch_register(&s_pc_touch_driver, &touch_config);
 #endif
 
     egui_platform_register(&pc_platform);

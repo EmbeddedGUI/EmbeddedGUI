@@ -80,10 +80,12 @@ int16_t egui_display_get_width(void)
     {
         return EGUI_CONFIG_SCEEN_WIDTH;
     }
+#if EGUI_CONFIG_SOFTWARE_ROTATION
     if (g_display_driver->rotation == EGUI_DISPLAY_ROTATION_90 || g_display_driver->rotation == EGUI_DISPLAY_ROTATION_270)
     {
         return g_display_driver->physical_height;
     }
+#endif
     return g_display_driver->physical_width;
 }
 
@@ -93,10 +95,12 @@ int16_t egui_display_get_height(void)
     {
         return EGUI_CONFIG_SCEEN_HEIGHT;
     }
+#if EGUI_CONFIG_SOFTWARE_ROTATION
     if (g_display_driver->rotation == EGUI_DISPLAY_ROTATION_90 || g_display_driver->rotation == EGUI_DISPLAY_ROTATION_270)
     {
         return g_display_driver->physical_width;
     }
+#endif
     return g_display_driver->physical_height;
 }
 

@@ -4,6 +4,8 @@
  *
  * ST7796 is a 320x480 TFT LCD controller commonly used in larger displays.
  * Supports SPI interface with 16-bit RGB565 color.
+ *
+ * Uses unified Panel IO interface for bus communication.
  */
 
 #ifndef _EGUI_LCD_ST7796_H_
@@ -19,12 +21,17 @@ extern "C" {
  * Initialize ST7796 driver in user-provided storage.
  *
  * @param storage  User-provided storage for driver instance
- * @param spi      SPI bus operations (must not be NULL)
- * @param gpio     GPIO operations (may be NULL if all pins hardware-controlled)
+ * @param io       Panel IO handle for bus communication (must not be NULL)
+ * @param set_rst  RST pin control function (may be NULL if not available)
  *
  * Use this in environments without malloc.
+ *
+ * Note: Brightness/backlight control is handled externally by the
+ * porting layer or bridge layer.
  */
-void egui_lcd_st7796_init(egui_hal_lcd_driver_t *storage, const egui_bus_spi_ops_t *spi, const egui_lcd_gpio_ops_t *gpio);
+void egui_lcd_st7796_init(egui_hal_lcd_driver_t *storage,
+                             egui_panel_io_handle_t io,
+                             void (*set_rst)(uint8_t level));
 
 #ifdef __cplusplus
 }

@@ -22,8 +22,7 @@ extern "C" {
 /**
  * I2C Bus operations interface
  */
-typedef struct egui_bus_i2c_ops
-{
+typedef struct egui_bus_i2c_ops {
     /**
      * Initialize I2C peripheral.
      * Called once during driver init. May be NULL if already initialized.

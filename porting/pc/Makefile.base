@@ -254,26 +254,14 @@ endif
 
 # mk path for object.
 $(OBJ_MD):
-ifeq ($(OS),Windows_NT)
-	-$(Q)$(MD) $(call FIXPATH, $@) >NUL 2>NUL
-else
 	$(MD_CHECK) $(Q)$(MD) $(call FIXPATH, $@)
-endif
 
 # mk output path.
 $(OUTPUT_PATH):
-ifeq ($(OS),Windows_NT)
-	-$(Q)$(MD) $(call FIXPATH, $@) >NUL 2>NUL
-else
 	$(MD_CHECK) $(Q)$(MD) $(call FIXPATH, $@)
-endif
 
 $(OBJDIR):
-ifeq ($(OS),Windows_NT)
-	-$(Q)$(MD) $(call FIXPATH, $@) >NUL 2>NUL
-else
 	$(MD_CHECK) $(Q)$(MD) $(call FIXPATH, $@)
-endif
 
 $(APP_CONFIG_STAMP): | $(OUTPUT_PATH)
 ifeq ($(OS),Windows_NT)
