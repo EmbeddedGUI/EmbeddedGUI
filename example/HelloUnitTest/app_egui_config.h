@@ -8,8 +8,8 @@ extern "C" {
 
 #define EGUI_CONFIG_DEBUG_LOG_LEVEL EGUI_LOG_IMPL_LEVEL_INF
 
-#define EGUI_CONFIG_DIRTY_AREA_COUNT 2
-#define EGUI_CONFIG_FUNCTION_SUPPORT_KEY 1
+#define EGUI_CONFIG_DIRTY_AREA_COUNT       2
+#define EGUI_CONFIG_FUNCTION_SUPPORT_KEY   1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS 1
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
