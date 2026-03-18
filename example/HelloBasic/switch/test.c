@@ -1,4 +1,5 @@
 #include "egui.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include "uicode.h"
 
@@ -23,6 +24,21 @@ EGUI_VIEW_SWITCH_PARAMS_INIT(switch_m_params, 0, 0, 96, 38, 0);
 // Size L (112x44)
 EGUI_VIEW_SWITCH_PARAMS_INIT(switch_l_params, 0, 0, 112, 44, 1);
 
+#if EGUI_CONFIG_RECORDING_TEST
+static uint8_t runtime_fail_reported;
+
+static void report_runtime_failure(const char *message)
+{
+    if (runtime_fail_reported)
+    {
+        return;
+    }
+
+    runtime_fail_reported = 1;
+    printf("[RUNTIME_CHECK_FAIL] %s\n", message);
+}
+#endif
+
 static void switch_checked_cb(egui_view_t *self, int is_checked)
 {
     EGUI_LOG_INF("Switch checked: %d\n", is_checked);
@@ -30,6 +46,9 @@ static void switch_checked_cb(egui_view_t *self, int is_checked)
 
 void test_init_ui(void)
 {
+#if EGUI_CONFIG_RECORDING_TEST
+    runtime_fail_reported = 0;
+#endif
     // Init grid
     egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
 
@@ -79,19 +98,55 @@ void test_init_ui(void)
 #if EGUI_CONFIG_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
+    static int last_action = -1;
+    int first_call = (action_index != last_action);
+
+    last_action = action_index;
+
     switch (action_index)
     {
     case 0:
+        if (first_call && (switch_xs.is_checked != 0 || switch_s.is_checked != 1 || switch_m.is_checked != 0 || switch_l.is_checked != 1))
+        {
+            report_runtime_failure("switch initial state mismatch");
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, &switch_xs, 1000);
         return true;
     case 1:
+        if (first_call && switch_xs.is_checked != 1)
+        {
+            report_runtime_failure("switch_xs did not toggle on");
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, &switch_s, 1000);
         return true;
     case 2:
+        if (first_call && switch_s.is_checked != 0)
+        {
+            report_runtime_failure("switch_s did not toggle off");
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, &switch_m, 1000);
         return true;
     case 3:
+        if (first_call && switch_m.is_checked != 1)
+        {
+            report_runtime_failure("switch_m did not toggle on");
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, &switch_l, 1000);
+        return true;
+    case 4:
+        if (first_call)
+        {
+            if (switch_l.is_checked != 0)
+            {
+                report_runtime_failure("switch_l did not toggle off");
+            }
+            if (switch_xs.is_checked != 1 || switch_s.is_checked != 0 || switch_m.is_checked != 1 || switch_l.is_checked != 0)
+            {
+                report_runtime_failure("switch final state mismatch");
+            }
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     default:
         return false;

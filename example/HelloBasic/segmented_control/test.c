@@ -1,5 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include "uicode.h"
 
 static egui_view_segmented_control_t segmented_primary;
@@ -13,6 +14,10 @@ static const char *segments_compact[] = {"View", "Warn", "Error"};
 static const char *segment_icons_compact[] = {EGUI_ICON_MS_VISIBILITY, EGUI_ICON_MS_WARNING, EGUI_ICON_MS_ERROR};
 static const char *segments_disabled[] = {"Heart", "Star", "Lock", "Done"};
 static const char *segment_icons_disabled[] = {EGUI_ICON_MS_HEART, EGUI_ICON_MS_STAR, EGUI_ICON_MS_LOCK, EGUI_ICON_MS_DONE};
+
+#if EGUI_CONFIG_RECORDING_TEST
+static uint8_t runtime_fail_reported;
+#endif
 
 EGUI_VIEW_GRIDLAYOUT_PARAMS_INIT(grid_params, 0, 0, 232, 300, 1, EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER);
 EGUI_VIEW_SEGMENTED_CONTROL_PARAMS_INIT(segmented_primary_params, 0, 0, 208, 46, segments_primary, 4);
@@ -106,6 +111,10 @@ static void get_segment_center(egui_view_t *view, uint8_t count, uint8_t index, 
 
 void test_init_ui(void)
 {
+#if EGUI_CONFIG_RECORDING_TEST
+    runtime_fail_reported = 0;
+#endif
+
     egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
 
     egui_view_segmented_control_init_with_params(EGUI_VIEW_OF(&segmented_primary), &segmented_primary_params);
@@ -167,13 +176,33 @@ void test_init_ui(void)
 }
 
 #if EGUI_CONFIG_RECORDING_TEST
+static void report_runtime_failure(const char *message)
+{
+    if (runtime_fail_reported)
+    {
+        return;
+    }
+
+    runtime_fail_reported = 1;
+    printf("[RUNTIME_CHECK_FAIL] %s\n", message);
+}
+
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
+    static int last_action = -1;
+    int first_call = action_index != last_action;
     int x = 0;
     int y = 0;
+
+    last_action = action_index;
+
     switch (action_index)
     {
     case 0:
+        if (first_call && egui_view_segmented_control_get_current_index(EGUI_VIEW_OF(&segmented_primary)) != 1)
+        {
+            report_runtime_failure("segmented_primary initial index mismatch");
+        }
         get_segment_center(EGUI_VIEW_OF(&segmented_primary), 4, 2, 2, 3, &x, &y);
         p_action->type = EGUI_SIM_ACTION_CLICK;
         p_action->x1 = x;
@@ -223,6 +252,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->interval_ms = 260;
         return true;
     case 7:
+        if (first_call && egui_view_segmented_control_get_current_index(EGUI_VIEW_OF(&segmented_compact)) != 0)
+        {
+            report_runtime_failure("segmented_compact final index mismatch");
+        }
         get_segment_center(EGUI_VIEW_OF(&segmented_disabled), 4, 1, 2, 2, &x, &y);
         p_action->type = EGUI_SIM_ACTION_CLICK;
         p_action->x1 = x;
@@ -230,6 +263,18 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->interval_ms = 700;
         return true;
     case 8:
+        if (first_call)
+        {
+            if (egui_view_segmented_control_get_current_index(EGUI_VIEW_OF(&segmented_primary)) != 1)
+            {
+                report_runtime_failure("segmented_primary final index mismatch");
+            }
+            if (egui_view_segmented_control_get_current_index(EGUI_VIEW_OF(&segmented_disabled)) != 3)
+            {
+                report_runtime_failure("segmented_disabled changed while disabled");
+            }
+            recording_request_snapshot();
+        }
         EGUI_SIM_SET_WAIT(p_action, 520);
         return true;
     default:

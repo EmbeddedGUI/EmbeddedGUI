@@ -1,5 +1,7 @@
 #include "egui.h"
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "uicode.h"
 
 // 4 buttons: XS / S / M / L
@@ -28,13 +30,51 @@ static char button_str_s[20] = "Sync";
 static char button_str_m[20] = "Search";
 static char button_str_l[20] = "Settings";
 
+#if EGUI_CONFIG_RECORDING_TEST
+static uint8_t runtime_fail_reported;
+static uint8_t button_click_counts[4];
+
+static void report_runtime_failure(const char *message)
+{
+    if (runtime_fail_reported)
+    {
+        return;
+    }
+
+    runtime_fail_reported = 1;
+    printf("[RUNTIME_CHECK_FAIL] %s\n", message);
+}
+#endif
+
 static void button_click_cb(egui_view_t *self)
 {
+#if EGUI_CONFIG_RECORDING_TEST
+    if (self == EGUI_VIEW_OF(&button_xs))
+    {
+        button_click_counts[0]++;
+    }
+    else if (self == EGUI_VIEW_OF(&button_s))
+    {
+        button_click_counts[1]++;
+    }
+    else if (self == EGUI_VIEW_OF(&button_m))
+    {
+        button_click_counts[2]++;
+    }
+    else if (self == EGUI_VIEW_OF(&button_l))
+    {
+        button_click_counts[3]++;
+    }
+#endif
     EGUI_LOG_INF("Button clicked\n");
 }
 
 void test_init_ui(void)
 {
+#if EGUI_CONFIG_RECORDING_TEST
+    runtime_fail_reported = 0;
+    memset(button_click_counts, 0, sizeof(button_click_counts));
+#endif
     // Init grid
     egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
 
@@ -94,19 +134,55 @@ void test_init_ui(void)
 #if EGUI_CONFIG_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
+    static int last_action = -1;
+    int first_call = (action_index != last_action);
+
+    last_action = action_index;
+
     switch (action_index)
     {
     case 0:
+        if (first_call && (button_click_counts[0] || button_click_counts[1] || button_click_counts[2] || button_click_counts[3]))
+        {
+            report_runtime_failure("button initial click count mismatch");
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, &button_xs, 1000);
         return true;
     case 1:
+        if (first_call && button_click_counts[0] != 1)
+        {
+            report_runtime_failure("button_xs click was not delivered exactly once");
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, &button_s, 1000);
         return true;
     case 2:
+        if (first_call && button_click_counts[1] != 1)
+        {
+            report_runtime_failure("button_s click was not delivered exactly once");
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, &button_m, 1000);
         return true;
     case 3:
+        if (first_call && button_click_counts[2] != 1)
+        {
+            report_runtime_failure("button_m click was not delivered exactly once");
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, &button_l, 1000);
+        return true;
+    case 4:
+        if (first_call)
+        {
+            if (button_click_counts[3] != 1)
+            {
+                report_runtime_failure("button_l click was not delivered exactly once");
+            }
+            if (button_click_counts[0] != 1 || button_click_counts[1] != 1 || button_click_counts[2] != 1 || button_click_counts[3] != 1)
+            {
+                report_runtime_failure("button click coverage incomplete");
+            }
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     default:
         return false;

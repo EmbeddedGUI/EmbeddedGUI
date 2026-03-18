@@ -1,4 +1,5 @@
 #include "egui.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include "uicode.h"
 
@@ -16,6 +17,21 @@ EGUI_VIEW_RADIO_BUTTON_PARAMS_INIT_WITH_TEXT(radio_alerts_params, 0, 0, 188, 36,
 EGUI_VIEW_RADIO_BUTTON_PARAMS_INIT_WITH_TEXT(radio_privacy_params, 0, 0, 196, 42, 0, "Privacy");
 EGUI_VIEW_RADIO_BUTTON_PARAMS_INIT_WITH_TEXT(radio_settings_params, 0, 0, 204, 50, 0, "Settings");
 
+#if EGUI_CONFIG_RECORDING_TEST
+static uint8_t runtime_fail_reported;
+
+static void report_runtime_failure(const char *message)
+{
+    if (runtime_fail_reported)
+    {
+        return;
+    }
+
+    runtime_fail_reported = 1;
+    printf("[RUNTIME_CHECK_FAIL] %s\n", message);
+}
+#endif
+
 static void radio_changed_cb(egui_view_t *self, int index)
 {
     EGUI_LOG_INF("Radio selected index: %d\n", index);
@@ -23,6 +39,9 @@ static void radio_changed_cb(egui_view_t *self, int index)
 
 void test_init_ui(void)
 {
+#if EGUI_CONFIG_RECORDING_TEST
+    runtime_fail_reported = 0;
+#endif
     egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
 
     egui_view_radio_group_init(&radio_group);
@@ -74,19 +93,51 @@ void test_init_ui(void)
 #if EGUI_CONFIG_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
+    static int last_action = -1;
+    int first_call = (action_index != last_action);
+
+    last_action = action_index;
+
     switch (action_index)
     {
     case 0:
+        if (first_call && (!radio_home.is_checked || radio_alerts.is_checked || radio_privacy.is_checked || radio_settings.is_checked))
+        {
+            report_runtime_failure("radio initial state mismatch");
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, &radio_alerts, 1000);
         return true;
     case 1:
+        if (first_call && (radio_home.is_checked || !radio_alerts.is_checked || radio_privacy.is_checked || radio_settings.is_checked))
+        {
+            report_runtime_failure("radio_alerts selection did not commit");
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, &radio_privacy, 1000);
         return true;
     case 2:
+        if (first_call && (radio_home.is_checked || radio_alerts.is_checked || !radio_privacy.is_checked || radio_settings.is_checked))
+        {
+            report_runtime_failure("radio_privacy selection did not commit");
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, &radio_settings, 1000);
         return true;
     case 3:
+        if (first_call && (radio_home.is_checked || radio_alerts.is_checked || radio_privacy.is_checked || !radio_settings.is_checked))
+        {
+            report_runtime_failure("radio_settings selection did not commit");
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, &radio_home, 1000);
+        return true;
+    case 4:
+        if (first_call)
+        {
+            if (!radio_home.is_checked || radio_alerts.is_checked || radio_privacy.is_checked || radio_settings.is_checked)
+            {
+                report_runtime_failure("radio_home selection did not commit");
+            }
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     default:
         return false;

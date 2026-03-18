@@ -80,3 +80,8 @@ INCLUDE += $(EGUI_CODE_INCLUDE)
 EGUI_PORT_ROOT_PATH = porting
 EGUI_PORT_PATH = $(EGUI_PORT_ROOT_PATH)/$(PORT)
 include $(EGUI_PORT_PATH)/build.mk
+
+.PHONY: hello_basic_render_workflow
+
+hello_basic_render_workflow:
+	python scripts/hello_basic_render_workflow.py $(ARGS)

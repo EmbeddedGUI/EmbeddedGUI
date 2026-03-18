@@ -1,5 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include "uicode.h"
 
 // 4 arc sliders: XS / S / M / L
@@ -23,6 +24,10 @@ EGUI_VIEW_ARC_SLIDER_PARAMS_INIT(arc_m_params, 0, 0, 92, 92, 60);
 // Size L (108x108)
 EGUI_VIEW_ARC_SLIDER_PARAMS_INIT(arc_l_params, 0, 0, 108, 108, 80);
 
+#if EGUI_CONFIG_RECORDING_TEST
+static uint8_t runtime_fail_reported;
+#endif
+
 static void on_arc_value_changed(egui_view_t *self, uint8_t value)
 {
     EGUI_LOG_INF("Arc slider value: %d\r\n", value);
@@ -32,6 +37,10 @@ void test_init_ui(void)
 {
     // Init grid
     egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+
+#if EGUI_CONFIG_RECORDING_TEST
+    runtime_fail_reported = 0;
+#endif
 
     // Init all arc sliders
     egui_view_arc_slider_init_with_params(EGUI_VIEW_OF(&arc_xs), &arc_xs_params);
@@ -69,8 +78,24 @@ void test_init_ui(void)
 }
 
 #if EGUI_CONFIG_RECORDING_TEST
+static void report_runtime_failure(const char *message)
+{
+    if (runtime_fail_reported)
+    {
+        return;
+    }
+
+    runtime_fail_reported = 1;
+    printf("[RUNTIME_CHECK_FAIL] %s\n", message);
+}
+
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
+    static int last_action = -1;
+    int first_call = action_index != last_action;
+
+    last_action = action_index;
+
     switch (action_index)
     {
     case 0:
@@ -100,6 +125,29 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         egui_sim_get_view_pos(&arc_l, 0.8f, 0.2f, &p_action->x2, &p_action->y2);
         p_action->steps = 15;
         p_action->interval_ms = 1000;
+        return true;
+    case 4:
+        if (first_call)
+        {
+            if (egui_view_arc_slider_get_value(EGUI_VIEW_OF(&arc_xs)) == 20)
+            {
+                report_runtime_failure("arc_xs value did not change after drag");
+            }
+            if (egui_view_arc_slider_get_value(EGUI_VIEW_OF(&arc_s)) == 40)
+            {
+                report_runtime_failure("arc_s value did not change after drag");
+            }
+            if (egui_view_arc_slider_get_value(EGUI_VIEW_OF(&arc_m)) == 60)
+            {
+                report_runtime_failure("arc_m value did not change after drag");
+            }
+            if (egui_view_arc_slider_get_value(EGUI_VIEW_OF(&arc_l)) == 80)
+            {
+                report_runtime_failure("arc_l value did not change after drag");
+            }
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 320);
         return true;
     default:
         return false;

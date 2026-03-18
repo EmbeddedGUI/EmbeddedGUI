@@ -1,5 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include "uicode.h"
 
 // 4 rollers: XS / S / M / L
@@ -25,6 +26,10 @@ EGUI_VIEW_ROLLER_PARAMS_INIT(roller_m_params, 0, 0, 140, 70, weekdays, 5, 2);
 // Size L (170x86)
 EGUI_VIEW_ROLLER_PARAMS_INIT(roller_l_params, 0, 0, 170, 86, weekdays, 5, 3);
 
+#if EGUI_CONFIG_RECORDING_TEST
+static uint8_t runtime_fail_reported;
+#endif
+
 static void on_roller_selected(egui_view_t *self, uint8_t index)
 {
     EGUI_LOG_INF("Roller selected: %s (index=%d)\r\n", weekdays[index], index);
@@ -34,6 +39,10 @@ void test_init_ui(void)
 {
     // Init grid
     egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+
+#if EGUI_CONFIG_RECORDING_TEST
+    runtime_fail_reported = 0;
+#endif
 
     // Init all rollers
     egui_view_roller_init_with_params(EGUI_VIEW_OF(&roller_xs), &roller_xs_params);
@@ -71,8 +80,24 @@ void test_init_ui(void)
 }
 
 #if EGUI_CONFIG_RECORDING_TEST
+static void report_runtime_failure(const char *message)
+{
+    if (runtime_fail_reported)
+    {
+        return;
+    }
+
+    runtime_fail_reported = 1;
+    printf("[RUNTIME_CHECK_FAIL] %s\n", message);
+}
+
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
+    static int last_action = -1;
+    int first_call = action_index != last_action;
+
+    last_action = action_index;
+
     switch (action_index)
     {
     case 0:
@@ -102,6 +127,29 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         egui_sim_get_view_pos(&roller_l, 0.5f, 0.8f, &p_action->x2, &p_action->y2);
         p_action->steps = 10;
         p_action->interval_ms = 1000;
+        return true;
+    case 4:
+        if (first_call)
+        {
+            if (egui_view_roller_get_current_index(EGUI_VIEW_OF(&roller_xs)) == 0)
+            {
+                report_runtime_failure("roller_xs index did not change after drag");
+            }
+            if (egui_view_roller_get_current_index(EGUI_VIEW_OF(&roller_s)) == 1)
+            {
+                report_runtime_failure("roller_s index did not change after drag");
+            }
+            if (egui_view_roller_get_current_index(EGUI_VIEW_OF(&roller_m)) == 2)
+            {
+                report_runtime_failure("roller_m index did not change after drag");
+            }
+            if (egui_view_roller_get_current_index(EGUI_VIEW_OF(&roller_l)) == 3)
+            {
+                report_runtime_failure("roller_l index did not change after drag");
+            }
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 320);
         return true;
     default:
         return false;

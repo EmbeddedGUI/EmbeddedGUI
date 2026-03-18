@@ -1,5 +1,7 @@
 #include "egui.h"
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include "uicode.h"
 
 // Layout container
@@ -41,6 +43,10 @@ EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_button, &bg_btn_params);
 #define BUTTON_HEIGHT    30
 
 static char result_str[64] = "";
+
+#if EGUI_CONFIG_RECORDING_TEST
+static uint8_t runtime_fail_reported;
+#endif
 
 static void on_submit(egui_view_t *self, const char *text)
 {
@@ -88,6 +94,10 @@ static void textinput_focus_changed(egui_view_t *self, int is_focused)
 
 void test_init_ui(void)
 {
+#if EGUI_CONFIG_RECORDING_TEST
+    runtime_fail_reported = 0;
+#endif
+
     // Init container
     egui_view_linearlayout_init(EGUI_VIEW_OF(&container));
     egui_view_set_position(EGUI_VIEW_OF(&container), 0, 200);
@@ -170,18 +180,74 @@ void test_init_ui(void)
 }
 
 #if EGUI_CONFIG_RECORDING_TEST
+static void report_runtime_failure(const char *message)
+{
+    if (runtime_fail_reported)
+    {
+        return;
+    }
+
+    runtime_fail_reported = 1;
+    printf("[RUNTIME_CHECK_FAIL] %s\n", message);
+}
+
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
+    static int last_action = -1;
+    int first_call = action_index != last_action;
+
+    last_action = action_index;
+
     switch (action_index)
     {
     case 0: // click textinput to focus and show keyboard
-        EGUI_SIM_SET_CLICK_VIEW(p_action, &textinput_1, 1500);
+        EGUI_SIM_SET_CLICK_VIEW(p_action, &textinput_1, 400);
         return true;
     case 1: // wait to show keyboard state
-        EGUI_SIM_SET_WAIT(p_action, 1500);
+        if (first_call)
+        {
+            if (keyboard.target != EGUI_VIEW_OF(&textinput_1))
+            {
+                report_runtime_failure("keyboard did not target textinput after focus");
+            }
+            if (!EGUI_VIEW_OF(&keyboard)->is_visible)
+            {
+                report_runtime_failure("keyboard did not become visible after focus");
+            }
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
-    case 2: // click submit button
-        EGUI_SIM_SET_CLICK_VIEW(p_action, &button_submit, 1000);
+    case 2: // type 'h'
+        EGUI_SIM_SET_CLICK_VIEW(p_action, &keyboard.keys[15], 220);
+        return true;
+    case 3: // type 'i'
+        EGUI_SIM_SET_CLICK_VIEW(p_action, &keyboard.keys[7], 220);
+        return true;
+    case 4: // wait until text is committed
+        if (first_call)
+        {
+            if (strcmp(egui_view_textinput_get_text(EGUI_VIEW_OF(&textinput_1)), "hi") != 0)
+            {
+                report_runtime_failure("textinput did not receive keyboard input");
+            }
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
+        return true;
+    case 5: // click submit button
+        EGUI_SIM_SET_CLICK_VIEW(p_action, &button_submit, 320);
+        return true;
+    case 6:
+        if (first_call)
+        {
+            if (strcmp(result_str, "Submitted: hi") != 0)
+            {
+                report_runtime_failure("submit did not update result text");
+            }
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     default:
         return false;

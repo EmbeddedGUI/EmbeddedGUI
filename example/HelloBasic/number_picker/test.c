@@ -1,5 +1,6 @@
 #include "egui.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include "uicode.h"
 
 // 4 number pickers: XS / S / M / L
@@ -23,6 +24,10 @@ EGUI_VIEW_NUMBER_PICKER_PARAMS_INIT(picker_m_params, 0, 0, 60, 100, 50, 0, 100);
 // Size L (80x120)
 EGUI_VIEW_NUMBER_PICKER_PARAMS_INIT(picker_l_params, 0, 0, 80, 120, 80, 0, 100);
 
+#if EGUI_CONFIG_RECORDING_TEST
+static uint8_t runtime_fail_reported;
+#endif
+
 static void picker_value_changed_cb(egui_view_t *self, int16_t value)
 {
     EGUI_LOG_INF("NumberPicker value: %d\n", value);
@@ -32,6 +37,10 @@ void test_init_ui(void)
 {
     // Init grid
     egui_view_gridlayout_init_with_params(EGUI_VIEW_OF(&grid), &grid_params);
+
+#if EGUI_CONFIG_RECORDING_TEST
+    runtime_fail_reported = 0;
+#endif
 
     // Init all pickers
     egui_view_number_picker_init_with_params(EGUI_VIEW_OF(&picker_xs), &picker_xs_params);
@@ -85,8 +94,24 @@ void test_init_ui(void)
 }
 
 #if EGUI_CONFIG_RECORDING_TEST
+static void report_runtime_failure(const char *message)
+{
+    if (runtime_fail_reported)
+    {
+        return;
+    }
+
+    runtime_fail_reported = 1;
+    printf("[RUNTIME_CHECK_FAIL] %s\n", message);
+}
+
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
+    static int last_action = -1;
+    int first_call = action_index != last_action;
+
+    last_action = action_index;
+
     switch (action_index)
     {
     case 0:
@@ -116,6 +141,29 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         egui_sim_get_view_pos(&picker_l, 0.5f, 0.8f, &p_action->x2, &p_action->y2);
         p_action->steps = 10;
         p_action->interval_ms = 1000;
+        return true;
+    case 4:
+        if (first_call)
+        {
+            if (egui_view_number_picker_get_value(EGUI_VIEW_OF(&picker_xs)) == 10)
+            {
+                report_runtime_failure("picker_xs value did not change after drag");
+            }
+            if (egui_view_number_picker_get_value(EGUI_VIEW_OF(&picker_s)) == 30)
+            {
+                report_runtime_failure("picker_s value did not change after drag");
+            }
+            if (egui_view_number_picker_get_value(EGUI_VIEW_OF(&picker_m)) == 50)
+            {
+                report_runtime_failure("picker_m value did not change after drag");
+            }
+            if (egui_view_number_picker_get_value(EGUI_VIEW_OF(&picker_l)) == 80)
+            {
+                report_runtime_failure("picker_l value did not change after drag");
+            }
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 320);
         return true;
     default:
         return false;
