@@ -17,6 +17,7 @@
 #include "test/test_alert_banner.h"
 #include "test/test_annotated_scroll_bar.h"
 #include "test/test_badge_group.h"
+#include "test/test_combobox.h"
 #include "test/test_breadcrumb_bar.h"
 #include "test/test_view_layer.h"
 #include "test/test_calendar_view.h"
@@ -87,6 +88,7 @@ void uicode_create_ui(void)
     test_dirty_region_run();
     test_annotated_scroll_bar_run();
     test_badge_group_run();
+    test_combobox_run();
     test_breadcrumb_bar_run();
     test_view_layer_run();
     test_calendar_view_run();

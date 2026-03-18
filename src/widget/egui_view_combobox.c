@@ -146,6 +146,31 @@ static uint8_t egui_view_combobox_get_visible_count_for_height(const egui_view_c
     return fit_count;
 }
 
+static egui_dim_t egui_view_combobox_get_available_bottom(egui_view_t *self)
+{
+    egui_dim_t available_bottom = EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_view_t *parent = (egui_view_t *)self->parent;
+
+    while (parent != NULL)
+    {
+        egui_dim_t parent_bottom = parent->region_screen.location.y + parent->padding.top;
+
+        if (parent->region_screen.size.height > parent->padding.top + parent->padding.bottom)
+        {
+            parent_bottom += parent->region_screen.size.height - parent->padding.top - parent->padding.bottom;
+        }
+
+        if (parent_bottom < available_bottom)
+        {
+            available_bottom = parent_bottom;
+        }
+
+        parent = (egui_view_t *)parent->parent;
+    }
+
+    return available_bottom;
+}
+
 static uint8_t egui_view_combobox_get_expand_fit_count(egui_view_t *self, const egui_view_combobox_t *local)
 {
     uint8_t max_visible_count = egui_view_combobox_get_max_visible_count(local);
@@ -154,14 +179,12 @@ static uint8_t egui_view_combobox_get_expand_fit_count(egui_view_t *self, const 
         return 0;
     }
 
-    egui_dim_t available_height = EGUI_CONFIG_SCEEN_HEIGHT;
-    if (self->region_screen.location.y < available_height)
+    egui_dim_t available_bottom = egui_view_combobox_get_available_bottom(self);
+    egui_dim_t available_height = 0;
+
+    if (self->region_screen.location.y < available_bottom)
     {
-        available_height -= self->region_screen.location.y;
-    }
-    else
-    {
-        available_height = 0;
+        available_height = available_bottom - self->region_screen.location.y;
     }
 
     return egui_view_combobox_get_visible_count_for_height(local, available_height, max_visible_count);

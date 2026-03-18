@@ -186,7 +186,9 @@ void egui_input_polling_work(void)
         }
         else if (!pressed && egui_touch_prev_pressed)
         {
-            egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_UP, tx, ty);
+            // Some ports only report coordinates while pressed. Reuse the last pressed
+            // location for ACTION_UP so release hit-testing stays stable.
+            egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_UP, egui_touch_prev_x, egui_touch_prev_y);
         }
         egui_touch_prev_pressed = pressed;
         egui_touch_prev_x = tx;
