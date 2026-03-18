@@ -1,8 +1,44 @@
+#include <string.h>
+
 #include "egui.h"
 #include "test/egui_test.h"
 #include "test_view.h"
 
 static egui_view_t test_view;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+static int g_view_click_count;
+#endif
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+static void test_view_click_cb(egui_view_t *self)
+{
+    EGUI_UNUSED(self);
+    g_view_click_count++;
+}
+
+static void test_view_layout_rect(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
+{
+    egui_region_t region;
+
+    region.location.x = x;
+    region.location.y = y;
+    region.size.width = width;
+    region.size.height = height;
+    egui_view_layout(&test_view, &region);
+    egui_region_copy(&test_view.region_screen, &region);
+}
+
+static int test_view_send_touch(uint8_t type, egui_dim_t x, egui_dim_t y)
+{
+    egui_motion_event_t event;
+
+    memset(&event, 0, sizeof(event));
+    event.type = type;
+    event.location.x = x;
+    event.location.y = y;
+    return test_view.api->dispatch_touch_event(&test_view, &event);
+}
+#endif
 
 static void test_view_init_defaults(void)
 {
@@ -126,6 +162,32 @@ static void test_view_margin(void)
     EGUI_TEST_ASSERT_EQUAL_INT(5, test_view.margin.bottom);
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+static void test_view_click_requires_release_inside(void)
+{
+    egui_view_init(&test_view);
+    test_view_layout_rect(10, 20, 100, 40);
+    egui_view_set_on_click_listener(&test_view, test_view_click_cb);
+    g_view_click_count = 0;
+
+    EGUI_TEST_ASSERT_TRUE(test_view_send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, 20, 30));
+    EGUI_TEST_ASSERT_TRUE(test_view.is_pressed);
+
+    EGUI_TEST_ASSERT_TRUE(test_view_send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, 160, 30));
+    EGUI_TEST_ASSERT_FALSE(test_view.is_pressed);
+
+    EGUI_TEST_ASSERT_TRUE(test_view_send_touch(EGUI_MOTION_EVENT_ACTION_UP, 160, 30));
+    EGUI_TEST_ASSERT_FALSE(test_view.is_pressed);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_view_click_count);
+
+    EGUI_TEST_ASSERT_TRUE(test_view_send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, 20, 30));
+    EGUI_TEST_ASSERT_TRUE(test_view_send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, 24, 34));
+    EGUI_TEST_ASSERT_TRUE(test_view.is_pressed);
+    EGUI_TEST_ASSERT_TRUE(test_view_send_touch(EGUI_MOTION_EVENT_ACTION_UP, 24, 34));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_view_click_count);
+}
+#endif
+
 void test_view_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(view);
@@ -140,6 +202,9 @@ void test_view_run(void)
     EGUI_TEST_RUN(test_view_alpha);
     EGUI_TEST_RUN(test_view_padding);
     EGUI_TEST_RUN(test_view_margin);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    EGUI_TEST_RUN(test_view_click_requires_release_inside);
+#endif
 
     EGUI_TEST_SUITE_END();
 }

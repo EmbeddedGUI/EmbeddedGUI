@@ -597,6 +597,7 @@ void egui_view_combobox_on_draw(egui_view_t *self)
 int egui_view_combobox_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
+    int is_inside = egui_region_pt_in_rect(&self->region_screen, event->location.x, event->location.y);
 
     if (self->is_enable == false || (local->items == NULL && local->item_icons == NULL) || local->item_count == 0)
     {
@@ -605,8 +606,9 @@ int egui_view_combobox_on_touch_event(egui_view_t *self, egui_motion_event_t *ev
 
     if (event->type == EGUI_MOTION_EVENT_ACTION_DOWN)
     {
+        egui_view_set_pressed(self, is_inside);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-        if (self->is_focusable)
+        if (is_inside && self->is_focusable)
         {
             egui_view_request_focus(self);
         }
@@ -614,8 +616,24 @@ int egui_view_combobox_on_touch_event(egui_view_t *self, egui_motion_event_t *ev
         return 1;
     }
 
+    if (event->type == EGUI_MOTION_EVENT_ACTION_MOVE)
+    {
+        if (self->is_pressed != is_inside)
+        {
+            egui_view_set_pressed(self, is_inside);
+        }
+        return 1;
+    }
+
     if (event->type == EGUI_MOTION_EVENT_ACTION_UP)
     {
+        int was_pressed = self->is_pressed;
+        egui_view_set_pressed(self, false);
+        if (!was_pressed || !is_inside)
+        {
+            return 1;
+        }
+
         egui_dim_t local_y = event->location.y - self->region_screen.location.y;
 
         if (local->is_expanded)
@@ -643,6 +661,10 @@ int egui_view_combobox_on_touch_event(egui_view_t *self, egui_motion_event_t *ev
         {
             egui_view_combobox_expand(self);
         }
+    }
+    else if (event->type == EGUI_MOTION_EVENT_ACTION_CANCEL)
+    {
+        egui_view_set_pressed(self, false);
     }
 
     return 1;

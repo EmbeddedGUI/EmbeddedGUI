@@ -307,6 +307,35 @@ void egui_view_menu_on_draw(egui_view_t *self)
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+static int8_t egui_view_menu_get_hit_index(egui_view_t *self, egui_view_menu_t *local, egui_dim_t touch_x, egui_dim_t touch_y)
+{
+    const egui_view_menu_page_t *page = &local->pages[local->current_page];
+
+    if (touch_x < 0 || touch_y < 0 || touch_x >= self->region_screen.size.width || touch_y >= self->region_screen.size.height)
+    {
+        return EGUI_VIEW_MENU_PRESSED_NONE;
+    }
+
+    if (touch_y < local->header_height)
+    {
+        if (local->stack_depth > 0 && touch_x < local->header_height)
+        {
+            return EGUI_VIEW_MENU_PRESSED_BACK;
+        }
+        return EGUI_VIEW_MENU_PRESSED_NONE;
+    }
+
+    {
+        int8_t idx = (int8_t)((touch_y - local->header_height) / local->item_height);
+        if (idx >= 0 && idx < (int8_t)page->item_count)
+        {
+            return idx;
+        }
+    }
+
+    return EGUI_VIEW_MENU_PRESSED_NONE;
+}
+
 int egui_view_menu_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_menu_t);
@@ -319,45 +348,35 @@ int egui_view_menu_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
     const egui_view_menu_page_t *page = &local->pages[local->current_page];
     egui_dim_t touch_x = event->location.x - self->region_screen.location.x;
     egui_dim_t touch_y = event->location.y - self->region_screen.location.y;
-    egui_dim_t hdr_h = local->header_height;
-    egui_dim_t item_h = local->item_height;
+    int8_t hit_index = egui_view_menu_get_hit_index(self, local, touch_x, touch_y);
 
     switch (event->type)
     {
     case EGUI_MOTION_EVENT_ACTION_DOWN:
     {
-        // Check if touch is in header area (back button)
-        if (touch_y < hdr_h && local->stack_depth > 0 && touch_x < hdr_h)
+        if (local->pressed_index != hit_index)
         {
-            local->pressed_index = EGUI_VIEW_MENU_PRESSED_BACK;
+            local->pressed_index = hit_index;
+            egui_view_invalidate(self);
         }
-        else if (touch_y >= hdr_h)
+        break;
+    }
+    case EGUI_MOTION_EVENT_ACTION_MOVE:
+    {
+        if (local->pressed_index != hit_index)
         {
-            // Check which item was pressed
-            int8_t idx = (int8_t)((touch_y - hdr_h) / item_h);
-            if (idx >= 0 && idx < (int8_t)page->item_count)
-            {
-                local->pressed_index = idx;
-            }
-            else
-            {
-                local->pressed_index = EGUI_VIEW_MENU_PRESSED_NONE;
-            }
+            local->pressed_index = hit_index;
+            egui_view_invalidate(self);
         }
-        else
-        {
-            local->pressed_index = EGUI_VIEW_MENU_PRESSED_NONE;
-        }
-        egui_view_invalidate(self);
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_UP:
     {
-        if (local->pressed_index == EGUI_VIEW_MENU_PRESSED_BACK)
+        if (local->pressed_index == EGUI_VIEW_MENU_PRESSED_BACK && hit_index == EGUI_VIEW_MENU_PRESSED_BACK)
         {
             egui_view_menu_go_back(self);
         }
-        else if (local->pressed_index >= 0 && local->pressed_index < (int8_t)page->item_count)
+        else if (local->pressed_index >= 0 && local->pressed_index < (int8_t)page->item_count && local->pressed_index == hit_index)
         {
             const egui_view_menu_item_t *item = &page->items[local->pressed_index];
             if (item->sub_page_index != EGUI_VIEW_MENU_ITEM_LEAF)

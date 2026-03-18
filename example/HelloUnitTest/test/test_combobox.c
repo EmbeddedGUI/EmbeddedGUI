@@ -266,6 +266,46 @@ static void test_combobox_expanded_dropdown_stays_clickable_over_sibling(void)
     EGUI_TEST_ASSERT_EQUAL_INT(1, g_last_selected);
 }
 
+static void test_combobox_release_outside_does_not_expand_or_commit_selection(void)
+{
+    egui_dim_t x = 0;
+    egui_dim_t y = 0;
+    egui_dim_t outside_x = 0;
+    egui_dim_t outside_y = 0;
+
+    setup_combobox_in_parent();
+    get_header_center(&x, &y);
+    outside_x = EGUI_VIEW_OF(&test_box)->region_screen.location.x + EGUI_VIEW_OF(&test_box)->region_screen.size.width + 40;
+    outside_y = y;
+
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, x, y));
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, outside_x, outside_y));
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_UP, outside_x, outside_y));
+    sync_layout();
+
+    EGUI_TEST_ASSERT_FALSE(egui_view_combobox_is_expanded(EGUI_VIEW_OF(&test_box)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_combobox_get_current_index(EGUI_VIEW_OF(&test_box)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_selected_count);
+
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, x, y));
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_UP, x, y));
+    sync_layout();
+    EGUI_TEST_ASSERT_TRUE(egui_view_combobox_is_expanded(EGUI_VIEW_OF(&test_box)));
+
+    get_item_center(1, &x, &y);
+    outside_x = EGUI_VIEW_OF(&test_box)->region_screen.location.x + EGUI_VIEW_OF(&test_box)->region_screen.size.width + 40;
+    outside_y = EGUI_VIEW_OF(&test_box)->region_screen.location.y + EGUI_VIEW_OF(&test_box)->region_screen.size.height + 20;
+
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, x, y));
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, outside_x, outside_y));
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_UP, outside_x, outside_y));
+    sync_layout();
+
+    EGUI_TEST_ASSERT_TRUE(egui_view_combobox_is_expanded(EGUI_VIEW_OF(&test_box)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_combobox_get_current_index(EGUI_VIEW_OF(&test_box)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_selected_count);
+}
+
 static void test_combobox_input_polling_reuses_last_pressed_coords_for_release(void)
 {
     static const uint8_t touch_pressed[] = {1, 0};
@@ -317,6 +357,7 @@ void test_combobox_run(void)
     EGUI_TEST_SUITE_BEGIN(combobox);
     EGUI_TEST_RUN(test_combobox_expand_clamps_to_parent_height_and_keeps_selection_clickable);
     EGUI_TEST_RUN(test_combobox_expanded_dropdown_stays_clickable_over_sibling);
+    EGUI_TEST_RUN(test_combobox_release_outside_does_not_expand_or_commit_selection);
     EGUI_TEST_RUN(test_combobox_input_polling_reuses_last_pressed_coords_for_release);
     EGUI_TEST_SUITE_END();
 }

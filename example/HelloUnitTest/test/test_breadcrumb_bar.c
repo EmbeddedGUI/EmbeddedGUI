@@ -33,8 +33,11 @@ static void on_bar_click(egui_view_t *self)
 
 static void setup_bar(void)
 {
+    egui_region_t region = {{0, 0}, {196, 48}};
+
     egui_view_breadcrumb_bar_init(EGUI_VIEW_OF(&test_bar));
-    egui_view_set_size(EGUI_VIEW_OF(&test_bar), 196, 48);
+    egui_view_layout(EGUI_VIEW_OF(&test_bar), &region);
+    egui_region_copy(&EGUI_VIEW_OF(&test_bar)->region_screen, &region);
     egui_view_breadcrumb_bar_set_snapshots(EGUI_VIEW_OF(&test_bar), g_snapshots, 3);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&test_bar), on_bar_click);
     click_count = 0;

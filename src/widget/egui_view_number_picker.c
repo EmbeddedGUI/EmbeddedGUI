@@ -176,6 +176,22 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
 int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_number_picker_t);
+    egui_dim_t local_y = event->location.y - self->region_screen.location.y;
+    egui_dim_t third_h = self->region.size.height / 3;
+    int is_inside = egui_region_pt_in_rect(&self->region_screen, event->location.x, event->location.y);
+    int8_t hit_zone = 0;
+
+    if (is_inside)
+    {
+        if (local_y < third_h)
+        {
+            hit_zone = 1;
+        }
+        else if (local_y >= third_h * 2)
+        {
+            hit_zone = -1;
+        }
+    }
 
     if (self->is_enable == false)
     {
@@ -186,32 +202,35 @@ int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_
     {
     case EGUI_MOTION_EVENT_ACTION_DOWN:
     {
-        egui_view_set_pressed(self, true);
-        // Record which zone is being pressed for visual feedback
-        {
-            egui_dim_t local_y = event->location.y - self->region_screen.location.y;
-            egui_dim_t th = self->region.size.height / 3;
-            if (local_y < th)
-                local->pressed_zone = 1;
-            else if (local_y >= th * 2)
-                local->pressed_zone = -1;
-            else
-                local->pressed_zone = 0;
-        }
+        egui_view_set_pressed(self, hit_zone != 0);
+        local->pressed_zone = hit_zone;
         egui_view_invalidate(self);
+        break;
+    }
+    case EGUI_MOTION_EVENT_ACTION_MOVE:
+    {
+        int should_press = hit_zone != 0;
+        if (self->is_pressed != should_press || local->pressed_zone != hit_zone)
+        {
+            egui_view_set_pressed(self, should_press);
+            local->pressed_zone = hit_zone;
+            egui_view_invalidate(self);
+        }
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_UP:
     {
+        int8_t pressed_zone = local->pressed_zone;
         egui_view_set_pressed(self, false);
         local->pressed_zone = 0;
         egui_view_invalidate(self);
 
-        // Determine which third was tapped
-        egui_dim_t local_y = event->location.y - self->region_screen.location.y;
-        egui_dim_t third_h = self->region.size.height / 3;
+        if (pressed_zone != hit_zone)
+        {
+            break;
+        }
 
-        if (local_y < third_h)
+        if (hit_zone == 1)
         {
             // Top area: increment
             int16_t new_val = local->value + local->step;
@@ -221,7 +240,7 @@ int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_
             }
             egui_view_number_picker_set_value(self, new_val);
         }
-        else if (local_y >= third_h * 2)
+        else if (hit_zone == -1)
         {
             // Bottom area: decrement
             int16_t new_val = local->value - local->step;

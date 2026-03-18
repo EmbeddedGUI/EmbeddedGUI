@@ -334,10 +334,11 @@ int egui_view_perform_click(egui_view_t *self)
 int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     // EGUI_LOG_DBG("egui_view_on_touch_event id: 0x%x, %s\n", self->id, egui_motion_event_string(event->type));
+    int is_inside = egui_region_pt_in_rect(&self->region_screen, event->location.x, event->location.y);
 
     if (self->is_enable == false)
     {
-        if (event->type == EGUI_MOTION_EVENT_ACTION_UP)
+        if (event->type == EGUI_MOTION_EVENT_ACTION_UP || event->type == EGUI_MOTION_EVENT_ACTION_CANCEL)
         {
             egui_view_set_pressed(self, false);
         }
@@ -351,17 +352,20 @@ int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
         switch (event->type)
         {
         case EGUI_MOTION_EVENT_ACTION_UP:
+            if (self->is_pressed && is_inside)
+            {
+                egui_view_perform_click(self);
+            }
             egui_view_set_pressed(self, false);
-            egui_view_perform_click(self);
             break;
         case EGUI_MOTION_EVENT_ACTION_DOWN:
-            egui_view_set_pressed(self, true);
+            egui_view_set_pressed(self, is_inside);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-            if (self->is_focusable)
+            if (is_inside && self->is_focusable)
             {
                 egui_view_request_focus(self);
             }
-            else if (!self->is_no_focus_clear)
+            else if (is_inside && !self->is_no_focus_clear)
             {
                 // Clear focus when a non-focusable widget is touched
                 // (e.g. dismiss on-screen keyboard when tapping other controls).
@@ -371,6 +375,10 @@ int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 #endif
             break;
         case EGUI_MOTION_EVENT_ACTION_MOVE:
+            if (self->is_pressed != is_inside)
+            {
+                egui_view_set_pressed(self, is_inside);
+            }
             break;
         case EGUI_MOTION_EVENT_ACTION_CANCEL:
             egui_view_set_pressed(self, false);

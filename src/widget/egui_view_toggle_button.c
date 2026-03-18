@@ -269,6 +269,7 @@ void egui_view_toggle_button_on_draw(egui_view_t *self)
 int egui_view_toggle_button_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+    int is_inside = egui_region_pt_in_rect(&self->region_screen, event->location.x, event->location.y);
 
     if (self->is_enable == false)
     {
@@ -279,13 +280,25 @@ int egui_view_toggle_button_on_touch_event(egui_view_t *self, egui_motion_event_
     {
     case EGUI_MOTION_EVENT_ACTION_DOWN:
     {
-        egui_view_set_pressed(self, true);
+        egui_view_set_pressed(self, is_inside);
+        break;
+    }
+    case EGUI_MOTION_EVENT_ACTION_MOVE:
+    {
+        if (self->is_pressed != is_inside)
+        {
+            egui_view_set_pressed(self, is_inside);
+        }
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_UP:
     {
+        int was_pressed = self->is_pressed;
         egui_view_set_pressed(self, false);
-        egui_view_toggle_button_set_toggled(self, !local->is_toggled);
+        if (was_pressed && is_inside)
+        {
+            egui_view_toggle_button_set_toggled(self, !local->is_toggled);
+        }
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_CANCEL:
