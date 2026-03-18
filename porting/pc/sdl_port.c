@@ -29,11 +29,10 @@
 #if EGUI_CONFIG_COLOR_16_SWAP == 0
 #define RGB565_2_RGB888(color) (((color & 0xF800) << 8) + ((color & 0x7E0) << 5) + ((color & 0x1F) << 3))
 #else
+// After bulk swap at flush, tft_fb stores byte-swapped RGB565:
+// bits[7:3]=R5, bits[12:8]=B5, bits[2:0]=G_high3, bits[15:13]=G_low3
 #define RGB565_2_RGB888(_c)                                                                                                                                    \
-    ({                                                                                                                                                         \
-        egui_color_rgb565_t _tmp = *(egui_color_rgb565_t *)&(_c);                                                                                              \
-        ((_tmp.color.red << (16 + 3)) + (((_tmp.color.green_h << 3) + _tmp.color.green_l) << (8 + 2)) + (_tmp.color.blue << 3));                               \
-    })
+    ((((uint32_t)(_c) >> 3) & 0x1FU) << 19 | ((((uint32_t)(_c) & 0x7U) << 3 | ((uint32_t)(_c) >> 13)) & 0x3FU) << 10 | (((uint32_t)(_c) >> 8) & 0x1FU) << 3)
 #endif
 
 #define RGB888_2_monochrome(color) ((color) ? 0 : 1)
@@ -41,7 +40,12 @@
 #if EGUI_CONFIG_COLOR_16_SWAP == 0
 #define RGB888_2_RGB565(color) ((((color & 0xff0000) >> 19) << 11) + (((color & 0xff00) >> 10) << 5) + (((color & 0xff) >> 3)))
 #else
-#define RGB888_2_RGB565(color) (EGUI_COLOR_MAKE(color & 0xff0000, color & 0xff00, color & 0xff)).full
+// Produce byte-swapped RGB565: compute normal value then swap bytes
+#define RGB888_2_RGB565(_c)                                                                                                                                    \
+    ({                                                                                                                                                         \
+        uint16_t _n = (uint16_t)(((((_c) & 0xFF0000U) >> 19U) << 11U) | ((((_c) & 0xFF00U) >> 10U) << 5U) | (((_c) & 0xFFU) >> 3U));                           \
+        (uint16_t)((_n >> 8) | (_n << 8));                                                                                                                     \
+    })
 #endif
 
 // 1 8(233) 16(565) 24(888) 32(8888)
@@ -80,7 +84,8 @@ static bool sdl_mouse_left_down = false;
 static SDL_mutex *sdl_touch_mutex = NULL;
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-typedef struct sdl_touch_event {
+typedef struct sdl_touch_event
+{
     uint8_t pressed;
     int16_t x;
     int16_t y;
@@ -835,11 +840,18 @@ void snap_shot(const char *file_name)
 #if VT_SDL_NATIVE_RGB565
     for (int i = 0; i < VT_WIDTH * VT_HEIGHT; i++)
     {
+#if EGUI_CONFIG_COLOR_16_SWAP == 1
+        uint16_t v = tft_fb[i];
+        rgb_data[i * 3 + 0] = (uint8_t)(((v >> 3) & 0x1FU) << 3);
+        rgb_data[i * 3 + 1] = (uint8_t)((((v & 0x7U) << 3) | ((v >> 13) & 0x7U)) << 2);
+        rgb_data[i * 3 + 2] = (uint8_t)(((v >> 8) & 0x1FU) << 3);
+#else
         egui_color_rgb565_t c;
         c.full = tft_fb[i];
         rgb_data[i * 3 + 0] = c.color.red << 3;
         rgb_data[i * 3 + 1] = c.color.green << 2;
         rgb_data[i * 3 + 2] = c.color.blue << 3;
+#endif
     }
 #else
     unsigned int *p_raw_data = (unsigned int *)tft_fb;

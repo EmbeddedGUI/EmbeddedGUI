@@ -11,18 +11,18 @@
 #include "core/egui_api.h"
 
 /* ST7735-specific commands */
-#define ST7735_FRMCTR1   0xB1
-#define ST7735_FRMCTR2   0xB2
-#define ST7735_FRMCTR3   0xB3
-#define ST7735_INVCTR    0xB4
-#define ST7735_PWCTR1    0xC0
-#define ST7735_PWCTR2    0xC1
-#define ST7735_PWCTR3    0xC2
-#define ST7735_PWCTR4    0xC3
-#define ST7735_PWCTR5    0xC4
-#define ST7735_VMCTR1    0xC5
-#define ST7735_GMCTRP1   0xE0
-#define ST7735_GMCTRN1   0xE1
+#define ST7735_FRMCTR1 0xB1
+#define ST7735_FRMCTR2 0xB2
+#define ST7735_FRMCTR3 0xB3
+#define ST7735_INVCTR  0xB4
+#define ST7735_PWCTR1  0xC0
+#define ST7735_PWCTR2  0xC1
+#define ST7735_PWCTR3  0xC2
+#define ST7735_PWCTR4  0xC3
+#define ST7735_PWCTR5  0xC4
+#define ST7735_VMCTR1  0xC5
+#define ST7735_GMCTRP1 0xE0
+#define ST7735_GMCTRN1 0xE1
 
 /* MADCTL bits */
 #define ST7735_MADCTL_MY  0x80
@@ -38,34 +38,30 @@
 
 /* Default vendor initialization commands for ST7735 */
 static const egui_lcd_vendor_init_cmd_t st7735_default_vendor_cmds[] = {
-    /* Frame rate control - normal mode */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7735_FRMCTR1, 0x01, 0x2C, 0x2D),
-    /* Frame rate control - idle mode */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7735_FRMCTR2, 0x01, 0x2C, 0x2D),
-    /* Frame rate control - partial mode */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7735_FRMCTR3, 0x01, 0x2C, 0x2D, 0x01, 0x2C, 0x2D),
-    /* Inversion control */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7735_INVCTR, 0x03),
-    /* Power control 1 */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7735_PWCTR1, 0x28, 0x08, 0x04),
-    /* Power control 2 */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7735_PWCTR2, 0xC0),
-    /* Power control 3 */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7735_PWCTR3, 0x0D, 0x00),
-    /* Power control 4 */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7735_PWCTR4, 0x8D, 0x2A),
-    /* Power control 5 */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7735_PWCTR5, 0x8D, 0xEE),
-    /* VCOM control */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7735_VMCTR1, 0x10),
-    /* Positive gamma correction */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7735_GMCTRP1,
-                            0x04, 0x22, 0x07, 0x0A, 0x2E, 0x30, 0x25, 0x2A,
-                            0x28, 0x26, 0x2E, 0x3A, 0x00, 0x01, 0x03, 0x13),
-    /* Negative gamma correction */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7735_GMCTRN1,
-                            0x04, 0x16, 0x06, 0x0D, 0x2D, 0x26, 0x23, 0x27,
-                            0x27, 0x25, 0x2D, 0x3B, 0x00, 0x01, 0x04, 0x13),
+        /* Frame rate control - normal mode */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7735_FRMCTR1, 0x01, 0x2C, 0x2D),
+        /* Frame rate control - idle mode */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7735_FRMCTR2, 0x01, 0x2C, 0x2D),
+        /* Frame rate control - partial mode */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7735_FRMCTR3, 0x01, 0x2C, 0x2D, 0x01, 0x2C, 0x2D),
+        /* Inversion control */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7735_INVCTR, 0x03),
+        /* Power control 1 */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7735_PWCTR1, 0x28, 0x08, 0x04),
+        /* Power control 2 */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7735_PWCTR2, 0xC0),
+        /* Power control 3 */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7735_PWCTR3, 0x0D, 0x00),
+        /* Power control 4 */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7735_PWCTR4, 0x8D, 0x2A),
+        /* Power control 5 */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7735_PWCTR5, 0x8D, 0xEE),
+        /* VCOM control */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7735_VMCTR1, 0x10),
+        /* Positive gamma correction */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7735_GMCTRP1, 0x04, 0x22, 0x07, 0x0A, 0x2E, 0x30, 0x25, 0x2A, 0x28, 0x26, 0x2E, 0x3A, 0x00, 0x01, 0x03, 0x13),
+        /* Negative gamma correction */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7735_GMCTRN1, 0x04, 0x16, 0x06, 0x0D, 0x2D, 0x26, 0x23, 0x27, 0x27, 0x25, 0x2D, 0x3B, 0x00, 0x01, 0x04, 0x13),
 };
 
 /* Driver: init */
@@ -111,8 +107,7 @@ static int st7735_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t 
     }
 
     /* Send vendor-specific init commands */
-    egui_lcd_send_vendor_init_cmds(self->io, st7735_default_vendor_cmds,
-                                   sizeof(st7735_default_vendor_cmds) / sizeof(st7735_default_vendor_cmds[0]));
+    egui_lcd_send_vendor_init_cmds(self->io, st7735_default_vendor_cmds, sizeof(st7735_default_vendor_cmds) / sizeof(st7735_default_vendor_cmds[0]));
 
     /* Normal display mode */
     self->io->tx_param(self->io, LCD_CMD_NORON, NULL, 0);
@@ -141,8 +136,7 @@ static void st7735_del(egui_hal_lcd_driver_t *self)
 }
 
 /* Driver: draw_area */
-static void st7735_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y,
-                             int16_t w, int16_t h, const void *data, uint32_t len)
+static void st7735_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y, int16_t w, int16_t h, const void *data, uint32_t len)
 {
     uint16_t x0 = x + self->config.x_offset;
     uint16_t y0 = y + self->config.y_offset;
@@ -181,9 +175,7 @@ static void st7735_set_invert(egui_hal_lcd_driver_t *self, uint8_t invert)
 }
 
 /* Internal: setup driver function pointers */
-static void st7735_setup_driver(egui_hal_lcd_driver_t *driver,
-                                 egui_panel_io_handle_t io,
-                                 void (*set_rst)(uint8_t level))
+static void st7735_setup_driver(egui_hal_lcd_driver_t *driver, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level))
 {
     memset(driver, 0, sizeof(egui_hal_lcd_driver_t));
 
@@ -203,9 +195,7 @@ static void st7735_setup_driver(egui_hal_lcd_driver_t *driver,
 }
 
 /* Public: init (static allocation) */
-void egui_lcd_st7735_init(egui_hal_lcd_driver_t *storage,
-                             egui_panel_io_handle_t io,
-                             void (*set_rst)(uint8_t level))
+void egui_lcd_st7735_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level))
 {
     if (!storage || !io || !io->tx_param)
     {

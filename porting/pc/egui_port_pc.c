@@ -104,26 +104,73 @@ static void pc_interrupt_enable(egui_base_t level)
 }
 
 #if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
+static FILE *s_pc_resource_file = NULL;
+static char s_pc_resource_file_path[512];
+static uint32_t s_pc_resource_file_offset = 0;
+static uint8_t s_pc_resource_file_offset_valid = 0;
+
+static void pc_close_external_resource_file(void)
+{
+    if (s_pc_resource_file != NULL)
+    {
+        fclose(s_pc_resource_file);
+        s_pc_resource_file = NULL;
+        s_pc_resource_file_path[0] = '\0';
+    }
+    s_pc_resource_file_offset = 0;
+    s_pc_resource_file_offset_valid = 0;
+}
+
+static FILE *pc_get_external_resource_file(void)
+{
+    extern char *pc_get_input_file_path(void);
+    const char *path = pc_get_input_file_path();
+
+    if (path == NULL)
+    {
+        return NULL;
+    }
+
+    if (s_pc_resource_file != NULL && strcmp(s_pc_resource_file_path, path) == 0)
+    {
+        return s_pc_resource_file;
+    }
+
+    pc_close_external_resource_file();
+
+    s_pc_resource_file = fopen(path, "rb");
+    if (s_pc_resource_file == NULL)
+    {
+        EGUI_LOG_ERR("Error opening file\r\n");
+        return NULL;
+    }
+
+    strncpy(s_pc_resource_file_path, path, sizeof(s_pc_resource_file_path) - 1);
+    s_pc_resource_file_path[sizeof(s_pc_resource_file_path) - 1] = '\0';
+    setvbuf(s_pc_resource_file, NULL, _IOFBF, 64 * 1024);
+
+    return s_pc_resource_file;
+}
+
 static void pc_load_external_resource(void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size)
 {
-    FILE *file;
     extern const uint32_t egui_ext_res_id_map[];
     uint32_t res_offset = egui_ext_res_id_map[res_id];
     uint32_t res_real_offset = res_offset + start_offset;
-
-    extern char *pc_get_input_file_path(void);
-    file = fopen(pc_get_input_file_path(), "rb");
+    FILE *file = pc_get_external_resource_file();
     if (file == NULL)
     {
-        EGUI_LOG_ERR("Error opening file\r\n");
         return;
     }
 
-    if (fseek(file, res_real_offset, SEEK_SET) != 0)
+    if (!s_pc_resource_file_offset_valid || s_pc_resource_file_offset != res_real_offset)
     {
-        EGUI_LOG_ERR("Error seeking in file");
-        fclose(file);
-        return;
+        if (fseek(file, res_real_offset, SEEK_SET) != 0)
+        {
+            EGUI_LOG_ERR("Error seeking in file");
+            pc_close_external_resource_file();
+            return;
+        }
     }
 
     int read_size = fread(dest, 1, size, file);
@@ -143,11 +190,12 @@ static void pc_load_external_resource(void *dest, uint32_t res_id, uint32_t star
             while (1)
                 ;
         }
-        fclose(file);
+        pc_close_external_resource_file();
         return;
     }
 
-    fclose(file);
+    s_pc_resource_file_offset = res_real_offset + size;
+    s_pc_resource_file_offset_valid = 1;
 }
 #endif
 
@@ -191,7 +239,7 @@ void egui_port_init(void)
             .width = EGUI_CONFIG_SCEEN_WIDTH,
             .height = EGUI_CONFIG_SCEEN_HEIGHT,
             .color_depth = EGUI_CONFIG_COLOR_DEPTH,
-            .color_swap = EGUI_CONFIG_COLOR_16_SWAP,
+            .color_swap = 0,
             .x_offset = 0,
             .y_offset = 0,
             .invert_color = 0,

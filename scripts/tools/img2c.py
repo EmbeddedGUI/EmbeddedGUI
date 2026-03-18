@@ -232,12 +232,15 @@ class img2c_tool:
             # For alpha format, we skip the normal alpha extraction and handle everything in the data section
             if self.format == 'alpha':
                 alpha_buf_name = "NULL"
+                alpha_type = "EGUI_IMAGE_ALPHA_TYPE_1"
             elif mode == "RGB":
                 alpha_buf_name = "NULL"
+                alpha_type = "EGUI_IMAGE_ALPHA_TYPE_1"
             elif mode == "RGBA":
                 if self.format == 'rgb32':
                     # empty alpha.
                     alpha_buf_name = "NULL"
+                    alpha_type = "EGUI_IMAGE_ALPHA_TYPE_1"
                 else:
                     # 8-bit Alpha channel
                     if self.alpha == 8:
@@ -361,6 +364,7 @@ class img2c_tool:
                         print('};', file=alpha_str_io)
                     else:
                         alpha_buf_name = "NULL"
+                        alpha_type = "EGUI_IMAGE_ALPHA_TYPE_1"
 
             # write alpha buffer to file
             if alpha_buf_name != "NULL":

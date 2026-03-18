@@ -15,17 +15,17 @@
 #include "core/egui_api.h"
 
 /* XPT2046 Control byte commands (8-bit) */
-#define XPT2046_CMD_X_POS       0xD0  /* Read X position (12-bit, differential) */
-#define XPT2046_CMD_Y_POS       0x90  /* Read Y position (12-bit, differential) */
-#define XPT2046_CMD_Z1          0xB0  /* Read Z1 (pressure) */
-#define XPT2046_CMD_Z2          0xC0  /* Read Z2 (pressure) */
-#define XPT2046_CMD_POWER_DOWN  0x00  /* Power down between conversions */
+#define XPT2046_CMD_X_POS      0xD0 /* Read X position (12-bit, differential) */
+#define XPT2046_CMD_Y_POS      0x90 /* Read Y position (12-bit, differential) */
+#define XPT2046_CMD_Z1         0xB0 /* Read Z1 (pressure) */
+#define XPT2046_CMD_Z2         0xC0 /* Read Z2 (pressure) */
+#define XPT2046_CMD_POWER_DOWN 0x00 /* Power down between conversions */
 
 /* ADC resolution */
-#define XPT2046_ADC_MAX         4095
+#define XPT2046_ADC_MAX 4095
 
 /* Default pressure threshold */
-#define XPT2046_DEFAULT_PRESSURE_THRESHOLD  100
+#define XPT2046_DEFAULT_PRESSURE_THRESHOLD 100
 
 /* Helper: reset */
 static int xpt2046_reset(egui_hal_touch_driver_t *self)
@@ -50,7 +50,7 @@ static uint16_t xpt2046_read_adc(egui_hal_touch_driver_t *self, uint8_t cmd)
 
     /* Extract 12-bit ADC value (bits 11:0 from 16-bit response) */
     uint16_t value = ((uint16_t)rx_buf[0] << 8) | rx_buf[1];
-    value >>= 3;  /* Shift to get 12-bit value */
+    value >>= 3; /* Shift to get 12-bit value */
     value &= 0x0FFF;
 
     return value;
@@ -61,7 +61,8 @@ static uint16_t xpt2046_read_adc_avg(egui_hal_touch_driver_t *self, uint8_t cmd,
 {
     uint32_t sum = 0;
 
-    for (uint8_t i = 0; i < samples; i++) {
+    for (uint8_t i = 0; i < samples; i++)
+    {
         sum += xpt2046_read_adc(self, cmd);
     }
 
@@ -74,14 +75,15 @@ static int xpt2046_is_pressed(egui_hal_touch_driver_t *self)
     egui_touch_xpt2046_priv_t *priv = (egui_touch_xpt2046_priv_t *)self->priv;
     uint16_t z1, z2;
 
-    (void)(z2);  /* In case pressure threshold is not used */
+    (void)(z2); /* In case pressure threshold is not used */
 
     z1 = xpt2046_read_adc(self, XPT2046_CMD_Z1);
     z2 = xpt2046_read_adc(self, XPT2046_CMD_Z2);
 
     /* Calculate pressure: lower z1 and higher z2 means more pressure */
     /* Simple threshold check on z1 */
-    if (z1 > priv->pressure_threshold && z1 < (XPT2046_ADC_MAX - priv->pressure_threshold)) {
+    if (z1 > priv->pressure_threshold && z1 < (XPT2046_ADC_MAX - priv->pressure_threshold))
+    {
         return 1;
     }
 
@@ -92,17 +94,20 @@ static int xpt2046_is_pressed(egui_hal_touch_driver_t *self)
 static int16_t xpt2046_map_coordinate(int16_t raw, int16_t raw_min, int16_t raw_max, int16_t screen_size)
 {
     int32_t range = raw_max - raw_min;
-    if (range == 0) {
+    if (range == 0)
+    {
         return 0;
     }
 
     int32_t coord = ((int32_t)(raw - raw_min) * screen_size) / range;
 
     /* Clamp to valid range */
-    if (coord < 0) {
+    if (coord < 0)
+    {
         coord = 0;
     }
-    if (coord >= screen_size) {
+    if (coord >= screen_size)
+    {
         coord = screen_size - 1;
     }
 
@@ -149,8 +154,9 @@ static int xpt2046_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *da
     memset(data, 0, sizeof(egui_hal_touch_data_t));
 
     /* Check if touch is pressed */
-    if (!xpt2046_is_pressed(self)) {
-        return 0;  /* No touch */
+    if (!xpt2046_is_pressed(self))
+    {
+        return 0; /* No touch */
     }
 
     /* Read raw coordinates with averaging */
@@ -165,19 +171,15 @@ static int xpt2046_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *da
     data->points[0].x = x;
     data->points[0].y = y;
     data->points[0].id = 0;
-    data->points[0].pressure = 0;  /* Could calculate from Z1/Z2 if needed */
+    data->points[0].pressure = 0; /* Could calculate from Z1/Z2 if needed */
     data->point_count = 1;
 
     return 0;
 }
 
 /* Internal: setup driver function pointers */
-static void xpt2046_setup_driver(egui_hal_touch_driver_t *driver,
-                                  egui_touch_xpt2046_priv_t *priv,
-                                  egui_panel_io_handle_t io,
-                                  void (*set_rst)(uint8_t level),
-                                  void (*set_int)(uint8_t level),
-                                  uint8_t (*get_int)(void))
+static void xpt2046_setup_driver(egui_hal_touch_driver_t *driver, egui_touch_xpt2046_priv_t *priv, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level),
+                                 void (*set_int)(uint8_t level), uint8_t (*get_int)(void))
 {
     memset(driver, 0, sizeof(egui_hal_touch_driver_t));
     memset(priv, 0, sizeof(egui_touch_xpt2046_priv_t));
@@ -198,14 +200,11 @@ static void xpt2046_setup_driver(egui_hal_touch_driver_t *driver,
 }
 
 /* Public: init (static allocation) */
-void egui_touch_xpt2046_init(egui_hal_touch_driver_t *storage,
-                              egui_touch_xpt2046_priv_t *priv_storage,
-                              egui_panel_io_handle_t io,
-                              void (*set_rst)(uint8_t level),
-                              void (*set_int)(uint8_t level),
-                              uint8_t (*get_int)(void))
+void egui_touch_xpt2046_init(egui_hal_touch_driver_t *storage, egui_touch_xpt2046_priv_t *priv_storage, egui_panel_io_handle_t io,
+                             void (*set_rst)(uint8_t level), void (*set_int)(uint8_t level), uint8_t (*get_int)(void))
 {
-    if (!storage || !priv_storage || !io || !io->rx_param || !io->tx_param) {
+    if (!storage || !priv_storage || !io || !io->rx_param || !io->tx_param)
+    {
         return;
     }
 
@@ -213,10 +212,10 @@ void egui_touch_xpt2046_init(egui_hal_touch_driver_t *storage,
 }
 
 /* Public: set calibration */
-void egui_touch_xpt2046_set_calibration(egui_hal_touch_driver_t *driver,
-                                         const egui_touch_xpt2046_calibration_t *cal)
+void egui_touch_xpt2046_set_calibration(egui_hal_touch_driver_t *driver, const egui_touch_xpt2046_calibration_t *cal)
 {
-    if (!driver || !driver->priv || !cal) {
+    if (!driver || !driver->priv || !cal)
+    {
         return;
     }
 
@@ -225,10 +224,10 @@ void egui_touch_xpt2046_set_calibration(egui_hal_touch_driver_t *driver,
 }
 
 /* Public: set pressure threshold */
-void egui_touch_xpt2046_set_pressure_threshold(egui_hal_touch_driver_t *driver,
-                                                uint16_t threshold)
+void egui_touch_xpt2046_set_pressure_threshold(egui_hal_touch_driver_t *driver, uint16_t threshold)
 {
-    if (!driver || !driver->priv) {
+    if (!driver || !driver->priv)
+    {
         return;
     }
 

@@ -25,9 +25,7 @@ extern "C" {
  * @param io       Unified Panel IO handle (must not be NULL)
  * @param set_rst  RST pin control function (NULL if not available)
  */
-void egui_lcd_ssd1306_init_spi(egui_hal_lcd_driver_t *storage,
-                                egui_panel_io_handle_t io,
-                                void (*set_rst)(uint8_t level));
+void egui_lcd_ssd1306_init_spi(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level));
 
 /**
  * Initialize SSD1306 driver via I2C Panel IO.
@@ -36,9 +34,7 @@ void egui_lcd_ssd1306_init_spi(egui_hal_lcd_driver_t *storage,
  * @param io       Unified Panel IO handle (must not be NULL)
  * @param set_rst  RST pin control function (NULL if not available)
  */
-void egui_lcd_ssd1306_init_i2c(egui_hal_lcd_driver_t *storage,
-                                egui_panel_io_handle_t io,
-                                void (*set_rst)(uint8_t level));
+void egui_lcd_ssd1306_init_i2c(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level));
 
 /**
  * Set display contrast.

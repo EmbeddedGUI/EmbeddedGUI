@@ -85,6 +85,17 @@ __EGUI_STATIC_INLINE__ void egui_region_intersect(egui_region_t *self, const egu
     // }
 }
 
+// Fast intersect without empty checks - for hot paths where inputs are known non-empty
+__EGUI_STATIC_INLINE__ void egui_region_intersect_fast(const egui_region_t *self, const egui_region_t *rect, egui_region_t *result)
+{
+    egui_dim_t x = EGUI_MAX(self->location.x, rect->location.x);
+    egui_dim_t y = EGUI_MAX(self->location.y, rect->location.y);
+    result->size.width = EGUI_MIN(self->location.x + self->size.width, rect->location.x + rect->size.width) - x;
+    result->size.height = EGUI_MIN(self->location.y + self->size.height, rect->location.y + rect->size.height) - y;
+    result->location.x = x;
+    result->location.y = y;
+}
+
 void egui_region_init_empty(egui_region_t *self);
 int egui_region_is_empty(egui_region_t *self);
 void egui_region_init(egui_region_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height);
@@ -93,7 +104,12 @@ int egui_region_equal(const egui_region_t *self, const egui_region_t *rect);
 void egui_region_copy(egui_region_t *self, const egui_region_t *rect);
 // void egui_region_intersect(egui_region_t *self, const egui_region_t *rect, egui_region_t *result);
 void egui_region_intersect_with_size(egui_region_t *self, egui_dim_t width, egui_dim_t height, egui_region_t *result);
-int egui_region_is_intersect(egui_region_t *self, const egui_region_t *rect);
+// Fast intersection test: 4 comparisons instead of full intersect + is_empty
+__EGUI_STATIC_INLINE__ int egui_region_is_intersect(egui_region_t *self, const egui_region_t *rect)
+{
+    return (self->location.x < rect->location.x + rect->size.width) && (self->location.x + self->size.width > rect->location.x) &&
+           (self->location.y < rect->location.y + rect->size.height) && (self->location.y + self->size.height > rect->location.y);
+}
 void egui_region_union(egui_region_t *self, const egui_region_t *rect, egui_region_t *result);
 int egui_region_is_same(egui_region_t *self, const egui_region_t *other);
 

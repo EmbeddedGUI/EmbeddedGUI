@@ -11,12 +11,12 @@
 #include "core/egui_api.h"
 
 /* ST7796-specific commands */
-#define ST7796_PWCTR1    0xC0
-#define ST7796_PWCTR2    0xC1
-#define ST7796_PWCTR3    0xC2
-#define ST7796_VMCTR1    0xC5
-#define ST7796_GMCTRP1   0xE0
-#define ST7796_GMCTRN1   0xE1
+#define ST7796_PWCTR1  0xC0
+#define ST7796_PWCTR2  0xC1
+#define ST7796_PWCTR3  0xC2
+#define ST7796_VMCTR1  0xC5
+#define ST7796_GMCTRP1 0xE0
+#define ST7796_GMCTRN1 0xE1
 
 /* ST7796-specific commands (not in MIPI DCS common set) */
 
@@ -29,39 +29,35 @@
 #define ST7796_MADCTL_RGB 0x00
 
 /* Color modes */
-#define ST7796_COLOR_MODE_16BIT 0x55  /* RGB565 */
+#define ST7796_COLOR_MODE_16BIT 0x55 /* RGB565 */
 
 /* Default vendor initialization commands for ST7796 */
 static const egui_lcd_vendor_init_cmd_t st7796_default_vendor_cmds[] = {
-    /* Command set control */
-    EGUI_LCD_CMD_WITH_PARAM(0, 0xF0, 0xC3),
-    EGUI_LCD_CMD_WITH_PARAM(0, 0xF0, 0x96),
-    /* Display inversion control */
-    EGUI_LCD_CMD_WITH_PARAM(0, 0xB4, 0x02),
-    /* Entry mode set */
-    EGUI_LCD_CMD_WITH_PARAM(0, 0xB7, 0xC6),
-    EGUI_LCD_CMD_WITH_PARAM(0, 0xB9, 0x02, 0xE0),
-    /* Power control 1 */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7796_PWCTR1, 0x80, 0x71),
-    /* Power control 2 */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7796_PWCTR2, 0x17),
-    /* Power control 3 */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7796_PWCTR3, 0xA7),
-    /* VCOM control */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7796_VMCTR1, 0x16),
-    /* Display output ctrl adjust */
-    EGUI_LCD_CMD_WITH_PARAM(0, 0xE8, 0x40, 0x8A, 0x00, 0x00, 0x29, 0x19, 0xA5, 0x33),
-    /* Positive gamma */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7796_GMCTRP1,
-                            0xF0, 0x11, 0x17, 0x0C, 0x0B, 0x08, 0x42, 0x44,
-                            0x57, 0x3D, 0x17, 0x18, 0x34, 0x38),
-    /* Negative gamma */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7796_GMCTRN1,
-                            0xF0, 0x13, 0x1C, 0x0E, 0x0C, 0x15, 0x41, 0x43,
-                            0x57, 0x25, 0x13, 0x14, 0x35, 0x36),
-    /* Command set control - close */
-    EGUI_LCD_CMD_WITH_PARAM(0, 0xF0, 0x3C),
-    EGUI_LCD_CMD_WITH_PARAM(0, 0xF0, 0x69),
+        /* Command set control */
+        EGUI_LCD_CMD_WITH_PARAM(0, 0xF0, 0xC3),
+        EGUI_LCD_CMD_WITH_PARAM(0, 0xF0, 0x96),
+        /* Display inversion control */
+        EGUI_LCD_CMD_WITH_PARAM(0, 0xB4, 0x02),
+        /* Entry mode set */
+        EGUI_LCD_CMD_WITH_PARAM(0, 0xB7, 0xC6),
+        EGUI_LCD_CMD_WITH_PARAM(0, 0xB9, 0x02, 0xE0),
+        /* Power control 1 */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7796_PWCTR1, 0x80, 0x71),
+        /* Power control 2 */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7796_PWCTR2, 0x17),
+        /* Power control 3 */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7796_PWCTR3, 0xA7),
+        /* VCOM control */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7796_VMCTR1, 0x16),
+        /* Display output ctrl adjust */
+        EGUI_LCD_CMD_WITH_PARAM(0, 0xE8, 0x40, 0x8A, 0x00, 0x00, 0x29, 0x19, 0xA5, 0x33),
+        /* Positive gamma */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7796_GMCTRP1, 0xF0, 0x11, 0x17, 0x0C, 0x0B, 0x08, 0x42, 0x44, 0x57, 0x3D, 0x17, 0x18, 0x34, 0x38),
+        /* Negative gamma */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7796_GMCTRN1, 0xF0, 0x13, 0x1C, 0x0E, 0x0C, 0x15, 0x41, 0x43, 0x57, 0x25, 0x13, 0x14, 0x35, 0x36),
+        /* Command set control - close */
+        EGUI_LCD_CMD_WITH_PARAM(0, 0xF0, 0x3C),
+        EGUI_LCD_CMD_WITH_PARAM(0, 0xF0, 0x69),
 };
 
 /* Driver: init */
@@ -93,8 +89,7 @@ static int st7796_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t 
     }
 
     /* Send vendor-specific init commands */
-    egui_lcd_send_vendor_init_cmds(self->io, st7796_default_vendor_cmds,
-                                   sizeof(st7796_default_vendor_cmds) / sizeof(st7796_default_vendor_cmds[0]));
+    egui_lcd_send_vendor_init_cmds(self->io, st7796_default_vendor_cmds, sizeof(st7796_default_vendor_cmds) / sizeof(st7796_default_vendor_cmds[0]));
 
     /* Inversion on (ST7796 typically uses inversion) */
     self->io->tx_param(self->io, LCD_CMD_INVON, NULL, 0);
@@ -123,8 +118,7 @@ static void st7796_del(egui_hal_lcd_driver_t *self)
 }
 
 /* Driver: draw_area */
-static void st7796_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y,
-                             int16_t w, int16_t h, const void *data, uint32_t len)
+static void st7796_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y, int16_t w, int16_t h, const void *data, uint32_t len)
 {
     uint16_t x0 = x + self->config.x_offset;
     uint16_t y0 = y + self->config.y_offset;
@@ -205,9 +199,7 @@ static void st7796_set_invert(egui_hal_lcd_driver_t *self, uint8_t invert)
 }
 
 /* Internal: setup driver function pointers */
-static void st7796_setup_driver(egui_hal_lcd_driver_t *driver,
-                                 egui_panel_io_handle_t io,
-                                 void (*set_rst)(uint8_t level))
+static void st7796_setup_driver(egui_hal_lcd_driver_t *driver, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level))
 {
     memset(driver, 0, sizeof(egui_hal_lcd_driver_t));
 
@@ -227,9 +219,7 @@ static void st7796_setup_driver(egui_hal_lcd_driver_t *driver,
 }
 
 /* Public: init (static allocation) */
-void egui_lcd_st7796_init(egui_hal_lcd_driver_t *storage,
-                             egui_panel_io_handle_t io,
-                             void (*set_rst)(uint8_t level))
+void egui_lcd_st7796_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level))
 {
     if (!storage || !io || !io->tx_param)
     {

@@ -26,10 +26,7 @@ extern "C" {
  * @param set_int  INT pin control function (may be NULL)
  * @param get_int  INT pin read function (may be NULL)
  */
-void egui_touch_ft6336_init(egui_hal_touch_driver_t *storage,
-                            egui_panel_io_handle_t io,
-                            void (*set_rst)(uint8_t level),
-                            void (*set_int)(uint8_t level),
+void egui_touch_ft6336_init(egui_hal_touch_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level), void (*set_int)(uint8_t level),
                             uint8_t (*get_int)(void));
 
 #ifdef __cplusplus

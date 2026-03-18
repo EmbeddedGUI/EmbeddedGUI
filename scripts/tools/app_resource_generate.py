@@ -141,10 +141,6 @@ class ImageResourceInfo:
         self.rot = 0.0
         if config.get('rot'):
             self.rot = float(config['rot'])
-        
-        self.swap = 0
-        if config.get('swap'):
-            self.swap = int(config['swap'])
 
 class FontResourceInfo:
     def __init__(self, config):
@@ -258,7 +254,7 @@ def generate_img_resource(resource_src_path, img_res_output_path, config_info_im
         for rgb in img_info.rgb_list:
             for alpha in img_info.alpha_list:
                 for external in img_info.external_list:
-                    img_config_list.append([img_info, rgb, alpha, external, img_info.dim, img_info.rot, img_info.swap])
+                    img_config_list.append([img_info, rgb, alpha, external, img_info.dim, img_info.rot])
     
     for img_config_item in img_config_list:
         img_info = img_config_item[0]
@@ -274,9 +270,8 @@ def generate_img_resource(resource_src_path, img_res_output_path, config_info_im
         external = img_config_item[3]
         dim = img_config_item[4]
         rot = img_config_item[5]
-        swap = img_config_item[6]
 
-        tool = img2c.img2c_tool(img_file_path, img_name, rgb, alpha, dim, rot, swap, external, output_path)
+        tool = img2c.img2c_tool(img_file_path, img_name, rgb, alpha, dim, rot, 0, external, output_path)
 
         img2c_tool_list.append(tool)
 

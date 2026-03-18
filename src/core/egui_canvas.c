@@ -132,7 +132,12 @@ const egui_circle_info_t *egui_canvas_get_circle_item(egui_dim_t r)
 
     if (r < EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE)
     {
-        return &egui_res_circle_info_arr[r];
+        const egui_circle_info_t *info = &egui_res_circle_info_arr[r];
+        if (info->radius == (uint16_t)r)
+        {
+            return info;
+        }
+        return NULL;
     }
 
     for (int i = 0; i < self->res_circle_info_count_spec; i++)
@@ -2152,14 +2157,15 @@ void egui_canvas_calc_work_region(egui_region_t *base_region)
     egui_region_t *region = &self->base_view_work_region;
 
     // Intersect base view region with PFB tile in screen coordinates.
-    egui_region_intersect(base_region, &self->pfb_region, region);
+    // Use fast version: both regions are guaranteed non-empty in draw path.
+    egui_region_intersect_fast(base_region, &self->pfb_region, region);
 
     // If an extra clip is set (e.g. scroll view viewport), also intersect with it.
     // This prevents children of scroll views from rendering outside the visible viewport.
     if (self->extra_clip_region != NULL)
     {
         egui_region_t clipped;
-        egui_region_intersect(region, self->extra_clip_region, &clipped);
+        egui_region_intersect_fast(region, self->extra_clip_region, &clipped);
         *region = clipped;
     }
 

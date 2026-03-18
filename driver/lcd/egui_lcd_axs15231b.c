@@ -19,7 +19,7 @@
 #define AXS15231B_MADCTL_BGR 0x08
 
 /* Color modes */
-#define AXS15231B_COLOR_MODE_16BIT 0x55  /* RGB565 */
+#define AXS15231B_COLOR_MODE_16BIT 0x55 /* RGB565 */
 
 /* Driver: init */
 static int axs15231b_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t *config)
@@ -87,8 +87,7 @@ static void axs15231b_del(egui_hal_lcd_driver_t *self)
 }
 
 /* Driver: draw_area */
-static void axs15231b_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y,
-                                int16_t w, int16_t h, const void *data, uint32_t len)
+static void axs15231b_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y, int16_t w, int16_t h, const void *data, uint32_t len)
 {
     uint16_t x0 = x + self->config.x_offset;
     uint16_t y0 = y + self->config.y_offset;
@@ -134,9 +133,7 @@ static void axs15231b_set_invert(egui_hal_lcd_driver_t *self, uint8_t invert)
 }
 
 /* Internal: setup driver function pointers */
-static void axs15231b_setup_driver(egui_hal_lcd_driver_t *driver,
-                                 egui_panel_io_handle_t io,
-                                 void (*set_rst)(uint8_t level))
+static void axs15231b_setup_driver(egui_hal_lcd_driver_t *driver, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level))
 {
     memset(driver, 0, sizeof(egui_hal_lcd_driver_t));
 
@@ -156,9 +153,7 @@ static void axs15231b_setup_driver(egui_hal_lcd_driver_t *driver,
 }
 
 /* Public: init (static allocation) */
-void egui_lcd_axs15231b_init(egui_hal_lcd_driver_t *storage,
-                            egui_panel_io_handle_t io,
-                            void (*set_rst)(uint8_t level))
+void egui_lcd_axs15231b_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level))
 {
     if (!storage || !io || !io->tx_param)
     {

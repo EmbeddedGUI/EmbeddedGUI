@@ -8,19 +8,19 @@
 #include "core/egui_api.h"
 
 /* ST1633 I2C address (7-bit, shifted for HAL) */
-#define ST1633_ADDR             0xAA  /* 0x55 << 1 */
+#define ST1633_ADDR 0xAA /* 0x55 << 1 */
 
 /* ST1633 Registers */
-#define ST1633_REG_STATUS       0x01  /* Device status */
-#define ST1633_REG_TOUCH_INFO   0x10  /* Advanced touch information block */
-#define ST1633_REG_KEYS         0x11  /* Key status */
-#define ST1633_REG_XY_COORD     0x12  /* Legacy XY coordinate data start */
-#define ST1633_REG_DEVICE_CTRL  0x02  /* Device control */
-#define ST1633_REG_TIMEOUT      0x03  /* Timeout to idle */
-#define ST1633_REG_RESOLUTION_X 0x04  /* X resolution */
-#define ST1633_REG_RESOLUTION_Y 0x06  /* Y resolution */
-#define ST1633_REG_FW_VERSION   0x0A  /* Firmware version */
-#define ST1633_REG_CHIP_ID      0x00  /* Chip ID register */
+#define ST1633_REG_STATUS       0x01 /* Device status */
+#define ST1633_REG_TOUCH_INFO   0x10 /* Advanced touch information block */
+#define ST1633_REG_KEYS         0x11 /* Key status */
+#define ST1633_REG_XY_COORD     0x12 /* Legacy XY coordinate data start */
+#define ST1633_REG_DEVICE_CTRL  0x02 /* Device control */
+#define ST1633_REG_TIMEOUT      0x03 /* Timeout to idle */
+#define ST1633_REG_RESOLUTION_X 0x04 /* X resolution */
+#define ST1633_REG_RESOLUTION_Y 0x06 /* Y resolution */
+#define ST1633_REG_FW_VERSION   0x0A /* Firmware version */
+#define ST1633_REG_CHIP_ID      0x00 /* Chip ID register */
 
 /* Touch event flags */
 #define ST1633_EVENT_PRESS_DOWN 0x00
@@ -29,8 +29,8 @@
 #define ST1633_EVENT_NO_EVENT   0x03
 
 /* Maximum touch points for ST1633 */
-#define ST1633_MAX_POINTS       5
-#define ST1633_HW_MAX_POINTS    10
+#define ST1633_MAX_POINTS    5
+#define ST1633_HW_MAX_POINTS 10
 
 /* Helper: reset */
 static int st1633_reset(egui_hal_touch_driver_t *self)
@@ -60,8 +60,9 @@ static int st1633_init(egui_hal_touch_driver_t *self, const egui_hal_touch_confi
     memcpy(&self->config, config, sizeof(egui_hal_touch_config_t));
 
     /* Read and verify chip ID */
-    if (st1633_read_reg(self, ST1633_REG_CHIP_ID, &chip_id, 1) != 0) {
-        return -1;  /* I2C read failed */
+    if (st1633_read_reg(self, ST1633_REG_CHIP_ID, &chip_id, 1) != 0)
+    {
+        return -1; /* I2C read failed */
     }
 
     /* ST1633 chip ID verification - accept anyway for variants */
@@ -82,21 +83,23 @@ static void st1633_del(egui_hal_touch_driver_t *self)
 /* Driver: read */
 static int st1633_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
 {
-    typedef struct __attribute__((packed)) st1633_xy_coord {
-        uint8_t y_h: 3;
-        uint8_t reserved_3: 1;
-        uint8_t x_h: 3;
-        uint8_t valid: 1;
+    typedef struct __attribute__((packed)) st1633_xy_coord
+    {
+        uint8_t y_h : 3;
+        uint8_t reserved_3 : 1;
+        uint8_t x_h : 3;
+        uint8_t valid : 1;
         uint8_t x_l;
         uint8_t y_l;
         uint8_t reserved_24_31;
     } st1633_xy_coord_t;
-    typedef struct __attribute__((packed)) st1633_report {
-        uint8_t gesture_type: 4;
-        uint8_t reserved_4: 1;
-        uint8_t water_flag: 1;
-        uint8_t prox_flag: 1;
-        uint8_t reserved_7: 1;
+    typedef struct __attribute__((packed)) st1633_report
+    {
+        uint8_t gesture_type : 4;
+        uint8_t reserved_4 : 1;
+        uint8_t water_flag : 1;
+        uint8_t prox_flag : 1;
+        uint8_t reserved_7 : 1;
         uint8_t keys;
         st1633_xy_coord_t xy_coord[ST1633_HW_MAX_POINTS];
     } st1633_report_t;
@@ -108,19 +111,23 @@ static int st1633_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *dat
     memset(data, 0, sizeof(egui_hal_touch_data_t));
     memset(&report, 0, sizeof(report));
 
-    if (st1633_read_reg(self, ST1633_REG_TOUCH_INFO, (uint8_t *)&report, sizeof(report)) != 0) {
+    if (st1633_read_reg(self, ST1633_REG_TOUCH_INFO, (uint8_t *)&report, sizeof(report)) != 0)
+    {
         return -1;
     }
 
-    for (uint8_t i = 0; i < ST1633_HW_MAX_POINTS && point_count < EGUI_HAL_TOUCH_MAX_POINTS; i++) {
+    for (uint8_t i = 0; i < ST1633_HW_MAX_POINTS && point_count < EGUI_HAL_TOUCH_MAX_POINTS; i++)
+    {
         int16_t x = ((int16_t)report.xy_coord[i].x_h << 8) | report.xy_coord[i].x_l;
         int16_t y = ((int16_t)report.xy_coord[i].y_h << 8) | report.xy_coord[i].y_l;
 
-        if (!report.xy_coord[i].valid) {
+        if (!report.xy_coord[i].valid)
+        {
             continue;
         }
 
-        if (((x == 0) && (y == 0)) || (x >= self->config.width) || (y >= self->config.height)) {
+        if (((x == 0) && (y == 0)) || (x >= self->config.width) || (y >= self->config.height))
+        {
             continue;
         }
 
@@ -138,11 +145,8 @@ static int st1633_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *dat
 }
 
 /* Internal: setup driver function pointers */
-static void st1633_setup_driver(egui_hal_touch_driver_t *driver,
-                                 egui_panel_io_handle_t io,
-                                 void (*set_rst)(uint8_t level),
-                                 void (*set_int)(uint8_t level),
-                                 uint8_t (*get_int)(void))
+static void st1633_setup_driver(egui_hal_touch_driver_t *driver, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level), void (*set_int)(uint8_t level),
+                                uint8_t (*get_int)(void))
 {
     memset(driver, 0, sizeof(egui_hal_touch_driver_t));
 
@@ -161,13 +165,11 @@ static void st1633_setup_driver(egui_hal_touch_driver_t *driver,
 }
 
 /* Public: init (static allocation) */
-void egui_touch_st1633_init(egui_hal_touch_driver_t *storage,
-                            egui_panel_io_handle_t io,
-                            void (*set_rst)(uint8_t level),
-                            void (*set_int)(uint8_t level),
+void egui_touch_st1633_init(egui_hal_touch_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level), void (*set_int)(uint8_t level),
                             uint8_t (*get_int)(void))
 {
-    if (!storage || !io || !io->rx_param || !io->tx_param) {
+    if (!storage || !io || !io->rx_param || !io->tx_param)
+    {
         return;
     }
 

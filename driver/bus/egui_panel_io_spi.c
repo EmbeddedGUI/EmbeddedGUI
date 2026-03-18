@@ -12,7 +12,6 @@ static int spi_tx_param(egui_panel_io_t *io, int cmd, const void *param, size_t 
     egui_panel_io_spi_t *self = (egui_panel_io_spi_t *)io;
     uint8_t cmd_byte = (uint8_t)cmd;
 
-
     /* Send command byte with DC=0 */
     if (self->set_dc)
     {
@@ -197,10 +196,7 @@ static void spi_io_deinit(egui_panel_io_t *io)
     }
 }
 
-void egui_panel_io_spi_init(egui_panel_io_spi_t *io,
-                             const egui_bus_spi_ops_t *spi,
-                             void (*set_dc)(uint8_t level),
-                             void (*set_cs)(uint8_t level))
+void egui_panel_io_spi_init(egui_panel_io_spi_t *io, const egui_bus_spi_ops_t *spi, void (*set_dc)(uint8_t level), void (*set_cs)(uint8_t level))
 {
     if (!io || !spi || !spi->write)
     {

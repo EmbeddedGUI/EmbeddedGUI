@@ -9,52 +9,59 @@
 
 extern const egui_circle_info_t egui_res_circle_info_arr[];
 
+static uint32_t egui_mask_circle_isqrt(uint32_t n)
+{
+    uint32_t root = 0;
+    uint32_t bit = 1UL << 30;
+
+    while (bit > n)
+    {
+        bit >>= 2;
+    }
+
+    while (bit != 0)
+    {
+        if (n >= root + bit)
+        {
+            n -= root + bit;
+            root = (root >> 1) + bit;
+        }
+        else
+        {
+            root >>= 1;
+        }
+        bit >>= 2;
+    }
+
+    return root;
+}
+
 void egui_mask_circle_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
-    EGUI_LOCAL_INIT(egui_mask_circle_t);
-
     if (egui_region_pt_in_rect(&self->region, x, y))
     {
-        // Get the radio.
         egui_dim_t radius = EGUI_MIN(self->region.size.width, self->region.size.height);
         radius = (radius >> 1) - 1;
-
-        // Get the center of the circle.
         egui_dim_t center_x = self->region.location.x + (self->region.size.width >> 1);
         egui_dim_t center_y = self->region.location.y + (self->region.size.height >> 1);
+        egui_dim_t dx = (x > center_x) ? (x - center_x) : (center_x - x);
+        egui_dim_t dy = (y > center_y) ? (y - center_y) : (center_y - y);
 
-        if (egui_canvas_get_circle_left_top(center_x, center_y, radius, x, y, alpha))
+        if (dx <= radius && dy <= radius)
         {
-            return;
-        }
-        if (egui_canvas_get_circle_left_bottom(center_x, center_y, radius, x, y, alpha))
-        {
-            return;
-        }
-        if (egui_canvas_get_circle_right_top(center_x, center_y, radius, x, y, alpha))
-        {
-            return;
-        }
-        if (egui_canvas_get_circle_right_bottom(center_x, center_y, radius, x, y, alpha))
-        {
-            return;
-        }
-
-        egui_region_t region;
-        egui_region_init(&region, center_x - radius, center_y, (radius << 1) + 1, 1);
-        if (egui_region_pt_in_rect(&region, x, y))
-        {
-            return;
-        }
-
-        egui_region_init(&region, center_x, center_y - radius, 1, (radius << 1) + 1);
-        if (egui_region_pt_in_rect(&region, x, y))
-        {
-            return;
+            const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
+            if (info != NULL)
+            {
+                egui_alpha_t mix_alpha = egui_canvas_get_circle_corner_value(radius - dy, radius - dx, info);
+                if (mix_alpha != 0)
+                {
+                    *alpha = egui_color_alpha_mix(mix_alpha, *alpha);
+                    return;
+                }
+            }
         }
     }
 
-    // clear value.
     color->full = 0;
     *alpha = 0;
 }
@@ -98,8 +105,6 @@ static egui_dim_t egui_mask_circle_corner_get_opaque_boundary(egui_dim_t row_in_
 
 int egui_mask_circle_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start, egui_dim_t *x_end)
 {
-    EGUI_LOCAL_INIT(egui_mask_circle_t);
-
     egui_dim_t radius = EGUI_MIN(self->region.size.width, self->region.size.height);
     radius = (radius >> 1) - 1;
 
@@ -166,10 +171,38 @@ int egui_mask_circle_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x
     return EGUI_MASK_ROW_PARTIAL;
 }
 
+static int egui_mask_circle_get_row_visible_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start, egui_dim_t *x_end)
+{
+    egui_dim_t radius = EGUI_MIN(self->region.size.width, self->region.size.height);
+    radius = (radius >> 1) - 1;
+
+    egui_dim_t center_x = self->region.location.x + (self->region.size.width >> 1);
+    egui_dim_t center_y = self->region.location.y + (self->region.size.height >> 1);
+
+    if (y < center_y - radius || y > center_y + radius)
+    {
+        return 0;
+    }
+
+    egui_dim_t dy = (y > center_y) ? (y - center_y) : (center_y - y);
+    uint32_t r_outer_sq = (uint32_t)(radius + 1) * (uint32_t)(radius + 1);
+    uint32_t dy_sq = (uint32_t)dy * (uint32_t)dy;
+    uint32_t remain_sq = (dy_sq < r_outer_sq) ? (r_outer_sq - dy_sq) : 0;
+    egui_dim_t visible_half = (egui_dim_t)egui_mask_circle_isqrt(remain_sq);
+    egui_dim_t visible_x_start = center_x - visible_half;
+    egui_dim_t visible_x_end = center_x + visible_half + 1;
+
+    *x_start = EGUI_MAX(visible_x_start, x_min);
+    *x_end = EGUI_MIN(visible_x_end, x_max);
+
+    return (*x_start < *x_end);
+}
+
 // name must be _type##_api_table, it will be used by EGUI_VIEW_DEFINE to init api.
 const egui_mask_api_t egui_mask_circle_t_api_table = {
         .mask_point = egui_mask_circle_mask_point,
         .mask_get_row_range = egui_mask_circle_get_row_range,
+        .mask_get_row_visible_range = egui_mask_circle_get_row_visible_range,
 };
 
 void egui_mask_circle_init(egui_mask_t *self)

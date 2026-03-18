@@ -117,14 +117,14 @@ static void designer_lcd_setup(egui_hal_lcd_driver_t *storage)
     storage->set_rst = NULL;
 }
 
-
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 /* ============================================================================
  * Touch HAL driver
  * ============================================================================ */
 
 static egui_hal_touch_driver_t designer_touch_driver;
-static struct {
+static struct
+{
     uint8_t pressed;
     int16_t x;
     int16_t y;
@@ -265,35 +265,85 @@ static void designer_interrupt_enable(egui_base_t level)
 }
 
 #if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
+static FILE *s_designer_resource_file = NULL;
+static char s_designer_resource_file_path[512];
+static uint32_t s_designer_resource_file_offset = 0;
+static uint8_t s_designer_resource_file_offset_valid = 0;
+
+static void designer_close_external_resource_file(void)
+{
+    if (s_designer_resource_file != NULL)
+    {
+        fclose(s_designer_resource_file);
+        s_designer_resource_file = NULL;
+        s_designer_resource_file_path[0] = '\0';
+    }
+    s_designer_resource_file_offset = 0;
+    s_designer_resource_file_offset_valid = 0;
+}
+
+static FILE *designer_get_external_resource_file(void)
+{
+    extern char *pc_get_input_file_path(void);
+    const char *path = pc_get_input_file_path();
+
+    if (path == NULL)
+    {
+        return NULL;
+    }
+
+    if (s_designer_resource_file != NULL && strcmp(s_designer_resource_file_path, path) == 0)
+    {
+        return s_designer_resource_file;
+    }
+
+    designer_close_external_resource_file();
+
+    s_designer_resource_file = fopen(path, "rb");
+    if (s_designer_resource_file == NULL)
+    {
+        fprintf(stderr, "Error opening resource file\n");
+        return NULL;
+    }
+
+    strncpy(s_designer_resource_file_path, path, sizeof(s_designer_resource_file_path) - 1);
+    s_designer_resource_file_path[sizeof(s_designer_resource_file_path) - 1] = '\0';
+    setvbuf(s_designer_resource_file, NULL, _IOFBF, 64 * 1024);
+
+    return s_designer_resource_file;
+}
+
 static void designer_load_external_resource(void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size)
 {
-    FILE *file;
     extern const uint32_t egui_ext_res_id_map[];
     uint32_t res_offset = egui_ext_res_id_map[res_id];
     uint32_t res_real_offset = res_offset + start_offset;
-
-    extern char *pc_get_input_file_path(void);
-    file = fopen(pc_get_input_file_path(), "rb");
+    FILE *file = designer_get_external_resource_file();
     if (file == NULL)
     {
-        fprintf(stderr, "Error opening resource file\n");
         return;
     }
 
-    if (fseek(file, res_real_offset, SEEK_SET) != 0)
+    if (!s_designer_resource_file_offset_valid || s_designer_resource_file_offset != res_real_offset)
     {
-        fprintf(stderr, "Error seeking in resource file\n");
-        fclose(file);
-        return;
+        if (fseek(file, res_real_offset, SEEK_SET) != 0)
+        {
+            fprintf(stderr, "Error seeking in resource file\n");
+            designer_close_external_resource_file();
+            return;
+        }
     }
 
     int read_size = fread(dest, 1, size, file);
     if (read_size != (int)size)
     {
         fprintf(stderr, "Error reading resource file, read_size: %d, size: %d\n", read_size, (int)size);
+        designer_close_external_resource_file();
+        return;
     }
 
-    fclose(file);
+    s_designer_resource_file_offset = res_real_offset + size;
+    s_designer_resource_file_offset_valid = 1;
 }
 #endif
 
@@ -337,7 +387,7 @@ void egui_port_init(void)
             .width = EGUI_CONFIG_SCEEN_WIDTH,
             .height = EGUI_CONFIG_SCEEN_HEIGHT,
             .color_depth = EGUI_CONFIG_COLOR_DEPTH,
-            .color_swap = EGUI_CONFIG_COLOR_16_SWAP,
+            .color_swap = 0,
             .x_offset = 0,
             .y_offset = 0,
             .invert_color = 0,

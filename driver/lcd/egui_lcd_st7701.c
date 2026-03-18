@@ -11,7 +11,7 @@
 #include "core/egui_api.h"
 
 /* Vendor-specific command page select */
-#define ST7701_CMD_PAGE  0xFF
+#define ST7701_CMD_PAGE 0xFF
 
 /* MADCTL bits */
 #define ST7701_MADCTL_MY  0x80
@@ -20,14 +20,14 @@
 #define ST7701_MADCTL_BGR 0x08
 
 /* Color modes */
-#define ST7701_COLOR_MODE_16BIT 0x55  /* RGB565 */
-#define ST7701_COLOR_MODE_18BIT 0x66  /* RGB666 */
-#define ST7701_COLOR_MODE_24BIT 0x77  /* RGB888 */
+#define ST7701_COLOR_MODE_16BIT 0x55 /* RGB565 */
+#define ST7701_COLOR_MODE_18BIT 0x66 /* RGB666 */
+#define ST7701_COLOR_MODE_24BIT 0x77 /* RGB888 */
 
 /* Default vendor initialization commands for ST7701 */
 static const egui_lcd_vendor_init_cmd_t st7701_default_vendor_cmds[] = {
-    /* Select command page 1 */
-    EGUI_LCD_CMD_WITH_PARAM(0, ST7701_CMD_PAGE, 0x77, 0x01, 0x00, 0x00, 0x10),
+        /* Select command page 1 */
+        EGUI_LCD_CMD_WITH_PARAM(0, ST7701_CMD_PAGE, 0x77, 0x01, 0x00, 0x00, 0x10),
 };
 
 /* Driver: init */
@@ -51,8 +51,7 @@ static int st7701_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t 
     egui_api_delay(120);
 
     /* Send vendor-specific init commands */
-    egui_lcd_send_vendor_init_cmds(self->io, st7701_default_vendor_cmds,
-                                   sizeof(st7701_default_vendor_cmds) / sizeof(st7701_default_vendor_cmds[0]));
+    egui_lcd_send_vendor_init_cmds(self->io, st7701_default_vendor_cmds, sizeof(st7701_default_vendor_cmds) / sizeof(st7701_default_vendor_cmds[0]));
 
     /* Set color mode to 16-bit RGB565 */
     {
@@ -100,8 +99,7 @@ static void st7701_del(egui_hal_lcd_driver_t *self)
 }
 
 /* Driver: draw_area */
-static void st7701_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y,
-                             int16_t w, int16_t h, const void *data, uint32_t len)
+static void st7701_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y, int16_t w, int16_t h, const void *data, uint32_t len)
 {
     uint16_t x0 = x + self->config.x_offset;
     uint16_t y0 = y + self->config.y_offset;
@@ -140,9 +138,7 @@ static void st7701_set_invert(egui_hal_lcd_driver_t *self, uint8_t invert)
 }
 
 /* Internal: setup driver function pointers */
-static void st7701_setup_driver(egui_hal_lcd_driver_t *driver,
-                                 egui_panel_io_handle_t io,
-                                 void (*set_rst)(uint8_t level))
+static void st7701_setup_driver(egui_hal_lcd_driver_t *driver, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level))
 {
     memset(driver, 0, sizeof(egui_hal_lcd_driver_t));
 
@@ -162,9 +158,7 @@ static void st7701_setup_driver(egui_hal_lcd_driver_t *driver,
 }
 
 /* Public: init (static allocation) */
-void egui_lcd_st7701_init(egui_hal_lcd_driver_t *storage,
-                             egui_panel_io_handle_t io,
-                             void (*set_rst)(uint8_t level))
+void egui_lcd_st7701_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level))
 {
     if (!storage || !io || !io->tx_param)
     {

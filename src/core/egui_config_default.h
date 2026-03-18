@@ -24,18 +24,20 @@ extern "C" {
 
 /**
  * Color options.
- * Swap the 2 bytes of RGB565 color. Useful if the display has a 8 bit interface (e.g. SPI).
+ * Swap the 2 bytes of RGB565 color. Useful if the display has a 8 bit interface (e.g. SPI)
+ * and the hardware SPI/DMA controller does NOT support automatic byte-swap.
+ *
+ * When set to 1, the byte-swap is performed as a bulk in-place pass over the PFB tile
+ * inside egui_pfb_manager_start_flush(), immediately before draw_area() is called.
+ * This keeps all internal rendering (egui_rgb_mix, EGUI_COLOR_MAKE, etc.) in the
+ * normal RGB565 layout, eliminating the green-field split and per-pixel overhead
+ * that the old approach (swapped internal layout) imposed.
+ *
+ * Cost: (PFB_WIDTH * PFB_HEIGHT / 2) uint32 ops per tile flush — typically <0.1 ms
+ * on a 100 MHz Cortex-M0 for a 60x60 PFB.
  */
 #ifndef EGUI_CONFIG_COLOR_16_SWAP
 #define EGUI_CONFIG_COLOR_16_SWAP 0
-#endif
-
-/**
- * Color options.
- * Swap the 2 bytes of RGB565 color. Useful if the image is 16bit.
- */
-#ifndef EGUI_CONFIG_COLOR_16_SWAP_IMG565
-#define EGUI_CONFIG_COLOR_16_SWAP_IMG565 0
 #endif
 
 /**

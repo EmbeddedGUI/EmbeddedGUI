@@ -64,8 +64,7 @@ static void hal_touch_read(uint8_t *pressed, int16_t *x, int16_t *y)
     }
 }
 
-void egui_hal_touch_register(egui_hal_touch_driver_t *touch,
-                              const egui_hal_touch_config_t *config)
+void egui_hal_touch_register(egui_hal_touch_driver_t *touch, const egui_hal_touch_config_t *config)
 {
     s_hal_touch = touch;
 

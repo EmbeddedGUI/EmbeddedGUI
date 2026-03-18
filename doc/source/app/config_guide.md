@@ -35,9 +35,6 @@ app_egui_config.h  (应用自定义，优先级最高)
 // RGB565 字节序交换（SPI 接口 LCD 常用）
 #define EGUI_CONFIG_COLOR_16_SWAP         0
 
-// RGB565 图片字节序交换
-#define EGUI_CONFIG_COLOR_16_SWAP_IMG565  0
-
 // SDL 原生 RGB565 显示（PC 模拟器，模拟嵌入式色彩效果）
 #define EGUI_CONFIG_SDL_NATIVE_COLOR      0
 ```

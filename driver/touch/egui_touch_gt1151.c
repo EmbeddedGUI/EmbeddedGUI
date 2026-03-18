@@ -9,14 +9,14 @@
 #include "core/egui_api.h"
 
 /* GT1151 I2C address (7-bit, shifted for HAL) */
-#define GT1151_ADDR_DEFAULT     0x28  /* 0x14 << 1 */
-#define GT1151_ADDR_BACKUP      0xBA  /* 0x5D << 1 */
+#define GT1151_ADDR_DEFAULT 0x28 /* 0x14 << 1 */
+#define GT1151_ADDR_BACKUP  0xBA /* 0x5D << 1 */
 
 /* GT1151 Registers (16-bit addresses, same as GT911) */
-#define GT1151_REG_PRODUCT_ID   0x8140  /* Product ID (4 bytes: "1151") */
-#define GT1151_REG_CONFIG       0x8047  /* Configuration register */
-#define GT1151_REG_READ_XY      0x814E  /* Touch status and data */
-#define GT1151_REG_ENTER_SLEEP  0x8040  /* Sleep control register */
+#define GT1151_REG_PRODUCT_ID  0x8140 /* Product ID (4 bytes: "1151") */
+#define GT1151_REG_CONFIG      0x8047 /* Configuration register */
+#define GT1151_REG_READ_XY     0x814E /* Touch status and data */
+#define GT1151_REG_ENTER_SLEEP 0x8040 /* Sleep control register */
 
 /* Touch data structure:
  * 0x814E: Status (bit7=ready, bit3:0=touch count)
@@ -29,7 +29,7 @@
  */
 
 /* Maximum touch points */
-#define GT1151_MAX_POINTS       5
+#define GT1151_MAX_POINTS 5
 
 /* Helper: reset */
 static int gt1151_reset(egui_hal_touch_driver_t *self)
@@ -66,11 +66,13 @@ static int gt1151_init(egui_hal_touch_driver_t *self, const egui_hal_touch_confi
 
     /* Try default address first */
     egui_panel_io_i2c_set_addr((egui_panel_io_i2c_t *)self->io, GT1151_ADDR_DEFAULT);
-    if (gt1151_read_reg(self, GT1151_REG_PRODUCT_ID, product_id, 4) != 0) {
+    if (gt1151_read_reg(self, GT1151_REG_PRODUCT_ID, product_id, 4) != 0)
+    {
         /* Try backup address */
         egui_panel_io_i2c_set_addr((egui_panel_io_i2c_t *)self->io, GT1151_ADDR_BACKUP);
-        if (gt1151_read_reg(self, GT1151_REG_PRODUCT_ID, product_id, 4) != 0) {
-            return -1;  /* I2C read failed */
+        if (gt1151_read_reg(self, GT1151_REG_PRODUCT_ID, product_id, 4) != 0)
+        {
+            return -1; /* I2C read failed */
         }
     }
 
@@ -94,7 +96,7 @@ static void gt1151_del(egui_hal_touch_driver_t *self)
 static int gt1151_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data)
 {
     uint8_t status;
-    uint8_t buf[GT1151_MAX_POINTS * 8];  /* 8 bytes per point */
+    uint8_t buf[GT1151_MAX_POINTS * 8]; /* 8 bytes per point */
     uint8_t num_points;
     uint8_t clear = 0;
 
@@ -102,31 +104,37 @@ static int gt1151_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *dat
     memset(data, 0, sizeof(egui_hal_touch_data_t));
 
     /* Read touch status */
-    if (gt1151_read_reg(self, GT1151_REG_READ_XY, &status, 1) != 0) {
+    if (gt1151_read_reg(self, GT1151_REG_READ_XY, &status, 1) != 0)
+    {
         return -1;
     }
 
     /* Check if data is ready (bit 7) */
-    if ((status & 0x80) == 0) {
-        return 0;  /* No new data */
+    if ((status & 0x80) == 0)
+    {
+        return 0; /* No new data */
     }
 
     /* Get number of touch points (bits 3:0) */
     num_points = status & 0x0F;
-    if (num_points > GT1151_MAX_POINTS) {
+    if (num_points > GT1151_MAX_POINTS)
+    {
         num_points = GT1151_MAX_POINTS;
     }
 
-    if (num_points > 0) {
+    if (num_points > 0)
+    {
         /* Read touch point data */
-        if (gt1151_read_reg(self, GT1151_REG_READ_XY + 1, buf, num_points * 8) != 0) {
+        if (gt1151_read_reg(self, GT1151_REG_READ_XY + 1, buf, num_points * 8) != 0)
+        {
             /* Clear status anyway */
             gt1151_write_reg(self, GT1151_REG_READ_XY, &clear, 1);
             return -1;
         }
 
         /* Parse touch points */
-        for (uint8_t i = 0; i < num_points; i++) {
+        for (uint8_t i = 0; i < num_points; i++)
+        {
             uint8_t *p = &buf[i * 8];
             uint8_t id = p[0];
             int16_t x = (p[2] << 8) | p[1];
@@ -149,11 +157,8 @@ static int gt1151_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *dat
 }
 
 /* Internal: setup driver function pointers */
-static void gt1151_setup_driver(egui_hal_touch_driver_t *driver,
-                                 egui_panel_io_handle_t io,
-                                 void (*set_rst)(uint8_t level),
-                                 void (*set_int)(uint8_t level),
-                                 uint8_t (*get_int)(void))
+static void gt1151_setup_driver(egui_hal_touch_driver_t *driver, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level), void (*set_int)(uint8_t level),
+                                uint8_t (*get_int)(void))
 {
     memset(driver, 0, sizeof(egui_hal_touch_driver_t));
 
@@ -172,13 +177,11 @@ static void gt1151_setup_driver(egui_hal_touch_driver_t *driver,
 }
 
 /* Public: init (static allocation) */
-void egui_touch_gt1151_init(egui_hal_touch_driver_t *storage,
-                            egui_panel_io_handle_t io,
-                            void (*set_rst)(uint8_t level),
-                            void (*set_int)(uint8_t level),
+void egui_touch_gt1151_init(egui_hal_touch_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level), void (*set_int)(uint8_t level),
                             uint8_t (*get_int)(void))
 {
-    if (!storage || !io || !io->rx_param || !io->tx_param) {
+    if (!storage || !io || !io->rx_param || !io->tx_param)
+    {
         return;
     }
 

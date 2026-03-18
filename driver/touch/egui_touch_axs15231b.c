@@ -11,22 +11,19 @@
 #include <string.h>
 #include "core/egui_api.h"
 
-#define AXS15231B_ADDR          0x76  /* 0x3B << 1 */
-#define AXS15231B_MAX_POINTS    5
-#define AXS15231B_READ_HDR_LEN  2
-#define AXS15231B_POINT_STRIDE  6
-#define AXS15231B_READ_LEN      (AXS15231B_READ_HDR_LEN + AXS15231B_MAX_POINTS * AXS15231B_POINT_STRIDE)
+#define AXS15231B_ADDR         0x76 /* 0x3B << 1 */
+#define AXS15231B_MAX_POINTS   5
+#define AXS15231B_READ_HDR_LEN 2
+#define AXS15231B_POINT_STRIDE 6
+#define AXS15231B_READ_LEN     (AXS15231B_READ_HDR_LEN + AXS15231B_MAX_POINTS * AXS15231B_POINT_STRIDE)
 
-#define AXS15231B_EVENT_MASK      0xC0
-#define AXS15231B_EVENT_SHIFT     6
-#define AXS15231B_EVENT_LIFT_UP   0x01
-#define AXS15231B_EVENT_NO_EVENT  0x03
+#define AXS15231B_EVENT_MASK     0xC0
+#define AXS15231B_EVENT_SHIFT    6
+#define AXS15231B_EVENT_LIFT_UP  0x01
+#define AXS15231B_EVENT_NO_EVENT 0x03
 
-static const uint8_t AXS15231B_READ_CMD[11] = {
-    0xB5, 0xAB, 0xA5, 0x5A, 0x00, 0x00,
-    (uint8_t)(AXS15231B_READ_LEN >> 8), (uint8_t)(AXS15231B_READ_LEN & 0xFF),
-    0x00, 0x00, 0x00
-};
+static const uint8_t AXS15231B_READ_CMD[11] = {0xB5, 0xAB, 0xA5, 0x5A, 0x00, 0x00, (uint8_t)(AXS15231B_READ_LEN >> 8), (uint8_t)(AXS15231B_READ_LEN & 0xFF),
+                                               0x00, 0x00, 0x00};
 
 static int axs15231b_reset(egui_hal_touch_driver_t *self)
 {
@@ -43,7 +40,8 @@ static int axs15231b_reset(egui_hal_touch_driver_t *self)
 static int axs15231b_write_raw(egui_hal_touch_driver_t *self, const uint8_t *data, uint16_t len)
 {
     egui_panel_io_i2c_t *io_i2c = (egui_panel_io_i2c_t *)self->io;
-    if (!io_i2c->i2c->write_raw) {
+    if (!io_i2c->i2c->write_raw)
+    {
         return -1;
     }
     return io_i2c->i2c->write_raw(io_i2c->dev_addr, data, len);
@@ -52,7 +50,8 @@ static int axs15231b_write_raw(egui_hal_touch_driver_t *self, const uint8_t *dat
 static int axs15231b_read_raw(egui_hal_touch_driver_t *self, uint8_t *data, uint16_t len)
 {
     egui_panel_io_i2c_t *io_i2c = (egui_panel_io_i2c_t *)self->io;
-    if (!io_i2c->i2c->read_raw) {
+    if (!io_i2c->i2c->read_raw)
+    {
         return -1;
     }
     return io_i2c->i2c->read_raw(io_i2c->dev_addr, data, len);
@@ -60,10 +59,12 @@ static int axs15231b_read_raw(egui_hal_touch_driver_t *self, uint8_t *data, uint
 
 static int axs15231b_query(egui_hal_touch_driver_t *self, uint8_t *data, uint16_t len)
 {
-    if (axs15231b_write_raw(self, AXS15231B_READ_CMD, sizeof(AXS15231B_READ_CMD)) != 0) {
+    if (axs15231b_write_raw(self, AXS15231B_READ_CMD, sizeof(AXS15231B_READ_CMD)) != 0)
+    {
         return -1;
     }
-    if (axs15231b_read_raw(self, data, len) != 0) {
+    if (axs15231b_read_raw(self, data, len) != 0)
+    {
         return -1;
     }
     return 0;
@@ -75,7 +76,8 @@ static int axs15231b_init(egui_hal_touch_driver_t *self, const egui_hal_touch_co
 
     memcpy(&self->config, config, sizeof(egui_hal_touch_config_t));
 
-    if (axs15231b_query(self, buf, sizeof(buf)) != 0) {
+    if (axs15231b_query(self, buf, sizeof(buf)) != 0)
+    {
         return -1;
     }
 
@@ -98,26 +100,31 @@ static int axs15231b_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *
 
     memset(data, 0, sizeof(egui_hal_touch_data_t));
 
-    if (axs15231b_query(self, buf, sizeof(buf)) != 0) {
+    if (axs15231b_query(self, buf, sizeof(buf)) != 0)
+    {
         return -1;
     }
 
     data->gesture = buf[0];
     num_points = buf[1];
-    if (num_points > AXS15231B_MAX_POINTS) {
+    if (num_points > AXS15231B_MAX_POINTS)
+    {
         num_points = AXS15231B_MAX_POINTS;
     }
-    if (num_points > EGUI_HAL_TOUCH_MAX_POINTS) {
+    if (num_points > EGUI_HAL_TOUCH_MAX_POINTS)
+    {
         num_points = EGUI_HAL_TOUCH_MAX_POINTS;
     }
 
-    for (uint8_t i = 0; i < num_points; i++) {
+    for (uint8_t i = 0; i < num_points; i++)
+    {
         uint8_t base = (uint8_t)(AXS15231B_READ_HDR_LEN + i * AXS15231B_POINT_STRIDE);
         uint8_t event = (buf[base] & AXS15231B_EVENT_MASK) >> AXS15231B_EVENT_SHIFT;
         int16_t x;
         int16_t y;
 
-        if (event == AXS15231B_EVENT_NO_EVENT || event == AXS15231B_EVENT_LIFT_UP) {
+        if (event == AXS15231B_EVENT_NO_EVENT || event == AXS15231B_EVENT_LIFT_UP)
+        {
             continue;
         }
 
@@ -134,13 +141,11 @@ static int axs15231b_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *
     return 0;
 }
 
-void egui_touch_axs15231b_init(egui_hal_touch_driver_t *storage,
-                               egui_panel_io_handle_t io,
-                               void (*set_rst)(uint8_t level),
-                               void (*set_int)(uint8_t level),
+void egui_touch_axs15231b_init(egui_hal_touch_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level), void (*set_int)(uint8_t level),
                                uint8_t (*get_int)(void))
 {
-    if (!storage || !io) {
+    if (!storage || !io)
+    {
         return;
     }
 

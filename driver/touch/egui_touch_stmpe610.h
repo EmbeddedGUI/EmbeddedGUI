@@ -22,11 +22,12 @@ extern "C" {
  * Used to map raw ADC values to screen coordinates.
  * Formula: screen_coord = (raw_value - offset) * scale / 4096
  */
-typedef struct egui_touch_stmpe610_calibration {
-    int16_t x_min;      /**< Raw X value at left edge */
-    int16_t x_max;      /**< Raw X value at right edge */
-    int16_t y_min;      /**< Raw Y value at top edge */
-    int16_t y_max;      /**< Raw Y value at bottom edge */
+typedef struct egui_touch_stmpe610_calibration
+{
+    int16_t x_min; /**< Raw X value at left edge */
+    int16_t x_max; /**< Raw X value at right edge */
+    int16_t y_min; /**< Raw Y value at top edge */
+    int16_t y_max; /**< Raw Y value at bottom edge */
 } egui_touch_stmpe610_calibration_t;
 
 /**
@@ -34,7 +35,8 @@ typedef struct egui_touch_stmpe610_calibration {
  *
  * User must provide storage for this structure when calling init.
  */
-typedef struct egui_touch_stmpe610_priv {
+typedef struct egui_touch_stmpe610_priv
+{
     egui_touch_stmpe610_calibration_t cal;
     uint8_t pressure_threshold;
 } egui_touch_stmpe610_priv_t;
@@ -49,12 +51,8 @@ typedef struct egui_touch_stmpe610_priv {
  * @param set_int      INT pin control callback (NULL if not used)
  * @param get_int      INT pin read callback (NULL if not used)
  */
-void egui_touch_stmpe610_init(egui_hal_touch_driver_t *storage,
-                               egui_touch_stmpe610_priv_t *priv_storage,
-                               egui_panel_io_handle_t io,
-                               void (*set_rst)(uint8_t level),
-                               void (*set_int)(uint8_t level),
-                               uint8_t (*get_int)(void));
+void egui_touch_stmpe610_init(egui_hal_touch_driver_t *storage, egui_touch_stmpe610_priv_t *priv_storage, egui_panel_io_handle_t io,
+                              void (*set_rst)(uint8_t level), void (*set_int)(uint8_t level), uint8_t (*get_int)(void));
 
 /**
  * Set calibration data for coordinate mapping.
@@ -65,8 +63,7 @@ void egui_touch_stmpe610_init(egui_hal_touch_driver_t *storage,
  * Default calibration assumes raw values 0-4095 map to screen coordinates.
  * Call this after init() to set proper calibration for your touch panel.
  */
-void egui_touch_stmpe610_set_calibration(egui_hal_touch_driver_t *driver,
-                                          const egui_touch_stmpe610_calibration_t *cal);
+void egui_touch_stmpe610_set_calibration(egui_hal_touch_driver_t *driver, const egui_touch_stmpe610_calibration_t *cal);
 
 /**
  * Set pressure threshold for touch detection.
@@ -76,8 +73,7 @@ void egui_touch_stmpe610_set_calibration(egui_hal_touch_driver_t *driver,
  *
  * Lower values = more sensitive, higher values = less sensitive.
  */
-void egui_touch_stmpe610_set_pressure_threshold(egui_hal_touch_driver_t *driver,
-                                                 uint8_t threshold);
+void egui_touch_stmpe610_set_pressure_threshold(egui_hal_touch_driver_t *driver, uint8_t threshold);
 
 #ifdef __cplusplus
 }

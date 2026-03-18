@@ -42,14 +42,15 @@
 #define SSD1306_DEACTIVATE_SCROLL   0x2E
 
 /* I2C control bytes */
-#define SSD1306_I2C_CMD             0x00  /* Co=0, D/C#=0: Command */
-#define SSD1306_I2C_DATA            0x40  /* Co=0, D/C#=1: Data */
+#define SSD1306_I2C_CMD  0x00 /* Co=0, D/C#=0: Command */
+#define SSD1306_I2C_DATA 0x40 /* Co=0, D/C#=1: Data */
 
 /* ============================================================
  * Private Data
  * ============================================================ */
 
-typedef struct ssd1306_priv {
+typedef struct ssd1306_priv
+{
     uint8_t is_i2c;
 } ssd1306_priv_t;
 
@@ -210,8 +211,7 @@ static void ssd1306_del(egui_hal_lcd_driver_t *self)
 }
 
 /* Driver: draw_area */
-static void ssd1306_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y,
-                              int16_t w, int16_t h, const void *data, uint32_t len)
+static void ssd1306_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y, int16_t w, int16_t h, const void *data, uint32_t len)
 {
     /* SSD1306 uses page addressing for vertical */
     /* Convert pixel coordinates to page/column */
@@ -250,8 +250,7 @@ static void ssd1306_set_invert(egui_hal_lcd_driver_t *self, uint8_t invert)
  * Internal Setup
  * ============================================================ */
 
-static void ssd1306_setup_driver(egui_hal_lcd_driver_t *driver, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level),
-                                  uint8_t is_i2c)
+static void ssd1306_setup_driver(egui_hal_lcd_driver_t *driver, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level), uint8_t is_i2c)
 {
     memset(driver, 0, sizeof(egui_hal_lcd_driver_t));
 

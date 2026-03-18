@@ -12,6 +12,7 @@ void egui_view_label_on_draw(egui_view_t *self)
     {
         return;
     }
+
     egui_region_t region;
     egui_view_get_work_region(self, &region);
 

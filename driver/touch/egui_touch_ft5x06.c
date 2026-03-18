@@ -8,34 +8,34 @@
 #include "core/egui_api.h"
 
 /* FT5x06 I2C address (7-bit, shifted for HAL) */
-#define FT5X06_ADDR             0x70  /* 0x38 << 1 */
+#define FT5X06_ADDR 0x70 /* 0x38 << 1 */
 
 /* FT5x06 Registers */
-#define FT5X06_REG_DEV_MODE     0x00
-#define FT5X06_REG_GEST_ID      0x01
-#define FT5X06_REG_TD_STATUS    0x02  /* Number of touch points */
-#define FT5X06_REG_P1_XH        0x03  /* Point 1 X high + event flag */
-#define FT5X06_REG_P1_XL        0x04  /* Point 1 X low */
-#define FT5X06_REG_P1_YH        0x05  /* Point 1 Y high + touch ID */
-#define FT5X06_REG_P1_YL        0x06  /* Point 1 Y low */
+#define FT5X06_REG_DEV_MODE  0x00
+#define FT5X06_REG_GEST_ID   0x01
+#define FT5X06_REG_TD_STATUS 0x02 /* Number of touch points */
+#define FT5X06_REG_P1_XH     0x03 /* Point 1 X high + event flag */
+#define FT5X06_REG_P1_XL     0x04 /* Point 1 X low */
+#define FT5X06_REG_P1_YH     0x05 /* Point 1 Y high + touch ID */
+#define FT5X06_REG_P1_YL     0x06 /* Point 1 Y low */
 
 /* Touch point data offset: 6 bytes per point */
-#define FT5X06_POINT_SIZE       6
+#define FT5X06_POINT_SIZE 6
 
 /* Configuration registers */
-#define FT5X06_REG_THGROUP      0x80  /* Valid touching detect threshold */
-#define FT5X06_REG_THPEAK       0x81  /* Valid touching peak detect threshold */
-#define FT5X06_REG_THCAL        0x82  /* Touch focus threshold */
-#define FT5X06_REG_THWATER      0x83  /* Threshold when there is surface water */
-#define FT5X06_REG_THTEMP       0x84  /* Threshold of temperature compensation */
-#define FT5X06_REG_THDIFF       0x85  /* Touch difference threshold */
-#define FT5X06_REG_CTRL         0x86  /* Power control mode */
-#define FT5X06_REG_TIMEENTER    0x87  /* Delay to enter monitor status */
-#define FT5X06_REG_PERIODACTIVE 0x88  /* Period of active status */
-#define FT5X06_REG_PERIODMON    0x89  /* Timer to enter idle when in monitor */
-#define FT5X06_REG_CIPHER       0xA3  /* Chip ID register */
-#define FT5X06_REG_G_MODE       0xA4  /* Interrupt mode */
-#define FT5X06_REG_PMODE        0xA5  /* Power mode */
+#define FT5X06_REG_THGROUP      0x80 /* Valid touching detect threshold */
+#define FT5X06_REG_THPEAK       0x81 /* Valid touching peak detect threshold */
+#define FT5X06_REG_THCAL        0x82 /* Touch focus threshold */
+#define FT5X06_REG_THWATER      0x83 /* Threshold when there is surface water */
+#define FT5X06_REG_THTEMP       0x84 /* Threshold of temperature compensation */
+#define FT5X06_REG_THDIFF       0x85 /* Touch difference threshold */
+#define FT5X06_REG_CTRL         0x86 /* Power control mode */
+#define FT5X06_REG_TIMEENTER    0x87 /* Delay to enter monitor status */
+#define FT5X06_REG_PERIODACTIVE 0x88 /* Period of active status */
+#define FT5X06_REG_PERIODMON    0x89 /* Timer to enter idle when in monitor */
+#define FT5X06_REG_CIPHER       0xA3 /* Chip ID register */
+#define FT5X06_REG_G_MODE       0xA4 /* Interrupt mode */
+#define FT5X06_REG_PMODE        0xA5 /* Power mode */
 
 /* Touch event flags */
 #define FT5X06_EVENT_PRESS_DOWN 0x00
@@ -44,7 +44,7 @@
 #define FT5X06_EVENT_NO_EVENT   0x03
 
 /* Maximum touch points */
-#define FT5X06_MAX_POINTS       5
+#define FT5X06_MAX_POINTS 5
 
 /* Helper: reset */
 static int ft5x06_reset(egui_hal_touch_driver_t *self)
@@ -111,31 +111,37 @@ static int ft5x06_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *dat
     memset(data, 0, sizeof(egui_hal_touch_data_t));
 
     /* Read touch status */
-    if (ft5x06_read_reg(self, FT5X06_REG_TD_STATUS, &num_points, 1) != 0) {
+    if (ft5x06_read_reg(self, FT5X06_REG_TD_STATUS, &num_points, 1) != 0)
+    {
         return -1;
     }
 
-    num_points &= 0x0F;  /* Lower 4 bits = number of points */
-    if (num_points > FT5X06_MAX_POINTS) {
+    num_points &= 0x0F; /* Lower 4 bits = number of points */
+    if (num_points > FT5X06_MAX_POINTS)
+    {
         num_points = FT5X06_MAX_POINTS;
     }
 
-    if (num_points == 0) {
-        return 0;  /* No touch */
+    if (num_points == 0)
+    {
+        return 0; /* No touch */
     }
 
     /* Read touch point data */
-    if (ft5x06_read_reg(self, FT5X06_REG_P1_XH, buf, num_points * FT5X06_POINT_SIZE) != 0) {
+    if (ft5x06_read_reg(self, FT5X06_REG_P1_XH, buf, num_points * FT5X06_POINT_SIZE) != 0)
+    {
         return -1;
     }
 
     /* Parse touch points */
-    for (uint8_t i = 0; i < num_points; i++) {
+    for (uint8_t i = 0; i < num_points; i++)
+    {
         uint8_t *p = &buf[i * FT5X06_POINT_SIZE];
         uint8_t event = (p[0] >> 6) & 0x03;
 
         /* Skip if no event or lift up */
-        if (event == FT5X06_EVENT_NO_EVENT || event == FT5X06_EVENT_LIFT_UP) {
+        if (event == FT5X06_EVENT_NO_EVENT || event == FT5X06_EVENT_LIFT_UP)
+        {
             continue;
         }
 
@@ -147,7 +153,7 @@ static int ft5x06_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *dat
         data->points[data->point_count].x = x;
         data->points[data->point_count].y = y;
         data->points[data->point_count].id = id;
-        data->points[data->point_count].pressure = 0;  /* Not supported */
+        data->points[data->point_count].pressure = 0; /* Not supported */
         data->point_count++;
     }
 
@@ -155,11 +161,8 @@ static int ft5x06_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *dat
 }
 
 /* Internal: setup driver function pointers */
-static void ft5x06_setup_driver(egui_hal_touch_driver_t *driver,
-                                 egui_panel_io_handle_t io,
-                                 void (*set_rst)(uint8_t level),
-                                 void (*set_int)(uint8_t level),
-                                 uint8_t (*get_int)(void))
+static void ft5x06_setup_driver(egui_hal_touch_driver_t *driver, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level), void (*set_int)(uint8_t level),
+                                uint8_t (*get_int)(void))
 {
     memset(driver, 0, sizeof(egui_hal_touch_driver_t));
 
@@ -178,13 +181,11 @@ static void ft5x06_setup_driver(egui_hal_touch_driver_t *driver,
 }
 
 /* Public: init (static allocation) */
-void egui_touch_ft5x06_init(egui_hal_touch_driver_t *storage,
-                            egui_panel_io_handle_t io,
-                            void (*set_rst)(uint8_t level),
-                            void (*set_int)(uint8_t level),
+void egui_touch_ft5x06_init(egui_hal_touch_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level), void (*set_int)(uint8_t level),
                             uint8_t (*get_int)(void))
 {
-    if (!storage || !io || !io->rx_param || !io->tx_param) {
+    if (!storage || !io || !io->rx_param || !io->tx_param)
+    {
         return;
     }
 

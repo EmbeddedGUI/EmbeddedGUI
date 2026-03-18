@@ -8,15 +8,15 @@
 #include "core/egui_api.h"
 
 /* CHSC6540 I2C address (7-bit, shifted for HAL) */
-#define CHSC6540_ADDR             0x5C  /* 0x2E << 1 */
+#define CHSC6540_ADDR 0x5C /* 0x2E << 1 */
 
 /* CHSC6540 Registers */
-#define CHSC6540_REG_DATA_START   0x00  /* Touch report start register */
-#define CHSC6540_REG_POWER_MODE   0xA5  /* Power mode register */
+#define CHSC6540_REG_DATA_START 0x00 /* Touch report start register */
+#define CHSC6540_REG_POWER_MODE 0xA5 /* Power mode register */
 
 /* Maximum touch points */
-#define CHSC6540_MAX_POINTS       1
-#define CHSC6540_REPORT_SIZE      15
+#define CHSC6540_MAX_POINTS  1
+#define CHSC6540_REPORT_SIZE 15
 
 /* Helper: reset */
 static int chsc6540_reset(egui_hal_touch_driver_t *self)
@@ -66,22 +66,26 @@ static int chsc6540_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *d
     memset(data, 0, sizeof(egui_hal_touch_data_t));
     memset(buf, 0, sizeof(buf));
 
-    if (chsc6540_read_reg(self, CHSC6540_REG_DATA_START, buf, sizeof(buf)) != 0) {
+    if (chsc6540_read_reg(self, CHSC6540_REG_DATA_START, buf, sizeof(buf)) != 0)
+    {
         return -1;
     }
 
     point_count = buf[2];
-    if (point_count == 0) {
+    if (point_count == 0)
+    {
         return 0;
     }
-    if (point_count > CHSC6540_MAX_POINTS) {
+    if (point_count > CHSC6540_MAX_POINTS)
+    {
         point_count = CHSC6540_MAX_POINTS;
     }
 
     x = (int16_t)(((buf[3] & 0x0F) << 8) | buf[4]);
     y = (int16_t)(((buf[5] & 0x0F) << 8) | buf[6]);
 
-    if ((x >= self->config.width) || (y >= self->config.height)) {
+    if ((x >= self->config.width) || (y >= self->config.height))
+    {
         return 0;
     }
 
@@ -95,10 +99,7 @@ static int chsc6540_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *d
 }
 
 /* Internal: setup driver function pointers */
-static void chsc6540_setup_driver(egui_hal_touch_driver_t *driver,
-                                  egui_panel_io_handle_t io,
-                                  void (*set_rst)(uint8_t level),
-                                  void (*set_int)(uint8_t level),
+static void chsc6540_setup_driver(egui_hal_touch_driver_t *driver, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level), void (*set_int)(uint8_t level),
                                   uint8_t (*get_int)(void))
 {
     memset(driver, 0, sizeof(egui_hal_touch_driver_t));
@@ -118,13 +119,11 @@ static void chsc6540_setup_driver(egui_hal_touch_driver_t *driver,
 }
 
 /* Public: init (static allocation) */
-void egui_touch_chsc6540_init(egui_hal_touch_driver_t *storage,
-                              egui_panel_io_handle_t io,
-                              void (*set_rst)(uint8_t level),
-                              void (*set_int)(uint8_t level),
+void egui_touch_chsc6540_init(egui_hal_touch_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level), void (*set_int)(uint8_t level),
                               uint8_t (*get_int)(void))
 {
-    if (!storage || !io || !io->rx_param || !io->tx_param) {
+    if (!storage || !io || !io->rx_param || !io->tx_param)
+    {
         return;
     }
 

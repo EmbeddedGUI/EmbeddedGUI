@@ -23,6 +23,10 @@ struct egui_mask_api
     // Optional: row-range query for batch optimization. NULL means not supported (fallback to per-pixel).
     // Given row y and horizontal range [x_min, x_max), returns the opaque span [*x_start, *x_end).
     int (*mask_get_row_range)(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start, egui_dim_t *x_end);
+    // Optional: row visible-range query for skipping fully transparent pixels on partial rows.
+    // Given row y and horizontal range [x_min, x_max), returns non-zero on success and fills [*x_start, *x_end)
+    // with a conservative span where alpha may be non-zero.
+    int (*mask_get_row_visible_range)(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start, egui_dim_t *x_end);
 };
 
 struct egui_mask

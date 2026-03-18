@@ -49,6 +49,30 @@ static void egui_pfb_manager_start_flush(egui_pfb_manager_t *mgr)
         return;
     }
 
+#if EGUI_CONFIG_COLOR_DEPTH == 16 && EGUI_CONFIG_COLOR_16_SWAP == 1
+    // Bulk byte-swap the PFB tile before sending to display.
+    // Internal rendering uses normal RGB565 layout; swap is done once here
+    // instead of per-pixel inside the blend pipeline.
+    {
+        uint32_t *buf32 = (uint32_t *)mgr->buffers[mgr->flush_idx];
+        egui_pfb_flush_params_t *p = &mgr->flush_params[mgr->flush_idx];
+        uint32_t n32 = (uint32_t)p->w * p->h >> 1; // 2 pixels per uint32
+        for (uint32_t i = 0; i < n32; i++)
+        {
+            uint32_t v = buf32[i];
+            buf32[i] = ((v >> 8) & 0x00FF00FFu) | ((v << 8) & 0xFF00FF00u);
+        }
+        // handle odd pixel count
+        if ((uint32_t)p->w * p->h & 1u)
+        {
+            uint16_t *buf16 = (uint16_t *)mgr->buffers[mgr->flush_idx];
+            uint32_t last = (uint32_t)p->w * p->h - 1;
+            uint16_t v = buf16[last];
+            buf16[last] = (uint16_t)((v >> 8) | (v << 8));
+        }
+    }
+#endif
+
     egui_pfb_flush_params_t *p = &mgr->flush_params[mgr->flush_idx];
     mgr->dma_busy = 1;
     drv->ops->draw_area(p->x, p->y, p->w, p->h, mgr->buffers[mgr->flush_idx]);
@@ -80,7 +104,13 @@ static void egui_pfb_manager_wait_last_complete(egui_pfb_manager_t *mgr)
         {
             drv->ops->wait_draw_complete();
         }
-        egui_pfb_manager_notify_flush_complete(mgr);
+        // Only notify if the ISR hasn't already done so during wait_draw_complete.
+        // When an ISR calls notify_flush_complete while we busy-waited, dma_busy
+        // is already cleared; calling notify again would underflow pending_count.
+        if (mgr->dma_busy)
+        {
+            egui_pfb_manager_notify_flush_complete(mgr);
+        }
     }
 }
 

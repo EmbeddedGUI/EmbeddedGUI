@@ -18,7 +18,8 @@ extern "C" {
 /**
  * Bus type enumeration
  */
-typedef enum egui_bus_type {
+typedef enum egui_bus_type
+{
     EGUI_BUS_TYPE_SPI,
     EGUI_BUS_TYPE_I2C,
     EGUI_BUS_TYPE_8080,

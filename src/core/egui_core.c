@@ -420,7 +420,7 @@ void egui_polling_refresh_display(void)
 
     // clear the dirty region
     egui_core_clear_region_dirty();
-    
+
     // wait for all PFB flush complete before next frame, to avoid too many pending buffers in the PFB manager when the screen is updated frequently.
     egui_pfb_manager_wait_all_complete(&egui_core.pfb_mgr);
 
@@ -663,7 +663,7 @@ void egui_core_clear_screen(void)
             int16_t h = (y + pfb_h > screen_h) ? (screen_h - y) : pfb_h;
             EGUI_REGION_DEFINE(region, x, y, w, h);
 
-            if(egui_core.pfb_mgr.buffer_count > 1)
+            if (egui_core.pfb_mgr.buffer_count > 1)
             {
                 egui_core.pfb = egui_pfb_manager_get_render_buffer(&egui_core.pfb_mgr);
                 // Clear PFB buffer to black

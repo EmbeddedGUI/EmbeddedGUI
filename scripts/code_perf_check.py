@@ -141,25 +141,31 @@ def run_qemu(profile_name, profile_config, timeout):
 
     try:
         import time
+        import threading
         proc = subprocess.Popen(
             qemu_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, cwd=PROJECT_ROOT
         )
         output_lines = []
-        start_time = time.time()
         completed = False
 
-        for line in proc.stdout:
-            output_lines.append(line)
-            # Print PERF_RESULT lines in real-time for progress feedback
-            if "PERF_RESULT:" in line:
-                print(f"    {line.rstrip()}")
-            if "PERF_COMPLETE" in line:
-                completed = True
-                break
-            if time.time() - start_time > timeout:
-                print(f"  QEMU TIMEOUT after {timeout}s")
-                break
+        def reader_thread():
+            nonlocal completed
+            for line in proc.stdout:
+                output_lines.append(line)
+                # Print PERF_RESULT lines in real-time for progress feedback
+                if "PERF_RESULT:" in line:
+                    print(f"    {line.rstrip()}")
+                if "PERF_COMPLETE" in line:
+                    completed = True
+                    break
+
+        t = threading.Thread(target=reader_thread, daemon=True)
+        t.start()
+        t.join(timeout=timeout)
+
+        if not completed:
+            print(f"  QEMU TIMEOUT after {timeout}s")
 
         proc.terminate()
         try:
@@ -291,16 +297,12 @@ def patch_app_config_pfb(original_content, pfb_width, pfb_height):
 
 
 def patch_app_config_image_tests(original_content):
-    """Patch app_egui_config.h to enable all image alpha test cases for QEMU.
+    """Patch app_egui_config.h to enable all image tests for QEMU.
 
-    QEMU has no flash size limit, so we can enable all alpha variants.
+    QEMU has no flash size limit, so we enable image tests.
     """
     image_defines = (
-        "#define EGUI_TEST_CONFIG_IMAGE_565   1\n"
-        "#define EGUI_TEST_CONFIG_IMAGE_565_1 1\n"
-        "#define EGUI_TEST_CONFIG_IMAGE_565_2 1\n"
-        "#define EGUI_TEST_CONFIG_IMAGE_565_4 1\n"
-        "#define EGUI_TEST_CONFIG_IMAGE_565_8 1\n"
+        "#define EGUI_TEST_CONFIG_IMAGE_565 1\n"
     )
 
     # Remove any existing image test defines

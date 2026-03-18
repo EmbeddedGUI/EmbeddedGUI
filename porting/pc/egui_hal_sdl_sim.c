@@ -64,7 +64,7 @@ void egui_hal_sdl_lcd_setup(egui_hal_lcd_driver_t *storage)
     storage->swap_xy = NULL;
     storage->set_power = sdl_lcd_set_power;
     storage->set_invert = sdl_lcd_set_invert;
-    storage->io = NULL;  /* SDL doesn't use real bus IO */
+    storage->io = NULL; /* SDL doesn't use real bus IO */
     storage->set_rst = NULL;
 }
 
@@ -118,7 +118,7 @@ void egui_hal_sdl_touch_setup(egui_hal_touch_driver_t *storage)
     storage->init = sdl_touch_init;
     storage->del = sdl_touch_del;
     storage->read = sdl_touch_read;
-    storage->io = NULL;  /* SDL doesn't use real bus IO */
+    storage->io = NULL; /* SDL doesn't use real bus IO */
     storage->set_rst = NULL;
     storage->set_int = NULL;
     storage->get_int = NULL;

@@ -29,9 +29,7 @@ extern "C" {
  * Note: Brightness/backlight control is handled externally by the
  * porting layer or bridge layer.
  */
-void egui_lcd_st7735_init(egui_hal_lcd_driver_t *storage,
-                             egui_panel_io_handle_t io,
-                             void (*set_rst)(uint8_t level));
+void egui_lcd_st7735_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level));
 
 #ifdef __cplusplus
 }

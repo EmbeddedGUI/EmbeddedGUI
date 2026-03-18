@@ -62,9 +62,7 @@ static void i2c_io_deinit(egui_panel_io_t *io)
     }
 }
 
-void egui_panel_io_i2c_init(egui_panel_io_i2c_t *io,
-                             const egui_bus_i2c_ops_t *i2c,
-                             uint8_t dev_addr)
+void egui_panel_io_i2c_init(egui_panel_io_i2c_t *io, const egui_bus_i2c_ops_t *i2c, uint8_t dev_addr)
 {
     if (!io || !i2c)
     {

@@ -21,9 +21,9 @@
 #define ILI9881C_MADCTL_RGB 0x00
 
 /* Color modes */
-#define ILI9881C_COLOR_MODE_16BIT 0x55  /* RGB565 */
-#define ILI9881C_COLOR_MODE_18BIT 0x66  /* RGB666 */
-#define ILI9881C_COLOR_MODE_24BIT 0x77  /* RGB888 */
+#define ILI9881C_COLOR_MODE_16BIT 0x55 /* RGB565 */
+#define ILI9881C_COLOR_MODE_18BIT 0x66 /* RGB666 */
+#define ILI9881C_COLOR_MODE_24BIT 0x77 /* RGB888 */
 
 /* Driver: init */
 static int ili9881c_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t *config)
@@ -99,8 +99,7 @@ static void ili9881c_del(egui_hal_lcd_driver_t *self)
 }
 
 /* Driver: draw_area */
-static void ili9881c_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y,
-                               int16_t w, int16_t h, const void *data, uint32_t len)
+static void ili9881c_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y, int16_t w, int16_t h, const void *data, uint32_t len)
 {
     uint16_t x0 = x + self->config.x_offset;
     uint16_t y0 = y + self->config.y_offset;
@@ -139,9 +138,7 @@ static void ili9881c_set_invert(egui_hal_lcd_driver_t *self, uint8_t invert)
 }
 
 /* Internal: setup driver function pointers */
-static void ili9881c_setup_driver(egui_hal_lcd_driver_t *driver,
-                                 egui_panel_io_handle_t io,
-                                 void (*set_rst)(uint8_t level))
+static void ili9881c_setup_driver(egui_hal_lcd_driver_t *driver, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level))
 {
     memset(driver, 0, sizeof(egui_hal_lcd_driver_t));
 
@@ -161,9 +158,7 @@ static void ili9881c_setup_driver(egui_hal_lcd_driver_t *driver,
 }
 
 /* Public: init (static allocation) */
-void egui_lcd_ili9881c_init(egui_hal_lcd_driver_t *storage,
-                            egui_panel_io_handle_t io,
-                            void (*set_rst)(uint8_t level))
+void egui_lcd_ili9881c_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level))
 {
     if (!storage || !io || !io->tx_param)
     {

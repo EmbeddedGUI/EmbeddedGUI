@@ -16,9 +16,10 @@ extern "C" {
 /**
  * 8080 Panel IO instance
  */
-typedef struct egui_panel_io_8080 {
-    egui_panel_io_t base;                  /**< Base interface (MUST be first member) */
-    const egui_bus_8080_ops_t *bus_8080;   /**< 8080 bus operations */
+typedef struct egui_panel_io_8080
+{
+    egui_panel_io_t base;                /**< Base interface (MUST be first member) */
+    const egui_bus_8080_ops_t *bus_8080; /**< 8080 bus operations */
 } egui_panel_io_8080_t;
 
 /**
@@ -27,8 +28,7 @@ typedef struct egui_panel_io_8080 {
  * @param io        User-provided storage
  * @param bus_8080  8080 bus operations (must not be NULL)
  */
-void egui_panel_io_8080_init(egui_panel_io_8080_t *io,
-                              const egui_bus_8080_ops_t *bus_8080);
+void egui_panel_io_8080_init(egui_panel_io_8080_t *io, const egui_bus_8080_ops_t *bus_8080);
 
 #ifdef __cplusplus
 }

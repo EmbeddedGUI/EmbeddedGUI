@@ -368,7 +368,7 @@ void egui_port_init(void)
             .width = EGUI_CONFIG_SCEEN_WIDTH,
             .height = EGUI_CONFIG_SCEEN_HEIGHT,
             .color_depth = EGUI_CONFIG_COLOR_DEPTH,
-            .color_swap = EGUI_CONFIG_COLOR_16_SWAP,
+            .color_swap = 0,
             .x_offset = 0,
             .y_offset = 0,
             .invert_color = 0,

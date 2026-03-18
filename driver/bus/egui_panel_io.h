@@ -41,7 +41,8 @@ typedef egui_panel_io_t *egui_panel_io_handle_t;
  * - egui_panel_io_i2c_t  (I2C with device address)
  * - egui_panel_io_8080_t (8080 parallel bus)
  */
-struct egui_panel_io {
+struct egui_panel_io
+{
     /**
      * Send command with parameter data (blocking).
      *

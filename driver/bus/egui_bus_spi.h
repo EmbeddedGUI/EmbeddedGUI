@@ -26,7 +26,8 @@ extern "C" {
 /**
  * SPI Bus operations interface
  */
-typedef struct egui_bus_spi_ops {
+typedef struct egui_bus_spi_ops
+{
     /**
      * Initialize SPI peripheral.
      * Called once during driver init. May be NULL if already initialized.

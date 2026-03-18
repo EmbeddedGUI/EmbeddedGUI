@@ -32,11 +32,12 @@ extern "C" {
  * Used to describe chip-specific register writes during initialization.
  * The driver iterates through an array of these and sends each via IO handle.
  */
-typedef struct egui_lcd_vendor_init_cmd {
-    int cmd;                   /**< Command/register address */
-    const uint8_t *data;       /**< Parameter data (NULL if none) */
-    size_t data_bytes;         /**< Size of data in bytes */
-    unsigned int delay_ms;     /**< Delay in ms after sending this command */
+typedef struct egui_lcd_vendor_init_cmd
+{
+    int cmd;               /**< Command/register address */
+    const uint8_t *data;   /**< Parameter data (NULL if none) */
+    size_t data_bytes;     /**< Size of data in bytes */
+    unsigned int delay_ms; /**< Delay in ms after sending this command */
 } egui_lcd_vendor_init_cmd_t;
 
 /**
@@ -49,11 +50,9 @@ typedef struct egui_lcd_vendor_init_cmd {
  *       EGUI_LCD_CMD_NO_PARAM(120, 0x11),
  *   };
  */
-#define EGUI_LCD_CMD_WITH_PARAM(delay, command, ...) \
-    {(command), (const uint8_t[]){__VA_ARGS__}, sizeof((const uint8_t[]){__VA_ARGS__}), (delay)}
+#define EGUI_LCD_CMD_WITH_PARAM(delay, command, ...) {(command), (const uint8_t[]){__VA_ARGS__}, sizeof((const uint8_t[]){__VA_ARGS__}), (delay)}
 
-#define EGUI_LCD_CMD_NO_PARAM(delay, command) \
-    {(command), NULL, 0, (delay)}
+#define EGUI_LCD_CMD_NO_PARAM(delay, command) {(command), NULL, 0, (delay)}
 
 /* ============================================================
  * LCD Configuration
@@ -80,17 +79,18 @@ typedef int (*egui_lcd_custom_init_fn)(egui_panel_io_handle_t io, const egui_hal
 /**
  * LCD configuration structure
  */
-struct egui_hal_lcd_config {
-    uint16_t width;           /**< Screen width in pixels */
-    uint16_t height;          /**< Screen height in pixels */
-    uint8_t color_depth;      /**< Color depth: 1, 8, 16, or 24 bits */
-    uint8_t color_swap;       /**< Byte order swap (for RGB565) */
-    int16_t x_offset;         /**< X offset for partial displays */
-    int16_t y_offset;         /**< Y offset for partial displays */
-    uint8_t invert_color;     /**< Color inversion (0 = normal, 1 = inverted) */
-    uint8_t mirror_x;         /**< X axis mirror */
-    uint8_t mirror_y;         /**< Y axis mirror */
-    uint8_t swap_xy;          /**< Swap X and Y axes */
+struct egui_hal_lcd_config
+{
+    uint16_t width;       /**< Screen width in pixels */
+    uint16_t height;      /**< Screen height in pixels */
+    uint8_t color_depth;  /**< Color depth: 1, 8, 16, or 24 bits */
+    uint8_t color_swap;   /**< Byte order swap (for RGB565) */
+    int16_t x_offset;     /**< X offset for partial displays */
+    int16_t y_offset;     /**< Y offset for partial displays */
+    uint8_t invert_color; /**< Color inversion (0 = normal, 1 = inverted) */
+    uint8_t mirror_x;     /**< X axis mirror */
+    uint8_t mirror_y;     /**< Y axis mirror */
+    uint8_t swap_xy;      /**< Swap X and Y axes */
 
     /**
      * Custom init callback.
@@ -117,17 +117,17 @@ typedef struct egui_hal_lcd_driver egui_hal_lcd_driver_t;
  * Uses a unified Panel IO handle for all bus communication.
  * Device-level GPIO (RST) is managed internally by reset/del.
  */
-struct egui_hal_lcd_driver {
-    const char *name;                    /**< Driver name (e.g., "ST7789") */
+struct egui_hal_lcd_driver
+{
+    const char *name; /**< Driver name (e.g., "ST7789") */
 
     /* Lifecycle: reset → init → ... → del */
-    int (*reset)(egui_hal_lcd_driver_t *self);   /**< Hardware reset (RST low→high) */
+    int (*reset)(egui_hal_lcd_driver_t *self); /**< Hardware reset (RST low→high) */
     int (*init)(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t *config);
-    void (*del)(egui_hal_lcd_driver_t *self);    /**< Pull RST low + clear struct */
+    void (*del)(egui_hal_lcd_driver_t *self); /**< Pull RST low + clear struct */
 
     /* Core drawing */
-    void (*draw_area)(egui_hal_lcd_driver_t *self, int16_t x, int16_t y,
-                      int16_t w, int16_t h, const void *data, uint32_t len);
+    void (*draw_area)(egui_hal_lcd_driver_t *self, int16_t x, int16_t y, int16_t w, int16_t h, const void *data, uint32_t len);
 
     /* Optional features */
     void (*mirror)(egui_hal_lcd_driver_t *self, uint8_t mirror_x, uint8_t mirror_y);
@@ -136,12 +136,12 @@ struct egui_hal_lcd_driver {
     void (*set_invert)(egui_hal_lcd_driver_t *self, uint8_t invert);
 
     /* IO and GPIO */
-    egui_panel_io_handle_t io;           /**< Unified IO handle for commands/data */
-    void (*set_rst)(uint8_t level);      /**< Device RST pin. Used by reset/del internally */
+    egui_panel_io_handle_t io;      /**< Unified IO handle for commands/data */
+    void (*set_rst)(uint8_t level); /**< Device RST pin. Used by reset/del internally */
 
     /* State */
-    egui_hal_lcd_config_t config;        /**< Current configuration */
-    void *priv;                          /**< Driver-specific private data */
+    egui_hal_lcd_config_t config; /**< Current configuration */
+    void *priv;                   /**< Driver-specific private data */
 };
 
 /* ============================================================
@@ -156,9 +156,7 @@ struct egui_hal_lcd_driver {
  * @param size  Number of commands in the array
  * @return 0 on success, non-zero on failure
  */
-int egui_lcd_send_vendor_init_cmds(egui_panel_io_handle_t io,
-                                    const egui_lcd_vendor_init_cmd_t *cmds,
-                                    uint16_t size);
+int egui_lcd_send_vendor_init_cmds(egui_panel_io_handle_t io, const egui_lcd_vendor_init_cmd_t *cmds, uint16_t size);
 
 /**
  * Hardware reset sequence.
@@ -180,8 +178,7 @@ void egui_lcd_hw_reset(egui_hal_lcd_driver_t *self, int delay_ms);
  * @param lcd     HAL LCD driver instance (factory_init already called)
  * @param config  LCD configuration
  */
-void egui_hal_lcd_register(egui_display_driver_t *driver, egui_hal_lcd_driver_t *lcd,
-                            const egui_hal_lcd_config_t *config);
+void egui_hal_lcd_register(egui_display_driver_t *driver, egui_hal_lcd_driver_t *lcd, const egui_hal_lcd_config_t *config);
 
 /**
  * Get the registered HAL LCD driver instance.

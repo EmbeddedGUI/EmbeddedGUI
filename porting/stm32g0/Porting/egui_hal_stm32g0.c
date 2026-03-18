@@ -37,17 +37,18 @@ static int lcd_spi_write(const uint8_t *data, uint32_t len)
 
 static void lcd_spi_wait_complete(void)
 {
-    while (APP_EGUI_LCD_SPI.hdmatx->State != HAL_DMA_STATE_READY) {
+    while (APP_EGUI_LCD_SPI.hdmatx->State != HAL_DMA_STATE_READY)
+    {
         continue;
     }
 }
 
 static const egui_bus_spi_ops_t s_lcd_spi_ops = {
-    .init = lcd_spi_init,
-    .deinit = lcd_spi_deinit,
-    .write = lcd_spi_write,
-    .wait_complete = lcd_spi_wait_complete,
-    .read = NULL,  /* LCD doesn't need read */
+        .init = lcd_spi_init,
+        .deinit = lcd_spi_deinit,
+        .write = lcd_spi_write,
+        .wait_complete = lcd_spi_wait_complete,
+        .read = NULL, /* LCD doesn't need read */
 };
 
 const egui_bus_spi_ops_t *egui_hal_stm32g0_get_lcd_spi_ops(void)
@@ -61,14 +62,12 @@ const egui_bus_spi_ops_t *egui_hal_stm32g0_get_lcd_spi_ops(void)
 
 void egui_hal_stm32g0_lcd_set_rst(uint8_t level)
 {
-    HAL_GPIO_WritePin(APP_EGUI_LCD_RST_PORT, APP_EGUI_LCD_RST_PIN,
-                      level ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(APP_EGUI_LCD_RST_PORT, APP_EGUI_LCD_RST_PIN, level ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
 void egui_hal_stm32g0_lcd_set_dc(uint8_t level)
 {
-    HAL_GPIO_WritePin(APP_EGUI_LCD_DC_PORT, APP_EGUI_LCD_DC_PIN,
-                      level ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(APP_EGUI_LCD_DC_PORT, APP_EGUI_LCD_DC_PIN, level ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
 void egui_hal_stm32g0_lcd_set_cs(uint8_t level)
@@ -83,8 +82,7 @@ void egui_hal_stm32g0_lcd_set_cs(uint8_t level)
 
 void egui_hal_stm32g0_set_backlight_level(uint8_t level)
 {
-    HAL_GPIO_WritePin(APP_EGUI_LCD_LED_PORT, APP_EGUI_LCD_LED_PIN,
-                      level > 0 ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(APP_EGUI_LCD_LED_PORT, APP_EGUI_LCD_LED_PIN, level > 0 ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
 /* ============================================================
@@ -109,16 +107,14 @@ static uint16_t touch_i2c_mem_addr_size(uint16_t reg)
 static int touch_i2c_write_reg(uint8_t addr, uint16_t reg, const uint8_t *data, uint16_t len)
 {
     HAL_StatusTypeDef status;
-    status = HAL_I2C_Mem_Write(&APP_EGUI_TOUCH_I2C, addr, reg,
-                               touch_i2c_mem_addr_size(reg), (uint8_t *)data, len, 1000);
+    status = HAL_I2C_Mem_Write(&APP_EGUI_TOUCH_I2C, addr, reg, touch_i2c_mem_addr_size(reg), (uint8_t *)data, len, 1000);
     return (status == HAL_OK) ? 0 : -1;
 }
 
 static int touch_i2c_read_reg(uint8_t addr, uint16_t reg, uint8_t *data, uint16_t len)
 {
     HAL_StatusTypeDef status;
-    status = HAL_I2C_Mem_Read(&APP_EGUI_TOUCH_I2C, addr, reg,
-                              touch_i2c_mem_addr_size(reg), data, len, 1000);
+    status = HAL_I2C_Mem_Read(&APP_EGUI_TOUCH_I2C, addr, reg, touch_i2c_mem_addr_size(reg), data, len, 1000);
     return (status == HAL_OK) ? 0 : -1;
 }
 
@@ -137,13 +133,13 @@ static int touch_i2c_read_raw(uint8_t addr, uint8_t *data, uint16_t len)
 }
 
 static const egui_bus_i2c_ops_t s_touch_i2c_ops = {
-    .init = touch_i2c_init,
-    .deinit = touch_i2c_deinit,
-    .write_reg = touch_i2c_write_reg,
-    .read_reg = touch_i2c_read_reg,
-    .write_raw = touch_i2c_write_raw,
-    .read_raw = touch_i2c_read_raw,
-    .write_read = NULL,
+        .init = touch_i2c_init,
+        .deinit = touch_i2c_deinit,
+        .write_reg = touch_i2c_write_reg,
+        .read_reg = touch_i2c_read_reg,
+        .write_raw = touch_i2c_write_raw,
+        .read_raw = touch_i2c_read_raw,
+        .write_read = NULL,
 };
 
 const egui_bus_i2c_ops_t *egui_hal_stm32g0_get_touch_i2c_ops(void)
@@ -157,8 +153,7 @@ const egui_bus_i2c_ops_t *egui_hal_stm32g0_get_touch_i2c_ops(void)
 
 void egui_hal_stm32g0_touch_set_rst(uint8_t level)
 {
-    HAL_GPIO_WritePin(APP_EGUI_TOUCH_RST_PORT, APP_EGUI_TOUCH_RST_PIN,
-                      level ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(APP_EGUI_TOUCH_RST_PORT, APP_EGUI_TOUCH_RST_PIN, level ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
 uint8_t egui_hal_stm32g0_touch_get_int(void)

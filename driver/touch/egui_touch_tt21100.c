@@ -12,17 +12,17 @@
 #include "core/egui_api.h"
 
 /* TT21100 I2C address (7-bit, shifted for HAL) */
-#define TT21100_ADDR            0x48  /* 0x24 << 1 */
+#define TT21100_ADDR 0x48 /* 0x24 << 1 */
 
 /* TT21100 Report IDs */
 #define TT21100_REPORT_ID_TOUCH 0x01
 #define TT21100_REPORT_ID_BTN   0x03
 
-#define TT21100_MAX_POINTS      10
-#define TT21100_HEADER_SIZE     7
-#define TT21100_POINT_SIZE      10
+#define TT21100_MAX_POINTS         10
+#define TT21100_HEADER_SIZE        7
+#define TT21100_POINT_SIZE         10
 #define TT21100_BUTTON_REPORT_SIZE 14
-#define TT21100_MAX_REPORT_SIZE (TT21100_HEADER_SIZE + TT21100_MAX_POINTS * TT21100_POINT_SIZE)
+#define TT21100_MAX_REPORT_SIZE    (TT21100_HEADER_SIZE + TT21100_MAX_POINTS * TT21100_POINT_SIZE)
 
 #define TT21100_RECORD_NUM_MASK 0x1F
 #define TT21100_EVENT_MASK      0x06
@@ -53,7 +53,8 @@ static int tt21100_init(egui_hal_touch_driver_t *self, const egui_hal_touch_conf
 
     memcpy(&self->config, config, sizeof(egui_hal_touch_config_t));
 
-    if (tt21100_read_data(self, buf, sizeof(buf)) != 0) {
+    if (tt21100_read_data(self, buf, sizeof(buf)) != 0)
+    {
         return -1;
     }
 
@@ -79,46 +80,57 @@ static int tt21100_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *da
 
     memset(data, 0, sizeof(egui_hal_touch_data_t));
 
-    if (tt21100_read_data(self, buf, 2) != 0) {
+    if (tt21100_read_data(self, buf, 2) != 0)
+    {
         return -1;
     }
 
     data_len = (uint16_t)buf[0] | ((uint16_t)buf[1] << 8);
-    if (data_len == 0 || data_len == 0xFFFF) {
+    if (data_len == 0 || data_len == 0xFFFF)
+    {
         return 0;
     }
-    if (data_len > TT21100_MAX_REPORT_SIZE) {
+    if (data_len > TT21100_MAX_REPORT_SIZE)
+    {
         data_len = TT21100_MAX_REPORT_SIZE;
     }
-    if (data_len < 3) {
+    if (data_len < 3)
+    {
         return 0;
     }
 
-    if (tt21100_read_data(self, buf, data_len) != 0) {
+    if (tt21100_read_data(self, buf, data_len) != 0)
+    {
         return -1;
     }
 
     report_id = buf[2];
-    if (report_id == TT21100_REPORT_ID_BTN && data_len == TT21100_BUTTON_REPORT_SIZE) {
+    if (report_id == TT21100_REPORT_ID_BTN && data_len == TT21100_BUTTON_REPORT_SIZE)
+    {
         return 0;
     }
-    if (report_id != TT21100_REPORT_ID_TOUCH || data_len < TT21100_HEADER_SIZE) {
+    if (report_id != TT21100_REPORT_ID_TOUCH || data_len < TT21100_HEADER_SIZE)
+    {
         return 0;
     }
 
     num_points = buf[5] & TT21100_RECORD_NUM_MASK;
     max_records = (uint8_t)((data_len - TT21100_HEADER_SIZE) / TT21100_POINT_SIZE);
-    if (num_points > max_records) {
+    if (num_points > max_records)
+    {
         num_points = max_records;
     }
-    if (num_points > TT21100_MAX_POINTS) {
+    if (num_points > TT21100_MAX_POINTS)
+    {
         num_points = TT21100_MAX_POINTS;
     }
-    if (num_points > EGUI_HAL_TOUCH_MAX_POINTS) {
+    if (num_points > EGUI_HAL_TOUCH_MAX_POINTS)
+    {
         num_points = EGUI_HAL_TOUCH_MAX_POINTS;
     }
 
-    for (uint8_t i = 0; i < num_points; i++) {
+    for (uint8_t i = 0; i < num_points; i++)
+    {
         uint8_t *p = &buf[TT21100_HEADER_SIZE + i * TT21100_POINT_SIZE];
         uint8_t touch_meta = p[1];
         uint8_t touch_id = touch_meta >> TT21100_ID_SHIFT;
@@ -139,11 +151,8 @@ static int tt21100_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *da
     return 0;
 }
 
-static void tt21100_setup_driver(egui_hal_touch_driver_t *driver,
-                                  egui_panel_io_handle_t io,
-                                  void (*set_rst)(uint8_t level),
-                                  void (*set_int)(uint8_t level),
-                                  uint8_t (*get_int)(void))
+static void tt21100_setup_driver(egui_hal_touch_driver_t *driver, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level), void (*set_int)(uint8_t level),
+                                 uint8_t (*get_int)(void))
 {
     memset(driver, 0, sizeof(egui_hal_touch_driver_t));
 
@@ -161,13 +170,11 @@ static void tt21100_setup_driver(egui_hal_touch_driver_t *driver,
     driver->get_int = get_int;
 }
 
-void egui_touch_tt21100_init(egui_hal_touch_driver_t *storage,
-                              egui_panel_io_handle_t io,
-                              void (*set_rst)(uint8_t level),
-                              void (*set_int)(uint8_t level),
-                              uint8_t (*get_int)(void))
+void egui_touch_tt21100_init(egui_hal_touch_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level), void (*set_int)(uint8_t level),
+                             uint8_t (*get_int)(void))
 {
-    if (!storage || !io || !io->rx_param) {
+    if (!storage || !io || !io->rx_param)
+    {
         return;
     }
 

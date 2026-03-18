@@ -19,10 +19,11 @@ extern "C" {
 /**
  * I2C Panel IO instance
  */
-typedef struct egui_panel_io_i2c {
-    egui_panel_io_t base;              /**< Base interface (MUST be first member) */
-    const egui_bus_i2c_ops_t *i2c;     /**< I2C bus operations */
-    uint8_t dev_addr;                  /**< 7-bit I2C device address (shifted) */
+typedef struct egui_panel_io_i2c
+{
+    egui_panel_io_t base;          /**< Base interface (MUST be first member) */
+    const egui_bus_i2c_ops_t *i2c; /**< I2C bus operations */
+    uint8_t dev_addr;              /**< 7-bit I2C device address (shifted) */
 } egui_panel_io_i2c_t;
 
 /**
@@ -32,9 +33,7 @@ typedef struct egui_panel_io_i2c {
  * @param i2c       I2C bus operations (must not be NULL)
  * @param dev_addr  I2C device address (7-bit, shifted left by 1)
  */
-void egui_panel_io_i2c_init(egui_panel_io_i2c_t *io,
-                             const egui_bus_i2c_ops_t *i2c,
-                             uint8_t dev_addr);
+void egui_panel_io_i2c_init(egui_panel_io_i2c_t *io, const egui_bus_i2c_ops_t *i2c, uint8_t dev_addr);
 
 /**
  * Change device address at runtime.

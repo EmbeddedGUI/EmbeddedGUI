@@ -76,8 +76,7 @@ static void bus8080_io_deinit(egui_panel_io_t *io)
     }
 }
 
-void egui_panel_io_8080_init(egui_panel_io_8080_t *io,
-                              const egui_bus_8080_ops_t *bus_8080)
+void egui_panel_io_8080_init(egui_panel_io_8080_t *io, const egui_bus_8080_ops_t *bus_8080)
 {
     if (!io || !bus_8080)
     {

@@ -58,9 +58,7 @@
     },
     "spi_configs": [
         {"name": "no_spi", "buffer_count": 1, "spi_mhz": 0, "desc": "No SPI (CPU only)"},
-        {"name": "spi32_buf1", "buffer_count": 1, "spi_mhz": 32, "desc": "32MHz SPI, single buffer"},
-        {"name": "spi32_buf2", "buffer_count": 2, "spi_mhz": 32, "desc": "32MHz SPI, double buffer"},
-        {"name": "spi32_buf3", "buffer_count": 3, "spi_mhz": 32, "desc": "32MHz SPI, triple buffer"},
-        {"name": "spi32_buf4", "buffer_count": 4, "spi_mhz": 32, "desc": "32MHz SPI, quad buffer"}
+        {"name": "spi16_buf1", "buffer_count": 1, "spi_mhz": 16, "desc": "16MHz SPI, single buffer"},
+        {"name": "spi64_buf1", "buffer_count": 1, "spi_mhz": 64, "desc": "64MHz SPI, single buffer"}
     ]
 }

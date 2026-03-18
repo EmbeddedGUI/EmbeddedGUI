@@ -38,6 +38,8 @@ int egui_font_get_utf8_code(const char *s, uint32_t *output_utf8_code)
         break;
     default:
         EGUI_ASSERT(false);
+        *output_utf8_code = *us;
+        utf8_bytes = 1;
         break;
     }
     return utf8_bytes;

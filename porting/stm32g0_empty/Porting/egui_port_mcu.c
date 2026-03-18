@@ -34,7 +34,7 @@
  * Bus IO Operations - Implement these for your hardware
  * ============================================================ */
 
-#if 0  /* Example SPI operations - uncomment and implement */
+#if 0 /* Example SPI operations - uncomment and implement */
 static void lcd_spi_init(void)
 {
     /* TODO: Initialize SPI peripheral */
@@ -84,12 +84,12 @@ static egui_hal_lcd_driver_t s_mcu_lcd_driver;
 static egui_display_driver_ops_t port_display_ops = {0};
 
 static egui_display_driver_t port_display_driver = {
-    .ops = &port_display_ops,
-    .physical_width = EGUI_CONFIG_SCEEN_WIDTH,
-    .physical_height = EGUI_CONFIG_SCEEN_HEIGHT,
-    .rotation = EGUI_DISPLAY_ROTATION_0,
-    .brightness = 255,
-    .power_on = 1,
+        .ops = &port_display_ops,
+        .physical_width = EGUI_CONFIG_SCEEN_WIDTH,
+        .physical_height = EGUI_CONFIG_SCEEN_HEIGHT,
+        .rotation = EGUI_DISPLAY_ROTATION_0,
+        .brightness = 255,
+        .power_on = 1,
 };
 
 static int mcu_lcd_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t *config)
@@ -193,29 +193,29 @@ static void mcu_interrupt_enable(egui_base_t level)
 }
 
 static const egui_platform_ops_t mcu_platform_ops = {
-    .malloc = NULL,
-    .free = NULL,
-    .vlog = mcu_vlog,
-    .assert_handler = mcu_assert_handler,
-    .vsprintf = mcu_vsprintf,
-    .delay = mcu_delay,
-    .get_tick_ms = mcu_get_tick_ms,
-    .pfb_clear = mcu_pfb_clear,
-    .interrupt_disable = mcu_interrupt_disable,
-    .interrupt_enable = mcu_interrupt_enable,
-    .load_external_resource = NULL,
-    .mutex_create = NULL,
-    .mutex_lock = NULL,
-    .mutex_unlock = NULL,
-    .mutex_destroy = NULL,
-    .timer_start = NULL,
-    .timer_stop = NULL,
-    .memcpy_fast = NULL,
-    .watchdog_feed = NULL,
+        .malloc = NULL,
+        .free = NULL,
+        .vlog = mcu_vlog,
+        .assert_handler = mcu_assert_handler,
+        .vsprintf = mcu_vsprintf,
+        .delay = mcu_delay,
+        .get_tick_ms = mcu_get_tick_ms,
+        .pfb_clear = mcu_pfb_clear,
+        .interrupt_disable = mcu_interrupt_disable,
+        .interrupt_enable = mcu_interrupt_enable,
+        .load_external_resource = NULL,
+        .mutex_create = NULL,
+        .mutex_lock = NULL,
+        .mutex_unlock = NULL,
+        .mutex_destroy = NULL,
+        .timer_start = NULL,
+        .timer_stop = NULL,
+        .memcpy_fast = NULL,
+        .watchdog_feed = NULL,
 };
 
 static egui_platform_t mcu_platform = {
-    .ops = &mcu_platform_ops,
+        .ops = &mcu_platform_ops,
 };
 
 /* ============================================================
@@ -225,16 +225,16 @@ static egui_platform_t mcu_platform = {
 void egui_port_init(void)
 {
     egui_hal_lcd_config_t lcd_config = {
-        .width = EGUI_CONFIG_SCEEN_WIDTH,
-        .height = EGUI_CONFIG_SCEEN_HEIGHT,
-        .color_depth = EGUI_CONFIG_COLOR_DEPTH,
-        .color_swap = EGUI_CONFIG_COLOR_16_SWAP,
-        .x_offset = 0,
-        .y_offset = 0,
-        .invert_color = 0,
-        .mirror_x = 0,
-        .mirror_y = 0,
-        .custom_init = NULL,
+            .width = EGUI_CONFIG_SCEEN_WIDTH,
+            .height = EGUI_CONFIG_SCEEN_HEIGHT,
+            .color_depth = EGUI_CONFIG_COLOR_DEPTH,
+            .color_swap = 0,
+            .x_offset = 0,
+            .y_offset = 0,
+            .invert_color = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
+            .custom_init = NULL,
     };
 
     mcu_lcd_setup(&s_mcu_lcd_driver);

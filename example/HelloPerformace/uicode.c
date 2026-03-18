@@ -9,12 +9,16 @@
 #include "core/egui_input_simulator.h"
 #endif
 
-#define TEST_FOR_FULL_SCREEN_COMPARE 0
-
 #if EGUI_PORT == EGUI_PORT_TYPE_QEMU
 #define TEST_REPEAT_COUNT 3
 #else
 #define TEST_REPEAT_COUNT 10
+#endif
+
+// Set to a specific EGUI_VIEW_TEST_PERFORMANCE_TYPE_* value to run only that test,
+// or set to -1 to run all tests.
+#ifndef EGUI_TEST_CONFIG_SINGLE_TEST
+#define EGUI_TEST_CONFIG_SINGLE_TEST -1
 #endif
 
 // views in test_view_group_1
@@ -110,6 +114,10 @@ static const char *egui_view_test_performance_type_string(int test_mode)
         return "TEXT";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_RECT:
         return "TEXT_RECT";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT:
+        return "EXTERN_TEXT";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_RECT:
+        return "EXTERN_TEXT_RECT";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_RECTANGLE:
         return "RECTANGLE";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CIRCLE:
@@ -202,34 +210,113 @@ static const char *egui_view_test_performance_type_string(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_ANIMATION_SET:
         return "ANIMATION_SET";
 
+    // Image multi-size
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_QUARTER:
+        return "IMAGE_565_QUARTER";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_DOUBLE:
+        return "IMAGE_565_DOUBLE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_8_QUARTER:
+        return "IMAGE_565_8_QUARTER";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_8_DOUBLE:
+        return "IMAGE_565_8_DOUBLE";
+
+    // Extern image
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_565:
+        return "EXTERN_IMAGE_565";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_565_1:
+        return "EXTERN_IMAGE_565_1";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_565_2:
+        return "EXTERN_IMAGE_565_2";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_565_4:
+        return "EXTERN_IMAGE_565_4";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_565_8:
+        return "EXTERN_IMAGE_565_8";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_565:
+        return "EXTERN_IMAGE_RESIZE_565";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_565_1:
+        return "EXTERN_IMAGE_RESIZE_565_1";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_565_2:
+        return "EXTERN_IMAGE_RESIZE_565_2";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_565_4:
+        return "EXTERN_IMAGE_RESIZE_565_4";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_565_8:
+        return "EXTERN_IMAGE_RESIZE_565_8";
+
+    // Mask multi-size: rect fill
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_RECT_FILL_NO_MASK_QUARTER:
+        return "MASK_RECT_FILL_NO_MASK_QUARTER";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_RECT_FILL_NO_MASK_DOUBLE:
+        return "MASK_RECT_FILL_NO_MASK_DOUBLE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_RECT_FILL_ROUND_RECT_QUARTER:
+        return "MASK_RECT_FILL_ROUND_RECT_QUARTER";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_RECT_FILL_ROUND_RECT_DOUBLE:
+        return "MASK_RECT_FILL_ROUND_RECT_DOUBLE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_RECT_FILL_CIRCLE_QUARTER:
+        return "MASK_RECT_FILL_CIRCLE_QUARTER";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_RECT_FILL_CIRCLE_DOUBLE:
+        return "MASK_RECT_FILL_CIRCLE_DOUBLE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_RECT_FILL_IMAGE_QUARTER:
+        return "MASK_RECT_FILL_IMAGE_QUARTER";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_RECT_FILL_IMAGE_DOUBLE:
+        return "MASK_RECT_FILL_IMAGE_DOUBLE";
+
+    // Mask multi-size: image
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_NO_MASK_QUARTER:
+        return "MASK_IMAGE_NO_MASK_QUARTER";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_NO_MASK_DOUBLE:
+        return "MASK_IMAGE_NO_MASK_DOUBLE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_ROUND_RECT_QUARTER:
+        return "MASK_IMAGE_ROUND_RECT_QUARTER";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_ROUND_RECT_DOUBLE:
+        return "MASK_IMAGE_ROUND_RECT_DOUBLE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_CIRCLE_QUARTER:
+        return "MASK_IMAGE_CIRCLE_QUARTER";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_CIRCLE_DOUBLE:
+        return "MASK_IMAGE_CIRCLE_DOUBLE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_IMAGE_QUARTER:
+        return "MASK_IMAGE_IMAGE_QUARTER";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_IMAGE_DOUBLE:
+        return "MASK_IMAGE_IMAGE_DOUBLE";
+
+    // Shape fill multi-size
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CIRCLE_FILL_QUARTER:
+        return "CIRCLE_FILL_QUARTER";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CIRCLE_FILL_DOUBLE:
+        return "CIRCLE_FILL_DOUBLE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_ROUND_RECTANGLE_FILL_QUARTER:
+        return "ROUND_RECTANGLE_FILL_QUARTER";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_ROUND_RECTANGLE_FILL_DOUBLE:
+        return "ROUND_RECTANGLE_FILL_DOUBLE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TRIANGLE_FILL_QUARTER:
+        return "TRIANGLE_FILL_QUARTER";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TRIANGLE_FILL_DOUBLE:
+        return "TRIANGLE_FILL_DOUBLE";
+
     default:
         return "Unknown";
     }
 }
 
-#if TEST_FOR_FULL_SCREEN_COMPARE
-static egui_color_int_t test_full_screen_pfb[EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT];
-#endif
 void egui_view_test_performance_with_test_mode(int test_mode)
 {
     EGUI_LOG_INF("=========== Test Mode: %s ===========\r\n", egui_view_test_performance_type_string(test_mode));
     test_view.test_mode = test_mode;
     user_manu_refresh_screen();
-
-#if TEST_FOR_FULL_SCREEN_COMPARE
-    EGUI_LOG_INF("Test Full Screen Compare\r\n");
-    // Set Full Screen
-    egui_color_int_t *pfb = egui_core_get_pfb_buffer_ptr();
-    egui_core_pfb_set_buffer(test_full_screen_pfb, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-    // Manual refresh screen three time to test performance.
-    user_manu_refresh_screen();
-    // Recovery pfb
-    egui_core_pfb_set_buffer(pfb, EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT);
-#endif
 }
 
 void egui_view_test_performance_process(void)
 {
+#if EGUI_TEST_CONFIG_SINGLE_TEST >= 0
+    // Single test mode
+    if (egui_view_test_performance_is_enabled(EGUI_TEST_CONFIG_SINGLE_TEST))
+    {
+        egui_view_test_performance_with_test_mode(EGUI_TEST_CONFIG_SINGLE_TEST);
+    }
+    else
+    {
+        EGUI_LOG_INF("=========== Test Mode: %s [SKIP] ===========\r\n", egui_view_test_performance_type_string(EGUI_TEST_CONFIG_SINGLE_TEST));
+    }
+#else
     for (int i = 0; i < EGUI_VIEW_TEST_PERFORMANCE_TYPE_MAX; i++)
     {
         if (!egui_view_test_performance_is_enabled(i))
@@ -240,6 +327,7 @@ void egui_view_test_performance_process(void)
         }
         egui_view_test_performance_with_test_mode(i);
     }
+#endif
 
     EGUI_LOG_INF("PERF_COMPLETE\r\n");
 
@@ -272,13 +360,12 @@ void uicode_create_ui(void)
 #if EGUI_CONFIG_RECORDING_TEST
 /**
  * @brief Recording actions for HelloPerformace.
- * Provide enough WAIT actions to capture all performance test types.
- * Each enabled test takes ~1-2 seconds at 4x speed.
+ * Provide enough WAIT actions to capture the full performance sweep,
+ * including late extern-image cases.
  */
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
-    // 60 wait actions to capture all test types
-    if (action_index >= 60)
+    if (action_index >= 120)
     {
         return false;
     }

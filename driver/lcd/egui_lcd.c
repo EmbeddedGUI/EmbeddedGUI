@@ -8,9 +8,7 @@
 #include "core/egui_api.h"
 #include "core/egui_display_driver.h"
 
-int egui_lcd_send_vendor_init_cmds(egui_panel_io_handle_t io,
-                                    const egui_lcd_vendor_init_cmd_t *cmds,
-                                    uint16_t size)
+int egui_lcd_send_vendor_init_cmds(egui_panel_io_handle_t io, const egui_lcd_vendor_init_cmd_t *cmds, uint16_t size)
 {
     if (!io || !cmds)
     {
@@ -49,8 +47,7 @@ void egui_lcd_hw_reset(egui_hal_lcd_driver_t *self, int delay_ms)
 
 static egui_hal_lcd_driver_t *s_hal_lcd = NULL;
 
-static void lcd_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h,
-                                   const egui_color_int_t *data)
+static void lcd_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
 {
     if (s_hal_lcd && s_hal_lcd->draw_area)
     {
@@ -74,8 +71,7 @@ static void lcd_display_set_power(uint8_t on)
     }
 }
 
-void egui_hal_lcd_register(egui_display_driver_t *driver, egui_hal_lcd_driver_t *lcd,
-                            const egui_hal_lcd_config_t *config)
+void egui_hal_lcd_register(egui_display_driver_t *driver, egui_hal_lcd_driver_t *lcd, const egui_hal_lcd_config_t *config)
 {
     s_hal_lcd = lcd;
 

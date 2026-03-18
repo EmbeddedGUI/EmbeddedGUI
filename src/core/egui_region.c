@@ -54,12 +54,7 @@ void egui_region_intersect_with_size(egui_region_t *self, egui_dim_t width, egui
     }
 }
 
-int egui_region_is_intersect(egui_region_t *self, const egui_region_t *rect)
-{
-    egui_region_t result;
-    egui_region_intersect(self, rect, &result);
-    return !egui_region_is_empty(&result);
-}
+// Moved to egui_region.h as inline for performance
 
 void egui_region_union(egui_region_t *self, const egui_region_t *rect, egui_region_t *result)
 {

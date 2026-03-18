@@ -22,18 +22,18 @@
 #define SH8601_COLOR_MODE_RGB888 0x77
 
 /* Vendor specific commands */
-#define SH8601_VENDOR_TEON       0x35
-#define SH8601_VENDOR_WRCTRLD    0x53
-#define SH8601_VENDOR_SETSCROLL  0x44
+#define SH8601_VENDOR_TEON      0x35
+#define SH8601_VENDOR_WRCTRLD   0x53
+#define SH8601_VENDOR_SETSCROLL 0x44
 
 /* Default vendor initialization commands for SH8601 */
 static const egui_lcd_vendor_init_cmd_t sh8601_default_vendor_cmds[] = {
-    /* Set scroll area */
-    EGUI_LCD_CMD_WITH_PARAM(0, SH8601_VENDOR_SETSCROLL, 0x00, 0xC8),
-    /* Tearing effect line on */
-    EGUI_LCD_CMD_WITH_PARAM(0, SH8601_VENDOR_TEON, 0x00),
-    /* Write control display */
-    EGUI_LCD_CMD_WITH_PARAM(0, SH8601_VENDOR_WRCTRLD, 0x20),
+        /* Set scroll area */
+        EGUI_LCD_CMD_WITH_PARAM(0, SH8601_VENDOR_SETSCROLL, 0x00, 0xC8),
+        /* Tearing effect line on */
+        EGUI_LCD_CMD_WITH_PARAM(0, SH8601_VENDOR_TEON, 0x00),
+        /* Write control display */
+        EGUI_LCD_CMD_WITH_PARAM(0, SH8601_VENDOR_WRCTRLD, 0x20),
 };
 
 /* Driver: init */
@@ -57,8 +57,7 @@ static int sh8601_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t 
     egui_api_delay(120);
 
     /* Send vendor-specific init commands */
-    egui_lcd_send_vendor_init_cmds(self->io, sh8601_default_vendor_cmds,
-                                   sizeof(sh8601_default_vendor_cmds) / sizeof(sh8601_default_vendor_cmds[0]));
+    egui_lcd_send_vendor_init_cmds(self->io, sh8601_default_vendor_cmds, sizeof(sh8601_default_vendor_cmds) / sizeof(sh8601_default_vendor_cmds[0]));
 
     /* Set color mode to 16-bit RGB565 */
     {
@@ -106,8 +105,7 @@ static void sh8601_del(egui_hal_lcd_driver_t *self)
 }
 
 /* Driver: draw_area */
-static void sh8601_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y,
-                             int16_t w, int16_t h, const void *data, uint32_t len)
+static void sh8601_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y, int16_t w, int16_t h, const void *data, uint32_t len)
 {
     uint16_t x0 = x + self->config.x_offset;
     uint16_t y0 = y + self->config.y_offset;
@@ -146,9 +144,7 @@ static void sh8601_set_invert(egui_hal_lcd_driver_t *self, uint8_t invert)
 }
 
 /* Internal: setup driver function pointers */
-static void sh8601_setup_driver(egui_hal_lcd_driver_t *driver,
-                                 egui_panel_io_handle_t io,
-                                 void (*set_rst)(uint8_t level))
+static void sh8601_setup_driver(egui_hal_lcd_driver_t *driver, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level))
 {
     memset(driver, 0, sizeof(egui_hal_lcd_driver_t));
 
@@ -168,9 +164,7 @@ static void sh8601_setup_driver(egui_hal_lcd_driver_t *driver,
 }
 
 /* Public: init (static allocation) */
-void egui_lcd_sh8601_init(egui_hal_lcd_driver_t *storage,
-                             egui_panel_io_handle_t io,
-                             void (*set_rst)(uint8_t level))
+void egui_lcd_sh8601_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level))
 {
     if (!storage || !io || !io->tx_param)
     {

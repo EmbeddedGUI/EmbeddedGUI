@@ -27,31 +27,34 @@ extern "C" {
 /**
  * Single touch point data
  */
-typedef struct egui_hal_touch_point {
-    int16_t x;          /**< X coordinate */
-    int16_t y;          /**< Y coordinate */
-    uint8_t id;         /**< Touch point ID (for tracking) */
-    uint8_t pressure;   /**< Pressure value (0 = not supported) */
+typedef struct egui_hal_touch_point
+{
+    int16_t x;        /**< X coordinate */
+    int16_t y;        /**< Y coordinate */
+    uint8_t id;       /**< Touch point ID (for tracking) */
+    uint8_t pressure; /**< Pressure value (0 = not supported) */
 } egui_hal_touch_point_t;
 
 /**
  * Touch data structure (multi-touch)
  */
-typedef struct egui_hal_touch_data {
-    uint8_t point_count;                          /**< Number of active touch points */
-    uint8_t gesture;                              /**< Gesture code (driver-specific) */
-    egui_hal_touch_point_t points[EGUI_HAL_TOUCH_MAX_POINTS];  /**< Touch point array */
+typedef struct egui_hal_touch_data
+{
+    uint8_t point_count;                                      /**< Number of active touch points */
+    uint8_t gesture;                                          /**< Gesture code (driver-specific) */
+    egui_hal_touch_point_t points[EGUI_HAL_TOUCH_MAX_POINTS]; /**< Touch point array */
 } egui_hal_touch_data_t;
 
 /**
  * Touch configuration structure
  */
-typedef struct egui_hal_touch_config {
-    uint16_t width;       /**< Touch area width (for coordinate mapping) */
-    uint16_t height;      /**< Touch area height (for coordinate mapping) */
-    uint8_t swap_xy;      /**< Swap X and Y coordinates */
-    uint8_t mirror_x;     /**< Mirror X axis */
-    uint8_t mirror_y;     /**< Mirror Y axis */
+typedef struct egui_hal_touch_config
+{
+    uint16_t width;   /**< Touch area width (for coordinate mapping) */
+    uint16_t height;  /**< Touch area height (for coordinate mapping) */
+    uint8_t swap_xy;  /**< Swap X and Y coordinates */
+    uint8_t mirror_x; /**< Mirror X axis */
+    uint8_t mirror_y; /**< Mirror Y axis */
 } egui_hal_touch_config_t;
 
 /**
@@ -67,27 +70,28 @@ typedef struct egui_hal_touch_driver egui_hal_touch_driver_t;
  * Uses unified Panel IO handle for register read/write.
  * Device-level GPIO (RST, INT) managed internally by reset/del.
  */
-struct egui_hal_touch_driver {
-    const char *name;                    /**< Driver name (e.g., "FT6336") */
-    uint8_t max_points;                 /**< Maximum touch points supported */
+struct egui_hal_touch_driver
+{
+    const char *name;   /**< Driver name (e.g., "FT6336") */
+    uint8_t max_points; /**< Maximum touch points supported */
 
     /* Lifecycle: reset → init → ... → del */
-    int (*reset)(egui_hal_touch_driver_t *self);   /**< Hardware reset (RST low→high) */
+    int (*reset)(egui_hal_touch_driver_t *self); /**< Hardware reset (RST low→high) */
     int (*init)(egui_hal_touch_driver_t *self, const egui_hal_touch_config_t *config);
-    void (*del)(egui_hal_touch_driver_t *self);    /**< Pull RST low + clear struct */
+    void (*del)(egui_hal_touch_driver_t *self); /**< Pull RST low + clear struct */
 
     /* Read touch data */
     int (*read)(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *data);
 
     /* IO and GPIO */
-    egui_panel_io_handle_t io;           /**< Unified IO handle for register read/write */
-    void (*set_rst)(uint8_t level);      /**< Device RST pin. Used by reset/del internally */
-    void (*set_int)(uint8_t level);      /**< INT pin control (some chips need during init) */
-    uint8_t (*get_int)(void);            /**< INT pin read (NULL if not used) */
+    egui_panel_io_handle_t io;      /**< Unified IO handle for register read/write */
+    void (*set_rst)(uint8_t level); /**< Device RST pin. Used by reset/del internally */
+    void (*set_int)(uint8_t level); /**< INT pin control (some chips need during init) */
+    uint8_t (*get_int)(void);       /**< INT pin read (NULL if not used) */
 
     /* State */
-    egui_hal_touch_config_t config;      /**< Current configuration */
-    void *priv;                          /**< Driver-specific private data */
+    egui_hal_touch_config_t config; /**< Current configuration */
+    void *priv;                     /**< Driver-specific private data */
 };
 
 /**
@@ -100,8 +104,7 @@ struct egui_hal_touch_driver {
  * @param touch   HAL touch driver instance (factory_init already called)
  * @param config  Touch configuration
  */
-void egui_hal_touch_register(egui_hal_touch_driver_t *touch,
-                              const egui_hal_touch_config_t *config);
+void egui_hal_touch_register(egui_hal_touch_driver_t *touch, const egui_hal_touch_config_t *config);
 
 #ifdef __cplusplus
 }

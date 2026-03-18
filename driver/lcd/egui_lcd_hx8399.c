@@ -21,9 +21,9 @@
 #define HX8399_MADCTL_RGB 0x00
 
 /* Color modes */
-#define HX8399_COLOR_MODE_16BIT 0x55  /* RGB565 */
-#define HX8399_COLOR_MODE_18BIT 0x66  /* RGB666 */
-#define HX8399_COLOR_MODE_24BIT 0x77  /* RGB888 */
+#define HX8399_COLOR_MODE_16BIT 0x55 /* RGB565 */
+#define HX8399_COLOR_MODE_18BIT 0x66 /* RGB666 */
+#define HX8399_COLOR_MODE_24BIT 0x77 /* RGB888 */
 
 /* Driver: init */
 static int hx8399_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t *config)
@@ -99,8 +99,7 @@ static void hx8399_del(egui_hal_lcd_driver_t *self)
 }
 
 /* Driver: draw_area */
-static void hx8399_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y,
-                             int16_t w, int16_t h, const void *data, uint32_t len)
+static void hx8399_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y, int16_t w, int16_t h, const void *data, uint32_t len)
 {
     uint16_t x0 = x + self->config.x_offset;
     uint16_t y0 = y + self->config.y_offset;
@@ -139,9 +138,7 @@ static void hx8399_set_invert(egui_hal_lcd_driver_t *self, uint8_t invert)
 }
 
 /* Internal: setup driver function pointers */
-static void hx8399_setup_driver(egui_hal_lcd_driver_t *driver,
-                                 egui_panel_io_handle_t io,
-                                 void (*set_rst)(uint8_t level))
+static void hx8399_setup_driver(egui_hal_lcd_driver_t *driver, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level))
 {
     memset(driver, 0, sizeof(egui_hal_lcd_driver_t));
 
@@ -161,9 +158,7 @@ static void hx8399_setup_driver(egui_hal_lcd_driver_t *driver,
 }
 
 /* Public: init (static allocation) */
-void egui_lcd_hx8399_init(egui_hal_lcd_driver_t *storage,
-                             egui_panel_io_handle_t io,
-                             void (*set_rst)(uint8_t level))
+void egui_lcd_hx8399_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level))
 {
     if (!storage || !io || !io->tx_param)
     {

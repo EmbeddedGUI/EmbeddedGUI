@@ -1,0 +1,134 @@
+{
+    "img": [
+        {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_240",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "all",
+            "dim": "240,240"
+        },
+        {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_480",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "all",
+            "dim": "480,480"
+        },
+        {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_960",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "all",
+            "dim": "960,960"
+        },
+        {
+            "file": "test.png",
+            "name": "test",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "8",
+            "dim": "100,100"
+        },
+        {
+            "file": "star.png",
+            "name": "star",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "8",
+            "dim": "150,150"
+        },
+        {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_480_ext",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "0",
+            "dim": "480,480"
+        },
+        {
+            "file": "star.png",
+            "name": "test_perf_480_ext_a1",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "1",
+            "dim": "480,480"
+        },
+        {
+            "file": "star.png",
+            "name": "test_perf_480_ext_a2",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "2",
+            "dim": "480,480"
+        },
+        {
+            "file": "star.png",
+            "name": "test_perf_480_ext_a4",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "4",
+            "dim": "480,480"
+        },
+        {
+            "file": "star.png",
+            "name": "test_perf_480_ext_a8",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "8",
+            "dim": "480,480"
+        },
+        {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_240_ext",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "0",
+            "dim": "240,240"
+        },
+        {
+            "file": "star.png",
+            "name": "test_perf_240_ext_a1",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "1",
+            "dim": "240,240"
+        },
+        {
+            "file": "star.png",
+            "name": "test_perf_240_ext_a2",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "2",
+            "dim": "240,240"
+        },
+        {
+            "file": "star.png",
+            "name": "test_perf_240_ext_a4",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "4",
+            "dim": "240,240"
+        },
+        {
+            "file": "star.png",
+            "name": "test_perf_240_ext_a8",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "8",
+            "dim": "240,240"
+        }
+    ],
+    "font": [
+        {
+            "file": "Montserrat-Medium.ttf",
+            "name": "montserrat_perf",
+            "pixelsize": "26",
+            "fontbitsize": "4",
+            "external": "1",
+            "text": "supported_text_perf.txt"
+        }
+    ]
+}

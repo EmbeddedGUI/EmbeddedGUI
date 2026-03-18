@@ -315,49 +315,67 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
 
             if (result == EGUI_MASK_ROW_INSIDE)
             {
-                // Fast fill: entire row is fully opaque through mask
+                // Fast fill: entire row is fully opaque through mask - use direct pointer
+                egui_dim_t pfb_xs = x_start - pfb_x_offset;
+                egui_dim_t pfb_xe = x_end - pfb_x_offset;
+                egui_color_int_t *dst = &self->pfb[pfb_y * self->pfb_region.size.width + pfb_xs];
+                egui_dim_t count = pfb_xe - pfb_xs;
+
                 if (alpha == EGUI_ALPHA_100)
                 {
-                    for (xp = x_start - pfb_x_offset; xp < x_end - pfb_x_offset; xp++)
+                    for (xp = 0; xp < count; xp++)
                     {
-                        egui_canvas_set_point_color_raw(self, xp, pfb_y, color);
+                        dst[xp] = color.full;
                     }
                 }
                 else
                 {
-                    for (xp = x_start - pfb_x_offset; xp < x_end - pfb_x_offset; xp++)
+                    for (xp = 0; xp < count; xp++)
                     {
-                        egui_canvas_set_point_color_with_alpha_raw(self, xp, pfb_y, color, alpha);
+                        egui_rgb_mix_ptr((egui_color_t *)&dst[xp], &color, (egui_color_t *)&dst[xp], alpha);
                     }
                 }
             }
             else // EGUI_MASK_ROW_PARTIAL
             {
+                egui_dim_t visible_x_start = x;
+                egui_dim_t visible_x_end = x_total;
+                if (self->mask->api->mask_get_row_visible_range != NULL &&
+                    !self->mask->api->mask_get_row_visible_range(self->mask, yp, x, x_total, &visible_x_start, &visible_x_end))
+                {
+                    continue;
+                }
+
                 // Left edge: per-pixel with mask
-                for (xp = x; xp < x_start; xp++)
+                for (xp = visible_x_start; xp < EGUI_MIN(x_start, visible_x_end); xp++)
                 {
                     egui_canvas_set_point_color_with_mask(self, xp, yp, color, alpha);
                 }
-                // Middle: fast fill (guaranteed fully opaque through mask)
+                // Middle: fast fill (guaranteed fully opaque through mask) - use direct pointer
                 if (x_start < x_end)
                 {
+                    egui_dim_t pfb_xs = x_start - pfb_x_offset;
+                    egui_dim_t pfb_xe = x_end - pfb_x_offset;
+                    egui_color_int_t *dst = &self->pfb[pfb_y * self->pfb_region.size.width + pfb_xs];
+                    egui_dim_t count = pfb_xe - pfb_xs;
+
                     if (alpha == EGUI_ALPHA_100)
                     {
-                        for (xp = x_start - pfb_x_offset; xp < x_end - pfb_x_offset; xp++)
+                        for (xp = 0; xp < count; xp++)
                         {
-                            egui_canvas_set_point_color_raw(self, xp, pfb_y, color);
+                            dst[xp] = color.full;
                         }
                     }
                     else
                     {
-                        for (xp = x_start - pfb_x_offset; xp < x_end - pfb_x_offset; xp++)
+                        for (xp = 0; xp < count; xp++)
                         {
-                            egui_canvas_set_point_color_with_alpha_raw(self, xp, pfb_y, color, alpha);
+                            egui_rgb_mix_ptr((egui_color_t *)&dst[xp], &color, (egui_color_t *)&dst[xp], alpha);
                         }
                     }
                 }
                 // Right edge: per-pixel with mask
-                for (xp = x_end; xp < x_total; xp++)
+                for (xp = EGUI_MAX(x_end, visible_x_start); xp < visible_x_end; xp++)
                 {
                     egui_canvas_set_point_color_with_mask(self, xp, yp, color, alpha);
                 }
@@ -382,18 +400,23 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_alpha(egui_dim_t x, 
 {
     egui_canvas_t *self = &canvas_data;
 
-    egui_dim_t xp, yp;
-    egui_dim_t x_total, y_total;
+    egui_dim_t pfb_width = self->pfb_region.size.width;
+    egui_dim_t x_start = x - self->pfb_location_in_base_view.x;
+    egui_dim_t y_start = y - self->pfb_location_in_base_view.y;
+    egui_dim_t y_total = y_start + height;
 
-    // for speed, calculate total positions outside of the loop
-    x_total = x + width - self->pfb_location_in_base_view.x;
-    y_total = y + height - self->pfb_location_in_base_view.y;
-
-    for (yp = y - self->pfb_location_in_base_view.y; yp < y_total; yp++)
+    // Bounds guard: prevent PFB overflow
+    if (x_start < 0 || y_start < 0 || x_start + width > pfb_width || y_total > self->pfb_region.size.height)
     {
-        for (xp = x - self->pfb_location_in_base_view.x; xp < x_total; xp++)
+        return;
+    }
+
+    for (egui_dim_t yp = y_start; yp < y_total; yp++)
+    {
+        egui_color_int_t *dst = &self->pfb[yp * pfb_width + x_start];
+        for (egui_dim_t i = 0; i < width; i++)
         {
-            egui_canvas_set_point_color_with_alpha_raw(self, xp, yp, color, alpha);
+            egui_rgb_mix_ptr((egui_color_t *)&dst[i], &color, (egui_color_t *)&dst[i], alpha);
         }
     }
 }
@@ -402,18 +425,26 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color(egui_dim_t x, egui_dim_t 
 {
     egui_canvas_t *self = &canvas_data;
 
-    egui_dim_t xp, yp;
-    egui_dim_t x_total, y_total;
+    egui_dim_t yp;
+    egui_dim_t pfb_width = self->pfb_region.size.width;
 
     // for speed, calculate total positions outside of the loop
-    x_total = x + width - self->pfb_location_in_base_view.x;
-    y_total = y + height - self->pfb_location_in_base_view.y;
+    egui_dim_t x_start = x - self->pfb_location_in_base_view.x;
+    egui_dim_t y_start = y - self->pfb_location_in_base_view.y;
+    egui_dim_t y_total = y_start + height;
 
-    for (yp = y - self->pfb_location_in_base_view.y; yp < y_total; yp++)
+    // Bounds guard: prevent PFB overflow
+    if (x_start < 0 || y_start < 0 || x_start + width > pfb_width || y_total > self->pfb_region.size.height)
     {
-        for (xp = x - self->pfb_location_in_base_view.x; xp < x_total; xp++)
+        return;
+    }
+
+    for (yp = y_start; yp < y_total; yp++)
+    {
+        egui_color_int_t *dst = &self->pfb[yp * pfb_width + x_start];
+        for (egui_dim_t i = 0; i < width; i++)
         {
-            egui_canvas_set_point_color_raw(self, xp, yp, color);
+            dst[i] = color.full;
         }
     }
 }

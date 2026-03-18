@@ -26,9 +26,7 @@ extern "C" {
  *
  * Use this in environments without malloc.
  */
-void egui_lcd_ili9341_init(egui_hal_lcd_driver_t *storage,
-                            egui_panel_io_handle_t io,
-                            void (*set_rst)(uint8_t level));
+void egui_lcd_ili9341_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t io, void (*set_rst)(uint8_t level));
 
 #ifdef __cplusplus
 }
