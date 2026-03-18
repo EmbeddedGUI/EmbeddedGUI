@@ -238,6 +238,7 @@ static void test_auto_suggest_box_style_helpers_and_params(void)
     EGUI_TEST_ASSERT_TRUE(strcmp(">", local->expand_icon) == 0);
     EGUI_TEST_ASSERT_TRUE(strcmp("<", local->collapse_icon) == 0);
     egui_view_combobox_set_arrow_icons(EGUI_VIEW_OF(&test_box), NULL, NULL);
+    egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&test_box), EGUI_FONT_ICON_MS_16);
     EGUI_TEST_ASSERT_TRUE(strcmp(local->expand_icon, EGUI_ICON_MS_EXPAND_MORE) == 0);
     EGUI_TEST_ASSERT_TRUE(strcmp(local->collapse_icon, EGUI_ICON_MS_EXPAND_LESS) == 0);
     egui_view_combobox_set_icon_text_gap(EGUI_VIEW_OF(&test_box), 3);

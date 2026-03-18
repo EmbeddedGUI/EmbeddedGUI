@@ -75,7 +75,7 @@ jobs:
       - name: Build with PyInstaller
         run: >
           pyinstaller scripts/ui_designer/ui_designer.spec
-          --distpath dist --workpath build/pyinstaller --clean
+          --distpath dist --workpath build/pyinstaller --clean -y
 
       - name: Package artifact (Windows)
         if: runner.os == 'Windows'
