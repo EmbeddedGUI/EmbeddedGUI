@@ -218,6 +218,48 @@ static uint8_t egui_view_combobox_get_visible_start_index(const egui_view_combob
     return start_index;
 }
 
+static uint8_t egui_view_combobox_get_hit_target(egui_view_t *self, egui_view_combobox_t *local, egui_dim_t touch_x, egui_dim_t touch_y, uint8_t *is_header,
+                                                 uint8_t *item_index)
+{
+    egui_dim_t local_y;
+    uint8_t visible_count;
+    uint8_t start_index;
+    uint8_t clicked_index;
+
+    *is_header = 0;
+    *item_index = EGUI_VIEW_COMBOBOX_PRESSED_NONE;
+
+    if (!egui_region_pt_in_rect(&self->region_screen, touch_x, touch_y))
+    {
+        return 0;
+    }
+
+    if (!local->is_expanded)
+    {
+        *is_header = 1;
+        return 1;
+    }
+
+    local_y = touch_y - self->region_screen.location.y;
+    if (local_y < local->collapsed_height)
+    {
+        *is_header = 1;
+        return 1;
+    }
+
+    local_y -= local->collapsed_height;
+    visible_count = egui_view_combobox_get_current_visible_count(self, local);
+    start_index = egui_view_combobox_get_visible_start_index(local, visible_count);
+    clicked_index = (uint8_t)(local_y / local->item_height);
+    if (clicked_index >= visible_count)
+    {
+        return 0;
+    }
+
+    *item_index = (uint8_t)(start_index + clicked_index);
+    return 1;
+}
+
 static void egui_view_combobox_notify_selected(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
@@ -597,18 +639,24 @@ void egui_view_combobox_on_draw(egui_view_t *self)
 int egui_view_combobox_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
-    int is_inside = egui_region_pt_in_rect(&self->region_screen, event->location.x, event->location.y);
+    uint8_t hit_valid = 0;
+    uint8_t hit_is_header = 0;
+    uint8_t hit_index = EGUI_VIEW_COMBOBOX_PRESSED_NONE;
 
     if (self->is_enable == false || (local->items == NULL && local->item_icons == NULL) || local->item_count == 0)
     {
         return 0;
     }
 
+    hit_valid = egui_view_combobox_get_hit_target(self, local, event->location.x, event->location.y, &hit_is_header, &hit_index);
+
     if (event->type == EGUI_MOTION_EVENT_ACTION_DOWN)
     {
-        egui_view_set_pressed(self, is_inside);
+        local->pressed_is_header = hit_valid ? hit_is_header : 0;
+        local->pressed_index = hit_valid ? hit_index : EGUI_VIEW_COMBOBOX_PRESSED_NONE;
+        egui_view_set_pressed(self, hit_valid);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-        if (is_inside && self->is_focusable)
+        if (hit_valid && self->is_focusable)
         {
             egui_view_request_focus(self);
         }
@@ -618,53 +666,47 @@ int egui_view_combobox_on_touch_event(egui_view_t *self, egui_motion_event_t *ev
 
     if (event->type == EGUI_MOTION_EVENT_ACTION_MOVE)
     {
-        if (self->is_pressed != is_inside)
-        {
-            egui_view_set_pressed(self, is_inside);
-        }
+        egui_view_set_pressed(self, hit_valid && local->pressed_is_header == hit_is_header && local->pressed_index == hit_index);
         return 1;
     }
 
     if (event->type == EGUI_MOTION_EVENT_ACTION_UP)
     {
         int was_pressed = self->is_pressed;
+        uint8_t pressed_is_header = local->pressed_is_header;
+        uint8_t pressed_index = local->pressed_index;
+
         egui_view_set_pressed(self, false);
-        if (!was_pressed || !is_inside)
+        local->pressed_is_header = 0;
+        local->pressed_index = EGUI_VIEW_COMBOBOX_PRESSED_NONE;
+        if (!was_pressed || !hit_valid || pressed_is_header != hit_is_header || pressed_index != hit_index)
         {
             return 1;
         }
 
-        egui_dim_t local_y = event->location.y - self->region_screen.location.y;
-
-        if (local->is_expanded)
+        if (pressed_is_header)
         {
-            if (local_y < local->collapsed_height)
+            if (local->is_expanded)
             {
                 egui_view_combobox_collapse(self);
             }
             else
             {
-                egui_dim_t item_y = local_y - local->collapsed_height;
-                uint8_t clicked_index = item_y / local->item_height;
-                uint8_t visible_count = egui_view_combobox_get_current_visible_count(self, local);
-                uint8_t start_index = egui_view_combobox_get_visible_start_index(local, visible_count);
-
-                if (clicked_index < visible_count)
-                {
-                    egui_view_combobox_commit_current_index(self, (uint8_t)(start_index + clicked_index), 0);
-                    egui_view_combobox_collapse(self);
-                    egui_view_combobox_notify_selected(self);
-                }
+                egui_view_combobox_expand(self);
             }
         }
-        else
+        else if (pressed_index != EGUI_VIEW_COMBOBOX_PRESSED_NONE)
         {
-            egui_view_combobox_expand(self);
+            egui_view_combobox_commit_current_index(self, pressed_index, 0);
+            egui_view_combobox_collapse(self);
+            egui_view_combobox_notify_selected(self);
         }
     }
     else if (event->type == EGUI_MOTION_EVENT_ACTION_CANCEL)
     {
         egui_view_set_pressed(self, false);
+        local->pressed_is_header = 0;
+        local->pressed_index = EGUI_VIEW_COMBOBOX_PRESSED_NONE;
     }
 
     return 1;
@@ -801,6 +843,8 @@ void egui_view_combobox_init(egui_view_t *self)
     local->current_index = 0;
     local->is_expanded = 0;
     local->max_visible_items = 5;
+    local->pressed_index = EGUI_VIEW_COMBOBOX_PRESSED_NONE;
+    local->pressed_is_header = 0;
 
     local->alpha = EGUI_ALPHA_100;
     local->text_color = EGUI_THEME_TEXT_PRIMARY;
@@ -834,6 +878,8 @@ void egui_view_combobox_apply_params(egui_view_t *self, const egui_view_combobox
     local->item_icons = params->item_icons;
     local->item_count = params->item_count;
     local->current_index = params->current_index;
+    local->pressed_index = EGUI_VIEW_COMBOBOX_PRESSED_NONE;
+    local->pressed_is_header = 0;
     if (local->item_count == 0 || local->current_index >= local->item_count)
     {
         local->current_index = 0;

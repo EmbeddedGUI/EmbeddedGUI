@@ -98,6 +98,9 @@ static int sdl_touch_read(egui_hal_touch_driver_t *self, egui_hal_touch_data_t *
 
     if (!pressed)
     {
+        data->has_release_point = 1;
+        data->release_point.x = x;
+        data->release_point.y = y;
         return 0;
     }
 

@@ -230,10 +230,38 @@ void egui_view_tab_bar_on_draw(egui_view_t *self)
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+static uint8_t egui_view_tab_bar_get_hit_index(egui_view_t *self, egui_view_tab_bar_t *local, egui_dim_t touch_x, egui_dim_t touch_y)
+{
+    egui_dim_t local_x;
+    egui_dim_t tab_w;
+
+    if (touch_x < self->region_screen.location.x || touch_y < self->region_screen.location.y ||
+        touch_x >= self->region_screen.location.x + self->region_screen.size.width || touch_y >= self->region_screen.location.y + self->region_screen.size.height)
+    {
+        return EGUI_VIEW_TAB_BAR_PRESSED_NONE;
+    }
+
+    local_x = touch_x - self->region_screen.location.x;
+    tab_w = self->region.size.width / local->tab_count;
+    if (tab_w <= 0)
+    {
+        return EGUI_VIEW_TAB_BAR_PRESSED_NONE;
+    }
+
+    {
+        uint8_t index = (uint8_t)(local_x / tab_w);
+        if (index >= local->tab_count)
+        {
+            index = local->tab_count - 1;
+        }
+        return index;
+    }
+}
+
 int egui_view_tab_bar_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_tab_bar_t);
-    int is_inside = egui_region_pt_in_rect(&self->region_screen, event->location.x, event->location.y);
+    uint8_t hit_index = egui_view_tab_bar_get_hit_index(self, local, event->location.x, event->location.y);
 
     if (self->is_enable == false || local->tab_count == 0)
     {
@@ -244,43 +272,32 @@ int egui_view_tab_bar_on_touch_event(egui_view_t *self, egui_motion_event_t *eve
     {
     case EGUI_MOTION_EVENT_ACTION_DOWN:
     {
-        egui_view_set_pressed(self, is_inside);
+        local->pressed_index = hit_index;
+        egui_view_set_pressed(self, hit_index != EGUI_VIEW_TAB_BAR_PRESSED_NONE);
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_MOVE:
     {
-        if (self->is_pressed != is_inside)
-        {
-            egui_view_set_pressed(self, is_inside);
-        }
+        egui_view_set_pressed(self, local->pressed_index != EGUI_VIEW_TAB_BAR_PRESSED_NONE && local->pressed_index == hit_index);
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_UP:
     {
         int was_pressed = self->is_pressed;
         egui_view_set_pressed(self, false);
-        if (!was_pressed || !is_inside)
+        if (!was_pressed || local->pressed_index == EGUI_VIEW_TAB_BAR_PRESSED_NONE || local->pressed_index != hit_index)
         {
+            local->pressed_index = EGUI_VIEW_TAB_BAR_PRESSED_NONE;
             break;
         }
 
-        // Determine which tab was tapped
-        egui_dim_t local_x = event->location.x - self->region_screen.location.x;
-        egui_dim_t tab_w = self->region.size.width / local->tab_count;
-
-        if (tab_w > 0)
-        {
-            uint8_t index = (uint8_t)(local_x / tab_w);
-            if (index >= local->tab_count)
-            {
-                index = local->tab_count - 1;
-            }
-            egui_view_tab_bar_set_current_index(self, index);
-        }
+        egui_view_tab_bar_set_current_index(self, hit_index);
+        local->pressed_index = EGUI_VIEW_TAB_BAR_PRESSED_NONE;
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_CANCEL:
     {
+        local->pressed_index = EGUI_VIEW_TAB_BAR_PRESSED_NONE;
         egui_view_set_pressed(self, false);
         break;
     }
@@ -327,6 +344,7 @@ void egui_view_tab_bar_init(egui_view_t *self)
     local->tab_icons = NULL;
     local->tab_count = 0;
     local->current_index = 0;
+    local->pressed_index = EGUI_VIEW_TAB_BAR_PRESSED_NONE;
     local->alpha = EGUI_ALPHA_100;
     local->text_color = EGUI_THEME_TEXT_SECONDARY;
     local->active_text_color = EGUI_THEME_PRIMARY;

@@ -13,6 +13,7 @@ static uint8_t g_last_selected;
 static egui_touch_driver_t g_fake_touch_driver;
 static egui_touch_driver_ops_t g_fake_touch_ops;
 static uint8_t g_fake_touch_pressed[4];
+static uint8_t g_fake_touch_has_position[4];
 static egui_dim_t g_fake_touch_x[4];
 static egui_dim_t g_fake_touch_y[4];
 static uint8_t g_fake_touch_count;
@@ -33,13 +34,14 @@ static void reset_listener_state(void)
     g_last_selected = 0xFF;
 }
 
-static void fake_touch_read(uint8_t *pressed, int16_t *x, int16_t *y)
+static void fake_touch_read_sample(uint8_t *pressed, int16_t *x, int16_t *y, uint8_t *has_position)
 {
     uint8_t index = g_fake_touch_index;
 
     if (g_fake_touch_count == 0)
     {
         *pressed = 0;
+        *has_position = 0;
         *x = 0;
         *y = 0;
         return;
@@ -55,21 +57,46 @@ static void fake_touch_read(uint8_t *pressed, int16_t *x, int16_t *y)
     }
 
     *pressed = g_fake_touch_pressed[index];
+    *has_position = g_fake_touch_has_position[index];
     *x = g_fake_touch_x[index];
     *y = g_fake_touch_y[index];
 }
 
-static void fake_touch_set_sequence(uint8_t count, const uint8_t *pressed, const egui_dim_t *x, const egui_dim_t *y)
+static void fake_touch_read(uint8_t *pressed, int16_t *x, int16_t *y)
+{
+    uint8_t has_position = 0;
+
+    fake_touch_read_sample(pressed, x, y, &has_position);
+}
+
+static void fake_touch_read_ex(uint8_t *pressed, int16_t *x, int16_t *y, uint8_t *has_position)
+{
+    fake_touch_read_sample(pressed, x, y, has_position);
+}
+
+static void fake_touch_set_sequence_with_position(uint8_t count, const uint8_t *pressed, const uint8_t *has_position, const egui_dim_t *x, const egui_dim_t *y)
 {
     for (uint8_t i = 0; i < count; i++)
     {
         g_fake_touch_pressed[i] = pressed[i];
+        g_fake_touch_has_position[i] = has_position[i];
         g_fake_touch_x[i] = x[i];
         g_fake_touch_y[i] = y[i];
     }
 
     g_fake_touch_count = count;
     g_fake_touch_index = 0;
+}
+
+static void fake_touch_set_sequence(uint8_t count, const uint8_t *pressed, const egui_dim_t *x, const egui_dim_t *y)
+{
+    uint8_t has_position[4] = {0};
+
+    for (uint8_t i = 0; i < count; i++)
+    {
+        has_position[i] = pressed[i];
+    }
+    fake_touch_set_sequence_with_position(count, pressed, has_position, x, y);
 }
 
 static void sync_layout(void)
@@ -306,6 +333,45 @@ static void test_combobox_release_outside_does_not_expand_or_commit_selection(vo
     EGUI_TEST_ASSERT_EQUAL_INT(0, g_selected_count);
 }
 
+static void test_combobox_release_on_different_item_does_not_commit_selection(void)
+{
+    egui_dim_t x1 = 0;
+    egui_dim_t y1 = 0;
+    egui_dim_t x2 = 0;
+    egui_dim_t y2 = 0;
+
+    setup_combobox_in_parent();
+    get_header_center(&x1, &y1);
+
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, x1, y1));
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_UP, x1, y1));
+    sync_layout();
+    EGUI_TEST_ASSERT_TRUE(egui_view_combobox_is_expanded(EGUI_VIEW_OF(&test_box)));
+
+    get_item_center(1, &x1, &y1);
+    get_item_center(2, &x2, &y2);
+
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, x1, y1));
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, x2, y2));
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_UP, x2, y2));
+    sync_layout();
+
+    EGUI_TEST_ASSERT_TRUE(egui_view_combobox_is_expanded(EGUI_VIEW_OF(&test_box)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_combobox_get_current_index(EGUI_VIEW_OF(&test_box)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_selected_count);
+
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, x1, y1));
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, x2, y2));
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, x1, y1));
+    EGUI_TEST_ASSERT_TRUE(send_touch(EGUI_MOTION_EVENT_ACTION_UP, x1, y1));
+    sync_layout();
+
+    EGUI_TEST_ASSERT_FALSE(egui_view_combobox_is_expanded(EGUI_VIEW_OF(&test_box)));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, egui_view_combobox_get_current_index(EGUI_VIEW_OF(&test_box)));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_selected_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_last_selected);
+}
+
 static void test_combobox_input_polling_reuses_last_pressed_coords_for_release(void)
 {
     static const uint8_t touch_pressed[] = {1, 0};
@@ -352,12 +418,65 @@ static void test_combobox_input_polling_reuses_last_pressed_coords_for_release(v
     egui_view_group_clear_childs(EGUI_VIEW_OF(user_root));
 }
 
+static void test_combobox_input_polling_prefers_reported_release_coords(void)
+{
+    static const uint8_t touch_pressed[] = {1, 0};
+    static const uint8_t touch_has_position[] = {1, 1};
+    egui_dim_t touch_x[2];
+    egui_dim_t touch_y[2];
+    egui_touch_driver_t *saved_touch_driver = egui_touch_driver_get();
+    egui_view_group_t *user_root = egui_core_get_user_root_view();
+    egui_dim_t x = 0;
+    egui_dim_t y = 0;
+    egui_dim_t outside_x = 0;
+    egui_dim_t outside_y = 0;
+
+    setup_core_overlapping_comboboxes();
+    get_header_center(&x, &y);
+
+    EGUI_TEST_ASSERT_TRUE(send_touch_via_core_root(EGUI_MOTION_EVENT_ACTION_DOWN, x, y));
+    EGUI_TEST_ASSERT_TRUE(send_touch_via_core_root(EGUI_MOTION_EVENT_ACTION_UP, x, y));
+    sync_core_layout();
+    EGUI_TEST_ASSERT_TRUE(egui_view_combobox_is_expanded(EGUI_VIEW_OF(&test_box)));
+
+    get_item_center(1, &x, &y);
+    outside_x = EGUI_VIEW_OF(&test_box)->region_screen.location.x + EGUI_VIEW_OF(&test_box)->region_screen.size.width + 40;
+    outside_y = y;
+
+    touch_x[0] = x;
+    touch_y[0] = y;
+    touch_x[1] = outside_x;
+    touch_y[1] = outside_y;
+
+    g_fake_touch_ops.init = NULL;
+    g_fake_touch_ops.read = fake_touch_read;
+    g_fake_touch_ops.read_ex = fake_touch_read_ex;
+    g_fake_touch_driver.ops = &g_fake_touch_ops;
+    fake_touch_set_sequence_with_position(2, touch_pressed, touch_has_position, touch_x, touch_y);
+
+    egui_touch_driver_register(&g_fake_touch_driver);
+    egui_input_init();
+    egui_input_polling_work();
+    egui_input_polling_work();
+    sync_core_layout();
+
+    EGUI_TEST_ASSERT_TRUE(egui_view_combobox_is_expanded(EGUI_VIEW_OF(&test_box)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_combobox_get_current_index(EGUI_VIEW_OF(&test_box)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_selected_count);
+
+    egui_touch_driver_register(saved_touch_driver);
+    egui_input_init();
+    egui_view_group_clear_childs(EGUI_VIEW_OF(user_root));
+}
+
 void test_combobox_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(combobox);
     EGUI_TEST_RUN(test_combobox_expand_clamps_to_parent_height_and_keeps_selection_clickable);
     EGUI_TEST_RUN(test_combobox_expanded_dropdown_stays_clickable_over_sibling);
     EGUI_TEST_RUN(test_combobox_release_outside_does_not_expand_or_commit_selection);
+    EGUI_TEST_RUN(test_combobox_release_on_different_item_does_not_commit_selection);
     EGUI_TEST_RUN(test_combobox_input_polling_reuses_last_pressed_coords_for_release);
+    EGUI_TEST_RUN(test_combobox_input_polling_prefers_reported_release_coords);
     EGUI_TEST_SUITE_END();
 }

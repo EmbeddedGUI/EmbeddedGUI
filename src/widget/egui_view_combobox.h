@@ -9,6 +9,8 @@
 extern "C" {
 #endif
 
+#define EGUI_VIEW_COMBOBOX_PRESSED_NONE 0xFF
+
 typedef void (*egui_view_on_combobox_selected_listener_t)(egui_view_t *self, uint8_t index);
 
 typedef struct egui_view_combobox egui_view_combobox_t;
@@ -23,6 +25,8 @@ struct egui_view_combobox
     uint8_t current_index;
     uint8_t is_expanded;
     uint8_t max_visible_items;
+    uint8_t pressed_index;
+    uint8_t pressed_is_header;
 
     egui_alpha_t alpha;
     egui_color_t text_color;

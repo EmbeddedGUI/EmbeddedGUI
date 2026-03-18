@@ -20,6 +20,7 @@ struct egui_view_mini_calendar
     uint8_t month;             // 1-12
     uint8_t day;               // 1-31, selected day
     uint8_t today_day;         // today highlight
+    uint8_t pressed_day;       // current pressed day during touch tracking
     uint8_t first_day_of_week; // 0=Sunday, 1=Monday
 
     egui_color_t header_color;

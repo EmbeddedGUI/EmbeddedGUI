@@ -31,7 +31,9 @@
 #include "test/test_dialog_sheet.h"
 #include "test/test_expander.h"
 #include "test/test_flip_view.h"
+#include "test/test_menu.h"
 #include "test/test_menu_bar.h"
+#include "test/test_mini_calendar.h"
 #include "test/test_master_detail.h"
 #include "test/test_message_bar.h"
 #include "test/test_menu_flyout.h"
@@ -52,6 +54,7 @@
 #include "test/test_split_view.h"
 #include "test/test_swipe_control.h"
 #include "test/test_tab_strip.h"
+#include "test/test_tab_bar.h"
 #include "test/test_tab_view.h"
 #include "test/test_skeleton_loader.h"
 #include "test/test_teaching_tip.h"
@@ -102,7 +105,9 @@ void uicode_create_ui(void)
     test_dialog_sheet_run();
     test_expander_run();
     test_flip_view_run();
+    test_menu_run();
     test_menu_bar_run();
+    test_mini_calendar_run();
     test_master_detail_run();
     test_message_bar_run();
     test_menu_flyout_run();
@@ -122,6 +127,7 @@ void uicode_create_ui(void)
     test_split_button_run();
     test_split_view_run();
     test_swipe_control_run();
+    test_tab_bar_run();
     test_tab_strip_run();
     test_tab_view_run();
     test_skeleton_loader_run();

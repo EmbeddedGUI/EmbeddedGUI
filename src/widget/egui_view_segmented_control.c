@@ -578,14 +578,10 @@ static int egui_view_segmented_control_on_touch_event(egui_view_t *self, egui_mo
         egui_view_set_pressed(self, hit_index != EGUI_VIEW_SEGMENTED_CONTROL_PRESSED_NONE);
         break;
     case EGUI_MOTION_EVENT_ACTION_MOVE:
-        if (local->pressed_index != hit_index)
-        {
-            local->pressed_index = hit_index;
-            egui_view_invalidate(self);
-        }
+        egui_view_set_pressed(self, local->pressed_index != EGUI_VIEW_SEGMENTED_CONTROL_PRESSED_NONE && local->pressed_index == hit_index);
         break;
     case EGUI_MOTION_EVENT_ACTION_UP:
-        if (local->pressed_index != EGUI_VIEW_SEGMENTED_CONTROL_PRESSED_NONE && local->pressed_index == hit_index)
+        if (self->is_pressed && local->pressed_index != EGUI_VIEW_SEGMENTED_CONTROL_PRESSED_NONE && local->pressed_index == hit_index)
         {
             egui_view_segmented_control_set_current_index(self, hit_index);
         }

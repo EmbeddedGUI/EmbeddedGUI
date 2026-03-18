@@ -49,6 +49,47 @@ static uint8_t is_weekend_col(uint8_t col, uint8_t first_day_of_week)
     return (dow == 0 || dow == 6) ? 1 : 0; // Sunday=0 or Saturday=6
 }
 
+static uint8_t egui_view_mini_calendar_hit_day(egui_view_t *self, egui_view_mini_calendar_t *local, egui_dim_t touch_x, egui_dim_t touch_y)
+{
+    egui_dim_t w = self->region.size.width;
+    egui_dim_t h = self->region.size.height;
+    egui_dim_t cell_w = w / 7;
+    egui_dim_t header_h = h / 8;
+    egui_dim_t cell_h = (h - header_h * 2) / 6;
+    egui_dim_t local_x = touch_x - self->region_screen.location.x;
+    egui_dim_t local_y = touch_y - self->region_screen.location.y;
+    egui_dim_t grid_y_start = header_h * 2;
+    uint8_t first_dow;
+    uint8_t start_col;
+    uint8_t pos;
+    uint8_t total_days;
+    uint8_t col;
+    uint8_t row;
+
+    if (local_x < 0 || local_y < grid_y_start || local_x >= w || local_y >= h || cell_w == 0 || cell_h == 0)
+    {
+        return 0;
+    }
+
+    col = (uint8_t)(local_x / cell_w);
+    row = (uint8_t)((local_y - grid_y_start) / cell_h);
+    if (col >= 7 || row >= 6)
+    {
+        return 0;
+    }
+
+    first_dow = day_of_week(local->year, local->month, 1);
+    start_col = (first_dow - local->first_day_of_week + 7) % 7;
+    pos = row * 7 + col;
+    total_days = days_in_month(local->year, local->month);
+    if (pos < start_col || pos >= start_col + total_days)
+    {
+        return 0;
+    }
+
+    return (uint8_t)(pos - start_col + 1);
+}
+
 void egui_view_mini_calendar_set_date(egui_view_t *self, uint16_t year, uint8_t month, uint8_t day)
 {
     EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
@@ -205,57 +246,48 @@ void egui_view_mini_calendar_on_draw(egui_view_t *self)
 static int egui_view_mini_calendar_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
+    uint8_t hit_day;
 
     if (self->is_enable == false)
     {
         return 0;
     }
 
-    if (event->type == EGUI_MOTION_EVENT_ACTION_UP)
+    hit_day = egui_view_mini_calendar_hit_day(self, local, event->location.x, event->location.y);
+
+    switch (event->type)
     {
-        egui_dim_t w = self->region.size.width;
-        egui_dim_t h = self->region.size.height;
+    case EGUI_MOTION_EVENT_ACTION_DOWN:
+        local->pressed_day = hit_day;
+        egui_view_set_pressed(self, hit_day != 0);
+        break;
+    case EGUI_MOTION_EVENT_ACTION_MOVE:
+        egui_view_set_pressed(self, local->pressed_day != 0 && local->pressed_day == hit_day);
+        break;
+    case EGUI_MOTION_EVENT_ACTION_UP:
+    {
+        int was_pressed = self->is_pressed;
+        uint8_t pressed_day = local->pressed_day;
 
-        egui_dim_t cell_w = w / 7;
-        egui_dim_t header_h = h / 8;
-        egui_dim_t cell_h = (h - header_h * 2) / 6;
-
-        egui_dim_t touch_x = event->location.x - self->region_screen.location.x;
-        egui_dim_t touch_y = event->location.y - self->region_screen.location.y;
-
-        // Check if touch is in the date grid area
-        egui_dim_t grid_y_start = header_h * 2;
-        if (touch_y < grid_y_start || cell_w == 0 || cell_h == 0)
+        egui_view_set_pressed(self, false);
+        local->pressed_day = 0;
+        if (was_pressed && pressed_day != 0 && pressed_day == hit_day && hit_day != local->day)
         {
-            return 1;
-        }
-
-        uint8_t col = (uint8_t)(touch_x / cell_w);
-        uint8_t row = (uint8_t)((touch_y - grid_y_start) / cell_h);
-
-        if (col >= 7 || row >= 6)
-        {
-            return 1;
-        }
-
-        uint8_t first_dow = day_of_week(local->year, local->month, 1);
-        uint8_t start_col = (first_dow - local->first_day_of_week + 7) % 7;
-        uint8_t pos = row * 7 + col;
-        uint8_t total_days = days_in_month(local->year, local->month);
-
-        if (pos >= start_col && pos < start_col + total_days)
-        {
-            uint8_t new_day = pos - start_col + 1;
-            if (new_day != local->day)
+            local->day = hit_day;
+            if (local->on_date_selected)
             {
-                local->day = new_day;
-                if (local->on_date_selected)
-                {
-                    local->on_date_selected(self, new_day);
-                }
-                egui_view_invalidate(self);
+                local->on_date_selected(self, hit_day);
             }
+            egui_view_invalidate(self);
         }
+        break;
+    }
+    case EGUI_MOTION_EVENT_ACTION_CANCEL:
+        local->pressed_day = 0;
+        egui_view_set_pressed(self, false);
+        break;
+    default:
+        break;
     }
 
     return 1;
@@ -297,6 +329,7 @@ void egui_view_mini_calendar_init(egui_view_t *self)
     local->month = 1;
     local->day = 1;
     local->today_day = 0;
+    local->pressed_day = 0;
     local->first_day_of_week = 0;
     local->header_color = EGUI_THEME_TEXT_PRIMARY;
     local->text_color = EGUI_THEME_TEXT_PRIMARY;

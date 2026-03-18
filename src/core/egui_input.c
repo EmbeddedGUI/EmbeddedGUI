@@ -170,8 +170,17 @@ void egui_input_polling_work(void)
     if (tdrv != NULL && tdrv->ops->read != NULL)
     {
         uint8_t pressed = 0;
+        uint8_t has_position = 0;
         int16_t tx = 0, ty = 0;
-        tdrv->ops->read(&pressed, &tx, &ty);
+        if (tdrv->ops->read_ex != NULL)
+        {
+            tdrv->ops->read_ex(&pressed, &tx, &ty, &has_position);
+        }
+        else
+        {
+            tdrv->ops->read(&pressed, &tx, &ty);
+            has_position = pressed;
+        }
 
         if (pressed && !egui_touch_prev_pressed)
         {
@@ -186,13 +195,16 @@ void egui_input_polling_work(void)
         }
         else if (!pressed && egui_touch_prev_pressed)
         {
-            // Some ports only report coordinates while pressed. Reuse the last pressed
-            // location for ACTION_UP so release hit-testing stays stable.
-            egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_UP, egui_touch_prev_x, egui_touch_prev_y);
+            // Prefer a driver-reported release coordinate when available.
+            // Fallback to the last pressed coordinate for ports that cannot report it.
+            egui_input_add_motion(EGUI_MOTION_EVENT_ACTION_UP, has_position ? tx : egui_touch_prev_x, has_position ? ty : egui_touch_prev_y);
         }
         egui_touch_prev_pressed = pressed;
-        egui_touch_prev_x = tx;
-        egui_touch_prev_y = ty;
+        if (pressed || has_position)
+        {
+            egui_touch_prev_x = tx;
+            egui_touch_prev_y = ty;
+        }
     }
 
     while (1)

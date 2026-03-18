@@ -63,6 +63,7 @@ void egui_view_menu_set_pages(egui_view_t *self, const egui_view_menu_page_t *pa
     local->current_page = 0;
     local->stack_depth = 0;
     local->pressed_index = EGUI_VIEW_MENU_PRESSED_NONE;
+    egui_view_set_pressed(self, false);
     egui_view_invalidate(self);
 }
 
@@ -80,6 +81,7 @@ void egui_view_menu_navigate_to(egui_view_t *self, uint8_t page_index)
     }
     local->current_page = page_index;
     local->pressed_index = EGUI_VIEW_MENU_PRESSED_NONE;
+    egui_view_set_pressed(self, false);
     egui_view_invalidate(self);
 }
 
@@ -91,6 +93,7 @@ void egui_view_menu_go_back(egui_view_t *self)
         local->stack_depth--;
         local->current_page = local->page_stack[local->stack_depth];
         local->pressed_index = EGUI_VIEW_MENU_PRESSED_NONE;
+        egui_view_set_pressed(self, false);
         egui_view_invalidate(self);
     }
 }
@@ -253,7 +256,7 @@ void egui_view_menu_on_draw(egui_view_t *self)
         egui_dim_t item_y = y + hdr_h + (egui_dim_t)i * item_h;
 
         // Highlight pressed item
-        if (local->pressed_index == (int8_t)i)
+        if (self->is_pressed && local->pressed_index == (int8_t)i)
         {
             egui_canvas_draw_rectangle_fill(x, item_y, w, item_h, local->highlight_color, EGUI_ALPHA_100);
         }
@@ -359,42 +362,51 @@ int egui_view_menu_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
             local->pressed_index = hit_index;
             egui_view_invalidate(self);
         }
+        egui_view_set_pressed(self, hit_index != EGUI_VIEW_MENU_PRESSED_NONE);
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_MOVE:
     {
-        if (local->pressed_index != hit_index)
+        uint8_t is_pressed = (local->pressed_index != EGUI_VIEW_MENU_PRESSED_NONE && local->pressed_index == hit_index);
+
+        if (self->is_pressed != is_pressed)
         {
-            local->pressed_index = hit_index;
+            egui_view_set_pressed(self, is_pressed);
             egui_view_invalidate(self);
         }
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_UP:
     {
-        if (local->pressed_index == EGUI_VIEW_MENU_PRESSED_BACK && hit_index == EGUI_VIEW_MENU_PRESSED_BACK)
+        int8_t pressed_index = local->pressed_index;
+        uint8_t was_pressed = self->is_pressed;
+
+        local->pressed_index = EGUI_VIEW_MENU_PRESSED_NONE;
+        egui_view_set_pressed(self, false);
+
+        if (was_pressed && pressed_index == EGUI_VIEW_MENU_PRESSED_BACK && hit_index == EGUI_VIEW_MENU_PRESSED_BACK)
         {
             egui_view_menu_go_back(self);
         }
-        else if (local->pressed_index >= 0 && local->pressed_index < (int8_t)page->item_count && local->pressed_index == hit_index)
+        else if (was_pressed && pressed_index >= 0 && pressed_index < (int8_t)page->item_count && pressed_index == hit_index)
         {
-            const egui_view_menu_item_t *item = &page->items[local->pressed_index];
+            const egui_view_menu_item_t *item = &page->items[pressed_index];
             if (item->sub_page_index != EGUI_VIEW_MENU_ITEM_LEAF)
             {
                 egui_view_menu_navigate_to(self, item->sub_page_index);
             }
             else if (local->on_item_click)
             {
-                local->on_item_click(self, local->current_page, local->pressed_index);
+                local->on_item_click(self, local->current_page, pressed_index);
             }
         }
-        local->pressed_index = EGUI_VIEW_MENU_PRESSED_NONE;
         egui_view_invalidate(self);
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_CANCEL:
     {
         local->pressed_index = EGUI_VIEW_MENU_PRESSED_NONE;
+        egui_view_set_pressed(self, false);
         egui_view_invalidate(self);
         break;
     }

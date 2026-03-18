@@ -157,6 +157,9 @@ static int designer_touch_read(egui_hal_touch_driver_t *self, egui_hal_touch_dat
     memset(data, 0, sizeof(*data));
     if (!designer_touch_state.pressed)
     {
+        data->has_release_point = 1;
+        data->release_point.x = designer_touch_state.x;
+        data->release_point.y = designer_touch_state.y;
         return 0;
     }
 

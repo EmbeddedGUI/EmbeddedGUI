@@ -9,6 +9,8 @@
 extern "C" {
 #endif
 
+#define EGUI_VIEW_TAB_BAR_PRESSED_NONE 0xFF
+
 typedef void (*egui_view_on_tab_changed_listener_t)(egui_view_t *self, uint8_t index);
 
 typedef struct egui_view_tab_bar egui_view_tab_bar_t;
@@ -21,6 +23,7 @@ struct egui_view_tab_bar
     const char **tab_icons;
     uint8_t tab_count;
     uint8_t current_index;
+    uint8_t pressed_index;
     egui_alpha_t alpha;
     egui_color_t text_color;
     egui_color_t active_text_color;

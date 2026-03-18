@@ -42,6 +42,8 @@ typedef struct egui_hal_touch_data
 {
     uint8_t point_count;                                      /**< Number of active touch points */
     uint8_t gesture;                                          /**< Gesture code (driver-specific) */
+    uint8_t has_release_point;                                /**< Release coordinates are valid when point_count=0 */
+    egui_hal_touch_point_t release_point;                     /**< Optional release coordinate */
     egui_hal_touch_point_t points[EGUI_HAL_TOUCH_MAX_POINTS]; /**< Touch point array */
 } egui_hal_touch_data_t;
 

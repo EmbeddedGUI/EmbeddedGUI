@@ -28,6 +28,13 @@ struct egui_touch_driver_ops
      * @param[out] y        touch Y coordinate (only valid when pressed=1)
      */
     void (*read)(uint8_t *pressed, int16_t *x, int16_t *y);
+
+    /**
+     * Extended read with coordinate validity.
+     * When implemented, x/y may still be valid after release and has_position
+     * tells the input layer whether it should trust them for ACTION_UP.
+     */
+    void (*read_ex)(uint8_t *pressed, int16_t *x, int16_t *y, uint8_t *has_position);
 };
 
 /**
