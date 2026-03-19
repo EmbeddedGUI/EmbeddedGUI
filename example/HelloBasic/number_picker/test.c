@@ -105,6 +105,16 @@ static void report_runtime_failure(const char *message)
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
 }
 
+static void set_click_picker_zone(egui_sim_action_t *p_action, egui_view_t *view, float rel_y, int interval_ms)
+{
+    p_action->type = EGUI_SIM_ACTION_CLICK;
+    egui_sim_get_view_pos(view, 0.5f, rel_y, &p_action->x1, &p_action->y1);
+    p_action->x2 = 0;
+    p_action->y2 = 0;
+    p_action->steps = 0;
+    p_action->interval_ms = interval_ms;
+}
+
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;
@@ -115,51 +125,35 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     switch (action_index)
     {
     case 0:
-        p_action->type = EGUI_SIM_ACTION_DRAG;
-        egui_sim_get_view_pos(&picker_xs, 0.5f, 0.8f, &p_action->x1, &p_action->y1);
-        egui_sim_get_view_pos(&picker_xs, 0.5f, 0.2f, &p_action->x2, &p_action->y2);
-        p_action->steps = 10;
-        p_action->interval_ms = 1000;
+        set_click_picker_zone(p_action, EGUI_VIEW_OF(&picker_xs), 0.82f, 320);
         return true;
     case 1:
-        p_action->type = EGUI_SIM_ACTION_DRAG;
-        egui_sim_get_view_pos(&picker_s, 0.5f, 0.8f, &p_action->x1, &p_action->y1);
-        egui_sim_get_view_pos(&picker_s, 0.5f, 0.2f, &p_action->x2, &p_action->y2);
-        p_action->steps = 10;
-        p_action->interval_ms = 1000;
+        set_click_picker_zone(p_action, EGUI_VIEW_OF(&picker_s), 0.82f, 320);
         return true;
     case 2:
-        p_action->type = EGUI_SIM_ACTION_DRAG;
-        egui_sim_get_view_pos(&picker_m, 0.5f, 0.2f, &p_action->x1, &p_action->y1);
-        egui_sim_get_view_pos(&picker_m, 0.5f, 0.8f, &p_action->x2, &p_action->y2);
-        p_action->steps = 10;
-        p_action->interval_ms = 1000;
+        set_click_picker_zone(p_action, EGUI_VIEW_OF(&picker_m), 0.18f, 320);
         return true;
     case 3:
-        p_action->type = EGUI_SIM_ACTION_DRAG;
-        egui_sim_get_view_pos(&picker_l, 0.5f, 0.2f, &p_action->x1, &p_action->y1);
-        egui_sim_get_view_pos(&picker_l, 0.5f, 0.8f, &p_action->x2, &p_action->y2);
-        p_action->steps = 10;
-        p_action->interval_ms = 1000;
+        set_click_picker_zone(p_action, EGUI_VIEW_OF(&picker_l), 0.18f, 320);
         return true;
     case 4:
         if (first_call)
         {
             if (egui_view_number_picker_get_value(EGUI_VIEW_OF(&picker_xs)) == 10)
             {
-                report_runtime_failure("picker_xs value did not change after drag");
+                report_runtime_failure("picker_xs value did not change after click");
             }
             if (egui_view_number_picker_get_value(EGUI_VIEW_OF(&picker_s)) == 30)
             {
-                report_runtime_failure("picker_s value did not change after drag");
+                report_runtime_failure("picker_s value did not change after click");
             }
             if (egui_view_number_picker_get_value(EGUI_VIEW_OF(&picker_m)) == 50)
             {
-                report_runtime_failure("picker_m value did not change after drag");
+                report_runtime_failure("picker_m value did not change after click");
             }
             if (egui_view_number_picker_get_value(EGUI_VIEW_OF(&picker_l)) == 80)
             {
-                report_runtime_failure("picker_l value did not change after drag");
+                report_runtime_failure("picker_l value did not change after click");
             }
             recording_request_snapshot();
         }

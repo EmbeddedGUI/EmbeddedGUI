@@ -132,7 +132,7 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
         const egui_font_t *icon_font = egui_view_number_picker_get_icon_font(local, EGUI_MIN(w, third_h) - 4);
 
         // Press highlight overlay
-        if (local->pressed_zone == 1)
+        if (self->is_pressed && local->pressed_zone == 1)
         {
             egui_canvas_draw_fillrect(region.location.x, region.location.y, w, third_h, EGUI_COLOR_MAKE(255, 255, 255), 30);
         }
@@ -164,7 +164,7 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
         const egui_font_t *icon_font = egui_view_number_picker_get_icon_font(local, EGUI_MIN(w, third_h) - 4);
 
         // Press highlight overlay
-        if (local->pressed_zone == -1)
+        if (self->is_pressed && local->pressed_zone == -1)
         {
             egui_canvas_draw_fillrect(region.location.x, zone_top, w, third_h, EGUI_COLOR_MAKE(255, 255, 255), 30);
         }
@@ -209,11 +209,10 @@ int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_
     }
     case EGUI_MOTION_EVENT_ACTION_MOVE:
     {
-        int should_press = hit_zone != 0;
-        if (self->is_pressed != should_press || local->pressed_zone != hit_zone)
+        int should_press = local->pressed_zone != 0 && hit_zone == local->pressed_zone;
+        if (self->is_pressed != should_press)
         {
             egui_view_set_pressed(self, should_press);
-            local->pressed_zone = hit_zone;
             egui_view_invalidate(self);
         }
         break;

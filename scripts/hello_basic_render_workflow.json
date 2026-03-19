@@ -161,7 +161,7 @@
     },
     "number_picker": {
       "expected_actions": [
-        "drag",
+        "click",
         "wait"
       ],
       "min_case_count": 5,

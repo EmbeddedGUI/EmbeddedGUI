@@ -116,7 +116,7 @@ make all APP=HelloCustomWidgets APP_SUB=<category>/<widget> PORT=pc
 先执行：
 
 ```bash
-python scripts/check_touch_release_semantics.py --category <category>
+python scripts/check_touch_release_semantics.py --scope custom --category <category>
 ```
 
 要求：
@@ -125,6 +125,7 @@ python scripts/check_touch_release_semantics.py --category <category>
 - 非拖拽/非连续交互控件，`ACTION_UP` 只能在 `ACTION_DOWN` 命中的同一目标上提交，不能在移动到其他目标后于新目标触发点击或选择。
 - 必须补充模拟交互测试，至少覆盖 `DOWN(A) -> MOVE(B) -> UP(B)` 不提交，以及 `DOWN(A) -> MOVE(B) -> MOVE(A) -> UP(A)` 才提交。
 - 若控件本身就是拖拽/连续交互模型，必须在 `scripts/check_touch_release_semantics.py` 的 allowlist 中登记，并在提交说明中写清楚为何属于例外。
+- 若本轮同时修改了 `src/widget/`，或该控件准备下沉到核心层，必须额外执行 `python scripts/check_touch_release_semantics.py --scope core`，并同步补 `HelloUnitTest` 的 same-target release 回归测试。
 - 审计失败时，必须先修复事件分发语义，再继续 runtime 验证。
 
 ## Step 4：Runtime 验证（必做）
@@ -184,7 +185,7 @@ python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub <categor
 
 1. 改代码
 2. 执行 `make all APP=HelloCustomWidgets APP_SUB=<category>/<widget> PORT=pc`
-3. 执行 `python scripts/check_touch_release_semantics.py --category <category>`
+3. 执行 `python scripts/check_touch_release_semantics.py --scope custom --category <category>`
 4. 执行 `python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub <category>/<widget> --timeout 10 --keep-screenshots`
 5. 检查截图中的视觉问题
 6. 复制关键截图到 `iteration_log/images/iter_xx/`
@@ -213,7 +214,7 @@ python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub <categor
 - `readme.md` 完整且与当前实现一致
 - `iteration_log/iteration_log.md` 已记录至少 30 次迭代
 - `make all APP=HelloCustomWidgets APP_SUB=<category>/<widget> PORT=pc` 通过
-- `python scripts/check_touch_release_semantics.py --category <category>` 通过；若属于拖拽例外，已同步更新 allowlist 并写明理由
+- `python scripts/check_touch_release_semantics.py --scope custom --category <category>` 通过；若触及核心控件，还需额外通过 `python scripts/check_touch_release_semantics.py --scope core`；若属于拖拽例外，已同步更新 allowlist 并写明理由
 - `code_runtime_check.py` 运行通过
 - 已对当前控件相关代码执行格式化，并确认格式化后仍可通过构建与 runtime 验证
 - 关键截图已整理到 `iteration_log/` 且能通过 `iteration_log/iteration_log.md` 直接 review

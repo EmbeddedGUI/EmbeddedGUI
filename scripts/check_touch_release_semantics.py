@@ -1,4 +1,4 @@
-"""Audit HelloCustomWidgets touch release semantics."""
+"""Audit widget touch release semantics."""
 
 from __future__ import annotations
 
@@ -11,13 +11,17 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
 CUSTOM_WIDGET_ROOT = REPO_ROOT / "example" / "HelloCustomWidgets"
+CORE_WIDGET_ROOT = REPO_ROOT / "src" / "widget"
 
 ALLOWLIST = {
-    "input/rating_control/egui_view_rating_control.c",
-    "input/color_picker/egui_view_color_picker.c",
-    "input/scroll_bar/egui_view_scroll_bar.c",
-    "input/swipe_control/egui_view_swipe_control.c",
-    "navigation/annotated_scroll_bar/egui_view_annotated_scroll_bar.c",
+    "custom": {
+        "input/rating_control/egui_view_rating_control.c": "rating control supports drag/hover preview semantics",
+        "input/color_picker/egui_view_color_picker.c": "color picker updates continuously while dragging",
+        "input/scroll_bar/egui_view_scroll_bar.c": "scroll bar thumb is a drag interaction",
+        "input/swipe_control/egui_view_swipe_control.c": "swipe control is a continuous gesture widget",
+        "navigation/annotated_scroll_bar/egui_view_annotated_scroll_bar.c": "annotated scroll bar uses drag semantics",
+    },
+    "core": {},
 }
 
 TOUCH_HANDLER_RE = re.compile(r"static\s+int\s+\w+_on_touch_event\s*\([^)]*\)\s*\{", re.MULTILINE)
@@ -25,12 +29,13 @@ PRESSED_ASSIGN_RE = re.compile(r"\blocal->(pressed_[A-Za-z0-9_]+)\s*(?<![=!<>])=
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Check HelloCustomWidgets touch handlers for release-target drift.")
+    parser = argparse.ArgumentParser(description="Check widget touch handlers for release-target drift.")
+    parser.add_argument("--scope", choices=("custom", "core", "all"), default="all", help="Audit custom widgets, core widgets, or both.")
     parser.add_argument("--category", type=str, default=None, help="Only audit a specific HelloCustomWidgets category.")
     return parser.parse_args()
 
 
-def iter_widget_files(category: str | None) -> list[Path]:
+def iter_custom_widget_files(category: str | None) -> list[Path]:
     if not CUSTOM_WIDGET_ROOT.is_dir():
         return []
 
@@ -47,7 +52,17 @@ def iter_widget_files(category: str | None) -> list[Path]:
     return result
 
 
-def get_relative_widget_path(path: Path) -> str:
+def iter_core_widget_files() -> list[Path]:
+    if not CORE_WIDGET_ROOT.is_dir():
+        return []
+    return sorted(CORE_WIDGET_ROOT.glob("egui_view_*.c"))
+
+
+def get_relative_widget_path(path: Path, scope: str) -> str:
+    if scope == "custom":
+        return path.relative_to(CUSTOM_WIDGET_ROOT).as_posix()
+    if scope == "core":
+        return path.relative_to(REPO_ROOT).as_posix()
     return path.relative_to(CUSTOM_WIDGET_ROOT).as_posix()
 
 
@@ -123,37 +138,46 @@ def find_move_assignments(path: Path) -> list[tuple[int, str, str]]:
 
 def main() -> int:
     args = parse_args()
-    sources = iter_widget_files(args.category)
+    sources: list[tuple[str, Path]] = []
+
+    if args.scope in ("custom", "all"):
+        sources.extend(("custom", path) for path in iter_custom_widget_files(args.category))
+    if args.scope in ("core", "all"):
+        sources.extend(("core", path) for path in iter_core_widget_files())
 
     if not sources:
         category_info = args.category if args.category is not None else "all"
-        print(f"[touch-release-audit] no HelloCustomWidgets sources found for category: {category_info}")
+        print(f"[touch-release-audit] no widget sources found for scope={args.scope}, category={category_info}")
         return 0
 
-    audited = 0
-    skipped = 0
-    failures: list[tuple[str, int, str, str]] = []
+    audited = {"custom": 0, "core": 0}
+    skipped = {"custom": 0, "core": 0}
+    failures: list[tuple[str, str, int, str, str]] = []
 
-    for source in sources:
-        relative_path = get_relative_widget_path(source)
-        if relative_path in ALLOWLIST:
-            skipped += 1
+    for scope, source in sources:
+        relative_path = get_relative_widget_path(source, scope)
+        if relative_path in ALLOWLIST[scope]:
+            skipped[scope] += 1
             continue
 
-        audited += 1
+        audited[scope] += 1
         for line_number, field_name, line_text in find_move_assignments(source):
-            failures.append((relative_path, line_number, field_name, line_text))
+            failures.append((scope, relative_path, line_number, field_name, line_text))
 
     if failures:
         print("[touch-release-audit] FAIL")
-        print("ACTION_MOVE must not rewrite pressed_* state for non-drag HelloCustomWidgets.")
-        print("If a widget intentionally supports drag/continuous interaction, add it to ALLOWLIST with rationale.")
-        for relative_path, line_number, field_name, line_text in failures:
-            print(f"  {relative_path}:{line_number}: rewrites {field_name} in ACTION_MOVE")
+        print("ACTION_MOVE must not rewrite pressed_* state for non-drag widgets.")
+        print("If a widget intentionally supports drag or continuous interaction, add it to the matching allowlist with rationale.")
+        for scope, relative_path, line_number, field_name, line_text in failures:
+            print(f"  [{scope}] {relative_path}:{line_number}: rewrites {field_name} in ACTION_MOVE")
             print(f"    {line_text}")
         return 1
 
-    print(f"[touch-release-audit] PASS audited={audited} skipped_allowlist={skipped}")
+    print(
+        "[touch-release-audit] PASS "
+        f"custom_audited={audited['custom']} custom_skipped_allowlist={skipped['custom']} "
+        f"core_audited={audited['core']} core_skipped_allowlist={skipped['core']}"
+    )
     return 0
 
 

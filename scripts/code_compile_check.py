@@ -207,21 +207,23 @@ def run_example_icon_font_check():
     return 0
 
 
-def run_touch_release_semantics_check(category=None):
+def run_touch_release_semantics_check(scope='all', category=None):
     print("=================================================================================")
-    print("Checking HelloCustomWidgets Touch Release Semantics")
+    print("Checking Widget Touch Release Semantics")
     print("=================================================================================")
 
     cmd = [sys.executable, os.path.join(SCRIPT_DIR, 'check_touch_release_semantics.py')]
+    if scope:
+        cmd.extend(['--scope', scope])
     if category:
         cmd.extend(['--category', category])
     print(' '.join('"%s"' % part if ' ' in part else part for part in cmd))
     res = subprocess.call(cmd)
     if res != 0:
-        print("HelloCustomWidgets touch release semantics check FAILED!")
+        print("Widget touch release semantics check FAILED!")
         return res
 
-    print("HelloCustomWidgets touch release semantics check PASSED!")
+    print("Widget touch release semantics check PASSED!")
     return 0
 
 
@@ -337,7 +339,7 @@ if __name__ == '__main__':
 
     # Custom widgets check mode
     if args.custom_widgets:
-        res = run_touch_release_semantics_check(args.category)
+        res = run_touch_release_semantics_check(scope='custom', category=args.category)
         if res != 0:
             sys.exit(res)
 
@@ -356,7 +358,7 @@ if __name__ == '__main__':
 
     full_check = args.full_check
     if full_check:
-        res = run_touch_release_semantics_check()
+        res = run_touch_release_semantics_check(scope='all')
         if res != 0:
             sys.exit(res)
 

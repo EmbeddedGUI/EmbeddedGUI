@@ -21,7 +21,23 @@ on:
         type: string
 
 jobs:
+  core-touch-audit:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: rlalik/setup-cpp-compiler@v1.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Audit core widget touch release semantics
+        run: python scripts/check_touch_release_semantics.py --scope core
+
   check:
+    needs: core-touch-audit
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -37,8 +53,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Audit touch release semantics (${{ matrix.category }})
-        run: python scripts/check_touch_release_semantics.py --category ${{ matrix.category }}
+      - name: Audit custom widget touch release semantics (${{ matrix.category }})
+        run: python scripts/check_touch_release_semantics.py --scope custom --category ${{ matrix.category }}
 
       - name: Check custom widgets (${{ matrix.category }})
         run: python scripts/code_compile_check.py --custom-widgets --category ${{ matrix.category }} --bits64
