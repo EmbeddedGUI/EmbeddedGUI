@@ -153,7 +153,6 @@ endif
 	FIXPATH = $(subst /,\,$1)
 	RM      := del /q /s
 	MD			:= mkdir
-	MD_CHECK	:= $(Q)if not exist "$@"
 
 else ifeq ($(shell uname), Darwin)
     # Code for OS X
@@ -167,7 +166,6 @@ else ifeq ($(shell uname), Darwin)
 	FIXPATH = $1
 	RM = rm -rf
 	MD	:= mkdir -p
-	MD_CHECK	:=
 else
 	MAIN	:= $(TARGET)
 	ECHO=echo
@@ -179,7 +177,6 @@ else
 	FIXPATH = $1
 	RM = rm -rf
 	MD	:= mkdir -p
-	MD_CHECK	:=
 endif
 
 
@@ -254,14 +251,26 @@ endif
 
 # mk path for object.
 $(OBJ_MD):
-	$(MD_CHECK) $(Q)$(MD) $(call FIXPATH, $@)
+ifeq ($(OS),Windows_NT)
+	$(Q)$(MD) "$(call FIXPATH,$@)" >NUL 2>NUL || (if exist "$(call FIXPATH,$@)" exit /b 0 else exit /b 1)
+else
+	$(Q)$(MD) "$(call FIXPATH,$@)"
+endif
 
 # mk output path.
 $(OUTPUT_PATH):
-	$(MD_CHECK) $(Q)$(MD) $(call FIXPATH, $@)
+ifeq ($(OS),Windows_NT)
+	$(Q)$(MD) "$(call FIXPATH,$@)" >NUL 2>NUL || (if exist "$(call FIXPATH,$@)" exit /b 0 else exit /b 1)
+else
+	$(Q)$(MD) "$(call FIXPATH,$@)"
+endif
 
 $(OBJDIR):
-	$(MD_CHECK) $(Q)$(MD) $(call FIXPATH, $@)
+ifeq ($(OS),Windows_NT)
+	$(Q)$(MD) "$(call FIXPATH,$@)" >NUL 2>NUL || (if exist "$(call FIXPATH,$@)" exit /b 0 else exit /b 1)
+else
+	$(Q)$(MD) "$(call FIXPATH,$@)"
+endif
 
 $(APP_CONFIG_STAMP): | $(OUTPUT_PATH)
 ifeq ($(OS),Windows_NT)
@@ -279,8 +288,13 @@ $(MAIN): | $(OUTPUT_PATH) $(OBJDIR) $(OBJ_MD) $(USER_COMPILE_TARGETS) $(OUTPUT_M
 	@$(ECHO) Building   : "$(OUTPUT_MAIN)"
 
 # Static Pattern Rules [targets ...: target-pattern: prereq-patterns ...]
-$(OBJECTS): $(OBJDIR)/%.o : %.c $(COMMON_PREREQS)
+$(OBJECTS): $(OBJDIR)/%.o : %.c $(COMMON_PREREQS) | $(OUTPUT_PATH) $(OBJDIR) $(OBJ_MD) $(USER_COMPILE_TARGETS)
 	@$(ECHO) Compiling  : "$<"
+ifeq ($(OS),Windows_NT)
+	$(Q)$(MD) "$(call FIXPATH,$(patsubst %/,%,$(dir $@)))" >NUL 2>NUL || (if exist "$(call FIXPATH,$(patsubst %/,%,$(dir $@)))" exit /b 0 else exit /b 1)
+else
+	$(Q)$(MD) "$(call FIXPATH,$(patsubst %/,%,$(dir $@)))"
+endif
 	$(Q)$(CC) $(COMMON_FLAGS) $(INCLUDES) -c $<  -o $@
 
 

@@ -619,7 +619,7 @@ static void egui_view_token_input_on_draw(egui_view_t *self)
     for (index = 0; index < metrics.visible_token_count; index++)
     {
         token_input_draw_item(self, local, &metrics.token_regions[index], local->tokens[index], local->current_part == index ? 1 : 0,
-                              local->pressed_part == index ? 1 : 0, 0, &metrics.token_text_regions[index], EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER,
+                              (self->is_pressed && local->pressed_part == index) ? 1 : 0, 0, &metrics.token_text_regions[index], EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER,
                               &metrics.token_remove_regions[index], metrics.token_show_remove[index], surface_color, border_color, text_color, muted_color,
                               accent_color);
     }
@@ -635,7 +635,8 @@ static void egui_view_token_input_on_draw(egui_view_t *self)
     {
         input_text = local->draft_len > 0 ? local->draft_text : local->placeholder;
         token_input_draw_item(self, local, &metrics.input_region, input_text, local->current_part == EGUI_VIEW_TOKEN_INPUT_PART_INPUT ? 1 : 0,
-                              local->pressed_part == EGUI_VIEW_TOKEN_INPUT_PART_INPUT ? 1 : 0, local->draft_len == 0 ? 1 : 0, &metrics.input_region,
+                              (self->is_pressed && local->pressed_part == EGUI_VIEW_TOKEN_INPUT_PART_INPUT) ? 1 : 0, local->draft_len == 0 ? 1 : 0,
+                              &metrics.input_region,
                               EGUI_ALIGN_CENTER, NULL, 0, surface_color, border_color, text_color, muted_color, accent_color);
     }
 }
@@ -955,30 +956,32 @@ static int egui_view_token_input_on_touch_event(egui_view_t *self, egui_motion_e
             return 0;
         }
         {
+            uint8_t is_pressed = 0;
             uint8_t hit_remove = 0;
 
             hit_part = token_input_hit_part(local, self, event->location.x, event->location.y, &hit_remove);
-            if (local->pressed_part != hit_part || local->pressed_remove != hit_remove)
+            if (local->pressed_part == hit_part && local->pressed_remove == hit_remove)
             {
-                local->pressed_part = hit_part;
-                local->pressed_remove = hit_remove;
-                if (hit_part != EGUI_VIEW_TOKEN_INPUT_PART_NONE)
-                {
-                    local->restore_input_focus = 0;
-                    local->current_part = hit_part;
-                }
+                is_pressed = 1;
+            }
+            if (self->is_pressed != is_pressed)
+            {
+                egui_view_set_pressed(self, is_pressed);
                 egui_view_invalidate(self);
             }
         }
         return 1;
     case EGUI_MOTION_EVENT_ACTION_UP:
     {
+        uint8_t pressed_part = local->pressed_part;
+        uint8_t pressed_remove = local->pressed_remove;
+        uint8_t was_pressed = self->is_pressed;
         uint8_t hit_remove = 0;
         uint8_t should_remove = 0;
 
         hit_part = token_input_hit_part(local, self, event->location.x, event->location.y, &hit_remove);
-        should_remove = local->pressed_part != EGUI_VIEW_TOKEN_INPUT_PART_NONE && local->pressed_part == hit_part && local->pressed_remove && hit_remove;
-        if (!should_remove && local->pressed_part != EGUI_VIEW_TOKEN_INPUT_PART_NONE && local->pressed_part == hit_part)
+        should_remove = was_pressed && pressed_part != EGUI_VIEW_TOKEN_INPUT_PART_NONE && pressed_part == hit_part && pressed_remove && hit_remove;
+        if (!should_remove && was_pressed && pressed_part != EGUI_VIEW_TOKEN_INPUT_PART_NONE && pressed_part == hit_part && pressed_remove == hit_remove)
         {
             local->restore_input_focus = 0;
             local->current_part = hit_part;

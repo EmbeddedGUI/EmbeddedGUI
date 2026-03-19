@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/custom-widgets-check.yml'
       - 'example/HelloCustomWidgets/**'
+      - 'scripts/check_touch_release_semantics.py'
       - 'scripts/code_compile_check.py'
       - 'src/widget/**'
       - 'src/core/**'
@@ -35,6 +36,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Audit touch release semantics (${{ matrix.category }})
+        run: python scripts/check_touch_release_semantics.py --category ${{ matrix.category }}
 
       - name: Check custom widgets (${{ matrix.category }})
         run: python scripts/code_compile_check.py --custom-widgets --category ${{ matrix.category }} --bits64

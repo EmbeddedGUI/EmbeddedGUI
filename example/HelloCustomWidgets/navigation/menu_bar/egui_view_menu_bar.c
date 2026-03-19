@@ -1342,7 +1342,7 @@ static void egui_view_menu_bar_on_draw(egui_view_t *self)
         egui_dim_t current_pip_w;
         egui_dim_t current_pip_x;
         egui_dim_t current_pip_y;
-        uint8_t is_pressed_menu = index == local->pressed_menu ? 1 : 0;
+        uint8_t is_pressed_menu = (self->is_pressed && index == local->pressed_menu) ? 1 : 0;
         uint8_t menu_enabled = snapshot->menus[index].enabled;
 
         if (index == layout.current_menu)
@@ -1462,7 +1462,7 @@ static void egui_view_menu_bar_on_draw(egui_view_t *self)
             uint8_t has_disabled_badge = item->enabled ? 0 : 1;
             uint8_t reserve_trailing = item->trailing_kind == EGUI_VIEW_MENU_BAR_TRAILING_SUBMENU || has_disabled_badge ? 1 : 0;
             uint8_t is_current = index == focus_item ? 1 : 0;
-            uint8_t is_pressed = index == local->pressed_item ? 1 : 0;
+            uint8_t is_pressed = (self->is_pressed && index == local->pressed_item) ? 1 : 0;
 
             if (item->separator_before && index > 0)
             {
@@ -1594,23 +1594,33 @@ static int egui_view_menu_bar_on_touch_event(egui_view_t *self, egui_motion_even
     case EGUI_MOTION_EVENT_ACTION_MOVE:
         if (local->pressed_menu != EGUI_VIEW_MENU_BAR_HIT_NONE)
         {
+            uint8_t is_pressed = 0;
+
+            hit_menu = egui_view_menu_bar_hit_menu(self, event->location.x, event->location.y);
+            if (local->pressed_menu == hit_menu && egui_view_menu_bar_menu_is_enabled(snapshot, hit_menu, menu_count))
+            {
+                is_pressed = 1;
+            }
+            if (self->is_pressed != is_pressed)
+            {
+                egui_view_set_pressed(self, is_pressed);
+                egui_view_invalidate(self);
+            }
             return 1;
         }
         if (local->pressed_item != EGUI_VIEW_MENU_BAR_ITEM_NONE)
         {
+            uint8_t is_pressed = 0;
+
             hit_item = egui_view_menu_bar_hit_panel_item(self, event->location.x, event->location.y);
-            if (hit_item != local->pressed_item)
+            if (local->pressed_item == hit_item && egui_view_menu_bar_item_is_enabled(snapshot, hit_item, item_count))
             {
-                if (hit_item != EGUI_VIEW_MENU_BAR_ITEM_NONE && egui_view_menu_bar_item_is_enabled(snapshot, hit_item, item_count))
-                {
-                    local->pressed_item = hit_item;
-                    egui_view_menu_bar_set_current_item_inner(self, hit_item, 1);
-                }
-                else
-                {
-                    local->pressed_item = EGUI_VIEW_MENU_BAR_ITEM_NONE;
-                    egui_view_invalidate(self);
-                }
+                is_pressed = 1;
+            }
+            if (self->is_pressed != is_pressed)
+            {
+                egui_view_set_pressed(self, is_pressed);
+                egui_view_invalidate(self);
             }
             return 1;
         }
@@ -1619,7 +1629,9 @@ static int egui_view_menu_bar_on_touch_event(egui_view_t *self, egui_motion_even
         hit_menu = egui_view_menu_bar_hit_menu(self, event->location.x, event->location.y);
         if (local->pressed_menu != EGUI_VIEW_MENU_BAR_HIT_NONE)
         {
-            if (local->pressed_menu == hit_menu && egui_view_menu_bar_menu_is_enabled(snapshot, hit_menu, menu_count))
+            uint8_t was_pressed = self->is_pressed;
+
+            if (was_pressed && local->pressed_menu == hit_menu && egui_view_menu_bar_menu_is_enabled(snapshot, hit_menu, menu_count))
             {
                 egui_view_menu_bar_apply_snapshot(self, hit_menu, 1);
             }
@@ -1633,7 +1645,9 @@ static int egui_view_menu_bar_on_touch_event(egui_view_t *self, egui_motion_even
         hit_item = egui_view_menu_bar_hit_panel_item(self, event->location.x, event->location.y);
         if (local->pressed_item != EGUI_VIEW_MENU_BAR_ITEM_NONE)
         {
-            if (local->pressed_item == hit_item && egui_view_menu_bar_item_is_enabled(snapshot, hit_item, item_count))
+            uint8_t was_pressed = self->is_pressed;
+
+            if (was_pressed && local->pressed_item == hit_item && egui_view_menu_bar_item_is_enabled(snapshot, hit_item, item_count))
             {
                 egui_view_menu_bar_set_current_item_inner(self, hit_item, 1);
                 egui_view_menu_bar_notify_item_activated(self, local);

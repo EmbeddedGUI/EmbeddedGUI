@@ -503,7 +503,7 @@ static void calendar_view_draw_grid(egui_view_t *self, egui_view_calendar_view_t
                 day_text_color = muted_text_color;
             }
 
-            if (local->pressed_part == EGUI_VIEW_CALENDAR_VIEW_PART_GRID && day == local->pressed_day)
+            if (self->is_pressed && local->pressed_part == EGUI_VIEW_CALENDAR_VIEW_PART_GRID && day == local->pressed_day)
             {
                 egui_canvas_draw_round_rectangle_fill(cell_inner_region.location.x, cell_inner_region.location.y, cell_inner_region.size.width,
                                                       cell_inner_region.size.height, 4, egui_rgb_mix(local->surface_color, accent_color, 18),
@@ -549,13 +549,13 @@ static void calendar_view_draw_header(egui_view_t *self, egui_view_calendar_view
     char title[16];
     egui_color_t title_color = text_color;
 
-    if (local->current_part == EGUI_VIEW_CALENDAR_VIEW_PART_PREV || local->pressed_part == EGUI_VIEW_CALENDAR_VIEW_PART_PREV)
+    if (local->current_part == EGUI_VIEW_CALENDAR_VIEW_PART_PREV || (self->is_pressed && local->pressed_part == EGUI_VIEW_CALENDAR_VIEW_PART_PREV))
     {
         egui_canvas_draw_round_rectangle_fill(metrics->prev_region.location.x, metrics->prev_region.location.y, metrics->prev_region.size.width,
                                               metrics->prev_region.size.height, 5, egui_rgb_mix(local->surface_color, accent_color, 18),
                                               egui_color_alpha_mix(self->alpha, 52));
     }
-    if (local->current_part == EGUI_VIEW_CALENDAR_VIEW_PART_NEXT || local->pressed_part == EGUI_VIEW_CALENDAR_VIEW_PART_NEXT)
+    if (local->current_part == EGUI_VIEW_CALENDAR_VIEW_PART_NEXT || (self->is_pressed && local->pressed_part == EGUI_VIEW_CALENDAR_VIEW_PART_NEXT))
     {
         egui_canvas_draw_round_rectangle_fill(metrics->next_region.location.x, metrics->next_region.location.y, metrics->next_region.size.width,
                                               metrics->next_region.size.height, 5, egui_rgb_mix(local->surface_color, accent_color, 18),
@@ -1418,17 +1418,27 @@ static int egui_view_calendar_view_on_touch_event(egui_view_t *self, egui_motion
         egui_view_invalidate(self);
         return 1;
     case EGUI_MOTION_EVENT_ACTION_MOVE:
-        if (local->pressed_part == EGUI_VIEW_CALENDAR_VIEW_PART_GRID)
+        if (local->pressed_part != EGUI_VIEW_CALENDAR_VIEW_PART_NONE)
         {
-            hit_day = calendar_view_get_hit_day(local, self, event->location.x, event->location.y);
-            if (local->pressed_day != hit_day)
+            uint8_t is_pressed = 0;
+
+            hit_part = calendar_view_hit_part(local, self, event->location.x, event->location.y);
+            hit_day = hit_part == EGUI_VIEW_CALENDAR_VIEW_PART_GRID ? calendar_view_get_hit_day(local, self, event->location.x, event->location.y) : 0;
+            if (local->pressed_part == hit_part)
             {
-                local->pressed_day = hit_day;
+                if (local->pressed_part != EGUI_VIEW_CALENDAR_VIEW_PART_GRID || (local->pressed_day > 0 && local->pressed_day == hit_day))
+                {
+                    is_pressed = 1;
+                }
+            }
+            if (self->is_pressed != is_pressed)
+            {
+                egui_view_set_pressed(self, is_pressed);
                 egui_view_invalidate(self);
             }
             return 1;
         }
-        return local->pressed_part != EGUI_VIEW_CALENDAR_VIEW_PART_NONE ? 1 : 0;
+        return 0;
     case EGUI_MOTION_EVENT_ACTION_CANCEL:
         local->pressed_part = EGUI_VIEW_CALENDAR_VIEW_PART_NONE;
         local->pressed_day = 0;
@@ -1436,9 +1446,14 @@ static int egui_view_calendar_view_on_touch_event(egui_view_t *self, egui_motion
         egui_view_invalidate(self);
         return 1;
     case EGUI_MOTION_EVENT_ACTION_UP:
+    {
+        uint8_t pressed_part = local->pressed_part;
+        uint8_t pressed_day = local->pressed_day;
+        uint8_t was_pressed = self->is_pressed;
+
         hit_part = calendar_view_hit_part(local, self, event->location.x, event->location.y);
         hit_day = hit_part == EGUI_VIEW_CALENDAR_VIEW_PART_GRID ? calendar_view_get_hit_day(local, self, event->location.x, event->location.y) : 0;
-        if (local->pressed_part == hit_part)
+        if (was_pressed && pressed_part == hit_part)
         {
             if (hit_part == EGUI_VIEW_CALENDAR_VIEW_PART_PREV)
             {
@@ -1448,7 +1463,7 @@ static int egui_view_calendar_view_on_touch_event(egui_view_t *self, egui_motion
             {
                 calendar_view_shift_display_month(self, 1);
             }
-            else if (hit_part == EGUI_VIEW_CALENDAR_VIEW_PART_GRID && hit_day > 0 && hit_day == local->pressed_day)
+            else if (hit_part == EGUI_VIEW_CALENDAR_VIEW_PART_GRID && hit_day > 0 && hit_day == pressed_day)
             {
                 if (local->editing_range)
                 {
@@ -1465,6 +1480,7 @@ static int egui_view_calendar_view_on_touch_event(egui_view_t *self, egui_motion
         egui_view_set_pressed(self, false);
         egui_view_invalidate(self);
         return hit_part != EGUI_VIEW_CALENDAR_VIEW_PART_NONE ? 1 : 0;
+    }
     default:
         return 0;
     }

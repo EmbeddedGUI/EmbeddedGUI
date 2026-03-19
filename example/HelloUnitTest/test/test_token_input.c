@@ -220,6 +220,63 @@ static void test_token_input_touch_remove_icon_deletes_token(void)
     assert_changed_state(1, 2, 1);
 }
 
+static void test_token_input_release_requires_same_remove_target(void)
+{
+    static const char *tokens[] = {"alpha", "beta", "gamma"};
+    egui_region_t start_remove_region;
+    egui_region_t end_remove_region;
+    egui_dim_t start_x;
+    egui_dim_t start_y;
+    egui_dim_t end_x;
+    egui_dim_t end_y;
+
+    setup_token_input(tokens, 3);
+    layout_token_input(12, 18, 196, 92);
+
+    EGUI_TEST_ASSERT_TRUE(egui_view_token_input_get_remove_region(EGUI_VIEW_OF(&test_token_input), 1, &start_remove_region));
+    EGUI_TEST_ASSERT_TRUE(egui_view_token_input_get_remove_region(EGUI_VIEW_OF(&test_token_input), 0, &end_remove_region));
+    start_x = start_remove_region.location.x + start_remove_region.size.width / 2;
+    start_y = start_remove_region.location.y + start_remove_region.size.height / 2;
+    end_x = end_remove_region.location.x + end_remove_region.size.width / 2;
+    end_y = end_remove_region.location.y + end_remove_region.size.height / 2;
+
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_DOWN, start_x, start_y));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, test_token_input.pressed_part);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, test_token_input.pressed_remove);
+    EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&test_token_input)->is_pressed);
+
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_MOVE, end_x, end_y));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, test_token_input.pressed_part);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, test_token_input.pressed_remove);
+    EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&test_token_input)->is_pressed);
+
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_UP, end_x, end_y));
+    EGUI_TEST_ASSERT_EQUAL_INT(3, egui_view_token_input_get_token_count(EGUI_VIEW_OF(&test_token_input)));
+    EGUI_TEST_ASSERT_TRUE(strcmp("alpha", egui_view_token_input_get_token(EGUI_VIEW_OF(&test_token_input), 0)) == 0);
+    EGUI_TEST_ASSERT_TRUE(strcmp("beta", egui_view_token_input_get_token(EGUI_VIEW_OF(&test_token_input), 1)) == 0);
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_TOKEN_INPUT_PART_NONE, test_token_input.pressed_part);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, test_token_input.pressed_remove);
+    assert_changed_state(0, 0xFF, EGUI_VIEW_TOKEN_INPUT_PART_NONE);
+
+    setup_token_input(tokens, 3);
+    layout_token_input(12, 18, 196, 92);
+    EGUI_TEST_ASSERT_TRUE(egui_view_token_input_get_remove_region(EGUI_VIEW_OF(&test_token_input), 1, &start_remove_region));
+    EGUI_TEST_ASSERT_TRUE(egui_view_token_input_get_remove_region(EGUI_VIEW_OF(&test_token_input), 0, &end_remove_region));
+    start_x = start_remove_region.location.x + start_remove_region.size.width / 2;
+    start_y = start_remove_region.location.y + start_remove_region.size.height / 2;
+    end_x = end_remove_region.location.x + end_remove_region.size.width / 2;
+    end_y = end_remove_region.location.y + end_remove_region.size.height / 2;
+
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_DOWN, start_x, start_y));
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_MOVE, end_x, end_y));
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_MOVE, start_x, start_y));
+    EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&test_token_input)->is_pressed);
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_UP, start_x, start_y));
+    EGUI_TEST_ASSERT_EQUAL_INT(2, egui_view_token_input_get_token_count(EGUI_VIEW_OF(&test_token_input)));
+    EGUI_TEST_ASSERT_TRUE(strcmp("gamma", egui_view_token_input_get_token(EGUI_VIEW_OF(&test_token_input), 1)) == 0);
+    assert_changed_state(1, 2, 1);
+}
+
 static void test_token_input_navigation_cycles_between_tokens_and_input(void)
 {
     static const char *tokens[] = {"alpha", "beta", "gamma"};
@@ -1223,6 +1280,7 @@ void test_token_input_run(void)
     EGUI_TEST_RUN(test_token_input_delete_last_focused_token_keeps_previous_focus);
     EGUI_TEST_RUN(test_token_input_backspace_prefers_focused_token_over_draft);
     EGUI_TEST_RUN(test_token_input_touch_remove_icon_deletes_token);
+    EGUI_TEST_RUN(test_token_input_release_requires_same_remove_target);
     EGUI_TEST_RUN(test_token_input_navigation_cycles_between_tokens_and_input);
     EGUI_TEST_RUN(test_token_input_remove_token_before_focus_shifts_index_left);
     EGUI_TEST_RUN(test_token_input_compact_overflow_hides_tail_tokens);

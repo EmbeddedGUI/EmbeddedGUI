@@ -291,6 +291,78 @@ static void test_menu_bar_touch_panel_item_selects_and_activates(void)
     EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&test_menu_bar)->is_pressed);
 }
 
+static void test_menu_bar_touch_release_requires_same_hit_target(void)
+{
+    egui_dim_t x_start = 0;
+    egui_dim_t y_start = 0;
+    egui_dim_t x_end = 0;
+    egui_dim_t y_end = 0;
+
+    setup_menu_bar(g_test_snapshots, 3);
+    layout_menu_bar(196, 112);
+    get_menu_center(2, &x_start, &y_start);
+    get_menu_center(0, &x_end, &y_end);
+
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_DOWN, x_start, y_start));
+    EGUI_TEST_ASSERT_EQUAL_INT(2, test_menu_bar.pressed_menu);
+    EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&test_menu_bar)->is_pressed);
+
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_MOVE, x_end, y_end));
+    EGUI_TEST_ASSERT_EQUAL_INT(2, test_menu_bar.pressed_menu);
+    EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&test_menu_bar)->is_pressed);
+
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_UP, x_end, y_end));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_menu_bar_get_current_snapshot(EGUI_VIEW_OF(&test_menu_bar)));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_selection_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_MENU_BAR_HIT_NONE, test_menu_bar.pressed_menu);
+    EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&test_menu_bar)->is_pressed);
+
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_DOWN, x_start, y_start));
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_MOVE, x_end, y_end));
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_MOVE, x_start, y_start));
+    EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&test_menu_bar)->is_pressed);
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_UP, x_start, y_start));
+    EGUI_TEST_ASSERT_EQUAL_INT(2, egui_view_menu_bar_get_current_snapshot(EGUI_VIEW_OF(&test_menu_bar)));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_selection_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, g_selection_snapshot);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_selection_item);
+
+    setup_menu_bar(g_test_snapshots, 3);
+    layout_menu_bar(196, 112);
+    get_item_center(2, &x_start, &y_start);
+    get_item_center(0, &x_end, &y_end);
+
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_DOWN, x_start, y_start));
+    EGUI_TEST_ASSERT_EQUAL_INT(2, test_menu_bar.pressed_item);
+    EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&test_menu_bar)->is_pressed);
+
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_MOVE, x_end, y_end));
+    EGUI_TEST_ASSERT_EQUAL_INT(2, test_menu_bar.pressed_item);
+    EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&test_menu_bar)->is_pressed);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, egui_view_menu_bar_get_current_item(EGUI_VIEW_OF(&test_menu_bar)));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_selection_count);
+
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_UP, x_end, y_end));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_activation_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, egui_view_menu_bar_get_current_item(EGUI_VIEW_OF(&test_menu_bar)));
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_MENU_BAR_ITEM_NONE, test_menu_bar.pressed_item);
+    EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&test_menu_bar)->is_pressed);
+
+    setup_menu_bar(g_test_snapshots, 3);
+    layout_menu_bar(196, 112);
+    get_item_center(2, &x_start, &y_start);
+    get_item_center(0, &x_end, &y_end);
+
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_DOWN, x_start, y_start));
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_MOVE, x_end, y_end));
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_MOVE, x_start, y_start));
+    EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&test_menu_bar)->is_pressed);
+    EGUI_TEST_ASSERT_TRUE(send_touch_event(EGUI_MOTION_EVENT_ACTION_UP, x_start, y_start));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_activation_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_activation_snapshot);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, g_activation_item);
+}
+
 static void test_menu_bar_key_navigation_moves_menu_and_rows(void)
 {
     setup_menu_bar(g_test_snapshots, 3);
@@ -391,6 +463,7 @@ void test_menu_bar_run(void)
     EGUI_TEST_RUN(test_menu_bar_set_current_snapshot_resets_runtime_state);
     EGUI_TEST_RUN(test_menu_bar_touch_menu_switches_snapshot);
     EGUI_TEST_RUN(test_menu_bar_touch_panel_item_selects_and_activates);
+    EGUI_TEST_RUN(test_menu_bar_touch_release_requires_same_hit_target);
     EGUI_TEST_RUN(test_menu_bar_key_navigation_moves_menu_and_rows);
     EGUI_TEST_RUN(test_menu_bar_key_navigation_skips_disabled_menu_snapshot);
     EGUI_TEST_RUN(test_menu_bar_touch_and_key_ignore_locked_or_disabled);

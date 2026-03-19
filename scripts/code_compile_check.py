@@ -207,6 +207,24 @@ def run_example_icon_font_check():
     return 0
 
 
+def run_touch_release_semantics_check(category=None):
+    print("=================================================================================")
+    print("Checking HelloCustomWidgets Touch Release Semantics")
+    print("=================================================================================")
+
+    cmd = [sys.executable, os.path.join(SCRIPT_DIR, 'check_touch_release_semantics.py')]
+    if category:
+        cmd.extend(['--category', category])
+    print(' '.join('"%s"' % part if ' ' in part else part for part in cmd))
+    res = subprocess.call(cmd)
+    if res != 0:
+        print("HelloCustomWidgets touch release semantics check FAILED!")
+        return res
+
+    print("HelloCustomWidgets touch release semantics check PASSED!")
+    return 0
+
+
 # port_sets = ['pc'
 #              , 'stm32g0_empty'
 #              ]
@@ -319,6 +337,10 @@ if __name__ == '__main__':
 
     # Custom widgets check mode
     if args.custom_widgets:
+        res = run_touch_release_semantics_check(args.category)
+        if res != 0:
+            sys.exit(res)
+
         custom_list = get_custom_widgets_list(args.category)
         total_work_cnt = len(custom_list)
         current_work_cnt = 0
@@ -334,6 +356,10 @@ if __name__ == '__main__':
 
     full_check = args.full_check
     if full_check:
+        res = run_touch_release_semantics_check()
+        if res != 0:
+            sys.exit(res)
+
         total_work_cnt = 0
         for app in app_sets:
             for port in port_sets:
