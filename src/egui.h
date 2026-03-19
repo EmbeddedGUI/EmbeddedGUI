@@ -88,6 +88,8 @@
 #include "widget/egui_view_image.h"
 #include "widget/egui_view_animated_image.h"
 #include "widget/egui_view_scroll.h"
+#include "widget/egui_view_virtual_list.h"
+#include "widget/egui_view_virtual_viewport.h"
 #include "widget/egui_view_list.h"
 #include "widget/egui_view_switch.h"
 #include "widget/egui_view_viewpage.h"

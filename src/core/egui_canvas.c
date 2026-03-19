@@ -151,6 +151,29 @@ const egui_circle_info_t *egui_canvas_get_circle_item(egui_dim_t r)
     return NULL;
 }
 
+static egui_dim_t egui_canvas_clamp_round_radius(egui_dim_t radius, egui_dim_t width, egui_dim_t height)
+{
+    egui_dim_t max_radius;
+
+    if (radius <= 0 || width <= 2 || height <= 2)
+    {
+        return 0;
+    }
+
+    max_radius = EGUI_MIN((egui_dim_t)(width >> 1), (egui_dim_t)(height >> 1)) - 1;
+    if (max_radius <= 0)
+    {
+        return 0;
+    }
+
+    if (radius > max_radius)
+    {
+        radius = max_radius;
+    }
+
+    return radius;
+}
+
 void egui_canvas_draw_circle_corner_fill(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int type, egui_color_t color, egui_alpha_t alpha)
 {
     egui_canvas_t *self = &canvas_data;
@@ -161,6 +184,11 @@ void egui_canvas_draw_circle_corner_fill(egui_dim_t center_x, egui_dim_t center_
     egui_dim_t sel_x;
     egui_dim_t sel_y;
     egui_dim_t len;
+
+    if (radius <= 0)
+    {
+        return;
+    }
 
     // only work within intersection of base_view_work_region and the rectangle to be drawn
     egui_region_t region;
@@ -579,6 +607,11 @@ void egui_canvas_draw_circle_corner(egui_dim_t center_x, egui_dim_t center_y, eg
     egui_dim_t sel_x;
     egui_dim_t sel_y;
     egui_alpha_t circle_alpha;
+
+    if (radius <= 0 || stroke_width <= 0)
+    {
+        return;
+    }
 
     // only work within intersection of base_view_work_region and the rectangle to be drawn
     egui_region_t region;
@@ -1197,6 +1230,11 @@ void egui_canvas_draw_rectangle_fill(egui_dim_t x, egui_dim_t y, egui_dim_t widt
 {
     // egui_canvas_t *self = &canvas_data;
 
+    if (width <= 0 || height <= 0)
+    {
+        return;
+    }
+
     egui_canvas_draw_fillrect(x, y, width, height, color, alpha);
 }
 
@@ -1250,15 +1288,13 @@ void egui_canvas_draw_round_rectangle_fill(egui_dim_t x, egui_dim_t y, egui_dim_
 {
     // egui_canvas_t *self = &canvas_data;
 
-    if (radius >= (height >> 1))
+    if (width <= 0 || height <= 0)
     {
-        radius = (height >> 1) - 1;
+        return;
     }
-    if (radius >= (width >> 1))
-    {
-        radius = (width >> 1) - 1;
-    }
-    if (radius)
+
+    radius = egui_canvas_clamp_round_radius(radius, width, height);
+    if (radius > 0)
     {
         // draw the middle rectangle
         egui_canvas_draw_rectangle_fill(x + radius, y, width - (radius << 1), height, color, alpha);
@@ -1295,7 +1331,7 @@ void egui_canvas_draw_round_rectangle(egui_dim_t x, egui_dim_t y, egui_dim_t wid
 {
     // egui_canvas_t *self = &canvas_data;
 
-    if (width == 0 || height == 0 || stroke_width == 0)
+    if (width <= 0 || height <= 0 || stroke_width <= 0)
     {
         return;
     }
@@ -1304,15 +1340,8 @@ void egui_canvas_draw_round_rectangle(egui_dim_t x, egui_dim_t y, egui_dim_t wid
         egui_canvas_draw_round_rectangle_fill(x, y, width, height, stroke_width, color, alpha);
         return;
     }
-    if (radius >= (height >> 1))
-    {
-        radius = (height >> 1) - 1;
-    }
-    if (radius >= (width >> 1))
-    {
-        radius = (width >> 1) - 1;
-    }
-    if (radius)
+    radius = egui_canvas_clamp_round_radius(radius, width, height);
+    if (radius > 0)
     {
         // Think stroke_width is bigger than radius, in this case, we should adjust stroke_width to radius.
         stroke_width = EGUI_MIN(radius, stroke_width);
@@ -1355,31 +1384,25 @@ void egui_canvas_draw_round_rectangle_corners_fill(egui_dim_t x, egui_dim_t y, e
 {
     // egui_canvas_t *self = &canvas_data;
 
+    if (width <= 0 || height <= 0)
+    {
+        return;
+    }
+
+    radius_left_top = egui_canvas_clamp_round_radius(radius_left_top, width, height);
+    radius_left_bottom = egui_canvas_clamp_round_radius(radius_left_bottom, width, height);
+    radius_right_top = egui_canvas_clamp_round_radius(radius_right_top, width, height);
+    radius_right_bottom = egui_canvas_clamp_round_radius(radius_right_bottom, width, height);
+
     // left top corner
-    if (radius_left_top >= (height >> 1))
-    {
-        radius_left_top = (height >> 1) - 1;
-    }
-    if (radius_left_top >= (width >> 1))
-    {
-        radius_left_top = (width >> 1) - 1;
-    }
-    if (radius_left_top)
+    if (radius_left_top > 0)
     {
         // draw the corners
         egui_canvas_draw_circle_corner_fill(x + radius_left_top, y + radius_left_top, radius_left_top, EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP, color, alpha);
     }
 
     // left bottom corner
-    if (radius_left_bottom >= (height >> 1))
-    {
-        radius_left_bottom = (height >> 1) - 1;
-    }
-    if (radius_left_bottom >= (width >> 1))
-    {
-        radius_left_bottom = (width >> 1) - 1;
-    }
-    if (radius_left_bottom)
+    if (radius_left_bottom > 0)
     {
         // draw the corners
         egui_canvas_draw_circle_corner_fill(x + radius_left_bottom, y + height - radius_left_bottom - 1, radius_left_bottom,
@@ -1387,15 +1410,7 @@ void egui_canvas_draw_round_rectangle_corners_fill(egui_dim_t x, egui_dim_t y, e
     }
 
     // right top corner
-    if (radius_right_top >= (height >> 1))
-    {
-        radius_right_top = (height >> 1) - 1;
-    }
-    if (radius_right_top >= (width >> 1))
-    {
-        radius_right_top = (width >> 1) - 1;
-    }
-    if (radius_right_top)
+    if (radius_right_top > 0)
     {
         // draw the corners
         egui_canvas_draw_circle_corner_fill(x + width - radius_right_top - 1, y + radius_right_top, radius_right_top, EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP, color,
@@ -1403,15 +1418,7 @@ void egui_canvas_draw_round_rectangle_corners_fill(egui_dim_t x, egui_dim_t y, e
     }
 
     // right bottom corner
-    if (radius_right_bottom >= (height >> 1))
-    {
-        radius_right_bottom = (height >> 1) - 1;
-    }
-    if (radius_right_bottom >= (width >> 1))
-    {
-        radius_right_bottom = (width >> 1) - 1;
-    }
-    if (radius_right_bottom)
+    if (radius_right_bottom > 0)
     {
         // draw the corners
         egui_canvas_draw_circle_corner_fill(x + width - radius_right_bottom - 1, y + height - radius_right_bottom - 1, radius_right_bottom,
@@ -1470,7 +1477,7 @@ void egui_canvas_draw_round_rectangle_corners(egui_dim_t x, egui_dim_t y, egui_d
 {
     // egui_canvas_t *self = &canvas_data;
 
-    if (width == 0 || height == 0 || stroke_width == 0)
+    if (width <= 0 || height <= 0 || stroke_width <= 0)
     {
         return;
     }
@@ -1480,31 +1487,20 @@ void egui_canvas_draw_round_rectangle_corners(egui_dim_t x, egui_dim_t y, egui_d
                                                       alpha);
         return;
     }
+    radius_left_top = egui_canvas_clamp_round_radius(radius_left_top, width, height);
+    radius_left_bottom = egui_canvas_clamp_round_radius(radius_left_bottom, width, height);
+    radius_right_top = egui_canvas_clamp_round_radius(radius_right_top, width, height);
+    radius_right_bottom = egui_canvas_clamp_round_radius(radius_right_bottom, width, height);
+
     // left top corner
-    if (radius_left_top >= (height >> 1))
-    {
-        radius_left_top = (height >> 1) - 1;
-    }
-    if (radius_left_top >= (width >> 1))
-    {
-        radius_left_top = (width >> 1) - 1;
-    }
-    if (radius_left_top)
+    if (radius_left_top > 0)
     {
         // draw the corners
         egui_canvas_draw_circle_corner(x + radius_left_top, y + radius_left_top, radius_left_top, stroke_width, EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP, color, alpha);
     }
 
     // left bottom corner
-    if (radius_left_bottom >= (height >> 1))
-    {
-        radius_left_bottom = (height >> 1) - 1;
-    }
-    if (radius_left_bottom >= (width >> 1))
-    {
-        radius_left_bottom = (width >> 1) - 1;
-    }
-    if (radius_left_bottom)
+    if (radius_left_bottom > 0)
     {
         // draw the corners
         egui_canvas_draw_circle_corner(x + radius_left_bottom, y + height - radius_left_bottom - 1, radius_left_bottom, stroke_width,
@@ -1512,15 +1508,7 @@ void egui_canvas_draw_round_rectangle_corners(egui_dim_t x, egui_dim_t y, egui_d
     }
 
     // right top corner
-    if (radius_right_top >= (height >> 1))
-    {
-        radius_right_top = (height >> 1) - 1;
-    }
-    if (radius_right_top >= (width >> 1))
-    {
-        radius_right_top = (width >> 1) - 1;
-    }
-    if (radius_right_top)
+    if (radius_right_top > 0)
     {
         // draw the corners
         egui_canvas_draw_circle_corner(x + width - radius_right_top - 1, y + radius_right_top, radius_right_top, stroke_width,
@@ -1528,15 +1516,7 @@ void egui_canvas_draw_round_rectangle_corners(egui_dim_t x, egui_dim_t y, egui_d
     }
 
     // right bottom corner
-    if (radius_right_bottom >= (height >> 1))
-    {
-        radius_right_bottom = (height >> 1) - 1;
-    }
-    if (radius_right_bottom >= (width >> 1))
-    {
-        radius_right_bottom = (width >> 1) - 1;
-    }
-    if (radius_right_bottom)
+    if (radius_right_bottom > 0)
     {
         // draw the corners
         egui_canvas_draw_circle_corner(x + width - radius_right_bottom - 1, y + height - radius_right_bottom - 1, radius_right_bottom, stroke_width,
