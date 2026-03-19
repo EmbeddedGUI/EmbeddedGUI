@@ -87,22 +87,26 @@ def get_git_commit():
         return "unknown"
 
 
-def build_for_profile(profile_name, profile_config, clean=False):
-    """Build HelloPerformance for a specific CPU profile."""
+def build_for_profile(profile_name, profile_config, clean=False, extra_cflags=None):
+    """Build HelloPerformance for a specific CPU profile.
+
+    extra_cflags is passed via USER_CFLAGS on the make command line so that
+    app_egui_config.h is never modified during testing.
+    """
     cpu_arch = profile_config["cpu_arch"]
     print(f"\n{'='*60}")
     print(f"Building for {profile_name} (cpu_arch={cpu_arch})")
     print(f"{'='*60}")
 
     if clean:
-        clean_cmd = f"make clean"
-        subprocess.run(clean_cmd, shell=True, cwd=PROJECT_ROOT,
-                       capture_output=True)
+        subprocess.run(['make', 'clean'], capture_output=True, cwd=PROJECT_ROOT)
 
-    # Build
-    build_cmd = f"make all APP=HelloPerformance PORT=qemu CPU_ARCH={cpu_arch}"
+    # Build — pass config overrides via USER_CFLAGS, never touch app_egui_config.h
+    build_cmd = ['make', 'all', 'APP=HelloPerformance', 'PORT=qemu', f'CPU_ARCH={cpu_arch}']
+    if extra_cflags:
+        build_cmd.append(f'USER_CFLAGS={extra_cflags}')
     result = subprocess.run(
-        build_cmd, shell=True, cwd=PROJECT_ROOT,
+        build_cmd, cwd=PROJECT_ROOT,
         capture_output=True, text=True, timeout=120
     )
 
@@ -210,11 +214,19 @@ def parse_perf_results(output):
 
 
 def generate_markdown_report(all_results, threshold, git_commit, skipped=None):
-    """Generate Markdown performance report (single profile)."""
+    """Generate Markdown performance report grouped by category."""
     profiles = sorted(all_results.keys())
     profile_name = profiles[0] if profiles else "cortex-m3"
     results = all_results.get(profile_name, {})
-    all_tests = sorted(results.keys())
+
+    # Reuse CATEGORY_GROUPS from perf_to_doc for consistent ordering.
+    # Fall back to sorted keys if categories are unavailable.
+    try:
+        sys.path.insert(0, str(SCRIPT_DIR))
+        from perf_to_doc import _get_categorized_tests
+        categorized = _get_categorized_tests(set(results.keys()))
+    except Exception:
+        categorized = [("All Tests", sorted(results.keys()))]
 
     lines = []
     lines.append("# EmbeddedGUI Performance Report")
@@ -225,18 +237,17 @@ def generate_markdown_report(all_results, threshold, git_commit, skipped=None):
     lines.append(f"- Regression threshold: {threshold}%")
     lines.append("")
 
-    # Header
-    lines.append("| Test Case | Time (ms) |")
-    lines.append("|-----------|-----------|")
-
-    # Rows
-    for test in all_tests:
-        t = results[test]["time_ms"]
-        lines.append(f"| {test} | {t:.3f} |")
-
-    # Skipped tests section
-    if skipped:
+    for cat_name, tests in categorized:
+        lines.append(f"## {cat_name}")
         lines.append("")
+        lines.append("| Test Case | Time (ms) |")
+        lines.append("|-----------|-----------|")
+        for test in tests:
+            t = results[test]["time_ms"]
+            lines.append(f"| {test} | {t:.3f} |")
+        lines.append("")
+
+    if skipped:
         lines.append("## Skipped Tests")
         lines.append("")
         lines.append("The following tests were skipped (disabled at compile time):")
@@ -246,91 +257,46 @@ def generate_markdown_report(all_results, threshold, git_commit, skipped=None):
 
     return "\n".join(lines)
 
-
 # ============================================================================
 # PFB Matrix Testing
 # ============================================================================
 
-APP_CONFIG_PATH = PROJECT_ROOT / "example" / "HelloPerformance" / "app_egui_config.h"
 PFB_MATRIX_RESULTS_FILE = OUTPUT_DIR / "pfb_matrix_results.json"
 PFB_MATRIX_REPORT_FILE = OUTPUT_DIR / "pfb_matrix_report.md"
 SPI_MATRIX_RESULTS_FILE = OUTPUT_DIR / "spi_matrix_results.json"
 SPI_MATRIX_REPORT_FILE = OUTPUT_DIR / "spi_matrix_report.md"
+APP_CONFIG_PATH = PROJECT_ROOT / "example" / "HelloPerformance" / "app_egui_config.h"
+
+# Common extra defines injected via USER_CFLAGS for all QEMU perf builds.
+# EGUI_TEST_CONFIG_IMAGE_565=1 enables image alpha tests (no flash limit on QEMU).
+QEMU_BASE_CFLAGS = "-DEGUI_TEST_CONFIG_IMAGE_565=1"
 
 
-def read_app_config():
-    """Read and return the original app_egui_config.h content."""
-    with open(APP_CONFIG_PATH, "r", encoding="utf-8") as f:
-        return f.read()
+def read_screen_size():
+    """Read EGUI_CONFIG_SCEEN_WIDTH/HEIGHT from app_egui_config.h.
 
-
-def write_app_config(content):
-    """Write content to app_egui_config.h."""
-    with open(APP_CONFIG_PATH, "w", encoding="utf-8") as f:
-        f.write(content)
-
-
-def patch_app_config_pfb(original_content, pfb_width, pfb_height):
-    """Patch app_egui_config.h with specific PFB dimensions.
-
-    Inserts PFB defines right after the opening extern C block.
+    Falls back to 240x320 if the file cannot be parsed.
     """
-    pfb_defines = (
-        f"#define EGUI_CONFIG_PFB_WIDTH {pfb_width}\n"
-        f"#define EGUI_CONFIG_PFB_HEIGHT {pfb_height}\n"
-    )
-
-    # Remove any existing PFB defines
-    lines = original_content.split("\n")
-    filtered = [l for l in lines
-                if "EGUI_CONFIG_PFB_WIDTH" not in l
-                and "EGUI_CONFIG_PFB_HEIGHT" not in l]
-    content = "\n".join(filtered)
-
-    # Insert after the extern C opening brace
-    marker = 'extern "C" {\n#endif'
-    if marker in content:
-        content = content.replace(marker, marker + "\n\n" + pfb_defines)
-    else:
-        # Fallback: insert after first #define
-        first_define = content.find("#define ")
-        if first_define >= 0:
-            line_end = content.find("\n", first_define)
-            content = content[:line_end+1] + "\n" + pfb_defines + content[line_end+1:]
-
-    return content
-
-
-def patch_app_config_image_tests(original_content):
-    """Patch app_egui_config.h to enable all image tests for QEMU.
-
-    QEMU has no flash size limit, so we enable image tests.
-    """
-    image_defines = (
-        "#define EGUI_TEST_CONFIG_IMAGE_565 1\n"
-    )
-
-    # Remove any existing image test defines
-    lines = original_content.split("\n")
-    filtered = [l for l in lines if "EGUI_TEST_CONFIG_IMAGE_565" not in l]
-    content = "\n".join(filtered)
-
-    # Insert after the extern C opening brace
-    marker = 'extern "C" {\n#endif'
-    if marker in content:
-        content = content.replace(marker, marker + "\n\n" + image_defines)
-    else:
-        first_define = content.find("#define ")
-        if first_define >= 0:
-            line_end = content.find("\n", first_define)
-            content = content[:line_end+1] + "\n" + image_defines + content[line_end+1:]
-
-    return content
+    default = (240, 320)
+    try:
+        text = APP_CONFIG_PATH.read_text(encoding="utf-8")
+        w = h = None
+        for line in text.splitlines():
+            m = re.match(r"\s*#\s*define\s+EGUI_CONFIG_SCEEN_WIDTH\s+(\d+)", line)
+            if m:
+                w = int(m.group(1))
+            m = re.match(r"\s*#\s*define\s+EGUI_CONFIG_SCEEN_HEIGHT\s+(\d+)", line)
+            if m:
+                h = int(m.group(1))
+        if w and h:
+            return w, h
+    except Exception:
+        pass
+    return default
 
 
 def run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout):
     """Run performance tests across all PFB configurations."""
-    original_config = read_app_config()
     matrix_results = {}
 
     total = len(pfb_configs)
@@ -341,13 +307,17 @@ def run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout):
 
         print(f"\n[{idx}/{total}] PFB config: {pfb_name} ({pfb_w}x{pfb_h}) - {desc}")
 
-        # Patch config
-        patched = patch_app_config_pfb(original_config, pfb_w, pfb_h)
-        write_app_config(patched)
+        # Pass PFB dimensions via USER_CFLAGS — never modify app_egui_config.h
+        extra_cflags = (
+            f"{QEMU_BASE_CFLAGS}"
+            f" -DEGUI_CONFIG_PFB_WIDTH={pfb_w}"
+            f" -DEGUI_CONFIG_PFB_HEIGHT={pfb_h}"
+        )
 
         try:
             # Build
-            if not build_for_profile(f"{profile_name}/{pfb_name}", profile_config, clean=True):
+            if not build_for_profile(f"{profile_name}/{pfb_name}", profile_config,
+                                     clean=True, extra_cflags=extra_cflags):
                 print(f"  SKIP: build failed for PFB {pfb_name}")
                 continue
 
@@ -374,10 +344,6 @@ def run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout):
             }
         except Exception as e:
             print(f"  ERROR: {e}")
-
-    # Restore original config
-    write_app_config(original_config)
-    print(f"\nRestored original app_egui_config.h")
 
     return matrix_results
 
@@ -465,52 +431,8 @@ def generate_pfb_matrix_report(matrix_results, profile_name, git_commit):
     return "\n".join(lines)
 
 
-def patch_app_config_spi(original_content, spi_mhz, buffer_count, pfb_width=None, pfb_height=None):
-    """Patch app_egui_config.h with SPI speed and buffer count settings.
-
-    Optionally also sets PFB dimensions.
-    """
-    defines = ""
-    if spi_mhz > 0:
-        defines += f"#define QEMU_SPI_SPEED_MHZ {spi_mhz}\n"
-    if buffer_count > 1:
-        defines += f"#define EGUI_CONFIG_PFB_BUFFER_COUNT {buffer_count}\n"
-
-    # Remove any existing SPI/buffer defines
-    lines = original_content.split("\n")
-    filtered = [l for l in lines
-                if "QEMU_SPI_SPEED_MHZ" not in l
-                and "EGUI_CONFIG_PFB_BUFFER_COUNT" not in l]
-
-    # Also handle PFB dimensions if specified
-    if pfb_width is not None and pfb_height is not None:
-        filtered = [l for l in filtered
-                    if "EGUI_CONFIG_PFB_WIDTH" not in l
-                    and "EGUI_CONFIG_PFB_HEIGHT" not in l]
-        defines += f"#define EGUI_CONFIG_PFB_WIDTH {pfb_width}\n"
-        defines += f"#define EGUI_CONFIG_PFB_HEIGHT {pfb_height}\n"
-
-    content = "\n".join(filtered)
-
-    if not defines:
-        return content
-
-    # Insert after the extern C opening brace
-    marker = 'extern "C" {\n#endif'
-    if marker in content:
-        content = content.replace(marker, marker + "\n\n" + defines)
-    else:
-        first_define = content.find("#define ")
-        if first_define >= 0:
-            line_end = content.find("\n", first_define)
-            content = content[:line_end+1] + "\n" + defines + content[line_end+1:]
-
-    return content
-
-
 def run_spi_matrix(profile_name, profile_config, spi_configs, timeout):
     """Run performance tests across SPI/buffer configurations."""
-    original_config = read_app_config()
     matrix_results = {}
 
     total = len(spi_configs)
@@ -524,13 +446,21 @@ def run_spi_matrix(profile_name, profile_config, spi_configs, timeout):
 
         print(f"\n[{idx}/{total}] SPI config: {cfg_name} - {desc}")
 
-        # Patch config
-        patched = patch_app_config_spi(original_config, spi_mhz, buf_count, pfb_w, pfb_h)
-        write_app_config(patched)
+        # Build extra_cflags from SPI/buffer settings — never modify app_egui_config.h
+        parts = [QEMU_BASE_CFLAGS]
+        if spi_mhz > 0:
+            parts.append(f"-DQEMU_SPI_SPEED_MHZ={spi_mhz}")
+        if buf_count > 1:
+            parts.append(f"-DEGUI_CONFIG_PFB_BUFFER_COUNT={buf_count}")
+        if pfb_w is not None and pfb_h is not None:
+            parts.append(f"-DEGUI_CONFIG_PFB_WIDTH={pfb_w}")
+            parts.append(f"-DEGUI_CONFIG_PFB_HEIGHT={pfb_h}")
+        extra_cflags = " ".join(parts)
 
         try:
             # Build
-            if not build_for_profile(f"{profile_name}/{cfg_name}", profile_config, clean=True):
+            if not build_for_profile(f"{profile_name}/{cfg_name}", profile_config,
+                                     clean=True, extra_cflags=extra_cflags):
                 print(f"  SKIP: build failed for {cfg_name}")
                 continue
 
@@ -558,15 +488,15 @@ def run_spi_matrix(profile_name, profile_config, spi_configs, timeout):
         except Exception as e:
             print(f"  ERROR: {e}")
 
-    # Restore original config
-    write_app_config(original_config)
-    print(f"\nRestored original app_egui_config.h")
-
     return matrix_results
 
 
 def generate_spi_matrix_report(matrix_results, profile_name, git_commit):
     """Generate Markdown report for SPI matrix test."""
+    SCREEN_W, SCREEN_H = read_screen_size()
+    BYTES_PER_PIXEL = 2  # RGB565
+    frame_bytes = SCREEN_W * SCREEN_H * BYTES_PER_PIXEL
+
     configs = list(matrix_results.keys())
     if not configs:
         return "# SPI Matrix Report\n\nNo results collected.\n"
@@ -584,6 +514,26 @@ def generate_spi_matrix_report(matrix_results, profile_name, git_commit):
     lines.append(f"- Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     lines.append("")
 
+    # Theoretical SPI transfer performance section
+    lines.append("## Theoretical SPI Transfer Performance")
+    lines.append("")
+    lines.append(f"Screen: {SCREEN_W}x{SCREEN_H} px, RGB565 ({BYTES_PER_PIXEL} bytes/px), full frame = {frame_bytes:,} bytes ({frame_bytes/1024:.1f} KB)")
+    lines.append("")
+    lines.append("All SPI tests use **dual buffer (DMA double-buffering)**:")
+    lines.append("CPU renders into buffer A while DMA transfers buffer B, then they swap.")
+    lines.append("Effective frame time = **max(CPU render time, SPI transfer time)**.")
+    lines.append("")
+    lines.append("| SPI Clock | Bit Rate | Full Frame Transfer | Max FPS (SPI-limited) |")
+    lines.append("|-----------|----------|--------------------|-----------------------|")
+    for spi_mhz in (16, 64):
+        byte_rate = spi_mhz * 1_000_000 / 8
+        transfer_ms = frame_bytes / byte_rate * 1000
+        max_fps = 1000.0 / transfer_ms
+        lines.append(f"| SPI{spi_mhz}M ({spi_mhz} MHz) | {spi_mhz} Mbps = {byte_rate/1e6:.0f} MB/s | {transfer_ms:.1f} ms | ~{max_fps:.1f} FPS |")
+    lines.append("")
+    lines.append("> Note: actual test timing depends on the dirty-region area redrawn per test case.")
+    lines.append("")
+
     # Header
     header = "| Test Case |"
     separator = "|-----------|"
@@ -596,9 +546,6 @@ def generate_spi_matrix_report(matrix_results, profile_name, git_commit):
         separator += "------------|"
     lines.append(header)
     lines.append(separator)
-
-    # Find baseline (first config, typically no_spi)
-    baseline_cfg = configs[0]
 
     for test in all_tests:
         row = f"| {test} |"
@@ -613,43 +560,52 @@ def generate_spi_matrix_report(matrix_results, profile_name, git_commit):
 
     lines.append("")
 
-    # Summary: speedup from multi-buffering
-    if len(configs) >= 2:
-        single_buf_cfg = None
-        for cfg_name in configs:
-            d = matrix_results[cfg_name]
-            if d["spi_mhz"] > 0 and d["buffer_count"] == 1:
-                single_buf_cfg = cfg_name
-                break
+    # Summary: SPI overhead vs CPU-only
+    cpu_only_cfg = None
+    for cfg_name in configs:
+        if matrix_results[cfg_name]["spi_mhz"] == 0:
+            cpu_only_cfg = cfg_name
+            break
 
-        if single_buf_cfg:
-            lines.append("## Multi-Buffer Speedup vs Single Buffer")
-            lines.append("")
-            lines.append("| Test Case | Single Buf (ms) | Best Multi-Buf | Time (ms) | Speedup |")
-            lines.append("|-----------|----------------|----------------|-----------|---------|")
+    spi_cfgs = [c for c in configs if matrix_results[c]["spi_mhz"] > 0]
 
-            for test in all_tests:
-                single_time = None
-                if test in matrix_results[single_buf_cfg]["results"]:
-                    single_time = matrix_results[single_buf_cfg]["results"][test]["time_ms"]
+    if cpu_only_cfg and spi_cfgs:
+        lines.append("## SPI Bottleneck Analysis (vs CPU-only)")
+        lines.append("")
+        lines.append(f"Effective time = max(CPU render, SPI transfer). "
+                     f"Rows where SPI dominates are marked with the SPI overhead.")
+        lines.append("")
+        hdr = "| Test Case | CPU only (ms) |"
+        sep = "|-----------|---------------|"
+        for c in spi_cfgs:
+            d = matrix_results[c]
+            label = f"SPI{d['spi_mhz']}M x{d['buffer_count']}buf (ms)"
+            hdr += f" {label} | SPI overhead |"
+            sep += "-----------|--------------|"
+        lines.append(hdr)
+        lines.append(sep)
 
-                if single_time is None or single_time <= 0:
-                    continue
-
-                best_cfg = None
-                best_time = single_time
-                for cfg_name in configs:
-                    d = matrix_results[cfg_name]
-                    if d["spi_mhz"] > 0 and d["buffer_count"] > 1:
-                        if test in d["results"]:
-                            t = d["results"][test]["time_ms"]
-                            if t < best_time:
-                                best_time = t
-                                best_cfg = cfg_name
-
-                if best_cfg:
-                    speedup = ((single_time - best_time) / single_time) * 100
-                    lines.append(f"| {test} | {single_time:.3f} | {best_cfg} | {best_time:.3f} | -{speedup:.1f}% |")
+        for test in all_tests:
+            cpu_time = None
+            if test in matrix_results[cpu_only_cfg]["results"]:
+                cpu_time = matrix_results[cpu_only_cfg]["results"][test]["time_ms"]
+            if cpu_time is None:
+                continue
+            row = f"| {test} | {cpu_time:.3f} |"
+            dominated = False
+            for c in spi_cfgs:
+                spi_res = matrix_results[c]["results"]
+                if test in spi_res:
+                    t = spi_res[test]["time_ms"]
+                    overhead = t - cpu_time
+                    overhead_str = f"+{overhead:.3f}" if overhead > 0.001 else "~0"
+                    row += f" {t:.3f} | {overhead_str} |"
+                    if overhead > 0.001:
+                        dominated = True
+                else:
+                    row += " - | - |"
+            if dominated:
+                lines.append(row)
 
     return "\n".join(lines)
 
@@ -785,12 +741,6 @@ def main():
     all_results = {}
     failed_profiles = []
 
-    # Enable all image alpha tests for QEMU (no flash size limit)
-    original_config = read_app_config()
-    patched_config = patch_app_config_image_tests(original_config)
-    write_app_config(patched_config)
-    print("Enabled all image alpha test cases for QEMU")
-
     total = len(run_profiles)
     all_skipped = set()
     for idx, (name, config) in enumerate(run_profiles.items(), 1):
@@ -798,8 +748,9 @@ def main():
 
         need_clean = args.clean
 
-        # Build
-        if not build_for_profile(name, config, clean=need_clean):
+        # Build — enable all image tests via USER_CFLAGS (no flash limit on QEMU)
+        if not build_for_profile(name, config, clean=need_clean,
+                                 extra_cflags=QEMU_BASE_CFLAGS):
             failed_profiles.append(name)
             continue
 
@@ -830,10 +781,6 @@ def main():
         print(f"  Parsed {len(results)} test results")
 
         all_results[name] = results
-
-    # Restore original config
-    write_app_config(original_config)
-    print("Restored original app_egui_config.h")
 
     # Save results JSON
     results_data = {

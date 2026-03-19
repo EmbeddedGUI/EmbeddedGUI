@@ -67,8 +67,137 @@ def load_json(path):
 # 1. Performance Report (perf_results.json)
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Category definitions for performance report grouping.
+# Keys must match the string names emitted by type_string / PERF_RESULT output.
+# ---------------------------------------------------------------------------
+CATEGORY_GROUPS = [
+    ("Basic Shapes", [
+        "LINE", "LINE_HQ",
+        "RECTANGLE", "RECTANGLE_FILL",
+        "CIRCLE", "CIRCLE_FILL", "CIRCLE_HQ", "CIRCLE_FILL_HQ",
+        "ARC", "ARC_FILL", "ARC_HQ", "ARC_FILL_HQ",
+        "ROUND_RECTANGLE", "ROUND_RECTANGLE_CORNERS",
+        "ROUND_RECTANGLE_FILL", "ROUND_RECTANGLE_CORNERS_FILL",
+        "TRIANGLE", "TRIANGLE_FILL",
+        "ELLIPSE", "ELLIPSE_FILL",
+        "POLYGON", "POLYGON_FILL",
+        "BEZIER_QUAD", "BEZIER_CUBIC",
+        "CIRCLE_FILL_QUARTER", "CIRCLE_FILL_DOUBLE",
+        "ROUND_RECTANGLE_FILL_QUARTER", "ROUND_RECTANGLE_FILL_DOUBLE",
+        "TRIANGLE_FILL_QUARTER", "TRIANGLE_FILL_DOUBLE",
+    ]),
+    ("Text", [
+        "TEXT", "TEXT_RECT",
+        "EXTERN_TEXT", "EXTERN_TEXT_RECT",
+        "TEXT_ROTATE_NONE", "TEXT_ROTATE", "TEXT_ROTATE_RESIZE",
+        "TEXT_ROTATE_QUARTER", "TEXT_ROTATE_DOUBLE",
+        "TEXT_ROTATE_BUFFERED_NONE", "TEXT_ROTATE_BUFFERED",
+        "TEXT_ROTATE_BUFFERED_RESIZE", "TEXT_ROTATE_BUFFERED_QUARTER",
+        "TEXT_ROTATE_BUFFERED_DOUBLE",
+        "EXTERN_TEXT_ROTATE", "EXTERN_TEXT_ROTATE_BUFFERED",
+    ]),
+    ("Image Direct Draw", [
+        "IMAGE_565", "IMAGE_565_1", "IMAGE_565_2", "IMAGE_565_4", "IMAGE_565_8",
+        "IMAGE_565_QUARTER", "IMAGE_565_DOUBLE",
+        "IMAGE_565_8_QUARTER", "IMAGE_565_8_DOUBLE",
+        "EXTERN_IMAGE_565", "EXTERN_IMAGE_565_1", "EXTERN_IMAGE_565_2",
+        "EXTERN_IMAGE_565_4", "EXTERN_IMAGE_565_8",
+        "IMAGE_TILED_565_0", "IMAGE_TILED_565_1", "IMAGE_TILED_565_2",
+        "IMAGE_TILED_565_4", "IMAGE_TILED_565_8",
+        "IMAGE_TILED_STAR_565_0", "IMAGE_TILED_STAR_565_1", "IMAGE_TILED_STAR_565_2",
+        "IMAGE_TILED_STAR_565_4", "IMAGE_TILED_STAR_565_8",
+    ]),
+    ("Image Resize", [
+        "IMAGE_RESIZE_565", "IMAGE_RESIZE_565_1", "IMAGE_RESIZE_565_2",
+        "IMAGE_RESIZE_565_4", "IMAGE_RESIZE_565_8",
+        "EXTERN_IMAGE_RESIZE_565", "EXTERN_IMAGE_RESIZE_565_1",
+        "EXTERN_IMAGE_RESIZE_565_2", "EXTERN_IMAGE_RESIZE_565_4",
+        "EXTERN_IMAGE_RESIZE_565_8",
+        "IMAGE_RESIZE_STAR_565_1", "IMAGE_RESIZE_STAR_565_2",
+        "IMAGE_RESIZE_STAR_565_4", "IMAGE_RESIZE_STAR_565_8",
+        "IMAGE_RESIZE_TILED_565_0", "IMAGE_RESIZE_TILED_565_1",
+        "IMAGE_RESIZE_TILED_565_2", "IMAGE_RESIZE_TILED_565_4",
+        "IMAGE_RESIZE_TILED_565_8",
+        "IMAGE_RESIZE_TILED_STAR_565_0", "IMAGE_RESIZE_TILED_STAR_565_1",
+        "IMAGE_RESIZE_TILED_STAR_565_2", "IMAGE_RESIZE_TILED_STAR_565_4",
+        "IMAGE_RESIZE_TILED_STAR_565_8",
+    ]),
+    ("Image Rotate", [
+        "IMAGE_ROTATE_565", "IMAGE_ROTATE_565_1", "IMAGE_ROTATE_565_2",
+        "IMAGE_ROTATE_565_4", "IMAGE_ROTATE_565_8",
+        "IMAGE_ROTATE_565_RESIZE", "IMAGE_ROTATE_565_QUARTER",
+        "IMAGE_ROTATE_565_DOUBLE",
+        "EXTERN_IMAGE_ROTATE_565", "EXTERN_IMAGE_ROTATE_565_1",
+        "EXTERN_IMAGE_ROTATE_565_2", "EXTERN_IMAGE_ROTATE_565_4",
+        "EXTERN_IMAGE_ROTATE_565_8",
+        "IMAGE_ROTATE_STAR_565_1", "IMAGE_ROTATE_STAR_565_2",
+        "IMAGE_ROTATE_STAR_565_4", "IMAGE_ROTATE_STAR_565_8",
+        "IMAGE_ROTATE_TILED_565_0", "IMAGE_ROTATE_TILED_565_1",
+        "IMAGE_ROTATE_TILED_565_2", "IMAGE_ROTATE_TILED_565_4",
+        "IMAGE_ROTATE_TILED_565_8",
+        "IMAGE_ROTATE_TILED_STAR_565_0", "IMAGE_ROTATE_TILED_STAR_565_1",
+        "IMAGE_ROTATE_TILED_STAR_565_2", "IMAGE_ROTATE_TILED_STAR_565_4",
+        "IMAGE_ROTATE_TILED_STAR_565_8",
+    ]),
+    ("Image Color Tint", [
+        "IMAGE_COLOR", "IMAGE_RESIZE_COLOR",
+    ]),
+    ("Gradient", [
+        "GRADIENT_RECT", "GRADIENT_ROUND_RECT", "GRADIENT_CIRCLE",
+        "GRADIENT_TRIANGLE",
+        "GRADIENT_ARC_RING", "GRADIENT_ARC_RING_ROUND_CAP",
+        "GRADIENT_RADIAL", "GRADIENT_ANGULAR",
+        "GRADIENT_ROUND_RECT_RING", "GRADIENT_LINE_CAPSULE",
+        "GRADIENT_MULTI_STOP", "GRADIENT_ROUND_RECT_CORNERS",
+        "IMAGE_GRADIENT_OVERLAY",
+        "MASK_GRADIENT_RECT_FILL", "MASK_GRADIENT_IMAGE",
+        "TEXT_GRADIENT", "TEXT_RECT_GRADIENT",
+        "TEXT_ROTATE_GRADIENT", "TEXT_ROTATE_BUFFERED_GRADIENT",
+    ]),
+    ("Shadow", [
+        "SHADOW", "SHADOW_ROUND",
+    ]),
+    ("Mask", [
+        "MASK_RECT_FILL_NO_MASK", "MASK_RECT_FILL_ROUND_RECT",
+        "MASK_RECT_FILL_CIRCLE", "MASK_RECT_FILL_IMAGE",
+        "MASK_RECT_FILL_NO_MASK_QUARTER", "MASK_RECT_FILL_NO_MASK_DOUBLE",
+        "MASK_RECT_FILL_ROUND_RECT_QUARTER", "MASK_RECT_FILL_ROUND_RECT_DOUBLE",
+        "MASK_RECT_FILL_CIRCLE_QUARTER", "MASK_RECT_FILL_CIRCLE_DOUBLE",
+        "MASK_RECT_FILL_IMAGE_QUARTER", "MASK_RECT_FILL_IMAGE_DOUBLE",
+        "MASK_IMAGE_NO_MASK", "MASK_IMAGE_ROUND_RECT",
+        "MASK_IMAGE_CIRCLE", "MASK_IMAGE_IMAGE",
+        "MASK_IMAGE_NO_MASK_QUARTER", "MASK_IMAGE_NO_MASK_DOUBLE",
+        "MASK_IMAGE_ROUND_RECT_QUARTER", "MASK_IMAGE_ROUND_RECT_DOUBLE",
+        "MASK_IMAGE_CIRCLE_QUARTER", "MASK_IMAGE_CIRCLE_DOUBLE",
+        "MASK_IMAGE_IMAGE_QUARTER", "MASK_IMAGE_IMAGE_DOUBLE",
+        "MASK_ROUND_RECT_FILL_NO_MASK", "MASK_ROUND_RECT_FILL_WITH_MASK",
+    ]),
+    ("Animation", [
+        "ANIMATION_TRANSLATE", "ANIMATION_ALPHA",
+        "ANIMATION_SCALE", "ANIMATION_SET",
+    ]),
+]
+
+
+def _get_categorized_tests(available_tests):
+    """Return [(category_name, [test_names])] ordered by category.
+    Tests not covered by any category are appended as 'Other'."""
+    result = []
+    seen = set()
+    for cat_name, cat_tests in CATEGORY_GROUPS:
+        hits = [t for t in cat_tests if t in available_tests]
+        if hits:
+            result.append((cat_name, hits))
+            seen.update(hits)
+    remaining = [t for t in sorted(available_tests) if t not in seen]
+    if remaining:
+        result.append(("Other", remaining))
+    return result
+
+
 def generate_perf_report():
-    """Generate single-profile performance report with horizontal bar chart."""
+    """Generate single-profile performance report grouped by category."""
     plt = setup_matplotlib()
 
     results = load_json(PERF_OUTPUT / "perf_results.json")
@@ -87,21 +216,46 @@ def generate_perf_report():
 
     profile_name = list(profiles.keys())[0]
     data = profiles[profile_name]
-    all_tests = list(data.keys())
-    times = [data[t].get("time_ms", 0) for t in all_tests]
 
-    # --- Horizontal bar chart ---
-    n_tests = len(all_tests)
+    # Organize tests by category
+    categorized = _get_categorized_tests(set(data.keys()))
+
+    # Build a flat ordered list with per-test category color
+    cat_palette = [
+        "#4A90D9", "#E74C3C", "#2ECC71", "#F39C12", "#9B59B6",
+        "#1ABC9C", "#E67E22", "#2C3E50", "#D35400", "#27AE60",
+    ]
+    test_order = []
+    bar_colors = []
+    for idx, (cat_name, tests) in enumerate(categorized):
+        color = cat_palette[idx % len(cat_palette)]
+        for t in tests:
+            test_order.append(t)
+            bar_colors.append(color)
+
+    times = [data[t].get("time_ms", 0) for t in test_order]
+
+    # --- Horizontal bar chart with category color coding ---
+    n_tests = len(test_order)
     fig, ax = plt.subplots(figsize=(12, max(6, n_tests * 0.25)), dpi=150)
 
     y_pos = range(n_tests)
-    ax.barh(y_pos, times, height=0.6, color="#4A90D9", edgecolor="none")
+    ax.barh(y_pos, times, height=0.6, color=bar_colors, edgecolor="none")
 
     ax.set_yticks(y_pos)
-    ax.set_yticklabels(all_tests, fontsize=7)
+    ax.set_yticklabels(test_order, fontsize=7)
     ax.set_xlabel("Time (ms)")
     ax.set_title(f"EGUI Performance ({profile_name}) - commit {commit}")
     ax.invert_yaxis()
+
+    # Category legend
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor=cat_palette[i % len(cat_palette)], label=cat_name)
+        for i, (cat_name, _) in enumerate(categorized)
+    ]
+    ax.legend(handles=legend_elements, loc="lower right", fontsize=7,
+              framealpha=0.8)
 
     plt.tight_layout()
     IMG_DIR.mkdir(parents=True, exist_ok=True)
@@ -110,7 +264,7 @@ def generate_perf_report():
     plt.close(fig)
     print(f"  Chart saved: {chart_path}")
 
-    # --- Markdown table (single column) ---
+    # --- Markdown report: one section per category ---
     lines = [
         "# Performance Report",
         "",
@@ -120,22 +274,21 @@ def generate_perf_report():
         "",
         "![Performance Chart](images/perf_report.png)",
         "",
-        "| Test Case | Time (ms) |",
-        "|-----------|-----------|",
     ]
 
-    for t in all_tests:
-        val = data[t].get("time_ms", 0)
-        lines.append(f"| {t} | {val:.3f} |")
+    for cat_name, tests in categorized:
+        lines.append(f"## {cat_name}")
+        lines.append("")
+        lines.append("| Test Case | Time (ms) |")
+        lines.append("|-----------|-----------|")
+        for t in tests:
+            val = data[t].get("time_ms", 0)
+            lines.append(f"| {t} | {val:.3f} |")
+        lines.append("")
 
     md_path = DOC_DIR / "perf_report.md"
     md_path.write_text("\n".join(lines), encoding="utf-8")
     print(f"  Report saved: {md_path}")
-
-
-# ---------------------------------------------------------------------------
-# 2. PFB Matrix Report (pfb_matrix_results.json)
-# ---------------------------------------------------------------------------
 
 def generate_pfb_matrix_report():
     """Generate PFB size matrix heatmap report."""
@@ -174,32 +327,35 @@ def generate_pfb_matrix_report():
         if max(vals) > 0.5:
             test_names.append(t)
 
-    # Build matrix
-    heat = np.zeros((len(test_names), len(config_names)))
+    # --- Grouped horizontal bar chart (one row per test) ---
+    n_tests = len(test_names)
+    n_configs = len(config_names)
+    row_height = 0.35          # inches per test row
+    fig_h = max(6, n_tests * row_height + 2)
+    fig, ax = plt.subplots(figsize=(12, fig_h), dpi=150)
+
+    palette = ["#3498DB", "#E67E22", "#2ECC71", "#E74C3C", "#9B59B6",
+               "#1ABC9C", "#F39C12", "#8E44AD"]
+
+    bar_h = 0.8 / n_configs
+    y = np.arange(n_tests)
+
     for j, cfg_name in enumerate(config_names):
         results = matrix[cfg_name]["results"]
-        for i, t in enumerate(test_names):
-            heat[i, j] = results.get(t, {}).get("time_ms", 0)
+        vals = [results.get(t, {}).get("time_ms", 0) for t in test_names]
+        offset = (j - n_configs / 2 + 0.5) * bar_h
+        label = config_labels[j].replace("\n", " ")
+        ax.barh(y + offset, vals, bar_h, label=label,
+                color=palette[j % len(palette)], edgecolor="none")
 
-    # --- Heatmap ---
-    fig, ax = plt.subplots(figsize=(14, 8), dpi=150)
-    im = ax.imshow(heat, aspect="auto", cmap="YlOrRd")
-
-    ax.set_xticks(range(len(config_names)))
-    ax.set_xticklabels(config_labels, fontsize=8)
-    ax.set_yticks(range(len(test_names)))
+    ax.set_yticks(y)
     ax.set_yticklabels(test_names, fontsize=7)
+    ax.invert_yaxis()
+    ax.set_xlabel("Time (ms)")
     ax.set_title(f"PFB Size Matrix - {profile} (commit {commit})")
+    ax.legend(fontsize=8, loc="lower right")
+    ax.grid(axis="x", linewidth=0.4, alpha=0.5)
 
-    # Annotate cells
-    for i in range(len(test_names)):
-        for j in range(len(config_names)):
-            val = heat[i, j]
-            color = "white" if val > heat.max() * 0.6 else "black"
-            ax.text(j, i, f"{val:.1f}", ha="center", va="center",
-                    fontsize=5, color=color)
-
-    fig.colorbar(im, ax=ax, label="Time (ms)", shrink=0.8)
     plt.tight_layout()
 
     IMG_DIR.mkdir(parents=True, exist_ok=True)
@@ -282,29 +438,33 @@ def generate_spi_matrix_report():
         if max(vals) > 1.0:
             test_names.append(t)
 
-    # --- Grouped bar chart ---
+    # --- Grouped horizontal bar chart (one row per test) ---
     n_tests = len(test_names)
     n_configs = len(config_names)
-    x = np.arange(n_tests)
-    width = 0.8 / n_configs
+    row_height = 0.35          # inches per test row
+    fig_h = max(6, n_tests * row_height + 2)
+    fig, ax = plt.subplots(figsize=(12, fig_h), dpi=150)
 
     palette = ["#2ECC71", "#3498DB", "#E67E22", "#9B59B6", "#E74C3C",
                "#1ABC9C", "#F39C12", "#8E44AD"]
 
-    fig, ax = plt.subplots(figsize=(14, 8), dpi=150)
-
     for j, cfg_name in enumerate(config_names):
         results = spi_matrix[cfg_name]["results"]
         vals = [results.get(t, {}).get("time_ms", 0) for t in test_names]
-        offset = (j - n_configs / 2 + 0.5) * width
-        ax.bar(x + offset, vals, width, label=config_labels[j].replace("\n", " "),
-               color=palette[j % len(palette)], edgecolor="none")
+        bar_h = 0.8 / n_configs
+        y = np.arange(n_tests)
+        offset = (j - n_configs / 2 + 0.5) * bar_h
+        ax.barh(y + offset, vals, bar_h, label=config_labels[j].replace("\n", " "),
+                color=palette[j % len(palette)], edgecolor="none")
 
-    ax.set_xticks(x)
-    ax.set_xticklabels(test_names, rotation=45, ha="right", fontsize=7)
-    ax.set_ylabel("Time (ms)")
+    y = np.arange(n_tests)
+    ax.set_yticks(y)
+    ax.set_yticklabels(test_names, fontsize=7)
+    ax.invert_yaxis()
+    ax.set_xlabel("Time (ms)")
     ax.set_title(f"SPI Buffer Configuration Comparison - {profile} (commit {commit})")
-    ax.legend(fontsize=8, loc="upper left")
+    ax.legend(fontsize=8, loc="lower right")
+    ax.grid(axis="x", linewidth=0.4, alpha=0.5)
 
     plt.tight_layout()
     IMG_DIR.mkdir(parents=True, exist_ok=True)

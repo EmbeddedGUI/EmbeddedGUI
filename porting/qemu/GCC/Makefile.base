@@ -135,6 +135,10 @@ COMMON_FLAGS	+= -Wno-unused-variable
 
 COMMON_FLAGS  += -MMD -MP
 COMMON_FLAGS  += -fno-common
+# User-defined extra CFLAGS (for testing, config overrides, etc.)
+USER_CFLAGS ?=
+COMMON_FLAGS += $(USER_CFLAGS)
+
 COMMON_FLAGS += $(APP_COMMON_FLAGS) $(GC_CFLAGS)
 
 CFLAGS += $(COMMON_FLAGS) $(APP_CFLAGS) $(C_INCLUDE_OPT)

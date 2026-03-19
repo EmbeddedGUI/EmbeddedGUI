@@ -6,10 +6,8 @@
 extern "C" {
 #endif
 
-#define EGUI_CONFIG_SCEEN_WIDTH  480
-#define EGUI_CONFIG_SCEEN_HEIGHT 480
-#define EGUI_CONFIG_PFB_WIDTH    60
-#define EGUI_CONFIG_PFB_HEIGHT   60
+#define EGUI_CONFIG_SCEEN_WIDTH  240
+#define EGUI_CONFIG_SCEEN_HEIGHT 240
 
 #define EGUI_CONFIG_MAX_FPS 1
 
@@ -22,26 +20,14 @@ extern "C" {
 
 // Enable large image tests (480px/240px direct-draw, resize, rotate)
 // Set to 0 to save flash on constrained devices; 40x40 tiled tests still run.
-#define EGUI_TEST_CONFIG_IMAGE_LARGE 0
+#define EGUI_TEST_CONFIG_IMAGE_LARGE 1
 
 // Enable external resource support.
 // QEMU uses semihosting file I/O for resource loading.
 #define EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE 1
 
-// 480px alpha variant direct-draw tests (IMAGE_565_1/2/4) — disabled on QEMU to save flash.
-// test_perf images have alpha=255, so these are identical to IMAGE_565_0 in performance.
-#if EGUI_PORT == EGUI_PORT_TYPE_QEMU
-#define EGUI_TEST_CONFIG_IMAGE_480_ALPHA 0
-#else
-#define EGUI_TEST_CONFIG_IMAGE_480_ALPHA 1
-#endif
-
-// Double-size (960x960) image tests - disabled on QEMU due to flash size limits
-#if EGUI_PORT == EGUI_PORT_TYPE_QEMU
-#define EGUI_TEST_CONFIG_IMAGE_DOUBLE 0
-#else
+// Double-size (480x480) image tests - always enabled (was 960x960 before, now small enough for QEMU too)
 #define EGUI_TEST_CONFIG_IMAGE_DOUBLE 1
-#endif
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

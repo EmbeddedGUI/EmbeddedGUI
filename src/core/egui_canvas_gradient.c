@@ -3622,16 +3622,12 @@ void egui_canvas_draw_arc_ring_fill_gradient_round_cap(egui_dim_t center_x, egui
         return;
     }
 
-    /* Cap colors: for angular gradient, use start/end stop colors.
-     * For other gradient types, use the last stop color for both caps. */
-    egui_color_t start_cap_color = gradient->stops[gradient->stop_count - 1].color;
-    egui_color_t end_cap_color = gradient->stops[gradient->stop_count - 1].color;
-    if (gradient->type == EGUI_GRADIENT_TYPE_ANGULAR)
-    {
-        start_cap_color = gradient->stops[0].color;
-        end_cap_color = gradient->stops[gradient->stop_count - 1].color;
-    }
     egui_alpha_t cap_alpha = gradient->alpha;
+
+    /* Bounding box used by arc ring gradient sampling (must match draw_arc_ring_fill_gradient) */
+    egui_dim_t bbox_size = (outer_r << 1) + 1;
+    egui_dim_t bbox_x    = center_x - outer_r;
+    egui_dim_t bbox_y    = center_y - outer_r;
 
     /* Angle to position conversion using integer trig (scale=256) with rounding */
     if (cap_mode & EGUI_ARC_CAP_START)
@@ -3642,6 +3638,13 @@ void egui_canvas_draw_arc_ring_fill_gradient_round_cap(egui_dim_t center_x, egui
         int32_t sy_raw = (int32_t)mid_r * sa_sin;
         egui_dim_t sx = center_x + (egui_dim_t)((sx_raw + (sx_raw >= 0 ? 128 : -128)) / 256);
         egui_dim_t sy = center_y + (egui_dim_t)((sy_raw + (sy_raw >= 0 ? 128 : -128)) / 256);
+        /* For angular gradient use the first stop; for all other types sample the gradient
+         * at the cap center position within the same bounding box as the arc ring. */
+        egui_color_t start_cap_color;
+        if (gradient->type == EGUI_GRADIENT_TYPE_ANGULAR)
+            start_cap_color = gradient->stops[0].color;
+        else
+            start_cap_color = egui_gradient_color_at_pos(gradient, sx - bbox_x, sy - bbox_y, bbox_size, bbox_size);
         egui_canvas_draw_circle_fill(sx, sy, cap_r, start_cap_color, cap_alpha);
     }
 
@@ -3653,6 +3656,12 @@ void egui_canvas_draw_arc_ring_fill_gradient_round_cap(egui_dim_t center_x, egui
         int32_t ey_raw = (int32_t)mid_r * ea_sin;
         egui_dim_t ex = center_x + (egui_dim_t)((ex_raw + (ex_raw >= 0 ? 128 : -128)) / 256);
         egui_dim_t ey = center_y + (egui_dim_t)((ey_raw + (ey_raw >= 0 ? 128 : -128)) / 256);
+        /* For angular gradient use the last stop; for all other types sample the gradient. */
+        egui_color_t end_cap_color;
+        if (gradient->type == EGUI_GRADIENT_TYPE_ANGULAR)
+            end_cap_color = gradient->stops[gradient->stop_count - 1].color;
+        else
+            end_cap_color = egui_gradient_color_at_pos(gradient, ex - bbox_x, ey - bbox_y, bbox_size, bbox_size);
         egui_canvas_draw_circle_fill(ex, ey, cap_r, end_cap_color, cap_alpha);
     }
 }
