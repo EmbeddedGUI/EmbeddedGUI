@@ -90,6 +90,62 @@ static uint8_t egui_view_mini_calendar_hit_day(egui_view_t *self, egui_view_mini
     return (uint8_t)(pos - start_col + 1);
 }
 
+static int egui_view_mini_calendar_get_day_cell_region(egui_view_t *self, egui_view_mini_calendar_t *local, uint8_t day, egui_region_t *out_region)
+{
+    egui_region_t region;
+    egui_dim_t w;
+    egui_dim_t h;
+    egui_dim_t cell_w;
+    egui_dim_t header_h;
+    egui_dim_t cell_h;
+    uint8_t first_dow;
+    uint8_t start_col;
+    uint8_t total_days;
+    uint8_t pos;
+    uint8_t col;
+    uint8_t row;
+
+    if (out_region == NULL)
+    {
+        return 0;
+    }
+
+    egui_view_get_work_region(self, &region);
+    w = region.size.width;
+    h = region.size.height;
+    cell_w = w / 7;
+    header_h = h / 8;
+    cell_h = (h - header_h * 2) / 6;
+    total_days = days_in_month(local->year, local->month);
+
+    if (day < 1 || day > total_days || cell_w <= 0 || cell_h <= 0)
+    {
+        egui_region_init_empty(out_region);
+        return 0;
+    }
+
+    first_dow = day_of_week(local->year, local->month, 1);
+    start_col = (first_dow - local->first_day_of_week + 7) % 7;
+    pos = start_col + day - 1;
+    col = pos % 7;
+    row = pos / 7;
+
+    out_region->location.x = region.location.x + col * cell_w;
+    out_region->location.y = region.location.y + header_h * 2 + row * cell_h;
+    out_region->size.width = cell_w;
+    out_region->size.height = cell_h;
+
+    return 1;
+}
+
+static void egui_view_mini_calendar_local_region_to_screen(egui_view_t *self, const egui_region_t *local_region, egui_region_t *screen_region)
+{
+    screen_region->location.x = self->region_screen.location.x + local_region->location.x;
+    screen_region->location.y = self->region_screen.location.y + local_region->location.y;
+    screen_region->size.width = local_region->size.width;
+    screen_region->size.height = local_region->size.height;
+}
+
 void egui_view_mini_calendar_set_date(egui_view_t *self, uint16_t year, uint8_t month, uint8_t day)
 {
     EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
@@ -189,11 +245,23 @@ void egui_view_mini_calendar_on_draw(egui_view_t *self)
     for (d = 1; d <= total_days; d++)
     {
         uint8_t pos = start_col + d - 1;
+        egui_region_t day_rect;
+        egui_region_t day_screen_rect;
         col = pos % 7;
-        uint8_t row = pos / 7;
 
-        egui_dim_t cx = x + col * cell_w + cell_w / 2;
-        egui_dim_t cy = y + header_h * 2 + row * cell_h + cell_h / 2;
+        if (!egui_view_mini_calendar_get_day_cell_region(self, local, d, &day_rect))
+        {
+            continue;
+        }
+
+        egui_view_mini_calendar_local_region_to_screen(self, &day_rect, &day_screen_rect);
+        if (!egui_canvas_is_region_active(&day_screen_rect))
+        {
+            continue;
+        }
+
+        egui_dim_t cx = day_rect.location.x + day_rect.size.width / 2;
+        egui_dim_t cy = day_rect.location.y + day_rect.size.height / 2;
         egui_dim_t r = cell_h / 2 - 1;
         if (r < 1)
         {
@@ -201,8 +269,6 @@ void egui_view_mini_calendar_on_draw(egui_view_t *self)
         }
 
         egui_sprintf_int(buf, sizeof(buf), d);
-
-        egui_region_t day_rect = {{x + col * cell_w, y + header_h * 2 + row * cell_h}, {cell_w, cell_h}};
 
         if (d == local->today_day)
         {
@@ -259,32 +325,43 @@ static int egui_view_mini_calendar_on_touch_event(egui_view_t *self, egui_motion
     {
     case EGUI_MOTION_EVENT_ACTION_DOWN:
         local->pressed_day = hit_day;
-        egui_view_set_pressed(self, hit_day != 0);
+        self->is_pressed = (hit_day != 0);
         break;
     case EGUI_MOTION_EVENT_ACTION_MOVE:
-        egui_view_set_pressed(self, local->pressed_day != 0 && local->pressed_day == hit_day);
+        self->is_pressed = (local->pressed_day != 0 && local->pressed_day == hit_day);
         break;
     case EGUI_MOTION_EVENT_ACTION_UP:
     {
         int was_pressed = self->is_pressed;
         uint8_t pressed_day = local->pressed_day;
+        egui_region_t day_region;
 
-        egui_view_set_pressed(self, false);
+        self->is_pressed = false;
         local->pressed_day = 0;
         if (was_pressed && pressed_day != 0 && pressed_day == hit_day && hit_day != local->day)
         {
+            if (egui_view_mini_calendar_get_day_cell_region(self, local, local->day, &day_region))
+            {
+                egui_view_invalidate_region(self, &day_region);
+            }
+
             local->day = hit_day;
+
+            if (egui_view_mini_calendar_get_day_cell_region(self, local, hit_day, &day_region))
+            {
+                egui_view_invalidate_region(self, &day_region);
+            }
+
             if (local->on_date_selected)
             {
                 local->on_date_selected(self, hit_day);
             }
-            egui_view_invalidate(self);
         }
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_CANCEL:
         local->pressed_day = 0;
-        egui_view_set_pressed(self, false);
+        self->is_pressed = false;
         break;
     default:
         break;

@@ -66,13 +66,58 @@ static void egui_view_textinput_update_scroll(egui_view_t *self)
     }
 }
 
+static int egui_view_textinput_get_cursor_region(egui_view_t *self, egui_view_textinput_t *local, egui_region_t *cursor_region)
+{
+    egui_region_t work_region;
+    egui_dim_t cursor_x;
+    egui_dim_t dummy_width = 0;
+    egui_dim_t cursor_height = 0;
+
+    if (local->font == NULL || cursor_region == NULL)
+    {
+        return 0;
+    }
+
+    egui_view_get_work_region(self, &work_region);
+    cursor_x = work_region.location.x + egui_view_textinput_get_text_width_to_pos(local, local->cursor_pos) - local->scroll_offset_x;
+    local->font->api->get_str_size(local->font, "A", 0, 0, &dummy_width, &cursor_height);
+
+    cursor_region->location.x = cursor_x;
+    cursor_region->location.y = work_region.location.y + (work_region.size.height - cursor_height) / 2;
+    cursor_region->size.width = EGUI_TEXTINPUT_CURSOR_WIDTH;
+    cursor_region->size.height = cursor_height;
+
+    return !egui_region_is_empty(cursor_region);
+}
+
+static void egui_view_textinput_local_region_to_screen(egui_view_t *self, const egui_region_t *local_region, egui_region_t *screen_region)
+{
+    screen_region->location.x = self->region_screen.location.x + local_region->location.x;
+    screen_region->location.y = self->region_screen.location.y + local_region->location.y;
+    screen_region->size.width = local_region->size.width;
+    screen_region->size.height = local_region->size.height;
+}
+
+static void egui_view_textinput_invalidate_cursor_region(egui_view_t *self, egui_view_textinput_t *local)
+{
+    egui_region_t cursor_region;
+
+    if (!egui_view_textinput_get_cursor_region(self, local, &cursor_region))
+    {
+        egui_view_invalidate(self);
+        return;
+    }
+
+    egui_view_invalidate_region(self, &cursor_region);
+}
+
 static void egui_view_textinput_cursor_timer_callback(egui_timer_t *timer)
 {
     egui_view_textinput_t *local = (egui_view_textinput_t *)timer->user_data;
     egui_view_t *self = (egui_view_t *)local;
 
     local->cursor_visible = !local->cursor_visible;
-    egui_view_invalidate(self);
+    egui_view_textinput_invalidate_cursor_region(self, local);
 
     // Restart timer for next blink
     egui_timer_start_timer(&local->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
@@ -248,6 +293,7 @@ void egui_view_textinput_set_cursor_pos(egui_view_t *self, uint8_t pos)
         return;
     }
 
+    egui_view_textinput_invalidate_cursor_region(self, local);
     local->cursor_pos = pos;
 
     // Reset cursor blink
@@ -256,7 +302,7 @@ void egui_view_textinput_set_cursor_pos(egui_view_t *self, uint8_t pos)
     egui_timer_start_timer(&local->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
 
     egui_view_textinput_update_scroll(self);
-    egui_view_invalidate(self);
+    egui_view_textinput_invalidate_cursor_region(self, local);
 }
 
 void egui_view_textinput_move_cursor_left(egui_view_t *self)
@@ -407,13 +453,19 @@ void egui_view_textinput_on_draw(egui_view_t *self)
     egui_region_t work_region;
     egui_view_get_work_region(self, &work_region);
 
+    egui_region_t text_screen_region;
+    int text_active;
+
+    egui_view_textinput_local_region_to_screen(self, &work_region, &text_screen_region);
+    text_active = egui_canvas_is_region_active(&text_screen_region);
+
     // Draw text or placeholder
-    if (local->text_len == 0 && !self->is_focused && local->placeholder != NULL)
+    if (text_active && local->text_len == 0 && !self->is_focused && local->placeholder != NULL)
     {
         // Draw placeholder
         egui_canvas_draw_text_in_rect(local->font, local->placeholder, &work_region, local->align_type, local->placeholder_color, local->placeholder_alpha);
     }
-    else if (local->text_len > 0)
+    else if (text_active && local->text_len > 0)
     {
         // Draw text with scroll offset
         egui_dim_t text_x = work_region.location.x - local->scroll_offset_x;
@@ -433,16 +485,18 @@ void egui_view_textinput_on_draw(egui_view_t *self)
     // Draw cursor
     if (self->is_focused && local->cursor_visible)
     {
-        egui_dim_t cursor_x = work_region.location.x + egui_view_textinput_get_text_width_to_pos(local, local->cursor_pos) - local->scroll_offset_x;
+        egui_region_t cursor_region;
+        egui_region_t cursor_screen_region;
 
-        // Get font height for cursor height
-        egui_dim_t dummy_width = 0;
-        egui_dim_t cursor_height = 0;
-        local->font->api->get_str_size(local->font, "A", 0, 0, &dummy_width, &cursor_height);
-
-        egui_dim_t cursor_y = work_region.location.y + (work_region.size.height - cursor_height) / 2;
-
-        egui_canvas_draw_rectangle_fill(cursor_x, cursor_y, EGUI_TEXTINPUT_CURSOR_WIDTH, cursor_height, local->cursor_color, EGUI_ALPHA_100);
+        if (egui_view_textinput_get_cursor_region(self, local, &cursor_region))
+        {
+            egui_view_textinput_local_region_to_screen(self, &cursor_region, &cursor_screen_region);
+            if (egui_canvas_is_region_active(&cursor_screen_region))
+            {
+                egui_canvas_draw_rectangle_fill(cursor_region.location.x, cursor_region.location.y, cursor_region.size.width, cursor_region.size.height,
+                                                local->cursor_color, EGUI_ALPHA_100);
+            }
+        }
     }
 }
 

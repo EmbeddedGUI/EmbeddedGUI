@@ -145,6 +145,93 @@ egui_view_invalidate(my_custom_view);
 
 `egui_view_invalidate()` 的实现会检查视图是否可见（包括检查所有父视图的可见性），只有在可见状态下才会触发重绘请求。
 
+## 细粒度脏矩形扩展
+
+上面的流程描述的是“整控件失效”的默认路径。为了进一步缩小局部刷新范围，框架又补充了细粒度能力：控件作者可以自己定义一组稳定的子区域，把它们当成控件内部的“脏矩形矩阵”来使用。
+
+这里的“矩阵”本质上仍然是一组矩形，而不是让框架自动推导任意形状。框架负责做的事情依旧很简单：
+
+1. 接收控件上报的局部脏区
+2. 转换到屏幕坐标
+3. 裁剪到控件真实可见范围
+4. 合并到全局 dirty list
+5. 在 PFB 遍历阶段只绘制当前 tile 相关的内容
+
+### `egui_view_invalidate_region()`
+
+`egui_view_invalidate_region(egui_view_t *self, const egui_region_t *dirty_region)` 用于标记控件内部的一个局部区域失效。
+
+它与 `egui_view_invalidate()` 的区别在于：
+
+- `dirty_region` 使用控件本地坐标，而不是屏幕坐标
+- 框架会自动转换到 `region_screen`
+- 会自动裁剪到控件的屏幕区域内
+- 仅刷新内容变化，不额外请求布局
+
+因此它特别适合：
+
+- 光标闪烁
+- 单个按钮/单个格子高亮
+- 局部数值变化
+- 焦点框、选中框、badge、icon 等稳定小区域
+
+### `egui_view_invalidate_sub_region()`
+
+当控件内部存在固定分区时，可以把这些分区提前整理成表，通过 `egui_view_invalidate_sub_region()` 按索引触发失效。
+
+这种模式适合：
+
+- number picker 的上/中/下三个区
+- calendar 的日期格子
+- segmented control / tab / grid 等固定槽位
+
+相比每次动态计算坐标，预定义子区域表更容易复用，也更适合做成控件内部的长期优化策略。
+
+### `egui_canvas_is_region_active()`
+
+细粒度 invalidate 只解决了“哪些区域会被加入 dirty list”，还需要解决“`on_draw()` 内部如何少算一点”。
+
+`egui_canvas_is_region_active()` 用来判断某个屏幕区域是否与当前 PFB tile 相交：
+
+- 相交：说明当前子元素确实可能落在当前 tile 中，需要继续绘制
+- 不相交：可以直接跳过对应子元素的测量、格式化和绘制逻辑
+
+这一步很适合放在：
+
+- 文本绘制前
+- 单元格循环内部
+- 多分区控件的每个子块前
+- 渐变、阴影、圆弧等高成本绘制前
+
+### 自定义脏矩形矩阵的推荐模式
+
+后续做性能优化时，推荐按下面的顺序思考：
+
+1. 先判断变化是不是“稳定的局部区域”
+2. 如果是，优先定义一个小而稳定的子区域表，而不是拆很多零碎矩形
+3. 状态切换时同时覆盖旧区域和新区域，避免残影
+4. 在 `on_draw()` 内用 `egui_canvas_is_region_active()` 跳过无关子元素
+5. 一旦出现布局变化、文本重排、整页切换，就回退到 `egui_view_invalidate()`
+
+这套模式已经在 `textinput`、`number_picker`、`mini_calendar` 上验证过，说明“控件自己定义脏矩形矩阵”是一条可持续扩展的优化路径。更完整的实战建议可参考[脏矩形细粒度优化指南](../performance/dirty_region_tuning.md)。
+
+## 调试与统计
+
+为了判断细粒度优化是否真的缩小了脏区，框架增加了 `EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS` 调试开关。打开后，每帧会输出：
+
+- `regions`：本帧脏矩形数量
+- `dirty_area`：本帧脏区面积
+- `screen_area`：屏幕总面积
+- `pfb_tiles`：本帧参与刷新的 PFB tile 数量
+
+这些日志可以用 `scripts/dirty_region_stats_report.py` 自动汇总为 Markdown 和 CSV 报告，方便横向对比多个控件或多个版本的优化结果。
+
+需要注意的是：
+
+- 这些统计值反映的是脏区覆盖率和 tile 覆盖率
+- 它们适合证明“局部刷新面积是不是变小了”
+- 最终性能时间仍应以 QEMU 基准测试为准
+
 
 ## 脏矩阵对功耗的影响
 

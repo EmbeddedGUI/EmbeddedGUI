@@ -2,6 +2,8 @@
 #include "uicode.h"
 
 #include "test/test_dirty_region.h"
+#include "test/test_invalidate_region.h"
+#include "test/test_canvas_active.h"
 #include "test/test_region.h"
 #include "test/test_dlist.h"
 #include "test/test_slist.h"
@@ -90,6 +92,8 @@ void uicode_create_ui(void)
     test_auto_suggest_box_run();
     test_alert_banner_run();
     test_dirty_region_run();
+    test_invalidate_region_run();
+    test_canvas_active_run();
     test_annotated_scroll_bar_run();
     test_badge_group_run();
     test_combobox_run();

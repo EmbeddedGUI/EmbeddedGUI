@@ -32,6 +32,82 @@ egui_core_t egui_core;
 static egui_color_int_t egui_rotation_scratch[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
 #endif
 
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
+typedef struct egui_dirty_region_stats
+{
+    uint32_t frame_index;
+    uint32_t frame_count;
+    uint32_t current_region_count;
+    uint32_t current_dirty_area;
+    uint32_t current_tile_count;
+    uint8_t is_collecting_frame;
+    uint64_t total_dirty_area;
+    uint64_t total_tile_count;
+} egui_dirty_region_stats_t;
+
+static egui_dirty_region_stats_t egui_dirty_region_stats;
+
+static uint32_t egui_core_get_region_area(const egui_region_t *region)
+{
+    if (region == NULL || region->size.width <= 0 || region->size.height <= 0)
+    {
+        return 0;
+    }
+
+    return (uint32_t)region->size.width * (uint32_t)region->size.height;
+}
+
+static void egui_core_dirty_region_stats_begin_frame(void)
+{
+    int i;
+
+    egui_dirty_region_stats.frame_index++;
+    egui_dirty_region_stats.current_region_count = 0;
+    egui_dirty_region_stats.current_dirty_area = 0;
+    egui_dirty_region_stats.current_tile_count = 0;
+
+    for (i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
+    {
+        egui_region_t *p_region_dirty = &egui_core.region_dirty_arr[i];
+
+        if (egui_region_is_empty(p_region_dirty))
+        {
+            break;
+        }
+
+        egui_dirty_region_stats.current_region_count++;
+        egui_dirty_region_stats.current_dirty_area += egui_core_get_region_area(p_region_dirty);
+    }
+
+    egui_dirty_region_stats.is_collecting_frame = 1;
+}
+
+static void egui_core_dirty_region_stats_count_tile(const egui_region_t *region)
+{
+    if (!egui_dirty_region_stats.is_collecting_frame || region == NULL || region->size.width <= 0 || region->size.height <= 0)
+    {
+        return;
+    }
+
+    egui_dirty_region_stats.current_tile_count++;
+}
+
+static void egui_core_dirty_region_stats_end_frame(void)
+{
+    egui_dirty_region_stats.is_collecting_frame = 0;
+    egui_dirty_region_stats.frame_count++;
+    egui_dirty_region_stats.total_dirty_area += egui_dirty_region_stats.current_dirty_area;
+    egui_dirty_region_stats.total_tile_count += egui_dirty_region_stats.current_tile_count;
+
+    egui_api_log("DIRTY_REGION_STATS:frame=%lu,regions=%lu,dirty_area=%lu,screen_area=%lu,pfb_tiles=%lu,total_frames=%lu,total_dirty_area=%llu,total_pfb_tiles=%llu\r\n",
+                 (unsigned long)egui_dirty_region_stats.frame_index, (unsigned long)egui_dirty_region_stats.current_region_count,
+                 (unsigned long)egui_dirty_region_stats.current_dirty_area,
+                 (unsigned long)((uint32_t)egui_core.screen_width * (uint32_t)egui_core.screen_height),
+                 (unsigned long)egui_dirty_region_stats.current_tile_count, (unsigned long)egui_dirty_region_stats.frame_count,
+                 (unsigned long long)egui_dirty_region_stats.total_dirty_area, (unsigned long long)egui_dirty_region_stats.total_tile_count);
+}
+#endif
+
 // EGUI_VIEW_SUB_DEFINE(egui_view_group_t, test_view_group_1);
 
 // static egui_view_tree_t view_tree_main[] = {
@@ -264,6 +340,10 @@ void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode)
 
             EGUI_REGION_DEFINE(region, x_pos, y_pos, tmp_pfb_width, tmp_pfb_height);
 
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
+            egui_core_dirty_region_stats_count_tile(&region);
+#endif
+
             egui_core.pfb = egui_pfb_manager_get_render_buffer(&egui_core.pfb_mgr);
 
             egui_canvas_init(egui_core.pfb, &region);
@@ -408,6 +488,13 @@ void egui_polling_refresh_display(void)
     egui_core_draw_view_group(&region, false);
 #endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
 
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
+    if (!egui_region_is_empty(&egui_core.region_dirty_arr[0]))
+    {
+        egui_core_dirty_region_stats_begin_frame();
+    }
+#endif
+
     for (int i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
     {
         egui_region_t *p_region_dirty = &egui_core.region_dirty_arr[i];
@@ -419,6 +506,13 @@ void egui_polling_refresh_display(void)
 
         egui_core_draw_view_group(p_region_dirty, EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH);
     }
+
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
+    if (egui_dirty_region_stats.is_collecting_frame)
+    {
+        egui_core_dirty_region_stats_end_frame();
+    }
+#endif
 
     // clear the dirty region
     egui_core_clear_region_dirty();

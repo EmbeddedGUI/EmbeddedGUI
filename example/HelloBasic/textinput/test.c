@@ -219,13 +219,27 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
-    case 2: // type 'h'
+    case 2: // wait for cursor blink
+        EGUI_SIM_SET_WAIT(p_action, 520);
+        return true;
+    case 3: // verify cursor blink and snapshot
+        if (first_call)
+        {
+            if (textinput_1.cursor_visible)
+            {
+                report_runtime_failure("textinput cursor did not blink after focus");
+            }
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
+        return true;
+    case 4: // type 'h'
         EGUI_SIM_SET_CLICK_VIEW(p_action, &keyboard.keys[15], 220);
         return true;
-    case 3: // type 'i'
+    case 5: // type 'i'
         EGUI_SIM_SET_CLICK_VIEW(p_action, &keyboard.keys[7], 220);
         return true;
-    case 4: // wait until text is committed
+    case 6: // wait until text is committed
         if (first_call)
         {
             if (strcmp(egui_view_textinput_get_text(EGUI_VIEW_OF(&textinput_1)), "hi") != 0)
@@ -236,10 +250,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
-    case 5: // click submit button
+    case 7: // click submit button
         EGUI_SIM_SET_CLICK_VIEW(p_action, &button_submit, 320);
         return true;
-    case 6:
+    case 8:
         if (first_call)
         {
             if (strcmp(result_str, "Submitted: hi") != 0)

@@ -39,6 +39,35 @@ void egui_view_invalidate(egui_view_t *self)
     }
 }
 
+void egui_view_invalidate_region(egui_view_t *self, const egui_region_t *dirty_region)
+{
+    if (dirty_region == NULL || !egui_view_is_visible(self))
+    {
+        return;
+    }
+
+    EGUI_REGION_DEFINE(screen_region, self->region_screen.location.x + dirty_region->location.x, self->region_screen.location.y + dirty_region->location.y,
+                       dirty_region->size.width, dirty_region->size.height);
+    egui_region_intersect(&screen_region, &self->region_screen, &screen_region);
+
+    if (!egui_region_is_empty(&screen_region))
+    {
+        egui_core_update_region_dirty(&screen_region);
+    }
+}
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SUB_DIRTY_REGION
+void egui_view_invalidate_sub_region(egui_view_t *self, const egui_sub_region_table_t *table, uint16_t index)
+{
+    if (table == NULL || table->regions == NULL || index >= table->count)
+    {
+        return;
+    }
+
+    egui_view_invalidate_region(self, &table->regions[index].region);
+}
+#endif
+
 void egui_view_set_background(egui_view_t *self, egui_background_t *background)
 {
     if (background == self->background)

@@ -77,6 +77,8 @@ PFB 是 EmbeddedGUI 的核心设计：屏幕被划分为多个小块，逐块渲
 
 EmbeddedGUI 使用脏矩形（dirty rectangle）机制：只有被标记为"脏"的区域才会重新渲染。
 
+如果后续需要继续压缩控件内部的局部刷新范围，可参考[脏矩形细粒度优化指南](dirty_region_tuning.md)；其中包含自定义子区域、PFB 早裁剪和统计验证的完整做法。
+
 ### 减少 invalidate 范围
 
 每次调用 `egui_view_invalidate()` 会将整个 view 的区域标记为脏。优化要点：

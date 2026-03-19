@@ -177,6 +177,22 @@ extern "C" {
 #endif
 
 /**
+ * Function options.
+ * Enable sub-region dirty tracking for fine-grained widget invalidation. if 0, disable.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_SUPPORT_SUB_DIRTY_REGION
+#define EGUI_CONFIG_FUNCTION_SUPPORT_SUB_DIRTY_REGION 0
+#endif
+
+/**
+ * Debug options.
+ * Enable dirty region statistics logging for performance analysis. if 0, disable.
+ */
+#ifndef EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
+#define EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS 0
+#endif
+
+/**
  * Key input cache count.
  * Number of key events that can be queued.
  */

@@ -23,6 +23,50 @@ static const egui_font_t *egui_view_number_picker_get_icon_font(egui_view_number
     return EGUI_FONT_ICON_MS_24;
 }
 
+static void egui_view_number_picker_get_zone_region(egui_view_t *self, int8_t zone, egui_region_t *zone_region)
+{
+    egui_region_t region;
+    egui_dim_t third_h;
+
+    egui_view_get_work_region(self, &region);
+    third_h = region.size.height / 3;
+
+    zone_region->location.x = region.location.x;
+    zone_region->size.width = region.size.width;
+
+    if (zone > 0)
+    {
+        zone_region->location.y = region.location.y;
+        zone_region->size.height = third_h;
+    }
+    else if (zone < 0)
+    {
+        zone_region->location.y = region.location.y + region.size.height - third_h;
+        zone_region->size.height = third_h;
+    }
+    else
+    {
+        zone_region->location.y = region.location.y + third_h;
+        zone_region->size.height = region.size.height - third_h * 2;
+    }
+}
+
+static void egui_view_number_picker_local_region_to_screen(egui_view_t *self, const egui_region_t *local_region, egui_region_t *screen_region)
+{
+    screen_region->location.x = self->region_screen.location.x + local_region->location.x;
+    screen_region->location.y = self->region_screen.location.y + local_region->location.y;
+    screen_region->size.width = local_region->size.width;
+    screen_region->size.height = local_region->size.height;
+}
+
+static void egui_view_number_picker_invalidate_zone(egui_view_t *self, int8_t zone)
+{
+    egui_region_t zone_region;
+
+    egui_view_number_picker_get_zone_region(self, zone, &zone_region);
+    egui_view_invalidate_region(self, &zone_region);
+}
+
 void egui_view_number_picker_set_on_value_changed_listener(egui_view_t *self, egui_view_on_number_changed_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_number_picker_t);
@@ -47,7 +91,7 @@ void egui_view_number_picker_set_value(egui_view_t *self, int16_t value)
         {
             local->on_value_changed(self, value);
         }
-        egui_view_invalidate(self);
+        egui_view_number_picker_invalidate_zone(self, 0);
     }
 }
 
@@ -111,64 +155,69 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_number_picker_t);
 
-    egui_region_t region;
-    egui_view_get_work_region(self, &region);
+    egui_region_t top_rect;
+    egui_region_t mid_rect;
+    egui_region_t bottom_rect;
+    egui_region_t screen_rect;
+    egui_dim_t w;
+    egui_dim_t third_h;
 
-    egui_dim_t third_h = region.size.height / 3;
-    egui_dim_t w = region.size.width;
+    egui_view_number_picker_get_zone_region(self, 1, &top_rect);
+    egui_view_number_picker_get_zone_region(self, 0, &mid_rect);
+    egui_view_number_picker_get_zone_region(self, -1, &bottom_rect);
+
+    w = top_rect.size.width;
+    third_h = top_rect.size.height;
 
     // Horizontal divider lines between sections (subtle, semi-transparent)
     {
         egui_dim_t margin = 8;
-        egui_dim_t div1_y = region.location.y + third_h;
-        egui_dim_t div2_y = region.location.y + region.size.height - third_h;
-        egui_canvas_draw_line(region.location.x + margin, div1_y, region.location.x + w - margin, div1_y, 1, local->button_color, 60);
-        egui_canvas_draw_line(region.location.x + margin, div2_y, region.location.x + w - margin, div2_y, 1, local->button_color, 60);
+        egui_dim_t div1_y = mid_rect.location.y;
+        egui_dim_t div2_y = bottom_rect.location.y;
+
+        egui_canvas_draw_line(top_rect.location.x + margin, div1_y, top_rect.location.x + w - margin, div1_y, 1, local->button_color, 60);
+        egui_canvas_draw_line(top_rect.location.x + margin, div2_y, top_rect.location.x + w - margin, div2_y, 1, local->button_color, 60);
     }
 
     // Top 1/3: up arrow icon
     {
-        egui_region_t top_rect = {{region.location.x, region.location.y}, {w, third_h}};
-        const egui_font_t *icon_font = egui_view_number_picker_get_icon_font(local, EGUI_MIN(w, third_h) - 4);
-
-        // Press highlight overlay
-        if (self->is_pressed && local->pressed_zone == 1)
+        egui_view_number_picker_local_region_to_screen(self, &top_rect, &screen_rect);
+        if (egui_canvas_is_region_active(&screen_rect))
         {
-            egui_canvas_draw_fillrect(region.location.x, region.location.y, w, third_h, EGUI_COLOR_MAKE(255, 255, 255), 30);
+            const egui_font_t *icon_font = egui_view_number_picker_get_icon_font(local, EGUI_MIN(w, third_h) - 4);
+
+            if (self->is_pressed && local->pressed_zone == 1)
+            {
+                egui_canvas_draw_fillrect(top_rect.location.x, top_rect.location.y, top_rect.size.width, top_rect.size.height, EGUI_COLOR_MAKE(255, 255, 255), 30);
+            }
+            egui_canvas_draw_text_in_rect(icon_font, local->icon_inc, &top_rect, EGUI_ALIGN_CENTER, local->button_color, local->alpha);
         }
-        egui_canvas_draw_text_in_rect(icon_font, local->icon_inc, &top_rect, EGUI_ALIGN_CENTER, local->button_color, local->alpha);
     }
 
     // Middle 1/3: number text (between div1 and div2, using actual boundaries)
     {
-        egui_dim_t div1_y = region.location.y + third_h;
-        egui_dim_t div2_y = region.location.y + region.size.height - third_h;
-        egui_sprintf_int(local->text_buf, sizeof(local->text_buf), local->value);
-
-        egui_region_t mid_rect;
-        mid_rect.location.x = region.location.x;
-        mid_rect.location.y = div1_y;
-        mid_rect.size.width = w;
-        mid_rect.size.height = div2_y - div1_y;
-
-        if (local->font != NULL)
+        egui_view_number_picker_local_region_to_screen(self, &mid_rect, &screen_rect);
+        if (local->font != NULL && egui_canvas_is_region_active(&screen_rect))
         {
+            egui_sprintf_int(local->text_buf, sizeof(local->text_buf), local->value);
             egui_canvas_draw_text_in_rect(local->font, local->text_buf, &mid_rect, EGUI_ALIGN_CENTER, local->text_color, local->alpha);
         }
     }
 
     // Bottom 1/3: down arrow icon
     {
-        egui_dim_t zone_top = region.location.y + region.size.height - third_h;
-        egui_region_t bottom_rect = {{region.location.x, zone_top}, {w, third_h}};
-        const egui_font_t *icon_font = egui_view_number_picker_get_icon_font(local, EGUI_MIN(w, third_h) - 4);
-
-        // Press highlight overlay
-        if (self->is_pressed && local->pressed_zone == -1)
+        egui_view_number_picker_local_region_to_screen(self, &bottom_rect, &screen_rect);
+        if (egui_canvas_is_region_active(&screen_rect))
         {
-            egui_canvas_draw_fillrect(region.location.x, zone_top, w, third_h, EGUI_COLOR_MAKE(255, 255, 255), 30);
+            const egui_font_t *icon_font = egui_view_number_picker_get_icon_font(local, EGUI_MIN(w, third_h) - 4);
+
+            if (self->is_pressed && local->pressed_zone == -1)
+            {
+                egui_canvas_draw_fillrect(bottom_rect.location.x, bottom_rect.location.y, bottom_rect.size.width, bottom_rect.size.height,
+                                          EGUI_COLOR_MAKE(255, 255, 255), 30);
+            }
+            egui_canvas_draw_text_in_rect(icon_font, local->icon_dec, &bottom_rect, EGUI_ALIGN_CENTER, local->button_color, local->alpha);
         }
-        egui_canvas_draw_text_in_rect(icon_font, local->icon_dec, &bottom_rect, EGUI_ALIGN_CENTER, local->button_color, local->alpha);
     }
 }
 
@@ -202,9 +251,12 @@ int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_
     {
     case EGUI_MOTION_EVENT_ACTION_DOWN:
     {
-        egui_view_set_pressed(self, hit_zone != 0);
         local->pressed_zone = hit_zone;
-        egui_view_invalidate(self);
+        self->is_pressed = (hit_zone != 0);
+        if (hit_zone != 0)
+        {
+            egui_view_number_picker_invalidate_zone(self, hit_zone);
+        }
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_MOVE:
@@ -212,17 +264,20 @@ int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_
         int should_press = local->pressed_zone != 0 && hit_zone == local->pressed_zone;
         if (self->is_pressed != should_press)
         {
-            egui_view_set_pressed(self, should_press);
-            egui_view_invalidate(self);
+            self->is_pressed = should_press;
+            egui_view_number_picker_invalidate_zone(self, local->pressed_zone);
         }
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_UP:
     {
         int8_t pressed_zone = local->pressed_zone;
-        egui_view_set_pressed(self, false);
+        self->is_pressed = false;
         local->pressed_zone = 0;
-        egui_view_invalidate(self);
+        if (pressed_zone != 0)
+        {
+            egui_view_number_picker_invalidate_zone(self, pressed_zone);
+        }
 
         if (pressed_zone != hit_zone)
         {
@@ -253,9 +308,13 @@ int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_
     }
     case EGUI_MOTION_EVENT_ACTION_CANCEL:
     {
-        egui_view_set_pressed(self, false);
+        int8_t pressed_zone = local->pressed_zone;
+        self->is_pressed = false;
         local->pressed_zone = 0;
-        egui_view_invalidate(self);
+        if (pressed_zone != 0)
+        {
+            egui_view_number_picker_invalidate_zone(self, pressed_zone);
+        }
         break;
     }
     default:

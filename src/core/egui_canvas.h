@@ -125,6 +125,23 @@ __EGUI_STATIC_INLINE__ egui_region_t *egui_canvas_get_pfb_region(void)
     return &self->pfb_region;
 }
 
+__EGUI_STATIC_INLINE__ int egui_canvas_is_region_active(const egui_region_t *region)
+{
+    egui_canvas_t *self = &canvas_data;
+    egui_region_t active_region;
+
+    if (region == NULL)
+    {
+        return 0;
+    }
+
+    active_region = self->base_view_work_region;
+    active_region.location.x += self->pfb_region.location.x - self->pfb_location_in_base_view.x;
+    active_region.location.y += self->pfb_region.location.y - self->pfb_location_in_base_view.y;
+
+    return egui_region_is_intersect(&active_region, region);
+}
+
 // For speed, we check if the point is within the base_view_work_region before calling egui_canvas_draw_point_limit.
 __EGUI_STATIC_INLINE__ void egui_canvas_draw_point_limit_skip_mask(egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
 {
@@ -719,6 +736,7 @@ egui_mask_t *egui_canvas_get_mask(void);
 
 egui_region_t *egui_canvas_get_base_view_work_region(void);
 egui_region_t *egui_canvas_get_pfb_region(void);
+int egui_canvas_is_region_active(const egui_region_t *region);
 
 #include "egui_canvas_gradient.h"
 
