@@ -16,6 +16,7 @@ APP_SUB ?= button
 # APP_SUB ?= switch
 # APP_SUB ?= viewpage
 # APP_SUB ?= viewpage_cache
+# APP_SUB ?= virtual_page
 # APP_SUB ?= virtual_viewport
 # APP_SUB ?= mp4
 # APP_SUB ?= checkbox

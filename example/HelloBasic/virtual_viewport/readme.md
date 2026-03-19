@@ -104,6 +104,8 @@ egui_core_add_user_root_view(EGUI_VIEW_OF(&my_list));
 
 如果你的业务更像“一个页面里有很多 section”，直接用 `virtual_page` 更顺手。
 
+如果你想看完整可运行示例，可以直接参考 `example/HelloBasic/virtual_page/`。
+
 适合场景：
 
 - 首页聚合页
