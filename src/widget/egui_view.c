@@ -433,11 +433,19 @@ void egui_view_draw(egui_view_t *self)
     egui_activity_t *activity = egui_core_activity_get_by_view(self);
     if (activity)
     {
+#if EGUI_CONFIG_DEBUG_VIEW_ID
         EGUI_LOG_DBG("draw view id: %02d, visible: %d, name: %s, activity: %s\n", self->id, self->is_visible, self->name, activity->name);
+#else
+        EGUI_LOG_DBG("draw view visible: %d, name: %s, activity: %s\n", self->is_visible, self->name, activity->name);
+#endif
     }
     else
     {
+#if EGUI_CONFIG_DEBUG_VIEW_ID
         EGUI_LOG_DBG("draw view id: %02d, visible: %d, name: %s\n", self->id, self->is_visible, self->name);
+#else
+        EGUI_LOG_DBG("draw view visible: %d, name: %s\n", self->is_visible, self->name);
+#endif
     }
 #endif
 
@@ -653,7 +661,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_t) = {
 
 void egui_view_init(egui_view_t *self)
 {
+#if EGUI_CONFIG_DEBUG_VIEW_ID
     self->id = egui_core_get_unique_id();
+#endif
     self->parent = NULL; // set parent later
     self->node.next = NULL;
 

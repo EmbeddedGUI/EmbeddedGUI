@@ -8,6 +8,66 @@
 #include "shadow/egui_shadow.h"
 #endif
 
+extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t);
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+typedef struct egui_view_group_touch_state egui_view_group_touch_state_t;
+struct egui_view_group_touch_state
+{
+    uint8_t is_active;
+    uint8_t is_disallow_intercept;
+    uint8_t path_len;
+    egui_view_t *path[EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX];
+};
+
+static egui_view_group_touch_state_t egui_view_group_touch_state;
+
+static void egui_view_group_touch_state_reset(void)
+{
+    memset(&egui_view_group_touch_state, 0, sizeof(egui_view_group_touch_state));
+}
+
+static void egui_view_group_touch_state_set_path_entry(uint8_t depth, egui_view_t *view)
+{
+    if (depth >= EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX)
+    {
+        return;
+    }
+
+    egui_view_group_touch_state.path[depth] = view;
+    if (egui_view_group_touch_state.path_len < depth + 1)
+    {
+        egui_view_group_touch_state.path_len = depth + 1;
+    }
+}
+
+static void egui_view_group_touch_state_truncate(uint8_t path_len)
+{
+    if (path_len >= egui_view_group_touch_state.path_len)
+    {
+        return;
+    }
+
+    for (uint8_t i = path_len; i < egui_view_group_touch_state.path_len && i < EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX; i++)
+    {
+        egui_view_group_touch_state.path[i] = NULL;
+    }
+    egui_view_group_touch_state.path_len = path_len;
+}
+
+static int egui_view_group_touch_state_contains(egui_view_t *view)
+{
+    for (uint8_t i = 0; i < egui_view_group_touch_state.path_len && i < EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX; i++)
+    {
+        if (egui_view_group_touch_state.path[i] == view)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+#endif
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
 static int egui_view_group_layer_insert_cond(egui_dnode_t *dnode, void *data)
 {
@@ -33,11 +93,12 @@ void egui_view_group_add_child(egui_view_t *self, egui_view_t *child)
 void egui_view_group_remove_child(egui_view_t *self, egui_view_t *child)
 {
     EGUI_LOCAL_INIT(egui_view_group_t);
-    if (child == local->first_touch_target)
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    if (egui_view_group_touch_state_contains(child))
     {
-        // Clear.
-        local->first_touch_target = NULL;
+        egui_view_group_touch_state_reset();
     }
+#endif
     egui_dlist_remove(&child->node);
 }
 
@@ -45,6 +106,10 @@ void egui_view_group_clear_childs(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_group_t);
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    EGUI_UNUSED(self);
+    egui_view_group_touch_state_reset();
+#endif
     egui_dlist_init(&local->childs);
 }
 
@@ -67,8 +132,10 @@ egui_view_t *egui_view_group_get_first_child(egui_view_t *self)
 
 void egui_view_group_set_disallow_process_touch_event(egui_view_t *self, int disallow)
 {
-    EGUI_LOCAL_INIT(egui_view_group_t);
-    local->is_disallow_process_touch_event = disallow;
+    if (self->api == &EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t))
+    {
+        EGUI_CAST_TO(egui_view_root_group_t, self)->is_disallow_process_touch_event = disallow;
+    }
 }
 
 void egui_view_group_calculate_all_child_width(egui_view_t *self, egui_dim_t *width)
@@ -239,26 +306,23 @@ void egui_view_group_layout_childs(egui_view_t *self, uint8_t is_orientation_hor
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+static int egui_view_group_is_process_touch_event_disallowed(egui_view_t *self)
+{
+    if (self->api == &EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t))
+    {
+        return EGUI_CAST_TO(egui_view_root_group_t, self)->is_disallow_process_touch_event;
+    }
+    return 0;
+}
+
 void egui_view_group_request_disallow_intercept_touch_event(egui_view_t *self, int disallow)
 {
-    EGUI_LOCAL_INIT(egui_view_group_t);
-    // EGUI_LOG_DBG("egui_view_group_request_disallow_intercept_touch_event id: 0x%x, old: %d, new: %d\n", self->id, local->is_disallow_intercept, disallow);
-    if (local->is_disallow_intercept == disallow)
-    {
-        return;
-    }
-
-    local->is_disallow_intercept = disallow;
-
-    if (self->parent != NULL)
-    {
-        egui_view_group_request_disallow_intercept_touch_event((egui_view_t *)self->parent, disallow);
-    }
+    EGUI_UNUSED(self);
+    egui_view_group_touch_state.is_disallow_intercept = disallow;
 }
 
 int egui_view_group_dispatch_transformed_touch_event(egui_view_t *self, int is_canceled, egui_view_t *child, egui_motion_event_t *event)
 {
-    EGUI_LOCAL_INIT(egui_view_group_t);
     egui_motion_event_t transformed_event;
     memcpy(&transformed_event, event, sizeof(egui_motion_event_t));
 
@@ -266,7 +330,6 @@ int egui_view_group_dispatch_transformed_touch_event(egui_view_t *self, int is_c
     if (is_canceled)
     {
         transformed_event.type = EGUI_MOTION_EVENT_ACTION_CANCEL;
-        local->first_touch_target = NULL;
     }
 
     if (child != NULL)
@@ -294,112 +357,157 @@ int egui_view_group_on_intercept_touch_event(egui_view_t *self, egui_motion_even
     return 0;
 }
 
-int egui_view_group_dispatch_touch_event(egui_view_t *self, egui_motion_event_t *event)
+static int egui_view_dispatch_touch_event_capture(egui_view_t *self, egui_motion_event_t *event, uint8_t depth);
+static int egui_view_dispatch_touch_event_followup(egui_view_t *self, egui_motion_event_t *event, uint8_t depth);
+
+static int egui_view_group_dispatch_touch_event_capture_internal(egui_view_t *self, egui_motion_event_t *event, uint8_t depth)
 {
-    int is_handled = 0;
-    int is_intercepted = 0;
-    int is_already_dispatched_to_new_touch_target = 0;
-
-    // EGUI_LOG_DBG("egui_view_group_dispatch_touch_event id: 0x%x, %s\n", self->id, egui_motion_event_string(event->type));
     EGUI_LOCAL_INIT(egui_view_group_t);
+    int is_intercepted = 0;
 
-    // disallow process touch event if is_disallow_process_touch_event is 1.
-    if (local->is_disallow_process_touch_event)
+    if (egui_view_group_is_process_touch_event_disallowed(self))
     {
-        return is_handled;
+        return 0;
     }
 
-    // Step1: Check if the view group intercepts the touch event.
-    // If event type is ACTION_DOWN, or first_touch_target is set before(means the child view has already intercepted the event).
-    if ((event->type == EGUI_MOTION_EVENT_ACTION_DOWN) || (local->first_touch_target != NULL))
+    if (!egui_view_group_touch_state.is_disallow_intercept)
     {
-        // clear last touch target if event type is ACTION_DOWN.
-        if (event->type == EGUI_MOTION_EVENT_ACTION_DOWN)
-        {
-            local->first_touch_target = NULL;
-            local->is_disallow_intercept = 0;
-        }
-
-        // EGUI_LOG_DBG("egui_view_group_dispatch_touch_event id: 0x%x, disallow_intercept: %d\n", self->id, local->is_disallow_intercept);
-        if (!local->is_disallow_intercept)
-        {
-            is_intercepted = self->api->on_intercept_touch_event(self, event);
-        }
-        else
-        {
-            is_intercepted = 0;
-        }
-    }
-    else
-    {
-        // There are no touch targets and this action is not an initial down
-        // so this view group continues to intercept touches.
-        is_intercepted = 1;
+        is_intercepted = self->api->on_intercept_touch_event(self, event);
     }
 
-    int is_canceled = event->type == EGUI_MOTION_EVENT_ACTION_CANCEL;
-
-    // Step2: Dispatch the touch event to child views.
-    if (!is_canceled && !is_intercepted)
+    if (!is_intercepted && !egui_dlist_is_empty(&local->childs))
     {
         egui_dnode_t *p_head;
         egui_view_t *tmp;
 
-        if (event->type == EGUI_MOTION_EVENT_ACTION_DOWN)
+        EGUI_DLIST_FOR_EACH_NODE_REVERSE(&local->childs, p_head)
         {
-            // Find a child that can receive the event.
-            if (!egui_dlist_is_empty(&local->childs))
+            tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
+
+            if (!egui_region_pt_in_rect(&tmp->region_screen, event->location.x, event->location.y))
             {
-                // Scan children from trail to head.
-                EGUI_DLIST_FOR_EACH_NODE_REVERSE(&local->childs, p_head)
-                {
-                    tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
+                continue;
+            }
 
-                    // EGUI_LOG_DBG("found child id: 0x%x\n", tmp->id);
-                    // Check the point is in the child's region.
-                    if (!egui_region_pt_in_rect(&tmp->region_screen, event->location.x, event->location.y))
-                    {
-                        // EGUI_LOG_DBG("child not in region, id: 0x%x\n", tmp->id);
-                        continue;
-                    }
-
-                    // Dispatch the event to the child.
-                    if (egui_view_group_dispatch_transformed_touch_event(self, false, tmp, event))
-                    {
-                        // If a child can receive the event, set it as the first_touch_target.
-                        local->first_touch_target = tmp;
-                        is_already_dispatched_to_new_touch_target = 1;
-                        break;
-                    }
-                }
+            if (egui_view_dispatch_touch_event_capture(tmp, event, depth + 1))
+            {
+                egui_view_group_touch_state_set_path_entry(depth, self);
+                return 1;
             }
         }
     }
 
-    // EGUI_LOG_DBG("id: 0x%x, is_intercepted: %d, is_canceled: %d, is_handled: %d, first_touch_target: 0x%x\n", self->id, is_intercepted, is_canceled,
-    // is_handled,
-    //        local->first_touch_target);
-
-    // Step3: Check first_touch_target and dispatch the event to it.
-    if (local->first_touch_target == NULL)
+    int is_handled = egui_view_group_dispatch_transformed_touch_event(self, false, NULL, event);
+    if (is_handled)
     {
-        // If the first_touch_target is not set, just call egui_view_group_dispatch_transformed_touch_event, but not set child.
-        // If no child can receive the event, the egui_view_group_t will be handled by local on_touch_event.
-        is_handled = egui_view_group_dispatch_transformed_touch_event(self, is_canceled, NULL, event);
+        egui_view_group_touch_state_set_path_entry(depth, self);
     }
-    else
+    return is_handled;
+}
+
+static int egui_view_group_dispatch_touch_event_followup_internal(egui_view_t *self, egui_motion_event_t *event, uint8_t depth)
+{
+    int is_handled = 0;
+    int is_intercepted = 0;
+    int is_canceled = event->type == EGUI_MOTION_EVENT_ACTION_CANCEL;
+    egui_view_t *captured_child = NULL;
+
+    if (egui_view_group_is_process_touch_event_disallowed(self))
     {
-        // Dispatch to touch targets, excluding the new touch target if we already
-        // dispatched to it.  Cancel touch targets if necessary.
-        if (is_already_dispatched_to_new_touch_target)
+        return 0;
+    }
+
+    if (depth >= egui_view_group_touch_state.path_len || egui_view_group_touch_state.path[depth] != self)
+    {
+        return egui_view_group_dispatch_transformed_touch_event(self, is_canceled, NULL, event);
+    }
+
+    if (!is_canceled && !egui_view_group_touch_state.is_disallow_intercept)
+    {
+        is_intercepted = self->api->on_intercept_touch_event(self, event);
+    }
+
+    if (depth + 1 < egui_view_group_touch_state.path_len)
+    {
+        captured_child = egui_view_group_touch_state.path[depth + 1];
+    }
+
+    if (captured_child == NULL)
+    {
+        return egui_view_group_dispatch_transformed_touch_event(self, is_canceled, NULL, event);
+    }
+
+    if (is_intercepted)
+    {
+        egui_motion_event_t cancel_event;
+        memcpy(&cancel_event, event, sizeof(cancel_event));
+        cancel_event.type = EGUI_MOTION_EVENT_ACTION_CANCEL;
+
+        is_handled = egui_view_dispatch_touch_event_followup(captured_child, &cancel_event, depth + 1);
+        egui_view_group_touch_state_set_path_entry(depth, self);
+        egui_view_group_touch_state_truncate(depth + 1);
+        return is_handled;
+    }
+
+    return egui_view_dispatch_touch_event_followup(captured_child, event, depth + 1);
+}
+
+static int egui_view_dispatch_touch_event_capture(egui_view_t *self, egui_motion_event_t *event, uint8_t depth)
+{
+    if (self->api->dispatch_touch_event == egui_view_group_dispatch_touch_event)
+    {
+        return egui_view_group_dispatch_touch_event_capture_internal(self, event, depth);
+    }
+
+    int is_handled = self->api->dispatch_touch_event(self, event);
+    if (is_handled)
+    {
+        egui_view_group_touch_state_set_path_entry(depth, self);
+    }
+    return is_handled;
+}
+
+static int egui_view_dispatch_touch_event_followup(egui_view_t *self, egui_motion_event_t *event, uint8_t depth)
+{
+    if (self->api->dispatch_touch_event == egui_view_group_dispatch_touch_event)
+    {
+        return egui_view_group_dispatch_touch_event_followup_internal(self, event, depth);
+    }
+
+    return self->api->dispatch_touch_event(self, event);
+}
+
+int egui_view_group_dispatch_touch_event(egui_view_t *self, egui_motion_event_t *event)
+{
+    int is_handled = 0;
+
+    if (event->type == EGUI_MOTION_EVENT_ACTION_DOWN)
+    {
+        egui_view_group_touch_state_reset();
+        is_handled = egui_view_group_dispatch_touch_event_capture_internal(self, event, 0);
+        egui_view_group_touch_state.is_active = is_handled && egui_view_group_touch_state.path_len > 0;
+        if (!egui_view_group_touch_state.is_active)
         {
-            is_handled = 1;
+            egui_view_group_touch_state_reset();
         }
-        else
-        {
-            int cancelChild = is_intercepted;
-            is_handled = egui_view_group_dispatch_transformed_touch_event(self, cancelChild, local->first_touch_target, event);
-        }
+        return is_handled;
+    }
+
+    if (!egui_view_group_touch_state.is_active)
+    {
+        return egui_view_group_dispatch_transformed_touch_event(self, event->type == EGUI_MOTION_EVENT_ACTION_CANCEL, NULL, event);
+    }
+
+    if (egui_view_group_touch_state.path_len == 0 || egui_view_group_touch_state.path[0] != self)
+    {
+        return 0;
+    }
+
+    is_handled = egui_view_group_dispatch_touch_event_followup_internal(self, event, 0);
+
+    if (event->type == EGUI_MOTION_EVENT_ACTION_UP || event->type == EGUI_MOTION_EVENT_ACTION_CANCEL)
+    {
+        egui_view_group_touch_state_reset();
     }
 
     return is_handled;
@@ -447,6 +555,8 @@ int egui_view_group_on_touch_event(egui_view_t *self, egui_motion_event_t *event
 
 void egui_view_group_request_disallow_intercept_touch_event(egui_view_t *self, int disallow)
 {
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(disallow);
 }
 
 int egui_view_group_dispatch_transformed_touch_event(egui_view_t *self, int is_canceled, egui_view_t *child, egui_motion_event_t *event)
@@ -692,6 +802,23 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_group_t) = {
 #endif
 };
 
+const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t) = {
+        .dispatch_touch_event = egui_view_group_dispatch_touch_event,
+        .on_touch_event = egui_view_group_on_touch_event,
+        .on_intercept_touch_event = egui_view_group_on_intercept_touch_event,
+        .compute_scroll = egui_view_group_compute_scroll,
+        .calculate_layout = egui_view_group_calculate_layout,
+        .request_layout = egui_view_group_request_layout,
+        .draw = egui_view_group_draw,
+        .on_attach_to_window = egui_view_group_on_attach_to_window,
+        .on_draw = egui_view_on_draw,
+        .on_detach_from_window = egui_view_group_on_detach_from_window,
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+        .dispatch_key_event = egui_view_group_dispatch_key_event,
+        .on_key_event = egui_view_on_key_event,
+#endif
+};
+
 void egui_view_group_init(egui_view_t *self)
 {
     EGUI_INIT_LOCAL(egui_view_group_t);
@@ -700,14 +827,21 @@ void egui_view_group_init(egui_view_t *self)
     // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_group_t);
 
-    // init local data.
-    local->first_touch_target = NULL;
-    local->is_disallow_intercept = 0;
-    local->is_disallow_process_touch_event = 0;
     // init childs list.
     egui_dlist_init(&local->childs);
 
     egui_view_set_view_name(self, "egui_view_group");
+}
+
+void egui_view_root_group_init(egui_view_t *self)
+{
+    EGUI_INIT_LOCAL(egui_view_root_group_t);
+
+    egui_view_group_init(self);
+    self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t);
+    local->is_disallow_process_touch_event = 0;
+
+    egui_view_set_view_name(self, "egui_view_root_group");
 }
 
 void egui_view_group_apply_params(egui_view_t *self, const egui_view_group_params_t *params)

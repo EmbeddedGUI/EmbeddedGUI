@@ -28,7 +28,9 @@ struct egui_core
     int pfb_width_count;  // width of frame buffer count in screen width
     int pfb_height_count; // height of frame buffer count in screen width
 
+#if EGUI_CONFIG_DEBUG_VIEW_ID
     uint16_t unique_id; // unique id count
+#endif
 
     egui_dlist_t activitys; // list of activitys
     egui_slist_t anims;     // list of animation
@@ -47,8 +49,8 @@ struct egui_core
 
     egui_toast_t *toast; // toast
 
-    egui_view_group_t root_view_group;      // root view group
-    egui_view_group_t user_root_view_group; // user root view group
+    egui_view_root_group_t root_view_group;      // root view group
+    egui_view_root_group_t user_root_view_group; // user root view group
 
     egui_region_t region_dirty_arr[EGUI_CONFIG_DIRTY_AREA_COUNT]; // dirty region of screen
 
@@ -84,7 +86,9 @@ void egui_core_process_input_motion(egui_motion_event_t *motion_event);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 void egui_core_process_input_key(egui_key_event_t *key_event);
 #endif
+#if EGUI_CONFIG_DEBUG_VIEW_ID
 uint16_t egui_core_get_unique_id(void);
+#endif
 void egui_core_refresh_screen(void);
 void egui_core_stop_auto_refresh_screen(void);
 egui_color_int_t *egui_core_get_pfb_buffer_ptr(void);

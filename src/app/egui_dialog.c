@@ -136,7 +136,7 @@ void egui_dialog_init(egui_dialog_t *self)
     self->is_cancel_on_touch_outside = true;
 
     // root view group
-    egui_view_group_init((egui_view_t *)&self->root_view); // init view group
+    egui_view_root_group_init((egui_view_t *)&self->root_view); // init view group
     egui_view_set_position((egui_view_t *)&self->root_view, 0, 0);
     egui_view_set_size((egui_view_t *)&self->root_view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 
@@ -147,7 +147,7 @@ void egui_dialog_init(egui_dialog_t *self)
     egui_view_set_on_click_listener((egui_view_t *)&self->root_view, bg_click_cb);
 
     // user view group
-    egui_view_group_init((egui_view_t *)&self->user_root_view); // init view group
+    egui_view_root_group_init((egui_view_t *)&self->user_root_view); // init view group
     egui_view_set_position((egui_view_t *)&self->user_root_view, 0, 0);
     egui_view_set_size((egui_view_t *)&self->user_root_view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 

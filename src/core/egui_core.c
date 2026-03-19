@@ -41,7 +41,7 @@ static egui_color_int_t egui_rotation_scratch[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFI
 
 egui_view_group_t *egui_core_get_root_view(void)
 {
-    return &egui_core.root_view_group;
+    return (egui_view_group_t *)&egui_core.root_view_group;
 }
 
 void egui_core_add_root_view(egui_view_t *view)
@@ -168,7 +168,7 @@ void egui_core_force_refresh(void)
 
 egui_view_group_t *egui_core_get_user_root_view(void)
 {
-    return &egui_core.user_root_view_group;
+    return (egui_view_group_t *)&egui_core.user_root_view_group;
 }
 
 void egui_core_add_user_root_view(egui_view_t *view)
@@ -218,7 +218,7 @@ void egui_core_draw_data(egui_region_t *p_region)
 
 void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode)
 {
-    egui_view_group_t *view_group = &egui_core.root_view_group;
+    egui_view_group_t *view_group = (egui_view_group_t *)&egui_core.root_view_group;
     egui_dim_t x, y, x_pos, y_pos;
     egui_dim_t x_pos_base = p_region_dirty->location.x;
     egui_dim_t y_pos_base = p_region_dirty->location.y;
@@ -353,10 +353,12 @@ void egui_core_process_input_key(egui_key_event_t *key_event)
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 
+#if EGUI_CONFIG_DEBUG_VIEW_ID
 uint16_t egui_core_get_unique_id(void)
 {
     return egui_core.unique_id++;
 }
+#endif
 
 #if EGUI_CONFIG_DEBUG_INFO_SHOW
 static uint32_t debug_last_work_time = 0;
@@ -447,7 +449,7 @@ int egui_check_need_refresh(void)
 
 void egui_core_draw_view_group_pre_work(void)
 {
-    egui_view_group_t *view_group = &egui_core.root_view_group;
+    egui_view_group_t *view_group = (egui_view_group_t *)&egui_core.root_view_group;
 
     // Calculate the layout of the view group
     view_group->base.api->compute_scroll((egui_view_t *)view_group);
@@ -720,7 +722,9 @@ void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HE
     }
 
     // reset the unique id
+#if EGUI_CONFIG_DEBUG_VIEW_ID
     egui_core.unique_id = 0;
+#endif
     egui_core.is_suspended = 1; // Start suspended; user calls egui_screen_on() when ready
 
     egui_timer_init();
@@ -753,11 +757,11 @@ void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HE
     egui_core.toast = NULL;
 
     // Initialize the root view group
-    egui_view_group_init((egui_view_t *)&egui_core.root_view_group);
+    egui_view_root_group_init((egui_view_t *)&egui_core.root_view_group);
     egui_view_set_position((egui_view_t *)&egui_core.root_view_group, 0, 0);
     egui_view_set_size((egui_view_t *)&egui_core.root_view_group, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 
-    egui_view_group_init((egui_view_t *)&egui_core.user_root_view_group);
+    egui_view_root_group_init((egui_view_t *)&egui_core.user_root_view_group);
     egui_view_set_position((egui_view_t *)&egui_core.user_root_view_group, 0, 0);
     egui_view_set_size((egui_view_t *)&egui_core.user_root_view_group, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 

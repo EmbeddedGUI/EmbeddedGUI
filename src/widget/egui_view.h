@@ -69,8 +69,10 @@ typedef void (*egui_view_on_focus_change_listener_t)(egui_view_t *self, int is_f
 
 struct egui_view
 {
+#if EGUI_CONFIG_DEBUG_VIEW_ID
     // id is used to identify the view, it should be unique in the view tree, and it is only for debugging purpose.
     uint16_t id; // ID of the view
+#endif
 
     uint8_t is_enable : 1;         // whether the view is enabled
     uint8_t is_visible : 1;        // whether the view is visible

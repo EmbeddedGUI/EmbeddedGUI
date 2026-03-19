@@ -89,7 +89,7 @@ void egui_core_dialog_finish(egui_dialog_t *self)
     }
 
     // refresh the screen
-    egui_core_update_region_dirty(&self->root_view.base.region);
+    egui_core_update_region_dirty(&self->root_view.base.base.region);
 }
 
 static void on_dialog_anim_start_end(egui_animation_t *self)

@@ -39,8 +39,8 @@ struct egui_dialog
     uint8_t is_need_finish;             // is need finish the dialog
     uint8_t is_cancel_on_touch_outside; // is cancel the dialog when touch outside
 
-    egui_view_group_t root_view;      // view of the dialog
-    egui_view_group_t user_root_view; // view of the dialog
+    egui_view_root_group_t root_view;      // view of the dialog
+    egui_view_root_group_t user_root_view; // view of the dialog
 
     egui_activity_t *bind_activity; // activity of the dialog
 

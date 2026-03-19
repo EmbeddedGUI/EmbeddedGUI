@@ -39,7 +39,7 @@ struct egui_activity
     uint8_t state;          // state of the activity
     uint8_t is_need_finish; // is need finish the activity
 
-    egui_view_group_t root_view; // view of the activity
+    egui_view_root_group_t root_view; // view of the activity
 
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
     const char *name; // name of the view

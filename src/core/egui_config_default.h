@@ -124,6 +124,14 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH 0
 #endif
 
+/**
+ * Touch dispatch options.
+ * Maximum captured view depth tracked for an active touch sequence.
+ */
+#ifndef EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX
+#define EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX 32
+#endif
+
 // Multi-touch requires single-touch
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
 #undef EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -474,6 +482,14 @@ extern "C" {
  */
 #ifndef EGUI_CONFIG_REDUCE_MARGIN_PADDING_SIZE
 #define EGUI_CONFIG_REDUCE_MARGIN_PADDING_SIZE 1
+#endif
+
+/**
+ * Debug options.
+ * Allocate a per-view unique id for debugging and tracing only.
+ */
+#ifndef EGUI_CONFIG_DEBUG_VIEW_ID
+#define EGUI_CONFIG_DEBUG_VIEW_ID 0
 #endif
 
 /**

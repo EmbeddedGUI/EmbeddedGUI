@@ -152,6 +152,30 @@ static void test_vg_release_over_sibling_does_not_trigger_click(void)
     EGUI_TEST_ASSERT_EQUAL_INT(0, g_child1_click_count);
     EGUI_TEST_ASSERT_EQUAL_INT(0, g_child2_click_count);
 }
+
+static void test_vg_return_to_original_target_restores_click(void)
+{
+    test_view_group_setup_touch_children();
+
+    EGUI_TEST_ASSERT_TRUE(test_view_group_send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, 20, 20));
+    EGUI_TEST_ASSERT_TRUE(test_child1.is_pressed);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_child1_click_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_child2_click_count);
+
+    EGUI_TEST_ASSERT_TRUE(test_view_group_send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, 140, 20));
+    EGUI_TEST_ASSERT_FALSE(test_child1.is_pressed);
+    EGUI_TEST_ASSERT_FALSE(test_child2.is_pressed);
+
+    EGUI_TEST_ASSERT_TRUE(test_view_group_send_touch(EGUI_MOTION_EVENT_ACTION_MOVE, 20, 20));
+    EGUI_TEST_ASSERT_TRUE(test_child1.is_pressed);
+    EGUI_TEST_ASSERT_FALSE(test_child2.is_pressed);
+
+    EGUI_TEST_ASSERT_TRUE(test_view_group_send_touch(EGUI_MOTION_EVENT_ACTION_UP, 20, 20));
+    EGUI_TEST_ASSERT_FALSE(test_child1.is_pressed);
+    EGUI_TEST_ASSERT_FALSE(test_child2.is_pressed);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_child1_click_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_child2_click_count);
+}
 #endif
 
 void test_view_group_run(void)
@@ -166,6 +190,7 @@ void test_view_group_run(void)
     EGUI_TEST_RUN(test_vg_clear_childs);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_vg_release_over_sibling_does_not_trigger_click);
+    EGUI_TEST_RUN(test_vg_return_to_original_target_restores_click);
 #endif
 
     EGUI_TEST_SUITE_END();

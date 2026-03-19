@@ -118,7 +118,7 @@ void egui_activity_init(egui_activity_t *self)
     self->is_need_finish = false;
 
     egui_dlist_init(&self->node);
-    egui_view_group_init((egui_view_t *)&self->root_view); // init view group
+    egui_view_root_group_init((egui_view_t *)&self->root_view); // init view group
     egui_view_set_position((egui_view_t *)&self->root_view, 0, 0);
     egui_view_set_size((egui_view_t *)&self->root_view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 

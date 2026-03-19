@@ -12,11 +12,15 @@ struct egui_view_group
 {
     egui_view_t base;
 
-    uint8_t is_disallow_intercept;           // if set, the group will not intercept touch events
-    uint8_t is_disallow_process_touch_event; // if set, the group will not process touch events
+    egui_dlist_t childs; // used for child views
+};
 
-    egui_view_t *first_touch_target; // used for touch event handling
-    egui_dlist_t childs;             // used for child views
+typedef struct egui_view_root_group egui_view_root_group_t;
+struct egui_view_root_group
+{
+    egui_view_group_t base;
+
+    uint8_t is_disallow_process_touch_event; // if set, the root group will not process touch events
 };
 
 // ============== Group Params ==============
@@ -57,6 +61,7 @@ void egui_view_group_draw(egui_view_t *self);
 void egui_view_group_request_layout(egui_view_t *self);
 void egui_view_group_calculate_layout(egui_view_t *self);
 void egui_view_group_init(egui_view_t *self);
+void egui_view_root_group_init(egui_view_t *self);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 int egui_view_group_dispatch_key_event(egui_view_t *self, egui_key_event_t *event);
