@@ -1,120 +1,163 @@
-# Virtual Viewport / Virtual List
+# Virtual Viewport / Virtual List / Virtual Page
 
-## 这个示例现在演示什么
+## 这个示例在展示什么
 
-这个示例已经不是单一的大列表，而是一个多场景演示页，用同一套 `virtual_list` / `virtual_viewport` 能力覆盖三类常见业务：
+这个示例不是单一大列表，而是一个多场景演示页，用同一套虚拟化底座覆盖三类常见业务：
 
 - `Feed`
-  - 1000+ 条监控流 / 遥测流
-  - 不同卡片高度
-  - 脉冲动画和 keepalive
-  - 点击后展开，触发 `notify_item_resized`
+  - 1000+ 条监控流 / 动态卡片
+  - 不同 item 高度
+  - 点击展开
+  - 脉冲动画 + keepalive
 - `Chat`
-  - 对话流 / 消息时间线
+  - 对话流 / 时间线
   - 左右不同气泡布局
-  - 未读 / typing 状态
+  - typing / unread 状态
   - 程序化跳转到指定消息
 - `Ops`
   - 任务队列 / 工单流
   - 进度条、告警态、完成态
-  - 插入、删除、移动、更新都可视化演示
+  - 插入、删除、移动、刷新后的稳定滚动
 
-## 顶部按钮对应的能力
+顶部按钮 `Feed / Chat / Ops` 用来切换数据模型。  
+工具按钮 `Add / Del / Move / Patch / Jump` 分别对应插入、删除、移动、局部更新和跳转。
 
-- 场景按钮 `Feed / Chat / Ops`
-  - 切换整套数据模型
-  - 示例里会调用 `egui_view_virtual_list_notify_data_changed()`
-- 操作按钮 `Add / Del / Move / Patch / Jump`
-  - `Add`
-    - 插入一条新 item
-    - 对应 `notify_item_inserted`
-  - `Del`
-    - 删除当前 item
-    - 对应 `notify_item_removed`
-  - `Move`
-    - 调整 item 位置
-    - 对应 `notify_item_moved`
-  - `Patch`
-    - 更新文本、状态、尺寸
-    - 对应 `notify_item_changed + notify_item_resized`
-  - `Jump`
-    - 程序化滚动到目标 item
-    - 对应 `scroll_to_item`
+## 这套能力解决什么问题
 
-## 这个示例重点验证了什么
+- 子 view 只在进入可见区时创建和绑定
+- 槽位数被限制在 `EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS`
+- 支持超过 1000 个 item
+- 支持 item 高度变化、位置变化、插入删除移动
+- 支持点击，能确认具体点击到了哪个 item
+- 支持动画场景下的 keepalive，避免频繁销毁导致状态丢失
 
-- item 只在进入可见区时创建和绑定
-- slot 数量被限制在 `EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS`
-- item 高度可变
-- item 可点击，能确认具体点击到了哪个 index
-- item 动画不会因为普通复用而频繁丢失
-- 选中项和关键状态项通过 `should_keep_alive` 保活
-- 数据插入、删除、移动、刷新后，列表仍能稳定工作
+## 推荐怎么用
 
-## 最小接入步骤
+### 1. 普通纵向列表优先用 `virtual_list`
 
-### 1. 定义 adapter
+`virtual_list` 是面向“行列表”的轻量封装，适合大多数 feed、chat、task、timeline 场景。
 
-至少实现：
+最少只需要实现：
 
 - `get_count`
-- `create_view`
-- `bind_view`
+- `create_item_view`
+- `bind_item_view`
 
-建议同时实现：
+常见可选能力：
 
 - `get_stable_id`
 - `find_index_by_stable_id`
-- `measure_main_size`
-- `unbind_view`
+- `measure_item_height`
+- `unbind_item_view`
 - `should_keep_alive`
 
-### 2. 初始化 `virtual_list`
+默认行为：
+
+- 不实现 `get_view_type` 时，默认 `view_type = 0`
+- 不实现 `measure_item_height` 时，默认返回 `estimated_item_height`
+- 不实现 `find_index_by_stable_id` 但实现了 `get_stable_id` 时，框架会自动线性查找
+- 两者都不实现时，默认 stable id 为 `index + 1`
 
 ```c
 static egui_view_virtual_list_t my_list;
 
+static const egui_view_virtual_list_data_source_t my_data_source = {
+        .get_count = my_get_count,
+        .get_stable_id = my_get_stable_id,
+        .measure_item_height = my_measure_item_height,
+        .create_item_view = my_create_item_view,
+        .bind_item_view = my_bind_item_view,
+        .should_keep_alive = my_should_keep_alive,
+};
+
 EGUI_VIEW_VIRTUAL_LIST_PARAMS_INIT(my_list_params, 8, 40, 224, 272);
 
 egui_view_virtual_list_init_with_params(EGUI_VIEW_OF(&my_list), &my_list_params);
-egui_view_virtual_list_set_adapter(EGUI_VIEW_OF(&my_list), &my_adapter, &my_context);
+egui_view_virtual_list_set_data_source(EGUI_VIEW_OF(&my_list), &my_data_source, &my_context);
 egui_view_virtual_list_set_estimated_item_height(EGUI_VIEW_OF(&my_list), 72);
 egui_view_virtual_list_set_overscan(EGUI_VIEW_OF(&my_list), 1, 1);
 egui_view_virtual_list_set_keepalive_limit(EGUI_VIEW_OF(&my_list), 4);
 egui_core_add_user_root_view(EGUI_VIEW_OF(&my_list));
 ```
 
-### 3. 只创建“槽位 view”
+### 2. 长页面 / section 容器优先用 `virtual_page`
 
-不要给每个数据项都真的创建一个 view。
+如果你的业务更像“一个页面里有很多 section”，而不是一行一行的列表，直接用 `virtual_page` 会更顺手。
 
-正确方式是：
+适合场景：
 
-- 只创建最多 `EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS` 个 view
+- 首页聚合页
+- 详情页
+- 配置页
+- 表单页
+- 多 section dashboard
+
+它底层仍然复用同一个 `virtual_viewport`，但接口语义从 `item` 换成了 `section`。
+
+```c
+static egui_view_virtual_page_t dashboard_page;
+
+static const egui_view_virtual_page_data_source_t dashboard_sections = {
+        .get_count = dashboard_get_section_count,
+        .get_stable_id = dashboard_get_section_id,
+        .measure_section_height = dashboard_measure_section_height,
+        .create_section_view = dashboard_create_section_view,
+        .bind_section_view = dashboard_bind_section_view,
+        .should_keep_alive = dashboard_should_keep_alive,
+};
+
+EGUI_VIEW_VIRTUAL_PAGE_PARAMS_INIT(dashboard_page_params, 8, 8, 224, 304);
+
+egui_view_virtual_page_init_with_params(EGUI_VIEW_OF(&dashboard_page), &dashboard_page_params);
+egui_view_virtual_page_set_data_source(EGUI_VIEW_OF(&dashboard_page), &dashboard_sections, &dashboard_ctx);
+egui_view_virtual_page_set_estimated_section_height(EGUI_VIEW_OF(&dashboard_page), 96);
+egui_view_virtual_page_set_keepalive_limit(EGUI_VIEW_OF(&dashboard_page), 4);
+egui_core_add_user_root_view(EGUI_VIEW_OF(&dashboard_page));
+```
+
+### 3. 只有在这些场景下再直接用 `virtual_viewport`
+
+- 需要横向主轴或更底层控制
+- 需要直接操作 viewport adapter
+- 需要完全自定义生命周期桥接
+
+## 一个关键原则：只创建“槽位 view”
+
+不要给每个数据项都真实创建一个 view。  
+正确做法是：
+
+- 最多只创建 `EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS` 个槽位 view
 - 滚动时复用这些 view
-- 在 `bind_view` 里把当前数据重新绑定到槽位 view
+- 在 `bind_item_view` 或 `bind_section_view` 里重新绑定当前数据
 
-### 4. 高度变化时显式通知
+## 高度变化后要显式通知
 
-如果 item 高度会变化，adapter 里实现 `measure_main_size`，然后在业务状态变化后调用：
+如果高度会变化，业务状态更新后需要通知虚拟容器重新计算锚点和布局。
+
+列表场景：
 
 ```c
 egui_view_virtual_list_notify_item_resized(EGUI_VIEW_OF(&my_list), index);
 ```
 
-## 关于动画和状态保留
+页面场景：
 
-如果 item 只是纯展示，可以直接复用。
+```c
+egui_view_virtual_page_notify_section_resized(EGUI_VIEW_OF(&dashboard_page), index);
+```
 
+## 动画和状态怎么保住
+
+如果 item 只是纯展示，直接复用即可。  
 如果 item 内部存在下面这些状态，建议配合 `stable_id + should_keep_alive`：
 
 - 动画正在播放
-- 输入态 / 编辑态还没结束
+- 输入态 / 编辑态未结束
 - 焦点停留在该 item
 - 手势过程还没结束
-- 你希望该 item 滚出屏幕后回来仍是同一个 view 实例
+- 你希望它滚出屏幕后回来仍然是同一个 view 实例
 
-本例里：
+本示例里：
 
 - 选中 item 会 keepalive
 - `Feed` 里的 live / warn 行会 keepalive
@@ -127,4 +170,6 @@ egui_view_virtual_list_notify_item_resized(EGUI_VIEW_OF(&my_list), index);
 - `src/widget/egui_view_virtual_viewport.c`
 - `src/widget/egui_view_virtual_list.h`
 - `src/widget/egui_view_virtual_list.c`
+- `src/widget/egui_view_virtual_page.h`
+- `src/widget/egui_view_virtual_page.c`
 - `example/HelloBasic/virtual_viewport/test.c`

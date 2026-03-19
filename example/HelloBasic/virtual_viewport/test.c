@@ -1354,14 +1354,7 @@ static int32_t demo_adapter_find_index_by_stable_id(void *adapter_context, uint3
     return -1;
 }
 
-static uint16_t demo_get_view_type(void *adapter_context, uint32_t index)
-{
-    EGUI_UNUSED(adapter_context);
-    EGUI_UNUSED(index);
-    return 0;
-}
-
-static int32_t demo_measure_main_size(void *adapter_context, uint32_t index, int32_t cross_size_hint)
+static int32_t demo_measure_item_height(void *adapter_context, uint32_t index, int32_t cross_size_hint)
 {
     demo_virtual_viewport_context_t *ctx = (demo_virtual_viewport_context_t *)adapter_context;
 
@@ -1374,7 +1367,7 @@ static int32_t demo_measure_main_size(void *adapter_context, uint32_t index, int
     return demo_get_item_height_by_stable_id(ctx->items[index].stable_id);
 }
 
-static egui_view_t *demo_create_view(void *adapter_context, uint16_t view_type)
+static egui_view_t *demo_create_item_view(void *adapter_context, uint16_t view_type)
 {
     demo_virtual_viewport_context_t *ctx = (demo_virtual_viewport_context_t *)adapter_context;
     demo_virtual_row_t *row;
@@ -1429,7 +1422,7 @@ static egui_view_t *demo_create_view(void *adapter_context, uint16_t view_type)
     return EGUI_VIEW_OF(&row->root);
 }
 
-static void demo_bind_view(void *adapter_context, egui_view_t *view, uint32_t index, uint32_t stable_id)
+static void demo_bind_item_view(void *adapter_context, egui_view_t *view, uint32_t index, uint32_t stable_id)
 {
     demo_virtual_row_t *row = demo_find_row_by_root_view(view);
 
@@ -1445,7 +1438,7 @@ static void demo_bind_view(void *adapter_context, egui_view_t *view, uint32_t in
     demo_bind_row_text(row, index, stable_id);
 }
 
-static void demo_unbind_view(void *adapter_context, egui_view_t *view, uint32_t stable_id)
+static void demo_unbind_item_view(void *adapter_context, egui_view_t *view, uint32_t stable_id)
 {
     demo_virtual_row_t *row = demo_find_row_by_root_view(view);
 
@@ -1483,19 +1476,19 @@ static uint8_t demo_should_keep_alive(void *adapter_context, egui_view_t *view, 
     return demo_item_should_keepalive(&ctx->items[index]);
 }
 
-static const egui_view_virtual_list_adapter_t viewport_adapter = {
+static const egui_view_virtual_list_data_source_t viewport_data_source = {
         .get_count = demo_get_count,
         .get_stable_id = demo_get_stable_id,
         .find_index_by_stable_id = demo_adapter_find_index_by_stable_id,
-        .get_view_type = demo_get_view_type,
-        .measure_main_size = demo_measure_main_size,
-        .create_view = demo_create_view,
-        .destroy_view = NULL,
-        .bind_view = demo_bind_view,
-        .unbind_view = demo_unbind_view,
+        .measure_item_height = demo_measure_item_height,
+        .create_item_view = demo_create_item_view,
+        .destroy_item_view = NULL,
+        .bind_item_view = demo_bind_item_view,
+        .unbind_item_view = demo_unbind_item_view,
         .should_keep_alive = demo_should_keep_alive,
-        .save_state = NULL,
-        .restore_state = NULL,
+        .save_item_state = NULL,
+        .restore_item_state = NULL,
+        .default_view_type = 0,
 };
 
 static int demo_find_scene_button_index(egui_view_t *self)
@@ -1742,7 +1735,7 @@ void test_init_ui(void)
     egui_view_virtual_list_init_with_params(EGUI_VIEW_OF(&viewport_1), &viewport_1_params);
     egui_view_set_background(EGUI_VIEW_OF(&viewport_1), EGUI_BG_OF(&list_bg));
     egui_view_set_shadow(EGUI_VIEW_OF(&viewport_1), &demo_card_shadow);
-    egui_view_virtual_list_set_adapter(EGUI_VIEW_OF(&viewport_1), &viewport_adapter, &viewport_context);
+    egui_view_virtual_list_set_data_source(EGUI_VIEW_OF(&viewport_1), &viewport_data_source, &viewport_context);
     egui_view_virtual_list_set_estimated_item_height(EGUI_VIEW_OF(&viewport_1), 72);
     egui_view_virtual_list_set_overscan(EGUI_VIEW_OF(&viewport_1), 1, 1);
     egui_view_virtual_list_set_keepalive_limit(EGUI_VIEW_OF(&viewport_1), 4);
