@@ -125,19 +125,18 @@ __EGUI_STATIC_INLINE__ egui_alpha_t ellipse_get_edge_alpha(egui_dim_t px, egui_d
 }
 
 /**
- * @brief Fast edge alpha using precomputed gradient magnitude from the scanline boundary.
+ * @brief Fast edge alpha using precomputed reciprocal of gradient magnitude.
  *
- * Avoids the expensive isqrt64 per pixel by reusing the gradient magnitude
- * computed once at the boundary point. The gradient changes slowly across the
- * few AA edge pixels (typically 1-3 pixels), so using a reference gradient
- * provides virtually identical visual quality.
+ * Avoids the expensive 64-bit division per pixel by using a reciprocal
+ * pre-computed once per scanline: inv_grad_q24 = (128 << 24) / grad_half_ref.
+ * dist_q8 = (f_val * inv_grad_q24) >> 24  鈮? f_val * 128 / grad_half_ref.
  */
 __EGUI_STATIC_INLINE__ egui_alpha_t ellipse_get_edge_alpha_fast(egui_dim_t px, egui_dim_t py, int32_t rx_sq, int32_t ry_sq, int64_t rxry_sq,
-                                                                uint64_t grad_half_ref)
+                                                                int64_t inv_grad_q24)
 {
     int64_t f_val = (int64_t)px * px * ry_sq + (int64_t)py * py * rx_sq - rxry_sq;
 
-    int64_t dist_q8 = f_val * 128 / (int64_t)grad_half_ref;
+    int64_t dist_q8 = (f_val * inv_grad_q24) >> 24;
 
     if (dist_q8 < -128)
     {
@@ -240,6 +239,7 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
         // at the scanline boundary. Reuse grad_half for edge AA.
         int32_t dx_inner = 0;
         uint64_t grad_half_ref = 1;
+        int64_t inv_grad_q24 = (int64_t)128 << 24; // reciprocal of grad_half_ref, default for grad=1
         if (dx_max > 0)
         {
             int64_t f_at_boundary = (int64_t)dx_max * dx_max * ry_sq + dy_term - rxry_sq;
@@ -250,6 +250,7 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
             {
                 grad_half_ref = 1;
             }
+            inv_grad_q24 = ((int64_t)128 << 24) / (int64_t)grad_half_ref;
             int64_t f_plus_grad = (int64_t)grad_half_ref + f_at_boundary;
 
             if (f_plus_grad <= 0)
@@ -317,7 +318,7 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
                     continue;
                 }
                 egui_dim_t abs_dx = EGUI_ABS(dx);
-                egui_alpha_t cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, rx_sq, ry_sq, rxry_sq, grad_half_ref);
+                egui_alpha_t cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, rx_sq, ry_sq, rxry_sq, inv_grad_q24);
                 if (cov > 0)
                 {
                     egui_alpha_t m = egui_color_alpha_mix(eff_alpha, cov);
@@ -345,7 +346,7 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
                     continue;
                 }
                 egui_dim_t abs_dx = EGUI_ABS(dx);
-                egui_alpha_t cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, rx_sq, ry_sq, rxry_sq, grad_half_ref);
+                egui_alpha_t cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, rx_sq, ry_sq, rxry_sq, inv_grad_q24);
                 if (cov > 0)
                 {
                     egui_alpha_t m = egui_color_alpha_mix(eff_alpha, cov);
@@ -377,7 +378,7 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
             for (egui_dim_t dx = scan_left; dx < inner_left; dx++)
             {
                 egui_dim_t abs_dx = EGUI_ABS(dx);
-                egui_alpha_t cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, rx_sq, ry_sq, rxry_sq, grad_half_ref);
+                egui_alpha_t cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, rx_sq, ry_sq, rxry_sq, inv_grad_q24);
                 if (cov > 0)
                 {
                     egui_alpha_t mix = egui_color_alpha_mix(alpha, cov);
@@ -392,7 +393,7 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
             for (egui_dim_t dx = inner_right + 1; dx <= scan_right; dx++)
             {
                 egui_dim_t abs_dx = EGUI_ABS(dx);
-                egui_alpha_t cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, rx_sq, ry_sq, rxry_sq, grad_half_ref);
+                egui_alpha_t cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, rx_sq, ry_sq, rxry_sq, inv_grad_q24);
                 if (cov > 0)
                 {
                     egui_alpha_t mix = egui_color_alpha_mix(alpha, cov);
@@ -510,6 +511,7 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
 
         // Precompute grad_half_ref for outer ellipse at boundary
         uint64_t o_grad_half_ref = 1;
+        int64_t o_inv_grad_q24 = (int64_t)128 << 24;
         if (o_dx_max > 0)
         {
             int64_t ogx = (int64_t)o_dx_max * ory_sq;
@@ -519,19 +521,21 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
             {
                 o_grad_half_ref = 1;
             }
+            o_inv_grad_q24 = ((int64_t)128 << 24) / (int64_t)o_grad_half_ref;
         }
 
         // Precompute grad_half_ref for inner ellipse at boundary
-        uint64_t i_grad_half_ref = 1;
+        int64_t i_inv_grad_q24 = (int64_t)128 << 24;
         if (i_dx_max > 0 && irx > 0 && iry > 0)
         {
             int64_t igx = (int64_t)i_dx_max * iry_sq;
             int64_t igy = (int64_t)abs_dy * irx_sq;
-            i_grad_half_ref = ellipse_isqrt64((uint64_t)(igx * igx + igy * igy));
+            uint64_t i_grad_half_ref = ellipse_isqrt64((uint64_t)(igx * igx + igy * igy));
             if (i_grad_half_ref == 0)
             {
                 i_grad_half_ref = 1;
             }
+            i_inv_grad_q24 = ((int64_t)128 << 24) / (int64_t)i_grad_half_ref;
         }
 
         // Only iterate over the stroke band: [-(o_dx_scan+1), -(i_dx_max-1)] and [(i_dx_max-1), (o_dx_scan+1)]
@@ -551,7 +555,7 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
             {
                 egui_dim_t abs_dx = EGUI_ABS(dx);
 
-                egui_alpha_t outer_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, orx_sq, ory_sq, orxry_sq, o_grad_half_ref);
+                egui_alpha_t outer_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, orx_sq, ory_sq, orxry_sq, o_inv_grad_q24);
                 if (outer_cov == 0)
                 {
                     continue;
@@ -560,7 +564,7 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
                 egui_alpha_t inner_cov = 0;
                 if (irx > 0 && iry > 0 && abs_dx <= irx && abs_dy <= iry)
                 {
-                    inner_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, irx_sq, iry_sq, irxry_sq, i_grad_half_ref);
+                    inner_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, irx_sq, iry_sq, irxry_sq, i_inv_grad_q24);
                 }
 
                 if (outer_cov > inner_cov)
@@ -592,7 +596,7 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
             {
                 egui_dim_t abs_dx = EGUI_ABS(dx);
 
-                egui_alpha_t outer_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, orx_sq, ory_sq, orxry_sq, o_grad_half_ref);
+                egui_alpha_t outer_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, orx_sq, ory_sq, orxry_sq, o_inv_grad_q24);
                 if (outer_cov == 0)
                 {
                     continue;
@@ -601,7 +605,7 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
                 egui_alpha_t inner_cov = 0;
                 if (irx > 0 && iry > 0 && abs_dx <= irx && abs_dy <= iry)
                 {
-                    inner_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, irx_sq, iry_sq, irxry_sq, i_grad_half_ref);
+                    inner_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, irx_sq, iry_sq, irxry_sq, i_inv_grad_q24);
                 }
 
                 if (outer_cov > inner_cov)
@@ -632,7 +636,7 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
             {
                 egui_dim_t abs_dx = EGUI_ABS(dx);
 
-                egui_alpha_t outer_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, orx_sq, ory_sq, orxry_sq, o_grad_half_ref);
+                egui_alpha_t outer_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, orx_sq, ory_sq, orxry_sq, o_inv_grad_q24);
                 if (outer_cov == 0)
                 {
                     continue;
@@ -641,7 +645,7 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
                 egui_alpha_t inner_cov = 0;
                 if (irx > 0 && iry > 0 && abs_dx <= irx && abs_dy <= iry)
                 {
-                    inner_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, irx_sq, iry_sq, irxry_sq, i_grad_half_ref);
+                    inner_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, irx_sq, iry_sq, irxry_sq, i_inv_grad_q24);
                 }
 
                 if (outer_cov > inner_cov)
@@ -665,7 +669,7 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
             {
                 egui_dim_t abs_dx = EGUI_ABS(dx);
 
-                egui_alpha_t outer_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, orx_sq, ory_sq, orxry_sq, o_grad_half_ref);
+                egui_alpha_t outer_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, orx_sq, ory_sq, orxry_sq, o_inv_grad_q24);
                 if (outer_cov == 0)
                 {
                     continue;
@@ -674,7 +678,7 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
                 egui_alpha_t inner_cov = 0;
                 if (irx > 0 && iry > 0 && abs_dx <= irx && abs_dy <= iry)
                 {
-                    inner_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, irx_sq, iry_sq, irxry_sq, i_grad_half_ref);
+                    inner_cov = ellipse_get_edge_alpha_fast(abs_dx, abs_dy, irx_sq, iry_sq, irxry_sq, i_inv_grad_q24);
                 }
 
                 if (outer_cov > inner_cov)
