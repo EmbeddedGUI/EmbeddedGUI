@@ -24,7 +24,7 @@ static const egui_image_std_info_t egui_res_image_test_perf_480_ext_rgb565_0_bin
     .data_buf = (void *)EGUI_EXT_RES_ID_EGUI_RES_IMAGE_TEST_PERF_480_EXT_RGB565_0_DATA,
     .alpha_buf = (void *)NULL,
     .data_type = EGUI_IMAGE_DATA_TYPE_RGB565,
-    .alpha_type = EGUI_IMAGE_ALPHA_TYPE_8,
+    .alpha_type = EGUI_IMAGE_ALPHA_TYPE_1,
     .res_type = EGUI_RESOURCE_TYPE_EXTERNAL,
     .width = 480,
     .height = 480,

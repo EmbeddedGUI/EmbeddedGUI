@@ -332,8 +332,29 @@ void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_
     int32_t outer_w = stroke_width + 2;
     int64_t outer_thresh = (int64_t)outer_w * outer_w * line_len_sq / 4;
 
+    // Pre-compute inner threshold (constant for all pixels)
+    int32_t inner_w = stroke_width - 2;
+    int64_t inner_thresh = 0;
+    if (inner_w > 0)
+    {
+        inner_thresh = (int64_t)inner_w * inner_w * line_len_sq / 4;
+    }
+
+    // Direct PFB write setup
+    int use_direct_pfb = (self->mask == NULL);
+    egui_dim_t pfb_width = self->pfb_region.size.width;
+    egui_dim_t pfb_ofs_x = self->pfb_location_in_base_view.x;
+    egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
+    egui_alpha_t self_alpha = self->alpha;
+
     for (egui_dim_t py = scan_y1; py <= scan_y2; py++)
     {
+        egui_color_t *dst_row = NULL;
+        if (use_direct_pfb)
+        {
+            dst_row = (egui_color_t *)&self->pfb[(py - pfb_ofs_y) * pfb_width];
+        }
+
         for (egui_dim_t px = scan_x1; px <= scan_x2; px++)
         {
             // Fast rejection: check if pixel is near the line
@@ -353,15 +374,29 @@ void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_
             }
 
             // Inner zone: fully inside the stroke, skip sampling
-            int32_t inner_w = stroke_width - 2;
-            if (inner_w > 0)
+            if (inner_w > 0 && cross_sq <= inner_thresh && dot >= 0 && dot <= line_len_sq)
             {
-                int64_t inner_thresh = (int64_t)inner_w * inner_w * line_len_sq / 4;
-                if (cross_sq <= inner_thresh && dot >= 0 && dot <= line_len_sq)
+                if (use_direct_pfb)
+                {
+                    egui_alpha_t eff = egui_color_alpha_mix(self_alpha, alpha);
+                    if (eff != 0)
+                    {
+                        egui_color_t *dst = &dst_row[px - pfb_ofs_x];
+                        if (eff == EGUI_ALPHA_100)
+                        {
+                            *dst = color;
+                        }
+                        else
+                        {
+                            egui_rgb_mix_ptr(dst, &color, dst, eff);
+                        }
+                    }
+                }
+                else
                 {
                     egui_canvas_draw_point(px, py, color, alpha);
-                    continue;
                 }
+                continue;
             }
 
             // Edge zone: sub-pixel sampling
@@ -371,7 +406,26 @@ void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_
                 egui_alpha_t m = egui_color_alpha_mix(alpha, cov);
                 if (m > 0)
                 {
-                    egui_canvas_draw_point(px, py, color, m);
+                    if (use_direct_pfb)
+                    {
+                        egui_alpha_t eff = egui_color_alpha_mix(self_alpha, m);
+                        if (eff != 0)
+                        {
+                            egui_color_t *dst = &dst_row[px - pfb_ofs_x];
+                            if (eff == EGUI_ALPHA_100)
+                            {
+                                *dst = color;
+                            }
+                            else
+                            {
+                                egui_rgb_mix_ptr(dst, &color, dst, eff);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        egui_canvas_draw_point(px, py, color, m);
+                    }
                 }
             }
         }
@@ -473,8 +527,21 @@ void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t
     int32_t inner_w = stroke_width - 2;
     int64_t inner_thresh = (inner_w > 0) ? (int64_t)inner_w * inner_w * line_len_sq / 4 : 0;
 
+    // Direct PFB write setup
+    int use_direct_pfb = (self->mask == NULL);
+    egui_dim_t pfb_width = self->pfb_region.size.width;
+    egui_dim_t pfb_ofs_x = self->pfb_location_in_base_view.x;
+    egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
+    egui_alpha_t self_alpha = self->alpha;
+
     for (egui_dim_t py = scan_y1; py <= scan_y2; py++)
     {
+        egui_color_t *dst_row = NULL;
+        if (use_direct_pfb)
+        {
+            dst_row = (egui_color_t *)&self->pfb[(py - pfb_ofs_y) * pfb_width];
+        }
+
         for (egui_dim_t px = scan_x1; px <= scan_x2; px++)
         {
             int64_t cross = (int64_t)dx * (y1 - py) - (int64_t)(x1 - px) * dy;
@@ -492,7 +559,26 @@ void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t
                 // Inner zone fast path
                 if (inner_w > 0 && cross_sq <= inner_thresh)
                 {
-                    egui_canvas_draw_point(px, py, color, alpha);
+                    if (use_direct_pfb)
+                    {
+                        egui_alpha_t eff = egui_color_alpha_mix(self_alpha, alpha);
+                        if (eff != 0)
+                        {
+                            egui_color_t *dst = &dst_row[px - pfb_ofs_x];
+                            if (eff == EGUI_ALPHA_100)
+                            {
+                                *dst = color;
+                            }
+                            else
+                            {
+                                egui_rgb_mix_ptr(dst, &color, dst, eff);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        egui_canvas_draw_point(px, py, color, alpha);
+                    }
                     continue;
                 }
             }
@@ -526,7 +612,26 @@ void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t
                 egui_alpha_t m = egui_color_alpha_mix(alpha, cov);
                 if (m > 0)
                 {
-                    egui_canvas_draw_point(px, py, color, m);
+                    if (use_direct_pfb)
+                    {
+                        egui_alpha_t eff = egui_color_alpha_mix(self_alpha, m);
+                        if (eff != 0)
+                        {
+                            egui_color_t *dst = &dst_row[px - pfb_ofs_x];
+                            if (eff == EGUI_ALPHA_100)
+                            {
+                                *dst = color;
+                            }
+                            else
+                            {
+                                egui_rgb_mix_ptr(dst, &color, dst, eff);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        egui_canvas_draw_point(px, py, color, m);
+                    }
                 }
             }
         }
@@ -637,8 +742,21 @@ static void line_hq_draw_polyline_internal(const egui_dim_t *points, uint8_t cou
         int32_t margin = stroke_width * stroke_width;
         int32_t half_w_sq = (stroke_width * stroke_width) / 4 + stroke_width + 1;
 
+        // Direct PFB write setup
+        int use_direct_pfb = (self->mask == NULL);
+        egui_dim_t pfb_width = self->pfb_region.size.width;
+        egui_dim_t pfb_ofs_x = self->pfb_location_in_base_view.x;
+        egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
+        egui_alpha_t self_alpha = self->alpha;
+
         for (egui_dim_t py = scan_y1; py <= scan_y2; py++)
         {
+            egui_color_t *dst_row = NULL;
+            if (use_direct_pfb)
+            {
+                dst_row = (egui_color_t *)&self->pfb[(py - pfb_ofs_y) * pfb_width];
+            }
+
             for (egui_dim_t px = scan_x1; px <= scan_x2; px++)
             {
                 int64_t cross = (int64_t)dx * (sy1 - py) - (int64_t)(sx1 - px) * dy;
@@ -703,7 +821,26 @@ static void line_hq_draw_polyline_internal(const egui_dim_t *points, uint8_t cou
                     // Inner zone fast path
                     if (inner_w > 0 && cross_sq <= inner_thresh)
                     {
-                        egui_canvas_draw_point(px, py, color, alpha);
+                        if (use_direct_pfb)
+                        {
+                            egui_alpha_t eff = egui_color_alpha_mix(self_alpha, alpha);
+                            if (eff != 0)
+                            {
+                                egui_color_t *dst = &dst_row[px - pfb_ofs_x];
+                                if (eff == EGUI_ALPHA_100)
+                                {
+                                    *dst = color;
+                                }
+                                else
+                                {
+                                    egui_rgb_mix_ptr(dst, &color, dst, eff);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            egui_canvas_draw_point(px, py, color, alpha);
+                        }
                         continue;
                     }
                 }
@@ -734,7 +871,26 @@ static void line_hq_draw_polyline_internal(const egui_dim_t *points, uint8_t cou
                     egui_alpha_t m = egui_color_alpha_mix(alpha, cov);
                     if (m > 0)
                     {
-                        egui_canvas_draw_point(px, py, color, m);
+                        if (use_direct_pfb)
+                        {
+                            egui_alpha_t eff = egui_color_alpha_mix(self_alpha, m);
+                            if (eff != 0)
+                            {
+                                egui_color_t *dst = &dst_row[px - pfb_ofs_x];
+                                if (eff == EGUI_ALPHA_100)
+                                {
+                                    *dst = color;
+                                }
+                                else
+                                {
+                                    egui_rgb_mix_ptr(dst, &color, dst, eff);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            egui_canvas_draw_point(px, py, color, m);
+                        }
                     }
                 }
             }

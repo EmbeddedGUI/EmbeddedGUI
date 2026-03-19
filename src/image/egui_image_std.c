@@ -327,12 +327,22 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_row(egui_color_in
 
     while (i < count)
     {
+        // Word-level transparent skip (4 bytes at a time)
+        while (i + 4 <= count && *(const uint32_t *)&src_alpha_row[i] == 0x00000000)
+        {
+            i += 4;
+        }
         while (i < count && src_alpha_row[i] == 0)
         {
             i++;
         }
 
+        // Word-level opaque run detection (4 bytes at a time)
         egui_dim_t opaque_start = i;
+        while (i + 4 <= count && *(const uint32_t *)&src_alpha_row[i] == 0xFFFFFFFF)
+        {
+            i += 4;
+        }
         while (i < count && src_alpha_row[i] == EGUI_ALPHA_100)
         {
             i++;
@@ -409,25 +419,114 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_image_std_get_alpha_rgb565_4_row(const 
 __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha4_mapped_row(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
                                                                           const egui_dim_t *src_x_map, egui_dim_t count, egui_alpha_t canvas_alpha)
 {
-    for (egui_dim_t i = 0; i < count; i++)
-    {
-        egui_dim_t src_x = src_x_map[i];
-        egui_alpha_t alpha = egui_color_alpha_mix(canvas_alpha, egui_image_std_get_alpha_rgb565_4_row(src_alpha_row, src_x));
+    egui_dim_t i = 0;
 
-        if (alpha == 0)
+    while (i < count)
+    {
+        while (i < count && egui_image_std_get_alpha_rgb565_4_row(src_alpha_row, src_x_map[i]) == 0)
         {
+            i++;
+        }
+
+        egui_dim_t opaque_start = i;
+        while (i < count && egui_image_std_get_alpha_rgb565_4_row(src_alpha_row, src_x_map[i]) == EGUI_ALPHA_100)
+        {
+            i++;
+        }
+
+        if (opaque_start < i)
+        {
+            egui_image_std_blend_rgb565_mapped_row(&dst_row[opaque_start], src_row, &src_x_map[opaque_start], i - opaque_start, canvas_alpha);
             continue;
         }
 
-        if (alpha == EGUI_ALPHA_100)
+        if (i < count)
         {
-            dst_row[i] = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
+            egui_alpha_t alpha = egui_color_alpha_mix(canvas_alpha, egui_image_std_get_alpha_rgb565_4_row(src_alpha_row, src_x_map[i]));
+            if (alpha != 0)
+            {
+                egui_color_t color;
+                color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x_map[i]]);
+                egui_image_std_blend_resize_pixel(&dst_row[i], color, alpha);
+            }
+            i++;
+        }
+    }
+}
+
+// Row-level blend with opaque-run batch copy for 4-bit alpha.
+// Typical images have opaque interiors: 0xFF byte = 2 pixels both fully opaque.
+__EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha4_row(egui_color_int_t *dst_row, const uint16_t *src_pixels, const uint8_t *alpha_buf,
+                                                                   egui_dim_t start_col, egui_dim_t count, egui_alpha_t canvas_alpha)
+{
+    egui_dim_t end_col = start_col + count;
+    egui_dim_t col = start_col;
+    egui_dim_t dst_i = 0;
+
+    // Handle leading unaligned pixel (if start_col is odd)
+    if ((col & 1) && col < end_col)
+    {
+        egui_alpha_t alpha = egui_color_alpha_mix(canvas_alpha, egui_image_std_get_alpha_rgb565_4_row(alpha_buf, col));
+        if (alpha != 0)
+        {
+            egui_color_t c;
+            c.full = EGUI_COLOR_RGB565_TRANS(src_pixels[col]);
+            egui_image_std_blend_resize_pixel(&dst_row[dst_i], c, alpha);
+        }
+        col++;
+        dst_i++;
+    }
+
+    // Process byte-aligned ranges (2 pixels per byte, 0xFF = both fully opaque)
+    while (col + 2 <= end_col)
+    {
+        uint8_t ab = alpha_buf[col >> 1];
+        if (ab == 0xFF)
+        {
+            // Both pixels fully opaque - find run of consecutive all-opaque bytes
+            egui_dim_t run_start_col = col;
+            egui_dim_t run_start_dst = dst_i;
+            do
+            {
+                col += 2;
+                dst_i += 2;
+            } while (col + 2 <= end_col && alpha_buf[col >> 1] == 0xFF);
+            // Batch copy entire opaque run
+            egui_image_std_blend_rgb565_row(&dst_row[run_start_dst], &src_pixels[run_start_col], col - run_start_col, canvas_alpha);
+        }
+        else if (ab == 0x00)
+        {
+            // Both transparent - skip
+            col += 2;
+            dst_i += 2;
         }
         else
         {
-            egui_color_t color;
-            color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
-            egui_image_std_blend_resize_pixel(&dst_row[i], color, alpha);
+            // Mixed byte - process individual pixels
+            for (int p = 0; p < 2; p++)
+            {
+                egui_alpha_t alpha = egui_color_alpha_mix(canvas_alpha, egui_image_std_get_alpha_rgb565_4_row(alpha_buf, col));
+                if (alpha != 0)
+                {
+                    egui_color_t c;
+                    c.full = EGUI_COLOR_RGB565_TRANS(src_pixels[col]);
+                    egui_image_std_blend_resize_pixel(&dst_row[dst_i], c, alpha);
+                }
+                col++;
+                dst_i++;
+            }
+        }
+    }
+
+    // Handle trailing pixel
+    if (col < end_col)
+    {
+        egui_alpha_t alpha = egui_color_alpha_mix(canvas_alpha, egui_image_std_get_alpha_rgb565_4_row(alpha_buf, col));
+        if (alpha != 0)
+        {
+            egui_color_t c;
+            c.full = EGUI_COLOR_RGB565_TRANS(src_pixels[col]);
+            egui_image_std_blend_resize_pixel(&dst_row[dst_i], c, alpha);
         }
     }
 }
@@ -445,26 +544,117 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_image_std_get_alpha_rgb565_2_row(const 
 __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha2_mapped_row(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
                                                                           const egui_dim_t *src_x_map, egui_dim_t count, egui_alpha_t canvas_alpha)
 {
-    for (egui_dim_t i = 0; i < count; i++)
-    {
-        egui_dim_t src_x = src_x_map[i];
-        egui_alpha_t alpha = egui_color_alpha_mix(canvas_alpha, egui_image_std_get_alpha_rgb565_2_row(src_alpha_row, src_x));
+    egui_dim_t i = 0;
 
-        if (alpha == 0)
+    while (i < count)
+    {
+        while (i < count && egui_image_std_get_alpha_rgb565_2_row(src_alpha_row, src_x_map[i]) == 0)
         {
+            i++;
+        }
+
+        egui_dim_t opaque_start = i;
+        while (i < count && egui_image_std_get_alpha_rgb565_2_row(src_alpha_row, src_x_map[i]) == EGUI_ALPHA_100)
+        {
+            i++;
+        }
+
+        if (opaque_start < i)
+        {
+            egui_image_std_blend_rgb565_mapped_row(&dst_row[opaque_start], src_row, &src_x_map[opaque_start], i - opaque_start, canvas_alpha);
             continue;
         }
 
-        if (alpha == EGUI_ALPHA_100)
+        if (i < count)
         {
-            dst_row[i] = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
+            egui_alpha_t alpha = egui_color_alpha_mix(canvas_alpha, egui_image_std_get_alpha_rgb565_2_row(src_alpha_row, src_x_map[i]));
+            if (alpha != 0)
+            {
+                egui_color_t color;
+                color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x_map[i]]);
+                egui_image_std_blend_resize_pixel(&dst_row[i], color, alpha);
+            }
+            i++;
+        }
+    }
+}
+
+// Row-level blend with opaque-run batch copy for 2-bit alpha.
+// Typical images have opaque interiors: 0xFF byte = 4 pixels all fully opaque.
+__EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha2_row(egui_color_int_t *dst_row, const uint16_t *src_pixels, const uint8_t *alpha_buf,
+                                                                   egui_dim_t start_col, egui_dim_t count, egui_alpha_t canvas_alpha)
+{
+    egui_dim_t end_col = start_col + count;
+    egui_dim_t col = start_col;
+    egui_dim_t dst_i = 0;
+
+    // Handle leading unaligned pixels until 4-pixel (byte) boundary
+    while (col < end_col && (col & 3))
+    {
+        egui_alpha_t alpha = egui_color_alpha_mix(canvas_alpha, egui_image_std_get_alpha_rgb565_2_row(alpha_buf, col));
+        if (alpha != 0)
+        {
+            egui_color_t c;
+            c.full = EGUI_COLOR_RGB565_TRANS(src_pixels[col]);
+            egui_image_std_blend_resize_pixel(&dst_row[dst_i], c, alpha);
+        }
+        col++;
+        dst_i++;
+    }
+
+    // Process byte-aligned ranges (4 pixels per byte, 0xFF = all fully opaque)
+    while (col + 4 <= end_col)
+    {
+        uint8_t ab = alpha_buf[col >> 2];
+        if (ab == 0xFF)
+        {
+            // All 4 pixels fully opaque - find run of consecutive all-opaque bytes
+            egui_dim_t run_start_col = col;
+            egui_dim_t run_start_dst = dst_i;
+            do
+            {
+                col += 4;
+                dst_i += 4;
+            } while (col + 4 <= end_col && alpha_buf[col >> 2] == 0xFF);
+            // Batch copy entire opaque run
+            egui_image_std_blend_rgb565_row(&dst_row[run_start_dst], &src_pixels[run_start_col], col - run_start_col, canvas_alpha);
+        }
+        else if (ab == 0x00)
+        {
+            // All transparent - skip
+            col += 4;
+            dst_i += 4;
         }
         else
         {
-            egui_color_t color;
-            color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
-            egui_image_std_blend_resize_pixel(&dst_row[i], color, alpha);
+            // Mixed byte - process individual pixels
+            for (int p = 0; p < 4; p++)
+            {
+                egui_alpha_t alpha = egui_color_alpha_mix(canvas_alpha, egui_image_std_get_alpha_rgb565_2_row(alpha_buf, col));
+                if (alpha != 0)
+                {
+                    egui_color_t c;
+                    c.full = EGUI_COLOR_RGB565_TRANS(src_pixels[col]);
+                    egui_image_std_blend_resize_pixel(&dst_row[dst_i], c, alpha);
+                }
+                col++;
+                dst_i++;
+            }
         }
+    }
+
+    // Handle trailing pixels
+    while (col < end_col)
+    {
+        egui_alpha_t alpha = egui_color_alpha_mix(canvas_alpha, egui_image_std_get_alpha_rgb565_2_row(alpha_buf, col));
+        if (alpha != 0)
+        {
+            egui_color_t c;
+            c.full = EGUI_COLOR_RGB565_TRANS(src_pixels[col]);
+            egui_image_std_blend_resize_pixel(&dst_row[dst_i], c, alpha);
+        }
+        col++;
+        dst_i++;
     }
 }
 #endif
@@ -478,26 +668,114 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_image_std_get_alpha_rgb565_1_row(const 
 __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha1_mapped_row(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
                                                                           const egui_dim_t *src_x_map, egui_dim_t count, egui_alpha_t canvas_alpha)
 {
-    for (egui_dim_t i = 0; i < count; i++)
-    {
-        egui_dim_t src_x = src_x_map[i];
-        egui_alpha_t alpha = egui_color_alpha_mix(canvas_alpha, egui_image_std_get_alpha_rgb565_1_row(src_alpha_row, src_x));
+    egui_dim_t i = 0;
 
-        if (alpha == 0)
+    while (i < count)
+    {
+        while (i < count && egui_image_std_get_alpha_rgb565_1_row(src_alpha_row, src_x_map[i]) == 0)
         {
+            i++;
+        }
+
+        egui_dim_t opaque_start = i;
+        while (i < count && egui_image_std_get_alpha_rgb565_1_row(src_alpha_row, src_x_map[i]) == EGUI_ALPHA_100)
+        {
+            i++;
+        }
+
+        if (opaque_start < i)
+        {
+            egui_image_std_blend_rgb565_mapped_row(&dst_row[opaque_start], src_row, &src_x_map[opaque_start], i - opaque_start, canvas_alpha);
             continue;
         }
 
-        if (alpha == EGUI_ALPHA_100)
+        if (i < count)
         {
-            dst_row[i] = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
+            egui_alpha_t alpha = egui_color_alpha_mix(canvas_alpha, egui_image_std_get_alpha_rgb565_1_row(src_alpha_row, src_x_map[i]));
+            if (alpha != 0)
+            {
+                egui_color_t color;
+                color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x_map[i]]);
+                egui_image_std_blend_resize_pixel(&dst_row[i], color, alpha);
+            }
+            i++;
+        }
+    }
+}
+
+// Row-level blend with opaque-run batch copy for 1-bit alpha.
+// Typical images have opaque interiors: 0xFF byte = 8 pixels all fully opaque.
+__EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha1_row(egui_color_int_t *dst_row, const uint16_t *src_pixels, const uint8_t *alpha_buf,
+                                                                   egui_dim_t start_col, egui_dim_t count, egui_alpha_t canvas_alpha)
+{
+    egui_dim_t end_col = start_col + count;
+    egui_dim_t col = start_col;
+    egui_dim_t dst_i = 0;
+
+    // Handle leading unaligned bits until 8-pixel (byte) boundary
+    while (col < end_col && (col & 7))
+    {
+        if ((alpha_buf[col >> 3] >> (col & 7)) & 1)
+        {
+            egui_color_t c;
+            c.full = EGUI_COLOR_RGB565_TRANS(src_pixels[col]);
+            egui_image_std_blend_resize_pixel(&dst_row[dst_i], c, canvas_alpha);
+        }
+        col++;
+        dst_i++;
+    }
+
+    // Process byte-aligned ranges (8 pixels per byte, 0xFF = all fully opaque)
+    while (col + 8 <= end_col)
+    {
+        uint8_t ab = alpha_buf[col >> 3];
+        if (ab == 0xFF)
+        {
+            // All 8 pixels fully opaque - find run of consecutive all-opaque bytes
+            egui_dim_t run_start_col = col;
+            egui_dim_t run_start_dst = dst_i;
+            do
+            {
+                col += 8;
+                dst_i += 8;
+            } while (col + 8 <= end_col && alpha_buf[col >> 3] == 0xFF);
+            // Batch copy entire opaque run
+            egui_image_std_blend_rgb565_row(&dst_row[run_start_dst], &src_pixels[run_start_col], col - run_start_col, canvas_alpha);
+        }
+        else if (ab == 0x00)
+        {
+            // All 8 pixels transparent - skip
+            col += 8;
+            dst_i += 8;
         }
         else
         {
-            egui_color_t color;
-            color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
-            egui_image_std_blend_resize_pixel(&dst_row[i], color, alpha);
+            // Mixed byte - process individual bits
+            for (int bit = 0; bit < 8; bit++)
+            {
+                if ((ab >> bit) & 1)
+                {
+                    egui_color_t c;
+                    c.full = EGUI_COLOR_RGB565_TRANS(src_pixels[col]);
+                    egui_image_std_blend_resize_pixel(&dst_row[dst_i], c, canvas_alpha);
+                }
+                col++;
+                dst_i++;
+            }
         }
+    }
+
+    // Handle trailing unaligned bits
+    while (col < end_col)
+    {
+        if ((alpha_buf[col >> 3] >> (col & 7)) & 1)
+        {
+            egui_color_t c;
+            c.full = EGUI_COLOR_RGB565_TRANS(src_pixels[col]);
+            egui_image_std_blend_resize_pixel(&dst_row[dst_i], c, canvas_alpha);
+        }
+        col++;
+        dst_i++;
     }
 }
 #endif
@@ -1178,10 +1456,10 @@ void egui_image_std_set_image_rgb565_4(const egui_image_t *self, egui_dim_t x, e
     {
         egui_dim_t rr_sy = y_base + y_;
         // Check mask row range BEFORE loading data (avoids wasted I/O for extern resources)
+        egui_dim_t rr_x_start = 0, rr_x_end = 0;
         int rr_res = -1; // -1 = no mask or no row_range API
         if (canvas->mask != NULL && canvas->mask->api->mask_get_row_range != NULL)
         {
-            egui_dim_t rr_x_start, rr_x_end;
             rr_res = canvas->mask->api->mask_get_row_range(canvas->mask, rr_sy, x_base + x, x_base + x_total, &rr_x_start, &rr_x_end);
             if (rr_res == EGUI_MASK_ROW_OUTSIDE)
             {
@@ -1216,42 +1494,64 @@ void egui_image_std_set_image_rgb565_4(const egui_image_t *self, egui_dim_t x, e
 
         if (canvas->mask != NULL)
         {
-            for (egui_dim_t x_ = x; x_ < x_total; x_++)
+            if (rr_res == EGUI_MASK_ROW_INSIDE)
             {
-                egui_image_std_get_col_pixel_rgb565_4(p_data, p_alpha, x_, &color, &alpha);
+                // Fast path: row fully inside mask - direct PFB access with batch copy
+                egui_alpha_t canvas_alpha = canvas->alpha;
+                egui_dim_t pfb_width = canvas->pfb_region.size.width;
+                egui_dim_t dst_x_start = (x_base + x) - canvas->pfb_location_in_base_view.x;
+                egui_dim_t dst_y = rr_sy - canvas->pfb_location_in_base_view.y;
+                egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x_start];
 
-                /* change to real position in canvas. */
-                egui_canvas_draw_point_limit((x_base + x_), (y_base + y_), color, alpha);
+                egui_image_std_blend_rgb565_alpha4_row(dst_row, (const uint16_t *)p_data, (const uint8_t *)p_alpha, x, x_total - x, canvas_alpha);
+            }
+            else if (rr_res == EGUI_MASK_ROW_PARTIAL)
+            {
+                egui_dim_t rr_img_xs = rr_x_start - x_base;
+                egui_dim_t rr_img_xe = rr_x_end - x_base;
+                // Left edge: per-pixel with mask
+                for (egui_dim_t x_ = x; x_ < rr_img_xs; x_++)
+                {
+                    egui_image_std_get_col_pixel_rgb565_4(p_data, p_alpha, x_, &color, &alpha);
+                    egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
+                }
+                // Middle: direct PFB access with batch copy
+                {
+                    egui_alpha_t canvas_alpha = canvas->alpha;
+                    egui_dim_t pfb_width = canvas->pfb_region.size.width;
+                    egui_dim_t dst_x = rr_x_start - canvas->pfb_location_in_base_view.x;
+                    egui_dim_t dst_y = rr_sy - canvas->pfb_location_in_base_view.y;
+                    egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x];
+
+                    egui_image_std_blend_rgb565_alpha4_row(dst_row, (const uint16_t *)p_data, (const uint8_t *)p_alpha, rr_img_xs, rr_img_xe - rr_img_xs,
+                                                           canvas_alpha);
+                }
+                // Right edge: per-pixel with mask
+                for (egui_dim_t x_ = rr_img_xe; x_ < x_total; x_++)
+                {
+                    egui_image_std_get_col_pixel_rgb565_4(p_data, p_alpha, x_, &color, &alpha);
+                    egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
+                }
+            }
+            else
+            {
+                for (egui_dim_t x_ = x; x_ < x_total; x_++)
+                {
+                    egui_image_std_get_col_pixel_rgb565_4(p_data, p_alpha, x_, &color, &alpha);
+                    egui_canvas_draw_point_limit((x_base + x_), (y_base + y_), color, alpha);
+                }
             }
         }
         else
         {
-            // Fast path: direct PFB access, no mask
+            // Fast path: direct PFB access with opaque-run batch copy
             egui_alpha_t canvas_alpha = canvas->alpha;
             egui_dim_t pfb_width = canvas->pfb_region.size.width;
             egui_dim_t dst_x_start = (x_base + x) - canvas->pfb_location_in_base_view.x;
             egui_dim_t dst_y = (y_base + y_) - canvas->pfb_location_in_base_view.y;
             egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x_start];
 
-            for (egui_dim_t x_ = x; x_ < x_total; x_++)
-            {
-                egui_image_std_get_col_pixel_rgb565_4(p_data, p_alpha, x_, &color, &alpha);
-                alpha = egui_color_alpha_mix(canvas_alpha, alpha);
-                if (alpha == 0)
-                {
-                    continue;
-                }
-                egui_dim_t i = x_ - x;
-                if (alpha == EGUI_ALPHA_100)
-                {
-                    dst_row[i] = color.full;
-                }
-                else
-                {
-                    egui_color_t *back_color = (egui_color_t *)&dst_row[i];
-                    egui_rgb_mix_ptr(back_color, &color, back_color, alpha);
-                }
-            }
+            egui_image_std_blend_rgb565_alpha4_row(dst_row, (const uint16_t *)p_data, (const uint8_t *)p_alpha, x, x_total - x, canvas_alpha);
         }
     }
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
@@ -1294,10 +1594,10 @@ void egui_image_std_set_image_rgb565_2(const egui_image_t *self, egui_dim_t x, e
     {
         egui_dim_t rr_sy = y_base + y_;
         // Check mask row range BEFORE loading data (avoids wasted I/O for extern resources)
+        egui_dim_t rr_x_start = 0, rr_x_end = 0;
         int rr_res = -1; // -1 = no mask or no row_range API
         if (canvas->mask != NULL && canvas->mask->api->mask_get_row_range != NULL)
         {
-            egui_dim_t rr_x_start, rr_x_end;
             rr_res = canvas->mask->api->mask_get_row_range(canvas->mask, rr_sy, x_base + x, x_base + x_total, &rr_x_start, &rr_x_end);
             if (rr_res == EGUI_MASK_ROW_OUTSIDE)
             {
@@ -1332,42 +1632,64 @@ void egui_image_std_set_image_rgb565_2(const egui_image_t *self, egui_dim_t x, e
 
         if (canvas->mask != NULL)
         {
-            for (egui_dim_t x_ = x; x_ < x_total; x_++)
+            if (rr_res == EGUI_MASK_ROW_INSIDE)
             {
-                egui_image_std_get_col_pixel_rgb565_2(p_data, p_alpha, x_, &color, &alpha);
+                // Fast path: row fully inside mask - direct PFB access with batch copy
+                egui_alpha_t canvas_alpha = canvas->alpha;
+                egui_dim_t pfb_width = canvas->pfb_region.size.width;
+                egui_dim_t dst_x_start = (x_base + x) - canvas->pfb_location_in_base_view.x;
+                egui_dim_t dst_y = rr_sy - canvas->pfb_location_in_base_view.y;
+                egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x_start];
 
-                /* change to real position in canvas. */
-                egui_canvas_draw_point_limit((x_base + x_), (y_base + y_), color, alpha);
+                egui_image_std_blend_rgb565_alpha2_row(dst_row, (const uint16_t *)p_data, (const uint8_t *)p_alpha, x, x_total - x, canvas_alpha);
+            }
+            else if (rr_res == EGUI_MASK_ROW_PARTIAL)
+            {
+                egui_dim_t rr_img_xs = rr_x_start - x_base;
+                egui_dim_t rr_img_xe = rr_x_end - x_base;
+                // Left edge: per-pixel with mask
+                for (egui_dim_t x_ = x; x_ < rr_img_xs; x_++)
+                {
+                    egui_image_std_get_col_pixel_rgb565_2(p_data, p_alpha, x_, &color, &alpha);
+                    egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
+                }
+                // Middle: direct PFB access with batch copy
+                {
+                    egui_alpha_t canvas_alpha = canvas->alpha;
+                    egui_dim_t pfb_width = canvas->pfb_region.size.width;
+                    egui_dim_t dst_x = rr_x_start - canvas->pfb_location_in_base_view.x;
+                    egui_dim_t dst_y = rr_sy - canvas->pfb_location_in_base_view.y;
+                    egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x];
+
+                    egui_image_std_blend_rgb565_alpha2_row(dst_row, (const uint16_t *)p_data, (const uint8_t *)p_alpha, rr_img_xs, rr_img_xe - rr_img_xs,
+                                                           canvas_alpha);
+                }
+                // Right edge: per-pixel with mask
+                for (egui_dim_t x_ = rr_img_xe; x_ < x_total; x_++)
+                {
+                    egui_image_std_get_col_pixel_rgb565_2(p_data, p_alpha, x_, &color, &alpha);
+                    egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
+                }
+            }
+            else
+            {
+                for (egui_dim_t x_ = x; x_ < x_total; x_++)
+                {
+                    egui_image_std_get_col_pixel_rgb565_2(p_data, p_alpha, x_, &color, &alpha);
+                    egui_canvas_draw_point_limit((x_base + x_), (y_base + y_), color, alpha);
+                }
             }
         }
         else
         {
-            // Fast path: direct PFB access, no mask
+            // Fast path: direct PFB access with opaque-run batch copy
             egui_alpha_t canvas_alpha = canvas->alpha;
             egui_dim_t pfb_width = canvas->pfb_region.size.width;
             egui_dim_t dst_x_start = (x_base + x) - canvas->pfb_location_in_base_view.x;
             egui_dim_t dst_y = (y_base + y_) - canvas->pfb_location_in_base_view.y;
             egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x_start];
 
-            for (egui_dim_t x_ = x; x_ < x_total; x_++)
-            {
-                egui_image_std_get_col_pixel_rgb565_2(p_data, p_alpha, x_, &color, &alpha);
-                alpha = egui_color_alpha_mix(canvas_alpha, alpha);
-                if (alpha == 0)
-                {
-                    continue;
-                }
-                egui_dim_t i = x_ - x;
-                if (alpha == EGUI_ALPHA_100)
-                {
-                    dst_row[i] = color.full;
-                }
-                else
-                {
-                    egui_color_t *back_color = (egui_color_t *)&dst_row[i];
-                    egui_rgb_mix_ptr(back_color, &color, back_color, alpha);
-                }
-            }
+            egui_image_std_blend_rgb565_alpha2_row(dst_row, (const uint16_t *)p_data, (const uint8_t *)p_alpha, x, x_total - x, canvas_alpha);
         }
     }
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
@@ -1410,10 +1732,10 @@ void egui_image_std_set_image_rgb565_1(const egui_image_t *self, egui_dim_t x, e
     {
         egui_dim_t rr_sy = y_base + y_;
         // Check mask row range BEFORE loading data (avoids wasted I/O for extern resources)
+        egui_dim_t rr_x_start = 0, rr_x_end = 0;
         int rr_res = -1; // -1 = no mask or no row_range API
         if (canvas->mask != NULL && canvas->mask->api->mask_get_row_range != NULL)
         {
-            egui_dim_t rr_x_start, rr_x_end;
             rr_res = canvas->mask->api->mask_get_row_range(canvas->mask, rr_sy, x_base + x, x_base + x_total, &rr_x_start, &rr_x_end);
             if (rr_res == EGUI_MASK_ROW_OUTSIDE)
             {
@@ -1448,42 +1770,64 @@ void egui_image_std_set_image_rgb565_1(const egui_image_t *self, egui_dim_t x, e
 
         if (canvas->mask != NULL)
         {
-            for (egui_dim_t x_ = x; x_ < x_total; x_++)
+            if (rr_res == EGUI_MASK_ROW_INSIDE)
             {
-                egui_image_std_get_col_pixel_rgb565_1(p_data, p_alpha, x_, &color, &alpha);
+                // Fast path: row fully inside mask - direct PFB access with batch copy
+                egui_alpha_t canvas_alpha = canvas->alpha;
+                egui_dim_t pfb_width = canvas->pfb_region.size.width;
+                egui_dim_t dst_x_start = (x_base + x) - canvas->pfb_location_in_base_view.x;
+                egui_dim_t dst_y = rr_sy - canvas->pfb_location_in_base_view.y;
+                egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x_start];
 
-                /* change to real position in canvas. */
-                egui_canvas_draw_point_limit((x_base + x_), (y_base + y_), color, alpha);
+                egui_image_std_blend_rgb565_alpha1_row(dst_row, (const uint16_t *)p_data, (const uint8_t *)p_alpha, x, x_total - x, canvas_alpha);
+            }
+            else if (rr_res == EGUI_MASK_ROW_PARTIAL)
+            {
+                egui_dim_t rr_img_xs = rr_x_start - x_base;
+                egui_dim_t rr_img_xe = rr_x_end - x_base;
+                // Left edge: per-pixel with mask
+                for (egui_dim_t x_ = x; x_ < rr_img_xs; x_++)
+                {
+                    egui_image_std_get_col_pixel_rgb565_1(p_data, p_alpha, x_, &color, &alpha);
+                    egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
+                }
+                // Middle: direct PFB access with batch copy
+                {
+                    egui_alpha_t canvas_alpha = canvas->alpha;
+                    egui_dim_t pfb_width = canvas->pfb_region.size.width;
+                    egui_dim_t dst_x = rr_x_start - canvas->pfb_location_in_base_view.x;
+                    egui_dim_t dst_y = rr_sy - canvas->pfb_location_in_base_view.y;
+                    egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x];
+
+                    egui_image_std_blend_rgb565_alpha1_row(dst_row, (const uint16_t *)p_data, (const uint8_t *)p_alpha, rr_img_xs, rr_img_xe - rr_img_xs,
+                                                           canvas_alpha);
+                }
+                // Right edge: per-pixel with mask
+                for (egui_dim_t x_ = rr_img_xe; x_ < x_total; x_++)
+                {
+                    egui_image_std_get_col_pixel_rgb565_1(p_data, p_alpha, x_, &color, &alpha);
+                    egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
+                }
+            }
+            else
+            {
+                for (egui_dim_t x_ = x; x_ < x_total; x_++)
+                {
+                    egui_image_std_get_col_pixel_rgb565_1(p_data, p_alpha, x_, &color, &alpha);
+                    egui_canvas_draw_point_limit((x_base + x_), (y_base + y_), color, alpha);
+                }
             }
         }
         else
         {
-            // Fast path: direct PFB access, no mask
+            // Fast path: direct PFB access with opaque-run batch copy
             egui_alpha_t canvas_alpha = canvas->alpha;
             egui_dim_t pfb_width = canvas->pfb_region.size.width;
             egui_dim_t dst_x_start = (x_base + x) - canvas->pfb_location_in_base_view.x;
             egui_dim_t dst_y = (y_base + y_) - canvas->pfb_location_in_base_view.y;
             egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x_start];
 
-            for (egui_dim_t x_ = x; x_ < x_total; x_++)
-            {
-                egui_image_std_get_col_pixel_rgb565_1(p_data, p_alpha, x_, &color, &alpha);
-                alpha = egui_color_alpha_mix(canvas_alpha, alpha);
-                if (alpha == 0)
-                {
-                    continue;
-                }
-                egui_dim_t i = x_ - x;
-                if (alpha == EGUI_ALPHA_100)
-                {
-                    dst_row[i] = color.full;
-                }
-                else
-                {
-                    egui_color_t *back_color = (egui_color_t *)&dst_row[i];
-                    egui_rgb_mix_ptr(back_color, &color, back_color, alpha);
-                }
-            }
+            egui_image_std_blend_rgb565_alpha1_row(dst_row, (const uint16_t *)p_data, (const uint8_t *)p_alpha, x, x_total - x, canvas_alpha);
         }
     }
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE

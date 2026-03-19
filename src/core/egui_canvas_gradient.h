@@ -15,6 +15,7 @@ extern "C" {
 #define EGUI_GRADIENT_TYPE_LINEAR_VERTICAL   0
 #define EGUI_GRADIENT_TYPE_LINEAR_HORIZONTAL 1
 #define EGUI_GRADIENT_TYPE_RADIAL            2
+#define EGUI_GRADIENT_TYPE_ANGULAR           3
 
 /* Maximum color stops (compile-time limit to bound stack usage) */
 #ifndef EGUI_GRADIENT_MAX_STOPS
@@ -77,6 +78,18 @@ struct egui_gradient
             .center_x = (_cx),                                                                                                                                 \
             .center_y = (_cy),                                                                                                                                 \
             .radius = (_r),                                                                                                                                    \
+    }
+
+/* Define an angular (conic) gradient that sweeps 360 degrees around a center point.
+ * Color maps from 0 degrees (right / 3 o'clock) clockwise through 360 degrees. */
+#define EGUI_GRADIENT_ANGULAR(_name, _alpha, _cx, _cy, _stops_arr, _count)                                                                                     \
+    static const egui_gradient_t _name = {                                                                                                                     \
+            .type = EGUI_GRADIENT_TYPE_ANGULAR,                                                                                                                \
+            .stop_count = (_count),                                                                                                                            \
+            .alpha = (_alpha),                                                                                                                                 \
+            .stops = (_stops_arr),                                                                                                                             \
+            .center_x = (_cx),                                                                                                                                 \
+            .center_y = (_cy),                                                                                                                                 \
     }
 
 /* ---- Core utility ---- */

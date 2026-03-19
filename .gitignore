@@ -65,3 +65,5 @@ build_switch.log
 
 image
 example/HelloBasic/thermostat
+/.claude/comparison_report
+/example/HelloCompare

@@ -142,8 +142,9 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     switch (action_index)
     {
     case 0:
-        if (first_call && (egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_xs)) != 0 || egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_s)) != 1 ||
-                           egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_m)) != 0 || egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_l)) != 1))
+        if (first_call &&
+            (egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_xs)) != 0 || egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_s)) != 1 ||
+             egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_m)) != 0 || egui_view_toggle_button_is_toggled(EGUI_VIEW_OF(&toggle_l)) != 1))
         {
             report_runtime_failure("toggle initial state mismatch");
         }

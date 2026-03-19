@@ -172,7 +172,8 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             {
                 report_runtime_failure("imgbtn_l click was not delivered exactly once");
             }
-            if (image_button_click_counts[0] != 1 || image_button_click_counts[1] != 1 || image_button_click_counts[2] != 1 || image_button_click_counts[3] != 1)
+            if (image_button_click_counts[0] != 1 || image_button_click_counts[1] != 1 || image_button_click_counts[2] != 1 ||
+                image_button_click_counts[3] != 1)
             {
                 report_runtime_failure("image_button click coverage incomplete");
             }

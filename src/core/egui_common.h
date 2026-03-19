@@ -312,6 +312,28 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_color_alpha_mix(egui_alpha_t alpha_0, e
 
 __EGUI_STATIC_INLINE__ egui_color_t egui_rgb_mix(egui_color_t back_color, egui_color_t fore_color, egui_alpha_t fore_alpha)
 {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+    /* Early-out for fully opaque / fully transparent */
+    if (fore_alpha > 251)
+    {
+        return fore_color;
+    }
+    if (fore_alpha < 4)
+    {
+        return back_color;
+    }
+    /* Parallel RGB565 blend: pack R+B and G into a 32-bit word.
+     * Layout after (c | c<<16) & 0x07E0F81F:  [---GGGGG G00000][RRRRR 00000BBBBB]
+     * 5-bit alpha (>> 3) keeps products within channel gaps. */
+    uint16_t bg = back_color.full;
+    uint16_t fg = fore_color.full;
+    uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+    uint32_t fg_rb_g = (fg | ((uint32_t)fg << 16)) & 0x07E0F81FUL;
+    uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)fore_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+    egui_color_t ret;
+    ret.full = (uint16_t)(result | (result >> 16));
+    return ret;
+#else
     egui_color_t ret;
     ret.color.red = (((uint16_t)(fore_alpha) * (fore_color.color.red)) + (uint16_t)(255 - fore_alpha) * back_color.color.red + 128) >> 8; // +128 for rounding
     ret.color.green =
@@ -319,16 +341,36 @@ __EGUI_STATIC_INLINE__ egui_color_t egui_rgb_mix(egui_color_t back_color, egui_c
     ret.color.blue =
             (((uint16_t)(fore_alpha) * (fore_color.color.blue)) + (uint16_t)(255 - fore_alpha) * back_color.color.blue + 128) >> 8; // +128 for rounding
     return ret;
+#endif
 }
 
 __EGUI_STATIC_INLINE__ void egui_rgb_mix_ptr(egui_color_t *p_back_color, egui_color_t *p_fore_color, egui_color_t *p_out_color, egui_alpha_t fore_alpha)
 {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+    if (fore_alpha > 251)
+    {
+        p_out_color->full = p_fore_color->full;
+        return;
+    }
+    if (fore_alpha < 4)
+    {
+        p_out_color->full = p_back_color->full;
+        return;
+    }
+    uint16_t bg = p_back_color->full;
+    uint16_t fg = p_fore_color->full;
+    uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+    uint32_t fg_rb_g = (fg | ((uint32_t)fg << 16)) & 0x07E0F81FUL;
+    uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)fore_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+    p_out_color->full = (uint16_t)(result | (result >> 16));
+#else
     p_out_color->color.red =
             (((uint16_t)(fore_alpha) * (p_fore_color->color.red)) + (uint16_t)(255 - fore_alpha) * p_back_color->color.red + 128) >> 8; // +128 for rounding
     p_out_color->color.green =
             (((uint16_t)(fore_alpha) * (p_fore_color->color.green)) + (uint16_t)(255 - fore_alpha) * p_back_color->color.green + 128) >> 8; // +128 for rounding
     p_out_color->color.blue =
             (((uint16_t)(fore_alpha) * (p_fore_color->color.blue)) + (uint16_t)(255 - fore_alpha) * p_back_color->color.blue + 128) >> 8; // +128 for rounding
+#endif
 }
 
 void egui_argb8888_mix_rgb565(egui_color_rgb565_t *p_back_color, egui_color_bgra8888_t *p_fore_color, egui_color_rgb565_t *p_out_color);

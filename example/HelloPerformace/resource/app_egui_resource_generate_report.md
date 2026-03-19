@@ -2,12 +2,27 @@
 ## 内部
 | 名称 | data大小 | alpha大小 | 总大小 | Image |
 | ---- | -------- | --------- | ------ | ------ |
+| egui_res_image_star_240_rgb565_0 | 115200 | 0 | 115200 | ![egui_res_image_star_240_rgb565_0](src/star.png) |
+| egui_res_image_star_240_rgb565_1 | 115200 | 7200 | 122400 | ![egui_res_image_star_240_rgb565_1](src/star.png) |
+| egui_res_image_star_240_rgb565_2 | 115200 | 14400 | 129600 | ![egui_res_image_star_240_rgb565_2](src/star.png) |
+| egui_res_image_star_240_rgb565_4 | 115200 | 28800 | 144000 | ![egui_res_image_star_240_rgb565_4](src/star.png) |
+| egui_res_image_star_240_rgb565_8 | 115200 | 57600 | 172800 | ![egui_res_image_star_240_rgb565_8](src/star.png) |
+| egui_res_image_star_40_rgb565_0 | 3200 | 0 | 3200 | ![egui_res_image_star_40_rgb565_0](src/star.png) |
+| egui_res_image_star_40_rgb565_1 | 3200 | 200 | 3400 | ![egui_res_image_star_40_rgb565_1](src/star.png) |
+| egui_res_image_star_40_rgb565_2 | 3200 | 400 | 3600 | ![egui_res_image_star_40_rgb565_2](src/star.png) |
+| egui_res_image_star_40_rgb565_4 | 3200 | 800 | 4000 | ![egui_res_image_star_40_rgb565_4](src/star.png) |
+| egui_res_image_star_40_rgb565_8 | 3200 | 1600 | 4800 | ![egui_res_image_star_40_rgb565_8](src/star.png) |
 | egui_res_image_star_rgb565_8 | 45000 | 22500 | 67500 | ![egui_res_image_star_rgb565_8](src/star.png) |
 | egui_res_image_test_perf_240_rgb565_0 | 115200 | 0 | 115200 | ![egui_res_image_test_perf_240_rgb565_0](src/test_img_2_1280_1280.png) |
 | egui_res_image_test_perf_240_rgb565_1 | 115200 | 7200 | 122400 | ![egui_res_image_test_perf_240_rgb565_1](src/test_img_2_1280_1280.png) |
 | egui_res_image_test_perf_240_rgb565_2 | 115200 | 14400 | 129600 | ![egui_res_image_test_perf_240_rgb565_2](src/test_img_2_1280_1280.png) |
 | egui_res_image_test_perf_240_rgb565_4 | 115200 | 28800 | 144000 | ![egui_res_image_test_perf_240_rgb565_4](src/test_img_2_1280_1280.png) |
 | egui_res_image_test_perf_240_rgb565_8 | 115200 | 57600 | 172800 | ![egui_res_image_test_perf_240_rgb565_8](src/test_img_2_1280_1280.png) |
+| egui_res_image_test_perf_40_rgb565_0 | 3200 | 0 | 3200 | ![egui_res_image_test_perf_40_rgb565_0](src/test_img_2_1280_1280.png) |
+| egui_res_image_test_perf_40_rgb565_1 | 3200 | 200 | 3400 | ![egui_res_image_test_perf_40_rgb565_1](src/test_img_2_1280_1280.png) |
+| egui_res_image_test_perf_40_rgb565_2 | 3200 | 400 | 3600 | ![egui_res_image_test_perf_40_rgb565_2](src/test_img_2_1280_1280.png) |
+| egui_res_image_test_perf_40_rgb565_4 | 3200 | 800 | 4000 | ![egui_res_image_test_perf_40_rgb565_4](src/test_img_2_1280_1280.png) |
+| egui_res_image_test_perf_40_rgb565_8 | 3200 | 1600 | 4800 | ![egui_res_image_test_perf_40_rgb565_8](src/test_img_2_1280_1280.png) |
 | egui_res_image_test_perf_480_rgb565_0 | 460800 | 0 | 460800 | ![egui_res_image_test_perf_480_rgb565_0](src/test_img_2_1280_1280.png) |
 | egui_res_image_test_perf_480_rgb565_1 | 460800 | 28800 | 489600 | ![egui_res_image_test_perf_480_rgb565_1](src/test_img_2_1280_1280.png) |
 | egui_res_image_test_perf_480_rgb565_2 | 460800 | 57600 | 518400 | ![egui_res_image_test_perf_480_rgb565_2](src/test_img_2_1280_1280.png) |
@@ -19,7 +34,7 @@
 | egui_res_image_test_perf_960_rgb565_4 | 1843200 | 460800 | 2304000 | ![egui_res_image_test_perf_960_rgb565_4](src/test_img_2_1280_1280.png) |
 | egui_res_image_test_perf_960_rgb565_8 | 1843200 | 921600 | 2764800 | ![egui_res_image_test_perf_960_rgb565_8](src/test_img_2_1280_1280.png) |
 | egui_res_image_test_rgb565_8 | 20000 | 0 | 20000 | ![egui_res_image_test_rgb565_8](src/test.png) |
-| 总计 | 12161000 | 2290500 | 14451500 |
+| 总计 | 12769000 | 2404500 | 15173500 |
 
 
 
@@ -56,10 +71,10 @@
 # 总计
 | 名称 | 总大小 |
 | ---- | ------ |
-| 图像-内部 | 14451500 |
+| 图像-内部 | 15173500 |
 | 字体-内部 | 0 |
-| 内部总计 | 14451500 |
+| 内部总计 | 15173500 |
 | 图像-外部 | 3420000 |
 | 字体-外部 | 11329 |
 | 外部总计 | 3431329 |
-| 总计 | 17882829 |
+| 总计 | 18604829 |

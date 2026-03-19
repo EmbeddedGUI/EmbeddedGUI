@@ -578,10 +578,6 @@ void egui_canvas_draw_circle_corner(egui_dim_t center_x, egui_dim_t center_y, eg
     egui_alpha_t mix_alpha;
     egui_dim_t sel_x;
     egui_dim_t sel_y;
-    // egui_dim_t len;
-    // uint16_t start_offset;
-    // uint16_t valid_count;
-    // uint16_t data_value_offset;
     egui_alpha_t circle_alpha;
 
     // only work within intersection of base_view_work_region and the rectangle to be drawn
@@ -675,6 +671,17 @@ void egui_canvas_draw_circle_corner(egui_dim_t center_x, egui_dim_t center_y, eg
         break;
     }
 
+    // Precompute sign factors to eliminate per-pixel switch
+    int sign_x = (type == EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP || type == EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM) ? -1 : 1;
+    int sign_y = (type == EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP || type == EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP) ? -1 : 1;
+
+    // Direct PFB write setup
+    int use_direct_pfb = (self->mask == NULL);
+    egui_dim_t pfb_width = self->pfb_region.size.width;
+    egui_dim_t pfb_ofs_x = self->pfb_location_in_base_view.x;
+    egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
+    egui_alpha_t self_alpha = self->alpha;
+
     for (row_index = row_index_start; row_index < row_index_end; row_index++)
     {
         sel_y = radius - row_index;
@@ -688,55 +695,96 @@ void egui_canvas_draw_circle_corner(egui_dim_t center_x, egui_dim_t center_y, eg
             col_index = ((const egui_circle_item_t *)info->items)[row_index].start_offset;
         }
 
-        for (col_index = EGUI_MAX(col_index, col_index_start); col_index < col_index_end; col_index++)
+        if (use_direct_pfb)
         {
-            sel_x = radius - col_index;
+            egui_dim_t py = center_y + sign_y * sel_y;
+            egui_color_t *dst_row = (egui_color_t *)&self->pfb[(py - pfb_ofs_y) * pfb_width];
 
-            // get the alpha value
-            if (circle_alpha != EGUI_ALPHA_100)
+            for (col_index = EGUI_MAX(col_index, col_index_start); col_index < col_index_end; col_index++)
             {
-                circle_alpha = egui_canvas_get_circle_corner_value(row_index, col_index, info);
-                // check if the point is inside the arc
-                if (circle_alpha == 0)
+                sel_x = radius - col_index;
+
+                // get the alpha value
+                if (circle_alpha != EGUI_ALPHA_100)
+                {
+                    circle_alpha = egui_canvas_get_circle_corner_value(row_index, col_index, info);
+                    if (circle_alpha == 0)
+                    {
+                        continue;
+                    }
+                }
+
+                mix_alpha = egui_color_alpha_mix(circle_alpha, alpha);
+                // check inner circle
+                if (row_index >= stroke_width && col_index >= stroke_width)
+                {
+                    egui_alpha_t alpha_inner = egui_canvas_get_circle_corner_value(row_index - stroke_width, col_index - stroke_width, info_inner);
+                    if (alpha_inner != 0)
+                    {
+                        if (alpha_inner == EGUI_ALPHA_100)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            mix_alpha = egui_color_alpha_mix(mix_alpha, EGUI_ALPHA_100 - alpha_inner);
+                        }
+                    }
+                }
+
+                egui_alpha_t eff_alpha = egui_color_alpha_mix(self_alpha, mix_alpha);
+                if (eff_alpha == 0)
                 {
                     continue;
                 }
-            }
 
-            mix_alpha = egui_color_alpha_mix(circle_alpha, alpha);
-            // check inner circle
-            if (row_index >= stroke_width && col_index >= stroke_width)
-            {
-                egui_alpha_t alpha_inner = egui_canvas_get_circle_corner_value(row_index - stroke_width, col_index - stroke_width, info_inner);
-                // if here get 0xff, means inner circle is full, close this work???
-                if (alpha_inner != 0)
+                egui_dim_t px = center_x + sign_x * sel_x;
+                egui_color_t *dst = &dst_row[px - pfb_ofs_x];
+                if (eff_alpha == EGUI_ALPHA_100)
                 {
-                    if (alpha_inner == EGUI_ALPHA_100)
-                    {
-                        // in inner circle, do not draw anything
-                        break;
-                    }
-                    else
-                    {
-                        mix_alpha = egui_color_alpha_mix(mix_alpha, EGUI_ALPHA_100 - alpha_inner);
-                    }
+                    *dst = color;
+                }
+                else
+                {
+                    egui_rgb_mix_ptr(dst, &color, dst, eff_alpha);
                 }
             }
-
-            switch (type)
+        }
+        else
+        {
+            for (col_index = EGUI_MAX(col_index, col_index_start); col_index < col_index_end; col_index++)
             {
-            case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
-                egui_canvas_draw_point_limit(center_x + (-sel_x), center_y + (-sel_y), color, mix_alpha);
-                break;
-            case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
-                egui_canvas_draw_point_limit(center_x + (-sel_x), center_y + (sel_y), color, mix_alpha);
-                break;
-            case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
-                egui_canvas_draw_point_limit(center_x + (sel_x), center_y + (-sel_y), color, mix_alpha);
-                break;
-            case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
-                egui_canvas_draw_point_limit(center_x + (sel_x), center_y + (sel_y), color, mix_alpha);
-                break;
+                sel_x = radius - col_index;
+
+                // get the alpha value
+                if (circle_alpha != EGUI_ALPHA_100)
+                {
+                    circle_alpha = egui_canvas_get_circle_corner_value(row_index, col_index, info);
+                    if (circle_alpha == 0)
+                    {
+                        continue;
+                    }
+                }
+
+                mix_alpha = egui_color_alpha_mix(circle_alpha, alpha);
+                // check inner circle
+                if (row_index >= stroke_width && col_index >= stroke_width)
+                {
+                    egui_alpha_t alpha_inner = egui_canvas_get_circle_corner_value(row_index - stroke_width, col_index - stroke_width, info_inner);
+                    if (alpha_inner != 0)
+                    {
+                        if (alpha_inner == EGUI_ALPHA_100)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            mix_alpha = egui_color_alpha_mix(mix_alpha, EGUI_ALPHA_100 - alpha_inner);
+                        }
+                    }
+                }
+
+                egui_canvas_draw_point_limit(center_x + sign_x * sel_x, center_y + sign_y * sel_y, color, mix_alpha);
             }
         }
     }
@@ -992,6 +1040,17 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
     last_start_x = cur_start_x;
     last_end_x = cur_end_x;
 
+    // Precompute sign factors to eliminate per-pixel switch
+    int sign_x = (type == EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP || type == EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM) ? -1 : 1;
+    int sign_y = (type == EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP || type == EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP) ? -1 : 1;
+
+    // Direct PFB write setup
+    int use_direct_pfb = (self->mask == NULL);
+    egui_dim_t pfb_width = self->pfb_region.size.width;
+    egui_dim_t pfb_ofs_x = self->pfb_location_in_base_view.x;
+    egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
+    egui_alpha_t self_alpha = self->alpha;
+
     for (row_index = row_index_start; row_index < row_index_end; row_index++)
     {
         sel_y = radius - row_index;
@@ -1026,53 +1085,96 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
             col_index = ((const egui_circle_item_t *)info->items)[row_index].start_offset;
         }
 
-        for (col_index = EGUI_MAX(col_index, col_index_start); col_index < col_index_end; col_index++)
+        if (use_direct_pfb)
         {
-            sel_x = radius - col_index;
+            egui_dim_t py = center_y + sign_y * sel_y;
+            egui_color_t *dst_row = (egui_color_t *)&self->pfb[(py - pfb_ofs_y) * pfb_width];
 
-            // For speed, check need x range
-            if ((sel_x < x_allow_min) || (sel_x > x_allow_max))
+            for (col_index = EGUI_MAX(col_index, col_index_start); col_index < col_index_end; col_index++)
             {
-                continue;
-            }
+                sel_x = radius - col_index;
 
-            // get the alpha value
-            if (circle_alpha != EGUI_ALPHA_100)
-            {
-                circle_alpha = egui_canvas_get_circle_corner_value(row_index, col_index, info);
-                // check if the point is inside the arc
-                if (circle_alpha == 0)
+                // For speed, check need x range
+                if ((sel_x < x_allow_min) || (sel_x > x_allow_max))
                 {
                     continue;
                 }
-            }
 
-            mix_alpha = egui_color_alpha_mix(circle_alpha, alpha);
-            // For speed, check need x range
-            if (!((sel_x > x_arc_allow_max) && ((next_start_x > radius) || (sel_x < x_arc_allow_min))))
-            {
-                egui_alpha_t point_alpha = arc_get_point_alpha(sel_x, sel_y, start_k, end_k, start_cos, end_cos, start_angle, end_angle);
-                if (point_alpha == 0)
+                // get the alpha value
+                if (circle_alpha != EGUI_ALPHA_100)
+                {
+                    circle_alpha = egui_canvas_get_circle_corner_value(row_index, col_index, info);
+                    if (circle_alpha == 0)
+                    {
+                        continue;
+                    }
+                }
+
+                mix_alpha = egui_color_alpha_mix(circle_alpha, alpha);
+                // For speed, check need x range
+                if (!((sel_x > x_arc_allow_max) && ((next_start_x > radius) || (sel_x < x_arc_allow_min))))
+                {
+                    egui_alpha_t point_alpha = arc_get_point_alpha(sel_x, sel_y, start_k, end_k, start_cos, end_cos, start_angle, end_angle);
+                    if (point_alpha == 0)
+                    {
+                        continue;
+                    }
+                    mix_alpha = egui_color_alpha_mix(mix_alpha, point_alpha);
+                }
+
+                egui_alpha_t eff_alpha = egui_color_alpha_mix(self_alpha, mix_alpha);
+                if (eff_alpha == 0)
                 {
                     continue;
                 }
-                mix_alpha = egui_color_alpha_mix(mix_alpha, point_alpha);
-            }
 
-            switch (type)
+                egui_dim_t px = center_x + sign_x * sel_x;
+                egui_color_t *dst = &dst_row[px - pfb_ofs_x];
+                if (eff_alpha == EGUI_ALPHA_100)
+                {
+                    *dst = color;
+                }
+                else
+                {
+                    egui_rgb_mix_ptr(dst, &color, dst, eff_alpha);
+                }
+            }
+        }
+        else
+        {
+            for (col_index = EGUI_MAX(col_index, col_index_start); col_index < col_index_end; col_index++)
             {
-            case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
-                egui_canvas_draw_point_limit(center_x + (-sel_x), center_y + (-sel_y), color, mix_alpha);
-                break;
-            case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
-                egui_canvas_draw_point_limit(center_x + (-sel_x), center_y + (sel_y), color, mix_alpha);
-                break;
-            case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
-                egui_canvas_draw_point_limit(center_x + (sel_x), center_y + (-sel_y), color, mix_alpha);
-                break;
-            case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
-                egui_canvas_draw_point_limit(center_x + (sel_x), center_y + (sel_y), color, mix_alpha);
-                break;
+                sel_x = radius - col_index;
+
+                // For speed, check need x range
+                if ((sel_x < x_allow_min) || (sel_x > x_allow_max))
+                {
+                    continue;
+                }
+
+                // get the alpha value
+                if (circle_alpha != EGUI_ALPHA_100)
+                {
+                    circle_alpha = egui_canvas_get_circle_corner_value(row_index, col_index, info);
+                    if (circle_alpha == 0)
+                    {
+                        continue;
+                    }
+                }
+
+                mix_alpha = egui_color_alpha_mix(circle_alpha, alpha);
+                // For speed, check need x range
+                if (!((sel_x > x_arc_allow_max) && ((next_start_x > radius) || (sel_x < x_arc_allow_min))))
+                {
+                    egui_alpha_t point_alpha = arc_get_point_alpha(sel_x, sel_y, start_k, end_k, start_cos, end_cos, start_angle, end_angle);
+                    if (point_alpha == 0)
+                    {
+                        continue;
+                    }
+                    mix_alpha = egui_color_alpha_mix(mix_alpha, point_alpha);
+                }
+
+                egui_canvas_draw_point_limit(center_x + sign_x * sel_x, center_y + sign_y * sel_y, color, mix_alpha);
             }
         }
 
@@ -1818,6 +1920,17 @@ void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_
     last_start_x = cur_start_x;
     last_end_x = cur_end_x;
 
+    // Precompute sign factors to eliminate per-pixel switch
+    int sign_x = (type == EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP || type == EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM) ? -1 : 1;
+    int sign_y = (type == EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP || type == EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP) ? -1 : 1;
+
+    // Direct PFB write setup
+    int use_direct_pfb = (self->mask == NULL);
+    egui_dim_t pfb_width = self->pfb_region.size.width;
+    egui_dim_t pfb_ofs_x = self->pfb_location_in_base_view.x;
+    egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
+    egui_alpha_t self_alpha = self->alpha;
+
     for (row_index = row_index_start; row_index < row_index_end; row_index++)
     {
         sel_y = radius - row_index;
@@ -1852,72 +1965,130 @@ void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_
             col_index = ((const egui_circle_item_t *)info->items)[row_index].start_offset;
         }
 
-        for (col_index = EGUI_MAX(col_index, col_index_start); col_index < col_index_end; col_index++)
+        if (use_direct_pfb)
         {
-            sel_x = radius - col_index;
+            egui_dim_t py = center_y + sign_y * sel_y;
+            egui_color_t *dst_row = (egui_color_t *)&self->pfb[(py - pfb_ofs_y) * pfb_width];
 
-            // For speed, check need x range
-            if ((sel_x < x_allow_min) || (sel_x > x_allow_max))
+            for (col_index = EGUI_MAX(col_index, col_index_start); col_index < col_index_end; col_index++)
             {
-                continue;
-            }
+                sel_x = radius - col_index;
 
-            // get the alpha value
-            if (circle_alpha != EGUI_ALPHA_100)
-            {
-                circle_alpha = egui_canvas_get_circle_corner_value(row_index, col_index, info);
-                // check if the point is inside the arc
-                if (circle_alpha == 0)
+                // For speed, check need x range
+                if ((sel_x < x_allow_min) || (sel_x > x_allow_max))
                 {
                     continue;
                 }
-            }
 
-            mix_alpha = egui_color_alpha_mix(circle_alpha, alpha);
-            // check inner circle
-            if (row_index >= stroke_width && col_index >= stroke_width)
-            {
-                egui_alpha_t alpha_inner = egui_canvas_get_circle_corner_value(row_index - stroke_width, col_index - stroke_width, info_inner);
-                // if here get 0xff, means inner circle is full, close this work???
-                if (alpha_inner != 0)
+                // get the alpha value
+                if (circle_alpha != EGUI_ALPHA_100)
                 {
-                    if (alpha_inner == EGUI_ALPHA_100)
+                    circle_alpha = egui_canvas_get_circle_corner_value(row_index, col_index, info);
+                    if (circle_alpha == 0)
                     {
-                        // in inner circle, do not draw anything
-                        break;
-                    }
-                    else
-                    {
-                        mix_alpha = egui_color_alpha_mix(mix_alpha, EGUI_ALPHA_100 - alpha_inner);
+                        continue;
                     }
                 }
-            }
 
-            // For speed, check need x range
-            if (!((sel_x > x_arc_allow_max) && ((next_start_x > radius) || (sel_x < x_arc_allow_min))))
-            {
-                egui_alpha_t point_alpha = arc_get_point_alpha(sel_x, sel_y, start_k, end_k, start_cos, end_cos, start_angle, end_angle);
-                if (point_alpha == 0)
+                mix_alpha = egui_color_alpha_mix(circle_alpha, alpha);
+                // check inner circle
+                if (row_index >= stroke_width && col_index >= stroke_width)
+                {
+                    egui_alpha_t alpha_inner = egui_canvas_get_circle_corner_value(row_index - stroke_width, col_index - stroke_width, info_inner);
+                    if (alpha_inner != 0)
+                    {
+                        if (alpha_inner == EGUI_ALPHA_100)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            mix_alpha = egui_color_alpha_mix(mix_alpha, EGUI_ALPHA_100 - alpha_inner);
+                        }
+                    }
+                }
+
+                // For speed, check need x range
+                if (!((sel_x > x_arc_allow_max) && ((next_start_x > radius) || (sel_x < x_arc_allow_min))))
+                {
+                    egui_alpha_t point_alpha = arc_get_point_alpha(sel_x, sel_y, start_k, end_k, start_cos, end_cos, start_angle, end_angle);
+                    if (point_alpha == 0)
+                    {
+                        continue;
+                    }
+                    mix_alpha = egui_color_alpha_mix(mix_alpha, point_alpha);
+                }
+
+                egui_alpha_t eff_alpha = egui_color_alpha_mix(self_alpha, mix_alpha);
+                if (eff_alpha == 0)
                 {
                     continue;
                 }
-                mix_alpha = egui_color_alpha_mix(mix_alpha, point_alpha);
-            }
 
-            switch (type)
+                egui_dim_t px = center_x + sign_x * sel_x;
+                egui_color_t *dst = &dst_row[px - pfb_ofs_x];
+                if (eff_alpha == EGUI_ALPHA_100)
+                {
+                    *dst = color;
+                }
+                else
+                {
+                    egui_rgb_mix_ptr(dst, &color, dst, eff_alpha);
+                }
+            }
+        }
+        else
+        {
+            for (col_index = EGUI_MAX(col_index, col_index_start); col_index < col_index_end; col_index++)
             {
-            case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
-                egui_canvas_draw_point_limit(center_x + (-sel_x), center_y + (-sel_y), color, mix_alpha);
-                break;
-            case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
-                egui_canvas_draw_point_limit(center_x + (-sel_x), center_y + (sel_y), color, mix_alpha);
-                break;
-            case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
-                egui_canvas_draw_point_limit(center_x + (sel_x), center_y + (-sel_y), color, mix_alpha);
-                break;
-            case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
-                egui_canvas_draw_point_limit(center_x + (sel_x), center_y + (sel_y), color, mix_alpha);
-                break;
+                sel_x = radius - col_index;
+
+                // For speed, check need x range
+                if ((sel_x < x_allow_min) || (sel_x > x_allow_max))
+                {
+                    continue;
+                }
+
+                // get the alpha value
+                if (circle_alpha != EGUI_ALPHA_100)
+                {
+                    circle_alpha = egui_canvas_get_circle_corner_value(row_index, col_index, info);
+                    if (circle_alpha == 0)
+                    {
+                        continue;
+                    }
+                }
+
+                mix_alpha = egui_color_alpha_mix(circle_alpha, alpha);
+                // check inner circle
+                if (row_index >= stroke_width && col_index >= stroke_width)
+                {
+                    egui_alpha_t alpha_inner = egui_canvas_get_circle_corner_value(row_index - stroke_width, col_index - stroke_width, info_inner);
+                    if (alpha_inner != 0)
+                    {
+                        if (alpha_inner == EGUI_ALPHA_100)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            mix_alpha = egui_color_alpha_mix(mix_alpha, EGUI_ALPHA_100 - alpha_inner);
+                        }
+                    }
+                }
+
+                // For speed, check need x range
+                if (!((sel_x > x_arc_allow_max) && ((next_start_x > radius) || (sel_x < x_arc_allow_min))))
+                {
+                    egui_alpha_t point_alpha = arc_get_point_alpha(sel_x, sel_y, start_k, end_k, start_cos, end_cos, start_angle, end_angle);
+                    if (point_alpha == 0)
+                    {
+                        continue;
+                    }
+                    mix_alpha = egui_color_alpha_mix(mix_alpha, point_alpha);
+                }
+
+                egui_canvas_draw_point_limit(center_x + sign_x * sel_x, center_y + sign_y * sel_y, color, mix_alpha);
             }
         }
 

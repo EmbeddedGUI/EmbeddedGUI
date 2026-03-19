@@ -28,13 +28,20 @@ extern "C" {
 #define EGUI_PORT_TYPE_QEMU 3
 #endif
 
-// Enable image tests (set to 0 to disable all image tests and save flash)
-#define EGUI_TEST_CONFIG_IMAGE_565 1
+// Enable large image tests (480px/240px direct-draw, resize, rotate)
+// Set to 0 to save flash on constrained devices; 40x40 tiled tests still run.
+#define EGUI_TEST_CONFIG_IMAGE_LARGE 0
 
-// app_egui_config.h is included before egui_common.h, so define local port ids here.
-// Enable external resource support for non-QEMU builds (QEMU lacks file I/O).
-#if !defined(EGUI_PORT) || (EGUI_PORT != EGUI_PORT_TYPE_QEMU)
+// Enable external resource support.
+// QEMU uses semihosting file I/O for resource loading.
 #define EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE 1
+
+// 480px alpha variant direct-draw tests (IMAGE_565_1/2/4) — disabled on QEMU to save flash.
+// test_perf images have alpha=255, so these are identical to IMAGE_565_0 in performance.
+#if EGUI_PORT == EGUI_PORT_TYPE_QEMU
+#define EGUI_TEST_CONFIG_IMAGE_480_ALPHA 0
+#else
+#define EGUI_TEST_CONFIG_IMAGE_480_ALPHA 1
 #endif
 
 // Double-size (960x960) image tests - disabled on QEMU due to flash size limits

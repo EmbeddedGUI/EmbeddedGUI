@@ -13,17 +13,17 @@ static uint8_t g_last_page_index;
 static uint8_t g_last_item_index;
 
 static const egui_view_menu_item_t g_root_items[] = {
-    {"Settings", 1, NULL},
-    {"About", EGUI_VIEW_MENU_ITEM_LEAF, NULL},
+        {"Settings", 1, NULL},
+        {"About", EGUI_VIEW_MENU_ITEM_LEAF, NULL},
 };
 
 static const egui_view_menu_item_t g_settings_items[] = {
-    {"Display", EGUI_VIEW_MENU_ITEM_LEAF, NULL},
+        {"Display", EGUI_VIEW_MENU_ITEM_LEAF, NULL},
 };
 
 static const egui_view_menu_page_t g_pages[] = {
-    {"Main", g_root_items, 2},
-    {"Settings", g_settings_items, 1},
+        {"Main", g_root_items, 2},
+        {"Settings", g_settings_items, 1},
 };
 
 static void on_item_click(egui_view_t *self, uint8_t page_index, uint8_t item_index)

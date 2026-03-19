@@ -26,13 +26,22 @@
 #include "app_egui_resource_generate.h"
 #endif
 
-// Because of flash size limit, embedded devices can set this to 0 to disable all image tests.
-#ifndef EGUI_TEST_CONFIG_IMAGE_565
-#define EGUI_TEST_CONFIG_IMAGE_565 1
+// Large image tests (480px/240px): set to 0 to save flash on constrained devices.
+#ifndef EGUI_TEST_CONFIG_IMAGE_LARGE
+#define EGUI_TEST_CONFIG_IMAGE_LARGE 1
+#endif
+
+// Small image tests (40x40 tiled): always enabled, negligible flash cost.
+#ifndef EGUI_TEST_CONFIG_IMAGE_SMALL
+#define EGUI_TEST_CONFIG_IMAGE_SMALL 1
 #endif
 
 #ifndef EGUI_TEST_CONFIG_IMAGE_DOUBLE
 #define EGUI_TEST_CONFIG_IMAGE_DOUBLE 0
+#endif
+
+#ifndef EGUI_TEST_CONFIG_IMAGE_480_ALPHA
+#define EGUI_TEST_CONFIG_IMAGE_480_ALPHA 1
 #endif
 
 #define EGUI_TEST_PERFORMANCE_IMAGE_NAME_0 egui_res_image_test_perf_480_rgb565##_0
@@ -46,6 +55,11 @@
 #define EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_2 egui_res_image_test_perf_240_rgb565##_2
 #define EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_4 egui_res_image_test_perf_240_rgb565##_4
 #define EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8 egui_res_image_test_perf_240_rgb565##_8
+
+#define EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_1 egui_res_image_star_240_rgb565##_1
+#define EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_2 egui_res_image_star_240_rgb565##_2
+#define EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_4 egui_res_image_star_240_rgb565##_4
+#define EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_8 egui_res_image_star_240_rgb565##_8
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 #define EGUI_TEST_PERFORMANCE_EXTERN_IMAGE_NAME_0        egui_res_image_test_perf_480_ext_rgb565_0_bin
@@ -76,82 +90,118 @@ static void egui_view_test_performance_test_line(egui_view_t *self)
 
 static void egui_view_test_performance_test_image_565(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_565
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_0;
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_0, 0, 0);
-#endif // EGUI_TEST_CONFIG_IMAGE_565
+#endif // EGUI_TEST_CONFIG_IMAGE_LARGE
 }
 
 static void egui_view_test_performance_test_image_565_1(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_565
+#if EGUI_TEST_CONFIG_IMAGE_LARGE && EGUI_TEST_CONFIG_IMAGE_480_ALPHA
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_1;
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_1, 0, 0);
-#endif // EGUI_TEST_CONFIG_IMAGE_565
+#endif
 }
 
 static void egui_view_test_performance_test_image_565_2(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_565
+#if EGUI_TEST_CONFIG_IMAGE_LARGE && EGUI_TEST_CONFIG_IMAGE_480_ALPHA
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_2;
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_2, 0, 0);
-#endif // EGUI_TEST_CONFIG_IMAGE_565
+#endif
 }
 
 static void egui_view_test_performance_test_image_565_4(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_565
+#if EGUI_TEST_CONFIG_IMAGE_LARGE && EGUI_TEST_CONFIG_IMAGE_480_ALPHA
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_4;
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_4, 0, 0);
-#endif // EGUI_TEST_CONFIG_IMAGE_565
+#endif
 }
 
 static void egui_view_test_performance_test_image_565_8(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_565
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_8;
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_8, 0, 0);
-#endif // EGUI_TEST_CONFIG_IMAGE_565
+#endif // EGUI_TEST_CONFIG_IMAGE_LARGE
 }
 
 static void egui_view_test_performance_test_image_resize_565(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_565
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_0;
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_0, 0, 0, self->region.size.width, self->region.size.height);
-#endif // EGUI_TEST_CONFIG_IMAGE_565
+#endif // EGUI_TEST_CONFIG_IMAGE_LARGE
 }
 
 static void egui_view_test_performance_test_image_resize_565_1(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_565
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_1;
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_1, 0, 0, self->region.size.width, self->region.size.height);
-#endif // EGUI_TEST_CONFIG_IMAGE_565
+#endif // EGUI_TEST_CONFIG_IMAGE_LARGE
 }
 
 static void egui_view_test_performance_test_image_resize_565_2(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_565
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_2;
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_2, 0, 0, self->region.size.width, self->region.size.height);
-#endif // EGUI_TEST_CONFIG_IMAGE_565
+#endif // EGUI_TEST_CONFIG_IMAGE_LARGE
 }
 
 static void egui_view_test_performance_test_image_resize_565_4(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_565
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_4;
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_4, 0, 0, self->region.size.width, self->region.size.height);
-#endif // EGUI_TEST_CONFIG_IMAGE_565
+#endif // EGUI_TEST_CONFIG_IMAGE_LARGE
 }
 
 static void egui_view_test_performance_test_image_resize_565_8(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_565
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8;
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, 0, 0, self->region.size.width, self->region.size.height);
-#endif // EGUI_TEST_CONFIG_IMAGE_565
+#endif // EGUI_TEST_CONFIG_IMAGE_LARGE
+}
+
+// ============================================================================
+// Star image tests (real alpha from star.png)
+// ============================================================================
+
+static void egui_view_test_performance_test_image_resize_star_565_1(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_1;
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_1, 0, 0, self->region.size.width, self->region.size.height);
+#endif
+}
+
+static void egui_view_test_performance_test_image_resize_star_565_2(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_2;
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_2, 0, 0, self->region.size.width, self->region.size.height);
+#endif
+}
+
+static void egui_view_test_performance_test_image_resize_star_565_4(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_4;
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_4, 0, 0, self->region.size.width, self->region.size.height);
+#endif
+}
+
+static void egui_view_test_performance_test_image_resize_star_565_8(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_8;
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_8, 0, 0, self->region.size.width, self->region.size.height);
+#endif
 }
 
 const char test_str[] =
@@ -827,8 +877,8 @@ static void egui_view_test_performance_test_animation_set(egui_view_t *self)
 
 static void egui_view_test_performance_test_image_565_quarter(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_565
-    // Full-size image drawn at screen center — only 1/4 visible, tests clipping path
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    // Full-size image drawn at screen center �?only 1/4 visible, tests clipping path
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_0;
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_0, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER);
 #endif
@@ -836,7 +886,7 @@ static void egui_view_test_performance_test_image_565_quarter(egui_view_t *self)
 
 static void egui_view_test_performance_test_image_565_double(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_565 && EGUI_TEST_CONFIG_IMAGE_DOUBLE
+#if EGUI_TEST_CONFIG_IMAGE_LARGE && EGUI_TEST_CONFIG_IMAGE_DOUBLE
     extern const egui_image_std_t egui_res_image_test_perf_960_rgb565_0;
     egui_canvas_draw_image((egui_image_t *)&egui_res_image_test_perf_960_rgb565_0, 0, 0);
 #endif
@@ -844,8 +894,8 @@ static void egui_view_test_performance_test_image_565_double(egui_view_t *self)
 
 static void egui_view_test_performance_test_image_565_8_quarter(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_565
-    // Full-size image drawn at screen center — only 1/4 visible, tests clipping path
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    // Full-size image drawn at screen center �?only 1/4 visible, tests clipping path
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_IMAGE_NAME_8;
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER);
 #endif
@@ -853,11 +903,573 @@ static void egui_view_test_performance_test_image_565_8_quarter(egui_view_t *sel
 
 static void egui_view_test_performance_test_image_565_8_double(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_565 && EGUI_TEST_CONFIG_IMAGE_DOUBLE
+#if EGUI_TEST_CONFIG_IMAGE_LARGE && EGUI_TEST_CONFIG_IMAGE_DOUBLE
     extern const egui_image_std_t egui_res_image_test_perf_960_rgb565_8;
     egui_canvas_draw_image((egui_image_t *)&egui_res_image_test_perf_960_rgb565_8, 0, 0);
 #endif
 }
+
+// ============================================================================
+// Image transform (rotation) tests
+// ============================================================================
+
+static void egui_view_test_performance_test_image_rotate_565(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_0;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_0, cx, cy, 45, 256);
+#endif
+}
+
+static void egui_view_test_performance_test_image_rotate_565_resize(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_0;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    int16_t scale = (int16_t)((int32_t)self->region.size.width * 256 / 240);
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_0, cx, cy, 45, scale);
+#endif
+}
+
+static void egui_view_test_performance_test_image_rotate_565_quarter(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_0;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_0, cx, cy, 45, 128);
+#endif
+}
+
+static void egui_view_test_performance_test_image_rotate_565_1(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_1;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_1, cx, cy, 45, 256);
+#endif
+}
+
+static void egui_view_test_performance_test_image_rotate_565_2(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_2;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_2, cx, cy, 45, 256);
+#endif
+}
+
+static void egui_view_test_performance_test_image_rotate_565_4(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_4;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_4, cx, cy, 45, 256);
+#endif
+}
+
+static void egui_view_test_performance_test_image_rotate_565_8(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, cx, cy, 45, 256);
+#endif
+}
+
+static void egui_view_test_performance_test_image_rotate_565_double(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_0;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    int16_t scale = (int16_t)((int32_t)self->region.size.width * 2 * 256 / 240);
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_0, cx, cy, 45, scale);
+#endif
+}
+
+// ============================================================================
+// External image transform (rotation) tests
+// ============================================================================
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+static void egui_view_test_performance_test_extern_image_rotate_565(egui_view_t *self)
+{
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_0;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_0, cx, cy, 45, 256);
+}
+
+static void egui_view_test_performance_test_extern_image_rotate_565_1(egui_view_t *self)
+{
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_1;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_1, cx, cy, 45, 256);
+}
+
+static void egui_view_test_performance_test_extern_image_rotate_565_2(egui_view_t *self)
+{
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_2;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_2, cx, cy, 45, 256);
+}
+
+static void egui_view_test_performance_test_extern_image_rotate_565_4(egui_view_t *self)
+{
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_4;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_4, cx, cy, 45, 256);
+}
+
+static void egui_view_test_performance_test_extern_image_rotate_565_8(egui_view_t *self)
+{
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_8;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_8, cx, cy, 45, 256);
+}
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+
+// ============================================================================
+// Star image transform (rotation) tests �?real alpha from star.png
+// ============================================================================
+
+static void egui_view_test_performance_test_image_rotate_star_565_1(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_1;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_1, cx, cy, 45, 256);
+#endif
+}
+
+static void egui_view_test_performance_test_image_rotate_star_565_2(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_2;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_2, cx, cy, 45, 256);
+#endif
+}
+
+static void egui_view_test_performance_test_image_rotate_star_565_4(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_4;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_4, cx, cy, 45, 256);
+#endif
+}
+
+static void egui_view_test_performance_test_image_rotate_star_565_8(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_8;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_8, cx, cy, 45, 256);
+#endif
+}
+
+// ============================================================================
+// Tiled small-image tests
+// Tile dimensions: draw=40x40, resize=160x160, rotate-slot=80x80
+// Sources: test_perf_Nx (alpha=255, opaque) vs star_Nx (real alpha)
+// Purpose: flash-friendly alternative covering same total pixel workload as
+//          large-image tests, works on small screens and embedded flash.
+// ============================================================================
+
+#define EGUI_TEST_TILED_DRAW_STEP   40
+#define EGUI_TEST_TILED_RESIZE_STEP 160
+#define EGUI_TEST_TILED_ROTATE_STEP 80
+
+static void egui_test_tiled_draw_impl(egui_view_t *self, const egui_image_t *img)
+{
+    egui_dim_t W = self->region.size.width;
+    egui_dim_t H = self->region.size.height;
+    for (egui_dim_t y = 0; y < H; y += EGUI_TEST_TILED_DRAW_STEP)
+    {
+        for (egui_dim_t x = 0; x < W; x += EGUI_TEST_TILED_DRAW_STEP)
+        {
+            egui_canvas_draw_image(img, x, y);
+        }
+    }
+}
+
+static void egui_test_tiled_resize_impl(egui_view_t *self, const egui_image_t *img)
+{
+    egui_dim_t W = self->region.size.width;
+    egui_dim_t H = self->region.size.height;
+    for (egui_dim_t y = 0; y < H; y += EGUI_TEST_TILED_RESIZE_STEP)
+    {
+        for (egui_dim_t x = 0; x < W; x += EGUI_TEST_TILED_RESIZE_STEP)
+        {
+            egui_canvas_draw_image_resize(img, x, y, EGUI_TEST_TILED_RESIZE_STEP, EGUI_TEST_TILED_RESIZE_STEP);
+        }
+    }
+}
+
+static void egui_test_tiled_rotate_impl(egui_view_t *self, const egui_image_t *img)
+{
+    egui_dim_t W = self->region.size.width;
+    egui_dim_t H = self->region.size.height;
+    egui_dim_t half = EGUI_TEST_TILED_ROTATE_STEP / 2;
+    for (egui_dim_t y = half; y <= H; y += EGUI_TEST_TILED_ROTATE_STEP)
+    {
+        for (egui_dim_t x = half; x <= W; x += EGUI_TEST_TILED_ROTATE_STEP)
+        {
+            egui_canvas_draw_image_transform(img, x, y, 45, 256);
+        }
+    }
+}
+
+/* --- tiled draw: test_perf_40 --- */
+static void egui_view_test_performance_test_image_tiled_565_0(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_0;
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&egui_res_image_test_perf_40_rgb565_0);
+#endif
+}
+static void egui_view_test_performance_test_image_tiled_565_1(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_1;
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&egui_res_image_test_perf_40_rgb565_1);
+#endif
+}
+static void egui_view_test_performance_test_image_tiled_565_2(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_2;
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&egui_res_image_test_perf_40_rgb565_2);
+#endif
+}
+static void egui_view_test_performance_test_image_tiled_565_4(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_4;
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&egui_res_image_test_perf_40_rgb565_4);
+#endif
+}
+static void egui_view_test_performance_test_image_tiled_565_8(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_8;
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&egui_res_image_test_perf_40_rgb565_8);
+#endif
+}
+
+/* --- tiled draw: star_40 --- */
+static void egui_view_test_performance_test_image_tiled_star_565_0(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_star_40_rgb565_0;
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&egui_res_image_star_40_rgb565_0);
+#endif
+}
+static void egui_view_test_performance_test_image_tiled_star_565_1(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_star_40_rgb565_1;
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&egui_res_image_star_40_rgb565_1);
+#endif
+}
+static void egui_view_test_performance_test_image_tiled_star_565_2(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_star_40_rgb565_2;
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&egui_res_image_star_40_rgb565_2);
+#endif
+}
+static void egui_view_test_performance_test_image_tiled_star_565_4(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_star_40_rgb565_4;
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&egui_res_image_star_40_rgb565_4);
+#endif
+}
+static void egui_view_test_performance_test_image_tiled_star_565_8(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_star_40_rgb565_8;
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&egui_res_image_star_40_rgb565_8);
+#endif
+}
+
+/* --- tiled resize: test_perf_40 (src 40x40 -> 160x160 slot) --- */
+static void egui_view_test_performance_test_image_resize_tiled_565_0(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_0;
+    egui_test_tiled_resize_impl(self, (egui_image_t *)&egui_res_image_test_perf_40_rgb565_0);
+#endif
+}
+static void egui_view_test_performance_test_image_resize_tiled_565_1(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_1;
+    egui_test_tiled_resize_impl(self, (egui_image_t *)&egui_res_image_test_perf_40_rgb565_1);
+#endif
+}
+static void egui_view_test_performance_test_image_resize_tiled_565_2(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_2;
+    egui_test_tiled_resize_impl(self, (egui_image_t *)&egui_res_image_test_perf_40_rgb565_2);
+#endif
+}
+static void egui_view_test_performance_test_image_resize_tiled_565_4(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_4;
+    egui_test_tiled_resize_impl(self, (egui_image_t *)&egui_res_image_test_perf_40_rgb565_4);
+#endif
+}
+static void egui_view_test_performance_test_image_resize_tiled_565_8(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_8;
+    egui_test_tiled_resize_impl(self, (egui_image_t *)&egui_res_image_test_perf_40_rgb565_8);
+#endif
+}
+
+/* --- tiled resize: star_40 (src 40x40 -> 160x160 slot) --- */
+static void egui_view_test_performance_test_image_resize_tiled_star_565_0(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_star_40_rgb565_0;
+    egui_test_tiled_resize_impl(self, (egui_image_t *)&egui_res_image_star_40_rgb565_0);
+#endif
+}
+static void egui_view_test_performance_test_image_resize_tiled_star_565_1(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_star_40_rgb565_1;
+    egui_test_tiled_resize_impl(self, (egui_image_t *)&egui_res_image_star_40_rgb565_1);
+#endif
+}
+static void egui_view_test_performance_test_image_resize_tiled_star_565_2(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_star_40_rgb565_2;
+    egui_test_tiled_resize_impl(self, (egui_image_t *)&egui_res_image_star_40_rgb565_2);
+#endif
+}
+static void egui_view_test_performance_test_image_resize_tiled_star_565_4(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_star_40_rgb565_4;
+    egui_test_tiled_resize_impl(self, (egui_image_t *)&egui_res_image_star_40_rgb565_4);
+#endif
+}
+static void egui_view_test_performance_test_image_resize_tiled_star_565_8(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_star_40_rgb565_8;
+    egui_test_tiled_resize_impl(self, (egui_image_t *)&egui_res_image_star_40_rgb565_8);
+#endif
+}
+
+/* --- tiled rotate: test_perf_40 (src 40x40, 80x80 slots, 45deg) --- */
+static void egui_view_test_performance_test_image_rotate_tiled_565_0(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_0;
+    egui_test_tiled_rotate_impl(self, (egui_image_t *)&egui_res_image_test_perf_40_rgb565_0);
+#endif
+}
+static void egui_view_test_performance_test_image_rotate_tiled_565_1(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_1;
+    egui_test_tiled_rotate_impl(self, (egui_image_t *)&egui_res_image_test_perf_40_rgb565_1);
+#endif
+}
+static void egui_view_test_performance_test_image_rotate_tiled_565_2(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_2;
+    egui_test_tiled_rotate_impl(self, (egui_image_t *)&egui_res_image_test_perf_40_rgb565_2);
+#endif
+}
+static void egui_view_test_performance_test_image_rotate_tiled_565_4(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_4;
+    egui_test_tiled_rotate_impl(self, (egui_image_t *)&egui_res_image_test_perf_40_rgb565_4);
+#endif
+}
+static void egui_view_test_performance_test_image_rotate_tiled_565_8(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_8;
+    egui_test_tiled_rotate_impl(self, (egui_image_t *)&egui_res_image_test_perf_40_rgb565_8);
+#endif
+}
+
+/* --- tiled rotate: star_40 (src 40x40, 80x80 slots, 45deg) --- */
+static void egui_view_test_performance_test_image_rotate_tiled_star_565_0(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_star_40_rgb565_0;
+    egui_test_tiled_rotate_impl(self, (egui_image_t *)&egui_res_image_star_40_rgb565_0);
+#endif
+}
+static void egui_view_test_performance_test_image_rotate_tiled_star_565_1(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_star_40_rgb565_1;
+    egui_test_tiled_rotate_impl(self, (egui_image_t *)&egui_res_image_star_40_rgb565_1);
+#endif
+}
+static void egui_view_test_performance_test_image_rotate_tiled_star_565_2(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_star_40_rgb565_2;
+    egui_test_tiled_rotate_impl(self, (egui_image_t *)&egui_res_image_star_40_rgb565_2);
+#endif
+}
+static void egui_view_test_performance_test_image_rotate_tiled_star_565_4(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_star_40_rgb565_4;
+    egui_test_tiled_rotate_impl(self, (egui_image_t *)&egui_res_image_star_40_rgb565_4);
+#endif
+}
+static void egui_view_test_performance_test_image_rotate_tiled_star_565_8(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    extern const egui_image_std_t egui_res_image_star_40_rgb565_8;
+    egui_test_tiled_rotate_impl(self, (egui_image_t *)&egui_res_image_star_40_rgb565_8);
+#endif
+}
+
+// ============================================================================
+// Text transform (rotation) tests
+// ============================================================================
+
+/* Multi-line text string for rotation test (~240x240 at 26pt font) */
+static const char text_rotate_str[] = "0123456789abcdefghij\n"
+                                      "ABCDEFGHIJKLMNOPQRST\n"
+                                      "klmnopqrstuvwxyz0123\n"
+                                      "UVWXYZ!@#$%^&*()_+-=\n"
+                                      "4567890abcdefghijklm\n"
+                                      "nopqrstuvwxyzABCDEFG\n"
+                                      "HIJKLMNOPQRSTUVWXYZ0\n"
+                                      "123456789abcdefghijk\n"
+                                      "lmnopqrstuvwxyzABCDE";
+
+static void egui_view_test_performance_test_text_rotate_none(egui_view_t *self)
+{
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 0, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+}
+
+static void egui_view_test_performance_test_text_rotate(egui_view_t *self)
+{
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+}
+
+static void egui_view_test_performance_test_text_rotate_resize(egui_view_t *self)
+{
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    int16_t scale = (int16_t)((int32_t)self->region.size.width * 256 / 240);
+    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, scale, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+}
+
+static void egui_view_test_performance_test_text_rotate_quarter(egui_view_t *self)
+{
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, 128, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+}
+
+static void egui_view_test_performance_test_text_rotate_double(egui_view_t *self)
+{
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    int16_t scale = (int16_t)((int32_t)self->region.size.width * 2 * 256 / 240);
+    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, scale, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+}
+
+static void egui_view_test_performance_test_text_rotate_buffered_none(egui_view_t *self)
+{
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 0, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+}
+
+static void egui_view_test_performance_test_text_rotate_buffered(egui_view_t *self)
+{
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+}
+
+static void egui_view_test_performance_test_text_rotate_buffered_resize(egui_view_t *self)
+{
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    int16_t scale = (int16_t)((int32_t)self->region.size.width * 256 / 240);
+    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, scale, EGUI_COLOR_GREEN,
+                                             EGUI_ALPHA_100);
+}
+
+static void egui_view_test_performance_test_text_rotate_buffered_quarter(egui_view_t *self)
+{
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, 128, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+}
+
+static void egui_view_test_performance_test_text_rotate_buffered_double(egui_view_t *self)
+{
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    int16_t scale = (int16_t)((int32_t)self->region.size.width * 2 * 256 / 240);
+    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, scale, EGUI_COLOR_GREEN,
+                                             EGUI_ALPHA_100);
+}
+
+// ============================================================================
+// External text transform (rotation) tests
+// ============================================================================
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+static void egui_view_test_performance_test_extern_text_rotate(egui_view_t *self)
+{
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin, text_rotate_str, cx, cy, 45, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+}
+
+static void egui_view_test_performance_test_extern_text_rotate_buffered(egui_view_t *self)
+{
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin, text_rotate_str, cx, cy, 45, 256, EGUI_COLOR_GREEN,
+                                             EGUI_ALPHA_100);
+}
+#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 static void egui_view_test_performance_test_extern_image_565(egui_view_t *self)
@@ -917,7 +1529,7 @@ static void egui_view_test_performance_test_extern_image_resize_565_8(egui_view_
 
 static void egui_view_test_performance_test_mask_rect_fill_no_mask_quarter(egui_view_t *self)
 {
-    // Full-size rect at screen center — only 1/4 visible
+    // Full-size rect at screen center �?only 1/4 visible
     egui_canvas_draw_rectangle_fill(PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL, PERF_SIZE_FULL, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
@@ -928,7 +1540,7 @@ static void egui_view_test_performance_test_mask_rect_fill_no_mask_double(egui_v
 
 static void egui_view_test_performance_test_mask_rect_fill_round_rect_quarter(egui_view_t *self)
 {
-    // Full-size mask + rect at screen center — only 1/4 visible, tests clipping path
+    // Full-size mask + rect at screen center �?only 1/4 visible, tests clipping path
     egui_canvas_set_mask((egui_mask_t *)&perf_mask_round_rect);
     egui_canvas_draw_rectangle_fill(PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL, PERF_SIZE_FULL, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
     egui_canvas_clear_mask();
@@ -943,7 +1555,7 @@ static void egui_view_test_performance_test_mask_rect_fill_round_rect_double(egu
 
 static void egui_view_test_performance_test_mask_rect_fill_circle_quarter(egui_view_t *self)
 {
-    // Full-size mask + rect at screen center — only 1/4 visible, tests clipping path
+    // Full-size mask + rect at screen center �?only 1/4 visible, tests clipping path
     egui_canvas_set_mask((egui_mask_t *)&perf_mask_circle);
     egui_canvas_draw_rectangle_fill(PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL, PERF_SIZE_FULL, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
     egui_canvas_clear_mask();
@@ -958,7 +1570,7 @@ static void egui_view_test_performance_test_mask_rect_fill_circle_double(egui_vi
 
 static void egui_view_test_performance_test_mask_rect_fill_image_quarter(egui_view_t *self)
 {
-    // Full-size mask + rect at screen center — only 1/4 visible, tests clipping path
+    // Full-size mask + rect at screen center �?only 1/4 visible, tests clipping path
     egui_canvas_set_mask((egui_mask_t *)&perf_mask_image);
     egui_canvas_draw_rectangle_fill(PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, 72, 72, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
     egui_canvas_clear_mask();
@@ -977,7 +1589,7 @@ static void egui_view_test_performance_test_mask_rect_fill_image_double(egui_vie
 
 static void egui_view_test_performance_test_mask_image_no_mask_quarter(egui_view_t *self)
 {
-    // Full-size image resize at screen center — only 1/4 visible, tests clipping path
+    // Full-size image resize at screen center �?only 1/4 visible, tests clipping path
     egui_canvas_draw_image_resize((egui_image_t *)&egui_res_image_test_rgb565_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL, PERF_SIZE_FULL);
 }
 
@@ -988,7 +1600,7 @@ static void egui_view_test_performance_test_mask_image_no_mask_double(egui_view_
 
 static void egui_view_test_performance_test_mask_image_round_rect_quarter(egui_view_t *self)
 {
-    // Full-size mask + image resize at screen center — only 1/4 visible, tests clipping path
+    // Full-size mask + image resize at screen center �?only 1/4 visible, tests clipping path
     egui_canvas_set_mask((egui_mask_t *)&perf_mask_round_rect);
     egui_canvas_draw_image_resize((egui_image_t *)&egui_res_image_test_rgb565_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL, PERF_SIZE_FULL);
     egui_canvas_clear_mask();
@@ -1003,7 +1615,7 @@ static void egui_view_test_performance_test_mask_image_round_rect_double(egui_vi
 
 static void egui_view_test_performance_test_mask_image_circle_quarter(egui_view_t *self)
 {
-    // Full-size mask + image resize at screen center — only 1/4 visible, tests clipping path
+    // Full-size mask + image resize at screen center �?only 1/4 visible, tests clipping path
     egui_canvas_set_mask((egui_mask_t *)&perf_mask_circle);
     egui_canvas_draw_image_resize((egui_image_t *)&egui_res_image_test_rgb565_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL, PERF_SIZE_FULL);
     egui_canvas_clear_mask();
@@ -1018,7 +1630,7 @@ static void egui_view_test_performance_test_mask_image_circle_double(egui_view_t
 
 static void egui_view_test_performance_test_mask_image_image_quarter(egui_view_t *self)
 {
-    // Full-size mask + image resize at screen center — only 1/4 visible, tests clipping path
+    // Full-size mask + image resize at screen center �?only 1/4 visible, tests clipping path
     egui_canvas_set_mask((egui_mask_t *)&perf_mask_image);
     egui_canvas_draw_image_resize((egui_image_t *)&egui_res_image_test_rgb565_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, 72, 72);
     egui_canvas_clear_mask();
@@ -1037,7 +1649,7 @@ static void egui_view_test_performance_test_mask_image_image_double(egui_view_t 
 
 static void egui_view_test_performance_test_circle_fill_quarter(egui_view_t *self)
 {
-    // Full-size circle centered at (PERF_SIZE_FULL, PERF_SIZE_FULL) — only 1/4 visible, tests clipping path
+    // Full-size circle centered at (PERF_SIZE_FULL, PERF_SIZE_FULL) �?only 1/4 visible, tests clipping path
     egui_dim_t central_x = PERF_SIZE_FULL;
     egui_dim_t central_y = PERF_SIZE_FULL;
     egui_dim_t radius = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) >> 1) - 1);
@@ -1053,7 +1665,7 @@ static void egui_view_test_performance_test_circle_fill_double(egui_view_t *self
 
 static void egui_view_test_performance_test_round_rectangle_fill_quarter(egui_view_t *self)
 {
-    // Full-size round rect at screen center — only 1/4 visible, tests clipping path
+    // Full-size round rect at screen center �?only 1/4 visible, tests clipping path
     egui_dim_t size = PERF_SIZE_FULL;
     egui_dim_t radius = egui_view_test_performance_adjust_circle(size >> 1);
     egui_canvas_draw_round_rectangle_fill(PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, size, size, radius, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
@@ -1068,7 +1680,7 @@ static void egui_view_test_performance_test_round_rectangle_fill_double(egui_vie
 
 static void egui_view_test_performance_test_triangle_fill_quarter(egui_view_t *self)
 {
-    // Full-size triangle shifted by (PERF_SIZE_QUARTER, PERF_SIZE_QUARTER) — only 1/4 visible, tests clipping path
+    // Full-size triangle shifted by (PERF_SIZE_QUARTER, PERF_SIZE_QUARTER) �?only 1/4 visible, tests clipping path
     egui_dim_t size = PERF_SIZE_FULL;
     egui_dim_t ox = PERF_SIZE_QUARTER;
     egui_dim_t oy = PERF_SIZE_QUARTER;
@@ -1466,6 +2078,223 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
         egui_view_test_performance_test_triangle_fill_double(self);
         break;
 
+    // Image transform (rotation)
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565:
+        egui_view_test_performance_test_image_rotate_565(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565_1:
+        egui_view_test_performance_test_image_rotate_565_1(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565_2:
+        egui_view_test_performance_test_image_rotate_565_2(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565_4:
+        egui_view_test_performance_test_image_rotate_565_4(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565_8:
+        egui_view_test_performance_test_image_rotate_565_8(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565_RESIZE:
+        egui_view_test_performance_test_image_rotate_565_resize(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565_QUARTER:
+        egui_view_test_performance_test_image_rotate_565_quarter(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565_DOUBLE:
+        egui_view_test_performance_test_image_rotate_565_double(self);
+        break;
+
+        // External image transform (rotation)
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_565:
+        egui_view_test_performance_test_extern_image_rotate_565(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_565_1:
+        egui_view_test_performance_test_extern_image_rotate_565_1(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_565_2:
+        egui_view_test_performance_test_extern_image_rotate_565_2(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_565_4:
+        egui_view_test_performance_test_extern_image_rotate_565_4(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_565_8:
+        egui_view_test_performance_test_extern_image_rotate_565_8(self);
+        break;
+#endif
+
+    // Star image tests (real alpha)
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_STAR_565_1:
+        egui_view_test_performance_test_image_resize_star_565_1(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_STAR_565_2:
+        egui_view_test_performance_test_image_resize_star_565_2(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_STAR_565_4:
+        egui_view_test_performance_test_image_resize_star_565_4(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_STAR_565_8:
+        egui_view_test_performance_test_image_resize_star_565_8(self);
+        break;
+
+    // Star image transform (rotation, real alpha)
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_STAR_565_1:
+        egui_view_test_performance_test_image_rotate_star_565_1(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_STAR_565_2:
+        egui_view_test_performance_test_image_rotate_star_565_2(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_STAR_565_4:
+        egui_view_test_performance_test_image_rotate_star_565_4(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_STAR_565_8:
+        egui_view_test_performance_test_image_rotate_star_565_8(self);
+        break;
+
+    // Tiled draw (40x40 tiles, test_perf)
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_565_0:
+        egui_view_test_performance_test_image_tiled_565_0(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_565_1:
+        egui_view_test_performance_test_image_tiled_565_1(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_565_2:
+        egui_view_test_performance_test_image_tiled_565_2(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_565_4:
+        egui_view_test_performance_test_image_tiled_565_4(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_565_8:
+        egui_view_test_performance_test_image_tiled_565_8(self);
+        break;
+
+    // Tiled draw (40x40 tiles, star)
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_0:
+        egui_view_test_performance_test_image_tiled_star_565_0(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_1:
+        egui_view_test_performance_test_image_tiled_star_565_1(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_2:
+        egui_view_test_performance_test_image_tiled_star_565_2(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_4:
+        egui_view_test_performance_test_image_tiled_star_565_4(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_8:
+        egui_view_test_performance_test_image_tiled_star_565_8(self);
+        break;
+
+    // Tiled resize (160x160 tiles, test_perf)
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_565_0:
+        egui_view_test_performance_test_image_resize_tiled_565_0(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_565_1:
+        egui_view_test_performance_test_image_resize_tiled_565_1(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_565_2:
+        egui_view_test_performance_test_image_resize_tiled_565_2(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_565_4:
+        egui_view_test_performance_test_image_resize_tiled_565_4(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_565_8:
+        egui_view_test_performance_test_image_resize_tiled_565_8(self);
+        break;
+
+    // Tiled resize (160x160 tiles, star)
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_0:
+        egui_view_test_performance_test_image_resize_tiled_star_565_0(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_1:
+        egui_view_test_performance_test_image_resize_tiled_star_565_1(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_2:
+        egui_view_test_performance_test_image_resize_tiled_star_565_2(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_4:
+        egui_view_test_performance_test_image_resize_tiled_star_565_4(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_8:
+        egui_view_test_performance_test_image_resize_tiled_star_565_8(self);
+        break;
+
+    // Tiled rotate (80x80 slots 45deg, test_perf)
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_565_0:
+        egui_view_test_performance_test_image_rotate_tiled_565_0(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_565_1:
+        egui_view_test_performance_test_image_rotate_tiled_565_1(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_565_2:
+        egui_view_test_performance_test_image_rotate_tiled_565_2(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_565_4:
+        egui_view_test_performance_test_image_rotate_tiled_565_4(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_565_8:
+        egui_view_test_performance_test_image_rotate_tiled_565_8(self);
+        break;
+
+    // Tiled rotate (80x80 slots 45deg, star)
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_0:
+        egui_view_test_performance_test_image_rotate_tiled_star_565_0(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_1:
+        egui_view_test_performance_test_image_rotate_tiled_star_565_1(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_2:
+        egui_view_test_performance_test_image_rotate_tiled_star_565_2(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_4:
+        egui_view_test_performance_test_image_rotate_tiled_star_565_4(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_8:
+        egui_view_test_performance_test_image_rotate_tiled_star_565_8(self);
+        break;
+
+    // Text transform (rotation)
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_NONE:
+        egui_view_test_performance_test_text_rotate_none(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE:
+        egui_view_test_performance_test_text_rotate(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_RESIZE:
+        egui_view_test_performance_test_text_rotate_resize(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_QUARTER:
+        egui_view_test_performance_test_text_rotate_quarter(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_DOUBLE:
+        egui_view_test_performance_test_text_rotate_double(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_NONE:
+        egui_view_test_performance_test_text_rotate_buffered_none(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED:
+        egui_view_test_performance_test_text_rotate_buffered(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_RESIZE:
+        egui_view_test_performance_test_text_rotate_buffered_resize(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_QUARTER:
+        egui_view_test_performance_test_text_rotate_buffered_quarter(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_DOUBLE:
+        egui_view_test_performance_test_text_rotate_buffered_double(self);
+        break;
+
+        // External text transform (rotation)
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_ROTATE:
+        egui_view_test_performance_test_extern_text_rotate(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_ROTATE_BUFFERED:
+        egui_view_test_performance_test_extern_text_rotate_buffered(self);
+        break;
+#endif
+
     default:
         break;
     }
@@ -1490,16 +2319,19 @@ int egui_view_test_performance_is_enabled(int test_mode)
     {
     // Image tests gated by compile-time config
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565:
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_1:
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_2:
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_4:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_8:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_565:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_565_1:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_565_2:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_565_4:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_565_8:
-        return EGUI_TEST_CONFIG_IMAGE_565;
+        return EGUI_TEST_CONFIG_IMAGE_LARGE;
+
+    // 480px alpha variant direct-draw �?disabled on QEMU to save flash (alpha=255, same perf as _0)
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_1:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_2:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_4:
+        return EGUI_TEST_CONFIG_IMAGE_LARGE && EGUI_TEST_CONFIG_IMAGE_480_ALPHA;
 
     // Optional feature tests
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_ELLIPSE:
@@ -1557,13 +2389,13 @@ int egui_view_test_performance_is_enabled(int test_mode)
 
     // Image multi-size: gate on corresponding config
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_QUARTER:
-        return EGUI_TEST_CONFIG_IMAGE_565;
+        return EGUI_TEST_CONFIG_IMAGE_LARGE;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_DOUBLE:
-        return EGUI_TEST_CONFIG_IMAGE_565 && EGUI_TEST_CONFIG_IMAGE_DOUBLE;
+        return EGUI_TEST_CONFIG_IMAGE_LARGE && EGUI_TEST_CONFIG_IMAGE_DOUBLE;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_8_QUARTER:
-        return EGUI_TEST_CONFIG_IMAGE_565;
+        return EGUI_TEST_CONFIG_IMAGE_LARGE;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_8_DOUBLE:
-        return EGUI_TEST_CONFIG_IMAGE_565 && EGUI_TEST_CONFIG_IMAGE_DOUBLE;
+        return EGUI_TEST_CONFIG_IMAGE_LARGE && EGUI_TEST_CONFIG_IMAGE_DOUBLE;
 
     // Extern image tests: gate on external resource support, skip on QEMU (no semihosting file support)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT:
@@ -1578,7 +2410,105 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_565_2:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_565_4:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_565_8:
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE && (EGUI_PORT != EGUI_PORT_TYPE_QEMU)
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+        return 1;
+#else
+        return 0;
+#endif
+
+    // Image transform: gate on image transform + image config
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565_1:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565_2:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565_4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565_RESIZE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565_QUARTER:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_565_DOUBLE:
+        return EGUI_TEST_CONFIG_IMAGE_LARGE;
+
+    // External image transform: gate on image transform + external resource
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_565:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_565_1:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_565_2:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_565_4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_565_8:
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+        return 1;
+#else
+        return 0;
+#endif
+
+    // Star image tests: gate on image config
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_STAR_565_1:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_STAR_565_2:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_STAR_565_4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_STAR_565_8:
+        return EGUI_TEST_CONFIG_IMAGE_LARGE;
+
+    // Star image transform: gate on image transform + image config
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_STAR_565_1:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_STAR_565_2:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_STAR_565_4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_STAR_565_8:
+        return EGUI_TEST_CONFIG_IMAGE_LARGE;
+
+    // Tiled draw (40x40): always enabled (40x40 images are flash-trivial)
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_565_0:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_565_1:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_565_2:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_565_4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_0:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_1:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_2:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_8:
+        return EGUI_TEST_CONFIG_IMAGE_SMALL;
+
+    // Tiled resize (40->160): always enabled
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_565_0:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_565_1:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_565_2:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_565_4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_0:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_1:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_2:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_8:
+        return EGUI_TEST_CONFIG_IMAGE_SMALL;
+
+    // Tiled rotate (40x80 slot 45deg): always enabled when transform supported
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_565_0:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_565_1:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_565_2:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_565_4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_0:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_1:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_2:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_8:
+        return EGUI_TEST_CONFIG_IMAGE_SMALL;
+
+    // Text transform: gate on image transform support
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_NONE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_RESIZE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_QUARTER:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_DOUBLE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_NONE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_RESIZE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_QUARTER:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_DOUBLE:
+        return 1;
+
+    // External text transform: gate on image transform + external resource
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_ROTATE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_ROTATE_BUFFERED:
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         return 1;
 #else
         return 0;

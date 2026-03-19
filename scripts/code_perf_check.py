@@ -20,6 +20,7 @@ import re
 import subprocess
 import argparse
 import platform
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -110,6 +111,12 @@ def build_for_profile(profile_name, profile_config, clean=False):
         print(f"  stderr: {result.stderr[-500:]}")
         return False
 
+    # Copy external resource binary to output/ for QEMU semihosting access
+    res_bin_src = PROJECT_ROOT / "example" / "HelloPerformace" / "resource" / "app_egui_resource_merge.bin"
+    res_bin_dst = PROJECT_ROOT / "output" / "app_egui_resource_merge.bin"
+    if res_bin_src.exists() and not res_bin_dst.exists():
+        shutil.copy(res_bin_src, res_bin_dst)
+
     print(f"  Build OK")
     return True
 
@@ -190,9 +197,7 @@ def parse_perf_results(output):
         match = pattern.search(line)
         if match:
             name = match.group(1)
-            integer_part = int(match.group(2))
-            decimal_part = int(match.group(3))
-            time_ms = float(f"{integer_part}.{decimal_part}")
+            time_ms = float(f"{match.group(2)}.{match.group(3)}")
             results[name] = {"time_ms": time_ms}
             continue
 

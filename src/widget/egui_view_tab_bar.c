@@ -236,7 +236,8 @@ static uint8_t egui_view_tab_bar_get_hit_index(egui_view_t *self, egui_view_tab_
     egui_dim_t tab_w;
 
     if (touch_x < self->region_screen.location.x || touch_y < self->region_screen.location.y ||
-        touch_x >= self->region_screen.location.x + self->region_screen.size.width || touch_y >= self->region_screen.location.y + self->region_screen.size.height)
+        touch_x >= self->region_screen.location.x + self->region_screen.size.width ||
+        touch_y >= self->region_screen.location.y + self->region_screen.size.height)
     {
         return EGUI_VIEW_TAB_BAR_PRESSED_NONE;
     }

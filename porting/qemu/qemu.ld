@@ -17,7 +17,7 @@ ENTRY(Reset_Handler)
 
 _estack = ORIGIN(RAM) + LENGTH(RAM);
 
-_Min_Heap_Size = 0x2000;  /* 8KB heap */
+_Min_Heap_Size = 0x40000;  /* 256KB heap (needed for image transform external resource loading) */
 _Min_Stack_Size = 0x2000; /* 8KB stack */
 
 MEMORY

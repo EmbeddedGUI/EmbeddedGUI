@@ -11,37 +11,19 @@ static egui_view_node_topology_t test_topology;
 static int click_count;
 
 static const egui_view_node_topology_node_t g_nodes_a[] = {
-        {80, 10, 9, "Core", 0},
-        {34, 42, 8, "API", 1},
-        {126, 42, 8, "Cache", 0},
-        {28, 74, 8, "DB", 2},
-        {132, 74, 8, "Queue", 1},
+        {80, 10, 9, "Core", 0}, {34, 42, 8, "API", 1}, {126, 42, 8, "Cache", 0}, {28, 74, 8, "DB", 2}, {132, 74, 8, "Queue", 1},
 };
 
 static const egui_view_node_topology_link_t g_links_a[] = {
-        {0, 1, 1},
-        {0, 2, 1},
-        {1, 3, 1},
-        {2, 4, 1},
-        {1, 4, 0},
-        {2, 3, 0},
+        {0, 1, 1}, {0, 2, 1}, {1, 3, 1}, {2, 4, 1}, {1, 4, 0}, {2, 3, 0},
 };
 
 static const egui_view_node_topology_node_t g_nodes_b[] = {
-        {80, 12, 9, "Hub", 0},
-        {24, 44, 8, "Edge", 1},
-        {136, 44, 8, "Index", 2},
-        {44, 72, 8, "Bill", 0},
-        {116, 72, 8, "Jobs", 1},
+        {80, 12, 9, "Hub", 0}, {24, 44, 8, "Edge", 1}, {136, 44, 8, "Index", 2}, {44, 72, 8, "Bill", 0}, {116, 72, 8, "Jobs", 1},
 };
 
 static const egui_view_node_topology_link_t g_links_b[] = {
-        {0, 1, 1},
-        {0, 2, 1},
-        {1, 3, 1},
-        {2, 4, 1},
-        {0, 4, 0},
-        {1, 2, 0},
+        {0, 1, 1}, {0, 2, 1}, {1, 3, 1}, {2, 4, 1}, {0, 4, 0}, {1, 2, 0},
 };
 
 static const egui_view_node_topology_snapshot_t g_snapshots[] = {

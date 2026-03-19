@@ -188,7 +188,8 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
 
             if (self->is_pressed && local->pressed_zone == 1)
             {
-                egui_canvas_draw_fillrect(top_rect.location.x, top_rect.location.y, top_rect.size.width, top_rect.size.height, EGUI_COLOR_MAKE(255, 255, 255), 30);
+                egui_canvas_draw_fillrect(top_rect.location.x, top_rect.location.y, top_rect.size.width, top_rect.size.height, EGUI_COLOR_MAKE(255, 255, 255),
+                                          30);
             }
             egui_canvas_draw_text_in_rect(icon_font, local->icon_inc, &top_rect, EGUI_ALIGN_CENTER, local->button_color, local->alpha);
         }

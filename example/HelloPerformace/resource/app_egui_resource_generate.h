@@ -10,6 +10,16 @@ extern "C" {
 
 #include "egui.h"
 
+extern const egui_image_std_t egui_res_image_star_240_rgb565_0;
+extern const egui_image_std_t egui_res_image_star_240_rgb565_1;
+extern const egui_image_std_t egui_res_image_star_240_rgb565_2;
+extern const egui_image_std_t egui_res_image_star_240_rgb565_4;
+extern const egui_image_std_t egui_res_image_star_240_rgb565_8;
+extern const egui_image_std_t egui_res_image_star_40_rgb565_0;
+extern const egui_image_std_t egui_res_image_star_40_rgb565_1;
+extern const egui_image_std_t egui_res_image_star_40_rgb565_2;
+extern const egui_image_std_t egui_res_image_star_40_rgb565_4;
+extern const egui_image_std_t egui_res_image_star_40_rgb565_8;
 extern const egui_image_std_t egui_res_image_star_rgb565_8;
 extern const egui_image_std_t egui_res_image_test_perf_240_ext_a1_rgb565_1_bin;
 extern const egui_image_std_t egui_res_image_test_perf_240_ext_a2_rgb565_2_bin;
@@ -21,6 +31,11 @@ extern const egui_image_std_t egui_res_image_test_perf_240_rgb565_1;
 extern const egui_image_std_t egui_res_image_test_perf_240_rgb565_2;
 extern const egui_image_std_t egui_res_image_test_perf_240_rgb565_4;
 extern const egui_image_std_t egui_res_image_test_perf_240_rgb565_8;
+extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_0;
+extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_1;
+extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_2;
+extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_4;
+extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_8;
 extern const egui_image_std_t egui_res_image_test_perf_480_ext_a1_rgb565_1_bin;
 extern const egui_image_std_t egui_res_image_test_perf_480_ext_a2_rgb565_2_bin;
 extern const egui_image_std_t egui_res_image_test_perf_480_ext_a4_rgb565_4_bin;

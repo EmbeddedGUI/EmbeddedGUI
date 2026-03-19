@@ -41,6 +41,31 @@
             "dim": "150,150"
         },
         {
+            "file": "star.png",
+            "name": "star_240",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "all",
+            "dim": "240,240"
+        },
+        {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_40",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "all",
+            "dim": "40,40"
+        },
+        {
+            "file": "star.png",
+            "name": "star_40",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "all",
+            "dim": "40,40"
+        },
+
+        {
             "file": "test_img_2_1280_1280.png",
             "name": "test_perf_480_ext",
             "external": "1",

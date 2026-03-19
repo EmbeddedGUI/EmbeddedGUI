@@ -246,6 +246,78 @@ __EGUI_STATIC_INLINE__ uint8_t gradient_radial_t(egui_dim_t dx, egui_dim_t dy, e
     return (t > 255) ? 255 : (uint8_t)t;
 }
 
+/* ---- Integer atan2 for angular gradient ---- */
+
+/* First-octant LUT: atan2_octant_lut[i] = round(atan(i/32) / (2*PI) * 256).
+ * Maps ratio min/max in Q5 (0..32) to angle 0..32 in the 256-value space (0°..45°). */
+// clang-format off
+static const uint8_t atan2_octant_lut[33] = {
+     0,  1,  3,  4,  5,  6,  8,  9, 10, 11, 12, 13, 15, 16, 17, 18,
+    19, 20, 21, 22, 23, 24, 25, 25, 26, 27, 28, 29, 29, 30, 31, 31, 32
+};
+// clang-format on
+
+/* Integer atan2 returning angle in [0, 255] where 0=0°(right), 64=90°(down),
+ * 128=180°(left), 192=270°(up). Clockwise screen convention (y-down). */
+static uint8_t gradient_atan2_256(int32_t dy, int32_t dx)
+{
+    if (dx == 0 && dy == 0)
+    {
+        return 0;
+    }
+
+    int32_t adx = (dx >= 0) ? dx : -dx;
+    int32_t ady = (dy >= 0) ? dy : -dy;
+
+    /* First-quadrant angle (0..63) via octant decomposition */
+    uint8_t q_angle;
+    if (adx >= ady)
+    {
+        q_angle = atan2_octant_lut[(uint32_t)(ady * 32 + (adx >> 1)) / (uint32_t)adx];
+    }
+    else
+    {
+        q_angle = 64 - atan2_octant_lut[(uint32_t)(adx * 32 + (ady >> 1)) / (uint32_t)ady];
+    }
+
+    /* Map to full 0-255 range based on quadrant */
+    if (dx >= 0)
+    {
+        return (dy >= 0) ? q_angle : (uint8_t)(256 - q_angle);
+    }
+    else
+    {
+        return (dy >= 0) ? (uint8_t)(128 - q_angle) : (uint8_t)(128 + q_angle);
+    }
+}
+
+/* Compute angular gradient t value (0-255) for a pixel at (dx, dy) from center.
+ * Full 360° sweep: 0°(right) → 255 → 0°(right). */
+__EGUI_STATIC_INLINE__ uint8_t gradient_angular_t(egui_dim_t dx, egui_dim_t dy)
+{
+    return gradient_atan2_256((int32_t)dy, (int32_t)dx);
+}
+
+/* Compute angular gradient t value for an arc span.
+ * Maps pixel angle to [0, 255] within [start_angle_deg, start_angle_deg + span_deg]. */
+__EGUI_STATIC_INLINE__ uint8_t gradient_angular_arc_t(int32_t dy, int32_t dx, int32_t start_angle_deg, int32_t span_deg)
+{
+    uint8_t pixel_angle = gradient_atan2_256(dy, dx);
+    /* Convert start angle to 256-space: start_256 = start_angle_deg * 256 / 360 */
+    uint8_t start_256 = (uint8_t)((uint32_t)((start_angle_deg % 360 + 360) % 360) * 256 / 360);
+    /* Angular offset from start (uint8_t wraps naturally for circular arithmetic) */
+    uint8_t angle_offset = pixel_angle - start_256;
+    /* Convert span to 256-space */
+    uint32_t span_256 = (uint32_t)span_deg * 256 / 360;
+    if (span_256 == 0)
+    {
+        return 0;
+    }
+    /* Map offset to 0..255 within the span */
+    uint32_t t = (uint32_t)angle_offset * 255 / span_256;
+    return (t > 255) ? 255 : (uint8_t)t;
+}
+
 /* Get gradient color for a pixel at (px, py) relative to shape origin (0,0) with shape size (w, h). */
 __EGUI_STATIC_INLINE__ egui_color_t gradient_color_at(const egui_gradient_t *gradient, egui_dim_t px, egui_dim_t py, egui_dim_t w, egui_dim_t h)
 {
@@ -257,6 +329,12 @@ __EGUI_STATIC_INLINE__ egui_color_t gradient_color_at(const egui_gradient_t *gra
     else if (gradient->type == EGUI_GRADIENT_TYPE_LINEAR_HORIZONTAL)
     {
         t = gradient_linear_t(px, w);
+    }
+    else if (gradient->type == EGUI_GRADIENT_TYPE_ANGULAR)
+    {
+        egui_dim_t dx = px - gradient->center_x;
+        egui_dim_t dy = py - gradient->center_y;
+        t = gradient_angular_t(dx, dy);
     }
     else /* RADIAL */
     {
@@ -280,6 +358,12 @@ __EGUI_STATIC_INLINE__ egui_color_t gradient_color_at_dithered(const egui_gradie
     {
         t = gradient_linear_t(px, w);
     }
+    else if (gradient->type == EGUI_GRADIENT_TYPE_ANGULAR)
+    {
+        egui_dim_t dx = px - gradient->center_x;
+        egui_dim_t dy = py - gradient->center_y;
+        t = gradient_angular_t(dx, dy);
+    }
     else /* RADIAL */
     {
         egui_dim_t dx = px - gradient->center_x;
@@ -289,6 +373,33 @@ __EGUI_STATIC_INLINE__ egui_color_t gradient_color_at_dithered(const egui_gradie
     return egui_gradient_get_color_dithered(gradient->stops, gradient->stop_count, t, screen_x, screen_y);
 }
 #endif
+
+/* Unified gradient color lookup: applies dithering when enabled, falls back to plain color_at otherwise.
+ * screen_x/screen_y are absolute pixel coordinates for the Bayer matrix. */
+__EGUI_STATIC_INLINE__ egui_color_t gradient_color_at_pixel(const egui_gradient_t *gradient, egui_dim_t rel_x, egui_dim_t rel_y, egui_dim_t w, egui_dim_t h,
+                                                            egui_dim_t screen_x, egui_dim_t screen_y)
+{
+#if EGUI_CONFIG_FUNCTION_GRADIENT_DITHERING
+    return gradient_color_at_dithered(gradient, rel_x, rel_y, w, h, screen_x, screen_y);
+#else
+    (void)screen_x;
+    (void)screen_y;
+    return gradient_color_at(gradient, rel_x, rel_y, w, h);
+#endif
+}
+
+/* Unified single-stop gradient color: applies dithering when enabled. */
+__EGUI_STATIC_INLINE__ egui_color_t gradient_get_color_pixel(const egui_gradient_stop_t *stops, uint8_t stop_count, uint8_t t, egui_dim_t screen_x,
+                                                             egui_dim_t screen_y)
+{
+#if EGUI_CONFIG_FUNCTION_GRADIENT_DITHERING
+    return egui_gradient_get_color_dithered(stops, stop_count, t, screen_x, screen_y);
+#else
+    (void)screen_x;
+    (void)screen_y;
+    return egui_gradient_get_color(stops, stop_count, t);
+#endif
+}
 
 /* ========================== Rectangle Fill Gradient ========================== */
 
@@ -485,6 +596,12 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
     int32_t r_inner_sq = (int32_t)(radius - 1) * (radius - 1);
     int32_t r_outer_sq = (int32_t)(radius + 1) * (radius + 1);
 
+    /* Direct PFB write setup for no-mask fast path */
+    int use_direct_pfb = (self->mask == NULL) ? 1 : 0;
+    egui_dim_t pfb_width = self->pfb_region.size.width;
+    egui_dim_t pfb_ofs_x = self->pfb_location_in_base_view.x;
+    egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
+
     for (egui_dim_t y = y_start; y < y_end; y++)
     {
         int32_t dy = (int32_t)(y - center_y);
@@ -501,45 +618,343 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
         egui_dim_t ol = EGUI_MAX(center_x - (egui_dim_t)x_outer_half, x_start);
         egui_dim_t or_ = EGUI_MIN(center_x + (egui_dim_t)x_outer_half, x_end - 1);
 
-        if (gradient->type == EGUI_GRADIENT_TYPE_LINEAR_VERTICAL)
+        if (use_direct_pfb)
         {
-            uint8_t t = gradient_linear_t(y - bbox_y, bbox_size);
-            egui_color_t color = egui_gradient_get_color(gradient->stops, gradient->stop_count, t);
+            egui_color_t *dst_base = (egui_color_t *)&self->pfb[(y - pfb_ofs_y) * pfb_width - pfb_ofs_x];
+            egui_alpha_t eff_alpha = egui_color_alpha_mix(self->alpha, base_alpha);
 
-            if (x_inner_half > 0)
+            if (gradient->type == EGUI_GRADIENT_TYPE_LINEAR_VERTICAL)
             {
-                egui_dim_t il = center_x - (egui_dim_t)x_inner_half + 1;
-                egui_dim_t ir = center_x + (egui_dim_t)x_inner_half - 1;
+                uint8_t t = gradient_linear_t(y - bbox_y, bbox_size);
+                egui_color_t color = egui_gradient_get_color(gradient->stops, gradient->stop_count, t);
 
-                /* Left edge pixels with sub-pixel AA */
-                for (egui_dim_t x = ol; x < il && x <= or_; x++)
+                if (x_inner_half > 0)
                 {
-                    egui_alpha_t cov = gradient_circle_edge_alpha((int32_t)(x - center_x), dy, r_scaled_sq);
+                    egui_dim_t il = center_x - (egui_dim_t)x_inner_half + 1;
+                    egui_dim_t ir = center_x + (egui_dim_t)x_inner_half - 1;
+
+                    /* Left edge pixels */
+                    for (egui_dim_t x = ol; x < il && x <= or_; x++)
+                    {
+                        egui_alpha_t cov = gradient_circle_edge_alpha((int32_t)(x - center_x), dy, r_scaled_sq);
+                        if (cov > 0)
+                        {
+                            egui_alpha_t m = egui_color_alpha_mix(eff_alpha, cov);
+                            if (m > 0)
+                            {
+                                egui_color_t *back_color = &dst_base[x];
+                                if (m == EGUI_ALPHA_100)
+                                {
+                                    *back_color = color;
+                                }
+                                else
+                                {
+                                    egui_rgb_mix_ptr(back_color, &color, back_color, m);
+                                }
+                            }
+                        }
+                    }
+
+                    /* Interior hline */
+                    egui_dim_t bl = EGUI_MAX(il, x_start);
+                    egui_dim_t br = EGUI_MIN(ir, x_end - 1);
+                    if (bl <= br)
+                    {
+                        egui_dim_t count = br - bl + 1;
+                        egui_color_t *dst = &dst_base[bl];
+                        if (eff_alpha == EGUI_ALPHA_100)
+                        {
+                            for (egui_dim_t i = 0; i < count; i++)
+                            {
+                                dst[i] = color;
+                            }
+                        }
+                        else
+                        {
+                            for (egui_dim_t i = 0; i < count; i++)
+                            {
+                                egui_rgb_mix_ptr(&dst[i], &color, &dst[i], eff_alpha);
+                            }
+                        }
+                    }
+
+                    /* Right edge pixels */
+                    egui_dim_t rs = EGUI_MAX(ir + 1, x_start);
+                    for (egui_dim_t x = rs; x <= or_; x++)
+                    {
+                        egui_alpha_t cov = gradient_circle_edge_alpha((int32_t)(x - center_x), dy, r_scaled_sq);
+                        if (cov > 0)
+                        {
+                            egui_alpha_t m = egui_color_alpha_mix(eff_alpha, cov);
+                            if (m > 0)
+                            {
+                                egui_color_t *back_color = &dst_base[x];
+                                if (m == EGUI_ALPHA_100)
+                                {
+                                    *back_color = color;
+                                }
+                                else
+                                {
+                                    egui_rgb_mix_ptr(back_color, &color, back_color, m);
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    for (egui_dim_t x = ol; x <= or_; x++)
+                    {
+                        int32_t dx = (int32_t)(x - center_x);
+                        int32_t d_sq = dx * dx + dy_sq;
+                        if (d_sq > r_outer_sq)
+                        {
+                            continue;
+                        }
+                        egui_alpha_t cov;
+                        if (d_sq < r_inner_sq)
+                        {
+                            cov = EGUI_ALPHA_100;
+                        }
+                        else
+                        {
+                            cov = gradient_circle_edge_alpha(dx, dy, r_scaled_sq);
+                        }
+                        if (cov > 0)
+                        {
+                            egui_alpha_t m = egui_color_alpha_mix(eff_alpha, cov);
+                            if (m > 0)
+                            {
+                                egui_color_t *back_color = &dst_base[x];
+                                if (m == EGUI_ALPHA_100)
+                                {
+                                    *back_color = color;
+                                }
+                                else
+                                {
+                                    egui_rgb_mix_ptr(back_color, &color, back_color, m);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else if (gradient->type == EGUI_GRADIENT_TYPE_LINEAR_HORIZONTAL)
+            {
+                for (egui_dim_t x = ol; x <= or_; x++)
+                {
+                    int32_t dx = (int32_t)(x - center_x);
+                    int32_t d_sq = dx * dx + dy_sq;
+                    if (d_sq > r_outer_sq)
+                    {
+                        continue;
+                    }
+
+                    egui_alpha_t cov = (d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha(dx, dy, r_scaled_sq);
                     if (cov > 0)
                     {
-                        egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
+                        uint8_t t = gradient_linear_t(x - bbox_x, bbox_size);
+                        egui_color_t color = color_cache[t];
+                        egui_alpha_t m = egui_color_alpha_mix(eff_alpha, cov);
                         if (m > 0)
                         {
-                            egui_canvas_draw_point_limit(x, y, color, m);
+                            egui_color_t *back_color = &dst_base[x];
+                            if (m == EGUI_ALPHA_100)
+                            {
+                                *back_color = color;
+                            }
+                            else
+                            {
+                                egui_rgb_mix_ptr(back_color, &color, back_color, m);
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                /* Radial: two-pass incremental sqrt (center→right, center→left) */
+                uint32_t t_mul = 0;
+                if (gradient->radius > 0)
+                {
+                    t_mul = (((uint32_t)255) << 12) / (uint32_t)gradient->radius;
+                }
+
+                /* Macro: emit one radial pixel using current dist */
+#define RADIAL_PIXEL_DIRECT(px, pdx)                                                                                                                           \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        int32_t _d_sq = (int32_t)(pdx) * (int32_t)(pdx) + dy_sq;                                                                                               \
+        if (_d_sq <= r_outer_sq)                                                                                                                               \
+        {                                                                                                                                                      \
+            egui_alpha_t _cov = (_d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha((int32_t)(pdx), dy, r_scaled_sq);                           \
+            if (_cov > 0)                                                                                                                                      \
+            {                                                                                                                                                  \
+                egui_color_t _color;                                                                                                                           \
+                if (gradient->radius <= 0)                                                                                                                     \
+                {                                                                                                                                              \
+                    _color = color_cache[255];                                                                                                                 \
+                }                                                                                                                                              \
+                else                                                                                                                                           \
+                {                                                                                                                                              \
+                    uint32_t _t = (dist * t_mul) >> 12;                                                                                                        \
+                    if (_t > 255)                                                                                                                              \
+                        _t = 255;                                                                                                                              \
+                    _color = color_cache[_t];                                                                                                                  \
+                }                                                                                                                                              \
+                egui_alpha_t _m = egui_color_alpha_mix(eff_alpha, _cov);                                                                                       \
+                if (_m > 0)                                                                                                                                    \
+                {                                                                                                                                              \
+                    egui_color_t *_back = &dst_base[(px)];                                                                                                     \
+                    if (_m == EGUI_ALPHA_100)                                                                                                                  \
+                    {                                                                                                                                          \
+                        *_back = _color;                                                                                                                       \
+                    }                                                                                                                                          \
+                    else                                                                                                                                       \
+                    {                                                                                                                                          \
+                        egui_rgb_mix_ptr(_back, &_color, _back, _m);                                                                                           \
+                    }                                                                                                                                          \
+                }                                                                                                                                              \
+            }                                                                                                                                                  \
+        }                                                                                                                                                      \
+    } while (0)
+
+                /* Right half: center_x → or_, d_sq monotonically increasing */
+                {
+                    uint32_t dist = gradient_isqrt((uint32_t)dy_sq); /* dist at dx=0 */
+                    uint32_t next_sq = (dist + 1) * (dist + 1);
+
+                    for (egui_dim_t x = center_x; x <= or_; x++)
+                    {
+                        int32_t dx = (int32_t)(x - center_x);
+                        uint32_t cur_d_sq = (uint32_t)(dx * dx) + (uint32_t)dy_sq;
+                        /* Advance dist until next_sq > cur_d_sq */
+                        while (cur_d_sq >= next_sq)
+                        {
+                            dist++;
+                            next_sq = (dist + 1) * (dist + 1);
+                        }
+                        if (x >= ol)
+                        {
+                            RADIAL_PIXEL_DIRECT(x, dx);
                         }
                     }
                 }
 
-                /* Interior hline */
-                egui_dim_t bl = EGUI_MAX(il, x_start);
-                egui_dim_t br = EGUI_MIN(ir, x_end - 1);
-                if (bl <= br)
+                /* Left half: center_x-1 → ol, d_sq monotonically increasing */
                 {
-                    egui_canvas_draw_fillrect(bl, y, br - bl + 1, 1, color, base_alpha);
+                    uint32_t dist = gradient_isqrt((uint32_t)(1 + dy_sq)); /* dist at dx=-1 */
+                    uint32_t next_sq = (dist + 1) * (dist + 1);
+
+                    for (egui_dim_t x = center_x - 1; x >= ol; x--)
+                    {
+                        int32_t dx = (int32_t)(x - center_x);
+                        uint32_t cur_d_sq = (uint32_t)(dx * dx) + (uint32_t)dy_sq;
+                        while (cur_d_sq >= next_sq)
+                        {
+                            dist++;
+                            next_sq = (dist + 1) * (dist + 1);
+                        }
+                        if (x <= or_)
+                        {
+                            RADIAL_PIXEL_DIRECT(x, dx);
+                        }
+                    }
                 }
 
-                /* Right edge pixels with sub-pixel AA */
-                egui_dim_t rs = EGUI_MAX(ir + 1, x_start);
-                for (egui_dim_t x = rs; x <= or_; x++)
+#undef RADIAL_PIXEL_DIRECT
+            }
+        }
+        else
+        {
+            /* Fallback: with mask, use original draw_point_limit path */
+            if (gradient->type == EGUI_GRADIENT_TYPE_LINEAR_VERTICAL)
+            {
+                uint8_t t = gradient_linear_t(y - bbox_y, bbox_size);
+                egui_color_t color = egui_gradient_get_color(gradient->stops, gradient->stop_count, t);
+
+                if (x_inner_half > 0)
                 {
-                    egui_alpha_t cov = gradient_circle_edge_alpha((int32_t)(x - center_x), dy, r_scaled_sq);
+                    egui_dim_t il = center_x - (egui_dim_t)x_inner_half + 1;
+                    egui_dim_t ir = center_x + (egui_dim_t)x_inner_half - 1;
+
+                    for (egui_dim_t x = ol; x < il && x <= or_; x++)
+                    {
+                        egui_alpha_t cov = gradient_circle_edge_alpha((int32_t)(x - center_x), dy, r_scaled_sq);
+                        if (cov > 0)
+                        {
+                            egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
+                            if (m > 0)
+                            {
+                                egui_canvas_draw_point_limit(x, y, color, m);
+                            }
+                        }
+                    }
+
+                    egui_dim_t bl = EGUI_MAX(il, x_start);
+                    egui_dim_t br = EGUI_MIN(ir, x_end - 1);
+                    if (bl <= br)
+                    {
+                        egui_canvas_draw_fillrect(bl, y, br - bl + 1, 1, color, base_alpha);
+                    }
+
+                    egui_dim_t rs = EGUI_MAX(ir + 1, x_start);
+                    for (egui_dim_t x = rs; x <= or_; x++)
+                    {
+                        egui_alpha_t cov = gradient_circle_edge_alpha((int32_t)(x - center_x), dy, r_scaled_sq);
+                        if (cov > 0)
+                        {
+                            egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
+                            if (m > 0)
+                            {
+                                egui_canvas_draw_point_limit(x, y, color, m);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    for (egui_dim_t x = ol; x <= or_; x++)
+                    {
+                        int32_t dx = (int32_t)(x - center_x);
+                        int32_t d_sq = dx * dx + dy_sq;
+                        if (d_sq > r_outer_sq)
+                        {
+                            continue;
+                        }
+                        if (d_sq < r_inner_sq)
+                        {
+                            egui_canvas_draw_point_limit(x, y, color, base_alpha);
+                            continue;
+                        }
+                        egui_alpha_t cov = gradient_circle_edge_alpha(dx, dy, r_scaled_sq);
+                        if (cov > 0)
+                        {
+                            egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
+                            if (m > 0)
+                            {
+                                egui_canvas_draw_point_limit(x, y, color, m);
+                            }
+                        }
+                    }
+                }
+            }
+            else if (gradient->type == EGUI_GRADIENT_TYPE_LINEAR_HORIZONTAL)
+            {
+                for (egui_dim_t x = ol; x <= or_; x++)
+                {
+                    int32_t dx = (int32_t)(x - center_x);
+                    int32_t d_sq = dx * dx + dy_sq;
+                    if (d_sq > r_outer_sq)
+                    {
+                        continue;
+                    }
+
+                    egui_alpha_t cov = (d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha(dx, dy, r_scaled_sq);
                     if (cov > 0)
                     {
+                        uint8_t t = gradient_linear_t(x - bbox_x, bbox_size);
+                        egui_color_t color = color_cache[t];
                         egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
                         if (m > 0)
                         {
@@ -550,97 +965,87 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
             }
             else
             {
-                /* No clear interior: all pixels need per-pixel check */
-                for (egui_dim_t x = ol; x <= or_; x++)
+                /* Radial: two-pass incremental sqrt (center→right, center→left) */
+                uint32_t t_mul = 0;
+                if (gradient->radius > 0)
                 {
-                    int32_t dx = (int32_t)(x - center_x);
-                    int32_t d_sq = dx * dx + dy_sq;
-                    if (d_sq > r_outer_sq)
+                    t_mul = (((uint32_t)255) << 12) / (uint32_t)gradient->radius;
+                }
+
+                /* Macro: emit one radial pixel using current dist (fallback path) */
+#define RADIAL_PIXEL_FALLBACK(px, pdx)                                                                                                                         \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        int32_t _d_sq = (int32_t)(pdx) * (int32_t)(pdx) + dy_sq;                                                                                               \
+        if (_d_sq <= r_outer_sq)                                                                                                                               \
+        {                                                                                                                                                      \
+            egui_alpha_t _cov = (_d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha((int32_t)(pdx), dy, r_scaled_sq);                           \
+            if (_cov > 0)                                                                                                                                      \
+            {                                                                                                                                                  \
+                egui_color_t _color;                                                                                                                           \
+                if (gradient->radius <= 0)                                                                                                                     \
+                {                                                                                                                                              \
+                    _color = color_cache[255];                                                                                                                 \
+                }                                                                                                                                              \
+                else                                                                                                                                           \
+                {                                                                                                                                              \
+                    uint32_t _t = (dist * t_mul) >> 12;                                                                                                        \
+                    if (_t > 255)                                                                                                                              \
+                        _t = 255;                                                                                                                              \
+                    _color = color_cache[_t];                                                                                                                  \
+                }                                                                                                                                              \
+                egui_alpha_t _m = egui_color_alpha_mix(base_alpha, _cov);                                                                                      \
+                if (_m > 0)                                                                                                                                    \
+                {                                                                                                                                              \
+                    egui_canvas_draw_point_limit((px), y, _color, _m);                                                                                         \
+                }                                                                                                                                              \
+            }                                                                                                                                                  \
+        }                                                                                                                                                      \
+    } while (0)
+
+                /* Right half: center_x → or_ */
+                {
+                    uint32_t dist = gradient_isqrt((uint32_t)dy_sq);
+                    uint32_t next_sq = (dist + 1) * (dist + 1);
+
+                    for (egui_dim_t x = center_x; x <= or_; x++)
                     {
-                        continue;
-                    }
-                    if (d_sq < r_inner_sq)
-                    {
-                        egui_canvas_draw_point_limit(x, y, color, base_alpha);
-                        continue;
-                    }
-                    egui_alpha_t cov = gradient_circle_edge_alpha(dx, dy, r_scaled_sq);
-                    if (cov > 0)
-                    {
-                        egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
-                        if (m > 0)
+                        int32_t dx = (int32_t)(x - center_x);
+                        uint32_t cur_d_sq = (uint32_t)(dx * dx) + (uint32_t)dy_sq;
+                        while (cur_d_sq >= next_sq)
                         {
-                            egui_canvas_draw_point_limit(x, y, color, m);
+                            dist++;
+                            next_sq = (dist + 1) * (dist + 1);
+                        }
+                        if (x >= ol)
+                        {
+                            RADIAL_PIXEL_FALLBACK(x, dx);
                         }
                     }
                 }
-            }
-        }
-        else if (gradient->type == EGUI_GRADIENT_TYPE_LINEAR_HORIZONTAL)
-        {
-            /* Horizontal: per-pixel AA + cached horizontal color */
-            for (egui_dim_t x = ol; x <= or_; x++)
-            {
-                int32_t dx = (int32_t)(x - center_x);
-                int32_t d_sq = dx * dx + dy_sq;
-                if (d_sq > r_outer_sq)
+
+                /* Left half: center_x-1 → ol */
                 {
-                    continue;
+                    uint32_t dist = gradient_isqrt((uint32_t)(1 + dy_sq));
+                    uint32_t next_sq = (dist + 1) * (dist + 1);
+
+                    for (egui_dim_t x = center_x - 1; x >= ol; x--)
+                    {
+                        int32_t dx = (int32_t)(x - center_x);
+                        uint32_t cur_d_sq = (uint32_t)(dx * dx) + (uint32_t)dy_sq;
+                        while (cur_d_sq >= next_sq)
+                        {
+                            dist++;
+                            next_sq = (dist + 1) * (dist + 1);
+                        }
+                        if (x <= or_)
+                        {
+                            RADIAL_PIXEL_FALLBACK(x, dx);
+                        }
+                    }
                 }
 
-                egui_alpha_t cov = (d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha(dx, dy, r_scaled_sq);
-                if (cov > 0)
-                {
-                    uint8_t t = gradient_linear_t(x - bbox_x, bbox_size);
-                    egui_color_t color = color_cache[t];
-                    egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
-                    if (m > 0)
-                    {
-                        egui_canvas_draw_point_limit(x, y, color, m);
-                    }
-                }
-            }
-        }
-        else
-        {
-            /* Radial: per-pixel AA + radial distance color */
-            uint32_t t_mul = 0;
-            if (gradient->radius > 0)
-            {
-                t_mul = (((uint32_t)255) << 12) / (uint32_t)gradient->radius;
-            }
-
-            for (egui_dim_t x = ol; x <= or_; x++)
-            {
-                int32_t dx = (int32_t)(x - center_x);
-                int32_t d_sq = dx * dx + dy_sq;
-                if (d_sq > r_outer_sq)
-                {
-                    continue;
-                }
-
-                egui_alpha_t cov = (d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha(dx, dy, r_scaled_sq);
-                if (cov > 0)
-                {
-                    egui_color_t color;
-                    if (gradient->radius <= 0)
-                    {
-                        color = color_cache[255];
-                    }
-                    else
-                    {
-                        uint32_t dist = gradient_isqrt((uint32_t)d_sq);
-                        uint32_t t = (dist * t_mul) >> 12;
-                        if (t > 255)
-                            t = 255;
-                        color = color_cache[t];
-                    }
-                    egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
-                    if (m > 0)
-                    {
-                        egui_canvas_draw_point_limit(x, y, color, m);
-                    }
-                }
+#undef RADIAL_PIXEL_FALLBACK
             }
         }
     }
@@ -742,9 +1147,98 @@ void egui_canvas_draw_round_rectangle_corners_fill_gradient(egui_dim_t x, egui_d
     egui_dim_t vis_y_start = EGUI_MAX(y, self->base_view_work_region.location.y);
     egui_dim_t vis_y_end = EGUI_MIN(y + height, self->base_view_work_region.location.y + self->base_view_work_region.size.height);
 
+    /* Direct PFB write setup for no-mask fast path */
+    int use_direct_pfb = (self->mask == NULL) ? 1 : 0;
+    egui_dim_t pfb_width = self->pfb_region.size.width;
+    egui_dim_t pfb_ofs_x = self->pfb_location_in_base_view.x;
+    egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
+
+    /* Middle band: rows between all corners — no SDF, full width, full alpha */
+    egui_dim_t corner_band_top = EGUI_MAX(radius_left_top, radius_right_top);
+    egui_dim_t corner_band_bottom = height - EGUI_MAX(radius_left_bottom, radius_right_bottom);
+
     for (egui_dim_t abs_row = vis_y_start; abs_row < vis_y_end; abs_row++)
     {
         egui_dim_t row = abs_row - y;
+
+        /* ---- Middle-band fast path: skip all corner logic ---- */
+        if (row >= corner_band_top && row < corner_band_bottom)
+        {
+            if (gradient->type == EGUI_GRADIENT_TYPE_LINEAR_VERTICAL)
+            {
+                uint8_t t = gradient_linear_t(row, height);
+                egui_color_t color = egui_gradient_get_color(gradient->stops, gradient->stop_count, t);
+
+                if (use_direct_pfb)
+                {
+                    egui_alpha_t effective_alpha = egui_color_alpha_mix(self->alpha, base_alpha);
+                    egui_color_t *dst_base = (egui_color_t *)&self->pfb[(abs_row - pfb_ofs_y) * pfb_width - pfb_ofs_x];
+                    egui_dim_t fill_left = EGUI_MAX(x, self->base_view_work_region.location.x);
+                    egui_dim_t fill_right = EGUI_MIN(x + width - 1, self->base_view_work_region.location.x + self->base_view_work_region.size.width - 1);
+                    if (fill_left <= fill_right)
+                    {
+                        egui_dim_t count = fill_right - fill_left + 1;
+                        if (effective_alpha >= EGUI_ALPHA_100)
+                        {
+                            egui_color_t *dst = &dst_base[fill_left];
+                            for (egui_dim_t i = 0; i < count; i++)
+                            {
+                                dst[i] = color;
+                            }
+                        }
+                        else if (effective_alpha > 0)
+                        {
+                            egui_color_t *dst = &dst_base[fill_left];
+                            for (egui_dim_t i = 0; i < count; i++)
+                            {
+                                egui_rgb_mix_ptr(&dst[i], &color, &dst[i], effective_alpha);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+#if EGUI_CONFIG_FUNCTION_GRADIENT_DITHERING
+                    egui_color_t phase_colors[4];
+                    for (int phase = 0; phase < 4; phase++)
+                    {
+                        phase_colors[phase] = egui_gradient_get_color_dithered(gradient->stops, gradient->stop_count, t, phase, abs_row);
+                    }
+                    egui_dim_t fill_left = EGUI_MAX(x, self->base_view_work_region.location.x);
+                    egui_dim_t fill_right = EGUI_MIN(x + width - 1, self->base_view_work_region.location.x + self->base_view_work_region.size.width - 1);
+                    for (egui_dim_t col = fill_left; col <= fill_right; col++)
+                    {
+                        egui_canvas_draw_point_limit(col, abs_row, phase_colors[col & 3], base_alpha);
+                    }
+#else
+                    egui_canvas_draw_fillrect(x, abs_row, width, 1, color, base_alpha);
+#endif
+                }
+            }
+            else if (gradient->type == EGUI_GRADIENT_TYPE_LINEAR_HORIZONTAL)
+            {
+                egui_dim_t fill_left = EGUI_MAX(x, self->base_view_work_region.location.x);
+                egui_dim_t fill_right = EGUI_MIN(x + width - 1, self->base_view_work_region.location.x + self->base_view_work_region.size.width - 1);
+                for (egui_dim_t col = fill_left; col <= fill_right; col++)
+                {
+                    uint8_t ct = gradient_linear_t(col - x, width);
+                    egui_color_t color = color_cache[ct];
+                    egui_canvas_draw_point_limit(col, abs_row, color, base_alpha);
+                }
+            }
+            else
+            {
+                egui_dim_t fill_left = EGUI_MAX(x, self->base_view_work_region.location.x);
+                egui_dim_t fill_right = EGUI_MIN(x + width - 1, self->base_view_work_region.location.x + self->base_view_work_region.size.width - 1);
+                for (egui_dim_t col = fill_left; col <= fill_right; col++)
+                {
+                    egui_color_t color = gradient_color_at_pixel(gradient, col - x, row, width, height, col, abs_row);
+                    egui_canvas_draw_point_limit(col, abs_row, color, base_alpha);
+                }
+            }
+            continue;
+        }
+
         /* Determine which corner affects each side */
         egui_dim_t left_corner_r = 0, left_pos_row = 0;
         egui_dim_t right_corner_r = 0, right_pos_row = 0;
@@ -893,107 +1387,279 @@ void egui_canvas_draw_round_rectangle_corners_fill_gradient(egui_dim_t x, egui_d
             uint8_t t = gradient_linear_t(row, height);
             egui_color_t color = egui_gradient_get_color(gradient->stops, gradient->stop_count, t);
 
-            /* Left corner edge pixels with HQ AA */
-            if (left_corner_r > 0)
-            {
-                egui_dim_t le = EGUI_MIN(left_corner_end - 1, row_right);
-                egui_dim_t start_col = EGUI_MAX(row_left, self->base_view_work_region.location.x);
-                egui_dim_t end_col = EGUI_MIN(le, self->base_view_work_region.location.x + self->base_view_work_region.size.width - 1);
-                if (left_lut)
-                {
-                    /* Use precomputed lookup table for smooth AA */
-                    for (egui_dim_t col = start_col; col <= end_col; col++)
-                    {
-                        egui_alpha_t cov = egui_canvas_get_circle_corner_value(left_pos_row, col - x, left_lut);
-                        if (cov > 0)
-                        {
-                            egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
-                            if (m > 0)
-                            {
-                                egui_canvas_draw_point_limit(col, y + row, color, m);
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    int32_t cy_off = (int32_t)left_pos_row - (int32_t)left_corner_r; /* dy from circle center */
-                    for (egui_dim_t col = start_col; col <= end_col; col++)
-                    {
-                        int32_t cx_off = (int32_t)(col - x) - (int32_t)left_corner_r; /* dx from circle center */
-                        egui_alpha_t cov = gradient_round_rect_corner_alpha(cx_off, cy_off, left_corner_r, 1);
-                        if (cov > 0)
-                        {
-                            egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
-                            if (m > 0)
-                            {
-                                egui_canvas_draw_point_limit(col, y + row, color, m);
-                            }
-                        }
-                    }
-                }
-            }
+            /* Pre-mix alpha with base for the row constant color */
+            egui_alpha_t interior_alpha = (vert_edge_alpha < EGUI_ALPHA_100) ? egui_color_alpha_mix(base_alpha, vert_edge_alpha) : base_alpha;
 
-            /* Interior pixels with hline */
-            if (interior_left <= interior_right)
+            if (use_direct_pfb)
             {
-                egui_alpha_t interior_alpha = (vert_edge_alpha < EGUI_ALPHA_100) ? egui_color_alpha_mix(base_alpha, vert_edge_alpha) : base_alpha;
+                /* Direct PFB write fast path (no mask) */
+                egui_alpha_t effective_alpha = egui_color_alpha_mix(self->alpha, base_alpha);
+                egui_color_t *dst_base = (egui_color_t *)&self->pfb[(abs_row - pfb_ofs_y) * pfb_width - pfb_ofs_x];
+
+                /* Left corner edge pixels */
+                if (left_corner_r > 0)
+                {
+                    egui_dim_t le = EGUI_MIN(left_corner_end - 1, row_right);
+                    egui_dim_t start_col = EGUI_MAX(row_left, self->base_view_work_region.location.x);
+                    egui_dim_t end_col = EGUI_MIN(le, self->base_view_work_region.location.x + self->base_view_work_region.size.width - 1);
+                    if (left_lut)
+                    {
+                        for (egui_dim_t col = start_col; col <= end_col; col++)
+                        {
+                            egui_alpha_t cov = egui_canvas_get_circle_corner_value(left_pos_row, col - x, left_lut);
+                            if (cov > 0)
+                            {
+                                egui_alpha_t m = egui_color_alpha_mix(effective_alpha, cov);
+                                if (m > 0)
+                                {
+                                    egui_color_t *back_color = &dst_base[col];
+                                    if (m == EGUI_ALPHA_100)
+                                    {
+                                        *back_color = color;
+                                    }
+                                    else
+                                    {
+                                        egui_rgb_mix_ptr(back_color, &color, back_color, m);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        int32_t cy_off = (int32_t)left_pos_row - (int32_t)left_corner_r;
+                        for (egui_dim_t col = start_col; col <= end_col; col++)
+                        {
+                            int32_t cx_off = (int32_t)(col - x) - (int32_t)left_corner_r;
+                            egui_alpha_t cov = gradient_round_rect_corner_alpha(cx_off, cy_off, left_corner_r, 1);
+                            if (cov > 0)
+                            {
+                                egui_alpha_t m = egui_color_alpha_mix(effective_alpha, cov);
+                                if (m > 0)
+                                {
+                                    egui_color_t *back_color = &dst_base[col];
+                                    if (m == EGUI_ALPHA_100)
+                                    {
+                                        *back_color = color;
+                                    }
+                                    else
+                                    {
+                                        egui_rgb_mix_ptr(back_color, &color, back_color, m);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                /* Interior pixels - direct PFB fill */
+                if (interior_left <= interior_right)
+                {
+                    egui_alpha_t eff_interior = egui_color_alpha_mix(self->alpha, interior_alpha);
 #if EGUI_CONFIG_FUNCTION_GRADIENT_DITHERING
-                /* Dithered: use per-pixel with 4 phase colors */
-                egui_dim_t screen_y = y + row;
-                egui_color_t phase_colors[4];
-                for (int phase = 0; phase < 4; phase++)
-                {
-                    phase_colors[phase] = egui_gradient_get_color_dithered(gradient->stops, gradient->stop_count, t, phase, screen_y);
-                }
-                /* Clip interior to PFB work region (draw_point_limit skips bounds check) */
-                egui_dim_t dith_left = EGUI_MAX(interior_left, self->base_view_work_region.location.x);
-                egui_dim_t dith_right = EGUI_MIN(interior_right, self->base_view_work_region.location.x + self->base_view_work_region.size.width - 1);
-                for (egui_dim_t col = dith_left; col <= dith_right; col++)
-                {
-                    egui_canvas_draw_point_limit(col, screen_y, phase_colors[col & 3], interior_alpha);
-                }
-#else
-                egui_canvas_draw_fillrect(interior_left, y + row, interior_right - interior_left + 1, 1, color, interior_alpha);
-#endif
-            }
-
-            /* Right corner edge pixels with HQ AA */
-            if (right_corner_r > 0)
-            {
-                egui_dim_t rs = EGUI_MAX(right_corner_start, row_left);
-                egui_dim_t start_col = EGUI_MAX(rs, self->base_view_work_region.location.x);
-                egui_dim_t end_col = EGUI_MIN(row_right, self->base_view_work_region.location.x + self->base_view_work_region.size.width - 1);
-                if (right_lut)
-                {
-                    /* Use precomputed lookup table for smooth AA */
-                    for (egui_dim_t col = start_col; col <= end_col; col++)
+                    egui_dim_t screen_y = y + row;
+                    egui_color_t phase_colors[4];
+                    for (int phase = 0; phase < 4; phase++)
                     {
-                        egui_dim_t pos_col = x + width - 1 - col;
-                        egui_alpha_t cov = egui_canvas_get_circle_corner_value(right_pos_row, pos_col, right_lut);
-                        if (cov > 0)
+                        phase_colors[phase] = egui_gradient_get_color_dithered(gradient->stops, gradient->stop_count, t, phase, screen_y);
+                    }
+                    egui_dim_t dith_left = EGUI_MAX(interior_left, self->base_view_work_region.location.x);
+                    egui_dim_t dith_right = EGUI_MIN(interior_right, self->base_view_work_region.location.x + self->base_view_work_region.size.width - 1);
+                    for (egui_dim_t col = dith_left; col <= dith_right; col++)
+                    {
+                        egui_color_t *back_color = &dst_base[col];
+                        if (eff_interior == EGUI_ALPHA_100)
                         {
-                            egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
-                            if (m > 0)
+                            *back_color = phase_colors[col & 3];
+                        }
+                        else
+                        {
+                            egui_color_t pc = phase_colors[col & 3];
+                            egui_rgb_mix_ptr(back_color, &pc, back_color, eff_interior);
+                        }
+                    }
+#else
+                    egui_dim_t fill_left = EGUI_MAX(interior_left, self->base_view_work_region.location.x);
+                    egui_dim_t fill_right = EGUI_MIN(interior_right, self->base_view_work_region.location.x + self->base_view_work_region.size.width - 1);
+                    if (fill_left <= fill_right)
+                    {
+                        egui_dim_t count = fill_right - fill_left + 1;
+                        egui_color_t *dst = &dst_base[fill_left];
+                        if (eff_interior == EGUI_ALPHA_100)
+                        {
+                            for (egui_dim_t i = 0; i < count; i++)
                             {
-                                egui_canvas_draw_point_limit(col, y + row, color, m);
+                                dst[i] = color;
+                            }
+                        }
+                        else if (eff_interior > 0)
+                        {
+                            for (egui_dim_t i = 0; i < count; i++)
+                            {
+                                egui_rgb_mix_ptr((egui_color_t *)&dst[i], &color, (egui_color_t *)&dst[i], eff_interior);
+                            }
+                        }
+                    }
+#endif
+                }
+
+                /* Right corner edge pixels */
+                if (right_corner_r > 0)
+                {
+                    egui_dim_t rs = EGUI_MAX(right_corner_start, row_left);
+                    egui_dim_t start_col = EGUI_MAX(rs, self->base_view_work_region.location.x);
+                    egui_dim_t end_col = EGUI_MIN(row_right, self->base_view_work_region.location.x + self->base_view_work_region.size.width - 1);
+                    if (right_lut)
+                    {
+                        for (egui_dim_t col = start_col; col <= end_col; col++)
+                        {
+                            egui_dim_t pos_col = x + width - 1 - col;
+                            egui_alpha_t cov = egui_canvas_get_circle_corner_value(right_pos_row, pos_col, right_lut);
+                            if (cov > 0)
+                            {
+                                egui_alpha_t m = egui_color_alpha_mix(effective_alpha, cov);
+                                if (m > 0)
+                                {
+                                    egui_color_t *back_color = &dst_base[col];
+                                    if (m == EGUI_ALPHA_100)
+                                    {
+                                        *back_color = color;
+                                    }
+                                    else
+                                    {
+                                        egui_rgb_mix_ptr(back_color, &color, back_color, m);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        int32_t cy_off = (int32_t)right_pos_row - (int32_t)right_corner_r;
+                        for (egui_dim_t col = start_col; col <= end_col; col++)
+                        {
+                            int32_t cx_off = (int32_t)(col - x) - (int32_t)(width - 1 - right_corner_r);
+                            egui_alpha_t cov = gradient_round_rect_corner_alpha(cx_off, cy_off, right_corner_r, 0);
+                            if (cov > 0)
+                            {
+                                egui_alpha_t m = egui_color_alpha_mix(effective_alpha, cov);
+                                if (m > 0)
+                                {
+                                    egui_color_t *back_color = &dst_base[col];
+                                    if (m == EGUI_ALPHA_100)
+                                    {
+                                        *back_color = color;
+                                    }
+                                    else
+                                    {
+                                        egui_rgb_mix_ptr(back_color, &color, back_color, m);
+                                    }
+                                }
                             }
                         }
                     }
                 }
-                else
+            }
+            else
+            {
+                /* Fallback path: with mask or non-direct PFB */
+                /* Left corner edge pixels with HQ AA */
+                if (left_corner_r > 0)
                 {
-                    int32_t cy_off = (int32_t)right_pos_row - (int32_t)right_corner_r;
-                    for (egui_dim_t col = start_col; col <= end_col; col++)
+                    egui_dim_t le = EGUI_MIN(left_corner_end - 1, row_right);
+                    egui_dim_t start_col = EGUI_MAX(row_left, self->base_view_work_region.location.x);
+                    egui_dim_t end_col = EGUI_MIN(le, self->base_view_work_region.location.x + self->base_view_work_region.size.width - 1);
+                    if (left_lut)
                     {
-                        int32_t cx_off = (int32_t)(col - x) - (int32_t)(width - 1 - right_corner_r);
-                        egui_alpha_t cov = gradient_round_rect_corner_alpha(cx_off, cy_off, right_corner_r, 0);
-                        if (cov > 0)
+                        for (egui_dim_t col = start_col; col <= end_col; col++)
                         {
-                            egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
-                            if (m > 0)
+                            egui_alpha_t cov = egui_canvas_get_circle_corner_value(left_pos_row, col - x, left_lut);
+                            if (cov > 0)
                             {
-                                egui_canvas_draw_point_limit(col, y + row, color, m);
+                                egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
+                                if (m > 0)
+                                {
+                                    egui_canvas_draw_point_limit(col, y + row, color, m);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        int32_t cy_off = (int32_t)left_pos_row - (int32_t)left_corner_r;
+                        for (egui_dim_t col = start_col; col <= end_col; col++)
+                        {
+                            int32_t cx_off = (int32_t)(col - x) - (int32_t)left_corner_r;
+                            egui_alpha_t cov = gradient_round_rect_corner_alpha(cx_off, cy_off, left_corner_r, 1);
+                            if (cov > 0)
+                            {
+                                egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
+                                if (m > 0)
+                                {
+                                    egui_canvas_draw_point_limit(col, y + row, color, m);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                /* Interior pixels with hline */
+                if (interior_left <= interior_right)
+                {
+#if EGUI_CONFIG_FUNCTION_GRADIENT_DITHERING
+                    egui_dim_t screen_y = y + row;
+                    egui_color_t phase_colors[4];
+                    for (int phase = 0; phase < 4; phase++)
+                    {
+                        phase_colors[phase] = egui_gradient_get_color_dithered(gradient->stops, gradient->stop_count, t, phase, screen_y);
+                    }
+                    egui_dim_t dith_left = EGUI_MAX(interior_left, self->base_view_work_region.location.x);
+                    egui_dim_t dith_right = EGUI_MIN(interior_right, self->base_view_work_region.location.x + self->base_view_work_region.size.width - 1);
+                    for (egui_dim_t col = dith_left; col <= dith_right; col++)
+                    {
+                        egui_canvas_draw_point_limit(col, screen_y, phase_colors[col & 3], interior_alpha);
+                    }
+#else
+                    egui_canvas_draw_fillrect(interior_left, y + row, interior_right - interior_left + 1, 1, color, interior_alpha);
+#endif
+                }
+
+                /* Right corner edge pixels with HQ AA */
+                if (right_corner_r > 0)
+                {
+                    egui_dim_t rs = EGUI_MAX(right_corner_start, row_left);
+                    egui_dim_t start_col = EGUI_MAX(rs, self->base_view_work_region.location.x);
+                    egui_dim_t end_col = EGUI_MIN(row_right, self->base_view_work_region.location.x + self->base_view_work_region.size.width - 1);
+                    if (right_lut)
+                    {
+                        for (egui_dim_t col = start_col; col <= end_col; col++)
+                        {
+                            egui_dim_t pos_col = x + width - 1 - col;
+                            egui_alpha_t cov = egui_canvas_get_circle_corner_value(right_pos_row, pos_col, right_lut);
+                            if (cov > 0)
+                            {
+                                egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
+                                if (m > 0)
+                                {
+                                    egui_canvas_draw_point_limit(col, y + row, color, m);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        int32_t cy_off = (int32_t)right_pos_row - (int32_t)right_corner_r;
+                        for (egui_dim_t col = start_col; col <= end_col; col++)
+                        {
+                            int32_t cx_off = (int32_t)(col - x) - (int32_t)(width - 1 - right_corner_r);
+                            egui_alpha_t cov = gradient_round_rect_corner_alpha(cx_off, cy_off, right_corner_r, 0);
+                            if (cov > 0)
+                            {
+                                egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
+                                if (m > 0)
+                                {
+                                    egui_canvas_draw_point_limit(col, y + row, color, m);
+                                }
                             }
                         }
                     }
@@ -1386,7 +2052,7 @@ void egui_canvas_draw_triangle_fill_gradient(egui_dim_t x1, egui_dim_t y1, egui_
                     egui_alpha_t mix = egui_color_alpha_mix(base_alpha, cov);
                     if (mix > 0)
                     {
-                        egui_color_t color = gradient_color_at(gradient, px - min_x, y - min_y, bbox_w, bbox_h);
+                        egui_color_t color = gradient_color_at_pixel(gradient, px - min_x, y - min_y, bbox_w, bbox_h, px, y);
                         egui_canvas_draw_point_limit(px, y, color, mix);
                     }
                 }
@@ -1409,7 +2075,7 @@ void egui_canvas_draw_triangle_fill_gradient(egui_dim_t x1, egui_dim_t y1, egui_
                 egui_dim_t draw_end = EGUI_MIN(interior_right, work_x_end);
                 for (egui_dim_t px = draw_start; px <= draw_end; px++)
                 {
-                    egui_color_t color = gradient_color_at(gradient, px - min_x, y - min_y, bbox_w, bbox_h);
+                    egui_color_t color = gradient_color_at_pixel(gradient, px - min_x, y - min_y, bbox_w, bbox_h, px, y);
                     egui_canvas_draw_point_limit(px, y, color, base_alpha);
                 }
             }
@@ -1430,7 +2096,7 @@ void egui_canvas_draw_triangle_fill_gradient(egui_dim_t x1, egui_dim_t y1, egui_
                 egui_alpha_t mix = egui_color_alpha_mix(base_alpha, cov);
                 if (mix > 0)
                 {
-                    egui_color_t color = gradient_color_at(gradient, px - min_x, y - min_y, bbox_w, bbox_h);
+                    egui_color_t color = gradient_color_at_pixel(gradient, px - min_x, y - min_y, bbox_w, bbox_h, px, y);
                     egui_canvas_draw_point_limit(px, y, color, mix);
                 }
             }
@@ -1451,7 +2117,7 @@ void egui_canvas_draw_triangle_fill_gradient(egui_dim_t x1, egui_dim_t y1, egui_
                 egui_alpha_t mix = egui_color_alpha_mix(base_alpha, cov);
                 if (mix > 0)
                 {
-                    egui_color_t color = gradient_color_at(gradient, px - min_x, y - min_y, bbox_w, bbox_h);
+                    egui_color_t color = gradient_color_at_pixel(gradient, px - min_x, y - min_y, bbox_w, bbox_h, px, y);
                     egui_canvas_draw_point_limit(px, y, color, mix);
                 }
             }
@@ -1691,7 +2357,7 @@ void egui_canvas_draw_ellipse_fill_gradient(egui_dim_t center_x, egui_dim_t cent
                     continue;
                 }
 
-                egui_color_t color = gradient_color_at(gradient, center_x + dx - bbox_x, abs_y - bbox_y, bbox_w, bbox_h);
+                egui_color_t color = gradient_color_at_pixel(gradient, center_x + dx - bbox_x, abs_y - bbox_y, bbox_w, bbox_h, center_x + dx, abs_y);
                 egui_alpha_t mix = egui_color_alpha_mix(base_alpha, cov);
                 if (mix > 0)
                 {
@@ -1972,7 +2638,7 @@ void egui_canvas_draw_polygon_fill_gradient(const egui_dim_t *points, uint8_t co
                     egui_alpha_t cov = (aL < aR) ? aL : aR;
                     if (cov > 0)
                     {
-                        egui_color_t color = gradient_color_at(gradient, px - min_x, y - min_y, bbox_w, bbox_h);
+                        egui_color_t color = gradient_color_at_pixel(gradient, px - min_x, y - min_y, bbox_w, bbox_h, px, y);
                         egui_alpha_t mix = egui_color_alpha_mix(base_alpha, cov);
                         if (mix > 0)
                         {
@@ -1999,7 +2665,7 @@ void egui_canvas_draw_polygon_fill_gradient(const egui_dim_t *points, uint8_t co
                     egui_dim_t draw_end = EGUI_MIN(interior_right, work_x_end);
                     for (egui_dim_t px = draw_start; px <= draw_end; px++)
                     {
-                        egui_color_t color = gradient_color_at(gradient, px - min_x, y - min_y, bbox_w, bbox_h);
+                        egui_color_t color = gradient_color_at_pixel(gradient, px - min_x, y - min_y, bbox_w, bbox_h, px, y);
                         egui_canvas_draw_point_limit(px, y, color, base_alpha);
                     }
                 }
@@ -2017,7 +2683,7 @@ void egui_canvas_draw_polygon_fill_gradient(const egui_dim_t *points, uint8_t co
                 egui_alpha_t cov = (aL < aR) ? aL : aR;
                 if (cov > 0)
                 {
-                    egui_color_t color = gradient_color_at(gradient, px - min_x, y - min_y, bbox_w, bbox_h);
+                    egui_color_t color = gradient_color_at_pixel(gradient, px - min_x, y - min_y, bbox_w, bbox_h, px, y);
                     egui_alpha_t mix = egui_color_alpha_mix(base_alpha, cov);
                     if (mix > 0)
                     {
@@ -2038,7 +2704,7 @@ void egui_canvas_draw_polygon_fill_gradient(const egui_dim_t *points, uint8_t co
                 egui_alpha_t cov = (aL < aR) ? aL : aR;
                 if (cov > 0)
                 {
-                    egui_color_t color = gradient_color_at(gradient, px - min_x, y - min_y, bbox_w, bbox_h);
+                    egui_color_t color = gradient_color_at_pixel(gradient, px - min_x, y - min_y, bbox_w, bbox_h, px, y);
                     egui_alpha_t mix = egui_color_alpha_mix(base_alpha, cov);
                     if (mix > 0)
                     {
@@ -2194,7 +2860,7 @@ void egui_canvas_draw_circle_ring_fill_gradient(egui_dim_t center_x, egui_dim_t 
             }
             else
             {
-                color = gradient_color_at(gradient, x - bbox_x, y - bbox_y, bbox_size, bbox_size);
+                color = gradient_color_at_pixel(gradient, x - bbox_x, y - bbox_y, bbox_size, bbox_size, x, y);
             }
 
             egui_alpha_t m = egui_color_alpha_mix(base_alpha, ring_cov);
@@ -2276,7 +2942,7 @@ void egui_canvas_draw_rectangle_ring_fill_gradient(egui_dim_t x, egui_dim_t y, e
             {
                 for (egui_dim_t col = 0; col < width; col++)
                 {
-                    egui_color_t color = gradient_color_at(gradient, col, row, width, height);
+                    egui_color_t color = gradient_color_at_pixel(gradient, col, row, width, height, x + col, row_abs);
                     egui_canvas_draw_point(x + col, row_abs, color, base_alpha);
                 }
             }
@@ -2285,13 +2951,13 @@ void egui_canvas_draw_rectangle_ring_fill_gradient(egui_dim_t x, egui_dim_t y, e
                 /* Left strip */
                 for (egui_dim_t col = 0; col < stroke_w; col++)
                 {
-                    egui_color_t color = gradient_color_at(gradient, col, row, width, height);
+                    egui_color_t color = gradient_color_at_pixel(gradient, col, row, width, height, x + col, row_abs);
                     egui_canvas_draw_point(x + col, row_abs, color, base_alpha);
                 }
                 /* Right strip */
                 for (egui_dim_t col = width - stroke_w; col < width; col++)
                 {
-                    egui_color_t color = gradient_color_at(gradient, col, row, width, height);
+                    egui_color_t color = gradient_color_at_pixel(gradient, col, row, width, height, x + col, row_abs);
                     egui_canvas_draw_point(x + col, row_abs, color, base_alpha);
                 }
             }
@@ -2513,7 +3179,7 @@ void egui_canvas_draw_round_rectangle_ring_fill_gradient(egui_dim_t x, egui_dim_
             }
             else
             {
-                color = gradient_color_at(gradient, col - x, row, width, height);
+                color = gradient_color_at_pixel(gradient, col - x, row, width, height, col, abs_row);
             }
 
             egui_alpha_t m = egui_color_alpha_mix(base_alpha, ring_cov);
@@ -2643,7 +3309,7 @@ void egui_canvas_draw_line_capsule_fill_gradient(egui_dim_t x1, egui_dim_t y1, e
                 cov = (a >= 255) ? EGUI_ALPHA_100 : (egui_alpha_t)a;
             }
 
-            egui_color_t color = gradient_color_at(gradient, (egui_dim_t)(px - min_x), (egui_dim_t)(py - min_y), bbox_w, bbox_h);
+            egui_color_t color = gradient_color_at_pixel(gradient, (egui_dim_t)(px - min_x), (egui_dim_t)(py - min_y), bbox_w, bbox_h, px, py);
             egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
             if (m > 0)
             {
@@ -2655,12 +3321,16 @@ void egui_canvas_draw_line_capsule_fill_gradient(egui_dim_t x1, egui_dim_t y1, e
 
 /* ========================== Arc Ring Fill Gradient ========================== */
 
-/* Quarter sine table: sin_q1[i] = sin(i*5 deg) * 256, for i = 0..18 (0..90 deg) */
-static const int16_t gradient_sin_q1[19] = {
-        0, 22, 44, 66, 88, 108, 128, 147, 165, 181, 196, 210, 222, 232, 241, 247, 252, 255, 256,
+/* Q15 quarter sine table: sin_q15[i] = round(sin(i deg) * 32767), i = 0..90 (1 deg steps) */
+static const int16_t gradient_sin_q15[91] = {
+        0,     572,   1144,  1715,  2286,  2856,  3425,  3993,  4560,  5126,  5690,  6252,  6813,  7371,  7927,  8481,  9032,  9580,  10126,
+        10668, 11207, 11743, 12275, 12803, 13328, 13848, 14365, 14876, 15384, 15886, 16384, 16877, 17364, 17847, 18324, 18795, 19261, 19720,
+        20174, 20622, 21063, 21498, 21926, 22348, 22763, 23170, 23571, 23965, 24351, 24730, 25102, 25466, 25822, 26170, 26510, 26842, 27166,
+        27482, 27789, 28088, 28378, 28660, 28932, 29197, 29452, 29698, 29935, 30163, 30382, 30592, 30792, 30983, 31164, 31336, 31499, 31651,
+        31795, 31928, 32052, 32167, 32270, 32365, 32449, 32524, 32588, 32643, 32689, 32724, 32749, 32764, 32767,
 };
 
-/* sin(deg) * 256, deg in degrees (arbitrary integer) */
+/* sin(deg) * 256, deg in degrees (arbitrary integer). Uses Q15 table for 1-deg precision. */
 static int32_t gradient_sin_deg(int32_t deg)
 {
     deg = ((deg % 360) + 360) % 360;
@@ -2674,14 +3344,8 @@ static int32_t gradient_sin_deg(int32_t deg)
     {
         deg = 180 - deg;
     }
-    /* deg is now 0..90 */
-    int32_t idx = deg / 5;
-    int32_t frac = deg % 5;
-    int32_t v = gradient_sin_q1[idx];
-    if (frac > 0 && idx < 18)
-    {
-        v = v + ((gradient_sin_q1[idx + 1] - v) * frac + 2) / 5;
-    }
+    /* deg is now 0..90, direct lookup, no interpolation needed */
+    int32_t v = (gradient_sin_q15[deg] + 64) >> 7; /* Q15 -> Q8 with rounding */
     return v * sign;
 }
 
@@ -2879,14 +3543,19 @@ void egui_canvas_draw_arc_ring_fill_gradient(egui_dim_t center_x, egui_dim_t cen
             }
 
             egui_color_t color;
-            if (gradient->type == EGUI_GRADIENT_TYPE_LINEAR_VERTICAL)
+            if (gradient->type == EGUI_GRADIENT_TYPE_ANGULAR)
+            {
+                uint8_t t = gradient_angular_arc_t(dy, dx, start_angle_deg, span);
+                color = gradient_get_color_pixel(gradient->stops, gradient->stop_count, t, x, y);
+            }
+            else if (gradient->type == EGUI_GRADIENT_TYPE_LINEAR_VERTICAL)
             {
                 uint8_t t = gradient_linear_t(y - bbox_y, bbox_size);
-                color = egui_gradient_get_color(gradient->stops, gradient->stop_count, t);
+                color = gradient_get_color_pixel(gradient->stops, gradient->stop_count, t, x, y);
             }
             else
             {
-                color = gradient_color_at(gradient, x - bbox_x, y - bbox_y, bbox_size, bbox_size);
+                color = gradient_color_at_pixel(gradient, x - bbox_x, y - bbox_y, bbox_size, bbox_size, x, y);
             }
 
             egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
@@ -2928,8 +3597,15 @@ void egui_canvas_draw_arc_ring_fill_gradient_round_cap(egui_dim_t center_x, egui
         return;
     }
 
-    /* Use the gradient's last stop color (ring main color) for both caps */
-    egui_color_t cap_color = gradient->stops[gradient->stop_count - 1].color;
+    /* Cap colors: for angular gradient, use start/end stop colors.
+     * For other gradient types, use the last stop color for both caps. */
+    egui_color_t start_cap_color = gradient->stops[gradient->stop_count - 1].color;
+    egui_color_t end_cap_color = gradient->stops[gradient->stop_count - 1].color;
+    if (gradient->type == EGUI_GRADIENT_TYPE_ANGULAR)
+    {
+        start_cap_color = gradient->stops[0].color;
+        end_cap_color = gradient->stops[gradient->stop_count - 1].color;
+    }
     egui_alpha_t cap_alpha = gradient->alpha;
 
     /* Angle to position conversion using integer trig (scale=256) with rounding */
@@ -2941,7 +3617,7 @@ void egui_canvas_draw_arc_ring_fill_gradient_round_cap(egui_dim_t center_x, egui
         int32_t sy_raw = (int32_t)mid_r * sa_sin;
         egui_dim_t sx = center_x + (egui_dim_t)((sx_raw + (sx_raw >= 0 ? 128 : -128)) / 256);
         egui_dim_t sy = center_y + (egui_dim_t)((sy_raw + (sy_raw >= 0 ? 128 : -128)) / 256);
-        egui_canvas_draw_circle_fill(sx, sy, cap_r, cap_color, cap_alpha);
+        egui_canvas_draw_circle_fill(sx, sy, cap_r, start_cap_color, cap_alpha);
     }
 
     if (cap_mode & EGUI_ARC_CAP_END)
@@ -2952,7 +3628,7 @@ void egui_canvas_draw_arc_ring_fill_gradient_round_cap(egui_dim_t center_x, egui
         int32_t ey_raw = (int32_t)mid_r * ea_sin;
         egui_dim_t ex = center_x + (egui_dim_t)((ex_raw + (ex_raw >= 0 ? 128 : -128)) / 256);
         egui_dim_t ey = center_y + (egui_dim_t)((ey_raw + (ey_raw >= 0 ? 128 : -128)) / 256);
-        egui_canvas_draw_circle_fill(ex, ey, cap_r, cap_color, cap_alpha);
+        egui_canvas_draw_circle_fill(ex, ey, cap_r, end_cap_color, cap_alpha);
     }
 }
 

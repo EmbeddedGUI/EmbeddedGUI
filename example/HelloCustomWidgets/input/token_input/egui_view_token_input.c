@@ -619,9 +619,9 @@ static void egui_view_token_input_on_draw(egui_view_t *self)
     for (index = 0; index < metrics.visible_token_count; index++)
     {
         token_input_draw_item(self, local, &metrics.token_regions[index], local->tokens[index], local->current_part == index ? 1 : 0,
-                              (self->is_pressed && local->pressed_part == index) ? 1 : 0, 0, &metrics.token_text_regions[index], EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER,
-                              &metrics.token_remove_regions[index], metrics.token_show_remove[index], surface_color, border_color, text_color, muted_color,
-                              accent_color);
+                              (self->is_pressed && local->pressed_part == index) ? 1 : 0, 0, &metrics.token_text_regions[index],
+                              EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, &metrics.token_remove_regions[index], metrics.token_show_remove[index], surface_color,
+                              border_color, text_color, muted_color, accent_color);
     }
 
     if (metrics.show_overflow)
@@ -636,8 +636,7 @@ static void egui_view_token_input_on_draw(egui_view_t *self)
         input_text = local->draft_len > 0 ? local->draft_text : local->placeholder;
         token_input_draw_item(self, local, &metrics.input_region, input_text, local->current_part == EGUI_VIEW_TOKEN_INPUT_PART_INPUT ? 1 : 0,
                               (self->is_pressed && local->pressed_part == EGUI_VIEW_TOKEN_INPUT_PART_INPUT) ? 1 : 0, local->draft_len == 0 ? 1 : 0,
-                              &metrics.input_region,
-                              EGUI_ALIGN_CENTER, NULL, 0, surface_color, border_color, text_color, muted_color, accent_color);
+                              &metrics.input_region, EGUI_ALIGN_CENTER, NULL, 0, surface_color, border_color, text_color, muted_color, accent_color);
     }
 }
 

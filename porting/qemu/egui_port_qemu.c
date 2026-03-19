@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "egui.h"
 #include "egui_lcd.h"
@@ -266,6 +267,84 @@ static void qemu_lcd_setup(egui_hal_lcd_driver_t *storage)
  * Platform driver
  * ============================================================================ */
 
+/* ============================================================================
+ * External resource loading via semihosting file I/O
+ * ============================================================================ */
+
+#if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
+
+static FILE *s_qemu_resource_file = NULL;
+static uint32_t s_qemu_resource_file_offset = 0;
+static uint8_t s_qemu_resource_file_offset_valid = 0;
+
+static void qemu_close_external_resource_file(void)
+{
+    if (s_qemu_resource_file != NULL)
+    {
+        fclose(s_qemu_resource_file);
+        s_qemu_resource_file = NULL;
+    }
+    s_qemu_resource_file_offset = 0;
+    s_qemu_resource_file_offset_valid = 0;
+}
+
+static FILE *qemu_get_external_resource_file(void)
+{
+    if (s_qemu_resource_file != NULL)
+    {
+        return s_qemu_resource_file;
+    }
+
+    /* Try CWD first, then output/ subdirectory */
+    s_qemu_resource_file = fopen("app_egui_resource_merge.bin", "rb");
+    if (s_qemu_resource_file == NULL)
+    {
+        s_qemu_resource_file = fopen("output/app_egui_resource_merge.bin", "rb");
+    }
+    if (s_qemu_resource_file == NULL)
+    {
+        printf("QEMU: Error opening app_egui_resource_merge.bin\n");
+        return NULL;
+    }
+
+    return s_qemu_resource_file;
+}
+
+static void qemu_load_external_resource(void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size)
+{
+    extern const uint32_t egui_ext_res_id_map[];
+    uint32_t res_offset = egui_ext_res_id_map[res_id];
+    uint32_t res_real_offset = res_offset + start_offset;
+    FILE *file = qemu_get_external_resource_file();
+    if (file == NULL)
+    {
+        return;
+    }
+
+    if (!s_qemu_resource_file_offset_valid || s_qemu_resource_file_offset != res_real_offset)
+    {
+        if (fseek(file, res_real_offset, SEEK_SET) != 0)
+        {
+            printf("QEMU: Error seeking in resource file\n");
+            qemu_close_external_resource_file();
+            return;
+        }
+    }
+
+    int read_size = fread(dest, 1, size, file);
+    if (read_size != (int)size)
+    {
+        printf("QEMU: Error reading resource, read_size: %d, size: %d\n", read_size, (int)size);
+        qemu_close_external_resource_file();
+        return;
+    }
+
+    s_qemu_resource_file_offset = res_real_offset + size;
+    s_qemu_resource_file_offset_valid = 1;
+}
+
+#endif /* EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER */
+
 static void qemu_vlog(const char *format, va_list args)
 {
     vprintf(format, args);
@@ -299,6 +378,16 @@ static void qemu_pfb_clear(void *s, int n)
     memset(s, 0, n);
 }
 
+static void *qemu_malloc(int size)
+{
+    return malloc(size);
+}
+
+static void qemu_free(void *ptr)
+{
+    free(ptr);
+}
+
 static egui_base_t qemu_interrupt_disable(void)
 {
     uint32_t primask;
@@ -313,8 +402,8 @@ static void qemu_interrupt_enable(egui_base_t level)
 }
 
 static const egui_platform_ops_t qemu_platform_ops = {
-        .malloc = NULL,
-        .free = NULL,
+        .malloc = qemu_malloc,
+        .free = qemu_free,
         .vlog = qemu_vlog,
         .assert_handler = qemu_assert_handler,
         .vsprintf = qemu_vsprintf,
@@ -323,7 +412,11 @@ static const egui_platform_ops_t qemu_platform_ops = {
         .pfb_clear = qemu_pfb_clear,
         .interrupt_disable = qemu_interrupt_disable,
         .interrupt_enable = qemu_interrupt_enable,
+#if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
+        .load_external_resource = qemu_load_external_resource,
+#else
         .load_external_resource = NULL,
+#endif
         .mutex_create = NULL,
         .mutex_lock = NULL,
         .mutex_unlock = NULL,

@@ -99,7 +99,8 @@ static void egui_core_dirty_region_stats_end_frame(void)
     egui_dirty_region_stats.total_dirty_area += egui_dirty_region_stats.current_dirty_area;
     egui_dirty_region_stats.total_tile_count += egui_dirty_region_stats.current_tile_count;
 
-    egui_api_log("DIRTY_REGION_STATS:frame=%lu,regions=%lu,dirty_area=%lu,screen_area=%lu,pfb_tiles=%lu,total_frames=%lu,total_dirty_area=%llu,total_pfb_tiles=%llu\r\n",
+    egui_api_log("DIRTY_REGION_STATS:frame=%lu,regions=%lu,dirty_area=%lu,screen_area=%lu,pfb_tiles=%lu,total_frames=%lu,total_dirty_area=%llu,total_pfb_tiles="
+                 "%llu\r\n",
                  (unsigned long)egui_dirty_region_stats.frame_index, (unsigned long)egui_dirty_region_stats.current_region_count,
                  (unsigned long)egui_dirty_region_stats.current_dirty_area,
                  (unsigned long)((uint32_t)egui_core.screen_width * (uint32_t)egui_core.screen_height),

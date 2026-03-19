@@ -721,6 +721,13 @@ void egui_canvas_draw_image_resize(const egui_image_t *img, egui_dim_t x, egui_d
 void egui_canvas_draw_image_color(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_image_resize_color(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
                                          egui_alpha_t alpha);
+
+void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8);
+void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
+                                     egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
+                                              egui_color_t color, egui_alpha_t alpha);
+
 void egui_canvas_calc_work_region(egui_region_t *base_region);
 void egui_canvas_register_spec_circle_info(uint16_t res_circle_info_count_spec, const egui_circle_info_t *res_circle_info_spec_arr);
 void egui_canvas_init(egui_color_int_t *pfb, egui_region_t *region);
