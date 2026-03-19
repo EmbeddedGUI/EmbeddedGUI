@@ -85,7 +85,7 @@ c_tail_string="""
 
 
 class img2c_tool:
-    def __init__(self, input_img_file, name, format, alpha, dim, rot, swap, external_type, output_path):
+    def __init__(self, input_img_file, name, format, alpha, dim, rot, swap, external_type, output_path, bg=None):
         if output_path == None:
             output_path = os.path.dirname(input_img_file)
 
@@ -106,6 +106,25 @@ class img2c_tool:
         filename = os.path.basename(input_img_file)
         # get the options
         options = f"-i {filename} -n {name} -f {format} -a {alpha} -s {swap} -ext {external_type}"
+
+        # Alpha compositing onto background color
+        # When bg is specified (e.g. "#000000"), composite the RGBA image onto
+        # the given background color. This eliminates the alpha channel cleanly,
+        # avoiding jagged edges that occur when alpha is simply discarded.
+        if bg is not None:
+            options += f" -bg {bg}"
+            if image.mode == 'RGBA' or image.mode == 'PA' or image.mode == 'LA':
+                image = image.convert('RGBA')
+                # Parse hex color string like "#RRGGBB"
+                bg_color = bg.lstrip('#')
+                bg_r = int(bg_color[0:2], 16)
+                bg_g = int(bg_color[2:4], 16)
+                bg_b = int(bg_color[4:6], 16)
+                # Create solid background image and composite
+                bg_image = Image.new('RGBA', image.size, (bg_r, bg_g, bg_b, 255))
+                image = Image.alpha_composite(bg_image, image)
+                # Convert to RGB since alpha is now baked in
+                image = image.convert('RGB')
 
         # rotation
         if rot != 0.0:
@@ -651,10 +670,11 @@ def main(argv):
     parser.add_argument('-s', '--swap', nargs='?',type = int, default=0, required=False, help="Swap the high and low bytes of the 16-bit RGB565 format")
     parser.add_argument('-ext', '--external', nargs='?',type = int, default=0, required=False, help="Storage format (0: internal, 1: external)")
     parser.add_argument('-o', '--output', nargs='?',type = str, default="", required=False, help="Specify the output file name (default: input file name with.c extension)")
+    parser.add_argument('-bg', '--bg', nargs='?',type = str, default=None, required=False, help="Background color for alpha compositing (e.g. #000000). Composites RGBA onto this color to eliminate alpha channel cleanly.")
 
     args = parser.parse_args()
 
-    tool = img2c_tool(args.input, args.name, args.format, args.alpha, args.dim, args.rot, args.swap, args.external, args.output)
+    tool = img2c_tool(args.input, args.name, args.format, args.alpha, args.dim, args.rot, args.swap, args.external, args.output, args.bg)
 
     tool.write_c_file()
 
