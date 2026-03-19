@@ -20,14 +20,6 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT 1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW       1
 
-#ifndef EGUI_PORT_TYPE_PC
-#define EGUI_PORT_TYPE_PC 1
-#endif
-
-#ifndef EGUI_PORT_TYPE_QEMU
-#define EGUI_PORT_TYPE_QEMU 3
-#endif
-
 // Enable large image tests (480px/240px direct-draw, resize, rotate)
 // Set to 0 to save flash on constrained devices; 40x40 tiled tests still run.
 #define EGUI_TEST_CONFIG_IMAGE_LARGE 0

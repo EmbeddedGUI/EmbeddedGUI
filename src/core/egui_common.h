@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "egui_predefs.h"
 #include "egui_config.h"
 #include "egui_typedef.h"
 #include "egui_oop.h"
@@ -15,10 +16,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define EGUI_PORT_TYPE_PC   1
-#define EGUI_PORT_TYPE_MCU  2
-#define EGUI_PORT_TYPE_QEMU 3
 
 #define EGUI_RESOURCE_TYPE_INTERNAL 0 /* Resource is code */
 #define EGUI_RESOURCE_TYPE_EXTERNAL 1 /* Resource is flash/file */
