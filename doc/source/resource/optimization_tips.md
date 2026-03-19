@@ -171,7 +171,7 @@ PFB 宽高必须是屏幕宽高的整数约数。
 如果平台支持 DMA 异步传输，启用双缓冲可以让 CPU 和 DMA 并行工作：
 
 ```c
-#define EGUI_CONFIG_PFB_DOUBLE_BUFFER 1
+#define EGUI_CONFIG_PFB_BUFFER_COUNT 2
 ```
 
 代价是额外一份 PFB 大小的 RAM，但可以显著提升帧率。

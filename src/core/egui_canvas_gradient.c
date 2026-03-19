@@ -10,10 +10,7 @@
  *
  * Provides gradient-aware fill functions for all shapes.
  * Supports linear (vertical/horizontal) and radial gradients with multi-stop colors.
- * Guarded by EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT.
  */
-
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
 
 /* ========================== Core Utilities ========================== */
 
@@ -2129,8 +2126,6 @@ void egui_canvas_draw_triangle_fill_gradient(egui_dim_t x1, egui_dim_t y1, egui_
 
 /* ========================== Ellipse Fill Gradient ========================== */
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE
-
 /* 64-bit integer square root for gradient magnitude in ellipse SDF. */
 static uint64_t gradient_isqrt64(uint64_t n)
 {
@@ -2368,11 +2363,7 @@ void egui_canvas_draw_ellipse_fill_gradient(egui_dim_t center_x, egui_dim_t cent
     }
 }
 
-#endif /* EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE */
-
 /* ========================== Polygon Fill Gradient ========================== */
-
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON
 
 #ifndef EGUI_CANVAS_POLYGON_MAX_VERTICES
 #define EGUI_CANVAS_POLYGON_MAX_VERTICES 16
@@ -2717,8 +2708,6 @@ void egui_canvas_draw_polygon_fill_gradient(const egui_dim_t *points, uint8_t co
 
 #undef GRAD_POLY_AA_MARGIN
 }
-
-#endif /* EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON */
 
 /* ========================== Public gradient color utility ========================== */
 
@@ -3689,5 +3678,3 @@ void egui_canvas_draw_image_gradient_overlay(const egui_image_t *img, egui_dim_t
     egui_canvas_draw_image_resize(img, x, y, w, h);
     egui_canvas_set_mask(prev_mask);
 }
-
-#endif /* EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT */

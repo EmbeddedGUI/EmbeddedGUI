@@ -17,11 +17,9 @@ extern "C" {
 
 // Enable enhanced rendering features
 #define EGUI_CONFIG_WIDGET_ENHANCED_DRAW          1
-#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT 1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW       1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS        1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_LAYER        1
-#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ  1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_KEY          1
 
 #ifdef __cplusplus

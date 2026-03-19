@@ -7,7 +7,6 @@ extern "C" {
 #endif
 
 #define EGUI_CONFIG_WIDGET_ENHANCED_DRAW          1
-#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT 1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW       1
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

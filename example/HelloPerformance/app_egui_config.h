@@ -15,7 +15,6 @@ extern "C" {
 
 #define EGUI_CONFIG_DEBUG_LOG_LEVEL EGUI_LOG_IMPL_LEVEL_INF
 
-#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT 1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW       1
 
 // Enable large image tests (480px/240px direct-draw, resize, rotate)

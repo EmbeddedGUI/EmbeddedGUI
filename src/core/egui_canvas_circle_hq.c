@@ -11,11 +11,7 @@
  *
  * Performance options:
  * - EGUI_CONFIG_CIRCLE_HQ_INT32_ONLY: Limit radius to avoid 64-bit overflow
- *
- * Guarded by EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ.
  */
-
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
 
 /* Precomputed reciprocal: inv128_r = (128 << 16) / radius, computed once per draw call.
  * In the inner loop:  diff * inv128_r >> 16  ≈  diff * 128 / radius
@@ -965,5 +961,3 @@ void egui_canvas_draw_arc_hq(egui_dim_t cx, egui_dim_t cy, egui_dim_t radius, in
         end_angle -= 360;
     } while (end_angle > 0);
 }
-
-#endif /* EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ */

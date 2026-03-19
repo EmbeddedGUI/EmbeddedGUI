@@ -111,7 +111,6 @@ static void test_invalidate_region_vs_full(void)
     EGUI_TEST_ASSERT_TRUE(sub_area < full_area);
 }
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_SUB_DIRTY_REGION
 static void test_sub_region_table_invalidate(void)
 {
     egui_sub_region_t regions[2];
@@ -152,7 +151,6 @@ static void test_sub_region_table_bounds(void)
     EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[0]));
     EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[1]));
 }
-#endif
 
 void test_invalidate_region_run(void)
 {
@@ -162,9 +160,7 @@ void test_invalidate_region_run(void)
     EGUI_TEST_RUN(test_invalidate_region_invisible);
     EGUI_TEST_RUN(test_invalidate_region_multiple);
     EGUI_TEST_RUN(test_invalidate_region_vs_full);
-#if EGUI_CONFIG_FUNCTION_SUPPORT_SUB_DIRTY_REGION
     EGUI_TEST_RUN(test_sub_region_table_invalidate);
     EGUI_TEST_RUN(test_sub_region_table_bounds);
-#endif
     EGUI_TEST_SUITE_END();
 }

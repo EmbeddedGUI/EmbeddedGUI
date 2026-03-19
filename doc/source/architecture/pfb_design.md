@@ -232,7 +232,7 @@ egui_pfb_bus_release();      // 释放 SPI，恢复 DMA 发送队列
 make run APP=HelloPerformance PORT=stm32g0
 ```
 
-同时修改`HelloPerformance`例程中的一些配置，`EGUI_CONFIG_DEBUG_SKIP_DRAW_ALL`设置为1（去除绘制到屏幕的时间）。`EGUI_CONFIG_PFB_WIDTH`和`EGUI_CONFIG_PFB_HEIGHT`按需配置。
+`EGUI_CONFIG_PFB_WIDTH`和`EGUI_CONFIG_PFB_HEIGHT`按需配置。
 
 ![image-20241024135911010](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/image-20241024135911010.png)
 
@@ -270,6 +270,64 @@ make run APP=HelloPerformance PORT=stm32g0
 更完整的性能测试数据和详细分析，请参考[性能测试](../performance/index.rst)章节。
 
 > **提示**：性能测试必须在 QEMU 或真实 MCU 上运行，PC 模拟器的计时精度仅为 1ms，不适合作为性能基准。
+
+
+### PFB 形状对性能的影响
+
+上面的测试展示了 PFB 总面积对性能的影响，但 PFB 的**形状**（宽高比）同样至关重要。为了量化不同 PFB 形状的性能差异，我们在 QEMU Cortex-M3 环境下对 240x240 屏幕进行了矩阵测试，覆盖 5 种典型 PFB 配置：
+
+| 配置名 | PFB 尺寸 | 总像素数 | 特点 |
+|--------|---------|---------|------|
+| small | 15x15 | 225 | 小块，宽高均为屏幕 1/16 |
+| middle | 30x30 | 900 | 中等块，宽高均为屏幕 1/8 |
+| fullwidth | 240x1 | 240 | 全宽单行，像素数极少 |
+| fullheight | 1x240 | 240 | 全高单列，像素数极少 |
+| fullscreen | 240x240 | 57600 | 全屏缓冲，性能上限参考 |
+
+下图为完整的性能热力图（数值为归一化耗时，越小越好）：
+
+![PFB Matrix Heatmap](../performance/images/pfb_matrix_report.png)
+
+从 [PFB 矩阵测试报告](../performance/pfb_matrix_report.md) 的详细数据中，可以提炼出以下关键结论：
+
+#### 1. 全高单列（1x240）是最差的 PFB 形状
+
+尽管 fullheight（1x240）和 fullwidth（240x1）的总像素数相同（均为 240），但 fullheight 的性能在绝大多数场景下远远落后。典型对比：
+
+| 测试用例 | fullwidth (240x1) | fullheight (1x240) | 性能差距 |
+|---------|-------------------|-------------------|---------|
+| ELLIPSE | 4.970 ms | 177.934 ms | **36 倍** |
+| ELLIPSE_FILL | 2.198 ms | 116.474 ms | **53 倍** |
+| GRADIENT_ROUND_RECT_RING | 8.147 ms | 1351.166 ms | **166 倍** |
+| POLYGON_FILL | 2.730 ms | 73.558 ms | **27 倍** |
+| TRIANGLE_FILL | 2.036 ms | 42.931 ms | **21 倍** |
+| TEXT | 16.127 ms | 14.931 ms | 1.1 倍（少数例外） |
+
+原因在于：大多数图形算法以**行扫描**为基础进行裁剪和填充。全宽 PFB（240x1）每次覆盖完整一行，行扫描裁剪可以高效跳过不相关的行；而全高 PFB（1x240）每次只覆盖一列，每一行都只有 1 个像素参与计算，但行扫描的初始化开销无法省略，导致大量无效计算。
+
+#### 2. 中等方块（30x30）已接近全屏性能
+
+对比 middle（30x30，900 像素）和 fullscreen（240x240，57600 像素），大多数图形操作的性能差距在 2 倍以内：
+
+| 测试用例 | middle (30x30) | fullscreen (240x240) | 倍数 |
+|---------|---------------|---------------------|------|
+| RECTANGLE | 0.943 ms | 0.719 ms | 1.3x |
+| CIRCLE_FILL | 1.960 ms | 1.202 ms | 1.6x |
+| IMAGE_565 | 0.855 ms | 0.613 ms | 1.4x |
+| TEXT | 2.456 ms | 0.385 ms | 6.4x |
+| ARC_FILL | 5.491 ms | 4.753 ms | 1.2x |
+
+这说明 30x30 的 PFB（仅 1.8KB RAM）已经能获得接近全屏缓冲的绘制效率，是 RAM 受限场景下的优秀选择。
+
+#### 3. PFB 形状选择建议
+
+基于矩阵测试数据，PFB 形状选择的优先级为：
+
+- **首选：宽度等于屏幕宽度的矮条**（如 240x32）。行扫描效率最高，`WriteRegion` 调用次数最少
+- **次选：接近正方形的小块**（如 30x30）。在宽度无法等于屏幕宽度时，方形块比极端长条性能更均衡
+- **避免：全高单列或极窄高条**（如 1x240、2x120）。这是性能最差的形状，填充类操作可能慢数十倍
+
+> **经验法则**：在总像素数相同的前提下，PFB 越"宽"越好。宽度尽量接近屏幕宽度，高度根据 RAM 预算调整。
 
 
 ## 总结

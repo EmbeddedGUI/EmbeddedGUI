@@ -9,8 +9,6 @@
 extern "C" {
 #endif
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
-
 /* Gradient type definitions */
 #define EGUI_GRADIENT_TYPE_LINEAR_VERTICAL   0
 #define EGUI_GRADIENT_TYPE_LINEAR_HORIZONTAL 1
@@ -124,16 +122,12 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
 void egui_canvas_draw_triangle_fill_gradient(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3,
                                              const egui_gradient_t *gradient);
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE
 /* Ellipse gradient fill */
 void egui_canvas_draw_ellipse_fill_gradient(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius_x, egui_dim_t radius_y,
                                             const egui_gradient_t *gradient);
-#endif
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON
 /* Polygon gradient fill */
 void egui_canvas_draw_polygon_fill_gradient(const egui_dim_t *points, uint8_t count, const egui_gradient_t *gradient);
-#endif
 
 /* ---- Public gradient color utility ---- */
 
@@ -185,8 +179,6 @@ void egui_canvas_draw_arc_ring_fill_gradient_round_cap(egui_dim_t center_x, egui
  * overlay_alpha=0 means full original image color; overlay_alpha=255 means full gradient color. */
 void egui_canvas_draw_image_gradient_overlay(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t w, egui_dim_t h, const egui_gradient_t *gradient,
                                              egui_alpha_t overlay_alpha);
-
-#endif /* EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT */
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

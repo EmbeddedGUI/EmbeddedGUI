@@ -94,7 +94,6 @@ static void draw_page_triangles(void)
     egui_canvas_draw_triangle_fill(260, 170, 440, 170, 350, 70, EGUI_COLOR_GREEN, EGUI_ALPHA_80);
 
     // Row 2: Ellipses
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE
     draw_section_label("ellipse outline & fill", 4, 190);
     egui_canvas_draw_ellipse(120, 260, 80, 40, 1, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
     egui_canvas_draw_ellipse_fill(360, 260, 70, 40, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
@@ -103,7 +102,6 @@ static void draw_page_triangles(void)
     draw_section_label("vertical & thick", 4, 320);
     egui_canvas_draw_ellipse(120, 390, 35, 55, 1, EGUI_COLOR_CYAN, EGUI_ALPHA_100);
     egui_canvas_draw_ellipse(360, 390, 50, 40, 6, EGUI_COLOR_MAGENTA, EGUI_ALPHA_100);
-#endif
 }
 
 // Page 4: Polygons
@@ -111,7 +109,6 @@ static void draw_page_polygons(void)
 {
     draw_section_label("5/11 Polygons", 4, 8);
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON
     // Row 1: Pentagon
     draw_section_label("pentagon outline & fill", 4, 40);
     {
@@ -126,13 +123,8 @@ static void draw_page_polygons(void)
     // Row 2: Hexagon
     draw_section_label("hexagon outline & fill", 4, 185);
     {
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
         const egui_dim_t closed_pts[] = {70, 215, 150, 215, 190, 250, 150, 285, 70, 285, 30, 250, 70, 215};
         egui_canvas_draw_polyline_hq(closed_pts, 7, 2, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
-#else
-        const egui_dim_t pts[] = {70, 215, 150, 215, 190, 250, 150, 285, 70, 285, 30, 250};
-        egui_canvas_draw_polygon(pts, 6, 2, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
-#endif
     }
     {
         const egui_dim_t pts[] = {310, 215, 390, 215, 430, 250, 390, 285, 310, 285, 270, 250};
@@ -143,15 +135,8 @@ static void draw_page_polygons(void)
     draw_section_label("polyline (wave)", 4, 310);
     {
         const egui_dim_t wave[] = {20, 380, 80, 340, 140, 380, 200, 340, 260, 380, 320, 340, 380, 380, 440, 340};
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
         egui_canvas_draw_polyline_hq(wave, 8, 2, EGUI_COLOR_CYAN, EGUI_ALPHA_100);
-#else
-        egui_canvas_draw_polyline(wave, 8, 2, EGUI_COLOR_CYAN, EGUI_ALPHA_100);
-#endif
     }
-#else
-    draw_section_label("(disabled by config)", 4, 200);
-#endif
 }
 
 // Page 5: Bezier Curves & Alpha Blending
@@ -159,7 +144,6 @@ static void draw_page_bezier(void)
 {
     draw_section_label("6/11 Bezier & Alpha", 4, 8);
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_BEZIER
     // Row 1: Quadratic bezier
     draw_section_label("quadratic bezier", 4, 40);
     egui_canvas_draw_bezier_quad(20, 140, 120, 60, 220, 140, 1, EGUI_COLOR_RED, EGUI_ALPHA_100);
@@ -169,9 +153,6 @@ static void draw_page_bezier(void)
     draw_section_label("cubic bezier", 4, 155);
     egui_canvas_draw_bezier_cubic(20, 250, 80, 175, 160, 260, 220, 190, 1, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
     egui_canvas_draw_bezier_cubic(260, 250, 310, 175, 400, 260, 460, 190, 3, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
-#else
-    draw_section_label("(disabled by config)", 4, 100);
-#endif
 
     // Row 3: Alpha blending demo
     draw_section_label("alpha blending", 4, 275);
@@ -199,30 +180,22 @@ static void draw_page_circle_compare(void)
     // Row 1: Small circle outline, r=15 w=1
     draw_section_label("r=15 w=1", 170, 55);
     egui_canvas_draw_circle_basic(110, 95, 15, 1, EGUI_COLOR_RED, EGUI_ALPHA_100);
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
     egui_canvas_draw_circle_hq(350, 95, 15, 1, EGUI_COLOR_RED, EGUI_ALPHA_100);
-#endif
 
     // Row 2: Medium circle outline, r=35 w=2
     draw_section_label("r=35 w=2", 170, 125);
     egui_canvas_draw_circle_basic(110, 180, 35, 2, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
     egui_canvas_draw_circle_hq(350, 180, 35, 2, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-#endif
 
     // Row 3: Filled circle, r=40
     draw_section_label("r=40 fill", 170, 230);
     egui_canvas_draw_circle_fill_basic(110, 290, 40, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
     egui_canvas_draw_circle_fill_hq(350, 290, 40, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
-#endif
 
     // Row 4: Thick ring, r=30 w=10
     draw_section_label("r=30 w=10", 168, 345);
     egui_canvas_draw_circle_basic(110, 405, 30, 10, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
     egui_canvas_draw_circle_hq(350, 405, 30, 10, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
-#endif
 }
 
 // Page 7: Arc - Basic vs HQ comparison
@@ -238,30 +211,22 @@ static void draw_page_arc_compare(void)
     // Row 1: Thin arc, 0-270 r=35 w=1
     draw_section_label("0-270 w=1", 164, 55);
     egui_canvas_draw_arc_basic(110, 105, 35, 0, 270, 1, EGUI_COLOR_RED, EGUI_ALPHA_100);
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
     egui_canvas_draw_arc_hq(350, 105, 35, 0, 270, 1, EGUI_COLOR_RED, EGUI_ALPHA_100);
-#endif
 
     // Row 2: Thick arc, 30-300 r=35 w=5
     draw_section_label("30-300 w=5", 160, 155);
     egui_canvas_draw_arc_basic(110, 210, 35, 30, 300, 5, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
     egui_canvas_draw_arc_hq(350, 210, 35, 30, 300, 5, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-#endif
 
     // Row 3: Filled arc, 0-270 r=40
     draw_section_label("0-270 fill", 164, 260);
     egui_canvas_draw_arc_fill_basic(110, 320, 40, 0, 270, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
     egui_canvas_draw_arc_fill_hq(350, 320, 40, 0, 270, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
-#endif
 
     // Row 4: Filled arc, 45-315 r=40
     draw_section_label("45-315 fill", 160, 375);
     egui_canvas_draw_arc_fill_basic(110, 430, 40, 45, 315, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
     egui_canvas_draw_arc_fill_hq(350, 430, 40, 45, 315, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
-#endif
 }
 
 // Page 8: Line - Basic vs HQ comparison
@@ -274,7 +239,6 @@ static void draw_page_line_compare(void)
 
     egui_canvas_draw_line(240, 28, 240, 470, 1, EGUI_COLOR_MAKE(80, 80, 80), EGUI_ALPHA_60);
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
     // Row 1: Diagonal w=3
     draw_section_label("w=3 diag", 172, 55);
     egui_canvas_draw_line(30, 75, 200, 140, 3, EGUI_COLOR_RED, EGUI_ALPHA_100);
@@ -300,9 +264,6 @@ static void draw_page_line_compare(void)
     draw_section_label("w=6 diag", 172, 365);
     egui_canvas_draw_line(30, 395, 200, 450, 6, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
     egui_canvas_draw_line_hq(270, 395, 440, 450, 6, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
-#else
-    draw_section_label("(HQ disabled)", 4, 200);
-#endif
 }
 
 // Page 9: Line Round Cap vs Butt Cap
@@ -315,7 +276,6 @@ static void draw_page_line_round_cap(void)
 
     egui_canvas_draw_line(240, 28, 240, 470, 1, EGUI_COLOR_MAKE(80, 80, 80), EGUI_ALPHA_60);
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
     // Row 1: horizontal short line, large width (cap difference most obvious)
     draw_section_label("short horiz w=10", 150, 55);
     egui_canvas_draw_line_hq(50, 92, 170, 92, 10, EGUI_COLOR_RED, EGUI_ALPHA_100);
@@ -341,9 +301,6 @@ static void draw_page_line_round_cap(void)
     draw_section_label("vertical w=12", 162, 380);
     egui_canvas_draw_line_hq(110, 402, 110, 458, 12, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
     egui_canvas_draw_line_round_cap_hq(350, 402, 350, 458, 12, EGUI_COLOR_YELLOW, EGUI_ALPHA_100);
-#else
-    draw_section_label("(HQ disabled)", 4, 200);
-#endif
 }
 
 // Page 10: Arc Round Cap vs No Cap
@@ -356,7 +313,6 @@ static void draw_page_arc_round_cap(void)
 
     egui_canvas_draw_line(240, 28, 240, 470, 1, EGUI_COLOR_MAKE(80, 80, 80), EGUI_ALPHA_60);
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ && EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
     // Row 1: activity_ring-like 75% progress (start=270, end=540)
     draw_section_label("270-540 w=12", 150, 55);
     egui_canvas_draw_arc_hq(110, 125, 44, 270, 540, 12, EGUI_COLOR_RED, EGUI_ALPHA_100);
@@ -371,9 +327,6 @@ static void draw_page_arc_round_cap(void)
     draw_section_label("270-378 w=12", 150, 355);
     egui_canvas_draw_arc_hq(110, 420, 40, 270, 378, 12, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
     egui_canvas_draw_arc_round_cap_hq(350, 420, 40, 270, 378, 12, DEMO_COLOR_LIGHT_BLUE, EGUI_ALPHA_100);
-#else
-    draw_section_label("(HQ disabled)", 4, 200);
-#endif
 }
 
 // Page dispatch table

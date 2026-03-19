@@ -4,10 +4,8 @@
 #include "egui_view_test_performance.h"
 #include "egui.h"
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
 #include "core/egui_canvas_gradient.h"
 #include "mask/egui_mask_gradient.h"
-#endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
 #include "shadow/egui_shadow.h"
@@ -425,7 +423,6 @@ static void egui_view_test_performance_test_triangle_fill(egui_view_t *self)
 // Ellipse tests
 // ============================================================================
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE
 static void egui_view_test_performance_test_ellipse(egui_view_t *self)
 {
     egui_dim_t cx = EGUI_CONFIG_SCEEN_WIDTH >> 1;
@@ -443,13 +440,11 @@ static void egui_view_test_performance_test_ellipse_fill(egui_view_t *self)
     egui_dim_t ry = (EGUI_CONFIG_SCEEN_HEIGHT >> 1) - 1;
     egui_canvas_draw_ellipse_fill(cx, cy, rx, ry, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
-#endif
 
 // ============================================================================
 // Polygon tests
 // ============================================================================
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON
 static void egui_view_test_performance_test_polygon(egui_view_t *self)
 {
     egui_dim_t w = EGUI_CONFIG_SCEEN_WIDTH;
@@ -471,13 +466,11 @@ static void egui_view_test_performance_test_polygon_fill(egui_view_t *self)
     };
     egui_canvas_draw_polygon_fill(points, 5, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
-#endif
 
 // ============================================================================
 // Bezier tests
 // ============================================================================
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_BEZIER
 static void egui_view_test_performance_test_bezier_quad(egui_view_t *self)
 {
     egui_dim_t w = EGUI_CONFIG_SCEEN_WIDTH;
@@ -491,13 +484,11 @@ static void egui_view_test_performance_test_bezier_cubic(egui_view_t *self)
     egui_dim_t h = EGUI_CONFIG_SCEEN_HEIGHT;
     egui_canvas_draw_bezier_cubic(0, h / 2, w / 3, 0, w * 2 / 3, h - 1, w - 1, h / 2, 5, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
-#endif
 
 // ============================================================================
 // HQ circle/arc tests
 // ============================================================================
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
 static void egui_view_test_performance_test_circle_hq(egui_view_t *self)
 {
     egui_dim_t cx = EGUI_CONFIG_SCEEN_WIDTH >> 1;
@@ -536,19 +527,16 @@ static void egui_view_test_performance_test_arc_fill_hq(egui_view_t *self)
     egui_canvas_draw_arc_fill_hq(cx, cy, radius, 180, 240, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_draw_arc_fill_hq(cx, cy, radius, 270, 330, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
-#endif
 
 // ============================================================================
 // HQ line test
 // ============================================================================
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
 static void egui_view_test_performance_test_line_hq(egui_view_t *self)
 {
     egui_dim_t line_len = EGUI_MIN(self->region.size.width, self->region.size.height);
     egui_canvas_draw_line_hq(0, 0, line_len, line_len, 20, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
-#endif
 
 // ============================================================================
 // Image color tint tests
@@ -569,7 +557,6 @@ static void egui_view_test_performance_test_image_resize_color(egui_view_t *self
 // Gradient tests
 // ============================================================================
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
 EGUI_GRADIENT_LINEAR_2COLOR(perf_gradient_v, EGUI_GRADIENT_TYPE_LINEAR_VERTICAL, EGUI_COLOR_MAKE(0xFF, 0x00, 0x00), EGUI_COLOR_MAKE(0x00, 0x00, 0xFF),
                             EGUI_ALPHA_100);
 
@@ -715,7 +702,6 @@ static void egui_view_test_performance_test_image_gradient_overlay(egui_view_t *
     egui_canvas_draw_image_gradient_overlay((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_0, 0, 0,
                                             EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, &perf_gradient_v, EGUI_ALPHA_60);
 }
-#endif
 
 // ============================================================================
 // Shadow tests
@@ -761,9 +747,7 @@ static egui_mask_round_rectangle_t perf_mask_round_rect_double;
 static egui_mask_circle_t perf_mask_circle_double;
 
 // Gradient overlay mask (for text+gradient tests)
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
 static egui_mask_gradient_t perf_mask_gradient;
-#endif
 
 // Multi-size test dimensions
 #define PERF_SIZE_QUARTER (EGUI_CONFIG_SCEEN_WIDTH / 2)
@@ -811,12 +795,10 @@ static void ensure_perf_masks_initialized(void)
     egui_mask_set_size((egui_mask_t *)&perf_mask_circle_double, egui_view_test_performance_adjust_circle(EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE) * 2,
                        egui_view_test_performance_adjust_circle(EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE) * 2);
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
     // Gradient overlay mask (horizontal, red->blue, full overlay)
     egui_mask_gradient_init((egui_mask_t *)&perf_mask_gradient);
     egui_mask_gradient_set_gradient((egui_mask_t *)&perf_mask_gradient, &perf_gradient_v);
     egui_mask_gradient_set_overlay_alpha((egui_mask_t *)&perf_mask_gradient, EGUI_ALPHA_100);
-#endif
 }
 
 static void egui_view_test_performance_test_mask_rect_fill_no_mask(egui_view_t *self)
@@ -1602,7 +1584,6 @@ static void egui_view_test_performance_test_extern_text_rotate_buffered(egui_vie
 // Text + gradient overlay tests
 // ============================================================================
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
 static void egui_view_test_performance_test_text_gradient(egui_view_t *self)
 {
     ensure_perf_masks_initialized();
@@ -1655,7 +1636,6 @@ static void egui_view_test_performance_test_mask_gradient_image(egui_view_t *sel
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_0, 0, 0);
     egui_canvas_set_mask(NULL);
 }
-#endif // EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 static void egui_view_test_performance_test_extern_image_565(egui_view_t *self)
@@ -1978,146 +1958,94 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
 
     // Ellipse
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_ELLIPSE:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE
         egui_view_test_performance_test_ellipse(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_ELLIPSE_FILL:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE
         egui_view_test_performance_test_ellipse_fill(self);
-#endif
         break;
 
     // Polygon
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_POLYGON:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON
         egui_view_test_performance_test_polygon(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_POLYGON_FILL:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON
         egui_view_test_performance_test_polygon_fill(self);
-#endif
         break;
 
     // Bezier
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_BEZIER_QUAD:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_BEZIER
         egui_view_test_performance_test_bezier_quad(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_BEZIER_CUBIC:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_BEZIER
         egui_view_test_performance_test_bezier_cubic(self);
-#endif
         break;
 
     // HQ circle/arc
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CIRCLE_HQ:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
         egui_view_test_performance_test_circle_hq(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CIRCLE_FILL_HQ:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
         egui_view_test_performance_test_circle_fill_hq(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_ARC_HQ:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
         egui_view_test_performance_test_arc_hq(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_ARC_FILL_HQ:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
         egui_view_test_performance_test_arc_fill_hq(self);
-#endif
         break;
 
     // HQ line
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_LINE_HQ:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
         egui_view_test_performance_test_line_hq(self);
-#endif
         break;
 
     // Gradient
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_RECT:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         egui_view_test_performance_test_gradient_rect(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_ROUND_RECT:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         egui_view_test_performance_test_gradient_round_rect(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_CIRCLE:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         egui_view_test_performance_test_gradient_circle(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_TRIANGLE:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         egui_view_test_performance_test_gradient_triangle(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_ARC_RING:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         egui_view_test_performance_test_gradient_arc_ring(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_ARC_RING_ROUND_CAP:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         egui_view_test_performance_test_gradient_arc_ring_round_cap(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_RADIAL:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         egui_view_test_performance_test_gradient_radial(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_ANGULAR:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         egui_view_test_performance_test_gradient_angular(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_ROUND_RECT_RING:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         egui_view_test_performance_test_gradient_round_rect_ring(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_LINE_CAPSULE:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         egui_view_test_performance_test_gradient_line_capsule(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_MULTI_STOP:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         egui_view_test_performance_test_gradient_multi_stop(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_ROUND_RECT_CORNERS:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         egui_view_test_performance_test_gradient_round_rect_corners(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_GRADIENT_OVERLAY:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         egui_view_test_performance_test_image_gradient_overlay(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_GRADIENT_RECT_FILL:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         ensure_perf_masks_initialized();
         egui_view_test_performance_test_mask_gradient_rect_fill(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_GRADIENT_IMAGE:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         ensure_perf_masks_initialized();
         egui_view_test_performance_test_mask_gradient_image(self);
-#endif
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_COLOR:
         egui_view_test_performance_test_image_color(self);
@@ -2544,7 +2472,6 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
 #endif
 
     // Text with gradient overlay
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_GRADIENT:
         egui_view_test_performance_test_text_gradient(self);
         break;
@@ -2557,7 +2484,6 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_GRADIENT:
         egui_view_test_performance_test_text_rotate_buffered_gradient(self);
         break;
-#endif
 
     default:
         break;
@@ -2599,40 +2525,20 @@ int egui_view_test_performance_is_enabled(int test_mode)
         return EGUI_TEST_CONFIG_IMAGE_LARGE;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_ELLIPSE:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_ELLIPSE_FILL:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE
         return 1;
-#else
-        return 0;
-#endif
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_POLYGON:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_POLYGON_FILL:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON
         return 1;
-#else
-        return 0;
-#endif
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_BEZIER_QUAD:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_BEZIER_CUBIC:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_BEZIER
         return 1;
-#else
-        return 0;
-#endif
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CIRCLE_HQ:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CIRCLE_FILL_HQ:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_ARC_HQ:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_ARC_FILL_HQ:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
         return 1;
-#else
-        return 0;
-#endif
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_LINE_HQ:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
         return 1;
-#else
-        return 0;
-#endif
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_RECT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_ROUND_RECT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_CIRCLE:
@@ -2651,17 +2557,9 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_RECT_GRADIENT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_GRADIENT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_GRADIENT:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         return 1;
-#else
-        return 0;
-#endif
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_GRADIENT_OVERLAY:
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
         return EGUI_TEST_CONFIG_IMAGE_LARGE;
-#else
-        return 0;
-#endif
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_COLOR:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_COLOR:
         return EGUI_TEST_CONFIG_IMAGE_LARGE;

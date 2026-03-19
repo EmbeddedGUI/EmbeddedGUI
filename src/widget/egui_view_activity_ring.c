@@ -184,14 +184,12 @@ void egui_view_activity_ring_on_draw(egui_view_t *self)
             }
 #else
             {
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
                 if (local->show_round_cap)
                 {
                     egui_canvas_draw_arc_round_cap_hq(center_x, center_y, cur_radius, local->start_angle, end_angle, local->stroke_width, local->ring_colors[i],
                                                       EGUI_ALPHA_100);
                 }
                 else
-#endif
                 {
                     egui_canvas_draw_arc(center_x, center_y, cur_radius, local->start_angle, end_angle, local->stroke_width, local->ring_colors[i],
                                          EGUI_ALPHA_100);

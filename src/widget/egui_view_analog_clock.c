@@ -58,11 +58,7 @@ static void egui_view_analog_clock_draw_hand(egui_dim_t cx, egui_dim_t cy, int16
 
     if (use_round_cap)
     {
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
         egui_canvas_draw_line_round_cap_hq(cx, cy, end_x, end_y, width, color, EGUI_ALPHA_100);
-#else
-        egui_canvas_draw_line(cx, cy, end_x, end_y, width, color, EGUI_ALPHA_100);
-#endif
     }
     else
     {

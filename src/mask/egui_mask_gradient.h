@@ -9,8 +9,6 @@
 extern "C" {
 #endif
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
-
 /**
  * @brief Gradient color overlay mask.
  *
@@ -40,8 +38,6 @@ void egui_mask_gradient_init(egui_mask_t *self);
 void egui_mask_gradient_set_gradient(egui_mask_t *self, const egui_gradient_t *gradient);
 
 void egui_mask_gradient_set_overlay_alpha(egui_mask_t *self, egui_alpha_t overlay_alpha);
-
-#endif /* EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT */
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

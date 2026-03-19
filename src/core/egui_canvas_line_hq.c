@@ -6,11 +6,7 @@
  * Uses NxN sub-pixel sampling (same approach as circle_hq) for smooth
  * anti-aliased edges on thick lines. Thin lines (stroke_width <= 1)
  * delegate to the existing Wu's algorithm in egui_canvas_line.c.
- *
- * Guarded by EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ.
  */
-
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
 
 /* ========================== Config & Alpha Tables ========================== */
 
@@ -464,11 +460,7 @@ void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t
         egui_dim_t r = stroke_width >> 1;
         if (r > 0)
         {
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
             egui_canvas_draw_circle_fill_hq(x1, y1, r, color, alpha);
-#else
-            egui_canvas_draw_circle_fill(x1, y1, r, color, alpha);
-#endif
         }
         else
         {
@@ -658,14 +650,7 @@ static void line_hq_draw_polyline_internal(const egui_dim_t *points, uint8_t cou
     // Thin lines: delegate to existing polyline
     if (stroke_width <= 1)
     {
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON
         egui_canvas_draw_polyline(points, count, stroke_width, color, alpha);
-#else
-        for (uint8_t i = 0; i < count - 1; i++)
-        {
-            egui_canvas_draw_line(points[i * 2], points[i * 2 + 1], points[(i + 1) * 2], points[(i + 1) * 2 + 1], stroke_width, color, alpha);
-        }
-#endif
         return;
     }
 
@@ -906,11 +891,7 @@ static void line_hq_draw_polyline_internal(const egui_dim_t *points, uint8_t cou
         {
             for (uint8_t i = 1; i < count - 1; i++)
             {
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
                 egui_canvas_draw_circle_fill_hq(points[i * 2], points[i * 2 + 1], joint_r, color, alpha);
-#else
-                egui_canvas_draw_circle_fill(points[i * 2], points[i * 2 + 1], joint_r, color, alpha);
-#endif
             }
         }
     }
@@ -928,7 +909,7 @@ void egui_canvas_draw_polyline_round_cap_hq(const egui_dim_t *points, uint8_t co
 
 /* ========================== Arc Round Cap HQ ========================== */
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
+/* ========================== Arc Round Cap HQ ========================== */
 
 /**
  * @brief Draw an arc stroke with round caps at both endpoints.
@@ -993,7 +974,3 @@ void egui_canvas_draw_arc_round_cap_hq(egui_dim_t cx, egui_dim_t cy, egui_dim_t 
     egui_canvas_draw_circle_fill_hq(sx, sy, cap_r, color, alpha);
     egui_canvas_draw_circle_fill_hq(ex, ey, cap_r, color, alpha);
 }
-
-#endif /* EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ */
-
-#endif /* EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ */

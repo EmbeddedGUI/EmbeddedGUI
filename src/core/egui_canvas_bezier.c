@@ -6,10 +6,7 @@
  * Recursively subdivides the curve until segments are flat enough,
  * then draws each segment as a line. Anti-aliasing is provided by
  * the underlying egui_canvas_draw_line().
- * Guarded by EGUI_CONFIG_FUNCTION_CANVAS_DRAW_BEZIER.
  */
-
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_BEZIER
 
 #ifndef EGUI_CANVAS_BEZIER_MAX_DEPTH
 #define EGUI_CANVAS_BEZIER_MAX_DEPTH 8
@@ -45,15 +42,13 @@ static void bezier_quad_recursive(egui_dim_t x0, egui_dim_t y0, egui_dim_t cx, e
     if (dist_sq <= flatness_thresh || depth >= EGUI_CANVAS_BEZIER_MAX_DEPTH)
     {
         // Flat enough, draw as a line.
-        // For thick curves, prefer HQ line (if enabled) to avoid tiny gaps
+        // For thick curves, prefer HQ line to avoid tiny gaps
         // between adjacent flattened segments.
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
         if (stroke_width > 1)
         {
             egui_canvas_draw_line_hq(x0, y0, x1, y1, stroke_width, color, alpha);
         }
         else
-#endif
         {
             egui_canvas_draw_line(x0, y0, x1, y1, stroke_width, color, alpha);
         }
@@ -130,13 +125,11 @@ static void bezier_cubic_recursive(egui_dim_t x0, egui_dim_t y0, egui_dim_t cx0,
 
     if (max_cross_sq <= threshold_sq || depth >= EGUI_CANVAS_BEZIER_MAX_DEPTH)
     {
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
         if (stroke_width > 1)
         {
             egui_canvas_draw_line_hq(x0, y0, x1, y1, stroke_width, color, alpha);
         }
         else
-#endif
         {
             egui_canvas_draw_line(x0, y0, x1, y1, stroke_width, color, alpha);
         }
@@ -192,5 +185,3 @@ void egui_canvas_draw_bezier_cubic(egui_dim_t x0, egui_dim_t y0, egui_dim_t cx0,
 
     bezier_cubic_recursive(x0, y0, cx0, cy0, cx1, cy1, x1, y1, stroke_width, color, alpha, 0);
 }
-
-#endif // EGUI_CONFIG_FUNCTION_CANVAS_DRAW_BEZIER

@@ -8,10 +8,7 @@
  * matching the triangle fill approach for smooth edges at all angles.
  * Outline/polyline delegates to egui_canvas_draw_line() for each edge.
  * Maximum vertex count limited to EGUI_CANVAS_POLYGON_MAX_VERTICES.
- * Guarded by EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON.
  */
-
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON
 
 #ifndef EGUI_CANVAS_POLYGON_MAX_VERTICES
 #define EGUI_CANVAS_POLYGON_MAX_VERTICES 16
@@ -429,5 +426,3 @@ void egui_canvas_draw_polyline(const egui_dim_t *points, uint8_t count, egui_dim
         }
     }
 }
-
-#endif // EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON

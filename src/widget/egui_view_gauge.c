@@ -142,11 +142,7 @@ void egui_view_gauge_on_draw(egui_view_t *self)
         egui_dim_t tip_x = center_x + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(needle_len), cos_val));
         egui_dim_t tip_y = center_y + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(needle_len), sin_val));
         egui_dim_t hand_w = local->needle_width;
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
         egui_canvas_draw_line_round_cap_hq(center_x, center_y, tip_x, tip_y, hand_w, local->needle_color, EGUI_ALPHA_100);
-#else
-        egui_canvas_draw_line(center_x, center_y, tip_x, tip_y, hand_w, local->needle_color, EGUI_ALPHA_100);
-#endif
     }
 
     // Center dot decoration

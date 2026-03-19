@@ -249,7 +249,6 @@ static void rating_draw_focus(egui_view_t *self, const egui_region_t *region, eg
 static void rating_draw_star(egui_view_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_color_t fill_color, egui_color_t border_color,
                              egui_alpha_t fill_alpha, egui_alpha_t border_alpha)
 {
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON
     static const int8_t points_template[20] = {0, -10, 3, -3, 10, -3, 4, 2, 6, 10, 0, 5, -6, 10, -4, 2, -10, -3, -3, -3};
     egui_dim_t points[20];
     uint8_t index;
@@ -261,10 +260,6 @@ static void rating_draw_star(egui_view_t *self, egui_dim_t center_x, egui_dim_t 
     }
     egui_canvas_draw_polygon_fill(points, 10, fill_color, egui_color_alpha_mix(self->alpha, fill_alpha));
     egui_canvas_draw_polygon(points, 10, 1, border_color, egui_color_alpha_mix(self->alpha, border_alpha));
-#else
-    egui_canvas_draw_circle_fill(center_x, center_y, radius, fill_color, egui_color_alpha_mix(self->alpha, fill_alpha));
-    egui_canvas_draw_circle(center_x, center_y, radius, 1, border_color, egui_color_alpha_mix(self->alpha, border_alpha));
-#endif
 }
 
 static void rating_notify_changed(egui_view_t *self, uint8_t part)

@@ -89,11 +89,17 @@ struct egui_platform
     const egui_platform_ops_t *ops;
 };
 
-/** Register platform driver. Must be called before egui_init(). */
-void egui_platform_register(egui_platform_t *platform);
+extern egui_platform_t *g_egui_platform;
 
-/** Get registered platform. Returns NULL if not registered. */
-egui_platform_t *egui_platform_get(void);
+__EGUI_STATIC_INLINE__ void egui_platform_register(egui_platform_t *platform)
+{
+    g_egui_platform = platform;
+}
+
+__EGUI_STATIC_INLINE__ egui_platform_t *egui_platform_get(void)
+{
+    return g_egui_platform;
+}
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

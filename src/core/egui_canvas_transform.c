@@ -149,12 +149,12 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
     egui_alpha_t canvas_alpha = canvas->alpha;
 
     /* Source pixel data */
-    void *ext_data_buf = NULL;
-    void *ext_alpha_buf = NULL;
     const uint16_t *data;
     const uint8_t *alpha_buf;
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    void *ext_data_buf = NULL;
+    void *ext_alpha_buf = NULL;
     if (info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
     {
         uint32_t data_size = (uint32_t)src_w * src_h * sizeof(uint16_t);

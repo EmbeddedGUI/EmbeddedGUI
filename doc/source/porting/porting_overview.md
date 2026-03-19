@@ -123,7 +123,7 @@ typedef struct egui_platform_ops {
 
 ```c
 // app_egui_config.h
-#define EGUI_CONFIG_PFB_DOUBLE_BUFFER 1
+#define EGUI_CONFIG_PFB_BUFFER_COUNT 2
 ```
 
 框架在 DMA 传输期间切换到备用缓冲区继续渲染，CPU 和 DMA 并行工作。
@@ -243,7 +243,7 @@ void egui_port_init(void)
 |---|--------|------|
 | `EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH` | 1 | 触摸支持 |
 | `EGUI_CONFIG_FUNCTION_SUPPORT_KEY` | 0 | 按键支持 |
-| `EGUI_CONFIG_PFB_DOUBLE_BUFFER` | 0 | PFB 双缓冲 |
+| `EGUI_CONFIG_PFB_BUFFER_COUNT` | 2 | PFB 缓冲区数量 |
 | `EGUI_CONFIG_SOFTWARE_ROTATION` | 0 | 软件旋转 |
 | `EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE` | 0 | 外部资源 |
 

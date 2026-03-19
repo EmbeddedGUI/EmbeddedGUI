@@ -56,7 +56,6 @@ void egui_view_invalidate_region(egui_view_t *self, const egui_region_t *dirty_r
     }
 }
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_SUB_DIRTY_REGION
 void egui_view_invalidate_sub_region(egui_view_t *self, const egui_sub_region_table_t *table, uint16_t index)
 {
     if (table == NULL || table->regions == NULL || index >= table->count)
@@ -66,7 +65,6 @@ void egui_view_invalidate_sub_region(egui_view_t *self, const egui_sub_region_ta
 
     egui_view_invalidate_region(self, &table->regions[index].region);
 }
-#endif
 
 void egui_view_set_background(egui_view_t *self, egui_background_t *background)
 {

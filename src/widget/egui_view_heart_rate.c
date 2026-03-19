@@ -253,13 +253,8 @@ void egui_view_heart_rate_on_draw(egui_view_t *self)
         points[i * 2 + 1] = py;
     }
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
     egui_canvas_draw_polyline_hq(points, (uint8_t)sample_count, 2, med_green_dim, 124);
     egui_canvas_draw_polyline_hq(points, (uint8_t)sample_count, 1, med_green, EGUI_ALPHA_100);
-#else
-    egui_canvas_draw_polyline(points, (uint8_t)sample_count, 2, med_green_dim, 112);
-    egui_canvas_draw_polyline(points, (uint8_t)sample_count, 1, med_green, 248);
-#endif
 
     egui_dim_t scan_x = wave_x0 + (egui_dim_t)(((int32_t)local->ecg_offset * (wave_w - 1)) / 31);
     uint16_t scan_phase_q8 = (uint16_t)((uint16_t)local->ecg_offset << 8);

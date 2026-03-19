@@ -5,10 +5,7 @@
  *
  * Uses scanline approach with the ellipse equation for edge detection.
  * Anti-aliasing via 4-point corner sampling (similar to existing arc AA).
- * Guarded by EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE.
  */
-
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE
 
 /* Integer square root (bit-by-bit) for scanline boundary computation. */
 static uint32_t ellipse_isqrt(uint32_t n)
@@ -693,5 +690,3 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
         }
     }
 }
-
-#endif // EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE

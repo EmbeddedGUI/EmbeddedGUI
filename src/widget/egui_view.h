@@ -132,7 +132,6 @@ struct egui_view
 void egui_view_invalidate(egui_view_t *self);
 void egui_view_invalidate_region(egui_view_t *self, const egui_region_t *dirty_region);
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_SUB_DIRTY_REGION
 typedef struct egui_sub_region
 {
     egui_region_t region;
@@ -145,7 +144,6 @@ typedef struct egui_sub_region_table
 } egui_sub_region_table_t;
 
 void egui_view_invalidate_sub_region(egui_view_t *self, const egui_sub_region_table_t *table, uint16_t index);
-#endif
 
 void egui_view_set_background(egui_view_t *self, egui_background_t *background);
 void egui_view_set_parent(egui_view_t *self, egui_view_group_t *parent);

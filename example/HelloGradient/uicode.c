@@ -245,7 +245,6 @@ static void page4_on_draw(egui_view_t *self)
     egui_canvas_draw_triangle_fill_gradient(tx2, ty1, tx2 - 50, ty1 + 80, tx2 + 50, ty1 + 80, &grad_tri_radial);
     egui_canvas_draw_text(EGUI_FONT_OF(EGUI_CONFIG_FONT_DEFAULT), "Radial", tx2 - 25, ty1 + 85, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE
     /* Ellipse 1: horizontal gradient */
     egui_dim_t ey1 = y_start + 150;
     egui_dim_t ecx1 = bx + SCR_W / 4;
@@ -265,7 +264,6 @@ static void page4_on_draw(egui_view_t *self)
     };
     egui_canvas_draw_ellipse_fill_gradient(ecx2, ey1, 50, 35, &grad_ell_radial);
     egui_canvas_draw_text(EGUI_FONT_OF(EGUI_CONFIG_FONT_DEFAULT), "Radial", ecx2 - 25, ey1 + 40, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-#endif
 }
 
 /* ============================================================
@@ -278,7 +276,6 @@ static void page5_on_draw(egui_view_t *self)
 
     egui_canvas_draw_text(EGUI_FONT_OF(EGUI_CONFIG_FONT_DEFAULT), "Polygon Gradients", bx + 35, by + 5, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON
     /* Hexagon 1: vertical gradient */
     egui_dim_t hcx1 = bx + SCR_W / 4;
     egui_dim_t hcy1 = by + 30 + 50;
@@ -334,7 +331,6 @@ static void page5_on_draw(egui_view_t *self)
     };
     egui_canvas_draw_polygon_fill_gradient(pent, 5, &grad_pent);
     egui_canvas_draw_text(EGUI_FONT_OF(EGUI_CONFIG_FONT_DEFAULT), "H Rainbow", pcx - 35, pcy + pr + 5, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-#endif
 }
 
 /* ============================================================

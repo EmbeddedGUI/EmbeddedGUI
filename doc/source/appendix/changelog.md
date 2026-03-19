@@ -135,7 +135,6 @@
 - `egui_view_viewpage_cache` 缓存翻页控件
 - PFB 支持非整数倍屏幕尺寸
 - 中断保护机制（Timer 等多线程场景）
-- `EGUI_CONFIG_DEBUG_SKIP_DRAW_ALL` 配置（跳过显存绘制，评估 CPU 性能）
 - 64 位系统 SDL 编译支持
 
 ### Fixed

@@ -67,7 +67,6 @@ void egui_view_line_on_draw(egui_view_t *self)
         egui_dim_t x2 = ox + local->points[i + 1].x;
         egui_dim_t y2 = oy + local->points[i + 1].y;
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
         if (local->use_round_cap)
         {
             egui_canvas_draw_line_round_cap_hq(x1, y1, x2, y2, local->line_width, local->line_color, EGUI_ALPHA_100);
@@ -76,9 +75,6 @@ void egui_view_line_on_draw(egui_view_t *self)
         {
             egui_canvas_draw_line(x1, y1, x2, y2, local->line_width, local->line_color, EGUI_ALPHA_100);
         }
-#else
-        egui_canvas_draw_line(x1, y1, x2, y2, local->line_width, local->line_color, EGUI_ALPHA_100);
-#endif
     }
 }
 

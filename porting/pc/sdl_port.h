@@ -15,6 +15,16 @@ extern "C" {
 #define VT_HEIGHT      EGUI_CONFIG_SCEEN_HEIGHT
 #define VT_COLOR_DEPTH EGUI_CONFIG_COLOR_DEPTH
 
+/**
+ * SDL display options (PC simulator only).
+ * When enabled and color depth is 16, SDL uses native RGB565 texture
+ * to accurately simulate embedded display color quality.
+ * When 0 (default), always converts to ARGB8888 for display.
+ */
+#ifndef EGUI_CONFIG_SDL_NATIVE_COLOR
+#define EGUI_CONFIG_SDL_NATIVE_COLOR 0
+#endif
+
 #if EGUI_CONFIG_SDL_NATIVE_COLOR && VT_COLOR_DEPTH == 16
 #define VT_SDL_NATIVE_RGB565 1
 #else

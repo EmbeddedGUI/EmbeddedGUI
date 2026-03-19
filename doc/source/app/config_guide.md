@@ -67,12 +67,9 @@ PFB_RAM = PFB_WIDTH * PFB_HEIGHT * (COLOR_DEPTH / 8) * BUFFER_COUNT
 ```c
 // PFB 缓冲区数量
 // 1 = 单缓冲（默认，同步渲染）
-// 2 = 双缓冲（CPU/DMA 流水线）
+// 2 = 双缓冲（CPU/DMA 流水线，默认）
 // 3 = 三缓冲（CPU 可提前 2 块）
-#define EGUI_CONFIG_PFB_BUFFER_COUNT  1
-
-// 旧版双缓冲开关（建议使用 PFB_BUFFER_COUNT 代替）
-#define EGUI_CONFIG_PFB_DOUBLE_BUFFER 0
+#define EGUI_CONFIG_PFB_BUFFER_COUNT  2
 ```
 
 多缓冲需要显示驱动的 `draw_area` 支持异步传输，DMA 完成中断中调用 `egui_pfb_notify_flush_complete()`。
@@ -125,7 +122,7 @@ PFB_RAM = PFB_WIDTH * PFB_HEIGHT * (COLOR_DEPTH / 8) * BUFFER_COUNT
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW     0
 
 // 视图图层（Z 轴排序）
-#define EGUI_CONFIG_FUNCTION_SUPPORT_LAYER      1
+#define EGUI_CONFIG_FUNCTION_SUPPORT_LAYER      0
 
 // 滚动条指示器
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR  1
@@ -139,45 +136,16 @@ PFB_RAM = PFB_WIDTH * PFB_HEIGHT * (COLOR_DEPTH / 8) * BUFFER_COUNT
 
 ### 图片格式支持
 
-```c
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32     1
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565    1
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1  1  // 1bit alpha
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2  1  // 2bit alpha
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_4  1  // 4bit alpha
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8  1  // 8bit alpha
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_1   1  // 纯 alpha 1bit
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_2   1  // 纯 alpha 2bit
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_4   1  // 纯 alpha 4bit
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8   1  // 纯 alpha 8bit
-```
-
-关闭不需要的图片格式可以减小代码体积。
+所有图片格式（RGB32、RGB565、RGB565 调色板压缩、Alpha 遮罩）现在始终编译进框架，无需配置宏开关。未使用的格式会被链接器垃圾回收（`-ffunction-sections` + `--gc-sections`）自动移除，不会增加最终二进制体积。
 
 ### Canvas 绘图功能
 
 ```c
-// 椭圆绘制
-#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE    1
-
-// 多边形和折线
-#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON    1
-
-// 贝塞尔曲线
-#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_BEZIER     1
-
-// 高质量圆弧（子像素采样，更慢但更平滑）
-#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ  1
-
 // 默认圆弧算法使用 HQ
 #define EGUI_CONFIG_CIRCLE_DEFAULT_ALGO_HQ          0
-
-// 渐变填充
-#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT    0
-
-// 高质量线段
-#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ    1
 ```
+
+椭圆、多边形、贝塞尔曲线、高质量圆弧、渐变填充、高质量线段等 Canvas 绘图功能现在始终编译进框架，无需配置宏开关。未使用的绘图函数会被链接器垃圾回收自动移除。
 
 ### 文本输入
 
@@ -224,9 +192,6 @@ PFB_RAM = PFB_WIDTH * PFB_HEIGHT * (COLOR_DEPTH / 8) * BUFFER_COUNT
 ## 代码体积优化
 
 ```c
-// 减小图片处理代码体积（增加 CPU 开销）
-#define EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE       0
-
 // 限制 margin/padding 为 int8_t（-128~127）
 #define EGUI_CONFIG_REDUCE_MARGIN_PADDING_SIZE   1
 ```
@@ -234,9 +199,6 @@ PFB_RAM = PFB_WIDTH * PFB_HEIGHT * (COLOR_DEPTH / 8) * BUFFER_COUNT
 ## 调试开关
 
 ```c
-// 跳过所有绘制（测试 GUI 性能开销）
-#define EGUI_CONFIG_DEBUG_SKIP_DRAW_ALL          0
-
 // PFB 刷新可视化
 #define EGUI_CONFIG_DEBUG_PFB_REFRESH            0
 
@@ -276,13 +238,6 @@ PFB_RAM = PFB_WIDTH * PFB_HEIGHT * (COLOR_DEPTH / 8) * BUFFER_COUNT
 
 #define EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH  1
 #define EGUI_CONFIG_MAX_FPS              30   // SPI 带宽有限
-
-// 关闭不需要的功能以节省 ROM
-#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE   0
-#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_BEZIER    0
-#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ 0
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32     0
-#define EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE          1
 ```
 
 PFB 内存：30 * 40 * 2 * 2 = 4800 字节
@@ -308,8 +263,6 @@ PFB 内存：30 * 40 * 2 * 2 = 4800 字节
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW     0
 #define EGUI_CONFIG_FUNCTION_SUPPORT_LAYER      0
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR  0
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32 0
-#define EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE      1
 #define EGUI_CONFIG_REDUCE_MARGIN_PADDING_SIZE  1
 ```
 

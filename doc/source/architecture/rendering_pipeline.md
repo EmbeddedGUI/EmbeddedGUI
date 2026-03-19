@@ -123,13 +123,15 @@ struct egui_canvas
 | `egui_canvas_draw_image_resize(img, x, y, w, h)` | 缩放绘制图片 |
 | `egui_canvas_draw_image_color(img, x, y, color, alpha)` | 带颜色混合的图片绘制 |
 
-### 高级图形（需配置开启）
+### 高级图形
 
-| API | 配置宏 |
-|-----|--------|
-| `egui_canvas_draw_ellipse()` / `_fill()` | `EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE` |
-| `egui_canvas_draw_polygon()` / `_fill()` | `EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON` |
-| `egui_canvas_draw_bezier_quad()` / `_cubic()` | `EGUI_CONFIG_FUNCTION_CANVAS_DRAW_BEZIER` |
+| API | 说明 |
+|-----|------|
+| `egui_canvas_draw_ellipse()` / `_fill()` | 椭圆 |
+| `egui_canvas_draw_polygon()` / `_fill()` | 多边形 |
+| `egui_canvas_draw_bezier_quad()` / `_cubic()` | 贝塞尔曲线 |
+
+这些 API 始终可用，无需配置宏开关。
 
 ## 裁剪 (Clip) 机制
 
@@ -237,7 +239,7 @@ Canvas 在绘制每个像素时检查 mask 是否存在，若存在则调用 `ma
 #endif
 ```
 
-HQ 系列还包括线段和折线的抗锯齿版本（需启用 `EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ`）：
+HQ 系列还包括线段和折线的抗锯齿版本：
 
 | API | 说明 |
 |-----|------|

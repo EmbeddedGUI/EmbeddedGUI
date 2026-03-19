@@ -27,13 +27,13 @@
     "pfb_configs": {
         "small": {
             "pfb_width": 15,
-            "pfb_height": 20,
-            "description": "Small (SCREEN_WIDTH/16 x SCREEN_HEIGHT/16, 15x20)"
+            "pfb_height": 15,
+            "description": "Small (SCREEN_WIDTH/16 x SCREEN_HEIGHT/16, 15x15)"
         },
         "middle": {
             "pfb_width": 30,
-            "pfb_height": 40,
-            "description": "Middle (SCREEN_WIDTH/8 x SCREEN_HEIGHT/8, 30x40)"
+            "pfb_height": 30,
+            "description": "Middle (SCREEN_WIDTH/8 x SCREEN_HEIGHT/8, 30x30)"
         },
         "fullwidth": {
             "pfb_width": 240,
@@ -42,13 +42,13 @@
         },
         "fullheight": {
             "pfb_width": 1,
-            "pfb_height": 320,
-            "description": "Full-height strip (1 x SCREEN_HEIGHT, 1x320)"
+            "pfb_height": 240,
+            "description": "Full-height strip (1 x SCREEN_HEIGHT, 1x240)"
         },
         "fullscreen": {
             "pfb_width": 240,
-            "pfb_height": 320,
-            "description": "Full-screen (SCREEN_WIDTH x SCREEN_HEIGHT, 240x320)"
+            "pfb_height": 240,
+            "description": "Full-screen (SCREEN_WIDTH x SCREEN_HEIGHT, 240x240)"
         }
     },
     "spi_configs": [

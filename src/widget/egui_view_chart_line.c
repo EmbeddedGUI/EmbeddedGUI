@@ -51,7 +51,6 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
             continue;
         }
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
 // Build coordinate array for polyline HQ (max 64 points to avoid large stack usage)
 #define CHART_LINE_MAX_POLYLINE_POINTS 64
         uint8_t pt_count = series->point_count;
@@ -80,18 +79,6 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
                 prev_y = y2;
             }
         }
-#else
-        // Draw lines between consecutive points
-        for (uint8_t i = 0; i < series->point_count - 1; i++)
-        {
-            egui_dim_t x1 = egui_chart_map_x(ab, series->points[i].x, plot_area->location.x, plot_area->size.width);
-            egui_dim_t y1 = egui_chart_map_y(ab, series->points[i].y, plot_area->location.y, plot_area->size.height);
-            egui_dim_t x2 = egui_chart_map_x(ab, series->points[i + 1].x, plot_area->location.x, plot_area->size.width);
-            egui_dim_t y2 = egui_chart_map_y(ab, series->points[i + 1].y, plot_area->location.y, plot_area->size.height);
-
-            egui_canvas_draw_line(x1, y1, x2, y2, local->line_width, series->color, EGUI_ALPHA_100);
-        }
-#endif
 
         // Draw data point markers
         if (local->point_radius > 0)

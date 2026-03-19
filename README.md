@@ -218,39 +218,26 @@ make all APP=HelloStyleDemo && make run
 | 宏 | 默认 | 说明 |
 |----|------|------|
 | `EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW` | 0 | 阴影渲染 |
-| `EGUI_CONFIG_FUNCTION_SUPPORT_LAYER` | 1 | Z 轴图层系统 |
+| `EGUI_CONFIG_FUNCTION_SUPPORT_LAYER` | 0 | Z 轴图层系统 |
 | `EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR` | 1 | 自动滚动条指示器 |
 | `EGUI_CONFIG_WIDGET_ENHANCED_DRAW` | 0 | 增强渲染（渐变 + 阴影，自动开启两者） |
-| `EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT` | 0 | 渐变填充 |
 | `EGUI_CONFIG_FUNCTION_GRADIENT_DITHERING` | 0 | 渐变抖动（消除 16 位色带） |
 
 ### 抗锯齿质量
 
 | 宏 | 默认 | 说明 |
 |----|------|------|
-| `EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ` | 1 | 圆 / 弧 HQ 子像素模式 |
-| `EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ` | 1 | 线段 HQ 子像素模式 |
 | `EGUI_CONFIG_CIRCLE_HQ_SAMPLE_2X2` | 0 | 2×2 快速采样（0 = 4×4 高质量） |
 | `EGUI_CONFIG_LINE_HQ_SAMPLE_2X2` | 0 | 同上，用于线段 |
-
-### 图像格式
-
-| 宏 | 默认 | 说明 |
-|----|------|------|
-| `EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32` | 1 | ARGB8888 |
-| `EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565` | 1 | RGB565 |
-| `EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_{1/2/4/8}` | 1 | 调色板压缩图像 |
-| `EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_{1/2/4/8}` | 1 | Alpha 遮罩格式 |
 
 ### 性能 / 内存
 
 | 宏 | 默认 | 说明 |
 |----|------|------|
-| `EGUI_CONFIG_PFB_BUFFER_COUNT` | 1 | PFB 缓冲数（≥2 支持 DMA 流水线） |
+| `EGUI_CONFIG_PFB_BUFFER_COUNT` | 2 | PFB 缓冲数（≥2 支持 DMA 流水线） |
 | `EGUI_CONFIG_MAX_FPS` | 60 | 帧率上限 |
 | `EGUI_CONFIG_DIRTY_AREA_COUNT` | 5 | 脏矩形区域槽位数 |
 | `EGUI_CONFIG_PERFORMANCE_USE_FLOAT` | 0 | 有 FPU 时启用浮点加速 |
-| `EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE` | 0 | 减小图像代码体积（增加 CPU 开销） |
 | `EGUI_CONFIG_SOFTWARE_ROTATION` | 0 | 软件旋转 PFB 输出 |
 
 ---

@@ -13,7 +13,6 @@ void egui_background_gradient_on_draw(egui_background_t *self, egui_region_t *re
     egui_dim_t w = region->size.width;
     egui_dim_t h = region->size.height;
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT
     /* Delegate to canvas gradient for unified implementation */
     egui_gradient_stop_t stops[2] = {
             {.position = 0, .color = grad_param->start_color},
@@ -27,31 +26,6 @@ void egui_background_gradient_on_draw(egui_background_t *self, egui_region_t *re
             .stops = stops,
     };
     egui_canvas_draw_rectangle_fill_gradient(0, 0, w, h, &gradient);
-#else
-    if (grad_param->direction == EGUI_BACKGROUND_GRADIENT_DIR_VERTICAL)
-    {
-        /* Draw vertical gradient: one hline per row */
-        for (egui_dim_t y = 0; y < h; y++)
-        {
-            /* alpha = y * 255 / (h - 1), clamped */
-            egui_alpha_t mix = (h > 1) ? (egui_alpha_t)((uint32_t)y * 255 / (h - 1)) : 0;
-            egui_color_t line_color;
-            egui_rgb_mix_ptr((egui_color_t *)&grad_param->start_color, (egui_color_t *)&grad_param->end_color, &line_color, mix);
-            egui_canvas_draw_rectangle_fill(0, y, w, 1, line_color, grad_param->alpha);
-        }
-    }
-    else /* HORIZONTAL */
-    {
-        /* Draw horizontal gradient: one vline per column */
-        for (egui_dim_t x = 0; x < w; x++)
-        {
-            egui_alpha_t mix = (w > 1) ? (egui_alpha_t)((uint32_t)x * 255 / (w - 1)) : 0;
-            egui_color_t col_color;
-            egui_rgb_mix_ptr((egui_color_t *)&grad_param->start_color, (egui_color_t *)&grad_param->end_color, &col_color, mix);
-            egui_canvas_draw_rectangle_fill(x, 0, 1, h, col_color, grad_param->alpha);
-        }
-    }
-#endif
 }
 
 const egui_background_api_t egui_background_gradient_t_api_table = {

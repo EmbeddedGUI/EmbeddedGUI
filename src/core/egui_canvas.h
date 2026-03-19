@@ -651,14 +651,12 @@ void egui_canvas_draw_arc_fill_basic(egui_dim_t center_x, egui_dim_t center_y, e
                                      egui_alpha_t alpha);
 
 // HQ (quality) circle/arc - runtime sub-pixel sampling, better anti-aliasing, no radius limit
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
 void egui_canvas_draw_circle_hq(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_circle_fill_hq(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_arc_hq(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle, egui_dim_t stroke_width,
                              egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_arc_fill_hq(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t end_angle, egui_color_t color,
                                   egui_alpha_t alpha);
-#endif
 
 // Default circle/arc API - controlled by EGUI_CONFIG_CIRCLE_DEFAULT_ALGO_HQ
 #if EGUI_CONFIG_CIRCLE_DEFAULT_ALGO_HQ
@@ -677,20 +675,15 @@ void egui_canvas_draw_triangle(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui
 void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3, egui_color_t color,
                                     egui_alpha_t alpha);
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_ELLIPSE
 void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius_x, egui_dim_t radius_y, egui_dim_t stroke_width, egui_color_t color,
                               egui_alpha_t alpha);
 void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius_x, egui_dim_t radius_y, egui_color_t color, egui_alpha_t alpha);
-#endif
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_POLYGON
 void egui_canvas_draw_polygon(const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_polyline(const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
-#endif
 
 // HQ (quality) line/polyline - runtime sub-pixel sampling, better anti-aliasing
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_LINE_HQ
 void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_line_segment_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
                                       egui_alpha_t alpha);
@@ -698,18 +691,13 @@ void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t
                                         egui_alpha_t alpha);
 void egui_canvas_draw_polyline_hq(const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_polyline_round_cap_hq(const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_CIRCLE_HQ
 void egui_canvas_draw_arc_round_cap_hq(egui_dim_t cx, egui_dim_t cy, egui_dim_t radius, int16_t start_angle, int16_t end_angle, egui_dim_t stroke_width,
                                        egui_color_t color, egui_alpha_t alpha);
-#endif
-#endif
 
-#if EGUI_CONFIG_FUNCTION_CANVAS_DRAW_BEZIER
 void egui_canvas_draw_bezier_quad(egui_dim_t x0, egui_dim_t y0, egui_dim_t cx, egui_dim_t cy, egui_dim_t x1, egui_dim_t y1, egui_dim_t stroke_width,
                                   egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_bezier_cubic(egui_dim_t x0, egui_dim_t y0, egui_dim_t cx0, egui_dim_t cy0, egui_dim_t cx1, egui_dim_t cy1, egui_dim_t x1, egui_dim_t y1,
                                    egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
-#endif
 
 void egui_canvas_draw_text(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_text_in_rect_with_line_space(const egui_font_t *font, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space,

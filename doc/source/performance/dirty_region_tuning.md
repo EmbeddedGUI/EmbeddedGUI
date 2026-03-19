@@ -68,7 +68,6 @@ static void my_widget_invalidate_icon(egui_view_t *self, egui_dim_t x, egui_dim_
 适合固定分区明显的控件，例如九宫格、分栏按钮、步骤条、日历格子。
 
 ```c
-#if EGUI_CONFIG_FUNCTION_SUPPORT_SUB_DIRTY_REGION
 enum
 {
     MY_WIDGET_REGION_LEFT,
@@ -86,17 +85,12 @@ static const egui_sub_region_table_t s_region_table = {
     .regions = s_regions,
     .count = sizeof(s_regions) / sizeof(s_regions[0]),
 };
-#endif
 ```
 
 状态变化时：
 
 ```c
-#if EGUI_CONFIG_FUNCTION_SUPPORT_SUB_DIRTY_REGION
 egui_view_invalidate_sub_region(self, &s_region_table, MY_WIDGET_REGION_CENTER);
-#else
-egui_view_invalidate(self);
-#endif
 ```
 
 推荐把子区域表当成控件内部的“脏矩形矩阵”：每个分区都保持语义稳定、边界固定，后续维护成本最低。

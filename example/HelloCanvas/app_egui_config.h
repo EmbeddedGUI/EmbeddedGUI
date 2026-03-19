@@ -11,9 +11,6 @@ extern "C" {
 
 #define EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE 300
 
-// Required by egui_background_gradient.c (uses canvas gradient draw APIs)
-#define EGUI_CONFIG_FUNCTION_CANVAS_DRAW_GRADIENT 1
-
 // Enable auto-click simulation for GIF recording
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
