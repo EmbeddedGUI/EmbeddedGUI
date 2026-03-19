@@ -34,13 +34,6 @@ python scripts/hello_basic_render_workflow.py --suite smoke
 python scripts/hello_basic_render_workflow.py --widgets button,checkbox,slider,combobox,textinput
 ```
 
-也可以通过 Make 入口执行：
-
-```bash
-make hello_basic_render_workflow
-make hello_basic_render_workflow ARGS="--suite interactive"
-```
-
 ## 流程
 
 1. 先执行 `HelloUnitTest`，确认底层没有明显回归。
