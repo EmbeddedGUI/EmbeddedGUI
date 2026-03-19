@@ -3546,7 +3546,32 @@ void egui_canvas_draw_arc_ring_fill_gradient(egui_dim_t center_x, egui_dim_t cen
             if (gradient->type == EGUI_GRADIENT_TYPE_ANGULAR)
             {
                 uint8_t t = gradient_angular_arc_t(dy, dx, start_angle_deg, span);
+#if EGUI_CONFIG_FUNCTION_GRADIENT_DITHERING
+                /* Geometry-rotated Bayer dithering for angular arc gradients.
+                 * Shift the Bayer 4x4 matrix indices by distance-squared and
+                 * gradient position so that adjacent pixels along any direction
+                 * (radial, tangential) see different threshold values.  This
+                 * avoids screen-aligned 4x4 grid artifacts on curved shapes
+                 * while retaining Bayer's well-distributed threshold spread. */
+                {
+                    uint8_t bayer_row = ((uint8_t)y + (uint8_t)(d_sq >> 4)) & 3;
+                    uint8_t bayer_col = ((uint8_t)x + (uint8_t)(t >> 2)) & 3;
+                    uint8_t threshold = egui_gradient_bayer_4x4[bayer_row * 4 + bayer_col];
+                    int16_t t_adj = (int16_t)t + (int16_t)threshold - 8;
+                    if (t_adj < 0)
+                    {
+                        t_adj = 0;
+                    }
+                    if (t_adj > 255)
+                    {
+                        t_adj = 255;
+                    }
+                    t = (uint8_t)t_adj;
+                }
+                color = egui_gradient_get_color(gradient->stops, gradient->stop_count, t);
+#else
                 color = gradient_get_color_pixel(gradient->stops, gradient->stop_count, t, x, y);
+#endif
             }
             else if (gradient->type == EGUI_GRADIENT_TYPE_LINEAR_VERTICAL)
             {
