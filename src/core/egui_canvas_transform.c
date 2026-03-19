@@ -196,10 +196,14 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
     int32_t Cx_base = inv_m01 * ((int32_t)draw_y0 - y) + ((int32_t)cx << 15) + offx;
     int32_t Cy_base = inv_m11 * ((int32_t)draw_y0 - y) + ((int32_t)cy << 15) + offy;
 
+    /* Hoist loop-invariant row-start offset computed from draw_x0 */
+    int32_t row_start_offset_x = inv_m00 * ((int32_t)draw_x0 - x);
+    int32_t row_start_offset_y = inv_m10 * ((int32_t)draw_x0 - x);
+
     for (int32_t dy = draw_y0; dy < draw_y1; dy++)
     {
-        int32_t rotatedX = inv_m00 * ((int32_t)draw_x0 - x) + Cx_base;
-        int32_t rotatedY = inv_m10 * ((int32_t)draw_x0 - x) + Cy_base;
+        int32_t rotatedX = row_start_offset_x + Cx_base;
+        int32_t rotatedY = row_start_offset_y + Cy_base;
 
         egui_color_int_t *dst_row = &pfb[(dy - pfb_oy) * pfb_w + (draw_x0 - pfb_ox)];
 
@@ -353,6 +357,74 @@ static inline uint8_t extract_packed_alpha(const uint8_t *data, uint8_t box_w, i
         return data[local_y * box_w + local_x];
     default:
         return 0;
+    }
+}
+
+/**
+ * Batch extract 4 bilinear alpha samples from a single glyph's packed bitmap.
+ * One switch evaluation instead of 4, shared row-byte-offset computation.
+ * Requires (lx, ly) and (lx+1, ly+1) all within glyph bounds.
+ */
+static inline void batch_extract_glyph_alpha(const uint8_t *data, uint8_t box_w, int lx, int ly, uint8_t bpp, uint16_t *a00, uint16_t *a01, uint16_t *a10,
+                                             uint16_t *a11)
+{
+    switch (bpp)
+    {
+    case 4:
+    {
+        int rb = (box_w + 1) >> 1;
+        int base0 = ly * rb;
+        int base1 = base0 + rb;
+        int x0_idx = lx >> 1;
+        int x0_bit = (lx & 1) << 2;
+        int x1_idx = (lx + 1) >> 1;
+        int x1_bit = ((lx + 1) & 1) << 2;
+        *a00 = egui_alpha_change_table_4[(data[base0 + x0_idx] >> x0_bit) & 0x0F];
+        *a01 = egui_alpha_change_table_4[(data[base0 + x1_idx] >> x1_bit) & 0x0F];
+        *a10 = egui_alpha_change_table_4[(data[base1 + x0_idx] >> x0_bit) & 0x0F];
+        *a11 = egui_alpha_change_table_4[(data[base1 + x1_idx] >> x1_bit) & 0x0F];
+        break;
+    }
+    case 2:
+    {
+        int rb = (box_w + 3) >> 2;
+        int base0 = ly * rb;
+        int base1 = base0 + rb;
+        int x0_idx = lx >> 2;
+        int x0_bit = (lx & 3) << 1;
+        int x1_idx = (lx + 1) >> 2;
+        int x1_bit = ((lx + 1) & 3) << 1;
+        *a00 = egui_alpha_change_table_2[(data[base0 + x0_idx] >> x0_bit) & 0x03];
+        *a01 = egui_alpha_change_table_2[(data[base0 + x1_idx] >> x1_bit) & 0x03];
+        *a10 = egui_alpha_change_table_2[(data[base1 + x0_idx] >> x0_bit) & 0x03];
+        *a11 = egui_alpha_change_table_2[(data[base1 + x1_idx] >> x1_bit) & 0x03];
+        break;
+    }
+    case 1:
+    {
+        int rb = (box_w + 7) >> 3;
+        int base0 = ly * rb;
+        int base1 = base0 + rb;
+        int x0_idx = lx >> 3;
+        int x0_bit = lx & 7;
+        int x1_idx = (lx + 1) >> 3;
+        int x1_bit = (lx + 1) & 7;
+        *a00 = (data[base0 + x0_idx] >> x0_bit) & 1 ? 255 : 0;
+        *a01 = (data[base0 + x1_idx] >> x1_bit) & 1 ? 255 : 0;
+        *a10 = (data[base1 + x0_idx] >> x0_bit) & 1 ? 255 : 0;
+        *a11 = (data[base1 + x1_idx] >> x1_bit) & 1 ? 255 : 0;
+        break;
+    }
+    default: /* 8bpp */
+    {
+        int base0 = ly * box_w;
+        int base1 = base0 + box_w;
+        *a00 = data[base0 + lx];
+        *a01 = data[base0 + lx + 1];
+        *a10 = data[base1 + lx];
+        *a11 = data[base1 + lx + 1];
+        break;
+    }
     }
 }
 
@@ -866,10 +938,14 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
     int hint = -1;
 
+    /* Hoist loop-invariant row-start offset computed from draw_x0 */
+    int32_t row_start_offset_x = ctx.inv_m00 * ((int32_t)ctx.draw_x0 - x);
+    int32_t row_start_offset_y = ctx.inv_m10 * ((int32_t)ctx.draw_x0 - x);
+
     for (int32_t dy = ctx.draw_y0; dy < ctx.draw_y1; dy++)
     {
-        int32_t rotatedX = ctx.inv_m00 * ((int32_t)ctx.draw_x0 - x) + ctx.Cx_base;
-        int32_t rotatedY = ctx.inv_m10 * ((int32_t)ctx.draw_x0 - x) + ctx.Cy_base;
+        int32_t rotatedX = row_start_offset_x + ctx.Cx_base;
+        int32_t rotatedY = row_start_offset_y + ctx.Cy_base;
 
         egui_color_int_t *dst_row = &ctx.pfb[(dy - ctx.pfb_oy) * ctx.pfb_w + (ctx.draw_x0 - ctx.pfb_ox)];
 
@@ -893,10 +969,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                     int ly = sy - g->y;
                     if (lx >= 0 && lx + 1 < g->box_w && ly >= 0 && ly + 1 < g->box_h)
                     {
-                        a00 = extract_packed_alpha(g->data, g->box_w, lx, ly, bpp);
-                        a01 = extract_packed_alpha(g->data, g->box_w, lx + 1, ly, bpp);
-                        a10 = extract_packed_alpha(g->data, g->box_w, lx, ly + 1, bpp);
-                        a11 = extract_packed_alpha(g->data, g->box_w, lx + 1, ly + 1, bpp);
+                        batch_extract_glyph_alpha(g->data, g->box_w, lx, ly, bpp, &a00, &a01, &a10, &a11);
                         grouped = 1;
                     }
                 }
@@ -1308,10 +1381,14 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
     int16_t src_h = ctx.src_h;
     int packed_rb = packed_row_bytes(src_w, bpp);
 
+    /* Hoist loop-invariant row-start offset computed from draw_x0 */
+    int32_t row_start_offset_x = ctx.inv_m00 * ((int32_t)ctx.draw_x0 - x);
+    int32_t row_start_offset_y = ctx.inv_m10 * ((int32_t)ctx.draw_x0 - x);
+
     for (int32_t dy = ctx.draw_y0; dy < ctx.draw_y1; dy++)
     {
-        int32_t rotatedX = ctx.inv_m00 * ((int32_t)ctx.draw_x0 - x) + ctx.Cx_base;
-        int32_t rotatedY = ctx.inv_m10 * ((int32_t)ctx.draw_x0 - x) + ctx.Cy_base;
+        int32_t rotatedX = row_start_offset_x + ctx.Cx_base;
+        int32_t rotatedY = row_start_offset_y + ctx.Cy_base;
 
         egui_color_int_t *dst_row = &ctx.pfb[(dy - ctx.pfb_oy) * ctx.pfb_w + (ctx.draw_x0 - ctx.pfb_ox)];
 

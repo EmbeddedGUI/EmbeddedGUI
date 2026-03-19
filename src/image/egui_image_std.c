@@ -24,6 +24,9 @@ typedef void(egui_image_std_get_pixel)(egui_image_std_info_t *image, egui_dim_t 
 typedef void(egui_image_std_get_col_pixel_with_alpha)(const uint16_t *p_data, const uint8_t *p_alpha, egui_dim_t col_index, egui_color_t *color,
                                                       egui_alpha_t *alpha);
 
+typedef void(egui_image_std_blend_mapped_row_func)(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
+                                                   const egui_dim_t *src_x_map, egui_dim_t count, egui_alpha_t canvas_alpha);
+
 #define EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_SIZE  2048
 #define EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_SIZE 1024
 
@@ -2339,7 +2342,8 @@ EGUI_IMAGE_STD_SET_IMAGE_RESIZE_RGB565_PACKED_ALPHA_COMMON(egui_image_std_set_im
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 static void egui_image_std_draw_image_resize_external_alpha(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t x_total, egui_dim_t y_total,
                                                             egui_dim_t x_base, egui_dim_t y_base, egui_float_t width_radio, egui_float_t height_radio,
-                                                            uint32_t alpha_row_size, egui_image_std_get_col_pixel_with_alpha *get_col_pixel)
+                                                            uint32_t alpha_row_size, egui_image_std_get_col_pixel_with_alpha *get_col_pixel,
+                                                            egui_image_std_blend_mapped_row_func *blend_row_func)
 {
     egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
     egui_color_t color;
@@ -2394,12 +2398,8 @@ static void egui_image_std_draw_image_resize_external_alpha(const egui_image_t *
                 if (rr_res == EGUI_MASK_ROW_INSIDE)
                 {
                     egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x_start];
-                    for (egui_dim_t i = 0; i < count; i++)
-                    {
-                        get_col_pixel((const uint16_t *)data_buf, (const uint8_t *)alpha_buf, src_x_map[i], &color, &alpha);
-                        alpha = egui_color_alpha_mix(canvas_alpha, alpha);
-                        egui_image_std_blend_resize_pixel(&dst_row[i], color, alpha);
-                    }
+                    /* Use batch row blender: single call instead of per-pixel function pointer */
+                    blend_row_func(dst_row, (const uint16_t *)data_buf, (const uint8_t *)alpha_buf, src_x_map, count, canvas_alpha);
                 }
                 else
                 {
@@ -2424,13 +2424,10 @@ static void egui_image_std_draw_image_resize_external_alpha(const egui_image_t *
                     if (rr_img_xs < rr_img_xe)
                     {
                         egui_dim_t mid_offset = rr_img_xs - x;
+                        egui_dim_t mid_count = rr_img_xe - rr_img_xs;
                         egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + (x_base + rr_img_xs - canvas->pfb_location_in_base_view.x)];
-                        for (egui_dim_t i = mid_offset; i < (rr_img_xe - x); i++)
-                        {
-                            get_col_pixel((const uint16_t *)data_buf, (const uint8_t *)alpha_buf, src_x_map[i], &color, &alpha);
-                            alpha = egui_color_alpha_mix(canvas_alpha, alpha);
-                            egui_image_std_blend_resize_pixel(&dst_row[i - mid_offset], color, alpha);
-                        }
+                        /* Use batch row blender for the unmasked middle section */
+                        blend_row_func(dst_row, (const uint16_t *)data_buf, (const uint8_t *)alpha_buf, &src_x_map[mid_offset], mid_count, canvas_alpha);
                     }
 
                     for (egui_dim_t x_ = EGUI_MAX(rr_img_xe, vis_img_xs); x_ < vis_img_xe; x_++)
@@ -2481,12 +2478,8 @@ static void egui_image_std_draw_image_resize_external_alpha(const egui_image_t *
                 cached_src_y = src_y;
             }
 
-            for (egui_dim_t i = 0; i < count; i++)
-            {
-                get_col_pixel((const uint16_t *)data_buf, (const uint8_t *)alpha_buf, src_x_map[i], &color, &alpha);
-                alpha = egui_color_alpha_mix(canvas_alpha, alpha);
-                egui_image_std_blend_resize_pixel(&dst_row[i], color, alpha);
-            }
+            /* Use batch row blender: single call instead of per-pixel function pointer */
+            blend_row_func(dst_row, (const uint16_t *)data_buf, (const uint8_t *)alpha_buf, src_x_map, count, canvas_alpha);
         }
     }
 
@@ -2793,7 +2786,8 @@ void egui_image_std_set_image_resize_rgb565_4(const egui_image_t *self, egui_dim
     if (image_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
     {
         egui_image_std_draw_image_resize_external_alpha(self, x, y, x_total, y_total, x_base, y_base, width_radio, height_radio, (image_info->width + 1) >> 1,
-                                                        egui_image_std_get_col_pixel_rgb565_4);
+                                                        egui_image_std_get_col_pixel_rgb565_4,
+                                                        egui_image_std_blend_rgb565_alpha4_mapped_row);
         return;
     }
 #endif
@@ -2809,7 +2803,8 @@ void egui_image_std_set_image_resize_rgb565_2(const egui_image_t *self, egui_dim
     if (image_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
     {
         egui_image_std_draw_image_resize_external_alpha(self, x, y, x_total, y_total, x_base, y_base, width_radio, height_radio, (image_info->width + 3) >> 2,
-                                                        egui_image_std_get_col_pixel_rgb565_2);
+                                                        egui_image_std_get_col_pixel_rgb565_2,
+                                                        egui_image_std_blend_rgb565_alpha2_mapped_row);
         return;
     }
 #endif
@@ -2825,7 +2820,8 @@ void egui_image_std_set_image_resize_rgb565_1(const egui_image_t *self, egui_dim
     if (image_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
     {
         egui_image_std_draw_image_resize_external_alpha(self, x, y, x_total, y_total, x_base, y_base, width_radio, height_radio, (image_info->width + 7) >> 3,
-                                                        egui_image_std_get_col_pixel_rgb565_1);
+                                                        egui_image_std_get_col_pixel_rgb565_1,
+                                                        egui_image_std_blend_rgb565_alpha1_mapped_row);
         return;
     }
 #endif
