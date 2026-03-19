@@ -657,34 +657,23 @@ void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t x, egui_dim_t y, egui_d
 
 /* ========================== Circle Fill Gradient ========================== */
 
-/* 4x4 sub-pixel sampling alpha table (17 levels, matching circle_hq approach). */
-static const egui_alpha_t gradient_circle_alpha_16[] = {
-        0, 16, 32, 48, 64, 80, 96, 112, 128, 143, 159, 175, 191, 207, 223, 239, 255,
-};
-
-/* Get sub-pixel sampled edge alpha for a circle pixel at (dx, dy) from center.
- * r_scaled_sq = radius * radius * 16 (pre-scaled for 4x sub-pixel grid). */
-__EGUI_STATIC_INLINE__ egui_alpha_t gradient_circle_edge_alpha(int32_t dx, int32_t dy, int64_t r_scaled_sq)
+/* Reciprocal-based SDF edge alpha for a circle pixel.
+ * d_sq = dx*dx + dy*dy (distance squared from center).
+ * Linearly maps [r_outer_sq .. r_inner_sq] → [0 .. 255].
+ * inv_r = (255 << 8) / (r_outer_sq - r_inner_sq), pre-computed once per draw call.
+ * Matches SCGUI sc_arc.c reciprocal technique: 1 multiply + 1 shift per pixel. */
+__EGUI_STATIC_INLINE__ egui_alpha_t gradient_circle_edge_alpha_sdf(int32_t d_sq, int32_t r_inner_sq, int32_t r_outer_sq, uint32_t inv_r)
 {
-    int32_t dx4 = dx * 4;
-    int32_t dy4 = dy * 4;
-    uint8_t count = 0;
-
-    for (int sy = -3; sy <= 3; sy += 2)
+    if (d_sq >= r_outer_sq)
     {
-        int32_t py = dy4 + sy;
-        int64_t py_sq = (int64_t)py * py;
-        for (int sx = -3; sx <= 3; sx += 2)
-        {
-            int32_t px = dx4 + sx;
-            if ((int64_t)px * px + py_sq < r_scaled_sq)
-            {
-                count++;
-            }
-        }
+        return 0;
     }
-
-    return gradient_circle_alpha_16[count];
+    if (d_sq <= r_inner_sq)
+    {
+        return EGUI_ALPHA_100;
+    }
+    uint32_t cov = ((uint32_t)(r_outer_sq - d_sq) * inv_r) >> 8;
+    return (egui_alpha_t)(cov > 255 ? 255 : cov);
 }
 
 void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, const egui_gradient_t *gradient)
@@ -730,10 +719,10 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
         }
     }
 
-    /* Sub-pixel sampling boundaries matching circle_fill_hq approach */
-    int64_t r_scaled_sq = (int64_t)radius * radius * 16;
+    /* SDF edge alpha boundaries */
     int32_t r_inner_sq = (int32_t)(radius - 1) * (radius - 1);
     int32_t r_outer_sq = (int32_t)(radius + 1) * (radius + 1);
+    uint32_t inv_r = (r_outer_sq > r_inner_sq) ? ((255U << 8) / (uint32_t)(r_outer_sq - r_inner_sq)) : 0;
 
     /* Direct PFB write setup for no-mask fast path */
     int use_direct_pfb = (self->mask == NULL) ? 1 : 0;
@@ -775,7 +764,8 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
                     /* Left edge pixels */
                     for (egui_dim_t x = ol; x < il && x <= or_; x++)
                     {
-                        egui_alpha_t cov = gradient_circle_edge_alpha((int32_t)(x - center_x), dy, r_scaled_sq);
+                        int32_t edge_dx = (int32_t)(x - center_x);
+                        egui_alpha_t cov = gradient_circle_edge_alpha_sdf(edge_dx * edge_dx + dy_sq, r_inner_sq, r_outer_sq, inv_r);
                         if (cov > 0)
                         {
                             egui_alpha_t m = egui_color_alpha_mix(eff_alpha, cov);
@@ -821,7 +811,8 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
                     egui_dim_t rs = EGUI_MAX(ir + 1, x_start);
                     for (egui_dim_t x = rs; x <= or_; x++)
                     {
-                        egui_alpha_t cov = gradient_circle_edge_alpha((int32_t)(x - center_x), dy, r_scaled_sq);
+                        int32_t edge_dx = (int32_t)(x - center_x);
+                        egui_alpha_t cov = gradient_circle_edge_alpha_sdf(edge_dx * edge_dx + dy_sq, r_inner_sq, r_outer_sq, inv_r);
                         if (cov > 0)
                         {
                             egui_alpha_t m = egui_color_alpha_mix(eff_alpha, cov);
@@ -857,7 +848,7 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
                         }
                         else
                         {
-                            cov = gradient_circle_edge_alpha(dx, dy, r_scaled_sq);
+                            cov = gradient_circle_edge_alpha_sdf(d_sq, r_inner_sq, r_outer_sq, inv_r);
                         }
                         if (cov > 0)
                         {
@@ -889,7 +880,7 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
                         continue;
                     }
 
-                    egui_alpha_t cov = (d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha(dx, dy, r_scaled_sq);
+                    egui_alpha_t cov = (d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha_sdf(d_sq, r_inner_sq, r_outer_sq, inv_r);
                     if (cov > 0)
                     {
                         uint8_t t = gradient_linear_t(x - bbox_x, bbox_size);
@@ -926,7 +917,7 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
         int32_t _d_sq = (int32_t)(pdx) * (int32_t)(pdx) + dy_sq;                                                                                               \
         if (_d_sq <= r_outer_sq)                                                                                                                               \
         {                                                                                                                                                      \
-            egui_alpha_t _cov = (_d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha((int32_t)(pdx), dy, r_scaled_sq);                           \
+            egui_alpha_t _cov = (_d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha_sdf(_d_sq, r_inner_sq, r_outer_sq, inv_r);                   \
             if (_cov > 0)                                                                                                                                      \
             {                                                                                                                                                  \
                 egui_color_t _color;                                                                                                                           \
@@ -1019,7 +1010,8 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
 
                     for (egui_dim_t x = ol; x < il && x <= or_; x++)
                     {
-                        egui_alpha_t cov = gradient_circle_edge_alpha((int32_t)(x - center_x), dy, r_scaled_sq);
+                        int32_t edge_dx = (int32_t)(x - center_x);
+                        egui_alpha_t cov = gradient_circle_edge_alpha_sdf(edge_dx * edge_dx + dy_sq, r_inner_sq, r_outer_sq, inv_r);
                         if (cov > 0)
                         {
                             egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
@@ -1040,7 +1032,8 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
                     egui_dim_t rs = EGUI_MAX(ir + 1, x_start);
                     for (egui_dim_t x = rs; x <= or_; x++)
                     {
-                        egui_alpha_t cov = gradient_circle_edge_alpha((int32_t)(x - center_x), dy, r_scaled_sq);
+                        int32_t edge_dx = (int32_t)(x - center_x);
+                        egui_alpha_t cov = gradient_circle_edge_alpha_sdf(edge_dx * edge_dx + dy_sq, r_inner_sq, r_outer_sq, inv_r);
                         if (cov > 0)
                         {
                             egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
@@ -1066,7 +1059,7 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
                             egui_canvas_draw_point_limit(x, y, color, base_alpha);
                             continue;
                         }
-                        egui_alpha_t cov = gradient_circle_edge_alpha(dx, dy, r_scaled_sq);
+                        egui_alpha_t cov = gradient_circle_edge_alpha_sdf(d_sq, r_inner_sq, r_outer_sq, inv_r);
                         if (cov > 0)
                         {
                             egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
@@ -1089,7 +1082,7 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
                         continue;
                     }
 
-                    egui_alpha_t cov = (d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha(dx, dy, r_scaled_sq);
+                    egui_alpha_t cov = (d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha_sdf(d_sq, r_inner_sq, r_outer_sq, inv_r);
                     if (cov > 0)
                     {
                         uint8_t t = gradient_linear_t(x - bbox_x, bbox_size);
@@ -1118,7 +1111,7 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
         int32_t _d_sq = (int32_t)(pdx) * (int32_t)(pdx) + dy_sq;                                                                                               \
         if (_d_sq <= r_outer_sq)                                                                                                                               \
         {                                                                                                                                                      \
-            egui_alpha_t _cov = (_d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha((int32_t)(pdx), dy, r_scaled_sq);                           \
+            egui_alpha_t _cov = (_d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha_sdf(_d_sq, r_inner_sq, r_outer_sq, inv_r);                   \
             if (_cov > 0)                                                                                                                                      \
             {                                                                                                                                                  \
                 egui_color_t _color;                                                                                                                           \
@@ -2864,8 +2857,9 @@ egui_color_t egui_gradient_color_at_pos(const egui_gradient_t *gradient, egui_di
  * outer_cov: coverage inside outer circle (with AA).
  * inner_inv_cov: inverse coverage of inner circle (255 = fully outside inner, 0 = fully inside inner).
  * Returns combined ring alpha. */
-static egui_alpha_t gradient_ring_alpha(int32_t abs_dx, int32_t abs_dy, int32_t d_sq, int64_t outer_r_scaled_sq, int32_t outer_r_inner_sq,
-                                        int32_t outer_r_outer_sq, int64_t inner_r_scaled_sq, int32_t inner_r_inner_sq, int32_t inner_r_outer_sq)
+static egui_alpha_t gradient_ring_alpha(int32_t d_sq, int32_t outer_r_inner_sq, int32_t outer_r_outer_sq,
+                                        int32_t inner_r_inner_sq, int32_t inner_r_outer_sq,
+                                        uint32_t inv_outer_r, uint32_t inv_inner_r)
 {
     /* Outside outer circle */
     if (d_sq > outer_r_outer_sq)
@@ -2878,7 +2872,7 @@ static egui_alpha_t gradient_ring_alpha(int32_t abs_dx, int32_t abs_dy, int32_t 
         return 0;
     }
 
-    /* Compute outer coverage */
+    /* Compute outer coverage using SDF reciprocal */
     egui_alpha_t outer_cov;
     if (d_sq <= outer_r_inner_sq)
     {
@@ -2886,7 +2880,8 @@ static egui_alpha_t gradient_ring_alpha(int32_t abs_dx, int32_t abs_dy, int32_t 
     }
     else
     {
-        outer_cov = gradient_circle_edge_alpha(abs_dx, abs_dy, outer_r_scaled_sq);
+        uint32_t c = ((uint32_t)(outer_r_outer_sq - d_sq) * inv_outer_r) >> 8;
+        outer_cov = (egui_alpha_t)(c > 255 ? 255 : c);
     }
 
     if (outer_cov == 0)
@@ -2894,7 +2889,7 @@ static egui_alpha_t gradient_ring_alpha(int32_t abs_dx, int32_t abs_dy, int32_t 
         return 0;
     }
 
-    /* Compute inner coverage (fraction that IS inside inner circle) */
+    /* Compute inner coverage using SDF reciprocal */
     egui_alpha_t inner_cov;
     if (d_sq >= inner_r_outer_sq)
     {
@@ -2906,7 +2901,8 @@ static egui_alpha_t gradient_ring_alpha(int32_t abs_dx, int32_t abs_dy, int32_t 
     }
     else
     {
-        inner_cov = gradient_circle_edge_alpha(abs_dx, abs_dy, inner_r_scaled_sq);
+        uint32_t c = ((uint32_t)(d_sq - inner_r_inner_sq) * inv_inner_r) >> 8;
+        inner_cov = (egui_alpha_t)(c > 255 ? 255 : c);
     }
 
     /* Ring coverage = outside inner AND inside outer */
@@ -2946,13 +2942,14 @@ void egui_canvas_draw_circle_ring_fill_gradient(egui_dim_t center_x, egui_dim_t 
         return;
     }
 
-    int64_t outer_r_scaled_sq = (int64_t)outer_r * outer_r * 16;
     int32_t outer_r_inner_sq = (int32_t)(outer_r - 1) * (outer_r - 1);
     int32_t outer_r_outer_sq = (int32_t)(outer_r + 1) * (outer_r + 1);
 
-    int64_t inner_r_scaled_sq = (inner_r > 0) ? (int64_t)inner_r * inner_r * 16 : 0;
     int32_t inner_r_inner_sq = (inner_r > 1) ? (int32_t)(inner_r - 1) * (inner_r - 1) : 0;
     int32_t inner_r_outer_sq = (int32_t)(inner_r + 1) * (inner_r + 1);
+
+    uint32_t inv_outer_r = (outer_r_outer_sq > outer_r_inner_sq) ? ((255U << 8) / (uint32_t)(outer_r_outer_sq - outer_r_inner_sq)) : 0;
+    uint32_t inv_inner_r = (inner_r_outer_sq > inner_r_inner_sq) ? ((255U << 8) / (uint32_t)(inner_r_outer_sq - inner_r_inner_sq)) : 0;
 
     egui_dim_t y_start = ri.location.y;
     egui_dim_t y_end = ri.location.y + ri.size.height;
@@ -3026,8 +3023,8 @@ void egui_canvas_draw_circle_ring_fill_gradient(egui_dim_t center_x, egui_dim_t 
 
             int32_t abs_dx = (dx < 0) ? -dx : dx;
 
-            egui_alpha_t ring_cov = gradient_ring_alpha(abs_dx, abs_dy, d_sq, outer_r_scaled_sq, outer_r_inner_sq, outer_r_outer_sq, inner_r_scaled_sq,
-                                                        inner_r_inner_sq, inner_r_outer_sq);
+            egui_alpha_t ring_cov = gradient_ring_alpha(d_sq, outer_r_inner_sq, outer_r_outer_sq,
+                                                        inner_r_inner_sq, inner_r_outer_sq, inv_outer_r, inv_inner_r);
             if (ring_cov == 0)
             {
                 continue;
@@ -3209,13 +3206,14 @@ void egui_canvas_draw_round_rectangle_ring_fill_gradient(egui_dim_t x, egui_dim_
     egui_dim_t inner_radius = (stroke_w <= radius) ? (radius - stroke_w) : 0;
 
     /* Outer and inner circle AA parameters */
-    int64_t outer_r_scaled_sq = (radius > 0) ? ((int64_t)radius * radius * 16) : 0;
     int32_t outer_r_inner_sq = (radius > 1) ? (int32_t)(radius - 1) * (radius - 1) : 0;
     int32_t outer_r_outer_sq = (int32_t)(radius + 1) * (radius + 1);
 
-    int64_t inner_r_scaled_sq = (inner_radius > 0) ? ((int64_t)inner_radius * inner_radius * 16) : 0;
     int32_t inner_r_inner_sq = (inner_radius > 1) ? (int32_t)(inner_radius - 1) * (inner_radius - 1) : 0;
     int32_t inner_r_outer_sq = (int32_t)(inner_radius + 1) * (inner_radius + 1);
+
+    uint32_t inv_outer_r = (outer_r_outer_sq > outer_r_inner_sq) ? ((255U << 8) / (uint32_t)(outer_r_outer_sq - outer_r_inner_sq)) : 0;
+    uint32_t inv_inner_r = (inner_r_outer_sq > inner_r_inner_sq) ? ((255U << 8) / (uint32_t)(inner_r_outer_sq - inner_r_inner_sq)) : 0;
 
     /* Clip to PFB work region */
     egui_dim_t rr_vis_y_start = EGUI_MAX(0, (egui_dim_t)(self->base_view_work_region.location.y - y));
@@ -3414,8 +3412,8 @@ void egui_canvas_draw_round_rectangle_ring_fill_gradient(egui_dim_t x, egui_dim_
                     int32_t abs_dy = (dy_c < 0) ? -dy_c : dy_c;
                     int32_t d_sq = dx * dx + dy_c * dy_c;
 
-                    ring_cov = gradient_ring_alpha(abs_dx, abs_dy, d_sq, outer_r_scaled_sq, outer_r_inner_sq, outer_r_outer_sq, inner_r_scaled_sq,
-                                                   inner_r_inner_sq, inner_r_outer_sq);
+                    ring_cov = gradient_ring_alpha(d_sq, outer_r_inner_sq, outer_r_outer_sq,
+                                                   inner_r_inner_sq, inner_r_outer_sq, inv_outer_r, inv_inner_r);
                 }
                 else
                 {
@@ -3767,13 +3765,14 @@ void egui_canvas_draw_arc_ring_fill_gradient(egui_dim_t center_x, egui_dim_t cen
         return;
     }
 
-    int64_t outer_r_scaled_sq = (int64_t)outer_r * outer_r * 16;
     int32_t outer_r_inner_sq = (int32_t)(outer_r - 1) * (outer_r - 1);
     int32_t outer_r_outer_sq = (int32_t)(outer_r + 1) * (outer_r + 1);
 
-    int64_t inner_r_scaled_sq = (inner_r > 0) ? (int64_t)inner_r * inner_r * 16 : 0;
     int32_t inner_r_inner_sq = (inner_r > 1) ? (int32_t)(inner_r - 1) * (inner_r - 1) : 0;
     int32_t inner_r_outer_sq = (int32_t)(inner_r + 1) * (inner_r + 1);
+
+    uint32_t inv_outer_r = (outer_r_outer_sq > outer_r_inner_sq) ? ((255U << 8) / (uint32_t)(outer_r_outer_sq - outer_r_inner_sq)) : 0;
+    uint32_t inv_inner_r = (inner_r_outer_sq > inner_r_inner_sq) ? ((255U << 8) / (uint32_t)(inner_r_outer_sq - inner_r_inner_sq)) : 0;
 
     int full_circle = (span == 360);
 
@@ -3850,8 +3849,8 @@ void egui_canvas_draw_arc_ring_fill_gradient(egui_dim_t center_x, egui_dim_t cen
             int32_t abs_dx = (dx < 0) ? -dx : dx;
 
             /* Ring radial coverage */
-            egui_alpha_t ring_cov = gradient_ring_alpha(abs_dx, abs_dy, d_sq, outer_r_scaled_sq, outer_r_inner_sq, outer_r_outer_sq, inner_r_scaled_sq,
-                                                        inner_r_inner_sq, inner_r_outer_sq);
+            egui_alpha_t ring_cov = gradient_ring_alpha(d_sq, outer_r_inner_sq, outer_r_outer_sq,
+                                                        inner_r_inner_sq, inner_r_outer_sq, inv_outer_r, inv_inner_r);
             if (ring_cov == 0)
             {
                 continue;
