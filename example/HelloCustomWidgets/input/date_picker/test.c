@@ -422,7 +422,8 @@ void test_init_ui(void)
     egui_view_linearlayout_set_orientation(EGUI_VIEW_OF(&root_layout), 0);
     egui_view_linearlayout_set_align_type(EGUI_VIEW_OF(&root_layout), EGUI_ALIGN_HCENTER);
     egui_view_set_background(EGUI_VIEW_OF(&root_layout), EGUI_BG_OF(&bg_page_panel));
-    egui_view_set_on_touch_listener(EGUI_VIEW_OF(&root_layout), dismiss_primary_focus_on_down);
+    static egui_view_api_t root_layout_touch_api;
+    egui_view_override_api_on_touch(EGUI_VIEW_OF(&root_layout), &root_layout_touch_api, dismiss_primary_focus_on_down);
 
     egui_view_label_init(EGUI_VIEW_OF(&title_label));
     egui_view_set_size(EGUI_VIEW_OF(&title_label), DATE_PICKER_ROOT_W, 18);
@@ -516,7 +517,8 @@ void test_init_ui(void)
     egui_view_date_picker_set_first_day_of_week(EGUI_VIEW_OF(&picker_compact), 1);
     egui_view_date_picker_set_palette(EGUI_VIEW_OF(&picker_compact), EGUI_COLOR_HEX(0xFFFFFF), EGUI_COLOR_HEX(0xD2DDDA), EGUI_COLOR_HEX(0x17302A),
                                       EGUI_COLOR_HEX(0x57756C), EGUI_COLOR_HEX(0x0C8178), EGUI_COLOR_HEX(0x139A8F));
-    egui_view_set_on_touch_listener(EGUI_VIEW_OF(&picker_compact), consume_preview_touch);
+    static egui_view_api_t picker_compact_touch_api;
+    egui_view_override_api_on_touch(EGUI_VIEW_OF(&picker_compact), &picker_compact_touch_api, consume_preview_touch);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     egui_view_set_focusable(EGUI_VIEW_OF(&picker_compact), false);
 #endif
@@ -548,7 +550,8 @@ void test_init_ui(void)
     egui_view_date_picker_set_read_only_mode(EGUI_VIEW_OF(&picker_read_only), 1);
     egui_view_date_picker_set_palette(EGUI_VIEW_OF(&picker_read_only), EGUI_COLOR_HEX(0xFBFCFD), EGUI_COLOR_HEX(0xDBE2E8), EGUI_COLOR_HEX(0x536474),
                                       EGUI_COLOR_HEX(0x8896A4), EGUI_COLOR_HEX(0x9AA7B5), EGUI_COLOR_HEX(0x9AA7B5));
-    egui_view_set_on_touch_listener(EGUI_VIEW_OF(&picker_read_only), consume_preview_touch);
+    static egui_view_api_t picker_read_only_touch_api;
+    egui_view_override_api_on_touch(EGUI_VIEW_OF(&picker_read_only), &picker_read_only_touch_api, consume_preview_touch);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     egui_view_set_focusable(EGUI_VIEW_OF(&picker_read_only), false);
 #endif

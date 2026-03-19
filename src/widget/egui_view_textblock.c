@@ -1124,6 +1124,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_textblock_t) = {
         .on_key_event = egui_view_on_key_event,
 #endif
 #endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        .on_focus_changed = egui_view_textblock_on_focus_change,
+#endif
 };
 
 // ========================= Init =========================
@@ -1185,7 +1188,6 @@ void egui_view_textblock_init(egui_view_t *self)
     local->cursor_color = EGUI_THEME_PRIMARY;
 
     egui_timer_init_timer(&local->cursor_timer, (void *)local, egui_view_textblock_cursor_timer_callback);
-    egui_view_set_on_focus_change_listener(self, egui_view_textblock_on_focus_change);
 #endif
 
     // Make clickable so touch events work for scroll dragging

@@ -1018,6 +1018,9 @@ void egui_view_password_box_init(egui_view_t *self)
             .dispatch_key_event = egui_view_dispatch_key_event,
             .on_key_event = egui_view_password_box_on_key_event,
 #endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+            .on_focus_changed = password_box_on_focus_change,
+#endif
     };
 
     egui_view_init(self);
@@ -1026,7 +1029,6 @@ void egui_view_password_box_init(egui_view_t *self)
     self->is_clickable = 1;
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     self->is_focusable = 1;
-    self->on_focus_change_listener = password_box_on_focus_change;
 #endif
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
     local->meta_font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;

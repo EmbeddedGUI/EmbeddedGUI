@@ -17,9 +17,9 @@ void egui_focus_manager_init(void)
 static void egui_focus_set_view_focused(egui_view_t *view, int is_focused)
 {
     view->is_focused = is_focused;
-    if (view->on_focus_change_listener != NULL)
+    if (view->api->on_focus_changed != NULL)
     {
-        view->on_focus_change_listener(view, is_focused);
+        view->api->on_focus_changed(view, is_focused);
     }
     egui_view_invalidate(view);
 }

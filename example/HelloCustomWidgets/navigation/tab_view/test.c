@@ -263,7 +263,8 @@ void test_init_ui(void)
     egui_view_tab_view_set_palette(EGUI_VIEW_OF(&tab_view_compact), EGUI_COLOR_HEX(0xFEFFFF), EGUI_COLOR_HEX(0xC9D9D4), EGUI_COLOR_HEX(0xF1F8F6),
                                    EGUI_COLOR_HEX(0x17312A), EGUI_COLOR_HEX(0x4E6E65), EGUI_COLOR_HEX(0x0E7C70), EGUI_COLOR_HEX(0x178454),
                                    EGUI_COLOR_HEX(0xB87A16), EGUI_COLOR_HEX(0x657A88));
-    egui_view_set_on_touch_listener(EGUI_VIEW_OF(&tab_view_compact), consume_preview_touch);
+    static egui_view_api_t tab_view_compact_touch_api;
+    egui_view_override_api_on_touch(EGUI_VIEW_OF(&tab_view_compact), &tab_view_compact_touch_api, consume_preview_touch);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     egui_view_set_focusable(EGUI_VIEW_OF(&tab_view_compact), false);
 #endif
@@ -295,7 +296,8 @@ void test_init_ui(void)
     egui_view_tab_view_set_palette(EGUI_VIEW_OF(&tab_view_locked), EGUI_COLOR_HEX(0xFBFCFD), EGUI_COLOR_HEX(0xD8E0E7), EGUI_COLOR_HEX(0xF5F7F9),
                                    EGUI_COLOR_HEX(0x4F6372), EGUI_COLOR_HEX(0x8392A0), EGUI_COLOR_HEX(0x8EA0B5), EGUI_COLOR_HEX(0x9CA3AF),
                                    EGUI_COLOR_HEX(0x9CA3AF), EGUI_COLOR_HEX(0x9AA5B3));
-    egui_view_set_on_touch_listener(EGUI_VIEW_OF(&tab_view_locked), consume_preview_touch);
+    static egui_view_api_t tab_view_locked_touch_api;
+    egui_view_override_api_on_touch(EGUI_VIEW_OF(&tab_view_locked), &tab_view_locked_touch_api, consume_preview_touch);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     egui_view_set_focusable(EGUI_VIEW_OF(&tab_view_locked), false);
 #endif

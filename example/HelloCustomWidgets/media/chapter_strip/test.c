@@ -346,7 +346,8 @@ void test_init_ui(void)
     egui_view_chapter_strip_set_palette(EGUI_VIEW_OF(&chapter_strip_compact), EGUI_COLOR_HEX(0xF6FCFA), EGUI_COLOR_HEX(0xD5E3DF), EGUI_COLOR_HEX(0x17302A),
                                         EGUI_COLOR_HEX(0x57756C), EGUI_COLOR_HEX(0x8FB9B1));
     egui_view_set_margin(EGUI_VIEW_OF(&chapter_strip_compact), 0, 1, 0, 1);
-    egui_view_set_on_touch_listener(EGUI_VIEW_OF(&chapter_strip_compact), consume_preview_touch);
+    static egui_view_api_t chapter_strip_compact_touch_api;
+    egui_view_override_api_on_touch(EGUI_VIEW_OF(&chapter_strip_compact), &chapter_strip_compact_touch_api, consume_preview_touch);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     egui_view_set_focusable(EGUI_VIEW_OF(&chapter_strip_compact), false);
 #endif
@@ -379,7 +380,8 @@ void test_init_ui(void)
     egui_view_chapter_strip_set_palette(EGUI_VIEW_OF(&chapter_strip_locked), EGUI_COLOR_HEX(0xF9FBFC), EGUI_COLOR_HEX(0xDDE4EA), EGUI_COLOR_HEX(0x536474),
                                         EGUI_COLOR_HEX(0x8896A4), EGUI_COLOR_HEX(0xB3BFCA));
     egui_view_set_margin(EGUI_VIEW_OF(&chapter_strip_locked), 0, 1, 0, 1);
-    egui_view_set_on_touch_listener(EGUI_VIEW_OF(&chapter_strip_locked), consume_preview_touch);
+    static egui_view_api_t chapter_strip_locked_touch_api;
+    egui_view_override_api_on_touch(EGUI_VIEW_OF(&chapter_strip_locked), &chapter_strip_locked_touch_api, consume_preview_touch);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     egui_view_set_focusable(EGUI_VIEW_OF(&chapter_strip_locked), false);
 #endif

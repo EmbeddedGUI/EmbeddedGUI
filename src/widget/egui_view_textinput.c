@@ -593,6 +593,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_textinput_t) = {
         .dispatch_key_event = egui_view_dispatch_key_event,
         .on_key_event = egui_view_textinput_on_key_event,
 #endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        .on_focus_changed = egui_view_textinput_on_focus_change,
+#endif
 };
 
 void egui_view_textinput_init(egui_view_t *self)
@@ -634,7 +637,6 @@ void egui_view_textinput_init(egui_view_t *self)
     self->is_clickable = true;
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     self->is_focusable = true;
-    egui_view_set_on_focus_change_listener(self, egui_view_textinput_on_focus_change);
 #endif
 
     egui_view_set_view_name(self, "egui_view_textinput");

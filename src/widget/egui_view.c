@@ -139,22 +139,37 @@ void egui_view_get_work_region(egui_view_t *self, egui_region_t *region)
     region->size.height = self->region.size.height - (self->padding.top + self->padding.bottom);
 }
 
+void egui_view_copy_api(egui_view_t *self, egui_view_api_t *api)
+{
+    *api = *self->api;
+    self->api = api;
+}
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+void egui_view_override_api_on_touch(egui_view_t *self, egui_view_api_t *api, egui_view_on_touch_listener_t listener)
+{
+    egui_view_copy_api(self, api);
+    api->on_touch = listener;
+}
+#endif
+
 void egui_view_set_on_click_listener(egui_view_t *self, egui_view_on_click_listener_t listener)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     self->on_click_listener = listener;
-
     self->is_clickable = true;
-
     egui_view_invalidate(self);
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 }
 
-void egui_view_set_on_touch_listener(egui_view_t *self, egui_view_on_touch_listener_t listener)
+egui_view_on_click_listener_t egui_view_get_on_click_listener(egui_view_t *self)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-    self->on_touch_listener = listener;
-#endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    return self->on_click_listener;
+#else
+    EGUI_UNUSED(self);
+    return NULL;
+#endif
 }
 
 void egui_view_set_enable(egui_view_t *self, int is_enable)
@@ -311,7 +326,7 @@ int egui_view_dispatch_touch_event(egui_view_t *self, egui_motion_event_t *event
 {
     // EGUI_LOG_DBG("egui_view_dispatch_touch_event id: 0x%x, %s\n", self->id, egui_motion_event_string(event->type));
 
-    if (self->is_enable && self->on_touch_listener != NULL && self->on_touch_listener(self, event))
+    if (self->is_enable && self->api->on_touch != NULL && self->api->on_touch(self, event))
     {
         return 1;
     }
@@ -321,14 +336,21 @@ int egui_view_dispatch_touch_event(egui_view_t *self, egui_motion_event_t *event
 
 int egui_view_perform_click(egui_view_t *self)
 {
-    if (self->on_click_listener != NULL)
-    {
-        self->on_click_listener(self);
+    int is_handled = 0;
+    egui_view_on_click_listener_t listener = self->on_click_listener;
 
-        return 1;
+    if (self->api->perform_click != NULL)
+    {
+        is_handled = self->api->perform_click(self);
     }
 
-    return 0;
+    if (listener != NULL)
+    {
+        listener(self);
+        is_handled = 1;
+    }
+
+    return is_handled;
 }
 
 int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
@@ -545,12 +567,18 @@ void egui_view_calculate_layout(egui_view_t *self)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 int egui_view_dispatch_key_event(egui_view_t *self, egui_key_event_t *event)
 {
-    if (self->is_enable && self->on_key_listener != NULL && self->on_key_listener(self, event))
+    if (self->is_enable && self->api->on_key != NULL && self->api->on_key(self, event))
     {
         return 1;
     }
 
     return self->api->on_key_event(self, event);
+}
+
+void egui_view_override_api_on_key(egui_view_t *self, egui_view_api_t *api, egui_view_on_key_listener_t listener)
+{
+    egui_view_copy_api(self, api);
+    api->on_key = listener;
 }
 
 int egui_view_on_key_event(egui_view_t *self, egui_key_event_t *event)
@@ -579,16 +607,18 @@ int egui_view_on_key_event(egui_view_t *self, egui_key_event_t *event)
     return 0;
 }
 
-void egui_view_set_on_key_listener(egui_view_t *self, egui_view_on_key_listener_t listener)
-{
-    self->on_key_listener = listener;
-}
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 void egui_view_set_focusable(egui_view_t *self, int is_focusable)
 {
     self->is_focusable = is_focusable;
+}
+
+void egui_view_override_api_on_focus_changed(egui_view_t *self, egui_view_api_t *api, egui_view_on_focus_change_listener_t listener)
+{
+    egui_view_copy_api(self, api);
+    api->on_focus_changed = listener;
 }
 
 int egui_view_get_focusable(egui_view_t *self)
@@ -610,11 +640,6 @@ void egui_view_clear_focus(egui_view_t *self)
     {
         egui_focus_manager_clear_focus();
     }
-}
-
-void egui_view_set_on_focus_change_listener(egui_view_t *self, egui_view_on_focus_change_listener_t listener)
-{
-    self->on_focus_change_listener = listener;
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 
@@ -653,9 +678,17 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_t) = {
         .on_attach_to_window = egui_view_on_attach_to_window,
         .on_draw = egui_view_on_draw,
         .on_detach_from_window = egui_view_on_detach_from_window,
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+        .on_touch = NULL,
+        .perform_click = NULL,
+#endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+        .on_key = NULL,
         .dispatch_key_event = egui_view_dispatch_key_event,
         .on_key_event = egui_view_on_key_event,
+#endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        .on_focus_changed = NULL,
 #endif
 };
 
@@ -695,19 +728,13 @@ void egui_view_init(egui_view_t *self)
     self->shadow = NULL;
 #endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-    self->on_touch_listener = NULL;
     self->on_click_listener = NULL;
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-
-#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
-    self->on_key_listener = NULL;
-#endif // EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     self->is_focusable = false;
     self->is_focused = false;
     self->is_no_focus_clear = 0;
-    self->on_focus_change_listener = NULL;
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER

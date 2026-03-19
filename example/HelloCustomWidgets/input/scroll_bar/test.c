@@ -256,7 +256,8 @@ void test_init_ui(void)
     egui_view_scroll_bar_set_compact_mode(EGUI_VIEW_OF(&scroll_bar_compact), 1);
     egui_view_scroll_bar_set_palette(EGUI_VIEW_OF(&scroll_bar_compact), EGUI_COLOR_HEX(0xFFFFFF), EGUI_COLOR_HEX(0xD2DDDA), EGUI_COLOR_HEX(0x17302A),
                                      EGUI_COLOR_HEX(0x57756C), EGUI_COLOR_HEX(SCROLL_BAR_COMPACT_ACCENT), EGUI_COLOR_HEX(0x3BC7B3));
-    egui_view_set_on_touch_listener(EGUI_VIEW_OF(&scroll_bar_compact), consume_preview_touch);
+    static egui_view_api_t scroll_bar_compact_touch_api;
+    egui_view_override_api_on_touch(EGUI_VIEW_OF(&scroll_bar_compact), &scroll_bar_compact_touch_api, consume_preview_touch);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     egui_view_set_focusable(EGUI_VIEW_OF(&scroll_bar_compact), false);
 #endif
@@ -286,7 +287,8 @@ void test_init_ui(void)
     egui_view_scroll_bar_set_read_only_mode(EGUI_VIEW_OF(&scroll_bar_locked), 1);
     egui_view_scroll_bar_set_palette(EGUI_VIEW_OF(&scroll_bar_locked), EGUI_COLOR_HEX(0xFBFCFD), EGUI_COLOR_HEX(0xDBE2E8), EGUI_COLOR_HEX(0x536474),
                                      EGUI_COLOR_HEX(0x8896A4), EGUI_COLOR_HEX(SCROLL_BAR_LOCKED_ACCENT), EGUI_COLOR_HEX(0xA7B6C4));
-    egui_view_set_on_touch_listener(EGUI_VIEW_OF(&scroll_bar_locked), consume_preview_touch);
+    static egui_view_api_t scroll_bar_locked_touch_api;
+    egui_view_override_api_on_touch(EGUI_VIEW_OF(&scroll_bar_locked), &scroll_bar_locked_touch_api, consume_preview_touch);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     egui_view_set_focusable(EGUI_VIEW_OF(&scroll_bar_locked), false);
 #endif

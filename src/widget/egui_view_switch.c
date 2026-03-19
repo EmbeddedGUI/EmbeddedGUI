@@ -74,11 +74,12 @@ void egui_view_switch_set_icon_font(egui_view_t *self, const egui_font_t *font)
     egui_view_invalidate(self);
 }
 
-static void egui_view_switch_on_click(egui_view_t *self)
+static int egui_view_switch_perform_click(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_switch_t);
 
     egui_view_switch_set_checked(self, !local->is_checked);
+    return 1;
 }
 
 void egui_view_switch_on_draw(egui_view_t *self)
@@ -217,6 +218,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_switch_t) = {
         .on_attach_to_window = egui_view_on_attach_to_window,
         .on_draw = egui_view_switch_on_draw, // changed
         .on_detach_from_window = egui_view_on_detach_from_window,
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+        .perform_click = egui_view_switch_perform_click,
+#endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_dispatch_key_event,
         .on_key_event = egui_view_on_key_event,
@@ -241,7 +245,7 @@ void egui_view_switch_init(egui_view_t *self)
     local->icon_off = NULL;
     local->icon_font = NULL;
     local->alpha = EGUI_ALPHA_100;
-    egui_view_set_on_click_listener(self, egui_view_switch_on_click);
+    self->is_clickable = true;
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
     /* No default shadow - let theme control shadows */

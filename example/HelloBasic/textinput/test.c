@@ -173,7 +173,8 @@ void test_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&keyboard));
 
     // Override textinput focus listener to handle keyboard show/hide
-    egui_view_set_on_focus_change_listener(EGUI_VIEW_OF(&textinput_1), textinput_focus_changed);
+    static egui_view_api_t textinput_focus_api;
+    egui_view_override_api_on_focus_changed(EGUI_VIEW_OF(&textinput_1), &textinput_focus_api, textinput_focus_changed);
 
     // Layout root children
     egui_core_layout_childs_user_root_view(EGUI_LAYOUT_VERTICAL, EGUI_ALIGN_CENTER);

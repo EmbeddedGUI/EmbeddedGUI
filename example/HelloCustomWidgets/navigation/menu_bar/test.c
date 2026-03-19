@@ -375,7 +375,8 @@ void test_init_ui(void)
                                    EGUI_COLOR_HEX(0xB13A32), EGUI_COLOR_HEX(0xCED6DF));
     egui_view_set_margin(EGUI_VIEW_OF(&menu_bar_primary), 0, 0, 0, 3);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
-    egui_view_set_on_key_listener(EGUI_VIEW_OF(&menu_bar_primary), on_primary_key);
+    static egui_view_api_t menu_bar_primary_key_api;
+    egui_view_override_api_on_key(EGUI_VIEW_OF(&menu_bar_primary), &menu_bar_primary_key_api, on_primary_key);
 #endif
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&menu_bar_primary));
 
@@ -429,7 +430,8 @@ void test_init_ui(void)
                                    EGUI_COLOR_HEX(0x708090), EGUI_COLOR_HEX(0x2E63DA), EGUI_COLOR_HEX(0x178454), EGUI_COLOR_HEX(0xB77719),
                                    EGUI_COLOR_HEX(0xB13A32), EGUI_COLOR_HEX(0xD0D8E0));
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
-    egui_view_set_on_key_listener(EGUI_VIEW_OF(&menu_bar_compact), on_compact_key);
+    static egui_view_api_t menu_bar_compact_key_api;
+    egui_view_override_api_on_key(EGUI_VIEW_OF(&menu_bar_compact), &menu_bar_compact_key_api, on_compact_key);
 #endif
     egui_view_group_add_child(EGUI_VIEW_OF(&compact_column), EGUI_VIEW_OF(&menu_bar_compact));
 

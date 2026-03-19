@@ -31,7 +31,8 @@ static void setup_button(uint8_t is_toggled)
     egui_view_set_focusable(EGUI_VIEW_OF(&test_button), 1);
 #endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
-    egui_view_set_on_key_listener(EGUI_VIEW_OF(&test_button), hcw_toggle_button_on_key_event);
+    static egui_view_api_t test_button_key_api;
+    egui_view_override_api_on_key(EGUI_VIEW_OF(&test_button), &test_button_key_api, hcw_toggle_button_on_key_event);
 #endif
     egui_view_toggle_button_set_toggled(EGUI_VIEW_OF(&test_button), is_toggled);
     toggled_count = 0;

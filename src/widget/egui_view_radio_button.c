@@ -165,7 +165,7 @@ void egui_view_radio_button_set_checked(egui_view_t *self, uint8_t is_checked)
     egui_view_invalidate(self);
 }
 
-static void egui_view_radio_button_on_click(egui_view_t *self)
+static int egui_view_radio_button_perform_click(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
 
@@ -174,6 +174,7 @@ static void egui_view_radio_button_on_click(egui_view_t *self)
     {
         egui_view_radio_button_set_checked(self, 1);
     }
+    return 1;
 }
 
 void egui_view_radio_button_on_draw(egui_view_t *self)
@@ -275,6 +276,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_radio_button_t) = {
         .on_attach_to_window = egui_view_on_attach_to_window,
         .on_draw = egui_view_radio_button_on_draw,
         .on_detach_from_window = egui_view_on_detach_from_window,
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+        .perform_click = egui_view_radio_button_perform_click,
+#endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_dispatch_key_event,
         .on_key_event = egui_view_on_key_event,
@@ -303,8 +307,7 @@ void egui_view_radio_button_init(egui_view_t *self)
     local->mark_style = EGUI_VIEW_RADIO_BUTTON_MARK_STYLE_DOT;
     local->mark_icon = EGUI_ICON_MS_DONE;
     local->icon_font = NULL;
-
-    egui_view_set_on_click_listener(self, egui_view_radio_button_on_click);
+    self->is_clickable = true;
 
     egui_view_set_view_name(self, "egui_view_radio_button");
 }

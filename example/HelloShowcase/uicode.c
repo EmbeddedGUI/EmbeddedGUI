@@ -1446,7 +1446,8 @@ static void uicode_init_ui(void)
     egui_core_add_user_root_view(EGUI_VIEW_OF(&wg_keyboard));
 
     // Register focus listener on textinput to show/hide keyboard
-    egui_view_set_on_focus_change_listener(EGUI_VIEW_OF(&wg_textinput), on_textinput_focus_changed);
+    static egui_view_api_t wg_textinput_focus_api;
+    egui_view_override_api_on_focus_changed(EGUI_VIEW_OF(&wg_textinput), &wg_textinput_focus_api, on_textinput_focus_changed);
 
     // Default theme setup
     is_dark_theme = 1;

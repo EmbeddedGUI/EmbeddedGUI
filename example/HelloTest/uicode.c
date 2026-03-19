@@ -365,7 +365,8 @@ void uicode_init_ui(void)
     // test_view
     egui_view_test_init(EGUI_VIEW_OF(&test_view));
     egui_view_group_apply_params(EGUI_VIEW_OF(&test_view), &test_view_params);
-    egui_view_set_on_touch_listener(EGUI_VIEW_OF(&test_view), test_on_touch_event_cb);
+    static egui_view_api_t test_view_touch_api;
+    egui_view_override_api_on_touch(EGUI_VIEW_OF(&test_view), &test_view_touch_api, test_on_touch_event_cb);
 
     // test_view_group_1
     egui_view_group_init_with_params(EGUI_VIEW_OF(&test_view_group_1), &test_view_group_1_params);

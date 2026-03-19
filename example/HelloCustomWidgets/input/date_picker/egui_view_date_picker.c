@@ -1383,6 +1383,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_date_picker_t) = {
         .dispatch_key_event = egui_view_dispatch_key_event,
         .on_key_event = egui_view_date_picker_on_key_event,
 #endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        .on_focus_changed = egui_view_date_picker_on_focus_change,
+#endif
 };
 
 void egui_view_date_picker_init(egui_view_t *self)
@@ -1394,7 +1397,6 @@ void egui_view_date_picker_init(egui_view_t *self)
     egui_view_set_padding_all(self, 2);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     egui_view_set_focusable(self, true);
-    egui_view_set_on_focus_change_listener(self, egui_view_date_picker_on_focus_change);
 #endif
 
     local->on_date_changed = NULL;

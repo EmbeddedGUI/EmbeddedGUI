@@ -223,7 +223,8 @@ void test_init_ui(void)
     egui_view_toggle_split_button_set_meta_font(EGUI_VIEW_OF(&button_compact), (const egui_font_t *)&egui_res_font_montserrat_8_4);
     egui_view_toggle_split_button_set_snapshots(EGUI_VIEW_OF(&button_compact), compact_snapshots, 2);
     egui_view_toggle_split_button_set_compact_mode(EGUI_VIEW_OF(&button_compact), 1);
-    egui_view_set_on_touch_listener(EGUI_VIEW_OF(&button_compact), consume_preview_touch);
+    static egui_view_api_t button_compact_touch_api;
+    egui_view_override_api_on_touch(EGUI_VIEW_OF(&button_compact), &button_compact_touch_api, consume_preview_touch);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     egui_view_set_focusable(EGUI_VIEW_OF(&button_compact), false);
 #endif
@@ -252,7 +253,8 @@ void test_init_ui(void)
     egui_view_toggle_split_button_set_snapshots(EGUI_VIEW_OF(&button_locked), &locked_snapshot, 1);
     egui_view_toggle_split_button_set_compact_mode(EGUI_VIEW_OF(&button_locked), 1);
     egui_view_toggle_split_button_set_read_only_mode(EGUI_VIEW_OF(&button_locked), 1);
-    egui_view_set_on_touch_listener(EGUI_VIEW_OF(&button_locked), consume_preview_touch);
+    static egui_view_api_t button_locked_touch_api;
+    egui_view_override_api_on_touch(EGUI_VIEW_OF(&button_locked), &button_locked_touch_api, consume_preview_touch);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     egui_view_set_focusable(EGUI_VIEW_OF(&button_locked), false);
 #endif

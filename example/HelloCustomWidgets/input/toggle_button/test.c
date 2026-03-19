@@ -228,7 +228,8 @@ void test_init_ui(void)
     egui_view_set_focusable(EGUI_VIEW_OF(&button_primary), 1);
 #endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
-    egui_view_set_on_key_listener(EGUI_VIEW_OF(&button_primary), hcw_toggle_button_on_key_event);
+    static egui_view_api_t button_primary_key_api;
+    egui_view_override_api_on_key(EGUI_VIEW_OF(&button_primary), &button_primary_key_api, hcw_toggle_button_on_key_event);
 #endif
     egui_view_set_margin(EGUI_VIEW_OF(&button_primary), 0, 0, 0, 1);
     egui_view_group_add_child(EGUI_VIEW_OF(&root_layout), EGUI_VIEW_OF(&button_primary));
@@ -283,7 +284,8 @@ void test_init_ui(void)
     egui_view_set_focusable(EGUI_VIEW_OF(&button_compact), 1);
 #endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
-    egui_view_set_on_key_listener(EGUI_VIEW_OF(&button_compact), hcw_toggle_button_on_key_event);
+    static egui_view_api_t button_compact_key_api;
+    egui_view_override_api_on_key(EGUI_VIEW_OF(&button_compact), &button_compact_key_api, hcw_toggle_button_on_key_event);
 #endif
     egui_view_group_add_child(EGUI_VIEW_OF(&compact_column), EGUI_VIEW_OF(&button_compact));
 
@@ -307,9 +309,10 @@ void test_init_ui(void)
     egui_view_toggle_button_set_font(EGUI_VIEW_OF(&button_readonly), (const egui_font_t *)&egui_res_font_montserrat_10_4);
     egui_view_toggle_button_set_icon_font(EGUI_VIEW_OF(&button_readonly), EGUI_FONT_ICON_MS_16);
     hcw_toggle_button_apply_read_only_style(EGUI_VIEW_OF(&button_readonly));
-    egui_view_set_on_touch_listener(EGUI_VIEW_OF(&button_readonly), consume_preview_touch);
+    static egui_view_api_t button_readonly_api;
+    egui_view_override_api_on_touch(EGUI_VIEW_OF(&button_readonly), &button_readonly_api, consume_preview_touch);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
-    egui_view_set_on_key_listener(EGUI_VIEW_OF(&button_readonly), consume_preview_key);
+    egui_view_override_api_on_key(EGUI_VIEW_OF(&button_readonly), &button_readonly_api, consume_preview_key);
 #endif
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     egui_view_set_focusable(EGUI_VIEW_OF(&button_readonly), 0);
