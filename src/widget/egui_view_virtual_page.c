@@ -339,9 +339,19 @@ void egui_view_virtual_page_scroll_to_section(egui_view_t *self, uint32_t index,
     egui_view_virtual_viewport_scroll_to_item(self, index, section_offset);
 }
 
+void egui_view_virtual_page_scroll_to_section_by_stable_id(egui_view_t *self, uint32_t stable_id, int32_t section_offset)
+{
+    egui_view_virtual_viewport_scroll_to_stable_id(self, stable_id, section_offset);
+}
+
 int32_t egui_view_virtual_page_get_scroll_y(egui_view_t *self)
 {
     return egui_view_virtual_viewport_get_logical_offset(self);
+}
+
+int32_t egui_view_virtual_page_find_section_index_by_stable_id(egui_view_t *self, uint32_t stable_id)
+{
+    return egui_view_virtual_viewport_find_item_index_by_stable_id(self, stable_id);
 }
 
 int32_t egui_view_virtual_page_get_section_y(egui_view_t *self, uint32_t index)
@@ -364,6 +374,11 @@ void egui_view_virtual_page_notify_section_changed(egui_view_t *self, uint32_t i
     egui_view_virtual_viewport_notify_item_changed(self, index);
 }
 
+void egui_view_virtual_page_notify_section_changed_by_stable_id(egui_view_t *self, uint32_t stable_id)
+{
+    egui_view_virtual_viewport_notify_item_changed_by_stable_id(self, stable_id);
+}
+
 void egui_view_virtual_page_notify_section_inserted(egui_view_t *self, uint32_t index, uint32_t count)
 {
     egui_view_virtual_viewport_notify_item_inserted(self, index, count);
@@ -382,6 +397,11 @@ void egui_view_virtual_page_notify_section_moved(egui_view_t *self, uint32_t fro
 void egui_view_virtual_page_notify_section_resized(egui_view_t *self, uint32_t index)
 {
     egui_view_virtual_viewport_notify_item_resized(self, index);
+}
+
+void egui_view_virtual_page_notify_section_resized_by_stable_id(egui_view_t *self, uint32_t stable_id)
+{
+    egui_view_virtual_viewport_notify_item_resized_by_stable_id(self, stable_id);
 }
 
 uint8_t egui_view_virtual_page_get_slot_count(egui_view_t *self)

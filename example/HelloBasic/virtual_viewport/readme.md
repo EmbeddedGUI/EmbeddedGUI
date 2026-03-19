@@ -51,6 +51,13 @@
 - `unbind_item_view`
 - `should_keep_alive`
 
+常用便捷接口：
+
+- `egui_view_virtual_list_find_index_by_stable_id()`
+- `egui_view_virtual_list_scroll_to_stable_id()`
+- `egui_view_virtual_list_notify_item_changed_by_stable_id()`
+- `egui_view_virtual_list_notify_item_resized_by_stable_id()`
+
 默认行为：
 
 - 不实现 `get_view_type` 时，默认 `view_type = 0`
@@ -93,6 +100,13 @@ egui_core_add_user_root_view(EGUI_VIEW_OF(&my_list));
 - 多 section dashboard
 
 它底层仍然复用同一个 `virtual_viewport`，但接口语义从 `item` 换成了 `section`。
+
+对应也提供 stable-id 友好的 section 接口：
+
+- `egui_view_virtual_page_find_section_index_by_stable_id()`
+- `egui_view_virtual_page_scroll_to_section_by_stable_id()`
+- `egui_view_virtual_page_notify_section_changed_by_stable_id()`
+- `egui_view_virtual_page_notify_section_resized_by_stable_id()`
 
 ```c
 static egui_view_virtual_page_t dashboard_page;

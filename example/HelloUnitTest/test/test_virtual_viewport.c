@@ -197,12 +197,44 @@ static const egui_view_virtual_list_data_source_t test_list_data_source = {
         .default_view_type = 0,
 };
 
+static const egui_view_virtual_list_data_source_t test_list_measured_data_source = {
+        .get_count = adapter_get_count,
+        .get_stable_id = adapter_get_stable_id,
+        .find_index_by_stable_id = NULL,
+        .get_view_type = NULL,
+        .measure_item_height = adapter_measure_main_size,
+        .create_item_view = adapter_create_view,
+        .destroy_item_view = NULL,
+        .bind_item_view = adapter_bind_view,
+        .unbind_item_view = adapter_unbind_view,
+        .should_keep_alive = NULL,
+        .save_item_state = NULL,
+        .restore_item_state = NULL,
+        .default_view_type = 0,
+};
+
 static const egui_view_virtual_page_data_source_t test_page_data_source = {
         .get_count = adapter_get_count,
         .get_stable_id = adapter_get_stable_id,
         .find_index_by_stable_id = NULL,
         .get_section_type = NULL,
         .measure_section_height = NULL,
+        .create_section_view = adapter_create_view,
+        .destroy_section_view = NULL,
+        .bind_section_view = adapter_bind_view,
+        .unbind_section_view = adapter_unbind_view,
+        .should_keep_alive = NULL,
+        .save_section_state = NULL,
+        .restore_section_state = NULL,
+        .default_section_type = 0,
+};
+
+static const egui_view_virtual_page_data_source_t test_page_measured_data_source = {
+        .get_count = adapter_get_count,
+        .get_stable_id = adapter_get_stable_id,
+        .find_index_by_stable_id = NULL,
+        .get_section_type = NULL,
+        .measure_section_height = adapter_measure_main_size,
         .create_section_view = adapter_create_view,
         .destroy_section_view = NULL,
         .bind_section_view = adapter_bind_view,
@@ -289,7 +321,7 @@ static void setup_viewport(uint32_t item_count, uint32_t keep_alive_id)
     layout_viewport(0, 0, 100, 60);
 }
 
-static void setup_list_with_data_source(uint32_t item_count)
+static void setup_list_with_data_source_config(uint32_t item_count, const egui_view_virtual_list_data_source_t *data_source)
 {
     memset(&test_list, 0, sizeof(test_list));
     memset(&test_context, 0, sizeof(test_context));
@@ -297,13 +329,18 @@ static void setup_list_with_data_source(uint32_t item_count)
     reset_test_items(item_count, 20);
 
     egui_view_virtual_list_init(EGUI_VIEW_OF(&test_list));
-    egui_view_virtual_list_set_data_source(EGUI_VIEW_OF(&test_list), &test_list_data_source, &test_context);
+    egui_view_virtual_list_set_data_source(EGUI_VIEW_OF(&test_list), data_source, &test_context);
     egui_view_virtual_list_set_overscan(EGUI_VIEW_OF(&test_list), 1, 1);
     egui_view_virtual_list_set_estimated_item_height(EGUI_VIEW_OF(&test_list), 20);
     layout_list(0, 0, 100, 60);
 }
 
-static void setup_page_with_data_source(uint32_t item_count)
+static void setup_list_with_data_source(uint32_t item_count)
+{
+    setup_list_with_data_source_config(item_count, &test_list_data_source);
+}
+
+static void setup_page_with_data_source_config(uint32_t item_count, const egui_view_virtual_page_data_source_t *data_source)
 {
     EGUI_REGION_DEFINE(region, 0, 0, 100, 60);
 
@@ -313,12 +350,17 @@ static void setup_page_with_data_source(uint32_t item_count)
     reset_test_items(item_count, 20);
 
     egui_view_virtual_page_init(EGUI_VIEW_OF(&test_page));
-    egui_view_virtual_page_set_data_source(EGUI_VIEW_OF(&test_page), &test_page_data_source, &test_context);
+    egui_view_virtual_page_set_data_source(EGUI_VIEW_OF(&test_page), data_source, &test_context);
     egui_view_virtual_page_set_overscan(EGUI_VIEW_OF(&test_page), 1, 1);
     egui_view_virtual_page_set_estimated_section_height(EGUI_VIEW_OF(&test_page), 20);
     egui_view_layout(EGUI_VIEW_OF(&test_page), &region);
     egui_region_copy(&EGUI_VIEW_OF(&test_page)->region_screen, &region);
     EGUI_VIEW_OF(&test_page)->api->calculate_layout(EGUI_VIEW_OF(&test_page));
+}
+
+static void setup_page_with_data_source(uint32_t item_count)
+{
+    setup_page_with_data_source_config(item_count, &test_page_data_source);
 }
 
 static int count_slots_with_state(uint8_t state)
@@ -500,6 +542,25 @@ static void test_virtual_list_data_source_defaults_bridge_viewport_adapter(void)
     EGUI_TEST_ASSERT_EQUAL_INT(20, egui_view_virtual_list_get_item_height(EGUI_VIEW_OF(&test_list), 21));
 }
 
+static void test_virtual_list_stable_id_helpers_fallback_lookup(void)
+{
+    setup_list_with_data_source_config(40, &test_list_measured_data_source);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(20, egui_view_virtual_list_find_index_by_stable_id(EGUI_VIEW_OF(&test_list), 1020));
+    EGUI_TEST_ASSERT_EQUAL_INT(-1, egui_view_virtual_list_find_index_by_stable_id(EGUI_VIEW_OF(&test_list), 999999));
+
+    egui_view_virtual_list_scroll_to_stable_id(EGUI_VIEW_OF(&test_list), 1020, 7);
+    EGUI_VIEW_OF(&test_list)->api->calculate_layout(EGUI_VIEW_OF(&test_list));
+    EGUI_TEST_ASSERT_EQUAL_INT(407, egui_view_virtual_list_get_scroll_y(EGUI_VIEW_OF(&test_list)));
+
+    test_context.item_heights[2] = 35;
+    egui_view_virtual_list_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&test_list), 1002);
+    EGUI_VIEW_OF(&test_list)->api->calculate_layout(EGUI_VIEW_OF(&test_list));
+
+    EGUI_TEST_ASSERT_EQUAL_INT(415, egui_view_virtual_list_get_item_y(EGUI_VIEW_OF(&test_list), 20));
+    EGUI_TEST_ASSERT_EQUAL_INT(422, egui_view_virtual_list_get_scroll_y(EGUI_VIEW_OF(&test_list)));
+}
+
 static void test_virtual_page_data_source_defaults_bridge_viewport_adapter(void)
 {
     setup_page_with_data_source(40);
@@ -519,6 +580,25 @@ static void test_virtual_page_data_source_defaults_bridge_viewport_adapter(void)
     EGUI_TEST_ASSERT_EQUAL_INT(20, egui_view_virtual_page_get_section_height(EGUI_VIEW_OF(&test_page), 21));
 }
 
+static void test_virtual_page_stable_id_helpers_fallback_lookup(void)
+{
+    setup_page_with_data_source_config(40, &test_page_measured_data_source);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(20, egui_view_virtual_page_find_section_index_by_stable_id(EGUI_VIEW_OF(&test_page), 1020));
+    EGUI_TEST_ASSERT_EQUAL_INT(-1, egui_view_virtual_page_find_section_index_by_stable_id(EGUI_VIEW_OF(&test_page), 999999));
+
+    egui_view_virtual_page_scroll_to_section_by_stable_id(EGUI_VIEW_OF(&test_page), 1020, 7);
+    EGUI_VIEW_OF(&test_page)->api->calculate_layout(EGUI_VIEW_OF(&test_page));
+    EGUI_TEST_ASSERT_EQUAL_INT(407, egui_view_virtual_page_get_scroll_y(EGUI_VIEW_OF(&test_page)));
+
+    test_context.item_heights[2] = 35;
+    egui_view_virtual_page_notify_section_resized_by_stable_id(EGUI_VIEW_OF(&test_page), 1002);
+    EGUI_VIEW_OF(&test_page)->api->calculate_layout(EGUI_VIEW_OF(&test_page));
+
+    EGUI_TEST_ASSERT_EQUAL_INT(415, egui_view_virtual_page_get_section_y(EGUI_VIEW_OF(&test_page), 20));
+    EGUI_TEST_ASSERT_EQUAL_INT(422, egui_view_virtual_page_get_scroll_y(EGUI_VIEW_OF(&test_page)));
+}
+
 void test_virtual_viewport_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(virtual_viewport);
@@ -530,6 +610,8 @@ void test_virtual_viewport_run(void)
     EGUI_TEST_RUN(test_virtual_viewport_keepalive_limit_trims_oldest_slot);
     EGUI_TEST_RUN(test_virtual_viewport_duplicate_keepalive_slot_is_recycled);
     EGUI_TEST_RUN(test_virtual_list_data_source_defaults_bridge_viewport_adapter);
+    EGUI_TEST_RUN(test_virtual_list_stable_id_helpers_fallback_lookup);
     EGUI_TEST_RUN(test_virtual_page_data_source_defaults_bridge_viewport_adapter);
+    EGUI_TEST_RUN(test_virtual_page_stable_id_helpers_fallback_lookup);
     EGUI_TEST_SUITE_END();
 }

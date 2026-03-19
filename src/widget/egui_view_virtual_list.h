@@ -99,16 +99,20 @@ uint8_t egui_view_virtual_list_get_keepalive_limit(egui_view_t *self);
 void egui_view_virtual_list_set_scroll_y(egui_view_t *self, int32_t offset);
 void egui_view_virtual_list_scroll_by(egui_view_t *self, int32_t delta);
 void egui_view_virtual_list_scroll_to_item(egui_view_t *self, uint32_t index, int32_t item_offset);
+void egui_view_virtual_list_scroll_to_stable_id(egui_view_t *self, uint32_t stable_id, int32_t item_offset);
 int32_t egui_view_virtual_list_get_scroll_y(egui_view_t *self);
+int32_t egui_view_virtual_list_find_index_by_stable_id(egui_view_t *self, uint32_t stable_id);
 int32_t egui_view_virtual_list_get_item_y(egui_view_t *self, uint32_t index);
 int32_t egui_view_virtual_list_get_item_height(egui_view_t *self, uint32_t index);
 
 void egui_view_virtual_list_notify_data_changed(egui_view_t *self);
 void egui_view_virtual_list_notify_item_changed(egui_view_t *self, uint32_t index);
+void egui_view_virtual_list_notify_item_changed_by_stable_id(egui_view_t *self, uint32_t stable_id);
 void egui_view_virtual_list_notify_item_inserted(egui_view_t *self, uint32_t index, uint32_t count);
 void egui_view_virtual_list_notify_item_removed(egui_view_t *self, uint32_t index, uint32_t count);
 void egui_view_virtual_list_notify_item_moved(egui_view_t *self, uint32_t from_index, uint32_t to_index);
 void egui_view_virtual_list_notify_item_resized(egui_view_t *self, uint32_t index);
+void egui_view_virtual_list_notify_item_resized_by_stable_id(egui_view_t *self, uint32_t stable_id);
 
 uint8_t egui_view_virtual_list_get_slot_count(egui_view_t *self);
 const egui_view_virtual_list_slot_t *egui_view_virtual_list_get_slot(egui_view_t *self, uint8_t slot_index);

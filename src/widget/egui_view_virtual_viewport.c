@@ -792,27 +792,14 @@ static uint8_t egui_view_virtual_viewport_prepare_slot_view(egui_view_t *self, e
 
 static int32_t egui_view_virtual_viewport_find_item_main_origin_by_id(egui_view_t *self, egui_view_virtual_viewport_t *local, uint32_t stable_id)
 {
-    uint32_t count = egui_view_virtual_viewport_get_item_count(local);
-    uint32_t index;
+    int32_t found_index = egui_view_virtual_viewport_find_item_index_by_stable_id(self, stable_id);
 
-    if (local->adapter != NULL && local->adapter->find_index_by_stable_id != NULL)
+    if (found_index < 0)
     {
-        int32_t found_index = local->adapter->find_index_by_stable_id(local->adapter_context, stable_id);
-        if (found_index >= 0 && (uint32_t)found_index < count)
-        {
-            return egui_view_virtual_viewport_get_item_main_origin_internal(self, local, (uint32_t)found_index);
-        }
+        return -1;
     }
 
-    for (index = 0; index < count; index++)
-    {
-        if (egui_view_virtual_viewport_get_item_stable_id(local, index) == stable_id)
-        {
-            return egui_view_virtual_viewport_get_item_main_origin_internal(self, local, index);
-        }
-    }
-
-    return -1;
+    return egui_view_virtual_viewport_get_item_main_origin_internal(self, local, (uint32_t)found_index);
 }
 
 static void egui_view_virtual_viewport_update_logical_extent(egui_view_t *self, egui_view_virtual_viewport_t *local)
@@ -1688,10 +1675,53 @@ void egui_view_virtual_viewport_scroll_to_item(egui_view_t *self, uint32_t index
     egui_view_virtual_viewport_set_logical_offset(self, origin + item_offset);
 }
 
+void egui_view_virtual_viewport_scroll_to_stable_id(egui_view_t *self, uint32_t stable_id, int32_t item_offset)
+{
+    int32_t index = egui_view_virtual_viewport_find_item_index_by_stable_id(self, stable_id);
+
+    if (index < 0)
+    {
+        return;
+    }
+
+    egui_view_virtual_viewport_scroll_to_item(self, (uint32_t)index, item_offset);
+}
+
 int32_t egui_view_virtual_viewport_get_logical_offset(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
     return local->logical_offset;
+}
+
+int32_t egui_view_virtual_viewport_find_item_index_by_stable_id(egui_view_t *self, uint32_t stable_id)
+{
+    EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
+    uint32_t count = egui_view_virtual_viewport_get_item_count(local);
+    uint32_t index;
+
+    if (stable_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
+    {
+        return -1;
+    }
+
+    if (local->adapter != NULL && local->adapter->find_index_by_stable_id != NULL)
+    {
+        int32_t found_index = local->adapter->find_index_by_stable_id(local->adapter_context, stable_id);
+        if (found_index >= 0 && (uint32_t)found_index < count)
+        {
+            return found_index;
+        }
+    }
+
+    for (index = 0; index < count; index++)
+    {
+        if (egui_view_virtual_viewport_get_item_stable_id(local, index) == stable_id)
+        {
+            return (int32_t)index;
+        }
+    }
+
+    return -1;
 }
 
 int32_t egui_view_virtual_viewport_get_item_main_origin(egui_view_t *self, uint32_t index)
@@ -1741,6 +1771,18 @@ void egui_view_virtual_viewport_notify_item_changed(egui_view_t *self, uint32_t 
     egui_view_virtual_viewport_mark_dirty(self, local, 1, 1);
 }
 
+void egui_view_virtual_viewport_notify_item_changed_by_stable_id(egui_view_t *self, uint32_t stable_id)
+{
+    int32_t index = egui_view_virtual_viewport_find_item_index_by_stable_id(self, stable_id);
+
+    if (index < 0)
+    {
+        return;
+    }
+
+    egui_view_virtual_viewport_notify_item_changed(self, (uint32_t)index);
+}
+
 void egui_view_virtual_viewport_notify_item_inserted(egui_view_t *self, uint32_t index, uint32_t count)
 {
     EGUI_UNUSED(index);
@@ -1776,6 +1818,18 @@ void egui_view_virtual_viewport_notify_item_resized(egui_view_t *self, uint32_t 
     EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
     egui_view_virtual_viewport_invalidate_index_block(local, index);
     egui_view_virtual_viewport_mark_dirty(self, local, 1, 1);
+}
+
+void egui_view_virtual_viewport_notify_item_resized_by_stable_id(egui_view_t *self, uint32_t stable_id)
+{
+    int32_t index = egui_view_virtual_viewport_find_item_index_by_stable_id(self, stable_id);
+
+    if (index < 0)
+    {
+        return;
+    }
+
+    egui_view_virtual_viewport_notify_item_resized(self, (uint32_t)index);
 }
 
 egui_view_t *egui_view_virtual_viewport_get_content_layer(egui_view_t *self)

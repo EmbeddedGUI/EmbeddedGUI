@@ -455,7 +455,7 @@ static void demo_keep_item_fully_visible(uint32_t index, uint32_t stable_id)
 
     if (item_y < inset || (item_y + item_h) > (viewport_h - inset))
     {
-        egui_view_virtual_list_scroll_to_item(EGUI_VIEW_OF(&viewport_1), index, inset);
+        egui_view_virtual_list_scroll_to_stable_id(EGUI_VIEW_OF(&viewport_1), stable_id, inset);
     }
 }
 
@@ -762,7 +762,7 @@ static void demo_action_add(void)
     viewport_context.mutation_count++;
     snprintf(viewport_context.last_action_text, sizeof(viewport_context.last_action_text), "insert @%04lu", (unsigned long)insert_index);
     egui_view_virtual_list_notify_item_inserted(EGUI_VIEW_OF(&viewport_1), insert_index, 1);
-    egui_view_virtual_list_scroll_to_item(EGUI_VIEW_OF(&viewport_1), insert_index, 0);
+    egui_view_virtual_list_scroll_to_stable_id(EGUI_VIEW_OF(&viewport_1), item.stable_id, 0);
     demo_update_status_labels();
 }
 
@@ -813,6 +813,7 @@ static void demo_action_move(void)
     int32_t selected_index = demo_find_index_by_stable_id(viewport_context.selected_id);
     uint32_t from_index;
     uint32_t to_index;
+    uint32_t moved_stable_id;
 
     if (viewport_context.item_count < 3U)
     {
@@ -837,13 +838,14 @@ static void demo_action_move(void)
         to_index = (to_index + 3U < viewport_context.item_count) ? (to_index + 3U) : 0U;
     }
 
+    moved_stable_id = viewport_context.items[from_index].stable_id;
     demo_move_item(from_index, to_index);
     viewport_context.action_count++;
     viewport_context.mutation_count++;
     snprintf(viewport_context.last_action_text, sizeof(viewport_context.last_action_text), "move %04lu -> %04lu", (unsigned long)from_index,
              (unsigned long)to_index);
     egui_view_virtual_list_notify_item_moved(EGUI_VIEW_OF(&viewport_1), from_index, to_index);
-    egui_view_virtual_list_scroll_to_item(EGUI_VIEW_OF(&viewport_1), to_index, 0);
+    egui_view_virtual_list_scroll_to_stable_id(EGUI_VIEW_OF(&viewport_1), moved_stable_id, 0);
     demo_update_status_labels();
 }
 
@@ -862,8 +864,8 @@ static void demo_action_patch(void)
     viewport_context.action_count++;
     viewport_context.mutation_count++;
     snprintf(viewport_context.last_action_text, sizeof(viewport_context.last_action_text), "patch @%04lu", (unsigned long)target_index);
-    egui_view_virtual_list_notify_item_changed(EGUI_VIEW_OF(&viewport_1), target_index);
-    egui_view_virtual_list_notify_item_resized(EGUI_VIEW_OF(&viewport_1), target_index);
+    egui_view_virtual_list_notify_item_changed_by_stable_id(EGUI_VIEW_OF(&viewport_1), item->stable_id);
+    egui_view_virtual_list_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&viewport_1), item->stable_id);
     if (target_index < viewport_context.item_count)
     {
         demo_keep_item_fully_visible(target_index, viewport_context.items[target_index].stable_id);
@@ -886,7 +888,7 @@ static void demo_action_jump(void)
     viewport_context.jump_cursor++;
     viewport_context.action_count++;
     snprintf(viewport_context.last_action_text, sizeof(viewport_context.last_action_text), "jump -> %04lu", (unsigned long)target_index);
-    egui_view_virtual_list_scroll_to_item(EGUI_VIEW_OF(&viewport_1), target_index, 0);
+    egui_view_virtual_list_scroll_to_stable_id(EGUI_VIEW_OF(&viewport_1), viewport_context.items[target_index].stable_id, 0);
     demo_update_status_labels();
 }
 
@@ -1311,9 +1313,9 @@ static void virtual_item_click_cb(egui_view_t *self)
 
     if (previous_selected != viewport_context.selected_id && previous_index >= 0)
     {
-        egui_view_virtual_list_notify_item_resized(EGUI_VIEW_OF(&viewport_1), (uint32_t)previous_index);
+        egui_view_virtual_list_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&viewport_1), previous_selected);
     }
-    egui_view_virtual_list_notify_item_resized(EGUI_VIEW_OF(&viewport_1), row->bound_index);
+    egui_view_virtual_list_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&viewport_1), row->stable_id);
     demo_keep_item_fully_visible(row->bound_index, row->stable_id);
     demo_update_status_labels();
 
