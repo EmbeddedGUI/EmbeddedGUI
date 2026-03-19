@@ -711,6 +711,7 @@ static void egui_view_virtual_viewport_destroy_all_slots(egui_view_t *self, egui
 static void egui_view_virtual_viewport_apply_render_region(egui_view_t *self, egui_view_virtual_viewport_t *local, egui_view_virtual_viewport_slot_t *slot,
                                                            int32_t logical_main_origin, int32_t logical_main_size)
 {
+    egui_region_t region;
     egui_dim_t x = 0;
     egui_dim_t y = 0;
     egui_dim_t width = self->region.size.width;
@@ -735,9 +736,14 @@ static void egui_view_virtual_viewport_apply_render_region(egui_view_t *self, eg
     slot->render_region.size.width = width;
     slot->render_region.size.height = height;
 
+    region.location.x = x;
+    region.location.y = y;
+    region.size.width = width;
+    region.size.height = height;
+
+    /* Use layout so both the old and new screen regions are marked dirty. */
+    egui_view_layout(slot->view, &region);
     egui_view_set_gone(slot->view, 0);
-    egui_view_set_position(slot->view, x, y);
-    egui_view_set_size(slot->view, width, height);
 }
 
 static uint8_t egui_view_virtual_viewport_prepare_slot_view(egui_view_t *self, egui_view_virtual_viewport_t *local, egui_view_virtual_viewport_slot_t *slot,
@@ -924,6 +930,31 @@ static int egui_view_virtual_viewport_find_slot_by_stable_id(egui_view_virtual_v
     return -1;
 }
 
+static uint8_t egui_view_virtual_viewport_has_reserved_stable_id(egui_view_virtual_viewport_t *local, const uint8_t *reserved, uint32_t stable_id)
+{
+    uint8_t i;
+
+    if (reserved == NULL || stable_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
+    {
+        return 0;
+    }
+
+    for (i = 0; i < EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS; i++)
+    {
+        if (!reserved[i])
+        {
+            continue;
+        }
+        if ((local->slots[i].state == EGUI_VIEW_VIRTUAL_SLOT_STATE_VISIBLE || local->slots[i].state == EGUI_VIEW_VIRTUAL_SLOT_STATE_KEEPALIVE) &&
+            local->slots[i].stable_id == stable_id)
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 static int egui_view_virtual_viewport_find_slot_by_state_and_type(egui_view_virtual_viewport_t *local, const uint8_t *reserved, uint8_t state,
                                                                   uint16_t view_type)
 {
@@ -1084,6 +1115,12 @@ static void egui_view_virtual_viewport_prepare_unreserved_slots(egui_view_t *sel
 
         if (reserved[i] || slot->state == EGUI_VIEW_VIRTUAL_SLOT_STATE_UNUSED)
         {
+            continue;
+        }
+
+        if (egui_view_virtual_viewport_has_reserved_stable_id(local, reserved, slot->stable_id))
+        {
+            egui_view_virtual_viewport_recycle_slot(self, local, slot);
             continue;
         }
 

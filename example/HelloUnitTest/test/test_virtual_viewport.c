@@ -280,6 +280,23 @@ static const egui_view_virtual_viewport_slot_t *find_slot_by_stable_id(uint32_t 
     return NULL;
 }
 
+static int count_slots_by_stable_id(uint32_t stable_id)
+{
+    uint8_t i;
+    int count = 0;
+
+    for (i = 0; i < EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS; i++)
+    {
+        const egui_view_virtual_viewport_slot_t *slot = egui_view_virtual_viewport_get_slot(EGUI_VIEW_OF(&test_viewport), i);
+        if (slot != NULL && slot->stable_id == stable_id)
+        {
+            count++;
+        }
+    }
+
+    return count;
+}
+
 static void test_virtual_viewport_initial_window_uses_bounded_slots(void)
 {
     setup_viewport(1200, EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID);
@@ -373,6 +390,23 @@ static void test_virtual_viewport_keepalive_limit_trims_oldest_slot(void)
     EGUI_TEST_ASSERT_NOT_NULL(find_slot_by_stable_id(1001));
 }
 
+static void test_virtual_viewport_duplicate_keepalive_slot_is_recycled(void)
+{
+    egui_view_virtual_viewport_slot_t *duplicate_slot;
+
+    setup_viewport(1200, EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID);
+
+    duplicate_slot = &test_viewport.slots[1];
+    duplicate_slot->stable_id = 1000;
+    duplicate_slot->state = EGUI_VIEW_VIRTUAL_SLOT_STATE_KEEPALIVE;
+
+    egui_view_virtual_viewport_notify_item_changed(EGUI_VIEW_OF(&test_viewport), 0);
+    EGUI_VIEW_OF(&test_viewport)->api->calculate_layout(EGUI_VIEW_OF(&test_viewport));
+
+    EGUI_TEST_ASSERT_EQUAL_INT(1, count_slots_by_stable_id(1000));
+    EGUI_TEST_ASSERT_TRUE(duplicate_slot->state != EGUI_VIEW_VIRTUAL_SLOT_STATE_KEEPALIVE);
+}
+
 void test_virtual_viewport_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(virtual_viewport);
@@ -382,5 +416,6 @@ void test_virtual_viewport_run(void)
     EGUI_TEST_RUN(test_virtual_viewport_variable_height_resize_keeps_anchor);
     EGUI_TEST_RUN(test_virtual_viewport_insert_before_anchor_preserves_scroll_position);
     EGUI_TEST_RUN(test_virtual_viewport_keepalive_limit_trims_oldest_slot);
+    EGUI_TEST_RUN(test_virtual_viewport_duplicate_keepalive_slot_is_recycled);
     EGUI_TEST_SUITE_END();
 }

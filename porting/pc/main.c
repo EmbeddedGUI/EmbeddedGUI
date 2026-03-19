@@ -7,16 +7,21 @@
 
 #include "sdl_port.h"
 
+static volatile bool g_egui_thread_running = false;
+static SDL_Thread *g_egui_thread = NULL;
+
 int egui_main_thread(void *argument)
 {
-    while (1)
+    EGUI_UNUSED(argument);
+
+    while (g_egui_thread_running)
     {
         egui_polling_work();
 
         // avoid cpu high usage
         // Sleep(1);
     }
-    return -1;
+    return 0;
 }
 
 void app_set_gpio(uint8_t pin, uint8_t state)
@@ -106,7 +111,14 @@ int main(int argc, const char *argv[])
     uicode_create_ui();
     egui_screen_on();
 
-    SDL_CreateThread(egui_main_thread, "egui thread", NULL);
+    g_egui_thread_running = true;
+    g_egui_thread = SDL_CreateThread(egui_main_thread, "egui thread", NULL);
+    if (g_egui_thread == NULL)
+    {
+        printf("Failed to create egui thread: %s\n", SDL_GetError());
+        VT_deinit();
+        return -1;
+    }
 
     while (1)
     {
@@ -117,6 +129,10 @@ int main(int argc, const char *argv[])
         }
     }
 
+    g_egui_thread_running = false;
+    VT_begin_shutdown();
+    SDL_WaitThread(g_egui_thread, NULL);
+    g_egui_thread = NULL;
     VT_deinit();
     return 0;
 }

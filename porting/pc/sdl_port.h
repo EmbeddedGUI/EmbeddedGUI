@@ -25,6 +25,7 @@ extern "C" {
 
 extern void VT_init(void);
 extern bool VT_is_request_quit(void);
+extern void VT_begin_shutdown(void);
 extern void VT_deinit(void);
 extern void VT_sdl_flush(int32_t nMS);
 extern void VT_sdl_refresh_task(void);

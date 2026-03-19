@@ -235,9 +235,13 @@ int quit_filter(void *userdata, SDL_Event *event)
 
 static void monitor_sdl_clean_up(void)
 {
+    sdl_inited = false;
     SDL_DestroyTexture(texture);
+    texture = NULL;
     SDL_DestroyRenderer(renderer);
+    renderer = NULL;
     SDL_DestroyWindow(window);
+    window = NULL;
     if (sdl_touch_mutex != NULL)
     {
         SDL_DestroyMutex(sdl_touch_mutex);
@@ -629,7 +633,6 @@ bool VT_is_request_quit(void)
 void VT_deinit(void)
 {
     monitor_sdl_clean_up();
-    exit(0);
 }
 
 void VT_sdl_flush(int32_t nMS)
@@ -641,7 +644,15 @@ void VT_sdl_flush(int32_t nMS)
     nMS = EGUI_MAX(1, nMS);
     while (!sdl_refr_cpl)
     {
+        if (sdl_quit_qry || !sdl_inited)
+        {
+            return;
+        }
         SDL_Delay(nMS);
+    }
+    if (sdl_quit_qry || !sdl_inited)
+    {
+        return;
     }
     sdl_port_request_refresh();
 #endif
@@ -649,8 +660,19 @@ void VT_sdl_flush(int32_t nMS)
 
 void sdl_port_request_refresh(void)
 {
+    if (sdl_quit_qry || !sdl_inited)
+    {
+        return;
+    }
     sdl_refr_cpl = false;
     sdl_refr_qry = true;
+}
+
+void VT_begin_shutdown(void)
+{
+    sdl_quit_qry = true;
+    sdl_refr_qry = false;
+    sdl_refr_cpl = true;
 }
 
 void sdl_port_sleep(uint32_t nMS)
