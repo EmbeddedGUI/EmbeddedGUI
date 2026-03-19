@@ -13,6 +13,7 @@
 #define DEMO_SUBTEXT_LEN       72
 #define DEMO_META_TEXT_LEN     72
 #define DEMO_BADGE_TEXT_LEN    20
+#define DEMO_STATE_CACHE_COUNT 96U
 
 #define DEMO_MARGIN_X          8
 #define DEMO_TOP_Y             8
@@ -60,6 +61,7 @@ enum
 
 typedef struct demo_virtual_item demo_virtual_item_t;
 typedef struct demo_virtual_row demo_virtual_row_t;
+typedef struct demo_virtual_row_state demo_virtual_row_state_t;
 typedef struct demo_virtual_viewport_context demo_virtual_viewport_context_t;
 
 struct demo_virtual_item
@@ -87,6 +89,15 @@ struct demo_virtual_row
     uint32_t bound_index;
     uint32_t stable_id;
     uint8_t pulse_running;
+};
+
+struct demo_virtual_row_state
+{
+    uint16_t pulse_elapsed_ms;
+    uint8_t pulse_running;
+    uint8_t pulse_alpha;
+    uint8_t pulse_cycle_flip;
+    uint8_t pulse_repeated;
 };
 
 struct demo_virtual_viewport_context
@@ -529,6 +540,60 @@ static void demo_set_row_pulse(demo_virtual_row_t *row, const demo_virtual_item_
         egui_animation_start(EGUI_ANIM_OF(&row->pulse_anim));
         row->pulse_running = 1;
     }
+}
+
+static void demo_capture_row_state(demo_virtual_row_t *row, demo_virtual_row_state_t *state)
+{
+    egui_animation_t *anim = EGUI_ANIM_OF(&row->pulse_anim);
+
+    memset(state, 0, sizeof(*state));
+    state->pulse_running = row->pulse_running ? 1U : 0U;
+    state->pulse_alpha = EGUI_VIEW_OF(&row->pulse)->alpha;
+
+    if (!row->pulse_running)
+    {
+        return;
+    }
+
+    state->pulse_cycle_flip = anim->is_cycle_flip ? 1U : 0U;
+    state->pulse_repeated = (uint8_t)anim->repeated;
+
+    if (anim->start_time != (uint32_t)-1 && anim->duration > 0)
+    {
+        uint32_t elapsed_ms = egui_api_timer_get_current() - anim->start_time;
+
+        if (elapsed_ms >= anim->duration)
+        {
+            elapsed_ms = anim->duration > 1U ? (uint32_t)anim->duration - 1U : 0U;
+        }
+
+        state->pulse_elapsed_ms = (uint16_t)elapsed_ms;
+    }
+}
+
+static void demo_restore_row_state(demo_virtual_row_t *row, const demo_virtual_row_state_t *state)
+{
+    egui_animation_t *anim;
+
+    if (state == NULL || !state->pulse_running)
+    {
+        return;
+    }
+
+    anim = EGUI_ANIM_OF(&row->pulse_anim);
+    if (!anim->is_running)
+    {
+        egui_animation_start(anim);
+    }
+
+    row->pulse_running = 1;
+    egui_view_set_gone(EGUI_VIEW_OF(&row->pulse), 0);
+    egui_view_set_alpha(EGUI_VIEW_OF(&row->pulse), state->pulse_alpha);
+    anim->is_started = 1;
+    anim->is_ended = 0;
+    anim->is_cycle_flip = state->pulse_cycle_flip ? 1U : 0U;
+    anim->repeated = (int8_t)state->pulse_repeated;
+    anim->start_time = egui_api_timer_get_current() - state->pulse_elapsed_ms;
 }
 
 static void demo_style_scene_buttons(void)
@@ -1457,6 +1522,48 @@ static void demo_unbind_item_view(void *adapter_context, egui_view_t *view, uint
     row->stable_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
 }
 
+static void demo_save_item_state(void *adapter_context, egui_view_t *view, uint32_t stable_id)
+{
+    demo_virtual_row_t *row = demo_find_row_by_root_view(view);
+    demo_virtual_row_state_t state;
+
+    EGUI_UNUSED(adapter_context);
+
+    if (row == NULL)
+    {
+        return;
+    }
+
+    demo_capture_row_state(row, &state);
+    if (!state.pulse_running)
+    {
+        egui_view_virtual_list_remove_item_state_by_stable_id(EGUI_VIEW_OF(&viewport_1), stable_id);
+        return;
+    }
+
+    (void)egui_view_virtual_list_write_item_state_for_view(view, stable_id, &state, sizeof(state));
+}
+
+static void demo_restore_item_state(void *adapter_context, egui_view_t *view, uint32_t stable_id)
+{
+    demo_virtual_row_t *row = demo_find_row_by_root_view(view);
+    demo_virtual_row_state_t state;
+
+    EGUI_UNUSED(adapter_context);
+
+    if (row == NULL)
+    {
+        return;
+    }
+
+    if (egui_view_virtual_list_read_item_state_for_view(view, stable_id, &state, sizeof(state)) != sizeof(state))
+    {
+        return;
+    }
+
+    demo_restore_row_state(row, &state);
+}
+
 static uint8_t demo_should_keep_alive(void *adapter_context, egui_view_t *view, uint32_t stable_id)
 {
     demo_virtual_viewport_context_t *ctx = (demo_virtual_viewport_context_t *)adapter_context;
@@ -1488,8 +1595,8 @@ static const egui_view_virtual_list_data_source_t viewport_data_source = {
         .bind_item_view = demo_bind_item_view,
         .unbind_item_view = demo_unbind_item_view,
         .should_keep_alive = demo_should_keep_alive,
-        .save_item_state = NULL,
-        .restore_item_state = NULL,
+        .save_item_state = demo_save_item_state,
+        .restore_item_state = demo_restore_item_state,
         .default_view_type = 0,
 };
 
@@ -1741,6 +1848,8 @@ void test_init_ui(void)
     egui_view_virtual_list_set_estimated_item_height(EGUI_VIEW_OF(&viewport_1), 72);
     egui_view_virtual_list_set_overscan(EGUI_VIEW_OF(&viewport_1), 1, 1);
     egui_view_virtual_list_set_keepalive_limit(EGUI_VIEW_OF(&viewport_1), 4);
+    egui_view_virtual_list_set_state_cache_limits(EGUI_VIEW_OF(&viewport_1), DEMO_STATE_CACHE_COUNT,
+                                                  DEMO_STATE_CACHE_COUNT * (uint32_t)sizeof(demo_virtual_row_state_t));
 
     viewport_context.last_action_text[0] = '\0';
     demo_update_status_labels();

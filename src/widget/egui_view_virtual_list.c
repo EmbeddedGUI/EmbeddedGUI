@@ -324,6 +324,41 @@ uint8_t egui_view_virtual_list_get_keepalive_limit(egui_view_t *self)
     return egui_view_virtual_viewport_get_keepalive_limit(self);
 }
 
+void egui_view_virtual_list_set_state_cache_limits(egui_view_t *self, uint16_t max_entries, uint32_t max_bytes)
+{
+    egui_view_virtual_viewport_set_state_cache_limits(self, max_entries, max_bytes);
+}
+
+void egui_view_virtual_list_clear_item_state_cache(egui_view_t *self)
+{
+    egui_view_virtual_viewport_clear_state_cache(self);
+}
+
+void egui_view_virtual_list_remove_item_state_by_stable_id(egui_view_t *self, uint32_t stable_id)
+{
+    egui_view_virtual_viewport_remove_state_by_stable_id(self, stable_id);
+}
+
+uint8_t egui_view_virtual_list_write_item_state(egui_view_t *self, uint32_t stable_id, const void *data, uint16_t size)
+{
+    return egui_view_virtual_viewport_write_state(self, stable_id, data, size);
+}
+
+uint16_t egui_view_virtual_list_read_item_state(egui_view_t *self, uint32_t stable_id, void *data, uint16_t capacity)
+{
+    return egui_view_virtual_viewport_read_state(self, stable_id, data, capacity);
+}
+
+uint8_t egui_view_virtual_list_write_item_state_for_view(egui_view_t *item_view, uint32_t stable_id, const void *data, uint16_t size)
+{
+    return egui_view_virtual_viewport_write_state_for_view(item_view, stable_id, data, size);
+}
+
+uint16_t egui_view_virtual_list_read_item_state_for_view(egui_view_t *item_view, uint32_t stable_id, void *data, uint16_t capacity)
+{
+    return egui_view_virtual_viewport_read_state_for_view(item_view, stable_id, data, capacity);
+}
+
 void egui_view_virtual_list_set_scroll_y(egui_view_t *self, int32_t offset)
 {
     egui_view_virtual_viewport_set_logical_offset(self, offset);

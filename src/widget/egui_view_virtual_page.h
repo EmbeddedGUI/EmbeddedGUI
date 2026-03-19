@@ -95,6 +95,13 @@ int32_t egui_view_virtual_page_get_estimated_section_height(egui_view_t *self);
 
 void egui_view_virtual_page_set_keepalive_limit(egui_view_t *self, uint8_t max_keepalive_slots);
 uint8_t egui_view_virtual_page_get_keepalive_limit(egui_view_t *self);
+void egui_view_virtual_page_set_state_cache_limits(egui_view_t *self, uint16_t max_entries, uint32_t max_bytes);
+void egui_view_virtual_page_clear_section_state_cache(egui_view_t *self);
+void egui_view_virtual_page_remove_section_state_by_stable_id(egui_view_t *self, uint32_t stable_id);
+uint8_t egui_view_virtual_page_write_section_state(egui_view_t *self, uint32_t stable_id, const void *data, uint16_t size);
+uint16_t egui_view_virtual_page_read_section_state(egui_view_t *self, uint32_t stable_id, void *data, uint16_t capacity);
+uint8_t egui_view_virtual_page_write_section_state_for_view(egui_view_t *section_view, uint32_t stable_id, const void *data, uint16_t size);
+uint16_t egui_view_virtual_page_read_section_state_for_view(egui_view_t *section_view, uint32_t stable_id, void *data, uint16_t capacity);
 
 void egui_view_virtual_page_set_scroll_y(egui_view_t *self, int32_t offset);
 void egui_view_virtual_page_scroll_by(egui_view_t *self, int32_t delta);

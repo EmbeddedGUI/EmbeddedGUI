@@ -95,6 +95,13 @@ int32_t egui_view_virtual_list_get_estimated_item_height(egui_view_t *self);
 
 void egui_view_virtual_list_set_keepalive_limit(egui_view_t *self, uint8_t max_keepalive_slots);
 uint8_t egui_view_virtual_list_get_keepalive_limit(egui_view_t *self);
+void egui_view_virtual_list_set_state_cache_limits(egui_view_t *self, uint16_t max_entries, uint32_t max_bytes);
+void egui_view_virtual_list_clear_item_state_cache(egui_view_t *self);
+void egui_view_virtual_list_remove_item_state_by_stable_id(egui_view_t *self, uint32_t stable_id);
+uint8_t egui_view_virtual_list_write_item_state(egui_view_t *self, uint32_t stable_id, const void *data, uint16_t size);
+uint16_t egui_view_virtual_list_read_item_state(egui_view_t *self, uint32_t stable_id, void *data, uint16_t capacity);
+uint8_t egui_view_virtual_list_write_item_state_for_view(egui_view_t *item_view, uint32_t stable_id, const void *data, uint16_t size);
+uint16_t egui_view_virtual_list_read_item_state_for_view(egui_view_t *item_view, uint32_t stable_id, void *data, uint16_t capacity);
 
 void egui_view_virtual_list_set_scroll_y(egui_view_t *self, int32_t offset);
 void egui_view_virtual_list_scroll_by(egui_view_t *self, int32_t delta);

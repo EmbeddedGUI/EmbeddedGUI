@@ -3,6 +3,7 @@
 
 #include "egui_view_group.h"
 #include "core/egui_scroller.h"
+#include "utils/egui_dlist.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
@@ -28,6 +29,7 @@ enum
 };
 
 typedef struct egui_view_virtual_viewport_adapter egui_view_virtual_viewport_adapter_t;
+typedef struct egui_view_virtual_viewport_state_entry egui_view_virtual_viewport_state_entry_t;
 typedef struct egui_view_virtual_viewport_slot egui_view_virtual_viewport_slot_t;
 typedef struct egui_view_virtual_viewport egui_view_virtual_viewport_t;
 typedef struct egui_view_virtual_viewport_params egui_view_virtual_viewport_params_t;
@@ -94,11 +96,16 @@ struct egui_view_virtual_viewport
     uint8_t are_index_prefixes_dirty;
     uint16_t index_block_count;
     uint16_t index_block_capacity;
+    uint16_t max_state_entries;
+    uint16_t state_entry_count;
     uint32_t indexed_item_count;
+    uint32_t max_state_bytes;
+    uint32_t state_total_bytes;
     int32_t indexed_cross_extent;
     int32_t *index_block_extents;
     int32_t *index_block_origins;
     uint8_t *index_block_valid;
+    egui_dlist_t state_entries;
 
     egui_scroller_t scroller;
 
@@ -141,6 +148,16 @@ uint8_t egui_view_virtual_viewport_get_overscan_after(egui_view_t *self);
 
 void egui_view_virtual_viewport_set_keepalive_limit(egui_view_t *self, uint8_t max_keepalive_slots);
 uint8_t egui_view_virtual_viewport_get_keepalive_limit(egui_view_t *self);
+
+void egui_view_virtual_viewport_set_state_cache_limits(egui_view_t *self, uint16_t max_entries, uint32_t max_bytes);
+uint16_t egui_view_virtual_viewport_get_state_cache_entry_limit(egui_view_t *self);
+uint32_t egui_view_virtual_viewport_get_state_cache_byte_limit(egui_view_t *self);
+void egui_view_virtual_viewport_clear_state_cache(egui_view_t *self);
+void egui_view_virtual_viewport_remove_state_by_stable_id(egui_view_t *self, uint32_t stable_id);
+uint8_t egui_view_virtual_viewport_write_state(egui_view_t *self, uint32_t stable_id, const void *data, uint16_t size);
+uint16_t egui_view_virtual_viewport_read_state(egui_view_t *self, uint32_t stable_id, void *data, uint16_t capacity);
+uint8_t egui_view_virtual_viewport_write_state_for_view(egui_view_t *item_view, uint32_t stable_id, const void *data, uint16_t size);
+uint16_t egui_view_virtual_viewport_read_state_for_view(egui_view_t *item_view, uint32_t stable_id, void *data, uint16_t capacity);
 
 void egui_view_virtual_viewport_set_estimated_item_extent(egui_view_t *self, int32_t extent);
 int32_t egui_view_virtual_viewport_get_estimated_item_extent(egui_view_t *self);

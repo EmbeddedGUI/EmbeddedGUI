@@ -5,6 +5,7 @@
 #include "core/egui_input.h"
 
 typedef struct egui_view_virtual_viewport_item_layout egui_view_virtual_viewport_item_layout_t;
+typedef struct egui_view_virtual_viewport_state_entry egui_view_virtual_viewport_state_entry_t;
 struct egui_view_virtual_viewport_item_layout
 {
     uint16_t view_type;
@@ -13,6 +14,16 @@ struct egui_view_virtual_viewport_item_layout
     int32_t logical_main_origin;
     int32_t logical_main_size;
 };
+
+struct egui_view_virtual_viewport_state_entry
+{
+    egui_dnode_t node;
+    uint32_t stable_id;
+    uint16_t size;
+    uint8_t data[];
+};
+
+extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_virtual_viewport_t);
 
 static void egui_view_virtual_viewport_reset_slot(egui_view_virtual_viewport_slot_t *slot)
 {
@@ -37,6 +48,110 @@ static void egui_view_virtual_viewport_reset_slots(egui_view_virtual_viewport_t 
     }
 
     local->slot_count = 0;
+}
+
+static egui_view_t *egui_view_virtual_viewport_find_host_view(egui_view_t *view)
+{
+    while (view != NULL)
+    {
+        if (view->api == &EGUI_VIEW_API_TABLE_NAME(egui_view_virtual_viewport_t))
+        {
+            return view;
+        }
+
+        view = EGUI_VIEW_PARENT(view);
+    }
+
+    return NULL;
+}
+
+static egui_view_virtual_viewport_state_entry_t *egui_view_virtual_viewport_find_state_entry(egui_view_virtual_viewport_t *local, uint32_t stable_id)
+{
+    egui_dnode_t *node;
+
+    if (stable_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
+    {
+        return NULL;
+    }
+
+    EGUI_DLIST_FOR_EACH_NODE(&local->state_entries, node)
+    {
+        egui_view_virtual_viewport_state_entry_t *entry = EGUI_DLIST_ENTRY(node, egui_view_virtual_viewport_state_entry_t, node);
+
+        if (entry->stable_id == stable_id)
+        {
+            return entry;
+        }
+    }
+
+    return NULL;
+}
+
+static void egui_view_virtual_viewport_touch_state_entry(egui_view_virtual_viewport_t *local, egui_view_virtual_viewport_state_entry_t *entry)
+{
+    if (entry == NULL || egui_dlist_peek_tail(&local->state_entries) == &entry->node)
+    {
+        return;
+    }
+
+    egui_dlist_remove(&entry->node);
+    egui_dlist_append(&local->state_entries, &entry->node);
+}
+
+static void egui_view_virtual_viewport_remove_state_entry(egui_view_virtual_viewport_t *local, egui_view_virtual_viewport_state_entry_t *entry)
+{
+    if (entry == NULL)
+    {
+        return;
+    }
+
+    egui_dlist_remove(&entry->node);
+    if (local->state_entry_count > 0)
+    {
+        local->state_entry_count--;
+    }
+    if (local->state_total_bytes >= entry->size)
+    {
+        local->state_total_bytes -= entry->size;
+    }
+    else
+    {
+        local->state_total_bytes = 0;
+    }
+    egui_free(entry);
+}
+
+static void egui_view_virtual_viewport_trim_state_cache(egui_view_virtual_viewport_t *local)
+{
+    while (!egui_dlist_is_empty(&local->state_entries))
+    {
+        egui_view_virtual_viewport_state_entry_t *entry;
+        uint8_t over_entry_limit;
+        uint8_t over_byte_limit;
+
+        over_entry_limit = local->max_state_entries > 0 && local->state_entry_count > local->max_state_entries;
+        over_byte_limit = local->max_state_bytes > 0 && local->state_total_bytes > local->max_state_bytes;
+        if (!over_entry_limit && !over_byte_limit)
+        {
+            break;
+        }
+
+        entry = EGUI_DLIST_ENTRY(egui_dlist_peek_head(&local->state_entries), egui_view_virtual_viewport_state_entry_t, node);
+        egui_view_virtual_viewport_remove_state_entry(local, entry);
+    }
+}
+
+static void egui_view_virtual_viewport_clear_state_cache_internal(egui_view_virtual_viewport_t *local)
+{
+    while (!egui_dlist_is_empty(&local->state_entries))
+    {
+        egui_view_virtual_viewport_state_entry_t *entry =
+                EGUI_DLIST_ENTRY(egui_dlist_peek_head(&local->state_entries), egui_view_virtual_viewport_state_entry_t, node);
+        egui_view_virtual_viewport_remove_state_entry(local, entry);
+    }
+
+    local->state_entry_count = 0;
+    local->state_total_bytes = 0;
 }
 
 static void egui_view_virtual_viewport_hide_slot_view(egui_view_t *self, egui_view_virtual_viewport_t *local, egui_view_virtual_viewport_slot_t *slot)
@@ -1511,6 +1626,7 @@ void egui_view_virtual_viewport_set_adapter(egui_view_t *self, const egui_view_v
 
     egui_view_virtual_viewport_destroy_all_slots(self, local);
     egui_view_virtual_viewport_release_index_storage(local);
+    egui_view_virtual_viewport_clear_state_cache_internal(local);
     local->adapter = adapter;
     local->adapter_context = adapter_context;
     egui_view_virtual_viewport_mark_dirty(self, local, 1, 1);
@@ -1596,6 +1712,152 @@ uint8_t egui_view_virtual_viewport_get_keepalive_limit(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
     return local->max_keepalive_slots;
+}
+
+void egui_view_virtual_viewport_set_state_cache_limits(egui_view_t *self, uint16_t max_entries, uint32_t max_bytes)
+{
+    EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
+
+    if (local->max_state_entries == max_entries && local->max_state_bytes == max_bytes)
+    {
+        return;
+    }
+
+    local->max_state_entries = max_bytes == 0 ? 0 : max_entries;
+    local->max_state_bytes = max_entries == 0 ? 0 : max_bytes;
+
+    if (local->max_state_entries == 0 || local->max_state_bytes == 0)
+    {
+        local->max_state_entries = 0;
+        local->max_state_bytes = 0;
+        egui_view_virtual_viewport_clear_state_cache_internal(local);
+        return;
+    }
+
+    egui_view_virtual_viewport_trim_state_cache(local);
+}
+
+uint16_t egui_view_virtual_viewport_get_state_cache_entry_limit(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
+    return local->max_state_entries;
+}
+
+uint32_t egui_view_virtual_viewport_get_state_cache_byte_limit(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
+    return local->max_state_bytes;
+}
+
+void egui_view_virtual_viewport_clear_state_cache(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
+    egui_view_virtual_viewport_clear_state_cache_internal(local);
+}
+
+void egui_view_virtual_viewport_remove_state_by_stable_id(egui_view_t *self, uint32_t stable_id)
+{
+    EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
+    egui_view_virtual_viewport_state_entry_t *entry = egui_view_virtual_viewport_find_state_entry(local, stable_id);
+
+    egui_view_virtual_viewport_remove_state_entry(local, entry);
+}
+
+uint8_t egui_view_virtual_viewport_write_state(egui_view_t *self, uint32_t stable_id, const void *data, uint16_t size)
+{
+    EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
+    egui_view_virtual_viewport_state_entry_t *entry;
+
+    if (stable_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
+    {
+        return 0;
+    }
+
+    if (size == 0)
+    {
+        egui_view_virtual_viewport_remove_state_by_stable_id(self, stable_id);
+        return 1;
+    }
+
+    if (data == NULL || local->max_state_entries == 0 || local->max_state_bytes == 0 || size > local->max_state_bytes)
+    {
+        return 0;
+    }
+
+    entry = egui_view_virtual_viewport_find_state_entry(local, stable_id);
+    if (entry != NULL && entry->size == size)
+    {
+        memcpy(entry->data, data, size);
+        egui_view_virtual_viewport_touch_state_entry(local, entry);
+        return 1;
+    }
+
+    entry = (egui_view_virtual_viewport_state_entry_t *)egui_malloc((int)(sizeof(egui_view_virtual_viewport_state_entry_t) + size));
+    if (entry == NULL)
+    {
+        return 0;
+    }
+
+    entry->stable_id = stable_id;
+    entry->size = size;
+    memcpy(entry->data, data, size);
+    egui_dlist_append(&local->state_entries, &entry->node);
+    local->state_entry_count++;
+    local->state_total_bytes += size;
+
+    {
+        egui_view_virtual_viewport_state_entry_t *old_entry = egui_view_virtual_viewport_find_state_entry(local, stable_id);
+        if (old_entry != NULL && old_entry != entry)
+        {
+            egui_view_virtual_viewport_remove_state_entry(local, old_entry);
+        }
+    }
+
+    egui_view_virtual_viewport_trim_state_cache(local);
+    return 1;
+}
+
+uint16_t egui_view_virtual_viewport_read_state(egui_view_t *self, uint32_t stable_id, void *data, uint16_t capacity)
+{
+    EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
+    egui_view_virtual_viewport_state_entry_t *entry = egui_view_virtual_viewport_find_state_entry(local, stable_id);
+
+    if (entry == NULL)
+    {
+        return 0;
+    }
+
+    egui_view_virtual_viewport_touch_state_entry(local, entry);
+    if (data != NULL && capacity > 0)
+    {
+        memcpy(data, entry->data, entry->size < capacity ? entry->size : capacity);
+    }
+
+    return entry->size;
+}
+
+uint8_t egui_view_virtual_viewport_write_state_for_view(egui_view_t *item_view, uint32_t stable_id, const void *data, uint16_t size)
+{
+    egui_view_t *viewport = egui_view_virtual_viewport_find_host_view(item_view);
+
+    if (viewport == NULL)
+    {
+        return 0;
+    }
+
+    return egui_view_virtual_viewport_write_state(viewport, stable_id, data, size);
+}
+
+uint16_t egui_view_virtual_viewport_read_state_for_view(egui_view_t *item_view, uint32_t stable_id, void *data, uint16_t capacity)
+{
+    egui_view_t *viewport = egui_view_virtual_viewport_find_host_view(item_view);
+
+    if (viewport == NULL)
+    {
+        return 0;
+    }
+
+    return egui_view_virtual_viewport_read_state(viewport, stable_id, data, capacity);
 }
 
 void egui_view_virtual_viewport_set_estimated_item_extent(egui_view_t *self, int32_t extent)
@@ -1913,11 +2175,16 @@ void egui_view_virtual_viewport_init(egui_view_t *self)
     local->are_index_prefixes_dirty = 1;
     local->index_block_count = 0;
     local->index_block_capacity = 0;
+    local->max_state_entries = 0;
+    local->state_entry_count = 0;
     local->indexed_item_count = 0;
+    local->max_state_bytes = 0;
+    local->state_total_bytes = 0;
     local->indexed_cross_extent = 0;
     local->index_block_extents = NULL;
     local->index_block_origins = NULL;
     local->index_block_valid = NULL;
+    egui_dlist_init(&local->state_entries);
 
     egui_scroller_init(&local->scroller);
     egui_view_virtual_viewport_reset_slots(local);
