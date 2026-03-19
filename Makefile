@@ -3,7 +3,7 @@
 # APP ?= HelloAPP
 # APP ?= HelloBasic
 # APP ?= HelloEasyPage
-# APP ?= HelloPerformace
+# APP ?= HelloPerformance
 # APP ?= HelloResourceManager
 APP ?= HelloSimple
 # APP ?= HelloTest

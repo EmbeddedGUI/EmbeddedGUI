@@ -24,7 +24,7 @@ DEFAULT_SNAPSHOT_STABLE_CYCLES = 1
 DEFAULT_SNAPSHOT_MAX_WAIT_MS = 1500
 
 # Default skip list - examples not suitable for demo
-DEFAULT_SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformace"]
+DEFAULT_SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformance"]
 
 
 def get_windows_hidden_run_kwargs():

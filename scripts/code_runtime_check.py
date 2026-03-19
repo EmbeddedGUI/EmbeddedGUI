@@ -34,7 +34,7 @@ RUN_RETRY_COUNT = 2
 RUNTIME_FAIL_MARKERS = ("[RUNTIME_CHECK_FAIL]",)
 
 # Examples not suitable for runtime testing (headless/performance/test-only)
-SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformace", "HelloPerformance",
+SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformance", "HelloPerformance",
              "HelloDesigner", "HelloDesigner_temp"]
 
 

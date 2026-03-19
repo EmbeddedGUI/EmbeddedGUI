@@ -39,7 +39,7 @@ int main(void)
     egui_screen_on();
 
     /* Run polling loop until benchmark completes.
-     * HelloPerformace uses a timer callback that runs
+     * HelloPerformance uses a timer callback that runs
      * all test modes then sets g_qemu_perf_complete. */
     while (!g_qemu_perf_complete)
     {

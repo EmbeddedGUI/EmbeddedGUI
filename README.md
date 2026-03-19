@@ -395,7 +395,7 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 | HelloEasyPage | 28248 | 10904 | 1408 | 2400 | 39152 |
 | HelloGradient | 62388 | 34480 | 1316 | 4800 | 96868 |
 | HelloLayer | 27008 | 32176 | 1624 | 2400 | 59184 |
-| HelloPerformace | 114624 | 303508 | 1164 | 2400 | 418132 |
+| HelloPerformance | 114624 | 303508 | 1164 | 2400 | 418132 |
 | HelloPFB | 25324 | 10308 | 1036 | 5120 | 35632 |
 | HelloResourceManager | 56744 | 14820 | 1140 | 2400 | 71564 |
 | HelloSimple | 20780 | 8016 | 968 | 2400 | 28796 |
@@ -421,7 +421,7 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 | `HelloGradient` | 渐变填充效果 |
 | `HelloLayer` | Z 轴图层演示 |
 | `HelloStyleDemo` | 主题 / 增强样式演示 |
-| `HelloPerformace` | FPS / 性能基准 |
+| `HelloPerformance` | FPS / 性能基准 |
 | `HelloPFB` | PFB 渲染演示 |
 | `HelloResourceManager` | 外部资源管理器 |
 | `HelloEasyPage` | EasyPage API 演示 |

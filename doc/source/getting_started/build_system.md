@@ -35,7 +35,7 @@ make all APP=HelloStyleDemo
 | `HelloPFB` | PFB 机制演示 |
 | `HelloEasyPage` | 简易分页 |
 | `HelloViewPageAndScroll` | 分页和滚动 |
-| `HelloPerformace` | 性能测试 |
+| `HelloPerformance` | 性能测试 |
 | `HelloResourceManager` | 资源管理器 |
 | `HelloCanvas` | 画布绘图 |
 | `HelloGradient` | 渐变效果 |

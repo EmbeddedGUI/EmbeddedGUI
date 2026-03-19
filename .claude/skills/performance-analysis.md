@@ -12,9 +12,9 @@ description: QEMU性能分析工作流 - 用于绘制优化、PFB设计、多缓
 - 已安装 `qemu-system-arm`（Windows 常见路径 `C:\Program Files\qemu\`）
 - 可执行：
   ```bash
-  make all APP=HelloPerformace PORT=qemu CPU_ARCH=cortex-m3
+  make all APP=HelloPerformance PORT=qemu CPU_ARCH=cortex-m3
   ```
-  说明：项目目录名是 `HelloPerformace`（按仓库实际拼写）。
+  说明：项目目录名是 `HelloPerformance`（按仓库实际拼写）。
 
 ## 常用命令
 

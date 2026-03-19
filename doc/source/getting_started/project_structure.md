@@ -154,7 +154,7 @@ src/
 | `HelloPFB` | PFB 机制演示 |
 | `HelloEasyPage` | 简易分页应用 |
 | `HelloViewPageAndScroll` | 分页和滚动组合 |
-| `HelloPerformace` | 性能测试基准 |
+| `HelloPerformance` | 性能测试基准 |
 | `HelloResourceManager` | 资源管理器示例 |
 | `HelloCanvas` | 画布绘图 API 演示 |
 | `HelloGradient` | 渐变效果演示 |

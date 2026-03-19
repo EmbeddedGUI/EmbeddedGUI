@@ -226,13 +226,13 @@ egui_pfb_bus_release();      // 释放 SPI，恢复 DMA 发送队列
 
 项目设计之初就考虑到PFB很小的场景，专门设计各种case来验证CPU所需的性能（不考虑降数据写入屏幕显存时间）。进行性能测试时，不建议在PC上运行，最好是在单片机环境中进行，这样也可以知道自己芯片中那些绘图操作最耗mips，进而从UI层面优化，减少复杂动作。
 
-运行`HelloPerformace`例程中的，平台选择`stm32g0`。命令如下，接好项目配套开发板后，就会下载程序到单片机中，串口会打印时间信息。
+运行`HelloPerformance`例程中的，平台选择`stm32g0`。命令如下，接好项目配套开发板后，就会下载程序到单片机中，串口会打印时间信息。
 
 ```bash
-make run APP=HelloPerformace PORT=stm32g0
+make run APP=HelloPerformance PORT=stm32g0
 ```
 
-同时修改`HelloPerformace`例程中的一些配置，`EGUI_CONFIG_DEBUG_SKIP_DRAW_ALL`设置为1（去除绘制到屏幕的时间）。`EGUI_CONFIG_PFB_WIDTH`和`EGUI_CONFIG_PFB_HEIGHT`按需配置。
+同时修改`HelloPerformance`例程中的一些配置，`EGUI_CONFIG_DEBUG_SKIP_DRAW_ALL`设置为1（去除绘制到屏幕的时间）。`EGUI_CONFIG_PFB_WIDTH`和`EGUI_CONFIG_PFB_HEIGHT`按需配置。
 
 ![image-20241024135911010](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/image-20241024135911010.png)
 

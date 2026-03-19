@@ -1,5 +1,5 @@
 # QEMU ARM port build configuration
-# Usage: make all APP=HelloPerformace PORT=qemu CPU_ARCH=cortex-m3
+# Usage: make all APP=HelloPerformance PORT=qemu CPU_ARCH=cortex-m3
 
 # define source directory
 SRC		+= $(EGUI_PORT_PATH)

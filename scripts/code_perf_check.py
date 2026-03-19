@@ -3,7 +3,7 @@
 """
 Performance regression check for EmbeddedGUI using QEMU ARM emulation.
 
-Builds HelloPerformace for each CPU profile, runs in QEMU with deterministic
+Builds HelloPerformance for each CPU profile, runs in QEMU with deterministic
 instruction counting (-icount shift=0), parses structured PERF_RESULT output,
 and generates JSON + Markdown reports.
 
@@ -88,7 +88,7 @@ def get_git_commit():
 
 
 def build_for_profile(profile_name, profile_config, clean=False):
-    """Build HelloPerformace for a specific CPU profile."""
+    """Build HelloPerformance for a specific CPU profile."""
     cpu_arch = profile_config["cpu_arch"]
     print(f"\n{'='*60}")
     print(f"Building for {profile_name} (cpu_arch={cpu_arch})")
@@ -100,7 +100,7 @@ def build_for_profile(profile_name, profile_config, clean=False):
                        capture_output=True)
 
     # Build
-    build_cmd = f"make all APP=HelloPerformace PORT=qemu CPU_ARCH={cpu_arch}"
+    build_cmd = f"make all APP=HelloPerformance PORT=qemu CPU_ARCH={cpu_arch}"
     result = subprocess.run(
         build_cmd, shell=True, cwd=PROJECT_ROOT,
         capture_output=True, text=True, timeout=120
@@ -112,7 +112,7 @@ def build_for_profile(profile_name, profile_config, clean=False):
         return False
 
     # Copy external resource binary to output/ for QEMU semihosting access
-    res_bin_src = PROJECT_ROOT / "example" / "HelloPerformace" / "resource" / "app_egui_resource_merge.bin"
+    res_bin_src = PROJECT_ROOT / "example" / "HelloPerformance" / "resource" / "app_egui_resource_merge.bin"
     res_bin_dst = PROJECT_ROOT / "output" / "app_egui_resource_merge.bin"
     if res_bin_src.exists() and not res_bin_dst.exists():
         shutil.copy(res_bin_src, res_bin_dst)
@@ -251,7 +251,7 @@ def generate_markdown_report(all_results, threshold, git_commit, skipped=None):
 # PFB Matrix Testing
 # ============================================================================
 
-APP_CONFIG_PATH = PROJECT_ROOT / "example" / "HelloPerformace" / "app_egui_config.h"
+APP_CONFIG_PATH = PROJECT_ROOT / "example" / "HelloPerformance" / "app_egui_config.h"
 PFB_MATRIX_RESULTS_FILE = OUTPUT_DIR / "pfb_matrix_results.json"
 PFB_MATRIX_REPORT_FILE = OUTPUT_DIR / "pfb_matrix_report.md"
 SPI_MATRIX_RESULTS_FILE = OUTPUT_DIR / "spi_matrix_results.json"

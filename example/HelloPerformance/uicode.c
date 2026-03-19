@@ -503,7 +503,7 @@ void uicode_create_ui(void)
 
 #if EGUI_CONFIG_RECORDING_TEST
 /**
- * @brief Recording actions for HelloPerformace.
+ * @brief Recording actions for HelloPerformance.
  * Provide enough WAIT actions to capture the full performance sweep,
  * including late extern-image cases.
  */
