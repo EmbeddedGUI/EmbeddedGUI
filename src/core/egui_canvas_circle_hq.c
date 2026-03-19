@@ -555,6 +555,41 @@ static void circle_hq_draw_arc_corner_fill(egui_dim_t cx, egui_dim_t cy, egui_di
     int32_t r_outer_sq = (int32_t)(radius + 1) * (radius + 1);
     int is_full = (sa == 0 && ea == 90);
 
+    /* Pre-compute arc angle cotangents for per-row x-range narrowing.
+     * The arc boundary lines in quadrant coords: y = tan(sa)*x and y = tan(ea)*x.
+     * For each row (fixed qy), solving for qx gives:
+     *   qx_max = qy * cot(sa) (start boundary)
+     *   qx_min = qy * cot(ea) (end boundary)
+     */
+    int32_t cot_sa_q16 = 0, cot_ea_q16 = 0;
+    int has_start_bound = 0, has_end_bound = 0;
+    if (!is_full)
+    {
+        if (sa > 0 && sa < 90)
+        {
+            int32_t sin_sa = circle_hq_cos_val_list[90 - sa];
+            if (sin_sa > 0)
+            {
+                cot_sa_q16 = (int32_t)(((int64_t)circle_hq_cos_val_list[sa] << 16) / sin_sa);
+                has_start_bound = 1;
+            }
+        }
+        else if (sa == 90)
+        {
+            cot_sa_q16 = 0;
+            has_start_bound = 1;
+        }
+        if (ea > 0 && ea < 90)
+        {
+            int32_t sin_ea = circle_hq_cos_val_list[90 - ea];
+            if (sin_ea > 0)
+            {
+                cot_ea_q16 = (int32_t)(((int64_t)circle_hq_cos_val_list[ea] << 16) / sin_ea);
+                has_end_bound = 1;
+            }
+        }
+    }
+
     egui_dim_t y_s = ri.location.y, y_e = ri.location.y + ri.size.height;
     egui_dim_t x_s = ri.location.x, x_e = ri.location.x + ri.size.width;
 
@@ -583,6 +618,38 @@ static void circle_hq_draw_arc_corner_fill(egui_dim_t cx, egui_dim_t cy, egui_di
         {
             x_lo = EGUI_MAX(cx, x_s);
             x_hi = EGUI_MIN((egui_dim_t)(cx + x_outer_half), x_e - 1);
+        }
+
+        /* Further narrow x-range based on arc angle boundaries */
+        if (!is_full)
+        {
+            int32_t qy;
+            if (type == CIRCLE_HQ_TYPE_RIGHT_BOTTOM || type == CIRCLE_HQ_TYPE_LEFT_BOTTOM)
+                qy = y - cy;
+            else
+                qy = cy - y;
+
+            if (qy > 0)
+            {
+                if (has_start_bound)
+                {
+                    int32_t qx_max = (int32_t)(((int64_t)qy * cot_sa_q16) >> 16) + 2;
+                    if (type == CIRCLE_HQ_TYPE_RIGHT_BOTTOM || type == CIRCLE_HQ_TYPE_RIGHT_TOP)
+                        x_hi = EGUI_MIN(x_hi, (egui_dim_t)(cx + qx_max));
+                    else
+                        x_lo = EGUI_MAX(x_lo, (egui_dim_t)(cx - qx_max));
+                }
+                if (has_end_bound)
+                {
+                    int32_t qx_min = (int32_t)(((int64_t)qy * cot_ea_q16) >> 16) - 2;
+                    if (qx_min < 0)
+                        qx_min = 0;
+                    if (type == CIRCLE_HQ_TYPE_RIGHT_BOTTOM || type == CIRCLE_HQ_TYPE_RIGHT_TOP)
+                        x_lo = EGUI_MAX(x_lo, (egui_dim_t)(cx + qx_min));
+                    else
+                        x_hi = EGUI_MIN(x_hi, (egui_dim_t)(cx - qx_min));
+                }
+            }
         }
 
         if (use_direct_pfb)
@@ -771,6 +838,36 @@ static void circle_hq_draw_arc_corner(egui_dim_t cx, egui_dim_t cy, egui_dim_t r
     int32_t inner_inv128_v = (inner_r > 0) ? circle_hq_precompute_inv128(inner_r) : 0;
     int is_full = (sa == 0 && ea == 90);
 
+    /* Pre-compute arc angle cotangents for per-row x-range narrowing */
+    int32_t stroke_cot_sa_q16 = 0, stroke_cot_ea_q16 = 0;
+    int stroke_has_start_bound = 0, stroke_has_end_bound = 0;
+    if (!is_full)
+    {
+        if (sa > 0 && sa < 90)
+        {
+            int32_t sin_sa = circle_hq_cos_val_list[90 - sa];
+            if (sin_sa > 0)
+            {
+                stroke_cot_sa_q16 = (int32_t)(((int64_t)circle_hq_cos_val_list[sa] << 16) / sin_sa);
+                stroke_has_start_bound = 1;
+            }
+        }
+        else if (sa == 90)
+        {
+            stroke_cot_sa_q16 = 0;
+            stroke_has_start_bound = 1;
+        }
+        if (ea > 0 && ea < 90)
+        {
+            int32_t sin_ea = circle_hq_cos_val_list[90 - ea];
+            if (sin_ea > 0)
+            {
+                stroke_cot_ea_q16 = (int32_t)(((int64_t)circle_hq_cos_val_list[ea] << 16) / sin_ea);
+                stroke_has_end_bound = 1;
+            }
+        }
+    }
+
     egui_dim_t y_s = ri.location.y, y_e = ri.location.y + ri.size.height;
     egui_dim_t x_s = ri.location.x, x_e = ri.location.x + ri.size.width;
 
@@ -799,6 +896,38 @@ static void circle_hq_draw_arc_corner(egui_dim_t cx, egui_dim_t cy, egui_dim_t r
         {
             x_lo = EGUI_MAX(cx, x_s);
             x_hi = EGUI_MIN((egui_dim_t)(cx + x_outer_half), x_e - 1);
+        }
+
+        /* Further narrow x-range based on arc angle boundaries */
+        if (!is_full)
+        {
+            int32_t qy;
+            if (type == CIRCLE_HQ_TYPE_RIGHT_BOTTOM || type == CIRCLE_HQ_TYPE_LEFT_BOTTOM)
+                qy = y - cy;
+            else
+                qy = cy - y;
+
+            if (qy > 0)
+            {
+                if (stroke_has_start_bound)
+                {
+                    int32_t qx_max = (int32_t)(((int64_t)qy * stroke_cot_sa_q16) >> 16) + 2;
+                    if (type == CIRCLE_HQ_TYPE_RIGHT_BOTTOM || type == CIRCLE_HQ_TYPE_RIGHT_TOP)
+                        x_hi = EGUI_MIN(x_hi, (egui_dim_t)(cx + qx_max));
+                    else
+                        x_lo = EGUI_MAX(x_lo, (egui_dim_t)(cx - qx_max));
+                }
+                if (stroke_has_end_bound)
+                {
+                    int32_t qx_min = (int32_t)(((int64_t)qy * stroke_cot_ea_q16) >> 16) - 2;
+                    if (qx_min < 0)
+                        qx_min = 0;
+                    if (type == CIRCLE_HQ_TYPE_RIGHT_BOTTOM || type == CIRCLE_HQ_TYPE_RIGHT_TOP)
+                        x_lo = EGUI_MAX(x_lo, (egui_dim_t)(cx + qx_min));
+                    else
+                        x_hi = EGUI_MIN(x_hi, (egui_dim_t)(cx - qx_min));
+                }
+            }
         }
 
         if (use_direct_pfb)
