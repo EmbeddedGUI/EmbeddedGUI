@@ -206,6 +206,7 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
         int32_t rotatedY = row_start_offset_y + Cy_base;
 
         egui_color_int_t *dst_row = &pfb[(dy - pfb_oy) * pfb_w + (draw_x0 - pfb_ox)];
+        int entered = 0;
 
         for (int32_t dx = draw_x0; dx < draw_x1; dx++)
         {
@@ -214,6 +215,7 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
 
             if (sx >= 0 && sx < src_w - 1 && sy >= 0 && sy < src_h - 1)
             {
+                entered = 1;
                 /* Interior: all 4 bilinear neighbors guaranteed in bounds */
                 uint8_t fx = (rotatedX >> 7) & 0xFF;
                 uint8_t fy = (rotatedY >> 7) & 0xFF;
@@ -262,6 +264,7 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
             }
             else if (sx >= -1 && sx < src_w && sy >= -1 && sy < src_h)
             {
+                entered = 1;
                 /* Edge: 1-pixel border, use destination as fallback for out-of-bounds samples */
                 uint8_t fx = (rotatedX >> 7) & 0xFF;
                 uint8_t fy = (rotatedY >> 7) & 0xFF;
@@ -288,6 +291,10 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                     egui_color_t *back = (egui_color_t *)dst_row;
                     egui_rgb_mix_ptr(back, &color, back, final_alpha);
                 }
+            }
+            else if (entered)
+            {
+                break; /* Early exit: left source region (SCGUI-style scanline break) */
             }
 
             rotatedX += inv_m00;
@@ -790,6 +797,8 @@ static inline uint8_t sample_tile_alpha(const text_transform_glyph_t *glyphs, in
         }
     }
 
+    /* No glyph found: signal whitespace to caller for early exit */
+    *hint = -1;
     return 0;
 }
 
@@ -948,6 +957,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
         int32_t rotatedY = row_start_offset_y + ctx.Cy_base;
 
         egui_color_int_t *dst_row = &ctx.pfb[(dy - ctx.pfb_oy) * ctx.pfb_w + (ctx.draw_x0 - ctx.pfb_ox)];
+        int entered = 0;
 
         for (int32_t dx = ctx.draw_x0; dx < ctx.draw_x1; dx++)
         {
@@ -956,6 +966,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
             if (sx >= -1 && sx < ctx.src_w && sy >= -1 && sy < ctx.src_h)
             {
+                entered = 1;
                 uint8_t fx = (rotatedX >> 7) & 0xFF;
                 uint8_t fy = (rotatedY >> 7) & 0xFF;
                 uint16_t a00, a01, a10, a11;
@@ -1020,6 +1031,10 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                         }
                     }
                 }
+            }
+            else if (entered)
+            {
+                break; /* Early exit: left source region (SCGUI-style scanline break) */
             }
 
         text_next_pixel:
