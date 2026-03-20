@@ -54,6 +54,7 @@
 | 42 | Circle edge-only segment split | MASK_IMAGE_CIRCLE: 3.661->3.647ms (-0.4%), MASK_RECT_FILL_CIRCLE: 1.558->1.541ms (-1.1%) | 02cb092 |
 | 43 | Opaque alpha8 dispatch fast path | IMAGE_565_8: 1.497->0.860ms (-42.6%), MASK_IMAGE_CIRCLE: 3.647->2.617ms (-28.2%) | c5bc165 |
 | 44 | Circle masked RGB565 resize edge batching | MASK_IMAGE_CIRCLE: 2.617->2.551ms (-2.5%), QUARTER: 0.815->0.796ms (-2.3%) | fc706cb |
+| 45 | Circle fixed-row masked segment split | MASK_IMAGE_CIRCLE: 2.551->2.483ms (-2.7%), DOUBLE: 2.449->2.400ms (-2.0%) | 691f035 |
 
 ## 2026-03-20 RECTANGLE_FILL batching round
 
@@ -398,6 +399,27 @@ QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
 - `src/image/egui_image_std.c` now reuses a circle-specific masked-edge segment blender for the plain `RGB565` resize path that was unlocked by the opaque-alpha dispatch round, so `MASK_IMAGE_CIRCLE*` no longer falls back to per-pixel `egui_canvas_draw_point_limit()` on left/right AA edge spans.
 - The new helper only takes the circle-mask fast path when `canvas_alpha == EGUI_ALPHA_100`; other masks and non-opaque canvas-alpha cases still fall back to the original generic draw path, which keeps the rendering order unchanged while limiting the optimization to the verified hot path.
 - Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` pixel-identical, and `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` stays `554/554 passed`.
+
+## 2026-03-21 circle fixed-row masked segment split round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| MASK_IMAGE_CIRCLE | 2.551 | 2.483 | -2.7% |
+| MASK_IMAGE_CIRCLE_QUARTER | 0.796 | 0.783 | -1.6% |
+| MASK_IMAGE_CIRCLE_DOUBLE | 2.449 | 2.400 | -2.0% |
+| MASK_IMAGE_ROUND_RECT | 2.187 | 2.132 | -2.5% |
+| MASK_IMAGE_ROUND_RECT_QUARTER | 0.720 | 0.707 | -1.8% |
+| MASK_IMAGE_ROUND_RECT_DOUBLE | 2.149 | 2.096 | -2.5% |
+| IMAGE_RESIZE_565 | 1.708 | 1.651 | -3.3% |
+| IMAGE_RESIZE_565_8 | 1.712 | 1.654 | -3.4% |
+| MASK_IMAGE_NO_MASK | 1.712 | 1.654 | -3.4% |
+| RECTANGLE_FILL | 0.395 | 0.395 | 0.0% |
+
+- `src/image/egui_image_std.c` now splits the plain `RGB565` circle-mask edge blender into fixed-row left/right helpers plus an explicit center-pixel path, so the hot resize path stops reloading mask/cache state for both edge segments on every row.
+- The fixed-row helper also handles the rows whose opaque band is empty by splitting one visible span across left edge, center pixel, and right edge directly, which removes the generic `mask_point()` fallback that was still left on the outermost circle rows.
+- Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, and `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` all pass; screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `59/60` pixel-identical, and the only mismatch (`frame_0054.png`) is confined to the in-app dynamic performance-result frame while the other 59 frames remain unchanged.
 
 ## Before vs After (Original Baseline → Final)
 
