@@ -61,7 +61,8 @@
 | 49 | Circle generic row-cache reuse | MASK_RECT_FILL_CIRCLE: 1.541->1.320ms (-14.3%), DOUBLE: 1.573->1.262ms (-19.8%) | af9388d |
 | 50 | Round-rect masked RGB565 resize edge fast path | MASK_IMAGE_ROUND_RECT: 2.152->1.914ms (-11.1%), DOUBLE: 2.115->1.918ms (-9.3%) | 87ffff3 |
 | 51 | Round-rect resize cross-tile row cache | MASK_IMAGE_ROUND_RECT: 1.914->1.863ms (-2.7%), DOUBLE: 1.918->1.856ms (-3.2%) | 16818c0 |
-| 52 | Round-rect neighbor-row boundary cache | MASK_IMAGE_ROUND_RECT: 1.863->1.859ms (-0.2%), QUARTER: 0.636->0.634ms (-0.3%) | pending |
+| 52 | Round-rect neighbor-row boundary cache | MASK_IMAGE_ROUND_RECT: 1.863->1.859ms (-0.2%), QUARTER: 0.636->0.634ms (-0.3%) | 9ab935f |
+| 53 | Round-rect edge row-data fast path | MASK_IMAGE_ROUND_RECT: 1.859->1.857ms (-0.1%), DOUBLE: 1.855->1.854ms (-0.1%) | pending |
 
 ## 2026-03-20 RECTANGLE_FILL batching round
 
@@ -688,6 +689,25 @@ QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
 - `src/image/egui_image_std.c` now gives the round-rect fast cache a tiny neighbor-row boundary reuse path, so adjacent scanlines can start from the previous visible/opaque boundary instead of restarting from the generic fixed-row lookup every time a new absolute-`y` row misses the cross-tile cache.
 - The optimization stays local to the round-rect `RGB565` resize fast path and only kicks in for nearby row-index changes, which keeps the existing circle path and generic mask behavior unchanged.
 - Validation: `python scripts/code_perf_check.py --profile cortex-m3` was repeated 3 times with identical key results (`MASK_IMAGE_ROUND_RECT=1.859 ms`, `MASK_IMAGE_ROUND_RECT_QUARTER=0.634 ms`, `MASK_IMAGE_ROUND_RECT_DOUBLE=1.855 ms` each run); `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots` passes, screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` identical, and `make clean; make all APP=HelloUnitTest PORT=pc_test; output\main.exe` stays `554/554 passed`.
+
+## 2026-03-21 round-rect edge row-data fast path round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| MASK_IMAGE_ROUND_RECT | 1.859 | 1.857 | -0.1% |
+| MASK_IMAGE_ROUND_RECT_QUARTER | 0.634 | 0.634 | 0.0% |
+| MASK_IMAGE_ROUND_RECT_DOUBLE | 1.855 | 1.854 | -0.1% |
+| MASK_IMAGE_CIRCLE | 1.932 | 1.932 | 0.0% |
+| MASK_IMAGE_CIRCLE_QUARTER | 0.671 | 0.671 | 0.0% |
+| MASK_IMAGE_CIRCLE_DOUBLE | 1.744 | 1.744 | 0.0% |
+| RECTANGLE_FILL | 0.395 | 0.395 | 0.0% |
+| IMAGE_565 | 0.859 | 0.859 | 0.0% |
+
+- `src/image/egui_image_std.c` now makes the round-rect left/right edge blenders reuse the same row-data vs mirror-column split that had already worked well on the circle fast path, instead of calling `egui_canvas_get_circle_corner_value_fixed_row()` for every edge pixel.
+- This keeps the optimization scoped to the round-rect `RGB565` resize fast path: the cross-tile row cache still decides row geometry, and only the per-edge alpha fetch loop changes.
+- Validation: `python scripts/code_perf_check.py --profile cortex-m3` was repeated 3 times with identical key results (`MASK_IMAGE_ROUND_RECT=1.857 ms`, `MASK_IMAGE_ROUND_RECT_QUARTER=0.634 ms`, `MASK_IMAGE_ROUND_RECT_DOUBLE=1.854 ms` each run); `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots` passes, screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` identical, and `make clean; make all APP=HelloUnitTest PORT=pc_test; output\main.exe` stays `554/554 passed`.
 
 ## Remaining Optimization Targets
 
