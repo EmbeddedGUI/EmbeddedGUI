@@ -59,6 +59,7 @@
 | 47 | Circle local row-range in resize loop | MASK_IMAGE_CIRCLE: 2.430->2.253ms (-7.3%), DOUBLE: 2.339->2.163ms (-7.5%) | ad041ee |
 | 48 | Circle resize cross-tile row cache | MASK_IMAGE_CIRCLE: 2.253->1.927ms (-14.5%), DOUBLE: 2.163->1.739ms (-19.6%) | 7732fde |
 | 49 | Circle generic row-cache reuse | MASK_RECT_FILL_CIRCLE: 1.541->1.320ms (-14.3%), DOUBLE: 1.573->1.262ms (-19.8%) | af9388d |
+| 50 | Round-rect masked RGB565 resize edge fast path | MASK_IMAGE_ROUND_RECT: 2.152->1.914ms (-11.1%), DOUBLE: 2.115->1.918ms (-9.3%) | 87ffff3 |
 
 ## 2026-03-20 RECTANGLE_FILL batching round
 
@@ -625,6 +626,26 @@ QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
 - `src/mask/egui_mask_circle.c` now makes the per-mask absolute-`y` row cache serve the generic `mask_get_row_range()` and `mask_get_row_visible_range()` APIs, not only the image-resize fast path.
 - Because core rendering walks horizontal PFB tiles inside each vertical band, this avoids rebuilding the same circle row geometry on every tile for solid-color circle-masked fills.
 - `MASK_IMAGE_CIRCLE*` stay flat because their opaque `RGB565_8` path already bypasses these generic queries and was optimized in the previous round.
+- Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` identical, and `make clean; make all APP=HelloUnitTest PORT=pc_test; output\main.exe` stays `554/554 passed`.
+
+## 2026-03-21 round-rect masked RGB565 resize edge fast path round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| MASK_IMAGE_ROUND_RECT | 2.152 | 1.914 | -11.1% |
+| MASK_IMAGE_ROUND_RECT_QUARTER | 0.712 | 0.648 | -9.0% |
+| MASK_IMAGE_ROUND_RECT_DOUBLE | 2.115 | 1.918 | -9.3% |
+| MASK_IMAGE_CIRCLE | 1.927 | 1.932 | +0.3% |
+| MASK_IMAGE_CIRCLE_QUARTER | 0.670 | 0.671 | +0.1% |
+| MASK_IMAGE_CIRCLE_DOUBLE | 1.739 | 1.744 | +0.3% |
+| RECTANGLE_FILL | 0.395 | 0.395 | 0.0% |
+| IMAGE_565 | 0.859 | 0.859 | 0.0% |
+
+- `src/image/egui_image_std.c` adds a dedicated plain-`RGB565` resize fast path for round-rectangle masks when the opaque `RGB565_8` dispatch has already collapsed to `canvas_alpha == EGUI_ALPHA_100`.
+- The new helper mirrors the circle fast path structure from earlier rounds, but keeps the optimization isolated in its own dispatch branch so `MASK_IMAGE_CIRCLE*` stays effectively flat while `MASK_IMAGE_ROUND_RECT*` drops by about 9-11%.
+- The partial-row path now computes round-rect visible/opaque spans once per scanline, then writes left/right AA edge segments directly into the PFB instead of going through per-pixel `egui_canvas_draw_point_limit()` calls.
 - Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` identical, and `make clean; make all APP=HelloUnitTest PORT=pc_test; output\main.exe` stays `554/554 passed`.
 
 ## Remaining Optimization Targets
