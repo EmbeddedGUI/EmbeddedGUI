@@ -196,26 +196,59 @@ def _get_categorized_tests(available_tests):
     return result
 
 
+def _load_cpu_only_data():
+    """Try to load CPU-only rendering data from spi_matrix_results.json.
+
+    Returns (data_dict, timestamp, commit, profile_name) or None if unavailable.
+    The 'no_spi' (spi_mhz==0) config in the SPI matrix provides pure CPU
+    rendering times without SPI transfer overhead.
+    """
+    spi_data = load_json(PERF_OUTPUT / "spi_matrix_results.json")
+    if not spi_data:
+        return None
+
+    spi_matrix = spi_data.get("spi_matrix", {})
+    # Find the config with spi_mhz == 0 (CPU only)
+    for cfg_name, cfg_data in spi_matrix.items():
+        if cfg_data.get("spi_mhz", -1) == 0:
+            return (
+                cfg_data["results"],
+                spi_data.get("timestamp", "N/A"),
+                spi_data.get("git_commit", "N/A"),
+                spi_data.get("profile", "N/A"),
+            )
+    return None
+
+
 def generate_perf_report():
-    """Generate single-profile performance report grouped by category."""
+    """Generate single-profile performance report grouped by category.
+
+    Prefers CPU-only data from spi_matrix_results.json (no SPI overhead).
+    Falls back to perf_results.json if SPI matrix data is unavailable.
+    """
     plt = setup_matplotlib()
 
-    results = load_json(PERF_OUTPUT / "perf_results.json")
-    if not results:
-        print("  [SKIP] perf_results.json not found")
-        return
+    # Prefer CPU-only data from SPI matrix (no SPI transfer overhead)
+    cpu_only = _load_cpu_only_data()
+    if cpu_only:
+        data, timestamp, commit, profile_name = cpu_only
+        print("  Using CPU-only data from spi_matrix_results.json (no SPI overhead)")
+    else:
+        results = load_json(PERF_OUTPUT / "perf_results.json")
+        if not results:
+            print("  [SKIP] No performance data found")
+            return
 
-    timestamp = results.get("timestamp", "N/A")
-    commit = results.get("git_commit", "N/A")
+        timestamp = results.get("timestamp", "N/A")
+        commit = results.get("git_commit", "N/A")
 
-    # Collect profile data (use first / only profile)
-    profiles = results.get("profiles", {})
-    if not profiles:
-        print("  [SKIP] No profile data in perf_results.json")
-        return
+        profiles = results.get("profiles", {})
+        if not profiles:
+            print("  [SKIP] No profile data in perf_results.json")
+            return
 
-    profile_name = list(profiles.keys())[0]
-    data = profiles[profile_name]
+        profile_name = list(profiles.keys())[0]
+        data = profiles[profile_name]
 
     # Organize tests by category
     categorized = _get_categorized_tests(set(data.keys()))

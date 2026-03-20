@@ -234,7 +234,62 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER 0
 #endif
 
+/* ---- Image format switches ---- */
+
+/**
+ * Image format options.
+ * Enable/disable specific image format support to reduce code size.
+ * All formats enabled by default (1).
+ */
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32 1
+#endif
+
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565 1
+#endif
+
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1 1
+#endif
+
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2 1
+#endif
+
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_4
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_4 1
+#endif
+
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8 1
+#endif
+
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_1 1
+#endif
+
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_2
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_2 1
+#endif
+
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_4
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_4 1
+#endif
+
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8 1
+#endif
+
 /* ---- Reduce code/ram size ---- */
+
+/**
+ * Reduce code size options.
+ * Use generic get_pixel function pointer instead of per-format specialized code.
+ */
+#ifndef EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE
+#define EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE 0
+#endif
 
 /**
  * Reduce code/ram size options.

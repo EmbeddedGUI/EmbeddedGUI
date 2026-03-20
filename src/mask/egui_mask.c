@@ -25,6 +25,7 @@ const egui_mask_api_t egui_mask_t_api_table = {
         .mask_point = egui_mask_mask_point,
         .mask_get_row_range = NULL,
         .mask_get_row_visible_range = NULL,
+        .mask_blend_row_color = NULL,
 };
 
 void egui_mask_init(egui_mask_t *self)

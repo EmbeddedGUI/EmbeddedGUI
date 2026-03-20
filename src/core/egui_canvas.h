@@ -313,6 +313,47 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
     x_total = x + width;
     y_total = y + height;
 
+    // Check if mask has uniform row-level color blend (e.g., LINEAR_VERTICAL gradient)
+    if (self->mask->api->mask_blend_row_color != NULL)
+    {
+        egui_dim_t pfb_x_offset = self->pfb_location_in_base_view.x;
+        egui_dim_t pfb_y_offset = self->pfb_location_in_base_view.y;
+        egui_dim_t pfb_width = self->pfb_region.size.width;
+
+        for (yp = y; yp < y_total; yp++)
+        {
+            egui_color_t row_color = color;
+            if (self->mask->api->mask_blend_row_color(self->mask, yp, &row_color))
+            {
+                egui_dim_t pfb_y = yp - pfb_y_offset;
+                egui_color_int_t *dst = &self->pfb[pfb_y * pfb_width + (x - pfb_x_offset)];
+
+                if (alpha == EGUI_ALPHA_100)
+                {
+                    for (xp = 0; xp < width; xp++)
+                    {
+                        dst[xp] = row_color.full;
+                    }
+                }
+                else
+                {
+                    for (xp = 0; xp < width; xp++)
+                    {
+                        egui_rgb_mix_ptr((egui_color_t *)&dst[xp], &row_color, (egui_color_t *)&dst[xp], alpha);
+                    }
+                }
+            }
+            else
+            {
+                for (xp = x; xp < x_total; xp++)
+                {
+                    egui_canvas_set_point_color_with_mask(self, xp, yp, color, alpha);
+                }
+            }
+        }
+        return;
+    }
+
     // Check if row-range optimization is available
     if (self->mask->api->mask_get_row_range != NULL)
     {

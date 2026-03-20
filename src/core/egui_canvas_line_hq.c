@@ -65,6 +65,29 @@ static int32_t line_hq_cos_deg(int32_t deg)
     return line_hq_sin_deg(deg + 90);
 }
 
+/* Integer square root (32-bit input, 16-bit result) */
+static uint16_t line_hq_isqrt32(uint32_t n)
+{
+    uint32_t result = 0;
+    uint32_t bit = 1u << 30;
+    while (bit > n)
+        bit >>= 2;
+    while (bit != 0)
+    {
+        if (n >= result + bit)
+        {
+            n -= result + bit;
+            result = (result >> 1) + bit;
+        }
+        else
+        {
+            result >>= 1;
+        }
+        bit >>= 2;
+    }
+    return (uint16_t)result;
+}
+
 /* ========================== Sub-pixel Edge Sampling ========================== */
 
 /**
@@ -343,6 +366,13 @@ void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_
     egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
     egui_alpha_t self_alpha = self->alpha;
 
+    // Pre-compute for per-row x-range narrowing
+    // cross = dx*(y1-py) + dy*(px-x1) is linear in px for each row.
+    // Solving |cross| <= sqrt(outer_thresh) gives x in [x_center - half_range, x_center + half_range]
+    int32_t ady = (dy > 0) ? dy : -dy;
+    uint16_t line_len = line_hq_isqrt32((uint32_t)line_len_sq);
+    int32_t half_range_x = (int32_t)((int64_t)outer_w * (line_len + 1) / (2 * ady)) + 2;
+
     for (egui_dim_t py = scan_y1; py <= scan_y2; py++)
     {
         egui_color_t *dst_row = NULL;
@@ -351,7 +381,12 @@ void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_
             dst_row = (egui_color_t *)&self->pfb[(py - pfb_ofs_y) * pfb_width];
         }
 
-        for (egui_dim_t px = scan_x1; px <= scan_x2; px++)
+        // Narrow x scan range based on cross product geometry
+        int32_t x_center = x1 + (int32_t)((int64_t)dx * (py - y1) / dy);
+        egui_dim_t row_x1 = (egui_dim_t)EGUI_MAX((int32_t)scan_x1, x_center - half_range_x);
+        egui_dim_t row_x2 = (egui_dim_t)EGUI_MIN((int32_t)scan_x2, x_center + half_range_x);
+
+        for (egui_dim_t px = row_x1; px <= row_x2; px++)
         {
             // Fast rejection: check if pixel is near the line
             int64_t cross = (int64_t)dx * (y1 - py) - (int64_t)(x1 - px) * dy;
@@ -526,6 +561,15 @@ void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t
     egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
     egui_alpha_t self_alpha = self->alpha;
 
+    // Pre-compute for per-row x-range narrowing
+    int32_t ady = (dy > 0) ? dy : -dy;
+    int32_t half_range_x = 32767; // default: no narrowing (for horizontal lines)
+    if (ady > 0)
+    {
+        uint16_t line_len = line_hq_isqrt32((uint32_t)line_len_sq);
+        half_range_x = (int32_t)((int64_t)outer_w * (line_len + 1) / (2 * ady)) + 2;
+    }
+
     for (egui_dim_t py = scan_y1; py <= scan_y2; py++)
     {
         egui_color_t *dst_row = NULL;
@@ -534,7 +578,12 @@ void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t
             dst_row = (egui_color_t *)&self->pfb[(py - pfb_ofs_y) * pfb_width];
         }
 
-        for (egui_dim_t px = scan_x1; px <= scan_x2; px++)
+        // Narrow x scan range based on cross product geometry
+        int32_t x_center = (ady > 0) ? x1 + (int32_t)((int64_t)dx * (py - y1) / dy) : (x1 + x2) / 2;
+        egui_dim_t row_x1 = (egui_dim_t)EGUI_MAX((int32_t)scan_x1, x_center - half_range_x);
+        egui_dim_t row_x2 = (egui_dim_t)EGUI_MIN((int32_t)scan_x2, x_center + half_range_x);
+
+        for (egui_dim_t px = row_x1; px <= row_x2; px++)
         {
             int64_t cross = (int64_t)dx * (y1 - py) - (int64_t)(x1 - px) * dy;
             int64_t cross_sq = cross * cross;
@@ -734,6 +783,15 @@ static void line_hq_draw_polyline_internal(const egui_dim_t *points, uint8_t cou
         egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
         egui_alpha_t self_alpha = self->alpha;
 
+        // Pre-compute for per-row x-range narrowing
+        int32_t ady = (dy > 0) ? dy : -dy;
+        int32_t half_range_x = 32767;
+        if (ady > 0)
+        {
+            uint16_t line_len = line_hq_isqrt32((uint32_t)line_len_sq);
+            half_range_x = (int32_t)((int64_t)outer_w * (line_len + 1) / (2 * ady)) + 2;
+        }
+
         for (egui_dim_t py = scan_y1; py <= scan_y2; py++)
         {
             egui_color_t *dst_row = NULL;
@@ -742,7 +800,12 @@ static void line_hq_draw_polyline_internal(const egui_dim_t *points, uint8_t cou
                 dst_row = (egui_color_t *)&self->pfb[(py - pfb_ofs_y) * pfb_width];
             }
 
-            for (egui_dim_t px = scan_x1; px <= scan_x2; px++)
+            // Narrow x scan range based on cross product geometry
+            int32_t x_center = (ady > 0) ? sx1 + (int32_t)((int64_t)dx * (py - sy1) / dy) : (sx1 + sx2) / 2;
+            egui_dim_t row_x1 = (egui_dim_t)EGUI_MAX((int32_t)scan_x1, x_center - half_range_x);
+            egui_dim_t row_x2 = (egui_dim_t)EGUI_MIN((int32_t)scan_x2, x_center + half_range_x);
+
+            for (egui_dim_t px = row_x1; px <= row_x2; px++)
             {
                 int64_t cross = (int64_t)dx * (sy1 - py) - (int64_t)(sx1 - px) * dy;
                 int64_t cross_sq = cross * cross;

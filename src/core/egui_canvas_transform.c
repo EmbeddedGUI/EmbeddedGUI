@@ -58,6 +58,144 @@ __EGUI_STATIC_INLINE__ uint16_t bilinear_rgb565_packed(uint16_t c00, uint16_t c0
 }
 
 /**
+ * Compute the number of pixels to skip at the start of a scanline for rotation.
+ *
+ * For inverse-mapped rotation, pixels at the start (and end) of each output
+ * scanline may map outside the source rectangle. The "entered + break" pattern
+ * handles the right side efficiently, but left-side dead pixels are checked one
+ * by one. This function computes an approximate skip count to jump past most of
+ * the left dead zone, reducing per-pixel overhead in edge/corner PFB tiles.
+ *
+ * @param rotatedX  Q15 source X at first pixel of scanline
+ * @param rotatedY  Q15 source Y at first pixel of scanline
+ * @param inv_m00   Q15 per-pixel X step
+ * @param inv_m10   Q15 per-pixel Y step
+ * @param src_lo_x  Q15 lower bound for source X (typically -(1<<15))
+ * @param src_hi_x  Q15 upper bound for source X (typically src_w << 15)
+ * @param src_lo_y  Q15 lower bound for source Y (typically -(1<<15))
+ * @param src_hi_y  Q15 upper bound for source Y (typically src_h << 15)
+ * @param max_skip  Maximum allowed skip (draw_x1 - draw_x0)
+ * @return Number of pixels to skip (0 if first pixel is already valid)
+ */
+static int32_t transform_scanline_skip(int32_t rotatedX, int32_t rotatedY, int32_t inv_m00, int32_t inv_m10, int32_t src_lo_x, int32_t src_hi_x,
+                                       int32_t src_lo_y, int32_t src_hi_y, int32_t max_skip)
+{
+    /* Quick check: if first pixel is already in bounds, no skip needed */
+    if (rotatedX >= src_lo_x && rotatedX < src_hi_x && rotatedY >= src_lo_y && rotatedY < src_hi_y)
+    {
+        return 0;
+    }
+
+    /* Compute skip for each out-of-bounds axis.
+     * For axis with step > 0: skip = ceil((bound_lo - current) / step)
+     * For axis with step < 0: skip = ceil((current - bound_hi + 1) / (-step))
+     * Take the max of all skips. */
+    int32_t skip = 0;
+
+    /* X axis */
+    if (inv_m00 > 0)
+    {
+        if (rotatedX < src_lo_x)
+        {
+            int32_t need = src_lo_x - rotatedX;
+            int32_t s = (need + inv_m00 - 1) / inv_m00;
+            if (s > skip)
+                skip = s;
+        }
+    }
+    else if (inv_m00 < 0)
+    {
+        if (rotatedX >= src_hi_x)
+        {
+            int32_t need = rotatedX - src_hi_x + 1;
+            int32_t neg_m = -inv_m00;
+            int32_t s = (need + neg_m - 1) / neg_m;
+            if (s > skip)
+                skip = s;
+        }
+    }
+
+    /* Y axis */
+    if (inv_m10 > 0)
+    {
+        if (rotatedY < src_lo_y)
+        {
+            int32_t need = src_lo_y - rotatedY;
+            int32_t s = (need + inv_m10 - 1) / inv_m10;
+            if (s > skip)
+                skip = s;
+        }
+    }
+    else if (inv_m10 < 0)
+    {
+        if (rotatedY >= src_hi_y)
+        {
+            int32_t need = rotatedY - src_hi_y + 1;
+            int32_t neg_m = -inv_m10;
+            int32_t s = (need + neg_m - 1) / neg_m;
+            if (s > skip)
+                skip = s;
+        }
+    }
+
+    /* Clamp to maximum and subtract 1 for safety (rounding margin) */
+    if (skip > 1)
+    {
+        skip -= 1;
+    }
+    if (skip > max_skip)
+    {
+        skip = max_skip;
+    }
+
+    return skip;
+}
+
+/**
+ * Compute alpha buffer byte size for a given image dimension and alpha type.
+ * Used by external resource loading and row-byte calculations.
+ */
+static inline uint32_t image_alpha_buf_size(int16_t w, int16_t h, uint8_t alpha_type)
+{
+    switch (alpha_type)
+    {
+    case EGUI_IMAGE_ALPHA_TYPE_8:
+        return (uint32_t)w * h;
+    case EGUI_IMAGE_ALPHA_TYPE_4:
+        return (uint32_t)((w + 1) >> 1) * h;
+    case EGUI_IMAGE_ALPHA_TYPE_2:
+        return (uint32_t)((w + 3) >> 2) * h;
+    case EGUI_IMAGE_ALPHA_TYPE_1:
+        return (uint32_t)((w + 7) >> 3) * h;
+    default:
+        return 0;
+    }
+}
+
+/**
+ * Read a single alpha value from a packed image alpha buffer at (x, y).
+ * Supports all alpha types (1/2/4/8 bits per pixel).
+ * The alpha_row_bytes parameter is pre-computed for the specific alpha_type.
+ */
+static inline uint8_t image_transform_read_alpha(const uint8_t *alpha_buf, int alpha_row_bytes, int x, int y, uint8_t alpha_type)
+{
+    const uint8_t *row = alpha_buf + y * alpha_row_bytes;
+    switch (alpha_type)
+    {
+    case EGUI_IMAGE_ALPHA_TYPE_8:
+        return row[x];
+    case EGUI_IMAGE_ALPHA_TYPE_4:
+        return egui_alpha_change_table_4[(row[x >> 1] >> ((x & 1) << 2)) & 0x0F];
+    case EGUI_IMAGE_ALPHA_TYPE_2:
+        return egui_alpha_change_table_2[(row[x >> 2] >> ((x & 3) << 1)) & 0x03];
+    case EGUI_IMAGE_ALPHA_TYPE_1:
+        return (row[x >> 3] >> (x & 7)) & 1 ? 255 : 0;
+    default:
+        return 0;
+    }
+}
+
+/**
  * Draw a rotated and scaled image using inverse-mapping with bilinear interpolation.
  *
  * @param img       Source image (must be egui_image_std_t with RGB565 data)
@@ -147,6 +285,7 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
     egui_dim_t pfb_oy = canvas->pfb_location_in_base_view.y;
     egui_color_int_t *pfb = canvas->pfb;
     egui_alpha_t canvas_alpha = canvas->alpha;
+    egui_mask_t *mask = canvas->mask;
 
     /* Source pixel data */
     const uint16_t *data;
@@ -166,17 +305,24 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
         egui_api_load_external_resource(ext_data_buf, (egui_uintptr_t)(info->data_buf), 0, data_size);
         data = (const uint16_t *)ext_data_buf;
 
-        if (info->alpha_buf != NULL && info->alpha_type == EGUI_IMAGE_ALPHA_TYPE_8)
+        if (info->alpha_buf != NULL)
         {
-            uint32_t alpha_size = (uint32_t)src_w * src_h;
-            ext_alpha_buf = egui_malloc(alpha_size);
-            if (ext_alpha_buf == NULL)
+            uint32_t alpha_size = image_alpha_buf_size(src_w, src_h, info->alpha_type);
+            if (alpha_size > 0)
             {
-                egui_free(ext_data_buf);
-                return;
+                ext_alpha_buf = egui_malloc(alpha_size);
+                if (ext_alpha_buf == NULL)
+                {
+                    egui_free(ext_data_buf);
+                    return;
+                }
+                egui_api_load_external_resource(ext_alpha_buf, (egui_uintptr_t)(info->alpha_buf), 0, alpha_size);
+                alpha_buf = (const uint8_t *)ext_alpha_buf;
             }
-            egui_api_load_external_resource(ext_alpha_buf, (egui_uintptr_t)(info->alpha_buf), 0, alpha_size);
-            alpha_buf = (const uint8_t *)ext_alpha_buf;
+            else
+            {
+                alpha_buf = NULL;
+            }
         }
         else
         {
@@ -189,75 +335,273 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
         data = (const uint16_t *)info->data_buf;
         alpha_buf = (const uint8_t *)info->alpha_buf;
     }
-    int has_alpha8 = (alpha_buf != NULL && info->alpha_type == EGUI_IMAGE_ALPHA_TYPE_8);
-    int opaque_mode = (!has_alpha8 && canvas_alpha == EGUI_ALPHA_100);
+    int has_alpha = (alpha_buf != NULL);
+    uint8_t alpha_type = info->alpha_type;
+    int has_alpha8 = (has_alpha && alpha_type == EGUI_IMAGE_ALPHA_TYPE_8);
+    int alpha_row_bytes = 0;
+    if (has_alpha)
+    {
+        switch (alpha_type)
+        {
+        case EGUI_IMAGE_ALPHA_TYPE_8:
+            alpha_row_bytes = src_w;
+            break;
+        case EGUI_IMAGE_ALPHA_TYPE_4:
+            alpha_row_bytes = (src_w + 1) >> 1;
+            break;
+        case EGUI_IMAGE_ALPHA_TYPE_2:
+            alpha_row_bytes = (src_w + 3) >> 2;
+            break;
+        case EGUI_IMAGE_ALPHA_TYPE_1:
+            alpha_row_bytes = (src_w + 7) >> 3;
+            break;
+        default:
+            has_alpha = 0;
+            break;
+        }
+    }
+    int opaque_mode = (!has_alpha && canvas_alpha == EGUI_ALPHA_100);
 
     /* Row-constant terms for incremental scanning */
     int32_t Cx_base = inv_m01 * ((int32_t)draw_y0 - y) + ((int32_t)cx << 15) + offx;
     int32_t Cy_base = inv_m11 * ((int32_t)draw_y0 - y) + ((int32_t)cy << 15) + offy;
 
+    /* Hoist loop-invariant row-start offset computed from draw_x0 */
+    int32_t row_start_offset_x = inv_m00 * ((int32_t)draw_x0 - x);
+    int32_t row_start_offset_y = inv_m10 * ((int32_t)draw_x0 - x);
+
+    /* Source bounds in Q15 for scanline skip */
+    int32_t src_lo_x_q15 = -(1 << 15);
+    int32_t src_hi_x_q15 = (int32_t)src_w << 15;
+    int32_t src_lo_y_q15 = -(1 << 15);
+    int32_t src_hi_y_q15 = (int32_t)src_h << 15;
+
+    /* Interior bounds in Q15 for SIR (Scanline Interior Range) */
+    int32_t int_max_x_q15 = ((int32_t)(src_w - 1)) << 15;
+    int32_t int_max_y_q15 = ((int32_t)(src_h - 1)) << 15;
+
     for (int32_t dy = draw_y0; dy < draw_y1; dy++)
     {
-        int32_t rotatedX = inv_m00 * ((int32_t)draw_x0 - x) + Cx_base;
-        int32_t rotatedY = inv_m10 * ((int32_t)draw_x0 - x) + Cy_base;
+        int32_t rotatedX = row_start_offset_x + Cx_base;
+        int32_t rotatedY = row_start_offset_y + Cy_base;
 
         egui_color_int_t *dst_row = &pfb[(dy - pfb_oy) * pfb_w + (draw_x0 - pfb_ox)];
+        int entered = 0;
+        int32_t dx = draw_x0;
 
-        for (int32_t dx = draw_x0; dx < draw_x1; dx++)
+        egui_color_t row_overlay_color;
+        row_overlay_color.full = 0;
+        egui_alpha_t row_overlay_alpha = 0;
+        if (mask != NULL && mask->api->mask_get_row_overlay != NULL)
+        {
+            mask->api->mask_get_row_overlay(mask, (egui_dim_t)dy, &row_overlay_color, &row_overlay_alpha);
+        }
+
+        /* Skip left dead zone where inverse-mapped coords are outside source */
+        if (rotatedX < src_lo_x_q15 || rotatedX >= src_hi_x_q15 || rotatedY < src_lo_y_q15 || rotatedY >= src_hi_y_q15)
+        {
+            int32_t skip = transform_scanline_skip(rotatedX, rotatedY, inv_m00, inv_m10, src_lo_x_q15, src_hi_x_q15, src_lo_y_q15, src_hi_y_q15,
+                                                   draw_x1 - draw_x0);
+            if (skip > 0)
+            {
+                rotatedX += skip * inv_m00;
+                rotatedY += skip * inv_m10;
+                dst_row += skip;
+                dx += skip;
+            }
+        }
+
+        for (; dx < draw_x1; dx++)
         {
             int32_t sx = rotatedX >> 15;
             int32_t sy = rotatedY >> 15;
 
             if (sx >= 0 && sx < src_w - 1 && sy >= 0 && sy < src_h - 1)
             {
-                /* Interior: all 4 bilinear neighbors guaranteed in bounds */
-                uint8_t fx = (rotatedX >> 7) & 0xFF;
-                uint8_t fy = (rotatedY >> 7) & 0xFF;
+                entered = 1;
 
-                int32_t offs = sy * src_w + sx;
-                uint16_t d00 = data[offs];
-                uint16_t d01 = data[offs + 1];
-                uint16_t d10 = data[offs + src_w];
-                uint16_t d11 = data[offs + src_w + 1];
+                /* SIR: compute how many consecutive pixels remain interior.
+                 * For each axis, find distance to exit boundary based on step direction. */
+                int32_t sir_count = draw_x1 - dx;
+                if (inv_m00 > 0)
+                {
+                    int32_t n = (int_max_x_q15 - rotatedX) / inv_m00;
+                    if (n < sir_count) sir_count = n;
+                }
+                else if (inv_m00 < 0)
+                {
+                    int32_t n = rotatedX / (-inv_m00);
+                    if (n < sir_count) sir_count = n;
+                }
+                if (inv_m10 > 0)
+                {
+                    int32_t n = (int_max_y_q15 - rotatedY) / inv_m10;
+                    if (n < sir_count) sir_count = n;
+                }
+                else if (inv_m10 < 0)
+                {
+                    int32_t n = rotatedY / (-inv_m10);
+                    if (n < sir_count) sir_count = n;
+                }
+                if (sir_count < 1) sir_count = 1;
 
-                /* Direct packed-domain bilinear (no intermediate unpack/repack) */
-                egui_color_t color;
-                color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
-
+                /* Tight interior loop: no boundary checks needed */
                 if (opaque_mode)
                 {
-                    /* Fast path: no alpha channel, canvas fully opaque */
-                    *dst_row = color.full;
-                }
-                else
-                {
-                    egui_alpha_t pixel_alpha = EGUI_ALPHA_100;
-                    if (has_alpha8)
+                    for (int32_t i = 0; i < sir_count; i++)
                     {
+                        int32_t offs = (rotatedY >> 15) * src_w + (rotatedX >> 15);
+                        uint8_t fx = (rotatedX >> 7) & 0xFF;
+                        uint8_t fy = (rotatedY >> 7) & 0xFF;
+                        uint16_t d00 = data[offs];
+                        uint16_t d01 = data[offs + 1];
+                        uint16_t d10 = data[offs + src_w];
+                        uint16_t d11 = data[offs + src_w + 1];
+                        egui_color_t color;
+                        color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
+                        if (row_overlay_alpha > 0)
+                        {
+                            egui_rgb_mix_ptr(&color, &row_overlay_color, &color, row_overlay_alpha);
+                        }
+                        *dst_row = color.full;
+                        rotatedX += inv_m00;
+                        rotatedY += inv_m10;
+                        dst_row++;
+                    }
+                }
+                else if (has_alpha8 && canvas_alpha == EGUI_ALPHA_100)
+                {
+                    /* Alpha8 image with fully opaque canvas: read alpha first
+                     * to skip color bilinear for transparent pixels */
+                    for (int32_t i = 0; i < sir_count; i++)
+                    {
+                        int32_t offs = (rotatedY >> 15) * src_w + (rotatedX >> 15);
+
+                        /* Read alpha samples first for early exit */
                         uint16_t a00 = alpha_buf[offs];
                         uint16_t a01 = alpha_buf[offs + 1];
                         uint16_t a10 = alpha_buf[offs + src_w];
                         uint16_t a11 = alpha_buf[offs + src_w + 1];
-                        uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
-                        uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
-                        pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
-                    }
 
-                    egui_alpha_t final_alpha = egui_color_alpha_mix(canvas_alpha, pixel_alpha);
+                        if ((a00 | a01 | a10 | a11) != 0)
+                        {
+                            uint8_t fx = (rotatedX >> 7) & 0xFF;
+                            uint8_t fy = (rotatedY >> 7) & 0xFF;
 
-                    if (final_alpha == EGUI_ALPHA_100)
-                    {
-                        *dst_row = color.full;
-                    }
-                    else if (final_alpha > 0)
-                    {
-                        egui_color_t *back = (egui_color_t *)dst_row;
-                        egui_rgb_mix_ptr(back, &color, back, final_alpha);
+                            /* All-opaque shortcut: skip alpha bilinear + blend */
+                            if ((a00 & a01 & a10 & a11) == 255)
+                            {
+                                uint16_t d00 = data[offs];
+                                uint16_t d01 = data[offs + 1];
+                                uint16_t d10 = data[offs + src_w];
+                                uint16_t d11 = data[offs + src_w + 1];
+                                egui_color_t color;
+                                color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
+                                if (row_overlay_alpha > 0)
+                                {
+                                    egui_rgb_mix_ptr(&color, &row_overlay_color, &color, row_overlay_alpha);
+                                }
+                                *dst_row = color.full;
+                            }
+                            else
+                            {
+                                uint16_t d00 = data[offs];
+                                uint16_t d01 = data[offs + 1];
+                                uint16_t d10 = data[offs + src_w];
+                                uint16_t d11 = data[offs + src_w + 1];
+                                egui_color_t color;
+                                color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
+                                if (row_overlay_alpha > 0)
+                                {
+                                    egui_rgb_mix_ptr(&color, &row_overlay_color, &color, row_overlay_alpha);
+                                }
+
+                                uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                                uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                                uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+
+                                if (pixel_alpha == EGUI_ALPHA_100)
+                                {
+                                    *dst_row = color.full;
+                                }
+                                else if (pixel_alpha > 0)
+                                {
+                                    egui_color_t *back = (egui_color_t *)dst_row;
+                                    egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
+                                }
+                            }
+                        }
+
+                        rotatedX += inv_m00;
+                        rotatedY += inv_m10;
+                        dst_row++;
                     }
                 }
+                else
+                {
+                    /* Generic SIR loop: handles any alpha type and/or canvas_alpha != 100 */
+                    for (int32_t i = 0; i < sir_count; i++)
+                    {
+                        int32_t px = rotatedX >> 15;
+                        int32_t py = rotatedY >> 15;
+                        int32_t offs = py * src_w + px;
+                        uint8_t fx = (rotatedX >> 7) & 0xFF;
+                        uint8_t fy = (rotatedY >> 7) & 0xFF;
+                        uint16_t d00 = data[offs];
+                        uint16_t d01 = data[offs + 1];
+                        uint16_t d10 = data[offs + src_w];
+                        uint16_t d11 = data[offs + src_w + 1];
+                        egui_color_t color;
+                        color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
+                        if (row_overlay_alpha > 0)
+                        {
+                            egui_rgb_mix_ptr(&color, &row_overlay_color, &color, row_overlay_alpha);
+                        }
+
+                        egui_alpha_t pixel_alpha = EGUI_ALPHA_100;
+                        if (has_alpha)
+                        {
+                            uint16_t a00, a01, a10, a11;
+                            if (has_alpha8)
+                            {
+                                a00 = alpha_buf[offs];
+                                a01 = alpha_buf[offs + 1];
+                                a10 = alpha_buf[offs + src_w];
+                                a11 = alpha_buf[offs + src_w + 1];
+                            }
+                            else
+                            {
+                                a00 = image_transform_read_alpha(alpha_buf, alpha_row_bytes, px, py, alpha_type);
+                                a01 = image_transform_read_alpha(alpha_buf, alpha_row_bytes, px + 1, py, alpha_type);
+                                a10 = image_transform_read_alpha(alpha_buf, alpha_row_bytes, px, py + 1, alpha_type);
+                                a11 = image_transform_read_alpha(alpha_buf, alpha_row_bytes, px + 1, py + 1, alpha_type);
+                            }
+                            uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                            uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                            pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+                        }
+                        egui_alpha_t final_alpha = egui_color_alpha_mix(canvas_alpha, pixel_alpha);
+                        if (final_alpha == EGUI_ALPHA_100)
+                        {
+                            *dst_row = color.full;
+                        }
+                        else if (final_alpha > 0)
+                        {
+                            egui_color_t *back = (egui_color_t *)dst_row;
+                            egui_rgb_mix_ptr(back, &color, back, final_alpha);
+                        }
+                        rotatedX += inv_m00;
+                        rotatedY += inv_m10;
+                        dst_row++;
+                    }
+                }
+                dx += sir_count - 1;
+                /* After SIR, continue with per-pixel checks for remaining edge pixels */
+                continue;
             }
             else if (sx >= -1 && sx < src_w && sy >= -1 && sy < src_h)
             {
+                entered = 1;
                 /* Edge: 1-pixel border, use destination as fallback for out-of-bounds samples */
                 uint8_t fx = (rotatedX >> 7) & 0xFF;
                 uint8_t fy = (rotatedY >> 7) & 0xFF;
@@ -272,8 +616,26 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
 
                 egui_color_t color;
                 color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
+                if (row_overlay_alpha > 0)
+                {
+                    egui_rgb_mix_ptr(&color, &row_overlay_color, &color, row_overlay_alpha);
+                }
 
                 egui_alpha_t final_alpha = canvas_alpha;
+                if (has_alpha)
+                {
+                    /* Bilinear alpha from edge samples (out-of-bounds → 0) */
+#define TRANSFORM_FETCH_ALPHA(px, py) (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? image_transform_read_alpha(alpha_buf, alpha_row_bytes, (px), (py), alpha_type) : 0)
+                    uint16_t a00 = TRANSFORM_FETCH_ALPHA(sx, sy);
+                    uint16_t a01 = TRANSFORM_FETCH_ALPHA(sx + 1, sy);
+                    uint16_t a10 = TRANSFORM_FETCH_ALPHA(sx, sy + 1);
+                    uint16_t a11 = TRANSFORM_FETCH_ALPHA(sx + 1, sy + 1);
+#undef TRANSFORM_FETCH_ALPHA
+                    uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                    uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                    egui_alpha_t edge_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+                    final_alpha = egui_color_alpha_mix(final_alpha, edge_alpha);
+                }
 
                 if (final_alpha == EGUI_ALPHA_100)
                 {
@@ -284,6 +646,10 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                     egui_color_t *back = (egui_color_t *)dst_row;
                     egui_rgb_mix_ptr(back, &color, back, final_alpha);
                 }
+            }
+            else if (entered)
+            {
+                break; /* Early exit: left source region (SCGUI-style scanline break) */
             }
 
             rotatedX += inv_m00;
@@ -353,6 +719,74 @@ static inline uint8_t extract_packed_alpha(const uint8_t *data, uint8_t box_w, i
         return data[local_y * box_w + local_x];
     default:
         return 0;
+    }
+}
+
+/**
+ * Batch extract 4 bilinear alpha samples from a single glyph's packed bitmap.
+ * One switch evaluation instead of 4, shared row-byte-offset computation.
+ * Requires (lx, ly) and (lx+1, ly+1) all within glyph bounds.
+ */
+static inline void batch_extract_glyph_alpha(const uint8_t *data, uint8_t box_w, int lx, int ly, uint8_t bpp, uint16_t *a00, uint16_t *a01, uint16_t *a10,
+                                             uint16_t *a11)
+{
+    switch (bpp)
+    {
+    case 4:
+    {
+        int rb = (box_w + 1) >> 1;
+        int base0 = ly * rb;
+        int base1 = base0 + rb;
+        int x0_idx = lx >> 1;
+        int x0_bit = (lx & 1) << 2;
+        int x1_idx = (lx + 1) >> 1;
+        int x1_bit = ((lx + 1) & 1) << 2;
+        *a00 = egui_alpha_change_table_4[(data[base0 + x0_idx] >> x0_bit) & 0x0F];
+        *a01 = egui_alpha_change_table_4[(data[base0 + x1_idx] >> x1_bit) & 0x0F];
+        *a10 = egui_alpha_change_table_4[(data[base1 + x0_idx] >> x0_bit) & 0x0F];
+        *a11 = egui_alpha_change_table_4[(data[base1 + x1_idx] >> x1_bit) & 0x0F];
+        break;
+    }
+    case 2:
+    {
+        int rb = (box_w + 3) >> 2;
+        int base0 = ly * rb;
+        int base1 = base0 + rb;
+        int x0_idx = lx >> 2;
+        int x0_bit = (lx & 3) << 1;
+        int x1_idx = (lx + 1) >> 2;
+        int x1_bit = ((lx + 1) & 3) << 1;
+        *a00 = egui_alpha_change_table_2[(data[base0 + x0_idx] >> x0_bit) & 0x03];
+        *a01 = egui_alpha_change_table_2[(data[base0 + x1_idx] >> x1_bit) & 0x03];
+        *a10 = egui_alpha_change_table_2[(data[base1 + x0_idx] >> x0_bit) & 0x03];
+        *a11 = egui_alpha_change_table_2[(data[base1 + x1_idx] >> x1_bit) & 0x03];
+        break;
+    }
+    case 1:
+    {
+        int rb = (box_w + 7) >> 3;
+        int base0 = ly * rb;
+        int base1 = base0 + rb;
+        int x0_idx = lx >> 3;
+        int x0_bit = lx & 7;
+        int x1_idx = (lx + 1) >> 3;
+        int x1_bit = (lx + 1) & 7;
+        *a00 = (data[base0 + x0_idx] >> x0_bit) & 1 ? 255 : 0;
+        *a01 = (data[base0 + x1_idx] >> x1_bit) & 1 ? 255 : 0;
+        *a10 = (data[base1 + x0_idx] >> x0_bit) & 1 ? 255 : 0;
+        *a11 = (data[base1 + x1_idx] >> x1_bit) & 1 ? 255 : 0;
+        break;
+    }
+    default: /* 8bpp */
+    {
+        int base0 = ly * box_w;
+        int base1 = base0 + box_w;
+        *a00 = data[base0 + lx];
+        *a01 = data[base0 + lx + 1];
+        *a10 = data[base1 + lx];
+        *a11 = data[base1 + lx + 1];
+        break;
+    }
     }
 }
 
@@ -478,6 +912,7 @@ typedef struct
     egui_dim_t pfb_w, pfb_ox, pfb_oy;
     egui_color_int_t *pfb;
     egui_alpha_t canvas_alpha;
+    egui_mask_t *mask; /* canvas mask for per-row color overlay (gradient support) */
 } text_transform_ctx_t;
 
 static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8, egui_alpha_t alpha,
@@ -565,6 +1000,7 @@ static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, 
     ctx->pfb_oy = canvas->pfb_location_in_base_view.y;
     ctx->pfb = canvas->pfb;
     ctx->canvas_alpha = egui_color_alpha_mix(canvas->alpha, alpha);
+    ctx->mask = canvas->mask;
 
     /* Row-constant terms for incremental scanning */
     ctx->Cx_base = ctx->inv_m01 * ((int32_t)ctx->draw_y0 - y) + ((int32_t)ctx->cx << 15) + offx;
@@ -718,6 +1154,8 @@ static inline uint8_t sample_tile_alpha(const text_transform_glyph_t *glyphs, in
         }
     }
 
+    /* No glyph found: signal whitespace to caller for early exit */
+    *hint = -1;
     return 0;
 }
 
@@ -866,26 +1304,61 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
     int hint = -1;
 
+    /* Hoist loop-invariant row-start offset computed from draw_x0 */
+    int32_t row_start_offset_x = ctx.inv_m00 * ((int32_t)ctx.draw_x0 - x);
+    int32_t row_start_offset_y = ctx.inv_m10 * ((int32_t)ctx.draw_x0 - x);
+
+    /* Source bounds in Q15 for scanline skip */
+    int32_t text_src_lo_x_q15 = -(1 << 15);
+    int32_t text_src_hi_x_q15 = (int32_t)ctx.src_w << 15;
+    int32_t text_src_lo_y_q15 = -(1 << 15);
+    int32_t text_src_hi_y_q15 = (int32_t)ctx.src_h << 15;
+
     for (int32_t dy = ctx.draw_y0; dy < ctx.draw_y1; dy++)
     {
-        int32_t rotatedX = ctx.inv_m00 * ((int32_t)ctx.draw_x0 - x) + ctx.Cx_base;
-        int32_t rotatedY = ctx.inv_m10 * ((int32_t)ctx.draw_x0 - x) + ctx.Cy_base;
+        /* Per-row color: apply gradient mask overlay if set */
+        egui_color_t row_color = color;
+        if (ctx.mask != NULL && ctx.mask->api->mask_blend_row_color != NULL)
+        {
+            ctx.mask->api->mask_blend_row_color(ctx.mask, (egui_dim_t)dy, &row_color);
+        }
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+        uint32_t fg_rb_g = (row_color.full | ((uint32_t)row_color.full << 16)) & 0x07E0F81FUL;
+#endif
+
+        int32_t rotatedX = row_start_offset_x + ctx.Cx_base;
+        int32_t rotatedY = row_start_offset_y + ctx.Cy_base;
 
         egui_color_int_t *dst_row = &ctx.pfb[(dy - ctx.pfb_oy) * ctx.pfb_w + (ctx.draw_x0 - ctx.pfb_ox)];
+        int entered = 0;
+        int32_t dx = ctx.draw_x0;
 
-        for (int32_t dx = ctx.draw_x0; dx < ctx.draw_x1; dx++)
+        /* Skip left dead zone where inverse-mapped coords are outside source */
+        if (rotatedX < text_src_lo_x_q15 || rotatedX >= text_src_hi_x_q15 || rotatedY < text_src_lo_y_q15 || rotatedY >= text_src_hi_y_q15)
+        {
+            int32_t skip = transform_scanline_skip(rotatedX, rotatedY, ctx.inv_m00, ctx.inv_m10, text_src_lo_x_q15, text_src_hi_x_q15, text_src_lo_y_q15,
+                                                   text_src_hi_y_q15, ctx.draw_x1 - ctx.draw_x0);
+            if (skip > 0)
+            {
+                rotatedX += skip * ctx.inv_m00;
+                rotatedY += skip * ctx.inv_m10;
+                dst_row += skip;
+                dx += skip;
+            }
+        }
+
+        for (; dx < ctx.draw_x1; dx++)
         {
             int32_t sx = rotatedX >> 15;
             int32_t sy = rotatedY >> 15;
 
             if (sx >= -1 && sx < ctx.src_w && sy >= -1 && sy < ctx.src_h)
             {
+                entered = 1;
                 uint8_t fx = (rotatedX >> 7) & 0xFF;
                 uint8_t fy = (rotatedY >> 7) & 0xFF;
-                uint16_t a00, a01, a10, a11;
 
-                /* Fast path: all 4 bilinear samples from hint glyph */
-                int grouped = 0;
+                /* Fast path: SIR within hint glyph interior */
                 if (hint >= 0)
                 {
                     const text_transform_glyph_t *g = &s_tile_glyphs[hint];
@@ -893,15 +1366,134 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                     int ly = sy - g->y;
                     if (lx >= 0 && lx + 1 < g->box_w && ly >= 0 && ly + 1 < g->box_h)
                     {
-                        a00 = extract_packed_alpha(g->data, g->box_w, lx, ly, bpp);
-                        a01 = extract_packed_alpha(g->data, g->box_w, lx + 1, ly, bpp);
-                        a10 = extract_packed_alpha(g->data, g->box_w, lx, ly + 1, bpp);
-                        a11 = extract_packed_alpha(g->data, g->box_w, lx + 1, ly + 1, bpp);
-                        grouped = 1;
+                        /* Compute SIR count within glyph interior */
+                        int32_t g_int_max_x_q15 = ((int32_t)(g->x + g->box_w - 2)) << 15;
+                        int32_t g_int_min_x_q15 = (int32_t)g->x << 15;
+                        int32_t g_int_max_y_q15 = ((int32_t)(g->y + g->box_h - 2)) << 15;
+                        int32_t g_int_min_y_q15 = (int32_t)g->y << 15;
+
+                        int32_t sir_count = ctx.draw_x1 - dx;
+                        if (ctx.inv_m00 > 0)
+                        {
+                            int32_t n = (g_int_max_x_q15 - rotatedX) / ctx.inv_m00;
+                            if (n < sir_count)
+                                sir_count = n;
+                        }
+                        else if (ctx.inv_m00 < 0)
+                        {
+                            int32_t n = (rotatedX - g_int_min_x_q15) / (-ctx.inv_m00);
+                            if (n < sir_count)
+                                sir_count = n;
+                        }
+                        if (ctx.inv_m10 > 0)
+                        {
+                            int32_t n = (g_int_max_y_q15 - rotatedY) / ctx.inv_m10;
+                            if (n < sir_count)
+                                sir_count = n;
+                        }
+                        else if (ctx.inv_m10 < 0)
+                        {
+                            int32_t n = (rotatedY - g_int_min_y_q15) / (-ctx.inv_m10);
+                            if (n < sir_count)
+                                sir_count = n;
+                        }
+                        if (sir_count < 1)
+                            sir_count = 1;
+
+                        /* Tight glyph-interior loop: no boundary checks */
+                        if (ctx.canvas_alpha == EGUI_ALPHA_100)
+                        {
+                            const uint8_t *g_data = g->data;
+                            int g_x = g->x;
+                            int g_y = g->y;
+                            for (int32_t i = 0; i < sir_count; i++)
+                            {
+                                uint16_t sa00, sa01, sa10, sa11;
+                                batch_extract_glyph_alpha(g_data, g->box_w, (rotatedX >> 15) - g_x, (rotatedY >> 15) - g_y, bpp, &sa00, &sa01, &sa10,
+                                                         &sa11);
+
+                                if ((sa00 | sa01 | sa10 | sa11) != 0)
+                                {
+                                    uint8_t fx_i = (rotatedX >> 7) & 0xFF;
+                                    uint8_t fy_i = (rotatedY >> 7) & 0xFF;
+                                    uint16_t ah0 = sa00 + (((int32_t)(sa01 - sa00) * fx_i + 128) >> 8);
+                                    uint16_t ah1 = sa10 + (((int32_t)(sa11 - sa10) * fx_i + 128) >> 8);
+                                    uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy_i + 128) >> 8));
+
+                                    if (pixel_alpha == EGUI_ALPHA_100)
+                                    {
+                                        *dst_row = row_color.full;
+                                    }
+                                    else if (pixel_alpha > 0)
+                                    {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                                        uint16_t bg = *dst_row;
+                                        uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                        uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                        *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                                        egui_color_t *back = (egui_color_t *)dst_row;
+                                        egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
+#endif
+                                    }
+                                }
+
+                                rotatedX += ctx.inv_m00;
+                                rotatedY += ctx.inv_m10;
+                                dst_row++;
+                            }
+                        }
+                        else
+                        {
+                            for (int32_t i = 0; i < sir_count; i++)
+                            {
+                                uint16_t sa00, sa01, sa10, sa11;
+                                batch_extract_glyph_alpha(g->data, g->box_w, (rotatedX >> 15) - g->x, (rotatedY >> 15) - g->y, bpp, &sa00, &sa01, &sa10,
+                                                         &sa11);
+
+                                if ((sa00 | sa01 | sa10 | sa11) != 0)
+                                {
+                                    uint8_t fx_i = (rotatedX >> 7) & 0xFF;
+                                    uint8_t fy_i = (rotatedY >> 7) & 0xFF;
+                                    uint16_t ah0 = sa00 + (((int32_t)(sa01 - sa00) * fx_i + 128) >> 8);
+                                    uint16_t ah1 = sa10 + (((int32_t)(sa11 - sa10) * fx_i + 128) >> 8);
+                                    uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy_i + 128) >> 8));
+
+                                    if (pixel_alpha > 0)
+                                    {
+                                        egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
+                                        if (final_alpha == EGUI_ALPHA_100)
+                                        {
+                                            *dst_row = row_color.full;
+                                        }
+                                        else if (final_alpha > 0)
+                                        {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                                            uint16_t bg = *dst_row;
+                                            uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                            uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)final_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                            *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                                            egui_color_t *back = (egui_color_t *)dst_row;
+                                            egui_rgb_mix_ptr(back, &row_color, back, final_alpha);
+#endif
+                                        }
+                                    }
+                                }
+
+                                rotatedX += ctx.inv_m00;
+                                rotatedY += ctx.inv_m10;
+                                dst_row++;
+                            }
+                        }
+
+                        dx += sir_count - 1;
+                        continue;
                     }
                 }
-                if (!grouped)
+                /* Ungrouped slow path: per-sample glyph lookup */
                 {
+                    uint16_t a00, a01, a10, a11;
                     a00 = sample_tile_alpha(s_tile_glyphs, tile_count, sx, sy, bpp, &hint);
                     /* Early exit: if first sample is 0 and hint didn't find a glyph,
                      * likely in whitespace — check remaining quickly */
@@ -912,41 +1504,58 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                     a01 = sample_tile_alpha(s_tile_glyphs, tile_count, sx + 1, sy, bpp, &hint);
                     a10 = sample_tile_alpha(s_tile_glyphs, tile_count, sx, sy + 1, bpp, &hint);
                     a11 = sample_tile_alpha(s_tile_glyphs, tile_count, sx + 1, sy + 1, bpp, &hint);
-                }
 
-                uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
-                uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
-                uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+                    uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                    uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                    uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
 
-                if (pixel_alpha > 0)
-                {
-                    if (ctx.canvas_alpha == EGUI_ALPHA_100)
+                    if (pixel_alpha > 0)
                     {
-                        /* Canvas fully opaque: pixel_alpha is final alpha */
-                        if (pixel_alpha == EGUI_ALPHA_100)
+                        if (ctx.canvas_alpha == EGUI_ALPHA_100)
                         {
-                            *dst_row = color.full;
+                            if (pixel_alpha == EGUI_ALPHA_100)
+                            {
+                                *dst_row = row_color.full;
+                            }
+                            else
+                            {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                                uint16_t bg = *dst_row;
+                                uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                                egui_color_t *back = (egui_color_t *)dst_row;
+                                egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
+#endif
+                            }
                         }
                         else
                         {
-                            egui_color_t *back = (egui_color_t *)dst_row;
-                            egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
-                        }
-                    }
-                    else
-                    {
-                        egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
-                        if (final_alpha == EGUI_ALPHA_100)
-                        {
-                            *dst_row = color.full;
-                        }
-                        else if (final_alpha > 0)
-                        {
-                            egui_color_t *back = (egui_color_t *)dst_row;
-                            egui_rgb_mix_ptr(back, &color, back, final_alpha);
+                            egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
+                            if (final_alpha == EGUI_ALPHA_100)
+                            {
+                                *dst_row = row_color.full;
+                            }
+                            else if (final_alpha > 0)
+                            {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                                uint16_t bg = *dst_row;
+                                uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)final_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                                egui_color_t *back = (egui_color_t *)dst_row;
+                                egui_rgb_mix_ptr(back, &row_color, back, final_alpha);
+#endif
+                            }
                         }
                     }
                 }
+            }
+            else if (entered)
+            {
+                break; /* Early exit: left source region (SCGUI-style scanline break) */
             }
 
         text_next_pixel:
@@ -1308,59 +1917,176 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
     int16_t src_h = ctx.src_h;
     int packed_rb = packed_row_bytes(src_w, bpp);
 
+    /* Hoist loop-invariant row-start offset computed from draw_x0 */
+    int32_t row_start_offset_x = ctx.inv_m00 * ((int32_t)ctx.draw_x0 - x);
+    int32_t row_start_offset_y = ctx.inv_m10 * ((int32_t)ctx.draw_x0 - x);
+
+    /* Source bounds in Q15 for scanline skip */
+    int32_t buf_src_lo_x_q15 = 0;
+    int32_t buf_src_hi_x_q15 = ((int32_t)src_w - 1) << 15;
+    int32_t buf_src_lo_y_q15 = 0;
+    int32_t buf_src_hi_y_q15 = ((int32_t)src_h - 1) << 15;
+
+    /* Interior bounds in Q15 for SIR (Scanline Interior Range).
+     * Interior = bilinear samples (sx..sx+1, sy..sy+1) all in-bounds. */
+    int32_t buf_int_max_x_q15 = ((int32_t)(src_w - 2)) << 15;
+    int32_t buf_int_max_y_q15 = ((int32_t)(src_h - 2)) << 15;
+
     for (int32_t dy = ctx.draw_y0; dy < ctx.draw_y1; dy++)
     {
-        int32_t rotatedX = ctx.inv_m00 * ((int32_t)ctx.draw_x0 - x) + ctx.Cx_base;
-        int32_t rotatedY = ctx.inv_m10 * ((int32_t)ctx.draw_x0 - x) + ctx.Cy_base;
+        /* Per-row color: apply gradient mask overlay if set */
+        egui_color_t row_color = color;
+        if (ctx.mask != NULL && ctx.mask->api->mask_blend_row_color != NULL)
+        {
+            ctx.mask->api->mask_blend_row_color(ctx.mask, (egui_dim_t)dy, &row_color);
+        }
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+        uint32_t fg_rb_g = (row_color.full | ((uint32_t)row_color.full << 16)) & 0x07E0F81FUL;
+#endif
+
+        int32_t rotatedX = row_start_offset_x + ctx.Cx_base;
+        int32_t rotatedY = row_start_offset_y + ctx.Cy_base;
 
         egui_color_int_t *dst_row = &ctx.pfb[(dy - ctx.pfb_oy) * ctx.pfb_w + (ctx.draw_x0 - ctx.pfb_ox)];
+        int32_t dx = ctx.draw_x0;
+        int entered = 0;
 
-        for (int32_t dx = ctx.draw_x0; dx < ctx.draw_x1; dx++)
+        /* Skip left dead zone */
+        if (rotatedX < buf_src_lo_x_q15 || rotatedX >= buf_src_hi_x_q15 || rotatedY < buf_src_lo_y_q15 || rotatedY >= buf_src_hi_y_q15)
+        {
+            int32_t skip = transform_scanline_skip(rotatedX, rotatedY, ctx.inv_m00, ctx.inv_m10, buf_src_lo_x_q15, buf_src_hi_x_q15, buf_src_lo_y_q15,
+                                                   buf_src_hi_y_q15, ctx.draw_x1 - ctx.draw_x0);
+            if (skip > 0)
+            {
+                rotatedX += skip * ctx.inv_m00;
+                rotatedY += skip * ctx.inv_m10;
+                dst_row += skip;
+                dx += skip;
+            }
+        }
+
+        for (; dx < ctx.draw_x1; dx++)
         {
             int32_t sx = rotatedX >> 15;
             int32_t sy = rotatedY >> 15;
 
             if (sx >= 0 && sx < src_w - 1 && sy >= 0 && sy < src_h - 1)
             {
-                /* Interior: batch bilinear (1 switch instead of 4, shared offsets) */
-                uint8_t fx = (rotatedX >> 7) & 0xFF;
-                uint8_t fy = (rotatedY >> 7) & 0xFF;
+                entered = 1;
 
-                uint16_t a00, a01, a10, a11;
-                batch_bilinear_packed_alpha(packed_buf, packed_rb, sx, sy, bpp, &a00, &a01, &a10, &a11);
-
-                uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
-                uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
-                uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
-
-                if (pixel_alpha > 0)
+                /* SIR: compute how many consecutive pixels remain interior */
+                int32_t sir_count = ctx.draw_x1 - dx;
+                if (ctx.inv_m00 > 0)
                 {
-                    if (ctx.canvas_alpha == EGUI_ALPHA_100)
+                    int32_t n = (buf_int_max_x_q15 - rotatedX) / ctx.inv_m00;
+                    if (n < sir_count)
+                        sir_count = n;
+                }
+                else if (ctx.inv_m00 < 0)
+                {
+                    int32_t n = rotatedX / (-ctx.inv_m00);
+                    if (n < sir_count)
+                        sir_count = n;
+                }
+                if (ctx.inv_m10 > 0)
+                {
+                    int32_t n = (buf_int_max_y_q15 - rotatedY) / ctx.inv_m10;
+                    if (n < sir_count)
+                        sir_count = n;
+                }
+                else if (ctx.inv_m10 < 0)
+                {
+                    int32_t n = rotatedY / (-ctx.inv_m10);
+                    if (n < sir_count)
+                        sir_count = n;
+                }
+                if (sir_count < 1)
+                    sir_count = 1;
+
+                /* Tight interior loop: no boundary checks */
+                if (ctx.canvas_alpha == EGUI_ALPHA_100)
+                {
+                    for (int32_t i = 0; i < sir_count; i++)
                     {
-                        if (pixel_alpha == EGUI_ALPHA_100)
+                        uint16_t a00, a01, a10, a11;
+                        batch_bilinear_packed_alpha(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, bpp, &a00, &a01, &a10, &a11);
+
+                        if ((a00 | a01 | a10 | a11) != 0)
                         {
-                            *dst_row = color.full;
+                            uint8_t fx = (rotatedX >> 7) & 0xFF;
+                            uint8_t fy = (rotatedY >> 7) & 0xFF;
+                            uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                            uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                            uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+
+                            if (pixel_alpha == EGUI_ALPHA_100)
+                            {
+                                *dst_row = row_color.full;
+                            }
+                            else if (pixel_alpha > 0)
+                            {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                                uint16_t bg = *dst_row;
+                                uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                                egui_color_t *back = (egui_color_t *)dst_row;
+                                egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
+#endif
+                            }
                         }
-                        else
-                        {
-                            egui_color_t *back = (egui_color_t *)dst_row;
-                            egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
-                        }
-                    }
-                    else
-                    {
-                        egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
-                        if (final_alpha == EGUI_ALPHA_100)
-                        {
-                            *dst_row = color.full;
-                        }
-                        else if (final_alpha > 0)
-                        {
-                            egui_color_t *back = (egui_color_t *)dst_row;
-                            egui_rgb_mix_ptr(back, &color, back, final_alpha);
-                        }
+
+                        rotatedX += ctx.inv_m00;
+                        rotatedY += ctx.inv_m10;
+                        dst_row++;
                     }
                 }
+                else
+                {
+                    for (int32_t i = 0; i < sir_count; i++)
+                    {
+                        uint16_t a00, a01, a10, a11;
+                        batch_bilinear_packed_alpha(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, bpp, &a00, &a01, &a10, &a11);
+
+                        if ((a00 | a01 | a10 | a11) != 0)
+                        {
+                            uint8_t fx = (rotatedX >> 7) & 0xFF;
+                            uint8_t fy = (rotatedY >> 7) & 0xFF;
+                            uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                            uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                            uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+
+                            if (pixel_alpha > 0)
+                            {
+                                egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
+                                if (final_alpha == EGUI_ALPHA_100)
+                                {
+                                    *dst_row = row_color.full;
+                                }
+                                else if (final_alpha > 0)
+                                {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                                    uint16_t bg = *dst_row;
+                                    uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                    uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)final_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                    *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                                    egui_color_t *back = (egui_color_t *)dst_row;
+                                    egui_rgb_mix_ptr(back, &row_color, back, final_alpha);
+#endif
+                                }
+                            }
+                        }
+
+                        rotatedX += ctx.inv_m00;
+                        rotatedY += ctx.inv_m10;
+                        dst_row++;
+                    }
+                }
+
+                dx += sir_count - 1;
+                continue;
             }
             else if (sx >= -1 && sx < src_w && sy >= -1 && sy < src_h)
             {
@@ -1384,14 +2110,26 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                     egui_alpha_t final_alpha = egui_color_alpha_mix(ctx.canvas_alpha, pixel_alpha);
                     if (final_alpha == EGUI_ALPHA_100)
                     {
-                        *dst_row = color.full;
+                        *dst_row = row_color.full;
                     }
                     else if (final_alpha > 0)
                     {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                        uint16_t bg = *dst_row;
+                        uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                        uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)final_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                        *dst_row = (uint16_t)(result | (result >> 16));
+#else
                         egui_color_t *back = (egui_color_t *)dst_row;
-                        egui_rgb_mix_ptr(back, &color, back, final_alpha);
+                        egui_rgb_mix_ptr(back, &row_color, back, final_alpha);
+#endif
                     }
                 }
+                entered = 1;
+            }
+            else if (entered)
+            {
+                break;
             }
 
             rotatedX += ctx.inv_m00;

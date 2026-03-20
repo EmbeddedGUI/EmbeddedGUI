@@ -29,6 +29,9 @@ struct egui_mask_gradient
 
     const egui_gradient_t *gradient;
     egui_alpha_t overlay_alpha;
+
+    egui_dim_t cached_key;     /* cached row y (for LINEAR_VERTICAL) */
+    egui_color_t cached_color; /* gradient color for cached_key row */
 };
 
 void egui_mask_gradient_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha);
