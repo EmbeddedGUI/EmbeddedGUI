@@ -220,11 +220,13 @@ __EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb565_1(egui_image_std_inf
 __EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_prepare_resize_src_x_map(egui_dim_t *src_x_map, egui_dim_t x, egui_dim_t x_total, egui_float_t width_radio)
 {
     egui_dim_t count = x_total - x;
+    egui_float_t src_x_acc = (egui_float_t)((int64_t)x * (int64_t)width_radio);
 
     EGUI_ASSERT(count <= EGUI_CONFIG_PFB_WIDTH);
     for (egui_dim_t i = 0; i < count; i++)
     {
-        src_x_map[i] = (egui_dim_t)EGUI_FLOAT_MULT(x + i, width_radio);
+        src_x_map[i] = EGUI_FLOAT_INT_PART(src_x_acc);
+        src_x_acc += width_radio;
     }
 
     return count;
@@ -234,11 +236,14 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_prepare_resize_src_x_map_limit(
                                                                                 egui_float_t width_radio)
 {
     egui_dim_t count = x_total - x;
+    egui_float_t width_step = (width_radio >> 8);
+    egui_float_t src_x_acc = x * width_step;
 
     EGUI_ASSERT(count <= EGUI_CONFIG_PFB_WIDTH);
     for (egui_dim_t i = 0; i < count; i++)
     {
-        src_x_map[i] = (egui_dim_t)EGUI_FLOAT_MULT_LIMIT(x + i, width_radio);
+        src_x_map[i] = src_x_acc >> 8;
+        src_x_acc += width_step;
     }
 
     return count;
@@ -469,6 +474,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
         egui_dim_t radius = circle_mask->radius;
         egui_dim_t screen_x_end = screen_x + count;
         const egui_circle_info_t *info = circle_mask->info;
+        const egui_circle_item_t *items;
 
         if (screen_y == circle_mask->point_cached_y)
         {
@@ -493,6 +499,8 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
             circle_mask->point_cached_row_valid = 1;
         }
 
+        items = (const egui_circle_item_t *)info->items;
+
         if (canvas_alpha == EGUI_ALPHA_100)
         {
             if (screen_x_end <= center_x)
@@ -511,7 +519,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
                         continue;
                     }
 
-                    alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value(row_index, corner_col, info), alpha);
+                    alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value_fixed_row(row_index, corner_col, info, items), alpha);
                     if (alpha == 0)
                     {
                         continue;
@@ -547,7 +555,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
                         continue;
                     }
 
-                    alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value(row_index, corner_col, info), alpha);
+                    alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value_fixed_row(row_index, corner_col, info, items), alpha);
                     if (alpha == 0)
                     {
                         continue;
@@ -584,7 +592,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
                     continue;
                 }
 
-                alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value(row_index, radius - dx, info), alpha);
+                alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value_fixed_row(row_index, radius - dx, info, items), alpha);
                 if (alpha == 0)
                 {
                     continue;
@@ -620,7 +628,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
                         continue;
                     }
 
-                    alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value(row_index, corner_col, info), alpha);
+                    alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value_fixed_row(row_index, corner_col, info, items), alpha);
                     alpha = egui_color_alpha_mix(canvas_alpha, alpha);
                     if (alpha == 0)
                     {
@@ -657,7 +665,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
                         continue;
                     }
 
-                    alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value(row_index, corner_col, info), alpha);
+                    alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value_fixed_row(row_index, corner_col, info, items), alpha);
                     alpha = egui_color_alpha_mix(canvas_alpha, alpha);
                     if (alpha == 0)
                     {
@@ -695,7 +703,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
                     continue;
                 }
 
-                alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value(row_index, radius - dx, info), alpha);
+                alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value_fixed_row(row_index, radius - dx, info, items), alpha);
                 alpha = egui_color_alpha_mix(canvas_alpha, alpha);
                 if (alpha == 0)
                 {

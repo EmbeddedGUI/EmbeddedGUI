@@ -217,12 +217,17 @@ int egui_mask_circle_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x
     // Outside circle vertical extent
     if (y < center_y - radius || y > center_y + radius)
     {
+        local->point_cached_y = y;
+        local->point_cached_row_valid = 0;
         return EGUI_MASK_ROW_OUTSIDE;
     }
 
     // Center row: horizontal line
     if (y == center_y)
     {
+        local->point_cached_y = y;
+        local->point_cached_row_index = radius;
+        local->point_cached_row_valid = (local->info != NULL);
         opaque_x_start = center_x - radius;
         opaque_x_end = center_x + radius + 1;
     }
@@ -238,6 +243,10 @@ int egui_mask_circle_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x
         // Compute distance from center and corner row index
         egui_dim_t dist = (y < center_y) ? (center_y - y) : (y - center_y);
         egui_dim_t row_in_corner = radius - dist; // 0 at outer edge, radius-1 near center
+
+        local->point_cached_y = y;
+        local->point_cached_row_index = row_in_corner;
+        local->point_cached_row_valid = 1;
 
         egui_dim_t boundary = egui_mask_circle_corner_get_opaque_boundary(row_in_corner, local->info);
 
