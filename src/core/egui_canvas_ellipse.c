@@ -323,10 +323,17 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
             }
         }
 
+        // Precompute inv_grad for edge AA (AMPM approximation)
+        int64_t inv_grad_q24;
+        {
+            int64_t gx = (int64_t)dx_max * ry_sq;
+            int64_t gy = (int64_t)abs_dy * rx_sq;
+            inv_grad_q24 = ellipse_inv_grad_from_approx(gx, gy);
+        }
+
         // Inner boundary: compute proper margin using the gradient magnitude
         // at the scanline boundary. Reuse grad_half for edge AA.
         int32_t dx_inner = 0;
-        int64_t inv_grad_q24 = (int64_t)128 << 24; // reciprocal of grad_half_ref, default for grad=1
         if (dx_max > 0)
         {
             int64_t gx = (int64_t)dx_max * ry_sq;
@@ -336,7 +343,6 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
             {
                 grad_half_ref = 1;
             }
-            inv_grad_q24 = ellipse_inv_grad_from_approx(gx, gy);
             int64_t f_at_boundary = (int64_t)dx_max * dx_max * ry_sq + dy_term - rxry_sq;
             int64_t f_plus_grad = (int64_t)grad_half_ref + f_at_boundary;
 
@@ -602,8 +608,7 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
         }
 
         // Precompute inv_grad for outer ellipse at boundary (AMPM approximation)
-        int64_t o_inv_grad_q24 = (int64_t)128 << 24;
-        if (o_dx_max > 0)
+        int64_t o_inv_grad_q24;
         {
             int64_t ogx = (int64_t)o_dx_max * ory_sq;
             int64_t ogy = (int64_t)abs_dy * orx_sq;
@@ -612,7 +617,7 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
 
         // Precompute inv_grad for inner ellipse at boundary (AMPM approximation)
         int64_t i_inv_grad_q24 = (int64_t)128 << 24;
-        if (i_dx_max > 0 && irx > 0 && iry > 0)
+        if (irx > 0 && iry > 0 && abs_dy <= iry)
         {
             int64_t igx = (int64_t)i_dx_max * iry_sq;
             int64_t igy = (int64_t)abs_dy * irx_sq;
