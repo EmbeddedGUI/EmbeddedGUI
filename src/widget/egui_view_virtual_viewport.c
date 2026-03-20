@@ -217,6 +217,36 @@ static int32_t egui_view_virtual_viewport_get_cross_extent(egui_view_t *self, eg
     return self->region.size.width;
 }
 
+static int32_t egui_view_virtual_viewport_get_main_extent(egui_view_t *self, egui_view_virtual_viewport_t *local)
+{
+    if (local->orientation == EGUI_VIEW_VIRTUAL_VIEWPORT_ORIENTATION_HORIZONTAL)
+    {
+        return self->region.size.width;
+    }
+
+    return self->region.size.height;
+}
+
+static int32_t egui_view_virtual_viewport_get_slot_main_origin(const egui_view_virtual_viewport_t *local, const egui_view_virtual_viewport_slot_t *slot)
+{
+    if (local->orientation == EGUI_VIEW_VIRTUAL_VIEWPORT_ORIENTATION_HORIZONTAL)
+    {
+        return slot->render_region.location.x;
+    }
+
+    return slot->render_region.location.y;
+}
+
+static int32_t egui_view_virtual_viewport_get_slot_main_size(const egui_view_virtual_viewport_t *local, const egui_view_virtual_viewport_slot_t *slot)
+{
+    if (local->orientation == EGUI_VIEW_VIRTUAL_VIEWPORT_ORIENTATION_HORIZONTAL)
+    {
+        return slot->render_region.size.width;
+    }
+
+    return slot->render_region.size.height;
+}
+
 static int32_t egui_view_virtual_viewport_measure_item_main_size(egui_view_t *self, egui_view_virtual_viewport_t *local, uint32_t index)
 {
     int32_t extent = local->estimated_item_extent;
@@ -1998,6 +2028,36 @@ int32_t egui_view_virtual_viewport_get_item_main_size(egui_view_t *self, uint32_
     return egui_view_virtual_viewport_get_item_main_size_internal(self, local, index);
 }
 
+uint8_t egui_view_virtual_viewport_is_main_span_center_visible(egui_view_t *self, int32_t main_origin, int32_t main_size)
+{
+    EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
+    int32_t viewport_extent = egui_view_virtual_viewport_get_main_extent(self, local);
+    int32_t center;
+
+    if (main_size <= 0 || viewport_extent <= 0)
+    {
+        return 0;
+    }
+
+    center = main_origin + main_size / 2;
+    return (uint8_t)(center >= 0 && center < viewport_extent);
+}
+
+uint8_t egui_view_virtual_viewport_is_main_span_fully_visible(egui_view_t *self, int32_t main_origin, int32_t main_size, int32_t inset)
+{
+    EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
+    int32_t viewport_extent = egui_view_virtual_viewport_get_main_extent(self, local);
+    int32_t main_end;
+
+    if (main_size <= 0 || viewport_extent <= 0)
+    {
+        return 0;
+    }
+
+    main_end = main_origin + main_size;
+    return (uint8_t)(main_origin >= (-inset) && main_end <= (viewport_extent + inset));
+}
+
 void egui_view_virtual_viewport_set_anchor(egui_view_t *self, uint32_t stable_id, int32_t anchor_offset)
 {
     EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
@@ -2116,6 +2176,32 @@ const egui_view_virtual_viewport_slot_t *egui_view_virtual_viewport_get_slot(egu
     }
 
     return &local->slots[slot_index];
+}
+
+uint8_t egui_view_virtual_viewport_is_slot_center_visible(egui_view_t *self, const egui_view_virtual_viewport_slot_t *slot)
+{
+    EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
+
+    if (slot == NULL || slot->state != EGUI_VIEW_VIRTUAL_SLOT_STATE_VISIBLE || slot->view == NULL)
+    {
+        return 0;
+    }
+
+    return egui_view_virtual_viewport_is_main_span_center_visible(self, egui_view_virtual_viewport_get_slot_main_origin(local, slot),
+                                                                  egui_view_virtual_viewport_get_slot_main_size(local, slot));
+}
+
+uint8_t egui_view_virtual_viewport_is_slot_fully_visible(egui_view_t *self, const egui_view_virtual_viewport_slot_t *slot, int32_t inset)
+{
+    EGUI_LOCAL_INIT(egui_view_virtual_viewport_t);
+
+    if (slot == NULL || slot->state != EGUI_VIEW_VIRTUAL_SLOT_STATE_VISIBLE || slot->view == NULL)
+    {
+        return 0;
+    }
+
+    return egui_view_virtual_viewport_is_main_span_fully_visible(self, egui_view_virtual_viewport_get_slot_main_origin(local, slot),
+                                                                 egui_view_virtual_viewport_get_slot_main_size(local, slot), inset);
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_virtual_viewport_t) = {

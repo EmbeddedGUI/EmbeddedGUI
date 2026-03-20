@@ -145,7 +145,13 @@ static uint8_t runtime_fail_reported;
 
 EGUI_VIEW_CARD_PARAMS_INIT(header_card_params, DEMO_MARGIN_X, DEMO_TOP_Y, DEMO_HEADER_W, DEMO_HEADER_H, 14);
 EGUI_VIEW_CARD_PARAMS_INIT(toolbar_card_params, DEMO_MARGIN_X, DEMO_TOOLBAR_Y, DEMO_HEADER_W, DEMO_TOOLBAR_H, 12);
-EGUI_VIEW_VIRTUAL_LIST_PARAMS_INIT(viewport_1_params, DEMO_MARGIN_X, DEMO_LIST_Y, DEMO_LIST_W, DEMO_LIST_H);
+static const egui_view_virtual_list_params_t viewport_1_params = {
+        .region = {{DEMO_MARGIN_X, DEMO_LIST_Y}, {DEMO_LIST_W, DEMO_LIST_H}},
+        .overscan_before = 1,
+        .overscan_after = 1,
+        .max_keepalive_slots = 4,
+        .estimated_item_height = 72,
+};
 
 EGUI_BACKGROUND_GRADIENT_PARAM_INIT(screen_bg_param, EGUI_BACKGROUND_GRADIENT_DIR_VERTICAL, EGUI_COLOR_HEX(0xEEF3F7), EGUI_COLOR_HEX(0xD8E4EF),
                                     EGUI_ALPHA_100);
@@ -441,33 +447,6 @@ static egui_dim_t demo_get_list_width(void)
     egui_dim_t width = EGUI_VIEW_OF(&viewport_1)->region.size.width;
 
     return width > 0 ? width : DEMO_LIST_W;
-}
-
-static void demo_keep_item_fully_visible(uint32_t index, uint32_t stable_id)
-{
-    int32_t item_y;
-    int32_t item_h;
-    int32_t viewport_h;
-    int32_t inset = DEMO_ROW_GAP / 2;
-
-    if (index == DEMO_INVALID_INDEX || stable_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
-    {
-        return;
-    }
-
-    item_y = egui_view_virtual_list_get_item_y(EGUI_VIEW_OF(&viewport_1), index);
-    item_h = demo_get_item_height_by_stable_id(stable_id);
-    viewport_h = EGUI_VIEW_OF(&viewport_1)->region.size.height;
-
-    if (viewport_h <= 0)
-    {
-        return;
-    }
-
-    if (item_y < inset || (item_y + item_h) > (viewport_h - inset))
-    {
-        egui_view_virtual_list_scroll_to_stable_id(EGUI_VIEW_OF(&viewport_1), stable_id, inset);
-    }
 }
 
 static int demo_get_row_pool_index(demo_virtual_row_t *row)
@@ -933,7 +912,7 @@ static void demo_action_patch(void)
     egui_view_virtual_list_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&viewport_1), item->stable_id);
     if (target_index < viewport_context.item_count)
     {
-        demo_keep_item_fully_visible(target_index, viewport_context.items[target_index].stable_id);
+        egui_view_virtual_list_ensure_item_visible_by_stable_id(EGUI_VIEW_OF(&viewport_1), viewport_context.items[target_index].stable_id, DEMO_ROW_GAP / 2);
     }
     demo_update_status_labels();
 }
@@ -1362,30 +1341,30 @@ static void demo_bind_row_text(demo_virtual_row_t *row, uint32_t index, uint32_t
 
 static void virtual_item_click_cb(egui_view_t *self)
 {
-    demo_virtual_row_t *row = demo_find_row_by_root_view(self);
+    egui_view_virtual_list_entry_t entry;
     uint32_t previous_selected = viewport_context.selected_id;
     int32_t previous_index = demo_find_index_by_stable_id(previous_selected);
 
-    if (row == NULL || row->stable_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
+    if (!egui_view_virtual_list_resolve_item_by_view(EGUI_VIEW_OF(&viewport_1), self, &entry))
     {
         return;
     }
 
-    viewport_context.selected_id = row->stable_id;
-    viewport_context.last_clicked_index = row->bound_index;
+    viewport_context.selected_id = entry.stable_id;
+    viewport_context.last_clicked_index = entry.index;
     viewport_context.click_count++;
-    snprintf(viewport_context.last_action_text, sizeof(viewport_context.last_action_text), "click row %04lu", (unsigned long)row->bound_index);
+    snprintf(viewport_context.last_action_text, sizeof(viewport_context.last_action_text), "click row %04lu", (unsigned long)entry.index);
 
     if (previous_selected != viewport_context.selected_id && previous_index >= 0)
     {
         egui_view_virtual_list_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&viewport_1), previous_selected);
     }
-    egui_view_virtual_list_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&viewport_1), row->stable_id);
-    demo_keep_item_fully_visible(row->bound_index, row->stable_id);
+    egui_view_virtual_list_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&viewport_1), entry.stable_id);
+    egui_view_virtual_list_ensure_item_visible_by_stable_id(EGUI_VIEW_OF(&viewport_1), entry.stable_id, DEMO_ROW_GAP / 2);
     demo_update_status_labels();
 
-    EGUI_LOG_INF("Virtual row clicked: scene=%s index=%d stable_id=%lu\n", demo_scene_names[viewport_context.scene], (int)row->bound_index,
-                 (unsigned long)row->stable_id);
+    EGUI_LOG_INF("Virtual row clicked: scene=%s index=%d stable_id=%lu\n", demo_scene_names[viewport_context.scene], (int)entry.index,
+                 (unsigned long)entry.stable_id);
 }
 
 static uint32_t demo_get_count(void *adapter_context)
@@ -1678,99 +1657,64 @@ static void report_runtime_failure(const char *message)
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
 }
 
-static uint8_t is_slot_rendered_in_viewport(const egui_view_virtual_viewport_slot_t *slot)
+typedef struct viewport_visible_search_context
 {
-    int16_t main_center;
-    int16_t viewport_extent;
+    uint32_t min_index;
+    uint8_t require_full_visibility;
+} viewport_visible_search_context_t;
 
-    if (slot == NULL || slot->state != EGUI_VIEW_VIRTUAL_SLOT_STATE_VISIBLE)
-    {
-        return 0;
-    }
-
-    main_center = slot->render_region.location.y + slot->render_region.size.height / 2;
-    viewport_extent = EGUI_VIEW_OF(&viewport_1)->region.size.height;
-
-    return (main_center >= 0) && (main_center < viewport_extent);
-}
-
-static uint8_t is_slot_fully_visible_in_viewport(const egui_view_virtual_viewport_slot_t *slot)
+static uint8_t viewport_match_visible_item(egui_view_t *self, const egui_view_virtual_list_slot_t *slot, const egui_view_virtual_list_entry_t *entry,
+                                           egui_view_t *item_view, void *context)
 {
-    int16_t viewport_extent;
-    int16_t top;
-    int16_t bottom;
+    viewport_visible_search_context_t *ctx = (viewport_visible_search_context_t *)context;
+    uint8_t is_visible;
 
-    if (slot == NULL || slot->state != EGUI_VIEW_VIRTUAL_SLOT_STATE_VISIBLE)
-    {
-        return 0;
-    }
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(item_view);
 
-    top = slot->render_region.location.y;
-    bottom = slot->render_region.location.y + slot->render_region.size.height;
-    viewport_extent = EGUI_VIEW_OF(&viewport_1)->region.size.height;
-
-    return top >= 0 && bottom <= viewport_extent;
+    is_visible = ctx->require_full_visibility ? egui_view_virtual_viewport_is_slot_fully_visible(EGUI_VIEW_OF(&viewport_1), slot, 0)
+                                              : egui_view_virtual_viewport_is_slot_center_visible(EGUI_VIEW_OF(&viewport_1), slot);
+    return (uint8_t)(is_visible && entry != NULL && entry->index >= ctx->min_index);
 }
 
 static egui_view_t *find_visible_view_by_item_index(uint32_t index)
 {
-    uint8_t i;
+    uint32_t stable_id;
+    const egui_view_virtual_list_slot_t *slot;
 
-    for (i = 0; i < EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS; i++)
+    if (index >= viewport_context.item_count)
     {
-        const egui_view_virtual_list_slot_t *slot = egui_view_virtual_list_get_slot(EGUI_VIEW_OF(&viewport_1), i);
-
-        if (slot != NULL && slot->index == index && is_slot_rendered_in_viewport(slot))
-        {
-            return slot->view;
-        }
+        return NULL;
     }
 
-    return NULL;
+    stable_id = viewport_context.items[index].stable_id;
+    slot = egui_view_virtual_list_find_slot_by_stable_id(EGUI_VIEW_OF(&viewport_1), stable_id);
+    if (!egui_view_virtual_viewport_is_slot_center_visible(EGUI_VIEW_OF(&viewport_1), slot))
+    {
+        return NULL;
+    }
+
+    return egui_view_virtual_list_find_view_by_stable_id(EGUI_VIEW_OF(&viewport_1), stable_id);
 }
 
 static egui_view_t *find_first_visible_view_after(uint32_t min_index)
 {
-    uint8_t i;
-    const egui_view_virtual_viewport_slot_t *best = NULL;
+    viewport_visible_search_context_t ctx = {
+            .min_index = min_index,
+            .require_full_visibility = 0,
+    };
 
-    for (i = 0; i < EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS; i++)
-    {
-        const egui_view_virtual_list_slot_t *slot = egui_view_virtual_list_get_slot(EGUI_VIEW_OF(&viewport_1), i);
-
-        if (slot == NULL || slot->index < min_index || !is_slot_rendered_in_viewport(slot))
-        {
-            continue;
-        }
-        if (best == NULL || slot->index < best->index)
-        {
-            best = slot;
-        }
-    }
-
-    return best != NULL ? best->view : NULL;
+    return egui_view_virtual_list_find_first_visible_item_view(EGUI_VIEW_OF(&viewport_1), viewport_match_visible_item, &ctx, NULL);
 }
 
 static egui_view_t *find_first_fully_visible_view_after(uint32_t min_index)
 {
-    uint8_t i;
-    const egui_view_virtual_viewport_slot_t *best = NULL;
+    viewport_visible_search_context_t ctx = {
+            .min_index = min_index,
+            .require_full_visibility = 1,
+    };
 
-    for (i = 0; i < EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS; i++)
-    {
-        const egui_view_virtual_list_slot_t *slot = egui_view_virtual_list_get_slot(EGUI_VIEW_OF(&viewport_1), i);
-
-        if (slot == NULL || slot->index < min_index || !is_slot_fully_visible_in_viewport(slot))
-        {
-            continue;
-        }
-        if (best == NULL || slot->index < best->index)
-        {
-            best = slot;
-        }
-    }
-
-    return best != NULL ? best->view : NULL;
+    return egui_view_virtual_list_find_first_visible_item_view(EGUI_VIEW_OF(&viewport_1), viewport_match_visible_item, &ctx, NULL);
 }
 #endif
 
@@ -1841,15 +1785,19 @@ void test_init_ui(void)
     }
     demo_style_action_buttons();
 
-    egui_view_virtual_list_init_with_params(EGUI_VIEW_OF(&viewport_1), &viewport_1_params);
+    {
+        const egui_view_virtual_list_setup_t viewport_setup = {
+                .params = &viewport_1_params,
+                .data_source = &viewport_data_source,
+                .data_source_context = &viewport_context,
+                .state_cache_max_entries = DEMO_STATE_CACHE_COUNT,
+                .state_cache_max_bytes = DEMO_STATE_CACHE_COUNT * (uint32_t)sizeof(demo_virtual_row_state_t),
+        };
+
+        egui_view_virtual_list_init_with_setup(EGUI_VIEW_OF(&viewport_1), &viewport_setup);
+    }
     egui_view_set_background(EGUI_VIEW_OF(&viewport_1), EGUI_BG_OF(&list_bg));
     egui_view_set_shadow(EGUI_VIEW_OF(&viewport_1), &demo_card_shadow);
-    egui_view_virtual_list_set_data_source(EGUI_VIEW_OF(&viewport_1), &viewport_data_source, &viewport_context);
-    egui_view_virtual_list_set_estimated_item_height(EGUI_VIEW_OF(&viewport_1), 72);
-    egui_view_virtual_list_set_overscan(EGUI_VIEW_OF(&viewport_1), 1, 1);
-    egui_view_virtual_list_set_keepalive_limit(EGUI_VIEW_OF(&viewport_1), 4);
-    egui_view_virtual_list_set_state_cache_limits(EGUI_VIEW_OF(&viewport_1), DEMO_STATE_CACHE_COUNT,
-                                                  DEMO_STATE_CACHE_COUNT * (uint32_t)sizeof(demo_virtual_row_state_t));
 
     viewport_context.last_action_text[0] = '\0';
     demo_update_status_labels();

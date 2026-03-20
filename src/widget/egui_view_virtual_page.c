@@ -28,6 +28,95 @@ static uint32_t egui_view_virtual_page_default_stable_id(uint32_t index)
     return index + 1U;
 }
 
+static void egui_view_virtual_page_reset_entry(egui_view_virtual_page_entry_t *entry)
+{
+    if (entry == NULL)
+    {
+        return;
+    }
+
+    entry->index = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
+    entry->stable_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
+}
+
+static uint8_t egui_view_virtual_page_resolve_section_by_index_internal(egui_view_t *self, uint32_t index, egui_view_virtual_page_entry_t *entry)
+{
+    const egui_view_virtual_viewport_adapter_t *adapter = egui_view_virtual_viewport_get_adapter(self);
+    void *adapter_context = egui_view_virtual_viewport_get_adapter_context(self);
+    uint32_t count;
+
+    egui_view_virtual_page_reset_entry(entry);
+
+    if (adapter == NULL || adapter->get_count == NULL)
+    {
+        return 0;
+    }
+
+    count = adapter->get_count(adapter_context);
+    if (index >= count)
+    {
+        return 0;
+    }
+
+    if (entry != NULL)
+    {
+        entry->index = index;
+        entry->stable_id = adapter->get_stable_id != NULL ? adapter->get_stable_id(adapter_context, index) : egui_view_virtual_page_default_stable_id(index);
+    }
+
+    return 1;
+}
+
+static const egui_view_virtual_page_slot_t *egui_view_virtual_page_find_slot_by_view(egui_view_virtual_page_t *local, egui_view_t *view)
+{
+    uint8_t slot_index;
+
+    for (slot_index = 0; slot_index < EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS; slot_index++)
+    {
+        const egui_view_virtual_page_slot_t *slot = &local->base.slots[slot_index];
+
+        if (slot->state != EGUI_VIEW_VIRTUAL_SLOT_STATE_UNUSED && slot->view == view)
+        {
+            return slot;
+        }
+    }
+
+    return NULL;
+}
+
+static int32_t egui_view_virtual_page_find_slot_index_by_stable_id_internal(egui_view_virtual_page_t *local, uint32_t stable_id)
+{
+    uint8_t slot_index;
+
+    for (slot_index = 0; slot_index < EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS; slot_index++)
+    {
+        const egui_view_virtual_page_slot_t *slot = &local->base.slots[slot_index];
+
+        if (slot->state != EGUI_VIEW_VIRTUAL_SLOT_STATE_UNUSED && slot->stable_id == stable_id)
+        {
+            return (int32_t)slot_index;
+        }
+    }
+
+    return -1;
+}
+
+static uint8_t egui_view_virtual_page_resolve_slot_internal(egui_view_t *self, const egui_view_virtual_page_slot_t *slot, egui_view_virtual_page_entry_t *entry)
+{
+    if (slot == NULL || slot->state == EGUI_VIEW_VIRTUAL_SLOT_STATE_UNUSED)
+    {
+        egui_view_virtual_page_reset_entry(entry);
+        return 0;
+    }
+
+    if (egui_view_virtual_page_resolve_section_by_index_internal(self, slot->index, entry) && entry->stable_id == slot->stable_id)
+    {
+        return 1;
+    }
+
+    return egui_view_virtual_page_resolve_section_by_stable_id(self, slot->stable_id, entry);
+}
+
 static uint32_t egui_view_virtual_page_data_source_get_count(void *adapter_context)
 {
     void *data_source_context;
@@ -228,6 +317,28 @@ void egui_view_virtual_page_init_with_params(egui_view_t *self, const egui_view_
     egui_view_virtual_page_apply_params(self, params);
 }
 
+void egui_view_virtual_page_apply_setup(egui_view_t *self, const egui_view_virtual_page_setup_t *setup)
+{
+    if (setup == NULL)
+    {
+        return;
+    }
+
+    if (setup->params != NULL)
+    {
+        egui_view_virtual_page_apply_params(self, setup->params);
+    }
+
+    egui_view_virtual_page_set_data_source(self, setup->data_source, setup->data_source_context);
+    egui_view_virtual_page_set_state_cache_limits(self, setup->state_cache_max_entries, setup->state_cache_max_bytes);
+}
+
+void egui_view_virtual_page_init_with_setup(egui_view_t *self, const egui_view_virtual_page_setup_t *setup)
+{
+    egui_view_virtual_page_init(self);
+    egui_view_virtual_page_apply_setup(self, setup);
+}
+
 void egui_view_virtual_page_set_adapter(egui_view_t *self, const egui_view_virtual_page_adapter_t *adapter, void *adapter_context)
 {
     EGUI_LOCAL_INIT(egui_view_virtual_page_t);
@@ -287,6 +398,19 @@ void *egui_view_virtual_page_get_data_source_context(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_virtual_page_t);
     return local->data_source_context;
+}
+
+uint32_t egui_view_virtual_page_get_section_count(egui_view_t *self)
+{
+    const egui_view_virtual_viewport_adapter_t *adapter = egui_view_virtual_viewport_get_adapter(self);
+    void *adapter_context = egui_view_virtual_viewport_get_adapter_context(self);
+
+    if (adapter == NULL || adapter->get_count == NULL)
+    {
+        return 0;
+    }
+
+    return adapter->get_count(adapter_context);
 }
 
 void egui_view_virtual_page_set_overscan(egui_view_t *self, uint8_t before, uint8_t after)
@@ -389,6 +513,27 @@ int32_t egui_view_virtual_page_find_section_index_by_stable_id(egui_view_t *self
     return egui_view_virtual_viewport_find_item_index_by_stable_id(self, stable_id);
 }
 
+uint8_t egui_view_virtual_page_resolve_section_by_stable_id(egui_view_t *self, uint32_t stable_id, egui_view_virtual_page_entry_t *entry)
+{
+    int32_t index = egui_view_virtual_page_find_section_index_by_stable_id(self, stable_id);
+
+    egui_view_virtual_page_reset_entry(entry);
+    if (index < 0)
+    {
+        return 0;
+    }
+
+    return egui_view_virtual_page_resolve_section_by_index_internal(self, (uint32_t)index, entry);
+}
+
+uint8_t egui_view_virtual_page_resolve_section_by_view(egui_view_t *self, egui_view_t *section_view, egui_view_virtual_page_entry_t *entry)
+{
+    EGUI_LOCAL_INIT(egui_view_virtual_page_t);
+    const egui_view_virtual_page_slot_t *slot = egui_view_virtual_page_find_slot_by_view(local, section_view);
+
+    return egui_view_virtual_page_resolve_slot_internal(self, slot, entry);
+}
+
 int32_t egui_view_virtual_page_get_section_y(egui_view_t *self, uint32_t index)
 {
     return egui_view_virtual_viewport_get_item_main_origin(self, index);
@@ -397,6 +542,49 @@ int32_t egui_view_virtual_page_get_section_y(egui_view_t *self, uint32_t index)
 int32_t egui_view_virtual_page_get_section_height(egui_view_t *self, uint32_t index)
 {
     return egui_view_virtual_viewport_get_item_main_size(self, index);
+}
+
+int32_t egui_view_virtual_page_get_section_y_by_stable_id(egui_view_t *self, uint32_t stable_id)
+{
+    int32_t index = egui_view_virtual_page_find_section_index_by_stable_id(self, stable_id);
+
+    if (index < 0)
+    {
+        return -1;
+    }
+
+    return egui_view_virtual_page_get_section_y(self, (uint32_t)index);
+}
+
+int32_t egui_view_virtual_page_get_section_height_by_stable_id(egui_view_t *self, uint32_t stable_id)
+{
+    int32_t index = egui_view_virtual_page_find_section_index_by_stable_id(self, stable_id);
+
+    if (index < 0)
+    {
+        return -1;
+    }
+
+    return egui_view_virtual_page_get_section_height(self, (uint32_t)index);
+}
+
+uint8_t egui_view_virtual_page_ensure_section_visible_by_stable_id(egui_view_t *self, uint32_t stable_id, int32_t inset)
+{
+    const egui_view_virtual_page_slot_t *slot;
+
+    if (stable_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID || egui_view_virtual_page_find_section_index_by_stable_id(self, stable_id) < 0)
+    {
+        return 0;
+    }
+
+    slot = egui_view_virtual_page_find_slot_by_stable_id(self, stable_id);
+    if (egui_view_virtual_viewport_is_slot_fully_visible(self, slot, inset))
+    {
+        return 1;
+    }
+
+    egui_view_virtual_page_scroll_to_section_by_stable_id(self, stable_id, inset);
+    return 1;
 }
 
 void egui_view_virtual_page_notify_data_changed(egui_view_t *self)
@@ -447,6 +635,121 @@ uint8_t egui_view_virtual_page_get_slot_count(egui_view_t *self)
 const egui_view_virtual_page_slot_t *egui_view_virtual_page_get_slot(egui_view_t *self, uint8_t slot_index)
 {
     return egui_view_virtual_viewport_get_slot(self, slot_index);
+}
+
+int32_t egui_view_virtual_page_find_slot_index_by_stable_id(egui_view_t *self, uint32_t stable_id)
+{
+    EGUI_LOCAL_INIT(egui_view_virtual_page_t);
+    return egui_view_virtual_page_find_slot_index_by_stable_id_internal(local, stable_id);
+}
+
+const egui_view_virtual_page_slot_t *egui_view_virtual_page_find_slot_by_stable_id(egui_view_t *self, uint32_t stable_id)
+{
+    int32_t slot_index = egui_view_virtual_page_find_slot_index_by_stable_id(self, stable_id);
+
+    return slot_index >= 0 ? egui_view_virtual_page_get_slot(self, (uint8_t)slot_index) : NULL;
+}
+
+egui_view_t *egui_view_virtual_page_find_view_by_stable_id(egui_view_t *self, uint32_t stable_id)
+{
+    const egui_view_virtual_page_slot_t *slot = egui_view_virtual_page_find_slot_by_stable_id(self, stable_id);
+
+    return slot != NULL ? slot->view : NULL;
+}
+
+uint8_t egui_view_virtual_page_get_slot_entry(egui_view_t *self, uint8_t slot_index, egui_view_virtual_page_entry_t *entry)
+{
+    const egui_view_virtual_page_slot_t *slot = egui_view_virtual_page_get_slot(self, slot_index);
+    return egui_view_virtual_page_resolve_slot_internal(self, slot, entry);
+}
+
+uint8_t egui_view_virtual_page_visit_visible_sections(egui_view_t *self, egui_view_virtual_page_visible_section_visitor_t visitor, void *context)
+{
+    uint8_t slot_count;
+    uint8_t slot_index;
+    uint8_t visited = 0;
+
+    if (visitor == NULL)
+    {
+        return 0;
+    }
+
+    slot_count = egui_view_virtual_page_get_slot_count(self);
+    for (slot_index = 0; slot_index < slot_count; slot_index++)
+    {
+        egui_view_virtual_page_entry_t entry;
+        const egui_view_virtual_page_slot_t *slot = egui_view_virtual_page_get_slot(self, slot_index);
+
+        if (slot == NULL || slot->state != EGUI_VIEW_VIRTUAL_SLOT_STATE_VISIBLE || slot->view == NULL)
+        {
+            continue;
+        }
+        if (!egui_view_virtual_page_get_slot_entry(self, slot_index, &entry))
+        {
+            continue;
+        }
+
+        visited++;
+        if (!visitor(self, slot, &entry, slot->view, context))
+        {
+            break;
+        }
+    }
+
+    return visited;
+}
+
+typedef struct egui_view_virtual_page_find_visible_section_context
+{
+    egui_view_virtual_page_visible_section_matcher_t matcher;
+    void *context;
+    uint32_t best_index;
+    egui_view_t *best_view;
+    egui_view_virtual_page_entry_t best_entry;
+} egui_view_virtual_page_find_visible_section_context_t;
+
+static uint8_t egui_view_virtual_page_find_visible_section_visitor(egui_view_t *self, const egui_view_virtual_page_slot_t *slot,
+                                                                   const egui_view_virtual_page_entry_t *entry, egui_view_t *section_view,
+                                                                   void *context)
+{
+    egui_view_virtual_page_find_visible_section_context_t *ctx = (egui_view_virtual_page_find_visible_section_context_t *)context;
+
+    if (entry == NULL || section_view == NULL)
+    {
+        return 1;
+    }
+    if (ctx->matcher != NULL && !ctx->matcher(self, slot, entry, section_view, ctx->context))
+    {
+        return 1;
+    }
+    if (ctx->best_view == NULL || entry->index < ctx->best_index)
+    {
+        ctx->best_index = entry->index;
+        ctx->best_entry = *entry;
+        ctx->best_view = section_view;
+    }
+
+    return 1;
+}
+
+egui_view_t *egui_view_virtual_page_find_first_visible_section_view(egui_view_t *self,
+                                                                    egui_view_virtual_page_visible_section_matcher_t matcher, void *context,
+                                                                    egui_view_virtual_page_entry_t *entry_out)
+{
+    egui_view_virtual_page_find_visible_section_context_t find_ctx = {
+            .matcher = matcher,
+            .context = context,
+            .best_index = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID,
+            .best_view = NULL,
+    };
+
+    egui_view_virtual_page_visit_visible_sections(self, egui_view_virtual_page_find_visible_section_visitor, &find_ctx);
+    if (find_ctx.best_view != NULL && entry_out != NULL)
+    {
+        *entry_out = find_ctx.best_entry;
+    }
+
+    return find_ctx.best_view;
 }
 
 void egui_view_virtual_page_init(egui_view_t *self)

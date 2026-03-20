@@ -997,7 +997,7 @@ void recording_request_snapshot(void)
     {
 #if EGUI_CONFIG_RECORDING_TEST
         g_recording_snapshot_requested = true;
-        g_recording_snapshot_request_time = sdl_get_system_timestamp_ms();
+        g_recording_snapshot_request_time = sdl_get_system_timestamp_ms_raw();
         g_recording_snapshot_last_hash = recording_calc_frame_hash();
         g_recording_snapshot_same_hash_count = 0;
 #endif
@@ -1240,14 +1240,21 @@ static void recording_save_frame(void)
     }
 
     uint32_t now = sdl_get_system_timestamp_ms();
+    uint32_t real_now = sdl_get_system_timestamp_ms_raw();
 
     // Initialize start time on first frame
     if (g_recording_start_time == 0)
     {
         g_recording_start_time = now;
         g_recording_last_frame_time = now;
+#if EGUI_CONFIG_RECORDING_TEST
+        // In recording-test mode, wait for the first stable rendered frame
+        // instead of saving the uninitialized backbuffer as frame_0000.
+        recording_request_snapshot();
+#else
         // Save the initial frame (page 1 before any action)
         recording_do_save_frame();
+#endif
     }
 
     // Check if recording finished (timeout safety)
@@ -1263,7 +1270,7 @@ static void recording_save_frame(void)
     // Snapshot-driven frame capture: save when requested by user code or auto-fallback
     if (g_recording_snapshot_requested)
     {
-        if ((now - g_recording_snapshot_request_time) < (uint32_t)g_recording_snapshot_settle_ms)
+        if ((real_now - g_recording_snapshot_request_time) < (uint32_t)g_recording_snapshot_settle_ms)
         {
             return;
         }
@@ -1280,7 +1287,7 @@ static void recording_save_frame(void)
         }
 
         bool stable_ready = g_recording_snapshot_same_hash_count >= g_recording_snapshot_stable_cycles;
-        bool timeout_ready = (now - g_recording_snapshot_request_time) >= (uint32_t)g_recording_snapshot_max_wait_ms;
+        bool timeout_ready = (real_now - g_recording_snapshot_request_time) >= (uint32_t)g_recording_snapshot_max_wait_ms;
         if (!stable_ready && !timeout_ready)
         {
             return;

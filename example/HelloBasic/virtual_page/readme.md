@@ -2,49 +2,43 @@
 
 ## 这个示例展示什么
 
-这个例程用 `egui_view_virtual_page_t` 演示“长页面 / 多 section 容器”的真实用法，不再只是列表行复用：
+这个示例用 `egui_view_virtual_page_t` 演示“长页面 / 大 section 容器”的典型业务场景：
 
 - 280 个 section 的长页面
-- 不同 section 高度和视觉样式
-- 点击 section 后展开，确认选中了哪一项
-- `Add / Del / Patch / Jump` 模拟页面内容变更
-- `stable_id` 定位与滚动
-- 脉冲动画 + keepalive + 状态袋恢复
+- section 高度和视觉样式可变
+- 点击 section 后确认命中的 `index / stable_id`
+- `Add / Del / Patch / Jump` 模拟内容增删改和定位
+- 脉冲动画结合 `keepalive + state cache`
 
 适合的业务场景：
 
 - dashboard
 - 设置页
-- 表单页
-- 详情页里的多 section 内容流
+- 多 section 表单页
+- 详情页中的大块内容流
 
-## 怎么运行
+## 运行方式
 
 ```bash
 make -j1 all APP=HelloBasic APP_SUB=virtual_page PORT=pc
 python scripts/code_runtime_check.py --app HelloBasic --app-sub virtual_page --keep-screenshots
 ```
 
-## 代码结构
+## 推荐接入方式
 
-- 顶部固定区域：
-  - 状态卡片，显示当前选中 section 和最后一次动作
-  - 工具栏按钮，触发增删改跳转
-- 中间滚动区域：
-  - `virtual_page`
-  - 每个 section 只有进入可见区时才真正创建 view
-
-核心文件：
-
-- `example/HelloBasic/virtual_page/test.c`
-- `src/widget/egui_view_virtual_page.h`
-- `src/widget/egui_view_virtual_page.c`
-- `src/widget/egui_view_virtual_viewport.h`
-
-## 最小接入方式
+现在推荐直接用 `setup` 把初始化信息一次性带齐：
 
 ```c
 static egui_view_virtual_page_t dashboard_page;
+static app_context_t dashboard_ctx;
+
+static const egui_view_virtual_page_params_t dashboard_page_params = {
+        .region = {{8, 48}, {224, 264}},
+        .overscan_before = 1,
+        .overscan_after = 1,
+        .max_keepalive_slots = 4,
+        .estimated_section_height = 90,
+};
 
 static const egui_view_virtual_page_data_source_t dashboard_sections = {
         .get_count = dashboard_get_count,
@@ -59,47 +53,120 @@ static const egui_view_virtual_page_data_source_t dashboard_sections = {
         .restore_section_state = dashboard_restore_state,
 };
 
-EGUI_VIEW_VIRTUAL_PAGE_PARAMS_INIT(dashboard_page_params, 8, 48, 224, 264);
+static const egui_view_virtual_page_setup_t dashboard_page_setup = {
+        .params = &dashboard_page_params,
+        .data_source = &dashboard_sections,
+        .data_source_context = &dashboard_ctx,
+        .state_cache_max_entries = 64,
+        .state_cache_max_bytes = 64 * sizeof(my_section_state_t),
+};
 
-egui_view_virtual_page_init_with_params(EGUI_VIEW_OF(&dashboard_page), &dashboard_page_params);
-egui_view_virtual_page_set_data_source(EGUI_VIEW_OF(&dashboard_page), &dashboard_sections, &dashboard_ctx);
-egui_view_virtual_page_set_estimated_section_height(EGUI_VIEW_OF(&dashboard_page), 90);
-egui_view_virtual_page_set_keepalive_limit(EGUI_VIEW_OF(&dashboard_page), 4);
-egui_view_virtual_page_set_state_cache_limits(EGUI_VIEW_OF(&dashboard_page), 64, 64 * sizeof(my_section_state_t));
+egui_view_virtual_page_init_with_setup(EGUI_VIEW_OF(&dashboard_page), &dashboard_page_setup);
+```
+
+如果容器已经初始化完成，后续要替换 `params`、数据源或缓存限额，可以继续使用：
+
+```c
+egui_view_virtual_page_apply_setup(EGUI_VIEW_OF(&dashboard_page), &dashboard_page_setup);
+```
+
+## 点击命中和可见 section 遍历
+
+如果 section 根 view 自己就接点击事件，可以直接反查命中的 section：
+
+```c
+static void dashboard_click_cb(egui_view_t *self)
+{
+    egui_view_virtual_page_entry_t entry;
+
+    if (!egui_view_virtual_page_resolve_section_by_view(EGUI_VIEW_OF(&dashboard_page), self, &entry))
+    {
+        return;
+    }
+
+    focus_section(entry.index, entry.stable_id);
+    egui_view_virtual_page_notify_section_changed(EGUI_VIEW_OF(&dashboard_page), entry.index);
+}
+```
+
+做录制动作或自动化点击时，也可以直接扫描当前可见 slot：
+
+```c
+static uint8_t match_clickable_section(egui_view_t *self, const egui_view_virtual_page_slot_t *slot, const egui_view_virtual_page_entry_t *entry,
+                                       egui_view_t *section_view, void *context)
+{
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(entry);
+    EGUI_UNUSED(section_view);
+    EGUI_UNUSED(context);
+    return slot != NULL;
+}
+
+egui_view_t *target_view =
+        egui_view_virtual_page_find_first_visible_section_view(EGUI_VIEW_OF(&dashboard_page), match_clickable_section, NULL, NULL);
+if (target_view != NULL)
+{
+    simulate_click(target_view);
+}
 ```
 
 ## 使用建议
 
-### 1. section 必须有稳定 `stable_id`
+### 1. section 要有稳定 `stable_id`
 
 这样才能安全使用：
 
 - `egui_view_virtual_page_scroll_to_section_by_stable_id()`
+- `egui_view_virtual_page_ensure_section_visible_by_stable_id()`
 - `egui_view_virtual_page_notify_section_resized_by_stable_id()`
 - `egui_view_virtual_page_write_section_state()`
 - `egui_view_virtual_page_read_section_state()`
 
-### 2. 高度会变时要主动通知
+### 2. 高度变化时主动通知
 
-如果点击后 section 会展开、折叠或切换样式，业务层要显式通知：
+如果点击后 section 会展开、折叠或切样式，业务层要显式通知：
 
 ```c
 egui_view_virtual_page_notify_section_resized(EGUI_VIEW_OF(&dashboard_page), index);
 ```
 
-### 3. keepalive 和状态袋分工不同
+如果只是希望当前 section 保持在可见安全带里，而不是每次都强制跳转到固定位置，优先用：
 
-- `keepalive`：短时间内必须保留同一个 view 实例
-- 状态袋：允许 view 回收，但希望动画进度或临时状态能恢复
+```c
+egui_view_virtual_page_ensure_section_visible_by_stable_id(EGUI_VIEW_OF(&dashboard_page), stable_id, inset);
+```
 
-这个示例里：
+### 3. `keepalive` 和状态缓存分工不同
 
-- 选中的 section 进入 keepalive
-- 脉冲动画进度存进状态袋，离屏回收后还能接着恢复
+- `keepalive` 适合短时间内必须保留同一个 view 实例的 section
+- `state cache` 适合允许回收，但离屏后还要恢复动画或临时态的 section
+
+### 4. 常用 helper
+
+- `egui_view_virtual_page_get_section_count()`
+- `egui_view_virtual_page_resolve_section_by_stable_id()`
+- `egui_view_virtual_page_resolve_section_by_view()`
+- `egui_view_virtual_page_find_view_by_stable_id()`
+- `egui_view_virtual_page_find_first_visible_section_view()`
+- `egui_view_virtual_page_get_section_y_by_stable_id()`
+- `egui_view_virtual_page_get_section_height_by_stable_id()`
+- `egui_view_virtual_page_ensure_section_visible_by_stable_id()`
+- `egui_view_virtual_page_visit_visible_sections()`
+- `egui_view_virtual_page_get_slot_count()`
+- `egui_view_virtual_page_get_slot()`
+- `egui_view_virtual_page_get_slot_entry()`
 
 ## 和 `virtual_list` 的区别
 
-- `virtual_list` 更适合“很多行”
-- `virtual_page` 更适合“很多 section”
+- `virtual_list` 更适合很多行
+- `virtual_page` 更适合很多大 section
 - 底层都复用 `virtual_viewport`
-- 当你的业务语义已经是 page / dashboard / settings 时，直接用 `virtual_page` 更顺手
+
+当你的业务语义已经是 page、dashboard 或 settings 时，直接用 `virtual_page` 会比在 `virtual_list` 上自己再封一层更顺手。
+
+## 相关文件
+
+- `example/HelloBasic/virtual_page/test.c`
+- `src/widget/egui_view_virtual_page.h`
+- `src/widget/egui_view_virtual_page.c`
+- `src/widget/egui_view_virtual_viewport.h`

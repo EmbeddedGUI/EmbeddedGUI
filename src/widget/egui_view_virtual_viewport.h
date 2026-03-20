@@ -173,6 +173,8 @@ int32_t egui_view_virtual_viewport_get_logical_offset(egui_view_t *self);
 int32_t egui_view_virtual_viewport_find_item_index_by_stable_id(egui_view_t *self, uint32_t stable_id);
 int32_t egui_view_virtual_viewport_get_item_main_origin(egui_view_t *self, uint32_t index);
 int32_t egui_view_virtual_viewport_get_item_main_size(egui_view_t *self, uint32_t index);
+uint8_t egui_view_virtual_viewport_is_main_span_center_visible(egui_view_t *self, int32_t main_origin, int32_t main_size);
+uint8_t egui_view_virtual_viewport_is_main_span_fully_visible(egui_view_t *self, int32_t main_origin, int32_t main_size, int32_t inset);
 
 void egui_view_virtual_viewport_set_anchor(egui_view_t *self, uint32_t stable_id, int32_t anchor_offset);
 uint32_t egui_view_virtual_viewport_get_anchor_stable_id(egui_view_t *self);
@@ -190,6 +192,8 @@ void egui_view_virtual_viewport_notify_item_resized_by_stable_id(egui_view_t *se
 egui_view_t *egui_view_virtual_viewport_get_content_layer(egui_view_t *self);
 uint8_t egui_view_virtual_viewport_get_slot_count(egui_view_t *self);
 const egui_view_virtual_viewport_slot_t *egui_view_virtual_viewport_get_slot(egui_view_t *self, uint8_t slot_index);
+uint8_t egui_view_virtual_viewport_is_slot_center_visible(egui_view_t *self, const egui_view_virtual_viewport_slot_t *slot);
+uint8_t egui_view_virtual_viewport_is_slot_fully_visible(egui_view_t *self, const egui_view_virtual_viewport_slot_t *slot, int32_t inset);
 
 void egui_view_virtual_viewport_init(egui_view_t *self);
 

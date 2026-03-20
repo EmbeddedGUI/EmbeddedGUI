@@ -13,7 +13,14 @@ typedef egui_view_virtual_viewport_slot_t egui_view_virtual_list_slot_t;
 
 typedef struct egui_view_virtual_list egui_view_virtual_list_t;
 typedef struct egui_view_virtual_list_data_source egui_view_virtual_list_data_source_t;
+typedef struct egui_view_virtual_list_entry egui_view_virtual_list_entry_t;
 typedef struct egui_view_virtual_list_params egui_view_virtual_list_params_t;
+typedef struct egui_view_virtual_list_setup egui_view_virtual_list_setup_t;
+typedef uint8_t (*egui_view_virtual_list_visible_item_matcher_t)(egui_view_t *self, const egui_view_virtual_list_slot_t *slot,
+                                                                 const egui_view_virtual_list_entry_t *entry, egui_view_t *item_view,
+                                                                 void *context);
+typedef uint8_t (*egui_view_virtual_list_visible_item_visitor_t)(egui_view_t *self, const egui_view_virtual_list_slot_t *slot,
+                                                                 const egui_view_virtual_list_entry_t *entry, egui_view_t *item_view, void *context);
 
 struct egui_view_virtual_list
 {
@@ -40,6 +47,30 @@ struct egui_view_virtual_list_params
             .max_keepalive_slots = 2,                                                                                                                          \
             .estimated_item_height = 40,                                                                                                                       \
     }
+
+struct egui_view_virtual_list_setup
+{
+    const egui_view_virtual_list_params_t *params;
+    const egui_view_virtual_list_data_source_t *data_source;
+    void *data_source_context;
+    uint16_t state_cache_max_entries;
+    uint32_t state_cache_max_bytes;
+};
+
+#define EGUI_VIEW_VIRTUAL_LIST_SETUP_INIT(_name, _params, _data_source, _data_source_context)                                                                  \
+    static const egui_view_virtual_list_setup_t _name = {                                                                                                      \
+            .params = (_params),                                                                                                                               \
+            .data_source = (_data_source),                                                                                                                     \
+            .data_source_context = (_data_source_context),                                                                                                     \
+            .state_cache_max_entries = 0,                                                                                                                      \
+            .state_cache_max_bytes = 0,                                                                                                                        \
+    }
+
+struct egui_view_virtual_list_entry
+{
+    uint32_t index;
+    uint32_t stable_id;
+};
 
 struct egui_view_virtual_list_data_source
 {
@@ -77,6 +108,8 @@ struct egui_view_virtual_list_data_source
 
 void egui_view_virtual_list_apply_params(egui_view_t *self, const egui_view_virtual_list_params_t *params);
 void egui_view_virtual_list_init_with_params(egui_view_t *self, const egui_view_virtual_list_params_t *params);
+void egui_view_virtual_list_apply_setup(egui_view_t *self, const egui_view_virtual_list_setup_t *setup);
+void egui_view_virtual_list_init_with_setup(egui_view_t *self, const egui_view_virtual_list_setup_t *setup);
 
 void egui_view_virtual_list_set_adapter(egui_view_t *self, const egui_view_virtual_list_adapter_t *adapter, void *adapter_context);
 const egui_view_virtual_list_adapter_t *egui_view_virtual_list_get_adapter(egui_view_t *self);
@@ -85,6 +118,7 @@ void *egui_view_virtual_list_get_adapter_context(egui_view_t *self);
 void egui_view_virtual_list_set_data_source(egui_view_t *self, const egui_view_virtual_list_data_source_t *data_source, void *data_source_context);
 const egui_view_virtual_list_data_source_t *egui_view_virtual_list_get_data_source(egui_view_t *self);
 void *egui_view_virtual_list_get_data_source_context(egui_view_t *self);
+uint32_t egui_view_virtual_list_get_item_count(egui_view_t *self);
 
 void egui_view_virtual_list_set_overscan(egui_view_t *self, uint8_t before, uint8_t after);
 uint8_t egui_view_virtual_list_get_overscan_before(egui_view_t *self);
@@ -109,8 +143,13 @@ void egui_view_virtual_list_scroll_to_item(egui_view_t *self, uint32_t index, in
 void egui_view_virtual_list_scroll_to_stable_id(egui_view_t *self, uint32_t stable_id, int32_t item_offset);
 int32_t egui_view_virtual_list_get_scroll_y(egui_view_t *self);
 int32_t egui_view_virtual_list_find_index_by_stable_id(egui_view_t *self, uint32_t stable_id);
+uint8_t egui_view_virtual_list_resolve_item_by_stable_id(egui_view_t *self, uint32_t stable_id, egui_view_virtual_list_entry_t *entry);
+uint8_t egui_view_virtual_list_resolve_item_by_view(egui_view_t *self, egui_view_t *item_view, egui_view_virtual_list_entry_t *entry);
 int32_t egui_view_virtual_list_get_item_y(egui_view_t *self, uint32_t index);
 int32_t egui_view_virtual_list_get_item_height(egui_view_t *self, uint32_t index);
+int32_t egui_view_virtual_list_get_item_y_by_stable_id(egui_view_t *self, uint32_t stable_id);
+int32_t egui_view_virtual_list_get_item_height_by_stable_id(egui_view_t *self, uint32_t stable_id);
+uint8_t egui_view_virtual_list_ensure_item_visible_by_stable_id(egui_view_t *self, uint32_t stable_id, int32_t inset);
 
 void egui_view_virtual_list_notify_data_changed(egui_view_t *self);
 void egui_view_virtual_list_notify_item_changed(egui_view_t *self, uint32_t index);
@@ -123,6 +162,13 @@ void egui_view_virtual_list_notify_item_resized_by_stable_id(egui_view_t *self, 
 
 uint8_t egui_view_virtual_list_get_slot_count(egui_view_t *self);
 const egui_view_virtual_list_slot_t *egui_view_virtual_list_get_slot(egui_view_t *self, uint8_t slot_index);
+int32_t egui_view_virtual_list_find_slot_index_by_stable_id(egui_view_t *self, uint32_t stable_id);
+const egui_view_virtual_list_slot_t *egui_view_virtual_list_find_slot_by_stable_id(egui_view_t *self, uint32_t stable_id);
+egui_view_t *egui_view_virtual_list_find_view_by_stable_id(egui_view_t *self, uint32_t stable_id);
+uint8_t egui_view_virtual_list_get_slot_entry(egui_view_t *self, uint8_t slot_index, egui_view_virtual_list_entry_t *entry);
+uint8_t egui_view_virtual_list_visit_visible_items(egui_view_t *self, egui_view_virtual_list_visible_item_visitor_t visitor, void *context);
+egui_view_t *egui_view_virtual_list_find_first_visible_item_view(egui_view_t *self, egui_view_virtual_list_visible_item_matcher_t matcher, void *context,
+                                                                 egui_view_virtual_list_entry_t *entry_out);
 
 void egui_view_virtual_list_init(egui_view_t *self);
 

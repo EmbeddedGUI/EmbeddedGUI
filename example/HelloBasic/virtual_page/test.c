@@ -153,7 +153,13 @@ static page_demo_context_t page_context;
 
 EGUI_VIEW_CARD_PARAMS_INIT(header_card_params, PAGE_MARGIN_X, PAGE_TOP_Y, PAGE_HEADER_W, PAGE_HEADER_H, 14);
 EGUI_VIEW_CARD_PARAMS_INIT(toolbar_card_params, PAGE_MARGIN_X, PAGE_TOOLBAR_Y, PAGE_HEADER_W, PAGE_TOOLBAR_H, 12);
-EGUI_VIEW_VIRTUAL_PAGE_PARAMS_INIT(page_view_params, PAGE_MARGIN_X, PAGE_VIEW_Y, PAGE_VIEW_W, PAGE_VIEW_H);
+static const egui_view_virtual_page_params_t page_view_params = {
+        .region = {{PAGE_MARGIN_X, PAGE_VIEW_Y}, {PAGE_VIEW_W, PAGE_VIEW_H}},
+        .overscan_before = 1,
+        .overscan_after = 1,
+        .max_keepalive_slots = 4,
+        .estimated_section_height = 90,
+};
 
 EGUI_BACKGROUND_GRADIENT_PARAM_INIT(screen_bg_param, EGUI_BACKGROUND_GRADIENT_DIR_VERTICAL, EGUI_COLOR_HEX(0xEEF4F8), EGUI_COLOR_HEX(0xD9E5EE),
                                     EGUI_ALPHA_100);
@@ -329,18 +335,6 @@ static int32_t page_demo_measure_section_height_with_state(const page_demo_secti
     return base_height;
 }
 
-static int32_t page_demo_measure_section_height_by_stable_id(uint32_t stable_id)
-{
-    int32_t index = page_demo_find_index_by_stable_id(stable_id);
-
-    if (index < 0)
-    {
-        return 72;
-    }
-
-    return page_demo_measure_section_height_with_state(&page_context.sections[index], stable_id == page_context.selected_id);
-}
-
 static uint8_t page_demo_section_has_pulse(const page_demo_section_t *section, uint8_t selected)
 {
     if (section == NULL)
@@ -356,33 +350,6 @@ static egui_dim_t page_demo_get_view_width(void)
     egui_dim_t width = EGUI_VIEW_OF(&page_view)->region.size.width;
 
     return width > 0 ? width : PAGE_VIEW_W;
-}
-
-static void page_demo_keep_section_fully_visible(uint32_t index, uint32_t stable_id)
-{
-    int32_t section_y;
-    int32_t section_h;
-    int32_t viewport_h;
-    int32_t inset = PAGE_CARD_INSET_Y;
-
-    if (index == PAGE_INVALID_INDEX || stable_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
-    {
-        return;
-    }
-
-    section_y = egui_view_virtual_page_get_section_y(EGUI_VIEW_OF(&page_view), index);
-    section_h = page_demo_measure_section_height_by_stable_id(stable_id);
-    viewport_h = EGUI_VIEW_OF(&page_view)->region.size.height;
-
-    if (viewport_h <= 0)
-    {
-        return;
-    }
-
-    if (section_y < inset || (section_y + section_h) > (viewport_h - inset))
-    {
-        egui_view_virtual_page_scroll_to_section_by_stable_id(EGUI_VIEW_OF(&page_view), stable_id, inset);
-    }
 }
 
 static int page_demo_get_view_pool_index(page_demo_section_view_t *section_view)
@@ -540,7 +507,7 @@ static void page_demo_refresh_header(void)
     egui_view_label_set_text(EGUI_VIEW_OF(&header_hint), page_context.header_hint_text);
 }
 
-static void page_demo_update_selection(uint32_t index, uint32_t stable_id, uint8_t allow_toggle, uint8_t ensure_visible)
+static void page_demo_update_selection(uint32_t stable_id, uint8_t allow_toggle, uint8_t ensure_visible)
 {
     uint32_t previous_id = page_context.selected_id;
 
@@ -562,7 +529,7 @@ static void page_demo_update_selection(uint32_t index, uint32_t stable_id, uint8
         egui_view_virtual_page_notify_section_resized_by_stable_id(EGUI_VIEW_OF(&page_view), page_context.selected_id);
         if (ensure_visible)
         {
-            page_demo_keep_section_fully_visible(index, stable_id);
+            egui_view_virtual_page_ensure_section_visible_by_stable_id(EGUI_VIEW_OF(&page_view), stable_id, PAGE_CARD_INSET_Y);
         }
     }
 }
@@ -762,17 +729,18 @@ static int32_t page_demo_measure_section_height(void *data_source_context, uint3
 
 static void page_demo_section_click_cb(egui_view_t *self)
 {
-    page_demo_section_view_t *section_view = page_demo_find_view_by_root(self);
+    egui_view_virtual_page_entry_t entry;
 
-    if (section_view == NULL || section_view->bound_index == PAGE_INVALID_INDEX)
+    if (!egui_view_virtual_page_resolve_section_by_view(EGUI_VIEW_OF(&page_view), self, &entry) || entry.index == PAGE_INVALID_INDEX ||
+        entry.stable_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
     {
         return;
     }
 
-    page_context.last_clicked_index = section_view->bound_index;
+    page_context.last_clicked_index = entry.index;
     page_context.click_count++;
-    page_demo_update_selection(section_view->bound_index, section_view->stable_id, 1, 1);
-    snprintf(page_context.last_action_text, sizeof(page_context.last_action_text), "Tap section #%05lu.", (unsigned long)section_view->stable_id);
+    page_demo_update_selection(entry.stable_id, 1, 1);
+    snprintf(page_context.last_action_text, sizeof(page_context.last_action_text), "Tap section #%05lu.", (unsigned long)entry.stable_id);
     page_demo_refresh_header();
 }
 
@@ -1003,7 +971,7 @@ static void page_demo_action_add(void)
     page_context.mutation_cursor = index;
 
     egui_view_virtual_page_notify_section_inserted(EGUI_VIEW_OF(&page_view), index, 1);
-    page_demo_update_selection(index, stable_id, 0, 1);
+    page_demo_update_selection(stable_id, 0, 1);
     snprintf(page_context.last_action_text, sizeof(page_context.last_action_text), "Inserted section #%05lu.", (unsigned long)stable_id);
     page_demo_refresh_header();
 }
@@ -1101,7 +1069,7 @@ static void page_demo_action_patch(void)
     }
     if (selected)
     {
-        page_demo_keep_section_fully_visible(index, section->stable_id);
+        egui_view_virtual_page_ensure_section_visible_by_stable_id(EGUI_VIEW_OF(&page_view), section->stable_id, PAGE_CARD_INSET_Y);
     }
 
     snprintf(page_context.last_action_text, sizeof(page_context.last_action_text), "Patched section #%05lu.", (unsigned long)section->stable_id);
@@ -1125,9 +1093,8 @@ static void page_demo_action_jump(void)
     stable_id = page_context.sections[index].stable_id;
     page_context.action_count++;
 
-    page_demo_update_selection(index, stable_id, 0, 0);
-    egui_view_virtual_page_scroll_to_section_by_stable_id(EGUI_VIEW_OF(&page_view), stable_id, PAGE_CARD_INSET_Y);
-    page_demo_keep_section_fully_visible(index, stable_id);
+    page_demo_update_selection(stable_id, 0, 0);
+    egui_view_virtual_page_ensure_section_visible_by_stable_id(EGUI_VIEW_OF(&page_view), stable_id, PAGE_CARD_INSET_Y);
     snprintf(page_context.last_action_text, sizeof(page_context.last_action_text), "Jump to section #%05lu.", (unsigned long)stable_id);
     page_demo_refresh_header();
 }
@@ -1233,13 +1200,18 @@ void test_init_ui(void)
         button_x += PAGE_BUTTON_W + PAGE_BUTTON_GAP;
     }
 
-    egui_view_virtual_page_init_with_params(EGUI_VIEW_OF(&page_view), &page_view_params);
+    {
+        const egui_view_virtual_page_setup_t page_view_setup = {
+                .params = &page_view_params,
+                .data_source = &page_demo_data_source,
+                .data_source_context = &page_context,
+                .state_cache_max_entries = PAGE_STATE_CACHE_COUNT,
+                .state_cache_max_bytes = PAGE_STATE_CACHE_COUNT * (uint32_t)sizeof(page_demo_section_state_t),
+        };
+
+        egui_view_virtual_page_init_with_setup(EGUI_VIEW_OF(&page_view), &page_view_setup);
+    }
     egui_view_set_background(EGUI_VIEW_OF(&page_view), EGUI_BG_OF(&page_bg));
-    egui_view_virtual_page_set_data_source(EGUI_VIEW_OF(&page_view), &page_demo_data_source, &page_context);
-    egui_view_virtual_page_set_estimated_section_height(EGUI_VIEW_OF(&page_view), 90);
-    egui_view_virtual_page_set_keepalive_limit(EGUI_VIEW_OF(&page_view), 4);
-    egui_view_virtual_page_set_state_cache_limits(EGUI_VIEW_OF(&page_view), PAGE_STATE_CACHE_COUNT,
-                                                  PAGE_STATE_CACHE_COUNT * sizeof(page_demo_section_state_t));
 
     page_demo_refresh_header();
 
@@ -1250,17 +1222,35 @@ void test_init_ui(void)
 }
 
 #if EGUI_CONFIG_RECORDING_TEST
+static uint8_t page_demo_match_visible_section(egui_view_t *self, const egui_view_virtual_page_slot_t *slot, const egui_view_virtual_page_entry_t *entry,
+                                               egui_view_t *section_view, void *context)
+{
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(entry);
+    EGUI_UNUSED(section_view);
+    EGUI_UNUSED(context);
+    return egui_view_virtual_viewport_is_slot_center_visible(EGUI_VIEW_OF(&page_view), slot);
+}
+
+static egui_view_t *page_demo_find_first_visible_section_view(void)
+{
+    return egui_view_virtual_page_find_first_visible_section_view(EGUI_VIEW_OF(&page_view), page_demo_match_visible_section, NULL, NULL);
+}
+
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
+    egui_view_t *view;
+
     switch (action_index)
     {
     case 0:
-        p_action->type = EGUI_SIM_ACTION_CLICK;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = PAGE_VIEW_Y + 46;
-        p_action->x2 = p_action->x1;
-        p_action->y2 = p_action->y1;
-        p_action->interval_ms = 700;
+        view = page_demo_find_first_visible_section_view();
+        if (view == NULL)
+        {
+            EGUI_SIM_SET_WAIT(p_action, 160);
+            return true;
+        }
+        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 700);
         return true;
     case 1:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
@@ -1272,12 +1262,13 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->interval_ms = 180;
         return true;
     case 2:
-        p_action->type = EGUI_SIM_ACTION_CLICK;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = PAGE_VIEW_Y + 96;
-        p_action->x2 = p_action->x1;
-        p_action->y2 = p_action->y1;
-        p_action->interval_ms = 700;
+        view = page_demo_find_first_visible_section_view();
+        if (view == NULL)
+        {
+            EGUI_SIM_SET_WAIT(p_action, 160);
+            return true;
+        }
+        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 700);
         return true;
     case 3:
         p_action->type = EGUI_SIM_ACTION_CLICK;
