@@ -481,7 +481,9 @@ void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t x, egui_dim_t y, egui_d
     }
     else if (gradient->type == EGUI_GRADIENT_TYPE_ANGULAR)
     {
-        /* Angular gradient: per-pixel atan2 with direct PFB write */
+        /* Angular gradient: per-pixel atan2 with direct PFB write.
+         * Per-row optimization: precompute reciprocal of |dy| to replace divisions
+         * when |dy| > |dx| (~50% of pixels). */
         egui_color_t color_cache[256];
         for (int i = 0; i < 256; i++)
         {
@@ -499,6 +501,10 @@ void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t x, egui_dim_t y, egui_d
         for (egui_dim_t row = vis_y_start; row < vis_y_end; row++)
         {
             int32_t dy = (int32_t)(row - cy);
+            int32_t ady = (dy >= 0) ? dy : -dy;
+            /* Precompute reciprocal for this row's |dy| */
+            uint32_t inv_ady_q16 = (ady > 0) ? ((1U << 16) / (uint32_t)ady) : 0;
+            int32_t ady_half = ady >> 1;
 
             if (use_direct)
             {
@@ -506,7 +512,35 @@ void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t x, egui_dim_t y, egui_d
                 for (egui_dim_t col = vis_x_start; col < vis_x_end; col++)
                 {
                     int32_t dx = (int32_t)(col - cx);
-                    uint8_t t = gradient_angular_t(dx, dy);
+                    int32_t adx = (dx >= 0) ? dx : -dx;
+                    uint8_t q_angle;
+
+                    if (dx == 0 && dy == 0)
+                    {
+                        dst_row[col] = color_cache[0];
+                        continue;
+                    }
+
+                    if (adx >= ady)
+                    {
+                        q_angle = atan2_octant_lut[(uint32_t)(ady * 32 + (adx >> 1)) / (uint32_t)adx];
+                    }
+                    else
+                    {
+                        /* Use per-row reciprocal: multiply + shift instead of division */
+                        q_angle = 64 - atan2_octant_lut[((uint32_t)(adx * 32 + ady_half) * inv_ady_q16) >> 16];
+                    }
+
+                    uint8_t t;
+                    if (dx >= 0)
+                    {
+                        t = (dy >= 0) ? q_angle : (uint8_t)(256 - q_angle);
+                    }
+                    else
+                    {
+                        t = (dy >= 0) ? (uint8_t)(128 - q_angle) : (uint8_t)(128 + q_angle);
+                    }
+
                     egui_color_t color = color_cache[t];
                     if (eff_alpha == EGUI_ALPHA_100)
                     {
@@ -523,7 +557,34 @@ void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t x, egui_dim_t y, egui_d
                 for (egui_dim_t col = vis_x_start; col < vis_x_end; col++)
                 {
                     int32_t dx = (int32_t)(col - cx);
-                    uint8_t t = gradient_angular_t(dx, dy);
+                    int32_t adx = (dx >= 0) ? dx : -dx;
+                    uint8_t q_angle;
+
+                    if (dx == 0 && dy == 0)
+                    {
+                        egui_canvas_draw_point_limit(x + col, y + row, color_cache[0], base_alpha);
+                        continue;
+                    }
+
+                    if (adx >= ady)
+                    {
+                        q_angle = atan2_octant_lut[(uint32_t)(ady * 32 + (adx >> 1)) / (uint32_t)adx];
+                    }
+                    else
+                    {
+                        q_angle = 64 - atan2_octant_lut[((uint32_t)(adx * 32 + ady_half) * inv_ady_q16) >> 16];
+                    }
+
+                    uint8_t t;
+                    if (dx >= 0)
+                    {
+                        t = (dy >= 0) ? q_angle : (uint8_t)(256 - q_angle);
+                    }
+                    else
+                    {
+                        t = (dy >= 0) ? (uint8_t)(128 - q_angle) : (uint8_t)(128 + q_angle);
+                    }
+
                     egui_color_t color = color_cache[t];
                     egui_canvas_draw_point_limit(x + col, y + row, color, base_alpha);
                 }
@@ -606,19 +667,23 @@ void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t x, egui_dim_t y, egui_d
                     if (rs < vis_x_end)
                     {
                         int32_t sdx = (int32_t)(rs - cx);
-                        uint32_t dist = gradient_isqrt((uint32_t)(sdx * sdx) + dy_sq);
+                        uint32_t d_sq = (uint32_t)(sdx * sdx) + dy_sq;
+                        uint32_t dist = gradient_isqrt(d_sq);
                         uint32_t next_sq = (dist + 1) * (dist + 1);
+                        uint32_t next_sq_step = (dist << 1) + 3;
+                        uint32_t d_sq_step = (uint32_t)(sdx * 2 + 1);
 
                         for (egui_dim_t col = rs; col < vis_x_end; col++)
                         {
-                            int32_t dx = (int32_t)(col - cx);
-                            uint32_t cur_sq = (uint32_t)(dx * dx) + dy_sq;
-                            while (cur_sq >= next_sq)
+                            while (d_sq >= next_sq)
                             {
                                 dist++;
-                                next_sq = (dist + 1) * (dist + 1);
+                                next_sq += next_sq_step;
+                                next_sq_step += 2;
                             }
                             RADIAL_RECT_PIXEL(col);
+                            d_sq += d_sq_step;
+                            d_sq_step += 2;
                         }
                     }
                 }
@@ -631,20 +696,23 @@ void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t x, egui_dim_t y, egui_d
                         int32_t sdx = (int32_t)(le - cx);
                         if (sdx < 0)
                             sdx = -sdx;
-                        uint32_t dist = gradient_isqrt((uint32_t)(sdx * sdx) + dy_sq);
+                        uint32_t d_sq = (uint32_t)(sdx * sdx) + dy_sq;
+                        uint32_t dist = gradient_isqrt(d_sq);
                         uint32_t next_sq = (dist + 1) * (dist + 1);
+                        uint32_t next_sq_step = (dist << 1) + 3;
+                        uint32_t d_sq_step = (uint32_t)(sdx * 2 + 1);
 
                         for (egui_dim_t col = le; col >= vis_x_start; col--)
                         {
-                            int32_t dx = (int32_t)(col - cx);
-                            int32_t adx = (dx < 0) ? -dx : dx;
-                            uint32_t cur_sq = (uint32_t)(adx * adx) + dy_sq;
-                            while (cur_sq >= next_sq)
+                            while (d_sq >= next_sq)
                             {
                                 dist++;
-                                next_sq = (dist + 1) * (dist + 1);
+                                next_sq += next_sq_step;
+                                next_sq_step += 2;
                             }
                             RADIAL_RECT_PIXEL(col);
+                            d_sq += d_sq_step;
+                            d_sq_step += 2;
                         }
                     }
                 }
@@ -910,14 +978,13 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
                     t_mul = (((uint32_t)255) << 12) / (uint32_t)gradient->radius;
                 }
 
-                /* Macro: emit one radial pixel using current dist */
-#define RADIAL_PIXEL_DIRECT(px, pdx)                                                                                                                           \
+                /* Macro: emit one radial pixel using pre-computed d_sq and tracked dist */
+#define RADIAL_PIXEL_DIRECT(px, d_sq_val)                                                                                                                      \
     do                                                                                                                                                         \
     {                                                                                                                                                          \
-        int32_t _d_sq = (int32_t)(pdx) * (int32_t)(pdx) + dy_sq;                                                                                               \
-        if (_d_sq <= r_outer_sq)                                                                                                                               \
+        if ((int32_t)(d_sq_val) <= r_outer_sq)                                                                                                                 \
         {                                                                                                                                                      \
-            egui_alpha_t _cov = (_d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha_sdf(_d_sq, r_inner_sq, r_outer_sq, inv_r);                   \
+            egui_alpha_t _cov = ((int32_t)(d_sq_val) < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha_sdf((int32_t)(d_sq_val), r_inner_sq, r_outer_sq, inv_r); \
             if (_cov > 0)                                                                                                                                      \
             {                                                                                                                                                  \
                 egui_color_t _color;                                                                                                                           \
@@ -949,45 +1016,56 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
         }                                                                                                                                                      \
     } while (0)
 
-                /* Right half: center_x → or_, d_sq monotonically increasing */
+                /* Right half: ol → or_, incremental d_sq (eliminates dx*dx per pixel) */
                 {
-                    uint32_t dist = gradient_isqrt((uint32_t)dy_sq); /* dist at dx=0 */
-                    uint32_t next_sq = (dist + 1) * (dist + 1);
-
-                    for (egui_dim_t x = center_x; x <= or_; x++)
+                    egui_dim_t rs = EGUI_MAX(center_x, ol);
+                    if (rs <= or_)
                     {
-                        int32_t dx = (int32_t)(x - center_x);
-                        uint32_t cur_d_sq = (uint32_t)(dx * dx) + (uint32_t)dy_sq;
-                        /* Advance dist until next_sq > cur_d_sq */
-                        while (cur_d_sq >= next_sq)
+                        uint32_t sdx = (uint32_t)(rs - center_x);
+                        uint32_t d_sq = sdx * sdx + (uint32_t)dy_sq;
+                        uint32_t dist = gradient_isqrt(d_sq);
+                        uint32_t next_sq = (dist + 1) * (dist + 1);
+                        uint32_t next_sq_step = (dist << 1) + 3;
+                        uint32_t d_sq_step = (sdx << 1) + 1;
+
+                        for (egui_dim_t x = rs; x <= or_; x++)
                         {
-                            dist++;
-                            next_sq = (dist + 1) * (dist + 1);
-                        }
-                        if (x >= ol)
-                        {
-                            RADIAL_PIXEL_DIRECT(x, dx);
+                            while (d_sq >= next_sq)
+                            {
+                                dist++;
+                                next_sq += next_sq_step;
+                                next_sq_step += 2;
+                            }
+                            RADIAL_PIXEL_DIRECT(x, d_sq);
+                            d_sq += d_sq_step;
+                            d_sq_step += 2;
                         }
                     }
                 }
 
-                /* Left half: center_x-1 → ol, d_sq monotonically increasing */
+                /* Left half: or_ → ol, incremental d_sq */
                 {
-                    uint32_t dist = gradient_isqrt((uint32_t)(1 + dy_sq)); /* dist at dx=-1 */
-                    uint32_t next_sq = (dist + 1) * (dist + 1);
-
-                    for (egui_dim_t x = center_x - 1; x >= ol; x--)
+                    egui_dim_t le = EGUI_MIN(center_x - 1, or_);
+                    if (le >= ol)
                     {
-                        int32_t dx = (int32_t)(x - center_x);
-                        uint32_t cur_d_sq = (uint32_t)(dx * dx) + (uint32_t)dy_sq;
-                        while (cur_d_sq >= next_sq)
+                        uint32_t sdx = (uint32_t)(center_x - le);
+                        uint32_t d_sq = sdx * sdx + (uint32_t)dy_sq;
+                        uint32_t dist = gradient_isqrt(d_sq);
+                        uint32_t next_sq = (dist + 1) * (dist + 1);
+                        uint32_t next_sq_step = (dist << 1) + 3;
+                        uint32_t d_sq_step = (sdx << 1) + 1;
+
+                        for (egui_dim_t x = le; x >= ol; x--)
                         {
-                            dist++;
-                            next_sq = (dist + 1) * (dist + 1);
-                        }
-                        if (x <= or_)
-                        {
-                            RADIAL_PIXEL_DIRECT(x, dx);
+                            while (d_sq >= next_sq)
+                            {
+                                dist++;
+                                next_sq += next_sq_step;
+                                next_sq_step += 2;
+                            }
+                            RADIAL_PIXEL_DIRECT(x, d_sq);
+                            d_sq += d_sq_step;
+                            d_sq_step += 2;
                         }
                     }
                 }
@@ -1104,14 +1182,13 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
                     t_mul = (((uint32_t)255) << 12) / (uint32_t)gradient->radius;
                 }
 
-                /* Macro: emit one radial pixel using current dist (fallback path) */
-#define RADIAL_PIXEL_FALLBACK(px, pdx)                                                                                                                         \
+                /* Macro: emit one radial pixel using pre-computed d_sq (fallback path) */
+#define RADIAL_PIXEL_FALLBACK(px, d_sq_val)                                                                                                                    \
     do                                                                                                                                                         \
     {                                                                                                                                                          \
-        int32_t _d_sq = (int32_t)(pdx) * (int32_t)(pdx) + dy_sq;                                                                                               \
-        if (_d_sq <= r_outer_sq)                                                                                                                               \
+        if ((int32_t)(d_sq_val) <= r_outer_sq)                                                                                                                 \
         {                                                                                                                                                      \
-            egui_alpha_t _cov = (_d_sq < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha_sdf(_d_sq, r_inner_sq, r_outer_sq, inv_r);                   \
+            egui_alpha_t _cov = ((int32_t)(d_sq_val) < r_inner_sq) ? EGUI_ALPHA_100 : gradient_circle_edge_alpha_sdf((int32_t)(d_sq_val), r_inner_sq, r_outer_sq, inv_r); \
             if (_cov > 0)                                                                                                                                      \
             {                                                                                                                                                  \
                 egui_color_t _color;                                                                                                                           \
@@ -1135,44 +1212,56 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
         }                                                                                                                                                      \
     } while (0)
 
-                /* Right half: center_x → or_ */
+                /* Right half: ol → or_, incremental d_sq (fallback) */
                 {
-                    uint32_t dist = gradient_isqrt((uint32_t)dy_sq);
-                    uint32_t next_sq = (dist + 1) * (dist + 1);
-
-                    for (egui_dim_t x = center_x; x <= or_; x++)
+                    egui_dim_t rs = EGUI_MAX(center_x, ol);
+                    if (rs <= or_)
                     {
-                        int32_t dx = (int32_t)(x - center_x);
-                        uint32_t cur_d_sq = (uint32_t)(dx * dx) + (uint32_t)dy_sq;
-                        while (cur_d_sq >= next_sq)
+                        uint32_t sdx = (uint32_t)(rs - center_x);
+                        uint32_t d_sq = sdx * sdx + (uint32_t)dy_sq;
+                        uint32_t dist = gradient_isqrt(d_sq);
+                        uint32_t next_sq = (dist + 1) * (dist + 1);
+                        uint32_t next_sq_step = (dist << 1) + 3;
+                        uint32_t d_sq_step = (sdx << 1) + 1;
+
+                        for (egui_dim_t x = rs; x <= or_; x++)
                         {
-                            dist++;
-                            next_sq = (dist + 1) * (dist + 1);
-                        }
-                        if (x >= ol)
-                        {
-                            RADIAL_PIXEL_FALLBACK(x, dx);
+                            while (d_sq >= next_sq)
+                            {
+                                dist++;
+                                next_sq += next_sq_step;
+                                next_sq_step += 2;
+                            }
+                            RADIAL_PIXEL_FALLBACK(x, d_sq);
+                            d_sq += d_sq_step;
+                            d_sq_step += 2;
                         }
                     }
                 }
 
-                /* Left half: center_x-1 → ol */
+                /* Left half: or_ → ol, incremental d_sq (fallback) */
                 {
-                    uint32_t dist = gradient_isqrt((uint32_t)(1 + dy_sq));
-                    uint32_t next_sq = (dist + 1) * (dist + 1);
-
-                    for (egui_dim_t x = center_x - 1; x >= ol; x--)
+                    egui_dim_t le = EGUI_MIN(center_x - 1, or_);
+                    if (le >= ol)
                     {
-                        int32_t dx = (int32_t)(x - center_x);
-                        uint32_t cur_d_sq = (uint32_t)(dx * dx) + (uint32_t)dy_sq;
-                        while (cur_d_sq >= next_sq)
+                        uint32_t sdx = (uint32_t)(center_x - le);
+                        uint32_t d_sq = sdx * sdx + (uint32_t)dy_sq;
+                        uint32_t dist = gradient_isqrt(d_sq);
+                        uint32_t next_sq = (dist + 1) * (dist + 1);
+                        uint32_t next_sq_step = (dist << 1) + 3;
+                        uint32_t d_sq_step = (sdx << 1) + 1;
+
+                        for (egui_dim_t x = le; x >= ol; x--)
                         {
-                            dist++;
-                            next_sq = (dist + 1) * (dist + 1);
-                        }
-                        if (x <= or_)
-                        {
-                            RADIAL_PIXEL_FALLBACK(x, dx);
+                            while (d_sq >= next_sq)
+                            {
+                                dist++;
+                                next_sq += next_sq_step;
+                                next_sq_step += 2;
+                            }
+                            RADIAL_PIXEL_FALLBACK(x, d_sq);
+                            d_sq += d_sq_step;
+                            d_sq_step += 2;
                         }
                     }
                 }
