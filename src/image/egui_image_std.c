@@ -3439,43 +3439,43 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
     egui_canvas_t *canvas = egui_canvas_get_canvas();                                                                                                          \
     uint16_t alpha_row_size = _alpha_row_size_expr;                                                                                                            \
     EGUI_UNUSED(alpha_row_size);                                                                                                                               \
-    for (egui_dim_t y_ = y; y_ < y_total; y_++)                                                                                                                \
+    if (canvas->mask != NULL)                                                                                                                                  \
     {                                                                                                                                                          \
-        uint32_t row_start_alpha = y_ * alpha_row_size;                                                                                                        \
-        const uint8_t *p_data = (const uint8_t *)image->data_buf + row_start_alpha;                                                                            \
-        if (canvas->mask != NULL)                                                                                                                              \
+        for (egui_dim_t y_ = y; y_ < y_total; y_++)                                                                                                            \
         {                                                                                                                                                      \
+            const uint8_t *p_data = (const uint8_t *)image->data_buf + (uint32_t)y_ * alpha_row_size;                                                          \
             for (egui_dim_t x_ = x; x_ < x_total; x_++)                                                                                                        \
             {                                                                                                                                                  \
                 _get_col_alpha_func(p_data, x_, &pixel_alpha);                                                                                                 \
                 if (pixel_alpha)                                                                                                                               \
                 {                                                                                                                                              \
-                    if (color_alpha == EGUI_ALPHA_100)                                                                                                         \
-                    {                                                                                                                                          \
-                        egui_canvas_draw_point_limit((x_base + x_), (y_base + y_), color, pixel_alpha);                                                        \
-                    }                                                                                                                                          \
-                    else                                                                                                                                       \
-                    {                                                                                                                                          \
-                        egui_canvas_draw_point_limit((x_base + x_), (y_base + y_), color, pixel_alpha * color_alpha / EGUI_ALPHA_100);                         \
-                    }                                                                                                                                          \
+                    egui_alpha_t fa_ = (color_alpha == EGUI_ALPHA_100) ? pixel_alpha                                                                           \
+                                                                       : (egui_alpha_t)(pixel_alpha * color_alpha / EGUI_ALPHA_100);                           \
+                    egui_canvas_draw_point_limit((x_base + x_), (y_base + y_), color, fa_);                                                                    \
                 }                                                                                                                                              \
             }                                                                                                                                                  \
         }                                                                                                                                                      \
-        else                                                                                                                                                   \
+    }                                                                                                                                                          \
+    else                                                                                                                                                       \
+    {                                                                                                                                                          \
+        egui_dim_t pfb_w_ = canvas->pfb_region.size.width;                                                                                                     \
+        egui_dim_t pfb_x0_ = (x_base + x) - canvas->pfb_location_in_base_view.x;                                                                              \
+        egui_dim_t pfb_yoff_ = y_base - canvas->pfb_location_in_base_view.y;                                                                                   \
+        egui_alpha_t comb_a_ = egui_color_alpha_mix(canvas->alpha, color_alpha);                                                                               \
+        int comb_is_100_ = (comb_a_ == EGUI_ALPHA_100);                                                                                                        \
+        egui_dim_t col_count_ = x_total - x;                                                                                                                   \
+        for (egui_dim_t y_ = y; y_ < y_total; y_++)                                                                                                            \
         {                                                                                                                                                      \
-            for (egui_dim_t x_ = x; x_ < x_total; x_++)                                                                                                        \
+            const uint8_t *p_data = (const uint8_t *)image->data_buf + (uint32_t)y_ * alpha_row_size;                                                          \
+            egui_color_int_t *dst_row_ = &canvas->pfb[(pfb_yoff_ + y_) * pfb_w_ + pfb_x0_];                                                                   \
+            for (egui_dim_t i_ = 0; i_ < col_count_; i_++)                                                                                                     \
             {                                                                                                                                                  \
-                _get_col_alpha_func(p_data, x_, &pixel_alpha);                                                                                                 \
+                _get_col_alpha_func(p_data, x + i_, &pixel_alpha);                                                                                             \
                 if (pixel_alpha)                                                                                                                               \
                 {                                                                                                                                              \
-                    if (color_alpha == EGUI_ALPHA_100)                                                                                                         \
-                    {                                                                                                                                          \
-                        egui_canvas_draw_point_limit_skip_mask((x_base + x_), (y_base + y_), color, pixel_alpha);                                              \
-                    }                                                                                                                                          \
-                    else                                                                                                                                       \
-                    {                                                                                                                                          \
-                        egui_canvas_draw_point_limit_skip_mask((x_base + x_), (y_base + y_), color, pixel_alpha * color_alpha / EGUI_ALPHA_100);               \
-                    }                                                                                                                                          \
+                    egui_alpha_t fa_ = comb_is_100_ ? pixel_alpha                                                                                              \
+                                                    : (egui_alpha_t)(((uint16_t)comb_a_ * pixel_alpha + 128) >> 8);                                            \
+                    egui_image_std_blend_resize_pixel(&dst_row_[i_], color, fa_);                                                                               \
                 }                                                                                                                                              \
             }                                                                                                                                                  \
         }                                                                                                                                                      \
