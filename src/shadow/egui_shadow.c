@@ -233,8 +233,17 @@ static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t b
             if (step_dir != 0)
             {
                 uint32_t dx0 = (uint32_t)EGUI_ABS(bx0 - cx);
-                uint32_t sdx = dx0 << EGUI_SHADOW_DIST_SHIFT;
-                uint32_t sdx2 = sdx * sdx;
+                uint32_t sdx0 = dx0 << EGUI_SHADOW_DIST_SHIFT;
+                uint32_t sdx2 = sdx0 * sdx0;
+
+                /* Second-order incremental d²: eliminates 64-bit multiply per pixel.
+                 * delta[i+1] = delta[i] + 2*sstep², regardless of direction. */
+                int32_t d_sq_delta;
+                if (step_dir > 0)
+                    d_sq_delta = (int32_t)(sstep * ((sdx0 << 1) + sstep));
+                else
+                    d_sq_delta = (int32_t)sstep_sq - (int32_t)(sstep * (sdx0 << 1));
+                int32_t d_sq_delta_step = (int32_t)(sstep_sq << 1);
 
                 for (egui_dim_t px = bx0; px < bx1; px++)
                 {
@@ -272,19 +281,8 @@ static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t b
                         }
                     }
 
-                    if (px + 1 < bx1)
-                    {
-                        if (step_dir < 0)
-                        {
-                            sdx2 = (uint32_t)(sdx2 - (uint32_t)(((uint64_t)sdx << 1) * sstep) + sstep_sq);
-                            sdx -= sstep;
-                        }
-                        else
-                        {
-                            sdx2 = (uint32_t)(sdx2 + (uint32_t)(((uint64_t)sdx << 1) * sstep) + sstep_sq);
-                            sdx += sstep;
-                        }
-                    }
+                    sdx2 = (uint32_t)((int32_t)sdx2 + d_sq_delta);
+                    d_sq_delta += d_sq_delta_step;
                 }
             }
             else
@@ -436,8 +434,15 @@ static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t b
         if (step_dir != 0)
         {
             uint32_t dx0 = (uint32_t)EGUI_ABS(bx0 - cx);
-            uint32_t sdx = dx0 << EGUI_SHADOW_DIST_SHIFT;
-            uint32_t sdx2 = sdx * sdx;
+            uint32_t sdx0 = dx0 << EGUI_SHADOW_DIST_SHIFT;
+            uint32_t sdx2 = sdx0 * sdx0;
+
+            int32_t d_sq_delta;
+            if (step_dir > 0)
+                d_sq_delta = (int32_t)(sstep * ((sdx0 << 1) + sstep));
+            else
+                d_sq_delta = (int32_t)sstep_sq - (int32_t)(sstep * (sdx0 << 1));
+            int32_t d_sq_delta_step = (int32_t)(sstep_sq << 1);
 
             for (egui_dim_t px = bx0; px < bx1; px++)
             {
@@ -456,19 +461,8 @@ static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t b
                     }
                 }
 
-                if (px + 1 < bx1)
-                {
-                    if (step_dir < 0)
-                    {
-                        sdx2 = (uint32_t)(sdx2 - (uint32_t)(((uint64_t)sdx << 1) * sstep) + sstep_sq);
-                        sdx -= sstep;
-                    }
-                    else
-                    {
-                        sdx2 = (uint32_t)(sdx2 + (uint32_t)(((uint64_t)sdx << 1) * sstep) + sstep_sq);
-                        sdx += sstep;
-                    }
-                }
+                sdx2 = (uint32_t)((int32_t)sdx2 + d_sq_delta);
+                d_sq_delta += d_sq_delta_step;
             }
         }
         else

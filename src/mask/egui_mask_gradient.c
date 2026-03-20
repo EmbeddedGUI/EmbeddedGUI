@@ -27,7 +27,21 @@ void egui_mask_gradient_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y
         return;
     }
 
-    grad_color = egui_gradient_color_at_pos(local->gradient, px, py, pw, ph);
+    /* Row-level cache for LINEAR_VERTICAL: gradient depends only on py,
+     * so all pixels in the same row share the same gradient color. */
+    if (local->gradient->type == EGUI_GRADIENT_TYPE_LINEAR_VERTICAL && py == local->cached_key)
+    {
+        grad_color = local->cached_color;
+    }
+    else
+    {
+        grad_color = egui_gradient_color_at_pos(local->gradient, px, py, pw, ph);
+        if (local->gradient->type == EGUI_GRADIENT_TYPE_LINEAR_VERTICAL)
+        {
+            local->cached_key = py;
+            local->cached_color = grad_color;
+        }
+    }
 
     /* Blend gradient color over original draw color */
     egui_rgb_mix_ptr(color, &grad_color, color, local->overlay_alpha);
@@ -48,6 +62,7 @@ void egui_mask_gradient_init(egui_mask_t *self)
 
     local->gradient = NULL;
     local->overlay_alpha = EGUI_ALPHA_100;
+    local->cached_key = -32768; /* sentinel: won't match any valid coordinate */
 }
 
 void egui_mask_gradient_set_gradient(egui_mask_t *self, const egui_gradient_t *gradient)

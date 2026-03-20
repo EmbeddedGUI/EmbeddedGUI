@@ -41,6 +41,19 @@ __EGUI_STATIC_INLINE__ egui_alpha_t circle_hq_get_edge_alpha(int32_t dx, int32_t
     return (egui_alpha_t)alpha;
 }
 
+/* Variant that takes pre-computed d_sq to avoid redundant dx*dx+dy*dy */
+__EGUI_STATIC_INLINE__ egui_alpha_t circle_hq_get_edge_alpha_from_dsq(int32_t d_sq, int32_t r_sq, int32_t inv128_r)
+{
+    int32_t diff = d_sq - r_sq;
+    int32_t d_shifted = diff * inv128_r >> CIRCLE_HQ_INV_SHIFT;
+    int32_t alpha = 128 - d_shifted;
+    if (alpha <= 0)
+        return 0;
+    if (alpha >= 255)
+        return 255;
+    return (egui_alpha_t)alpha;
+}
+
 __EGUI_STATIC_INLINE__ int32_t circle_hq_isqrt(int32_t n)
 {
     if (n <= 0)
@@ -657,21 +670,32 @@ static void circle_hq_draw_arc_corner_fill(egui_dim_t cx, egui_dim_t cy, egui_di
             egui_color_t *dst_base = (egui_color_t *)&self->pfb[(y - pfb_ofs_y) * pfb_width - pfb_ofs_x];
             egui_alpha_t eff_alpha = egui_color_alpha_mix(self->alpha, alpha);
 
+            /* Incremental d²: d_sq[x+1] = d_sq[x] + 2*(x-cx) + 1 */
+            int32_t dx_init = (int32_t)(x_lo - cx);
+            int32_t d_sq = dx_init * dx_init + dy_sq;
+            int32_t d_sq_step = (dx_init << 1) + 1;
+
             for (egui_dim_t x = x_lo; x <= x_hi; x++)
             {
-                int32_t dx = (int32_t)(x - cx);
-                int32_t d_sq = dx * dx + dy_sq;
                 if (d_sq > r_outer_sq)
+                {
+                    d_sq += d_sq_step;
+                    d_sq_step += 2;
                     continue;
+                }
 
                 egui_alpha_t cc;
                 if (d_sq < r_inner_sq)
                     cc = EGUI_ALPHA_100;
                 else
                 {
-                    cc = circle_hq_get_edge_alpha(dx, dy, r_sq_val, inv128_r_val);
+                    cc = circle_hq_get_edge_alpha_from_dsq(d_sq, r_sq_val, inv128_r_val);
                     if (cc == 0)
+                    {
+                        d_sq += d_sq_step;
+                        d_sq_step += 2;
                         continue;
+                    }
                 }
 
                 egui_alpha_t ac;
@@ -683,7 +707,11 @@ static void circle_hq_draw_arc_corner_fill(egui_dim_t cx, egui_dim_t cy, egui_di
                     circle_hq_to_quadrant_coords(x, y, cx, cy, type, &qx, &qy);
                     ac = circle_hq_arc_angle_alpha(qx, qy, sa, ea);
                     if (ac == 0)
+                    {
+                        d_sq += d_sq_step;
+                        d_sq_step += 2;
                         continue;
+                    }
                 }
 
                 egui_alpha_t m = egui_color_alpha_mix(eff_alpha, egui_color_alpha_mix(cc, ac));
@@ -699,25 +727,38 @@ static void circle_hq_draw_arc_corner_fill(egui_dim_t cx, egui_dim_t cy, egui_di
                         egui_rgb_mix_ptr(back_color, &color, back_color, m);
                     }
                 }
+
+                d_sq += d_sq_step;
+                d_sq_step += 2;
             }
         }
         else
         {
+            int32_t dx_init = (int32_t)(x_lo - cx);
+            int32_t d_sq = dx_init * dx_init + dy_sq;
+            int32_t d_sq_step = (dx_init << 1) + 1;
+
             for (egui_dim_t x = x_lo; x <= x_hi; x++)
             {
-                int32_t dx = (int32_t)(x - cx);
-                int32_t d_sq = dx * dx + dy_sq;
                 if (d_sq > r_outer_sq)
+                {
+                    d_sq += d_sq_step;
+                    d_sq_step += 2;
                     continue;
+                }
 
                 egui_alpha_t cc;
                 if (d_sq < r_inner_sq)
                     cc = EGUI_ALPHA_100;
                 else
                 {
-                    cc = circle_hq_get_edge_alpha(dx, dy, r_sq_val, inv128_r_val);
+                    cc = circle_hq_get_edge_alpha_from_dsq(d_sq, r_sq_val, inv128_r_val);
                     if (cc == 0)
+                    {
+                        d_sq += d_sq_step;
+                        d_sq_step += 2;
                         continue;
+                    }
                 }
 
                 egui_alpha_t ac;
@@ -729,12 +770,19 @@ static void circle_hq_draw_arc_corner_fill(egui_dim_t cx, egui_dim_t cy, egui_di
                     circle_hq_to_quadrant_coords(x, y, cx, cy, type, &qx, &qy);
                     ac = circle_hq_arc_angle_alpha(qx, qy, sa, ea);
                     if (ac == 0)
+                    {
+                        d_sq += d_sq_step;
+                        d_sq_step += 2;
                         continue;
+                    }
                 }
 
                 egui_alpha_t m = egui_color_alpha_mix(alpha, egui_color_alpha_mix(cc, ac));
                 if (m > 0)
                     egui_canvas_draw_point(x, y, color, m);
+
+                d_sq += d_sq_step;
+                d_sq_step += 2;
             }
         }
     }
