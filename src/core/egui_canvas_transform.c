@@ -381,37 +381,57 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                 }
                 else if (has_alpha8 && canvas_alpha == EGUI_ALPHA_100)
                 {
-                    /* Alpha8 image with fully opaque canvas: skip alpha_mix,
-                     * use pixel_alpha directly */
+                    /* Alpha8 image with fully opaque canvas: read alpha first
+                     * to skip color bilinear for transparent pixels */
                     for (int32_t i = 0; i < sir_count; i++)
                     {
                         int32_t offs = (rotatedY >> 15) * src_w + (rotatedX >> 15);
-                        uint8_t fx = (rotatedX >> 7) & 0xFF;
-                        uint8_t fy = (rotatedY >> 7) & 0xFF;
-                        uint16_t d00 = data[offs];
-                        uint16_t d01 = data[offs + 1];
-                        uint16_t d10 = data[offs + src_w];
-                        uint16_t d11 = data[offs + src_w + 1];
-                        egui_color_t color;
-                        color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
 
+                        /* Read alpha samples first for early exit */
                         uint16_t a00 = alpha_buf[offs];
                         uint16_t a01 = alpha_buf[offs + 1];
                         uint16_t a10 = alpha_buf[offs + src_w];
                         uint16_t a11 = alpha_buf[offs + src_w + 1];
-                        uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
-                        uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
-                        uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
 
-                        if (pixel_alpha == EGUI_ALPHA_100)
+                        if ((a00 | a01 | a10 | a11) != 0)
                         {
-                            *dst_row = color.full;
+                            uint8_t fx = (rotatedX >> 7) & 0xFF;
+                            uint8_t fy = (rotatedY >> 7) & 0xFF;
+
+                            /* All-opaque shortcut: skip alpha bilinear + blend */
+                            if ((a00 & a01 & a10 & a11) == 255)
+                            {
+                                uint16_t d00 = data[offs];
+                                uint16_t d01 = data[offs + 1];
+                                uint16_t d10 = data[offs + src_w];
+                                uint16_t d11 = data[offs + src_w + 1];
+                                *dst_row = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
+                            }
+                            else
+                            {
+                                uint16_t d00 = data[offs];
+                                uint16_t d01 = data[offs + 1];
+                                uint16_t d10 = data[offs + src_w];
+                                uint16_t d11 = data[offs + src_w + 1];
+                                egui_color_t color;
+                                color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
+
+                                uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                                uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                                uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+
+                                if (pixel_alpha == EGUI_ALPHA_100)
+                                {
+                                    *dst_row = color.full;
+                                }
+                                else if (pixel_alpha > 0)
+                                {
+                                    egui_color_t *back = (egui_color_t *)dst_row;
+                                    egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
+                                }
+                            }
                         }
-                        else if (pixel_alpha > 0)
-                        {
-                            egui_color_t *back = (egui_color_t *)dst_row;
-                            egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
-                        }
+
                         rotatedX += inv_m00;
                         rotatedY += inv_m10;
                         dst_row++;
