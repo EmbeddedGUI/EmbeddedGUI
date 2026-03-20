@@ -1397,6 +1397,59 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_get_circle_visible_boundary_fix
     return boundary;
 }
 
+__EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_get_circle_visible_boundary_cached(egui_dim_t row_index, egui_dim_t radius, const egui_circle_info_t *info,
+                                                                                     const egui_circle_item_t *items, egui_dim_t *cached_row_index,
+                                                                                     egui_dim_t *cached_boundary)
+{
+    egui_dim_t boundary;
+
+    if (row_index == *cached_row_index)
+    {
+        return *cached_boundary;
+    }
+
+    if (*cached_row_index >= 0)
+    {
+        egui_dim_t delta = row_index - *cached_row_index;
+        if (delta < 0)
+        {
+            delta = -delta;
+        }
+
+        if (delta <= 4)
+        {
+            boundary = *cached_boundary;
+            if (boundary < 0)
+            {
+                boundary = 0;
+            }
+            else if (boundary > radius)
+            {
+                boundary = radius;
+            }
+
+            while (boundary > 0 && egui_canvas_get_circle_corner_value_fixed_row(row_index, boundary - 1, info, items) != 0)
+            {
+                boundary--;
+            }
+
+            while (boundary < radius && egui_canvas_get_circle_corner_value_fixed_row(row_index, boundary, info, items) == 0)
+            {
+                boundary++;
+            }
+
+            *cached_row_index = row_index;
+            *cached_boundary = boundary;
+            return boundary;
+        }
+    }
+
+    boundary = egui_image_std_get_circle_visible_boundary_fixed_row(row_index, info, items);
+    *cached_row_index = row_index;
+    *cached_boundary = boundary;
+    return boundary;
+}
+
 __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_round_rect_masked_left_segment_fixed_row(egui_color_int_t *dst_row, const uint16_t *src_row,
                                                                                                   const egui_dim_t *src_x_map, egui_dim_t count,
                                                                                                   egui_dim_t screen_x, egui_dim_t mask_x,
@@ -1476,6 +1529,10 @@ typedef struct
     egui_dim_t row_cache_y[EGUI_CONFIG_PFB_HEIGHT];
     egui_dim_t row_cache_visible_boundary[EGUI_CONFIG_PFB_HEIGHT];
     egui_dim_t row_cache_opaque_boundary[EGUI_CONFIG_PFB_HEIGHT];
+    egui_dim_t visible_cached_row_index;
+    egui_dim_t visible_cached_boundary;
+    egui_dim_t opaque_cached_row_index;
+    egui_dim_t opaque_cached_boundary;
     const egui_circle_info_t *info;
 } egui_image_std_round_rect_fast_cache_t;
 
@@ -1511,6 +1568,10 @@ __EGUI_STATIC_INLINE__ egui_image_std_round_rect_fast_cache_t *egui_image_std_ro
         cache->cached_width = -1;
         cache->cached_height = -1;
         cache->cached_radius = -1;
+        cache->visible_cached_row_index = -1;
+        cache->visible_cached_boundary = 0;
+        cache->opaque_cached_row_index = -1;
+        cache->opaque_cached_boundary = 0;
         cache->info = NULL;
         egui_image_std_round_rect_fast_cache_invalidate(cache);
         return cache;
@@ -1531,6 +1592,10 @@ __EGUI_STATIC_INLINE__ void egui_image_std_round_rect_fast_cache_refresh(egui_im
     cache->cached_width = mask->region.size.width;
     cache->cached_height = mask->region.size.height;
     cache->cached_radius = radius;
+    cache->visible_cached_row_index = -1;
+    cache->visible_cached_boundary = 0;
+    cache->opaque_cached_row_index = -1;
+    cache->opaque_cached_boundary = 0;
     cache->info = egui_canvas_get_circle_item(radius);
     egui_image_std_round_rect_fast_cache_invalidate(cache);
 }
@@ -4466,8 +4531,12 @@ __EGUI_STATIC_INLINE__ int egui_image_std_set_image_resize_rgb565_round_rect_fas
             }
             else
             {
-                visible_boundary = egui_image_std_get_circle_visible_boundary_fixed_row(row_index, round_rect_info, round_rect_items);
-                opaque_boundary = egui_image_std_get_circle_opaque_boundary_fixed_row(row_index, round_rect_info, round_rect_items);
+                visible_boundary = egui_image_std_get_circle_visible_boundary_cached(row_index, round_rect_radius, round_rect_info, round_rect_items,
+                                                                                     &round_rect_cache->visible_cached_row_index,
+                                                                                     &round_rect_cache->visible_cached_boundary);
+                opaque_boundary = egui_image_std_get_circle_opaque_boundary_cached(row_index, round_rect_radius, round_rect_info, round_rect_items,
+                                                                                   &round_rect_cache->opaque_cached_row_index,
+                                                                                   &round_rect_cache->opaque_cached_boundary);
                 round_rect_cache->row_cache_y[row_cache_slot] = rr_sy;
                 round_rect_cache->row_cache_visible_boundary[row_cache_slot] = visible_boundary;
                 round_rect_cache->row_cache_opaque_boundary[row_cache_slot] = opaque_boundary;
