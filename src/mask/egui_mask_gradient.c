@@ -88,10 +88,50 @@ int egui_mask_gradient_blend_row_color(egui_mask_t *self, egui_dim_t y, egui_col
     return 1;
 }
 
+int egui_mask_gradient_get_row_overlay(egui_mask_t *self, egui_dim_t y, egui_color_t *overlay_color, egui_alpha_t *overlay_alpha)
+{
+    EGUI_LOCAL_INIT(egui_mask_gradient_t);
+
+    if (local->gradient == NULL || local->overlay_alpha == 0)
+    {
+        *overlay_alpha = 0;
+        return 1;
+    }
+
+    if (local->gradient->type != EGUI_GRADIENT_TYPE_LINEAR_VERTICAL)
+    {
+        return 0;
+    }
+
+    egui_dim_t py = y - self->region.location.y;
+    egui_dim_t ph = self->region.size.height;
+
+    if (py < 0 || py >= ph)
+    {
+        *overlay_alpha = 0;
+        return 1;
+    }
+
+    if (py == local->cached_key)
+    {
+        *overlay_color = local->cached_color;
+    }
+    else
+    {
+        *overlay_color = egui_gradient_color_at_pos(local->gradient, 0, py, self->region.size.width, ph);
+        local->cached_key = py;
+        local->cached_color = *overlay_color;
+    }
+
+    *overlay_alpha = local->overlay_alpha;
+    return 1;
+}
+
 const egui_mask_api_t egui_mask_gradient_t_api_table = {
         .mask_point = egui_mask_gradient_mask_point,
         .mask_get_row_range = NULL,
         .mask_blend_row_color = egui_mask_gradient_blend_row_color,
+        .mask_get_row_overlay = egui_mask_gradient_get_row_overlay,
 };
 
 void egui_mask_gradient_init(egui_mask_t *self)

@@ -1253,6 +1253,35 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
                 }                                                                                                                                              \
             }                                                                                                                                                  \
         }                                                                                                                                                      \
+        else if (canvas->mask->api->mask_get_row_overlay != NULL)                                                                                              \
+        {                                                                                                                                                      \
+            for (egui_dim_t y_ = y; y_ < y_total; y_++)                                                                                                        \
+            {                                                                                                                                                  \
+                egui_dim_t ov_sy = y_base + y_;                                                                                                                \
+                egui_color_t ov_color;                                                                                                                         \
+                egui_alpha_t ov_alpha;                                                                                                                         \
+                if (canvas->mask->api->mask_get_row_overlay(canvas->mask, ov_sy, &ov_color, &ov_alpha))                                                        \
+                {                                                                                                                                              \
+                    for (egui_dim_t x_ = x; x_ < x_total; x_++)                                                                                                \
+                    {                                                                                                                                          \
+                        _get_pixel_func(image, x_, y_, &color, &alpha);                                                                                        \
+                        if (ov_alpha > 0)                                                                                                                      \
+                        {                                                                                                                                      \
+                            egui_rgb_mix_ptr(&color, &ov_color, &color, ov_alpha);                                                                             \
+                        }                                                                                                                                      \
+                        egui_canvas_draw_point_limit_skip_mask((x_base + x_), ov_sy, color, alpha);                                                            \
+                    }                                                                                                                                          \
+                }                                                                                                                                              \
+                else                                                                                                                                           \
+                {                                                                                                                                              \
+                    for (egui_dim_t x_ = x; x_ < x_total; x_++)                                                                                                \
+                    {                                                                                                                                          \
+                        _get_pixel_func(image, x_, y_, &color, &alpha);                                                                                        \
+                        egui_canvas_draw_point_limit((x_base + x_), ov_sy, color, alpha);                                                                      \
+                    }                                                                                                                                          \
+                }                                                                                                                                              \
+            }                                                                                                                                                  \
+        }                                                                                                                                                      \
         else                                                                                                                                                   \
         {                                                                                                                                                      \
             for (egui_dim_t y_ = y; y_ < y_total; y_++)                                                                                                        \
@@ -1387,6 +1416,55 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
                     }
                     // Right edge: per-pixel with mask
                     for (egui_dim_t x_ = rr_img_xe; x_ < x_total; x_++)
+                    {
+                        egui_image_std_get_col_pixel_rgb565_8(p_data, p_alpha, x_, &color, &alpha);
+                        egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
+                    }
+                }
+            }
+            else if (canvas->mask->api->mask_get_row_overlay != NULL)
+            {
+                egui_color_t ov_color;
+                egui_alpha_t ov_alpha;
+                if (canvas->mask->api->mask_get_row_overlay(canvas->mask, rr_sy, &ov_color, &ov_alpha))
+                {
+                    // Row-uniform overlay: apply overlay to each pixel, skip mask_point
+                    egui_alpha_t canvas_alpha = canvas->alpha;
+                    egui_dim_t pfb_width = canvas->pfb_region.size.width;
+                    egui_dim_t dst_x_start = (x_base + x) - canvas->pfb_location_in_base_view.x;
+                    egui_dim_t dst_y = rr_sy - canvas->pfb_location_in_base_view.y;
+                    egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x_start];
+                    const uint16_t *src_pixels = (const uint16_t *)p_data + x;
+                    const uint8_t *src_alpha_row = (const uint8_t *)p_alpha + x;
+                    egui_dim_t count = x_total - x;
+
+                    if (ov_alpha == 0)
+                    {
+                        egui_image_std_blend_rgb565_alpha8_row(dst_row, src_pixels, src_alpha_row, count, canvas_alpha);
+                    }
+                    else
+                    {
+                        for (egui_dim_t i = 0; i < count; i++)
+                        {
+                            egui_alpha_t sa = src_alpha_row[i];
+                            if (sa == 0)
+                            {
+                                continue;
+                            }
+                            egui_color_t c;
+                            c.full = EGUI_COLOR_RGB565_TRANS(src_pixels[i]);
+                            egui_rgb_mix_ptr(&c, &ov_color, &c, ov_alpha);
+                            egui_alpha_t a = egui_color_alpha_mix(canvas_alpha, sa);
+                            if (a != 0)
+                            {
+                                egui_image_std_blend_resize_pixel(&dst_row[i], c, a);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    for (egui_dim_t x_ = x; x_ < x_total; x_++)
                     {
                         egui_image_std_get_col_pixel_rgb565_8(p_data, p_alpha, x_, &color, &alpha);
                         egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
@@ -2131,6 +2209,75 @@ static void egui_image_std_set_image_resize_rgb565_8_common(const egui_image_t *
                 }
             }
         }
+        else if (canvas->mask->api->mask_get_row_overlay != NULL)
+        {
+            for (egui_dim_t y_ = y; y_ < y_total; y_++)
+            {
+                egui_dim_t rr_sy = y_base + y_;
+                src_y = (egui_dim_t)EGUI_FLOAT_MULT(y_, height_radio);
+                if (cached_src_y != src_y)
+                {
+                    uint32_t row_start = src_y * image->width;
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+                    if (image->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
+                    {
+                        egui_image_std_load_data_resource(data_buf, image, row_start << 1, image->width << 1);
+                        egui_image_std_load_alpha_resource(alpha_buf, image, row_start, image->width);
+                        src_row = (const uint16_t *)data_buf;
+                        src_alpha_row = (const uint8_t *)alpha_buf;
+                    }
+                    else
+#endif
+                    {
+                        src_row = (const uint16_t *)image->data_buf + row_start;
+                        src_alpha_row = (const uint8_t *)image->alpha_buf + row_start;
+                    }
+                    cached_src_y = src_y;
+                }
+
+                egui_color_t ov_color;
+                egui_alpha_t ov_alpha;
+                if (canvas->mask->api->mask_get_row_overlay(canvas->mask, rr_sy, &ov_color, &ov_alpha))
+                {
+                    egui_dim_t dst_y = rr_sy - canvas->pfb_location_in_base_view.y;
+                    egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x_start];
+                    if (ov_alpha == 0)
+                    {
+                        egui_image_std_blend_rgb565_alpha8_mapped_row(dst_row, src_row, src_alpha_row, src_x_map, count, canvas_alpha);
+                    }
+                    else
+                    {
+                        for (egui_dim_t i = 0; i < count; i++)
+                        {
+                            egui_dim_t src_x = src_x_map[i];
+                            egui_alpha_t sa = src_alpha_row[src_x];
+                            if (sa == 0)
+                            {
+                                continue;
+                            }
+                            egui_color_t c;
+                            c.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
+                            egui_rgb_mix_ptr(&c, &ov_color, &c, ov_alpha);
+                            egui_alpha_t a = egui_color_alpha_mix(canvas_alpha, sa);
+                            if (a != 0)
+                            {
+                                egui_image_std_blend_resize_pixel(&dst_row[i], c, a);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    for (egui_dim_t i = 0; i < count; i++)
+                    {
+                        egui_dim_t src_x = src_x_map[i];
+                        color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
+                        alpha = src_alpha_row[src_x];
+                        egui_canvas_draw_point_limit(screen_x_start + i, rr_sy, color, alpha);
+                    }
+                }
+            }
+        }
         else
         {
             for (egui_dim_t y_ = y; y_ < y_total; y_++)
@@ -2741,6 +2888,39 @@ static void egui_image_std_set_image_resize_rgb565_external(const egui_image_t *
                 }                                                                                                                                              \
             }                                                                                                                                                  \
         }                                                                                                                                                      \
+        else if (canvas->mask->api->mask_get_row_overlay != NULL)                                                                                              \
+        {                                                                                                                                                      \
+            for (egui_dim_t y_ = y; y_ < y_total; y_++)                                                                                                        \
+            {                                                                                                                                                  \
+                egui_dim_t ov_sy = y_base + y_;                                                                                                                \
+                src_y = (egui_dim_t)EGUI_FLOAT_MULT(y_, height_radio);                                                                                         \
+                egui_color_t ov_color;                                                                                                                         \
+                egui_alpha_t ov_alpha;                                                                                                                         \
+                if (canvas->mask->api->mask_get_row_overlay(canvas->mask, ov_sy, &ov_color, &ov_alpha))                                                        \
+                {                                                                                                                                              \
+                    egui_dim_t ov_dst_y = ov_sy - canvas->pfb_location_in_base_view.y;                                                                         \
+                    egui_color_int_t *ov_dst_row = &canvas->pfb[ov_dst_y * pfb_width + dst_x_start];                                                           \
+                    for (egui_dim_t i = 0; i < count; i++)                                                                                                     \
+                    {                                                                                                                                          \
+                        _get_pixel_func(image, src_x_map[i], src_y, &color, &alpha);                                                                           \
+                        if (ov_alpha > 0)                                                                                                                      \
+                        {                                                                                                                                      \
+                            egui_rgb_mix_ptr(&color, &ov_color, &color, ov_alpha);                                                                             \
+                        }                                                                                                                                      \
+                        alpha = egui_color_alpha_mix(canvas_alpha, alpha);                                                                                     \
+                        egui_image_std_blend_resize_pixel(&ov_dst_row[i], color, alpha);                                                                       \
+                    }                                                                                                                                          \
+                }                                                                                                                                              \
+                else                                                                                                                                           \
+                {                                                                                                                                              \
+                    for (egui_dim_t i = 0; i < count; i++)                                                                                                     \
+                    {                                                                                                                                          \
+                        _get_pixel_func(image, src_x_map[i], src_y, &color, &alpha);                                                                           \
+                        egui_canvas_draw_point_limit(screen_x_start + i, ov_sy, color, alpha);                                                                 \
+                    }                                                                                                                                          \
+                }                                                                                                                                              \
+            }                                                                                                                                                  \
+        }                                                                                                                                                      \
         else                                                                                                                                                   \
         {                                                                                                                                                      \
             for (egui_dim_t y_ = y; y_ < y_total; y_++)                                                                                                        \
@@ -2935,6 +3115,57 @@ void egui_image_std_set_image_resize_rgb565(const egui_image_t *self, egui_dim_t
                     {
                         color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x_map[x_ - x]]);
                         egui_canvas_draw_point_limit(x_base + x_, rr_sy, color, EGUI_ALPHA_100);
+                    }
+                }
+            }
+        }
+        else if (canvas->mask->api->mask_get_row_overlay != NULL)
+        {
+            for (egui_dim_t y_ = y; y_ < y_total; y_++)
+            {
+                egui_dim_t rr_sy = y_base + y_;
+                src_y = (egui_dim_t)EGUI_FLOAT_MULT_LIMIT(y_, height_radio);
+                const uint16_t *src_row = &src_pixels[src_y * image->width];
+                egui_color_t ov_color;
+                egui_alpha_t ov_alpha;
+                if (canvas->mask->api->mask_get_row_overlay(canvas->mask, rr_sy, &ov_color, &ov_alpha))
+                {
+                    egui_dim_t dst_y = rr_sy - canvas->pfb_location_in_base_view.y;
+                    egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x_start];
+                    if (ov_alpha == 0)
+                    {
+                        if (canvas_alpha == EGUI_ALPHA_100)
+                        {
+                            for (egui_dim_t i = 0; i < count; i++)
+                            {
+                                dst_row[i] = EGUI_COLOR_RGB565_TRANS(src_row[src_x_map[i]]);
+                            }
+                        }
+                        else
+                        {
+                            for (egui_dim_t i = 0; i < count; i++)
+                            {
+                                color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x_map[i]]);
+                                egui_image_std_blend_resize_pixel(&dst_row[i], color, canvas_alpha);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (egui_dim_t i = 0; i < count; i++)
+                        {
+                            color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x_map[i]]);
+                            egui_rgb_mix_ptr(&color, &ov_color, &color, ov_alpha);
+                            egui_image_std_blend_resize_pixel(&dst_row[i], color, canvas_alpha);
+                        }
+                    }
+                }
+                else
+                {
+                    for (egui_dim_t i = 0; i < count; i++)
+                    {
+                        color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x_map[i]]);
+                        egui_canvas_draw_point_limit(screen_x_start + i, rr_sy, color, EGUI_ALPHA_100);
                     }
                 }
             }

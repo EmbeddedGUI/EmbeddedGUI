@@ -30,6 +30,9 @@ struct egui_mask_api
     // Optional: row-level color blend for masks with uniform per-row modification.
     // Returns 1 if the color was uniformly modified for the entire row, 0 if per-pixel is needed.
     int (*mask_blend_row_color)(egui_mask_t *self, egui_dim_t y, egui_color_t *color);
+    // Optional: row-level overlay query for image drawing with overlay masks.
+    // Returns 1 if the row has uniform overlay (fills overlay_color and overlay_alpha), 0 if per-pixel needed.
+    int (*mask_get_row_overlay)(egui_mask_t *self, egui_dim_t y, egui_color_t *overlay_color, egui_alpha_t *overlay_alpha);
 };
 
 struct egui_mask
