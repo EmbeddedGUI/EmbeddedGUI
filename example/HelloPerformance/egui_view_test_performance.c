@@ -202,6 +202,16 @@ static void egui_view_test_performance_test_image_resize_star_565_8(egui_view_t 
 #endif
 }
 
+
+/* Multi-line text string for rotation test (~240x240 at 26pt font) */
+static const char text_rect_str[] = "0123456789\n"
+                                      "EFGHIJKLMN\n"
+                                      "stuvwxyz01\n"
+                                      "UVWXYZ1234\n"
+                                      "6789abcdef\n"
+                                      "KLMNOPQRSX\n"
+                                      "YZ0123456";
+
 const char test_str[] =
         "0123456789abcdefghijklmnopqrstuvwxyz^&*()_+-=[]{}|;':\\\",./"
         "<>?;"
@@ -1476,27 +1486,18 @@ static void egui_view_test_performance_test_image_rotate_tiled_star_565_8(egui_v
 // Text transform (rotation) tests
 // ============================================================================
 
-/* Multi-line text string for rotation test (~240x240 at 26pt font) */
-static const char text_rotate_str[] = "0123456789\n"
-                                      "EFGHIJKLMN\n"
-                                      "stuvwxyz01\n"
-                                      "UVWXYZ1234\n"
-                                      "6789abcdef\n"
-                                      "KLMNOPQRSX\n"
-                                      "YZ0123456";
-
 static void egui_view_test_performance_test_text_rotate_none(egui_view_t *self)
 {
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
-    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 0, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 0, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_text_rotate(egui_view_t *self)
 {
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
-    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_text_rotate_resize(egui_view_t *self)
@@ -1504,14 +1505,14 @@ static void egui_view_test_performance_test_text_rotate_resize(egui_view_t *self
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
     int16_t scale = (int16_t)((int32_t)self->region.size.width * 256 / 240);
-    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, scale, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, scale, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_text_rotate_quarter(egui_view_t *self)
 {
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
-    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, 128, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, 128, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_text_rotate_double(egui_view_t *self)
@@ -1519,21 +1520,21 @@ static void egui_view_test_performance_test_text_rotate_double(egui_view_t *self
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
     int16_t scale = (int16_t)((int32_t)self->region.size.width * 2 * 256 / 240);
-    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, scale, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, scale, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_text_rotate_buffered_none(egui_view_t *self)
 {
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 0, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 0, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_text_rotate_buffered(egui_view_t *self)
 {
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_text_rotate_buffered_resize(egui_view_t *self)
@@ -1541,7 +1542,7 @@ static void egui_view_test_performance_test_text_rotate_buffered_resize(egui_vie
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
     int16_t scale = (int16_t)((int32_t)self->region.size.width * 256 / 240);
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, scale, EGUI_COLOR_GREEN,
+    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, scale, EGUI_COLOR_GREEN,
                                              EGUI_ALPHA_100);
 }
 
@@ -1549,7 +1550,7 @@ static void egui_view_test_performance_test_text_rotate_buffered_quarter(egui_vi
 {
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, 128, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, 128, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_text_rotate_buffered_double(egui_view_t *self)
@@ -1557,7 +1558,7 @@ static void egui_view_test_performance_test_text_rotate_buffered_double(egui_vie
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
     int16_t scale = (int16_t)((int32_t)self->region.size.width * 2 * 256 / 240);
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, scale, EGUI_COLOR_GREEN,
+    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, scale, EGUI_COLOR_GREEN,
                                              EGUI_ALPHA_100);
 }
 
@@ -1570,14 +1571,14 @@ static void egui_view_test_performance_test_extern_text_rotate(egui_view_t *self
 {
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
-    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin, text_rotate_str, cx, cy, 45, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin, text_rect_str, cx, cy, 45, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_extern_text_rotate_buffered(egui_view_t *self)
 {
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin, text_rotate_str, cx, cy, 45, 256, EGUI_COLOR_GREEN,
+    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin, text_rect_str, cx, cy, 45, 256, EGUI_COLOR_GREEN,
                                              EGUI_ALPHA_100);
 }
 #endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
@@ -1590,7 +1591,7 @@ static void egui_view_test_performance_test_text_gradient(egui_view_t *self)
 {
     ensure_perf_masks_initialized();
     egui_canvas_set_mask((egui_mask_t *)&perf_mask_gradient);
-    egui_canvas_draw_text((egui_font_t *)&egui_res_font_montserrat_26_4, test_str, 0, 0, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    egui_canvas_draw_text((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, 0, 0, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_set_mask(NULL);
 }
 
@@ -1599,7 +1600,7 @@ static void egui_view_test_performance_test_text_rect_gradient(egui_view_t *self
     ensure_perf_masks_initialized();
     EGUI_REGION_DEFINE(text_rect, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, 200);
     egui_canvas_set_mask((egui_mask_t *)&perf_mask_gradient);
-    egui_canvas_draw_text_in_rect((egui_font_t *)&egui_res_font_montserrat_26_4, test_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    egui_canvas_draw_text_in_rect((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_set_mask(NULL);
 }
 
@@ -1609,7 +1610,7 @@ static void egui_view_test_performance_test_text_rotate_gradient(egui_view_t *se
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
     egui_canvas_set_mask((egui_mask_t *)&perf_mask_gradient);
-    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, 256, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, 256, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_set_mask(NULL);
 }
 
@@ -1619,7 +1620,7 @@ static void egui_view_test_performance_test_text_rotate_buffered_gradient(egui_v
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
     egui_canvas_set_mask((egui_mask_t *)&perf_mask_gradient);
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rotate_str, cx, cy, 45, 256, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, 256, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_set_mask(NULL);
 }
 
@@ -1635,7 +1636,25 @@ static void egui_view_test_performance_test_mask_gradient_image(egui_view_t *sel
 {
     ensure_perf_masks_initialized();
     egui_canvas_set_mask((egui_mask_t *)&perf_mask_gradient);
-    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_0, 0, 0);
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_4;
+    egui_dim_t x = (self->region.size.width - 120) / 2;
+    egui_dim_t y = (self->region.size.height - 120) / 2;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_4, x, y);
+#endif
+    egui_canvas_set_mask(NULL);
+}
+
+static void egui_view_test_performance_test_mask_gradient_image_rotate(egui_view_t *self)
+{
+    ensure_perf_masks_initialized();
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_gradient);
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
+    extern const egui_image_std_t EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_4;
+    egui_dim_t cx = self->region.size.width / 2;
+    egui_dim_t cy = self->region.size.height / 2;
+    egui_canvas_draw_image_transform((egui_image_t *)&EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_4, cx, cy, 45, 256);
+#endif
     egui_canvas_set_mask(NULL);
 }
 
@@ -2048,6 +2067,10 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_GRADIENT_IMAGE:
         ensure_perf_masks_initialized();
         egui_view_test_performance_test_mask_gradient_image(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_GRADIENT_IMAGE_ROTATE:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_gradient_image_rotate(self);
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_COLOR:
         egui_view_test_performance_test_image_color(self);
@@ -2554,12 +2577,14 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_MULTI_STOP:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_GRADIENT_ROUND_RECT_CORNERS:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_GRADIENT_RECT_FILL:
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_GRADIENT_IMAGE:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_GRADIENT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_RECT_GRADIENT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_GRADIENT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_GRADIENT:
         return 1;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_GRADIENT_IMAGE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_GRADIENT_IMAGE_ROTATE:
+        return EGUI_TEST_CONFIG_IMAGE_LARGE;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_GRADIENT_OVERLAY:
         return EGUI_TEST_CONFIG_IMAGE_LARGE;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_COLOR:
