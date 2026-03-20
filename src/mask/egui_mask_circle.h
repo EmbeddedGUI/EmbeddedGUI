@@ -32,6 +32,9 @@ struct egui_mask_circle
     egui_dim_t point_cached_y;
     egui_dim_t point_cached_row_index;
     uint8_t point_cached_row_valid;
+    egui_dim_t row_cache_y[EGUI_CONFIG_PFB_HEIGHT];
+    egui_dim_t row_cache_visible_half[EGUI_CONFIG_PFB_HEIGHT];
+    egui_dim_t row_cache_opaque_boundary[EGUI_CONFIG_PFB_HEIGHT];
     const egui_circle_info_t *info;
 };
 

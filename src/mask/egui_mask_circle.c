@@ -9,6 +9,14 @@
 
 extern const egui_circle_info_t egui_res_circle_info_arr[];
 
+__EGUI_STATIC_INLINE__ void egui_mask_circle_invalidate_row_cache(egui_mask_circle_t *local)
+{
+    for (egui_dim_t i = 0; i < EGUI_CONFIG_PFB_HEIGHT; i++)
+    {
+        local->row_cache_y[i] = -32768;
+    }
+}
+
 __EGUI_STATIC_INLINE__ void egui_mask_circle_refresh_cache(egui_mask_t *self)
 {
     egui_mask_circle_t *local = (egui_mask_circle_t *)self;
@@ -42,6 +50,7 @@ __EGUI_STATIC_INLINE__ void egui_mask_circle_refresh_cache(egui_mask_t *self)
     local->point_cached_y = -32768;
     local->point_cached_row_index = 0;
     local->point_cached_row_valid = 0;
+    egui_mask_circle_invalidate_row_cache(local);
 }
 
 static uint32_t egui_mask_circle_isqrt(uint32_t n)
@@ -405,5 +414,6 @@ void egui_mask_circle_init(egui_mask_t *self)
     local->point_cached_y = -32768;
     local->point_cached_row_index = 0;
     local->point_cached_row_valid = 0;
+    egui_mask_circle_invalidate_row_cache(local);
     local->info = NULL;
 }
