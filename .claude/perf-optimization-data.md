@@ -56,6 +56,7 @@
 | 44 | Circle masked RGB565 resize edge batching | MASK_IMAGE_CIRCLE: 2.617->2.551ms (-2.5%), QUARTER: 0.815->0.796ms (-2.3%) | fc706cb |
 | 45 | Circle fixed-row masked segment split | MASK_IMAGE_CIRCLE: 2.551->2.483ms (-2.7%), DOUBLE: 2.449->2.400ms (-2.0%) | 691f035 |
 | 46 | Circle visible-range cache in resize loop | MASK_IMAGE_CIRCLE: 2.483->2.430ms (-2.1%), DOUBLE: 2.400->2.339ms (-2.5%) | a423998 |
+| 47 | Circle local row-range in resize loop | MASK_IMAGE_CIRCLE: 2.430->2.253ms (-7.3%), DOUBLE: 2.339->2.163ms (-7.5%) | ad041ee |
 
 ## 2026-03-20 RECTANGLE_FILL batching round
 
@@ -441,6 +442,27 @@ QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
 
 - `src/image/egui_image_std.c` now keeps the circle visible-span lookup inside the `RGB565` resize draw loop, so the hot `MASK_IMAGE_CIRCLE*` path reuses a local per-row visible-half cache instead of bouncing back through `mask_get_row_visible_range()` for every partial row.
 - The new visible-range fast path only activates after `mask_get_row_range()` has already produced a valid cached circle row, which keeps the generic mask API unchanged while matching the row-by-row scanline style used in `ref/scgui`.
+- Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` pixel-identical, and `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` stays `554/554 passed`.
+
+## 2026-03-21 circle local row-range in resize loop round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| MASK_IMAGE_CIRCLE | 2.430 | 2.253 | -7.3% |
+| MASK_IMAGE_CIRCLE_QUARTER | 0.773 | 0.731 | -5.4% |
+| MASK_IMAGE_CIRCLE_DOUBLE | 2.339 | 2.163 | -7.5% |
+| MASK_IMAGE_ROUND_RECT | 2.135 | 2.148 | +0.6% |
+| MASK_IMAGE_ROUND_RECT_QUARTER | 0.708 | 0.711 | +0.4% |
+| MASK_IMAGE_ROUND_RECT_DOUBLE | 2.098 | 2.111 | +0.6% |
+| IMAGE_RESIZE_565 | 1.651 | 1.651 | 0.0% |
+| IMAGE_RESIZE_565_8 | 1.654 | 1.654 | 0.0% |
+| MASK_IMAGE_NO_MASK | 1.654 | 1.654 | 0.0% |
+| RECTANGLE_FILL | 0.395 | 0.395 | 0.0% |
+
+- `src/image/egui_image_std.c` now computes the circle row's opaque band directly inside the `RGB565` resize loop, with local row-index and opaque-boundary caches, so the hot `MASK_IMAGE_CIRCLE*` path no longer dispatches through `mask_get_row_range()` on every scanline.
+- Combined with the previous visible-range cache, the resize fast path now mirrors the scanline-local style seen in `ref/scgui`: first derive row geometry once, then blend left edge, opaque middle, and right edge without re-entering the generic mask API.
 - Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` pixel-identical, and `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` stays `554/554 passed`.
 
 ## Before vs After (Original Baseline → Final)
