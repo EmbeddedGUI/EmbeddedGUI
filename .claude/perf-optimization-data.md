@@ -57,6 +57,7 @@
 | 45 | Circle fixed-row masked segment split | MASK_IMAGE_CIRCLE: 2.551->2.483ms (-2.7%), DOUBLE: 2.449->2.400ms (-2.0%) | 691f035 |
 | 46 | Circle visible-range cache in resize loop | MASK_IMAGE_CIRCLE: 2.483->2.430ms (-2.1%), DOUBLE: 2.400->2.339ms (-2.5%) | a423998 |
 | 47 | Circle local row-range in resize loop | MASK_IMAGE_CIRCLE: 2.430->2.253ms (-7.3%), DOUBLE: 2.339->2.163ms (-7.5%) | ad041ee |
+| 48 | Circle resize cross-tile row cache | MASK_IMAGE_CIRCLE: 2.253->1.927ms (-14.5%), DOUBLE: 2.163->1.739ms (-19.6%) | 7732fde |
 
 ## 2026-03-20 RECTANGLE_FILL batching round
 
@@ -585,6 +586,26 @@ Original RECTANGLE_FILL = 9.665ms, historical snapshot RECTANGLE_FILL = 3.924ms 
 | LINE_HQ | 31.286 | 7.97x |
 | GRADIENT_CIRCLE | 50.424 | 12.85x |
 | ARC_FILL_HQ | 52.337 | 13.34x |
+
+## 2026-03-21 circle resize cross-tile row-cache round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| MASK_IMAGE_CIRCLE | 2.253 | 1.927 | -14.5% |
+| MASK_IMAGE_CIRCLE_QUARTER | 0.731 | 0.670 | -8.3% |
+| MASK_IMAGE_CIRCLE_DOUBLE | 2.163 | 1.739 | -19.6% |
+| MASK_IMAGE_ROUND_RECT | 2.148 | 2.152 | +0.2% |
+| MASK_IMAGE_ROUND_RECT_QUARTER | 0.711 | 0.712 | +0.1% |
+| MASK_IMAGE_ROUND_RECT_DOUBLE | 2.111 | 2.115 | +0.2% |
+| MASK_IMAGE_NO_MASK | 1.654 | 1.654 | 0.0% |
+| RECTANGLE_FILL | 0.395 | 0.395 | 0.0% |
+
+- `src/mask/egui_mask_circle.h` / `src/mask/egui_mask_circle.c` add a small per-mask row cache sized to `EGUI_CONFIG_PFB_HEIGHT`, keyed by absolute screen y.
+- `src/image/egui_image_std.c` now reuses cached `visible_half` and opaque-boundary results across horizontal PFB tiles, so `MASK_IMAGE_CIRCLE*` stops recomputing the same row geometry eight times per 480px band.
+- This specifically targets the current hot path behind opaque `RGB565_8` resize dispatch, which is why `MASK_IMAGE_CIRCLE_DOUBLE` benefits even more than the base case while `RECTANGLE_FILL` and `MASK_IMAGE_NO_MASK` stay flat.
+- Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` identical, and `make clean; make all APP=HelloUnitTest PORT=pc_test; output\main.exe` stays `554/554 passed`.
 
 ## Remaining Optimization Targets
 
