@@ -58,6 +58,100 @@ __EGUI_STATIC_INLINE__ uint16_t bilinear_rgb565_packed(uint16_t c00, uint16_t c0
 }
 
 /**
+ * Compute the number of pixels to skip at the start of a scanline for rotation.
+ *
+ * For inverse-mapped rotation, pixels at the start (and end) of each output
+ * scanline may map outside the source rectangle. The "entered + break" pattern
+ * handles the right side efficiently, but left-side dead pixels are checked one
+ * by one. This function computes an approximate skip count to jump past most of
+ * the left dead zone, reducing per-pixel overhead in edge/corner PFB tiles.
+ *
+ * @param rotatedX  Q15 source X at first pixel of scanline
+ * @param rotatedY  Q15 source Y at first pixel of scanline
+ * @param inv_m00   Q15 per-pixel X step
+ * @param inv_m10   Q15 per-pixel Y step
+ * @param src_lo_x  Q15 lower bound for source X (typically -(1<<15))
+ * @param src_hi_x  Q15 upper bound for source X (typically src_w << 15)
+ * @param src_lo_y  Q15 lower bound for source Y (typically -(1<<15))
+ * @param src_hi_y  Q15 upper bound for source Y (typically src_h << 15)
+ * @param max_skip  Maximum allowed skip (draw_x1 - draw_x0)
+ * @return Number of pixels to skip (0 if first pixel is already valid)
+ */
+static int32_t transform_scanline_skip(int32_t rotatedX, int32_t rotatedY, int32_t inv_m00, int32_t inv_m10, int32_t src_lo_x, int32_t src_hi_x,
+                                       int32_t src_lo_y, int32_t src_hi_y, int32_t max_skip)
+{
+    /* Quick check: if first pixel is already in bounds, no skip needed */
+    if (rotatedX >= src_lo_x && rotatedX < src_hi_x && rotatedY >= src_lo_y && rotatedY < src_hi_y)
+    {
+        return 0;
+    }
+
+    /* Compute skip for each out-of-bounds axis.
+     * For axis with step > 0: skip = ceil((bound_lo - current) / step)
+     * For axis with step < 0: skip = ceil((current - bound_hi + 1) / (-step))
+     * Take the max of all skips. */
+    int32_t skip = 0;
+
+    /* X axis */
+    if (inv_m00 > 0)
+    {
+        if (rotatedX < src_lo_x)
+        {
+            int32_t need = src_lo_x - rotatedX;
+            int32_t s = (need + inv_m00 - 1) / inv_m00;
+            if (s > skip)
+                skip = s;
+        }
+    }
+    else if (inv_m00 < 0)
+    {
+        if (rotatedX >= src_hi_x)
+        {
+            int32_t need = rotatedX - src_hi_x + 1;
+            int32_t neg_m = -inv_m00;
+            int32_t s = (need + neg_m - 1) / neg_m;
+            if (s > skip)
+                skip = s;
+        }
+    }
+
+    /* Y axis */
+    if (inv_m10 > 0)
+    {
+        if (rotatedY < src_lo_y)
+        {
+            int32_t need = src_lo_y - rotatedY;
+            int32_t s = (need + inv_m10 - 1) / inv_m10;
+            if (s > skip)
+                skip = s;
+        }
+    }
+    else if (inv_m10 < 0)
+    {
+        if (rotatedY >= src_hi_y)
+        {
+            int32_t need = rotatedY - src_hi_y + 1;
+            int32_t neg_m = -inv_m10;
+            int32_t s = (need + neg_m - 1) / neg_m;
+            if (s > skip)
+                skip = s;
+        }
+    }
+
+    /* Clamp to maximum and subtract 1 for safety (rounding margin) */
+    if (skip > 1)
+    {
+        skip -= 1;
+    }
+    if (skip > max_skip)
+    {
+        skip = max_skip;
+    }
+
+    return skip;
+}
+
+/**
  * Draw a rotated and scaled image using inverse-mapping with bilinear interpolation.
  *
  * @param img       Source image (must be egui_image_std_t with RGB565 data)
@@ -200,6 +294,12 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
     int32_t row_start_offset_x = inv_m00 * ((int32_t)draw_x0 - x);
     int32_t row_start_offset_y = inv_m10 * ((int32_t)draw_x0 - x);
 
+    /* Source bounds in Q15 for scanline skip */
+    int32_t src_lo_x_q15 = -(1 << 15);
+    int32_t src_hi_x_q15 = (int32_t)src_w << 15;
+    int32_t src_lo_y_q15 = -(1 << 15);
+    int32_t src_hi_y_q15 = (int32_t)src_h << 15;
+
     for (int32_t dy = draw_y0; dy < draw_y1; dy++)
     {
         int32_t rotatedX = row_start_offset_x + Cx_base;
@@ -207,8 +307,23 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
 
         egui_color_int_t *dst_row = &pfb[(dy - pfb_oy) * pfb_w + (draw_x0 - pfb_ox)];
         int entered = 0;
+        int32_t dx = draw_x0;
 
-        for (int32_t dx = draw_x0; dx < draw_x1; dx++)
+        /* Skip left dead zone where inverse-mapped coords are outside source */
+        if (rotatedX < src_lo_x_q15 || rotatedX >= src_hi_x_q15 || rotatedY < src_lo_y_q15 || rotatedY >= src_hi_y_q15)
+        {
+            int32_t skip = transform_scanline_skip(rotatedX, rotatedY, inv_m00, inv_m10, src_lo_x_q15, src_hi_x_q15, src_lo_y_q15, src_hi_y_q15,
+                                                   draw_x1 - draw_x0);
+            if (skip > 0)
+            {
+                rotatedX += skip * inv_m00;
+                rotatedY += skip * inv_m10;
+                dst_row += skip;
+                dx += skip;
+            }
+        }
+
+        for (; dx < draw_x1; dx++)
         {
             int32_t sx = rotatedX >> 15;
             int32_t sy = rotatedY >> 15;
@@ -951,6 +1066,12 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     int32_t row_start_offset_x = ctx.inv_m00 * ((int32_t)ctx.draw_x0 - x);
     int32_t row_start_offset_y = ctx.inv_m10 * ((int32_t)ctx.draw_x0 - x);
 
+    /* Source bounds in Q15 for scanline skip */
+    int32_t text_src_lo_x_q15 = -(1 << 15);
+    int32_t text_src_hi_x_q15 = (int32_t)ctx.src_w << 15;
+    int32_t text_src_lo_y_q15 = -(1 << 15);
+    int32_t text_src_hi_y_q15 = (int32_t)ctx.src_h << 15;
+
     for (int32_t dy = ctx.draw_y0; dy < ctx.draw_y1; dy++)
     {
         int32_t rotatedX = row_start_offset_x + ctx.Cx_base;
@@ -958,8 +1079,23 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
         egui_color_int_t *dst_row = &ctx.pfb[(dy - ctx.pfb_oy) * ctx.pfb_w + (ctx.draw_x0 - ctx.pfb_ox)];
         int entered = 0;
+        int32_t dx = ctx.draw_x0;
 
-        for (int32_t dx = ctx.draw_x0; dx < ctx.draw_x1; dx++)
+        /* Skip left dead zone where inverse-mapped coords are outside source */
+        if (rotatedX < text_src_lo_x_q15 || rotatedX >= text_src_hi_x_q15 || rotatedY < text_src_lo_y_q15 || rotatedY >= text_src_hi_y_q15)
+        {
+            int32_t skip = transform_scanline_skip(rotatedX, rotatedY, ctx.inv_m00, ctx.inv_m10, text_src_lo_x_q15, text_src_hi_x_q15, text_src_lo_y_q15,
+                                                   text_src_hi_y_q15, ctx.draw_x1 - ctx.draw_x0);
+            if (skip > 0)
+            {
+                rotatedX += skip * ctx.inv_m00;
+                rotatedY += skip * ctx.inv_m10;
+                dst_row += skip;
+                dx += skip;
+            }
+        }
+
+        for (; dx < ctx.draw_x1; dx++)
         {
             int32_t sx = rotatedX >> 15;
             int32_t sy = rotatedY >> 15;
@@ -1400,14 +1536,35 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
     int32_t row_start_offset_x = ctx.inv_m00 * ((int32_t)ctx.draw_x0 - x);
     int32_t row_start_offset_y = ctx.inv_m10 * ((int32_t)ctx.draw_x0 - x);
 
+    /* Source bounds in Q15 for scanline skip */
+    int32_t buf_src_lo_x_q15 = 0;
+    int32_t buf_src_hi_x_q15 = ((int32_t)src_w - 1) << 15;
+    int32_t buf_src_lo_y_q15 = 0;
+    int32_t buf_src_hi_y_q15 = ((int32_t)src_h - 1) << 15;
+
     for (int32_t dy = ctx.draw_y0; dy < ctx.draw_y1; dy++)
     {
         int32_t rotatedX = row_start_offset_x + ctx.Cx_base;
         int32_t rotatedY = row_start_offset_y + ctx.Cy_base;
 
         egui_color_int_t *dst_row = &ctx.pfb[(dy - ctx.pfb_oy) * ctx.pfb_w + (ctx.draw_x0 - ctx.pfb_ox)];
+        int32_t dx = ctx.draw_x0;
 
-        for (int32_t dx = ctx.draw_x0; dx < ctx.draw_x1; dx++)
+        /* Skip left dead zone */
+        if (rotatedX < buf_src_lo_x_q15 || rotatedX >= buf_src_hi_x_q15 || rotatedY < buf_src_lo_y_q15 || rotatedY >= buf_src_hi_y_q15)
+        {
+            int32_t skip = transform_scanline_skip(rotatedX, rotatedY, ctx.inv_m00, ctx.inv_m10, buf_src_lo_x_q15, buf_src_hi_x_q15, buf_src_lo_y_q15,
+                                                   buf_src_hi_y_q15, ctx.draw_x1 - ctx.draw_x0);
+            if (skip > 0)
+            {
+                rotatedX += skip * ctx.inv_m00;
+                rotatedY += skip * ctx.inv_m10;
+                dst_row += skip;
+                dx += skip;
+            }
+        }
+
+        for (; dx < ctx.draw_x1; dx++)
         {
             int32_t sx = rotatedX >> 15;
             int32_t sy = rotatedY >> 15;
