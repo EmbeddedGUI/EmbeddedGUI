@@ -1477,13 +1477,13 @@ static void egui_view_test_performance_test_image_rotate_tiled_star_565_8(egui_v
 // ============================================================================
 
 /* Multi-line text string for rotation test (~240x240 at 26pt font) */
-static const char text_rotate_str[] = "0123456789abcd\n"
-                                      "EFGHIJKLMNOPQR\n"
-                                      "stuvwxyz012345\n"
-                                      "UVWXYZ!@#$%^&*\n"
-                                      "6789abcdefghij\n"
-                                      "KLMNOPQRSTUVWX\n"
-                                      "YZ0123456789ab";
+static const char text_rotate_str[] = "0123456789\n"
+                                      "EFGHIJKLMN\n"
+                                      "stuvwxyz01\n"
+                                      "UVWXYZ1234\n"
+                                      "6789abcdef\n"
+                                      "KLMNOPQRSX\n"
+                                      "YZ0123456";
 
 static void egui_view_test_performance_test_text_rotate_none(egui_view_t *self)
 {
