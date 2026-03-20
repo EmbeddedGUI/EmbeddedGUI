@@ -68,3 +68,5 @@ example/HelloBasic/thermostat
 /.claude/comparison_report
 /example/HelloCompare
 .tmp
+perf_output
+/perf_output
