@@ -68,6 +68,7 @@
 #include "test/test_transport_bar.h"
 #include "test/test_toast_stack.h"
 #include "test/test_token_input.h"
+#include "test/test_virtual_stage.h"
 #include "test/test_virtual_viewport.h"
 
 void uicode_init_ui(void)
@@ -146,5 +147,6 @@ void uicode_create_ui(void)
     test_transport_bar_run();
     test_toast_stack_run();
     test_token_input_run();
+    test_virtual_stage_run();
     test_virtual_viewport_run();
 }

@@ -95,10 +95,9 @@ static int egui_focus_collect_focusable_views(egui_view_t *root, egui_view_t **l
             list[count++] = current;
         }
 
-        // If this is a view_group, push children in reverse order so first child is processed first
-        // We detect view_group by checking if the draw function is egui_view_group_draw or similar
-        // A simpler approach: check if the view has the view_group dispatch functions
-        if (current->api->draw == egui_view_group_draw)
+        // If this is a group-like container, push children in reverse order so first child is processed first.
+        // Some containers reuse egui_view_group storage but override draw/layout (scroll/viewpage/virtual_stage).
+        if (current->api->draw == egui_view_group_draw || current->api->request_layout == egui_view_group_request_layout)
         {
             egui_view_group_t *group = (egui_view_group_t *)current;
             egui_dnode_t *p_head;

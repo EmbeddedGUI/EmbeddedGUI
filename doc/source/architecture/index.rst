@@ -10,5 +10,6 @@
    view_system
    event_system
    layout_system
+   virtual_stage
    rendering_pipeline
    theme_system

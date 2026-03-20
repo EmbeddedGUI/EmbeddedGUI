@@ -44,6 +44,7 @@
       "textinput",
       "tileview",
       "toggle_button",
+      "virtual_stage",
       "viewpage",
       "viewpage_cache",
       "window"
@@ -271,6 +272,16 @@
         "wait"
       ],
       "min_case_count": 5,
+      "require_runtime_marker": true
+    },
+    "virtual_stage": {
+      "expected_actions": [
+        "click",
+        "drag",
+        "wait"
+      ],
+      "min_case_count": 39,
+      "min_interaction_transitions": 0,
       "require_runtime_marker": true
     },
     "viewpage": {

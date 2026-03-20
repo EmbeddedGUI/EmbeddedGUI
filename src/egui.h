@@ -93,6 +93,7 @@
 #include "widget/egui_view_virtual_grid.h"
 #include "widget/egui_view_virtual_tree.h"
 #include "widget/egui_view_virtual_section_list.h"
+#include "widget/egui_view_virtual_stage.h"
 #include "widget/egui_view_virtual_page.h"
 #include "widget/egui_view_virtual_viewport.h"
 #include "widget/egui_view_list.h"
