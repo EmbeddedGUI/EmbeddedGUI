@@ -51,6 +51,10 @@ struct egui_canvas
 
 extern egui_canvas_t canvas_data;
 
+void egui_mask_image_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha);
+int egui_mask_image_fill_row_segment(egui_mask_t *self, egui_color_int_t *dst, egui_dim_t y, egui_dim_t x_start, egui_dim_t x_end, egui_color_t color,
+                                     egui_alpha_t alpha);
+
 __EGUI_STATIC_INLINE__ egui_alpha_t egui_canvas_get_circle_corner_value(egui_dim_t pos_row, egui_dim_t pos_col, const egui_circle_info_t *info);
 
 __EGUI_STATIC_INLINE__ void egui_canvas_set_alpha(egui_alpha_t alpha)
@@ -494,6 +498,14 @@ __EGUI_STATIC_INLINE__ void egui_canvas_fill_masked_row_segment(egui_canvas_t *s
             }
         }
         return;
+    }
+
+    if (self->mask->api->mask_point == egui_mask_image_mask_point)
+    {
+        if (egui_mask_image_fill_row_segment(self->mask, dst, y, x_start, x_end, color, alpha))
+        {
+            return;
+        }
     }
 
     for (egui_dim_t xp = x_start; xp < x_end; xp++, dst++)
