@@ -1,0 +1,1591 @@
+{
+  "timestamp": "2026-03-20T15:33:49.600453",
+  "git_commit": "4f07ae4",
+  "profile": "cortex-m3",
+  "spi_matrix": {
+    "no_spi": {
+      "spi_mhz": 0,
+      "buffer_count": 1,
+      "results": {
+        "LINE": {
+          "time_ms": 5.274
+        },
+        "LINE_HQ": {
+          "time_ms": 5.316
+        },
+        "RECTANGLE": {
+          "time_ms": 0.943
+        },
+        "RECTANGLE_FILL": {
+          "time_ms": 1.132
+        },
+        "CIRCLE": {
+          "time_ms": 4.56
+        },
+        "CIRCLE_FILL": {
+          "time_ms": 1.96
+        },
+        "CIRCLE_HQ": {
+          "time_ms": 4.203
+        },
+        "CIRCLE_FILL_HQ": {
+          "time_ms": 1.957
+        },
+        "ARC": {
+          "time_ms": 2.466
+        },
+        "ARC_FILL": {
+          "time_ms": 5.491
+        },
+        "ARC_HQ": {
+          "time_ms": 3.972
+        },
+        "ARC_FILL_HQ": {
+          "time_ms": 10.626
+        },
+        "ROUND_RECTANGLE": {
+          "time_ms": 4.606
+        },
+        "ROUND_RECTANGLE_CORNERS": {
+          "time_ms": 4.499
+        },
+        "ROUND_RECTANGLE_FILL": {
+          "time_ms": 1.987
+        },
+        "ROUND_RECTANGLE_CORNERS_FILL": {
+          "time_ms": 2.034
+        },
+        "TRIANGLE": {
+          "time_ms": 1.218
+        },
+        "TRIANGLE_FILL": {
+          "time_ms": 2.644
+        },
+        "ELLIPSE": {
+          "time_ms": 5.044
+        },
+        "ELLIPSE_FILL": {
+          "time_ms": 2.913
+        },
+        "POLYGON": {
+          "time_ms": 4.057
+        },
+        "POLYGON_FILL": {
+          "time_ms": 3.981
+        },
+        "BEZIER_QUAD": {
+          "time_ms": 4.909
+        },
+        "BEZIER_CUBIC": {
+          "time_ms": 4.233
+        },
+        "CIRCLE_FILL_QUARTER": {
+          "time_ms": 0.714
+        },
+        "CIRCLE_FILL_DOUBLE": {
+          "time_ms": 2.014
+        },
+        "ROUND_RECTANGLE_FILL_QUARTER": {
+          "time_ms": 0.733
+        },
+        "ROUND_RECTANGLE_FILL_DOUBLE": {
+          "time_ms": 2.039
+        },
+        "TRIANGLE_FILL_QUARTER": {
+          "time_ms": 0.735
+        },
+        "TRIANGLE_FILL_DOUBLE": {
+          "time_ms": 2.061
+        },
+        "TEXT": {
+          "time_ms": 2.46
+        },
+        "TEXT_RECT": {
+          "time_ms": 2.5
+        },
+        "EXTERN_TEXT": {
+          "time_ms": 2.496
+        },
+        "EXTERN_TEXT_RECT": {
+          "time_ms": 2.538
+        },
+        "TEXT_ROTATE_NONE": {
+          "time_ms": 15.237
+        },
+        "TEXT_ROTATE": {
+          "time_ms": 16.269
+        },
+        "TEXT_ROTATE_RESIZE": {
+          "time_ms": 16.27
+        },
+        "TEXT_ROTATE_QUARTER": {
+          "time_ms": 7.406
+        },
+        "TEXT_ROTATE_DOUBLE": {
+          "time_ms": 18.265
+        },
+        "TEXT_ROTATE_BUFFERED_NONE": {
+          "time_ms": 10.97
+        },
+        "TEXT_ROTATE_BUFFERED": {
+          "time_ms": 10.244
+        },
+        "TEXT_ROTATE_BUFFERED_RESIZE": {
+          "time_ms": 10.245
+        },
+        "TEXT_ROTATE_BUFFERED_QUARTER": {
+          "time_ms": 3.366
+        },
+        "TEXT_ROTATE_BUFFERED_DOUBLE": {
+          "time_ms": 12.942
+        },
+        "EXTERN_TEXT_ROTATE": {
+          "time_ms": 17.074
+        },
+        "EXTERN_TEXT_ROTATE_BUFFERED": {
+          "time_ms": 10.244
+        },
+        "IMAGE_565": {
+          "time_ms": 0.856
+        },
+        "IMAGE_565_1": {
+          "time_ms": 1.964
+        },
+        "IMAGE_565_2": {
+          "time_ms": 1.902
+        },
+        "IMAGE_565_4": {
+          "time_ms": 1.828
+        },
+        "IMAGE_565_8": {
+          "time_ms": 1.493
+        },
+        "IMAGE_565_QUARTER": {
+          "time_ms": 0.371
+        },
+        "IMAGE_565_DOUBLE": {
+          "time_ms": 0.856
+        },
+        "IMAGE_565_8_QUARTER": {
+          "time_ms": 0.531
+        },
+        "IMAGE_565_8_DOUBLE": {
+          "time_ms": 1.828
+        },
+        "EXTERN_IMAGE_565": {
+          "time_ms": 2.656
+        },
+        "EXTERN_IMAGE_565_1": {
+          "time_ms": 5.137
+        },
+        "EXTERN_IMAGE_565_2": {
+          "time_ms": 5.306
+        },
+        "EXTERN_IMAGE_565_4": {
+          "time_ms": 5.342
+        },
+        "EXTERN_IMAGE_565_8": {
+          "time_ms": 4.956
+        },
+        "IMAGE_TILED_565_0": {
+          "time_ms": 1.44
+        },
+        "IMAGE_TILED_565_1": {
+          "time_ms": 2.722
+        },
+        "IMAGE_TILED_565_2": {
+          "time_ms": 2.661
+        },
+        "IMAGE_TILED_565_4": {
+          "time_ms": 2.578
+        },
+        "IMAGE_TILED_565_8": {
+          "time_ms": 2.264
+        },
+        "IMAGE_TILED_STAR_565_0": {
+          "time_ms": 1.44
+        },
+        "IMAGE_TILED_STAR_565_1": {
+          "time_ms": 2.617
+        },
+        "IMAGE_TILED_STAR_565_2": {
+          "time_ms": 3.371
+        },
+        "IMAGE_TILED_STAR_565_4": {
+          "time_ms": 3.517
+        },
+        "IMAGE_TILED_STAR_565_8": {
+          "time_ms": 3.279
+        },
+        "IMAGE_RESIZE_565": {
+          "time_ms": 1.705
+        },
+        "IMAGE_RESIZE_565_1": {
+          "time_ms": 4.659
+        },
+        "IMAGE_RESIZE_565_2": {
+          "time_ms": 4.837
+        },
+        "IMAGE_RESIZE_565_4": {
+          "time_ms": 4.837
+        },
+        "IMAGE_RESIZE_565_8": {
+          "time_ms": 3.096
+        },
+        "EXTERN_IMAGE_RESIZE_565": {
+          "time_ms": 2.174
+        },
+        "EXTERN_IMAGE_RESIZE_565_1": {
+          "time_ms": 5.82
+        },
+        "EXTERN_IMAGE_RESIZE_565_2": {
+          "time_ms": 6.222
+        },
+        "EXTERN_IMAGE_RESIZE_565_4": {
+          "time_ms": 6.422
+        },
+        "EXTERN_IMAGE_RESIZE_565_8": {
+          "time_ms": 4.634
+        },
+        "IMAGE_RESIZE_STAR_565_1": {
+          "time_ms": 3.913
+        },
+        "IMAGE_RESIZE_STAR_565_2": {
+          "time_ms": 4.303
+        },
+        "IMAGE_RESIZE_STAR_565_4": {
+          "time_ms": 4.488
+        },
+        "IMAGE_RESIZE_STAR_565_8": {
+          "time_ms": 2.726
+        },
+        "IMAGE_RESIZE_TILED_565_0": {
+          "time_ms": 1.817
+        },
+        "IMAGE_RESIZE_TILED_565_1": {
+          "time_ms": 4.801
+        },
+        "IMAGE_RESIZE_TILED_565_2": {
+          "time_ms": 4.98
+        },
+        "IMAGE_RESIZE_TILED_565_4": {
+          "time_ms": 4.98
+        },
+        "IMAGE_RESIZE_TILED_565_8": {
+          "time_ms": 3.227
+        },
+        "IMAGE_RESIZE_TILED_STAR_565_0": {
+          "time_ms": 1.816
+        },
+        "IMAGE_RESIZE_TILED_STAR_565_1": {
+          "time_ms": 4.011
+        },
+        "IMAGE_RESIZE_TILED_STAR_565_2": {
+          "time_ms": 4.747
+        },
+        "IMAGE_RESIZE_TILED_STAR_565_4": {
+          "time_ms": 5.278
+        },
+        "IMAGE_RESIZE_TILED_STAR_565_8": {
+          "time_ms": 3.47
+        },
+        "IMAGE_ROTATE_565": {
+          "time_ms": 3.857
+        },
+        "IMAGE_ROTATE_565_1": {
+          "time_ms": 3.857
+        },
+        "IMAGE_ROTATE_565_2": {
+          "time_ms": 3.857
+        },
+        "IMAGE_ROTATE_565_4": {
+          "time_ms": 3.857
+        },
+        "IMAGE_ROTATE_565_8": {
+          "time_ms": 5.561
+        },
+        "IMAGE_ROTATE_565_RESIZE": {
+          "time_ms": 3.857
+        },
+        "IMAGE_ROTATE_565_QUARTER": {
+          "time_ms": 1.151
+        },
+        "IMAGE_ROTATE_565_DOUBLE": {
+          "time_ms": 10.861
+        },
+        "EXTERN_IMAGE_ROTATE_565": {
+          "time_ms": 4.605
+        },
+        "EXTERN_IMAGE_ROTATE_565_1": {
+          "time_ms": 4.606
+        },
+        "EXTERN_IMAGE_ROTATE_565_2": {
+          "time_ms": 4.606
+        },
+        "EXTERN_IMAGE_ROTATE_565_4": {
+          "time_ms": 4.605
+        },
+        "EXTERN_IMAGE_ROTATE_565_8": {
+          "time_ms": 6.747
+        },
+        "IMAGE_ROTATE_STAR_565_1": {
+          "time_ms": 3.857
+        },
+        "IMAGE_ROTATE_STAR_565_2": {
+          "time_ms": 3.857
+        },
+        "IMAGE_ROTATE_STAR_565_4": {
+          "time_ms": 3.857
+        },
+        "IMAGE_ROTATE_STAR_565_8": {
+          "time_ms": 5.623
+        },
+        "IMAGE_ROTATE_TILED_565_0": {
+          "time_ms": 4.584
+        },
+        "IMAGE_ROTATE_TILED_565_1": {
+          "time_ms": 4.584
+        },
+        "IMAGE_ROTATE_TILED_565_2": {
+          "time_ms": 4.584
+        },
+        "IMAGE_ROTATE_TILED_565_4": {
+          "time_ms": 4.584
+        },
+        "IMAGE_ROTATE_TILED_565_8": {
+          "time_ms": 6.211
+        },
+        "IMAGE_ROTATE_TILED_STAR_565_0": {
+          "time_ms": 4.583
+        },
+        "IMAGE_ROTATE_TILED_STAR_565_1": {
+          "time_ms": 4.584
+        },
+        "IMAGE_ROTATE_TILED_STAR_565_2": {
+          "time_ms": 4.584
+        },
+        "IMAGE_ROTATE_TILED_STAR_565_4": {
+          "time_ms": 4.584
+        },
+        "IMAGE_ROTATE_TILED_STAR_565_8": {
+          "time_ms": 6.402
+        },
+        "IMAGE_COLOR": {
+          "time_ms": 3.554
+        },
+        "IMAGE_RESIZE_COLOR": {
+          "time_ms": 3.651
+        },
+        "GRADIENT_RECT": {
+          "time_ms": 2.122
+        },
+        "GRADIENT_ROUND_RECT": {
+          "time_ms": 4.278
+        },
+        "GRADIENT_CIRCLE": {
+          "time_ms": 10.461
+        },
+        "GRADIENT_TRIANGLE": {
+          "time_ms": 2.91
+        },
+        "GRADIENT_ARC_RING": {
+          "time_ms": 4.13
+        },
+        "GRADIENT_ARC_RING_ROUND_CAP": {
+          "time_ms": 4.452
+        },
+        "GRADIENT_RADIAL": {
+          "time_ms": 6.756
+        },
+        "GRADIENT_ANGULAR": {
+          "time_ms": 6.935
+        },
+        "GRADIENT_ROUND_RECT_RING": {
+          "time_ms": 2.545
+        },
+        "GRADIENT_LINE_CAPSULE": {
+          "time_ms": 3.05
+        },
+        "GRADIENT_MULTI_STOP": {
+          "time_ms": 2.136
+        },
+        "GRADIENT_ROUND_RECT_CORNERS": {
+          "time_ms": 2.564
+        },
+        "IMAGE_GRADIENT_OVERLAY": {
+          "time_ms": 3.551
+        },
+        "MASK_GRADIENT_RECT_FILL": {
+          "time_ms": 1.815
+        },
+        "MASK_GRADIENT_IMAGE": {
+          "time_ms": 1.779
+        },
+        "TEXT_GRADIENT": {
+          "time_ms": 1.437
+        },
+        "TEXT_RECT_GRADIENT": {
+          "time_ms": 1.477
+        },
+        "TEXT_ROTATE_GRADIENT": {
+          "time_ms": 16.272
+        },
+        "TEXT_ROTATE_BUFFERED_GRADIENT": {
+          "time_ms": 10.247
+        },
+        "SHADOW": {
+          "time_ms": 5.915
+        },
+        "SHADOW_ROUND": {
+          "time_ms": 7.54
+        },
+        "MASK_RECT_FILL_NO_MASK": {
+          "time_ms": 1.132
+        },
+        "MASK_RECT_FILL_ROUND_RECT": {
+          "time_ms": 1.731
+        },
+        "MASK_RECT_FILL_CIRCLE": {
+          "time_ms": 4.985
+        },
+        "MASK_RECT_FILL_IMAGE": {
+          "time_ms": 2.676
+        },
+        "MASK_RECT_FILL_NO_MASK_QUARTER": {
+          "time_ms": 0.44
+        },
+        "MASK_RECT_FILL_NO_MASK_DOUBLE": {
+          "time_ms": 1.132
+        },
+        "MASK_RECT_FILL_ROUND_RECT_QUARTER": {
+          "time_ms": 0.609
+        },
+        "MASK_RECT_FILL_ROUND_RECT_DOUBLE": {
+          "time_ms": 1.64
+        },
+        "MASK_RECT_FILL_CIRCLE_QUARTER": {
+          "time_ms": 1.408
+        },
+        "MASK_RECT_FILL_CIRCLE_DOUBLE": {
+          "time_ms": 4.564
+        },
+        "MASK_RECT_FILL_IMAGE_QUARTER": {
+          "time_ms": 0.23
+        },
+        "MASK_RECT_FILL_IMAGE_DOUBLE": {
+          "time_ms": 1.189
+        },
+        "MASK_IMAGE_NO_MASK": {
+          "time_ms": 3.096
+        },
+        "MASK_IMAGE_ROUND_RECT": {
+          "time_ms": 3.635
+        },
+        "MASK_IMAGE_CIRCLE": {
+          "time_ms": 6.624
+        },
+        "MASK_IMAGE_IMAGE": {
+          "time_ms": 4.793
+        },
+        "MASK_IMAGE_NO_MASK_QUARTER": {
+          "time_ms": 0.942
+        },
+        "MASK_IMAGE_NO_MASK_DOUBLE": {
+          "time_ms": 3.086
+        },
+        "MASK_IMAGE_ROUND_RECT_QUARTER": {
+          "time_ms": 1.094
+        },
+        "MASK_IMAGE_ROUND_RECT_DOUBLE": {
+          "time_ms": 3.534
+        },
+        "MASK_IMAGE_CIRCLE_QUARTER": {
+          "time_ms": 1.832
+        },
+        "MASK_IMAGE_CIRCLE_DOUBLE": {
+          "time_ms": 5.97
+        },
+        "MASK_IMAGE_IMAGE_QUARTER": {
+          "time_ms": 0.267
+        },
+        "MASK_IMAGE_IMAGE_DOUBLE": {
+          "time_ms": 4.793
+        },
+        "MASK_ROUND_RECT_FILL_NO_MASK": {
+          "time_ms": 1.28
+        },
+        "MASK_ROUND_RECT_FILL_WITH_MASK": {
+          "time_ms": 1.731
+        },
+        "ANIMATION_TRANSLATE": {
+          "time_ms": 0.322
+        },
+        "ANIMATION_ALPHA": {
+          "time_ms": 0.315
+        },
+        "ANIMATION_SCALE": {
+          "time_ms": 0.308
+        },
+        "ANIMATION_SET": {
+          "time_ms": 0.382
+        }
+      }
+    },
+    "spi16_buf2": {
+      "spi_mhz": 16,
+      "buffer_count": 2,
+      "results": {
+        "LINE": {
+          "time_ms": 58.0
+        },
+        "LINE_HQ": {
+          "time_ms": 59.5
+        },
+        "RECTANGLE": {
+          "time_ms": 57.6
+        },
+        "RECTANGLE_FILL": {
+          "time_ms": 57.6
+        },
+        "CIRCLE": {
+          "time_ms": 58.3
+        },
+        "CIRCLE_FILL": {
+          "time_ms": 57.6
+        },
+        "CIRCLE_HQ": {
+          "time_ms": 57.6
+        },
+        "CIRCLE_FILL_HQ": {
+          "time_ms": 57.6
+        },
+        "ARC": {
+          "time_ms": 57.7
+        },
+        "ARC_FILL": {
+          "time_ms": 59.3
+        },
+        "ARC_HQ": {
+          "time_ms": 58.2
+        },
+        "ARC_FILL_HQ": {
+          "time_ms": 61.2
+        },
+        "ROUND_RECTANGLE": {
+          "time_ms": 58.2
+        },
+        "ROUND_RECTANGLE_CORNERS": {
+          "time_ms": 58.3
+        },
+        "ROUND_RECTANGLE_FILL": {
+          "time_ms": 57.6
+        },
+        "ROUND_RECTANGLE_CORNERS_FILL": {
+          "time_ms": 57.6
+        },
+        "TRIANGLE": {
+          "time_ms": 57.6
+        },
+        "TRIANGLE_FILL": {
+          "time_ms": 57.6
+        },
+        "ELLIPSE": {
+          "time_ms": 58.6
+        },
+        "ELLIPSE_FILL": {
+          "time_ms": 57.6
+        },
+        "POLYGON": {
+          "time_ms": 58.2
+        },
+        "POLYGON_FILL": {
+          "time_ms": 57.6
+        },
+        "BEZIER_QUAD": {
+          "time_ms": 59.6
+        },
+        "BEZIER_CUBIC": {
+          "time_ms": 58.9
+        },
+        "CIRCLE_FILL_QUARTER": {
+          "time_ms": 57.6
+        },
+        "CIRCLE_FILL_DOUBLE": {
+          "time_ms": 57.6
+        },
+        "ROUND_RECTANGLE_FILL_QUARTER": {
+          "time_ms": 57.6
+        },
+        "ROUND_RECTANGLE_FILL_DOUBLE": {
+          "time_ms": 57.6
+        },
+        "TRIANGLE_FILL_QUARTER": {
+          "time_ms": 57.6
+        },
+        "TRIANGLE_FILL_DOUBLE": {
+          "time_ms": 57.6
+        },
+        "TEXT": {
+          "time_ms": 58.2
+        },
+        "TEXT_RECT": {
+          "time_ms": 58.2
+        },
+        "EXTERN_TEXT": {
+          "time_ms": 58.9
+        },
+        "EXTERN_TEXT_RECT": {
+          "time_ms": 58.9
+        },
+        "TEXT_ROTATE_NONE": {
+          "time_ms": 63.3
+        },
+        "TEXT_ROTATE": {
+          "time_ms": 64.3
+        },
+        "TEXT_ROTATE_RESIZE": {
+          "time_ms": 64.3
+        },
+        "TEXT_ROTATE_QUARTER": {
+          "time_ms": 60.6
+        },
+        "TEXT_ROTATE_DOUBLE": {
+          "time_ms": 65.0
+        },
+        "TEXT_ROTATE_BUFFERED_NONE": {
+          "time_ms": 60.7
+        },
+        "TEXT_ROTATE_BUFFERED": {
+          "time_ms": 61.9
+        },
+        "TEXT_ROTATE_BUFFERED_RESIZE": {
+          "time_ms": 61.9
+        },
+        "TEXT_ROTATE_BUFFERED_QUARTER": {
+          "time_ms": 58.4
+        },
+        "TEXT_ROTATE_BUFFERED_DOUBLE": {
+          "time_ms": 62.4
+        },
+        "EXTERN_TEXT_ROTATE": {
+          "time_ms": 70.9
+        },
+        "EXTERN_TEXT_ROTATE_BUFFERED": {
+          "time_ms": 61.9
+        },
+        "IMAGE_565": {
+          "time_ms": 57.6
+        },
+        "IMAGE_565_1": {
+          "time_ms": 57.6
+        },
+        "IMAGE_565_2": {
+          "time_ms": 57.6
+        },
+        "IMAGE_565_4": {
+          "time_ms": 57.6
+        },
+        "IMAGE_565_8": {
+          "time_ms": 57.6
+        },
+        "IMAGE_565_QUARTER": {
+          "time_ms": 57.6
+        },
+        "IMAGE_565_DOUBLE": {
+          "time_ms": 57.6
+        },
+        "IMAGE_565_8_QUARTER": {
+          "time_ms": 57.6
+        },
+        "IMAGE_565_8_DOUBLE": {
+          "time_ms": 57.6
+        },
+        "EXTERN_IMAGE_565": {
+          "time_ms": 57.6
+        },
+        "EXTERN_IMAGE_565_1": {
+          "time_ms": 57.6
+        },
+        "EXTERN_IMAGE_565_2": {
+          "time_ms": 57.6
+        },
+        "EXTERN_IMAGE_565_4": {
+          "time_ms": 57.6
+        },
+        "EXTERN_IMAGE_565_8": {
+          "time_ms": 57.6
+        },
+        "IMAGE_TILED_565_0": {
+          "time_ms": 57.6
+        },
+        "IMAGE_TILED_565_1": {
+          "time_ms": 57.6
+        },
+        "IMAGE_TILED_565_2": {
+          "time_ms": 57.6
+        },
+        "IMAGE_TILED_565_4": {
+          "time_ms": 57.6
+        },
+        "IMAGE_TILED_565_8": {
+          "time_ms": 57.6
+        },
+        "IMAGE_TILED_STAR_565_0": {
+          "time_ms": 57.6
+        },
+        "IMAGE_TILED_STAR_565_1": {
+          "time_ms": 57.6
+        },
+        "IMAGE_TILED_STAR_565_2": {
+          "time_ms": 57.6
+        },
+        "IMAGE_TILED_STAR_565_4": {
+          "time_ms": 57.6
+        },
+        "IMAGE_TILED_STAR_565_8": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_565": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_565_1": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_565_2": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_565_4": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_565_8": {
+          "time_ms": 57.6
+        },
+        "EXTERN_IMAGE_RESIZE_565": {
+          "time_ms": 57.6
+        },
+        "EXTERN_IMAGE_RESIZE_565_1": {
+          "time_ms": 57.6
+        },
+        "EXTERN_IMAGE_RESIZE_565_2": {
+          "time_ms": 60.6
+        },
+        "EXTERN_IMAGE_RESIZE_565_4": {
+          "time_ms": 61.6
+        },
+        "EXTERN_IMAGE_RESIZE_565_8": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_STAR_565_1": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_STAR_565_2": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_STAR_565_4": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_STAR_565_8": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_TILED_565_0": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_TILED_565_1": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_TILED_565_2": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_TILED_565_4": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_TILED_565_8": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_TILED_STAR_565_0": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_TILED_STAR_565_1": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_TILED_STAR_565_2": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_TILED_STAR_565_4": {
+          "time_ms": 58.1
+        },
+        "IMAGE_RESIZE_TILED_STAR_565_8": {
+          "time_ms": 57.6
+        },
+        "IMAGE_ROTATE_565": {
+          "time_ms": 58.2
+        },
+        "IMAGE_ROTATE_565_1": {
+          "time_ms": 58.2
+        },
+        "IMAGE_ROTATE_565_2": {
+          "time_ms": 58.2
+        },
+        "IMAGE_ROTATE_565_4": {
+          "time_ms": 58.2
+        },
+        "IMAGE_ROTATE_565_8": {
+          "time_ms": 59.6
+        },
+        "IMAGE_ROTATE_565_RESIZE": {
+          "time_ms": 58.2
+        },
+        "IMAGE_ROTATE_565_QUARTER": {
+          "time_ms": 57.8
+        },
+        "IMAGE_ROTATE_565_DOUBLE": {
+          "time_ms": 60.2
+        },
+        "EXTERN_IMAGE_ROTATE_565": {
+          "time_ms": 60.8
+        },
+        "EXTERN_IMAGE_ROTATE_565_1": {
+          "time_ms": 60.8
+        },
+        "EXTERN_IMAGE_ROTATE_565_2": {
+          "time_ms": 60.8
+        },
+        "EXTERN_IMAGE_ROTATE_565_4": {
+          "time_ms": 60.8
+        },
+        "EXTERN_IMAGE_ROTATE_565_8": {
+          "time_ms": 62.4
+        },
+        "IMAGE_ROTATE_STAR_565_1": {
+          "time_ms": 58.2
+        },
+        "IMAGE_ROTATE_STAR_565_2": {
+          "time_ms": 58.2
+        },
+        "IMAGE_ROTATE_STAR_565_4": {
+          "time_ms": 58.2
+        },
+        "IMAGE_ROTATE_STAR_565_8": {
+          "time_ms": 60.0
+        },
+        "IMAGE_ROTATE_TILED_565_0": {
+          "time_ms": 58.4
+        },
+        "IMAGE_ROTATE_TILED_565_1": {
+          "time_ms": 58.4
+        },
+        "IMAGE_ROTATE_TILED_565_2": {
+          "time_ms": 58.4
+        },
+        "IMAGE_ROTATE_TILED_565_4": {
+          "time_ms": 58.4
+        },
+        "IMAGE_ROTATE_TILED_565_8": {
+          "time_ms": 59.4
+        },
+        "IMAGE_ROTATE_TILED_STAR_565_0": {
+          "time_ms": 58.4
+        },
+        "IMAGE_ROTATE_TILED_STAR_565_1": {
+          "time_ms": 58.4
+        },
+        "IMAGE_ROTATE_TILED_STAR_565_2": {
+          "time_ms": 58.4
+        },
+        "IMAGE_ROTATE_TILED_STAR_565_4": {
+          "time_ms": 58.4
+        },
+        "IMAGE_ROTATE_TILED_STAR_565_8": {
+          "time_ms": 59.6
+        },
+        "IMAGE_COLOR": {
+          "time_ms": 57.6
+        },
+        "IMAGE_RESIZE_COLOR": {
+          "time_ms": 57.6
+        },
+        "GRADIENT_RECT": {
+          "time_ms": 57.6
+        },
+        "GRADIENT_ROUND_RECT": {
+          "time_ms": 58.4
+        },
+        "GRADIENT_CIRCLE": {
+          "time_ms": 60.2
+        },
+        "GRADIENT_TRIANGLE": {
+          "time_ms": 57.6
+        },
+        "GRADIENT_ARC_RING": {
+          "time_ms": 58.6
+        },
+        "GRADIENT_ARC_RING_ROUND_CAP": {
+          "time_ms": 58.6
+        },
+        "GRADIENT_RADIAL": {
+          "time_ms": 60.4
+        },
+        "GRADIENT_ANGULAR": {
+          "time_ms": 60.8
+        },
+        "GRADIENT_ROUND_RECT_RING": {
+          "time_ms": 57.8
+        },
+        "GRADIENT_LINE_CAPSULE": {
+          "time_ms": 58.7
+        },
+        "GRADIENT_MULTI_STOP": {
+          "time_ms": 57.6
+        },
+        "GRADIENT_ROUND_RECT_CORNERS": {
+          "time_ms": 57.7
+        },
+        "IMAGE_GRADIENT_OVERLAY": {
+          "time_ms": 57.6
+        },
+        "MASK_GRADIENT_RECT_FILL": {
+          "time_ms": 57.6
+        },
+        "MASK_GRADIENT_IMAGE": {
+          "time_ms": 57.6
+        },
+        "TEXT_GRADIENT": {
+          "time_ms": 57.6
+        },
+        "TEXT_RECT_GRADIENT": {
+          "time_ms": 57.6
+        },
+        "TEXT_ROTATE_GRADIENT": {
+          "time_ms": 64.3
+        },
+        "TEXT_ROTATE_BUFFERED_GRADIENT": {
+          "time_ms": 61.9
+        },
+        "SHADOW": {
+          "time_ms": 60.1
+        },
+        "SHADOW_ROUND": {
+          "time_ms": 60.6
+        },
+        "MASK_RECT_FILL_NO_MASK": {
+          "time_ms": 57.6
+        },
+        "MASK_RECT_FILL_ROUND_RECT": {
+          "time_ms": 57.6
+        },
+        "MASK_RECT_FILL_CIRCLE": {
+          "time_ms": 58.6
+        },
+        "MASK_RECT_FILL_IMAGE": {
+          "time_ms": 58.5
+        },
+        "MASK_RECT_FILL_NO_MASK_QUARTER": {
+          "time_ms": 57.6
+        },
+        "MASK_RECT_FILL_NO_MASK_DOUBLE": {
+          "time_ms": 57.6
+        },
+        "MASK_RECT_FILL_ROUND_RECT_QUARTER": {
+          "time_ms": 57.6
+        },
+        "MASK_RECT_FILL_ROUND_RECT_DOUBLE": {
+          "time_ms": 57.8
+        },
+        "MASK_RECT_FILL_CIRCLE_QUARTER": {
+          "time_ms": 57.6
+        },
+        "MASK_RECT_FILL_CIRCLE_DOUBLE": {
+          "time_ms": 59.3
+        },
+        "MASK_RECT_FILL_IMAGE_QUARTER": {
+          "time_ms": 57.6
+        },
+        "MASK_RECT_FILL_IMAGE_DOUBLE": {
+          "time_ms": 58.0
+        },
+        "MASK_IMAGE_NO_MASK": {
+          "time_ms": 57.6
+        },
+        "MASK_IMAGE_ROUND_RECT": {
+          "time_ms": 57.8
+        },
+        "MASK_IMAGE_CIRCLE": {
+          "time_ms": 59.2
+        },
+        "MASK_IMAGE_IMAGE": {
+          "time_ms": 59.5
+        },
+        "MASK_IMAGE_NO_MASK_QUARTER": {
+          "time_ms": 57.6
+        },
+        "MASK_IMAGE_NO_MASK_DOUBLE": {
+          "time_ms": 57.6
+        },
+        "MASK_IMAGE_ROUND_RECT_QUARTER": {
+          "time_ms": 57.6
+        },
+        "MASK_IMAGE_ROUND_RECT_DOUBLE": {
+          "time_ms": 57.8
+        },
+        "MASK_IMAGE_CIRCLE_QUARTER": {
+          "time_ms": 57.9
+        },
+        "MASK_IMAGE_CIRCLE_DOUBLE": {
+          "time_ms": 59.3
+        },
+        "MASK_IMAGE_IMAGE_QUARTER": {
+          "time_ms": 57.6
+        },
+        "MASK_IMAGE_IMAGE_DOUBLE": {
+          "time_ms": 59.5
+        },
+        "MASK_ROUND_RECT_FILL_NO_MASK": {
+          "time_ms": 57.6
+        },
+        "MASK_ROUND_RECT_FILL_WITH_MASK": {
+          "time_ms": 57.6
+        },
+        "ANIMATION_TRANSLATE": {
+          "time_ms": 57.6
+        },
+        "ANIMATION_ALPHA": {
+          "time_ms": 57.6
+        },
+        "ANIMATION_SCALE": {
+          "time_ms": 57.6
+        },
+        "ANIMATION_SET": {
+          "time_ms": 57.6
+        }
+      }
+    },
+    "spi64_buf2": {
+      "spi_mhz": 64,
+      "buffer_count": 2,
+      "results": {
+        "LINE": {
+          "time_ms": 19.6
+        },
+        "LINE_HQ": {
+          "time_ms": 20.9
+        },
+        "RECTANGLE": {
+          "time_ms": 19.2
+        },
+        "RECTANGLE_FILL": {
+          "time_ms": 19.2
+        },
+        "CIRCLE": {
+          "time_ms": 19.9
+        },
+        "CIRCLE_FILL": {
+          "time_ms": 19.2
+        },
+        "CIRCLE_HQ": {
+          "time_ms": 19.2
+        },
+        "CIRCLE_FILL_HQ": {
+          "time_ms": 19.2
+        },
+        "ARC": {
+          "time_ms": 19.3
+        },
+        "ARC_FILL": {
+          "time_ms": 20.9
+        },
+        "ARC_HQ": {
+          "time_ms": 19.8
+        },
+        "ARC_FILL_HQ": {
+          "time_ms": 21.5
+        },
+        "ROUND_RECTANGLE": {
+          "time_ms": 19.8
+        },
+        "ROUND_RECTANGLE_CORNERS": {
+          "time_ms": 19.9
+        },
+        "ROUND_RECTANGLE_FILL": {
+          "time_ms": 19.2
+        },
+        "ROUND_RECTANGLE_CORNERS_FILL": {
+          "time_ms": 19.2
+        },
+        "TRIANGLE": {
+          "time_ms": 19.2
+        },
+        "TRIANGLE_FILL": {
+          "time_ms": 19.2
+        },
+        "ELLIPSE": {
+          "time_ms": 20.2
+        },
+        "ELLIPSE_FILL": {
+          "time_ms": 19.2
+        },
+        "POLYGON": {
+          "time_ms": 19.8
+        },
+        "POLYGON_FILL": {
+          "time_ms": 19.2
+        },
+        "BEZIER_QUAD": {
+          "time_ms": 20.8
+        },
+        "BEZIER_CUBIC": {
+          "time_ms": 20.4
+        },
+        "CIRCLE_FILL_QUARTER": {
+          "time_ms": 19.2
+        },
+        "CIRCLE_FILL_DOUBLE": {
+          "time_ms": 19.2
+        },
+        "ROUND_RECTANGLE_FILL_QUARTER": {
+          "time_ms": 19.2
+        },
+        "ROUND_RECTANGLE_FILL_DOUBLE": {
+          "time_ms": 19.2
+        },
+        "TRIANGLE_FILL_QUARTER": {
+          "time_ms": 19.2
+        },
+        "TRIANGLE_FILL_DOUBLE": {
+          "time_ms": 19.2
+        },
+        "TEXT": {
+          "time_ms": 19.8
+        },
+        "TEXT_RECT": {
+          "time_ms": 19.8
+        },
+        "EXTERN_TEXT": {
+          "time_ms": 20.5
+        },
+        "EXTERN_TEXT_RECT": {
+          "time_ms": 20.5
+        },
+        "TEXT_ROTATE_NONE": {
+          "time_ms": 22.9
+        },
+        "TEXT_ROTATE": {
+          "time_ms": 23.2
+        },
+        "TEXT_ROTATE_RESIZE": {
+          "time_ms": 23.2
+        },
+        "TEXT_ROTATE_QUARTER": {
+          "time_ms": 22.4
+        },
+        "TEXT_ROTATE_DOUBLE": {
+          "time_ms": 22.3
+        },
+        "TEXT_ROTATE_BUFFERED_NONE": {
+          "time_ms": 22.3
+        },
+        "TEXT_ROTATE_BUFFERED": {
+          "time_ms": 23.5
+        },
+        "TEXT_ROTATE_BUFFERED_RESIZE": {
+          "time_ms": 23.5
+        },
+        "TEXT_ROTATE_BUFFERED_QUARTER": {
+          "time_ms": 19.9
+        },
+        "TEXT_ROTATE_BUFFERED_DOUBLE": {
+          "time_ms": 22.9
+        },
+        "EXTERN_TEXT_ROTATE": {
+          "time_ms": 32.5
+        },
+        "EXTERN_TEXT_ROTATE_BUFFERED": {
+          "time_ms": 23.5
+        },
+        "IMAGE_565": {
+          "time_ms": 19.2
+        },
+        "IMAGE_565_1": {
+          "time_ms": 19.2
+        },
+        "IMAGE_565_2": {
+          "time_ms": 19.2
+        },
+        "IMAGE_565_4": {
+          "time_ms": 19.2
+        },
+        "IMAGE_565_8": {
+          "time_ms": 19.2
+        },
+        "IMAGE_565_QUARTER": {
+          "time_ms": 19.2
+        },
+        "IMAGE_565_DOUBLE": {
+          "time_ms": 19.2
+        },
+        "IMAGE_565_8_QUARTER": {
+          "time_ms": 19.2
+        },
+        "IMAGE_565_8_DOUBLE": {
+          "time_ms": 19.2
+        },
+        "EXTERN_IMAGE_565": {
+          "time_ms": 19.2
+        },
+        "EXTERN_IMAGE_565_1": {
+          "time_ms": 19.2
+        },
+        "EXTERN_IMAGE_565_2": {
+          "time_ms": 19.2
+        },
+        "EXTERN_IMAGE_565_4": {
+          "time_ms": 19.2
+        },
+        "EXTERN_IMAGE_565_8": {
+          "time_ms": 19.2
+        },
+        "IMAGE_TILED_565_0": {
+          "time_ms": 19.2
+        },
+        "IMAGE_TILED_565_1": {
+          "time_ms": 19.2
+        },
+        "IMAGE_TILED_565_2": {
+          "time_ms": 19.2
+        },
+        "IMAGE_TILED_565_4": {
+          "time_ms": 19.2
+        },
+        "IMAGE_TILED_565_8": {
+          "time_ms": 19.2
+        },
+        "IMAGE_TILED_STAR_565_0": {
+          "time_ms": 19.2
+        },
+        "IMAGE_TILED_STAR_565_1": {
+          "time_ms": 19.2
+        },
+        "IMAGE_TILED_STAR_565_2": {
+          "time_ms": 19.2
+        },
+        "IMAGE_TILED_STAR_565_4": {
+          "time_ms": 19.2
+        },
+        "IMAGE_TILED_STAR_565_8": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_565": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_565_1": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_565_2": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_565_4": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_565_8": {
+          "time_ms": 19.2
+        },
+        "EXTERN_IMAGE_RESIZE_565": {
+          "time_ms": 19.2
+        },
+        "EXTERN_IMAGE_RESIZE_565_1": {
+          "time_ms": 19.2
+        },
+        "EXTERN_IMAGE_RESIZE_565_2": {
+          "time_ms": 22.2
+        },
+        "EXTERN_IMAGE_RESIZE_565_4": {
+          "time_ms": 23.2
+        },
+        "EXTERN_IMAGE_RESIZE_565_8": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_STAR_565_1": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_STAR_565_2": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_STAR_565_4": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_STAR_565_8": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_TILED_565_0": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_TILED_565_1": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_TILED_565_2": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_TILED_565_4": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_TILED_565_8": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_TILED_STAR_565_0": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_TILED_STAR_565_1": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_TILED_STAR_565_2": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_TILED_STAR_565_4": {
+          "time_ms": 19.7
+        },
+        "IMAGE_RESIZE_TILED_STAR_565_8": {
+          "time_ms": 19.2
+        },
+        "IMAGE_ROTATE_565": {
+          "time_ms": 19.8
+        },
+        "IMAGE_ROTATE_565_1": {
+          "time_ms": 19.8
+        },
+        "IMAGE_ROTATE_565_2": {
+          "time_ms": 19.8
+        },
+        "IMAGE_ROTATE_565_4": {
+          "time_ms": 19.8
+        },
+        "IMAGE_ROTATE_565_8": {
+          "time_ms": 20.1
+        },
+        "IMAGE_ROTATE_565_RESIZE": {
+          "time_ms": 19.8
+        },
+        "IMAGE_ROTATE_565_QUARTER": {
+          "time_ms": 19.4
+        },
+        "IMAGE_ROTATE_565_DOUBLE": {
+          "time_ms": 21.8
+        },
+        "EXTERN_IMAGE_ROTATE_565": {
+          "time_ms": 22.4
+        },
+        "EXTERN_IMAGE_ROTATE_565_1": {
+          "time_ms": 22.4
+        },
+        "EXTERN_IMAGE_ROTATE_565_2": {
+          "time_ms": 22.4
+        },
+        "EXTERN_IMAGE_ROTATE_565_4": {
+          "time_ms": 22.4
+        },
+        "EXTERN_IMAGE_ROTATE_565_8": {
+          "time_ms": 24.0
+        },
+        "IMAGE_ROTATE_STAR_565_1": {
+          "time_ms": 19.8
+        },
+        "IMAGE_ROTATE_STAR_565_2": {
+          "time_ms": 19.8
+        },
+        "IMAGE_ROTATE_STAR_565_4": {
+          "time_ms": 19.8
+        },
+        "IMAGE_ROTATE_STAR_565_8": {
+          "time_ms": 20.2
+        },
+        "IMAGE_ROTATE_TILED_565_0": {
+          "time_ms": 20.0
+        },
+        "IMAGE_ROTATE_TILED_565_1": {
+          "time_ms": 20.0
+        },
+        "IMAGE_ROTATE_TILED_565_2": {
+          "time_ms": 20.0
+        },
+        "IMAGE_ROTATE_TILED_565_4": {
+          "time_ms": 20.0
+        },
+        "IMAGE_ROTATE_TILED_565_8": {
+          "time_ms": 20.5
+        },
+        "IMAGE_ROTATE_TILED_STAR_565_0": {
+          "time_ms": 20.0
+        },
+        "IMAGE_ROTATE_TILED_STAR_565_1": {
+          "time_ms": 20.0
+        },
+        "IMAGE_ROTATE_TILED_STAR_565_2": {
+          "time_ms": 20.0
+        },
+        "IMAGE_ROTATE_TILED_STAR_565_4": {
+          "time_ms": 20.0
+        },
+        "IMAGE_ROTATE_TILED_STAR_565_8": {
+          "time_ms": 20.6
+        },
+        "IMAGE_COLOR": {
+          "time_ms": 19.2
+        },
+        "IMAGE_RESIZE_COLOR": {
+          "time_ms": 19.2
+        },
+        "GRADIENT_RECT": {
+          "time_ms": 19.2
+        },
+        "GRADIENT_ROUND_RECT": {
+          "time_ms": 20.0
+        },
+        "GRADIENT_CIRCLE": {
+          "time_ms": 21.8
+        },
+        "GRADIENT_TRIANGLE": {
+          "time_ms": 19.2
+        },
+        "GRADIENT_ARC_RING": {
+          "time_ms": 20.2
+        },
+        "GRADIENT_ARC_RING_ROUND_CAP": {
+          "time_ms": 20.2
+        },
+        "GRADIENT_RADIAL": {
+          "time_ms": 22.0
+        },
+        "GRADIENT_ANGULAR": {
+          "time_ms": 22.4
+        },
+        "GRADIENT_ROUND_RECT_RING": {
+          "time_ms": 19.4
+        },
+        "GRADIENT_LINE_CAPSULE": {
+          "time_ms": 20.3
+        },
+        "GRADIENT_MULTI_STOP": {
+          "time_ms": 19.2
+        },
+        "GRADIENT_ROUND_RECT_CORNERS": {
+          "time_ms": 19.3
+        },
+        "IMAGE_GRADIENT_OVERLAY": {
+          "time_ms": 19.2
+        },
+        "MASK_GRADIENT_RECT_FILL": {
+          "time_ms": 19.2
+        },
+        "MASK_GRADIENT_IMAGE": {
+          "time_ms": 19.2
+        },
+        "TEXT_GRADIENT": {
+          "time_ms": 19.2
+        },
+        "TEXT_RECT_GRADIENT": {
+          "time_ms": 19.2
+        },
+        "TEXT_ROTATE_GRADIENT": {
+          "time_ms": 23.2
+        },
+        "TEXT_ROTATE_BUFFERED_GRADIENT": {
+          "time_ms": 23.5
+        },
+        "SHADOW": {
+          "time_ms": 21.7
+        },
+        "SHADOW_ROUND": {
+          "time_ms": 21.7
+        },
+        "MASK_RECT_FILL_NO_MASK": {
+          "time_ms": 19.2
+        },
+        "MASK_RECT_FILL_ROUND_RECT": {
+          "time_ms": 19.2
+        },
+        "MASK_RECT_FILL_CIRCLE": {
+          "time_ms": 19.9
+        },
+        "MASK_RECT_FILL_IMAGE": {
+          "time_ms": 20.1
+        },
+        "MASK_RECT_FILL_NO_MASK_QUARTER": {
+          "time_ms": 19.2
+        },
+        "MASK_RECT_FILL_NO_MASK_DOUBLE": {
+          "time_ms": 19.2
+        },
+        "MASK_RECT_FILL_ROUND_RECT_QUARTER": {
+          "time_ms": 19.2
+        },
+        "MASK_RECT_FILL_ROUND_RECT_DOUBLE": {
+          "time_ms": 19.4
+        },
+        "MASK_RECT_FILL_CIRCLE_QUARTER": {
+          "time_ms": 19.5
+        },
+        "MASK_RECT_FILL_CIRCLE_DOUBLE": {
+          "time_ms": 20.2
+        },
+        "MASK_RECT_FILL_IMAGE_QUARTER": {
+          "time_ms": 19.2
+        },
+        "MASK_RECT_FILL_IMAGE_DOUBLE": {
+          "time_ms": 19.6
+        },
+        "MASK_IMAGE_NO_MASK": {
+          "time_ms": 19.2
+        },
+        "MASK_IMAGE_ROUND_RECT": {
+          "time_ms": 19.4
+        },
+        "MASK_IMAGE_CIRCLE": {
+          "time_ms": 20.1
+        },
+        "MASK_IMAGE_IMAGE": {
+          "time_ms": 20.6
+        },
+        "MASK_IMAGE_NO_MASK_QUARTER": {
+          "time_ms": 19.2
+        },
+        "MASK_IMAGE_NO_MASK_DOUBLE": {
+          "time_ms": 19.2
+        },
+        "MASK_IMAGE_ROUND_RECT_QUARTER": {
+          "time_ms": 19.2
+        },
+        "MASK_IMAGE_ROUND_RECT_DOUBLE": {
+          "time_ms": 19.4
+        },
+        "MASK_IMAGE_CIRCLE_QUARTER": {
+          "time_ms": 19.5
+        },
+        "MASK_IMAGE_CIRCLE_DOUBLE": {
+          "time_ms": 20.5
+        },
+        "MASK_IMAGE_IMAGE_QUARTER": {
+          "time_ms": 19.2
+        },
+        "MASK_IMAGE_IMAGE_DOUBLE": {
+          "time_ms": 20.6
+        },
+        "MASK_ROUND_RECT_FILL_NO_MASK": {
+          "time_ms": 19.2
+        },
+        "MASK_ROUND_RECT_FILL_WITH_MASK": {
+          "time_ms": 19.2
+        },
+        "ANIMATION_TRANSLATE": {
+          "time_ms": 19.2
+        },
+        "ANIMATION_ALPHA": {
+          "time_ms": 19.2
+        },
+        "ANIMATION_SCALE": {
+          "time_ms": 19.2
+        },
+        "ANIMATION_SET": {
+          "time_ms": 19.2
+        }
+      }
+    }
+  }
+}
