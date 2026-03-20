@@ -66,6 +66,91 @@ static uint64_t ellipse_isqrt64(uint64_t n)
 }
 
 /**
+ * @brief Alpha-max-beta-min approximation for sqrt(a² + b²).
+ *
+ * Max error ~6.8%, sufficient for anti-aliasing coverage computation.
+ * Replaces the expensive 64-bit integer square root (ellipse_isqrt64)
+ * for gradient magnitude estimation.
+ */
+static uint32_t ellipse_grad_approx(int64_t a, int64_t b)
+{
+    uint32_t abs_a = (a >= 0) ? (uint32_t)a : (uint32_t)(-a);
+    uint32_t abs_b = (b >= 0) ? (uint32_t)b : (uint32_t)(-b);
+    uint32_t hi, lo;
+    if (abs_a >= abs_b)
+    {
+        hi = abs_a;
+        lo = abs_b;
+    }
+    else
+    {
+        hi = abs_b;
+        lo = abs_a;
+    }
+    return hi + ((lo * 3) >> 3);
+}
+
+/**
+ * @brief Integer square root with Newton-Raphson warm start.
+ *
+ * Uses previous scanline's result as starting guess. One NR iteration
+ * brings the estimate within 1-2 of the true value. Falls back to
+ * bit-by-bit algorithm when guess is zero.
+ */
+static uint32_t ellipse_isqrt_warm(uint32_t n, uint32_t guess)
+{
+    if (n == 0)
+    {
+        return 0;
+    }
+    if (guess == 0)
+    {
+        return ellipse_isqrt(n);
+    }
+
+    /* Two NR iterations for robust convergence */
+    uint32_t r = (guess + n / guess) >> 1;
+    r = (r + n / r) >> 1;
+
+    /* Fine-tune: typically 0-1 corrections */
+    while (r > 0 && r * r > n)
+    {
+        r--;
+    }
+    if ((r + 1) * (r + 1) <= n)
+    {
+        r++;
+    }
+
+    return r;
+}
+
+/**
+ * @brief Compute inv_grad_q24 = (128 << 24) / grad_half using AMPM approximation.
+ *
+ * Replaces ellipse_isqrt64 + 64-bit division with alpha-max-beta-min + 32-bit division.
+ * Uses 32-bit hardware division (UDIV on Cortex-M3) for the common case.
+ */
+static int64_t ellipse_inv_grad_from_approx(int64_t gx, int64_t gy)
+{
+    uint32_t grad_half = ellipse_grad_approx(gx, gy);
+    if (grad_half == 0)
+    {
+        grad_half = 1;
+    }
+    if (grad_half >= 128)
+    {
+        /* Common path: result fits in uint32_t, use 32-bit division */
+        return (int64_t)(uint32_t)(0x80000000UL / grad_half);
+    }
+    else
+    {
+        /* Rare: very small gradient (tiny ellipse) */
+        return ((int64_t)128 << 24) / (int64_t)grad_half;
+    }
+}
+
+/**
  * @brief Get anti-aliased alpha for an ellipse edge pixel using signed distance field.
  *
  * The ellipse implicit function F(x,y) = x^2*ry^2 + y^2*rx^2 - rx^2*ry^2 defines
@@ -204,6 +289,8 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
     egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
     egui_alpha_t canvas_alpha = self->alpha;
 
+    uint32_t warm_dx_max = 0; /* NR warm start for isqrt across scanlines */
+
     for (egui_dim_t dy = y_start; dy <= y_end; dy++)
     {
         egui_dim_t abs_y = center_y + dy;
@@ -216,7 +303,8 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
             continue;
         }
         int32_t dx_max_sq = (int32_t)((rxry_sq - dy_term) / ry_sq);
-        int32_t dx_max = (int32_t)ellipse_isqrt((uint32_t)dx_max_sq);
+        int32_t dx_max = (int32_t)ellipse_isqrt_warm((uint32_t)dx_max_sq, warm_dx_max);
+        warm_dx_max = (uint32_t)dx_max;
 
         // Extend scan range for smooth AA at poles: the adjacent inner row's
         // boundary determines how far we need to scan for partial coverage.
@@ -227,7 +315,7 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
             int64_t dy_term_adj = (int64_t)abs_dy_adj * abs_dy_adj * rx_sq;
             if (dy_term_adj < rxry_sq)
             {
-                int32_t dx_adj = (int32_t)ellipse_isqrt((uint32_t)((rxry_sq - dy_term_adj) / ry_sq));
+                int32_t dx_adj = (int32_t)ellipse_isqrt_warm((uint32_t)((rxry_sq - dy_term_adj) / ry_sq), warm_dx_max);
                 if (dx_adj > dx_scan)
                 {
                     dx_scan = dx_adj;
@@ -238,19 +326,18 @@ void egui_canvas_draw_ellipse_fill(egui_dim_t center_x, egui_dim_t center_y, egu
         // Inner boundary: compute proper margin using the gradient magnitude
         // at the scanline boundary. Reuse grad_half for edge AA.
         int32_t dx_inner = 0;
-        uint64_t grad_half_ref = 1;
         int64_t inv_grad_q24 = (int64_t)128 << 24; // reciprocal of grad_half_ref, default for grad=1
         if (dx_max > 0)
         {
-            int64_t f_at_boundary = (int64_t)dx_max * dx_max * ry_sq + dy_term - rxry_sq;
             int64_t gx = (int64_t)dx_max * ry_sq;
             int64_t gy = (int64_t)abs_dy * rx_sq;
-            grad_half_ref = ellipse_isqrt64((uint64_t)(gx * gx + gy * gy));
+            uint32_t grad_half_ref = ellipse_grad_approx(gx, gy);
             if (grad_half_ref == 0)
             {
                 grad_half_ref = 1;
             }
-            inv_grad_q24 = ((int64_t)128 << 24) / (int64_t)grad_half_ref;
+            inv_grad_q24 = ellipse_inv_grad_from_approx(gx, gy);
+            int64_t f_at_boundary = (int64_t)dx_max * dx_max * ry_sq + dy_term - rxry_sq;
             int64_t f_plus_grad = (int64_t)grad_half_ref + f_at_boundary;
 
             if (f_plus_grad <= 0)
@@ -469,6 +556,9 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
     egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
     egui_alpha_t canvas_alpha = self->alpha;
 
+    uint32_t warm_o_dx_max = 0; /* NR warm start for outer isqrt */
+    uint32_t warm_i_dx_max = 0; /* NR warm start for inner isqrt */
+
     for (egui_dim_t dy = y_start; dy <= y_end; dy++)
     {
         egui_dim_t abs_dy = EGUI_ABS(dy);
@@ -480,7 +570,8 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
         {
             continue;
         }
-        int32_t o_dx_max = (int32_t)ellipse_isqrt((uint32_t)((orxry_sq - o_dy_term) / ory_sq));
+        int32_t o_dx_max = (int32_t)ellipse_isqrt_warm((uint32_t)((orxry_sq - o_dy_term) / ory_sq), warm_o_dx_max);
+        warm_o_dx_max = (uint32_t)o_dx_max;
 
         // Extend outer scan range for smooth AA at poles
         int32_t o_dx_scan = o_dx_max;
@@ -490,7 +581,7 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
             int64_t o_dy_term_adj = (int64_t)abs_dy_adj * abs_dy_adj * orx_sq;
             if (o_dy_term_adj < orxry_sq)
             {
-                int32_t o_dx_adj = (int32_t)ellipse_isqrt((uint32_t)((orxry_sq - o_dy_term_adj) / ory_sq));
+                int32_t o_dx_adj = (int32_t)ellipse_isqrt_warm((uint32_t)((orxry_sq - o_dy_term_adj) / ory_sq), warm_o_dx_max);
                 if (o_dx_adj > o_dx_scan)
                 {
                     o_dx_scan = o_dx_adj;
@@ -505,37 +596,27 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
             int64_t i_dy_term = (int64_t)abs_dy * abs_dy * irx_sq;
             if (i_dy_term < irxry_sq)
             {
-                i_dx_max = (int32_t)ellipse_isqrt((uint32_t)((irxry_sq - i_dy_term) / iry_sq));
+                i_dx_max = (int32_t)ellipse_isqrt_warm((uint32_t)((irxry_sq - i_dy_term) / iry_sq), warm_i_dx_max);
+                warm_i_dx_max = (uint32_t)i_dx_max;
             }
         }
 
-        // Precompute grad_half_ref for outer ellipse at boundary
-        uint64_t o_grad_half_ref = 1;
+        // Precompute inv_grad for outer ellipse at boundary (AMPM approximation)
         int64_t o_inv_grad_q24 = (int64_t)128 << 24;
         if (o_dx_max > 0)
         {
             int64_t ogx = (int64_t)o_dx_max * ory_sq;
             int64_t ogy = (int64_t)abs_dy * orx_sq;
-            o_grad_half_ref = ellipse_isqrt64((uint64_t)(ogx * ogx + ogy * ogy));
-            if (o_grad_half_ref == 0)
-            {
-                o_grad_half_ref = 1;
-            }
-            o_inv_grad_q24 = ((int64_t)128 << 24) / (int64_t)o_grad_half_ref;
+            o_inv_grad_q24 = ellipse_inv_grad_from_approx(ogx, ogy);
         }
 
-        // Precompute grad_half_ref for inner ellipse at boundary
+        // Precompute inv_grad for inner ellipse at boundary (AMPM approximation)
         int64_t i_inv_grad_q24 = (int64_t)128 << 24;
         if (i_dx_max > 0 && irx > 0 && iry > 0)
         {
             int64_t igx = (int64_t)i_dx_max * iry_sq;
             int64_t igy = (int64_t)abs_dy * irx_sq;
-            uint64_t i_grad_half_ref = ellipse_isqrt64((uint64_t)(igx * igx + igy * igy));
-            if (i_grad_half_ref == 0)
-            {
-                i_grad_half_ref = 1;
-            }
-            i_inv_grad_q24 = ((int64_t)128 << 24) / (int64_t)i_grad_half_ref;
+            i_inv_grad_q24 = ellipse_inv_grad_from_approx(igx, igy);
         }
 
         // Only iterate over the stroke band: [-(o_dx_scan+1), -(i_dx_max-1)] and [(i_dx_max-1), (o_dx_scan+1)]
