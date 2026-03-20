@@ -777,6 +777,7 @@ typedef struct
     egui_dim_t pfb_w, pfb_ox, pfb_oy;
     egui_color_int_t *pfb;
     egui_alpha_t canvas_alpha;
+    egui_mask_t *mask; /* canvas mask for per-row color overlay (gradient support) */
 } text_transform_ctx_t;
 
 static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8, egui_alpha_t alpha,
@@ -864,6 +865,7 @@ static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, 
     ctx->pfb_oy = canvas->pfb_location_in_base_view.y;
     ctx->pfb = canvas->pfb;
     ctx->canvas_alpha = egui_color_alpha_mix(canvas->alpha, alpha);
+    ctx->mask = canvas->mask;
 
     /* Row-constant terms for incremental scanning */
     ctx->Cx_base = ctx->inv_m01 * ((int32_t)ctx->draw_y0 - y) + ((int32_t)ctx->cx << 15) + offx;
@@ -1177,14 +1179,18 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     int32_t text_src_lo_y_q15 = -(1 << 15);
     int32_t text_src_hi_y_q15 = (int32_t)ctx.src_h << 15;
 
-#if (EGUI_CONFIG_COLOR_DEPTH == 16)
-    /* Pre-compute foreground color in packed rb_g domain for text blend.
-     * Saves 3 ops/pixel (pack) + eliminates 2 branches in egui_rgb_mix_ptr. */
-    uint32_t fg_rb_g = (color.full | ((uint32_t)color.full << 16)) & 0x07E0F81FUL;
-#endif
-
     for (int32_t dy = ctx.draw_y0; dy < ctx.draw_y1; dy++)
     {
+        /* Per-row color: apply gradient mask overlay if set */
+        egui_color_t row_color = color;
+        if (ctx.mask != NULL && ctx.mask->api->mask_blend_row_color != NULL)
+        {
+            ctx.mask->api->mask_blend_row_color(ctx.mask, (egui_dim_t)dy, &row_color);
+        }
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+        uint32_t fg_rb_g = (row_color.full | ((uint32_t)row_color.full << 16)) & 0x07E0F81FUL;
+#endif
+
         int32_t rotatedX = row_start_offset_x + ctx.Cx_base;
         int32_t rotatedY = row_start_offset_y + ctx.Cy_base;
 
@@ -1216,7 +1222,6 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                 entered = 1;
                 uint8_t fx = (rotatedX >> 7) & 0xFF;
                 uint8_t fy = (rotatedY >> 7) & 0xFF;
-                uint16_t a00, a01, a10, a11;
 
                 /* Fast path: SIR within hint glyph interior */
                 if (hint >= 0)
@@ -1282,7 +1287,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
                                     if (pixel_alpha == EGUI_ALPHA_100)
                                     {
-                                        *dst_row = color.full;
+                                        *dst_row = row_color.full;
                                     }
                                     else if (pixel_alpha > 0)
                                     {
@@ -1293,7 +1298,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                         *dst_row = (uint16_t)(result | (result >> 16));
 #else
                                         egui_color_t *back = (egui_color_t *)dst_row;
-                                        egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
+                                        egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
 #endif
                                     }
                                 }
@@ -1324,7 +1329,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                         egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
                                         if (final_alpha == EGUI_ALPHA_100)
                                         {
-                                            *dst_row = color.full;
+                                            *dst_row = row_color.full;
                                         }
                                         else if (final_alpha > 0)
                                         {
@@ -1335,7 +1340,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                             *dst_row = (uint16_t)(result | (result >> 16));
 #else
                                             egui_color_t *back = (egui_color_t *)dst_row;
-                                            egui_rgb_mix_ptr(back, &color, back, final_alpha);
+                                            egui_rgb_mix_ptr(back, &row_color, back, final_alpha);
 #endif
                                         }
                                     }
@@ -1375,7 +1380,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                         {
                             if (pixel_alpha == EGUI_ALPHA_100)
                             {
-                                *dst_row = color.full;
+                                *dst_row = row_color.full;
                             }
                             else
                             {
@@ -1386,7 +1391,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                 *dst_row = (uint16_t)(result | (result >> 16));
 #else
                                 egui_color_t *back = (egui_color_t *)dst_row;
-                                egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
+                                egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
 #endif
                             }
                         }
@@ -1395,7 +1400,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                             egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
                             if (final_alpha == EGUI_ALPHA_100)
                             {
-                                *dst_row = color.full;
+                                *dst_row = row_color.full;
                             }
                             else if (final_alpha > 0)
                             {
@@ -1406,7 +1411,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                 *dst_row = (uint16_t)(result | (result >> 16));
 #else
                                 egui_color_t *back = (egui_color_t *)dst_row;
-                                egui_rgb_mix_ptr(back, &color, back, final_alpha);
+                                egui_rgb_mix_ptr(back, &row_color, back, final_alpha);
 #endif
                             }
                         }
@@ -1792,12 +1797,18 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
     int32_t buf_int_max_x_q15 = ((int32_t)(src_w - 2)) << 15;
     int32_t buf_int_max_y_q15 = ((int32_t)(src_h - 2)) << 15;
 
-#if (EGUI_CONFIG_COLOR_DEPTH == 16)
-    uint32_t fg_rb_g = (color.full | ((uint32_t)color.full << 16)) & 0x07E0F81FUL;
-#endif
-
     for (int32_t dy = ctx.draw_y0; dy < ctx.draw_y1; dy++)
     {
+        /* Per-row color: apply gradient mask overlay if set */
+        egui_color_t row_color = color;
+        if (ctx.mask != NULL && ctx.mask->api->mask_blend_row_color != NULL)
+        {
+            ctx.mask->api->mask_blend_row_color(ctx.mask, (egui_dim_t)dy, &row_color);
+        }
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+        uint32_t fg_rb_g = (row_color.full | ((uint32_t)row_color.full << 16)) & 0x07E0F81FUL;
+#endif
+
         int32_t rotatedX = row_start_offset_x + ctx.Cx_base;
         int32_t rotatedY = row_start_offset_y + ctx.Cy_base;
 
@@ -1875,7 +1886,7 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
 
                             if (pixel_alpha == EGUI_ALPHA_100)
                             {
-                                *dst_row = color.full;
+                                *dst_row = row_color.full;
                             }
                             else if (pixel_alpha > 0)
                             {
@@ -1886,7 +1897,7 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                                 *dst_row = (uint16_t)(result | (result >> 16));
 #else
                                 egui_color_t *back = (egui_color_t *)dst_row;
-                                egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
+                                egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
 #endif
                             }
                         }
@@ -1916,7 +1927,7 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                                 egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
                                 if (final_alpha == EGUI_ALPHA_100)
                                 {
-                                    *dst_row = color.full;
+                                    *dst_row = row_color.full;
                                 }
                                 else if (final_alpha > 0)
                                 {
@@ -1927,7 +1938,7 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                                     *dst_row = (uint16_t)(result | (result >> 16));
 #else
                                     egui_color_t *back = (egui_color_t *)dst_row;
-                                    egui_rgb_mix_ptr(back, &color, back, final_alpha);
+                                    egui_rgb_mix_ptr(back, &row_color, back, final_alpha);
 #endif
                                 }
                             }
@@ -1964,7 +1975,7 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                     egui_alpha_t final_alpha = egui_color_alpha_mix(ctx.canvas_alpha, pixel_alpha);
                     if (final_alpha == EGUI_ALPHA_100)
                     {
-                        *dst_row = color.full;
+                        *dst_row = row_color.full;
                     }
                     else if (final_alpha > 0)
                     {
@@ -1975,7 +1986,7 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                         *dst_row = (uint16_t)(result | (result >> 16));
 #else
                         egui_color_t *back = (egui_color_t *)dst_row;
-                        egui_rgb_mix_ptr(back, &color, back, final_alpha);
+                        egui_rgb_mix_ptr(back, &row_color, back, final_alpha);
 #endif
                     }
                 }
