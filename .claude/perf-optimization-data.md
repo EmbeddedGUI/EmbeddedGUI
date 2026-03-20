@@ -44,6 +44,7 @@
 | 32 | Circle mask monotonic edge coordinate walk | MASK_RECT_FILL_CIRCLE: 2.581->2.439ms (-5.5%), MASK_IMAGE_CIRCLE: 4.462->4.294ms (-3.8%) | 4255051 |
 | 33 | Image mask alpha-row cache and row fast paths | MASK_RECT_FILL_IMAGE: 2.590->2.348ms (-9.3%), MASK_IMAGE_IMAGE: 4.793->4.784ms (-0.2%) | fddfd9f |
 | 34 | Direct image-mask alpha8 edge row segments | MASK_IMAGE_IMAGE: 4.784->2.529ms (-47.1%), DOUBLE: 4.783->2.529ms (-47.1%) | 31aad5e |
+| 35 | Round-rect visible row ranges | MASK_RECT_FILL_ROUND_RECT: 1.151->1.108ms (-3.7%), MASK_IMAGE_ROUND_RECT: 3.621->3.577ms (-1.2%) | pending |
 
 ## 2026-03-20 RECTANGLE_FILL batching round
 
@@ -192,6 +193,24 @@ QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
 - `src/image/egui_image_std.c` moves the image-mask optimization from the resize path to the real hot path used by `MASK_IMAGE_IMAGE`: the direct `RGB565_8` draw path inside `egui_image_std_set_image_rgb565_8()`.
 - `src/mask/egui_mask_image.c` / `src/mask/egui_mask_image.h` add a direct alpha8 row-segment blender so image-mask left/right edge spans can reuse the cached mask alpha row instead of calling `egui_canvas_draw_point_limit()` per pixel.
 - Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, and `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` all pass; screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `59/60` identical, and the only mismatch (`frame_0054.png`) matches `frame_0055.png` from the baseline, which points to capture-timing drift rather than a rendering regression.
+
+## 2026-03-20 round-rect visible-range round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| MASK_RECT_FILL_ROUND_RECT | 1.151 | 1.108 | -3.7% |
+| MASK_RECT_FILL_ROUND_RECT_QUARTER | 0.464 | 0.446 | -3.9% |
+| MASK_RECT_FILL_ROUND_RECT_DOUBLE | 1.060 | 1.038 | -2.1% |
+| MASK_IMAGE_ROUND_RECT | 3.621 | 3.577 | -1.2% |
+| MASK_IMAGE_ROUND_RECT_QUARTER | 1.091 | 1.073 | -1.6% |
+| MASK_IMAGE_ROUND_RECT_DOUBLE | 3.519 | 3.495 | -0.7% |
+| RECTANGLE_FILL | 0.395 | 0.395 | 0.0% |
+| IMAGE_565 | 0.856 | 0.856 | 0.0% |
+
+- `src/mask/egui_mask_round_rectangle.c` now exposes `mask_get_row_visible_range()` for round-rectangle masks, using corner geometry to skip fully transparent left/right spans before the generic row walker touches them.
+- Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, and `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` all pass; RGBA-converted screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` identical and `HelloUnitTest` is `554/554 passed`.
 
 ## Before vs After (Original Baseline → Final)
 

@@ -116,6 +116,33 @@ static egui_dim_t egui_mask_circle_corner_get_opaque_boundary(egui_dim_t row_in_
     return left_boundary;
 }
 
+static uint32_t egui_mask_round_rectangle_isqrt(uint32_t n)
+{
+    uint32_t root = 0;
+    uint32_t bit = 1UL << 30;
+
+    while (bit > n)
+    {
+        bit >>= 2;
+    }
+
+    while (bit != 0)
+    {
+        if (n >= root + bit)
+        {
+            n -= root + bit;
+            root = (root >> 1) + bit;
+        }
+        else
+        {
+            root >>= 1;
+        }
+        bit >>= 2;
+    }
+
+    return root;
+}
+
 int egui_mask_round_rectangle_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start, egui_dim_t *x_end)
 {
     EGUI_LOCAL_INIT(egui_mask_round_rectangle_t);
@@ -174,10 +201,45 @@ int egui_mask_round_rectangle_get_row_range(egui_mask_t *self, egui_dim_t y, egu
     return EGUI_MASK_ROW_PARTIAL;
 }
 
+static int egui_mask_round_rectangle_get_row_visible_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start,
+                                                           egui_dim_t *x_end)
+{
+    EGUI_LOCAL_INIT(egui_mask_round_rectangle_t);
+    egui_dim_t radius = local->radius;
+    egui_dim_t sel_x = self->region.location.x;
+    egui_dim_t sel_y = self->region.location.y;
+    egui_dim_t width = self->region.size.width;
+    egui_dim_t height = self->region.size.height;
+
+    if (y < sel_y || y >= sel_y + height)
+    {
+        return 0;
+    }
+
+    if (radius <= 0 || (y >= sel_y + radius && y < sel_y + height - radius))
+    {
+        *x_start = EGUI_MAX(sel_x, x_min);
+        *x_end = EGUI_MIN(sel_x + width, x_max);
+        return (*x_start < *x_end);
+    }
+
+    egui_dim_t center_y = (y < sel_y + radius) ? (sel_y + radius) : (sel_y + height - radius - 1);
+    egui_dim_t dy = (y > center_y) ? (y - center_y) : (center_y - y);
+    uint32_t visible_radius_sq = (uint32_t)(radius + 1) * (uint32_t)(radius + 1);
+    egui_dim_t visible_half = (egui_dim_t)egui_mask_round_rectangle_isqrt((dy * (uint32_t)dy < visible_radius_sq) ? (visible_radius_sq - dy * (uint32_t)dy) : 0);
+    egui_dim_t left_center_x = sel_x + radius;
+    egui_dim_t right_center_x = sel_x + width - radius - 1;
+
+    *x_start = EGUI_MAX(left_center_x - visible_half, x_min);
+    *x_end = EGUI_MIN(right_center_x + visible_half + 1, x_max);
+    return (*x_start < *x_end);
+}
+
 // name must be _type##_api_table, it will be used by EGUI_VIEW_DEFINE to init api.
 const egui_mask_api_t egui_mask_round_rectangle_t_api_table = {
         .mask_point = egui_mask_round_rectangle_mask_point,
         .mask_get_row_range = egui_mask_round_rectangle_get_row_range,
+        .mask_get_row_visible_range = egui_mask_round_rectangle_get_row_visible_range,
         .mask_blend_row_color = NULL,
 };
 
