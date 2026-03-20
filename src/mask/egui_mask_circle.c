@@ -17,6 +17,42 @@ __EGUI_STATIC_INLINE__ void egui_mask_circle_invalidate_row_cache(egui_mask_circ
     }
 }
 
+__EGUI_STATIC_INLINE__ egui_dim_t egui_mask_circle_get_row_cache_slot(egui_dim_t y)
+{
+    return ((uint16_t)y) % EGUI_CONFIG_PFB_HEIGHT;
+}
+
+__EGUI_STATIC_INLINE__ int egui_mask_circle_get_cached_row(egui_mask_circle_t *local, egui_dim_t y, egui_dim_t *visible_half, egui_dim_t *opaque_boundary)
+{
+    egui_dim_t slot = egui_mask_circle_get_row_cache_slot(y);
+
+    if (local->row_cache_y[slot] != y)
+    {
+        return 0;
+    }
+
+    if (visible_half != NULL)
+    {
+        *visible_half = local->row_cache_visible_half[slot];
+    }
+
+    if (opaque_boundary != NULL)
+    {
+        *opaque_boundary = local->row_cache_opaque_boundary[slot];
+    }
+
+    return 1;
+}
+
+__EGUI_STATIC_INLINE__ void egui_mask_circle_store_row(egui_mask_circle_t *local, egui_dim_t y, egui_dim_t visible_half, egui_dim_t opaque_boundary)
+{
+    egui_dim_t slot = egui_mask_circle_get_row_cache_slot(y);
+
+    local->row_cache_y[slot] = y;
+    local->row_cache_visible_half[slot] = visible_half;
+    local->row_cache_opaque_boundary[slot] = opaque_boundary;
+}
+
 __EGUI_STATIC_INLINE__ void egui_mask_circle_refresh_cache(egui_mask_t *self)
 {
     egui_mask_circle_t *local = (egui_mask_circle_t *)self;
@@ -304,6 +340,7 @@ int egui_mask_circle_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x
         local->point_cached_y = y;
         local->point_cached_row_index = radius;
         local->point_cached_row_valid = (local->info != NULL);
+        egui_mask_circle_store_row(local, y, radius, 0);
         opaque_x_start = center_x - radius;
         opaque_x_end = center_x + radius + 1;
     }
@@ -323,8 +360,14 @@ int egui_mask_circle_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x
         local->point_cached_y = y;
         local->point_cached_row_index = row_in_corner;
         local->point_cached_row_valid = 1;
+        egui_dim_t boundary;
 
-        egui_dim_t boundary = egui_mask_circle_get_opaque_boundary_cached(local, row_in_corner);
+        if (!egui_mask_circle_get_cached_row(local, y, NULL, &boundary))
+        {
+            egui_dim_t visible_half = egui_mask_circle_get_visible_half(local, dist);
+            boundary = egui_mask_circle_get_opaque_boundary_cached(local, row_in_corner);
+            egui_mask_circle_store_row(local, y, visible_half, boundary);
+        }
 
         // Left quadrant opaque: [center_x - radius + boundary, center_x)
         // Center column: center_x (vertical line)
@@ -369,8 +412,13 @@ static int egui_mask_circle_get_row_visible_range(egui_mask_t *self, egui_dim_t 
         return 0;
     }
 
-    egui_dim_t dy = (y > center_y) ? (y - center_y) : (center_y - y);
-    egui_dim_t visible_half = egui_mask_circle_get_visible_half(local, dy);
+    egui_dim_t visible_half;
+
+    if (!egui_mask_circle_get_cached_row(local, y, &visible_half, NULL))
+    {
+        egui_dim_t dy = (y > center_y) ? (y - center_y) : (center_y - y);
+        visible_half = egui_mask_circle_get_visible_half(local, dy);
+    }
     egui_dim_t visible_x_start = center_x - visible_half;
     egui_dim_t visible_x_end = center_x + visible_half + 1;
 
