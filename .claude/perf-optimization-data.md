@@ -40,7 +40,8 @@
 | 28 | Mask partial-row row-walker + circle mask cache | MASK_RECT_FILL_CIRCLE: 4.614->3.749ms (-18.7%), MASK_IMAGE_CIRCLE: 6.624->6.158ms (-7.0%) | 05c5a40 |
 | 29 | RGB565_8 resize masked-edge direct blend + full-alpha fast path | MASK_IMAGE_CIRCLE: 6.158->5.547ms (-9.9%), QUARTER: 1.715->1.564ms, DOUBLE: 5.540->4.942ms | 7cb712d |
 | 30 | Circle mask row/query caches for visible range and point rows | MASK_IMAGE_CIRCLE: 5.547->5.323ms (-4.0%), MASK_RECT_FILL_CIRCLE: 3.749->3.526ms (-5.9%) | c055f82 |
-| 31 | Circle mask specialized masked-edge blending | MASK_RECT_FILL_CIRCLE: 3.526->2.581ms (-26.8%), MASK_IMAGE_CIRCLE: 5.323->4.462ms (-16.2%) | WORKTREE |
+| 31 | Circle mask specialized masked-edge blending | MASK_RECT_FILL_CIRCLE: 3.526->2.581ms (-26.8%), MASK_IMAGE_CIRCLE: 5.323->4.462ms (-16.2%) | 52df924 |
+| 32 | Circle mask monotonic edge coordinate walk | MASK_RECT_FILL_CIRCLE: 2.581->2.439ms (-5.5%), MASK_IMAGE_CIRCLE: 4.462->4.294ms (-3.8%) | WORKTREE |
 
 ## 2026-03-20 RECTANGLE_FILL batching round
 
@@ -134,6 +135,25 @@ QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
 - `src/core/egui_canvas.h` ?? circle mask ? partial row ????????????????? `row_index` ? `egui_canvas_get_circle_corner_value()`??? generic `mask_point` ???????
 - `src/image/egui_image_std.c` ? `RGB565_8` resize ? masked edge segment ?????? circle specialized path????? alpha ???????????????? PFB blend?
 - ?????`python scripts/code_perf_check.py --profile cortex-m3` ???`python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots` ???? `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` ?? `60/60` ???????`HelloUnitTest` ?? `554/554 passed`?
+
+## 2026-03-20 circle mask edge-walk round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| MASK_RECT_FILL_CIRCLE | 2.581 | 2.439 | -5.5% |
+| MASK_RECT_FILL_CIRCLE_QUARTER | 0.806 | 0.770 | -4.5% |
+| MASK_RECT_FILL_CIRCLE_DOUBLE | 2.347 | 2.207 | -6.0% |
+| MASK_IMAGE_CIRCLE | 4.462 | 4.294 | -3.8% |
+| MASK_IMAGE_CIRCLE_QUARTER | 1.291 | 1.249 | -3.3% |
+| MASK_IMAGE_CIRCLE_DOUBLE | 3.940 | 3.776 | -4.2% |
+| RECTANGLE_FILL | 0.395 | 0.395 | 0.0% |
+| IMAGE_565 | 0.856 | 0.856 | 0.0% |
+
+- `src/core/egui_canvas.h` ? circle mask ??????? `abs(x-center_x)` ??????/??? corner-column walk????????????????
+- `src/image/egui_image_std.c` ? `RGB565_8` masked edge segment ????????? edge walk???????????????????????
+- ?????`python scripts/code_perf_check.py --profile cortex-m3` ???`python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots` ???? `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` ?? `59/60` ?????? `frame_0054.png` ? baseline ? `frame_0055.png` ??????????????`HelloUnitTest` ?? `554/554 passed`?
 
 ## Before vs After (Original Baseline → Final)
 

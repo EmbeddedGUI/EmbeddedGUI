@@ -375,10 +375,13 @@ __EGUI_STATIC_INLINE__ void egui_canvas_fill_masked_row_segment(egui_canvas_t *s
     {
         egui_mask_circle_t *circle_mask = (egui_mask_circle_t *)self->mask;
         egui_dim_t row_index;
+        egui_dim_t center_x = circle_mask->center_x;
+        egui_dim_t radius = circle_mask->radius;
+        const egui_circle_info_t *info = circle_mask->info;
 
         if (y == circle_mask->point_cached_y)
         {
-            if (!circle_mask->point_cached_row_valid || circle_mask->info == NULL)
+            if (!circle_mask->point_cached_row_valid || info == NULL)
             {
                 return;
             }
@@ -387,29 +390,95 @@ __EGUI_STATIC_INLINE__ void egui_canvas_fill_masked_row_segment(egui_canvas_t *s
         else
         {
             egui_dim_t dy = (y > circle_mask->center_y) ? (y - circle_mask->center_y) : (circle_mask->center_y - y);
-            if (dy > circle_mask->radius || circle_mask->info == NULL)
+            if (dy > radius || info == NULL)
             {
                 circle_mask->point_cached_y = y;
                 circle_mask->point_cached_row_valid = 0;
                 return;
             }
-            row_index = circle_mask->radius - dy;
+            row_index = radius - dy;
             circle_mask->point_cached_y = y;
             circle_mask->point_cached_row_index = row_index;
             circle_mask->point_cached_row_valid = 1;
         }
 
+        if (x_end <= center_x)
+        {
+            egui_dim_t seg_start = EGUI_MAX(x_start, center_x - radius);
+            egui_dim_t seg_end = EGUI_MIN(x_end, center_x);
+            egui_dim_t corner_col = seg_start - (center_x - radius);
+
+            if (seg_start >= seg_end)
+            {
+                return;
+            }
+
+            dst += seg_start - x_start;
+            for (egui_dim_t xp = seg_start; xp < seg_end; xp++, dst++, corner_col++)
+            {
+                egui_alpha_t pixel_alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value(row_index, corner_col, info), alpha);
+
+                if (pixel_alpha == 0)
+                {
+                    continue;
+                }
+
+                if (pixel_alpha == EGUI_ALPHA_100)
+                {
+                    *dst = color.full;
+                }
+                else
+                {
+                    egui_rgb_mix_ptr((egui_color_t *)dst, &color, (egui_color_t *)dst, pixel_alpha);
+                }
+            }
+            return;
+        }
+
+        if (x_start > center_x)
+        {
+            egui_dim_t seg_start = EGUI_MAX(x_start, center_x + 1);
+            egui_dim_t seg_end = EGUI_MIN(x_end, center_x + radius + 1);
+            egui_dim_t corner_col = (center_x + radius) - seg_start;
+
+            if (seg_start >= seg_end)
+            {
+                return;
+            }
+
+            dst += seg_start - x_start;
+            for (egui_dim_t xp = seg_start; xp < seg_end; xp++, dst++, corner_col--)
+            {
+                egui_alpha_t pixel_alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value(row_index, corner_col, info), alpha);
+
+                if (pixel_alpha == 0)
+                {
+                    continue;
+                }
+
+                if (pixel_alpha == EGUI_ALPHA_100)
+                {
+                    *dst = color.full;
+                }
+                else
+                {
+                    egui_rgb_mix_ptr((egui_color_t *)dst, &color, (egui_color_t *)dst, pixel_alpha);
+                }
+            }
+            return;
+        }
+
         for (egui_dim_t xp = x_start; xp < x_end; xp++, dst++)
         {
-            egui_dim_t dx = (xp > circle_mask->center_x) ? (xp - circle_mask->center_x) : (circle_mask->center_x - xp);
+            egui_dim_t dx = (xp > center_x) ? (xp - center_x) : (center_x - xp);
             egui_alpha_t pixel_alpha;
 
-            if (dx > circle_mask->radius)
+            if (dx > radius)
             {
                 continue;
             }
 
-            pixel_alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value(row_index, circle_mask->radius - dx, circle_mask->info), alpha);
+            pixel_alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value(row_index, radius - dx, info), alpha);
             if (pixel_alpha == 0)
             {
                 continue;
