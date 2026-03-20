@@ -123,6 +123,51 @@ static egui_dim_t egui_mask_circle_corner_get_opaque_boundary(egui_dim_t row_in_
     return left_boundary;
 }
 
+static egui_dim_t egui_mask_circle_corner_get_visible_boundary(egui_dim_t row_in_corner, const egui_circle_info_t *info)
+{
+    const egui_circle_item_t *items = (const egui_circle_item_t *)info->items;
+    egui_dim_t item_count = (egui_dim_t)info->item_count;
+    egui_dim_t left_boundary;
+
+    if (row_in_corner < item_count)
+    {
+        left_boundary = (egui_dim_t)items[row_in_corner].start_offset;
+    }
+    else
+    {
+        left_boundary = item_count;
+    }
+
+    {
+        egui_dim_t mirror_limit = EGUI_MIN(row_in_corner, item_count);
+        if (mirror_limit > 0)
+        {
+            egui_dim_t low = 0;
+            egui_dim_t high = mirror_limit;
+
+            while (low < high)
+            {
+                egui_dim_t mid = low + ((high - low) >> 1);
+                if (row_in_corner >= (egui_dim_t)items[mid].start_offset)
+                {
+                    high = mid;
+                }
+                else
+                {
+                    low = mid + 1;
+                }
+            }
+
+            if (low < mirror_limit)
+            {
+                left_boundary = EGUI_MIN(left_boundary, low);
+            }
+        }
+    }
+
+    return left_boundary;
+}
+
 static uint32_t egui_mask_round_rectangle_isqrt(uint32_t n)
 {
     uint32_t root = 0;
@@ -232,13 +277,27 @@ static int egui_mask_round_rectangle_get_row_visible_range(egui_mask_t *self, eg
 
     egui_dim_t center_y = (y < sel_y + radius) ? (sel_y + radius) : (sel_y + height - radius - 1);
     egui_dim_t dy = (y > center_y) ? (y - center_y) : (center_y - y);
-    uint32_t visible_radius_sq = (uint32_t)(radius + 1) * (uint32_t)(radius + 1);
-    egui_dim_t visible_half = (egui_dim_t)egui_mask_round_rectangle_isqrt((dy * (uint32_t)dy < visible_radius_sq) ? (visible_radius_sq - dy * (uint32_t)dy) : 0);
-    egui_dim_t left_center_x = sel_x + radius;
-    egui_dim_t right_center_x = sel_x + width - radius - 1;
+    const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
 
-    *x_start = EGUI_MAX(left_center_x - visible_half, x_min);
-    *x_end = EGUI_MIN(right_center_x + visible_half + 1, x_max);
+    if (info != NULL)
+    {
+        egui_dim_t row_in_corner = radius - dy;
+        egui_dim_t boundary = egui_mask_circle_corner_get_visible_boundary(row_in_corner, info);
+
+        *x_start = EGUI_MAX(sel_x + boundary, x_min);
+        *x_end = EGUI_MIN(sel_x + width - boundary, x_max);
+        return (*x_start < *x_end);
+    }
+
+    {
+        uint32_t visible_radius_sq = (uint32_t)(radius + 1) * (uint32_t)(radius + 1);
+        egui_dim_t visible_half = (egui_dim_t)egui_mask_round_rectangle_isqrt((dy * (uint32_t)dy < visible_radius_sq) ? (visible_radius_sq - dy * (uint32_t)dy) : 0);
+        egui_dim_t left_center_x = sel_x + radius;
+        egui_dim_t right_center_x = sel_x + width - radius - 1;
+
+        *x_start = EGUI_MAX(left_center_x - visible_half, x_min);
+        *x_end = EGUI_MIN(right_center_x + visible_half + 1, x_max);
+    }
     return (*x_start < *x_end);
 }
 
