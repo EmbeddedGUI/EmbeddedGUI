@@ -43,7 +43,7 @@
 | 31 | Circle mask specialized masked-edge blending | MASK_RECT_FILL_CIRCLE: 3.526->2.581ms (-26.8%), MASK_IMAGE_CIRCLE: 5.323->4.462ms (-16.2%) | 52df924 |
 | 32 | Circle mask monotonic edge coordinate walk | MASK_RECT_FILL_CIRCLE: 2.581->2.439ms (-5.5%), MASK_IMAGE_CIRCLE: 4.462->4.294ms (-3.8%) | 4255051 |
 | 33 | Image mask alpha-row cache and row fast paths | MASK_RECT_FILL_IMAGE: 2.590->2.348ms (-9.3%), MASK_IMAGE_IMAGE: 4.793->4.784ms (-0.2%) | fddfd9f |
-| 34 | Direct image-mask alpha8 edge row segments | MASK_IMAGE_IMAGE: 4.784->2.529ms (-47.1%), DOUBLE: 4.783->2.529ms (-47.1%) | WORKTREE |
+| 34 | Direct image-mask alpha8 edge row segments | MASK_IMAGE_IMAGE: 4.784->2.529ms (-47.1%), DOUBLE: 4.783->2.529ms (-47.1%) | 31aad5e |
 
 ## 2026-03-20 RECTANGLE_FILL batching round
 
