@@ -152,6 +152,50 @@ static int32_t transform_scanline_skip(int32_t rotatedX, int32_t rotatedY, int32
 }
 
 /**
+ * Compute alpha buffer byte size for a given image dimension and alpha type.
+ * Used by external resource loading and row-byte calculations.
+ */
+static inline uint32_t image_alpha_buf_size(int16_t w, int16_t h, uint8_t alpha_type)
+{
+    switch (alpha_type)
+    {
+    case EGUI_IMAGE_ALPHA_TYPE_8:
+        return (uint32_t)w * h;
+    case EGUI_IMAGE_ALPHA_TYPE_4:
+        return (uint32_t)((w + 1) >> 1) * h;
+    case EGUI_IMAGE_ALPHA_TYPE_2:
+        return (uint32_t)((w + 3) >> 2) * h;
+    case EGUI_IMAGE_ALPHA_TYPE_1:
+        return (uint32_t)((w + 7) >> 3) * h;
+    default:
+        return 0;
+    }
+}
+
+/**
+ * Read a single alpha value from a packed image alpha buffer at (x, y).
+ * Supports all alpha types (1/2/4/8 bits per pixel).
+ * The alpha_row_bytes parameter is pre-computed for the specific alpha_type.
+ */
+static inline uint8_t image_transform_read_alpha(const uint8_t *alpha_buf, int alpha_row_bytes, int x, int y, uint8_t alpha_type)
+{
+    const uint8_t *row = alpha_buf + y * alpha_row_bytes;
+    switch (alpha_type)
+    {
+    case EGUI_IMAGE_ALPHA_TYPE_8:
+        return row[x];
+    case EGUI_IMAGE_ALPHA_TYPE_4:
+        return egui_alpha_change_table_4[(row[x >> 1] >> ((x & 1) << 2)) & 0x0F];
+    case EGUI_IMAGE_ALPHA_TYPE_2:
+        return egui_alpha_change_table_2[(row[x >> 2] >> ((x & 3) << 1)) & 0x03];
+    case EGUI_IMAGE_ALPHA_TYPE_1:
+        return (row[x >> 3] >> (x & 7)) & 1 ? 255 : 0;
+    default:
+        return 0;
+    }
+}
+
+/**
  * Draw a rotated and scaled image using inverse-mapping with bilinear interpolation.
  *
  * @param img       Source image (must be egui_image_std_t with RGB565 data)
@@ -261,17 +305,24 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
         egui_api_load_external_resource(ext_data_buf, (egui_uintptr_t)(info->data_buf), 0, data_size);
         data = (const uint16_t *)ext_data_buf;
 
-        if (info->alpha_buf != NULL && info->alpha_type == EGUI_IMAGE_ALPHA_TYPE_8)
+        if (info->alpha_buf != NULL)
         {
-            uint32_t alpha_size = (uint32_t)src_w * src_h;
-            ext_alpha_buf = egui_malloc(alpha_size);
-            if (ext_alpha_buf == NULL)
+            uint32_t alpha_size = image_alpha_buf_size(src_w, src_h, info->alpha_type);
+            if (alpha_size > 0)
             {
-                egui_free(ext_data_buf);
-                return;
+                ext_alpha_buf = egui_malloc(alpha_size);
+                if (ext_alpha_buf == NULL)
+                {
+                    egui_free(ext_data_buf);
+                    return;
+                }
+                egui_api_load_external_resource(ext_alpha_buf, (egui_uintptr_t)(info->alpha_buf), 0, alpha_size);
+                alpha_buf = (const uint8_t *)ext_alpha_buf;
             }
-            egui_api_load_external_resource(ext_alpha_buf, (egui_uintptr_t)(info->alpha_buf), 0, alpha_size);
-            alpha_buf = (const uint8_t *)ext_alpha_buf;
+            else
+            {
+                alpha_buf = NULL;
+            }
         }
         else
         {
@@ -284,8 +335,32 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
         data = (const uint16_t *)info->data_buf;
         alpha_buf = (const uint8_t *)info->alpha_buf;
     }
-    int has_alpha8 = (alpha_buf != NULL && info->alpha_type == EGUI_IMAGE_ALPHA_TYPE_8);
-    int opaque_mode = (!has_alpha8 && canvas_alpha == EGUI_ALPHA_100);
+    int has_alpha = (alpha_buf != NULL);
+    uint8_t alpha_type = info->alpha_type;
+    int has_alpha8 = (has_alpha && alpha_type == EGUI_IMAGE_ALPHA_TYPE_8);
+    int alpha_row_bytes = 0;
+    if (has_alpha)
+    {
+        switch (alpha_type)
+        {
+        case EGUI_IMAGE_ALPHA_TYPE_8:
+            alpha_row_bytes = src_w;
+            break;
+        case EGUI_IMAGE_ALPHA_TYPE_4:
+            alpha_row_bytes = (src_w + 1) >> 1;
+            break;
+        case EGUI_IMAGE_ALPHA_TYPE_2:
+            alpha_row_bytes = (src_w + 3) >> 2;
+            break;
+        case EGUI_IMAGE_ALPHA_TYPE_1:
+            alpha_row_bytes = (src_w + 7) >> 3;
+            break;
+        default:
+            has_alpha = 0;
+            break;
+        }
+    }
+    int opaque_mode = (!has_alpha && canvas_alpha == EGUI_ALPHA_100);
 
     /* Row-constant terms for incremental scanning */
     int32_t Cx_base = inv_m01 * ((int32_t)draw_y0 - y) + ((int32_t)cx << 15) + offx;
@@ -464,10 +539,12 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                 }
                 else
                 {
-                    /* Generic SIR loop: handles alpha8 and/or canvas_alpha != 100 */
+                    /* Generic SIR loop: handles any alpha type and/or canvas_alpha != 100 */
                     for (int32_t i = 0; i < sir_count; i++)
                     {
-                        int32_t offs = (rotatedY >> 15) * src_w + (rotatedX >> 15);
+                        int32_t px = rotatedX >> 15;
+                        int32_t py = rotatedY >> 15;
+                        int32_t offs = py * src_w + px;
                         uint8_t fx = (rotatedX >> 7) & 0xFF;
                         uint8_t fy = (rotatedY >> 7) & 0xFF;
                         uint16_t d00 = data[offs];
@@ -482,12 +559,23 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                         }
 
                         egui_alpha_t pixel_alpha = EGUI_ALPHA_100;
-                        if (has_alpha8)
+                        if (has_alpha)
                         {
-                            uint16_t a00 = alpha_buf[offs];
-                            uint16_t a01 = alpha_buf[offs + 1];
-                            uint16_t a10 = alpha_buf[offs + src_w];
-                            uint16_t a11 = alpha_buf[offs + src_w + 1];
+                            uint16_t a00, a01, a10, a11;
+                            if (has_alpha8)
+                            {
+                                a00 = alpha_buf[offs];
+                                a01 = alpha_buf[offs + 1];
+                                a10 = alpha_buf[offs + src_w];
+                                a11 = alpha_buf[offs + src_w + 1];
+                            }
+                            else
+                            {
+                                a00 = image_transform_read_alpha(alpha_buf, alpha_row_bytes, px, py, alpha_type);
+                                a01 = image_transform_read_alpha(alpha_buf, alpha_row_bytes, px + 1, py, alpha_type);
+                                a10 = image_transform_read_alpha(alpha_buf, alpha_row_bytes, px, py + 1, alpha_type);
+                                a11 = image_transform_read_alpha(alpha_buf, alpha_row_bytes, px + 1, py + 1, alpha_type);
+                            }
                             uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
                             uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
                             pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
@@ -534,6 +622,20 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                 }
 
                 egui_alpha_t final_alpha = canvas_alpha;
+                if (has_alpha)
+                {
+                    /* Bilinear alpha from edge samples (out-of-bounds → 0) */
+#define TRANSFORM_FETCH_ALPHA(px, py) (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? image_transform_read_alpha(alpha_buf, alpha_row_bytes, (px), (py), alpha_type) : 0)
+                    uint16_t a00 = TRANSFORM_FETCH_ALPHA(sx, sy);
+                    uint16_t a01 = TRANSFORM_FETCH_ALPHA(sx + 1, sy);
+                    uint16_t a10 = TRANSFORM_FETCH_ALPHA(sx, sy + 1);
+                    uint16_t a11 = TRANSFORM_FETCH_ALPHA(sx + 1, sy + 1);
+#undef TRANSFORM_FETCH_ALPHA
+                    uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                    uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                    egui_alpha_t edge_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+                    final_alpha = egui_color_alpha_mix(final_alpha, edge_alpha);
+                }
 
                 if (final_alpha == EGUI_ALPHA_100)
                 {
