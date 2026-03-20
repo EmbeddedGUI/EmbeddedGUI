@@ -270,6 +270,164 @@ static int egui_font_std_draw_fast(const egui_font_std_info_t *font, egui_dim_t 
     return 0;
 }
 
+// Fast path for font rendering with masks that support row-level color blend
+// (e.g., LINEAR_VERTICAL gradient masks). Avoids per-pixel mask_point vtable dispatch.
+// Handles clipping to PFB work region, so partially-visible glyphs are covered too.
+static int egui_font_std_draw_fast_mask(const egui_font_std_info_t *font, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
+                                        const uint8_t *p_data, egui_color_t color, egui_alpha_t alpha)
+{
+    const egui_canvas_t *canvas = egui_canvas_get_canvas();
+    egui_mask_t *mask = canvas->mask;
+
+    if (mask == NULL || mask->api->mask_blend_row_color == NULL)
+    {
+        return 0;
+    }
+
+    egui_alpha_t draw_alpha = egui_color_alpha_mix(canvas->alpha, alpha);
+    if (draw_alpha == 0)
+    {
+        return 0;
+    }
+
+    if (width <= 0 || height <= 0)
+    {
+        return 0;
+    }
+
+    // Clip glyph rect to PFB work region
+    const egui_region_t *region = egui_canvas_get_base_view_work_region();
+    egui_dim_t vis_x0 = x;
+    egui_dim_t vis_y0 = y;
+    egui_dim_t vis_x1 = x + width;
+    egui_dim_t vis_y1 = y + height;
+
+    if (vis_x0 < region->location.x)
+    {
+        vis_x0 = region->location.x;
+    }
+    if (vis_y0 < region->location.y)
+    {
+        vis_y0 = region->location.y;
+    }
+    if (vis_x1 > region->location.x + region->size.width)
+    {
+        vis_x1 = region->location.x + region->size.width;
+    }
+    if (vis_y1 > region->location.y + region->size.height)
+    {
+        vis_y1 = region->location.y + region->size.height;
+    }
+
+    if (vis_x0 >= vis_x1 || vis_y0 >= vis_y1)
+    {
+        return 1; // fully clipped, nothing to draw
+    }
+
+    // Glyph data offsets for the visible portion
+    egui_dim_t col0 = vis_x0 - x;
+    egui_dim_t row0 = vis_y0 - y;
+    egui_dim_t col1 = vis_x1 - x;
+    egui_dim_t row1 = vis_y1 - y;
+
+    // PFB coordinates for the visible top-left
+    egui_dim_t pfb_x0 = vis_x0 - canvas->pfb_location_in_base_view.x;
+    egui_dim_t pfb_y0 = vis_y0 - canvas->pfb_location_in_base_view.y;
+    egui_dim_t pfb_w = canvas->pfb_region.size.width;
+
+    // Probe: check if mask supports row-level blend for this configuration
+    egui_color_t probe = color;
+    if (!mask->api->mask_blend_row_color(mask, vis_y0, &probe))
+    {
+        return 0;
+    }
+
+    switch (font->font_bit_mode)
+    {
+    case 1:
+    {
+        uint16_t row_stride = (width + 7) >> 3;
+        for (egui_dim_t row = row0; row < row1; row++)
+        {
+            egui_color_t row_color = color;
+            mask->api->mask_blend_row_color(mask, y + row, &row_color);
+            const uint8_t *src = p_data + row * row_stride;
+            egui_color_int_t *dst = &canvas->pfb[(pfb_y0 + row - row0) * pfb_w + pfb_x0];
+            for (egui_dim_t col = col0; col < col1; col++)
+            {
+                if (src[col >> 3] & (1 << (col & 7)))
+                {
+                    egui_font_std_blend_pixel(&dst[col - col0], row_color, draw_alpha);
+                }
+            }
+        }
+        return 1;
+    }
+    case 2:
+    {
+        uint16_t row_stride = (width + 3) >> 2;
+        for (egui_dim_t row = row0; row < row1; row++)
+        {
+            egui_color_t row_color = color;
+            mask->api->mask_blend_row_color(mask, y + row, &row_color);
+            const uint8_t *src = p_data + row * row_stride;
+            egui_color_int_t *dst = &canvas->pfb[(pfb_y0 + row - row0) * pfb_w + pfb_x0];
+            for (egui_dim_t col = col0; col < col1; col++)
+            {
+                uint8_t sel_value = (src[col >> 2] >> ((col & 0x03) << 1)) & 0x03;
+                egui_alpha_t pixel_alpha = egui_alpha_change_table_2[sel_value];
+                if (pixel_alpha != 0)
+                {
+                    egui_font_std_blend_pixel(&dst[col - col0], row_color, egui_color_alpha_mix(draw_alpha, pixel_alpha));
+                }
+            }
+        }
+        return 1;
+    }
+    case 4:
+    {
+        uint16_t row_stride = (width + 1) >> 1;
+        for (egui_dim_t row = row0; row < row1; row++)
+        {
+            egui_color_t row_color = color;
+            mask->api->mask_blend_row_color(mask, y + row, &row_color);
+            const uint8_t *src = p_data + row * row_stride;
+            egui_color_int_t *dst = &canvas->pfb[(pfb_y0 + row - row0) * pfb_w + pfb_x0];
+            for (egui_dim_t col = col0; col < col1; col++)
+            {
+                uint8_t sel_value = (src[col >> 1] >> ((col & 0x01) << 2)) & 0x0F;
+                egui_alpha_t pixel_alpha = egui_alpha_change_table_4[sel_value];
+                if (pixel_alpha != 0)
+                {
+                    egui_font_std_blend_pixel(&dst[col - col0], row_color, egui_color_alpha_mix(draw_alpha, pixel_alpha));
+                }
+            }
+        }
+        return 1;
+    }
+    case 8:
+    {
+        for (egui_dim_t row = row0; row < row1; row++)
+        {
+            egui_color_t row_color = color;
+            mask->api->mask_blend_row_color(mask, y + row, &row_color);
+            const uint8_t *src = p_data + row * width;
+            egui_color_int_t *dst = &canvas->pfb[(pfb_y0 + row - row0) * pfb_w + pfb_x0];
+            for (egui_dim_t col = col0; col < col1; col++)
+            {
+                if (src[col] != 0)
+                {
+                    egui_font_std_blend_pixel(&dst[col - col0], row_color, egui_color_alpha_mix(draw_alpha, src[col]));
+                }
+            }
+        }
+        return 1;
+    }
+    default:
+        return 0;
+    }
+}
+
 static void egui_font_std_draw_1(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const uint8_t *p_data, egui_color_t color, egui_alpha_t alpha)
 {
     uint8_t bit_pos;
@@ -469,7 +627,10 @@ static int egui_font_std_draw_single_char(const egui_font_t *self, uint32_t utf8
 
                 if (!egui_font_std_draw_fast(font, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha))
                 {
-                    draw_func(draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha);
+                    if (!egui_font_std_draw_fast_mask(font, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha))
+                    {
+                        draw_func(draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha);
+                    }
                 }
             }
 
