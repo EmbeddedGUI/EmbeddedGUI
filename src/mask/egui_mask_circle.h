@@ -27,6 +27,8 @@ struct egui_mask_circle
     uint32_t visible_radius_sq;
     egui_dim_t visible_cached_dy;
     egui_dim_t visible_cached_half;
+    egui_dim_t opaque_cached_row_index;
+    egui_dim_t opaque_cached_boundary;
     egui_dim_t point_cached_y;
     egui_dim_t point_cached_row_index;
     uint8_t point_cached_row_valid;
