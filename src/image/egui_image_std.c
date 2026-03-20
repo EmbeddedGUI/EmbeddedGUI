@@ -3573,6 +3573,69 @@ void egui_image_std_draw_image_color(const egui_image_t *self, egui_dim_t x, egu
     }
 }
 
+/**
+ * Inner loop macro for resize-color no-mask path.
+ * Hoists src_y to outer loop, caches p_data_row per source row,
+ * uses pre-computed src_x_map, and writes directly to PFB.
+ */
+#define EGUI_IMAGE_RESIZE_COLOR_FAST_LOOP(_get_alpha_func, _row_size)                                                                                          \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        int cached_src_y_ = -1;                                                                                                                                \
+        const uint8_t *p_row_ = NULL;                                                                                                                          \
+        for (egui_dim_t y_ = region.location.y; y_ < y_total; y_++)                                                                                            \
+        {                                                                                                                                                      \
+            egui_dim_t sy_ = (egui_dim_t)EGUI_FLOAT_MULT_LIMIT(y_, height_radio);                                                                             \
+            if (cached_src_y_ != sy_)                                                                                                                          \
+            {                                                                                                                                                  \
+                p_row_ = (const uint8_t *)image->data_buf + (uint32_t)sy_ * (_row_size);                                                                       \
+                cached_src_y_ = sy_;                                                                                                                           \
+            }                                                                                                                                                  \
+            egui_color_int_t *dst_row_ = &canvas->pfb[(pfb_y_off + y_) * pfb_width + pfb_x_start];                                                            \
+            for (egui_dim_t i_ = 0; i_ < count; i_++)                                                                                                          \
+            {                                                                                                                                                  \
+                egui_alpha_t pa_;                                                                                                                               \
+                _get_alpha_func(p_row_, src_x_map[i_], &pa_);                                                                                                  \
+                if (pa_)                                                                                                                                       \
+                {                                                                                                                                              \
+                    egui_alpha_t fa_ = combined_is_100 ? pa_ : (egui_alpha_t)(((uint16_t)combined_alpha * pa_ + 128) >> 8);                                    \
+                    egui_image_std_blend_resize_pixel(&dst_row_[i_], color, fa_);                                                                               \
+                }                                                                                                                                              \
+            }                                                                                                                                                  \
+        }                                                                                                                                                      \
+    } while (0)
+
+/**
+ * Inner loop macro for resize-color mask path.
+ * Uses src_x_map and hoisted src_y, but still calls draw_point_limit for mask support.
+ */
+#define EGUI_IMAGE_RESIZE_COLOR_MASK_LOOP(_get_alpha_func, _row_size)                                                                                          \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        int cached_src_y_ = -1;                                                                                                                                \
+        const uint8_t *p_row_ = NULL;                                                                                                                          \
+        for (egui_dim_t y_ = region.location.y; y_ < y_total; y_++)                                                                                            \
+        {                                                                                                                                                      \
+            egui_dim_t sy_ = (egui_dim_t)EGUI_FLOAT_MULT_LIMIT(y_, height_radio);                                                                             \
+            if (cached_src_y_ != sy_)                                                                                                                          \
+            {                                                                                                                                                  \
+                p_row_ = (const uint8_t *)image->data_buf + (uint32_t)sy_ * (_row_size);                                                                       \
+                cached_src_y_ = sy_;                                                                                                                           \
+            }                                                                                                                                                  \
+            egui_dim_t screen_y_ = y + y_;                                                                                                                     \
+            for (egui_dim_t i_ = 0; i_ < count; i_++)                                                                                                          \
+            {                                                                                                                                                  \
+                egui_alpha_t pa_;                                                                                                                               \
+                _get_alpha_func(p_row_, src_x_map[i_], &pa_);                                                                                                  \
+                if (pa_)                                                                                                                                       \
+                {                                                                                                                                              \
+                    egui_alpha_t fa_ = (color_alpha == EGUI_ALPHA_100) ? pa_ : (egui_alpha_t)(pa_ * color_alpha / EGUI_ALPHA_100);                             \
+                    egui_canvas_draw_point_limit(screen_x_start + i_, screen_y_, color, fa_);                                                                  \
+                }                                                                                                                                              \
+            }                                                                                                                                                  \
+        }                                                                                                                                                      \
+    } while (0)
+
 void egui_image_std_draw_image_resize_color(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
                                             egui_alpha_t color_alpha)
 {
@@ -3583,9 +3646,6 @@ void egui_image_std_draw_image_resize_color(const egui_image_t *self, egui_dim_t
     }
     egui_float_t width_radio = EGUI_FLOAT_DIV(EGUI_FLOAT_VALUE_INT(image->width), EGUI_FLOAT_VALUE_INT(width));
     egui_float_t height_radio = EGUI_FLOAT_DIV(EGUI_FLOAT_VALUE_INT(image->height), EGUI_FLOAT_VALUE_INT(height));
-    egui_alpha_t pixel_alpha;
-    egui_dim_t src_x;
-    egui_dim_t src_y;
 
     egui_dim_t x_total;
     egui_dim_t y_total;
@@ -3609,77 +3669,81 @@ void egui_image_std_draw_image_resize_color(const egui_image_t *self, egui_dim_t
 
     if (image)
     {
-        // Use a generic resize approach: map destination pixel to source pixel, then extract alpha
-        uint16_t alpha_row_size_8 = image->width;
-        uint16_t alpha_row_size_4 = ((image->width + 1) >> 1);
-        uint16_t alpha_row_size_2 = ((image->width + 3) >> 2);
-        uint16_t alpha_row_size_1 = ((image->width + 7) >> 3);
-        EGUI_UNUSED(alpha_row_size_8);
-        EGUI_UNUSED(alpha_row_size_4);
-        EGUI_UNUSED(alpha_row_size_2);
-        EGUI_UNUSED(alpha_row_size_1);
         egui_canvas_t *canvas = egui_canvas_get_canvas();
 
-        for (egui_dim_t y_ = region.location.y; y_ < y_total; y_++)
+        // Pre-compute src_x mapping to eliminate per-pixel FLOAT_MULT
+        egui_dim_t src_x_map[EGUI_CONFIG_PFB_WIDTH];
+        egui_dim_t count = egui_image_std_prepare_resize_src_x_map_limit(src_x_map, region.location.x, x_total, width_radio);
+
+        if (canvas->mask != NULL)
         {
-            for (egui_dim_t x_ = region.location.x; x_ < x_total; x_++)
+            // Mask path: use per-pixel draw_point_limit for mask support
+            // Still benefits from src_x_map and hoisted src_y
+            egui_dim_t screen_x_start = x + region.location.x;
+
+            switch (image->alpha_type)
             {
-                // For speed, use nearestScaler to scale the image.
-                src_x = (egui_dim_t)EGUI_FLOAT_MULT_LIMIT(x_, width_radio);
-                src_y = (egui_dim_t)EGUI_FLOAT_MULT_LIMIT(y_, height_radio);
-
-                pixel_alpha = 0;
-                switch (image->alpha_type)
-                {
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8
-                case EGUI_IMAGE_ALPHA_TYPE_8:
-                {
-                    const uint8_t *p_data = (const uint8_t *)image->data_buf + src_y * alpha_row_size_8;
-                    egui_image_std_get_col_alpha_8(p_data, src_x, &pixel_alpha);
-                    break;
-                }
-#endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8
+            case EGUI_IMAGE_ALPHA_TYPE_8:
+                EGUI_IMAGE_RESIZE_COLOR_MASK_LOOP(egui_image_std_get_col_alpha_8, image->width);
+                break;
+#endif
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_4
-                case EGUI_IMAGE_ALPHA_TYPE_4:
-                {
-                    const uint8_t *p_data = (const uint8_t *)image->data_buf + src_y * alpha_row_size_4;
-                    egui_image_std_get_col_alpha_4(p_data, src_x, &pixel_alpha);
-                    break;
-                }
-#endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_4
+            case EGUI_IMAGE_ALPHA_TYPE_4:
+                EGUI_IMAGE_RESIZE_COLOR_MASK_LOOP(egui_image_std_get_col_alpha_4, ((image->width + 1) >> 1));
+                break;
+#endif
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_2
-                case EGUI_IMAGE_ALPHA_TYPE_2:
-                {
-                    const uint8_t *p_data = (const uint8_t *)image->data_buf + src_y * alpha_row_size_2;
-                    egui_image_std_get_col_alpha_2(p_data, src_x, &pixel_alpha);
-                    break;
-                }
-#endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_2
+            case EGUI_IMAGE_ALPHA_TYPE_2:
+                EGUI_IMAGE_RESIZE_COLOR_MASK_LOOP(egui_image_std_get_col_alpha_2, ((image->width + 3) >> 2));
+                break;
+#endif
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_1
-                case EGUI_IMAGE_ALPHA_TYPE_1:
-                {
-                    const uint8_t *p_data = (const uint8_t *)image->data_buf + src_y * alpha_row_size_1;
-                    egui_image_std_get_col_alpha_1(p_data, src_x, &pixel_alpha);
-                    break;
-                }
-#endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_1
-                default:
-                    EGUI_ASSERT(0);
-                    break;
-                }
+            case EGUI_IMAGE_ALPHA_TYPE_1:
+                EGUI_IMAGE_RESIZE_COLOR_MASK_LOOP(egui_image_std_get_col_alpha_1, ((image->width + 7) >> 3));
+                break;
+#endif
+            default:
+                EGUI_ASSERT(0);
+                break;
+            }
+        }
+        else
+        {
+            // No-mask fast path: direct PFB writes
+            egui_dim_t pfb_width = canvas->pfb_region.size.width;
+            egui_dim_t pfb_x_start = (x + region.location.x) - canvas->pfb_location_in_base_view.x;
+            egui_dim_t pfb_y_off = y - canvas->pfb_location_in_base_view.y;
 
-                if (pixel_alpha)
-                {
-                    egui_alpha_t final_alpha = (color_alpha == EGUI_ALPHA_100) ? pixel_alpha : (pixel_alpha * color_alpha / EGUI_ALPHA_100);
-                    if (canvas->mask != NULL)
-                    {
-                        egui_canvas_draw_point_limit((x + x_), (y + y_), color, final_alpha);
-                    }
-                    else
-                    {
-                        egui_canvas_draw_point_limit_skip_mask((x + x_), (y + y_), color, final_alpha);
-                    }
-                }
+            // Pre-combine canvas alpha and color alpha
+            egui_alpha_t combined_alpha = egui_color_alpha_mix(canvas->alpha, color_alpha);
+            int combined_is_100 = (combined_alpha == EGUI_ALPHA_100);
+
+            switch (image->alpha_type)
+            {
+#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8
+            case EGUI_IMAGE_ALPHA_TYPE_8:
+                EGUI_IMAGE_RESIZE_COLOR_FAST_LOOP(egui_image_std_get_col_alpha_8, image->width);
+                break;
+#endif
+#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_4
+            case EGUI_IMAGE_ALPHA_TYPE_4:
+                EGUI_IMAGE_RESIZE_COLOR_FAST_LOOP(egui_image_std_get_col_alpha_4, ((image->width + 1) >> 1));
+                break;
+#endif
+#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_2
+            case EGUI_IMAGE_ALPHA_TYPE_2:
+                EGUI_IMAGE_RESIZE_COLOR_FAST_LOOP(egui_image_std_get_col_alpha_2, ((image->width + 3) >> 2));
+                break;
+#endif
+#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_1
+            case EGUI_IMAGE_ALPHA_TYPE_1:
+                EGUI_IMAGE_RESIZE_COLOR_FAST_LOOP(egui_image_std_get_col_alpha_1, ((image->width + 7) >> 3));
+                break;
+#endif
+            default:
+                EGUI_ASSERT(0);
+                break;
             }
         }
     }
