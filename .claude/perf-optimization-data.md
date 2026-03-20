@@ -53,7 +53,7 @@
 | 41 | Circle opaque-boundary row cache | MASK_IMAGE_CIRCLE: 3.707->3.661ms (-1.2%), QUARTER: 1.102->1.085ms (-1.5%) | 7667426 |
 | 42 | Circle edge-only segment split | MASK_IMAGE_CIRCLE: 3.661->3.647ms (-0.4%), MASK_RECT_FILL_CIRCLE: 1.558->1.541ms (-1.1%) | 02cb092 |
 | 43 | Opaque alpha8 dispatch fast path | IMAGE_565_8: 1.497->0.860ms (-42.6%), MASK_IMAGE_CIRCLE: 3.647->2.617ms (-28.2%) | c5bc165 |
-| 44 | Circle masked RGB565 resize edge batching | MASK_IMAGE_CIRCLE: 2.617->2.551ms (-2.5%), QUARTER: 0.815->0.796ms (-2.3%) | pending |
+| 44 | Circle masked RGB565 resize edge batching | MASK_IMAGE_CIRCLE: 2.617->2.551ms (-2.5%), QUARTER: 0.815->0.796ms (-2.3%) | fc706cb |
 
 ## 2026-03-20 RECTANGLE_FILL batching round
 
