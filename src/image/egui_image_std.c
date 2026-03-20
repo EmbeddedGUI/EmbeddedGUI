@@ -4,6 +4,7 @@
 #include "egui_image_std.h"
 #include "core/egui_api.h"
 #include "mask/egui_mask_circle.h"
+#include "mask/egui_mask_round_rectangle.h"
 #include "mask/egui_mask_image.h"
 
 const uint8_t egui_image_data_type_size_table[] = {
@@ -723,6 +724,14 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
             }
         }
         return;
+    }
+
+    if (mask->api->mask_point == egui_mask_round_rectangle_mask_point)
+    {
+        if (egui_mask_round_rectangle_blend_rgb565_alpha8_segment(mask, dst_row, src_row, src_alpha_row, src_x_map, count, screen_x, screen_y, canvas_alpha))
+        {
+            return;
+        }
     }
 
     if (mask->api->mask_point == egui_mask_image_mask_point)

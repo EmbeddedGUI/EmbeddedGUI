@@ -48,7 +48,8 @@
 | 36 | Circle fixed-row alpha lookup reuse | MASK_RECT_FILL_CIRCLE: 2.438->2.122ms (-13.0%), MASK_IMAGE_CIRCLE: 4.293->3.974ms (-7.4%) | 82eab4e |
 | 37 | Exact opaque-band boundaries for rounded masks | MASK_RECT_FILL_CIRCLE: 2.122->1.718ms (-19.0%), MASK_IMAGE_CIRCLE: 3.974->3.707ms (-6.7%) | 8dda931 |
 | 38 | Exact visible boundaries for round-rect masks | MASK_RECT_FILL_ROUND_RECT: 1.025->1.008ms (-1.7%), MASK_IMAGE_ROUND_RECT: 3.495->3.478ms (-0.5%) | 05511f7 |
-| 39 | Round-rect masked edge row segments | MASK_RECT_FILL_ROUND_RECT: 1.008->0.957ms (-5.1%), QUARTER: 0.416->0.400ms | pending |
+| 39 | Round-rect masked edge row segments | MASK_RECT_FILL_ROUND_RECT: 1.008->0.957ms (-5.1%), QUARTER: 0.416->0.400ms | 41fb872 |
+| 40 | Round-rect masked image edge segments | MASK_IMAGE_ROUND_RECT: 3.478->3.430ms (-1.4%), QUARTER: 1.043->1.028ms (-1.4%) | pending |
 
 ## 2026-03-20 RECTANGLE_FILL batching round
 
@@ -298,6 +299,23 @@ QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
 
 - `src/mask/egui_mask_round_rectangle.c` adds a dedicated solid-color row-segment blender for round-rect masks, so the left/right rounded edges stop paying the generic `mask_point()` path on rectangle fills.
 - `src/core/egui_canvas.h` now dispatches those round-rect edge segments through the new helper, preserving the existing row-range / visible-range split while removing repeated region checks and four-corner probes on hot partial rows.
+- Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` identical, and `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` stays `554/554 passed`.
+
+## 2026-03-21 round-rect masked image edge segment round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| MASK_IMAGE_ROUND_RECT | 3.478 | 3.430 | -1.4% |
+| MASK_IMAGE_ROUND_RECT_QUARTER | 1.043 | 1.028 | -1.4% |
+| MASK_IMAGE_ROUND_RECT_DOUBLE | 3.432 | 3.413 | -0.6% |
+| MASK_RECT_FILL_ROUND_RECT | 0.957 | 0.957 | 0.0% |
+| MASK_IMAGE_CIRCLE | 3.707 | 3.707 | 0.0% |
+| RECTANGLE_FILL | 0.395 | 0.395 | 0.0% |
+
+- `src/image/egui_image_std.c` now dispatches `RGB565_8` resize masked edge segments to a round-rect-specific helper when the active mask is `egui_mask_round_rectangle_mask_point`.
+- `src/mask/egui_mask_round_rectangle.c` / `src/mask/egui_mask_round_rectangle.h` add a dedicated mapped-row edge blender for round-rect image masks, so resize/mapped left-right edge spans reuse the same row geometry instead of falling back to generic `mask_point()` per pixel.
 - Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` identical, and `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` stays `554/554 passed`.
 
 ## Before vs After (Original Baseline → Final)

@@ -194,6 +194,156 @@ int egui_mask_round_rectangle_fill_row_segment(egui_mask_t *self, egui_color_int
     return 1;
 }
 
+static void egui_mask_round_rectangle_blend_rgb565_alpha8_range(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
+                                                                const egui_dim_t *src_x_map, egui_dim_t start_index, egui_dim_t end_index, egui_dim_t mask_col_start,
+                                                                int mask_col_step, const egui_circle_info_t *info, const egui_circle_item_t *items,
+                                                                egui_dim_t row_index, egui_alpha_t canvas_alpha)
+{
+    egui_dim_t mask_col = mask_col_start;
+
+    for (egui_dim_t i = start_index; i < end_index; i++, mask_col += mask_col_step)
+    {
+        egui_dim_t src_x = src_x_map[i];
+        egui_alpha_t alpha = src_alpha_row[src_x];
+
+        if (alpha == 0)
+        {
+            continue;
+        }
+
+        alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value_fixed_row(row_index, mask_col, info, items), alpha);
+        if (canvas_alpha != EGUI_ALPHA_100)
+        {
+            alpha = egui_color_alpha_mix(canvas_alpha, alpha);
+        }
+
+        if (alpha == 0)
+        {
+            continue;
+        }
+
+        egui_color_t color;
+        color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
+        if (alpha == EGUI_ALPHA_100)
+        {
+            dst_row[i] = color.full;
+        }
+        else
+        {
+            egui_rgb_mix_ptr((egui_color_t *)&dst_row[i], &color, (egui_color_t *)&dst_row[i], alpha);
+        }
+    }
+}
+
+static void egui_mask_round_rectangle_blend_rgb565_alpha8_middle(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
+                                                                 const egui_dim_t *src_x_map, egui_dim_t start_index, egui_dim_t end_index,
+                                                                 egui_alpha_t canvas_alpha)
+{
+    for (egui_dim_t i = start_index; i < end_index; i++)
+    {
+        egui_dim_t src_x = src_x_map[i];
+        egui_alpha_t alpha = src_alpha_row[src_x];
+
+        if (alpha == 0)
+        {
+            continue;
+        }
+
+        if (canvas_alpha != EGUI_ALPHA_100)
+        {
+            alpha = egui_color_alpha_mix(canvas_alpha, alpha);
+        }
+
+        if (alpha == 0)
+        {
+            continue;
+        }
+
+        egui_color_t color;
+        color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
+        if (alpha == EGUI_ALPHA_100)
+        {
+            dst_row[i] = color.full;
+        }
+        else
+        {
+            egui_rgb_mix_ptr((egui_color_t *)&dst_row[i], &color, (egui_color_t *)&dst_row[i], alpha);
+        }
+    }
+}
+
+int egui_mask_round_rectangle_blend_rgb565_alpha8_segment(egui_mask_t *self, egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
+                                                          const egui_dim_t *src_x_map, egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y,
+                                                          egui_alpha_t canvas_alpha)
+{
+    EGUI_LOCAL_INIT(egui_mask_round_rectangle_t);
+    egui_dim_t radius = local->radius;
+    egui_dim_t width = self->region.size.width;
+    egui_dim_t height = self->region.size.height;
+    egui_dim_t sel_x = self->region.location.x;
+    egui_dim_t sel_y = self->region.location.y;
+    egui_dim_t seg_start = EGUI_MAX(screen_x, sel_x);
+    egui_dim_t seg_end = EGUI_MIN(screen_x + count, sel_x + width);
+    const egui_circle_info_t *info;
+    const egui_circle_item_t *items;
+    egui_dim_t row_index;
+
+    if (screen_y < sel_y || screen_y >= sel_y + height || seg_start >= seg_end)
+    {
+        return 1;
+    }
+
+    if (radius <= 0 || (screen_y >= sel_y + radius && screen_y < sel_y + height - radius))
+    {
+        egui_mask_round_rectangle_blend_rgb565_alpha8_middle(dst_row, src_row, src_alpha_row, src_x_map, seg_start - screen_x, seg_end - screen_x, canvas_alpha);
+        return 1;
+    }
+
+    info = egui_canvas_get_circle_item(radius);
+    if (info == NULL)
+    {
+        return 0;
+    }
+
+    items = (const egui_circle_item_t *)info->items;
+    row_index = (screen_y < sel_y + radius) ? (screen_y - sel_y) : (sel_y + height - 1 - screen_y);
+
+    {
+        egui_dim_t left_start = seg_start;
+        egui_dim_t left_end = EGUI_MIN(seg_end, sel_x + radius);
+
+        if (left_start < left_end)
+        {
+            egui_mask_round_rectangle_blend_rgb565_alpha8_range(dst_row, src_row, src_alpha_row, src_x_map, left_start - screen_x, left_end - screen_x,
+                                                                left_start - sel_x, 1, info, items, row_index, canvas_alpha);
+        }
+    }
+
+    {
+        egui_dim_t mid_start = EGUI_MAX(seg_start, sel_x + radius);
+        egui_dim_t mid_end = EGUI_MIN(seg_end, sel_x + width - radius);
+
+        if (mid_start < mid_end)
+        {
+            egui_mask_round_rectangle_blend_rgb565_alpha8_middle(dst_row, src_row, src_alpha_row, src_x_map, mid_start - screen_x, mid_end - screen_x,
+                                                                 canvas_alpha);
+        }
+    }
+
+    {
+        egui_dim_t right_start = EGUI_MAX(seg_start, sel_x + width - radius);
+        egui_dim_t right_end = seg_end;
+
+        if (right_start < right_end)
+        {
+            egui_mask_round_rectangle_blend_rgb565_alpha8_range(dst_row, src_row, src_alpha_row, src_x_map, right_start - screen_x, right_end - screen_x,
+                                                                sel_x + width - 1 - right_start, -1, info, items, row_index, canvas_alpha);
+        }
+    }
+
+    return 1;
+}
+
 // Compute the opaque boundary column for a circle corner quadrant at a given row.
 // Returns the first column index (in corner coords 0..radius-1) that is guaranteed fully opaque.
 static egui_dim_t egui_mask_circle_corner_get_opaque_boundary(egui_dim_t row_in_corner, const egui_circle_info_t *info)
