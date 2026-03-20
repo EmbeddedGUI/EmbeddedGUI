@@ -3,6 +3,7 @@
 
 #include "egui_image_std.h"
 #include "core/egui_api.h"
+#include "mask/egui_mask_circle.h"
 
 const uint8_t egui_image_data_type_size_table[] = {
         4, /* EGUI_IMAGE_DATA_TYPE_RGB32 */
@@ -456,6 +457,112 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
 
     if (mask == NULL || count == 0 || canvas_alpha == 0)
     {
+        return;
+    }
+
+    if (mask->api->mask_point == egui_mask_circle_mask_point)
+    {
+        egui_mask_circle_t *circle_mask = (egui_mask_circle_t *)mask;
+        egui_dim_t row_index;
+
+        if (screen_y == circle_mask->point_cached_y)
+        {
+            if (!circle_mask->point_cached_row_valid || circle_mask->info == NULL)
+            {
+                return;
+            }
+            row_index = circle_mask->point_cached_row_index;
+        }
+        else
+        {
+            egui_dim_t dy = (screen_y > circle_mask->center_y) ? (screen_y - circle_mask->center_y) : (circle_mask->center_y - screen_y);
+            if (dy > circle_mask->radius || circle_mask->info == NULL)
+            {
+                circle_mask->point_cached_y = screen_y;
+                circle_mask->point_cached_row_valid = 0;
+                return;
+            }
+            row_index = circle_mask->radius - dy;
+            circle_mask->point_cached_y = screen_y;
+            circle_mask->point_cached_row_index = row_index;
+            circle_mask->point_cached_row_valid = 1;
+        }
+
+        if (canvas_alpha == EGUI_ALPHA_100)
+        {
+            for (egui_dim_t i = 0; i < count; i++)
+            {
+                egui_dim_t dx;
+                egui_dim_t src_x = src_x_map[i];
+                egui_alpha_t alpha = src_alpha_row[src_x];
+
+                if (alpha == 0)
+                {
+                    continue;
+                }
+
+                dx = (screen_x + i > circle_mask->center_x) ? ((screen_x + i) - circle_mask->center_x) : (circle_mask->center_x - (screen_x + i));
+                if (dx > circle_mask->radius)
+                {
+                    continue;
+                }
+
+                alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value(row_index, circle_mask->radius - dx, circle_mask->info), alpha);
+                if (alpha == 0)
+                {
+                    continue;
+                }
+
+                egui_color_t color;
+                color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
+                if (alpha == EGUI_ALPHA_100)
+                {
+                    dst_row[i] = color.full;
+                }
+                else
+                {
+                    egui_rgb_mix_ptr((egui_color_t *)&dst_row[i], &color, (egui_color_t *)&dst_row[i], alpha);
+                }
+            }
+        }
+        else
+        {
+            for (egui_dim_t i = 0; i < count; i++)
+            {
+                egui_dim_t dx;
+                egui_dim_t src_x = src_x_map[i];
+                egui_alpha_t alpha = src_alpha_row[src_x];
+
+                if (alpha == 0)
+                {
+                    continue;
+                }
+
+                dx = (screen_x + i > circle_mask->center_x) ? ((screen_x + i) - circle_mask->center_x) : (circle_mask->center_x - (screen_x + i));
+                if (dx > circle_mask->radius)
+                {
+                    continue;
+                }
+
+                alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value(row_index, circle_mask->radius - dx, circle_mask->info), alpha);
+                alpha = egui_color_alpha_mix(canvas_alpha, alpha);
+                if (alpha == 0)
+                {
+                    continue;
+                }
+
+                egui_color_t color;
+                color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
+                if (alpha == EGUI_ALPHA_100)
+                {
+                    dst_row[i] = color.full;
+                }
+                else
+                {
+                    egui_rgb_mix_ptr((egui_color_t *)&dst_row[i], &color, (egui_color_t *)&dst_row[i], alpha);
+                }
+            }
+        }
         return;
     }
 
