@@ -1254,6 +1254,106 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_get_circle_visible_half_cached(
     }
 }
 
+__EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_get_circle_opaque_boundary_fixed_row(egui_dim_t row_index, const egui_circle_info_t *info,
+                                                                                       const egui_circle_item_t *items)
+{
+    egui_dim_t item_count = (egui_dim_t)info->item_count;
+    egui_dim_t boundary;
+    egui_dim_t mirror_limit = EGUI_MIN(row_index, item_count);
+
+    if (row_index < item_count)
+    {
+        const egui_circle_item_t *item = &items[row_index];
+        boundary = (egui_dim_t)item->start_offset + (egui_dim_t)item->valid_count;
+    }
+    else
+    {
+        boundary = row_index;
+    }
+
+    if (mirror_limit > 0)
+    {
+        egui_dim_t low = 0;
+        egui_dim_t high = mirror_limit;
+
+        while (low < high)
+        {
+            egui_dim_t mid = low + ((high - low) >> 1);
+            const egui_circle_item_t *item = &items[mid];
+            egui_dim_t threshold = (egui_dim_t)item->start_offset + (egui_dim_t)item->valid_count;
+
+            if (row_index >= threshold)
+            {
+                high = mid;
+            }
+            else
+            {
+                low = mid + 1;
+            }
+        }
+
+        if (low < mirror_limit)
+        {
+            boundary = EGUI_MIN(boundary, low);
+        }
+    }
+
+    return boundary;
+}
+
+__EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_get_circle_opaque_boundary_cached(egui_dim_t row_index, egui_dim_t radius, const egui_circle_info_t *info,
+                                                                                    const egui_circle_item_t *items, egui_dim_t *cached_row_index,
+                                                                                    egui_dim_t *cached_boundary)
+{
+    egui_dim_t boundary;
+
+    if (row_index == *cached_row_index)
+    {
+        return *cached_boundary;
+    }
+
+    if (*cached_row_index >= 0)
+    {
+        egui_dim_t delta = row_index - *cached_row_index;
+        if (delta < 0)
+        {
+            delta = -delta;
+        }
+
+        if (delta <= 4)
+        {
+            boundary = *cached_boundary;
+            if (boundary < 0)
+            {
+                boundary = 0;
+            }
+            else if (boundary > radius)
+            {
+                boundary = radius;
+            }
+
+            while (boundary > 0 && egui_canvas_get_circle_corner_value_fixed_row(row_index, boundary - 1, info, items) == EGUI_ALPHA_100)
+            {
+                boundary--;
+            }
+
+            while (boundary < radius && egui_canvas_get_circle_corner_value_fixed_row(row_index, boundary, info, items) != EGUI_ALPHA_100)
+            {
+                boundary++;
+            }
+
+            *cached_row_index = row_index;
+            *cached_boundary = boundary;
+            return boundary;
+        }
+    }
+
+    boundary = egui_image_std_get_circle_opaque_boundary_fixed_row(row_index, info, items);
+    *cached_row_index = row_index;
+    *cached_boundary = boundary;
+    return boundary;
+}
+
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_4
 __EGUI_STATIC_INLINE__ egui_alpha_t egui_image_std_get_alpha_rgb565_4_row(const uint8_t *src_alpha_row, egui_dim_t src_x)
 {
@@ -4135,10 +4235,13 @@ void egui_image_std_set_image_resize_rgb565(const egui_image_t *self, egui_dim_t
             const egui_circle_info_t *circle_info = NULL;
             const egui_circle_item_t *circle_items = NULL;
             egui_dim_t circle_center_x = 0;
+            egui_dim_t circle_center_y = 0;
             egui_dim_t circle_radius = 0;
             uint32_t circle_visible_radius_sq = 0;
             egui_dim_t circle_visible_cached_dy = -1;
             egui_dim_t circle_visible_cached_half = 0;
+            egui_dim_t circle_opaque_cached_row_index = -1;
+            egui_dim_t circle_opaque_cached_boundary = 0;
 
             if (use_circle_edge_fast_path)
             {
@@ -4152,6 +4255,7 @@ void egui_image_std_set_image_resize_rgb565(const egui_image_t *self, egui_dim_t
                 {
                     circle_items = (const egui_circle_item_t *)circle_info->items;
                     circle_center_x = circle_mask_fast->center_x;
+                    circle_center_y = circle_mask_fast->center_y;
                     circle_radius = circle_mask_fast->radius;
                     circle_visible_radius_sq = (uint32_t)(circle_radius + 1) * (uint32_t)(circle_radius + 1);
                 }
@@ -4161,9 +4265,61 @@ void egui_image_std_set_image_resize_rgb565(const egui_image_t *self, egui_dim_t
             {
                 egui_dim_t rr_sy = y_base + y_;
                 egui_dim_t dst_y = rr_sy - canvas->pfb_location_in_base_view.y;
+                egui_dim_t circle_row_index = 0;
+                int circle_row_ready = 0;
                 src_y = (egui_dim_t)EGUI_FLOAT_MULT_LIMIT(y_, height_radio);
                 const uint16_t *src_row = &src_pixels[src_y * image->width];
-                int rr_res = canvas->mask->api->mask_get_row_range(canvas->mask, rr_sy, screen_x_start, x_base + x_total, &rr_x_start, &rr_x_end);
+                int rr_res;
+
+                if (use_circle_edge_fast_path)
+                {
+                    egui_dim_t opaque_x_start;
+                    egui_dim_t opaque_x_end;
+                    egui_dim_t dy = (rr_sy > circle_center_y) ? (rr_sy - circle_center_y) : (circle_center_y - rr_sy);
+
+                    if (dy > circle_radius)
+                    {
+                        continue;
+                    }
+
+                    circle_row_ready = 1;
+                    circle_row_index = circle_radius - dy;
+
+                    if (dy == 0)
+                    {
+                        opaque_x_start = circle_center_x - circle_radius;
+                        opaque_x_end = circle_center_x + circle_radius + 1;
+                    }
+                    else
+                    {
+                        egui_dim_t boundary = egui_image_std_get_circle_opaque_boundary_cached(circle_row_index, circle_radius, circle_info, circle_items,
+                                                                                              &circle_opaque_cached_row_index, &circle_opaque_cached_boundary);
+                        opaque_x_start = circle_center_x - circle_radius + boundary;
+                        opaque_x_end = circle_center_x + circle_radius - boundary + 1;
+                    }
+
+                    rr_x_start = EGUI_MAX(opaque_x_start, screen_x_start);
+                    rr_x_end = EGUI_MIN(opaque_x_end, x_base + x_total);
+
+                    if (rr_x_start >= rr_x_end)
+                    {
+                        rr_x_start = screen_x_start;
+                        rr_x_end = screen_x_start;
+                        rr_res = EGUI_MASK_ROW_PARTIAL;
+                    }
+                    else if (rr_x_start <= screen_x_start && rr_x_end >= x_base + x_total)
+                    {
+                        rr_res = EGUI_MASK_ROW_INSIDE;
+                    }
+                    else
+                    {
+                        rr_res = EGUI_MASK_ROW_PARTIAL;
+                    }
+                }
+                else
+                {
+                    rr_res = canvas->mask->api->mask_get_row_range(canvas->mask, rr_sy, screen_x_start, x_base + x_total, &rr_x_start, &rr_x_end);
+                }
 
                 if (rr_res == EGUI_MASK_ROW_OUTSIDE)
                 {
@@ -4193,14 +4349,10 @@ void egui_image_std_set_image_resize_rgb565(const egui_image_t *self, egui_dim_t
                 {
                     egui_dim_t visible_x_start = screen_x_start;
                     egui_dim_t visible_x_end = x_base + x_total;
-                    egui_dim_t circle_row_index = 0;
-                    int circle_row_ready = 0;
 
-                    if (use_circle_edge_fast_path && circle_mask_fast->point_cached_y == rr_sy && circle_mask_fast->point_cached_row_valid)
+                    if (circle_row_ready)
                     {
                         egui_dim_t visible_half;
-                        circle_row_index = circle_mask_fast->point_cached_row_index;
-                        circle_row_ready = 1;
                         visible_half = egui_image_std_get_circle_visible_half_cached(circle_radius - circle_row_index, circle_visible_radius_sq,
                                                                                     &circle_visible_cached_dy, &circle_visible_cached_half);
                         visible_x_start = EGUI_MAX(circle_center_x - visible_half, screen_x_start);
