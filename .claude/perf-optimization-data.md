@@ -727,3 +727,21 @@ These require deeper algorithmic changes:
 | LINE | 18.4 | line drawing | Direct PFB |
 | IMAGE_RESIZE_565_* | 17-18 | mapped alpha lookup per pixel | Further batch optimizations |
 | CIRCLE_HQ | 15.3 | anti-aliased circle (optimized) | Further isqrt reduction |
+
+## 2026-03-21 circle mask fixed-row render-correctness round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| MASK_IMAGE_CIRCLE | 1.932 | 1.931 | -0.1% |
+| MASK_IMAGE_CIRCLE_QUARTER | 0.671 | 0.669 | -0.3% |
+| MASK_IMAGE_CIRCLE_DOUBLE | 1.744 | 1.736 | -0.5% |
+| MASK_IMAGE_ROUND_RECT | 1.857 | 1.858 | +0.1% |
+| RECTANGLE_FILL | 0.395 | 0.395 | 0.0% |
+| IMAGE_565 | 0.859 | 0.859 | 0.0% |
+
+- `src/image/egui_image_std.c` now fixes the RGB565 circle/round-rect fixed-row edge helpers so their alpha fetch matches the existing fixed-row mask semantics in two cases: rows that are already past `item_count` now short-circuit to the fully opaque path with correct screen-bound clipping, and AA table reads now correctly switch to `EGUI_ALPHA_100` after `start_offset + valid_count` instead of reading past the valid AA span.
+- The circle fast path boundary helpers now return `0` once `row_index >= item_count`, which removes the mid-row left/right notch regression and keeps the cached visible/opaque spans consistent with the fixed-row blender behavior.
+- Render verification: `MASK_IMAGE_CIRCLE` single-test capture now matches the generic fallback pixel-for-pixel (`runtime_check_output/HelloPerformance_single_mask_image_circle_fix4/frame_0005.png` vs `runtime_check_output/HelloPerformance_single_mask_image_circle_generic/frame_0005.png` => `diff_rows=0`, `diff_pixels=0`).
+- Validation: `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots` => `ALL PASSED`; `python scripts/code_perf_check.py --profile cortex-m3` => `PASSED`; `make clean; make all APP=HelloUnitTest PORT=pc_test; output\\main.exe` => `554/554 passed`.
