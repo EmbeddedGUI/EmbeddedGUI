@@ -37,7 +37,8 @@
 | 25 | LINE_HQ: hoist inner_thresh + direct PFB write (all HQ line funcs) | LINE_HQ: 33.3→31.3ms (-6%), BEZIER_QUAD: 10.6→10.0ms (-6%), BEZIER_CUBIC: 9.2→8.7ms (-6%) | ef20ff4 |
 | 26 | ARC_FILL_HQ: per-scanline angle x-bounds (skip per-pixel angle check for interior) | ARC_FILL_HQ: 52.3→38.8ms (-26%) — **REVERTED: rendering artifacts** | afffb36 |
 | 27 | RECTANGLE_FILL row/block batching (aligned 32-bit repeated stores) | RECTANGLE_FILL: 1.132->0.395ms (-65%), IMAGE_565 no longer faster | 804ebfc |
-| 28 | Mask partial-row row-walker + circle mask cache | MASK_RECT_FILL_CIRCLE: 4.614->3.749ms (-18.7%), MASK_IMAGE_CIRCLE: 6.624->6.158ms (-7.0%) | WORKTREE |
+| 28 | Mask partial-row row-walker + circle mask cache | MASK_RECT_FILL_CIRCLE: 4.614->3.749ms (-18.7%), MASK_IMAGE_CIRCLE: 6.624->6.158ms (-7.0%) | 05c5a40 |
+| 29 | RGB565_8 resize masked-edge direct blend + full-alpha fast path | MASK_IMAGE_CIRCLE: 6.158->5.547ms (-9.9%), QUARTER: 1.715->1.564ms, DOUBLE: 5.540->4.942ms | WORKTREE |
 
 ## 2026-03-20 RECTANGLE_FILL batching round
 
@@ -74,6 +75,25 @@ QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
 
 - `src/core/egui_canvas.h` now uses a row-level masked segment walker for partial/fallback mask rows, which removes repeated point-level coordinate conversion and helper overhead.
 - `src/mask/egui_mask_circle.c` / `src/mask/egui_mask_circle.h` now cache circle center, radius, bounds and `egui_circle_info_t *`, so row queries and edge pixels stop recomputing the same geometry.
+- Validation after this round: `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots` returns `ALL PASSED`, `HelloUnitTest` remains `554/554 passed`, and screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` identical.
+
+## 2026-03-20 RGB565_8 masked resize edge round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| MASK_IMAGE_CIRCLE | 6.158 | 5.547 | -9.9% |
+| MASK_IMAGE_CIRCLE_QUARTER | 1.715 | 1.564 | -8.8% |
+| MASK_IMAGE_CIRCLE_DOUBLE | 5.540 | 4.942 | -10.8% |
+| MASK_IMAGE_ROUND_RECT | 3.635 | 3.620 | -0.4% |
+| MASK_IMAGE_ROUND_RECT_QUARTER | 1.094 | 1.091 | -0.3% |
+| MASK_IMAGE_ROUND_RECT_DOUBLE | 3.534 | 3.519 | -0.4% |
+| IMAGE_RESIZE_565_8 | 3.096 | 3.103 | +0.2% |
+| MASK_IMAGE_NO_MASK | 3.096 | 3.104 | +0.3% |
+
+- `src/image/egui_image_std.c` adds an alpha8 mapped-row fast path for `canvas_alpha == EGUI_ALPHA_100`, so the resize hot path stops paying an extra alpha-mix on already-full-opacity canvas draws.
+- `src/image/egui_image_std.c` also adds a masked edge-segment helper for `RGB565_8` resize draws, replacing left/right per-pixel `egui_canvas_draw_point_limit()` calls with direct PFB writes while keeping the original `mask_point -> canvas alpha mix -> blend` order.
 - Validation after this round: `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots` returns `ALL PASSED`, `HelloUnitTest` remains `554/554 passed`, and screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` identical.
 
 ## Before vs After (Original Baseline → Final)

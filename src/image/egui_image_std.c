@@ -376,6 +376,44 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_mapped_row(egui_c
 {
     egui_dim_t i = 0;
 
+    if (canvas_alpha == 0)
+    {
+        return;
+    }
+
+    if (canvas_alpha == EGUI_ALPHA_100)
+    {
+        while (i < count)
+        {
+            while (i < count && src_alpha_row[src_x_map[i]] == 0)
+            {
+                i++;
+            }
+
+            egui_dim_t opaque_start = i;
+            while (i < count && src_alpha_row[src_x_map[i]] == EGUI_ALPHA_100)
+            {
+                i++;
+            }
+
+            if (opaque_start < i)
+            {
+                egui_image_std_blend_rgb565_mapped_row(&dst_row[opaque_start], src_row, &src_x_map[opaque_start], i - opaque_start, EGUI_ALPHA_100);
+                continue;
+            }
+
+            if (i < count)
+            {
+                egui_dim_t src_x = src_x_map[i];
+                egui_color_t color;
+                color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
+                egui_image_std_blend_resize_pixel(&dst_row[i], color, src_alpha_row[src_x]);
+                i++;
+            }
+        }
+        return;
+    }
+
     while (i < count)
     {
         while (i < count && src_alpha_row[src_x_map[i]] == 0)
@@ -406,6 +444,71 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_mapped_row(egui_c
                 egui_image_std_blend_resize_pixel(&dst_row[i], color, alpha);
             }
             i++;
+        }
+    }
+}
+
+__EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_segment(egui_canvas_t *canvas, egui_color_int_t *dst_row, const uint16_t *src_row,
+                                                                                      const uint8_t *src_alpha_row, const egui_dim_t *src_x_map, egui_dim_t count,
+                                                                                      egui_dim_t screen_x, egui_dim_t screen_y, egui_alpha_t canvas_alpha)
+{
+    egui_mask_t *mask = canvas->mask;
+
+    if (mask == NULL || count == 0 || canvas_alpha == 0)
+    {
+        return;
+    }
+
+    if (canvas_alpha == EGUI_ALPHA_100)
+    {
+        for (egui_dim_t i = 0; i < count; i++)
+        {
+            egui_dim_t src_x = src_x_map[i];
+            egui_color_t color;
+            egui_alpha_t alpha = src_alpha_row[src_x];
+
+            color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
+            mask->api->mask_point(mask, screen_x + i, screen_y, &color, &alpha);
+
+            if (alpha == 0)
+            {
+                continue;
+            }
+
+            if (alpha == EGUI_ALPHA_100)
+            {
+                dst_row[i] = color.full;
+            }
+            else
+            {
+                egui_rgb_mix_ptr((egui_color_t *)&dst_row[i], &color, (egui_color_t *)&dst_row[i], alpha);
+            }
+        }
+        return;
+    }
+
+    for (egui_dim_t i = 0; i < count; i++)
+    {
+        egui_dim_t src_x = src_x_map[i];
+        egui_color_t color;
+        egui_alpha_t alpha = src_alpha_row[src_x];
+
+        color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
+        mask->api->mask_point(mask, screen_x + i, screen_y, &color, &alpha);
+        alpha = egui_color_alpha_mix(canvas_alpha, alpha);
+
+        if (alpha == 0)
+        {
+            continue;
+        }
+
+        if (alpha == EGUI_ALPHA_100)
+        {
+            dst_row[i] = color.full;
+        }
+        else
+        {
+            egui_rgb_mix_ptr((egui_color_t *)&dst_row[i], &color, (egui_color_t *)&dst_row[i], alpha);
         }
     }
 }
@@ -2274,12 +2377,14 @@ static void egui_image_std_set_image_resize_rgb565_8_common(const egui_image_t *
                     egui_dim_t vis_img_xs = EGUI_MAX(x, visible_x_start - x_base);
                     egui_dim_t vis_img_xe = EGUI_MIN(x_total, visible_x_end - x_base);
 
-                    for (egui_dim_t x_ = vis_img_xs; x_ < EGUI_MIN(rr_img_xs, vis_img_xe); x_++)
+                    egui_dim_t left_img_xe = EGUI_MIN(rr_img_xs, vis_img_xe);
+                    if (vis_img_xs < left_img_xe)
                     {
-                        egui_dim_t src_x = src_x_map[x_ - x];
-                        color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
-                        alpha = src_alpha_row[src_x];
-                        egui_canvas_draw_point_limit(x_base + x_, rr_sy, color, alpha);
+                        egui_dim_t left_offset = vis_img_xs - x;
+                        egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + (x_base + vis_img_xs - canvas->pfb_location_in_base_view.x)];
+
+                        egui_image_std_blend_rgb565_alpha8_masked_mapped_segment(canvas, dst_row, src_row, src_alpha_row, &src_x_map[left_offset],
+                                                                                left_img_xe - vis_img_xs, x_base + vis_img_xs, rr_sy, canvas_alpha);
                     }
 
                     if (rr_img_xs < rr_img_xe)
@@ -2291,12 +2396,14 @@ static void egui_image_std_set_image_resize_rgb565_8_common(const egui_image_t *
                         egui_image_std_blend_rgb565_alpha8_mapped_row(dst_row, src_row, src_alpha_row, &src_x_map[mid_offset], mid_count, canvas_alpha);
                     }
 
-                    for (egui_dim_t x_ = EGUI_MAX(rr_img_xe, vis_img_xs); x_ < vis_img_xe; x_++)
+                    egui_dim_t right_img_xs = EGUI_MAX(rr_img_xe, vis_img_xs);
+                    if (right_img_xs < vis_img_xe)
                     {
-                        egui_dim_t src_x = src_x_map[x_ - x];
-                        color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
-                        alpha = src_alpha_row[src_x];
-                        egui_canvas_draw_point_limit(x_base + x_, rr_sy, color, alpha);
+                        egui_dim_t right_offset = right_img_xs - x;
+                        egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + (x_base + right_img_xs - canvas->pfb_location_in_base_view.x)];
+
+                        egui_image_std_blend_rgb565_alpha8_masked_mapped_segment(canvas, dst_row, src_row, src_alpha_row, &src_x_map[right_offset],
+                                                                                vis_img_xe - right_img_xs, x_base + right_img_xs, rr_sy, canvas_alpha);
                     }
                 }
             }
