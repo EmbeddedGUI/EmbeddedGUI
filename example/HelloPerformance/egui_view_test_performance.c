@@ -797,6 +797,8 @@ static void ensure_perf_masks_initialized(void)
 
     // Gradient overlay mask (horizontal, red->blue, full overlay)
     egui_mask_gradient_init((egui_mask_t *)&perf_mask_gradient);
+    egui_mask_set_position((egui_mask_t *)&perf_mask_gradient, 0, 0);
+    egui_mask_set_size((egui_mask_t *)&perf_mask_gradient, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_mask_gradient_set_gradient((egui_mask_t *)&perf_mask_gradient, &perf_gradient_v);
     egui_mask_gradient_set_overlay_alpha((egui_mask_t *)&perf_mask_gradient, EGUI_ALPHA_100);
 }

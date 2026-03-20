@@ -287,44 +287,70 @@ static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t b
             }
             else
             {
-                for (egui_dim_t px = bx0; px < bx1; px++)
-                {
-                    uint32_t dx = (uint32_t)EGUI_ABS(px - cx);
-                    uint32_t sdx = dx << EGUI_SHADOW_DIST_SHIFT;
-                    uint32_t d_sq = sdx * sdx + sdy2;
+                /* Center-crossing: split into right half (cx→bx1) and left half (cx→bx0)
+                 * with incremental d² to avoid per-pixel ABS + multiply. */
 
-                    if (d_sq <= R_scaled_sq)
+                /* Macro for shadow pixel blending (direct PFB path) */
+                #define SHADOW_CORNER_BLEND_DIRECT(px_val, d_sq_val)                                            \
+                    do {                                                                                       \
+                        if ((d_sq_val) <= R_scaled_sq)                                                         \
+                        {                                                                                      \
+                            if (effective_center_opa > 0)                                                      \
+                            {                                                                                  \
+                                egui_color_t *back_color = &dst_base[(px_val)];                                \
+                                if (effective_center_opa == EGUI_ALPHA_100)                                    \
+                                    *back_color = color;                                                       \
+                                else                                                                           \
+                                    egui_rgb_mix_ptr(back_color, &color, back_color, effective_center_opa);    \
+                            }                                                                                  \
+                        }                                                                                      \
+                        else if ((d_sq_val) < RW_scaled_sq)                                                    \
+                        {                                                                                      \
+                            egui_alpha_t _a = dsq_alpha_lut[((d_sq_val) - R_scaled_sq) >> dsq_shift];          \
+                            if (_a > 0)                                                                        \
+                            {                                                                                  \
+                                egui_color_t *back_color = &dst_base[(px_val)];                                \
+                                if (_a == EGUI_ALPHA_100)                                                      \
+                                    *back_color = color;                                                       \
+                                else                                                                           \
+                                    egui_rgb_mix_ptr(back_color, &color, back_color, _a);                      \
+                            }                                                                                  \
+                        }                                                                                      \
+                    } while (0)
+
+                /* Right half: cx → bx1 (increasing dx) */
+                if (cx < bx1)
+                {
+                    egui_dim_t r_start = EGUI_MAX(cx, bx0);
+                    uint32_t rdx0 = (uint32_t)(r_start - cx) << EGUI_SHADOW_DIST_SHIFT;
+                    uint32_t rsdx2 = rdx0 * rdx0;
+                    int32_t r_delta = (int32_t)(sstep * ((rdx0 << 1) + sstep));
+                    int32_t r_delta_step = (int32_t)(sstep_sq << 1);
+                    for (egui_dim_t px = r_start; px < bx1; px++)
                     {
-                        if (effective_center_opa > 0)
-                        {
-                            egui_color_t *back_color = &dst_base[px];
-                            if (effective_center_opa == EGUI_ALPHA_100)
-                            {
-                                *back_color = color;
-                            }
-                            else
-                            {
-                                egui_rgb_mix_ptr(back_color, &color, back_color, effective_center_opa);
-                            }
-                        }
-                    }
-                    else if (d_sq < RW_scaled_sq)
-                    {
-                        egui_alpha_t alpha = dsq_alpha_lut[(d_sq - R_scaled_sq) >> dsq_shift];
-                        if (alpha > 0)
-                        {
-                            egui_color_t *back_color = &dst_base[px];
-                            if (alpha == EGUI_ALPHA_100)
-                            {
-                                *back_color = color;
-                            }
-                            else
-                            {
-                                egui_rgb_mix_ptr(back_color, &color, back_color, alpha);
-                            }
-                        }
+                        uint32_t d_sq = rsdx2 + sdy2;
+                        SHADOW_CORNER_BLEND_DIRECT(px, d_sq);
+                        rsdx2 = (uint32_t)((int32_t)rsdx2 + r_delta);
+                        r_delta += r_delta_step;
                     }
                 }
+                /* Left half: cx-1 → bx0 (increasing dx) */
+                if (cx - 1 >= bx0)
+                {
+                    egui_dim_t l_start = EGUI_MIN(cx - 1, bx1 - 1);
+                    uint32_t ldx0 = (uint32_t)(cx - l_start) << EGUI_SHADOW_DIST_SHIFT;
+                    uint32_t lsdx2 = ldx0 * ldx0;
+                    int32_t l_delta = (int32_t)(sstep * ((ldx0 << 1) + sstep));
+                    int32_t l_delta_step = (int32_t)(sstep_sq << 1);
+                    for (egui_dim_t px = l_start; px >= bx0; px--)
+                    {
+                        uint32_t d_sq = lsdx2 + sdy2;
+                        SHADOW_CORNER_BLEND_DIRECT(px, d_sq);
+                        lsdx2 = (uint32_t)((int32_t)lsdx2 + l_delta);
+                        l_delta += l_delta_step;
+                    }
+                }
+                #undef SHADOW_CORNER_BLEND_DIRECT
             }
         }
         return;
@@ -467,23 +493,53 @@ static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t b
         }
         else
         {
-            for (egui_dim_t px = bx0; px < bx1; px++)
+            /* Center-crossing: split into right and left incremental sweeps */
+            if (cx < bx1)
             {
-                uint32_t dx = (uint32_t)EGUI_ABS(px - cx);
-                uint32_t sdx = dx << EGUI_SHADOW_DIST_SHIFT;
-                uint32_t d_sq = sdx * sdx + sdy2;
-
-                if (d_sq <= R_scaled_sq)
+                egui_dim_t r_start = EGUI_MAX(cx, bx0);
+                uint32_t rdx0 = (uint32_t)(r_start - cx) << EGUI_SHADOW_DIST_SHIFT;
+                uint32_t rsdx2 = rdx0 * rdx0;
+                int32_t r_delta = (int32_t)(sstep * ((rdx0 << 1) + sstep));
+                int32_t r_delta_step = (int32_t)(sstep_sq << 1);
+                for (egui_dim_t px = r_start; px < bx1; px++)
                 {
-                    egui_canvas_draw_point_limit(px, py, color, center_opa);
-                }
-                else if (d_sq < RW_scaled_sq)
-                {
-                    egui_alpha_t alpha = fb_dsq_alpha_lut[(d_sq - R_scaled_sq) >> fb_dsq_shift];
-                    if (alpha > 0)
+                    uint32_t d_sq = rsdx2 + sdy2;
+                    if (d_sq <= R_scaled_sq)
                     {
-                        egui_canvas_draw_point_limit(px, py, color, alpha);
+                        egui_canvas_draw_point_limit(px, py, color, center_opa);
                     }
+                    else if (d_sq < RW_scaled_sq)
+                    {
+                        egui_alpha_t alp = fb_dsq_alpha_lut[(d_sq - R_scaled_sq) >> fb_dsq_shift];
+                        if (alp > 0)
+                            egui_canvas_draw_point_limit(px, py, color, alp);
+                    }
+                    rsdx2 = (uint32_t)((int32_t)rsdx2 + r_delta);
+                    r_delta += r_delta_step;
+                }
+            }
+            if (cx - 1 >= bx0)
+            {
+                egui_dim_t l_start = EGUI_MIN(cx - 1, bx1 - 1);
+                uint32_t ldx0 = (uint32_t)(cx - l_start) << EGUI_SHADOW_DIST_SHIFT;
+                uint32_t lsdx2 = ldx0 * ldx0;
+                int32_t l_delta = (int32_t)(sstep * ((ldx0 << 1) + sstep));
+                int32_t l_delta_step = (int32_t)(sstep_sq << 1);
+                for (egui_dim_t px = l_start; px >= bx0; px--)
+                {
+                    uint32_t d_sq = lsdx2 + sdy2;
+                    if (d_sq <= R_scaled_sq)
+                    {
+                        egui_canvas_draw_point_limit(px, py, color, center_opa);
+                    }
+                    else if (d_sq < RW_scaled_sq)
+                    {
+                        egui_alpha_t alp = fb_dsq_alpha_lut[(d_sq - R_scaled_sq) >> fb_dsq_shift];
+                        if (alp > 0)
+                            egui_canvas_draw_point_limit(px, py, color, alp);
+                    }
+                    lsdx2 = (uint32_t)((int32_t)lsdx2 + l_delta);
+                    l_delta += l_delta_step;
                 }
             }
         }
