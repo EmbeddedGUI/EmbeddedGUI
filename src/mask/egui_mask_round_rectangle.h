@@ -18,6 +18,8 @@ struct egui_mask_round_rectangle
 
 void egui_mask_round_rectangle_set_radius(egui_mask_t *self, egui_dim_t radius);
 void egui_mask_round_rectangle_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha);
+int egui_mask_round_rectangle_fill_row_segment(egui_mask_t *self, egui_color_int_t *dst, egui_dim_t y, egui_dim_t x_start, egui_dim_t x_end, egui_color_t color,
+                                               egui_alpha_t alpha);
 void egui_mask_round_rectangle_init(egui_mask_t *self);
 
 /* Ends C function definitions when using C++ */

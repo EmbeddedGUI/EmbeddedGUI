@@ -5,6 +5,7 @@
 #include "egui_region.h"
 #include "mask/egui_mask.h"
 #include "mask/egui_mask_circle.h"
+#include "mask/egui_mask_round_rectangle.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
@@ -503,6 +504,14 @@ __EGUI_STATIC_INLINE__ void egui_canvas_fill_masked_row_segment(egui_canvas_t *s
             }
         }
         return;
+    }
+
+    if (self->mask->api->mask_point == egui_mask_round_rectangle_mask_point)
+    {
+        if (egui_mask_round_rectangle_fill_row_segment(self->mask, dst, y, x_start, x_end, color, alpha))
+        {
+            return;
+        }
     }
 
     if (self->mask->api->mask_point == egui_mask_image_mask_point)

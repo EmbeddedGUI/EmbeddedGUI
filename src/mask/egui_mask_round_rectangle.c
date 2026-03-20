@@ -71,6 +71,129 @@ void egui_mask_round_rectangle_mask_point(egui_mask_t *self, egui_dim_t x, egui_
     *alpha = 0;
 }
 
+static void egui_mask_round_rectangle_blend_solid_row(egui_color_int_t *dst, egui_dim_t count, egui_color_t color, egui_alpha_t alpha)
+{
+    if (count <= 0 || alpha == 0)
+    {
+        return;
+    }
+
+    if (alpha == EGUI_ALPHA_100)
+    {
+        egui_canvas_fill_color_buffer(dst, count, color);
+        return;
+    }
+
+    for (egui_dim_t i = 0; i < count; i++)
+    {
+        egui_rgb_mix_ptr((egui_color_t *)&dst[i], &color, (egui_color_t *)&dst[i], alpha);
+    }
+}
+
+int egui_mask_round_rectangle_fill_row_segment(egui_mask_t *self, egui_color_int_t *dst, egui_dim_t y, egui_dim_t x_start, egui_dim_t x_end, egui_color_t color,
+                                               egui_alpha_t alpha)
+{
+    EGUI_LOCAL_INIT(egui_mask_round_rectangle_t);
+    egui_dim_t radius = local->radius;
+    egui_dim_t width = self->region.size.width;
+    egui_dim_t height = self->region.size.height;
+    egui_dim_t sel_x = self->region.location.x;
+    egui_dim_t sel_y = self->region.location.y;
+    egui_dim_t seg_start = EGUI_MAX(x_start, sel_x);
+    egui_dim_t seg_end = EGUI_MIN(x_end, sel_x + width);
+
+    if (y < sel_y || y >= sel_y + height || seg_start >= seg_end)
+    {
+        return 1;
+    }
+
+    if (radius <= 0 || (y >= sel_y + radius && y < sel_y + height - radius))
+    {
+        egui_mask_round_rectangle_blend_solid_row(dst + (seg_start - x_start), seg_end - seg_start, color, alpha);
+        return 1;
+    }
+
+    {
+        const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
+        const egui_circle_item_t *items;
+        egui_dim_t row_index;
+
+        if (info == NULL)
+        {
+            return 0;
+        }
+
+        items = (const egui_circle_item_t *)info->items;
+        row_index = (y < sel_y + radius) ? (y - sel_y) : (sel_y + height - 1 - y);
+
+        {
+            egui_dim_t left_end = EGUI_MIN(seg_end, sel_x + radius);
+            egui_color_int_t *left_dst = dst + (seg_start - x_start);
+            egui_dim_t corner_col = seg_start - sel_x;
+
+            for (egui_dim_t xp = seg_start; xp < left_end; xp++, left_dst++, corner_col++)
+            {
+                egui_alpha_t pixel_alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value_fixed_row(row_index, corner_col, info, items), alpha);
+
+                if (pixel_alpha == 0)
+                {
+                    continue;
+                }
+
+                if (pixel_alpha == EGUI_ALPHA_100)
+                {
+                    *left_dst = color.full;
+                }
+                else
+                {
+                    egui_rgb_mix_ptr((egui_color_t *)left_dst, &color, (egui_color_t *)left_dst, pixel_alpha);
+                }
+            }
+        }
+
+        {
+            egui_dim_t mid_start = EGUI_MAX(seg_start, sel_x + radius);
+            egui_dim_t mid_end = EGUI_MIN(seg_end, sel_x + width - radius);
+
+            if (mid_start < mid_end)
+            {
+                egui_mask_round_rectangle_blend_solid_row(dst + (mid_start - x_start), mid_end - mid_start, color, alpha);
+            }
+        }
+
+        {
+            egui_dim_t right_start = EGUI_MAX(seg_start, sel_x + width - radius);
+
+            if (right_start < seg_end)
+            {
+                egui_color_int_t *right_dst = dst + (right_start - x_start);
+                egui_dim_t corner_col = sel_x + width - 1 - right_start;
+
+                for (egui_dim_t xp = right_start; xp < seg_end; xp++, right_dst++, corner_col--)
+                {
+                    egui_alpha_t pixel_alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value_fixed_row(row_index, corner_col, info, items), alpha);
+
+                    if (pixel_alpha == 0)
+                    {
+                        continue;
+                    }
+
+                    if (pixel_alpha == EGUI_ALPHA_100)
+                    {
+                        *right_dst = color.full;
+                    }
+                    else
+                    {
+                        egui_rgb_mix_ptr((egui_color_t *)right_dst, &color, (egui_color_t *)right_dst, pixel_alpha);
+                    }
+                }
+            }
+        }
+    }
+
+    return 1;
+}
+
 // Compute the opaque boundary column for a circle corner quadrant at a given row.
 // Returns the first column index (in corner coords 0..radius-1) that is guaranteed fully opaque.
 static egui_dim_t egui_mask_circle_corner_get_opaque_boundary(egui_dim_t row_in_corner, const egui_circle_info_t *info)
