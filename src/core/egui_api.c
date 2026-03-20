@@ -123,7 +123,7 @@ uint32_t egui_api_timer_get_current(void)
 void egui_api_delay(uint32_t ms)
 {
     egui_platform_t *plat = egui_platform_get();
-    if(ms == 0)
+    if (ms == 0)
     {
         return;
     }

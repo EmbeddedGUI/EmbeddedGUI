@@ -5,13 +5,13 @@
 
 #include "egui.h"
 
-#define TEST_VIRTUAL_VIEWPORT_MAX_ITEMS 1280
+#define TEST_VIRTUAL_VIEWPORT_MAX_ITEMS        1280
 #define TEST_VIRTUAL_SECTION_LIST_MAX_SECTIONS 8
 #define TEST_VIRTUAL_SECTION_LIST_MAX_ITEMS    8
-#define TEST_VIRTUAL_GRID_MAX_POOL            (EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS * EGUI_VIEW_VIRTUAL_GRID_MAX_COLUMNS)
-#define TEST_VIRTUAL_TREE_MAX_ROOTS           4
-#define TEST_VIRTUAL_TREE_MAX_CHILDREN        4
-#define TEST_VIRTUAL_TREE_MAX_NODES           12
+#define TEST_VIRTUAL_GRID_MAX_POOL             (EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS * EGUI_VIEW_VIRTUAL_GRID_MAX_COLUMNS)
+#define TEST_VIRTUAL_TREE_MAX_ROOTS            4
+#define TEST_VIRTUAL_TREE_MAX_CHILDREN         4
+#define TEST_VIRTUAL_TREE_MAX_NODES            12
 
 typedef struct test_virtual_viewport_context test_virtual_viewport_context_t;
 typedef struct test_virtual_section_list_context test_virtual_section_list_context_t;
@@ -887,6 +887,22 @@ static void layout_strip(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_
 
 static void setup_viewport(uint32_t item_count, uint32_t keep_alive_id)
 {
+    const egui_view_virtual_viewport_params_t params = {
+            .region = {{0, 0}, {100, 60}},
+            .orientation = EGUI_VIEW_VIRTUAL_VIEWPORT_ORIENTATION_VERTICAL,
+            .overscan_before = 1,
+            .overscan_after = 1,
+            .max_keepalive_slots = 2,
+            .estimated_item_extent = 20,
+    };
+    const egui_view_virtual_viewport_setup_t setup = {
+            .params = &params,
+            .adapter = &test_adapter,
+            .adapter_context = &test_context,
+            .state_cache_max_entries = 0,
+            .state_cache_max_bytes = 0,
+    };
+
     memset(&test_viewport, 0, sizeof(test_viewport));
     memset(&test_context, 0, sizeof(test_context));
 
@@ -897,10 +913,7 @@ static void setup_viewport(uint32_t item_count, uint32_t keep_alive_id)
         test_context.keep_alive_count = 1;
     }
 
-    egui_view_virtual_viewport_init(EGUI_VIEW_OF(&test_viewport));
-    egui_view_virtual_viewport_set_adapter(EGUI_VIEW_OF(&test_viewport), &test_adapter, &test_context);
-    egui_view_virtual_viewport_set_overscan(EGUI_VIEW_OF(&test_viewport), 1, 1);
-    egui_view_virtual_viewport_set_estimated_item_extent(EGUI_VIEW_OF(&test_viewport), 20);
+    egui_view_virtual_viewport_init_with_setup(EGUI_VIEW_OF(&test_viewport), &setup);
     layout_viewport(0, 0, 100, 60);
 }
 
@@ -1259,18 +1272,7 @@ static int count_slots_with_state(uint8_t state)
 
 static const egui_view_virtual_viewport_slot_t *find_slot_by_stable_id(uint32_t stable_id)
 {
-    uint8_t i;
-
-    for (i = 0; i < EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS; i++)
-    {
-        const egui_view_virtual_viewport_slot_t *slot = egui_view_virtual_viewport_get_slot(EGUI_VIEW_OF(&test_viewport), i);
-        if (slot != NULL && slot->stable_id == stable_id)
-        {
-            return slot;
-        }
-    }
-
-    return NULL;
+    return egui_view_virtual_viewport_find_slot_by_stable_id(EGUI_VIEW_OF(&test_viewport), stable_id);
 }
 
 static int count_slots_by_stable_id(uint32_t stable_id)
@@ -1376,6 +1378,32 @@ static uint8_t count_visible_list_items_manual(void)
             continue;
         }
         if (!egui_view_virtual_list_get_slot_entry(EGUI_VIEW_OF(&test_list), slot_index, &entry))
+        {
+            continue;
+        }
+
+        count++;
+    }
+
+    return count;
+}
+
+static uint8_t count_visible_viewport_items_manual(void)
+{
+    uint8_t slot_count = egui_view_virtual_viewport_get_slot_count(EGUI_VIEW_OF(&test_viewport));
+    uint8_t slot_index;
+    uint8_t count = 0;
+
+    for (slot_index = 0; slot_index < slot_count; slot_index++)
+    {
+        egui_view_virtual_viewport_entry_t entry;
+        const egui_view_virtual_viewport_slot_t *slot = egui_view_virtual_viewport_get_slot(EGUI_VIEW_OF(&test_viewport), slot_index);
+
+        if (slot == NULL || slot->state != EGUI_VIEW_VIRTUAL_SLOT_STATE_VISIBLE || slot->view == NULL)
+        {
+            continue;
+        }
+        if (!egui_view_virtual_viewport_get_slot_entry(EGUI_VIEW_OF(&test_viewport), slot_index, &entry))
         {
             continue;
         }
@@ -1529,14 +1557,31 @@ static uint8_t count_visible_tree_nodes_manual(void)
     return count;
 }
 
+static uint8_t test_virtual_viewport_visit_visible_item(egui_view_t *self, const egui_view_virtual_viewport_slot_t *slot,
+                                                        const egui_view_virtual_viewport_entry_t *entry, egui_view_t *item_view, void *context)
+{
+    test_visible_visit_context_t *ctx = (test_visible_visit_context_t *)context;
+    egui_view_virtual_viewport_entry_t resolved;
+
+    if (slot == NULL || entry == NULL || slot->view != item_view || !egui_view_virtual_viewport_resolve_item_by_view(self, item_view, &resolved) ||
+        resolved.index != entry->index || resolved.stable_id != entry->stable_id || resolved.view_type != entry->view_type)
+    {
+        ctx->saw_bad_mapping = 1;
+    }
+
+    test_visible_visit_record(ctx, self, slot != NULL && slot->state == EGUI_VIEW_VIRTUAL_SLOT_STATE_VISIBLE, item_view,
+                              entry != NULL ? entry->stable_id : EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID);
+    return test_visible_visit_should_continue(ctx);
+}
+
 static uint8_t test_virtual_list_visit_visible_item(egui_view_t *self, const egui_view_virtual_list_slot_t *slot, const egui_view_virtual_list_entry_t *entry,
                                                     egui_view_t *item_view, void *context)
 {
     test_visible_visit_context_t *ctx = (test_visible_visit_context_t *)context;
     egui_view_virtual_list_entry_t resolved;
 
-    if (slot == NULL || entry == NULL || slot->view != item_view ||
-        !egui_view_virtual_list_resolve_item_by_view(self, item_view, &resolved) || resolved.index != entry->index || resolved.stable_id != entry->stable_id)
+    if (slot == NULL || entry == NULL || slot->view != item_view || !egui_view_virtual_list_resolve_item_by_view(self, item_view, &resolved) ||
+        resolved.index != entry->index || resolved.stable_id != entry->stable_id)
     {
         ctx->saw_bad_mapping = 1;
     }
@@ -1546,14 +1591,14 @@ static uint8_t test_virtual_list_visit_visible_item(egui_view_t *self, const egu
     return test_visible_visit_should_continue(ctx);
 }
 
-static uint8_t test_virtual_strip_visit_visible_item(egui_view_t *self, const egui_view_virtual_strip_slot_t *slot, const egui_view_virtual_strip_entry_t *entry,
-                                                     egui_view_t *item_view, void *context)
+static uint8_t test_virtual_strip_visit_visible_item(egui_view_t *self, const egui_view_virtual_strip_slot_t *slot,
+                                                     const egui_view_virtual_strip_entry_t *entry, egui_view_t *item_view, void *context)
 {
     test_visible_visit_context_t *ctx = (test_visible_visit_context_t *)context;
     egui_view_virtual_strip_entry_t resolved;
 
-    if (slot == NULL || entry == NULL || slot->view != item_view ||
-        !egui_view_virtual_strip_resolve_item_by_view(self, item_view, &resolved) || resolved.index != entry->index || resolved.stable_id != entry->stable_id)
+    if (slot == NULL || entry == NULL || slot->view != item_view || !egui_view_virtual_strip_resolve_item_by_view(self, item_view, &resolved) ||
+        resolved.index != entry->index || resolved.stable_id != entry->stable_id)
     {
         ctx->saw_bad_mapping = 1;
     }
@@ -1563,14 +1608,14 @@ static uint8_t test_virtual_strip_visit_visible_item(egui_view_t *self, const eg
     return test_visible_visit_should_continue(ctx);
 }
 
-static uint8_t test_virtual_page_visit_visible_section(egui_view_t *self, const egui_view_virtual_page_slot_t *slot, const egui_view_virtual_page_entry_t *entry,
-                                                       egui_view_t *section_view, void *context)
+static uint8_t test_virtual_page_visit_visible_section(egui_view_t *self, const egui_view_virtual_page_slot_t *slot,
+                                                       const egui_view_virtual_page_entry_t *entry, egui_view_t *section_view, void *context)
 {
     test_visible_visit_context_t *ctx = (test_visible_visit_context_t *)context;
     egui_view_virtual_page_entry_t resolved;
 
-    if (slot == NULL || entry == NULL || slot->view != section_view ||
-        !egui_view_virtual_page_resolve_section_by_view(self, section_view, &resolved) || resolved.index != entry->index || resolved.stable_id != entry->stable_id)
+    if (slot == NULL || entry == NULL || slot->view != section_view || !egui_view_virtual_page_resolve_section_by_view(self, section_view, &resolved) ||
+        resolved.index != entry->index || resolved.stable_id != entry->stable_id)
     {
         ctx->saw_bad_mapping = 1;
     }
@@ -1650,6 +1695,17 @@ typedef struct test_tree_node_match_context
     uint8_t want_branch;
     uint8_t min_depth;
 } test_tree_node_match_context_t;
+
+static uint8_t test_virtual_viewport_match_item(egui_view_t *self, const egui_view_virtual_viewport_slot_t *slot,
+                                                const egui_view_virtual_viewport_entry_t *entry, egui_view_t *item_view, void *context)
+{
+    test_min_index_match_context_t *ctx = (test_min_index_match_context_t *)context;
+
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(slot);
+    EGUI_UNUSED(item_view);
+    return (uint8_t)(entry != NULL && entry->index >= ctx->min_index);
+}
 
 static uint8_t test_virtual_list_match_item(egui_view_t *self, const egui_view_virtual_list_slot_t *slot, const egui_view_virtual_list_entry_t *entry,
                                             egui_view_t *item_view, void *context)
@@ -1933,14 +1989,186 @@ static void test_virtual_viewport_duplicate_keepalive_slot_is_recycled(void)
     EGUI_TEST_ASSERT_TRUE(duplicate_slot->state != EGUI_VIEW_VIRTUAL_SLOT_STATE_KEEPALIVE);
 }
 
+static void test_virtual_viewport_setup_and_lookup_helpers(void)
+{
+    egui_view_virtual_viewport_entry_t entry;
+    egui_view_virtual_viewport_setup_t setup;
+    const egui_view_virtual_viewport_slot_t *slot;
+    egui_view_t *item_view;
+    int32_t slot_index;
+
+    EGUI_VIEW_VIRTUAL_VIEWPORT_PARAMS_INIT(test_viewport_params, 0, 0, 100, 60);
+    EGUI_VIEW_VIRTUAL_VIEWPORT_SETUP_INIT(test_viewport_setup_defaults, &test_viewport_params, &test_adapter, &test_context);
+
+    memset(&test_viewport, 0, sizeof(test_viewport));
+    memset(&test_context, 0, sizeof(test_context));
+    reset_test_items(40, 20);
+
+    setup = test_viewport_setup_defaults;
+    setup.state_cache_max_entries = 5;
+    setup.state_cache_max_bytes = 20;
+
+    egui_view_virtual_viewport_init_with_setup(EGUI_VIEW_OF(&test_viewport), &setup);
+    layout_viewport(0, 0, 100, 60);
+
+    EGUI_TEST_ASSERT_TRUE(egui_view_virtual_viewport_get_adapter(EGUI_VIEW_OF(&test_viewport)) == &test_adapter);
+    EGUI_TEST_ASSERT_TRUE(egui_view_virtual_viewport_get_adapter_context(EGUI_VIEW_OF(&test_viewport)) == &test_context);
+    EGUI_TEST_ASSERT_EQUAL_INT(5, egui_view_virtual_viewport_get_state_cache_entry_limit(EGUI_VIEW_OF(&test_viewport)));
+    EGUI_TEST_ASSERT_EQUAL_INT(20, egui_view_virtual_viewport_get_state_cache_byte_limit(EGUI_VIEW_OF(&test_viewport)));
+
+    EGUI_TEST_ASSERT_EQUAL_INT(20, egui_view_virtual_viewport_find_item_index_by_stable_id(EGUI_VIEW_OF(&test_viewport), 1020));
+    EGUI_TEST_ASSERT_TRUE(egui_view_virtual_viewport_resolve_item_by_stable_id(EGUI_VIEW_OF(&test_viewport), 1020, &entry));
+    EGUI_TEST_ASSERT_EQUAL_INT(20, entry.index);
+    EGUI_TEST_ASSERT_EQUAL_INT(1020, entry.stable_id);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, entry.view_type);
+    EGUI_TEST_ASSERT_FALSE(egui_view_virtual_viewport_resolve_item_by_stable_id(EGUI_VIEW_OF(&test_viewport), 999999, &entry));
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID, entry.index);
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID, entry.stable_id);
+
+    slot_index = egui_view_virtual_viewport_find_slot_index_by_stable_id(EGUI_VIEW_OF(&test_viewport), 1000);
+    EGUI_TEST_ASSERT_TRUE(slot_index >= 0);
+    EGUI_TEST_ASSERT_EQUAL_INT(-1, egui_view_virtual_viewport_find_slot_index_by_stable_id(EGUI_VIEW_OF(&test_viewport), 999999));
+
+    slot = egui_view_virtual_viewport_find_slot_by_stable_id(EGUI_VIEW_OF(&test_viewport), 1000);
+    EGUI_TEST_ASSERT_NOT_NULL(slot);
+    EGUI_TEST_ASSERT_TRUE(slot == egui_view_virtual_viewport_get_slot(EGUI_VIEW_OF(&test_viewport), (uint8_t)slot_index));
+    EGUI_TEST_ASSERT_NULL(egui_view_virtual_viewport_find_slot_by_stable_id(EGUI_VIEW_OF(&test_viewport), 999999));
+
+    item_view = egui_view_virtual_viewport_find_view_by_stable_id(EGUI_VIEW_OF(&test_viewport), 1000);
+    EGUI_TEST_ASSERT_TRUE(item_view == slot->view);
+    EGUI_TEST_ASSERT_NULL(egui_view_virtual_viewport_find_view_by_stable_id(EGUI_VIEW_OF(&test_viewport), 999999));
+
+    EGUI_TEST_ASSERT_TRUE(egui_view_virtual_viewport_get_slot_entry(EGUI_VIEW_OF(&test_viewport), (uint8_t)slot_index, &entry));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, entry.index);
+    EGUI_TEST_ASSERT_EQUAL_INT(1000, entry.stable_id);
+    EGUI_TEST_ASSERT_TRUE(egui_view_virtual_viewport_resolve_item_by_view(EGUI_VIEW_OF(&test_viewport), item_view, &entry));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, entry.index);
+    EGUI_TEST_ASSERT_EQUAL_INT(1000, entry.stable_id);
+    EGUI_TEST_ASSERT_FALSE(egui_view_virtual_viewport_resolve_item_by_view(EGUI_VIEW_OF(&test_viewport), NULL, &entry));
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID, entry.index);
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID, entry.stable_id);
+}
+
+static void test_virtual_viewport_visit_visible_items_helper(void)
+{
+    test_visible_visit_context_t ctx;
+    uint8_t manual_count;
+
+    setup_viewport(40, EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID);
+    egui_view_virtual_viewport_set_logical_offset(EGUI_VIEW_OF(&test_viewport), 55);
+    EGUI_VIEW_OF(&test_viewport)->api->calculate_layout(EGUI_VIEW_OF(&test_viewport));
+
+    manual_count = count_visible_viewport_items_manual();
+    EGUI_TEST_ASSERT_TRUE(manual_count >= 2);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_virtual_viewport_visit_visible_items(EGUI_VIEW_OF(&test_viewport), NULL, NULL));
+
+    memset(&ctx, 0, sizeof(ctx));
+    ctx.expected_self = EGUI_VIEW_OF(&test_viewport);
+    EGUI_TEST_ASSERT_EQUAL_INT(manual_count,
+                               egui_view_virtual_viewport_visit_visible_items(EGUI_VIEW_OF(&test_viewport), test_virtual_viewport_visit_visible_item, &ctx));
+    EGUI_TEST_ASSERT_EQUAL_INT(manual_count, ctx.visited);
+    test_visible_visit_assert_ok(&ctx);
+
+    memset(&ctx, 0, sizeof(ctx));
+    ctx.expected_self = EGUI_VIEW_OF(&test_viewport);
+    ctx.stop_after = 2;
+    EGUI_TEST_ASSERT_EQUAL_INT(2,
+                               egui_view_virtual_viewport_visit_visible_items(EGUI_VIEW_OF(&test_viewport), test_virtual_viewport_visit_visible_item, &ctx));
+    EGUI_TEST_ASSERT_EQUAL_INT(2, ctx.visited);
+    test_visible_visit_assert_ok(&ctx);
+}
+
+static void test_virtual_viewport_find_first_visible_item_view_helper(void)
+{
+    egui_view_virtual_viewport_entry_t expected_entry = {EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID, EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID, 0};
+    egui_view_virtual_viewport_entry_t actual_entry;
+    egui_view_t *expected_view = NULL;
+    egui_view_t *actual_view;
+    test_min_index_match_context_t match_ctx = {.min_index = 3};
+    uint8_t slot_count;
+    uint8_t slot_index;
+
+    setup_viewport(40, EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID);
+    egui_view_virtual_viewport_set_logical_offset(EGUI_VIEW_OF(&test_viewport), 55);
+    EGUI_VIEW_OF(&test_viewport)->api->calculate_layout(EGUI_VIEW_OF(&test_viewport));
+
+    slot_count = egui_view_virtual_viewport_get_slot_count(EGUI_VIEW_OF(&test_viewport));
+    for (slot_index = 0; slot_index < slot_count; slot_index++)
+    {
+        egui_view_virtual_viewport_entry_t entry;
+        const egui_view_virtual_viewport_slot_t *slot = egui_view_virtual_viewport_get_slot(EGUI_VIEW_OF(&test_viewport), slot_index);
+
+        if (slot == NULL || slot->state != EGUI_VIEW_VIRTUAL_SLOT_STATE_VISIBLE || slot->view == NULL ||
+            !egui_view_virtual_viewport_get_slot_entry(EGUI_VIEW_OF(&test_viewport), slot_index, &entry))
+        {
+            continue;
+        }
+        if (expected_view == NULL || entry.index < expected_entry.index)
+        {
+            expected_entry = entry;
+            expected_view = slot->view;
+        }
+    }
+
+    EGUI_TEST_ASSERT_NOT_NULL(expected_view);
+    actual_view = egui_view_virtual_viewport_find_first_visible_item_view(EGUI_VIEW_OF(&test_viewport), NULL, NULL, &actual_entry);
+    EGUI_TEST_ASSERT_TRUE(actual_view == expected_view);
+    EGUI_TEST_ASSERT_EQUAL_INT(expected_entry.index, actual_entry.index);
+    EGUI_TEST_ASSERT_EQUAL_INT(expected_entry.stable_id, actual_entry.stable_id);
+    EGUI_TEST_ASSERT_EQUAL_INT(expected_entry.view_type, actual_entry.view_type);
+
+    expected_view = NULL;
+    expected_entry.index = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
+    expected_entry.stable_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
+    expected_entry.view_type = 0;
+    for (slot_index = 0; slot_index < slot_count; slot_index++)
+    {
+        egui_view_virtual_viewport_entry_t entry;
+        const egui_view_virtual_viewport_slot_t *slot = egui_view_virtual_viewport_get_slot(EGUI_VIEW_OF(&test_viewport), slot_index);
+
+        if (slot == NULL || slot->state != EGUI_VIEW_VIRTUAL_SLOT_STATE_VISIBLE || slot->view == NULL ||
+            !egui_view_virtual_viewport_get_slot_entry(EGUI_VIEW_OF(&test_viewport), slot_index, &entry) || entry.index < match_ctx.min_index)
+        {
+            continue;
+        }
+        if (expected_view == NULL || entry.index < expected_entry.index)
+        {
+            expected_entry = entry;
+            expected_view = slot->view;
+        }
+    }
+
+    EGUI_TEST_ASSERT_NOT_NULL(expected_view);
+    actual_view = egui_view_virtual_viewport_find_first_visible_item_view(EGUI_VIEW_OF(&test_viewport), test_virtual_viewport_match_item, &match_ctx,
+                                                                          &actual_entry);
+    EGUI_TEST_ASSERT_TRUE(actual_view == expected_view);
+    EGUI_TEST_ASSERT_EQUAL_INT(expected_entry.index, actual_entry.index);
+    EGUI_TEST_ASSERT_EQUAL_INT(expected_entry.stable_id, actual_entry.stable_id);
+    EGUI_TEST_ASSERT_EQUAL_INT(expected_entry.view_type, actual_entry.view_type);
+}
+
+static void test_virtual_viewport_ensure_visible_helper(void)
+{
+    setup_viewport(40, EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID);
+
+    EGUI_TEST_ASSERT_FALSE(egui_view_virtual_viewport_ensure_item_visible_by_stable_id(EGUI_VIEW_OF(&test_viewport), 999999, 7));
+
+    EGUI_TEST_ASSERT_TRUE(egui_view_virtual_viewport_ensure_item_visible_by_stable_id(EGUI_VIEW_OF(&test_viewport), 1020, 7));
+    EGUI_TEST_ASSERT_EQUAL_INT(407, egui_view_virtual_viewport_get_logical_offset(EGUI_VIEW_OF(&test_viewport)));
+    EGUI_VIEW_OF(&test_viewport)->api->calculate_layout(EGUI_VIEW_OF(&test_viewport));
+
+    EGUI_TEST_ASSERT_TRUE(egui_view_virtual_viewport_ensure_item_visible_by_stable_id(EGUI_VIEW_OF(&test_viewport), 1020, 7));
+    EGUI_TEST_ASSERT_EQUAL_INT(407, egui_view_virtual_viewport_get_logical_offset(EGUI_VIEW_OF(&test_viewport)));
+}
+
 static void test_virtual_list_data_source_defaults_bridge_viewport_adapter(void)
 {
     setup_list_with_data_source(40);
 
     EGUI_TEST_ASSERT_TRUE(egui_view_virtual_list_get_data_source(EGUI_VIEW_OF(&test_list)) == &test_list_data_source);
     EGUI_TEST_ASSERT_TRUE(egui_view_virtual_list_get_data_source_context(EGUI_VIEW_OF(&test_list)) == &test_context);
-    EGUI_TEST_ASSERT_EQUAL_INT(3, egui_view_virtual_viewport_get_state_cache_entry_limit(EGUI_VIEW_OF(&test_list)));
-    EGUI_TEST_ASSERT_EQUAL_INT(12, egui_view_virtual_viewport_get_state_cache_byte_limit(EGUI_VIEW_OF(&test_list)));
+    EGUI_TEST_ASSERT_EQUAL_INT(3, egui_view_virtual_list_get_state_cache_entry_limit(EGUI_VIEW_OF(&test_list)));
+    EGUI_TEST_ASSERT_EQUAL_INT(12, egui_view_virtual_list_get_state_cache_byte_limit(EGUI_VIEW_OF(&test_list)));
 
     egui_view_virtual_list_set_scroll_y(EGUI_VIEW_OF(&test_list), 407);
     EGUI_VIEW_OF(&test_list)->api->calculate_layout(EGUI_VIEW_OF(&test_list));
@@ -2045,8 +2273,7 @@ static void test_virtual_list_visit_visible_items_helper(void)
 
     memset(&ctx, 0, sizeof(ctx));
     ctx.expected_self = EGUI_VIEW_OF(&test_list);
-    EGUI_TEST_ASSERT_EQUAL_INT(manual_count,
-                               egui_view_virtual_list_visit_visible_items(EGUI_VIEW_OF(&test_list), test_virtual_list_visit_visible_item, &ctx));
+    EGUI_TEST_ASSERT_EQUAL_INT(manual_count, egui_view_virtual_list_visit_visible_items(EGUI_VIEW_OF(&test_list), test_virtual_list_visit_visible_item, &ctx));
     EGUI_TEST_ASSERT_EQUAL_INT(manual_count, ctx.visited);
     test_visible_visit_assert_ok(&ctx);
 
@@ -2148,8 +2375,8 @@ static void test_virtual_strip_bridge_and_lookup_helpers(void)
 
     EGUI_TEST_ASSERT_TRUE(egui_view_virtual_strip_get_data_source(EGUI_VIEW_OF(&test_strip)) == &test_strip_data_source);
     EGUI_TEST_ASSERT_TRUE(egui_view_virtual_strip_get_data_source_context(EGUI_VIEW_OF(&test_strip)) == &test_context);
-    EGUI_TEST_ASSERT_EQUAL_INT(4, egui_view_virtual_viewport_get_state_cache_entry_limit(EGUI_VIEW_OF(&test_strip)));
-    EGUI_TEST_ASSERT_EQUAL_INT(16, egui_view_virtual_viewport_get_state_cache_byte_limit(EGUI_VIEW_OF(&test_strip)));
+    EGUI_TEST_ASSERT_EQUAL_INT(4, egui_view_virtual_strip_get_state_cache_entry_limit(EGUI_VIEW_OF(&test_strip)));
+    EGUI_TEST_ASSERT_EQUAL_INT(16, egui_view_virtual_strip_get_state_cache_byte_limit(EGUI_VIEW_OF(&test_strip)));
     EGUI_TEST_ASSERT_EQUAL_INT(6, egui_view_virtual_strip_get_item_count(EGUI_VIEW_OF(&test_strip)));
     EGUI_TEST_ASSERT_EQUAL_INT(4, egui_view_virtual_strip_find_index_by_stable_id(EGUI_VIEW_OF(&test_strip), 8104));
     EGUI_TEST_ASSERT_EQUAL_INT(-1, egui_view_virtual_strip_find_index_by_stable_id(EGUI_VIEW_OF(&test_strip), 999999));
@@ -2349,8 +2576,8 @@ static void test_virtual_page_data_source_defaults_bridge_viewport_adapter(void)
 
     EGUI_TEST_ASSERT_TRUE(egui_view_virtual_page_get_data_source(EGUI_VIEW_OF(&test_page)) == &test_page_data_source);
     EGUI_TEST_ASSERT_TRUE(egui_view_virtual_page_get_data_source_context(EGUI_VIEW_OF(&test_page)) == &test_context);
-    EGUI_TEST_ASSERT_EQUAL_INT(5, egui_view_virtual_viewport_get_state_cache_entry_limit(EGUI_VIEW_OF(&test_page)));
-    EGUI_TEST_ASSERT_EQUAL_INT(20, egui_view_virtual_viewport_get_state_cache_byte_limit(EGUI_VIEW_OF(&test_page)));
+    EGUI_TEST_ASSERT_EQUAL_INT(5, egui_view_virtual_page_get_state_cache_entry_limit(EGUI_VIEW_OF(&test_page)));
+    EGUI_TEST_ASSERT_EQUAL_INT(20, egui_view_virtual_page_get_state_cache_byte_limit(EGUI_VIEW_OF(&test_page)));
 
     egui_view_virtual_page_set_scroll_y(EGUI_VIEW_OF(&test_page), 407);
     EGUI_VIEW_OF(&test_page)->api->calculate_layout(EGUI_VIEW_OF(&test_page));
@@ -2463,8 +2690,7 @@ static void test_virtual_page_visit_visible_sections_helper(void)
     memset(&ctx, 0, sizeof(ctx));
     ctx.expected_self = EGUI_VIEW_OF(&test_page);
     ctx.stop_after = 2;
-    EGUI_TEST_ASSERT_EQUAL_INT(2,
-                               egui_view_virtual_page_visit_visible_sections(EGUI_VIEW_OF(&test_page), test_virtual_page_visit_visible_section, &ctx));
+    EGUI_TEST_ASSERT_EQUAL_INT(2, egui_view_virtual_page_visit_visible_sections(EGUI_VIEW_OF(&test_page), test_virtual_page_visit_visible_section, &ctx));
     EGUI_TEST_ASSERT_EQUAL_INT(2, ctx.visited);
     test_visible_visit_assert_ok(&ctx);
 }
@@ -2560,16 +2786,15 @@ static void test_virtual_section_list_bridge_and_lookup_helpers(void)
 
     EGUI_TEST_ASSERT_TRUE(egui_view_virtual_section_list_get_data_source(EGUI_VIEW_OF(&test_section_list)) == &test_section_list_data_source);
     EGUI_TEST_ASSERT_TRUE(egui_view_virtual_section_list_get_data_source_context(EGUI_VIEW_OF(&test_section_list)) == &test_section_list_context);
-    EGUI_TEST_ASSERT_EQUAL_INT(6, egui_view_virtual_viewport_get_state_cache_entry_limit(EGUI_VIEW_OF(&test_section_list)));
-    EGUI_TEST_ASSERT_EQUAL_INT(24, egui_view_virtual_viewport_get_state_cache_byte_limit(EGUI_VIEW_OF(&test_section_list)));
+    EGUI_TEST_ASSERT_EQUAL_INT(6, egui_view_virtual_section_list_get_state_cache_entry_limit(EGUI_VIEW_OF(&test_section_list)));
+    EGUI_TEST_ASSERT_EQUAL_INT(24, egui_view_virtual_section_list_get_state_cache_byte_limit(EGUI_VIEW_OF(&test_section_list)));
     EGUI_TEST_ASSERT_TRUE(test_section_list_context.created_count <= EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS);
     EGUI_TEST_ASSERT_TRUE(test_section_list_context.bind_count > 0);
     EGUI_TEST_ASSERT_EQUAL_INT(3, egui_view_virtual_section_list_get_section_count(EGUI_VIEW_OF(&test_section_list)));
     EGUI_TEST_ASSERT_EQUAL_INT(3, egui_view_virtual_section_list_get_item_count(EGUI_VIEW_OF(&test_section_list), 1));
 
     EGUI_TEST_ASSERT_EQUAL_INT(1, egui_view_virtual_section_list_find_section_index_by_stable_id(EGUI_VIEW_OF(&test_section_list), 2200));
-    EGUI_TEST_ASSERT_TRUE(
-            egui_view_virtual_section_list_find_item_position_by_stable_id(EGUI_VIEW_OF(&test_section_list), 3201, &section_index, &item_index));
+    EGUI_TEST_ASSERT_TRUE(egui_view_virtual_section_list_find_item_position_by_stable_id(EGUI_VIEW_OF(&test_section_list), 3201, &section_index, &item_index));
     EGUI_TEST_ASSERT_EQUAL_INT(1, section_index);
     EGUI_TEST_ASSERT_EQUAL_INT(1, item_index);
     EGUI_TEST_ASSERT_TRUE(egui_view_virtual_section_list_resolve_entry_by_stable_id(EGUI_VIEW_OF(&test_section_list), 2200, &entry));
@@ -2681,8 +2906,8 @@ static void test_virtual_section_list_visit_visible_entries_helper(void)
 
     memset(&ctx, 0, sizeof(ctx));
     ctx.expected_self = EGUI_VIEW_OF(&test_section_list);
-    EGUI_TEST_ASSERT_EQUAL_INT(
-            manual_count, egui_view_virtual_section_list_visit_visible_entries(EGUI_VIEW_OF(&test_section_list), test_virtual_section_list_visit_visible_entry, &ctx));
+    EGUI_TEST_ASSERT_EQUAL_INT(manual_count, egui_view_virtual_section_list_visit_visible_entries(EGUI_VIEW_OF(&test_section_list),
+                                                                                                  test_virtual_section_list_visit_visible_entry, &ctx));
     EGUI_TEST_ASSERT_EQUAL_INT(manual_count, ctx.visited);
     test_visible_visit_assert_ok(&ctx);
 
@@ -2795,8 +3020,8 @@ static void test_virtual_grid_bridge_and_lookup_helpers(void)
 
     EGUI_TEST_ASSERT_TRUE(egui_view_virtual_grid_get_data_source(EGUI_VIEW_OF(&test_grid)) == &test_grid_data_source);
     EGUI_TEST_ASSERT_TRUE(egui_view_virtual_grid_get_data_source_context(EGUI_VIEW_OF(&test_grid)) == &test_grid_context);
-    EGUI_TEST_ASSERT_EQUAL_INT(7, egui_view_virtual_viewport_get_state_cache_entry_limit(EGUI_VIEW_OF(&test_grid)));
-    EGUI_TEST_ASSERT_EQUAL_INT(28, egui_view_virtual_viewport_get_state_cache_byte_limit(EGUI_VIEW_OF(&test_grid)));
+    EGUI_TEST_ASSERT_EQUAL_INT(7, egui_view_virtual_grid_get_state_cache_entry_limit(EGUI_VIEW_OF(&test_grid)));
+    EGUI_TEST_ASSERT_EQUAL_INT(28, egui_view_virtual_grid_get_state_cache_byte_limit(EGUI_VIEW_OF(&test_grid)));
     EGUI_TEST_ASSERT_TRUE(test_grid_context.created_count > 0);
     EGUI_TEST_ASSERT_TRUE(test_grid_context.bind_count > 0);
     EGUI_TEST_ASSERT_EQUAL_INT(8, egui_view_virtual_grid_get_item_count(EGUI_VIEW_OF(&test_grid)));
@@ -2887,8 +3112,7 @@ static void test_virtual_grid_visit_visible_items_helper(void)
 
     memset(&ctx, 0, sizeof(ctx));
     ctx.expected_self = EGUI_VIEW_OF(&test_grid);
-    EGUI_TEST_ASSERT_EQUAL_INT(manual_count,
-                               egui_view_virtual_grid_visit_visible_items(EGUI_VIEW_OF(&test_grid), test_virtual_grid_visit_visible_item, &ctx));
+    EGUI_TEST_ASSERT_EQUAL_INT(manual_count, egui_view_virtual_grid_visit_visible_items(EGUI_VIEW_OF(&test_grid), test_virtual_grid_visit_visible_item, &ctx));
     EGUI_TEST_ASSERT_EQUAL_INT(manual_count, ctx.visited);
     test_visible_visit_assert_ok(&ctx);
 
@@ -3028,8 +3252,8 @@ static void test_virtual_tree_bridge_and_lookup_helpers(void)
 
     EGUI_TEST_ASSERT_TRUE(egui_view_virtual_tree_get_data_source(EGUI_VIEW_OF(&test_tree)) == &test_tree_data_source);
     EGUI_TEST_ASSERT_TRUE(egui_view_virtual_tree_get_data_source_context(EGUI_VIEW_OF(&test_tree)) == &test_tree_context);
-    EGUI_TEST_ASSERT_EQUAL_INT(8, egui_view_virtual_viewport_get_state_cache_entry_limit(EGUI_VIEW_OF(&test_tree)));
-    EGUI_TEST_ASSERT_EQUAL_INT(32, egui_view_virtual_viewport_get_state_cache_byte_limit(EGUI_VIEW_OF(&test_tree)));
+    EGUI_TEST_ASSERT_EQUAL_INT(8, egui_view_virtual_tree_get_state_cache_entry_limit(EGUI_VIEW_OF(&test_tree)));
+    EGUI_TEST_ASSERT_EQUAL_INT(32, egui_view_virtual_tree_get_state_cache_byte_limit(EGUI_VIEW_OF(&test_tree)));
     EGUI_TEST_ASSERT_TRUE(test_tree_context.created_count <= EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS);
     EGUI_TEST_ASSERT_TRUE(test_tree_context.bind_count > 0);
     EGUI_TEST_ASSERT_EQUAL_INT(2, egui_view_virtual_tree_get_root_count(EGUI_VIEW_OF(&test_tree)));
@@ -3141,8 +3365,7 @@ static void test_virtual_tree_visit_visible_nodes_helper(void)
 
     memset(&ctx, 0, sizeof(ctx));
     ctx.expected_self = EGUI_VIEW_OF(&test_tree);
-    EGUI_TEST_ASSERT_EQUAL_INT(manual_count,
-                               egui_view_virtual_tree_visit_visible_nodes(EGUI_VIEW_OF(&test_tree), test_virtual_tree_visit_visible_node, &ctx));
+    EGUI_TEST_ASSERT_EQUAL_INT(manual_count, egui_view_virtual_tree_visit_visible_nodes(EGUI_VIEW_OF(&test_tree), test_virtual_tree_visit_visible_node, &ctx));
     EGUI_TEST_ASSERT_EQUAL_INT(manual_count, ctx.visited);
     test_visible_visit_assert_ok(&ctx);
 
@@ -3156,8 +3379,8 @@ static void test_virtual_tree_visit_visible_nodes_helper(void)
 
 static void test_virtual_tree_find_first_visible_node_view_helper(void)
 {
-    egui_view_virtual_tree_entry_t expected_entry = {EGUI_VIEW_VIRTUAL_TREE_INVALID_INDEX, EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID,
-                                                     EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID, 0, 0, 0, 0};
+    egui_view_virtual_tree_entry_t expected_entry = {
+            EGUI_VIEW_VIRTUAL_TREE_INVALID_INDEX, EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID, EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID, 0, 0, 0, 0};
     egui_view_virtual_tree_entry_t actual_entry;
     egui_view_t *expected_view = NULL;
     egui_view_t *actual_view;
@@ -3253,6 +3476,10 @@ void test_virtual_viewport_run(void)
     EGUI_TEST_RUN(test_virtual_viewport_state_cache_write_read_and_trim);
     EGUI_TEST_RUN(test_virtual_viewport_state_cache_restores_recycled_slot);
     EGUI_TEST_RUN(test_virtual_viewport_duplicate_keepalive_slot_is_recycled);
+    EGUI_TEST_RUN(test_virtual_viewport_setup_and_lookup_helpers);
+    EGUI_TEST_RUN(test_virtual_viewport_visit_visible_items_helper);
+    EGUI_TEST_RUN(test_virtual_viewport_find_first_visible_item_view_helper);
+    EGUI_TEST_RUN(test_virtual_viewport_ensure_visible_helper);
     EGUI_TEST_RUN(test_virtual_list_data_source_defaults_bridge_viewport_adapter);
     EGUI_TEST_RUN(test_virtual_list_stable_id_helpers_fallback_lookup);
     EGUI_TEST_RUN(test_virtual_list_state_cache_helpers_bridge_viewport);

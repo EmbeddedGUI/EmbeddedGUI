@@ -12,6 +12,7 @@
    container_widgets
    scroll_widgets
    list_widgets
+   virtual_widgets
    selection_widgets
    chart_widgets
    clock_widgets

@@ -17,6 +17,12 @@
 - 文件或相册缩略图墙
 - 仪表板卡片面板
 
+不太适合的场景：
+
+- 有明显组头和组内关系：优先 `virtual_section_list`
+- 有父子层级：优先 `virtual_tree`
+- 主轴明确是横向 rail：优先 `virtual_strip`
+
 ## 运行方式
 
 ```bash

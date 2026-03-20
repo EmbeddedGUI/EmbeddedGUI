@@ -17,8 +17,7 @@ typedef struct egui_view_virtual_strip_entry egui_view_virtual_strip_entry_t;
 typedef struct egui_view_virtual_strip_params egui_view_virtual_strip_params_t;
 typedef struct egui_view_virtual_strip_setup egui_view_virtual_strip_setup_t;
 typedef uint8_t (*egui_view_virtual_strip_visible_item_matcher_t)(egui_view_t *self, const egui_view_virtual_strip_slot_t *slot,
-                                                                  const egui_view_virtual_strip_entry_t *entry, egui_view_t *item_view,
-                                                                  void *context);
+                                                                  const egui_view_virtual_strip_entry_t *entry, egui_view_t *item_view, void *context);
 typedef uint8_t (*egui_view_virtual_strip_visible_item_visitor_t)(egui_view_t *self, const egui_view_virtual_strip_slot_t *slot,
                                                                   const egui_view_virtual_strip_entry_t *entry, egui_view_t *item_view, void *context);
 
@@ -40,7 +39,7 @@ struct egui_view_virtual_strip_params
 };
 
 #define EGUI_VIEW_VIRTUAL_STRIP_PARAMS_INIT(_name, _x, _y, _w, _h)                                                                                             \
-    static const egui_view_virtual_strip_params_t _name = {                                                                                                     \
+    static const egui_view_virtual_strip_params_t _name = {                                                                                                    \
             .region = {{(_x), (_y)}, {(_w), (_h)}},                                                                                                            \
             .overscan_before = 1,                                                                                                                              \
             .overscan_after = 1,                                                                                                                               \
@@ -89,8 +88,8 @@ struct egui_view_virtual_strip_data_source
     uint16_t default_item_view_type;
 };
 
-#define EGUI_VIEW_VIRTUAL_STRIP_DATA_SOURCE_INIT(_name)                                                                                                         \
-    static const egui_view_virtual_strip_data_source_t _name = {                                                                                                \
+#define EGUI_VIEW_VIRTUAL_STRIP_DATA_SOURCE_INIT(_name)                                                                                                        \
+    static const egui_view_virtual_strip_data_source_t _name = {                                                                                               \
             .get_count = NULL,                                                                                                                                 \
             .get_stable_id = NULL,                                                                                                                             \
             .find_index_by_stable_id = NULL,                                                                                                                   \
@@ -130,6 +129,8 @@ int32_t egui_view_virtual_strip_get_estimated_item_width(egui_view_t *self);
 void egui_view_virtual_strip_set_keepalive_limit(egui_view_t *self, uint8_t max_keepalive_slots);
 uint8_t egui_view_virtual_strip_get_keepalive_limit(egui_view_t *self);
 void egui_view_virtual_strip_set_state_cache_limits(egui_view_t *self, uint16_t max_entries, uint32_t max_bytes);
+uint16_t egui_view_virtual_strip_get_state_cache_entry_limit(egui_view_t *self);
+uint32_t egui_view_virtual_strip_get_state_cache_byte_limit(egui_view_t *self);
 void egui_view_virtual_strip_clear_item_state_cache(egui_view_t *self);
 void egui_view_virtual_strip_remove_item_state_by_stable_id(egui_view_t *self, uint32_t stable_id);
 uint8_t egui_view_virtual_strip_write_item_state(egui_view_t *self, uint32_t stable_id, const void *data, uint16_t size);
@@ -167,8 +168,7 @@ const egui_view_virtual_strip_slot_t *egui_view_virtual_strip_find_slot_by_stabl
 egui_view_t *egui_view_virtual_strip_find_view_by_stable_id(egui_view_t *self, uint32_t stable_id);
 uint8_t egui_view_virtual_strip_get_slot_entry(egui_view_t *self, uint8_t slot_index, egui_view_virtual_strip_entry_t *entry);
 uint8_t egui_view_virtual_strip_visit_visible_items(egui_view_t *self, egui_view_virtual_strip_visible_item_visitor_t visitor, void *context);
-egui_view_t *egui_view_virtual_strip_find_first_visible_item_view(egui_view_t *self,
-                                                                  egui_view_virtual_strip_visible_item_matcher_t matcher, void *context,
+egui_view_t *egui_view_virtual_strip_find_first_visible_item_view(egui_view_t *self, egui_view_virtual_strip_visible_item_matcher_t matcher, void *context,
                                                                   egui_view_virtual_strip_entry_t *entry_out);
 
 void egui_view_virtual_strip_init(egui_view_t *self);

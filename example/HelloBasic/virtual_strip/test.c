@@ -5,19 +5,19 @@
 
 #include "uicode.h"
 
-#define STRIP_MAX_ITEMS          420U
-#define STRIP_GALLERY_ITEMS      260U
-#define STRIP_QUEUE_ITEMS        180U
-#define STRIP_TIMELINE_ITEMS     320U
-#define STRIP_INVALID_INDEX      0xFFFFFFFFUL
-#define STRIP_VIEW_POOL_CAP      EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS
-#define STRIP_STATE_CACHE_COUNT  96U
+#define STRIP_MAX_ITEMS         420U
+#define STRIP_GALLERY_ITEMS     260U
+#define STRIP_QUEUE_ITEMS       180U
+#define STRIP_TIMELINE_ITEMS    320U
+#define STRIP_INVALID_INDEX     0xFFFFFFFFUL
+#define STRIP_VIEW_POOL_CAP     EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS
+#define STRIP_STATE_CACHE_COUNT 96U
 
-#define STRIP_STATUS_TEXT_LEN    96
-#define STRIP_TITLE_TEXT_LEN     20
-#define STRIP_META_TEXT_LEN      20
-#define STRIP_BADGE_TEXT_LEN     12
-#define STRIP_TAG_TEXT_LEN       12
+#define STRIP_STATUS_TEXT_LEN 96
+#define STRIP_TITLE_TEXT_LEN  20
+#define STRIP_META_TEXT_LEN   20
+#define STRIP_BADGE_TEXT_LEN  12
+#define STRIP_TAG_TEXT_LEN    12
 
 #define STRIP_MARGIN_X           8
 #define STRIP_TOP_Y              8
@@ -157,6 +157,9 @@ static egui_view_label_t header_hint;
 static egui_view_button_t scene_buttons[STRIP_SCENE_COUNT];
 static egui_view_button_t action_buttons[STRIP_ACTION_COUNT];
 static egui_view_virtual_strip_t strip_view;
+static egui_view_group_t strip_overlay_view;
+static egui_view_card_t strip_overlay_line;
+static egui_view_card_t strip_overlay_dot;
 static strip_demo_context_t strip_demo_ctx;
 
 #if EGUI_CONFIG_RECORDING_TEST
@@ -247,6 +250,7 @@ EGUI_ANIMATION_ALPHA_PARAMS_INIT(strip_pulse_anim_param, EGUI_ALPHA_100, EGUI_AL
 
 static void strip_demo_refresh_header(void);
 static void strip_demo_style_scene_buttons(void);
+static void strip_demo_style_overlay(void);
 static void strip_demo_apply_action(uint8_t action);
 static void strip_demo_switch_scene(uint8_t scene);
 
@@ -281,6 +285,68 @@ static const char *strip_demo_variant_title(uint8_t scene, uint8_t variant)
     default:
         return strip_demo_gallery_titles[variant];
     }
+}
+
+static const char *strip_demo_variant_code(uint8_t scene, uint8_t variant)
+{
+    static const char *gallery_codes[STRIP_ITEM_VARIANT_COUNT] = {"P", "F", "W"};
+    static const char *queue_codes[STRIP_ITEM_VARIANT_COUNT] = {"D", "S", "C"};
+    static const char *timeline_codes[STRIP_ITEM_VARIANT_COUNT] = {"M", "B", "D"};
+
+    variant = (uint8_t)(variant % STRIP_ITEM_VARIANT_COUNT);
+
+    switch (scene)
+    {
+    case STRIP_SCENE_QUEUE:
+        return queue_codes[variant];
+    case STRIP_SCENE_TIMELINE:
+        return timeline_codes[variant];
+    default:
+        return gallery_codes[variant];
+    }
+}
+
+static const char *strip_demo_state_short_name(uint8_t state)
+{
+    static const char *state_short_names[STRIP_ITEM_STATE_COUNT] = {"I", "L", "W", "D"};
+
+    return state_short_names[state % STRIP_ITEM_STATE_COUNT];
+}
+
+static void strip_demo_copy_best_fit(egui_view_t *label, char *dst, size_t dst_size, egui_dim_t max_width, const char *primary, const char *secondary,
+                                     const char *fallback)
+{
+    const char *candidates[3] = {primary, secondary, fallback};
+    const char *selected = "";
+    size_t i;
+
+    if (dst_size == 0U)
+    {
+        return;
+    }
+
+    for (i = 0; i < 3U; i++)
+    {
+        egui_dim_t text_w = 0;
+        egui_dim_t text_h = 0;
+        const char *candidate = candidates[i];
+
+        if (candidate == NULL || candidate[0] == '\0')
+        {
+            continue;
+        }
+        selected = candidate;
+        if (max_width <= 0)
+        {
+            break;
+        }
+        if (label != NULL && !egui_view_label_get_str_size(label, candidate, &text_w, &text_h) && text_w <= max_width)
+        {
+            break;
+        }
+    }
+
+    snprintf(dst, dst_size, "%s", selected);
 }
 
 static int32_t strip_demo_find_index_by_stable_id(uint32_t stable_id)
@@ -348,7 +414,7 @@ static void strip_demo_reset_scene_model(uint8_t scene)
 
     for (i = 0; i < count; i++)
     {
-        strip_demo_fill_item(&strip_demo_ctx.items[i], scene, strip_demo_ctx.next_stable_id++, i + 1U);
+        strip_demo_fill_item(&strip_demo_ctx.items[i], scene, strip_demo_ctx.next_stable_id++, i);
     }
 
     snprintf(strip_demo_ctx.last_action_text, sizeof(strip_demo_ctx.last_action_text), "Tap cards, swipe horizontally, then try Add / Del / Patch / Jump.");
@@ -373,21 +439,21 @@ static int32_t strip_demo_measure_item_width_with_state(const strip_demo_item_t 
     switch (strip_demo_ctx.scene)
     {
     case STRIP_SCENE_QUEUE:
-        width = item->variant == STRIP_ITEM_VARIANT_PRIMARY ? 104 : item->variant == STRIP_ITEM_VARIANT_DETAIL ? 86 : 118;
+        width = item->variant == STRIP_ITEM_VARIANT_PRIMARY ? 112 : item->variant == STRIP_ITEM_VARIANT_DETAIL ? 92 : 126;
         if (height_hint > 150)
         {
             width += 6;
         }
         break;
     case STRIP_SCENE_TIMELINE:
-        width = item->variant == STRIP_ITEM_VARIANT_PRIMARY ? 66 : item->variant == STRIP_ITEM_VARIANT_DETAIL ? 78 : 56;
+        width = item->variant == STRIP_ITEM_VARIANT_PRIMARY ? 46 : item->variant == STRIP_ITEM_VARIANT_DETAIL ? 58 : 40;
         if (height_hint > 150)
         {
             width += 2;
         }
         break;
     default:
-        width = item->variant == STRIP_ITEM_VARIANT_PRIMARY ? 72 : item->variant == STRIP_ITEM_VARIANT_DETAIL ? 60 : 88;
+        width = item->variant == STRIP_ITEM_VARIANT_PRIMARY ? 82 : item->variant == STRIP_ITEM_VARIANT_DETAIL ? 72 : 96;
         if (height_hint > 150)
         {
             width += 4;
@@ -405,7 +471,7 @@ static int32_t strip_demo_measure_item_width_with_state(const strip_demo_item_t 
     }
     if (selected)
     {
-        width += strip_demo_ctx.scene == STRIP_SCENE_TIMELINE ? 8 : 12;
+        width += strip_demo_ctx.scene == STRIP_SCENE_TIMELINE ? 12 : 12;
     }
 
     return width;
@@ -495,20 +561,23 @@ static egui_color_t strip_demo_get_card_color(uint8_t scene, uint8_t variant, ui
 {
     if (selected)
     {
-        return scene == STRIP_SCENE_TIMELINE ? EGUI_COLOR_HEX(0xE7F0F8) : EGUI_COLOR_HEX(0xE4F1FF);
+        return scene == STRIP_SCENE_TIMELINE ? EGUI_COLOR_HEX(0xEDF3F8) : EGUI_COLOR_HEX(0xE4F1FF);
     }
 
     switch (scene)
     {
     case STRIP_SCENE_QUEUE:
-        return variant == STRIP_ITEM_VARIANT_PRIMARY ? EGUI_COLOR_HEX(0xEEF7FE)
-                                                     : variant == STRIP_ITEM_VARIANT_DETAIL ? EGUI_COLOR_HEX(0xF7F2FF) : EGUI_COLOR_HEX(0xEEF8F4);
+        return variant == STRIP_ITEM_VARIANT_PRIMARY  ? EGUI_COLOR_HEX(0xF6F8FA)
+               : variant == STRIP_ITEM_VARIANT_DETAIL ? EGUI_COLOR_HEX(0xFBF7FF)
+                                                      : EGUI_COLOR_HEX(0xF5FBF7);
     case STRIP_SCENE_TIMELINE:
-        return variant == STRIP_ITEM_VARIANT_PRIMARY ? EGUI_COLOR_HEX(0xF6F7FB)
-                                                     : variant == STRIP_ITEM_VARIANT_DETAIL ? EGUI_COLOR_HEX(0xEEF8FA) : EGUI_COLOR_HEX(0xFFF7EF);
+        return variant == STRIP_ITEM_VARIANT_PRIMARY  ? EGUI_COLOR_HEX(0xF8FAFC)
+               : variant == STRIP_ITEM_VARIANT_DETAIL ? EGUI_COLOR_HEX(0xF3F9FB)
+                                                      : EGUI_COLOR_HEX(0xFFF9F1);
     default:
-        return variant == STRIP_ITEM_VARIANT_PRIMARY ? EGUI_COLOR_HEX(0xFFF8EC)
-                                                     : variant == STRIP_ITEM_VARIANT_DETAIL ? EGUI_COLOR_HEX(0xEEF4FF) : EGUI_COLOR_HEX(0xF0FAF0);
+        return variant == STRIP_ITEM_VARIANT_PRIMARY  ? EGUI_COLOR_HEX(0xFFF8EC)
+               : variant == STRIP_ITEM_VARIANT_DETAIL ? EGUI_COLOR_HEX(0xF2F6FF)
+                                                      : EGUI_COLOR_HEX(0xEEF9F1);
     }
 }
 
@@ -609,11 +678,16 @@ static void strip_demo_restore_view_state(strip_demo_item_view_t *item_view, con
     anim->start_time = egui_api_timer_get_current() - state->pulse_elapsed_ms;
 }
 
-static void strip_demo_fill_item_texts(int pool_index, const strip_demo_item_t *item, uint32_t index, uint8_t selected)
+static void strip_demo_fill_item_texts(strip_demo_item_view_t *item_view, int pool_index, const strip_demo_item_t *item, uint32_t index, uint8_t selected,
+                                       egui_dim_t tag_w, egui_dim_t title_w, egui_dim_t meta_w, egui_dim_t badge_w)
 {
+    char full_text[STRIP_STATUS_TEXT_LEN];
+    char medium_text[STRIP_STATUS_TEXT_LEN];
+    char short_text[STRIP_STATUS_TEXT_LEN];
     uint32_t short_index = (index + 1U) % 100U;
+    uint8_t state = item != NULL ? item->state : STRIP_ITEM_STATE_IDLE;
 
-    if (pool_index < 0 || pool_index >= STRIP_VIEW_POOL_CAP || item == NULL)
+    if (pool_index < 0 || pool_index >= STRIP_VIEW_POOL_CAP || item == NULL || item_view == NULL)
     {
         return;
     }
@@ -621,26 +695,65 @@ static void strip_demo_fill_item_texts(int pool_index, const strip_demo_item_t *
     switch (strip_demo_ctx.scene)
     {
     case STRIP_SCENE_QUEUE:
-        snprintf(strip_demo_ctx.tag_texts[pool_index], sizeof(strip_demo_ctx.tag_texts[pool_index]), "Q%02lu", (unsigned long)short_index);
-        snprintf(strip_demo_ctx.meta_texts[pool_index], sizeof(strip_demo_ctx.meta_texts[pool_index]), "%02ums r%u",
-                 (unsigned)(48U + item->progress * 2U), (unsigned)item->revision);
+        snprintf(full_text, sizeof(full_text), "Q%02lu", (unsigned long)short_index);
+        snprintf(medium_text, sizeof(medium_text), "Q%lu", (unsigned long)short_index);
+        snprintf(short_text, sizeof(short_text), "%lu", (unsigned long)short_index);
+        strip_demo_copy_best_fit(EGUI_VIEW_OF(&item_view->tag), strip_demo_ctx.tag_texts[pool_index], sizeof(strip_demo_ctx.tag_texts[pool_index]), tag_w,
+                                 full_text, medium_text, short_text);
+
+        snprintf(full_text, sizeof(full_text), "%s %02lu", strip_demo_variant_title(strip_demo_ctx.scene, item->variant), (unsigned long)short_index);
+        snprintf(medium_text, sizeof(medium_text), "%s", strip_demo_variant_title(strip_demo_ctx.scene, item->variant));
+        snprintf(short_text, sizeof(short_text), "%s%02lu", strip_demo_variant_code(strip_demo_ctx.scene, item->variant), (unsigned long)short_index);
+        strip_demo_copy_best_fit(EGUI_VIEW_OF(&item_view->title), strip_demo_ctx.title_texts[pool_index], sizeof(strip_demo_ctx.title_texts[pool_index]),
+                                 title_w, full_text, medium_text, short_text);
+
+        snprintf(full_text, sizeof(full_text), "%02ums r%u", (unsigned)(48U + item->progress * 2U), (unsigned)item->revision);
+        snprintf(medium_text, sizeof(medium_text), "%02ums", (unsigned)(48U + item->progress * 2U));
+        snprintf(short_text, sizeof(short_text), "r%u", (unsigned)item->revision);
         break;
     case STRIP_SCENE_TIMELINE:
-        snprintf(strip_demo_ctx.tag_texts[pool_index], sizeof(strip_demo_ctx.tag_texts[pool_index]), "T%02lu", (unsigned long)short_index);
-        snprintf(strip_demo_ctx.meta_texts[pool_index], sizeof(strip_demo_ctx.meta_texts[pool_index]), "%u:%02u",
-                 (unsigned)((index / 12U) % 24U), (unsigned)((index * 5U) % 60U));
+        snprintf(full_text, sizeof(full_text), "%02u:%02u", (unsigned)((index / 12U) % 24U), (unsigned)((index * 5U) % 60U));
+        snprintf(medium_text, sizeof(medium_text), "%u:%02u", (unsigned)((index / 12U) % 24U), (unsigned)((index * 5U) % 60U));
+        snprintf(short_text, sizeof(short_text), "%02lu", (unsigned long)short_index);
+        strip_demo_copy_best_fit(EGUI_VIEW_OF(&item_view->tag), strip_demo_ctx.tag_texts[pool_index], sizeof(strip_demo_ctx.tag_texts[pool_index]), tag_w,
+                                 full_text, medium_text, short_text);
+
+        snprintf(full_text, sizeof(full_text), "%s %02lu", strip_demo_variant_title(strip_demo_ctx.scene, item->variant), (unsigned long)short_index);
+        snprintf(medium_text, sizeof(medium_text), "%s", strip_demo_variant_title(strip_demo_ctx.scene, item->variant));
+        snprintf(short_text, sizeof(short_text), "%s%02lu", strip_demo_variant_code(strip_demo_ctx.scene, item->variant), (unsigned long)short_index);
+        strip_demo_copy_best_fit(EGUI_VIEW_OF(&item_view->title), strip_demo_ctx.title_texts[pool_index], sizeof(strip_demo_ctx.title_texts[pool_index]),
+                                 title_w, full_text, medium_text, short_text);
+
+        snprintf(full_text, sizeof(full_text), "%s", strip_demo_state_names[state]);
+        snprintf(medium_text, sizeof(medium_text), "%s", strip_demo_state_names[state]);
+        snprintf(short_text, sizeof(short_text), "%s", strip_demo_state_short_name(state));
         break;
     default:
-        snprintf(strip_demo_ctx.tag_texts[pool_index], sizeof(strip_demo_ctx.tag_texts[pool_index]), "G%02lu", (unsigned long)short_index);
-        snprintf(strip_demo_ctx.meta_texts[pool_index], sizeof(strip_demo_ctx.meta_texts[pool_index]), "%u%% r%u",
-                 (unsigned)item->progress, (unsigned)item->revision);
+        snprintf(full_text, sizeof(full_text), "EP%02lu", (unsigned long)short_index);
+        snprintf(medium_text, sizeof(medium_text), "E%02lu", (unsigned long)short_index);
+        snprintf(short_text, sizeof(short_text), "%02lu", (unsigned long)short_index);
+        strip_demo_copy_best_fit(EGUI_VIEW_OF(&item_view->tag), strip_demo_ctx.tag_texts[pool_index], sizeof(strip_demo_ctx.tag_texts[pool_index]), tag_w,
+                                 full_text, medium_text, short_text);
+
+        snprintf(full_text, sizeof(full_text), "%s %02lu", strip_demo_variant_title(strip_demo_ctx.scene, item->variant), (unsigned long)short_index);
+        snprintf(medium_text, sizeof(medium_text), "%s", strip_demo_variant_title(strip_demo_ctx.scene, item->variant));
+        snprintf(short_text, sizeof(short_text), "%s%02lu", strip_demo_variant_code(strip_demo_ctx.scene, item->variant), (unsigned long)short_index);
+        strip_demo_copy_best_fit(EGUI_VIEW_OF(&item_view->title), strip_demo_ctx.title_texts[pool_index], sizeof(strip_demo_ctx.title_texts[pool_index]),
+                                 title_w, full_text, medium_text, short_text);
+
+        snprintf(full_text, sizeof(full_text), "%u%% focus", (unsigned)item->progress);
+        snprintf(medium_text, sizeof(medium_text), "%u%%", (unsigned)item->progress);
+        snprintf(short_text, sizeof(short_text), "%u", (unsigned)item->progress);
         break;
     }
 
-    snprintf(strip_demo_ctx.title_texts[pool_index], sizeof(strip_demo_ctx.title_texts[pool_index]), "%s",
-             strip_demo_variant_title(strip_demo_ctx.scene, item->variant));
-    snprintf(strip_demo_ctx.badge_texts[pool_index], sizeof(strip_demo_ctx.badge_texts[pool_index]), "%s",
-             selected ? "Sel" : strip_demo_state_names[item->state]);
+    strip_demo_copy_best_fit(EGUI_VIEW_OF(&item_view->meta), strip_demo_ctx.meta_texts[pool_index], sizeof(strip_demo_ctx.meta_texts[pool_index]), meta_w,
+                             full_text, medium_text, short_text);
+
+    snprintf(full_text, sizeof(full_text), "%s", selected ? "Sel" : strip_demo_state_names[state]);
+    snprintf(medium_text, sizeof(medium_text), "%s", selected ? "Sel" : strip_demo_state_short_name(state));
+    strip_demo_copy_best_fit(EGUI_VIEW_OF(&item_view->badge), strip_demo_ctx.badge_texts[pool_index], sizeof(strip_demo_ctx.badge_texts[pool_index]),
+                             badge_w - 6, full_text, medium_text, medium_text);
 }
 
 static void strip_demo_layout_item_view(strip_demo_item_view_t *item_view, const strip_demo_item_t *item, int pool_index, uint32_t index, uint8_t selected)
@@ -653,11 +766,21 @@ static void strip_demo_layout_item_view(strip_demo_item_view_t *item_view, const
     egui_dim_t card_y;
     egui_dim_t inset;
     egui_dim_t badge_w;
-    egui_dim_t badge_h = 14;
+    egui_dim_t badge_h = 16;
     egui_dim_t progress_h = 4;
     egui_dim_t pulse_size = 6;
+    egui_dim_t tag_x;
+    egui_dim_t tag_w;
+    egui_dim_t title_x;
+    egui_dim_t title_w;
+    egui_dim_t meta_x;
+    egui_dim_t meta_w;
+    egui_dim_t text_limit_x;
     egui_dim_t title_y;
     egui_dim_t meta_y;
+    egui_dim_t title_h;
+    egui_dim_t meta_h;
+    egui_dim_t tag_h;
     egui_dim_t content_w;
     uint8_t show_meta;
     uint8_t show_badge;
@@ -668,8 +791,6 @@ static void strip_demo_layout_item_view(strip_demo_item_view_t *item_view, const
     egui_color_t meta_color = EGUI_COLOR_HEX(0x5B6C7A);
     egui_color_t badge_text_color = selected ? EGUI_COLOR_HEX(0x335F8A) : EGUI_COLOR_WHITE;
 
-    strip_demo_fill_item_texts(pool_index, item, index, selected);
-
     card_w = width - STRIP_CARD_SIDE_INSET * 2;
     if (card_w < 40)
     {
@@ -679,28 +800,28 @@ static void strip_demo_layout_item_view(strip_demo_item_view_t *item_view, const
     switch (strip_demo_ctx.scene)
     {
     case STRIP_SCENE_QUEUE:
-        card_h = (egui_dim_t)(item->variant == STRIP_ITEM_VARIANT_COMPACT ? 106 : item->variant == STRIP_ITEM_VARIANT_DETAIL ? 92 : 98);
+        card_h = (egui_dim_t)(item->variant == STRIP_ITEM_VARIANT_COMPACT ? 112 : item->variant == STRIP_ITEM_VARIANT_DETAIL ? 88 : 98);
         if (selected)
         {
-            card_h += 8;
+            card_h += 6;
         }
-        inset = card_w < 84 ? 5 : 7;
+        inset = card_w < 84 ? 6 : 9;
         break;
     case STRIP_SCENE_TIMELINE:
-        card_h = (egui_dim_t)(item->variant == STRIP_ITEM_VARIANT_COMPACT ? 56 : item->variant == STRIP_ITEM_VARIANT_DETAIL ? 64 : 60);
+        card_h = (egui_dim_t)(item->variant == STRIP_ITEM_VARIANT_COMPACT ? 74 : item->variant == STRIP_ITEM_VARIANT_DETAIL ? 86 : 80);
         if (selected)
         {
             card_h += 8;
         }
-        inset = card_w < 68 ? 5 : 6;
+        inset = card_w < 56 ? 4 : 5;
         break;
     default:
-        card_h = (egui_dim_t)(item->variant == STRIP_ITEM_VARIANT_COMPACT ? 152 : item->variant == STRIP_ITEM_VARIANT_DETAIL ? 138 : 146);
+        card_h = (egui_dim_t)(item->variant == STRIP_ITEM_VARIANT_COMPACT ? 164 : item->variant == STRIP_ITEM_VARIANT_DETAIL ? 148 : 156);
         if (selected)
         {
-            card_h += 8;
+            card_h += 10;
         }
-        inset = card_w < 72 ? 5 : 7;
+        inset = card_w < 72 ? 6 : 8;
         break;
     }
 
@@ -711,9 +832,22 @@ static void strip_demo_layout_item_view(strip_demo_item_view_t *item_view, const
 
     card_y = (egui_dim_t)((height - card_h) / 2);
     badge_w = selected ? 30 : 34;
-    show_badge = card_w >= 54 ? 1U : 0U;
-    show_meta = card_w >= 58 ? 1U : 0U;
-    show_progress = strip_demo_ctx.scene != STRIP_SCENE_TIMELINE ? 1U : 0U;
+    if (strip_demo_ctx.scene == STRIP_SCENE_TIMELINE)
+    {
+        show_badge = 0;
+        show_meta = (uint8_t)(selected || card_w >= 54);
+    }
+    else if (strip_demo_ctx.scene == STRIP_SCENE_QUEUE)
+    {
+        show_badge = (uint8_t)(selected || card_w >= 108);
+        show_meta = (uint8_t)(selected || card_w >= 88);
+    }
+    else
+    {
+        show_badge = (uint8_t)(selected || card_w >= 92);
+        show_meta = (uint8_t)(selected || card_w >= 80);
+    }
+    show_progress = strip_demo_ctx.scene != STRIP_SCENE_TIMELINE;
     content_w = card_w - inset * 2;
     if (show_badge && content_w > (badge_w + 6))
     {
@@ -724,8 +858,30 @@ static void strip_demo_layout_item_view(strip_demo_item_view_t *item_view, const
         content_w = 24;
     }
 
-    title_y = strip_demo_ctx.scene == STRIP_SCENE_TIMELINE ? 22 : 28;
-    meta_y = strip_demo_ctx.scene == STRIP_SCENE_TIMELINE ? 36 : (egui_dim_t)(title_y + 14);
+    if (strip_demo_ctx.scene == STRIP_SCENE_TIMELINE)
+    {
+        title_h = 11;
+        meta_h = 10;
+        tag_h = 10;
+        title_y = 28;
+        meta_y = (egui_dim_t)(card_h - 16);
+    }
+    else if (strip_demo_ctx.scene == STRIP_SCENE_QUEUE)
+    {
+        title_h = 14;
+        meta_h = 12;
+        tag_h = 12;
+        title_y = 30;
+        meta_y = 48;
+    }
+    else
+    {
+        title_h = 14;
+        meta_h = 12;
+        tag_h = 12;
+        title_y = (egui_dim_t)(card_h - 44);
+        meta_y = (egui_dim_t)(card_h - 26);
+    }
 
     card_color = strip_demo_get_card_color(strip_demo_ctx.scene, item->variant, selected);
     border_color = strip_demo_get_border_color(item->state, selected);
@@ -735,47 +891,131 @@ static void strip_demo_layout_item_view(strip_demo_item_view_t *item_view, const
         meta_color = EGUI_COLOR_HEX(0x627482);
     }
 
+    egui_view_label_set_font(EGUI_VIEW_OF(&item_view->tag), STRIP_FONT_CAP);
+    egui_view_label_set_font(EGUI_VIEW_OF(&item_view->title), strip_demo_ctx.scene == STRIP_SCENE_TIMELINE || card_w < 86 ? STRIP_FONT_BODY : STRIP_FONT_TITLE);
+    egui_view_label_set_font(EGUI_VIEW_OF(&item_view->meta), STRIP_FONT_CAP);
+    egui_view_label_set_font(EGUI_VIEW_OF(&item_view->badge), STRIP_FONT_CAP);
+
     egui_view_set_position(EGUI_VIEW_OF(&item_view->card), card_x, card_y);
     egui_view_set_size(EGUI_VIEW_OF(&item_view->card), card_w, card_h);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&item_view->card), card_color, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&item_view->card), selected ? 2 : 1, border_color);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&item_view->card),
+                                     strip_demo_ctx.scene == STRIP_SCENE_GALLERY ? 16 : (strip_demo_ctx.scene == STRIP_SCENE_QUEUE ? 10 : 18));
+    egui_view_set_shadow(EGUI_VIEW_OF(&item_view->card), strip_demo_ctx.scene == STRIP_SCENE_TIMELINE ? NULL : &strip_demo_card_shadow);
 
     if (strip_demo_ctx.scene == STRIP_SCENE_QUEUE)
     {
-        egui_view_set_position(EGUI_VIEW_OF(&item_view->accent), 6, 10);
-        egui_view_set_size(EGUI_VIEW_OF(&item_view->accent), 5, card_h - 20);
+        egui_view_set_position(EGUI_VIEW_OF(&item_view->accent), 8, 10);
+        egui_view_set_size(EGUI_VIEW_OF(&item_view->accent), 6, card_h - 20);
     }
     else if (strip_demo_ctx.scene == STRIP_SCENE_TIMELINE)
     {
-        egui_view_set_position(EGUI_VIEW_OF(&item_view->accent), inset, card_h - 8);
-        egui_view_set_size(EGUI_VIEW_OF(&item_view->accent), card_w - inset * 2, 4);
+        egui_view_set_position(EGUI_VIEW_OF(&item_view->accent), card_w / 2 - 2, 10);
+        egui_view_set_size(EGUI_VIEW_OF(&item_view->accent), 5, card_h - 20);
     }
     else
     {
         egui_view_set_position(EGUI_VIEW_OF(&item_view->accent), inset, 8);
-        egui_view_set_size(EGUI_VIEW_OF(&item_view->accent), card_w - inset * 2, 5);
+        egui_view_set_size(EGUI_VIEW_OF(&item_view->accent), card_w - inset * 2, card_h - 64);
     }
     egui_view_set_background(EGUI_VIEW_OF(&item_view->accent), strip_demo_get_badge_background(item->state, selected));
 
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->tag), inset, 12);
-    egui_view_set_size(EGUI_VIEW_OF(&item_view->tag), card_w - inset * 2, 10);
-    egui_view_label_set_text(EGUI_VIEW_OF(&item_view->tag), strip_demo_ctx.tag_texts[pool_index]);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->tag), EGUI_COLOR_HEX(0x5D7282), EGUI_ALPHA_100);
+    if (strip_demo_ctx.scene == STRIP_SCENE_TIMELINE)
+    {
+        egui_view_label_set_align_type(EGUI_VIEW_OF(&item_view->tag), show_badge ? (EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER) : EGUI_ALIGN_CENTER);
+        egui_view_label_set_align_type(EGUI_VIEW_OF(&item_view->title), EGUI_ALIGN_CENTER);
+        egui_view_label_set_align_type(EGUI_VIEW_OF(&item_view->meta), EGUI_ALIGN_CENTER);
+        tag_x = show_badge ? 4 : 0;
+        tag_w = show_badge ? (egui_dim_t)(card_w - badge_w - 8) : card_w;
+        egui_view_set_position(EGUI_VIEW_OF(&item_view->tag), tag_x, 8);
+        egui_view_set_size(EGUI_VIEW_OF(&item_view->tag), tag_w, tag_h);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->tag), EGUI_COLOR_HEX(0x6C7D89), EGUI_ALPHA_100);
+    }
+    else
+    {
+        egui_view_label_set_align_type(EGUI_VIEW_OF(&item_view->tag), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
+        egui_view_label_set_align_type(EGUI_VIEW_OF(&item_view->title), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
+        egui_view_label_set_align_type(EGUI_VIEW_OF(&item_view->meta), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
+        tag_x = strip_demo_ctx.scene == STRIP_SCENE_GALLERY ? (egui_dim_t)(inset + 6) : (egui_dim_t)(inset + 12);
+        tag_w = card_w - tag_x - inset;
+        egui_view_set_position(EGUI_VIEW_OF(&item_view->tag), tag_x, 12);
+        egui_view_set_size(EGUI_VIEW_OF(&item_view->tag), tag_w, tag_h);
+        egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->tag), strip_demo_ctx.scene == STRIP_SCENE_GALLERY ? EGUI_COLOR_WHITE : EGUI_COLOR_HEX(0x5D7282),
+                                       EGUI_ALPHA_100);
+    }
+    text_limit_x = show_badge ? (egui_dim_t)(card_w - inset - badge_w - 6) : (egui_dim_t)(card_w - inset - 4);
 
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->title), inset, title_y);
-    egui_view_set_size(EGUI_VIEW_OF(&item_view->title), content_w, 12);
-    egui_view_label_set_text(EGUI_VIEW_OF(&item_view->title), strip_demo_ctx.title_texts[pool_index]);
+    if (strip_demo_ctx.scene == STRIP_SCENE_QUEUE)
+    {
+        title_x = inset + 12;
+        title_w = text_limit_x - title_x;
+        if (title_w < 12)
+        {
+            title_w = 12;
+        }
+        egui_view_set_position(EGUI_VIEW_OF(&item_view->title), title_x, title_y);
+        egui_view_set_size(EGUI_VIEW_OF(&item_view->title), title_w, title_h);
+    }
+    else if (strip_demo_ctx.scene == STRIP_SCENE_TIMELINE)
+    {
+        title_x = 2;
+        title_w = card_w - 4;
+        egui_view_set_position(EGUI_VIEW_OF(&item_view->title), title_x, title_y);
+        egui_view_set_size(EGUI_VIEW_OF(&item_view->title), title_w, title_h);
+    }
+    else
+    {
+        title_x = inset + 2;
+        title_w = text_limit_x - title_x;
+        if (title_w < 12)
+        {
+            title_w = 12;
+        }
+        egui_view_set_position(EGUI_VIEW_OF(&item_view->title), title_x, title_y);
+        egui_view_set_size(EGUI_VIEW_OF(&item_view->title), title_w, title_h);
+    }
     egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->title), title_color, EGUI_ALPHA_100);
 
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->meta), inset, meta_y);
-    egui_view_set_size(EGUI_VIEW_OF(&item_view->meta), card_w - inset * 2, 10);
+    if (strip_demo_ctx.scene == STRIP_SCENE_QUEUE)
+    {
+        meta_x = inset + 12;
+        meta_w = text_limit_x - meta_x;
+        if (meta_w < 12)
+        {
+            meta_w = 12;
+        }
+        egui_view_set_position(EGUI_VIEW_OF(&item_view->meta), meta_x, meta_y);
+        egui_view_set_size(EGUI_VIEW_OF(&item_view->meta), meta_w, meta_h);
+    }
+    else if (strip_demo_ctx.scene == STRIP_SCENE_TIMELINE)
+    {
+        meta_x = 0;
+        meta_w = card_w;
+        egui_view_set_position(EGUI_VIEW_OF(&item_view->meta), meta_x, meta_y);
+        egui_view_set_size(EGUI_VIEW_OF(&item_view->meta), meta_w, meta_h);
+    }
+    else
+    {
+        meta_x = inset + 2;
+        meta_w = text_limit_x - meta_x;
+        if (meta_w < 12)
+        {
+            meta_w = 12;
+        }
+        egui_view_set_position(EGUI_VIEW_OF(&item_view->meta), meta_x, meta_y);
+        egui_view_set_size(EGUI_VIEW_OF(&item_view->meta), meta_w, meta_h);
+    }
+    strip_demo_fill_item_texts(item_view, pool_index, item, index, selected, tag_w, title_w, meta_w, badge_w);
+    egui_view_label_set_text(EGUI_VIEW_OF(&item_view->tag), strip_demo_ctx.tag_texts[pool_index]);
+    egui_view_label_set_text(EGUI_VIEW_OF(&item_view->title), strip_demo_ctx.title_texts[pool_index]);
     egui_view_label_set_text(EGUI_VIEW_OF(&item_view->meta), strip_demo_ctx.meta_texts[pool_index]);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->meta), meta_color, EGUI_ALPHA_100);
     egui_view_set_gone(EGUI_VIEW_OF(&item_view->meta), show_meta ? 0 : 1);
 
     if (show_badge)
     {
-        egui_view_set_position(EGUI_VIEW_OF(&item_view->badge), card_w - inset - badge_w, 12);
+        egui_view_set_position(EGUI_VIEW_OF(&item_view->badge), card_w - inset - badge_w, strip_demo_ctx.scene == STRIP_SCENE_TIMELINE ? 10 : 12);
         egui_view_set_size(EGUI_VIEW_OF(&item_view->badge), badge_w, badge_h);
         egui_view_set_background(EGUI_VIEW_OF(&item_view->badge), strip_demo_get_badge_background(item->state, selected));
         egui_view_label_set_text(EGUI_VIEW_OF(&item_view->badge), strip_demo_ctx.badge_texts[pool_index]);
@@ -789,10 +1029,11 @@ static void strip_demo_layout_item_view(strip_demo_item_view_t *item_view, const
 
     if (show_progress)
     {
-        egui_dim_t progress_y = strip_demo_ctx.scene == STRIP_SCENE_QUEUE ? (egui_dim_t)(card_h - 14) : (egui_dim_t)(card_h - 12);
+        egui_dim_t progress_y = strip_demo_ctx.scene == STRIP_SCENE_QUEUE ? (egui_dim_t)(card_h - 14) : (egui_dim_t)(card_h - 10);
 
-        egui_view_set_position(EGUI_VIEW_OF(&item_view->progress), inset, progress_y);
-        egui_view_set_size(EGUI_VIEW_OF(&item_view->progress), card_w - inset * 2, progress_h);
+        egui_view_set_position(EGUI_VIEW_OF(&item_view->progress), strip_demo_ctx.scene == STRIP_SCENE_QUEUE ? (egui_dim_t)(inset + 12) : inset, progress_y);
+        egui_view_set_size(EGUI_VIEW_OF(&item_view->progress),
+                           strip_demo_ctx.scene == STRIP_SCENE_QUEUE ? (egui_dim_t)(card_w - inset * 2 - 12) : (egui_dim_t)(card_w - inset * 2), progress_h);
         egui_view_progress_bar_set_process(EGUI_VIEW_OF(&item_view->progress), item->progress);
         egui_view_set_gone(EGUI_VIEW_OF(&item_view->progress), 0);
     }
@@ -801,7 +1042,10 @@ static void strip_demo_layout_item_view(strip_demo_item_view_t *item_view, const
         egui_view_set_gone(EGUI_VIEW_OF(&item_view->progress), 1);
     }
 
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->pulse), card_w - inset - pulse_size, card_h - inset - pulse_size);
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->pulse),
+                           strip_demo_ctx.scene == STRIP_SCENE_TIMELINE ? (egui_dim_t)(card_w / 2 - pulse_size / 2) : (egui_dim_t)(card_w - inset - pulse_size),
+                           strip_demo_ctx.scene == STRIP_SCENE_TIMELINE ? (egui_dim_t)(card_h / 2 - pulse_size / 2)
+                                                                        : (egui_dim_t)(card_h - inset - pulse_size));
     egui_view_set_size(EGUI_VIEW_OF(&item_view->pulse), pulse_size, pulse_size);
     if (strip_demo_item_has_pulse(item, selected))
     {
@@ -845,6 +1089,33 @@ static void strip_demo_refresh_header(void)
     egui_view_label_set_text(EGUI_VIEW_OF(&header_hint), strip_demo_ctx.header_hint_text);
 }
 
+static void strip_demo_style_overlay(void)
+{
+    uint8_t show_timeline = strip_demo_ctx.scene == STRIP_SCENE_TIMELINE ? 1U : 0U;
+    egui_dim_t center_x = STRIP_CONTENT_W / 2;
+    egui_dim_t dot_y = (egui_dim_t)(STRIP_VIEW_H - 42);
+
+    egui_view_set_gone(EGUI_VIEW_OF(&strip_overlay_view), show_timeline ? 0 : 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&strip_overlay_line), show_timeline ? 0 : 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&strip_overlay_dot), show_timeline ? 0 : 1);
+    if (!show_timeline)
+    {
+        return;
+    }
+
+    egui_view_set_position(EGUI_VIEW_OF(&strip_overlay_line), center_x - 1, 18);
+    egui_view_set_size(EGUI_VIEW_OF(&strip_overlay_line), 2, STRIP_VIEW_H - 36);
+    egui_view_card_set_bg_color(EGUI_VIEW_OF(&strip_overlay_line), EGUI_COLOR_HEX(0x7CA0C5), EGUI_ALPHA_30);
+    egui_view_card_set_border(EGUI_VIEW_OF(&strip_overlay_line), 0, EGUI_COLOR_HEX(0x7CA0C5));
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&strip_overlay_line), 1);
+
+    egui_view_set_position(EGUI_VIEW_OF(&strip_overlay_dot), center_x - 3, dot_y);
+    egui_view_set_size(EGUI_VIEW_OF(&strip_overlay_dot), 6, 6);
+    egui_view_card_set_bg_color(EGUI_VIEW_OF(&strip_overlay_dot), EGUI_COLOR_HEX(0x3E74A8), EGUI_ALPHA_100);
+    egui_view_card_set_border(EGUI_VIEW_OF(&strip_overlay_dot), 0, EGUI_COLOR_HEX(0x3E74A8));
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&strip_overlay_dot), 3);
+}
+
 static void strip_demo_update_selection(uint32_t stable_id, uint8_t ensure_visible)
 {
     uint32_t previous_id = strip_demo_ctx.selected_id;
@@ -876,8 +1147,8 @@ static void strip_demo_item_click_cb(egui_view_t *self)
     strip_demo_ctx.last_clicked_index = entry.index;
     strip_demo_ctx.click_count++;
     strip_demo_update_selection(entry.stable_id, 1);
-    snprintf(strip_demo_ctx.last_action_text, sizeof(strip_demo_ctx.last_action_text), "Click #%05lu at index %lu.",
-             (unsigned long)entry.stable_id, (unsigned long)entry.index);
+    snprintf(strip_demo_ctx.last_action_text, sizeof(strip_demo_ctx.last_action_text), "Click #%05lu at index %lu.", (unsigned long)entry.stable_id,
+             (unsigned long)entry.index);
     strip_demo_refresh_header();
 }
 
@@ -1177,8 +1448,7 @@ static void strip_demo_action_add(void)
 
     if (index < strip_demo_ctx.item_count)
     {
-        memmove(&strip_demo_ctx.items[index + 1], &strip_demo_ctx.items[index],
-                (strip_demo_ctx.item_count - index) * sizeof(strip_demo_ctx.items[0]));
+        memmove(&strip_demo_ctx.items[index + 1], &strip_demo_ctx.items[index], (strip_demo_ctx.item_count - index) * sizeof(strip_demo_ctx.items[0]));
     }
 
     stable_id = strip_demo_ctx.next_stable_id++;
@@ -1216,8 +1486,7 @@ static void strip_demo_action_del(void)
     egui_view_virtual_strip_remove_item_state_by_stable_id(EGUI_VIEW_OF(&strip_view), stable_id);
     if ((index + 1U) < strip_demo_ctx.item_count)
     {
-        memmove(&strip_demo_ctx.items[index], &strip_demo_ctx.items[index + 1],
-                (strip_demo_ctx.item_count - index - 1U) * sizeof(strip_demo_ctx.items[0]));
+        memmove(&strip_demo_ctx.items[index], &strip_demo_ctx.items[index + 1], (strip_demo_ctx.item_count - index - 1U) * sizeof(strip_demo_ctx.items[0]));
     }
 
     strip_demo_ctx.item_count--;
@@ -1356,6 +1625,7 @@ static void strip_demo_switch_scene(uint8_t scene)
     egui_view_virtual_strip_set_scroll_x(EGUI_VIEW_OF(&strip_view), 0);
     egui_view_virtual_strip_notify_data_changed(EGUI_VIEW_OF(&strip_view));
     strip_demo_style_scene_buttons();
+    strip_demo_style_overlay();
     strip_demo_refresh_header();
 }
 
@@ -1414,7 +1684,7 @@ void test_init_ui(void)
 
     egui_view_label_init(EGUI_VIEW_OF(&header_title));
     egui_view_set_position(EGUI_VIEW_OF(&header_title), 12, 10);
-    egui_view_set_size(EGUI_VIEW_OF(&header_title), STRIP_CONTENT_W - 24, 12);
+    egui_view_set_size(EGUI_VIEW_OF(&header_title), STRIP_CONTENT_W - 24, 16);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_title), STRIP_FONT_HEADER);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&header_title), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&header_title), EGUI_COLOR_HEX(0x243646), EGUI_ALPHA_100);
@@ -1422,7 +1692,7 @@ void test_init_ui(void)
 
     egui_view_label_init(EGUI_VIEW_OF(&header_detail));
     egui_view_set_position(EGUI_VIEW_OF(&header_detail), 12, 28);
-    egui_view_set_size(EGUI_VIEW_OF(&header_detail), STRIP_CONTENT_W - 24, 10);
+    egui_view_set_size(EGUI_VIEW_OF(&header_detail), STRIP_CONTENT_W - 24, 14);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_detail), STRIP_FONT_BODY);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&header_detail), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&header_detail), EGUI_COLOR_HEX(0x5B6C7A), EGUI_ALPHA_100);
@@ -1430,7 +1700,7 @@ void test_init_ui(void)
 
     egui_view_label_init(EGUI_VIEW_OF(&header_hint));
     egui_view_set_position(EGUI_VIEW_OF(&header_hint), 12, 42);
-    egui_view_set_size(EGUI_VIEW_OF(&header_hint), STRIP_CONTENT_W - 24, 10);
+    egui_view_set_size(EGUI_VIEW_OF(&header_hint), STRIP_CONTENT_W - 24, 14);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_hint), STRIP_FONT_BODY);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&header_hint), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&header_hint), EGUI_COLOR_HEX(0x687B8D), EGUI_ALPHA_100);
@@ -1452,11 +1722,10 @@ void test_init_ui(void)
     for (i = 0; i < STRIP_ACTION_COUNT; i++)
     {
         strip_demo_init_button(&action_buttons[i], x, 6, STRIP_ACTION_BUTTON_W, strip_demo_action_names[i]);
-        egui_view_set_background(EGUI_VIEW_OF(&action_buttons[i]),
-                                 i == STRIP_ACTION_ADD     ? EGUI_BG_OF(&strip_action_add_bg)
-                                 : i == STRIP_ACTION_DEL   ? EGUI_BG_OF(&strip_action_del_bg)
-                                 : i == STRIP_ACTION_PATCH ? EGUI_BG_OF(&strip_action_patch_bg)
-                                                           : EGUI_BG_OF(&strip_action_jump_bg));
+        egui_view_set_background(EGUI_VIEW_OF(&action_buttons[i]), i == STRIP_ACTION_ADD     ? EGUI_BG_OF(&strip_action_add_bg)
+                                                                   : i == STRIP_ACTION_DEL   ? EGUI_BG_OF(&strip_action_del_bg)
+                                                                   : i == STRIP_ACTION_PATCH ? EGUI_BG_OF(&strip_action_patch_bg)
+                                                                                             : EGUI_BG_OF(&strip_action_jump_bg));
         egui_view_card_add_child(EGUI_VIEW_OF(&toolbar_card), EGUI_VIEW_OF(&action_buttons[i]));
         x += STRIP_ACTION_BUTTON_W + STRIP_ACTION_BUTTON_GAP;
     }
@@ -1475,11 +1744,26 @@ void test_init_ui(void)
     egui_view_set_background(EGUI_VIEW_OF(&strip_view), EGUI_BG_OF(&strip_view_bg));
     egui_view_set_shadow(EGUI_VIEW_OF(&strip_view), &strip_demo_card_shadow);
 
+    egui_view_group_init(EGUI_VIEW_OF(&strip_overlay_view));
+    egui_view_set_position(EGUI_VIEW_OF(&strip_overlay_view), STRIP_MARGIN_X, STRIP_VIEW_Y);
+    egui_view_set_size(EGUI_VIEW_OF(&strip_overlay_view), STRIP_CONTENT_W, STRIP_VIEW_H);
+    egui_view_set_clickable(EGUI_VIEW_OF(&strip_overlay_view), 0);
+
+    egui_view_card_init(EGUI_VIEW_OF(&strip_overlay_line));
+    egui_view_set_clickable(EGUI_VIEW_OF(&strip_overlay_line), 0);
+    egui_view_group_add_child(EGUI_VIEW_OF(&strip_overlay_view), EGUI_VIEW_OF(&strip_overlay_line));
+
+    egui_view_card_init(EGUI_VIEW_OF(&strip_overlay_dot));
+    egui_view_set_clickable(EGUI_VIEW_OF(&strip_overlay_dot), 0);
+    egui_view_group_add_child(EGUI_VIEW_OF(&strip_overlay_view), EGUI_VIEW_OF(&strip_overlay_dot));
+
     strip_demo_style_scene_buttons();
+    strip_demo_style_overlay();
     strip_demo_refresh_header();
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&background_view));
     egui_core_add_user_root_view(EGUI_VIEW_OF(&strip_view));
+    egui_core_add_user_root_view(EGUI_VIEW_OF(&strip_overlay_view));
     egui_core_add_user_root_view(EGUI_VIEW_OF(&header_card));
     egui_core_add_user_root_view(EGUI_VIEW_OF(&toolbar_card));
 }
@@ -1508,8 +1792,7 @@ static uint8_t strip_demo_match_visible_item(egui_view_t *self, const egui_view_
 
     EGUI_UNUSED(self);
     EGUI_UNUSED(item_view);
-    return (uint8_t)(entry != NULL && entry->index >= ctx->min_index &&
-                     egui_view_virtual_viewport_is_slot_center_visible(EGUI_VIEW_OF(&strip_view), slot));
+    return (uint8_t)(entry != NULL && entry->index >= ctx->min_index && egui_view_virtual_viewport_is_slot_center_visible(EGUI_VIEW_OF(&strip_view), slot));
 }
 
 static egui_view_t *strip_demo_find_visible_view_by_index(uint32_t index)

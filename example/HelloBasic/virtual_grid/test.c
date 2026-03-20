@@ -11,36 +11,37 @@
 #define GRID_VIEW_POOL_CAPACITY (EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS * EGUI_VIEW_VIRTUAL_GRID_MAX_COLUMNS)
 #define GRID_STATE_CACHE_COUNT  96U
 
-#define GRID_STATUS_TEXT_LEN    96
-#define GRID_TITLE_TEXT_LEN     24
-#define GRID_META_TEXT_LEN      24
-#define GRID_BADGE_TEXT_LEN     12
-#define GRID_TAG_TEXT_LEN       16
-#define GRID_FOOTER_TEXT_LEN    28
+#define GRID_STATUS_TEXT_LEN 96
+#define GRID_TITLE_TEXT_LEN  24
+#define GRID_META_TEXT_LEN   24
+#define GRID_BADGE_TEXT_LEN  12
+#define GRID_TAG_TEXT_LEN    16
+#define GRID_FOOTER_TEXT_LEN 28
 
-#define GRID_MARGIN_X           8
-#define GRID_TOP_Y              8
-#define GRID_CONTENT_W          (EGUI_CONFIG_SCEEN_WIDTH - GRID_MARGIN_X * 2)
-#define GRID_HEADER_H           72
-#define GRID_TOOLBAR_Y          (GRID_TOP_Y + GRID_HEADER_H + 6)
-#define GRID_TOOLBAR_H          56
-#define GRID_VIEW_Y             (GRID_TOOLBAR_Y + GRID_TOOLBAR_H + 6)
-#define GRID_VIEW_H             (EGUI_CONFIG_SCEEN_HEIGHT - GRID_VIEW_Y - 8)
+#define GRID_MARGIN_X  8
+#define GRID_TOP_Y     8
+#define GRID_CONTENT_W (EGUI_CONFIG_SCEEN_WIDTH - GRID_MARGIN_X * 2)
+#define GRID_HEADER_H  72
+#define GRID_TOOLBAR_Y (GRID_TOP_Y + GRID_HEADER_H + 6)
+#define GRID_TOOLBAR_H 56
+#define GRID_VIEW_Y    (GRID_TOOLBAR_Y + GRID_TOOLBAR_H + 6)
+#define GRID_VIEW_H    (EGUI_CONFIG_SCEEN_HEIGHT - GRID_VIEW_Y - 8)
 
-#define GRID_ACTION_BUTTON_GAP  4
-#define GRID_ACTION_BUTTON_W    ((GRID_CONTENT_W - 20 - GRID_ACTION_BUTTON_GAP * 3) / 4)
-#define GRID_ACTION_BUTTON_H    18
-#define GRID_MODE_BUTTON_GAP    4
-#define GRID_MODE_BUTTON_W      ((GRID_CONTENT_W - 20 - GRID_MODE_BUTTON_GAP * 2) / 3)
-#define GRID_MODE_BUTTON_H      18
+#define GRID_ACTION_BUTTON_GAP 4
+#define GRID_ACTION_BUTTON_W   ((GRID_CONTENT_W - 20 - GRID_ACTION_BUTTON_GAP * 3) / 4)
+#define GRID_ACTION_BUTTON_H   18
+#define GRID_MODE_BUTTON_GAP   4
+#define GRID_MODE_BUTTON_W     ((GRID_CONTENT_W - 20 - GRID_MODE_BUTTON_GAP * 2) / 3)
+#define GRID_MODE_BUTTON_H     18
 
-#define GRID_CARD_INSET_X       4
-#define GRID_CARD_INSET_Y       4
+#define GRID_CARD_INSET_X 4
+#define GRID_CARD_INSET_Y 4
 
-#define GRID_FONT_HEADER        ((const egui_font_t *)&egui_res_font_montserrat_10_4)
-#define GRID_FONT_TITLE         ((const egui_font_t *)&egui_res_font_montserrat_10_4)
-#define GRID_FONT_META          ((const egui_font_t *)&egui_res_font_montserrat_8_4)
-#define GRID_FONT_CAPTION       ((const egui_font_t *)&egui_res_font_montserrat_8_4)
+#define GRID_FONT_HEADER  ((const egui_font_t *)&egui_res_font_montserrat_10_4)
+#define GRID_FONT_TITLE   ((const egui_font_t *)&egui_res_font_montserrat_10_4)
+#define GRID_FONT_TITLE_L ((const egui_font_t *)&egui_res_font_montserrat_12_4)
+#define GRID_FONT_META    ((const egui_font_t *)&egui_res_font_montserrat_8_4)
+#define GRID_FONT_CAPTION ((const egui_font_t *)&egui_res_font_montserrat_8_4)
 
 enum
 {
@@ -88,6 +89,7 @@ struct grid_demo_item_view
 {
     egui_view_group_t root;
     egui_view_card_t card;
+    egui_view_card_t accent;
     egui_view_label_t tag;
     egui_view_label_t title;
     egui_view_label_t meta;
@@ -136,6 +138,7 @@ struct grid_demo_context
 
 static const char *grid_demo_action_names[GRID_ACTION_COUNT] = {"Add", "Del", "Patch", "Jump"};
 static const char *grid_demo_variant_names[GRID_VARIANT_COUNT] = {"Hero", "KPI", "Alert", "Task"};
+static const char *grid_demo_variant_short_names[GRID_VARIANT_COUNT] = {"H", "K", "!", "T"};
 static const char *grid_demo_state_names[GRID_STATE_COUNT] = {"Idle", "Sync", "Warn", "Done"};
 
 static egui_view_t background_view;
@@ -521,106 +524,211 @@ static void grid_demo_restore_view_state(grid_demo_item_view_t *item_view, const
 
 static void grid_demo_layout_card_children(grid_demo_item_view_t *item_view, const grid_demo_item_t *item, int pool_index, uint32_t index, uint8_t selected)
 {
-    egui_dim_t width = EGUI_VIEW_OF(&item_view->root)->region.size.width > 0 ? EGUI_VIEW_OF(&item_view->root)->region.size.width : 72;
-    egui_dim_t height = EGUI_VIEW_OF(&item_view->root)->region.size.height > 0 ? EGUI_VIEW_OF(&item_view->root)->region.size.height : 72;
-    egui_dim_t inset = width < 60 ? 4 : 6;
-    egui_dim_t badge_w = width < 60 ? 28 : 40;
+    egui_dim_t root_w = EGUI_VIEW_OF(&item_view->root)->region.size.width > 0 ? EGUI_VIEW_OF(&item_view->root)->region.size.width : 72;
+    egui_dim_t root_h = EGUI_VIEW_OF(&item_view->root)->region.size.height > 0 ? EGUI_VIEW_OF(&item_view->root)->region.size.height : 72;
+    egui_dim_t card_w = root_w - GRID_CARD_INSET_X * 2;
+    egui_dim_t card_h = root_h - GRID_CARD_INSET_Y * 2;
+    uint8_t narrow = card_w < 56 ? 1U : 0U;
+    uint8_t compact = card_w < 76 ? 1U : 0U;
+    egui_dim_t inset = narrow ? 4 : 6;
+    egui_dim_t badge_w = narrow ? 26 : compact ? 32 : 40;
     egui_dim_t badge_h = 14;
     egui_dim_t footer_h = 10;
     egui_dim_t progress_h = 4;
-    egui_dim_t pulse_size = width < 60 ? 6 : 8;
-    egui_dim_t content_w = width - inset * 2;
+    egui_dim_t pulse_size = narrow ? 6 : 8;
+    egui_dim_t text_x = inset;
+    egui_dim_t text_w;
+    egui_dim_t tag_y = inset;
+    egui_dim_t tag_h = 10;
     egui_dim_t title_y = inset + 12;
-    egui_dim_t meta_y = title_y + 12 + 2;
-    egui_dim_t progress_y = height - inset - progress_h;
-    egui_dim_t footer_y = progress_y - footer_h - 2;
-    uint8_t show_footer = selected || (item->variant == GRID_VARIANT_TASK && width >= 60);
+    egui_dim_t title_h = narrow ? 10 : 12;
+    egui_dim_t meta_y;
+    egui_dim_t meta_h = 10;
+    egui_dim_t footer_y;
+    egui_dim_t progress_y;
+    egui_dim_t accent_x = inset;
+    egui_dim_t accent_y = inset + 8;
+    egui_dim_t accent_w = card_w - inset * 2;
+    egui_dim_t accent_h = narrow ? 8 : 12;
+    uint8_t show_tag = (uint8_t)(!narrow || selected || item->variant == GRID_VARIANT_ALERT);
+    uint8_t show_meta = (uint8_t)(!narrow || selected || item->variant == GRID_VARIANT_METRIC);
+    uint8_t show_badge = (uint8_t)(!narrow || selected || item->state == GRID_STATE_WARNING);
+    uint8_t show_footer = (uint8_t)(selected || (!compact && item->variant == GRID_VARIANT_TASK));
     egui_color_t title_color;
     egui_color_t meta_color;
     egui_color_t border_color;
-    egui_color_t badge_text_color = item->state == GRID_STATE_DONE ? EGUI_COLOR_WHITE : EGUI_COLOR_WHITE;
+    egui_color_t accent_color;
+    egui_color_t tag_color = EGUI_COLOR_HEX(0x6E7F8D);
+    egui_color_t badge_text_color = EGUI_COLOR_WHITE;
     egui_color_t card_color;
-
-    if (content_w < 24)
-    {
-        content_w = 24;
-    }
-    if (progress_y < meta_y + 10)
-    {
-        progress_y = meta_y + 10;
-    }
 
     switch (item->variant)
     {
     case GRID_VARIANT_METRIC:
         card_color = selected ? EGUI_COLOR_HEX(0xEAF5FF) : EGUI_COLOR_HEX(0xF5FAFD);
+        accent_color = EGUI_COLOR_HEX(0x6A9FD1);
         break;
     case GRID_VARIANT_ALERT:
         card_color = selected ? EGUI_COLOR_HEX(0xFFF3E4) : EGUI_COLOR_HEX(0xFFF8F1);
+        accent_color = EGUI_COLOR_HEX(0xD08A2E);
         break;
     case GRID_VARIANT_TASK:
         card_color = selected ? EGUI_COLOR_HEX(0xECF8EE) : EGUI_COLOR_HEX(0xF6FBF6);
+        accent_color = EGUI_COLOR_HEX(0x5BA57B);
         break;
     default:
         card_color = selected ? EGUI_COLOR_HEX(0xEEF5FF) : EGUI_COLOR_WHITE;
+        accent_color = EGUI_COLOR_HEX(0x94A7B7);
         break;
     }
 
-    border_color = selected ? EGUI_COLOR_HEX(0x3A6EA5)
-                            : item->state == GRID_STATE_WARNING ? EGUI_COLOR_HEX(0xD6A45C)
-                            : item->state == GRID_STATE_SYNC    ? EGUI_COLOR_HEX(0x84BCA0)
-                                                                : EGUI_COLOR_HEX(0xD8E1EA);
+    border_color = selected                            ? EGUI_COLOR_HEX(0x3A6EA5)
+                   : item->state == GRID_STATE_WARNING ? EGUI_COLOR_HEX(0xD6A45C)
+                   : item->state == GRID_STATE_SYNC    ? EGUI_COLOR_HEX(0x84BCA0)
+                                                       : EGUI_COLOR_HEX(0xD8E1EA);
     title_color = selected ? EGUI_COLOR_HEX(0x17324A) : EGUI_COLOR_HEX(0x213344);
     meta_color = selected ? EGUI_COLOR_HEX(0x466174) : EGUI_COLOR_HEX(0x637788);
 
-    snprintf(grid_demo_ctx.tag_texts[pool_index], sizeof(grid_demo_ctx.tag_texts[pool_index]), "%s", grid_demo_variant_names[item->variant]);
-    snprintf(grid_demo_ctx.title_texts[pool_index], sizeof(grid_demo_ctx.title_texts[pool_index]), "#%03lu", (unsigned long)(item->stable_id % 1000U));
-    snprintf(grid_demo_ctx.meta_texts[pool_index], sizeof(grid_demo_ctx.meta_texts[pool_index]), "R%u %u%%", (unsigned)item->revision,
-             (unsigned)item->progress);
+    snprintf(grid_demo_ctx.tag_texts[pool_index], sizeof(grid_demo_ctx.tag_texts[pool_index]), "%s",
+             narrow ? grid_demo_variant_short_names[item->variant] : grid_demo_variant_names[item->variant]);
+    if (item->variant == GRID_VARIANT_METRIC)
+    {
+        snprintf(grid_demo_ctx.title_texts[pool_index], sizeof(grid_demo_ctx.title_texts[pool_index]), narrow ? "%u" : "%u%%", (unsigned)item->progress);
+        snprintf(grid_demo_ctx.meta_texts[pool_index], sizeof(grid_demo_ctx.meta_texts[pool_index]), compact ? "R%u" : "Rev %u",
+                 (unsigned)item->revision);
+    }
+    else
+    {
+        snprintf(grid_demo_ctx.title_texts[pool_index], sizeof(grid_demo_ctx.title_texts[pool_index]), narrow ? "#%02lu" : "#%03lu",
+                 (unsigned long)(item->stable_id % 1000U));
+        snprintf(grid_demo_ctx.meta_texts[pool_index], sizeof(grid_demo_ctx.meta_texts[pool_index]), compact ? "R%u" : "R%u %u%%", (unsigned)item->revision,
+                 (unsigned)item->progress);
+    }
     snprintf(grid_demo_ctx.badge_texts[pool_index], sizeof(grid_demo_ctx.badge_texts[pool_index]), "%s", grid_demo_state_names[item->state]);
     snprintf(grid_demo_ctx.footer_texts[pool_index], sizeof(grid_demo_ctx.footer_texts[pool_index]),
-             selected ? "Selected %03lu" : item->variant == GRID_VARIANT_ALERT ? "Watch lane" : item->variant == GRID_VARIANT_TASK ? "Checklist"
-                                                                                : "Tap card %lu",
+             selected                              ? "Selected %03lu"
+             : item->variant == GRID_VARIANT_ALERT ? (compact ? "Watch" : "Watch lane")
+             : item->variant == GRID_VARIANT_TASK  ? "Checklist"
+             : item->variant == GRID_VARIANT_METRIC ? "Sync panel"
+                                                    : "Poster rail",
              (unsigned long)(index % 1000U));
 
-    egui_view_set_size(EGUI_VIEW_OF(&item_view->card), width - GRID_CARD_INSET_X * 2, height - GRID_CARD_INSET_Y * 2);
+    egui_view_set_size(EGUI_VIEW_OF(&item_view->card), card_w, card_h);
     egui_view_set_position(EGUI_VIEW_OF(&item_view->card), GRID_CARD_INSET_X, GRID_CARD_INSET_Y);
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&item_view->card), card_color, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&item_view->card), selected ? 2 : 1, border_color);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&item_view->card), narrow ? 8 : compact ? 10 : 12);
     egui_view_set_shadow(EGUI_VIEW_OF(&item_view->card), &grid_demo_card_shadow);
 
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->tag), inset, inset);
-    egui_view_set_size(EGUI_VIEW_OF(&item_view->tag), content_w - badge_w - 4, 10);
-    egui_view_label_set_text(EGUI_VIEW_OF(&item_view->tag), grid_demo_ctx.tag_texts[pool_index]);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->tag), EGUI_COLOR_HEX(0x748492), EGUI_ALPHA_100);
+    if (item->variant == GRID_VARIANT_HERO)
+    {
+        accent_y = show_tag ? (egui_dim_t)(inset + 10) : (egui_dim_t)(inset + 6);
+        accent_h = narrow ? 10 : compact ? 14 : 24;
+        title_y = (egui_dim_t)(accent_y + accent_h + 6);
+        tag_color = EGUI_COLOR_HEX(0x708291);
+    }
+    else if (item->variant == GRID_VARIANT_METRIC)
+    {
+        accent_y = show_tag ? (egui_dim_t)(inset + 10) : (egui_dim_t)(inset + 6);
+        accent_h = narrow ? 4 : 6;
+        title_y = (egui_dim_t)(accent_y + accent_h + (narrow ? 8 : 10));
+        title_h = narrow ? 11 : 14;
+        tag_color = EGUI_COLOR_HEX(0x5E86AB);
+    }
+    else if (item->variant == GRID_VARIANT_ALERT)
+    {
+        accent_w = narrow ? 4 : 6;
+        accent_y = show_tag ? (egui_dim_t)(inset + 10) : (egui_dim_t)(inset + 6);
+        accent_h = (egui_dim_t)(card_h - accent_y - inset - progress_h - 8);
+        text_x = (egui_dim_t)(inset + accent_w + 6);
+        title_y = show_tag ? (egui_dim_t)(inset + 12) : (egui_dim_t)(inset + 8);
+        tag_color = EGUI_COLOR_HEX(0xA36B28);
+    }
+    else
+    {
+        accent_y = show_tag ? (egui_dim_t)(inset + 10) : (egui_dim_t)(inset + 6);
+        accent_w = compact ? 16 : 28;
+        accent_h = 4;
+        title_y = (egui_dim_t)(accent_y + accent_h + 6);
+        tag_color = EGUI_COLOR_HEX(0x5F7F6B);
+    }
 
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->badge), width - GRID_CARD_INSET_X * 2 - inset - badge_w, inset - 1);
+    text_w = (egui_dim_t)(card_w - text_x - inset - (show_badge ? badge_w + 4 : 0));
+    if (text_w < 18)
+    {
+        text_w = 18;
+    }
+
+    meta_y = (egui_dim_t)(title_y + title_h + 2);
+    progress_y = (egui_dim_t)(card_h - inset - progress_h);
+    if (show_footer)
+    {
+        footer_y = (egui_dim_t)(progress_y - footer_h - 2);
+    }
+    else
+    {
+        footer_y = progress_y;
+    }
+    if (show_meta && progress_y < meta_y + meta_h + 4)
+    {
+        progress_y = (egui_dim_t)(meta_y + meta_h + 4);
+    }
+    else if (!show_meta && progress_y < title_y + title_h + 4)
+    {
+        progress_y = (egui_dim_t)(title_y + title_h + 4);
+    }
+    if (show_footer && footer_y < meta_y + meta_h + 2)
+    {
+        footer_y = (egui_dim_t)(meta_y + meta_h + 2);
+    }
+
+    egui_view_card_set_bg_color(EGUI_VIEW_OF(&item_view->accent), accent_color, EGUI_ALPHA_100);
+    egui_view_card_set_border(EGUI_VIEW_OF(&item_view->accent), 0, accent_color);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&item_view->accent), accent_h > accent_w ? accent_w / 2 : accent_h / 2);
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->accent), accent_x, accent_y);
+    egui_view_set_size(EGUI_VIEW_OF(&item_view->accent), accent_w, accent_h);
+
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->tag), text_x, tag_y);
+    egui_view_set_size(EGUI_VIEW_OF(&item_view->tag), text_w, tag_h);
+    egui_view_label_set_text(EGUI_VIEW_OF(&item_view->tag), grid_demo_ctx.tag_texts[pool_index]);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->tag), tag_color, EGUI_ALPHA_100);
+    egui_view_set_gone(EGUI_VIEW_OF(&item_view->tag), show_tag ? 0 : 1);
+
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->badge), card_w - inset - badge_w, inset - 1);
     egui_view_set_size(EGUI_VIEW_OF(&item_view->badge), badge_w, badge_h);
     egui_view_label_set_text(EGUI_VIEW_OF(&item_view->badge), grid_demo_ctx.badge_texts[pool_index]);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->badge), badge_text_color, EGUI_ALPHA_100);
     egui_view_set_background(EGUI_VIEW_OF(&item_view->badge), grid_demo_get_badge_background(item->state));
+    egui_view_set_gone(EGUI_VIEW_OF(&item_view->badge), show_badge ? 0 : 1);
 
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->title), inset, title_y);
-    egui_view_set_size(EGUI_VIEW_OF(&item_view->title), content_w, 12);
+    egui_view_label_set_font(EGUI_VIEW_OF(&item_view->title),
+                             item->variant == GRID_VARIANT_METRIC && !compact ? GRID_FONT_TITLE_L : (narrow ? GRID_FONT_META : GRID_FONT_TITLE));
+    egui_view_label_set_align_type(EGUI_VIEW_OF(&item_view->title),
+                                   item->variant == GRID_VARIANT_METRIC ? EGUI_ALIGN_CENTER : (EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER));
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->title), text_x, title_y);
+    egui_view_set_size(EGUI_VIEW_OF(&item_view->title), text_w, title_h);
     egui_view_label_set_text(EGUI_VIEW_OF(&item_view->title), grid_demo_ctx.title_texts[pool_index]);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->title), title_color, EGUI_ALPHA_100);
 
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->meta), inset, meta_y);
-    egui_view_set_size(EGUI_VIEW_OF(&item_view->meta), content_w, 10);
+    egui_view_label_set_align_type(EGUI_VIEW_OF(&item_view->meta),
+                                   item->variant == GRID_VARIANT_METRIC ? EGUI_ALIGN_CENTER : (EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER));
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->meta), text_x, meta_y);
+    egui_view_set_size(EGUI_VIEW_OF(&item_view->meta), text_w, meta_h);
     egui_view_label_set_text(EGUI_VIEW_OF(&item_view->meta), grid_demo_ctx.meta_texts[pool_index]);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->meta), meta_color, EGUI_ALPHA_100);
+    egui_view_set_gone(EGUI_VIEW_OF(&item_view->meta), show_meta ? 0 : 1);
 
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->footer), inset, footer_y);
-    egui_view_set_size(EGUI_VIEW_OF(&item_view->footer), content_w, footer_h);
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->footer), text_x, footer_y);
+    egui_view_set_size(EGUI_VIEW_OF(&item_view->footer), text_w, footer_h);
     egui_view_label_set_text(EGUI_VIEW_OF(&item_view->footer), grid_demo_ctx.footer_texts[pool_index]);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->footer), EGUI_COLOR_HEX(0x607182), EGUI_ALPHA_100);
     egui_view_set_gone(EGUI_VIEW_OF(&item_view->footer), show_footer ? 0 : 1);
 
     egui_view_set_position(EGUI_VIEW_OF(&item_view->progress), inset, progress_y);
-    egui_view_set_size(EGUI_VIEW_OF(&item_view->progress), content_w, progress_h);
+    egui_view_set_size(EGUI_VIEW_OF(&item_view->progress), card_w - inset * 2, progress_h);
     egui_view_progress_bar_set_process(EGUI_VIEW_OF(&item_view->progress), item->progress);
 
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->pulse), width - GRID_CARD_INSET_X * 2 - inset - pulse_size, progress_y - pulse_size - 6);
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->pulse), card_w - inset - pulse_size, progress_y - pulse_size - 6);
     egui_view_set_size(EGUI_VIEW_OF(&item_view->pulse), pulse_size, pulse_size);
     grid_demo_set_item_pulse(item_view, item, grid_demo_item_has_pulse(item, selected), selected);
 }
@@ -661,8 +769,8 @@ static void grid_demo_refresh_mode_buttons(void)
 
     for (i = 0; i < 3; i++)
     {
-        egui_view_set_background(EGUI_VIEW_OF(&mode_buttons[i]), columns == (uint8_t)(i + 2U) ? EGUI_BG_OF(&grid_demo_mode_active_bg)
-                                                                                                : EGUI_BG_OF(&grid_demo_mode_idle_bg));
+        egui_view_set_background(EGUI_VIEW_OF(&mode_buttons[i]),
+                                 columns == (uint8_t)(i + 2U) ? EGUI_BG_OF(&grid_demo_mode_active_bg) : EGUI_BG_OF(&grid_demo_mode_idle_bg));
     }
 }
 
@@ -756,8 +864,8 @@ static void grid_demo_card_click_cb(egui_view_t *self)
     grid_demo_ctx.last_clicked_index = item_view->bound_index;
     grid_demo_ctx.click_count++;
     grid_demo_update_selection(item_view->stable_id, 1, 1);
-    snprintf(grid_demo_ctx.last_action_text, sizeof(grid_demo_ctx.last_action_text), "Click item #%05lu @ index %lu.",
-             (unsigned long)item_view->stable_id, (unsigned long)item_view->bound_index);
+    snprintf(grid_demo_ctx.last_action_text, sizeof(grid_demo_ctx.last_action_text), "Click item #%05lu @ index %lu.", (unsigned long)item_view->stable_id,
+             (unsigned long)item_view->bound_index);
     grid_demo_refresh_header();
 }
 
@@ -783,6 +891,9 @@ static egui_view_t *grid_demo_create_item_view(void *data_source_context, uint16
     egui_view_set_clickable(EGUI_VIEW_OF(&item_view->root), 1);
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&item_view->root), grid_demo_card_click_cb);
     egui_view_group_add_child(EGUI_VIEW_OF(&item_view->root), EGUI_VIEW_OF(&item_view->card));
+
+    egui_view_card_init(EGUI_VIEW_OF(&item_view->accent));
+    egui_view_card_add_child(EGUI_VIEW_OF(&item_view->card), EGUI_VIEW_OF(&item_view->accent));
 
     egui_view_label_init(EGUI_VIEW_OF(&item_view->tag));
     egui_view_label_set_font(EGUI_VIEW_OF(&item_view->tag), GRID_FONT_CAPTION);
@@ -1249,11 +1360,10 @@ void test_init_ui(void)
     for (i = 0; i < GRID_ACTION_COUNT; i++)
     {
         grid_demo_init_button(&action_buttons[i], button_x, 6, GRID_ACTION_BUTTON_W, grid_demo_action_names[i]);
-        egui_view_set_background(EGUI_VIEW_OF(&action_buttons[i]),
-                                 i == GRID_ACTION_ADD     ? EGUI_BG_OF(&grid_demo_btn_add_bg)
-                                 : i == GRID_ACTION_DEL   ? EGUI_BG_OF(&grid_demo_btn_del_bg)
-                                 : i == GRID_ACTION_PATCH ? EGUI_BG_OF(&grid_demo_btn_patch_bg)
-                                                          : EGUI_BG_OF(&grid_demo_btn_jump_bg));
+        egui_view_set_background(EGUI_VIEW_OF(&action_buttons[i]), i == GRID_ACTION_ADD     ? EGUI_BG_OF(&grid_demo_btn_add_bg)
+                                                                   : i == GRID_ACTION_DEL   ? EGUI_BG_OF(&grid_demo_btn_del_bg)
+                                                                   : i == GRID_ACTION_PATCH ? EGUI_BG_OF(&grid_demo_btn_patch_bg)
+                                                                                            : EGUI_BG_OF(&grid_demo_btn_jump_bg));
         egui_view_card_add_child(EGUI_VIEW_OF(&toolbar_card), EGUI_VIEW_OF(&action_buttons[i]));
         button_x += GRID_ACTION_BUTTON_W + GRID_ACTION_BUTTON_GAP;
     }

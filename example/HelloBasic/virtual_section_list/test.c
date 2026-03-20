@@ -5,40 +5,43 @@
 
 #include "uicode.h"
 
-#define SECTION_DEMO_MAX_SECTIONS            28U
-#define SECTION_DEMO_INITIAL_SECTIONS        24U
-#define SECTION_DEMO_MAX_ITEMS_PER_SECTION   56U
-#define SECTION_DEMO_INVALID_INDEX           0xFFFFFFFFUL
-#define SECTION_DEMO_STATUS_TEXT_LEN         96
-#define SECTION_DEMO_TITLE_TEXT_LEN          40
-#define SECTION_DEMO_META_TEXT_LEN           48
-#define SECTION_DEMO_HINT_TEXT_LEN           24
-#define SECTION_DEMO_BODY_TEXT_LEN           56
-#define SECTION_DEMO_BADGE_TEXT_LEN          16
-#define SECTION_DEMO_STATE_CACHE_COUNT       96U
+#define SECTION_DEMO_MAX_SECTIONS          28U
+#define SECTION_DEMO_INITIAL_SECTIONS      24U
+#define SECTION_DEMO_MAX_ITEMS_PER_SECTION 56U
+#define SECTION_DEMO_INVALID_INDEX         0xFFFFFFFFUL
+#define SECTION_DEMO_STATUS_TEXT_LEN       96
+#define SECTION_DEMO_TITLE_TEXT_LEN        40
+#define SECTION_DEMO_META_TEXT_LEN         48
+#define SECTION_DEMO_HINT_TEXT_LEN         24
+#define SECTION_DEMO_BODY_TEXT_LEN         56
+#define SECTION_DEMO_BADGE_TEXT_LEN        16
+#define SECTION_DEMO_STATE_CACHE_COUNT     96U
 
-#define SECTION_DEMO_MARGIN_X                8
-#define SECTION_DEMO_TOP_Y                   8
-#define SECTION_DEMO_HEADER_W                (EGUI_CONFIG_SCEEN_WIDTH - SECTION_DEMO_MARGIN_X * 2)
-#define SECTION_DEMO_HEADER_H                68
-#define SECTION_DEMO_TOOLBAR_Y               (SECTION_DEMO_TOP_Y + SECTION_DEMO_HEADER_H + 6)
-#define SECTION_DEMO_TOOLBAR_H               32
-#define SECTION_DEMO_VIEW_Y                  (SECTION_DEMO_TOOLBAR_Y + SECTION_DEMO_TOOLBAR_H + 6)
-#define SECTION_DEMO_VIEW_W                  SECTION_DEMO_HEADER_W
-#define SECTION_DEMO_VIEW_H                  (EGUI_CONFIG_SCEEN_HEIGHT - SECTION_DEMO_VIEW_Y - 8)
-#define SECTION_DEMO_BUTTON_GAP              4
-#define SECTION_DEMO_BUTTON_W                ((SECTION_DEMO_HEADER_W - 20 - SECTION_DEMO_BUTTON_GAP * 3) / 4)
-#define SECTION_DEMO_BUTTON_H                20
-#define SECTION_DEMO_CARD_INSET_X            8
-#define SECTION_DEMO_ENTRY_GAP               6
-#define SECTION_DEMO_BADGE_H                 18
-#define SECTION_DEMO_PROGRESS_H              4
-#define SECTION_DEMO_HEADER_INSET_Y          2
+#define SECTION_DEMO_MARGIN_X              8
+#define SECTION_DEMO_TOP_Y                 8
+#define SECTION_DEMO_HEADER_W              (EGUI_CONFIG_SCEEN_WIDTH - SECTION_DEMO_MARGIN_X * 2)
+#define SECTION_DEMO_HEADER_H              68
+#define SECTION_DEMO_TOOLBAR_Y             (SECTION_DEMO_TOP_Y + SECTION_DEMO_HEADER_H + 6)
+#define SECTION_DEMO_TOOLBAR_H             32
+#define SECTION_DEMO_VIEW_Y                (SECTION_DEMO_TOOLBAR_Y + SECTION_DEMO_TOOLBAR_H + 6)
+#define SECTION_DEMO_VIEW_W                SECTION_DEMO_HEADER_W
+#define SECTION_DEMO_VIEW_H                (EGUI_CONFIG_SCEEN_HEIGHT - SECTION_DEMO_VIEW_Y - 8)
+#define SECTION_DEMO_BUTTON_GAP            4
+#define SECTION_DEMO_BUTTON_W              ((SECTION_DEMO_HEADER_W - 20 - SECTION_DEMO_BUTTON_GAP * 3) / 4)
+#define SECTION_DEMO_BUTTON_H              20
+#define SECTION_DEMO_HEADER_CARD_INSET_X   6
+#define SECTION_DEMO_ITEM_CARD_INSET_LEFT  18
+#define SECTION_DEMO_ITEM_CARD_INSET_RIGHT 6
+#define SECTION_DEMO_ENTRY_GAP             4
+#define SECTION_DEMO_BADGE_H               18
+#define SECTION_DEMO_PROGRESS_H            5
+#define SECTION_DEMO_HEADER_INSET_Y        1
 
-#define SECTION_DEMO_FONT_HEADER ((const egui_font_t *)&egui_res_font_montserrat_10_4)
-#define SECTION_DEMO_FONT_TITLE  ((const egui_font_t *)&egui_res_font_montserrat_10_4)
-#define SECTION_DEMO_FONT_BODY   ((const egui_font_t *)&egui_res_font_montserrat_8_4)
-#define SECTION_DEMO_FONT_CAP    ((const egui_font_t *)&egui_res_font_montserrat_8_4)
+#define SECTION_DEMO_FONT_HEADER       ((const egui_font_t *)&egui_res_font_montserrat_10_4)
+#define SECTION_DEMO_FONT_HEADER_TITLE ((const egui_font_t *)&egui_res_font_montserrat_10_4)
+#define SECTION_DEMO_FONT_ITEM_TITLE   ((const egui_font_t *)&egui_res_font_montserrat_8_4)
+#define SECTION_DEMO_FONT_BODY         ((const egui_font_t *)&egui_res_font_montserrat_8_4)
+#define SECTION_DEMO_FONT_CAP          ((const egui_font_t *)&egui_res_font_montserrat_8_4)
 
 enum
 {
@@ -107,6 +110,7 @@ struct section_demo_header_view
 {
     egui_view_group_t root;
     egui_view_card_t card;
+    egui_view_card_t accent;
     egui_view_label_t title;
     egui_view_label_t meta;
     egui_view_label_t hint;
@@ -118,6 +122,7 @@ struct section_demo_item_view
 {
     egui_view_group_t root;
     egui_view_card_t card;
+    egui_view_card_t accent;
     egui_view_label_t title;
     egui_view_label_t body;
     egui_view_label_t meta;
@@ -171,8 +176,15 @@ struct section_demo_context
 };
 
 static const char *section_demo_action_names[SECTION_DEMO_ACTION_COUNT] = {"Add", "Del", "Patch", "Jump"};
-static const char *section_demo_tone_names[SECTION_DEMO_TONE_COUNT] = {"Inbox", "Ops", "Chat", "Audit"};
 static const char *section_demo_state_names[SECTION_DEMO_ITEM_STATE_COUNT] = {"IDLE", "LIVE", "WARN", "DONE"};
+static const char *section_demo_header_labels[SECTION_DEMO_TONE_COUNT] = {"Inbox Lane", "Ops Board", "Chat Room", "Audit Batch"};
+static const char *section_demo_item_labels[SECTION_DEMO_TONE_COUNT] = {"Mail", "Task", "Thread", "Record"};
+static const char *section_demo_body_texts[SECTION_DEMO_TONE_COUNT][SECTION_DEMO_ITEM_VARIANT_COUNT] = {
+        {"Unread mail.", "Pinned thread.", "Needs reply."},
+        {"Ready queue.", "Deploy step.", "Escalated task."},
+        {"Room update.", "Context synced.", "Priority ping."},
+        {"Batch line.", "Trace detail.", "Flagged record."},
+};
 
 static egui_view_t background_view;
 static egui_view_card_t header_card;
@@ -191,7 +203,7 @@ static const egui_view_virtual_section_list_params_t section_demo_view_params = 
         .overscan_before = 1,
         .overscan_after = 1,
         .max_keepalive_slots = 4,
-        .estimated_entry_height = 64,
+        .estimated_entry_height = 60,
 };
 
 EGUI_BACKGROUND_GRADIENT_PARAM_INIT(section_demo_screen_bg_param, EGUI_BACKGROUND_GRADIENT_DIR_VERTICAL, EGUI_COLOR_HEX(0xEEF4F8), EGUI_COLOR_HEX(0xD8E5EE),
@@ -219,7 +231,7 @@ EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(section_demo_action_jump_param,
 EGUI_BACKGROUND_PARAM_INIT(section_demo_action_jump_params, &section_demo_action_jump_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(section_demo_action_jump_bg, &section_demo_action_jump_params);
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(section_demo_badge_selected_param, EGUI_COLOR_WHITE, EGUI_ALPHA_100, 10);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(section_demo_badge_selected_param, EGUI_COLOR_HEX(0x2F6CA8), EGUI_ALPHA_100, 10);
 EGUI_BACKGROUND_PARAM_INIT(section_demo_badge_selected_params, &section_demo_badge_selected_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(section_demo_badge_selected_bg, &section_demo_badge_selected_params);
 
@@ -317,7 +329,7 @@ static void section_demo_reset_model(void)
 
     for (section_index = 0; section_index < section_demo_ctx.section_count; section_index++)
     {
-        section_demo_fill_section(&section_demo_ctx.sections[section_index], section_demo_ctx.next_stable_id++, section_index + 1U);
+        section_demo_fill_section(&section_demo_ctx.sections[section_index], section_demo_ctx.next_stable_id++, section_index);
     }
 
     snprintf(section_demo_ctx.last_action_text, sizeof(section_demo_ctx.last_action_text), "Tap header to fold. Tap row to select.");
@@ -384,7 +396,7 @@ static uint8_t section_demo_is_selected_item(uint32_t stable_id)
 
 static int32_t section_demo_measure_header_height_with_state(const section_demo_section_t *section)
 {
-    int32_t height = section->collapsed ? 30 : 36;
+    int32_t height = section->collapsed ? 40 : 48;
 
     if (section->tone == SECTION_DEMO_TONE_AUDIT)
     {
@@ -400,29 +412,29 @@ static int32_t section_demo_measure_item_height_with_state(const section_demo_it
 
     if (item->variant == SECTION_DEMO_ITEM_VARIANT_ALERT)
     {
-        height = 88;
+        height = 76;
     }
     else if (item->variant == SECTION_DEMO_ITEM_VARIANT_DETAIL)
     {
-        height = 72;
+        height = 64;
     }
     else
     {
-        height = 58;
+        height = 44;
     }
 
     if (item->state == SECTION_DEMO_ITEM_STATE_LIVE)
     {
-        height += 4;
+        height += 2;
     }
     else if (item->state == SECTION_DEMO_ITEM_STATE_WARN)
     {
-        height += 6;
+        height += 4;
     }
 
     if (selected)
     {
-        height += 12;
+        height += 6;
     }
 
     return height;
@@ -820,11 +832,12 @@ static egui_view_t *section_demo_create_header_view(void *data_source_context, u
 
     egui_view_group_init(EGUI_VIEW_OF(&header_view->root));
     egui_view_card_init(EGUI_VIEW_OF(&header_view->card));
+    egui_view_card_init(EGUI_VIEW_OF(&header_view->accent));
     egui_view_label_init(EGUI_VIEW_OF(&header_view->title));
     egui_view_label_init(EGUI_VIEW_OF(&header_view->meta));
     egui_view_label_init(EGUI_VIEW_OF(&header_view->hint));
 
-    egui_view_label_set_font(EGUI_VIEW_OF(&header_view->title), SECTION_DEMO_FONT_TITLE);
+    egui_view_label_set_font(EGUI_VIEW_OF(&header_view->title), SECTION_DEMO_FONT_HEADER_TITLE);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_view->meta), SECTION_DEMO_FONT_CAP);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_view->hint), SECTION_DEMO_FONT_CAP);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&header_view->title), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
@@ -832,6 +845,7 @@ static egui_view_t *section_demo_create_header_view(void *data_source_context, u
     egui_view_label_set_align_type(EGUI_VIEW_OF(&header_view->hint), EGUI_ALIGN_CENTER);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&header_view->root), EGUI_VIEW_OF(&header_view->card));
+    egui_view_card_add_child(EGUI_VIEW_OF(&header_view->card), EGUI_VIEW_OF(&header_view->accent));
     egui_view_card_add_child(EGUI_VIEW_OF(&header_view->card), EGUI_VIEW_OF(&header_view->title));
     egui_view_card_add_child(EGUI_VIEW_OF(&header_view->card), EGUI_VIEW_OF(&header_view->meta));
     egui_view_card_add_child(EGUI_VIEW_OF(&header_view->card), EGUI_VIEW_OF(&header_view->hint));
@@ -862,6 +876,7 @@ static egui_view_t *section_demo_create_item_view(void *data_source_context, uin
 
     egui_view_group_init(EGUI_VIEW_OF(&item_view->root));
     egui_view_card_init(EGUI_VIEW_OF(&item_view->card));
+    egui_view_card_init(EGUI_VIEW_OF(&item_view->accent));
     egui_view_label_init(EGUI_VIEW_OF(&item_view->title));
     egui_view_label_init(EGUI_VIEW_OF(&item_view->body));
     egui_view_label_init(EGUI_VIEW_OF(&item_view->meta));
@@ -869,7 +884,7 @@ static egui_view_t *section_demo_create_item_view(void *data_source_context, uin
     egui_view_progress_bar_init(EGUI_VIEW_OF(&item_view->progress));
     egui_view_init(EGUI_VIEW_OF(&item_view->pulse));
 
-    egui_view_label_set_font(EGUI_VIEW_OF(&item_view->title), SECTION_DEMO_FONT_TITLE);
+    egui_view_label_set_font(EGUI_VIEW_OF(&item_view->title), SECTION_DEMO_FONT_ITEM_TITLE);
     egui_view_label_set_font(EGUI_VIEW_OF(&item_view->body), SECTION_DEMO_FONT_BODY);
     egui_view_label_set_font(EGUI_VIEW_OF(&item_view->meta), SECTION_DEMO_FONT_CAP);
     egui_view_label_set_font(EGUI_VIEW_OF(&item_view->badge), SECTION_DEMO_FONT_CAP);
@@ -879,6 +894,7 @@ static egui_view_t *section_demo_create_item_view(void *data_source_context, uin
     egui_view_label_set_align_type(EGUI_VIEW_OF(&item_view->badge), EGUI_ALIGN_CENTER);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&item_view->root), EGUI_VIEW_OF(&item_view->card));
+    egui_view_card_add_child(EGUI_VIEW_OF(&item_view->card), EGUI_VIEW_OF(&item_view->accent));
     egui_view_card_add_child(EGUI_VIEW_OF(&item_view->card), EGUI_VIEW_OF(&item_view->title));
     egui_view_card_add_child(EGUI_VIEW_OF(&item_view->card), EGUI_VIEW_OF(&item_view->body));
     egui_view_card_add_child(EGUI_VIEW_OF(&item_view->card), EGUI_VIEW_OF(&item_view->meta));
@@ -909,10 +925,15 @@ static void section_demo_bind_header_view(void *data_source_context, egui_view_t
     section_demo_section_t *section;
     int pool_index;
     egui_dim_t view_width;
+    egui_dim_t card_x;
     egui_dim_t card_w;
     egui_dim_t card_h;
     egui_color_t fill_color;
     egui_color_t border_color;
+    egui_color_t accent_color;
+    egui_color_t title_color;
+    egui_color_t meta_color;
+    egui_dim_t accent_h;
 
     if (header_view == NULL || section_index >= ctx->section_count)
     {
@@ -929,10 +950,11 @@ static void section_demo_bind_header_view(void *data_source_context, egui_view_t
     header_view->section_index = section_index;
     header_view->stable_id = stable_id;
 
-    snprintf(ctx->header_title_texts[pool_index], sizeof(ctx->header_title_texts[pool_index]), "%s %02lu", section_demo_tone_names[section->tone],
+    snprintf(ctx->header_title_texts[pool_index], sizeof(ctx->header_title_texts[pool_index]), "%s %02lu", section_demo_header_labels[section->tone],
              (unsigned long)section_index);
-    snprintf(ctx->header_meta_texts[pool_index], sizeof(ctx->header_meta_texts[pool_index]), "%lu rows  live %lu  rev %u",
-             (unsigned long)section->item_count, (unsigned long)section_demo_count_state(section, SECTION_DEMO_ITEM_STATE_LIVE), (unsigned)section->revision);
+    snprintf(ctx->header_meta_texts[pool_index], sizeof(ctx->header_meta_texts[pool_index]), "%lu rows | %lu live | r%u",
+             (unsigned long)section->item_count, (unsigned long)section_demo_count_state(section, SECTION_DEMO_ITEM_STATE_LIVE),
+             (unsigned)section->revision);
     snprintf(ctx->header_hint_texts[pool_index], sizeof(ctx->header_hint_texts[pool_index]), "%s", section->collapsed ? "Open" : "Fold");
 
     egui_view_label_set_text(EGUI_VIEW_OF(&header_view->title), ctx->header_title_texts[pool_index]);
@@ -941,43 +963,65 @@ static void section_demo_bind_header_view(void *data_source_context, egui_view_t
 
     if (section->tone == SECTION_DEMO_TONE_OPS)
     {
-        fill_color = section->collapsed ? EGUI_COLOR_HEX(0xEEF6F2) : EGUI_COLOR_HEX(0xE0F2EA);
-        border_color = EGUI_COLOR_HEX(0x7FB497);
+        fill_color = section->collapsed ? EGUI_COLOR_HEX(0xF1F8F3) : EGUI_COLOR_HEX(0xE5F3EA);
+        border_color = EGUI_COLOR_HEX(0xB5D2BE);
+        accent_color = EGUI_COLOR_HEX(0x3E8D64);
+        title_color = EGUI_COLOR_HEX(0x234332);
+        meta_color = EGUI_COLOR_HEX(0x507061);
     }
     else if (section->tone == SECTION_DEMO_TONE_CHAT)
     {
-        fill_color = section->collapsed ? EGUI_COLOR_HEX(0xEEF4FB) : EGUI_COLOR_HEX(0xE3EFFB);
-        border_color = EGUI_COLOR_HEX(0x7DA6D3);
+        fill_color = section->collapsed ? EGUI_COLOR_HEX(0xF1F6FC) : EGUI_COLOR_HEX(0xE7F0FA);
+        border_color = EGUI_COLOR_HEX(0xC0D4E7);
+        accent_color = EGUI_COLOR_HEX(0x4F84BE);
+        title_color = EGUI_COLOR_HEX(0x23405B);
+        meta_color = EGUI_COLOR_HEX(0x5E7891);
     }
     else if (section->tone == SECTION_DEMO_TONE_AUDIT)
     {
-        fill_color = section->collapsed ? EGUI_COLOR_HEX(0xFFF5EA) : EGUI_COLOR_HEX(0xFFF0DF);
-        border_color = EGUI_COLOR_HEX(0xD29A54);
+        fill_color = section->collapsed ? EGUI_COLOR_HEX(0xFFF8EE) : EGUI_COLOR_HEX(0xFFF2E1);
+        border_color = EGUI_COLOR_HEX(0xE2C893);
+        accent_color = EGUI_COLOR_HEX(0xC98D3C);
+        title_color = EGUI_COLOR_HEX(0x5B3B12);
+        meta_color = EGUI_COLOR_HEX(0x8E6736);
     }
     else
     {
-        fill_color = section->collapsed ? EGUI_COLOR_HEX(0xF3F6FA) : EGUI_COLOR_HEX(0xEAF0F7);
-        border_color = EGUI_COLOR_HEX(0x8BA0B3);
+        fill_color = section->collapsed ? EGUI_COLOR_HEX(0xF5F8FB) : EGUI_COLOR_HEX(0xECF2F8);
+        border_color = EGUI_COLOR_HEX(0xC6D5E2);
+        accent_color = EGUI_COLOR_HEX(0x6F8AA4);
+        title_color = EGUI_COLOR_HEX(0x283848);
+        meta_color = EGUI_COLOR_HEX(0x65788A);
     }
 
     view_width = section_demo_get_view_width();
-    card_w = view_width - SECTION_DEMO_CARD_INSET_X * 2;
+    card_x = 4;
+    card_w = view_width - card_x - 4;
     card_h = (egui_dim_t)(section_demo_measure_header_height_with_state(section) - SECTION_DEMO_HEADER_INSET_Y * 2);
+    accent_h = card_h > 12 ? (egui_dim_t)(card_h - 12) : card_h;
 
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&header_view->card), fill_color, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&header_view->card), 1, border_color);
-    egui_view_set_position(EGUI_VIEW_OF(&header_view->card), SECTION_DEMO_CARD_INSET_X, SECTION_DEMO_HEADER_INSET_Y);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&header_view->card), 14);
+    egui_view_set_shadow(EGUI_VIEW_OF(&header_view->card), NULL);
+    egui_view_set_position(EGUI_VIEW_OF(&header_view->card), card_x, SECTION_DEMO_HEADER_INSET_Y);
     egui_view_set_size(EGUI_VIEW_OF(&header_view->card), card_w, card_h);
-    egui_view_set_position(EGUI_VIEW_OF(&header_view->title), 12, 6);
-    egui_view_set_size(EGUI_VIEW_OF(&header_view->title), card_w - 84, 12);
-    egui_view_set_position(EGUI_VIEW_OF(&header_view->meta), 12, card_h - 16);
-    egui_view_set_size(EGUI_VIEW_OF(&header_view->meta), card_w - 96, 10);
-    egui_view_set_position(EGUI_VIEW_OF(&header_view->hint), card_w - 58, 8);
-    egui_view_set_size(EGUI_VIEW_OF(&header_view->hint), 46, SECTION_DEMO_BADGE_H);
+    egui_view_card_set_bg_color(EGUI_VIEW_OF(&header_view->accent), accent_color, EGUI_ALPHA_100);
+    egui_view_card_set_border(EGUI_VIEW_OF(&header_view->accent), 0, accent_color);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&header_view->accent), 3);
+    egui_view_set_position(EGUI_VIEW_OF(&header_view->accent), 8, 6);
+    egui_view_set_size(EGUI_VIEW_OF(&header_view->accent), 6, accent_h);
+    egui_view_set_position(EGUI_VIEW_OF(&header_view->title), 22, 7);
+    egui_view_set_size(EGUI_VIEW_OF(&header_view->title), card_w - 78, 13);
+    egui_view_set_position(EGUI_VIEW_OF(&header_view->meta), 22, section->collapsed ? 22 : 25);
+    egui_view_set_size(EGUI_VIEW_OF(&header_view->meta), card_w - 88, 12);
+    egui_view_set_position(EGUI_VIEW_OF(&header_view->hint), card_w - 54, (egui_dim_t)((card_h - SECTION_DEMO_BADGE_H) / 2));
+    egui_view_set_size(EGUI_VIEW_OF(&header_view->hint), 44, SECTION_DEMO_BADGE_H);
 
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&header_view->title), EGUI_COLOR_HEX(0x233647), EGUI_ALPHA_100);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&header_view->meta), EGUI_COLOR_HEX(0x607284), EGUI_ALPHA_100);
-    egui_view_set_background(EGUI_VIEW_OF(&header_view->hint), section->collapsed ? EGUI_BG_OF(&section_demo_badge_idle_bg) : EGUI_BG_OF(&section_demo_badge_live_bg));
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&header_view->title), title_color, EGUI_ALPHA_100);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&header_view->meta), meta_color, EGUI_ALPHA_100);
+    egui_view_set_background(EGUI_VIEW_OF(&header_view->hint),
+                             section->collapsed ? EGUI_BG_OF(&section_demo_badge_idle_bg) : EGUI_BG_OF(&section_demo_badge_live_bg));
     egui_view_label_set_font_color(EGUI_VIEW_OF(&header_view->hint), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
@@ -990,10 +1034,32 @@ static void section_demo_bind_item_view(void *data_source_context, egui_view_t *
     int pool_index;
     uint8_t selected;
     egui_dim_t view_width;
+    egui_dim_t card_x;
     egui_dim_t card_w;
     egui_dim_t card_h;
+    egui_dim_t accent_w;
+    egui_dim_t accent_h;
+    egui_dim_t content_x;
+    egui_dim_t body_w;
+    egui_dim_t progress_w;
+    egui_dim_t badge_w;
+    egui_dim_t badge_y;
+    egui_dim_t title_w;
+    egui_dim_t title_y;
+    egui_dim_t title_h;
+    egui_dim_t body_y;
+    egui_dim_t body_h;
+    egui_dim_t meta_y;
+    egui_dim_t meta_h;
+    egui_dim_t progress_y;
+    egui_dim_t corner_radius;
+    uint8_t show_body;
+    uint8_t show_progress;
     egui_color_t fill_color;
     egui_color_t border_color;
+    egui_color_t accent_color;
+    egui_color_t title_color;
+    egui_color_t body_color;
     egui_color_t meta_color;
     egui_background_t *badge_bg;
     egui_color_t badge_text_color;
@@ -1016,17 +1082,13 @@ static void section_demo_bind_item_view(void *data_source_context, egui_view_t *
     item_view->item_index = item_index;
     item_view->stable_id = stable_id;
 
-    snprintf(ctx->item_title_texts[pool_index], sizeof(ctx->item_title_texts[pool_index]), "%s %02lu-%02lu", section_demo_tone_names[section->tone],
+    snprintf(ctx->item_title_texts[pool_index], sizeof(ctx->item_title_texts[pool_index]), "%s %02lu-%02lu", section_demo_item_labels[section->tone],
              (unsigned long)section_index, (unsigned long)item_index);
-    snprintf(ctx->item_body_texts[pool_index], sizeof(ctx->item_body_texts[pool_index]), "%s", item->variant == SECTION_DEMO_ITEM_VARIANT_ALERT
-                                                                                                        ? "Alert row keeps pulse + progress."
-                                                                                                        : (item->variant == SECTION_DEMO_ITEM_VARIANT_DETAIL
-                                                                                                                   ? "Detail row shows longer status body."
-                                                                                                                   : "Compact row covers dense grouped list."));
-    snprintf(ctx->item_meta_texts[pool_index], sizeof(ctx->item_meta_texts[pool_index]), "rev %u  %u%%  #%05lu", (unsigned)item->revision,
-             (unsigned)item->progress, (unsigned long)item->stable_id);
-    snprintf(ctx->item_badge_texts[pool_index], sizeof(ctx->item_badge_texts[pool_index]), "%s",
-             selected ? "FOCUS" : section_demo_state_names[item->state]);
+    snprintf(ctx->item_body_texts[pool_index], sizeof(ctx->item_body_texts[pool_index]), "%s",
+             section_demo_body_texts[section->tone % SECTION_DEMO_TONE_COUNT][item->variant % SECTION_DEMO_ITEM_VARIANT_COUNT]);
+    snprintf(ctx->item_meta_texts[pool_index], sizeof(ctx->item_meta_texts[pool_index]), "r%u  %u%%  #%03lu", (unsigned)item->revision,
+             (unsigned)item->progress, (unsigned long)(item->stable_id % 1000U));
+    snprintf(ctx->item_badge_texts[pool_index], sizeof(ctx->item_badge_texts[pool_index]), "%s", selected ? "SEL" : section_demo_state_names[item->state]);
 
     egui_view_label_set_text(EGUI_VIEW_OF(&item_view->title), ctx->item_title_texts[pool_index]);
     egui_view_label_set_text(EGUI_VIEW_OF(&item_view->body), ctx->item_body_texts[pool_index]);
@@ -1035,18 +1097,24 @@ static void section_demo_bind_item_view(void *data_source_context, egui_view_t *
 
     if (selected)
     {
-        fill_color = EGUI_COLOR_HEX(0x2F5E91);
-        border_color = EGUI_COLOR_WHITE;
-        meta_color = EGUI_COLOR_WHITE;
+        fill_color = EGUI_COLOR_HEX(0xDCEBFA);
+        border_color = EGUI_COLOR_HEX(0x2F6CA8);
+        accent_color = EGUI_COLOR_HEX(0x2F6CA8);
+        title_color = EGUI_COLOR_HEX(0x1E4468);
+        body_color = EGUI_COLOR_HEX(0x4A6783);
+        meta_color = EGUI_COLOR_HEX(0x59758F);
         badge_bg = EGUI_BG_OF(&section_demo_badge_selected_bg);
-        badge_text_color = EGUI_COLOR_HEX(0x2F5E91);
-        item_view->progress.progress_color = EGUI_COLOR_WHITE;
-        item_view->progress.bk_color = EGUI_COLOR_HEX(0x7698BF);
+        badge_text_color = EGUI_COLOR_WHITE;
+        item_view->progress.progress_color = EGUI_COLOR_HEX(0x2F6CA8);
+        item_view->progress.bk_color = EGUI_COLOR_HEX(0xA8C4DE);
     }
     else if (item->state == SECTION_DEMO_ITEM_STATE_WARN)
     {
-        fill_color = EGUI_COLOR_HEX(0xFFF1E2);
-        border_color = EGUI_COLOR_HEX(0xD49653);
+        fill_color = EGUI_COLOR_HEX(0xFFF4E6);
+        border_color = EGUI_COLOR_HEX(0xD89C57);
+        accent_color = EGUI_COLOR_HEX(0xD18931);
+        title_color = EGUI_COLOR_HEX(0x5E3C14);
+        body_color = EGUI_COLOR_HEX(0x7B562B);
         meta_color = EGUI_COLOR_HEX(0x8A5A23);
         badge_bg = EGUI_BG_OF(&section_demo_badge_warn_bg);
         badge_text_color = EGUI_COLOR_BLACK;
@@ -1055,8 +1123,11 @@ static void section_demo_bind_item_view(void *data_source_context, egui_view_t *
     }
     else if (item->state == SECTION_DEMO_ITEM_STATE_LIVE)
     {
-        fill_color = EGUI_COLOR_HEX(0xE7F5EC);
-        border_color = EGUI_COLOR_HEX(0x79AF8C);
+        fill_color = EGUI_COLOR_HEX(0xEAF6EE);
+        border_color = EGUI_COLOR_HEX(0x93BE9F);
+        accent_color = EGUI_COLOR_HEX(0x2F976A);
+        title_color = EGUI_COLOR_HEX(0x214A34);
+        body_color = EGUI_COLOR_HEX(0x4F6F5C);
         meta_color = EGUI_COLOR_HEX(0x406E4E);
         badge_bg = EGUI_BG_OF(&section_demo_badge_live_bg);
         badge_text_color = EGUI_COLOR_WHITE;
@@ -1065,8 +1136,11 @@ static void section_demo_bind_item_view(void *data_source_context, egui_view_t *
     }
     else if (item->state == SECTION_DEMO_ITEM_STATE_DONE)
     {
-        fill_color = EGUI_COLOR_HEX(0xEAF0F6);
-        border_color = EGUI_COLOR_HEX(0x8CA0B6);
+        fill_color = EGUI_COLOR_HEX(0xEEF3F8);
+        border_color = EGUI_COLOR_HEX(0xB7C4D0);
+        accent_color = EGUI_COLOR_HEX(0x6D89A6);
+        title_color = EGUI_COLOR_HEX(0x2C3E50);
+        body_color = EGUI_COLOR_HEX(0x617486);
         meta_color = EGUI_COLOR_HEX(0x5D7287);
         badge_bg = EGUI_BG_OF(&section_demo_badge_done_bg);
         badge_text_color = EGUI_COLOR_WHITE;
@@ -1075,8 +1149,38 @@ static void section_demo_bind_item_view(void *data_source_context, egui_view_t *
     }
     else
     {
-        fill_color = EGUI_COLOR_WHITE;
-        border_color = EGUI_COLOR_HEX(0xD5DEE6);
+        if (section->tone == SECTION_DEMO_TONE_OPS)
+        {
+            fill_color = EGUI_COLOR_HEX(0xF5FBF7);
+            border_color = EGUI_COLOR_HEX(0xC8DED0);
+            accent_color = EGUI_COLOR_HEX(0x599671);
+            title_color = EGUI_COLOR_HEX(0x244233);
+            body_color = EGUI_COLOR_HEX(0x5C7566);
+        }
+        else if (section->tone == SECTION_DEMO_TONE_CHAT)
+        {
+            fill_color = EGUI_COLOR_HEX(0xF4F8FD);
+            border_color = EGUI_COLOR_HEX(0xC8D8E8);
+            accent_color = EGUI_COLOR_HEX(0x668FC0);
+            title_color = EGUI_COLOR_HEX(0x28405A);
+            body_color = EGUI_COLOR_HEX(0x607588);
+        }
+        else if (section->tone == SECTION_DEMO_TONE_AUDIT)
+        {
+            fill_color = EGUI_COLOR_HEX(0xFFFAF2);
+            border_color = EGUI_COLOR_HEX(0xE4D4B2);
+            accent_color = EGUI_COLOR_HEX(0xC89242);
+            title_color = EGUI_COLOR_HEX(0x5B3D18);
+            body_color = EGUI_COLOR_HEX(0x836238);
+        }
+        else
+        {
+            fill_color = EGUI_COLOR_WHITE;
+            border_color = EGUI_COLOR_HEX(0xD5DEE6);
+            accent_color = EGUI_COLOR_HEX(0x7B95AD);
+            title_color = EGUI_COLOR_HEX(0x2A3A4A);
+            body_color = EGUI_COLOR_HEX(0x607181);
+        }
         meta_color = EGUI_COLOR_HEX(0x667A8B);
         badge_bg = EGUI_BG_OF(&section_demo_badge_idle_bg);
         badge_text_color = EGUI_COLOR_WHITE;
@@ -1086,34 +1190,103 @@ static void section_demo_bind_item_view(void *data_source_context, egui_view_t *
     item_view->progress.control_color = item_view->progress.progress_color;
 
     view_width = section_demo_get_view_width();
-    card_w = view_width - SECTION_DEMO_CARD_INSET_X * 2;
+    title_h = 12;
+    body_h = 11;
+    meta_h = 10;
+    if (item->variant == SECTION_DEMO_ITEM_VARIANT_ALERT)
+    {
+        card_x = 10;
+        badge_w = 48;
+        accent_w = 7;
+        content_x = 24;
+        title_y = 8;
+        body_y = 28;
+        meta_y = 47;
+        corner_radius = 14;
+        show_body = 1;
+        show_progress = 1;
+    }
+    else if (item->variant == SECTION_DEMO_ITEM_VARIANT_DETAIL)
+    {
+        card_x = 22;
+        badge_w = 44;
+        accent_w = 5;
+        content_x = 20;
+        title_y = 8;
+        body_y = 25;
+        meta_y = 43;
+        corner_radius = 12;
+        show_body = 1;
+        show_progress = 1;
+    }
+    else
+    {
+        card_x = 34;
+        badge_w = 40;
+        accent_w = 4;
+        content_x = 18;
+        title_y = 8;
+        body_y = 0;
+        corner_radius = 10;
+        show_body = 0;
+        show_progress = (uint8_t)(selected || item->state != SECTION_DEMO_ITEM_STATE_IDLE);
+        meta_y = show_progress ? 20 : 22;
+    }
+
+    if (selected && card_x > 14)
+    {
+        card_x -= 6;
+    }
+
+    card_w = view_width - card_x - 8;
     card_h = (egui_dim_t)(section_demo_measure_item_height_with_state(item, selected) - SECTION_DEMO_ENTRY_GAP);
+    accent_h = card_h > 14 ? (egui_dim_t)(card_h - 14) : card_h;
+    badge_y = item->variant == SECTION_DEMO_ITEM_VARIANT_ALERT ? 8 : 7;
+    title_w = card_w - content_x - badge_w - 14;
+    body_w = card_w - content_x - 12;
+    progress_w = card_w - content_x - 12;
+    progress_y = show_progress ? (egui_dim_t)(card_h - 10) : 0;
+    if (item->variant == SECTION_DEMO_ITEM_VARIANT_DETAIL && show_progress && meta_y > 1)
+    {
+        meta_y = (egui_dim_t)(progress_y - 12);
+    }
+    else if (item->variant == SECTION_DEMO_ITEM_VARIANT_ALERT && show_progress && meta_y > 1)
+    {
+        meta_y = (egui_dim_t)(progress_y - 15);
+    }
 
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&item_view->card), fill_color, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&item_view->card), selected ? 2 : 1, border_color);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&item_view->card), corner_radius);
+    egui_view_set_shadow(EGUI_VIEW_OF(&item_view->card), NULL);
+    egui_view_card_set_bg_color(EGUI_VIEW_OF(&item_view->accent), accent_color, EGUI_ALPHA_100);
+    egui_view_card_set_border(EGUI_VIEW_OF(&item_view->accent), 0, accent_color);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&item_view->accent), accent_w);
     egui_view_set_background(EGUI_VIEW_OF(&item_view->badge), badge_bg);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->title), selected ? EGUI_COLOR_WHITE : EGUI_COLOR_HEX(0x243648), EGUI_ALPHA_100);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->body), selected ? EGUI_COLOR_WHITE : EGUI_COLOR_HEX(0x56697A), EGUI_ALPHA_100);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->title), title_color, EGUI_ALPHA_100);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->body), body_color, EGUI_ALPHA_100);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->meta), meta_color, EGUI_ALPHA_100);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&item_view->badge), badge_text_color, EGUI_ALPHA_100);
 
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->card), SECTION_DEMO_CARD_INSET_X, SECTION_DEMO_ENTRY_GAP / 2);
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->card), card_x, SECTION_DEMO_ENTRY_GAP / 2);
     egui_view_set_size(EGUI_VIEW_OF(&item_view->card), card_w, card_h);
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->badge), card_w - 56, 8);
-    egui_view_set_size(EGUI_VIEW_OF(&item_view->badge), 46, SECTION_DEMO_BADGE_H);
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->pulse), 10, 13);
-    egui_view_set_size(EGUI_VIEW_OF(&item_view->pulse), 9, 9);
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->title), 24, 8);
-    egui_view_set_size(EGUI_VIEW_OF(&item_view->title), card_w - 92, 12);
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->body), 24, 24);
-    egui_view_set_size(EGUI_VIEW_OF(&item_view->body), card_w - 34, 12);
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->meta), 24, card_h - 18);
-    egui_view_set_size(EGUI_VIEW_OF(&item_view->meta), card_w - 34, 10);
-    egui_view_set_position(EGUI_VIEW_OF(&item_view->progress), 24, card_h - 10);
-    egui_view_set_size(EGUI_VIEW_OF(&item_view->progress), card_w - 36, SECTION_DEMO_PROGRESS_H);
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->accent), 8, 7);
+    egui_view_set_size(EGUI_VIEW_OF(&item_view->accent), accent_w, accent_h);
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->badge), card_w - badge_w - 8, badge_y);
+    egui_view_set_size(EGUI_VIEW_OF(&item_view->badge), badge_w, SECTION_DEMO_BADGE_H);
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->pulse), content_x, 11);
+    egui_view_set_size(EGUI_VIEW_OF(&item_view->pulse), 8, 8);
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->title), content_x + 12, title_y);
+    egui_view_set_size(EGUI_VIEW_OF(&item_view->title), title_w, title_h);
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->body), content_x + 12, body_y);
+    egui_view_set_size(EGUI_VIEW_OF(&item_view->body), body_w, body_h);
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->meta), content_x + 12, meta_y);
+    egui_view_set_size(EGUI_VIEW_OF(&item_view->meta), body_w, meta_h);
+    egui_view_set_position(EGUI_VIEW_OF(&item_view->progress), content_x + 12, progress_y);
+    egui_view_set_size(EGUI_VIEW_OF(&item_view->progress), progress_w, SECTION_DEMO_PROGRESS_H);
     egui_view_progress_bar_set_process(EGUI_VIEW_OF(&item_view->progress), item->progress);
-    egui_view_set_gone(EGUI_VIEW_OF(&item_view->body), item->variant == SECTION_DEMO_ITEM_VARIANT_COMPACT);
-    egui_view_set_gone(EGUI_VIEW_OF(&item_view->progress), item->variant == SECTION_DEMO_ITEM_VARIANT_COMPACT && !selected && item->state == SECTION_DEMO_ITEM_STATE_IDLE);
+    egui_view_set_gone(EGUI_VIEW_OF(&item_view->body), show_body ? 0 : 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&item_view->progress), show_progress ? 0 : 1);
     section_demo_set_item_pulse(item_view, item, section_demo_item_has_pulse(item, selected), selected);
 }
 
@@ -1288,7 +1461,8 @@ static void section_demo_action_add(void)
     section = &section_demo_ctx.sections[section_index];
     if (section->item_count >= SECTION_DEMO_MAX_ITEMS_PER_SECTION)
     {
-        snprintf(section_demo_ctx.last_action_text, sizeof(section_demo_ctx.last_action_text), "Add ignored. Group %02lu is full.", (unsigned long)section_index);
+        snprintf(section_demo_ctx.last_action_text, sizeof(section_demo_ctx.last_action_text), "Add ignored. Group %02lu is full.",
+                 (unsigned long)section_index);
         section_demo_refresh_status();
         return;
     }
@@ -1528,11 +1702,11 @@ void test_init_ui(void)
     egui_view_label_init(EGUI_VIEW_OF(&header_detail));
     egui_view_label_init(EGUI_VIEW_OF(&header_hint));
     egui_view_set_position(EGUI_VIEW_OF(&header_title), 12, 10);
-    egui_view_set_size(EGUI_VIEW_OF(&header_title), SECTION_DEMO_HEADER_W - 24, 12);
+    egui_view_set_size(EGUI_VIEW_OF(&header_title), SECTION_DEMO_HEADER_W - 24, 16);
     egui_view_set_position(EGUI_VIEW_OF(&header_detail), 12, 28);
-    egui_view_set_size(EGUI_VIEW_OF(&header_detail), SECTION_DEMO_HEADER_W - 24, 10);
+    egui_view_set_size(EGUI_VIEW_OF(&header_detail), SECTION_DEMO_HEADER_W - 24, 14);
     egui_view_set_position(EGUI_VIEW_OF(&header_hint), 12, 44);
-    egui_view_set_size(EGUI_VIEW_OF(&header_hint), SECTION_DEMO_HEADER_W - 24, 10);
+    egui_view_set_size(EGUI_VIEW_OF(&header_hint), SECTION_DEMO_HEADER_W - 24, 14);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_title), SECTION_DEMO_FONT_HEADER);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_detail), SECTION_DEMO_FONT_BODY);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_hint), SECTION_DEMO_FONT_BODY);
@@ -1553,11 +1727,10 @@ void test_init_ui(void)
     for (i = 0; i < SECTION_DEMO_ACTION_COUNT; i++)
     {
         section_demo_init_action_button(&action_buttons[i], button_x, section_demo_action_names[i]);
-        egui_view_set_background(EGUI_VIEW_OF(&action_buttons[i]),
-                                 i == SECTION_DEMO_ACTION_ADD     ? EGUI_BG_OF(&section_demo_action_add_bg)
-                                 : i == SECTION_DEMO_ACTION_DEL   ? EGUI_BG_OF(&section_demo_action_del_bg)
-                                 : i == SECTION_DEMO_ACTION_PATCH ? EGUI_BG_OF(&section_demo_action_patch_bg)
-                                                                  : EGUI_BG_OF(&section_demo_action_jump_bg));
+        egui_view_set_background(EGUI_VIEW_OF(&action_buttons[i]), i == SECTION_DEMO_ACTION_ADD     ? EGUI_BG_OF(&section_demo_action_add_bg)
+                                                                   : i == SECTION_DEMO_ACTION_DEL   ? EGUI_BG_OF(&section_demo_action_del_bg)
+                                                                   : i == SECTION_DEMO_ACTION_PATCH ? EGUI_BG_OF(&section_demo_action_patch_bg)
+                                                                                                    : EGUI_BG_OF(&section_demo_action_jump_bg));
         egui_view_card_add_child(EGUI_VIEW_OF(&toolbar_card), EGUI_VIEW_OF(&action_buttons[i]));
         button_x += SECTION_DEMO_BUTTON_W + SECTION_DEMO_BUTTON_GAP;
     }
@@ -1635,8 +1808,7 @@ static egui_view_t *section_demo_find_first_visible_item_view(void)
             .want_header = 0,
     };
 
-    return egui_view_virtual_section_list_find_first_visible_entry_view(EGUI_VIEW_OF(&section_list_view), section_demo_match_visible_entry, &ctx,
-                                                                        NULL);
+    return egui_view_virtual_section_list_find_first_visible_entry_view(EGUI_VIEW_OF(&section_list_view), section_demo_match_visible_entry, &ctx, NULL);
 }
 
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)

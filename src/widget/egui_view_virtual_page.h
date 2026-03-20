@@ -17,11 +17,9 @@ typedef struct egui_view_virtual_page_entry egui_view_virtual_page_entry_t;
 typedef struct egui_view_virtual_page_params egui_view_virtual_page_params_t;
 typedef struct egui_view_virtual_page_setup egui_view_virtual_page_setup_t;
 typedef uint8_t (*egui_view_virtual_page_visible_section_matcher_t)(egui_view_t *self, const egui_view_virtual_page_slot_t *slot,
-                                                                    const egui_view_virtual_page_entry_t *entry, egui_view_t *section_view,
-                                                                    void *context);
+                                                                    const egui_view_virtual_page_entry_t *entry, egui_view_t *section_view, void *context);
 typedef uint8_t (*egui_view_virtual_page_visible_section_visitor_t)(egui_view_t *self, const egui_view_virtual_page_slot_t *slot,
-                                                                    const egui_view_virtual_page_entry_t *entry, egui_view_t *section_view,
-                                                                    void *context);
+                                                                    const egui_view_virtual_page_entry_t *entry, egui_view_t *section_view, void *context);
 
 struct egui_view_virtual_page
 {
@@ -131,6 +129,8 @@ int32_t egui_view_virtual_page_get_estimated_section_height(egui_view_t *self);
 void egui_view_virtual_page_set_keepalive_limit(egui_view_t *self, uint8_t max_keepalive_slots);
 uint8_t egui_view_virtual_page_get_keepalive_limit(egui_view_t *self);
 void egui_view_virtual_page_set_state_cache_limits(egui_view_t *self, uint16_t max_entries, uint32_t max_bytes);
+uint16_t egui_view_virtual_page_get_state_cache_entry_limit(egui_view_t *self);
+uint32_t egui_view_virtual_page_get_state_cache_byte_limit(egui_view_t *self);
 void egui_view_virtual_page_clear_section_state_cache(egui_view_t *self);
 void egui_view_virtual_page_remove_section_state_by_stable_id(egui_view_t *self, uint32_t stable_id);
 uint8_t egui_view_virtual_page_write_section_state(egui_view_t *self, uint32_t stable_id, const void *data, uint16_t size);
@@ -168,8 +168,7 @@ const egui_view_virtual_page_slot_t *egui_view_virtual_page_find_slot_by_stable_
 egui_view_t *egui_view_virtual_page_find_view_by_stable_id(egui_view_t *self, uint32_t stable_id);
 uint8_t egui_view_virtual_page_get_slot_entry(egui_view_t *self, uint8_t slot_index, egui_view_virtual_page_entry_t *entry);
 uint8_t egui_view_virtual_page_visit_visible_sections(egui_view_t *self, egui_view_virtual_page_visible_section_visitor_t visitor, void *context);
-egui_view_t *egui_view_virtual_page_find_first_visible_section_view(egui_view_t *self,
-                                                                    egui_view_virtual_page_visible_section_matcher_t matcher, void *context,
+egui_view_t *egui_view_virtual_page_find_first_visible_section_view(egui_view_t *self, egui_view_virtual_page_visible_section_matcher_t matcher, void *context,
                                                                     egui_view_virtual_page_entry_t *entry_out);
 
 void egui_view_virtual_page_init(egui_view_t *self);

@@ -453,6 +453,16 @@ void egui_view_virtual_list_set_state_cache_limits(egui_view_t *self, uint16_t m
     egui_view_virtual_viewport_set_state_cache_limits(self, max_entries, max_bytes);
 }
 
+uint16_t egui_view_virtual_list_get_state_cache_entry_limit(egui_view_t *self)
+{
+    return egui_view_virtual_viewport_get_state_cache_entry_limit(self);
+}
+
+uint32_t egui_view_virtual_list_get_state_cache_byte_limit(egui_view_t *self)
+{
+    return egui_view_virtual_viewport_get_state_cache_byte_limit(self);
+}
+
 void egui_view_virtual_list_clear_item_state_cache(egui_view_t *self)
 {
     egui_view_virtual_viewport_clear_state_cache(self);

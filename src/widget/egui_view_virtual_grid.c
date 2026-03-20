@@ -773,7 +773,7 @@ static uint8_t egui_view_virtual_grid_is_row_slot_active(const egui_view_virtual
 }
 
 static const egui_view_virtual_grid_slot_t *egui_view_virtual_grid_find_slot_containing_item_internal(egui_view_virtual_grid_t *local, uint32_t stable_id,
-                                                                                                       egui_view_virtual_grid_row_cell_t **cell_out)
+                                                                                                      egui_view_virtual_grid_row_cell_t **cell_out)
 {
     uint8_t i;
 
@@ -814,8 +814,8 @@ static const egui_view_virtual_grid_slot_t *egui_view_virtual_grid_find_slot_con
     return NULL;
 }
 
-static uint8_t egui_view_virtual_grid_resolve_slot_cell_internal(egui_view_virtual_grid_t *local, const egui_view_virtual_grid_slot_t *slot, uint8_t column_index,
-                                                                 egui_view_virtual_grid_entry_t *entry)
+static uint8_t egui_view_virtual_grid_resolve_slot_cell_internal(egui_view_virtual_grid_t *local, const egui_view_virtual_grid_slot_t *slot,
+                                                                 uint8_t column_index, egui_view_virtual_grid_entry_t *entry)
 {
     egui_view_virtual_grid_row_view_t *row_view;
     egui_view_virtual_grid_row_cell_t *cell;
@@ -1080,6 +1080,16 @@ uint8_t egui_view_virtual_grid_get_keepalive_limit(egui_view_t *self)
 void egui_view_virtual_grid_set_state_cache_limits(egui_view_t *self, uint16_t max_entries, uint32_t max_bytes)
 {
     egui_view_virtual_list_set_state_cache_limits(self, max_entries, max_bytes);
+}
+
+uint16_t egui_view_virtual_grid_get_state_cache_entry_limit(egui_view_t *self)
+{
+    return egui_view_virtual_list_get_state_cache_entry_limit(self);
+}
+
+uint32_t egui_view_virtual_grid_get_state_cache_byte_limit(egui_view_t *self)
+{
+    return egui_view_virtual_list_get_state_cache_byte_limit(self);
 }
 
 void egui_view_virtual_grid_clear_item_state_cache(egui_view_t *self)
@@ -1464,8 +1474,8 @@ static uint8_t egui_view_virtual_grid_find_visible_item_visitor(egui_view_t *sel
     return 1;
 }
 
-egui_view_t *egui_view_virtual_grid_find_first_visible_item_view(egui_view_t *self, egui_view_virtual_grid_visible_item_matcher_t matcher,
-                                                                 void *context, egui_view_virtual_grid_entry_t *entry_out)
+egui_view_t *egui_view_virtual_grid_find_first_visible_item_view(egui_view_t *self, egui_view_virtual_grid_visible_item_matcher_t matcher, void *context,
+                                                                 egui_view_virtual_grid_entry_t *entry_out)
 {
     egui_view_virtual_grid_find_visible_item_context_t find_ctx = {
             .matcher = matcher,

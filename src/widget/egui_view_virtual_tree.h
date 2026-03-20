@@ -138,6 +138,8 @@ void egui_view_virtual_tree_set_keepalive_limit(egui_view_t *self, uint8_t max_k
 uint8_t egui_view_virtual_tree_get_keepalive_limit(egui_view_t *self);
 
 void egui_view_virtual_tree_set_state_cache_limits(egui_view_t *self, uint16_t max_entries, uint32_t max_bytes);
+uint16_t egui_view_virtual_tree_get_state_cache_entry_limit(egui_view_t *self);
+uint32_t egui_view_virtual_tree_get_state_cache_byte_limit(egui_view_t *self);
 void egui_view_virtual_tree_clear_node_state_cache(egui_view_t *self);
 void egui_view_virtual_tree_remove_node_state_by_stable_id(egui_view_t *self, uint32_t stable_id);
 uint8_t egui_view_virtual_tree_write_node_state(egui_view_t *self, uint32_t stable_id, const void *data, uint16_t size);
@@ -172,8 +174,8 @@ const egui_view_virtual_tree_slot_t *egui_view_virtual_tree_find_slot_by_stable_
 egui_view_t *egui_view_virtual_tree_find_view_by_stable_id(egui_view_t *self, uint32_t stable_id);
 uint8_t egui_view_virtual_tree_get_slot_entry(egui_view_t *self, uint8_t slot_index, egui_view_virtual_tree_entry_t *entry);
 uint8_t egui_view_virtual_tree_visit_visible_nodes(egui_view_t *self, egui_view_virtual_tree_visible_node_visitor_t visitor, void *context);
-egui_view_t *egui_view_virtual_tree_find_first_visible_node_view(egui_view_t *self, egui_view_virtual_tree_visible_node_matcher_t matcher,
-                                                                 void *context, egui_view_virtual_tree_entry_t *entry_out);
+egui_view_t *egui_view_virtual_tree_find_first_visible_node_view(egui_view_t *self, egui_view_virtual_tree_visible_node_matcher_t matcher, void *context,
+                                                                 egui_view_virtual_tree_entry_t *entry_out);
 
 void egui_view_virtual_tree_init(egui_view_t *self);
 

@@ -17,8 +17,7 @@ typedef struct egui_view_virtual_list_entry egui_view_virtual_list_entry_t;
 typedef struct egui_view_virtual_list_params egui_view_virtual_list_params_t;
 typedef struct egui_view_virtual_list_setup egui_view_virtual_list_setup_t;
 typedef uint8_t (*egui_view_virtual_list_visible_item_matcher_t)(egui_view_t *self, const egui_view_virtual_list_slot_t *slot,
-                                                                 const egui_view_virtual_list_entry_t *entry, egui_view_t *item_view,
-                                                                 void *context);
+                                                                 const egui_view_virtual_list_entry_t *entry, egui_view_t *item_view, void *context);
 typedef uint8_t (*egui_view_virtual_list_visible_item_visitor_t)(egui_view_t *self, const egui_view_virtual_list_slot_t *slot,
                                                                  const egui_view_virtual_list_entry_t *entry, egui_view_t *item_view, void *context);
 
@@ -130,6 +129,8 @@ int32_t egui_view_virtual_list_get_estimated_item_height(egui_view_t *self);
 void egui_view_virtual_list_set_keepalive_limit(egui_view_t *self, uint8_t max_keepalive_slots);
 uint8_t egui_view_virtual_list_get_keepalive_limit(egui_view_t *self);
 void egui_view_virtual_list_set_state_cache_limits(egui_view_t *self, uint16_t max_entries, uint32_t max_bytes);
+uint16_t egui_view_virtual_list_get_state_cache_entry_limit(egui_view_t *self);
+uint32_t egui_view_virtual_list_get_state_cache_byte_limit(egui_view_t *self);
 void egui_view_virtual_list_clear_item_state_cache(egui_view_t *self);
 void egui_view_virtual_list_remove_item_state_by_stable_id(egui_view_t *self, uint32_t stable_id);
 uint8_t egui_view_virtual_list_write_item_state(egui_view_t *self, uint32_t stable_id, const void *data, uint16_t size);

@@ -18,11 +18,11 @@ typedef struct egui_view_virtual_section_list_entry egui_view_virtual_section_li
 typedef struct egui_view_virtual_section_list_params egui_view_virtual_section_list_params_t;
 typedef struct egui_view_virtual_section_list_setup egui_view_virtual_section_list_setup_t;
 typedef uint8_t (*egui_view_virtual_section_list_visible_entry_matcher_t)(egui_view_t *self, const egui_view_virtual_section_list_slot_t *slot,
-                                                                          const egui_view_virtual_section_list_entry_t *entry,
-                                                                          egui_view_t *entry_view, void *context);
+                                                                          const egui_view_virtual_section_list_entry_t *entry, egui_view_t *entry_view,
+                                                                          void *context);
 typedef uint8_t (*egui_view_virtual_section_list_visible_entry_visitor_t)(egui_view_t *self, const egui_view_virtual_section_list_slot_t *slot,
-                                                                          const egui_view_virtual_section_list_entry_t *entry,
-                                                                          egui_view_t *entry_view, void *context);
+                                                                          const egui_view_virtual_section_list_entry_t *entry, egui_view_t *entry_view,
+                                                                          void *context);
 
 struct egui_view_virtual_section_list
 {
@@ -159,6 +159,8 @@ void egui_view_virtual_section_list_set_keepalive_limit(egui_view_t *self, uint8
 uint8_t egui_view_virtual_section_list_get_keepalive_limit(egui_view_t *self);
 
 void egui_view_virtual_section_list_set_state_cache_limits(egui_view_t *self, uint16_t max_entries, uint32_t max_bytes);
+uint16_t egui_view_virtual_section_list_get_state_cache_entry_limit(egui_view_t *self);
+uint32_t egui_view_virtual_section_list_get_state_cache_byte_limit(egui_view_t *self);
 void egui_view_virtual_section_list_clear_entry_state_cache(egui_view_t *self);
 void egui_view_virtual_section_list_remove_entry_state_by_stable_id(egui_view_t *self, uint32_t stable_id);
 uint8_t egui_view_virtual_section_list_write_entry_state(egui_view_t *self, uint32_t stable_id, const void *data, uint16_t size);
@@ -176,8 +178,7 @@ int32_t egui_view_virtual_section_list_get_scroll_y(egui_view_t *self);
 
 int32_t egui_view_virtual_section_list_find_section_index_by_stable_id(egui_view_t *self, uint32_t stable_id);
 uint8_t egui_view_virtual_section_list_find_item_position_by_stable_id(egui_view_t *self, uint32_t stable_id, uint32_t *section_index, uint32_t *item_index);
-uint8_t egui_view_virtual_section_list_resolve_entry_by_stable_id(egui_view_t *self, uint32_t stable_id,
-                                                                  egui_view_virtual_section_list_entry_t *entry);
+uint8_t egui_view_virtual_section_list_resolve_entry_by_stable_id(egui_view_t *self, uint32_t stable_id, egui_view_virtual_section_list_entry_t *entry);
 uint8_t egui_view_virtual_section_list_resolve_entry_by_view(egui_view_t *self, egui_view_t *entry_view, egui_view_virtual_section_list_entry_t *entry);
 
 int32_t egui_view_virtual_section_list_get_section_header_y(egui_view_t *self, uint32_t section_index);
@@ -211,10 +212,8 @@ int32_t egui_view_virtual_section_list_find_slot_index_by_stable_id(egui_view_t 
 const egui_view_virtual_section_list_slot_t *egui_view_virtual_section_list_find_slot_by_stable_id(egui_view_t *self, uint32_t stable_id);
 egui_view_t *egui_view_virtual_section_list_find_view_by_stable_id(egui_view_t *self, uint32_t stable_id);
 uint8_t egui_view_virtual_section_list_get_slot_entry(egui_view_t *self, uint8_t slot_index, egui_view_virtual_section_list_entry_t *entry);
-uint8_t egui_view_virtual_section_list_visit_visible_entries(egui_view_t *self, egui_view_virtual_section_list_visible_entry_visitor_t visitor,
-                                                             void *context);
-egui_view_t *egui_view_virtual_section_list_find_first_visible_entry_view(egui_view_t *self,
-                                                                          egui_view_virtual_section_list_visible_entry_matcher_t matcher,
+uint8_t egui_view_virtual_section_list_visit_visible_entries(egui_view_t *self, egui_view_virtual_section_list_visible_entry_visitor_t visitor, void *context);
+egui_view_t *egui_view_virtual_section_list_find_first_visible_entry_view(egui_view_t *self, egui_view_virtual_section_list_visible_entry_matcher_t matcher,
                                                                           void *context, egui_view_virtual_section_list_entry_t *entry_out);
 
 void egui_view_virtual_section_list_init(egui_view_t *self);

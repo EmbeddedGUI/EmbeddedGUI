@@ -1,21 +1,52 @@
 # Virtual Page 示例
 
-## 这个示例展示什么
+## 这个控件适合什么
 
-这个示例用 `egui_view_virtual_page_t` 演示“长页面 / 大 section 容器”的典型业务场景：
+`egui_view_virtual_page_t` 适合“由很多异构 section 组成的一整页内容”，而不是重复 row 的长列表。
 
-- 280 个 section 的长页面
-- section 高度和视觉样式可变
-- 点击 section 后确认命中的 `index / stable_id`
-- `Add / Del / Patch / Jump` 模拟内容增删改和定位
-- 脉冲动画结合 `keepalive + state cache`
+这个例程把 280 个 section 组织成 4 类页面模块：
 
-适合的业务场景：
+- `Overview`：页首摘要块，接近 dashboard hero
+- `Metric`：窄 KPI tile，左右错位摆放
+- `Alert`：横向告警条，强调状态和进度
+- `Checklist`：表单 / checklist 模块，强调字段骨架和完成度
+
+重点不是“很多 row”，而是“很多 page section 只在进入可视区时才创建和绑定”。
+
+## 这个例程在展示什么
+
+- section 只有进入可视区后才创建、绑定、绘制
+- 不同 section 的高度、宽度、横向位置都可以不同
+- section 被点击后，可以反查命中的 `index / stable_id`
+- `Patch` 会修改 section 的内容、状态和布局
+- 通过 `keepalive + state cache` 保住 pulse 动画状态，避免复用时丢失
+- 录制动作覆盖了滚动到中段、点击可见模块、再 patch 的过程，方便看滚动后和选中后的渲染
+
+## 为什么它看起来不应该像 list
+
+这个示例故意让不同模块拥有不同的页面语义：
+
+- `Overview` 是宽模块，像页首摘要
+- `Metric` 是窄块，强调局部指标，不占满整行
+- `Alert` 是横幅式模块，视觉重点是风险条
+- `Checklist` 是右偏 / 中偏的表单块，内部是字段骨架
+
+如果你的业务语义已经是 “page / section / module”，优先用 `virtual_page`，不要再硬塞成 `virtual_list` 的 row。
+
+## 什么时候用 `virtual_page`
+
+适合：
 
 - dashboard
-- 设置页
-- 多 section 表单页
-- 详情页中的大块内容流
+- 设置页中的大分区
+- 详情页里的多块异构内容
+- 很长的配置页 / 表单页
+
+不太适合：
+
+- 只是重复行：优先 `virtual_list`
+- 有 group header：优先 `virtual_section_list`
+- 有父子层级和折叠展开：优先 `virtual_tree`
 
 ## 运行方式
 
@@ -24,145 +55,88 @@ make -j1 all APP=HelloBasic APP_SUB=virtual_page PORT=pc
 python scripts/code_runtime_check.py --app HelloBasic --app-sub virtual_page --keep-screenshots
 ```
 
-## 推荐接入方式
+截图输出目录：
 
-现在推荐直接用 `setup` 把初始化信息一次性带齐：
+```bash
+runtime_check_output/HelloBasic_virtual_page/default/
+```
+
+## 接入方式
+
+推荐直接用 `setup` 一次性配置参数、数据源和状态缓存：
 
 ```c
-static egui_view_virtual_page_t dashboard_page;
-static app_context_t dashboard_ctx;
+static egui_view_virtual_page_t page_view;
+static app_context_t page_ctx;
 
-static const egui_view_virtual_page_params_t dashboard_page_params = {
+static const egui_view_virtual_page_params_t page_params = {
         .region = {{8, 48}, {224, 264}},
         .overscan_before = 1,
         .overscan_after = 1,
         .max_keepalive_slots = 4,
-        .estimated_section_height = 90,
+        .estimated_section_height = 118,
 };
 
-static const egui_view_virtual_page_data_source_t dashboard_sections = {
-        .get_count = dashboard_get_count,
-        .get_stable_id = dashboard_get_stable_id,
-        .find_index_by_stable_id = dashboard_find_index,
-        .measure_section_height = dashboard_measure_height,
-        .create_section_view = dashboard_create_view,
-        .bind_section_view = dashboard_bind_view,
-        .unbind_section_view = dashboard_unbind_view,
-        .should_keep_alive = dashboard_should_keep_alive,
-        .save_section_state = dashboard_save_state,
-        .restore_section_state = dashboard_restore_state,
+static const egui_view_virtual_page_data_source_t page_source = {
+        .get_count = page_get_count,
+        .get_stable_id = page_get_stable_id,
+        .find_index_by_stable_id = page_find_index,
+        .measure_section_height = page_measure_height,
+        .create_section_view = page_create_view,
+        .bind_section_view = page_bind_view,
+        .unbind_section_view = page_unbind_view,
+        .should_keep_alive = page_should_keep_alive,
+        .save_section_state = page_save_state,
+        .restore_section_state = page_restore_state,
 };
 
-static const egui_view_virtual_page_setup_t dashboard_page_setup = {
-        .params = &dashboard_page_params,
-        .data_source = &dashboard_sections,
-        .data_source_context = &dashboard_ctx,
+static const egui_view_virtual_page_setup_t page_setup = {
+        .params = &page_params,
+        .data_source = &page_source,
+        .data_source_context = &page_ctx,
         .state_cache_max_entries = 64,
         .state_cache_max_bytes = 64 * sizeof(my_section_state_t),
 };
 
-egui_view_virtual_page_init_with_setup(EGUI_VIEW_OF(&dashboard_page), &dashboard_page_setup);
+egui_view_virtual_page_init_with_setup(EGUI_VIEW_OF(&page_view), &page_setup);
 ```
 
-如果容器已经初始化完成，后续要替换 `params`、数据源或缓存限额，可以继续使用：
+## 点击、改动和定位
+
+点击 section 后，可以直接反查命中的模块：
 
 ```c
-egui_view_virtual_page_apply_setup(EGUI_VIEW_OF(&dashboard_page), &dashboard_page_setup);
-```
-
-## 点击命中和可见 section 遍历
-
-如果 section 根 view 自己就接点击事件，可以直接反查命中的 section：
-
-```c
-static void dashboard_click_cb(egui_view_t *self)
+static void page_click_cb(egui_view_t *self)
 {
     egui_view_virtual_page_entry_t entry;
 
-    if (!egui_view_virtual_page_resolve_section_by_view(EGUI_VIEW_OF(&dashboard_page), self, &entry))
+    if (!egui_view_virtual_page_resolve_section_by_view(EGUI_VIEW_OF(&page_view), self, &entry))
     {
         return;
     }
 
     focus_section(entry.index, entry.stable_id);
-    egui_view_virtual_page_notify_section_changed(EGUI_VIEW_OF(&dashboard_page), entry.index);
 }
 ```
 
-做录制动作或自动化点击时，也可以直接扫描当前可见 slot：
+如果 section 改动会影响高度，需要显式通知：
 
 ```c
-static uint8_t match_clickable_section(egui_view_t *self, const egui_view_virtual_page_slot_t *slot, const egui_view_virtual_page_entry_t *entry,
-                                       egui_view_t *section_view, void *context)
-{
-    EGUI_UNUSED(self);
-    EGUI_UNUSED(entry);
-    EGUI_UNUSED(section_view);
-    EGUI_UNUSED(context);
-    return slot != NULL;
-}
-
-egui_view_t *target_view =
-        egui_view_virtual_page_find_first_visible_section_view(EGUI_VIEW_OF(&dashboard_page), match_clickable_section, NULL, NULL);
-if (target_view != NULL)
-{
-    simulate_click(target_view);
-}
+egui_view_virtual_page_notify_section_resized_by_stable_id(EGUI_VIEW_OF(&page_view), stable_id);
 ```
 
-## 使用建议
-
-### 1. section 要有稳定 `stable_id`
-
-这样才能安全使用：
-
-- `egui_view_virtual_page_scroll_to_section_by_stable_id()`
-- `egui_view_virtual_page_ensure_section_visible_by_stable_id()`
-- `egui_view_virtual_page_notify_section_resized_by_stable_id()`
-- `egui_view_virtual_page_write_section_state()`
-- `egui_view_virtual_page_read_section_state()`
-
-### 2. 高度变化时主动通知
-
-如果点击后 section 会展开、折叠或切样式，业务层要显式通知：
+如果只是希望把目标模块滚到可视安全区：
 
 ```c
-egui_view_virtual_page_notify_section_resized(EGUI_VIEW_OF(&dashboard_page), index);
+egui_view_virtual_page_ensure_section_visible_by_stable_id(EGUI_VIEW_OF(&page_view), stable_id, inset);
 ```
 
-如果只是希望当前 section 保持在可见安全带里，而不是每次都强制跳转到固定位置，优先用：
+## 设计提醒
 
-```c
-egui_view_virtual_page_ensure_section_visible_by_stable_id(EGUI_VIEW_OF(&dashboard_page), stable_id, inset);
-```
-
-### 3. `keepalive` 和状态缓存分工不同
-
-- `keepalive` 适合短时间内必须保留同一个 view 实例的 section
-- `state cache` 适合允许回收，但离屏后还要恢复动画或临时态的 section
-
-### 4. 常用 helper
-
-- `egui_view_virtual_page_get_section_count()`
-- `egui_view_virtual_page_resolve_section_by_stable_id()`
-- `egui_view_virtual_page_resolve_section_by_view()`
-- `egui_view_virtual_page_find_view_by_stable_id()`
-- `egui_view_virtual_page_find_first_visible_section_view()`
-- `egui_view_virtual_page_get_section_y_by_stable_id()`
-- `egui_view_virtual_page_get_section_height_by_stable_id()`
-- `egui_view_virtual_page_ensure_section_visible_by_stable_id()`
-- `egui_view_virtual_page_visit_visible_sections()`
-- `egui_view_virtual_page_get_slot_count()`
-- `egui_view_virtual_page_get_slot()`
-- `egui_view_virtual_page_get_slot_entry()`
-
-## 和 `virtual_list` 的区别
-
-- `virtual_list` 更适合很多行
-- `virtual_page` 更适合很多大 section
-- 底层都复用 `virtual_viewport`
-
-当你的业务语义已经是 page、dashboard 或 settings 时，直接用 `virtual_page` 会比在 `virtual_list` 上自己再封一层更顺手。
+- `virtual_page` 的最小单元是 section，不是 row
+- 不同 variant 的差异应该体现在模块结构、宽度和锚点，而不只是换背景色
+- 有短时动画或选中态时，优先把活动 view 放入 `keepalive`
+- 可恢复状态放进 `state cache`，避免 view 回收后状态丢失
 
 ## 相关文件
 

@@ -102,7 +102,8 @@ static int32_t egui_view_virtual_strip_find_slot_index_by_stable_id_internal(egu
     return -1;
 }
 
-static uint8_t egui_view_virtual_strip_resolve_slot_internal(egui_view_t *self, const egui_view_virtual_strip_slot_t *slot, egui_view_virtual_strip_entry_t *entry)
+static uint8_t egui_view_virtual_strip_resolve_slot_internal(egui_view_t *self, const egui_view_virtual_strip_slot_t *slot,
+                                                             egui_view_virtual_strip_entry_t *entry)
 {
     if (slot == NULL || slot->state == EGUI_VIEW_VIRTUAL_SLOT_STATE_UNUSED)
     {
@@ -454,6 +455,16 @@ void egui_view_virtual_strip_set_state_cache_limits(egui_view_t *self, uint16_t 
     egui_view_virtual_viewport_set_state_cache_limits(self, max_entries, max_bytes);
 }
 
+uint16_t egui_view_virtual_strip_get_state_cache_entry_limit(egui_view_t *self)
+{
+    return egui_view_virtual_viewport_get_state_cache_entry_limit(self);
+}
+
+uint32_t egui_view_virtual_strip_get_state_cache_byte_limit(egui_view_t *self)
+{
+    return egui_view_virtual_viewport_get_state_cache_byte_limit(self);
+}
+
 void egui_view_virtual_strip_clear_item_state_cache(egui_view_t *self)
 {
     egui_view_virtual_viewport_clear_state_cache(self);
@@ -710,8 +721,7 @@ typedef struct egui_view_virtual_strip_find_visible_item_context
 } egui_view_virtual_strip_find_visible_item_context_t;
 
 static uint8_t egui_view_virtual_strip_find_visible_item_visitor(egui_view_t *self, const egui_view_virtual_strip_slot_t *slot,
-                                                                 const egui_view_virtual_strip_entry_t *entry, egui_view_t *item_view,
-                                                                 void *context)
+                                                                 const egui_view_virtual_strip_entry_t *entry, egui_view_t *item_view, void *context)
 {
     egui_view_virtual_strip_find_visible_item_context_t *ctx = (egui_view_virtual_strip_find_visible_item_context_t *)context;
 
@@ -733,8 +743,7 @@ static uint8_t egui_view_virtual_strip_find_visible_item_visitor(egui_view_t *se
     return 1;
 }
 
-egui_view_t *egui_view_virtual_strip_find_first_visible_item_view(egui_view_t *self,
-                                                                  egui_view_virtual_strip_visible_item_matcher_t matcher, void *context,
+egui_view_t *egui_view_virtual_strip_find_first_visible_item_view(egui_view_t *self, egui_view_virtual_strip_visible_item_matcher_t matcher, void *context,
                                                                   egui_view_virtual_strip_entry_t *entry_out)
 {
     egui_view_virtual_strip_find_visible_item_context_t find_ctx = {

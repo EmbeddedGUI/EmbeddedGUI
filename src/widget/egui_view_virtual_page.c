@@ -453,6 +453,16 @@ void egui_view_virtual_page_set_state_cache_limits(egui_view_t *self, uint16_t m
     egui_view_virtual_viewport_set_state_cache_limits(self, max_entries, max_bytes);
 }
 
+uint16_t egui_view_virtual_page_get_state_cache_entry_limit(egui_view_t *self)
+{
+    return egui_view_virtual_viewport_get_state_cache_entry_limit(self);
+}
+
+uint32_t egui_view_virtual_page_get_state_cache_byte_limit(egui_view_t *self)
+{
+    return egui_view_virtual_viewport_get_state_cache_byte_limit(self);
+}
+
 void egui_view_virtual_page_clear_section_state_cache(egui_view_t *self)
 {
     egui_view_virtual_viewport_clear_state_cache(self);
@@ -709,8 +719,7 @@ typedef struct egui_view_virtual_page_find_visible_section_context
 } egui_view_virtual_page_find_visible_section_context_t;
 
 static uint8_t egui_view_virtual_page_find_visible_section_visitor(egui_view_t *self, const egui_view_virtual_page_slot_t *slot,
-                                                                   const egui_view_virtual_page_entry_t *entry, egui_view_t *section_view,
-                                                                   void *context)
+                                                                   const egui_view_virtual_page_entry_t *entry, egui_view_t *section_view, void *context)
 {
     egui_view_virtual_page_find_visible_section_context_t *ctx = (egui_view_virtual_page_find_visible_section_context_t *)context;
 
@@ -732,8 +741,7 @@ static uint8_t egui_view_virtual_page_find_visible_section_visitor(egui_view_t *
     return 1;
 }
 
-egui_view_t *egui_view_virtual_page_find_first_visible_section_view(egui_view_t *self,
-                                                                    egui_view_virtual_page_visible_section_matcher_t matcher, void *context,
+egui_view_t *egui_view_virtual_page_find_first_visible_section_view(egui_view_t *self, egui_view_virtual_page_visible_section_matcher_t matcher, void *context,
                                                                     egui_view_virtual_page_entry_t *entry_out)
 {
     egui_view_virtual_page_find_visible_section_context_t find_ctx = {

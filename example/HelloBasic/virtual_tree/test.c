@@ -5,41 +5,43 @@
 
 #include "uicode.h"
 
-#define TREE_DEMO_ROOT_COUNT               6U
-#define TREE_DEMO_MAX_GROUPS_PER_ROOT      13U
-#define TREE_DEMO_MAX_TASKS_PER_GROUP      16U
-#define TREE_DEMO_MAX_CHILDREN_PER_NODE    16U
-#define TREE_DEMO_MAX_NODES                (TREE_DEMO_ROOT_COUNT + TREE_DEMO_ROOT_COUNT * TREE_DEMO_MAX_GROUPS_PER_ROOT +                      \
-                                            TREE_DEMO_ROOT_COUNT * TREE_DEMO_MAX_GROUPS_PER_ROOT * TREE_DEMO_MAX_TASKS_PER_GROUP)
-#define TREE_DEMO_NODE_ID_BASE             700000U
-#define TREE_DEMO_INVALID_INDEX            0xFFFFFFFFUL
-#define TREE_DEMO_INVALID_NODE_INDEX       0xFFFFU
-#define TREE_DEMO_STATUS_TEXT_LEN          96
-#define TREE_DEMO_TITLE_TEXT_LEN           40
-#define TREE_DEMO_BODY_TEXT_LEN            48
-#define TREE_DEMO_META_TEXT_LEN            40
-#define TREE_DEMO_BADGE_TEXT_LEN           12
-#define TREE_DEMO_STATE_CACHE_COUNT        96U
+#define TREE_DEMO_ROOT_COUNT            6U
+#define TREE_DEMO_MAX_GROUPS_PER_ROOT   13U
+#define TREE_DEMO_MAX_TASKS_PER_GROUP   16U
+#define TREE_DEMO_MAX_CHILDREN_PER_NODE 16U
+#define TREE_DEMO_MAX_NODES                                                                                                                                    \
+    (TREE_DEMO_ROOT_COUNT + TREE_DEMO_ROOT_COUNT * TREE_DEMO_MAX_GROUPS_PER_ROOT +                                                                             \
+     TREE_DEMO_ROOT_COUNT * TREE_DEMO_MAX_GROUPS_PER_ROOT * TREE_DEMO_MAX_TASKS_PER_GROUP)
+#define TREE_DEMO_NODE_ID_BASE       700000U
+#define TREE_DEMO_INVALID_INDEX      0xFFFFFFFFUL
+#define TREE_DEMO_INVALID_NODE_INDEX 0xFFFFU
+#define TREE_DEMO_STATUS_TEXT_LEN    96
+#define TREE_DEMO_TITLE_TEXT_LEN     40
+#define TREE_DEMO_BODY_TEXT_LEN      48
+#define TREE_DEMO_META_TEXT_LEN      40
+#define TREE_DEMO_BADGE_TEXT_LEN     12
+#define TREE_DEMO_STATE_CACHE_COUNT  96U
 
-#define TREE_DEMO_MARGIN_X                 8
-#define TREE_DEMO_TOP_Y                    8
-#define TREE_DEMO_HEADER_W                 (EGUI_CONFIG_SCEEN_WIDTH - TREE_DEMO_MARGIN_X * 2)
-#define TREE_DEMO_HEADER_H                 68
-#define TREE_DEMO_TOOLBAR_Y                (TREE_DEMO_TOP_Y + TREE_DEMO_HEADER_H + 6)
-#define TREE_DEMO_TOOLBAR_H                32
-#define TREE_DEMO_VIEW_Y                   (TREE_DEMO_TOOLBAR_Y + TREE_DEMO_TOOLBAR_H + 6)
-#define TREE_DEMO_VIEW_W                   TREE_DEMO_HEADER_W
-#define TREE_DEMO_VIEW_H                   (EGUI_CONFIG_SCEEN_HEIGHT - TREE_DEMO_VIEW_Y - 8)
-#define TREE_DEMO_BUTTON_GAP               4
-#define TREE_DEMO_BUTTON_W                 ((TREE_DEMO_HEADER_W - 20 - TREE_DEMO_BUTTON_GAP * 3) / 4)
-#define TREE_DEMO_BUTTON_H                 20
-#define TREE_DEMO_NODE_GAP_Y               4
-#define TREE_DEMO_NODE_INSET_X             6
-#define TREE_DEMO_NODE_PAD_X               8
-#define TREE_DEMO_INDENT_STEP              12
-#define TREE_DEMO_BADGE_W                  42
-#define TREE_DEMO_BADGE_H                  16
-#define TREE_DEMO_PROGRESS_H               4
+#define TREE_DEMO_MARGIN_X     8
+#define TREE_DEMO_TOP_Y        8
+#define TREE_DEMO_HEADER_W     (EGUI_CONFIG_SCEEN_WIDTH - TREE_DEMO_MARGIN_X * 2)
+#define TREE_DEMO_HEADER_H     68
+#define TREE_DEMO_TOOLBAR_Y    (TREE_DEMO_TOP_Y + TREE_DEMO_HEADER_H + 6)
+#define TREE_DEMO_TOOLBAR_H    32
+#define TREE_DEMO_VIEW_Y       (TREE_DEMO_TOOLBAR_Y + TREE_DEMO_TOOLBAR_H + 6)
+#define TREE_DEMO_VIEW_W       TREE_DEMO_HEADER_W
+#define TREE_DEMO_VIEW_H       (EGUI_CONFIG_SCEEN_HEIGHT - TREE_DEMO_VIEW_Y - 8)
+#define TREE_DEMO_BUTTON_GAP   4
+#define TREE_DEMO_BUTTON_W     ((TREE_DEMO_HEADER_W - 20 - TREE_DEMO_BUTTON_GAP * 3) / 4)
+#define TREE_DEMO_BUTTON_H     20
+#define TREE_DEMO_NODE_GAP_Y   4
+#define TREE_DEMO_NODE_INSET_X 6
+#define TREE_DEMO_NODE_PAD_X   8
+#define TREE_DEMO_INDENT_STEP  20
+#define TREE_DEMO_BADGE_W      38
+#define TREE_DEMO_BADGE_H      18
+#define TREE_DEMO_PROGRESS_H   5
+#define TREE_DEMO_LABEL_H      14
 
 #define TREE_DEMO_FONT_HEADER ((const egui_font_t *)&egui_res_font_montserrat_10_4)
 #define TREE_DEMO_FONT_TITLE  ((const egui_font_t *)&egui_res_font_montserrat_8_4)
@@ -110,6 +112,9 @@ struct tree_demo_node
 struct tree_demo_node_view
 {
     egui_view_card_t card;
+    egui_view_card_t guide;
+    egui_view_card_t connector;
+    egui_view_card_t marker;
     egui_view_label_t title;
     egui_view_label_t body;
     egui_view_label_t meta;
@@ -157,7 +162,7 @@ struct tree_demo_context
 static const char *tree_demo_action_names[TREE_DEMO_ACTION_COUNT] = {"Expand", "Fold", "Patch", "Jump"};
 static const char *tree_demo_root_names[TREE_DEMO_ROOT_COUNT] = {"Fleet", "Deploy", "Audit", "Inbox", "Devices", "Ops"};
 static const char *tree_demo_state_names[TREE_DEMO_STATE_COUNT] = {"IDLE", "LIVE", "WARN", "DONE"};
-static const char *tree_demo_task_notes[TREE_DEMO_TASK_VARIANT_COUNT] = {"compact sync", "detail watch", "alert retry"};
+static const char *tree_demo_task_notes[TREE_DEMO_TASK_VARIANT_COUNT] = {"leaf sync", "detail leaf", "alert leaf"};
 
 static egui_view_t background_view;
 static egui_view_card_t header_card;
@@ -180,7 +185,7 @@ static const egui_view_virtual_tree_params_t tree_demo_view_params = {
         .overscan_before = 1,
         .overscan_after = 1,
         .max_keepalive_slots = 4,
-        .estimated_node_height = 60,
+        .estimated_node_height = 58,
 };
 
 EGUI_BACKGROUND_GRADIENT_PARAM_INIT(tree_demo_screen_bg_param, EGUI_BACKGROUND_GRADIENT_DIR_VERTICAL, EGUI_COLOR_HEX(0xEEF4F8), EGUI_COLOR_HEX(0xD9E5EE),
@@ -394,7 +399,7 @@ static int32_t tree_demo_measure_node_height_with_state(const tree_demo_node_t *
 
     if (node->kind == TREE_DEMO_NODE_KIND_ROOT)
     {
-        height = 54;
+        height = 76;
         if (node->expanded)
         {
             height += 4;
@@ -402,32 +407,32 @@ static int32_t tree_demo_measure_node_height_with_state(const tree_demo_node_t *
     }
     else if (node->kind == TREE_DEMO_NODE_KIND_GROUP)
     {
-        height = 48;
+        height = 66;
         if (node->expanded)
         {
-            height += 4;
+            height += 2;
         }
     }
     else if (node->variant == TREE_DEMO_TASK_VARIANT_ALERT)
     {
-        height = 74;
+        height = 70;
     }
     else if (node->variant == TREE_DEMO_TASK_VARIANT_DETAIL)
     {
-        height = 62;
+        height = 58;
     }
     else
     {
-        height = 50;
+        height = 40;
     }
 
     if (tree_demo_is_hot_state(node->state))
     {
-        height += 4;
+        height += node->kind == TREE_DEMO_NODE_KIND_TASK ? 2 : 4;
     }
     if (selected)
     {
-        height += 10;
+        height += 8;
     }
 
     return height;
@@ -575,9 +580,8 @@ static void tree_demo_reset_model(void)
     for (root_ordinal = 0; root_ordinal < TREE_DEMO_ROOT_COUNT; root_ordinal++)
     {
         uint8_t group_count = (uint8_t)(11U + (root_ordinal % 3U));
-        uint16_t root_index =
-                tree_demo_append_node(TREE_DEMO_NODE_KIND_ROOT, TREE_DEMO_INVALID_NODE_INDEX, root_ordinal, 0, root_ordinal, root_ordinal,
-                                      (uint8_t)(root_ordinal % TREE_DEMO_STATE_COUNT), 0, root_ordinal < 3U ? 1U : 0U);
+        uint16_t root_index = tree_demo_append_node(TREE_DEMO_NODE_KIND_ROOT, TREE_DEMO_INVALID_NODE_INDEX, root_ordinal, 0, root_ordinal, root_ordinal,
+                                                    (uint8_t)(root_ordinal % TREE_DEMO_STATE_COUNT), 0, root_ordinal < 3U ? 1U : 0U);
         uint8_t group_ordinal;
 
         tree_demo_ctx.root_indices[root_ordinal] = root_index;
@@ -772,140 +776,414 @@ static void tree_demo_format_branch_texts(int pool_index, const egui_view_virtua
     uint16_t branch_count = 0;
     uint16_t task_count = 0;
     uint16_t hot_count = 0;
-    char branch_char = node->expanded ? 'v' : '>';
 
     tree_demo_collect_branch_metrics((uint16_t)(node - tree_demo_ctx.nodes), &branch_count, &task_count, &hot_count);
 
     if (node->kind == TREE_DEMO_NODE_KIND_ROOT)
     {
-        snprintf(tree_demo_ctx.title_texts[pool_index], sizeof(tree_demo_ctx.title_texts[pool_index]), "%c Root %u %s", branch_char,
-                 (unsigned)(node->root_ordinal + 1U), tree_demo_root_names[node->root_ordinal % TREE_DEMO_ROOT_COUNT]);
-        snprintf(tree_demo_ctx.body_texts[pool_index], sizeof(tree_demo_ctx.body_texts[pool_index]), "%u groups | %u hot | %05lu",
-                 (unsigned)node->child_count, (unsigned)hot_count, (unsigned long)(node->stable_id % 100000UL));
+        snprintf(tree_demo_ctx.title_texts[pool_index], sizeof(tree_demo_ctx.title_texts[pool_index]), "%s Hub %u",
+                 tree_demo_root_names[node->root_ordinal % TREE_DEMO_ROOT_COUNT], (unsigned)(node->root_ordinal + 1U));
+        snprintf(tree_demo_ctx.body_texts[pool_index], sizeof(tree_demo_ctx.body_texts[pool_index]), "%u lanes | %u hot", (unsigned)node->child_count,
+                 (unsigned)hot_count);
+        snprintf(tree_demo_ctx.meta_texts[pool_index], sizeof(tree_demo_ctx.meta_texts[pool_index]), "%s  #%05lu  r%u", node->expanded ? "open" : "fold",
+                 (unsigned long)(node->stable_id % 100000UL), (unsigned)node->revision);
     }
     else
     {
-        snprintf(tree_demo_ctx.title_texts[pool_index], sizeof(tree_demo_ctx.title_texts[pool_index]), "%c Lane %u.%u", branch_char,
+        snprintf(tree_demo_ctx.title_texts[pool_index], sizeof(tree_demo_ctx.title_texts[pool_index]), "Lane %u.%u",
                  (unsigned)(node->root_ordinal + 1U), (unsigned)(node->group_ordinal + 1U));
-        snprintf(tree_demo_ctx.body_texts[pool_index], sizeof(tree_demo_ctx.body_texts[pool_index]), "%u tasks | %u hot | %05lu",
-                 (unsigned)task_count, (unsigned)hot_count, (unsigned long)(node->stable_id % 100000UL));
+        snprintf(tree_demo_ctx.body_texts[pool_index], sizeof(tree_demo_ctx.body_texts[pool_index]), "%u tasks | %u hot", (unsigned)task_count,
+                 (unsigned)hot_count);
+        snprintf(tree_demo_ctx.meta_texts[pool_index], sizeof(tree_demo_ctx.meta_texts[pool_index]), "%s  d%u  r%u", node->expanded ? "open" : "fold",
+                 (unsigned)entry->depth, (unsigned)node->revision);
     }
 
-    snprintf(tree_demo_ctx.meta_texts[pool_index], sizeof(tree_demo_ctx.meta_texts[pool_index]), "d%u | id %05lu | r%u", (unsigned)entry->depth,
-             (unsigned long)(node->stable_id % 100000UL), (unsigned)node->revision);
     snprintf(tree_demo_ctx.badge_texts[pool_index], sizeof(tree_demo_ctx.badge_texts[pool_index]), "%s", tree_demo_state_names[node->state]);
 }
 
 static void tree_demo_format_task_texts(int pool_index, const egui_view_virtual_tree_entry_t *entry, const tree_demo_node_t *node)
 {
-    snprintf(tree_demo_ctx.title_texts[pool_index], sizeof(tree_demo_ctx.title_texts[pool_index]), "Task %u.%u.%u", (unsigned)(node->root_ordinal + 1U),
+    snprintf(tree_demo_ctx.title_texts[pool_index], sizeof(tree_demo_ctx.title_texts[pool_index]), "Leaf %u.%u.%u", (unsigned)(node->root_ordinal + 1U),
              (unsigned)(node->group_ordinal + 1U), (unsigned)(node->ordinal + 1U));
-    snprintf(tree_demo_ctx.body_texts[pool_index], sizeof(tree_demo_ctx.body_texts[pool_index]), "%s | %u%%", tree_demo_task_notes[node->variant],
-             (unsigned)node->progress);
-    snprintf(tree_demo_ctx.meta_texts[pool_index], sizeof(tree_demo_ctx.meta_texts[pool_index]), "d%u | id %05lu | r%u", (unsigned)entry->depth,
-             (unsigned long)(node->stable_id % 100000UL), (unsigned)node->revision);
+    snprintf(tree_demo_ctx.body_texts[pool_index], sizeof(tree_demo_ctx.body_texts[pool_index]), "%s", tree_demo_task_notes[node->variant]);
+    snprintf(tree_demo_ctx.meta_texts[pool_index], sizeof(tree_demo_ctx.meta_texts[pool_index]), "%u%%  d%u  r%u", (unsigned)node->progress,
+             (unsigned)entry->depth, (unsigned)node->revision);
     snprintf(tree_demo_ctx.badge_texts[pool_index], sizeof(tree_demo_ctx.badge_texts[pool_index]), "%s", tree_demo_state_names[node->state]);
 }
 
-static void tree_demo_bind_node_card(tree_demo_node_view_t *node_view, int pool_index, const egui_view_virtual_tree_entry_t *entry, const tree_demo_node_t *node,
-                                     uint8_t selected)
+static void tree_demo_bind_node_card(tree_demo_node_view_t *node_view, int pool_index, const egui_view_virtual_tree_entry_t *entry,
+                                     const tree_demo_node_t *node, uint8_t selected)
 {
     int32_t node_height = tree_demo_measure_node_height_with_state(node, selected);
     egui_dim_t view_width = tree_demo_get_view_width();
     egui_dim_t indent = TREE_DEMO_NODE_INSET_X + entry->depth * TREE_DEMO_INDENT_STEP;
-    egui_dim_t card_width = view_width - indent - TREE_DEMO_NODE_INSET_X;
-    egui_dim_t content_width;
+    egui_dim_t card_x = indent;
+    egui_dim_t card_width = view_width - card_x - TREE_DEMO_NODE_INSET_X;
+    egui_dim_t card_height = node_height - TREE_DEMO_NODE_GAP_Y;
+    egui_dim_t corner_radius = 10;
+    egui_dim_t border_width = 1;
     egui_color_t badge_text_color;
+    egui_color_t card_color;
+    egui_color_t border_color;
+    egui_color_t title_color;
+    egui_color_t body_color;
+    egui_color_t meta_color;
+    egui_color_t guide_color = EGUI_COLOR_HEX(0xD6E0E8);
+    egui_color_t marker_color = EGUI_COLOR_HEX(0x8EA1B2);
+    egui_color_t connector_color = EGUI_COLOR_HEX(0xD6E0E8);
+    const egui_shadow_t *card_shadow = NULL;
     uint8_t show_body = 1;
+    uint8_t show_meta = 1;
+    uint8_t show_guide = 0;
+    uint8_t show_connector = 0;
+    uint8_t show_marker = 0;
+    uint8_t show_badge = 1;
+    uint8_t show_progress = 0;
+    egui_dim_t badge_x;
+    egui_dim_t text_limit_x;
+    egui_dim_t title_x = 20;
+    egui_dim_t title_y = 8;
+    egui_dim_t title_w;
+    egui_dim_t body_x = 20;
+    egui_dim_t body_y = 24;
+    egui_dim_t body_w;
+    egui_dim_t meta_x = 20;
+    egui_dim_t meta_y = 38;
+    egui_dim_t meta_w;
+    egui_dim_t progress_x = 20;
+    egui_dim_t progress_y = 0;
+    egui_dim_t progress_w = 0;
+    egui_dim_t guide_x = 0;
+    egui_dim_t guide_y = 0;
+    egui_dim_t guide_w = 2;
+    egui_dim_t guide_h = 10;
+    egui_dim_t connector_x = 0;
+    egui_dim_t connector_y = 0;
+    egui_dim_t connector_w = 10;
+    egui_dim_t connector_h = 2;
+    egui_dim_t marker_x = 0;
+    egui_dim_t marker_y = 0;
+    egui_dim_t marker_size = 8;
+    egui_dim_t pulse_x = 0;
+    egui_dim_t pulse_y = 0;
 
     if (card_width < 80)
     {
         card_width = 80;
     }
 
-    egui_view_set_position(EGUI_VIEW_OF(&node_view->card), indent, TREE_DEMO_NODE_GAP_Y / 2);
-    egui_view_set_size(EGUI_VIEW_OF(&node_view->card), card_width, node_height - TREE_DEMO_NODE_GAP_Y);
-    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&node_view->card), entry->depth == 0U ? 12 : 10);
-    egui_view_set_shadow(EGUI_VIEW_OF(&node_view->card), &tree_demo_card_shadow);
+    if (node->kind != TREE_DEMO_NODE_KIND_TASK)
+    {
+        egui_view_label_set_font(EGUI_VIEW_OF(&node_view->title), node->kind == TREE_DEMO_NODE_KIND_ROOT ? TREE_DEMO_FONT_HEADER : TREE_DEMO_FONT_TITLE);
+        egui_view_label_set_font(EGUI_VIEW_OF(&node_view->body), TREE_DEMO_FONT_CAP);
+        egui_view_label_set_font(EGUI_VIEW_OF(&node_view->meta), TREE_DEMO_FONT_CAP);
+        tree_demo_format_branch_texts(pool_index, entry, node);
+        if (node->kind == TREE_DEMO_NODE_KIND_ROOT)
+        {
+            card_x = 8;
+            card_width = view_width - 14;
+            corner_radius = 15;
+            card_shadow = &tree_demo_card_shadow;
+            title_color = EGUI_COLOR_WHITE;
+            body_color = EGUI_COLOR_HEX(0xE3EEF8);
+            meta_color = EGUI_COLOR_HEX(0xC6D9EA);
+            card_color = EGUI_COLOR_HEX(0x355B82);
+            border_color = EGUI_COLOR_HEX(0x4C769E);
+            marker_color = EGUI_COLOR_WHITE;
+            connector_color = marker_color;
+            show_marker = 1;
+            marker_x = 12;
+            marker_y = 12;
+            marker_size = 10;
+            title_x = 28;
+            title_y = 12;
+            body_x = 28;
+            body_y = 34;
+            meta_x = 28;
+            meta_y = card_height - 22;
+        }
+        else
+        {
+            card_x = indent + 4;
+            card_width = view_width - card_x - 16;
+            corner_radius = 12;
+            title_color = EGUI_COLOR_HEX(0x244155);
+            body_color = EGUI_COLOR_HEX(0x536C81);
+            meta_color = EGUI_COLOR_HEX(0x70859A);
+            card_color = EGUI_COLOR_HEX(0xF7FBFE);
+            border_color = EGUI_COLOR_HEX(0xC9D8E4);
+            guide_color = EGUI_COLOR_HEX(0x87AACC);
+            connector_color = guide_color;
+            marker_color = node->state == TREE_DEMO_STATE_WARN ? EGUI_COLOR_HEX(0xD08A2E) : EGUI_COLOR_HEX(0x6089B3);
+            show_guide = 1;
+            show_connector = 1;
+            show_marker = 1;
+            guide_x = 10;
+            guide_y = 6;
+            guide_w = 3;
+            guide_h = card_height - 12;
+            connector_x = 10;
+            connector_y = 17;
+            connector_w = 16;
+            connector_h = 3;
+            marker_x = 24;
+            marker_y = 13;
+            marker_size = 8;
+            title_x = 36;
+            title_y = 8;
+            body_x = 36;
+            body_y = 26;
+            meta_x = 36;
+            meta_y = card_height - 18;
+        }
+        show_progress = 0;
+    }
+    else
+    {
+        egui_view_label_set_font(EGUI_VIEW_OF(&node_view->title), TREE_DEMO_FONT_BODY);
+        egui_view_label_set_font(EGUI_VIEW_OF(&node_view->body), TREE_DEMO_FONT_CAP);
+        egui_view_label_set_font(EGUI_VIEW_OF(&node_view->meta), TREE_DEMO_FONT_CAP);
+        tree_demo_format_task_texts(pool_index, entry, node);
+        card_x = (egui_dim_t)(indent + (node->variant == TREE_DEMO_TASK_VARIANT_COMPACT ? 12 : 10));
+        card_width = view_width - card_x - (node->variant == TREE_DEMO_TASK_VARIANT_COMPACT ? 34 : (node->variant == TREE_DEMO_TASK_VARIANT_DETAIL ? 20 : 14));
+        title_color = EGUI_COLOR_HEX(0x233445);
+        body_color = EGUI_COLOR_HEX(0x4E6275);
+        meta_color = EGUI_COLOR_HEX(0x687B8D);
+        guide_color = node->state == TREE_DEMO_STATE_LIVE   ? EGUI_COLOR_HEX(0x62A886)
+                      : node->state == TREE_DEMO_STATE_DONE ? EGUI_COLOR_HEX(0x7A95B1)
+                                                            : node->state == TREE_DEMO_STATE_WARN ? EGUI_COLOR_HEX(0xD8A24A)
+                                                                                                : EGUI_COLOR_HEX(0xCAD6E0);
+        connector_color = guide_color;
+        marker_color = node->state == TREE_DEMO_STATE_LIVE   ? EGUI_COLOR_HEX(0x2E9A6F)
+                       : node->state == TREE_DEMO_STATE_WARN ? EGUI_COLOR_HEX(0xD08A2E)
+                       : node->state == TREE_DEMO_STATE_DONE ? EGUI_COLOR_HEX(0x6D88A7)
+                                                             : EGUI_COLOR_HEX(0x98A7B4);
+        show_guide = 1;
+        show_connector = 1;
+        show_marker = 1;
+        guide_x = 6;
+        guide_y = 0;
+        guide_w = selected ? 3 : 2;
+        guide_h = card_height;
+        connector_x = 6;
+        connector_y = 13;
+        connector_w = 14;
+        connector_h = 2;
+        marker_x = 18;
+        marker_y = 10;
+        marker_size = node->variant == TREE_DEMO_TASK_VARIANT_COMPACT ? 7 : 8;
+        title_x = 28;
+        body_x = 28;
+        meta_x = 28;
+        progress_x = 28;
+
+        if (node->variant == TREE_DEMO_TASK_VARIANT_COMPACT)
+        {
+            corner_radius = 8;
+            card_color = EGUI_COLOR_HEX(0xFBFDFF);
+            border_color = EGUI_COLOR_HEX(0xD8E3EB);
+            show_body = selected ? 1U : 0U;
+            show_meta = 0;
+            show_badge = (uint8_t)(selected || node->state != TREE_DEMO_STATE_IDLE);
+            show_progress = (uint8_t)(selected || tree_demo_is_hot_state(node->state));
+            title_y = show_body ? 7 : 10;
+            body_y = 22;
+            meta_y = 0;
+            progress_y = card_height - 8;
+            progress_w = card_width - progress_x - 10;
+            marker_y = show_body ? 13 : 10;
+        }
+        else if (node->variant == TREE_DEMO_TASK_VARIANT_DETAIL)
+        {
+            corner_radius = 10;
+            card_color = EGUI_COLOR_WHITE;
+            border_color = EGUI_COLOR_HEX(0xDCE6EE);
+            show_body = 1;
+            show_meta = 1;
+            show_badge = 1;
+            show_progress = 1;
+            title_y = 8;
+            body_y = 24;
+            meta_y = 32;
+            progress_y = card_height - 7;
+            progress_w = card_width - progress_x - 10;
+        }
+        else
+        {
+            corner_radius = 12;
+            card_color = EGUI_COLOR_HEX(0xFFF8EF);
+            border_color = EGUI_COLOR_HEX(0xE1BE7A);
+            title_color = EGUI_COLOR_HEX(0x4D4026);
+            body_color = EGUI_COLOR_HEX(0x8A6A31);
+            meta_color = EGUI_COLOR_HEX(0x8C7347);
+            guide_color = EGUI_COLOR_HEX(0xD8A24A);
+            connector_color = guide_color;
+            marker_color = EGUI_COLOR_HEX(0xD08A2E);
+            show_body = 1;
+            show_meta = 1;
+            show_badge = 1;
+            show_progress = 1;
+            guide_w = 3;
+            connector_h = 3;
+            title_y = 10;
+            body_y = 28;
+            meta_y = 42;
+            progress_y = card_height - 7;
+            progress_w = card_width - progress_x - 10;
+        }
+    }
+
+    if (card_width < 112)
+    {
+        card_width = 112;
+    }
 
     if (selected)
     {
-        egui_view_card_set_bg_color(EGUI_VIEW_OF(&node_view->card), EGUI_COLOR_HEX(0xF7FBFF), EGUI_ALPHA_100);
-        egui_view_card_set_border(EGUI_VIEW_OF(&node_view->card), 2, EGUI_COLOR_HEX(0x3A6EA5));
-    }
-    else if (node->kind == TREE_DEMO_NODE_KIND_ROOT)
-    {
-        egui_view_card_set_bg_color(EGUI_VIEW_OF(&node_view->card), EGUI_COLOR_HEX(0xEEF5FB), EGUI_ALPHA_100);
-        egui_view_card_set_border(EGUI_VIEW_OF(&node_view->card), 1, EGUI_COLOR_HEX(0xD3E1EE));
-    }
-    else if (node->kind == TREE_DEMO_NODE_KIND_GROUP)
-    {
-        egui_view_card_set_bg_color(EGUI_VIEW_OF(&node_view->card), EGUI_COLOR_HEX(0xF7FAFC), EGUI_ALPHA_100);
-        egui_view_card_set_border(EGUI_VIEW_OF(&node_view->card), 1, EGUI_COLOR_HEX(0xDCE6EE));
-    }
-    else if (node->variant == TREE_DEMO_TASK_VARIANT_ALERT)
-    {
-        egui_view_card_set_bg_color(EGUI_VIEW_OF(&node_view->card), EGUI_COLOR_HEX(0xFFF8EF), EGUI_ALPHA_100);
-        egui_view_card_set_border(EGUI_VIEW_OF(&node_view->card), 1, EGUI_COLOR_HEX(0xEBCB8B));
-    }
-    else
-    {
-        egui_view_card_set_bg_color(EGUI_VIEW_OF(&node_view->card), EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-        egui_view_card_set_border(EGUI_VIEW_OF(&node_view->card), 1, EGUI_COLOR_HEX(0xDCE6EE));
-    }
-
-    content_width = card_width - TREE_DEMO_NODE_PAD_X * 2 - TREE_DEMO_BADGE_W - 6;
-    if (content_width < 40)
-    {
-        content_width = 40;
-    }
-
-    if (node->kind != TREE_DEMO_NODE_KIND_TASK)
-    {
-        tree_demo_format_branch_texts(pool_index, entry, node);
-        egui_view_set_position(EGUI_VIEW_OF(&node_view->title), TREE_DEMO_NODE_PAD_X + 10, 8);
-        egui_view_set_size(EGUI_VIEW_OF(&node_view->title), content_width - 10, 10);
-        egui_view_set_position(EGUI_VIEW_OF(&node_view->body), TREE_DEMO_NODE_PAD_X + 10, 26);
-        egui_view_set_size(EGUI_VIEW_OF(&node_view->body), content_width - 10, 10);
-        egui_view_set_gone(EGUI_VIEW_OF(&node_view->progress), 1);
-        egui_view_set_gone(EGUI_VIEW_OF(&node_view->meta), 1);
-    }
-    else
-    {
-        tree_demo_format_task_texts(pool_index, entry, node);
-        if (node->variant == TREE_DEMO_TASK_VARIANT_COMPACT && !selected)
+        border_width = 2;
+        if (node->kind == TREE_DEMO_NODE_KIND_ROOT)
         {
-            show_body = 0;
+            card_color = EGUI_COLOR_HEX(0x2F5E8E);
+            border_color = EGUI_COLOR_WHITE;
+            title_color = EGUI_COLOR_WHITE;
+            body_color = EGUI_COLOR_HEX(0xEAF4FC);
+            meta_color = EGUI_COLOR_HEX(0xD7E6F4);
+            guide_color = EGUI_COLOR_HEX(0xAFC7DE);
+            connector_color = guide_color;
+            marker_color = EGUI_COLOR_WHITE;
         }
-
-        egui_view_set_position(EGUI_VIEW_OF(&node_view->title), TREE_DEMO_NODE_PAD_X, 6);
-        egui_view_set_size(EGUI_VIEW_OF(&node_view->title), content_width, 10);
-        egui_view_set_position(EGUI_VIEW_OF(&node_view->body), TREE_DEMO_NODE_PAD_X, 20);
-        egui_view_set_size(EGUI_VIEW_OF(&node_view->body), content_width, 10);
-        egui_view_set_position(EGUI_VIEW_OF(&node_view->meta), TREE_DEMO_NODE_PAD_X, show_body ? 34 : 21);
-        egui_view_set_size(EGUI_VIEW_OF(&node_view->meta), content_width, 10);
-        egui_view_set_position(EGUI_VIEW_OF(&node_view->progress), TREE_DEMO_NODE_PAD_X, node_height - TREE_DEMO_NODE_GAP_Y - 10);
-        egui_view_set_size(EGUI_VIEW_OF(&node_view->progress), card_width - TREE_DEMO_NODE_PAD_X * 2, TREE_DEMO_PROGRESS_H);
-        egui_view_progress_bar_set_process(EGUI_VIEW_OF(&node_view->progress), node->progress);
-        egui_view_set_gone(EGUI_VIEW_OF(&node_view->progress), 0);
-        egui_view_set_gone(EGUI_VIEW_OF(&node_view->meta), 0);
+        else if (node->kind == TREE_DEMO_NODE_KIND_GROUP)
+        {
+            card_color = EGUI_COLOR_HEX(0xF7FBFF);
+            border_color = EGUI_COLOR_HEX(0x3A6EA5);
+            title_color = EGUI_COLOR_HEX(0x23435B);
+            body_color = EGUI_COLOR_HEX(0x456176);
+            meta_color = EGUI_COLOR_HEX(0x5E7890);
+            guide_color = EGUI_COLOR_HEX(0x5F89B3);
+            connector_color = guide_color;
+            marker_color = EGUI_COLOR_HEX(0x3A6EA5);
+        }
+        else
+        {
+            card_color = node->variant == TREE_DEMO_TASK_VARIANT_ALERT ? EGUI_COLOR_HEX(0xFFF7EA) : EGUI_COLOR_HEX(0xF7FBFF);
+            border_color = EGUI_COLOR_HEX(0x3A6EA5);
+            title_color = EGUI_COLOR_HEX(0x23435B);
+            body_color = EGUI_COLOR_HEX(0x456176);
+            meta_color = EGUI_COLOR_HEX(0x5E7890);
+            guide_color = EGUI_COLOR_HEX(0x5F89B3);
+            connector_color = guide_color;
+            marker_color = node->variant == TREE_DEMO_TASK_VARIANT_ALERT ? EGUI_COLOR_HEX(0xD08A2E) : EGUI_COLOR_HEX(0x3A6EA5);
+        }
     }
 
-    badge_text_color = selected ? EGUI_COLOR_HEX(0x2B3F52) : EGUI_COLOR_WHITE;
+    badge_x = card_width - TREE_DEMO_BADGE_W - TREE_DEMO_NODE_PAD_X;
+    text_limit_x = show_badge ? (egui_dim_t)(badge_x - 8) : (egui_dim_t)(card_width - TREE_DEMO_NODE_PAD_X);
+    title_w = text_limit_x - title_x;
+    body_w = text_limit_x - body_x;
+    meta_w = text_limit_x - meta_x;
+    if (title_w < 56)
+    {
+        title_w = 56;
+    }
+    if (body_w < 52)
+    {
+        body_w = 52;
+    }
+    if (meta_w < 52)
+    {
+        meta_w = 52;
+    }
+
+    if (show_progress)
+    {
+        if (progress_w == 0)
+        {
+            progress_w = card_width - progress_x - 10;
+        }
+        if (progress_w < 48)
+        {
+            progress_w = 48;
+        }
+    }
+    else
+    {
+        progress_w = 48;
+        progress_y = card_height - TREE_DEMO_PROGRESS_H;
+    }
+
+    egui_view_set_position(EGUI_VIEW_OF(&node_view->card), card_x, TREE_DEMO_NODE_GAP_Y / 2);
+    egui_view_set_size(EGUI_VIEW_OF(&node_view->card), card_width, card_height);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&node_view->card), corner_radius);
+    egui_view_set_shadow(EGUI_VIEW_OF(&node_view->card), card_shadow);
+    egui_view_card_set_bg_color(EGUI_VIEW_OF(&node_view->card), card_color, EGUI_ALPHA_100);
+    egui_view_card_set_border(EGUI_VIEW_OF(&node_view->card), border_width, border_color);
+
+    egui_view_set_size(EGUI_VIEW_OF(&node_view->title), title_w, TREE_DEMO_LABEL_H);
+    egui_view_set_size(EGUI_VIEW_OF(&node_view->body), body_w, TREE_DEMO_LABEL_H);
+    egui_view_set_size(EGUI_VIEW_OF(&node_view->meta), meta_w, TREE_DEMO_LABEL_H);
+    egui_view_set_position(EGUI_VIEW_OF(&node_view->title), title_x, title_y);
+    egui_view_set_position(EGUI_VIEW_OF(&node_view->body), body_x, body_y);
+    egui_view_set_position(EGUI_VIEW_OF(&node_view->meta), meta_x, meta_y);
+
+    badge_text_color = selected ? EGUI_COLOR_HEX(0x2B3F52) : (node->state == TREE_DEMO_STATE_WARN ? EGUI_COLOR_BLACK : EGUI_COLOR_WHITE);
     egui_view_label_set_text(EGUI_VIEW_OF(&node_view->title), tree_demo_ctx.title_texts[pool_index]);
     egui_view_label_set_text(EGUI_VIEW_OF(&node_view->body), tree_demo_ctx.body_texts[pool_index]);
     egui_view_label_set_text(EGUI_VIEW_OF(&node_view->meta), tree_demo_ctx.meta_texts[pool_index]);
     egui_view_label_set_text(EGUI_VIEW_OF(&node_view->badge), tree_demo_ctx.badge_texts[pool_index]);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&node_view->title), EGUI_COLOR_HEX(0x233445), EGUI_ALPHA_100);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&node_view->body), EGUI_COLOR_HEX(0x4E6275), EGUI_ALPHA_100);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&node_view->meta), EGUI_COLOR_HEX(0x687B8D), EGUI_ALPHA_100);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&node_view->title), title_color, EGUI_ALPHA_100);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&node_view->body), body_color, EGUI_ALPHA_100);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&node_view->meta), meta_color, EGUI_ALPHA_100);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&node_view->badge), badge_text_color, EGUI_ALPHA_100);
     egui_view_set_background(EGUI_VIEW_OF(&node_view->badge), tree_demo_get_badge_background(selected, node->state));
-    egui_view_set_position(EGUI_VIEW_OF(&node_view->badge), card_width - TREE_DEMO_BADGE_W - TREE_DEMO_NODE_PAD_X, 6);
+    egui_view_card_set_bg_color(EGUI_VIEW_OF(&node_view->guide), guide_color, EGUI_ALPHA_100);
+    egui_view_card_set_bg_color(EGUI_VIEW_OF(&node_view->connector), connector_color, EGUI_ALPHA_100);
+    egui_view_card_set_bg_color(EGUI_VIEW_OF(&node_view->marker), marker_color, EGUI_ALPHA_100);
+    egui_view_card_set_border(EGUI_VIEW_OF(&node_view->guide), 0, guide_color);
+    egui_view_card_set_border(EGUI_VIEW_OF(&node_view->connector), 0, connector_color);
+    egui_view_card_set_border(EGUI_VIEW_OF(&node_view->marker), 0, marker_color);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&node_view->guide), guide_w > 2 ? 2 : 1);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&node_view->connector), connector_h > 2 ? 2 : 1);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&node_view->marker), marker_size / 2);
+    egui_view_set_shadow(EGUI_VIEW_OF(&node_view->guide), NULL);
+    egui_view_set_shadow(EGUI_VIEW_OF(&node_view->connector), NULL);
+    egui_view_set_shadow(EGUI_VIEW_OF(&node_view->marker), NULL);
+    egui_view_set_position(EGUI_VIEW_OF(&node_view->guide), guide_x, guide_y);
+    egui_view_set_size(EGUI_VIEW_OF(&node_view->guide), guide_w, guide_h);
+    egui_view_set_position(EGUI_VIEW_OF(&node_view->connector), connector_x, connector_y);
+    egui_view_set_size(EGUI_VIEW_OF(&node_view->connector), connector_w, connector_h);
+    egui_view_set_position(EGUI_VIEW_OF(&node_view->marker), marker_x, marker_y);
+    egui_view_set_size(EGUI_VIEW_OF(&node_view->marker), marker_size, marker_size);
+    egui_view_set_position(EGUI_VIEW_OF(&node_view->badge), badge_x, 8);
     egui_view_set_size(EGUI_VIEW_OF(&node_view->badge), TREE_DEMO_BADGE_W, TREE_DEMO_BADGE_H);
-    egui_view_set_position(EGUI_VIEW_OF(&node_view->pulse), card_width - 14, node_height - TREE_DEMO_NODE_GAP_Y - 14);
+    if (node->kind == TREE_DEMO_NODE_KIND_ROOT)
+    {
+        pulse_x = badge_x - 12;
+        pulse_y = card_height - 14;
+    }
+    else
+    {
+        pulse_x = card_width - 14;
+        pulse_y = card_height - 14;
+    }
+    egui_view_set_position(EGUI_VIEW_OF(&node_view->pulse), pulse_x, pulse_y);
     egui_view_set_size(EGUI_VIEW_OF(&node_view->pulse), 8, 8);
+    egui_view_set_position(EGUI_VIEW_OF(&node_view->progress), progress_x, progress_y);
+    egui_view_set_size(EGUI_VIEW_OF(&node_view->progress), progress_w, TREE_DEMO_PROGRESS_H);
+    egui_view_progress_bar_set_process(EGUI_VIEW_OF(&node_view->progress), node->progress);
+    node_view->progress.progress_color = selected ? EGUI_COLOR_HEX(0x3A6EA5)
+                                       : node->state == TREE_DEMO_STATE_WARN ? EGUI_COLOR_HEX(0xD08A2E)
+                                       : node->state == TREE_DEMO_STATE_LIVE ? EGUI_COLOR_HEX(0x2E9A6F)
+                                       : node->state == TREE_DEMO_STATE_DONE ? EGUI_COLOR_HEX(0x6D88A7)
+                                                                             : EGUI_COLOR_HEX(0x5B7FA0);
+    node_view->progress.bk_color = selected ? EGUI_COLOR_HEX(0xC8D8E6) : EGUI_COLOR_HEX(0xDCE6EE);
+    node_view->progress.control_color = node_view->progress.progress_color;
+    egui_view_set_gone(EGUI_VIEW_OF(&node_view->badge), show_badge ? 0 : 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&node_view->guide), show_guide ? 0 : 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&node_view->connector), show_connector ? 0 : 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&node_view->marker), show_marker ? 0 : 1);
     egui_view_set_gone(EGUI_VIEW_OF(&node_view->body), show_body ? 0 : 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&node_view->meta), show_meta ? 0 : 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&node_view->progress), show_progress ? 0 : 1);
 
     tree_demo_set_node_pulse(node_view, node, 1, selected);
 }
@@ -989,8 +1267,8 @@ static void tree_demo_node_click_cb(egui_view_t *self)
         tree_demo_update_selection(entry.stable_id, 1, 1);
     }
 
-    snprintf(tree_demo_ctx.last_action_text, sizeof(tree_demo_ctx.last_action_text), "click %05lu @%lu",
-             (unsigned long)(entry.stable_id % 100000UL), (unsigned long)entry.visible_index);
+    snprintf(tree_demo_ctx.last_action_text, sizeof(tree_demo_ctx.last_action_text), "click %05lu @%lu", (unsigned long)(entry.stable_id % 100000UL),
+             (unsigned long)entry.visible_index);
     tree_demo_refresh_status();
 }
 
@@ -1095,6 +1373,9 @@ static egui_view_t *tree_demo_create_node_view_cb(void *data_source_context, uin
     memset(node_view, 0, sizeof(*node_view));
 
     egui_view_card_init(EGUI_VIEW_OF(&node_view->card));
+    egui_view_card_init(EGUI_VIEW_OF(&node_view->guide));
+    egui_view_card_init(EGUI_VIEW_OF(&node_view->connector));
+    egui_view_card_init(EGUI_VIEW_OF(&node_view->marker));
     egui_view_label_init(EGUI_VIEW_OF(&node_view->title));
     egui_view_label_init(EGUI_VIEW_OF(&node_view->body));
     egui_view_label_init(EGUI_VIEW_OF(&node_view->meta));
@@ -1111,6 +1392,9 @@ static egui_view_t *tree_demo_create_node_view_cb(void *data_source_context, uin
     egui_view_label_set_align_type(EGUI_VIEW_OF(&node_view->meta), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&node_view->badge), EGUI_ALIGN_CENTER);
 
+    egui_view_card_add_child(EGUI_VIEW_OF(&node_view->card), EGUI_VIEW_OF(&node_view->guide));
+    egui_view_card_add_child(EGUI_VIEW_OF(&node_view->card), EGUI_VIEW_OF(&node_view->connector));
+    egui_view_card_add_child(EGUI_VIEW_OF(&node_view->card), EGUI_VIEW_OF(&node_view->marker));
     egui_view_card_add_child(EGUI_VIEW_OF(&node_view->card), EGUI_VIEW_OF(&node_view->title));
     egui_view_card_add_child(EGUI_VIEW_OF(&node_view->card), EGUI_VIEW_OF(&node_view->body));
     egui_view_card_add_child(EGUI_VIEW_OF(&node_view->card), EGUI_VIEW_OF(&node_view->meta));
@@ -1119,6 +1403,9 @@ static egui_view_t *tree_demo_create_node_view_cb(void *data_source_context, uin
     egui_view_card_add_child(EGUI_VIEW_OF(&node_view->card), EGUI_VIEW_OF(&node_view->pulse));
     egui_view_set_on_click_listener(EGUI_VIEW_OF(&node_view->card), tree_demo_node_click_cb);
     egui_view_set_gone(EGUI_VIEW_OF(&node_view->pulse), 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&node_view->guide), 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&node_view->connector), 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&node_view->marker), 1);
 
     egui_animation_alpha_init(EGUI_ANIM_OF(&node_view->pulse_anim));
     egui_animation_alpha_params_set(&node_view->pulse_anim, &tree_demo_pulse_anim_param);
@@ -1479,11 +1766,11 @@ void test_init_ui(void)
     egui_view_label_init(EGUI_VIEW_OF(&header_detail));
     egui_view_label_init(EGUI_VIEW_OF(&header_hint));
     egui_view_set_position(EGUI_VIEW_OF(&header_title), 12, 10);
-    egui_view_set_size(EGUI_VIEW_OF(&header_title), TREE_DEMO_HEADER_W - 24, 12);
+    egui_view_set_size(EGUI_VIEW_OF(&header_title), TREE_DEMO_HEADER_W - 24, 16);
     egui_view_set_position(EGUI_VIEW_OF(&header_detail), 12, 28);
-    egui_view_set_size(EGUI_VIEW_OF(&header_detail), TREE_DEMO_HEADER_W - 24, 10);
+    egui_view_set_size(EGUI_VIEW_OF(&header_detail), TREE_DEMO_HEADER_W - 24, 14);
     egui_view_set_position(EGUI_VIEW_OF(&header_hint), 12, 44);
-    egui_view_set_size(EGUI_VIEW_OF(&header_hint), TREE_DEMO_HEADER_W - 24, 10);
+    egui_view_set_size(EGUI_VIEW_OF(&header_hint), TREE_DEMO_HEADER_W - 24, 14);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_title), TREE_DEMO_FONT_HEADER);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_detail), TREE_DEMO_FONT_BODY);
     egui_view_label_set_font(EGUI_VIEW_OF(&header_hint), TREE_DEMO_FONT_BODY);
@@ -1504,11 +1791,10 @@ void test_init_ui(void)
     for (i = 0; i < TREE_DEMO_ACTION_COUNT; i++)
     {
         tree_demo_init_action_button(&action_buttons[i], button_x, tree_demo_action_names[i]);
-        egui_view_set_background(EGUI_VIEW_OF(&action_buttons[i]),
-                                 i == TREE_DEMO_ACTION_EXPAND  ? EGUI_BG_OF(&tree_demo_action_expand_bg)
-                                 : i == TREE_DEMO_ACTION_FOLD  ? EGUI_BG_OF(&tree_demo_action_fold_bg)
-                                 : i == TREE_DEMO_ACTION_PATCH ? EGUI_BG_OF(&tree_demo_action_patch_bg)
-                                                               : EGUI_BG_OF(&tree_demo_action_jump_bg));
+        egui_view_set_background(EGUI_VIEW_OF(&action_buttons[i]), i == TREE_DEMO_ACTION_EXPAND  ? EGUI_BG_OF(&tree_demo_action_expand_bg)
+                                                                   : i == TREE_DEMO_ACTION_FOLD  ? EGUI_BG_OF(&tree_demo_action_fold_bg)
+                                                                   : i == TREE_DEMO_ACTION_PATCH ? EGUI_BG_OF(&tree_demo_action_patch_bg)
+                                                                                                 : EGUI_BG_OF(&tree_demo_action_jump_bg));
         egui_view_card_add_child(EGUI_VIEW_OF(&toolbar_card), EGUI_VIEW_OF(&action_buttons[i]));
         button_x += TREE_DEMO_BUTTON_W + TREE_DEMO_BUTTON_GAP;
     }

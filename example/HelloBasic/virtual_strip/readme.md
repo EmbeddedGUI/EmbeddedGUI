@@ -1,22 +1,50 @@
 # Virtual Strip 示例
 
-## 这个示例展示什么
+## 这个示例解决什么问题
 
-这个示例用 `egui_view_virtual_strip_t` 演示“横向虚拟化容器 / card rail”的典型业务场景：
+`egui_view_virtual_strip_t` 用来做“横向虚拟化 item 带”，不是把普通列表横过来那么简单。
 
-- 260 / 180 / 320 个 item 的长横向数据集
-- `Gallery / Queue / Timeline` 三种场景共用同一个横向虚拟容器
-- item 宽度可变，点击后可确认命中的 `stable_id / index`
-- `Add / Del / Patch / Jump` 模拟真实数据增删改和定位
-- 横向滚动、局部刷新、离屏回收与复用
-- 脉冲动画结合 `keepalive + state cache`
+这个示例放了 3 种典型场景：
 
-适合的业务场景：
+- `Gallery`：poster rail / hero rail
+- `Queue`：播放队列 / 工单队列
+- `Timeline`：beat marker / cue strip
 
-- gallery 或 hero rail
-- 音乐或视频播放队列
-- 横向 timeline 或 cue strip
+它重点演示：
+
+- item 在 X 轴滚动时按需创建和复用
+- item 宽度可以变化
+- 不同 scene 共用同一套虚拟化容器
+- 点击后可确认命中的 `index / stable_id`
+- `Add / Del / Patch / Jump` 会触发真实的数据变化和定位
+- pulse 动画通过 `keepalive + state cache` 保住
+- `Timeline` 额外用固定 playhead 叠层强调“轨道参考线”语义，而不是普通横向卡片排布
+
+## 什么时候用 `virtual_strip`
+
+适合这些业务：
+
 - 首页横向推荐带
+- 图片 / 视频 gallery
+- 播放队列 / 候选队列
+- 时间轴 cue strip
+
+如果你的主轴是横向，而且每个 item 的宽度可能不同，就应该优先考虑 `virtual_strip`。
+
+## 为什么它不应该长得像“横过来的 list”
+
+- `Gallery` 应该先读成 poster rail / hero rail，强调卡片宽度变化和轨道节奏。
+- `Queue` 应该更像一条连续的工作/播放队列，强调顺序、状态和局部 patch。
+- `Timeline` 应该先被看成 cue strip / beat marker，而不是一排矮卡片。
+
+也就是说，`virtual_strip` 的最小业务单元是横向轨道里的 item，不是把 `virtual_list` 的 row 旋转 90 度。
+
+## 不太适合这些场景
+
+- 主轴不是横向：优先 `virtual_list` / `virtual_page`
+- 有明显组头和组内条目：优先 `virtual_section_list`
+- 有递归父子层级：优先 `virtual_tree`
+- 本质上是一屏二维卡片流：优先 `virtual_grid`
 
 ## 运行方式
 
@@ -25,7 +53,7 @@ make -j1 all APP=HelloBasic APP_SUB=virtual_strip PORT=pc
 python scripts/code_runtime_check.py --app HelloBasic --app-sub virtual_strip --keep-screenshots
 ```
 
-## 推荐接入方式
+## 接入方式
 
 ```c
 static egui_view_virtual_strip_t strip_view;
@@ -63,24 +91,27 @@ static const egui_view_virtual_strip_setup_t strip_setup = {
 egui_view_virtual_strip_init_with_setup(EGUI_VIEW_OF(&strip_view), &strip_setup);
 ```
 
-容器初始化完成后，如果要整体切换 `params`、数据源或缓存限额，可以继续使用：
+已经初始化过的容器可以继续用：
 
 ```c
 egui_view_virtual_strip_apply_setup(EGUI_VIEW_OF(&strip_view), &strip_setup);
 ```
 
-## 关键设计点
+## 宽度变化和定位
 
-### 1. `virtual_strip` 是横向 item 虚拟化
+如果 item 的选中态、文案、样式变化会影响宽度，必须通知容器：
 
-它不是把 `virtual_list` 简单改成横向滚动，而是把底层 `virtual_viewport` 的主轴切到 X：
+```c
+egui_view_virtual_strip_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&strip_view), stable_id);
+```
 
-- item 在 X 轴排布
-- 数据源提供 `measure_item_width()`
-- 容器维护有限数量的 slot view
-- 滚动时只重绑当前进入可见区的 item
+如果只是希望当前 item 保持在屏幕内，不要自己重复写“先判断再滚动”的逻辑，直接用：
 
-### 2. 点击后可以直接反查命中的 item
+```c
+egui_view_virtual_strip_ensure_item_visible_by_stable_id(EGUI_VIEW_OF(&strip_view), stable_id, inset);
+```
+
+## 点击命中
 
 ```c
 static void strip_click_cb(egui_view_t *self)
@@ -96,66 +127,23 @@ static void strip_click_cb(egui_view_t *self)
 }
 ```
 
-### 3. 宽度变化后要显式通知
-
-如果业务修改了 variant、badge、选中态或其它会影响宽度的状态，需要显式通知：
-
-```c
-egui_view_virtual_strip_notify_item_resized(EGUI_VIEW_OF(&strip_view), index);
-egui_view_virtual_strip_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&strip_view), stable_id);
-```
-
-如果只是内容刷新但宽度不变，则用：
-
-```c
-egui_view_virtual_strip_notify_item_changed(EGUI_VIEW_OF(&strip_view), index);
-```
-
-### 4. 按 `stable_id` 定位
-
-横向带的常见需求不是“滚到某个 offset”，而是跳到某个 item。典型写法：
-
-```c
-egui_view_virtual_strip_scroll_to_stable_id(EGUI_VIEW_OF(&strip_view), stable_id, inset);
-```
-
-如果只是希望“选中项、焦点项、正在播的 item”保持在可见安全带内，不要每次都强制跳转，直接用：
-
-```c
-egui_view_virtual_strip_ensure_item_visible_by_stable_id(EGUI_VIEW_OF(&strip_view), stable_id, inset);
-```
-
-目标已经处于当前可见安全带时不会重复滚动，适合点击选中、键盘移动和动画播放中的跟随定位。
-
 ## 常用 helper
 
-- `egui_view_virtual_strip_get_item_count()`
-- `egui_view_virtual_strip_find_index_by_stable_id()`
-- `egui_view_virtual_strip_resolve_item_by_stable_id()`
 - `egui_view_virtual_strip_resolve_item_by_view()`
 - `egui_view_virtual_strip_find_view_by_stable_id()`
 - `egui_view_virtual_strip_find_first_visible_item_view()`
 - `egui_view_virtual_strip_get_item_x_by_stable_id()`
 - `egui_view_virtual_strip_get_item_width_by_stable_id()`
-- `egui_view_virtual_strip_scroll_to_item()`
 - `egui_view_virtual_strip_scroll_to_stable_id()`
 - `egui_view_virtual_strip_ensure_item_visible_by_stable_id()`
-- `egui_view_virtual_strip_notify_item_changed_by_stable_id()`
-- `egui_view_virtual_strip_notify_item_resized_by_stable_id()`
 - `egui_view_virtual_strip_visit_visible_items()`
-- `egui_view_virtual_strip_get_slot_count()`
-- `egui_view_virtual_strip_get_slot()`
-- `egui_view_virtual_strip_find_slot_by_stable_id()`
-- `egui_view_virtual_strip_get_slot_entry()`
 
-## 和其它封装的区别
+## 设计提醒
 
-- `virtual_list` 适合纵向很多 row
-- `virtual_page` 适合纵向很多大 section
-- `virtual_strip` 适合横向很多 item
-- `virtual_grid` 适合二维卡片面板
-
-如果你的业务天然就是“一条横向带，卡片尺寸还会变”，直接用 `virtual_strip` 会比在 `virtual_viewport` 上再手写一层更顺手。
+- 窄 item 不要硬塞固定长标题，应该按可用宽度降级文案或隐藏次要信息。
+- 状态表达不一定总要靠 badge；当 accent、pulse、边框已经足够时，badge 可以退化成只在 focus/selected 时出现。
+- 如果不同 scene 的底部信息密度差异很大，就应该拆成不同版式，而不是只换颜色继续共用一套“列表行”布局。
+- 对 `Timeline` 这类场景，可以增加固定 playhead、节拍线或参考点，让用户先读出“轨道”，再读出 item。
 
 ## 相关文件
 

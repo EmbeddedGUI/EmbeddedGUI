@@ -11,7 +11,7 @@ static egui_view_virtual_section_list_t *egui_view_virtual_section_list_from_fla
 }
 
 static const egui_view_virtual_section_list_data_source_t *egui_view_virtual_section_list_get_data_source_bridge(egui_view_virtual_section_list_t *local,
-                                                                                                                  void **data_source_context)
+                                                                                                                 void **data_source_context)
 {
     if (data_source_context != NULL)
     {
@@ -147,7 +147,8 @@ static uint32_t egui_view_virtual_section_list_get_section_stable_id_internal(eg
         return data_source->get_section_stable_id(data_source_context, section_index);
     }
 
-    return egui_view_virtual_section_list_default_stable_id((uint32_t)egui_view_virtual_section_list_get_section_header_flat_index_internal(local, section_index));
+    return egui_view_virtual_section_list_default_stable_id(
+            (uint32_t)egui_view_virtual_section_list_get_section_header_flat_index_internal(local, section_index));
 }
 
 static uint32_t egui_view_virtual_section_list_get_item_stable_id_internal(egui_view_virtual_section_list_t *local, uint32_t section_index, uint32_t item_index)
@@ -160,7 +161,8 @@ static uint32_t egui_view_virtual_section_list_get_item_stable_id_internal(egui_
         return data_source->get_item_stable_id(data_source_context, section_index, item_index);
     }
 
-    return egui_view_virtual_section_list_default_stable_id((uint32_t)egui_view_virtual_section_list_get_item_flat_index_internal(local, section_index, item_index));
+    return egui_view_virtual_section_list_default_stable_id(
+            (uint32_t)egui_view_virtual_section_list_get_item_flat_index_internal(local, section_index, item_index));
 }
 
 static uint8_t egui_view_virtual_section_list_resolve_flat_index_internal(egui_view_virtual_section_list_t *local, uint32_t flat_index,
@@ -246,7 +248,7 @@ static int32_t egui_view_virtual_section_list_find_section_index_by_stable_id_in
 }
 
 static uint8_t egui_view_virtual_section_list_find_item_position_by_stable_id_internal(egui_view_virtual_section_list_t *local, uint32_t stable_id,
-                                                                                        uint32_t *section_index, uint32_t *item_index)
+                                                                                       uint32_t *section_index, uint32_t *item_index)
 {
     void *data_source_context;
     const egui_view_virtual_section_list_data_source_t *data_source = egui_view_virtual_section_list_get_data_source_bridge(local, &data_source_context);
@@ -352,7 +354,7 @@ static int32_t egui_view_virtual_section_list_find_slot_index_by_stable_id_inter
 }
 
 static uint8_t egui_view_virtual_section_list_resolve_entry_by_stable_id_internal(egui_view_virtual_section_list_t *local, uint32_t stable_id,
-                                                                                   egui_view_virtual_section_list_entry_t *entry)
+                                                                                  egui_view_virtual_section_list_entry_t *entry)
 {
     int32_t flat_index;
 
@@ -384,7 +386,8 @@ static uint8_t egui_view_virtual_section_list_resolve_slot_internal(egui_view_vi
     return egui_view_virtual_section_list_resolve_entry_by_stable_id_internal(local, slot->stable_id, entry);
 }
 
-static uint8_t egui_view_virtual_section_list_try_resolve_kind(egui_view_virtual_section_list_t *local, egui_view_t *view, uint32_t stable_id, uint8_t *is_section_header)
+static uint8_t egui_view_virtual_section_list_try_resolve_kind(egui_view_virtual_section_list_t *local, egui_view_t *view, uint32_t stable_id,
+                                                               uint8_t *is_section_header)
 {
     const egui_view_virtual_viewport_slot_t *slot = egui_view_virtual_section_list_find_slot_by_view(local, view);
     int32_t section_index;
@@ -750,7 +753,8 @@ void egui_view_virtual_section_list_init_with_setup(egui_view_t *self, const egu
     egui_view_virtual_section_list_apply_setup(self, setup);
 }
 
-void egui_view_virtual_section_list_set_data_source(egui_view_t *self, const egui_view_virtual_section_list_data_source_t *data_source, void *data_source_context)
+void egui_view_virtual_section_list_set_data_source(egui_view_t *self, const egui_view_virtual_section_list_data_source_t *data_source,
+                                                    void *data_source_context)
 {
     EGUI_LOCAL_INIT(egui_view_virtual_section_list_t);
 
@@ -843,6 +847,16 @@ uint8_t egui_view_virtual_section_list_get_keepalive_limit(egui_view_t *self)
 void egui_view_virtual_section_list_set_state_cache_limits(egui_view_t *self, uint16_t max_entries, uint32_t max_bytes)
 {
     egui_view_virtual_list_set_state_cache_limits(self, max_entries, max_bytes);
+}
+
+uint16_t egui_view_virtual_section_list_get_state_cache_entry_limit(egui_view_t *self)
+{
+    return egui_view_virtual_list_get_state_cache_entry_limit(self);
+}
+
+uint32_t egui_view_virtual_section_list_get_state_cache_byte_limit(egui_view_t *self)
+{
+    return egui_view_virtual_list_get_state_cache_byte_limit(self);
 }
 
 void egui_view_virtual_section_list_clear_entry_state_cache(egui_view_t *self)
@@ -1224,8 +1238,7 @@ uint8_t egui_view_virtual_section_list_get_slot_entry(egui_view_t *self, uint8_t
     return egui_view_virtual_section_list_resolve_slot_internal(local, slot, entry);
 }
 
-uint8_t egui_view_virtual_section_list_visit_visible_entries(egui_view_t *self, egui_view_virtual_section_list_visible_entry_visitor_t visitor,
-                                                             void *context)
+uint8_t egui_view_virtual_section_list_visit_visible_entries(egui_view_t *self, egui_view_virtual_section_list_visible_entry_visitor_t visitor, void *context)
 {
     uint8_t slot_count;
     uint8_t slot_index;
@@ -1271,8 +1284,8 @@ typedef struct egui_view_virtual_section_list_find_visible_entry_context
 } egui_view_virtual_section_list_find_visible_entry_context_t;
 
 static uint8_t egui_view_virtual_section_list_find_visible_entry_visitor(egui_view_t *self, const egui_view_virtual_section_list_slot_t *slot,
-                                                                         const egui_view_virtual_section_list_entry_t *entry,
-                                                                         egui_view_t *entry_view, void *context)
+                                                                         const egui_view_virtual_section_list_entry_t *entry, egui_view_t *entry_view,
+                                                                         void *context)
 {
     egui_view_virtual_section_list_find_visible_entry_context_t *ctx = (egui_view_virtual_section_list_find_visible_entry_context_t *)context;
 
@@ -1294,8 +1307,7 @@ static uint8_t egui_view_virtual_section_list_find_visible_entry_visitor(egui_vi
     return 1;
 }
 
-egui_view_t *egui_view_virtual_section_list_find_first_visible_entry_view(egui_view_t *self,
-                                                                          egui_view_virtual_section_list_visible_entry_matcher_t matcher,
+egui_view_t *egui_view_virtual_section_list_find_first_visible_entry_view(egui_view_t *self, egui_view_virtual_section_list_visible_entry_matcher_t matcher,
                                                                           void *context, egui_view_virtual_section_list_entry_t *entry_out)
 {
     egui_view_virtual_section_list_find_visible_entry_context_t find_ctx = {

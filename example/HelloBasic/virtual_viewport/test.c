@@ -59,10 +59,33 @@ enum
     DEMO_ACTION_COUNT,
 };
 
+enum
+{
+    DEMO_POOL_VIEWTYPE_WIDE = 1,
+    DEMO_POOL_VIEWTYPE_EDGE,
+    DEMO_POOL_VIEWTYPE_CENTER,
+};
+
+enum
+{
+    DEMO_VIEWTYPE_CANVAS_HERO = 1,
+    DEMO_VIEWTYPE_CANVAS_NOTE,
+    DEMO_VIEWTYPE_CANVAS_CHIP,
+    DEMO_VIEWTYPE_CHAT_INBOUND,
+    DEMO_VIEWTYPE_CHAT_OUTBOUND,
+    DEMO_VIEWTYPE_CHAT_SYSTEM,
+    DEMO_VIEWTYPE_BOARD_QUEUE,
+    DEMO_VIEWTYPE_BOARD_RUN,
+    DEMO_VIEWTYPE_BOARD_BLOCK,
+    DEMO_VIEWTYPE_BOARD_DONE,
+};
+
 typedef struct demo_virtual_item demo_virtual_item_t;
 typedef struct demo_virtual_row demo_virtual_row_t;
 typedef struct demo_virtual_row_state demo_virtual_row_state_t;
 typedef struct demo_virtual_viewport_context demo_virtual_viewport_context_t;
+
+static uint16_t demo_resolve_view_type(uint8_t scene, const demo_virtual_item_t *item);
 
 struct demo_virtual_item
 {
@@ -88,6 +111,7 @@ struct demo_virtual_row
     egui_interpolator_linear_t pulse_interp;
     uint32_t bound_index;
     uint32_t stable_id;
+    uint16_t view_type;
     uint8_t pulse_running;
 };
 
@@ -125,7 +149,7 @@ struct demo_virtual_viewport_context
     demo_virtual_row_t rows[EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS];
 };
 
-static const char *demo_scene_names[DEMO_SCENE_COUNT] = {"Feed", "Chat", "Ops"};
+static const char *demo_scene_names[DEMO_SCENE_COUNT] = {"Canvas", "Chat", "Board"};
 static const char *demo_action_names[DEMO_ACTION_COUNT] = {"Add", "Del", "Move", "Patch", "Jump"};
 
 static egui_view_t background_view;
@@ -136,7 +160,7 @@ static egui_view_label_t header_detail;
 static egui_view_label_t header_hint;
 static egui_view_button_t scene_buttons[DEMO_SCENE_COUNT];
 static egui_view_button_t action_buttons[DEMO_ACTION_COUNT];
-static egui_view_virtual_list_t viewport_1;
+static egui_view_virtual_viewport_t viewport_1;
 static demo_virtual_viewport_context_t viewport_context;
 
 #if EGUI_CONFIG_RECORDING_TEST
@@ -145,16 +169,16 @@ static uint8_t runtime_fail_reported;
 
 EGUI_VIEW_CARD_PARAMS_INIT(header_card_params, DEMO_MARGIN_X, DEMO_TOP_Y, DEMO_HEADER_W, DEMO_HEADER_H, 14);
 EGUI_VIEW_CARD_PARAMS_INIT(toolbar_card_params, DEMO_MARGIN_X, DEMO_TOOLBAR_Y, DEMO_HEADER_W, DEMO_TOOLBAR_H, 12);
-static const egui_view_virtual_list_params_t viewport_1_params = {
+static const egui_view_virtual_viewport_params_t viewport_1_params = {
         .region = {{DEMO_MARGIN_X, DEMO_LIST_Y}, {DEMO_LIST_W, DEMO_LIST_H}},
+        .orientation = EGUI_VIEW_VIRTUAL_VIEWPORT_ORIENTATION_VERTICAL,
         .overscan_before = 1,
         .overscan_after = 1,
         .max_keepalive_slots = 4,
-        .estimated_item_height = 72,
+        .estimated_item_extent = 72,
 };
 
-EGUI_BACKGROUND_GRADIENT_PARAM_INIT(screen_bg_param, EGUI_BACKGROUND_GRADIENT_DIR_VERTICAL, EGUI_COLOR_HEX(0xEEF3F7), EGUI_COLOR_HEX(0xD8E4EF),
-                                    EGUI_ALPHA_100);
+EGUI_BACKGROUND_GRADIENT_PARAM_INIT(screen_bg_param, EGUI_BACKGROUND_GRADIENT_DIR_VERTICAL, EGUI_COLOR_HEX(0xEEF3F7), EGUI_COLOR_HEX(0xD8E4EF), EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(screen_bg_params, &screen_bg_param, NULL, NULL);
 EGUI_BACKGROUND_GRADIENT_STATIC_CONST_INIT(screen_bg, &screen_bg_params);
 
@@ -341,7 +365,7 @@ static demo_virtual_item_t demo_make_inserted_item(uint8_t scene)
         item.progress = 12U;
         break;
     default:
-        item.variant = 0U;
+        item.variant = 1U;
         item.state = 1U;
         item.progress = 9U;
         break;
@@ -355,7 +379,8 @@ static int32_t demo_get_item_height_by_stable_id(uint32_t stable_id)
     int32_t index = demo_find_index_by_stable_id(stable_id);
     const demo_virtual_item_t *item;
     int32_t base_height;
-    int32_t selected_extra = demo_is_selected_id(stable_id) ? 18 : 0;
+    uint16_t view_type;
+    int32_t selected_extra = demo_is_selected_id(stable_id) ? 10 : 0;
 
     if (index < 0)
     {
@@ -363,60 +388,61 @@ static int32_t demo_get_item_height_by_stable_id(uint32_t stable_id)
     }
 
     item = &viewport_context.items[index];
-    switch (viewport_context.scene)
+    view_type = demo_resolve_view_type(viewport_context.scene, item);
+    switch (view_type)
     {
-    case DEMO_SCENE_CHAT:
-        if (item->variant == 2U)
+    case DEMO_VIEWTYPE_CANVAS_NOTE:
+        base_height = 72;
+        if (item->state == 1U)
         {
-            base_height = 60;
+            base_height += 4;
         }
-        else if (item->variant == 1U)
+        break;
+    case DEMO_VIEWTYPE_CANVAS_CHIP:
+        base_height = 58;
+        if (item->state == 2U)
         {
-            base_height = 74;
+            base_height += 8;
         }
-        else
+        break;
+    case DEMO_VIEWTYPE_CHAT_INBOUND:
+        base_height = 62;
+        if (item->state == 1U)
         {
-            base_height = 62;
+            base_height += 4;
         }
         if (item->state == 2U)
         {
             base_height += 8;
         }
         break;
-    case DEMO_SCENE_TASK:
-        if (item->variant == 2U)
+    case DEMO_VIEWTYPE_CHAT_OUTBOUND:
+        base_height = 68;
+        if (item->state == 2U)
         {
-            base_height = 94;
+            base_height += 8;
         }
-        else if (item->variant == 1U)
-        {
-            base_height = 82;
-        }
-        else
-        {
-            base_height = 66;
-        }
+        break;
+    case DEMO_VIEWTYPE_CHAT_SYSTEM:
+        base_height = 54;
+        break;
+    case DEMO_VIEWTYPE_BOARD_QUEUE:
+        base_height = 72;
+        break;
+    case DEMO_VIEWTYPE_BOARD_RUN:
+        base_height = 90;
+        break;
+    case DEMO_VIEWTYPE_BOARD_BLOCK:
+        base_height = 84;
+        break;
+    case DEMO_VIEWTYPE_BOARD_DONE:
+        base_height = 60;
+        break;
+    default:
+        base_height = 88;
         if (item->state == 2U)
         {
             base_height += 6;
-        }
-        break;
-    default:
-        if (item->variant == 0U)
-        {
-            base_height = 92;
-        }
-        else if (item->variant == 1U)
-        {
-            base_height = 74;
-        }
-        else
-        {
-            base_height = 58;
-        }
-        if (item->state == 2U)
-        {
-            base_height += 4;
         }
         break;
     }
@@ -477,6 +503,70 @@ static demo_virtual_row_t *demo_find_row_by_root_view(egui_view_t *view)
     }
 
     return NULL;
+}
+
+static egui_dim_t demo_clamp_dim(int32_t value, int32_t min_value, int32_t max_value)
+{
+    if (value < min_value)
+    {
+        value = min_value;
+    }
+    if (value > max_value)
+    {
+        value = max_value;
+    }
+
+    return (egui_dim_t)value;
+}
+
+static egui_dim_t demo_center_x(egui_dim_t outer_width, egui_dim_t inner_width)
+{
+    if (outer_width <= inner_width)
+    {
+        return 0;
+    }
+
+    return (egui_dim_t)((outer_width - inner_width) / 2);
+}
+
+static uint16_t demo_resolve_view_type(uint8_t scene, const demo_virtual_item_t *item)
+{
+    if (item == NULL)
+    {
+        return DEMO_VIEWTYPE_CANVAS_HERO;
+    }
+
+    switch (scene)
+    {
+    case DEMO_SCENE_CHAT:
+        if (item->variant == 2U)
+        {
+            return DEMO_VIEWTYPE_CHAT_SYSTEM;
+        }
+        return item->variant == 1U ? DEMO_VIEWTYPE_CHAT_OUTBOUND : DEMO_VIEWTYPE_CHAT_INBOUND;
+    case DEMO_SCENE_TASK:
+        switch (item->state)
+        {
+        case 1U:
+            return DEMO_VIEWTYPE_BOARD_RUN;
+        case 2U:
+            return DEMO_VIEWTYPE_BOARD_BLOCK;
+        case 3U:
+            return DEMO_VIEWTYPE_BOARD_DONE;
+        default:
+            return DEMO_VIEWTYPE_BOARD_QUEUE;
+        }
+    default:
+        switch (item->variant)
+        {
+        case 1U:
+            return DEMO_VIEWTYPE_CANVAS_NOTE;
+        case 2U:
+            return DEMO_VIEWTYPE_CANVAS_CHIP;
+        default:
+            return DEMO_VIEWTYPE_CANVAS_HERO;
+        }
+    }
 }
 
 static void demo_set_row_pulse(demo_virtual_row_t *row, const demo_virtual_item_t *item, uint8_t visible, uint8_t selected)
@@ -607,13 +697,13 @@ static void demo_update_status_labels(void)
 {
     int32_t selected_index = demo_find_index_by_stable_id(viewport_context.selected_id);
 
-    snprintf(viewport_context.status_detail, sizeof(viewport_context.status_detail), "%s | rows=%lu | slots=%u/%u | mut=%lu",
+    snprintf(viewport_context.status_detail, sizeof(viewport_context.status_detail), "%s | n=%lu | slot=%u/%u | mut=%lu",
              demo_scene_names[viewport_context.scene], (unsigned long)viewport_context.item_count, (unsigned)viewport_context.created_count,
-             (unsigned)EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS, (unsigned long)viewport_context.mutation_count);
+              (unsigned)EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS, (unsigned long)viewport_context.mutation_count);
 
     if (viewport_context.last_action_text[0] == '\0')
     {
-        snprintf(viewport_context.status_hint, sizeof(viewport_context.status_hint), "Tap a row or toolbar action.");
+        snprintf(viewport_context.status_hint, sizeof(viewport_context.status_hint), "Tap a card or toolbar action.");
     }
     else if (selected_index >= 0)
     {
@@ -624,7 +714,7 @@ static void demo_update_status_labels(void)
         snprintf(viewport_context.status_hint, sizeof(viewport_context.status_hint), "%s", viewport_context.last_action_text);
     }
 
-    snprintf(viewport_context.header_title_text, sizeof(viewport_context.header_title_text), "Virtual Viewport | %s", demo_scene_names[viewport_context.scene]);
+    snprintf(viewport_context.header_title_text, sizeof(viewport_context.header_title_text), "Raw Viewport | %s", demo_scene_names[viewport_context.scene]);
     egui_view_label_set_text(EGUI_VIEW_OF(&header_title), viewport_context.header_title_text);
     egui_view_label_set_text(EGUI_VIEW_OF(&header_detail), viewport_context.status_detail);
     egui_view_label_set_text(EGUI_VIEW_OF(&header_hint), viewport_context.status_hint);
@@ -668,8 +758,8 @@ static void demo_switch_scene(uint8_t scene)
     viewport_context.scene_switch_count++;
     viewport_context.action_count++;
     snprintf(viewport_context.last_action_text, sizeof(viewport_context.last_action_text), "scene -> %s", demo_scene_names[scene]);
-    egui_view_virtual_list_set_scroll_y(EGUI_VIEW_OF(&viewport_1), 0);
-    egui_view_virtual_list_notify_data_changed(EGUI_VIEW_OF(&viewport_1));
+    egui_view_virtual_viewport_set_logical_offset(EGUI_VIEW_OF(&viewport_1), 0);
+    egui_view_virtual_viewport_notify_data_changed(EGUI_VIEW_OF(&viewport_1));
     demo_update_status_labels();
     egui_view_invalidate(EGUI_VIEW_OF(&background_view));
     egui_view_invalidate(EGUI_VIEW_OF(&header_card));
@@ -690,8 +780,7 @@ static void demo_insert_item_at(uint32_t index, const demo_virtual_item_t *item)
 
     if (index < viewport_context.item_count)
     {
-        memmove(&viewport_context.items[index + 1], &viewport_context.items[index],
-                (viewport_context.item_count - index) * sizeof(viewport_context.items[0]));
+        memmove(&viewport_context.items[index + 1], &viewport_context.items[index], (viewport_context.item_count - index) * sizeof(viewport_context.items[0]));
     }
     viewport_context.items[index] = *item;
     viewport_context.item_count++;
@@ -724,13 +813,11 @@ static void demo_move_item(uint32_t from_index, uint32_t to_index)
     moved = viewport_context.items[from_index];
     if (from_index < to_index)
     {
-        memmove(&viewport_context.items[from_index], &viewport_context.items[from_index + 1],
-                (to_index - from_index) * sizeof(viewport_context.items[0]));
+        memmove(&viewport_context.items[from_index], &viewport_context.items[from_index + 1], (to_index - from_index) * sizeof(viewport_context.items[0]));
     }
     else
     {
-        memmove(&viewport_context.items[to_index + 1], &viewport_context.items[to_index],
-                (from_index - to_index) * sizeof(viewport_context.items[0]));
+        memmove(&viewport_context.items[to_index + 1], &viewport_context.items[to_index], (from_index - to_index) * sizeof(viewport_context.items[0]));
     }
     viewport_context.items[to_index] = moved;
 }
@@ -805,8 +892,8 @@ static void demo_action_add(void)
     viewport_context.action_count++;
     viewport_context.mutation_count++;
     snprintf(viewport_context.last_action_text, sizeof(viewport_context.last_action_text), "insert @%04lu", (unsigned long)insert_index);
-    egui_view_virtual_list_notify_item_inserted(EGUI_VIEW_OF(&viewport_1), insert_index, 1);
-    egui_view_virtual_list_scroll_to_stable_id(EGUI_VIEW_OF(&viewport_1), item.stable_id, 0);
+    egui_view_virtual_viewport_notify_item_inserted(EGUI_VIEW_OF(&viewport_1), insert_index, 1);
+    egui_view_virtual_viewport_scroll_to_stable_id(EGUI_VIEW_OF(&viewport_1), item.stable_id, 0);
     demo_update_status_labels();
 }
 
@@ -848,7 +935,7 @@ static void demo_action_del(void)
     viewport_context.action_count++;
     viewport_context.mutation_count++;
     snprintf(viewport_context.last_action_text, sizeof(viewport_context.last_action_text), "delete @%04lu", (unsigned long)remove_index);
-    egui_view_virtual_list_notify_item_removed(EGUI_VIEW_OF(&viewport_1), remove_index, 1);
+    egui_view_virtual_viewport_notify_item_removed(EGUI_VIEW_OF(&viewport_1), remove_index, 1);
     demo_update_status_labels();
 }
 
@@ -888,8 +975,8 @@ static void demo_action_move(void)
     viewport_context.mutation_count++;
     snprintf(viewport_context.last_action_text, sizeof(viewport_context.last_action_text), "move %04lu -> %04lu", (unsigned long)from_index,
              (unsigned long)to_index);
-    egui_view_virtual_list_notify_item_moved(EGUI_VIEW_OF(&viewport_1), from_index, to_index);
-    egui_view_virtual_list_scroll_to_stable_id(EGUI_VIEW_OF(&viewport_1), moved_stable_id, 0);
+    egui_view_virtual_viewport_notify_item_moved(EGUI_VIEW_OF(&viewport_1), from_index, to_index);
+    egui_view_virtual_viewport_scroll_to_stable_id(EGUI_VIEW_OF(&viewport_1), moved_stable_id, 0);
     demo_update_status_labels();
 }
 
@@ -908,11 +995,12 @@ static void demo_action_patch(void)
     viewport_context.action_count++;
     viewport_context.mutation_count++;
     snprintf(viewport_context.last_action_text, sizeof(viewport_context.last_action_text), "patch @%04lu", (unsigned long)target_index);
-    egui_view_virtual_list_notify_item_changed_by_stable_id(EGUI_VIEW_OF(&viewport_1), item->stable_id);
-    egui_view_virtual_list_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&viewport_1), item->stable_id);
+    egui_view_virtual_viewport_notify_item_changed_by_stable_id(EGUI_VIEW_OF(&viewport_1), item->stable_id);
+    egui_view_virtual_viewport_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&viewport_1), item->stable_id);
     if (target_index < viewport_context.item_count)
     {
-        egui_view_virtual_list_ensure_item_visible_by_stable_id(EGUI_VIEW_OF(&viewport_1), viewport_context.items[target_index].stable_id, DEMO_ROW_GAP / 2);
+        egui_view_virtual_viewport_ensure_item_visible_by_stable_id(EGUI_VIEW_OF(&viewport_1), viewport_context.items[target_index].stable_id,
+                                                                    DEMO_ROW_GAP / 2);
     }
     demo_update_status_labels();
 }
@@ -932,7 +1020,7 @@ static void demo_action_jump(void)
     viewport_context.jump_cursor++;
     viewport_context.action_count++;
     snprintf(viewport_context.last_action_text, sizeof(viewport_context.last_action_text), "jump -> %04lu", (unsigned long)target_index);
-    egui_view_virtual_list_scroll_to_stable_id(EGUI_VIEW_OF(&viewport_1), viewport_context.items[target_index].stable_id, 0);
+    egui_view_virtual_viewport_scroll_to_stable_id(EGUI_VIEW_OF(&viewport_1), viewport_context.items[target_index].stable_id, 0);
     demo_update_status_labels();
 }
 
@@ -964,14 +1052,29 @@ static void demo_bind_feed_row(demo_virtual_row_t *row, int pool_index, uint32_t
 {
     uint8_t live = item->state == 1U;
     uint8_t warning = item->state == 2U;
+    uint16_t view_type = demo_resolve_view_type(viewport_context.scene, item);
     egui_dim_t row_width = demo_get_list_width();
-    egui_dim_t surface_x = DEMO_ROW_SIDE_INSET;
     egui_dim_t surface_y = DEMO_ROW_GAP / 2;
-    egui_dim_t surface_w = row_width - DEMO_ROW_SIDE_INSET * 2;
-    egui_dim_t surface_h = (egui_dim_t)(demo_get_item_height_by_stable_id(item->stable_id) - DEMO_ROW_GAP);
-    egui_dim_t badge_w = selected ? 56 : 46;
-    egui_dim_t badge_x;
-    egui_dim_t title_w;
+    egui_dim_t surface_x = 8;
+    egui_dim_t surface_w = demo_clamp_dim(row_width - 16, 126, row_width - 6);
+    egui_dim_t surface_h = demo_clamp_dim(demo_get_item_height_by_stable_id(item->stable_id) - DEMO_ROW_GAP, 48, 128);
+    egui_dim_t badge_w = 48;
+    egui_dim_t badge_x = 12;
+    egui_dim_t title_x = 12;
+    egui_dim_t title_y = 10;
+    egui_dim_t title_w = surface_w - 24;
+    egui_dim_t subtitle_x = 12;
+    egui_dim_t subtitle_y = 29;
+    egui_dim_t subtitle_w = surface_w - 24;
+    egui_dim_t meta_x = 12;
+    egui_dim_t meta_y = surface_h - 24;
+    egui_dim_t meta_w = surface_w - 24;
+    egui_dim_t progress_x = 12;
+    egui_dim_t progress_y = surface_h - 10;
+    egui_dim_t progress_w = surface_w - 24;
+    egui_dim_t pulse_x = surface_w - 18;
+    egui_dim_t pulse_y = 12;
+    egui_dim_t corner_radius = 16;
     egui_color_t surface_color;
     egui_color_t border_color;
     egui_color_t title_color;
@@ -979,92 +1082,195 @@ static void demo_bind_feed_row(demo_virtual_row_t *row, int pool_index, uint32_t
     egui_color_t meta_color;
     egui_background_t *badge_bg;
     egui_color_t badge_text_color;
-    uint8_t show_subtitle;
-    uint8_t show_progress;
+    uint8_t show_subtitle = 1;
+    uint8_t show_progress = 1;
+    uint8_t title_align = EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER;
+    uint8_t subtitle_align = EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER;
+    uint8_t meta_align = EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER;
+    const egui_font_t *title_font = DEMO_FONT_TITLE;
 
-    if (surface_h < 42)
+    switch (view_type)
     {
-        surface_h = 42;
+    case DEMO_VIEWTYPE_CANVAS_NOTE:
+        surface_w = demo_clamp_dim(row_width - (selected ? 24 : 52), 152, row_width - 8);
+        surface_x = ((index + item->revision) & 1U) ? 8 : (egui_dim_t)(row_width - surface_w - 8);
+        badge_w = selected ? 52 : 46;
+        badge_x = surface_w - badge_w - 10;
+        pulse_x = 10;
+        pulse_y = 13;
+        corner_radius = 20;
+        title_x = 24;
+        title_w = surface_w - 36;
+        title_y = 11;
+        subtitle_x = 24;
+        subtitle_w = surface_w - 36;
+        subtitle_y = 30;
+        meta_x = 24;
+        meta_w = surface_w - 36;
+        meta_y = show_progress ? (surface_h - 24) : (surface_h - 15);
+        progress_x = 24;
+        progress_w = surface_w - 36;
+        progress_y = surface_h - 10;
+        show_progress = selected || live;
+        snprintf(viewport_context.title_texts[pool_index], sizeof(viewport_context.title_texts[pool_index]), "%s %04lu",
+                 selected ? "Pinned note" : "Offset note", (unsigned long)index);
+        snprintf(viewport_context.subtitle_texts[pool_index], sizeof(viewport_context.subtitle_texts[pool_index]), "%s",
+                 selected ? "Focused note keeps state while recycled."
+                          : (live ? "Sticky note keeps live pulse." : "Offset note proves free cross-axis."));
+        snprintf(viewport_context.badge_texts[pool_index], sizeof(viewport_context.badge_texts[pool_index]), "%s",
+                 selected ? "PIN" : (live ? "LIVE" : "NOTE"));
+        break;
+    case DEMO_VIEWTYPE_CANVAS_CHIP:
+        surface_w = demo_clamp_dim(row_width - (selected ? 34 : 78), 126, row_width - 12);
+        surface_x = demo_center_x(row_width, surface_w);
+        if (warning && !selected)
+        {
+            surface_x = demo_clamp_dim(surface_x + 10, 4, row_width - surface_w);
+        }
+        badge_w = selected ? 60 : 52;
+        badge_x = surface_w - badge_w - 10;
+        pulse_x = 10;
+        pulse_y = 13;
+        corner_radius = 22;
+        title_y = 12;
+        subtitle_y = 29;
+        title_align = EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER;
+        subtitle_align = EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER;
+        meta_align = EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER;
+        title_font = DEMO_FONT_BODY;
+        show_subtitle = 0;
+        show_progress = selected || warning;
+        title_w = surface_w - badge_w - 26;
+        subtitle_w = surface_w - 24;
+        meta_x = 12;
+        meta_w = surface_w - 24;
+        snprintf(viewport_context.title_texts[pool_index], sizeof(viewport_context.title_texts[pool_index]), "%s %04lu",
+                 selected ? "Focus" : "Chip", (unsigned long)index);
+        snprintf(viewport_context.subtitle_texts[pool_index], sizeof(viewport_context.subtitle_texts[pool_index]), "%s",
+                 warning ? "Alert chip expands when patched." : "Compact chip is created on demand.");
+        snprintf(viewport_context.badge_texts[pool_index], sizeof(viewport_context.badge_texts[pool_index]), "%s",
+                 selected ? "FOCUS" : (warning ? "WARN" : "CHIP"));
+        break;
+    default:
+        surface_w = demo_clamp_dim(row_width - 14, 176, row_width - 6);
+        surface_x = demo_center_x(row_width, surface_w);
+        badge_w = selected ? 52 : 48;
+        badge_x = surface_w - badge_w - 12;
+        pulse_x = badge_x - 14;
+        pulse_y = 12;
+        corner_radius = 16;
+        title_y = 10;
+        subtitle_y = 30;
+        meta_y = surface_h - 24;
+        progress_y = surface_h - 10;
+        snprintf(viewport_context.title_texts[pool_index], sizeof(viewport_context.title_texts[pool_index]), "%s %04lu",
+                 selected ? "Pinned hero" : "Hero card", (unsigned long)index);
+        snprintf(viewport_context.subtitle_texts[pool_index], sizeof(viewport_context.subtitle_texts[pool_index]), "%s",
+                 selected ? "Keeps pulse, resize and cached state."
+                          : (warning ? "Alert card patches height in place."
+                                     : (live ? "Live card stays warm offscreen." : "Free-stack canvas card, not a row.")));
+        snprintf(viewport_context.badge_texts[pool_index], sizeof(viewport_context.badge_texts[pool_index]), "%s",
+                 selected ? "PIN" : (warning ? "WARN" : (live ? "LIVE" : "HERO")));
+        break;
     }
 
-    snprintf(viewport_context.title_texts[pool_index], sizeof(viewport_context.title_texts[pool_index]), "Node #%04lu", (unsigned long)index);
-    show_subtitle = item->variant != 2U || selected;
-    show_progress = item->variant == 0U || selected || warning;
+    if (!show_progress)
+    {
+        meta_y = surface_h - 15;
+    }
 
-    snprintf(viewport_context.subtitle_texts[pool_index], sizeof(viewport_context.subtitle_texts[pool_index]), "%s",
-             selected ? "Selected row keeps pulse and metrics."
-                      : (item->variant == 0U ? "Large feed row with wide spacing."
-                                             : (item->variant == 1U ? "Detail row; overscan reuses slots."
-                                                                    : "Compact row; tap to expand.")));
-    snprintf(viewport_context.badge_texts[pool_index], sizeof(viewport_context.badge_texts[pool_index]), "%s",
-             selected ? "SELECT" : (live ? "LIVE" : (warning ? "WARN" : (item->variant == 0U ? "HERO" : (item->variant == 1U ? "DETAIL" : "COMPACT")))));
-    snprintf(viewport_context.meta_texts[pool_index], sizeof(viewport_context.meta_texts[pool_index]), "#%05lu  %u%%  h=%ld  r%u",
-             (unsigned long)item->stable_id, (unsigned)item->progress, (long)demo_get_item_height_by_stable_id(item->stable_id), (unsigned)item->revision);
+    snprintf(viewport_context.meta_texts[pool_index], sizeof(viewport_context.meta_texts[pool_index]), "id%05lu | %u%% | r%u", (unsigned long)item->stable_id,
+             (unsigned)item->progress, (unsigned)item->revision);
 
     egui_view_label_set_text(EGUI_VIEW_OF(&row->title), viewport_context.title_texts[pool_index]);
     egui_view_label_set_text(EGUI_VIEW_OF(&row->subtitle), viewport_context.subtitle_texts[pool_index]);
     egui_view_label_set_text(EGUI_VIEW_OF(&row->meta), viewport_context.meta_texts[pool_index]);
     egui_view_label_set_text(EGUI_VIEW_OF(&row->badge), viewport_context.badge_texts[pool_index]);
-    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->title), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
-    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->subtitle), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
-    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->meta), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
+    egui_view_label_set_font(EGUI_VIEW_OF(&row->title), title_font);
+    egui_view_label_set_font(EGUI_VIEW_OF(&row->subtitle), DEMO_FONT_BODY);
+    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->title), title_align);
+    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->subtitle), subtitle_align);
+    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->meta), meta_align);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&row->badge), EGUI_ALIGN_CENTER);
 
     if (selected)
     {
-        surface_color = EGUI_COLOR_HEX(0x2F5E91);
+        surface_color = EGUI_COLOR_HEX(0x274F78);
         border_color = EGUI_COLOR_WHITE;
         title_color = EGUI_COLOR_WHITE;
         subtitle_color = EGUI_COLOR_WHITE;
         meta_color = EGUI_COLOR_WHITE;
         badge_bg = EGUI_BG_OF(&badge_selected_bg);
-        badge_text_color = EGUI_COLOR_HEX(0x2F5E91);
+        badge_text_color = EGUI_COLOR_HEX(0x274F78);
         row->progress.progress_color = EGUI_COLOR_WHITE;
-        row->progress.bk_color = EGUI_COLOR_HEX(0x7698BF);
+        row->progress.bk_color = EGUI_COLOR_HEX(0x7395BC);
+    }
+    else if (view_type == DEMO_VIEWTYPE_CANVAS_NOTE)
+    {
+        surface_color = live ? EGUI_COLOR_HEX(0xF4FBF7) : EGUI_COLOR_HEX(0xFFF8EF);
+        border_color = live ? EGUI_COLOR_HEX(0x66AB86) : EGUI_COLOR_HEX(0xDFC592);
+        title_color = EGUI_COLOR_HEX(0x233443);
+        subtitle_color = live ? EGUI_COLOR_HEX(0x4D735F) : EGUI_COLOR_HEX(0x80684B);
+        meta_color = live ? EGUI_COLOR_HEX(0x3F8860) : EGUI_COLOR_HEX(0x94724D);
+        badge_bg = live ? EGUI_BG_OF(&badge_success_bg) : EGUI_BG_OF(&badge_muted_bg);
+        badge_text_color = EGUI_COLOR_WHITE;
+        row->progress.progress_color = live ? EGUI_COLOR_HEX(0x379D70) : EGUI_COLOR_HEX(0xC89647);
+        row->progress.bk_color = live ? EGUI_COLOR_HEX(0xDDEFE5) : EGUI_COLOR_HEX(0xF3E5D0);
+    }
+    else if (view_type == DEMO_VIEWTYPE_CANVAS_CHIP)
+    {
+        surface_color = warning ? EGUI_COLOR_HEX(0xFFF5E8) : EGUI_COLOR_HEX(0xEEF4FF);
+        border_color = warning ? EGUI_COLOR_HEX(0xD89447) : EGUI_COLOR_HEX(0xB7C9E1);
+        title_color = EGUI_COLOR_HEX(0x31465B);
+        subtitle_color = warning ? EGUI_COLOR_HEX(0x8F6630) : EGUI_COLOR_HEX(0x5F7487);
+        meta_color = warning ? EGUI_COLOR_HEX(0x946732) : EGUI_COLOR_HEX(0x5D7390);
+        badge_bg = warning ? EGUI_BG_OF(&badge_warning_bg) : EGUI_BG_OF(&badge_info_bg);
+        badge_text_color = warning ? EGUI_COLOR_BLACK : EGUI_COLOR_WHITE;
+        row->progress.progress_color = warning ? EGUI_COLOR_HEX(0xD28C3B) : EGUI_COLOR_HEX(0x557DB4);
+        row->progress.bk_color = warning ? EGUI_COLOR_HEX(0xF3DFC6) : EGUI_COLOR_HEX(0xDDE8F3);
     }
     else
     {
-        surface_color = (item->variant == 0U) ? EGUI_COLOR_HEX(0xF1F6FB) : ((item->variant == 1U) ? EGUI_COLOR_WHITE : EGUI_COLOR_HEX(0xEDF1F5));
-        border_color = live ? EGUI_COLOR_HEX(0x2E9A6F) : (warning ? EGUI_COLOR_HEX(0xC9933B) : EGUI_COLOR_HEX(0xD5DEE8));
-        title_color = EGUI_COLOR_HEX(0x233443);
-        subtitle_color = EGUI_COLOR_HEX(0x586B7B);
-        meta_color = live ? EGUI_COLOR_HEX(0x267C5A) : (warning ? EGUI_COLOR_HEX(0x8E6726) : EGUI_COLOR_HEX(0x6A7B8B));
-        badge_bg = live ? EGUI_BG_OF(&badge_success_bg) : (warning ? EGUI_BG_OF(&badge_warning_bg) : EGUI_BG_OF(&badge_info_bg));
-        badge_text_color = live ? EGUI_COLOR_WHITE : (warning ? EGUI_COLOR_BLACK : EGUI_COLOR_WHITE);
-        row->progress.progress_color = live ? EGUI_COLOR_HEX(0x2E9A6F) : EGUI_COLOR_HEX(0x4B79B2);
-        row->progress.bk_color = EGUI_COLOR_HEX(0xDCE6F0);
+        surface_color = warning ? EGUI_COLOR_HEX(0xFFF6EA) : (live ? EGUI_COLOR_HEX(0xF1F9F4) : EGUI_COLOR_HEX(0xF3F7FB));
+        border_color = warning ? EGUI_COLOR_HEX(0xDB9C45) : (live ? EGUI_COLOR_HEX(0x51A679) : EGUI_COLOR_HEX(0xC7D7E7));
+        title_color = EGUI_COLOR_HEX(0x243648);
+        subtitle_color = EGUI_COLOR_HEX(0x566A79);
+        meta_color = warning ? EGUI_COLOR_HEX(0x946A35) : (live ? EGUI_COLOR_HEX(0x327F5B) : EGUI_COLOR_HEX(0x677A8C));
+        badge_bg = warning ? EGUI_BG_OF(&badge_warning_bg) : (live ? EGUI_BG_OF(&badge_success_bg) : EGUI_BG_OF(&badge_info_bg));
+        badge_text_color = warning ? EGUI_COLOR_BLACK : EGUI_COLOR_WHITE;
+        row->progress.progress_color = warning ? EGUI_COLOR_HEX(0xD38F3D) : (live ? EGUI_COLOR_HEX(0x389E71) : EGUI_COLOR_HEX(0x4D7AAF));
+        row->progress.bk_color = warning ? EGUI_COLOR_HEX(0xF4E2C8) : (live ? EGUI_COLOR_HEX(0xDBEDE3) : EGUI_COLOR_HEX(0xDDE7F1));
     }
     row->progress.control_color = row->progress.progress_color;
 
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&row->surface), surface_color, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&row->surface), selected ? 2 : 1, border_color);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&row->surface), corner_radius);
     egui_view_set_background(EGUI_VIEW_OF(&row->badge), badge_bg);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&row->title), title_color, EGUI_ALPHA_100);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&row->subtitle), subtitle_color, EGUI_ALPHA_100);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&row->meta), meta_color, EGUI_ALPHA_100);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&row->badge), badge_text_color, EGUI_ALPHA_100);
 
-    badge_x = surface_w - badge_w - 12;
-    title_w = badge_x - 16;
-    if (title_w < 70)
-    {
-        title_w = 70;
-    }
+    title_w = demo_clamp_dim(title_w, 60, surface_w - 12);
+    subtitle_w = demo_clamp_dim(subtitle_w, 60, surface_w - 12);
+    meta_w = demo_clamp_dim(meta_w, 60, surface_w - 12);
+    progress_w = demo_clamp_dim(progress_w, 48, surface_w - 8);
 
     egui_view_set_position(EGUI_VIEW_OF(&row->surface), surface_x, surface_y);
     egui_view_set_size(EGUI_VIEW_OF(&row->surface), surface_w, surface_h);
     egui_view_set_position(EGUI_VIEW_OF(&row->badge), badge_x, 8);
     egui_view_set_size(EGUI_VIEW_OF(&row->badge), badge_w, DEMO_BADGE_H);
-    egui_view_set_position(EGUI_VIEW_OF(&row->pulse), badge_x - 16, 13);
+    egui_view_set_position(EGUI_VIEW_OF(&row->pulse), pulse_x, pulse_y);
     egui_view_set_size(EGUI_VIEW_OF(&row->pulse), 9, 9);
-    egui_view_set_position(EGUI_VIEW_OF(&row->title), 12, 8);
+    egui_view_set_position(EGUI_VIEW_OF(&row->title), title_x, title_y);
     egui_view_set_size(EGUI_VIEW_OF(&row->title), title_w, DEMO_TITLE_H);
-    egui_view_set_position(EGUI_VIEW_OF(&row->subtitle), 12, 25);
-    egui_view_set_size(EGUI_VIEW_OF(&row->subtitle), surface_w - 24, DEMO_TEXT_H);
-    egui_view_set_position(EGUI_VIEW_OF(&row->meta), 12, show_progress ? (surface_h - 27) : (surface_h - 18));
-    egui_view_set_size(EGUI_VIEW_OF(&row->meta), surface_w - 24, DEMO_TEXT_H);
-    egui_view_set_position(EGUI_VIEW_OF(&row->progress), 12, surface_h - 10);
-    egui_view_set_size(EGUI_VIEW_OF(&row->progress), surface_w - 24, DEMO_PROGRESS_H);
+    egui_view_set_position(EGUI_VIEW_OF(&row->subtitle), subtitle_x, subtitle_y);
+    egui_view_set_size(EGUI_VIEW_OF(&row->subtitle), subtitle_w, DEMO_TEXT_H);
+    egui_view_set_position(EGUI_VIEW_OF(&row->meta), meta_x, meta_y);
+    egui_view_set_size(EGUI_VIEW_OF(&row->meta), meta_w, DEMO_TEXT_H);
+    egui_view_set_position(EGUI_VIEW_OF(&row->progress), progress_x, progress_y);
+    egui_view_set_size(EGUI_VIEW_OF(&row->progress), progress_w, DEMO_PROGRESS_H);
 
     egui_view_set_gone(EGUI_VIEW_OF(&row->subtitle), show_subtitle ? 0 : 1);
     egui_view_set_gone(EGUI_VIEW_OF(&row->progress), show_progress ? 0 : 1);
@@ -1074,83 +1280,82 @@ static void demo_bind_feed_row(demo_virtual_row_t *row, int pool_index, uint32_t
 
 static void demo_bind_chat_row(demo_virtual_row_t *row, int pool_index, uint32_t index, const demo_virtual_item_t *item, uint8_t selected)
 {
-    uint8_t outgoing = item->variant == 1U;
-    uint8_t system_msg = item->variant == 2U;
+    uint16_t view_type = demo_resolve_view_type(viewport_context.scene, item);
+    uint8_t outgoing = view_type == DEMO_VIEWTYPE_CHAT_OUTBOUND;
+    uint8_t system_msg = view_type == DEMO_VIEWTYPE_CHAT_SYSTEM;
     uint8_t unread = item->state == 1U;
     uint8_t typing = item->state == 2U;
     egui_dim_t row_width = demo_get_list_width();
     egui_dim_t surface_y = DEMO_ROW_GAP / 2;
-    egui_dim_t surface_h = (egui_dim_t)(demo_get_item_height_by_stable_id(item->stable_id) - DEMO_ROW_GAP);
-    egui_dim_t surface_w = system_msg ? (row_width - 26) : (selected ? (row_width - 30) : (row_width - 42));
-    egui_dim_t surface_x;
-    egui_dim_t badge_w = system_msg ? 34 : 38;
+    egui_dim_t surface_h = demo_clamp_dim(demo_get_item_height_by_stable_id(item->stable_id) - DEMO_ROW_GAP, 46, 112);
+    egui_dim_t surface_w = demo_clamp_dim(system_msg ? (row_width - 40) : (selected ? (row_width - 24) : (row_width - (outgoing ? 48 : 40))), 132,
+                                          row_width - 8);
+    egui_dim_t surface_x = system_msg ? demo_center_x(row_width, surface_w) : (outgoing ? (egui_dim_t)(row_width - surface_w - 8) : 8);
+    egui_dim_t badge_w = system_msg ? 50 : (selected ? 52 : 44);
+    egui_dim_t badge_x = system_msg ? (egui_dim_t)(surface_w - badge_w - 10) : (outgoing ? 10 : (egui_dim_t)(surface_w - badge_w - 10));
+    egui_dim_t title_x = 12;
+    egui_dim_t title_y = 8;
+    egui_dim_t title_w = surface_w - 24;
+    egui_dim_t subtitle_x = 12;
+    egui_dim_t subtitle_y = 25;
+    egui_dim_t subtitle_w = surface_w - 24;
+    egui_dim_t meta_x = 12;
+    egui_dim_t meta_y = surface_h - 24;
+    egui_dim_t meta_w = surface_w - 24;
+    egui_dim_t progress_x = 12;
+    egui_dim_t progress_y = surface_h - 10;
+    egui_dim_t progress_w = surface_w - 24;
+    egui_dim_t pulse_x = outgoing ? (surface_w - 18) : 10;
+    egui_dim_t pulse_y = 12;
+    egui_dim_t corner_radius = system_msg ? 18 : (outgoing ? 18 : 16);
     egui_color_t surface_color;
     egui_color_t border_color;
     egui_color_t text_color;
     egui_color_t meta_color;
     egui_background_t *badge_bg;
     egui_color_t badge_text_color;
-    egui_dim_t badge_x;
-
-    if (surface_h < 42)
-    {
-        surface_h = 42;
-    }
-    if (surface_w < 120)
-    {
-        surface_w = 120;
-    }
-
-    if (system_msg)
-    {
-        surface_x = 17;
-    }
-    else if (outgoing)
-    {
-        surface_x = row_width - surface_w - 8;
-    }
-    else
-    {
-        surface_x = 8;
-    }
+    uint8_t show_progress = typing || selected;
+    uint8_t title_align = system_msg ? EGUI_ALIGN_CENTER : (outgoing ? (EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER) : (EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER));
+    uint8_t subtitle_align = title_align;
+    uint8_t meta_align = title_align;
+    const egui_font_t *title_font = system_msg ? DEMO_FONT_BODY : DEMO_FONT_CAP;
 
     snprintf(viewport_context.title_texts[pool_index], sizeof(viewport_context.title_texts[pool_index]), "%s",
-             system_msg ? "System" : (outgoing ? "You" : "Ops Bot"));
+             system_msg ? "System banner" : (outgoing ? "You" : "Ops bot"));
     snprintf(viewport_context.subtitle_texts[pool_index], sizeof(viewport_context.subtitle_texts[pool_index]), "%s",
-             typing ? "Typing row stays alive offscreen."
-                    : (unread ? "Unread bubble supports quick jump."
-                              : (outgoing ? "Outbound bubble keeps stable id." : "Inbound bubble reuses slot.")));
+             system_msg ? (selected ? "Centered note keeps cache and jump target." : "Centered banner shows a third template.")
+                        : (typing ? "Typing bubble keeps keepalive."
+                                  : (selected ? "Focused bubble keeps id and anim state."
+                                              : (outgoing ? "Outbound bubble keeps stable id." : "Inbound bubble reuses a pooled slot."))));
     snprintf(viewport_context.badge_texts[pool_index], sizeof(viewport_context.badge_texts[pool_index]), "%s",
              selected ? "OPEN" : (system_msg ? "SYS" : (outgoing ? "YOU" : "BOT")));
-    snprintf(viewport_context.meta_texts[pool_index], sizeof(viewport_context.meta_texts[pool_index]), "#%05lu  i%04lu  r%u",
-             (unsigned long)item->stable_id, (unsigned long)index, (unsigned)item->revision);
+    snprintf(viewport_context.meta_texts[pool_index], sizeof(viewport_context.meta_texts[pool_index]), "id%05lu | i%04lu", (unsigned long)item->stable_id,
+             (unsigned long)index);
 
     egui_view_label_set_text(EGUI_VIEW_OF(&row->title), viewport_context.title_texts[pool_index]);
     egui_view_label_set_text(EGUI_VIEW_OF(&row->subtitle), viewport_context.subtitle_texts[pool_index]);
     egui_view_label_set_text(EGUI_VIEW_OF(&row->meta), viewport_context.meta_texts[pool_index]);
     egui_view_label_set_text(EGUI_VIEW_OF(&row->badge), viewport_context.badge_texts[pool_index]);
-    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->title),
-                                   outgoing ? (EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER) : (EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER));
-    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->subtitle),
-                                   outgoing ? (EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER) : (EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER));
-    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->meta),
-                                   outgoing ? (EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER) : (EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER));
+    egui_view_label_set_font(EGUI_VIEW_OF(&row->title), title_font);
+    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->title), title_align);
+    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->subtitle), subtitle_align);
+    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->meta), meta_align);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&row->badge), EGUI_ALIGN_CENTER);
 
     if (selected)
     {
-        surface_color = EGUI_COLOR_HEX(0x2F5E91);
+        surface_color = EGUI_COLOR_HEX(0x274F78);
         border_color = EGUI_COLOR_WHITE;
     }
     else if (system_msg)
     {
-        surface_color = EGUI_COLOR_HEX(0xFFF4E2);
-        border_color = EGUI_COLOR_HEX(0xE5C07A);
+        surface_color = EGUI_COLOR_HEX(0xFFF5E7);
+        border_color = EGUI_COLOR_HEX(0xD9B06A);
     }
     else if (outgoing)
     {
-        surface_color = EGUI_COLOR_HEX(0xDCF3E7);
-        border_color = EGUI_COLOR_HEX(0x75B195);
+        surface_color = EGUI_COLOR_HEX(0xDFF4E9);
+        border_color = EGUI_COLOR_HEX(0x79B396);
     }
     else
     {
@@ -1159,37 +1364,54 @@ static void demo_bind_chat_row(demo_virtual_row_t *row, int pool_index, uint32_t
     }
     text_color = selected ? EGUI_COLOR_WHITE : EGUI_COLOR_HEX(0x243648);
     meta_color = selected ? EGUI_COLOR_WHITE : (typing ? EGUI_COLOR_HEX(0x2C77A8) : (unread ? EGUI_COLOR_HEX(0x8A5D1E) : EGUI_COLOR_HEX(0x677989)));
-    badge_bg = selected ? EGUI_BG_OF(&badge_selected_bg) : (system_msg ? EGUI_BG_OF(&badge_warning_bg) : (outgoing ? EGUI_BG_OF(&badge_success_bg)
-                                                                                                                : EGUI_BG_OF(&badge_info_bg)));
-    badge_text_color = selected ? EGUI_COLOR_HEX(0x2F5E91) : (system_msg ? EGUI_COLOR_BLACK : EGUI_COLOR_WHITE);
+    badge_bg = selected ? EGUI_BG_OF(&badge_selected_bg)
+                        : (system_msg ? EGUI_BG_OF(&badge_warning_bg) : (outgoing ? EGUI_BG_OF(&badge_success_bg) : EGUI_BG_OF(&badge_info_bg)));
+    badge_text_color = selected ? EGUI_COLOR_HEX(0x274F78) : (system_msg ? EGUI_COLOR_BLACK : EGUI_COLOR_WHITE);
     row->progress.progress_color = selected ? EGUI_COLOR_WHITE : (outgoing ? EGUI_COLOR_HEX(0x2E9A6F) : EGUI_COLOR_HEX(0x4B79B2));
-    row->progress.bk_color = selected ? EGUI_COLOR_HEX(0x7698BF) : EGUI_COLOR_HEX(0xDCE6F0);
+    row->progress.bk_color = selected ? EGUI_COLOR_HEX(0x7395BC) : EGUI_COLOR_HEX(0xDCE6F0);
     row->progress.control_color = row->progress.progress_color;
 
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&row->surface), surface_color, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&row->surface), selected ? 2 : 1, border_color);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&row->surface), corner_radius);
     egui_view_set_background(EGUI_VIEW_OF(&row->badge), badge_bg);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&row->title), text_color, EGUI_ALPHA_100);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&row->subtitle), text_color, EGUI_ALPHA_100);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&row->meta), meta_color, EGUI_ALPHA_100);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&row->badge), badge_text_color, EGUI_ALPHA_100);
 
-    badge_x = outgoing ? 10 : (surface_w - badge_w - 10);
+    if (system_msg)
+    {
+        pulse_x = 10;
+        title_y = 10;
+        subtitle_y = 28;
+        meta_y = show_progress ? (surface_h - 24) : (surface_h - 15);
+    }
+    else if (!show_progress)
+    {
+        meta_y = surface_h - 15;
+    }
+
+    title_w = demo_clamp_dim(title_w, 60, surface_w - 12);
+    subtitle_w = demo_clamp_dim(subtitle_w, 60, surface_w - 12);
+    meta_w = demo_clamp_dim(meta_w, 60, surface_w - 12);
+    progress_w = demo_clamp_dim(progress_w, 48, surface_w - 8);
+
     egui_view_set_position(EGUI_VIEW_OF(&row->surface), surface_x, surface_y);
     egui_view_set_size(EGUI_VIEW_OF(&row->surface), surface_w, surface_h);
     egui_view_set_position(EGUI_VIEW_OF(&row->badge), badge_x, 8);
     egui_view_set_size(EGUI_VIEW_OF(&row->badge), badge_w, DEMO_BADGE_H);
-    egui_view_set_position(EGUI_VIEW_OF(&row->pulse), outgoing ? (surface_w - 18) : (badge_x - 14), 12);
+    egui_view_set_position(EGUI_VIEW_OF(&row->pulse), pulse_x, pulse_y);
     egui_view_set_size(EGUI_VIEW_OF(&row->pulse), 9, 9);
-    egui_view_set_position(EGUI_VIEW_OF(&row->title), 12, 8);
-    egui_view_set_size(EGUI_VIEW_OF(&row->title), surface_w - 24, DEMO_TEXT_H);
-    egui_view_set_position(EGUI_VIEW_OF(&row->subtitle), 12, 24);
-    egui_view_set_size(EGUI_VIEW_OF(&row->subtitle), surface_w - 24, DEMO_TEXT_H);
-    egui_view_set_position(EGUI_VIEW_OF(&row->meta), 12, (typing || selected) ? (surface_h - 24) : (surface_h - 16));
-    egui_view_set_size(EGUI_VIEW_OF(&row->meta), surface_w - 24, DEMO_TEXT_H);
-    egui_view_set_position(EGUI_VIEW_OF(&row->progress), 12, surface_h - 10);
-    egui_view_set_size(EGUI_VIEW_OF(&row->progress), surface_w - 24, DEMO_PROGRESS_H);
-    egui_view_set_gone(EGUI_VIEW_OF(&row->progress), (typing || selected) ? 0 : 1);
+    egui_view_set_position(EGUI_VIEW_OF(&row->title), title_x, title_y);
+    egui_view_set_size(EGUI_VIEW_OF(&row->title), title_w, DEMO_TEXT_H);
+    egui_view_set_position(EGUI_VIEW_OF(&row->subtitle), subtitle_x, subtitle_y);
+    egui_view_set_size(EGUI_VIEW_OF(&row->subtitle), subtitle_w, DEMO_TEXT_H);
+    egui_view_set_position(EGUI_VIEW_OF(&row->meta), meta_x, meta_y);
+    egui_view_set_size(EGUI_VIEW_OF(&row->meta), meta_w, DEMO_TEXT_H);
+    egui_view_set_position(EGUI_VIEW_OF(&row->progress), progress_x, progress_y);
+    egui_view_set_size(EGUI_VIEW_OF(&row->progress), progress_w, DEMO_PROGRESS_H);
+    egui_view_set_gone(EGUI_VIEW_OF(&row->progress), show_progress ? 0 : 1);
     egui_view_progress_bar_set_process(EGUI_VIEW_OF(&row->progress), item->progress);
     demo_set_row_pulse(row, item, unread || typing || selected, selected);
 }
@@ -1197,63 +1419,184 @@ static void demo_bind_chat_row(demo_virtual_row_t *row, int pool_index, uint32_t
 static void demo_bind_task_row(demo_virtual_row_t *row, int pool_index, uint32_t index, const demo_virtual_item_t *item, uint8_t selected)
 {
     static const char *state_names[] = {"QUEUE", "RUN", "BLOCK", "DONE"};
+    uint16_t view_type = demo_resolve_view_type(viewport_context.scene, item);
     egui_dim_t row_width = demo_get_list_width();
     egui_dim_t surface_y = DEMO_ROW_GAP / 2;
-    egui_dim_t surface_h = (egui_dim_t)(demo_get_item_height_by_stable_id(item->stable_id) - DEMO_ROW_GAP);
-    egui_dim_t surface_w = row_width - DEMO_ROW_SIDE_INSET * 2;
-    egui_dim_t badge_x;
+    egui_dim_t surface_h = demo_clamp_dim(demo_get_item_height_by_stable_id(item->stable_id) - DEMO_ROW_GAP, 50, 120);
+    egui_dim_t surface_w = demo_clamp_dim(row_width - 16, 124, row_width - 8);
+    egui_dim_t surface_x = 8;
+    egui_dim_t badge_x = surface_w - 60;
+    egui_dim_t badge_w = 50;
+    egui_dim_t title_x = 24;
+    egui_dim_t title_y = 8;
+    egui_dim_t title_w = surface_w - 34;
+    egui_dim_t subtitle_x = 24;
+    egui_dim_t subtitle_y = 25;
+    egui_dim_t subtitle_w = surface_w - 34;
+    egui_dim_t meta_x = 24;
+    egui_dim_t meta_y = surface_h - 24;
+    egui_dim_t meta_w = surface_w - 34;
+    egui_dim_t progress_x = 24;
+    egui_dim_t progress_y = surface_h - 10;
+    egui_dim_t progress_w = surface_w - 36;
+    egui_dim_t pulse_x = 10;
+    egui_dim_t pulse_y = 13;
+    egui_dim_t corner_radius = 12;
     egui_color_t surface_color;
     egui_color_t border_color;
     egui_color_t meta_color;
     egui_background_t *badge_bg;
     egui_color_t badge_text_color;
+    uint8_t show_subtitle = 1;
+    uint8_t show_progress = 1;
+    uint8_t title_align = EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER;
+    uint8_t subtitle_align = EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER;
+    uint8_t meta_align = EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER;
+    const egui_font_t *title_font = DEMO_FONT_TITLE;
 
-    if (surface_h < 44)
+    switch (view_type)
     {
-        surface_h = 44;
+    case DEMO_VIEWTYPE_BOARD_RUN:
+        surface_w = demo_clamp_dim(row_width - 18, 182, row_width - 8);
+        surface_x = demo_center_x(row_width, surface_w);
+        badge_x = 12;
+        badge_w = 52;
+        title_x = 12;
+        title_y = 30;
+        title_w = surface_w - 24;
+        subtitle_x = 12;
+        subtitle_y = 48;
+        subtitle_w = surface_w - 24;
+        meta_x = 12;
+        meta_y = surface_h - 24;
+        meta_w = surface_w - 24;
+        progress_x = 12;
+        progress_y = surface_h - 10;
+        progress_w = surface_w - 24;
+        pulse_x = surface_w - 18;
+        pulse_y = 13;
+        corner_radius = 16;
+        snprintf(viewport_context.title_texts[pool_index], sizeof(viewport_context.title_texts[pool_index]), "Run lane %04lu", (unsigned long)index);
+        snprintf(viewport_context.subtitle_texts[pool_index], sizeof(viewport_context.subtitle_texts[pool_index]), "%s",
+                 selected ? "Wide lane keeps progress and cached state." : "Wide lane favors fast patch and resize.");
+        break;
+    case DEMO_VIEWTYPE_BOARD_BLOCK:
+        surface_w = demo_clamp_dim(row_width - 44, 150, row_width - 16);
+        surface_x = demo_center_x(row_width, surface_w);
+        badge_w = selected ? 58 : 54;
+        badge_x = demo_center_x(surface_w, badge_w);
+        title_x = 12;
+        title_y = 30;
+        title_w = surface_w - 24;
+        subtitle_x = 12;
+        subtitle_y = 48;
+        subtitle_w = surface_w - 24;
+        meta_x = 12;
+        meta_y = surface_h - 24;
+        meta_w = surface_w - 24;
+        progress_x = 18;
+        progress_y = surface_h - 10;
+        progress_w = surface_w - 36;
+        pulse_x = 10;
+        pulse_y = 13;
+        corner_radius = 20;
+        title_align = EGUI_ALIGN_CENTER;
+        subtitle_align = EGUI_ALIGN_CENTER;
+        meta_align = EGUI_ALIGN_CENTER;
+        snprintf(viewport_context.title_texts[pool_index], sizeof(viewport_context.title_texts[pool_index]), "Blocker %04lu", (unsigned long)index);
+        snprintf(viewport_context.subtitle_texts[pool_index], sizeof(viewport_context.subtitle_texts[pool_index]), "%s",
+                 selected ? "Alert tile keeps focus while slots recycle." : "Alert tile shows centered layout.");
+        break;
+    case DEMO_VIEWTYPE_BOARD_DONE:
+        surface_w = demo_clamp_dim(row_width - 76, 124, row_width - 20);
+        surface_x = row_width - surface_w - 8;
+        badge_x = 10;
+        badge_w = 46;
+        title_x = 12;
+        title_y = 10;
+        title_w = surface_w - 24;
+        subtitle_x = 12;
+        subtitle_y = 28;
+        subtitle_w = surface_w - 24;
+        meta_x = 12;
+        meta_y = surface_h - 15;
+        meta_w = surface_w - 24;
+        progress_x = 14;
+        progress_y = surface_h - 10;
+        progress_w = surface_w - 28;
+        pulse_x = surface_w - 18;
+        pulse_y = 13;
+        corner_radius = 12;
+        title_align = EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER;
+        subtitle_align = EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER;
+        meta_align = EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER;
+        title_font = DEMO_FONT_BODY;
+        show_subtitle = selected;
+        show_progress = selected;
+        snprintf(viewport_context.title_texts[pool_index], sizeof(viewport_context.title_texts[pool_index]), "Done note %04lu", (unsigned long)index);
+        snprintf(viewport_context.subtitle_texts[pool_index], sizeof(viewport_context.subtitle_texts[pool_index]), "Completed card still supports select.");
+        break;
+    default:
+        surface_w = demo_clamp_dim(row_width - 56, 150, row_width - 12);
+        surface_x = 8;
+        badge_x = surface_w - 62;
+        badge_w = 52;
+        title_x = 24;
+        title_y = 8;
+        title_w = badge_x - 30;
+        subtitle_x = 24;
+        subtitle_y = 25;
+        subtitle_w = surface_w - 34;
+        meta_x = 24;
+        meta_y = surface_h - 24;
+        meta_w = surface_w - 34;
+        progress_x = 24;
+        progress_y = surface_h - 10;
+        progress_w = surface_w - 36;
+        pulse_x = 10;
+        pulse_y = 13;
+        corner_radius = 12;
+        snprintf(viewport_context.title_texts[pool_index], sizeof(viewport_context.title_texts[pool_index]), "Queue slot %04lu", (unsigned long)index);
+        snprintf(viewport_context.subtitle_texts[pool_index], sizeof(viewport_context.subtitle_texts[pool_index]), "%s",
+                 selected ? "Queue card stays visible on reorder." : "Queue card covers add/del.");
+        break;
     }
 
-    snprintf(viewport_context.title_texts[pool_index], sizeof(viewport_context.title_texts[pool_index]), "Task #%04lu", (unsigned long)index);
-    snprintf(viewport_context.subtitle_texts[pool_index], sizeof(viewport_context.subtitle_texts[pool_index]), "%s",
-             item->state == 2U ? "Blocked stage keeps alert alive."
-                               : (item->state == 1U ? "Running task supports move + patch."
-                                                    : (item->state == 3U ? "Done task still reuses slot view."
-                                                                         : "Queued item covers insert/remove.")));
-    snprintf(viewport_context.badge_texts[pool_index], sizeof(viewport_context.badge_texts[pool_index]), "%s",
-             selected ? "FOCUS" : state_names[item->state]);
-    snprintf(viewport_context.meta_texts[pool_index], sizeof(viewport_context.meta_texts[pool_index]), "ow%02lu  p%u%%  #%05lu",
-             (unsigned long)(item->stable_id % 17U), (unsigned)item->progress, (unsigned long)item->stable_id);
+    snprintf(viewport_context.badge_texts[pool_index], sizeof(viewport_context.badge_texts[pool_index]), "%s", selected ? "FOCUS" : state_names[item->state]);
+    snprintf(viewport_context.meta_texts[pool_index], sizeof(viewport_context.meta_texts[pool_index]), "lane%02lu | %u%% | r%u",
+             (unsigned long)(item->stable_id % 17U), (unsigned)item->progress, (unsigned)item->revision);
 
     egui_view_label_set_text(EGUI_VIEW_OF(&row->title), viewport_context.title_texts[pool_index]);
     egui_view_label_set_text(EGUI_VIEW_OF(&row->subtitle), viewport_context.subtitle_texts[pool_index]);
     egui_view_label_set_text(EGUI_VIEW_OF(&row->meta), viewport_context.meta_texts[pool_index]);
     egui_view_label_set_text(EGUI_VIEW_OF(&row->badge), viewport_context.badge_texts[pool_index]);
-    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->title), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
-    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->subtitle), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
-    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->meta), EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
+    egui_view_label_set_font(EGUI_VIEW_OF(&row->title), title_font);
+    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->title), title_align);
+    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->subtitle), subtitle_align);
+    egui_view_label_set_align_type(EGUI_VIEW_OF(&row->meta), meta_align);
     egui_view_label_set_align_type(EGUI_VIEW_OF(&row->badge), EGUI_ALIGN_CENTER);
 
     if (selected)
     {
-        surface_color = EGUI_COLOR_HEX(0x2F5E91);
+        surface_color = EGUI_COLOR_HEX(0x274F78);
         border_color = EGUI_COLOR_WHITE;
         meta_color = EGUI_COLOR_WHITE;
         badge_bg = EGUI_BG_OF(&badge_selected_bg);
-        badge_text_color = EGUI_COLOR_HEX(0x2F5E91);
+        badge_text_color = EGUI_COLOR_HEX(0x274F78);
         row->progress.progress_color = EGUI_COLOR_WHITE;
-        row->progress.bk_color = EGUI_COLOR_HEX(0x7698BF);
+        row->progress.bk_color = EGUI_COLOR_HEX(0x7395BC);
     }
-    else if (item->state == 2U)
+    else if (view_type == DEMO_VIEWTYPE_BOARD_BLOCK)
     {
-        surface_color = EGUI_COLOR_HEX(0xFFF0E0);
-        border_color = EGUI_COLOR_HEX(0xD29056);
+        surface_color = EGUI_COLOR_HEX(0xFFF2E3);
+        border_color = EGUI_COLOR_HEX(0xD59053);
         meta_color = EGUI_COLOR_HEX(0x8B5A27);
         badge_bg = EGUI_BG_OF(&badge_warning_bg);
         badge_text_color = EGUI_COLOR_BLACK;
         row->progress.progress_color = EGUI_COLOR_HEX(0xD07D33);
         row->progress.bk_color = EGUI_COLOR_HEX(0xF3DEC7);
     }
-    else if (item->state == 1U)
+    else if (view_type == DEMO_VIEWTYPE_BOARD_RUN)
     {
         surface_color = EGUI_COLOR_HEX(0xE8F4FF);
         border_color = EGUI_COLOR_HEX(0x74A6D5);
@@ -1263,7 +1606,7 @@ static void demo_bind_task_row(demo_virtual_row_t *row, int pool_index, uint32_t
         row->progress.progress_color = EGUI_COLOR_HEX(0x4D82B7);
         row->progress.bk_color = EGUI_COLOR_HEX(0xD7E6F3);
     }
-    else if (item->state == 3U)
+    else if (view_type == DEMO_VIEWTYPE_BOARD_DONE)
     {
         surface_color = EGUI_COLOR_HEX(0xE8F3EA);
         border_color = EGUI_COLOR_HEX(0x7BA786);
@@ -1287,29 +1630,34 @@ static void demo_bind_task_row(demo_virtual_row_t *row, int pool_index, uint32_t
 
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&row->surface), surface_color, EGUI_ALPHA_100);
     egui_view_card_set_border(EGUI_VIEW_OF(&row->surface), selected ? 2 : 1, border_color);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&row->surface), corner_radius);
     egui_view_set_background(EGUI_VIEW_OF(&row->badge), badge_bg);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&row->title), selected ? EGUI_COLOR_WHITE : EGUI_COLOR_HEX(0x233443), EGUI_ALPHA_100);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&row->subtitle), selected ? EGUI_COLOR_WHITE : EGUI_COLOR_HEX(0x556979), EGUI_ALPHA_100);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&row->meta), meta_color, EGUI_ALPHA_100);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&row->badge), badge_text_color, EGUI_ALPHA_100);
 
-    badge_x = surface_w - 58;
-    egui_view_set_position(EGUI_VIEW_OF(&row->surface), DEMO_ROW_SIDE_INSET, surface_y);
+    title_w = demo_clamp_dim(title_w, 60, surface_w - 12);
+    subtitle_w = demo_clamp_dim(subtitle_w, 60, surface_w - 12);
+    meta_w = demo_clamp_dim(meta_w, 60, surface_w - 12);
+    progress_w = demo_clamp_dim(progress_w, 48, surface_w - 8);
+
+    egui_view_set_position(EGUI_VIEW_OF(&row->surface), surface_x, surface_y);
     egui_view_set_size(EGUI_VIEW_OF(&row->surface), surface_w, surface_h);
     egui_view_set_position(EGUI_VIEW_OF(&row->badge), badge_x, 8);
-    egui_view_set_size(EGUI_VIEW_OF(&row->badge), 48, DEMO_BADGE_H);
-    egui_view_set_position(EGUI_VIEW_OF(&row->pulse), 10, 13);
+    egui_view_set_size(EGUI_VIEW_OF(&row->badge), badge_w, DEMO_BADGE_H);
+    egui_view_set_position(EGUI_VIEW_OF(&row->pulse), pulse_x, pulse_y);
     egui_view_set_size(EGUI_VIEW_OF(&row->pulse), 9, 9);
-    egui_view_set_position(EGUI_VIEW_OF(&row->title), 24, 8);
-    egui_view_set_size(EGUI_VIEW_OF(&row->title), badge_x - 30, DEMO_TITLE_H);
-    egui_view_set_position(EGUI_VIEW_OF(&row->subtitle), 24, 25);
-    egui_view_set_size(EGUI_VIEW_OF(&row->subtitle), surface_w - 34, DEMO_TEXT_H);
-    egui_view_set_position(EGUI_VIEW_OF(&row->meta), 24, surface_h - 27);
-    egui_view_set_size(EGUI_VIEW_OF(&row->meta), surface_w - 34, DEMO_TEXT_H);
-    egui_view_set_position(EGUI_VIEW_OF(&row->progress), 24, surface_h - 10);
-    egui_view_set_size(EGUI_VIEW_OF(&row->progress), surface_w - 36, DEMO_PROGRESS_H);
-    egui_view_set_gone(EGUI_VIEW_OF(&row->subtitle), 0);
-    egui_view_set_gone(EGUI_VIEW_OF(&row->progress), 0);
+    egui_view_set_position(EGUI_VIEW_OF(&row->title), title_x, title_y);
+    egui_view_set_size(EGUI_VIEW_OF(&row->title), title_w, DEMO_TITLE_H);
+    egui_view_set_position(EGUI_VIEW_OF(&row->subtitle), subtitle_x, subtitle_y);
+    egui_view_set_size(EGUI_VIEW_OF(&row->subtitle), subtitle_w, DEMO_TEXT_H);
+    egui_view_set_position(EGUI_VIEW_OF(&row->meta), meta_x, meta_y);
+    egui_view_set_size(EGUI_VIEW_OF(&row->meta), meta_w, DEMO_TEXT_H);
+    egui_view_set_position(EGUI_VIEW_OF(&row->progress), progress_x, progress_y);
+    egui_view_set_size(EGUI_VIEW_OF(&row->progress), progress_w, DEMO_PROGRESS_H);
+    egui_view_set_gone(EGUI_VIEW_OF(&row->subtitle), show_subtitle ? 0 : 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&row->progress), show_progress ? 0 : 1);
     egui_view_progress_bar_set_process(EGUI_VIEW_OF(&row->progress), item->progress);
     demo_set_row_pulse(row, item, item->state == 1U || item->state == 2U || selected, selected);
 }
@@ -1324,6 +1672,8 @@ static void demo_bind_row_text(demo_virtual_row_t *row, uint32_t index, uint32_t
     {
         return;
     }
+
+    row->view_type = demo_resolve_view_type(viewport_context.scene, item);
 
     if (viewport_context.scene == DEMO_SCENE_CHAT)
     {
@@ -1341,11 +1691,11 @@ static void demo_bind_row_text(demo_virtual_row_t *row, uint32_t index, uint32_t
 
 static void virtual_item_click_cb(egui_view_t *self)
 {
-    egui_view_virtual_list_entry_t entry;
+    egui_view_virtual_viewport_entry_t entry;
     uint32_t previous_selected = viewport_context.selected_id;
     int32_t previous_index = demo_find_index_by_stable_id(previous_selected);
 
-    if (!egui_view_virtual_list_resolve_item_by_view(EGUI_VIEW_OF(&viewport_1), self, &entry))
+    if (!egui_view_virtual_viewport_resolve_item_by_view(EGUI_VIEW_OF(&viewport_1), self, &entry))
     {
         return;
     }
@@ -1357,10 +1707,10 @@ static void virtual_item_click_cb(egui_view_t *self)
 
     if (previous_selected != viewport_context.selected_id && previous_index >= 0)
     {
-        egui_view_virtual_list_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&viewport_1), previous_selected);
+        egui_view_virtual_viewport_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&viewport_1), previous_selected);
     }
-    egui_view_virtual_list_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&viewport_1), entry.stable_id);
-    egui_view_virtual_list_ensure_item_visible_by_stable_id(EGUI_VIEW_OF(&viewport_1), entry.stable_id, DEMO_ROW_GAP / 2);
+    egui_view_virtual_viewport_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&viewport_1), entry.stable_id);
+    egui_view_virtual_viewport_ensure_item_visible_by_stable_id(EGUI_VIEW_OF(&viewport_1), entry.stable_id, DEMO_ROW_GAP / 2);
     demo_update_status_labels();
 
     EGUI_LOG_INF("Virtual row clicked: scene=%s index=%d stable_id=%lu\n", demo_scene_names[viewport_context.scene], (int)entry.index,
@@ -1413,12 +1763,32 @@ static int32_t demo_measure_item_height(void *adapter_context, uint32_t index, i
     return demo_get_item_height_by_stable_id(ctx->items[index].stable_id);
 }
 
+static uint16_t demo_get_view_type(void *adapter_context, uint32_t index)
+{
+    demo_virtual_viewport_context_t *ctx = (demo_virtual_viewport_context_t *)adapter_context;
+    const demo_virtual_item_t *item;
+
+    if (index >= ctx->item_count)
+    {
+        return DEMO_POOL_VIEWTYPE_WIDE;
+    }
+
+    item = &ctx->items[index];
+    switch (ctx->scene)
+    {
+    case DEMO_SCENE_CHAT:
+        return item->variant == 2U ? DEMO_POOL_VIEWTYPE_CENTER : DEMO_POOL_VIEWTYPE_EDGE;
+    case DEMO_SCENE_TASK:
+        return item->state == 2U ? DEMO_POOL_VIEWTYPE_CENTER : ((item->state == 3U) ? DEMO_POOL_VIEWTYPE_EDGE : DEMO_POOL_VIEWTYPE_WIDE);
+    default:
+        return item->variant == 0U ? DEMO_POOL_VIEWTYPE_WIDE : ((item->variant == 1U) ? DEMO_POOL_VIEWTYPE_EDGE : DEMO_POOL_VIEWTYPE_CENTER);
+    }
+}
+
 static egui_view_t *demo_create_item_view(void *adapter_context, uint16_t view_type)
 {
     demo_virtual_viewport_context_t *ctx = (demo_virtual_viewport_context_t *)adapter_context;
     demo_virtual_row_t *row;
-
-    EGUI_UNUSED(view_type);
 
     if (ctx->created_count >= EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS)
     {
@@ -1429,6 +1799,7 @@ static egui_view_t *demo_create_item_view(void *adapter_context, uint16_t view_t
     memset(row, 0, sizeof(*row));
     row->bound_index = DEMO_INVALID_INDEX;
     row->stable_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
+    row->view_type = view_type;
 
     egui_view_group_init(EGUI_VIEW_OF(&row->root));
     egui_view_card_init(EGUI_VIEW_OF(&row->surface));
@@ -1516,11 +1887,11 @@ static void demo_save_item_state(void *adapter_context, egui_view_t *view, uint3
     demo_capture_row_state(row, &state);
     if (!state.pulse_running)
     {
-        egui_view_virtual_list_remove_item_state_by_stable_id(EGUI_VIEW_OF(&viewport_1), stable_id);
+        egui_view_virtual_viewport_remove_state_by_stable_id(EGUI_VIEW_OF(&viewport_1), stable_id);
         return;
     }
 
-    (void)egui_view_virtual_list_write_item_state_for_view(view, stable_id, &state, sizeof(state));
+    (void)egui_view_virtual_viewport_write_state_for_view(view, stable_id, &state, sizeof(state));
 }
 
 static void demo_restore_item_state(void *adapter_context, egui_view_t *view, uint32_t stable_id)
@@ -1535,7 +1906,7 @@ static void demo_restore_item_state(void *adapter_context, egui_view_t *view, ui
         return;
     }
 
-    if (egui_view_virtual_list_read_item_state_for_view(view, stable_id, &state, sizeof(state)) != sizeof(state))
+    if (egui_view_virtual_viewport_read_state_for_view(view, stable_id, &state, sizeof(state)) != sizeof(state))
     {
         return;
     }
@@ -1564,19 +1935,19 @@ static uint8_t demo_should_keep_alive(void *adapter_context, egui_view_t *view, 
     return demo_item_should_keepalive(&ctx->items[index]);
 }
 
-static const egui_view_virtual_list_data_source_t viewport_data_source = {
+static const egui_view_virtual_viewport_adapter_t viewport_adapter = {
         .get_count = demo_get_count,
         .get_stable_id = demo_get_stable_id,
         .find_index_by_stable_id = demo_adapter_find_index_by_stable_id,
-        .measure_item_height = demo_measure_item_height,
-        .create_item_view = demo_create_item_view,
-        .destroy_item_view = NULL,
-        .bind_item_view = demo_bind_item_view,
-        .unbind_item_view = demo_unbind_item_view,
+        .get_view_type = demo_get_view_type,
+        .measure_main_size = demo_measure_item_height,
+        .create_view = demo_create_item_view,
+        .destroy_view = NULL,
+        .bind_view = demo_bind_item_view,
+        .unbind_view = demo_unbind_item_view,
         .should_keep_alive = demo_should_keep_alive,
-        .save_item_state = demo_save_item_state,
-        .restore_item_state = demo_restore_item_state,
-        .default_view_type = 0,
+        .save_state = demo_save_item_state,
+        .restore_state = demo_restore_item_state,
 };
 
 static int demo_find_scene_button_index(egui_view_t *self)
@@ -1663,8 +2034,8 @@ typedef struct viewport_visible_search_context
     uint8_t require_full_visibility;
 } viewport_visible_search_context_t;
 
-static uint8_t viewport_match_visible_item(egui_view_t *self, const egui_view_virtual_list_slot_t *slot, const egui_view_virtual_list_entry_t *entry,
-                                           egui_view_t *item_view, void *context)
+static uint8_t viewport_match_visible_item(egui_view_t *self, const egui_view_virtual_viewport_slot_t *slot,
+                                           const egui_view_virtual_viewport_entry_t *entry, egui_view_t *item_view, void *context)
 {
     viewport_visible_search_context_t *ctx = (viewport_visible_search_context_t *)context;
     uint8_t is_visible;
@@ -1680,7 +2051,7 @@ static uint8_t viewport_match_visible_item(egui_view_t *self, const egui_view_vi
 static egui_view_t *find_visible_view_by_item_index(uint32_t index)
 {
     uint32_t stable_id;
-    const egui_view_virtual_list_slot_t *slot;
+    const egui_view_virtual_viewport_slot_t *slot;
 
     if (index >= viewport_context.item_count)
     {
@@ -1688,13 +2059,13 @@ static egui_view_t *find_visible_view_by_item_index(uint32_t index)
     }
 
     stable_id = viewport_context.items[index].stable_id;
-    slot = egui_view_virtual_list_find_slot_by_stable_id(EGUI_VIEW_OF(&viewport_1), stable_id);
+    slot = egui_view_virtual_viewport_find_slot_by_stable_id(EGUI_VIEW_OF(&viewport_1), stable_id);
     if (!egui_view_virtual_viewport_is_slot_center_visible(EGUI_VIEW_OF(&viewport_1), slot))
     {
         return NULL;
     }
 
-    return egui_view_virtual_list_find_view_by_stable_id(EGUI_VIEW_OF(&viewport_1), stable_id);
+    return egui_view_virtual_viewport_find_view_by_stable_id(EGUI_VIEW_OF(&viewport_1), stable_id);
 }
 
 static egui_view_t *find_first_visible_view_after(uint32_t min_index)
@@ -1704,7 +2075,7 @@ static egui_view_t *find_first_visible_view_after(uint32_t min_index)
             .require_full_visibility = 0,
     };
 
-    return egui_view_virtual_list_find_first_visible_item_view(EGUI_VIEW_OF(&viewport_1), viewport_match_visible_item, &ctx, NULL);
+    return egui_view_virtual_viewport_find_first_visible_item_view(EGUI_VIEW_OF(&viewport_1), viewport_match_visible_item, &ctx, NULL);
 }
 
 static egui_view_t *find_first_fully_visible_view_after(uint32_t min_index)
@@ -1714,7 +2085,7 @@ static egui_view_t *find_first_fully_visible_view_after(uint32_t min_index)
             .require_full_visibility = 1,
     };
 
-    return egui_view_virtual_list_find_first_visible_item_view(EGUI_VIEW_OF(&viewport_1), viewport_match_visible_item, &ctx, NULL);
+    return egui_view_virtual_viewport_find_first_visible_item_view(EGUI_VIEW_OF(&viewport_1), viewport_match_visible_item, &ctx, NULL);
 }
 #endif
 
@@ -1767,8 +2138,7 @@ void test_init_ui(void)
     for (i = 0; i < DEMO_SCENE_COUNT; i++)
     {
         demo_init_chip_button(&scene_buttons[i], 12 + i * (DEMO_SCENE_BUTTON_W + DEMO_SCENE_BUTTON_GAP), 55, DEMO_SCENE_BUTTON_W, DEMO_CHIP_H,
-                              demo_scene_names[i],
-                              scene_button_click_cb);
+                              demo_scene_names[i], scene_button_click_cb);
         egui_view_card_add_child(EGUI_VIEW_OF(&header_card), EGUI_VIEW_OF(&scene_buttons[i]));
     }
 
@@ -1779,22 +2149,21 @@ void test_init_ui(void)
     for (i = 0; i < DEMO_ACTION_COUNT; i++)
     {
         demo_init_chip_button(&action_buttons[i], 10 + i * (DEMO_ACTION_BUTTON_W + DEMO_ACTION_BUTTON_GAP), 6, DEMO_ACTION_BUTTON_W, DEMO_CHIP_H,
-                              demo_action_names[i],
-                              action_button_click_cb);
+                              demo_action_names[i], action_button_click_cb);
         egui_view_card_add_child(EGUI_VIEW_OF(&toolbar_card), EGUI_VIEW_OF(&action_buttons[i]));
     }
     demo_style_action_buttons();
 
     {
-        const egui_view_virtual_list_setup_t viewport_setup = {
+        const egui_view_virtual_viewport_setup_t viewport_setup = {
                 .params = &viewport_1_params,
-                .data_source = &viewport_data_source,
-                .data_source_context = &viewport_context,
+                .adapter = &viewport_adapter,
+                .adapter_context = &viewport_context,
                 .state_cache_max_entries = DEMO_STATE_CACHE_COUNT,
                 .state_cache_max_bytes = DEMO_STATE_CACHE_COUNT * (uint32_t)sizeof(demo_virtual_row_state_t),
         };
 
-        egui_view_virtual_list_init_with_setup(EGUI_VIEW_OF(&viewport_1), &viewport_setup);
+        egui_view_virtual_viewport_init_with_setup(EGUI_VIEW_OF(&viewport_1), &viewport_setup);
     }
     egui_view_set_background(EGUI_VIEW_OF(&viewport_1), EGUI_BG_OF(&list_bg));
     egui_view_set_shadow(EGUI_VIEW_OF(&viewport_1), &demo_card_shadow);
@@ -1822,7 +2191,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 0:
         if (first_call && viewport_context.created_count > EGUI_VIEW_VIRTUAL_VIEWPORT_MAX_SLOTS)
         {
-            report_runtime_failure("virtual list created more views than slot capacity");
+            report_runtime_failure("virtual viewport created more views than slot capacity");
         }
         view = find_visible_view_by_item_index(1);
         if (view == NULL)
@@ -1877,7 +2246,11 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->interval_ms = 620;
         return true;
     case 6:
-        view = find_first_fully_visible_view_after(3);
+        view = find_first_visible_view_after(3);
+        if (view == NULL)
+        {
+            view = egui_view_virtual_viewport_find_first_visible_item_view(EGUI_VIEW_OF(&viewport_1), NULL, NULL, NULL);
+        }
         if (view == NULL)
         {
             report_runtime_failure("feed row after drag was not visible");
@@ -1915,7 +2288,11 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->interval_ms = 620;
         return true;
     case 11:
-        view = find_first_fully_visible_view_after(4);
+        view = find_first_visible_view_after(4);
+        if (view == NULL)
+        {
+            view = egui_view_virtual_viewport_find_first_visible_item_view(EGUI_VIEW_OF(&viewport_1), NULL, NULL, NULL);
+        }
         if (view == NULL)
         {
             report_runtime_failure("chat row after drag was not visible");
@@ -1971,7 +2348,11 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->interval_ms = 620;
         return true;
     case 18:
-        view = find_first_fully_visible_view_after(2);
+        view = find_first_visible_view_after(0);
+        if (view == NULL)
+        {
+            view = egui_view_virtual_viewport_find_first_visible_item_view(EGUI_VIEW_OF(&viewport_1), NULL, NULL, NULL);
+        }
         if (view == NULL)
         {
             report_runtime_failure("ops row after drag was not visible");

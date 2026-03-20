@@ -19,8 +19,7 @@ typedef struct egui_view_virtual_grid_entry egui_view_virtual_grid_entry_t;
 typedef struct egui_view_virtual_grid_params egui_view_virtual_grid_params_t;
 typedef struct egui_view_virtual_grid_setup egui_view_virtual_grid_setup_t;
 typedef uint8_t (*egui_view_virtual_grid_visible_item_matcher_t)(egui_view_t *self, const egui_view_virtual_grid_slot_t *slot,
-                                                                 const egui_view_virtual_grid_entry_t *entry, egui_view_t *item_view,
-                                                                 void *context);
+                                                                 const egui_view_virtual_grid_entry_t *entry, egui_view_t *item_view, void *context);
 typedef uint8_t (*egui_view_virtual_grid_visible_item_visitor_t)(egui_view_t *self, const egui_view_virtual_grid_slot_t *slot,
                                                                  const egui_view_virtual_grid_entry_t *entry, egui_view_t *item_view, void *context);
 
@@ -150,6 +149,8 @@ void egui_view_virtual_grid_set_keepalive_limit(egui_view_t *self, uint8_t max_k
 uint8_t egui_view_virtual_grid_get_keepalive_limit(egui_view_t *self);
 
 void egui_view_virtual_grid_set_state_cache_limits(egui_view_t *self, uint16_t max_entries, uint32_t max_bytes);
+uint16_t egui_view_virtual_grid_get_state_cache_entry_limit(egui_view_t *self);
+uint32_t egui_view_virtual_grid_get_state_cache_byte_limit(egui_view_t *self);
 void egui_view_virtual_grid_clear_item_state_cache(egui_view_t *self);
 void egui_view_virtual_grid_remove_item_state_by_stable_id(egui_view_t *self, uint32_t stable_id);
 uint8_t egui_view_virtual_grid_write_item_state(egui_view_t *self, uint32_t stable_id, const void *data, uint16_t size);
@@ -185,8 +186,8 @@ uint8_t egui_view_virtual_grid_get_slot_item_count(egui_view_t *self, uint8_t sl
 uint8_t egui_view_virtual_grid_get_slot_entry(egui_view_t *self, uint8_t slot_index, uint8_t column_index, egui_view_virtual_grid_entry_t *entry);
 egui_view_t *egui_view_virtual_grid_get_slot_item_view(egui_view_t *self, uint8_t slot_index, uint8_t column_index);
 uint8_t egui_view_virtual_grid_visit_visible_items(egui_view_t *self, egui_view_virtual_grid_visible_item_visitor_t visitor, void *context);
-egui_view_t *egui_view_virtual_grid_find_first_visible_item_view(egui_view_t *self, egui_view_virtual_grid_visible_item_matcher_t matcher,
-                                                                 void *context, egui_view_virtual_grid_entry_t *entry_out);
+egui_view_t *egui_view_virtual_grid_find_first_visible_item_view(egui_view_t *self, egui_view_virtual_grid_visible_item_matcher_t matcher, void *context,
+                                                                 egui_view_virtual_grid_entry_t *entry_out);
 
 void egui_view_virtual_grid_notify_data_changed(egui_view_t *self);
 void egui_view_virtual_grid_notify_item_changed(egui_view_t *self, uint32_t index);

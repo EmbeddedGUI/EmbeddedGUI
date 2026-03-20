@@ -14,30 +14,32 @@
 #define PAGE_EYEBROW_TEXT_LEN  24
 #define PAGE_STATE_CACHE_COUNT 64U
 
-#define PAGE_MARGIN_X          8
-#define PAGE_TOP_Y             8
-#define PAGE_HEADER_W          (EGUI_CONFIG_SCEEN_WIDTH - PAGE_MARGIN_X * 2)
-#define PAGE_HEADER_H          68
-#define PAGE_TOOLBAR_Y         (PAGE_TOP_Y + PAGE_HEADER_H + 6)
-#define PAGE_TOOLBAR_H         32
-#define PAGE_VIEW_Y            (PAGE_TOOLBAR_Y + PAGE_TOOLBAR_H + 6)
-#define PAGE_VIEW_W            PAGE_HEADER_W
-#define PAGE_VIEW_H            (EGUI_CONFIG_SCEEN_HEIGHT - PAGE_VIEW_Y - 8)
-#define PAGE_BUTTON_GAP        4
-#define PAGE_BUTTON_W          ((PAGE_HEADER_W - 20 - PAGE_BUTTON_GAP * 3) / 4)
-#define PAGE_BUTTON_H          20
-#define PAGE_CARD_INSET_X      8
-#define PAGE_CARD_INSET_Y      4
-#define PAGE_BADGE_H           18
-#define PAGE_EYEBROW_H         10
-#define PAGE_TITLE_H           14
-#define PAGE_TEXT_H            12
-#define PAGE_PROGRESS_H        4
+#define PAGE_MARGIN_X     8
+#define PAGE_TOP_Y        8
+#define PAGE_HEADER_W     (EGUI_CONFIG_SCEEN_WIDTH - PAGE_MARGIN_X * 2)
+#define PAGE_HEADER_H     68
+#define PAGE_TOOLBAR_Y    (PAGE_TOP_Y + PAGE_HEADER_H + 6)
+#define PAGE_TOOLBAR_H    32
+#define PAGE_VIEW_Y       (PAGE_TOOLBAR_Y + PAGE_TOOLBAR_H + 6)
+#define PAGE_VIEW_W       PAGE_HEADER_W
+#define PAGE_VIEW_H       (EGUI_CONFIG_SCEEN_HEIGHT - PAGE_VIEW_Y - 8)
+#define PAGE_BUTTON_GAP   4
+#define PAGE_BUTTON_W     ((PAGE_HEADER_W - 20 - PAGE_BUTTON_GAP * 3) / 4)
+#define PAGE_BUTTON_H     20
+#define PAGE_CARD_INSET_X 8
+#define PAGE_CARD_INSET_Y 4
+#define PAGE_BADGE_H      18
+#define PAGE_EYEBROW_H    16
+#define PAGE_TITLE_H      18
+#define PAGE_TEXT_H       16
+#define PAGE_PROGRESS_H   5
 
 #define PAGE_FONT_HEADER ((const egui_font_t *)&egui_res_font_montserrat_10_4)
 #define PAGE_FONT_TITLE  ((const egui_font_t *)&egui_res_font_montserrat_10_4)
 #define PAGE_FONT_BODY   ((const egui_font_t *)&egui_res_font_montserrat_8_4)
 #define PAGE_FONT_CAP    ((const egui_font_t *)&egui_res_font_montserrat_8_4)
+#define PAGE_FONT_HERO   ((const egui_font_t *)&egui_res_font_montserrat_12_4)
+#define PAGE_FONT_KPI    ((const egui_font_t *)&egui_res_font_montserrat_12_4)
 
 enum
 {
@@ -85,6 +87,9 @@ struct page_demo_section_view
 {
     egui_view_group_t root;
     egui_view_card_t card;
+    egui_view_card_t panel_a;
+    egui_view_card_t panel_b;
+    egui_view_card_t panel_c;
     egui_view_label_t eyebrow;
     egui_view_label_t title;
     egui_view_label_t body;
@@ -134,13 +139,6 @@ struct page_demo_context
 static const char *page_demo_action_names[PAGE_ACTION_COUNT] = {"Add", "Del", "Patch", "Jump"};
 static const char *page_demo_variant_names[PAGE_SECTION_VARIANT_COUNT] = {"Overview", "Metric", "Alert", "Checklist"};
 static const char *page_demo_state_names[PAGE_SECTION_STATE_COUNT] = {"Idle", "Sync", "Warn", "Done"};
-static const char *page_demo_variant_notes[PAGE_SECTION_VARIANT_COUNT] = {
-        "Hero summary.",
-        "Compact stats.",
-        "Alert with pulse.",
-        "Form-like block.",
-};
-
 static egui_view_t background_view;
 static egui_view_card_t header_card;
 static egui_view_card_t toolbar_card;
@@ -158,11 +156,10 @@ static const egui_view_virtual_page_params_t page_view_params = {
         .overscan_before = 1,
         .overscan_after = 1,
         .max_keepalive_slots = 4,
-        .estimated_section_height = 90,
+        .estimated_section_height = 118,
 };
 
-EGUI_BACKGROUND_GRADIENT_PARAM_INIT(screen_bg_param, EGUI_BACKGROUND_GRADIENT_DIR_VERTICAL, EGUI_COLOR_HEX(0xEEF4F8), EGUI_COLOR_HEX(0xD9E5EE),
-                                    EGUI_ALPHA_100);
+EGUI_BACKGROUND_GRADIENT_PARAM_INIT(screen_bg_param, EGUI_BACKGROUND_GRADIENT_DIR_VERTICAL, EGUI_COLOR_HEX(0xEEF4F8), EGUI_COLOR_HEX(0xD9E5EE), EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(screen_bg_params, &screen_bg_param, NULL, NULL);
 EGUI_BACKGROUND_GRADIENT_STATIC_CONST_INIT(screen_bg, &screen_bg_params);
 
@@ -267,10 +264,10 @@ static void page_demo_reset_model(void)
 
     for (i = 0; i < page_context.item_count; i++)
     {
-        page_demo_fill_section(&page_context.sections[i], page_context.next_stable_id++, i + 1U);
+        page_demo_fill_section(&page_context.sections[i], page_context.next_stable_id++, i);
     }
 
-    snprintf(page_context.last_action_text, sizeof(page_context.last_action_text), "Tap to expand. Use buttons.");
+    snprintf(page_context.last_action_text, sizeof(page_context.last_action_text), "Tap cards. Use Add / Del / Patch / Jump.");
 }
 
 static int32_t page_demo_find_index_by_stable_id(uint32_t stable_id)
@@ -305,31 +302,22 @@ static int32_t page_demo_measure_section_height_with_state(const page_demo_secti
     switch (section->variant)
     {
     case PAGE_SECTION_VARIANT_METRIC:
-        base_height = 72;
+        base_height = 96;
         break;
     case PAGE_SECTION_VARIANT_ALERT:
-        base_height = 86;
+        base_height = 108;
         break;
     case PAGE_SECTION_VARIANT_FORM:
-        base_height = 102;
+        base_height = 144;
         break;
     default:
-        base_height = 94;
+        base_height = 164;
         break;
-    }
-
-    if (section->state == PAGE_SECTION_STATE_SYNC)
-    {
-        base_height += 6;
-    }
-    else if (section->state == PAGE_SECTION_STATE_WARNING)
-    {
-        base_height += 4;
     }
 
     if (selected)
     {
-        base_height += 18;
+        base_height += 12;
     }
 
     return base_height;
@@ -492,8 +480,7 @@ static void page_demo_refresh_header(void)
     }
     else
     {
-        snprintf(page_context.header_detail_text, sizeof(page_context.header_detail_text), "Sections %lu | sel none",
-                 (unsigned long)page_context.item_count);
+        snprintf(page_context.header_detail_text, sizeof(page_context.header_detail_text), "Sections %lu | sel none", (unsigned long)page_context.item_count);
     }
     snprintf(page_context.header_hint_text, sizeof(page_context.header_hint_text), "%s", page_context.last_action_text);
 
@@ -551,15 +538,37 @@ static uint32_t page_demo_pick_action_index(void)
     return page_context.mutation_cursor % page_context.item_count;
 }
 
-static void page_demo_bind_section_card(page_demo_section_view_t *section_view, int pool_index, uint32_t index, const page_demo_section_t *section, uint8_t selected)
+static void page_demo_bind_section_card(page_demo_section_view_t *section_view, int pool_index, uint32_t index, const page_demo_section_t *section,
+                                        uint8_t selected)
 {
+    egui_dim_t view_w = page_demo_get_view_width();
     egui_dim_t card_x = PAGE_CARD_INSET_X;
     egui_dim_t card_y = PAGE_CARD_INSET_Y;
-    egui_dim_t card_w = page_demo_get_view_width() - PAGE_CARD_INSET_X * 2;
+    egui_dim_t card_w = view_w - PAGE_CARD_INSET_X * 2;
     egui_dim_t card_h = (egui_dim_t)(page_demo_measure_section_height_with_state(section, selected) - PAGE_CARD_INSET_Y * 2);
     egui_dim_t badge_w = selected ? 54 : 44;
+    egui_dim_t badge_y = 10;
     egui_dim_t badge_x;
+    egui_dim_t eyebrow_w;
     egui_dim_t title_w;
+    egui_dim_t body_w;
+    egui_dim_t meta_w;
+    egui_dim_t title_h = PAGE_TITLE_H;
+    egui_dim_t body_h = PAGE_TEXT_H;
+    egui_dim_t meta_h = PAGE_TEXT_H;
+    egui_dim_t eyebrow_x = 14;
+    egui_dim_t eyebrow_y = 10;
+    egui_dim_t title_x = 14;
+    egui_dim_t title_y = 26;
+    egui_dim_t body_x = 14;
+    egui_dim_t body_y = 42;
+    egui_dim_t meta_x = 14;
+    egui_dim_t meta_y;
+    egui_dim_t progress_x = 14;
+    egui_dim_t progress_y;
+    egui_dim_t progress_w;
+    egui_dim_t pulse_x;
+    egui_dim_t pulse_y;
     egui_background_t *badge_bg;
     egui_color_t badge_text_color;
     egui_color_t card_color;
@@ -567,8 +576,31 @@ static void page_demo_bind_section_card(page_demo_section_view_t *section_view, 
     egui_color_t title_color;
     egui_color_t body_color;
     egui_color_t meta_color;
+    egui_color_t panel_a_color = EGUI_COLOR_WHITE;
+    egui_color_t panel_b_color = EGUI_COLOR_WHITE;
+    egui_color_t panel_c_color = EGUI_COLOR_WHITE;
     uint8_t show_body;
+    uint8_t show_eyebrow = 1;
     uint8_t show_progress;
+    uint8_t show_panel_a = 1;
+    uint8_t show_panel_b = 0;
+    uint8_t show_panel_c = 0;
+    egui_dim_t corner_radius = 12;
+    const egui_shadow_t *shadow = &page_card_shadow;
+    egui_dim_t panel_a_x = 12;
+    egui_dim_t panel_a_y = 12;
+    egui_dim_t panel_a_w = 40;
+    egui_dim_t panel_a_h = 16;
+    egui_dim_t panel_b_x = 12;
+    egui_dim_t panel_b_y = 12;
+    egui_dim_t panel_b_w = 40;
+    egui_dim_t panel_b_h = 16;
+    egui_dim_t panel_c_x = 12;
+    egui_dim_t panel_c_y = 12;
+    egui_dim_t panel_c_w = 40;
+    egui_dim_t panel_c_h = 16;
+    egui_dim_t panel_corner = 8;
+    uint8_t align_right = (uint8_t)((((index / 2U) + section->revision) & 1U) != 0U);
 
     if (card_h < 56)
     {
@@ -579,22 +611,180 @@ static void page_demo_bind_section_card(page_demo_section_view_t *section_view, 
         card_w = 140;
     }
 
-    show_body = (uint8_t)(selected || section->variant != PAGE_SECTION_VARIANT_METRIC);
-    show_progress = (uint8_t)(selected || section->variant != PAGE_SECTION_VARIANT_ALERT || section->state != PAGE_SECTION_STATE_IDLE);
+    show_body = 1;
+    show_progress = (uint8_t)(selected || section->variant != PAGE_SECTION_VARIANT_METRIC || section->state == PAGE_SECTION_STATE_SYNC ||
+                              section->state == PAGE_SECTION_STATE_WARNING);
 
-    snprintf(page_context.eyebrow_texts[pool_index], sizeof(page_context.eyebrow_texts[pool_index]), "%s / %s",
-             page_demo_variant_names[section->variant], page_demo_state_names[section->state]);
-    snprintf(page_context.title_texts[pool_index], sizeof(page_context.title_texts[pool_index]), "%s #%03lu", page_demo_variant_names[section->variant],
-             (unsigned long)index);
-    snprintf(page_context.body_texts[pool_index], sizeof(page_context.body_texts[pool_index]), "%s",
-             selected ? "Selected keeps pulse." : page_demo_variant_notes[section->variant]);
-    snprintf(page_context.meta_texts[pool_index], sizeof(page_context.meta_texts[pool_index]), "#%05lu  %u%%  r%u", (unsigned long)section->stable_id,
-             (unsigned)section->progress, (unsigned)section->revision);
+    snprintf(page_context.eyebrow_texts[pool_index], sizeof(page_context.eyebrow_texts[pool_index]), "%s / %s", page_demo_variant_names[section->variant],
+             page_demo_state_names[section->state]);
     snprintf(page_context.badge_texts[pool_index], sizeof(page_context.badge_texts[pool_index]), "%s",
-             selected ? "OPEN" : (section->state == PAGE_SECTION_STATE_SYNC ? "SYNC"
-                                                                           : (section->state == PAGE_SECTION_STATE_WARNING ? "WARN"
-                                                                                                                          : (section->state == PAGE_SECTION_STATE_DONE ? "DONE"
-                                                                                                                                                                      : "IDLE"))));
+             selected ? "OPEN"
+                      : (section->state == PAGE_SECTION_STATE_SYNC
+                                 ? "SYNC"
+                                 : (section->state == PAGE_SECTION_STATE_WARNING ? "WARN" : (section->state == PAGE_SECTION_STATE_DONE ? "DONE" : "IDLE"))));
+
+    switch (section->variant)
+    {
+    case PAGE_SECTION_VARIANT_METRIC:
+        snprintf(page_context.title_texts[pool_index], sizeof(page_context.title_texts[pool_index]), "Metric %02lu", (unsigned long)((index + 1U) % 100U));
+        snprintf(page_context.body_texts[pool_index], sizeof(page_context.body_texts[pool_index]), "%u ms",
+                 (unsigned)(140U + (uint32_t)section->progress * 2U));
+        snprintf(page_context.meta_texts[pool_index], sizeof(page_context.meta_texts[pool_index]), "lane %u  r%u", (unsigned)((index % 6U) + 1U),
+                 (unsigned)section->revision);
+        card_w = 132;
+        card_x = align_right ? (egui_dim_t)(view_w - card_w - 8) : 8;
+        show_eyebrow = 0;
+        badge_w = selected ? 50 : 42;
+        badge_y = 12;
+        title_x = 16;
+        title_y = 16;
+        title_h = 16;
+        body_x = 16;
+        body_y = 40;
+        body_h = 18;
+        meta_x = 16;
+        meta_y = show_progress ? (egui_dim_t)(card_h - 29) : (egui_dim_t)(card_h - 20);
+        progress_x = 16;
+        progress_y = card_h - 10;
+        progress_w = card_w - 32;
+        pulse_y = 16;
+        corner_radius = 16;
+        shadow = NULL;
+        panel_corner = 10;
+        panel_a_x = 14;
+        panel_a_y = 34;
+        panel_a_w = card_w - 28;
+        panel_a_h = 26;
+        panel_b_x = 16;
+        panel_b_y = 12;
+        panel_b_w = 24;
+        panel_b_h = 8;
+        panel_c_x = 46;
+        panel_c_y = 12;
+        panel_c_w = 34;
+        panel_c_h = 8;
+        show_panel_b = 1;
+        show_panel_c = 1;
+        break;
+    case PAGE_SECTION_VARIANT_ALERT:
+        snprintf(page_context.title_texts[pool_index], sizeof(page_context.title_texts[pool_index]), "Alert %02lu",
+                 (unsigned long)((index + 1U) % 100U));
+        snprintf(page_context.body_texts[pool_index], sizeof(page_context.body_texts[pool_index]), "%s",
+                 selected ? "Pinned warning" : (section->state == PAGE_SECTION_STATE_WARNING ? "Retry budget low" : "Watch queue"));
+        snprintf(page_context.meta_texts[pool_index], sizeof(page_context.meta_texts[pool_index]), "ack %u%%  #%05lu", (unsigned)section->progress,
+                 (unsigned long)section->stable_id);
+        card_x = 14;
+        card_w = view_w - 28;
+        show_eyebrow = 0;
+        badge_w = selected ? 54 : 46;
+        title_x = 34;
+        title_y = 30;
+        title_h = 18;
+        body_x = 34;
+        body_y = 48;
+        meta_x = 34;
+        meta_y = card_h - 28;
+        progress_y = card_h - 10;
+        progress_x = 34;
+        progress_w = card_w - 48;
+        pulse_y = 16;
+        corner_radius = 12;
+        panel_corner = 4;
+        panel_a_x = 14;
+        panel_a_y = 14;
+        panel_a_w = 10;
+        panel_a_h = card_h - 28;
+        panel_b_x = 34;
+        panel_b_y = 16;
+        panel_b_w = 38;
+        panel_b_h = 8;
+        panel_c_x = 78;
+        panel_c_y = 16;
+        panel_c_w = 60;
+        panel_c_h = 8;
+        show_panel_b = 1;
+        show_panel_c = 1;
+        break;
+    case PAGE_SECTION_VARIANT_FORM:
+        snprintf(page_context.title_texts[pool_index], sizeof(page_context.title_texts[pool_index]), "Checklist %02lu",
+                 (unsigned long)((index + 1U) % 100U));
+        snprintf(page_context.body_texts[pool_index], sizeof(page_context.body_texts[pool_index]), "%u/8 gates",
+                 (unsigned)((section->progress / 13U) + 1U));
+        snprintf(page_context.meta_texts[pool_index], sizeof(page_context.meta_texts[pool_index]), "queue %u  r%u", (unsigned)((index % 4U) + 1U),
+                 (unsigned)section->revision);
+        card_w = view_w - 46;
+        card_x = align_right ? (egui_dim_t)(view_w - card_w - 8) : 22;
+        badge_w = selected ? 56 : 48;
+        badge_y = 14;
+        eyebrow_x = 18;
+        eyebrow_y = 12;
+        title_x = 18;
+        title_y = 30;
+        body_x = 18;
+        body_y = 48;
+        meta_x = 18;
+        meta_y = 62;
+        progress_x = 18;
+        progress_y = card_h - 10;
+        progress_w = card_w - 36;
+        pulse_y = 16;
+        corner_radius = 14;
+        panel_corner = 6;
+        panel_a_x = 18;
+        panel_a_y = 80;
+        panel_a_w = card_w - 36;
+        panel_a_h = 12;
+        panel_b_x = 18;
+        panel_b_y = 96;
+        panel_b_w = card_w - 56;
+        panel_b_h = 12;
+        panel_c_x = 18;
+        panel_c_y = 112;
+        panel_c_w = card_w - 76;
+        panel_c_h = 12;
+        show_panel_b = 1;
+        show_panel_c = 1;
+        break;
+    default:
+        snprintf(page_context.title_texts[pool_index], sizeof(page_context.title_texts[pool_index]), "Overview %02lu",
+                 (unsigned long)((index + 1U) % 100U));
+        snprintf(page_context.body_texts[pool_index], sizeof(page_context.body_texts[pool_index]), "%s",
+                 selected ? "Pinned summary module" : "Live module overview");
+        snprintf(page_context.meta_texts[pool_index], sizeof(page_context.meta_texts[pool_index]), "#%05lu  %u%%  r%u", (unsigned long)section->stable_id,
+                 (unsigned)section->progress, (unsigned)section->revision);
+        card_x = 8;
+        card_w = view_w - 16;
+        badge_w = selected ? 58 : 48;
+        badge_y = 14;
+        eyebrow_x = 20;
+        eyebrow_y = 18;
+        title_x = 20;
+        title_y = 38;
+        title_h = 20;
+        body_x = 20;
+        body_y = 60;
+        meta_y = card_h - 30;
+        progress_x = 18;
+        progress_y = card_h - 10;
+        progress_w = card_w - 36;
+        pulse_y = 18;
+        corner_radius = 18;
+        panel_a_x = 12;
+        panel_a_y = 12;
+        panel_a_w = card_w - 24;
+        panel_a_h = 68;
+        panel_b_x = 16;
+        panel_b_y = 96;
+        panel_b_w = (card_w - 52) / 2;
+        panel_b_h = 26;
+        panel_c_x = (egui_dim_t)(panel_b_x + panel_b_w + 10);
+        panel_c_y = 96;
+        panel_c_w = panel_b_w;
+        panel_c_h = 26;
+        show_panel_b = 1;
+        show_panel_c = 1;
+        break;
+    }
 
     if (selected)
     {
@@ -603,6 +793,9 @@ static void page_demo_bind_section_card(page_demo_section_view_t *section_view, 
         title_color = EGUI_COLOR_WHITE;
         body_color = EGUI_COLOR_WHITE;
         meta_color = EGUI_COLOR_WHITE;
+        panel_a_color = EGUI_COLOR_HEX(0x4D7DAC);
+        panel_b_color = EGUI_COLOR_HEX(0x6C96BA);
+        panel_c_color = EGUI_COLOR_HEX(0x7BA6C9);
         badge_bg = EGUI_BG_OF(&badge_selected_bg);
         badge_text_color = EGUI_COLOR_HEX(0x2F5E91);
         section_view->progress.progress_color = EGUI_COLOR_WHITE;
@@ -613,51 +806,137 @@ static void page_demo_bind_section_card(page_demo_section_view_t *section_view, 
         switch (section->variant)
         {
         case PAGE_SECTION_VARIANT_METRIC:
-            card_color = EGUI_COLOR_WHITE;
-            border_color = EGUI_COLOR_HEX(0xD8E2EA);
+            card_color = EGUI_COLOR_HEX(0x5C7FA0);
+            border_color = EGUI_COLOR_HEX(0x5C7FA0);
+            title_color = EGUI_COLOR_WHITE;
+            meta_color = EGUI_COLOR_HEX(0xE6EEF6);
+            panel_a_color = EGUI_COLOR_HEX(0x4A6C8E);
+            panel_b_color = EGUI_COLOR_HEX(0x8BA7C1);
+            panel_c_color = EGUI_COLOR_HEX(0xB6CAE0);
             break;
         case PAGE_SECTION_VARIANT_ALERT:
-            card_color = EGUI_COLOR_HEX(0xFFF6E8);
-            border_color = EGUI_COLOR_HEX(0xE0B36B);
+            card_color = EGUI_COLOR_HEX(0xFFF7EC);
+            border_color = EGUI_COLOR_HEX(0xD8A259);
+            title_color = EGUI_COLOR_HEX(0x744D1A);
+            panel_a_color = EGUI_COLOR_HEX(0xD9952E);
+            panel_b_color = EGUI_COLOR_HEX(0xE9BE7A);
+            panel_c_color = EGUI_COLOR_HEX(0xF2DAB8);
             break;
         case PAGE_SECTION_VARIANT_FORM:
-            card_color = EGUI_COLOR_HEX(0xEEF5F0);
-            border_color = EGUI_COLOR_HEX(0xC7D7C8);
+            card_color = EGUI_COLOR_HEX(0xF4FBF6);
+            border_color = EGUI_COLOR_HEX(0xB8CFBF);
+            title_color = EGUI_COLOR_HEX(0x264230);
+            panel_a_color = EGUI_COLOR_HEX(0xDDEEE1);
+            panel_b_color = EGUI_COLOR_HEX(0xEBF5EC);
+            panel_c_color = EGUI_COLOR_HEX(0xF5FAF5);
             break;
         default:
-            card_color = EGUI_COLOR_HEX(0xF4FAFF);
-            border_color = EGUI_COLOR_HEX(0xCBDCE9);
+            card_color = EGUI_COLOR_HEX(0xF2F7FC);
+            border_color = EGUI_COLOR_HEX(0xC5D8E8);
+            title_color = EGUI_COLOR_HEX(0x203243);
+            panel_a_color = EGUI_COLOR_HEX(0x5F8FBE);
+            panel_b_color = EGUI_COLOR_HEX(0xE2EDF8);
+            panel_c_color = EGUI_COLOR_HEX(0xD7E6F4);
             break;
         }
-        title_color = EGUI_COLOR_HEX(0x233443);
         body_color = EGUI_COLOR_HEX(0x55697A);
-        meta_color = section->state == PAGE_SECTION_STATE_WARNING ? EGUI_COLOR_HEX(0x8E6726)
-                                                                  : (section->state == PAGE_SECTION_STATE_SYNC ? EGUI_COLOR_HEX(0x2A7C5A)
-                                                                                                                 : EGUI_COLOR_HEX(0x677989));
-        badge_bg = section->state == PAGE_SECTION_STATE_SYNC   ? EGUI_BG_OF(&badge_sync_bg)
+        if (section->variant != PAGE_SECTION_VARIANT_METRIC)
+        {
+            meta_color = section->state == PAGE_SECTION_STATE_WARNING
+                                 ? EGUI_COLOR_HEX(0x8E6726)
+                                 : (section->state == PAGE_SECTION_STATE_SYNC ? EGUI_COLOR_HEX(0x2A7C5A) : EGUI_COLOR_HEX(0x677989));
+        }
+        badge_bg = section->state == PAGE_SECTION_STATE_SYNC      ? EGUI_BG_OF(&badge_sync_bg)
                    : section->state == PAGE_SECTION_STATE_WARNING ? EGUI_BG_OF(&badge_warn_bg)
                    : section->state == PAGE_SECTION_STATE_DONE    ? EGUI_BG_OF(&badge_done_bg)
-                                                                 : EGUI_BG_OF(&badge_idle_bg);
+                                                                  : EGUI_BG_OF(&badge_idle_bg);
         badge_text_color = section->state == PAGE_SECTION_STATE_WARNING ? EGUI_COLOR_BLACK : EGUI_COLOR_WHITE;
         section_view->progress.progress_color = section->state == PAGE_SECTION_STATE_WARNING ? EGUI_COLOR_HEX(0xD08A2E)
-                                              : section->state == PAGE_SECTION_STATE_SYNC    ? EGUI_COLOR_HEX(0x2E9A6F)
-                                                                                            : EGUI_COLOR_HEX(0x4B79B2);
+                                                : section->state == PAGE_SECTION_STATE_SYNC  ? EGUI_COLOR_HEX(0x2E9A6F)
+                                                                                             : EGUI_COLOR_HEX(0x4B79B2);
         section_view->progress.bk_color = EGUI_COLOR_HEX(0xDCE6F0);
+
+        if (section->variant == PAGE_SECTION_VARIANT_METRIC)
+        {
+            body_color = EGUI_COLOR_WHITE;
+        }
+        else if (section->variant == PAGE_SECTION_VARIANT_HERO)
+        {
+            body_color = EGUI_COLOR_HEX(0xEAF2FA);
+        }
     }
 
     section_view->progress.control_color = section_view->progress.progress_color;
     badge_x = card_w - badge_w - 10;
-    title_w = badge_x - 16;
+    eyebrow_w = badge_x - eyebrow_x - 8;
+    title_w = badge_x - title_x - 8;
+    body_w = card_w - body_x - 12;
+    meta_w = card_w - meta_x - 12;
+    if (eyebrow_w < 64)
+    {
+        eyebrow_w = 64;
+    }
     if (title_w < 76)
     {
         title_w = 76;
     }
+    if (body_w < 72)
+    {
+        body_w = 72;
+    }
+    if (meta_w < 72)
+    {
+        meta_w = 72;
+    }
+    if (section->variant == PAGE_SECTION_VARIANT_METRIC)
+    {
+        title_w = card_w - title_x - 14;
+        body_w = card_w - body_x - 16;
+        meta_w = card_w - meta_x - 16;
+    }
+    else if (section->variant == PAGE_SECTION_VARIANT_HERO)
+    {
+        eyebrow_w = badge_x - eyebrow_x - 12;
+        title_w = badge_x - title_x - 12;
+        body_w = panel_a_w - 28;
+        meta_w = card_w - meta_x - 18;
+    }
+    else if (section->variant == PAGE_SECTION_VARIANT_FORM)
+    {
+        title_w = badge_x - title_x - 10;
+        body_w = card_w - body_x - 20;
+        meta_w = badge_x - meta_x - 14;
+    }
+
+    pulse_x = badge_x - 14;
 
     egui_view_card_set_bg_color(EGUI_VIEW_OF(&section_view->card), card_color, EGUI_ALPHA_100);
-    egui_view_card_set_border(EGUI_VIEW_OF(&section_view->card), selected ? 2 : 1, border_color);
+    egui_view_card_set_border(EGUI_VIEW_OF(&section_view->card),
+                              selected ? 2 : ((section->variant == PAGE_SECTION_VARIANT_HERO || section->variant == PAGE_SECTION_VARIANT_METRIC) ? 0 : 1),
+                              border_color);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&section_view->card), corner_radius);
+    egui_view_set_shadow(EGUI_VIEW_OF(&section_view->card), shadow);
+    egui_view_card_set_bg_color(EGUI_VIEW_OF(&section_view->panel_a), panel_a_color, EGUI_ALPHA_100);
+    egui_view_card_set_bg_color(EGUI_VIEW_OF(&section_view->panel_b), panel_b_color, EGUI_ALPHA_100);
+    egui_view_card_set_bg_color(EGUI_VIEW_OF(&section_view->panel_c), panel_c_color, EGUI_ALPHA_100);
+    egui_view_card_set_border(EGUI_VIEW_OF(&section_view->panel_a), 0, panel_a_color);
+    egui_view_card_set_border(EGUI_VIEW_OF(&section_view->panel_b), 0, panel_b_color);
+    egui_view_card_set_border(EGUI_VIEW_OF(&section_view->panel_c), 0, panel_c_color);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&section_view->panel_a), panel_corner);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&section_view->panel_b), panel_corner);
+    egui_view_card_set_corner_radius(EGUI_VIEW_OF(&section_view->panel_c), panel_corner);
+    egui_view_set_shadow(EGUI_VIEW_OF(&section_view->panel_a), NULL);
+    egui_view_set_shadow(EGUI_VIEW_OF(&section_view->panel_b), NULL);
+    egui_view_set_shadow(EGUI_VIEW_OF(&section_view->panel_c), NULL);
     egui_view_set_background(EGUI_VIEW_OF(&section_view->badge), badge_bg);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&section_view->eyebrow), meta_color, EGUI_ALPHA_100);
-    egui_view_label_set_font_color(EGUI_VIEW_OF(&section_view->title), title_color, EGUI_ALPHA_100);
+    egui_view_label_set_font(EGUI_VIEW_OF(&section_view->eyebrow), PAGE_FONT_CAP);
+    egui_view_label_set_font(EGUI_VIEW_OF(&section_view->title), section->variant == PAGE_SECTION_VARIANT_HERO ? PAGE_FONT_HERO : PAGE_FONT_TITLE);
+    egui_view_label_set_font(EGUI_VIEW_OF(&section_view->body), section->variant == PAGE_SECTION_VARIANT_METRIC ? PAGE_FONT_KPI : PAGE_FONT_BODY);
+    egui_view_label_set_font(EGUI_VIEW_OF(&section_view->meta), PAGE_FONT_CAP);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&section_view->eyebrow), section->variant == PAGE_SECTION_VARIANT_HERO ? EGUI_COLOR_WHITE : meta_color,
+                                   EGUI_ALPHA_100);
+    egui_view_label_set_font_color(EGUI_VIEW_OF(&section_view->title), section->variant == PAGE_SECTION_VARIANT_HERO ? EGUI_COLOR_WHITE : title_color,
+                                   EGUI_ALPHA_100);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&section_view->body), body_color, EGUI_ALPHA_100);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&section_view->meta), meta_color, EGUI_ALPHA_100);
     egui_view_label_set_font_color(EGUI_VIEW_OF(&section_view->badge), badge_text_color, EGUI_ALPHA_100);
@@ -670,21 +949,36 @@ static void page_demo_bind_section_card(page_demo_section_view_t *section_view, 
 
     egui_view_set_position(EGUI_VIEW_OF(&section_view->card), card_x, card_y);
     egui_view_set_size(EGUI_VIEW_OF(&section_view->card), card_w, card_h);
-    egui_view_set_position(EGUI_VIEW_OF(&section_view->badge), badge_x, 10);
+    egui_view_set_position(EGUI_VIEW_OF(&section_view->panel_a), panel_a_x, panel_a_y);
+    egui_view_set_size(EGUI_VIEW_OF(&section_view->panel_a), panel_a_w, panel_a_h);
+    egui_view_set_position(EGUI_VIEW_OF(&section_view->panel_b), panel_b_x, panel_b_y);
+    egui_view_set_size(EGUI_VIEW_OF(&section_view->panel_b), panel_b_w, panel_b_h);
+    egui_view_set_position(EGUI_VIEW_OF(&section_view->panel_c), panel_c_x, panel_c_y);
+    egui_view_set_size(EGUI_VIEW_OF(&section_view->panel_c), panel_c_w, panel_c_h);
+    egui_view_set_position(EGUI_VIEW_OF(&section_view->badge), badge_x, badge_y);
     egui_view_set_size(EGUI_VIEW_OF(&section_view->badge), badge_w, PAGE_BADGE_H);
-    egui_view_set_position(EGUI_VIEW_OF(&section_view->pulse), badge_x - 15, 15);
+    egui_view_set_position(EGUI_VIEW_OF(&section_view->pulse), pulse_x, pulse_y);
     egui_view_set_size(EGUI_VIEW_OF(&section_view->pulse), 8, 8);
-    egui_view_set_position(EGUI_VIEW_OF(&section_view->eyebrow), 12, 8);
-    egui_view_set_size(EGUI_VIEW_OF(&section_view->eyebrow), title_w, PAGE_EYEBROW_H);
-    egui_view_set_position(EGUI_VIEW_OF(&section_view->title), 12, 22);
-    egui_view_set_size(EGUI_VIEW_OF(&section_view->title), title_w, PAGE_TITLE_H);
-    egui_view_set_position(EGUI_VIEW_OF(&section_view->body), 12, 38);
-    egui_view_set_size(EGUI_VIEW_OF(&section_view->body), card_w - 24, PAGE_TEXT_H);
-    egui_view_set_position(EGUI_VIEW_OF(&section_view->meta), 12, show_progress ? (card_h - 24) : (card_h - 15));
-    egui_view_set_size(EGUI_VIEW_OF(&section_view->meta), card_w - 24, PAGE_TEXT_H);
-    egui_view_set_position(EGUI_VIEW_OF(&section_view->progress), 12, card_h - 10);
-    egui_view_set_size(EGUI_VIEW_OF(&section_view->progress), card_w - 24, PAGE_PROGRESS_H);
+    egui_view_set_position(EGUI_VIEW_OF(&section_view->eyebrow), eyebrow_x, eyebrow_y);
+    egui_view_set_size(EGUI_VIEW_OF(&section_view->eyebrow), eyebrow_w, PAGE_EYEBROW_H);
+    egui_view_set_position(EGUI_VIEW_OF(&section_view->title), title_x, title_y);
+    egui_view_set_size(EGUI_VIEW_OF(&section_view->title), title_w, title_h);
+    egui_view_set_position(EGUI_VIEW_OF(&section_view->body), body_x, body_y);
+    egui_view_set_size(EGUI_VIEW_OF(&section_view->body), section->variant == PAGE_SECTION_VARIANT_METRIC ? 84 : body_w, body_h);
+    egui_view_set_position(EGUI_VIEW_OF(&section_view->meta), meta_x, show_progress ? meta_y : (card_h - 15));
+    egui_view_set_size(EGUI_VIEW_OF(&section_view->meta), meta_w, meta_h);
+    egui_view_set_position(EGUI_VIEW_OF(&section_view->progress), progress_x, progress_y);
+    egui_view_set_size(EGUI_VIEW_OF(&section_view->progress), progress_w, PAGE_PROGRESS_H);
 
+    if (section->variant == PAGE_SECTION_VARIANT_METRIC && !selected && section->state == PAGE_SECTION_STATE_IDLE)
+    {
+        show_body = 1;
+    }
+
+    egui_view_set_gone(EGUI_VIEW_OF(&section_view->panel_a), show_panel_a ? 0 : 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&section_view->panel_b), show_panel_b ? 0 : 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&section_view->panel_c), show_panel_c ? 0 : 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&section_view->eyebrow), show_eyebrow ? 0 : 1);
     egui_view_set_gone(EGUI_VIEW_OF(&section_view->body), show_body ? 0 : 1);
     egui_view_set_gone(EGUI_VIEW_OF(&section_view->progress), show_progress ? 0 : 1);
     egui_view_progress_bar_set_process(EGUI_VIEW_OF(&section_view->progress), section->progress);
@@ -763,6 +1057,9 @@ static egui_view_t *page_demo_create_section_view(void *data_source_context, uin
 
     egui_view_group_init(EGUI_VIEW_OF(&section_view->root));
     egui_view_card_init(EGUI_VIEW_OF(&section_view->card));
+    egui_view_card_init(EGUI_VIEW_OF(&section_view->panel_a));
+    egui_view_card_init(EGUI_VIEW_OF(&section_view->panel_b));
+    egui_view_card_init(EGUI_VIEW_OF(&section_view->panel_c));
     egui_view_label_init(EGUI_VIEW_OF(&section_view->eyebrow));
     egui_view_label_init(EGUI_VIEW_OF(&section_view->title));
     egui_view_label_init(EGUI_VIEW_OF(&section_view->body));
@@ -784,6 +1081,9 @@ static egui_view_t *page_demo_create_section_view(void *data_source_context, uin
     egui_view_label_set_align_type(EGUI_VIEW_OF(&section_view->badge), EGUI_ALIGN_CENTER);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&section_view->root), EGUI_VIEW_OF(&section_view->card));
+    egui_view_card_add_child(EGUI_VIEW_OF(&section_view->card), EGUI_VIEW_OF(&section_view->panel_a));
+    egui_view_card_add_child(EGUI_VIEW_OF(&section_view->card), EGUI_VIEW_OF(&section_view->panel_b));
+    egui_view_card_add_child(EGUI_VIEW_OF(&section_view->card), EGUI_VIEW_OF(&section_view->panel_c));
     egui_view_card_add_child(EGUI_VIEW_OF(&section_view->card), EGUI_VIEW_OF(&section_view->eyebrow));
     egui_view_card_add_child(EGUI_VIEW_OF(&section_view->card), EGUI_VIEW_OF(&section_view->title));
     egui_view_card_add_child(EGUI_VIEW_OF(&section_view->card), EGUI_VIEW_OF(&section_view->body));
@@ -803,6 +1103,8 @@ static egui_view_t *page_demo_create_section_view(void *data_source_context, uin
     egui_animation_interpolator_set(EGUI_ANIM_OF(&section_view->pulse_anim), (egui_interpolator_t *)&section_view->pulse_interp);
     egui_animation_target_view_set(EGUI_ANIM_OF(&section_view->pulse_anim), EGUI_VIEW_OF(&section_view->pulse));
     egui_view_set_gone(EGUI_VIEW_OF(&section_view->pulse), 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&section_view->panel_b), 1);
+    egui_view_set_gone(EGUI_VIEW_OF(&section_view->panel_c), 1);
 
     ctx->created_count++;
     return EGUI_VIEW_OF(&section_view->root);
@@ -1191,11 +1493,10 @@ void test_init_ui(void)
     for (i = 0; i < PAGE_ACTION_COUNT; i++)
     {
         page_demo_init_action_button(&action_buttons[i], button_x, page_demo_action_names[i]);
-        egui_view_set_background(EGUI_VIEW_OF(&action_buttons[i]),
-                                 i == PAGE_ACTION_ADD     ? EGUI_BG_OF(&action_add_bg)
-                                 : i == PAGE_ACTION_DEL   ? EGUI_BG_OF(&action_del_bg)
-                                 : i == PAGE_ACTION_PATCH ? EGUI_BG_OF(&action_patch_bg)
-                                                          : EGUI_BG_OF(&action_jump_bg));
+        egui_view_set_background(EGUI_VIEW_OF(&action_buttons[i]), i == PAGE_ACTION_ADD     ? EGUI_BG_OF(&action_add_bg)
+                                                                   : i == PAGE_ACTION_DEL   ? EGUI_BG_OF(&action_del_bg)
+                                                                   : i == PAGE_ACTION_PATCH ? EGUI_BG_OF(&action_patch_bg)
+                                                                                            : EGUI_BG_OF(&action_jump_bg));
         egui_view_card_add_child(EGUI_VIEW_OF(&toolbar_card), EGUI_VIEW_OF(&action_buttons[i]));
         button_x += PAGE_BUTTON_W + PAGE_BUTTON_GAP;
     }
@@ -1222,6 +1523,19 @@ void test_init_ui(void)
 }
 
 #if EGUI_CONFIG_RECORDING_TEST
+static void page_demo_record_scroll_focus(void)
+{
+    uint32_t index;
+
+    if (page_context.item_count == 0)
+    {
+        return;
+    }
+
+    index = page_context.item_count > 7U ? 7U : (page_context.item_count - 1U);
+    egui_view_virtual_page_scroll_to_section_by_stable_id(EGUI_VIEW_OF(&page_view), page_context.sections[index].stable_id, PAGE_CARD_INSET_Y);
+}
+
 static uint8_t page_demo_match_visible_section(egui_view_t *self, const egui_view_virtual_page_slot_t *slot, const egui_view_virtual_page_entry_t *entry,
                                                egui_view_t *section_view, void *context)
 {
@@ -1239,60 +1553,36 @@ static egui_view_t *page_demo_find_first_visible_section_view(void)
 
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
+    static int last_action = -1;
     egui_view_t *view;
+    uint8_t first_call = (uint8_t)(last_action != action_index);
+
+    last_action = action_index;
 
     switch (action_index)
     {
     case 0:
-        view = page_demo_find_first_visible_section_view();
-        if (view == NULL)
+        if (first_call)
         {
-            EGUI_SIM_SET_WAIT(p_action, 160);
-            return true;
+            page_demo_record_scroll_focus();
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 700);
+        EGUI_SIM_SET_WAIT(p_action, 420);
         return true;
     case 1:
-        p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT - 32;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = PAGE_VIEW_Y + 34;
-        p_action->steps = 6;
-        p_action->interval_ms = 180;
-        return true;
-    case 2:
         view = page_demo_find_first_visible_section_view();
         if (view == NULL)
         {
-            EGUI_SIM_SET_WAIT(p_action, 160);
+            EGUI_SIM_SET_WAIT(p_action, 220);
             return true;
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, view, 700);
         return true;
-    case 3:
-        p_action->type = EGUI_SIM_ACTION_CLICK;
-        p_action->x1 = PAGE_MARGIN_X + 10 + PAGE_BUTTON_W * 2 + PAGE_BUTTON_GAP * 2 + PAGE_BUTTON_W / 2;
-        p_action->y1 = PAGE_TOOLBAR_Y + 6 + PAGE_BUTTON_H / 2;
-        p_action->x2 = p_action->x1;
-        p_action->y2 = p_action->y1;
-        p_action->interval_ms = 650;
-        return true;
-    case 4:
-        p_action->type = EGUI_SIM_ACTION_CLICK;
-        p_action->x1 = PAGE_MARGIN_X + 10 + (PAGE_BUTTON_W + PAGE_BUTTON_GAP) * 3 + PAGE_BUTTON_W / 2;
-        p_action->y1 = PAGE_TOOLBAR_Y + 6 + PAGE_BUTTON_H / 2;
-        p_action->x2 = p_action->x1;
-        p_action->y2 = p_action->y1;
-        p_action->interval_ms = 650;
-        return true;
-    case 5:
-        p_action->type = EGUI_SIM_ACTION_CLICK;
-        p_action->x1 = PAGE_MARGIN_X + 10 + PAGE_BUTTON_W / 2;
-        p_action->y1 = PAGE_TOOLBAR_Y + 6 + PAGE_BUTTON_H / 2;
-        p_action->x2 = p_action->x1;
-        p_action->y2 = p_action->y1;
-        p_action->interval_ms = 650;
+    case 2:
+        if (first_call)
+        {
+            page_demo_action_patch();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 420);
         return true;
     default:
         return false;
