@@ -45,7 +45,8 @@
 | 33 | Image mask alpha-row cache and row fast paths | MASK_RECT_FILL_IMAGE: 2.590->2.348ms (-9.3%), MASK_IMAGE_IMAGE: 4.793->4.784ms (-0.2%) | fddfd9f |
 | 34 | Direct image-mask alpha8 edge row segments | MASK_IMAGE_IMAGE: 4.784->2.529ms (-47.1%), DOUBLE: 4.783->2.529ms (-47.1%) | 31aad5e |
 | 35 | Round-rect visible row ranges | MASK_RECT_FILL_ROUND_RECT: 1.151->1.108ms (-3.7%), MASK_IMAGE_ROUND_RECT: 3.621->3.577ms (-1.2%) | 7f3e6fe |
-| 36 | Circle fixed-row alpha lookup reuse | MASK_RECT_FILL_CIRCLE: 2.438->2.122ms (-13.0%), MASK_IMAGE_CIRCLE: 4.293->3.974ms (-7.4%) | pending |
+| 36 | Circle fixed-row alpha lookup reuse | MASK_RECT_FILL_CIRCLE: 2.438->2.122ms (-13.0%), MASK_IMAGE_CIRCLE: 4.293->3.974ms (-7.4%) | 82eab4e |
+| 37 | Exact opaque-band boundaries for rounded masks | MASK_RECT_FILL_CIRCLE: 2.122->1.718ms (-19.0%), MASK_IMAGE_CIRCLE: 3.974->3.707ms (-6.7%) | pending |
 
 ## 2026-03-20 RECTANGLE_FILL batching round
 
@@ -232,6 +233,31 @@ QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
 - `src/mask/egui_mask_circle.c` now prewarms the cached circle row index inside `egui_mask_circle_get_row_range()`, so the later partial-row edge paths can reuse the same row lookup instead of rebuilding it.
 - `src/core/egui_canvas.h` adds `egui_canvas_get_circle_corner_value_fixed_row()`, and both the rectangle-fill and `RGB565_8` masked image paths reuse that helper once the row index is already known.
 - `src/image/egui_image_std.c` also switches resize `src_x_map` generation to an incremental accumulator, removing one fixed-point multiply per pixel from the resize-prep loop.
+- Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, and `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` all pass; screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` identical and `HelloUnitTest` is `554/554 passed`.
+
+## 2026-03-20 rounded-mask opaque boundary round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| MASK_RECT_FILL_CIRCLE | 2.122 | 1.718 | -19.0% |
+| MASK_RECT_FILL_CIRCLE_QUARTER | 0.691 | 0.590 | -14.6% |
+| MASK_RECT_FILL_CIRCLE_DOUBLE | 1.931 | 1.674 | -13.3% |
+| MASK_IMAGE_CIRCLE | 3.974 | 3.707 | -6.7% |
+| MASK_IMAGE_CIRCLE_QUARTER | 1.169 | 1.102 | -5.7% |
+| MASK_IMAGE_CIRCLE_DOUBLE | 3.499 | 3.375 | -3.5% |
+| MASK_RECT_FILL_ROUND_RECT | 1.108 | 1.025 | -7.5% |
+| MASK_RECT_FILL_ROUND_RECT_QUARTER | 0.446 | 0.420 | -5.8% |
+| MASK_RECT_FILL_ROUND_RECT_DOUBLE | 1.038 | 0.986 | -5.0% |
+| MASK_IMAGE_ROUND_RECT | 3.575 | 3.495 | -2.2% |
+| MASK_IMAGE_ROUND_RECT_QUARTER | 1.073 | 1.048 | -2.3% |
+| MASK_IMAGE_ROUND_RECT_DOUBLE | 3.494 | 3.446 | -1.4% |
+| RECTANGLE_FILL | 0.395 | 0.395 | 0.0% |
+| IMAGE_565 | 0.856 | 0.856 | 0.0% |
+
+- `src/mask/egui_mask_circle.c` and `src/mask/egui_mask_round_rectangle.c` now compute the exact first fully opaque corner column from the circle LUT thresholds instead of falling back to the previous conservative boundary.
+- That widens the row-level opaque band for both circle and round-rectangle masks, so more pixels go through the direct inside-row fast paths and fewer pixels fall back to per-pixel mask work.
 - Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, and `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` all pass; screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` identical and `HelloUnitTest` is `554/554 passed`.
 
 ## Before vs After (Original Baseline → Final)

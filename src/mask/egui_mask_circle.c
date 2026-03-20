@@ -169,34 +169,46 @@ void egui_mask_circle_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, 
 // Returns the first column index (in corner coords 0..radius-1) that is guaranteed fully opaque.
 static egui_dim_t egui_mask_circle_corner_get_opaque_boundary(egui_dim_t row_in_corner, const egui_circle_info_t *info)
 {
-    egui_dim_t left_boundary;
+    const egui_circle_item_t *items = (const egui_circle_item_t *)info->items;
     egui_dim_t item_count = (egui_dim_t)info->item_count;
+    egui_dim_t left_boundary;
 
     if (row_in_corner < item_count)
     {
-        const egui_circle_item_t *item = &((const egui_circle_item_t *)info->items)[row_in_corner];
+        const egui_circle_item_t *item = &items[row_in_corner];
         left_boundary = (egui_dim_t)item->start_offset + (egui_dim_t)item->valid_count;
     }
     else
     {
-        left_boundary = item_count;
+        left_boundary = row_in_corner;
     }
 
     egui_dim_t mirror_limit = EGUI_MIN(row_in_corner, item_count);
-    for (egui_dim_t col = mirror_limit - 1; col >= 0; col--)
+    if (mirror_limit > 0)
     {
-        const egui_circle_item_t *item = &((const egui_circle_item_t *)info->items)[col];
-        egui_dim_t threshold = (egui_dim_t)item->start_offset + (egui_dim_t)item->valid_count;
-        if (row_in_corner >= threshold)
+        egui_dim_t low = 0;
+        egui_dim_t high = mirror_limit;
+
+        while (low < high)
         {
-            if (col + 1 > left_boundary)
+            egui_dim_t mid = low + ((high - low) >> 1);
+            const egui_circle_item_t *item = &items[mid];
+            egui_dim_t threshold = (egui_dim_t)item->start_offset + (egui_dim_t)item->valid_count;
+
+            if (row_in_corner >= threshold)
             {
-                left_boundary = col + 1;
+                high = mid;
             }
-            break;
+            else
+            {
+                low = mid + 1;
+            }
         }
-        left_boundary = EGUI_MAX(left_boundary, col + 1);
-        break;
+
+        if (low < mirror_limit)
+        {
+            left_boundary = EGUI_MIN(left_boundary, low);
+        }
     }
 
     return left_boundary;
