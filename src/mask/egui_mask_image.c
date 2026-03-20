@@ -36,6 +36,7 @@ void egui_mask_image_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, e
 const egui_mask_api_t egui_mask_image_t_api_table = {
         .mask_point = egui_mask_image_mask_point,
         .mask_get_row_range = NULL,
+        .mask_blend_row_color = NULL,
 };
 
 void egui_mask_image_init(egui_mask_t *self)
