@@ -2990,7 +2990,7 @@ static egui_alpha_t gradient_ring_alpha(int32_t d_sq, int32_t outer_r_inner_sq, 
     }
     else
     {
-        uint32_t c = ((uint32_t)(d_sq - inner_r_inner_sq) * inv_inner_r) >> 8;
+        uint32_t c = ((uint32_t)(inner_r_outer_sq - d_sq) * inv_inner_r) >> 8;
         inner_cov = (egui_alpha_t)(c > 255 ? 255 : c);
     }
 
