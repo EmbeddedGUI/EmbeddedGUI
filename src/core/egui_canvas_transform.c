@@ -1248,31 +1248,34 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                             int g_y = g->y;
                             for (int32_t i = 0; i < sir_count; i++)
                             {
-                                uint8_t fx_i = (rotatedX >> 7) & 0xFF;
-                                uint8_t fy_i = (rotatedY >> 7) & 0xFF;
                                 uint16_t sa00, sa01, sa10, sa11;
                                 batch_extract_glyph_alpha(g_data, g->box_w, (rotatedX >> 15) - g_x, (rotatedY >> 15) - g_y, bpp, &sa00, &sa01, &sa10,
                                                          &sa11);
 
-                                uint16_t ah0 = sa00 + (((int32_t)(sa01 - sa00) * fx_i + 128) >> 8);
-                                uint16_t ah1 = sa10 + (((int32_t)(sa11 - sa10) * fx_i + 128) >> 8);
-                                uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy_i + 128) >> 8));
+                                if ((sa00 | sa01 | sa10 | sa11) != 0)
+                                {
+                                    uint8_t fx_i = (rotatedX >> 7) & 0xFF;
+                                    uint8_t fy_i = (rotatedY >> 7) & 0xFF;
+                                    uint16_t ah0 = sa00 + (((int32_t)(sa01 - sa00) * fx_i + 128) >> 8);
+                                    uint16_t ah1 = sa10 + (((int32_t)(sa11 - sa10) * fx_i + 128) >> 8);
+                                    uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy_i + 128) >> 8));
 
-                                if (pixel_alpha == EGUI_ALPHA_100)
-                                {
-                                    *dst_row = color.full;
-                                }
-                                else if (pixel_alpha > 0)
-                                {
+                                    if (pixel_alpha == EGUI_ALPHA_100)
+                                    {
+                                        *dst_row = color.full;
+                                    }
+                                    else if (pixel_alpha > 0)
+                                    {
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
-                                    uint16_t bg = *dst_row;
-                                    uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
-                                    uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
-                                    *dst_row = (uint16_t)(result | (result >> 16));
+                                        uint16_t bg = *dst_row;
+                                        uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                        uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                        *dst_row = (uint16_t)(result | (result >> 16));
 #else
-                                    egui_color_t *back = (egui_color_t *)dst_row;
-                                    egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
+                                        egui_color_t *back = (egui_color_t *)dst_row;
+                                        egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
 #endif
+                                    }
                                 }
 
                                 rotatedX += ctx.inv_m00;
@@ -1284,34 +1287,37 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                         {
                             for (int32_t i = 0; i < sir_count; i++)
                             {
-                                uint8_t fx_i = (rotatedX >> 7) & 0xFF;
-                                uint8_t fy_i = (rotatedY >> 7) & 0xFF;
                                 uint16_t sa00, sa01, sa10, sa11;
                                 batch_extract_glyph_alpha(g->data, g->box_w, (rotatedX >> 15) - g->x, (rotatedY >> 15) - g->y, bpp, &sa00, &sa01, &sa10,
                                                          &sa11);
 
-                                uint16_t ah0 = sa00 + (((int32_t)(sa01 - sa00) * fx_i + 128) >> 8);
-                                uint16_t ah1 = sa10 + (((int32_t)(sa11 - sa10) * fx_i + 128) >> 8);
-                                uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy_i + 128) >> 8));
-
-                                if (pixel_alpha > 0)
+                                if ((sa00 | sa01 | sa10 | sa11) != 0)
                                 {
-                                    egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
-                                    if (final_alpha == EGUI_ALPHA_100)
+                                    uint8_t fx_i = (rotatedX >> 7) & 0xFF;
+                                    uint8_t fy_i = (rotatedY >> 7) & 0xFF;
+                                    uint16_t ah0 = sa00 + (((int32_t)(sa01 - sa00) * fx_i + 128) >> 8);
+                                    uint16_t ah1 = sa10 + (((int32_t)(sa11 - sa10) * fx_i + 128) >> 8);
+                                    uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy_i + 128) >> 8));
+
+                                    if (pixel_alpha > 0)
                                     {
-                                        *dst_row = color.full;
-                                    }
-                                    else if (final_alpha > 0)
-                                    {
+                                        egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
+                                        if (final_alpha == EGUI_ALPHA_100)
+                                        {
+                                            *dst_row = color.full;
+                                        }
+                                        else if (final_alpha > 0)
+                                        {
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
-                                        uint16_t bg = *dst_row;
-                                        uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
-                                        uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)final_alpha >> 3) >> 5)) & 0x07E0F81FUL;
-                                        *dst_row = (uint16_t)(result | (result >> 16));
+                                            uint16_t bg = *dst_row;
+                                            uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                            uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)final_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                            *dst_row = (uint16_t)(result | (result >> 16));
 #else
-                                        egui_color_t *back = (egui_color_t *)dst_row;
-                                        egui_rgb_mix_ptr(back, &color, back, final_alpha);
+                                            egui_color_t *back = (egui_color_t *)dst_row;
+                                            egui_rgb_mix_ptr(back, &color, back, final_alpha);
 #endif
+                                        }
                                     }
                                 }
 
@@ -1836,31 +1842,33 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                 {
                     for (int32_t i = 0; i < sir_count; i++)
                     {
-                        uint8_t fx = (rotatedX >> 7) & 0xFF;
-                        uint8_t fy = (rotatedY >> 7) & 0xFF;
-
                         uint16_t a00, a01, a10, a11;
                         batch_bilinear_packed_alpha(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, bpp, &a00, &a01, &a10, &a11);
 
-                        uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
-                        uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
-                        uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+                        if ((a00 | a01 | a10 | a11) != 0)
+                        {
+                            uint8_t fx = (rotatedX >> 7) & 0xFF;
+                            uint8_t fy = (rotatedY >> 7) & 0xFF;
+                            uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                            uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                            uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
 
-                        if (pixel_alpha == EGUI_ALPHA_100)
-                        {
-                            *dst_row = color.full;
-                        }
-                        else if (pixel_alpha > 0)
-                        {
+                            if (pixel_alpha == EGUI_ALPHA_100)
+                            {
+                                *dst_row = color.full;
+                            }
+                            else if (pixel_alpha > 0)
+                            {
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
-                            uint16_t bg = *dst_row;
-                            uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
-                            uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
-                            *dst_row = (uint16_t)(result | (result >> 16));
+                                uint16_t bg = *dst_row;
+                                uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                *dst_row = (uint16_t)(result | (result >> 16));
 #else
-                            egui_color_t *back = (egui_color_t *)dst_row;
-                            egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
+                                egui_color_t *back = (egui_color_t *)dst_row;
+                                egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
 #endif
+                            }
                         }
 
                         rotatedX += ctx.inv_m00;
@@ -1872,34 +1880,36 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                 {
                     for (int32_t i = 0; i < sir_count; i++)
                     {
-                        uint8_t fx = (rotatedX >> 7) & 0xFF;
-                        uint8_t fy = (rotatedY >> 7) & 0xFF;
-
                         uint16_t a00, a01, a10, a11;
                         batch_bilinear_packed_alpha(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, bpp, &a00, &a01, &a10, &a11);
 
-                        uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
-                        uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
-                        uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
-
-                        if (pixel_alpha > 0)
+                        if ((a00 | a01 | a10 | a11) != 0)
                         {
-                            egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
-                            if (final_alpha == EGUI_ALPHA_100)
+                            uint8_t fx = (rotatedX >> 7) & 0xFF;
+                            uint8_t fy = (rotatedY >> 7) & 0xFF;
+                            uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                            uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                            uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+
+                            if (pixel_alpha > 0)
                             {
-                                *dst_row = color.full;
-                            }
-                            else if (final_alpha > 0)
-                            {
+                                egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
+                                if (final_alpha == EGUI_ALPHA_100)
+                                {
+                                    *dst_row = color.full;
+                                }
+                                else if (final_alpha > 0)
+                                {
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
-                                uint16_t bg = *dst_row;
-                                uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
-                                uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)final_alpha >> 3) >> 5)) & 0x07E0F81FUL;
-                                *dst_row = (uint16_t)(result | (result >> 16));
+                                    uint16_t bg = *dst_row;
+                                    uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                    uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)final_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                    *dst_row = (uint16_t)(result | (result >> 16));
 #else
-                                egui_color_t *back = (egui_color_t *)dst_row;
-                                egui_rgb_mix_ptr(back, &color, back, final_alpha);
+                                    egui_color_t *back = (egui_color_t *)dst_row;
+                                    egui_rgb_mix_ptr(back, &color, back, final_alpha);
 #endif
+                                }
                             }
                         }
 
