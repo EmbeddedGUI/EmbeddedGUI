@@ -35,6 +35,11 @@ __EGUI_STATIC_INLINE__ void egui_mask_circle_refresh_cache(egui_mask_t *self)
     }
     local->visible_radius_sq = (uint32_t)(local->radius + 1) * (uint32_t)(local->radius + 1);
     local->info = egui_canvas_get_circle_item(local->radius);
+    local->visible_cached_dy = -1;
+    local->visible_cached_half = 0;
+    local->point_cached_y = -32768;
+    local->point_cached_row_index = 0;
+    local->point_cached_row_valid = 0;
 }
 
 static uint32_t egui_mask_circle_isqrt(uint32_t n)
@@ -64,6 +69,48 @@ static uint32_t egui_mask_circle_isqrt(uint32_t n)
     return root;
 }
 
+static egui_dim_t egui_mask_circle_get_visible_half(egui_mask_circle_t *local, egui_dim_t dy)
+{
+    if (dy == local->visible_cached_dy)
+    {
+        return local->visible_cached_half;
+    }
+
+    uint32_t dy_sq = (uint32_t)dy * (uint32_t)dy;
+    egui_dim_t half = local->visible_cached_half;
+
+    if (local->visible_cached_dy >= 0)
+    {
+        egui_dim_t delta = dy - local->visible_cached_dy;
+        if (delta < 0)
+        {
+            delta = -delta;
+        }
+
+        if (delta <= 4)
+        {
+            while (half > 0 && ((uint32_t)half * (uint32_t)half + dy_sq) > local->visible_radius_sq)
+            {
+                half--;
+            }
+
+            while (((uint32_t)(half + 1) * (uint32_t)(half + 1) + dy_sq) <= local->visible_radius_sq)
+            {
+                half++;
+            }
+
+            local->visible_cached_dy = dy;
+            local->visible_cached_half = half;
+            return half;
+        }
+    }
+
+    half = (egui_dim_t)egui_mask_circle_isqrt((dy_sq < local->visible_radius_sq) ? (local->visible_radius_sq - dy_sq) : 0);
+    local->visible_cached_dy = dy;
+    local->visible_cached_half = half;
+    return half;
+}
+
 void egui_mask_circle_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
     egui_mask_circle_t *local = (egui_mask_circle_t *)self;
@@ -71,19 +118,45 @@ void egui_mask_circle_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, 
 
     if (x >= local->cached_x && x < local->cached_x_end && y >= local->cached_y && y < local->cached_y_end)
     {
-        egui_dim_t dx = (x > local->center_x) ? (x - local->center_x) : (local->center_x - x);
-        egui_dim_t dy = (y > local->center_y) ? (y - local->center_y) : (local->center_y - y);
+        egui_dim_t row_index;
 
-        if (dx <= local->radius && dy <= local->radius)
+        if (y == local->point_cached_y)
         {
-            if (local->info != NULL)
+            if (!local->point_cached_row_valid)
             {
-                egui_alpha_t mix_alpha = egui_canvas_get_circle_corner_value(local->radius - dy, local->radius - dx, local->info);
-                if (mix_alpha != 0)
-                {
-                    *alpha = egui_color_alpha_mix(mix_alpha, *alpha);
-                    return;
-                }
+                color->full = 0;
+                *alpha = 0;
+                return;
+            }
+
+            row_index = local->point_cached_row_index;
+        }
+        else
+        {
+            egui_dim_t dy = (y > local->center_y) ? (y - local->center_y) : (local->center_y - y);
+            if (dy > local->radius)
+            {
+                local->point_cached_y = y;
+                local->point_cached_row_valid = 0;
+                color->full = 0;
+                *alpha = 0;
+                return;
+            }
+
+            row_index = local->radius - dy;
+            local->point_cached_y = y;
+            local->point_cached_row_index = row_index;
+            local->point_cached_row_valid = 1;
+        }
+
+        egui_dim_t dx = (x > local->center_x) ? (x - local->center_x) : (local->center_x - x);
+        if (dx <= local->radius && local->info != NULL)
+        {
+            egui_alpha_t mix_alpha = egui_canvas_get_circle_corner_value(row_index, local->radius - dx, local->info);
+            if (mix_alpha != 0)
+            {
+                *alpha = egui_color_alpha_mix(mix_alpha, *alpha);
+                return;
             }
         }
     }
@@ -212,9 +285,7 @@ static int egui_mask_circle_get_row_visible_range(egui_mask_t *self, egui_dim_t 
     }
 
     egui_dim_t dy = (y > center_y) ? (y - center_y) : (center_y - y);
-    uint32_t dy_sq = (uint32_t)dy * (uint32_t)dy;
-    uint32_t remain_sq = (dy_sq < local->visible_radius_sq) ? (local->visible_radius_sq - dy_sq) : 0;
-    egui_dim_t visible_half = (egui_dim_t)egui_mask_circle_isqrt(remain_sq);
+    egui_dim_t visible_half = egui_mask_circle_get_visible_half(local, dy);
     egui_dim_t visible_x_start = center_x - visible_half;
     egui_dim_t visible_x_end = center_x + visible_half + 1;
 
@@ -251,5 +322,10 @@ void egui_mask_circle_init(egui_mask_t *self)
     local->center_y = 0;
     local->radius = 0;
     local->visible_radius_sq = 0;
+    local->visible_cached_dy = -1;
+    local->visible_cached_half = 0;
+    local->point_cached_y = -32768;
+    local->point_cached_row_index = 0;
+    local->point_cached_row_valid = 0;
     local->info = NULL;
 }
