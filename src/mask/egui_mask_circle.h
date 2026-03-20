@@ -8,10 +8,24 @@
 extern "C" {
 #endif
 
+typedef struct egui_circle_info egui_circle_info_t;
+
 typedef struct egui_mask_circle egui_mask_circle_t;
 struct egui_mask_circle
 {
     egui_mask_t base;
+
+    egui_dim_t cached_x;
+    egui_dim_t cached_y;
+    egui_dim_t cached_width;
+    egui_dim_t cached_height;
+    egui_dim_t cached_x_end;
+    egui_dim_t cached_y_end;
+    egui_dim_t center_x;
+    egui_dim_t center_y;
+    egui_dim_t radius;
+    uint32_t visible_radius_sq;
+    const egui_circle_info_t *info;
 };
 
 void egui_mask_circle_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha);

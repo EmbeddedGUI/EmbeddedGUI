@@ -355,6 +355,41 @@ __EGUI_STATIC_INLINE__ void egui_canvas_fill_color_buffer(egui_color_int_t *dst,
 #endif
 }
 
+__EGUI_STATIC_INLINE__ void egui_canvas_fill_masked_row_segment(egui_canvas_t *self, egui_dim_t y, egui_dim_t x_start, egui_dim_t x_end, egui_color_t color,
+                                                                egui_alpha_t alpha)
+{
+    if (x_start >= x_end)
+    {
+        return;
+    }
+
+    egui_dim_t pfb_width = self->pfb_region.size.width;
+    egui_dim_t pfb_x = x_start - self->pfb_location_in_base_view.x;
+    egui_dim_t pfb_y = y - self->pfb_location_in_base_view.y;
+    egui_color_int_t *dst = &self->pfb[pfb_y * pfb_width + pfb_x];
+
+    for (egui_dim_t xp = x_start; xp < x_end; xp++, dst++)
+    {
+        egui_color_t pixel_color = color;
+        egui_alpha_t pixel_alpha = alpha;
+        self->mask->api->mask_point(self->mask, xp, y, &pixel_color, &pixel_alpha);
+
+        if (pixel_alpha == 0)
+        {
+            continue;
+        }
+
+        if (pixel_alpha == EGUI_ALPHA_100)
+        {
+            *dst = pixel_color.full;
+        }
+        else
+        {
+            egui_rgb_mix_ptr((egui_color_t *)dst, &pixel_color, (egui_color_t *)dst, pixel_alpha);
+        }
+    }
+}
+
 __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
                                                                  egui_alpha_t alpha)
 {
@@ -396,10 +431,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
             }
             else
             {
-                for (xp = x; xp < x_total; xp++)
-                {
-                    egui_canvas_set_point_color_with_mask(self, xp, yp, color, alpha);
-                }
+                egui_canvas_fill_masked_row_segment(self, yp, x, x_total, color, alpha);
             }
         }
         return;
@@ -453,10 +485,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
                 }
 
                 // Left edge: per-pixel with mask
-                for (xp = visible_x_start; xp < EGUI_MIN(x_start, visible_x_end); xp++)
-                {
-                    egui_canvas_set_point_color_with_mask(self, xp, yp, color, alpha);
-                }
+                egui_canvas_fill_masked_row_segment(self, yp, visible_x_start, EGUI_MIN(x_start, visible_x_end), color, alpha);
                 // Middle: fast fill (guaranteed fully opaque through mask) - use direct pointer
                 if (x_start < x_end)
                 {
@@ -478,10 +507,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
                     }
                 }
                 // Right edge: per-pixel with mask
-                for (xp = EGUI_MAX(x_end, visible_x_start); xp < visible_x_end; xp++)
-                {
-                    egui_canvas_set_point_color_with_mask(self, xp, yp, color, alpha);
-                }
+                egui_canvas_fill_masked_row_segment(self, yp, EGUI_MAX(x_end, visible_x_start), visible_x_end, color, alpha);
             }
         }
     }
@@ -490,10 +516,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
         // Fallback: original per-pixel path
         for (yp = y; yp < y_total; yp++)
         {
-            for (xp = x; xp < x_total; xp++)
-            {
-                egui_canvas_set_point_color_with_mask(self, xp, yp, color, alpha);
-            }
+            egui_canvas_fill_masked_row_segment(self, yp, x, x_total, color, alpha);
         }
     }
 }

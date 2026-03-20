@@ -9,6 +9,34 @@
 
 extern const egui_circle_info_t egui_res_circle_info_arr[];
 
+__EGUI_STATIC_INLINE__ void egui_mask_circle_refresh_cache(egui_mask_t *self)
+{
+    egui_mask_circle_t *local = (egui_mask_circle_t *)self;
+
+    if (local->cached_x == self->region.location.x && local->cached_y == self->region.location.y && local->cached_width == self->region.size.width &&
+        local->cached_height == self->region.size.height)
+    {
+        return;
+    }
+
+    local->cached_x = self->region.location.x;
+    local->cached_y = self->region.location.y;
+    local->cached_width = self->region.size.width;
+    local->cached_height = self->region.size.height;
+    local->cached_x_end = self->region.location.x + self->region.size.width;
+    local->cached_y_end = self->region.location.y + self->region.size.height;
+    local->center_x = self->region.location.x + (self->region.size.width >> 1);
+    local->center_y = self->region.location.y + (self->region.size.height >> 1);
+    local->radius = EGUI_MIN(self->region.size.width, self->region.size.height);
+    local->radius = (local->radius >> 1) - 1;
+    if (local->radius < 0)
+    {
+        local->radius = 0;
+    }
+    local->visible_radius_sq = (uint32_t)(local->radius + 1) * (uint32_t)(local->radius + 1);
+    local->info = egui_canvas_get_circle_item(local->radius);
+}
+
 static uint32_t egui_mask_circle_isqrt(uint32_t n)
 {
     uint32_t root = 0;
@@ -38,21 +66,19 @@ static uint32_t egui_mask_circle_isqrt(uint32_t n)
 
 void egui_mask_circle_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
-    if (egui_region_pt_in_rect(&self->region, x, y))
-    {
-        egui_dim_t radius = EGUI_MIN(self->region.size.width, self->region.size.height);
-        radius = (radius >> 1) - 1;
-        egui_dim_t center_x = self->region.location.x + (self->region.size.width >> 1);
-        egui_dim_t center_y = self->region.location.y + (self->region.size.height >> 1);
-        egui_dim_t dx = (x > center_x) ? (x - center_x) : (center_x - x);
-        egui_dim_t dy = (y > center_y) ? (y - center_y) : (center_y - y);
+    egui_mask_circle_t *local = (egui_mask_circle_t *)self;
+    egui_mask_circle_refresh_cache(self);
 
-        if (dx <= radius && dy <= radius)
+    if (x >= local->cached_x && x < local->cached_x_end && y >= local->cached_y && y < local->cached_y_end)
+    {
+        egui_dim_t dx = (x > local->center_x) ? (x - local->center_x) : (local->center_x - x);
+        egui_dim_t dy = (y > local->center_y) ? (y - local->center_y) : (local->center_y - y);
+
+        if (dx <= local->radius && dy <= local->radius)
         {
-            const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
-            if (info != NULL)
+            if (local->info != NULL)
             {
-                egui_alpha_t mix_alpha = egui_canvas_get_circle_corner_value(radius - dy, radius - dx, info);
+                egui_alpha_t mix_alpha = egui_canvas_get_circle_corner_value(local->radius - dy, local->radius - dx, local->info);
                 if (mix_alpha != 0)
                 {
                     *alpha = egui_color_alpha_mix(mix_alpha, *alpha);
@@ -105,11 +131,12 @@ static egui_dim_t egui_mask_circle_corner_get_opaque_boundary(egui_dim_t row_in_
 
 int egui_mask_circle_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start, egui_dim_t *x_end)
 {
-    egui_dim_t radius = EGUI_MIN(self->region.size.width, self->region.size.height);
-    radius = (radius >> 1) - 1;
+    egui_mask_circle_t *local = (egui_mask_circle_t *)self;
+    egui_mask_circle_refresh_cache(self);
 
-    egui_dim_t center_x = self->region.location.x + (self->region.size.width >> 1);
-    egui_dim_t center_y = self->region.location.y + (self->region.size.height >> 1);
+    egui_dim_t center_x = local->center_x;
+    egui_dim_t center_y = local->center_y;
+    egui_dim_t radius = local->radius;
 
     egui_dim_t opaque_x_start;
     egui_dim_t opaque_x_end;
@@ -128,8 +155,7 @@ int egui_mask_circle_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x
     }
     else
     {
-        const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
-        if (info == NULL)
+        if (local->info == NULL)
         {
             *x_start = x_min;
             *x_end = x_min;
@@ -140,7 +166,7 @@ int egui_mask_circle_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x
         egui_dim_t dist = (y < center_y) ? (center_y - y) : (y - center_y);
         egui_dim_t row_in_corner = radius - dist; // 0 at outer edge, radius-1 near center
 
-        egui_dim_t boundary = egui_mask_circle_corner_get_opaque_boundary(row_in_corner, info);
+        egui_dim_t boundary = egui_mask_circle_corner_get_opaque_boundary(row_in_corner, local->info);
 
         // Left quadrant opaque: [center_x - radius + boundary, center_x)
         // Center column: center_x (vertical line)
@@ -173,11 +199,12 @@ int egui_mask_circle_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x
 
 static int egui_mask_circle_get_row_visible_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start, egui_dim_t *x_end)
 {
-    egui_dim_t radius = EGUI_MIN(self->region.size.width, self->region.size.height);
-    radius = (radius >> 1) - 1;
+    egui_mask_circle_t *local = (egui_mask_circle_t *)self;
+    egui_mask_circle_refresh_cache(self);
 
-    egui_dim_t center_x = self->region.location.x + (self->region.size.width >> 1);
-    egui_dim_t center_y = self->region.location.y + (self->region.size.height >> 1);
+    egui_dim_t radius = local->radius;
+    egui_dim_t center_x = local->center_x;
+    egui_dim_t center_y = local->center_y;
 
     if (y < center_y - radius || y > center_y + radius)
     {
@@ -185,9 +212,8 @@ static int egui_mask_circle_get_row_visible_range(egui_mask_t *self, egui_dim_t 
     }
 
     egui_dim_t dy = (y > center_y) ? (y - center_y) : (center_y - y);
-    uint32_t r_outer_sq = (uint32_t)(radius + 1) * (uint32_t)(radius + 1);
     uint32_t dy_sq = (uint32_t)dy * (uint32_t)dy;
-    uint32_t remain_sq = (dy_sq < r_outer_sq) ? (r_outer_sq - dy_sq) : 0;
+    uint32_t remain_sq = (dy_sq < local->visible_radius_sq) ? (local->visible_radius_sq - dy_sq) : 0;
     egui_dim_t visible_half = (egui_dim_t)egui_mask_circle_isqrt(remain_sq);
     egui_dim_t visible_x_start = center_x - visible_half;
     egui_dim_t visible_x_end = center_x + visible_half + 1;
@@ -215,4 +241,15 @@ void egui_mask_circle_init(egui_mask_t *self)
     self->api = &egui_mask_circle_t_api_table;
 
     // init local data.
+    local->cached_x = -1;
+    local->cached_y = -1;
+    local->cached_width = -1;
+    local->cached_height = -1;
+    local->cached_x_end = -1;
+    local->cached_y_end = -1;
+    local->center_x = 0;
+    local->center_y = 0;
+    local->radius = 0;
+    local->visible_radius_sq = 0;
+    local->info = NULL;
 }
