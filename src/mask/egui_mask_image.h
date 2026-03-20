@@ -3,6 +3,7 @@
 
 #include "egui_mask.h"
 #include "image/egui_image.h"
+#include "utils/egui_fixmath.h"
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
@@ -15,6 +16,8 @@ struct egui_mask_image
     egui_mask_t base;
 
     egui_image_t *img;
+    egui_float_t width_radio;  // cached: src_width / display_width (Q16.16)
+    egui_float_t height_radio; // cached: src_height / display_height (Q16.16)
 };
 
 void egui_mask_image_set_image(egui_mask_t *self, egui_image_t *img);
