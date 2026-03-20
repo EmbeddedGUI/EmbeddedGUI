@@ -337,6 +337,26 @@ QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
 - The cache resets together with the existing geometry caches, which keeps the change local to the circle-mask hot path and avoids touching the already-stable round-rect/image code.
 - Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `59/60` pixel-identical, and the only mismatch (`frame_0054.png`) matches `frame_0055.png` from the baseline, which points to capture-timing drift during the shape transition rather than a rendering regression; `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` stays `554/554 passed`.
 
+## 2026-03-21 circle edge-only segment split round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| MASK_IMAGE_CIRCLE | 3.661 | 3.647 | -0.4% |
+| MASK_IMAGE_CIRCLE_QUARTER | 1.085 | 1.082 | -0.3% |
+| MASK_IMAGE_CIRCLE_DOUBLE | 3.399 | 3.393 | -0.2% |
+| MASK_RECT_FILL_CIRCLE | 1.558 | 1.541 | -1.1% |
+| MASK_RECT_FILL_CIRCLE_QUARTER | 0.542 | 0.537 | -0.9% |
+| MASK_RECT_FILL_CIRCLE_DOUBLE | 1.581 | 1.573 | -0.5% |
+| MASK_IMAGE_ROUND_RECT | 3.430 | 3.431 | 0.0% |
+| RECTANGLE_FILL | 0.395 | 0.395 | 0.0% |
+| IMAGE_565 | 0.856 | 0.856 | 0.0% |
+
+- `src/image/egui_image_std.c` now splits circle-mask left/right edge segments into mirror-half and row-half phases, so the resize+mask hot path can read alpha directly from the LUT row data instead of calling the generic fixed-row corner accessor on every edge pixel.
+- `src/core/egui_canvas.h` mirrors the same edge-only specialization for solid fills, keeping `MASK_RECT_FILL_CIRCLE*` in sync and turning the small geometry win into a measurable rectangle-fill speedup as well.
+- Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `59/60` pixel-identical, and the only mismatch (`frame_0054.png`) matches `frame_0055.png` from the baseline, which points to capture-timing drift during the shape transition rather than a rendering regression; `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` stays `554/554 passed`.
+
 ## Before vs After (Original Baseline → Final)
 
 Original RECTANGLE_FILL = 9.665ms, historical snapshot RECTANGLE_FILL = 3.924ms (latest rounds are recorded above)
