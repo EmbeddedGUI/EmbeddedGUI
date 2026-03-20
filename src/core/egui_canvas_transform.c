@@ -241,6 +241,7 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
     egui_dim_t pfb_oy = canvas->pfb_location_in_base_view.y;
     egui_color_int_t *pfb = canvas->pfb;
     egui_alpha_t canvas_alpha = canvas->alpha;
+    egui_mask_t *mask = canvas->mask;
 
     /* Source pixel data */
     const uint16_t *data;
@@ -313,6 +314,14 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
         int entered = 0;
         int32_t dx = draw_x0;
 
+        egui_color_t row_overlay_color;
+        row_overlay_color.full = 0;
+        egui_alpha_t row_overlay_alpha = 0;
+        if (mask != NULL && mask->api->mask_get_row_overlay != NULL)
+        {
+            mask->api->mask_get_row_overlay(mask, (egui_dim_t)dy, &row_overlay_color, &row_overlay_alpha);
+        }
+
         /* Skip left dead zone where inverse-mapped coords are outside source */
         if (rotatedX < src_lo_x_q15 || rotatedX >= src_hi_x_q15 || rotatedY < src_lo_y_q15 || rotatedY >= src_hi_y_q15)
         {
@@ -373,7 +382,13 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                         uint16_t d01 = data[offs + 1];
                         uint16_t d10 = data[offs + src_w];
                         uint16_t d11 = data[offs + src_w + 1];
-                        *dst_row = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
+                        egui_color_t color;
+                        color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
+                        if (row_overlay_alpha > 0)
+                        {
+                            egui_rgb_mix_ptr(&color, &row_overlay_color, &color, row_overlay_alpha);
+                        }
+                        *dst_row = color.full;
                         rotatedX += inv_m00;
                         rotatedY += inv_m10;
                         dst_row++;
@@ -405,7 +420,13 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                                 uint16_t d01 = data[offs + 1];
                                 uint16_t d10 = data[offs + src_w];
                                 uint16_t d11 = data[offs + src_w + 1];
-                                *dst_row = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
+                                egui_color_t color;
+                                color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
+                                if (row_overlay_alpha > 0)
+                                {
+                                    egui_rgb_mix_ptr(&color, &row_overlay_color, &color, row_overlay_alpha);
+                                }
+                                *dst_row = color.full;
                             }
                             else
                             {
@@ -415,6 +436,10 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                                 uint16_t d11 = data[offs + src_w + 1];
                                 egui_color_t color;
                                 color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
+                                if (row_overlay_alpha > 0)
+                                {
+                                    egui_rgb_mix_ptr(&color, &row_overlay_color, &color, row_overlay_alpha);
+                                }
 
                                 uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
                                 uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
@@ -451,6 +476,10 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                         uint16_t d11 = data[offs + src_w + 1];
                         egui_color_t color;
                         color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
+                        if (row_overlay_alpha > 0)
+                        {
+                            egui_rgb_mix_ptr(&color, &row_overlay_color, &color, row_overlay_alpha);
+                        }
 
                         egui_alpha_t pixel_alpha = EGUI_ALPHA_100;
                         if (has_alpha8)
@@ -499,6 +528,10 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
 
                 egui_color_t color;
                 color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
+                if (row_overlay_alpha > 0)
+                {
+                    egui_rgb_mix_ptr(&color, &row_overlay_color, &color, row_overlay_alpha);
+                }
 
                 egui_alpha_t final_alpha = canvas_alpha;
 
