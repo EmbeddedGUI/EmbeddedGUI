@@ -42,7 +42,8 @@
 | 30 | Circle mask row/query caches for visible range and point rows | MASK_IMAGE_CIRCLE: 5.547->5.323ms (-4.0%), MASK_RECT_FILL_CIRCLE: 3.749->3.526ms (-5.9%) | c055f82 |
 | 31 | Circle mask specialized masked-edge blending | MASK_RECT_FILL_CIRCLE: 3.526->2.581ms (-26.8%), MASK_IMAGE_CIRCLE: 5.323->4.462ms (-16.2%) | 52df924 |
 | 32 | Circle mask monotonic edge coordinate walk | MASK_RECT_FILL_CIRCLE: 2.581->2.439ms (-5.5%), MASK_IMAGE_CIRCLE: 4.462->4.294ms (-3.8%) | 4255051 |
-| 33 | Image mask alpha-row cache and row fast paths | MASK_RECT_FILL_IMAGE: 2.590->2.348ms (-9.3%), MASK_IMAGE_IMAGE: 4.793->4.784ms (-0.2%) | WORKTREE |
+| 33 | Image mask alpha-row cache and row fast paths | MASK_RECT_FILL_IMAGE: 2.590->2.348ms (-9.3%), MASK_IMAGE_IMAGE: 4.793->4.784ms (-0.2%) | fddfd9f |
+| 34 | Direct image-mask alpha8 edge row segments | MASK_IMAGE_IMAGE: 4.784->2.529ms (-47.1%), DOUBLE: 4.783->2.529ms (-47.1%) | WORKTREE |
 
 ## 2026-03-20 RECTANGLE_FILL batching round
 
@@ -174,6 +175,23 @@ QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
 - `src/mask/egui_mask_image.c` / `src/mask/egui_mask_image.h` add internal-alpha8 image-mask caches for region/image metadata, row scans and point rows, and fix all lookups to use absolute coordinates from `mask->region.location`.
 - `src/core/egui_canvas.h` and `src/image/egui_image_std.c` add image-mask row-segment fast paths so both rectangle fills and `RGB565_8` masked blends can reuse the cached alpha row directly.
 - Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, and `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` all pass; diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` identical and `HelloUnitTest` is `554/554 passed`.
+
+## 2026-03-20 direct image-mask alpha8 row-segment round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| MASK_IMAGE_IMAGE | 4.784 | 2.529 | -47.1% |
+| MASK_IMAGE_IMAGE_QUARTER | 0.283 | 0.284 | +0.4% |
+| MASK_IMAGE_IMAGE_DOUBLE | 4.783 | 2.529 | -47.1% |
+| MASK_IMAGE_ROUND_RECT | 3.621 | 3.621 | 0.0% |
+| MASK_IMAGE_CIRCLE | 4.294 | 4.294 | 0.0% |
+| IMAGE_565_8 | 1.493 | 1.497 | +0.3% |
+
+- `src/image/egui_image_std.c` moves the image-mask optimization from the resize path to the real hot path used by `MASK_IMAGE_IMAGE`: the direct `RGB565_8` draw path inside `egui_image_std_set_image_rgb565_8()`.
+- `src/mask/egui_mask_image.c` / `src/mask/egui_mask_image.h` add a direct alpha8 row-segment blender so image-mask left/right edge spans can reuse the cached mask alpha row instead of calling `egui_canvas_draw_point_limit()` per pixel.
+- Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, and `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` all pass; screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `59/60` identical, and the only mismatch (`frame_0054.png`) matches `frame_0055.png` from the baseline, which points to capture-timing drift rather than a rendering regression.
 
 ## Before vs After (Original Baseline → Final)
 

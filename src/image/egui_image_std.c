@@ -1762,14 +1762,59 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
                 }
                 else // PARTIAL
                 {
+                    int image_mask_fast_path = (canvas->mask->api->mask_point == egui_mask_image_mask_point);
                     egui_dim_t rr_img_xs = rr_x_start - x_base;
                     egui_dim_t rr_img_xe = rr_x_end - x_base;
-                    // Left edge: per-pixel with mask
-                    for (egui_dim_t x_ = x; x_ < rr_img_xs; x_++)
+                    egui_dim_t visible_x_start = x_base + x;
+                    egui_dim_t visible_x_end = x_base + x_total;
+                    int has_visible_range = 0;
+
+                    if (image_mask_fast_path && canvas->mask->api->mask_get_row_visible_range != NULL)
                     {
-                        egui_image_std_get_col_pixel_rgb565_8(p_data, p_alpha, x_, &color, &alpha);
-                        egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
+                        has_visible_range = canvas->mask->api->mask_get_row_visible_range(canvas->mask, rr_sy, x_base + x, x_base + x_total, &visible_x_start,
+                                                                                          &visible_x_end);
+                        if (!has_visible_range)
+                        {
+                            continue;
+                        }
                     }
+
+                    if (has_visible_range)
+                    {
+                        egui_dim_t vis_img_xs = EGUI_MAX(x, visible_x_start - x_base);
+                        egui_dim_t vis_img_xe = EGUI_MIN(x_total, visible_x_end - x_base);
+                        egui_dim_t left_img_xe = EGUI_MIN(rr_img_xs, vis_img_xe);
+
+                        if (vis_img_xs < left_img_xe)
+                        {
+                            egui_alpha_t canvas_alpha = canvas->alpha;
+                            egui_dim_t pfb_width = canvas->pfb_region.size.width;
+                            egui_dim_t dst_x = (x_base + vis_img_xs) - canvas->pfb_location_in_base_view.x;
+                            egui_dim_t dst_y = rr_sy - canvas->pfb_location_in_base_view.y;
+                            egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x];
+                            const uint16_t *src_pixels = (const uint16_t *)p_data + vis_img_xs;
+                            const uint8_t *src_alpha_seg = (const uint8_t *)p_alpha + vis_img_xs;
+
+                            if (!egui_mask_image_blend_rgb565_alpha8_row_segment(canvas->mask, dst_row, src_pixels, src_alpha_seg, left_img_xe - vis_img_xs,
+                                                                                 x_base + vis_img_xs, rr_sy, canvas_alpha))
+                            {
+                                for (egui_dim_t x_ = vis_img_xs; x_ < left_img_xe; x_++)
+                                {
+                                    egui_image_std_get_col_pixel_rgb565_8(p_data, p_alpha, x_, &color, &alpha);
+                                    egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (egui_dim_t x_ = x; x_ < rr_img_xs; x_++)
+                        {
+                            egui_image_std_get_col_pixel_rgb565_8(p_data, p_alpha, x_, &color, &alpha);
+                            egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
+                        }
+                    }
+
                     // Middle: direct PFB access (inside mask)
                     {
                         egui_alpha_t canvas_alpha = canvas->alpha;
@@ -1783,11 +1828,41 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
 
                         egui_image_std_blend_rgb565_alpha8_row(dst_row, src_pixels, src_alpha_mid, mid_count, canvas_alpha);
                     }
-                    // Right edge: per-pixel with mask
-                    for (egui_dim_t x_ = rr_img_xe; x_ < x_total; x_++)
+
+                    if (has_visible_range)
                     {
-                        egui_image_std_get_col_pixel_rgb565_8(p_data, p_alpha, x_, &color, &alpha);
-                        egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
+                        egui_dim_t vis_img_xs = EGUI_MAX(x, visible_x_start - x_base);
+                        egui_dim_t vis_img_xe = EGUI_MIN(x_total, visible_x_end - x_base);
+                        egui_dim_t right_img_xs = EGUI_MAX(rr_img_xe, vis_img_xs);
+
+                        if (right_img_xs < vis_img_xe)
+                        {
+                            egui_alpha_t canvas_alpha = canvas->alpha;
+                            egui_dim_t pfb_width = canvas->pfb_region.size.width;
+                            egui_dim_t dst_x = (x_base + right_img_xs) - canvas->pfb_location_in_base_view.x;
+                            egui_dim_t dst_y = rr_sy - canvas->pfb_location_in_base_view.y;
+                            egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x];
+                            const uint16_t *src_pixels = (const uint16_t *)p_data + right_img_xs;
+                            const uint8_t *src_alpha_seg = (const uint8_t *)p_alpha + right_img_xs;
+
+                            if (!egui_mask_image_blend_rgb565_alpha8_row_segment(canvas->mask, dst_row, src_pixels, src_alpha_seg, vis_img_xe - right_img_xs,
+                                                                                 x_base + right_img_xs, rr_sy, canvas_alpha))
+                            {
+                                for (egui_dim_t x_ = right_img_xs; x_ < vis_img_xe; x_++)
+                                {
+                                    egui_image_std_get_col_pixel_rgb565_8(p_data, p_alpha, x_, &color, &alpha);
+                                    egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (egui_dim_t x_ = rr_img_xe; x_ < x_total; x_++)
+                        {
+                            egui_image_std_get_col_pixel_rgb565_8(p_data, p_alpha, x_, &color, &alpha);
+                            egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
+                        }
                     }
                 }
             }

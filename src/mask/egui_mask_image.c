@@ -357,6 +357,122 @@ int egui_mask_image_fill_row_segment(egui_mask_t *self, egui_color_int_t *dst, e
     return 1;
 }
 
+int egui_mask_image_blend_rgb565_alpha8_row_segment(egui_mask_t *self, egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
+                                                    egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y, egui_alpha_t canvas_alpha)
+{
+    EGUI_LOCAL_INIT(egui_mask_image_t);
+    egui_dim_t seg_start;
+    egui_dim_t seg_end;
+    egui_dim_t local_y;
+    egui_dim_t src_y;
+    egui_float_t mask_src_acc;
+
+    egui_mask_image_refresh_cache(local);
+    if (!egui_mask_image_supports_internal_alpha8_fast_path(local))
+    {
+        return 0;
+    }
+
+    seg_start = EGUI_MAX(screen_x, local->cached_x);
+    seg_end = EGUI_MIN(screen_x + count, local->cached_x_end);
+    if (screen_y < local->cached_y || screen_y >= local->cached_y_end || seg_start >= seg_end)
+    {
+        return 1;
+    }
+
+    local_y = screen_y - local->cached_y;
+    if (local_y == local->point_cached_y)
+    {
+        if (!local->point_cached_valid || local->point_cached_alpha_row == NULL)
+        {
+            return 1;
+        }
+    }
+    else
+    {
+        src_y = (egui_dim_t)EGUI_FLOAT_MULT(local_y, local->height_radio);
+        local->point_cached_y = local_y;
+        local->point_cached_src_y = src_y;
+        if (src_y < 0 || src_y >= local->src_height)
+        {
+            local->point_cached_valid = 0;
+            local->point_cached_alpha_row = NULL;
+            return 1;
+        }
+        local->point_cached_alpha_row = (const uint8_t *)local->alpha_buf + (uint32_t)src_y * local->src_width;
+        local->point_cached_valid = 1;
+    }
+
+    dst_row += seg_start - screen_x;
+    src_row += seg_start - screen_x;
+    src_alpha_row += seg_start - screen_x;
+    mask_src_acc = (egui_float_t)(seg_start - local->cached_x) * local->width_radio;
+
+    if (canvas_alpha == EGUI_ALPHA_100)
+    {
+        for (egui_dim_t i = seg_start; i < seg_end; i++, dst_row++, src_row++, src_alpha_row++, mask_src_acc += local->width_radio)
+        {
+            egui_dim_t mask_src_x = EGUI_FLOAT_INT_PART(mask_src_acc);
+            egui_alpha_t alpha;
+
+            if (mask_src_x < 0 || mask_src_x >= local->src_width || *src_alpha_row == 0)
+            {
+                continue;
+            }
+
+            alpha = egui_color_alpha_mix(local->point_cached_alpha_row[mask_src_x], *src_alpha_row);
+            if (alpha == 0)
+            {
+                continue;
+            }
+
+            egui_color_t color;
+            color.full = EGUI_COLOR_RGB565_TRANS(*src_row);
+            if (alpha == EGUI_ALPHA_100)
+            {
+                *dst_row = color.full;
+            }
+            else
+            {
+                egui_rgb_mix_ptr((egui_color_t *)dst_row, &color, (egui_color_t *)dst_row, alpha);
+            }
+        }
+    }
+    else
+    {
+        for (egui_dim_t i = seg_start; i < seg_end; i++, dst_row++, src_row++, src_alpha_row++, mask_src_acc += local->width_radio)
+        {
+            egui_dim_t mask_src_x = EGUI_FLOAT_INT_PART(mask_src_acc);
+            egui_alpha_t alpha;
+
+            if (mask_src_x < 0 || mask_src_x >= local->src_width || *src_alpha_row == 0)
+            {
+                continue;
+            }
+
+            alpha = egui_color_alpha_mix(local->point_cached_alpha_row[mask_src_x], *src_alpha_row);
+            alpha = egui_color_alpha_mix(canvas_alpha, alpha);
+            if (alpha == 0)
+            {
+                continue;
+            }
+
+            egui_color_t color;
+            color.full = EGUI_COLOR_RGB565_TRANS(*src_row);
+            if (alpha == EGUI_ALPHA_100)
+            {
+                *dst_row = color.full;
+            }
+            else
+            {
+                egui_rgb_mix_ptr((egui_color_t *)dst_row, &color, (egui_color_t *)dst_row, alpha);
+            }
+        }
+    }
+
+    return 1;
+}
+
 int egui_mask_image_blend_rgb565_alpha8_segment(egui_mask_t *self, egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
                                                 const egui_dim_t *src_x_map, egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y,
                                                 egui_alpha_t canvas_alpha)
