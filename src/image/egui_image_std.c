@@ -1992,6 +1992,98 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
         egui_image_std_release_external_buffer(data_buf, g_external_image_data_cache);
 #endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     }
+    else if ((egui_canvas_get_canvas()->alpha == EGUI_ALPHA_100) && (egui_canvas_get_canvas()->mask != NULL) &&
+             (egui_canvas_get_canvas()->mask->api->mask_get_row_overlay != NULL))
+    {
+        // Fast path: RGB565 image with row-level overlay (e.g. linear-vertical gradient overlay).
+        // Pre-compute blend factors per row and write directly to PFB.
+        egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
+        egui_canvas_t *canvas = egui_canvas_get_canvas();
+        egui_dim_t pfb_width = canvas->pfb_region.size.width;
+        egui_dim_t count = x_total - x;
+        egui_dim_t img_width = image->width;
+
+        egui_dim_t dst_y_start = (y_base + y) - canvas->pfb_location_in_base_view.y;
+        egui_dim_t dst_x_start = (x_base + x) - canvas->pfb_location_in_base_view.x;
+        egui_color_int_t *dst_row = &canvas->pfb[dst_y_start * pfb_width + dst_x_start];
+
+        const uint16_t *src_row = NULL;
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+        if (image->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
+        {
+            // External resource: fall through to generic path
+            EGUI_IMAGE_STD_DRAW_IMAGE_FUNC_DEFINE(egui_image_std_get_pixel_rgb565, self, x, y, x_total, y_total, x_base, y_base);
+        }
+        else
+#endif
+        {
+            src_row = (const uint16_t *)image->data_buf + (y * img_width) + x;
+
+            for (egui_dim_t y_ = y; y_ < y_total; y_++)
+            {
+                egui_dim_t screen_y = y_base + y_;
+                egui_color_t ov_color;
+                egui_alpha_t ov_alpha;
+
+                if (canvas->mask->api->mask_get_row_overlay(canvas->mask, screen_y, &ov_color, &ov_alpha))
+                {
+                    if (ov_alpha > 251)
+                    {
+                        // Nearly fully opaque overlay: fill with overlay color
+                        for (egui_dim_t i = 0; i < count; i++)
+                        {
+                            dst_row[i] = ov_color.full;
+                        }
+                    }
+                    else if (ov_alpha < 4)
+                    {
+                        // Nearly transparent overlay: just copy source
+                        egui_image_std_copy_rgb565_row(dst_row, src_row, count);
+                    }
+                    else
+                    {
+                        // Typical case: blend overlay color into each source pixel
+                        uint16_t fg = ov_color.full;
+                        uint32_t fg_rb_g = (fg | ((uint32_t)fg << 16)) & 0x07E0F81FUL;
+                        uint32_t alpha5 = (uint32_t)ov_alpha >> 3;
+
+                        for (egui_dim_t i = 0; i < count; i++)
+                        {
+                            uint16_t bg = src_row[i];
+                            uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                            uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * alpha5 >> 5)) & 0x07E0F81FUL;
+                            dst_row[i] = (uint16_t)(result | (result >> 16));
+                        }
+                    }
+                }
+                else
+                {
+                    // Overlay not applicable: per-pixel mask fallback
+                    for (egui_dim_t i = 0; i < count; i++)
+                    {
+                        egui_color_t color;
+                        egui_alpha_t alpha;
+                        color.full = src_row[i];
+                        alpha = EGUI_ALPHA_100;
+                        canvas->mask->api->mask_point(canvas->mask, x_base + x + i, screen_y, &color, &alpha);
+                        if (alpha == 0)
+                            continue;
+                        if (alpha == EGUI_ALPHA_100)
+                        {
+                            dst_row[i] = color.full;
+                        }
+                        else
+                        {
+                            egui_image_std_blend_resize_pixel(&dst_row[i], color, alpha);
+                        }
+                    }
+                }
+
+                src_row += img_width;
+                dst_row += pfb_width;
+            }
+        }
+    }
     else
     {
         EGUI_IMAGE_STD_DRAW_IMAGE_FUNC_DEFINE(egui_image_std_get_pixel_rgb565, self, x, y, x_total, y_total, x_base, y_base);
@@ -3152,11 +3244,31 @@ void egui_image_std_set_image_resize_rgb565(const egui_image_t *self, egui_dim_t
                     }
                     else
                     {
-                        for (egui_dim_t i = 0; i < count; i++)
+                        // Pre-compute packed blend factors for overlay
+                        uint16_t fg = ov_color.full;
+                        uint32_t fg_rb_g = (fg | ((uint32_t)fg << 16)) & 0x07E0F81FUL;
+                        uint32_t alpha5 = (uint32_t)ov_alpha >> 3;
+
+                        if (canvas_alpha == EGUI_ALPHA_100)
                         {
-                            color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x_map[i]]);
-                            egui_rgb_mix_ptr(&color, &ov_color, &color, ov_alpha);
-                            egui_image_std_blend_resize_pixel(&dst_row[i], color, canvas_alpha);
+                            for (egui_dim_t i = 0; i < count; i++)
+                            {
+                                uint16_t bg = src_row[src_x_map[i]];
+                                uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * alpha5 >> 5)) & 0x07E0F81FUL;
+                                dst_row[i] = (uint16_t)(result | (result >> 16));
+                            }
+                        }
+                        else
+                        {
+                            for (egui_dim_t i = 0; i < count; i++)
+                            {
+                                uint16_t bg = src_row[src_x_map[i]];
+                                uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * alpha5 >> 5)) & 0x07E0F81FUL;
+                                color.full = (uint16_t)(result | (result >> 16));
+                                egui_image_std_blend_resize_pixel(&dst_row[i], color, canvas_alpha);
+                            }
                         }
                     }
                 }
