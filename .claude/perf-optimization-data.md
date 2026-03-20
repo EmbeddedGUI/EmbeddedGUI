@@ -36,6 +36,27 @@
 | 23 | Circle outline: sign precompute + direct PFB write | CIRCLE: 23.2→16.7ms (-28%), ROUND_RECT: 23.3→16.8ms (-28%) | f28fedd || 24 | Arc fill/outline: sign precompute + direct PFB write | ARC_FILL: 24.4→18.6ms (-24%), ARC: 6.2→5.8ms (-7%) | ceaf386 |
 | 25 | LINE_HQ: hoist inner_thresh + direct PFB write (all HQ line funcs) | LINE_HQ: 33.3→31.3ms (-6%), BEZIER_QUAD: 10.6→10.0ms (-6%), BEZIER_CUBIC: 9.2→8.7ms (-6%) | ef20ff4 |
 | 26 | ARC_FILL_HQ: per-scanline angle x-bounds (skip per-pixel angle check for interior) | ARC_FILL_HQ: 52.3→38.8ms (-26%) — **REVERTED: rendering artifacts** | afffb36 |
+| 27 | RECTANGLE_FILL row/block batching (aligned 32-bit repeated stores) | RECTANGLE_FILL: 1.132->0.395ms (-65%), IMAGE_565 no longer faster | WORKTREE |
+
+## 2026-03-20 RECTANGLE_FILL batching round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| RECTANGLE | 0.943 | 0.391 | -58.5% |
+| RECTANGLE_FILL | 1.132 | 0.395 | -65.1% |
+| MASK_RECT_FILL_NO_MASK | 1.132 | 0.395 | -65.1% |
+| MASK_RECT_FILL_ROUND_RECT | 1.732 | 1.150 | -33.6% |
+| ROUND_RECTANGLE_FILL | 1.987 | 1.690 | -14.9% |
+| CIRCLE_FILL | 1.960 | 1.648 | -15.9% |
+| TRIANGLE_FILL | 2.644 | 2.361 | -10.7% |
+| IMAGE_565 | 0.856 | 0.856 | 0.0% |
+
+- `RECTANGLE_FILL` is now `0.46x` of `IMAGE_565` (`0.395 / 0.856`), so the rectangle-fill baseline is faster again.
+- Runtime verification: `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots` returns `ALL PASSED`.
+- Screenshot diff vs pre-change baseline: `59/60` frames are pixel-identical. Only `frame_0036.png` differs, and the post-change frame matches neighboring baseline frames, which points to capture-timing/perf-overlay drift rather than a rendering regression.
+
 ## Before vs After (Original Baseline → Final)
 
 Original RECTANGLE_FILL = 9.665ms, Final RECTANGLE_FILL = 3.924ms

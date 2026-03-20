@@ -301,6 +301,60 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_point_color_with_mask_check(egui_can
     }
 }
 
+__EGUI_STATIC_INLINE__ void egui_canvas_fill_color_buffer(egui_color_int_t *dst, uint32_t count, egui_color_t color)
+{
+    if (count == 0)
+    {
+        return;
+    }
+
+#if EGUI_CONFIG_COLOR_DEPTH == 16
+    uint16_t pixel = color.full;
+
+    if ((((egui_uintptr_t)dst) & 0x03U) != 0U)
+    {
+        *dst++ = pixel;
+        count--;
+    }
+
+    if (count >= 2)
+    {
+        uint32_t packed = ((uint32_t)pixel << 16) | pixel;
+        uint32_t *dst32 = (uint32_t *)dst;
+
+        while (count >= 8)
+        {
+            dst32[0] = packed;
+            dst32[1] = packed;
+            dst32[2] = packed;
+            dst32[3] = packed;
+            dst32 += 4;
+            count -= 8;
+        }
+
+        while (count >= 2)
+        {
+            *dst32++ = packed;
+            count -= 2;
+        }
+
+        dst = (egui_color_int_t *)dst32;
+    }
+
+    if (count != 0)
+    {
+        *dst = pixel;
+    }
+#else
+    egui_color_int_t pixel = color.full;
+
+    for (uint32_t i = 0; i < count; i++)
+    {
+        dst[i] = pixel;
+    }
+#endif
+}
+
 __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
                                                                  egui_alpha_t alpha)
 {
@@ -330,10 +384,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
 
                 if (alpha == EGUI_ALPHA_100)
                 {
-                    for (xp = 0; xp < width; xp++)
-                    {
-                        dst[xp] = row_color.full;
-                    }
+                    egui_canvas_fill_color_buffer(dst, width, row_color);
                 }
                 else
                 {
@@ -381,10 +432,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
 
                 if (alpha == EGUI_ALPHA_100)
                 {
-                    for (xp = 0; xp < count; xp++)
-                    {
-                        dst[xp] = color.full;
-                    }
+                    egui_canvas_fill_color_buffer(dst, count, color);
                 }
                 else
                 {
@@ -419,10 +467,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
 
                     if (alpha == EGUI_ALPHA_100)
                     {
-                        for (xp = 0; xp < count; xp++)
-                        {
-                            dst[xp] = color.full;
-                        }
+                        egui_canvas_fill_color_buffer(dst, count, color);
                     }
                     else
                     {
@@ -497,13 +542,15 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color(egui_dim_t x, egui_dim_t 
         return;
     }
 
+    if (x_start == 0 && width == pfb_width)
+    {
+        egui_canvas_fill_color_buffer(&self->pfb[y_start * pfb_width], (uint32_t)width * (uint32_t)height, color);
+        return;
+    }
+
     for (yp = y_start; yp < y_total; yp++)
     {
-        egui_color_int_t *dst = &self->pfb[yp * pfb_width + x_start];
-        for (egui_dim_t i = 0; i < width; i++)
-        {
-            dst[i] = color.full;
-        }
+        egui_canvas_fill_color_buffer(&self->pfb[yp * pfb_width + x_start], width, color);
     }
 }
 
