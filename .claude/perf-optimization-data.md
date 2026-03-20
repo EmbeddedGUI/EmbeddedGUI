@@ -357,6 +357,26 @@ QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
 - `src/core/egui_canvas.h` mirrors the same edge-only specialization for solid fills, keeping `MASK_RECT_FILL_CIRCLE*` in sync and turning the small geometry win into a measurable rectangle-fill speedup as well.
 - Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `59/60` pixel-identical, and the only mismatch (`frame_0054.png`) matches `frame_0055.png` from the baseline, which points to capture-timing drift during the shape transition rather than a rendering regression; `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` stays `554/554 passed`.
 
+## 2026-03-21 opaque alpha8 dispatch fast path round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| IMAGE_565_8 | 1.497 | 0.860 | -42.6% |
+| IMAGE_RESIZE_565_8 | 3.102 | 1.711 | -44.8% |
+| MASK_IMAGE_NO_MASK | 3.102 | 1.711 | -44.8% |
+| MASK_IMAGE_ROUND_RECT | 3.431 | 2.168 | -36.8% |
+| MASK_IMAGE_CIRCLE | 3.647 | 2.617 | -28.2% |
+| MASK_IMAGE_CIRCLE_QUARTER | 1.082 | 0.815 | -24.7% |
+| MASK_IMAGE_CIRCLE_DOUBLE | 3.393 | 2.476 | -27.0% |
+| MASK_IMAGE_IMAGE | 2.529 | 2.531 | +0.1% |
+| RECTANGLE_FILL | 0.395 | 0.395 | 0.0% |
+
+- `src/image/egui_image_std.c` now caches whether an internal `RGB565_8` resource's alpha buffer is fully opaque and routes those images through the plain `RGB565` draw/resize fast paths when the active mask is empty, circle, or round-rect.
+- The fast path is intentionally disabled for image-mask blends, which keeps `MASK_IMAGE_IMAGE*` on the original implementation and avoids the large regression seen when all opaque-alpha cases were blindly redirected.
+- Validation: `python scripts/code_perf_check.py --profile cortex-m3`, `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`, screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `59/60` pixel-identical, and the only mismatch (`frame_0054.png`) matches `frame_0055.png` from the baseline, which points to capture-timing drift during the shape transition rather than a rendering regression; `make clean && make all APP=HelloUnitTest PORT=pc_test && output\main.exe` stays `554/554 passed`.
+
 ## Before vs After (Original Baseline → Final)
 
 Original RECTANGLE_FILL = 9.665ms, historical snapshot RECTANGLE_FILL = 3.924ms (latest rounds are recorded above)
