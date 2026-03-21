@@ -524,6 +524,50 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
         return;
     }
 
+    if (self->mask->api->kind == EGUI_MASK_KIND_CIRCLE || self->mask->api->kind == EGUI_MASK_KIND_ROUND_RECTANGLE)
+    {
+        egui_dim_t pfb_x_offset = self->pfb_location_in_base_view.x;
+        egui_dim_t pfb_y_offset = self->pfb_location_in_base_view.y;
+        egui_dim_t pfb_width = self->pfb_region.size.width;
+
+        for (yp = y; yp < y_total; yp++)
+        {
+            egui_color_int_t *dst = &self->pfb[(yp - pfb_y_offset) * pfb_width + (x - pfb_x_offset)];
+
+            if (self->mask->api->kind == EGUI_MASK_KIND_CIRCLE)
+            {
+                egui_mask_circle_fill_row_segment(self->mask, dst, yp, x, x_total, color, alpha);
+            }
+            else
+            {
+                egui_mask_round_rectangle_fill_row_segment(self->mask, dst, yp, x, x_total, color, alpha);
+            }
+        }
+        return;
+    }
+
+    if (self->mask->api->kind == EGUI_MASK_KIND_IMAGE)
+    {
+        egui_dim_t pfb_x_offset = self->pfb_location_in_base_view.x;
+        egui_dim_t pfb_y_offset = self->pfb_location_in_base_view.y;
+        egui_dim_t pfb_width = self->pfb_region.size.width;
+
+        for (yp = y; yp < y_total; yp++)
+        {
+            egui_color_int_t *dst = &self->pfb[(yp - pfb_y_offset) * pfb_width + (x - pfb_x_offset)];
+
+            if (!egui_mask_image_fill_row_segment(self->mask, dst, yp, x, x_total, color, alpha))
+            {
+                break;
+            }
+        }
+
+        if (yp == y_total)
+        {
+            return;
+        }
+    }
+
     // Check if row-range optimization is available
     if (self->mask->api->mask_get_row_range != NULL)
     {
@@ -777,15 +821,15 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_canvas_get_circle_corner_value(egui_dim
 __EGUI_STATIC_INLINE__ egui_alpha_t egui_canvas_get_circle_corner_value_fixed_row(egui_dim_t row_index, egui_dim_t col_index, const egui_circle_info_t *info,
                                                                                    const egui_circle_item_t *items)
 {
-    egui_dim_t item_count = (egui_dim_t)info->item_count;
-
-    if (row_index >= item_count)
+    if (row_index <= col_index)
     {
-        return EGUI_ALPHA_100;
-    }
+        egui_dim_t item_count = (egui_dim_t)info->item_count;
 
-    if (col_index >= row_index)
-    {
+        if (row_index >= item_count)
+        {
+            return EGUI_ALPHA_100;
+        }
+
         const egui_circle_item_t *row_item = &items[row_index];
         egui_dim_t start_offset = row_item->start_offset;
         egui_dim_t valid_count = row_item->valid_count;
@@ -804,6 +848,13 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_canvas_get_circle_corner_value_fixed_ro
     }
 
     {
+        egui_dim_t item_count = (egui_dim_t)info->item_count;
+
+        if (col_index >= item_count)
+        {
+            return EGUI_ALPHA_100;
+        }
+
         const egui_circle_item_t *col_item = &items[col_index];
         egui_dim_t start_offset = col_item->start_offset;
         egui_dim_t valid_count = col_item->valid_count;

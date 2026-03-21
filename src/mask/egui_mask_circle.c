@@ -158,6 +158,25 @@ static egui_dim_t egui_mask_circle_get_visible_half(egui_mask_circle_t *local, e
     return half;
 }
 
+static void egui_mask_circle_blend_solid_row(egui_color_int_t *dst, egui_dim_t count, egui_color_t color, egui_alpha_t alpha)
+{
+    if (count <= 0 || alpha == 0)
+    {
+        return;
+    }
+
+    if (alpha == EGUI_ALPHA_100)
+    {
+        egui_canvas_fill_color_buffer(dst, count, color);
+        return;
+    }
+
+    for (egui_dim_t i = 0; i < count; i++)
+    {
+        egui_rgb_mix_ptr((egui_color_t *)&dst[i], &color, (egui_color_t *)&dst[i], alpha);
+    }
+}
+
 void egui_mask_circle_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
     egui_mask_circle_t *local = (egui_mask_circle_t *)self;
@@ -396,6 +415,171 @@ int egui_mask_circle_get_row_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x
     }
 
     return EGUI_MASK_ROW_PARTIAL;
+}
+
+int egui_mask_circle_fill_row_segment(egui_mask_t *self, egui_color_int_t *dst, egui_dim_t y, egui_dim_t x_start, egui_dim_t x_end, egui_color_t color,
+                                      egui_alpha_t alpha)
+{
+    egui_mask_circle_t *local = (egui_mask_circle_t *)self;
+    egui_dim_t center_x;
+    egui_dim_t center_y;
+    egui_dim_t radius;
+    egui_dim_t row_index;
+    egui_dim_t visible_half;
+    egui_dim_t opaque_boundary;
+    egui_dim_t seg_start;
+    egui_dim_t seg_end;
+    egui_dim_t opaque_x_start;
+    egui_dim_t opaque_x_end;
+    const egui_circle_info_t *info;
+    const egui_circle_item_t *items;
+
+    egui_mask_circle_refresh_cache(self);
+
+    center_x = local->center_x;
+    center_y = local->center_y;
+    radius = local->radius;
+    info = local->info;
+    items = (info != NULL) ? (const egui_circle_item_t *)info->items : NULL;
+
+    if (y < center_y - radius || y > center_y + radius || x_start >= x_end)
+    {
+        local->point_cached_y = y;
+        local->point_cached_row_valid = 0;
+        return 1;
+    }
+
+    if (y == center_y)
+    {
+        row_index = radius;
+        visible_half = radius;
+        opaque_boundary = 0;
+        local->point_cached_y = y;
+        local->point_cached_row_index = row_index;
+        local->point_cached_row_valid = (info != NULL);
+        egui_mask_circle_store_row(local, y, visible_half, opaque_boundary);
+    }
+    else
+    {
+        egui_dim_t dist;
+
+        if (info == NULL)
+        {
+            local->point_cached_y = y;
+            local->point_cached_row_valid = 0;
+            return 1;
+        }
+
+        dist = (y < center_y) ? (center_y - y) : (y - center_y);
+        row_index = radius - dist;
+
+        local->point_cached_y = y;
+        local->point_cached_row_index = row_index;
+        local->point_cached_row_valid = 1;
+
+        if (!egui_mask_circle_get_cached_row(local, y, &visible_half, &opaque_boundary))
+        {
+            visible_half = egui_mask_circle_get_visible_half(local, dist);
+            opaque_boundary = egui_mask_circle_get_opaque_boundary_cached(local, row_index);
+            egui_mask_circle_store_row(local, y, visible_half, opaque_boundary);
+        }
+    }
+
+    seg_start = EGUI_MAX(x_start, center_x - visible_half);
+    seg_end = EGUI_MIN(x_end, center_x + visible_half + 1);
+    if (seg_start >= seg_end)
+    {
+        return 1;
+    }
+
+    opaque_x_start = center_x - radius + opaque_boundary;
+    opaque_x_end = center_x + radius - opaque_boundary + 1;
+
+    if (seg_start < opaque_x_start && info != NULL && items != NULL)
+    {
+        egui_dim_t left_end = EGUI_MIN(seg_end, opaque_x_start);
+        egui_color_int_t *left_dst = dst + (seg_start - x_start);
+        egui_dim_t corner_col = seg_start - (center_x - radius);
+
+        for (egui_dim_t xp = seg_start; xp < left_end; xp++, left_dst++, corner_col++)
+        {
+            egui_alpha_t pixel_alpha;
+
+            if (corner_col < 0 || corner_col > radius)
+            {
+                continue;
+            }
+
+            pixel_alpha = egui_canvas_get_circle_corner_value_fixed_row(row_index, corner_col, info, items);
+            if (alpha != EGUI_ALPHA_100)
+            {
+                pixel_alpha = egui_color_alpha_mix(pixel_alpha, alpha);
+            }
+
+            if (pixel_alpha == 0)
+            {
+                continue;
+            }
+
+            if (pixel_alpha == EGUI_ALPHA_100)
+            {
+                *left_dst = color.full;
+            }
+            else
+            {
+                egui_rgb_mix_ptr((egui_color_t *)left_dst, &color, (egui_color_t *)left_dst, pixel_alpha);
+            }
+        }
+    }
+
+    {
+        egui_dim_t mid_start = EGUI_MAX(seg_start, opaque_x_start);
+        egui_dim_t mid_end = EGUI_MIN(seg_end, opaque_x_end);
+
+        if (mid_start < mid_end)
+        {
+            egui_mask_circle_blend_solid_row(dst + (mid_start - x_start), mid_end - mid_start, color, alpha);
+        }
+    }
+
+    if (seg_end > opaque_x_end && info != NULL && items != NULL)
+    {
+        egui_dim_t right_start = EGUI_MAX(seg_start, opaque_x_end);
+        egui_color_int_t *right_dst = dst + (right_start - x_start);
+        egui_dim_t corner_col = center_x + radius - right_start;
+
+        for (egui_dim_t xp = right_start; xp < seg_end; xp++, right_dst++, corner_col--)
+        {
+            egui_alpha_t pixel_alpha;
+
+            if (corner_col < 0 || corner_col > radius)
+            {
+                continue;
+            }
+
+            pixel_alpha = egui_canvas_get_circle_corner_value_fixed_row(row_index, corner_col, info, items);
+            if (alpha != EGUI_ALPHA_100)
+            {
+                pixel_alpha = egui_color_alpha_mix(pixel_alpha, alpha);
+            }
+
+            if (pixel_alpha == 0)
+            {
+                continue;
+            }
+
+            if (pixel_alpha == EGUI_ALPHA_100)
+            {
+                *right_dst = color.full;
+            }
+            else
+            {
+                egui_rgb_mix_ptr((egui_color_t *)right_dst, &color, (egui_color_t *)right_dst, pixel_alpha);
+            }
+        }
+    }
+
+    return 1;
 }
 
 static int egui_mask_circle_get_row_visible_range(egui_mask_t *self, egui_dim_t y, egui_dim_t x_min, egui_dim_t x_max, egui_dim_t *x_start, egui_dim_t *x_end)

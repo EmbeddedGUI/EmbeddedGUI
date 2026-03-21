@@ -26,6 +26,7 @@ static const egui_image_std_info_t egui_res_image_test_perf_120_ext_a1_rgb565_1_
     .data_type = EGUI_IMAGE_DATA_TYPE_RGB565,
     .alpha_type = EGUI_IMAGE_ALPHA_TYPE_1,
     .res_type = EGUI_RESOURCE_TYPE_EXTERNAL,
+    .opaque_alpha_hint = EGUI_IMAGE_OPAQUE_ALPHA_HINT_NON_OPAQUE,
     .width = 120,
     .height = 120,
 };

@@ -244,7 +244,8 @@ static void egui_view_test_performance_test_text(egui_view_t *self)
 static void egui_view_test_performance_test_text_rect(egui_view_t *self)
 {
     EGUI_REGION_DEFINE(text_rect, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, 200);
-    egui_canvas_draw_text_in_rect((egui_font_t *)&egui_res_font_montserrat_26_4, test_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+    egui_canvas_draw_text_in_rect((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_GREEN,
+                                  EGUI_ALPHA_100);
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
@@ -256,7 +257,7 @@ static void egui_view_test_performance_test_extern_text(egui_view_t *self)
 static void egui_view_test_performance_test_extern_text_rect(egui_view_t *self)
 {
     EGUI_REGION_DEFINE(text_rect, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, 200);
-    egui_canvas_draw_text_in_rect((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin, test_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_GREEN,
+    egui_canvas_draw_text_in_rect((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin, text_rect_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_GREEN,
                                   EGUI_ALPHA_100);
 }
 #endif

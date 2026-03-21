@@ -272,6 +272,7 @@ static const egui_image_std_info_t egui_res_image_test_perf_40_rgb565_1_info = {
     .data_type = EGUI_IMAGE_DATA_TYPE_RGB565,
     .alpha_type = EGUI_IMAGE_ALPHA_TYPE_1,
     .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
+    .opaque_alpha_hint = EGUI_IMAGE_OPAQUE_ALPHA_HINT_OPAQUE,
     .width = 40,
     .height = 40,
 };
