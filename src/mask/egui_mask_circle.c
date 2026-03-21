@@ -430,10 +430,12 @@ static int egui_mask_circle_get_row_visible_range(egui_mask_t *self, egui_dim_t 
 
 // name must be _type##_api_table, it will be used by EGUI_VIEW_DEFINE to init api.
 const egui_mask_api_t egui_mask_circle_t_api_table = {
+        .kind = EGUI_MASK_KIND_CIRCLE,
         .mask_point = egui_mask_circle_mask_point,
         .mask_get_row_range = egui_mask_circle_get_row_range,
         .mask_get_row_visible_range = egui_mask_circle_get_row_visible_range,
         .mask_blend_row_color = NULL,
+        .mask_get_row_overlay = NULL,
 };
 
 void egui_mask_circle_init(egui_mask_t *self)

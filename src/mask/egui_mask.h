@@ -16,9 +16,19 @@ typedef enum
     EGUI_MASK_ROW_PARTIAL,     // Partially visible, [x_start, x_end) is opaque span
 } egui_mask_row_result_t;
 
+typedef enum
+{
+    EGUI_MASK_KIND_BASE = 0,
+    EGUI_MASK_KIND_CIRCLE,
+    EGUI_MASK_KIND_ROUND_RECTANGLE,
+    EGUI_MASK_KIND_IMAGE,
+    EGUI_MASK_KIND_GRADIENT,
+} egui_mask_kind_t;
+
 typedef struct egui_mask_api egui_mask_api_t;
 struct egui_mask_api
 {
+    egui_mask_kind_t kind;
     void (*mask_point)(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha);
     // Optional: row-range query for batch optimization. NULL means not supported (fallback to per-pixel).
     // Given row y and horizontal range [x_min, x_max), returns the opaque span [*x_start, *x_end).

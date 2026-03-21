@@ -12,7 +12,25 @@ extern const egui_circle_info_t egui_res_circle_info_arr[];
 void egui_mask_round_rectangle_set_radius(egui_mask_t *self, egui_dim_t radius)
 {
     EGUI_LOCAL_INIT(egui_mask_round_rectangle_t);
-    local->radius = radius;
+    egui_dim_t max_radius = EGUI_MIN(self->region.size.width, self->region.size.height) >> 1;
+
+    if (max_radius < 0)
+    {
+        max_radius = 0;
+    }
+
+    if (radius <= 0)
+    {
+        local->radius = 0;
+    }
+    else if (max_radius > 0 && radius > max_radius)
+    {
+        local->radius = max_radius;
+    }
+    else
+    {
+        local->radius = radius;
+    }
 }
 
 void egui_mask_round_rectangle_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
@@ -27,24 +45,38 @@ void egui_mask_round_rectangle_mask_point(egui_mask_t *self, egui_dim_t x, egui_
     if (egui_region_pt_in_rect(&self->region, x, y))
     {
         egui_region_t region;
-        // check in the middle rectangle.
-        egui_region_init(&region, sel_x + radius, sel_y, width - (radius << 1), height);
-        if (egui_region_pt_in_rect(&region, x, y))
+        egui_dim_t middle_width = width - (radius << 1);
+        egui_dim_t side_height = height - (radius << 1);
+
+        if (radius <= 0)
         {
             return;
+        }
+
+        // check in the middle rectangle.
+        if (middle_width > 0)
+        {
+            egui_region_init(&region, sel_x + radius, sel_y, middle_width, height);
+            if (egui_region_pt_in_rect(&region, x, y))
+            {
+                return;
+            }
         }
 
         // check in the left and right rectangles.
-        egui_region_init(&region, sel_x, sel_y + radius, radius, height - (radius << 1));
-        if (egui_region_pt_in_rect(&region, x, y))
+        if (side_height > 0)
         {
-            return;
-        }
+            egui_region_init(&region, sel_x, sel_y + radius, radius, side_height);
+            if (egui_region_pt_in_rect(&region, x, y))
+            {
+                return;
+            }
 
-        egui_region_init(&region, sel_x + width - radius, sel_y + radius, radius, height - (radius << 1));
-        if (egui_region_pt_in_rect(&region, x, y))
-        {
-            return;
+            egui_region_init(&region, sel_x + width - radius, sel_y + radius, radius, side_height);
+            if (egui_region_pt_in_rect(&region, x, y))
+            {
+                return;
+            }
         }
 
         // check in the corners.
@@ -488,6 +520,10 @@ int egui_mask_round_rectangle_get_row_range(egui_mask_t *self, egui_dim_t y, egu
     {
         *x_start = EGUI_MAX(sel_x, x_min);
         *x_end = EGUI_MIN(sel_x + width, x_max);
+        if (*x_start >= *x_end)
+        {
+            return EGUI_MASK_ROW_OUTSIDE;
+        }
         return EGUI_MASK_ROW_INSIDE;
     }
 
@@ -576,10 +612,12 @@ static int egui_mask_round_rectangle_get_row_visible_range(egui_mask_t *self, eg
 
 // name must be _type##_api_table, it will be used by EGUI_VIEW_DEFINE to init api.
 const egui_mask_api_t egui_mask_round_rectangle_t_api_table = {
+        .kind = EGUI_MASK_KIND_ROUND_RECTANGLE,
         .mask_point = egui_mask_round_rectangle_mask_point,
         .mask_get_row_range = egui_mask_round_rectangle_get_row_range,
         .mask_get_row_visible_range = egui_mask_round_rectangle_get_row_visible_range,
         .mask_blend_row_color = NULL,
+        .mask_get_row_overlay = NULL,
 };
 
 void egui_mask_round_rectangle_init(egui_mask_t *self)
@@ -591,4 +629,5 @@ void egui_mask_round_rectangle_init(egui_mask_t *self)
     self->api = &egui_mask_round_rectangle_t_api_table;
 
     // init local data.
+    local->radius = 0;
 }

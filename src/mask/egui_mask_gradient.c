@@ -128,8 +128,10 @@ int egui_mask_gradient_get_row_overlay(egui_mask_t *self, egui_dim_t y, egui_col
 }
 
 const egui_mask_api_t egui_mask_gradient_t_api_table = {
+        .kind = EGUI_MASK_KIND_GRADIENT,
         .mask_point = egui_mask_gradient_mask_point,
         .mask_get_row_range = NULL,
+        .mask_get_row_visible_range = NULL,
         .mask_blend_row_color = egui_mask_gradient_blend_row_color,
         .mask_get_row_overlay = egui_mask_gradient_get_row_overlay,
 };

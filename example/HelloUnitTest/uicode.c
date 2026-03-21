@@ -9,6 +9,7 @@
 #include "test/test_slist.h"
 #include "test/test_ringbuffer.h"
 #include "test/test_fixmath.h"
+#include "test/test_mask.h"
 #include "test/test_common.h"
 #include "test/test_view.h"
 #include "test/test_view_group.h"
@@ -85,6 +86,7 @@ void uicode_create_ui(void)
     test_slist_run();
     test_ringbuffer_run();
     test_fixmath_run();
+    test_mask_run();
     test_common_run();
     test_view_run();
     test_view_group_run();

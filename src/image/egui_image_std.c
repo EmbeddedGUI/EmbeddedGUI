@@ -467,7 +467,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
         return;
     }
 
-    if (mask->api->mask_point == egui_mask_circle_mask_point)
+    if (mask->api->kind == EGUI_MASK_KIND_CIRCLE)
     {
         egui_mask_circle_t *circle_mask = (egui_mask_circle_t *)mask;
         egui_dim_t row_index;
@@ -908,7 +908,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
         return;
     }
 
-    if (mask->api->mask_point == egui_mask_round_rectangle_mask_point)
+    if (mask->api->kind == EGUI_MASK_KIND_ROUND_RECTANGLE)
     {
         if (egui_mask_round_rectangle_blend_rgb565_alpha8_segment(mask, dst_row, src_row, src_alpha_row, src_x_map, count, screen_x, screen_y, canvas_alpha))
         {
@@ -916,7 +916,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
         }
     }
 
-    if (mask->api->mask_point == egui_mask_image_mask_point)
+    if (mask->api->kind == EGUI_MASK_KIND_IMAGE)
     {
         if (egui_mask_image_blend_rgb565_alpha8_segment(mask, dst_row, src_row, src_alpha_row, src_x_map, count, screen_x, screen_y, canvas_alpha))
         {
@@ -2831,7 +2831,7 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
                 }
                 else // PARTIAL
                 {
-                    int image_mask_fast_path = (canvas->mask->api->mask_point == egui_mask_image_mask_point);
+                    int image_mask_fast_path = (canvas->mask->api->kind == EGUI_MASK_KIND_IMAGE);
                     egui_dim_t rr_img_xs = rr_x_start - x_base;
                     egui_dim_t rr_img_xe = rr_x_end - x_base;
                     egui_dim_t visible_x_start = x_base + x;
@@ -3676,7 +3676,7 @@ __EGUI_STATIC_INLINE__ int egui_image_std_rgb565_alpha8_can_use_opaque_fast_path
         return 1;
     }
 
-    return canvas->mask->api->mask_point == egui_mask_circle_mask_point || canvas->mask->api->mask_point == egui_mask_round_rectangle_mask_point;
+    return canvas->mask->api->kind == EGUI_MASK_KIND_CIRCLE || canvas->mask->api->kind == EGUI_MASK_KIND_ROUND_RECTANGLE;
 }
 #endif
 
@@ -4716,7 +4716,7 @@ __EGUI_STATIC_INLINE__ int egui_image_std_set_image_resize_rgb565_round_rect_fas
     egui_dim_t round_rect_radius;
     egui_dim_t src_y;
 
-    if (canvas->mask == NULL || canvas->mask->api->mask_point != egui_mask_round_rectangle_mask_point || canvas->alpha != EGUI_ALPHA_100)
+    if (canvas->mask == NULL || canvas->mask->api->kind != EGUI_MASK_KIND_ROUND_RECTANGLE || canvas->alpha != EGUI_ALPHA_100)
     {
         return 0;
     }
@@ -4877,7 +4877,7 @@ void egui_image_std_set_image_resize_rgb565(const egui_image_t *self, egui_dim_t
         if (canvas->mask->api->mask_get_row_range != NULL)
         {
             egui_dim_t rr_x_start, rr_x_end;
-            int use_circle_edge_fast_path = (canvas_alpha == EGUI_ALPHA_100 && canvas->mask->api->mask_point == egui_mask_circle_mask_point);
+            int use_circle_edge_fast_path = (canvas_alpha == EGUI_ALPHA_100 && canvas->mask->api->kind == EGUI_MASK_KIND_CIRCLE);
             egui_mask_circle_t *circle_mask_fast = NULL;
             const egui_circle_info_t *circle_info = NULL;
             const egui_circle_item_t *circle_items = NULL;
