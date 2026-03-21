@@ -37,6 +37,7 @@ struct egui_image_std
 
 void egui_image_std_draw_image(const egui_image_t *self, egui_dim_t x, egui_dim_t y);
 void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height);
+int egui_image_std_rgb565_is_opaque_source(const egui_image_std_info_t *image);
 
 void egui_image_std_draw_image_color(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha);
 void egui_image_std_draw_image_resize_color(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,

@@ -372,6 +372,10 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
         alpha_buf = (const uint8_t *)info->alpha_buf;
     }
     int has_alpha = (alpha_buf != NULL);
+    if (has_alpha && egui_image_std_rgb565_is_opaque_source(info))
+    {
+        has_alpha = 0;
+    }
     uint8_t alpha_type = info->alpha_type;
     int has_alpha8 = (has_alpha && alpha_type == EGUI_IMAGE_ALPHA_TYPE_8);
     int alpha_row_bytes = 0;

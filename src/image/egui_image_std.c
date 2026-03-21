@@ -2384,7 +2384,7 @@ egui_image_std_get_pixel *egui_image_get_point_func(const egui_image_t *self)
             break;
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32
         case EGUI_IMAGE_DATA_TYPE_RGB565:
-            if (image->alpha_buf == NULL)
+            if (image->alpha_buf == NULL || egui_image_std_rgb565_is_opaque_source(image))
             {
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565
                 get_pixel = egui_image_std_get_pixel_rgb565;
@@ -3692,19 +3692,83 @@ void egui_image_std_set_image_rgb32(const egui_image_t *self, egui_dim_t x, egui
 }
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32
 
-#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565 && EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8
+#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565
 typedef struct
 {
     const egui_image_std_info_t *image;
     uint8_t is_all_opaque;
-} egui_image_std_alpha8_opaque_cache_t;
+} egui_image_std_alpha_opaque_cache_t;
 
-static egui_image_std_alpha8_opaque_cache_t g_egui_image_std_alpha8_opaque_cache[4];
-static uint8_t g_egui_image_std_alpha8_opaque_cache_next = 0;
+static egui_image_std_alpha_opaque_cache_t g_egui_image_std_alpha_opaque_cache[4];
+static uint8_t g_egui_image_std_alpha_opaque_cache_next = 0;
 
-__EGUI_STATIC_INLINE__ int egui_image_std_rgb565_alpha8_is_all_opaque(const egui_image_std_info_t *image)
+__EGUI_STATIC_INLINE__ uint16_t egui_image_std_rgb565_alpha_row_size(egui_dim_t width, uint8_t alpha_type)
 {
-    if (image == NULL || image->data_type != EGUI_IMAGE_DATA_TYPE_RGB565 || image->alpha_buf == NULL || image->alpha_type != EGUI_IMAGE_ALPHA_TYPE_8)
+    switch (alpha_type)
+    {
+    case EGUI_IMAGE_ALPHA_TYPE_1:
+        return (uint16_t)((width + 7) >> 3);
+    case EGUI_IMAGE_ALPHA_TYPE_2:
+        return (uint16_t)((width + 3) >> 2);
+    case EGUI_IMAGE_ALPHA_TYPE_4:
+        return (uint16_t)((width + 1) >> 1);
+    case EGUI_IMAGE_ALPHA_TYPE_8:
+        return (uint16_t)(width);
+    default:
+        return 0;
+    }
+}
+
+__EGUI_STATIC_INLINE__ int egui_image_std_rgb565_alpha_row_is_all_opaque(const uint8_t *alpha_row, egui_dim_t width, uint8_t alpha_type)
+{
+    uint16_t full_bytes = 0;
+    uint8_t partial_bits = 0;
+
+    switch (alpha_type)
+    {
+    case EGUI_IMAGE_ALPHA_TYPE_1:
+        full_bytes = (uint16_t)(width >> 3);
+        partial_bits = (uint8_t)(width & 0x07);
+        break;
+    case EGUI_IMAGE_ALPHA_TYPE_2:
+        full_bytes = (uint16_t)(width >> 2);
+        partial_bits = (uint8_t)((width & 0x03) << 1);
+        break;
+    case EGUI_IMAGE_ALPHA_TYPE_4:
+        full_bytes = (uint16_t)(width >> 1);
+        partial_bits = (uint8_t)((width & 0x01) << 2);
+        break;
+    case EGUI_IMAGE_ALPHA_TYPE_8:
+        full_bytes = (uint16_t)(width);
+        partial_bits = 0;
+        break;
+    default:
+        return 0;
+    }
+
+    for (uint16_t i = 0; i < full_bytes; i++)
+    {
+        if (alpha_row[i] != 0xFF)
+        {
+            return 0;
+        }
+    }
+
+    if (partial_bits != 0)
+    {
+        uint8_t mask = (uint8_t)((1u << partial_bits) - 1u);
+        if ((alpha_row[full_bytes] & mask) != mask)
+        {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+__EGUI_STATIC_INLINE__ int egui_image_std_rgb565_internal_alpha_is_all_opaque(const egui_image_std_info_t *image)
+{
+    if (image == NULL || image->data_type != EGUI_IMAGE_DATA_TYPE_RGB565 || image->alpha_buf == NULL)
     {
         return 0;
     }
@@ -3715,39 +3779,62 @@ __EGUI_STATIC_INLINE__ int egui_image_std_rgb565_alpha8_is_all_opaque(const egui
     }
 #endif
 
-    for (uint8_t i = 0; i < (uint8_t)(sizeof(g_egui_image_std_alpha8_opaque_cache) / sizeof(g_egui_image_std_alpha8_opaque_cache[0])); i++)
+    for (uint8_t i = 0; i < (uint8_t)(sizeof(g_egui_image_std_alpha_opaque_cache) / sizeof(g_egui_image_std_alpha_opaque_cache[0])); i++)
     {
-        if (g_egui_image_std_alpha8_opaque_cache[i].image == image)
+        if (g_egui_image_std_alpha_opaque_cache[i].image == image)
         {
-            return g_egui_image_std_alpha8_opaque_cache[i].is_all_opaque;
+            return g_egui_image_std_alpha_opaque_cache[i].is_all_opaque;
         }
     }
 
     {
         const uint8_t *alpha = (const uint8_t *)image->alpha_buf;
-        uint32_t total = (uint32_t)image->width * (uint32_t)image->height;
+        uint16_t alpha_row_size = egui_image_std_rgb565_alpha_row_size(image->width, image->alpha_type);
         int is_all_opaque = 1;
 
-        for (uint32_t i = 0; i < total; i++)
+        if (image->width == 0 || image->height == 0 || alpha_row_size == 0)
         {
-            if (alpha[i] != EGUI_ALPHA_100)
+            is_all_opaque = 0;
+        }
+        else
+        {
+            for (egui_dim_t y = 0; y < image->height; y++)
             {
-                is_all_opaque = 0;
-                break;
+                if (!egui_image_std_rgb565_alpha_row_is_all_opaque(alpha, image->width, image->alpha_type))
+                {
+                    is_all_opaque = 0;
+                    break;
+                }
+                alpha += alpha_row_size;
             }
         }
 
-        g_egui_image_std_alpha8_opaque_cache[g_egui_image_std_alpha8_opaque_cache_next].image = image;
-        g_egui_image_std_alpha8_opaque_cache[g_egui_image_std_alpha8_opaque_cache_next].is_all_opaque = (uint8_t)is_all_opaque;
-        g_egui_image_std_alpha8_opaque_cache_next++;
-        g_egui_image_std_alpha8_opaque_cache_next &= 0x03;
+        g_egui_image_std_alpha_opaque_cache[g_egui_image_std_alpha_opaque_cache_next].image = image;
+        g_egui_image_std_alpha_opaque_cache[g_egui_image_std_alpha_opaque_cache_next].is_all_opaque = (uint8_t)is_all_opaque;
+        g_egui_image_std_alpha_opaque_cache_next++;
+        g_egui_image_std_alpha_opaque_cache_next &= 0x03;
         return is_all_opaque;
     }
 }
 
-__EGUI_STATIC_INLINE__ int egui_image_std_rgb565_alpha8_can_use_opaque_fast_path(const egui_image_std_info_t *image, const egui_canvas_t *canvas)
+int egui_image_std_rgb565_is_opaque_source(const egui_image_std_info_t *image)
 {
-    if (!egui_image_std_rgb565_alpha8_is_all_opaque(image))
+    if (image == NULL || image->data_type != EGUI_IMAGE_DATA_TYPE_RGB565)
+    {
+        return 0;
+    }
+
+    if (image->alpha_buf == NULL)
+    {
+        return 1;
+    }
+
+    return egui_image_std_rgb565_internal_alpha_is_all_opaque(image);
+}
+
+__EGUI_STATIC_INLINE__ int egui_image_std_rgb565_can_use_opaque_fast_path(const egui_image_std_info_t *image, const egui_canvas_t *canvas)
+{
+    if (!egui_image_std_rgb565_is_opaque_source(image))
     {
         return 0;
     }
@@ -3789,8 +3876,8 @@ void egui_image_std_draw_image(const egui_image_t *self, egui_dim_t x, egui_dim_
     x_total = region.location.x + region.size.width;
     y_total = region.location.y + region.size.height;
 
-#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565 && EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8
-    if (egui_image_std_rgb565_alpha8_can_use_opaque_fast_path(image, egui_canvas_get_canvas()))
+#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565
+    if (image->alpha_buf != NULL && egui_image_std_rgb565_can_use_opaque_fast_path(image, egui_canvas_get_canvas()))
     {
         egui_image_std_set_image_rgb565(self, region.location.x, region.location.y, x_total, y_total, x, y);
         return;
@@ -5358,8 +5445,8 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
     x_total = region.location.x + region.size.width;
     y_total = region.location.y + region.size.height;
 
-#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565 && EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8
-    if (egui_image_std_rgb565_alpha8_can_use_opaque_fast_path(image, egui_canvas_get_canvas()))
+#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565
+    if (image->alpha_buf != NULL && egui_image_std_rgb565_can_use_opaque_fast_path(image, egui_canvas_get_canvas()))
     {
         egui_image_std_set_image_resize_rgb565(self, region.location.x, region.location.y, x_total, y_total, x, y, width_radio, height_radio);
         return;
