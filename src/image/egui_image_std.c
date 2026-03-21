@@ -270,19 +270,63 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_resize_pixel(egui_color_int_t *
 
 __EGUI_STATIC_INLINE__ void egui_image_std_copy_rgb565_row(egui_color_int_t *dst_row, const uint16_t *src_row, egui_dim_t count)
 {
-    const uint32_t *src32 = (const uint32_t *)src_row;
-    uint32_t *dst32 = (uint32_t *)dst_row;
-    egui_dim_t n32 = count >> 1;
-
-    for (egui_dim_t i = 0; i < n32; i++)
+    if (count <= 0)
     {
-        dst32[i] = src32[i];
+        return;
     }
 
-    if (count & 1)
+#if EGUI_CONFIG_COLOR_DEPTH == 16
+    if ((((egui_uintptr_t)dst_row ^ (egui_uintptr_t)src_row) & 0x03U) != 0U)
     {
-        dst_row[count - 1] = src_row[count - 1];
+        for (egui_dim_t i = 0; i < count; i++)
+        {
+            dst_row[i] = src_row[i];
+        }
+        return;
     }
+
+    if ((((egui_uintptr_t)dst_row) & 0x03U) != 0U)
+    {
+        *dst_row++ = *src_row++;
+        count--;
+    }
+
+    if (count >= 2)
+    {
+        const uint32_t *src32 = (const uint32_t *)src_row;
+        uint32_t *dst32 = (uint32_t *)dst_row;
+
+        while (count >= 8)
+        {
+            dst32[0] = src32[0];
+            dst32[1] = src32[1];
+            dst32[2] = src32[2];
+            dst32[3] = src32[3];
+            src32 += 4;
+            dst32 += 4;
+            count -= 8;
+        }
+
+        while (count >= 2)
+        {
+            *dst32++ = *src32++;
+            count -= 2;
+        }
+
+        src_row = (const uint16_t *)src32;
+        dst_row = (egui_color_int_t *)dst32;
+    }
+
+    if (count != 0)
+    {
+        *dst_row = *src_row;
+    }
+#else
+    for (egui_dim_t i = 0; i < count; i++)
+    {
+        dst_row[i] = EGUI_COLOR_RGB565_TRANS(src_row[i]);
+    }
+#endif
 }
 
 __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_row(egui_color_int_t *dst_row, const uint16_t *src_row, egui_dim_t count, egui_alpha_t alpha)
@@ -336,9 +380,60 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_row(egui_color_in
 {
     egui_dim_t i = 0;
 
+    if (canvas_alpha == 0)
+    {
+        return;
+    }
+
+    if (canvas_alpha == EGUI_ALPHA_100)
+    {
+        while (i < count)
+        {
+            while (i + 4 <= count && *(const uint32_t *)&src_alpha_row[i] == 0x00000000)
+            {
+                i += 4;
+            }
+            while (i < count && src_alpha_row[i] == 0)
+            {
+                i++;
+            }
+
+            {
+                egui_dim_t opaque_start = i;
+
+                while (i + 4 <= count && *(const uint32_t *)&src_alpha_row[i] == 0xFFFFFFFF)
+                {
+                    i += 4;
+                }
+                while (i < count && src_alpha_row[i] == EGUI_ALPHA_100)
+                {
+                    i++;
+                }
+
+                if (opaque_start < i)
+                {
+                    egui_image_std_copy_rgb565_row(&dst_row[opaque_start], &src_pixels[opaque_start], i - opaque_start);
+                    continue;
+                }
+            }
+
+            if (i < count)
+            {
+                egui_alpha_t alpha = src_alpha_row[i];
+                if (alpha != 0)
+                {
+                    egui_color_t color;
+                    color.full = EGUI_COLOR_RGB565_TRANS(src_pixels[i]);
+                    egui_image_std_blend_resize_pixel(&dst_row[i], color, alpha);
+                }
+                i++;
+            }
+        }
+        return;
+    }
+
     while (i < count)
     {
-        // Word-level transparent skip (4 bytes at a time)
         while (i + 4 <= count && *(const uint32_t *)&src_alpha_row[i] == 0x00000000)
         {
             i += 4;
@@ -348,7 +443,6 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_row(egui_color_in
             i++;
         }
 
-        // Word-level opaque run detection (4 bytes at a time)
         egui_dim_t opaque_start = i;
         while (i + 4 <= count && *(const uint32_t *)&src_alpha_row[i] == 0xFFFFFFFF)
         {
@@ -3483,20 +3577,7 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
                 src_row += img_width;
             }
 
-            // No conversion needed: 32-bit word copy
-            {
-                const uint32_t *src32 = (const uint32_t *)src;
-                uint32_t *dst32 = (uint32_t *)dst_row;
-                egui_dim_t n32 = count >> 1;
-                for (egui_dim_t i = 0; i < n32; i++)
-                {
-                    dst32[i] = src32[i];
-                }
-                if (count & 1)
-                {
-                    dst_row[count - 1] = src[count - 1];
-                }
-            }
+            egui_image_std_copy_rgb565_row(dst_row, src, count);
 
             // Advance to next row using addition (no multiply)
             dst_row += pfb_width;
