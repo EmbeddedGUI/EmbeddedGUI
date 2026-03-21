@@ -154,6 +154,47 @@ static void scan_circle_mask_row(egui_mask_t *base, egui_dim_t y, egui_alpha_t *
     }
 }
 
+static void test_circle_mask_visible_range_center_row_without_row_range_cache(void)
+{
+    enum
+    {
+        circle_size = 100,
+    };
+    egui_mask_circle_t mask;
+    egui_mask_t *base = (egui_mask_t *)&mask;
+    egui_alpha_t row_alpha[circle_size];
+    egui_dim_t visible_x_start = -1;
+    egui_dim_t visible_x_end = -1;
+    egui_dim_t expected_visible_start = circle_size;
+    egui_dim_t expected_visible_end = 0;
+    egui_dim_t center_y = circle_size >> 1;
+    int visible_result;
+
+    memset(&mask, 0, sizeof(mask));
+    egui_mask_circle_init(base);
+    egui_mask_set_position(base, 0, 0);
+    egui_mask_set_size(base, circle_size, circle_size);
+
+    visible_result = base->api->mask_get_row_visible_range(base, center_y, 0, circle_size, &visible_x_start, &visible_x_end);
+    scan_circle_mask_row(base, center_y, row_alpha, circle_size);
+
+    for (egui_dim_t x = 0; x < circle_size; x++)
+    {
+        if (row_alpha[x] != 0)
+        {
+            if (expected_visible_start == circle_size)
+            {
+                expected_visible_start = x;
+            }
+            expected_visible_end = x + 1;
+        }
+    }
+
+    EGUI_TEST_ASSERT_TRUE(visible_result);
+    EGUI_TEST_ASSERT_EQUAL_INT(expected_visible_start, visible_x_start);
+    EGUI_TEST_ASSERT_EQUAL_INT(expected_visible_end, visible_x_end);
+}
+
 static void test_circle_mask_row_queries_match_point_sampling(void)
 {
     enum
@@ -261,6 +302,7 @@ void test_mask_run(void)
     EGUI_TEST_RUN(test_round_rectangle_radius_is_clamped);
     EGUI_TEST_RUN(test_round_rectangle_row_range_outside_when_no_overlap);
     EGUI_TEST_RUN(test_circle_corner_fixed_row_matches_general_lookup);
+    EGUI_TEST_RUN(test_circle_mask_visible_range_center_row_without_row_range_cache);
     EGUI_TEST_RUN(test_circle_mask_row_queries_match_point_sampling);
 
     EGUI_TEST_SUITE_END();

@@ -146,6 +146,11 @@ static egui_dim_t egui_mask_circle_get_visible_half(egui_mask_circle_t *local, e
                 half++;
             }
 
+            if (half > local->radius)
+            {
+                half = local->radius;
+            }
+
             local->visible_cached_dy = dy;
             local->visible_cached_half = half;
             return half;
@@ -153,6 +158,10 @@ static egui_dim_t egui_mask_circle_get_visible_half(egui_mask_circle_t *local, e
     }
 
     half = (egui_dim_t)egui_mask_circle_isqrt((dy_sq < local->visible_radius_sq) ? (local->visible_radius_sq - dy_sq) : 0);
+    if (half > local->radius)
+    {
+        half = local->radius;
+    }
     local->visible_cached_dy = dy;
     local->visible_cached_half = half;
     return half;

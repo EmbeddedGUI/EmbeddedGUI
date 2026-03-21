@@ -1,16 +1,10 @@
 # Performance Report
 
-- Commit: `337786f`
-- Date: 2026-03-21T23:02:12.275434
+- Commit: `fc02ccf`
+- Date: 2026-03-21T23:28:58.420144
 - Profile: cortex-m3
 
 ![Performance Chart](images/perf_report.png)
-
-## Scene Contact Sheet
-
-Timing data comes from QEMU. The contact sheet below is rendered with the PC simulator for scene reference.
-
-![Scene Contact Sheet](images/perf_scenes.png)
 
 ## Basic Shapes
 
@@ -202,26 +196,26 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 |-----------|-----------|
 | MASK_RECT_FILL_NO_MASK | 0.395 |
 | MASK_RECT_FILL_ROUND_RECT | 0.934 |
-| MASK_RECT_FILL_CIRCLE | 1.332 |
+| MASK_RECT_FILL_CIRCLE | 1.333 |
 | MASK_RECT_FILL_IMAGE | 0.612 |
 | MASK_RECT_FILL_NO_MASK_QUARTER | 0.256 |
 | MASK_RECT_FILL_NO_MASK_DOUBLE | 0.394 |
-| MASK_RECT_FILL_ROUND_RECT_QUARTER | 0.393 |
+| MASK_RECT_FILL_ROUND_RECT_QUARTER | 0.394 |
 | MASK_RECT_FILL_ROUND_RECT_DOUBLE | 0.925 |
-| MASK_RECT_FILL_CIRCLE_QUARTER | 0.520 |
-| MASK_RECT_FILL_CIRCLE_DOUBLE | 1.207 |
+| MASK_RECT_FILL_CIRCLE_QUARTER | 0.521 |
+| MASK_RECT_FILL_CIRCLE_DOUBLE | 1.209 |
 | MASK_RECT_FILL_IMAGE_QUARTER | 0.250 |
 | MASK_RECT_FILL_IMAGE_DOUBLE | 0.372 |
 | MASK_IMAGE_NO_MASK | 1.651 |
 | MASK_IMAGE_ROUND_RECT | 1.859 |
-| MASK_IMAGE_CIRCLE | 2.563 |
+| MASK_IMAGE_CIRCLE | 2.345 |
 | MASK_IMAGE_IMAGE | 0.778 |
 | MASK_IMAGE_NO_MASK_QUARTER | 0.580 |
 | MASK_IMAGE_NO_MASK_DOUBLE | 1.650 |
 | MASK_IMAGE_ROUND_RECT_QUARTER | 0.634 |
 | MASK_IMAGE_ROUND_RECT_DOUBLE | 1.852 |
-| MASK_IMAGE_CIRCLE_QUARTER | 0.840 |
-| MASK_IMAGE_CIRCLE_DOUBLE | 2.213 |
+| MASK_IMAGE_CIRCLE_QUARTER | 0.786 |
+| MASK_IMAGE_CIRCLE_DOUBLE | 2.068 |
 | MASK_IMAGE_IMAGE_QUARTER | 0.354 |
 | MASK_IMAGE_IMAGE_DOUBLE | 0.778 |
 | MASK_ROUND_RECT_FILL_NO_MASK | 0.614 |
@@ -232,7 +226,7 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 | Test Case | Time (ms) |
 |-----------|-----------|
 | ANIMATION_TRANSLATE | 0.276 |
-| ANIMATION_ALPHA | 0.269 |
+| ANIMATION_ALPHA | 0.270 |
 | ANIMATION_SCALE | 0.300 |
 | ANIMATION_SET | 0.336 |
 
