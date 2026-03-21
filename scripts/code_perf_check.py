@@ -30,6 +30,8 @@ PROFILES_FILE = SCRIPT_DIR / "perf_cpu_profiles.json"
 OUTPUT_DIR = PROJECT_ROOT / "perf_output"
 RESULTS_FILE = OUTPUT_DIR / "perf_results.json"
 REPORT_FILE = OUTPUT_DIR / "perf_report.md"
+SCENE_SHEET_FILE = OUTPUT_DIR / "perf_scenes.png"
+SCENE_INDEX_FILE = OUTPUT_DIR / "perf_scenes_index.json"
 
 DEFAULT_TIMEOUT = 300
 DEFAULT_THRESHOLD = 10
@@ -236,6 +238,19 @@ def generate_markdown_report(all_results, threshold, git_commit, skipped=None):
     lines.append(f"- Profile: {profile_name}")
     lines.append(f"- Regression threshold: {threshold}%")
     lines.append("")
+
+    try:
+        if SCENE_SHEET_FILE.exists() and SCENE_INDEX_FILE.exists():
+            scene_index = json.loads(SCENE_INDEX_FILE.read_text(encoding="utf-8"))
+            if scene_index.get("git_commit") == git_commit and scene_index.get("profile") == profile_name:
+                lines.append("## Scene Contact Sheet")
+                lines.append("")
+                lines.append("QEMU provides the timing data. The contact sheet below is rendered with the PC simulator for scene reference.")
+                lines.append("")
+                lines.append(f"![Performance Scenes]({SCENE_SHEET_FILE.name})")
+                lines.append("")
+    except Exception:
+        pass
 
     for cat_name, tests in categorized:
         lines.append(f"## {cat_name}")
@@ -684,6 +699,50 @@ def _do_spi_matrix(profiles, spi_configs, args, timeout):
     return success
 
 
+def run_scene_capture(profile_name, keyword_filter=None, timeout=180):
+    """Capture HelloPerformance scene renders and compose a contact sheet."""
+    script_path = SCRIPT_DIR / "perf_scene_capture.py"
+    if not script_path.exists():
+        print(f"  ERROR: scene capture script not found: {script_path}")
+        return False
+
+    cmd = [
+        sys.executable,
+        str(script_path),
+        "--results",
+        str(RESULTS_FILE),
+        "--profile",
+        profile_name,
+        "--timeout",
+        str(max(120, timeout)),
+    ]
+    if keyword_filter:
+        cmd.extend(["--filter", keyword_filter])
+
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=max(timeout + 120, 300),
+        )
+    except subprocess.TimeoutExpired:
+        print("  ERROR: scene capture timed out")
+        return False
+
+    if result.stdout:
+        print(result.stdout.rstrip())
+    if result.stderr:
+        print(result.stderr.rstrip())
+
+    if result.returncode != 0:
+        print(f"  ERROR: scene capture failed with exit code {result.returncode}")
+        return False
+
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="EmbeddedGUI QEMU Performance Regression Check"
@@ -704,6 +763,8 @@ def main():
                         help="Run make clean before building (default: incremental build)")
     parser.add_argument("--filter", type=str,
                         help="Filter test results by keyword (e.g., RECT,CIRCLE)")
+    parser.add_argument("--with-scenes", action="store_true",
+                        help="Capture HelloPerformance renders and generate a scene contact sheet")
     args = parser.parse_args()
 
     profiles, defaults, pfb_configs, spi_configs = load_profiles()
@@ -793,6 +854,15 @@ def main():
         json.dump(results_data, f, indent=2)
     print(f"\nResults saved to: {RESULTS_FILE}")
 
+    scenes_failed = False
+    if args.with_scenes and all_results:
+        first_profile_name = next(iter(all_results.keys()))
+        print(f"\n{'='*60}")
+        print("Scene Capture")
+        print(f"{'='*60}")
+        if not run_scene_capture(first_profile_name, args.filter, timeout=max(timeout, 180)):
+            scenes_failed = True
+
     # Generate Markdown report
     report = generate_markdown_report(
         all_results, threshold, git_commit, skipped=all_skipped
@@ -826,7 +896,7 @@ def main():
         if not _do_spi_matrix(profiles, spi_configs, args, timeout):
             matrix_failed = True
 
-    if failed_profiles or matrix_failed:
+    if failed_profiles or matrix_failed or scenes_failed:
         print(f"\nWARNING: some tests failed to build/run")
         sys.exit(2)
     else:

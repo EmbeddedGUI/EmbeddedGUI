@@ -25,6 +25,10 @@
 static egui_view_test_performance_t test_view;
 
 static const char *egui_view_test_performance_type_string(int test_mode);
+static void egui_view_test_performance_show_test_mode(int test_mode);
+#if EGUI_CONFIG_RECORDING_TEST
+static int egui_view_test_performance_get_recording_test_mode(int action_index);
+#endif
 
 void uicode_init_ui(void)
 {
@@ -82,6 +86,13 @@ static void user_manu_refresh_screen(void)
 
     // egui_api_refresh_display() in pc will use too much time, so we calc time.
     egui_api_refresh_display();
+}
+
+static void egui_view_test_performance_show_test_mode(int test_mode)
+{
+    test_view.test_mode = test_mode;
+    egui_core_force_refresh();
+    egui_core_refresh_screen();
 }
 
 static const char *egui_view_test_performance_type_string(int test_mode)
@@ -533,24 +544,67 @@ void uicode_create_ui(void)
     // For test performance, use manual refresh screen.
     egui_core_stop_auto_refresh_screen();
 
+#if !EGUI_CONFIG_RECORDING_TEST
     ui_timer.callback = egui_view_test_performance_timer_callback;
     egui_timer_start_timer(&ui_timer, 100, 0);
+#endif
 }
 
 #if EGUI_CONFIG_RECORDING_TEST
+static int egui_view_test_performance_get_recording_test_mode(int action_index)
+{
+#if EGUI_TEST_CONFIG_SINGLE_TEST >= 0
+    if (action_index > 0)
+    {
+        return -1;
+    }
+    if (!egui_view_test_performance_is_enabled(EGUI_TEST_CONFIG_SINGLE_TEST))
+    {
+        return -1;
+    }
+    return EGUI_TEST_CONFIG_SINGLE_TEST;
+#else
+    int enabled_index = 0;
+    for (int test_mode = 0; test_mode < EGUI_VIEW_TEST_PERFORMANCE_TYPE_MAX; test_mode++)
+    {
+        if (!egui_view_test_performance_is_enabled(test_mode))
+        {
+            continue;
+        }
+        if (enabled_index == action_index)
+        {
+            return test_mode;
+        }
+        enabled_index++;
+    }
+    return -1;
+#endif
+}
+
 /**
  * @brief Recording actions for HelloPerformance.
- * Provide enough WAIT actions to capture the full performance sweep,
- * including late extern-image cases.
+ * Switch scenes one by one so each performance case gets a stable snapshot.
  */
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
-    if (action_index >= 120)
+    static int last_action_index = -1;
+    int test_mode = egui_view_test_performance_get_recording_test_mode(action_index);
+    int first_call = (action_index != last_action_index);
+
+    if (test_mode < 0)
     {
         return false;
     }
-    p_action->type = EGUI_SIM_ACTION_WAIT;
-    p_action->interval_ms = 500;
+
+    if (first_call)
+    {
+        const char *name = egui_view_test_performance_type_string(test_mode);
+        EGUI_LOG_INF("PERF_SCENE:%s\r\n", name);
+        egui_view_test_performance_show_test_mode(test_mode);
+    }
+
+    last_action_index = action_index;
+    EGUI_SIM_SET_WAIT(p_action, 160);
     return true;
 }
 #endif

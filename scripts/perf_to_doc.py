@@ -17,6 +17,7 @@ import os
 import sys
 import json
 import argparse
+import shutil
 from pathlib import Path
 from datetime import datetime
 
@@ -25,6 +26,8 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 PERF_OUTPUT = PROJECT_ROOT / "perf_output"
 DOC_DIR = PROJECT_ROOT / "doc" / "source" / "performance"
 IMG_DIR = DOC_DIR / "images"
+SCENE_SHEET_FILE = PERF_OUTPUT / "perf_scenes.png"
+SCENE_INDEX_FILE = PERF_OUTPUT / "perf_scenes_index.json"
 
 
 def setup_matplotlib():
@@ -61,6 +64,27 @@ def load_json(path):
         return None
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def copy_optional_asset(src: Path, dst: Path):
+    """Copy an optional asset if it exists."""
+    if not src.exists():
+        return False
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dst)
+    return True
+
+
+def has_matching_scene_sheet(commit: str, profile_name: str) -> bool:
+    """Return True when perf_scenes.png matches the current perf results."""
+    if not SCENE_SHEET_FILE.exists() or not SCENE_INDEX_FILE.exists():
+        return False
+
+    scene_index = load_json(SCENE_INDEX_FILE)
+    if not scene_index:
+        return False
+
+    return scene_index.get("git_commit") == commit and scene_index.get("profile") == profile_name
 
 
 # ---------------------------------------------------------------------------
@@ -196,7 +220,7 @@ def _get_categorized_tests(available_tests):
     return result
 
 
-def _load_cpu_only_data():
+def _load_cpu_only_data(expected_commit=None):
     """Try to load CPU-only rendering data from spi_matrix_results.json.
 
     Returns (data_dict, timestamp, commit, profile_name) or None if unavailable.
@@ -205,6 +229,8 @@ def _load_cpu_only_data():
     """
     spi_data = load_json(PERF_OUTPUT / "spi_matrix_results.json")
     if not spi_data:
+        return None
+    if expected_commit and spi_data.get("git_commit") != expected_commit:
         return None
 
     spi_matrix = spi_data.get("spi_matrix", {})
@@ -228,27 +254,33 @@ def generate_perf_report():
     """
     plt = setup_matplotlib()
 
-    # Prefer CPU-only data from SPI matrix (no SPI transfer overhead)
-    cpu_only = _load_cpu_only_data()
+    results = load_json(PERF_OUTPUT / "perf_results.json")
+    if not results:
+        print("  [SKIP] No performance data found")
+        return
+
+    fallback_timestamp = results.get("timestamp", "N/A")
+    fallback_commit = results.get("git_commit", "N/A")
+
+    profiles = results.get("profiles", {})
+    if not profiles:
+        print("  [SKIP] No profile data in perf_results.json")
+        return
+
+    fallback_profile_name = list(profiles.keys())[0]
+    fallback_data = profiles[fallback_profile_name]
+
+    # Prefer CPU-only data from SPI matrix (no SPI transfer overhead) only when
+    # it matches the current perf_results commit. This avoids generating stale docs.
+    cpu_only = _load_cpu_only_data(expected_commit=fallback_commit)
     if cpu_only:
         data, timestamp, commit, profile_name = cpu_only
         print("  Using CPU-only data from spi_matrix_results.json (no SPI overhead)")
     else:
-        results = load_json(PERF_OUTPUT / "perf_results.json")
-        if not results:
-            print("  [SKIP] No performance data found")
-            return
-
-        timestamp = results.get("timestamp", "N/A")
-        commit = results.get("git_commit", "N/A")
-
-        profiles = results.get("profiles", {})
-        if not profiles:
-            print("  [SKIP] No profile data in perf_results.json")
-            return
-
-        profile_name = list(profiles.keys())[0]
-        data = profiles[profile_name]
+        data = fallback_data
+        timestamp = fallback_timestamp
+        commit = fallback_commit
+        profile_name = fallback_profile_name
 
     # Organize tests by category
     categorized = _get_categorized_tests(set(data.keys()))
@@ -308,6 +340,17 @@ def generate_perf_report():
         "![Performance Chart](images/perf_report.png)",
         "",
     ]
+
+    if has_matching_scene_sheet(commit, profile_name):
+        copy_optional_asset(SCENE_SHEET_FILE, IMG_DIR / "perf_scenes.png")
+        lines.extend([
+            "## Scene Contact Sheet",
+            "",
+            "Timing data comes from QEMU. The contact sheet below is rendered with the PC simulator for scene reference.",
+            "",
+            "![Scene Contact Sheet](images/perf_scenes.png)",
+            "",
+        ])
 
     for cat_name, tests in categorized:
         lines.append(f"## {cat_name}")
