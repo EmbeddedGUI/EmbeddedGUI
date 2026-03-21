@@ -46,6 +46,7 @@ struct egui_font_std
     egui_font_t base;
 };
 
+int egui_font_std_find_code_index(const egui_font_std_info_t *font, uint32_t utf8_code);
 void egui_font_std_init(egui_font_t *self, const void *res);
 
 /* Ends C function definitions when using C++ */

@@ -17,34 +17,145 @@ static egui_font_std_char_descriptor_t g_cached_char_desc_array[EGUI_FONT_STD_EX
 static uint8_t g_selected_char_pixel_data[EGUI_FONT_STD_EXTERNAL_PIXEL_CACHE_SIZE];
 #endif
 
-static int egui_font_std_get_code_index(const egui_font_std_info_t *font, uint32_t utf8_code)
+typedef struct
 {
+    const egui_font_std_code_descriptor_t *code_array;
+    uint16_t count;
+    uint32_t last_code;
+    int last_index;
+    uint32_t block_start_code;
+    uint32_t block_end_code;
+    int block_start_index;
+    int block_end_index;
+} egui_font_std_code_lookup_cache_t;
+
+static egui_font_std_code_lookup_cache_t g_font_std_code_lookup_cache = {
+        .code_array = NULL,
+        .count = 0,
+        .last_index = -1,
+        .block_start_index = -1,
+        .block_end_index = -1,
+};
+
+static void egui_font_std_reset_code_lookup_cache(const egui_font_std_info_t *font)
+{
+    if (g_font_std_code_lookup_cache.code_array != font->code_array || g_font_std_code_lookup_cache.count != font->count)
+    {
+        g_font_std_code_lookup_cache.code_array = font->code_array;
+        g_font_std_code_lookup_cache.count = font->count;
+        g_font_std_code_lookup_cache.last_index = -1;
+        g_font_std_code_lookup_cache.block_start_index = -1;
+        g_font_std_code_lookup_cache.block_end_index = -1;
+    }
+}
+
+static void egui_font_std_update_code_lookup_cache(const egui_font_std_info_t *font, int code_index)
+{
+    const egui_font_std_code_descriptor_t *code_array = font->code_array;
+    int block_start = code_index;
+    int block_end = code_index;
+
+    while (block_start > 0)
+    {
+        if ((code_array[block_start].code - code_array[block_start - 1].code) != 1)
+        {
+            break;
+        }
+        block_start--;
+    }
+
+    while (block_end + 1 < font->count)
+    {
+        if ((code_array[block_end + 1].code - code_array[block_end].code) != 1)
+        {
+            break;
+        }
+        block_end++;
+    }
+
+    g_font_std_code_lookup_cache.last_code = code_array[code_index].code;
+    g_font_std_code_lookup_cache.last_index = code_index;
+    g_font_std_code_lookup_cache.block_start_code = code_array[block_start].code;
+    g_font_std_code_lookup_cache.block_end_code = code_array[block_end].code;
+    g_font_std_code_lookup_cache.block_start_index = block_start;
+    g_font_std_code_lookup_cache.block_end_index = block_end;
+}
+
+int egui_font_std_find_code_index(const egui_font_std_info_t *font, uint32_t utf8_code)
+{
+    if (font == NULL || font->count == 0 || font->code_array == NULL)
+    {
+        return -1;
+    }
+
+    egui_font_std_reset_code_lookup_cache(font);
+
+    if (g_font_std_code_lookup_cache.last_index >= 0)
+    {
+        if (g_font_std_code_lookup_cache.last_code == utf8_code)
+        {
+            return g_font_std_code_lookup_cache.last_index;
+        }
+
+        if (utf8_code >= g_font_std_code_lookup_cache.block_start_code && utf8_code <= g_font_std_code_lookup_cache.block_end_code)
+        {
+            int cached_index = g_font_std_code_lookup_cache.block_start_index + (int)(utf8_code - g_font_std_code_lookup_cache.block_start_code);
+            if (cached_index <= g_font_std_code_lookup_cache.block_end_index && font->code_array[cached_index].code == utf8_code)
+            {
+                g_font_std_code_lookup_cache.last_code = utf8_code;
+                g_font_std_code_lookup_cache.last_index = cached_index;
+                return cached_index;
+            }
+        }
+
+        if (utf8_code > g_font_std_code_lookup_cache.last_code)
+        {
+            int next_index = g_font_std_code_lookup_cache.last_index + 1;
+            if ((utf8_code - g_font_std_code_lookup_cache.last_code) == 1 && next_index < font->count && font->code_array[next_index].code == utf8_code)
+            {
+                g_font_std_code_lookup_cache.last_code = utf8_code;
+                g_font_std_code_lookup_cache.last_index = next_index;
+                return next_index;
+            }
+        }
+        else if (utf8_code < g_font_std_code_lookup_cache.last_code)
+        {
+            int prev_index = g_font_std_code_lookup_cache.last_index - 1;
+            if ((g_font_std_code_lookup_cache.last_code - utf8_code) == 1 && prev_index >= 0 && font->code_array[prev_index].code == utf8_code)
+            {
+                g_font_std_code_lookup_cache.last_code = utf8_code;
+                g_font_std_code_lookup_cache.last_index = prev_index;
+                return prev_index;
+            }
+        }
+    }
+
     int first = 0;
     int last = font->count - 1;
-    int middle = (first + last) / 2;
 
     while (first <= last)
     {
+        int middle = (first + last) / 2;
         if (font->code_array[middle].code < utf8_code)
         {
             first = middle + 1;
         }
         else if (font->code_array[middle].code == utf8_code)
         {
+            egui_font_std_update_code_lookup_cache(font, middle);
             return middle;
         }
         else
         {
             last = middle - 1;
         }
-        middle = (first + last) / 2;
     }
     return -1;
 }
 
 static const egui_font_std_char_descriptor_t *egui_font_std_get_desc(const egui_font_std_info_t *font, uint32_t utf8_code)
 {
-    int code_index = egui_font_std_get_code_index(font, utf8_code);
+    int code_index = egui_font_std_find_code_index(font, utf8_code);
     if (code_index < 0)
     {
         return NULL;
@@ -109,198 +220,18 @@ __EGUI_STATIC_INLINE__ void egui_font_std_blend_pixel(egui_color_int_t *dst, egu
     }
 }
 
-static int egui_font_std_can_fast_draw(const egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
+static int egui_font_std_clip_to_work_region(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_region_t *visible_rect)
 {
-    const egui_region_t *region = egui_canvas_get_base_view_work_region();
-
-    if (canvas->mask != NULL || width <= 0 || height <= 0)
-    {
-        return 0;
-    }
-
-    if (x < region->location.x || y < region->location.y)
-    {
-        return 0;
-    }
-
-    if (x + width > region->location.x + region->size.width || y + height > region->location.y + region->size.height)
-    {
-        return 0;
-    }
-
-    // Extra safety: verify the PFB index is within bounds
-    egui_dim_t pfb_x = x - canvas->pfb_location_in_base_view.x;
-    egui_dim_t pfb_y = y - canvas->pfb_location_in_base_view.y;
-    egui_dim_t pfb_w = canvas->pfb_region.size.width;
-    egui_dim_t pfb_h = canvas->pfb_region.size.height;
-    if (pfb_x < 0 || pfb_y < 0 || pfb_x + width > pfb_w || pfb_y + height > pfb_h)
-    {
-        return 0;
-    }
-
-    return 1;
-}
-
-static void egui_font_std_draw_fast_1(const egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const uint8_t *p_data,
-                                      egui_color_t color, egui_alpha_t alpha)
-{
-    egui_dim_t pfb_width = canvas->pfb_region.size.width;
-    egui_dim_t pfb_x = x - canvas->pfb_location_in_base_view.x;
-    egui_dim_t pfb_y = y - canvas->pfb_location_in_base_view.y;
-    uint16_t row_stride = (width + 7) >> 3;
-
-    for (egui_dim_t row = 0; row < height; row++)
-    {
-        const uint8_t *src = p_data + row * row_stride;
-        egui_color_int_t *dst = &canvas->pfb[(pfb_y + row) * pfb_width + pfb_x];
-
-        for (egui_dim_t col = 0; col < width; col++)
-        {
-            if ((src[col >> 3] >> (col & 0x07)) & 0x01)
-            {
-                egui_font_std_blend_pixel(&dst[col], color, alpha);
-            }
-        }
-    }
-}
-
-static void egui_font_std_draw_fast_2(const egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const uint8_t *p_data,
-                                      egui_color_t color, egui_alpha_t alpha)
-{
-    egui_dim_t pfb_width = canvas->pfb_region.size.width;
-    egui_dim_t pfb_x = x - canvas->pfb_location_in_base_view.x;
-    egui_dim_t pfb_y = y - canvas->pfb_location_in_base_view.y;
-    uint16_t row_stride = (width + 3) >> 2;
-
-    for (egui_dim_t row = 0; row < height; row++)
-    {
-        const uint8_t *src = p_data + row * row_stride;
-        egui_color_int_t *dst = &canvas->pfb[(pfb_y + row) * pfb_width + pfb_x];
-
-        for (egui_dim_t col = 0; col < width; col++)
-        {
-            uint8_t sel_value = (src[col >> 2] >> ((col & 0x03) << 1)) & 0x03;
-            egui_alpha_t pixel_alpha = egui_alpha_change_table_2[sel_value];
-
-            if (pixel_alpha != 0)
-            {
-                egui_font_std_blend_pixel(&dst[col], color, egui_color_alpha_mix(alpha, pixel_alpha));
-            }
-        }
-    }
-}
-
-static void egui_font_std_draw_fast_4(const egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const uint8_t *p_data,
-                                      egui_color_t color, egui_alpha_t alpha)
-{
-    egui_dim_t pfb_width = canvas->pfb_region.size.width;
-    egui_dim_t pfb_x = x - canvas->pfb_location_in_base_view.x;
-    egui_dim_t pfb_y = y - canvas->pfb_location_in_base_view.y;
-    uint16_t row_stride = (width + 1) >> 1;
-
-    for (egui_dim_t row = 0; row < height; row++)
-    {
-        const uint8_t *src = p_data + row * row_stride;
-        egui_color_int_t *dst = &canvas->pfb[(pfb_y + row) * pfb_width + pfb_x];
-
-        for (egui_dim_t col = 0; col < width; col++)
-        {
-            uint8_t sel_value = (src[col >> 1] >> ((col & 0x01) << 2)) & 0x0F;
-            egui_alpha_t pixel_alpha = egui_alpha_change_table_4[sel_value];
-
-            if (pixel_alpha != 0)
-            {
-                egui_font_std_blend_pixel(&dst[col], color, egui_color_alpha_mix(alpha, pixel_alpha));
-            }
-        }
-    }
-}
-
-static void egui_font_std_draw_fast_8(const egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const uint8_t *p_data,
-                                      egui_color_t color, egui_alpha_t alpha)
-{
-    egui_dim_t pfb_width = canvas->pfb_region.size.width;
-    egui_dim_t pfb_x = x - canvas->pfb_location_in_base_view.x;
-    egui_dim_t pfb_y = y - canvas->pfb_location_in_base_view.y;
-
-    for (egui_dim_t row = 0; row < height; row++)
-    {
-        const uint8_t *src = p_data + row * width;
-        egui_color_int_t *dst = &canvas->pfb[(pfb_y + row) * pfb_width + pfb_x];
-
-        for (egui_dim_t col = 0; col < width; col++)
-        {
-            if (src[col] != 0)
-            {
-                egui_font_std_blend_pixel(&dst[col], color, egui_color_alpha_mix(alpha, src[col]));
-            }
-        }
-    }
-}
-
-static int egui_font_std_draw_fast(const egui_font_std_info_t *font, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const uint8_t *p_data,
-                                   egui_color_t color, egui_alpha_t alpha)
-{
-    const egui_canvas_t *canvas = egui_canvas_get_canvas();
-    egui_alpha_t draw_alpha = egui_color_alpha_mix(canvas->alpha, alpha);
-
-    if (!egui_font_std_can_fast_draw(canvas, x, y, width, height) || draw_alpha == 0)
-    {
-        return 0;
-    }
-
-    switch (font->font_bit_mode)
-    {
-    case 1:
-        egui_font_std_draw_fast_1(canvas, x, y, width, height, p_data, color, draw_alpha);
-        return 1;
-    case 2:
-        egui_font_std_draw_fast_2(canvas, x, y, width, height, p_data, color, draw_alpha);
-        return 1;
-    case 4:
-        egui_font_std_draw_fast_4(canvas, x, y, width, height, p_data, color, draw_alpha);
-        return 1;
-    case 8:
-        egui_font_std_draw_fast_8(canvas, x, y, width, height, p_data, color, draw_alpha);
-        return 1;
-    default:
-        break;
-    }
-
-    return 0;
-}
-
-// Fast path for font rendering with masks that support row-level color blend
-// (e.g., LINEAR_VERTICAL gradient masks). Avoids per-pixel mask_point vtable dispatch.
-// Handles clipping to PFB work region, so partially-visible glyphs are covered too.
-static int egui_font_std_draw_fast_mask(const egui_font_std_info_t *font, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
-                                        const uint8_t *p_data, egui_color_t color, egui_alpha_t alpha)
-{
-    const egui_canvas_t *canvas = egui_canvas_get_canvas();
-    egui_mask_t *mask = canvas->mask;
-
-    if (mask == NULL || mask->api->mask_blend_row_color == NULL)
-    {
-        return 0;
-    }
-
-    egui_alpha_t draw_alpha = egui_color_alpha_mix(canvas->alpha, alpha);
-    if (draw_alpha == 0)
-    {
-        return 0;
-    }
-
-    if (width <= 0 || height <= 0)
-    {
-        return 0;
-    }
-
-    // Clip glyph rect to PFB work region
     const egui_region_t *region = egui_canvas_get_base_view_work_region();
     egui_dim_t vis_x0 = x;
     egui_dim_t vis_y0 = y;
     egui_dim_t vis_x1 = x + width;
     egui_dim_t vis_y1 = y + height;
+
+    if (width <= 0 || height <= 0)
+    {
+        return 0;
+    }
 
     if (vis_x0 < region->location.x)
     {
@@ -321,23 +252,275 @@ static int egui_font_std_draw_fast_mask(const egui_font_std_info_t *font, egui_d
 
     if (vis_x0 >= vis_x1 || vis_y0 >= vis_y1)
     {
+        return 0;
+    }
+
+    visible_rect->location.x = vis_x0;
+    visible_rect->location.y = vis_y0;
+    visible_rect->size.width = vis_x1 - vis_x0;
+    visible_rect->size.height = vis_y1 - vis_y0;
+    return 1;
+}
+
+static int egui_font_std_can_fast_draw(const egui_canvas_t *canvas, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
+{
+    egui_region_t visible_rect;
+
+    if (canvas->mask != NULL)
+    {
+        return 0;
+    }
+
+    if (!egui_font_std_clip_to_work_region(x, y, width, height, &visible_rect))
+    {
+        return 0;
+    }
+
+    if (visible_rect.location.x != x || visible_rect.location.y != y || visible_rect.size.width != width || visible_rect.size.height != height)
+    {
+        return 0;
+    }
+
+    // Extra safety: verify the PFB index is within bounds
+    egui_dim_t pfb_x = x - canvas->pfb_location_in_base_view.x;
+    egui_dim_t pfb_y = y - canvas->pfb_location_in_base_view.y;
+    egui_dim_t pfb_w = canvas->pfb_region.size.width;
+    egui_dim_t pfb_h = canvas->pfb_region.size.height;
+    if (pfb_x < 0 || pfb_y < 0 || pfb_x + width > pfb_w || pfb_y + height > pfb_h)
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+static void egui_font_std_draw_fast_1(const egui_canvas_t *canvas, egui_dim_t pfb_x, egui_dim_t pfb_y, egui_dim_t src_width, egui_dim_t src_col0,
+                                      egui_dim_t src_row0, egui_dim_t width, egui_dim_t height, const uint8_t *p_data, egui_color_t color, egui_alpha_t alpha)
+{
+    egui_dim_t pfb_width = canvas->pfb_region.size.width;
+    uint16_t row_stride = (src_width + 7) >> 3;
+
+    for (egui_dim_t row = 0; row < height; row++)
+    {
+        const uint8_t *src = p_data + (src_row0 + row) * row_stride;
+        egui_color_int_t *dst = &canvas->pfb[(pfb_y + row) * pfb_width + pfb_x];
+
+        for (egui_dim_t col = 0; col < width; col++)
+        {
+            egui_dim_t src_col = src_col0 + col;
+            if ((src[src_col >> 3] >> (src_col & 0x07)) & 0x01)
+            {
+                egui_font_std_blend_pixel(&dst[col], color, alpha);
+            }
+        }
+    }
+}
+
+static void egui_font_std_draw_fast_2(const egui_canvas_t *canvas, egui_dim_t pfb_x, egui_dim_t pfb_y, egui_dim_t src_width, egui_dim_t src_col0,
+                                      egui_dim_t src_row0, egui_dim_t width, egui_dim_t height, const uint8_t *p_data, egui_color_t color, egui_alpha_t alpha)
+{
+    egui_dim_t pfb_width = canvas->pfb_region.size.width;
+    uint16_t row_stride = (src_width + 3) >> 2;
+
+    for (egui_dim_t row = 0; row < height; row++)
+    {
+        const uint8_t *src = p_data + (src_row0 + row) * row_stride;
+        egui_color_int_t *dst = &canvas->pfb[(pfb_y + row) * pfb_width + pfb_x];
+
+        for (egui_dim_t col = 0; col < width; col++)
+        {
+            egui_dim_t src_col = src_col0 + col;
+            uint8_t sel_value = (src[src_col >> 2] >> ((src_col & 0x03) << 1)) & 0x03;
+            egui_alpha_t pixel_alpha = egui_alpha_change_table_2[sel_value];
+
+            if (pixel_alpha != 0)
+            {
+                egui_font_std_blend_pixel(&dst[col], color, egui_color_alpha_mix(alpha, pixel_alpha));
+            }
+        }
+    }
+}
+
+static void egui_font_std_draw_fast_4(const egui_canvas_t *canvas, egui_dim_t pfb_x, egui_dim_t pfb_y, egui_dim_t src_width, egui_dim_t src_col0,
+                                      egui_dim_t src_row0, egui_dim_t width, egui_dim_t height, const uint8_t *p_data, egui_color_t color, egui_alpha_t alpha)
+{
+    egui_dim_t pfb_width = canvas->pfb_region.size.width;
+    uint16_t row_stride = (src_width + 1) >> 1;
+
+    for (egui_dim_t row = 0; row < height; row++)
+    {
+        const uint8_t *src = p_data + (src_row0 + row) * row_stride;
+        egui_color_int_t *dst = &canvas->pfb[(pfb_y + row) * pfb_width + pfb_x];
+
+        for (egui_dim_t col = 0; col < width; col++)
+        {
+            egui_dim_t src_col = src_col0 + col;
+            uint8_t sel_value = (src[src_col >> 1] >> ((src_col & 0x01) << 2)) & 0x0F;
+            egui_alpha_t pixel_alpha = egui_alpha_change_table_4[sel_value];
+
+            if (pixel_alpha != 0)
+            {
+                egui_font_std_blend_pixel(&dst[col], color, egui_color_alpha_mix(alpha, pixel_alpha));
+            }
+        }
+    }
+}
+
+static void egui_font_std_draw_fast_8(const egui_canvas_t *canvas, egui_dim_t pfb_x, egui_dim_t pfb_y, egui_dim_t src_width, egui_dim_t src_col0,
+                                      egui_dim_t src_row0, egui_dim_t width, egui_dim_t height, const uint8_t *p_data, egui_color_t color, egui_alpha_t alpha)
+{
+    egui_dim_t pfb_width = canvas->pfb_region.size.width;
+
+    for (egui_dim_t row = 0; row < height; row++)
+    {
+        const uint8_t *src = p_data + (src_row0 + row) * src_width;
+        egui_color_int_t *dst = &canvas->pfb[(pfb_y + row) * pfb_width + pfb_x];
+
+        for (egui_dim_t col = 0; col < width; col++)
+        {
+            if (src[src_col0 + col] != 0)
+            {
+                egui_font_std_blend_pixel(&dst[col], color, egui_color_alpha_mix(alpha, src[src_col0 + col]));
+            }
+        }
+    }
+}
+
+static int egui_font_std_draw_fast(const egui_font_std_info_t *font, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const uint8_t *p_data,
+                                   egui_color_t color, egui_alpha_t alpha)
+{
+    const egui_canvas_t *canvas = egui_canvas_get_canvas();
+    egui_alpha_t draw_alpha = egui_color_alpha_mix(canvas->alpha, alpha);
+    egui_dim_t pfb_x = x - canvas->pfb_location_in_base_view.x;
+    egui_dim_t pfb_y = y - canvas->pfb_location_in_base_view.y;
+
+    if (!egui_font_std_can_fast_draw(canvas, x, y, width, height) || draw_alpha == 0)
+    {
+        return 0;
+    }
+
+    switch (font->font_bit_mode)
+    {
+    case 1:
+        egui_font_std_draw_fast_1(canvas, pfb_x, pfb_y, width, 0, 0, width, height, p_data, color, draw_alpha);
+        return 1;
+    case 2:
+        egui_font_std_draw_fast_2(canvas, pfb_x, pfb_y, width, 0, 0, width, height, p_data, color, draw_alpha);
+        return 1;
+    case 4:
+        egui_font_std_draw_fast_4(canvas, pfb_x, pfb_y, width, 0, 0, width, height, p_data, color, draw_alpha);
+        return 1;
+    case 8:
+        egui_font_std_draw_fast_8(canvas, pfb_x, pfb_y, width, 0, 0, width, height, p_data, color, draw_alpha);
+        return 1;
+    default:
+        break;
+    }
+
+    return 0;
+}
+
+static int egui_font_std_draw_fast_clipped(const egui_font_std_info_t *font, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
+                                           const uint8_t *p_data, egui_color_t color, egui_alpha_t alpha)
+{
+    const egui_canvas_t *canvas = egui_canvas_get_canvas();
+    egui_region_t visible_rect;
+    egui_alpha_t draw_alpha = egui_color_alpha_mix(canvas->alpha, alpha);
+
+    if (canvas->mask != NULL)
+    {
+        return 0;
+    }
+
+    if (draw_alpha == 0 || width <= 0 || height <= 0)
+    {
+        return 1;
+    }
+
+    if (!egui_font_std_clip_to_work_region(x, y, width, height, &visible_rect))
+    {
+        return 1;
+    }
+
+    egui_dim_t col0 = visible_rect.location.x - x;
+    egui_dim_t row0 = visible_rect.location.y - y;
+    egui_dim_t pfb_x = visible_rect.location.x - canvas->pfb_location_in_base_view.x;
+    egui_dim_t pfb_y = visible_rect.location.y - canvas->pfb_location_in_base_view.y;
+
+    if (pfb_x < 0 || pfb_y < 0 || pfb_x + visible_rect.size.width > canvas->pfb_region.size.width || pfb_y + visible_rect.size.height > canvas->pfb_region.size.height)
+    {
+        return 0;
+    }
+
+    switch (font->font_bit_mode)
+    {
+    case 1:
+        egui_font_std_draw_fast_1(canvas, pfb_x, pfb_y, width, col0, row0, visible_rect.size.width, visible_rect.size.height, p_data, color, draw_alpha);
+        return 1;
+    case 2:
+        egui_font_std_draw_fast_2(canvas, pfb_x, pfb_y, width, col0, row0, visible_rect.size.width, visible_rect.size.height, p_data, color, draw_alpha);
+        return 1;
+    case 4:
+        egui_font_std_draw_fast_4(canvas, pfb_x, pfb_y, width, col0, row0, visible_rect.size.width, visible_rect.size.height, p_data, color, draw_alpha);
+        return 1;
+    case 8:
+        egui_font_std_draw_fast_8(canvas, pfb_x, pfb_y, width, col0, row0, visible_rect.size.width, visible_rect.size.height, p_data, color, draw_alpha);
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+// Fast path for font rendering with masks that support row-level color blend
+// (e.g., LINEAR_VERTICAL gradient masks). Avoids per-pixel mask_point vtable dispatch.
+// Handles clipping to PFB work region, so partially-visible glyphs are covered too.
+static int egui_font_std_draw_fast_mask(const egui_font_std_info_t *font, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
+                                        const uint8_t *p_data, egui_color_t color, egui_alpha_t alpha)
+{
+    const egui_canvas_t *canvas = egui_canvas_get_canvas();
+    egui_mask_t *mask = canvas->mask;
+    egui_region_t visible_rect;
+
+    if (mask == NULL || mask->api->mask_blend_row_color == NULL)
+    {
+        return 0;
+    }
+
+    egui_alpha_t draw_alpha = egui_color_alpha_mix(canvas->alpha, alpha);
+    if (draw_alpha == 0)
+    {
+        return 0;
+    }
+
+    if (width <= 0 || height <= 0)
+    {
+        return 1;
+    }
+
+    if (!egui_font_std_clip_to_work_region(x, y, width, height, &visible_rect))
+    {
         return 1; // fully clipped, nothing to draw
     }
 
     // Glyph data offsets for the visible portion
-    egui_dim_t col0 = vis_x0 - x;
-    egui_dim_t row0 = vis_y0 - y;
-    egui_dim_t col1 = vis_x1 - x;
-    egui_dim_t row1 = vis_y1 - y;
+    egui_dim_t col0 = visible_rect.location.x - x;
+    egui_dim_t row0 = visible_rect.location.y - y;
+    egui_dim_t col1 = col0 + visible_rect.size.width;
+    egui_dim_t row1 = row0 + visible_rect.size.height;
 
     // PFB coordinates for the visible top-left
-    egui_dim_t pfb_x0 = vis_x0 - canvas->pfb_location_in_base_view.x;
-    egui_dim_t pfb_y0 = vis_y0 - canvas->pfb_location_in_base_view.y;
+    egui_dim_t pfb_x0 = visible_rect.location.x - canvas->pfb_location_in_base_view.x;
+    egui_dim_t pfb_y0 = visible_rect.location.y - canvas->pfb_location_in_base_view.y;
     egui_dim_t pfb_w = canvas->pfb_region.size.width;
+
+    if (pfb_x0 < 0 || pfb_y0 < 0 || pfb_x0 + visible_rect.size.width > canvas->pfb_region.size.width || pfb_y0 + visible_rect.size.height > canvas->pfb_region.size.height)
+    {
+        return 0;
+    }
 
     // Probe: check if mask supports row-level blend for this configuration
     egui_color_t probe = color;
-    if (!mask->api->mask_blend_row_color(mask, vis_y0, &probe))
+    if (!mask->api->mask_blend_row_color(mask, visible_rect.location.y, &probe))
     {
         return 0;
     }
@@ -627,9 +810,12 @@ static int egui_font_std_draw_single_char(const egui_font_t *self, uint32_t utf8
 
                 if (!egui_font_std_draw_fast(font, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha))
                 {
-                    if (!egui_font_std_draw_fast_mask(font, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha))
+                    if (!egui_font_std_draw_fast_clipped(font, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha))
                     {
-                        draw_func(draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha);
+                        if (!egui_font_std_draw_fast_mask(font, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha))
+                        {
+                            draw_func(draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha);
+                        }
                     }
                 }
             }

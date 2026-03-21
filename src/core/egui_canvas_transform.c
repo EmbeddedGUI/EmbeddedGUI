@@ -1171,26 +1171,7 @@ static int collect_visible_glyphs(const egui_font_std_info_t *font_info, const c
         s += char_bytes;
 
         /* Binary search for glyph descriptor */
-        int first = 0;
-        int last = font_info->count - 1;
-        int found = -1;
-        while (first <= last)
-        {
-            int mid = (first + last) / 2;
-            if (font_info->code_array[mid].code < utf8_code)
-            {
-                first = mid + 1;
-            }
-            else if (font_info->code_array[mid].code == utf8_code)
-            {
-                found = mid;
-                break;
-            }
-            else
-            {
-                last = mid - 1;
-            }
-        }
+        int found = egui_font_std_find_code_index(font_info, utf8_code);
 
         if (found < 0)
         {
@@ -1778,26 +1759,7 @@ static int rasterize_text_to_packed(const egui_font_std_info_t *font_info, const
         int char_bytes = egui_font_get_utf8_code(s, &utf8_code);
         s += char_bytes;
 
-        int first = 0;
-        int last = font_info->count - 1;
-        int found = -1;
-        while (first <= last)
-        {
-            int mid = (first + last) / 2;
-            if (font_info->code_array[mid].code < utf8_code)
-            {
-                first = mid + 1;
-            }
-            else if (font_info->code_array[mid].code == utf8_code)
-            {
-                found = mid;
-                break;
-            }
-            else
-            {
-                last = mid - 1;
-            }
-        }
+        int found = egui_font_std_find_code_index(font_info, utf8_code);
 
         if (found < 0)
         {
