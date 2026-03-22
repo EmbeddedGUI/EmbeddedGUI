@@ -66,6 +66,12 @@ static egui_font_std_code_lookup_cache_t g_font_std_code_lookup_cache = {
 #ifndef EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS
 #define EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 2
 #endif
+#ifndef EGUI_FONT_STD_LINE_CACHE_MAX_LINES
+#define EGUI_FONT_STD_LINE_CACHE_MAX_LINES 16
+#endif
+#ifndef EGUI_FONT_STD_LINE_CACHE_SLOTS
+#define EGUI_FONT_STD_LINE_CACHE_SLOTS 2
+#endif
 
 typedef struct
 {
@@ -107,6 +113,17 @@ typedef struct
     uint8_t is_ready;
 } egui_font_std_ascii_lookup_cache_t;
 
+typedef struct
+{
+    const char *string;
+    uint16_t line_count;
+    uint8_t is_ready;
+    uint8_t is_complete;
+    uint32_t stamp;
+    const char *lines[EGUI_FONT_STD_LINE_CACHE_MAX_LINES];
+} egui_font_std_line_cache_t;
+
+
 static egui_font_std_ascii_lookup_cache_t g_font_std_ascii_lookup_cache = {
         .code_array = NULL,
         .char_array = NULL,
@@ -116,6 +133,8 @@ static egui_font_std_ascii_lookup_cache_t g_font_std_ascii_lookup_cache = {
 
 static egui_font_std_draw_prefix_cache_t g_font_std_draw_prefix_cache[EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS];
 static uint32_t g_font_std_draw_prefix_cache_stamp = 0;
+static egui_font_std_line_cache_t g_font_std_line_cache[EGUI_FONT_STD_LINE_CACHE_SLOTS];
+static uint32_t g_font_std_line_cache_stamp = 0;
 
 __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_draw_fast(const egui_font_std_info_t *font, uint32_t utf8_code);
 
@@ -355,6 +374,69 @@ static int egui_font_std_find_prefix_first_visible(const egui_font_std_draw_pref
 
     return left;
 }
+
+static const egui_font_std_line_cache_t *egui_font_std_prepare_line_cache(const char *s)
+{
+    const char *cursor;
+    egui_font_std_line_cache_t *cache = &g_font_std_line_cache[0];
+
+    if (s == NULL)
+    {
+        return NULL;
+    }
+
+    for (int i = 0; i < EGUI_FONT_STD_LINE_CACHE_SLOTS; i++)
+    {
+        egui_font_std_line_cache_t *entry = &g_font_std_line_cache[i];
+
+        if (entry->is_ready && entry->string == s)
+        {
+            entry->stamp = ++g_font_std_line_cache_stamp;
+            return entry;
+        }
+
+        if (!entry->is_ready)
+        {
+            cache = entry;
+            break;
+        }
+
+        if (cache->is_ready && entry->stamp < cache->stamp)
+        {
+            cache = entry;
+        }
+    }
+
+    cache->string = s;
+    cache->line_count = 0;
+    cache->is_ready = 1;
+    cache->is_complete = 0;
+    cache->stamp = ++g_font_std_line_cache_stamp;
+
+    cursor = s;
+    if (cache->line_count < EGUI_FONT_STD_LINE_CACHE_MAX_LINES)
+    {
+        cache->lines[cache->line_count++] = cursor;
+    }
+
+    while (*cursor != '\0')
+    {
+        if (*cursor == '\n')
+        {
+            if (cache->line_count >= EGUI_FONT_STD_LINE_CACHE_MAX_LINES)
+            {
+                return cache;
+            }
+
+            cache->lines[cache->line_count++] = cursor + 1;
+        }
+        cursor++;
+    }
+
+    cache->is_complete = 1;
+    return cache;
+}
+
 
 static void egui_font_std_reset_code_lookup_cache(const egui_font_std_info_t *font)
 {
@@ -2392,6 +2474,7 @@ int egui_font_std_try_draw_string_in_rect_fast(const egui_font_t *self, const vo
                                                egui_color_t color, egui_alpha_t alpha)
 {
     const char *s = (const char *)string;
+    const egui_font_std_line_cache_t *line_cache = NULL;
     egui_font_std_access_t font_access;
     egui_font_std_info_t *font;
     const egui_canvas_t *canvas;
@@ -2461,6 +2544,49 @@ int egui_font_std_try_draw_string_in_rect_fast(const egui_font_t *self, const vo
     work_y0 = work_region->location.y;
     work_y1 = work_y0 + work_region->size.height;
     line_step = y_size + line_space;
+    line_cache = egui_font_std_prepare_line_cache(s);
+
+    if (line_cache != NULL && line_cache->is_complete)
+    {
+        uint16_t line_index = 0;
+
+        if (line_step > 0)
+        {
+            while (line_index < line_cache->line_count && draw_y + y_size <= work_y0)
+            {
+                line_index++;
+                draw_y += line_step;
+            }
+        }
+
+        for (; line_index < line_cache->line_count; line_index++)
+        {
+            const char *line_s = line_cache->lines[line_index];
+
+            if (line_step > 0 && draw_y >= work_y1)
+            {
+                break;
+            }
+
+            if (use_fast_no_mask)
+            {
+                str_bytes = egui_font_std_draw_string_fast_4(self->res, font, line_s, rect->location.x, draw_y, color, alpha, canvas, work_region, draw_alpha,
+                                                             &blend_ctx);
+            }
+            else
+            {
+                str_bytes = egui_font_std_draw_string_fast_4_mask(self->res, font, line_s, rect->location.x, draw_y, color, alpha, work_region);
+            }
+            if (str_bytes <= 0)
+            {
+                break;
+            }
+
+            draw_y += line_step;
+        }
+
+        goto done;
+    }
 
     if (line_step > 0)
     {

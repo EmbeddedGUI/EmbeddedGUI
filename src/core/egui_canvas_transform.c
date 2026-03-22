@@ -172,6 +172,91 @@ static inline uint32_t image_alpha_buf_size(int16_t w, int16_t h, uint8_t alpha_
     }
 }
 
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+typedef struct
+{
+    const egui_image_std_info_t *info;
+    const void *data_addr;
+    const void *alpha_addr;
+    void *data_buf;
+    void *alpha_buf;
+    uint32_t data_size;
+    uint32_t alpha_size;
+} image_transform_external_cache_t;
+
+static image_transform_external_cache_t g_image_transform_external_cache = {0};
+
+static void image_transform_release_external_cache(image_transform_external_cache_t *cache)
+{
+    if (cache->data_buf != NULL)
+    {
+        egui_free(cache->data_buf);
+    }
+    if (cache->alpha_buf != NULL)
+    {
+        egui_free(cache->alpha_buf);
+    }
+
+    memset(cache, 0, sizeof(*cache));
+}
+
+static int image_transform_prepare_external_cache(const egui_image_std_info_t *info, int source_is_opaque, const uint16_t **data, const uint8_t **alpha_buf)
+{
+    image_transform_external_cache_t *cache = &g_image_transform_external_cache;
+    uint32_t data_size = (uint32_t)info->width * info->height * sizeof(uint16_t);
+    uint32_t alpha_size = 0;
+    int data_hit;
+    int alpha_hit;
+
+    if (info->alpha_buf != NULL && !source_is_opaque)
+    {
+        alpha_size = image_alpha_buf_size(info->width, info->height, info->alpha_type);
+    }
+
+    data_hit = cache->info == info && cache->data_addr == info->data_buf && cache->data_size == data_size && cache->data_buf != NULL;
+    alpha_hit = alpha_size == 0 ||
+                (cache->info == info && cache->alpha_addr == info->alpha_buf && cache->alpha_size == alpha_size && cache->alpha_buf != NULL);
+
+    if (!data_hit || !alpha_hit)
+    {
+        void *new_data_buf = egui_malloc((int)data_size);
+        void *new_alpha_buf = NULL;
+
+        if (new_data_buf == NULL)
+        {
+            return 0;
+        }
+
+        egui_api_load_external_resource(new_data_buf, (egui_uintptr_t)(info->data_buf), 0, data_size);
+
+        if (alpha_size > 0)
+        {
+            new_alpha_buf = egui_malloc((int)alpha_size);
+            if (new_alpha_buf == NULL)
+            {
+                egui_free(new_data_buf);
+                return 0;
+            }
+
+            egui_api_load_external_resource(new_alpha_buf, (egui_uintptr_t)(info->alpha_buf), 0, alpha_size);
+        }
+
+        image_transform_release_external_cache(cache);
+        cache->info = info;
+        cache->data_addr = info->data_buf;
+        cache->alpha_addr = info->alpha_buf;
+        cache->data_buf = new_data_buf;
+        cache->alpha_buf = new_alpha_buf;
+        cache->data_size = data_size;
+        cache->alpha_size = alpha_size;
+    }
+
+    *data = (const uint16_t *)cache->data_buf;
+    *alpha_buf = alpha_size > 0 ? (const uint8_t *)cache->alpha_buf : NULL;
+    return 1;
+}
+#endif
+
 /**
  * Read a single alpha value from a packed image alpha buffer at (x, y).
  * Supports all alpha types (1/2/4/8 bits per pixel).
@@ -570,41 +655,11 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
     const uint8_t *alpha_buf;
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-    void *ext_data_buf = NULL;
-    void *ext_alpha_buf = NULL;
     if (info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
     {
-        uint32_t data_size = (uint32_t)src_w * src_h * sizeof(uint16_t);
-        ext_data_buf = egui_malloc(data_size);
-        if (ext_data_buf == NULL)
+        if (!image_transform_prepare_external_cache(info, source_is_opaque, &data, &alpha_buf))
         {
             return;
-        }
-        egui_api_load_external_resource(ext_data_buf, (egui_uintptr_t)(info->data_buf), 0, data_size);
-        data = (const uint16_t *)ext_data_buf;
-
-        if (info->alpha_buf != NULL && !source_is_opaque)
-        {
-            uint32_t alpha_size = image_alpha_buf_size(src_w, src_h, info->alpha_type);
-            if (alpha_size > 0)
-            {
-                ext_alpha_buf = egui_malloc(alpha_size);
-                if (ext_alpha_buf == NULL)
-                {
-                    egui_free(ext_data_buf);
-                    return;
-                }
-                egui_api_load_external_resource(ext_alpha_buf, (egui_uintptr_t)(info->alpha_buf), 0, alpha_size);
-                alpha_buf = (const uint8_t *)ext_alpha_buf;
-            }
-            else
-            {
-                alpha_buf = NULL;
-            }
-        }
-        else
-        {
-            alpha_buf = NULL;
         }
     }
     else
@@ -904,17 +959,6 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
         Cx_base += inv_m01;
         Cy_base += inv_m11;
     }
-
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-    if (ext_data_buf != NULL)
-    {
-        egui_free(ext_data_buf);
-    }
-    if (ext_alpha_buf != NULL)
-    {
-        egui_free(ext_alpha_buf);
-    }
-#endif
 }
 
 // ============================================================================
@@ -1283,9 +1327,29 @@ typedef struct
     egui_mask_t *mask; /* canvas mask for per-row color overlay (gradient support) */
 } text_transform_ctx_t;
 
+typedef struct
+{
+    uint8_t valid;
+    int16_t text_w, text_h, cx, cy;
+    egui_dim_t x, y;
+    int16_t angle_deg;
+    int16_t scale_q8;
+    egui_alpha_t alpha;
+    int32_t inv_m00, inv_m01, inv_m10, inv_m11;
+    int32_t min_bx, min_by, max_bx, max_by;
+    int32_t offx, offy;
+} text_transform_prepare_cache_t;
+
+static text_transform_prepare_cache_t g_text_transform_prepare_cache = {0};
+
+static int text_transform_draw_visible_alpha8_tile(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color,
+                                                   const text_transform_glyph_t *glyphs, int glyph_count);
+
 static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8, egui_alpha_t alpha,
                                   text_transform_ctx_t *ctx)
 {
+    text_transform_prepare_cache_t *cache = &g_text_transform_prepare_cache;
+
     if (text_w <= 0 || text_h <= 0)
     {
         return -1;
@@ -1302,38 +1366,63 @@ static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, 
         scale_q8 = 1;
     }
 
-    int32_t sinA = transform_sin_q15(angle_deg);
-    int32_t cosA = transform_cos_q15(angle_deg);
-
-    /* Forward affine matrix with scale (Q15) */
-    int32_t fwd_m00 = (cosA * scale_q8) >> 8;
-    int32_t fwd_m01 = (-sinA * scale_q8) >> 8;
-    int32_t fwd_m10 = (sinA * scale_q8) >> 8;
-    int32_t fwd_m11 = (cosA * scale_q8) >> 8;
-
-    /* Compute bounding box of rotated text */
-    int32_t min_bx = 0x7FFFFFFF, min_by = 0x7FFFFFFF;
-    int32_t max_bx = -0x7FFFFFFF, max_by = -0x7FFFFFFF;
-    int32_t corners[4][2] = {{0, 0}, {text_w, 0}, {0, text_h}, {text_w, text_h}};
-    for (int i = 0; i < 4; i++)
+    if (!(cache->valid && cache->text_w == text_w && cache->text_h == text_h && cache->x == x && cache->y == y && cache->angle_deg == angle_deg &&
+          cache->scale_q8 == scale_q8 && cache->alpha == alpha))
     {
-        int32_t dx_rel = corners[i][0] - ctx->cx;
-        int32_t dy_rel = corners[i][1] - ctx->cy;
-        int32_t dx = (((int64_t)dx_rel * fwd_m00 + (int64_t)dy_rel * fwd_m01) + (1 << 14)) >> 15;
-        int32_t dy = (((int64_t)dx_rel * fwd_m10 + (int64_t)dy_rel * fwd_m11) + (1 << 14)) >> 15;
-        dx += x;
-        dy += y;
-        if (dx < min_bx)
-            min_bx = dx;
-        if (dy < min_by)
-            min_by = dy;
-        if (dx > max_bx)
-            max_bx = dx;
-        if (dy > max_by)
-            max_by = dy;
+        int32_t sinA = transform_sin_q15(angle_deg);
+        int32_t cosA = transform_cos_q15(angle_deg);
+
+        /* Forward affine matrix with scale (Q15) */
+        int32_t fwd_m00 = (cosA * scale_q8) >> 8;
+        int32_t fwd_m01 = (-sinA * scale_q8) >> 8;
+        int32_t fwd_m10 = (sinA * scale_q8) >> 8;
+        int32_t fwd_m11 = (cosA * scale_q8) >> 8;
+
+        /* Compute bounding box of rotated text */
+        int32_t min_bx = 0x7FFFFFFF, min_by = 0x7FFFFFFF;
+        int32_t max_bx = -0x7FFFFFFF, max_by = -0x7FFFFFFF;
+        int32_t corners[4][2] = {{0, 0}, {text_w, 0}, {0, text_h}, {text_w, text_h}};
+        for (int i = 0; i < 4; i++)
+        {
+            int32_t dx_rel = corners[i][0] - ctx->cx;
+            int32_t dy_rel = corners[i][1] - ctx->cy;
+            int32_t dx = (((int64_t)dx_rel * fwd_m00 + (int64_t)dy_rel * fwd_m01) + (1 << 14)) >> 15;
+            int32_t dy = (((int64_t)dx_rel * fwd_m10 + (int64_t)dy_rel * fwd_m11) + (1 << 14)) >> 15;
+            dx += x;
+            dy += y;
+            if (dx < min_bx)
+                min_bx = dx;
+            if (dy < min_by)
+                min_by = dy;
+            if (dx > max_bx)
+                max_bx = dx;
+            if (dy > max_by)
+                max_by = dy;
+        }
+        max_bx++;
+        max_by++;
+
+        cache->valid = 1;
+        cache->text_w = text_w;
+        cache->text_h = text_h;
+        cache->cx = ctx->cx;
+        cache->cy = ctx->cy;
+        cache->x = x;
+        cache->y = y;
+        cache->angle_deg = angle_deg;
+        cache->scale_q8 = scale_q8;
+        cache->alpha = alpha;
+        cache->inv_m00 = (cosA << 8) / scale_q8;
+        cache->inv_m01 = (sinA << 8) / scale_q8;
+        cache->inv_m10 = (-sinA << 8) / scale_q8;
+        cache->inv_m11 = (cosA << 8) / scale_q8;
+        cache->min_bx = min_bx;
+        cache->min_by = min_by;
+        cache->max_bx = max_bx;
+        cache->max_by = max_by;
+        cache->offx = (text_w & 1) ? 0 : (cache->inv_m00 + cache->inv_m01 - 32767) / 2;
+        cache->offy = (text_h & 1) ? 0 : (cache->inv_m10 + cache->inv_m11 - 32767) / 2;
     }
-    max_bx++;
-    max_by++;
 
     /* Clip to canvas work region */
     egui_region_t *work = &canvas->base_view_work_region;
@@ -1342,25 +1431,20 @@ static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, 
     int32_t clip_x1 = clip_x0 + work->size.width;
     int32_t clip_y1 = clip_y0 + work->size.height;
 
-    ctx->draw_x0 = (min_bx > clip_x0) ? min_bx : clip_x0;
-    ctx->draw_y0 = (min_by > clip_y0) ? min_by : clip_y0;
-    ctx->draw_x1 = (max_bx < clip_x1) ? max_bx : clip_x1;
-    ctx->draw_y1 = (max_by < clip_y1) ? max_by : clip_y1;
+    ctx->draw_x0 = (cache->min_bx > clip_x0) ? cache->min_bx : clip_x0;
+    ctx->draw_y0 = (cache->min_by > clip_y0) ? cache->min_by : clip_y0;
+    ctx->draw_x1 = (cache->max_bx < clip_x1) ? cache->max_bx : clip_x1;
+    ctx->draw_y1 = (cache->max_by < clip_y1) ? cache->max_by : clip_y1;
 
     if (ctx->draw_x0 >= ctx->draw_x1 || ctx->draw_y0 >= ctx->draw_y1)
     {
         return -1;
     }
 
-    /* Inverse affine matrix (Q15) */
-    ctx->inv_m00 = (cosA << 8) / scale_q8;
-    ctx->inv_m01 = (sinA << 8) / scale_q8;
-    ctx->inv_m10 = (-sinA << 8) / scale_q8;
-    ctx->inv_m11 = (cosA << 8) / scale_q8;
-
-    /* Center correction for even-sized text area */
-    int32_t offx = (text_w & 1) ? 0 : (ctx->inv_m00 + ctx->inv_m01 - 32767) / 2;
-    int32_t offy = (text_h & 1) ? 0 : (ctx->inv_m10 + ctx->inv_m11 - 32767) / 2;
+    ctx->inv_m00 = cache->inv_m00;
+    ctx->inv_m01 = cache->inv_m01;
+    ctx->inv_m10 = cache->inv_m10;
+    ctx->inv_m11 = cache->inv_m11;
 
     /* PFB write setup */
     ctx->pfb_w = canvas->pfb_region.size.width;
@@ -1371,8 +1455,8 @@ static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, 
     ctx->mask = canvas->mask;
 
     /* Row-constant terms for incremental scanning */
-    ctx->Cx_base = ctx->inv_m01 * ((int32_t)ctx->draw_y0 - y) + ((int32_t)ctx->cx << 15) + offx;
-    ctx->Cy_base = ctx->inv_m11 * ((int32_t)ctx->draw_y0 - y) + ((int32_t)ctx->cy << 15) + offy;
+    ctx->Cx_base = ctx->inv_m01 * ((int32_t)ctx->draw_y0 - y) + ((int32_t)ctx->cx << 15) + cache->offx;
+    ctx->Cy_base = ctx->inv_m11 * ((int32_t)ctx->draw_y0 - y) + ((int32_t)ctx->cy << 15) + cache->offy;
 
     return 0;
 }
@@ -2336,9 +2420,18 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
         return;
     }
 
+    if (bpp == 4 && scale_q8 >= 256 &&
+        (ctx.mask == NULL || (ctx.mask->api != NULL && ctx.mask->api->kind == EGUI_MASK_KIND_GRADIENT && ctx.mask->api->mask_blend_row_color != NULL)))
+    {
+        if (text_transform_draw_visible_alpha8_tile(&ctx, x, y, color, s_tile_glyphs, tile_count))
+        {
+            egui_font_std_release_access(&font_access);
+            return;
+        }
+    }
+
     int hint = -1;
     int hint_line = -1;
-
     /* Hoist loop-invariant row-start offset computed from draw_x0 */
     int32_t row_start_offset_x = ctx.inv_m00 * ((int32_t)ctx.draw_x0 - x);
     int32_t row_start_offset_y = ctx.inv_m10 * ((int32_t)ctx.draw_x0 - x);
@@ -2861,9 +2954,699 @@ static void rasterize_layout_to_packed(const egui_font_std_info_t *font_info, co
     }
 }
 
+static uint16_t g_alpha4_expand_pair_table[256];
+static uint8_t g_alpha4_expand_pair_table_ready = 0;
+
+static void ensure_alpha4_expand_pair_table(void)
+{
+    if (g_alpha4_expand_pair_table_ready)
+    {
+        return;
+    }
+
+    for (int i = 0; i < 256; i++)
+    {
+        g_alpha4_expand_pair_table[i] = (uint16_t)(egui_alpha_change_table_4[i & 0x0F] | (egui_alpha_change_table_4[(i >> 4) & 0x0F] << 8));
+    }
+
+    g_alpha4_expand_pair_table_ready = 1;
+}
+
+static void rasterize_glyph_to_alpha8(uint8_t *buf, int buf_w, int buf_h, int dst_x, int dst_y, const uint8_t *glyph_data, int box_w, int box_h, uint8_t bpp)
+{
+    if (bpp == 4)
+    {
+        int row_bytes = (box_w + 1) >> 1;
+
+        ensure_alpha4_expand_pair_table();
+
+        if (dst_x >= 0 && dst_y >= 0 && (dst_x + box_w) <= buf_w && (dst_y + box_h) <= buf_h)
+        {
+            for (int row = 0; row < box_h; row++)
+            {
+                const uint8_t *src = glyph_data + row * row_bytes;
+                uint8_t *dst = buf + (dst_y + row) * buf_w + dst_x;
+                int col = 0;
+
+                while ((col + 1) < box_w)
+                {
+                    uint16_t pair = g_alpha4_expand_pair_table[*src++];
+                    uint8_t alpha0 = (uint8_t)(pair & 0xFF);
+                    uint8_t alpha1 = (uint8_t)(pair >> 8);
+
+                    if (alpha0 > dst[col])
+                    {
+                        dst[col] = alpha0;
+                    }
+                    if (alpha1 > dst[col + 1])
+                    {
+                        dst[col + 1] = alpha1;
+                    }
+
+                    col += 2;
+                }
+
+                if (col < box_w)
+                {
+                    uint8_t alpha0 = (uint8_t)(g_alpha4_expand_pair_table[*src] & 0xFF);
+                    if (alpha0 > dst[col])
+                    {
+                        dst[col] = alpha0;
+                    }
+                }
+            }
+            return;
+        }
+    }
+
+    for (int row = 0; row < box_h; row++)
+    {
+        int py = dst_y + row;
+        if (py < 0 || py >= buf_h)
+        {
+            continue;
+        }
+
+        uint8_t *dst = buf + py * buf_w;
+        for (int col = 0; col < box_w; col++)
+        {
+            int px = dst_x + col;
+            uint8_t alpha;
+
+            if (px < 0 || px >= buf_w)
+            {
+                continue;
+            }
+
+            alpha = (bpp == 8) ? glyph_data[row * box_w + col] : extract_packed_alpha(glyph_data, (uint8_t)box_w, col, row, bpp);
+            if (alpha > dst[px])
+            {
+                dst[px] = alpha;
+            }
+        }
+    }
+}
+
+static int text_transform_get_layout_alpha8_bbox(const text_transform_layout_glyph_t *glyphs, int glyph_count, int16_t limit_w, int16_t limit_h, int16_t *src_x0,
+                                                 int16_t *src_y0, int16_t *src_w, int16_t *src_h)
+{
+    int found = 0;
+    int16_t bbox_x0 = 0;
+    int16_t bbox_y0 = 0;
+    int16_t bbox_x1 = 0;
+    int16_t bbox_y1 = 0;
+
+    if (glyphs == NULL || glyph_count <= 0 || limit_w <= 0 || limit_h <= 0 || src_x0 == NULL || src_y0 == NULL || src_w == NULL || src_h == NULL)
+    {
+        return 0;
+    }
+
+    for (int i = 0; i < glyph_count; i++)
+    {
+        int16_t glyph_x0 = glyphs[i].x;
+        int16_t glyph_y0 = glyphs[i].y;
+        int16_t glyph_x1 = glyphs[i].x + glyphs[i].box_w;
+        int16_t glyph_y1 = glyphs[i].y + glyphs[i].box_h;
+
+        if (glyphs[i].box_w == 0 || glyphs[i].box_h == 0)
+        {
+            continue;
+        }
+
+        if (glyph_x0 < 0)
+        {
+            glyph_x0 = 0;
+        }
+        if (glyph_y0 < 0)
+        {
+            glyph_y0 = 0;
+        }
+        if (glyph_x1 > limit_w)
+        {
+            glyph_x1 = limit_w;
+        }
+        if (glyph_y1 > limit_h)
+        {
+            glyph_y1 = limit_h;
+        }
+
+        if (glyph_x0 >= glyph_x1 || glyph_y0 >= glyph_y1)
+        {
+            continue;
+        }
+
+        if (!found)
+        {
+            bbox_x0 = glyph_x0;
+            bbox_y0 = glyph_y0;
+            bbox_x1 = glyph_x1;
+            bbox_y1 = glyph_y1;
+            found = 1;
+        }
+        else
+        {
+            if (glyph_x0 < bbox_x0)
+            {
+                bbox_x0 = glyph_x0;
+            }
+            if (glyph_y0 < bbox_y0)
+            {
+                bbox_y0 = glyph_y0;
+            }
+            if (glyph_x1 > bbox_x1)
+            {
+                bbox_x1 = glyph_x1;
+            }
+            if (glyph_y1 > bbox_y1)
+            {
+                bbox_y1 = glyph_y1;
+            }
+        }
+    }
+
+    if (!found)
+    {
+        return 0;
+    }
+
+    if (bbox_x0 > 0)
+    {
+        bbox_x0--;
+    }
+    if (bbox_y0 > 0)
+    {
+        bbox_y0--;
+    }
+    if (bbox_x1 < limit_w)
+    {
+        bbox_x1++;
+    }
+    if (bbox_y1 < limit_h)
+    {
+        bbox_y1++;
+    }
+
+    *src_x0 = bbox_x0;
+    *src_y0 = bbox_y0;
+    *src_w = bbox_x1 - bbox_x0;
+    *src_h = bbox_y1 - bbox_y0;
+    return (*src_w > 0 && *src_h > 0);
+}
+
+static void rasterize_layout_to_alpha8_offset(const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *glyphs, int glyph_count, uint8_t *alpha8_buf,
+                                              int buf_w, int buf_h, uint8_t bpp, int16_t src_x0, int16_t src_y0)
+{
+    for (int i = 0; i < glyph_count; i++)
+    {
+        const text_transform_layout_glyph_t *glyph = &glyphs[i];
+        const uint8_t *p_pixel = font_info->pixel_buffer + glyph->pixel_idx;
+
+        rasterize_glyph_to_alpha8(alpha8_buf, buf_w, buf_h, glyph->x - src_x0, glyph->y - src_y0, p_pixel, glyph->box_w, glyph->box_h, bpp);
+    }
+}
+
+static int text_transform_ensure_visible_alpha8_capacity(int needed, uint8_t **buf, int *capacity)
+{
+    uint8_t *new_buf;
+
+    if (*buf != NULL && needed <= *capacity)
+    {
+        return 0;
+    }
+
+    new_buf = (uint8_t *)egui_malloc(needed);
+    if (new_buf == NULL)
+    {
+        return -1;
+    }
+
+    if (*buf != NULL)
+    {
+        egui_free(*buf);
+    }
+
+    *buf = new_buf;
+    *capacity = needed;
+    return 0;
+}
+
+static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color, const uint8_t *alpha8_buf,
+                                             int16_t src_x0, int16_t src_y0, int buf_w, int buf_h)
+{
+    int row_color_only_mode = 0;
+    int32_t row_start_offset_x;
+    int32_t row_start_offset_y;
+    int32_t Cx_base;
+    int32_t Cy_base;
+    int32_t buf_src_hi_x_q15;
+    int32_t buf_src_hi_y_q15;
+    int32_t buf_int_max_x_q15;
+    int32_t buf_int_max_y_q15;
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+    uint32_t fg_rb_g;
+#endif
+
+    if (ctx == NULL || alpha8_buf == NULL || buf_w <= 0 || buf_h <= 0)
+    {
+        return 0;
+    }
+
+    if (ctx->mask != NULL)
+    {
+        egui_color_t probe_color = color;
+
+        if (ctx->mask->api == NULL || ctx->mask->api->kind != EGUI_MASK_KIND_GRADIENT || ctx->mask->api->mask_blend_row_color == NULL ||
+            !transform_prepare_row_color(ctx->mask, (egui_dim_t)ctx->draw_y0, &probe_color))
+        {
+            return 0;
+        }
+
+        row_color_only_mode = 1;
+    }
+
+    row_start_offset_x = ctx->inv_m00 * ((int32_t)ctx->draw_x0 - x);
+    row_start_offset_y = ctx->inv_m10 * ((int32_t)ctx->draw_x0 - x);
+    Cx_base = ctx->Cx_base - ((int32_t)src_x0 << 15);
+    Cy_base = ctx->Cy_base - ((int32_t)src_y0 << 15);
+    buf_src_hi_x_q15 = (int32_t)buf_w << 15;
+    buf_src_hi_y_q15 = (int32_t)buf_h << 15;
+    buf_int_max_x_q15 = ((int32_t)buf_w - 2) << 15;
+    buf_int_max_y_q15 = ((int32_t)buf_h - 2) << 15;
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+    fg_rb_g = (color.full | ((uint32_t)color.full << 16)) & 0x07E0F81FUL;
+#endif
+
+    for (int32_t dy = ctx->draw_y0; dy < ctx->draw_y1; dy++)
+    {
+        egui_color_t row_color = color;
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+        uint32_t row_fg_rb_g = fg_rb_g;
+#endif
+
+        if (row_color_only_mode)
+        {
+            transform_prepare_row_color(ctx->mask, (egui_dim_t)dy, &row_color);
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+            row_fg_rb_g = (row_color.full | ((uint32_t)row_color.full << 16)) & 0x07E0F81FUL;
+#endif
+        }
+
+        int32_t rotatedX = row_start_offset_x + Cx_base;
+        int32_t rotatedY = row_start_offset_y + Cy_base;
+        egui_color_int_t *dst_row = &ctx->pfb[(dy - ctx->pfb_oy) * ctx->pfb_w + (ctx->draw_x0 - ctx->pfb_ox)];
+        int entered = 0;
+        int32_t dx = ctx->draw_x0;
+
+        if (rotatedX < 0 || rotatedX >= buf_src_hi_x_q15 || rotatedY < 0 || rotatedY >= buf_src_hi_y_q15)
+        {
+            int32_t skip = transform_scanline_skip(rotatedX, rotatedY, ctx->inv_m00, ctx->inv_m10, 0, buf_src_hi_x_q15, 0, buf_src_hi_y_q15,
+                                                   ctx->draw_x1 - ctx->draw_x0);
+            if (skip > 0)
+            {
+                rotatedX += skip * ctx->inv_m00;
+                rotatedY += skip * ctx->inv_m10;
+                dst_row += skip;
+                dx += skip;
+            }
+        }
+
+        for (; dx < ctx->draw_x1; dx++)
+        {
+            int32_t sx = rotatedX >> 15;
+            int32_t sy = rotatedY >> 15;
+
+            if (sx >= 0 && sx < buf_w - 1 && sy >= 0 && sy < buf_h - 1)
+            {
+                entered = 1;
+                int32_t sir_count = ctx->draw_x1 - dx;
+
+                if (ctx->inv_m00 > 0)
+                {
+                    int32_t n = (buf_int_max_x_q15 - rotatedX) / ctx->inv_m00;
+                    if (n < sir_count)
+                    {
+                        sir_count = n;
+                    }
+                }
+                else if (ctx->inv_m00 < 0)
+                {
+                    int32_t n = rotatedX / (-ctx->inv_m00);
+                    if (n < sir_count)
+                    {
+                        sir_count = n;
+                    }
+                }
+
+                if (ctx->inv_m10 > 0)
+                {
+                    int32_t n = (buf_int_max_y_q15 - rotatedY) / ctx->inv_m10;
+                    if (n < sir_count)
+                    {
+                        sir_count = n;
+                    }
+                }
+                else if (ctx->inv_m10 < 0)
+                {
+                    int32_t n = rotatedY / (-ctx->inv_m10);
+                    if (n < sir_count)
+                    {
+                        sir_count = n;
+                    }
+                }
+
+                if (sir_count < 1)
+                {
+                    sir_count = 1;
+                }
+
+                if (ctx->canvas_alpha == EGUI_ALPHA_100)
+                {
+                    for (int32_t i = 0; i < sir_count; i++)
+                    {
+                        int32_t sample_sx = rotatedX >> 15;
+                        int32_t sample_sy = rotatedY >> 15;
+                        const uint8_t *row0 = alpha8_buf + sample_sy * buf_w + sample_sx;
+                        const uint8_t *row1 = row0 + buf_w;
+                        uint8_t a00 = row0[0];
+                        uint8_t a01 = row0[1];
+                        uint8_t a10 = row1[0];
+                        uint8_t a11 = row1[1];
+                        uint8_t pixel_alpha;
+
+                        if ((a00 | a01 | a10 | a11) == 0)
+                        {
+                            rotatedX += ctx->inv_m00;
+                            rotatedY += ctx->inv_m10;
+                            dst_row++;
+                            continue;
+                        }
+
+                        if ((a00 & a01 & a10 & a11) == EGUI_ALPHA_100)
+                        {
+                            pixel_alpha = EGUI_ALPHA_100;
+                        }
+                        else
+                        {
+                            uint8_t fx = (rotatedX >> 7) & 0xFF;
+                            uint8_t fy = (rotatedY >> 7) & 0xFF;
+                            uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                            uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                            pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+                        }
+
+                        if (pixel_alpha > 0)
+                        {
+                            if (pixel_alpha == EGUI_ALPHA_100)
+                            {
+                                *dst_row = row_color.full;
+                            }
+                            else if (pixel_alpha > 0)
+                            {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                                uint16_t bg = *dst_row;
+                                uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                uint32_t result = (bg_rb_g + ((row_fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                                egui_color_t *back = (egui_color_t *)dst_row;
+                                egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
+#endif
+                            }
+                        }
+
+                        rotatedX += ctx->inv_m00;
+                        rotatedY += ctx->inv_m10;
+                        dst_row++;
+                    }
+                }
+                else
+                {
+                    for (int32_t i = 0; i < sir_count; i++)
+                    {
+                        int32_t sample_sx = rotatedX >> 15;
+                        int32_t sample_sy = rotatedY >> 15;
+                        const uint8_t *row0 = alpha8_buf + sample_sy * buf_w + sample_sx;
+                        const uint8_t *row1 = row0 + buf_w;
+                        uint8_t a00 = row0[0];
+                        uint8_t a01 = row0[1];
+                        uint8_t a10 = row1[0];
+                        uint8_t a11 = row1[1];
+                        uint8_t pixel_alpha;
+
+                        if ((a00 | a01 | a10 | a11) == 0)
+                        {
+                            rotatedX += ctx->inv_m00;
+                            rotatedY += ctx->inv_m10;
+                            dst_row++;
+                            continue;
+                        }
+
+                        if ((a00 & a01 & a10 & a11) == EGUI_ALPHA_100)
+                        {
+                            pixel_alpha = EGUI_ALPHA_100;
+                        }
+                        else
+                        {
+                            uint8_t fx = (rotatedX >> 7) & 0xFF;
+                            uint8_t fy = (rotatedY >> 7) & 0xFF;
+                            uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                            uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                            pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+                        }
+
+                        if (pixel_alpha > 0)
+                        {
+                            egui_alpha_t final_alpha = ((uint16_t)ctx->canvas_alpha * pixel_alpha + 128) >> 8;
+
+                            if (final_alpha == EGUI_ALPHA_100)
+                            {
+                                *dst_row = row_color.full;
+                            }
+                            else if (final_alpha > 0)
+                            {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                                uint16_t bg = *dst_row;
+                                uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                uint32_t result = (bg_rb_g + ((row_fg_rb_g - bg_rb_g) * ((uint32_t)final_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                                egui_color_t *back = (egui_color_t *)dst_row;
+                                egui_rgb_mix_ptr(back, &row_color, back, final_alpha);
+#endif
+                            }
+                        }
+
+                        rotatedX += ctx->inv_m00;
+                        rotatedY += ctx->inv_m10;
+                        dst_row++;
+                    }
+                }
+
+                dx += sir_count - 1;
+                continue;
+            }
+            else if (sx >= -1 && sx < buf_w && sy >= -1 && sy < buf_h)
+            {
+                uint8_t fx = (rotatedX >> 7) & 0xFF;
+                uint8_t fy = (rotatedY >> 7) & 0xFF;
+                uint8_t a00 = 0;
+                uint8_t a01 = 0;
+                uint8_t a10 = 0;
+                uint8_t a11 = 0;
+
+                entered = 1;
+
+                if ((uint32_t)sy < (uint32_t)buf_h)
+                {
+                    const uint8_t *row0 = alpha8_buf + sy * buf_w;
+
+                    if ((uint32_t)sx < (uint32_t)buf_w)
+                    {
+                        a00 = row0[sx];
+                    }
+                    if ((uint32_t)(sx + 1) < (uint32_t)buf_w)
+                    {
+                        a01 = row0[sx + 1];
+                    }
+                }
+
+                if ((uint32_t)(sy + 1) < (uint32_t)buf_h)
+                {
+                    const uint8_t *row1 = alpha8_buf + (sy + 1) * buf_w;
+
+                    if ((uint32_t)sx < (uint32_t)buf_w)
+                    {
+                        a10 = row1[sx];
+                    }
+                    if ((uint32_t)(sx + 1) < (uint32_t)buf_w)
+                    {
+                        a11 = row1[sx + 1];
+                    }
+                }
+
+                {
+                    uint8_t pixel_alpha;
+
+                    if ((a00 | a01 | a10 | a11) == 0)
+                    {
+                        pixel_alpha = 0;
+                    }
+                    else if ((a00 & a01 & a10 & a11) == EGUI_ALPHA_100)
+                    {
+                        pixel_alpha = EGUI_ALPHA_100;
+                    }
+                    else
+                    {
+                        uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                        uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                        pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+                    }
+
+                    if (pixel_alpha > 0)
+                    {
+                        if (ctx->canvas_alpha == EGUI_ALPHA_100)
+                        {
+                            if (pixel_alpha == EGUI_ALPHA_100)
+                            {
+                                *dst_row = row_color.full;
+                            }
+                            else
+                            {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                                uint16_t bg = *dst_row;
+                                uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                uint32_t result = (bg_rb_g + ((row_fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                                egui_color_t *back = (egui_color_t *)dst_row;
+                                egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
+#endif
+                            }
+                        }
+                        else
+                        {
+                            egui_alpha_t final_alpha = ((uint16_t)ctx->canvas_alpha * pixel_alpha + 128) >> 8;
+
+                            if (final_alpha == EGUI_ALPHA_100)
+                            {
+                                *dst_row = row_color.full;
+                            }
+                            else if (final_alpha > 0)
+                            {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                                uint16_t bg = *dst_row;
+                                uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                uint32_t result = (bg_rb_g + ((row_fg_rb_g - bg_rb_g) * ((uint32_t)final_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                                egui_color_t *back = (egui_color_t *)dst_row;
+                                egui_rgb_mix_ptr(back, &row_color, back, final_alpha);
+#endif
+                            }
+                        }
+                    }
+                }
+            }
+            else if (entered)
+            {
+                break;
+            }
+
+            rotatedX += ctx->inv_m00;
+            rotatedY += ctx->inv_m10;
+            dst_row++;
+        }
+
+        Cx_base += ctx->inv_m01;
+        Cy_base += ctx->inv_m11;
+    }
+
+    return 1;
+}
+
+static int text_transform_draw_visible_alpha8_tile(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color,
+                                                   const text_transform_glyph_t *glyphs, int glyph_count)
+{
+    static uint8_t *s_visible_alpha8_buf = NULL;
+    static int s_visible_alpha8_capacity = 0;
+    int16_t src_x0;
+    int16_t src_y0;
+    int16_t src_x1;
+    int16_t src_y1;
+    int buf_w;
+    int buf_h;
+    int buf_size;
+    uint8_t *alpha8_buf;
+
+    if (ctx == NULL || glyphs == NULL || glyph_count <= 0)
+    {
+        return 0;
+    }
+
+    src_x0 = glyphs[0].x;
+    src_y0 = glyphs[0].y;
+    src_x1 = glyphs[0].x + glyphs[0].box_w;
+    src_y1 = glyphs[0].y + glyphs[0].box_h;
+
+    for (int i = 1; i < glyph_count; i++)
+    {
+        int16_t glyph_x0 = glyphs[i].x;
+        int16_t glyph_y0 = glyphs[i].y;
+        int16_t glyph_x1 = glyphs[i].x + glyphs[i].box_w;
+        int16_t glyph_y1 = glyphs[i].y + glyphs[i].box_h;
+
+        if (glyph_x0 < src_x0)
+        {
+            src_x0 = glyph_x0;
+        }
+        if (glyph_y0 < src_y0)
+        {
+            src_y0 = glyph_y0;
+        }
+        if (glyph_x1 > src_x1)
+        {
+            src_x1 = glyph_x1;
+        }
+        if (glyph_y1 > src_y1)
+        {
+            src_y1 = glyph_y1;
+        }
+    }
+
+    src_x0--;
+    src_y0--;
+    src_x1++;
+    src_y1++;
+
+    buf_w = src_x1 - src_x0;
+    buf_h = src_y1 - src_y0;
+    if (buf_w <= 0 || buf_h <= 0)
+    {
+        return 1;
+    }
+
+    buf_size = buf_w * buf_h;
+    if (text_transform_ensure_visible_alpha8_capacity(buf_size, &s_visible_alpha8_buf, &s_visible_alpha8_capacity) != 0)
+    {
+        return 0;
+    }
+
+    alpha8_buf = s_visible_alpha8_buf;
+    memset(alpha8_buf, 0, buf_size);
+
+    for (int i = 0; i < glyph_count; i++)
+    {
+        const text_transform_glyph_t *glyph = &glyphs[i];
+
+        rasterize_glyph_to_alpha8(alpha8_buf, buf_w, buf_h, glyph->x - src_x0, glyph->y - src_y0, glyph->data, glyph->box_w, glyph->box_h, 4);
+    }
+
+    return text_transform_draw_alpha8_buffer(ctx, x, y, color, alpha8_buf, src_x0, src_y0, buf_w, buf_h);
+}
+
 /**
  * Rasterize multi-line text string to a packed bpp mask buffer.
- * Keeps original font bpp (1/2/4/8) — no expansion to 8bpp.
+ * Keeps original font bpp (1/2/4/8) – no expansion to 8bpp.
  * Returns 0 on success, -1 on failure.
  */
 static int rasterize_text_to_packed(const egui_font_std_info_t *font_info, const char *string, uint8_t *packed_buf, int buf_w, int buf_h, uint8_t bpp,
@@ -2922,6 +3705,74 @@ static int rasterize_text_to_packed(const egui_font_std_info_t *font_info, const
         rasterize_glyph_to_packed(packed_buf, buf_w, buf_h, glyph_x, glyph_y, p_pixel, desc->box_w, desc->box_h, bpp);
 
         cursor_x += desc->adv;
+    }
+
+    return 0;
+}
+
+static int rasterize_text_to_alpha8(const egui_font_std_info_t *font_info, const char *string, uint8_t *alpha8_buf, int buf_w, int buf_h, uint8_t bpp,
+                                    egui_dim_t line_space)
+{
+    if (!font_info)
+    {
+        return -1;
+    }
+
+    memset(alpha8_buf, 0, buf_w * buf_h);
+
+    {
+        const char *s = string;
+        int cursor_x = 0;
+        int cursor_y = 0;
+        uint32_t utf8_code;
+
+        while (*s != '\0')
+        {
+            if (*s == '\r')
+            {
+                s++;
+                continue;
+            }
+            if (*s == '\n')
+            {
+                s++;
+                cursor_x = 0;
+                cursor_y += font_info->height + line_space;
+                continue;
+            }
+
+            {
+                int char_bytes = egui_font_get_utf8_code_fast(s, &utf8_code);
+                int found;
+                const egui_font_std_char_descriptor_t *desc;
+                const uint8_t *p_pixel;
+                int glyph_x;
+                int glyph_y;
+
+                s += char_bytes;
+                found = egui_font_std_find_code_index(font_info, utf8_code);
+
+                if (found < 0)
+                {
+                    cursor_x += font_info->height >> 1;
+                    continue;
+                }
+
+                desc = &font_info->char_array[found];
+                if (desc->size == 0)
+                {
+                    cursor_x += font_info->height >> 1;
+                    continue;
+                }
+
+                p_pixel = font_info->pixel_buffer + desc->idx;
+                glyph_x = cursor_x + desc->off_x;
+                glyph_y = cursor_y + desc->off_y;
+
+                rasterize_glyph_to_alpha8(alpha8_buf, buf_w, buf_h, glyph_x, glyph_y, p_pixel, desc->box_w, desc->box_h, bpp);
+                cursor_x += desc->adv;
+            }
+        }
     }
 
     return 0;
@@ -3096,9 +3947,12 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
 
     /* Static cache: rasterize once, reuse across PFB tiles */
     static uint8_t *s_packed_buf = NULL;
+    static uint8_t s_packed_buf_bpp = 0;
     static const egui_font_t *s_cached_font = NULL;
     static const void *s_cached_string = NULL;
     static int16_t s_cached_w = 0, s_cached_h = 0;
+    static int16_t s_packed_src_x0 = 0, s_packed_src_y0 = 0;
+    static int16_t s_packed_src_w = 0, s_packed_src_h = 0;
 
     int16_t text_w = s_cached_w, text_h = s_cached_h;
     if (font != s_cached_font || string != s_cached_string)
@@ -3124,66 +3978,124 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
             s_packed_buf = NULL;
         }
 
-        int buf_size = packed_row_bytes(text_w, bpp) * text_h;
-        s_packed_buf = (uint8_t *)egui_malloc(buf_size);
-        if (!s_packed_buf)
+        int buf_size = 0;
+        uint8_t raster_bpp = bpp;
+        int16_t packed_src_x0 = 0;
+        int16_t packed_src_y0 = 0;
+        int16_t packed_src_w = text_w;
+        int16_t packed_src_h = text_h;
+        egui_font_std_access_t font_access;
+        const egui_font_std_info_t *raster_font_info = font_info;
+        const text_transform_layout_glyph_t *layout_glyphs = NULL;
+        const text_transform_layout_line_t *layout_lines = NULL;
+        int layout_count = 0;
+        int layout_line_count = 0;
+
+        if (egui_font_std_prepare_access(font_info, &font_access) != 0)
         {
             s_cached_font = NULL;
             s_cached_string = NULL;
+            s_packed_buf_bpp = 0;
             return;
         }
 
+        raster_font_info = &font_access.info;
+
+        if (text_transform_prepare_layout(font, raster_font_info, (const char *)string, 0, &layout_glyphs, &layout_count, &layout_lines, &layout_line_count) == 0 &&
+            bpp == 4)
         {
-            egui_font_std_access_t font_access;
-            const egui_font_std_info_t *raster_font_info = font_info;
-            const text_transform_layout_glyph_t *layout_glyphs = NULL;
-            const text_transform_layout_line_t *layout_lines = NULL;
-            int layout_count = 0;
-            int layout_line_count = 0;
+            text_transform_get_layout_alpha8_bbox(layout_glyphs, layout_count, text_w, text_h, &packed_src_x0, &packed_src_y0, &packed_src_w, &packed_src_h);
+        }
 
-            if (egui_font_std_prepare_access(font_info, &font_access) != 0)
+        if (bpp == 4)
+        {
+            buf_size = packed_src_w * packed_src_h;
+            s_packed_buf = (uint8_t *)egui_malloc(buf_size);
+            if (s_packed_buf != NULL)
             {
-                egui_free(s_packed_buf);
-                s_packed_buf = NULL;
-                s_cached_font = NULL;
-                s_cached_string = NULL;
-                return;
+                raster_bpp = 8;
             }
-
-            raster_font_info = &font_access.info;
-
-            memset(s_packed_buf, 0, buf_size);
-
-            if (text_transform_prepare_layout(font, raster_font_info, (const char *)string, 0, &layout_glyphs, &layout_count, &layout_lines, &layout_line_count) ==
-                0)
+            else
             {
-                EGUI_UNUSED(layout_lines);
-                EGUI_UNUSED(layout_line_count);
+                packed_src_x0 = 0;
+                packed_src_y0 = 0;
+                packed_src_w = text_w;
+                packed_src_h = text_h;
+            }
+        }
+
+        if (s_packed_buf == NULL)
+        {
+            buf_size = packed_row_bytes(text_w, bpp) * text_h;
+            s_packed_buf = (uint8_t *)egui_malloc(buf_size);
+            raster_bpp = bpp;
+        }
+
+        if (!s_packed_buf)
+        {
+            egui_font_std_release_access(&font_access);
+            s_cached_font = NULL;
+            s_cached_string = NULL;
+            s_packed_buf_bpp = 0;
+            return;
+        }
+
+        EGUI_UNUSED(layout_lines);
+        EGUI_UNUSED(layout_line_count);
+        if (layout_glyphs != NULL)
+        {
+            if (raster_bpp == 8 && bpp == 4)
+            {
+                memset(s_packed_buf, 0, buf_size);
+                rasterize_layout_to_alpha8_offset(raster_font_info, layout_glyphs, layout_count, s_packed_buf, packed_src_w, packed_src_h, bpp, packed_src_x0,
+                                                  packed_src_y0);
+            }
+            else
+            {
+                memset(s_packed_buf, 0, buf_size);
                 rasterize_layout_to_packed(raster_font_info, layout_glyphs, layout_count, s_packed_buf, text_w, text_h, bpp);
             }
-            else if (rasterize_text_to_packed(raster_font_info, (const char *)string, s_packed_buf, text_w, text_h, bpp, 0) != 0)
-            {
-                egui_font_std_release_access(&font_access);
-                egui_free(s_packed_buf);
-                s_packed_buf = NULL;
-                s_cached_font = NULL;
-                s_cached_string = NULL;
-                return;
-            }
-
-            egui_font_std_release_access(&font_access);
         }
+        else if (((raster_bpp == 8 && bpp == 4) && rasterize_text_to_alpha8(raster_font_info, (const char *)string, s_packed_buf, text_w, text_h, bpp, 0) != 0) ||
+                 ((raster_bpp != 8 || bpp != 4) && rasterize_text_to_packed(raster_font_info, (const char *)string, s_packed_buf, text_w, text_h, bpp, 0) != 0))
+        {
+            egui_font_std_release_access(&font_access);
+            egui_free(s_packed_buf);
+            s_packed_buf = NULL;
+            s_cached_font = NULL;
+            s_cached_string = NULL;
+            s_packed_buf_bpp = 0;
+            return;
+        }
+
+        egui_font_std_release_access(&font_access);
 
         s_cached_font = font;
         s_cached_string = string;
         s_cached_w = text_w;
         s_cached_h = text_h;
+        s_packed_buf_bpp = raster_bpp;
+        s_packed_src_x0 = packed_src_x0;
+        s_packed_src_y0 = packed_src_y0;
+        s_packed_src_w = packed_src_w;
+        s_packed_src_h = packed_src_h;
     }
 
     uint8_t *packed_buf = s_packed_buf;
-    int16_t src_w = ctx.src_w;
-    int16_t src_h = ctx.src_h;
-    int packed_rb = packed_row_bytes(src_w, bpp);
+    uint8_t packed_bpp = s_packed_buf_bpp;
+    int16_t src_x0 = s_packed_src_x0;
+    int16_t src_y0 = s_packed_src_y0;
+    int16_t src_w = s_packed_src_w;
+    int16_t src_h = s_packed_src_h;
+    int packed_rb = packed_row_bytes(src_w, packed_bpp);
+
+    if (packed_bpp == 8)
+    {
+        if (text_transform_draw_alpha8_buffer(&ctx, x, y, color, packed_buf, src_x0, src_y0, src_w, src_h))
+        {
+            return;
+        }
+    }
 
     /* Hoist loop-invariant row-start offset computed from draw_x0 */
     int32_t row_start_offset_x = ctx.inv_m00 * ((int32_t)ctx.draw_x0 - x);
@@ -3272,7 +4184,7 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                 /* Tight interior loop: no boundary checks */
                 if (ctx.canvas_alpha == EGUI_ALPHA_100)
                 {
-                    if (bpp == 4)
+                    if (packed_bpp == 4)
                     {
                         if (mask_requires_point)
                         {
@@ -3341,7 +4253,7 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                         for (int32_t i = 0; i < sir_count; i++)
                         {
                             uint16_t a00, a01, a10, a11;
-                            batch_bilinear_packed_alpha(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, bpp, &a00, &a01, &a10, &a11);
+                            batch_bilinear_packed_alpha(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, packed_bpp, &a00, &a01, &a10, &a11);
 
                             if ((a00 | a01 | a10 | a11) != 0)
                             {
@@ -3382,7 +4294,7 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                 }
                 else
                 {
-                    if (bpp == 4)
+                    if (packed_bpp == 4)
                     {
                         if (mask_requires_point)
                         {
@@ -3455,7 +4367,7 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                         for (int32_t i = 0; i < sir_count; i++)
                         {
                             uint16_t a00, a01, a10, a11;
-                            batch_bilinear_packed_alpha(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, bpp, &a00, &a01, &a10, &a11);
+                            batch_bilinear_packed_alpha(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, packed_bpp, &a00, &a01, &a10, &a11);
 
                             if ((a00 | a01 | a10 | a11) != 0)
                             {
@@ -3515,7 +4427,7 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                 uint16_t a10;
                 uint16_t a11;
 
-                if (bpp == 4)
+                if (packed_bpp == 4)
                 {
 #define PACKED_FETCH_ALPHA_4(px, py) (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? read_packed_mask_alpha_4_rb(packed_buf, packed_rb, (px), (py)) : 0)
                     a00 = PACKED_FETCH_ALPHA_4(sx, sy);
@@ -3526,7 +4438,7 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                 }
                 else
                 {
-#define PACKED_FETCH_ALPHA(px, py) (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? read_packed_mask_alpha(packed_buf, src_w, (px), (py), bpp) : 0)
+#define PACKED_FETCH_ALPHA(px, py) (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? read_packed_mask_alpha(packed_buf, src_w, (px), (py), packed_bpp) : 0)
                     a00 = PACKED_FETCH_ALPHA(sx, sy);
                     a01 = PACKED_FETCH_ALPHA(sx + 1, sy);
                     a10 = PACKED_FETCH_ALPHA(sx, sy + 1);
