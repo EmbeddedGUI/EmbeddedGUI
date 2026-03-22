@@ -2972,47 +2972,52 @@ static void ensure_alpha4_expand_pair_table(void)
     g_alpha4_expand_pair_table_ready = 1;
 }
 
+static void rasterize_glyph4_to_alpha8_inside(uint8_t *buf, int buf_w, int dst_x, int dst_y, const uint8_t *glyph_data, int box_w, int box_h)
+{
+    int row_bytes = (box_w + 1) >> 1;
+
+    for (int row = 0; row < box_h; row++)
+    {
+        const uint8_t *src = glyph_data + row * row_bytes;
+        uint8_t *dst = buf + (dst_y + row) * buf_w + dst_x;
+        int col = 0;
+
+        while ((col + 1) < box_w)
+        {
+            uint16_t pair = g_alpha4_expand_pair_table[*src++];
+            uint8_t alpha0 = (uint8_t)(pair & 0xFF);
+            uint8_t alpha1 = (uint8_t)(pair >> 8);
+
+            if (alpha0 > dst[col])
+            {
+                dst[col] = alpha0;
+            }
+            if (alpha1 > dst[col + 1])
+            {
+                dst[col + 1] = alpha1;
+            }
+
+            col += 2;
+        }
+
+        if (col < box_w)
+        {
+            uint8_t alpha0 = (uint8_t)(g_alpha4_expand_pair_table[*src] & 0xFF);
+            if (alpha0 > dst[col])
+            {
+                dst[col] = alpha0;
+            }
+        }
+    }
+}
+
 static void rasterize_glyph_to_alpha8(uint8_t *buf, int buf_w, int buf_h, int dst_x, int dst_y, const uint8_t *glyph_data, int box_w, int box_h, uint8_t bpp)
 {
     if (bpp == 4)
     {
-        int row_bytes = (box_w + 1) >> 1;
-
         if (dst_x >= 0 && dst_y >= 0 && (dst_x + box_w) <= buf_w && (dst_y + box_h) <= buf_h)
         {
-            for (int row = 0; row < box_h; row++)
-            {
-                const uint8_t *src = glyph_data + row * row_bytes;
-                uint8_t *dst = buf + (dst_y + row) * buf_w + dst_x;
-                int col = 0;
-
-                while ((col + 1) < box_w)
-                {
-                    uint16_t pair = g_alpha4_expand_pair_table[*src++];
-                    uint8_t alpha0 = (uint8_t)(pair & 0xFF);
-                    uint8_t alpha1 = (uint8_t)(pair >> 8);
-
-                    if (alpha0 > dst[col])
-                    {
-                        dst[col] = alpha0;
-                    }
-                    if (alpha1 > dst[col + 1])
-                    {
-                        dst[col + 1] = alpha1;
-                    }
-
-                    col += 2;
-                }
-
-                if (col < box_w)
-                {
-                    uint8_t alpha0 = (uint8_t)(g_alpha4_expand_pair_table[*src] & 0xFF);
-                    if (alpha0 > dst[col])
-                    {
-                        dst[col] = alpha0;
-                    }
-                }
-            }
+            rasterize_glyph4_to_alpha8_inside(buf, buf_w, dst_x, dst_y, glyph_data, box_w, box_h);
             return;
         }
     }
@@ -3157,6 +3162,15 @@ static void rasterize_layout_to_alpha8_offset(const egui_font_std_info_t *font_i
     if (bpp == 4)
     {
         ensure_alpha4_expand_pair_table();
+
+        for (int i = 0; i < glyph_count; i++)
+        {
+            const text_transform_layout_glyph_t *glyph = &glyphs[i];
+            const uint8_t *p_pixel = font_info->pixel_buffer + glyph->pixel_idx;
+
+            rasterize_glyph4_to_alpha8_inside(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, p_pixel, glyph->box_w, glyph->box_h);
+        }
+        return;
     }
 
     for (int i = 0; i < glyph_count; i++)
@@ -3642,7 +3656,7 @@ static int text_transform_draw_visible_alpha8_tile(const text_transform_ctx_t *c
     {
         const text_transform_glyph_t *glyph = &glyphs[i];
 
-        rasterize_glyph_to_alpha8(alpha8_buf, buf_w, buf_h, glyph->x - src_x0, glyph->y - src_y0, glyph->data, glyph->box_w, glyph->box_h, 4);
+        rasterize_glyph4_to_alpha8_inside(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, glyph->data, glyph->box_w, glyph->box_h);
     }
 
     return text_transform_draw_alpha8_buffer(ctx, x, y, color, alpha8_buf, src_x0, src_y0, buf_w, buf_h);
