@@ -18,10 +18,6 @@ extern "C" {
 #define EGUI_IMAGE_ALPHA_TYPE_4 2
 #define EGUI_IMAGE_ALPHA_TYPE_8 3
 
-#define EGUI_IMAGE_OPAQUE_ALPHA_HINT_UNKNOWN    0
-#define EGUI_IMAGE_OPAQUE_ALPHA_HINT_OPAQUE     1
-#define EGUI_IMAGE_OPAQUE_ALPHA_HINT_NON_OPAQUE 2
-
 typedef struct
 {
     const void *data_buf;
@@ -29,7 +25,6 @@ typedef struct
     uint8_t data_type;  // image data type, EGUI_IMAGE_DATA_TYPE_RGB32, EGUI_IMAGE_DATA_TYPE_RGB565, EGUI_IMAGE_DATA_TYPE_GRAY8
     uint8_t alpha_type; // image bit size 1, 2, 4, 8
     uint8_t res_type;   // EGUI_RESOURCE_TYPE_INTERNAL, EGUI_RESOURCE_TYPE_EXTERNAL
-    uint8_t opaque_alpha_hint; // 0 unknown, 1 fully opaque, 2 contains transparent pixels for RGB565 fast paths
     uint16_t width;     // image width
     uint16_t height;    // image height
 } egui_image_std_info_t;

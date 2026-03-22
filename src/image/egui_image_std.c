@@ -4097,16 +4097,6 @@ __EGUI_STATIC_INLINE__ int egui_image_std_rgb565_alpha_is_all_opaque(const egui_
         return 0;
     }
 
-    if (image->opaque_alpha_hint == EGUI_IMAGE_OPAQUE_ALPHA_HINT_OPAQUE)
-    {
-        return 1;
-    }
-
-    if (image->opaque_alpha_hint == EGUI_IMAGE_OPAQUE_ALPHA_HINT_NON_OPAQUE)
-    {
-        return 0;
-    }
-
     for (uint8_t i = 0; i < (uint8_t)(sizeof(g_egui_image_std_alpha_opaque_cache) / sizeof(g_egui_image_std_alpha_opaque_cache[0])); i++)
     {
         if (g_egui_image_std_alpha_opaque_cache[i].image == image)
@@ -4166,16 +4156,6 @@ int egui_image_std_rgb565_is_opaque_source(const egui_image_std_info_t *image)
     if (image->alpha_buf == NULL)
     {
         return 1;
-    }
-
-    if (image->opaque_alpha_hint == EGUI_IMAGE_OPAQUE_ALPHA_HINT_OPAQUE)
-    {
-        return 1;
-    }
-
-    if (image->opaque_alpha_hint == EGUI_IMAGE_OPAQUE_ALPHA_HINT_NON_OPAQUE)
-    {
-        return 0;
     }
 
     return egui_image_std_rgb565_alpha_is_all_opaque(image);

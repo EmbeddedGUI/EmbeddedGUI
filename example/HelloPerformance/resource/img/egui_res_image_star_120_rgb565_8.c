@@ -2192,7 +2192,6 @@ static const egui_image_std_info_t egui_res_image_star_120_rgb565_8_info = {
     .data_type = EGUI_IMAGE_DATA_TYPE_RGB565,
     .alpha_type = EGUI_IMAGE_ALPHA_TYPE_8,
     .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
-    .opaque_alpha_hint = EGUI_IMAGE_OPAQUE_ALPHA_HINT_NON_OPAQUE,
     .width = 120,
     .height = 120,
 };

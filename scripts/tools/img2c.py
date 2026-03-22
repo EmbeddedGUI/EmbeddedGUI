@@ -49,9 +49,8 @@ static const egui_image_std_info_t {0}_info = {{
     .data_type = {3},
     .alpha_type = {4},
     .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
-    .opaque_alpha_hint = {5},
-    .width = {6},
-    .height = {7},
+    .width = {5},
+    .height = {6},
 }};
 
 extern const egui_image_std_t {0};
@@ -69,9 +68,8 @@ static const egui_image_std_info_t {0}_info = {{
     .data_type = {3},
     .alpha_type = {4},
     .res_type = EGUI_RESOURCE_TYPE_EXTERNAL,
-    .opaque_alpha_hint = {5},
-    .width = {6},
-    .height = {7},
+    .width = {5},
+    .height = {6},
 }};
 
 extern const egui_image_std_t {0};
@@ -84,64 +82,6 @@ c_tail_string="""
 // clang-format on
 
 """
-
-
-def rgb565_alpha_row_size(width, alpha_bits):
-    if alpha_bits == 1:
-        return (width + 7) >> 3
-    if alpha_bits == 2:
-        return (width + 3) >> 2
-    if alpha_bits == 4:
-        return (width + 1) >> 1
-    if alpha_bits == 8:
-        return width
-    return 0
-
-
-def rgb565_alpha_row_is_all_opaque(alpha_row, width, alpha_bits):
-    if alpha_bits == 1:
-        full_bytes = width >> 3
-        partial_bits = width & 0x07
-    elif alpha_bits == 2:
-        full_bytes = width >> 2
-        partial_bits = (width & 0x03) << 1
-    elif alpha_bits == 4:
-        full_bytes = width >> 1
-        partial_bits = (width & 0x01) << 2
-    elif alpha_bits == 8:
-        full_bytes = width
-        partial_bits = 0
-    else:
-        return False
-
-    for i in range(full_bytes):
-        if alpha_row[i] != 0xFF:
-            return False
-
-    if partial_bits != 0:
-        mask = (1 << partial_bits) - 1
-        if (alpha_row[full_bytes] & mask) != mask:
-            return False
-
-    return True
-
-
-def rgb565_alpha_is_all_opaque(alpha_data, width, height, alpha_bits):
-    row_size = rgb565_alpha_row_size(width, alpha_bits)
-    if row_size == 0 or width <= 0 or height <= 0:
-        return False
-
-    expected_size = row_size * height
-    if len(alpha_data) < expected_size:
-        return False
-
-    for y in range(height):
-        start = y * row_size
-        if not rgb565_alpha_row_is_all_opaque(alpha_data[start:start + row_size], width, alpha_bits):
-            return False
-
-    return True
-
 
 class img2c_tool:
     def __init__(self, input_img_file, name, format, alpha, dim, rot, swap, external_type, output_path, bg=None):
@@ -303,7 +243,6 @@ class img2c_tool:
 
             alpha_bin_data = []
             data_bin_data = []
-            opaque_alpha_hint = "EGUI_IMAGE_OPAQUE_ALPHA_HINT_UNKNOWN"
 
             alpha_str_io = StringIO()
             data_str_io = StringIO()
@@ -693,12 +632,6 @@ class img2c_tool:
             else:
                 print(data_str_io.getvalue(), file=o)
 
-            if self.format == 'rgb565' and alpha_buf_name != "NULL":
-                if rgb565_alpha_is_all_opaque(alpha_bin_data, row, col, self.alpha):
-                    opaque_alpha_hint = "EGUI_IMAGE_OPAQUE_ALPHA_HINT_OPAQUE"
-                else:
-                    opaque_alpha_hint = "EGUI_IMAGE_OPAQUE_ALPHA_HINT_NON_OPAQUE"
-
             # insert tail
             if self.external_type == 1:
                 print(c_body_string_bin.format( self.img_name,
@@ -706,7 +639,6 @@ class img2c_tool:
                                             alpha_buf_name,
                                             data_type,
                                             alpha_type,
-                                            opaque_alpha_hint,
                                             row,
                                             col
                                             ), file=o)
@@ -716,7 +648,6 @@ class img2c_tool:
                                             alpha_buf_name,
                                             data_type,
                                             alpha_type,
-                                            opaque_alpha_hint,
                                             row,
                                             col
                                             ), file=o)
