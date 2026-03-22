@@ -1,7 +1,7 @@
 # Performance Report
 
-- Commit: `4881415`
-- Date: 2026-03-22T13:53:34.585848
+- Commit: `053f8b2`
+- Date: 2026-03-22T14:12:05.826386
 - Profile: cortex-m3
 
 ![Performance Chart](images/perf_report.png)
@@ -51,20 +51,20 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 
 | Test Case | Time (ms) |
 |-----------|-----------|
-| TEXT | 0.961 |
-| TEXT_RECT | 1.270 |
-| EXTERN_TEXT | 0.978 |
-| EXTERN_TEXT_RECT | 1.299 |
-| TEXT_ROTATE_NONE | 1.304 |
+| TEXT | 0.950 |
+| TEXT_RECT | 1.208 |
+| EXTERN_TEXT | 0.967 |
+| EXTERN_TEXT_RECT | 1.237 |
+| TEXT_ROTATE_NONE | 1.242 |
 | TEXT_ROTATE | 13.418 |
 | TEXT_ROTATE_RESIZE | 13.419 |
 | TEXT_ROTATE_QUARTER | 4.529 |
 | TEXT_ROTATE_DOUBLE | 17.177 |
-| TEXT_ROTATE_BUFFERED_NONE | 1.304 |
+| TEXT_ROTATE_BUFFERED_NONE | 1.242 |
 | TEXT_ROTATE_BUFFERED | 8.194 |
 | TEXT_ROTATE_BUFFERED_RESIZE | 8.194 |
 | TEXT_ROTATE_BUFFERED_QUARTER | 2.798 |
-| TEXT_ROTATE_BUFFERED_DOUBLE | 10.514 |
+| TEXT_ROTATE_BUFFERED_DOUBLE | 10.515 |
 | EXTERN_TEXT_ROTATE | 13.424 |
 | EXTERN_TEXT_ROTATE_BUFFERED | 8.194 |
 
@@ -78,14 +78,14 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 | IMAGE_565_4 | 0.663 |
 | IMAGE_565_8 | 0.663 |
 | IMAGE_565_QUARTER | 0.322 |
-| IMAGE_565_DOUBLE | 0.659 |
+| IMAGE_565_DOUBLE | 0.660 |
 | IMAGE_565_8_QUARTER | 0.323 |
 | IMAGE_565_8_DOUBLE | 0.663 |
 | EXTERN_IMAGE_565 | 2.459 |
 | EXTERN_IMAGE_565_1 | 3.283 |
 | EXTERN_IMAGE_565_2 | 3.466 |
 | EXTERN_IMAGE_565_4 | 3.546 |
-| EXTERN_IMAGE_565_8 | 4.858 |
+| EXTERN_IMAGE_565_8 | 4.859 |
 | IMAGE_TILED_565_0 | 1.275 |
 | IMAGE_TILED_565_1 | 1.283 |
 | IMAGE_TILED_565_2 | 1.283 |
@@ -144,7 +144,7 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 | EXTERN_IMAGE_ROTATE_565_4 | 6.078 |
 | EXTERN_IMAGE_ROTATE_565_8 | 5.345 |
 | IMAGE_ROTATE_STAR_565_1 | 5.078 |
-| IMAGE_ROTATE_STAR_565_2 | 5.161 |
+| IMAGE_ROTATE_STAR_565_2 | 5.160 |
 | IMAGE_ROTATE_STAR_565_4 | 5.130 |
 | IMAGE_ROTATE_STAR_565_8 | 4.221 |
 | IMAGE_ROTATE_TILED_565_0 | 4.860 |
@@ -162,7 +162,7 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 
 | Test Case | Time (ms) |
 |-----------|-----------|
-| IMAGE_COLOR | 3.554 |
+| IMAGE_COLOR | 3.555 |
 | IMAGE_RESIZE_COLOR | 3.650 |
 
 ## Gradient
@@ -173,20 +173,20 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 | GRADIENT_ROUND_RECT | 4.278 |
 | GRADIENT_CIRCLE | 10.461 |
 | GRADIENT_TRIANGLE | 2.628 |
-| GRADIENT_ARC_RING | 4.131 |
+| GRADIENT_ARC_RING | 4.130 |
 | GRADIENT_ARC_RING_ROUND_CAP | 4.452 |
-| GRADIENT_RADIAL | 6.756 |
+| GRADIENT_RADIAL | 6.757 |
 | GRADIENT_ANGULAR | 6.935 |
 | GRADIENT_ROUND_RECT_RING | 2.545 |
 | GRADIENT_LINE_CAPSULE | 3.050 |
 | GRADIENT_MULTI_STOP | 1.528 |
-| GRADIENT_ROUND_RECT_CORNERS | 2.564 |
+| GRADIENT_ROUND_RECT_CORNERS | 2.565 |
 | IMAGE_GRADIENT_OVERLAY | 3.551 |
 | MASK_GRADIENT_RECT_FILL | 1.230 |
 | MASK_GRADIENT_IMAGE | 4.069 |
 | TEXT_GRADIENT | 0.471 |
 | TEXT_RECT_GRADIENT | 2.090 |
-| TEXT_ROTATE_GRADIENT | 13.998 |
+| TEXT_ROTATE_GRADIENT | 13.997 |
 | TEXT_ROTATE_BUFFERED_GRADIENT | 8.867 |
 
 ## Shadow
@@ -206,7 +206,7 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 | MASK_RECT_FILL_IMAGE | 0.612 |
 | MASK_RECT_FILL_NO_MASK_QUARTER | 0.256 |
 | MASK_RECT_FILL_NO_MASK_DOUBLE | 0.394 |
-| MASK_RECT_FILL_ROUND_RECT_QUARTER | 0.393 |
+| MASK_RECT_FILL_ROUND_RECT_QUARTER | 0.394 |
 | MASK_RECT_FILL_ROUND_RECT_DOUBLE | 0.925 |
 | MASK_RECT_FILL_CIRCLE_QUARTER | 0.521 |
 | MASK_RECT_FILL_CIRCLE_DOUBLE | 1.209 |
@@ -223,7 +223,7 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 | MASK_IMAGE_CIRCLE_QUARTER | 0.774 |
 | MASK_IMAGE_CIRCLE_DOUBLE | 2.046 |
 | MASK_IMAGE_IMAGE_QUARTER | 0.354 |
-| MASK_IMAGE_IMAGE_DOUBLE | 0.779 |
+| MASK_IMAGE_IMAGE_DOUBLE | 0.778 |
 | MASK_ROUND_RECT_FILL_NO_MASK | 0.614 |
 | MASK_ROUND_RECT_FILL_WITH_MASK | 0.934 |
 
@@ -240,4 +240,4 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 
 | Test Case | Time (ms) |
 |-----------|-----------|
-| MASK_GRADIENT_IMAGE_ROTATE | 5.682 |
+| MASK_GRADIENT_IMAGE_ROTATE | 5.681 |
