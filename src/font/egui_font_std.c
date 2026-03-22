@@ -88,6 +88,7 @@ typedef struct
     const void *string;
     uint16_t glyph_count;
     uint16_t cached_bytes;
+    uint16_t line_bytes;
     int16_t cached_advance;
     uint8_t is_complete_line;
     uint8_t is_ready;
@@ -211,10 +212,24 @@ static const egui_font_std_draw_prefix_cache_t *egui_font_std_prepare_draw_prefi
     cache->string = s;
     cache->glyph_count = 0;
     cache->cached_bytes = 0;
+    cache->line_bytes = 0;
     cache->cached_advance = 0;
     cache->is_complete_line = 0;
     cache->is_ready = 1;
     cache->stamp = ++g_font_std_draw_prefix_cache_stamp;
+
+    {
+        const char *next_line = strchr(s, '\n');
+
+        if (next_line != NULL)
+        {
+            cache->line_bytes = (uint16_t)((next_line - s) + 1);
+        }
+        else
+        {
+            cache->line_bytes = (uint16_t)strlen(s);
+        }
+    }
 
     advance_limit = EGUI_CONFIG_SCEEN_WIDTH * 2 + font->height;
 
@@ -1825,25 +1840,7 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
 
             if (glyph->box_x0 >= local_x1)
             {
-                if (prefix_cache->is_complete_line)
-                {
-                    return prefix_cache->cached_bytes;
-                }
-
-                s += prefix_cache->cached_bytes;
-                str_cnt += prefix_cache->cached_bytes;
-                {
-                    const char *next_line = strchr(s, '\n');
-                    if (next_line != NULL)
-                    {
-                        str_cnt += (int)(next_line - s) + 1;
-                    }
-                    else
-                    {
-                        str_cnt += (int)strlen(s);
-                    }
-                }
-                return str_cnt;
+                return prefix_cache->line_bytes;
             }
 
             if (glyph->has_desc)
@@ -1873,7 +1870,7 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
 
         if (prefix_cache->is_complete_line)
         {
-            return prefix_cache->cached_bytes;
+            return prefix_cache->line_bytes;
         }
 
         s += prefix_cache->cached_bytes;
@@ -1903,6 +1900,11 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
 
         if (offset >= work_x1)
         {
+            if (prefix_cache != NULL)
+            {
+                return prefix_cache->line_bytes;
+            }
+
             const char *next_line = strchr(s, '\n');
             if (next_line != NULL)
             {
