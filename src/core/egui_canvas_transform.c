@@ -2765,50 +2765,77 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                 {
                     if (bpp == 4)
                     {
-                        for (int32_t i = 0; i < sir_count; i++)
+                        if (mask_requires_point)
                         {
-                            uint8_t a00, a01, a10, a11;
-                            batch_extract_packed_raw_4(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, &a00, &a01, &a10, &a11);
-
-                            if ((a00 | a01 | a10 | a11) != 0)
+                            for (int32_t i = 0; i < sir_count; i++)
                             {
-                                uint8_t pixel_alpha;
+                                uint8_t a00, a01, a10, a11;
+                                batch_extract_packed_raw_4(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, &a00, &a01, &a10, &a11);
 
-                                if ((a00 & a01 & a10 & a11) == 0x0F)
+                                if ((a00 | a01 | a10 | a11) != 0)
                                 {
-                                    pixel_alpha = EGUI_ALPHA_100;
-                                }
-                                else
-                                {
-                                    pixel_alpha = bilinear_alpha_from_raw_4(a00, a01, a10, a11, (rotatedX >> 7) & 0xFF, (rotatedY >> 7) & 0xFF);
-                                }
+                                    uint8_t pixel_alpha;
 
-                                if (mask_requires_point)
-                                {
+                                    if ((a00 & a01 & a10 & a11) == 0x0F)
+                                    {
+                                        pixel_alpha = EGUI_ALPHA_100;
+                                    }
+                                    else
+                                    {
+                                        pixel_alpha = bilinear_alpha_from_raw_4(a00, a01, a10, a11, (rotatedX >> 7) & 0xFF, (rotatedY >> 7) & 0xFF);
+                                    }
+
                                     transform_apply_mask_and_blend(ctx.mask, (egui_dim_t)(dx + i), (egui_dim_t)dy, row_color, pixel_alpha, ctx.canvas_alpha,
                                                                    dst_row);
                                 }
-                                else if (pixel_alpha == EGUI_ALPHA_100)
-                                {
-                                    *dst_row = row_color.full;
-                                }
-                                else if (pixel_alpha > 0)
-                                {
-#if (EGUI_CONFIG_COLOR_DEPTH == 16)
-                                    uint16_t bg = *dst_row;
-                                    uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
-                                    uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
-                                    *dst_row = (uint16_t)(result | (result >> 16));
-#else
-                                    egui_color_t *back = (egui_color_t *)dst_row;
-                                    egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
-#endif
-                                }
-                            }
 
-                            rotatedX += ctx.inv_m00;
-                            rotatedY += ctx.inv_m10;
-                            dst_row++;
+                                rotatedX += ctx.inv_m00;
+                                rotatedY += ctx.inv_m10;
+                                dst_row++;
+                            }
+                        }
+                        else
+                        {
+                            for (int32_t i = 0; i < sir_count; i++)
+                            {
+                                uint8_t a00, a01, a10, a11;
+                                batch_extract_packed_raw_4(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, &a00, &a01, &a10, &a11);
+
+                                if ((a00 | a01 | a10 | a11) != 0)
+                                {
+                                    uint8_t pixel_alpha;
+
+                                    if ((a00 & a01 & a10 & a11) == 0x0F)
+                                    {
+                                        pixel_alpha = EGUI_ALPHA_100;
+                                    }
+                                    else
+                                    {
+                                        pixel_alpha = bilinear_alpha_from_raw_4(a00, a01, a10, a11, (rotatedX >> 7) & 0xFF, (rotatedY >> 7) & 0xFF);
+                                    }
+
+                                    if (pixel_alpha == EGUI_ALPHA_100)
+                                    {
+                                        *dst_row = row_color.full;
+                                    }
+                                    else if (pixel_alpha > 0)
+                                    {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                                        uint16_t bg = *dst_row;
+                                        uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                        uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                        *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                                        egui_color_t *back = (egui_color_t *)dst_row;
+                                        egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
+#endif
+                                    }
+                                }
+
+                                rotatedX += ctx.inv_m00;
+                                rotatedY += ctx.inv_m10;
+                                dst_row++;
+                            }
                         }
                     }
                     else
@@ -2859,32 +2886,59 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                 {
                     if (bpp == 4)
                     {
-                        for (int32_t i = 0; i < sir_count; i++)
+                        if (mask_requires_point)
                         {
-                            uint8_t a00, a01, a10, a11;
-                            batch_extract_packed_raw_4(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, &a00, &a01, &a10, &a11);
-
-                            if ((a00 | a01 | a10 | a11) != 0)
+                            for (int32_t i = 0; i < sir_count; i++)
                             {
-                                uint8_t pixel_alpha;
+                                uint8_t a00, a01, a10, a11;
+                                batch_extract_packed_raw_4(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, &a00, &a01, &a10, &a11);
 
-                                if ((a00 & a01 & a10 & a11) == 0x0F)
+                                if ((a00 | a01 | a10 | a11) != 0)
                                 {
-                                    pixel_alpha = EGUI_ALPHA_100;
-                                }
-                                else
-                                {
-                                    pixel_alpha = bilinear_alpha_from_raw_4(a00, a01, a10, a11, (rotatedX >> 7) & 0xFF, (rotatedY >> 7) & 0xFF);
-                                }
+                                    uint8_t pixel_alpha;
 
-                                if (pixel_alpha > 0)
-                                {
-                                    if (mask_requires_point)
+                                    if ((a00 & a01 & a10 & a11) == 0x0F)
                                     {
-                                        transform_apply_mask_and_blend(ctx.mask, (egui_dim_t)(dx + i), (egui_dim_t)dy, row_color, pixel_alpha,
-                                                                       ctx.canvas_alpha, dst_row);
+                                        pixel_alpha = EGUI_ALPHA_100;
                                     }
                                     else
+                                    {
+                                        pixel_alpha = bilinear_alpha_from_raw_4(a00, a01, a10, a11, (rotatedX >> 7) & 0xFF, (rotatedY >> 7) & 0xFF);
+                                    }
+
+                                    if (pixel_alpha > 0)
+                                    {
+                                        transform_apply_mask_and_blend(ctx.mask, (egui_dim_t)(dx + i), (egui_dim_t)dy, row_color, pixel_alpha, ctx.canvas_alpha,
+                                                                       dst_row);
+                                    }
+                                }
+
+                                rotatedX += ctx.inv_m00;
+                                rotatedY += ctx.inv_m10;
+                                dst_row++;
+                            }
+                        }
+                        else
+                        {
+                            for (int32_t i = 0; i < sir_count; i++)
+                            {
+                                uint8_t a00, a01, a10, a11;
+                                batch_extract_packed_raw_4(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, &a00, &a01, &a10, &a11);
+
+                                if ((a00 | a01 | a10 | a11) != 0)
+                                {
+                                    uint8_t pixel_alpha;
+
+                                    if ((a00 & a01 & a10 & a11) == 0x0F)
+                                    {
+                                        pixel_alpha = EGUI_ALPHA_100;
+                                    }
+                                    else
+                                    {
+                                        pixel_alpha = bilinear_alpha_from_raw_4(a00, a01, a10, a11, (rotatedX >> 7) & 0xFF, (rotatedY >> 7) & 0xFF);
+                                    }
+
+                                    if (pixel_alpha > 0)
                                     {
                                         egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
                                         if (final_alpha == EGUI_ALPHA_100)
@@ -2905,11 +2959,11 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                                         }
                                     }
                                 }
-                            }
 
-                            rotatedX += ctx.inv_m00;
-                            rotatedY += ctx.inv_m10;
-                            dst_row++;
+                                rotatedX += ctx.inv_m00;
+                                rotatedY += ctx.inv_m10;
+                                dst_row++;
+                            }
                         }
                     }
                     else
