@@ -2978,8 +2978,6 @@ static void rasterize_glyph_to_alpha8(uint8_t *buf, int buf_w, int buf_h, int ds
     {
         int row_bytes = (box_w + 1) >> 1;
 
-        ensure_alpha4_expand_pair_table();
-
         if (dst_x >= 0 && dst_y >= 0 && (dst_x + box_w) <= buf_w && (dst_y + box_h) <= buf_h)
         {
             for (int row = 0; row < box_h; row++)
@@ -3156,6 +3154,11 @@ static int text_transform_get_layout_alpha8_bbox(const text_transform_layout_gly
 static void rasterize_layout_to_alpha8_offset(const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *glyphs, int glyph_count, uint8_t *alpha8_buf,
                                               int buf_w, int buf_h, uint8_t bpp, int16_t src_x0, int16_t src_y0)
 {
+    if (bpp == 4)
+    {
+        ensure_alpha4_expand_pair_table();
+    }
+
     for (int i = 0; i < glyph_count; i++)
     {
         const text_transform_layout_glyph_t *glyph = &glyphs[i];
@@ -3633,6 +3636,7 @@ static int text_transform_draw_visible_alpha8_tile(const text_transform_ctx_t *c
 
     alpha8_buf = s_visible_alpha8_buf;
     memset(alpha8_buf, 0, buf_size);
+    ensure_alpha4_expand_pair_table();
 
     for (int i = 0; i < glyph_count; i++)
     {
@@ -3719,6 +3723,11 @@ static int rasterize_text_to_alpha8(const egui_font_std_info_t *font_info, const
     }
 
     memset(alpha8_buf, 0, buf_w * buf_h);
+
+    if (bpp == 4)
+    {
+        ensure_alpha4_expand_pair_table();
+    }
 
     {
         const char *s = string;
