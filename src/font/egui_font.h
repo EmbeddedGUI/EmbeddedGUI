@@ -39,6 +39,20 @@ struct egui_font
     _type _name = {.base = {.res = _res, .api = &_type##_api_table}}
 
 int egui_font_get_utf8_code(const char *s, uint32_t *output_utf8_code);
+
+__EGUI_STATIC_INLINE__ int egui_font_get_utf8_code_fast(const char *s, uint32_t *output_utf8_code)
+{
+    uint8_t first = (uint8_t)s[0];
+
+    if ((first & 0x80) == 0)
+    {
+        *output_utf8_code = first;
+        return 1;
+    }
+
+    return egui_font_get_utf8_code(s, output_utf8_code);
+}
+
 void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space,
                                    egui_color_t color, egui_alpha_t alpha);
 void egui_font_init(egui_font_t *self, const void *res);

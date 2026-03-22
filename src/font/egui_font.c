@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 
 #include "egui_font.h"
+#include "egui_font_std.h"
 #include "core/egui_api.h"
 
 static const uint8_t s_utf8_length_table[256] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -103,6 +105,20 @@ void egui_font_get_string_pos(const egui_font_t *self, const void *string, egui_
     }
 }
 
+static egui_dim_t egui_font_get_line_height(const egui_font_t *self)
+{
+    egui_dim_t x_size;
+    egui_dim_t y_size;
+
+    if (egui_font_std_try_get_line_height(self, &y_size))
+    {
+        return y_size;
+    }
+
+    self->api->get_str_size(self, "t", 0, 0, &x_size, &y_size);
+    return y_size;
+}
+
 void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space,
                                    egui_color_t color, egui_alpha_t alpha)
 {
@@ -113,19 +129,70 @@ void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, 
     }
     egui_dim_t x, y;
     int str_bytes;
-    egui_dim_t x_size, y_size;
+    egui_dim_t y_size;
     egui_region_t tmp_rect = *rect;
+    egui_dim_t draw_y;
+    uint8_t h_align = align_type & EGUI_ALIGN_HMASK;
+    uint8_t v_align = align_type & EGUI_ALIGN_VMASK;
+    const egui_region_t *work_region = egui_canvas_get_base_view_work_region();
+    egui_dim_t work_y0 = work_region->location.y;
+    egui_dim_t work_y1 = work_y0 + work_region->size.height;
+    egui_dim_t line_step;
 
-    // Get all text start position.
-    egui_font_get_string_pos(self, s, rect, align_type, 1, line_space, &x, &y);
-    // Get string height.
-    self->api->get_str_size(self, "t", 0, 0, &x_size, &y_size);
+    y_size = egui_font_get_line_height(self);
+    line_step = y_size + line_space;
 
-    // EGUI_LOG_INF("egui_font_draw_string_in_rect. string:%s, rect:%d,%d,%d,%d, x:%d, y:%d, x_size:%d, y_size:%d\n"
-    //     , string, rect->location.x, rect->location.y, rect->size.width, rect->size.height, x, y, x_size, y_size);
+    if ((h_align == 0 || h_align == EGUI_ALIGN_LEFT) && (v_align == 0 || v_align == EGUI_ALIGN_TOP))
+    {
+        draw_y = tmp_rect.location.y;
+    }
+    else
+    {
+        egui_font_get_string_pos(self, s, rect, align_type, 1, line_space, &x, &y);
+        draw_y = tmp_rect.location.y + y;
+    }
 
+    if (h_align == 0 || h_align == EGUI_ALIGN_LEFT)
+    {
+        tmp_rect.location.y = draw_y;
+
+        if (line_step > 0)
+        {
+            while (*s && draw_y + y_size <= work_y0)
+            {
+                const char *next_line = strchr(s, '\n');
+
+                if (next_line == NULL)
+                {
+                    return;
+                }
+
+                s = next_line + 1;
+                draw_y += line_step;
+            }
+        }
+
+        while (*s)
+        {
+            if (line_step > 0 && draw_y >= work_y1)
+            {
+                break;
+            }
+
+            str_bytes = self->api->draw_string(self, s, tmp_rect.location.x, draw_y, color, alpha);
+            if (str_bytes <= 0)
+            {
+                break;
+            }
+
+            s += str_bytes;
+            draw_y += y_size + line_space;
+        }
+        return;
+    }
+
+    tmp_rect.location.y = draw_y;
     align_type &= ~EGUI_ALIGN_VMASK;
-    tmp_rect.location.y += y;
 
     while (*s)
     {

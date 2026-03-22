@@ -41,12 +41,22 @@ typedef struct
     const uint8_t *pixel_buffer;
 } egui_font_std_info_t;
 
+typedef struct
+{
+    egui_font_std_info_t info;
+    egui_font_std_char_descriptor_t *owned_char_array;
+    uint8_t *owned_pixel_buffer;
+} egui_font_std_access_t;
+
 struct egui_font_std
 {
     egui_font_t base;
 };
 
 int egui_font_std_find_code_index(const egui_font_std_info_t *font, uint32_t utf8_code);
+int egui_font_std_prepare_access(const egui_font_std_info_t *font, egui_font_std_access_t *access);
+void egui_font_std_release_access(egui_font_std_access_t *access);
+int egui_font_std_try_get_line_height(const egui_font_t *self, egui_dim_t *line_height);
 void egui_font_std_init(egui_font_t *self, const void *res);
 
 /* Ends C function definitions when using C++ */
