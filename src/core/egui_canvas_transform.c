@@ -195,8 +195,38 @@ static inline uint8_t image_transform_read_alpha(const uint8_t *alpha_buf, int a
     }
 }
 
-static inline void image_transform_read_alpha_2x2(const uint8_t *alpha_buf, int alpha_row_bytes, int x, int y, uint8_t alpha_type, uint16_t *a00,
-                                                  uint16_t *a01, uint16_t *a10, uint16_t *a11)
+static inline uint8_t image_transform_bilinear_alpha_from_raw_4(uint8_t a00, uint8_t a01, uint8_t a10, uint8_t a11, uint8_t fx, uint8_t fy)
+{
+    int32_t h0_q8 = ((int32_t)a00 << 8) + ((int32_t)(a01 - a00) * fx);
+    int32_t h1_q8 = ((int32_t)a10 << 8) + ((int32_t)(a11 - a10) * fx);
+    uint16_t ah0 = (uint16_t)(((h0_q8 << 4) + h0_q8 + 128) >> 8);
+    uint16_t ah1 = (uint16_t)(((h1_q8 << 4) + h1_q8 + 128) >> 8);
+
+    return (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+}
+
+static inline uint8_t image_transform_bilinear_alpha_from_raw_2(uint8_t a00, uint8_t a01, uint8_t a10, uint8_t a11, uint8_t fx, uint8_t fy)
+{
+    int32_t h0_q8 = ((int32_t)a00 << 8) + ((int32_t)(a01 - a00) * fx);
+    int32_t h1_q8 = ((int32_t)a10 << 8) + ((int32_t)(a11 - a10) * fx);
+    uint16_t ah0 = (uint16_t)(((h0_q8 << 6) + (h0_q8 << 4) + (h0_q8 << 2) + h0_q8 + 128) >> 8);
+    uint16_t ah1 = (uint16_t)(((h1_q8 << 6) + (h1_q8 << 4) + (h1_q8 << 2) + h1_q8 + 128) >> 8);
+
+    return (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+}
+
+static inline uint8_t image_transform_bilinear_alpha_from_raw_1(uint8_t a00, uint8_t a01, uint8_t a10, uint8_t a11, uint8_t fx, uint8_t fy)
+{
+    int32_t h0_q8 = ((int32_t)a00 << 8) + ((int32_t)(a01 - a00) * fx);
+    int32_t h1_q8 = ((int32_t)a10 << 8) + ((int32_t)(a11 - a10) * fx);
+    uint16_t ah0 = (uint16_t)(((h0_q8 << 8) - h0_q8 + 128) >> 8);
+    uint16_t ah1 = (uint16_t)(((h1_q8 << 8) - h1_q8 + 128) >> 8);
+
+    return (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+}
+
+static inline uint8_t image_transform_sample_alpha_bilinear_fast(const uint8_t *alpha_buf, int alpha_row_bytes, int x, int y, uint8_t alpha_type,
+                                                                 uint8_t fx, uint8_t fy)
 {
     const uint8_t *row0 = alpha_buf + y * alpha_row_bytes;
     const uint8_t *row1 = row0 + alpha_row_bytes;
@@ -205,50 +235,181 @@ static inline void image_transform_read_alpha_2x2(const uint8_t *alpha_buf, int 
     {
     case EGUI_IMAGE_ALPHA_TYPE_4:
     {
-        int x0_idx = x >> 1;
-        int x1_idx = (x + 1) >> 1;
-        int x0_shift = (x & 1) << 2;
-        int x1_shift = ((x + 1) & 1) << 2;
+        uint8_t a00, a01, a10, a11;
+        int idx = x >> 1;
 
-        *a00 = egui_alpha_change_table_4[(row0[x0_idx] >> x0_shift) & 0x0F];
-        *a01 = egui_alpha_change_table_4[(row0[x1_idx] >> x1_shift) & 0x0F];
-        *a10 = egui_alpha_change_table_4[(row1[x0_idx] >> x0_shift) & 0x0F];
-        *a11 = egui_alpha_change_table_4[(row1[x1_idx] >> x1_shift) & 0x0F];
-        break;
+        if ((x & 1) == 0)
+        {
+            uint8_t packed0 = row0[idx];
+            uint8_t packed1 = row1[idx];
+
+            if ((packed0 | packed1) == 0)
+            {
+                return 0;
+            }
+
+            if ((packed0 & packed1) == 0xFF)
+            {
+                return EGUI_ALPHA_100;
+            }
+
+            a00 = packed0 & 0x0F;
+            a01 = (packed0 >> 4) & 0x0F;
+            a10 = packed1 & 0x0F;
+            a11 = (packed1 >> 4) & 0x0F;
+        }
+        else
+        {
+            uint8_t packed00 = row0[idx];
+            uint8_t packed01 = row0[idx + 1];
+            uint8_t packed10 = row1[idx];
+            uint8_t packed11 = row1[idx + 1];
+
+            a00 = (packed00 >> 4) & 0x0F;
+            a01 = packed01 & 0x0F;
+            a10 = (packed10 >> 4) & 0x0F;
+            a11 = packed11 & 0x0F;
+
+            if ((a00 | a01 | a10 | a11) == 0)
+            {
+                return 0;
+            }
+
+            if ((a00 & a01 & a10 & a11) == 0x0F)
+            {
+                return EGUI_ALPHA_100;
+            }
+        }
+
+        return image_transform_bilinear_alpha_from_raw_4(a00, a01, a10, a11, fx, fy);
     }
     case EGUI_IMAGE_ALPHA_TYPE_2:
     {
-        int x0_idx = x >> 2;
-        int x1_idx = (x + 1) >> 2;
-        int x0_shift = (x & 3) << 1;
-        int x1_shift = ((x + 1) & 3) << 1;
+        uint8_t a00, a01, a10, a11;
+        int idx = x >> 2;
+        int local_x = x & 3;
 
-        *a00 = egui_alpha_change_table_2[(row0[x0_idx] >> x0_shift) & 0x03];
-        *a01 = egui_alpha_change_table_2[(row0[x1_idx] >> x1_shift) & 0x03];
-        *a10 = egui_alpha_change_table_2[(row1[x0_idx] >> x0_shift) & 0x03];
-        *a11 = egui_alpha_change_table_2[(row1[x1_idx] >> x1_shift) & 0x03];
-        break;
+        if (local_x != 3)
+        {
+            int shift = local_x << 1;
+            uint8_t pair0 = (row0[idx] >> shift) & 0x0F;
+            uint8_t pair1 = (row1[idx] >> shift) & 0x0F;
+
+            if ((pair0 | pair1) == 0)
+            {
+                return 0;
+            }
+
+            if ((pair0 & pair1) == 0x0F)
+            {
+                return EGUI_ALPHA_100;
+            }
+
+            a00 = pair0 & 0x03;
+            a01 = (pair0 >> 2) & 0x03;
+            a10 = pair1 & 0x03;
+            a11 = (pair1 >> 2) & 0x03;
+        }
+        else
+        {
+            uint8_t packed00 = row0[idx];
+            uint8_t packed01 = row0[idx + 1];
+            uint8_t packed10 = row1[idx];
+            uint8_t packed11 = row1[idx + 1];
+
+            a00 = (packed00 >> 6) & 0x03;
+            a01 = packed01 & 0x03;
+            a10 = (packed10 >> 6) & 0x03;
+            a11 = packed11 & 0x03;
+
+            if ((a00 | a01 | a10 | a11) == 0)
+            {
+                return 0;
+            }
+
+            if ((a00 & a01 & a10 & a11) == 0x03)
+            {
+                return EGUI_ALPHA_100;
+            }
+        }
+
+        return image_transform_bilinear_alpha_from_raw_2(a00, a01, a10, a11, fx, fy);
     }
     case EGUI_IMAGE_ALPHA_TYPE_1:
     {
-        int x0_idx = x >> 3;
-        int x1_idx = (x + 1) >> 3;
-        int x0_shift = x & 7;
-        int x1_shift = (x + 1) & 7;
+        uint8_t a00, a01, a10, a11;
+        int idx = x >> 3;
+        int bit = x & 7;
 
-        *a00 = ((row0[x0_idx] >> x0_shift) & 1) ? 255 : 0;
-        *a01 = ((row0[x1_idx] >> x1_shift) & 1) ? 255 : 0;
-        *a10 = ((row1[x0_idx] >> x0_shift) & 1) ? 255 : 0;
-        *a11 = ((row1[x1_idx] >> x1_shift) & 1) ? 255 : 0;
-        break;
+        if (bit != 7)
+        {
+            uint8_t pair0 = (row0[idx] >> bit) & 0x03;
+            uint8_t pair1 = (row1[idx] >> bit) & 0x03;
+
+            if ((pair0 | pair1) == 0)
+            {
+                return 0;
+            }
+
+            if ((pair0 & pair1) == 0x03)
+            {
+                return EGUI_ALPHA_100;
+            }
+
+            a00 = pair0 & 0x01;
+            a01 = (pair0 >> 1) & 0x01;
+            a10 = pair1 & 0x01;
+            a11 = (pair1 >> 1) & 0x01;
+        }
+        else
+        {
+            uint8_t packed00 = row0[idx];
+            uint8_t packed01 = row0[idx + 1];
+            uint8_t packed10 = row1[idx];
+            uint8_t packed11 = row1[idx + 1];
+
+            a00 = (packed00 >> 7) & 0x01;
+            a01 = packed01 & 0x01;
+            a10 = (packed10 >> 7) & 0x01;
+            a11 = packed11 & 0x01;
+
+            if ((a00 | a01 | a10 | a11) == 0)
+            {
+                return 0;
+            }
+
+            if ((a00 & a01 & a10 & a11) == 0x01)
+            {
+                return EGUI_ALPHA_100;
+            }
+        }
+
+        return image_transform_bilinear_alpha_from_raw_1(a00, a01, a10, a11, fx, fy);
     }
     case EGUI_IMAGE_ALPHA_TYPE_8:
     default:
-        *a00 = row0[x];
-        *a01 = row0[x + 1];
-        *a10 = row1[x];
-        *a11 = row1[x + 1];
-        break;
+    {
+        uint16_t a00 = row0[x];
+        uint16_t a01 = row0[x + 1];
+        uint16_t a10 = row1[x];
+        uint16_t a11 = row1[x + 1];
+
+        if ((a00 | a01 | a10 | a11) == 0)
+        {
+            return 0;
+        }
+
+        if ((a00 & a01 & a10 & a11) == EGUI_ALPHA_100)
+        {
+            return EGUI_ALPHA_100;
+        }
+
+        {
+            uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+            uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+            return (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+        }
+    }
     }
 }
 
@@ -454,7 +615,6 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
     }
     int has_alpha = (alpha_buf != NULL);
     uint8_t alpha_type = info->alpha_type;
-    int has_alpha8 = (has_alpha && alpha_type == EGUI_IMAGE_ALPHA_TYPE_8);
     int alpha_row_bytes = 0;
     if (has_alpha)
     {
@@ -590,67 +750,32 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                     for (int32_t i = 0; i < sir_count; i++)
                     {
                         int32_t offs = (rotatedY >> 15) * src_w + (rotatedX >> 15);
-                        uint16_t a00, a01, a10, a11;
+                        uint8_t fx = (rotatedX >> 7) & 0xFF;
+                        uint8_t fy = (rotatedY >> 7) & 0xFF;
+                        egui_alpha_t pixel_alpha =
+                                image_transform_sample_alpha_bilinear_fast(alpha_buf, alpha_row_bytes, rotatedX >> 15, rotatedY >> 15, alpha_type, fx, fy);
 
-                        /* Read alpha samples first for early exit */
-                        if (has_alpha8)
+                        if (pixel_alpha > 0)
                         {
-                            a00 = alpha_buf[offs];
-                            a01 = alpha_buf[offs + 1];
-                            a10 = alpha_buf[offs + src_w];
-                            a11 = alpha_buf[offs + src_w + 1];
-                        }
-                        else
-                        {
-                            image_transform_read_alpha_2x2(alpha_buf, alpha_row_bytes, rotatedX >> 15, rotatedY >> 15, alpha_type, &a00, &a01, &a10, &a11);
-                        }
-
-                        if ((a00 | a01 | a10 | a11) != 0)
-                        {
-                            uint8_t fx = (rotatedX >> 7) & 0xFF;
-                            uint8_t fy = (rotatedY >> 7) & 0xFF;
-
-                            /* All-opaque shortcut: skip alpha bilinear + blend */
-                            if ((a00 & a01 & a10 & a11) == 255)
+                            uint16_t d00 = data[offs];
+                            uint16_t d01 = data[offs + 1];
+                            uint16_t d10 = data[offs + src_w];
+                            uint16_t d11 = data[offs + src_w + 1];
+                            egui_color_t color;
+                            color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
+                            if (row_overlay_alpha > 0)
                             {
-                                uint16_t d00 = data[offs];
-                                uint16_t d01 = data[offs + 1];
-                                uint16_t d10 = data[offs + src_w];
-                                uint16_t d11 = data[offs + src_w + 1];
-                                egui_color_t color;
-                                color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
-                                if (row_overlay_alpha > 0)
-                                {
-                                    egui_rgb_mix_ptr(&color, &row_overlay_color, &color, row_overlay_alpha);
-                                }
+                                egui_rgb_mix_ptr(&color, &row_overlay_color, &color, row_overlay_alpha);
+                            }
+
+                            if (pixel_alpha == EGUI_ALPHA_100)
+                            {
                                 *dst_row = color.full;
                             }
                             else
                             {
-                                uint16_t d00 = data[offs];
-                                uint16_t d01 = data[offs + 1];
-                                uint16_t d10 = data[offs + src_w];
-                                uint16_t d11 = data[offs + src_w + 1];
-                                egui_color_t color;
-                                color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
-                                if (row_overlay_alpha > 0)
-                                {
-                                    egui_rgb_mix_ptr(&color, &row_overlay_color, &color, row_overlay_alpha);
-                                }
-
-                                uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
-                                uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
-                                uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
-
-                                if (pixel_alpha == EGUI_ALPHA_100)
-                                {
-                                    *dst_row = color.full;
-                                }
-                                else if (pixel_alpha > 0)
-                                {
-                                    egui_color_t *back = (egui_color_t *)dst_row;
-                                    egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
-                                }
+                                egui_color_t *back = (egui_color_t *)dst_row;
+                                egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
                             }
                         }
 
@@ -683,21 +808,7 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                         egui_alpha_t pixel_alpha = EGUI_ALPHA_100;
                         if (has_alpha)
                         {
-                            uint16_t a00, a01, a10, a11;
-                            if (has_alpha8)
-                            {
-                                a00 = alpha_buf[offs];
-                                a01 = alpha_buf[offs + 1];
-                                a10 = alpha_buf[offs + src_w];
-                                a11 = alpha_buf[offs + src_w + 1];
-                            }
-                            else
-                            {
-                                image_transform_read_alpha_2x2(alpha_buf, alpha_row_bytes, px, py, alpha_type, &a00, &a01, &a10, &a11);
-                            }
-                            uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
-                            uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
-                            pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+                            pixel_alpha = image_transform_sample_alpha_bilinear_fast(alpha_buf, alpha_row_bytes, px, py, alpha_type, fx, fy);
                         }
                         if (mask_requires_point)
                         {
