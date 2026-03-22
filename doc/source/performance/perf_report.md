@@ -1,7 +1,7 @@
 # Performance Report
 
-- Commit: `09bcbc1`
-- Date: 2026-03-22T13:33:27.599765
+- Commit: `4881415`
+- Date: 2026-03-22T13:53:34.585848
 - Profile: cortex-m3
 
 ![Performance Chart](images/perf_report.png)
@@ -51,9 +51,9 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 
 | Test Case | Time (ms) |
 |-----------|-----------|
-| TEXT | 1.141 |
+| TEXT | 0.961 |
 | TEXT_RECT | 1.270 |
-| EXTERN_TEXT | 1.158 |
+| EXTERN_TEXT | 0.978 |
 | EXTERN_TEXT_RECT | 1.299 |
 | TEXT_ROTATE_NONE | 1.304 |
 | TEXT_ROTATE | 13.418 |
@@ -78,7 +78,7 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 | IMAGE_565_4 | 0.663 |
 | IMAGE_565_8 | 0.663 |
 | IMAGE_565_QUARTER | 0.322 |
-| IMAGE_565_DOUBLE | 0.660 |
+| IMAGE_565_DOUBLE | 0.659 |
 | IMAGE_565_8_QUARTER | 0.323 |
 | IMAGE_565_8_DOUBLE | 0.663 |
 | EXTERN_IMAGE_565 | 2.459 |
@@ -206,7 +206,7 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 | MASK_RECT_FILL_IMAGE | 0.612 |
 | MASK_RECT_FILL_NO_MASK_QUARTER | 0.256 |
 | MASK_RECT_FILL_NO_MASK_DOUBLE | 0.394 |
-| MASK_RECT_FILL_ROUND_RECT_QUARTER | 0.394 |
+| MASK_RECT_FILL_ROUND_RECT_QUARTER | 0.393 |
 | MASK_RECT_FILL_ROUND_RECT_DOUBLE | 0.925 |
 | MASK_RECT_FILL_CIRCLE_QUARTER | 0.521 |
 | MASK_RECT_FILL_CIRCLE_DOUBLE | 1.209 |
@@ -232,7 +232,7 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 | Test Case | Time (ms) |
 |-----------|-----------|
 | ANIMATION_TRANSLATE | 0.276 |
-| ANIMATION_ALPHA | 0.269 |
+| ANIMATION_ALPHA | 0.270 |
 | ANIMATION_SCALE | 0.300 |
 | ANIMATION_SET | 0.336 |
 
