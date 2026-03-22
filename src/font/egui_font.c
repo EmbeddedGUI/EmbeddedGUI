@@ -127,6 +127,12 @@ void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, 
     {
         return;
     }
+
+    if (egui_font_std_try_draw_string_in_rect_fast(self, string, rect, align_type, line_space, color, alpha))
+    {
+        return;
+    }
+
     egui_dim_t x, y;
     int str_bytes;
     egui_dim_t y_size;

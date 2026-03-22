@@ -900,6 +900,18 @@ __EGUI_STATIC_INLINE__ void egui_font_std_blend_pixel_ctx(egui_color_int_t *dst,
 #endif
 }
 
+__EGUI_STATIC_INLINE__ void egui_font_std_blend_pixel_ctx_partial(egui_color_int_t *dst, const egui_font_std_blend_ctx_t *ctx, egui_alpha_t alpha)
+{
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+    uint16_t bg = *dst;
+    uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+    uint32_t result = (bg_rb_g + ((ctx->color_rb_g - bg_rb_g) * ((uint32_t)alpha >> 3) >> 5)) & 0x07E0F81FUL;
+    *dst = (uint16_t)(result | (result >> 16));
+#else
+    egui_font_std_blend_pixel(dst, ctx->color, alpha);
+#endif
+}
+
 static int egui_font_std_clip_to_region(const egui_region_t *region, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_region_t *visible_rect)
 {
     egui_dim_t vis_x0 = x;
@@ -1079,7 +1091,7 @@ static void egui_font_std_draw_fast_4_ctx(const egui_canvas_t *canvas, egui_dim_
                         }
                         else if (alpha0 != 0)
                         {
-                            egui_font_std_blend_pixel_ctx(&dst[col], blend_ctx, egui_alpha_change_table_4[alpha0]);
+                            egui_font_std_blend_pixel_ctx_partial(&dst[col], blend_ctx, egui_alpha_change_table_4[alpha0]);
                         }
 
                         if (alpha1 == 0x0F)
@@ -1088,7 +1100,7 @@ static void egui_font_std_draw_fast_4_ctx(const egui_canvas_t *canvas, egui_dim_
                         }
                         else if (alpha1 != 0)
                         {
-                            egui_font_std_blend_pixel_ctx(&dst[col + 1], blend_ctx, egui_alpha_change_table_4[alpha1]);
+                            egui_font_std_blend_pixel_ctx_partial(&dst[col + 1], blend_ctx, egui_alpha_change_table_4[alpha1]);
                         }
                     }
 
@@ -1105,7 +1117,7 @@ static void egui_font_std_draw_fast_4_ctx(const egui_canvas_t *canvas, egui_dim_
                     }
                     else if (packed != 0)
                     {
-                        egui_font_std_blend_pixel_ctx(&dst[col], blend_ctx, egui_alpha_change_table_4[packed]);
+                        egui_font_std_blend_pixel_ctx_partial(&dst[col], blend_ctx, egui_alpha_change_table_4[packed]);
                     }
                 }
             }
@@ -1167,71 +1179,72 @@ static void egui_font_std_draw_fast_4_ctx(const egui_canvas_t *canvas, egui_dim_
                 }
                 else if (sel_value != 0)
                 {
-                    egui_font_std_blend_pixel_ctx(&dst[col], blend_ctx, egui_alpha_change_table_4[sel_value]);
+                    egui_font_std_blend_pixel_ctx_partial(&dst[col], blend_ctx, egui_alpha_change_table_4[sel_value]);
                 }
 
                 col++;
                 src_col++;
             }
 
-            while (col + 1 < width)
             {
-                uint8_t packed = src[src_col >> 1];
+                const uint8_t *src_byte = src + (src_col >> 1);
 
-                if (packed == 0)
+                while (col + 1 < width)
                 {
+                    uint8_t packed = *src_byte++;
+
+                    if (packed == 0)
+                    {
+                        col += 2;
+                        continue;
+                    }
+
+                    if (packed == 0xFF)
+                    {
+                        dst[col] = blend_ctx->color.full;
+                        dst[col + 1] = blend_ctx->color.full;
+                        col += 2;
+                        continue;
+                    }
+
+                    {
+                        uint8_t alpha0 = packed & 0x0F;
+                        uint8_t alpha1 = (packed >> 4) & 0x0F;
+
+                        if (alpha0 == 0x0F)
+                        {
+                            dst[col] = blend_ctx->color.full;
+                        }
+                        else if (alpha0 != 0)
+                        {
+                            egui_font_std_blend_pixel_ctx_partial(&dst[col], blend_ctx, egui_alpha_change_table_4[alpha0]);
+                        }
+
+                        if (alpha1 == 0x0F)
+                        {
+                            dst[col + 1] = blend_ctx->color.full;
+                        }
+                        else if (alpha1 != 0)
+                        {
+                            egui_font_std_blend_pixel_ctx_partial(&dst[col + 1], blend_ctx, egui_alpha_change_table_4[alpha1]);
+                        }
+                    }
+
                     col += 2;
-                    src_col += 2;
-                    continue;
                 }
 
-                if (packed == 0xFF)
+                if (col < width)
                 {
-                    dst[col] = blend_ctx->color.full;
-                    dst[col + 1] = blend_ctx->color.full;
-                    col += 2;
-                    src_col += 2;
-                    continue;
-                }
+                    uint8_t sel_value = *src_byte & 0x0F;
 
-                {
-                    uint8_t alpha0 = packed & 0x0F;
-                    uint8_t alpha1 = (packed >> 4) & 0x0F;
-
-                    if (alpha0 == 0x0F)
+                    if (sel_value == 0x0F)
                     {
                         dst[col] = blend_ctx->color.full;
                     }
-                    else if (alpha0 != 0)
+                    else if (sel_value != 0)
                     {
-                        egui_font_std_blend_pixel_ctx(&dst[col], blend_ctx, egui_alpha_change_table_4[alpha0]);
+                        egui_font_std_blend_pixel_ctx_partial(&dst[col], blend_ctx, egui_alpha_change_table_4[sel_value]);
                     }
-
-                    if (alpha1 == 0x0F)
-                    {
-                        dst[col + 1] = blend_ctx->color.full;
-                    }
-                    else if (alpha1 != 0)
-                    {
-                        egui_font_std_blend_pixel_ctx(&dst[col + 1], blend_ctx, egui_alpha_change_table_4[alpha1]);
-                    }
-                }
-
-                col += 2;
-                src_col += 2;
-            }
-
-            if (col < width)
-            {
-                uint8_t sel_value = (src[src_col >> 1] >> ((src_col & 0x01) << 2)) & 0x0F;
-
-                if (sel_value == 0x0F)
-                {
-                    dst[col] = blend_ctx->color.full;
-                }
-                else if (sel_value != 0)
-                {
-                    egui_font_std_blend_pixel_ctx(&dst[col], blend_ctx, egui_alpha_change_table_4[sel_value]);
                 }
             }
         }
@@ -1250,42 +1263,44 @@ static void egui_font_std_draw_fast_4_ctx(const egui_canvas_t *canvas, egui_dim_
                 src_col++;
             }
 
-            while (col + 1 < width)
             {
-                uint8_t packed = src[src_col >> 1];
+                const uint8_t *src_byte = src + (src_col >> 1);
 
-                if (packed == 0)
+                while (col + 1 < width)
                 {
+                    uint8_t packed = *src_byte++;
+
+                    if (packed == 0)
+                    {
+                        col += 2;
+                        continue;
+                    }
+
+                    {
+                        egui_alpha_t alpha0 = mixed_alpha_table[packed & 0x0F];
+                        egui_alpha_t alpha1 = mixed_alpha_table[(packed >> 4) & 0x0F];
+
+                        if (alpha0 != 0)
+                        {
+                            egui_font_std_blend_pixel_ctx(&dst[col], blend_ctx, alpha0);
+                        }
+                        if (alpha1 != 0)
+                        {
+                            egui_font_std_blend_pixel_ctx(&dst[col + 1], blend_ctx, alpha1);
+                        }
+                    }
+
                     col += 2;
-                    src_col += 2;
-                    continue;
                 }
 
+                if (col < width)
                 {
-                    egui_alpha_t alpha0 = mixed_alpha_table[packed & 0x0F];
-                    egui_alpha_t alpha1 = mixed_alpha_table[(packed >> 4) & 0x0F];
+                    egui_alpha_t pixel_alpha = mixed_alpha_table[*src_byte & 0x0F];
 
-                    if (alpha0 != 0)
+                    if (pixel_alpha != 0)
                     {
-                        egui_font_std_blend_pixel_ctx(&dst[col], blend_ctx, alpha0);
+                        egui_font_std_blend_pixel_ctx(&dst[col], blend_ctx, pixel_alpha);
                     }
-                    if (alpha1 != 0)
-                    {
-                        egui_font_std_blend_pixel_ctx(&dst[col + 1], blend_ctx, alpha1);
-                    }
-                }
-
-                col += 2;
-                src_col += 2;
-            }
-
-            if (col < width)
-            {
-                egui_alpha_t pixel_alpha = mixed_alpha_table[(src[src_col >> 1] >> ((src_col & 0x01) << 2)) & 0x0F];
-
-                if (pixel_alpha != 0)
-                {
-                    egui_font_std_blend_pixel_ctx(&dst[col], blend_ctx, pixel_alpha);
                 }
             }
         }
@@ -1610,11 +1625,11 @@ static int egui_font_std_draw_fast_mask(const egui_font_std_info_t *font, egui_d
 
                         if (alpha0 != 0)
                         {
-                            egui_font_std_blend_pixel_ctx(&dst[col], &blend_ctx, alpha0);
+                            egui_font_std_blend_pixel_ctx_partial(&dst[col], &blend_ctx, alpha0);
                         }
                         if (alpha1 != 0)
                         {
-                            egui_font_std_blend_pixel_ctx(&dst[col + 1], &blend_ctx, alpha1);
+                            egui_font_std_blend_pixel_ctx_partial(&dst[col + 1], &blend_ctx, alpha1);
                         }
                         col += 2;
                     }
@@ -1624,7 +1639,7 @@ static int egui_font_std_draw_fast_mask(const egui_font_std_info_t *font, egui_d
                         egui_alpha_t alpha0 = egui_alpha_change_table_4[*src & 0x0F];
                         if (alpha0 != 0)
                         {
-                            egui_font_std_blend_pixel_ctx(&dst[col], &blend_ctx, alpha0);
+                            egui_font_std_blend_pixel_ctx_partial(&dst[col], &blend_ctx, alpha0);
                         }
                     }
                 }
@@ -1682,57 +1697,58 @@ static int egui_font_std_draw_fast_mask(const egui_font_std_info_t *font, egui_d
                         }
                         else if (sel_value != 0)
                         {
-                            egui_font_std_blend_pixel_ctx(&dst[dst_col], &blend_ctx, egui_alpha_change_table_4[sel_value]);
+                            egui_font_std_blend_pixel_ctx_partial(&dst[dst_col], &blend_ctx, egui_alpha_change_table_4[sel_value]);
                         }
 
                         dst_col++;
                         src_col++;
                     }
 
-                    while (dst_col + 1 < draw_w)
                     {
-                        uint8_t packed = src[src_col >> 1];
+                        const uint8_t *src_byte = src + (src_col >> 1);
 
-                        if (packed == 0)
+                        while (dst_col + 1 < draw_w)
                         {
+                            uint8_t packed = *src_byte++;
+
+                            if (packed == 0)
+                            {
+                                dst_col += 2;
+                                continue;
+                            }
+
+                            if (packed == 0xFF)
+                            {
+                                dst[dst_col] = blend_ctx.color.full;
+                                dst[dst_col + 1] = blend_ctx.color.full;
+                                dst_col += 2;
+                                continue;
+                            }
+
+                            {
+                                egui_alpha_t alpha0 = egui_alpha_change_table_4[packed & 0x0F];
+                                egui_alpha_t alpha1 = egui_alpha_change_table_4[(packed >> 4) & 0x0F];
+
+                                if (alpha0 != 0)
+                                {
+                                    egui_font_std_blend_pixel_ctx_partial(&dst[dst_col], &blend_ctx, alpha0);
+                                }
+                                if (alpha1 != 0)
+                                {
+                                    egui_font_std_blend_pixel_ctx_partial(&dst[dst_col + 1], &blend_ctx, alpha1);
+                                }
+                            }
+
                             dst_col += 2;
-                            src_col += 2;
-                            continue;
                         }
 
-                        if (packed == 0xFF)
+                        if (dst_col < draw_w)
                         {
-                            dst[dst_col] = blend_ctx.color.full;
-                            dst[dst_col + 1] = blend_ctx.color.full;
-                            dst_col += 2;
-                            src_col += 2;
-                            continue;
-                        }
-
-                        {
-                            egui_alpha_t alpha0 = egui_alpha_change_table_4[packed & 0x0F];
-                            egui_alpha_t alpha1 = egui_alpha_change_table_4[(packed >> 4) & 0x0F];
-
+                            egui_alpha_t alpha0 = egui_alpha_change_table_4[*src_byte & 0x0F];
                             if (alpha0 != 0)
                             {
-                                egui_font_std_blend_pixel_ctx(&dst[dst_col], &blend_ctx, alpha0);
+                                egui_font_std_blend_pixel_ctx_partial(&dst[dst_col], &blend_ctx, alpha0);
                             }
-                            if (alpha1 != 0)
-                            {
-                                egui_font_std_blend_pixel_ctx(&dst[dst_col + 1], &blend_ctx, alpha1);
-                            }
-                        }
-
-                        dst_col += 2;
-                        src_col += 2;
-                    }
-
-                    if (dst_col < draw_w)
-                    {
-                        egui_alpha_t alpha0 = egui_alpha_change_table_4[(src[src_col >> 1] >> ((src_col & 0x01) << 2)) & 0x0F];
-                        if (alpha0 != 0)
-                        {
-                            egui_font_std_blend_pixel_ctx(&dst[dst_col], &blend_ctx, alpha0);
                         }
                     }
                 }
@@ -1751,41 +1767,43 @@ static int egui_font_std_draw_fast_mask(const egui_font_std_info_t *font, egui_d
                         src_col++;
                     }
 
-                    while (dst_col + 1 < draw_w)
                     {
-                        uint8_t packed = src[src_col >> 1];
+                        const uint8_t *src_byte = src + (src_col >> 1);
 
-                        if (packed == 0)
+                        while (dst_col + 1 < draw_w)
                         {
+                            uint8_t packed = *src_byte++;
+
+                            if (packed == 0)
+                            {
+                                dst_col += 2;
+                                continue;
+                            }
+
+                            {
+                                egui_alpha_t alpha0 = mixed_alpha_table[packed & 0x0F];
+                                egui_alpha_t alpha1 = mixed_alpha_table[(packed >> 4) & 0x0F];
+
+                                if (alpha0 != 0)
+                                {
+                                    egui_font_std_blend_pixel_ctx(&dst[dst_col], &blend_ctx, alpha0);
+                                }
+                                if (alpha1 != 0)
+                                {
+                                    egui_font_std_blend_pixel_ctx(&dst[dst_col + 1], &blend_ctx, alpha1);
+                                }
+                            }
+
                             dst_col += 2;
-                            src_col += 2;
-                            continue;
                         }
 
+                        if (dst_col < draw_w)
                         {
-                            egui_alpha_t alpha0 = mixed_alpha_table[packed & 0x0F];
-                            egui_alpha_t alpha1 = mixed_alpha_table[(packed >> 4) & 0x0F];
-
-                            if (alpha0 != 0)
+                            egui_alpha_t pixel_alpha = mixed_alpha_table[*src_byte & 0x0F];
+                            if (pixel_alpha != 0)
                             {
-                                egui_font_std_blend_pixel_ctx(&dst[dst_col], &blend_ctx, alpha0);
+                                egui_font_std_blend_pixel_ctx(&dst[dst_col], &blend_ctx, pixel_alpha);
                             }
-                            if (alpha1 != 0)
-                            {
-                                egui_font_std_blend_pixel_ctx(&dst[dst_col + 1], &blend_ctx, alpha1);
-                            }
-                        }
-
-                        dst_col += 2;
-                        src_col += 2;
-                    }
-
-                    if (dst_col < draw_w)
-                    {
-                        egui_alpha_t pixel_alpha = mixed_alpha_table[(src[src_col >> 1] >> ((src_col & 0x01) << 2)) & 0x0F];
-                        if (pixel_alpha != 0)
-                        {
-                            egui_font_std_blend_pixel_ctx(&dst[dst_col], &blend_ctx, pixel_alpha);
                         }
                     }
                 }
@@ -2224,6 +2242,276 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
     return str_cnt;
 }
 
+static int egui_font_std_draw_string_fast_4_mask(const void *font_key, const egui_font_std_info_t *font, const char *s, egui_dim_t x, egui_dim_t y,
+                                                 egui_color_t color, egui_alpha_t alpha, const egui_region_t *work_region)
+{
+    int str_cnt = 0;
+    egui_dim_t work_x0 = work_region->location.x;
+    egui_dim_t work_y0 = work_region->location.y;
+    egui_dim_t work_x1 = work_x0 + work_region->size.width;
+    egui_dim_t work_y1 = work_y0 + work_region->size.height;
+    const uint8_t *pixel_buffer = font->pixel_buffer;
+    const egui_font_std_draw_prefix_cache_t *prefix_cache = egui_font_std_prepare_draw_prefix_cache(font_key, font, s);
+    const egui_font_std_char_descriptor_t *const *ascii_desc = NULL;
+    const uint8_t *ascii_adv = NULL;
+
+    if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && font->code_array != NULL)
+    {
+        egui_font_std_prepare_ascii_lookup_cache(font);
+        ascii_desc = g_font_std_ascii_lookup_cache.ascii_desc;
+        ascii_adv = g_font_std_ascii_lookup_cache.ascii_adv;
+    }
+
+    if (prefix_cache != NULL)
+    {
+        int16_t local_x0 = (int16_t)(work_x0 - x);
+        int16_t local_x1 = (int16_t)(work_x1 - x);
+        uint16_t start = (uint16_t)egui_font_std_find_prefix_first_visible(prefix_cache, local_x0);
+
+        for (uint16_t i = start; i < prefix_cache->glyph_count; i++)
+        {
+            const egui_font_std_draw_prefix_glyph_t *glyph = &prefix_cache->glyphs[i];
+            egui_dim_t offset = x + glyph->x;
+
+            if (glyph->box_x0 >= local_x1)
+            {
+                return prefix_cache->line_bytes;
+            }
+
+            if (glyph->has_desc)
+            {
+                egui_dim_t draw_x = offset + glyph->off_x;
+                egui_dim_t draw_y = y + glyph->off_y;
+
+                if (draw_y < work_y1 && (draw_y + glyph->box_h) > work_y0)
+                {
+                    egui_font_std_draw_fast_mask(font, draw_x, draw_y, glyph->box_w, glyph->box_h, pixel_buffer + glyph->idx, color, alpha);
+                }
+            }
+            else
+            {
+                egui_font_std_draw_single_char_desc(font, NULL, offset, y, color, alpha, NULL, NULL, 0, NULL);
+            }
+        }
+
+        if (prefix_cache->is_complete_line)
+        {
+            return prefix_cache->line_bytes;
+        }
+
+        s += prefix_cache->cached_bytes;
+        str_cnt = prefix_cache->cached_bytes;
+    }
+
+    {
+        int offset = x + ((prefix_cache != NULL) ? prefix_cache->cached_advance : 0);
+
+        while (*s != '\0')
+        {
+            int char_bytes;
+            uint32_t utf8_code;
+            const egui_font_std_char_descriptor_t *p_char_desc;
+            int adv;
+
+            if (*s == '\r')
+            {
+                s++;
+                str_cnt++;
+                continue;
+            }
+            else if (*s == '\n')
+            {
+                str_cnt++;
+                break;
+            }
+
+            if (offset >= work_x1)
+            {
+                if (prefix_cache != NULL)
+                {
+                    return prefix_cache->line_bytes;
+                }
+
+                {
+                    const char *next_line = strchr(s, '\n');
+                    if (next_line != NULL)
+                    {
+                        str_cnt += (int)(next_line - s) + 1;
+                    }
+                    else
+                    {
+                        str_cnt += (int)strlen(s);
+                    }
+                }
+                break;
+            }
+
+            if (ascii_desc != NULL && (((uint8_t)s[0]) & 0x80) == 0)
+            {
+                uint8_t ascii_code = (uint8_t)s[0];
+                char_bytes = 1;
+                p_char_desc = ascii_desc[ascii_code];
+                adv = p_char_desc ? ascii_adv[ascii_code] : FONT_ERROR_FONT_SIZE(font->height);
+            }
+            else
+            {
+                char_bytes = egui_font_get_utf8_code_fast(s, &utf8_code);
+                p_char_desc = egui_font_std_get_desc_draw_fast(font, utf8_code);
+                adv = p_char_desc ? p_char_desc->adv : FONT_ERROR_FONT_SIZE(font->height);
+            }
+
+            s += char_bytes;
+            str_cnt += char_bytes;
+
+            if (p_char_desc == NULL)
+            {
+                offset += egui_font_std_draw_single_char_desc(font, p_char_desc, offset, y, color, alpha, NULL, NULL, 0, NULL);
+                continue;
+            }
+
+            if ((offset + font->height) > work_x0)
+            {
+                egui_dim_t draw_x = offset + p_char_desc->off_x;
+                egui_dim_t draw_y = y + p_char_desc->off_y;
+
+                if (draw_y < work_y1 && (draw_y + p_char_desc->box_h) > work_y0)
+                {
+                    egui_font_std_draw_fast_mask(font, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, pixel_buffer + p_char_desc->idx, color,
+                                                 alpha);
+                }
+            }
+
+            offset += adv;
+        }
+    }
+
+    return str_cnt;
+}
+
+int egui_font_std_try_draw_string_in_rect_fast(const egui_font_t *self, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space,
+                                               egui_color_t color, egui_alpha_t alpha)
+{
+    const char *s = (const char *)string;
+    egui_font_std_access_t font_access;
+    egui_font_std_info_t *font;
+    const egui_canvas_t *canvas;
+    const egui_region_t *work_region;
+    egui_alpha_t draw_alpha;
+    egui_font_std_blend_ctx_t blend_ctx;
+    int use_fast_no_mask = 0;
+    int use_fast_mask = 0;
+    int font_access_ready = 0;
+    egui_dim_t y_size;
+    egui_dim_t draw_y;
+    egui_dim_t work_y0;
+    egui_dim_t work_y1;
+    egui_dim_t line_step;
+    int str_bytes;
+    uint8_t h_align = align_type & EGUI_ALIGN_HMASK;
+    uint8_t v_align = align_type & EGUI_ALIGN_VMASK;
+
+    if (self == NULL || rect == NULL || s == NULL || self->api != &egui_font_std_t_api_table)
+    {
+        return 0;
+    }
+
+    if (!((h_align == 0 || h_align == EGUI_ALIGN_LEFT) && (v_align == 0 || v_align == EGUI_ALIGN_TOP)))
+    {
+        return 0;
+    }
+
+    font = (egui_font_std_info_t *)self->res;
+    canvas = egui_canvas_get_canvas();
+    work_region = egui_canvas_get_base_view_work_region();
+    draw_alpha = egui_color_alpha_mix(canvas->alpha, alpha);
+
+    if (font->res_type == EGUI_RESOURCE_TYPE_EXTERNAL && egui_font_std_prepare_access(font, &font_access) == 0)
+    {
+        font = &font_access.info;
+        font_access_ready = 1;
+    }
+
+    if (draw_alpha != 0 && font->font_bit_mode == 4 && font->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
+    {
+        if (canvas->mask == NULL)
+        {
+            use_fast_no_mask = 1;
+        }
+        else if (canvas->mask->api->mask_blend_row_color != NULL)
+        {
+            use_fast_mask = 1;
+        }
+    }
+
+    if (!use_fast_no_mask && !use_fast_mask)
+    {
+        if (font_access_ready)
+        {
+            egui_font_std_release_access(&font_access);
+        }
+        return 0;
+    }
+
+    if (use_fast_no_mask)
+    {
+        egui_font_std_blend_ctx_init(&blend_ctx, color);
+    }
+    y_size = font->height;
+    draw_y = rect->location.y;
+    work_y0 = work_region->location.y;
+    work_y1 = work_y0 + work_region->size.height;
+    line_step = y_size + line_space;
+
+    if (line_step > 0)
+    {
+        while (*s && draw_y + y_size <= work_y0)
+        {
+            const char *next_line = strchr(s, '\n');
+
+            if (next_line == NULL)
+            {
+                goto done;
+            }
+
+            s = next_line + 1;
+            draw_y += line_step;
+        }
+    }
+
+    while (*s)
+    {
+        if (line_step > 0 && draw_y >= work_y1)
+        {
+            break;
+        }
+
+        if (use_fast_no_mask)
+        {
+            str_bytes = egui_font_std_draw_string_fast_4(self->res, font, s, rect->location.x, draw_y, color, alpha, canvas, work_region, draw_alpha,
+                                                         &blend_ctx);
+        }
+        else
+        {
+            str_bytes = egui_font_std_draw_string_fast_4_mask(self->res, font, s, rect->location.x, draw_y, color, alpha, work_region);
+        }
+        if (str_bytes <= 0)
+        {
+            break;
+        }
+
+        s += str_bytes;
+        draw_y += line_step;
+    }
+
+done:
+    if (font_access_ready)
+    {
+        egui_font_std_release_access(&font_access);
+    }
+
+    return 1;
+}
+
 int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
 {
     const char *s = (const char *)string;
@@ -2239,6 +2527,7 @@ int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_
     egui_alpha_t draw_alpha = egui_color_alpha_mix(canvas->alpha, alpha);
     egui_font_std_blend_ctx_t blend_ctx;
     const egui_font_std_blend_ctx_t *p_blend_ctx = NULL;
+    int use_fast_mask = 0;
     int font_access_ready = 0;
     const egui_font_std_char_descriptor_t *const *ascii_desc = NULL;
     const uint8_t *ascii_adv = NULL;
@@ -2258,6 +2547,11 @@ int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_
     {
         egui_font_std_blend_ctx_init(&blend_ctx, color);
         p_blend_ctx = &blend_ctx;
+    }
+    else if (draw_alpha != 0 && font->font_bit_mode == 4 && font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && canvas->mask != NULL &&
+             canvas->mask->api->mask_blend_row_color != NULL)
+    {
+        use_fast_mask = 1;
     }
 
     if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && font->code_array != NULL)
@@ -2285,6 +2579,12 @@ int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_
     if (p_blend_ctx != NULL)
     {
         str_cnt = egui_font_std_draw_string_fast_4(self->res, font, s, x, y, color, alpha, canvas, base_region, draw_alpha, p_blend_ctx);
+        goto done;
+    }
+
+    if (use_fast_mask)
+    {
+        str_cnt = egui_font_std_draw_string_fast_4_mask(self->res, font, s, x, y, color, alpha, base_region);
         goto done;
     }
 

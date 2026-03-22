@@ -264,6 +264,18 @@ __EGUI_STATIC_INLINE__ int transform_prepare_row_color(egui_mask_t *mask, egui_d
     return (mask != NULL && mask->api->mask_blend_row_color != NULL && mask->api->mask_blend_row_color(mask, y, row_color));
 }
 
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+__EGUI_STATIC_INLINE__ void transform_blend_pixel_partial_rgb565(egui_color_int_t *dst, egui_color_t color, egui_alpha_t alpha)
+{
+    uint16_t bg = *dst;
+    uint16_t fg = color.full;
+    uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+    uint32_t fg_rb_g = (fg | ((uint32_t)fg << 16)) & 0x07E0F81FUL;
+    uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)alpha >> 3) >> 5)) & 0x07E0F81FUL;
+    *dst = (uint16_t)(result | (result >> 16));
+}
+#endif
+
 __EGUI_STATIC_INLINE__ void transform_blend_pixel(egui_color_int_t *dst, egui_color_t color, egui_alpha_t alpha)
 {
     if (alpha == EGUI_ALPHA_100)
@@ -272,8 +284,19 @@ __EGUI_STATIC_INLINE__ void transform_blend_pixel(egui_color_int_t *dst, egui_co
     }
     else if (alpha > 0)
     {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+        if (alpha > 251)
+        {
+            *dst = color.full;
+        }
+        else if (alpha >= 4)
+        {
+            transform_blend_pixel_partial_rgb565(dst, color, alpha);
+        }
+#else
         egui_color_t *back = (egui_color_t *)dst;
         egui_rgb_mix_ptr(back, &color, back, alpha);
+#endif
     }
 }
 
@@ -794,6 +817,7 @@ typedef struct
     int16_t y;           /* glyph box top edge in text space */
     uint8_t box_w;       /* glyph box width */
     uint8_t box_h;       /* glyph box height */
+    uint8_t row_bytes;   /* packed bytes per glyph row */
     uint8_t line;        /* tile-local line index */
 } text_transform_glyph_t;
 
@@ -868,12 +892,69 @@ static inline uint8_t extract_packed_alpha_4(const uint8_t *data, uint8_t box_w,
     return egui_alpha_change_table_4[(packed >> ((local_x & 1) << 2)) & 0x0F];
 }
 
+static inline uint8_t extract_packed_alpha_4_rb(const uint8_t *data, uint8_t row_bytes, int local_x, int local_y)
+{
+    uint8_t packed = data[local_y * row_bytes + (local_x >> 1)];
+    return egui_alpha_change_table_4[(packed >> ((local_x & 1) << 2)) & 0x0F];
+}
+
+static inline void extract_packed_alpha_pair_4_rb(const uint8_t *data, uint8_t row_bytes, int local_x, int local_y, uint16_t *a0, uint16_t *a1)
+{
+    const uint8_t *row = data + local_y * row_bytes;
+    int idx = local_x >> 1;
+
+    if ((local_x & 1) == 0)
+    {
+        uint8_t packed = row[idx];
+        *a0 = egui_alpha_change_table_4[packed & 0x0F];
+        *a1 = egui_alpha_change_table_4[(packed >> 4) & 0x0F];
+    }
+    else
+    {
+        uint8_t packed0 = row[idx];
+        uint8_t packed1 = row[idx + 1];
+        *a0 = egui_alpha_change_table_4[(packed0 >> 4) & 0x0F];
+        *a1 = egui_alpha_change_table_4[packed1 & 0x0F];
+    }
+}
+
 static inline void batch_extract_glyph_alpha_4(const uint8_t *data, uint8_t box_w, int lx, int ly, uint16_t *a00, uint16_t *a01, uint16_t *a10,
                                                uint16_t *a11)
 {
     int rb = (box_w + 1) >> 1;
     const uint8_t *row0 = data + ly * rb;
     const uint8_t *row1 = row0 + rb;
+    int idx = lx >> 1;
+
+    if ((lx & 1) == 0)
+    {
+        uint8_t packed0 = row0[idx];
+        uint8_t packed1 = row1[idx];
+
+        *a00 = egui_alpha_change_table_4[packed0 & 0x0F];
+        *a01 = egui_alpha_change_table_4[(packed0 >> 4) & 0x0F];
+        *a10 = egui_alpha_change_table_4[packed1 & 0x0F];
+        *a11 = egui_alpha_change_table_4[(packed1 >> 4) & 0x0F];
+    }
+    else
+    {
+        uint8_t packed00 = row0[idx];
+        uint8_t packed01 = row0[idx + 1];
+        uint8_t packed10 = row1[idx];
+        uint8_t packed11 = row1[idx + 1];
+
+        *a00 = egui_alpha_change_table_4[(packed00 >> 4) & 0x0F];
+        *a01 = egui_alpha_change_table_4[packed01 & 0x0F];
+        *a10 = egui_alpha_change_table_4[(packed10 >> 4) & 0x0F];
+        *a11 = egui_alpha_change_table_4[packed11 & 0x0F];
+    }
+}
+
+static inline void batch_extract_glyph_alpha_4_rb(const uint8_t *data, uint8_t row_bytes, int lx, int ly, uint16_t *a00, uint16_t *a01, uint16_t *a10,
+                                                  uint16_t *a11)
+{
+    const uint8_t *row0 = data + ly * row_bytes;
+    const uint8_t *row1 = row0 + row_bytes;
     int idx = lx >> 1;
 
     if ((lx & 1) == 0)
@@ -1271,6 +1352,12 @@ static inline uint8_t read_packed_mask_alpha_4(const uint8_t *buf, int buf_w, in
     return egui_alpha_change_table_4[(packed >> ((x & 1) << 2)) & 0x0F];
 }
 
+static inline uint8_t read_packed_mask_alpha_4_rb(const uint8_t *buf, int row_bytes, int x, int y)
+{
+    uint8_t packed = buf[y * row_bytes + (x >> 1)];
+    return egui_alpha_change_table_4[(packed >> ((x & 1) << 2)) & 0x0F];
+}
+
 static int text_transform_ensure_layout_capacity(int needed)
 {
     text_transform_layout_glyph_t *new_layout;
@@ -1607,6 +1694,7 @@ static int collect_visible_glyphs(const egui_font_std_info_t *font_info, const t
                     glyphs[count].y = src->y;
                     glyphs[count].box_w = src->box_w;
                     glyphs[count].box_h = src->box_h;
+                    glyphs[count].row_bytes = (uint8_t)packed_row_bytes(src->box_w, font_info->font_bit_mode);
                     glyphs[count].line = (uint8_t)line_count;
                     count++;
                 }
@@ -1664,6 +1752,41 @@ static inline uint8_t sample_tile_alpha_from_line(const text_transform_glyph_t *
         *hint = i;
         *hint_line = line_index;
         return (bpp == 4) ? extract_packed_alpha_4(g->data, g->box_w, lx, ly) : extract_packed_alpha(g->data, g->box_w, lx, ly, bpp);
+    }
+
+    *hint_line = line_index;
+    return 0;
+}
+
+static inline uint8_t sample_tile_alpha_from_line_4(const text_transform_glyph_t *glyphs, const text_transform_layout_line_t *line, int line_index, int sx,
+                                                    int sy, int *hint, int *hint_line)
+{
+    for (int i = line->start; i < line->end; i++)
+    {
+        const text_transform_glyph_t *g = &glyphs[i];
+        int lx = sx - g->x;
+
+        if (lx < 0)
+        {
+            break;
+        }
+
+        if (lx >= g->box_w)
+        {
+            continue;
+        }
+
+        {
+            int ly = sy - g->y;
+            if (ly < 0 || ly >= g->box_h)
+            {
+                continue;
+            }
+
+            *hint = i;
+            *hint_line = line_index;
+            return extract_packed_alpha_4_rb(g->data, g->row_bytes, lx, ly);
+        }
     }
 
     *hint_line = line_index;
@@ -1739,20 +1862,51 @@ static inline void sample_tile_alpha_pair_from_line(const text_transform_glyph_t
             continue;
         }
 
-        if (sx >= g->x && sx < g->x + g->box_w)
+        if (bpp == 4)
         {
-            int lx = sx - g->x;
+            if (sx >= g->x && sx_next < g->x + g->box_w)
+            {
+                int lx = sx - g->x;
 
-            *hint0 = i;
-            *a0 = (bpp == 4) ? extract_packed_alpha_4(g->data, g->box_w, lx, ly) : extract_packed_alpha(g->data, g->box_w, lx, ly, bpp);
+                *hint0 = i;
+                *hint1 = i;
+                extract_packed_alpha_pair_4_rb(g->data, g->row_bytes, lx, ly, a0, a1);
+                break;
+            }
+
+            if (sx >= g->x && sx < g->x + g->box_w)
+            {
+                int lx = sx - g->x;
+
+                *hint0 = i;
+                *a0 = extract_packed_alpha_4_rb(g->data, g->row_bytes, lx, ly);
+            }
+
+            if (sx_next >= g->x && sx_next < g->x + g->box_w)
+            {
+                int lx = sx_next - g->x;
+
+                *hint1 = i;
+                *a1 = extract_packed_alpha_4_rb(g->data, g->row_bytes, lx, ly);
+            }
         }
-
-        if (sx_next >= g->x && sx_next < g->x + g->box_w)
+        else
         {
-            int lx = sx_next - g->x;
+            if (sx >= g->x && sx < g->x + g->box_w)
+            {
+                int lx = sx - g->x;
 
-            *hint1 = i;
-            *a1 = (bpp == 4) ? extract_packed_alpha_4(g->data, g->box_w, lx, ly) : extract_packed_alpha(g->data, g->box_w, lx, ly, bpp);
+                *hint0 = i;
+                *a0 = extract_packed_alpha(g->data, g->box_w, lx, ly, bpp);
+            }
+
+            if (sx_next >= g->x && sx_next < g->x + g->box_w)
+            {
+                int lx = sx_next - g->x;
+
+                *hint1 = i;
+                *a1 = extract_packed_alpha(g->data, g->box_w, lx, ly, bpp);
+            }
         }
 
         if (*hint0 >= 0 && *hint1 >= 0)
@@ -1829,6 +1983,75 @@ static inline uint8_t sample_tile_alpha(const text_transform_glyph_t *glyphs, in
     }
 
     /* No glyph found: signal whitespace to caller for early exit */
+    *hint = -1;
+    return 0;
+}
+
+static inline uint8_t sample_tile_alpha_4(const text_transform_glyph_t *glyphs, int count, const text_transform_layout_line_t *lines, int line_count, int sx,
+                                          int sy, int *hint, int *hint_line)
+{
+    if (sx < 0 || sy < 0)
+    {
+        return 0;
+    }
+
+    if (*hint >= 0 && *hint < count)
+    {
+        const text_transform_glyph_t *g = &glyphs[*hint];
+        int lx = sx - g->x;
+        if (lx >= 0 && lx < g->box_w)
+        {
+            int ly = sy - g->y;
+            if (ly >= 0 && ly < g->box_h)
+            {
+                *hint_line = g->line;
+                return extract_packed_alpha_4_rb(g->data, g->row_bytes, lx, ly);
+            }
+        }
+    }
+
+    if (*hint_line >= 0 && *hint_line < line_count)
+    {
+        const text_transform_layout_line_t *line = &lines[*hint_line];
+
+        if (sy >= line->y_min && sy < line->y_max && sx >= line->x_min && sx < line->x_max)
+        {
+            uint8_t alpha = sample_tile_alpha_from_line_4(glyphs, line, *hint_line, sx, sy, hint, hint_line);
+            if (alpha > 0)
+            {
+                return alpha;
+            }
+        }
+    }
+
+    for (int i = 0; i < line_count; i++)
+    {
+        const text_transform_layout_line_t *line = &lines[i];
+
+        if (sy < line->y_min)
+        {
+            break;
+        }
+
+        if (sy >= line->y_max || i == *hint_line)
+        {
+            continue;
+        }
+
+        if (sx < line->x_min || sx >= line->x_max)
+        {
+            continue;
+        }
+
+        {
+            uint8_t alpha = sample_tile_alpha_from_line_4(glyphs, line, i, sx, sy, hint, hint_line);
+            if (alpha > 0)
+            {
+                return alpha;
+            }
+        }
+    }
+
     *hint = -1;
     return 0;
 }
@@ -2105,97 +2328,198 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                             const uint8_t *g_data = g->data;
                             int g_x = g->x;
                             int g_y = g->y;
-                            for (int32_t i = 0; i < sir_count; i++)
+                            if (bpp == 4)
                             {
-                                uint16_t sa00, sa01, sa10, sa11;
-                                batch_extract_glyph_alpha(g_data, g->box_w, (rotatedX >> 15) - g_x, (rotatedY >> 15) - g_y, bpp, &sa00, &sa01, &sa10,
-                                                         &sa11);
-
-                                if ((sa00 | sa01 | sa10 | sa11) != 0)
+                                for (int32_t i = 0; i < sir_count; i++)
                                 {
-                                    uint8_t fx_i = (rotatedX >> 7) & 0xFF;
-                                    uint8_t fy_i = (rotatedY >> 7) & 0xFF;
-                                    uint16_t ah0 = sa00 + (((int32_t)(sa01 - sa00) * fx_i + 128) >> 8);
-                                    uint16_t ah1 = sa10 + (((int32_t)(sa11 - sa10) * fx_i + 128) >> 8);
-                                    uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy_i + 128) >> 8));
+                                    uint16_t sa00, sa01, sa10, sa11;
+                                    batch_extract_glyph_alpha_4_rb(g_data, g->row_bytes, (rotatedX >> 15) - g_x, (rotatedY >> 15) - g_y, &sa00, &sa01, &sa10,
+                                                                   &sa11);
 
-                                    if (mask_requires_point)
+                                    if ((sa00 | sa01 | sa10 | sa11) != 0)
                                     {
-                                        transform_apply_mask_and_blend(ctx.mask, (egui_dim_t)(dx + i), (egui_dim_t)dy, row_color, pixel_alpha,
-                                                                       ctx.canvas_alpha, dst_row);
-                                    }
-                                    else if (pixel_alpha == EGUI_ALPHA_100)
-                                    {
-                                        *dst_row = row_color.full;
-                                    }
-                                    else if (pixel_alpha > 0)
-                                    {
-#if (EGUI_CONFIG_COLOR_DEPTH == 16)
-                                        uint16_t bg = *dst_row;
-                                        uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
-                                        uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
-                                        *dst_row = (uint16_t)(result | (result >> 16));
-#else
-                                        egui_color_t *back = (egui_color_t *)dst_row;
-                                        egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
-#endif
-                                    }
-                                }
+                                        uint8_t fx_i = (rotatedX >> 7) & 0xFF;
+                                        uint8_t fy_i = (rotatedY >> 7) & 0xFF;
+                                        uint16_t ah0 = sa00 + (((int32_t)(sa01 - sa00) * fx_i + 128) >> 8);
+                                        uint16_t ah1 = sa10 + (((int32_t)(sa11 - sa10) * fx_i + 128) >> 8);
+                                        uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy_i + 128) >> 8));
 
-                                rotatedX += ctx.inv_m00;
-                                rotatedY += ctx.inv_m10;
-                                dst_row++;
-                            }
-                        }
-                        else
-                        {
-                            for (int32_t i = 0; i < sir_count; i++)
-                            {
-                                uint16_t sa00, sa01, sa10, sa11;
-                                batch_extract_glyph_alpha(g->data, g->box_w, (rotatedX >> 15) - g->x, (rotatedY >> 15) - g->y, bpp, &sa00, &sa01, &sa10,
-                                                         &sa11);
-
-                                if ((sa00 | sa01 | sa10 | sa11) != 0)
-                                {
-                                    uint8_t fx_i = (rotatedX >> 7) & 0xFF;
-                                    uint8_t fy_i = (rotatedY >> 7) & 0xFF;
-                                    uint16_t ah0 = sa00 + (((int32_t)(sa01 - sa00) * fx_i + 128) >> 8);
-                                    uint16_t ah1 = sa10 + (((int32_t)(sa11 - sa10) * fx_i + 128) >> 8);
-                                    uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy_i + 128) >> 8));
-
-                                    if (pixel_alpha > 0)
-                                    {
                                         if (mask_requires_point)
                                         {
                                             transform_apply_mask_and_blend(ctx.mask, (egui_dim_t)(dx + i), (egui_dim_t)dy, row_color, pixel_alpha,
                                                                            ctx.canvas_alpha, dst_row);
                                         }
-                                        else
+                                        else if (pixel_alpha == EGUI_ALPHA_100)
                                         {
-                                            egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
-                                            if (final_alpha == EGUI_ALPHA_100)
-                                            {
-                                                *dst_row = row_color.full;
-                                            }
-                                            else if (final_alpha > 0)
-                                            {
+                                            *dst_row = row_color.full;
+                                        }
+                                        else if (pixel_alpha > 0)
+                                        {
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
-                                                uint16_t bg = *dst_row;
-                                                uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
-                                                uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)final_alpha >> 3) >> 5)) & 0x07E0F81FUL;
-                                                *dst_row = (uint16_t)(result | (result >> 16));
+                                            uint16_t bg = *dst_row;
+                                            uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                            uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                            *dst_row = (uint16_t)(result | (result >> 16));
 #else
-                                                egui_color_t *back = (egui_color_t *)dst_row;
-                                                egui_rgb_mix_ptr(back, &row_color, back, final_alpha);
+                                            egui_color_t *back = (egui_color_t *)dst_row;
+                                            egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
 #endif
+                                        }
+                                    }
+
+                                    rotatedX += ctx.inv_m00;
+                                    rotatedY += ctx.inv_m10;
+                                    dst_row++;
+                                }
+                            }
+                            else
+                            {
+                                for (int32_t i = 0; i < sir_count; i++)
+                                {
+                                    uint16_t sa00, sa01, sa10, sa11;
+                                    batch_extract_glyph_alpha(g_data, g->box_w, (rotatedX >> 15) - g_x, (rotatedY >> 15) - g_y, bpp, &sa00, &sa01, &sa10,
+                                                             &sa11);
+
+                                    if ((sa00 | sa01 | sa10 | sa11) != 0)
+                                    {
+                                        uint8_t fx_i = (rotatedX >> 7) & 0xFF;
+                                        uint8_t fy_i = (rotatedY >> 7) & 0xFF;
+                                        uint16_t ah0 = sa00 + (((int32_t)(sa01 - sa00) * fx_i + 128) >> 8);
+                                        uint16_t ah1 = sa10 + (((int32_t)(sa11 - sa10) * fx_i + 128) >> 8);
+                                        uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy_i + 128) >> 8));
+
+                                        if (mask_requires_point)
+                                        {
+                                            transform_apply_mask_and_blend(ctx.mask, (egui_dim_t)(dx + i), (egui_dim_t)dy, row_color, pixel_alpha,
+                                                                           ctx.canvas_alpha, dst_row);
+                                        }
+                                        else if (pixel_alpha == EGUI_ALPHA_100)
+                                        {
+                                            *dst_row = row_color.full;
+                                        }
+                                        else if (pixel_alpha > 0)
+                                        {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                                            uint16_t bg = *dst_row;
+                                            uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                            uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                            *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                                            egui_color_t *back = (egui_color_t *)dst_row;
+                                            egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
+#endif
+                                        }
+                                    }
+
+                                    rotatedX += ctx.inv_m00;
+                                    rotatedY += ctx.inv_m10;
+                                    dst_row++;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (bpp == 4)
+                            {
+                                for (int32_t i = 0; i < sir_count; i++)
+                                {
+                                    uint16_t sa00, sa01, sa10, sa11;
+                                    batch_extract_glyph_alpha_4_rb(g->data, g->row_bytes, (rotatedX >> 15) - g->x, (rotatedY >> 15) - g->y, &sa00, &sa01,
+                                                                   &sa10, &sa11);
+
+                                    if ((sa00 | sa01 | sa10 | sa11) != 0)
+                                    {
+                                        uint8_t fx_i = (rotatedX >> 7) & 0xFF;
+                                        uint8_t fy_i = (rotatedY >> 7) & 0xFF;
+                                        uint16_t ah0 = sa00 + (((int32_t)(sa01 - sa00) * fx_i + 128) >> 8);
+                                        uint16_t ah1 = sa10 + (((int32_t)(sa11 - sa10) * fx_i + 128) >> 8);
+                                        uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy_i + 128) >> 8));
+
+                                        if (pixel_alpha > 0)
+                                        {
+                                            if (mask_requires_point)
+                                            {
+                                                transform_apply_mask_and_blend(ctx.mask, (egui_dim_t)(dx + i), (egui_dim_t)dy, row_color, pixel_alpha,
+                                                                               ctx.canvas_alpha, dst_row);
+                                            }
+                                            else
+                                            {
+                                                egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
+                                                if (final_alpha == EGUI_ALPHA_100)
+                                                {
+                                                    *dst_row = row_color.full;
+                                                }
+                                                else if (final_alpha > 0)
+                                                {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                                                    uint16_t bg = *dst_row;
+                                                    uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                                    uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)final_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                                    *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                                                    egui_color_t *back = (egui_color_t *)dst_row;
+                                                    egui_rgb_mix_ptr(back, &row_color, back, final_alpha);
+#endif
+                                                }
                                             }
                                         }
                                     }
-                                }
 
-                                rotatedX += ctx.inv_m00;
-                                rotatedY += ctx.inv_m10;
-                                dst_row++;
+                                    rotatedX += ctx.inv_m00;
+                                    rotatedY += ctx.inv_m10;
+                                    dst_row++;
+                                }
+                            }
+                            else
+                            {
+                                for (int32_t i = 0; i < sir_count; i++)
+                                {
+                                    uint16_t sa00, sa01, sa10, sa11;
+                                    batch_extract_glyph_alpha(g->data, g->box_w, (rotatedX >> 15) - g->x, (rotatedY >> 15) - g->y, bpp, &sa00, &sa01, &sa10,
+                                                             &sa11);
+
+                                    if ((sa00 | sa01 | sa10 | sa11) != 0)
+                                    {
+                                        uint8_t fx_i = (rotatedX >> 7) & 0xFF;
+                                        uint8_t fy_i = (rotatedY >> 7) & 0xFF;
+                                        uint16_t ah0 = sa00 + (((int32_t)(sa01 - sa00) * fx_i + 128) >> 8);
+                                        uint16_t ah1 = sa10 + (((int32_t)(sa11 - sa10) * fx_i + 128) >> 8);
+                                        uint8_t pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy_i + 128) >> 8));
+
+                                        if (pixel_alpha > 0)
+                                        {
+                                            if (mask_requires_point)
+                                            {
+                                                transform_apply_mask_and_blend(ctx.mask, (egui_dim_t)(dx + i), (egui_dim_t)dy, row_color, pixel_alpha,
+                                                                               ctx.canvas_alpha, dst_row);
+                                            }
+                                            else
+                                            {
+                                                egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
+                                                if (final_alpha == EGUI_ALPHA_100)
+                                                {
+                                                    *dst_row = row_color.full;
+                                                }
+                                                else if (final_alpha > 0)
+                                                {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                                                    uint16_t bg = *dst_row;
+                                                    uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                                    uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)final_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                                    *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                                                    egui_color_t *back = (egui_color_t *)dst_row;
+                                                    egui_rgb_mix_ptr(back, &row_color, back, final_alpha);
+#endif
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    rotatedX += ctx.inv_m00;
+                                    rotatedY += ctx.inv_m10;
+                                    dst_row++;
+                                }
                             }
                         }
 
@@ -2206,16 +2530,62 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                 /* Ungrouped slow path: per-sample glyph lookup */
                 {
                     uint16_t a00, a01, a10, a11;
-                    a00 = sample_tile_alpha(s_tile_glyphs, tile_count, s_tile_lines, tile_line_count, sx, sy, bpp, &hint, &hint_line);
-                    /* Early exit: if first sample is 0 and hint didn't find a glyph,
-                     * likely in whitespace - check remaining quickly */
-                    if (a00 == 0 && hint < 0)
+                    int line0 = sample_tile_find_pair_line(s_tile_lines, tile_line_count, sx, sy, hint_line);
+                    int line1;
+                    int hint00 = -1;
+                    int hint01 = -1;
+                    int hint10 = -1;
+                    int hint11 = -1;
+
+                    a00 = 0;
+                    a01 = 0;
+                    a10 = 0;
+                    a11 = 0;
+
+                    if (line0 >= 0)
                     {
+                        sample_tile_alpha_pair_from_line(s_tile_glyphs, &s_tile_lines[line0], sx, sy, bpp, &a00, &a01, &hint00, &hint01);
+                    }
+
+                    /* Early exit: preserve existing whitespace skip behavior based on a00 only */
+                    if (a00 == 0 && hint00 < 0)
+                    {
+                        hint = -1;
+                        hint_line = line0;
                         goto text_next_pixel;
                     }
-                    a01 = sample_tile_alpha(s_tile_glyphs, tile_count, s_tile_lines, tile_line_count, sx + 1, sy, bpp, &hint, &hint_line);
-                    a10 = sample_tile_alpha(s_tile_glyphs, tile_count, s_tile_lines, tile_line_count, sx, sy + 1, bpp, &hint, &hint_line);
-                    a11 = sample_tile_alpha(s_tile_glyphs, tile_count, s_tile_lines, tile_line_count, sx + 1, sy + 1, bpp, &hint, &hint_line);
+
+                    line1 = sample_tile_find_pair_line(s_tile_lines, tile_line_count, sx, sy + 1, line0);
+                    if (line1 >= 0)
+                    {
+                        sample_tile_alpha_pair_from_line(s_tile_glyphs, &s_tile_lines[line1], sx, sy + 1, bpp, &a10, &a11, &hint10, &hint11);
+                    }
+
+                    if (hint11 >= 0)
+                    {
+                        hint = hint11;
+                        hint_line = line1;
+                    }
+                    else if (hint10 >= 0)
+                    {
+                        hint = hint10;
+                        hint_line = line1;
+                    }
+                    else if (hint01 >= 0)
+                    {
+                        hint = hint01;
+                        hint_line = line0;
+                    }
+                    else if (hint00 >= 0)
+                    {
+                        hint = hint00;
+                        hint_line = line0;
+                    }
+                    else
+                    {
+                        hint = -1;
+                        hint_line = (line1 >= 0) ? line1 : line0;
+                    }
 
                     uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
                     uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
@@ -2539,7 +2909,8 @@ static inline void batch_bilinear_packed_alpha(const uint8_t *buf, int rb, int s
     }
 }
 
-static inline void batch_extract_packed_raw_4(const uint8_t *buf, int rb, int sx, int sy, uint8_t *a00, uint8_t *a01, uint8_t *a10, uint8_t *a11)
+static inline int batch_extract_packed_raw_4_trivial(const uint8_t *buf, int rb, int sx, int sy, uint8_t *pixel_alpha, uint8_t *a00, uint8_t *a01,
+                                                     uint8_t *a10, uint8_t *a11)
 {
     const uint8_t *row0 = buf + sy * rb;
     const uint8_t *row1 = row0 + rb;
@@ -2550,12 +2921,25 @@ static inline void batch_extract_packed_raw_4(const uint8_t *buf, int rb, int sx
         uint8_t packed0 = row0[idx];
         uint8_t packed1 = row1[idx];
 
+        if ((packed0 | packed1) == 0)
+        {
+            *pixel_alpha = 0;
+            return 1;
+        }
+
+        if ((packed0 & packed1) == 0xFF)
+        {
+            *pixel_alpha = EGUI_ALPHA_100;
+            return 1;
+        }
+
         *a00 = packed0 & 0x0F;
         *a01 = (packed0 >> 4) & 0x0F;
         *a10 = packed1 & 0x0F;
         *a11 = (packed1 >> 4) & 0x0F;
+        return 0;
     }
-    else
+
     {
         uint8_t packed00 = row0[idx];
         uint8_t packed01 = row0[idx + 1];
@@ -2567,6 +2951,20 @@ static inline void batch_extract_packed_raw_4(const uint8_t *buf, int rb, int sx
         *a10 = (packed10 >> 4) & 0x0F;
         *a11 = packed11 & 0x0F;
     }
+
+    if ((*a00 | *a01 | *a10 | *a11) == 0)
+    {
+        *pixel_alpha = 0;
+        return 1;
+    }
+
+    if ((*a00 & *a01 & *a10 & *a11) == 0x0F)
+    {
+        *pixel_alpha = EGUI_ALPHA_100;
+        return 1;
+    }
+
+    return 0;
 }
 
 void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
@@ -2769,22 +3167,18 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                         {
                             for (int32_t i = 0; i < sir_count; i++)
                             {
+                                uint8_t pixel_alpha;
                                 uint8_t a00, a01, a10, a11;
-                                batch_extract_packed_raw_4(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, &a00, &a01, &a10, &a11);
+                                int trivial = batch_extract_packed_raw_4_trivial(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, &pixel_alpha, &a00,
+                                                                                 &a01, &a10, &a11);
 
-                                if ((a00 | a01 | a10 | a11) != 0)
+                                if (!trivial)
                                 {
-                                    uint8_t pixel_alpha;
+                                    pixel_alpha = bilinear_alpha_from_raw_4(a00, a01, a10, a11, (rotatedX >> 7) & 0xFF, (rotatedY >> 7) & 0xFF);
+                                }
 
-                                    if ((a00 & a01 & a10 & a11) == 0x0F)
-                                    {
-                                        pixel_alpha = EGUI_ALPHA_100;
-                                    }
-                                    else
-                                    {
-                                        pixel_alpha = bilinear_alpha_from_raw_4(a00, a01, a10, a11, (rotatedX >> 7) & 0xFF, (rotatedY >> 7) & 0xFF);
-                                    }
-
+                                if (pixel_alpha > 0)
+                                {
                                     transform_apply_mask_and_blend(ctx.mask, (egui_dim_t)(dx + i), (egui_dim_t)dy, row_color, pixel_alpha, ctx.canvas_alpha,
                                                                    dst_row);
                                 }
@@ -2798,38 +3192,31 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                         {
                             for (int32_t i = 0; i < sir_count; i++)
                             {
+                                uint8_t pixel_alpha;
                                 uint8_t a00, a01, a10, a11;
-                                batch_extract_packed_raw_4(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, &a00, &a01, &a10, &a11);
+                                int trivial = batch_extract_packed_raw_4_trivial(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, &pixel_alpha, &a00,
+                                                                                 &a01, &a10, &a11);
 
-                                if ((a00 | a01 | a10 | a11) != 0)
+                                if (!trivial)
                                 {
-                                    uint8_t pixel_alpha;
+                                    pixel_alpha = bilinear_alpha_from_raw_4(a00, a01, a10, a11, (rotatedX >> 7) & 0xFF, (rotatedY >> 7) & 0xFF);
+                                }
 
-                                    if ((a00 & a01 & a10 & a11) == 0x0F)
-                                    {
-                                        pixel_alpha = EGUI_ALPHA_100;
-                                    }
-                                    else
-                                    {
-                                        pixel_alpha = bilinear_alpha_from_raw_4(a00, a01, a10, a11, (rotatedX >> 7) & 0xFF, (rotatedY >> 7) & 0xFF);
-                                    }
-
-                                    if (pixel_alpha == EGUI_ALPHA_100)
-                                    {
-                                        *dst_row = row_color.full;
-                                    }
-                                    else if (pixel_alpha > 0)
-                                    {
+                                if (pixel_alpha == EGUI_ALPHA_100)
+                                {
+                                    *dst_row = row_color.full;
+                                }
+                                else if (pixel_alpha > 0)
+                                {
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
-                                        uint16_t bg = *dst_row;
-                                        uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
-                                        uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
-                                        *dst_row = (uint16_t)(result | (result >> 16));
+                                    uint16_t bg = *dst_row;
+                                    uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                    uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                    *dst_row = (uint16_t)(result | (result >> 16));
 #else
-                                        egui_color_t *back = (egui_color_t *)dst_row;
-                                        egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
+                                    egui_color_t *back = (egui_color_t *)dst_row;
+                                    egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
 #endif
-                                    }
                                 }
 
                                 rotatedX += ctx.inv_m00;
@@ -2890,27 +3277,20 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                         {
                             for (int32_t i = 0; i < sir_count; i++)
                             {
+                                uint8_t pixel_alpha;
                                 uint8_t a00, a01, a10, a11;
-                                batch_extract_packed_raw_4(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, &a00, &a01, &a10, &a11);
+                                int trivial = batch_extract_packed_raw_4_trivial(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, &pixel_alpha, &a00,
+                                                                                 &a01, &a10, &a11);
 
-                                if ((a00 | a01 | a10 | a11) != 0)
+                                if (!trivial)
                                 {
-                                    uint8_t pixel_alpha;
+                                    pixel_alpha = bilinear_alpha_from_raw_4(a00, a01, a10, a11, (rotatedX >> 7) & 0xFF, (rotatedY >> 7) & 0xFF);
+                                }
 
-                                    if ((a00 & a01 & a10 & a11) == 0x0F)
-                                    {
-                                        pixel_alpha = EGUI_ALPHA_100;
-                                    }
-                                    else
-                                    {
-                                        pixel_alpha = bilinear_alpha_from_raw_4(a00, a01, a10, a11, (rotatedX >> 7) & 0xFF, (rotatedY >> 7) & 0xFF);
-                                    }
-
-                                    if (pixel_alpha > 0)
-                                    {
-                                        transform_apply_mask_and_blend(ctx.mask, (egui_dim_t)(dx + i), (egui_dim_t)dy, row_color, pixel_alpha, ctx.canvas_alpha,
-                                                                       dst_row);
-                                    }
+                                if (pixel_alpha > 0)
+                                {
+                                    transform_apply_mask_and_blend(ctx.mask, (egui_dim_t)(dx + i), (egui_dim_t)dy, row_color, pixel_alpha, ctx.canvas_alpha,
+                                                                   dst_row);
                                 }
 
                                 rotatedX += ctx.inv_m00;
@@ -2922,41 +3302,34 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                         {
                             for (int32_t i = 0; i < sir_count; i++)
                             {
+                                uint8_t pixel_alpha;
                                 uint8_t a00, a01, a10, a11;
-                                batch_extract_packed_raw_4(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, &a00, &a01, &a10, &a11);
+                                int trivial = batch_extract_packed_raw_4_trivial(packed_buf, packed_rb, rotatedX >> 15, rotatedY >> 15, &pixel_alpha, &a00,
+                                                                                 &a01, &a10, &a11);
 
-                                if ((a00 | a01 | a10 | a11) != 0)
+                                if (!trivial)
                                 {
-                                    uint8_t pixel_alpha;
+                                    pixel_alpha = bilinear_alpha_from_raw_4(a00, a01, a10, a11, (rotatedX >> 7) & 0xFF, (rotatedY >> 7) & 0xFF);
+                                }
 
-                                    if ((a00 & a01 & a10 & a11) == 0x0F)
+                                if (pixel_alpha > 0)
+                                {
+                                    egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
+                                    if (final_alpha == EGUI_ALPHA_100)
                                     {
-                                        pixel_alpha = EGUI_ALPHA_100;
+                                        *dst_row = row_color.full;
                                     }
-                                    else
+                                    else if (final_alpha > 0)
                                     {
-                                        pixel_alpha = bilinear_alpha_from_raw_4(a00, a01, a10, a11, (rotatedX >> 7) & 0xFF, (rotatedY >> 7) & 0xFF);
-                                    }
-
-                                    if (pixel_alpha > 0)
-                                    {
-                                        egui_alpha_t final_alpha = ((uint16_t)ctx.canvas_alpha * pixel_alpha + 128) >> 8;
-                                        if (final_alpha == EGUI_ALPHA_100)
-                                        {
-                                            *dst_row = row_color.full;
-                                        }
-                                        else if (final_alpha > 0)
-                                        {
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
-                                            uint16_t bg = *dst_row;
-                                            uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
-                                            uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)final_alpha >> 3) >> 5)) & 0x07E0F81FUL;
-                                            *dst_row = (uint16_t)(result | (result >> 16));
+                                        uint16_t bg = *dst_row;
+                                        uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                                        uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)final_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                                        *dst_row = (uint16_t)(result | (result >> 16));
 #else
-                                            egui_color_t *back = (egui_color_t *)dst_row;
-                                            egui_rgb_mix_ptr(back, &row_color, back, final_alpha);
+                                        egui_color_t *back = (egui_color_t *)dst_row;
+                                        egui_rgb_mix_ptr(back, &row_color, back, final_alpha);
 #endif
-                                        }
                                     }
                                 }
 
@@ -3033,7 +3406,7 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
 
                 if (bpp == 4)
                 {
-#define PACKED_FETCH_ALPHA_4(px, py) (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? read_packed_mask_alpha_4(packed_buf, src_w, (px), (py)) : 0)
+#define PACKED_FETCH_ALPHA_4(px, py) (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? read_packed_mask_alpha_4_rb(packed_buf, packed_rb, (px), (py)) : 0)
                     a00 = PACKED_FETCH_ALPHA_4(sx, sy);
                     a01 = PACKED_FETCH_ALPHA_4(sx + 1, sy);
                     a10 = PACKED_FETCH_ALPHA_4(sx, sy + 1);

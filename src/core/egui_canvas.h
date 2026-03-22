@@ -365,6 +365,50 @@ __EGUI_STATIC_INLINE__ void egui_canvas_fill_color_buffer(egui_color_int_t *dst,
 #endif
 }
 
+__EGUI_STATIC_INLINE__ void egui_canvas_blend_color_buffer_alpha(egui_color_int_t *dst, uint32_t count, egui_color_t color, egui_alpha_t alpha)
+{
+    if (count == 0 || alpha == 0)
+    {
+        return;
+    }
+
+    if (alpha == EGUI_ALPHA_100)
+    {
+        egui_canvas_fill_color_buffer(dst, count, color);
+        return;
+    }
+
+#if EGUI_CONFIG_COLOR_DEPTH == 16
+    if (alpha > 251)
+    {
+        egui_canvas_fill_color_buffer(dst, count, color);
+        return;
+    }
+
+    if (alpha < 4)
+    {
+        return;
+    }
+
+    {
+        uint32_t fg_rb_g = (color.full | ((uint32_t)color.full << 16)) & 0x07E0F81FUL;
+
+        for (uint32_t i = 0; i < count; i++)
+        {
+            uint16_t bg = dst[i];
+            uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+            uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)alpha >> 3) >> 5)) & 0x07E0F81FUL;
+            dst[i] = (uint16_t)(result | (result >> 16));
+        }
+    }
+#else
+    for (uint32_t i = 0; i < count; i++)
+    {
+        egui_rgb_mix_ptr((egui_color_t *)&dst[i], &color, (egui_color_t *)&dst[i], alpha);
+    }
+#endif
+}
+
 __EGUI_STATIC_INLINE__ void egui_canvas_fill_masked_row_segment(egui_canvas_t *self, egui_dim_t y, egui_dim_t x_start, egui_dim_t x_end, egui_color_t color,
                                                                 egui_alpha_t alpha)
 {
@@ -482,7 +526,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
 {
     egui_canvas_t *self = &canvas_data;
 
-    egui_dim_t xp, yp;
+    egui_dim_t yp;
     egui_dim_t x_total, y_total;
 
     // for speed, calculate total positions outside of the loop
@@ -510,10 +554,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
                 }
                 else
                 {
-                    for (xp = 0; xp < width; xp++)
-                    {
-                        egui_rgb_mix_ptr((egui_color_t *)&dst[xp], &row_color, (egui_color_t *)&dst[xp], alpha);
-                    }
+                    egui_canvas_blend_color_buffer_alpha(dst, width, row_color, alpha);
                 }
             }
             else
@@ -599,10 +640,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
                 }
                 else
                 {
-                    for (xp = 0; xp < count; xp++)
-                    {
-                        egui_rgb_mix_ptr((egui_color_t *)&dst[xp], &color, (egui_color_t *)&dst[xp], alpha);
-                    }
+                    egui_canvas_blend_color_buffer_alpha(dst, count, color, alpha);
                 }
             }
             else // EGUI_MASK_ROW_PARTIAL
@@ -631,10 +669,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
                     }
                     else
                     {
-                        for (xp = 0; xp < count; xp++)
-                        {
-                            egui_rgb_mix_ptr((egui_color_t *)&dst[xp], &color, (egui_color_t *)&dst[xp], alpha);
-                        }
+                        egui_canvas_blend_color_buffer_alpha(dst, count, color, alpha);
                     }
                 }
                 // Right edge: per-pixel with mask
@@ -671,10 +706,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_alpha(egui_dim_t x, 
     for (egui_dim_t yp = y_start; yp < y_total; yp++)
     {
         egui_color_int_t *dst = &self->pfb[yp * pfb_width + x_start];
-        for (egui_dim_t i = 0; i < width; i++)
-        {
-            egui_rgb_mix_ptr((egui_color_t *)&dst[i], &color, (egui_color_t *)&dst[i], alpha);
-        }
+        egui_canvas_blend_color_buffer_alpha(dst, width, color, alpha);
     }
 }
 

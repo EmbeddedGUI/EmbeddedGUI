@@ -57,6 +57,8 @@ int egui_font_std_find_code_index(const egui_font_std_info_t *font, uint32_t utf
 int egui_font_std_prepare_access(const egui_font_std_info_t *font, egui_font_std_access_t *access);
 void egui_font_std_release_access(egui_font_std_access_t *access);
 int egui_font_std_try_get_line_height(const egui_font_t *self, egui_dim_t *line_height);
+int egui_font_std_try_draw_string_in_rect_fast(const egui_font_t *self, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space,
+                                               egui_color_t color, egui_alpha_t alpha);
 void egui_font_std_init(egui_font_t *self, const void *res);
 
 /* Ends C function definitions when using C++ */

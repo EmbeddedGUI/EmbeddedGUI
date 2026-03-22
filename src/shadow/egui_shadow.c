@@ -123,8 +123,9 @@ static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t b
 
             for (egui_dim_t py = by0; py < by1; py++)
             {
+                egui_dim_t dy = EGUI_ABS(py - cy);
                 uint32_t sdy = (uint32_t)EGUI_ABS(py - cy) << EGUI_SHADOW_DIST_SHIFT;
-                egui_color_t *dst_base = (egui_color_t *)&canvas->pfb[(py - pfb_ofs_y) * pfb_width - pfb_ofs_x];
+                egui_color_int_t *dst_base = &canvas->pfb[(py - pfb_ofs_y) * pfb_width - pfb_ofs_x];
 
                 // Precompute row-constant alpha (for pixels where sdy dominates)
                 egui_alpha_t row_alpha = 0;
@@ -134,29 +135,70 @@ static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t b
                     row_alpha = ((uint16_t)egui_shadow_alpha_lut[row_idx] * effective_opa) >> 8;
                 }
 
-                for (egui_dim_t px = bx0; px < bx1; px++)
+                if (bx1 <= cx)
                 {
-                    uint32_t sdx = (uint32_t)EGUI_ABS(px - cx) << EGUI_SHADOW_DIST_SHIFT;
+                    egui_dim_t inner_start = bx1;
+                    egui_dim_t outer_start = EGUI_MAX(bx0, cx - W + 1);
+                    egui_dim_t outer_end;
 
-                    egui_alpha_t alpha;
-                    if (sdx <= sdy)
+                    if (row_alpha != 0)
                     {
-                        // sdy dominates: use precomputed row alpha
-                        alpha = row_alpha;
+                        inner_start = EGUI_MAX(bx0, cx - dy);
+                        if (inner_start < bx1)
+                        {
+                            egui_canvas_blend_color_buffer_alpha(&dst_base[inner_start], bx1 - inner_start, color, row_alpha);
+                        }
                     }
-                    else if (sdx < W_scaled)
+
+                    outer_end = EGUI_MIN(bx1, inner_start);
+                    for (egui_dim_t px = outer_start; px < outer_end; px++)
                     {
+                        uint32_t sdx = (uint32_t)(cx - px) << EGUI_SHADOW_DIST_SHIFT;
                         uint8_t idx = EGUI_SHADOW_LUT_INNER_OFFSET + (uint8_t)((sdx * inv_W_scaled) >> 16);
-                        alpha = ((uint16_t)egui_shadow_alpha_lut[idx] * effective_opa) >> 8;
+                        egui_alpha_t alpha = ((uint16_t)egui_shadow_alpha_lut[idx] * effective_opa) >> 8;
+
+                        if (alpha > 0)
+                        {
+                            egui_color_t *back_color = (egui_color_t *)&dst_base[px];
+                            if (alpha == EGUI_ALPHA_100)
+                            {
+                                *back_color = color;
+                            }
+                            else
+                            {
+                                egui_rgb_mix_ptr(back_color, &color, back_color, alpha);
+                            }
+                        }
                     }
-                    else
+                }
+                else if (bx0 > cx)
+                {
+                    egui_dim_t inner_end = bx0;
+                    egui_dim_t outer_start;
+                    egui_dim_t outer_end = EGUI_MIN(bx1, cx + W);
+
+                    if (row_alpha != 0)
                     {
-                        continue;
+                        inner_end = EGUI_MIN(bx1, cx + dy + 1);
+                        if (bx0 < inner_end)
+                        {
+                            egui_canvas_blend_color_buffer_alpha(&dst_base[bx0], inner_end - bx0, color, row_alpha);
+                        }
                     }
 
-                    if (alpha > 0)
+                    outer_start = EGUI_MAX(bx0, inner_end);
+                    for (egui_dim_t px = outer_start; px < outer_end; px++)
                     {
-                        egui_color_t *back_color = &dst_base[px];
+                        uint32_t sdx = (uint32_t)(px - cx) << EGUI_SHADOW_DIST_SHIFT;
+                        uint8_t idx = EGUI_SHADOW_LUT_INNER_OFFSET + (uint8_t)((sdx * inv_W_scaled) >> 16);
+                        egui_alpha_t alpha = ((uint16_t)egui_shadow_alpha_lut[idx] * effective_opa) >> 8;
+
+                        if (alpha == 0)
+                        {
+                            continue;
+                        }
+
+                        egui_color_t *back_color = (egui_color_t *)&dst_base[px];
                         if (alpha == EGUI_ALPHA_100)
                         {
                             *back_color = color;
@@ -164,6 +206,41 @@ static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t b
                         else
                         {
                             egui_rgb_mix_ptr(back_color, &color, back_color, alpha);
+                        }
+                    }
+                }
+                else
+                {
+                    for (egui_dim_t px = bx0; px < bx1; px++)
+                    {
+                        uint32_t sdx = (uint32_t)EGUI_ABS(px - cx) << EGUI_SHADOW_DIST_SHIFT;
+                        egui_alpha_t alpha;
+
+                        if (sdx <= sdy)
+                        {
+                            alpha = row_alpha;
+                        }
+                        else if (sdx < W_scaled)
+                        {
+                            uint8_t idx = EGUI_SHADOW_LUT_INNER_OFFSET + (uint8_t)((sdx * inv_W_scaled) >> 16);
+                            alpha = ((uint16_t)egui_shadow_alpha_lut[idx] * effective_opa) >> 8;
+                        }
+                        else
+                        {
+                            continue;
+                        }
+
+                        if (alpha > 0)
+                        {
+                            egui_color_t *back_color = (egui_color_t *)&dst_base[px];
+                            if (alpha == EGUI_ALPHA_100)
+                            {
+                                *back_color = color;
+                            }
+                            else
+                            {
+                                egui_rgb_mix_ptr(back_color, &color, back_color, alpha);
+                            }
                         }
                     }
                 }
