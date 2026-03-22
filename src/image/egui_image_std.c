@@ -364,6 +364,13 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_prepare_resize_src_x_map_limit(
     return count;
 }
 
+__EGUI_STATIC_INLINE__ int egui_image_std_can_use_resize_repeat2_fast_path(egui_dim_t x, egui_dim_t y, egui_dim_t x_total, egui_dim_t y_total,
+                                                                           egui_float_t width_radio, egui_float_t height_radio)
+{
+    return (width_radio == EGUI_FLOAT_VALUE(0.5f)) && (height_radio == EGUI_FLOAT_VALUE(0.5f)) && ((x & 0x01) == 0) && ((y & 0x01) == 0) &&
+           (((x_total - x) & 0x01) == 0) && (((y_total - y) & 0x01) == 0);
+}
+
 __EGUI_STATIC_INLINE__ void egui_image_std_blend_resize_pixel(egui_color_int_t *dst, egui_color_t color, egui_alpha_t alpha)
 {
     if (alpha == 0)
@@ -4563,7 +4570,8 @@ static void egui_image_std_set_image_resize_rgb565_8_common(const egui_image_t *
 }
 #endif
 
-#define EGUI_IMAGE_STD_SET_IMAGE_RESIZE_RGB565_PACKED_ALPHA_COMMON(_func_name, _alpha_row_size_expr, _get_alpha_func, _blend_row_func)                         \
+#define EGUI_IMAGE_STD_SET_IMAGE_RESIZE_RGB565_PACKED_ALPHA_COMMON(_func_name, _alpha_row_size_expr, _get_alpha_func, _blend_row_func,                         \
+                                                                   _blend_repeat2_row_func)                                                                   \
     static void _func_name(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t x_total, egui_dim_t y_total, egui_dim_t x_base, egui_dim_t y_base, \
                            egui_float_t width_radio, egui_float_t height_radio)                                                                                \
     {                                                                                                                                                          \
@@ -4581,6 +4589,27 @@ static void egui_image_std_set_image_resize_rgb565_8_common(const egui_image_t *
         const uint16_t *src_row;                                                                                                                               \
         const uint8_t *src_alpha_row;                                                                                                                          \
         uint32_t alpha_row_size = (_alpha_row_size_expr);                                                                                                      \
+                                                                                                                                                               \
+        if (canvas->mask == NULL && _blend_repeat2_row_func != NULL &&                                                                                         \
+            egui_image_std_can_use_resize_repeat2_fast_path(x, y, x_total, y_total, width_radio, height_radio))                                               \
+        {                                                                                                                                                      \
+            egui_dim_t src_x_start = x >> 1;                                                                                                                   \
+            egui_dim_t src_count = (x_total - x) >> 1;                                                                                                         \
+                                                                                                                                                               \
+            for (egui_dim_t y_ = y; y_ < y_total; y_ += 2)                                                                                                     \
+            {                                                                                                                                                  \
+                egui_dim_t src_row_index = y_ >> 1;                                                                                                            \
+                egui_dim_t dst_y = (y_base + y_) - canvas->pfb_location_in_base_view.y;                                                                        \
+                egui_color_int_t *dst_row0 = &canvas->pfb[dst_y * pfb_width + dst_x_start];                                                                   \
+                egui_color_int_t *dst_row1 = &canvas->pfb[(dst_y + 1) * pfb_width + dst_x_start];                                                             \
+                                                                                                                                                               \
+                src_row = (const uint16_t *)image->data_buf + (src_row_index * image->width);                                                                  \
+                src_alpha_row = (const uint8_t *)image->alpha_buf + (src_row_index * alpha_row_size);                                                          \
+                _blend_repeat2_row_func(dst_row0, src_row, src_alpha_row, src_x_start, src_count, canvas_alpha);                                              \
+                _blend_repeat2_row_func(dst_row1, src_row, src_alpha_row, src_x_start, src_count, canvas_alpha);                                              \
+            }                                                                                                                                                  \
+            return;                                                                                                                                            \
+        }                                                                                                                                                      \
                                                                                                                                                                \
         count = egui_image_std_prepare_resize_src_x_map_limit(src_x_map, x, x_total, width_radio);                                                             \
         if (canvas->mask != NULL)                                                                                                                              \
@@ -4685,27 +4714,23 @@ static void egui_image_std_set_image_resize_rgb565_8_common(const egui_image_t *
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_4
 EGUI_IMAGE_STD_SET_IMAGE_RESIZE_RGB565_PACKED_ALPHA_COMMON(egui_image_std_set_image_resize_rgb565_4_common, ((image->width + 1) >> 1),
-                                                           egui_image_std_get_alpha_rgb565_4_row, egui_image_std_blend_rgb565_alpha4_mapped_row)
+                                                           egui_image_std_get_alpha_rgb565_4_row, egui_image_std_blend_rgb565_alpha4_mapped_row,
+                                                           egui_image_std_blend_rgb565_alpha4_repeat2_row)
 #endif
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2
 EGUI_IMAGE_STD_SET_IMAGE_RESIZE_RGB565_PACKED_ALPHA_COMMON(egui_image_std_set_image_resize_rgb565_2_common, ((image->width + 3) >> 2),
-                                                           egui_image_std_get_alpha_rgb565_2_row, egui_image_std_blend_rgb565_alpha2_mapped_row)
+                                                           egui_image_std_get_alpha_rgb565_2_row, egui_image_std_blend_rgb565_alpha2_mapped_row,
+                                                           egui_image_std_blend_rgb565_alpha2_repeat2_row)
 #endif
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1
 EGUI_IMAGE_STD_SET_IMAGE_RESIZE_RGB565_PACKED_ALPHA_COMMON(egui_image_std_set_image_resize_rgb565_1_common, ((image->width + 7) >> 3),
-                                                           egui_image_std_get_alpha_rgb565_1_row, egui_image_std_blend_rgb565_alpha1_mapped_row)
+                                                           egui_image_std_get_alpha_rgb565_1_row, egui_image_std_blend_rgb565_alpha1_mapped_row,
+                                                           egui_image_std_blend_rgb565_alpha1_repeat2_row)
 #endif
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-__EGUI_STATIC_INLINE__ int egui_image_std_can_use_resize_repeat2_fast_path(egui_dim_t x, egui_dim_t y, egui_dim_t x_total, egui_dim_t y_total,
-                                                                           egui_float_t width_radio, egui_float_t height_radio)
-{
-    return (width_radio == EGUI_FLOAT_VALUE(0.5f)) && (height_radio == EGUI_FLOAT_VALUE(0.5f)) && ((x & 0x01) == 0) && ((y & 0x01) == 0) &&
-           (((x_total - x) & 0x01) == 0) && (((y_total - y) & 0x01) == 0);
-}
-
 static void egui_image_std_draw_image_resize_external_alpha(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t x_total, egui_dim_t y_total,
                                                             egui_dim_t x_base, egui_dim_t y_base, egui_float_t width_radio, egui_float_t height_radio,
                                                             uint32_t alpha_row_size, egui_image_std_get_col_pixel_with_alpha *get_col_pixel,
