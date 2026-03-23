@@ -375,6 +375,7 @@ def build_contact_sheet(entries: list[SceneEntry], output_path: Path, git_commit
     card_padding = 8
     section_gap = 26
     category_height = 38
+    category_content_gap = 12
     card_width = tile_width + card_padding * 2
     label_height = 58
     card_height = tile_height + label_height + card_padding * 2
@@ -398,7 +399,7 @@ def build_contact_sheet(entries: list[SceneEntry], output_path: Path, git_commit
     total_height = outer_margin + title_height
     for _, category_entries in grouped:
         rows = math.ceil(len(category_entries) / columns)
-        total_height += category_height + rows * card_height + max(0, rows - 1) * row_gap + section_gap
+        total_height += category_height + category_content_gap + rows * card_height + max(0, rows - 1) * row_gap + section_gap
     total_height += outer_margin - section_gap
 
     sheet = Image.new("RGB", (sheet_width, total_height), BACKGROUND_COLOR)
@@ -412,7 +413,7 @@ def build_contact_sheet(entries: list[SceneEntry], output_path: Path, git_commit
     for category_name, category_entries in grouped:
         draw.rounded_rectangle((outer_margin, y, sheet_width - outer_margin, y + category_height), radius=10, fill=HEADER_COLOR)
         draw.text((outer_margin + 14, y + 8), f"{category_name} ({len(category_entries)})", fill=HEADER_TEXT_COLOR, font=category_font)
-        y += category_height + 12
+        y += category_height + category_content_gap
 
         for index, entry in enumerate(category_entries):
             row = index // columns

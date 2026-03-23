@@ -203,6 +203,10 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 | MASK_IMAGE_IMAGE_DOUBLE | 0.775 |
 | MASK_ROUND_RECT_FILL_NO_MASK | 0.614 |
 | MASK_ROUND_RECT_FILL_WITH_MASK | 0.934 |
+| MASK_IMAGE_TEST_PERF_NO_MASK | 1.648 |
+| MASK_IMAGE_TEST_PERF_ROUND_RECT | 1.868 |
+| MASK_IMAGE_TEST_PERF_CIRCLE | 2.294 |
+| MASK_IMAGE_TEST_PERF_IMAGE | 6.064 |
 
 ## Animation
 
@@ -212,12 +216,3 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 | ANIMATION_ALPHA | 0.270 |
 | ANIMATION_SCALE | 0.300 |
 | ANIMATION_SET | 0.336 |
-
-## Other
-
-| Test Case | Time (ms) |
-|-----------|-----------|
-| MASK_IMAGE_TEST_PERF_CIRCLE | 2.294 |
-| MASK_IMAGE_TEST_PERF_IMAGE | 6.064 |
-| MASK_IMAGE_TEST_PERF_NO_MASK | 1.648 |
-| MASK_IMAGE_TEST_PERF_ROUND_RECT | 1.868 |
