@@ -96,6 +96,7 @@ typedef struct
     uint16_t cached_bytes;
     uint16_t line_bytes;
     int16_t cached_advance;
+    uint32_t content_hash;
     uint8_t is_complete_line;
     uint8_t is_ready;
     uint32_t stamp;
@@ -117,6 +118,7 @@ typedef struct
 {
     const char *string;
     uint16_t line_count;
+    uint32_t content_hash;
     uint8_t is_ready;
     uint8_t is_complete;
     uint32_t stamp;
@@ -136,6 +138,42 @@ static egui_font_std_line_cache_t g_font_std_line_cache[EGUI_FONT_STD_LINE_CACHE
 static uint32_t g_font_std_line_cache_stamp = 0;
 
 __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_draw_fast(const egui_font_std_info_t *font, uint32_t utf8_code);
+
+static uint32_t egui_font_std_hash_bytes(const char *s, uint16_t *byte_count, int stop_at_newline)
+{
+    uint32_t hash = 2166136261u;
+    uint16_t bytes = 0;
+
+    if (s == NULL)
+    {
+        if (byte_count != NULL)
+        {
+            *byte_count = 0;
+        }
+        return 0;
+    }
+
+    while (s[bytes] != '\0')
+    {
+        uint8_t ch = (uint8_t)s[bytes];
+
+        hash ^= ch;
+        hash *= 16777619u;
+        bytes++;
+
+        if (stop_at_newline && ch == '\n')
+        {
+            break;
+        }
+    }
+
+    if (byte_count != NULL)
+    {
+        *byte_count = bytes;
+    }
+
+    return hash;
+}
 
 __EGUI_STATIC_INLINE__ void egui_font_std_reset_ascii_lookup_cache(const egui_font_std_info_t *font)
 {
@@ -196,6 +234,8 @@ static const egui_font_std_draw_prefix_cache_t *egui_font_std_prepare_draw_prefi
     int advance_limit;
     const char *cursor = s;
     egui_font_std_draw_prefix_cache_t *cache = &g_font_std_draw_prefix_cache[0];
+    uint16_t line_bytes = 0;
+    uint32_t content_hash = egui_font_std_hash_bytes(s, &line_bytes, 1);
     const egui_font_std_char_descriptor_t *const *ascii_desc = NULL;
     const uint8_t *ascii_adv = NULL;
 
@@ -208,7 +248,7 @@ static const egui_font_std_draw_prefix_cache_t *egui_font_std_prepare_draw_prefi
     {
         egui_font_std_draw_prefix_cache_t *entry = &g_font_std_draw_prefix_cache[i];
 
-        if (entry->is_ready && entry->font_key == font_key && entry->string == s)
+        if (entry->is_ready && entry->font_key == font_key && entry->string == s && entry->line_bytes == line_bytes && entry->content_hash == content_hash)
         {
             entry->stamp = ++g_font_std_draw_prefix_cache_stamp;
             return entry;
@@ -232,22 +272,11 @@ static const egui_font_std_draw_prefix_cache_t *egui_font_std_prepare_draw_prefi
     cache->cached_bytes = 0;
     cache->line_bytes = 0;
     cache->cached_advance = 0;
+    cache->content_hash = content_hash;
     cache->is_complete_line = 0;
     cache->is_ready = 1;
     cache->stamp = ++g_font_std_draw_prefix_cache_stamp;
-
-    {
-        const char *next_line = strchr(s, '\n');
-
-        if (next_line != NULL)
-        {
-            cache->line_bytes = (uint16_t)((next_line - s) + 1);
-        }
-        else
-        {
-            cache->line_bytes = (uint16_t)strlen(s);
-        }
-    }
+    cache->line_bytes = line_bytes;
 
     advance_limit = EGUI_CONFIG_SCEEN_WIDTH * 2 + font->height;
 
@@ -378,6 +407,7 @@ static const egui_font_std_line_cache_t *egui_font_std_prepare_line_cache(const 
 {
     const char *cursor;
     egui_font_std_line_cache_t *cache = &g_font_std_line_cache[0];
+    uint32_t content_hash = egui_font_std_hash_bytes(s, NULL, 0);
 
     if (s == NULL)
     {
@@ -388,7 +418,7 @@ static const egui_font_std_line_cache_t *egui_font_std_prepare_line_cache(const 
     {
         egui_font_std_line_cache_t *entry = &g_font_std_line_cache[i];
 
-        if (entry->is_ready && entry->string == s)
+        if (entry->is_ready && entry->string == s && entry->content_hash == content_hash)
         {
             entry->stamp = ++g_font_std_line_cache_stamp;
             return entry;
@@ -408,6 +438,7 @@ static const egui_font_std_line_cache_t *egui_font_std_prepare_line_cache(const 
 
     cache->string = s;
     cache->line_count = 0;
+    cache->content_hash = content_hash;
     cache->is_ready = 1;
     cache->is_complete = 0;
     cache->stamp = ++g_font_std_line_cache_stamp;

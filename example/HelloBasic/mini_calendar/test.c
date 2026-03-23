@@ -114,9 +114,16 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     switch (action_index)
     {
     case 0:
-        set_click_day(p_action, 24, 320);
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 1:
+        set_click_day(p_action, 24, 320);
+        return true;
+    case 2:
         if (first_call)
         {
             if (calendar.day != 24)

@@ -25,7 +25,7 @@ static void button_click_cb(egui_view_t *self)
     EGUI_LOG_INF("Clicked\n");
 
     static uint32_t cnt = 1;
-    egui_api_sprintf(button_str, "Clicked %ds", cnt);
+    egui_api_sprintf(button_str, "Done %d", cnt);
     EGUI_LOG_INF("button_str: %s\n", button_str);
 
     egui_view_label_set_text((egui_view_t *)self, button_str);

@@ -1699,18 +1699,22 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
 
     if (mask->api->kind == EGUI_MASK_KIND_ROUND_RECTANGLE)
     {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
         if (egui_mask_round_rectangle_blend_rgb565_alpha8_segment(mask, dst_row, src_row, src_alpha_row, src_x_map, count, screen_x, screen_y, canvas_alpha))
         {
             return;
         }
+#endif
     }
 
     if (mask->api->kind == EGUI_MASK_KIND_IMAGE)
     {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
         if (egui_mask_image_blend_rgb565_alpha8_segment(mask, dst_row, src_row, src_alpha_row, src_x_map, count, screen_x, screen_y, canvas_alpha))
         {
             return;
         }
+#endif
     }
 
     if (canvas_alpha == EGUI_ALPHA_100)
@@ -4219,10 +4223,12 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
                 const uint8_t *src_alpha_row = (const uint8_t *)p_alpha + (x - src_x_base);
                 egui_dim_t count = x_total - x;
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
                 if (egui_mask_image_blend_rgb565_alpha8_row_segment(canvas->mask, dst_row, src_pixels, src_alpha_row, count, x_base + x, rr_sy, canvas_alpha))
                 {
                     continue;
                 }
+#endif
 
                 image_mask_full_row_fast_path = 0;
             }
@@ -4287,6 +4293,7 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
                             const uint16_t *src_pixels = (const uint16_t *)p_data + (vis_img_xs - src_x_base);
                             const uint8_t *src_alpha_seg = (const uint8_t *)p_alpha + (vis_img_xs - src_x_base);
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
                             if (!egui_mask_image_blend_rgb565_alpha8_row_segment(canvas->mask, dst_row, src_pixels, src_alpha_seg, left_img_xe - vis_img_xs,
                                                                                  x_base + vis_img_xs, rr_sy, canvas_alpha))
                             {
@@ -4296,6 +4303,13 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
                                     egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
                                 }
                             }
+#else
+                            for (egui_dim_t x_ = vis_img_xs; x_ < left_img_xe; x_++)
+                            {
+                                egui_image_std_get_col_pixel_rgb565_8(p_data, p_alpha, x_ - src_x_base, &color, &alpha);
+                                egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
+                            }
+#endif
                         }
                     }
                     else
@@ -4337,6 +4351,7 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
                             const uint16_t *src_pixels = (const uint16_t *)p_data + (right_img_xs - src_x_base);
                             const uint8_t *src_alpha_seg = (const uint8_t *)p_alpha + (right_img_xs - src_x_base);
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
                             if (!egui_mask_image_blend_rgb565_alpha8_row_segment(canvas->mask, dst_row, src_pixels, src_alpha_seg, vis_img_xe - right_img_xs,
                                                                                  x_base + right_img_xs, rr_sy, canvas_alpha))
                             {
@@ -4346,6 +4361,13 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
                                     egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
                                 }
                             }
+#else
+                            for (egui_dim_t x_ = right_img_xs; x_ < vis_img_xe; x_++)
+                            {
+                                egui_image_std_get_col_pixel_rgb565_8(p_data, p_alpha, x_ - src_x_base, &color, &alpha);
+                                egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
+                            }
+#endif
                         }
                     }
                     else
@@ -6625,8 +6647,12 @@ __EGUI_STATIC_INLINE__ int egui_image_std_set_image_resize_rgb565_8_round_rect_f
 
         {
             egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x_start];
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
             egui_mask_round_rectangle_blend_rgb565_alpha8_segment(canvas->mask, dst_row, src_row, src_alpha_row, src_x_map, count, screen_x_start, rr_sy,
                                                                   canvas_alpha);
+#else
+            egui_image_std_blend_rgb565_alpha8_mapped_row(dst_row, src_row, src_alpha_row, src_x_map, count, canvas_alpha);
+#endif
         }
     }
 

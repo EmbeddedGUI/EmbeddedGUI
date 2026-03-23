@@ -192,17 +192,21 @@ static uint32_t g_recording_last_action_time = 0;
 static int g_recording_action_index = 0;
 // Drag state
 static bool g_recording_drag_in_progress = false;
+static bool g_recording_click_release_pending = false;
 static int g_recording_drag_current_step = 0;
 static egui_sim_action_t g_recording_current_action;
 // Snapshot-driven frame capture (replaces fixed-time settle)
 static bool g_recording_snapshot_requested = false; // Snapshot requested by user code or auto-fallback
 static uint32_t g_recording_snapshot_request_time = 0;
+static uint32_t g_recording_snapshot_request_frame_count = 0;
 static uint32_t g_recording_snapshot_last_hash = 0;
 static int g_recording_snapshot_same_hash_count = 0;
+static bool g_recording_snapshot_seen_change = false;
 static int g_recording_snapshot_stable_cycles = 1;
 static int g_recording_snapshot_max_wait_ms = 1500;
 static bool g_recording_quit_after_snapshot = false; // Quit after next snapshot (all actions done)
 static bool g_recording_all_actions_done = false;    // No more actions to simulate
+static uint32_t g_recording_completed_frame_count = 0;
 #endif
 
 extern void VT_Init(void);
@@ -918,14 +922,18 @@ void recording_init(const char *output_dir, int fps, int duration_sec)
     g_recording_last_action_time = 0;
     g_recording_action_index = 0;
     g_recording_drag_in_progress = false;
+    g_recording_click_release_pending = false;
     g_recording_drag_current_step = 0;
     memset(&g_recording_current_action, 0, sizeof(g_recording_current_action));
     g_recording_snapshot_requested = false;
     g_recording_snapshot_request_time = 0;
+    g_recording_snapshot_request_frame_count = 0;
     g_recording_snapshot_last_hash = 0;
     g_recording_snapshot_same_hash_count = 0;
+    g_recording_snapshot_seen_change = false;
     g_recording_quit_after_snapshot = false;
     g_recording_all_actions_done = false;
+    g_recording_completed_frame_count = 0;
 #endif
     strncpy(g_recording_output_dir, output_dir, sizeof(g_recording_output_dir) - 1);
     g_recording_output_dir[sizeof(g_recording_output_dir) - 1] = '\0';
@@ -1010,8 +1018,10 @@ void recording_request_snapshot(void)
 #if EGUI_CONFIG_RECORDING_TEST
         g_recording_snapshot_requested = true;
         g_recording_snapshot_request_time = sdl_get_system_timestamp_ms_raw();
+        g_recording_snapshot_request_frame_count = g_recording_completed_frame_count;
         g_recording_snapshot_last_hash = recording_calc_frame_hash();
         g_recording_snapshot_same_hash_count = 0;
+        g_recording_snapshot_seen_change = false;
 #endif
     }
 }
@@ -1020,6 +1030,17 @@ void sdl_port_set_headless(bool headless)
 {
     g_sdl_headless = headless;
 }
+
+#if EGUI_CONFIG_RECORDING_TEST
+void egui_port_notify_frame_render_complete(void)
+{
+    g_recording_completed_frame_count++;
+}
+#else
+void egui_port_notify_frame_render_complete(void)
+{
+}
+#endif
 
 #if EGUI_CONFIG_RECORDING_TEST
 /**
@@ -1113,8 +1134,16 @@ static void recording_execute_action_step(void)
     switch (action->type)
     {
     case EGUI_SIM_ACTION_CLICK:
-        sdl_port_touch_push_event(1, action->x1, action->y1);
-        sdl_port_touch_push_event(0, action->x1, action->y1);
+        if (!g_recording_click_release_pending)
+        {
+            sdl_port_touch_push_event(1, action->x1, action->y1);
+            g_recording_click_release_pending = true;
+        }
+        else
+        {
+            sdl_port_touch_push_event(0, action->x1, action->y1);
+            g_recording_click_release_pending = false;
+        }
         break;
 
     case EGUI_SIM_ACTION_DRAG:
@@ -1193,6 +1222,21 @@ static void recording_simulate_action(void)
         return;
     }
 
+    if (g_recording_click_release_pending)
+    {
+        uint32_t click_release_interval = 50;
+        if ((now - g_recording_last_action_time) < click_release_interval)
+        {
+            return;
+        }
+
+        g_recording_last_action_time = now;
+        recording_execute_action_step();
+        g_recording_action_index++;
+        recording_request_snapshot();
+        return;
+    }
+
     // Get next action
     egui_sim_action_t action;
     if (!egui_port_get_recording_action(g_recording_action_index, &action))
@@ -1227,7 +1271,7 @@ static void recording_simulate_action(void)
     recording_execute_action_step();
 
     // For single-step actions, move to next immediately
-    if (action.type == EGUI_SIM_ACTION_CLICK || action.type == EGUI_SIM_ACTION_WAIT || action.type == EGUI_SIM_ACTION_NONE)
+    if (action.type == EGUI_SIM_ACTION_WAIT || action.type == EGUI_SIM_ACTION_NONE)
     {
         g_recording_action_index++;
         // Auto-snapshot after action completes (fallback)
@@ -1282,6 +1326,14 @@ static void recording_save_frame(void)
     // Snapshot-driven frame capture: save when requested by user code or auto-fallback
     if (g_recording_snapshot_requested)
     {
+        bool frame_completed = g_recording_completed_frame_count > g_recording_snapshot_request_frame_count;
+        bool timeout_ready = (real_now - g_recording_snapshot_request_time) >= (uint32_t)g_recording_snapshot_max_wait_ms;
+
+        if (!frame_completed && !timeout_ready)
+        {
+            return;
+        }
+
         if ((real_now - g_recording_snapshot_request_time) < (uint32_t)g_recording_snapshot_settle_ms)
         {
             return;
@@ -1296,10 +1348,10 @@ static void recording_save_frame(void)
         {
             g_recording_snapshot_last_hash = frame_hash;
             g_recording_snapshot_same_hash_count = 0;
+            g_recording_snapshot_seen_change = true;
         }
 
-        bool stable_ready = g_recording_snapshot_same_hash_count >= g_recording_snapshot_stable_cycles;
-        bool timeout_ready = (real_now - g_recording_snapshot_request_time) >= (uint32_t)g_recording_snapshot_max_wait_ms;
+        bool stable_ready = g_recording_snapshot_seen_change && g_recording_snapshot_same_hash_count >= g_recording_snapshot_stable_cycles;
         if (!stable_ready && !timeout_ready)
         {
             return;

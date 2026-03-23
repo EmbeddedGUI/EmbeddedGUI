@@ -26,6 +26,10 @@
 
 #define EGUI_CORE_REFRESH_INTERVAL_MS (1000 / EGUI_CONFIG_MAX_FPS)
 
+__EGUI_WEAK__ void egui_port_notify_frame_render_complete(void)
+{
+}
+
 egui_core_t egui_core;
 
 #if EGUI_CONFIG_SOFTWARE_ROTATION
@@ -1025,6 +1029,7 @@ void egui_core_refresh_screen(void)
 
         // after drawing, refresh the display
         egui_api_refresh_display();
+        egui_port_notify_frame_render_complete();
 
 #if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
         // wait for a while to see the result
