@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Batch render and interaction workflow for HelloBasic widgets."""
+"""Batch render and interaction workflow for sub-app example suites."""
 
 from __future__ import annotations
 
@@ -25,28 +25,36 @@ import code_runtime_check as runtime_check
 
 CONFIG_PATH = SCRIPT_DIR / "hello_basic_render_workflow.json"
 OUTPUT_ROOT = ROOT_DIR / runtime_check.SCREENSHOT_DIR
-HELLO_BASIC_DIR = ROOT_DIR / "example" / "HelloBasic"
+SUB_APP_ROOTS = {
+    "HelloBasic": ROOT_DIR / "example" / "HelloBasic",
+    "HelloVirtual": ROOT_DIR / "example" / "HelloVirtual",
+}
 
 
 def load_config() -> dict:
     return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
 
 
-def get_all_widgets() -> list[str]:
-    return sorted(path.name for path in HELLO_BASIC_DIR.iterdir() if path.is_dir() and (path / "test.c").exists())
+def get_app_root(app: str) -> Path:
+    return SUB_APP_ROOTS[app]
+
+
+def get_all_widgets(app: str) -> list[str]:
+    app_root = get_app_root(app)
+    return sorted(path.name for path in app_root.iterdir() if path.is_dir() and (path / "test.c").exists())
 
 
 def clean_runtime_build() -> tuple[bool, str]:
     result = subprocess.run(["make", "clean"], cwd=ROOT_DIR, capture_output=True, text=True)
     if result.returncode != 0:
-        return False, "make clean failed before HelloBasic workflow"
+        return False, "make clean failed before sub-app workflow"
     return True, "make clean passed"
 
 
-def compile_widget_runtime(widget: str, bits64: bool = False) -> tuple[bool, str]:
+def compile_widget_runtime(app: str, widget: str, bits64: bool = False) -> tuple[bool, str]:
     recording_flag = "-DEGUI_CONFIG_RECORDING_TEST=1"
-    target_name = f"HelloBasic_{widget}"
-    cmd = ["make", "-j", "APP=HelloBasic", "PORT=pc"] + runtime_check.COMPILE_FAST_FLAGS
+    target_name = f"{app}_{widget}"
+    cmd = ["make", "-j", f"APP={app}", "PORT=pc"] + runtime_check.COMPILE_FAST_FLAGS
     cmd.append(f"APP_SUB={widget}")
     cmd.append(f"TARGET={target_name}")
     if bits64:
@@ -65,19 +73,24 @@ def compile_widget_runtime(widget: str, bits64: bool = False) -> tuple[bool, str
     return False, last_message
 
 
-def resolve_suite(config: dict, suite: str, explicit_widgets: str) -> list[str]:
+def resolve_suite(config: dict, app: str, suite: str, explicit_widgets: str) -> list[str]:
+    available_widgets = set(get_all_widgets(app))
+
     if explicit_widgets.strip():
         widgets = [item.strip() for item in explicit_widgets.split(",") if item.strip()]
         return sorted(dict.fromkeys(widgets))
 
     suites = config.get("suites", {})
     if suite == "full":
-        return get_all_widgets()
+        return get_all_widgets(app)
     if suite == "basic":
         excluded = set(suites.get("basic_exclude", []))
-        return [widget for widget in get_all_widgets() if widget not in excluded]
+        return [widget for widget in get_all_widgets(app) if widget not in excluded]
     if suite in suites:
-        return list(suites[suite])
+        suite_widgets = [widget for widget in suites[suite] if widget in available_widgets]
+        if suite_widgets:
+            return suite_widgets
+        raise ValueError(f"suite {suite} has no widgets for {app}; use --suite basic/full or --widgets")
     raise ValueError(f"unknown suite: {suite}")
 
 
@@ -116,12 +129,12 @@ def get_widget_profile(config: dict, widget: str, action_types: list[str]) -> di
     return profile
 
 
-def get_test_file(widget: str) -> Path:
-    return HELLO_BASIC_DIR / widget / "test.c"
+def get_test_file(app: str, widget: str) -> Path:
+    return get_app_root(app) / widget / "test.c"
 
 
-def validate_static_expectations(widget: str, config: dict) -> tuple[bool, dict]:
-    test_file = get_test_file(widget)
+def validate_static_expectations(app: str, widget: str, config: dict) -> tuple[bool, dict]:
+    test_file = get_test_file(app, widget)
     if not test_file.exists():
         return False, {"reason": f"missing test file: {test_file}"}
 
@@ -163,8 +176,8 @@ def validate_static_expectations(widget: str, config: dict) -> tuple[bool, dict]
     }
 
 
-def get_frame_paths(widget: str) -> list[Path]:
-    frame_dir = OUTPUT_ROOT / f"HelloBasic_{widget}" / "default"
+def get_frame_paths(app: str, widget: str) -> list[Path]:
+    frame_dir = OUTPUT_ROOT / f"{app}_{widget}" / "default"
     return sorted(frame_dir.glob("frame_*.png"))
 
 
@@ -174,8 +187,8 @@ def ensure_not_blank(frame_path: Path, min_stddev: float) -> tuple[bool, float]:
     return stddev >= min_stddev, float(stddev)
 
 
-def evaluate_render(widget: str, min_stddev: float) -> tuple[bool, dict]:
-    frames = get_frame_paths(widget)
+def evaluate_render(app: str, widget: str, min_stddev: float) -> tuple[bool, dict]:
+    frames = get_frame_paths(app, widget)
     if not frames:
         return False, {"reason": "no frames generated", "frames": []}
 
@@ -206,8 +219,8 @@ def calculate_frame_diff(prev_frame: Path, curr_frame: Path) -> float:
     return float(ImageStat.Stat(diff).mean[0])
 
 
-def evaluate_interaction(widget: str, min_transitions: int, diff_threshold: float) -> tuple[bool, dict]:
-    frames = get_frame_paths(widget)
+def evaluate_interaction(app: str, widget: str, min_transitions: int, diff_threshold: float) -> tuple[bool, dict]:
+    frames = get_frame_paths(app, widget)
     if min_transitions <= 0:
         return True, {
             "frame_count": len(frames),
@@ -273,8 +286,8 @@ def get_windows_hidden_run_kwargs() -> dict:
     return kwargs
 
 
-def run_target_app(target_name: str, widget: str, args: argparse.Namespace) -> tuple[bool, str]:
-    frames_dir = OUTPUT_ROOT / f"HelloBasic_{widget}" / "default"
+def run_target_app(app: str, target_name: str, widget: str, args: argparse.Namespace) -> tuple[bool, str]:
+    frames_dir = OUTPUT_ROOT / f"{app}_{widget}" / "default"
     frames_dir.mkdir(parents=True, exist_ok=True)
 
     exe_candidates = []
@@ -359,13 +372,16 @@ def run_target_app(target_name: str, widget: str, args: argparse.Namespace) -> t
     return True, f"{len(frame_files)} frames captured -> {frames_dir}"
 
 
-def run_hello_unit_test() -> tuple[bool, str]:
+def run_hello_unit_test(bits64: bool = False) -> tuple[bool, str]:
     clean_result = subprocess.run(["make", "clean"], cwd=ROOT_DIR, capture_output=True)
     if clean_result.returncode != 0:
         return False, "make clean failed for HelloUnitTest"
 
+    build_cmd = ["make", "-j", "APP=HelloUnitTest", "PORT=pc_test"]
+    if bits64:
+        build_cmd.append("BITS=64")
     build_result = subprocess.run(
-        ["make", "-j", "APP=HelloUnitTest", "PORT=pc_test"],
+        build_cmd,
         cwd=ROOT_DIR,
         capture_output=True,
         text=True,
@@ -392,8 +408,8 @@ def run_hello_unit_test() -> tuple[bool, str]:
     return True, "HelloUnitTest passed"
 
 
-def run_widget(widget: str, args: argparse.Namespace, config: dict) -> dict:
-    static_ok, static_info = validate_static_expectations(widget, config)
+def run_widget(app: str, widget: str, args: argparse.Namespace, config: dict) -> dict:
+    static_ok, static_info = validate_static_expectations(app, widget, config)
     result = {
         "widget": widget,
         "static_check": static_info,
@@ -407,19 +423,20 @@ def run_widget(widget: str, args: argparse.Namespace, config: dict) -> dict:
         result["runtime_check"]["message"] = static_info["reason"]
         return result
 
-    compile_ok, compile_message = compile_widget_runtime(widget)
+    compile_ok, compile_message = compile_widget_runtime(app, widget, bits64=args.bits64)
     result["compile_check"] = {"passed": bool(compile_ok), "message": compile_message}
     if not compile_ok:
         return result
 
-    success, message = run_target_app(compile_message, widget, args)
+    success, message = run_target_app(app, compile_message, widget, args)
     result["runtime_check"] = {"passed": bool(success), "message": message}
     if not success:
         return result
 
-    render_ok, render_info = evaluate_render(widget, static_info["profile"]["render_min_stddev"])
+    render_ok, render_info = evaluate_render(app, widget, static_info["profile"]["render_min_stddev"])
     result["render_check"] = {"passed": bool(render_ok), **render_info}
     interaction_ok, interaction_info = evaluate_interaction(
+        app,
         widget,
         static_info["profile"]["min_interaction_transitions"],
         static_info["profile"]["interaction_diff_threshold"],
@@ -462,10 +479,21 @@ def print_result_line(result: dict) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run HelloBasic render and interaction workflow")
+    parser = argparse.ArgumentParser(
+        description="Run sub-app render and interaction workflow",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  python scripts/hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --bits64\n"
+            "  python scripts/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage_showcase --skip-unit-tests --bits64\n"
+            "  python scripts/hello_basic_render_workflow.py --app HelloBasic --suite smoke\n"
+        ),
+    )
+    parser.add_argument("--app", default="HelloBasic", choices=sorted(SUB_APP_ROOTS.keys()), help="Sub-app example suite to run")
     parser.add_argument("--suite", default="basic", choices=["smoke", "interactive", "basic", "full"], help="Widget suite to run")
     parser.add_argument("--widgets", default="", help="Comma-separated widget names, overrides --suite")
     parser.add_argument("--timeout", type=int, default=20, help="Per-widget runtime timeout in seconds")
+    parser.add_argument("--bits64", action="store_true", help="Build and run 64-bit binaries")
     parser.add_argument("--speed", type=int, default=runtime_check.RECORDING_SPEED, help="Recording speed multiplier")
     parser.add_argument("--clock-scale", type=int, default=runtime_check.RECORDING_CLOCK_SCALE, help="Recording clock scale")
     parser.add_argument("--snapshot-settle-ms", type=int, default=runtime_check.RECORDING_SNAPSHOT_SETTLE_MS, help="Snapshot settle delay")
@@ -482,8 +510,12 @@ def main() -> int:
     args = parser.parse_args()
 
     config = load_config()
-    widgets = resolve_suite(config, args.suite, args.widgets)
-    widget_set = set(get_all_widgets())
+    try:
+        widgets = resolve_suite(config, args.app, args.suite, args.widgets)
+    except ValueError as exc:
+        print(f"[FAIL] {exc}")
+        return 1
+    widget_set = set(get_all_widgets(args.app))
     missing = [widget for widget in widgets if widget not in widget_set]
     if missing:
         print("[FAIL] Unknown widgets: " + ", ".join(missing))
@@ -497,11 +529,11 @@ def main() -> int:
     }
 
     if not args.skip_unit_tests:
-        unit_ok, unit_message = run_hello_unit_test()
+        unit_ok, unit_message = run_hello_unit_test(bits64=args.bits64)
         report["unit_test"] = {"skipped": False, "passed": bool(unit_ok), "message": unit_message}
         print(("[PASS]" if unit_ok else "[FAIL]") + " " + unit_message)
         if not unit_ok:
-            report_path = Path(args.report) if args.report else OUTPUT_ROOT / f"hello_basic_render_workflow_{report['suite']}.json"
+            report_path = Path(args.report) if args.report else OUTPUT_ROOT / f"{args.app.lower()}_render_workflow_{report['suite']}.json"
             write_report(report, report_path)
             print(f"[INFO] Report: {report_path}")
             return 1
@@ -510,7 +542,7 @@ def main() -> int:
     report["runtime_clean"] = {"passed": bool(clean_ok), "message": clean_message}
     print(("[PASS]" if clean_ok else "[FAIL]") + " " + clean_message)
     if not clean_ok:
-        report_path = Path(args.report) if args.report else OUTPUT_ROOT / f"hello_basic_render_workflow_{report['suite']}.json"
+        report_path = Path(args.report) if args.report else OUTPUT_ROOT / f"{args.app.lower()}_render_workflow_{report['suite']}.json"
         write_report(report, report_path)
         print(f"[INFO] Report: {report_path}")
         return 1
@@ -518,8 +550,8 @@ def main() -> int:
     all_passed = True
     total = len(widgets)
     for index, widget in enumerate(widgets, start=1):
-        print(f"[{index}/{total}] HelloBasic/{widget}")
-        result = run_widget(widget, args, config)
+        print(f"[{index}/{total}] {args.app}/{widget}")
+        result = run_widget(args.app, widget, args, config)
         report["results"].append(result)
         print_result_line(result)
         if not result["passed"]:
@@ -530,7 +562,7 @@ def main() -> int:
         "failed": sum(1 for item in report["results"] if not item["passed"]),
         "all_passed": bool(all_passed),
     }
-    report_path = Path(args.report) if args.report else OUTPUT_ROOT / f"hello_basic_render_workflow_{report['suite']}.json"
+    report_path = Path(args.report) if args.report else OUTPUT_ROOT / f"{args.app.lower()}_render_workflow_{report['suite']}.json"
     write_report(report, report_path)
     print(f"[INFO] Report: {report_path}")
     print(f"[INFO] Summary: {report['summary']['passed']} passed, {report['summary']['failed']} failed")

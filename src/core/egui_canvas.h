@@ -111,14 +111,23 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_mask(egui_mask_t *mask)
 {
     egui_canvas_t *self = &canvas_data;
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
     self->mask = mask;
+#else
+    EGUI_UNUSED(mask);
+    self->mask = NULL;
+#endif
 }
 
 __EGUI_STATIC_INLINE__ egui_mask_t *egui_canvas_get_mask(void)
 {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
     egui_canvas_t *self = &canvas_data;
 
     return self->mask;
+#else
+    return NULL;
+#endif
 }
 
 __EGUI_STATIC_INLINE__ egui_region_t *egui_canvas_get_base_view_work_region(void)
@@ -192,10 +201,12 @@ __EGUI_STATIC_INLINE__ void egui_canvas_draw_point_limit(egui_dim_t x, egui_dim_
 {
     egui_canvas_t *self = &canvas_data;
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
     if (self->mask != NULL)
     {
         self->mask->api->mask_point(self->mask, x, y, &color, &alpha);
     }
+#endif
 
     // mix alpha
     alpha = egui_color_alpha_mix(self->alpha, alpha);
@@ -928,7 +939,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_draw_fillrect(egui_dim_t x, egui_dim_t y
         return;
     }
 
-    if (self->mask != NULL)
+    if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && self->mask != NULL)
     {
         egui_canvas_set_rect_color_with_mask(region.location.x, region.location.y, region.size.width, region.size.height, color, alpha);
     }
@@ -1039,11 +1050,44 @@ void egui_canvas_draw_image_color(const egui_image_t *img, egui_dim_t x, egui_di
 void egui_canvas_draw_image_resize_color(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
                                          egui_alpha_t alpha);
 
+/* Convenience arc helpers that accept start angle + sweep angle.
+ * Negative sweep is supported and will be converted to the corresponding [start, end] range.
+ */
+void egui_canvas_draw_arc_sweep(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle, egui_dim_t stroke_width,
+                                egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_arc_fill_sweep(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle, egui_color_t color,
+                                     egui_alpha_t alpha);
+void egui_canvas_draw_arc_round_cap_sweep_hq(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle,
+                                             egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha);
+
 void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8);
+/* Convenience image rotation helpers.
+ * x/y use the same top-left coordinates as egui_canvas_draw_image().
+ * pivot_x/pivot_y are relative to the unrotated
+ * image top-left, and that pivot stays fixed in screen coordinates. */
+void egui_canvas_draw_image_rotate(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg);
+void egui_canvas_draw_image_rotate_scale(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8);
+void egui_canvas_draw_image_rotate_pivot(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x, egui_dim_t pivot_y, int16_t angle_deg,
+                                         int16_t scale_q8);
+
 void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
                                      egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
                                               egui_color_t color, egui_alpha_t alpha);
+/* Convenience text rotation helpers.
+ * x/y use the same top-left coordinates as egui_canvas_draw_text().
+ * pivot_x/pivot_y are relative to the measured
+ * unrotated text bounding box, and that pivot stays fixed in screen coordinates. */
+void egui_canvas_draw_text_rotate(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, egui_color_t color,
+                                  egui_alpha_t alpha);
+void egui_canvas_draw_text_rotate_scale(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
+                                        egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_text_rotate_pivot(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x, egui_dim_t pivot_y,
+                                        int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_text_rotate_buffered(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
+                                           egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_draw_text_rotate_buffered_pivot(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x,
+                                                 egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha);
 
 void egui_canvas_calc_work_region(egui_region_t *base_region);
 void egui_canvas_register_spec_circle_info(uint16_t res_circle_info_count_spec, const egui_circle_info_t *res_circle_info_spec_arr);

@@ -40,6 +40,13 @@ def get_example_basic_list():
                    if os.path.isdir(os.path.join(path, f))])
 
 
+def get_example_virtual_list():
+    """Scan example/HelloVirtual/ for sub-app names."""
+    path = 'example/HelloVirtual'
+    return sorted([f for f in os.listdir(path)
+                   if os.path.isdir(os.path.join(path, f))])
+
+
 def get_custom_widgets_list():
     """Discover HelloCustomWidgets sub-apps."""
     base = 'example/HelloCustomWidgets'
@@ -56,6 +63,13 @@ def get_custom_widgets_list():
             if os.path.isdir(widget_path) and os.path.exists(os.path.join(widget_path, 'test.c')):
                 result.append((cat, widget))
     return result
+
+
+def format_demo_name(app, app_sub):
+    """Format demo directory name used under web/demos/."""
+    if not app_sub:
+        return app
+    return f"{app}_{app_sub.replace('/', '_')}"
 
 
 def run_cmd(cmd, cwd=None):
@@ -86,23 +100,30 @@ def parse_define_int(content, macro_name, default):
     return int(number_match.group(0))
 
 
-def get_screen_size(root_dir, app):
-    """Read app screen size from example/<APP>/app_egui_config.h."""
-    config_path = os.path.join(root_dir, "example", app, "app_egui_config.h")
-    if not os.path.exists(config_path):
-        return 240, 320
+def get_screen_size(root_dir, app, app_sub=None):
+    """Read app screen size from the most specific app_egui_config.h."""
+    config_paths = []
+    if app_sub:
+        config_paths.append(os.path.join(root_dir, "example", app, app_sub, "app_egui_config.h"))
+    config_paths.append(os.path.join(root_dir, "example", app, "app_egui_config.h"))
 
-    with open(config_path, "r", encoding="utf-8") as f:
-        content = f.read()
+    for config_path in config_paths:
+        if not os.path.exists(config_path):
+            continue
 
-    width = parse_define_int(content, "EGUI_CONFIG_SCEEN_WIDTH", 240)
-    height = parse_define_int(content, "EGUI_CONFIG_SCEEN_HEIGHT", 320)
-    return width, height
+        with open(config_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        width = parse_define_int(content, "EGUI_CONFIG_SCEEN_WIDTH", 240)
+        height = parse_define_int(content, "EGUI_CONFIG_SCEEN_HEIGHT", 320)
+        return width, height
+
+    return 240, 320
 
 
 def make_demo_entry(root_dir, result, category):
     """Create one demos.json entry with screen metadata."""
-    width, height = get_screen_size(root_dir, result["app"])
+    width, height = get_screen_size(root_dir, result["app"], result.get("app_sub"))
     entry = {
         "name": result["name"],
         "app": result["app"],
@@ -124,12 +145,8 @@ def build_demo(root_dir, app, app_sub, emsdk_path, output_dir):
 
     Uses per-app OBJDIR (set in Makefile) so no make clean is needed.
     """
-    if app_sub:
-        demo_name = f"{app}_{app_sub.replace('/', '_')}"
-        make_extra = f"APP_SUB={app_sub}"
-    else:
-        demo_name = app
-        make_extra = ""
+    demo_name = format_demo_name(app, app_sub)
+    make_extra = f"APP_SUB={app_sub}" if app_sub else ""
 
     # Generate resources (may fail if no resources needed)
     res_cmd = f"make resource APP={app} {make_extra}".strip()
@@ -187,27 +204,52 @@ def build_group_sequential(group, root_dir, emsdk_path, output_dir):
     return results
 
 
-def resolve_single_build(app_name, app_sub):
-    """Resolve single-build flags into one build list entry."""
+def get_group_build_list(app_name):
+    """Expand grouped demos into build list entries."""
+    if app_name == "HelloBasic":
+        return [(app_name, sub, "HelloBasic") for sub in get_example_basic_list()]
+    if app_name == "HelloCustomWidgets":
+        return [(app_name, f"{cat}/{widget}", "HelloCustomWidgets") for cat, widget in get_custom_widgets_list()]
+    if app_name == "HelloVirtual":
+        return [(app_name, sub, "Standalone") for sub in get_example_virtual_list()]
+    return None
+
+
+def resolve_requested_builds(app_name, app_sub):
+    """Resolve command-line selection into build list entries."""
     if app_sub:
         if app_name == "HelloCustomWidgets" or "/" in app_sub:
-            return ("HelloCustomWidgets", app_sub, "HelloCustomWidgets")
-        return ("HelloBasic", app_sub, "HelloBasic")
+            return [("HelloCustomWidgets", app_sub, "HelloCustomWidgets")]
+        if app_name == "HelloVirtual":
+            return [("HelloVirtual", app_sub, "Standalone")]
+        if not app_name and app_sub in get_example_virtual_list():
+            return [("HelloVirtual", app_sub, "Standalone")]
+        if app_name == "HelloBasic" or not app_name:
+            return [("HelloBasic", app_sub, "HelloBasic")]
+        return [(app_name, app_sub, "Standalone")]
 
     if not app_name:
         return None
 
+    group_builds = get_group_build_list(app_name)
+    if group_builds is not None:
+        return group_builds
+
     if app_name.startswith("HelloBasic_"):
         sub = app_name[len("HelloBasic_"):]
-        return ("HelloBasic", sub, "HelloBasic")
+        return [("HelloBasic", sub, "HelloBasic")]
 
     if app_name.startswith("HelloCustomWidgets_"):
         raw = app_name[len("HelloCustomWidgets_"):]
         parts = raw.split("_", 1)
         if len(parts) == 2:
-            return ("HelloCustomWidgets", parts[0] + "/" + parts[1], "HelloCustomWidgets")
+            return [("HelloCustomWidgets", parts[0] + "/" + parts[1], "HelloCustomWidgets")]
 
-    return (app_name, None, "Standalone")
+    if app_name.startswith("HelloVirtual_"):
+        sub = app_name[len("HelloVirtual_"):]
+        return [("HelloVirtual", sub, "Standalone")]
+
+    return [(app_name, None, "Standalone")]
 
 
 def main():
@@ -217,9 +259,9 @@ def main():
     parser.add_argument("--output-dir", default="web/demos",
                         help="Output directory (default: web/demos)")
     parser.add_argument("--app", default=None,
-                        help="Build single app (e.g. HelloSimple, HelloBasic_button, or HelloCustomWidgets_chart_radar_chart)")
+                        help="Build selected app/group (e.g. HelloSimple, HelloBasic_button, HelloVirtual, or HelloCustomWidgets_chart_radar_chart)")
     parser.add_argument("--app-sub", default=None,
-                        help="Build single sub-app (e.g. button or chart/radar_chart)")
+                        help="Build single sub-app (e.g. button, virtual_stage_showcase, or chart/radar_chart)")
     parser.add_argument("--clean", action="store_true",
                         help="Clean output directory before building")
     parser.add_argument("--jobs", "-j", type=int, default=1,
@@ -242,31 +284,28 @@ def main():
 
     # Build task list from directory scan
     build_list = []
-    single_build = resolve_single_build(args.app, args.app_sub)
-    if single_build:
-        build_list.append(single_build)
+    requested_builds = resolve_requested_builds(args.app, args.app_sub)
+    if requested_builds:
+        build_list.extend(requested_builds)
     else:
         app_sets = get_example_list()
-        app_basic_sets = get_example_basic_list()
         for app in app_sets:
             if app in WASM_SKIP_APPS:
                 continue
-            if app == "HelloBasic":
-                for sub in app_basic_sets:
-                    build_list.append((app, sub, "HelloBasic"))
-            elif app == "HelloCustomWidgets":
-                for cat, widget in get_custom_widgets_list():
-                    build_list.append((app, f"{cat}/{widget}", "HelloCustomWidgets"))
-            else:
-                build_list.append((app, None, "Standalone"))
+            group_builds = get_group_build_list(app)
+            if group_builds is not None:
+                build_list.extend(group_builds)
+                continue
+            build_list.append((app, None, "Standalone"))
 
     total = len(build_list)
     start_time = time.time()
 
-    # Split into groups: HelloBasic (must be sequential, shared OBJDIR) and standalone apps
-    basic_group = [(a, s, c) for a, s, c in build_list if c == "HelloBasic"]
-    custom_group = [(a, s, c) for a, s, c in build_list if c == "HelloCustomWidgets"]
-    standalone_list = [(a, s, c) for a, s, c in build_list if c not in ("HelloBasic", "HelloCustomWidgets")]
+    # Split into groups: multi-sub-app families stay sequential, standalone apps may go parallel
+    basic_group = [(a, s, c) for a, s, c in build_list if a == "HelloBasic"]
+    custom_group = [(a, s, c) for a, s, c in build_list if a == "HelloCustomWidgets"]
+    virtual_group = [(a, s, c) for a, s, c in build_list if a == "HelloVirtual"]
+    standalone_list = [(a, s, c) for a, s, c in build_list if a not in ("HelloBasic", "HelloCustomWidgets", "HelloVirtual")]
 
     demos_built = []
     failed = []
@@ -277,7 +316,7 @@ def main():
         print(f"\n--- HelloBasic sub-apps ({len(basic_group)} demos, sequential) ---")
         for app, sub, category in basic_group:
             count += 1
-            name = f"{app}_{sub}" if sub else app
+            name = format_demo_name(app, sub)
             print(f"\n[{count}/{total}] {name}")
             result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir)
             result["category"] = category
@@ -293,7 +332,23 @@ def main():
         print(f"\n--- HelloCustomWidgets ({len(custom_group)} demos, sequential) ---")
         for app, sub, category in custom_group:
             count += 1
-            name = f"{app}_{sub.replace('/', '_')}" if sub else app
+            name = format_demo_name(app, sub)
+            print(f"\n[{count}/{total}] {name}")
+            result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir)
+            result["category"] = category
+            if "error" in result:
+                print(f"  FAILED: {result['error']}")
+                failed.append(result["name"])
+            else:
+                print(f"  OK -> {os.path.join(output_dir, result['name'])}")
+                demos_built.append(make_demo_entry(root_dir, result, category))
+
+    # Build HelloVirtual sub-apps sequentially (shared output/HelloVirtual.* artifacts)
+    if virtual_group:
+        print(f"\n--- HelloVirtual ({len(virtual_group)} demos, sequential) ---")
+        for app, sub, category in virtual_group:
+            count += 1
+            name = format_demo_name(app, sub)
             print(f"\n[{count}/{total}] {name}")
             result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir)
             result["category"] = category
@@ -321,7 +376,7 @@ def main():
                 for future in as_completed(future_map):
                     app, sub, category = future_map[future]
                     count += 1
-                    name = f"{app}_{sub}" if sub else app
+                    name = format_demo_name(app, sub)
                     result = future.result()
                     result["category"] = category
                     if "error" in result:
@@ -333,7 +388,7 @@ def main():
         else:
             for app, sub, category in standalone_list:
                 count += 1
-                name = f"{app}_{sub}" if sub else app
+                name = format_demo_name(app, sub)
                 print(f"\n[{count}/{total}] {name}")
                 result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir)
                 result["category"] = category
@@ -355,7 +410,10 @@ def main():
             existing = json.load(f)
         # Remove old entries for rebuilt demos, then append new
         built_names = {d["name"] for d in demos_built}
-        merged = [d for d in existing if d["name"] not in built_names]
+        if args.app and not args.app_sub and get_group_build_list(args.app) is not None:
+            merged = [d for d in existing if d.get("app") != args.app]
+        else:
+            merged = [d for d in existing if d["name"] not in built_names]
         merged.extend(demos_built)
         demos_built = merged
 

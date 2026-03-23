@@ -221,6 +221,8 @@ PFB_RAM = PFB_WIDTH * PFB_HEIGHT * (COLOR_DEPTH / 8) * BUFFER_COUNT
 #define EGUI_CONFIG_DEBUG_LOG_SIMPLE             1
 ```
 
+更完整的调试宏说明、运行截图和脚本流程见 {doc}`../debug/index`。
+
 ## 典型配置示例
 
 ### 240x320 SPI 彩屏（STM32G0，8KB RAM）

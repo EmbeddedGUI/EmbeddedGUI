@@ -11,6 +11,30 @@
 #include "core/egui_focus.h"
 #endif
 
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+static void egui_view_log_dirty_source(const char *kind, egui_view_t *self, const egui_region_t *region)
+{
+    if (self == NULL || region == NULL)
+    {
+        return;
+    }
+
+#if EGUI_CONFIG_DEBUG_CLASS_NAME && EGUI_CONFIG_DEBUG_VIEW_ID
+    egui_api_log("DIRTY_SOURCE:kind=%s,view=%s,id=%u,ptr=%p,x=%d,y=%d,w=%d,h=%d\r\n", kind, self->name ? self->name : "(null)", self->id, (void *)self,
+                 region->location.x, region->location.y, region->size.width, region->size.height);
+#elif EGUI_CONFIG_DEBUG_CLASS_NAME
+    egui_api_log("DIRTY_SOURCE:kind=%s,view=%s,ptr=%p,x=%d,y=%d,w=%d,h=%d\r\n", kind, self->name ? self->name : "(null)", (void *)self, region->location.x,
+                 region->location.y, region->size.width, region->size.height);
+#elif EGUI_CONFIG_DEBUG_VIEW_ID
+    egui_api_log("DIRTY_SOURCE:kind=%s,id=%u,ptr=%p,x=%d,y=%d,w=%d,h=%d\r\n", kind, self->id, (void *)self, region->location.x, region->location.y,
+                 region->size.width, region->size.height);
+#else
+    egui_api_log("DIRTY_SOURCE:kind=%s,ptr=%p,x=%d,y=%d,w=%d,h=%d\r\n", kind, (void *)self, region->location.x, region->location.y, region->size.width,
+                 region->size.height);
+#endif
+}
+#endif
+
 int egui_view_is_visible(egui_view_t *self)
 {
     if ((!self->is_visible) || (self->is_gone))
@@ -29,6 +53,35 @@ int egui_view_is_visible(egui_view_t *self)
     }
 
     return 1;
+}
+
+static int egui_view_background_has_pressed_param(egui_view_t *self)
+{
+    if (self == NULL || self->background == NULL || self->background->params == NULL)
+    {
+        return 0;
+    }
+
+    return self->background->params->pressed_param != NULL;
+}
+
+static void egui_view_invalidate_full_region(egui_view_t *self)
+{
+    egui_region_t dirty_region;
+
+    if (self == NULL)
+    {
+        return;
+    }
+
+    if (self->region.size.width <= 0 || self->region.size.height <= 0)
+    {
+        egui_view_invalidate(self);
+        return;
+    }
+
+    egui_region_init(&dirty_region, 0, 0, self->region.size.width, self->region.size.height);
+    egui_view_invalidate_region(self, &dirty_region);
 }
 
 void egui_view_invalidate(egui_view_t *self)
@@ -52,6 +105,9 @@ void egui_view_invalidate_region(egui_view_t *self, const egui_region_t *dirty_r
 
     if (!egui_region_is_empty(&screen_region))
     {
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+        egui_view_log_dirty_source("subregion", self, &screen_region);
+#endif
         egui_core_update_region_dirty(&screen_region);
     }
 }
@@ -239,9 +295,35 @@ void egui_view_set_size(egui_view_t *self, egui_dim_t width, egui_dim_t height)
 
 void egui_view_set_pressed(egui_view_t *self, int is_pressed)
 {
+    if (self->is_pressed == is_pressed)
+    {
+        return;
+    }
+
     self->is_pressed = is_pressed;
 
-    egui_view_invalidate(self);
+    egui_view_invalidate_full_region(self);
+}
+
+int egui_view_set_pressed_with_region(egui_view_t *self, int is_pressed, const egui_region_t *dirty_region)
+{
+    if (self->is_pressed == is_pressed)
+    {
+        return 0;
+    }
+
+    self->is_pressed = is_pressed;
+
+    if (egui_view_background_has_pressed_param(self))
+    {
+        egui_view_invalidate_full_region(self);
+    }
+    else if (dirty_region != NULL)
+    {
+        egui_view_invalidate_region(self, dirty_region);
+    }
+
+    return 1;
 }
 
 int egui_view_get_pressed(egui_view_t *self)
@@ -293,12 +375,20 @@ int egui_view_get_gone(egui_view_t *self)
 void egui_view_set_padding(egui_view_t *self, egui_dim_margin_padding_t left, egui_dim_margin_padding_t right, egui_dim_margin_padding_t top,
                            egui_dim_margin_padding_t bottom)
 {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
     self->padding.left = left;
     self->padding.right = right;
     self->padding.top = top;
     self->padding.bottom = bottom;
 
     egui_view_invalidate(self);
+#else
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(left);
+    EGUI_UNUSED(right);
+    EGUI_UNUSED(top);
+    EGUI_UNUSED(bottom);
+#endif
 }
 
 void egui_view_set_padding_all(egui_view_t *self, egui_dim_margin_padding_t padding)
@@ -309,12 +399,20 @@ void egui_view_set_padding_all(egui_view_t *self, egui_dim_margin_padding_t padd
 void egui_view_set_margin(egui_view_t *self, egui_dim_margin_padding_t left, egui_dim_margin_padding_t right, egui_dim_margin_padding_t top,
                           egui_dim_margin_padding_t bottom)
 {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
     self->margin.left = left;
     self->margin.right = right;
     self->margin.top = top;
     self->margin.bottom = bottom;
 
     egui_view_invalidate(self);
+#else
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(left);
+    EGUI_UNUSED(right);
+    EGUI_UNUSED(top);
+    EGUI_UNUSED(bottom);
+#endif
 }
 
 void egui_view_set_margin_all(egui_view_t *self, egui_dim_margin_padding_t margin)
@@ -325,6 +423,11 @@ void egui_view_set_margin_all(egui_view_t *self, egui_dim_margin_padding_t margi
 void egui_view_set_shadow(egui_view_t *self, const egui_shadow_t *shadow)
 {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
+    if (self->shadow == shadow)
+    {
+        return;
+    }
+
     self->shadow = shadow;
     egui_view_invalidate(self);
 #else
@@ -579,12 +682,18 @@ void egui_view_calculate_layout(egui_view_t *self)
         }
 
         // update dirty region
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+        egui_view_log_dirty_source("layout", self, p_raw_region);
+#endif
         egui_core_update_region_dirty(p_raw_region);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
         if (self->shadow != NULL)
         {
             egui_region_t shadow_region;
             egui_shadow_get_region(self->shadow, p_raw_region, &shadow_region);
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+            egui_view_log_dirty_source("shadow", self, &shadow_region);
+#endif
             egui_core_update_region_dirty(&shadow_region);
         }
 #endif

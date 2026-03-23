@@ -168,6 +168,7 @@ int egui_view_get_clickable(egui_view_t *self);
 void egui_view_set_position(egui_view_t *self, egui_dim_t x, egui_dim_t y);
 void egui_view_set_size(egui_view_t *self, egui_dim_t width, egui_dim_t height);
 void egui_view_set_pressed(egui_view_t *self, int is_pressed);
+int egui_view_set_pressed_with_region(egui_view_t *self, int is_pressed, const egui_region_t *dirty_region);
 int egui_view_get_pressed(egui_view_t *self);
 void egui_view_set_visible(egui_view_t *self, int is_visible);
 int egui_view_get_visible(egui_view_t *self);

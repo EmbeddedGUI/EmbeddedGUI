@@ -2072,8 +2072,7 @@ static void test_virtual_viewport_visit_visible_items_helper(void)
     memset(&ctx, 0, sizeof(ctx));
     ctx.expected_self = EGUI_VIEW_OF(&test_viewport);
     ctx.stop_after = 2;
-    EGUI_TEST_ASSERT_EQUAL_INT(2,
-                               egui_view_virtual_viewport_visit_visible_items(EGUI_VIEW_OF(&test_viewport), test_virtual_viewport_visit_visible_item, &ctx));
+    EGUI_TEST_ASSERT_EQUAL_INT(2, egui_view_virtual_viewport_visit_visible_items(EGUI_VIEW_OF(&test_viewport), test_virtual_viewport_visit_visible_item, &ctx));
     EGUI_TEST_ASSERT_EQUAL_INT(2, ctx.visited);
     test_visible_visit_assert_ok(&ctx);
 }
@@ -2139,8 +2138,8 @@ static void test_virtual_viewport_find_first_visible_item_view_helper(void)
     }
 
     EGUI_TEST_ASSERT_NOT_NULL(expected_view);
-    actual_view = egui_view_virtual_viewport_find_first_visible_item_view(EGUI_VIEW_OF(&test_viewport), test_virtual_viewport_match_item, &match_ctx,
-                                                                          &actual_entry);
+    actual_view =
+            egui_view_virtual_viewport_find_first_visible_item_view(EGUI_VIEW_OF(&test_viewport), test_virtual_viewport_match_item, &match_ctx, &actual_entry);
     EGUI_TEST_ASSERT_TRUE(actual_view == expected_view);
     EGUI_TEST_ASSERT_EQUAL_INT(expected_entry.index, actual_entry.index);
     EGUI_TEST_ASSERT_EQUAL_INT(expected_entry.stable_id, actual_entry.stable_id);

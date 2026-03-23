@@ -286,3 +286,20 @@ virtual 家族的目的，就是把这些问题沉到统一的虚拟化核心里
 - 一个容器里混合多种不适合命名成 list/page 的异构块
 
 如果你发现某类自定义 viewport 场景已经稳定且重复出现，再考虑进一步抽象成新的高层 wrapper。
+
+## 补充：固定画布请看 `virtual_stage`
+
+上面这套选型主要面向“滚动数据集容器”。如果你的页面更像下面这种场景：
+
+- 页面本身基本固定，不是长列表滚动
+- 节点是绝对定位的
+- 大多数节点只需要 render-only 绘制
+- 只有少量节点需要在交互时 materialize 成真实控件
+
+那就不要继续往 `virtual_viewport` 家族里硬套，而应该直接看 `virtual_stage`。
+
+推荐入口：
+
+- `example/HelloVirtual/virtual_stage_basic/`：推荐入门 case，先理解最小接法
+- `example/HelloVirtual/virtual_stage/`：复杂 cockpit 示例
+- `doc/source/architecture/virtual_stage.md`：完整设计与 API 说明

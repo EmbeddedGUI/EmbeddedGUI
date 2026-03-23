@@ -5,6 +5,8 @@
 #include "egui_mask_round_rectangle.h"
 #include "core/egui_api.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+
 void egui_mask_set_position(egui_mask_t *self, egui_dim_t x, egui_dim_t y)
 {
     self->region.location.x = x;
@@ -56,3 +58,5 @@ void egui_mask_init(egui_mask_t *self)
     // update api.
     self->api = &egui_mask_t_api_table;
 }
+
+#endif

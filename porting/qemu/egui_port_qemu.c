@@ -378,14 +378,116 @@ static void qemu_pfb_clear(void *s, int n)
     memset(s, 0, n);
 }
 
+typedef struct qemu_heap_block_header
+{
+    uint32_t size;
+} qemu_heap_block_header_t;
+
+static uint32_t s_qemu_heap_current_bytes = 0U;
+static uint32_t s_qemu_heap_peak_bytes = 0U;
+static uint32_t s_qemu_heap_alloc_count = 0U;
+static uint32_t s_qemu_heap_free_count = 0U;
+static uint32_t s_qemu_heap_measure_base_current = 0U;
+static uint32_t s_qemu_heap_measure_peak_bytes = 0U;
+static uint32_t s_qemu_heap_measure_base_alloc_count = 0U;
+static uint32_t s_qemu_heap_measure_base_free_count = 0U;
+
+static void qemu_heap_refresh_measure_peak(void)
+{
+    uint32_t delta = 0U;
+
+    if (s_qemu_heap_current_bytes > s_qemu_heap_peak_bytes)
+    {
+        s_qemu_heap_peak_bytes = s_qemu_heap_current_bytes;
+    }
+
+    if (s_qemu_heap_current_bytes > s_qemu_heap_measure_base_current)
+    {
+        delta = s_qemu_heap_current_bytes - s_qemu_heap_measure_base_current;
+    }
+
+    if (delta > s_qemu_heap_measure_peak_bytes)
+    {
+        s_qemu_heap_measure_peak_bytes = delta;
+    }
+}
+
 static void *qemu_malloc(int size)
 {
-    return malloc(size);
+    qemu_heap_block_header_t *block;
+
+    if (size <= 0)
+    {
+        return NULL;
+    }
+
+    block = (qemu_heap_block_header_t *)malloc(sizeof(*block) + (size_t)size);
+    if (block == NULL)
+    {
+        return NULL;
+    }
+
+    block->size = (uint32_t)size;
+    s_qemu_heap_current_bytes += block->size;
+    s_qemu_heap_alloc_count++;
+    qemu_heap_refresh_measure_peak();
+
+    return (void *)(block + 1);
 }
 
 static void qemu_free(void *ptr)
 {
-    free(ptr);
+    qemu_heap_block_header_t *block;
+
+    if (ptr == NULL)
+    {
+        return;
+    }
+
+    block = ((qemu_heap_block_header_t *)ptr) - 1;
+    if (s_qemu_heap_current_bytes >= block->size)
+    {
+        s_qemu_heap_current_bytes -= block->size;
+    }
+    else
+    {
+        s_qemu_heap_current_bytes = 0U;
+    }
+    s_qemu_heap_free_count++;
+    qemu_heap_refresh_measure_peak();
+    free(block);
+}
+
+void qemu_heap_reset_stats(void)
+{
+    s_qemu_heap_measure_base_current = s_qemu_heap_current_bytes;
+    s_qemu_heap_measure_peak_bytes = 0U;
+    s_qemu_heap_measure_base_alloc_count = s_qemu_heap_alloc_count;
+    s_qemu_heap_measure_base_free_count = s_qemu_heap_free_count;
+}
+
+uint32_t qemu_heap_get_current_bytes(void)
+{
+    if (s_qemu_heap_current_bytes > s_qemu_heap_measure_base_current)
+    {
+        return s_qemu_heap_current_bytes - s_qemu_heap_measure_base_current;
+    }
+    return 0U;
+}
+
+uint32_t qemu_heap_get_peak_bytes(void)
+{
+    return s_qemu_heap_measure_peak_bytes;
+}
+
+uint32_t qemu_heap_get_alloc_count(void)
+{
+    return s_qemu_heap_alloc_count - s_qemu_heap_measure_base_alloc_count;
+}
+
+uint32_t qemu_heap_get_free_count(void)
+{
+    return s_qemu_heap_free_count - s_qemu_heap_measure_base_free_count;
 }
 
 static egui_base_t qemu_interrupt_disable(void)

@@ -16,6 +16,12 @@ extern "C" {
 #define EGUI_CONFIG_DEBUG_LOG_LEVEL EGUI_LOG_IMPL_LEVEL_INF
 
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW 1
+#define EGUI_CONFIG_FUNCTION_SUPPORT_MASK   1
+
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1 1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2 1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8 1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8  1
 
 // Enable large image tests (480px/240px direct-draw, resize, rotate)
 // Set to 0 to save flash on constrained devices; 40x40 tiled tests still run.

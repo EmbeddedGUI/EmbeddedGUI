@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "egui_view_progress_bar.h"
+#include "egui_view_circle_dirty.h"
 #include "style/egui_theme.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
@@ -14,22 +15,109 @@ void egui_view_progress_bar_set_on_progress_listener(egui_view_t *self, egui_vie
     local->on_progress_changed = listener;
 }
 
+static void egui_view_progress_bar_invalidate_process_change(egui_view_t *self, egui_view_progress_bar_t *local, uint8_t old_process)
+{
+    egui_region_t region;
+    egui_region_t dirty_region;
+    egui_dim_t height;
+    egui_dim_t radius;
+    egui_dim_t y;
+    egui_dim_t old_width;
+    egui_dim_t new_width;
+
+    if (self->region_screen.size.width <= 0 || self->region_screen.size.height <= 0)
+    {
+        egui_view_invalidate(self);
+        return;
+    }
+
+    egui_view_get_work_region(self, &region);
+    height = EGUI_THEME_TRACK_THICKNESS;
+    if (height > region.size.height)
+    {
+        height = region.size.height;
+    }
+    if (height <= 0 || region.size.width <= 0)
+    {
+        egui_view_invalidate(self);
+        return;
+    }
+
+    radius = height / 2;
+    y = region.location.y + (region.size.height - height) / 2;
+    old_width = region.size.width * old_process / 100;
+    new_width = region.size.width * local->process / 100;
+
+    egui_region_init_empty(&dirty_region);
+    egui_view_circle_dirty_add_rect_region(&dirty_region, region.location.x + EGUI_MIN(old_width, new_width) - radius, y,
+                                           EGUI_ABS(new_width - old_width) + radius * 2 + 1, height, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD);
+
+    if (local->is_show_control)
+    {
+        egui_dim_t knob_radius = (region.size.height / 2) - 1;
+        egui_dim_t knob_x;
+        egui_dim_t knob_y;
+
+        if (knob_radius < EGUI_THEME_RADIUS_SM)
+        {
+            knob_radius = EGUI_THEME_RADIUS_SM;
+        }
+        if (knob_radius > EGUI_THEME_RADIUS_LG)
+        {
+            knob_radius = EGUI_THEME_RADIUS_LG;
+        }
+
+        knob_y = region.location.y + region.size.height / 2;
+
+        knob_x = region.location.x + old_width;
+        if (knob_x < region.location.x + knob_radius)
+        {
+            knob_x = region.location.x + knob_radius;
+        }
+        if (knob_x > region.location.x + region.size.width - knob_radius)
+        {
+            knob_x = region.location.x + region.size.width - knob_radius;
+        }
+        egui_view_circle_dirty_add_circle_region(&dirty_region, knob_x, knob_y, knob_radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD + 1);
+
+        knob_x = region.location.x + new_width;
+        if (knob_x < region.location.x + knob_radius)
+        {
+            knob_x = region.location.x + knob_radius;
+        }
+        if (knob_x > region.location.x + region.size.width - knob_radius)
+        {
+            knob_x = region.location.x + region.size.width - knob_radius;
+        }
+        egui_view_circle_dirty_add_circle_region(&dirty_region, knob_x, knob_y, knob_radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD + 1);
+    }
+
+    if (egui_region_is_empty(&dirty_region))
+    {
+        return;
+    }
+
+    egui_view_invalidate_region(self, &dirty_region);
+}
+
 void egui_view_progress_bar_set_process(egui_view_t *self, uint8_t process)
 {
     EGUI_LOCAL_INIT(egui_view_progress_bar_t);
+    uint8_t old_process;
     if (process > 100)
     {
         process = 100;
     }
     if (process != local->process)
     {
+        old_process = local->process;
         local->process = process;
         if (local->on_progress_changed)
         {
             local->on_progress_changed(self, process);
         }
 
-        egui_view_invalidate(self);
+        egui_view_progress_bar_invalidate_process_change(self, local, old_process);
     }
 }
 

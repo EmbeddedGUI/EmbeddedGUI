@@ -31,11 +31,19 @@ extern "C" {
 
 /**
  * Debug options.
+ * For checking the clear of the PFB.
+ */
+#ifndef EGUI_CONFIG_DEBUG_PFB_DIRTY_REGION_CLEAR
+#define EGUI_CONFIG_DEBUG_PFB_DIRTY_REGION_CLEAR 1
+#endif
+
+/**
+ * Debug options.
  * Delay for checking the refresh of the PFB/Dirty Region.
  * /ref EGUI_CONFIG_DEBUG_PFB_REFRESH and EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
  */
 #ifndef EGUI_CONFIG_DEBUG_REFRESH_DELAY
-#define EGUI_CONFIG_DEBUG_REFRESH_DELAY 1
+#define EGUI_CONFIG_DEBUG_REFRESH_DELAY 0
 #endif
 
 /**
@@ -76,6 +84,23 @@ extern "C" {
  */
 #ifndef EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
 #define EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS 0
+#endif
+
+/**
+ * Debug options.
+ * Enable touch trace debug overlay support.
+ * When enabled, EGUI automatically records and draws the latest touch trace.
+ */
+#ifndef EGUI_CONFIG_DEBUG_TOUCH_TRACE
+#define EGUI_CONFIG_DEBUG_TOUCH_TRACE 0
+#endif
+
+/**
+ * Debug options.
+ * Maximum points kept per touch trace.
+ */
+#ifndef EGUI_CONFIG_DEBUG_TOUCH_TRACE_MAX_POINTS
+#define EGUI_CONFIG_DEBUG_TOUCH_TRACE_MAX_POINTS 256
 #endif
 
 #ifdef __cplusplus

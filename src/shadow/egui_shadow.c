@@ -364,36 +364,37 @@ static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t b
             }
             else
             {
-                /* Center-crossing: split into right half (cx→bx1) and left half (cx→bx0)
-                 * with incremental d² to avoid per-pixel ABS + multiply. */
+/* Center-crossing: split into right half (cx→bx1) and left half (cx→bx0)
+ * with incremental d² to avoid per-pixel ABS + multiply. */
 
-                /* Macro for shadow pixel blending (direct PFB path) */
-                #define SHADOW_CORNER_BLEND_DIRECT(px_val, d_sq_val)                                            \
-                    do {                                                                                       \
-                        if ((d_sq_val) <= R_scaled_sq)                                                         \
-                        {                                                                                      \
-                            if (effective_center_opa > 0)                                                      \
-                            {                                                                                  \
-                                egui_color_t *back_color = &dst_base[(px_val)];                                \
-                                if (effective_center_opa == EGUI_ALPHA_100)                                    \
-                                    *back_color = color;                                                       \
-                                else                                                                           \
-                                    egui_rgb_mix_ptr(back_color, &color, back_color, effective_center_opa);    \
-                            }                                                                                  \
-                        }                                                                                      \
-                        else if ((d_sq_val) < RW_scaled_sq)                                                    \
-                        {                                                                                      \
-                            egui_alpha_t _a = dsq_alpha_lut[((d_sq_val) - R_scaled_sq) >> dsq_shift];          \
-                            if (_a > 0)                                                                        \
-                            {                                                                                  \
-                                egui_color_t *back_color = &dst_base[(px_val)];                                \
-                                if (_a == EGUI_ALPHA_100)                                                      \
-                                    *back_color = color;                                                       \
-                                else                                                                           \
-                                    egui_rgb_mix_ptr(back_color, &color, back_color, _a);                      \
-                            }                                                                                  \
-                        }                                                                                      \
-                    } while (0)
+/* Macro for shadow pixel blending (direct PFB path) */
+#define SHADOW_CORNER_BLEND_DIRECT(px_val, d_sq_val)                                                                                                           \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        if ((d_sq_val) <= R_scaled_sq)                                                                                                                         \
+        {                                                                                                                                                      \
+            if (effective_center_opa > 0)                                                                                                                      \
+            {                                                                                                                                                  \
+                egui_color_t *back_color = &dst_base[(px_val)];                                                                                                \
+                if (effective_center_opa == EGUI_ALPHA_100)                                                                                                    \
+                    *back_color = color;                                                                                                                       \
+                else                                                                                                                                           \
+                    egui_rgb_mix_ptr(back_color, &color, back_color, effective_center_opa);                                                                    \
+            }                                                                                                                                                  \
+        }                                                                                                                                                      \
+        else if ((d_sq_val) < RW_scaled_sq)                                                                                                                    \
+        {                                                                                                                                                      \
+            egui_alpha_t _a = dsq_alpha_lut[((d_sq_val) - R_scaled_sq) >> dsq_shift];                                                                          \
+            if (_a > 0)                                                                                                                                        \
+            {                                                                                                                                                  \
+                egui_color_t *back_color = &dst_base[(px_val)];                                                                                                \
+                if (_a == EGUI_ALPHA_100)                                                                                                                      \
+                    *back_color = color;                                                                                                                       \
+                else                                                                                                                                           \
+                    egui_rgb_mix_ptr(back_color, &color, back_color, _a);                                                                                      \
+            }                                                                                                                                                  \
+        }                                                                                                                                                      \
+    } while (0)
 
                 /* Right half: cx → bx1 (increasing dx) */
                 if (cx < bx1)
@@ -427,7 +428,7 @@ static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t b
                         l_delta += l_delta_step;
                     }
                 }
-                #undef SHADOW_CORNER_BLEND_DIRECT
+#undef SHADOW_CORNER_BLEND_DIRECT
             }
         }
         return;

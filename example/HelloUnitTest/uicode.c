@@ -2,6 +2,9 @@
 #include "uicode.h"
 
 #include "test/test_dirty_region.h"
+#include "test/test_activity_ring_dirty.h"
+#include "test/test_basic_widget_dirty.h"
+#include "test/test_circular_widget_dirty.h"
 #include "test/test_invalidate_region.h"
 #include "test/test_canvas_active.h"
 #include "test/test_region.h"
@@ -14,6 +17,7 @@
 #include "test/test_view.h"
 #include "test/test_view_group.h"
 #include "test/test_linearlayout.h"
+#include "test/test_list_view.h"
 #include "test/test_interpolator.h"
 #include "test/test_animation.h"
 #include "test/test_auto_suggest_box.h"
@@ -29,6 +33,7 @@
 #include "test/test_color_picker.h"
 #include "test/test_command_bar.h"
 #include "test/test_data_list_panel.h"
+#include "test/test_grid_view.h"
 #include "test/test_date_picker.h"
 #include "test/test_drop_down_button.h"
 #include "test/test_dialog_sheet.h"
@@ -91,11 +96,15 @@ void uicode_create_ui(void)
     test_view_run();
     test_view_group_run();
     test_linearlayout_run();
+    test_list_view_run();
     test_interpolator_run();
     test_animation_run();
     test_auto_suggest_box_run();
     test_alert_banner_run();
     test_dirty_region_run();
+    test_activity_ring_dirty_run();
+    test_basic_widget_dirty_run();
+    test_circular_widget_dirty_run();
     test_invalidate_region_run();
     test_canvas_active_run();
     test_annotated_scroll_bar_run();
@@ -109,6 +118,7 @@ void uicode_create_ui(void)
     test_color_picker_run();
     test_command_bar_run();
     test_data_list_panel_run();
+    test_grid_view_run();
     test_date_picker_run();
     test_drop_down_button_run();
     test_dialog_sheet_run();

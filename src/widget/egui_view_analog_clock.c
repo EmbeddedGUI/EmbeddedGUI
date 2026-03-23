@@ -2,12 +2,111 @@
 #include <assert.h>
 
 #include "egui_view_analog_clock.h"
+#include "egui_view_circle_dirty.h"
 #include "core/egui_canvas_gradient.h"
 #include "utils/egui_fixmath.h"
+
+static void egui_view_analog_clock_add_hand_dirty_region(egui_region_t *dirty_region, egui_dim_t cx, egui_dim_t cy, int16_t angle_deg, egui_dim_t length,
+                                                         egui_dim_t width)
+{
+    egui_dim_t end_x;
+    egui_dim_t end_y;
+
+    if (length <= 0)
+    {
+        return;
+    }
+
+    egui_view_circle_dirty_get_circle_point(cx, cy, length, angle_deg, &end_x, &end_y);
+    egui_view_circle_dirty_add_line_region(dirty_region, cx, cy, end_x, end_y, width, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD);
+}
+
+static void egui_view_analog_clock_invalidate_time_change(egui_view_t *self, egui_view_analog_clock_t *local, uint8_t old_hour, uint8_t old_minute,
+                                                          uint8_t old_second)
+{
+    egui_region_t region;
+    egui_region_t dirty_region;
+    egui_dim_t w;
+    egui_dim_t h;
+    egui_dim_t cx;
+    egui_dim_t cy;
+    egui_dim_t radius;
+    egui_dim_t hour_len;
+    egui_dim_t minute_len;
+    egui_dim_t second_len;
+    int16_t old_hour_angle;
+    int16_t new_hour_angle;
+    int16_t old_minute_angle;
+    int16_t new_minute_angle;
+    int16_t old_second_angle;
+    int16_t new_second_angle;
+
+    if (self->region_screen.size.width <= 0 || self->region_screen.size.height <= 0)
+    {
+        egui_view_invalidate(self);
+        return;
+    }
+
+    egui_view_get_work_region(self, &region);
+    w = region.size.width;
+    h = region.size.height;
+    cx = region.location.x + w / 2;
+    cy = region.location.y + h / 2;
+    radius = EGUI_MIN(w, h) / 2 - 2;
+    if (radius <= 0)
+    {
+        egui_view_invalidate(self);
+        return;
+    }
+
+    hour_len = radius * 50 / 100;
+    minute_len = radius * 70 / 100;
+    second_len = radius * 80 / 100;
+
+    egui_region_init_empty(&dirty_region);
+
+    old_hour_angle = (int16_t)(old_hour % 12) * 30 + (int16_t)old_minute / 2 - 90;
+    new_hour_angle = (int16_t)(local->hour % 12) * 30 + (int16_t)local->minute / 2 - 90;
+    if (old_hour_angle != new_hour_angle)
+    {
+        egui_view_analog_clock_add_hand_dirty_region(&dirty_region, cx, cy, old_hour_angle, hour_len, local->hour_hand_width);
+        egui_view_analog_clock_add_hand_dirty_region(&dirty_region, cx, cy, new_hour_angle, hour_len, local->hour_hand_width);
+    }
+
+    old_minute_angle = (int16_t)old_minute * 6 - 90;
+    new_minute_angle = (int16_t)local->minute * 6 - 90;
+    if (old_minute_angle != new_minute_angle)
+    {
+        egui_view_analog_clock_add_hand_dirty_region(&dirty_region, cx, cy, old_minute_angle, minute_len, local->minute_hand_width);
+        egui_view_analog_clock_add_hand_dirty_region(&dirty_region, cx, cy, new_minute_angle, minute_len, local->minute_hand_width);
+    }
+
+    if (local->show_second)
+    {
+        old_second_angle = (int16_t)old_second * 6 - 90;
+        new_second_angle = (int16_t)local->second * 6 - 90;
+        if (old_second_angle != new_second_angle)
+        {
+            egui_view_analog_clock_add_hand_dirty_region(&dirty_region, cx, cy, old_second_angle, second_len, local->second_hand_width);
+            egui_view_analog_clock_add_hand_dirty_region(&dirty_region, cx, cy, new_second_angle, second_len, local->second_hand_width);
+        }
+    }
+
+    if (egui_region_is_empty(&dirty_region))
+    {
+        return;
+    }
+
+    egui_view_invalidate_region(self, &dirty_region);
+}
 
 void egui_view_analog_clock_set_time(egui_view_t *self, uint8_t h, uint8_t m, uint8_t s)
 {
     EGUI_LOCAL_INIT(egui_view_analog_clock_t);
+    uint8_t old_hour;
+    uint8_t old_minute;
+    uint8_t old_second;
+
     h = h % 12;
     if (m > 59)
     {
@@ -19,10 +118,13 @@ void egui_view_analog_clock_set_time(egui_view_t *self, uint8_t h, uint8_t m, ui
     }
     if (local->hour != h || local->minute != m || local->second != s)
     {
+        old_hour = local->hour;
+        old_minute = local->minute;
+        old_second = local->second;
         local->hour = h;
         local->minute = m;
         local->second = s;
-        egui_view_invalidate(self);
+        egui_view_analog_clock_invalidate_time_change(self, local, old_hour, old_minute, old_second);
     }
 }
 

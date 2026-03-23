@@ -4,6 +4,10 @@
 #include "uicode.h"
 #include "app_egui_resource_generate.h"
 
+#ifndef EGUI_SHOWCASE_PARITY_RECORDING
+#define EGUI_SHOWCASE_PARITY_RECORDING 0
+#endif
+
 // ============================================================================
 // Widget Showcase
 // Displays all visual widgets on 1280x1024 black canvas for promotion.
@@ -180,10 +184,12 @@ static const char *roller_items[] = {"Mon", "Tue", "Wed", "Thu", "Fri"};
 static const char *roller_items_cn[] = {"周一", "周二", "周三", "周四", "周五"};
 // Combobox items
 static const char *combo_items[] = {"Sky", "Mint", "Steel"};
-static const char *combo_items_cn[] = {"天空", "薄荷", "鑂钓"};
+static const char *combo_items_cn[] = {"天空", "薄荷", "钢铁"};
 // Tab bar texts
 static const char *tab_texts[] = {"Home", "Set", "Info"};
 static const char *tab_texts_cn[] = {"首页", "设置", "信息"};
+// Mini calendar weekday labels
+static const char *calendar_weekdays_cn[] = {"日", "一", "二", "三", "四", "五", "六"};
 // Button matrix labels
 static const char *bm_labels[] = {"1", "2", "3", "4", "5", "6"};
 // Chinese menu data
@@ -709,6 +715,7 @@ static void update_language(void)
     egui_view_toggle_button_set_text(EGUI_VIEW_OF(&wg_togbtn), S("ON", "开"));
     egui_view_textblock_set_font(EGUI_VIEW_OF(&wg_textblock), tf);
     egui_view_textblock_set_text(EGUI_VIEW_OF(&wg_textblock), S("Multi-line\ntext block", "多行\n文本块"));
+    egui_view_textinput_set_font(EGUI_VIEW_OF(&wg_textinput), tf);
     egui_view_textinput_set_text(EGUI_VIEW_OF(&wg_textinput), S("Hello", "你好"));
     egui_view_textinput_set_placeholder(EGUI_VIEW_OF(&wg_textinput), S("Type here...", "请输入..."));
 
@@ -757,6 +764,8 @@ static void update_language(void)
     egui_view_combobox_set_font(EGUI_VIEW_OF(&wg_combobox), tf);
     wg_tabbar.font = tf;
     wg_menu.font = tf;
+    wg_calendar.font = tf;
+    egui_view_mini_calendar_set_weekday_labels(EGUI_VIEW_OF(&wg_calendar), is_chinese ? calendar_weekdays_cn : NULL);
 
     egui_view_roller_set_items(EGUI_VIEW_OF(&wg_roller), is_chinese ? roller_items_cn : roller_items, 5);
     egui_view_combobox_set_items(EGUI_VIEW_OF(&wg_combobox), is_chinese ? combo_items_cn : combo_items, 3);
@@ -1218,7 +1227,9 @@ static void uicode_init_ui(void)
     egui_view_spinner_init(EGUI_VIEW_OF(&wg_spinner));
     egui_view_set_position(EGUI_VIEW_OF(&wg_spinner), 216, 410);
     egui_view_set_size(EGUI_VIEW_OF(&wg_spinner), 40, 40);
+#if !EGUI_SHOWCASE_PARITY_RECORDING
     egui_view_spinner_start(EGUI_VIEW_OF(&wg_spinner));
+#endif
     egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&wg_spinner));
 
     {
@@ -1430,8 +1441,10 @@ static void uicode_init_ui(void)
     // ==================================================================
     // Start animation timer (100ms period)
     // ==================================================================
+#if !EGUI_SHOWCASE_PARITY_RECORDING
     egui_timer_init_timer(&anim_timer, NULL, anim_cb);
     egui_timer_start_timer(&anim_timer, 100, 100);
+#endif
 
     // ==================================================================
     // Attach root to core
@@ -1466,6 +1479,28 @@ void uicode_create_ui(void)
 #if EGUI_CONFIG_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
+#if EGUI_SHOWCASE_PARITY_RECORDING
+    switch (action_index)
+    {
+    case 0:
+        EGUI_SIM_SET_WAIT(p_action, 1000);
+        return true;
+    case 1:
+        EGUI_SIM_SET_CLICK_VIEW(p_action, &btn_theme, 500);
+        return true;
+    case 2:
+        EGUI_SIM_SET_WAIT(p_action, 1000);
+        return true;
+    case 3:
+        EGUI_SIM_SET_CLICK_VIEW(p_action, &btn_lang, 500);
+        return true;
+    case 4:
+        EGUI_SIM_SET_WAIT(p_action, 1000);
+        return true;
+    default:
+        return false;
+    }
+#else
     switch (action_index)
     {
     case 0:
@@ -1528,5 +1563,6 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     default:
         return false;
     }
+#endif
 }
 #endif

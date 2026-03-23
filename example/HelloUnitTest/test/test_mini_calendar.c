@@ -130,9 +130,29 @@ static void test_mini_calendar_release_requires_same_day(void)
     EGUI_TEST_ASSERT_EQUAL_INT(0, test_calendar.pressed_day);
 }
 
+static void test_mini_calendar_custom_weekday_labels_can_override_and_reset(void)
+{
+    static const char *const weekday_labels_cn[] = {
+            "\xE6\x97\xA5", "\xE4\xB8\x80", "\xE4\xBA\x8C", "\xE4\xB8\x89", "\xE5\x9B\x9B", "\xE4\xBA\x94", "\xE5\x85\xAD",
+    };
+
+    setup_calendar();
+
+    egui_view_mini_calendar_set_weekday_labels(EGUI_VIEW_OF(&test_calendar), weekday_labels_cn);
+    EGUI_TEST_ASSERT_TRUE(strcmp("\xE6\x97\xA5", test_calendar.weekday_labels[0]) == 0);
+    EGUI_TEST_ASSERT_TRUE(strcmp("\xE4\xB8\x89", test_calendar.weekday_labels[3]) == 0);
+    EGUI_TEST_ASSERT_TRUE(strcmp("\xE5\x85\xAD", test_calendar.weekday_labels[6]) == 0);
+
+    egui_view_mini_calendar_set_weekday_labels(EGUI_VIEW_OF(&test_calendar), NULL);
+    EGUI_TEST_ASSERT_NULL(test_calendar.weekday_labels[0]);
+    EGUI_TEST_ASSERT_NULL(test_calendar.weekday_labels[3]);
+    EGUI_TEST_ASSERT_NULL(test_calendar.weekday_labels[6]);
+}
+
 void test_mini_calendar_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(mini_calendar);
     EGUI_TEST_RUN(test_mini_calendar_release_requires_same_day);
+    EGUI_TEST_RUN(test_mini_calendar_custom_weekday_labels_can_override_and_reset);
     EGUI_TEST_SUITE_END();
 }

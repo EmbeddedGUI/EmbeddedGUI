@@ -49,6 +49,19 @@ static uint8_t is_weekend_col(uint8_t col, uint8_t first_day_of_week)
     return (dow == 0 || dow == 6) ? 1 : 0; // Sunday=0 or Saturday=6
 }
 
+static const char *const egui_view_mini_calendar_default_weekdays_sun[] = {"S", "M", "T", "W", "T", "F", "S"};
+static const char *const egui_view_mini_calendar_default_weekdays_mon[] = {"M", "T", "W", "T", "F", "S", "S"};
+
+static const char *const *egui_view_mini_calendar_get_weekday_labels(egui_view_mini_calendar_t *local)
+{
+    if (local->weekday_labels[0] != NULL)
+    {
+        return local->weekday_labels;
+    }
+
+    return local->first_day_of_week == 1 ? egui_view_mini_calendar_default_weekdays_mon : egui_view_mini_calendar_default_weekdays_sun;
+}
+
 static uint8_t egui_view_mini_calendar_hit_day(egui_view_t *self, egui_view_mini_calendar_t *local, egui_dim_t touch_x, egui_dim_t touch_y)
 {
     egui_dim_t w = self->region.size.width;
@@ -169,6 +182,27 @@ void egui_view_mini_calendar_set_first_day_of_week(egui_view_t *self, uint8_t da
     egui_view_invalidate(self);
 }
 
+void egui_view_mini_calendar_set_weekday_labels(egui_view_t *self, const char *const *labels)
+{
+    EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
+
+    if (labels == NULL)
+    {
+        memset(local->weekday_labels, 0, sizeof(local->weekday_labels));
+    }
+    else
+    {
+        uint8_t i;
+
+        for (i = 0; i < 7; i++)
+        {
+            local->weekday_labels[i] = labels[i];
+        }
+    }
+
+    egui_view_invalidate(self);
+}
+
 void egui_view_mini_calendar_set_on_date_selected_listener(egui_view_t *self, egui_view_on_date_selected_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_mini_calendar_t);
@@ -225,9 +259,7 @@ void egui_view_mini_calendar_on_draw(egui_view_t *self)
     egui_canvas_draw_text_in_rect(font, buf, &title_rect, EGUI_ALIGN_CENTER, local->header_color, EGUI_ALPHA_100);
 
     // Row 2: Weekday headers
-    const char *weekdays_sun[] = {"S", "M", "T", "W", "T", "F", "S"};
-    const char *weekdays_mon[] = {"M", "T", "W", "T", "F", "S", "S"};
-    const char **weekdays = (local->first_day_of_week == 1) ? weekdays_mon : weekdays_sun;
+    const char *const *weekdays = egui_view_mini_calendar_get_weekday_labels(local);
 
     uint8_t col;
     for (col = 0; col < 7; col++)
@@ -325,10 +357,10 @@ static int egui_view_mini_calendar_on_touch_event(egui_view_t *self, egui_motion
     {
     case EGUI_MOTION_EVENT_ACTION_DOWN:
         local->pressed_day = hit_day;
-        self->is_pressed = (hit_day != 0);
+        egui_view_set_pressed_with_region(self, hit_day != 0, NULL);
         break;
     case EGUI_MOTION_EVENT_ACTION_MOVE:
-        self->is_pressed = (local->pressed_day != 0 && local->pressed_day == hit_day);
+        egui_view_set_pressed_with_region(self, local->pressed_day != 0 && local->pressed_day == hit_day, NULL);
         break;
     case EGUI_MOTION_EVENT_ACTION_UP:
     {
@@ -336,7 +368,7 @@ static int egui_view_mini_calendar_on_touch_event(egui_view_t *self, egui_motion
         uint8_t pressed_day = local->pressed_day;
         egui_region_t day_region;
 
-        self->is_pressed = false;
+        egui_view_set_pressed_with_region(self, false, NULL);
         local->pressed_day = 0;
         if (was_pressed && pressed_day != 0 && pressed_day == hit_day && hit_day != local->day)
         {
@@ -361,7 +393,7 @@ static int egui_view_mini_calendar_on_touch_event(egui_view_t *self, egui_motion
     }
     case EGUI_MOTION_EVENT_ACTION_CANCEL:
         local->pressed_day = 0;
-        self->is_pressed = false;
+        egui_view_set_pressed_with_region(self, false, NULL);
         break;
     default:
         break;
@@ -414,6 +446,7 @@ void egui_view_mini_calendar_init(egui_view_t *self)
     local->selected_color = EGUI_THEME_SECONDARY;
     local->weekend_color = EGUI_THEME_TEXT_SECONDARY;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    memset(local->weekday_labels, 0, sizeof(local->weekday_labels));
     local->on_date_selected = NULL;
 
     egui_view_set_view_name(self, "egui_view_mini_calendar");

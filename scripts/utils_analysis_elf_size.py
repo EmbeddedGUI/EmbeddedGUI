@@ -9,6 +9,12 @@ from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
 
 
+SUB_APP_ROOTS = {
+    "HelloBasic": "example/HelloBasic",
+    "HelloVirtual": "example/HelloVirtual",
+}
+
+
 
 
 class ElfSizeInfo(object):
@@ -100,11 +106,14 @@ def get_example_list():
         if os.path.isdir(file_path):
             app_list.append(file)
     
-    return app_list
+    return sorted(app_list)
 
-def get_example_basic_list():
-    path = 'example/HelloBasic'
+
+def get_example_sub_list(app):
+    path = SUB_APP_ROOTS.get(app)
     app_list = []
+    if path is None:
+        return app_list
 
     files = os.listdir(path)
     for file in files:
@@ -113,7 +122,7 @@ def get_example_basic_list():
         if os.path.isdir(file_path):
             app_list.append(file)
     
-    return app_list
+    return sorted(app_list)
 
 
 def compile_code(params):
@@ -131,14 +140,14 @@ def compile_code(params):
     return 0
 
 
-def process_app(current_work_cnt, total_work_cnt, app, app_basic, params):
+def process_app(current_work_cnt, total_work_cnt, app, app_sub, params):
     print("=================================================================================")
     print("Total Work Cnt: %d, Current Cnt: %d, Process: %.2f%%"
         % (total_work_cnt, current_work_cnt, current_work_cnt * 100.0 / total_work_cnt))
     print("=================================================================================")
 
-    if app_basic != None:
-        params_full = params + (' PORT=stm32g0_empty APP=%s APP_SUB=%s') % (app, app_basic)
+    if app_sub != None:
+        params_full = params + (' PORT=stm32g0_empty APP=%s APP_SUB=%s') % (app, app_sub)
     else:
         params_full = params + (' PORT=stm32g0_empty APP=%s') % (app)
     res = compile_code(params_full)
@@ -149,8 +158,8 @@ def process_app(current_work_cnt, total_work_cnt, app, app_basic, params):
     elf_size_info = utils_process_elf_file('output/main.elf')
 
     app_name = app
-    if app_basic != None:
-        app_name = app + '(' + app_basic + ')'
+    if app_sub != None:
+        app_name = app + '(' + app_sub + ')'
 
     md_row = ("|%24s|%21s|%21s|%21s|%21s|\n" % (app_name, elf_size_info.code_size, elf_size_info.rodata_size
                                                     , elf_size_info.data_size + elf_size_info.bss_size - elf_size_info.bss_pfb_size, elf_size_info.bss_pfb_size))
@@ -169,12 +178,12 @@ if __name__ == '__main__':
     params = ''
 
     app_sets = get_example_list()
-    app_basic_sets = get_example_basic_list()
+    sub_app_sets = {app: get_example_sub_list(app) for app in SUB_APP_ROOTS}
 
     total_work_cnt = 0
     for app in app_sets:
-        if app == "HelloBasic":
-            for app_basic in app_basic_sets:
+        if app in SUB_APP_ROOTS:
+            for app_sub in sub_app_sets.get(app, []):
                 total_work_cnt += 1
         else:
             total_work_cnt += 1
@@ -189,10 +198,10 @@ if __name__ == '__main__':
     size_results = []
     current_work_cnt = 0
     for app in app_sets:
-        if app == "HelloBasic":
-            for app_basic in app_basic_sets:
+        if app in SUB_APP_ROOTS:
+            for app_sub in sub_app_sets.get(app, []):
                 current_work_cnt += 1
-                md_row, json_entry = process_app(current_work_cnt, total_work_cnt, app, app_basic, params)
+                md_row, json_entry = process_app(current_work_cnt, total_work_cnt, app, app_sub, params)
                 if md_row is not None:
                     info_str += md_row
                     size_results.append(json_entry)

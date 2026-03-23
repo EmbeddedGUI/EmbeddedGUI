@@ -65,9 +65,7 @@ int egui_view_viewpage_on_touch_event(egui_view_t *self, egui_motion_event_t *ev
 void egui_view_viewpage_set_on_page_changed(egui_view_t *self, egui_view_viewpage_on_page_changed_t callback);
 void egui_view_viewpage_init(egui_view_t *self);
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
 void egui_view_viewpage_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled);
-#endif
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

@@ -66,6 +66,20 @@ static int egui_view_group_touch_state_contains(egui_view_t *view)
     }
     return 0;
 }
+
+void egui_view_group_touch_state_exchange(egui_view_group_touch_state_snapshot_t *snapshot)
+{
+    egui_view_group_touch_state_snapshot_t current_state;
+
+    if (snapshot == NULL)
+    {
+        return;
+    }
+
+    memcpy(&current_state, &egui_view_group_touch_state, sizeof(current_state));
+    memcpy(&egui_view_group_touch_state, snapshot, sizeof(egui_view_group_touch_state));
+    memcpy(snapshot, &current_state, sizeof(*snapshot));
+}
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
@@ -557,6 +571,11 @@ void egui_view_group_request_disallow_intercept_touch_event(egui_view_t *self, i
 {
     EGUI_UNUSED(self);
     EGUI_UNUSED(disallow);
+}
+
+void egui_view_group_touch_state_exchange(egui_view_group_touch_state_snapshot_t *snapshot)
+{
+    EGUI_UNUSED(snapshot);
 }
 
 int egui_view_group_dispatch_transformed_touch_event(egui_view_t *self, int is_canceled, egui_view_t *child, egui_motion_event_t *event)

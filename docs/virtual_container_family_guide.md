@@ -15,12 +15,33 @@
 
 相关示例入口：
 
-- [raw viewport 总览](../example/HelloBasic/virtual_viewport/readme.md)
-- [virtual_page 示例](../example/HelloBasic/virtual_page/readme.md)
-- [virtual_strip 示例](../example/HelloBasic/virtual_strip/readme.md)
-- [virtual_grid 示例](../example/HelloBasic/virtual_grid/readme.md)
-- [virtual_section_list 示例](../example/HelloBasic/virtual_section_list/readme.md)
-- [virtual_tree 示例](../example/HelloBasic/virtual_tree/readme.md)
+- [raw viewport 入门示例](../example/HelloVirtual/virtual_viewport_basic/readme.md)
+- [raw viewport 总览](../example/HelloVirtual/virtual_viewport/readme.md)
+- [virtual_page 入门示例](../example/HelloVirtual/virtual_page_basic/readme.md)
+- [virtual_page 示例](../example/HelloVirtual/virtual_page/readme.md)
+- [virtual_strip 入门示例](../example/HelloVirtual/virtual_strip_basic/readme.md)
+- [virtual_strip 示例](../example/HelloVirtual/virtual_strip/readme.md)
+- [virtual_grid 入门示例](../example/HelloVirtual/virtual_grid_basic/readme.md)
+- [virtual_grid 示例](../example/HelloVirtual/virtual_grid/readme.md)
+- [virtual_section_list 入门示例](../example/HelloVirtual/virtual_section_list_basic/readme.md)
+- [virtual_section_list 示例](../example/HelloVirtual/virtual_section_list/readme.md)
+- [virtual_tree 入门示例](../example/HelloVirtual/virtual_tree_basic/readme.md)
+- [virtual_tree 示例](../example/HelloVirtual/virtual_tree/readme.md)
+
+补充说明：如果你的页面不是“滚动数据集”，而是“固定画布 + 大量绝对定位节点 + 少量活跃控件”，请直接看：
+
+- [virtual_stage_basic 入门示例](../example/HelloVirtual/virtual_stage_basic/readme.md)
+- [virtual_stage_showcase 对比示例](../example/HelloVirtual/virtual_stage_showcase/readme.md)
+- [virtual_stage 复杂示例](../example/HelloVirtual/virtual_stage/readme.md)
+- [virtual_stage 架构说明](../doc/source/architecture/virtual_stage.md)
+
+实践上再记住两点：
+
+- 固定节点数组且回调就在当前文件时，优先直接用一步式 bridge 宏：常规交互场景用 `EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_INTERACTIVE_BRIDGE_INIT_WITH_LIMIT(...)`，整屏且要状态恢复的 rich 场景用 `EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_SCREEN_STATEFUL_BRIDGE_INIT_WITH_LIMIT(...)`；这样 `ops + bridge` 一次收口，用户第一次接入只要关心回调函数和节点数组。
+- 如果 `ops` 需要跨文件导出、复用，或者你已经把 `params` / `node_source` 单独拆出来了，再回退到 `EGUI_VIEW_VIRTUAL_STAGE_ARRAY_OPS_*_INIT(...) + EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_BRIDGE_INIT*(...)` 这套分层宏。
+- 如果手上已经是 `egui_view_virtual_stage_t *`，继续优先用 bridge 头里的 typed convenience 宏，如 `EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(...)`、`EGUI_VIEW_VIRTUAL_STAGE_ADD_ROOT(...)`、`EGUI_VIEW_VIRTUAL_STAGE_SET_BACKGROUND(...)`、`EGUI_VIEW_VIRTUAL_STAGE_REQUEST_LAYOUT(...)`、`EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_NODE(...)`、`EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_IDS(...)`、`EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_NODES(...)`、`EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_BOUNDS_IDS(...)`、`EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_NODES_BOUNDS(...)`、`EGUI_VIEW_VIRTUAL_STAGE_TOGGLE_PIN(...)`，把 `EGUI_VIEW_OF(...)` 这层也尽量省掉。少量 `stable_id` 的一次性联动优先直接用 `NOTIFY_IDS(...)` / `NOTIFY_BOUNDS_IDS(...)`，需要复用数组时再用 `NOTIFY_NODES(...)` / `NOTIFY_NODES_BOUNDS(...)`。
+- `EGUI_VIEW_VIRTUAL_STAGE_PIN(...)` 只适合当前已经存在且可 materialize 的节点；render-only、hidden 或不存在的节点不会被 pin 成功。
+- 如果一个节点原来没有 live slot，但你把它改成了 `KEEPALIVE`，或者让一个已 pin 节点从 hidden/零尺寸恢复可见，更新 desc 后要补发 `notify_node_changed()` / `notify_node_bounds_changed()`。
 
 ---
 
@@ -219,7 +240,7 @@
 - 在 adapter 层保持较粗粒度的 `view_type`，只区分真正影响结构的类型。
 - 在 `bind_view()` 层再根据场景、状态和变体决定最终视觉细节。
 
-仓库里的 `HelloBasic/virtual_viewport` 示例就是按这个思路写的：  
+仓库里的 `HelloVirtual/virtual_viewport` 示例就是按这个思路写的：  
 底层池化类型不会细到每一个业务模板，真正的差异化布局是在 bind 阶段完成的。
 
 ### 3.5 精确通知比“全部重刷”更重要
@@ -233,6 +254,7 @@
 - 插入：`notify_*_inserted(...)`
 - 删除：`notify_*_removed(...)`
 - 移动：`notify_*_moved(...)`
+- 对 `virtual_stage` 来说，如果整体变更发生在一次 capture 尚未结束时，旧 view 会先收到 `cancel` 再被回收或复用，避免池化复用后残留 pressed 一类瞬时交互状态。
 
 如果尺寸可能变化却只发了 `changed`，就容易出现：
 
@@ -270,48 +292,55 @@
 
 **Canvas 场景**
 
-![Raw Viewport Canvas](../runtime_check_output/HelloBasic_virtual_viewport/default/frame_0000.png)
+![Raw Viewport Canvas](../runtime_check_output/HelloVirtual_virtual_viewport/default/frame_0000.png)
 
 **Chat 场景**
 
-![Raw Viewport Chat](../runtime_check_output/HelloBasic_virtual_viewport/default/frame_0012.png)
+![Raw Viewport Chat](../runtime_check_output/HelloVirtual_virtual_viewport/default/frame_0012.png)
 
 **Board 场景**
 
-![Raw Viewport Board](../runtime_check_output/HelloBasic_virtual_viewport/default/frame_0016.png)
+![Raw Viewport Board](../runtime_check_output/HelloVirtual_virtual_viewport/default/frame_0016.png)
 
 ### 4.2 `virtual_page`：一页里的异构模块
 
 `virtual_page` 不是长 row，而是一页里按 section 拼出的多个模块。  
 它更像 dashboard 或设置页的“大块内容”。
 
-![Virtual Page](../runtime_check_output/HelloBasic_virtual_page/default/frame_0004.png)
+如果只想先理解最小接入模式，建议先看 `virtual_page_basic`；它去掉了顶部摘要 Header，只保留一个简单 action bar 和三类 section，更适合快速建立 API 心智模型。
+
+![Virtual Page](../runtime_check_output/HelloVirtual_virtual_page/default/frame_0004.png)
 
 ### 4.3 `virtual_strip`：横向轨道
 
 `virtual_strip` 的重点不是“横着滚”，而是“主轴天然是横向，item 宽度本身就可能不同”。  
 它适合 poster rail、queue rail、timeline strip。
+如果你只想先建立最小 API 心智模型，建议先看 `virtual_strip_basic`；它去掉了顶部摘要 Header，只保留一个简单 action bar 和单一 strip，更容易对照 `init_with_setup`、点击回查、单项刷新和 jump helper。
 
-![Virtual Strip](../runtime_check_output/HelloBasic_virtual_strip/default/frame_0004.png)
+![Virtual Strip](../runtime_check_output/HelloVirtual_virtual_strip/default/frame_0004.png)
 
 ### 4.4 `virtual_grid`：二维 tile 墙
 
 `virtual_grid` 的重点不是“把 list 缩成多列”，而是按 tile 语义设计二维密度、列数切换和宽度自适应布局。
+如果你只想先看最小接法，建议先读 `virtual_grid_basic`；它去掉了顶部摘要 Header，只保留一个简单 action bar 和单一 grid，更适合快速理解 `set_column_count()`、item height 变化通知和基础定位 helper。
 
-![Virtual Grid](../runtime_check_output/HelloBasic_virtual_grid/default/frame_0010.png)
+![Virtual Grid](../runtime_check_output/HelloVirtual_virtual_grid/default/frame_0010.png)
 
 ### 4.5 `virtual_section_list`：先有组头，再有组内条目
 
 `virtual_section_list` 适合“天然存在 section header + 组内明细”的业务，而不是把组头硬塞进普通 list。
+如果只想先理解最小接入模式，建议先看 `virtual_section_list_basic`；它去掉了顶部摘要 Header，只保留一个简单 action bar 和一个最小 grouped list，更适合快速建立 section data source、entry 回查和结构刷新通知的心智模型。
 
-![Virtual Section List](../runtime_check_output/HelloBasic_virtual_section_list/default/frame_0000.png)
+![Virtual Section List](../runtime_check_output/HelloVirtual_virtual_section_list/default/frame_0000.png)
 
 ### 4.6 `virtual_tree`：层级与连接关系优先
 
 `virtual_tree` 的核心是父子层级、可见节点流以及展开/折叠语义。  
 视觉上应该先让人看到 branch/leaf 关系，再看具体内容。
 
-![Virtual Tree](../runtime_check_output/HelloBasic_virtual_tree/default/frame_0004.png)
+如果只想先理解最小接入模式，建议先看 `virtual_tree_basic`；它去掉了顶部摘要 Header，只保留一个简单 action bar 和 `root / group / task` 三层树，更适合快速建立 tree data source、结构刷新和点击回查的心智模型。
+
+![Virtual Tree](../runtime_check_output/HelloVirtual_virtual_tree/default/frame_0004.png)
 
 ---
 
@@ -560,7 +589,7 @@ static void card_click_cb(egui_view_t *self)
 - 普通消息列表
 - 任务流
 
-当前仓库没有单独拆一个 `HelloBasic/virtual_list/` 目录，原因是 raw `virtual_viewport` 示例已经覆盖了最基础的按需 row 绑定逻辑。  
+当前仓库没有单独拆一个 `HelloVirtual/virtual_list/` 目录，原因是 raw `virtual_viewport` 示例已经覆盖了最基础的按需 row 绑定逻辑。  
 如果你的业务单元就是标准 row，而且不需要额外的分组、层级、二维或横向语义，那么可以优先用 `virtual_list`。
 
 最小骨架：
@@ -616,7 +645,7 @@ egui_view_virtual_list_init_with_setup(EGUI_VIEW_OF(&list_view), &list_setup);
 头文件与示例：
 
 - [egui_view_virtual_page.h](../src/widget/egui_view_virtual_page.h)
-- [virtual_page/test.c](../example/HelloBasic/virtual_page/test.c)
+- [virtual_page/test.c](../example/HelloVirtual/virtual_page/test.c)
 
 适合：
 
@@ -682,7 +711,8 @@ egui_view_virtual_page_init_with_setup(EGUI_VIEW_OF(&page_view), &page_setup);
 头文件与示例：
 
 - [egui_view_virtual_strip.h](../src/widget/egui_view_virtual_strip.h)
-- [virtual_strip/test.c](../example/HelloBasic/virtual_strip/test.c)
+- [virtual_strip_basic/test.c](../example/HelloVirtual/virtual_strip_basic/test.c)
+- [virtual_strip/test.c](../example/HelloVirtual/virtual_strip/test.c)
 
 适合：
 
@@ -740,7 +770,8 @@ static const egui_view_virtual_strip_data_source_t strip_source = {
 头文件与示例：
 
 - [egui_view_virtual_grid.h](../src/widget/egui_view_virtual_grid.h)
-- [virtual_grid/test.c](../example/HelloBasic/virtual_grid/test.c)
+- [virtual_grid_basic/test.c](../example/HelloVirtual/virtual_grid_basic/test.c)
+- [virtual_grid/test.c](../example/HelloVirtual/virtual_grid/test.c)
 
 适合：
 
@@ -807,7 +838,8 @@ egui_view_virtual_grid_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&grid_view)
 头文件与示例：
 
 - [egui_view_virtual_section_list.h](../src/widget/egui_view_virtual_section_list.h)
-- [virtual_section_list/test.c](../example/HelloBasic/virtual_section_list/test.c)
+- [virtual_section_list_basic/test.c](../example/HelloVirtual/virtual_section_list_basic/test.c)
+- [virtual_section_list/test.c](../example/HelloVirtual/virtual_section_list/test.c)
 
 适合：
 
@@ -869,7 +901,7 @@ static const egui_view_virtual_section_list_data_source_t section_source = {
 头文件与示例：
 
 - [egui_view_virtual_tree.h](../src/widget/egui_view_virtual_tree.h)
-- [virtual_tree/test.c](../example/HelloBasic/virtual_tree/test.c)
+- [virtual_tree/test.c](../example/HelloVirtual/virtual_tree/test.c)
 
 适合：
 
@@ -1122,8 +1154,8 @@ keepalive 不是越大越好。
 常用命令：
 
 ```bash
-make -j1 all APP=HelloBasic APP_SUB=virtual_grid PORT=pc
-python scripts/code_runtime_check.py --app HelloBasic --app-sub virtual_grid --keep-screenshots
+make -j1 all APP=HelloVirtual APP_SUB=virtual_grid PORT=pc
+python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_grid --keep-screenshots
 
 make -j1 all APP=HelloUnitTest PORT=pc_test
 output\\main.exe

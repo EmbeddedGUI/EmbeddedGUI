@@ -69,7 +69,7 @@
 #define EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_4 egui_res_image_star_120_rgb565##_4
 #define EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_8 egui_res_image_star_120_rgb565##_8
 
-#define EGUI_TEST_PERFORMANCE_IMAGE_COLOR_NAME     egui_res_image_star_pure_240_alpha_8
+#define EGUI_TEST_PERFORMANCE_IMAGE_COLOR_NAME        egui_res_image_star_pure_240_alpha_8
 #define EGUI_TEST_PERFORMANCE_IMAGE_RESIZE_COLOR_NAME egui_res_image_star_pure_120_alpha_8
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
@@ -205,15 +205,14 @@ static void egui_view_test_performance_test_image_resize_star_565_8(egui_view_t 
     egui_view_test_performance_test_image_resize_565_8(self);
 }
 
-
 /* Multi-line text string for rotation test (~240x240 at 26pt font) */
 static const char text_rect_str[] = "0123456789\n"
-                                      "EFGHIJKLMN\n"
-                                      "stuvwxyz01\n"
-                                      "UVWXYZ1234\n"
-                                      "6789abcdef\n"
-                                      "KLMNOPQRSX\n"
-                                      "YZ0123456";
+                                    "EFGHIJKLMN\n"
+                                    "stuvwxyz01\n"
+                                    "UVWXYZ1234\n"
+                                    "6789abcdef\n"
+                                    "KLMNOPQRSX\n"
+                                    "YZ0123456";
 
 const char test_str[] =
         "0123456789abcdefghijklmnopqrstuvwxyz^&*()_+-=[]{}|;':\\\",./"
@@ -563,8 +562,8 @@ static void egui_view_test_performance_test_image_color(egui_view_t *self)
 
 static void egui_view_test_performance_test_image_resize_color(egui_view_t *self)
 {
-    egui_canvas_draw_image_resize_color((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_RESIZE_COLOR_NAME, 0, 0,
-                                        EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, EGUI_COLOR_MAKE(0xFF, 0x80, 0x00), EGUI_ALPHA_100);
+    egui_canvas_draw_image_resize_color((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_RESIZE_COLOR_NAME, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT,
+                                        EGUI_COLOR_MAKE(0xFF, 0x80, 0x00), EGUI_ALPHA_100);
 }
 
 // ============================================================================
@@ -590,32 +589,32 @@ static const egui_gradient_t perf_gradient_radial = {
 
 /* Angular gradient (R->G->B->R conic sweep) */
 static const egui_gradient_stop_t perf_angular_stops[] = {
-        {.position = 0,   .color = EGUI_COLOR_MAKE(0xFF, 0x00, 0x00)},
-        {.position = 85,  .color = EGUI_COLOR_MAKE(0x00, 0xFF, 0x00)},
+        {.position = 0, .color = EGUI_COLOR_MAKE(0xFF, 0x00, 0x00)},
+        {.position = 85, .color = EGUI_COLOR_MAKE(0x00, 0xFF, 0x00)},
         {.position = 170, .color = EGUI_COLOR_MAKE(0x00, 0x00, 0xFF)},
         {.position = 255, .color = EGUI_COLOR_MAKE(0xFF, 0x00, 0x00)},
 };
 static const egui_gradient_t perf_gradient_angular_tmpl = {
-        .type       = EGUI_GRADIENT_TYPE_ANGULAR,
+        .type = EGUI_GRADIENT_TYPE_ANGULAR,
         .stop_count = 4,
-        .alpha      = EGUI_ALPHA_100,
-        .stops      = perf_angular_stops,
-        .center_x   = 0,
-        .center_y   = 0,
-        .radius     = 0,
+        .alpha = EGUI_ALPHA_100,
+        .stops = perf_angular_stops,
+        .center_x = 0,
+        .center_y = 0,
+        .radius = 0,
 };
 
 /* 3-stop multi-color linear gradient (R->G->B) */
 static const egui_gradient_stop_t perf_multi_stops[] = {
-        {.position = 0,   .color = EGUI_COLOR_MAKE(0xFF, 0x00, 0x00)},
+        {.position = 0, .color = EGUI_COLOR_MAKE(0xFF, 0x00, 0x00)},
         {.position = 128, .color = EGUI_COLOR_MAKE(0x00, 0xFF, 0x00)},
         {.position = 255, .color = EGUI_COLOR_MAKE(0x00, 0x00, 0xFF)},
 };
 static const egui_gradient_t perf_gradient_multi_stop = {
-        .type       = EGUI_GRADIENT_TYPE_LINEAR_VERTICAL,
+        .type = EGUI_GRADIENT_TYPE_LINEAR_VERTICAL,
         .stop_count = 3,
-        .alpha      = EGUI_ALPHA_100,
-        .stops      = perf_multi_stops,
+        .alpha = EGUI_ALPHA_100,
+        .stops = perf_multi_stops,
 };
 
 static void egui_view_test_performance_test_gradient_rect(egui_view_t *self)
@@ -651,8 +650,8 @@ static void egui_view_test_performance_test_gradient_triangle(egui_view_t *self)
 
 static void egui_view_test_performance_test_gradient_arc_ring(egui_view_t *self)
 {
-    egui_dim_t cx      = EGUI_CONFIG_SCEEN_WIDTH / 2;
-    egui_dim_t cy      = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+    egui_dim_t cx = EGUI_CONFIG_SCEEN_WIDTH / 2;
+    egui_dim_t cy = EGUI_CONFIG_SCEEN_HEIGHT / 2;
     egui_dim_t outer_r = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) / 2) - 4);
     egui_dim_t inner_r = outer_r - 20;
     egui_canvas_draw_arc_ring_fill_gradient(cx, cy, outer_r, inner_r, -90, 270, &perf_gradient_v);
@@ -660,8 +659,8 @@ static void egui_view_test_performance_test_gradient_arc_ring(egui_view_t *self)
 
 static void egui_view_test_performance_test_gradient_arc_ring_round_cap(egui_view_t *self)
 {
-    egui_dim_t cx      = EGUI_CONFIG_SCEEN_WIDTH / 2;
-    egui_dim_t cy      = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+    egui_dim_t cx = EGUI_CONFIG_SCEEN_WIDTH / 2;
+    egui_dim_t cy = EGUI_CONFIG_SCEEN_HEIGHT / 2;
     egui_dim_t outer_r = egui_view_test_performance_adjust_circle((EGUI_MIN(EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT) / 2) - 4);
     egui_dim_t inner_r = outer_r - 20;
     egui_canvas_draw_arc_ring_fill_gradient_round_cap(cx, cy, outer_r, inner_r, -90, 270, &perf_gradient_v, EGUI_ARC_CAP_BOTH);
@@ -669,35 +668,37 @@ static void egui_view_test_performance_test_gradient_arc_ring_round_cap(egui_vie
 
 static void egui_view_test_performance_test_gradient_radial(egui_view_t *self)
 {
-    egui_dim_t cx   = EGUI_CONFIG_SCEEN_WIDTH / 2;
-    egui_dim_t cy   = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+    egui_dim_t cx = EGUI_CONFIG_SCEEN_WIDTH / 2;
+    egui_dim_t cy = EGUI_CONFIG_SCEEN_HEIGHT / 2;
     egui_gradient_t grad = perf_gradient_radial;
-    grad.center_x   = cx;
-    grad.center_y   = cy;
-    grad.radius     = EGUI_MIN(cx, cy);
+    grad.center_x = cx;
+    grad.center_y = cy;
+    grad.radius = EGUI_MIN(cx, cy);
     egui_canvas_draw_rectangle_fill_gradient(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, &grad);
 }
 
 static void egui_view_test_performance_test_gradient_angular(egui_view_t *self)
 {
     egui_gradient_t grad = perf_gradient_angular_tmpl;
-    grad.center_x       = EGUI_CONFIG_SCEEN_WIDTH / 2;
-    grad.center_y       = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+    grad.center_x = EGUI_CONFIG_SCEEN_WIDTH / 2;
+    grad.center_y = EGUI_CONFIG_SCEEN_HEIGHT / 2;
     egui_canvas_draw_rectangle_fill_gradient(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, &grad);
 }
 
 static void egui_view_test_performance_test_gradient_round_rect_ring(egui_view_t *self)
 {
-    egui_dim_t margin   = 20;
+    egui_dim_t margin = 20;
     egui_dim_t stroke_w = 20;
-    egui_dim_t radius   = 30;
-    egui_canvas_draw_round_rectangle_ring_fill_gradient(margin, margin, EGUI_CONFIG_SCEEN_WIDTH - margin * 2, EGUI_CONFIG_SCEEN_HEIGHT - margin * 2, stroke_w, radius, &perf_gradient_v);
+    egui_dim_t radius = 30;
+    egui_canvas_draw_round_rectangle_ring_fill_gradient(margin, margin, EGUI_CONFIG_SCEEN_WIDTH - margin * 2, EGUI_CONFIG_SCEEN_HEIGHT - margin * 2, stroke_w,
+                                                        radius, &perf_gradient_v);
 }
 
 static void egui_view_test_performance_test_gradient_line_capsule(egui_view_t *self)
 {
     egui_dim_t stroke_w = 20;
-    egui_canvas_draw_line_capsule_fill_gradient(stroke_w, EGUI_CONFIG_SCEEN_HEIGHT / 2, EGUI_CONFIG_SCEEN_WIDTH - stroke_w, EGUI_CONFIG_SCEEN_HEIGHT / 2, stroke_w, &perf_gradient_v);
+    egui_canvas_draw_line_capsule_fill_gradient(stroke_w, EGUI_CONFIG_SCEEN_HEIGHT / 2, EGUI_CONFIG_SCEEN_WIDTH - stroke_w, EGUI_CONFIG_SCEEN_HEIGHT / 2,
+                                                stroke_w, &perf_gradient_v);
 }
 
 static void egui_view_test_performance_test_gradient_multi_stop(egui_view_t *self)
@@ -713,8 +714,8 @@ static void egui_view_test_performance_test_gradient_round_rect_corners(egui_vie
 
 static void egui_view_test_performance_test_image_gradient_overlay(egui_view_t *self)
 {
-    egui_canvas_draw_image_gradient_overlay((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_0, 0, 0,
-                                            EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, &perf_gradient_v, EGUI_ALPHA_60);
+    egui_canvas_draw_image_gradient_overlay((egui_image_t *)&EGUI_TEST_PERFORMANCE_IMAGE_NAME_0, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT,
+                                            &perf_gradient_v, EGUI_ALPHA_60);
 }
 
 // ============================================================================
@@ -1509,8 +1510,7 @@ static void egui_view_test_performance_test_text_rotate_buffered_resize(egui_vie
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
     int16_t scale = (int16_t)((int32_t)self->region.size.width * 256 / 240);
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, scale, EGUI_COLOR_GREEN,
-                                             EGUI_ALPHA_100);
+    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, scale, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
 static void egui_view_test_performance_test_text_rotate_buffered_quarter(egui_view_t *self)
@@ -1525,8 +1525,7 @@ static void egui_view_test_performance_test_text_rotate_buffered_double(egui_vie
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
     int16_t scale = (int16_t)((int32_t)self->region.size.width * 2 * 256 / 240);
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, scale, EGUI_COLOR_GREEN,
-                                             EGUI_ALPHA_100);
+    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, scale, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
 // ============================================================================
@@ -1744,7 +1743,8 @@ static void egui_view_test_performance_test_mask_rect_fill_image_double(egui_vie
 static void egui_view_test_performance_test_mask_image_no_mask_quarter(egui_view_t *self)
 {
     // Full-size image resize at screen center �?only 1/4 visible, tests clipping path
-    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL, PERF_SIZE_FULL);
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL,
+                                  PERF_SIZE_FULL);
 }
 
 static void egui_view_test_performance_test_mask_image_no_mask_double(egui_view_t *self)
@@ -1756,7 +1756,8 @@ static void egui_view_test_performance_test_mask_image_round_rect_quarter(egui_v
 {
     // Full-size mask + image resize at screen center �?only 1/4 visible, tests clipping path
     egui_canvas_set_mask((egui_mask_t *)&perf_mask_round_rect);
-    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL, PERF_SIZE_FULL);
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL,
+                                  PERF_SIZE_FULL);
     egui_canvas_clear_mask();
 }
 
@@ -1771,7 +1772,8 @@ static void egui_view_test_performance_test_mask_image_circle_quarter(egui_view_
 {
     // Full-size mask + image resize at screen center �?only 1/4 visible, tests clipping path
     egui_canvas_set_mask((egui_mask_t *)&perf_mask_circle);
-    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL, PERF_SIZE_FULL);
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL,
+                                  PERF_SIZE_FULL);
     egui_canvas_clear_mask();
 }
 
@@ -1785,7 +1787,8 @@ static void egui_view_test_performance_test_mask_image_circle_double(egui_view_t
 static void egui_view_test_performance_test_mask_image_image_quarter(egui_view_t *self)
 {
     egui_canvas_set_mask((egui_mask_t *)&perf_mask_image);
-    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER);
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER,
+                                  PERF_SIZE_QUARTER);
     egui_canvas_clear_mask();
 }
 
@@ -2727,4 +2730,3 @@ void egui_view_test_performance_init(egui_view_t *self)
     // init local data.
     local->test_mode = EGUI_VIEW_TEST_PERFORMANCE_TYPE_LINE;
 }
-

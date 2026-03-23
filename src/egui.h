@@ -66,10 +66,12 @@
 #include "image/egui_image.h"
 #include "image/egui_image_std.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 #include "mask/egui_mask.h"
 #include "mask/egui_mask_circle.h"
 #include "mask/egui_mask_round_rectangle.h"
 #include "mask/egui_mask_image.h"
+#endif
 
 #include "shadow/egui_shadow.h"
 
@@ -91,9 +93,12 @@
 #include "widget/egui_view_virtual_list.h"
 #include "widget/egui_view_virtual_strip.h"
 #include "widget/egui_view_virtual_grid.h"
+#include "widget/egui_view_list_view.h"
+#include "widget/egui_view_grid_view.h"
 #include "widget/egui_view_virtual_tree.h"
 #include "widget/egui_view_virtual_section_list.h"
 #include "widget/egui_view_virtual_stage.h"
+#include "widget/egui_view_virtual_stage_bridge.h"
 #include "widget/egui_view_virtual_page.h"
 #include "widget/egui_view_virtual_viewport.h"
 #include "widget/egui_view_list.h"

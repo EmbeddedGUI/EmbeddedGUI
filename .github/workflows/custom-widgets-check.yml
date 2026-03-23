@@ -7,6 +7,7 @@ on:
       - 'example/HelloCustomWidgets/**'
       - 'scripts/check_touch_release_semantics.py'
       - 'scripts/code_compile_check.py'
+      - 'scripts/code_runtime_check.py'
       - 'src/widget/**'
       - 'src/core/**'
 
@@ -58,3 +59,6 @@ jobs:
 
       - name: Check custom widgets (${{ matrix.category }})
         run: python scripts/code_compile_check.py --custom-widgets --category ${{ matrix.category }} --bits64
+
+      - name: Runtime check custom widgets (${{ matrix.category }})
+        run: python scripts/code_runtime_check.py --app HelloCustomWidgets --category ${{ matrix.category }} --bits64

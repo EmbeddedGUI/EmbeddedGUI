@@ -36,6 +36,11 @@ RUNTIME_FAIL_MARKERS = ("[RUNTIME_CHECK_FAIL]",)
 # Examples not suitable for runtime testing (headless/performance/test-only)
 SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformance", "HelloPerformance",
              "HelloDesigner", "HelloDesigner_temp"]
+SUB_APP_ROOTS = {
+    "HelloBasic": "example/HelloBasic",
+    "HelloVirtual": "example/HelloVirtual",
+    "HelloCustomWidgets": "example/HelloCustomWidgets",
+}
 
 
 def get_windows_hidden_run_kwargs():
@@ -70,12 +75,25 @@ def get_example_list():
     return sorted(app_list)
 
 
-def get_example_basic_list():
-    """Get list of HelloBasic sub-applications"""
-    path = 'example/HelloBasic'
+def get_example_sub_list(app):
+    """Get list of sub-applications for apps that use APP_SUB."""
+    path = SUB_APP_ROOTS.get(app)
     app_list = []
-    if not os.path.exists(path):
+    if not path or not os.path.exists(path):
         return app_list
+
+    if app == "HelloCustomWidgets":
+        for root, dirs, files in os.walk(path):
+            dirs[:] = [name for name in dirs if not name.startswith('.') and not name.startswith('__')]
+            if 'test.c' not in files:
+                continue
+
+            rel_path = os.path.relpath(root, path).replace('\\', '/')
+            if rel_path == '.':
+                continue
+            app_list.append(rel_path)
+
+        return sorted(app_list)
 
     for file in os.listdir(path):
         file_path = os.path.join(path, file)
@@ -85,10 +103,32 @@ def get_example_basic_list():
     return sorted(app_list)
 
 
-def compile_app(app, app_sub=None, bits64=False, user_cflags=""):
+def filter_sub_apps(app, app_subs, category=None):
+    """Filter sub-app list for app-specific grouping."""
+    if not category or app != "HelloCustomWidgets":
+        return sorted(app_subs)
+
+    prefix = category.strip().strip('/\\')
+    if not prefix:
+        return sorted(app_subs)
+
+    prefix = prefix.replace('\\', '/')
+    return sorted([app_sub for app_sub in app_subs if app_sub.startswith(prefix + '/')])
+
+
+def format_app_name(app, app_sub=None):
+    """Build a stable runtime output name for app/app_sub."""
+    if not app_sub:
+        return app
+
+    normalized_sub = app_sub.replace('\\', '_').replace('/', '_')
+    return "%s_%s" % (app, normalized_sub)
+
+
+def compile_app(app, app_sub=None, bits64=False, user_cflags="", recording_test=True):
     """Compile application with optional CFLAGS override.
     Uses per-app OBJDIR (no make clean needed).
-    HelloBasic sub-apps use per-sub-app OBJDIR (APP_OBJ_SUFFIX=HelloBasic_<sub>).
+    HelloBasic/HelloVirtual sub-apps use per-sub-app OBJDIR.
     Returns True on success, False on failure.
     """
     # Clean before build to ensure fresh compilation with correct config.
@@ -97,7 +137,7 @@ def compile_app(app, app_sub=None, bits64=False, user_cflags=""):
     subprocess.run(['make', 'clean'], capture_output=True)
 
     # Build — always inject RECORDING_TEST since make clean guarantees fresh compilation
-    recording_flag = '-DEGUI_CONFIG_RECORDING_TEST=1'
+    recording_flag = '-DEGUI_CONFIG_RECORDING_TEST=%d' % (1 if recording_test else 0)
     combined_cflags = ('%s %s' % (recording_flag, user_cflags)).strip()
     cmd = ['make', '-j', 'APP=%s' % app, 'PORT=pc'] + COMPILE_FAST_FLAGS
     if app_sub:
@@ -123,18 +163,20 @@ def run_app(app_name, output_subdir, timeout=DEFAULT_TIMEOUT, duration=RECORDING
     frames_dir = os.path.join(SCREENSHOT_DIR, app_name, output_subdir)
     os.makedirs(frames_dir, exist_ok=True)
 
+    root_dir = Path.cwd()
+
     if platform.system() == 'Windows':
-        exe_path = 'output\\main.exe'
+        exe_path = root_dir / 'output' / 'main.exe'
     else:
-        exe_path = './output/main'
+        exe_path = root_dir / 'output' / 'main'
 
-    resource_path = os.path.join('output', 'app_egui_resource_merge.bin')
+    resource_path = root_dir / 'output' / 'app_egui_resource_merge.bin'
 
-    if not os.path.exists(exe_path):
+    if not exe_path.exists():
         return False, "executable not found"
 
     # Run with recording: RECORDING_FPS fps, duration seconds, speed multiplier
-    cmd = [exe_path, resource_path, '--record', frames_dir,
+    cmd = [str(exe_path), str(resource_path), '--record', frames_dir,
            str(RECORDING_FPS), str(duration), '--speed', str(speed),
            '--clock-scale', str(clock_scale),
            '--snapshot-settle-ms', str(snapshot_settle_ms),
@@ -199,7 +241,7 @@ def check_default_resolution(app, app_sub, bits64, explicit_timeout=None,
     Apps auto-quit after all actions complete; RECORDING_DURATION is a safety timeout.
     Returns (success: bool, message: str).
     """
-    app_name = "%s_%s" % (app, app_sub) if app_sub else app
+    app_name = format_app_name(app, app_sub)
 
     # Compile with default settings
     if not compile_app(app, app_sub, bits64):
@@ -237,21 +279,23 @@ def capture_animation_frames(app_name, output_dir, fps=10, duration=5,
     """
     os.makedirs(output_dir, exist_ok=True)
 
+    root_dir = Path.cwd()
+
     if platform.system() == 'Windows':
-        exe_path = 'output\\main.exe'
+        exe_path = root_dir / 'output' / 'main.exe'
     else:
-        exe_path = './output/main'
+        exe_path = root_dir / 'output' / 'main'
 
-    resource_path = os.path.join('output', 'app_egui_resource_merge.bin')
+    resource_path = root_dir / 'output' / 'app_egui_resource_merge.bin'
 
-    if not os.path.exists(exe_path):
+    if not exe_path.exists():
         return False, [], "executable not found"
 
     # Clean old frames
     for old_frame in Path(output_dir).glob("frame_*.*"):
         old_frame.unlink()
 
-    cmd = [exe_path, resource_path, '--record', output_dir,
+    cmd = [str(exe_path), str(resource_path), '--record', output_dir,
            str(fps), str(duration), '--speed', str(speed),
            '--clock-scale', str(clock_scale),
            '--snapshot-settle-ms', str(snapshot_settle_ms),
@@ -311,7 +355,7 @@ def run_full_check(bits64, speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_S
     """
     results = []
     app_sets = get_example_list()
-    app_basic_sets = get_example_basic_list()
+    sub_app_sets = {app: get_example_sub_list(app) for app in SUB_APP_ROOTS}
 
     print("Running with speed=%dx" % speed)
 
@@ -320,8 +364,8 @@ def run_full_check(bits64, speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_S
     for app in app_sets:
         if app in SKIP_LIST:
             continue
-        if app == "HelloBasic":
-            total += len(app_basic_sets)
+        if app in SUB_APP_ROOTS:
+            total += len(sub_app_sets.get(app, []))
         else:
             total += 1
 
@@ -331,10 +375,10 @@ def run_full_check(bits64, speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_S
             print("\nSkipping: %s" % app)
             continue
 
-        if app == "HelloBasic":
-            for app_sub in app_basic_sets:
+        if app in SUB_APP_ROOTS:
+            for app_sub in sub_app_sets.get(app, []):
                 current += 1
-                app_name = "HelloBasic_%s" % app_sub
+                app_name = format_app_name(app, app_sub)
                 print("\n" + "=" * 60)
                 print("[%d/%d] %s" % (current, total, app_name))
                 print("=" * 60)
@@ -375,6 +419,36 @@ def run_full_check(bits64, speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_S
     return results
 
 
+def run_sub_app_check(app, app_subs, bits64, explicit_timeout=None,
+                      speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
+                      clock_scale=RECORDING_CLOCK_SCALE,
+                      snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
+                      snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
+    """Run runtime check for a batch of APP_SUB examples under one app."""
+    results = []
+    total = len(app_subs)
+    for index, app_sub in enumerate(app_subs, start=1):
+        app_name = format_app_name(app, app_sub)
+        print("\n" + "=" * 60)
+        print("[%d/%d] %s (speed=%dx)" % (index, total, app_name, speed))
+        print("=" * 60)
+
+        success, msg = check_default_resolution(
+            app,
+            app_sub,
+            bits64,
+            explicit_timeout=explicit_timeout,
+            speed=speed,
+            snapshot_settle_ms=snapshot_settle_ms,
+            clock_scale=clock_scale,
+            snapshot_stable_cycles=snapshot_stable_cycles,
+            snapshot_max_wait_ms=snapshot_max_wait_ms,
+        )
+        results.append((app_name, success, msg))
+
+    return results
+
+
 def print_summary(results):
     """Print test result summary"""
     print("\n" + "=" * 60)
@@ -409,13 +483,19 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s --app HelloSimple                 Test single app
-  %(prog)s --app HelloBasic --app-sub button Test HelloBasic sub-app
-  %(prog)s --full-check                      Test all examples
+  %(prog)s --app HelloSimple                          Test single app
+  %(prog)s --app HelloVirtual                        Test all HelloVirtual sub-apps
+  %(prog)s --app HelloBasic --app-sub button         Test one HelloBasic sub-app
+  %(prog)s --app HelloVirtual --app-sub virtual_grid Test one HelloVirtual sub-app
+  %(prog)s --app HelloCustomWidgets --category input Test HelloCustomWidgets category
+  %(prog)s --full-check                             Test all examples
         """
     )
-    parser.add_argument('--app', type=str, help='Specific app to test')
-    parser.add_argument('--app-sub', type=str, help='Sub-app for HelloBasic')
+    parser.add_argument('--app', type=str,
+                        help='Specific app to test. For HelloBasic/HelloVirtual/HelloCustomWidgets without --app-sub, tests all sub-apps.')
+    parser.add_argument('--app-sub', type=str,
+                        help='Single sub-app for HelloBasic/HelloVirtual/HelloCustomWidgets. If omitted, all sub-apps are tested.')
+    parser.add_argument('--category', type=str, help='HelloCustomWidgets category filter (e.g. input)')
     parser.add_argument('--bits64', action='store_true', help='Build for 64-bit')
     parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
                         help='Run timeout in seconds (default: %d)' % DEFAULT_TIMEOUT)
@@ -455,32 +535,61 @@ Examples:
         all_passed = print_summary(results)
 
     elif args.app:
-        app_name = "%s_%s" % (args.app, args.app_sub) if args.app_sub else args.app
-        print("=" * 60)
-        print("Runtime Check: %s (speed=%dx)" % (app_name, speed))
-        print("=" * 60)
+        if args.category and args.app != "HelloCustomWidgets":
+            print("Error: --category is only supported with --app HelloCustomWidgets")
+            sys.exit(1)
 
         results = []
+        run_all_sub_apps = args.app in SUB_APP_ROOTS and not args.app_sub
+        if run_all_sub_apps:
+            sub_apps = filter_sub_apps(args.app, get_example_sub_list(args.app), args.category)
+            if not sub_apps:
+                category_suffix = " (category=%s)" % args.category if args.category else ""
+                print("Error: no %s sub-apps found%s" % (args.app, category_suffix))
+                sys.exit(1)
 
-        success, msg = check_default_resolution(args.app, args.app_sub, args.bits64,
-                                                 explicit_timeout=args.timeout,
-                                                 speed=speed,
-                                                 clock_scale=clock_scale,
-                                                 snapshot_settle_ms=snapshot_settle_ms,
-                                                 snapshot_stable_cycles=snapshot_stable_cycles,
-                                                 snapshot_max_wait_ms=snapshot_max_wait_ms)
-        results.append((app_name, success, msg))
+            print("=" * 60)
+            if args.category:
+                print("Runtime Check: %s category=%s (speed=%dx)" % (args.app, args.category, speed))
+            else:
+                print("Runtime Check: %s all sub-apps (speed=%dx)" % (args.app, speed))
+            print("=" * 60)
+
+            results = run_sub_app_check(
+                args.app,
+                sub_apps,
+                args.bits64,
+                explicit_timeout=args.timeout,
+                speed=speed,
+                clock_scale=clock_scale,
+                snapshot_settle_ms=snapshot_settle_ms,
+                snapshot_stable_cycles=snapshot_stable_cycles,
+                snapshot_max_wait_ms=snapshot_max_wait_ms,
+            )
+        else:
+            app_name = format_app_name(args.app, args.app_sub)
+            print("=" * 60)
+            print("Runtime Check: %s (speed=%dx)" % (app_name, speed))
+            print("=" * 60)
+
+            success, msg = check_default_resolution(args.app, args.app_sub, args.bits64,
+                                                     explicit_timeout=args.timeout,
+                                                     speed=speed,
+                                                     clock_scale=clock_scale,
+                                                     snapshot_settle_ms=snapshot_settle_ms,
+                                                     snapshot_stable_cycles=snapshot_stable_cycles,
+                                                     snapshot_max_wait_ms=snapshot_max_wait_ms)
+            results.append((app_name, success, msg))
 
         all_passed = print_summary(results)
 
         # Print screenshot locations for AI visual verification
-        screenshot_base = os.path.join(SCREENSHOT_DIR, app_name)
-        if os.path.exists(screenshot_base):
-            print("\nScreenshots saved for visual verification:")
-            for root, dirs, files in os.walk(screenshot_base):
-                for f in sorted(files):
-                    if f.endswith('.png'):
-                        print("  %s" % os.path.join(root, f))
+        print("\nScreenshot directories for visual verification:")
+        for result_name, success, _ in results:
+            screenshot_base = os.path.join(SCREENSHOT_DIR, result_name)
+            if not success or not os.path.exists(screenshot_base):
+                continue
+            print("  %s" % screenshot_base)
 
     else:
         parser.print_help()

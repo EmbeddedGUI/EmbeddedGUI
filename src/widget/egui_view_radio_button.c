@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "egui_view_radio_button.h"
+#include "egui_view_circle_dirty.h"
 #include "resource/egui_resource.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
@@ -24,6 +25,44 @@ static const egui_font_t *egui_view_radio_button_get_icon_font(egui_view_radio_b
         return EGUI_FONT_ICON_MS_20;
     }
     return EGUI_FONT_ICON_MS_24;
+}
+
+static uint8_t egui_view_radio_button_get_indicator_dirty_region(egui_view_t *self, egui_view_radio_button_t *local, egui_region_t *dirty_region)
+{
+    egui_region_t region;
+    egui_dim_t size;
+    egui_dim_t center_x;
+    egui_dim_t center_y;
+    egui_dim_t outer_radius;
+
+    if (dirty_region == NULL)
+    {
+        return 0;
+    }
+
+    egui_region_init_empty(dirty_region);
+    if (self->region_screen.size.width <= 0 || self->region_screen.size.height <= 0)
+    {
+        return 0;
+    }
+
+    egui_view_get_work_region(self, &region);
+    size = EGUI_MIN(region.size.width, region.size.height);
+    outer_radius = size / 2 - 1;
+    if (outer_radius <= 0)
+    {
+        return 0;
+    }
+
+    center_x = region.location.x + size / 2;
+    center_y = region.location.y + size / 2;
+    if (local->text != NULL)
+    {
+        center_x = region.location.x + size / 2 + 1;
+    }
+
+    egui_view_circle_dirty_add_circle_region(dirty_region, center_x, center_y, outer_radius + 1, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD);
+    return egui_region_is_empty(dirty_region) ? 0 : 1;
 }
 
 void egui_view_radio_button_set_text(egui_view_t *self, const char *text)
@@ -124,6 +163,7 @@ void egui_view_radio_group_set_on_changed_listener(egui_view_radio_group_t *grou
 void egui_view_radio_button_set_checked(egui_view_t *self, uint8_t is_checked)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
+    egui_region_t dirty_region;
 
     if (is_checked == local->is_checked)
     {
@@ -146,7 +186,14 @@ void egui_view_radio_button_set_checked(egui_view_t *self, uint8_t is_checked)
             if (rb != local && rb->is_checked)
             {
                 rb->is_checked = 0;
-                egui_view_invalidate(EGUI_VIEW_OF(rb));
+                if (egui_view_radio_button_get_indicator_dirty_region(EGUI_VIEW_OF(rb), rb, &dirty_region))
+                {
+                    egui_view_invalidate_region(EGUI_VIEW_OF(rb), &dirty_region);
+                }
+                else
+                {
+                    egui_view_invalidate(EGUI_VIEW_OF(rb));
+                }
             }
             if (rb == local)
             {
@@ -162,7 +209,14 @@ void egui_view_radio_button_set_checked(egui_view_t *self, uint8_t is_checked)
         }
     }
 
-    egui_view_invalidate(self);
+    if (egui_view_radio_button_get_indicator_dirty_region(self, local, &dirty_region))
+    {
+        egui_view_invalidate_region(self, &dirty_region);
+    }
+    else
+    {
+        egui_view_invalidate(self);
+    }
 }
 
 static int egui_view_radio_button_perform_click(egui_view_t *self)

@@ -169,6 +169,9 @@ PC 模拟器支持截图录制，用于自动化测试和 GIF 生成：
 
 # 加速录制（2 倍速）
 ./output/main.exe --record output_dir 30 10 --speed 2
+
+# 触摸轨迹调试（编译时开启后自动绘制）
+make all APP=HelloBasic APP_SUB=slider PORT=pc USER_CFLAGS="-DEGUI_CONFIG_DEBUG_TOUCH_TRACE=1"
 ```
 
 在 `app_egui_config.h` 中启用录制测试：
@@ -178,6 +181,10 @@ PC 模拟器支持截图录制，用于自动化测试和 GIF 生成：
 ```
 
 应用可以实现 `egui_port_get_recording_action()` 定义录制期间的模拟操作（点击、滑动、等待等）。
+
+Touch 轨迹逻辑现在位于 `egui_core` 的 debug 模块中，不再由 PC SDL 端单独叠加。只要编译时开启 `EGUI_CONFIG_DEBUG_TOUCH_TRACE=1`，并且触摸输入支持已开启，窗口和截图中就会自动显示红色 1 像素轨迹线。
+
+当前实现只保留最近的一条轨迹。从按下到松开算一条线，下一次按下会自动清掉上一条，便于在不同平台上做交互调试和渲染排查，同时尽量减少额外状态和内存占用。
 
 ## 调试技巧
 

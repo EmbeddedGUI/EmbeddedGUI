@@ -92,10 +92,12 @@ void egui_canvas_draw_point(egui_dim_t x, egui_dim_t y, egui_color_t color, egui
 {
     egui_canvas_t *self = &canvas_data;
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
     if (self->mask != NULL)
     {
         self->mask->api->mask_point(self->mask, x, y, &color, &alpha);
     }
+#endif
 
     // mix alpha
     alpha = egui_color_alpha_mix(self->alpha, alpha);

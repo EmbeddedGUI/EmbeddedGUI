@@ -1,10 +1,183 @@
-# 列表控件
+# 列表与网格控件
 
 ## 概述
 
-列表控件用于展示结构化的数据集合。EmbeddedGUI 提供了三种列表类控件：List 是可滚动的文本列表，Table 用于展示行列数据表格，ButtonMatrix 用于创建按钮网格(如计算器键盘)。
+这一页覆盖两类能力：
 
-> 如果你的场景需要承载数百到上千条数据，并且要求“只为可见区创建 view、支持 stable_id、支持状态缓存和精确插删改移通知”，应优先阅读 [虚拟容器与大数据集控件](virtual_widgets.md)，而不是继续使用这里的传统 `List`。
+- 传统小规模控件：`List`、`Table`、`ButtonMatrix`
+- 面向大数据集、但接口更接近 Android `ListView / GridView + ViewHolder + DataModel` 的高层控件：`ListView`、`GridView`
+
+如果你的场景是“很多条目，但每个条目仍然由真实控件组成”，建议先从这里的 `ListView` / `GridView` 开始，而不是直接从 raw `virtual_list` / `virtual_grid` 起步。  
+只有在你需要 `section / tree / page / stage`、完全自定义 adapter，或者要直接面对 raw virtual 容器语义时，再继续阅读 [虚拟容器与大数据集控件](virtual_widgets.md)。
+
+## 快速选型表
+
+| 控件 | 适合场景 | 关键特点 |
+|------|----------|----------|
+| `List` | 十几条以内的简单文本列表 | 每个条目是按钮，API 最轻 |
+| `ListView` | 大量纵向条目，条目里直接放真实控件 | 业务层主要关心 `data_model + holder_ops` |
+| `GridView` | 大量 tile/card，列数和高度会变化 | 业务层主要关心 `data_model + holder_ops` |
+| `Table` | 小规模行列表格数据 | 直接按单元格写内容 |
+| `ButtonMatrix` | 计算器、快捷键盘、宫格按钮面板 | 在一个 view 里绘制多个按钮 |
+
+---
+
+## ListView
+
+`ListView` 是建立在 `virtual_list` 之上的高层包装，目标不是替代 virtual 家族，而是把常见“竖向大列表 + 真实控件行视图”的接法收敛成 Android 风格的 `data_model + holder_ops`。
+
+### 什么时候优先用它
+
+- 数据量较大，需要按可见区创建和回收行视图
+- 每一行都想直接放真实控件，例如 `Switch`、`Combobox`、`Button`、`ProgressBar`
+- 业务层更想关心 `ViewHolder` 和 `DataModel`，不想直接写 raw adapter
+
+### 最小心智模型
+
+- `data_model` 负责回答“有多少条数据、stable id 是什么、view_type 是什么、高度是多少”
+- `holder_ops` 负责回答“这一行真实控件怎么创建、怎么绑定、怎么保存局部状态”
+- 结构变化后由业务层调用 `notify_*`，复用、keepalive、状态缓存和可见窗口管理交给控件内部
+
+### 关键 API
+
+| 函数 | 说明 |
+|------|------|
+| `egui_view_list_view_init_with_setup(self, setup)` | 一次接好 `params + data_model + holder_ops + context` |
+| `egui_view_list_view_set_data_model(self, model, ops, context)` | 运行时替换数据模型和 holder 逻辑 |
+| `egui_view_list_view_resolve_item_by_view(self, item_view, entry)` | 在真实控件回调里反查当前 item |
+| `egui_view_list_view_notify_item_changed_by_stable_id(self, stable_id)` | 单项内容变化但高度不变 |
+| `egui_view_list_view_notify_item_resized_by_stable_id(self, stable_id)` | 单项高度变化 |
+| `egui_view_list_view_notify_item_inserted/removed/moved(...)` | 结构变化通知 |
+| `egui_view_list_view_set_keepalive_limit(self, max_keepalive_slots)` | 设置 keepalive 上限 |
+| `egui_view_list_view_set_state_cache_limits(self, max_entries, max_bytes)` | 设置 holder 状态缓存上限 |
+
+### 最小接入骨架
+
+```c
+static egui_view_list_view_t list_view;
+static demo_context_t demo_ctx;
+
+EGUI_VIEW_LIST_VIEW_PARAMS_INIT(demo_params, 0, 0, 240, 320);
+
+static const egui_view_list_view_data_model_t demo_data_model = {
+    .get_count = demo_get_count,
+    .get_stable_id = demo_get_stable_id,
+    .find_index_by_stable_id = demo_find_index_by_stable_id,
+    .get_view_type = demo_get_view_type,
+    .measure_item_height = demo_measure_item_height,
+    .default_view_type = 0,
+};
+
+static const egui_view_list_view_holder_ops_t demo_holder_ops = {
+    .create_holder = demo_create_holder,
+    .destroy_holder = demo_destroy_holder,
+    .bind_holder = demo_bind_holder,
+    .unbind_holder = demo_unbind_holder,
+    .save_holder_state = demo_save_holder_state,
+    .restore_holder_state = demo_restore_holder_state,
+};
+
+void init_ui(void)
+{
+    const egui_view_list_view_setup_t setup = {
+        .params = &demo_params,
+        .data_model = &demo_data_model,
+        .holder_ops = &demo_holder_ops,
+        .data_model_context = &demo_ctx,
+        .state_cache_max_entries = 8,
+        .state_cache_max_bytes = 64,
+    };
+
+    egui_view_list_view_init_with_setup(EGUI_VIEW_OF(&list_view), &setup);
+    egui_core_add_user_root_view(EGUI_VIEW_OF(&list_view));
+}
+```
+
+### 推荐示例
+
+- 最小例程：`example/HelloVirtual/list_view_basic/`
+- richer 场景：`example/HelloVirtual/list_view/`
+- 头文件：`src/widget/egui_view_list_view.h`
+
+---
+
+## GridView
+
+`GridView` 是建立在 `virtual_grid` 之上的高层包装，适合“很多 tile/card，但业务层只想维护 `ViewHolder + DataModel`”的场景。
+
+### 什么时候优先用它
+
+- 内容天然是 tile/card，而不是普通纵向 row
+- 列数会切换，或者 tile 高度要跟随宽度变化
+- tile 里直接放真实控件，例如 `ToggleButton`、`Switch`、`Button`、`ProgressBar`
+
+### 最小心智模型
+
+- `data_model` 负责回答“总数、stable id、view_type 和每个 tile 在当前宽度下的高度”
+- `holder_ops` 负责创建和绑定真实 tile 视图
+- `set_column_count()`、`notify_*`、状态缓存和复用规则都直接复用 `virtual_grid` 的成熟能力
+
+### 关键 API
+
+| 函数 | 说明 |
+|------|------|
+| `egui_view_grid_view_init_with_setup(self, setup)` | 一次接好 `params + data_model + holder_ops + context` |
+| `egui_view_grid_view_set_data_model(self, model, ops, context)` | 运行时替换数据模型和 holder 逻辑 |
+| `egui_view_grid_view_set_column_count(self, column_count)` | 动态切换列数 |
+| `egui_view_grid_view_resolve_item_by_view(self, item_view, entry)` | 在真实控件回调里反查当前 tile |
+| `egui_view_grid_view_notify_item_changed_by_stable_id(self, stable_id)` | 单项内容变化但高度不变 |
+| `egui_view_grid_view_notify_item_resized_by_stable_id(self, stable_id)` | 单项高度变化 |
+| `egui_view_grid_view_notify_item_inserted/removed/moved(...)` | 结构变化通知 |
+| `egui_view_grid_view_set_keepalive_limit(self, max_keepalive_slots)` | 设置 keepalive 上限 |
+| `egui_view_grid_view_set_state_cache_limits(self, max_entries, max_bytes)` | 设置 holder 状态缓存上限 |
+
+### 最小接入骨架
+
+```c
+static egui_view_grid_view_t grid_view;
+static demo_context_t demo_ctx;
+
+EGUI_VIEW_GRID_VIEW_PARAMS_INIT(demo_params, 0, 0, 240, 320);
+
+static const egui_view_grid_view_data_model_t demo_data_model = {
+    .get_count = demo_get_count,
+    .get_stable_id = demo_get_stable_id,
+    .find_index_by_stable_id = demo_find_index_by_stable_id,
+    .get_view_type = demo_get_view_type,
+    .measure_item_height = demo_measure_item_height,
+    .default_view_type = 0,
+};
+
+static const egui_view_grid_view_holder_ops_t demo_holder_ops = {
+    .create_holder = demo_create_holder,
+    .destroy_holder = demo_destroy_holder,
+    .bind_holder = demo_bind_holder,
+    .unbind_holder = demo_unbind_holder,
+    .save_holder_state = demo_save_holder_state,
+    .restore_holder_state = demo_restore_holder_state,
+};
+
+void init_ui(void)
+{
+    const egui_view_grid_view_setup_t setup = {
+        .params = &demo_params,
+        .data_model = &demo_data_model,
+        .holder_ops = &demo_holder_ops,
+        .data_model_context = &demo_ctx,
+        .state_cache_max_entries = 8,
+        .state_cache_max_bytes = 64,
+    };
+
+    egui_view_grid_view_init_with_setup(EGUI_VIEW_OF(&grid_view), &setup);
+    egui_core_add_user_root_view(EGUI_VIEW_OF(&grid_view));
+}
+```
+
+### 推荐示例
+
+- 最小例程：`example/HelloVirtual/grid_view_basic/`
+- richer 场景：`example/HelloVirtual/grid_view/`
+- 头文件：`src/widget/egui_view_grid_view.h`
 
 ---
 

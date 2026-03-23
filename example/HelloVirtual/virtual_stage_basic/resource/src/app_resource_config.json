@@ -1,0 +1,12 @@
+{
+    "img": [
+        {
+            "file": "star.png",
+            "format": "alpha",
+            "alpha": "4",
+            "external": "0",
+            "swap": "0"
+        }
+    ],
+    "font": []
+}

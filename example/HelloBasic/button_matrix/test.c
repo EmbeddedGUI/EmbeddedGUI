@@ -95,7 +95,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             report_runtime_failure("button_matrix initial selected index mismatch");
         }
-        set_matrix_cell_click(p_action, 0.50f, 0.17f, 600);
+        set_matrix_cell_click(p_action, 0.50f, 0.17f, 1000);
         return true;
     case 1:
         if (first_call)
@@ -105,7 +105,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
                 report_runtime_failure("button_matrix home selection did not commit");
             }
         }
-        set_matrix_cell_click(p_action, 0.50f, 0.50f, 600);
+        set_matrix_cell_click(p_action, 0.50f, 0.50f, 1000);
         return true;
     case 2:
         if (first_call)
@@ -115,7 +115,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
                 report_runtime_failure("button_matrix alerts selection did not commit");
             }
         }
-        set_matrix_cell_click(p_action, 0.83f, 0.83f, 600);
+        set_matrix_cell_click(p_action, 0.83f, 0.83f, 1000);
         return true;
     case 3:
         if (first_call)

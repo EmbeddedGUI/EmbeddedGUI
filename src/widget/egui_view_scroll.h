@@ -53,9 +53,7 @@ int egui_view_scroll_on_intercept_touch_event(egui_view_t *self, egui_motion_eve
 int egui_view_scroll_on_touch_event(egui_view_t *self, egui_motion_event_t *event);
 void egui_view_scroll_init(egui_view_t *self);
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
 void egui_view_scroll_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled);
-#endif
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

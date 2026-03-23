@@ -42,6 +42,23 @@ def get_example_basic_list():
 
     return sorted(app_list)
 
+
+def get_example_virtual_list():
+    path = 'example/HelloVirtual'
+    app_list = []
+
+    if not os.path.isdir(path):
+        return app_list
+
+    files = os.listdir(path)
+    for file in files:
+        file_path = os.path.join(path, file)
+
+        if os.path.isdir(file_path):
+            app_list.append(file)
+
+    return sorted(app_list)
+
 def get_custom_widgets_list(category=None):
     """Discover HelloCustomWidgets sub-apps (category/widget_name pairs)."""
     base = 'example/HelloCustomWidgets'
@@ -66,7 +83,7 @@ def compile_code(params):
     """Compile code using per-app OBJDIR (no make clean needed).
 
     PC Makefile uses APP_OBJ_SUFFIX so each APP gets its own obj directory.
-    HelloBasic sub-apps share OBJDIR, so core library is compiled only once.
+    HelloBasic/HelloVirtual sub-apps use dedicated OBJDIRs per sub-app.
     """
     if build_system == 'cmake':
         return compile_code_cmake(params)
@@ -247,7 +264,7 @@ def parse_args():
     parser.add_argument("--full-check",
                         action="store_true",
                         default=False,
-                        help="Compile all tracked standard examples and HelloBasic sub-apps.")
+                        help="Compile all tracked standard examples plus HelloBasic/HelloVirtual sub-apps.")
 
     parser.add_argument("--actions",
                         action="store_true",
@@ -322,6 +339,7 @@ if __name__ == '__main__':
 
     app_sets = get_example_list()
     app_basic_sets = get_example_basic_list()
+    app_virtual_sets = get_example_virtual_list()
 
     # Clean once at start if requested (or for backward compat on first run)
     if args.clean:
@@ -371,6 +389,9 @@ if __name__ == '__main__':
                 if app == "HelloBasic":
                     for app_basic in app_basic_sets:
                         total_work_cnt += 1
+                elif app == "HelloVirtual":
+                    for app_virtual in app_virtual_sets:
+                        total_work_cnt += 1
                 else:
                     total_work_cnt += 1
 
@@ -382,8 +403,12 @@ if __name__ == '__main__':
                     continue
                 if app == "HelloBasic":
                     for app_basic in app_basic_sets:
-                            current_work_cnt += 1
-                            process_app(current_work_cnt, total_work_cnt, app, port, app_basic, params)
+                        current_work_cnt += 1
+                        process_app(current_work_cnt, total_work_cnt, app, port, app_basic, params)
+                elif app == "HelloVirtual":
+                    for app_virtual in app_virtual_sets:
+                        current_work_cnt += 1
+                        process_app(current_work_cnt, total_work_cnt, app, port, app_virtual, params)
                 else:
                     current_work_cnt += 1
                     process_app(current_work_cnt, total_work_cnt, app, port, None, params)

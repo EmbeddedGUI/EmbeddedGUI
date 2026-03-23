@@ -33,6 +33,14 @@ jobs:
 
       - name: Full compile check
         run: python scripts\code_compile_check.py --full-check --actions --bits64
+      - name: Full runtime check
+        run: python scripts\code_runtime_check.py --full-check --bits64
+      - name: Dirty animation check
+        run: python scripts\code_dirty_animation_check.py --bits64
+      - name: Virtual stage showcase parity check
+        run: python scripts\showcase_stage_parity_check.py --timeout 35 --bits64
+      - name: HelloVirtual render workflow
+        run: python scripts\hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --bits64
 
   # ─── Build ui_designer on 3 platforms ───
   build-designer:

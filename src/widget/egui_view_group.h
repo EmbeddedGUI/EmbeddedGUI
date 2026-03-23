@@ -23,6 +23,23 @@ struct egui_view_root_group
     uint8_t is_disallow_process_touch_event; // if set, the root group will not process touch events
 };
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+typedef struct egui_view_group_touch_state_snapshot egui_view_group_touch_state_snapshot_t;
+struct egui_view_group_touch_state_snapshot
+{
+    uint8_t is_active;
+    uint8_t is_disallow_intercept;
+    uint8_t path_len;
+    egui_view_t *path[EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX];
+};
+#else
+typedef struct egui_view_group_touch_state_snapshot egui_view_group_touch_state_snapshot_t;
+struct egui_view_group_touch_state_snapshot
+{
+    uint8_t unused;
+};
+#endif
+
 // ============== Group Params ==============
 typedef struct egui_view_group_params egui_view_group_params_t;
 struct egui_view_group_params
@@ -51,6 +68,7 @@ void egui_view_group_layout_childs(egui_view_t *self, uint8_t is_orientation_hor
 
 void egui_view_group_set_disallow_process_touch_event(egui_view_t *self, int disallow);
 void egui_view_group_request_disallow_intercept_touch_event(egui_view_t *self, int disallow);
+void egui_view_group_touch_state_exchange(egui_view_group_touch_state_snapshot_t *snapshot);
 int egui_view_group_on_intercept_touch_event(egui_view_t *self, egui_motion_event_t *event);
 void egui_view_group_compute_scroll(egui_view_t *self);
 int egui_view_group_dispatch_touch_event(egui_view_t *self, egui_motion_event_t *event);

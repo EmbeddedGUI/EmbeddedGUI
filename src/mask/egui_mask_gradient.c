@@ -6,6 +6,8 @@
 #include "core/egui_canvas.h"
 #include "core/egui_canvas_gradient.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+
 void egui_mask_gradient_mask_point(egui_mask_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
     EGUI_LOCAL_INIT(egui_mask_gradient_t);
@@ -158,3 +160,5 @@ void egui_mask_gradient_set_overlay_alpha(egui_mask_t *self, egui_alpha_t overla
     EGUI_LOCAL_INIT(egui_mask_gradient_t);
     local->overlay_alpha = overlay_alpha;
 }
+
+#endif

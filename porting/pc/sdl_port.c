@@ -215,6 +215,7 @@ extern bool VT_Mouse_Get_Point(int16_t *x, int16_t *y);
 
 void snap_shot(const char *file_name);
 static void recording_save_frame(void);
+static void sdl_port_present_frame(void);
 #if EGUI_CONFIG_RECORDING_TEST
 static void recording_simulate_action(void);
 static uint32_t recording_calc_frame_hash(void);
@@ -296,6 +297,15 @@ static void monitor_sdl_init(void)
     sdl_inited = true;
 }
 
+static void sdl_port_present_frame(void)
+{
+    SDL_RenderClear(renderer);
+
+    /*Update the renderer with the texture containing the rendered image*/
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
+}
+
 __EGUI_WEAK__ void egui_port_hanlde_key_event(int key, int event)
 {
     // printf("key event: %d, %d\n", key, event);
@@ -309,11 +319,7 @@ void VT_sdl_refresh_task(void)
         {
             sdl_refr_qry = false;
             SDL_UpdateTexture(texture, NULL, tft_fb, VT_WIDTH * VT_FB_PIXEL_SIZE);
-            SDL_RenderClear(renderer);
-
-            /*Update the renderer with the texture containing the rendered image*/
-            SDL_RenderCopy(renderer, texture, NULL, NULL);
-            SDL_RenderPresent(renderer);
+            sdl_port_present_frame();
             sdl_refr_cpl = true;
         }
     }
@@ -370,9 +376,7 @@ void VT_sdl_refresh_task(void)
 #endif
             case SDL_WINDOWEVENT_EXPOSED:
                 SDL_UpdateTexture(texture, NULL, tft_fb, VT_WIDTH * VT_FB_PIXEL_SIZE);
-                SDL_RenderClear(renderer);
-                SDL_RenderCopy(renderer, texture, NULL, NULL);
-                SDL_RenderPresent(renderer);
+                sdl_port_present_frame();
                 break;
             default:
                 break;
@@ -856,8 +860,15 @@ egui_color_int_t VT_Get_Point(int32_t x, int32_t y)
 
 void snap_shot(const char *file_name)
 {
-    // Convert framebuffer to RGB888 for PNG output
-    unsigned char rgb_data[VT_WIDTH * VT_HEIGHT * 3];
+    // Large showcase-sized canvases can exceed the default Windows stack
+    // if the RGB snapshot buffer lives on the stack.
+    size_t rgb_size = (size_t)VT_WIDTH * (size_t)VT_HEIGHT * 3U;
+    unsigned char *rgb_data = (unsigned char *)malloc(rgb_size);
+
+    if (rgb_data == NULL)
+    {
+        return;
+    }
 
 #if VT_SDL_NATIVE_RGB565
     for (int i = 0; i < VT_WIDTH * VT_HEIGHT; i++)
@@ -888,6 +899,7 @@ void snap_shot(const char *file_name)
 #endif
 
     stbi_write_png(file_name, VT_WIDTH, VT_HEIGHT, 3, rgb_data, VT_WIDTH * 3);
+    free(rgb_data);
 }
 
 // Recording functions for GIF generation
@@ -1240,7 +1252,6 @@ static void recording_save_frame(void)
     }
 
     uint32_t now = sdl_get_system_timestamp_ms();
-    uint32_t real_now = sdl_get_system_timestamp_ms_raw();
 
     // Initialize start time on first frame
     if (g_recording_start_time == 0)
@@ -1267,6 +1278,7 @@ static void recording_save_frame(void)
     }
 
 #if EGUI_CONFIG_RECORDING_TEST
+    uint32_t real_now = sdl_get_system_timestamp_ms_raw();
     // Snapshot-driven frame capture: save when requested by user code or auto-fallback
     if (g_recording_snapshot_requested)
     {

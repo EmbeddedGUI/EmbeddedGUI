@@ -44,6 +44,27 @@ python scripts/code_runtime_check.py --app HelloBasic --app-sub {SUB} --keep-scr
 截图路径：
 `runtime_check_output/HelloBasic_{SUB}/default/frame_*.png`
 
+## HelloCustomWidgets 检查
+
+单个控件：
+
+```bash
+python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub {CATEGORY}/{WIDGET} --keep-screenshots
+```
+
+分类批量回归：
+
+```bash
+python scripts/code_runtime_check.py --app HelloCustomWidgets --category {CATEGORY} --bits64
+```
+
+截图路径：
+`runtime_check_output/HelloCustomWidgets_{CATEGORY}_{WIDGET}/default/frame_*.png`
+
+说明：
+- `code_runtime_check.py` 会把 `APP_SUB` 里的 `/` 和 `\` 统一替换为 `_`
+- 分类批量回归适合和 `custom-widgets-check.yml`、本地收口回归保持一致
+
 ## 多页面应用检查要求
 
 - 必须检查所有页面对应截图，不允许只看首页。

@@ -234,7 +234,8 @@ int egui_view_scroll_on_intercept_touch_event(egui_view_t *self, egui_motion_eve
     {
         /*
          * is_begin_dragged == false, otherwise the shortcut would have caught it. Check
-         * whether the user has moved far enough from his original down touch.
+         * whether the user has moved far enough from his
+         * original down touch.
          */
         egui_dim_t delta_y = event->location.y - local->last_motion_y;
         egui_view_scroll_check_begin_dragged(self, delta_y);
@@ -247,7 +248,8 @@ int egui_view_scroll_on_intercept_touch_event(egui_view_t *self, egui_motion_eve
         /*
          * If being flinged and user touches the screen, initiate drag;
          * otherwise don't.  scroller.isFinished should be false when
-         * being flinged.
+
+         * * being flinged.
          */
         local->is_begin_dragged = !local->scroller.finished;
         break;
@@ -484,6 +486,12 @@ void egui_view_scroll_draw(egui_view_t *self)
     }
 
     egui_canvas_set_alpha(alpha);
+}
+#else
+void egui_view_scroll_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled)
+{
+    (void)self;
+    (void)enabled;
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
 

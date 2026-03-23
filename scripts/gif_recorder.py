@@ -25,6 +25,10 @@ DEFAULT_SNAPSHOT_MAX_WAIT_MS = 1500
 
 # Default skip list - examples not suitable for demo
 DEFAULT_SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformance"]
+SUB_APP_ROOTS = {
+    "HelloBasic": "example/HelloBasic",
+    "HelloVirtual": "example/HelloVirtual",
+}
 
 
 def get_windows_hidden_run_kwargs():
@@ -59,11 +63,11 @@ def get_example_list():
     return sorted(app_list)
 
 
-def get_example_basic_list():
-    """Get list of HelloBasic sub-applications"""
-    path = 'example/HelloBasic'
+def get_example_sub_list(app):
+    """Get list of sub-applications for apps that use APP_SUB."""
+    path = SUB_APP_ROOTS.get(app)
     app_list = []
-    if not os.path.exists(path):
+    if not path or not os.path.exists(path):
         return app_list
 
     for file in os.listdir(path):
@@ -72,6 +76,13 @@ def get_example_basic_list():
             app_list.append(file)
 
     return sorted(app_list)
+
+
+def format_app_name(app, app_sub=None):
+    """Build a stable output name for app/app_sub."""
+    if not app_sub:
+        return app
+    return f"{app}_{app_sub}"
 
 
 def compile_app(app, app_sub=None, bits64=False):
@@ -269,7 +280,7 @@ def record_single_app(app, app_sub=None, fps=DEFAULT_FPS, duration=DEFAULT_DURAT
                       snapshot_stable_cycles=DEFAULT_SNAPSHOT_STABLE_CYCLES,
                       snapshot_max_wait_ms=DEFAULT_SNAPSHOT_MAX_WAIT_MS):
     """Record single application"""
-    app_name = f"{app}_{app_sub}" if app_sub else app
+    app_name = format_app_name(app, app_sub)
     print(f"\n{'='*60}")
     print(f"Recording: {app_name}")
     print(f"{'='*60}")
@@ -308,16 +319,16 @@ def record_all_apps(fps=DEFAULT_FPS, duration=DEFAULT_DURATION, skip_list=None,
 
     results = []
     app_sets = get_example_list()
-    app_basic_sets = get_example_basic_list()
+    sub_app_sets = {app: get_example_sub_list(app) for app in SUB_APP_ROOTS}
 
     # Calculate total count
     total = 0
     for app in app_sets:
         if app in skip_list:
             continue
-        if app == "HelloBasic":
-            for app_sub in app_basic_sets:
-                if f"HelloBasic_{app_sub}" not in skip_list:
+        if app in SUB_APP_ROOTS:
+            for app_sub in sub_app_sets.get(app, []):
+                if format_app_name(app, app_sub) not in skip_list:
                     total += 1
         else:
             total += 1
@@ -328,9 +339,9 @@ def record_all_apps(fps=DEFAULT_FPS, duration=DEFAULT_DURATION, skip_list=None,
             print(f"\nSkipping: {app}")
             continue
 
-        if app == "HelloBasic":
-            for app_sub in app_basic_sets:
-                full_name = f"HelloBasic_{app_sub}"
+        if app in SUB_APP_ROOTS:
+            for app_sub in sub_app_sets.get(app, []):
+                full_name = format_app_name(app, app_sub)
                 if full_name in skip_list:
                     print(f"\nSkipping: {full_name}")
                     continue
@@ -370,6 +381,34 @@ def record_all_apps(fps=DEFAULT_FPS, duration=DEFAULT_DURATION, skip_list=None,
     return results
 
 
+def record_sub_apps(app, fps=DEFAULT_FPS, duration=DEFAULT_DURATION, bits64=False, keep_frames=False,
+                    clock_scale=DEFAULT_RECORDING_CLOCK_SCALE,
+                    snapshot_settle_ms=DEFAULT_SNAPSHOT_SETTLE_MS,
+                    snapshot_stable_cycles=DEFAULT_SNAPSHOT_STABLE_CYCLES,
+                    snapshot_max_wait_ms=DEFAULT_SNAPSHOT_MAX_WAIT_MS):
+    """Record all sub-apps for a specific app that uses APP_SUB."""
+    sub_apps = get_example_sub_list(app)
+    results = []
+
+    for index, app_sub in enumerate(sub_apps, start=1):
+        print(f"\n[{index}/{len(sub_apps)}] Processing {app}/{app_sub}")
+        result = record_single_app(
+            app,
+            app_sub,
+            fps,
+            duration,
+            bits64,
+            keep_frames,
+            clock_scale,
+            snapshot_settle_ms,
+            snapshot_stable_cycles,
+            snapshot_max_wait_ms,
+        )
+        results.append(result)
+
+    return results
+
+
 def print_summary(results):
     """Print recording summary"""
     print(f"\n{'='*60}")
@@ -396,14 +435,19 @@ def main():
         epilog="""
 Examples:
   %(prog)s --app HelloSimple              Record single app
+  %(prog)s --app HelloVirtual             Record all HelloVirtual sub-apps
   %(prog)s --app HelloBasic --app-sub anim  Record HelloBasic sub-app
+  %(prog)s --app HelloVirtual --app-sub virtual_stage_basic  Record HelloVirtual sub-app
+  %(prog)s --app HelloVirtual --app-sub virtual_stage_basic --bits64  Record HelloVirtual sub-app in 64-bit
   %(prog)s --all                          Record all (skips test examples)
   %(prog)s --all --no-skip                Record all including test examples
   %(prog)s --list                         List all available examples
         """
     )
-    parser.add_argument('--app', type=str, help='Specific app to record')
-    parser.add_argument('--app-sub', type=str, help='Sub-app for HelloBasic')
+    parser.add_argument('--app', type=str,
+                        help='Specific app to record. For HelloBasic/HelloVirtual without --app-sub, records all sub-apps.')
+    parser.add_argument('--app-sub', type=str,
+                        help='Single sub-app for HelloBasic/HelloVirtual. If omitted, all sub-apps are recorded.')
     parser.add_argument('--fps', type=int, default=DEFAULT_FPS, help=f'Recording FPS (default: {DEFAULT_FPS})')
     parser.add_argument('--duration', type=int, default=DEFAULT_DURATION,
                         help=f'Recording duration in seconds (default: {DEFAULT_DURATION})')
@@ -430,8 +474,8 @@ Examples:
         for app in get_example_list():
             skip_marker = " (skipped by default)" if app in DEFAULT_SKIP_LIST else ""
             print(f"  - {app}{skip_marker}")
-            if app == "HelloBasic":
-                for sub in get_example_basic_list():
+            if app in SUB_APP_ROOTS:
+                for sub in get_example_sub_list(app):
                     print(f"      - {sub}")
         return
 
@@ -454,10 +498,24 @@ Examples:
 
     # Record single app
     elif args.app:
-        result = record_single_app(args.app, args.app_sub, args.fps, args.duration,
-                                   args.bits64, args.keep_frames, args.clock_scale, args.snapshot_settle_ms,
-                                   args.snapshot_stable_cycles, args.snapshot_max_wait_ms)
-        print_summary([result])
+        if args.app in SUB_APP_ROOTS and not args.app_sub:
+            results = record_sub_apps(
+                args.app,
+                args.fps,
+                args.duration,
+                args.bits64,
+                args.keep_frames,
+                args.clock_scale,
+                args.snapshot_settle_ms,
+                args.snapshot_stable_cycles,
+                args.snapshot_max_wait_ms,
+            )
+            print_summary(results)
+        else:
+            result = record_single_app(args.app, args.app_sub, args.fps, args.duration,
+                                       args.bits64, args.keep_frames, args.clock_scale, args.snapshot_settle_ms,
+                                       args.snapshot_stable_cycles, args.snapshot_max_wait_ms)
+            print_summary([result])
 
     else:
         parser.print_help()

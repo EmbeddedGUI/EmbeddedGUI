@@ -27,6 +27,7 @@ make all APP=HelloStyleDemo
 |--------|------|
 | `HelloSimple` | 最简单的入门示例 |
 | `HelloBasic` | 控件演示集合 (需配合 APP_SUB) |
+| `HelloVirtual` | Virtual / ListView / GridView / Stage 示例集合 (需配合 APP_SUB) |
 | `HelloActivity` | Activity 生命周期演示 |
 | `HelloAPP` | 多 Activity 应用 |
 | `HelloStyleDemo` | 样式和主题演示 |
@@ -42,9 +43,12 @@ make all APP=HelloStyleDemo
 | `HelloTest` | 功能测试 |
 | `HelloUnitTest` | 单元测试 |
 
-### APP_SUB -- 选择 HelloBasic 子应用
+### APP_SUB -- 选择 HelloBasic / HelloVirtual 子应用
 
-`HelloBasic` 示例包含 50+ 子应用，每个子应用演示一种控件。通过 `APP_SUB` 参数选择:
+`APP_SUB` 适用于 `HelloBasic` 和 `HelloVirtual` 这类多子应用示例：
+
+- `HelloBasic`: 基础控件演示，当前包含 58 个子应用
+- `HelloVirtual`: virtual/list/grid/stage 示例，当前包含 19 个子应用
 
 ```bash
 # 编译按钮演示
@@ -58,9 +62,17 @@ make all APP=HelloBasic APP_SUB=chart_line
 
 # 编译模拟时钟演示
 make all APP=HelloBasic APP_SUB=analog_clock
+
+# 编译 HelloVirtual basic stage 演示
+make all APP=HelloVirtual APP_SUB=virtual_stage_basic
+
+# 编译 HelloVirtual showcase 对照演示
+make all APP=HelloVirtual APP_SUB=virtual_stage_showcase
 ```
 
-完整的子应用列表: anim, button, button_img, image, label, linearlayout, mask, progress_bar, scroll, switch, viewpage, viewpage_cache, mp4, checkbox, radio_button, slider, circular_progress_bar, image_button, divider, page_indicator, gauge, number_picker, tab_bar, gridlayout, led, toggle_button, spinner, card, arc_slider, roller, textinput, textblock, combobox, notification_badge, activity_ring, analog_clock, heart_rate, compass, stopwatch, digital_clock, mini_calendar, line, scale, button_matrix, table, animated_image, list, spangroup, tileview, window, menu, enhanced_widgets。
+常用 `HelloBasic` 子应用: `button`、`slider`、`combobox`、`textinput`、`table`、`activity_ring`、`mini_calendar`、`button_matrix`、`window`、`menu` 等。
+
+常用 `HelloVirtual` 子应用: `virtual_viewport_basic`、`virtual_page_basic`、`virtual_grid_basic`、`list_view_basic`、`grid_view_basic`、`virtual_stage_basic`、`virtual_stage_showcase`、`virtual_stage` 等。
 
 ### PORT -- 选择目标平台
 
@@ -122,6 +134,7 @@ make run
 
 # 注意: 如果编译时修改了参数，运行时也需要带上
 make run APP=HelloBasic APP_SUB=slider
+make run APP=HelloVirtual APP_SUB=virtual_stage_basic
 ```
 
 `make run` 实际上先执行 `make all`，然后运行 `output/main.exe` (Windows) 或 `output/main` (Linux/macOS)。
@@ -210,6 +223,8 @@ EGUI_CODE_SRC     += $(EGUI_APP_SUB_PATH)/resource/font
 EGUI_CODE_INCLUDE += $(EGUI_APP_SUB_PATH)
 EGUI_CODE_INCLUDE += $(EGUI_APP_SUB_PATH)/resource
 ```
+
+`HelloVirtual` 也使用同样的 `APP_SUB` 机制，但每个子应用通常带有自己的 `app_egui_config.h`，因此其 `build.mk` 还会设置独立的 `APP_OBJ_SUFFIX`，避免不同子应用复用错误的编译产物。
 
 ### 示例: 核心库的 build.mk
 
@@ -323,6 +338,10 @@ python scripts/code_compile_check.py --full-check --bits64
 
 # 运行时验证 (截图对比)
 python scripts/code_runtime_check.py --app HelloBasic --app-sub button --timeout 10
+
+# HelloVirtual 子应用运行时验证
+python scripts/code_runtime_check.py --app HelloVirtual --timeout 10
+python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage_basic --timeout 10
 
 # 代码格式化
 python scripts/code_format.py

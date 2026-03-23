@@ -957,6 +957,12 @@ void egui_view_textblock_set_scrollbar_enabled(egui_view_t *self, uint8_t enable
         egui_view_invalidate(self);
     }
 }
+#else
+void egui_view_textblock_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled)
+{
+    (void)self;
+    (void)enabled;
+}
 #endif
 
 // ========================= Edit mode API =========================

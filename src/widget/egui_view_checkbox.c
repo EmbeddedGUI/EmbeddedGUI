@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "egui_view_checkbox.h"
+#include "egui_view_circle_dirty.h"
 #include "resource/egui_resource.h"
 #include "style/egui_theme.h"
 
@@ -26,6 +27,46 @@ static const egui_font_t *egui_view_checkbox_get_icon_font(egui_view_checkbox_t 
         return EGUI_FONT_ICON_MS_20;
     }
     return EGUI_FONT_ICON_MS_24;
+}
+
+static uint8_t egui_view_checkbox_get_indicator_dirty_region(egui_view_t *self, egui_view_checkbox_t *local, egui_region_t *dirty_region)
+{
+    egui_region_t region;
+    egui_dim_t box_size;
+    egui_dim_t box_x;
+    egui_dim_t box_y;
+
+    if (dirty_region == NULL)
+    {
+        return 0;
+    }
+
+    egui_region_init_empty(dirty_region);
+    if (self->region_screen.size.width <= 0 || self->region_screen.size.height <= 0)
+    {
+        return 0;
+    }
+
+    egui_view_get_work_region(self, &region);
+    box_size = region.size.height;
+    if (box_size > region.size.width)
+    {
+        box_size = region.size.width;
+    }
+    if (box_size <= 0)
+    {
+        return 0;
+    }
+
+    box_x = region.location.x + (region.size.width - box_size) / 2;
+    box_y = region.location.y + (region.size.height - box_size) / 2;
+    if (local->text != NULL)
+    {
+        box_x = region.location.x + 1;
+    }
+
+    egui_view_circle_dirty_add_rect_region(dirty_region, box_x, box_y, box_size, box_size, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD + 1);
+    return egui_region_is_empty(dirty_region) ? 0 : 1;
 }
 
 void egui_view_checkbox_set_text(egui_view_t *self, const char *text)
@@ -109,6 +150,7 @@ void egui_view_checkbox_set_on_checked_listener(egui_view_t *self, egui_view_on_
 void egui_view_checkbox_set_checked(egui_view_t *self, uint8_t is_checked)
 {
     EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    egui_region_t dirty_region;
     if (is_checked != local->is_checked)
     {
         local->is_checked = is_checked;
@@ -117,7 +159,14 @@ void egui_view_checkbox_set_checked(egui_view_t *self, uint8_t is_checked)
             local->on_checked_changed(self, is_checked);
         }
 
-        egui_view_invalidate(self);
+        if (egui_view_checkbox_get_indicator_dirty_region(self, local, &dirty_region))
+        {
+            egui_view_invalidate_region(self, &dirty_region);
+        }
+        else
+        {
+            egui_view_invalidate(self);
+        }
     }
 }
 

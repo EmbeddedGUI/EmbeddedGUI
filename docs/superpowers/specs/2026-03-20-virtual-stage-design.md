@@ -146,7 +146,7 @@ slot 的价值在于：
 
 ### 2. Pin
 
-通过 `pin_node()` 把关键节点提升为常驻 slot。
+通过 `EGUI_VIEW_VIRTUAL_STAGE_PIN(...)` 把关键节点提升为常驻 slot。
 
 适合：
 
@@ -247,7 +247,7 @@ slot 的价值在于：
 
 ## 当前示例落地方式
 
-`example/HelloBasic/virtual_stage/test.c` 当前示例采用了下面这套策略：
+`example/HelloVirtual/virtual_stage/test.c` 当前示例采用了下面这套策略：
 
 - `800x800` 大画布
 - `100` 节点同时可见
@@ -285,7 +285,7 @@ slot 的价值在于：
 
 ### 运行时验证
 
-`HelloBasic/virtual_stage` 通过录制动作验证：
+`HelloVirtual/virtual_stage` 通过录制动作验证：
 
 - 交互链路是否完整
 - slot 是否被错误滞留

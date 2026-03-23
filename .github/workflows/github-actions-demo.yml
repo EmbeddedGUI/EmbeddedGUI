@@ -18,4 +18,12 @@ jobs:
         run: python -m pytest -c scripts/ui_designer/pyproject.toml scripts/ui_designer/tests -v --tb=short
       - name: Start Compile Test, full compile check.
         run: python scripts\code_compile_check.py --full-check --actions --bits64
+      - name: Start Runtime Test, full runtime check.
+        run: python scripts\code_runtime_check.py --full-check --bits64
+      - name: Start Dirty Animation Check
+        run: python scripts\code_dirty_animation_check.py --bits64
+      - name: Start Virtual Stage Showcase Parity Check
+        run: python scripts\showcase_stage_parity_check.py --timeout 35 --bits64
+      - name: Start HelloVirtual Render Workflow
+        run: python scripts\hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --bits64
       - run: echo "🍏 This job's status is ${{ job.status }}."

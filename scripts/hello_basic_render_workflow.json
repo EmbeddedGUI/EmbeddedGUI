@@ -26,6 +26,10 @@
       "checkbox",
       "chips",
       "combobox",
+      "list_view",
+      "list_view_basic",
+      "grid_view",
+      "grid_view_basic",
       "gridlayout",
       "image_button",
       "list",
@@ -44,6 +48,14 @@
       "textinput",
       "tileview",
       "toggle_button",
+      "virtual_page_basic",
+      "virtual_strip_basic",
+      "virtual_grid_basic",
+      "virtual_section_list_basic",
+      "virtual_tree_basic",
+      "virtual_viewport_basic",
+      "virtual_stage_basic",
+      "virtual_stage_showcase",
       "virtual_stage",
       "viewpage",
       "viewpage_cache",
@@ -125,6 +137,46 @@
         "wait"
       ],
       "min_case_count": 13,
+      "min_interaction_transitions": 2,
+      "require_runtime_marker": true
+    },
+    "list_view_basic": {
+      "expected_actions": [
+        "click",
+        "drag",
+        "wait"
+      ],
+      "min_case_count": 7,
+      "min_interaction_transitions": 2,
+      "require_runtime_marker": true
+    },
+    "list_view": {
+      "expected_actions": [
+        "click",
+        "drag",
+        "wait"
+      ],
+      "min_case_count": 10,
+      "min_interaction_transitions": 2,
+      "require_runtime_marker": true
+    },
+    "grid_view_basic": {
+      "expected_actions": [
+        "click",
+        "drag",
+        "wait"
+      ],
+      "min_case_count": 4,
+      "min_interaction_transitions": 2,
+      "require_runtime_marker": true
+    },
+    "grid_view": {
+      "expected_actions": [
+        "click",
+        "drag",
+        "wait"
+      ],
+      "min_case_count": 8,
       "min_interaction_transitions": 2,
       "require_runtime_marker": true
     },
@@ -274,6 +326,85 @@
       "min_case_count": 5,
       "require_runtime_marker": true
     },
+    "virtual_page_basic": {
+      "expected_actions": [
+        "click",
+        "drag",
+        "wait"
+      ],
+      "min_case_count": 9,
+      "min_interaction_transitions": 2,
+      "require_runtime_marker": true
+    },
+    "virtual_strip_basic": {
+      "expected_actions": [
+        "click",
+        "drag",
+        "wait"
+      ],
+      "min_case_count": 8,
+      "min_interaction_transitions": 2,
+      "require_runtime_marker": true
+    },
+    "virtual_grid_basic": {
+      "expected_actions": [
+        "click",
+        "drag",
+        "wait"
+      ],
+      "min_case_count": 7,
+      "min_interaction_transitions": 2,
+      "require_runtime_marker": true
+    },
+    "virtual_section_list_basic": {
+      "expected_actions": [
+        "click",
+        "drag",
+        "wait"
+      ],
+      "min_case_count": 11,
+      "min_interaction_transitions": 2,
+      "require_runtime_marker": true
+    },
+    "virtual_tree_basic": {
+      "expected_actions": [
+        "click",
+        "drag",
+        "wait"
+      ],
+      "min_case_count": 11,
+      "min_interaction_transitions": 2,
+      "require_runtime_marker": true
+    },
+    "virtual_viewport_basic": {
+      "expected_actions": [
+        "click",
+        "drag",
+        "wait"
+      ],
+      "min_case_count": 9,
+      "min_interaction_transitions": 2,
+      "require_runtime_marker": true
+    },
+    "virtual_stage_basic": {
+      "expected_actions": [
+        "click",
+        "wait"
+      ],
+      "min_case_count": 9,
+      "min_interaction_transitions": 2,
+      "require_runtime_marker": true
+    },
+    "virtual_stage_showcase": {
+      "expected_actions": [
+        "click",
+        "drag",
+        "wait"
+      ],
+      "min_case_count": 10,
+      "min_interaction_transitions": 2,
+      "require_runtime_marker": true
+    },
     "virtual_stage": {
       "expected_actions": [
         "click",
@@ -281,7 +412,7 @@
         "wait"
       ],
       "min_case_count": 39,
-      "min_interaction_transitions": 0,
+      "min_interaction_transitions": 2,
       "require_runtime_marker": true
     },
     "viewpage": {

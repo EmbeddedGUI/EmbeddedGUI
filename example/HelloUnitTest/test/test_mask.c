@@ -4,6 +4,8 @@
 #include "test/egui_test.h"
 #include "test_mask.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+
 static void test_image_mask_null_point_passthrough(void)
 {
     egui_mask_image_t mask;
@@ -307,3 +309,11 @@ void test_mask_run(void)
 
     EGUI_TEST_SUITE_END();
 }
+
+#else
+
+void test_mask_run(void)
+{
+}
+
+#endif

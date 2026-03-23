@@ -553,6 +553,12 @@ void egui_view_viewpage_draw(egui_view_t *self)
 
     egui_canvas_set_alpha(alpha);
 }
+#else
+void egui_view_viewpage_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled)
+{
+    (void)self;
+    (void)enabled;
+}
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_viewpage_t) = {

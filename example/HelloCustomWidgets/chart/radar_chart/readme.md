@@ -1,4 +1,4 @@
-﻿# RadarChart 控件设计说明
+# RadarChart 控件设计说明
 
 ## 1. 为什么需要这个控件
 
@@ -111,7 +111,7 @@ python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub chart/ra
 
 关键截图输出目录：
 
-- runtime_check_output/HelloCustomWidgets_chart/radar_chart/default/
+- runtime_check_output/HelloCustomWidgets_chart_radar_chart/default/
 
 通过条件：
 

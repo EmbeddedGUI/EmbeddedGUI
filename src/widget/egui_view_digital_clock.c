@@ -4,6 +4,7 @@
 #include "egui_view_digital_clock.h"
 #include "utils/egui_sprintf.h"
 #include "font/egui_font.h"
+#include "resource/egui_resource.h"
 
 static void format_time(egui_view_t *self)
 {
@@ -94,6 +95,7 @@ void egui_view_digital_clock_init(egui_view_t *self)
     EGUI_INIT_LOCAL(egui_view_digital_clock_t);
     // call super init.
     egui_view_label_init(self);
+    local->base.font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
     egui_view_label_set_text(self, local->time_buffer);
 
     // init local data.

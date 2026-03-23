@@ -2422,8 +2422,7 @@ typedef struct egui_view_virtual_viewport_find_visible_item_context
 } egui_view_virtual_viewport_find_visible_item_context_t;
 
 static uint8_t egui_view_virtual_viewport_find_visible_item_visitor(egui_view_t *self, const egui_view_virtual_viewport_slot_t *slot,
-                                                                    const egui_view_virtual_viewport_entry_t *entry, egui_view_t *item_view,
-                                                                    void *context)
+                                                                    const egui_view_virtual_viewport_entry_t *entry, egui_view_t *item_view, void *context)
 {
     egui_view_virtual_viewport_find_visible_item_context_t *ctx = (egui_view_virtual_viewport_find_visible_item_context_t *)context;
 

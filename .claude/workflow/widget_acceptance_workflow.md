@@ -138,7 +138,13 @@ python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub <categor
 
 截图输出目录约定：
 
-- `runtime_check_output/HelloCustomWidgets_<category>/<widget>/default/frame_*.png`
+- `runtime_check_output/HelloCustomWidgets_<category>_<widget>/default/frame_*.png`
+
+分类回归命令（用于批量复查同类控件）：
+
+```bash
+python scripts/code_runtime_check.py --app HelloCustomWidgets --category <category> --bits64
+```
 
 检查要求：
 
@@ -190,6 +196,10 @@ python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub <categor
 5. 检查截图中的视觉问题
 6. 复制关键截图到 `iteration_log/images/iter_xx/`
 7. 更新 `iteration_log/iteration_log.md`
+
+如果同一轮修改影响了同分类多个控件，单控件验证通过后，再追加执行一次：
+
+8. 执行 `python scripts/code_runtime_check.py --app HelloCustomWidgets --category <category> --bits64`
 
 每次迭代至少要写：
 

@@ -2,16 +2,84 @@
 #include <assert.h>
 
 #include "egui_view_spinner.h"
+#include "egui_view_circle_dirty.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
 #include "core/egui_canvas_gradient.h"
 #endif
 
+static void egui_view_spinner_invalidate_rotation_change(egui_view_t *self, egui_view_spinner_t *local, int16_t old_rotation_angle)
+{
+    egui_region_t region;
+    egui_region_t dirty_region;
+    egui_region_t arc_region;
+    egui_dim_t w;
+    egui_dim_t h;
+    egui_dim_t center_x;
+    egui_dim_t center_y;
+    egui_dim_t radius;
+    egui_dim_t mid_r;
+    uint16_t arc_sweep;
+
+    if (local->arc_length <= 0)
+    {
+        return;
+    }
+
+    if (self->region_screen.size.width <= 0 || self->region_screen.size.height <= 0)
+    {
+        egui_view_invalidate(self);
+        return;
+    }
+
+    egui_view_get_work_region(self, &region);
+    w = region.size.width;
+    h = region.size.height;
+    center_x = region.location.x + w / 2;
+    center_y = region.location.y + h / 2;
+    radius = EGUI_MIN(w, h) / 2 - local->stroke_width / 2 - 1;
+    if (radius <= 0)
+    {
+        egui_view_invalidate(self);
+        return;
+    }
+
+    mid_r = radius - local->stroke_width / 2;
+    if (mid_r < 0)
+    {
+        mid_r = 0;
+    }
+
+    arc_sweep = (uint16_t)EGUI_MIN(local->arc_length, 360);
+    egui_region_init_empty(&dirty_region);
+
+    if (egui_view_circle_dirty_compute_arc_region(center_x, center_y, mid_r, local->stroke_width / 2 + EGUI_VIEW_CIRCLE_DIRTY_AA_PAD, old_rotation_angle,
+                                                  arc_sweep, &arc_region))
+    {
+        egui_view_circle_dirty_union_region(&dirty_region, &arc_region);
+    }
+
+    if (egui_view_circle_dirty_compute_arc_region(center_x, center_y, mid_r, local->stroke_width / 2 + EGUI_VIEW_CIRCLE_DIRTY_AA_PAD, local->rotation_angle,
+                                                  arc_sweep, &arc_region))
+    {
+        egui_view_circle_dirty_union_region(&dirty_region, &arc_region);
+    }
+
+    if (egui_region_is_empty(&dirty_region))
+    {
+        return;
+    }
+
+    egui_view_invalidate_region(self, &dirty_region);
+}
+
 static void egui_view_spinner_timer_callback(egui_timer_t *timer)
 {
     egui_view_spinner_t *local = (egui_view_spinner_t *)timer->user_data;
+    int16_t old_rotation_angle = local->rotation_angle;
+
     local->rotation_angle = (local->rotation_angle + 10) % 360;
-    egui_view_invalidate((egui_view_t *)local);
+    egui_view_spinner_invalidate_rotation_change((egui_view_t *)local, local, old_rotation_angle);
 }
 
 void egui_view_spinner_start(egui_view_t *self)

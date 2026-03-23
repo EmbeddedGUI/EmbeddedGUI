@@ -391,11 +391,11 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 | HelloUnitTest | 28168 | 8544 | 1816 | 2400 | 36712 |
 | HelloViewPageAndScroll | 29548 | 11208 | 1824 | 2400 | 40756 |
 
-> 运行 `python scripts/utils_analysis_elf_size.py` 生成完整报告。
+> 运行 `python scripts/utils_analysis_elf_size.py` 生成完整报告。脚本会展开 `HelloBasic` 和 `HelloVirtual` 的所有子应用。
 
 ---
 
-## 📚 示例应用（16 个）
+## 📚 示例应用（17 个）
 
 | 示例 | 说明 |
 |------|------|
@@ -403,6 +403,7 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 | `HelloActivity` | Activity 生命周期演示 |
 | `HelloAPP` | 完整多页面应用 |
 | `HelloBasic` | **62 个独立控件演示**（含所有控件子应用） |
+| `HelloVirtual` | **19 个 virtual 相关示例**（含 list/grid/stage/basic/showcase） |
 | `HelloCanvas` | 绘图图元展示 |
 | `HelloChart` | 图表控件演示 |
 | `HelloGradient` | 渐变填充效果 |
@@ -416,7 +417,9 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 | `HelloUnitTest` | 单元测试 |
 | `HelloViewPageAndScroll` | 翻页 + 滚动演示 |
 
-`HelloBasic` 子应用（60 个）：`anim` · `button` · `slider` · `textinput` · `table` · `menu` · `window` · `analog_clock` · `digital_clock` · `stopwatch` · `gauge` · `compass` · `heart_rate` · `activity_ring` · `list` · `spangroup` · `tileview` · `chart_line` · `chart_bar` · `chart_pie` … 等。
+`HelloBasic` 子应用（58 个）：`anim` · `button` · `slider` · `textinput` · `table` · `menu` · `window` · `analog_clock` · `digital_clock` · `stopwatch` · `gauge` · `compass` · `heart_rate` · `activity_ring` · `list` · `spangroup` · `tileview` · `chart_line` · `chart_bar` · `chart_pie` … 等。
+
+`HelloVirtual` 子应用（19 个）：`virtual_viewport_basic` · `virtual_page_basic` · `virtual_grid_basic` · `virtual_section_list_basic` · `virtual_tree_basic` · `list_view_basic` · `grid_view_basic` · `virtual_stage_basic` · `virtual_stage_showcase` · `virtual_stage` … 等。
 
 ---
 
@@ -427,7 +430,7 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 | 构建 | `make all APP=<APP>` | 编译指定示例 |
 | 运行 | `make run` | 启动 PC 模拟器 |
 | 资源生成 | `make resource_refresh APP=<APP>` | 生成字体 / 图片 C 文件 |
-| 运行时验证 | `python scripts/code_runtime_check.py --app <APP>` | 截图验证渲染正确性 |
+| 运行时验证 | `python scripts/code_runtime_check.py --app <APP> [--app-sub <SUB>]` | 截图验证渲染正确性 |
 | 体积分析 | `python scripts/utils_analysis_elf_size.py` | 生成 ROM/RAM 报告 |
 | CI 编译检查 | `python scripts/code_compile_check.py --full-check` | 全量编译检查 |
 | UI Designer | `python scripts/ui_designer/main.py` | 设计稿转 C 代码 |

@@ -32,6 +32,28 @@ egui_core_t egui_core;
 static egui_color_int_t egui_rotation_scratch[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
 #endif
 
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL || EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE || EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
+static uint32_t egui_core_get_region_area(const egui_region_t *region)
+{
+    if (region == NULL || region->size.width <= 0 || region->size.height <= 0)
+    {
+        return 0;
+    }
+
+    return (uint32_t)region->size.width * (uint32_t)region->size.height;
+}
+#endif
+
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL || EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+static void egui_core_debug_log_region_line(const char *tag, uint32_t frame_index, int slot, const egui_region_t *region)
+{
+    uint32_t area = egui_core_get_region_area(region);
+
+    egui_api_log("%s:frame=%lu,slot=%d,x=%d,y=%d,w=%d,h=%d,area=%lu\r\n", tag, (unsigned long)frame_index, slot, region->location.x, region->location.y,
+                 region->size.width, region->size.height, (unsigned long)area);
+}
+#endif
+
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
 typedef struct egui_dirty_region_stats
 {
@@ -47,15 +69,12 @@ typedef struct egui_dirty_region_stats
 
 static egui_dirty_region_stats_t egui_dirty_region_stats;
 
-static uint32_t egui_core_get_region_area(const egui_region_t *region)
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL || EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+static uint32_t egui_core_debug_next_frame_index(void)
 {
-    if (region == NULL || region->size.width <= 0 || region->size.height <= 0)
-    {
-        return 0;
-    }
-
-    return (uint32_t)region->size.width * (uint32_t)region->size.height;
+    return egui_dirty_region_stats.frame_index + 1;
 }
+#endif
 
 static void egui_core_dirty_region_stats_begin_frame(void)
 {
@@ -94,6 +113,8 @@ static void egui_core_dirty_region_stats_count_tile(const egui_region_t *region)
 
 static void egui_core_dirty_region_stats_end_frame(void)
 {
+    int i;
+
     egui_dirty_region_stats.is_collecting_frame = 0;
     egui_dirty_region_stats.frame_count++;
     egui_dirty_region_stats.total_dirty_area += egui_dirty_region_stats.current_dirty_area;
@@ -106,6 +127,233 @@ static void egui_core_dirty_region_stats_end_frame(void)
                  (unsigned long)((uint32_t)egui_core.screen_width * (uint32_t)egui_core.screen_height),
                  (unsigned long)egui_dirty_region_stats.current_tile_count, (unsigned long)egui_dirty_region_stats.frame_count,
                  (unsigned long long)egui_dirty_region_stats.total_dirty_area, (unsigned long long)egui_dirty_region_stats.total_tile_count);
+
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL
+    for (i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
+    {
+        egui_region_t *p_region_dirty = &egui_core.region_dirty_arr[i];
+
+        if (egui_region_is_empty(p_region_dirty))
+        {
+            break;
+        }
+
+        egui_core_debug_log_region_line("DIRTY_REGION_DETAIL", egui_dirty_region_stats.frame_index, i, p_region_dirty);
+    }
+#endif
+}
+#endif
+
+#if (EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL || EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE) && !EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
+static uint32_t egui_core_debug_next_frame_index(void)
+{
+    return 0;
+}
+#endif
+
+#if EGUI_CONFIG_DEBUG_TOUCH_TRACE && EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH && EGUI_CONFIG_DEBUG_TOUCH_TRACE_MAX_POINTS > 0
+typedef struct egui_core_touch_trace_record
+{
+    uint16_t point_count;
+    uint8_t active;
+    egui_region_t bounds;
+    egui_location_t points[EGUI_CONFIG_DEBUG_TOUCH_TRACE_MAX_POINTS];
+} egui_core_touch_trace_record_t;
+
+static egui_core_touch_trace_record_t egui_core_touch_trace_record;
+
+static void egui_core_debug_touch_trace_reset_record(egui_core_touch_trace_record_t *record)
+{
+    if (record == NULL)
+    {
+        return;
+    }
+
+    record->point_count = 0;
+    record->active = 0;
+    egui_region_init_empty(&record->bounds);
+}
+
+static void egui_core_debug_touch_trace_reset_storage(void)
+{
+    egui_core_debug_touch_trace_reset_record(&egui_core_touch_trace_record);
+}
+
+static void egui_core_debug_touch_trace_get_point_region(egui_dim_t x, egui_dim_t y, egui_region_t *region)
+{
+    if (region == NULL)
+    {
+        return;
+    }
+
+    egui_region_init(region, x - 1, y - 1, 3, 3);
+}
+
+static void egui_core_debug_touch_trace_get_segment_region(const egui_location_t *from, const egui_location_t *to, egui_region_t *region)
+{
+    egui_dim_t min_x;
+    egui_dim_t min_y;
+    egui_dim_t max_x;
+    egui_dim_t max_y;
+
+    if (from == NULL || to == NULL || region == NULL)
+    {
+        return;
+    }
+
+    min_x = EGUI_MIN(from->x, to->x) - 1;
+    min_y = EGUI_MIN(from->y, to->y) - 1;
+    max_x = EGUI_MAX(from->x, to->x) + 1;
+    max_y = EGUI_MAX(from->y, to->y) + 1;
+    egui_region_init(region, min_x, min_y, max_x - min_x + 1, max_y - min_y + 1);
+}
+
+static void egui_core_debug_touch_trace_invalidate_record(const egui_core_touch_trace_record_t *record)
+{
+    if (record == NULL || egui_region_is_empty((egui_region_t *)&record->bounds))
+    {
+        return;
+    }
+
+    egui_core_update_region_dirty((egui_region_t *)&record->bounds);
+}
+
+static void egui_core_debug_touch_trace_clear_last(void)
+{
+    egui_core_debug_touch_trace_invalidate_record(&egui_core_touch_trace_record);
+    egui_core_debug_touch_trace_reset_storage();
+}
+
+static void egui_core_debug_touch_trace_append_point(egui_core_touch_trace_record_t *record, egui_dim_t x, egui_dim_t y)
+{
+    egui_region_t dirty_region;
+    egui_location_t point = {x, y};
+
+    if (record == NULL)
+    {
+        return;
+    }
+
+    if (record->point_count > 0)
+    {
+        egui_location_t *last = &record->points[record->point_count - 1U];
+        if (last->x == x && last->y == y)
+        {
+            return;
+        }
+
+        egui_core_debug_touch_trace_get_segment_region(last, &point, &dirty_region);
+        if (record->point_count < EGUI_CONFIG_DEBUG_TOUCH_TRACE_MAX_POINTS)
+        {
+            record->points[record->point_count] = point;
+            record->point_count++;
+        }
+        else
+        {
+            record->points[record->point_count - 1U] = point;
+        }
+    }
+    else
+    {
+        record->points[0] = point;
+        record->point_count = 1;
+        egui_core_debug_touch_trace_get_point_region(x, y, &dirty_region);
+    }
+
+    if (egui_region_is_empty(&record->bounds))
+    {
+        egui_region_copy(&record->bounds, &dirty_region);
+    }
+    else
+    {
+        egui_region_union(&record->bounds, &dirty_region, &record->bounds);
+    }
+
+    egui_core_update_region_dirty(&dirty_region);
+}
+
+static void egui_core_debug_touch_trace_begin(egui_dim_t x, egui_dim_t y)
+{
+    egui_core_debug_touch_trace_clear_last();
+    egui_core_touch_trace_record.active = 1;
+    egui_core_debug_touch_trace_append_point(&egui_core_touch_trace_record, x, y);
+}
+
+static void egui_core_debug_touch_trace_move(egui_dim_t x, egui_dim_t y)
+{
+    if (!egui_core_touch_trace_record.active)
+    {
+        egui_core_debug_touch_trace_begin(x, y);
+        return;
+    }
+
+    egui_core_debug_touch_trace_append_point(&egui_core_touch_trace_record, x, y);
+}
+
+static void egui_core_debug_touch_trace_end(egui_dim_t x, egui_dim_t y)
+{
+    if (!egui_core_touch_trace_record.active)
+    {
+        return;
+    }
+
+    egui_core_debug_touch_trace_append_point(&egui_core_touch_trace_record, x, y);
+    egui_core_touch_trace_record.active = 0;
+}
+
+static void egui_core_debug_touch_trace_record_motion(const egui_motion_event_t *motion_event)
+{
+    if (motion_event == NULL)
+    {
+        return;
+    }
+
+    switch (motion_event->type)
+    {
+    case EGUI_MOTION_EVENT_ACTION_DOWN:
+        egui_core_debug_touch_trace_begin(motion_event->location.x, motion_event->location.y);
+        break;
+    case EGUI_MOTION_EVENT_ACTION_MOVE:
+        egui_core_debug_touch_trace_move(motion_event->location.x, motion_event->location.y);
+        break;
+    case EGUI_MOTION_EVENT_ACTION_UP:
+    case EGUI_MOTION_EVENT_ACTION_CANCEL:
+        egui_core_debug_touch_trace_end(motion_event->location.x, motion_event->location.y);
+        break;
+    default:
+        break;
+    }
+}
+
+static void egui_core_debug_touch_trace_draw(void)
+{
+    uint16_t j;
+    EGUI_REGION_DEFINE(region_screen, 0, 0, egui_core.screen_width, egui_core.screen_height);
+    egui_region_t *pfb_region = egui_canvas_get_pfb_region();
+
+    if (egui_core_touch_trace_record.point_count == 0)
+    {
+        return;
+    }
+
+    egui_canvas_calc_work_region(&region_screen);
+
+    if (pfb_region != NULL && !egui_region_is_intersect(&egui_core_touch_trace_record.bounds, pfb_region))
+    {
+        return;
+    }
+
+    if (egui_core_touch_trace_record.point_count == 1)
+    {
+        egui_canvas_draw_point(egui_core_touch_trace_record.points[0].x, egui_core_touch_trace_record.points[0].y, EGUI_COLOR_RED, EGUI_ALPHA_100);
+        return;
+    }
+
+    for (j = 1; j < egui_core_touch_trace_record.point_count; j++)
+    {
+        egui_canvas_draw_line(egui_core_touch_trace_record.points[j - 1U].x, egui_core_touch_trace_record.points[j - 1U].y,
+                              egui_core_touch_trace_record.points[j].x, egui_core_touch_trace_record.points[j].y, 1, EGUI_COLOR_RED, EGUI_ALPHA_100);
+    }
 }
 #endif
 
@@ -161,6 +409,10 @@ void egui_core_update_region_dirty(egui_region_t *region_dirty)
         return;
     }
 
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+    egui_core_debug_log_region_line("DIRTY_REGION_INCOMING", egui_core_debug_next_frame_index(), -1, &region_new_in_window);
+#endif
+
     for (i = 0; i < EGUI_CONFIG_DIRTY_AREA_COUNT; i++)
     {
         egui_region_t *p_region_dirty = &egui_core.region_dirty_arr[i];
@@ -168,9 +420,23 @@ void egui_core_update_region_dirty(egui_region_t *region_dirty)
         {
             if (egui_region_is_intersect(p_region_dirty, &region_new_in_window) || egui_region_is_empty(p_region_dirty))
             {
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+                egui_region_t region_before;
+
+                egui_region_copy(&region_before, p_region_dirty);
+#endif
                 egui_region_union(p_region_dirty, &region_new_in_window, p_region_dirty);
 
                 is_changed = 1;
+
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+                egui_api_log("DIRTY_REGION_TRACE:frame=%lu,event=slot_update,slot=%d,slot_before_x=%d,slot_before_y=%d,slot_before_w=%d,slot_before_h=%d,slot_"
+                             "after_x=%d,"
+                             "slot_after_y=%d,slot_after_w=%d,slot_after_h=%d\r\n",
+                             (unsigned long)egui_core_debug_next_frame_index(), i, region_before.location.x, region_before.location.y, region_before.size.width,
+                             region_before.size.height, p_region_dirty->location.x, p_region_dirty->location.y, p_region_dirty->size.width,
+                             p_region_dirty->size.height);
+#endif
             }
         }
 
@@ -182,11 +448,53 @@ void egui_core_update_region_dirty(egui_region_t *region_dirty)
 
         for (j = i + 1; j < EGUI_CONFIG_DIRTY_AREA_COUNT; j++)
         {
-            if (egui_region_is_intersect(p_region_dirty, &egui_core.region_dirty_arr[j]) || egui_region_is_empty(p_region_dirty))
+            egui_region_t *p_region_merge = &egui_core.region_dirty_arr[j];
+
+            if (egui_region_is_empty(p_region_merge))
             {
-                egui_region_union(p_region_dirty, &egui_core.region_dirty_arr[j], p_region_dirty);
+                continue;
+            }
+
+            if (egui_region_is_empty(p_region_dirty))
+            {
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+                egui_region_t region_moved;
+
+                egui_region_copy(&region_moved, p_region_merge);
+#endif
+                egui_region_copy(p_region_dirty, p_region_merge);
+                egui_region_init_empty(p_region_merge);
+
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+                egui_api_log("DIRTY_REGION_TRACE:frame=%lu,event=compact_move,target_slot=%d,moved_slot=%d,moved_x=%d,moved_y=%d,moved_w=%d,moved_h=%d,target_"
+                             "after_x=%d,"
+                             "target_after_y=%d,target_after_w=%d,target_after_h=%d\r\n",
+                             (unsigned long)egui_core_debug_next_frame_index(), i, j, region_moved.location.x, region_moved.location.y, region_moved.size.width,
+                             region_moved.size.height, p_region_dirty->location.x, p_region_dirty->location.y, p_region_dirty->size.width,
+                             p_region_dirty->size.height);
+#endif
+                continue;
+            }
+
+            if (egui_region_is_intersect(p_region_dirty, p_region_merge))
+            {
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+                egui_region_t region_merged;
+
+                egui_region_copy(&region_merged, p_region_merge);
+#endif
+                egui_region_union(p_region_dirty, p_region_merge, p_region_dirty);
                 // clear the intersect region
-                egui_region_init_empty(&egui_core.region_dirty_arr[j]);
+                egui_region_init_empty(p_region_merge);
+
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+                egui_api_log("DIRTY_REGION_TRACE:frame=%lu,event=coalesce,target_slot=%d,merged_slot=%d,merged_x=%d,merged_y=%d,merged_w=%d,merged_h=%d,target_"
+                             "after_x=%d,"
+                             "target_after_y=%d,target_after_w=%d,target_after_h=%d\r\n",
+                             (unsigned long)egui_core_debug_next_frame_index(), i, j, region_merged.location.x, region_merged.location.y,
+                             region_merged.size.width, region_merged.size.height, p_region_dirty->location.x, p_region_dirty->location.y,
+                             p_region_dirty->size.width, p_region_dirty->size.height);
+#endif
             }
         }
     }
@@ -217,7 +525,21 @@ void egui_core_update_region_dirty(egui_region_t *region_dirty)
         }
         if (best_area != 0)
         {
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+            egui_region_t region_before;
+
+            egui_region_copy(&region_before, &egui_core.region_dirty_arr[best_idx]);
+#endif
             egui_region_union(&egui_core.region_dirty_arr[best_idx], &region_new_in_window, &egui_core.region_dirty_arr[best_idx]);
+
+#if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+            egui_api_log("DIRTY_REGION_TRACE:frame=%lu,event=fallback_union,slot=%d,best_union_area=%ld,slot_before_x=%d,slot_before_y=%d,slot_before_w=%d,"
+                         "slot_before_h=%d,slot_after_x=%d,slot_after_y=%d,slot_after_w=%d,slot_after_h=%d\r\n",
+                         (unsigned long)egui_core_debug_next_frame_index(), best_idx, (long)best_area, region_before.location.x, region_before.location.y,
+                         region_before.size.width, region_before.size.height, egui_core.region_dirty_arr[best_idx].location.x,
+                         egui_core.region_dirty_arr[best_idx].location.y, egui_core.region_dirty_arr[best_idx].size.width,
+                         egui_core.region_dirty_arr[best_idx].size.height);
+#endif
         }
     }
 }
@@ -376,6 +698,10 @@ void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode)
             }
 #endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
 
+#if EGUI_CONFIG_DEBUG_TOUCH_TRACE && EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH && EGUI_CONFIG_DEBUG_TOUCH_TRACE_MAX_POINTS > 0
+            egui_core_debug_touch_trace_draw();
+#endif
+
             egui_core_draw_data(&region);
 
 #if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
@@ -395,6 +721,9 @@ void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode)
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 void egui_core_process_input_motion(egui_motion_event_t *motion_event)
 {
+#if EGUI_CONFIG_DEBUG_TOUCH_TRACE && EGUI_CONFIG_DEBUG_TOUCH_TRACE_MAX_POINTS > 0
+    egui_core_debug_touch_trace_record_motion(motion_event);
+#endif
     egui_view_group_dispatch_touch_event((egui_view_t *)egui_core_get_root_view(), motion_event);
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -442,7 +771,17 @@ uint16_t egui_core_get_unique_id(void)
 #endif
 
 #if EGUI_CONFIG_DEBUG_INFO_SHOW
-static uint32_t debug_last_work_time = 0;
+#define EGUI_DEBUG_INFO_UPDATE_INTERVAL_MS 500U
+
+typedef struct egui_debug_info_stats
+{
+    uint32_t window_start_time;
+    uint32_t frame_count;
+    uint32_t total_work_time;
+    uint8_t initialized;
+} egui_debug_info_stats_t;
+
+static egui_debug_info_stats_t debug_info_stats;
 static char debug_string_info[100];
 
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_debug_normal, EGUI_COLOR_MAKE(128, 128, 128), 128);
@@ -450,29 +789,79 @@ EGUI_BACKGROUND_PARAM_INIT(bg_debug_params, &bg_debug_normal, NULL, NULL);
 static egui_background_color_t bg_debug;
 static egui_view_label_t label_debug;
 
-static void egui_debug_update_work_time(uint32_t work_time)
+static void egui_debug_set_info_text(uint32_t fps, uint32_t cpu_use_percent_x100, uint32_t latency_ms)
 {
-    if (work_time != debug_last_work_time)
+    char next_string[sizeof(debug_string_info)];
+
+    if (cpu_use_percent_x100 > 9999U)
     {
-        uint32_t fps = 0;
-        debug_last_work_time = work_time;
-        int cpu_use_percent = 100 * 100; // User 100 to save .xx info.
-        if (work_time < (1000 / EGUI_CONFIG_MAX_FPS))
-        {
-            cpu_use_percent = (100 * 100) * work_time * EGUI_CONFIG_MAX_FPS / 1000;
+        cpu_use_percent_x100 = 9999U;
+    }
 
-            fps = EGUI_CONFIG_MAX_FPS;
-        }
-        else
-        {
-            if (work_time != 0)
-            {
-                fps = 1000 / work_time;
-            }
-        }
+    egui_api_sprintf(next_string, "FPS: %lu, CPU %lu.%02lu%%, LCD-Latency: %lums", (unsigned long)fps, (unsigned long)(cpu_use_percent_x100 / 100U),
+                     (unsigned long)(cpu_use_percent_x100 % 100U), (unsigned long)latency_ms);
 
-        egui_api_sprintf(debug_string_info, "FPS: %d, CPU %d.%d%%, LCD-Latency: %dms", fps, cpu_use_percent / 100, cpu_use_percent % 100, debug_last_work_time);
-        egui_view_label_set_text((egui_view_t *)&label_debug, debug_string_info);
+    if (strcmp(debug_string_info, next_string) == 0)
+    {
+        return;
+    }
+
+    strcpy(debug_string_info, next_string);
+    egui_view_label_set_text((egui_view_t *)&label_debug, debug_string_info);
+}
+
+static void egui_debug_reset_info_stats(void)
+{
+    memset(&debug_info_stats, 0, sizeof(debug_info_stats));
+}
+
+static void egui_debug_record_work_time(uint32_t work_time, uint32_t timestamp)
+{
+    uint32_t elapsed;
+    uint32_t fps;
+    uint32_t cpu_use_percent_x100;
+    uint32_t latency_ms;
+
+    if (!debug_info_stats.initialized)
+    {
+        debug_info_stats.window_start_time = timestamp;
+        debug_info_stats.initialized = 1;
+    }
+
+    debug_info_stats.frame_count++;
+    debug_info_stats.total_work_time += work_time;
+
+    elapsed = timestamp - debug_info_stats.window_start_time;
+    if (elapsed < EGUI_DEBUG_INFO_UPDATE_INTERVAL_MS || debug_info_stats.frame_count == 0)
+    {
+        return;
+    }
+
+    fps = (debug_info_stats.frame_count * 1000U + elapsed / 2U) / elapsed;
+    if (fps > EGUI_CONFIG_MAX_FPS)
+    {
+        fps = EGUI_CONFIG_MAX_FPS;
+    }
+
+    cpu_use_percent_x100 = (debug_info_stats.total_work_time * 10000U + elapsed / 2U) / elapsed;
+    latency_ms = (debug_info_stats.total_work_time + debug_info_stats.frame_count / 2U) / debug_info_stats.frame_count;
+
+    egui_debug_set_info_text(fps, cpu_use_percent_x100, latency_ms);
+
+    debug_info_stats.window_start_time = timestamp;
+    debug_info_stats.frame_count = 0;
+    debug_info_stats.total_work_time = 0;
+}
+
+static void egui_debug_init_info_text(void)
+{
+    debug_string_info[0] = '\0';
+    egui_debug_set_info_text(0, 0, 0);
+    egui_debug_reset_info_stats();
+    if (debug_info_stats.initialized == 0)
+    {
+        debug_info_stats.window_start_time = egui_api_timer_get_current();
+        debug_info_stats.initialized = 1;
     }
 }
 #endif
@@ -484,9 +873,11 @@ void egui_polling_refresh_display(void)
 #endif
 
 #if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
+#if EGUI_CONFIG_DEBUG_PFB_DIRTY_REGION_CLEAR == 0
     // clear last all dirty region
     EGUI_REGION_DEFINE(region, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_core_draw_view_group(&region, false);
+#endif
 #endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
 
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS
@@ -523,8 +914,9 @@ void egui_polling_refresh_display(void)
 
 #if EGUI_CONFIG_DEBUG_INFO_SHOW
     // refresh in next frame.
-    start_time = egui_api_timer_get_current() - start_time;
-    egui_debug_update_work_time(start_time);
+    uint32_t end_time = egui_api_timer_get_current();
+    start_time = end_time - start_time;
+    egui_debug_record_work_time(start_time, end_time);
 #endif
 }
 
@@ -835,6 +1227,10 @@ void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HE
     egui_focus_manager_init();
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
 
+#if EGUI_CONFIG_DEBUG_TOUCH_TRACE && EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH && EGUI_CONFIG_DEBUG_TOUCH_TRACE_MAX_POINTS > 0
+    egui_core_debug_touch_trace_reset_storage();
+#endif
+
     egui_core_update_region_dirty_all();
 
     egui_slist_init(&egui_core.anims);
@@ -878,7 +1274,7 @@ void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HE
 
     egui_core_add_root_view((egui_view_t *)&label_debug);
 
-    egui_debug_update_work_time(0);
+    egui_debug_init_info_text();
 #endif
 
     // Initialize registered drivers

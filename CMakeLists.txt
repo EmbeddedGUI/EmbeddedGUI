@@ -6,8 +6,8 @@ project(EGUI_Project C)
 set(CMAKE_C_STANDARD 99)
 
 # Application selection (same variables as Makefile)
-set(APP "HelloSimple" CACHE STRING "Application to build (e.g. HelloSimple, HelloBasic, HelloActivity, ...)")
-set(APP_SUB "" CACHE STRING "Sub-application for HelloBasic (e.g. button, label, slider, ...)")
+set(APP "HelloSimple" CACHE STRING "Application to build (e.g. HelloSimple, HelloBasic, HelloVirtual, HelloActivity, ...)")
+set(APP_SUB "" CACHE STRING "Sub-application for HelloBasic/HelloVirtual (e.g. button, virtual_stage_basic, slider, ...)")
 set(PORT "pc" CACHE STRING "Target port (pc, pc_test)")
 
 # Macro definitions
@@ -25,12 +25,24 @@ endif()
 # Output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/output)
 
+string(CONCAT _egui_all_cflags
+    " " "${CMAKE_C_FLAGS}"
+    " " "${CMAKE_C_FLAGS_DEBUG}"
+    " " "${CMAKE_C_FLAGS_RELEASE}"
+    " " "${CMAKE_C_FLAGS_RELWITHDEBINFO}"
+    " " "${CMAKE_C_FLAGS_MINSIZEREL}"
+)
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/example/${APP}" AND NOT _egui_all_cflags MATCHES "EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING")
+    add_compile_definitions(EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING=1)
+endif()
+
 # Global include directories
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/example/${APP})
 
-# For HelloBasic with sub-app, add sub-app include paths
-if((APP STREQUAL "HelloBasic" OR APP STREQUAL "HelloCustomWidgets") AND NOT APP_SUB STREQUAL "")
+# For apps with sub-apps, add sub-app include paths
+if((APP STREQUAL "HelloBasic" OR APP STREQUAL "HelloVirtual" OR APP STREQUAL "HelloCustomWidgets") AND NOT APP_SUB STREQUAL "")
     include_directories(${CMAKE_SOURCE_DIR}/example/${APP}/${APP_SUB})
     if(EXISTS "${CMAKE_SOURCE_DIR}/example/${APP}/${APP_SUB}/resource")
         include_directories(${CMAKE_SOURCE_DIR}/example/${APP}/${APP_SUB}/resource)

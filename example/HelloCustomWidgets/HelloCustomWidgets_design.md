@@ -51,8 +51,11 @@ example/HelloCustomWidgets/
 # 编译单个控件示例
 make all APP=HelloCustomWidgets APP_SUB=input/color_picker PORT=pc
 
-# 运行时验证
+# 运行时验证：单个控件
 python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub input/color_picker
+
+# 运行时验证：按分类批量回归
+python scripts/code_runtime_check.py --app HelloCustomWidgets --category input --bits64
 
 # CMake 构建
 cmake -B build_cmake/HelloCustomWidgets_input_color_picker \
@@ -122,9 +125,17 @@ custom-widgets-check:
       category: [input, display, layout, chart, navigation, feedback, media, decoration]
   steps:
     - run: python scripts/code_compile_check.py --custom-widgets --category ${{ matrix.category }}
+    - run: python scripts/code_runtime_check.py --app HelloCustomWidgets --category ${{ matrix.category }} --bits64
 ```
 
-8 个分类矩阵并行，每个分类 ~125 个控件，预估 2-3 分钟/分类。
+8 个分类矩阵并行，每个分类先做语义审计和编译，再做整类 runtime 回归。
+
+### Runtime 输出目录约定
+
+- 单个控件：`runtime_check_output/HelloCustomWidgets_input_color_picker/default/frame_*.png`
+- 分类回归：`runtime_check_output/HelloCustomWidgets_<category>_<widget>/default/frame_*.png`
+
+`code_runtime_check.py` 会把 `APP_SUB` 里的 `/` 和 `\` 统一替换为 `_`，避免输出目录继续分层，便于 CI 收集截图产物。
 
 ## 分类参考（8 大类）
 

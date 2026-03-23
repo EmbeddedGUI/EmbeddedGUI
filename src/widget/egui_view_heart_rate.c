@@ -85,6 +85,11 @@ void egui_view_heart_rate_set_bpm(egui_view_t *self, uint8_t bpm)
 void egui_view_heart_rate_set_animate(egui_view_t *self, uint8_t enable)
 {
     EGUI_LOCAL_INIT(egui_view_heart_rate_t);
+    if (local->animate == enable)
+    {
+        return;
+    }
+
     local->animate = enable;
     if (enable && local->bpm > 0)
     {

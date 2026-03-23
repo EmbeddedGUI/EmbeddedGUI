@@ -18,6 +18,13 @@ extern "C" {
 #define EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH 0
 #define EGUI_CONFIG_DEBUG_INFO_SHOW            1
 
+#define EGUI_CONFIG_FUNCTION_SUPPORT_MASK             1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32       1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1    1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2    1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8    1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8     1
+
 #define EGUI_CONFIG_FONT_DEFAULT &egui_res_font_montserrat_18_4
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

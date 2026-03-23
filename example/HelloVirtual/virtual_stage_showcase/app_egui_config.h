@@ -1,0 +1,26 @@
+#ifndef _APP_EGUI_CONFIG_H_
+#define _APP_EGUI_CONFIG_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define EGUI_CONFIG_SCEEN_WIDTH  1280
+#define EGUI_CONFIG_SCEEN_HEIGHT 1024
+
+#define EGUI_CONFIG_PFB_WIDTH        320
+#define EGUI_CONFIG_PFB_HEIGHT       32
+#define EGUI_CONFIG_DIRTY_AREA_COUNT 16
+
+#define EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE 150
+#define EGUI_CONFIG_WIDGET_ENHANCED_DRAW              1
+#define EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW           1
+#define EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS            1
+#define EGUI_CONFIG_FUNCTION_SUPPORT_LAYER            1
+#define EGUI_CONFIG_FUNCTION_SUPPORT_KEY              1
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _APP_EGUI_CONFIG_H_ */

@@ -291,3 +291,11 @@ egui_view_invalidate(my_custom_view);
 所以说脏矩阵并不是万能的，部分场景还是得一个个去挖掘CPU性能。
 
 ![image-20241114211124771](https://markdown-1306347444.cos.ap-shanghai.myqcloud.com/img/image-20241114211124771.png)
+
+## 接口设计与实战
+
+上面这一页主要解释脏矩形机制本身。
+
+如果需要继续看“控件作者应该如何设计 dirty-region 接口、何时该用整控件失效、何时该用局部区域失效、圆形控件如何复用 helper，以及运行截图效果”，可继续参考：
+
+- [脏区域接口设计说明](../performance/dirty_region_interfaces.md)

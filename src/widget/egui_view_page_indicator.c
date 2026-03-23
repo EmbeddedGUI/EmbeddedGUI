@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "egui_view_page_indicator.h"
+#include "egui_view_circle_dirty.h"
 #include "resource/egui_resource.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
@@ -26,6 +27,61 @@ static const egui_font_t *egui_view_page_indicator_get_icon_font(egui_view_page_
     return EGUI_FONT_ICON_MS_24;
 }
 
+static void egui_view_page_indicator_add_marker_dirty_region(egui_view_t *self, egui_view_page_indicator_t *local, uint8_t index, egui_region_t *dirty_region)
+{
+    egui_region_t region;
+
+    if (dirty_region == NULL || local->total_count == 0 || index >= local->total_count)
+    {
+        return;
+    }
+
+    egui_view_get_work_region(self, &region);
+
+    if (local->mark_style == EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_ICON && local->icons != NULL)
+    {
+        egui_dim_t item_size = region.size.height;
+        egui_dim_t item_gap = EGUI_MAX(local->dot_spacing - 2, 2);
+        egui_dim_t total_width = local->total_count * item_size + (local->total_count - 1) * item_gap;
+        egui_dim_t start_x = region.location.x + (region.size.width - total_width) / 2;
+
+        egui_view_circle_dirty_add_rect_region(dirty_region, start_x + index * (item_size + item_gap), region.location.y, item_size, region.size.height, 1);
+        return;
+    }
+
+    {
+        egui_dim_t dot_diameter = local->dot_radius * 2;
+        egui_dim_t total_width = local->total_count * dot_diameter + (local->total_count - 1) * local->dot_spacing;
+        egui_dim_t start_x = region.location.x + (region.size.width - total_width) / 2 + local->dot_radius;
+        egui_dim_t center_y = region.location.y + region.size.height / 2;
+        egui_dim_t cx = start_x + index * (dot_diameter + local->dot_spacing);
+
+        egui_view_circle_dirty_add_circle_region(dirty_region, cx, center_y, local->dot_radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD);
+    }
+}
+
+static void egui_view_page_indicator_invalidate_current_index_change(egui_view_t *self, egui_view_page_indicator_t *local, uint8_t old_index)
+{
+    egui_region_t dirty_region;
+
+    if (self->region_screen.size.width <= 0 || self->region_screen.size.height <= 0)
+    {
+        egui_view_invalidate(self);
+        return;
+    }
+
+    egui_region_init_empty(&dirty_region);
+    egui_view_page_indicator_add_marker_dirty_region(self, local, old_index, &dirty_region);
+    egui_view_page_indicator_add_marker_dirty_region(self, local, local->current_index, &dirty_region);
+
+    if (egui_region_is_empty(&dirty_region))
+    {
+        return;
+    }
+
+    egui_view_invalidate_region(self, &dirty_region);
+}
+
 void egui_view_page_indicator_set_total_count(egui_view_t *self, uint8_t total_count)
 {
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
@@ -40,6 +96,7 @@ void egui_view_page_indicator_set_total_count(egui_view_t *self, uint8_t total_c
 void egui_view_page_indicator_set_current_index(egui_view_t *self, uint8_t current_index)
 {
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
+    uint8_t old_index;
     if (current_index >= local->total_count)
     {
         current_index = local->total_count > 0 ? local->total_count - 1 : 0;
@@ -48,8 +105,9 @@ void egui_view_page_indicator_set_current_index(egui_view_t *self, uint8_t curre
     {
         return;
     }
+    old_index = local->current_index;
     local->current_index = current_index;
-    egui_view_invalidate(self);
+    egui_view_page_indicator_invalidate_current_index_change(self, local, old_index);
 }
 
 void egui_view_page_indicator_set_mark_style(egui_view_t *self, egui_view_page_indicator_mark_style_t style)

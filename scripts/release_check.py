@@ -40,6 +40,9 @@ ALL_STEP_NAMES = [
     "compile",
     "wasm",
     "runtime",
+    "dirty_anim",
+    "stage_parity",
+    "virtual_render",
     "size",
     "size_doc",
     "perf",
@@ -56,6 +59,9 @@ STEP_DESCRIPTIONS = {
     "compile":  "Full compile check (all examples)",
     "wasm":     "WASM demos build",
     "runtime":  "Runtime verification (screenshots)",
+    "dirty_anim": "Dirty-region animation verification",
+    "stage_parity": "Virtual stage showcase parity verification",
+    "virtual_render": "HelloVirtual render and interaction workflow",
     "size":     "Binary size analysis (ELF)",
     "size_doc": "Size report generation",
     "perf":     "QEMU performance regression test",
@@ -75,6 +81,24 @@ def build_steps(args):
     if args.cmake:
         compile_cmd.append("--cmake")
     compile_cmd.append("--skip-icon-font-check")
+
+    runtime_cmd = [py, str(SCRIPT_DIR / "code_runtime_check.py"), "--full-check"]
+    dirty_anim_cmd = [py, str(SCRIPT_DIR / "code_dirty_animation_check.py")]
+    stage_parity_cmd = [py, str(SCRIPT_DIR / "showcase_stage_parity_check.py"), "--timeout", "35"]
+    virtual_render_cmd = [
+        py,
+        str(SCRIPT_DIR / "hello_basic_render_workflow.py"),
+        "--app",
+        "HelloVirtual",
+        "--suite",
+        "basic",
+        "--skip-unit-tests",
+    ]
+    if args.bits64:
+        runtime_cmd.append("--bits64")
+        dirty_anim_cmd.append("--bits64")
+        stage_parity_cmd.append("--bits64")
+        virtual_render_cmd.append("--bits64")
 
     perf_cmd = [py, str(SCRIPT_DIR / "code_perf_check.py"), "--full-check"]
 
@@ -105,7 +129,16 @@ def build_steps(args):
          wasm_cmd),
 
         ("runtime",  STEP_DESCRIPTIONS["runtime"],
-         [py, str(SCRIPT_DIR / "code_runtime_check.py"), "--full-check"]),
+         runtime_cmd),
+
+        ("dirty_anim", STEP_DESCRIPTIONS["dirty_anim"],
+         dirty_anim_cmd),
+
+        ("stage_parity", STEP_DESCRIPTIONS["stage_parity"],
+         stage_parity_cmd),
+
+        ("virtual_render", STEP_DESCRIPTIONS["virtual_render"],
+         virtual_render_cmd),
 
         ("size",     STEP_DESCRIPTIONS["size"],
          [py, str(SCRIPT_DIR / "utils_analysis_elf_size.py")]),

@@ -124,7 +124,7 @@
 1. 检查 `app_egui_config.h` 中 `EGUI_CONFIG_SCEEN_WIDTH` 和 `EGUI_CONFIG_SCEEN_HEIGHT` 是否正确
 2. 确认 `egui_init()` 被正确调用且传入了有效的 PFB 缓冲区
 3. 确认主循环中调用了 `egui_polling_work()`
-4. 使用运行时验证：`python scripts/code_runtime_check.py --app <APP> --timeout 10`
+4. 使用运行时验证：`python scripts/code_runtime_check.py --app <APP> [--app-sub <SUB>] --timeout 10`
 
 ### Q: 触摸没有反应
 

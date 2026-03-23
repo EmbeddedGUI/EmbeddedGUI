@@ -2,16 +2,62 @@
 #include <assert.h>
 
 #include "egui_view_led.h"
+#include "egui_view_circle_dirty.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
 #include "core/egui_canvas_gradient.h"
 #endif
 
+static uint8_t egui_view_led_get_dirty_region(egui_view_t *self, egui_region_t *dirty_region)
+{
+    egui_region_t region;
+    egui_dim_t center_x;
+    egui_dim_t center_y;
+    egui_dim_t radius;
+
+    if (dirty_region == NULL)
+    {
+        return 0;
+    }
+
+    egui_region_init_empty(dirty_region);
+    if (self->region_screen.size.width <= 0 || self->region_screen.size.height <= 0)
+    {
+        return 0;
+    }
+
+    egui_view_get_work_region(self, &region);
+    radius = EGUI_MIN(region.size.width, region.size.height) / 2 - 1;
+    if (radius <= 0)
+    {
+        return 0;
+    }
+
+    center_x = region.location.x + region.size.width / 2;
+    center_y = region.location.y + region.size.height / 2;
+    egui_view_circle_dirty_add_circle_region(dirty_region, center_x, center_y, radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD);
+    return egui_region_is_empty(dirty_region) ? 0 : 1;
+}
+
+static void egui_view_led_invalidate_indicator(egui_view_t *self)
+{
+    egui_region_t dirty_region;
+
+    if (egui_view_led_get_dirty_region(self, &dirty_region))
+    {
+        egui_view_invalidate_region(self, &dirty_region);
+    }
+    else
+    {
+        egui_view_invalidate(self);
+    }
+}
+
 static void egui_view_led_blink_callback(egui_timer_t *timer)
 {
     egui_view_led_t *local = (egui_view_led_t *)timer->user_data;
     local->is_on = !local->is_on;
-    egui_view_invalidate((egui_view_t *)local);
+    egui_view_led_invalidate_indicator((egui_view_t *)local);
 }
 
 void egui_view_led_set_on(egui_view_t *self)
@@ -20,7 +66,7 @@ void egui_view_led_set_on(egui_view_t *self)
     if (!local->is_on)
     {
         local->is_on = 1;
-        egui_view_invalidate(self);
+        egui_view_led_invalidate_indicator(self);
     }
 }
 
@@ -30,7 +76,7 @@ void egui_view_led_set_off(egui_view_t *self)
     if (local->is_on)
     {
         local->is_on = 0;
-        egui_view_invalidate(self);
+        egui_view_led_invalidate_indicator(self);
     }
 }
 
@@ -38,7 +84,7 @@ void egui_view_led_toggle(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_led_t);
     local->is_on = !local->is_on;
-    egui_view_invalidate(self);
+    egui_view_led_invalidate_indicator(self);
 }
 
 void egui_view_led_set_blink(egui_view_t *self, uint16_t period_ms)
@@ -61,7 +107,7 @@ void egui_view_led_set_colors(egui_view_t *self, egui_color_t on_color, egui_col
     EGUI_LOCAL_INIT(egui_view_led_t);
     local->on_color = on_color;
     local->off_color = off_color;
-    egui_view_invalidate(self);
+    egui_view_led_invalidate_indicator(self);
 }
 
 void egui_view_led_on_draw(egui_view_t *self)

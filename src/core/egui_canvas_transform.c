@@ -38,10 +38,350 @@ static int32_t transform_cos_q15(int32_t deg)
     return transform_sin_q15(deg + 90);
 }
 
+static int16_t transform_normalize_angle_deg(int32_t deg)
+{
+    deg %= 360;
+    if (deg < 0)
+    {
+        deg += 360;
+    }
+    return (int16_t)deg;
+}
+
+static int16_t transform_sanitize_scale_q8(int16_t scale_q8)
+{
+    return scale_q8 > 0 ? scale_q8 : 256;
+}
+
+static int transform_prepare_arc_sweep_range(int16_t start_angle, int16_t sweep_angle, int16_t *draw_start, int16_t *draw_end)
+{
+    int32_t start = start_angle;
+    int32_t sweep = sweep_angle;
+
+    if (sweep == 0 || draw_start == NULL || draw_end == NULL)
+    {
+        return 0;
+    }
+
+    if (sweep > 360)
+    {
+        sweep = 360;
+    }
+    else if (sweep < -360)
+    {
+        sweep = -360;
+    }
+
+    if (sweep < 0)
+    {
+        start += sweep;
+        sweep = -sweep;
+    }
+
+    start = transform_normalize_angle_deg(start);
+    *draw_start = (int16_t)start;
+    *draw_end = (int16_t)(start + sweep);
+    return 1;
+}
+
+static void transform_compute_rotated_offset(int32_t dx, int32_t dy, int16_t angle_deg, int16_t scale_q8, int32_t *out_dx, int32_t *out_dy)
+{
+    int32_t sinA = transform_sin_q15(angle_deg);
+    int32_t cosA = transform_cos_q15(angle_deg);
+    int16_t scale = transform_sanitize_scale_q8(scale_q8);
+    int32_t fwd_m00 = (cosA * scale) >> 8;
+    int32_t fwd_m01 = (-sinA * scale) >> 8;
+    int32_t fwd_m10 = (sinA * scale) >> 8;
+    int32_t fwd_m11 = (cosA * scale) >> 8;
+
+    if (out_dx != NULL)
+    {
+        *out_dx = (int32_t)((((int64_t)dx * fwd_m00) + ((int64_t)dy * fwd_m01) + (1 << 14)) >> 15);
+    }
+    if (out_dy != NULL)
+    {
+        *out_dy = (int32_t)((((int64_t)dx * fwd_m10) + ((int64_t)dy * fwd_m11) + (1 << 14)) >> 15);
+    }
+}
+
+static void transform_compute_center_from_anchor_pivot(egui_dim_t anchor_x, egui_dim_t anchor_y, egui_dim_t src_w, egui_dim_t src_h, egui_dim_t pivot_x,
+                                                       egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8, egui_dim_t *center_x, egui_dim_t *center_y)
+{
+    int32_t dx = (int32_t)pivot_x - ((int32_t)src_w / 2);
+    int32_t dy = (int32_t)pivot_y - ((int32_t)src_h / 2);
+    int32_t rotated_dx = 0;
+    int32_t rotated_dy = 0;
+
+    transform_compute_rotated_offset(dx, dy, angle_deg, scale_q8, &rotated_dx, &rotated_dy);
+
+    if (center_x != NULL)
+    {
+        *center_x = (egui_dim_t)((int32_t)anchor_x + (int32_t)pivot_x - rotated_dx);
+    }
+    if (center_y != NULL)
+    {
+        *center_y = (egui_dim_t)((int32_t)anchor_y + (int32_t)pivot_y - rotated_dy);
+    }
+}
+
+static int transform_get_image_size(const egui_image_t *img, egui_dim_t *width, egui_dim_t *height)
+{
+    const egui_image_std_info_t *info;
+
+    if (img == NULL || img->res == NULL)
+    {
+        return 0;
+    }
+
+    info = (const egui_image_std_info_t *)img->res;
+    if (info->width == 0 || info->height == 0)
+    {
+        return 0;
+    }
+
+    if (width != NULL)
+    {
+        *width = (egui_dim_t)info->width;
+    }
+    if (height != NULL)
+    {
+        *height = (egui_dim_t)info->height;
+    }
+    return 1;
+}
+
+static int transform_measure_text_box(const egui_font_t *font, const void *string, egui_dim_t *width, egui_dim_t *height)
+{
+    egui_dim_t text_width = 0;
+    egui_dim_t text_height = 0;
+
+    if (font == NULL || string == NULL || font->api == NULL || font->api->get_str_size == NULL)
+    {
+        return 0;
+    }
+
+    if (font->api->get_str_size(font, string, 1, 0, &text_width, &text_height) != 0)
+    {
+        return 0;
+    }
+
+    if (text_width <= 0 || text_height <= 0)
+    {
+        return 0;
+    }
+
+    if (width != NULL)
+    {
+        *width = text_width;
+    }
+    if (height != NULL)
+    {
+        *height = text_height;
+    }
+    return 1;
+}
+
+void egui_canvas_draw_arc_sweep(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle, egui_dim_t stroke_width,
+                                egui_color_t color, egui_alpha_t alpha)
+{
+    int16_t draw_start;
+    int16_t draw_end;
+
+    if (!transform_prepare_arc_sweep_range(start_angle, sweep_angle, &draw_start, &draw_end))
+    {
+        return;
+    }
+
+    egui_canvas_draw_arc(center_x, center_y, radius, draw_start, draw_end, stroke_width, color, alpha);
+}
+
+void egui_canvas_draw_arc_fill_sweep(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle, egui_color_t color,
+                                     egui_alpha_t alpha)
+{
+    int16_t draw_start;
+    int16_t draw_end;
+
+    if (!transform_prepare_arc_sweep_range(start_angle, sweep_angle, &draw_start, &draw_end))
+    {
+        return;
+    }
+
+    egui_canvas_draw_arc_fill(center_x, center_y, radius, draw_start, draw_end, color, alpha);
+}
+
+void egui_canvas_draw_arc_round_cap_sweep_hq(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle,
+                                             egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+{
+    int16_t draw_start;
+    int16_t draw_end;
+
+    if (!transform_prepare_arc_sweep_range(start_angle, sweep_angle, &draw_start, &draw_end))
+    {
+        return;
+    }
+
+    egui_canvas_draw_arc_round_cap_hq(center_x, center_y, radius, draw_start, draw_end, stroke_width, color, alpha);
+}
+
+static void transform_draw_image_rotate_pivot_impl(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x, egui_dim_t pivot_y,
+                                                   int16_t angle_deg, int16_t scale_q8)
+{
+    egui_dim_t image_w;
+    egui_dim_t image_h;
+    egui_dim_t center_x;
+    egui_dim_t center_y;
+    int16_t normalized_angle = transform_normalize_angle_deg(angle_deg);
+    int16_t final_scale = transform_sanitize_scale_q8(scale_q8);
+
+    if (img == NULL)
+    {
+        return;
+    }
+
+    if (normalized_angle == 0 && final_scale == 256)
+    {
+        egui_canvas_draw_image(img, x, y);
+        return;
+    }
+
+    if (!transform_get_image_size(img, &image_w, &image_h))
+    {
+        return;
+    }
+
+    transform_compute_center_from_anchor_pivot(x, y, image_w, image_h, pivot_x, pivot_y, normalized_angle, final_scale, &center_x, &center_y);
+    egui_canvas_draw_image_transform(img, center_x, center_y, normalized_angle, final_scale);
+}
+
+void egui_canvas_draw_image_rotate(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg)
+{
+    egui_dim_t image_w;
+    egui_dim_t image_h;
+
+    if (!transform_get_image_size(img, &image_w, &image_h))
+    {
+        return;
+    }
+
+    transform_draw_image_rotate_pivot_impl(img, x, y, image_w / 2, image_h / 2, angle_deg, 256);
+}
+
+void egui_canvas_draw_image_rotate_scale(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8)
+{
+    egui_dim_t image_w;
+    egui_dim_t image_h;
+
+    if (!transform_get_image_size(img, &image_w, &image_h))
+    {
+        return;
+    }
+
+    transform_draw_image_rotate_pivot_impl(img, x, y, image_w / 2, image_h / 2, angle_deg, scale_q8);
+}
+
+void egui_canvas_draw_image_rotate_pivot(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x, egui_dim_t pivot_y, int16_t angle_deg,
+                                         int16_t scale_q8)
+{
+    transform_draw_image_rotate_pivot_impl(img, x, y, pivot_x, pivot_y, angle_deg, scale_q8);
+}
+
+static void transform_draw_text_rotate_pivot_impl(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x,
+                                                  egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha,
+                                                  int use_buffered)
+{
+    egui_dim_t text_w;
+    egui_dim_t text_h;
+    egui_dim_t center_x;
+    egui_dim_t center_y;
+    int16_t normalized_angle = transform_normalize_angle_deg(angle_deg);
+    int16_t final_scale = transform_sanitize_scale_q8(scale_q8);
+
+    if (font == NULL || string == NULL)
+    {
+        return;
+    }
+
+    if (normalized_angle == 0 && final_scale == 256)
+    {
+        egui_canvas_draw_text(font, string, x, y, color, alpha);
+        return;
+    }
+
+    if (!transform_measure_text_box(font, string, &text_w, &text_h))
+    {
+        return;
+    }
+
+    transform_compute_center_from_anchor_pivot(x, y, text_w, text_h, pivot_x, pivot_y, normalized_angle, final_scale, &center_x, &center_y);
+    if (use_buffered)
+    {
+        egui_canvas_draw_text_transform_buffered(font, string, center_x, center_y, normalized_angle, final_scale, color, alpha);
+    }
+    else
+    {
+        egui_canvas_draw_text_transform(font, string, center_x, center_y, normalized_angle, final_scale, color, alpha);
+    }
+}
+
+void egui_canvas_draw_text_rotate(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, egui_color_t color,
+                                  egui_alpha_t alpha)
+{
+    egui_dim_t text_w;
+    egui_dim_t text_h;
+
+    if (!transform_measure_text_box(font, string, &text_w, &text_h))
+    {
+        return;
+    }
+
+    transform_draw_text_rotate_pivot_impl(font, string, x, y, text_w / 2, text_h / 2, angle_deg, 256, color, alpha, 0);
+}
+
+void egui_canvas_draw_text_rotate_scale(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
+                                        egui_color_t color, egui_alpha_t alpha)
+{
+    egui_dim_t text_w;
+    egui_dim_t text_h;
+
+    if (!transform_measure_text_box(font, string, &text_w, &text_h))
+    {
+        return;
+    }
+
+    transform_draw_text_rotate_pivot_impl(font, string, x, y, text_w / 2, text_h / 2, angle_deg, scale_q8, color, alpha, 0);
+}
+
+void egui_canvas_draw_text_rotate_pivot(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x, egui_dim_t pivot_y,
+                                        int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
+{
+    transform_draw_text_rotate_pivot_impl(font, string, x, y, pivot_x, pivot_y, angle_deg, scale_q8, color, alpha, 0);
+}
+
+void egui_canvas_draw_text_rotate_buffered(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
+                                           egui_color_t color, egui_alpha_t alpha)
+{
+    egui_dim_t text_w;
+    egui_dim_t text_h;
+
+    if (!transform_measure_text_box(font, string, &text_w, &text_h))
+    {
+        return;
+    }
+
+    transform_draw_text_rotate_pivot_impl(font, string, x, y, text_w / 2, text_h / 2, angle_deg, scale_q8, color, alpha, 1);
+}
+
+void egui_canvas_draw_text_rotate_buffered_pivot(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x,
+                                                 egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
+{
+    transform_draw_text_rotate_pivot_impl(font, string, x, y, pivot_x, pivot_y, angle_deg, scale_q8, color, alpha, 1);
+}
+
 /**
  * Bilinear interpolate 4 RGB565 pixels in packed domain.
  * Avoids 3 separate egui_rgb_mix calls (saves 2 pack/unpack + 6 branches).
- * 5-bit alpha precision, visually identical to chained egui_rgb_mix.
+ * 5-bit alpha
+ * precision, visually identical to chained egui_rgb_mix.
  */
 __EGUI_STATIC_INLINE__ uint16_t bilinear_rgb565_packed(uint16_t c00, uint16_t c01, uint16_t c10, uint16_t c11, uint8_t fx, uint8_t fy)
 {
@@ -729,8 +1069,8 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
         /* Skip left dead zone where inverse-mapped coords are outside source */
         if (rotatedX < src_lo_x_q15 || rotatedX >= src_hi_x_q15 || rotatedY < src_lo_y_q15 || rotatedY >= src_hi_y_q15)
         {
-            int32_t skip = transform_scanline_skip(rotatedX, rotatedY, inv_m00, inv_m10, src_lo_x_q15, src_hi_x_q15, src_lo_y_q15, src_hi_y_q15,
-                                                   draw_x1 - draw_x0);
+            int32_t skip =
+                    transform_scanline_skip(rotatedX, rotatedY, inv_m00, inv_m10, src_lo_x_q15, src_hi_x_q15, src_lo_y_q15, src_hi_y_q15, draw_x1 - draw_x0);
             if (skip > 0)
             {
                 rotatedX += skip * inv_m00;
@@ -755,24 +1095,29 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                 if (inv_m00 > 0)
                 {
                     int32_t n = (int_max_x_q15 - rotatedX) / inv_m00;
-                    if (n < sir_count) sir_count = n;
+                    if (n < sir_count)
+                        sir_count = n;
                 }
                 else if (inv_m00 < 0)
                 {
                     int32_t n = rotatedX / (-inv_m00);
-                    if (n < sir_count) sir_count = n;
+                    if (n < sir_count)
+                        sir_count = n;
                 }
                 if (inv_m10 > 0)
                 {
                     int32_t n = (int_max_y_q15 - rotatedY) / inv_m10;
-                    if (n < sir_count) sir_count = n;
+                    if (n < sir_count)
+                        sir_count = n;
                 }
                 else if (inv_m10 < 0)
                 {
                     int32_t n = rotatedY / (-inv_m10);
-                    if (n < sir_count) sir_count = n;
+                    if (n < sir_count)
+                        sir_count = n;
                 }
-                if (sir_count < 1) sir_count = 1;
+                if (sir_count < 1)
+                    sir_count = 1;
 
                 /* Tight interior loop: no boundary checks needed */
                 if (opaque_mode && !mask_requires_point)
@@ -917,7 +1262,8 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                 if (has_alpha)
                 {
                     /* Bilinear alpha from edge samples (out-of-bounds → 0) */
-#define TRANSFORM_FETCH_ALPHA(px, py) (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? image_transform_read_alpha(alpha_buf, alpha_row_bytes, (px), (py), alpha_type) : 0)
+#define TRANSFORM_FETCH_ALPHA(px, py)                                                                                                                          \
+    (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? image_transform_read_alpha(alpha_buf, alpha_row_bytes, (px), (py), alpha_type) : 0)
                     uint16_t a00 = TRANSFORM_FETCH_ALPHA(sx, sy);
                     uint16_t a01 = TRANSFORM_FETCH_ALPHA(sx + 1, sy);
                     uint16_t a10 = TRANSFORM_FETCH_ALPHA(sx, sy + 1);

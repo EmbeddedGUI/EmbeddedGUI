@@ -122,9 +122,7 @@ void egui_view_textblock_set_border_radius(egui_view_t *self, egui_dim_t radius)
 void egui_view_textblock_set_border_color(egui_view_t *self, egui_color_t color);
 
 // Scrollbar API
-#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
 void egui_view_textblock_set_scrollbar_enabled(egui_view_t *self, uint8_t enabled);
-#endif
 
 // Edit mode API
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS

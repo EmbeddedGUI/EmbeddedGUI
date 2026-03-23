@@ -4,6 +4,7 @@
 #include "egui_view_arc_slider.h"
 #include "widget/egui_view_group.h"
 #include "utils/egui_fixmath.h"
+#include "egui_view_circle_dirty.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
 #include "core/egui_canvas_gradient.h"
@@ -56,21 +57,103 @@ void egui_view_arc_slider_set_on_value_changed_listener(egui_view_t *self, egui_
     local->on_value_changed = listener;
 }
 
+static void egui_view_arc_slider_invalidate_value_change(egui_view_t *self, egui_view_arc_slider_t *local, uint8_t old_value)
+{
+    egui_region_t region;
+    egui_region_t dirty_region;
+    egui_region_t arc_region;
+    egui_dim_t center_x;
+    egui_dim_t center_y;
+    egui_dim_t radius;
+    egui_dim_t inner_r;
+    egui_dim_t mid_r;
+    egui_dim_t thumb_track_radius;
+    egui_dim_t thumb_x;
+    egui_dim_t thumb_y;
+    int16_t old_end_angle;
+    int16_t new_end_angle;
+    int16_t dirty_start_angle;
+    uint16_t dirty_sweep;
+
+    if (self->region_screen.size.width <= 0 || self->region_screen.size.height <= 0)
+    {
+        egui_view_invalidate(self);
+        return;
+    }
+
+    egui_view_get_work_region(self, &region);
+    center_x = region.location.x + region.size.width / 2;
+    center_y = region.location.y + region.size.height / 2;
+    radius = EGUI_MIN(region.size.width, region.size.height) / 2 - local->thumb_radius - 1;
+    if (radius <= 0)
+    {
+        egui_view_invalidate(self);
+        return;
+    }
+
+    inner_r = radius - local->stroke_width;
+    if (inner_r < 0)
+    {
+        inner_r = 0;
+    }
+    mid_r = radius - local->stroke_width / 2;
+    if (mid_r < 0)
+    {
+        mid_r = 0;
+    }
+    thumb_track_radius = radius - local->stroke_width / 2;
+    if (thumb_track_radius < 0)
+    {
+        thumb_track_radius = 0;
+    }
+
+    egui_region_init_empty(&dirty_region);
+
+    old_end_angle = local->start_angle + (int16_t)((int32_t)local->sweep_angle * old_value / 100);
+    new_end_angle = local->start_angle + (int16_t)((int32_t)local->sweep_angle * local->value / 100);
+    if (old_end_angle != new_end_angle)
+    {
+        dirty_start_angle = EGUI_MIN(old_end_angle, new_end_angle);
+        dirty_sweep = (uint16_t)EGUI_ABS(new_end_angle - old_end_angle);
+        if (egui_view_circle_dirty_compute_arc_region(center_x, center_y, mid_r, local->stroke_width / 2 + EGUI_VIEW_CIRCLE_DIRTY_AA_PAD, dirty_start_angle,
+                                                      dirty_sweep, &arc_region))
+        {
+            egui_view_circle_dirty_union_region(&dirty_region, &arc_region);
+        }
+    }
+
+    egui_view_circle_dirty_get_circle_point(center_x, center_y, thumb_track_radius, old_end_angle, &thumb_x, &thumb_y);
+    egui_view_circle_dirty_add_circle_region(&dirty_region, thumb_x, thumb_y, local->thumb_radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD);
+
+    egui_view_circle_dirty_get_circle_point(center_x, center_y, thumb_track_radius, new_end_angle, &thumb_x, &thumb_y);
+    egui_view_circle_dirty_add_circle_region(&dirty_region, thumb_x, thumb_y, local->thumb_radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD);
+
+    if (egui_region_is_empty(&dirty_region))
+    {
+        egui_view_invalidate(self);
+        return;
+    }
+
+    egui_view_invalidate_region(self, &dirty_region);
+}
+
 void egui_view_arc_slider_set_value(egui_view_t *self, uint8_t value)
 {
     EGUI_LOCAL_INIT(egui_view_arc_slider_t);
+    uint8_t old_value;
     if (value > 100)
     {
         value = 100;
     }
     if (value != local->value)
     {
+        old_value = local->value;
         local->value = value;
         if (local->on_value_changed)
         {
             local->on_value_changed(self, value);
         }
-        egui_view_invalidate(self);
+        egui_view_arc_slider_invalidate_value_change(self, local, old_value);
     }
 }
 
@@ -238,7 +321,6 @@ int egui_view_arc_slider_on_touch_event(egui_view_t *self, egui_motion_event_t *
     case EGUI_MOTION_EVENT_ACTION_DOWN:
     {
         local->is_dragging = 1;
-        egui_view_set_pressed(self, true);
 
         // Request parent to not intercept touch events
         if (self->parent != NULL)
@@ -247,6 +329,7 @@ int egui_view_arc_slider_on_touch_event(egui_view_t *self, egui_motion_event_t *
         }
 
         egui_view_arc_slider_update_value_from_touch(self, event->location.x, event->location.y);
+        egui_view_set_pressed_with_region(self, true, NULL);
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_MOVE:
@@ -261,7 +344,7 @@ int egui_view_arc_slider_on_touch_event(egui_view_t *self, egui_motion_event_t *
     case EGUI_MOTION_EVENT_ACTION_CANCEL:
     {
         local->is_dragging = 0;
-        egui_view_set_pressed(self, false);
+        egui_view_set_pressed_with_region(self, false, NULL);
         break;
     }
     default:

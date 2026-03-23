@@ -51,6 +51,13 @@
 
 .. toctree::
    :maxdepth: 2
+   :caption: 调试与验证
+
+
+   debug/index
+
+.. toctree::
+   :maxdepth: 2
    :caption: 应用开发
 
    app/index

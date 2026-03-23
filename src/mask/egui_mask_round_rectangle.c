@@ -7,6 +7,8 @@
 #include "core/egui_api.h"
 #include "core/egui_canvas.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+
 extern const egui_circle_info_t egui_res_circle_info_arr[];
 
 void egui_mask_round_rectangle_set_radius(egui_mask_t *self, egui_dim_t radius)
@@ -631,3 +633,5 @@ void egui_mask_round_rectangle_init(egui_mask_t *self)
     // init local data.
     local->radius = 0;
 }
+
+#endif

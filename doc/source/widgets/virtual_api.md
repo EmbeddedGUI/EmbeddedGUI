@@ -170,6 +170,11 @@ raw viewport 对应：
 - 看板卡片
 - 不适合被命名为 list/page/grid/tree 的异构内容
 
+推荐入门 case：
+
+- `example/HelloVirtual/virtual_viewport_basic/`
+- `example/HelloVirtual/virtual_viewport/`
+
 ```c
 static egui_view_virtual_viewport_t viewport;
 static app_context_t viewport_ctx;
@@ -262,6 +267,11 @@ static const egui_view_virtual_list_data_source_t list_source = {
 - 最小单元是 section，不是 row
 - section 可以是高度异构的大模块
 
+推荐入门 case：
+
+- `example/HelloVirtual/virtual_page_basic/`
+- `example/HelloVirtual/virtual_page/`
+
 ```c
 static egui_view_virtual_page_t page_view;
 static app_context_t page_ctx;
@@ -294,6 +304,11 @@ static const egui_view_virtual_page_data_source_t page_source = {
 头文件：
 
 - `src/widget/egui_view_virtual_strip.h`
+
+推荐入门 case：
+
+- `example/HelloVirtual/virtual_strip_basic/`
+- `example/HelloVirtual/virtual_strip/`
 
 关键点：
 
@@ -334,6 +349,11 @@ static const egui_view_virtual_strip_data_source_t strip_source = {
 
 - `src/widget/egui_view_virtual_grid.h`
 
+推荐入门 case：
+
+- `example/HelloVirtual/virtual_grid_basic/`
+- `example/HelloVirtual/virtual_grid/`
+
 关键点：
 
 - slot 语义是 row slot，不是 item slot
@@ -373,6 +393,11 @@ static const egui_view_virtual_grid_data_source_t grid_source = {
 头文件：
 
 - `src/widget/egui_view_virtual_section_list.h`
+
+推荐入门 case：
+
+- `example/HelloVirtual/virtual_section_list_basic/`
+- `example/HelloVirtual/virtual_section_list/`
 
 关键点：
 
@@ -416,6 +441,11 @@ static const egui_view_virtual_section_list_data_source_t section_source = {
 头文件：
 
 - `src/widget/egui_view_virtual_tree.h`
+
+推荐入门 case：
+
+- `example/HelloVirtual/virtual_tree_basic/`
+- `example/HelloVirtual/virtual_tree/`
 
 关键点：
 
@@ -536,8 +566,8 @@ virtual 控件不能只看编译通过，必须配合运行时和渲染检查。
 常用命令：
 
 ```bash
-make -j1 all APP=HelloBasic APP_SUB=virtual_grid PORT=pc
-python scripts/code_runtime_check.py --app HelloBasic --app-sub virtual_grid --keep-screenshots
+make -j1 all APP=HelloVirtual APP_SUB=virtual_grid PORT=pc
+python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_grid --keep-screenshots
 
 make -j1 all APP=HelloUnitTest PORT=pc_test
 output\main.exe
@@ -557,12 +587,18 @@ output\main.exe
 
 示例目录：
 
-- `example/HelloBasic/virtual_viewport/`
-- `example/HelloBasic/virtual_page/`
-- `example/HelloBasic/virtual_strip/`
-- `example/HelloBasic/virtual_grid/`
-- `example/HelloBasic/virtual_section_list/`
-- `example/HelloBasic/virtual_tree/`
+- `example/HelloVirtual/virtual_viewport_basic/`
+- `example/HelloVirtual/virtual_viewport/`
+- `example/HelloVirtual/virtual_page_basic/`
+- `example/HelloVirtual/virtual_page/`
+- `example/HelloVirtual/virtual_strip_basic/`
+- `example/HelloVirtual/virtual_strip/`
+- `example/HelloVirtual/virtual_grid_basic/`
+- `example/HelloVirtual/virtual_grid/`
+- `example/HelloVirtual/virtual_section_list_basic/`
+- `example/HelloVirtual/virtual_section_list/`
+- `example/HelloVirtual/virtual_tree_basic/`
+- `example/HelloVirtual/virtual_tree/`
 
 核心头文件：
 
@@ -575,3 +611,105 @@ output\main.exe
 - `src/widget/egui_view_virtual_tree.h`
 
 如果现有六类高层容器都不贴切，建议先从 `virtual_viewport` 起步；等业务语义稳定之后，再决定是否值得继续往上抽象新的 wrapper。
+
+## 8. `virtual_stage`
+
+头文件与示例：
+
+- `src/widget/egui_view_virtual_stage.h`
+- `example/HelloVirtual/virtual_stage_basic/test.c`
+- `example/HelloVirtual/virtual_stage_showcase/test.c`
+- `example/HelloVirtual/virtual_stage/test.c`
+- `doc/source/architecture/virtual_stage.md`
+
+适合：
+
+- 固定大画布里的绝对定位节点
+- 大量 render-only 节点 + 少量真实交互控件
+- 希望把状态尽量外置到业务层，而不是让所有节点都常驻 view
+
+推荐先看 `virtual_stage_basic`，它展示的是最小闭环：
+
+```c
+typedef struct app_stage_node
+{
+    egui_virtual_stage_node_desc_t desc;
+} app_stage_node_t;
+
+static egui_view_virtual_stage_t stage_view;
+static app_context_t stage_ctx;
+static app_stage_node_t stage_nodes[12];
+
+EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_INTERACTIVE_BRIDGE_INIT_WITH_LIMIT(stage_bridge, 8, 80, 304, 200, 3, stage_nodes, app_stage_node_t, desc,
+                                                                      app_stage_create_view, app_stage_destroy_view, app_stage_bind_view,
+                                                                      app_stage_draw_node, app_stage_hit_test, app_stage_should_keep_alive, &stage_ctx);
+
+EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(&stage_view, &stage_bridge);
+EGUI_VIEW_VIRTUAL_STAGE_ADD_ROOT(&stage_view);
+```
+
+如果节点集合本身就是固定数组，而且回调也就在当前文件里，推荐直接走这条一步式 bridge，不再手写 `get_count / get_desc`，也不用再自己拼 `adapter + ops + setup`。
+
+如果 stage 本身就是整屏页面，再进一步用 `EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_SCREEN_*_BRIDGE_INIT_WITH_LIMIT(...)`，把整屏区域参数也一起收掉。
+
+如果 `params` 已经单独存在，例如你还想在别处复用或切换 `live_slot_limit`，或者 `ops` 需要跨文件导出，再回退到 `EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_BRIDGE_INIT(...) + EGUI_VIEW_VIRTUAL_STAGE_ARRAY_OPS_*_INIT(...)` 这套分层 helper。
+
+`array ops` 也建议按复杂度选 helper：
+
+- 只有 `create/bind/draw` 用 `EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_SIMPLE_BRIDGE_INIT_WITH_LIMIT(...)`
+- 再带 `hit_test/should_keep_alive` 用 `EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_INTERACTIVE_BRIDGE_INIT_WITH_LIMIT(...)`
+- 还要跨 materialize 保存控件状态时用 `EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_STATEFUL_BRIDGE_INIT_WITH_LIMIT(...)`
+- 如果 `ops` 要跨文件导出，再用对应的 `EGUI_VIEW_VIRTUAL_STAGE_ARRAY_OPS_*_CONST_INIT(...)`
+- 如果 stage 变量本身就是 `egui_view_virtual_stage_t`，初始化和通知优先用 `EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(...)`、`EGUI_VIEW_VIRTUAL_STAGE_ADD_ROOT(...)`、`EGUI_VIEW_VIRTUAL_STAGE_SET_BACKGROUND(...)`、`EGUI_VIEW_VIRTUAL_STAGE_REQUEST_LAYOUT(...)`、`EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_NODE(...)`、`EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_IDS(...)`、`EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_NODES(...)`、`EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_BOUNDS_IDS(...)`、`EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_NODES_BOUNDS(...)`、`EGUI_VIEW_VIRTUAL_STAGE_PIN_IDS(...)`、`EGUI_VIEW_VIRTUAL_STAGE_UNPIN_IDS(...)`、`EGUI_VIEW_VIRTUAL_STAGE_TOGGLE_PIN(...)` 这些 convenience 宏，少写一层 `EGUI_VIEW_OF(...)`
+- 如果一次只联动少量 `stable_id`，优先直接用 `EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_IDS(...)` / `EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_BOUNDS_IDS(...)`；如果 `stable_id` 数组要复用，继续用 `EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_NODES(...)` / `EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_NODES_BOUNDS(...)`
+
+如果你想更快对照“showcase 风格页面如何落到 `virtual_stage`”，再看 `virtual_stage_showcase`：
+
+- 深色大画布和多 panel 布局更接近 `HelloShowcase`
+- panel、标题、状态卡片继续走 `draw_node()`
+- `Button / ComboBox / Switch / Checkbox / ProgressBar / CircularProgressBar / Slider / NumberPicker` 这 8 个控件保持真实 widget
+- 适合回答“stage 里能不能直接放原本控件”这个问题
+
+`virtual_stage` 的几个高频 helper：
+
+- `egui_view_virtual_stage_resolve_node_by_view()`
+- `EGUI_VIEW_VIRTUAL_STAGE_RESOLVE_ID_BY_VIEW(...)`
+- `egui_view_virtual_stage_find_slot_by_stable_id()`
+- `egui_view_virtual_stage_find_view_by_stable_id()`
+- `EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(...)`
+- `EGUI_VIEW_VIRTUAL_STAGE_ADD_ROOT(...)`
+- `egui_view_virtual_stage_is_node_pinned()`
+- `EGUI_VIEW_VIRTUAL_STAGE_PIN(...)`
+- `EGUI_VIEW_VIRTUAL_STAGE_PIN_IDS(...)`
+- `EGUI_VIEW_VIRTUAL_STAGE_UNPIN_IDS(...)`
+- `EGUI_VIEW_VIRTUAL_STAGE_TOGGLE_PIN(...)`
+- `EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_NODE(...)`
+- `EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_NODE_BOUNDS(...)`
+- `EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_IDS(...)`
+- `EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_NODES(...)`
+- `EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_BOUNDS_IDS(...)`
+- `EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_NODES_BOUNDS(...)`
+- `EGUI_VIEW_VIRTUAL_STAGE_NOTIFY_DATA(...)`
+
+补充约束：
+
+- `EGUI_VIEW_VIRTUAL_STAGE_PIN(...)` 只会接受“当前数据集里存在且可 materialize”的节点；render-only 节点、hidden 节点或不存在的 `stable_id` 都会返回失败。
+- `EGUI_VIRTUAL_STAGE_NODE_FLAG_INTERACTIVE` 只有在节点本身能 materialize 成真实 view 时才有意义；render-only 节点即使误带这个 flag，也不会参与触摸命中。
+- 如果实现了 `adapter->hit_test()` 来裁剪热点区域，`DOWN` 选中节点后，后续 `MOVE/UP` 也会继续按热点内外处理；拖出热点会取消按压，拖回热点后可恢复。
+- 如果一个已 capture 的节点在交互过程中被改成 noninteractive，`virtual_stage` 会向旧 view 发送 cancel 语义并终止这次点击，不会在 `UP` 时误触发旧控件。
+- 如果一次 `notify_data_changed()` 或 `set_adapter()` 会在 capture 尚未结束时移除当前节点，`virtual_stage` 也会先 cancel 旧 view，再回收或复用 slot，避免 pooled view 残留 pressed 等临时状态。
+- 如果某个节点原来没有 live slot，但你把它改成了 `KEEPALIVE`、或者让一个已 pin 节点从 hidden/零尺寸恢复为可见状态，更新 desc 后要继续调用 `notify_node_changed()` 或 `notify_node_bounds_changed()`，让 stage 重新 materialize 它。
+
+它和 `virtual_viewport` 家族的最大差异是：这里没有“滚动数据集”的 `data_source` 语义，只有“固定页面节点”的 `adapter` 语义。
+
+第一次接 `virtual_stage` 时，可以把 callback 先分成三层来理解：
+
+- 最小必需：`create_view`、`bind_view`
+- 常见补充：`draw_node`
+- 按需再补：`hit_test`、`save_state`、`restore_state`、`should_keep_alive`
+
+默认缺省行为也比较直接：
+
+- 不写 `hit_test` 时默认按节点矩形命中
+- 不写 `should_keep_alive` 时默认不额外保活
+- 不写 `save_state` / `restore_state` 时，回收后的业务状态由接入方自己负责

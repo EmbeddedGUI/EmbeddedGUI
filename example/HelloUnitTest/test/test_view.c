@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "egui.h"
+#include "background/egui_background_color.h"
 #include "test/egui_test.h"
 #include "test_view.h"
 
@@ -8,6 +9,12 @@ static egui_view_t test_view;
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static int g_view_click_count;
 #endif
+
+EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_view_bg_normal_param, EGUI_COLOR_BLUE, EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(s_view_bg_pressed_param, EGUI_COLOR_RED, EGUI_ALPHA_100);
+EGUI_BACKGROUND_PARAM_INIT(s_view_bg_params, &s_view_bg_normal_param, &s_view_bg_pressed_param, NULL);
+static egui_background_color_t s_view_pressed_background;
+static uint8_t s_view_pressed_background_ready;
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static void test_view_click_cb(egui_view_t *self)
@@ -162,6 +169,69 @@ static void test_view_margin(void)
     EGUI_TEST_ASSERT_EQUAL_INT(5, test_view.margin.bottom);
 }
 
+static void ensure_view_pressed_background(void)
+{
+    if (s_view_pressed_background_ready)
+    {
+        return;
+    }
+
+    egui_background_color_init_with_params((egui_background_t *)&s_view_pressed_background, &s_view_bg_params);
+    s_view_pressed_background_ready = 1;
+}
+
+static void test_view_set_pressed_same_state_skips_dirty(void)
+{
+    egui_region_t region;
+    egui_region_t *arr = egui_core_get_region_dirty_arr();
+
+    egui_view_init(&test_view);
+    egui_region_init(&region, 10, 20, 100, 40);
+    egui_region_copy(&test_view.region, &region);
+    egui_region_copy(&test_view.region_screen, &region);
+    test_view.is_request_layout = 0;
+
+    egui_core_clear_region_dirty();
+    egui_view_set_pressed(&test_view, false);
+
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[0]));
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[1]));
+}
+
+static void test_view_set_pressed_with_region_respects_background_pressed_state(void)
+{
+    egui_region_t region;
+    egui_region_t dirty_region;
+    egui_region_t expected;
+    egui_region_t *arr = egui_core_get_region_dirty_arr();
+
+    egui_view_init(&test_view);
+    egui_region_init(&region, 10, 20, 100, 40);
+    egui_region_copy(&test_view.region, &region);
+    egui_region_copy(&test_view.region_screen, &region);
+    test_view.is_request_layout = 0;
+
+    egui_region_init(&dirty_region, 5, 6, 20, 10);
+
+    egui_core_clear_region_dirty();
+    egui_view_set_pressed_with_region(&test_view, true, &dirty_region);
+    egui_region_init(&expected, 15, 26, 20, 10);
+    EGUI_TEST_ASSERT_REGION_EQUAL(&expected, &arr[0]);
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[1]));
+
+    egui_core_clear_region_dirty();
+    egui_view_set_pressed_with_region(&test_view, false, &dirty_region);
+    EGUI_TEST_ASSERT_REGION_EQUAL(&expected, &arr[0]);
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[1]));
+
+    ensure_view_pressed_background();
+    egui_view_set_background(&test_view, (egui_background_t *)&s_view_pressed_background.base);
+    egui_core_clear_region_dirty();
+    egui_view_set_pressed_with_region(&test_view, true, &dirty_region);
+    EGUI_TEST_ASSERT_REGION_EQUAL(&test_view.region_screen, &arr[0]);
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[1]));
+}
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static void test_view_click_requires_release_inside(void)
 {
@@ -202,6 +272,8 @@ void test_view_run(void)
     EGUI_TEST_RUN(test_view_alpha);
     EGUI_TEST_RUN(test_view_padding);
     EGUI_TEST_RUN(test_view_margin);
+    EGUI_TEST_RUN(test_view_set_pressed_same_state_skips_dirty);
+    EGUI_TEST_RUN(test_view_set_pressed_with_region_respects_background_pressed_state);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_view_click_requires_release_inside);
 #endif

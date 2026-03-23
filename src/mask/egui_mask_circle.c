@@ -7,6 +7,8 @@
 #include "core/egui_api.h"
 #include "core/egui_canvas.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+
 extern const egui_circle_info_t egui_res_circle_info_arr[];
 
 __EGUI_STATIC_INLINE__ void egui_mask_circle_invalidate_row_cache(egui_mask_circle_t *local)
@@ -660,3 +662,5 @@ void egui_mask_circle_init(egui_mask_t *self)
     egui_mask_circle_invalidate_row_cache(local);
     local->info = NULL;
 }
+
+#endif

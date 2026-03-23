@@ -97,6 +97,16 @@ extern "C" {
 #define EGUI_CONFIG_DIRTY_AREA_COUNT 5
 #endif
 
+/* Print per-frame dirty region rectangles. */
+#ifndef EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL
+#define EGUI_CONFIG_DEBUG_DIRTY_REGION_DETAIL 0
+#endif
+
+/* Print dirty source and merge trace details for debugging. */
+#ifndef EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
+#define EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE 0
+#endif
+
 /* ---- Input ---- */
 
 /* Set the motion cache count, use to save the motion of the input device. */
@@ -204,6 +214,14 @@ extern "C" {
 
 /**
  * Function options.
+ * Select support mask module. if 0, disable mask-related APIs and runtime paths by default.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#define EGUI_CONFIG_FUNCTION_SUPPORT_MASK 0
+#endif
+
+/**
+ * Function options.
  * Select support scrollbar indicator for scrollable views. if 0, disable scrollbar.
  */
 #ifndef EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
@@ -239,10 +257,10 @@ extern "C" {
 /**
  * Image format options.
  * Enable/disable specific image format support to reduce code size.
- * All formats enabled by default (1).
+ * Keep only RGB565 and RGB565_4 enabled by default.
  */
 #ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32 1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32 0
 #endif
 
 #ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565
@@ -250,11 +268,11 @@ extern "C" {
 #endif
 
 #ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1 1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1 0
 #endif
 
 #ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2 1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2 0
 #endif
 
 #ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_4
@@ -262,23 +280,23 @@ extern "C" {
 #endif
 
 #ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8 1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8 0
 #endif
 
 #ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_1
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_1 1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_1 0
 #endif
 
 #ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_2
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_2 1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_2 0
 #endif
 
 #ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_4
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_4 1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_4 0
 #endif
 
 #ifndef EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8
-#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8 1
+#define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8 0
 #endif
 
 /* ---- Reduce code/ram size ---- */
@@ -289,6 +307,14 @@ extern "C" {
  */
 #ifndef EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE
 #define EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE 0
+#endif
+
+/**
+ * Reduce code size options.
+ * Select support view margin/padding APIs. if 0, setters become no-op and layout stays at zero margin/padding by default.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING
+#define EGUI_CONFIG_FUNCTION_SUPPORT_MARGIN_PADDING 0
 #endif
 
 /**

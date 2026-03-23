@@ -180,6 +180,9 @@ GC_LDFLAGS = -Wl,--gc-sections -Wl,--check-sections
 endif
 
 ## Common flags ##
+USER_CFLAGS ?=
+COMMON_FLAGS += $(USER_CFLAGS)
+
 COMPILE_OPT_LEVEL ?= -O0
 COMPILE_DEBUG ?= -g
 COMMON_FLAGS += $(COMPILE_OPT_LEVEL)

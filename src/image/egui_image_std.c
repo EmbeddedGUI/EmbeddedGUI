@@ -7296,8 +7296,7 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
                 _get_col_alpha_func(p_data, x_, &pixel_alpha);                                                                                                 \
                 if (pixel_alpha)                                                                                                                               \
                 {                                                                                                                                              \
-                    egui_alpha_t fa_ = (color_alpha == EGUI_ALPHA_100) ? pixel_alpha                                                                           \
-                                                                       : (egui_alpha_t)(pixel_alpha * color_alpha / EGUI_ALPHA_100);                           \
+                    egui_alpha_t fa_ = (color_alpha == EGUI_ALPHA_100) ? pixel_alpha : (egui_alpha_t)(pixel_alpha * color_alpha / EGUI_ALPHA_100);             \
                     egui_canvas_draw_point_limit((x_base + x_), (y_base + y_), color, fa_);                                                                    \
                 }                                                                                                                                              \
             }                                                                                                                                                  \
@@ -7306,7 +7305,7 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
     else                                                                                                                                                       \
     {                                                                                                                                                          \
         egui_dim_t pfb_w_ = canvas->pfb_region.size.width;                                                                                                     \
-        egui_dim_t pfb_x0_ = (x_base + x) - canvas->pfb_location_in_base_view.x;                                                                              \
+        egui_dim_t pfb_x0_ = (x_base + x) - canvas->pfb_location_in_base_view.x;                                                                               \
         egui_dim_t pfb_yoff_ = y_base - canvas->pfb_location_in_base_view.y;                                                                                   \
         egui_alpha_t comb_a_ = egui_color_alpha_mix(canvas->alpha, color_alpha);                                                                               \
         int comb_is_100_ = (comb_a_ == EGUI_ALPHA_100);                                                                                                        \
@@ -7314,15 +7313,14 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
         for (egui_dim_t y_ = y; y_ < y_total; y_++)                                                                                                            \
         {                                                                                                                                                      \
             const uint8_t *p_data = (const uint8_t *)image->data_buf + (uint32_t)y_ * alpha_row_size;                                                          \
-            egui_color_int_t *dst_row_ = &canvas->pfb[(pfb_yoff_ + y_) * pfb_w_ + pfb_x0_];                                                                   \
+            egui_color_int_t *dst_row_ = &canvas->pfb[(pfb_yoff_ + y_) * pfb_w_ + pfb_x0_];                                                                    \
             for (egui_dim_t i_ = 0; i_ < col_count_; i_++)                                                                                                     \
             {                                                                                                                                                  \
                 _get_col_alpha_func(p_data, x + i_, &pixel_alpha);                                                                                             \
                 if (pixel_alpha)                                                                                                                               \
                 {                                                                                                                                              \
-                    egui_alpha_t fa_ = comb_is_100_ ? pixel_alpha                                                                                              \
-                                                    : (egui_alpha_t)(((uint16_t)comb_a_ * pixel_alpha + 128) >> 8);                                            \
-                    egui_image_std_blend_resize_pixel(&dst_row_[i_], color, fa_);                                                                               \
+                    egui_alpha_t fa_ = comb_is_100_ ? pixel_alpha : (egui_alpha_t)(((uint16_t)comb_a_ * pixel_alpha + 128) >> 8);                              \
+                    egui_image_std_blend_resize_pixel(&dst_row_[i_], color, fa_);                                                                              \
                 }                                                                                                                                              \
             }                                                                                                                                                  \
         }                                                                                                                                                      \
@@ -7432,21 +7430,21 @@ void egui_image_std_draw_image_color(const egui_image_t *self, egui_dim_t x, egu
         const uint8_t *p_row_ = NULL;                                                                                                                          \
         for (egui_dim_t y_ = region.location.y; y_ < y_total; y_++)                                                                                            \
         {                                                                                                                                                      \
-            egui_dim_t sy_ = (egui_dim_t)EGUI_FLOAT_MULT_LIMIT(y_, height_radio);                                                                             \
+            egui_dim_t sy_ = (egui_dim_t)EGUI_FLOAT_MULT_LIMIT(y_, height_radio);                                                                              \
             if (cached_src_y_ != sy_)                                                                                                                          \
             {                                                                                                                                                  \
                 p_row_ = (const uint8_t *)image->data_buf + (uint32_t)sy_ * (_row_size);                                                                       \
                 cached_src_y_ = sy_;                                                                                                                           \
             }                                                                                                                                                  \
-            egui_color_int_t *dst_row_ = &canvas->pfb[(pfb_y_off + y_) * pfb_width + pfb_x_start];                                                            \
+            egui_color_int_t *dst_row_ = &canvas->pfb[(pfb_y_off + y_) * pfb_width + pfb_x_start];                                                             \
             for (egui_dim_t i_ = 0; i_ < count; i_++)                                                                                                          \
             {                                                                                                                                                  \
-                egui_alpha_t pa_;                                                                                                                               \
+                egui_alpha_t pa_;                                                                                                                              \
                 _get_alpha_func(p_row_, src_x_map[i_], &pa_);                                                                                                  \
                 if (pa_)                                                                                                                                       \
                 {                                                                                                                                              \
                     egui_alpha_t fa_ = combined_is_100 ? pa_ : (egui_alpha_t)(((uint16_t)combined_alpha * pa_ + 128) >> 8);                                    \
-                    egui_image_std_blend_resize_pixel(&dst_row_[i_], color, fa_);                                                                               \
+                    egui_image_std_blend_resize_pixel(&dst_row_[i_], color, fa_);                                                                              \
                 }                                                                                                                                              \
             }                                                                                                                                                  \
         }                                                                                                                                                      \
@@ -7463,7 +7461,7 @@ void egui_image_std_draw_image_color(const egui_image_t *self, egui_dim_t x, egu
         const uint8_t *p_row_ = NULL;                                                                                                                          \
         for (egui_dim_t y_ = region.location.y; y_ < y_total; y_++)                                                                                            \
         {                                                                                                                                                      \
-            egui_dim_t sy_ = (egui_dim_t)EGUI_FLOAT_MULT_LIMIT(y_, height_radio);                                                                             \
+            egui_dim_t sy_ = (egui_dim_t)EGUI_FLOAT_MULT_LIMIT(y_, height_radio);                                                                              \
             if (cached_src_y_ != sy_)                                                                                                                          \
             {                                                                                                                                                  \
                 p_row_ = (const uint8_t *)image->data_buf + (uint32_t)sy_ * (_row_size);                                                                       \
@@ -7472,7 +7470,7 @@ void egui_image_std_draw_image_color(const egui_image_t *self, egui_dim_t x, egu
             egui_dim_t screen_y_ = y + y_;                                                                                                                     \
             for (egui_dim_t i_ = 0; i_ < count; i_++)                                                                                                          \
             {                                                                                                                                                  \
-                egui_alpha_t pa_;                                                                                                                               \
+                egui_alpha_t pa_;                                                                                                                              \
                 _get_alpha_func(p_row_, src_x_map[i_], &pa_);                                                                                                  \
                 if (pa_)                                                                                                                                       \
                 {                                                                                                                                              \

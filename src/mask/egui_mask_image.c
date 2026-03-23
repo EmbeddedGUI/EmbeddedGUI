@@ -8,6 +8,8 @@
 #include "core/egui_api.h"
 #include "core/egui_canvas.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+
 static void egui_mask_image_invalidate_row_cache(egui_mask_image_t *local)
 {
     local->point_cached_y = -32768;
@@ -1036,3 +1038,5 @@ void egui_mask_image_init(egui_mask_t *self)
     local->res_type = EGUI_RESOURCE_TYPE_INTERNAL;
     egui_mask_image_invalidate_row_cache(local);
 }
+
+#endif

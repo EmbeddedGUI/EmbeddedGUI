@@ -40,15 +40,41 @@ char *pc_get_input_file_path(void)
 
 static void pasre_input_params(int argc, const char *argv[])
 {
-    if (argc > 1)
+    int i = 1;
+
+    while (i < argc)
     {
-        // printf("input params: %s\n", argv[1]);
-        strcpy(input_file_path, argv[1]);
+        if (strcmp(argv[i], "--headless") == 0 || strcmp(argv[i], "--touch-trace") == 0)
+        {
+            i++;
+            continue;
+        }
+        if ((strcmp(argv[i], "--record") == 0 && i + 3 < argc) || (strcmp(argv[i], "--speed") == 0 && i + 1 < argc) ||
+            (strcmp(argv[i], "--clock-scale") == 0 && i + 1 < argc) || (strcmp(argv[i], "--snapshot-settle-ms") == 0 && i + 1 < argc) ||
+            (strcmp(argv[i], "--snapshot-stable-cycles") == 0 && i + 1 < argc) || (strcmp(argv[i], "--snapshot-max-wait-ms") == 0 && i + 1 < argc) ||
+            (strcmp(argv[i], "--touch-trace-limit") == 0 && i + 1 < argc))
+        {
+            if (strcmp(argv[i], "--record") == 0)
+            {
+                i += 4;
+            }
+            else
+            {
+                i += 2;
+            }
+            continue;
+        }
+        if (argv[i][0] == '-' && argv[i][1] == '-')
+        {
+            i++;
+            continue;
+        }
+
+        strcpy(input_file_path, argv[i]);
+        return;
     }
-    else
-    {
-        strcpy(input_file_path, "app_egui_resource_merge.bin");
-    }
+
+    strcpy(input_file_path, "app_egui_resource_merge.bin");
 }
 
 static void parse_recording_params(int argc, const char *argv[])

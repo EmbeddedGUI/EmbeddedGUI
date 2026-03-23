@@ -11,6 +11,8 @@
 #include "core/egui_canvas_gradient.h"
 #endif
 
+#define EGUI_VIEW_BUTTON_MATRIX_DIRTY_PAD 2
+
 static const egui_font_t *egui_view_button_matrix_get_icon_font(egui_view_button_matrix_t *local, egui_dim_t area_size)
 {
     if (local->icon_font != NULL)
@@ -58,6 +60,122 @@ static void egui_view_button_matrix_draw_text_clipped(const egui_font_t *font, c
     }
 }
 
+static uint8_t egui_view_button_matrix_get_cell_region(egui_view_t *self, egui_view_button_matrix_t *local, uint8_t index, egui_region_t *cell_region)
+{
+    egui_region_t work_region;
+    egui_dim_t btn_w;
+    egui_dim_t btn_h;
+    uint8_t rows;
+    uint8_t col;
+    uint8_t row;
+
+    if (cell_region == NULL || index == EGUI_VIEW_BUTTON_MATRIX_PRESSED_NONE || index >= local->btn_count || local->btn_count == 0 || local->cols == 0)
+    {
+        return 0;
+    }
+
+    egui_view_get_work_region(self, &work_region);
+    if (egui_region_is_empty(&work_region))
+    {
+        return 0;
+    }
+
+    rows = (uint8_t)((local->btn_count + local->cols - 1U) / local->cols);
+    if (rows == 0)
+    {
+        return 0;
+    }
+
+    btn_w = (work_region.size.width - local->gap * (local->cols - 1)) / local->cols;
+    btn_h = (work_region.size.height - local->gap * (rows - 1)) / rows;
+    if (btn_w <= 0 || btn_h <= 0)
+    {
+        return 0;
+    }
+
+    col = (uint8_t)(index % local->cols);
+    row = (uint8_t)(index / local->cols);
+
+    egui_region_init(cell_region, work_region.location.x + col * (btn_w + local->gap), work_region.location.y + row * (btn_h + local->gap), btn_w, btn_h);
+
+    cell_region->location.x -= EGUI_VIEW_BUTTON_MATRIX_DIRTY_PAD;
+    cell_region->location.y -= EGUI_VIEW_BUTTON_MATRIX_DIRTY_PAD;
+    cell_region->size.width += EGUI_VIEW_BUTTON_MATRIX_DIRTY_PAD * 2;
+    cell_region->size.height += EGUI_VIEW_BUTTON_MATRIX_DIRTY_PAD * 2;
+    egui_region_intersect(cell_region, &work_region, cell_region);
+
+    return egui_region_is_empty(cell_region) ? 0 : 1;
+}
+
+static void egui_view_button_matrix_invalidate_indices(egui_view_t *self, egui_view_button_matrix_t *local, const uint8_t *indices, uint8_t count)
+{
+    egui_region_t dirty_region;
+    egui_region_t cell_region;
+    uint8_t i;
+    uint8_t j;
+    uint8_t valid_count = 0;
+
+    if (count == 0)
+    {
+        return;
+    }
+
+    if (self->region_screen.size.width <= 0 || self->region_screen.size.height <= 0)
+    {
+        egui_view_invalidate(self);
+        return;
+    }
+
+    egui_region_init_empty(&dirty_region);
+    for (i = 0; i < count; i++)
+    {
+        uint8_t index = indices[i];
+        uint8_t is_duplicate = 0;
+
+        if (index == EGUI_VIEW_BUTTON_MATRIX_PRESSED_NONE || index >= local->btn_count)
+        {
+            continue;
+        }
+
+        for (j = 0; j < i; j++)
+        {
+            if (indices[j] == index)
+            {
+                is_duplicate = 1;
+                break;
+            }
+        }
+        if (is_duplicate)
+        {
+            continue;
+        }
+
+        valid_count++;
+        if (egui_view_button_matrix_get_cell_region(self, local, index, &cell_region))
+        {
+            if (egui_region_is_empty(&dirty_region))
+            {
+                egui_region_copy(&dirty_region, &cell_region);
+            }
+            else
+            {
+                egui_region_union(&dirty_region, &cell_region, &dirty_region);
+            }
+        }
+    }
+
+    if (egui_region_is_empty(&dirty_region))
+    {
+        if (valid_count > 0)
+        {
+            egui_view_invalidate(self);
+        }
+        return;
+    }
+
+    egui_view_invalidate_region(self, &dirty_region);
+}
+
 void egui_view_button_matrix_set_labels(egui_view_t *self, const char **labels, uint8_t count, uint8_t cols)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
@@ -84,22 +202,39 @@ void egui_view_button_matrix_set_on_click(egui_view_t *self, egui_view_button_ma
 void egui_view_button_matrix_set_selection_enabled(egui_view_t *self, uint8_t enabled)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    uint8_t dirty_indices[1];
+    uint8_t dirty_count = 0;
+
     enabled = enabled ? 1 : 0;
     if (local->selection_enabled == enabled)
     {
         return;
     }
+
+    if (local->selection_enabled && local->selected_index != EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE)
+    {
+        dirty_indices[dirty_count++] = local->selected_index;
+    }
+
     local->selection_enabled = enabled;
     if (!enabled)
     {
         local->selected_index = EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE;
     }
-    egui_view_invalidate(self);
+    else if (local->selected_index != EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE)
+    {
+        dirty_indices[dirty_count++] = local->selected_index;
+    }
+
+    egui_view_button_matrix_invalidate_indices(self, local, dirty_indices, dirty_count);
 }
 
 void egui_view_button_matrix_set_selected_index(egui_view_t *self, uint8_t index)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    uint8_t old_index;
+    uint8_t dirty_indices[2];
+
     if (index == EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE || local->btn_count == 0)
     {
         index = EGUI_VIEW_BUTTON_MATRIX_SELECTED_NONE;
@@ -112,8 +247,17 @@ void egui_view_button_matrix_set_selected_index(egui_view_t *self, uint8_t index
     {
         return;
     }
+
+    old_index = local->selected_index;
     local->selected_index = index;
-    egui_view_invalidate(self);
+    if (!local->selection_enabled)
+    {
+        return;
+    }
+
+    dirty_indices[0] = old_index;
+    dirty_indices[1] = local->selected_index;
+    egui_view_button_matrix_invalidate_indices(self, local, dirty_indices, EGUI_ARRAY_SIZE(dirty_indices));
 }
 
 uint8_t egui_view_button_matrix_get_selected_index(egui_view_t *self)
@@ -375,6 +519,10 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
 static int egui_view_button_matrix_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_button_matrix_t);
+    uint8_t dirty_indices[3];
+    uint8_t dirty_count;
+    uint8_t old_pressed;
+    uint8_t old_selected;
 
     if (self->is_enable == false)
     {
@@ -430,11 +578,16 @@ static int egui_view_button_matrix_on_touch_event(egui_view_t *self, egui_motion
 
     if (event->type == EGUI_MOTION_EVENT_ACTION_DOWN)
     {
+        old_pressed = local->pressed_index;
         local->pressed_index = hit_index;
-        egui_view_invalidate(self);
+        dirty_indices[0] = old_pressed;
+        dirty_indices[1] = local->pressed_index;
+        egui_view_button_matrix_invalidate_indices(self, local, dirty_indices, 2);
     }
     else if (event->type == EGUI_MOTION_EVENT_ACTION_UP)
     {
+        old_pressed = local->pressed_index;
+        old_selected = local->selected_index;
         if (hit_index == local->pressed_index && hit_index != EGUI_VIEW_BUTTON_MATRIX_PRESSED_NONE)
         {
             if (local->selection_enabled)
@@ -447,12 +600,21 @@ static int egui_view_button_matrix_on_touch_event(egui_view_t *self, egui_motion
             }
         }
         local->pressed_index = EGUI_VIEW_BUTTON_MATRIX_PRESSED_NONE;
-        egui_view_invalidate(self);
+        dirty_count = 0;
+        dirty_indices[dirty_count++] = old_pressed;
+        if (local->selection_enabled)
+        {
+            dirty_indices[dirty_count++] = old_selected;
+            dirty_indices[dirty_count++] = local->selected_index;
+        }
+        egui_view_button_matrix_invalidate_indices(self, local, dirty_indices, dirty_count);
     }
     else if (event->type == EGUI_MOTION_EVENT_ACTION_CANCEL)
     {
+        old_pressed = local->pressed_index;
         local->pressed_index = EGUI_VIEW_BUTTON_MATRIX_PRESSED_NONE;
-        egui_view_invalidate(self);
+        dirty_indices[0] = old_pressed;
+        egui_view_button_matrix_invalidate_indices(self, local, dirty_indices, 1);
     }
 
     return 1;

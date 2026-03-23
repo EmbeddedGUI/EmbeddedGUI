@@ -252,12 +252,16 @@ int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_
     {
     case EGUI_MOTION_EVENT_ACTION_DOWN:
     {
+        egui_region_t zone_region;
+        const egui_region_t *dirty_ptr = NULL;
+
         local->pressed_zone = hit_zone;
-        self->is_pressed = (hit_zone != 0);
         if (hit_zone != 0)
         {
-            egui_view_number_picker_invalidate_zone(self, hit_zone);
+            egui_view_number_picker_get_zone_region(self, hit_zone, &zone_region);
+            dirty_ptr = &zone_region;
         }
+        egui_view_set_pressed_with_region(self, hit_zone != 0, dirty_ptr);
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_MOVE:
@@ -265,20 +269,27 @@ int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_
         int should_press = local->pressed_zone != 0 && hit_zone == local->pressed_zone;
         if (self->is_pressed != should_press)
         {
-            self->is_pressed = should_press;
-            egui_view_number_picker_invalidate_zone(self, local->pressed_zone);
+            egui_region_t zone_region;
+
+            egui_view_number_picker_get_zone_region(self, local->pressed_zone, &zone_region);
+            egui_view_set_pressed_with_region(self, should_press, &zone_region);
         }
         break;
     }
     case EGUI_MOTION_EVENT_ACTION_UP:
     {
         int8_t pressed_zone = local->pressed_zone;
-        self->is_pressed = false;
-        local->pressed_zone = 0;
+        egui_region_t zone_region;
+        const egui_region_t *dirty_ptr = NULL;
+
         if (pressed_zone != 0)
         {
-            egui_view_number_picker_invalidate_zone(self, pressed_zone);
+            egui_view_number_picker_get_zone_region(self, pressed_zone, &zone_region);
+            dirty_ptr = &zone_region;
         }
+
+        egui_view_set_pressed_with_region(self, false, dirty_ptr);
+        local->pressed_zone = 0;
 
         if (pressed_zone != hit_zone)
         {
@@ -310,12 +321,17 @@ int egui_view_number_picker_on_touch_event(egui_view_t *self, egui_motion_event_
     case EGUI_MOTION_EVENT_ACTION_CANCEL:
     {
         int8_t pressed_zone = local->pressed_zone;
-        self->is_pressed = false;
-        local->pressed_zone = 0;
+        egui_region_t zone_region;
+        const egui_region_t *dirty_ptr = NULL;
+
         if (pressed_zone != 0)
         {
-            egui_view_number_picker_invalidate_zone(self, pressed_zone);
+            egui_view_number_picker_get_zone_region(self, pressed_zone, &zone_region);
+            dirty_ptr = &zone_region;
         }
+
+        egui_view_set_pressed_with_region(self, false, dirty_ptr);
+        local->pressed_zone = 0;
         break;
     }
     default:

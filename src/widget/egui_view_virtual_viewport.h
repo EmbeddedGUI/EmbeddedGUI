@@ -36,11 +36,9 @@ typedef struct egui_view_virtual_viewport_entry egui_view_virtual_viewport_entry
 typedef struct egui_view_virtual_viewport_params egui_view_virtual_viewport_params_t;
 typedef struct egui_view_virtual_viewport_setup egui_view_virtual_viewport_setup_t;
 typedef uint8_t (*egui_view_virtual_viewport_visible_item_matcher_t)(egui_view_t *self, const egui_view_virtual_viewport_slot_t *slot,
-                                                                     const egui_view_virtual_viewport_entry_t *entry, egui_view_t *item_view,
-                                                                     void *context);
+                                                                     const egui_view_virtual_viewport_entry_t *entry, egui_view_t *item_view, void *context);
 typedef uint8_t (*egui_view_virtual_viewport_visible_item_visitor_t)(egui_view_t *self, const egui_view_virtual_viewport_slot_t *slot,
-                                                                     const egui_view_virtual_viewport_entry_t *entry, egui_view_t *item_view,
-                                                                     void *context);
+                                                                     const egui_view_virtual_viewport_entry_t *entry, egui_view_t *item_view, void *context);
 
 struct egui_view_virtual_viewport_adapter
 {

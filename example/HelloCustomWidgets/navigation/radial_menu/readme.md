@@ -116,7 +116,7 @@ python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub navigati
 
 关键截图输出目录：
 
-- runtime_check_output/HelloCustomWidgets_navigation/radial_menu/default/
+- runtime_check_output/HelloCustomWidgets_navigation_radial_menu/default/
 
 通过条件：
 
