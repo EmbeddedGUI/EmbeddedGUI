@@ -123,7 +123,6 @@ typedef struct
     const char *lines[EGUI_FONT_STD_LINE_CACHE_MAX_LINES];
 } egui_font_std_line_cache_t;
 
-
 static egui_font_std_ascii_lookup_cache_t g_font_std_ascii_lookup_cache = {
         .code_array = NULL,
         .char_array = NULL,
@@ -437,7 +436,6 @@ static const egui_font_std_line_cache_t *egui_font_std_prepare_line_cache(const 
     return cache;
 }
 
-
 static void egui_font_std_reset_code_lookup_cache(const egui_font_std_info_t *font)
 {
     if (g_font_std_code_lookup_cache.code_array != font->code_array || g_font_std_code_lookup_cache.count != font->count)
@@ -692,8 +690,7 @@ static const egui_font_std_char_descriptor_t *egui_font_std_get_cached_char_arra
 
     if (g_cached_char_desc_font != font)
     {
-        egui_api_load_external_resource(g_cached_char_desc_array, (egui_uintptr_t)font->char_array, 0,
-                                        font->count * sizeof(egui_font_std_char_descriptor_t));
+        egui_api_load_external_resource(g_cached_char_desc_array, (egui_uintptr_t)font->char_array, 0, font->count * sizeof(egui_font_std_char_descriptor_t));
         g_cached_char_desc_font = font;
     }
 
@@ -994,7 +991,8 @@ __EGUI_STATIC_INLINE__ void egui_font_std_blend_pixel_ctx_partial(egui_color_int
 #endif
 }
 
-static int egui_font_std_clip_to_region(const egui_region_t *region, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_region_t *visible_rect)
+static int egui_font_std_clip_to_region(const egui_region_t *region, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
+                                        egui_region_t *visible_rect)
 {
     egui_dim_t vis_x0 = x;
     egui_dim_t vis_y0 = y;
@@ -1419,8 +1417,7 @@ static void egui_font_std_draw_fast_8(const egui_canvas_t *canvas, egui_dim_t pf
 }
 
 static int egui_font_std_draw_fast_4_prepared(const egui_canvas_t *canvas, const egui_region_t *work_region, egui_dim_t x, egui_dim_t y, egui_dim_t width,
-                                              egui_dim_t height, const uint8_t *p_data, egui_alpha_t draw_alpha,
-                                              const egui_font_std_blend_ctx_t *blend_ctx)
+                                              egui_dim_t height, const uint8_t *p_data, egui_alpha_t draw_alpha, const egui_font_std_blend_ctx_t *blend_ctx)
 {
     egui_dim_t work_x0;
     egui_dim_t work_y0;
@@ -1536,7 +1533,8 @@ static int egui_font_std_draw_fast_clipped(const egui_font_std_info_t *font, egu
     egui_dim_t pfb_x = visible_rect.location.x - canvas->pfb_location_in_base_view.x;
     egui_dim_t pfb_y = visible_rect.location.y - canvas->pfb_location_in_base_view.y;
 
-    if (pfb_x < 0 || pfb_y < 0 || pfb_x + visible_rect.size.width > canvas->pfb_region.size.width || pfb_y + visible_rect.size.height > canvas->pfb_region.size.height)
+    if (pfb_x < 0 || pfb_y < 0 || pfb_x + visible_rect.size.width > canvas->pfb_region.size.width ||
+        pfb_y + visible_rect.size.height > canvas->pfb_region.size.height)
     {
         return 0;
     }
@@ -1602,7 +1600,8 @@ static int egui_font_std_draw_fast_mask(const egui_font_std_info_t *font, egui_d
     egui_dim_t pfb_y0 = visible_rect.location.y - canvas->pfb_location_in_base_view.y;
     egui_dim_t pfb_w = canvas->pfb_region.size.width;
 
-    if (pfb_x0 < 0 || pfb_y0 < 0 || pfb_x0 + visible_rect.size.width > canvas->pfb_region.size.width || pfb_y0 + visible_rect.size.height > canvas->pfb_region.size.height)
+    if (pfb_x0 < 0 || pfb_y0 < 0 || pfb_x0 + visible_rect.size.width > canvas->pfb_region.size.width ||
+        pfb_y0 + visible_rect.size.height > canvas->pfb_region.size.height)
     {
         return 0;
     }
@@ -2313,8 +2312,8 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
                 egui_dim_t pfb_y = vis_y0 - pfb_base_y;
                 const uint8_t *p_pixer_buffer = pixel_buffer + p_char_desc->idx;
 
-                egui_font_std_draw_fast_4_ctx(canvas, pfb_x, pfb_y, p_char_desc->box_w, vis_x0 - draw_x, vis_y0 - draw_y, vis_x1 - vis_x0,
-                                              vis_y1 - vis_y0, p_pixer_buffer, draw_alpha, blend_ctx);
+                egui_font_std_draw_fast_4_ctx(canvas, pfb_x, pfb_y, p_char_desc->box_w, vis_x0 - draw_x, vis_y0 - draw_y, vis_x1 - vis_x0, vis_y1 - vis_y0,
+                                              p_pixer_buffer, draw_alpha, blend_ctx);
             }
         }
 
@@ -2458,8 +2457,7 @@ static int egui_font_std_draw_string_fast_4_mask(const void *font_key, const egu
 
                 if (draw_y < work_y1 && (draw_y + p_char_desc->box_h) > work_y0)
                 {
-                    egui_font_std_draw_fast_mask(font, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, pixel_buffer + p_char_desc->idx, color,
-                                                 alpha);
+                    egui_font_std_draw_fast_mask(font, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, pixel_buffer + p_char_desc->idx, color, alpha);
                 }
             }
 
@@ -2613,8 +2611,8 @@ int egui_font_std_try_draw_string_in_rect_fast(const egui_font_t *self, const vo
 
         if (use_fast_no_mask)
         {
-            str_bytes = egui_font_std_draw_string_fast_4(self->res, font, s, rect->location.x, draw_y, color, alpha, canvas, work_region, draw_alpha,
-                                                         &blend_ctx);
+            str_bytes =
+                    egui_font_std_draw_string_fast_4(self->res, font, s, rect->location.x, draw_y, color, alpha, canvas, work_region, draw_alpha, &blend_ctx);
         }
         else
         {

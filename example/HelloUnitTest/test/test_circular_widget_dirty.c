@@ -151,8 +151,8 @@ static void get_arc_slider_thumb_center(egui_dim_t *x, egui_dim_t *y)
 {
     egui_dim_t center_x = EGUI_VIEW_OF(&test_arc_slider)->region_screen.location.x + EGUI_VIEW_OF(&test_arc_slider)->region.size.width / 2;
     egui_dim_t center_y = EGUI_VIEW_OF(&test_arc_slider)->region_screen.location.y + EGUI_VIEW_OF(&test_arc_slider)->region.size.height / 2;
-    egui_dim_t radius = EGUI_MIN(EGUI_VIEW_OF(&test_arc_slider)->region.size.width, EGUI_VIEW_OF(&test_arc_slider)->region.size.height) / 2
-                        - test_arc_slider.thumb_radius - 1;
+    egui_dim_t radius = EGUI_MIN(EGUI_VIEW_OF(&test_arc_slider)->region.size.width, EGUI_VIEW_OF(&test_arc_slider)->region.size.height) / 2 -
+                        test_arc_slider.thumb_radius - 1;
     egui_dim_t thumb_track_radius = radius - test_arc_slider.stroke_width / 2;
 
     *x = center_x;

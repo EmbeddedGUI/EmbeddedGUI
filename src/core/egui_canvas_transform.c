@@ -554,8 +554,7 @@ static int image_transform_prepare_external_cache(const egui_image_std_info_t *i
     }
 
     data_hit = cache->info == info && cache->data_addr == info->data_buf && cache->data_size == data_size && cache->data_buf != NULL;
-    alpha_hit = alpha_size == 0 ||
-                (cache->info == info && cache->alpha_addr == info->alpha_buf && cache->alpha_size == alpha_size && cache->alpha_buf != NULL);
+    alpha_hit = alpha_size == 0 || (cache->info == info && cache->alpha_addr == info->alpha_buf && cache->alpha_size == alpha_size && cache->alpha_buf != NULL);
 
     if (!data_hit || !alpha_hit)
     {
@@ -650,8 +649,8 @@ static inline uint8_t image_transform_bilinear_alpha_from_raw_1(uint8_t a00, uin
     return (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
 }
 
-static inline uint8_t image_transform_sample_alpha_bilinear_fast(const uint8_t *alpha_buf, int alpha_row_bytes, int x, int y, uint8_t alpha_type,
-                                                                 uint8_t fx, uint8_t fy)
+static inline uint8_t image_transform_sample_alpha_bilinear_fast(const uint8_t *alpha_buf, int alpha_row_bytes, int x, int y, uint8_t alpha_type, uint8_t fx,
+                                                                 uint8_t fy)
 {
     const uint8_t *row0 = alpha_buf + y * alpha_row_bytes;
     const uint8_t *row1 = row0 + alpha_row_bytes;
@@ -1419,8 +1418,7 @@ static inline void extract_packed_alpha_pair_4_rb(const uint8_t *data, uint8_t r
     }
 }
 
-static inline void batch_extract_glyph_alpha_4(const uint8_t *data, uint8_t box_w, int lx, int ly, uint16_t *a00, uint16_t *a01, uint16_t *a10,
-                                               uint16_t *a11)
+static inline void batch_extract_glyph_alpha_4(const uint8_t *data, uint8_t box_w, int lx, int ly, uint16_t *a00, uint16_t *a01, uint16_t *a10, uint16_t *a11)
 {
     int rb = (box_w + 1) >> 1;
     const uint8_t *row0 = data + ly * rb;
@@ -1689,9 +1687,8 @@ typedef struct
 static text_transform_prepare_cache_t g_text_transform_prepare_cache = {0};
 
 static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color,
-                                                          const egui_font_std_info_t *font_info,
-                                                          const text_transform_layout_glyph_t *const *glyphs, int glyph_count, int16_t src_x0, int16_t src_y0,
-                                                          int16_t src_x1, int16_t src_y1, int glyphs_overlap);
+                                                          const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *const *glyphs,
+                                                          int glyph_count, int16_t src_x0, int16_t src_y0, int16_t src_x1, int16_t src_y1, int glyphs_overlap);
 
 static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8, egui_alpha_t alpha,
                                   text_transform_ctx_t *ctx)
@@ -2142,9 +2139,8 @@ static int text_transform_prepare_layout(const egui_font_t *font, const egui_fon
     g_text_transform_layout_cache.font = font;
     g_text_transform_layout_cache.string = string;
     g_text_transform_layout_cache.line_space = line_space;
-    g_text_transform_layout_cache.count =
-            text_transform_build_layout(font_info, string, g_text_transform_layout_glyphs, needed, g_text_transform_layout_lines, line_needed,
-                                        &g_text_transform_layout_cache.line_count, line_space);
+    g_text_transform_layout_cache.count = text_transform_build_layout(font_info, string, g_text_transform_layout_glyphs, needed, g_text_transform_layout_lines,
+                                                                      line_needed, &g_text_transform_layout_cache.line_count, line_space);
 
     *layout = g_text_transform_layout_glyphs;
     *count = g_text_transform_layout_cache.count;
@@ -3009,9 +3005,9 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
         }
     }
     {
-        int use_visible_alpha8_tile =
-                (bpp == 4 && scale_q8 >= 256 &&
-                 (ctx.mask == NULL || (ctx.mask->api != NULL && ctx.mask->api->kind == EGUI_MASK_KIND_GRADIENT && ctx.mask->api->mask_blend_row_color != NULL)));
+        int use_visible_alpha8_tile = (bpp == 4 && scale_q8 >= 256 &&
+                                       (ctx.mask == NULL || (ctx.mask->api != NULL && ctx.mask->api->kind == EGUI_MASK_KIND_GRADIENT &&
+                                                             ctx.mask->api->mask_blend_row_color != NULL)));
         int tile_count;
 
         if (use_visible_alpha8_tile)
@@ -3210,7 +3206,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                 {
                                     uint16_t sa00, sa01, sa10, sa11;
                                     batch_extract_glyph_alpha(g_data, g->box_w, (rotatedX >> 15) - g_x, (rotatedY >> 15) - g_y, bpp, &sa00, &sa01, &sa10,
-                                                             &sa11);
+                                                              &sa11);
 
                                     if ((sa00 | sa01 | sa10 | sa11) != 0)
                                     {
@@ -3256,8 +3252,8 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                 for (int32_t i = 0; i < sir_count; i++)
                                 {
                                     uint16_t sa00, sa01, sa10, sa11;
-                                    batch_extract_glyph_alpha_4_rb(g->data, g->row_bytes, (rotatedX >> 15) - g->x, (rotatedY >> 15) - g->y, &sa00, &sa01,
-                                                                   &sa10, &sa11);
+                                    batch_extract_glyph_alpha_4_rb(g->data, g->row_bytes, (rotatedX >> 15) - g->x, (rotatedY >> 15) - g->y, &sa00, &sa01, &sa10,
+                                                                   &sa11);
 
                                     if ((sa00 | sa01 | sa10 | sa11) != 0)
                                     {
@@ -3308,7 +3304,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                 {
                                     uint16_t sa00, sa01, sa10, sa11;
                                     batch_extract_glyph_alpha(g->data, g->box_w, (rotatedX >> 15) - g->x, (rotatedY >> 15) - g->y, bpp, &sa00, &sa01, &sa10,
-                                                             &sa11);
+                                                              &sa11);
 
                                     if ((sa00 | sa01 | sa10 | sa11) != 0)
                                     {
@@ -3766,8 +3762,8 @@ static void rasterize_glyph_to_alpha8(uint8_t *buf, int buf_w, int buf_h, int ds
     }
 }
 
-static int text_transform_get_layout_alpha8_bbox(const text_transform_layout_glyph_t *glyphs, int glyph_count, int16_t limit_w, int16_t limit_h, int16_t *src_x0,
-                                                 int16_t *src_y0, int16_t *src_w, int16_t *src_h)
+static int text_transform_get_layout_alpha8_bbox(const text_transform_layout_glyph_t *glyphs, int glyph_count, int16_t limit_w, int16_t limit_h,
+                                                 int16_t *src_x0, int16_t *src_y0, int16_t *src_w, int16_t *src_h)
 {
     int found = 0;
     int16_t bbox_x0 = 0;
@@ -3872,8 +3868,8 @@ static int text_transform_get_layout_alpha8_bbox(const text_transform_layout_gly
     return (*src_w > 0 && *src_h > 0);
 }
 
-static void rasterize_layout_to_alpha8_offset(const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *glyphs, int glyph_count, uint8_t *alpha8_buf,
-                                              int buf_w, int buf_h, uint8_t bpp, int16_t src_x0, int16_t src_y0)
+static void rasterize_layout_to_alpha8_offset(const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *glyphs, int glyph_count,
+                                              uint8_t *alpha8_buf, int buf_w, int buf_h, uint8_t bpp, int16_t src_x0, int16_t src_y0)
 {
     if (bpp == 4)
     {
@@ -4892,9 +4888,8 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
 }
 
 static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color,
-                                                          const egui_font_std_info_t *font_info,
-                                                          const text_transform_layout_glyph_t *const *glyphs, int glyph_count, int16_t src_x0, int16_t src_y0,
-                                                          int16_t src_x1, int16_t src_y1, int glyphs_overlap)
+                                                          const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *const *glyphs,
+                                                          int glyph_count, int16_t src_x0, int16_t src_y0, int16_t src_x1, int16_t src_y1, int glyphs_overlap)
 {
     static uint8_t *s_visible_alpha8_buf = NULL;
     static int s_visible_alpha8_capacity = 0;
@@ -4948,8 +4943,8 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
         {
             const text_transform_layout_glyph_t *glyph = glyphs[i];
 
-            rasterize_glyph4_to_alpha8_inside_overwrite(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, pixel_buffer + glyph->pixel_idx,
-                                                        glyph->box_w, glyph->box_h);
+            rasterize_glyph4_to_alpha8_inside_overwrite(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, pixel_buffer + glyph->pixel_idx, glyph->box_w,
+                                                        glyph->box_h);
         }
     }
 
@@ -5188,8 +5183,8 @@ static inline void batch_bilinear_packed_alpha(const uint8_t *buf, int rb, int s
     }
 }
 
-static inline int batch_extract_packed_raw_4_trivial(const uint8_t *buf, int rb, int sx, int sy, uint8_t *pixel_alpha, uint8_t *a00, uint8_t *a01,
-                                                     uint8_t *a10, uint8_t *a11)
+static inline int batch_extract_packed_raw_4_trivial(const uint8_t *buf, int rb, int sx, int sy, uint8_t *pixel_alpha, uint8_t *a00, uint8_t *a01, uint8_t *a10,
+                                                     uint8_t *a11)
 {
     const uint8_t *row0 = buf + sy * rb;
     const uint8_t *row1 = row0 + rb;
@@ -5318,7 +5313,8 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
 
         raster_font_info = &font_access.info;
 
-        if (text_transform_prepare_layout(font, raster_font_info, (const char *)string, 0, &layout_glyphs, &layout_count, &layout_lines, &layout_line_count) == 0 &&
+        if (text_transform_prepare_layout(font, raster_font_info, (const char *)string, 0, &layout_glyphs, &layout_count, &layout_lines, &layout_line_count) ==
+                    0 &&
             bpp == 4)
         {
             text_transform_get_layout_alpha8_bbox(layout_glyphs, layout_count, text_w, text_h, &packed_src_x0, &packed_src_y0, &packed_src_w, &packed_src_h);
@@ -5373,7 +5369,8 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                 rasterize_layout_to_packed(raster_font_info, layout_glyphs, layout_count, s_packed_buf, text_w, text_h, bpp);
             }
         }
-        else if (((raster_bpp == 8 && bpp == 4) && rasterize_text_to_alpha8(raster_font_info, (const char *)string, s_packed_buf, text_w, text_h, bpp, 0) != 0) ||
+        else if (((raster_bpp == 8 && bpp == 4) &&
+                  rasterize_text_to_alpha8(raster_font_info, (const char *)string, s_packed_buf, text_w, text_h, bpp, 0) != 0) ||
                  ((raster_bpp != 8 || bpp != 4) && rasterize_text_to_packed(raster_font_info, (const char *)string, s_packed_buf, text_w, text_h, bpp, 0) != 0))
         {
             egui_font_std_release_access(&font_access);
@@ -5746,7 +5743,8 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
 
                 if (packed_bpp == 4)
                 {
-#define PACKED_FETCH_ALPHA_4(px, py) (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? read_packed_mask_alpha_4_rb(packed_buf, packed_rb, (px), (py)) : 0)
+#define PACKED_FETCH_ALPHA_4(px, py)                                                                                                                           \
+    (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? read_packed_mask_alpha_4_rb(packed_buf, packed_rb, (px), (py)) : 0)
                     a00 = PACKED_FETCH_ALPHA_4(sx, sy);
                     a01 = PACKED_FETCH_ALPHA_4(sx + 1, sy);
                     a10 = PACKED_FETCH_ALPHA_4(sx, sy + 1);
@@ -5755,7 +5753,8 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
                 }
                 else
                 {
-#define PACKED_FETCH_ALPHA(px, py) (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? read_packed_mask_alpha(packed_buf, src_w, (px), (py), packed_bpp) : 0)
+#define PACKED_FETCH_ALPHA(px, py)                                                                                                                             \
+    (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? read_packed_mask_alpha(packed_buf, src_w, (px), (py), packed_bpp) : 0)
                     a00 = PACKED_FETCH_ALPHA(sx, sy);
                     a01 = PACKED_FETCH_ALPHA(sx + 1, sy);
                     a10 = PACKED_FETCH_ALPHA(sx, sy + 1);

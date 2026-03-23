@@ -282,8 +282,8 @@ static void egui_view_circular_progress_bar_invalidate_process_change(egui_view_
     {
         dirty_start_angle = EGUI_MIN(old_end_angle, new_end_angle);
         dirty_sweep = (uint16_t)EGUI_ABS(new_end_angle - old_end_angle);
-        egui_view_circle_dirty_compute_arc_region(center_x, center_y, mid_r, local->stroke_width / 2 + EGUI_VIEW_CIRCLE_DIRTY_AA_PAD, dirty_start_angle, dirty_sweep,
-                                                  &arc_region);
+        egui_view_circle_dirty_compute_arc_region(center_x, center_y, mid_r, local->stroke_width / 2 + EGUI_VIEW_CIRCLE_DIRTY_AA_PAD, dirty_start_angle,
+                                                  dirty_sweep, &arc_region);
     }
 
     text_font = egui_view_circular_progress_bar_get_text_font(local, inner_r);

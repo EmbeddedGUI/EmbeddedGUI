@@ -195,7 +195,7 @@ static void egui_mask_image_blend_rgb565_row(egui_color_int_t *dst_row, const ui
 }
 
 static void egui_mask_image_blend_rgb565_alpha8_identity_row(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
-                                                              const uint8_t *mask_alpha_row, egui_dim_t count, egui_alpha_t canvas_alpha)
+                                                             const uint8_t *mask_alpha_row, egui_dim_t count, egui_alpha_t canvas_alpha)
 {
     egui_dim_t i = 0;
 
@@ -802,7 +802,7 @@ int egui_mask_image_blend_rgb565_alpha8_segment(egui_mask_t *self, egui_color_in
             const uint8_t *mask_alpha_row = local->point_cached_alpha_row + (seg_start - local->cached_x);
 
             egui_mask_image_blend_rgb565_alpha8_identity_row(&dst_row[dst_start], &src_row[src_x_start], &src_alpha_row[src_x_start], mask_alpha_row,
-                                                              dst_end - dst_start, canvas_alpha);
+                                                             dst_end - dst_start, canvas_alpha);
             return 1;
         }
     }

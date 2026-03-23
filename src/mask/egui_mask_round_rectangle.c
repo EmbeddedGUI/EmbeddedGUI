@@ -229,9 +229,9 @@ int egui_mask_round_rectangle_fill_row_segment(egui_mask_t *self, egui_color_int
 }
 
 static void egui_mask_round_rectangle_blend_rgb565_alpha8_range(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
-                                                                const egui_dim_t *src_x_map, egui_dim_t start_index, egui_dim_t end_index, egui_dim_t mask_col_start,
-                                                                int mask_col_step, const egui_circle_info_t *info, const egui_circle_item_t *items,
-                                                                egui_dim_t row_index, egui_alpha_t canvas_alpha)
+                                                                const egui_dim_t *src_x_map, egui_dim_t start_index, egui_dim_t end_index,
+                                                                egui_dim_t mask_col_start, int mask_col_step, const egui_circle_info_t *info,
+                                                                const egui_circle_item_t *items, egui_dim_t row_index, egui_alpha_t canvas_alpha)
 {
     egui_dim_t mask_col = mask_col_start;
 
@@ -329,7 +329,8 @@ int egui_mask_round_rectangle_blend_rgb565_alpha8_segment(egui_mask_t *self, egu
 
     if (radius <= 0 || (screen_y >= sel_y + radius && screen_y < sel_y + height - radius))
     {
-        egui_mask_round_rectangle_blend_rgb565_alpha8_middle(dst_row, src_row, src_alpha_row, src_x_map, seg_start - screen_x, seg_end - screen_x, canvas_alpha);
+        egui_mask_round_rectangle_blend_rgb565_alpha8_middle(dst_row, src_row, src_alpha_row, src_x_map, seg_start - screen_x, seg_end - screen_x,
+                                                             canvas_alpha);
         return 1;
     }
 
@@ -602,7 +603,8 @@ static int egui_mask_round_rectangle_get_row_visible_range(egui_mask_t *self, eg
 
     {
         uint32_t visible_radius_sq = (uint32_t)(radius + 1) * (uint32_t)(radius + 1);
-        egui_dim_t visible_half = (egui_dim_t)egui_mask_round_rectangle_isqrt((dy * (uint32_t)dy < visible_radius_sq) ? (visible_radius_sq - dy * (uint32_t)dy) : 0);
+        egui_dim_t visible_half =
+                (egui_dim_t)egui_mask_round_rectangle_isqrt((dy * (uint32_t)dy < visible_radius_sq) ? (visible_radius_sq - dy * (uint32_t)dy) : 0);
         egui_dim_t left_center_x = sel_x + radius;
         egui_dim_t right_center_x = sel_x + width - radius - 1;
 

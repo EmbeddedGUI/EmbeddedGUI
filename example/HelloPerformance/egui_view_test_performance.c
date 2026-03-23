@@ -46,11 +46,11 @@
  * This keeps transparent-image coverage representative and avoids carrying
  * redundant alpha variants for opaque benchmark art.
  */
-#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_0        egui_res_image_test_perf_240_rgb565##_0
-#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_1        egui_res_image_star_240_rgb565##_1
-#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_2        egui_res_image_star_240_rgb565##_2
-#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_4        egui_res_image_star_240_rgb565##_4
-#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_8        egui_res_image_star_240_rgb565##_8
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_0 egui_res_image_test_perf_240_rgb565##_0
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_1 egui_res_image_star_240_rgb565##_1
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_2 egui_res_image_star_240_rgb565##_2
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_4 egui_res_image_star_240_rgb565##_4
+#define EGUI_TEST_PERFORMANCE_IMAGE_NAME_8 egui_res_image_star_240_rgb565##_8
 
 #define EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_0 egui_res_image_test_perf_120_rgb565##_0
 #define EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_1 egui_res_image_star_120_rgb565##_1
@@ -58,11 +58,11 @@
 #define EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_4 egui_res_image_star_120_rgb565##_4
 #define EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8 egui_res_image_star_120_rgb565##_8
 
-#define EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_0  egui_res_image_test_perf_40_rgb565##_0
-#define EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_1  egui_res_image_star_40_rgb565##_1
-#define EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_2  egui_res_image_star_40_rgb565##_2
-#define EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_4  egui_res_image_star_40_rgb565##_4
-#define EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_8  egui_res_image_star_40_rgb565##_8
+#define EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_0 egui_res_image_test_perf_40_rgb565##_0
+#define EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_1 egui_res_image_star_40_rgb565##_1
+#define EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_2 egui_res_image_star_40_rgb565##_2
+#define EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_4 egui_res_image_star_40_rgb565##_4
+#define EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_8 egui_res_image_star_40_rgb565##_8
 
 #define EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_1 egui_res_image_star_120_rgb565##_1
 #define EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_2 egui_res_image_star_120_rgb565##_2
@@ -246,8 +246,7 @@ static void egui_view_test_performance_test_text(egui_view_t *self)
 static void egui_view_test_performance_test_text_rect(egui_view_t *self)
 {
     EGUI_REGION_DEFINE(text_rect, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, 200);
-    egui_canvas_draw_text_in_rect((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_GREEN,
-                                  EGUI_ALPHA_100);
+    egui_canvas_draw_text_in_rect((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE

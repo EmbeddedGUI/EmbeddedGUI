@@ -58,7 +58,7 @@ int egui_mask_image_fill_row_segment(egui_mask_t *self, egui_color_int_t *dst, e
 
 __EGUI_STATIC_INLINE__ egui_alpha_t egui_canvas_get_circle_corner_value(egui_dim_t pos_row, egui_dim_t pos_col, const egui_circle_info_t *info);
 __EGUI_STATIC_INLINE__ egui_alpha_t egui_canvas_get_circle_corner_value_fixed_row(egui_dim_t row_index, egui_dim_t col_index, const egui_circle_info_t *info,
-                                                                                   const egui_circle_item_t *items);
+                                                                                  const egui_circle_item_t *items);
 
 __EGUI_STATIC_INLINE__ void egui_canvas_set_alpha(egui_alpha_t alpha)
 {
@@ -862,7 +862,7 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_canvas_get_circle_corner_value(egui_dim
 }
 
 __EGUI_STATIC_INLINE__ egui_alpha_t egui_canvas_get_circle_corner_value_fixed_row(egui_dim_t row_index, egui_dim_t col_index, const egui_circle_info_t *info,
-                                                                                   const egui_circle_item_t *items)
+                                                                                  const egui_circle_item_t *items)
 {
     if (row_index <= col_index)
     {

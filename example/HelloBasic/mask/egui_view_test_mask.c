@@ -11,7 +11,8 @@ void egui_view_test_mask_set_mask(egui_view_t *self, egui_mask_t *mask)
     local->mask = mask; // set mask.
 }
 
-void egui_view_test_mask_set_image_transform(egui_view_t *self, int16_t angle_deg, int16_t scale_q8, egui_color_t background_color, egui_alpha_t background_alpha)
+void egui_view_test_mask_set_image_transform(egui_view_t *self, int16_t angle_deg, int16_t scale_q8, egui_color_t background_color,
+                                             egui_alpha_t background_alpha)
 {
     egui_view_test_mask_t *local = (egui_view_test_mask_t *)self;
 
@@ -54,7 +55,8 @@ void egui_view_test_mask_on_draw(egui_view_t *self)
 
     if (local->background_alpha > 0)
     {
-        egui_canvas_draw_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, local->background_color, local->background_alpha);
+        egui_canvas_draw_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, local->background_color,
+                                        local->background_alpha);
     }
 
     cx = region.location.x + (region.size.width >> 1);
@@ -74,7 +76,8 @@ void egui_view_test_mask_on_draw(egui_view_t *self)
         {
             if (local->use_buffered_transform)
             {
-                egui_canvas_draw_text_transform_buffered(local->font, local->text, cx, cy, local->angle_deg, local->scale_q8, local->draw_color, local->draw_alpha);
+                egui_canvas_draw_text_transform_buffered(local->font, local->text, cx, cy, local->angle_deg, local->scale_q8, local->draw_color,
+                                                         local->draw_alpha);
             }
             else
             {

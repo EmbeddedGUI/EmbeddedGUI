@@ -6,12 +6,12 @@
 extern "C" {
 #endif
 
-#define EGUI_CONFIG_FUNCTION_SUPPORT_KEY   1
-#define EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS 1
-#define EGUI_CONFIG_SCEEN_WIDTH            480
-#define EGUI_CONFIG_SCEEN_HEIGHT           360
-#define EGUI_CONFIG_PFB_WIDTH              60
-#define EGUI_CONFIG_PFB_HEIGHT             45
+#define EGUI_CONFIG_FUNCTION_SUPPORT_KEY          1
+#define EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS        1
+#define EGUI_CONFIG_SCEEN_WIDTH                   480
+#define EGUI_CONFIG_SCEEN_HEIGHT                  360
+#define EGUI_CONFIG_PFB_WIDTH                     60
+#define EGUI_CONFIG_PFB_HEIGHT                    45
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_4 1
 
 /* Ends C function definitions when using C++ */
