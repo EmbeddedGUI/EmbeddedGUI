@@ -1344,7 +1344,7 @@ static text_transform_prepare_cache_t g_text_transform_prepare_cache = {0};
 
 static int text_transform_draw_visible_alpha8_tile(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color,
                                                    const text_transform_glyph_t *glyphs, int glyph_count, int16_t src_x0, int16_t src_y0, int16_t src_x1,
-                                                   int16_t src_y1);
+                                                   int16_t src_y1, int glyphs_overlap);
 
 static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8, egui_alpha_t alpha,
                                   text_transform_ctx_t *ctx)
@@ -1813,15 +1813,22 @@ static int text_transform_prepare_layout(const egui_font_t *font, const egui_fon
 static int collect_visible_glyphs(const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *layout_glyphs,
                                   const text_transform_layout_line_t *layout_lines, int layout_line_count, text_transform_glyph_t *glyphs, int max_glyphs,
                                   text_transform_layout_line_t *visible_lines, int max_visible_lines, int *visible_line_count, int16_t sx0, int16_t sy0,
-                                  int16_t sx1, int16_t sy1, int16_t *bbox_x0, int16_t *bbox_y0, int16_t *bbox_x1, int16_t *bbox_y1)
+                                  int16_t sx1, int16_t sy1, int16_t *bbox_x0, int16_t *bbox_y0, int16_t *bbox_x1, int16_t *bbox_y1, int *glyphs_overlap)
 {
     int count = 0;
     int line_count = 0;
     int bbox_found = 0;
+    int overlap_found = 0;
+    int prev_visible_line_found = 0;
+    int16_t prev_visible_line_y_max = 0;
 
     if (visible_line_count != NULL)
     {
         *visible_line_count = 0;
+    }
+    if (glyphs_overlap != NULL)
+    {
+        *glyphs_overlap = 0;
     }
     if (bbox_x0 != NULL)
     {
@@ -1846,6 +1853,7 @@ static int collect_visible_glyphs(const egui_font_std_info_t *font_info, const t
         int line_start = count;
         int16_t line_x_min = 0;
         int16_t line_x_max = 0;
+        int16_t line_rightmost_x = 0;
 
         if (src_line->end <= src_line->start)
         {
@@ -1895,6 +1903,7 @@ static int collect_visible_glyphs(const egui_font_std_info_t *font_info, const t
                     {
                         line_x_min = src->x;
                         line_x_max = src->x + src->box_w;
+                        line_rightmost_x = glyph_x1;
                     }
                     else
                     {
@@ -1905,6 +1914,14 @@ static int collect_visible_glyphs(const egui_font_std_info_t *font_info, const t
                         if (src->x + src->box_w > line_x_max)
                         {
                             line_x_max = src->x + src->box_w;
+                        }
+                        if (glyphs_overlap != NULL && glyph_x0 < line_rightmost_x)
+                        {
+                            overlap_found = 1;
+                        }
+                        if (glyph_x1 > line_rightmost_x)
+                        {
+                            line_rightmost_x = glyph_x1;
                         }
                     }
                     if (!bbox_found)
@@ -1968,11 +1985,27 @@ static int collect_visible_glyphs(const egui_font_std_info_t *font_info, const t
             visible_lines[line_count].y_max = src_line->y_max;
             line_count++;
         }
+        if (count > line_start)
+        {
+            if (glyphs_overlap != NULL && prev_visible_line_found && src_line->y_min < prev_visible_line_y_max)
+            {
+                overlap_found = 1;
+            }
+            if (!prev_visible_line_found || src_line->y_max > prev_visible_line_y_max)
+            {
+                prev_visible_line_y_max = src_line->y_max;
+            }
+            prev_visible_line_found = 1;
+        }
     }
 
     if (visible_line_count != NULL)
     {
         *visible_line_count = line_count;
+    }
+    if (glyphs_overlap != NULL)
+    {
+        *glyphs_overlap = overlap_found;
     }
 
     return count;
@@ -2467,6 +2500,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     int16_t tile_src_y0 = 0;
     int16_t tile_src_x1 = 0;
     int16_t tile_src_y1 = 0;
+    int tile_glyphs_overlap = 0;
     if (s_tile_glyphs == NULL)
     {
         s_tile_glyphs = (text_transform_glyph_t *)egui_malloc(EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS * sizeof(text_transform_glyph_t));
@@ -2479,7 +2513,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     int tile_count = collect_visible_glyphs(font_info, layout_glyphs, layout_lines, layout_line_count, s_tile_glyphs,
                                             EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS, s_tile_lines, EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES,
                                             &tile_line_count, src_min_x, src_min_y, src_max_x, src_max_y, &tile_src_x0, &tile_src_y0, &tile_src_x1,
-                                            &tile_src_y1);
+                                            &tile_src_y1, &tile_glyphs_overlap);
 
     if (tile_count == 0)
     {
@@ -2490,7 +2524,8 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     if (bpp == 4 && scale_q8 >= 256 &&
         (ctx.mask == NULL || (ctx.mask->api != NULL && ctx.mask->api->kind == EGUI_MASK_KIND_GRADIENT && ctx.mask->api->mask_blend_row_color != NULL)))
     {
-        if (text_transform_draw_visible_alpha8_tile(&ctx, x, y, color, s_tile_glyphs, tile_count, tile_src_x0, tile_src_y0, tile_src_x1, tile_src_y1))
+        if (text_transform_draw_visible_alpha8_tile(&ctx, x, y, color, s_tile_glyphs, tile_count, tile_src_x0, tile_src_y0, tile_src_x1, tile_src_y1,
+                                                    tile_glyphs_overlap))
         {
             egui_font_std_release_access(&font_access);
             return;
@@ -3110,6 +3145,62 @@ static void rasterize_glyph4_to_alpha8_inside(uint8_t *buf, int buf_w, int dst_x
     }
 }
 
+static void rasterize_glyph4_to_alpha8_inside_overwrite(uint8_t *buf, int buf_w, int dst_x, int dst_y, const uint8_t *glyph_data, int box_w, int box_h)
+{
+    int row_bytes = (box_w + 1) >> 1;
+    int pair_count = box_w >> 1;
+    int has_tail = box_w & 1;
+
+    for (int row = 0; row < box_h; row++)
+    {
+        const uint8_t *src = glyph_data + row * row_bytes;
+        uint8_t *dst = buf + (dst_y + row) * buf_w + dst_x;
+
+        for (int pair_idx = 0; pair_idx < pair_count; pair_idx++)
+        {
+            uint8_t packed = *src++;
+
+            if (packed == 0)
+            {
+                dst += 2;
+                continue;
+            }
+            if (packed == 0xFF)
+            {
+                dst[0] = EGUI_ALPHA_100;
+                dst[1] = EGUI_ALPHA_100;
+                dst += 2;
+                continue;
+            }
+
+            {
+                uint16_t pair = g_alpha4_expand_pair_table[packed];
+                dst[0] = (uint8_t)(pair & 0xFF);
+                dst[1] = (uint8_t)(pair >> 8);
+            }
+
+            dst += 2;
+        }
+
+        if (has_tail)
+        {
+            uint8_t packed = *src;
+
+            if ((packed & 0x0F) == 0)
+            {
+                continue;
+            }
+            if ((packed & 0x0F) == 0x0F)
+            {
+                dst[0] = EGUI_ALPHA_100;
+                continue;
+            }
+
+            dst[0] = (uint8_t)(g_alpha4_expand_pair_table[packed] & 0xFF);
+        }
+    }
+}
+
 static void rasterize_glyph_to_alpha8(uint8_t *buf, int buf_w, int buf_h, int dst_x, int dst_y, const uint8_t *glyph_data, int box_w, int box_h, uint8_t bpp)
 {
     if (bpp == 4)
@@ -3682,7 +3773,7 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
 
 static int text_transform_draw_visible_alpha8_tile(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color,
                                                    const text_transform_glyph_t *glyphs, int glyph_count, int16_t src_x0, int16_t src_y0, int16_t src_x1,
-                                                   int16_t src_y1)
+                                                   int16_t src_y1, int glyphs_overlap)
 {
     static uint8_t *s_visible_alpha8_buf = NULL;
     static int s_visible_alpha8_capacity = 0;
@@ -3718,11 +3809,21 @@ static int text_transform_draw_visible_alpha8_tile(const text_transform_ctx_t *c
     memset(alpha8_buf, 0, buf_size);
     ensure_alpha4_expand_pair_table();
 
-    for (int i = 0; i < glyph_count; i++)
+    if (glyphs_overlap)
     {
-        const text_transform_glyph_t *glyph = &glyphs[i];
-
-        rasterize_glyph4_to_alpha8_inside(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, glyph->data, glyph->box_w, glyph->box_h);
+        for (int i = 0; i < glyph_count; i++)
+        {
+            const text_transform_glyph_t *glyph = &glyphs[i];
+            rasterize_glyph4_to_alpha8_inside(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, glyph->data, glyph->box_w, glyph->box_h);
+        }
+    }
+    else
+    {
+        for (int i = 0; i < glyph_count; i++)
+        {
+            const text_transform_glyph_t *glyph = &glyphs[i];
+            rasterize_glyph4_to_alpha8_inside_overwrite(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, glyph->data, glyph->box_w, glyph->box_h);
+        }
     }
 
     return text_transform_draw_alpha8_buffer(ctx, x, y, color, alpha8_buf, src_x0, src_y0, buf_w, buf_h);
