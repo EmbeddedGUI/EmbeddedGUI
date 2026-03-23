@@ -4884,22 +4884,15 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
 
         const uint16_t *src_row = NULL;
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-        void *data_buf = NULL;
-        uint32_t data_row_size = (uint32_t)count << 1;
-        egui_dim_t chunk_row_start = -1;
-        egui_dim_t chunk_row_count = 0;
-        egui_dim_t rows_per_chunk = 0;
+        egui_image_std_external_data_row_persistent_cache_t *row_cache = &g_egui_image_std_external_data_row_persistent_cache;
         if (image->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
         {
-            rows_per_chunk = (egui_dim_t)(sizeof(g_external_image_data_cache) / data_row_size);
-            if (rows_per_chunk <= 0)
-            {
-                rows_per_chunk = 1;
-            }
+            uint32_t data_source_row_size = (uint32_t)img_width << 1;
+            uint32_t data_row_start_offset = (uint32_t)x << 1;
+            uint32_t data_row_size = (uint32_t)count << 1;
 
-            data_buf = egui_image_std_acquire_external_buffer(data_row_size * (uint32_t)rows_per_chunk, g_external_image_data_cache,
-                                                              sizeof(g_external_image_data_cache));
-            if (data_buf == NULL)
+            if (!egui_image_std_prepare_external_data_row_persistent_cache_range_rows(row_cache, image, data_source_row_size, data_row_start_offset,
+                                                                                      data_row_size, EGUI_MIN(EGUI_CONFIG_PFB_HEIGHT, image->height)))
             {
                 return;
             }
@@ -4916,20 +4909,11 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
             if (image->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
             {
-                if (y_ < chunk_row_start || y_ >= (chunk_row_start + chunk_row_count))
+                if (!egui_image_std_load_external_data_row_persistent_cache(row_cache, y_))
                 {
-                    egui_dim_t rows_to_load = y_total - y_;
-                    if (rows_to_load > rows_per_chunk)
-                    {
-                        rows_to_load = rows_per_chunk;
-                    }
-
-                    egui_image_std_load_data_resource(data_buf, image, (((uint32_t)y_ * img_width) + x) << 1, (uint32_t)rows_to_load * data_row_size);
-                    chunk_row_start = y_;
-                    chunk_row_count = rows_to_load;
+                    continue;
                 }
-
-                src = (const uint16_t *)((const uint8_t *)data_buf + (uint32_t)(y_ - chunk_row_start) * data_row_size);
+                src = egui_image_std_get_external_data_row_persistent_data(row_cache, y_);
             }
             else
 #endif
@@ -4943,9 +4927,6 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
             // Advance to next row using addition (no multiply)
             dst_row += pfb_width;
         }
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-        egui_image_std_release_external_buffer(data_buf, g_external_image_data_cache);
-#endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     }
     else if ((egui_canvas_get_canvas()->alpha == EGUI_ALPHA_100) && (egui_canvas_get_canvas()->mask != NULL) &&
              (egui_canvas_get_canvas()->mask->api->mask_get_row_overlay != NULL))

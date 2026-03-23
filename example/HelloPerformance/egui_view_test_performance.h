@@ -280,6 +280,14 @@ enum
     EGUI_VIEW_TEST_PERFORMANCE_TYPE_ANIMATION_SCALE,
     EGUI_VIEW_TEST_PERFORMANCE_TYPE_ANIMATION_SET,
 
+    // ========================================================================
+    // Category 11: Mask image with opaque test_perf source
+    // ========================================================================
+    EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_TEST_PERF_NO_MASK,
+    EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_TEST_PERF_ROUND_RECT,
+    EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_TEST_PERF_CIRCLE,
+    EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_TEST_PERF_IMAGE,
+
     EGUI_VIEW_TEST_PERFORMANCE_TYPE_MAX,
 };
 
