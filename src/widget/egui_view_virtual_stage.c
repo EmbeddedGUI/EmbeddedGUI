@@ -896,15 +896,13 @@ static int egui_view_virtual_stage_find_unused_slot(egui_view_virtual_stage_t *l
 
 static uint8_t egui_view_virtual_stage_slot_is_protected(const egui_view_virtual_stage_t *local, uint8_t slot_index)
 {
-    const egui_view_virtual_stage_slot_t *slot = &local->slots[slot_index];
-
     if (local->captured_slot == slot_index)
     {
         return 1;
     }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-    if (slot->view != NULL && slot->view->is_focused)
+    if (local->slots[slot_index].view != NULL && local->slots[slot_index].view->is_focused)
     {
         return 1;
     }

@@ -44,44 +44,6 @@ EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(bg_button_param_disabled, EGUI_
 EGUI_BACKGROUND_PARAM_INIT(bg_button_params, &bg_button_param_normal, &bg_button_param_pressed, &bg_button_param_disabled);
 static egui_background_color_t bg_button;
 
-static void on_animation_start(egui_animation_t *self)
-{
-    EGUI_LOG_INF("on_animation_start\n");
-}
-
-static void on_animation_end(egui_animation_t *self)
-{
-    EGUI_LOG_INF("on_animation_end\n");
-}
-
-static void on_animation_repeat(egui_animation_t *self)
-{
-    EGUI_LOG_INF("on_animation_repeat\n");
-}
-
-static const egui_animation_handle_t anim_1_hanlde = {
-        .start = on_animation_start,
-        .end = on_animation_end,
-        .repeat = on_animation_repeat,
-};
-
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_1_param, 0, 50, 0, 50);
-egui_animation_translate_t anim_1;
-
-// EGUI_ANIMATION_ALPHA_PARAMS_INIT(anim_1_param, EGUI_ALPHA_0, EGUI_ALPHA_100);
-// egui_animation_alpha_t anim_1;
-
-// EGUI_ANIMATION_SCALE_SIZE_PARAMS_INIT(anim_1_param, EGUI_FLOAT_VALUE(0.5f), EGUI_FLOAT_VALUE(1.0f));
-// egui_animation_scale_size_t anim_1;
-
-// egui_interpolator_accelerate_t anim_1_interpolator;
-// egui_interpolator_accelerate_decelerate_t anim_1_interpolator;
-// egui_interpolator_anticipate_t anim_1_interpolator;
-// egui_interpolator_anticipate_overshoot_t anim_1_interpolator;
-// egui_interpolator_bounce_t anim_1_interpolator;
-// egui_interpolator_decelerate_t anim_1_interpolator;
-egui_interpolator_overshoot_t anim_1_interpolator;
-
 static void on_animation_set_start(egui_animation_t *self)
 {
     EGUI_LOG_INF("on_animation_set_start\n");
@@ -105,74 +67,11 @@ static const egui_animation_handle_t anim_set_hanlde = {
 
 egui_animation_set_t anim_set;
 
-static void on_animation_translate_start(egui_animation_t *self)
-{
-    EGUI_LOG_INF("on_animation_translate_start\n");
-}
-
-static void on_animation_translate_end(egui_animation_t *self)
-{
-    EGUI_LOG_INF("on_animation_translate_end\n");
-}
-
-static void on_animation_translate_repeat(egui_animation_t *self)
-{
-    EGUI_LOG_INF("on_animation_translate_repeat\n");
-}
-
-static const egui_animation_handle_t anim_translate_hanlde = {
-        .start = on_animation_translate_start,
-        .end = on_animation_translate_end,
-        .repeat = on_animation_translate_repeat,
-};
-
 EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_translate_param, 0, 50, 0, 50);
 egui_animation_translate_t anim_translate;
 
-static void on_animation_alpha_start(egui_animation_t *self)
-{
-    EGUI_LOG_INF("on_animation_alpha_start\n");
-}
-
-static void on_animation_alpha_end(egui_animation_t *self)
-{
-    EGUI_LOG_INF("on_animation_alpha_end\n");
-}
-
-static void on_animation_alpha_repeat(egui_animation_t *self)
-{
-    EGUI_LOG_INF("on_animation_alpha_repeat\n");
-}
-
-static const egui_animation_handle_t anim_alpha_hanlde = {
-        .start = on_animation_alpha_start,
-        .end = on_animation_alpha_end,
-        .repeat = on_animation_alpha_repeat,
-};
-
 EGUI_ANIMATION_ALPHA_PARAMS_INIT(anim_alpha_param, EGUI_ALPHA_0, EGUI_ALPHA_100);
 egui_animation_alpha_t anim_alpha;
-
-static void on_animation_scale_size_start(egui_animation_t *self)
-{
-    EGUI_LOG_INF("on_animation_scale_size_start\n");
-}
-
-static void on_animation_scale_size_end(egui_animation_t *self)
-{
-    EGUI_LOG_INF("on_animation_scale_size_end\n");
-}
-
-static void on_animation_scale_size_repeat(egui_animation_t *self)
-{
-    EGUI_LOG_INF("on_animation_scale_size_repeat\n");
-}
-
-static const egui_animation_handle_t anim_scale_size_hanlde = {
-        .start = on_animation_scale_size_start,
-        .end = on_animation_scale_size_end,
-        .repeat = on_animation_scale_size_repeat,
-};
 
 EGUI_ANIMATION_SCALE_SIZE_PARAMS_INIT(anim_scale_size_param, EGUI_FLOAT_VALUE(0.5f), EGUI_FLOAT_VALUE(1.0f));
 egui_animation_scale_size_t anim_scale_size;

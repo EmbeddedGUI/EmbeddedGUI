@@ -56,7 +56,6 @@ void egui_view_page_test_set_index(egui_view_t *self, int index)
 
 void egui_view_page_test_init(egui_view_t *self)
 {
-    egui_view_page_test_t *local = (egui_view_page_test_t *)self;
     // call super init.
     egui_view_group_init(self);
 

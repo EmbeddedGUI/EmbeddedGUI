@@ -25,8 +25,8 @@
 static egui_view_test_performance_t test_view;
 
 static const char *egui_view_test_performance_type_string(int test_mode);
-static void egui_view_test_performance_show_test_mode(int test_mode);
 #if EGUI_CONFIG_RECORDING_TEST
+static void egui_view_test_performance_show_test_mode(int test_mode);
 static int egui_view_test_performance_get_recording_test_mode(int action_index);
 #endif
 
@@ -86,13 +86,6 @@ static void user_manu_refresh_screen(void)
 
     // egui_api_refresh_display() in pc will use too much time, so we calc time.
     egui_api_refresh_display();
-}
-
-static void egui_view_test_performance_show_test_mode(int test_mode)
-{
-    test_view.test_mode = test_mode;
-    egui_core_force_refresh();
-    egui_core_refresh_screen();
 }
 
 static const char *egui_view_test_performance_type_string(int test_mode)
@@ -559,6 +552,13 @@ void uicode_create_ui(void)
 }
 
 #if EGUI_CONFIG_RECORDING_TEST
+static void egui_view_test_performance_show_test_mode(int test_mode)
+{
+    test_view.test_mode = test_mode;
+    egui_core_force_refresh();
+    egui_core_refresh_screen();
+}
+
 static int egui_view_test_performance_get_recording_test_mode(int action_index)
 {
 #if EGUI_TEST_CONFIG_SINGLE_TEST >= 0

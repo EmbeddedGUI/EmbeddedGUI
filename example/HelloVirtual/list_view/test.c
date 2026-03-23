@@ -200,12 +200,6 @@ static int32_t list_view_demo_find_index_by_stable_id_internal(uint32_t stable_i
     return -1;
 }
 
-static list_view_demo_item_t *list_view_demo_find_item_by_stable_id_internal(uint32_t stable_id)
-{
-    int32_t index = list_view_demo_find_index_by_stable_id_internal(stable_id);
-    return index >= 0 ? &list_view_demo_ctx.items[index] : NULL;
-}
-
 static uint32_t list_view_demo_count_enabled_items(void)
 {
     uint32_t index;

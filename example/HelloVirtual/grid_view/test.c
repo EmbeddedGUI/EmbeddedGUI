@@ -196,12 +196,6 @@ static int32_t grid_view_demo_find_index_by_stable_id_internal(uint32_t stable_i
     return -1;
 }
 
-static grid_view_demo_item_t *grid_view_demo_find_item_by_stable_id_internal(uint32_t stable_id)
-{
-    int32_t index = grid_view_demo_find_index_by_stable_id_internal(stable_id);
-    return index >= 0 ? &grid_view_demo_ctx.items[index] : NULL;
-}
-
 static void grid_view_demo_fill_item(grid_view_demo_item_t *item, uint8_t view_type, uint32_t seed)
 {
     memset(item, 0, sizeof(*item));

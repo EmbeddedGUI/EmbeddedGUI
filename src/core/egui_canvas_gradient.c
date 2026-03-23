@@ -3072,8 +3072,6 @@ void egui_canvas_draw_circle_ring_fill_gradient(egui_dim_t center_x, egui_dim_t 
         egui_dim_t scan_xs = EGUI_MAX(x_start, (egui_dim_t)(center_x - x_outer_half));
         egui_dim_t scan_xe = EGUI_MIN(x_end, (egui_dim_t)(center_x + x_outer_half + 1));
 
-        int32_t abs_dy = (dy < 0) ? -dy : dy;
-
         /* Precompute row base pointer for direct PFB path */
         egui_color_t *row_base = NULL;
         if (use_direct)
@@ -3112,8 +3110,6 @@ void egui_canvas_draw_circle_ring_fill_gradient(egui_dim_t center_x, egui_dim_t 
 
             int32_t dx = (int32_t)(x - center_x);
             int32_t d_sq = dx * dx + dy_sq;
-
-            int32_t abs_dx = (dx < 0) ? -dx : dx;
 
             egui_alpha_t ring_cov = gradient_ring_alpha(d_sq, outer_r_inner_sq, outer_r_outer_sq, inner_r_inner_sq, inner_r_outer_sq, inv_outer_r, inv_inner_r);
             if (ring_cov == 0)
@@ -3430,7 +3426,7 @@ void egui_canvas_draw_round_rectangle_ring_fill_gradient(egui_dim_t x, egui_dim_
         int is_corner_row = (in_top_corner || in_bottom_corner);
 
         /* Pre-compute gradient color once per row for linear vertical */
-        egui_color_t row_color;
+        egui_color_t row_color = {0};
         int row_color_valid = 0;
         if (gradient->type == EGUI_GRADIENT_TYPE_LINEAR_VERTICAL)
         {
@@ -3499,8 +3495,6 @@ void egui_canvas_draw_round_rectangle_ring_fill_gradient(egui_dim_t x, egui_dim_
                     {
                         dy_c = (int32_t)row - (int32_t)(height - 1 - radius);
                     }
-                    int32_t abs_dx = (dx < 0) ? -dx : dx;
-                    int32_t abs_dy = (dy_c < 0) ? -dy_c : dy_c;
                     int32_t d_sq = dx * dx + dy_c * dy_c;
 
                     ring_cov = gradient_ring_alpha(d_sq, outer_r_inner_sq, outer_r_outer_sq, inner_r_inner_sq, inner_r_outer_sq, inv_outer_r, inv_inner_r);
@@ -3895,8 +3889,6 @@ void egui_canvas_draw_arc_ring_fill_gradient(egui_dim_t center_x, egui_dim_t cen
         egui_dim_t scan_xs = EGUI_MAX(x_start, (egui_dim_t)(center_x - x_outer_half));
         egui_dim_t scan_xe = EGUI_MIN(x_end, (egui_dim_t)(center_x + x_outer_half + 1));
 
-        int32_t abs_dy = (dy < 0) ? -dy : dy;
-
         /* Precompute row base pointer for direct PFB path */
         egui_color_t *row_base = NULL;
         if (use_direct)
@@ -3935,8 +3927,6 @@ void egui_canvas_draw_arc_ring_fill_gradient(egui_dim_t center_x, egui_dim_t cen
 
             int32_t dx = (int32_t)(x - center_x);
             int32_t d_sq = dx * dx + dy_sq;
-
-            int32_t abs_dx = (dx < 0) ? -dx : dx;
 
             /* Ring radial coverage */
             egui_alpha_t ring_cov = gradient_ring_alpha(d_sq, outer_r_inner_sq, outer_r_outer_sq, inner_r_inner_sq, inner_r_outer_sq, inv_outer_r, inv_inner_r);

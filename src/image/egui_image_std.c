@@ -38,7 +38,6 @@ void egui_image_std_load_alpha_resource(void *dest, egui_image_std_info_t *image
 #define EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_SIZE  2048
 #define EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_SIZE 1024
 
-static uint8_t g_external_image_data_cache[EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_SIZE];
 static uint8_t g_external_image_alpha_cache[EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_SIZE];
 
 static void *egui_image_std_acquire_external_buffer(uint32_t size, uint8_t *static_buf, uint32_t static_size)
@@ -62,115 +61,6 @@ static void egui_image_std_release_external_buffer(void *buf, uint8_t *static_bu
     {
         egui_free(buf);
     }
-}
-
-typedef struct
-{
-    void *data_buf;
-    void *alpha_buf;
-    uint32_t data_row_size;
-    uint32_t alpha_row_size;
-    egui_dim_t chunk_row_start;
-    egui_dim_t chunk_row_count;
-    egui_dim_t rows_per_chunk;
-} egui_image_std_external_alpha_row_cache_t;
-
-static int egui_image_std_init_external_alpha_row_cache(egui_image_std_external_alpha_row_cache_t *cache, uint32_t data_row_size, uint32_t alpha_row_size)
-{
-    uint32_t data_rows;
-    uint32_t alpha_rows;
-    uint32_t data_chunk_size;
-    uint32_t alpha_chunk_size;
-
-    cache->data_buf = NULL;
-    cache->alpha_buf = NULL;
-    cache->data_row_size = data_row_size;
-    cache->alpha_row_size = alpha_row_size;
-    cache->chunk_row_start = -1;
-    cache->chunk_row_count = 0;
-    cache->rows_per_chunk = 0;
-
-    if (data_row_size == 0 || alpha_row_size == 0)
-    {
-        return 0;
-    }
-
-    data_rows = sizeof(g_external_image_data_cache) / data_row_size;
-    alpha_rows = sizeof(g_external_image_alpha_cache) / alpha_row_size;
-    if (data_rows == 0)
-    {
-        data_rows = 1;
-    }
-    if (alpha_rows == 0)
-    {
-        alpha_rows = 1;
-    }
-
-    cache->rows_per_chunk = (egui_dim_t)((data_rows < alpha_rows) ? data_rows : alpha_rows);
-    data_chunk_size = data_row_size * (uint32_t)cache->rows_per_chunk;
-    alpha_chunk_size = alpha_row_size * (uint32_t)cache->rows_per_chunk;
-
-    cache->data_buf = egui_image_std_acquire_external_buffer(data_chunk_size, g_external_image_data_cache, sizeof(g_external_image_data_cache));
-    cache->alpha_buf = egui_image_std_acquire_external_buffer(alpha_chunk_size, g_external_image_alpha_cache, sizeof(g_external_image_alpha_cache));
-    if (cache->data_buf == NULL || cache->alpha_buf == NULL)
-    {
-        egui_image_std_release_external_buffer(cache->data_buf, g_external_image_data_cache);
-        egui_image_std_release_external_buffer(cache->alpha_buf, g_external_image_alpha_cache);
-        cache->data_buf = NULL;
-        cache->alpha_buf = NULL;
-        return 0;
-    }
-
-    return 1;
-}
-
-static void egui_image_std_release_external_alpha_row_cache(egui_image_std_external_alpha_row_cache_t *cache)
-{
-    if (cache == NULL)
-    {
-        return;
-    }
-
-    egui_image_std_release_external_buffer(cache->data_buf, g_external_image_data_cache);
-    egui_image_std_release_external_buffer(cache->alpha_buf, g_external_image_alpha_cache);
-}
-
-static int egui_image_std_load_external_alpha_row_cache(egui_image_std_external_alpha_row_cache_t *cache, egui_image_std_info_t *image, egui_dim_t row)
-{
-    egui_dim_t rows_to_load;
-
-    if (cache == NULL || image == NULL || row < 0 || row >= image->height)
-    {
-        return 0;
-    }
-
-    if (row >= cache->chunk_row_start && row < (cache->chunk_row_start + cache->chunk_row_count))
-    {
-        return 1;
-    }
-
-    rows_to_load = image->height - row;
-    if (rows_to_load > cache->rows_per_chunk)
-    {
-        rows_to_load = cache->rows_per_chunk;
-    }
-
-    egui_image_std_load_data_resource(cache->data_buf, image, (uint32_t)row * cache->data_row_size, (uint32_t)rows_to_load * cache->data_row_size);
-    egui_image_std_load_alpha_resource(cache->alpha_buf, image, (uint32_t)row * cache->alpha_row_size, (uint32_t)rows_to_load * cache->alpha_row_size);
-
-    cache->chunk_row_start = row;
-    cache->chunk_row_count = rows_to_load;
-    return 1;
-}
-
-__EGUI_STATIC_INLINE__ const uint16_t *egui_image_std_get_external_alpha_row_data(const egui_image_std_external_alpha_row_cache_t *cache, egui_dim_t row)
-{
-    return (const uint16_t *)((const uint8_t *)cache->data_buf + (uint32_t)(row - cache->chunk_row_start) * cache->data_row_size);
-}
-
-__EGUI_STATIC_INLINE__ const uint8_t *egui_image_std_get_external_alpha_row_alpha(const egui_image_std_external_alpha_row_cache_t *cache, egui_dim_t row)
-{
-    return (const uint8_t *)cache->alpha_buf + (uint32_t)(row - cache->chunk_row_start) * cache->alpha_row_size;
 }
 
 typedef struct
@@ -1697,25 +1587,23 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
         return;
     }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
     if (mask->api->kind == EGUI_MASK_KIND_ROUND_RECTANGLE)
     {
-#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
         if (egui_mask_round_rectangle_blend_rgb565_alpha8_segment(mask, dst_row, src_row, src_alpha_row, src_x_map, count, screen_x, screen_y, canvas_alpha))
         {
             return;
         }
-#endif
     }
 
     if (mask->api->kind == EGUI_MASK_KIND_IMAGE)
     {
-#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
         if (egui_mask_image_blend_rgb565_alpha8_segment(mask, dst_row, src_row, src_alpha_row, src_x_map, count, screen_x, screen_y, canvas_alpha))
         {
             return;
         }
-#endif
     }
+#endif
 
     if (canvas_alpha == EGUI_ALPHA_100)
     {
@@ -4214,6 +4102,7 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
         {
             if (image_mask_full_row_fast_path)
             {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
                 egui_alpha_t canvas_alpha = canvas->alpha;
                 egui_dim_t pfb_width = canvas->pfb_region.size.width;
                 egui_dim_t dst_x_start = (x_base + x) - canvas->pfb_location_in_base_view.x;
@@ -4223,7 +4112,6 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
                 const uint8_t *src_alpha_row = (const uint8_t *)p_alpha + (x - src_x_base);
                 egui_dim_t count = x_total - x;
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
                 if (egui_mask_image_blend_rgb565_alpha8_row_segment(canvas->mask, dst_row, src_pixels, src_alpha_row, count, x_base + x, rr_sy, canvas_alpha))
                 {
                     continue;
@@ -4285,6 +4173,7 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
 
                         if (vis_img_xs < left_img_xe)
                         {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
                             egui_alpha_t canvas_alpha = canvas->alpha;
                             egui_dim_t pfb_width = canvas->pfb_region.size.width;
                             egui_dim_t dst_x = (x_base + vis_img_xs) - canvas->pfb_location_in_base_view.x;
@@ -4293,9 +4182,9 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
                             const uint16_t *src_pixels = (const uint16_t *)p_data + (vis_img_xs - src_x_base);
                             const uint8_t *src_alpha_seg = (const uint8_t *)p_alpha + (vis_img_xs - src_x_base);
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
                             if (!egui_mask_image_blend_rgb565_alpha8_row_segment(canvas->mask, dst_row, src_pixels, src_alpha_seg, left_img_xe - vis_img_xs,
                                                                                  x_base + vis_img_xs, rr_sy, canvas_alpha))
+#endif
                             {
                                 for (egui_dim_t x_ = vis_img_xs; x_ < left_img_xe; x_++)
                                 {
@@ -4303,13 +4192,6 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
                                     egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
                                 }
                             }
-#else
-                            for (egui_dim_t x_ = vis_img_xs; x_ < left_img_xe; x_++)
-                            {
-                                egui_image_std_get_col_pixel_rgb565_8(p_data, p_alpha, x_ - src_x_base, &color, &alpha);
-                                egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
-                            }
-#endif
                         }
                     }
                     else
@@ -4343,6 +4225,7 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
 
                         if (right_img_xs < vis_img_xe)
                         {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
                             egui_alpha_t canvas_alpha = canvas->alpha;
                             egui_dim_t pfb_width = canvas->pfb_region.size.width;
                             egui_dim_t dst_x = (x_base + right_img_xs) - canvas->pfb_location_in_base_view.x;
@@ -4351,9 +4234,9 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
                             const uint16_t *src_pixels = (const uint16_t *)p_data + (right_img_xs - src_x_base);
                             const uint8_t *src_alpha_seg = (const uint8_t *)p_alpha + (right_img_xs - src_x_base);
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
                             if (!egui_mask_image_blend_rgb565_alpha8_row_segment(canvas->mask, dst_row, src_pixels, src_alpha_seg, vis_img_xe - right_img_xs,
                                                                                  x_base + right_img_xs, rr_sy, canvas_alpha))
+#endif
                             {
                                 for (egui_dim_t x_ = right_img_xs; x_ < vis_img_xe; x_++)
                                 {
@@ -4361,13 +4244,6 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
                                     egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
                                 }
                             }
-#else
-                            for (egui_dim_t x_ = right_img_xs; x_ < vis_img_xe; x_++)
-                            {
-                                egui_image_std_get_col_pixel_rgb565_8(p_data, p_alpha, x_ - src_x_base, &color, &alpha);
-                                egui_canvas_draw_point_limit((x_base + x_), rr_sy, color, alpha);
-                            }
-#endif
                         }
                     }
                     else
@@ -4913,19 +4789,19 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
     {
         // Fast path: RGB565 image with row-level overlay (e.g. linear-vertical gradient overlay).
         // Pre-compute blend factors per row and write directly to PFB.
-        egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
-        egui_canvas_t *canvas = egui_canvas_get_canvas();
-        egui_dim_t pfb_width = canvas->pfb_region.size.width;
+        egui_image_std_info_t *image_info = (egui_image_std_info_t *)self->res;
+        egui_canvas_t *canvas_ctx = egui_canvas_get_canvas();
+        egui_dim_t pfb_width = canvas_ctx->pfb_region.size.width;
         egui_dim_t count = x_total - x;
-        egui_dim_t img_width = image->width;
+        egui_dim_t img_width = image_info->width;
 
-        egui_dim_t dst_y_start = (y_base + y) - canvas->pfb_location_in_base_view.y;
-        egui_dim_t dst_x_start = (x_base + x) - canvas->pfb_location_in_base_view.x;
-        egui_color_int_t *dst_row = &canvas->pfb[dst_y_start * pfb_width + dst_x_start];
+        egui_dim_t dst_y_start = (y_base + y) - canvas_ctx->pfb_location_in_base_view.y;
+        egui_dim_t dst_x_start = (x_base + x) - canvas_ctx->pfb_location_in_base_view.x;
+        egui_color_int_t *dst_row = &canvas_ctx->pfb[dst_y_start * pfb_width + dst_x_start];
 
         const uint16_t *src_row = NULL;
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-        if (image->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
+        if (image_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
         {
             // External resource: fall through to generic path
             EGUI_IMAGE_STD_DRAW_IMAGE_FUNC_DEFINE(egui_image_std_get_pixel_rgb565, self, x, y, x_total, y_total, x_base, y_base);
@@ -4933,7 +4809,7 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
         else
 #endif
         {
-            src_row = (const uint16_t *)image->data_buf + (y * img_width) + x;
+            src_row = (const uint16_t *)image_info->data_buf + (y * img_width) + x;
 
             for (egui_dim_t y_ = y; y_ < y_total; y_++)
             {
@@ -4941,7 +4817,7 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
                 egui_color_t ov_color;
                 egui_alpha_t ov_alpha;
 
-                if (canvas->mask->api->mask_get_row_overlay(canvas->mask, screen_y, &ov_color, &ov_alpha))
+                if (canvas_ctx->mask->api->mask_get_row_overlay(canvas_ctx->mask, screen_y, &ov_color, &ov_alpha))
                 {
                     if (ov_alpha > 251)
                     {
@@ -4981,7 +4857,7 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
                         egui_alpha_t alpha;
                         color.full = src_row[i];
                         alpha = EGUI_ALPHA_100;
-                        canvas->mask->api->mask_point(canvas->mask, x_base + x + i, screen_y, &color, &alpha);
+                        canvas_ctx->mask->api->mask_point(canvas_ctx->mask, x_base + x + i, screen_y, &color, &alpha);
                         if (alpha == 0)
                             continue;
                         if (alpha == EGUI_ALPHA_100)
@@ -7362,6 +7238,8 @@ void egui_image_std_draw_image_color(const egui_image_t *self, egui_dim_t x, egu
     // for speed, calculate total positions outside of the loop
     x_total = region.location.x + region.size.width;
     y_total = region.location.y + region.size.height;
+    EGUI_UNUSED(x_total);
+    EGUI_UNUSED(y_total);
 
     if (image)
     {
@@ -7467,6 +7345,7 @@ void egui_image_std_draw_image_resize_color(const egui_image_t *self, egui_dim_t
     }
     egui_float_t width_radio = EGUI_FLOAT_DIV(EGUI_FLOAT_VALUE_INT(image->width), EGUI_FLOAT_VALUE_INT(width));
     egui_float_t height_radio = EGUI_FLOAT_DIV(EGUI_FLOAT_VALUE_INT(image->height), EGUI_FLOAT_VALUE_INT(height));
+    EGUI_UNUSED(height_radio);
 
     egui_dim_t x_total;
     egui_dim_t y_total;
@@ -7487,6 +7366,7 @@ void egui_image_std_draw_image_resize_color(const egui_image_t *self, egui_dim_t
     // for speed, calculate total positions outside of the loop
     x_total = region.location.x + region.size.width;
     y_total = region.location.y + region.size.height;
+    EGUI_UNUSED(y_total);
 
     if (image)
     {
@@ -7495,12 +7375,14 @@ void egui_image_std_draw_image_resize_color(const egui_image_t *self, egui_dim_t
         // Pre-compute src_x mapping to eliminate per-pixel FLOAT_MULT
         egui_dim_t src_x_map[EGUI_CONFIG_PFB_WIDTH];
         egui_dim_t count = egui_image_std_prepare_resize_src_x_map_limit(src_x_map, region.location.x, x_total, width_radio);
+        EGUI_UNUSED(count);
 
         if (canvas->mask != NULL)
         {
             // Mask path: use per-pixel draw_point_limit for mask support
             // Still benefits from src_x_map and hoisted src_y
             egui_dim_t screen_x_start = x + region.location.x;
+            EGUI_UNUSED(screen_x_start);
 
             switch (image->alpha_type)
             {
@@ -7535,10 +7417,14 @@ void egui_image_std_draw_image_resize_color(const egui_image_t *self, egui_dim_t
             egui_dim_t pfb_width = canvas->pfb_region.size.width;
             egui_dim_t pfb_x_start = (x + region.location.x) - canvas->pfb_location_in_base_view.x;
             egui_dim_t pfb_y_off = y - canvas->pfb_location_in_base_view.y;
+            EGUI_UNUSED(pfb_width);
+            EGUI_UNUSED(pfb_x_start);
+            EGUI_UNUSED(pfb_y_off);
 
             // Pre-combine canvas alpha and color alpha
             egui_alpha_t combined_alpha = egui_color_alpha_mix(canvas->alpha, color_alpha);
             int combined_is_100 = (combined_alpha == EGUI_ALPHA_100);
+            EGUI_UNUSED(combined_is_100);
 
             switch (image->alpha_type)
             {

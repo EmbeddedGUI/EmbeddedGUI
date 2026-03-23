@@ -14,31 +14,6 @@ static uint8_t last_selected_day;
 static uint8_t runtime_fail_reported;
 #endif
 
-static uint8_t days_in_month(uint16_t year, uint8_t month)
-{
-    static const uint8_t days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    uint8_t day_count = days[month - 1];
-
-    if (month == 2 && (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)))
-    {
-        day_count = 29;
-    }
-
-    return day_count;
-}
-
-static uint8_t day_of_week(uint16_t year, uint8_t month, uint8_t day)
-{
-    static const int t[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
-
-    if (month < 3)
-    {
-        year--;
-    }
-
-    return (uint8_t)((year + year / 4 - year / 100 + year / 400 + t[month - 1] + day) % 7);
-}
-
 static void on_date_selected(egui_view_t *self, uint8_t day)
 {
     EGUI_UNUSED(self);
@@ -64,6 +39,31 @@ void test_init_ui(void)
 }
 
 #if EGUI_CONFIG_RECORDING_TEST
+static uint8_t days_in_month(uint16_t year, uint8_t month)
+{
+    static const uint8_t days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    uint8_t day_count = days[month - 1];
+
+    if (month == 2 && (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)))
+    {
+        day_count = 29;
+    }
+
+    return day_count;
+}
+
+static uint8_t day_of_week(uint16_t year, uint8_t month, uint8_t day)
+{
+    static const int t[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
+
+    if (month < 3)
+    {
+        year--;
+    }
+
+    return (uint8_t)((year + year / 4 - year / 100 + year / 400 + t[month - 1] + day) % 7);
+}
+
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)
