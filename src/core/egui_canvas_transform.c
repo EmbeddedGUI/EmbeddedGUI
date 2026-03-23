@@ -2984,9 +2984,20 @@ static void rasterize_glyph4_to_alpha8_inside(uint8_t *buf, int buf_w, int dst_x
 
         while ((col + 1) < box_w)
         {
-            uint16_t pair = g_alpha4_expand_pair_table[*src++];
-            uint8_t alpha0 = (uint8_t)(pair & 0xFF);
-            uint8_t alpha1 = (uint8_t)(pair >> 8);
+            uint8_t packed = *src++;
+            uint16_t pair;
+            uint8_t alpha0;
+            uint8_t alpha1;
+
+            if (packed == 0)
+            {
+                col += 2;
+                continue;
+            }
+
+            pair = g_alpha4_expand_pair_table[packed];
+            alpha0 = (uint8_t)(pair & 0xFF);
+            alpha1 = (uint8_t)(pair >> 8);
 
             if (alpha0 > dst[col])
             {
@@ -3002,7 +3013,15 @@ static void rasterize_glyph4_to_alpha8_inside(uint8_t *buf, int buf_w, int dst_x
 
         if (col < box_w)
         {
-            uint8_t alpha0 = (uint8_t)(g_alpha4_expand_pair_table[*src] & 0xFF);
+            uint8_t packed = *src;
+            uint8_t alpha0;
+
+            if ((packed & 0x0F) == 0)
+            {
+                continue;
+            }
+
+            alpha0 = (uint8_t)(g_alpha4_expand_pair_table[packed] & 0xFF);
             if (alpha0 > dst[col])
             {
                 dst[col] = alpha0;
