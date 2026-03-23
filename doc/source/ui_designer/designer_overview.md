@@ -196,20 +196,32 @@ code_runtime_check.py                 # 运行时验证
 
 ### 环境准备
 
-运行项目根目录的 `setup.bat`，选择完整模式（选项 2）安装所有依赖：
+运行项目根目录的安装脚本，默认就会安装完整依赖（包含 UI Designer）：
 
 ```bat
 setup.bat
 ```
 
-安装过程分为 4 步：
+Linux / macOS 使用：
 
-1. 检测 `make.exe`（如缺失，可自动下载 w64devkit）
-2. 检测 `gcc.exe`（同上）
-3. 检测 `python.exe`（需 Python 3.8+）
-4. 安装 Python 依赖：
-   - 基础模式（选项 1）：`freetype_py`, `json5`, `numpy`, `Pillow`, `pyelftools`
-   - 完整模式（选项 2）：额外安装 `PyQt5`, `PyQt-Fluent-Widgets` 等 UI Designer 依赖
+```bash
+./setup.sh
+```
+
+默认流程会：
+
+1. 创建 `.venv`
+2. 安装 `requirements.txt`
+3. 安装 `scripts/ui_designer/requirements-desktop.txt`
+4. 安装 `playwright` Python 包
+5. 校验 `PyQt5`、`qfluentwidgets` 和 `ui_designer.main`
+6. 在 Windows 下检查 `make.exe` / `gcc.exe`，必要时自动安装 `w64devkit`
+
+如果只想安装基础依赖，可执行：
+
+```bash
+python scripts/setup_env.py --python-mode basic
+```
 
 ### 启动 UI Designer
 

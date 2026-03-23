@@ -430,14 +430,14 @@ WidgetRegistry.instance().register(
 运行转换工具链需要以下环境：
 
 ```bash
-# 运行 setup.bat 选择完整模式（选项 2）
+# 默认安装完整依赖（包含 UI Designer）
 setup.bat
 
-# 安装内容：
-# 1. make.exe + gcc.exe（可自动下载 w64devkit）
-# 2. Python 3.8+
-# 3. Python 依赖：freetype_py, json5, numpy, Pillow, pyelftools
-# 4. UI Designer 依赖（可选）：PyQt5, PyQt-Fluent-Widgets
+# Linux / macOS
+./setup.sh
+
+# 只安装基础依赖
+python scripts/setup_env.py --python-mode basic
 ```
 
 Figma Make 转换额外需要：

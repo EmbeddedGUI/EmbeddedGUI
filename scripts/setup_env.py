@@ -1,96 +1,124 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Environment setup helper for EmbeddedGUI.
-Handles:
-  - w64devkit (GCC + Make) download and extraction
-  - Python virtual environment creation and dependency installation
+"""EmbeddedGUI environment setup entrypoint."""
 
-Usage:
-    python scripts/setup_env.py --mode 1               # Basic Python deps only
-    python scripts/setup_env.py --mode 2               # Basic + UI Designer deps
-    python scripts/setup_env.py --install-toolchain     # Download w64devkit
-"""
+from __future__ import annotations
 
-import os
-import sys
-import subprocess
 import argparse
-import shutil
-import urllib.request
-import ssl
 import hashlib
+import os
+from pathlib import Path
+import shutil
+import ssl
+import subprocess
+import sys
+import urllib.request
 
-VENV_DIR = ".venv"
-REQUIREMENTS_BASIC = "requirements.txt"
-REQUIREMENTS_DESKTOP = os.path.join("scripts", "ui_designer", "requirements-desktop.txt")
-PIP_MIRROR = "https://pypi.tuna.tsinghua.edu.cn/simple"
-PIP_INDEX_URLS = [("TUNA mirror", PIP_MIRROR), ("PyPI", "https://pypi.org/simple")]
 
-# Minimum Python version required
 MIN_PYTHON_VERSION = (3, 8)
+DEFAULT_VENV_DIR = ".venv"
+REQUIREMENTS_BASIC = [Path("requirements.txt")]
+REQUIREMENTS_FULL = [
+    Path("requirements.txt"),
+    Path("scripts/ui_designer/requirements-desktop.txt"),
+]
+EXTRA_PACKAGES_FULL = ["playwright"]
+PIP_INDEX_URLS = [
+    ("TUNA mirror", "https://pypi.tuna.tsinghua.edu.cn/simple"),
+    ("PyPI", "https://pypi.org/simple"),
+]
 
-# w64devkit download configuration
 W64DEVKIT_VERSION = "2.5.0"
-W64DEVKIT_FILENAME = "w64devkit-x64-%s.7z.exe" % W64DEVKIT_VERSION
+W64DEVKIT_FILENAME = f"w64devkit-x64-{W64DEVKIT_VERSION}.7z.exe"
 W64DEVKIT_URL_PRIMARY = (
-    "https://github.com/skeeto/w64devkit/releases/download/v%s/%s"
-    % (W64DEVKIT_VERSION, W64DEVKIT_FILENAME)
+    f"https://github.com/skeeto/w64devkit/releases/download/v{W64DEVKIT_VERSION}/{W64DEVKIT_FILENAME}"
 )
-# Chinese-friendly mirror
 W64DEVKIT_URL_MIRROR = (
-    "https://ghfast.top/https://github.com/skeeto/w64devkit/releases/download/v%s/%s"
-    % (W64DEVKIT_VERSION, W64DEVKIT_FILENAME)
+    f"https://ghfast.top/https://github.com/skeeto/w64devkit/releases/download/v{W64DEVKIT_VERSION}/{W64DEVKIT_FILENAME}"
 )
-W64DEVKIT_SHA256 = ""  # Fill after verifying; skip check if empty
+W64DEVKIT_SHA256 = ""
 
 
-def get_project_root():
-    """Return the project root directory (parent of scripts/)."""
-    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+def project_root() -> Path:
+    return Path(__file__).resolve().parents[1]
 
 
-def check_python_version():
-    """Ensure Python version meets minimum requirement."""
-    ver = sys.version_info
-    if ver < MIN_PYTHON_VERSION:
-        print("[!!] Python %d.%d 版本过低，需要 Python %d.%d+" %
-              (ver.major, ver.minor, MIN_PYTHON_VERSION[0], MIN_PYTHON_VERSION[1]))
-        sys.exit(1)
-    print("[OK] Python %d.%d.%d" % (ver.major, ver.minor, ver.micro))
+def is_windows() -> bool:
+    return os.name == "nt"
 
 
-def create_venv(project_root):
-    """Create virtual environment if it doesn't exist or is broken."""
-    venv_path = os.path.join(project_root, VENV_DIR)
-    if sys.platform == "win32":
-        venv_python = os.path.join(venv_path, "Scripts", "python.exe")
-    else:
-        venv_python = os.path.join(venv_path, "bin", "python")
+def venv_python_path(venv_dir: Path) -> Path:
+    if is_windows():
+        return venv_dir / "Scripts" / "python.exe"
+    return venv_dir / "bin" / "python"
 
-    if os.path.exists(venv_python):
-        result = subprocess.run([venv_python, "--version"],
-                                capture_output=True, text=True)
+
+def quoted(path_or_text: object) -> str:
+    return f'"{path_or_text}"'
+
+
+def log_header(title: str) -> None:
+    print()
+    print("=" * 40)
+    print(f"  {title}")
+    print("=" * 40)
+
+
+def run(
+    command: list[str],
+    *,
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+    capture_output: bool = False,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        cwd=str(cwd) if cwd else None,
+        env=env,
+        text=True,
+        capture_output=capture_output,
+    )
+
+
+def find_command(name: str, env: dict[str, str] | None = None) -> str | None:
+    search_path = None if env is None else env.get("PATH")
+    return shutil.which(name, path=search_path)
+
+
+def ensure_python_version() -> None:
+    version = sys.version_info
+    if version < MIN_PYTHON_VERSION:
+        print(
+            f"[!!] Python {version.major}.{version.minor} is too old. "
+            f"EmbeddedGUI requires Python {MIN_PYTHON_VERSION[0]}.{MIN_PYTHON_VERSION[1]}+."
+        )
+        raise SystemExit(1)
+
+    print(f"[OK] Python {version.major}.{version.minor}.{version.micro}")
+
+
+def ensure_venv(project_dir: Path, venv_dir: Path) -> Path:
+    venv_python = venv_python_path(venv_dir)
+    if venv_python.exists():
+        result = run([str(venv_python), "--version"], capture_output=True)
         if result.returncode == 0:
-            print("[OK] .venv 已存在: %s" % result.stdout.strip())
+            print(f"[OK] Reusing virtual environment: {venv_dir}")
             return venv_python
-        else:
-            print("[!!] .venv 已损坏，正在重新创建...")
-            shutil.rmtree(venv_path, ignore_errors=True)
 
-    print("正在创建虚拟环境 (.venv)...")
-    ret = subprocess.run([sys.executable, "-m", "venv", venv_path])
-    if ret.returncode != 0:
-        print("[!!] 虚拟环境创建失败")
-        sys.exit(1)
-    print("[OK] .venv 创建成功")
+        print(f"[!!] Broken virtual environment detected, recreating: {venv_dir}")
+        shutil.rmtree(venv_dir, ignore_errors=True)
+
+    print(f"Creating virtual environment: {venv_dir}")
+    result = run([sys.executable, "-m", "venv", str(venv_dir)], cwd=project_dir)
+    if result.returncode != 0:
+        print("[!!] Failed to create virtual environment.")
+        raise SystemExit(1)
+
     return venv_python
 
 
-def _run_pip_install(venv_python, args, index_url):
-    """Run a pip install command against a specific package index."""
-    cmd = [
-        venv_python,
+def _run_pip_install(venv_python: Path, args: list[str], index_url: str) -> subprocess.CompletedProcess[str]:
+    command = [
+        str(venv_python),
         "-m",
         "pip",
         "install",
@@ -100,268 +128,427 @@ def _run_pip_install(venv_python, args, index_url):
         "-i",
         index_url,
     ] + args
-    return subprocess.run(cmd, capture_output=True, text=True)
+    return run(command, capture_output=True)
 
 
-def _print_pip_failure(result, max_lines=8):
-    """Print a short tail of pip output for debugging."""
-    lines = []
+def _print_result_tail(result: subprocess.CompletedProcess[str], max_lines: int = 10) -> None:
+    lines: list[str] = []
     for stream in (result.stdout, result.stderr):
         if not stream:
             continue
         for line in stream.splitlines():
-            line = line.strip()
-            if line:
-                lines.append(line)
+            stripped = line.strip()
+            if stripped:
+                lines.append(stripped)
 
     if not lines:
         return
 
-    print("     pip output:")
+    print("     Last pip output:")
     for line in lines[-max_lines:]:
-        print("       %s" % line)
+        print(f"       {line}")
 
 
-def pip_install(venv_python, args, desc=""):
-    """Run pip install with mirror first, then fall back to official PyPI."""
-    if desc:
-        print("Installing %s..." % desc)
-
-    last_result = None
-    for attempt, (index_name, index_url) in enumerate(PIP_INDEX_URLS, start=1):
-        if attempt > 1:
-            print("Retrying with %s..." % index_name)
-        ret = _run_pip_install(venv_python, args, index_url)
-        last_result = ret
-        if ret.returncode == 0:
+def pip_install_with_fallback(venv_python: Path, args: list[str], label: str) -> bool:
+    print(f"Installing {label} ...")
+    last_result: subprocess.CompletedProcess[str] | None = None
+    for index_name, index_url in PIP_INDEX_URLS:
+        result = _run_pip_install(venv_python, args, index_url)
+        last_result = result
+        if result.returncode == 0:
+            print(f"[OK] {label}")
             return True
-        print("[!!] pip install failed via %s: %s" % (index_name, " ".join(args)))
+        print(f"[!!] Failed via {index_name}: {' '.join(args)}")
 
     if last_result is not None:
-        _print_pip_failure(last_result)
-    print("[!!] Failed to install: %s" % " ".join(args))
-    print("     Check network/proxy settings, or run pip manually with another index.")
+        _print_result_tail(last_result)
     return False
 
 
-def install_dependencies(venv_python, project_root, mode):
-    """Install pip dependencies into the venv."""
-    pip_install(venv_python, ["--upgrade", "pip"], " pip 升级")
+def print_manual_python_help(venv_python: Path, profile: str, venv_dir: Path) -> None:
+    rel_python = os.path.relpath(venv_python, project_root())
+    rel_python = rel_python.replace("/", "\\") if is_windows() else rel_python
 
-    req_basic = os.path.join(project_root, REQUIREMENTS_BASIC)
-    if not os.path.exists(req_basic):
-        print("[!!] 找不到 %s" % REQUIREMENTS_BASIC)
-        return False
-
-    if not pip_install(venv_python, ["-r", req_basic], "基础依赖 (%s)" % REQUIREMENTS_BASIC):
-        return False
-    print("[OK] 基础依赖安装完成")
-
-    if mode == "2":
-        req_desktop = os.path.join(project_root, REQUIREMENTS_DESKTOP)
-        if not os.path.exists(req_desktop):
-            print("[!!] 找不到 %s" % REQUIREMENTS_DESKTOP)
-            return False
-
-        if not pip_install(venv_python, ["-r", req_desktop],
-                           "UI Designer 依赖 (%s)" % REQUIREMENTS_DESKTOP):
-            return False
-        print("[OK] UI Designer 依赖安装完成")
-
-    return True
+    print("Manual recovery steps:")
+    print(f"  {rel_python} -m pip install -r requirements.txt")
+    if profile == "full":
+        print(f"  {rel_python} -m pip install -r scripts/ui_designer/requirements-desktop.txt")
+        print(f"  {rel_python} -m pip install playwright")
+        print(f"  {rel_python} -m playwright install chromium")
+    print()
+    print("Virtual environment activation:")
+    if is_windows():
+        print(f"  {venv_dir}\\Scripts\\activate.bat")
+    else:
+        print(f"  source {venv_dir}/bin/activate")
 
 
-def verify_imports(venv_python):
-    """Verify critical imports work in the venv."""
-    packages = ["json5", "PIL", "numpy", "freetype", "elftools"]
-    failed = []
-
-    for pkg in packages:
-        ret = subprocess.run(
-            [venv_python, "-c", "import %s" % pkg],
-            capture_output=True, text=True
+def verify_python_environment(venv_python: Path, profile: str, root_dir: Path) -> bool:
+    imports = [
+        "import json5",
+        "import numpy",
+        "from PIL import Image",
+        "import freetype",
+        "from elftools.elf.elffile import ELFFile",
+    ]
+    if profile == "full":
+        imports.extend(
+            [
+                f"root = {str(root_dir)!r}",
+                "scripts_dir = os.path.join(root, 'scripts')",
+                "if scripts_dir not in sys.path:",
+                "    sys.path.insert(0, scripts_dir)",
+                "from PyQt5.QtWidgets import QApplication",
+                "import qfluentwidgets",
+                "import ui_designer.main",
+                "from playwright.sync_api import sync_playwright",
+            ]
         )
-        if ret.returncode != 0:
-            failed.append(pkg)
 
-    if failed:
-        print("[!!] 以下包导入失败: %s" % ", ".join(failed))
+    script = "import os, sys\n" + "\n".join(imports) + "\nprint('ok')\n"
+    result = run([str(venv_python), "-c", script], capture_output=True)
+    if result.returncode == 0:
+        print("[OK] Python dependency verification passed.")
+        return True
+
+    print("[!!] Python dependency verification failed.")
+    if result.stderr.strip():
+        print(result.stderr.strip())
+    elif result.stdout.strip():
+        print(result.stdout.strip())
+    return False
+
+
+def install_python_environment(root_dir: Path, venv_dir: Path, profile: str) -> bool:
+    log_header("Python Setup")
+    ensure_python_version()
+    venv_python = ensure_venv(root_dir, venv_dir)
+
+    if not pip_install_with_fallback(venv_python, ["--upgrade", "pip"], "pip upgrade"):
+        print_manual_python_help(venv_python, profile, venv_dir)
         return False
 
-    print("[OK] 所有关键包验证通过")
+    requirements = REQUIREMENTS_BASIC if profile == "basic" else REQUIREMENTS_FULL
+    for requirement in requirements:
+        requirement_path = root_dir / requirement
+        if not requirement_path.exists():
+            print(f"[!!] Missing requirement file: {requirement}")
+            print_manual_python_help(venv_python, profile, venv_dir)
+            return False
+
+        if not pip_install_with_fallback(venv_python, ["-r", str(requirement_path)], f"requirements from {requirement}"):
+            print_manual_python_help(venv_python, profile, venv_dir)
+            return False
+
+    if profile == "full":
+        if not pip_install_with_fallback(venv_python, EXTRA_PACKAGES_FULL, "extra Python tooling"):
+            print_manual_python_help(venv_python, profile, venv_dir)
+            return False
+
+    if not verify_python_environment(venv_python, profile, root_dir):
+        print_manual_python_help(venv_python, profile, venv_dir)
+        return False
+
+    print()
+    print("Virtual environment ready.")
+    if is_windows():
+        print(f"  Activate with: {venv_dir}\\Scripts\\activate.bat")
+    else:
+        print(f"  Activate with: source {venv_dir}/bin/activate")
     return True
 
 
-def _download_file(url, dest_path):
-    """Download a file with progress display. Returns True on success."""
-    print("  下载地址: %s" % url)
-    try:
-        # Create SSL context that works in most environments
-        ctx = ssl.create_default_context()
-        req = urllib.request.Request(url, headers={"User-Agent": "EmbeddedGUI-Setup/1.0"})
-        with urllib.request.urlopen(req, context=ctx, timeout=120) as resp:
-            total = int(resp.headers.get("Content-Length", 0))
-            downloaded = 0
-            chunk_size = 256 * 1024  # 256KB chunks
+def verify_checksum(file_path: Path, expected_sha256: str) -> bool:
+    sha = hashlib.sha256()
+    with file_path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(65536), b""):
+            sha.update(chunk)
+    return sha.hexdigest() == expected_sha256
 
-            with open(dest_path, "wb") as f:
+
+def download_file(url: str, destination: Path) -> bool:
+    print(f"Downloading: {url}")
+    try:
+        ssl_context = ssl.create_default_context()
+        request = urllib.request.Request(url, headers={"User-Agent": "EmbeddedGUI-Setup/2.0"})
+        with urllib.request.urlopen(request, context=ssl_context, timeout=120) as response:
+            total = int(response.headers.get("Content-Length", 0))
+            downloaded = 0
+            chunk_size = 256 * 1024
+
+            with destination.open("wb") as output:
                 while True:
-                    chunk = resp.read(chunk_size)
+                    chunk = response.read(chunk_size)
                     if not chunk:
                         break
-                    f.write(chunk)
+                    output.write(chunk)
                     downloaded += len(chunk)
                     if total > 0:
-                        pct = downloaded * 100 // total
-                        bar = "#" * (pct // 5) + "-" * (20 - pct // 5)
-                        print("\r  [%s] %d%% (%d/%d MB)" %
-                              (bar, pct, downloaded // 1048576, total // 1048576),
-                              end="", flush=True)
-            print()  # newline after progress
+                        percent = downloaded * 100 // total
+                        print(
+                            f"\r  [{percent:3d}%] {downloaded // 1048576}/{max(total // 1048576, 1)} MB",
+                            end="",
+                            flush=True,
+                        )
+        if total > 0:
+            print()
         return True
-    except Exception as e:
-        print("\n  下载失败: %s" % e)
-        if os.path.exists(dest_path):
-            os.remove(dest_path)
+    except Exception as exc:  # pragma: no cover - network path
+        print(f"[!!] Download failed: {exc}")
+        destination.unlink(missing_ok=True)
         return False
 
 
-def download_w64devkit(project_root):
-    """Download and extract w64devkit toolchain."""
-    tools_dir = os.path.join(project_root, "tools")
-    devkit_dir = os.path.join(tools_dir, "w64devkit")
-    gcc_exe = os.path.join(devkit_dir, "bin", "gcc.exe")
+def print_manual_toolchain_help(root_dir: Path) -> None:
+    devkit_dir = root_dir / "tools" / "w64devkit"
+    print("Manual recovery steps:")
+    print(f"  1. Download: {W64DEVKIT_URL_PRIMARY}")
+    print(f"  2. Extract to: {devkit_dir}")
+    print(f"  3. Add {devkit_dir / 'bin'} to PATH or rerun setup.")
 
-    # Already extracted
-    if os.path.exists(gcc_exe):
-        result = subprocess.run([gcc_exe, "--version"],
-                                capture_output=True, text=True)
-        if result.returncode == 0:
-            first_line = result.stdout.strip().split("\n")[0]
-            print("[OK] w64devkit 已安装: %s" % first_line)
-            return True
 
-    os.makedirs(tools_dir, exist_ok=True)
-    sfx_path = os.path.join(tools_dir, W64DEVKIT_FILENAME)
+def download_w64devkit(root_dir: Path) -> bool:
+    tools_dir = root_dir / "tools"
+    devkit_dir = tools_dir / "w64devkit"
+    gcc_exe = devkit_dir / "bin" / "gcc.exe"
+    if gcc_exe.exists():
+        print(f"[OK] Reusing existing w64devkit: {gcc_exe}")
+        return True
 
-    # Download if .7z.exe not present
-    if not os.path.exists(sfx_path):
-        print("正在下载 w64devkit v%s (约 37 MB)..." % W64DEVKIT_VERSION)
-        print()
+    tools_dir.mkdir(parents=True, exist_ok=True)
+    archive_path = tools_dir / W64DEVKIT_FILENAME
+    urls = [W64DEVKIT_URL_MIRROR, W64DEVKIT_URL_PRIMARY]
+    for url in urls:
+        if archive_path.exists():
+            break
+        if download_file(url, archive_path):
+            break
 
-        # Try mirror first (faster in China), then primary
-        urls = [W64DEVKIT_URL_MIRROR, W64DEVKIT_URL_PRIMARY]
-        success = False
-        for i, url in enumerate(urls):
-            if i == 0:
-                print("  尝试镜像源...")
-            else:
-                print("  尝试 GitHub 源...")
-            if _download_file(url, sfx_path):
-                success = True
-                break
+    if not archive_path.exists():
+        print("[!!] Unable to download w64devkit.")
+        print_manual_toolchain_help(root_dir)
+        return False
 
-        if not success:
-            print("[!!] 下载失败。请手动下载:")
-            print("     %s" % W64DEVKIT_URL_PRIMARY)
-            print("     下载后放到: %s" % sfx_path)
+    if W64DEVKIT_SHA256:
+        print("Verifying download checksum ...")
+        if not verify_checksum(archive_path, W64DEVKIT_SHA256):
+            print("[!!] Checksum verification failed.")
+            archive_path.unlink(missing_ok=True)
+            print_manual_toolchain_help(root_dir)
             return False
 
-        # Verify SHA256 if configured
-        if W64DEVKIT_SHA256:
-            print("  校验文件完整性...")
-            sha = hashlib.sha256()
-            with open(sfx_path, "rb") as f:
-                for block in iter(lambda: f.read(65536), b""):
-                    sha.update(block)
-            if sha.hexdigest() != W64DEVKIT_SHA256:
-                print("[!!] SHA256 校验失败，文件可能损坏")
-                os.remove(sfx_path)
-                return False
-
-        print("[OK] 下载完成")
-
-    # Extract the self-extracting 7z archive
-    print("正在解压 w64devkit...")
-
-    # The .7z.exe is a 7-Zip self-extracting archive
-    # -o specifies output directory, -y auto-confirms
-    ret = subprocess.run(
-        [sfx_path, "-o" + tools_dir, "-y"],
-        capture_output=True, text=True
-    )
-
-    if ret.returncode != 0 or not os.path.exists(gcc_exe):
-        print("[!!] 解压失败")
-        if ret.stderr:
-            print("     %s" % ret.stderr.strip())
-        print("     请手动解压 %s 到 %s" % (sfx_path, tools_dir))
+    print("Extracting w64devkit ...")
+    result = run([str(archive_path), f"-o{tools_dir}", "-y"], cwd=root_dir, capture_output=True)
+    if result.returncode != 0 or not gcc_exe.exists():
+        print("[!!] Failed to extract w64devkit.")
+        if result.stderr.strip():
+            print(result.stderr.strip())
+        print_manual_toolchain_help(root_dir)
         return False
 
-    # Clean up the archive
-    os.remove(sfx_path)
-    print("[OK] w64devkit 安装完成")
+    archive_path.unlink(missing_ok=True)
+    print(f"[OK] Installed w64devkit to: {devkit_dir}")
+    return True
 
-    # Show version
-    result = subprocess.run([gcc_exe, "--version"], capture_output=True, text=True)
+
+def local_w64devkit_bin(root_dir: Path) -> Path:
+    return root_dir / "tools" / "w64devkit" / "bin"
+
+
+def prepend_path(env: dict[str, str], path: Path) -> dict[str, str]:
+    updated = env.copy()
+    updated["PATH"] = str(path) + os.pathsep + updated.get("PATH", "")
+    return updated
+
+
+def ensure_windows_toolchain(root_dir: Path, auto_install: bool) -> tuple[dict[str, str], bool]:
+    log_header("Windows Toolchain")
+    env = os.environ.copy()
+    local_bin = local_w64devkit_bin(root_dir)
+    if local_bin.exists():
+        env = prepend_path(env, local_bin)
+
+    make_path = find_command("make.exe", env) or find_command("make", env)
+    gcc_path = find_command("gcc.exe", env) or find_command("gcc", env)
+    if make_path and gcc_path:
+        print(f"[OK] make: {make_path}")
+        print(f"[OK] gcc : {gcc_path}")
+        if local_bin.exists():
+            print(f"[OK] Local w64devkit available: {local_bin}")
+        return env, True
+
+    print("[!!] make/gcc not found in PATH.")
+    if not auto_install:
+        print_manual_toolchain_help(root_dir)
+        return env, False
+
+    if not download_w64devkit(root_dir):
+        return env, False
+
+    env = prepend_path(os.environ.copy(), local_bin)
+    make_path = find_command("make.exe", env) or find_command("make", env)
+    gcc_path = find_command("gcc.exe", env) or find_command("gcc", env)
+    if make_path and gcc_path:
+        print(f"[OK] make: {make_path}")
+        print(f"[OK] gcc : {gcc_path}")
+        print(f"[OK] Add this to PATH if needed: {local_bin}")
+        return env, True
+
+    print("[!!] w64devkit was downloaded, but make/gcc are still unavailable.")
+    print_manual_toolchain_help(root_dir)
+    return env, False
+
+
+def check_posix_toolchain() -> tuple[dict[str, str], bool]:
+    log_header("Build Toolchain")
+    env = os.environ.copy()
+    make_path = find_command("make", env)
+    gcc_path = find_command("gcc", env)
+    if make_path and gcc_path:
+        print(f"[OK] make: {make_path}")
+        print(f"[OK] gcc : {gcc_path}")
+        return env, True
+
+    print("[!!] make or gcc not found.")
+    print("Install them with your package manager, then rerun setup.")
+    print("  Debian/Ubuntu: sudo apt install build-essential")
+    print("  Fedora      : sudo dnf install make gcc")
+    print("  Arch Linux  : sudo pacman -S base-devel")
+    return env, False
+
+
+def run_build_verification(root_dir: Path, env: dict[str, str]) -> bool:
+    log_header("Build Verification")
+    make_cmd = find_command("make.exe", env) or find_command("make", env)
+    if not make_cmd:
+        print("[!!] Skipping build verification because make is unavailable.")
+        return False
+
+    command = [
+        make_cmd,
+        "all",
+        "APP=HelloSimple",
+        "PORT=pc",
+        "COMPILE_DEBUG=",
+        "COMPILE_OPT_LEVEL=-O0",
+    ]
+    print("Running:", " ".join(quoted(part) if " " in part else part for part in command))
+    result = run(command, cwd=root_dir, env=env)
     if result.returncode == 0:
-        print("     %s" % result.stdout.strip().split("\n")[0])
+        print("[OK] HelloSimple build verification passed.")
+        return True
 
-    return True
+    print("[!!] Build verification failed.")
+    return False
 
 
-def setup_python(project_root, mode):
-    """Set up Python venv and install dependencies."""
+def print_summary(root_dir: Path, venv_dir: Path, profile: str, toolchain_ready: bool) -> None:
+    log_header("Summary")
+    print(f"Project root : {root_dir}")
+    print(f"Python mode  : {profile}")
+    print(f"Virtual env  : {venv_dir}")
+    print(f"Toolchain    : {'ready' if toolchain_ready else 'not ready'}")
     print()
-    print("=" * 40)
-    print("  Python 环境配置")
-    print("=" * 40)
-    print()
-
-    check_python_version()
-    venv_python = create_venv(project_root)
-
-    if not install_dependencies(venv_python, project_root, mode):
-        return False
-
-    if not verify_imports(venv_python):
-        return False
-
-    print()
-    print("提示: 使用前请先激活虚拟环境:")
-    if sys.platform == "win32":
-        print("  .venv\\Scripts\\activate.bat")
+    print("Common commands:")
+    print("  make all APP=HelloSimple")
+    print("  make run")
+    if is_windows():
+        print(f"  {venv_dir}\\Scripts\\activate.bat")
     else:
-        print("  source .venv/bin/activate")
-    print()
-    return True
+        print(f"  source {venv_dir}/bin/activate")
 
 
-def main():
+def normalize_python_mode(args: argparse.Namespace) -> str:
+    if args.mode is None:
+        return args.python_mode
+
+    legacy_map = {
+        "0": "none",
+        "1": "basic",
+        "2": "full",
+        "3": "none",
+    }
+    return legacy_map[args.mode]
+
+
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="EmbeddedGUI environment setup")
-    parser.add_argument("--mode", choices=["0", "1", "2", "3"], default="1",
-                        help="0/3=skip Python setup, 1=basic deps, 2=basic + UI Designer")
-    parser.add_argument("--install-toolchain", action="store_true",
-                        help="Download and install w64devkit (GCC + Make)")
-    args = parser.parse_args()
-    if args.mode == "3":
-        args.mode = "0"
+    parser.add_argument(
+        "--python-mode",
+        choices=["full", "basic", "none"],
+        default="full",
+        help="Python dependency profile to install (default: full).",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["0", "1", "2", "3"],
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--venv-dir",
+        default=DEFAULT_VENV_DIR,
+        help="Virtual environment directory (default: .venv).",
+    )
+    parser.add_argument(
+        "--skip-toolchain",
+        action="store_true",
+        help="Do not auto-install or validate the native build toolchain.",
+    )
+    parser.add_argument(
+        "--install-toolchain",
+        action="store_true",
+        help="Install the Windows w64devkit toolchain and exit.",
+    )
+    parser.add_argument(
+        "--skip-build-check",
+        action="store_true",
+        help="Skip the final HelloSimple build verification step.",
+    )
+    return parser.parse_args()
 
-    project_root = get_project_root()
-    os.chdir(project_root)
+
+def main() -> int:
+    args = parse_args()
+    root_dir = project_root()
+    venv_dir = (root_dir / args.venv_dir).resolve()
+    python_mode = normalize_python_mode(args)
+
+    os.chdir(root_dir)
 
     if args.install_toolchain:
-        print()
-        print("=" * 40)
-        print("  C 工具链配置 (w64devkit)")
-        print("=" * 40)
-        print()
-        if not download_w64devkit(project_root):
-            sys.exit(1)
+        if not is_windows():
+            print("[!!] --install-toolchain is only supported on Windows.")
+            return 1
+        _, ready = ensure_windows_toolchain(root_dir, auto_install=True)
+        return 0 if ready else 1
 
-    if args.mode != "0" and not setup_python(project_root, args.mode):
-        sys.exit(1)
+    if python_mode != "none":
+        if not install_python_environment(root_dir, venv_dir, python_mode):
+            return 1
+    else:
+        print("Skipping Python dependency installation.")
+
+    if args.skip_toolchain:
+        toolchain_env = os.environ.copy()
+        toolchain_ready = True
+        print("Skipping toolchain setup by request.")
+    else:
+        if is_windows():
+            toolchain_env, toolchain_ready = ensure_windows_toolchain(root_dir, auto_install=True)
+        else:
+            toolchain_env, toolchain_ready = check_posix_toolchain()
+
+    if toolchain_ready and not args.skip_build_check:
+        if not run_build_verification(root_dir, toolchain_env):
+            return 1
+    elif not toolchain_ready:
+        print("Build verification skipped because the toolchain is not ready.")
+
+    print_summary(root_dir, venv_dir, python_mode, toolchain_ready)
+    if not args.skip_toolchain and not toolchain_ready:
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

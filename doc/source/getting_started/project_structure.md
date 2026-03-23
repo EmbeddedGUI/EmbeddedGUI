@@ -17,7 +17,8 @@ EmbeddedGUI/
 |-- output/                 # 编译产物输出目录
 |-- Makefile                # 顶层 Makefile (配置 APP/PORT 等参数)
 |-- CMakeLists.txt          # CMake 构建配置
-|-- setup.bat               # Windows 一键环境配置脚本
+|-- setup.bat               # Windows 环境入口脚本（转发到 setup_env.py）
+|-- setup.sh                # Linux / macOS 环境入口脚本
 |-- requirements.txt        # Python 依赖列表
 |-- VERSION                 # 版本号文件
 |-- LICENSE                 # MIT 许可证
@@ -187,7 +188,7 @@ src/
 | `check_example_icon_font.py` | 示例图标字体显式配置检查 |
 | `code_perf_check.py` | 性能测试 |
 | `release_check.py` | 发布前多步骤一键检查 |
-| `setup_env.py` | 环境配置辅助脚本 |
+| `setup_env.py` | 跨平台环境配置主脚本，负责 Python 依赖和工具链检查 |
 | `utils_analysis_elf_size.py` | ELF 二进制大小分析 |
 | `wasm_build_demos.py` | WebAssembly 演示构建 |
 | `gif_recorder.py` | GIF 录制工具 |

@@ -49,11 +49,16 @@ HelloStyleDemo，一个常规的多页面应用。
 
 ```bash
 git clone https://gitee.com/embeddedgui/EmbeddedGUI.git
-cd EmbeddedGUI && setup.bat
+cd EmbeddedGUI
+# Windows
+setup.bat
+# Linux / macOS
+./setup.sh
 make all APP=HelloStyleDemo && make run
 ```
 
-> Linux/Mac 用户参考[环境搭建文档](https://embeddedgui.readthedocs.io/en/latest/)。
+> 安装脚本默认会创建 `.venv` 并安装完整 Python 依赖（包含 UI Designer 依赖）。
+> 更多说明见[环境搭建文档](https://embeddedgui.readthedocs.io/en/latest/)。
 
 ---
 

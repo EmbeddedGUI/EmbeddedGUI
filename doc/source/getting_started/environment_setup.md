@@ -1,309 +1,295 @@
 # 环境搭建
 
-本文介绍如何在 PC 上搭建 EmbeddedGUI 的开发环境。EGUI 支持在 PC 上编译调试，等 UI 交互行为测试成功后，再将代码部署到嵌入式芯片中。PC 端与嵌入式端使用同一份应用代码，只是 Porting 层不同。
+本文介绍如何为 EmbeddedGUI 配置开发环境。当前推荐流程已经统一为：
+
+- Windows 使用 `setup.bat`
+- Linux / macOS 使用 `setup.sh`
+- 实际环境安装逻辑统一由 `scripts/setup_env.py` 负责
+
+默认情况下，安装脚本会创建虚拟环境并安装完整 Python 依赖，包含 UI Designer 所需组件。
 
 ## 依赖概览
 
-EGUI 在 PC 上编译运行需要以下工具:
-
 | 工具 | 用途 | 是否必需 |
 |------|------|----------|
-| GCC | C 编译器 (PC 模拟器) | 必需 |
+| GCC | C 编译器（PC 模拟器） | 必需 |
 | GNU Make | 构建工具 | 必需 |
-| SDL2 | PC 模拟器显示和输入 | 必需 (项目已内置 Windows 版) |
-| Python 3.8+ | 资源生成、脚本工具 | 仅修改资源时需要 |
-| ARM GCC | 嵌入式交叉编译 (STM32/QEMU) | 可选 |
-| QEMU | ARM 仿真器，性能基准测试 | 可选 |
-| Emscripten | WASM Web demo 构建 | 可选 |
-| Playwright | Figma 设计自动截图 | 可选 |
+| SDL2 | PC 模拟器显示和输入 | 必需（项目已内置 Windows 版本） |
+| Python 3.8+ | 资源生成、脚本工具、UI Designer | 必需 |
+| PyQt5 / PyQt-Fluent-Widgets | UI Designer 桌面界面 | 默认安装 |
+| Playwright | 设计稿截图与自动化验证 | 默认安装 Python 包 |
+| ARM GCC | STM32 / QEMU 交叉编译 | 可选 |
+| QEMU | ARM 仿真与性能测试 | 可选 |
+| Emscripten | WASM 构建 | 可选 |
 
-## Windows 环境搭建 (推荐)
+## Windows 环境搭建
 
-### 方式一: setup.bat 一键配置 (推荐)
+### 推荐方式：运行 `setup.bat`
 
-项目根目录提供了 `setup.bat` 自动化配置脚本，可自动检测并安装所需工具链。
+在项目根目录执行：
 
-```bash
-# 在项目根目录双击运行，或在命令行中执行:
+```bat
 setup.bat
 ```
 
-脚本执行流程:
+`setup.bat` 现在只负责：
 
-**步骤 1 - 检测 make.exe**
+- 检查系统里是否能找到 Python
+- 调用 `scripts/setup_env.py`
 
-脚本会依次在以下位置查找 `make.exe`:
-- 系统 PATH 环境变量
-- `tools/w64devkit/bin/` (项目内置工具链目录)
-- `tools/win32/` (项目内置备用目录)
+真正的环境安装逻辑都在 Python 脚本中，后续维护以 Python 版本为准。
 
-**步骤 2 - 检测 gcc.exe**
+### 默认行为
 
-与 make 类似，脚本会检查系统 PATH 和项目内置工具链目录。
+默认直接执行：
 
-如果 make 或 gcc 缺失，脚本会提供自动下载选项:
-
-```
-缺少编译工具链 (make/gcc)
-
-可自动下载 w64devkit (约 37 MB) 获得完整 C 工具链:
-  包含: GCC 15.2 + GNU Make 4.4 + GDB + Binutils
-  来源: https://github.com/skeeto/w64devkit
-  免安装，解压即用
-
-1. 自动下载并安装 w64devkit (推荐)
-2. 跳过，稍后手动安装
+```bat
+setup.bat
 ```
 
-选择选项 1 即可自动下载并解压 w64devkit 到 `tools/w64devkit/` 目录。
+等价于：
 
-**步骤 3 - 检测 Python**
-
-检查系统中是否安装了 Python。Python 用于资源生成 (`make resource`) 和各种辅助脚本。如果只需编译已有示例 (不修改资源文件)，可跳过此步骤。
-
-**步骤 4 - 配置 Python 依赖**
-
-提供三种安装模式:
-
-```
-1. 基础模式 - 仅安装构建所需依赖
-   (freetype_py, json5, numpy, Pillow, pyelftools)
-2. 完整模式 - 安装构建 + UI Designer 依赖
-   (包含 PyQt5, PyQt-Fluent-Widgets 等)
-3. 跳过 Python 依赖安装
+```bat
+python scripts\setup_env.py --python-mode full
 ```
 
-- **基础模式**: 安装字体处理、图片处理、ELF 分析等构建相关依赖，满足日常开发。
-- **完整模式**: 额外安装 PyQt5 和 UI Designer 所需的界面组件库，适合需要使用可视化设计器的用户。
+默认会完成以下动作：
 
-**步骤 5 - 检测 ARM GCC 工具链**
+1. 创建 `.venv`
+2. 升级 `pip`
+3. 安装 `requirements.txt`
+4. 安装 `scripts/ui_designer/requirements-desktop.txt`
+5. 安装 `playwright` Python 包
+6. 校验 `json5`、`numpy`、`Pillow`、`freetype_py`、`pyelftools`
+7. 校验 `PyQt5`、`qfluentwidgets`、`ui_designer.main`
+8. 在 Windows 下检查本地或系统中的 `make` / `gcc`
+9. 如果缺失，自动尝试安装 `tools/w64devkit`
+10. 默认编译一次 `HelloSimple` 做验证
 
-检查 `ARM_GCC_PATH` 环境变量或 PATH 中是否有 `arm-none-eabi-gcc`。此工具链用于编译 STM32 和 QEMU 固件。
+### 常用参数
 
-**步骤 6 - 检测 QEMU**
-
-检查 `QEMU_PATH` 环境变量或 PATH 中是否有 `qemu-system-arm`。QEMU 用于运行性能基准测试。
-
-**步骤 7 - 检测 Emscripten**
-
-检查 PATH 中是否有 `emcc` 或 `EMSDK` 环境变量。Emscripten 用于将示例编译为 WebAssembly 在浏览器中运行。
-
-**步骤 8 - 检测 Playwright**
-
-检查 Python 环境中是否安装了 Playwright。用于 Figma 设计稿的自动截图和渲染对比。
-
-**验证构建**
-
-脚本会自动尝试编译 HelloSimple 示例来验证环境是否配置成功:
-
-```
-正在尝试编译 HelloSimple ...
-[OK] HelloSimple 编译成功!
+```bat
+setup.bat --python-mode basic
+setup.bat --python-mode none
+setup.bat --skip-toolchain
+setup.bat --skip-build-check
+setup.bat --venv-dir .venv_custom
+setup.bat --install-toolchain
 ```
 
-**环境变量提示**
+说明：
 
-setup.bat 仅在当前命令行会话中临时添加工具链路径。如需永久生效，请将以下路径添加到系统环境变量 PATH:
+- `--python-mode full`
+  默认值。安装完整依赖，适合绝大多数开发者。
+- `--python-mode basic`
+  只安装基础 Python 依赖，不安装 UI Designer 桌面依赖。
+- `--python-mode none`
+  跳过 Python 依赖安装，仅做工具链检查。
+- `--skip-toolchain`
+  跳过 `make` / `gcc` 检查和 `w64devkit` 自动安装。
+- `--skip-build-check`
+  跳过 `HelloSimple` 编译验证。
+- `--venv-dir`
+  指定虚拟环境目录。
+- `--install-toolchain`
+  仅安装 Windows 工具链并退出。
 
-```
-<项目路径>\tools\w64devkit\bin
-```
+### 关于 `w64devkit`
 
-### 环境变量汇总
+如果系统里没有 `make.exe` 或 `gcc.exe`，脚本会自动尝试安装 `w64devkit` 到：
 
-以下环境变量用于配置可选工具链路径，可在系统环境变量中设置，也可在 `setup.bat` 运行后自动检测:
-
-| 环境变量 | 用途 | 示例值 |
-|----------|------|--------|
-| `ARM_GCC_PATH` | ARM GCC 工具链安装目录 | `D:\Arm GNU Toolchain\12.2` |
-| `QEMU_PATH` | QEMU 安装目录 | `C:\Program Files\qemu` |
-| `EMSDK` | Emscripten SDK 根目录 | `D:\emsdk` |
-| `SEGGER_JLINK_PATH` | J-Link 调试器安装目录 (STM32 烧录) | `C:\Program Files\SEGGER\JLink` |
-
-### 可选环境安装指南
-
-**ARM GCC (嵌入式交叉编译)**
-
-用于编译 STM32 和 QEMU 固件。下载地址: [ARM GNU Toolchain Downloads](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads)
-
-安装后设置环境变量:
-```bash
-set ARM_GCC_PATH=D:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\12.2 mpacbti-rel1
+```text
+tools/w64devkit/
 ```
 
-**QEMU (ARM 仿真器)**
+安装完成后，脚本会优先使用项目内的：
 
-用于运行性能基准测试。下载地址: [QEMU Downloads](https://www.qemu.org/download/#windows)
-
-安装后设置环境变量:
-```bash
-set QEMU_PATH=C:\Program Files\qemu
+```text
+tools/w64devkit/bin
 ```
 
-**Emscripten (WASM 构建)**
+注意：
 
-用于将示例编译为 WebAssembly 在浏览器中运行。安装指南: [Emscripten Getting Started](https://emscripten.org/docs/getting_started/downloads.html)
+- 该路径只会在当前脚本进程中注入
+- 如果你想全局长期使用，需要手动加入系统 `PATH`
+
+## Linux / macOS 环境搭建
+
+### 推荐方式：运行 `setup.sh`
+
+在项目根目录执行：
 
 ```bash
-# 安装并激活
-emsdk install latest
-emsdk activate latest
+./setup.sh
 ```
 
-**Playwright (Figma 设计截图)**
+默认行为与 Windows 一致，也会安装完整 Python 依赖。
 
-用于 Figma 设计稿的自动截图和渲染对比:
+常用参数同样支持：
 
 ```bash
-pip install playwright
-playwright install chromium
+./setup.sh --python-mode basic
+./setup.sh --python-mode none
+./setup.sh --skip-build-check
+./setup.sh --venv-dir .venv_custom
 ```
 
-### 方式二: 手动安装
+### 先安装系统编译依赖
 
-如果不使用 setup.bat，可以手动安装以下工具:
-
-1. **GCC + Make**: 安装 [MSYS2](https://www.msys2.org/) 并在 MSYS2 终端执行:
-
-   ```bash
-   pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-make
-   ```
-
-   将 `C:\msys64\mingw64\bin` 添加到系统 PATH。
-
-   或者下载 [w64devkit](https://github.com/skeeto/w64devkit/releases)，解压后将 `bin` 目录添加到 PATH。
-
-2. **Python 3**: 从 [python.org](https://www.python.org/downloads/) 下载安装，安装时勾选 "Add Python to PATH"。
-
-3. **Python 依赖**: 在项目根目录执行:
-
-   ```bash
-   python -m pip install -r requirements.txt
-   ```
-
-4. **SDL2**: 项目已内置 Windows 版 SDL2 静态库 (位于 `porting/pc/sdl2/`)，无需额外安装。
-
-## Linux 环境搭建
-
-在 Linux (Ubuntu/Debian) 上，安装非常简单:
+#### Ubuntu / Debian
 
 ```bash
-# 安装编译工具链和 SDL2 开发库
-sudo apt-get update && sudo apt-get install -y build-essential libsdl2-dev
-
-# 安装 Python 3 和 pip (大多数发行版已预装)
-sudo apt-get install -y python3 python3-pip
-
-# 安装 Python 依赖
-python3 -m pip install -r requirements.txt
+sudo apt-get update
+sudo apt-get install -y build-essential libsdl2-dev python3 python3-venv python3-pip
 ```
 
-对于其他 Linux 发行版:
+#### Fedora
 
 ```bash
-# Fedora / RHEL
 sudo dnf install gcc make SDL2-devel python3 python3-pip
-
-# Arch Linux
-sudo pacman -S gcc make sdl2 python python-pip
 ```
 
-## macOS 环境搭建
-
-首先安装 [Homebrew](https://brew.sh/):
+#### Arch Linux
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+sudo pacman -S base-devel sdl2 python python-pip
 ```
 
-然后安装依赖:
+#### macOS
+
+先安装 Homebrew，然后执行：
 
 ```bash
-# 安装编译工具链和 SDL2
-brew install gcc make sdl2
-
-# 安装 Python 依赖
-python3 -m pip install -r requirements.txt
+brew install gcc make sdl2 python
 ```
 
-> **提示**: macOS 上 SDL2 的安装可能需要额外配置，可参考 [SDL2 安装指南](https://www.bilibili.com/opus/940636995053420548)。
+## 手动安装方式
+
+如果不使用 `setup.bat` / `setup.sh`，也可以手动执行：
+
+### 1. 创建虚拟环境
+
+Windows：
+
+```bat
+python -m venv .venv
+.venv\Scripts\activate.bat
+```
+
+Linux / macOS：
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 2. 安装 Python 依赖
+
+基础依赖：
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+完整依赖（包含 UI Designer）：
+
+```bash
+python -m pip install -r requirements.txt
+python -m pip install -r scripts/ui_designer/requirements-desktop.txt
+python -m pip install playwright
+```
+
+如需浏览器运行时，再执行：
+
+```bash
+python -m playwright install chromium
+```
+
+### 3. 安装编译工具链
+
+Windows 可选：
+
+- MSYS2
+- MinGW-w64
+- `w64devkit`
+
+如果使用 `w64devkit`，解压后确保 `bin` 目录可被找到。
 
 ## 验证安装
 
-无论使用哪种操作系统，安装完成后都可以通过以下命令验证环境:
+无论使用哪种方式，建议至少验证一次：
 
 ```bash
-# 编译 HelloSimple 示例
-make all APP=HelloSimple
-
-# 运行
+make all APP=HelloSimple PORT=pc
 make run
 ```
 
-如果一切正常，将弹出一个窗口显示 "Hello World!" 标签和一个 "Click me!" 按钮。
+如果一切正常，会弹出 PC 模拟器窗口。
 
-也可以尝试编译其他示例:
-
-```bash
-# 编译并运行 HelloBasic 的按钮示例
-make all APP=HelloBasic APP_SUB=button
-make run
-
-# 编译并运行 HelloActivity
-make all APP=HelloActivity
-make run
-```
-
-## CMake 构建方式
-
-EGUI 也支持 CMake 构建，适合习惯 CMake 工作流或需要集成到 CMake 项目中的用户:
+也可以继续验证：
 
 ```bash
-# 创建构建目录
-mkdir build && cd build
-
-# 生成 Makefile
-cmake ..
-
-# 编译
-make all
+python scripts/code_runtime_check.py --app HelloSimple --timeout 10
 ```
 
-> **注意**: CMake 支持目前仍在完善中，推荐优先使用 Makefile 方式构建。
+## 可选工具
 
-## VSCode 开发调试
+### ARM GCC
 
-EGUI 项目预配置了 VSCode 的编译和调试任务。用 VSCode 打开项目根目录后:
+用于 STM32 / QEMU 目标：
 
-1. 确保已安装 C/C++ 扩展 (ms-vscode.cpptools)
-2. 使用 `F5` 或调试面板启动调试
-3. 设置断点即可进行单步调试
+```text
+ARM_GCC_PATH=<toolchain_root>
+```
+
+### QEMU
+
+用于性能基准和仿真测试：
+
+```text
+QEMU_PATH=<qemu_install_dir>
+```
+
+### Emscripten
+
+用于 WASM 构建：
+
+```text
+EMSDK=<emsdk_root>
+```
 
 ## 常见问题
 
-### freetype_py 安装后提示 "Freetype library not found"
+### `setup.bat` 或 `setup.sh` 提示 Python 未找到
 
-这是 Windows 上的常见问题。可以尝试:
+先安装 Python 3.8+，并确保 `python` 或 `python3` 可执行。
+
+### Python 依赖安装失败
+
+脚本会先尝试镜像源，再回退到官方 PyPI。若仍失败，会打印手动恢复命令。按提示执行即可。
+
+### UI Designer 仍无法启动
+
+先确认完整依赖已安装：
 
 ```bash
-pip install freetype-py --force-reinstall
+python -m pip install -r scripts/ui_designer/requirements-desktop.txt
+python -m pip install playwright
 ```
 
-或参考 [解决方案](https://blog.csdn.net/wyx100/article/details/73527117)。
+然后测试：
 
-### make 命令提示 "not recognized"
+```bash
+python -c "import os, sys; sys.path.insert(0, 'scripts'); import ui_designer.main"
+```
 
-确认编译工具已正确添加到系统 PATH 环境变量。如果使用 setup.bat 安装了 w64devkit，需要将 `tools\w64devkit\bin` 的完整路径添加到系统 PATH。
+### `libwinpthread-1.dll` 找不到
 
-### 编译报错 "SDL2.h: No such file or directory"
-
-- Windows: 确认项目 `porting/pc/sdl2/` 目录下存在对应位数 (32/64) 的 SDL2 库文件。
-- Linux: 执行 `sudo apt-get install libsdl2-dev`。
-- macOS: 执行 `brew install sdl2`。
+当前构建系统已经改为仅在 DLL 实际存在时才复制。对于项目自带 `w64devkit`，通常不再需要这个 DLL。
 
 ## 下一步
 
-环境搭建完成后，请继续阅读:
+环境搭建完成后，请继续阅读：
 
-- [第一个应用](first_app.md): 深入理解 HelloSimple 示例代码
-- [构建系统详解](build_system.md): 了解 Makefile 参数和构建流程
+- [第一个应用](first_app.md)
+- [构建系统详解](build_system.md)
