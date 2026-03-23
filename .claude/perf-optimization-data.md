@@ -118,6 +118,45 @@ QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
 
 - `src/image/egui_image_std.c` adds an alpha8 mapped-row fast path for `canvas_alpha == EGUI_ALPHA_100`, so the resize hot path stops paying an extra alpha-mix on already-full-opacity canvas draws.
 - `src/image/egui_image_std.c` also adds a masked edge-segment helper for `RGB565_8` resize draws, replacing left/right per-pixel `egui_canvas_draw_point_limit()` calls with direct PFB writes while keeping the original `mask_point -> canvas alpha mix -> blend` order.
+
+## 2026-03-23 alpha8 text transform dispatch round
+
+QEMU profile: `python scripts/code_perf_check.py --profile cortex-m3`
+
+Baseline: `85c8686`
+
+Working-tree effective changes:
+
+- `src/core/egui_canvas_transform.c`
+  - `text_transform_draw_alpha8_buffer_opaque_nomask(...)`
+  - `text_transform_draw_alpha8_buffer_opaque_row_color(...)`
+  - dispatcher in `text_transform_draw_alpha8_buffer(...)`
+
+Key results:
+
+| Test | Before (ms) | After (ms) | Delta |
+|------|-------------|------------|-------|
+| TEXT_ROTATE | 5.474 | 5.409 | -1.2% |
+| TEXT_ROTATE_RESIZE | 5.475 | 5.410 | -1.2% |
+| TEXT_ROTATE_DOUBLE | 6.334 | 6.242 | -1.5% |
+| TEXT_ROTATE_BUFFERED | 4.566 | 4.498 | -1.5% |
+| TEXT_ROTATE_BUFFERED_DOUBLE | 5.850 | 5.765 | -1.5% |
+| EXTERN_TEXT_ROTATE | 5.480 | 5.415 | -1.2% |
+| TEXT_ROTATE_GRADIENT | 6.115 | 6.053 | -1.0% |
+| TEXT_ROTATE_BUFFERED_GRADIENT | 5.308 | 5.244 | -1.2% |
+
+Validation:
+
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots`
+- `python scripts/code_perf_check.py --profile cortex-m3`
+- PNG diff vs baseline `85c8686`: `pixel_changed_count=0`
+
+Notes:
+
+- This round confirms that splitting the alpha8 common draw kernel by high-hit scenarios is more effective than continuing to tune the bilinear sample inner loop.
+- `perf_output/perf_report.md` still shows commit `85c8686`; the improved numbers come from the current uncommitted working tree.
 - Validation after this round: `python scripts/code_runtime_check.py --app HelloPerformance --timeout 120 --keep-screenshots` returns `ALL PASSED`, `HelloUnitTest` remains `554/554 passed`, and screenshot diff vs `runtime_check_output/HelloPerformance_baseline_pre_rectfill_opt_20260320/default` is `60/60` identical.
 
 ## 2026-03-20 circle mask query-cache round

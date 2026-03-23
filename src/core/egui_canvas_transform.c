@@ -3577,6 +3577,561 @@ static int text_transform_ensure_visible_alpha8_capacity(int needed, uint8_t **b
     return 0;
 }
 
+static int text_transform_draw_alpha8_buffer_opaque_nomask(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color,
+                                                           const uint8_t *alpha8_buf, int16_t src_x0, int16_t src_y0, int buf_w, int buf_h)
+{
+    int32_t inv_m00;
+    int32_t inv_m01;
+    int32_t inv_m10;
+    int32_t inv_m11;
+    int32_t draw_x0;
+    int32_t draw_x1;
+    int32_t draw_y0;
+    int32_t draw_y1;
+    int32_t pfb_w;
+    int32_t pfb_ox;
+    int32_t pfb_oy;
+    int32_t row_start_offset_x;
+    int32_t row_start_offset_y;
+    int32_t Cx_base;
+    int32_t Cy_base;
+    int32_t buf_src_hi_x_q15;
+    int32_t buf_src_hi_y_q15;
+    int32_t buf_int_max_x_q15;
+    int32_t buf_int_max_y_q15;
+    egui_color_int_t solid_color = color.full;
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+    uint32_t fg_rb_g;
+#endif
+
+    inv_m00 = ctx->inv_m00;
+    inv_m01 = ctx->inv_m01;
+    inv_m10 = ctx->inv_m10;
+    inv_m11 = ctx->inv_m11;
+    draw_x0 = ctx->draw_x0;
+    draw_x1 = ctx->draw_x1;
+    draw_y0 = ctx->draw_y0;
+    draw_y1 = ctx->draw_y1;
+    pfb_w = ctx->pfb_w;
+    pfb_ox = ctx->pfb_ox;
+    pfb_oy = ctx->pfb_oy;
+    row_start_offset_x = inv_m00 * (draw_x0 - x);
+    row_start_offset_y = inv_m10 * (draw_x0 - x);
+    Cx_base = ctx->Cx_base - ((int32_t)src_x0 << 15);
+    Cy_base = ctx->Cy_base - ((int32_t)src_y0 << 15);
+    buf_src_hi_x_q15 = (int32_t)buf_w << 15;
+    buf_src_hi_y_q15 = (int32_t)buf_h << 15;
+    buf_int_max_x_q15 = ((int32_t)buf_w - 2) << 15;
+    buf_int_max_y_q15 = ((int32_t)buf_h - 2) << 15;
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+    fg_rb_g = (solid_color | ((uint32_t)solid_color << 16)) & 0x07E0F81FUL;
+#endif
+
+    for (int32_t dy = draw_y0; dy < draw_y1; dy++)
+    {
+        int32_t rotatedX = row_start_offset_x + Cx_base;
+        int32_t rotatedY = row_start_offset_y + Cy_base;
+        egui_color_int_t *dst_row = &ctx->pfb[(dy - pfb_oy) * pfb_w + (draw_x0 - pfb_ox)];
+        int entered = 0;
+        int32_t dx = draw_x0;
+
+        if (rotatedX < 0 || rotatedX >= buf_src_hi_x_q15 || rotatedY < 0 || rotatedY >= buf_src_hi_y_q15)
+        {
+            int32_t skip = transform_scanline_skip(rotatedX, rotatedY, inv_m00, inv_m10, 0, buf_src_hi_x_q15, 0, buf_src_hi_y_q15, draw_x1 - draw_x0);
+            if (skip > 0)
+            {
+                rotatedX += skip * inv_m00;
+                rotatedY += skip * inv_m10;
+                dst_row += skip;
+                dx += skip;
+            }
+        }
+
+        for (; dx < draw_x1; dx++)
+        {
+            int32_t sx = rotatedX >> 15;
+            int32_t sy = rotatedY >> 15;
+
+            if (sx >= 0 && sx < buf_w - 1 && sy >= 0 && sy < buf_h - 1)
+            {
+                entered = 1;
+                int32_t sir_count = draw_x1 - dx;
+
+                if (inv_m00 > 0)
+                {
+                    int32_t n = (buf_int_max_x_q15 - rotatedX) / inv_m00;
+                    if (n < sir_count)
+                    {
+                        sir_count = n;
+                    }
+                }
+                else if (inv_m00 < 0)
+                {
+                    int32_t n = rotatedX / (-inv_m00);
+                    if (n < sir_count)
+                    {
+                        sir_count = n;
+                    }
+                }
+
+                if (inv_m10 > 0)
+                {
+                    int32_t n = (buf_int_max_y_q15 - rotatedY) / inv_m10;
+                    if (n < sir_count)
+                    {
+                        sir_count = n;
+                    }
+                }
+                else if (inv_m10 < 0)
+                {
+                    int32_t n = rotatedY / (-inv_m10);
+                    if (n < sir_count)
+                    {
+                        sir_count = n;
+                    }
+                }
+
+                if (sir_count < 1)
+                {
+                    sir_count = 1;
+                }
+
+                for (int32_t i = 0; i < sir_count; i++)
+                {
+                    int32_t sample_sx = rotatedX >> 15;
+                    int32_t sample_sy = rotatedY >> 15;
+                    const uint8_t *row0 = alpha8_buf + sample_sy * buf_w + sample_sx;
+                    const uint8_t *row1 = row0 + buf_w;
+                    uint8_t a00 = row0[0];
+                    uint8_t a01 = row0[1];
+                    uint8_t a10 = row1[0];
+                    uint8_t a11 = row1[1];
+                    uint8_t pixel_alpha;
+
+                    if ((a00 | a01 | a10 | a11) == 0)
+                    {
+                        rotatedX += inv_m00;
+                        rotatedY += inv_m10;
+                        dst_row++;
+                        continue;
+                    }
+
+                    if ((a00 & a01 & a10 & a11) == EGUI_ALPHA_100)
+                    {
+                        pixel_alpha = EGUI_ALPHA_100;
+                    }
+                    else
+                    {
+                        uint8_t fx = (rotatedX >> 7) & 0xFF;
+                        uint8_t fy = (rotatedY >> 7) & 0xFF;
+                        uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                        uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                        pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+                    }
+
+                    if (pixel_alpha > 0)
+                    {
+                        if (pixel_alpha == EGUI_ALPHA_100)
+                        {
+                            *dst_row = solid_color;
+                        }
+                        else
+                        {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                            uint16_t bg = *dst_row;
+                            uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                            uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                            *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                            egui_color_t *back = (egui_color_t *)dst_row;
+                            egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
+#endif
+                        }
+                    }
+
+                    rotatedX += inv_m00;
+                    rotatedY += inv_m10;
+                    dst_row++;
+                }
+
+                dx += sir_count - 1;
+                continue;
+            }
+            else if (sx >= -1 && sx < buf_w && sy >= -1 && sy < buf_h)
+            {
+                uint8_t fx = (rotatedX >> 7) & 0xFF;
+                uint8_t fy = (rotatedY >> 7) & 0xFF;
+                uint8_t a00 = 0;
+                uint8_t a01 = 0;
+                uint8_t a10 = 0;
+                uint8_t a11 = 0;
+                uint8_t pixel_alpha;
+
+                entered = 1;
+
+                if ((uint32_t)sy < (uint32_t)buf_h)
+                {
+                    const uint8_t *row0 = alpha8_buf + sy * buf_w;
+
+                    if ((uint32_t)sx < (uint32_t)buf_w)
+                    {
+                        a00 = row0[sx];
+                    }
+                    if ((uint32_t)(sx + 1) < (uint32_t)buf_w)
+                    {
+                        a01 = row0[sx + 1];
+                    }
+                }
+
+                if ((uint32_t)(sy + 1) < (uint32_t)buf_h)
+                {
+                    const uint8_t *row1 = alpha8_buf + (sy + 1) * buf_w;
+
+                    if ((uint32_t)sx < (uint32_t)buf_w)
+                    {
+                        a10 = row1[sx];
+                    }
+                    if ((uint32_t)(sx + 1) < (uint32_t)buf_w)
+                    {
+                        a11 = row1[sx + 1];
+                    }
+                }
+
+                if ((a00 | a01 | a10 | a11) == 0)
+                {
+                    pixel_alpha = 0;
+                }
+                else if ((a00 & a01 & a10 & a11) == EGUI_ALPHA_100)
+                {
+                    pixel_alpha = EGUI_ALPHA_100;
+                }
+                else
+                {
+                    uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                    uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                    pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+                }
+
+                if (pixel_alpha > 0)
+                {
+                    if (pixel_alpha == EGUI_ALPHA_100)
+                    {
+                        *dst_row = solid_color;
+                    }
+                    else
+                    {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                        uint16_t bg = *dst_row;
+                        uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                        uint32_t result = (bg_rb_g + ((fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                        *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                        egui_color_t *back = (egui_color_t *)dst_row;
+                        egui_rgb_mix_ptr(back, &color, back, pixel_alpha);
+#endif
+                    }
+                }
+            }
+            else if (entered)
+            {
+                break;
+            }
+
+            rotatedX += inv_m00;
+            rotatedY += inv_m10;
+            dst_row++;
+        }
+
+        Cx_base += inv_m01;
+        Cy_base += inv_m11;
+    }
+
+    return 1;
+}
+
+static int text_transform_draw_alpha8_buffer_opaque_row_color(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color,
+                                                              const uint8_t *alpha8_buf, int16_t src_x0, int16_t src_y0, int buf_w, int buf_h)
+{
+    int32_t inv_m00;
+    int32_t inv_m01;
+    int32_t inv_m10;
+    int32_t inv_m11;
+    int32_t draw_x0;
+    int32_t draw_x1;
+    int32_t draw_y0;
+    int32_t draw_y1;
+    int32_t pfb_w;
+    int32_t pfb_ox;
+    int32_t pfb_oy;
+    int32_t row_start_offset_x;
+    int32_t row_start_offset_y;
+    int32_t Cx_base;
+    int32_t Cy_base;
+    int32_t buf_src_hi_x_q15;
+    int32_t buf_src_hi_y_q15;
+    int32_t buf_int_max_x_q15;
+    int32_t buf_int_max_y_q15;
+
+    inv_m00 = ctx->inv_m00;
+    inv_m01 = ctx->inv_m01;
+    inv_m10 = ctx->inv_m10;
+    inv_m11 = ctx->inv_m11;
+    draw_x0 = ctx->draw_x0;
+    draw_x1 = ctx->draw_x1;
+    draw_y0 = ctx->draw_y0;
+    draw_y1 = ctx->draw_y1;
+    pfb_w = ctx->pfb_w;
+    pfb_ox = ctx->pfb_ox;
+    pfb_oy = ctx->pfb_oy;
+    row_start_offset_x = inv_m00 * (draw_x0 - x);
+    row_start_offset_y = inv_m10 * (draw_x0 - x);
+    Cx_base = ctx->Cx_base - ((int32_t)src_x0 << 15);
+    Cy_base = ctx->Cy_base - ((int32_t)src_y0 << 15);
+    buf_src_hi_x_q15 = (int32_t)buf_w << 15;
+    buf_src_hi_y_q15 = (int32_t)buf_h << 15;
+    buf_int_max_x_q15 = ((int32_t)buf_w - 2) << 15;
+    buf_int_max_y_q15 = ((int32_t)buf_h - 2) << 15;
+
+    for (int32_t dy = draw_y0; dy < draw_y1; dy++)
+    {
+        egui_color_t row_color = color;
+        egui_color_int_t solid_color;
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+        uint32_t row_fg_rb_g;
+#endif
+        int32_t rotatedX;
+        int32_t rotatedY;
+        egui_color_int_t *dst_row;
+        int entered = 0;
+        int32_t dx = draw_x0;
+
+        if (!transform_prepare_row_color(ctx->mask, (egui_dim_t)dy, &row_color))
+        {
+            return 0;
+        }
+
+        solid_color = row_color.full;
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+        row_fg_rb_g = (solid_color | ((uint32_t)solid_color << 16)) & 0x07E0F81FUL;
+#endif
+        rotatedX = row_start_offset_x + Cx_base;
+        rotatedY = row_start_offset_y + Cy_base;
+        dst_row = &ctx->pfb[(dy - pfb_oy) * pfb_w + (draw_x0 - pfb_ox)];
+
+        if (rotatedX < 0 || rotatedX >= buf_src_hi_x_q15 || rotatedY < 0 || rotatedY >= buf_src_hi_y_q15)
+        {
+            int32_t skip = transform_scanline_skip(rotatedX, rotatedY, inv_m00, inv_m10, 0, buf_src_hi_x_q15, 0, buf_src_hi_y_q15, draw_x1 - draw_x0);
+            if (skip > 0)
+            {
+                rotatedX += skip * inv_m00;
+                rotatedY += skip * inv_m10;
+                dst_row += skip;
+                dx += skip;
+            }
+        }
+
+        for (; dx < draw_x1; dx++)
+        {
+            int32_t sx = rotatedX >> 15;
+            int32_t sy = rotatedY >> 15;
+
+            if (sx >= 0 && sx < buf_w - 1 && sy >= 0 && sy < buf_h - 1)
+            {
+                entered = 1;
+                int32_t sir_count = draw_x1 - dx;
+
+                if (inv_m00 > 0)
+                {
+                    int32_t n = (buf_int_max_x_q15 - rotatedX) / inv_m00;
+                    if (n < sir_count)
+                    {
+                        sir_count = n;
+                    }
+                }
+                else if (inv_m00 < 0)
+                {
+                    int32_t n = rotatedX / (-inv_m00);
+                    if (n < sir_count)
+                    {
+                        sir_count = n;
+                    }
+                }
+
+                if (inv_m10 > 0)
+                {
+                    int32_t n = (buf_int_max_y_q15 - rotatedY) / inv_m10;
+                    if (n < sir_count)
+                    {
+                        sir_count = n;
+                    }
+                }
+                else if (inv_m10 < 0)
+                {
+                    int32_t n = rotatedY / (-inv_m10);
+                    if (n < sir_count)
+                    {
+                        sir_count = n;
+                    }
+                }
+
+                if (sir_count < 1)
+                {
+                    sir_count = 1;
+                }
+
+                for (int32_t i = 0; i < sir_count; i++)
+                {
+                    int32_t sample_sx = rotatedX >> 15;
+                    int32_t sample_sy = rotatedY >> 15;
+                    const uint8_t *row0 = alpha8_buf + sample_sy * buf_w + sample_sx;
+                    const uint8_t *row1 = row0 + buf_w;
+                    uint8_t a00 = row0[0];
+                    uint8_t a01 = row0[1];
+                    uint8_t a10 = row1[0];
+                    uint8_t a11 = row1[1];
+                    uint8_t pixel_alpha;
+
+                    if ((a00 | a01 | a10 | a11) == 0)
+                    {
+                        rotatedX += inv_m00;
+                        rotatedY += inv_m10;
+                        dst_row++;
+                        continue;
+                    }
+
+                    if ((a00 & a01 & a10 & a11) == EGUI_ALPHA_100)
+                    {
+                        pixel_alpha = EGUI_ALPHA_100;
+                    }
+                    else
+                    {
+                        uint8_t fx = (rotatedX >> 7) & 0xFF;
+                        uint8_t fy = (rotatedY >> 7) & 0xFF;
+                        uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                        uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                        pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+                    }
+
+                    if (pixel_alpha > 0)
+                    {
+                        if (pixel_alpha == EGUI_ALPHA_100)
+                        {
+                            *dst_row = solid_color;
+                        }
+                        else
+                        {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                            uint16_t bg = *dst_row;
+                            uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                            uint32_t result = (bg_rb_g + ((row_fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                            *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                            egui_color_t *back = (egui_color_t *)dst_row;
+                            egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
+#endif
+                        }
+                    }
+
+                    rotatedX += inv_m00;
+                    rotatedY += inv_m10;
+                    dst_row++;
+                }
+
+                dx += sir_count - 1;
+                continue;
+            }
+            else if (sx >= -1 && sx < buf_w && sy >= -1 && sy < buf_h)
+            {
+                uint8_t fx = (rotatedX >> 7) & 0xFF;
+                uint8_t fy = (rotatedY >> 7) & 0xFF;
+                uint8_t a00 = 0;
+                uint8_t a01 = 0;
+                uint8_t a10 = 0;
+                uint8_t a11 = 0;
+                uint8_t pixel_alpha;
+
+                entered = 1;
+
+                if ((uint32_t)sy < (uint32_t)buf_h)
+                {
+                    const uint8_t *row0 = alpha8_buf + sy * buf_w;
+
+                    if ((uint32_t)sx < (uint32_t)buf_w)
+                    {
+                        a00 = row0[sx];
+                    }
+                    if ((uint32_t)(sx + 1) < (uint32_t)buf_w)
+                    {
+                        a01 = row0[sx + 1];
+                    }
+                }
+
+                if ((uint32_t)(sy + 1) < (uint32_t)buf_h)
+                {
+                    const uint8_t *row1 = alpha8_buf + (sy + 1) * buf_w;
+
+                    if ((uint32_t)sx < (uint32_t)buf_w)
+                    {
+                        a10 = row1[sx];
+                    }
+                    if ((uint32_t)(sx + 1) < (uint32_t)buf_w)
+                    {
+                        a11 = row1[sx + 1];
+                    }
+                }
+
+                if ((a00 | a01 | a10 | a11) == 0)
+                {
+                    pixel_alpha = 0;
+                }
+                else if ((a00 & a01 & a10 & a11) == EGUI_ALPHA_100)
+                {
+                    pixel_alpha = EGUI_ALPHA_100;
+                }
+                else
+                {
+                    uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+                    uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+                    pixel_alpha = (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+                }
+
+                if (pixel_alpha > 0)
+                {
+                    if (pixel_alpha == EGUI_ALPHA_100)
+                    {
+                        *dst_row = solid_color;
+                    }
+                    else
+                    {
+#if (EGUI_CONFIG_COLOR_DEPTH == 16)
+                        uint16_t bg = *dst_row;
+                        uint32_t bg_rb_g = (bg | ((uint32_t)bg << 16)) & 0x07E0F81FUL;
+                        uint32_t result = (bg_rb_g + ((row_fg_rb_g - bg_rb_g) * ((uint32_t)pixel_alpha >> 3) >> 5)) & 0x07E0F81FUL;
+                        *dst_row = (uint16_t)(result | (result >> 16));
+#else
+                        egui_color_t *back = (egui_color_t *)dst_row;
+                        egui_rgb_mix_ptr(back, &row_color, back, pixel_alpha);
+#endif
+                    }
+                }
+            }
+            else if (entered)
+            {
+                break;
+            }
+
+            rotatedX += inv_m00;
+            rotatedY += inv_m10;
+            dst_row++;
+        }
+
+        Cx_base += inv_m01;
+        Cy_base += inv_m11;
+    }
+
+    return 1;
+}
+
 static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color, const uint8_t *alpha8_buf,
                                              int16_t src_x0, int16_t src_y0, int buf_w, int buf_h)
 {
@@ -3608,6 +4163,21 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
     if (ctx == NULL || alpha8_buf == NULL || buf_w <= 0 || buf_h <= 0)
     {
         return 0;
+    }
+
+    if (ctx->mask == NULL && ctx->canvas_alpha == EGUI_ALPHA_100)
+    {
+        return text_transform_draw_alpha8_buffer_opaque_nomask(ctx, x, y, color, alpha8_buf, src_x0, src_y0, buf_w, buf_h);
+    }
+    if (ctx->canvas_alpha == EGUI_ALPHA_100 && ctx->mask != NULL && ctx->mask->api != NULL && ctx->mask->api->kind == EGUI_MASK_KIND_GRADIENT &&
+        ctx->mask->api->mask_blend_row_color != NULL)
+    {
+        egui_color_t probe_color = color;
+
+        if (transform_prepare_row_color(ctx->mask, (egui_dim_t)ctx->draw_y0, &probe_color))
+        {
+            return text_transform_draw_alpha8_buffer_opaque_row_color(ctx, x, y, color, alpha8_buf, src_x0, src_y0, buf_w, buf_h);
+        }
     }
 
     inv_m00 = ctx->inv_m00;
