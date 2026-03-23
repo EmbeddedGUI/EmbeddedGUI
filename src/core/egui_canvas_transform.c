@@ -1813,7 +1813,8 @@ static int text_transform_prepare_layout(const egui_font_t *font, const egui_fon
 static int collect_visible_glyphs(const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *layout_glyphs,
                                   const text_transform_layout_line_t *layout_lines, int layout_line_count, text_transform_glyph_t *glyphs, int max_glyphs,
                                   text_transform_layout_line_t *visible_lines, int max_visible_lines, int *visible_line_count, int16_t sx0, int16_t sy0,
-                                  int16_t sx1, int16_t sy1, int16_t *bbox_x0, int16_t *bbox_y0, int16_t *bbox_x1, int16_t *bbox_y1, int *glyphs_overlap)
+                                  int16_t sx1, int16_t sy1, int16_t *bbox_x0, int16_t *bbox_y0, int16_t *bbox_x1, int16_t *bbox_y1, int *glyphs_overlap,
+                                  int with_sample_meta)
 {
     int count = 0;
     int line_count = 0;
@@ -1968,14 +1969,17 @@ static int collect_visible_glyphs(const egui_font_std_info_t *font_info, const t
                     glyphs[count].y = src->y;
                     glyphs[count].box_w = src->box_w;
                     glyphs[count].box_h = src->box_h;
-                    glyphs[count].row_bytes = (uint8_t)packed_row_bytes(src->box_w, font_info->font_bit_mode);
-                    glyphs[count].line = (uint8_t)line_count;
+                    if (with_sample_meta)
+                    {
+                        glyphs[count].row_bytes = (uint8_t)packed_row_bytes(src->box_w, font_info->font_bit_mode);
+                        glyphs[count].line = (uint8_t)line_count;
+                    }
                     count++;
                 }
             }
         }
 
-        if (count > line_start && line_count < max_visible_lines)
+        if (with_sample_meta && count > line_start && line_count < max_visible_lines)
         {
             visible_lines[line_count].start = line_start;
             visible_lines[line_count].end = count;
@@ -2510,26 +2514,43 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
             return;
         }
     }
-    int tile_count = collect_visible_glyphs(font_info, layout_glyphs, layout_lines, layout_line_count, s_tile_glyphs,
+    {
+        int use_visible_alpha8_tile =
+                (bpp == 4 && scale_q8 >= 256 &&
+                 (ctx.mask == NULL || (ctx.mask->api != NULL && ctx.mask->api->kind == EGUI_MASK_KIND_GRADIENT && ctx.mask->api->mask_blend_row_color != NULL)));
+        int tile_count;
+
+        if (use_visible_alpha8_tile)
+        {
+            tile_count = collect_visible_glyphs(font_info, layout_glyphs, layout_lines, layout_line_count, s_tile_glyphs,
+                                                EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS, NULL, 0, NULL, src_min_x, src_min_y, src_max_x, src_max_y,
+                                                &tile_src_x0, &tile_src_y0, &tile_src_x1, &tile_src_y1, &tile_glyphs_overlap, 0);
+
+            if (tile_count == 0)
+            {
+                egui_font_std_release_access(&font_access);
+                return;
+            }
+
+            if (text_transform_draw_visible_alpha8_tile(&ctx, x, y, color, s_tile_glyphs, tile_count, tile_src_x0, tile_src_y0, tile_src_x1, tile_src_y1,
+                                                        tile_glyphs_overlap))
+            {
+                egui_font_std_release_access(&font_access);
+                return;
+            }
+        }
+
+        tile_count = collect_visible_glyphs(font_info, layout_glyphs, layout_lines, layout_line_count, s_tile_glyphs,
                                             EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS, s_tile_lines, EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES,
-                                            &tile_line_count, src_min_x, src_min_y, src_max_x, src_max_y, &tile_src_x0, &tile_src_y0, &tile_src_x1,
-                                            &tile_src_y1, &tile_glyphs_overlap);
+                                            &tile_line_count, src_min_x, src_min_y, src_max_x, src_max_y, NULL, NULL, NULL, NULL, NULL, 1);
 
-    if (tile_count == 0)
-    {
-        egui_font_std_release_access(&font_access);
-        return;
-    }
-
-    if (bpp == 4 && scale_q8 >= 256 &&
-        (ctx.mask == NULL || (ctx.mask->api != NULL && ctx.mask->api->kind == EGUI_MASK_KIND_GRADIENT && ctx.mask->api->mask_blend_row_color != NULL)))
-    {
-        if (text_transform_draw_visible_alpha8_tile(&ctx, x, y, color, s_tile_glyphs, tile_count, tile_src_x0, tile_src_y0, tile_src_x1, tile_src_y1,
-                                                    tile_glyphs_overlap))
+        if (tile_count == 0)
         {
             egui_font_std_release_access(&font_access);
             return;
         }
+
+        (void)tile_count;
     }
 
     int hint = -1;
