@@ -3581,6 +3581,18 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
                                              int16_t src_x0, int16_t src_y0, int buf_w, int buf_h)
 {
     int row_color_only_mode = 0;
+    int32_t inv_m00;
+    int32_t inv_m01;
+    int32_t inv_m10;
+    int32_t inv_m11;
+    int32_t draw_x0;
+    int32_t draw_x1;
+    int32_t draw_y0;
+    int32_t draw_y1;
+    int32_t pfb_w;
+    int32_t pfb_ox;
+    int32_t pfb_oy;
+    int32_t canvas_alpha;
     int32_t row_start_offset_x;
     int32_t row_start_offset_y;
     int32_t Cx_base;
@@ -3598,6 +3610,19 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
         return 0;
     }
 
+    inv_m00 = ctx->inv_m00;
+    inv_m01 = ctx->inv_m01;
+    inv_m10 = ctx->inv_m10;
+    inv_m11 = ctx->inv_m11;
+    draw_x0 = ctx->draw_x0;
+    draw_x1 = ctx->draw_x1;
+    draw_y0 = ctx->draw_y0;
+    draw_y1 = ctx->draw_y1;
+    pfb_w = ctx->pfb_w;
+    pfb_ox = ctx->pfb_ox;
+    pfb_oy = ctx->pfb_oy;
+    canvas_alpha = ctx->canvas_alpha;
+
     if (ctx->mask != NULL)
     {
         egui_color_t probe_color = color;
@@ -3611,8 +3636,8 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
         row_color_only_mode = 1;
     }
 
-    row_start_offset_x = ctx->inv_m00 * ((int32_t)ctx->draw_x0 - x);
-    row_start_offset_y = ctx->inv_m10 * ((int32_t)ctx->draw_x0 - x);
+    row_start_offset_x = inv_m00 * (draw_x0 - x);
+    row_start_offset_y = inv_m10 * (draw_x0 - x);
     Cx_base = ctx->Cx_base - ((int32_t)src_x0 << 15);
     Cy_base = ctx->Cy_base - ((int32_t)src_y0 << 15);
     buf_src_hi_x_q15 = (int32_t)buf_w << 15;
@@ -3623,7 +3648,7 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
     fg_rb_g = (color.full | ((uint32_t)color.full << 16)) & 0x07E0F81FUL;
 #endif
 
-    for (int32_t dy = ctx->draw_y0; dy < ctx->draw_y1; dy++)
+    for (int32_t dy = draw_y0; dy < draw_y1; dy++)
     {
         egui_color_t row_color = color;
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
@@ -3640,24 +3665,23 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
 
         int32_t rotatedX = row_start_offset_x + Cx_base;
         int32_t rotatedY = row_start_offset_y + Cy_base;
-        egui_color_int_t *dst_row = &ctx->pfb[(dy - ctx->pfb_oy) * ctx->pfb_w + (ctx->draw_x0 - ctx->pfb_ox)];
+        egui_color_int_t *dst_row = &ctx->pfb[(dy - pfb_oy) * pfb_w + (draw_x0 - pfb_ox)];
         int entered = 0;
-        int32_t dx = ctx->draw_x0;
+        int32_t dx = draw_x0;
 
         if (rotatedX < 0 || rotatedX >= buf_src_hi_x_q15 || rotatedY < 0 || rotatedY >= buf_src_hi_y_q15)
         {
-            int32_t skip = transform_scanline_skip(rotatedX, rotatedY, ctx->inv_m00, ctx->inv_m10, 0, buf_src_hi_x_q15, 0, buf_src_hi_y_q15,
-                                                   ctx->draw_x1 - ctx->draw_x0);
+            int32_t skip = transform_scanline_skip(rotatedX, rotatedY, inv_m00, inv_m10, 0, buf_src_hi_x_q15, 0, buf_src_hi_y_q15, draw_x1 - draw_x0);
             if (skip > 0)
             {
-                rotatedX += skip * ctx->inv_m00;
-                rotatedY += skip * ctx->inv_m10;
+                rotatedX += skip * inv_m00;
+                rotatedY += skip * inv_m10;
                 dst_row += skip;
                 dx += skip;
             }
         }
 
-        for (; dx < ctx->draw_x1; dx++)
+        for (; dx < draw_x1; dx++)
         {
             int32_t sx = rotatedX >> 15;
             int32_t sy = rotatedY >> 15;
@@ -3665,36 +3689,36 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
             if (sx >= 0 && sx < buf_w - 1 && sy >= 0 && sy < buf_h - 1)
             {
                 entered = 1;
-                int32_t sir_count = ctx->draw_x1 - dx;
+                int32_t sir_count = draw_x1 - dx;
 
-                if (ctx->inv_m00 > 0)
+                if (inv_m00 > 0)
                 {
-                    int32_t n = (buf_int_max_x_q15 - rotatedX) / ctx->inv_m00;
+                    int32_t n = (buf_int_max_x_q15 - rotatedX) / inv_m00;
                     if (n < sir_count)
                     {
                         sir_count = n;
                     }
                 }
-                else if (ctx->inv_m00 < 0)
+                else if (inv_m00 < 0)
                 {
-                    int32_t n = rotatedX / (-ctx->inv_m00);
+                    int32_t n = rotatedX / (-inv_m00);
                     if (n < sir_count)
                     {
                         sir_count = n;
                     }
                 }
 
-                if (ctx->inv_m10 > 0)
+                if (inv_m10 > 0)
                 {
-                    int32_t n = (buf_int_max_y_q15 - rotatedY) / ctx->inv_m10;
+                    int32_t n = (buf_int_max_y_q15 - rotatedY) / inv_m10;
                     if (n < sir_count)
                     {
                         sir_count = n;
                     }
                 }
-                else if (ctx->inv_m10 < 0)
+                else if (inv_m10 < 0)
                 {
-                    int32_t n = rotatedY / (-ctx->inv_m10);
+                    int32_t n = rotatedY / (-inv_m10);
                     if (n < sir_count)
                     {
                         sir_count = n;
@@ -3706,7 +3730,7 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
                     sir_count = 1;
                 }
 
-                if (ctx->canvas_alpha == EGUI_ALPHA_100)
+                if (canvas_alpha == EGUI_ALPHA_100)
                 {
                     for (int32_t i = 0; i < sir_count; i++)
                     {
@@ -3722,8 +3746,8 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
 
                         if ((a00 | a01 | a10 | a11) == 0)
                         {
-                            rotatedX += ctx->inv_m00;
-                            rotatedY += ctx->inv_m10;
+                            rotatedX += inv_m00;
+                            rotatedY += inv_m10;
                             dst_row++;
                             continue;
                         }
@@ -3761,8 +3785,8 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
                             }
                         }
 
-                        rotatedX += ctx->inv_m00;
-                        rotatedY += ctx->inv_m10;
+                        rotatedX += inv_m00;
+                        rotatedY += inv_m10;
                         dst_row++;
                     }
                 }
@@ -3782,8 +3806,8 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
 
                         if ((a00 | a01 | a10 | a11) == 0)
                         {
-                            rotatedX += ctx->inv_m00;
-                            rotatedY += ctx->inv_m10;
+                            rotatedX += inv_m00;
+                            rotatedY += inv_m10;
                             dst_row++;
                             continue;
                         }
@@ -3803,7 +3827,7 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
 
                         if (pixel_alpha > 0)
                         {
-                            egui_alpha_t final_alpha = ((uint16_t)ctx->canvas_alpha * pixel_alpha + 128) >> 8;
+                            egui_alpha_t final_alpha = ((uint16_t)canvas_alpha * pixel_alpha + 128) >> 8;
 
                             if (final_alpha == EGUI_ALPHA_100)
                             {
@@ -3823,8 +3847,8 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
                             }
                         }
 
-                        rotatedX += ctx->inv_m00;
-                        rotatedY += ctx->inv_m10;
+                        rotatedX += inv_m00;
+                        rotatedY += inv_m10;
                         dst_row++;
                     }
                 }
@@ -3891,7 +3915,7 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
 
                     if (pixel_alpha > 0)
                     {
-                        if (ctx->canvas_alpha == EGUI_ALPHA_100)
+                        if (canvas_alpha == EGUI_ALPHA_100)
                         {
                             if (pixel_alpha == EGUI_ALPHA_100)
                             {
@@ -3912,7 +3936,7 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
                         }
                         else
                         {
-                            egui_alpha_t final_alpha = ((uint16_t)ctx->canvas_alpha * pixel_alpha + 128) >> 8;
+                            egui_alpha_t final_alpha = ((uint16_t)canvas_alpha * pixel_alpha + 128) >> 8;
 
                             if (final_alpha == EGUI_ALPHA_100)
                             {
@@ -3939,13 +3963,13 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
                 break;
             }
 
-            rotatedX += ctx->inv_m00;
-            rotatedY += ctx->inv_m10;
+            rotatedX += inv_m00;
+            rotatedY += inv_m10;
             dst_row++;
         }
 
-        Cx_base += ctx->inv_m01;
-        Cy_base += ctx->inv_m11;
+        Cx_base += inv_m01;
+        Cy_base += inv_m11;
     }
 
     return 1;
