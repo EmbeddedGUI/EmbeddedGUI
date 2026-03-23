@@ -1343,7 +1343,8 @@ typedef struct
 static text_transform_prepare_cache_t g_text_transform_prepare_cache = {0};
 
 static int text_transform_draw_visible_alpha8_tile(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color,
-                                                   const text_transform_glyph_t *glyphs, int glyph_count);
+                                                   const text_transform_glyph_t *glyphs, int glyph_count, int16_t src_x0, int16_t src_y0, int16_t src_x1,
+                                                   int16_t src_y1);
 
 static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8, egui_alpha_t alpha,
                                   text_transform_ctx_t *ctx)
@@ -1812,14 +1813,31 @@ static int text_transform_prepare_layout(const egui_font_t *font, const egui_fon
 static int collect_visible_glyphs(const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *layout_glyphs,
                                   const text_transform_layout_line_t *layout_lines, int layout_line_count, text_transform_glyph_t *glyphs, int max_glyphs,
                                   text_transform_layout_line_t *visible_lines, int max_visible_lines, int *visible_line_count, int16_t sx0, int16_t sy0,
-                                  int16_t sx1, int16_t sy1)
+                                  int16_t sx1, int16_t sy1, int16_t *bbox_x0, int16_t *bbox_y0, int16_t *bbox_x1, int16_t *bbox_y1)
 {
     int count = 0;
     int line_count = 0;
+    int bbox_found = 0;
 
     if (visible_line_count != NULL)
     {
         *visible_line_count = 0;
+    }
+    if (bbox_x0 != NULL)
+    {
+        *bbox_x0 = 0;
+    }
+    if (bbox_y0 != NULL)
+    {
+        *bbox_y0 = 0;
+    }
+    if (bbox_x1 != NULL)
+    {
+        *bbox_x1 = 0;
+    }
+    if (bbox_y1 != NULL)
+    {
+        *bbox_y1 = 0;
     }
 
     for (int line = 0; line < layout_line_count; line++)
@@ -1868,6 +1886,11 @@ static int collect_visible_glyphs(const egui_font_std_info_t *font_info, const t
             {
                 if (count < max_glyphs)
                 {
+                    int16_t glyph_x0 = src->x;
+                    int16_t glyph_y0 = src->y;
+                    int16_t glyph_x1 = src->x + src->box_w;
+                    int16_t glyph_y1 = src->y + src->box_h;
+
                     if (count == line_start)
                     {
                         line_x_min = src->x;
@@ -1882,6 +1905,45 @@ static int collect_visible_glyphs(const egui_font_std_info_t *font_info, const t
                         if (src->x + src->box_w > line_x_max)
                         {
                             line_x_max = src->x + src->box_w;
+                        }
+                    }
+                    if (!bbox_found)
+                    {
+                        if (bbox_x0 != NULL)
+                        {
+                            *bbox_x0 = glyph_x0;
+                        }
+                        if (bbox_y0 != NULL)
+                        {
+                            *bbox_y0 = glyph_y0;
+                        }
+                        if (bbox_x1 != NULL)
+                        {
+                            *bbox_x1 = glyph_x1;
+                        }
+                        if (bbox_y1 != NULL)
+                        {
+                            *bbox_y1 = glyph_y1;
+                        }
+                        bbox_found = 1;
+                    }
+                    else
+                    {
+                        if (bbox_x0 != NULL && glyph_x0 < *bbox_x0)
+                        {
+                            *bbox_x0 = glyph_x0;
+                        }
+                        if (bbox_y0 != NULL && glyph_y0 < *bbox_y0)
+                        {
+                            *bbox_y0 = glyph_y0;
+                        }
+                        if (bbox_x1 != NULL && glyph_x1 > *bbox_x1)
+                        {
+                            *bbox_x1 = glyph_x1;
+                        }
+                        if (bbox_y1 != NULL && glyph_y1 > *bbox_y1)
+                        {
+                            *bbox_y1 = glyph_y1;
                         }
                     }
                     glyphs[count].data = font_info->pixel_buffer + src->pixel_idx;
@@ -2401,6 +2463,10 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     static text_transform_glyph_t *s_tile_glyphs = NULL;
     static text_transform_layout_line_t s_tile_lines[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES];
     int tile_line_count = 0;
+    int16_t tile_src_x0 = 0;
+    int16_t tile_src_y0 = 0;
+    int16_t tile_src_x1 = 0;
+    int16_t tile_src_y1 = 0;
     if (s_tile_glyphs == NULL)
     {
         s_tile_glyphs = (text_transform_glyph_t *)egui_malloc(EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS * sizeof(text_transform_glyph_t));
@@ -2412,7 +2478,8 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     }
     int tile_count = collect_visible_glyphs(font_info, layout_glyphs, layout_lines, layout_line_count, s_tile_glyphs,
                                             EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS, s_tile_lines, EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES,
-                                            &tile_line_count, src_min_x, src_min_y, src_max_x, src_max_y);
+                                            &tile_line_count, src_min_x, src_min_y, src_max_x, src_max_y, &tile_src_x0, &tile_src_y0, &tile_src_x1,
+                                            &tile_src_y1);
 
     if (tile_count == 0)
     {
@@ -2423,7 +2490,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     if (bpp == 4 && scale_q8 >= 256 &&
         (ctx.mask == NULL || (ctx.mask->api != NULL && ctx.mask->api->kind == EGUI_MASK_KIND_GRADIENT && ctx.mask->api->mask_blend_row_color != NULL)))
     {
-        if (text_transform_draw_visible_alpha8_tile(&ctx, x, y, color, s_tile_glyphs, tile_count))
+        if (text_transform_draw_visible_alpha8_tile(&ctx, x, y, color, s_tile_glyphs, tile_count, tile_src_x0, tile_src_y0, tile_src_x1, tile_src_y1))
         {
             egui_font_std_release_access(&font_access);
             return;
@@ -2975,14 +3042,15 @@ static void ensure_alpha4_expand_pair_table(void)
 static void rasterize_glyph4_to_alpha8_inside(uint8_t *buf, int buf_w, int dst_x, int dst_y, const uint8_t *glyph_data, int box_w, int box_h)
 {
     int row_bytes = (box_w + 1) >> 1;
+    int pair_count = box_w >> 1;
+    int has_tail = box_w & 1;
 
     for (int row = 0; row < box_h; row++)
     {
         const uint8_t *src = glyph_data + row * row_bytes;
         uint8_t *dst = buf + (dst_y + row) * buf_w + dst_x;
-        int col = 0;
 
-        while ((col + 1) < box_w)
+        for (int pair_idx = 0; pair_idx < pair_count; pair_idx++)
         {
             uint8_t packed = *src++;
             uint16_t pair;
@@ -2991,7 +3059,14 @@ static void rasterize_glyph4_to_alpha8_inside(uint8_t *buf, int buf_w, int dst_x
 
             if (packed == 0)
             {
-                col += 2;
+                dst += 2;
+                continue;
+            }
+            if (packed == 0xFF)
+            {
+                dst[0] = EGUI_ALPHA_100;
+                dst[1] = EGUI_ALPHA_100;
+                dst += 2;
                 continue;
             }
 
@@ -2999,19 +3074,19 @@ static void rasterize_glyph4_to_alpha8_inside(uint8_t *buf, int buf_w, int dst_x
             alpha0 = (uint8_t)(pair & 0xFF);
             alpha1 = (uint8_t)(pair >> 8);
 
-            if (alpha0 > dst[col])
+            if (alpha0 > dst[0])
             {
-                dst[col] = alpha0;
+                dst[0] = alpha0;
             }
-            if (alpha1 > dst[col + 1])
+            if (alpha1 > dst[1])
             {
-                dst[col + 1] = alpha1;
+                dst[1] = alpha1;
             }
 
-            col += 2;
+            dst += 2;
         }
 
-        if (col < box_w)
+        if (has_tail)
         {
             uint8_t packed = *src;
             uint8_t alpha0;
@@ -3020,11 +3095,16 @@ static void rasterize_glyph4_to_alpha8_inside(uint8_t *buf, int buf_w, int dst_x
             {
                 continue;
             }
+            if ((packed & 0x0F) == 0x0F)
+            {
+                dst[0] = EGUI_ALPHA_100;
+                continue;
+            }
 
             alpha0 = (uint8_t)(g_alpha4_expand_pair_table[packed] & 0xFF);
-            if (alpha0 > dst[col])
+            if (alpha0 > dst[0])
             {
-                dst[col] = alpha0;
+                dst[0] = alpha0;
             }
         }
     }
@@ -3601,14 +3681,11 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
 }
 
 static int text_transform_draw_visible_alpha8_tile(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color,
-                                                   const text_transform_glyph_t *glyphs, int glyph_count)
+                                                   const text_transform_glyph_t *glyphs, int glyph_count, int16_t src_x0, int16_t src_y0, int16_t src_x1,
+                                                   int16_t src_y1)
 {
     static uint8_t *s_visible_alpha8_buf = NULL;
     static int s_visible_alpha8_capacity = 0;
-    int16_t src_x0;
-    int16_t src_y0;
-    int16_t src_x1;
-    int16_t src_y1;
     int buf_w;
     int buf_h;
     int buf_size;
@@ -3617,36 +3694,6 @@ static int text_transform_draw_visible_alpha8_tile(const text_transform_ctx_t *c
     if (ctx == NULL || glyphs == NULL || glyph_count <= 0)
     {
         return 0;
-    }
-
-    src_x0 = glyphs[0].x;
-    src_y0 = glyphs[0].y;
-    src_x1 = glyphs[0].x + glyphs[0].box_w;
-    src_y1 = glyphs[0].y + glyphs[0].box_h;
-
-    for (int i = 1; i < glyph_count; i++)
-    {
-        int16_t glyph_x0 = glyphs[i].x;
-        int16_t glyph_y0 = glyphs[i].y;
-        int16_t glyph_x1 = glyphs[i].x + glyphs[i].box_w;
-        int16_t glyph_y1 = glyphs[i].y + glyphs[i].box_h;
-
-        if (glyph_x0 < src_x0)
-        {
-            src_x0 = glyph_x0;
-        }
-        if (glyph_y0 < src_y0)
-        {
-            src_y0 = glyph_y0;
-        }
-        if (glyph_x1 > src_x1)
-        {
-            src_x1 = glyph_x1;
-        }
-        if (glyph_y1 > src_y1)
-        {
-            src_y1 = glyph_y1;
-        }
     }
 
     src_x0--;
