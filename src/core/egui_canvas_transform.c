@@ -2026,27 +2026,10 @@ static int collect_visible_layout_glyphs_alpha8(const text_transform_layout_glyp
     int overlap_found = 0;
     int prev_visible_line_found = 0;
     int16_t prev_visible_line_y_max = 0;
-
-    if (glyphs_overlap != NULL)
-    {
-        *glyphs_overlap = 0;
-    }
-    if (bbox_x0 != NULL)
-    {
-        *bbox_x0 = 0;
-    }
-    if (bbox_y0 != NULL)
-    {
-        *bbox_y0 = 0;
-    }
-    if (bbox_x1 != NULL)
-    {
-        *bbox_x1 = 0;
-    }
-    if (bbox_y1 != NULL)
-    {
-        *bbox_y1 = 0;
-    }
+    int16_t local_bbox_x0 = 0;
+    int16_t local_bbox_y0 = 0;
+    int16_t local_bbox_x1 = 0;
+    int16_t local_bbox_y1 = 0;
 
     for (int line = 0; line < layout_line_count; line++)
     {
@@ -2085,69 +2068,57 @@ static int collect_visible_layout_glyphs_alpha8(const text_transform_layout_glyp
             }
             if (src->y + src->box_h > sy0 && src->y < sy1)
             {
-                int16_t glyph_x0 = src->x;
-                int16_t glyph_y0 = src->y;
-                int16_t glyph_x1 = src->x + src->box_w;
-                int16_t glyph_y1 = src->y + src->box_h;
-
                 if (count < max_glyphs)
                 {
-                    glyphs[count++] = src;
-                }
+                    int16_t glyph_x0 = src->x;
+                    int16_t glyph_y0 = src->y;
+                    int16_t glyph_x1 = glyph_x0 + src->box_w;
+                    int16_t glyph_y1 = glyph_y0 + src->box_h;
 
-                if (count == line_start + 1)
-                {
-                    line_rightmost_x = glyph_x1;
-                }
-                else
-                {
-                    if (glyph_x0 < line_rightmost_x)
-                    {
-                        overlap_found = 1;
-                    }
-                    if (glyph_x1 > line_rightmost_x)
+                    glyphs[count++] = src;
+
+                    if (count == line_start + 1)
                     {
                         line_rightmost_x = glyph_x1;
                     }
-                }
+                    else
+                    {
+                        if (glyph_x0 < line_rightmost_x)
+                        {
+                            overlap_found = 1;
+                        }
+                        if (glyph_x1 > line_rightmost_x)
+                        {
+                            line_rightmost_x = glyph_x1;
+                        }
+                    }
 
-                if (!bbox_found)
-                {
-                    if (bbox_x0 != NULL)
+                    if (!bbox_found)
                     {
-                        *bbox_x0 = glyph_x0;
+                        local_bbox_x0 = glyph_x0;
+                        local_bbox_y0 = glyph_y0;
+                        local_bbox_x1 = glyph_x1;
+                        local_bbox_y1 = glyph_y1;
+                        bbox_found = 1;
                     }
-                    if (bbox_y0 != NULL)
+                    else
                     {
-                        *bbox_y0 = glyph_y0;
-                    }
-                    if (bbox_x1 != NULL)
-                    {
-                        *bbox_x1 = glyph_x1;
-                    }
-                    if (bbox_y1 != NULL)
-                    {
-                        *bbox_y1 = glyph_y1;
-                    }
-                    bbox_found = 1;
-                }
-                else
-                {
-                    if (bbox_x0 != NULL && glyph_x0 < *bbox_x0)
-                    {
-                        *bbox_x0 = glyph_x0;
-                    }
-                    if (bbox_y0 != NULL && glyph_y0 < *bbox_y0)
-                    {
-                        *bbox_y0 = glyph_y0;
-                    }
-                    if (bbox_x1 != NULL && glyph_x1 > *bbox_x1)
-                    {
-                        *bbox_x1 = glyph_x1;
-                    }
-                    if (bbox_y1 != NULL && glyph_y1 > *bbox_y1)
-                    {
-                        *bbox_y1 = glyph_y1;
+                        if (glyph_x0 < local_bbox_x0)
+                        {
+                            local_bbox_x0 = glyph_x0;
+                        }
+                        if (glyph_y0 < local_bbox_y0)
+                        {
+                            local_bbox_y0 = glyph_y0;
+                        }
+                        if (glyph_x1 > local_bbox_x1)
+                        {
+                            local_bbox_x1 = glyph_x1;
+                        }
+                        if (glyph_y1 > local_bbox_y1)
+                        {
+                            local_bbox_y1 = glyph_y1;
+                        }
                     }
                 }
             }
@@ -2167,6 +2138,22 @@ static int collect_visible_layout_glyphs_alpha8(const text_transform_layout_glyp
         }
     }
 
+    if (bbox_x0 != NULL)
+    {
+        *bbox_x0 = local_bbox_x0;
+    }
+    if (bbox_y0 != NULL)
+    {
+        *bbox_y0 = local_bbox_y0;
+    }
+    if (bbox_x1 != NULL)
+    {
+        *bbox_x1 = local_bbox_x1;
+    }
+    if (bbox_y1 != NULL)
+    {
+        *bbox_y1 = local_bbox_y1;
+    }
     if (glyphs_overlap != NULL)
     {
         *glyphs_overlap = overlap_found;
@@ -3971,6 +3958,7 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
 {
     static uint8_t *s_visible_alpha8_buf = NULL;
     static int s_visible_alpha8_capacity = 0;
+    const uint8_t *pixel_buffer;
     int buf_w;
     int buf_h;
     int buf_size;
@@ -4002,6 +3990,7 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
     alpha8_buf = s_visible_alpha8_buf;
     memset(alpha8_buf, 0, buf_size);
     ensure_alpha4_expand_pair_table();
+    pixel_buffer = font_info->pixel_buffer;
 
     if (glyphs_overlap)
     {
@@ -4009,8 +3998,8 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
         {
             const text_transform_layout_glyph_t *glyph = glyphs[i];
 
-            rasterize_glyph4_to_alpha8_inside(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, font_info->pixel_buffer + glyph->pixel_idx,
-                                              glyph->box_w, glyph->box_h);
+            rasterize_glyph4_to_alpha8_inside(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, pixel_buffer + glyph->pixel_idx, glyph->box_w,
+                                              glyph->box_h);
         }
     }
     else
@@ -4019,7 +4008,7 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
         {
             const text_transform_layout_glyph_t *glyph = glyphs[i];
 
-            rasterize_glyph4_to_alpha8_inside_overwrite(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, font_info->pixel_buffer + glyph->pixel_idx,
+            rasterize_glyph4_to_alpha8_inside_overwrite(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, pixel_buffer + glyph->pixel_idx,
                                                         glyph->box_w, glyph->box_h);
         }
     }
