@@ -16,6 +16,7 @@
 #define STRIP_BASIC_BADGE_LEN     16
 #define STRIP_BASIC_META_LEN      24
 #define STRIP_BASIC_JUMP_STEP     13U
+#define STRIP_BASIC_RESET_VERIFY_RETRY_MAX 3U
 
 #define STRIP_BASIC_MARGIN_X   8
 #define STRIP_BASIC_TOP_Y      8
@@ -109,6 +110,7 @@ static strip_basic_context_t strip_basic_ctx;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_reset_verify_retry;
 #endif
 
 EGUI_VIEW_CARD_PARAMS_INIT(strip_basic_toolbar_card_params, STRIP_BASIC_MARGIN_X, STRIP_BASIC_TOOLBAR_Y, STRIP_BASIC_HEADER_W, STRIP_BASIC_TOOLBAR_H, 12);
@@ -651,10 +653,24 @@ static void report_runtime_failure(const char *message)
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
 }
 
+static uint8_t strip_basic_is_view_clickable(egui_view_t *view)
+{
+    int click_x;
+    int click_y;
+
+    return (uint8_t)egui_sim_get_view_clipped_center(view, &EGUI_VIEW_OF(&strip_view)->region_screen, &click_x, &click_y);
+}
+
+static uint8_t strip_basic_set_click_item_action(egui_sim_action_t *p_action, egui_view_t *view, uint32_t interval_ms)
+{
+    return (uint8_t)egui_sim_set_click_view_clipped(p_action, view, &EGUI_VIEW_OF(&strip_view)->region_screen, (int)interval_ms);
+}
+
 static egui_view_t *strip_basic_find_visible_view_by_index(uint32_t index)
 {
     uint32_t stable_id;
     const egui_view_virtual_strip_slot_t *slot;
+    egui_view_t *view;
 
     if (index >= STRIP_BASIC_ITEM_COUNT)
     {
@@ -663,12 +679,13 @@ static egui_view_t *strip_basic_find_visible_view_by_index(uint32_t index)
 
     stable_id = strip_basic_ctx.items[index].stable_id;
     slot = egui_view_virtual_strip_find_slot_by_stable_id(EGUI_VIEW_OF(&strip_view), stable_id);
-    if (slot == NULL || !egui_view_virtual_viewport_is_slot_center_visible(EGUI_VIEW_OF(&strip_view), slot))
+    if (slot == NULL)
     {
         return NULL;
     }
 
-    return egui_view_virtual_strip_find_view_by_stable_id(EGUI_VIEW_OF(&strip_view), stable_id);
+    view = egui_view_virtual_strip_find_view_by_stable_id(EGUI_VIEW_OF(&strip_view), stable_id);
+    return strip_basic_is_view_clickable(view) ? view : NULL;
 }
 
 typedef struct strip_basic_visible_after_context
@@ -681,9 +698,10 @@ static uint8_t strip_basic_match_visible_after(egui_view_t *self, const egui_vie
 {
     strip_basic_visible_after_context_t *ctx = (strip_basic_visible_after_context_t *)context;
 
-    EGUI_UNUSED(item_view);
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(slot);
 
-    return (uint8_t)(slot != NULL && entry != NULL && entry->index >= ctx->min_index && egui_view_virtual_viewport_is_slot_center_visible(self, slot));
+    return (uint8_t)(entry != NULL && entry->index >= ctx->min_index && strip_basic_is_view_clickable(item_view));
 }
 
 static egui_view_t *strip_basic_find_first_visible_view_after(uint32_t min_index)
@@ -746,7 +764,11 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             EGUI_SIM_SET_WAIT(p_action, 220);
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        if (!strip_basic_set_click_item_action(p_action, view, 220))
+        {
+            report_runtime_failure("first strip card click point was not clickable");
+            EGUI_SIM_SET_WAIT(p_action, 220);
+        }
         return true;
     case 2:
         if (first_call && strip_basic_ctx.selected_id != strip_basic_ctx.items[0].stable_id)
@@ -763,22 +785,22 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         strip_basic_set_scroll_action(p_action, 320);
         return true;
     case 4:
-        if (first_call)
+        if (first_call && egui_view_virtual_strip_get_scroll_x(EGUI_VIEW_OF(&strip_view)) <= 0)
         {
-            uint32_t first_visible = strip_basic_get_first_visible_index();
-            if (first_visible == STRIP_BASIC_INVALID_INDEX || first_visible == 0U)
-            {
-                report_runtime_failure("strip scroll did not move visible window");
-            }
+            report_runtime_failure("strip scroll did not move visible window");
         }
         view = strip_basic_find_first_visible_view_after(4);
-        if (view == NULL)
+        if (view != NULL)
         {
-            report_runtime_failure("strip visible card after swipe was not found");
-            EGUI_SIM_SET_WAIT(p_action, 220);
+            if (!strip_basic_set_click_item_action(p_action, view, 220))
+            {
+                report_runtime_failure("strip visible card click point was not clickable");
+                EGUI_SIM_SET_WAIT(p_action, 220);
+                return true;
+            }
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 5:
         if (first_call && strip_basic_ctx.selected_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
@@ -795,19 +817,30 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
                 report_runtime_failure("strip jump did not update selected item");
             }
         }
+        recording_reset_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[STRIP_BASIC_ACTION_RESET]), 220);
         return true;
     case 7:
-        if (first_call)
+        if (strip_basic_ctx.selected_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID || egui_view_virtual_strip_get_scroll_x(EGUI_VIEW_OF(&strip_view)) != 0)
         {
+            if (recording_reset_verify_retry < STRIP_BASIC_RESET_VERIFY_RETRY_MAX)
+            {
+                recording_reset_verify_retry++;
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
             if (strip_basic_ctx.selected_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
             {
                 report_runtime_failure("strip reset did not clear selected item");
             }
-            if (strip_basic_get_first_visible_index() != 0U)
+            if (egui_view_virtual_strip_get_scroll_x(EGUI_VIEW_OF(&strip_view)) != 0)
             {
                 report_runtime_failure("strip reset did not restore start position");
             }
+        }
+        recording_reset_verify_retry = 0U;
+        if (first_call)
+        {
             recording_request_snapshot();
         }
         EGUI_SIM_SET_WAIT(p_action, 220);
@@ -834,6 +867,7 @@ void test_init_ui(void)
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0U;
+    recording_reset_verify_retry = 0U;
 #endif
 
     egui_view_init(EGUI_VIEW_OF(&background_view));

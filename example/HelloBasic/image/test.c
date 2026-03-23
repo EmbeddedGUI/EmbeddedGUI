@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include "uicode.h"
 
+#if EGUI_CONFIG_RECORDING_TEST
+#include "core/egui_input_simulator.h"
+#endif
+
 // views in root
 static egui_view_image_t image_1;
 
@@ -31,11 +35,20 @@ void test_init_ui(void)
 #if EGUI_CONFIG_RECORDING_TEST
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
-    if (action_index >= 1)
+    switch (action_index)
     {
+    case 0:
+        egui_view_image_set_image_color(EGUI_VIEW_OF(&image_1), EGUI_COLOR_HEX(0xFFB24C), EGUI_ALPHA_60);
+        recording_request_snapshot();
+        EGUI_SIM_SET_WAIT(p_action, 220);
+        return true;
+    case 1:
+        egui_view_image_set_image_color(EGUI_VIEW_OF(&image_1), EGUI_COLOR_BLACK, 0);
+        recording_request_snapshot();
+        EGUI_SIM_SET_WAIT(p_action, 220);
+        return true;
+    default:
         return false;
     }
-    EGUI_SIM_SET_WAIT(p_action, 1500);
-    return true;
 }
 #endif

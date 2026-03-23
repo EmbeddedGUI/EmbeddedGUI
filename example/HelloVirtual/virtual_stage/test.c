@@ -2431,6 +2431,7 @@ void demo_toggle_changed(egui_view_t *self, uint8_t is_toggled)
     {
         demo_context.toggle_enabled[index] = is_toggled;
         egui_view_toggle_button_set_icon(self, demo_get_toggle_icon(toggle_view->stable_id));
+        egui_view_toggle_button_set_icon_font(self, EGUI_FONT_ICON_MS_16);
         demo_log_event("%s %s", demo_toggle_titles[index], is_toggled ? "on" : "off");
         demo_widget_state_changed();
     }

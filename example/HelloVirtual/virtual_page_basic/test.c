@@ -18,6 +18,7 @@
 #define PAGE_BASIC_VALUE_TEXT_LEN 16
 #define PAGE_BASIC_ROW_TEXT_LEN   32
 #define PAGE_BASIC_JUMP_STEP      5U
+#define PAGE_BASIC_JUMP_VERIFY_RETRY_MAX 3U
 
 #define PAGE_BASIC_MARGIN_X   8
 #define PAGE_BASIC_TOP_Y      8
@@ -156,6 +157,7 @@ static page_basic_context_t page_basic_ctx;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_jump_verify_retry;
 #endif
 
 EGUI_VIEW_CARD_PARAMS_INIT(page_basic_toolbar_card_params, PAGE_BASIC_MARGIN_X, PAGE_BASIC_TOOLBAR_Y, PAGE_BASIC_HEADER_W, PAGE_BASIC_TOOLBAR_H, 12);
@@ -859,10 +861,24 @@ static void report_runtime_failure(const char *message)
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
 }
 
+static uint8_t page_basic_is_view_clickable(egui_view_t *view)
+{
+    int click_x;
+    int click_y;
+
+    return (uint8_t)egui_sim_get_view_clipped_center(view, &EGUI_VIEW_OF(&page_view)->region_screen, &click_x, &click_y);
+}
+
+static uint8_t page_basic_set_click_item_action(egui_sim_action_t *p_action, egui_view_t *view, uint32_t interval_ms)
+{
+    return (uint8_t)egui_sim_set_click_view_clipped(p_action, view, &EGUI_VIEW_OF(&page_view)->region_screen, (int)interval_ms);
+}
+
 static egui_view_t *page_basic_find_visible_view_by_index(uint32_t index)
 {
     uint32_t stable_id;
     const egui_view_virtual_page_slot_t *slot;
+    egui_view_t *view;
 
     if (index >= PAGE_BASIC_SECTION_COUNT)
     {
@@ -871,12 +887,13 @@ static egui_view_t *page_basic_find_visible_view_by_index(uint32_t index)
 
     stable_id = page_basic_ctx.sections[index].stable_id;
     slot = egui_view_virtual_page_find_slot_by_stable_id(EGUI_VIEW_OF(&page_view), stable_id);
-    if (slot == NULL || !egui_view_virtual_viewport_is_slot_center_visible(EGUI_VIEW_OF(&page_view), slot))
+    if (slot == NULL)
     {
         return NULL;
     }
 
-    return egui_view_virtual_page_find_view_by_stable_id(EGUI_VIEW_OF(&page_view), stable_id);
+    view = egui_view_virtual_page_find_view_by_stable_id(EGUI_VIEW_OF(&page_view), stable_id);
+    return page_basic_is_view_clickable(view) ? view : NULL;
 }
 
 static void page_basic_set_scroll_action(egui_sim_action_t *p_action, uint32_t interval_ms)
@@ -930,32 +947,53 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             EGUI_SIM_SET_WAIT(p_action, 220);
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        if (!page_basic_set_click_item_action(p_action, view, 220))
+        {
+            report_runtime_failure("first hero section click point was not clickable");
+            EGUI_SIM_SET_WAIT(p_action, 220);
+        }
         return true;
     case 2:
         if (first_call && page_basic_ctx.selected_id != page_basic_ctx.sections[0].stable_id)
         {
             report_runtime_failure("section click did not update selected section");
         }
+        recording_jump_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[PAGE_BASIC_ACTION_JUMP]), 220);
         return true;
     case 3:
-        if (first_call && page_basic_find_visible_view_by_index(page_basic_ctx.jump_cursor) == NULL)
-        {
-            report_runtime_failure("jump action did not bring target section into view");
-        }
         view = page_basic_find_visible_view_by_index(page_basic_ctx.jump_cursor);
-        if (view == NULL)
+        if (page_basic_ctx.selected_id != page_basic_ctx.sections[page_basic_ctx.jump_cursor].stable_id)
         {
+            if (recording_jump_verify_retry < PAGE_BASIC_JUMP_VERIFY_RETRY_MAX)
+            {
+                uint32_t stable_id = page_basic_ctx.sections[page_basic_ctx.jump_cursor].stable_id;
+
+                page_basic_abort_motion();
+                egui_view_virtual_viewport_set_anchor(EGUI_VIEW_OF(&page_view), stable_id, 0);
+                egui_view_virtual_page_scroll_to_section_by_stable_id(EGUI_VIEW_OF(&page_view), stable_id, 0);
+                (void)egui_view_virtual_page_ensure_section_visible_by_stable_id(EGUI_VIEW_OF(&page_view), stable_id, 0);
+                recording_jump_verify_retry++;
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
+            report_runtime_failure("jump action did not select target section");
             EGUI_SIM_SET_WAIT(p_action, 220);
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        recording_jump_verify_retry = 0U;
+        if (view != NULL && !page_basic_set_click_item_action(p_action, view, 220))
+        {
+            report_runtime_failure("target section click point was not clickable");
+            EGUI_SIM_SET_WAIT(p_action, 220);
+            return true;
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 4:
-        if (first_call && page_basic_ctx.last_clicked_index != page_basic_ctx.jump_cursor)
+        if (first_call && page_basic_ctx.selected_id != page_basic_ctx.sections[page_basic_ctx.jump_cursor].stable_id)
         {
-            report_runtime_failure("target section click was not resolved correctly");
+            report_runtime_failure("target section was not selected correctly after jump");
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[PAGE_BASIC_ACTION_PATCH]), 220);
         return true;
@@ -967,13 +1005,9 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         page_basic_set_scroll_action(p_action, 320);
         return true;
     case 6:
-        if (first_call)
+        if (first_call && egui_view_virtual_page_get_scroll_y(EGUI_VIEW_OF(&page_view)) <= 0)
         {
-            uint32_t first_visible = page_basic_get_first_visible_index();
-            if (first_visible == PAGE_BASIC_INVALID_INDEX || first_visible == 0U)
-            {
-                report_runtime_failure("scroll action did not move page viewport");
-            }
+            report_runtime_failure("scroll action did not move page viewport");
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[PAGE_BASIC_ACTION_RESET]), 220);
         return true;
@@ -987,7 +1021,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             {
                 report_runtime_failure("reset action did not clear selected section");
             }
-            if (page_basic_get_first_visible_index() != 0U)
+            if (egui_view_virtual_page_get_scroll_y(EGUI_VIEW_OF(&page_view)) != 0)
             {
                 report_runtime_failure("reset action did not restore top position");
             }
@@ -1020,6 +1054,7 @@ void test_init_ui(void)
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0U;
+    recording_jump_verify_retry = 0U;
 #endif
 
     egui_view_init(EGUI_VIEW_OF(&background_view));

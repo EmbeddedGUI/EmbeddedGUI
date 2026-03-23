@@ -273,17 +273,9 @@ def get_windows_hidden_run_kwargs() -> dict:
     if platform.system() != "Windows":
         return {}
 
-    kwargs = {}
-    if hasattr(subprocess, "CREATE_NO_WINDOW"):
-        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
-    if hasattr(subprocess, "STARTUPINFO"):
-        startupinfo = subprocess.STARTUPINFO()
-        if hasattr(subprocess, "STARTF_USESHOWWINDOW"):
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        if hasattr(subprocess, "SW_HIDE"):
-            startupinfo.wShowWindow = subprocess.SW_HIDE
-        kwargs["startupinfo"] = startupinfo
-    return kwargs
+    # Match code_runtime_check.py: hidden Windows startup flags can deadlock
+    # SDL recording processes during automated capture.
+    return {}
 
 
 def run_target_app(app: str, target_name: str, widget: str, args: argparse.Namespace) -> tuple[bool, str]:

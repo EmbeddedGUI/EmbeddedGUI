@@ -179,6 +179,7 @@ static egui_view_list_view_holder_t *list_view_basic_create_holder(void *data_mo
 
     egui_view_combobox_init_with_params(EGUI_VIEW_OF(&holder->mode_combo), &list_view_basic_combo_params);
     egui_view_combobox_set_font(EGUI_VIEW_OF(&holder->mode_combo), LIST_VIEW_BASIC_FONT_BODY);
+    egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&holder->mode_combo), EGUI_FONT_ICON_MS_20);
     egui_view_combobox_set_max_visible_items(EGUI_VIEW_OF(&holder->mode_combo), 2);
     egui_view_combobox_set_arrow_icons(EGUI_VIEW_OF(&holder->mode_combo), EGUI_ICON_MS_EXPAND_MORE, EGUI_ICON_MS_EXPAND_LESS);
     egui_view_combobox_set_on_selected_listener(EGUI_VIEW_OF(&holder->mode_combo), list_view_basic_combo_selected_cb);

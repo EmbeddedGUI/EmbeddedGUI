@@ -106,6 +106,77 @@ __EGUI_STATIC_INLINE__ void egui_sim_get_view_pos(void *view, float rel_x, float
 }
 
 /**
+ * @brief Get the visible intersection region of a view under an optional clip region.
+ * @param view Pointer to egui_view_t
+ * @param clip_region Optional clip region in screen coordinates, NULL to use full view region
+ * @param p_visible_region Pointer to store the visible region
+ * @return 1 if the view has a non-empty visible region, 0 otherwise
+ */
+__EGUI_STATIC_INLINE__ int egui_sim_get_view_visible_region(void *view, const egui_region_t *clip_region, egui_region_t *p_visible_region)
+{
+    egui_view_t *v = (egui_view_t *)view;
+
+    if (p_visible_region == NULL)
+    {
+        return 0;
+    }
+    egui_region_init_empty(p_visible_region);
+    if (v == NULL || v->region_screen.size.width <= 0 || v->region_screen.size.height <= 0)
+    {
+        return 0;
+    }
+
+    *p_visible_region = v->region_screen;
+    if (clip_region != NULL)
+    {
+        egui_region_intersect(p_visible_region, clip_region, p_visible_region);
+    }
+    return !egui_region_is_empty(p_visible_region);
+}
+
+/**
+ * @brief Get the center position of a view after clipping to an optional region.
+ * @param view Pointer to egui_view_t
+ * @param clip_region Optional clip region in screen coordinates
+ * @param p_x Pointer to store center x
+ * @param p_y Pointer to store center y
+ * @return 1 if a visible clipped center could be resolved, 0 otherwise
+ */
+__EGUI_STATIC_INLINE__ int egui_sim_get_view_clipped_center(void *view, const egui_region_t *clip_region, int *p_x, int *p_y)
+{
+    egui_region_t visible_region;
+
+    if (p_x == NULL || p_y == NULL || !egui_sim_get_view_visible_region(view, clip_region, &visible_region))
+    {
+        return 0;
+    }
+
+    *p_x = visible_region.location.x + visible_region.size.width / 2;
+    *p_y = visible_region.location.y + visible_region.size.height / 2;
+    return 1;
+}
+
+/**
+ * @brief Set a click action using the clipped visible center of a view.
+ * @param p_action Pointer to egui_sim_action_t
+ * @param view Pointer to egui_view_t
+ * @param clip_region Optional clip region in screen coordinates
+ * @param interval_ms Interval before click
+ * @return 1 if the action was set, 0 otherwise
+ */
+__EGUI_STATIC_INLINE__ int egui_sim_set_click_view_clipped(egui_sim_action_t *p_action, void *view, const egui_region_t *clip_region, int interval_ms)
+{
+    if (p_action == NULL || !egui_sim_get_view_clipped_center(view, clip_region, &p_action->x1, &p_action->y1))
+    {
+        return 0;
+    }
+
+    p_action->type = EGUI_SIM_ACTION_CLICK;
+    p_action->interval_ms = interval_ms;
+    return 1;
+}
+
+/**
  * @brief Macro to get view center coordinates as expressions
  * Can be used directly in macro arguments
  */

@@ -81,17 +81,7 @@ def get_windows_hidden_run_kwargs() -> dict:
     if platform.system() != "Windows":
         return {}
 
-    kwargs = {}
-    if hasattr(subprocess, "CREATE_NO_WINDOW"):
-        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
-    if hasattr(subprocess, "STARTUPINFO"):
-        startupinfo = subprocess.STARTUPINFO()
-        if hasattr(subprocess, "STARTF_USESHOWWINDOW"):
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        if hasattr(subprocess, "SW_HIDE"):
-            startupinfo.wShowWindow = subprocess.SW_HIDE
-        kwargs["startupinfo"] = startupinfo
-    return kwargs
+    return {}
 
 
 def read_perf_results(path: Path, profile_name: str, keyword_filter: str) -> tuple[dict[str, dict], str, str]:

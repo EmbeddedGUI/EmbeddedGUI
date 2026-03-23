@@ -185,6 +185,21 @@ static list_view_demo_item_t *list_view_demo_get_item(uint32_t index)
     return &list_view_demo_ctx.items[index];
 }
 
+static list_view_demo_item_t *list_view_demo_find_item_by_stable_id_internal(uint32_t stable_id)
+{
+    uint32_t index;
+
+    for (index = 0; index < list_view_demo_ctx.item_count; index++)
+    {
+        if (list_view_demo_ctx.items[index].stable_id == stable_id)
+        {
+            return &list_view_demo_ctx.items[index];
+        }
+    }
+
+    return NULL;
+}
+
 static int32_t list_view_demo_find_index_by_stable_id_internal(uint32_t stable_id)
 {
     uint32_t index;
@@ -474,6 +489,7 @@ static egui_view_list_view_holder_t *list_view_demo_create_holder(void *data_mod
 
         egui_view_combobox_init_with_params(EGUI_VIEW_OF(&holder->mode_combo), &list_view_demo_combo_params);
         egui_view_combobox_set_font(EGUI_VIEW_OF(&holder->mode_combo), LIST_VIEW_DEMO_FONT_BODY);
+        egui_view_combobox_set_icon_font(EGUI_VIEW_OF(&holder->mode_combo), EGUI_FONT_ICON_MS_16);
         egui_view_combobox_set_max_visible_items(EGUI_VIEW_OF(&holder->mode_combo), 3);
         egui_view_combobox_set_arrow_icons(EGUI_VIEW_OF(&holder->mode_combo), EGUI_ICON_MS_EXPAND_MORE, EGUI_ICON_MS_EXPAND_LESS);
         egui_view_combobox_set_on_selected_listener(EGUI_VIEW_OF(&holder->mode_combo), list_view_demo_mode_selected_cb);

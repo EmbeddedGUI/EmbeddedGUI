@@ -534,6 +534,7 @@ static void test_page_indicator_icon_index_change_uses_partial_dirty_region(void
     setup_page_indicator();
     egui_view_page_indicator_set_mark_style(EGUI_VIEW_OF(&test_indicator), EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_ICON);
     egui_view_page_indicator_set_icons(EGUI_VIEW_OF(&test_indicator), s_indicator_icons);
+    egui_view_page_indicator_set_icon_font(EGUI_VIEW_OF(&test_indicator), EGUI_FONT_ICON_MS_16);
     egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&test_indicator), 1);
 
     egui_core_clear_region_dirty();

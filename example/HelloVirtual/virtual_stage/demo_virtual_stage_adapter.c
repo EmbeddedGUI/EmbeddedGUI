@@ -332,6 +332,7 @@ static void demo_adapter_bind_view(void *adapter_context, egui_view_t *view, uin
         toggle_view->stable_id = stable_id;
         egui_view_toggle_button_set_text(view, node->title);
         egui_view_toggle_button_set_icon(view, demo_get_toggle_icon(stable_id));
+        egui_view_toggle_button_set_icon_font(view, EGUI_FONT_ICON_MS_16);
         egui_view_toggle_button_set_text_color(view, EGUI_COLOR_WHITE);
         toggle->on_color = node->data_index == 0U ? EGUI_COLOR_HEX(0x2E8E58) : EGUI_COLOR_HEX(0x3A6EA5);
         toggle->off_color = EGUI_COLOR_HEX(0xA9B9C6);
@@ -573,6 +574,7 @@ static void demo_adapter_restore_state(void *adapter_context, egui_view_t *view,
         {
             ((egui_view_toggle_button_t *)view)->is_toggled = ctx->toggle_enabled[widget_index];
             egui_view_toggle_button_set_icon(view, demo_get_toggle_icon(stable_id));
+            egui_view_toggle_button_set_icon_font(view, EGUI_FONT_ICON_MS_16);
             egui_view_invalidate(view);
         }
         break;

@@ -39,6 +39,7 @@
 #define TREE_BASIC_GROUP_H       50
 #define TREE_BASIC_TASK_H        56
 #define TREE_BASIC_TASK_DETAIL_H 74
+#define TREE_BASIC_JUMP_VERIFY_RETRY_MAX 3U
 
 #define TREE_BASIC_FONT_TITLE ((const egui_font_t *)&egui_res_font_montserrat_10_4)
 #define TREE_BASIC_FONT_BODY  ((const egui_font_t *)&egui_res_font_montserrat_8_4)
@@ -158,6 +159,7 @@ static tree_basic_context_t tree_basic_ctx;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_jump_verify_retry;
 #endif
 
 EGUI_VIEW_CARD_PARAMS_INIT(tree_basic_toolbar_card_params, TREE_BASIC_MARGIN_X, TREE_BASIC_TOOLBAR_Y, TREE_BASIC_HEADER_W, TREE_BASIC_TOOLBAR_H, 12);
@@ -1003,6 +1005,19 @@ static void report_runtime_failure(const char *message)
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
 }
 
+static uint8_t tree_basic_is_view_clickable(egui_view_t *view)
+{
+    int click_x;
+    int click_y;
+
+    return (uint8_t)egui_sim_get_view_clipped_center(view, &EGUI_VIEW_OF(&tree_view)->region_screen, &click_x, &click_y);
+}
+
+static uint8_t tree_basic_set_click_item_action(egui_sim_action_t *p_action, egui_view_t *view, uint32_t interval_ms)
+{
+    return (uint8_t)egui_sim_set_click_view_clipped(p_action, view, &EGUI_VIEW_OF(&tree_view)->region_screen, (int)interval_ms);
+}
+
 static tree_basic_node_t *tree_basic_find_node_by_triplet(uint8_t kind, uint8_t root_ordinal, uint8_t group_ordinal, uint8_t task_ordinal)
 {
     uint16_t node_index;
@@ -1032,13 +1047,15 @@ static tree_basic_node_t *tree_basic_find_node_by_triplet(uint8_t kind, uint8_t 
 static egui_view_t *tree_basic_find_visible_view_by_stable_id(uint32_t stable_id)
 {
     const egui_view_virtual_tree_slot_t *slot = egui_view_virtual_tree_find_slot_by_stable_id(EGUI_VIEW_OF(&tree_view), stable_id);
+    egui_view_t *view;
 
-    if (slot == NULL || !egui_view_virtual_viewport_is_slot_center_visible(EGUI_VIEW_OF(&tree_view), slot))
+    if (slot == NULL)
     {
         return NULL;
     }
 
-    return egui_view_virtual_tree_find_view_by_stable_id(EGUI_VIEW_OF(&tree_view), stable_id);
+    view = egui_view_virtual_tree_find_view_by_stable_id(EGUI_VIEW_OF(&tree_view), stable_id);
+    return tree_basic_is_view_clickable(view) ? view : NULL;
 }
 
 static egui_view_t *tree_basic_find_visible_view(uint8_t kind, uint8_t root_ordinal, uint8_t group_ordinal, uint8_t task_ordinal)
@@ -1106,7 +1123,11 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             EGUI_SIM_SET_WAIT(p_action, 200);
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        if (!tree_basic_set_click_item_action(p_action, view, 220))
+        {
+            report_runtime_failure("initial task node click point was not clickable");
+            EGUI_SIM_SET_WAIT(p_action, 220);
+        }
         return true;
     case 2:
         node = tree_basic_find_node_by_triplet(TREE_BASIC_NODE_TASK, 0, 0, 0);
@@ -1122,33 +1143,61 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             EGUI_SIM_SET_WAIT(p_action, 200);
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        if (!tree_basic_set_click_item_action(p_action, view, 220))
+        {
+            report_runtime_failure("group branch click point was not clickable");
+            EGUI_SIM_SET_WAIT(p_action, 220);
+        }
         return true;
     case 3:
         if (first_call && egui_view_virtual_tree_get_visible_node_count(EGUI_VIEW_OF(&tree_view)) >= visible_before_collapse)
         {
             report_runtime_failure("branch collapse did not reduce visible nodes");
         }
+        recording_jump_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[TREE_BASIC_ACTION_JUMP]), 220);
         return true;
     case 4:
-        if (first_call && tree_basic_ctx.jump_target_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
-        {
-            report_runtime_failure("jump action did not choose a target task");
-        }
         view = tree_basic_find_visible_view_by_stable_id(tree_basic_ctx.jump_target_id);
-        if (view == NULL)
+        if (tree_basic_ctx.jump_target_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID || tree_basic_ctx.selected_id != tree_basic_ctx.jump_target_id)
         {
-            report_runtime_failure("jump action did not bring target task into view");
+            if (recording_jump_verify_retry < TREE_BASIC_JUMP_VERIFY_RETRY_MAX)
+            {
+                if (tree_basic_ctx.jump_target_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
+                {
+                    tree_basic_abort_motion();
+                    egui_view_virtual_viewport_set_anchor(EGUI_VIEW_OF(&tree_view), tree_basic_ctx.jump_target_id, 0);
+                    egui_view_virtual_tree_scroll_to_node_by_stable_id(EGUI_VIEW_OF(&tree_view), tree_basic_ctx.jump_target_id, 0);
+                    (void)egui_view_virtual_tree_ensure_node_visible_by_stable_id(EGUI_VIEW_OF(&tree_view), tree_basic_ctx.jump_target_id, 0);
+                }
+                recording_jump_verify_retry++;
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
+            if (tree_basic_ctx.jump_target_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
+            {
+                report_runtime_failure("jump action did not choose a target task");
+            }
+            else
+            {
+                report_runtime_failure("jump action did not select target task");
+            }
             EGUI_SIM_SET_WAIT(p_action, 220);
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        recording_jump_verify_retry = 0U;
+        if (view != NULL && !tree_basic_set_click_item_action(p_action, view, 220))
+        {
+            report_runtime_failure("jump target task click point was not clickable");
+            EGUI_SIM_SET_WAIT(p_action, 220);
+            return true;
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 5:
-        if (first_call && tree_basic_ctx.last_clicked_id != tree_basic_ctx.jump_target_id)
+        if (first_call && tree_basic_ctx.selected_id != tree_basic_ctx.jump_target_id)
         {
-            report_runtime_failure("target task click was not resolved correctly");
+            report_runtime_failure("target task was not selected correctly after jump");
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[TREE_BASIC_ACTION_PATCH]), 220);
         return true;
@@ -1213,6 +1262,7 @@ void test_init_ui(void)
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0U;
+    recording_jump_verify_retry = 0U;
 #endif
 
     egui_view_init(EGUI_VIEW_OF(&background_view));

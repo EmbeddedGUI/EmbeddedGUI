@@ -17,6 +17,7 @@
 #define BASIC_VALUE_TEXT_LEN        16
 #define BASIC_JUMP_STEP             32U
 #define BASIC_JUMP_VERIFY_RETRY_MAX 3U
+#define BASIC_RESET_VERIFY_RETRY_MAX 3U
 
 #define BASIC_MARGIN_X   8
 #define BASIC_TOP_Y      8
@@ -126,6 +127,7 @@ static basic_viewport_context_t basic_ctx;
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t recording_jump_verify_retry;
+static uint8_t recording_reset_verify_retry;
 #endif
 
 EGUI_VIEW_CARD_PARAMS_INIT(basic_toolbar_card_params, BASIC_MARGIN_X, BASIC_TOOLBAR_Y, BASIC_HEADER_W, BASIC_TOOLBAR_H, 12);
@@ -660,10 +662,24 @@ static void report_runtime_failure(const char *message)
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
 }
 
+static uint8_t basic_is_view_clickable(egui_view_t *view)
+{
+    int click_x;
+    int click_y;
+
+    return (uint8_t)egui_sim_get_view_clipped_center(view, &EGUI_VIEW_OF(&viewport_view)->region_screen, &click_x, &click_y);
+}
+
+static uint8_t basic_set_click_item_action(egui_sim_action_t *p_action, egui_view_t *view, uint32_t interval_ms)
+{
+    return (uint8_t)egui_sim_set_click_view_clipped(p_action, view, &EGUI_VIEW_OF(&viewport_view)->region_screen, (int)interval_ms);
+}
+
 static egui_view_t *basic_find_visible_view_by_index(uint32_t index)
 {
     uint32_t stable_id;
     const egui_view_virtual_viewport_slot_t *slot;
+    egui_view_t *view;
 
     if (index >= BASIC_VIEWPORT_ITEM_COUNT)
     {
@@ -672,12 +688,13 @@ static egui_view_t *basic_find_visible_view_by_index(uint32_t index)
 
     stable_id = basic_ctx.items[index].stable_id;
     slot = egui_view_virtual_viewport_find_slot_by_stable_id(EGUI_VIEW_OF(&viewport_view), stable_id);
-    if (slot == NULL || !egui_view_virtual_viewport_is_slot_center_visible(EGUI_VIEW_OF(&viewport_view), slot))
+    if (slot == NULL)
     {
         return NULL;
     }
 
-    return egui_view_virtual_viewport_find_view_by_stable_id(EGUI_VIEW_OF(&viewport_view), stable_id);
+    view = egui_view_virtual_viewport_find_view_by_stable_id(EGUI_VIEW_OF(&viewport_view), stable_id);
+    return basic_is_view_clickable(view) ? view : NULL;
 }
 
 static void basic_set_slider_drag_action(egui_sim_action_t *p_action, uint32_t index, uint32_t interval_ms)
@@ -752,7 +769,11 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             EGUI_SIM_SET_WAIT(p_action, 220);
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        if (!basic_set_click_item_action(p_action, view, 220))
+        {
+            report_runtime_failure("first button row click point was not clickable");
+            EGUI_SIM_SET_WAIT(p_action, 220);
+        }
         return true;
     case 2:
         if (first_call && basic_ctx.selected_id != basic_ctx.items[0].stable_id)
@@ -785,7 +806,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         return true;
     case 6:
         view = basic_find_visible_view_by_index(basic_ctx.jump_cursor);
-        if (view == NULL)
+        if (basic_ctx.selected_id != basic_ctx.items[basic_ctx.jump_cursor].stable_id)
         {
             if (recording_jump_verify_retry < BASIC_JUMP_VERIFY_RETRY_MAX)
             {
@@ -793,27 +814,44 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
                 EGUI_SIM_SET_WAIT(p_action, 180);
                 return true;
             }
-            report_runtime_failure("jump action did not bring target item into view");
+            report_runtime_failure("jump action did not select target item");
             EGUI_SIM_SET_WAIT(p_action, 220);
             return true;
         }
         recording_jump_verify_retry = 0U;
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        if (view != NULL && !basic_set_click_item_action(p_action, view, 220))
+        {
+            report_runtime_failure("jump target item click point was not clickable");
+            EGUI_SIM_SET_WAIT(p_action, 220);
+            return true;
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 7:
+        recording_reset_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[BASIC_ACTION_RESET]), 220);
         return true;
     case 8:
-        if (first_call)
+        if (basic_ctx.selected_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID || egui_view_virtual_viewport_get_logical_offset(EGUI_VIEW_OF(&viewport_view)) != 0)
         {
+            if (recording_reset_verify_retry < BASIC_RESET_VERIFY_RETRY_MAX)
+            {
+                recording_reset_verify_retry++;
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
             if (basic_ctx.selected_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
             {
                 report_runtime_failure("reset action did not clear selected item");
             }
-            if (basic_get_first_visible_index() != 0U)
+            if (egui_view_virtual_viewport_get_logical_offset(EGUI_VIEW_OF(&viewport_view)) != 0)
             {
                 report_runtime_failure("reset action did not restore top position");
             }
+        }
+        recording_reset_verify_retry = 0U;
+        if (first_call)
+        {
             recording_request_snapshot();
         }
         EGUI_SIM_SET_WAIT(p_action, 220);
@@ -841,6 +879,7 @@ void test_init_ui(void)
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
     recording_jump_verify_retry = 0U;
+    recording_reset_verify_retry = 0U;
 #endif
 
     egui_view_init(EGUI_VIEW_OF(&background_view));

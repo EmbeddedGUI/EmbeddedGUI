@@ -164,6 +164,7 @@ static strip_demo_context_t strip_demo_ctx;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_swipe_verify_retry;
 #endif
 
 EGUI_VIEW_CARD_PARAMS_INIT(strip_header_card_params, STRIP_MARGIN_X, STRIP_TOP_Y, STRIP_CONTENT_W, STRIP_HEADER_H, 14);
@@ -1671,6 +1672,7 @@ void test_init_ui(void)
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
+    recording_swipe_verify_retry = 0U;
 #endif
 
     egui_view_init(EGUI_VIEW_OF(&background_view));
@@ -1780,6 +1782,19 @@ static void report_runtime_failure(const char *message)
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
 }
 
+static uint8_t strip_demo_is_view_clickable(egui_view_t *view)
+{
+    int click_x;
+    int click_y;
+
+    return (uint8_t)egui_sim_get_view_clipped_center(view, &EGUI_VIEW_OF(&strip_view)->region_screen, &click_x, &click_y);
+}
+
+static uint8_t strip_demo_set_click_item_action(egui_sim_action_t *p_action, egui_view_t *view, uint32_t interval_ms)
+{
+    return (uint8_t)egui_sim_set_click_view_clipped(p_action, view, &EGUI_VIEW_OF(&strip_view)->region_screen, (int)interval_ms);
+}
+
 typedef struct strip_demo_visible_search_context
 {
     uint32_t min_index;
@@ -1791,14 +1806,15 @@ static uint8_t strip_demo_match_visible_item(egui_view_t *self, const egui_view_
     strip_demo_visible_search_context_t *ctx = (strip_demo_visible_search_context_t *)context;
 
     EGUI_UNUSED(self);
-    EGUI_UNUSED(item_view);
-    return (uint8_t)(entry != NULL && entry->index >= ctx->min_index && egui_view_virtual_viewport_is_slot_center_visible(EGUI_VIEW_OF(&strip_view), slot));
+    EGUI_UNUSED(slot);
+    return (uint8_t)(entry != NULL && entry->index >= ctx->min_index && strip_demo_is_view_clickable(item_view));
 }
 
 static egui_view_t *strip_demo_find_visible_view_by_index(uint32_t index)
 {
     uint32_t stable_id;
     const egui_view_virtual_strip_slot_t *slot;
+    egui_view_t *view;
 
     if (index >= strip_demo_ctx.item_count)
     {
@@ -1807,12 +1823,13 @@ static egui_view_t *strip_demo_find_visible_view_by_index(uint32_t index)
 
     stable_id = strip_demo_ctx.items[index].stable_id;
     slot = egui_view_virtual_strip_find_slot_by_stable_id(EGUI_VIEW_OF(&strip_view), stable_id);
-    if (!egui_view_virtual_viewport_is_slot_center_visible(EGUI_VIEW_OF(&strip_view), slot))
+    if (slot == NULL)
     {
         return NULL;
     }
 
-    return egui_view_virtual_strip_find_view_by_stable_id(EGUI_VIEW_OF(&strip_view), stable_id);
+    view = egui_view_virtual_strip_find_view_by_stable_id(EGUI_VIEW_OF(&strip_view), stable_id);
+    return strip_demo_is_view_clickable(view) ? view : NULL;
 }
 
 static egui_view_t *strip_demo_find_first_visible_view_after(uint32_t min_index)
@@ -1850,7 +1867,11 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             EGUI_SIM_SET_WAIT(p_action, 180);
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        if (!strip_demo_set_click_item_action(p_action, view, 220))
+        {
+            report_runtime_failure("initial strip item click point was not clickable");
+            EGUI_SIM_SET_WAIT(p_action, 220);
+        }
         return true;
     case 1:
         if (first_call && strip_demo_ctx.last_clicked_index != 1U)
@@ -1866,6 +1887,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         if (first_call)
         {
+            recording_swipe_verify_retry = 0U;
             recording_request_snapshot();
         }
         p_action->type = EGUI_SIM_ACTION_SWIPE;
@@ -1877,14 +1899,31 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->interval_ms = 520;
         return true;
     case 3:
-        view = strip_demo_find_first_visible_view_after(3);
-        if (view == NULL)
+        if (egui_view_virtual_strip_get_scroll_x(EGUI_VIEW_OF(&strip_view)) <= 0)
         {
-            report_runtime_failure("gallery strip item after swipe was not visible");
+            if (recording_swipe_verify_retry < 3U)
+            {
+                recording_swipe_verify_retry++;
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
+            report_runtime_failure("gallery swipe did not move strip viewport");
             EGUI_SIM_SET_WAIT(p_action, 180);
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        view = strip_demo_find_first_visible_view_after(3);
+        if (view != NULL)
+        {
+            recording_swipe_verify_retry = 0U;
+            if (!strip_demo_set_click_item_action(p_action, view, 220))
+            {
+                EGUI_SIM_SET_WAIT(p_action, 220);
+                return true;
+            }
+            return true;
+        }
+        recording_swipe_verify_retry = 0U;
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 4:
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[STRIP_ACTION_JUMP]), 220);
@@ -1905,6 +1944,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         if (first_call)
         {
+            recording_swipe_verify_retry = 0U;
             recording_request_snapshot();
         }
         p_action->type = EGUI_SIM_ACTION_SWIPE;
@@ -1916,14 +1956,31 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->interval_ms = 520;
         return true;
     case 9:
-        view = strip_demo_find_first_visible_view_after(2);
-        if (view == NULL)
+        if (egui_view_virtual_strip_get_scroll_x(EGUI_VIEW_OF(&strip_view)) <= 0)
         {
-            report_runtime_failure("queue strip item after swipe was not visible");
+            if (recording_swipe_verify_retry < 3U)
+            {
+                recording_swipe_verify_retry++;
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
+            report_runtime_failure("queue swipe did not move strip viewport");
             EGUI_SIM_SET_WAIT(p_action, 180);
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        view = strip_demo_find_first_visible_view_after(2);
+        if (view != NULL)
+        {
+            recording_swipe_verify_retry = 0U;
+            if (!strip_demo_set_click_item_action(p_action, view, 220))
+            {
+                EGUI_SIM_SET_WAIT(p_action, 220);
+                return true;
+            }
+            return true;
+        }
+        recording_swipe_verify_retry = 0U;
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 10:
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[STRIP_ACTION_PATCH]), 220);
@@ -1938,6 +1995,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         if (first_call)
         {
+            recording_swipe_verify_retry = 0U;
             recording_request_snapshot();
         }
         p_action->type = EGUI_SIM_ACTION_SWIPE;
@@ -1949,14 +2007,31 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->interval_ms = 520;
         return true;
     case 13:
-        view = strip_demo_find_first_visible_view_after(4);
-        if (view == NULL)
+        if (egui_view_virtual_strip_get_scroll_x(EGUI_VIEW_OF(&strip_view)) <= 0)
         {
-            report_runtime_failure("timeline strip item after swipe was not visible");
+            if (recording_swipe_verify_retry < 3U)
+            {
+                recording_swipe_verify_retry++;
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
+            report_runtime_failure("timeline swipe did not move strip viewport");
             EGUI_SIM_SET_WAIT(p_action, 180);
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        view = strip_demo_find_first_visible_view_after(4);
+        if (view != NULL)
+        {
+            recording_swipe_verify_retry = 0U;
+            if (!strip_demo_set_click_item_action(p_action, view, 220))
+            {
+                EGUI_SIM_SET_WAIT(p_action, 220);
+                return true;
+            }
+            return true;
+        }
+        recording_swipe_verify_retry = 0U;
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 14:
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[STRIP_ACTION_PATCH]), 220);

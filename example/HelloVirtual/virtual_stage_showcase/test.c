@@ -2894,21 +2894,38 @@ static void showcase_verify_runtime_state(int action_index)
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
 #if EGUI_SHOWCASE_PARITY_RECORDING
+    static int last_action = -1;
+    int first_call = action_index != last_action;
+
+    last_action = action_index;
+
     switch (action_index)
     {
     case 0:
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         EGUI_SIM_SET_WAIT(p_action, 1000);
         return true;
     case 1:
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_THEME_BUTTON, 50, 50, 500);
         return true;
     case 2:
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         EGUI_SIM_SET_WAIT(p_action, 1000);
         return true;
     case 3:
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_LANG_BUTTON, 50, 50, 500);
         return true;
     case 4:
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         EGUI_SIM_SET_WAIT(p_action, 1000);
         return true;
     default:

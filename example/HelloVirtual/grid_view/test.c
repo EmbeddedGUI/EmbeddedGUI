@@ -181,6 +181,21 @@ static grid_view_demo_item_t *grid_view_demo_get_item(uint32_t index)
     return &grid_view_demo_ctx.items[index];
 }
 
+static grid_view_demo_item_t *grid_view_demo_find_item_by_stable_id_internal(uint32_t stable_id)
+{
+    uint32_t index;
+
+    for (index = 0; index < grid_view_demo_ctx.item_count; index++)
+    {
+        if (grid_view_demo_ctx.items[index].stable_id == stable_id)
+        {
+            return &grid_view_demo_ctx.items[index];
+        }
+    }
+
+    return NULL;
+}
+
 static int32_t grid_view_demo_find_index_by_stable_id_internal(uint32_t stable_id)
 {
     uint32_t index;

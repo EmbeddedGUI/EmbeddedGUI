@@ -35,17 +35,7 @@ def get_windows_hidden_run_kwargs():
     if platform.system() != 'Windows':
         return {}
 
-    kwargs = {}
-    if hasattr(subprocess, "CREATE_NO_WINDOW"):
-        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
-    if hasattr(subprocess, "STARTUPINFO"):
-        startupinfo = subprocess.STARTUPINFO()
-        if hasattr(subprocess, "STARTF_USESHOWWINDOW"):
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        if hasattr(subprocess, "SW_HIDE"):
-            startupinfo.wShowWindow = subprocess.SW_HIDE
-        kwargs["startupinfo"] = startupinfo
-    return kwargs
+    return {}
 
 
 def get_example_list():
