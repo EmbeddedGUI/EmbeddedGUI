@@ -601,7 +601,7 @@ class PropertyPanel(QWidget):
             if is_mixed:
                 self._apply_mixed_editor_state(editor, prop_name, prop_info, values)
             if has_missing_file:
-                self._apply_missing_file_editor_state(editor, prop_name, prop_info, current_value)
+                self._apply_missing_file_editor_state(editor, prop_name, prop_info, current_value, values=values)
 
             label = prop_name.replace("_", " ").title()
             if is_mixed:
@@ -682,29 +682,75 @@ class PropertyPanel(QWidget):
             return
 
     def _is_missing_file_property(self, prop_name, prop_info, value):
-        del prop_name
+        return bool(self._missing_file_property_reason(prop_name, prop_info, value))
 
-        if not value or self._resource_catalog is None:
-            return False
+    def _source_file_path_for_property(self, prop_info, value):
+        if not value or not self._source_resource_dir:
+            return ""
 
         ptype = prop_info.get("type", "")
         if ptype == "image_file":
-            return not self._resource_catalog.has_image(value)
-        if ptype == "font_file":
-            return not self._resource_catalog.has_font(value)
-        if ptype == "text_file":
-            return not self._resource_catalog.has_text_file(value)
-        return False
+            return os.path.join(self._source_resource_dir, "images", value)
+        if ptype in {"font_file", "text_file"}:
+            return os.path.join(self._source_resource_dir, value)
+        return ""
 
-    def _apply_missing_file_editor_state(self, editor, prop_name, prop_info, current_value):
-        if not self._is_missing_file_property(prop_name, prop_info, current_value):
+    def _missing_file_property_reason(self, prop_name, prop_info, value):
+        del prop_name
+
+        if not value:
+            return ""
+
+        ptype = prop_info.get("type", "")
+        if ptype == "image_file":
+            if self._resource_catalog is not None and not self._resource_catalog.has_image(value):
+                return "catalog"
+        elif ptype == "font_file":
+            if self._resource_catalog is not None and not self._resource_catalog.has_font(value):
+                return "catalog"
+        elif ptype == "text_file":
+            if self._resource_catalog is not None and not self._resource_catalog.has_text_file(value):
+                return "catalog"
+        else:
+            return ""
+
+        source_path = self._source_file_path_for_property(prop_info, value)
+        if source_path and not os.path.isfile(source_path):
+            return "disk"
+        return ""
+
+    def _missing_file_message(self, reason, plural=False):
+        if plural:
+            return "One or more selected widgets reference resource files that are missing from the project catalog or source directory."
+        if reason == "disk":
+            return "Selected resource file is listed in the project catalog, but the source file is missing on disk. Restore it or choose another file."
+        return "Selected resource file is not present in the project catalog. Re-import it or choose another file."
+
+    def _apply_missing_file_editor_state(self, editor, prop_name, prop_info, current_value, values=None):
+        reason = self._missing_file_property_reason(prop_name, prop_info, current_value)
+        plural = False
+        if values is not None:
+            reasons = {
+                self._missing_file_property_reason(prop_name, prop_info, value)
+                for value in values
+            }
+            reasons.discard("")
+            if not reasons:
+                return
+            if len(reasons) > 1 or len(values) > 1:
+                plural = True
+                reason = next(iter(reasons))
+            elif not reason:
+                reason = next(iter(reasons))
+
+        if not reason:
             return
 
         target = editor
         if prop_info.get("type", "") in {"image_file", "font_file", "text_file"}:
             target = self._editors.get(f"prop_{prop_name}", editor)
 
-        message = "Selected resource file is not present in the project catalog. Re-import it or choose another file."
+        message = self._missing_file_message(reason, plural=plural)
         existing_tooltip = target.toolTip().strip()
         if existing_tooltip and message not in existing_tooltip:
             message = f"{existing_tooltip}\n{message}"

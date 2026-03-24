@@ -300,6 +300,62 @@ class TestPropertyPanelFileFlow:
         assert "not present in the project catalog" in editor.toolTip()
         panel.deleteLater()
 
+    def test_single_selection_marks_disk_missing_file_property(self, qapp, tmp_path):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        resource_dir.mkdir(parents=True)
+
+        widget = WidgetModel("label", name="title")
+        widget.properties["font_file"] = "missing.ttf"
+
+        catalog = ResourceCatalog()
+        catalog.add_font("missing.ttf")
+
+        panel = PropertyPanel()
+        panel.set_source_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+        panel.set_widget(widget)
+
+        font_group = _find_group(panel, "Font Config")
+        editor = panel._editors["prop_font_file"]
+
+        assert "File (Missing):" in _form_labels(font_group)
+        assert "source file is missing on disk" in editor.toolTip()
+        panel.deleteLater()
+
+    def test_multi_selection_marks_missing_when_any_disk_file_is_missing(self, qapp, tmp_path):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        resource_dir.mkdir(parents=True)
+        (resource_dir / "present.ttf").write_bytes(b"FONT")
+
+        first = WidgetModel("label", name="first")
+        second = WidgetModel("label", name="second")
+        first.properties["font_file"] = "missing.ttf"
+        second.properties["font_file"] = "present.ttf"
+
+        catalog = ResourceCatalog()
+        catalog.add_font("missing.ttf")
+        catalog.add_font("present.ttf")
+
+        panel = PropertyPanel()
+        panel.set_source_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+        panel.set_selection([first, second], primary=second)
+
+        common_group = _find_group(panel, "Common Properties")
+        editor = panel._editors["prop_font_file"]
+
+        assert any(label.startswith("Font File") and "(Missing)" in label for label in _form_labels(common_group))
+        assert "missing from the project catalog or source directory" in editor.toolTip()
+        panel.deleteLater()
+
     def test_multi_selection_form_toggles_designer_flags_for_all_widgets(self, qapp):
         from qfluentwidgets import CheckBox
         from ui_designer.model.widget_model import WidgetModel
