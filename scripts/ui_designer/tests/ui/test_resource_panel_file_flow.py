@@ -155,6 +155,39 @@ class TestResourcePanelFileFlow:
         assert panel._tabs.tabText(0) == "Images (2, 1 missing)"
         panel.deleteLater()
 
+    def test_focus_missing_resource_cycles_through_missing_items(self, qapp, tmp_path):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        images_dir = resource_dir / "images"
+        images_dir.mkdir(parents=True)
+        (images_dir / "present.png").write_bytes(b"PNG")
+
+        catalog = ResourceCatalog()
+        catalog.add_image("missing_a.png")
+        catalog.add_image("missing_b.png")
+        catalog.add_image("present.png")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+
+        feedback = []
+        panel.feedback_message.connect(lambda message: feedback.append(message))
+
+        first = panel._focus_missing_resource("image")
+        second = panel._focus_missing_resource("image")
+
+        assert first == "missing_a.png"
+        assert second == "missing_b.png"
+        assert panel._image_list.currentItem().text() == "missing_b.png"
+        assert feedback == [
+            "Focused missing image resource 1/2: missing_a.png.",
+            "Focused missing image resource 2/2: missing_b.png.",
+        ]
+        panel.deleteLater()
+
     def test_import_text_refreshes_text_tab_and_catalog(self, qapp, tmp_path, monkeypatch):
         from ui_designer.ui.resource_panel import ResourcePanel
 

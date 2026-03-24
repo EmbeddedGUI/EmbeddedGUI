@@ -524,6 +524,10 @@ class ResourcePanel(QWidget):
         replace_img_btn.setToolTip("Replace missing image resources with new files and rewrite widget references to the new filenames.")
         replace_img_btn.clicked.connect(lambda: self._replace_missing_resources("image"))
         img_btn_layout.addWidget(replace_img_btn)
+        next_missing_img_btn = PushButton("Next Missing")
+        next_missing_img_btn.setToolTip("Select the next missing image resource in this tab.")
+        next_missing_img_btn.clicked.connect(lambda: self._focus_missing_resource("image"))
+        img_btn_layout.addWidget(next_missing_img_btn)
         img_btn_layout.addStretch()
         img_tab_layout.addLayout(img_btn_layout)
         self._tabs.addTab(img_tab, "Images")
@@ -555,6 +559,10 @@ class ResourcePanel(QWidget):
         replace_font_btn.setToolTip("Replace missing font resources with new files and rewrite widget references to the new filenames.")
         replace_font_btn.clicked.connect(lambda: self._replace_missing_resources("font"))
         font_btn_layout.addWidget(replace_font_btn)
+        next_missing_font_btn = PushButton("Next Missing")
+        next_missing_font_btn.setToolTip("Select the next missing font resource in this tab.")
+        next_missing_font_btn.clicked.connect(lambda: self._focus_missing_resource("font"))
+        font_btn_layout.addWidget(next_missing_font_btn)
         font_btn_layout.addStretch()
         font_tab_layout.addLayout(font_btn_layout)
         self._tabs.addTab(font_tab, "Fonts")
@@ -587,6 +595,10 @@ class ResourcePanel(QWidget):
         replace_text_btn.setToolTip("Replace missing text resources with new files and rewrite widget references to the new filenames.")
         replace_text_btn.clicked.connect(lambda: self._replace_missing_resources("text"))
         text_btn_layout.addWidget(replace_text_btn)
+        next_missing_text_btn = PushButton("Next Missing")
+        next_missing_text_btn.setToolTip("Select the next missing text resource in this tab.")
+        next_missing_text_btn.clicked.connect(lambda: self._focus_missing_resource("text"))
+        text_btn_layout.addWidget(next_missing_text_btn)
         text_btn_layout.addStretch()
         text_tab_layout.addLayout(text_btn_layout)
         self._tabs.addTab(text_tab, "Text")
@@ -795,6 +807,35 @@ class ResourcePanel(QWidget):
         matches = lst.findItems(filename, Qt.MatchExactly)
         if matches:
             lst.setCurrentItem(matches[0])
+
+    def _focus_missing_resource(self, resource_type):
+        lst = self._list_widget_for_resource_type(resource_type)
+        if lst is None:
+            return ""
+
+        missing_names = self._missing_resource_names(resource_type)
+        if not missing_names:
+            self.feedback_message.emit(f"No missing {resource_type} resources were found.")
+            return ""
+
+        current_item = lst.currentItem()
+        current_name = current_item.data(Qt.UserRole + 1) if current_item is not None else ""
+        if current_name in missing_names:
+            target_index = (missing_names.index(current_name) + 1) % len(missing_names)
+        else:
+            target_index = 0
+
+        target_name = missing_names[target_index]
+        matches = lst.findItems(target_name, Qt.MatchExactly)
+        if matches:
+            lst.setCurrentItem(matches[0])
+            lst.scrollToItem(matches[0])
+
+        self._preview.clear_preview()
+        self.feedback_message.emit(
+            f"Focused missing {resource_type} resource {target_index + 1}/{len(missing_names)}: {target_name}."
+        )
+        return target_name
 
     def _emit_operation_summary(self, action, resource_type, restored=None, renamed=None, unmatched=None, failures=None, remaining_missing=0):
         parts = []

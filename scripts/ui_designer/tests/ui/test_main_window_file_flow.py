@@ -1000,6 +1000,30 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_focus_missing_resource_updates_main_window_status(self, qapp, isolated_config, tmp_path):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.main_window import MainWindow
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        images_dir = resource_dir / "images"
+        images_dir.mkdir(parents=True)
+        (images_dir / "present.png").write_bytes(b"PNG")
+
+        catalog = ResourceCatalog()
+        catalog.add_image("missing.png")
+        catalog.add_image("present.png")
+
+        window = MainWindow("")
+        window.res_panel.set_resource_dir(str(resource_dir))
+        window.res_panel.set_resource_catalog(catalog)
+
+        focused = window.res_panel._focus_missing_resource("image")
+
+        assert focused == "missing.png"
+        assert window.statusBar().currentMessage() == "Focused missing image resource 1/1: missing.png."
+        window.close()
+        window.deleteLater()
+
     def test_load_background_image_uses_existing_mockup_dir_as_initial_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
 
