@@ -1996,7 +1996,9 @@ class MainWindow(QMainWindow):
         # Auto-trigger resource generation with debounce
         self._refresh_project_watch_snapshot()
         self._regen_timer.start()
-        self.statusBar().showMessage("Resources changed, will regenerate...")
+        current_message = self.statusBar().currentMessage()
+        if not current_message.startswith("Updated resources in "):
+            self.statusBar().showMessage("Resources changed, will regenerate...")
 
     def _rewrite_resource_references(self, res_type, old_name, new_name):
         """Rewrite matching resource filename references across all project pages."""

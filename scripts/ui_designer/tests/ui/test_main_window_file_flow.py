@@ -1204,6 +1204,52 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_resource_panel_rename_preserves_specific_status_message(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "RenameResourceSignalDemo"
+        project = _create_project(project_dir, "RenameResourceSignalDemo", sdk_root)
+        detail_page = project.create_new_page("detail_page")
+        project.resource_catalog.add_image("star.png")
+
+        images_dir = project_dir / ".eguiproject" / "resources" / "images"
+        images_dir.mkdir(parents=True, exist_ok=True)
+        (images_dir / "star.png").write_bytes(b"PNG")
+
+        image_a = WidgetModel("image", name="image_a")
+        image_a.properties["image_file"] = "star.png"
+        project.get_page_by_name("main_page").root_widget.add_child(image_a)
+
+        image_b = WidgetModel("image", name="image_b")
+        image_b.properties["image_file"] = "star.png"
+        detail_page.root_widget.add_child(image_b)
+
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QInputDialog.getText",
+            lambda *args, **kwargs: ("star_new.png", True),
+        )
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._selected_widget = image_a
+        window.property_panel.set_widget(image_a)
+
+        window.res_panel._rename_resource("star.png", "image")
+
+        assert image_a.properties["image_file"] == "star_new.png"
+        assert image_b.properties["image_file"] == "star_new.png"
+        assert window.statusBar().currentMessage() == "Updated resources in 2 pages: image resource rename."
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
     def test_resource_delete_clears_widget_references(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
         from ui_designer.ui.main_window import MainWindow
