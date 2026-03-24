@@ -508,6 +508,45 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_widget_tree_batch_rename_updates_status_and_selection(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "TreeBatchRenameDemo"
+        project = _create_project(project_dir, "TreeBatchRenameDemo", sdk_root)
+        root = project.get_startup_page().root_widget
+        existing = WidgetModel("label", name="field_1")
+        first = WidgetModel("label", name="title")
+        second = WidgetModel("switch", name="cta")
+        root.add_child(existing)
+        root.add_child(first)
+        root.add_child(second)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+        monkeypatch.setattr(
+            "ui_designer.ui.widget_tree.QInputDialog.getText",
+            lambda *args, **kwargs: ("field", True),
+        )
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._set_selection([first, second], primary=first, sync_tree=True, sync_preview=False)
+
+        window.widget_tree._on_rename_clicked()
+
+        assert first.name == "field_2"
+        assert second.name == "field_3"
+        assert window.widget_tree.selected_widgets() == [first, second]
+        assert window.widget_tree._get_selected_widget() is first
+        assert window.statusBar().currentMessage() == "Renamed 2 widget(s) with prefix 'field'."
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
     def test_align_selection_reports_locked_constraint(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
         from ui_designer.ui.main_window import MainWindow

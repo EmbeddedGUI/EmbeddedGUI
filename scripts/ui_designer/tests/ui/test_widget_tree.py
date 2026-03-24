@@ -100,6 +100,93 @@ class TestWidgetTreePanel:
         assert warnings[0][0] == "Invalid Widget Name"
         panel.deleteLater()
 
+    def test_rename_widget_emits_feedback_when_duplicate_name_is_resolved(self, qapp, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        first = WidgetModel("label", name="title")
+        second = WidgetModel("label", name="subtitle")
+        root.add_child(first)
+        root.add_child(second)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        feedback = []
+        panel.feedback_message.connect(lambda message: feedback.append(message))
+
+        monkeypatch.setattr(
+            "ui_designer.ui.widget_tree.QInputDialog.getText",
+            lambda *args, **kwargs: ("title", True),
+        )
+
+        panel._rename_widget(second)
+
+        assert second.name == "title_2"
+        assert feedback == ["Widget name 'title' already exists. Renamed to 'title_2'."]
+        panel.deleteLater()
+
+    def test_rename_selected_widgets_applies_prefix_and_emits_feedback(self, qapp, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        existing = WidgetModel("label", name="field_1")
+        first = WidgetModel("label", name="title")
+        second = WidgetModel("button", name="cta")
+        root.add_child(existing)
+        root.add_child(first)
+        root.add_child(second)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        feedback = []
+        panel.feedback_message.connect(lambda message: feedback.append(message))
+        panel.set_selected_widgets([first, second], primary=first)
+
+        monkeypatch.setattr(
+            "ui_designer.ui.widget_tree.QInputDialog.getText",
+            lambda *args, **kwargs: ("field", True),
+        )
+
+        panel._rename_selected_widgets()
+
+        assert first.name == "field_2"
+        assert second.name == "field_3"
+        assert panel.selected_widgets() == [first, second]
+        assert panel._get_selected_widget() is first
+        assert feedback == ["Renamed 2 widget(s) with prefix 'field'."]
+        panel.deleteLater()
+
+    def test_rename_selected_widgets_rejects_invalid_prefix(self, qapp, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        first = WidgetModel("label", name="title")
+        second = WidgetModel("button", name="cta")
+        root.add_child(first)
+        root.add_child(second)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        warnings = []
+        panel.set_selected_widgets([first, second], primary=first)
+
+        monkeypatch.setattr(
+            "ui_designer.ui.widget_tree.QInputDialog.getText",
+            lambda *args, **kwargs: ("123 bad", True),
+        )
+        monkeypatch.setattr("ui_designer.ui.widget_tree.QMessageBox.warning", lambda *args: warnings.append(args[1:]))
+
+        panel._rename_selected_widgets()
+
+        assert first.name == "title"
+        assert second.name == "cta"
+        assert warnings
+        assert warnings[0][0] == "Invalid Widget Prefix"
+        panel.deleteLater()
+
     def test_delete_selected_parent_and_child_removes_only_top_level_once(self, qapp):
         from ui_designer.model.widget_model import WidgetModel
         from ui_designer.ui.widget_tree import WidgetTreePanel

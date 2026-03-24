@@ -8,7 +8,12 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import pyqtSignal, Qt, QItemSelectionModel
 
-from ..model.widget_name import resolve_widget_name
+from ..model.widget_name import (
+    is_valid_widget_name,
+    make_unique_widget_name,
+    resolve_widget_name,
+    sanitize_widget_name,
+)
 from ..model.widget_model import WidgetModel
 from ..model.widget_registry import WidgetRegistry
 
@@ -51,6 +56,8 @@ class WidgetTreePanel(QWidget):
         btn_layout = QHBoxLayout()
         self.add_btn = QPushButton("Add")
         self.add_btn.clicked.connect(self._on_add_clicked)
+        self.rename_btn = QPushButton("Rename")
+        self.rename_btn.clicked.connect(self._on_rename_clicked)
         self.del_btn = QPushButton("Delete")
         self.del_btn.clicked.connect(self._on_delete_clicked)
         self.expand_btn = QPushButton("Expand")
@@ -58,6 +65,7 @@ class WidgetTreePanel(QWidget):
         self.collapse_btn = QPushButton("Collapse")
         self.collapse_btn.clicked.connect(self._collapse_all_items)
         btn_layout.addWidget(self.add_btn)
+        btn_layout.addWidget(self.rename_btn)
         btn_layout.addWidget(self.del_btn)
         btn_layout.addWidget(self.expand_btn)
         btn_layout.addWidget(self.collapse_btn)
@@ -185,10 +193,16 @@ class WidgetTreePanel(QWidget):
             yield root_widget
             yield from root_widget.get_all_widgets_flat()[1:]
 
-    def _existing_widget_names(self, exclude_widget=None):
+    def _existing_widget_names(self, exclude_widget=None, exclude_widgets=None):
+        excluded_ids = set()
+        if exclude_widget is not None:
+            excluded_ids.add(id(exclude_widget))
+        for widget in exclude_widgets or []:
+            if widget is not None:
+                excluded_ids.add(id(widget))
         names = set()
         for widget in self._iter_widgets() or []:
-            if widget is exclude_widget:
+            if id(widget) in excluded_ids:
                 continue
             if widget.name:
                 names.add(widget.name)
@@ -222,6 +236,14 @@ class WidgetTreePanel(QWidget):
             action.triggered.connect(lambda checked, t=type_name: self._add_widget(t))
             menu.addAction(action)
         menu.exec_(self.add_btn.mapToGlobal(self.add_btn.rect().bottomLeft()))
+
+    def _on_rename_clicked(self):
+        widgets = self.selected_widgets()
+        if len(widgets) > 1:
+            self._rename_selected_widgets(widgets)
+            return
+        if widgets:
+            self._rename_widget(widgets[0])
 
     def _add_widget(self, widget_type):
         if not self.project:
@@ -284,10 +306,15 @@ class WidgetTreePanel(QWidget):
             return
 
         menu = QMenu(self)
+        selected_widgets = self.selected_widgets()
+        rename_selected = len(selected_widgets) > 1 and widget in selected_widgets
 
         # Rename
-        rename_action = QAction("Rename", self)
-        rename_action.triggered.connect(lambda: self._rename_widget(widget))
+        rename_action = QAction("Rename Selected" if rename_selected else "Rename", self)
+        if rename_selected:
+            rename_action.triggered.connect(lambda: self._rename_selected_widgets(selected_widgets))
+        else:
+            rename_action.triggered.connect(lambda: self._rename_widget(widget))
         menu.addAction(rename_action)
 
         # Add child (if container)
@@ -318,7 +345,47 @@ class WidgetTreePanel(QWidget):
                 return
             widget.name = resolved_name
             self.rebuild_tree()
+            self.set_selected_widgets([widget], primary=widget)
             self.tree_changed.emit()
+            feedback = message or f"Renamed widget to {resolved_name}."
+            self.feedback_message.emit(feedback)
+
+    def _rename_selected_widgets(self, widgets=None):
+        widgets = [widget for widget in (widgets or self.selected_widgets()) if widget is not None]
+        if not widgets:
+            return
+        if len(widgets) == 1:
+            self._rename_widget(widgets[0])
+            return
+
+        default_prefix = self._batch_rename_default_prefix(widgets)
+        prefix, ok = QInputDialog.getText(
+            self, "Batch Rename Widgets", "Prefix:", text=default_prefix
+        )
+        if not ok:
+            return
+
+        normalized = sanitize_widget_name(prefix)
+        if not normalized or not is_valid_widget_name(normalized):
+            QMessageBox.warning(
+                self,
+                "Invalid Widget Prefix",
+                "Batch rename prefix must be a valid C identifier using letters, numbers, and underscores, and it cannot start with a digit.",
+            )
+            return
+
+        existing_names = self._existing_widget_names(exclude_widgets=widgets)
+        for index, widget in enumerate(widgets, start=1):
+            candidate = f"{normalized}_{index}"
+            resolved_name = make_unique_widget_name(candidate, existing_names)
+            existing_names.add(resolved_name)
+            widget.name = resolved_name
+
+        primary = widgets[0]
+        self.rebuild_tree()
+        self.set_selected_widgets(widgets, primary=primary)
+        self.tree_changed.emit()
+        self.feedback_message.emit(f"Renamed {len(widgets)} widget(s) with prefix '{normalized}'.")
 
     def _add_child_to(self, parent, widget_type):
         child = WidgetModel(widget_type)
@@ -368,6 +435,12 @@ class WidgetTreePanel(QWidget):
         finally:
             self._suppress_expansion_tracking = False
         self._expanded_widgets = set()
+
+    def _batch_rename_default_prefix(self, widgets):
+        widget_types = {widget.widget_type for widget in widgets if widget is not None}
+        if len(widget_types) == 1:
+            return next(iter(widget_types))
+        return "widget"
 
     def _apply_tree_filter(self, _text="", default_expand=False):
         query = self.filter_edit.text().strip().lower()
