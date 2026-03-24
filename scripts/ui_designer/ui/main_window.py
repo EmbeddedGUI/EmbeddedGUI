@@ -267,6 +267,8 @@ class MainWindow(QMainWindow):
 
         # Resource panel
         self.res_panel.resource_selected.connect(self._on_resource_selected)
+        self.res_panel.resource_renamed.connect(self._on_resource_renamed)
+        self.res_panel.resource_deleted.connect(self._on_resource_deleted)
         self.res_panel.resource_imported.connect(self._on_resource_imported)
 
     def _apply_stylesheet(self):
@@ -1764,6 +1766,16 @@ class MainWindow(QMainWindow):
         self.property_panel.set_widget(self._selected_widget)
         self._on_model_changed()
 
+    def _on_resource_renamed(self, res_type, old_name, new_name):
+        """Update widget references after a resource file was renamed."""
+        touched_pages = self._rewrite_resource_references(res_type, old_name, new_name)
+        self._finalize_resource_reference_change(touched_pages)
+
+    def _on_resource_deleted(self, res_type, filename):
+        """Clear widget references after a resource file was deleted."""
+        touched_pages = self._rewrite_resource_references(res_type, filename, "")
+        self._finalize_resource_reference_change(touched_pages)
+
     def _on_resource_imported(self):
         """Resource files were imported — sync catalog and auto-regenerate."""
         # Sync catalog from resource panel back to project
@@ -1779,6 +1791,63 @@ class MainWindow(QMainWindow):
         self._refresh_project_watch_snapshot()
         self._regen_timer.start()
         self.statusBar().showMessage("Resources changed, will regenerate...")
+
+    def _rewrite_resource_references(self, res_type, old_name, new_name):
+        """Rewrite matching resource filename references across all project pages."""
+        if not self.project or not old_name:
+            return []
+
+        from ..model.widget_registry import WidgetRegistry
+
+        resource_prop_type = {
+            "image": "image_file",
+            "font": "font_file",
+        }.get(res_type, "")
+        if not resource_prop_type:
+            return []
+
+        registry = WidgetRegistry.instance()
+        touched_pages = []
+        for page in self.project.pages:
+            page_changed = False
+            for widget in page.get_all_widgets():
+                descriptor = registry.get(widget.widget_type)
+                properties = descriptor.get("properties", {})
+                for prop_name, prop_info in properties.items():
+                    if prop_info.get("type") != resource_prop_type:
+                        continue
+                    if widget.properties.get(prop_name, "") != old_name:
+                        continue
+                    widget.properties[prop_name] = new_name
+                    page_changed = True
+            if page_changed:
+                touched_pages.append(page)
+        return touched_pages
+
+    def _finalize_resource_reference_change(self, touched_pages):
+        """Record dirty state and refresh current-page UI after resource ref changes."""
+        if not touched_pages:
+            return
+
+        current_page_changed = False
+        for page in touched_pages:
+            stack = self._undo_manager.get_stack(page.name)
+            stack.push(page.to_xml_string())
+            if page is self._current_page:
+                current_page_changed = True
+
+        if current_page_changed:
+            self.widget_tree.rebuild_tree()
+            if self._selected_widget is not None:
+                try:
+                    self.property_panel.set_widget(self._selected_widget)
+                except RuntimeError:
+                    pass
+            self._update_preview_overlay()
+            self._sync_xml_to_editors()
+
+        self._update_undo_actions()
+        self._update_window_title()
 
     def _on_resource_dropped(self, widget, res_type, filename):
         """Resource was dropped onto a widget in the preview overlay."""

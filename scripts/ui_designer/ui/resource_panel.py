@@ -316,10 +316,14 @@ class ResourcePanel(QWidget):
 
     Signals:
         resource_selected(str, str): (resource_type, filename)
+        resource_renamed(str, str, str): (resource_type, old_name, new_name)
+        resource_deleted(str, str): (resource_type, filename)
         resource_imported():         files were imported, refresh needed
     """
 
     resource_selected = pyqtSignal(str, str)
+    resource_renamed = pyqtSignal(str, str, str)
+    resource_deleted = pyqtSignal(str, str)
     resource_imported = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -847,6 +851,7 @@ class ResourcePanel(QWidget):
             self._catalog.remove_file(old_name)
             self._catalog.add_file(new_name)
             self.set_resource_dir(self._resource_dir)
+            self.resource_renamed.emit(resource_type, old_name, new_name)
             self.resource_imported.emit()
         except OSError as e:
             QMessageBox.warning(self, "Error", f"Rename failed: {e}")
@@ -869,6 +874,7 @@ class ResourcePanel(QWidget):
             except OSError:
                 pass
         self.set_resource_dir(self._resource_dir)
+        self.resource_deleted.emit(resource_type, filename)
         self.resource_imported.emit()
 
     # -- Strings tab methods --

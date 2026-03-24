@@ -1009,6 +1009,73 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_resource_rename_updates_widget_references_across_pages(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "RenameResourceDemo"
+        project = _create_project(project_dir, "RenameResourceDemo", sdk_root)
+        detail_page = project.create_new_page("detail_page")
+
+        image_a = WidgetModel("image", name="image_a")
+        image_a.properties["image_file"] = "star.png"
+        project.get_page_by_name("main_page").root_widget.add_child(image_a)
+
+        image_b = WidgetModel("image", name="image_b")
+        image_b.properties["image_file"] = "star.png"
+        detail_page.root_widget.add_child(image_b)
+
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._selected_widget = image_a
+        window.property_panel.set_widget(image_a)
+
+        window._on_resource_renamed("image", "star.png", "star_new.png")
+
+        assert image_a.properties["image_file"] == "star_new.png"
+        assert image_b.properties["image_file"] == "star_new.png"
+        assert window._undo_manager.get_stack("main_page").is_dirty() is True
+        assert window._undo_manager.get_stack("detail_page").is_dirty() is True
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
+    def test_resource_delete_clears_widget_references(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "DeleteResourceDemo"
+        project = _create_project(project_dir, "DeleteResourceDemo", sdk_root)
+        label = WidgetModel("label", name="title")
+        label.properties["font_file"] = "demo.ttf"
+        project.get_page_by_name("main_page").root_widget.add_child(label)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._selected_widget = label
+        window.property_panel.set_widget(label)
+
+        window._on_resource_deleted("font", "demo.ttf")
+
+        assert label.properties["font_file"] == ""
+        assert window._undo_manager.get_stack("main_page").is_dirty() is True
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
     def test_poll_project_files_auto_reloads_clean_project(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
 
