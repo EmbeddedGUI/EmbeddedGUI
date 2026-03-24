@@ -298,7 +298,10 @@ class TestWidgetTreePanel:
         assert panel._item_map[id(container)].isHidden() is False
         assert panel._item_map[id(target)].isHidden() is False
         assert panel._item_map[id(container)].isExpanded() is True
+        assert panel._item_map[id(container)].font(0).bold() is False
+        assert panel._item_map[id(target)].font(0).bold() is True
         assert panel._item_map[id(other)].isHidden() is True
+        assert panel.filter_status_label.text() == "1 match"
 
         panel.rebuild_tree()
 
@@ -306,10 +309,14 @@ class TestWidgetTreePanel:
         assert panel._item_map[id(container)].isHidden() is False
         assert panel._item_map[id(target)].isHidden() is False
         assert panel._item_map[id(other)].isHidden() is True
+        assert panel._item_map[id(target)].font(0).bold() is True
+        assert panel.filter_status_label.text() == "1 match"
 
         panel.filter_edit.setText("")
 
         assert panel._item_map[id(other)].isHidden() is False
+        assert panel._item_map[id(target)].font(0).bold() is False
+        assert panel.filter_status_label.text() == "All widgets"
         panel.deleteLater()
 
     def test_filter_widgets_matches_widget_type(self, qapp):
@@ -329,6 +336,64 @@ class TestWidgetTreePanel:
 
         assert panel._item_map[id(label)].isHidden() is True
         assert panel._item_map[id(button)].isHidden() is False
+        assert panel._item_map[id(button)].font(0).bold() is True
+        assert panel.filter_status_label.text() == "1 match"
+        panel.deleteLater()
+
+    def test_filter_widgets_reports_no_matches(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        label = WidgetModel("label", name="headline")
+        button = WidgetModel("button", name="cta")
+        root.add_child(label)
+        root.add_child(button)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+
+        panel.filter_edit.setText("missing")
+
+        assert panel._item_map[id(root)].isHidden() is True
+        assert panel._item_map[id(label)].isHidden() is True
+        assert panel._item_map[id(button)].isHidden() is True
+        assert panel.filter_status_label.text() == "No matches"
+        assert panel.filter_prev_btn.isEnabled() is False
+        assert panel.filter_next_btn.isEnabled() is False
+        panel.deleteLater()
+
+    def test_filter_match_navigation_cycles_through_matches(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        first = WidgetModel("label", name="field_label")
+        second = WidgetModel("button", name="field_button")
+        third = WidgetModel("switch", name="status")
+        root.add_child(first)
+        root.add_child(second)
+        root.add_child(third)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        panel.filter_edit.setText("field")
+
+        assert panel.filter_status_label.text() == "2 matches"
+        assert panel.filter_prev_btn.isEnabled() is True
+        assert panel.filter_next_btn.isEnabled() is True
+
+        panel._select_next_filter_match()
+        assert panel._get_selected_widget() is first
+
+        panel._select_next_filter_match()
+        assert panel._get_selected_widget() is second
+
+        panel._select_next_filter_match()
+        assert panel._get_selected_widget() is first
+
+        panel._select_previous_filter_match()
+        assert panel._get_selected_widget() is second
         panel.deleteLater()
 
     def test_rebuild_tree_preserves_manual_collapse_state(self, qapp):

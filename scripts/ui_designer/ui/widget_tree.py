@@ -4,7 +4,7 @@ import re
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
-    QPushButton, QHBoxLayout, QMenu, QAction, QInputDialog, QAbstractItemView, QMessageBox, QLineEdit,
+    QPushButton, QHBoxLayout, QMenu, QAction, QInputDialog, QAbstractItemView, QMessageBox, QLineEdit, QLabel,
 )
 from PyQt5.QtCore import pyqtSignal, Qt, QItemSelectionModel
 
@@ -46,6 +46,7 @@ class WidgetTreePanel(QWidget):
         self._expanded_widgets = set()
         self._suppress_expansion_tracking = False
         self._default_expand_next_rebuild = True
+        self._filter_matches = []
         self._init_ui()
 
     def _init_ui(self):
@@ -73,8 +74,21 @@ class WidgetTreePanel(QWidget):
 
         self.filter_edit = QLineEdit()
         self.filter_edit.setPlaceholderText("Filter widgets by name or type")
+        self.filter_edit.setClearButtonEnabled(True)
         self.filter_edit.textChanged.connect(self._apply_tree_filter)
-        layout.addWidget(self.filter_edit)
+        filter_layout = QHBoxLayout()
+        filter_layout.addWidget(self.filter_edit, 1)
+        self.filter_prev_btn = QPushButton("Prev")
+        self.filter_prev_btn.clicked.connect(self._select_previous_filter_match)
+        self.filter_next_btn = QPushButton("Next")
+        self.filter_next_btn.clicked.connect(self._select_next_filter_match)
+        self.filter_prev_btn.setEnabled(False)
+        self.filter_next_btn.setEnabled(False)
+        filter_layout.addWidget(self.filter_prev_btn)
+        filter_layout.addWidget(self.filter_next_btn)
+        self.filter_status_label = QLabel("All widgets")
+        filter_layout.addWidget(self.filter_status_label)
+        layout.addLayout(filter_layout)
 
         # Tree
         self.tree = QTreeWidget()
@@ -444,12 +458,15 @@ class WidgetTreePanel(QWidget):
 
     def _apply_tree_filter(self, _text="", default_expand=False):
         query = self.filter_edit.text().strip().lower()
+        self._filter_matches = []
+        match_count = 0
         self._suppress_expansion_tracking = True
         try:
             for index in range(self.tree.topLevelItemCount()):
                 item = self.tree.topLevelItem(index)
                 if query:
-                    self._apply_filter_to_item(item, query)
+                    _, item_matches = self._apply_filter_to_item(item, query)
+                    match_count += item_matches
                 else:
                     self._clear_item_filter(item)
             if not query:
@@ -461,27 +478,77 @@ class WidgetTreePanel(QWidget):
                         self._restore_item_expansion(self.tree.topLevelItem(index))
         finally:
             self._suppress_expansion_tracking = False
+        self._update_filter_status(query, match_count)
 
     def _apply_filter_to_item(self, item, query):
         widget = self._widget_map.get(id(item))
         name = (widget.name if widget is not None else item.text(0)).lower()
         type_name = (widget.widget_type if widget is not None else item.text(1)).lower()
         own_match = query in name or query in type_name
+        if own_match and widget is not None:
+            self._filter_matches.append(widget)
         child_match = False
+        match_count = 1 if own_match else 0
         for index in range(item.childCount()):
             child = item.child(index)
-            if self._apply_filter_to_item(child, query):
+            child_visible, child_matches = self._apply_filter_to_item(child, query)
+            match_count += child_matches
+            if child_visible:
                 child_match = True
         visible = own_match or child_match
         item.setHidden(not visible)
+        self._set_item_match_state(item, own_match)
         if visible and item.childCount():
             item.setExpanded(child_match)
-        return visible
+        return visible, match_count
 
     def _clear_item_filter(self, item):
         item.setHidden(False)
+        self._set_item_match_state(item, False)
         for index in range(item.childCount()):
             self._clear_item_filter(item.child(index))
+
+    def _set_item_match_state(self, item, matched):
+        for column in range(self.tree.columnCount()):
+            font = item.font(column)
+            font.setBold(bool(matched))
+            item.setFont(column, font)
+
+    def _update_filter_status(self, query, match_count):
+        has_matches = bool(query and self._filter_matches)
+        self.filter_prev_btn.setEnabled(has_matches)
+        self.filter_next_btn.setEnabled(has_matches)
+        if not query:
+            self.filter_status_label.setText("All widgets")
+            return
+        if match_count == 0:
+            self.filter_status_label.setText("No matches")
+            return
+        noun = "match" if match_count == 1 else "matches"
+        self.filter_status_label.setText(f"{match_count} {noun}")
+
+    def _select_previous_filter_match(self):
+        self._select_filter_match(step=-1)
+
+    def _select_next_filter_match(self):
+        self._select_filter_match(step=1)
+
+    def _select_filter_match(self, step):
+        matches = [widget for widget in self._filter_matches if id(widget) in self._item_map]
+        if not matches:
+            return
+
+        current = self._get_selected_widget()
+        if current in matches:
+            current_index = matches.index(current)
+            next_index = (current_index + step) % len(matches)
+        else:
+            next_index = 0 if step > 0 else len(matches) - 1
+
+        target = matches[next_index]
+        self.set_selected_widgets([target], primary=target)
+        self.widget_selected.emit(target)
+        self.selection_changed.emit([target], target)
 
     def _restore_item_expansion(self, item):
         widget = self._widget_map.get(id(item))
