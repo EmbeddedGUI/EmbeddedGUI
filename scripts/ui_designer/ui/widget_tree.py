@@ -53,8 +53,14 @@ class WidgetTreePanel(QWidget):
         self.add_btn.clicked.connect(self._on_add_clicked)
         self.del_btn = QPushButton("Delete")
         self.del_btn.clicked.connect(self._on_delete_clicked)
+        self.expand_btn = QPushButton("Expand")
+        self.expand_btn.clicked.connect(self._expand_all_items)
+        self.collapse_btn = QPushButton("Collapse")
+        self.collapse_btn.clicked.connect(self._collapse_all_items)
         btn_layout.addWidget(self.add_btn)
         btn_layout.addWidget(self.del_btn)
+        btn_layout.addWidget(self.expand_btn)
+        btn_layout.addWidget(self.collapse_btn)
         layout.addLayout(btn_layout)
 
         self.filter_edit = QLineEdit()
@@ -346,6 +352,22 @@ class WidgetTreePanel(QWidget):
             if not skip:
                 result.append(widget)
         return result
+
+    def _expand_all_items(self):
+        self._suppress_expansion_tracking = True
+        try:
+            self.tree.expandAll()
+        finally:
+            self._suppress_expansion_tracking = False
+        self._expanded_widgets = self._collect_expanded_widget_ids()
+
+    def _collapse_all_items(self):
+        self._suppress_expansion_tracking = True
+        try:
+            self.tree.collapseAll()
+        finally:
+            self._suppress_expansion_tracking = False
+        self._expanded_widgets = set()
 
     def _apply_tree_filter(self, _text="", default_expand=False):
         query = self.filter_edit.text().strip().lower()

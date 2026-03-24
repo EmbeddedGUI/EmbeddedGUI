@@ -297,3 +297,48 @@ class TestWidgetTreePanel:
         assert panel._item_map[id(container)].isExpanded() is False
         assert panel._item_map[id(nested)].isExpanded() is False
         panel.deleteLater()
+
+    def test_expand_all_updates_tree_and_saved_expansion_state(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        container = WidgetModel("group", name="container")
+        nested = WidgetModel("group", name="nested")
+        nested.add_child(WidgetModel("label", name="target"))
+        container.add_child(nested)
+        root.add_child(container)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        panel._collapse_all_items()
+
+        panel._expand_all_items()
+        panel.rebuild_tree()
+
+        assert panel._item_map[id(root)].isExpanded() is True
+        assert panel._item_map[id(container)].isExpanded() is True
+        assert panel._item_map[id(nested)].isExpanded() is True
+        panel.deleteLater()
+
+    def test_collapse_all_updates_tree_and_saved_expansion_state(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        container = WidgetModel("group", name="container")
+        nested = WidgetModel("group", name="nested")
+        nested.add_child(WidgetModel("label", name="target"))
+        container.add_child(nested)
+        root.add_child(container)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+
+        panel._collapse_all_items()
+        panel.rebuild_tree()
+
+        assert panel._item_map[id(root)].isExpanded() is False
+        assert panel._item_map[id(container)].isExpanded() is False
+        assert panel._item_map[id(nested)].isExpanded() is False
+        panel.deleteLater()
