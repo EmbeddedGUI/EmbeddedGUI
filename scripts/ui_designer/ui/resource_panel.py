@@ -796,7 +796,7 @@ class ResourcePanel(QWidget):
         if matches:
             lst.setCurrentItem(matches[0])
 
-    def _emit_operation_summary(self, action, resource_type, restored=None, renamed=None, unmatched=None, failures=None):
+    def _emit_operation_summary(self, action, resource_type, restored=None, renamed=None, unmatched=None, failures=None, remaining_missing=0):
         parts = []
         if renamed:
             parts.append(f"{len(renamed)} renamed")
@@ -806,6 +806,8 @@ class ResourcePanel(QWidget):
             parts.append(f"{len(unmatched)} unmatched")
         if failures:
             parts.append(f"{len(failures)} failed")
+        if remaining_missing:
+            parts.append(f"{remaining_missing} remaining missing")
         if not parts:
             return
         self.feedback_message.emit(f"{action} {resource_type} resources: {', '.join(parts)}.")
@@ -901,12 +903,14 @@ class ResourcePanel(QWidget):
             self.resource_imported.emit()
             for old_name, new_name in renamed:
                 self.resource_renamed.emit(resource_type, old_name, new_name)
+            remaining_missing = len(self._missing_resource_names(resource_type))
             self._emit_operation_summary(
                 "Replaced",
                 resource_type,
                 restored=restored,
                 renamed=renamed,
                 failures=failures,
+                remaining_missing=remaining_missing,
             )
 
         return restored, renamed, failures
@@ -1057,12 +1061,14 @@ class ResourcePanel(QWidget):
             self.set_resource_dir(self._resource_dir)
             self._select_resource_item(resource_type, restored[0])
             self.resource_imported.emit()
+            remaining_missing = len(self._missing_resource_names(resource_type))
             self._emit_operation_summary(
                 "Restored",
                 resource_type,
                 restored=restored,
                 unmatched=unmatched,
                 failures=failures,
+                remaining_missing=remaining_missing,
             )
 
         return restored, unmatched, failures

@@ -293,7 +293,7 @@ class TestResourcePanelFileFlow:
         assert (images_dir / "missing_a.png").is_file()
         assert not (images_dir / "missing_b.png").exists()
         assert imported == [True]
-        assert feedback == ["Restored image resources: 1 restored, 1 unmatched."]
+        assert feedback == ["Restored image resources: 1 restored, 1 unmatched, 1 remaining missing."]
         first_item = panel._image_list.item(0)
         second_item = panel._image_list.item(1)
         assert "File not found!" not in first_item.toolTip()
