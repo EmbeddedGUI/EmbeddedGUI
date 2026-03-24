@@ -330,6 +330,91 @@ class TestResourcePanelFileFlow:
         assert "No matching missing font resources were found in the selected files." in warnings[0][1]
         panel.deleteLater()
 
+    def test_replace_missing_image_updates_catalog_and_emits_rename(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        images_dir = resource_dir / "images"
+        images_dir.mkdir(parents=True)
+        external_dir = tmp_path / "external_images"
+        external_dir.mkdir()
+        source_path = external_dir / "replacement.png"
+        source_path.write_bytes(b"PNG")
+
+        catalog = ResourceCatalog()
+        catalog.add_image("missing.png")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+
+        imported = []
+        renamed = []
+        panel.resource_imported.connect(lambda: imported.append(True))
+        panel.resource_renamed.connect(lambda res_type, old, new: renamed.append((res_type, old, new)))
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QFileDialog.getOpenFileName",
+            lambda *args, **kwargs: (str(source_path), "Images (*.png *.bmp *.jpg *.jpeg)"),
+        )
+
+        panel._replace_missing_resource("missing.png", "image")
+
+        assert not panel.get_resource_catalog().has_image("missing.png")
+        assert panel.get_resource_catalog().has_image("replacement.png")
+        assert (images_dir / "replacement.png").is_file()
+        assert imported == [True]
+        assert renamed == [("image", "missing.png", "replacement.png")]
+        assert panel._tabs.tabText(0) == "Images (1)"
+        panel.deleteLater()
+
+    def test_replace_missing_resources_from_mapping_supports_restore_and_rename(self, qapp, tmp_path):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        images_dir = resource_dir / "images"
+        images_dir.mkdir(parents=True)
+        external_dir = tmp_path / "external_images"
+        external_dir.mkdir()
+        renamed_path = external_dir / "renamed.png"
+        renamed_path.write_bytes(b"NEW")
+        restored_path = external_dir / "missing_b.png"
+        restored_path.write_bytes(b"OLD")
+
+        catalog = ResourceCatalog()
+        catalog.add_image("missing_a.png")
+        catalog.add_image("missing_b.png")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+
+        imported = []
+        renamed = []
+        panel.resource_imported.connect(lambda: imported.append(True))
+        panel.resource_renamed.connect(lambda res_type, old, new: renamed.append((res_type, old, new)))
+
+        restored, renamed_pairs, failures = panel._replace_missing_resources_from_mapping(
+            "image",
+            {
+                "missing_a.png": str(renamed_path),
+                "missing_b.png": str(restored_path),
+            },
+        )
+
+        assert restored == ["missing_b.png"]
+        assert renamed_pairs == [("missing_a.png", "renamed.png")]
+        assert failures == []
+        assert imported == [True]
+        assert renamed == [("image", "missing_a.png", "renamed.png")]
+        assert panel.get_resource_catalog().has_image("missing_b.png")
+        assert panel.get_resource_catalog().has_image("renamed.png")
+        assert not panel.get_resource_catalog().has_image("missing_a.png")
+        assert (images_dir / "renamed.png").is_file()
+        assert (images_dir / "missing_b.png").is_file()
+        panel.deleteLater()
+
     def test_rename_text_resource_updates_catalog_and_emits_signal(self, qapp, tmp_path, monkeypatch):
         from ui_designer.model.resource_catalog import ResourceCatalog
         from ui_designer.ui.resource_panel import ResourcePanel

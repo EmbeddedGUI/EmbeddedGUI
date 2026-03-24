@@ -351,6 +351,97 @@ class _PreviewWidget(QWidget):
         painter.drawText(preview_rect, Qt.TextWordWrap | Qt.AlignTop | Qt.AlignLeft, "\n".join(self._text_lines))
 
 
+class _MissingResourceReplaceDialog(QDialog):
+    """Map missing project resources to external replacement files."""
+
+    def __init__(self, missing_names, source_paths, parent=None):
+        super().__init__(parent)
+        self._missing_names = list(missing_names)
+        self._source_paths = list(source_paths)
+        self._combos = []
+        self.setWindowTitle("Replace Missing Resources")
+        self.resize(640, 360)
+
+        layout = QVBoxLayout(self)
+
+        caption = CaptionLabel(
+            "Choose replacement files for missing resources. "
+            "The selected file names become the new project resource names."
+        )
+        caption.setWordWrap(True)
+        layout.addWidget(caption)
+
+        self._table = QTableWidget(len(self._missing_names), 2, self)
+        self._table.setHorizontalHeaderLabels(["Missing Resource", "Replacement File"])
+        self._table.horizontalHeader().setStretchLastSection(True)
+        self._table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self._table.verticalHeader().setVisible(False)
+        self._table.setSelectionMode(QAbstractItemView.NoSelection)
+        self._table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        layout.addWidget(self._table, 1)
+
+        for row, missing_name in enumerate(self._missing_names):
+            name_item = QTableWidgetItem(missing_name)
+            name_item.setFlags(Qt.ItemIsEnabled)
+            self._table.setItem(row, 0, name_item)
+
+            combo = QComboBox(self._table)
+            combo.addItem("(Skip)", "")
+            for source_path in self._source_paths:
+                combo.addItem(os.path.basename(source_path), source_path)
+
+            exact_index = 0
+            for index in range(1, combo.count()):
+                source_path = combo.itemData(index)
+                if os.path.basename(source_path).lower() == missing_name.lower():
+                    exact_index = index
+                    break
+            if exact_index == 0 and len(self._missing_names) == 1 and len(self._source_paths) == 1:
+                exact_index = 1
+            combo.setCurrentIndex(exact_index)
+
+            self._table.setCellWidget(row, 1, combo)
+            self._combos.append((missing_name, combo))
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def selected_mapping(self):
+        mapping = {}
+        for missing_name, combo in self._combos:
+            source_path = combo.currentData()
+            if source_path:
+                mapping[missing_name] = source_path
+        return mapping
+
+    def accept(self):
+        selected_paths = []
+        for _, combo in self._combos:
+            source_path = combo.currentData()
+            if not source_path:
+                continue
+            if source_path in selected_paths:
+                QMessageBox.warning(
+                    self,
+                    "Duplicate Replacement",
+                    "Each replacement file can only be used once in a batch replace.",
+                )
+                return
+            selected_paths.append(source_path)
+
+        if not selected_paths:
+            QMessageBox.warning(
+                self,
+                "No Replacements Selected",
+                "Choose at least one replacement file or cancel the dialog.",
+            )
+            return
+
+        super().accept()
+
+
 # -- Main ResourcePanel --------------------------------------------------
 
 class ResourcePanel(QWidget):
@@ -427,6 +518,10 @@ class ResourcePanel(QWidget):
         restore_img_btn.setToolTip("Restore missing image files by matching selected filenames against missing catalog entries.")
         restore_img_btn.clicked.connect(lambda: self._restore_missing_resources("image"))
         img_btn_layout.addWidget(restore_img_btn)
+        replace_img_btn = PushButton("Replace Missing...")
+        replace_img_btn.setToolTip("Replace missing image resources with new files and rewrite widget references to the new filenames.")
+        replace_img_btn.clicked.connect(lambda: self._replace_missing_resources("image"))
+        img_btn_layout.addWidget(replace_img_btn)
         img_btn_layout.addStretch()
         img_tab_layout.addLayout(img_btn_layout)
         self._tabs.addTab(img_tab, "Images")
@@ -454,6 +549,10 @@ class ResourcePanel(QWidget):
         restore_font_btn.setToolTip("Restore missing font files by matching selected filenames against missing catalog entries.")
         restore_font_btn.clicked.connect(lambda: self._restore_missing_resources("font"))
         font_btn_layout.addWidget(restore_font_btn)
+        replace_font_btn = PushButton("Replace Missing...")
+        replace_font_btn.setToolTip("Replace missing font resources with new files and rewrite widget references to the new filenames.")
+        replace_font_btn.clicked.connect(lambda: self._replace_missing_resources("font"))
+        font_btn_layout.addWidget(replace_font_btn)
         font_btn_layout.addStretch()
         font_tab_layout.addLayout(font_btn_layout)
         self._tabs.addTab(font_tab, "Fonts")
@@ -482,6 +581,10 @@ class ResourcePanel(QWidget):
         restore_text_btn.setToolTip("Restore missing text files by matching selected filenames against missing catalog entries.")
         restore_text_btn.clicked.connect(lambda: self._restore_missing_resources("text"))
         text_btn_layout.addWidget(restore_text_btn)
+        replace_text_btn = PushButton("Replace Missing...")
+        replace_text_btn.setToolTip("Replace missing text resources with new files and rewrite widget references to the new filenames.")
+        replace_text_btn.clicked.connect(lambda: self._replace_missing_resources("text"))
+        text_btn_layout.addWidget(replace_text_btn)
         text_btn_layout.addStretch()
         text_tab_layout.addLayout(text_btn_layout)
         self._tabs.addTab(text_tab, "Text")
@@ -699,6 +802,91 @@ class ResourcePanel(QWidget):
         if resource_type == "text":
             return "Text Files (*.txt);;All Files (*.*)"
         return "All Files (*.*)"
+
+    def _allowed_extensions_for_resource_type(self, resource_type):
+        if resource_type == "image":
+            return IMAGE_EXTENSIONS
+        if resource_type == "font":
+            return FONT_EXTENSIONS
+        if resource_type == "text":
+            return TEXT_EXTENSIONS
+        return set()
+
+    def _validate_unique_source_filenames(self, source_paths):
+        seen = {}
+        duplicates = []
+        for source_path in source_paths:
+            filename = os.path.basename(source_path).lower()
+            if filename in seen:
+                duplicates.append(os.path.basename(source_path))
+            else:
+                seen[filename] = source_path
+        if duplicates:
+            dup_list = ", ".join(sorted(set(duplicates)))
+            QMessageBox.warning(
+                self,
+                "Duplicate Replacement Filenames",
+                f"Selected replacement files must have unique filenames.\nDuplicates: {dup_list}",
+            )
+            return False
+        return True
+
+    def _replace_missing_resource_with_path(self, old_name, resource_type, source_path):
+        new_name = os.path.basename(source_path)
+        if not _validate_english_filename(new_name):
+            return "", f"'{new_name}' is invalid. Use only ASCII letters, digits, underscore, and dash."
+
+        extension = os.path.splitext(new_name)[1].lower()
+        if extension not in self._allowed_extensions_for_resource_type(resource_type):
+            return "", f"'{new_name}' is not a supported {resource_type} resource."
+
+        target_dir = self._target_dir_for_resource_type(resource_type)
+        old_path = os.path.join(target_dir, old_name)
+        target_path = os.path.join(target_dir, new_name)
+        if new_name != old_name and os.path.exists(target_path):
+            return "", f"'{new_name}' already exists."
+
+        try:
+            shutil.copy2(source_path, old_path if new_name == old_name else target_path)
+        except OSError as exc:
+            return "", str(exc)
+
+        if new_name != old_name:
+            self._catalog.remove_file(old_name)
+        self._catalog.add_file(new_name)
+        return new_name, ""
+
+    def _replace_missing_resources_from_mapping(self, resource_type, replacements):
+        if not self._ensure_src_dir():
+            return [], [], [("__all__", "No resource directory configured.")]
+
+        restored = []
+        renamed = []
+        failures = []
+        first_selected_name = ""
+
+        for old_name, source_path in replacements.items():
+            new_name, error = self._replace_missing_resource_with_path(old_name, resource_type, source_path)
+            if error:
+                failures.append((old_name, error))
+                continue
+
+            if not first_selected_name:
+                first_selected_name = new_name
+            if new_name == old_name:
+                restored.append(old_name)
+            else:
+                renamed.append((old_name, new_name))
+
+        if restored or renamed:
+            self.set_resource_dir(self._resource_dir)
+            if first_selected_name:
+                self._select_resource_item(resource_type, first_selected_name)
+            self.resource_imported.emit()
+            for old_name, new_name in renamed:
+                self.resource_renamed.emit(resource_type, old_name, new_name)
+
+        return restored, renamed, failures
 
     def _load_font(self, path):
         if path in self._font_id_cache:
@@ -926,6 +1114,75 @@ class ResourcePanel(QWidget):
 
         self.resource_imported.emit()
 
+    def _replace_missing_resources(self, resource_type):
+        if not self._ensure_src_dir():
+            return
+
+        missing_names = self._missing_resource_names(resource_type)
+        if not missing_names:
+            QMessageBox.information(
+                self,
+                "Replace Missing Resources",
+                f"No missing {resource_type} resources were found.",
+            )
+            return
+
+        source_paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Replace Missing Resources",
+            self._default_external_import_dir(resource_type),
+            self._dialog_filter_for_resource_type(resource_type),
+        )
+        if not source_paths:
+            return
+        self._remember_external_import_paths(source_paths)
+
+        if not self._validate_unique_source_filenames(source_paths):
+            return
+
+        dialog = _MissingResourceReplaceDialog(missing_names, source_paths, self)
+        if dialog.exec_() != QDialog.Accepted:
+            return
+
+        restored, renamed, failures = self._replace_missing_resources_from_mapping(resource_type, dialog.selected_mapping())
+        if restored or renamed:
+            if failures:
+                details = "\n".join(f"{name}: {error}" for name, error in failures)
+                QMessageBox.warning(
+                    self,
+                    "Replace Missing Resources",
+                    f"Some replacements could not be applied:\n{details}",
+                )
+            return
+
+        if failures:
+            details = "\n".join(f"{name}: {error}" for name, error in failures)
+            QMessageBox.warning(self, "Replace Missing Resources", details)
+
+    def _replace_missing_resource(self, filename, resource_type):
+        if not self._ensure_src_dir():
+            return
+
+        source_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Replace Missing Resource",
+            self._default_external_import_dir(resource_type),
+            self._dialog_filter_for_resource_type(resource_type),
+        )
+        if not source_path:
+            return
+        self._remember_external_import_paths([source_path])
+
+        restored, renamed, failures = self._replace_missing_resources_from_mapping(
+            resource_type,
+            {filename: source_path},
+        )
+        if restored or renamed:
+            return
+
+        if failures:
+            QMessageBox.warning(self, "Replace Missing Resource", failures[0][1])
+
     def _do_import(self, source_paths, resource_type):
         if not self._ensure_src_dir():
             return
@@ -1042,6 +1299,8 @@ class ResourcePanel(QWidget):
         if not os.path.isfile(path):
             restore_act = menu.addAction("Restore Missing File...")
             restore_act.triggered.connect(lambda: self._restore_missing_resource(filename, resource_type))
+            replace_act = menu.addAction("Replace With File...")
+            replace_act.triggered.connect(lambda: self._replace_missing_resource(filename, resource_type))
             menu.addSeparator()
 
         reveal_act = menu.addAction("Reveal in File Manager")
