@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QRect, QPoint, QPointF, QTimer, pyqtSignal, QRectF, QEvent
 from PyQt5.QtGui import QPainter, QPen, QColor, QFont, QBrush, QTransform, QPixmap, QImage
 
+from ..model.resource_binding import assign_resource_to_widget
 from ..model.widget_registry import WidgetRegistry
 from ..engine.python_renderer import render_page
 
@@ -898,14 +899,7 @@ class WidgetOverlay(QWidget):
             event.ignore()
             return
 
-        # Auto-assign based on resource type and widget type
-        assigned = False
-        if res_type == "image" and "image_file" in target.properties:
-            target.properties["image_file"] = filename
-            assigned = True
-        elif res_type == "font" and "font_file" in target.properties:
-            target.properties["font_file"] = filename
-            assigned = True
+        assigned = bool(assign_resource_to_widget(target, res_type, filename))
 
         if assigned:
             self._selected = target

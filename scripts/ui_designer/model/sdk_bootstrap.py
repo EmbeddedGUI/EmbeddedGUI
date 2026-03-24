@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 import ssl
 import subprocess
+import sys
 import tempfile
 import time
 import urllib.request
@@ -24,6 +25,7 @@ DOWNLOAD_USER_AGENT = "EmbeddedGUI-Designer/1.0"
 DEFAULT_DOWNLOAD_TOTAL_TIMEOUT_SECONDS = 60
 DOWNLOAD_TIMEOUT_ENV = "EMBEDDEDGUI_SDK_ARCHIVE_TIMEOUT_SECONDS"
 GIT_CLONE_TIMEOUT_SECONDS = 300
+AUTO_DOWNLOAD_STRATEGY_TEXT = "GitHub archive -> Gitee archive -> Gitee git clone (when git is available)."
 
 
 @dataclass(frozen=True)
@@ -43,9 +45,50 @@ def _get_download_timeout_seconds() -> int:
     return DEFAULT_DOWNLOAD_TOTAL_TIMEOUT_SECONDS
 
 
+def runtime_sdk_container_dir() -> str:
+    """Return the packaged-runtime sdk container directory when frozen."""
+    if not getattr(sys, "frozen", False):
+        return ""
+    runtime_dir = normalize_path(os.path.dirname(sys.executable))
+    if not runtime_dir:
+        return ""
+    return normalize_path(os.path.join(runtime_dir, "sdk"))
+
+
 def default_sdk_install_dir() -> str:
     """Return the default location for a downloaded SDK copy."""
+    runtime_sdk_dir = runtime_sdk_container_dir()
+    if runtime_sdk_dir:
+        bundled_root = resolve_sdk_root_candidate(runtime_sdk_dir)
+        if bundled_root:
+            return bundled_root
+
+        runtime_dir = normalize_path(os.path.dirname(runtime_sdk_dir))
+        if os.path.isdir(runtime_sdk_dir) or os.access(runtime_dir, os.W_OK):
+            return normalize_path(os.path.join(runtime_sdk_dir, "EmbeddedGUI"))
+
     return normalize_path(os.path.join(_get_config_dir(), "sdk", "EmbeddedGUI"))
+
+
+def is_bundled_sdk_root(path: str | None) -> bool:
+    """Return True when *path* points inside the packaged runtime sdk directory."""
+    sdk_root = resolve_sdk_root_candidate(path)
+    runtime_sdk_dir = runtime_sdk_container_dir()
+    if not sdk_root or not runtime_sdk_dir:
+        return False
+    try:
+        return os.path.commonpath([sdk_root, runtime_sdk_dir]) == runtime_sdk_dir
+    except ValueError:
+        return False
+
+
+def describe_auto_download_plan(destination_dir: str | None = None) -> str:
+    """Describe the default SDK download target and fallback order."""
+    target_dir = normalize_path(destination_dir) or default_sdk_install_dir()
+    return (
+        f"Default auto-download cache: {target_dir}\n"
+        f"Automatic setup order: {AUTO_DOWNLOAD_STRATEGY_TEXT}"
+    )
 
 
 def _emit_progress(progress_callback, message: str, percent: int | None = None) -> None:

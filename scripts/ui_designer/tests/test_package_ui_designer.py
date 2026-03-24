@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 
 import pytest
@@ -83,6 +84,7 @@ def test_package_ui_designer_creates_archive_without_running_pyinstaller(tmp_pat
         archive_mode="zip",
         package_suffix="dev",
         clean=False,
+        bundle_sdk=False,
     )
 
     assert result["app_dir"] == str(app_dir.resolve())
@@ -109,6 +111,143 @@ def test_package_ui_designer_can_skip_archive(tmp_path, monkeypatch):
         output_dir=dist_dir,
         work_dir=tmp_path / "build",
         archive_mode="none",
+        bundle_sdk=False,
     )
 
     assert result["archive_path"] == ""
+
+
+def test_package_ui_designer_bundles_sdk_by_default(tmp_path, monkeypatch):
+    module = _load_module()
+
+    dist_dir = tmp_path / "dist"
+    app_dir = dist_dir / module.DIST_APP_NAME
+    bundled_dir = app_dir / "sdk" / module.SDK_BUNDLE_DIR_NAME
+    calls = []
+
+    monkeypatch.setattr(module, "ensure_pyinstaller_available", lambda: None)
+
+    def fake_run_pyinstaller(resolved_dist_dir, resolved_work_dir, clean=True):
+        app_dir.mkdir(parents=True, exist_ok=True)
+        (app_dir / "designer.txt").write_text("ok", encoding="utf-8")
+
+    monkeypatch.setattr(module, "run_pyinstaller", fake_run_pyinstaller)
+    monkeypatch.setattr(
+        module,
+        "copy_sdk_bundle",
+        lambda resolved_app_dir, sdk_root=None: calls.append((resolved_app_dir, sdk_root)) or bundled_dir,
+    )
+
+    result = module.package_ui_designer(
+        output_dir=dist_dir,
+        work_dir=tmp_path / "build",
+        archive_mode="none",
+    )
+
+    assert calls == [(app_dir, None)]
+    assert result["bundled_sdk_dir"] == str(bundled_dir)
+
+
+def test_copy_sdk_bundle_copies_sdk_tree_into_app_dir(tmp_path):
+    module = _load_module()
+
+    sdk_root = tmp_path / "sdk_root"
+    (sdk_root / "src").mkdir(parents=True)
+    (sdk_root / "porting" / "designer").mkdir(parents=True)
+    (sdk_root / "Makefile").write_text("all:\n", encoding="utf-8")
+    (sdk_root / ".git").mkdir()
+    (sdk_root / ".git" / "config").write_text("ignored", encoding="utf-8")
+    (sdk_root / "README.md").write_text("sdk", encoding="utf-8")
+
+    app_dir = tmp_path / "dist" / module.DIST_APP_NAME
+    app_dir.mkdir(parents=True)
+
+    bundled_dir = module.copy_sdk_bundle(app_dir, sdk_root=sdk_root)
+
+    assert bundled_dir == app_dir / "sdk" / module.SDK_BUNDLE_DIR_NAME
+    assert (bundled_dir / "Makefile").is_file()
+    assert (bundled_dir / "src").is_dir()
+    assert (bundled_dir / "porting" / "designer").is_dir()
+    assert (bundled_dir / "README.md").is_file()
+    assert not (bundled_dir / ".git").exists()
+
+
+def test_copy_sdk_bundle_ignores_designer_test_tree(tmp_path):
+    module = _load_module()
+
+    sdk_root = tmp_path / "sdk_root"
+    (sdk_root / "src").mkdir(parents=True)
+    (sdk_root / "porting" / "designer").mkdir(parents=True)
+    (sdk_root / "Makefile").write_text("all:\n", encoding="utf-8")
+    (sdk_root / "scripts" / "ui_designer" / "tests").mkdir(parents=True)
+    (sdk_root / "scripts" / "ui_designer" / "tests" / "test_dummy.py").write_text("x = 1\n", encoding="utf-8")
+    (sdk_root / "scripts" / "ui_designer" / "main.py").write_text("print('ok')\n", encoding="utf-8")
+
+    app_dir = tmp_path / "dist" / module.DIST_APP_NAME
+    app_dir.mkdir(parents=True)
+
+    bundled_dir = module.copy_sdk_bundle(app_dir, sdk_root=sdk_root)
+
+    assert (bundled_dir / "scripts" / "ui_designer" / "main.py").is_file()
+    assert not (bundled_dir / "scripts" / "ui_designer" / "tests").exists()
+
+
+def test_package_ui_designer_can_bundle_sdk(tmp_path, monkeypatch):
+    module = _load_module()
+
+    dist_dir = tmp_path / "dist"
+    app_dir = dist_dir / module.DIST_APP_NAME
+    sdk_root = tmp_path / "sdk_root"
+    (sdk_root / "src").mkdir(parents=True)
+    (sdk_root / "porting" / "designer").mkdir(parents=True)
+    (sdk_root / "Makefile").write_text("all:\n", encoding="utf-8")
+
+    monkeypatch.setattr(module, "ensure_pyinstaller_available", lambda: None)
+
+    def fake_run_pyinstaller(resolved_dist_dir, resolved_work_dir, clean=True):
+        app_dir.mkdir(parents=True, exist_ok=True)
+        (app_dir / "designer.txt").write_text("ok", encoding="utf-8")
+
+    monkeypatch.setattr(module, "run_pyinstaller", fake_run_pyinstaller)
+
+    result = module.package_ui_designer(
+        output_dir=dist_dir,
+        work_dir=tmp_path / "build",
+        archive_mode="none",
+        bundle_sdk=True,
+        sdk_root=sdk_root,
+    )
+
+    bundled_dir = app_dir / "sdk" / module.SDK_BUNDLE_DIR_NAME
+    assert result["bundled_sdk_dir"] == str(bundled_dir)
+    assert (bundled_dir / "Makefile").is_file()
+
+
+def test_resolve_sdk_bundle_root_rejects_invalid_directory(tmp_path):
+    module = _load_module()
+
+    invalid_root = tmp_path / "invalid_sdk"
+    invalid_root.mkdir()
+
+    with pytest.raises(ValueError, match="invalid EmbeddedGUI SDK root"):
+        module.resolve_sdk_bundle_root(invalid_root)
+
+
+def test_parse_args_bundles_sdk_by_default(monkeypatch):
+    module = _load_module()
+
+    monkeypatch.setattr(sys, "argv", ["package_ui_designer.py"])
+
+    args = module.parse_args()
+
+    assert args.bundle_sdk is True
+
+
+def test_parse_args_can_disable_sdk_bundle(monkeypatch):
+    module = _load_module()
+
+    monkeypatch.setattr(sys, "argv", ["package_ui_designer.py", "--no-bundle-sdk"])
+
+    args = module.parse_args()
+
+    assert args.bundle_sdk is False

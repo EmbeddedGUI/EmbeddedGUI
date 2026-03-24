@@ -24,6 +24,7 @@ from ..model.widget_model import (
     IMAGE_FORMATS, IMAGE_ALPHAS, IMAGE_EXTERNALS,
     FONT_PIXELSIZES, FONT_BITSIZES, FONT_EXTERNALS,
 )
+from ..model.resource_binding import assign_resource_to_widget
 from ..model.widget_registry import WidgetRegistry
 from .widgets.color_picker import EguiColorPicker
 from .widgets.font_selector import EguiFontSelector
@@ -195,11 +196,12 @@ class PropertyPanel(QWidget):
             event.ignore()
             return
 
-        wtype = self._widget.widget_type
-        if res_type == "image" and "image_file" in self._widget.properties:
-            if filename:
-                self._widget.properties["image_file"] = filename
-            elif expr:
+        if filename and assign_resource_to_widget(self._widget, res_type, filename):
+            self._rebuild_form()
+            self.property_changed.emit()
+            event.acceptProposedAction()
+        elif res_type == "image" and "image_file" in self._widget.properties:
+            if expr:
                 # Legacy: parse expr to extract filename
                 from ..model.widget_model import parse_legacy_image_expr, _guess_filename_from_c_name
                 parsed = parse_legacy_image_expr(expr)
@@ -213,9 +215,7 @@ class PropertyPanel(QWidget):
             self.property_changed.emit()
             event.acceptProposedAction()
         elif res_type == "font" and "font_file" in self._widget.properties:
-            if filename:
-                self._widget.properties["font_file"] = filename
-            elif expr:
+            if expr:
                 from ..model.widget_model import parse_legacy_font_expr, _guess_filename_from_c_name
                 parsed = parse_legacy_font_expr(expr)
                 if parsed and "montserrat" not in parsed["name"]:

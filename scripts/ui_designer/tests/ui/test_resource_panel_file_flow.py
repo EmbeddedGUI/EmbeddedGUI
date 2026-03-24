@@ -7,7 +7,7 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
-    from PyQt5.QtWidgets import QApplication
+    from PyQt5.QtWidgets import QApplication, QMessageBox
 
     _has_pyqt5 = True
 except ImportError:
@@ -105,4 +105,130 @@ class TestResourcePanelFileFlow:
 
         assert captured["first_directory"] == os.path.normpath(os.path.abspath(resource_dir))
         assert captured["second_directory"] == os.path.normpath(os.path.abspath(external_dir))
+        panel.deleteLater()
+
+    def test_set_resource_dir_populates_text_tab_and_emits_selection(self, qapp, tmp_path):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        resource_dir.mkdir(parents=True)
+        text_path = resource_dir / "supported_text.txt"
+        text_path.write_text("Hello\nWorld\n", encoding="utf-8")
+
+        catalog = ResourceCatalog()
+        catalog.add_text_file("supported_text.txt")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+
+        captured = []
+        panel.resource_selected.connect(lambda res_type, filename: captured.append((res_type, filename)))
+
+        assert panel._text_list.count() == 1
+        assert panel._tabs.tabText(2) == "Text (1)"
+
+        item = panel._text_list.item(0)
+        panel._on_text_clicked(item)
+
+        assert captured == [("text", "supported_text.txt")]
+        panel.deleteLater()
+
+    def test_import_text_refreshes_text_tab_and_catalog(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        resource_dir.mkdir(parents=True)
+        external_dir = tmp_path / "external_text"
+        external_dir.mkdir()
+        text_path = external_dir / "demo.txt"
+        text_path.write_text("abc\n123\n", encoding="utf-8")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+
+        imported = []
+        panel.resource_imported.connect(lambda: imported.append(True))
+
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QFileDialog.getOpenFileNames",
+            lambda *args, **kwargs: ([str(text_path)], ""),
+        )
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QInputDialog.getText",
+            lambda *args, **kwargs: ("demo.txt", True),
+        )
+
+        panel._on_import_text()
+
+        assert (resource_dir / "demo.txt").is_file()
+        assert panel.get_resource_catalog().text_files == ["demo.txt"]
+        assert panel._text_list.count() == 1
+        assert imported == [True]
+        panel.deleteLater()
+
+    def test_rename_text_resource_updates_catalog_and_emits_signal(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        resource_dir.mkdir(parents=True)
+        old_path = resource_dir / "chars.txt"
+        old_path.write_text("abc\n", encoding="utf-8")
+
+        catalog = ResourceCatalog()
+        catalog.add_text_file("chars.txt")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+
+        renamed = []
+        imported = []
+        panel.resource_renamed.connect(lambda res_type, old, new: renamed.append((res_type, old, new)))
+        panel.resource_imported.connect(lambda: imported.append(True))
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QInputDialog.getText",
+            lambda *args, **kwargs: ("chars_new.txt", True),
+        )
+
+        panel._rename_resource("chars.txt", "text")
+
+        assert not old_path.exists()
+        assert (resource_dir / "chars_new.txt").is_file()
+        assert panel.get_resource_catalog().text_files == ["chars_new.txt"]
+        assert renamed == [("text", "chars.txt", "chars_new.txt")]
+        assert imported == [True]
+        panel.deleteLater()
+
+    def test_delete_text_resource_updates_catalog_and_emits_signal(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        resource_dir.mkdir(parents=True)
+        text_path = resource_dir / "chars.txt"
+        text_path.write_text("abc\n", encoding="utf-8")
+
+        catalog = ResourceCatalog()
+        catalog.add_text_file("chars.txt")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+
+        deleted = []
+        imported = []
+        panel.resource_deleted.connect(lambda res_type, filename: deleted.append((res_type, filename)))
+        panel.resource_imported.connect(lambda: imported.append(True))
+        monkeypatch.setattr("ui_designer.ui.resource_panel.QMessageBox.question", lambda *args, **kwargs: QMessageBox.Yes)
+
+        panel._delete_resource("chars.txt", "text")
+
+        assert not text_path.exists()
+        assert panel.get_resource_catalog().text_files == []
+        assert panel._text_list.count() == 0
+        assert deleted == [("text", "chars.txt")]
+        assert imported == [True]
         panel.deleteLater()

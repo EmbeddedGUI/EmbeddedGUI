@@ -20,6 +20,42 @@ SUPPRESSED_LOG_SNIPPETS = (
     "QFluentWidgets Pro is now released",
     "qfluentwidgets.com/pages/pro",
 )
+SDK_BUNDLE_DIR_NAME = "EmbeddedGUI"
+SDK_BUNDLE_IGNORE_NAMES = {
+    ".git",
+    ".github",
+    ".claude",
+    ".pytest_cache",
+    ".pytest-tmp",
+    ".tmp",
+    "__pycache__",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".vscode",
+    ".idea",
+    "build",
+    "build_cmake",
+    "dist",
+    "doc",
+    "docs",
+    "output",
+    "runtime_check_output",
+    "iteration_log",
+    "runtime_check_images",
+    "test_output",
+    "coverage",
+    "htmlcov",
+    ".coverage",
+    ".cache",
+    ".venv",
+    "venv",
+    "node_modules",
+}
+SDK_BUNDLE_IGNORE_RELATIVE_PREFIXES = (
+    "scripts/ui_designer/tests",
+    "scripts/ui_designer/__pycache__",
+    "scripts/__pycache__",
+)
 
 
 def compute_platform_tag(platform_name: str | None = None, machine_name: str | None = None) -> str:
@@ -106,6 +142,63 @@ def ensure_pyinstaller_available():
         raise RuntimeError("PyInstaller is required. Run: python -m pip install pyinstaller") from exc
 
 
+def looks_like_sdk_root(path: str | Path) -> bool:
+    """Return True when *path* looks like a valid EmbeddedGUI SDK root."""
+    root = Path(path).resolve()
+    return (
+        root.is_dir()
+        and (root / "Makefile").is_file()
+        and (root / "src").is_dir()
+        and (root / "porting" / "designer").is_dir()
+    )
+
+
+def resolve_sdk_bundle_root(sdk_root: str | Path | None = None) -> Path:
+    """Resolve the SDK root to bundle into the package."""
+    candidate = Path(sdk_root).resolve() if sdk_root else PROJECT_ROOT
+    if not looks_like_sdk_root(candidate):
+        raise ValueError(f"invalid EmbeddedGUI SDK root: {candidate}")
+    return candidate
+
+
+def build_sdk_bundle_ignore(source_root: Path):
+    """Build a copytree ignore callback for SDK bundling."""
+    source_root = Path(source_root).resolve()
+
+    def _ignore_sdk_bundle(current_dir: str, names: list[str]) -> set[str]:
+        ignored = set()
+        current_path = Path(current_dir).resolve()
+        try:
+            rel_dir = current_path.relative_to(source_root).as_posix()
+        except ValueError:
+            rel_dir = ""
+
+        for name in names:
+            if name in SDK_BUNDLE_IGNORE_NAMES or name.endswith((".pyc", ".pyo")):
+                ignored.add(name)
+                continue
+
+            rel_path = f"{rel_dir}/{name}" if rel_dir else name
+            rel_path = rel_path.strip("/")
+            if any(rel_path == prefix or rel_path.startswith(prefix + "/") for prefix in SDK_BUNDLE_IGNORE_RELATIVE_PREFIXES):
+                ignored.add(name)
+
+        return ignored
+
+    return _ignore_sdk_bundle
+
+
+def copy_sdk_bundle(app_dir: Path, sdk_root: str | Path | None = None) -> Path:
+    """Copy a local EmbeddedGUI SDK into ``app_dir/sdk/EmbeddedGUI``."""
+    source_root = resolve_sdk_bundle_root(sdk_root)
+    target_root = app_dir / "sdk" / SDK_BUNDLE_DIR_NAME
+    target_root.parent.mkdir(parents=True, exist_ok=True)
+    if target_root.exists():
+        shutil.rmtree(target_root)
+    shutil.copytree(source_root, target_root, ignore=build_sdk_bundle_ignore(source_root))
+    return target_root
+
+
 def should_suppress_build_output(line: str) -> bool:
     """Return True when a build log line is pure third-party promotion noise."""
     text = line or ""
@@ -175,6 +268,8 @@ def package_ui_designer(
     archive_mode: str = "auto",
     package_suffix: str = "",
     clean: bool = True,
+    bundle_sdk: bool = True,
+    sdk_root: str | Path | None = None,
 ) -> dict[str, str]:
     """Build the Designer package and optionally archive it."""
     ensure_pyinstaller_available()
@@ -188,6 +283,10 @@ def package_ui_designer(
     if not app_dir.is_dir():
         raise FileNotFoundError(f"PyInstaller output missing: {app_dir}")
 
+    bundled_sdk_dir = None
+    if bundle_sdk:
+        bundled_sdk_dir = copy_sdk_bundle(app_dir, sdk_root=sdk_root)
+
     archive_format = resolve_archive_format(archive_mode)
     archive_path = None
     if archive_format is not None:
@@ -199,6 +298,7 @@ def package_ui_designer(
         "dist_dir": str(dist_dir),
         "app_dir": str(app_dir),
         "archive_path": str(archive_path) if archive_path else "",
+        "bundled_sdk_dir": str(bundled_sdk_dir) if bundled_sdk_dir else "",
     }
 
 
@@ -230,6 +330,25 @@ def parse_args():
         action="store_true",
         help="Do not pass --clean to PyInstaller",
     )
+    bundle_group = parser.add_mutually_exclusive_group()
+    bundle_group.add_argument(
+        "--bundle-sdk",
+        dest="bundle_sdk",
+        action="store_true",
+        help="Copy an EmbeddedGUI SDK into the packaged app under sdk/EmbeddedGUI (default)",
+    )
+    bundle_group.add_argument(
+        "--no-bundle-sdk",
+        dest="bundle_sdk",
+        action="store_false",
+        help="Skip bundling the SDK into the packaged app",
+    )
+    parser.add_argument(
+        "--sdk-root",
+        default="",
+        help="SDK root to bundle when SDK bundling is enabled (default: current repo root)",
+    )
+    parser.set_defaults(bundle_sdk=True)
     return parser.parse_args()
 
 
@@ -242,12 +361,16 @@ def main():
             archive_mode=args.archive,
             package_suffix=args.package_suffix,
             clean=not args.no_clean,
+            bundle_sdk=args.bundle_sdk,
+            sdk_root=args.sdk_root,
         )
     except Exception as exc:
         print(f"[FAIL] {exc}")
         sys.exit(1)
 
     print(f"[OK] app_dir: {result['app_dir']}")
+    if result["bundled_sdk_dir"]:
+        print(f"[OK] bundled_sdk: {result['bundled_sdk_dir']}")
     if result["archive_path"]:
         print(f"[OK] archive: {result['archive_path']}")
     else:

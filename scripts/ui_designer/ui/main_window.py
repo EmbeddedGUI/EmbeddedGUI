@@ -41,7 +41,7 @@ from ..model.widget_model import WidgetModel
 from ..model.project import Project
 from ..model.page import Page
 from ..model.config import get_config
-from ..model.sdk_bootstrap import default_sdk_install_dir, ensure_sdk_downloaded
+from ..model.sdk_bootstrap import AUTO_DOWNLOAD_STRATEGY_TEXT, default_sdk_install_dir, ensure_sdk_downloaded
 from ..model.workspace import (
     find_sdk_root,
     is_valid_sdk_root,
@@ -49,6 +49,7 @@ from ..model.workspace import (
     resolve_available_sdk_root,
     resolve_sdk_root_candidate,
 )
+from ..model.resource_binding import assign_resource_to_widget, resource_property_type
 from ..model.undo_manager import UndoManager
 from ..generator.code_generator import generate_all_files, generate_all_files_preserved, generate_uicode
 from ..generator.resource_config_generator import ResourceConfigGenerator
@@ -840,7 +841,7 @@ class MainWindow(QMainWindow):
         gen_res_action = QAction("Generate Resources", self)
         gen_res_action.setToolTip(
             "Run resource generation (app_resource_generate.py) to produce\n"
-            "C source files from resource/src/ assets and config."
+            "C source files from .eguiproject/resources/ assets and widget config."
         )
         gen_res_action.triggered.connect(self._generate_resources)
         build_menu.addAction(gen_res_action)
@@ -1149,6 +1150,7 @@ class MainWindow(QMainWindow):
                 "Download SDK Failed",
                 "Failed to prepare an EmbeddedGUI SDK automatically.\n\n"
                 f"Target location:\n{target_dir}\n\n"
+                f"Automatic setup order: {AUTO_DOWNLOAD_STRATEGY_TEXT}\n\n"
                 f"{exc}\n\n"
                 "You can try again later, install git for clone fallback, or select an existing SDK root manually.",
             )
@@ -1174,7 +1176,7 @@ class MainWindow(QMainWindow):
         dialog.setInformativeText(
             "Designer can download a local SDK copy automatically.\n"
             f"Target location:\n{target_dir}\n\n"
-            "It will try GitHub archive first, then Gitee archive, then Gitee git clone when git is available.\n"
+            f"Automatic setup order: {AUTO_DOWNLOAD_STRATEGY_TEXT}\n"
             "You can also point Designer to an existing SDK root."
         )
         download_btn = dialog.addButton("Download SDK Automatically", QMessageBox.AcceptRole)
@@ -1757,11 +1759,7 @@ class MainWindow(QMainWindow):
         """User selected/assigned a resource from the ResourcePanel."""
         if self._selected_widget is None:
             return
-        if res_type == "image" and "image_file" in self._selected_widget.properties:
-            self._selected_widget.properties["image_file"] = filename
-        elif res_type == "font" and "font_file" in self._selected_widget.properties:
-            self._selected_widget.properties["font_file"] = filename
-        else:
+        if not assign_resource_to_widget(self._selected_widget, res_type, filename):
             return
         self.property_panel.set_widget(self._selected_widget)
         self._on_model_changed()
@@ -1799,10 +1797,7 @@ class MainWindow(QMainWindow):
 
         from ..model.widget_registry import WidgetRegistry
 
-        resource_prop_type = {
-            "image": "image_file",
-            "font": "font_file",
-        }.get(res_type, "")
+        resource_prop_type = resource_property_type(res_type)
         if not resource_prop_type:
             return []
 
@@ -1852,11 +1847,8 @@ class MainWindow(QMainWindow):
     def _on_resource_dropped(self, widget, res_type, filename):
         """Resource was dropped onto a widget in the preview overlay."""
         self._selected_widget = widget
-        # Assign the resource filename to the matching property
-        if res_type == "image" and "image_file" in widget.properties:
-            widget.properties["image_file"] = filename
-        elif res_type == "font" and "font_file" in widget.properties:
-            widget.properties["font_file"] = filename
+        if not assign_resource_to_widget(widget, res_type, filename):
+            return
         self.property_panel.set_widget(widget)
         self._on_model_changed()
 

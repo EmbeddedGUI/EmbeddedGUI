@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import (
 from qfluentwidgets import LineEdit, PrimaryPushButton, PushButton
 
 from ..model.config import get_config
-from ..model.sdk_bootstrap import default_sdk_install_dir
+from ..model.sdk_bootstrap import default_sdk_install_dir, describe_auto_download_plan, is_bundled_sdk_root
 from ..model.workspace import (
     describe_sdk_root,
     is_valid_sdk_root,
@@ -71,6 +71,7 @@ class AppSelectorDialog(QDialog):
 
         self._download_btn = PushButton("Download SDK...")
         self._download_btn.clicked.connect(self._download_sdk)
+        self._download_btn.setToolTip(describe_auto_download_plan())
         root_row.addWidget(self._download_btn)
 
         self._root_status_label = QLabel("")
@@ -213,20 +214,24 @@ class AppSelectorDialog(QDialog):
     def _refresh_root_status(self):
         status = describe_sdk_root(self._egui_root)
         if status == "ready":
-            self._root_status_label.setText("Ready: SDK examples are available below.")
+            if is_bundled_sdk_root(self._egui_root):
+                self._root_status_label.setText("Ready: using bundled SDK examples below.")
+            else:
+                self._root_status_label.setText("Ready: SDK examples are available below.")
             self._root_status_label.setStyleSheet("color: #4caf50;")
             return
 
         if status == "invalid":
             self._root_status_label.setText(
-                "Invalid: current SDK root needs attention. Browse to a valid SDK root or download a fresh copy."
+                "Invalid: current SDK root needs attention. Browse to a valid SDK root or download a fresh copy.\n"
+                f"{describe_auto_download_plan()}"
             )
             self._root_status_label.setStyleSheet("color: #ff9800;")
             return
 
         self._root_status_label.setText(
             "Missing: no SDK root selected. Browse to an existing SDK or download one now.\n"
-            f"Default auto-download cache: {default_sdk_install_dir()}"
+            f"{describe_auto_download_plan()}"
         )
         self._root_status_label.setStyleSheet("color: #f44336;")
 

@@ -617,6 +617,7 @@ class TestMainWindowFileFlow:
         assert warnings
         assert warnings[0][0] == "Download SDK Failed"
         assert str(target_dir) in warnings[0][1]
+        assert "GitHub archive" in warnings[0][1]
         assert "install git for clone fallback" in warnings[0][1]
         window.close()
         window.deleteLater()
@@ -675,7 +676,8 @@ class TestMainWindowFileFlow:
         assert captured["title"] == "Prepare EmbeddedGUI SDK"
         assert "No EmbeddedGUI SDK was detected." in captured["text"]
         assert str(target_dir) in captured["info"]
-        assert "GitHub archive first" in captured["info"]
+        assert "Automatic setup order:" in captured["info"]
+        assert "GitHub archive" in captured["info"]
         assert isolated_config.sdk_setup_prompted is True
         assert download_calls == ["download"]
         window.close()
@@ -1071,6 +1073,105 @@ class TestMainWindowFileFlow:
         window._on_resource_deleted("font", "demo.ttf")
 
         assert label.properties["font_file"] == ""
+        assert window._undo_manager.get_stack("main_page").is_dirty() is True
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
+    def test_resource_selected_assigns_text_file_to_selected_widget(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "AssignTextResourceDemo"
+        project = _create_project(project_dir, "AssignTextResourceDemo", sdk_root)
+        label = WidgetModel("label", name="title")
+        label.properties["font_file"] = "demo.ttf"
+        project.get_page_by_name("main_page").root_widget.add_child(label)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._selected_widget = label
+        window.property_panel.set_widget(label)
+
+        window._on_resource_selected("text", "chars.txt")
+
+        assert label.properties["font_text_file"] == "chars.txt"
+        assert window._undo_manager.get_stack("main_page").is_dirty() is True
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
+    def test_resource_rename_updates_text_references_across_pages(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "RenameTextResourceDemo"
+        project = _create_project(project_dir, "RenameTextResourceDemo", sdk_root)
+        detail_page = project.create_new_page("detail_page")
+
+        label_a = WidgetModel("label", name="label_a")
+        label_a.properties["font_file"] = "demo.ttf"
+        label_a.properties["font_text_file"] = "chars.txt"
+        project.get_page_by_name("main_page").root_widget.add_child(label_a)
+
+        label_b = WidgetModel("label", name="label_b")
+        label_b.properties["font_file"] = "demo.ttf"
+        label_b.properties["font_text_file"] = "chars.txt"
+        detail_page.root_widget.add_child(label_b)
+
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._selected_widget = label_a
+        window.property_panel.set_widget(label_a)
+
+        window._on_resource_renamed("text", "chars.txt", "chars_new.txt")
+
+        assert label_a.properties["font_text_file"] == "chars_new.txt"
+        assert label_b.properties["font_text_file"] == "chars_new.txt"
+        assert window._undo_manager.get_stack("main_page").is_dirty() is True
+        assert window._undo_manager.get_stack("detail_page").is_dirty() is True
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
+    def test_resource_delete_clears_text_references(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "DeleteTextResourceDemo"
+        project = _create_project(project_dir, "DeleteTextResourceDemo", sdk_root)
+        label = WidgetModel("label", name="title")
+        label.properties["font_file"] = "demo.ttf"
+        label.properties["font_text_file"] = "chars.txt"
+        project.get_page_by_name("main_page").root_widget.add_child(label)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._selected_widget = label
+        window.property_panel.set_widget(label)
+
+        window._on_resource_deleted("text", "chars.txt")
+
+        assert label.properties["font_text_file"] == ""
         assert window._undo_manager.get_stack("main_page").is_dirty() is True
         window._undo_manager.mark_all_saved()
         window.close()

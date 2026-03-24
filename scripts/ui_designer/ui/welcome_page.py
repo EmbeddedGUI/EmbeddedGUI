@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import PrimaryPushButton, PushButton
 
 from ..model.config import get_config
-from ..model.sdk_bootstrap import default_sdk_install_dir
+from ..model.sdk_bootstrap import default_sdk_install_dir, describe_auto_download_plan, is_bundled_sdk_root
 from ..model.workspace import describe_sdk_root, resolve_available_sdk_root
 
 
@@ -150,6 +150,7 @@ class WelcomePage(QWidget):
         self._download_sdk_btn = PushButton("Download SDK...")
         self._download_sdk_btn.setFixedWidth(220)
         self._download_sdk_btn.clicked.connect(self.download_sdk.emit)
+        self._download_sdk_btn.setToolTip(describe_auto_download_plan())
         left_col.addWidget(self._download_sdk_btn)
 
         self._sdk_card = QWidget()
@@ -219,23 +220,28 @@ class WelcomePage(QWidget):
         )
         sdk_status = describe_sdk_root(sdk_root)
         default_cache_dir = default_sdk_install_dir()
+        auto_download_plan = describe_auto_download_plan(default_cache_dir)
         if sdk_status == "ready":
-            self._sdk_status_label.setText("Ready: compile preview available")
+            if is_bundled_sdk_root(sdk_root):
+                self._sdk_status_label.setText("Ready: using bundled SDK copy")
+                self._sdk_hint_label.setText("Designer is using the SDK packaged beside the application.")
+            else:
+                self._sdk_status_label.setText("Ready: compile preview available")
+                self._sdk_hint_label.setText("Projects can use real SDK-backed preview when buildable.")
             self._sdk_status_label.setStyleSheet("color: #4caf50;")
-            self._sdk_hint_label.setText("Projects can use real SDK-backed preview when buildable.")
         elif sdk_status == "invalid":
             self._sdk_status_label.setText("Invalid: SDK path needs attention")
             self._sdk_status_label.setStyleSheet("color: #ff9800;")
             self._sdk_hint_label.setText(
                 "Select a valid SDK root, or download one automatically to restore compile preview.\n"
-                f"Default auto-download cache: {default_cache_dir}"
+                f"{auto_download_plan}"
             )
         else:
             self._sdk_status_label.setText("Missing: editing only, Python preview fallback")
             self._sdk_status_label.setStyleSheet("color: #f44336;")
             self._sdk_hint_label.setText(
                 "You can still edit projects, but compile preview stays disabled until you set or download an SDK.\n"
-                f"Default auto-download cache: {default_cache_dir}"
+                f"{auto_download_plan}"
             )
 
         self._sdk_path_label.setText(sdk_root or "No SDK root configured")

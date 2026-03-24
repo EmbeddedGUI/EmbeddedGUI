@@ -183,3 +183,65 @@ class TestPropertyPanelFileFlow:
         assert imported_events == []
         assert selector is not None
         panel.deleteLater()
+
+    def test_browse_text_file_uses_resource_root_as_default_directory(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        resource_dir.mkdir(parents=True)
+        captured = {}
+
+        panel = PropertyPanel()
+        panel.set_source_resource_dir(str(resource_dir))
+        selector = panel._create_file_selector("font_text_file", "", [], "Text files (*.txt)")
+        combo = panel._editors["prop_font_text_file"]
+
+        def fake_get_open_file_name(parent, title, directory, filters):
+            captured["title"] = title
+            captured["directory"] = directory
+            captured["filters"] = filters
+            return "", ""
+
+        monkeypatch.setattr("ui_designer.ui.property_panel.QFileDialog.getOpenFileName", fake_get_open_file_name)
+
+        panel._browse_file(combo, "Text files (*.txt)")
+
+        assert captured["title"] == "Select File"
+        assert captured["directory"] == os.path.normpath(os.path.abspath(resource_dir))
+        assert "Text files" in captured["filters"]
+        assert selector is not None
+        panel.deleteLater()
+
+    def test_browse_text_file_auto_imports_and_emits_resource_imported(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        resource_dir.mkdir(parents=True)
+        external_dir = tmp_path / "external"
+        external_dir.mkdir()
+        text_path = external_dir / "chars.txt"
+        text_path.write_text("abc\n123\n", encoding="utf-8")
+
+        panel = PropertyPanel()
+        panel.set_source_resource_dir(str(resource_dir))
+        catalog = ResourceCatalog()
+        panel.set_resource_catalog(catalog)
+        selector = panel._create_file_selector("font_text_file", "", [], "Text files (*.txt)")
+        combo = panel._editors["prop_font_text_file"]
+        imported_events = []
+        panel.resource_imported.connect(lambda: imported_events.append("imported"))
+
+        monkeypatch.setattr(
+            "ui_designer.ui.property_panel.QFileDialog.getOpenFileName",
+            lambda *args, **kwargs: (str(text_path), "Text files (*.txt)"),
+        )
+
+        panel._browse_file(combo, "Text files (*.txt)")
+
+        assert (resource_dir / "chars.txt").is_file()
+        assert catalog.has_text_file("chars.txt")
+        assert combo.currentText() == "chars.txt"
+        assert imported_events == ["imported"]
+        assert selector is not None
+        panel.deleteLater()

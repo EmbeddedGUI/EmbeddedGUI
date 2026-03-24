@@ -96,6 +96,7 @@ class TestAppSelectorDialog:
         assert dialog._app_list.count() == 1
         assert dialog._app_list.item(0).text() == "(Set or download an SDK root first)"
         assert "Missing" in dialog._root_status_label.text()
+        assert "GitHub archive" in dialog._root_status_label.text()
         assert dialog._open_btn.isEnabled() is False
         dialog.deleteLater()
 
@@ -308,6 +309,23 @@ class TestAppSelectorDialog:
         assert dialog._app_list.count() == 1
         assert dialog._app_list.item(0).text() == "HelloVirtual"
         assert "Ready" in dialog._root_status_label.text()
+        dialog.deleteLater()
+
+    def test_shows_bundled_sdk_status_when_using_runtime_sdk(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.app_selector import AppSelectorDialog
+
+        runtime_dir = tmp_path / "EmbeddedGUI-Designer"
+        sdk_root = runtime_dir / "sdk" / "EmbeddedGUI"
+        _create_sdk_root(sdk_root)
+        (sdk_root / "example").mkdir()
+
+        monkeypatch.setattr("ui_designer.ui.app_selector.default_sdk_install_dir", lambda: str(sdk_root))
+        monkeypatch.setattr("ui_designer.model.sdk_bootstrap.sys.frozen", True, raising=False)
+        monkeypatch.setattr("ui_designer.model.sdk_bootstrap.sys.executable", str(runtime_dir / "EmbeddedGUI-Designer.exe"))
+
+        dialog = AppSelectorDialog(egui_root=str(sdk_root))
+
+        assert "bundled SDK" in dialog._root_status_label.text()
         dialog.deleteLater()
 
     def test_uses_default_sdk_cache_when_configured_root_is_missing(self, qapp, isolated_config, tmp_path, monkeypatch):
@@ -585,6 +603,7 @@ class TestWelcomePage:
 
         assert "Missing" in page._sdk_status_label.text()
         assert str(cache_dir) in page._sdk_hint_label.text()
+        assert "GitHub archive" in page._sdk_hint_label.text()
         page.deleteLater()
 
     def test_refresh_uses_default_sdk_cache_when_config_is_invalid(self, qapp, isolated_config, tmp_path, monkeypatch):
@@ -600,6 +619,24 @@ class TestWelcomePage:
 
         assert "Ready" in page._sdk_status_label.text()
         assert str(cache_dir) in page._sdk_path_label.text()
+        page.deleteLater()
+
+    def test_refresh_shows_bundled_sdk_status_when_using_runtime_sdk(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.welcome_page import WelcomePage
+
+        runtime_dir = tmp_path / "EmbeddedGUI-Designer"
+        sdk_root = runtime_dir / "sdk" / "EmbeddedGUI"
+        _create_sdk_root(sdk_root)
+        isolated_config.sdk_root = str(sdk_root)
+        isolated_config.egui_root = str(sdk_root)
+        monkeypatch.setattr("ui_designer.ui.welcome_page.default_sdk_install_dir", lambda: str(sdk_root))
+        monkeypatch.setattr("ui_designer.model.sdk_bootstrap.sys.frozen", True, raising=False)
+        monkeypatch.setattr("ui_designer.model.sdk_bootstrap.sys.executable", str(runtime_dir / "EmbeddedGUI-Designer.exe"))
+
+        page = WelcomePage()
+
+        assert "bundled SDK" in page._sdk_status_label.text()
+        assert "packaged beside the application" in page._sdk_hint_label.text()
         page.deleteLater()
 
     def test_quick_action_buttons_emit_signals(self, qapp, isolated_config):
