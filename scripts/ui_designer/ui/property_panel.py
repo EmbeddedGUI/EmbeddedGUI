@@ -25,6 +25,7 @@ from ..model.widget_model import (
     FONT_PIXELSIZES, FONT_BITSIZES, FONT_EXTERNALS,
 )
 from ..model.resource_binding import assign_resource_to_widget
+from ..model.widget_name import resolve_widget_name
 from ..model.widget_registry import WidgetRegistry
 from .widgets.color_picker import EguiColorPicker
 from .widgets.font_selector import EguiFontSelector
@@ -83,6 +84,7 @@ class PropertyPanel(QWidget):
 
     property_changed = pyqtSignal()  # emits when any property changes
     resource_imported = pyqtSignal()  # emits when browse auto-import adds a new resource
+    validation_message = pyqtSignal(str)  # emits lightweight validation/normalization feedback
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -347,7 +349,7 @@ class PropertyPanel(QWidget):
         # Name
         name_edit = LineEdit()
         name_edit.setText(w.name)
-        name_edit.textChanged.connect(lambda val: self._on_common_changed("name", val))
+        name_edit.editingFinished.connect(lambda editor=name_edit: self._on_name_editing_finished(editor))
         common_form.addRow("Name:", name_edit)
         self._editors["name"] = name_edit
 
@@ -1037,6 +1039,42 @@ class PropertyPanel(QWidget):
         else:
             setattr(self._primary_widget, field, value)
         self.property_changed.emit()
+
+    def _on_name_editing_finished(self, editor):
+        if self._updating or self._primary_widget is None:
+            return
+
+        raw_name = editor.text()
+        ok, resolved_name, message = resolve_widget_name(self._primary_widget, raw_name)
+        current_name = self._primary_widget.name
+
+        if not ok:
+            with QSignalBlocker(editor):
+                editor.setText(current_name)
+            editor.setToolTip(message)
+            self.validation_message.emit(message)
+            return
+
+        name_changed = resolved_name != current_name
+        text_changed = raw_name != resolved_name
+        if name_changed:
+            self._primary_widget.name = resolved_name
+
+        if name_changed or text_changed:
+            self._updating = True
+            self._rebuild_form()
+            self._updating = False
+            refreshed = self._editors.get("name")
+            if refreshed is not None and message:
+                refreshed.setToolTip(message)
+        elif message:
+            editor.setToolTip(message)
+
+        if message:
+            self.validation_message.emit(message)
+
+        if name_changed:
+            self.property_changed.emit()
 
     def _on_prop_changed(self, prop_name, value):
         if self._updating or self._primary_widget is None:

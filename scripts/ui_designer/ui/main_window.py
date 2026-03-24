@@ -260,6 +260,7 @@ class MainWindow(QMainWindow):
         # Property panel
         self.property_panel.property_changed.connect(self._on_property_changed)
         self.property_panel.resource_imported.connect(self._on_resource_imported)
+        self.property_panel.validation_message.connect(self._on_property_validation_message)
 
         # Preview panel
         self.preview_panel.selection_changed.connect(self._on_preview_selection_changed)
@@ -2898,6 +2899,10 @@ class MainWindow(QMainWindow):
         self.widget_tree.rebuild_tree()
         self.widget_tree.set_selected_widgets(self._selection_state.widgets, self._selection_state.primary)
         self._on_model_changed()
+
+    def _on_property_validation_message(self, message):
+        if message:
+            self.statusBar().showMessage(message, 5000)
 
     def _on_model_changed(self):
         """Common handler: model changed → record snapshot + update preview + XML + recompile."""

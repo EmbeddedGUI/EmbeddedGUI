@@ -75,6 +75,31 @@ class TestWidgetTreePanel:
         assert names == ["button_1", "button_2"]
         panel.deleteLater()
 
+    def test_rename_widget_rejects_invalid_identifier(self, qapp, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        widget = WidgetModel("label", name="title")
+        root.add_child(widget)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        warnings = []
+
+        monkeypatch.setattr(
+            "ui_designer.ui.widget_tree.QInputDialog.getText",
+            lambda *args, **kwargs: ("123 bad-name", True),
+        )
+        monkeypatch.setattr("ui_designer.ui.widget_tree.QMessageBox.warning", lambda *args: warnings.append(args[1:]))
+
+        panel._rename_widget(widget)
+
+        assert widget.name == "title"
+        assert warnings
+        assert warnings[0][0] == "Invalid Widget Name"
+        panel.deleteLater()
+
     def test_delete_selected_parent_and_child_removes_only_top_level_once(self, qapp):
         from ui_designer.model.widget_model import WidgetModel
         from ui_designer.ui.widget_tree import WidgetTreePanel

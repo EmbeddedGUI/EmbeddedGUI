@@ -4,10 +4,11 @@ import re
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
-    QPushButton, QHBoxLayout, QMenu, QAction, QInputDialog, QAbstractItemView,
+    QPushButton, QHBoxLayout, QMenu, QAction, QInputDialog, QAbstractItemView, QMessageBox,
 )
 from PyQt5.QtCore import pyqtSignal, Qt
 
+from ..model.widget_name import resolve_widget_name
 from ..model.widget_model import WidgetModel
 from ..model.widget_registry import WidgetRegistry
 
@@ -273,8 +274,9 @@ class WidgetTreePanel(QWidget):
             self, "Rename Widget", "New name:", text=widget.name
         )
         if ok and new_name:
-            resolved_name = self._make_unique_widget_name(new_name, exclude_widget=widget)
-            if not resolved_name:
+            valid, resolved_name, message = resolve_widget_name(widget, new_name)
+            if not valid:
+                QMessageBox.warning(self, "Invalid Widget Name", message)
                 return
             widget.name = resolved_name
             self.rebuild_tree()

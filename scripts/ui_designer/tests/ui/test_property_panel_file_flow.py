@@ -429,3 +429,46 @@ class TestPropertyPanelFileFlow:
         assert "Hidden: 1 selected widget is skipped by canvas hit testing." in notes
         assert "Layout-managed: 2 selected widgets use parent-controlled positioning." in notes
         panel.deleteLater()
+
+    def test_single_selection_name_edit_rejects_invalid_identifier(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        widget = WidgetModel("switch", name="title")
+        panel = PropertyPanel()
+        messages = []
+        panel.validation_message.connect(messages.append)
+        panel.set_widget(widget)
+
+        editor = panel._editors["name"]
+        editor.setText("123 bad-name")
+        editor.editingFinished.emit()
+
+        assert widget.name == "title"
+        assert panel._editors["name"].text() == "title"
+        assert messages[-1].startswith("Widget name must be a valid C identifier")
+        panel.deleteLater()
+
+    def test_single_selection_name_edit_resolves_duplicate_identifier(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        root = WidgetModel("group", name="root")
+        first = WidgetModel("switch", name="title")
+        second = WidgetModel("switch", name="subtitle")
+        root.add_child(first)
+        root.add_child(second)
+
+        panel = PropertyPanel()
+        messages = []
+        panel.validation_message.connect(messages.append)
+        panel.set_widget(second)
+
+        editor = panel._editors["name"]
+        editor.setText("title")
+        editor.editingFinished.emit()
+
+        assert second.name == "title_2"
+        assert panel._editors["name"].text() == "title_2"
+        assert messages[-1] == "Widget name 'title' already exists. Renamed to 'title_2'."
+        panel.deleteLater()
