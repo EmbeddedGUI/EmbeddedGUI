@@ -309,6 +309,61 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_property_edit_status_mentions_dirty_source(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "PropertyStatusDemo"
+        project = _create_project(project_dir, "PropertyStatusDemo", sdk_root)
+        widget = WidgetModel("switch", name="toggle")
+        project.get_startup_page().root_widget.add_child(widget)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._set_selection([widget], primary=widget, sync_tree=False, sync_preview=False)
+        widget.properties["is_checked"] = True
+
+        window._on_property_changed()
+
+        assert window.statusBar().currentMessage() == "Changed main_page: property edit."
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
+    def test_canvas_move_status_mentions_dirty_source(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "CanvasMoveStatusDemo"
+        project = _create_project(project_dir, "CanvasMoveStatusDemo", sdk_root)
+        widget = WidgetModel("switch", name="toggle", x=10, y=10, width=50, height=24)
+        project.get_startup_page().root_widget.add_child(widget)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._set_selection([widget], primary=widget, sync_tree=False, sync_preview=False)
+        widget.x = 20
+        widget.display_x = 20
+
+        window._on_widget_moved(widget, 20, 10)
+
+        assert window.statusBar().currentMessage() == "Changed main_page: canvas move."
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
     def test_new_project_prefers_recovered_cached_sdk_for_defaults(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
 
@@ -1091,6 +1146,7 @@ class TestMainWindowFileFlow:
         assert image_b.properties["image_file"] == "star_new.png"
         assert window._undo_manager.get_stack("main_page").is_dirty() is True
         assert window._undo_manager.get_stack("detail_page").is_dirty() is True
+        assert window.statusBar().currentMessage() == "Updated resources in 2 pages: image resource rename."
         window._undo_manager.mark_all_saved()
         window.close()
         window.deleteLater()

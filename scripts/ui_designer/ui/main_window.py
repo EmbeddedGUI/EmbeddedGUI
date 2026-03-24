@@ -1743,7 +1743,7 @@ class MainWindow(QMainWindow):
                 return
             self._current_page.mockup_image_visible = visible
         self.preview_panel.set_background_image_visible(visible)
-        self._record_page_state_change(update_preview=False, trigger_compile=False)
+        self._record_page_state_change(update_preview=False, trigger_compile=False, source="mockup visibility")
 
     def _clear_background_image(self):
         """Remove the mockup image from the current page."""
@@ -1773,7 +1773,7 @@ class MainWindow(QMainWindow):
                 return
             self._current_page.mockup_image_opacity = opacity
         self.preview_panel.set_background_image_opacity(opacity)
-        self._record_page_state_change(update_preview=False, trigger_compile=False)
+        self._record_page_state_change(update_preview=False, trigger_compile=False, source="mockup opacity")
 
     def _apply_page_mockup(self):
         """Load and apply the current page's mockup image."""
@@ -1970,17 +1970,17 @@ class MainWindow(QMainWindow):
         if not assign_resource_to_widget(target, res_type, filename):
             return
         self.property_panel.set_selection(self._selected_widgets(), self._primary_selected_widget())
-        self._on_model_changed()
+        self._on_model_changed(source=f"{res_type} resource assignment")
 
     def _on_resource_renamed(self, res_type, old_name, new_name):
         """Update widget references after a resource file was renamed."""
         touched_pages = self._rewrite_resource_references(res_type, old_name, new_name)
-        self._finalize_resource_reference_change(touched_pages)
+        self._finalize_resource_reference_change(touched_pages, source=f"{res_type} resource rename")
 
     def _on_resource_deleted(self, res_type, filename):
         """Clear widget references after a resource file was deleted."""
         touched_pages = self._rewrite_resource_references(res_type, filename, "")
-        self._finalize_resource_reference_change(touched_pages)
+        self._finalize_resource_reference_change(touched_pages, source=f"{res_type} resource delete")
 
     def _on_resource_imported(self):
         """Resource files were imported — sync catalog and auto-regenerate."""
@@ -2027,7 +2027,7 @@ class MainWindow(QMainWindow):
                 touched_pages.append(page)
         return touched_pages
 
-    def _finalize_resource_reference_change(self, touched_pages):
+    def _finalize_resource_reference_change(self, touched_pages, source="resource reference update"):
         """Record dirty state and refresh current-page UI after resource ref changes."""
         if not touched_pages:
             return
@@ -2053,6 +2053,10 @@ class MainWindow(QMainWindow):
 
         self._update_undo_actions()
         self._update_window_title()
+        if source:
+            page_count = len(touched_pages)
+            noun = "page" if page_count == 1 else "pages"
+            self.statusBar().showMessage(f"Updated resources in {page_count} {noun}: {source}.", 4000)
 
     def _on_resource_dropped(self, widget, res_type, filename):
         """Resource was dropped onto a widget in the preview overlay."""
@@ -2060,7 +2064,7 @@ class MainWindow(QMainWindow):
         if not assign_resource_to_widget(widget, res_type, filename):
             return
         self.property_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
-        self._on_model_changed()
+        self._on_model_changed(source=f"{res_type} resource drop")
 
     def _run_resource_generation(self, silent=False):
         if not self.project or not self._project_dir:
@@ -2657,7 +2661,7 @@ class MainWindow(QMainWindow):
 
         self.widget_tree.rebuild_tree()
         self._set_selection(pasted_widgets, primary=pasted_widgets[-1], sync_tree=True, sync_preview=True)
-        self._record_page_state_change()
+        self._record_page_state_change(source="clipboard paste")
         return pasted_widgets
 
     def _copy_selection(self):
@@ -2702,7 +2706,7 @@ class MainWindow(QMainWindow):
 
         self.widget_tree.rebuild_tree()
         self._clear_selection(sync_tree=True, sync_preview=True)
-        self._record_page_state_change()
+        self._record_page_state_change(source="widget delete")
         self.statusBar().showMessage(f"Deleted {len(widgets)} widget(s)", 3000)
 
     def _align_selection(self, mode):
@@ -2734,7 +2738,7 @@ class MainWindow(QMainWindow):
             widget.display_x = widget.x
             widget.display_y = widget.y
 
-        self._record_page_state_change()
+        self._record_page_state_change(source=f"align {mode}")
 
     def _distribute_selection(self, axis):
         widgets = [widget for widget in self._top_level_selected_widgets() if not getattr(widget, "designer_locked", False)]
@@ -2768,7 +2772,7 @@ class MainWindow(QMainWindow):
             widget.display_y = widget.y
             cursor += getattr(widget, size_name) + gap
 
-        self._record_page_state_change()
+        self._record_page_state_change(source=f"distribute {axis}")
 
     def _move_selection_to_front(self):
         widgets = self._top_level_selected_widgets()
@@ -2787,7 +2791,7 @@ class MainWindow(QMainWindow):
 
         self.widget_tree.rebuild_tree()
         self._set_selection(widgets, primary=self._primary_selected_widget(), sync_tree=True, sync_preview=True)
-        self._record_page_state_change()
+        self._record_page_state_change(source="bring to front")
 
     def _move_selection_to_back(self):
         widgets = self._top_level_selected_widgets()
@@ -2806,7 +2810,7 @@ class MainWindow(QMainWindow):
 
         self.widget_tree.rebuild_tree()
         self._set_selection(widgets, primary=self._primary_selected_widget(), sync_tree=True, sync_preview=True)
-        self._record_page_state_change()
+        self._record_page_state_change(source="send to back")
 
     def _set_selection_flag(self, field_name):
         widgets = [widget for widget in self._selected_widgets() if self._current_page and widget is not self._current_page.root_widget]
@@ -2818,7 +2822,8 @@ class MainWindow(QMainWindow):
         primary = self._primary_selected_widget()
         self.widget_tree.rebuild_tree()
         self._set_selection(widgets, primary=primary, sync_tree=True, sync_preview=True)
-        self._record_page_state_change(trigger_compile=False)
+        label = "designer lock" if field_name == "designer_locked" else "designer visibility"
+        self._record_page_state_change(trigger_compile=False, source=label)
 
     def _toggle_selection_locked(self):
         self._set_selection_flag("designer_locked")
@@ -2875,40 +2880,45 @@ class MainWindow(QMainWindow):
         """Widget dragged on preview overlay."""
         if widget == self._selection_state.primary:
             self.property_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
-        self._on_model_changed()
+        self._on_model_changed(source="canvas move")
 
     def _on_widget_resized(self, widget, new_width, new_height):
         """Widget resized on preview overlay."""
         if widget == self._selection_state.primary:
             self.property_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
-        self._on_model_changed()
+        self._on_model_changed(source="canvas resize")
 
     def _on_widget_reordered(self, widget, new_index):
         """Widget reordered within a layout container."""
         self.widget_tree.rebuild_tree()
         self.widget_tree.set_selected_widgets(self._selection_state.widgets, self._selection_state.primary)
-        self._on_model_changed()
+        self._on_model_changed(source="layout reorder")
 
     def _on_tree_changed(self):
         """Widget tree structure changed (add/delete/reorder)."""
         self.widget_tree.set_selected_widgets(self._selection_state.widgets, self._selection_state.primary)
-        self._on_model_changed()
+        self._on_model_changed(source="widget tree change")
 
     def _on_property_changed(self):
         """A property value was changed in the property panel."""
         self.widget_tree.rebuild_tree()
         self.widget_tree.set_selected_widgets(self._selection_state.widgets, self._selection_state.primary)
-        self._on_model_changed()
+        self._on_model_changed(source="property edit")
 
     def _on_property_validation_message(self, message):
         if message:
             self.statusBar().showMessage(message, 5000)
 
-    def _on_model_changed(self):
+    def _on_model_changed(self, source=""):
         """Common handler: model changed → record snapshot + update preview + XML + recompile."""
-        self._record_page_state_change()
+        self._record_page_state_change(source=source)
 
-    def _record_page_state_change(self, update_preview=True, trigger_compile=True):
+    def _format_page_change_message(self, source):
+        if not source or self._current_page is None:
+            return ""
+        return f"Changed {self._current_page.name}: {source}."
+
+    def _record_page_state_change(self, update_preview=True, trigger_compile=True, source=""):
         """Record the current page snapshot and refresh dependent UI state."""
         if self._current_page and not self._undoing:
             xml = self._current_page.to_xml_string()
@@ -2921,6 +2931,9 @@ class MainWindow(QMainWindow):
             self._trigger_compile()
         self._update_undo_actions()
         self._update_window_title()
+        message = self._format_page_change_message(source)
+        if message and not self._undoing:
+            self.statusBar().showMessage(message, 3000)
 
     # ── Undo / Redo ─────────────────────────────────────────────────
 
