@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QGroupBox,
     QHBoxLayout,
+    QLabel,
     QListWidget,
     QListWidgetItem,
     QMessageBox,
@@ -18,13 +19,14 @@ from PyQt5.QtWidgets import (
 from qfluentwidgets import LineEdit, PrimaryPushButton, PushButton
 
 from ..model.config import get_config
-from ..model.workspace import normalize_path, resolve_sdk_root_candidate
+from ..model.sdk_bootstrap import default_sdk_install_dir
+from ..model.workspace import describe_sdk_root, is_valid_sdk_root, normalize_path, resolve_sdk_root_candidate
 
 
 class AppSelectorDialog(QDialog):
     """Dialog for opening Designer-aware or legacy SDK examples."""
 
-    def __init__(self, parent=None, egui_root=None):
+    def __init__(self, parent=None, egui_root=None, on_download_sdk=None):
         super().__init__(parent)
         self.setWindowTitle("Open SDK Example")
         self.setMinimumSize(560, 420)
@@ -33,6 +35,7 @@ class AppSelectorDialog(QDialog):
         self._config = get_config()
         self._egui_root = resolve_sdk_root_candidate(egui_root or self._config.sdk_root) or normalize_path(egui_root or self._config.sdk_root)
         self._selected_entry = None
+        self._on_download_sdk = on_download_sdk
 
         self._init_ui()
         self._refresh_app_list()
@@ -42,16 +45,28 @@ class AppSelectorDialog(QDialog):
         layout.setSpacing(12)
 
         root_group = QGroupBox("EmbeddedGUI SDK Root")
-        root_layout = QHBoxLayout(root_group)
+        root_group_layout = QVBoxLayout(root_group)
+        root_group_layout.setSpacing(8)
+        root_row = QHBoxLayout()
 
         self._root_edit = LineEdit()
         self._root_edit.setText(self._egui_root)
         self._root_edit.setReadOnly(True)
-        root_layout.addWidget(self._root_edit, 1)
+        root_row.addWidget(self._root_edit, 1)
 
         browse_btn = PushButton("Browse...")
         browse_btn.clicked.connect(self._browse_root)
-        root_layout.addWidget(browse_btn)
+        root_row.addWidget(browse_btn)
+
+        self._download_btn = PushButton("Download SDK...")
+        self._download_btn.clicked.connect(self._download_sdk)
+        root_row.addWidget(self._download_btn)
+
+        self._root_status_label = QLabel("")
+        self._root_status_label.setWordWrap(True)
+
+        root_group_layout.addLayout(root_row)
+        root_group_layout.addWidget(self._root_status_label)
         layout.addWidget(root_group)
 
         app_group = QGroupBox("SDK Examples")
@@ -101,6 +116,24 @@ class AppSelectorDialog(QDialog):
         self._root_edit.setText(path)
         self._refresh_app_list()
 
+    def _download_sdk(self):
+        if self._on_download_sdk is None:
+            QMessageBox.warning(
+                self,
+                "Download Unavailable",
+                "This dialog was opened without an SDK download handler.",
+            )
+            return
+
+        path = self._on_download_sdk()
+        path = resolve_sdk_root_candidate(path) or normalize_path(path)
+        if not path:
+            return
+
+        self._egui_root = path
+        self._root_edit.setText(path)
+        self._refresh_app_list()
+
     def _on_toggle_legacy(self, checked):
         self._config.show_all_examples = checked
         self._config.save()
@@ -114,8 +147,18 @@ class AppSelectorDialog(QDialog):
         self._app_list.clear()
         self._open_btn.setEnabled(False)
         self._selected_entry = None
+        self._refresh_root_status()
 
         if not self._egui_root:
+            item = QListWidgetItem("(Set or download an SDK root first)")
+            item.setFlags(Qt.NoItemFlags)
+            self._app_list.addItem(item)
+            return
+
+        if not is_valid_sdk_root(self._egui_root):
+            item = QListWidgetItem("(Current SDK root is invalid)")
+            item.setFlags(Qt.NoItemFlags)
+            self._app_list.addItem(item)
             return
 
         search_text = self._search_edit.text().strip().lower()
@@ -138,7 +181,7 @@ class AppSelectorDialog(QDialog):
             self._app_list.addItem(item)
 
         if self._app_list.count() == 0:
-            item = QListWidgetItem("(No matching examples)")
+            item = QListWidgetItem("(No matching examples)" if search_text else "(No SDK examples found)")
             item.setFlags(Qt.NoItemFlags)
             self._app_list.addItem(item)
             return
@@ -152,6 +195,26 @@ class AppSelectorDialog(QDialog):
                 break
         else:
             self._app_list.setCurrentRow(0)
+
+    def _refresh_root_status(self):
+        status = describe_sdk_root(self._egui_root)
+        if status == "ready":
+            self._root_status_label.setText("Ready: SDK examples are available below.")
+            self._root_status_label.setStyleSheet("color: #4caf50;")
+            return
+
+        if status == "invalid":
+            self._root_status_label.setText(
+                "Invalid: current SDK root needs attention. Browse to a valid SDK root or download a fresh copy."
+            )
+            self._root_status_label.setStyleSheet("color: #ff9800;")
+            return
+
+        self._root_status_label.setText(
+            "Missing: no SDK root selected. Browse to an existing SDK or download one now.\n"
+            f"Default auto-download cache: {default_sdk_install_dir()}"
+        )
+        self._root_status_label.setStyleSheet("color: #f44336;")
 
     def _on_selection_changed(self, current, previous):
         self._selected_entry = current.data(Qt.UserRole) if current else None

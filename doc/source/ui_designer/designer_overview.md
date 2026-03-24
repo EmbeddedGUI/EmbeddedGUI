@@ -374,6 +374,7 @@ python scripts/ui_designer/main.py --sdk-root /path/to/EmbeddedGUI
 `Open SDK Example...` 默认只显示已经包含 `.egui` 的示例，减少把纯源码示例误当成 Designer 工程打开的情况。
 
 - 如需查看旧示例，可勾选 `Show legacy examples without .egui`
+- 如果当前还没有 SDK，也可以直接在这个对话框里点击 `Download SDK...`，下载完成后会立刻刷新示例列表
 - 支持按示例名实时搜索过滤，示例较多时可以快速定位目标工程
 - 打开 legacy example 时，Designer 会在原目录初始化 `.egui` 工程
 - 如果目录里已经有 `.eguiproject` 但没有 `.egui`，会直接报冲突，不会继续覆盖

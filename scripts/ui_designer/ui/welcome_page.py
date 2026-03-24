@@ -8,14 +8,14 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QWidget
 
-from qfluentwidgets import BodyLabel, CardWidget, PrimaryPushButton, PushButton, SubtitleLabel
+from qfluentwidgets import PrimaryPushButton, PushButton
 
 from ..model.config import get_config
 from ..model.sdk_bootstrap import default_sdk_install_dir
 from ..model.workspace import describe_sdk_root
 
 
-class RecentProjectItem(CardWidget):
+class RecentProjectItem(QWidget):
     """Card widget for a recent project entry."""
 
     item_clicked = pyqtSignal(str, str)
@@ -27,6 +27,9 @@ class RecentProjectItem(CardWidget):
         self.display_name = display_name
         self.setCursor(Qt.PointingHandCursor)
         self.setFixedHeight(82)
+        self.setStyleSheet(
+            "background-color: #262626; border: 1px solid #333; border-radius: 10px;"
+        )
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(16, 12, 16, 12)
@@ -44,16 +47,17 @@ class RecentProjectItem(CardWidget):
         text_layout = QVBoxLayout()
         text_layout.setSpacing(4)
 
-        name_label = SubtitleLabel(display_name)
+        name_label = QLabel(display_name)
+        name_label.setFont(QFont("Segoe UI", 11, QFont.DemiBold))
         name_label.setStyleSheet("color: #fff;")
         text_layout.addWidget(name_label)
 
-        path_label = BodyLabel(project_path)
+        path_label = QLabel(project_path)
         path_label.setStyleSheet("color: #888;")
         text_layout.addWidget(path_label)
 
         sdk_status = describe_sdk_root(sdk_root)
-        status_label = BodyLabel(f"SDK: {sdk_status}")
+        status_label = QLabel(f"SDK: {sdk_status}")
         if sdk_status == "ready":
             status_label.setStyleSheet("color: #4caf50;")
         elif sdk_status == "invalid":

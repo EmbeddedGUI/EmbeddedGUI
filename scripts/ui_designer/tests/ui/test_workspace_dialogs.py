@@ -75,6 +75,28 @@ class TestAppSelectorDialog:
         assert dialog._app_list.currentItem().text() == "ModernApp"
         dialog.deleteLater()
 
+    def test_shows_placeholder_when_sdk_root_missing(self, qapp, isolated_config):
+        from ui_designer.ui.app_selector import AppSelectorDialog
+
+        dialog = AppSelectorDialog(egui_root="")
+
+        assert dialog._app_list.count() == 1
+        assert dialog._app_list.item(0).text() == "(Set or download an SDK root first)"
+        assert "Missing" in dialog._root_status_label.text()
+        assert dialog._open_btn.isEnabled() is False
+        dialog.deleteLater()
+
+    def test_shows_invalid_placeholder_when_sdk_root_is_invalid(self, qapp, isolated_config, tmp_path):
+        from ui_designer.ui.app_selector import AppSelectorDialog
+
+        dialog = AppSelectorDialog(egui_root=str(tmp_path / "not_sdk"))
+
+        assert dialog._app_list.count() == 1
+        assert dialog._app_list.item(0).text() == "(Current SDK root is invalid)"
+        assert "Invalid" in dialog._root_status_label.text()
+        assert dialog._open_btn.isEnabled() is False
+        dialog.deleteLater()
+
     def test_toggle_legacy_updates_list_and_config(self, qapp, isolated_config, tmp_path):
         from ui_designer.ui.app_selector import AppSelectorDialog
 
@@ -184,6 +206,43 @@ class TestAppSelectorDialog:
         assert dialog._app_list.item(0).text() == "(No matching examples)"
         assert dialog._open_btn.isEnabled() is False
         assert dialog.selected_entry is None
+        dialog.deleteLater()
+
+    def test_shows_empty_state_when_sdk_has_no_examples(self, qapp, isolated_config, tmp_path):
+        from ui_designer.ui.app_selector import AppSelectorDialog
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        (sdk_root / "example").mkdir()
+
+        dialog = AppSelectorDialog(egui_root=str(sdk_root))
+
+        assert dialog._app_list.count() == 1
+        assert dialog._app_list.item(0).text() == "(No SDK examples found)"
+        assert dialog._open_btn.isEnabled() is False
+        dialog.deleteLater()
+
+    def test_download_sdk_callback_updates_root_and_examples(self, qapp, isolated_config, tmp_path):
+        from ui_designer.ui.app_selector import AppSelectorDialog
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        example_dir = sdk_root / "example"
+        example_dir.mkdir()
+        app_dir = example_dir / "HelloVirtual"
+        app_dir.mkdir()
+        (app_dir / "build.mk").write_text("")
+        (app_dir / "HelloVirtual.egui").write_text("")
+
+        dialog = AppSelectorDialog(egui_root="", on_download_sdk=lambda: str(sdk_root))
+
+        dialog._download_btn.click()
+
+        assert dialog.egui_root == os.path.normpath(os.path.abspath(sdk_root))
+        assert dialog._root_edit.text() == os.path.normpath(os.path.abspath(sdk_root))
+        assert dialog._app_list.count() == 1
+        assert dialog._app_list.item(0).text() == "HelloVirtual"
+        assert "Ready" in dialog._root_status_label.text()
         dialog.deleteLater()
 
 

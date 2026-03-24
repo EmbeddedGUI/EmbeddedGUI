@@ -1062,7 +1062,7 @@ class MainWindow(QMainWindow):
 
     def _open_app_dialog(self):
         """Show dialog to select and open an SDK example."""
-        dialog = AppSelectorDialog(self, self.project_root)
+        dialog = AppSelectorDialog(self, self.project_root, on_download_sdk=self._download_sdk)
         if dialog.exec_() != QDialog.Accepted:
             return
 
