@@ -4,7 +4,7 @@ import re
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
-    QPushButton, QHBoxLayout, QMenu, QAction, QInputDialog, QAbstractItemView, QMessageBox,
+    QPushButton, QHBoxLayout, QMenu, QAction, QInputDialog, QAbstractItemView, QMessageBox, QLineEdit,
 )
 from PyQt5.QtCore import pyqtSignal, Qt, QItemSelectionModel
 
@@ -54,6 +54,11 @@ class WidgetTreePanel(QWidget):
         btn_layout.addWidget(self.del_btn)
         layout.addLayout(btn_layout)
 
+        self.filter_edit = QLineEdit()
+        self.filter_edit.setPlaceholderText("Filter widgets by name or type")
+        self.filter_edit.textChanged.connect(self._apply_tree_filter)
+        layout.addWidget(self.filter_edit)
+
         # Tree
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels(["Widget", "Type"])
@@ -78,6 +83,7 @@ class WidgetTreePanel(QWidget):
                 self._add_widget_to_tree(root_widget, None)
         self.tree.expandAll()
         self._building = False
+        self._apply_tree_filter()
 
     def _add_widget_to_tree(self, widget, parent_item):
         item = QTreeWidgetItem()
@@ -135,6 +141,7 @@ class WidgetTreePanel(QWidget):
         try:
             self.tree.clearSelection()
             widgets = [widget for widget in (widgets or []) if widget is not None]
+            current_item = None
             for widget in widgets:
                 item = self._item_map.get(id(widget))
                 if item is not None:
@@ -143,12 +150,16 @@ class WidgetTreePanel(QWidget):
                 item = self._item_map.get(id(primary))
                 if item is not None:
                     self.tree.setCurrentItem(item, 0, QItemSelectionModel.NoUpdate)
+                    current_item = item
             elif widgets:
                 item = self._item_map.get(id(widgets[-1]))
                 if item is not None:
                     self.tree.setCurrentItem(item, 0, QItemSelectionModel.NoUpdate)
+                    current_item = item
             else:
                 self.tree.setCurrentItem(None)
+            if current_item is not None:
+                self._reveal_item(current_item)
         finally:
             self._syncing_selection = False
 
@@ -326,6 +337,43 @@ class WidgetTreePanel(QWidget):
             if not skip:
                 result.append(widget)
         return result
+
+    def _apply_tree_filter(self, _text=""):
+        query = self.filter_edit.text().strip().lower()
+        for index in range(self.tree.topLevelItemCount()):
+            item = self.tree.topLevelItem(index)
+            if query:
+                self._apply_filter_to_item(item, query)
+            else:
+                self._clear_item_filter(item)
+
+    def _apply_filter_to_item(self, item, query):
+        widget = self._widget_map.get(id(item))
+        name = (widget.name if widget is not None else item.text(0)).lower()
+        type_name = (widget.widget_type if widget is not None else item.text(1)).lower()
+        own_match = query in name or query in type_name
+        child_match = False
+        for index in range(item.childCount()):
+            child = item.child(index)
+            if self._apply_filter_to_item(child, query):
+                child_match = True
+        visible = own_match or child_match
+        item.setHidden(not visible)
+        if visible and item.childCount():
+            item.setExpanded(child_match)
+        return visible
+
+    def _clear_item_filter(self, item):
+        item.setHidden(False)
+        for index in range(item.childCount()):
+            self._clear_item_filter(item.child(index))
+
+    def _reveal_item(self, item):
+        parent = item.parent()
+        while parent is not None:
+            parent.setExpanded(True)
+            parent = parent.parent()
+        self.tree.scrollToItem(item, QAbstractItemView.PositionAtCenter)
 
     def _locked_widget_summary(self, count):
         noun = "widget" if count == 1 else "widgets"
