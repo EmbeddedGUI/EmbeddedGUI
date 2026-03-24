@@ -256,6 +256,7 @@ class MainWindow(QMainWindow):
         self.widget_tree.selection_changed.connect(self._on_tree_selection_changed)
         self.widget_tree.widget_selected.connect(self._on_widget_selected)
         self.widget_tree.tree_changed.connect(self._on_tree_changed)
+        self.widget_tree.feedback_message.connect(self._on_widget_tree_feedback_message)
 
         # Property panel
         self.property_panel.property_changed.connect(self._on_property_changed)
@@ -2950,6 +2951,10 @@ class MainWindow(QMainWindow):
         """Widget tree structure changed (add/delete/reorder)."""
         self.widget_tree.set_selected_widgets(self._selection_state.widgets, self._selection_state.primary)
         self._on_model_changed(source="widget tree change")
+
+    def _on_widget_tree_feedback_message(self, message):
+        if message:
+            self.statusBar().showMessage(message, 5000)
 
     def _on_property_changed(self):
         """A property value was changed in the property panel."""

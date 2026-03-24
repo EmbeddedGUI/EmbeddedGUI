@@ -406,6 +406,38 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_widget_tree_delete_skips_locked_widgets_and_updates_status(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "TreeDeleteMixedDemo"
+        project = _create_project(project_dir, "TreeDeleteMixedDemo", sdk_root)
+        removable = WidgetModel("switch", name="removable")
+        locked = WidgetModel("switch", name="locked_widget")
+        locked.designer_locked = True
+        root = project.get_startup_page().root_widget
+        root.add_child(removable)
+        root.add_child(locked)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._set_selection([removable, locked], primary=removable, sync_tree=True, sync_preview=False)
+
+        window.widget_tree._on_delete_clicked()
+
+        assert removable not in root.children
+        assert locked in root.children
+        assert window.statusBar().currentMessage() == "Deleted 1 widget(s); skipped 1 locked widget"
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
     def test_align_selection_reports_locked_constraint(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
         from ui_designer.ui.main_window import MainWindow

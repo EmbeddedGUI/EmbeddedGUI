@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
     QPushButton, QHBoxLayout, QMenu, QAction, QInputDialog, QAbstractItemView, QMessageBox,
 )
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtCore import pyqtSignal, Qt, QItemSelectionModel
 
 from ..model.widget_name import resolve_widget_name
 from ..model.widget_model import WidgetModel
@@ -29,6 +29,7 @@ class WidgetTreePanel(QWidget):
     widget_selected = pyqtSignal(object)  # emits WidgetModel or None
     selection_changed = pyqtSignal(list, object)  # widgets, primary
     tree_changed = pyqtSignal()  # emits when tree structure changes
+    feedback_message = pyqtSignal(str)  # emits user-facing status messages
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -141,11 +142,11 @@ class WidgetTreePanel(QWidget):
             if primary is not None:
                 item = self._item_map.get(id(primary))
                 if item is not None:
-                    self.tree.setCurrentItem(item)
+                    self.tree.setCurrentItem(item, 0, QItemSelectionModel.NoUpdate)
             elif widgets:
                 item = self._item_map.get(id(widgets[-1]))
                 if item is not None:
-                    self.tree.setCurrentItem(item)
+                    self.tree.setCurrentItem(item, 0, QItemSelectionModel.NoUpdate)
             else:
                 self.tree.setCurrentItem(None)
         finally:
@@ -227,14 +228,25 @@ class WidgetTreePanel(QWidget):
         if not widgets:
             return
 
-        for widget in self._top_level_selected_widgets(widgets):
+        deletable = [widget for widget in widgets if not getattr(widget, "designer_locked", False)]
+        locked_count = len(widgets) - len(deletable)
+        if not deletable:
+            if locked_count:
+                self.feedback_message.emit(f"Cannot delete selection: {self._locked_widget_summary(locked_count)}.")
+            return
+
+        deleted_count = 0
+        for widget in self._top_level_selected_widgets(deletable):
             if widget.parent:
                 widget.parent.remove_child(widget)
             elif widget in self.project.root_widgets:
                 self.project.root_widgets.remove(widget)
+            deleted_count += 1
 
         self.rebuild_tree()
         self.tree_changed.emit()
+        if locked_count:
+            self.feedback_message.emit(f"Deleted {deleted_count} widget(s); skipped {self._locked_widget_summary(locked_count)}")
 
     def _on_context_menu(self, pos):
         item = self.tree.itemAt(pos)
@@ -290,6 +302,9 @@ class WidgetTreePanel(QWidget):
         self.tree_changed.emit()
 
     def _delete_widget(self, widget):
+        if getattr(widget, "designer_locked", False):
+            self.feedback_message.emit(f"Cannot delete widget: {widget.name} is locked.")
+            return
         if widget.parent:
             widget.parent.remove_child(widget)
         elif widget in self.project.root_widgets:
@@ -311,3 +326,7 @@ class WidgetTreePanel(QWidget):
             if not skip:
                 result.append(widget)
         return result
+
+    def _locked_widget_summary(self, count):
+        noun = "widget" if count == 1 else "widgets"
+        return f"{count} locked {noun}"

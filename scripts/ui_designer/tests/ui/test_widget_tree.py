@@ -118,3 +118,47 @@ class TestWidgetTreePanel:
 
         assert root.children == []
         panel.deleteLater()
+
+    def test_delete_selected_skips_locked_widgets_and_emits_feedback(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        removable = WidgetModel("label", name="removable")
+        locked = WidgetModel("label", name="locked_widget")
+        locked.designer_locked = True
+        root.add_child(removable)
+        root.add_child(locked)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        feedback = []
+        panel.feedback_message.connect(lambda message: feedback.append(message))
+        panel.set_selected_widgets([removable, locked], primary=removable)
+
+        panel._on_delete_clicked()
+
+        assert removable not in root.children
+        assert locked in root.children
+        assert feedback == ["Deleted 1 widget(s); skipped 1 locked widget"]
+        panel.deleteLater()
+
+    def test_delete_widget_blocks_locked_widget_and_emits_feedback(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        locked = WidgetModel("label", name="locked_widget")
+        locked.designer_locked = True
+        root.add_child(locked)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        feedback = []
+        panel.feedback_message.connect(lambda message: feedback.append(message))
+
+        panel._delete_widget(locked)
+
+        assert locked in root.children
+        assert feedback == ["Cannot delete widget: locked_widget is locked."]
+        panel.deleteLater()
