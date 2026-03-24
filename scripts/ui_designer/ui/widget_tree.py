@@ -1,5 +1,7 @@
 """Widget tree panel for EmbeddedGUI Designer."""
 
+import re
+
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
     QPushButton, QHBoxLayout, QMenu, QAction, QInputDialog,
@@ -101,6 +103,42 @@ class WidgetTreePanel(QWidget):
             return None
         return self._widget_map.get(id(item))
 
+    def _iter_widgets(self):
+        if not self.project:
+            return
+        for root_widget in self.project.root_widgets:
+            yield root_widget
+            yield from root_widget.get_all_widgets_flat()[1:]
+
+    def _existing_widget_names(self, exclude_widget=None):
+        names = set()
+        for widget in self._iter_widgets() or []:
+            if widget is exclude_widget:
+                continue
+            if widget.name:
+                names.add(widget.name)
+        return names
+
+    def _make_unique_widget_name(self, base_name, exclude_widget=None):
+        candidate = (base_name or "").strip().replace(" ", "_")
+        if not candidate:
+            return ""
+        existing = self._existing_widget_names(exclude_widget=exclude_widget)
+        if candidate not in existing:
+            return candidate
+
+        match = re.match(r"^(.*?)(?:_(\d+))?$", candidate)
+        stem = candidate
+        suffix = 2
+        if match:
+            stem = match.group(1) or candidate
+            if match.group(2):
+                suffix = int(match.group(2)) + 1
+
+        while f"{stem}_{suffix}" in existing:
+            suffix += 1
+        return f"{stem}_{suffix}"
+
     def _on_add_clicked(self):
         menu = QMenu(self)
         for display_name, type_name in _get_addable_types():
@@ -115,6 +153,7 @@ class WidgetTreePanel(QWidget):
             return
 
         widget = WidgetModel(widget_type)
+        widget.name = self._make_unique_widget_name(widget.name)
 
         # Find selected container to add to
         selected = self._get_selected_widget()
@@ -186,12 +225,16 @@ class WidgetTreePanel(QWidget):
             self, "Rename Widget", "New name:", text=widget.name
         )
         if ok and new_name:
-            widget.name = new_name
+            resolved_name = self._make_unique_widget_name(new_name, exclude_widget=widget)
+            if not resolved_name:
+                return
+            widget.name = resolved_name
             self.rebuild_tree()
             self.tree_changed.emit()
 
     def _add_child_to(self, parent, widget_type):
         child = WidgetModel(widget_type)
+        child.name = self._make_unique_widget_name(child.name)
         parent.add_child(child)
         self.rebuild_tree()
         self.tree_changed.emit()

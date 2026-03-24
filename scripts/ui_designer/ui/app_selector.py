@@ -97,6 +97,10 @@ class AppSelectorDialog(QDialog):
         self._app_list.itemDoubleClicked.connect(self._on_item_double_clicked)
         self._app_list.currentItemChanged.connect(self._on_selection_changed)
         app_layout.addWidget(self._app_list)
+
+        self._selection_hint_label = QLabel("")
+        self._selection_hint_label.setWordWrap(True)
+        app_layout.addWidget(self._selection_hint_label)
         layout.addWidget(app_group, 1)
 
         buttons = QHBoxLayout()
@@ -156,8 +160,7 @@ class AppSelectorDialog(QDialog):
             previous_app = self._selected_entry.get("app_name", "")
 
         self._app_list.clear()
-        self._open_btn.setEnabled(False)
-        self._selected_entry = None
+        self._set_selection_feedback(None)
         self._refresh_root_status()
 
         if not self._egui_root:
@@ -228,16 +231,44 @@ class AppSelectorDialog(QDialog):
         self._root_status_label.setStyleSheet("color: #f44336;")
 
     def _on_selection_changed(self, current, previous):
-        self._selected_entry = current.data(Qt.UserRole) if current else None
-        self._open_btn.setEnabled(self._selected_entry is not None)
+        self._set_selection_feedback(current.data(Qt.UserRole) if current else None)
 
     def _on_item_double_clicked(self, item):
-        self._selected_entry = item.data(Qt.UserRole)
+        entry = item.data(Qt.UserRole)
+        if entry is None:
+            return
+        self._set_selection_feedback(entry)
         self.accept()
 
     def _on_open(self):
         if self._selected_entry:
             self.accept()
+
+    def _set_selection_feedback(self, entry):
+        self._selected_entry = entry
+        self._open_btn.setEnabled(entry is not None)
+        if not entry:
+            self._open_btn.setText("Open")
+            self._selection_hint_label.setText(
+                "Select a Designer project or a legacy example from the list."
+            )
+            self._selection_hint_label.setStyleSheet("color: #888;")
+            return
+
+        if entry.get("is_legacy"):
+            self._open_btn.setText("Import Legacy Example")
+            self._selection_hint_label.setText(
+                f"Legacy example path:\n{entry.get('app_dir', '')}\n\n"
+                "Opening it will initialize a Designer project in this app directory."
+            )
+            self._selection_hint_label.setStyleSheet("color: #ff9800;")
+            return
+
+        self._open_btn.setText("Open")
+        self._selection_hint_label.setText(
+            f"Designer project path:\n{entry.get('project_path', '')}"
+        )
+        self._selection_hint_label.setStyleSheet("color: #4caf50;")
 
     @property
     def selected_entry(self):

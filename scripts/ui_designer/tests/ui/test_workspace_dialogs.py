@@ -223,6 +223,25 @@ class TestAppSelectorDialog:
         assert dialog.selected_entry is None
         dialog.deleteLater()
 
+    def test_double_click_placeholder_item_does_not_accept_dialog(self, qapp, isolated_config, tmp_path):
+        from ui_designer.ui.app_selector import AppSelectorDialog
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        (sdk_root / "example").mkdir()
+
+        dialog = AppSelectorDialog(egui_root=str(sdk_root))
+        placeholder_item = dialog._app_list.item(0)
+        accepted = []
+        dialog.accept = lambda: accepted.append(True)
+
+        dialog._on_item_double_clicked(placeholder_item)
+
+        assert placeholder_item.text() == "(No SDK examples found)"
+        assert accepted == []
+        assert dialog.selected_entry is None
+        dialog.deleteLater()
+
     def test_shows_empty_state_when_sdk_has_no_examples(self, qapp, isolated_config, tmp_path):
         from ui_designer.ui.app_selector import AppSelectorDialog
 
@@ -235,6 +254,37 @@ class TestAppSelectorDialog:
         assert dialog._app_list.count() == 1
         assert dialog._app_list.item(0).text() == "(No SDK examples found)"
         assert dialog._open_btn.isEnabled() is False
+        dialog.deleteLater()
+
+    def test_legacy_selection_updates_open_button_and_hint(self, qapp, isolated_config, tmp_path):
+        from ui_designer.ui.app_selector import AppSelectorDialog
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        example_dir = sdk_root / "example"
+        example_dir.mkdir()
+
+        modern = example_dir / "ModernApp"
+        modern.mkdir()
+        (modern / "build.mk").write_text("")
+        (modern / "ModernApp.egui").write_text("")
+
+        legacy = example_dir / "LegacyApp"
+        legacy.mkdir()
+        (legacy / "build.mk").write_text("")
+
+        dialog = AppSelectorDialog(egui_root=str(sdk_root))
+        dialog._show_legacy.setChecked(True)
+
+        for index in range(dialog._app_list.count()):
+            if dialog._app_list.item(index).text() == "LegacyApp [Legacy]":
+                dialog._app_list.setCurrentRow(index)
+                break
+
+        assert dialog.selected_entry["app_name"] == "LegacyApp"
+        assert dialog._open_btn.text() == "Import Legacy Example"
+        assert "initialize a Designer project" in dialog._selection_hint_label.text()
+        assert str(legacy) in dialog._selection_hint_label.text()
         dialog.deleteLater()
 
     def test_download_sdk_callback_updates_root_and_examples(self, qapp, isolated_config, tmp_path):
