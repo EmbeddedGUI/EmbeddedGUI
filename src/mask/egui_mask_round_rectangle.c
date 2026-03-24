@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "egui_mask_round_rectangle.h"
+#include "image/egui_image_std.h"
 #include "core/egui_common.h"
 #include "core/egui_api.h"
 #include "core/egui_canvas.h"
@@ -256,16 +257,7 @@ static void egui_mask_round_rectangle_blend_rgb565_alpha8_range(egui_color_int_t
             continue;
         }
 
-        egui_color_t color;
-        color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
-        if (alpha == EGUI_ALPHA_100)
-        {
-            dst_row[i] = color.full;
-        }
-        else
-        {
-            egui_rgb_mix_ptr((egui_color_t *)&dst_row[i], &color, (egui_color_t *)&dst_row[i], alpha);
-        }
+        egui_image_std_blend_rgb565_src_pixel_fast(&dst_row[i], src_row[src_x], alpha);
     }
 }
 
@@ -293,16 +285,7 @@ static void egui_mask_round_rectangle_blend_rgb565_alpha8_middle(egui_color_int_
             continue;
         }
 
-        egui_color_t color;
-        color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
-        if (alpha == EGUI_ALPHA_100)
-        {
-            dst_row[i] = color.full;
-        }
-        else
-        {
-            egui_rgb_mix_ptr((egui_color_t *)&dst_row[i], &color, (egui_color_t *)&dst_row[i], alpha);
-        }
+        egui_image_std_blend_rgb565_src_pixel_fast(&dst_row[i], src_row[src_x], alpha);
     }
 }
 

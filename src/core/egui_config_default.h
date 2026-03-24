@@ -299,6 +299,64 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8 0
 #endif
 
+/* ---- Image codec (compression) ---- */
+
+/**
+ * Enable QOI (Quite OK Image) codec for compressed image decoding.
+ * QOI supports RGB565 and RGB32 formats with optional alpha.
+ */
+#ifndef EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#define EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE 0
+#endif
+
+/**
+ * Enable RLE (Run-Length Encoding) codec for compressed image decoding.
+ * RLE supports RGB565, RGB32 and GRAY8 formats with optional alpha.
+ */
+#ifndef EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#define EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE 0
+#endif
+
+/**
+ * Decode row buffer width (pixels). Used by compressed image codecs
+ * as temporary storage for one decoded row. Default = screen width.
+ */
+#ifndef EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH
+#define EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH EGUI_CONFIG_SCEEN_WIDTH
+#endif
+
+/**
+ * Enable row-band decode cache for compressed image codecs.
+ * When enabled, the first PFB tile in a row band decodes all rows into
+ * a cache; subsequent horizontal tiles blend from cache without re-decoding.
+ * Eliminates N-1 redundant decode passes (N = screen_width / pfb_width).
+ *
+ * RAM cost: PFB_HEIGHT * DECODE_ROW_BUF_WIDTH * (4 + 1) bytes.
+ * Example: PFB_H=30, W=240 → 30×240×5 = 36,000 bytes.
+ * Only enable on platforms with sufficient RAM.
+ */
+#ifndef EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#define EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE 0
+#endif
+
+/**
+ * Optional persistent full-image cache for compressed image codecs.
+ * Stores one fully decoded compressed image across refreshes and repeated draws.
+ * Total RAM budget in bytes for pixel + alpha buffers; 0 disables the feature.
+ */
+#ifndef EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES
+#define EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES 0
+#endif
+
+/**
+ * Optional persistent full-image cache for external standard images.
+ * Stores one external raw image in RAM across refreshes and repeated draws.
+ * Total RAM budget in bytes for data + alpha buffers; 0 disables the feature.
+ */
+#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES
+#define EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES 0
+#endif
+
 /* ---- Reduce code/ram size ---- */
 
 /**

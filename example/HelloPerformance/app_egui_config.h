@@ -34,6 +34,23 @@ extern "C" {
 // Double-size (480x480) image tests - always enabled (was 960x960 before, now small enough for QEMU too)
 #define EGUI_TEST_CONFIG_IMAGE_DOUBLE 1
 
+// Enable image compression codecs for performance testing
+#define EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE 1
+#define EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE 1
+
+// Enable row-band decode cache: first PFB tile decodes to cache,
+// horizontal tile neighbors blend from cache without re-decoding.
+// RAM cost: PFB_HEIGHT * SCREEN_WIDTH * 5 = 30*240*5 = 36KB
+#define EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE 1
+
+// Keep one decoded compressed image across repeated refreshes.
+// Covers the largest HelloPerformance compressed case: 240x240 RGB565 + alpha8.
+#define EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES (EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT * 3)
+
+// Keep one external raw image across repeated refreshes.
+// Covers the largest HelloPerformance external RGB565 + alpha8 case: 240x240.
+#define EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES (EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT * 3)
+
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

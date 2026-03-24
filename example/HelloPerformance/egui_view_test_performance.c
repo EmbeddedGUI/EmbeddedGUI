@@ -15,6 +15,14 @@
 #include "mask/egui_mask_round_rectangle.h"
 #include "mask/egui_mask_image.h"
 
+#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+#include "image/egui_image_qoi.h"
+#endif
+
+#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+#include "image/egui_image_rle.h"
+#endif
+
 #include "anim/egui_animation_translate.h"
 #include "anim/egui_animation_alpha.h"
 #include "anim/egui_animation_scale_size.h"
@@ -83,6 +91,11 @@
 #define EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_2 egui_res_image_star_120_ext_rgb565_2_bin
 #define EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_4 egui_res_image_star_120_ext_rgb565_4_bin
 #define EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_8 egui_res_image_star_120_ext_rgb565_8_bin
+#define EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_0  egui_res_image_test_perf_40_ext_rgb565_0_bin
+#define EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_1  egui_res_image_star_40_ext_rgb565_1_bin
+#define EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_2  egui_res_image_star_40_ext_rgb565_2_bin
+#define EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_4  egui_res_image_star_40_ext_rgb565_4_bin
+#define EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_8  egui_res_image_star_40_ext_rgb565_8_bin
 #endif
 
 uint16_t egui_view_test_performance_adjust_circle(uint16_t radius)
@@ -896,6 +909,60 @@ static void egui_view_test_performance_test_mask_image_test_perf_image(egui_view
     egui_canvas_clear_mask();
 }
 
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+static void egui_view_test_performance_test_extern_mask_image_no_mask(egui_view_t *self)
+{
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_8, 0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE);
+}
+
+static void egui_view_test_performance_test_extern_mask_image_round_rect(egui_view_t *self)
+{
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_round_rect);
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_8, 0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE);
+    egui_canvas_clear_mask();
+}
+
+static void egui_view_test_performance_test_extern_mask_image_circle(egui_view_t *self)
+{
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_circle);
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_8, 0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE);
+    egui_canvas_clear_mask();
+}
+
+static void egui_view_test_performance_test_extern_mask_image_image(egui_view_t *self)
+{
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_image);
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_8, 0, 0, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER);
+    egui_canvas_clear_mask();
+}
+
+static void egui_view_test_performance_test_extern_mask_image_test_perf_no_mask(egui_view_t *self)
+{
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_0, 0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE);
+}
+
+static void egui_view_test_performance_test_extern_mask_image_test_perf_round_rect(egui_view_t *self)
+{
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_round_rect);
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_0, 0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE);
+    egui_canvas_clear_mask();
+}
+
+static void egui_view_test_performance_test_extern_mask_image_test_perf_circle(egui_view_t *self)
+{
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_circle);
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_0, 0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE);
+    egui_canvas_clear_mask();
+}
+
+static void egui_view_test_performance_test_extern_mask_image_test_perf_image(egui_view_t *self)
+{
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_image);
+    egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_0, 0, 0, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER);
+    egui_canvas_clear_mask();
+}
+#endif
+
 static void egui_view_test_performance_test_mask_round_rect_fill_no_mask(egui_view_t *self)
 {
     egui_canvas_draw_round_rectangle_fill(0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE, MASK_TEST_RADIUS, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
@@ -1331,6 +1398,43 @@ static void egui_view_test_performance_test_image_tiled_star_565_8(egui_view_t *
     egui_view_test_performance_test_image_tiled_565_8(self);
 }
 
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+static void egui_view_test_performance_test_extern_image_tiled_565_0(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_0);
+#endif
+}
+
+static void egui_view_test_performance_test_extern_image_tiled_565_1(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_1);
+#endif
+}
+
+static void egui_view_test_performance_test_extern_image_tiled_565_2(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_2);
+#endif
+}
+
+static void egui_view_test_performance_test_extern_image_tiled_565_4(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_4);
+#endif
+}
+
+static void egui_view_test_performance_test_extern_image_tiled_565_8(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_8);
+#endif
+}
+#endif
+
 /* --- tiled resize: test_perf_40 (src 40x40 -> 160x160 slot) --- */
 static void egui_view_test_performance_test_image_resize_tiled_565_0(egui_view_t *self)
 {
@@ -1390,6 +1494,43 @@ static void egui_view_test_performance_test_image_resize_tiled_star_565_8(egui_v
     egui_view_test_performance_test_image_resize_tiled_565_8(self);
 }
 
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+static void egui_view_test_performance_test_extern_image_resize_tiled_565_0(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    egui_test_tiled_resize_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_0);
+#endif
+}
+
+static void egui_view_test_performance_test_extern_image_resize_tiled_565_1(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    egui_test_tiled_resize_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_1);
+#endif
+}
+
+static void egui_view_test_performance_test_extern_image_resize_tiled_565_2(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    egui_test_tiled_resize_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_2);
+#endif
+}
+
+static void egui_view_test_performance_test_extern_image_resize_tiled_565_4(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    egui_test_tiled_resize_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_4);
+#endif
+}
+
+static void egui_view_test_performance_test_extern_image_resize_tiled_565_8(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    egui_test_tiled_resize_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_8);
+#endif
+}
+#endif
+
 /* --- tiled rotate: test_perf_40 (src 40x40, 80x80 slots, 45deg) --- */
 static void egui_view_test_performance_test_image_rotate_tiled_565_0(egui_view_t *self)
 {
@@ -1448,6 +1589,43 @@ static void egui_view_test_performance_test_image_rotate_tiled_star_565_8(egui_v
 {
     egui_view_test_performance_test_image_rotate_tiled_565_8(self);
 }
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+static void egui_view_test_performance_test_extern_image_rotate_tiled_565_0(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    egui_test_tiled_rotate_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_0);
+#endif
+}
+
+static void egui_view_test_performance_test_extern_image_rotate_tiled_565_1(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    egui_test_tiled_rotate_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_1);
+#endif
+}
+
+static void egui_view_test_performance_test_extern_image_rotate_tiled_565_2(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    egui_test_tiled_rotate_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_2);
+#endif
+}
+
+static void egui_view_test_performance_test_extern_image_rotate_tiled_565_4(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    egui_test_tiled_rotate_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_4);
+#endif
+}
+
+static void egui_view_test_performance_test_extern_image_rotate_tiled_565_8(egui_view_t *self)
+{
+#if EGUI_TEST_CONFIG_IMAGE_SMALL
+    egui_test_tiled_rotate_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_8);
+#endif
+}
+#endif
 
 // ============================================================================
 // Text transform (rotation) tests
@@ -1849,6 +2027,252 @@ static void egui_view_test_performance_test_triangle_fill_double(egui_view_t *se
 }
 
 // ============================================================================
+// Compressed image tests (QOI)
+// ============================================================================
+#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+
+// Compressed image resource name macros (QOI)
+#define EGUI_TEST_PERF_QOI_IMAGE_NAME_0     egui_res_image_test_perf_240_qoi_rgb565_0
+#define EGUI_TEST_PERF_QOI_IMAGE_NAME_8     egui_res_image_star_240_qoi_rgb565_8
+#define EGUI_TEST_PERF_QOI_TILED_NAME_0     egui_res_image_test_perf_40_qoi_rgb565_0
+#define EGUI_TEST_PERF_QOI_TILED_NAME_8     egui_res_image_star_40_qoi_rgb565_8
+#define EGUI_TEST_PERF_QOI_MASK_NAME_0      egui_res_image_test_perf_240_qoi_rgb565_0
+#define EGUI_TEST_PERF_QOI_MASK_NAME_8      egui_res_image_star_240_qoi_rgb565_8
+#define EGUI_TEST_PERF_QOI_MASK_QUARTER_0   egui_res_image_test_perf_120_qoi_rgb565_0
+#define EGUI_TEST_PERF_QOI_MASK_QUARTER_8   egui_res_image_star_120_qoi_rgb565_8
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+#define EGUI_TEST_PERF_EXTERN_QOI_IMAGE_NAME_0 egui_res_image_test_perf_240_ext_qoi_rgb565_0_bin
+#define EGUI_TEST_PERF_EXTERN_QOI_IMAGE_NAME_8 egui_res_image_star_240_ext_qoi_rgb565_8_bin
+#endif
+
+/* direct draw */
+static void egui_view_test_performance_test_image_qoi_565(egui_view_t *self)
+{
+    extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_IMAGE_NAME_0;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_IMAGE_NAME_0, 0, 0);
+}
+
+static void egui_view_test_performance_test_image_qoi_565_8(egui_view_t *self)
+{
+    extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_IMAGE_NAME_8;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_IMAGE_NAME_8, 0, 0);
+}
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+static void egui_view_test_performance_test_extern_image_qoi_565(egui_view_t *self)
+{
+    extern const egui_image_qoi_t EGUI_TEST_PERF_EXTERN_QOI_IMAGE_NAME_0;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_QOI_IMAGE_NAME_0, 0, 0);
+}
+
+static void egui_view_test_performance_test_extern_image_qoi_565_8(egui_view_t *self)
+{
+    extern const egui_image_qoi_t EGUI_TEST_PERF_EXTERN_QOI_IMAGE_NAME_8;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_QOI_IMAGE_NAME_8, 0, 0);
+}
+#endif
+
+/* tiled draw */
+static void egui_view_test_performance_test_image_tiled_qoi_565_0(egui_view_t *self)
+{
+    extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_TILED_NAME_0;
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERF_QOI_TILED_NAME_0);
+}
+
+static void egui_view_test_performance_test_image_tiled_qoi_565_8(egui_view_t *self)
+{
+    extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_TILED_NAME_8;
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERF_QOI_TILED_NAME_8);
+}
+
+/* mask + opaque QOI */
+static void egui_view_test_performance_test_mask_image_qoi_no_mask(egui_view_t *self)
+{
+    extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_MASK_NAME_0;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_MASK_NAME_0, 0, 0);
+}
+
+static void egui_view_test_performance_test_mask_image_qoi_round_rect(egui_view_t *self)
+{
+    extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_MASK_NAME_0;
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_round_rect);
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_MASK_NAME_0, 0, 0);
+    egui_canvas_clear_mask();
+}
+
+static void egui_view_test_performance_test_mask_image_qoi_circle(egui_view_t *self)
+{
+    extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_MASK_NAME_0;
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_circle);
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_MASK_NAME_0, 0, 0);
+    egui_canvas_clear_mask();
+}
+
+static void egui_view_test_performance_test_mask_image_qoi_image(egui_view_t *self)
+{
+    extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_MASK_QUARTER_0;
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_image);
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_MASK_QUARTER_0, 0, 0);
+    egui_canvas_clear_mask();
+}
+
+/* mask + alpha=8 QOI */
+static void egui_view_test_performance_test_mask_image_qoi_8_no_mask(egui_view_t *self)
+{
+    extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_MASK_NAME_8;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_MASK_NAME_8, 0, 0);
+}
+
+static void egui_view_test_performance_test_mask_image_qoi_8_round_rect(egui_view_t *self)
+{
+    extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_MASK_NAME_8;
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_round_rect);
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_MASK_NAME_8, 0, 0);
+    egui_canvas_clear_mask();
+}
+
+static void egui_view_test_performance_test_mask_image_qoi_8_circle(egui_view_t *self)
+{
+    extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_MASK_NAME_8;
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_circle);
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_MASK_NAME_8, 0, 0);
+    egui_canvas_clear_mask();
+}
+
+static void egui_view_test_performance_test_mask_image_qoi_8_image(egui_view_t *self)
+{
+    extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_MASK_QUARTER_8;
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_image);
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_MASK_QUARTER_8, 0, 0);
+    egui_canvas_clear_mask();
+}
+
+#endif // EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+
+// ============================================================================
+// Compressed image tests (RLE)
+// ============================================================================
+#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+
+// Compressed image resource name macros (RLE)
+#define EGUI_TEST_PERF_RLE_IMAGE_NAME_0     egui_res_image_test_perf_240_rle_rgb565_0
+#define EGUI_TEST_PERF_RLE_IMAGE_NAME_8     egui_res_image_star_240_rle_rgb565_8
+#define EGUI_TEST_PERF_RLE_TILED_NAME_0     egui_res_image_test_perf_40_rle_rgb565_0
+#define EGUI_TEST_PERF_RLE_TILED_NAME_8     egui_res_image_star_40_rle_rgb565_8
+#define EGUI_TEST_PERF_RLE_MASK_NAME_0      egui_res_image_test_perf_240_rle_rgb565_0
+#define EGUI_TEST_PERF_RLE_MASK_NAME_8      egui_res_image_star_240_rle_rgb565_8
+#define EGUI_TEST_PERF_RLE_MASK_QUARTER_0   egui_res_image_test_perf_120_rle_rgb565_0
+#define EGUI_TEST_PERF_RLE_MASK_QUARTER_8   egui_res_image_star_120_rle_rgb565_8
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+#define EGUI_TEST_PERF_EXTERN_RLE_IMAGE_NAME_0 egui_res_image_test_perf_240_ext_rle_rgb565_0_bin
+#define EGUI_TEST_PERF_EXTERN_RLE_IMAGE_NAME_8 egui_res_image_star_240_ext_rle_rgb565_8_bin
+#endif
+
+/* direct draw */
+static void egui_view_test_performance_test_image_rle_565(egui_view_t *self)
+{
+    extern const egui_image_rle_t EGUI_TEST_PERF_RLE_IMAGE_NAME_0;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_IMAGE_NAME_0, 0, 0);
+}
+
+static void egui_view_test_performance_test_image_rle_565_8(egui_view_t *self)
+{
+    extern const egui_image_rle_t EGUI_TEST_PERF_RLE_IMAGE_NAME_8;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_IMAGE_NAME_8, 0, 0);
+}
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+static void egui_view_test_performance_test_extern_image_rle_565(egui_view_t *self)
+{
+    extern const egui_image_rle_t EGUI_TEST_PERF_EXTERN_RLE_IMAGE_NAME_0;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_RLE_IMAGE_NAME_0, 0, 0);
+}
+
+static void egui_view_test_performance_test_extern_image_rle_565_8(egui_view_t *self)
+{
+    extern const egui_image_rle_t EGUI_TEST_PERF_EXTERN_RLE_IMAGE_NAME_8;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_RLE_IMAGE_NAME_8, 0, 0);
+}
+#endif
+
+/* tiled draw */
+static void egui_view_test_performance_test_image_tiled_rle_565_0(egui_view_t *self)
+{
+    extern const egui_image_rle_t EGUI_TEST_PERF_RLE_TILED_NAME_0;
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERF_RLE_TILED_NAME_0);
+}
+
+static void egui_view_test_performance_test_image_tiled_rle_565_8(egui_view_t *self)
+{
+    extern const egui_image_rle_t EGUI_TEST_PERF_RLE_TILED_NAME_8;
+    egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERF_RLE_TILED_NAME_8);
+}
+
+/* mask + opaque RLE */
+static void egui_view_test_performance_test_mask_image_rle_no_mask(egui_view_t *self)
+{
+    extern const egui_image_rle_t EGUI_TEST_PERF_RLE_MASK_NAME_0;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_MASK_NAME_0, 0, 0);
+}
+
+static void egui_view_test_performance_test_mask_image_rle_round_rect(egui_view_t *self)
+{
+    extern const egui_image_rle_t EGUI_TEST_PERF_RLE_MASK_NAME_0;
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_round_rect);
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_MASK_NAME_0, 0, 0);
+    egui_canvas_clear_mask();
+}
+
+static void egui_view_test_performance_test_mask_image_rle_circle(egui_view_t *self)
+{
+    extern const egui_image_rle_t EGUI_TEST_PERF_RLE_MASK_NAME_0;
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_circle);
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_MASK_NAME_0, 0, 0);
+    egui_canvas_clear_mask();
+}
+
+static void egui_view_test_performance_test_mask_image_rle_image(egui_view_t *self)
+{
+    extern const egui_image_rle_t EGUI_TEST_PERF_RLE_MASK_QUARTER_0;
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_image);
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_MASK_QUARTER_0, 0, 0);
+    egui_canvas_clear_mask();
+}
+
+/* mask + alpha=8 RLE */
+static void egui_view_test_performance_test_mask_image_rle_8_no_mask(egui_view_t *self)
+{
+    extern const egui_image_rle_t EGUI_TEST_PERF_RLE_MASK_NAME_8;
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_MASK_NAME_8, 0, 0);
+}
+
+static void egui_view_test_performance_test_mask_image_rle_8_round_rect(egui_view_t *self)
+{
+    extern const egui_image_rle_t EGUI_TEST_PERF_RLE_MASK_NAME_8;
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_round_rect);
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_MASK_NAME_8, 0, 0);
+    egui_canvas_clear_mask();
+}
+
+static void egui_view_test_performance_test_mask_image_rle_8_circle(egui_view_t *self)
+{
+    extern const egui_image_rle_t EGUI_TEST_PERF_RLE_MASK_NAME_8;
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_circle);
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_MASK_NAME_8, 0, 0);
+    egui_canvas_clear_mask();
+}
+
+static void egui_view_test_performance_test_mask_image_rle_8_image(egui_view_t *self)
+{
+    extern const egui_image_rle_t EGUI_TEST_PERF_RLE_MASK_QUARTER_8;
+    egui_canvas_set_mask((egui_mask_t *)&perf_mask_image);
+    egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_MASK_QUARTER_8, 0, 0);
+    egui_canvas_clear_mask();
+}
+
+#endif // EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+
+// ============================================================================
 // on_draw dispatch
 // ============================================================================
 
@@ -2093,6 +2517,24 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
         ensure_perf_masks_initialized();
         egui_view_test_performance_test_mask_image_image(self);
         break;
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_NO_MASK:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_extern_mask_image_no_mask(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_ROUND_RECT:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_extern_mask_image_round_rect(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_CIRCLE:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_extern_mask_image_circle(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_IMAGE:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_extern_mask_image_image(self);
+        break;
+#endif
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_TEST_PERF_NO_MASK:
         ensure_perf_masks_initialized();
         egui_view_test_performance_test_mask_image_test_perf_no_mask(self);
@@ -2109,6 +2551,24 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
         ensure_perf_masks_initialized();
         egui_view_test_performance_test_mask_image_test_perf_image(self);
         break;
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_TEST_PERF_NO_MASK:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_extern_mask_image_test_perf_no_mask(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_TEST_PERF_ROUND_RECT:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_extern_mask_image_test_perf_round_rect(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_TEST_PERF_CIRCLE:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_extern_mask_image_test_perf_circle(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_TEST_PERF_IMAGE:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_extern_mask_image_test_perf_image(self);
+        break;
+#endif
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_ROUND_RECT_FILL_NO_MASK:
         ensure_perf_masks_initialized();
         egui_view_test_performance_test_mask_round_rect_fill_no_mask(self);
@@ -2370,6 +2830,23 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_8:
         egui_view_test_performance_test_image_tiled_star_565_8(self);
         break;
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_TILED_565_0:
+        egui_view_test_performance_test_extern_image_tiled_565_0(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_TILED_565_1:
+        egui_view_test_performance_test_extern_image_tiled_565_1(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_TILED_565_2:
+        egui_view_test_performance_test_extern_image_tiled_565_2(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_TILED_565_4:
+        egui_view_test_performance_test_extern_image_tiled_565_4(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_TILED_565_8:
+        egui_view_test_performance_test_extern_image_tiled_565_8(self);
+        break;
+#endif
 
     // Tiled resize (160x160 tiles, test_perf)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_565_0:
@@ -2404,6 +2881,23 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_8:
         egui_view_test_performance_test_image_resize_tiled_star_565_8(self);
         break;
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_TILED_565_0:
+        egui_view_test_performance_test_extern_image_resize_tiled_565_0(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_TILED_565_1:
+        egui_view_test_performance_test_extern_image_resize_tiled_565_1(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_TILED_565_2:
+        egui_view_test_performance_test_extern_image_resize_tiled_565_2(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_TILED_565_4:
+        egui_view_test_performance_test_extern_image_resize_tiled_565_4(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_TILED_565_8:
+        egui_view_test_performance_test_extern_image_resize_tiled_565_8(self);
+        break;
+#endif
 
     // Tiled rotate (80x80 slots 45deg, test_perf)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_565_0:
@@ -2438,6 +2932,23 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_8:
         egui_view_test_performance_test_image_rotate_tiled_star_565_8(self);
         break;
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_TILED_565_0:
+        egui_view_test_performance_test_extern_image_rotate_tiled_565_0(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_TILED_565_1:
+        egui_view_test_performance_test_extern_image_rotate_tiled_565_1(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_TILED_565_2:
+        egui_view_test_performance_test_extern_image_rotate_tiled_565_2(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_TILED_565_4:
+        egui_view_test_performance_test_extern_image_rotate_tiled_565_4(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_TILED_565_8:
+        egui_view_test_performance_test_extern_image_rotate_tiled_565_8(self);
+        break;
+#endif
 
     // Text transform (rotation)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_NONE:
@@ -2494,6 +3005,118 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_GRADIENT:
         egui_view_test_performance_test_text_rotate_buffered_gradient(self);
         break;
+
+    // Compressed image tests (QOI)
+#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565:
+        egui_view_test_performance_test_image_qoi_565(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565_8:
+        egui_view_test_performance_test_image_qoi_565_8(self);
+        break;
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565:
+        egui_view_test_performance_test_extern_image_qoi_565(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565_8:
+        egui_view_test_performance_test_extern_image_qoi_565_8(self);
+        break;
+#endif
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_QOI_565_0:
+        egui_view_test_performance_test_image_tiled_qoi_565_0(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_QOI_565_8:
+        egui_view_test_performance_test_image_tiled_qoi_565_8(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_NO_MASK:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_qoi_no_mask(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_ROUND_RECT:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_qoi_round_rect(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_CIRCLE:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_qoi_circle(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_IMAGE:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_qoi_image(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_8_NO_MASK:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_qoi_8_no_mask(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_8_ROUND_RECT:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_qoi_8_round_rect(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_8_CIRCLE:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_qoi_8_circle(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_8_IMAGE:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_qoi_8_image(self);
+        break;
+#endif // EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+
+    // Compressed image tests (RLE)
+#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RLE_565:
+        egui_view_test_performance_test_image_rle_565(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RLE_565_8:
+        egui_view_test_performance_test_image_rle_565_8(self);
+        break;
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RLE_565:
+        egui_view_test_performance_test_extern_image_rle_565(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RLE_565_8:
+        egui_view_test_performance_test_extern_image_rle_565_8(self);
+        break;
+#endif
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_RLE_565_0:
+        egui_view_test_performance_test_image_tiled_rle_565_0(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_RLE_565_8:
+        egui_view_test_performance_test_image_tiled_rle_565_8(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_NO_MASK:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_rle_no_mask(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_ROUND_RECT:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_rle_round_rect(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_CIRCLE:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_rle_circle(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_IMAGE:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_rle_image(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_8_NO_MASK:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_rle_8_no_mask(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_8_ROUND_RECT:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_rle_8_round_rect(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_8_CIRCLE:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_rle_8_circle(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_8_IMAGE:
+        ensure_perf_masks_initialized();
+        egui_view_test_performance_test_mask_image_rle_8_image(self);
+        break;
+#endif // EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
 
     default:
         break;
@@ -2606,6 +3229,14 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_565_2:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_565_4:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_NO_MASK:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_ROUND_RECT:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_CIRCLE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_IMAGE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_TEST_PERF_NO_MASK:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_TEST_PERF_ROUND_RECT:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_TEST_PERF_CIRCLE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_TEST_PERF_IMAGE:
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         return 1;
 #else
@@ -2662,6 +3293,16 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_4:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_8:
         return 0;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_TILED_565_0:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_TILED_565_1:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_TILED_565_2:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_TILED_565_4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_TILED_565_8:
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+        return EGUI_TEST_CONFIG_IMAGE_SMALL;
+#else
+        return 0;
+#endif
 
     // Tiled resize (40->160): always enabled
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_565_0:
@@ -2676,6 +3317,16 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_4:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_8:
         return 0;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_TILED_565_0:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_TILED_565_1:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_TILED_565_2:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_TILED_565_4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_TILED_565_8:
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+        return EGUI_TEST_CONFIG_IMAGE_SMALL;
+#else
+        return 0;
+#endif
 
     // Tiled rotate (40x80 slot 45deg): always enabled when transform supported
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_565_0:
@@ -2690,6 +3341,16 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_4:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_8:
         return 0;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_TILED_565_0:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_TILED_565_1:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_TILED_565_2:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_TILED_565_4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_TILED_565_8:
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+        return EGUI_TEST_CONFIG_IMAGE_SMALL;
+#else
+        return 0;
+#endif
 
     // Text transform: gate on image transform support
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_NONE:
@@ -2709,6 +3370,54 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_ROTATE_BUFFERED:
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         return 1;
+#else
+        return 0;
+#endif
+
+    // Compressed image tests (QOI): gate on codec enable
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_QOI_565_0:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_QOI_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_NO_MASK:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_ROUND_RECT:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_CIRCLE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_IMAGE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_8_NO_MASK:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_8_ROUND_RECT:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_8_CIRCLE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_8_IMAGE:
+#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE && EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+        return 1;
+#elif EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+        return test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565 &&
+               test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565_8;
+#else
+        return 0;
+#endif
+
+    // Compressed image tests (RLE): gate on codec enable
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RLE_565:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RLE_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RLE_565:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RLE_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_RLE_565_0:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_RLE_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_NO_MASK:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_ROUND_RECT:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_CIRCLE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_IMAGE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_8_NO_MASK:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_8_ROUND_RECT:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_8_CIRCLE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_8_IMAGE:
+#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE && EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+        return 1;
+#elif EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+        return test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RLE_565 &&
+               test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RLE_565_8;
 #else
         return 0;
 #endif

@@ -146,6 +146,14 @@
         },
         {
             "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_40_ext",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "0",
+            "dim": "40,40"
+        },
+        {
+            "file": "test_img_2_1280_1280.png",
             "name": "test_perf_120_ext",
             "external": "1",
             "format": "rgb565",
@@ -162,6 +170,38 @@
         },
         {
             "file": "star.png",
+            "name": "star_40_ext",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "1",
+            "dim": "40,40"
+        },
+        {
+            "file": "star.png",
+            "name": "star_40_ext",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "2",
+            "dim": "40,40"
+        },
+        {
+            "file": "star.png",
+            "name": "star_40_ext",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "4",
+            "dim": "40,40"
+        },
+        {
+            "file": "star.png",
+            "name": "star_40_ext",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "8",
+            "dim": "40,40"
+        },
+        {
+            "file": "star.png",
             "name": "star_120_ext",
             "external": "1",
             "format": "rgb565",
@@ -223,6 +263,150 @@
             "format": "rgb565",
             "alpha": "8",
             "dim": "240,240"
+        },
+        {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_240",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+            "compress": "qoi",
+            "dim": "240,240"
+        },
+        {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_240",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+            "compress": "rle",
+            "dim": "240,240"
+        },
+        {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_240_ext",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "0",
+            "compress": "qoi",
+            "dim": "240,240"
+        },
+        {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_240_ext",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "0",
+            "compress": "rle",
+            "dim": "240,240"
+        },
+        {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_40",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+            "compress": "qoi",
+            "dim": "40,40"
+        },
+        {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_40",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+            "compress": "rle",
+            "dim": "40,40"
+        },
+        {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_120",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+            "compress": "qoi",
+            "dim": "120,120"
+        },
+        {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_120",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+            "compress": "rle",
+            "dim": "120,120"
+        },
+        {
+            "file": "star.png",
+            "name": "star_240",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "8",
+            "compress": "qoi",
+            "dim": "240,240"
+        },
+        {
+            "file": "star.png",
+            "name": "star_240",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "8",
+            "compress": "rle",
+            "dim": "240,240"
+        },
+        {
+            "file": "star.png",
+            "name": "star_240_ext",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "8",
+            "compress": "qoi",
+            "dim": "240,240"
+        },
+        {
+            "file": "star.png",
+            "name": "star_240_ext",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "8",
+            "compress": "rle",
+            "dim": "240,240"
+        },
+        {
+            "file": "star.png",
+            "name": "star_40",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "8",
+            "compress": "qoi",
+            "dim": "40,40"
+        },
+        {
+            "file": "star.png",
+            "name": "star_40",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "8",
+            "compress": "rle",
+            "dim": "40,40"
+        },
+        {
+            "file": "star.png",
+            "name": "star_120",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "8",
+            "compress": "qoi",
+            "dim": "120,120"
+        },
+        {
+            "file": "star.png",
+            "name": "star_120",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "8",
+            "compress": "rle",
+            "dim": "120,120"
         }
     ],
     "font": [

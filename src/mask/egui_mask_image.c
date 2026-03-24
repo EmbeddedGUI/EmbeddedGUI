@@ -187,10 +187,7 @@ static void egui_mask_image_blend_rgb565_row(egui_color_int_t *dst_row, const ui
 
     for (egui_dim_t i = 0; i < count; i++)
     {
-        egui_color_t color;
-
-        color.full = EGUI_COLOR_RGB565_TRANS(src_row[i]);
-        egui_rgb_mix_ptr((egui_color_t *)&dst_row[i], &color, (egui_color_t *)&dst_row[i], alpha);
+        egui_image_std_blend_rgb565_src_pixel_fast(&dst_row[i], src_row[i], alpha);
     }
 }
 
@@ -245,17 +242,7 @@ static void egui_mask_image_blend_rgb565_alpha8_identity_row(egui_color_int_t *d
 
             if (alpha != 0)
             {
-                egui_color_t color;
-
-                color.full = EGUI_COLOR_RGB565_TRANS(src_row[i]);
-                if (alpha == EGUI_ALPHA_100)
-                {
-                    dst_row[i] = color.full;
-                }
-                else
-                {
-                    egui_rgb_mix_ptr((egui_color_t *)&dst_row[i], &color, (egui_color_t *)&dst_row[i], alpha);
-                }
+                egui_image_std_blend_rgb565_src_pixel_fast(&dst_row[i], src_row[i], alpha);
             }
             i++;
         }
@@ -264,21 +251,7 @@ static void egui_mask_image_blend_rgb565_alpha8_identity_row(egui_color_int_t *d
 
 static int egui_mask_image_get_linear_src_segment(const egui_dim_t *src_x_map, egui_dim_t start, egui_dim_t end, egui_dim_t *src_x_start)
 {
-    if (src_x_map == NULL || src_x_start == NULL || start >= end)
-    {
-        return 0;
-    }
-
-    *src_x_start = src_x_map[start];
-    for (egui_dim_t i = start + 1; i < end; i++)
-    {
-        if (src_x_map[i] != (*src_x_start + (i - start)))
-        {
-            return 0;
-        }
-    }
-
-    return 1;
+    return egui_image_std_get_linear_src_x_segment(src_x_map, start, end, src_x_start);
 }
 
 static int egui_mask_image_refresh_row_scan(egui_mask_image_t *local, egui_dim_t y)
@@ -697,16 +670,7 @@ int egui_mask_image_blend_rgb565_alpha8_row_segment(egui_mask_t *self, egui_colo
                 continue;
             }
 
-            egui_color_t color;
-            color.full = EGUI_COLOR_RGB565_TRANS(*src_row);
-            if (alpha == EGUI_ALPHA_100)
-            {
-                *dst_row = color.full;
-            }
-            else
-            {
-                egui_rgb_mix_ptr((egui_color_t *)dst_row, &color, (egui_color_t *)dst_row, alpha);
-            }
+            egui_image_std_blend_rgb565_src_pixel_fast(dst_row, *src_row, alpha);
         }
     }
     else
@@ -728,16 +692,7 @@ int egui_mask_image_blend_rgb565_alpha8_row_segment(egui_mask_t *self, egui_colo
                 continue;
             }
 
-            egui_color_t color;
-            color.full = EGUI_COLOR_RGB565_TRANS(*src_row);
-            if (alpha == EGUI_ALPHA_100)
-            {
-                *dst_row = color.full;
-            }
-            else
-            {
-                egui_rgb_mix_ptr((egui_color_t *)dst_row, &color, (egui_color_t *)dst_row, alpha);
-            }
+            egui_image_std_blend_rgb565_src_pixel_fast(dst_row, *src_row, alpha);
         }
     }
 
@@ -827,16 +782,7 @@ int egui_mask_image_blend_rgb565_alpha8_segment(egui_mask_t *self, egui_color_in
                 continue;
             }
 
-            egui_color_t color;
-            color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
-            if (alpha == EGUI_ALPHA_100)
-            {
-                dst_row[i] = color.full;
-            }
-            else
-            {
-                egui_rgb_mix_ptr((egui_color_t *)&dst_row[i], &color, (egui_color_t *)&dst_row[i], alpha);
-            }
+            egui_image_std_blend_rgb565_src_pixel_fast(&dst_row[i], src_row[src_x], alpha);
         }
     }
     else
@@ -859,16 +805,7 @@ int egui_mask_image_blend_rgb565_alpha8_segment(egui_mask_t *self, egui_color_in
                 continue;
             }
 
-            egui_color_t color;
-            color.full = EGUI_COLOR_RGB565_TRANS(src_row[src_x]);
-            if (alpha == EGUI_ALPHA_100)
-            {
-                dst_row[i] = color.full;
-            }
-            else
-            {
-                egui_rgb_mix_ptr((egui_color_t *)&dst_row[i], &color, (egui_color_t *)&dst_row[i], alpha);
-            }
+            egui_image_std_blend_rgb565_src_pixel_fast(&dst_row[i], src_row[src_x], alpha);
         }
     }
 

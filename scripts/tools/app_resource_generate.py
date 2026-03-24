@@ -1,6 +1,7 @@
 import os
 import shutil
 import argparse
+import subprocess
 import json5
 import ttf2c
 import img2c
@@ -146,6 +147,10 @@ class ImageResourceInfo:
         if config.get('bg'):
             self.bg = config['bg']
 
+        self.compress = "none"
+        if config.get('compress'):
+            self.compress = config['compress']
+
 class FontResourceInfo:
     def __init__(self, config):
         self.file_name = config['file']
@@ -255,10 +260,19 @@ def generate_img_resource(resource_src_path, img_res_output_path, config_info_im
     img_config_list = []
     for img_config in config_info_img:
         img_info = ImageResourceInfo(img_config)
+        # Validate: GRAY8 + QOI is not supported (QOI encodes RGB/RGBA only)
+        if img_info.compress == 'qoi':
+            for rgb in img_info.rgb_list:
+                if rgb == 'gray8':
+                    print(f"[WARN] Image '{img_info.name}': QOI does not support GRAY8 format, skipping QOI for gray8 variants.")
         for rgb in img_info.rgb_list:
             for alpha in img_info.alpha_list:
                 for external in img_info.external_list:
-                    img_config_list.append([img_info, rgb, alpha, external, img_info.dim, img_info.rot, img_info.bg])
+                    compress = img_info.compress
+                    # Skip GRAY8 + QOI combination
+                    if compress == 'qoi' and rgb == 'gray8':
+                        compress = 'none'
+                    img_config_list.append([img_info, rgb, alpha, external, img_info.dim, img_info.rot, img_info.bg, compress])
     
     for img_config_item in img_config_list:
         img_info = img_config_item[0]
@@ -275,8 +289,9 @@ def generate_img_resource(resource_src_path, img_res_output_path, config_info_im
         dim = img_config_item[4]
         rot = img_config_item[5]
         bg = img_config_item[6]
+        compress = img_config_item[7]
 
-        tool = img2c.img2c_tool(img_file_path, img_name, rgb, alpha, dim, rot, 0, external, output_path, bg)
+        tool = img2c.img2c_tool(img_file_path, img_name, rgb, alpha, dim, rot, 0, external, output_path, bg, compress=compress)
 
         img2c_tool_list.append(tool)
 
@@ -285,6 +300,156 @@ def generate_img_resource(resource_src_path, img_res_output_path, config_info_im
         tool.write_c_file()
         
     return img2c_tool_list
+
+
+def _mp4_extract_frames(video_path, output_folder, target_fps, width_px, height_px, image_pre_name='frame', image_format='png'):
+    """Extract frames from an MP4 video using ffmpeg."""
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    scale_str = ''
+    if width_px > 0 and height_px > 0:
+        scale_str = f',scale={width_px}:{height_px}'
+    command = [
+        'ffmpeg',
+        '-i', video_path,
+        '-vf', f'fps={target_fps}{scale_str}',
+        os.path.join(output_folder, f'{image_pre_name}_%04d.{image_format}')
+    ]
+    subprocess.run(command, check=True)
+
+
+def generate_mp4_resource(resource_src_path, img_res_output_path, mp4_header_output_path, config_info_mp4):
+    """Process 'mp4' entries in config: extract frames, generate img resources, create frame array headers.
+
+    Each mp4 entry specifies:
+        file:     Source video file (e.g., "test.mp4")
+        name:     Unique name for this frame set (defaults to video basename)
+        fps:      Frame extraction rate (default: 10)
+        width:    Target frame width (0 = no resize)
+        height:   Target frame height (0 = no resize)
+        format:   RGB format (default: "rgb565")
+        alpha:    Alpha format (default: "0")
+        external: Storage format (default: "0")
+        compress: Compression codec (default: "none")
+
+    Workflow:
+        1. Extract frames from video using ffmpeg (skipped if frames already exist)
+        2. Generate img2c resources for each frame
+        3. Generate C header with frame pointer array
+
+    Returns: (all_mp4_tools, mp4_groups) where mp4_groups = [(name, tools), ...]
+    """
+    all_mp4_tools = []
+    mp4_groups = []
+
+    if not config_info_mp4:
+        return all_mp4_tools, mp4_groups
+
+    extracted_videos = {}
+
+    for mp4_config in config_info_mp4:
+        video_file = mp4_config['file']
+        video_path = os.path.join(resource_src_path, video_file)
+        video_base_name = format_file_name(os.path.splitext(os.path.basename(video_file))[0])
+
+        fps = int(mp4_config.get('fps', 10))
+        width = int(mp4_config.get('width', 0))
+        height = int(mp4_config.get('height', 0))
+        fmt = mp4_config.get('format', 'rgb565')
+        alpha = str(mp4_config.get('alpha', '0'))
+        external = str(mp4_config.get('external', '0'))
+        compress = mp4_config.get('compress', 'none')
+        name = mp4_config.get('name', video_base_name)
+
+        frame_dir_name = video_base_name
+        frame_dir = os.path.join(resource_src_path, frame_dir_name)
+        frame_prefix = f'frame_{video_base_name}'
+
+        # Extract frames once per video+fps+size combination
+        extract_key = f"{video_file}_{fps}_{width}_{height}"
+        if extract_key not in extracted_videos:
+            existing_frames = []
+            if os.path.exists(frame_dir):
+                existing_frames = [f for f in os.listdir(frame_dir) if f.lower().endswith(('.png', '.jpg'))]
+
+            if not existing_frames:
+                if os.path.exists(video_path):
+                    try:
+                        _mp4_extract_frames(video_path, frame_dir, fps, width, height, frame_prefix)
+                    except Exception as e:
+                        print(f"[WARN] Failed to extract MP4 frames: {e}")
+                        print(f"[INFO] Place pre-extracted PNG frames in: {frame_dir}")
+                else:
+                    print(f"[INFO] MP4 source not found: {video_path}")
+                    print(f"[INFO] Place pre-extracted PNG frames in: {frame_dir}")
+            extracted_videos[extract_key] = frame_dir_name
+
+        # List available frames
+        if not os.path.exists(frame_dir):
+            print(f"[WARN] MP4 frame directory not found: {frame_dir}")
+            continue
+
+        frame_files = sorted([f for f in os.listdir(frame_dir) if f.lower().endswith(('.png', '.jpg'))])
+        if not frame_files:
+            print(f"[WARN] No frame images found in: {frame_dir}")
+            continue
+
+        # Generate img config entries for each frame
+        img_configs = []
+        for frame_file in frame_files:
+            # Build a unique name per mp4 entry to avoid conflicts when
+            # multiple entries share the same source frames (e.g. different sizes).
+            frame_base = format_file_name(os.path.splitext(frame_file)[0])
+            unique_name = f'{name}_{frame_base}'
+            entry = {
+                'file': f'{frame_dir_name}/{frame_file}',
+                'name': unique_name,
+                'format': fmt,
+                'alpha': alpha,
+                'external': external,
+            }
+            if compress and compress != 'none':
+                entry['compress'] = compress
+            if width > 0 and height > 0:
+                entry['dim'] = f'{width},{height}'
+            img_configs.append(entry)
+
+        # Process through img pipeline
+        tools = generate_img_resource(resource_src_path, img_res_output_path, img_configs)
+        all_mp4_tools.extend(tools)
+        mp4_groups.append((name, tools))
+
+        print(f"[MP4] {name}: {len(tools)} frames, compress={compress}")
+
+    # Generate frame array headers
+    for group_name, tools in mp4_groups:
+        header_path = os.path.join(mp4_header_output_path, f'app_egui_resource_mp4_{group_name}.h')
+        _generate_mp4_frame_header(group_name, tools, header_path)
+
+    return all_mp4_tools, mp4_groups
+
+
+def _generate_mp4_frame_header(name, tools, header_path):
+    """Generate a C header with MP4 frame count define and frame pointer array."""
+    guard = f"_APP_EGUI_RESOURCE_MP4_{name.upper()}_H_"
+    count_define = f"MP4_IMAGE_COUNT_{name.upper()}"
+    arr_name = f"mp4_arr_{name}"
+
+    with open(header_path, 'w', encoding='utf-8') as f:
+        f.write(f"/* Auto-generated MP4 frame array for '{name}' */\n")
+        f.write(f"#ifndef {guard}\n")
+        f.write(f"#define {guard}\n\n")
+        f.write(f"#include \"app_egui_resource_generate.h\"\n\n")
+        f.write(f"#define {count_define} {len(tools)}\n\n")
+        f.write(f"static const egui_image_t *{arr_name}[{count_define}] =\n")
+        f.write("{\n")
+        for tool in sorted(tools, key=lambda x: x.img_name):
+            f.write(f"    (const egui_image_t *)&{tool.img_name},\n")
+        f.write("};\n\n")
+        f.write(f"#endif /* {guard} */\n")
+
+    print(f"Generated MP4 header: {header_path}")
+
 
 def generate_resource(resource_path, output_path, force):
     # 解析app_resource_config.json文件
@@ -330,6 +495,11 @@ def generate_resource(resource_path, output_path, force):
     img2c_tool_list = generate_img_resource(resource_src_path, img_res_output_path, config_info['img'])
     ttf2c_tool_list = generate_font_resource(resource_src_path, font_res_output_path, config_info['font'])
 
+    # Process MP4 entries (frame extraction + img resource generation + frame array headers)
+    mp4_tool_list, mp4_groups = generate_mp4_resource(
+        resource_src_path, img_res_output_path, resource_path, config_info.get('mp4', []))
+    img2c_tool_list.extend(mp4_tool_list)
+
     # 遍历生成app_egui_resource_generate.h文件
     resource_id_string = ""
     resource_extern_string = ""
@@ -338,7 +508,13 @@ def generate_resource(resource_path, output_path, force):
     resource_id_map_string = ""
 
     for tool in sorted(img2c_tool_list, key=lambda x: x.img_name):
-        resource_extern_string += f"extern const egui_image_std_t {tool.img_name};\n"
+        if tool.compress == "rle":
+            img_type = "egui_image_rle_t"
+        elif tool.compress == "qoi":
+            img_type = "egui_image_qoi_t"
+        else:
+            img_type = "egui_image_std_t"
+        resource_extern_string += f"extern const {img_type} {tool.img_name};\n"
         if tool.external_type:
             if tool.alpha_bin_data:
                 id_str = tool.alpha_bin_name_res_id
@@ -420,15 +596,30 @@ def generate_resource(resource_path, output_path, force):
         font_ext_total_size = 0
         f.write("# 图像\n")
         f.write("## 内部\n")
-        f.write("| 名称 | data大小 | alpha大小 | 总大小 | Image |\n")
-        f.write("| ---- | -------- | --------- | ------ | ------ |\n")
+        f.write("| 名称 | data大小 | alpha大小 | 总大小 | 压缩 | Image |\n")
+        f.write("| ---- | -------- | --------- | ------ | ---- | ------ |\n")
         for tool in sorted(img2c_tool_list, key=lambda x: x.img_name):
             if tool.external_type:
                 continue
-            tmp_data_size = len(tool.data_bin_data)
-            tmp_alpha_size = 0
-            if tool.alpha_bin_data:
-                tmp_alpha_size = len(tool.alpha_bin_data)
+            compress_info = ""
+            if tool.compress != "none" and (tool.compressed_data_size > 0 or tool.compressed_alpha_size > 0):
+                tmp_data_size = tool.compressed_data_size
+                tmp_alpha_size = tool.compressed_alpha_size
+                tmp_total = tmp_data_size + tmp_alpha_size
+                # Calculate original (uncompressed) size
+                orig_data = len(tool.data_bin_data) if tool.data_bin_data else 0
+                orig_alpha = len(tool.alpha_bin_data) if tool.alpha_bin_data else 0
+                orig_total = orig_data + orig_alpha
+                if orig_total > 0:
+                    ratio = (1 - tmp_total / orig_total) * 100
+                    compress_info = f"{tool.compress.upper()} (-{ratio:.0f}%, 原始{orig_total})"
+                else:
+                    compress_info = tool.compress.upper()
+            else:
+                tmp_data_size = len(tool.data_bin_data)
+                tmp_alpha_size = 0
+                if tool.alpha_bin_data:
+                    tmp_alpha_size = len(tool.alpha_bin_data)
             img_data_total_size += tmp_data_size
             img_alpha_total_size += tmp_alpha_size
             img_total_size += tmp_data_size + tmp_alpha_size
@@ -440,8 +631,8 @@ def generate_resource(resource_path, output_path, force):
             elif 'src\\' in img_file_path:
                 img_file_path = img_file_path.split('src\\')[1]
                 
-            f.write(f"| {tool.img_name} | {tmp_data_size} | {tmp_alpha_size} | {tmp_data_size + tmp_alpha_size} | ![{tool.img_name}](src/{img_file_path}) |\n")
-        f.write(f"| 总计 | {img_data_total_size} | {img_alpha_total_size} | {img_total_size} |\n")
+            f.write(f"| {tool.img_name} | {tmp_data_size} | {tmp_alpha_size} | {tmp_data_size + tmp_alpha_size} | {compress_info} | ![{tool.img_name}](src/{img_file_path}) |\n")
+        f.write(f"| 总计 | {img_data_total_size} | {img_alpha_total_size} | {img_total_size} | | |\n")
 
         f.write("\n")
         f.write("\n")

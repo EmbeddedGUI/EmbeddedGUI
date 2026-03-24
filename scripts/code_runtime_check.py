@@ -43,7 +43,6 @@ SUB_APP_ROOTS = {
 }
 
 WINDOWS_RUNTIME_SKIP_SET = {
-    ("HelloBasic", "image"),
 }
 
 

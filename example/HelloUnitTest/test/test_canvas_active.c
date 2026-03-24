@@ -25,6 +25,28 @@ static const egui_image_std_info_t canvas_helper_image_info = {
 
 EGUI_IMAGE_SUB_DEFINE_STATIC(egui_image_std_t, canvas_helper_image, &canvas_helper_image_info);
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+static const uint16_t canvas_circle_mask_image_data[] = {
+        0xF800, 0xF800, 0xF800, 0xF800, 0xF800,
+        0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x07E0,
+        0x001F, 0x001F, 0x001F, 0x001F, 0x001F,
+        0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0, 0xFFE0,
+        0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+};
+
+static const egui_image_std_info_t canvas_circle_mask_image_info = {
+        .data_buf = canvas_circle_mask_image_data,
+        .alpha_buf = NULL,
+        .data_type = EGUI_IMAGE_DATA_TYPE_RGB565,
+        .alpha_type = EGUI_IMAGE_ALPHA_TYPE_1,
+        .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
+        .width = 5,
+        .height = 5,
+};
+
+EGUI_IMAGE_SUB_DEFINE_STATIC(egui_image_std_t, canvas_circle_mask_image, &canvas_circle_mask_image_info);
+#endif
+
 static void setup_canvas(const egui_region_t *pfb_region)
 {
     egui_region_t base_region;
@@ -188,6 +210,59 @@ static void test_canvas_text_rotate_buffered_helper_zero_angle_matches_draw_text
     EGUI_TEST_ASSERT_TRUE(memcmp(expected_pfb, test_pfb, sizeof(test_pfb)) == 0);
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+static void test_canvas_circle_mask_draw_image_handles_cold_mask_cache(void)
+{
+    enum
+    {
+        image_x = 18,
+        image_y = 9,
+        image_size = 5,
+    };
+    const egui_image_t *image = (const egui_image_t *)&canvas_circle_mask_image;
+    egui_mask_circle_t mask;
+    egui_mask_t *base = (egui_mask_t *)&mask;
+    int has_non_zero_pixel = 0;
+
+    memset(&mask, 0, sizeof(mask));
+    egui_mask_circle_init(base);
+    egui_mask_set_position(base, image_x, image_y);
+    egui_mask_set_size(base, image_size, image_size);
+
+    setup_canvas_local_full();
+    for (egui_dim_t y = 0; y < image_size; y++)
+    {
+        for (egui_dim_t x = 0; x < image_size; x++)
+        {
+            egui_color_t color;
+            egui_alpha_t alpha = EGUI_ALPHA_100;
+
+            color.full = EGUI_COLOR_RGB565_TRANS(canvas_circle_mask_image_data[y * image_size + x]);
+            base->api->mask_point(base, image_x + x, image_y + y, &color, &alpha);
+            if (alpha != 0)
+            {
+                has_non_zero_pixel = 1;
+                egui_canvas_draw_point(image_x + x, image_y + y, color, alpha);
+            }
+        }
+    }
+    memcpy(expected_pfb, test_pfb, sizeof(test_pfb));
+
+    memset(&mask, 0, sizeof(mask));
+    egui_mask_circle_init(base);
+    egui_mask_set_position(base, image_x, image_y);
+    egui_mask_set_size(base, image_size, image_size);
+
+    setup_canvas_local_full();
+    egui_canvas_set_mask(base);
+    egui_canvas_draw_image(image, image_x, image_y);
+    egui_canvas_clear_mask();
+
+    EGUI_TEST_ASSERT_TRUE(has_non_zero_pixel);
+    EGUI_TEST_ASSERT_TRUE(memcmp(expected_pfb, test_pfb, sizeof(test_pfb)) == 0);
+}
+#endif
+
 void test_canvas_active_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(canvas_active);
@@ -203,5 +278,8 @@ void test_canvas_active_run(void)
     EGUI_TEST_RUN(test_canvas_image_rotate_helper_zero_angle_matches_draw_image);
     EGUI_TEST_RUN(test_canvas_text_rotate_helper_zero_angle_matches_draw_text);
     EGUI_TEST_RUN(test_canvas_text_rotate_buffered_helper_zero_angle_matches_draw_text);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+    EGUI_TEST_RUN(test_canvas_circle_mask_draw_image_handles_cold_mask_cache);
+#endif
     EGUI_TEST_SUITE_END();
 }

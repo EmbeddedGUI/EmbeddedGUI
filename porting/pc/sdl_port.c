@@ -207,6 +207,7 @@ static int g_recording_snapshot_max_wait_ms = 1500;
 static bool g_recording_quit_after_snapshot = false; // Quit after next snapshot (all actions done)
 static bool g_recording_all_actions_done = false;    // No more actions to simulate
 static uint32_t g_recording_completed_frame_count = 0;
+static uint32_t g_recording_start_real_time = 0;
 #endif
 
 extern void VT_Init(void);
@@ -934,6 +935,7 @@ void recording_init(const char *output_dir, int fps, int duration_sec)
     g_recording_quit_after_snapshot = false;
     g_recording_all_actions_done = false;
     g_recording_completed_frame_count = 0;
+    g_recording_start_real_time = 0;
 #endif
     strncpy(g_recording_output_dir, output_dir, sizeof(g_recording_output_dir) - 1);
     g_recording_output_dir[sizeof(g_recording_output_dir) - 1] = '\0';
@@ -1060,6 +1062,11 @@ __EGUI_WEAK__ bool egui_port_get_recording_action(int action_index, egui_sim_act
     p_action->y1 = VT_HEIGHT / 2;
     p_action->interval_ms = 1000;
     return true;
+}
+
+__EGUI_WEAK__ const char *egui_port_get_recording_frame_label(void)
+{
+    return NULL;
 }
 
 static uint32_t recording_calc_frame_hash(void)
@@ -1251,6 +1258,20 @@ static void recording_simulate_action(void)
         return;
     }
 
+    if ((action.type == EGUI_SIM_ACTION_WAIT || action.type == EGUI_SIM_ACTION_NONE) && action.interval_ms <= 0)
+    {
+        if (g_recording_snapshot_requested)
+        {
+            return;
+        }
+        g_recording_last_action_time = now;
+        g_recording_current_action = action;
+        g_recording_drag_current_step = 0;
+        recording_execute_action_step();
+        g_recording_action_index++;
+        return;
+    }
+
     // Check action interval (accelerated by speed multiplier)
     uint32_t effective_interval = (uint32_t)action.interval_ms / g_recording_speed;
     if (effective_interval < 50)
@@ -1283,8 +1304,26 @@ static void recording_simulate_action(void)
 static void recording_do_save_frame(void)
 {
     char filename[1024];
+    const char *frame_name = NULL;
+    const char *windows_frame_name = NULL;
     snprintf(filename, sizeof(filename), "%s/frame_%04d.png", g_recording_output_dir, g_recording_frame_count);
     snap_shot(filename);
+#if EGUI_CONFIG_RECORDING_TEST
+    frame_name = strrchr(filename, '/');
+    windows_frame_name = strrchr(filename, '\\');
+    if (frame_name == NULL || (windows_frame_name != NULL && windows_frame_name > frame_name))
+    {
+        frame_name = windows_frame_name;
+    }
+    frame_name = frame_name != NULL ? frame_name + 1 : filename;
+    {
+        const char *label = egui_port_get_recording_frame_label();
+        if (label != NULL && label[0] != '\0')
+        {
+            printf("PERF_FRAME:%s:%s\r\n", frame_name, label);
+        }
+    }
+#endif
     g_recording_frame_count++;
 }
 
@@ -1296,6 +1335,9 @@ static void recording_save_frame(void)
     }
 
     uint32_t now = sdl_get_system_timestamp_ms();
+#if EGUI_CONFIG_RECORDING_TEST
+    uint32_t real_now = sdl_get_system_timestamp_ms_raw();
+#endif
 
     // Initialize start time on first frame
     if (g_recording_start_time == 0)
@@ -1303,6 +1345,7 @@ static void recording_save_frame(void)
         g_recording_start_time = now;
         g_recording_last_frame_time = now;
 #if EGUI_CONFIG_RECORDING_TEST
+        g_recording_start_real_time = real_now;
         // In recording-test mode, wait for the first stable rendered frame
         // instead of saving the uninitialized backbuffer as frame_0000.
         recording_request_snapshot();
@@ -1313,7 +1356,11 @@ static void recording_save_frame(void)
     }
 
     // Check if recording finished (timeout safety)
+#if EGUI_CONFIG_RECORDING_TEST
+    if ((real_now - g_recording_start_real_time) >= (uint32_t)g_recording_duration_ms)
+#else
     if ((now - g_recording_start_time) >= (uint32_t)g_recording_duration_ms)
+#endif
     {
         g_recording_enabled = false;
         sdl_quit_qry = true;
@@ -1322,7 +1369,6 @@ static void recording_save_frame(void)
     }
 
 #if EGUI_CONFIG_RECORDING_TEST
-    uint32_t real_now = sdl_get_system_timestamp_ms_raw();
     // Snapshot-driven frame capture: save when requested by user code or auto-fallback
     if (g_recording_snapshot_requested)
     {

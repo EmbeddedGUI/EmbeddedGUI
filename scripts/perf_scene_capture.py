@@ -27,6 +27,7 @@ DEFAULT_SHEET_PATH = PERF_OUTPUT_DIR / "perf_scenes.png"
 DEFAULT_INDEX_PATH = PERF_OUTPUT_DIR / "perf_scenes_index.json"
 
 SCENE_PATTERN = re.compile(r"PERF_SCENE:(\w+)")
+FRAME_PATTERN = re.compile(r"PERF_FRAME:(frame_\d+\.png):(\w+)")
 REQUIRED_CFLAGS = "-DEGUI_CONFIG_RECORDING_TEST=1"
 BUILD_TARGET = "perf_scene_capture"
 BUILD_OBJ_SUFFIX = "HelloPerformance_perf_scene_capture"
@@ -139,7 +140,7 @@ def build_capture_app() -> None:
         raise RuntimeError("scene capture build failed\n" + combined[-4000:])
 
 
-def run_capture(frames_dir: Path, args: argparse.Namespace) -> tuple[list[str], list[Path]]:
+def run_capture(frames_dir: Path, args: argparse.Namespace) -> tuple[list[str], dict[str, Path]]:
     frames_dir.mkdir(parents=True, exist_ok=True)
     for old_frame in frames_dir.glob("frame_*.png"):
         old_frame.unlink()
@@ -198,12 +199,9 @@ def run_capture(frames_dir: Path, args: argparse.Namespace) -> tuple[list[str], 
     if not frame_paths:
         raise RuntimeError("no capture frames were generated")
 
-    frame_paths = normalize_frame_paths(scene_names, frame_paths)
-    if len(frame_paths) != len(scene_names):
-        raise RuntimeError(f"scene/frame count mismatch: {len(scene_names)} scenes vs {len(frame_paths)} frames")
-
     validate_frames(frame_paths)
-    return scene_names, frame_paths
+    frame_map = build_frame_map(scene_names, frame_paths, combined_output)
+    return scene_names, frame_map
 
 
 def frames_have_same_pixels(path_a: Path, path_b: Path) -> bool:
@@ -233,6 +231,50 @@ def normalize_frame_paths(scene_names: list[str], frame_paths: list[Path]) -> li
     return frame_paths
 
 
+def build_frame_map(scene_names: list[str], frame_paths: list[Path], capture_output: str) -> dict[str, Path]:
+    explicit_map = parse_explicit_frame_map(frame_paths, capture_output)
+    if explicit_map:
+        missing = [name for name in scene_names if name not in explicit_map]
+        if missing:
+            raise RuntimeError("missing PERF_FRAME markers for scenes: " + ", ".join(missing))
+        print("Using explicit PERF_FRAME markers for scene-to-frame mapping.")
+        return explicit_map
+
+    normalized_paths = normalize_frame_paths(scene_names, frame_paths)
+    if len(normalized_paths) != len(scene_names):
+        raise RuntimeError(f"scene/frame count mismatch: {len(scene_names)} scenes vs {len(normalized_paths)} frames")
+
+    return {name: frame for name, frame in zip(scene_names, normalized_paths)}
+
+
+def parse_explicit_frame_map(frame_paths: list[Path], capture_output: str) -> dict[str, Path]:
+    matches = FRAME_PATTERN.findall(capture_output)
+    if not matches:
+        return {}
+
+    frames_by_name = {path.name: path for path in frame_paths}
+    scene_frames: dict[str, list[Path]] = {}
+    missing_frames: list[str] = []
+
+    for frame_name, scene_name in matches:
+        frame_path = frames_by_name.get(frame_name)
+        if frame_path is None:
+            missing_frames.append(frame_name)
+            continue
+        scene_frames.setdefault(scene_name, []).append(frame_path)
+
+    if missing_frames:
+        raise RuntimeError("PERF_FRAME markers referenced unknown files: " + ", ".join(sorted(set(missing_frames))))
+
+    explicit_map: dict[str, Path] = {}
+    for scene_name, scene_frame_paths in scene_frames.items():
+        if len(scene_frame_paths) > 1:
+            print(f"Scene {scene_name} produced {len(scene_frame_paths)} labeled snapshots; using the first one.")
+        explicit_map[scene_name] = scene_frame_paths[0]
+
+    return explicit_map
+
+
 def validate_frames(frame_paths: list[Path]) -> None:
     expected_size = None
     for frame_path in frame_paths:
@@ -248,7 +290,7 @@ def validate_frames(frame_paths: list[Path]) -> None:
 
 def map_scenes(
     scene_names: list[str],
-    frame_paths: list[Path],
+    frame_map: dict[str, Path],
     perf_results: dict[str, dict],
     keyword_filter: str,
 ) -> tuple[list[SceneEntry], list[str]]:
@@ -265,7 +307,6 @@ def map_scenes(
         }
 
     ordered_names, category_map = flatten_categories(available_tests)
-    frame_map = {name: frame for name, frame in zip(scene_names, frame_paths)}
 
     missing = [name for name in ordered_names if name not in frame_map]
     if missing:
@@ -480,8 +521,8 @@ def main() -> int:
     perf_results, git_commit, profile_name = read_perf_results(results_path, args.profile, args.filter)
 
     build_capture_app()
-    scene_names, frame_paths = run_capture(frames_dir, args)
-    entries, extra_names = map_scenes(scene_names, frame_paths, perf_results, args.filter)
+    scene_names, frame_map = run_capture(frames_dir, args)
+    entries, extra_names = map_scenes(scene_names, frame_map, perf_results, args.filter)
     if not entries:
         raise RuntimeError("no matching scenes after applying filters")
 

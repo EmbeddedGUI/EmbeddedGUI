@@ -543,10 +543,18 @@ static void image_transform_release_external_cache(image_transform_external_cach
 static int image_transform_prepare_external_cache(const egui_image_std_info_t *info, int source_is_opaque, const uint16_t **data, const uint8_t **alpha_buf)
 {
     image_transform_external_cache_t *cache = &g_image_transform_external_cache;
+    const egui_image_std_info_t *cached_info = egui_image_std_prepare_external_persistent_cache(info);
     uint32_t data_size = (uint32_t)info->width * info->height * sizeof(uint16_t);
     uint32_t alpha_size = 0;
     int data_hit;
     int alpha_hit;
+
+    if (cached_info != NULL)
+    {
+        *data = (const uint16_t *)cached_info->data_buf;
+        *alpha_buf = (!source_is_opaque && cached_info->alpha_buf != NULL) ? (const uint8_t *)cached_info->alpha_buf : NULL;
+        return 1;
+    }
 
     if (info->alpha_buf != NULL && !source_is_opaque)
     {

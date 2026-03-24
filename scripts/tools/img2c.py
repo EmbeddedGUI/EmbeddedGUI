@@ -18,6 +18,40 @@ c_head_string="""
 
 """
 
+c_head_string_rle="""
+
+#include "image/egui_image_rle.h"
+
+// clang-format off
+
+"""
+
+c_head_string_qoi="""
+
+#include "image/egui_image_qoi.h"
+
+// clang-format off
+
+"""
+
+c_head_string_rle_bin="""
+
+#include "image/egui_image_rle.h"
+#include "app_egui_resource_generate.h"
+
+// clang-format off
+
+"""
+
+c_head_string_qoi_bin="""
+
+#include "image/egui_image_qoi.h"
+#include "app_egui_resource_generate.h"
+
+// clang-format off
+
+"""
+
 c_head_string_bin="""
 
 #include "image/egui_image_std.h"
@@ -77,6 +111,90 @@ EGUI_IMAGE_SUB_DEFINE_CONST(egui_image_std_t, {0}, &{0}_info);
 
 """
 
+c_body_string_rle="""
+
+
+static const egui_image_rle_info_t {0}_info = {{
+    .data_buf = (void *){1},
+    .alpha_buf = (void *){2},
+    .data_type = {6},
+    .alpha_type = {7},
+    .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
+    .width = {8},
+    .height = {9},
+    .data_size = {3},
+    .alpha_size = {4},
+    .decompressed_size = {5},
+}};
+
+extern const egui_image_rle_t {0};
+EGUI_IMAGE_SUB_DEFINE_CONST(egui_image_rle_t, {0}, &{0}_info);
+
+"""
+
+c_body_string_rle_bin="""
+
+
+static const egui_image_rle_info_t {0}_info = {{
+    .data_buf = (void *){1},
+    .alpha_buf = (void *){2},
+    .data_type = {6},
+    .alpha_type = {7},
+    .res_type = EGUI_RESOURCE_TYPE_EXTERNAL,
+    .width = {8},
+    .height = {9},
+    .data_size = {3},
+    .alpha_size = {4},
+    .decompressed_size = {5},
+}};
+
+extern const egui_image_rle_t {0};
+EGUI_IMAGE_SUB_DEFINE_CONST(egui_image_rle_t, {0}, &{0}_info);
+
+"""
+
+c_body_string_qoi="""
+
+
+static const egui_image_qoi_info_t {0}_info = {{
+    .data_buf = (void *){1},
+    .alpha_buf = (void *)NULL,
+    .data_type = {4},
+    .alpha_type = {5},
+    .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
+    .channels = {6},
+    .width = {7},
+    .height = {8},
+    .data_size = {2},
+    .decompressed_size = {3},
+}};
+
+extern const egui_image_qoi_t {0};
+EGUI_IMAGE_SUB_DEFINE_CONST(egui_image_qoi_t, {0}, &{0}_info);
+
+"""
+
+c_body_string_qoi_bin="""
+
+
+static const egui_image_qoi_info_t {0}_info = {{
+    .data_buf = (void *){1},
+    .alpha_buf = (void *)NULL,
+    .data_type = {4},
+    .alpha_type = {5},
+    .res_type = EGUI_RESOURCE_TYPE_EXTERNAL,
+    .channels = {6},
+    .width = {7},
+    .height = {8},
+    .data_size = {2},
+    .decompressed_size = {3},
+}};
+
+extern const egui_image_qoi_t {0};
+EGUI_IMAGE_SUB_DEFINE_CONST(egui_image_qoi_t, {0}, &{0}_info);
+
+"""
+
 c_tail_string="""
 
 // clang-format on
@@ -84,7 +202,7 @@ c_tail_string="""
 """
 
 class img2c_tool:
-    def __init__(self, input_img_file, name, format, alpha, dim, rot, swap, external_type, output_path, bg=None):
+    def __init__(self, input_img_file, name, format, alpha, dim, rot, swap, external_type, output_path, bg=None, compress="none"):
         if output_path == None:
             output_path = os.path.dirname(input_img_file)
 
@@ -139,6 +257,8 @@ class img2c_tool:
             options += f" -d {dim[0]} {dim[1]}"
 
         name_raw = f"egui_res_image_{name.lower()}_{format}_{alpha}"
+        if compress and compress != "none":
+            name_raw = f"egui_res_image_{name.lower()}_{compress}_{format}_{alpha}"
         img_name = name_raw
 
         if external_type == 1:
@@ -163,6 +283,7 @@ class img2c_tool:
         self.swap = swap
         self.external_type = external_type
         self.output_path = output_path
+        self.compress = compress if compress else "none"
 
         self.options = options
         self.image = image
@@ -180,6 +301,8 @@ class img2c_tool:
 
         self.data_bin_data = None
         self.alpha_bin_data = None
+        self.compressed_data_size = 0
+        self.compressed_alpha_size = 0
     
     def write_c_file(self):
         mode = self.image.mode
@@ -229,7 +352,17 @@ class img2c_tool:
 
         with open(self.outfilename,"w+") as o:
             # insert header
-            if self.external_type == 1:
+            if self.compress == "rle":
+                if self.external_type == 1:
+                    print(c_head_string_rle_bin, file=o)
+                else:
+                    print(c_head_string_rle, file=o)
+            elif self.compress == "qoi":
+                if self.external_type == 1:
+                    print(c_head_string_qoi_bin, file=o)
+                else:
+                    print(c_head_string_qoi, file=o)
+            elif self.external_type == 1:
                 print(c_head_string_bin, file=o)
             else:
                 print(c_head_string, file=o)
@@ -387,7 +520,9 @@ class img2c_tool:
             # write alpha buffer to file
             if alpha_buf_name != "NULL":
                 self.alpha_bin_data = alpha_bin_data
-                if self.external_type == 1:
+                if self.compress != "none":
+                    pass  # Compressed codecs handle alpha internally
+                elif self.external_type == 1:
                     # print(alpha_bin_data)
                     with open(self.outfilename_alpha_bin,"wb+") as f:
                         f.write(bytearray(alpha_bin_data))
@@ -624,7 +759,147 @@ class img2c_tool:
             
             # write data buffer to file
             self.data_bin_data = data_bin_data
-            if self.external_type == 1:
+            if self.compress != "none":
+                # === Compressed image output ===
+                original_data_size = len(data_bin_data)
+                original_alpha_size = len(alpha_bin_data)
+
+                if self.compress == "rle":
+                    from img_codec_rle import rle_encode_image
+                    alpha_bytes = bytes(alpha_bin_data) if alpha_bin_data else b""
+                    compressed_pixels, compressed_alpha = rle_encode_image(
+                        bytes(data_bin_data), alpha_bytes,
+                        col, row, self.format, self.alpha)
+
+                    comp_data_name = '%s_compressed_data' % (self.img_name)
+                    comp_alpha_name = '%s_compressed_alpha' % (self.img_name)
+                    has_alpha_data = (alpha_buf_name != "NULL" and len(compressed_alpha) > 0)
+
+                    self.data_bin_data = compressed_pixels
+                    self.alpha_bin_data = compressed_alpha if has_alpha_data else None
+
+                    if self.external_type == 1:
+                        with open(self.outfilename_data_bin,"wb+") as f:
+                            f.write(bytearray(compressed_pixels))
+                        data_buf_name = self.data_bin_name_res_id
+
+                        if has_alpha_data:
+                            with open(self.outfilename_alpha_bin,"wb+") as f:
+                                f.write(bytearray(compressed_alpha))
+                            alpha_buf_name = self.alpha_bin_name_res_id
+                        else:
+                            alpha_buf_name = "NULL"
+
+                        print(c_body_string_rle_bin.format(
+                            self.img_name,
+                            data_buf_name,
+                            alpha_buf_name,
+                            len(compressed_pixels),
+                            len(compressed_alpha) if has_alpha_data else 0,
+                            original_data_size,
+                            data_type,
+                            alpha_type,
+                            col,
+                            row
+                        ), file=o)
+                    else:
+                        # Output compressed pixel data array
+                        print('\nstatic const uint8_t %s[%d] = {' % (comp_data_name, len(compressed_pixels)), file=o)
+                        for idx_byte in range(len(compressed_pixels)):
+                            if idx_byte % 16 == 15 or idx_byte == len(compressed_pixels) - 1:
+                                print("0x%02x," % compressed_pixels[idx_byte], file=o)
+                            else:
+                                print("0x%02x" % compressed_pixels[idx_byte], end=", ", file=o)
+                        print('};', file=o)
+
+                        # Output compressed alpha data array (if alpha present)
+                        if has_alpha_data:
+                            print('\nstatic const uint8_t %s[%d] = {' % (comp_alpha_name, len(compressed_alpha)), file=o)
+                            for idx_byte in range(len(compressed_alpha)):
+                                if idx_byte % 16 == 15 or idx_byte == len(compressed_alpha) - 1:
+                                    print("0x%02x," % compressed_alpha[idx_byte], file=o)
+                                else:
+                                    print("0x%02x" % compressed_alpha[idx_byte], end=", ", file=o)
+                            print('};', file=o)
+                        else:
+                            comp_alpha_name = "NULL"
+
+                        print(c_body_string_rle.format(
+                            self.img_name,
+                            comp_data_name,
+                            comp_alpha_name,
+                            len(compressed_pixels),
+                            len(compressed_alpha) if has_alpha_data else 0,
+                            original_data_size,
+                            data_type,
+                            alpha_type,
+                            col,
+                            row
+                        ), file=o)
+
+                    self.compressed_data_size = len(compressed_pixels)
+                    self.compressed_alpha_size = len(compressed_alpha) if has_alpha_data else 0
+
+                    ratio = (1 - (len(compressed_pixels) + len(compressed_alpha)) / max(original_data_size + original_alpha_size, 1)) * 100
+                    print(f"[IMG] {self.filename}: {original_data_size + original_alpha_size}B -> {len(compressed_pixels) + len(compressed_alpha)}B (RLE, -{ratio:.1f}%)")
+
+                elif self.compress == "qoi":
+                    from img_codec_qoi import qoi_encode_image
+                    alpha_bytes = bytes(alpha_bin_data) if alpha_bin_data else b""
+                    compressed_data, channels = qoi_encode_image(
+                        bytes(data_bin_data), alpha_bytes,
+                        col, row, self.format, self.alpha)
+
+                    comp_data_name = '%s_compressed_data' % (self.img_name)
+                    self.data_bin_data = compressed_data
+                    self.alpha_bin_data = None
+
+                    if self.external_type == 1:
+                        with open(self.outfilename_data_bin,"wb+") as f:
+                            f.write(bytearray(compressed_data))
+                        data_buf_name = self.data_bin_name_res_id
+
+                        print(c_body_string_qoi_bin.format(
+                            self.img_name,
+                            data_buf_name,
+                            len(compressed_data),
+                            original_data_size,
+                            data_type,
+                            alpha_type,
+                            channels,
+                            col,
+                            row
+                        ), file=o)
+                    else:
+                        # Output compressed data array
+                        print('\nstatic const uint8_t %s[%d] = {' % (comp_data_name, len(compressed_data)), file=o)
+                        for idx_byte in range(len(compressed_data)):
+                            if idx_byte % 16 == 15 or idx_byte == len(compressed_data) - 1:
+                                print("0x%02x," % compressed_data[idx_byte], file=o)
+                            else:
+                                print("0x%02x" % compressed_data[idx_byte], end=", ", file=o)
+                        print('};', file=o)
+
+                        print(c_body_string_qoi.format(
+                            self.img_name,
+                            comp_data_name,
+                            len(compressed_data),
+                            original_data_size,
+                            data_type,
+                            alpha_type,
+                            channels,
+                            col,
+                            row
+                        ), file=o)
+
+                    self.compressed_data_size = len(compressed_data)
+                    self.compressed_alpha_size = 0  # QOI embeds alpha in the stream
+
+                    total_orig = original_data_size + original_alpha_size
+                    ratio = (1 - len(compressed_data) / max(total_orig, 1)) * 100
+                    print(f"[IMG] {self.filename}: {total_orig}B -> {len(compressed_data)}B (QOI, -{ratio:.1f}%)")
+
+            elif self.external_type == 1:
                 # print(data_bin_data)
                 with open(self.outfilename_data_bin,"wb+") as f:
                     f.write(bytearray(data_bin_data))
@@ -633,7 +908,9 @@ class img2c_tool:
                 print(data_str_io.getvalue(), file=o)
 
             # insert tail
-            if self.external_type == 1:
+            if self.compress != "none":
+                pass  # Already output by compression branch above
+            elif self.external_type == 1:
                 print(c_body_string_bin.format( self.img_name,
                                             data_buf_name,
                                             alpha_buf_name,
@@ -670,10 +947,11 @@ def main(argv):
     parser.add_argument('-ext', '--external', nargs='?',type = int, default=0, required=False, help="Storage format (0: internal, 1: external)")
     parser.add_argument('-o', '--output', nargs='?',type = str, default="", required=False, help="Specify the output file name (default: input file name with.c extension)")
     parser.add_argument('-bg', '--bg', nargs='?',type = str, default=None, required=False, help="Background color for alpha compositing (e.g. #000000). Composites RGBA onto this color to eliminate alpha channel cleanly.")
+    parser.add_argument('-c', '--compress', nargs='?',type = str, default="none", required=False, help="Compression codec (none, rle, qoi)")
 
     args = parser.parse_args()
 
-    tool = img2c_tool(args.input, args.name, args.format, args.alpha, args.dim, args.rot, args.swap, args.external, args.output, args.bg)
+    tool = img2c_tool(args.input, args.name, args.format, args.alpha, args.dim, args.rot, args.swap, args.external, args.output, args.bg, args.compress)
 
     tool.write_c_file()
 

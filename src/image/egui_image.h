@@ -8,6 +8,18 @@
 extern "C" {
 #endif
 
+/* Image data types (shared by all image subtypes) */
+#define EGUI_IMAGE_DATA_TYPE_RGB32  0
+#define EGUI_IMAGE_DATA_TYPE_RGB565 1
+#define EGUI_IMAGE_DATA_TYPE_GRAY8  2
+#define EGUI_IMAGE_DATA_TYPE_ALPHA  3
+
+/* Image alpha packing types (shared by all image subtypes) */
+#define EGUI_IMAGE_ALPHA_TYPE_1 0
+#define EGUI_IMAGE_ALPHA_TYPE_2 1
+#define EGUI_IMAGE_ALPHA_TYPE_4 2
+#define EGUI_IMAGE_ALPHA_TYPE_8 3
+
 typedef struct egui_image_api egui_image_api_t;
 struct egui_image_api
 {
