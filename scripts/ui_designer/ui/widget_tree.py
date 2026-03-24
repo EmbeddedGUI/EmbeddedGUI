@@ -38,6 +38,9 @@ class WidgetTreePanel(QWidget):
         self._item_map = {}  # widget id -> QTreeWidgetItem
         self._building = False
         self._syncing_selection = False
+        self._expanded_widgets = set()
+        self._suppress_expansion_tracking = False
+        self._default_expand_next_rebuild = True
         self._init_ui()
 
     def _init_ui(self):
@@ -67,13 +70,20 @@ class WidgetTreePanel(QWidget):
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self._on_context_menu)
         self.tree.itemSelectionChanged.connect(self._on_selection_changed)
+        self.tree.itemExpanded.connect(self._on_item_expanded)
+        self.tree.itemCollapsed.connect(self._on_item_collapsed)
         layout.addWidget(self.tree)
 
     def set_project(self, project):
         self.project = project
+        self._expanded_widgets = set()
+        self._default_expand_next_rebuild = True
         self.rebuild_tree()
 
     def rebuild_tree(self):
+        self._expanded_widgets = self._collect_expanded_widget_ids()
+        default_expand = self._default_expand_next_rebuild
+        self._default_expand_next_rebuild = False
         self._building = True
         self.tree.clear()
         self._widget_map = {}
@@ -81,9 +91,8 @@ class WidgetTreePanel(QWidget):
         if self.project:
             for root_widget in self.project.root_widgets:
                 self._add_widget_to_tree(root_widget, None)
-        self.tree.expandAll()
         self._building = False
-        self._apply_tree_filter()
+        self._apply_tree_filter(default_expand=default_expand)
 
     def _add_widget_to_tree(self, widget, parent_item):
         item = QTreeWidgetItem()
@@ -338,14 +347,25 @@ class WidgetTreePanel(QWidget):
                 result.append(widget)
         return result
 
-    def _apply_tree_filter(self, _text=""):
+    def _apply_tree_filter(self, _text="", default_expand=False):
         query = self.filter_edit.text().strip().lower()
-        for index in range(self.tree.topLevelItemCount()):
-            item = self.tree.topLevelItem(index)
-            if query:
-                self._apply_filter_to_item(item, query)
-            else:
-                self._clear_item_filter(item)
+        self._suppress_expansion_tracking = True
+        try:
+            for index in range(self.tree.topLevelItemCount()):
+                item = self.tree.topLevelItem(index)
+                if query:
+                    self._apply_filter_to_item(item, query)
+                else:
+                    self._clear_item_filter(item)
+            if not query:
+                if default_expand:
+                    self.tree.expandAll()
+                    self._expanded_widgets = self._collect_expanded_widget_ids()
+                else:
+                    for index in range(self.tree.topLevelItemCount()):
+                        self._restore_item_expansion(self.tree.topLevelItem(index))
+        finally:
+            self._suppress_expansion_tracking = False
 
     def _apply_filter_to_item(self, item, query):
         widget = self._widget_map.get(id(item))
@@ -367,6 +387,39 @@ class WidgetTreePanel(QWidget):
         item.setHidden(False)
         for index in range(item.childCount()):
             self._clear_item_filter(item.child(index))
+
+    def _restore_item_expansion(self, item):
+        widget = self._widget_map.get(id(item))
+        item.setExpanded(widget is not None and id(widget) in self._expanded_widgets)
+        for index in range(item.childCount()):
+            self._restore_item_expansion(item.child(index))
+
+    def _collect_expanded_widget_ids(self):
+        expanded = set()
+        for index in range(self.tree.topLevelItemCount()):
+            self._collect_expanded_widget_ids_from_item(self.tree.topLevelItem(index), expanded)
+        return expanded
+
+    def _collect_expanded_widget_ids_from_item(self, item, expanded):
+        widget = self._widget_map.get(id(item))
+        if widget is not None and item.isExpanded():
+            expanded.add(id(widget))
+        for index in range(item.childCount()):
+            self._collect_expanded_widget_ids_from_item(item.child(index), expanded)
+
+    def _on_item_expanded(self, item):
+        if self._building or self._suppress_expansion_tracking or self.filter_edit.text().strip():
+            return
+        widget = self._widget_map.get(id(item))
+        if widget is not None:
+            self._expanded_widgets.add(id(widget))
+
+    def _on_item_collapsed(self, item):
+        if self._building or self._suppress_expansion_tracking or self.filter_edit.text().strip():
+            return
+        widget = self._widget_map.get(id(item))
+        if widget is not None:
+            self._expanded_widgets.discard(id(widget))
 
     def _reveal_item(self, item):
         parent = item.parent()

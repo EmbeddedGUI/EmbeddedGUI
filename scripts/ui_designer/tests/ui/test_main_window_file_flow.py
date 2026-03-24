@@ -473,6 +473,41 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_widget_tree_rebuild_preserves_manual_collapse_state(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "TreeCollapseStateDemo"
+        project = _create_project(project_dir, "TreeCollapseStateDemo", sdk_root)
+        root = project.get_startup_page().root_widget
+        container = WidgetModel("group", name="container")
+        nested = WidgetModel("group", name="nested")
+        target = WidgetModel("switch", name="target")
+        nested.add_child(target)
+        container.add_child(nested)
+        root.add_child(container)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._clear_selection(sync_tree=True, sync_preview=False)
+        container_item = window.widget_tree._item_map[id(container)]
+        nested_item = window.widget_tree._item_map[id(nested)]
+        container_item.setExpanded(False)
+        nested_item.setExpanded(False)
+
+        window._on_property_changed()
+
+        assert window.widget_tree._item_map[id(container)].isExpanded() is False
+        assert window.widget_tree._item_map[id(nested)].isExpanded() is False
+        window.close()
+        window.deleteLater()
+
     def test_align_selection_reports_locked_constraint(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
         from ui_designer.ui.main_window import MainWindow

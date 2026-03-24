@@ -243,3 +243,57 @@ class TestWidgetTreePanel:
         assert panel._item_map[id(label)].isHidden() is True
         assert panel._item_map[id(button)].isHidden() is False
         panel.deleteLater()
+
+    def test_rebuild_tree_preserves_manual_collapse_state(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        container = WidgetModel("group", name="container")
+        nested = WidgetModel("group", name="nested")
+        nested.add_child(WidgetModel("label", name="target"))
+        container.add_child(nested)
+        root.add_child(container)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        container_item = panel._item_map[id(container)]
+        nested_item = panel._item_map[id(nested)]
+        container_item.setExpanded(False)
+        nested_item.setExpanded(False)
+
+        panel.rebuild_tree()
+
+        assert panel._item_map[id(container)].isExpanded() is False
+        assert panel._item_map[id(nested)].isExpanded() is False
+        panel.deleteLater()
+
+    def test_clearing_filter_restores_previous_collapse_state(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        container = WidgetModel("group", name="container")
+        nested = WidgetModel("group", name="nested")
+        target = WidgetModel("label", name="target")
+        nested.add_child(target)
+        container.add_child(nested)
+        root.add_child(container)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        container_item = panel._item_map[id(container)]
+        nested_item = panel._item_map[id(nested)]
+        container_item.setExpanded(False)
+        nested_item.setExpanded(False)
+
+        panel.filter_edit.setText("target")
+
+        assert panel._item_map[id(container)].isExpanded() is True
+        assert panel._item_map[id(nested)].isExpanded() is True
+
+        panel.filter_edit.setText("")
+
+        assert panel._item_map[id(container)].isExpanded() is False
+        assert panel._item_map[id(nested)].isExpanded() is False
+        panel.deleteLater()
