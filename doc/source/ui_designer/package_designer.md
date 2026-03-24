@@ -103,6 +103,7 @@ dist/EmbeddedGUI-Designer-windows-x64-v1.0.0.zip
 实际验证中，GitHub zip 是最稳定的主通路；Gitee 的匿名 zip 入口有时会返回 HTML 页面而不是压缩包，因此工具会自动继续尝试后续回退路径。
 如果当前下载源长时间无法完成，工具也会自动超时并继续回退，不会无限期卡在第一条下载链路上。
 如需调整这个归档下载超时，可通过环境变量 `EMBEDDEDGUI_SDK_ARCHIVE_TIMEOUT_SECONDS` 覆盖默认值。
+如果已经进入 `git clone` 回退阶段，进度对话框的 `Cancel` 也会继续生效，不需要等 clone 结束。
 
 自动下载成功后，Designer 会自动保存 `sdk_root`，并恢复真实编译预览链路。
 

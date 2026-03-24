@@ -23,6 +23,7 @@ GITEE_SDK_GIT_URL = "https://gitee.com/embeddedgui/EmbeddedGUI.git"
 DOWNLOAD_USER_AGENT = "EmbeddedGUI-Designer/1.0"
 DEFAULT_DOWNLOAD_TOTAL_TIMEOUT_SECONDS = 60
 DOWNLOAD_TIMEOUT_ENV = "EMBEDDEDGUI_SDK_ARCHIVE_TIMEOUT_SECONDS"
+GIT_CLONE_TIMEOUT_SECONDS = 300
 
 
 @dataclass(frozen=True)
@@ -147,15 +148,36 @@ def clone_sdk_from_git(url: str, destination_dir: str, progress_callback=None) -
     with tempfile.TemporaryDirectory(prefix="embeddedgui_sdk_clone_") as temp_dir_name:
         temp_dir = Path(temp_dir_name)
         clone_dir = temp_dir / "EmbeddedGUI"
-        _emit_progress(progress_callback, "Cloning SDK from Gitee...", 95)
-        result = subprocess.run(
+        process = subprocess.Popen(
             [git_exe, "clone", "--depth", "1", url, str(clone_dir)],
             text=True,
-            capture_output=True,
-            timeout=300,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
-        if result.returncode != 0:
-            raise RuntimeError(result.stderr.strip() or result.stdout.strip() or f"git clone failed with exit code {result.returncode}")
+        started_at = time.monotonic()
+
+        try:
+            while True:
+                _emit_progress(progress_callback, "Cloning SDK from Gitee...", 95)
+                if time.monotonic() - started_at > GIT_CLONE_TIMEOUT_SECONDS:
+                    process.kill()
+                    stdout, stderr = process.communicate()
+                    raise RuntimeError(
+                        (stderr or stdout).strip() or f"git clone timed out after {GIT_CLONE_TIMEOUT_SECONDS}s"
+                    )
+                try:
+                    stdout, stderr = process.communicate(timeout=0.2)
+                    break
+                except subprocess.TimeoutExpired:
+                    continue
+        except Exception:
+            if process.poll() is None:
+                process.kill()
+                process.communicate()
+            raise
+
+        if process.returncode != 0:
+            raise RuntimeError((stderr or stdout).strip() or f"git clone failed with exit code {process.returncode}")
 
         resolved = resolve_sdk_root_candidate(str(clone_dir))
         if not resolved:

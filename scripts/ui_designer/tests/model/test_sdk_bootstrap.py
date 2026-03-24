@@ -1,6 +1,7 @@
 """Tests for ui_designer.model.sdk_bootstrap."""
 
 from pathlib import Path
+import subprocess
 from types import SimpleNamespace
 
 import pytest
@@ -102,3 +103,36 @@ class TestSdkBootstrap:
 
         with pytest.raises(RuntimeError, match="download timed out"):
             module._download_file("https://example.invalid/sdk.zip", tmp_path / "sdk.zip")
+
+    def test_clone_sdk_from_git_cancels_promptly_when_progress_callback_raises(self, tmp_path, monkeypatch):
+        from ui_designer.model import sdk_bootstrap as module
+
+        class FakeProcess:
+            def __init__(self):
+                self.returncode = None
+                self.killed = False
+
+            def communicate(self, timeout=None):
+                if self.killed:
+                    return ("", "")
+                raise subprocess.TimeoutExpired(cmd="git", timeout=timeout)
+
+            def poll(self):
+                return None if not self.killed else -9
+
+            def kill(self):
+                self.killed = True
+                self.returncode = -9
+
+        fake_process = FakeProcess()
+
+        monkeypatch.setattr("ui_designer.model.sdk_bootstrap.shutil.which", lambda _name: "git")
+        monkeypatch.setattr("ui_designer.model.sdk_bootstrap.subprocess.Popen", lambda *args, **kwargs: fake_process)
+
+        def canceling_progress(_message, _percent):
+            raise RuntimeError("user canceled")
+
+        with pytest.raises(RuntimeError, match="user canceled"):
+            module.clone_sdk_from_git("https://gitee.example/repo.git", str(tmp_path / "sdk"), progress_callback=canceling_progress)
+
+        assert fake_process.killed is True
