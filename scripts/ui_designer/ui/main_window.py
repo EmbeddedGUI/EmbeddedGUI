@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import (
     QMessageBox, QScrollArea, QDockWidget, QMenu,
     QApplication, QDialog, QStackedWidget, QToolBar, QInputDialog, QProgressDialog,
 )
-from PyQt5.QtCore import Qt, QTimer, QSize, QByteArray
+from PyQt5.QtCore import Qt, QTimer, QSize, QByteArray, QSignalBlocker
 from PyQt5.QtGui import QIcon
 
 from qfluentwidgets import TabBar, TabCloseButtonDisplayMode
@@ -1553,18 +1553,25 @@ class MainWindow(QMainWindow):
         rel_path = f"mockup/{filename}"
         self._current_page.mockup_image_path = rel_path
         self._current_page.mockup_image_visible = True
-        self._toggle_bg_action.setChecked(True)
+        self._set_background_toggle_state(True)
 
         # Apply to overlay
         self.preview_panel.set_background_image(pixmap)
+        self.preview_panel.set_background_image_visible(True)
+        self.preview_panel.set_background_image_opacity(self._current_page.mockup_image_opacity)
         self._refresh_project_watch_snapshot()
+        self._record_page_state_change(update_preview=False, trigger_compile=False)
         self.statusBar().showMessage(f"Mockup image loaded: {filename}")
 
     def _toggle_background_image(self, visible):
         """Toggle mockup image visibility."""
         if self._current_page:
+            if self._current_page.mockup_image_visible == visible:
+                self.preview_panel.set_background_image_visible(visible)
+                return
             self._current_page.mockup_image_visible = visible
         self.preview_panel.set_background_image_visible(visible)
+        self._record_page_state_change(update_preview=False, trigger_compile=False)
 
     def _clear_background_image(self):
         """Remove the mockup image from the current page."""
@@ -1581,22 +1588,31 @@ class MainWindow(QMainWindow):
             self._current_page.mockup_image_path = ""
             self._current_page.mockup_image_visible = True
         self.preview_panel.clear_background_image()
+        self._set_background_toggle_state(True)
         self._refresh_project_watch_snapshot()
+        self._record_page_state_change(update_preview=False, trigger_compile=False)
         self.statusBar().showMessage("Mockup image cleared")
 
     def _set_background_opacity(self, opacity):
         """Set mockup image opacity."""
         if self._current_page:
+            if self._current_page.mockup_image_opacity == opacity:
+                self.preview_panel.set_background_image_opacity(opacity)
+                return
             self._current_page.mockup_image_opacity = opacity
         self.preview_panel.set_background_image_opacity(opacity)
+        self._record_page_state_change(update_preview=False, trigger_compile=False)
 
     def _apply_page_mockup(self):
         """Load and apply the current page's mockup image."""
         if not self._current_page:
             self.preview_panel.clear_background_image()
+            self._set_background_toggle_state(True)
             return
 
         path = self._current_page.mockup_image_path
+        self._set_background_toggle_state(self._current_page.mockup_image_visible)
+        self._sync_background_opacity_actions(self._current_page.mockup_image_opacity)
         if path and self._project_dir:
             eguiproject_dir = os.path.join(self._project_dir, ".eguiproject")
             full_path = os.path.join(eguiproject_dir, path)
@@ -1616,15 +1632,18 @@ class MainWindow(QMainWindow):
                     self.preview_panel.set_background_image_opacity(
                         self._current_page.mockup_image_opacity
                     )
-                    self._toggle_bg_action.setChecked(
-                        self._current_page.mockup_image_visible
-                    )
-                    # Update opacity menu checkmarks
-                    target_pct = int(self._current_page.mockup_image_opacity * 100)
-                    for act in self._opacity_group.actions():
-                        act.setChecked(act.text() == f"{target_pct}%")
                     return
         self.preview_panel.clear_background_image()
+
+    def _set_background_toggle_state(self, visible):
+        blocker = QSignalBlocker(self._toggle_bg_action)
+        self._toggle_bg_action.setChecked(visible)
+        del blocker
+
+    def _sync_background_opacity_actions(self, opacity):
+        target_pct = int(opacity * 100)
+        for act in self._opacity_group.actions():
+            act.setChecked(act.text() == f"{target_pct}%")
 
     def _apply_project(self):
         """Refresh all panels from the current project."""
@@ -2125,13 +2144,19 @@ class MainWindow(QMainWindow):
 
     def _on_model_changed(self):
         """Common handler: model changed → record snapshot + update preview + XML + recompile."""
+        self._record_page_state_change()
+
+    def _record_page_state_change(self, update_preview=True, trigger_compile=True):
+        """Record the current page snapshot and refresh dependent UI state."""
         if self._current_page and not self._undoing:
             xml = self._current_page.to_xml_string()
             stack = self._undo_manager.get_stack(self._current_page.name)
             stack.push(xml)
-        self._update_preview_overlay()
+        if update_preview:
+            self._update_preview_overlay()
         self._sync_xml_to_editors()
-        self._trigger_compile()
+        if trigger_compile:
+            self._trigger_compile()
         self._update_undo_actions()
         self._update_window_title()
 
@@ -2160,14 +2185,14 @@ class MainWindow(QMainWindow):
             images_dir = self._get_eguiproject_images_dir()
             src_dir = images_dir if images_dir else None
             new_page = Page.from_xml_string(xml, self._current_page.file_path, src_dir=src_dir)
-            self._current_page.root_widget = new_page.root_widget
-            self._current_page.user_fields = new_page.user_fields
+            self._apply_page_state(self._current_page, new_page)
             # Refresh UI
             self._page_shim = _PageProjectShim(self._current_page)
             self.widget_tree.set_project(self._page_shim)
             self._selected_widget = None
             self.property_panel.set_widget(None)
             self._update_preview_overlay()
+            self._apply_page_mockup()
             self._sync_xml_to_editors()
             self._trigger_compile()
         finally:
@@ -2220,8 +2245,7 @@ class MainWindow(QMainWindow):
             images_dir = self._get_eguiproject_images_dir()
             src_dir = images_dir if images_dir else None
             new_page = Page.from_xml_string(xml_text, self._current_page.file_path, src_dir=src_dir)
-            self._current_page.root_widget = new_page.root_widget
-            self._current_page.user_fields = new_page.user_fields
+            self._apply_page_state(self._current_page, new_page)
 
             if not self._undoing:
                 stack = self._undo_manager.get_stack(self._current_page.name)
@@ -2230,7 +2254,10 @@ class MainWindow(QMainWindow):
             # Refresh tree and preview (without re-syncing XML back)
             self._page_shim = _PageProjectShim(self._current_page)
             self.widget_tree.set_project(self._page_shim)
+            self._selected_widget = None
+            self.property_panel.set_widget(None)
             self._update_preview_overlay()
+            self._apply_page_mockup()
             self._trigger_compile()
             self._update_undo_actions()
             self._update_window_title()
@@ -2239,6 +2266,14 @@ class MainWindow(QMainWindow):
             pass
 
     # ── Preview / Compile ──────────────────────────────────────────
+
+    def _apply_page_state(self, target_page, source_page):
+        """Copy all serializable page state from source to target."""
+        target_page.root_widget = source_page.root_widget
+        target_page.user_fields = source_page.user_fields
+        target_page.mockup_image_path = source_page.mockup_image_path
+        target_page.mockup_image_visible = source_page.mockup_image_visible
+        target_page.mockup_image_opacity = source_page.mockup_image_opacity
 
     def _update_preview_overlay(self):
         """Update the preview overlay with current page widgets."""

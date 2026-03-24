@@ -946,6 +946,69 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_xml_edit_updates_page_mockup_metadata(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "XmlMockupDemo"
+        project = _create_project(project_dir, "XmlMockupDemo", sdk_root)
+        xml_page = project.get_startup_page()
+        xml_page.mockup_image_path = "mockup/design.png"
+        xml_page.mockup_image_visible = False
+        xml_page.mockup_image_opacity = 0.45
+        xml_text = xml_page.to_xml_string()
+        xml_page.mockup_image_path = ""
+        xml_page.mockup_image_visible = True
+        xml_page.mockup_image_opacity = 0.3
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._on_xml_changed(xml_text)
+
+        assert window._current_page.mockup_image_path == "mockup/design.png"
+        assert window._current_page.mockup_image_visible is False
+        assert window._current_page.mockup_image_opacity == 0.45
+        assert window._undo_manager.is_any_dirty() is True
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
+    def test_toggle_background_image_marks_dirty_and_supports_undo(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "MockupUndoDemo"
+        project = _create_project(project_dir, "MockupUndoDemo", sdk_root)
+        page = project.get_startup_page()
+        page.mockup_image_path = "mockup/design.png"
+        page.mockup_image_visible = True
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        assert window._undo_manager.is_any_dirty() is False
+
+        window._toggle_background_image(False)
+
+        assert window._current_page.mockup_image_visible is False
+        assert window._undo_manager.is_any_dirty() is True
+
+        window._undo()
+
+        assert window._current_page.mockup_image_visible is True
+        assert window._undo_manager.is_any_dirty() is False
+        window.close()
+        window.deleteLater()
+
     def test_poll_project_files_auto_reloads_clean_project(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
 
