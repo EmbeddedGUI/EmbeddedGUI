@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QDialog, QListWidget, QListWidgetItem,
     QDialogButtonBox, QMessageBox, QFileDialog,
 )
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtCore import pyqtSignal, Qt, QSignalBlocker
 from PyQt5.QtGui import QFont
 
 from qfluentwidgets import (
@@ -51,6 +51,9 @@ _MULTI_SUPPORTED_PROPERTY_TYPES = {
     "font_pixelsize",
     "font_fontbitsize",
     "font_external",
+    "image_file",
+    "font_file",
+    "text_file",
 }
 
 
@@ -453,8 +456,11 @@ class PropertyPanel(QWidget):
         summary.setLayout(summary_form)
 
         widget_types = sorted({widget.widget_type for widget in self._selection})
+        mixed_geometry = sum(1 for field in ("x", "y", "width", "height") if self._is_mixed_values(getattr(widget, field) for widget in self._selection))
+        mixed_props = sum(1 for prop_name, _ in self._collect_multi_common_properties() if self._is_mixed_values(widget.properties.get(prop_name) for widget in self._selection))
         summary_form.addRow("Primary:", QLabel(self._primary_widget.name if self._primary_widget else ""))
         summary_form.addRow("Types:", QLabel(", ".join(widget_types)))
+        summary_form.addRow("Mixed:", QLabel(str(mixed_geometry + mixed_props)))
         summary_form.addRow("Hint:", QLabel("Batch edits apply the same value to all selected widgets."))
         self._layout.addWidget(summary)
 
@@ -465,10 +471,11 @@ class PropertyPanel(QWidget):
             spin = SpinBox()
             spin.setRange(-9999, 9999)
             spin.setValue(getattr(self._primary_widget, field))
-            if len({getattr(widget, field) for widget in self._selection}) > 1:
+            is_mixed = self._is_mixed_values(getattr(widget, field) for widget in self._selection)
+            if is_mixed:
                 spin.setToolTip("Selected widgets currently have different values. Editing here will normalize them.")
             spin.valueChanged.connect(lambda value, f=field: self._on_multi_common_changed(f, value))
-            geometry_form.addRow(label, spin)
+            geometry_form.addRow(f"{label[:-1]} (Mixed):" if is_mixed else label, spin)
             self._editors[f"multi_{field}"] = spin
         self._layout.addWidget(geometry_group)
 
@@ -504,6 +511,8 @@ class PropertyPanel(QWidget):
 
         for prop_name, prop_info in common_props:
             current_value = self._primary_widget.properties.get(prop_name)
+            values = [widget.properties.get(prop_name) for widget in self._selection]
+            is_mixed = self._is_mixed_values(values)
             editor = self._create_property_editor(
                 prop_name,
                 prop_info,
@@ -513,20 +522,84 @@ class PropertyPanel(QWidget):
             if editor is None:
                 continue
 
-            values = [widget.properties.get(prop_name) for widget in self._selection]
-            if len({str(value) for value in values}) > 1:
-                editor.setToolTip("Selected widgets currently have different values. Editing here will normalize them.")
+            if is_mixed:
+                self._apply_mixed_editor_state(editor, prop_name, prop_info, values)
 
-            label = prop_name
-            for prefix in ("image_", "font_"):
-                if label.startswith(prefix):
-                    label = label[len(prefix):]
-                    break
-            label = label.replace("_", " ").title() + ":"
+            label = prop_name.replace("_", " ").title()
+            if is_mixed:
+                label += " (Mixed)"
+            label += ":"
             form.addRow(label, editor)
 
         if form.rowCount() > 0:
             self._layout.addWidget(group)
+
+    def _normalize_mixed_value(self, value):
+        if isinstance(value, dict):
+            return tuple(
+                (key, self._normalize_mixed_value(item))
+                for key, item in sorted(value.items())
+            )
+        if isinstance(value, (list, tuple)):
+            return tuple(self._normalize_mixed_value(item) for item in value)
+        if isinstance(value, set):
+            return tuple(sorted(self._normalize_mixed_value(item) for item in value))
+        return value
+
+    def _is_mixed_values(self, values):
+        iterator = iter(values)
+        try:
+            first_value = self._normalize_mixed_value(next(iterator))
+        except StopIteration:
+            return False
+
+        for value in iterator:
+            if self._normalize_mixed_value(value) != first_value:
+                return True
+        return False
+
+    def _apply_mixed_editor_state(self, editor, prop_name, prop_info, values):
+        del values
+
+        tooltip = "Selected widgets currently have different values. Editing here will normalize them."
+        editor.setToolTip(tooltip)
+
+        ptype = prop_info.get("type", "string")
+        target = editor
+        if ptype in {"image_file", "font_file", "text_file"}:
+            target = self._editors.get(f"prop_{prop_name}", editor)
+
+        if isinstance(target, LineEdit):
+            with QSignalBlocker(target):
+                target.clear()
+                target.setPlaceholderText("Mixed values")
+            target.setToolTip(tooltip)
+            return
+
+        if isinstance(target, EditableComboBox):
+            with QSignalBlocker(target):
+                if hasattr(target, "setPlaceholderText"):
+                    target.setPlaceholderText("Mixed values")
+                if hasattr(target, "setCurrentIndex"):
+                    target.setCurrentIndex(-1)
+            target.setToolTip(tooltip)
+            return
+
+        if isinstance(target, ComboBox):
+            with QSignalBlocker(target):
+                if hasattr(target, "setPlaceholderText"):
+                    target.setPlaceholderText("Mixed values")
+                if hasattr(target, "setCurrentIndex"):
+                    target.setCurrentIndex(-1)
+            target.setToolTip(tooltip)
+            return
+
+        if isinstance(target, CheckBox):
+            with QSignalBlocker(target):
+                target.setTristate(True)
+                target.setCheckState(Qt.PartiallyChecked)
+            target.setToolTip(tooltip)
+            return
 
     def _collect_multi_common_properties(self):
         if not self._selection:

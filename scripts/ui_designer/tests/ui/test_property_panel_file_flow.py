@@ -7,7 +7,7 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
-    from PyQt5.QtWidgets import QApplication
+    from PyQt5.QtWidgets import QApplication, QFormLayout, QGroupBox
 
     _has_pyqt5 = True
 except ImportError:
@@ -23,6 +23,37 @@ def qapp():
         app = QApplication([])
     yield app
     app.processEvents()
+
+
+def _find_group(panel, title):
+    for group in panel.findChildren(QGroupBox):
+        if group.title() == title:
+            return group
+    raise AssertionError(f"Group not found: {title}")
+
+
+def _form_labels(group):
+    form = group.layout()
+    assert isinstance(form, QFormLayout)
+    labels = []
+    for row in range(form.rowCount()):
+        item = form.itemAt(row, QFormLayout.LabelRole)
+        if item and item.widget():
+            labels.append(item.widget().text())
+    return labels
+
+
+def _form_value_text(group, label_text):
+    form = group.layout()
+    assert isinstance(form, QFormLayout)
+    for row in range(form.rowCount()):
+        label_item = form.itemAt(row, QFormLayout.LabelRole)
+        field_item = form.itemAt(row, QFormLayout.FieldRole)
+        if label_item and label_item.widget() and label_item.widget().text() == label_text:
+            if field_item and field_item.widget():
+                return field_item.widget().text()
+            break
+    raise AssertionError(f"Form row not found: {label_text}")
 
 
 @_skip_no_qt
@@ -287,4 +318,70 @@ class TestPropertyPanelFileFlow:
         assert second.width == 120
         assert first.properties["text"] == "Shared"
         assert second.properties["text"] == "Shared"
+        panel.deleteLater()
+
+    def test_multi_selection_marks_mixed_text_state(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        first = WidgetModel("label", name="first", x=10, y=20, width=80, height=24)
+        second = WidgetModel("label", name="second", x=10, y=20, width=80, height=24)
+        first.properties["text"] = "Alpha"
+        second.properties["text"] = "Beta"
+
+        panel = PropertyPanel()
+        panel.set_selection([first, second], primary=second)
+
+        summary_group = _find_group(panel, "Selection - 2 Widgets")
+        common_group = _find_group(panel, "Common Properties")
+        text_editor = panel._editors["prop_text"]
+
+        assert _form_value_text(summary_group, "Mixed:") == "1"
+        assert "Text (Mixed):" in _form_labels(common_group)
+        assert text_editor.text() == ""
+        assert text_editor.placeholderText() == "Mixed values"
+        assert "different values" in text_editor.toolTip()
+        panel.deleteLater()
+
+    def test_multi_selection_marks_mixed_bool_state(self, qapp):
+        from PyQt5.QtCore import Qt
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        first = WidgetModel("switch", name="first")
+        second = WidgetModel("switch", name="second")
+        first.properties["is_checked"] = False
+        second.properties["is_checked"] = True
+
+        panel = PropertyPanel()
+        panel.set_selection([first, second], primary=second)
+
+        common_group = _find_group(panel, "Common Properties")
+        editor = panel._editors["prop_is_checked"]
+
+        assert "Is Checked (Mixed):" in _form_labels(common_group)
+        assert editor.isTristate() is True
+        assert editor.checkState() == Qt.PartiallyChecked
+        assert "different values" in editor.toolTip()
+        panel.deleteLater()
+
+    def test_multi_selection_marks_mixed_file_state(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        first = WidgetModel("label", name="first")
+        second = WidgetModel("label", name="second")
+        first.properties["font_file"] = "alpha.ttf"
+        second.properties["font_file"] = "beta.ttf"
+
+        panel = PropertyPanel()
+        panel.set_selection([first, second], primary=second)
+
+        common_group = _find_group(panel, "Common Properties")
+        editor = panel._editors["prop_font_file"]
+
+        assert "Font File (Mixed):" in _form_labels(common_group)
+        assert editor.currentIndex() == -1
+        assert editor.placeholderText() == "Mixed values"
+        assert "different values" in editor.toolTip()
         panel.deleteLater()
