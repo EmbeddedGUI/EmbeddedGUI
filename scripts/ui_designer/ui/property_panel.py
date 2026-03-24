@@ -588,6 +588,7 @@ class PropertyPanel(QWidget):
             current_value = self._primary_widget.properties.get(prop_name)
             values = [widget.properties.get(prop_name) for widget in self._selection]
             is_mixed = self._is_mixed_values(values)
+            has_missing_file = any(self._is_missing_file_property(prop_name, prop_info, value) for value in values)
             editor = self._create_property_editor(
                 prop_name,
                 prop_info,
@@ -599,10 +600,14 @@ class PropertyPanel(QWidget):
 
             if is_mixed:
                 self._apply_mixed_editor_state(editor, prop_name, prop_info, values)
+            if has_missing_file:
+                self._apply_missing_file_editor_state(editor, prop_name, prop_info, current_value)
 
             label = prop_name.replace("_", " ").title()
             if is_mixed:
                 label += " (Mixed)"
+            if has_missing_file:
+                label += " (Missing)"
             label += ":"
             form.addRow(label, editor)
 
@@ -675,6 +680,35 @@ class PropertyPanel(QWidget):
                 target.setCheckState(Qt.PartiallyChecked)
             target.setToolTip(tooltip)
             return
+
+    def _is_missing_file_property(self, prop_name, prop_info, value):
+        del prop_name
+
+        if not value or self._resource_catalog is None:
+            return False
+
+        ptype = prop_info.get("type", "")
+        if ptype == "image_file":
+            return not self._resource_catalog.has_image(value)
+        if ptype == "font_file":
+            return not self._resource_catalog.has_font(value)
+        if ptype == "text_file":
+            return not self._resource_catalog.has_text_file(value)
+        return False
+
+    def _apply_missing_file_editor_state(self, editor, prop_name, prop_info, current_value):
+        if not self._is_missing_file_property(prop_name, prop_info, current_value):
+            return
+
+        target = editor
+        if prop_info.get("type", "") in {"image_file", "font_file", "text_file"}:
+            target = self._editors.get(f"prop_{prop_name}", editor)
+
+        message = "Selected resource file is not present in the project catalog. Re-import it or choose another file."
+        existing_tooltip = target.toolTip().strip()
+        if existing_tooltip and message not in existing_tooltip:
+            message = f"{existing_tooltip}\n{message}"
+        target.setToolTip(message)
 
     def _collect_multi_common_properties(self):
         if not self._selection:
@@ -770,7 +804,11 @@ class PropertyPanel(QWidget):
                         if label.startswith(prefix) and group_key != "main":
                             label = label[len(prefix):]
                             break
-                    label = label.replace("_", " ").title() + ":"
+                    label = label.replace("_", " ").title()
+                    if self._is_missing_file_property(prop_name, prop_info, w.properties.get(prop_name)):
+                        label += " (Missing)"
+                        self._apply_missing_file_editor_state(editor, prop_name, prop_info, w.properties.get(prop_name))
+                    label += ":"
                     form.addRow(label, editor)
 
             self._layout.addWidget(group_box)

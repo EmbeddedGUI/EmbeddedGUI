@@ -281,6 +281,25 @@ class TestPropertyPanelFileFlow:
         assert selector is not None
         panel.deleteLater()
 
+    def test_single_selection_marks_missing_file_property(self, qapp):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        widget = WidgetModel("label", name="title")
+        widget.properties["font_file"] = "missing.ttf"
+
+        panel = PropertyPanel()
+        panel.set_resource_catalog(ResourceCatalog())
+        panel.set_widget(widget)
+
+        font_group = _find_group(panel, "Font Config")
+        editor = panel._editors["prop_font_file"]
+
+        assert "File (Missing):" in _form_labels(font_group)
+        assert "not present in the project catalog" in editor.toolTip()
+        panel.deleteLater()
+
     def test_multi_selection_form_toggles_designer_flags_for_all_widgets(self, qapp):
         from qfluentwidgets import CheckBox
         from ui_designer.model.widget_model import WidgetModel
