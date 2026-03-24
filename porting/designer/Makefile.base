@@ -140,8 +140,8 @@ endif
 	LIBDIRS		:= $(LIB)
 	FIXPATH = $(subst /,\,$1)
 	RM      := del /q /s
-	MD			:= mkdir
-	MD_CHECK	:= $(Q)if not exist "$(call FIXPATH,$@)"
+	MD			:= $(PYTHON) -c "import os,sys; os.makedirs(sys.argv[1], exist_ok=True)"
+	MD_CHECK	:=
 
 else ifeq ($(shell uname), Darwin)
     # Code for OS X
@@ -253,14 +253,14 @@ all: | info $(OUTPUT_MAIN_RESOURCE) $(MAIN)
 
 # mk path for object.
 $(OBJ_MD):
-	$(MD_CHECK) $(Q)$(MD) $(call FIXPATH, $@)
+	$(MD_CHECK) $(Q)$(MD) "$(call FIXPATH,$@)"
 
 # mk output path.
 $(OUTPUT_PATH):
-	$(MD_CHECK) $(Q)$(MD) $(call FIXPATH, $@)
+	$(MD_CHECK) $(Q)$(MD) "$(call FIXPATH,$@)"
 
 $(OBJDIR):
-	$(MD_CHECK) $(Q)$(MD) $(call FIXPATH, $@)
+	$(MD_CHECK) $(Q)$(MD) "$(call FIXPATH,$@)"
 
 # Build EGUI core static library (only rebuilt when core sources change)
 $(OUTPUT_LIB): $(LIB_OBJECTS)
@@ -268,8 +268,8 @@ $(OUTPUT_LIB): $(LIB_OBJECTS)
 	$(Q)$(AR) rcs $@ $^
 
 $(APP_CONFIG_STAMP): | $(OUTPUT_PATH)
-	-$(Q)$(RM) $(call FIXPATH, $(OUTPUT_PATH)/.app_stamp_*)
-	$(Q)$(ECHO) stamp > $(call FIXPATH, $@)
+	-$(Q)$(RM) $(call FIXPATH,$(OUTPUT_PATH)/.app_stamp_*)
+	$(Q)$(ECHO) stamp > $(call FIXPATH,$@)
 
 $(OUTPUT_MAIN): $(APP_OBJECTS) $(OUTPUT_LIB) $(APP_CONFIG_STAMP)
 	@$(ECHO) Linking    : "$@"
@@ -279,7 +279,7 @@ $(MAIN): | $(OUTPUT_PATH) $(OBJDIR) $(OBJ_MD) $(USER_COMPILE_TARGETS) $(OUTPUT_M
 	@$(ECHO) Building   : "$(OUTPUT_MAIN)"
 
 # Static Pattern Rules [targets ...: target-pattern: prereq-patterns ...]
-$(OBJECTS): $(OBJDIR)/%.o : %.c $(COMMON_PREREQS)
+$(OBJECTS): $(OBJDIR)/%.o : %.c $(COMMON_PREREQS) | $(OBJDIR) $(OBJ_MD)
 	@$(ECHO) Compiling  : "$<"
 	$(Q)$(CC) $(COMMON_FLAGS) $(INCLUDES) -c $<  -o $@
 
@@ -288,7 +288,7 @@ clean:
 #	$(RM) $(OUTPUT_MAIN)
 #	$(RM) $(OBJECTS)
 #	$(RM) $(OBJDIR)
-	$(Q)$(RM) $(call FIXPATH, $(OUTPUT_PATH))
+	$(Q)$(RM) $(call FIXPATH,$(OUTPUT_PATH))
 	@$(ECHO) Cleanup complete!
 
 run: all

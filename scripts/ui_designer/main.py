@@ -53,6 +53,7 @@ def main():
 
     try:
         from PyQt5.QtWidgets import QApplication
+        from PyQt5.QtCore import QTimer
     except ImportError:
         print("Error: PyQt5 is required. Install it with:")
         print("  pip install PyQt5")
@@ -104,6 +105,8 @@ def main():
             print(f"Warning: Failed to load project: {exc}")
 
     window.show()
+    if not project_to_open and not sdk_root:
+        QTimer.singleShot(0, window.maybe_prompt_initial_sdk_setup)
     sys.exit(app.exec_())
 
 

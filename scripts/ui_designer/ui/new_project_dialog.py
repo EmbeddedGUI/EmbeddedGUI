@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
+    QLabel,
     QMessageBox,
     QSpinBox,
     QVBoxLayout,
@@ -16,7 +17,7 @@ from PyQt5.QtWidgets import (
 
 from qfluentwidgets import LineEdit, PrimaryPushButton, PushButton
 
-from ..model.workspace import is_valid_sdk_root, normalize_path
+from ..model.workspace import is_valid_sdk_root, normalize_path, resolve_sdk_root_candidate
 
 
 class NewProjectDialog(QDialog):
@@ -27,7 +28,7 @@ class NewProjectDialog(QDialog):
         self.setWindowTitle("New Project")
         self.resize(560, 260)
 
-        self._sdk_root = normalize_path(sdk_root)
+        self._sdk_root = resolve_sdk_root_candidate(sdk_root) or normalize_path(sdk_root)
         self._parent_dir = normalize_path(default_parent_dir) or self._sdk_root
 
         self._init_ui()
@@ -45,7 +46,15 @@ class NewProjectDialog(QDialog):
         sdk_browse = PushButton("Browse...")
         sdk_browse.clicked.connect(self._browse_sdk_root)
         sdk_row.addWidget(sdk_browse)
+        sdk_clear = PushButton("Clear")
+        sdk_clear.clicked.connect(self._clear_sdk_root)
+        sdk_row.addWidget(sdk_clear)
         form.addRow("SDK Root", sdk_row)
+
+        self._sdk_hint_label = QLabel("Optional. Leave empty to create an editing-only project and set the SDK later.")
+        self._sdk_hint_label.setWordWrap(True)
+        self._sdk_hint_label.setStyleSheet("color: #888;")
+        form.addRow("", self._sdk_hint_label)
 
         self._parent_edit = LineEdit()
         self._parent_edit.setReadOnly(True)
@@ -87,15 +96,23 @@ class NewProjectDialog(QDialog):
         path = QFileDialog.getExistingDirectory(self, "Select SDK Root", self._sdk_root or "")
         if not path:
             return
-        path = normalize_path(path)
-        if not is_valid_sdk_root(path):
-            QMessageBox.warning(self, "Invalid SDK Root", "The selected directory is not a valid EmbeddedGUI SDK root.")
+        path = resolve_sdk_root_candidate(path)
+        if not path:
+            QMessageBox.warning(
+                self,
+                "Invalid SDK Root",
+                "The selected directory does not contain a valid EmbeddedGUI SDK root.",
+            )
             return
         self._sdk_root = path
         self._sdk_edit.setText(path)
-        if not self._parent_dir:
+        if not self._parent_dir or self._parent_dir == normalize_path(os.getcwd()):
             self._parent_dir = os.path.join(path, "example")
             self._parent_edit.setText(self._parent_dir)
+
+    def _clear_sdk_root(self):
+        self._sdk_root = ""
+        self._sdk_edit.setText("")
 
     def _browse_parent_dir(self):
         path = QFileDialog.getExistingDirectory(self, "Select Parent Directory", self._parent_dir or "")
@@ -106,8 +123,8 @@ class NewProjectDialog(QDialog):
 
     def _accept_if_valid(self):
         app_name = self.app_name
-        if not is_valid_sdk_root(self._sdk_root):
-            QMessageBox.warning(self, "Invalid SDK Root", "Please select a valid EmbeddedGUI SDK root.")
+        if self._sdk_root and not is_valid_sdk_root(self._sdk_root):
+            QMessageBox.warning(self, "Invalid SDK Root", "Please select a valid EmbeddedGUI SDK root or clear it.")
             return
         if not self._parent_dir:
             QMessageBox.warning(self, "Parent Directory", "Please select a parent directory.")

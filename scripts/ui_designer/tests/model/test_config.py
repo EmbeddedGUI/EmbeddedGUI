@@ -40,6 +40,7 @@ class TestDefaults:
         assert config.show_all_examples is False
         assert config.window_geometry == ""
         assert config.window_state == ""
+        assert config.sdk_setup_prompted is False
 
 
 class TestSaveLoad:
@@ -51,6 +52,7 @@ class TestSaveLoad:
         config.theme = "light"
         config.auto_compile = False
         config.font_size_px = 14
+        config.sdk_setup_prompted = True
 
         config_path = tmp_path / "config.json"
         with patch("ui_designer.model.config._get_config_path", return_value=str(config_path)):
@@ -67,6 +69,7 @@ class TestSaveLoad:
         assert loaded.theme == "light"
         assert loaded.auto_compile is False
         assert loaded.font_size_px == 14
+        assert loaded.sdk_setup_prompted is True
 
     def test_load_nonexistent_file(self, config, tmp_path):
         config_path = tmp_path / "nonexistent.json"

@@ -12,17 +12,17 @@ Layout (default):
     └──────────┴────────────────────────┴───────────────┘
 """
 
-import os
 import copy
+import os
 import shutil
 
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout,
     QAction, QActionGroup, QFileDialog, QStatusBar,
     QMessageBox, QScrollArea, QDockWidget, QMenu,
-    QApplication, QDialog, QStackedWidget, QToolBar, QInputDialog,
+    QApplication, QDialog, QStackedWidget, QToolBar, QInputDialog, QProgressDialog,
 )
-from PyQt5.QtCore import Qt, QTimer, QSize
+from PyQt5.QtCore import Qt, QTimer, QSize, QByteArray
 from PyQt5.QtGui import QIcon
 
 from qfluentwidgets import TabBar, TabCloseButtonDisplayMode
@@ -41,7 +41,8 @@ from ..model.widget_model import WidgetModel
 from ..model.project import Project
 from ..model.page import Page
 from ..model.config import get_config
-from ..model.workspace import find_sdk_root, infer_sdk_root_from_project_dir, is_valid_sdk_root, normalize_path
+from ..model.sdk_bootstrap import default_sdk_install_dir, ensure_sdk_downloaded
+from ..model.workspace import find_sdk_root, infer_sdk_root_from_project_dir, is_valid_sdk_root, normalize_path, resolve_sdk_root_candidate
 from ..model.undo_manager import UndoManager
 from ..generator.code_generator import generate_all_files, generate_all_files_preserved, generate_uicode
 from ..generator.resource_config_generator import ResourceConfigGenerator
@@ -116,10 +117,17 @@ class MainWindow(QMainWindow):
         self._pending_compile = False  # Track if compile needed after current one
         self._undo_manager = UndoManager()
         self._undoing = False  # True during undo/redo to suppress snapshot recording
+        self._project_watch_snapshot = {}
+        self._external_reload_pending = False
+
+        self._project_watch_timer = QTimer()
+        self._project_watch_timer.setInterval(1000)
+        self._project_watch_timer.timeout.connect(self._poll_project_files)
 
         self._init_ui()
         self._init_menus()
         self._init_toolbar()
+        self._apply_saved_window_state()
         # Start with welcome page (don't auto-create project)
         self._show_welcome_page()
 
@@ -135,6 +143,7 @@ class MainWindow(QMainWindow):
 
         # ── Left dock: Project Explorer ──
         self.project_dock = ProjectExplorerDock(self)
+        self.project_dock.setObjectName("project_explorer_dock")
         self.addDockWidget(Qt.LeftDockWidgetArea, self.project_dock)
         self.project_dock.setMinimumWidth(180)
         # self.project_dock.setMaximumWidth(320)
@@ -149,6 +158,7 @@ class MainWindow(QMainWindow):
         self._welcome_page.open_project.connect(self._open_project)
         self._welcome_page.open_app.connect(self._open_app_dialog)
         self._welcome_page.set_sdk_root.connect(self._set_sdk_root)
+        self._welcome_page.download_sdk.connect(self._download_sdk)
         self._central_stack.addWidget(self._welcome_page)
 
         # Editor container (index 1)
@@ -158,23 +168,7 @@ class MainWindow(QMainWindow):
         editor_layout.setSpacing(0)
 
         # Page tab bar (qfluentwidgets — movable, closable, scrollable)
-        self.page_tab_bar = TabBar()
-        self.page_tab_bar.setMovable(True)
-        self.page_tab_bar.setTabsClosable(True)
-        self.page_tab_bar.setScrollable(True)
-        self.page_tab_bar.setAddButtonVisible(False)  # Hide the "+" button
-        self.page_tab_bar.setCloseButtonDisplayMode(
-            TabCloseButtonDisplayMode.ON_HOVER
-        )
-        self.page_tab_bar.setTabMaximumWidth(180)
-        self.page_tab_bar.setTabShadowEnabled(False)
-        self.page_tab_bar.setFixedHeight(40)
-        self.page_tab_bar.tabCloseRequested.connect(self._on_page_tab_closed)
-        self.page_tab_bar.currentChanged.connect(self._on_page_tab_changed)
-        self.page_tab_bar.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.page_tab_bar.customContextMenuRequested.connect(
-            self._show_tab_context_menu
-        )
+        self.page_tab_bar = self._create_page_tab_bar()
 
         editor_layout.addWidget(self.page_tab_bar)
 
@@ -188,6 +182,7 @@ class MainWindow(QMainWindow):
 
         # ── Right dock: Widget Tree ──
         self.tree_dock = QDockWidget("Widget Tree", self)
+        self.tree_dock.setObjectName("widget_tree_dock")
         self.tree_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
         self.widget_tree = WidgetTreePanel()
         self.tree_dock.setWidget(self.widget_tree)
@@ -196,6 +191,7 @@ class MainWindow(QMainWindow):
 
         # ── Right dock: Properties ──
         self.props_dock = QDockWidget("Properties", self)
+        self.props_dock.setObjectName("properties_dock")
         self.props_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
         right_scroll = QScrollArea()
         right_scroll.setWidgetResizable(True)
@@ -210,6 +206,7 @@ class MainWindow(QMainWindow):
 
         # ── Left dock: Resources (independent panel) ──
         self.res_dock = QDockWidget("Resources", self)
+        self.res_dock.setObjectName("resources_dock")
         self.res_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
         self.res_panel = ResourcePanel()
         self.res_dock.setWidget(self.res_panel)
@@ -220,6 +217,7 @@ class MainWindow(QMainWindow):
 
         # ── Bottom dock: Debug Output ──
         self.debug_dock = QDockWidget("Debug Output", self)
+        self.debug_dock.setObjectName("debug_output_dock")
         self.debug_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
         self.debug_panel = DebugPanel()
         self.debug_dock.setWidget(self.debug_panel)
@@ -266,6 +264,56 @@ class MainWindow(QMainWindow):
     def _apply_stylesheet(self):
         pass  # Rely entirely on the global Fusion / Fluent theme
 
+    def _apply_saved_window_state(self):
+        geometry = (self._config.window_geometry or "").strip()
+        if geometry:
+            try:
+                self.restoreGeometry(QByteArray.fromBase64(geometry.encode("ascii")))
+            except Exception:
+                pass
+
+        state = (self._config.window_state or "").strip()
+        if state:
+            try:
+                self.restoreState(QByteArray.fromBase64(state.encode("ascii")))
+            except Exception:
+                pass
+
+    def _save_window_state_to_config(self):
+        try:
+            self._config.window_geometry = bytes(self.saveGeometry().toBase64()).decode("ascii")
+            self._config.window_state = bytes(self.saveState().toBase64()).decode("ascii")
+        except Exception:
+            self._config.window_geometry = ""
+            self._config.window_state = ""
+
+    def _apply_sdk_root(self, path, status_message=""):
+        path = normalize_path(path)
+        if not path:
+            return
+
+        self.project_root = path
+        self._config.sdk_root = path
+        self._config.egui_root = path
+        self._config.sdk_setup_prompted = True
+        self._config.save()
+
+        if self.project is not None:
+            self.project.sdk_root = path
+            self._recreate_compiler()
+            self._update_compile_availability()
+            if self.compiler is None or not self.compiler.can_build():
+                reason = "SDK unavailable, compile preview disabled"
+                if self.compiler is not None and self.compiler.get_build_error():
+                    reason = self.compiler.get_build_error()
+                self._switch_to_python_preview(reason)
+            elif self.auto_compile:
+                self._trigger_compile()
+
+        self._welcome_page.refresh()
+        if status_message:
+            self.statusBar().showMessage(status_message)
+
     def _has_valid_sdk_root(self):
         return is_valid_sdk_root(self.project_root)
 
@@ -291,6 +339,7 @@ class MainWindow(QMainWindow):
         self._compile_action.setEnabled(can_compile)
         self.auto_compile_action.setEnabled(can_compile)
         self._stop_action.setEnabled(self.compiler is not None and self.compiler.is_preview_running())
+        self._reload_project_action.setEnabled(self.project is not None and bool(self._project_dir))
 
     def _switch_to_python_preview(self, reason=""):
         if self._current_page is None:
@@ -384,11 +433,178 @@ class MainWindow(QMainWindow):
             if os.path.isdir(src_path):
                 shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
 
+    def _build_project_watch_snapshot(self):
+        snapshot = {}
+        if not self._project_dir or not self.app_name:
+            return snapshot
+
+        def _add_path(path):
+            path = normalize_path(path)
+            if not path or not os.path.exists(path):
+                return
+
+            try:
+                stat = os.stat(path)
+            except OSError:
+                return
+
+            snapshot[path] = (
+                1 if os.path.isdir(path) else 0,
+                stat.st_mtime_ns,
+                stat.st_size,
+            )
+
+            if not os.path.isdir(path):
+                return
+
+            try:
+                entries = sorted(os.listdir(path))
+            except OSError:
+                return
+
+            for name in entries:
+                _add_path(os.path.join(path, name))
+
+        project_file = os.path.join(self._project_dir, f"{self.app_name}.egui")
+        eguiproject_dir = os.path.join(self._project_dir, ".eguiproject")
+        watch_roots = [
+            project_file,
+            os.path.join(eguiproject_dir, "layout"),
+            os.path.join(eguiproject_dir, "resources"),
+            os.path.join(eguiproject_dir, "mockup"),
+            os.path.join(eguiproject_dir, "custom_widgets"),
+        ]
+        for root in watch_roots:
+            _add_path(root)
+        return snapshot
+
+    @staticmethod
+    def _diff_project_watch_snapshot(old_snapshot, new_snapshot):
+        changed = []
+        all_paths = set(old_snapshot.keys()) | set(new_snapshot.keys())
+        for path in sorted(all_paths):
+            if old_snapshot.get(path) != new_snapshot.get(path):
+                changed.append(path)
+        return changed
+
+    @staticmethod
+    def _summarize_changed_paths(paths):
+        if not paths:
+            return ""
+
+        labels = [os.path.basename(path) or path for path in paths[:3]]
+        summary = ", ".join(labels)
+        remaining = len(paths) - len(labels)
+        if remaining > 0:
+            summary += f" (+{remaining})"
+        return summary
+
+    def _refresh_project_watch_snapshot(self):
+        if self.project is None or not self._project_dir:
+            self._project_watch_timer.stop()
+            self._project_watch_snapshot = {}
+            self._external_reload_pending = False
+            return
+
+        self._project_watch_snapshot = self._build_project_watch_snapshot()
+        self._external_reload_pending = False
+        if not self._project_watch_timer.isActive():
+            self._project_watch_timer.start()
+
+    def _poll_project_files(self):
+        if self.project is None or not self._project_dir:
+            return
+
+        if self._external_reload_pending:
+            if self._undo_manager.is_any_dirty():
+                return
+            if self._compile_worker is not None and self._compile_worker.isRunning():
+                return
+            if self._precompile_worker is not None and self._precompile_worker.isRunning():
+                return
+            self._reload_project_from_disk(auto=True)
+            return
+
+        new_snapshot = self._build_project_watch_snapshot()
+        if not self._project_watch_snapshot:
+            self._project_watch_snapshot = new_snapshot
+            return
+        if new_snapshot == self._project_watch_snapshot:
+            return
+
+        changed_paths = self._diff_project_watch_snapshot(self._project_watch_snapshot, new_snapshot)
+        self._project_watch_snapshot = new_snapshot
+        summary = self._summarize_changed_paths(changed_paths)
+
+        if self._undo_manager.is_any_dirty():
+            self._external_reload_pending = True
+            self.debug_panel.log_info(f"External project change detected while dirty: {summary or 'project files updated'}")
+            self.statusBar().showMessage("External project changes detected. Save or reload from disk to sync.", 5000)
+            return
+
+        if self._compile_worker is not None and self._compile_worker.isRunning():
+            self._external_reload_pending = True
+            return
+
+        if self._precompile_worker is not None and self._precompile_worker.isRunning():
+            self._external_reload_pending = True
+            self.statusBar().showMessage("External project changes detected. Reload will resume after background compile.", 4000)
+            return
+
+        self._reload_project_from_disk(auto=True, changed_paths=changed_paths)
+
+    def _reload_project_from_disk(self, checked=False, auto=False, changed_paths=None):
+        del checked
+        if self.project is None or not self._project_dir:
+            return False
+
+        if self._undo_manager.is_any_dirty():
+            reply = QMessageBox.question(
+                self,
+                "Reload Project",
+                "Reload project files from disk and discard unsaved changes?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            if reply != QMessageBox.Yes:
+                return False
+
+        current_page_name = self._current_page.name if self._current_page else ""
+
+        try:
+            project = Project.load(self._project_dir)
+        except Exception as exc:
+            self._external_reload_pending = True
+            self.debug_panel.log_error(f"Project reload failed: {exc}")
+            self.debug_dock.show()
+            self.debug_dock.raise_()
+            if auto:
+                self.statusBar().showMessage(f"Project reload failed: {exc}", 6000)
+            else:
+                QMessageBox.critical(self, "Reload Project Failed", f"Failed to reload project:\n{exc}")
+            return False
+
+        self._open_loaded_project(project, self._project_dir, preferred_sdk_root=self.project_root, silent=True)
+        if current_page_name and self.project and self.project.get_page_by_name(current_page_name):
+            if self._current_page is None or self._current_page.name != current_page_name:
+                self._switch_page(current_page_name)
+
+        summary = self._summarize_changed_paths(changed_paths or [])
+        if auto:
+            self.debug_panel.log_info(f"Project reloaded from disk: {summary or 'external changes applied'}")
+            self.statusBar().showMessage(f"Reloaded external changes: {summary or 'project updated'}", 5000)
+        else:
+            self.statusBar().showMessage("Project reloaded from disk", 4000)
+        return True
+
     def _clear_editor_state(self):
         self.preview_panel.stop_rendering()
+        self._project_watch_timer.stop()
+        self._project_watch_snapshot = {}
+        self._external_reload_pending = False
         self._selected_widget = None
         self._current_page = None
-        self.page_tab_bar.clear()
+        self._clear_page_tabs()
         self.widget_tree.set_project(None)
         self.property_panel.set_widget(None)
         self.preview_panel.set_widgets([])
@@ -416,6 +632,7 @@ class MainWindow(QMainWindow):
         self._apply_project()
         self._update_window_title()
         self._persist_current_project_to_config()
+        self._refresh_project_watch_snapshot()
 
         startup = project.get_startup_page()
         if startup:
@@ -464,6 +681,44 @@ class MainWindow(QMainWindow):
         self.tree_dock.show()
         self.props_dock.show()
 
+    def _create_page_tab_bar(self):
+        page_tab_bar = TabBar()
+        page_tab_bar.setMovable(True)
+        page_tab_bar.setTabsClosable(True)
+        page_tab_bar.setScrollable(True)
+        page_tab_bar.setAddButtonVisible(False)
+        page_tab_bar.setCloseButtonDisplayMode(TabCloseButtonDisplayMode.ON_HOVER)
+        page_tab_bar.setTabMaximumWidth(180)
+        page_tab_bar.setTabShadowEnabled(False)
+        page_tab_bar.setFixedHeight(40)
+        page_tab_bar.tabCloseRequested.connect(self._on_page_tab_closed)
+        page_tab_bar.currentChanged.connect(self._on_page_tab_changed)
+        page_tab_bar.setContextMenuPolicy(Qt.CustomContextMenu)
+        page_tab_bar.customContextMenuRequested.connect(self._show_tab_context_menu)
+        return page_tab_bar
+
+    def _replace_page_tab_bar(self):
+        old_tab_bar = self.page_tab_bar
+        parent = old_tab_bar.parentWidget()
+        layout = parent.layout() if parent is not None else None
+        index = layout.indexOf(old_tab_bar) if layout is not None else -1
+
+        self.page_tab_bar = self._create_page_tab_bar()
+        if layout is not None:
+            if index < 0:
+                layout.addWidget(self.page_tab_bar)
+            else:
+                layout.insertWidget(index, self.page_tab_bar)
+
+        old_tab_bar.setParent(None)
+        old_tab_bar.deleteLater()
+
+    def _clear_page_tabs(self):
+        try:
+            self.page_tab_bar.clear()
+        except RuntimeError:
+            self._replace_page_tab_bar()
+
     def _init_menus(self):
         menubar = self.menuBar()
 
@@ -485,6 +740,10 @@ class MainWindow(QMainWindow):
         open_action.triggered.connect(self._open_project)
         file_menu.addAction(open_action)
 
+        download_sdk_action = QAction("Download SDK Copy...", self)
+        download_sdk_action.triggered.connect(self._download_sdk)
+        file_menu.addAction(download_sdk_action)
+
         set_sdk_root_action = QAction("Set SDK Root...", self)
         set_sdk_root_action.triggered.connect(self._set_sdk_root)
         file_menu.addAction(set_sdk_root_action)
@@ -504,6 +763,12 @@ class MainWindow(QMainWindow):
         save_as_action.setShortcut("Ctrl+Shift+S")
         save_as_action.triggered.connect(self._save_project_as)
         file_menu.addAction(save_as_action)
+
+        self._reload_project_action = QAction("Reload Project From Disk", self)
+        self._reload_project_action.setShortcut("Ctrl+Shift+R")
+        self._reload_project_action.triggered.connect(self._reload_project_from_disk)
+        self._reload_project_action.setEnabled(False)
+        file_menu.addAction(self._reload_project_action)
 
         file_menu.addSeparator()
 
@@ -699,6 +964,7 @@ class MainWindow(QMainWindow):
 
     def _init_toolbar(self):
         tb = QToolBar("Main Toolbar", self)
+        tb.setObjectName("main_toolbar")
         tb.setMovable(False)
         tb.setIconSize(QSize(16, 16))
         tb.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
@@ -827,30 +1093,81 @@ class MainWindow(QMainWindow):
         if not path:
             return
 
-        path = normalize_path(path)
-        if not is_valid_sdk_root(path):
-            QMessageBox.warning(self, "Invalid SDK Root", "The selected directory is not a valid EmbeddedGUI SDK root.")
+        path = resolve_sdk_root_candidate(path)
+        if not path:
+            QMessageBox.warning(
+                self,
+                "Invalid SDK Root",
+                "The selected directory does not contain a valid EmbeddedGUI SDK root.",
+            )
             return
 
-        self.project_root = path
-        self._config.sdk_root = path
-        self._config.egui_root = path
+        self._apply_sdk_root(path, status_message=f"SDK root set to: {path}")
+
+    def _download_sdk(self):
+        target_dir = default_sdk_install_dir()
+        progress = QProgressDialog(f"Preparing SDK download...\nTarget: {target_dir}", "Cancel", 0, 100, self)
+        progress.setWindowTitle("Download EmbeddedGUI SDK")
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setAutoClose(False)
+        progress.setValue(0)
+
+        def on_progress(message, percent):
+            if progress.wasCanceled():
+                raise RuntimeError("SDK download canceled by user")
+            progress.setLabelText(message)
+            if percent is not None:
+                progress.setValue(max(0, min(100, percent)))
+            QApplication.processEvents()
+
+        try:
+            sdk_root = ensure_sdk_downloaded(target_dir, progress_callback=on_progress)
+        except Exception as exc:
+            progress.close()
+            QMessageBox.warning(
+                self,
+                "Download SDK Failed",
+                "Failed to prepare an EmbeddedGUI SDK automatically.\n\n"
+                f"Target location:\n{target_dir}\n\n"
+                f"{exc}\n\n"
+                "You can try again later, install git for clone fallback, or select an existing SDK root manually.",
+            )
+            return ""
+
+        progress.setValue(100)
+        progress.close()
+        self._apply_sdk_root(sdk_root, status_message=f"SDK downloaded to: {sdk_root}")
+        return sdk_root
+
+    def maybe_prompt_initial_sdk_setup(self):
+        if self._has_valid_sdk_root() or self._config.sdk_setup_prompted:
+            return
+
+        self._config.sdk_setup_prompted = True
         self._config.save()
 
-        if self.project is not None:
-            self.project.sdk_root = path
-            self._recreate_compiler()
-            self._update_compile_availability()
-            if self.compiler is None or not self.compiler.can_build():
-                reason = "SDK unavailable, compile preview disabled"
-                if self.compiler is not None and self.compiler.get_build_error():
-                    reason = self.compiler.get_build_error()
-                self._switch_to_python_preview(reason)
-            elif self.auto_compile:
-                self._trigger_compile()
+        dialog = QMessageBox(self)
+        dialog.setWindowTitle("Prepare EmbeddedGUI SDK")
+        dialog.setIcon(QMessageBox.Information)
+        dialog.setText("No EmbeddedGUI SDK was detected.")
+        target_dir = default_sdk_install_dir()
+        dialog.setInformativeText(
+            "Designer can download a local SDK copy automatically.\n"
+            f"Target location:\n{target_dir}\n\n"
+            "It will try GitHub archive first, then Gitee archive, then Gitee git clone when git is available.\n"
+            "You can also point Designer to an existing SDK root."
+        )
+        download_btn = dialog.addButton("Download SDK Automatically", QMessageBox.AcceptRole)
+        select_btn = dialog.addButton("Select SDK Root...", QMessageBox.ActionRole)
+        dialog.addButton("Skip for Now", QMessageBox.RejectRole)
+        dialog.exec_()
 
-        self._welcome_page.refresh()
-        self.statusBar().showMessage(f"SDK root set to: {path}")
+        clicked = dialog.clickedButton()
+        if clicked == download_btn:
+            self._download_sdk()
+        elif clicked == select_btn:
+            self._set_sdk_root()
 
     def _open_recent_project(self, project_path, sdk_root=""):
         if not project_path:
@@ -901,12 +1218,29 @@ class MainWindow(QMainWindow):
             title += " *"
         self.setWindowTitle(title)
 
+    def _default_new_project_parent_dir(self, sdk_root=""):
+        sdk_root = normalize_path(sdk_root)
+        if is_valid_sdk_root(sdk_root):
+            return os.path.join(sdk_root, "example")
+
+        if self._project_dir:
+            return os.path.dirname(self._project_dir)
+
+        last_project_path = normalize_path(self._config.last_project_path)
+        if last_project_path:
+            last_project_dir = last_project_path if os.path.isdir(last_project_path) else os.path.dirname(last_project_path)
+            if last_project_dir:
+                return os.path.dirname(last_project_dir) or last_project_dir
+
+        return normalize_path(os.getcwd())
+
     def _new_project(self):
         """Create a new project in a dedicated app directory."""
-        default_parent_dir = ""
-        if self._has_valid_sdk_root():
-            default_parent_dir = os.path.join(self.project_root, "example")
-        dialog = NewProjectDialog(self, sdk_root=self.project_root, default_parent_dir=default_parent_dir)
+        default_sdk_root = self.project_root if self._has_valid_sdk_root() else normalize_path(self._config.sdk_root)
+        if default_sdk_root and not is_valid_sdk_root(default_sdk_root):
+            default_sdk_root = ""
+        default_parent_dir = self._default_new_project_parent_dir(default_sdk_root)
+        dialog = NewProjectDialog(self, sdk_root=default_sdk_root, default_parent_dir=default_parent_dir)
         if dialog.exec_() != QDialog.Accepted:
             return
 
@@ -982,6 +1316,7 @@ class MainWindow(QMainWindow):
         self._recreate_compiler()
         self._undo_manager.mark_all_saved()
         self._persist_current_project_to_config()
+        self._refresh_project_watch_snapshot()
         self._update_window_title()
         self._update_compile_availability()
         self.statusBar().showMessage(f"Saved: {self._project_dir} ({len(files)} code file(s) updated)")
@@ -1013,6 +1348,7 @@ class MainWindow(QMainWindow):
         self._recreate_compiler()
         self._undo_manager.mark_all_saved()
         self._persist_current_project_to_config()
+        self._refresh_project_watch_snapshot()
         self._update_window_title()
         self._update_compile_availability()
         self.statusBar().showMessage(f"Saved: {path} ({len(files)} code file(s) updated)")
@@ -1042,6 +1378,9 @@ class MainWindow(QMainWindow):
             self.compiler = None
 
         self.preview_panel.stop_rendering()
+        self._project_watch_timer.stop()
+        self._project_watch_snapshot = {}
+        self._external_reload_pending = False
         self.project = None
         self._project_dir = None
         self._undo_manager = UndoManager()
@@ -1131,6 +1470,7 @@ class MainWindow(QMainWindow):
 
         # Apply to overlay
         self.preview_panel.set_background_image(pixmap)
+        self._refresh_project_watch_snapshot()
         self.statusBar().showMessage(f"Mockup image loaded: {filename}")
 
     def _toggle_background_image(self, visible):
@@ -1154,6 +1494,7 @@ class MainWindow(QMainWindow):
             self._current_page.mockup_image_path = ""
             self._current_page.mockup_image_visible = True
         self.preview_panel.clear_background_image()
+        self._refresh_project_watch_snapshot()
         self.statusBar().showMessage("Mockup image cleared")
 
     def _set_background_opacity(self, opacity):
@@ -1213,7 +1554,7 @@ class MainWindow(QMainWindow):
         self.preview_panel.update_screen_size(self.project.screen_width, self.project.screen_height)
         if self.compiler is not None:
             self.compiler.set_screen_size(self.project.screen_width, self.project.screen_height)
-        self.page_tab_bar.clear()
+        self._clear_page_tabs()
 
         # Refresh resource panel with catalog
         # Resource panel uses .eguiproject/resources/ as the source directory
@@ -1329,7 +1670,7 @@ class MainWindow(QMainWindow):
             self.property_panel.set_string_keys(self.project.string_catalog.all_keys)
         self._resources_need_regen = True
         # Auto-trigger resource generation with debounce
-        print("[DEBUG] Resource imported, starting regen timer...")
+        self._refresh_project_watch_snapshot()
         self._regen_timer.start()
         self.statusBar().showMessage("Resources changed, will regenerate...")
 
@@ -1643,7 +1984,7 @@ class MainWindow(QMainWindow):
             for n in names_to_remove:
                 self._remove_page_tab(n)
         elif action == close_all:
-            self.page_tab_bar.clear()
+            self._clear_page_tabs()
 
     # ── Widget selection / editing ─────────────────────────────────
 
@@ -1977,6 +2318,7 @@ class MainWindow(QMainWindow):
         self._config.auto_compile = self.auto_compile
         self._config.overlay_mode = self.preview_panel._mode
         self._config.overlay_flipped = self.preview_panel._flipped
+        self._save_window_state_to_config()
         if self._has_valid_sdk_root():
             self._config.sdk_root = self.project_root
             self._config.egui_root = self.project_root

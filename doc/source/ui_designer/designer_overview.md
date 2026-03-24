@@ -263,6 +263,27 @@ python scripts/ui_designer/main.py --sdk-root /path/to/EmbeddedGUI
 2. 加载 `WidgetRegistry`（扫描 `custom_widgets/` 目录下所有插件）
 3. 如果有上次打开的项目，自动加载
 4. 显示主窗口（包含控件树、属性面板、XML 编辑器、实时预览）
+5. 恢复上次保存的窗口尺寸、停靠面板布局与工具栏位置
+
+## 外部变更监控
+
+为了降低项目持续演进时把 Designer 预览链路悄悄改坏的风险，当前版本补了两层保护：
+
+- 常规 CI 保护：GitHub Actions 的日常编译检查流程也会执行 `python scripts/ui_designer_preview_smoke.py`
+- 仓库级保护：`python scripts/ui_designer_preview_smoke.py` 已接入 `release_check.py` 和 release workflow，真实验证编译预览链路。
+- 运行时保护：Designer 会周期扫描当前项目下的 `.egui` 与 `.eguiproject/` 内容变化。
+
+运行时扫描的行为如下：
+
+- 当前项目没有未保存修改时，检测到外部文件变更会自动重新加载项目，并尽量保持当前页面不变。
+- 当前项目存在未保存修改时，Designer 不会直接覆盖内存中的编辑结果，而是提示用户先保存，或使用 `File -> Reload Project From Disk` 手动同步。
+- `Reload Project From Disk` 默认快捷键为 `Ctrl+Shift+R`。
+
+这个机制主要覆盖以下场景：
+
+- 用户在文件管理器、编辑器或脚本里直接改了 `.egui`、页面 XML、字符串资源、资源目录内容。
+- 仓库更新后，Designer 仍停留在旧内存状态，导致预览结果和磁盘内容不一致。
+- 团队多人协作时，外部脚本或生成器重写了 `.eguiproject` 内的文件。
 
 ## SDK 根目录与项目目录
 
@@ -280,19 +301,58 @@ python scripts/ui_designer/main.py --sdk-root /path/to/EmbeddedGUI
 
 ### SDK 自动发现与手动指定
 
+补充说明，当前版本在“无 SDK 首次启动”场景下又加了一层首启引导：
+
+- 仅当没有检测到有效 SDK，且当前没有自动打开任何项目时，才会弹出
+- 引导框只提示一次，避免后续每次启动都打断用户
+- 用户可以直接选择自动下载 SDK，或手动指定已有 SDK 根目录
+- 引导框会直接显示自动下载默认使用的缓存路径
+
+自动下载链路当前按下面顺序回退：
+
+- GitHub 主分支 zip 包
+- Gitee zip 包
+- Gitee `git clone` 回退路径（仅在本机存在 `git` 时启用）
+
+实际验证中，GitHub zip 是最稳定的主通路；Gitee 的匿名 zip 入口有时会返回 HTML 页面而不是压缩包，因此工具会自动继续尝试后续回退路径。
+如果当前下载源长时间无法完成，工具也会自动超时并继续回退，不会无限期卡在第一条下载链路上。
+如需调整这个归档下载超时，可通过环境变量 `EMBEDDEDGUI_SDK_ARCHIVE_TIMEOUT_SECONDS` 覆盖默认值。
+
+自动下载的 SDK 默认缓存到当前用户配置目录：
+
+```text
+{config_dir}/sdk/EmbeddedGUI
+```
+
+这样不依赖 Designer 安装目录可写，也更适合独立 exe 分发。
+
+如果自动下载失败，Designer 不会退出，也不会阻止继续编辑；用户后续仍可通过 `File -> Download SDK Copy...` 或 `File -> Set SDK Root...` 继续补齐 SDK。
+
 启动时会按下面顺序查找 SDK 根目录：
 
 1. 命令行 `--sdk-root`
-2. 配置文件中保存的 SDK 路径
-3. 当前项目路径附近的常见目录
+2. 当前项目路径附近的常见目录（包括 `sdk_root/example/app` 这种可直接反推的情况）
+3. 配置文件中保存的 SDK 路径
 4. 环境变量 `EMBEDDEDGUI_SDK_ROOT`
-5. 运行目录附近的常见目录
+5. 当前可执行文件或脚本所在目录附近的常见目录
+6. 当前工作目录附近的常见目录
+
+“常见目录”当前会覆盖这些实际布局：
+
+- 父目录本身就是 SDK 根目录
+- 父目录下直接有 `EmbeddedGUI/`、`embeddedgui/`
+- 父目录下直接有 `sdk/`、`SDK/`，且该目录本身就是 SDK
+- `sdk/`、`SDK/` 下面再包一层名字包含 `EmbeddedGUI` 的目录，例如 `sdk/EmbeddedGUI-main/`
 
 如果没有找到有效 SDK，Designer 仍然可以打开并编辑项目，只是会进入编辑模式并使用 Python 预览回退。用户之后可以在 `File -> Set SDK Root...` 里补设 SDK 路径。
+手动指定 SDK 时，不要求必须精确点到 SDK 根目录；如果你选择的是它的上层目录、`sdk/` 容器目录，或 `sdk/EmbeddedGUI-main/` 这类常见目录层级，Designer 也会自动纠正到真正的 SDK 根目录。
 
-欢迎页也提供了 `Open Project File...`、`Open SDK Example...`、`Set SDK Root...` 三个直接入口，并显示当前 SDK 状态与路径，便于独立 exe 场景快速定位“为什么现在只能走 Python 预览”。
+欢迎页也提供了 `Open Project File...`、`Open SDK Example...`、`Set SDK Root...`、`Download SDK...` 四个直接入口，并显示当前 SDK 状态与路径，便于独立 exe 场景快速定位“为什么现在只能走 Python 预览”。
+当 SDK 缺失或无效时，欢迎页还会直接显示默认自动下载缓存路径，方便用户提前判断是否符合本机目录规划。
 
 ### 新建项目与目录冲突
+
+如果本机还没有 SDK，也可以先创建项目，后续再通过 `File -> Download SDK Copy...` 自动补装一份本地 SDK 缓存。
 
 `New Project...` 现在直接创建标准 App 目录，并自动补齐最小骨架：
 
@@ -301,6 +361,11 @@ python scripts/ui_designer/main.py --sdk-root /path/to/EmbeddedGUI
 - `resource/src/app_resource_config.json`
 - `.egui` 与 `.eguiproject/`
 
+`SDK Root` 现在是可选项：
+
+- 如果已经配置有效 SDK，默认会落到 `sdk_root/example/`
+- 如果暂时没有 SDK，也可以先创建项目并进入纯编辑模式，之后再通过 `File -> Set SDK Root...` 补上编译预览能力
+
 如果目标目录已存在且非空，会直接报错，避免把 Designer 项目写进一个有冲突内容的目录。
 
 ### 打开 SDK Example
@@ -308,6 +373,7 @@ python scripts/ui_designer/main.py --sdk-root /path/to/EmbeddedGUI
 `Open SDK Example...` 默认只显示已经包含 `.egui` 的示例，减少把纯源码示例误当成 Designer 工程打开的情况。
 
 - 如需查看旧示例，可勾选 `Show legacy examples without .egui`
+- 支持按示例名实时搜索过滤，示例较多时可以快速定位目标工程
 - 打开 legacy example 时，Designer 会在原目录初始化 `.egui` 工程
 - 如果目录里已经有 `.eguiproject` 但没有 `.egui`，会直接报冲突，不会继续覆盖
 

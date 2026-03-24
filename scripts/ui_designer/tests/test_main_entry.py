@@ -55,6 +55,7 @@ class _FakeWindow:
         self.open_calls = []
         self.show_called = False
         self.raise_on_open = None
+        self.prompt_calls = 0
         type(self).last_instance = self
 
     def _open_project_path(self, path, preferred_sdk_root="", silent=False):
@@ -71,6 +72,9 @@ class _FakeWindow:
     def show(self):
         self.show_called = True
 
+    def maybe_prompt_initial_sdk_setup(self):
+        self.prompt_calls += 1
+
 
 @pytest.fixture
 def main_module():
@@ -81,6 +85,7 @@ def main_module():
 
 def _patch_main_dependencies(monkeypatch, config, sdk_root, main_module, open_error=None):
     import PyQt5.QtWidgets as qtwidgets
+    import PyQt5.QtCore as qtcore
     import ui_designer.model.config as config_module
     import ui_designer.model.widget_registry as registry_module
     import ui_designer.model.workspace as workspace_module
@@ -111,6 +116,7 @@ def _patch_main_dependencies(monkeypatch, config, sdk_root, main_module, open_er
     )
     monkeypatch.setattr(theme_module, "apply_theme", lambda app, theme: theme_calls.append(theme))
     monkeypatch.setattr(main_window_module, "MainWindow", WindowFactory)
+    monkeypatch.setattr(qtcore.QTimer, "singleShot", staticmethod(lambda _msec, callback: callback()))
     monkeypatch.setattr(qtwidgets, "QApplication", _FakeApp)
     monkeypatch.setattr(main_module.sys, "exit", lambda code=0: exit_codes.append(code))
 
@@ -151,6 +157,7 @@ def test_main_opens_cli_project_with_resolved_sdk_root(monkeypatch, tmp_path, ma
     assert window.show_called is True
     assert app.application_name == "EmbeddedGUI Designer"
     assert "font-size: 9pt" in app.styleSheet()
+    assert window.prompt_calls == 0
     assert exit_codes == [0]
 
 
@@ -182,6 +189,7 @@ def test_main_reopens_recent_project_directory_silently(monkeypatch, tmp_path, m
             "silent": True,
         }
     ]
+    assert window.prompt_calls == 0
     assert window.show_called is True
 
 
@@ -204,3 +212,31 @@ def test_main_prints_warning_when_project_open_fails(monkeypatch, tmp_path, caps
     out = capsys.readouterr().out
     assert "Warning: Failed to load project: boom" in out
     assert window.show_called is True
+    assert window.prompt_calls == 0
+
+
+def test_main_starts_without_sdk_root_and_keeps_window_usable(monkeypatch, main_module):
+    config = _FakeConfig()
+
+    monkeypatch.setattr(
+        main_module,
+        "_parse_args",
+        lambda: argparse.Namespace(project=None, app=None, sdk_root=None),
+    )
+    theme_calls, registry_calls, exit_codes, window_state = _patch_main_dependencies(monkeypatch, config, "", main_module)
+
+    main_module.main()
+
+    window = window_state["instance"]
+    app = _FakeApp.last_instance
+    assert config.sdk_root == ""
+    assert config.egui_root == ""
+    assert config.save_calls == 0
+    assert theme_calls == ["dark"]
+    assert registry_calls == ["instance"]
+    assert window.sdk_root == ""
+    assert window.open_calls == []
+    assert window.show_called is True
+    assert app.application_name == "EmbeddedGUI Designer"
+    assert window.prompt_calls == 1
+    assert exit_codes == [0]

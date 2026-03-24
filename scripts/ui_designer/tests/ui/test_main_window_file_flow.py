@@ -7,6 +7,7 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
+    from PyQt5.QtCore import QByteArray
     from PyQt5.QtWidgets import QApplication
     from PyQt5.QtWidgets import QMessageBox
 
@@ -56,6 +57,29 @@ def _create_project(project_dir, app_name, sdk_root=""):
     project.create_new_page("main_page")
     project.save(str(project_dir))
     return project
+
+
+class _DisabledCompiler:
+    def can_build(self):
+        return False
+
+    def is_preview_running(self):
+        return False
+
+    def stop_exe(self):
+        return None
+
+    def cleanup(self):
+        return None
+
+    def get_build_error(self):
+        return "preview disabled for test"
+
+    def set_screen_size(self, width, height):
+        return None
+
+    def is_exe_ready(self):
+        return False
 
 
 @_skip_no_qt
@@ -119,6 +143,50 @@ class TestMainWindowFileFlow:
         assert isolated_config.recent_projects[0]["project_path"] == os.path.join(str(project_dir), "SaveDemo.egui")
         assert window._undo_manager.is_any_dirty() is False
         assert "Saved:" in window.statusBar().currentMessage()
+        window.close()
+        window.deleteLater()
+
+    def test_new_project_can_be_created_without_sdk_root(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        parent_dir = tmp_path / "workspace"
+        parent_dir.mkdir()
+
+        class FakeDialog:
+            Accepted = 1
+
+            def __init__(self, *args, **kwargs):
+                self.sdk_root = ""
+                self.parent_dir = str(parent_dir)
+                self.app_name = "NoSdkDemo"
+                self.screen_width = 240
+                self.screen_height = 320
+
+            def exec_(self):
+                return self.Accepted
+
+        opened = {}
+        window = MainWindow("")
+
+        def fake_open_loaded_project(project, project_dir, preferred_sdk_root="", silent=False):
+            opened["project"] = project
+            opened["project_dir"] = project_dir
+            opened["preferred_sdk_root"] = preferred_sdk_root
+            opened["silent"] = silent
+
+        monkeypatch.setattr("ui_designer.ui.main_window.NewProjectDialog", FakeDialog)
+        monkeypatch.setattr(window, "_open_loaded_project", fake_open_loaded_project)
+
+        window._new_project()
+
+        project_dir = parent_dir / "NoSdkDemo"
+        assert project_dir.is_dir()
+        assert (project_dir / "NoSdkDemo.egui").is_file()
+        assert (project_dir / "build.mk").is_file()
+        assert opened["project"].sdk_root == ""
+        assert opened["project_dir"] == os.path.normpath(os.path.abspath(project_dir))
+        assert opened["preferred_sdk_root"] == ""
+        assert "Created project: NoSdkDemo" in window.statusBar().currentMessage()
         window.close()
         window.deleteLater()
 
@@ -238,6 +306,133 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_set_sdk_root_auto_resolves_parent_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_parent = tmp_path / "tools"
+        sdk_root = sdk_parent / "sdk" / "EmbeddedGUI-main"
+        _create_sdk_root(sdk_root)
+
+        window = MainWindow("")
+        monkeypatch.setattr("ui_designer.ui.main_window.QFileDialog.getExistingDirectory", lambda *args, **kwargs: str(sdk_parent))
+
+        window._set_sdk_root()
+
+        assert window.project_root == os.path.normpath(os.path.abspath(sdk_root))
+        assert isolated_config.sdk_root == os.path.normpath(os.path.abspath(sdk_root))
+        assert "SDK root set to:" in window.statusBar().currentMessage()
+        window.close()
+        window.deleteLater()
+
+    def test_download_sdk_updates_config_and_project_root(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "downloaded_sdk"
+
+        def fake_ensure_sdk_downloaded(target_dir, progress_callback=None):
+            _create_sdk_root(sdk_root)
+            if progress_callback is not None:
+                progress_callback("EmbeddedGUI SDK is ready.", 100)
+            return str(sdk_root)
+
+        window = MainWindow("")
+        monkeypatch.setattr("ui_designer.ui.main_window.default_sdk_install_dir", lambda: str(tmp_path / "sdk_cache"))
+        monkeypatch.setattr("ui_designer.ui.main_window.ensure_sdk_downloaded", fake_ensure_sdk_downloaded)
+
+        result = window._download_sdk()
+
+        assert result == os.path.normpath(os.path.abspath(sdk_root))
+        assert window.project_root == os.path.normpath(os.path.abspath(sdk_root))
+        assert isolated_config.sdk_root == os.path.normpath(os.path.abspath(sdk_root))
+        assert isolated_config.sdk_setup_prompted is True
+        assert "SDK downloaded to:" in window.statusBar().currentMessage()
+        window.close()
+        window.deleteLater()
+
+    def test_download_sdk_failure_mentions_target_dir(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        target_dir = tmp_path / "sdk_cache"
+        warnings = []
+
+        window = MainWindow("")
+        monkeypatch.setattr("ui_designer.ui.main_window.default_sdk_install_dir", lambda: str(target_dir))
+        monkeypatch.setattr(
+            "ui_designer.ui.main_window.ensure_sdk_downloaded",
+            lambda target, progress_callback=None: (_ for _ in ()).throw(RuntimeError("network blocked")),
+        )
+        monkeypatch.setattr("ui_designer.ui.main_window.QMessageBox.warning", lambda *args: warnings.append(args[1:]))
+
+        result = window._download_sdk()
+
+        assert result == ""
+        assert warnings
+        assert warnings[0][0] == "Download SDK Failed"
+        assert str(target_dir) in warnings[0][1]
+        assert "install git for clone fallback" in warnings[0][1]
+        window.close()
+        window.deleteLater()
+
+    def test_initial_sdk_prompt_shows_target_dir_and_dispatches_download(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        target_dir = tmp_path / "sdk_cache"
+        captured = {}
+
+        class FakeMessageBox:
+            Information = QMessageBox.Information
+            AcceptRole = QMessageBox.AcceptRole
+            ActionRole = QMessageBox.ActionRole
+            RejectRole = QMessageBox.RejectRole
+
+            def __init__(self, parent=None):
+                self.parent = parent
+                self._buttons = []
+                self._clicked = None
+
+            def setWindowTitle(self, title):
+                captured["title"] = title
+
+            def setIcon(self, icon):
+                captured["icon"] = icon
+
+            def setText(self, text):
+                captured["text"] = text
+
+            def setInformativeText(self, text):
+                captured["info"] = text
+
+            def addButton(self, text, role):
+                button = object()
+                self._buttons.append((text, role, button))
+                if text == "Download SDK Automatically":
+                    self._clicked = button
+                return button
+
+            def exec_(self):
+                return 0
+
+            def clickedButton(self):
+                return self._clicked
+
+        download_calls = []
+
+        window = MainWindow("")
+        monkeypatch.setattr("ui_designer.ui.main_window.default_sdk_install_dir", lambda: str(target_dir))
+        monkeypatch.setattr("ui_designer.ui.main_window.QMessageBox", FakeMessageBox)
+        monkeypatch.setattr(window, "_download_sdk", lambda: download_calls.append("download"))
+
+        window.maybe_prompt_initial_sdk_setup()
+
+        assert captured["title"] == "Prepare EmbeddedGUI SDK"
+        assert "No EmbeddedGUI SDK was detected." in captured["text"]
+        assert str(target_dir) in captured["info"]
+        assert "GitHub archive first" in captured["info"]
+        assert isolated_config.sdk_setup_prompted is True
+        assert download_calls == ["download"]
+        window.close()
+        window.deleteLater()
+
     def test_import_legacy_example_generates_project_and_uses_existing_dimensions(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.project import Project
         from ui_designer.ui.main_window import MainWindow
@@ -337,5 +532,137 @@ class TestMainWindowFileFlow:
         assert recent_widget is not None
         assert "No recent projects" in recent_widget.text()
         assert "Removed missing project" in window.statusBar().currentMessage()
+        window.close()
+        window.deleteLater()
+
+    def test_poll_project_files_auto_reloads_clean_project(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "WatchDemo"
+        project = _create_project(project_dir, "WatchDemo", sdk_root)
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+
+        reload_calls = []
+        monkeypatch.setattr(
+            window,
+            "_reload_project_from_disk",
+            lambda *args, **kwargs: reload_calls.append(kwargs) or True,
+        )
+
+        layout_file = project_dir / ".eguiproject" / "layout" / "main_page.xml"
+        layout_file.write_text(layout_file.read_text(encoding="utf-8") + "\n<!-- external -->\n", encoding="utf-8")
+
+        window._poll_project_files()
+
+        assert len(reload_calls) == 1
+        assert reload_calls[0]["auto"] is True
+        assert os.path.normpath(os.path.abspath(layout_file)) in reload_calls[0]["changed_paths"]
+        window.close()
+        window.deleteLater()
+
+    def test_poll_project_files_marks_pending_when_project_is_dirty(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "DirtyWatchDemo"
+        project = _create_project(project_dir, "DirtyWatchDemo", sdk_root)
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._undo_manager.get_stack("main_page").push("<Page dirty='1' />")
+
+        reload_calls = []
+        monkeypatch.setattr(
+            window,
+            "_reload_project_from_disk",
+            lambda *args, **kwargs: reload_calls.append(kwargs) or True,
+        )
+
+        layout_file = project_dir / ".eguiproject" / "layout" / "main_page.xml"
+        layout_file.write_text(layout_file.read_text(encoding="utf-8") + "\n<!-- dirty external -->\n", encoding="utf-8")
+
+        window._poll_project_files()
+
+        assert reload_calls == []
+        assert window._external_reload_pending is True
+        assert "External project changes detected" in window.statusBar().currentMessage()
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
+    def test_reload_project_from_disk_preserves_current_page(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.project import Project
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "ReloadDemo"
+
+        project = Project(screen_width=240, screen_height=320, app_name="ReloadDemo")
+        project.sdk_root = str(sdk_root)
+        project.project_dir = str(project_dir)
+        project.create_new_page("main_page")
+        project.create_new_page("detail_page")
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._switch_page("detail_page")
+
+        reloaded = Project.load(str(project_dir))
+        reloaded.startup_page = "main_page"
+        reloaded.create_new_page("summary_page")
+        reloaded.save(str(project_dir))
+
+        assert window._reload_project_from_disk() is True
+        assert window._current_page is not None
+        assert window._current_page.name == "detail_page"
+        assert window.project.get_page_by_name("summary_page") is not None
+        window.close()
+        window.deleteLater()
+
+    def test_window_state_helpers_roundtrip_with_config_storage(self, qapp, isolated_config, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        window = MainWindow("")
+
+        saved_geometry = QByteArray(b"geometry-bytes")
+        saved_state = QByteArray(b"state-bytes")
+        monkeypatch.setattr(window, "saveGeometry", lambda: saved_geometry)
+        monkeypatch.setattr(window, "saveState", lambda: saved_state)
+
+        window._save_window_state_to_config()
+
+        assert isolated_config.window_geometry == bytes(saved_geometry.toBase64()).decode("ascii")
+        assert isolated_config.window_state == bytes(saved_state.toBase64()).decode("ascii")
+
+        restore_calls = {}
+        monkeypatch.setattr(window, "restoreGeometry", lambda data: restore_calls.setdefault("geometry", bytes(data)) or True)
+        monkeypatch.setattr(window, "restoreState", lambda data: restore_calls.setdefault("state", bytes(data)) or True)
+
+        window._apply_saved_window_state()
+
+        assert restore_calls["geometry"] == b"geometry-bytes"
+        assert restore_calls["state"] == b"state-bytes"
+        assert window.project_dock.objectName() == "project_explorer_dock"
+        assert window.tree_dock.objectName() == "widget_tree_dock"
+        assert window.props_dock.objectName() == "properties_dock"
+        assert window.res_dock.objectName() == "resources_dock"
+        assert window.debug_dock.objectName() == "debug_output_dock"
+        assert window._toolbar.objectName() == "main_toolbar"
         window.close()
         window.deleteLater()

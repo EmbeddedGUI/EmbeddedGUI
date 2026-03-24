@@ -123,10 +123,73 @@ class TestAppSelectorDialog:
         assert dialog._open_btn.isEnabled() is True
         dialog.deleteLater()
 
+    def test_browse_root_auto_resolves_parent_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.app_selector import AppSelectorDialog
+
+        sdk_parent = tmp_path / "tools"
+        sdk_root = sdk_parent / "EmbeddedGUI-main"
+        _create_sdk_root(sdk_root)
+        (sdk_root / "example").mkdir()
+
+        dialog = AppSelectorDialog(egui_root="")
+        monkeypatch.setattr("ui_designer.ui.app_selector.QFileDialog.getExistingDirectory", lambda *args, **kwargs: str(sdk_parent))
+
+        dialog._browse_root()
+
+        assert dialog.egui_root == os.path.normpath(os.path.abspath(sdk_root))
+        assert dialog._root_edit.text() == os.path.normpath(os.path.abspath(sdk_root))
+        dialog.deleteLater()
+
+    def test_search_filters_examples_by_name(self, qapp, isolated_config, tmp_path):
+        from ui_designer.ui.app_selector import AppSelectorDialog
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        example_dir = sdk_root / "example"
+        example_dir.mkdir()
+
+        for name in ("HelloVirtual", "HelloShowcase", "HelloSimple"):
+            app_dir = example_dir / name
+            app_dir.mkdir()
+            (app_dir / "build.mk").write_text("")
+            (app_dir / f"{name}.egui").write_text("")
+
+        isolated_config.sdk_root = str(sdk_root)
+        dialog = AppSelectorDialog(egui_root=str(sdk_root))
+        dialog._search_edit.setText("show")
+
+        assert dialog._app_list.count() == 1
+        assert dialog._app_list.item(0).text() == "HelloShowcase"
+        assert dialog.selected_entry["app_name"] == "HelloShowcase"
+        dialog.deleteLater()
+
+    def test_search_shows_empty_state_when_no_example_matches(self, qapp, isolated_config, tmp_path):
+        from ui_designer.ui.app_selector import AppSelectorDialog
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        example_dir = sdk_root / "example"
+        example_dir.mkdir()
+
+        app_dir = example_dir / "HelloVirtual"
+        app_dir.mkdir()
+        (app_dir / "build.mk").write_text("")
+        (app_dir / "HelloVirtual.egui").write_text("")
+
+        isolated_config.sdk_root = str(sdk_root)
+        dialog = AppSelectorDialog(egui_root=str(sdk_root))
+        dialog._search_edit.setText("missing")
+
+        assert dialog._app_list.count() == 1
+        assert dialog._app_list.item(0).text() == "(No matching examples)"
+        assert dialog._open_btn.isEnabled() is False
+        assert dialog.selected_entry is None
+        dialog.deleteLater()
+
 
 @_skip_no_qt
 class TestNewProjectDialog:
-    def test_accept_requires_valid_sdk_root(self, qapp, isolated_config):
+    def test_accept_requires_parent_directory(self, qapp, isolated_config):
         from ui_designer.ui.new_project_dialog import NewProjectDialog
 
         warnings = []
@@ -139,7 +202,19 @@ class TestNewProjectDialog:
 
         assert dialog.result() == 0
         assert warnings
-        assert warnings[0][0] == "Invalid SDK Root"
+        assert warnings[0][0] == "Parent Directory"
+        dialog.deleteLater()
+
+    def test_accept_succeeds_without_sdk_root(self, qapp, isolated_config, tmp_path):
+        from ui_designer.ui.new_project_dialog import NewProjectDialog
+
+        dialog = NewProjectDialog(sdk_root="", default_parent_dir=str(tmp_path))
+        dialog._app_name_edit.setText("DemoApp")
+        dialog._accept_if_valid()
+
+        assert dialog.result() == dialog.Accepted
+        assert dialog.sdk_root == ""
+        assert dialog.parent_dir == os.path.normpath(os.path.abspath(tmp_path))
         dialog.deleteLater()
 
     def test_accept_requires_valid_app_name(self, qapp, isolated_config, tmp_path):
@@ -157,6 +232,22 @@ class TestNewProjectDialog:
 
         assert dialog.result() == 0
         assert warnings[0][0] == "App Name"
+        dialog.deleteLater()
+
+    def test_browse_sdk_root_auto_resolves_parent_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.new_project_dialog import NewProjectDialog
+
+        sdk_parent = tmp_path / "tools"
+        sdk_root = sdk_parent / "sdk" / "EmbeddedGUI-main"
+        _create_sdk_root(sdk_root)
+
+        dialog = NewProjectDialog(sdk_root="", default_parent_dir=str(tmp_path))
+        monkeypatch.setattr("ui_designer.ui.new_project_dialog.QFileDialog.getExistingDirectory", lambda *args, **kwargs: str(sdk_parent))
+
+        dialog._browse_sdk_root()
+
+        assert dialog.sdk_root == os.path.normpath(os.path.abspath(sdk_root))
+        assert dialog._sdk_edit.text() == os.path.normpath(os.path.abspath(sdk_root))
         dialog.deleteLater()
 
     def test_accept_succeeds_with_valid_values(self, qapp, isolated_config, tmp_path):
@@ -220,6 +311,20 @@ class TestWelcomePage:
         assert str(sdk_root) in page._sdk_path_label.text()
         page.deleteLater()
 
+    def test_refresh_shows_default_download_cache_when_sdk_missing(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.welcome_page import WelcomePage
+
+        cache_dir = tmp_path / "cache" / "EmbeddedGUI"
+        isolated_config.sdk_root = ""
+        isolated_config.egui_root = ""
+        monkeypatch.setattr("ui_designer.ui.welcome_page.default_sdk_install_dir", lambda: str(cache_dir))
+
+        page = WelcomePage()
+
+        assert "Missing" in page._sdk_status_label.text()
+        assert str(cache_dir) in page._sdk_hint_label.text()
+        page.deleteLater()
+
     def test_quick_action_buttons_emit_signals(self, qapp, isolated_config):
         from ui_designer.ui.welcome_page import WelcomePage
 
@@ -229,11 +334,13 @@ class TestWelcomePage:
         page.open_project.connect(lambda: events.append("open_project"))
         page.open_app.connect(lambda: events.append("open_app"))
         page.set_sdk_root.connect(lambda: events.append("set_sdk"))
+        page.download_sdk.connect(lambda: events.append("download_sdk"))
 
         page._new_project_btn.click()
         page._open_project_btn.click()
         page._open_app_btn.click()
         page._set_sdk_root_btn.click()
+        page._download_sdk_btn.click()
 
-        assert events == ["new", "open_project", "open_app", "set_sdk"]
+        assert events == ["new", "open_project", "open_app", "set_sdk", "download_sdk"]
         page.deleteLater()

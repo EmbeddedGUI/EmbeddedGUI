@@ -16,6 +16,10 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 SPEC_PATH = SCRIPT_DIR / "ui_designer" / "ui_designer.spec"
 DIST_APP_NAME = "EmbeddedGUI-Designer"
+SUPPRESSED_LOG_SNIPPETS = (
+    "QFluentWidgets Pro is now released",
+    "qfluentwidgets.com/pages/pro",
+)
 
 
 def compute_platform_tag(platform_name: str | None = None, machine_name: str | None = None) -> str:
@@ -102,10 +106,53 @@ def ensure_pyinstaller_available():
         raise RuntimeError("PyInstaller is required. Run: python -m pip install pyinstaller") from exc
 
 
+def should_suppress_build_output(line: str) -> bool:
+    """Return True when a build log line is pure third-party promotion noise."""
+    text = line or ""
+    return any(snippet in text for snippet in SUPPRESSED_LOG_SNIPPETS)
+
+
+def iter_filtered_build_output(lines):
+    """Yield build output while stripping known third-party promotion lines."""
+    suppress_blank_lines = False
+    pending_blank_lines: list[str] = []
+    for line in lines:
+        if not line.strip():
+            pending_blank_lines.append(line)
+            continue
+        if should_suppress_build_output(line):
+            pending_blank_lines.clear()
+            suppress_blank_lines = True
+            continue
+        if suppress_blank_lines:
+            pending_blank_lines.clear()
+        suppress_blank_lines = False
+        if pending_blank_lines:
+            for blank_line in pending_blank_lines:
+                yield blank_line
+            pending_blank_lines.clear()
+        yield line
+
+
 def run_pyinstaller(dist_dir: Path, work_dir: Path, clean: bool = True):
     """Execute the PyInstaller build."""
     cmd = build_pyinstaller_command(dist_dir, work_dir, clean=clean)
-    subprocess.run(cmd, cwd=PROJECT_ROOT, check=True)
+    process = subprocess.Popen(
+        cmd,
+        cwd=PROJECT_ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+
+    assert process.stdout is not None
+    for line in iter_filtered_build_output(process.stdout):
+        print(line, end="")
+
+    returncode = process.wait()
+    if returncode != 0:
+        raise subprocess.CalledProcessError(returncode, cmd)
 
 
 def create_archive(dist_dir: Path, archive_dir: Path, archive_format: str, base_name: str) -> Path:

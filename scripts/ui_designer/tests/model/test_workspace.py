@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+import ui_designer.model.workspace as workspace_module
 from ui_designer.model.workspace import (
     compute_make_app_root_arg,
     describe_sdk_root,
@@ -12,6 +13,7 @@ from ui_designer.model.workspace import (
     infer_sdk_root_from_project_dir,
     is_valid_sdk_root,
     normalize_path,
+    resolve_sdk_root_candidate,
     resolve_project_sdk_root,
     serialize_sdk_root,
 )
@@ -79,3 +81,62 @@ class TestWorkspaceHelpers:
         _create_sdk_root(sdk_root)
         monkeypatch.setenv("EMBEDDEDGUI_SDK_ROOT", str(sdk_root))
         assert find_sdk_root() == normalize_path(str(sdk_root))
+
+    def test_resolve_sdk_root_candidate_accepts_parent_with_embeddedgui_child(self, tmp_path):
+        parent_dir = tmp_path / "tools"
+        sdk_root = parent_dir / "EmbeddedGUI-main"
+        parent_dir.mkdir(parents=True)
+        _create_sdk_root(sdk_root)
+
+        assert resolve_sdk_root_candidate(str(parent_dir)) == normalize_path(str(sdk_root))
+
+    def test_resolve_sdk_root_candidate_accepts_sdk_container_directory(self, tmp_path):
+        sdk_container = tmp_path / "sdk"
+        sdk_root = sdk_container / "EmbeddedGUI-main"
+        sdk_container.mkdir(parents=True)
+        _create_sdk_root(sdk_root)
+
+        assert resolve_sdk_root_candidate(str(sdk_container)) == normalize_path(str(sdk_root))
+
+    def test_find_sdk_root_discovers_plain_sdk_sibling_from_project_path(self, tmp_path, monkeypatch):
+        workspace_root = tmp_path / "workspace"
+        project_dir = workspace_root / "apps" / "HelloApp"
+        sdk_root = workspace_root / "sdk"
+        project_dir.mkdir(parents=True)
+        _create_sdk_root(sdk_root)
+
+        isolated_cwd = tmp_path / "isolated_cwd"
+        isolated_cwd.mkdir()
+        monkeypatch.chdir(isolated_cwd)
+
+        assert find_sdk_root(project_path=str(project_dir), env={}) == normalize_path(str(sdk_root))
+
+    def test_find_sdk_root_discovers_plain_sdk_container_near_frozen_designer(self, tmp_path, monkeypatch):
+        tools_root = tmp_path / "tools"
+        designer_dir = tools_root / "EmbeddedGUI-Designer"
+        sdk_root = tools_root / "sdk"
+        designer_dir.mkdir(parents=True)
+        _create_sdk_root(sdk_root)
+
+        isolated_cwd = tmp_path / "isolated_cwd"
+        isolated_cwd.mkdir()
+        monkeypatch.chdir(isolated_cwd)
+        monkeypatch.setattr(workspace_module.sys, "frozen", True, raising=False)
+        monkeypatch.setattr(workspace_module.sys, "executable", str(designer_dir / "EmbeddedGUI-Designer.exe"))
+
+        assert find_sdk_root(env={}) == normalize_path(str(sdk_root))
+
+    def test_find_sdk_root_discovers_embeddedgui_child_under_sdk_container(self, tmp_path, monkeypatch):
+        tools_root = tmp_path / "tools"
+        designer_dir = tools_root / "EmbeddedGUI-Designer"
+        sdk_root = tools_root / "sdk" / "EmbeddedGUI-main"
+        designer_dir.mkdir(parents=True)
+        _create_sdk_root(sdk_root)
+
+        isolated_cwd = tmp_path / "isolated_cwd"
+        isolated_cwd.mkdir()
+        monkeypatch.chdir(isolated_cwd)
+        monkeypatch.setattr(workspace_module.sys, "frozen", True, raising=False)
+        monkeypatch.setattr(workspace_module.sys, "executable", str(designer_dir / "EmbeddedGUI-Designer.exe"))
+
+        assert find_sdk_root(env={}) == normalize_path(str(sdk_root))

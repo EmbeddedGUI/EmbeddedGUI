@@ -50,6 +50,19 @@ def test_build_pyinstaller_command_includes_expected_paths(tmp_path):
     assert "-y" in cmd
 
 
+def test_iter_filtered_build_output_strips_qfluentwidgets_promotion():
+    module = _load_module()
+
+    lines = [
+        "\n",
+        "Tips: QFluentWidgets Pro is now released. Click https://qfluentwidgets.com/pages/pro to learn more about it.\n",
+        "\n",
+        "123 INFO: Building EXE\n",
+    ]
+
+    assert list(module.iter_filtered_build_output(lines)) == ["123 INFO: Building EXE\n"]
+
+
 def test_package_ui_designer_creates_archive_without_running_pyinstaller(tmp_path, monkeypatch):
     module = _load_module()
 

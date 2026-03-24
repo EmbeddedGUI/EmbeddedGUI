@@ -87,12 +87,51 @@ dist/EmbeddedGUI-Designer-windows-x64-v1.0.0.zip
 
 ## 首次运行说明
 
+补充说明，当前独立版首启 SDK 行为已经更新为：
+
+- Designer 会先自动发现已有 SDK
+- 如果当前没有检测到有效 SDK，且当前没有自动打开工程，会弹一次首启引导框
+- 引导框提供 `Download SDK Automatically`、`Select SDK Root...`、`Skip for Now` 三个动作
+- 引导框会直接显示自动下载默认写入的目标路径，避免用户不清楚 SDK 会被放到哪里
+
+如果用户选择自动下载，下载顺序是：
+
+- GitHub 主分支 zip 包
+- Gitee zip 包
+- Gitee `git clone` 回退路径（仅在本机存在 `git` 时启用）
+
+实际验证中，GitHub zip 是最稳定的主通路；Gitee 的匿名 zip 入口有时会返回 HTML 页面而不是压缩包，因此工具会自动继续尝试后续回退路径。
+如果当前下载源长时间无法完成，工具也会自动超时并继续回退，不会无限期卡在第一条下载链路上。
+如需调整这个归档下载超时，可通过环境变量 `EMBEDDEDGUI_SDK_ARCHIVE_TIMEOUT_SECONDS` 覆盖默认值。
+
+自动下载成功后，Designer 会自动保存 `sdk_root`，并恢复真实编译预览链路。
+
+自动下载的 SDK 默认不会写入 exe 目录，而是缓存到当前用户配置目录下：
+
+```text
+{config_dir}/sdk/EmbeddedGUI
+```
+
+这样可以避免安装目录不可写的问题，也方便独立 exe 升级后复用同一份 SDK 缓存。
+
+如果自动下载失败，Designer 仍然保持可编辑状态，预览继续退回 Python fallback。用户之后仍可通过以下入口重试：
+
+- 欢迎页 `Download SDK...`
+- `File -> Download SDK Copy...`
+- `Set SDK Root...`
+
 独立 exe 首次运行时，不一定已经知道 SDK 路径。当前设计是：
 
 - Designer 先尝试自动发现 SDK
 - 如果没找到有效 SDK，仍然可以打开工程和编辑
 - 预览会自动退回 Python fallback
 - 用户可以在欢迎页或菜单里点击 `Set SDK Root...` 补设 SDK
+- 手动选择 SDK 时，不要求必须精确点到最终根目录；选中其上层目录、`sdk/` 容器目录后，Designer 也会自动纠正
+
+自动发现会优先扫描项目目录、Designer 可执行文件所在目录、当前工作目录附近的常见布局，例如：
+- SDK 就放在同级 `EmbeddedGUI/`
+- SDK 根目录本身就叫 `sdk/`
+- `sdk/` 下面再包一层 `EmbeddedGUI-main/`、`EmbeddedGUI-sdk/` 之类的目录
 
 这意味着打包后的工具不要求必须和 SDK 放在同一目录。
 

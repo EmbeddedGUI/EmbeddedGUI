@@ -49,6 +49,7 @@ class DesignerConfig:
         self.show_all_examples = False
         self.window_geometry = ""
         self.window_state = ""
+        self.sdk_setup_prompted = False
 
     @property
     def egui_root(self):
@@ -148,6 +149,7 @@ class DesignerConfig:
             self.show_all_examples = data.get("show_all_examples", False)
             self.window_geometry = data.get("window_geometry", "")
             self.window_state = data.get("window_state", "")
+            self.sdk_setup_prompted = data.get("sdk_setup_prompted", False)
         except Exception as e:
             print(f"Warning: Failed to load config: {e}")
 
@@ -173,6 +175,7 @@ class DesignerConfig:
                 "show_all_examples": self.show_all_examples,
                 "window_geometry": self.window_geometry,
                 "window_state": self.window_state,
+                "sdk_setup_prompted": self.sdk_setup_prompted,
             }
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)

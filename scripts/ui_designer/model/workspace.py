@@ -7,6 +7,9 @@ import sys
 from typing import Iterable
 
 
+_COMMON_SDK_CONTAINER_NAMES = ("sdk", "SDK")
+
+
 def normalize_path(path: str | None) -> str:
     """Return an absolute normalized path, or an empty string."""
     if not path:
@@ -55,13 +58,62 @@ def _walk_ancestors(path: str) -> list[str]:
     return result
 
 
+def _looks_like_sdk_dir_name(name: str) -> bool:
+    name = (name or "").strip().lower()
+    if not name:
+        return False
+    return name in {"sdk", "embeddedgui"} or "embeddedgui" in name
+
+
+def _list_matching_child_dirs(base: str) -> list[str]:
+    base = normalize_path(base)
+    if not base or not os.path.isdir(base):
+        return []
+
+    result = []
+    try:
+        for entry in sorted(os.listdir(base)):
+            child = os.path.join(base, entry)
+            if os.path.isdir(child) and _looks_like_sdk_dir_name(entry):
+                result.append(child)
+    except OSError:
+        return []
+    return result
+
+
 def _search_common_sdk_locations(anchor: str) -> list[str]:
     result = []
     for base in _walk_ancestors(anchor):
         result.append(base)
-        result.append(os.path.join(base, "EmbeddedGUI"))
-        result.append(os.path.join(base, "sdk", "EmbeddedGUI"))
+        result.extend(_list_matching_child_dirs(base))
+        for container_name in _COMMON_SDK_CONTAINER_NAMES:
+            container_dir = os.path.join(base, container_name)
+            result.append(container_dir)
+            result.extend(_list_matching_child_dirs(container_dir))
     return result
+
+
+def resolve_sdk_root_candidate(path: str | None) -> str:
+    """Resolve *path* to a valid SDK root when possible.
+
+    Accepts exact SDK roots as well as nearby parent/container directories such
+    as ``sdk/`` or a project directory living under ``sdk_root/example/app``.
+    """
+    candidate = normalize_path(path)
+    if not candidate:
+        return ""
+
+    if is_valid_sdk_root(candidate):
+        return candidate
+
+    inferred = infer_sdk_root_from_project_dir(candidate)
+    if inferred:
+        return inferred
+
+    for nearby in _dedupe_paths(_search_common_sdk_locations(candidate)):
+        if is_valid_sdk_root(nearby):
+            return nearby
+    return ""
 
 
 def serialize_sdk_root(project_dir: str, sdk_root: str) -> str:
@@ -155,8 +207,9 @@ def find_sdk_root(
     candidates.extend(_search_common_sdk_locations(os.getcwd()))
 
     for candidate in _dedupe_paths(candidates):
-        if is_valid_sdk_root(candidate):
-            return candidate
+        resolved = resolve_sdk_root_candidate(candidate)
+        if resolved:
+            return resolved
     return ""
 
 
