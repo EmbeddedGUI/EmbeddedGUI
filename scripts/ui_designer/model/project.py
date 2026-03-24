@@ -30,6 +30,7 @@ from .widget_model import WidgetModel
 from .page import Page
 from .resource_catalog import ResourceCatalog
 from .string_resource import StringResourceCatalog
+from .workspace import normalize_path, resolve_project_sdk_root, serialize_sdk_root
 
 
 class Project:
@@ -42,13 +43,23 @@ class Project:
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.app_name = app_name
-        self.egui_root = ""  # Path to EmbeddedGUI root directory
+        self.sdk_root = ""  # Path to EmbeddedGUI SDK root directory
+        self.project_dir = ""  # Path to the app/project directory
         self.page_mode = "easy_page"  # "easy_page" or "activity"
         self.startup_page = "main_page"  # filename without extension
         self.resource_config = ""  # relative path to resource config (legacy)
         self.resource_catalog = ResourceCatalog()  # project resource catalog
         self.string_catalog = StringResourceCatalog()  # i18n string resources
         self.pages = []  # list[Page]
+
+    @property
+    def egui_root(self):
+        """Legacy alias for ``sdk_root``."""
+        return self.sdk_root
+
+    @egui_root.setter
+    def egui_root(self, value):
+        self.sdk_root = normalize_path(value)
 
     @property
     def root_widgets(self):
@@ -98,10 +109,12 @@ class Project:
     # ── Path helpers ──────────────────────────────────────────────
 
     def get_app_dir(self):
-        """Get the app directory path (e.g., .../example/HelloDesigner/)."""
-        if not self.egui_root:
-            return ""
-        return os.path.join(self.egui_root, "example", self.app_name)
+        """Get the app directory path."""
+        if self.project_dir:
+            return self.project_dir
+        if self.sdk_root:
+            return os.path.join(self.sdk_root, "example", self.app_name)
+        return ""
 
     def get_resource_dir(self):
         """Get the resource directory path (resource/).
@@ -161,6 +174,8 @@ class Project:
             project_dir/.eguiproject/resources.xml  - resource catalog
             project_dir/.eguiproject/layout/*.xml   - one file per page
         """
+        project_dir = normalize_path(project_dir)
+        self.project_dir = project_dir
         os.makedirs(project_dir, exist_ok=True)
         eguiproject_dir = os.path.join(project_dir, ".eguiproject")
         os.makedirs(eguiproject_dir, exist_ok=True)
@@ -188,8 +203,10 @@ class Project:
         root.set("screen_height", str(self.screen_height))
         root.set("page_mode", self.page_mode)
         root.set("startup", self.startup_page)
-        if self.egui_root:
-            root.set("egui_root", self.egui_root)
+        if self.sdk_root:
+            sdk_value = serialize_sdk_root(project_dir, self.sdk_root)
+            root.set("sdk_root", sdk_value)
+            root.set("egui_root", sdk_value)
 
         pages_elem = ET.SubElement(root, "Pages")
         for page in self.pages:
@@ -242,7 +259,8 @@ class Project:
             screen_height=int(root.get("screen_height", "320")),
             app_name=root.get("app_name", "HelloDesigner"),
         )
-        proj.egui_root = root.get("egui_root", "")
+        proj.project_dir = project_dir
+        proj.sdk_root = resolve_project_sdk_root(project_dir, root.get("sdk_root", root.get("egui_root", "")))
         proj.page_mode = root.get("page_mode", "easy_page")
         proj.startup_page = root.get("startup", "main_page")
 

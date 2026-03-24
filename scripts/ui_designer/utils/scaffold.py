@@ -5,6 +5,8 @@ app_egui_config.h, etc.) without any Qt dependencies so they can be
 used both by the Designer UI and by unit tests.
 """
 
+import json
+
 
 def make_app_build_mk_content(app_name):
     """Return the build.mk content string for a new EGUI app.
@@ -57,3 +59,8 @@ def make_app_config_h_content(app_name, screen_width=240, screen_height=320):
         f"",
     ]
     return "\n".join(lines)
+
+
+def make_empty_resource_config_content():
+    """Return the default ``app_resource_config.json`` content."""
+    return json.dumps({"img": [], "font": []}, indent=4, ensure_ascii=False) + "\n"

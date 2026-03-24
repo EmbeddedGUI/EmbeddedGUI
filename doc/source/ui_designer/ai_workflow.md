@@ -101,6 +101,7 @@ AI 代理弥合了这些差距：解析设计稿语义 → 生成 XML 布局 →
 | `scripts/code_format.py` | clang-format 代码格式化 |
 | `scripts/check_example_icon_font.py` | 示例图标字体显式配置检查 |
 | `scripts/release_check.py` | 一键发布验证（多步骤发布前流水线） |
+| `scripts/package_ui_designer.py` | 本地构建 UI Designer 桌面打包产物 |
 
 ## 三条输入路径
 
@@ -309,6 +310,12 @@ python scripts/release_check.py
 python scripts/release_check.py --keep-going
 python scripts/release_check.py --skip perf,perf_doc,wasm,doc,ui_package
 python scripts/release_check.py --cmake --skip runtime
+```
+
+如果只想单独验证 UI Designer 打包链，而不跑完整发布流水线，可直接执行：
+
+```bash
+python scripts/package_ui_designer.py
 ```
 
 ## 框架扩展驱动机制

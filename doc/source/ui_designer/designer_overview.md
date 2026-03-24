@@ -235,8 +235,8 @@ python scripts/ui_designer/main.py --project example/HelloDesigner/HelloDesigner
 # 指定 APP 名称
 python scripts/ui_designer/main.py --app HelloDesigner
 
-# 指定项目根目录
-python scripts/ui_designer/main.py --root /path/to/EmbeddedGUI
+# 指定 SDK 根目录（兼容 --root 别名）
+python scripts/ui_designer/main.py --sdk-root /path/to/EmbeddedGUI
 ```
 
 启动后，UI Designer 会：
@@ -245,6 +245,82 @@ python scripts/ui_designer/main.py --root /path/to/EmbeddedGUI
 2. 加载 `WidgetRegistry`（扫描 `custom_widgets/` 目录下所有插件）
 3. 如果有上次打开的项目，自动加载
 4. 显示主窗口（包含控件树、属性面板、XML 编辑器、实时预览）
+
+## SDK 根目录与项目目录
+
+新的 UI Designer 工作区模型拆分为三类路径：
+
+- `sdk_root`：EmbeddedGUI SDK 根目录，包含 `Makefile`、`src/`、`porting/designer/`
+- `project_dir`：当前 `.egui` 项目所在目录，也是标准 App 目录
+- `app_dir`：编译时传给 Make 的 App 目录，当前等同于 `project_dir`
+
+这意味着：
+
+- 项目目录不再要求必须位于 SDK 目录下面
+- 只要目标目录是标准 EmbeddedGUI App 结构，就可以独立保存、独立打开
+- 编译时通过 `EGUI_APP_ROOT_PATH` 把外部 App 挂接到 SDK 的构建系统中
+
+### SDK 自动发现与手动指定
+
+启动时会按下面顺序查找 SDK 根目录：
+
+1. 命令行 `--sdk-root`
+2. 配置文件中保存的 SDK 路径
+3. 当前项目路径附近的常见目录
+4. 环境变量 `EMBEDDEDGUI_SDK_ROOT`
+5. 运行目录附近的常见目录
+
+如果没有找到有效 SDK，Designer 仍然可以打开并编辑项目，只是会进入编辑模式并使用 Python 预览回退。用户之后可以在 `File -> Set SDK Root...` 里补设 SDK 路径。
+
+欢迎页也提供了 `Open Project File...`、`Open SDK Example...`、`Set SDK Root...` 三个直接入口，并显示当前 SDK 状态与路径，便于独立 exe 场景快速定位“为什么现在只能走 Python 预览”。
+
+### 新建项目与目录冲突
+
+`New Project...` 现在直接创建标准 App 目录，并自动补齐最小骨架：
+
+- `build.mk`
+- `app_egui_config.h`
+- `resource/src/app_resource_config.json`
+- `.egui` 与 `.eguiproject/`
+
+如果目标目录已存在且非空，会直接报错，避免把 Designer 项目写进一个有冲突内容的目录。
+
+### 打开 SDK Example
+
+`Open SDK Example...` 默认只显示已经包含 `.egui` 的示例，减少把纯源码示例误当成 Designer 工程打开的情况。
+
+- 如需查看旧示例，可勾选 `Show legacy examples without .egui`
+- 打开 legacy example 时，Designer 会在原目录初始化 `.egui` 工程
+- 如果目录里已经有 `.eguiproject` 但没有 `.egui`，会直接报冲突，不会继续覆盖
+
+最近项目如果已经被移动或删除，点击时会提示是否从最近项目列表里移除，避免列表长期残留失效路径。
+
+### 预览策略
+
+运行预览优先使用真实编译预览：
+
+1. 生成代码与资源
+2. 通过 SDK Makefile 编译目标 App
+3. 启动 headless preview bridge 获取实时帧
+
+如果出现下面任一情况，会自动退回 Python 预览：
+
+- SDK 根目录缺失或无效
+- 外部 App 路径无法被 Make 正常表达
+- 编译成功但预览桥接自检失败
+- 预览运行中断开，无法继续取帧
+
+Python 预览只保证基础静态渲染与布局可见，不能替代真实交互验证；SDK 配置恢复后，Designer 会重新走真实编译预览链路。
+
+### 本地打包
+
+如果需要把 Designer 单独打包成桌面工具，推荐直接使用：
+
+```bash
+python scripts/package_ui_designer.py
+```
+
+它会统一调用 `ui_designer.spec`，并在 `dist/` 下生成运行目录与归档包。详见 [UI Designer 本地打包](package_designer.md)。
 
 ### 使用设计稿转换管道
 

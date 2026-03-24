@@ -10,6 +10,7 @@ from PyQt5.QtCore import Qt, QRect, QPoint, QPointF, QTimer, pyqtSignal, QRectF,
 from PyQt5.QtGui import QPainter, QPen, QColor, QFont, QBrush, QTransform, QPixmap, QImage
 
 from ..model.widget_registry import WidgetRegistry
+from ..engine.python_renderer import render_page
 
 
 # Overlay display modes
@@ -933,6 +934,7 @@ class PreviewPanel(QWidget):
     resource_dropped = pyqtSignal(object, str, str)  # widget, res_type, filename
     drag_started = pyqtSignal()
     drag_finished = pyqtSignal()
+    runtime_failed = pyqtSignal(str)
 
     def __init__(self, screen_width=240, screen_height=320, parent=None):
         super().__init__(parent)
@@ -946,6 +948,9 @@ class PreviewPanel(QWidget):
         self._compiler = None  # set by start_rendering()
         self._render_timer = QTimer(self)
         self._render_timer.timeout.connect(self._refresh_frame)
+        self._python_preview_active = False
+        self._frame_failure_count = 0
+        self._runtime_error_emitted = False
 
         self._init_ui()
 
@@ -1228,7 +1233,10 @@ class PreviewPanel(QWidget):
 
     def start_rendering(self, compiler):
         """Start periodic frame refresh from headless bridge."""
+        self.clear_python_preview_mode()
         self._compiler = compiler
+        self._frame_failure_count = 0
+        self._runtime_error_emitted = False
         self._render_timer.start(33)  # ~30fps
         self._embedded = True
         self.status_label.setText("Preview - headless rendering")
@@ -1238,24 +1246,78 @@ class PreviewPanel(QWidget):
         self._render_timer.stop()
         self._compiler = None
         self._embedded = False
+        self._frame_failure_count = 0
+        self._runtime_error_emitted = False
+
+    def _set_preview_pixmap(self, pixmap):
+        self._preview_label.setPixmap(pixmap)
+
+    def show_python_preview(self, page, reason=""):
+        """Render the current page with the Python fallback renderer."""
+        self.stop_rendering()
+        self._python_preview_active = True
+
+        if page is None:
+            self._preview_label.clear()
+            self.status_label.setText("Preview - Python fallback")
+            return
+
+        image = render_page(page, self.screen_width, self.screen_height).convert("RGBA")
+        raw = image.tobytes("raw", "RGBA")
+        qimage = QImage(raw, image.width, image.height, image.width * 4, QImage.Format_RGBA8888).copy()
+        self._set_preview_pixmap(QPixmap.fromImage(qimage))
+        if reason:
+            self.status_label.setText(f"Preview - Python fallback ({reason})")
+        else:
+            self.status_label.setText("Preview - Python fallback")
+
+    def clear_python_preview_mode(self):
+        """Leave Python fallback mode without clearing the current frame."""
+        self._python_preview_active = False
+
+    def is_python_preview_active(self):
+        """Return True when the panel shows Python-rendered preview."""
+        return self._python_preview_active
 
     def _refresh_frame(self):
         """Fetch frame from bridge and display as QPixmap."""
         if self._compiler is None:
             return
         frame_data = self._compiler.get_frame()
-        if frame_data:
-            expected = self.screen_width * self.screen_height * 3
-            if len(frame_data) != expected:
-                return
-            img = QImage(
-                frame_data,
-                self.screen_width,
-                self.screen_height,
-                self.screen_width * 3,
-                QImage.Format_RGB888,
-            )
-            self._preview_label.setPixmap(QPixmap.fromImage(img))
+        if not frame_data:
+            self._frame_failure_count += 1
+            if self._frame_failure_count >= 3 and not self._runtime_error_emitted:
+                self._render_timer.stop()
+                self._embedded = False
+                self._runtime_error_emitted = True
+                reason = ""
+                if self._compiler is not None:
+                    reason = self._compiler.get_last_runtime_error()
+                self.runtime_failed.emit(reason or "Headless preview stopped responding")
+            return
+
+        expected = self.screen_width * self.screen_height * 3
+        if len(frame_data) != expected:
+            self._frame_failure_count += 1
+            if self._frame_failure_count >= 3 and not self._runtime_error_emitted:
+                self._render_timer.stop()
+                self._embedded = False
+                self._runtime_error_emitted = True
+                self.runtime_failed.emit(
+                    f"Headless preview returned invalid frame size: {len(frame_data)} != {expected}"
+                )
+            return
+
+        self._frame_failure_count = 0
+        self._runtime_error_emitted = False
+        img = QImage(
+            frame_data,
+            self.screen_width,
+            self.screen_height,
+            self.screen_width * 3,
+            QImage.Format_RGB888,
+        )
+        self._set_preview_pixmap(QPixmap.fromImage(img))
 
     def eventFilter(self, obj, event):
         """Capture mouse events on _preview_label and forward to bridge."""

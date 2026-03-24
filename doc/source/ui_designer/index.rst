@@ -5,6 +5,7 @@ UI Designer 工具
    :maxdepth: 2
 
    designer_overview
+   package_designer
    widget_registry
    html_to_xml
    xml_to_c

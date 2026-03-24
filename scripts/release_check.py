@@ -120,7 +120,7 @@ def build_steps(args):
          [py, "-m", "pytest", "-c", str(SCRIPT_DIR / "ui_designer" / "pyproject.toml"), str(SCRIPT_DIR / "ui_designer" / "tests"), "-v", "--tb=short"]),
 
         ("ui_package", STEP_DESCRIPTIONS["ui_package"],
-         [py, "-m", "PyInstaller", str(SCRIPT_DIR / "ui_designer" / "ui_designer.spec"), "--distpath", str(PROJECT_ROOT / "dist"), "--workpath", str(PROJECT_ROOT / "build" / "pyinstaller"), "--clean", "-y"]),
+         [py, str(SCRIPT_DIR / "package_ui_designer.py"), "--archive", "none", "--output-dir", str(PROJECT_ROOT / "dist"), "--work-dir", str(PROJECT_ROOT / "build" / "pyinstaller")]),
 
         ("compile",  STEP_DESCRIPTIONS["compile"],
          compile_cmd),

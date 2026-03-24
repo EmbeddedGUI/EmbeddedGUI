@@ -7,6 +7,7 @@ import pytest
 from ui_designer.model.project import Project
 from ui_designer.model.page import Page
 from ui_designer.model.widget_model import WidgetModel
+from ui_designer.model.workspace import normalize_path
 
 
 class TestProjectDefaults:
@@ -17,7 +18,9 @@ class TestProjectDefaults:
         assert proj.screen_width == 240
         assert proj.screen_height == 320
         assert proj.app_name == "HelloDesigner"
+        assert proj.sdk_root == ""
         assert proj.egui_root == ""
+        assert proj.project_dir == ""
         assert proj.page_mode == "easy_page"
         assert proj.startup_page == "main_page"
         assert proj.pages == []
@@ -109,7 +112,7 @@ class TestPathHelpers:
         proj = Project(app_name="TestApp")
         proj.egui_root = "/home/user/EmbeddedGUI"
 
-        expected = os.path.join("/home/user/EmbeddedGUI", "example", "TestApp")
+        expected = os.path.join(normalize_path("/home/user/EmbeddedGUI"), "example", "TestApp")
         assert proj.get_app_dir() == expected
 
     def test_get_app_dir_empty_root(self):
@@ -120,15 +123,21 @@ class TestPathHelpers:
         proj = Project(app_name="TestApp")
         proj.egui_root = "/home/user/EmbeddedGUI"
 
-        expected = os.path.join("/home/user/EmbeddedGUI", "example", "TestApp", "resource")
+        expected = os.path.join(normalize_path("/home/user/EmbeddedGUI"), "example", "TestApp", "resource")
         assert proj.get_resource_dir() == expected
 
     def test_get_eguiproject_dir(self):
         proj = Project(app_name="TestApp")
         proj.egui_root = "/home/user/EmbeddedGUI"
 
-        expected = os.path.join("/home/user/EmbeddedGUI", "example", "TestApp", ".eguiproject")
+        expected = os.path.join(normalize_path("/home/user/EmbeddedGUI"), "example", "TestApp", ".eguiproject")
         assert proj.get_eguiproject_dir() == expected
+
+    def test_get_app_dir_prefers_project_dir(self):
+        proj = Project(app_name="TestApp")
+        proj.project_dir = normalize_path("/workspace/TestApp")
+        proj.egui_root = "/home/user/EmbeddedGUI"
+        assert proj.get_app_dir() == normalize_path("/workspace/TestApp")
 
 
 class TestGetAllWidgets:
@@ -149,6 +158,7 @@ class TestSaveLoad:
     @pytest.mark.integration
     def test_save_load_round_trip(self, tmp_path):
         proj = Project(screen_width=320, screen_height=480, app_name="RoundTripApp")
+        proj.sdk_root = str(tmp_path / "sdk")
         proj.startup_page = "home"
 
         root1 = WidgetModel("group", name="root_group", x=0, y=0, width=320, height=480)
@@ -171,6 +181,8 @@ class TestSaveLoad:
         assert loaded.screen_width == 320
         assert loaded.screen_height == 480
         assert loaded.app_name == "RoundTripApp"
+        assert loaded.project_dir == normalize_path(project_dir)
+        assert loaded.sdk_root == normalize_path(str(tmp_path / "sdk"))
         assert loaded.startup_page == "home"
         assert len(loaded.pages) == 2
 

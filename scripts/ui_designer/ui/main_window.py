@@ -14,6 +14,7 @@ Layout (default):
 
 import os
 import copy
+import shutil
 
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout,
@@ -33,17 +34,20 @@ from .editor_tabs import EditorTabs, MODE_DESIGN, MODE_SPLIT, MODE_CODE
 from .project_dock import ProjectExplorerDock
 from .resource_panel import ResourcePanel
 from .app_selector import AppSelectorDialog
+from .new_project_dialog import NewProjectDialog
 from .welcome_page import WelcomePage
 from .debug_panel import DebugPanel
 from ..model.widget_model import WidgetModel
 from ..model.project import Project
 from ..model.page import Page
 from ..model.config import get_config
+from ..model.workspace import find_sdk_root, infer_sdk_root_from_project_dir, is_valid_sdk_root, normalize_path
 from ..model.undo_manager import UndoManager
 from ..generator.code_generator import generate_all_files, generate_all_files_preserved, generate_uicode
 from ..generator.resource_config_generator import ResourceConfigGenerator
 from ..engine.compiler import CompilerEngine
 from ..engine.layout_engine import compute_layout, compute_page_layout
+from ..utils.scaffold import make_app_build_mk_content, make_app_config_h_content, make_empty_resource_config_content
 from .theme import apply_theme
 
 
@@ -78,10 +82,10 @@ class MainWindow(QMainWindow):
     def __init__(self, project_root, app_name="HelloDesigner"):
         super().__init__()
         self._config = get_config()
-        self.project_root = project_root
+        self.project_root = normalize_path(project_root)
         self.app_name = app_name
         self.project = None
-        self.compiler = CompilerEngine(project_root, app_name)
+        self.compiler = None
         self.auto_compile = self._config.auto_compile
         self._project_dir = None      # directory containing .egui project file
         self._selected_widget = None
@@ -140,9 +144,11 @@ class MainWindow(QMainWindow):
 
         # Welcome page (index 0)
         self._welcome_page = WelcomePage()
-        self._welcome_page.open_recent.connect(self._open_app)
+        self._welcome_page.open_recent.connect(self._open_recent_project)
         self._welcome_page.new_project.connect(self._new_project)
+        self._welcome_page.open_project.connect(self._open_project)
         self._welcome_page.open_app.connect(self._open_app_dialog)
+        self._welcome_page.set_sdk_root.connect(self._set_sdk_root)
         self._central_stack.addWidget(self._welcome_page)
 
         # Editor container (index 1)
@@ -239,6 +245,7 @@ class MainWindow(QMainWindow):
         self.preview_panel.resource_dropped.connect(self._on_resource_dropped)
         self.preview_panel.drag_started.connect(self._on_drag_started)
         self.preview_panel.drag_finished.connect(self._on_drag_finished)
+        self.preview_panel.runtime_failed.connect(self._on_preview_runtime_failed)
 
         # Editor tabs (Code → Design sync)
         self.editor_tabs.xml_changed.connect(self._on_xml_changed)
@@ -258,6 +265,180 @@ class MainWindow(QMainWindow):
 
     def _apply_stylesheet(self):
         pass  # Rely entirely on the global Fusion / Fluent theme
+
+    def _has_valid_sdk_root(self):
+        return is_valid_sdk_root(self.project_root)
+
+    def _recreate_compiler(self):
+        if self.compiler is not None:
+            self.compiler.cleanup()
+            self.compiler = None
+
+        if not self._has_valid_sdk_root() or not self._project_dir or not self.app_name:
+            return
+
+        self.compiler = CompilerEngine(self.project_root, self._project_dir, self.app_name)
+        if self.project is not None:
+            self.compiler.set_screen_size(self.project.screen_width, self.project.screen_height)
+
+    def _update_compile_availability(self):
+        can_compile = (
+            self.project is not None
+            and self.compiler is not None
+            and self._has_valid_sdk_root()
+            and self.compiler.can_build()
+        )
+        self._compile_action.setEnabled(can_compile)
+        self.auto_compile_action.setEnabled(can_compile)
+        self._stop_action.setEnabled(self.compiler is not None and self.compiler.is_preview_running())
+
+    def _switch_to_python_preview(self, reason=""):
+        if self._current_page is None:
+            self.preview_panel.show_python_preview(None, reason)
+            return
+        self.preview_panel.show_python_preview(self._current_page, reason)
+
+    def _refresh_python_preview(self, reason=""):
+        if self.project is None or self._current_page is None:
+            return
+        if reason or self.preview_panel.is_python_preview_active() or self.compiler is None:
+            self._switch_to_python_preview(reason)
+
+    def _persist_current_project_to_config(self):
+        self._config.last_app = self.app_name or self._config.last_app
+        self._config.last_project_path = normalize_path(os.path.join(self._project_dir, f"{self.app_name}.egui")) if self._project_dir else ""
+        if self._has_valid_sdk_root():
+            self._config.sdk_root = self.project_root
+            self._config.egui_root = self.project_root
+        if self._config.last_project_path:
+            self._config.add_recent_project(self._config.last_project_path, self.project_root, self.app_name)
+        else:
+            self._config.save()
+        self._update_recent_menu()
+
+    def _read_app_dimensions(self, app_dir):
+        screen_w, screen_h = 240, 320
+        config_h = os.path.join(app_dir, "app_egui_config.h")
+        if not os.path.isfile(config_h):
+            return screen_w, screen_h
+
+        try:
+            with open(config_h, "r", encoding="utf-8") as f:
+                content = f.read()
+            import re
+            match = re.search(r"EGUI_CONFIG_SCEEN_WIDTH\s+(\d+)", content)
+            if match:
+                screen_w = int(match.group(1))
+            match = re.search(r"EGUI_CONFIG_SCEEN_HEIGHT\s+(\d+)", content)
+            if match:
+                screen_h = int(match.group(1))
+        except Exception:
+            pass
+        return screen_w, screen_h
+
+    def _create_standard_project_model(self, app_name, sdk_root, project_dir):
+        WidgetModel.reset_counter()
+        screen_w, screen_h = self._read_app_dimensions(project_dir)
+        project = Project(screen_width=screen_w, screen_height=screen_h, app_name=app_name)
+        project.sdk_root = sdk_root
+        project.project_dir = project_dir
+        project.create_new_page("main_page")
+        return project
+
+    def _scaffold_project_directory(self, project_dir, app_name, screen_width, screen_height):
+        os.makedirs(project_dir, exist_ok=True)
+        resource_src_dir = os.path.join(project_dir, "resource", "src")
+        os.makedirs(resource_src_dir, exist_ok=True)
+
+        build_mk = os.path.join(project_dir, "build.mk")
+        if not os.path.exists(build_mk):
+            with open(build_mk, "w", encoding="utf-8") as f:
+                f.write(make_app_build_mk_content(app_name))
+
+        config_h = os.path.join(project_dir, "app_egui_config.h")
+        if not os.path.exists(config_h):
+            with open(config_h, "w", encoding="utf-8") as f:
+                f.write(make_app_config_h_content(app_name, screen_width, screen_height))
+
+        resource_cfg = os.path.join(resource_src_dir, "app_resource_config.json")
+        if not os.path.exists(resource_cfg):
+            with open(resource_cfg, "w", encoding="utf-8") as f:
+                f.write(make_empty_resource_config_content())
+
+    def _copy_project_sidecar_files(self, src_dir, dst_dir):
+        if not src_dir or not os.path.isdir(src_dir) or normalize_path(src_dir) == normalize_path(dst_dir):
+            return
+
+        for rel_path in ("build.mk", "app_egui_config.h"):
+            src_path = os.path.join(src_dir, rel_path)
+            dst_path = os.path.join(dst_dir, rel_path)
+            if os.path.isfile(src_path) and not os.path.exists(dst_path):
+                shutil.copy2(src_path, dst_path)
+
+        for rel_dir in (
+            os.path.join(".eguiproject", "resources"),
+            os.path.join(".eguiproject", "mockup"),
+        ):
+            src_path = os.path.join(src_dir, rel_dir)
+            dst_path = os.path.join(dst_dir, rel_dir)
+            if os.path.isdir(src_path):
+                shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
+
+    def _clear_editor_state(self):
+        self.preview_panel.stop_rendering()
+        self._selected_widget = None
+        self._current_page = None
+        self.page_tab_bar.clear()
+        self.widget_tree.set_project(None)
+        self.property_panel.set_widget(None)
+        self.preview_panel.set_widgets([])
+        self.preview_panel.clear_background_image()
+        self.project_dock.set_project(None)
+
+    def _open_loaded_project(self, project, project_dir, preferred_sdk_root="", silent=False):
+        project_dir = normalize_path(project_dir)
+        resolved_sdk_root = find_sdk_root(
+            cli_sdk_root=preferred_sdk_root or project.sdk_root,
+            configured_sdk_root=self._config.sdk_root or self.project_root,
+            project_path=project_dir,
+        )
+        project.sdk_root = resolved_sdk_root or normalize_path(preferred_sdk_root or project.sdk_root)
+        project.project_dir = project_dir
+
+        self.project = project
+        self._project_dir = project_dir
+        self.project_root = project.sdk_root
+        self.app_name = project.app_name
+        self._undo_manager = UndoManager()
+        self._recreate_compiler()
+        self._show_editor()
+        self._clear_editor_state()
+        self._apply_project()
+        self._update_window_title()
+        self._persist_current_project_to_config()
+
+        startup = project.get_startup_page()
+        if startup:
+            self._switch_page(startup.name)
+        elif project.pages:
+            self._switch_page(project.pages[0].name)
+
+        if self.compiler is None or not self.compiler.can_build():
+            reason = "SDK unavailable, compile preview disabled"
+            if self.compiler is not None and self.compiler.get_build_error():
+                reason = self.compiler.get_build_error()
+            self._switch_to_python_preview(reason)
+            self.statusBar().showMessage("Opened project in editing-only mode")
+        else:
+            self._trigger_compile()
+            self.statusBar().showMessage(f"Opened: {project_dir}")
+
+        if not project.sdk_root and not silent:
+            QMessageBox.information(
+                self,
+                "SDK Root Missing",
+                "The project opened successfully, but no valid EmbeddedGUI SDK root was found. Preview will use Python fallback until you set the SDK root.",
+            )
 
     # ── View switching ─────────────────────────────────────────────
 
@@ -294,7 +475,7 @@ class MainWindow(QMainWindow):
         new_action.triggered.connect(self._new_project)
         file_menu.addAction(new_action)
 
-        open_app_action = QAction("Open App...", self)
+        open_app_action = QAction("Open SDK Example...", self)
         open_app_action.setShortcut("Ctrl+Shift+O")
         open_app_action.triggered.connect(self._open_app_dialog)
         file_menu.addAction(open_app_action)
@@ -304,8 +485,12 @@ class MainWindow(QMainWindow):
         open_action.triggered.connect(self._open_project)
         file_menu.addAction(open_action)
 
-        # Recent Apps submenu
-        self._recent_menu = file_menu.addMenu("Recent Apps")
+        set_sdk_root_action = QAction("Set SDK Root...", self)
+        set_sdk_root_action.triggered.connect(self._set_sdk_root)
+        file_menu.addAction(set_sdk_root_action)
+
+        # Recent Projects submenu
+        self._recent_menu = file_menu.addMenu("Recent Projects")
         self._update_recent_menu()
 
         file_menu.addSeparator()
@@ -542,6 +727,7 @@ class MainWindow(QMainWindow):
         tb.addAction(self._stop_action)
 
         self._toolbar = tb
+        self._update_compile_availability()
 
     # ── Theme ──────────────────────────────────────────────────────
 
@@ -588,122 +774,123 @@ class MainWindow(QMainWindow):
     # ── Project operations ─────────────────────────────────────────
 
     def _update_recent_menu(self):
-        """Update the Recent Apps submenu."""
+        """Update the Recent Projects submenu."""
         self._recent_menu.clear()
-        recent = self._config.recent_apps
+        recent = self._config.recent_projects
         if not recent:
-            action = QAction("(No recent apps)", self)
+            action = QAction("(No recent projects)", self)
             action.setEnabled(False)
             self._recent_menu.addAction(action)
             return
 
-        for app_name, egui_root in recent[:10]:
-            action = QAction(f"{app_name}", self)
-            action.setToolTip(egui_root)
+        for item in recent[:10]:
+            project_path = item.get("project_path", "")
+            sdk_root = item.get("sdk_root", "")
+            display_name = item.get("display_name") or os.path.splitext(os.path.basename(project_path))[0]
+            action = QAction(display_name, self)
+            action.setToolTip(project_path)
             action.triggered.connect(
-                lambda checked, a=app_name, r=egui_root: self._open_app(a, r)
+                lambda checked, p=project_path, r=sdk_root: self._open_recent_project(p, r)
             )
             self._recent_menu.addAction(action)
 
     def _open_app_dialog(self):
-        """Show dialog to select and open an app."""
+        """Show dialog to select and open an SDK example."""
         dialog = AppSelectorDialog(self, self.project_root)
-        if dialog.exec_() == QDialog.Accepted:
-            app_name = dialog.selected_app
-            egui_root = dialog.egui_root
-            if app_name and egui_root:
-                self._open_app(app_name, egui_root)
+        if dialog.exec_() != QDialog.Accepted:
+            return
 
-    def _open_app(self, app_name, egui_root):
-        """Open a specific app.
+        entry = dialog.selected_entry
+        sdk_root = normalize_path(dialog.egui_root)
+        if not entry:
+            return
 
-        Args:
-            app_name: Name of the app (e.g., "HelloDesigner")
-            egui_root: Path to EmbeddedGUI root directory
-        """
-        # Update paths
-        self.project_root = egui_root
-        self.app_name = app_name
-
-        # Update compiler
-        self.compiler = CompilerEngine(egui_root, app_name)
-
-        # Find project file (.egui)
-        app_dir = os.path.join(egui_root, "example", app_name)
-        eui_file = os.path.join(app_dir, f"{app_name}.egui")
-
-        if os.path.isfile(eui_file):
-            try:
-                self.project = Project.load(eui_file)
-                self.project.egui_root = egui_root
-                self._project_dir = app_dir
-            except Exception as e:
-                QMessageBox.warning(
-                    self, "Warning",
-                    f"Failed to load {app_name}.egui:\n{e}\n\n"
-                    "Creating a new project."
-                )
-                self._create_new_project_for_app(app_name, egui_root, app_dir)
-        else:
-            # Create new project
-            self._create_new_project_for_app(app_name, egui_root, app_dir)
-
-        # Update config
-        self._config.egui_root = egui_root
-        self._config.last_app = app_name
-        self._config.last_project_path = os.path.abspath(eui_file) if os.path.isfile(eui_file) else ""
-        self._config.add_recent_app(app_name, egui_root)
+        self.project_root = sdk_root
+        self._config.sdk_root = sdk_root
+        self._config.egui_root = sdk_root
         self._config.save()
-        self._update_recent_menu()
 
-        # Reset undo manager for the new project
-        self._undo_manager = UndoManager()
-
-        # Update UI - switch to editor view
-        self._show_editor()
-        self._selected_widget = None
-        self._apply_project()
-        self._update_window_title()
-
-        # Switch to startup page
-        startup = self.project.get_startup_page()
-        if startup:
-            self._switch_page(startup.name)
-        elif self.project.pages:
-            self._switch_page(self.project.pages[0].name)
-
-        self._trigger_compile()
-        self.statusBar().showMessage(f"Opened app: {app_name}")
-
-    def _create_new_project_for_app(self, app_name, egui_root, app_dir):
-        """Create a new project for the given app."""
-        WidgetModel.reset_counter()
-
-        # Try to read screen dimensions from app_egui_config.h
-        screen_w, screen_h = 240, 320
-        config_h = os.path.join(app_dir, "app_egui_config.h")
-        if os.path.isfile(config_h):
+        if entry.get("has_project"):
             try:
-                with open(config_h, "r", encoding="utf-8") as f:
-                    content = f.read()
-                import re
-                m = re.search(r"EGUI_CONFIG_SCEEN_WIDTH\s+(\d+)", content)
-                if m:
-                    screen_w = int(m.group(1))
-                m = re.search(r"EGUI_CONFIG_SCEEN_HEIGHT\s+(\d+)", content)
-                if m:
-                    screen_h = int(m.group(1))
-            except Exception:
-                pass
+                self._open_project_path(entry.get("project_path", ""), preferred_sdk_root=sdk_root)
+            except Exception as exc:
+                QMessageBox.critical(self, "Error", f"Failed to open SDK example:\n{exc}")
+            return
 
-        self.project = Project(
-            screen_width=screen_w,
-            screen_height=screen_h,
-            app_name=app_name
-        )
-        self.project.egui_root = egui_root
-        self.project.create_new_page("main_page")
-        self._project_dir = app_dir
+        try:
+            self._import_legacy_example(entry, sdk_root)
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"Failed to import legacy example:\n{exc}")
+
+    def _set_sdk_root(self):
+        path = QFileDialog.getExistingDirectory(self, "Select EmbeddedGUI SDK Root", self.project_root or "")
+        if not path:
+            return
+
+        path = normalize_path(path)
+        if not is_valid_sdk_root(path):
+            QMessageBox.warning(self, "Invalid SDK Root", "The selected directory is not a valid EmbeddedGUI SDK root.")
+            return
+
+        self.project_root = path
+        self._config.sdk_root = path
+        self._config.egui_root = path
+        self._config.save()
+
+        if self.project is not None:
+            self.project.sdk_root = path
+            self._recreate_compiler()
+            self._update_compile_availability()
+            if self.compiler is None or not self.compiler.can_build():
+                reason = "SDK unavailable, compile preview disabled"
+                if self.compiler is not None and self.compiler.get_build_error():
+                    reason = self.compiler.get_build_error()
+                self._switch_to_python_preview(reason)
+            elif self.auto_compile:
+                self._trigger_compile()
+
+        self._welcome_page.refresh()
+        self.statusBar().showMessage(f"SDK root set to: {path}")
+
+    def _open_recent_project(self, project_path, sdk_root=""):
+        if not project_path:
+            return
+        try:
+            self._open_project_path(project_path, preferred_sdk_root=sdk_root)
+        except FileNotFoundError:
+            reply = QMessageBox.question(
+                self,
+                "Recent Project Missing",
+                f"The recent project path no longer exists:\n{project_path}\n\nRemove it from the recent project list?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.Yes,
+            )
+            if reply == QMessageBox.Yes:
+                if self._config.remove_recent_project(project_path):
+                    self._update_recent_menu()
+                    self._welcome_page.refresh()
+                self.statusBar().showMessage("Removed missing project from recent projects")
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"Failed to open project:\n{exc}")
+
+    def _import_legacy_example(self, entry, sdk_root):
+        app_name = entry.get("app_name", "")
+        app_dir = normalize_path(entry.get("app_dir", ""))
+        project_path = normalize_path(os.path.join(app_dir, f"{app_name}.egui"))
+        eguiproject_dir = os.path.join(app_dir, ".eguiproject")
+
+        if os.path.exists(eguiproject_dir) and not os.path.isfile(project_path):
+            QMessageBox.warning(
+                self,
+                "Legacy Example Conflict",
+                "This example already contains a .eguiproject directory but has no .egui file. Please resolve the directory conflict manually before importing it into Designer.",
+            )
+            return
+
+        project = self._create_standard_project_model(app_name, sdk_root, app_dir)
+        self._scaffold_project_directory(app_dir, app_name, project.screen_width, project.screen_height)
+        project.save(app_dir)
+        self._open_project_path(project_path, preferred_sdk_root=sdk_root)
 
     def _update_window_title(self):
         """Update window title with current app name and dirty indicator."""
@@ -715,58 +902,44 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(title)
 
     def _new_project(self):
-        """Create a new project - shows app selection dialog first."""
-        dialog = AppSelectorDialog(self, self.project_root)
-        dialog.setWindowTitle("New Project - Select App")
+        """Create a new project in a dedicated app directory."""
+        default_parent_dir = ""
+        if self._has_valid_sdk_root():
+            default_parent_dir = os.path.join(self.project_root, "example")
+        dialog = NewProjectDialog(self, sdk_root=self.project_root, default_parent_dir=default_parent_dir)
         if dialog.exec_() != QDialog.Accepted:
             return
 
-        app_name = dialog.selected_app
-        egui_root = dialog.egui_root
-        if not app_name or not egui_root:
+        sdk_root = normalize_path(dialog.sdk_root)
+        project_dir = normalize_path(os.path.join(dialog.parent_dir, dialog.app_name))
+        if os.path.isdir(project_dir) and os.listdir(project_dir):
+            QMessageBox.warning(
+                self,
+                "Directory Conflict",
+                f"The target directory already exists and is not empty:\n{project_dir}",
+            )
             return
 
-        # Check if project file already exists
-        app_dir = os.path.join(egui_root, "example", app_name)
-        eui_file = os.path.join(app_dir, f"{app_name}.egui")
-        if os.path.isfile(eui_file):
-            reply = QMessageBox.question(
-                self, "Project Exists",
-                f"A project already exists in '{app_name}'.\n\n"
-                "Do you want to overwrite it with a new project?",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
-            )
-            if reply != QMessageBox.Yes:
-                return
+        os.makedirs(project_dir, exist_ok=True)
+        project = Project(screen_width=dialog.screen_width, screen_height=dialog.screen_height, app_name=dialog.app_name)
+        project.sdk_root = sdk_root
+        project.project_dir = project_dir
+        project.create_new_page("main_page")
+        self._scaffold_project_directory(project_dir, dialog.app_name, dialog.screen_width, dialog.screen_height)
+        project.save(project_dir)
+        self._open_loaded_project(project, project_dir, preferred_sdk_root=sdk_root)
+        self.statusBar().showMessage(f"Created project: {dialog.app_name}")
 
-        # Update paths
-        self.project_root = egui_root
-        self.app_name = app_name
-        self.compiler = CompilerEngine(egui_root, app_name)
+    def _open_project_path(self, path, preferred_sdk_root="", silent=False):
+        path = normalize_path(path)
+        if not path:
+            raise FileNotFoundError("Project path is empty")
+        if not os.path.exists(path):
+            raise FileNotFoundError(path)
 
-        # Create new project
-        self._create_new_project_for_app(app_name, egui_root, app_dir)
-
-        # Update config
-        self._config.egui_root = egui_root
-        self._config.last_app = app_name
-        self._config.last_project_path = os.path.abspath(eui_file)
-        self._config.add_recent_app(app_name, egui_root)
-        self._config.save()
-        self._update_recent_menu()
-
-        # Reset undo manager for the new project
-        self._undo_manager = UndoManager()
-
-        # Update UI - switch to editor view
-        self._show_editor()
-        self._selected_widget = None
-        self._apply_project()
-        self._update_window_title()
-        self._switch_page("main_page")
-        self._trigger_compile()
-        self.statusBar().showMessage(f"Created new project for: {app_name}")
+        project = Project.load(path)
+        project_dir = path if os.path.isdir(path) else os.path.dirname(path)
+        self._open_loaded_project(project, project_dir, preferred_sdk_root=preferred_sdk_root, silent=silent)
 
     def _open_project(self):
         path, _ = QFileDialog.getOpenFileName(
@@ -776,109 +949,80 @@ class MainWindow(QMainWindow):
         if not path:
             return
         try:
-            self.project = Project.load(path)
-            self._project_dir = os.path.dirname(os.path.abspath(path))
-
-            # Try to infer egui_root from path (project is in example/<app>/)
-            if not self.project.egui_root:
-                # Path structure: .../example/<app>/{app}.egui
-                app_dir = self._project_dir
-                example_dir = os.path.dirname(app_dir)
-                if os.path.basename(example_dir) == "example":
-                    self.project.egui_root = os.path.dirname(example_dir)
-                    self.project_root = self.project.egui_root
-
-            # Update app_name and compiler if egui_root is valid
-            if self.project.egui_root and self.project.app_name:
-                self.app_name = self.project.app_name
-                self.project_root = self.project.egui_root
-                self.compiler = CompilerEngine(self.project_root, self.app_name)
-
-                # Update config
-                self._config.egui_root = self.project.egui_root
-                self._config.last_app = self.app_name
-                self._config.last_project_path = os.path.abspath(path)
-                self._config.add_recent_app(self.app_name, self.project.egui_root)
-                self._config.save()
-                self._update_recent_menu()
-
-            # Reset undo manager for the new project
-            self._undo_manager = UndoManager()
-
-            # Switch to editor view
-            self._show_editor()
-            self._selected_widget = None
-            self._apply_project()
-            self._update_window_title()
-
-            # Switch to startup page
-            startup = self.project.get_startup_page()
-            if startup:
-                self._switch_page(startup.name)
-            elif self.project.pages:
-                self._switch_page(self.project.pages[0].name)
-            self._trigger_compile()
-            self.statusBar().showMessage(f"Opened: {path}")
+            self._open_project_path(path)
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to open project:\n{e}")
+
+    def _save_project_files(self, project_dir):
+        self.project.project_dir = project_dir
+        self.project.sdk_root = self.project_root
+        self._scaffold_project_directory(project_dir, self.project.app_name, self.project.screen_width, self.project.screen_height)
+        self.project.save(project_dir)
+
+        files = generate_all_files_preserved(self.project, project_dir, backup=True)
+        for filename, content in files.items():
+            filepath = os.path.join(project_dir, filename)
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(content)
+        return files
 
     def _save_project(self):
         if self.project is None:
             self.statusBar().showMessage("No project to save")
             return
 
-        # Flush any pending XML edits into the model before saving
         self._flush_pending_xml()
 
-        # Default to app directory if not set
-        if not self._project_dir and self.project_root and self.app_name:
-            self._project_dir = os.path.join(self.project_root, "example", self.app_name)
-
-        if self._project_dir:
-            os.makedirs(self._project_dir, exist_ok=True)
-            self.project.save(self._project_dir)
-
-            # Generate C code files with user code preservation
-            files = generate_all_files_preserved(
-                self.project, self._project_dir, backup=True,
-            )
-            for filename, content in files.items():
-                filepath = os.path.join(self._project_dir, filename)
-                with open(filepath, "w", encoding="utf-8") as f:
-                    f.write(content)
-
-            self._undo_manager.mark_all_saved()
-            self._update_window_title()
-            n = len(files)
-            self.statusBar().showMessage(
-                f"Saved: {self._project_dir} ({n} code file(s) updated)"
-            )
-        else:
+        if not self._project_dir:
             self._save_project_as()
+            return
+
+        os.makedirs(self._project_dir, exist_ok=True)
+        files = self._save_project_files(self._project_dir)
+        self._recreate_compiler()
+        self._undo_manager.mark_all_saved()
+        self._persist_current_project_to_config()
+        self._update_window_title()
+        self._update_compile_availability()
+        self.statusBar().showMessage(f"Saved: {self._project_dir} ({len(files)} code file(s) updated)")
 
     def _save_project_as(self):
         if self.project is None:
             self.statusBar().showMessage("No project to save")
             return
 
-        path = QFileDialog.getExistingDirectory(
-            self, "Save Project To Directory"
-        )
-        if path:
-            self.project.save(path)
-            self._project_dir = path
-            self._undo_manager.mark_all_saved()
-            self._update_window_title()
-            self.statusBar().showMessage(f"Saved: {path}")
+        path = QFileDialog.getExistingDirectory(self, "Save Project To Directory")
+        if not path:
+            return
+
+        path = normalize_path(path)
+        if path != normalize_path(self._project_dir) and os.path.isdir(path) and os.listdir(path):
+            QMessageBox.warning(
+                self,
+                "Directory Conflict",
+                f"The selected directory is not empty:\n{path}",
+            )
+            return
+
+        old_project_dir = self._project_dir
+        os.makedirs(path, exist_ok=True)
+        self._copy_project_sidecar_files(old_project_dir, path)
+        files = self._save_project_files(path)
+        self._project_dir = path
+        self.project.project_dir = path
+        self._recreate_compiler()
+        self._undo_manager.mark_all_saved()
+        self._persist_current_project_to_config()
+        self._update_window_title()
+        self._update_compile_availability()
+        self.statusBar().showMessage(f"Saved: {path} ({len(files)} code file(s) updated)")
 
     def _close_project(self):
         """Close current project and return to welcome page."""
         if self.project is None:
-            # Already no project, just show welcome page
             self._show_welcome_page()
             return
 
-        # Ask to save changes only if there are unsaved modifications
         if self._undo_manager.is_any_dirty():
             reply = QMessageBox.question(
                 self, "Close Project",
@@ -889,29 +1033,21 @@ class MainWindow(QMainWindow):
 
             if reply == QMessageBox.Cancel:
                 return
-            elif reply == QMessageBox.Save:
+            if reply == QMessageBox.Save:
                 self._save_project()
 
-        # Stop any running exe
-        self.compiler.stop_exe()
+        if self.compiler is not None:
+            self.compiler.stop_exe()
+            self.compiler.cleanup()
+            self.compiler = None
 
-        # Clear project state
+        self.preview_panel.stop_rendering()
         self.project = None
         self._project_dir = None
-        self._selected_widget = None
-        self._current_page = None
         self._undo_manager = UndoManager()
-
-        # Clear UI panels
-        self.page_tab_bar.clear()
-        self.widget_tree.set_project(None)
-        self.property_panel.set_widget(None)
-        self.preview_panel.set_widgets([])
-        self.preview_panel.clear_background_image()
-        self.project_dock.set_project(None)
-
-        # Show welcome page
+        self._clear_editor_state()
         self._show_welcome_page()
+        self._update_compile_availability()
         self.statusBar().showMessage("Project closed")
 
     def _export_code(self):
@@ -1064,6 +1200,9 @@ class MainWindow(QMainWindow):
 
     def _apply_project(self):
         """Refresh all panels from the current project."""
+        if not self.project:
+            return
+
         # Load project-level custom widget plugins
         if self._project_dir:
             from ..model.widget_registry import WidgetRegistry
@@ -1072,7 +1211,8 @@ class MainWindow(QMainWindow):
 
         self.project_dock.set_project(self.project)
         self.preview_panel.update_screen_size(self.project.screen_width, self.project.screen_height)
-        self.compiler.set_screen_size(self.project.screen_width, self.project.screen_height)
+        if self.compiler is not None:
+            self.compiler.set_screen_size(self.project.screen_width, self.project.screen_height)
         self.page_tab_bar.clear()
 
         # Refresh resource panel with catalog
@@ -1095,19 +1235,28 @@ class MainWindow(QMainWindow):
         else:
             self.property_panel.set_string_keys([])
 
-        # Start background precompile if exe doesn't exist
-        self._start_precompile()
+        self._update_compile_availability()
+        if self.compiler is not None:
+            self._start_precompile()
 
     def _start_precompile(self):
         """Start background precompile if exe doesn't exist."""
         if not self.project:
+            return
+        if self.compiler is None or not self.compiler.can_build():
+            reason = "SDK unavailable, compile preview disabled"
+            if self.compiler is not None and self.compiler.get_build_error():
+                reason = self.compiler.get_build_error()
+            self._switch_to_python_preview(reason)
             return
         if self._precompile_worker is not None and self._precompile_worker.isRunning():
             return
         if not self.compiler.is_exe_ready():
             self.statusBar().showMessage("Background compiling...")
             self.debug_panel.log_action("Starting background precompile...")
-            self.debug_panel.log_cmd(f"make -j main.exe APP={self.app_name} PORT=designer COMPILE_DEBUG= COMPILE_OPT_LEVEL=-O0")
+            self.debug_panel.log_cmd(
+                f"make -j main.exe APP={self.app_name} PORT=designer EGUI_APP_ROOT_PATH={self.compiler.app_root_arg} COMPILE_DEBUG= COMPILE_OPT_LEVEL=-O0"
+            )
             self._precompile_worker = self.compiler.precompile_async(
                 callback=self._on_precompile_done
             )
@@ -1134,8 +1283,7 @@ class MainWindow(QMainWindow):
         """
         if self._project_dir:
             return os.path.join(self._project_dir, "resource")
-        # Fallback for unsaved projects: use example/<app>/resource under project root
-        return os.path.join(self.project_root, "example", self.app_name, "resource")
+        return ""
 
     def _get_eguiproject_resource_dir(self):
         """Compute the .eguiproject/resources/ path for the current project.
@@ -1145,10 +1293,7 @@ class MainWindow(QMainWindow):
         """
         if self._project_dir:
             return os.path.join(self._project_dir, ".eguiproject", "resources")
-        return os.path.join(
-            self.project_root, "example", self.app_name,
-            ".eguiproject", "resources"
-        )
+        return ""
 
     def _get_eguiproject_images_dir(self):
         """Compute the .eguiproject/resources/images/ path.
@@ -1199,6 +1344,93 @@ class MainWindow(QMainWindow):
         self.property_panel.set_widget(widget)
         self._on_model_changed()
 
+    def _run_resource_generation(self, silent=False):
+        if not self.project or not self._project_dir:
+            return False
+        if not self._has_valid_sdk_root():
+            if not silent:
+                QMessageBox.warning(
+                    self,
+                    "SDK Root Missing",
+                    "A valid EmbeddedGUI SDK root is required to run resource generation.",
+                )
+            self.debug_panel.log_error("Resource generation skipped: SDK root is missing or invalid")
+            return False
+
+        res_dir = self._get_resource_dir()
+        eguiproject_res_dir = self._get_eguiproject_resource_dir()
+        src_dir = os.path.join(res_dir, "src") if res_dir else ""
+        if not res_dir or not eguiproject_res_dir or not os.path.isdir(eguiproject_res_dir):
+            if not silent:
+                QMessageBox.warning(
+                    self,
+                    "Error",
+                    "No .eguiproject/resources directory found.\nPlease import resources first.",
+                )
+            return False
+
+        self.project.sync_resources_to_src(self._project_dir)
+
+        try:
+            ResourceConfigGenerator().generate_and_save(self.project, src_dir)
+        except Exception as exc:
+            self.debug_panel.log_error(f"Resource config generation failed: {exc}")
+            if not silent:
+                QMessageBox.warning(self, "Error", f"Failed to generate resource config:\n{exc}")
+            return False
+
+        import subprocess
+        import sys
+
+        gen_script = os.path.join(self.project_root, "scripts", "tools", "app_resource_generate.py")
+        if not os.path.isfile(gen_script):
+            if not silent:
+                QMessageBox.warning(self, "Error", f"Cannot find resource generator:\n{gen_script}")
+            self.debug_panel.log_error(f"Resource generation skipped: missing generator {gen_script}")
+            return False
+
+        output_dir = os.path.join(self.project_root, "output")
+        os.makedirs(output_dir, exist_ok=True)
+        cmd = [
+            sys.executable,
+            gen_script,
+            "-r",
+            res_dir,
+            "-o",
+            output_dir,
+            "-f",
+            "true",
+        ]
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                cwd=self.project_root,
+            )
+        except Exception as exc:
+            self.debug_panel.log_error(f"Resource generation error: {exc}")
+            if not silent:
+                QMessageBox.warning(self, "Error", f"Failed to run resource generator:\n{exc}")
+            return False
+
+        if result.returncode != 0:
+            err = result.stderr or result.stdout or "Unknown error"
+            self.debug_panel.log_error(f"Resource generation failed (rc={result.returncode})")
+            self.debug_panel.log_compile_output(False, err[:2000])
+            if not silent:
+                QMessageBox.warning(
+                    self,
+                    "Resource Generation Failed",
+                    f"Return code {result.returncode}:\n{err[:2000]}",
+                )
+            return False
+
+        self._resources_need_regen = False
+        self.debug_panel.log_info("Resources generated successfully")
+        return True
+
     def _generate_resources(self, silent=False):
         """Run the resource generation pipeline.
 
@@ -1210,90 +1442,10 @@ class MainWindow(QMainWindow):
         Args:
             silent: If True, suppress warning dialogs (used for auto-trigger).
         """
-        print(f"[DEBUG] _generate_resources called, silent={silent}")
-        res_dir = self._get_resource_dir()
-        eguiproject_res_dir = self._get_eguiproject_resource_dir()
-        src_dir = os.path.join(res_dir, "src") if res_dir else ""
-        print(f"[DEBUG] res_dir={res_dir}, eguiproject_res_dir={eguiproject_res_dir}")
-
-        # Check that we have source files in .eguiproject/resources/
-        if not eguiproject_res_dir or not os.path.isdir(eguiproject_res_dir):
-            if not silent:
-                QMessageBox.warning(
-                    self, "Error",
-                    "No .eguiproject/resources/ directory found.\n"
-                    "Please import resources first."
-                )
-            return
-
-        # Step 0: Sync .eguiproject/resources/ -> resource/src/
-        if self.project:
-            project_dir = self._project_dir or os.path.join(
-                self.project_root, "example", self.app_name
-            )
-            self.project.sync_resources_to_src(project_dir)
-            print("[DEBUG] Synced .eguiproject/resources/ -> resource/src/")
-
-        # Step 1: Generate app_resource_config.json from widget properties
-        if self.project:
-            try:
-                gen = ResourceConfigGenerator()
-                gen.generate_and_save(self.project, src_dir)
-                print("[DEBUG] app_resource_config.json generated from XML")
-            except Exception as e:
-                print(f"[DEBUG] ResourceConfigGenerator failed: {e}")
-                if not silent:
-                    QMessageBox.warning(
-                        self, "Error",
-                        f"Failed to generate resource config:\n{e}"
-                    )
-                return
-
-        # Step 2: Run app_resource_generate.py
-        gen_script = os.path.join(
-            self.project_root, "scripts", "tools", "app_resource_generate.py"
-        )
-        if not os.path.isfile(gen_script):
-            if not silent:
-                QMessageBox.warning(
-                    self, "Error",
-                    f"Cannot find resource generator:\n{gen_script}"
-                )
-            return
-
-        import subprocess, sys
-        output_dir = os.path.join(self.project_root, "output")
-        os.makedirs(output_dir, exist_ok=True)
-
-        cmd = [
-            sys.executable, gen_script,
-            "-r", res_dir,
-            "-o", output_dir,
-            "-f", "true",
-        ]
-        print(f"[DEBUG] Running: {' '.join(cmd)}")
         self.statusBar().showMessage("Generating resources...")
-        try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=120,
-                cwd=self.project_root,
-            )
-            if result.returncode == 0:
-                self._resources_need_regen = False
-                self.statusBar().showMessage("Resource generation completed.")
-            else:
-                err = result.stderr or result.stdout or "Unknown error"
-                if not silent:
-                    QMessageBox.warning(
-                        self, "Resource Generation Failed",
-                        f"Return code {result.returncode}:\n{err[:2000]}"
-                    )
-                self.statusBar().showMessage("Resource generation FAILED.")
-        except Exception as e:
-            if not silent:
-                QMessageBox.warning(
-                    self, "Error", f"Failed to run resource generator:\n{e}"
-                )
+        if self._run_resource_generation(silent=silent):
+            self.statusBar().showMessage("Resource generation completed.")
+        else:
             self.statusBar().showMessage("Resource generation FAILED.")
 
     def _ensure_resources_generated(self):
@@ -1306,60 +1458,7 @@ class MainWindow(QMainWindow):
         """
         if not self._resources_need_regen:
             return
-
-        res_dir = self._get_resource_dir()
-        eguiproject_res_dir = self._get_eguiproject_resource_dir()
-        src_dir = os.path.join(res_dir, "src") if res_dir else ""
-
-        if not eguiproject_res_dir or not os.path.isdir(eguiproject_res_dir):
-            return
-
-        # Sync .eguiproject/resources/ -> resource/src/ for pipeline
-        if self.project:
-            project_dir = self._project_dir or os.path.join(
-                self.project_root, "example", self.app_name
-            )
-            self.project.sync_resources_to_src(project_dir)
-
-        # Step 1: Generate app_resource_config.json from widget properties
-        try:
-            gen = ResourceConfigGenerator()
-            gen.generate_and_save(self.project, src_dir)
-        except Exception as e:
-            self.debug_panel.log_error(f"Resource config generation failed: {e}")
-            return
-
-        # Step 2: Run app_resource_generate.py
-        gen_script = os.path.join(
-            self.project_root, "scripts", "tools", "app_resource_generate.py"
-        )
-        if not os.path.isfile(gen_script):
-            return
-
-        import subprocess, sys
-        output_dir = os.path.join(self.project_root, "output")
-        os.makedirs(output_dir, exist_ok=True)
-
-        cmd = [
-            sys.executable, gen_script,
-            "-r", res_dir,
-            "-o", output_dir,
-            "-f", "true",
-        ]
-        try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=120,
-                cwd=self.project_root,
-            )
-            if result.returncode == 0:
-                self._resources_need_regen = False
-                self.debug_panel.log_info("Resources generated successfully")
-            else:
-                err = result.stderr or result.stdout or "Unknown error"
-                self.debug_panel.log_error(f"Resource generation failed (rc={result.returncode})")
-                self.debug_panel.log_compile_output(False, err[:2000])
-        except Exception as e:
-            self.debug_panel.log_error(f"Resource generation error: {e}")
+        self._run_resource_generation(silent=True)
 
     # ── Page management ────────────────────────────────────────────
 
@@ -1709,6 +1808,13 @@ class MainWindow(QMainWindow):
             widgets = self._current_page.get_all_widgets()
             self.preview_panel.set_widgets(widgets)
             self.preview_panel.set_selected(self._selected_widget)
+            if self.compiler is None or not self.compiler.can_build() or self.preview_panel.is_python_preview_active():
+                reason = ""
+                if self.compiler is None:
+                    reason = "SDK unavailable, compile preview disabled"
+                elif not self.compiler.can_build():
+                    reason = self.compiler.get_build_error()
+                self._refresh_python_preview(reason)
 
     def _set_overlay_mode(self, mode):
         self.preview_panel.set_overlay_mode(mode)
@@ -1731,8 +1837,12 @@ class MainWindow(QMainWindow):
 
     def _trigger_compile(self):
         """Trigger a debounced compile."""
-        if self.auto_compile:
-            self._compile_timer.start()
+        if not self.auto_compile:
+            return
+        if self.compiler is None:
+            self._refresh_python_preview("SDK unavailable, compile preview disabled")
+            return
+        self._compile_timer.start()
 
     def _flush_pending_xml(self):
         """Flush any pending XML edits from the editor into the model."""
@@ -1743,6 +1853,13 @@ class MainWindow(QMainWindow):
     def _do_compile_and_run(self):
         """Execute compile and run cycle (async, multi-file)."""
         if not self.project:
+            return
+        if self.compiler is None or not self.compiler.can_build():
+            reason = "SDK unavailable, compile preview disabled"
+            if self.compiler is not None and self.compiler.get_build_error():
+                reason = self.compiler.get_build_error()
+            self._switch_to_python_preview(reason)
+            self.statusBar().showMessage("Compile preview unavailable")
             return
         if self._compile_worker is not None and self._compile_worker.isRunning():
             # Mark that we need to recompile after current one finishes
@@ -1780,7 +1897,9 @@ class MainWindow(QMainWindow):
         self.project.startup_page = original_startup
 
         self.debug_panel.log_info(f"Generated {len(files)} file(s): {', '.join(files.keys())}")
-        self.debug_panel.log_cmd(f"make -j main.exe APP={self.app_name} PORT=designer COMPILE_DEBUG= COMPILE_OPT_LEVEL=-O0")
+        self.debug_panel.log_cmd(
+            f"make -j main.exe APP={self.app_name} PORT=designer EGUI_APP_ROOT_PATH={self.compiler.app_root_arg} COMPILE_DEBUG= COMPILE_OPT_LEVEL=-O0"
+        )
 
         self._compile_worker = self.compiler.compile_and_run_async(
             code=None,
@@ -1812,10 +1931,22 @@ class MainWindow(QMainWindow):
             self.debug_panel.log_action("Headless preview started")
         else:
             self.statusBar().showMessage("Compile FAILED - see Debug Output")
-            self.preview_panel.status_label.setText("FAILED")
+            if self.compiler is not None:
+                self.compiler.stop_exe()
+            self._switch_to_python_preview(message.splitlines()[0] if message else "Compile failed")
             # Show debug dock on compile failure
             self.debug_dock.show()
             self.debug_dock.raise_()
+        self._update_compile_availability()
+
+    def _on_preview_runtime_failed(self, reason):
+        if self.compiler is not None:
+            self.compiler.stop_exe()
+        self.debug_panel.log_error(reason or "Headless preview stopped responding")
+        self.debug_dock.show()
+        self.debug_dock.raise_()
+        self._switch_to_python_preview(reason or "Headless preview stopped responding")
+        self._update_compile_availability()
 
     def _try_embed_exe(self):
         """Legacy - headless rendering replaces window embedding."""
@@ -1823,8 +1954,10 @@ class MainWindow(QMainWindow):
 
     def _stop_exe(self):
         self.preview_panel.stop_rendering()
-        self.compiler.stop_exe()
+        if self.compiler is not None:
+            self.compiler.stop_exe()
         self.preview_panel.status_label.setText("Preview stopped")
+        self._update_compile_availability()
 
     def closeEvent(self, event):
         if self.project and self._undo_manager.is_any_dirty():
@@ -1844,10 +1977,14 @@ class MainWindow(QMainWindow):
         self._config.auto_compile = self.auto_compile
         self._config.overlay_mode = self.preview_panel._mode
         self._config.overlay_flipped = self.preview_panel._flipped
+        if self._has_valid_sdk_root():
+            self._config.sdk_root = self.project_root
+            self._config.egui_root = self.project_root
         self._config.save()
 
         self.preview_panel.stop_rendering()
-        self.compiler.cleanup()
+        if self.compiler is not None:
+            self.compiler.cleanup()
         event.accept()
 
 

@@ -11,6 +11,7 @@ import time
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from .designer_bridge import DesignerBridge
+from ..model.workspace import compute_make_app_root_arg, normalize_path
 
 
 class BuildConfig:
@@ -40,7 +41,7 @@ class BuildConfig:
         return bool(self._makefile_mtimes)
 
     @staticmethod
-    def extract(project_root, app_name):
+    def extract(project_root, app_name, app_root_arg="example"):
         """Run ``make V=1 --dry-run`` and parse gcc commands.
 
         Returns a populated BuildConfig, or None on failure.
@@ -49,6 +50,7 @@ class BuildConfig:
             result = subprocess.run(
                 ["make", "V=1", "--dry-run", "--always-make", "main.exe",
                  f"APP={app_name}", "PORT=designer",
+                 f"EGUI_APP_ROOT_PATH={app_root_arg}",
                  "COMPILE_DEBUG=", "COMPILE_OPT_LEVEL=-O0"],
                 cwd=project_root,
                 capture_output=True, text=True, timeout=30,
@@ -95,7 +97,7 @@ class BuildConfig:
         makefile_paths = [
             "Makefile",
             os.path.join("porting", "designer", "Makefile.base"),
-            os.path.join("example", app_name, "build.mk"),
+            os.path.join(app_root_arg, app_name, "build.mk"),
         ]
         for p in makefile_paths:
             full = os.path.join(project_root, p)
@@ -165,6 +167,12 @@ class CompileWorker(QThread):
             self.finished.emit(False, msg, None)
             return
 
+        ready, err = self.compiler.validate_preview()
+        if not ready:
+            self.compiler.stop_exe()
+            self.finished.emit(False, err, None)
+            return
+
         self.log.emit(f"Total compile time: {(t4-t0)*1000:.0f}ms", "success")
         self.finished.emit(True, f"Build #{self.compiler._compile_count} OK", None)
 
@@ -195,9 +203,16 @@ class CompilerEngine:
     while the old preview is still running. This eliminates flash on recompile.
     """
 
-    def __init__(self, project_root, app_name="HelloDesigner"):
-        self.project_root = project_root
+    def __init__(self, project_root, app_dir, app_name="HelloDesigner"):
+        self.project_root = normalize_path(project_root)
+        self.app_dir = normalize_path(app_dir)
         self.app_name = app_name
+        self.app_root_arg = ""
+        self._app_root_error = ""
+        try:
+            self.app_root_arg = compute_make_app_root_arg(self.project_root, self.app_dir, self.app_name)
+        except ValueError as exc:
+            self._app_root_error = str(exc)
         self.process = None  # kept for backward compat, not used by bridge
         self.bridge = DesignerBridge()
         self._compile_count = 0
@@ -206,6 +221,7 @@ class CompilerEngine:
         self._screen_height = 320
         self._build_config = None  # BuildConfig cache for fast compile
         self._last_changed_files = []  # tracks files changed in last write
+        self._last_runtime_error = ""
 
         # Clean up any stale processes from previous abnormal exits
         self._cleanup_stale_processes()
@@ -243,18 +259,18 @@ class CompilerEngine:
 
     @property
     def uicode_path(self):
-        return os.path.join(self.project_root, "example", self.app_name, "uicode.c")
-
-    @property
-    def app_dir(self):
-        return os.path.join(self.project_root, "example", self.app_name)
+        app_dir = getattr(self, "app_dir", "")
+        if not app_dir:
+            app_dir = os.path.join(self.project_root, "example", self.app_name)
+        return os.path.join(app_dir, "uicode.c")
 
     @property
     def exe_path(self):
-        return os.path.join(self.project_root, "output", "main.exe")
+        return os.path.join(self.project_root, "output", "main.exe" if sys.platform == "win32" else "main")
 
     def _run_exe_path(self, index):
-        return os.path.join(self.project_root, "output", f"designer_run_{index}.exe")
+        suffix = ".exe" if sys.platform == "win32" else ""
+        return os.path.join(self.project_root, "output", f"designer_run_{index}{suffix}")
 
     def write_uicode(self, code):
         """Write generated C code to uicode.c."""
@@ -362,10 +378,12 @@ class CompilerEngine:
 
     def _make_compile(self):
         """Full make-based compilation (slow path). Also refreshes BuildConfig."""
+        if getattr(self, "_app_root_error", ""):
+            return False, self._app_root_error
         # Delete stale output/main.exe to force re-link.  The exe is shared
         # across all apps, so switching apps (e.g. 240x320 → 320x480) can
         # leave a stale binary that make considers up-to-date.
-        exe = os.path.join(self.project_root, "output", "main.exe")
+        exe = self.exe_path
         try:
             if os.path.exists(exe):
                 os.remove(exe)
@@ -376,6 +394,7 @@ class CompilerEngine:
             result = subprocess.run(
                 ["make", "-j", "main.exe", f"APP={self.app_name}",
                  "PORT=designer",
+                 f"EGUI_APP_ROOT_PATH={self.app_root_arg}",
                  "COMPILE_DEBUG=", "COMPILE_OPT_LEVEL=-O0"],
                 cwd=self.project_root,
                 capture_output=True, text=True, timeout=60,
@@ -386,7 +405,7 @@ class CompilerEngine:
 
             # After successful make, extract build config for future fast compiles
             if success:
-                cfg = BuildConfig.extract(self.project_root, self.app_name)
+                cfg = BuildConfig.extract(self.project_root, self.app_name, self.app_root_arg)
                 if cfg:
                     self._build_config = cfg
 
@@ -403,6 +422,9 @@ class CompilerEngine:
         app objects against the pre-built libegui.a.
         Uses shell=False with pre-split args to avoid cmd.exe overhead.
         """
+        if getattr(self, "_app_root_error", ""):
+            return False, self._app_root_error
+
         cfg = self._build_config
         outputs = []
 
@@ -501,6 +523,29 @@ class CompilerEngine:
         except Exception as e:
             return False, f"Failed to start bridge: {e}", None
 
+    def validate_preview(self):
+        """Render one frame to confirm the headless bridge is usable."""
+        if not self.bridge.is_running:
+            self._last_runtime_error = "Designer bridge is not running"
+            return False, self._last_runtime_error
+
+        try:
+            frame = self.bridge.render()
+        except Exception as exc:
+            stderr = self.bridge.get_stderr().strip()
+            self._last_runtime_error = f"Headless preview handshake failed: {exc}"
+            if stderr:
+                self._last_runtime_error += f"\n{stderr}"
+            return False, self._last_runtime_error
+
+        expected = self._screen_width * self._screen_height * 3
+        if len(frame) != expected:
+            self._last_runtime_error = f"Headless preview returned invalid frame size: {len(frame)} != {expected}"
+            return False, self._last_runtime_error
+
+        self._last_runtime_error = ""
+        return True, ""
+
     def set_screen_size(self, width, height):
         """Set screen dimensions for bridge communication.
 
@@ -519,7 +564,8 @@ class CompilerEngine:
         if self.bridge.is_running:
             try:
                 return self.bridge.render()
-            except (ConnectionError, RuntimeError, OSError, BrokenPipeError):
+            except (ConnectionError, RuntimeError, OSError, BrokenPipeError) as exc:
+                self._last_runtime_error = str(exc)
                 return None
         return None
 
@@ -528,7 +574,8 @@ class CompilerEngine:
         if self.bridge.is_running:
             try:
                 self.bridge.inject_touch(action, x, y)
-            except (ConnectionError, OSError, BrokenPipeError):
+            except (ConnectionError, OSError, BrokenPipeError) as exc:
+                self._last_runtime_error = str(exc)
                 pass
 
     def inject_key(self, key_type, code):
@@ -536,7 +583,8 @@ class CompilerEngine:
         if self.bridge.is_running:
             try:
                 self.bridge.inject_key(key_type, code)
-            except (ConnectionError, OSError, BrokenPipeError):
+            except (ConnectionError, OSError, BrokenPipeError) as exc:
+                self._last_runtime_error = str(exc)
                 pass
 
     def compile_and_run(self, code):
@@ -544,6 +592,9 @@ class CompilerEngine:
 
         Returns (success, message, None).
         """
+        if getattr(self, "_app_root_error", ""):
+            return False, self._app_root_error, None
+
         # Write code
         self.write_uicode(code)
 
@@ -556,6 +607,11 @@ class CompilerEngine:
         ok, msg, _ = self._copy_and_start()
         if not ok:
             return False, msg, None
+
+        ok, err = self.validate_preview()
+        if not ok:
+            self.stop_exe()
+            return False, err, None
 
         return True, f"Build #{self._compile_count} OK", None
 
@@ -577,7 +633,25 @@ class CompilerEngine:
 
     def is_exe_ready(self):
         """Check if main.exe exists."""
-        return os.path.exists(self.exe_path)
+        return not getattr(self, "_app_root_error", "") and os.path.exists(self.exe_path)
+
+    def can_build(self):
+        """Return True when the current app path can be compiled by make."""
+        return not getattr(self, "_app_root_error", "")
+
+    def get_build_error(self):
+        """Return the compile-time path/config error, if any."""
+        return getattr(self, "_app_root_error", "")
+
+    def is_preview_running(self):
+        """Return True when the preview bridge is alive."""
+        return self.bridge.is_running
+
+    def get_last_runtime_error(self):
+        """Return the last runtime bridge error."""
+        if getattr(self, "_app_root_error", ""):
+            return self._app_root_error
+        return self._last_runtime_error
 
     def precompile_async(self, callback):
         """Start background precompilation (compile only, no exe start).
