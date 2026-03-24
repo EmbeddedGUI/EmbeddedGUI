@@ -641,14 +641,22 @@ class ResourcePanel(QWidget):
 
     # -- Internal helpers --
 
+    def _format_resource_tab_title(self, label, total, missing):
+        if missing <= 0:
+            return f"{label} ({total})"
+        return f"{label} ({total}, {missing} missing)"
+
     def _update_tab_titles(self):
         n_img = len(self._catalog.images)
         n_font = len(self._catalog.fonts)
         n_text = len(self._catalog.text_files)
+        missing_img = len(self._missing_resource_names("image"))
+        missing_font = len(self._missing_resource_names("font"))
+        missing_text = len(self._missing_resource_names("text"))
         n_str = len(self._string_catalog.all_keys)
-        self._tabs.setTabText(0, f"Images ({n_img})")
-        self._tabs.setTabText(1, f"Fonts ({n_font})")
-        self._tabs.setTabText(2, f"Text ({n_text})")
+        self._tabs.setTabText(0, self._format_resource_tab_title("Images", n_img, missing_img))
+        self._tabs.setTabText(1, self._format_resource_tab_title("Fonts", n_font, missing_font))
+        self._tabs.setTabText(2, self._format_resource_tab_title("Text", n_text, missing_text))
         self._tabs.setTabText(3, f"Strings ({n_str})")
 
     def _target_dir_for_resource_type(self, resource_type):

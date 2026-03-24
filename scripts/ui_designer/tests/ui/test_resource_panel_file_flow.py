@@ -135,6 +135,26 @@ class TestResourcePanelFileFlow:
         assert captured == [("text", "supported_text.txt")]
         panel.deleteLater()
 
+    def test_tab_title_shows_missing_resource_count(self, qapp, tmp_path):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        images_dir = resource_dir / "images"
+        images_dir.mkdir(parents=True)
+        (images_dir / "present.png").write_bytes(b"PNG")
+
+        catalog = ResourceCatalog()
+        catalog.add_image("missing.png")
+        catalog.add_image("present.png")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+
+        assert panel._tabs.tabText(0) == "Images (2, 1 missing)"
+        panel.deleteLater()
+
     def test_import_text_refreshes_text_tab_and_catalog(self, qapp, tmp_path, monkeypatch):
         from ui_designer.ui.resource_panel import ResourcePanel
 
