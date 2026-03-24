@@ -75,7 +75,7 @@ class WidgetTreePanel(QWidget):
         self.filter_edit = QLineEdit()
         self.filter_edit.setPlaceholderText("Filter widgets by name or type")
         self.filter_edit.setClearButtonEnabled(True)
-        self.filter_edit.textChanged.connect(self._apply_tree_filter)
+        self.filter_edit.textChanged.connect(self._on_filter_text_changed)
         self.filter_edit.installEventFilter(self)
         filter_layout = QHBoxLayout()
         filter_layout.addWidget(self.filter_edit, 1)
@@ -125,6 +125,27 @@ class WidgetTreePanel(QWidget):
         self._building = False
         self._apply_tree_filter(default_expand=default_expand)
 
+    def shutdown(self):
+        self._filter_matches = []
+        self._suppress_expansion_tracking = True
+        try:
+            self.filter_edit.removeEventFilter(self)
+        except Exception:
+            pass
+        for signal, handler in (
+            (self.filter_edit.textChanged, self._on_filter_text_changed),
+            (self.tree.itemSelectionChanged, self._on_selection_changed),
+            (self.tree.itemExpanded, self._on_item_expanded),
+            (self.tree.itemCollapsed, self._on_item_collapsed),
+        ):
+            try:
+                signal.disconnect(handler)
+            except Exception:
+                pass
+        self.filter_edit.blockSignals(True)
+        self.tree.blockSignals(True)
+        self.blockSignals(True)
+
     def _add_widget_to_tree(self, widget, parent_item):
         item = QTreeWidgetItem()
         item.setText(0, self._display_name(widget))
@@ -164,6 +185,9 @@ class WidgetTreePanel(QWidget):
                 self.filter_edit.clear()
                 return True
         return super().eventFilter(watched, event)
+
+    def _on_filter_text_changed(self, _text):
+        self._apply_tree_filter(announce=True)
 
     def _on_selection_changed(self):
         if self._building or self._syncing_selection:
@@ -474,7 +498,7 @@ class WidgetTreePanel(QWidget):
             return next(iter(widget_types))
         return "widget"
 
-    def _apply_tree_filter(self, _text="", default_expand=False):
+    def _apply_tree_filter(self, _text="", default_expand=False, announce=False):
         query = self.filter_edit.text().strip().lower()
         self._filter_matches = []
         match_count = 0
@@ -497,6 +521,8 @@ class WidgetTreePanel(QWidget):
         finally:
             self._suppress_expansion_tracking = False
         self._update_filter_status(query, match_count)
+        if announce:
+            self._announce_filter_feedback()
 
     def _apply_filter_to_item(self, item, query):
         widget = self._widget_map.get(id(item))
@@ -562,6 +588,26 @@ class WidgetTreePanel(QWidget):
             position = 0
         self.filter_position_label.setText(f"{position}/{len(matches)}")
 
+    def _filter_feedback_text(self):
+        query = self.filter_edit.text().strip()
+        matches = [widget for widget in self._filter_matches if id(widget) in self._item_map]
+        if not query:
+            return "Widget filter cleared."
+        if not matches:
+            return f"Widget filter '{query}': no matches."
+
+        noun = "match" if len(matches) == 1 else "matches"
+        current = self._get_selected_widget()
+        if current in matches:
+            position = matches.index(current) + 1
+            return f"Widget filter '{query}': {len(matches)} {noun} ({position}/{len(matches)})."
+        return f"Widget filter '{query}': {len(matches)} {noun}."
+
+    def _announce_filter_feedback(self):
+        message = self._filter_feedback_text()
+        if message:
+            self.feedback_message.emit(message)
+
     def _select_previous_filter_match(self):
         self._select_filter_match(step=-1)
 
@@ -584,6 +630,7 @@ class WidgetTreePanel(QWidget):
         self.set_selected_widgets([target], primary=target)
         self.widget_selected.emit(target)
         self.selection_changed.emit([target], target)
+        self._announce_filter_feedback()
 
     def _restore_item_expansion(self, item):
         widget = self._widget_map.get(id(item))

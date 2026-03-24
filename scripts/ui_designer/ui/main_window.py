@@ -3302,6 +3302,7 @@ class MainWindow(QMainWindow):
         self._config.save()
 
         self.preview_panel.stop_rendering()
+        self.widget_tree.shutdown()
         if self.compiler is not None:
             self.compiler.cleanup()
         event.accept()

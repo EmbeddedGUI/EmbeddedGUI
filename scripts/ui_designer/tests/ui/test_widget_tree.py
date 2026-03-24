@@ -370,6 +370,30 @@ class TestWidgetTreePanel:
         assert panel.filter_next_btn.isEnabled() is False
         panel.deleteLater()
 
+    def test_filter_text_change_emits_feedback_message(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        root.add_child(WidgetModel("label", name="field_label"))
+        root.add_child(WidgetModel("button", name="field_button"))
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        feedback = []
+        panel.feedback_message.connect(lambda message: feedback.append(message))
+
+        panel.filter_edit.setText("field")
+        panel.filter_edit.setText("missing")
+        panel.filter_edit.setText("")
+
+        assert feedback == [
+            "Widget filter 'field': 2 matches.",
+            "Widget filter 'missing': no matches.",
+            "Widget filter cleared.",
+        ]
+        panel.deleteLater()
+
     def test_filter_match_navigation_cycles_through_matches(self, qapp):
         from ui_designer.model.widget_model import WidgetModel
         from ui_designer.ui.widget_tree import WidgetTreePanel
@@ -406,6 +430,32 @@ class TestWidgetTreePanel:
         panel._select_previous_filter_match()
         assert panel._get_selected_widget() is second
         assert panel.filter_position_label.text() == "2/2"
+        panel.deleteLater()
+
+    def test_filter_match_navigation_emits_position_feedback(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        first = WidgetModel("label", name="field_label")
+        second = WidgetModel("button", name="field_button")
+        root.add_child(first)
+        root.add_child(second)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        feedback = []
+        panel.feedback_message.connect(lambda message: feedback.append(message))
+        panel.filter_edit.setText("field")
+        feedback.clear()
+
+        panel._select_next_filter_match()
+        panel._select_next_filter_match()
+
+        assert feedback == [
+            "Widget filter 'field': 2 matches (1/2).",
+            "Widget filter 'field': 2 matches (2/2).",
+        ]
         panel.deleteLater()
 
     def test_filter_edit_keyboard_shortcuts_navigate_matches(self, qapp):

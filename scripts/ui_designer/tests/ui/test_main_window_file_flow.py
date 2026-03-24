@@ -24,6 +24,16 @@ def qapp():
     if app is None:
         app = QApplication([])
     yield app
+    for widget in QApplication.topLevelWidgets():
+        try:
+            widget.close()
+            widget.deleteLater()
+        except Exception:
+            pass
+    try:
+        app.sendPostedEvents()
+    except Exception:
+        pass
     app.processEvents()
 
 
@@ -505,6 +515,38 @@ class TestMainWindowFileFlow:
 
         assert window.widget_tree._item_map[id(container)].isExpanded() is False
         assert window.widget_tree._item_map[id(nested)].isExpanded() is False
+        window.close()
+        window.deleteLater()
+
+    def test_widget_tree_filter_updates_status_bar(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "TreeFilterStatusDemo"
+        project = _create_project(project_dir, "TreeFilterStatusDemo", sdk_root)
+        root = project.get_startup_page().root_widget
+        first = WidgetModel("label", name="field_label")
+        second = WidgetModel("button", name="field_button")
+        root.add_child(first)
+        root.add_child(second)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+
+        window.widget_tree.filter_edit.setText("field")
+        assert window.statusBar().currentMessage() == "Widget filter 'field': 2 matches."
+
+        window.widget_tree._select_next_filter_match()
+        assert window.statusBar().currentMessage() == "Widget filter 'field': 2 matches (1/2)."
+
+        window.widget_tree.filter_edit.setText("")
+        assert window.statusBar().currentMessage() == "Widget filter cleared."
         window.close()
         window.deleteLater()
 
