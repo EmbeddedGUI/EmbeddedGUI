@@ -19,7 +19,12 @@ from PyQt5.QtWidgets import (
 from qfluentwidgets import LineEdit, PrimaryPushButton, PushButton
 
 from ..model.config import get_config
-from ..model.sdk_bootstrap import default_sdk_install_dir, describe_auto_download_plan, is_bundled_sdk_root
+from ..model.sdk_bootstrap import (
+    default_sdk_install_dir,
+    describe_auto_download_plan,
+    describe_sdk_source_hint,
+    sdk_root_source_kind,
+)
 from ..model.workspace import (
     describe_sdk_root,
     is_valid_sdk_root,
@@ -214,10 +219,18 @@ class AppSelectorDialog(QDialog):
     def _refresh_root_status(self):
         status = describe_sdk_root(self._egui_root)
         if status == "ready":
-            if is_bundled_sdk_root(self._egui_root):
+            source_kind = sdk_root_source_kind(self._egui_root)
+            if source_kind == "bundled":
                 self._root_status_label.setText("Ready: using bundled SDK examples below.")
+            elif source_kind == "runtime_local":
+                self._root_status_label.setText("Ready: using SDK stored beside the application.")
+            elif source_kind == "cached":
+                self._root_status_label.setText("Ready: using auto-downloaded SDK cache.")
             else:
-                self._root_status_label.setText("Ready: SDK examples are available below.")
+                self._root_status_label.setText("Ready: using selected SDK root.")
+            self._root_status_label.setText(
+                f"{self._root_status_label.text()}\n{describe_sdk_source_hint(self._egui_root)}"
+            )
             self._root_status_label.setStyleSheet("color: #4caf50;")
             return
 

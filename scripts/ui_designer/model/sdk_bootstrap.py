@@ -26,6 +26,7 @@ DEFAULT_DOWNLOAD_TOTAL_TIMEOUT_SECONDS = 60
 DOWNLOAD_TIMEOUT_ENV = "EMBEDDEDGUI_SDK_ARCHIVE_TIMEOUT_SECONDS"
 GIT_CLONE_TIMEOUT_SECONDS = 300
 AUTO_DOWNLOAD_STRATEGY_TEXT = "GitHub archive -> Gitee archive -> Gitee git clone (when git is available)."
+BUNDLED_SDK_METADATA_NAME = ".designer_sdk_bundle.json"
 
 
 @dataclass(frozen=True)
@@ -67,11 +68,16 @@ def default_sdk_install_dir() -> str:
         if os.path.isdir(runtime_sdk_dir) or os.access(runtime_dir, os.W_OK):
             return normalize_path(os.path.join(runtime_sdk_dir, "EmbeddedGUI"))
 
+    return default_cached_sdk_install_dir()
+
+
+def default_cached_sdk_install_dir() -> str:
+    """Return the per-user SDK cache directory used outside bundled runtimes."""
     return normalize_path(os.path.join(_get_config_dir(), "sdk", "EmbeddedGUI"))
 
 
-def is_bundled_sdk_root(path: str | None) -> bool:
-    """Return True when *path* points inside the packaged runtime sdk directory."""
+def is_runtime_local_sdk_root(path: str | None) -> bool:
+    """Return True when *path* lives beside the packaged Designer runtime."""
     sdk_root = resolve_sdk_root_candidate(path)
     runtime_sdk_dir = runtime_sdk_container_dir()
     if not sdk_root or not runtime_sdk_dir:
@@ -80,6 +86,99 @@ def is_bundled_sdk_root(path: str | None) -> bool:
         return os.path.commonpath([sdk_root, runtime_sdk_dir]) == runtime_sdk_dir
     except ValueError:
         return False
+
+
+def is_bundled_sdk_root(path: str | None) -> bool:
+    """Return True when *path* is a packaged SDK bundle with bundle metadata."""
+    metadata_path = bundled_sdk_metadata_path(path)
+    return bool(metadata_path and os.path.isfile(metadata_path))
+
+
+def bundled_sdk_metadata_path(path: str | None) -> str:
+    """Return the bundle metadata file path for a packaged SDK root."""
+    sdk_root = resolve_sdk_root_candidate(path)
+    if not sdk_root or not is_runtime_local_sdk_root(sdk_root):
+        return ""
+    return normalize_path(os.path.join(sdk_root, BUNDLED_SDK_METADATA_NAME))
+
+
+def load_bundled_sdk_metadata(path: str | None) -> dict[str, object]:
+    """Load packaged SDK metadata when available."""
+    metadata_path = bundled_sdk_metadata_path(path)
+    if not metadata_path or not os.path.isfile(metadata_path):
+        return {}
+
+    try:
+        with open(metadata_path, "r", encoding="utf-8") as f:
+            content = f.read()
+    except OSError:
+        return {}
+
+    try:
+        import json
+
+        data = json.loads(content)
+    except (TypeError, ValueError):
+        return {}
+
+    if not isinstance(data, dict):
+        return {}
+    return data
+
+
+def is_cached_sdk_root(path: str | None) -> bool:
+    """Return True when *path* points at the default per-user SDK cache."""
+    sdk_root = resolve_sdk_root_candidate(path)
+    cached_root = default_cached_sdk_install_dir()
+    if not sdk_root or not cached_root:
+        return False
+    return sdk_root == cached_root
+
+
+def sdk_root_source_kind(path: str | None) -> str:
+    """Classify the active SDK root for UI status text."""
+    sdk_root = resolve_sdk_root_candidate(path) or normalize_path(path)
+    if not sdk_root:
+        return "missing"
+    if is_bundled_sdk_root(sdk_root):
+        return "bundled"
+    if is_runtime_local_sdk_root(sdk_root):
+        return "runtime_local"
+    if is_cached_sdk_root(sdk_root):
+        return "cached"
+    return "custom"
+
+
+def describe_sdk_source(path: str | None) -> str:
+    """Return a short label describing where the active SDK came from."""
+    source_kind = sdk_root_source_kind(path)
+    if source_kind == "bundled":
+        return "bundled SDK copy"
+    if source_kind == "runtime_local":
+        return "SDK stored beside the application"
+    if source_kind == "cached":
+        return "auto-downloaded SDK cache"
+    if source_kind == "custom":
+        return "selected SDK root"
+    return "missing SDK root"
+
+
+def describe_sdk_source_hint(path: str | None) -> str:
+    """Return a longer explanation for the detected SDK source."""
+    source_kind = sdk_root_source_kind(path)
+    if source_kind == "bundled":
+        metadata = load_bundled_sdk_metadata(path)
+        source_root = normalize_path(metadata.get("source_root")) if isinstance(metadata.get("source_root"), str) else ""
+        if source_root:
+            return f"Packaged with Designer from: {source_root}\nYou can switch to another SDK root at any time."
+        return "Packaged with Designer. You can switch to another SDK root at any time."
+    if source_kind == "runtime_local":
+        return "Stored beside the application directory. This usually means the SDK was downloaded after first launch."
+    if source_kind == "cached":
+        return f"Stored in the default SDK cache: {default_cached_sdk_install_dir()}"
+    if source_kind == "custom":
+        return "Using the SDK root selected for the current workspace."
+    return "No SDK root is available yet."
 
 
 def describe_auto_download_plan(destination_dir: str | None = None) -> str:

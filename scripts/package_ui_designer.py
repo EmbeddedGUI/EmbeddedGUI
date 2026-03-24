@@ -5,10 +5,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -21,6 +23,7 @@ SUPPRESSED_LOG_SNIPPETS = (
     "qfluentwidgets.com/pages/pro",
 )
 SDK_BUNDLE_DIR_NAME = "EmbeddedGUI"
+SDK_BUNDLE_METADATA_NAME = ".designer_sdk_bundle.json"
 SDK_BUNDLE_IGNORE_NAMES = {
     ".git",
     ".github",
@@ -196,7 +199,74 @@ def copy_sdk_bundle(app_dir: Path, sdk_root: str | Path | None = None) -> Path:
     if target_root.exists():
         shutil.rmtree(target_root)
     shutil.copytree(source_root, target_root, ignore=build_sdk_bundle_ignore(source_root))
+    write_sdk_bundle_metadata(target_root, source_root)
     return target_root
+
+
+def summarize_directory_tree(root: str | Path) -> dict[str, int]:
+    """Summarize the copied SDK tree for user-facing package output."""
+    resolved_root = Path(root).resolve()
+    file_count = 0
+    total_size_bytes = 0
+
+    for current_path in resolved_root.rglob("*"):
+        if not current_path.is_file():
+            continue
+        file_count += 1
+        try:
+            total_size_bytes += current_path.stat().st_size
+        except OSError:
+            pass
+
+    return {
+        "file_count": file_count,
+        "total_size_bytes": total_size_bytes,
+    }
+
+
+def write_sdk_bundle_metadata(bundle_root: str | Path, source_root: str | Path) -> Path:
+    """Write a small manifest so the packaged Designer can identify bundled SDKs."""
+    resolved_bundle_root = Path(bundle_root).resolve()
+    resolved_source_root = Path(source_root).resolve()
+    summary = summarize_directory_tree(resolved_bundle_root)
+    metadata = {
+        "created_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "file_count": summary["file_count"],
+        "sdk_dir_name": SDK_BUNDLE_DIR_NAME,
+        "source_root": str(resolved_source_root),
+        "total_size_bytes": summary["total_size_bytes"],
+    }
+    metadata_path = resolved_bundle_root / SDK_BUNDLE_METADATA_NAME
+    metadata_path.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return metadata_path
+
+
+def load_sdk_bundle_metadata(bundle_root: str | Path) -> dict[str, object]:
+    """Load bundled SDK metadata written by :func:`write_sdk_bundle_metadata`."""
+    metadata_path = Path(bundle_root).resolve() / SDK_BUNDLE_METADATA_NAME
+    if not metadata_path.is_file():
+        return {}
+
+    try:
+        content = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return {}
+
+    if not isinstance(content, dict):
+        return {}
+    return content
+
+
+def format_byte_count(size_bytes: int) -> str:
+    """Return a compact human-readable size string."""
+    size = max(int(size_bytes or 0), 0)
+    if size < 1024:
+        return f"{size} B"
+    if size < 1024 * 1024:
+        return f"{size / 1024:.1f} KB"
+    if size < 1024 * 1024 * 1024:
+        return f"{size / (1024 * 1024):.2f} MB"
+    return f"{size / (1024 * 1024 * 1024):.2f} GB"
 
 
 def should_suppress_build_output(line: str) -> bool:
@@ -270,7 +340,7 @@ def package_ui_designer(
     clean: bool = True,
     bundle_sdk: bool = True,
     sdk_root: str | Path | None = None,
-) -> dict[str, str]:
+) -> dict[str, str | int]:
     """Build the Designer package and optionally archive it."""
     ensure_pyinstaller_available()
 
@@ -284,8 +354,10 @@ def package_ui_designer(
         raise FileNotFoundError(f"PyInstaller output missing: {app_dir}")
 
     bundled_sdk_dir = None
+    bundled_sdk_metadata = {}
     if bundle_sdk:
         bundled_sdk_dir = copy_sdk_bundle(app_dir, sdk_root=sdk_root)
+        bundled_sdk_metadata = load_sdk_bundle_metadata(bundled_sdk_dir)
 
     archive_format = resolve_archive_format(archive_mode)
     archive_path = None
@@ -299,6 +371,12 @@ def package_ui_designer(
         "app_dir": str(app_dir),
         "archive_path": str(archive_path) if archive_path else "",
         "bundled_sdk_dir": str(bundled_sdk_dir) if bundled_sdk_dir else "",
+        "bundled_sdk_file_count": int(bundled_sdk_metadata.get("file_count", 0)),
+        "bundled_sdk_metadata_path": (
+            str(Path(bundled_sdk_dir) / SDK_BUNDLE_METADATA_NAME) if bundled_sdk_dir else ""
+        ),
+        "bundled_sdk_source": str(bundled_sdk_metadata.get("source_root", "")),
+        "bundled_sdk_total_size_bytes": int(bundled_sdk_metadata.get("total_size_bytes", 0)),
     }
 
 
@@ -371,6 +449,13 @@ def main():
     print(f"[OK] app_dir: {result['app_dir']}")
     if result["bundled_sdk_dir"]:
         print(f"[OK] bundled_sdk: {result['bundled_sdk_dir']}")
+        print(f"[OK] bundled_sdk_source: {result['bundled_sdk_source'] or 'unknown'}")
+        print(
+            "[OK] bundled_sdk_summary: "
+            f"{result['bundled_sdk_file_count']} files, "
+            f"{format_byte_count(int(result['bundled_sdk_total_size_bytes']))}"
+        )
+        print(f"[OK] bundled_sdk_metadata: {result['bundled_sdk_metadata_path']}")
     if result["archive_path"]:
         print(f"[OK] archive: {result['archive_path']}")
     else:

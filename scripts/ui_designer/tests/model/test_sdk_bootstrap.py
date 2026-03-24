@@ -8,11 +8,15 @@ import pytest
 
 from ui_designer.model.sdk_bootstrap import (
     AUTO_DOWNLOAD_STRATEGY_TEXT,
+    BUNDLED_SDK_METADATA_NAME,
+    default_cached_sdk_install_dir,
     default_sdk_install_dir,
     describe_auto_download_plan,
+    describe_sdk_source,
     download_and_extract_sdk,
     ensure_sdk_downloaded,
     is_bundled_sdk_root,
+    is_runtime_local_sdk_root,
 )
 from ui_designer.model.workspace import normalize_path
 
@@ -21,6 +25,10 @@ def _create_sdk_root(root: Path):
     (root / "src").mkdir(parents=True)
     (root / "porting" / "designer").mkdir(parents=True)
     (root / "Makefile").write_text("all:\n", encoding="utf-8")
+
+
+def _mark_bundled_sdk(root: Path):
+    (root / BUNDLED_SDK_METADATA_NAME).write_text('{"source_root": "D:/sdk/EmbeddedGUI"}\n', encoding="utf-8")
 
 
 class TestSdkBootstrap:
@@ -35,6 +43,7 @@ class TestSdkBootstrap:
         bundled_sdk_root = runtime_dir / "sdk" / "EmbeddedGUI-main"
         runtime_dir.mkdir(parents=True)
         _create_sdk_root(bundled_sdk_root)
+        _mark_bundled_sdk(bundled_sdk_root)
 
         monkeypatch.setattr("ui_designer.model.sdk_bootstrap.sys.frozen", True, raising=False)
         monkeypatch.setattr("ui_designer.model.sdk_bootstrap.sys.executable", str(runtime_dir / "EmbeddedGUI-Designer.exe"))
@@ -51,6 +60,7 @@ class TestSdkBootstrap:
         monkeypatch.setattr("ui_designer.model.sdk_bootstrap.os.access", lambda path, mode: normalize_path(path) == normalize_path(str(runtime_dir)))
 
         assert default_sdk_install_dir() == normalize_path(str(runtime_dir / "sdk" / "EmbeddedGUI"))
+        assert is_runtime_local_sdk_root(str(runtime_dir / "sdk" / "EmbeddedGUI")) is False
 
     def test_is_bundled_sdk_root_false_when_not_frozen(self, tmp_path, monkeypatch):
         sdk_root = tmp_path / "sdk"
@@ -58,6 +68,33 @@ class TestSdkBootstrap:
         monkeypatch.delattr("ui_designer.model.sdk_bootstrap.sys.frozen", raising=False)
 
         assert is_bundled_sdk_root(str(sdk_root)) is False
+
+    def test_runtime_local_sdk_without_bundle_metadata_is_not_reported_as_bundled(self, tmp_path, monkeypatch):
+        runtime_dir = tmp_path / "EmbeddedGUI-Designer"
+        sdk_root = runtime_dir / "sdk" / "EmbeddedGUI"
+        _create_sdk_root(sdk_root)
+
+        monkeypatch.setattr("ui_designer.model.sdk_bootstrap.sys.frozen", True, raising=False)
+        monkeypatch.setattr("ui_designer.model.sdk_bootstrap.sys.executable", str(runtime_dir / "EmbeddedGUI-Designer.exe"))
+
+        assert is_runtime_local_sdk_root(str(sdk_root)) is True
+        assert is_bundled_sdk_root(str(sdk_root)) is False
+
+    def test_default_cached_sdk_install_dir_uses_config_dir(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("ui_designer.model.sdk_bootstrap._get_config_dir", lambda: str(tmp_path / "config"))
+
+        assert default_cached_sdk_install_dir() == normalize_path(str(tmp_path / "config" / "sdk" / "EmbeddedGUI"))
+
+    def test_describe_sdk_source_distinguishes_cached_and_custom_sdk(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("ui_designer.model.sdk_bootstrap._get_config_dir", lambda: str(tmp_path / "config"))
+
+        cached_sdk_root = tmp_path / "config" / "sdk" / "EmbeddedGUI"
+        custom_sdk_root = tmp_path / "workspace" / "EmbeddedGUI"
+        _create_sdk_root(cached_sdk_root)
+        _create_sdk_root(custom_sdk_root)
+
+        assert describe_sdk_source(str(cached_sdk_root)) == "auto-downloaded SDK cache"
+        assert describe_sdk_source(str(custom_sdk_root)) == "selected SDK root"
 
     def test_ensure_sdk_downloaded_reuses_existing_sdk(self, tmp_path):
         sdk_root = tmp_path / "sdk"

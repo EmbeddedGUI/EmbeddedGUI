@@ -11,7 +11,13 @@ from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import PrimaryPushButton, PushButton
 
 from ..model.config import get_config
-from ..model.sdk_bootstrap import default_sdk_install_dir, describe_auto_download_plan, is_bundled_sdk_root
+from ..model.sdk_bootstrap import (
+    default_sdk_install_dir,
+    describe_auto_download_plan,
+    describe_sdk_source,
+    describe_sdk_source_hint,
+    sdk_root_source_kind,
+)
 from ..model.workspace import describe_sdk_root, resolve_available_sdk_root
 
 
@@ -58,7 +64,8 @@ class RecentProjectItem(QWidget):
 
         project_status = "ready" if os.path.exists(project_path) else "missing"
         sdk_status = describe_sdk_root(sdk_root)
-        self._status_label = QLabel(f"Project: {project_status}  |  SDK: {sdk_status}")
+        sdk_source = describe_sdk_source(sdk_root) if sdk_status == "ready" else sdk_status
+        self._status_label = QLabel(f"Project: {project_status}  |  SDK: {sdk_status} ({sdk_source})")
         if project_status != "ready":
             self._status_label.setStyleSheet("color: #f44336;")
         elif sdk_status == "ready":
@@ -222,12 +229,16 @@ class WelcomePage(QWidget):
         default_cache_dir = default_sdk_install_dir()
         auto_download_plan = describe_auto_download_plan(default_cache_dir)
         if sdk_status == "ready":
-            if is_bundled_sdk_root(sdk_root):
+            source_kind = sdk_root_source_kind(sdk_root)
+            if source_kind == "bundled":
                 self._sdk_status_label.setText("Ready: using bundled SDK copy")
-                self._sdk_hint_label.setText("Designer is using the SDK packaged beside the application.")
+            elif source_kind == "runtime_local":
+                self._sdk_status_label.setText("Ready: using SDK stored beside the application")
+            elif source_kind == "cached":
+                self._sdk_status_label.setText("Ready: using auto-downloaded SDK cache")
             else:
-                self._sdk_status_label.setText("Ready: compile preview available")
-                self._sdk_hint_label.setText("Projects can use real SDK-backed preview when buildable.")
+                self._sdk_status_label.setText("Ready: using selected SDK root")
+            self._sdk_hint_label.setText(describe_sdk_source_hint(sdk_root))
             self._sdk_status_label.setStyleSheet("color: #4caf50;")
         elif sdk_status == "invalid":
             self._sdk_status_label.setText("Invalid: SDK path needs attention")

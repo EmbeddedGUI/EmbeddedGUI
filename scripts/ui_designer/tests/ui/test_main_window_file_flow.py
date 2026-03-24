@@ -464,6 +464,7 @@ class TestMainWindowFileFlow:
         assert isolated_config.sdk_root == os.path.normpath(os.path.abspath(new_sdk))
         assert calls == {"recreate": 1, "compile": 1}
         assert "SDK root set to:" in window.statusBar().currentMessage()
+        assert "selected SDK root" in window.statusBar().currentMessage()
         window.close()
         window.deleteLater()
 
@@ -482,6 +483,7 @@ class TestMainWindowFileFlow:
         assert window.project_root == os.path.normpath(os.path.abspath(sdk_root))
         assert isolated_config.sdk_root == os.path.normpath(os.path.abspath(sdk_root))
         assert "SDK root set to:" in window.statusBar().currentMessage()
+        assert "selected SDK root" in window.statusBar().currentMessage()
         window.close()
         window.deleteLater()
 

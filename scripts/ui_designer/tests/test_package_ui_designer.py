@@ -170,6 +170,12 @@ def test_copy_sdk_bundle_copies_sdk_tree_into_app_dir(tmp_path):
     assert (bundled_dir / "porting" / "designer").is_dir()
     assert (bundled_dir / "README.md").is_file()
     assert not (bundled_dir / ".git").exists()
+    metadata_path = bundled_dir / module.SDK_BUNDLE_METADATA_NAME
+    assert metadata_path.is_file()
+    metadata = module.load_sdk_bundle_metadata(bundled_dir)
+    assert metadata["source_root"] == str(sdk_root.resolve())
+    assert metadata["file_count"] >= 2
+    assert metadata["total_size_bytes"] > 0
 
 
 def test_copy_sdk_bundle_ignores_designer_test_tree(tmp_path):
@@ -221,6 +227,10 @@ def test_package_ui_designer_can_bundle_sdk(tmp_path, monkeypatch):
     bundled_dir = app_dir / "sdk" / module.SDK_BUNDLE_DIR_NAME
     assert result["bundled_sdk_dir"] == str(bundled_dir)
     assert (bundled_dir / "Makefile").is_file()
+    assert result["bundled_sdk_source"] == str(sdk_root.resolve())
+    assert result["bundled_sdk_file_count"] >= 1
+    assert result["bundled_sdk_total_size_bytes"] > 0
+    assert Path(result["bundled_sdk_metadata_path"]).is_file()
 
 
 def test_resolve_sdk_bundle_root_rejects_invalid_directory(tmp_path):
@@ -251,3 +261,10 @@ def test_parse_args_can_disable_sdk_bundle(monkeypatch):
     args = module.parse_args()
 
     assert args.bundle_sdk is False
+
+
+def test_format_byte_count_uses_compact_units():
+    module = _load_module()
+
+    assert module.format_byte_count(512) == "512 B"
+    assert module.format_byte_count(2048) == "2.0 KB"

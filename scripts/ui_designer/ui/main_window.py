@@ -41,7 +41,7 @@ from ..model.widget_model import WidgetModel
 from ..model.project import Project
 from ..model.page import Page
 from ..model.config import get_config
-from ..model.sdk_bootstrap import AUTO_DOWNLOAD_STRATEGY_TEXT, default_sdk_install_dir, ensure_sdk_downloaded
+from ..model.sdk_bootstrap import AUTO_DOWNLOAD_STRATEGY_TEXT, default_sdk_install_dir, describe_sdk_source, ensure_sdk_downloaded
 from ..model.workspace import (
     find_sdk_root,
     is_valid_sdk_root,
@@ -297,6 +297,21 @@ class MainWindow(QMainWindow):
         except Exception:
             self._config.window_geometry = ""
             self._config.window_state = ""
+
+    def _describe_sdk_source(self, path=""):
+        sdk_root = normalize_path(path or self.project_root)
+        if not sdk_root or not is_valid_sdk_root(sdk_root):
+            return ""
+        return describe_sdk_source(sdk_root)
+
+    def _format_sdk_status_message(self, prefix, path=""):
+        sdk_root = normalize_path(path or self.project_root)
+        sdk_source = self._describe_sdk_source(sdk_root)
+        if sdk_root and sdk_source:
+            return f"{prefix}: {sdk_root} [{sdk_source}]"
+        if sdk_root:
+            return f"{prefix}: {sdk_root}"
+        return prefix
 
     def _apply_sdk_root(self, path, status_message=""):
         path = normalize_path(path)
@@ -660,7 +675,11 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Opened project in editing-only mode")
         else:
             self._trigger_compile()
-            self.statusBar().showMessage(f"Opened: {project_dir}")
+            sdk_source = self._describe_sdk_source(project.sdk_root)
+            if sdk_source:
+                self.statusBar().showMessage(f"Opened: {project_dir} | SDK: {sdk_source}")
+            else:
+                self.statusBar().showMessage(f"Opened: {project_dir}")
 
         if not project.sdk_root and not silent:
             QMessageBox.information(
@@ -1122,7 +1141,7 @@ class MainWindow(QMainWindow):
             )
             return
 
-        self._apply_sdk_root(path, status_message=f"SDK root set to: {path}")
+        self._apply_sdk_root(path, status_message=self._format_sdk_status_message("SDK root set to", path))
 
     def _download_sdk(self):
         target_dir = default_sdk_install_dir()
@@ -1158,7 +1177,7 @@ class MainWindow(QMainWindow):
 
         progress.setValue(100)
         progress.close()
-        self._apply_sdk_root(sdk_root, status_message=f"SDK downloaded to: {sdk_root}")
+        self._apply_sdk_root(sdk_root, status_message=self._format_sdk_status_message("SDK downloaded to", sdk_root))
         return sdk_root
 
     def maybe_prompt_initial_sdk_setup(self):
