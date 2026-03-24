@@ -7,7 +7,7 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
-    from PyQt5.QtWidgets import QApplication, QFormLayout, QGroupBox
+    from PyQt5.QtWidgets import QApplication, QFormLayout, QGroupBox, QLabel
 
     _has_pyqt5 = True
 except ImportError:
@@ -54,6 +54,10 @@ def _form_value_text(group, label_text):
                 return field_item.widget().text()
             break
     raise AssertionError(f"Form row not found: {label_text}")
+
+
+def _group_label_texts(group):
+    return [label.text() for label in group.findChildren(QLabel)]
 
 
 @_skip_no_qt
@@ -384,4 +388,44 @@ class TestPropertyPanelFileFlow:
         assert editor.currentIndex() == -1
         assert editor.placeholderText() == "Mixed values"
         assert "different values" in editor.toolTip()
+        panel.deleteLater()
+
+    def test_single_selection_shows_interaction_notes_for_locked_hidden_layout_widget(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        root = WidgetModel("linearlayout", name="root")
+        child = WidgetModel("switch", name="child")
+        child.designer_locked = True
+        child.designer_hidden = True
+        root.add_child(child)
+
+        panel = PropertyPanel()
+        panel.set_widget(child)
+
+        notes = _group_label_texts(_find_group(panel, "Interaction Notes"))
+        assert any(text.startswith("Locked:") for text in notes)
+        assert any(text.startswith("Hidden:") for text in notes)
+        assert any(text.startswith("Layout-managed:") for text in notes)
+        panel.deleteLater()
+
+    def test_multi_selection_shows_interaction_note_counts(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        root = WidgetModel("linearlayout", name="root")
+        first = WidgetModel("label", name="first")
+        second = WidgetModel("label", name="second")
+        first.designer_locked = True
+        second.designer_hidden = True
+        root.add_child(first)
+        root.add_child(second)
+
+        panel = PropertyPanel()
+        panel.set_selection([first, second], primary=second)
+
+        notes = _group_label_texts(_find_group(panel, "Interaction Notes"))
+        assert "Locked: 1 selected widget cannot be moved or resized from the canvas." in notes
+        assert "Hidden: 1 selected widget is skipped by canvas hit testing." in notes
+        assert "Layout-managed: 2 selected widgets use parent-controlled positioning." in notes
         panel.deleteLater()

@@ -2439,6 +2439,7 @@ class MainWindow(QMainWindow):
         if sync_preview:
             self.preview_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
         self._update_edit_actions()
+        self._show_selection_feedback()
 
     def _clear_selection(self, sync_tree=True, sync_preview=True):
         self._set_selection([], primary=None, sync_tree=sync_tree, sync_preview=sync_preview)
@@ -2453,6 +2454,46 @@ class MainWindow(QMainWindow):
 
     def _primary_selected_widget(self):
         return self._selection_state.primary or self._selected_widget
+
+    def _selection_feedback_message(self):
+        widgets = [widget for widget in self._selection_state.widgets if widget is not None]
+        if not widgets:
+            return ""
+
+        if len(widgets) == 1:
+            widget = widgets[0]
+            parts = []
+            if getattr(widget, "designer_locked", False):
+                parts.append("locked")
+            if getattr(widget, "designer_hidden", False):
+                parts.append("hidden")
+            if self._parent_uses_layout(widget.parent):
+                parts.append(f"layout-managed by {widget.parent.widget_type}")
+            if not parts:
+                return ""
+            return f"Selection note: {widget.name} is " + ", ".join(parts) + "."
+
+        issues = []
+        locked_count = sum(1 for widget in widgets if getattr(widget, "designer_locked", False))
+        hidden_count = sum(1 for widget in widgets if getattr(widget, "designer_hidden", False))
+        layout_count = sum(1 for widget in widgets if self._parent_uses_layout(widget.parent))
+        if locked_count:
+            noun = "widget" if locked_count == 1 else "widgets"
+            issues.append(f"{locked_count} locked {noun}")
+        if hidden_count:
+            noun = "widget" if hidden_count == 1 else "widgets"
+            issues.append(f"{hidden_count} hidden {noun}")
+        if layout_count:
+            noun = "widget" if layout_count == 1 else "widgets"
+            issues.append(f"{layout_count} layout-managed {noun}")
+        if not issues:
+            return ""
+        return "Selection note: current selection includes " + ", ".join(issues) + "."
+
+    def _show_selection_feedback(self):
+        message = self._selection_feedback_message()
+        if message:
+            self.statusBar().showMessage(message, 5000)
 
     def _existing_widget_names(self, existing_names=None):
         if existing_names is not None:

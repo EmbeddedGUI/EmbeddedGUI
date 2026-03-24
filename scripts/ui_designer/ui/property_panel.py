@@ -15,7 +15,7 @@ from PyQt5.QtGui import QFont
 
 from qfluentwidgets import (
     ComboBox, EditableComboBox, SpinBox, LineEdit, CheckBox, ToolButton,
-    BodyLabel, ListWidget, SearchLineEdit,
+    ListWidget, SearchLineEdit,
 )
 
 from ..model.widget_model import (
@@ -362,6 +362,9 @@ class PropertyPanel(QWidget):
 
         self._layout.addWidget(common_group)
         self._layout.addWidget(self._build_designer_state_group())
+        feedback_group = self._build_selection_feedback_group()
+        if feedback_group is not None:
+            self._layout.addWidget(feedback_group)
 
         # Type-specific properties - data-driven grouping
         type_info = WidgetRegistry.instance().get(w.widget_type)
@@ -481,6 +484,9 @@ class PropertyPanel(QWidget):
 
         self._build_multi_common_properties_group()
         self._layout.addWidget(self._build_designer_state_group())
+        feedback_group = self._build_selection_feedback_group()
+        if feedback_group is not None:
+            self._layout.addWidget(feedback_group)
         self._layout.addStretch()
 
     def _build_designer_state_group(self):
@@ -497,6 +503,73 @@ class PropertyPanel(QWidget):
         hidden.setChecked(all(getattr(widget, "designer_hidden", False) for widget in self._selection) if self._selection else False)
         hidden.toggled.connect(lambda value: self._on_designer_flag_changed("designer_hidden", value))
         form.addRow(hidden)
+
+        return group
+
+    def _layout_parent_name(self, widget):
+        parent = getattr(widget, "parent", None)
+        if parent is None:
+            return ""
+        type_info = WidgetRegistry.instance().get(parent.widget_type)
+        if type_info.get("layout_func") is None:
+            return ""
+        return parent.widget_type
+
+    def _selection_feedback_messages(self):
+        if not self._selection:
+            return []
+
+        if len(self._selection) == 1:
+            widget = self._selection[0]
+            messages = []
+            if getattr(widget, "designer_locked", False):
+                messages.append("Locked: canvas drag and resize are disabled for this widget.")
+            if getattr(widget, "designer_hidden", False):
+                messages.append("Hidden: this widget is skipped by canvas hit testing.")
+            layout_parent = self._layout_parent_name(widget)
+            if layout_parent:
+                messages.append(
+                    f"Layout-managed: x/y come from parent {layout_parent}, so canvas handles are disabled."
+                )
+            return messages
+
+        messages = []
+        locked_count = sum(1 for widget in self._selection if getattr(widget, "designer_locked", False))
+        hidden_count = sum(1 for widget in self._selection if getattr(widget, "designer_hidden", False))
+        layout_count = sum(1 for widget in self._selection if self._layout_parent_name(widget))
+
+        if locked_count:
+            noun = "widget" if locked_count == 1 else "widgets"
+            messages.append(
+                f"Locked: {locked_count} selected {noun} cannot be moved or resized from the canvas."
+            )
+        if hidden_count:
+            noun = "widget" if hidden_count == 1 else "widgets"
+            verb = "is" if hidden_count == 1 else "are"
+            messages.append(
+                f"Hidden: {hidden_count} selected {noun} {verb} skipped by canvas hit testing."
+            )
+        if layout_count:
+            noun = "widget" if layout_count == 1 else "widgets"
+            messages.append(
+                f"Layout-managed: {layout_count} selected {noun} use parent-controlled positioning."
+            )
+
+        return messages
+
+    def _build_selection_feedback_group(self):
+        messages = self._selection_feedback_messages()
+        if not messages:
+            return None
+
+        group = QGroupBox("Interaction Notes")
+        layout = QVBoxLayout()
+        group.setLayout(layout)
+
+        for message in messages:
+            label = QLabel(message)
+            label.setWordWrap(True)
+            layout.addWidget(label)
 
         return group
 

@@ -265,6 +265,50 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_selection_feedback_status_mentions_locked_hidden_and_layout_managed_widget(self, qapp, isolated_config):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        window = MainWindow("")
+        root = WidgetModel("linearlayout", name="root")
+        child = WidgetModel("switch", name="child")
+        child.designer_locked = True
+        child.designer_hidden = True
+        root.add_child(child)
+
+        window._set_selection([child], primary=child, sync_tree=False, sync_preview=False)
+
+        message = window.statusBar().currentMessage()
+        assert "Selection note:" in message
+        assert "child is locked" in message
+        assert "hidden" in message
+        assert "layout-managed by linearlayout" in message
+        window.close()
+        window.deleteLater()
+
+    def test_selection_feedback_status_summarizes_multi_selection_constraints(self, qapp, isolated_config):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        window = MainWindow("")
+        root = WidgetModel("linearlayout", name="root")
+        first = WidgetModel("switch", name="first")
+        second = WidgetModel("switch", name="second")
+        first.designer_locked = True
+        second.designer_hidden = True
+        root.add_child(first)
+        root.add_child(second)
+
+        window._set_selection([first, second], primary=second, sync_tree=False, sync_preview=False)
+
+        message = window.statusBar().currentMessage()
+        assert "Selection note: current selection includes" in message
+        assert "1 locked widget" in message
+        assert "1 hidden widget" in message
+        assert "2 layout-managed widgets" in message
+        window.close()
+        window.deleteLater()
+
     def test_new_project_prefers_recovered_cached_sdk_for_defaults(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
 
