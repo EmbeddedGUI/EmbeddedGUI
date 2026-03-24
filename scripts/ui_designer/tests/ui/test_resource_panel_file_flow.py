@@ -280,7 +280,9 @@ class TestResourcePanelFileFlow:
         panel.set_resource_catalog(catalog)
 
         imported = []
+        feedback = []
         panel.resource_imported.connect(lambda: imported.append(True))
+        panel.feedback_message.connect(lambda message: feedback.append(message))
         monkeypatch.setattr(
             "ui_designer.ui.resource_panel.QFileDialog.getOpenFileNames",
             lambda *args, **kwargs: ([str(first_match), str(no_match)], "Images (*.png *.bmp *.jpg *.jpeg)"),
@@ -291,6 +293,7 @@ class TestResourcePanelFileFlow:
         assert (images_dir / "missing_a.png").is_file()
         assert not (images_dir / "missing_b.png").exists()
         assert imported == [True]
+        assert feedback == ["Restored image resources: 1 restored, 1 unmatched."]
         first_item = panel._image_list.item(0)
         second_item = panel._image_list.item(1)
         assert "File not found!" not in first_item.toolTip()
@@ -351,8 +354,10 @@ class TestResourcePanelFileFlow:
 
         imported = []
         renamed = []
+        feedback = []
         panel.resource_imported.connect(lambda: imported.append(True))
         panel.resource_renamed.connect(lambda res_type, old, new: renamed.append((res_type, old, new)))
+        panel.feedback_message.connect(lambda message: feedback.append(message))
         monkeypatch.setattr(
             "ui_designer.ui.resource_panel.QFileDialog.getOpenFileName",
             lambda *args, **kwargs: (str(source_path), "Images (*.png *.bmp *.jpg *.jpeg)"),
@@ -365,6 +370,7 @@ class TestResourcePanelFileFlow:
         assert (images_dir / "replacement.png").is_file()
         assert imported == [True]
         assert renamed == [("image", "missing.png", "replacement.png")]
+        assert feedback == ["Replaced image resources: 1 renamed."]
         assert panel._tabs.tabText(0) == "Images (1)"
         panel.deleteLater()
 
@@ -392,8 +398,10 @@ class TestResourcePanelFileFlow:
 
         imported = []
         renamed = []
+        feedback = []
         panel.resource_imported.connect(lambda: imported.append(True))
         panel.resource_renamed.connect(lambda res_type, old, new: renamed.append((res_type, old, new)))
+        panel.feedback_message.connect(lambda message: feedback.append(message))
 
         restored, renamed_pairs, failures = panel._replace_missing_resources_from_mapping(
             "image",
@@ -408,6 +416,7 @@ class TestResourcePanelFileFlow:
         assert failures == []
         assert imported == [True]
         assert renamed == [("image", "missing_a.png", "renamed.png")]
+        assert feedback == ["Replaced image resources: 1 renamed, 1 restored."]
         assert panel.get_resource_catalog().has_image("missing_b.png")
         assert panel.get_resource_catalog().has_image("renamed.png")
         assert not panel.get_resource_catalog().has_image("missing_a.png")

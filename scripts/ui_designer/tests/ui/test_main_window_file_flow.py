@@ -989,6 +989,17 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_resource_panel_feedback_signal_updates_status_bar(self, qapp, isolated_config):
+        from ui_designer.ui.main_window import MainWindow
+
+        window = MainWindow("")
+
+        window.res_panel.feedback_message.emit("Restored image resources: 2 restored.")
+
+        assert window.statusBar().currentMessage() == "Restored image resources: 2 restored."
+        window.close()
+        window.deleteLater()
+
     def test_load_background_image_uses_existing_mockup_dir_as_initial_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
 
@@ -1199,7 +1210,7 @@ class TestMainWindowFileFlow:
         assert window.project.resource_catalog.has_image("star.png") is False
         assert window._undo_manager.get_stack("main_page").is_dirty() is True
         assert window._undo_manager.get_stack("detail_page").is_dirty() is True
-        assert window.statusBar().currentMessage() == "Updated resources in 2 pages: image resource rename."
+        assert window.statusBar().currentMessage() == "Replaced image resources: 1 renamed."
         window._undo_manager.mark_all_saved()
         window.close()
         window.deleteLater()

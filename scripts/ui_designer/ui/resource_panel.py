@@ -455,12 +455,14 @@ class ResourcePanel(QWidget):
         resource_renamed(str, str, str): (resource_type, old_name, new_name)
         resource_deleted(str, str): (resource_type, filename)
         resource_imported():         files were imported, refresh needed
+        feedback_message(str):       user-facing operation summary for status bars
     """
 
     resource_selected = pyqtSignal(str, str)
     resource_renamed = pyqtSignal(str, str, str)
     resource_deleted = pyqtSignal(str, str)
     resource_imported = pyqtSignal()
+    feedback_message = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -794,6 +796,20 @@ class ResourcePanel(QWidget):
         if matches:
             lst.setCurrentItem(matches[0])
 
+    def _emit_operation_summary(self, action, resource_type, restored=None, renamed=None, unmatched=None, failures=None):
+        parts = []
+        if renamed:
+            parts.append(f"{len(renamed)} renamed")
+        if restored:
+            parts.append(f"{len(restored)} restored")
+        if unmatched:
+            parts.append(f"{len(unmatched)} unmatched")
+        if failures:
+            parts.append(f"{len(failures)} failed")
+        if not parts:
+            return
+        self.feedback_message.emit(f"{action} {resource_type} resources: {', '.join(parts)}.")
+
     def _dialog_filter_for_resource_type(self, resource_type):
         if resource_type == "image":
             return "Images (*.png *.bmp *.jpg *.jpeg)"
@@ -885,6 +901,13 @@ class ResourcePanel(QWidget):
             self.resource_imported.emit()
             for old_name, new_name in renamed:
                 self.resource_renamed.emit(resource_type, old_name, new_name)
+            self._emit_operation_summary(
+                "Replaced",
+                resource_type,
+                restored=restored,
+                renamed=renamed,
+                failures=failures,
+            )
 
         return restored, renamed, failures
 
@@ -1034,6 +1057,13 @@ class ResourcePanel(QWidget):
             self.set_resource_dir(self._resource_dir)
             self._select_resource_item(resource_type, restored[0])
             self.resource_imported.emit()
+            self._emit_operation_summary(
+                "Restored",
+                resource_type,
+                restored=restored,
+                unmatched=unmatched,
+                failures=failures,
+            )
 
         return restored, unmatched, failures
 

@@ -296,6 +296,7 @@ class MainWindow(QMainWindow):
         self.res_panel.resource_renamed.connect(self._on_resource_renamed)
         self.res_panel.resource_deleted.connect(self._on_resource_deleted)
         self.res_panel.resource_imported.connect(self._on_resource_imported)
+        self.res_panel.feedback_message.connect(self._on_resource_feedback_message)
 
     def _apply_stylesheet(self):
         pass  # Rely entirely on the global Fusion / Fluent theme
@@ -1999,6 +2000,10 @@ class MainWindow(QMainWindow):
         current_message = self.statusBar().currentMessage()
         if not current_message.startswith("Updated resources in "):
             self.statusBar().showMessage("Resources changed, will regenerate...")
+
+    def _on_resource_feedback_message(self, message):
+        if message:
+            self.statusBar().showMessage(message, 5000)
 
     def _rewrite_resource_references(self, res_type, old_name, new_name):
         """Rewrite matching resource filename references across all project pages."""
