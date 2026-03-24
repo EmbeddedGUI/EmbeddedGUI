@@ -63,6 +63,7 @@ class ProjectExplorerDock(QDockWidget):
 
         self._project = None
         self._current_page_name = None
+        self._dirty_pages = set()
         self._init_ui()
 
     def _init_ui(self):
@@ -132,23 +133,34 @@ class ProjectExplorerDock(QDockWidget):
             font.setBold(name == page_name)
             item.setFont(0, font)
 
+    def set_dirty_pages(self, page_names):
+        self._dirty_pages = set(page_names or [])
+        for i in range(self._page_tree.topLevelItemCount()):
+            item = self._page_tree.topLevelItem(i)
+            name = item.data(0, Qt.UserRole)
+            if name:
+                item.setText(0, self._page_item_text(name))
+
     # ── Internal ───────────────────────────────────────────────────
 
     def _rebuild_page_tree(self):
         self._page_tree.clear()
         if not self._project:
             return
-        startup = self._project.startup_page
         for page in self._project.pages:
             name = page.name
-            display = f"▶ {name}" if name == startup else f"  {name}"
-            item = QTreeWidgetItem([display])
+            item = QTreeWidgetItem([self._page_item_text(name)])
             item.setData(0, Qt.UserRole, name)
             if name == self._current_page_name:
                 font = item.font(0)
                 font.setBold(True)
                 item.setFont(0, font)
             self._page_tree.addTopLevelItem(item)
+
+    def _page_item_text(self, page_name):
+        startup = self._project.startup_page if self._project else ""
+        dirty_suffix = "*" if page_name in self._dirty_pages else ""
+        return f"▶ {page_name}{dirty_suffix}" if page_name == startup else f"  {page_name}{dirty_suffix}"
 
     def _rebuild_resource_tree(self):
         # Resources are managed by the independent ResourcePanel dock

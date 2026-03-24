@@ -166,6 +166,10 @@ class UndoManager:
         """True if any page has unsaved changes."""
         return any(s.is_dirty() for s in self._stacks.values())
 
+    def dirty_pages(self):
+        """Return page names that currently differ from the last saved state."""
+        return [name for name, stack in self._stacks.items() if stack.is_dirty()]
+
     def mark_all_saved(self):
         """Mark all pages as saved."""
         for stack in self._stacks.values():

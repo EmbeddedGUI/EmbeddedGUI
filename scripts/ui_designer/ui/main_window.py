@@ -1392,10 +1392,17 @@ class MainWindow(QMainWindow):
 
     def _update_window_title(self):
         """Update window title with current app name and dirty indicator."""
+        dirty_pages = set(self._undo_manager.dirty_pages())
+        self.project_dock.set_dirty_pages(dirty_pages)
+        self.page_navigator.set_dirty_pages(dirty_pages)
+        for i in range(self.page_tab_bar.count()):
+            page_name = self._page_tab_name(i)
+            self.page_tab_bar.setTabText(i, self._page_tab_label(page_name, dirty_pages))
+
         title = f"EmbeddedGUI Designer - {self.app_name}"
         if self._project_dir:
             title += f" [{self._project_dir}]"
-        if self._undo_manager.is_any_dirty():
+        if dirty_pages:
             title += " *"
         self.setWindowTitle(title)
 
@@ -2213,6 +2220,7 @@ class MainWindow(QMainWindow):
         self._trigger_compile()
         self._update_undo_actions()
         self._update_edit_actions()
+        self._update_window_title()
 
     def _on_page_selected(self, page_name):
         """User clicked a page in the Project Explorer."""
@@ -2348,25 +2356,41 @@ class MainWindow(QMainWindow):
 
     # ── Page tabs (qfluentwidgets TabBar) ─────────────────────────
 
+    def _page_tab_name(self, index):
+        item = self.page_tab_bar.tabItem(index)
+        if item is not None and hasattr(item, "routeKey"):
+            return item.routeKey()
+        return self.page_tab_bar.tabText(index).rstrip("*")
+
+    def _page_tab_label(self, page_name, dirty_pages=None):
+        if dirty_pages is None:
+            dirty_pages = set(self._undo_manager.dirty_pages())
+        else:
+            dirty_pages = set(dirty_pages)
+        return f"{page_name}*" if page_name in dirty_pages else page_name
+
     def _ensure_page_tab(self, page_name):
         """Add a tab for page_name if not already present. Returns the index."""
         for i in range(self.page_tab_bar.count()):
-            if self.page_tab_bar.tabText(i) == page_name:
+            if self._page_tab_name(i) == page_name:
                 return i
         # routeKey = page_name (unique per page)
-        self.page_tab_bar.addTab(page_name, page_name, None)
+        self.page_tab_bar.addTab(page_name, self._page_tab_label(page_name), None)
         return self.page_tab_bar.count() - 1
 
     def _remove_page_tab(self, page_name):
         for i in range(self.page_tab_bar.count()):
-            if self.page_tab_bar.tabText(i) == page_name:
+            if self._page_tab_name(i) == page_name:
                 self.page_tab_bar.removeTab(i)
                 return
 
     def _rename_page_tab(self, old_name, new_name):
         for i in range(self.page_tab_bar.count()):
-            if self.page_tab_bar.tabText(i) == old_name:
-                self.page_tab_bar.setTabText(i, new_name)
+            if self._page_tab_name(i) == old_name:
+                item = self.page_tab_bar.tabItem(i)
+                if item is not None and hasattr(item, "setRouteKey"):
+                    item.setRouteKey(new_name)
+                self.page_tab_bar.setTabText(i, self._page_tab_label(new_name))
                 return
 
     def _on_page_tab_changed(self, index):
@@ -2374,7 +2398,7 @@ class MainWindow(QMainWindow):
             return
         if index < 0:
             return
-        page_name = self.page_tab_bar.tabText(index)
+        page_name = self._page_tab_name(index)
         if self._current_page and page_name == self._current_page.name:
             return
         self._switch_page(page_name)
@@ -2382,7 +2406,7 @@ class MainWindow(QMainWindow):
     def _on_page_tab_closed(self, index):
         if index < 0:
             return
-        page_name = self.page_tab_bar.tabText(index)
+        page_name = self._page_tab_name(index)
         self.page_tab_bar.removeTab(index)
         # If current page tab closed, switch to another open tab or fallback
         if self._current_page and self._current_page.name == page_name:
@@ -2417,10 +2441,10 @@ class MainWindow(QMainWindow):
         if action == close_tab and index >= 0:
             self._on_page_tab_closed(index)
         elif action == close_others and index >= 0:
-            keep_name = self.page_tab_bar.tabText(index)
+            keep_name = self._page_tab_name(index)
             names_to_remove = []
             for i in range(self.page_tab_bar.count()):
-                n = self.page_tab_bar.tabText(i)
+                n = self._page_tab_name(i)
                 if n != keep_name:
                     names_to_remove.append(n)
             for n in names_to_remove:

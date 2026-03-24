@@ -7,7 +7,7 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
-    from PyQt5.QtCore import QByteArray
+    from PyQt5.QtCore import QByteArray, Qt
     from PyQt5.QtWidgets import QApplication
     from PyQt5.QtWidgets import QMessageBox
 
@@ -1375,6 +1375,50 @@ class TestMainWindowFileFlow:
         assert window._current_page.name == "detail_page"
         assert [child.name for child in template_page.root_widget.children] == ["title", "hero_image", "description"]
         window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
+    def test_dirty_page_indicators_sync_across_tabs_navigator_and_project_tree(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "DirtyPagesDemo"
+        project = _create_project(project_dir, "DirtyPagesDemo", sdk_root)
+        project.create_new_page("detail_page")
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+
+        window._undo_manager.get_stack("main_page").push("<Page dirty='main' />")
+        window._undo_manager.get_stack("detail_page").push("<Page dirty='detail' />")
+        window._update_window_title()
+
+        assert window.page_tab_bar.tabText(0) == "main_page*"
+        assert window.page_navigator._thumbnails["main_page"]._name_label.text() == "main_page*"
+        assert window.page_navigator._thumbnails["detail_page"]._name_label.text() == "detail_page*"
+
+        texts_by_page = {}
+        for i in range(window.project_dock._page_tree.topLevelItemCount()):
+            item = window.project_dock._page_tree.topLevelItem(i)
+            texts_by_page[item.data(0, Qt.UserRole)] = item.text(0)
+        assert texts_by_page["main_page"].endswith("main_page*")
+        assert texts_by_page["detail_page"].endswith("detail_page*")
+
+        window._switch_page("detail_page")
+        assert window._current_page.name == "detail_page"
+        assert any(window.page_tab_bar.tabText(i) == "detail_page*" for i in range(window.page_tab_bar.count()))
+
+        window._undo_manager.mark_all_saved()
+        window._update_window_title()
+
+        assert all(not window.page_tab_bar.tabText(i).endswith("*") for i in range(window.page_tab_bar.count()))
+        assert window.page_navigator._thumbnails["main_page"]._name_label.text() == "main_page"
+        assert window.page_navigator._thumbnails["detail_page"]._name_label.text() == "detail_page"
         window.close()
         window.deleteLater()
 

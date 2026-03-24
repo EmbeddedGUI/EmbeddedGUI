@@ -31,6 +31,7 @@ class PageThumbnail(QWidget):
     def __init__(self, page_name, parent=None):
         super().__init__(parent)
         self.page_name = page_name
+        self._dirty = False
         self._selected = False
         self.setFixedSize(THUMB_WIDTH + 8, THUMB_HEIGHT + 24)
         self.setCursor(Qt.PointingHandCursor)
@@ -58,6 +59,10 @@ class PageThumbnail(QWidget):
     def set_thumbnail(self, pixmap):
         scaled = pixmap.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self._thumb_label.setPixmap(scaled)
+
+    def set_dirty(self, dirty):
+        self._dirty = bool(dirty)
+        self._name_label.setText(f"{self.page_name}*" if self._dirty else self.page_name)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -110,6 +115,7 @@ class PageNavigator(QWidget):
         self._pages = {}  # page_name -> Page
         self._thumbnails = {}  # page_name -> PageThumbnail
         self._current_page = None
+        self._dirty_pages = set()
         self._screen_width = 240
         self._screen_height = 320
         self._init_ui()
@@ -148,6 +154,11 @@ class PageNavigator(QWidget):
         for name, thumb in self._thumbnails.items():
             thumb.set_selected(name == page_name)
 
+    def set_dirty_pages(self, page_names):
+        self._dirty_pages = set(page_names or [])
+        for name, thumb in self._thumbnails.items():
+            thumb.set_dirty(name in self._dirty_pages)
+
     def refresh_thumbnail(self, page_name):
         """Re-render thumbnail for a specific page."""
         if page_name not in self._pages or page_name not in self._thumbnails:
@@ -181,6 +192,7 @@ class PageNavigator(QWidget):
             thumb.clicked.connect(self._on_thumb_clicked)
             thumb.context_menu_requested.connect(self._on_context_menu)
             thumb.set_selected(name == self._current_page)
+            thumb.set_dirty(name in self._dirty_pages)
             self._thumbnails[name] = thumb
             self._layout.addWidget(thumb)
 
