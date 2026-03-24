@@ -202,6 +202,24 @@ code_runtime_check.py                 # 运行时验证
 setup.bat
 ```
 
+## 实时预览 Smoke 检查
+
+为了避免后续改动破坏 UI Designer 的真实编译预览链路，仓库增加了一个端到端 smoke 脚本：
+
+```bash
+python scripts/ui_designer_preview_smoke.py
+```
+
+这个脚本会在 SDK 目录外创建一个临时标准 App 工作区，并自动完成以下检查：
+
+1. 生成并保存最小 `.egui` 工程，确认外部工作区的 `sdk_root` 可正确恢复
+2. 通过 `CompilerEngine` 编译该外部 App，验证 SDK 与工程分离场景可用
+3. 启动 headless preview bridge 并抓取首帧
+4. 观察动画区域是否随时间变化，验证实时取帧链路
+5. 注入一次触摸点击，确认交互事件可以驱动渲染结果更新
+
+该脚本已经接入 `scripts/release_check.py` 和 release workflow，用来拦截“单元测试通过，但实时预览已经失效”的回归。
+
 Linux / macOS 使用：
 
 ```bash

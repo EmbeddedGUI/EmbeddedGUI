@@ -31,6 +31,9 @@ jobs:
       - name: Run UI Designer tests
         run: python -m pytest -c scripts/ui_designer/pyproject.toml scripts/ui_designer/tests -v --tb=short
 
+      - name: UI Designer live preview smoke
+        run: python scripts\ui_designer_preview_smoke.py
+
       - name: Full compile check
         run: python scripts\code_compile_check.py --full-check --actions --bits64
       - name: Full runtime check

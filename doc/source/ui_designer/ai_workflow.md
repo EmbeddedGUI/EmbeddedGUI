@@ -102,6 +102,7 @@ AI 代理弥合了这些差距：解析设计稿语义 → 生成 XML 布局 →
 | `scripts/check_example_icon_font.py` | 示例图标字体显式配置检查 |
 | `scripts/release_check.py` | 一键发布验证（多步骤发布前流水线） |
 | `scripts/package_ui_designer.py` | 本地构建 UI Designer 桌面打包产物 |
+| `scripts/ui_designer_preview_smoke.py` | UI Designer 实时预览链路端到端 smoke 检查 |
 
 ## 三条输入路径
 
@@ -294,15 +295,16 @@ python scripts/release_check.py
 | 2. 示例图标字体检查 | 检查示例是否显式设置 `icon_font` |
 | 3. Keil 工程同步检查 | 校验源码与 `.uvprojx` 配置一致 |
 | 4. UI Designer 单元测试 | pytest 运行 UI Designer 测试 |
-| 5. UI Designer 打包 | PyInstaller 构建桌面工具 |
-| 6. 全量编译 | 编译所有示例应用 |
-| 7. WASM Demo 构建 | 构建 WebAssembly 演示站点 |
-| 8. 运行时截图验证 | 启动应用并截图检查渲染结果 |
-| 9. 二进制大小分析 | ELF 内存占用分析 |
-| 10. 大小文档生成 | 生成体积报告文档 |
-| 11. QEMU 性能回归 | 微秒级性能基准测试 |
-| 12. 性能文档生成 | 生成性能报告 |
-| 13. Sphinx 文档构建 | 验证文档可正常生成 |
+| 5. UI Designer 实时预览 smoke | 外部工作区编译 + headless bridge + 交互验证 |
+| 6. UI Designer 打包 | PyInstaller 构建桌面工具 |
+| 7. 全量编译 | 编译所有示例应用 |
+| 8. WASM Demo 构建 | 构建 WebAssembly 演示站点 |
+| 9. 运行时截图验证 | 启动应用并截图检查渲染结果 |
+| 10. 二进制大小分析 | ELF 内存占用分析 |
+| 11. 大小文档生成 | 生成体积报告文档 |
+| 12. QEMU 性能回归 | 微秒级性能基准测试 |
+| 13. 性能文档生成 | 生成性能报告 |
+| 14. Sphinx 文档构建 | 验证文档可正常生成 |
 
 常见用法：
 

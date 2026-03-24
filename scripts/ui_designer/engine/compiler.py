@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import time
+import hashlib
 
 from PyQt5.QtCore import QThread, pyqtSignal
 
@@ -208,9 +209,11 @@ class CompilerEngine:
         self.app_dir = normalize_path(app_dir)
         self.app_name = app_name
         self.app_root_arg = ""
+        self._app_root_alias_dir = ""
         self._app_root_error = ""
         try:
-            self.app_root_arg = compute_make_app_root_arg(self.project_root, self.app_dir, self.app_name)
+            raw_app_root_arg = compute_make_app_root_arg(self.project_root, self.app_dir, self.app_name)
+            self.app_root_arg = self._resolve_make_app_root_arg(raw_app_root_arg)
         except ValueError as exc:
             self._app_root_error = str(exc)
         self.process = None  # kept for backward compat, not used by bridge
@@ -271,6 +274,72 @@ class CompilerEngine:
     def _run_exe_path(self, index):
         suffix = ".exe" if sys.platform == "win32" else ""
         return os.path.join(self.project_root, "output", f"designer_run_{index}{suffix}")
+
+    def _resolve_make_app_root_arg(self, app_root_arg):
+        """Rewrite external app roots to an in-tree alias when needed.
+
+        Windows make/object directory generation does not cope well with source
+        paths containing ``..`` segments. For external workspaces outside the
+        SDK root, create a stable directory link inside ``build/`` and compile
+        through that alias instead.
+        """
+        if not app_root_arg.startswith(".."):
+            return app_root_arg
+        return self._ensure_external_app_root_alias()
+
+    def _ensure_external_app_root_alias(self):
+        """Create a stable in-tree alias for the external app parent directory."""
+        parent_dir = normalize_path(os.path.dirname(self.app_dir))
+        alias_root = os.path.join(self.project_root, "build", "ui_designer_external")
+        digest = hashlib.sha1(parent_dir.encode("utf-8")).hexdigest()[:12]
+        alias_dir = os.path.join(alias_root, digest)
+        os.makedirs(alias_root, exist_ok=True)
+
+        if os.path.lexists(alias_dir):
+            try:
+                if os.path.samefile(alias_dir, parent_dir):
+                    self._app_root_alias_dir = alias_dir
+                    return os.path.relpath(alias_dir, self.project_root).replace("\\", "/")
+            except OSError:
+                pass
+            self._remove_dir_alias(alias_dir)
+
+        self._create_dir_alias(alias_dir, parent_dir)
+        self._app_root_alias_dir = alias_dir
+        return os.path.relpath(alias_dir, self.project_root).replace("\\", "/")
+
+    def _create_dir_alias(self, alias_dir, target_dir):
+        """Create a directory alias for *target_dir* at *alias_dir*."""
+        if sys.platform == "win32":
+            result = subprocess.run(
+                ["cmd", "/c", "mklink", "/J", alias_dir, target_dir],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                return
+            try:
+                os.symlink(target_dir, alias_dir, target_is_directory=True)
+                return
+            except OSError as exc:
+                detail = (result.stderr or result.stdout or "").strip()
+                if detail:
+                    raise RuntimeError(f"Failed to create external app alias: {detail}") from exc
+                raise RuntimeError("Failed to create external app alias") from exc
+
+        os.symlink(target_dir, alias_dir, target_is_directory=True)
+
+    def _remove_dir_alias(self, alias_dir):
+        """Remove a previously created directory alias."""
+        if not os.path.lexists(alias_dir):
+            return
+        try:
+            if os.path.islink(alias_dir):
+                os.unlink(alias_dir)
+            else:
+                os.rmdir(alias_dir)
+        except OSError:
+            shutil.rmtree(alias_dir, ignore_errors=True)
 
     def write_uicode(self, code):
         """Write generated C code to uicode.c."""
@@ -678,3 +747,6 @@ class CompilerEngine:
                     os.remove(path)
             except OSError:
                 pass
+        if self._app_root_alias_dir:
+            self._remove_dir_alias(self._app_root_alias_dir)
+            self._app_root_alias_dir = ""

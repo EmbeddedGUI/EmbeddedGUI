@@ -289,3 +289,12 @@ class TestCompilerRuntime:
         assert engine.get_last_runtime_error() == "cross drive"
         assert engine.get_build_error() == "cross drive"
         assert not engine.is_exe_ready()
+
+    def test_init_rewrites_external_parent_with_alias(self, tmp_path):
+        external_app = tmp_path.parent / "external" / "TestApp"
+        with patch("ui_designer.engine.compiler.compute_make_app_root_arg", return_value="../external"):
+            with patch.object(CompilerEngine, "_ensure_external_app_root_alias", return_value="build/ui_designer_external/abc123") as mock_alias:
+                with patch.object(CompilerEngine, "_cleanup_stale_processes"):
+                    engine = CompilerEngine(str(tmp_path), str(external_app), "TestApp")
+        assert engine.app_root_arg == "build/ui_designer_external/abc123"
+        mock_alias.assert_called_once_with()

@@ -36,6 +36,7 @@ ALL_STEP_NAMES = [
     "icon_font",
     "keil_sync",
     "pytest",
+    "ui_preview_smoke",
     "ui_package",
     "compile",
     "wasm",
@@ -55,6 +56,7 @@ STEP_DESCRIPTIONS = {
     "icon_font": "Example icon font explicitness check",
     "keil_sync": "Keil project file sync (src/ vs .uvprojx)",
     "pytest":   "UI Designer unit tests (pytest)",
+    "ui_preview_smoke": "UI Designer live preview smoke",
     "ui_package": "UI Designer package build (PyInstaller)",
     "compile":  "Full compile check (all examples)",
     "wasm":     "WASM demos build",
@@ -118,6 +120,9 @@ def build_steps(args):
 
         ("pytest",   STEP_DESCRIPTIONS["pytest"],
          [py, "-m", "pytest", "-c", str(SCRIPT_DIR / "ui_designer" / "pyproject.toml"), str(SCRIPT_DIR / "ui_designer" / "tests"), "-v", "--tb=short"]),
+
+        ("ui_preview_smoke", STEP_DESCRIPTIONS["ui_preview_smoke"],
+         [py, str(SCRIPT_DIR / "ui_designer_preview_smoke.py")]),
 
         ("ui_package", STEP_DESCRIPTIONS["ui_package"],
          [py, str(SCRIPT_DIR / "package_ui_designer.py"), "--archive", "none", "--output-dir", str(PROJECT_ROOT / "dist"), "--work-dir", str(PROJECT_ROOT / "build" / "pyinstaller")]),

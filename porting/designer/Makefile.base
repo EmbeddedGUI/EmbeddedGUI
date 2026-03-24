@@ -141,7 +141,7 @@ endif
 	FIXPATH = $(subst /,\,$1)
 	RM      := del /q /s
 	MD			:= mkdir
-	MD_CHECK	:= $(Q)if not exist "$@"
+	MD_CHECK	:= $(Q)if not exist "$(call FIXPATH,$@)"
 
 else ifeq ($(shell uname), Darwin)
     # Code for OS X
