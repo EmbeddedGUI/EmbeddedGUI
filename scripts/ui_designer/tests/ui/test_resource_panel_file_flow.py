@@ -168,6 +168,75 @@ class TestResourcePanelFileFlow:
         assert imported == [True]
         panel.deleteLater()
 
+    def test_restore_missing_image_copies_file_and_clears_missing_state(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        images_dir = resource_dir / "images"
+        images_dir.mkdir(parents=True)
+        external_dir = tmp_path / "external_images"
+        external_dir.mkdir()
+        source_path = external_dir / "external.png"
+        source_path.write_bytes(b"PNG")
+
+        catalog = ResourceCatalog()
+        catalog.add_image("missing.png")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+
+        imported = []
+        panel.resource_imported.connect(lambda: imported.append(True))
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QFileDialog.getOpenFileName",
+            lambda *args, **kwargs: (str(source_path), "Images (*.png *.bmp *.jpg *.jpeg)"),
+        )
+
+        panel._restore_missing_resource("missing.png", "image")
+
+        restored_path = images_dir / "missing.png"
+        assert restored_path.is_file()
+        assert restored_path.read_bytes() == b"PNG"
+        assert imported == [True]
+        item = panel._image_list.item(0)
+        assert "File not found!" not in item.toolTip()
+        panel.deleteLater()
+
+    def test_restore_missing_font_rejects_extension_mismatch(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        resource_dir.mkdir(parents=True)
+        external_dir = tmp_path / "external_fonts"
+        external_dir.mkdir()
+        source_path = external_dir / "replacement.otf"
+        source_path.write_bytes(b"FONT")
+
+        catalog = ResourceCatalog()
+        catalog.add_font("missing.ttf")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+
+        warnings = []
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QFileDialog.getOpenFileName",
+            lambda *args, **kwargs: (str(source_path), "Fonts (*.ttf *.otf)"),
+        )
+        monkeypatch.setattr("ui_designer.ui.resource_panel.QMessageBox.warning", lambda *args: warnings.append(args[1:]))
+
+        panel._restore_missing_resource("missing.ttf", "font")
+
+        assert not (resource_dir / "missing.ttf").exists()
+        assert warnings
+        assert warnings[0][0] == "Extension Mismatch"
+        assert "Expected a '.ttf' file to restore 'missing.ttf'." in warnings[0][1]
+        panel.deleteLater()
+
     def test_rename_text_resource_updates_catalog_and_emits_signal(self, qapp, tmp_path, monkeypatch):
         from ui_designer.model.resource_catalog import ResourceCatalog
         from ui_designer.ui.resource_panel import ResourcePanel

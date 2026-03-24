@@ -651,6 +651,15 @@ class ResourcePanel(QWidget):
             return self._text_list
         return None
 
+    def _dialog_filter_for_resource_type(self, resource_type):
+        if resource_type == "image":
+            return "Images (*.png *.bmp *.jpg *.jpeg)"
+        if resource_type == "font":
+            return "Fonts (*.ttf *.otf)"
+        if resource_type == "text":
+            return "Text Files (*.txt);;All Files (*.*)"
+        return "All Files (*.*)"
+
     def _load_font(self, path):
         if path in self._font_id_cache:
             return self._font_family_cache.get(path, "")
@@ -740,7 +749,7 @@ class ResourcePanel(QWidget):
             return
         paths, _ = QFileDialog.getOpenFileNames(
             self, "Import Images", self._default_external_import_dir("image"),
-            "Images (*.png *.bmp *.jpg *.jpeg)"
+            self._dialog_filter_for_resource_type("image")
         )
         if paths:
             self._remember_external_import_paths(paths)
@@ -751,7 +760,7 @@ class ResourcePanel(QWidget):
             return
         paths, _ = QFileDialog.getOpenFileNames(
             self, "Import Fonts", self._default_external_import_dir("font"),
-            "Fonts (*.ttf *.otf)"
+            self._dialog_filter_for_resource_type("font")
         )
         if paths:
             self._remember_external_import_paths(paths)
@@ -762,11 +771,57 @@ class ResourcePanel(QWidget):
             return
         paths, _ = QFileDialog.getOpenFileNames(
             self, "Import Text Files", self._default_external_import_dir("text"),
-            "Text Files (*.txt);;All Files (*.*)"
+            self._dialog_filter_for_resource_type("text")
         )
         if paths:
             self._remember_external_import_paths(paths)
             self._do_import(paths, "text")
+
+    def _restore_missing_resource(self, filename, resource_type):
+        if not self._ensure_src_dir():
+            return
+
+        target_dir = self._target_dir_for_resource_type(resource_type)
+        target_path = os.path.join(target_dir, filename)
+        if os.path.isfile(target_path):
+            return
+
+        source_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Restore Missing Resource",
+            self._default_external_import_dir(resource_type),
+            self._dialog_filter_for_resource_type(resource_type),
+        )
+        if not source_path:
+            return
+        self._remember_external_import_paths([source_path])
+
+        expected_ext = os.path.splitext(filename)[1].lower()
+        source_ext = os.path.splitext(source_path)[1].lower()
+        if expected_ext and source_ext != expected_ext:
+            QMessageBox.warning(
+                self,
+                "Extension Mismatch",
+                f"Expected a '{expected_ext}' file to restore '{filename}'.",
+            )
+            return
+
+        try:
+            shutil.copy2(source_path, target_path)
+        except OSError as exc:
+            QMessageBox.warning(self, "Error", f"Restore failed: {exc}")
+            return
+
+        self._catalog.add_file(filename)
+        self.set_resource_dir(self._resource_dir)
+
+        lst = self._list_widget_for_resource_type(resource_type)
+        if lst is not None:
+            matches = lst.findItems(filename, Qt.MatchExactly)
+            if matches:
+                lst.setCurrentItem(matches[0])
+
+        self.resource_imported.emit()
 
     def _do_import(self, source_paths, resource_type):
         if not self._ensure_src_dir():
@@ -880,6 +935,11 @@ class ResourcePanel(QWidget):
         copy_act.triggered.connect(lambda: QApplication.clipboard().setText(filename))
 
         menu.addSeparator()
+
+        if not os.path.isfile(path):
+            restore_act = menu.addAction("Restore Missing File...")
+            restore_act.triggered.connect(lambda: self._restore_missing_resource(filename, resource_type))
+            menu.addSeparator()
 
         reveal_act = menu.addAction("Reveal in File Manager")
         reveal_act.triggered.connect(lambda: self._reveal_in_explorer(path))
