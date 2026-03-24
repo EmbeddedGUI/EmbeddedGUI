@@ -406,6 +406,121 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_align_selection_reports_locked_constraint(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "AlignLockedDemo"
+        project = _create_project(project_dir, "AlignLockedDemo", sdk_root)
+        first = WidgetModel("switch", name="first", x=10, y=10, width=40, height=20)
+        second = WidgetModel("switch", name="second", x=60, y=20, width=40, height=20)
+        second.designer_locked = True
+        root = project.get_startup_page().root_widget
+        root.add_child(first)
+        root.add_child(second)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._set_selection([first, second], primary=first, sync_tree=False, sync_preview=False)
+
+        window._align_selection("left")
+
+        assert window.statusBar().currentMessage() == "Cannot align selection: locked widgets leave fewer than 2 editable widgets."
+        window.close()
+        window.deleteLater()
+
+    def test_distribute_selection_reports_mixed_parent_constraint(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "DistributeParentDemo"
+        project = _create_project(project_dir, "DistributeParentDemo", sdk_root)
+        root = project.get_startup_page().root_widget
+        group_a = WidgetModel("group", name="group_a", x=0, y=0, width=120, height=120)
+        group_b = WidgetModel("group", name="group_b", x=130, y=0, width=120, height=120)
+        first = WidgetModel("switch", name="first", x=10, y=10, width=20, height=20)
+        second = WidgetModel("switch", name="second", x=40, y=10, width=20, height=20)
+        third = WidgetModel("switch", name="third", x=10, y=10, width=20, height=20)
+        group_a.add_child(first)
+        group_a.add_child(second)
+        group_b.add_child(third)
+        root.add_child(group_a)
+        root.add_child(group_b)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._set_selection([first, second, third], primary=first, sync_tree=False, sync_preview=False)
+
+        window._distribute_selection("horizontal")
+
+        assert window.statusBar().currentMessage() == "Cannot distribute selection: selected widgets do not share the same free-position parent."
+        window.close()
+        window.deleteLater()
+
+    def test_move_selection_to_front_reports_all_locked(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "FrontLockedDemo"
+        project = _create_project(project_dir, "FrontLockedDemo", sdk_root)
+        locked = WidgetModel("switch", name="locked_widget")
+        locked.designer_locked = True
+        project.get_startup_page().root_widget.add_child(locked)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._set_selection([locked], primary=locked, sync_tree=False, sync_preview=False)
+
+        window._move_selection_to_front()
+
+        assert window.statusBar().currentMessage() == "Cannot bring to front: all selected widgets are locked."
+        window.close()
+        window.deleteLater()
+
+    def test_move_selection_to_back_reports_all_locked(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "BackLockedDemo"
+        project = _create_project(project_dir, "BackLockedDemo", sdk_root)
+        locked = WidgetModel("switch", name="locked_widget")
+        locked.designer_locked = True
+        project.get_startup_page().root_widget.add_child(locked)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._set_selection([locked], primary=locked, sync_tree=False, sync_preview=False)
+
+        window._move_selection_to_back()
+
+        assert window.statusBar().currentMessage() == "Cannot send to back: all selected widgets are locked."
+        window.close()
+        window.deleteLater()
+
     def test_property_edit_status_mentions_dirty_source(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
         from ui_designer.ui.main_window import MainWindow

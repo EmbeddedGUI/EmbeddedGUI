@@ -2640,6 +2640,9 @@ class MainWindow(QMainWindow):
         noun = "widget" if count == 1 else "widgets"
         return f"{count} locked {noun}"
 
+    def _show_selection_action_blocked(self, action, reason):
+        self.statusBar().showMessage(f"Cannot {action}: {reason}.", 4000)
+
     def _deletable_selected_widgets(self):
         widgets = self._top_level_selected_widgets()
         deletable = [widget for widget in widgets if not getattr(widget, "designer_locked", False)]
@@ -2744,10 +2747,14 @@ class MainWindow(QMainWindow):
         return len(widgets), locked_count
 
     def _align_selection(self, mode):
-        widgets = [widget for widget in self._top_level_selected_widgets() if not getattr(widget, "designer_locked", False)]
+        selected_widgets = self._top_level_selected_widgets()
+        widgets = [widget for widget in selected_widgets if not getattr(widget, "designer_locked", False)]
         if len(widgets) < 2:
+            if len(selected_widgets) >= 2:
+                self._show_selection_action_blocked("align selection", "locked widgets leave fewer than 2 editable widgets")
             return
         if self._shared_selection_parent(widgets) is None:
+            self._show_selection_action_blocked("align selection", "selected widgets do not share the same free-position parent")
             return
 
         primary = self._primary_selected_widget()
@@ -2775,10 +2782,14 @@ class MainWindow(QMainWindow):
         self._record_page_state_change(source=f"align {mode}")
 
     def _distribute_selection(self, axis):
-        widgets = [widget for widget in self._top_level_selected_widgets() if not getattr(widget, "designer_locked", False)]
+        selected_widgets = self._top_level_selected_widgets()
+        widgets = [widget for widget in selected_widgets if not getattr(widget, "designer_locked", False)]
         if len(widgets) < 3:
+            if len(selected_widgets) >= 3:
+                self._show_selection_action_blocked("distribute selection", "locked widgets leave fewer than 3 editable widgets")
             return
         if self._shared_selection_parent(widgets) is None:
+            self._show_selection_action_blocked("distribute selection", "selected widgets do not share the same free-position parent")
             return
 
         key_name = "x" if axis == "horizontal" else "y"
@@ -2809,8 +2820,11 @@ class MainWindow(QMainWindow):
         self._record_page_state_change(source=f"distribute {axis}")
 
     def _move_selection_to_front(self):
-        widgets = self._top_level_selected_widgets()
+        selected_widgets = self._top_level_selected_widgets()
+        widgets = [widget for widget in selected_widgets if not getattr(widget, "designer_locked", False)]
         if not widgets:
+            if selected_widgets:
+                self._show_selection_action_blocked("bring to front", "all selected widgets are locked")
             return
         grouped = {}
         for widget in widgets:
@@ -2828,8 +2842,11 @@ class MainWindow(QMainWindow):
         self._record_page_state_change(source="bring to front")
 
     def _move_selection_to_back(self):
-        widgets = self._top_level_selected_widgets()
+        selected_widgets = self._top_level_selected_widgets()
+        widgets = [widget for widget in selected_widgets if not getattr(widget, "designer_locked", False)]
         if not widgets:
+            if selected_widgets:
+                self._show_selection_action_blocked("send to back", "all selected widgets are locked")
             return
         grouped = {}
         for widget in widgets:
