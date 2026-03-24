@@ -309,6 +309,103 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_delete_selection_blocks_locked_widgets(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "DeleteLockedDemo"
+        project = _create_project(project_dir, "DeleteLockedDemo", sdk_root)
+        locked = WidgetModel("switch", name="locked_widget")
+        locked.designer_locked = True
+        project.get_startup_page().root_widget.add_child(locked)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._set_selection([locked], primary=locked, sync_tree=False, sync_preview=False)
+
+        deleted_count, skipped_locked = window._delete_selection()
+
+        assert deleted_count == 0
+        assert skipped_locked == 1
+        assert locked in project.get_startup_page().root_widget.children
+        assert window.statusBar().currentMessage() == "Cannot delete selection: 1 locked widget."
+        window.close()
+        window.deleteLater()
+
+    def test_delete_selection_skips_locked_widgets(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "DeleteMixedDemo"
+        project = _create_project(project_dir, "DeleteMixedDemo", sdk_root)
+        removable = WidgetModel("switch", name="removable")
+        locked = WidgetModel("switch", name="locked_widget")
+        locked.designer_locked = True
+        root = project.get_startup_page().root_widget
+        root.add_child(removable)
+        root.add_child(locked)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._set_selection([removable, locked], primary=removable, sync_tree=False, sync_preview=False)
+
+        deleted_count, skipped_locked = window._delete_selection()
+
+        assert deleted_count == 1
+        assert skipped_locked == 1
+        assert removable not in root.children
+        assert locked in root.children
+        assert window.statusBar().currentMessage() == "Deleted 1 widget(s); skipped 1 locked widget"
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
+    def test_cut_selection_skips_locked_widgets(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "CutMixedDemo"
+        project = _create_project(project_dir, "CutMixedDemo", sdk_root)
+        removable = WidgetModel("switch", name="removable")
+        locked = WidgetModel("switch", name="locked_widget")
+        locked.designer_locked = True
+        root = project.get_startup_page().root_widget
+        root.add_child(removable)
+        root.add_child(locked)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._set_selection([removable, locked], primary=removable, sync_tree=False, sync_preview=False)
+
+        window._cut_selection()
+
+        assert removable not in root.children
+        assert locked in root.children
+        assert len(window._clipboard_payload["widgets"]) == 1
+        assert window._clipboard_payload["widgets"][0]["name"] == "removable"
+        assert window.statusBar().currentMessage() == "Cut 1 widget(s); skipped 1 locked widget"
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
     def test_property_edit_status_mentions_dirty_source(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
         from ui_designer.ui.main_window import MainWindow

@@ -2636,6 +2636,16 @@ class MainWindow(QMainWindow):
             "widgets": [copy.deepcopy(widget.to_dict()) for widget in widgets],
         }
 
+    def _locked_widget_summary(self, count):
+        noun = "widget" if count == 1 else "widgets"
+        return f"{count} locked {noun}"
+
+    def _deletable_selected_widgets(self):
+        widgets = self._top_level_selected_widgets()
+        deletable = [widget for widget in widgets if not getattr(widget, "designer_locked", False)]
+        locked_count = len(widgets) - len(deletable)
+        return deletable, locked_count
+
     def _paste_widget_payload(self, payload):
         if not self._current_page or not payload:
             return []
@@ -2681,13 +2691,24 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Copied {len(payload['widgets'])} widget(s)", 3000)
 
     def _cut_selection(self):
-        payload = self._selected_widget_payload()
+        deletable_widgets, locked_count = self._deletable_selected_widgets()
+        if not deletable_widgets:
+            if locked_count:
+                self.statusBar().showMessage(f"Cannot cut selection: {self._locked_widget_summary(locked_count)}.", 4000)
+            return
+        payload = {
+            "widgets": [copy.deepcopy(widget.to_dict()) for widget in deletable_widgets],
+        }
         if not payload:
             return
         self._clipboard_payload = payload
         self._paste_serial = 0
-        self._delete_selection()
-        self.statusBar().showMessage(f"Cut {len(payload['widgets'])} widget(s)", 3000)
+        deleted_count, skipped_locked = self._delete_selection()
+        if deleted_count:
+            message = f"Cut {deleted_count} widget(s)"
+            if skipped_locked:
+                message += f"; skipped {self._locked_widget_summary(skipped_locked)}"
+            self.statusBar().showMessage(message, 3000)
 
     def _paste_selection(self):
         pasted_widgets = self._paste_widget_payload(self._clipboard_payload)
@@ -2703,9 +2724,11 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Duplicated {len(duplicated_widgets)} widget(s)", 3000)
 
     def _delete_selection(self):
-        widgets = self._top_level_selected_widgets()
+        widgets, locked_count = self._deletable_selected_widgets()
         if not widgets:
-            return
+            if locked_count:
+                self.statusBar().showMessage(f"Cannot delete selection: {self._locked_widget_summary(locked_count)}.", 4000)
+            return 0, locked_count
 
         for widget in widgets:
             if widget.parent is not None:
@@ -2714,7 +2737,11 @@ class MainWindow(QMainWindow):
         self.widget_tree.rebuild_tree()
         self._clear_selection(sync_tree=True, sync_preview=True)
         self._record_page_state_change(source="widget delete")
-        self.statusBar().showMessage(f"Deleted {len(widgets)} widget(s)", 3000)
+        message = f"Deleted {len(widgets)} widget(s)"
+        if locked_count:
+            message += f"; skipped {self._locked_widget_summary(locked_count)}"
+        self.statusBar().showMessage(message, 3000)
+        return len(widgets), locked_count
 
     def _align_selection(self, mode):
         widgets = [widget for widget in self._top_level_selected_widgets() if not getattr(widget, "designer_locked", False)]
@@ -2845,16 +2872,17 @@ class MainWindow(QMainWindow):
         selected_widgets = self._top_level_selected_widgets()
         selectable_widgets = [widget for widget in selected_widgets if not getattr(widget, "designer_locked", False)]
         has_selection = bool(selected_widgets)
+        has_deletable_selection = bool(selectable_widgets)
         has_project = self._current_page is not None
         can_paste = has_project and self._clipboard_payload is not None and self._default_paste_parent() is not None
         can_align = len(selectable_widgets) >= 2 and self._shared_selection_parent(selectable_widgets) is not None
         can_distribute = len(selectable_widgets) >= 3 and self._shared_selection_parent(selectable_widgets) is not None
 
         self._copy_action.setEnabled(has_selection)
-        self._cut_action.setEnabled(has_selection)
+        self._cut_action.setEnabled(has_deletable_selection)
         self._paste_action.setEnabled(can_paste)
         self._duplicate_action.setEnabled(has_selection)
-        self._delete_action.setEnabled(has_selection)
+        self._delete_action.setEnabled(has_deletable_selection)
 
         self._align_left_action.setEnabled(can_align)
         self._align_right_action.setEnabled(can_align)
