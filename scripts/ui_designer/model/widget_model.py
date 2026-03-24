@@ -568,6 +568,8 @@ class WidgetModel:
         self.animations = []
         self.children = []
         self.parent = None
+        self.designer_locked = False
+        self.designer_hidden = False
 
         # Computed display coordinates (set by layout_engine, not serialized)
         self.display_x = x
@@ -617,6 +619,8 @@ class WidgetModel:
             "background": self.background.to_dict() if self.background else None,
             "shadow": self.shadow.to_dict() if self.shadow else None,
             "animations": [a.to_dict() for a in self.animations],
+            "designer_locked": self.designer_locked,
+            "designer_hidden": self.designer_hidden,
             "children": [c.to_dict() for c in self.children],
         }
         return d
@@ -643,6 +647,8 @@ class WidgetModel:
             w.shadow = ShadowModel.from_dict(shadow_data)
         for anim_data in d.get("animations", []):
             w.animations.append(AnimationModel.from_dict(anim_data))
+        w.designer_locked = bool(d.get("designer_locked", False))
+        w.designer_hidden = bool(d.get("designer_hidden", False))
         for child_data in d.get("children", []):
             child = cls.from_dict(child_data)
             w.add_child(child)
@@ -671,6 +677,10 @@ class WidgetModel:
             elem.set("margin_bottom", str(self.margin_bottom))
         if self.on_click:
             elem.set("onClick", self.on_click)
+        if self.designer_locked:
+            elem.set("designer_locked", "true")
+        if self.designer_hidden:
+            elem.set("designer_hidden", "true")
         # Event callbacks
         for event_name, func_name in self.events.items():
             if func_name:
@@ -725,6 +735,8 @@ class WidgetModel:
         w.margin_top = int(elem.get("margin_top", "0"))
         w.margin_bottom = int(elem.get("margin_bottom", "0"))
         w.on_click = elem.get("onClick", "")
+        w.designer_locked = elem.get("designer_locked", "false").lower() in ("true", "1", "yes")
+        w.designer_hidden = elem.get("designer_hidden", "false").lower() in ("true", "1", "yes")
         # Parse event callbacks from attributes
         type_info = cls._get_type_info(widget_type)
         for event_name in type_info.get("events", {}):

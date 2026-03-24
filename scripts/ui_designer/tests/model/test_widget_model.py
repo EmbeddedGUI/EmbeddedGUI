@@ -242,6 +242,19 @@ class TestWidgetModelXmlRoundTrip:
         restored = self._round_trip(orig)
         assert restored.properties["value"] == 75
 
+    def test_designer_flags_round_trip_via_dict_and_xml(self):
+        orig = WidgetModel("label", name="flagged", x=12, y=24, width=80, height=20)
+        orig.designer_locked = True
+        orig.designer_hidden = True
+
+        restored_from_dict = WidgetModel.from_dict(orig.to_dict())
+        assert restored_from_dict.designer_locked is True
+        assert restored_from_dict.designer_hidden is True
+
+        restored_from_xml = self._round_trip(orig)
+        assert restored_from_xml.designer_locked is True
+        assert restored_from_xml.designer_hidden is True
+
 
 # ── TestBackgroundModel ──────────────────────────────────────────
 

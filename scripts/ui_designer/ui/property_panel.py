@@ -68,6 +68,8 @@ class PropertyPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._widget = None
+        self._selection = []
+        self._primary_widget = None
         self._updating = False  # prevent signal loops
         self._editors = {}
         self._resource_dir = ""      # resource/ dir (for generated font scanning)
@@ -94,7 +96,7 @@ class PropertyPanel(QWidget):
         """Set the resource catalog for populating file selectors."""
         self._resource_catalog = catalog
         # Rebuild form if currently displaying a widget (to update combos)
-        if self._widget is not None:
+        if self._primary_widget is not None:
             self._updating = True
             self._rebuild_form()
             self._updating = False
@@ -103,8 +105,8 @@ class PropertyPanel(QWidget):
         """Set i18n string keys for @string/ completions in text properties."""
         self._string_keys = list(keys) if keys else []
         # Rebuild form if currently displaying a label/button
-        if (self._widget is not None and
-                self._widget.widget_type in ("label", "button")):
+        if (self._primary_widget is not None and
+                self._primary_widget.widget_type in ("label", "button")):
             self._updating = True
             self._rebuild_form()
             self._updating = False
@@ -116,7 +118,7 @@ class PropertyPanel(QWidget):
         """
         self._custom_fonts = list(font_exprs) if font_exprs else []
         # Rebuild form if currently displaying a widget (to update font combos)
-        if self._widget is not None:
+        if self._primary_widget is not None:
             self._updating = True
             self._rebuild_form()
             self._updating = False
@@ -192,15 +194,15 @@ class PropertyPanel(QWidget):
         # Support both new (filename) and legacy (expr) payload formats
         filename = info.get("filename", "")
         expr = info.get("expr", "")
-        if self._widget is None:
+        if self._primary_widget is None:
             event.ignore()
             return
 
-        if filename and assign_resource_to_widget(self._widget, res_type, filename):
+        if filename and assign_resource_to_widget(self._primary_widget, res_type, filename):
             self._rebuild_form()
             self.property_changed.emit()
             event.acceptProposedAction()
-        elif res_type == "image" and "image_file" in self._widget.properties:
+        elif res_type == "image" and "image_file" in self._primary_widget.properties:
             if expr:
                 # Legacy: parse expr to extract filename
                 from ..model.widget_model import parse_legacy_image_expr, _guess_filename_from_c_name
@@ -208,24 +210,24 @@ class PropertyPanel(QWidget):
                 if parsed:
                     src_dir = os.path.join(self._source_resource_dir, "images") if self._source_resource_dir else ""
                     fn = _guess_filename_from_c_name(parsed["name"], [".png", ".bmp", ".jpg"], src_dir)
-                    self._widget.properties["image_file"] = fn
-                    self._widget.properties["image_format"] = parsed["format"]
-                    self._widget.properties["image_alpha"] = parsed["alpha"]
+                    self._primary_widget.properties["image_file"] = fn
+                    self._primary_widget.properties["image_format"] = parsed["format"]
+                    self._primary_widget.properties["image_alpha"] = parsed["alpha"]
             self._rebuild_form()
             self.property_changed.emit()
             event.acceptProposedAction()
-        elif res_type == "font" and "font_file" in self._widget.properties:
+        elif res_type == "font" and "font_file" in self._primary_widget.properties:
             if expr:
                 from ..model.widget_model import parse_legacy_font_expr, _guess_filename_from_c_name
                 parsed = parse_legacy_font_expr(expr)
                 if parsed and "montserrat" not in parsed["name"]:
                     src_dir = self._source_resource_dir or ""
                     fn = _guess_filename_from_c_name(parsed["name"], [".ttf", ".otf"], src_dir)
-                    self._widget.properties["font_file"] = fn
-                    self._widget.properties["font_pixelsize"] = parsed["pixelsize"]
-                    self._widget.properties["font_fontbitsize"] = parsed["fontbitsize"]
+                    self._primary_widget.properties["font_file"] = fn
+                    self._primary_widget.properties["font_pixelsize"] = parsed["pixelsize"]
+                    self._primary_widget.properties["font_fontbitsize"] = parsed["fontbitsize"]
                 elif parsed:
-                    self._widget.properties["font_builtin"] = expr
+                    self._primary_widget.properties["font_builtin"] = expr
             self._rebuild_form()
             self.property_changed.emit()
             event.acceptProposedAction()
@@ -284,7 +286,15 @@ class PropertyPanel(QWidget):
 
     def set_widget(self, widget):
         """Set the widget to edit. None to clear."""
-        self._widget = widget
+        self.set_selection([widget] if widget is not None else [], primary=widget)
+
+    def set_selection(self, widgets, primary=None):
+        widgets = [widget for widget in (widgets or []) if widget is not None]
+        self._selection = widgets
+        if primary is None or all(widget is not primary for widget in widgets):
+            primary = widgets[-1] if widgets else None
+        self._primary_widget = primary
+        self._widget = primary
         self._rebuild_form()
 
     def _clear_layout(self, layout):
@@ -299,12 +309,16 @@ class PropertyPanel(QWidget):
         self._clear_layout(self._layout)
         self._editors = {}
 
-        if self._widget is None:
+        if self._primary_widget is None:
             self._no_selection_label = QLabel("No widget selected")
             self._layout.addWidget(self._no_selection_label)
             return
 
-        w = self._widget
+        if len(self._selection) > 1:
+            self._build_multi_selection_form()
+            return
+
+        w = self._primary_widget
 
         # Common properties group
         common_group = QGroupBox(f"{w.widget_type} - {w.name}")
@@ -328,6 +342,7 @@ class PropertyPanel(QWidget):
             self._editors[field] = spin
 
         self._layout.addWidget(common_group)
+        self._layout.addWidget(self._build_designer_state_group())
 
         # Type-specific properties - data-driven grouping
         type_info = WidgetRegistry.instance().get(w.widget_type)
@@ -415,6 +430,36 @@ class PropertyPanel(QWidget):
 
         self._layout.addWidget(bg_group)
         self._layout.addStretch()
+
+    def _build_multi_selection_form(self):
+        summary = QGroupBox(f"Selection - {len(self._selection)} Widgets")
+        summary_form = QFormLayout()
+        summary.setLayout(summary_form)
+
+        widget_types = sorted({widget.widget_type for widget in self._selection})
+        summary_form.addRow("Primary:", QLabel(self._primary_widget.name if self._primary_widget else ""))
+        summary_form.addRow("Types:", QLabel(", ".join(widget_types)))
+        summary_form.addRow("Hint:", QLabel("Use Arrange commands for geometry and ordering changes."))
+        self._layout.addWidget(summary)
+        self._layout.addWidget(self._build_designer_state_group())
+        self._layout.addStretch()
+
+    def _build_designer_state_group(self):
+        group = QGroupBox("Designer")
+        form = QFormLayout()
+        group.setLayout(form)
+
+        locked = CheckBox("Locked")
+        locked.setChecked(all(getattr(widget, "designer_locked", False) for widget in self._selection) if self._selection else False)
+        locked.toggled.connect(lambda value: self._on_designer_flag_changed("designer_locked", value))
+        form.addRow(locked)
+
+        hidden = CheckBox("Hidden")
+        hidden.setChecked(all(getattr(widget, "designer_hidden", False) for widget in self._selection) if self._selection else False)
+        hidden.toggled.connect(lambda value: self._on_designer_flag_changed("designer_hidden", value))
+        form.addRow(hidden)
+
+        return group
 
     # ── Property group builders ───────────────────────────────────
 
@@ -718,9 +763,9 @@ class PropertyPanel(QWidget):
 
     def _on_file_prop_changed(self, prop_name, value):
         """Handle file property change - rebuild form if needed for conditional groups."""
-        if self._updating or self._widget is None:
+        if self._updating or self._primary_widget is None:
             return
-        self._widget.properties[prop_name] = value
+        self._primary_widget.properties[prop_name] = value
 
         # Changing font_file or image_file may show/hide config groups
         if prop_name in ("image_file", "font_file"):
@@ -731,33 +776,33 @@ class PropertyPanel(QWidget):
         self.property_changed.emit()
 
     def _on_common_changed(self, field, value):
-        if self._updating or self._widget is None:
+        if self._updating or self._primary_widget is None:
             return
         if field == "name":
-            self._widget.name = value
+            self._primary_widget.name = value
         else:
-            setattr(self._widget, field, value)
+            setattr(self._primary_widget, field, value)
         self.property_changed.emit()
 
     def _on_prop_changed(self, prop_name, value):
-        if self._updating or self._widget is None:
+        if self._updating or self._primary_widget is None:
             return
-        self._widget.properties[prop_name] = value
+        self._primary_widget.properties[prop_name] = value
         self.property_changed.emit()
 
     def _on_bg_changed(self, field, value):
-        if self._updating or self._widget is None:
+        if self._updating or self._primary_widget is None:
             return
 
-        if self._widget.background is None:
-            self._widget.background = BackgroundModel()
+        if self._primary_widget.background is None:
+            self._primary_widget.background = BackgroundModel()
 
-        bg = self._widget.background
+        bg = self._primary_widget.background
         setattr(bg, field, value)
 
         # If bg_type changed to "none", remove background
         if field == "bg_type" and value == "none":
-            self._widget.background = None
+            self._primary_widget.background = None
 
         # Rebuild form to show/hide dynamic fields
         if field in ("bg_type", "stroke_width", "has_pressed"):
@@ -765,4 +810,11 @@ class PropertyPanel(QWidget):
             self._rebuild_form()
             self._updating = False
 
+        self.property_changed.emit()
+
+    def _on_designer_flag_changed(self, field, value):
+        if self._updating or not self._selection:
+            return
+        for widget in self._selection:
+            setattr(widget, field, bool(value))
         self.property_changed.emit()

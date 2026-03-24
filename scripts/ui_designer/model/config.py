@@ -45,6 +45,8 @@ class DesignerConfig:
         self.auto_compile = True
         self.overlay_mode = "horizontal"
         self.overlay_flipped = True
+        self.show_grid = True
+        self.grid_size = 8
         self.font_size_px = 0
         self.show_all_examples = False
         self.window_geometry = ""
@@ -156,6 +158,8 @@ class DesignerConfig:
             self.auto_compile = data.get("auto_compile", True)
             self.overlay_mode = data.get("overlay_mode", "horizontal")
             self.overlay_flipped = data.get("overlay_flipped", True)
+            self.show_grid = data.get("show_grid", True)
+            self.grid_size = int(data.get("grid_size", 8))
             self.font_size_px = data.get("font_size_px", 0)
             self.show_all_examples = data.get("show_all_examples", False)
             self.window_geometry = data.get("window_geometry", "")
@@ -182,6 +186,8 @@ class DesignerConfig:
                 "auto_compile": self.auto_compile,
                 "overlay_mode": self.overlay_mode,
                 "overlay_flipped": self.overlay_flipped,
+                "show_grid": self.show_grid,
+                "grid_size": self.grid_size,
                 "font_size_px": self.font_size_px,
                 "show_all_examples": self.show_all_examples,
                 "window_geometry": self.window_geometry,

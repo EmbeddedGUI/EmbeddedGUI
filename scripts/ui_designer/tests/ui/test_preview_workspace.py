@@ -73,6 +73,19 @@ class TestPreviewPanelFallback:
         assert panel.is_embedded is False
         panel.deleteLater()
 
+    def test_grid_size_uses_configured_value(self, qapp):
+        from ui_designer.ui.preview_panel import PreviewPanel
+
+        panel = PreviewPanel(screen_width=240, screen_height=320)
+        panel.set_grid_size(12)
+
+        assert panel.grid_size() == 12
+        assert panel.overlay._effective_grid_size() == 12
+
+        panel.overlay.set_zoom(2.0)
+        assert panel.overlay._effective_grid_size() == 12
+        panel.deleteLater()
+
 
 @_skip_no_qt
 class TestMainWindowBuildAvailability:

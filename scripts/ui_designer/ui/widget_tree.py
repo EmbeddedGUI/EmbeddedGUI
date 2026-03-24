@@ -4,7 +4,7 @@ import re
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
-    QPushButton, QHBoxLayout, QMenu, QAction, QInputDialog,
+    QPushButton, QHBoxLayout, QMenu, QAction, QInputDialog, QAbstractItemView,
 )
 from PyQt5.QtCore import pyqtSignal, Qt
 
@@ -26,13 +26,16 @@ class WidgetTreePanel(QWidget):
     """Tree view showing the widget hierarchy."""
 
     widget_selected = pyqtSignal(object)  # emits WidgetModel or None
+    selection_changed = pyqtSignal(list, object)  # widgets, primary
     tree_changed = pyqtSignal()  # emits when tree structure changes
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.project = None
         self._widget_map = {}  # QTreeWidgetItem -> WidgetModel
+        self._item_map = {}  # widget id -> QTreeWidgetItem
         self._building = False
+        self._syncing_selection = False
         self._init_ui()
 
     def _init_ui(self):
@@ -53,9 +56,10 @@ class WidgetTreePanel(QWidget):
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels(["Widget", "Type"])
         self.tree.setColumnWidth(0, 140)
+        self.tree.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self._on_context_menu)
-        self.tree.currentItemChanged.connect(self._on_selection_changed)
+        self.tree.itemSelectionChanged.connect(self._on_selection_changed)
         layout.addWidget(self.tree)
 
     def set_project(self, project):
@@ -66,6 +70,7 @@ class WidgetTreePanel(QWidget):
         self._building = True
         self.tree.clear()
         self._widget_map = {}
+        self._item_map = {}
         if self.project:
             for root_widget in self.project.root_widgets:
                 self._add_widget_to_tree(root_widget, None)
@@ -74,9 +79,10 @@ class WidgetTreePanel(QWidget):
 
     def _add_widget_to_tree(self, widget, parent_item):
         item = QTreeWidgetItem()
-        item.setText(0, widget.name)
+        item.setText(0, self._display_name(widget))
         item.setText(1, widget.widget_type)
         self._widget_map[id(item)] = widget
+        self._item_map[id(widget)] = item
 
         if parent_item is None:
             self.tree.addTopLevelItem(item)
@@ -88,20 +94,61 @@ class WidgetTreePanel(QWidget):
 
         return item
 
-    def _on_selection_changed(self, current, previous):
-        if self._building:
+    def _display_name(self, widget):
+        prefix = []
+        if getattr(widget, "designer_locked", False):
+            prefix.append("[L]")
+        if getattr(widget, "designer_hidden", False):
+            prefix.append("[H]")
+        if prefix:
+            return f"{' '.join(prefix)} {widget.name}"
+        return widget.name
+
+    def _on_selection_changed(self):
+        if self._building or self._syncing_selection:
             return
-        if current is None:
-            self.widget_selected.emit(None)
-        else:
-            widget = self._widget_map.get(id(current))
-            self.widget_selected.emit(widget)
+        widgets = self.selected_widgets()
+        primary = self._widget_map.get(id(self.tree.currentItem())) if self.tree.currentItem() else None
+        if primary is None and widgets:
+            primary = widgets[-1]
+        self.widget_selected.emit(primary)
+        self.selection_changed.emit(widgets, primary)
 
     def _get_selected_widget(self):
         item = self.tree.currentItem()
         if item is None:
             return None
         return self._widget_map.get(id(item))
+
+    def selected_widgets(self):
+        widgets = []
+        for item in self.tree.selectedItems():
+            widget = self._widget_map.get(id(item))
+            if widget is not None:
+                widgets.append(widget)
+        return widgets
+
+    def set_selected_widgets(self, widgets, primary=None):
+        self._syncing_selection = True
+        try:
+            self.tree.clearSelection()
+            widgets = [widget for widget in (widgets or []) if widget is not None]
+            for widget in widgets:
+                item = self._item_map.get(id(widget))
+                if item is not None:
+                    item.setSelected(True)
+            if primary is not None:
+                item = self._item_map.get(id(primary))
+                if item is not None:
+                    self.tree.setCurrentItem(item)
+            elif widgets:
+                item = self._item_map.get(id(widgets[-1]))
+                if item is not None:
+                    self.tree.setCurrentItem(item)
+            else:
+                self.tree.setCurrentItem(None)
+        finally:
+            self._syncing_selection = False
 
     def _iter_widgets(self):
         if not self.project:
@@ -175,14 +222,15 @@ class WidgetTreePanel(QWidget):
         self.tree_changed.emit()
 
     def _on_delete_clicked(self):
-        widget = self._get_selected_widget()
-        if widget is None:
+        widgets = self.selected_widgets()
+        if not widgets:
             return
 
-        if widget.parent:
-            widget.parent.remove_child(widget)
-        elif widget in self.project.root_widgets:
-            self.project.root_widgets.remove(widget)
+        for widget in self._top_level_selected_widgets(widgets):
+            if widget.parent:
+                widget.parent.remove_child(widget)
+            elif widget in self.project.root_widgets:
+                self.project.root_widgets.remove(widget)
 
         self.rebuild_tree()
         self.tree_changed.emit()
@@ -246,3 +294,18 @@ class WidgetTreePanel(QWidget):
             self.project.root_widgets.remove(widget)
         self.rebuild_tree()
         self.tree_changed.emit()
+
+    def _top_level_selected_widgets(self, widgets):
+        selected_ids = {id(widget) for widget in widgets}
+        result = []
+        for widget in widgets:
+            parent = widget.parent
+            skip = False
+            while parent is not None:
+                if id(parent) in selected_ids:
+                    skip = True
+                    break
+                parent = parent.parent
+            if not skip:
+                result.append(widget)
+        return result

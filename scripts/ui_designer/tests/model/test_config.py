@@ -36,6 +36,8 @@ class TestDefaults:
         assert config.auto_compile is True
         assert config.overlay_mode == "horizontal"
         assert config.overlay_flipped is True
+        assert config.show_grid is True
+        assert config.grid_size == 8
         assert config.font_size_px == 0
         assert config.show_all_examples is False
         assert config.window_geometry == ""
@@ -51,6 +53,8 @@ class TestSaveLoad:
         config.last_app = "MyApp"
         config.theme = "light"
         config.auto_compile = False
+        config.show_grid = False
+        config.grid_size = 12
         config.font_size_px = 14
         config.sdk_setup_prompted = True
 
@@ -68,6 +72,8 @@ class TestSaveLoad:
         assert loaded.last_app == "MyApp"
         assert loaded.theme == "light"
         assert loaded.auto_compile is False
+        assert loaded.show_grid is False
+        assert loaded.grid_size == 12
         assert loaded.font_size_px == 14
         assert loaded.sdk_setup_prompted is True
 

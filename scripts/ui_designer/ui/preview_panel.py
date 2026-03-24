@@ -70,6 +70,7 @@ class WidgetOverlay(QWidget):
     widget_moved = pyqtSignal(object, int, int)  # widget, new_x, new_y
     widget_resized = pyqtSignal(object, int, int)  # widget, new_width, new_height
     widget_selected = pyqtSignal(object)  # widget
+    selection_changed = pyqtSignal(list, object)  # widgets, primary
     widget_reordered = pyqtSignal(object, int)  # widget, new_index
     zoom_changed = pyqtSignal(float)  # zoom factor
     resource_dropped = pyqtSignal(object, str, str)  # widget, res_type, filename
@@ -88,7 +89,7 @@ class WidgetOverlay(QWidget):
         self._widgets = []  # list of WidgetModel
         self._selected = None
         self._hovered = None
-        self._multi_selected = set()  # set of WidgetModel for multi-select
+        self._multi_selected = set()  # secondary selected WidgetModel values
 
         # Zoom state
         self._zoom = 1.0
@@ -183,35 +184,21 @@ class WidgetOverlay(QWidget):
         self.update()
 
     def _effective_grid_size(self):
-        """Calculate effective grid size based on zoom level.
-
-        At higher zoom levels, the grid becomes finer (down to 1px).
-        At lower zoom levels, the grid becomes coarser.
-        """
+        """Return the configured logical grid size."""
         if self._grid_size <= 0:
             return 0
-
-        # Scale grid inversely with zoom: higher zoom = finer grid
-        # zoom >= 4.0 -> grid = 1
-        # zoom >= 2.0 -> grid = 2
-        # zoom >= 1.0 -> grid = 4
-        # zoom >= 0.5 -> grid = 8
-        # zoom < 0.5  -> grid = 16
-        if self._zoom >= 4.0:
-            return 1
-        elif self._zoom >= 2.0:
-            return 2
-        elif self._zoom >= 1.0:
-            return 4
-        elif self._zoom >= 0.5:
-            return 8
-        else:
-            return 16
+        return self._grid_size
 
     def set_show_grid(self, show):
         """Toggle grid visibility."""
         self._show_grid = show
         self.update()
+
+    def show_grid(self):
+        return self._show_grid
+
+    def grid_size(self):
+        return self._grid_size
 
     def set_solid_background(self, solid):
         """Switch between transparent overlay and solid background mode."""
@@ -250,16 +237,54 @@ class WidgetOverlay(QWidget):
     def set_widgets(self, widgets):
         """Set the flat list of widgets to display."""
         self._widgets = widgets or []
+        valid_ids = {id(widget) for widget in self._widgets}
+        self._multi_selected = {widget for widget in self._multi_selected if id(widget) in valid_ids}
+        if self._selected is not None and id(self._selected) not in valid_ids:
+            self._selected = None
         self.update()
 
     def set_selected(self, widget):
         """Set the currently selected widget."""
-        self._selected = widget
+        self.set_selection([widget] if widget is not None else [], primary=widget)
+
+    def set_selection(self, widgets, primary=None):
+        widgets = [widget for widget in (widgets or []) if widget is not None]
+        if not widgets:
+            self._selected = None
+            self._multi_selected.clear()
+            self.update()
+            return
+        if primary is None or all(widget is not primary for widget in widgets):
+            primary = widgets[-1]
+        self._selected = primary
+        self._multi_selected = {widget for widget in widgets if widget is not primary}
         self.update()
+
+    def selected_widgets(self):
+        ordered = []
+        for widget in self._widgets:
+            if widget is self._selected or widget in self._multi_selected:
+                ordered.append(widget)
+        if self._selected is not None and all(widget is not self._selected for widget in ordered):
+            ordered.append(self._selected)
+        return ordered
+
+    def _emit_selection_changed(self):
+        widgets = self.selected_widgets()
+        self.widget_selected.emit(self._selected)
+        self.selection_changed.emit(widgets, self._selected)
+
+    def _is_hidden(self, widget):
+        return bool(getattr(widget, "designer_hidden", False))
+
+    def _is_locked(self, widget):
+        return bool(getattr(widget, "designer_locked", False))
 
     def _widget_at(self, pos):
         """Find widget at given position using display coordinates."""
         for w in reversed(self._widgets):
+            if self._is_hidden(w) or self._is_locked(w):
+                continue
             rect = QRect(w.display_x, w.display_y, w.width, w.height)
             if rect.contains(pos):
                 return w
@@ -300,7 +325,7 @@ class WidgetOverlay(QWidget):
         if self._selected is None:
             return HANDLE_NONE
         # No resize handles for widgets inside LinearLayout etc.
-        if _parent_has_layout(self._selected):
+        if _parent_has_layout(self._selected) or self._is_locked(self._selected):
             return HANDLE_NONE
         handles = self._get_handle_rects(self._selected)
         posf = QPointF(pos)
@@ -411,6 +436,8 @@ class WidgetOverlay(QWidget):
 
         # Draw all widget bounds (rects + fills only)
         for w in self._widgets:
+            if self._is_hidden(w):
+                continue
             rect = QRect(w.display_x, w.display_y, w.width, w.height)
 
             if w == self._selected:
@@ -470,9 +497,13 @@ class WidgetOverlay(QWidget):
         lh = fm.height() + 2
 
         for w in self._widgets:
+            if self._is_hidden(w):
+                continue
             sx, sy = _s(w.display_x), _s(w.display_y)
             sw, sh = _s(w.width), _s(w.height)
             label_text = f"{w.widget_type} : {w.name}"
+            if self._is_locked(w):
+                label_text += " [L]"
 
             if self._solid_background:
                 # Skip label if widget is too small on screen to fit it
@@ -492,7 +523,7 @@ class WidgetOverlay(QWidget):
                 painter.drawText(label_rect, Qt.AlignCenter, label_text)
 
         # Draw resize handles in screen space (constant pixel size)
-        if self._selected and not _parent_has_layout(self._selected):
+        if self._selected and not _parent_has_layout(self._selected) and not self._is_locked(self._selected):
             sel = self._selected
             sx, sy = _s(sel.display_x), _s(sel.display_y)
             sw, sh = _s(sel.width), _s(sel.height)
@@ -563,16 +594,19 @@ class WidgetOverlay(QWidget):
         if w:
             if ctrl:
                 # Ctrl+Click: toggle multi-select
-                if w in self._multi_selected:
+                if w is self._selected:
+                    if self._multi_selected:
+                        self._selected = next(iter(self._multi_selected))
+                        self._multi_selected.discard(self._selected)
+                    else:
+                        self._selected = None
+                elif w in self._multi_selected:
                     self._multi_selected.discard(w)
-                    if self._selected == w:
-                        self._selected = next(iter(self._multi_selected), None)
                 else:
-                    self._multi_selected.add(w)
-                    if self._selected and self._selected != w:
+                    if self._selected is not None:
                         self._multi_selected.add(self._selected)
                     self._selected = w
-                self.widget_selected.emit(w)
+                self._emit_selection_changed()
                 self.update()
                 return
 
@@ -590,7 +624,7 @@ class WidgetOverlay(QWidget):
             else:
                 self.setCursor(Qt.SizeAllCursor)
             self.drag_started.emit()
-            self.widget_selected.emit(w)
+            self._emit_selection_changed()
             self.update()
         else:
             if not ctrl:
@@ -600,7 +634,7 @@ class WidgetOverlay(QWidget):
                 self._rubber_band = True
                 self._rubber_start = pos
                 self._rubber_rect = QRect()
-                self.widget_selected.emit(None)
+                self._emit_selection_changed()
                 self.update()
 
     def mouseMoveEvent(self, event):
@@ -751,18 +785,25 @@ class WidgetOverlay(QWidget):
             # Complete rubber-band selection
             self._rubber_band = False
             rect = self._rubber_rect
+            previous_primary = self._selected
             self._multi_selected.clear()
             for w in self._widgets:
+                if self._is_hidden(w):
+                    continue
                 wr = QRect(w.display_x, w.display_y, w.width, w.height)
                 if rect.intersects(wr):
                     self._multi_selected.add(w)
             if len(self._multi_selected) == 1:
                 self._selected = next(iter(self._multi_selected))
                 self._multi_selected.clear()
-                self.widget_selected.emit(self._selected)
             elif self._multi_selected:
-                self._selected = next(iter(self._multi_selected))
-                self.widget_selected.emit(self._selected)
+                if previous_primary not in self._multi_selected:
+                    previous_primary = next(iter(self._multi_selected))
+                self._selected = previous_primary
+                self._multi_selected.discard(self._selected)
+            else:
+                self._selected = None
+            self._emit_selection_changed()
             self._rubber_rect = QRect()
             self.update()
             return
@@ -847,9 +888,13 @@ class WidgetOverlay(QWidget):
 
     def _get_move_targets(self):
         """Get list of widgets to move (multi-select or single selected)."""
-        if self._multi_selected:
-            return list(self._multi_selected)
-        if self._selected:
+        widgets = [
+            widget for widget in self.selected_widgets()
+            if not self._is_hidden(widget) and not self._is_locked(widget)
+        ]
+        if widgets:
+            return widgets
+        if self._selected and not self._is_hidden(self._selected) and not self._is_locked(self._selected):
             return [self._selected]
         return []
 
@@ -903,7 +948,8 @@ class WidgetOverlay(QWidget):
 
         if assigned:
             self._selected = target
-            self.widget_selected.emit(target)
+            self._multi_selected.clear()
+            self._emit_selection_changed()
             self.resource_dropped.emit(target, res_type, filename)
             self._hovered = None
             self.update()
@@ -924,6 +970,7 @@ class PreviewPanel(QWidget):
     widget_moved = pyqtSignal(object, int, int)
     widget_resized = pyqtSignal(object, int, int)
     widget_selected = pyqtSignal(object)
+    selection_changed = pyqtSignal(list, object)
     widget_reordered = pyqtSignal(object, int)
     resource_dropped = pyqtSignal(object, str, str)  # widget, res_type, filename
     drag_started = pyqtSignal()
@@ -981,6 +1028,7 @@ class PreviewPanel(QWidget):
         self.overlay.widget_moved.connect(self.widget_moved.emit)
         self.overlay.widget_resized.connect(self.widget_resized.emit)
         self.overlay.widget_selected.connect(self.widget_selected.emit)
+        self.overlay.selection_changed.connect(self.selection_changed.emit)
         self.overlay.widget_reordered.connect(self.widget_reordered.emit)
         self.overlay.resource_dropped.connect(self.resource_dropped.emit)
         self.overlay.drag_started.connect(self.drag_started.emit)
@@ -1191,6 +1239,27 @@ class PreviewPanel(QWidget):
     def set_selected(self, widget):
         """Set the selected widget for highlighting."""
         self.overlay.set_selected(widget)
+
+    def set_selection(self, widgets, primary=None):
+        """Set the selected widgets for highlighting."""
+        self.overlay.set_selection(widgets, primary=primary)
+
+    def selected_widgets(self):
+        return self.overlay.selected_widgets()
+
+    def set_show_grid(self, show):
+        self.overlay.set_show_grid(show)
+        self._update_zoom_label()
+
+    def show_grid(self):
+        return self.overlay.show_grid()
+
+    def set_grid_size(self, size):
+        self.overlay.set_grid_size(size)
+        self._update_zoom_label()
+
+    def grid_size(self):
+        return self.overlay.grid_size()
 
     # ── Background mockup image (delegate to overlay) ─────────
 

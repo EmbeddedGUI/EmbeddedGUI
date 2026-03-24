@@ -1067,6 +1067,7 @@ class TestMainWindowFileFlow:
         window = MainWindow(str(sdk_root))
         monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
         monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+        monkeypatch.setattr(window.property_panel, "set_selection", lambda *args, **kwargs: None)
 
         window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
         window._selected_widget = label
@@ -1276,6 +1277,96 @@ class TestMainWindowFileFlow:
         assert window._current_page is not None
         assert window._current_page.name == "detail_page"
         assert window.project.get_page_by_name("summary_page") is not None
+        window.close()
+        window.deleteLater()
+
+    def test_page_navigator_is_populated_and_tracks_current_page(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "NavigatorDemo"
+        project = _create_project(project_dir, "NavigatorDemo", sdk_root)
+        project.create_new_page("detail_page")
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+
+        assert set(window.page_navigator._pages.keys()) == {"main_page", "detail_page"}
+        assert window.page_navigator._current_page == "main_page"
+
+        window._switch_page("detail_page")
+
+        assert window.page_navigator._current_page == "detail_page"
+        window.close()
+        window.deleteLater()
+
+    def test_page_navigator_copy_and_template_add_keep_pages_in_sync(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "NavigatorActionsDemo"
+        project = _create_project(project_dir, "NavigatorActionsDemo", sdk_root)
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+
+        window._duplicate_page_from_navigator("main_page")
+        assert window.project.get_page_by_name("main_page_copy") is not None
+        assert "main_page_copy" in window.page_navigator._pages
+        assert window._current_page.name == "main_page_copy"
+
+        window._on_page_add_from_template("detail", "main_page")
+        template_page = window.project.get_page_by_name("detail_page")
+        assert template_page is not None
+        assert "detail_page" in window.page_navigator._pages
+        assert window._current_page.name == "detail_page"
+        assert [child.name for child in template_page.root_widget.children] == ["title", "hero_image", "description"]
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
+    def test_copy_and_paste_selection_creates_unique_widget_names(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "ClipboardDemo"
+        project = _create_project(project_dir, "ClipboardDemo", sdk_root)
+        page = project.get_startup_page()
+        label = WidgetModel("label", name="title", x=10, y=10, width=80, height=20)
+        page.root_widget.add_child(label)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+
+        def fake_set_selection(widgets=None, primary=None, sync_tree=True, sync_preview=True):
+            window._selection_state.set_widgets(widgets or [], primary=primary)
+            window._selected_widget = window._selection_state.primary
+
+        monkeypatch.setattr(window, "_set_selection", fake_set_selection)
+        window._selected_widget = label
+
+        window._copy_selection()
+        window._paste_selection()
+
+        label_names = [child.name for child in page.root_widget.children if child.widget_type == "label"]
+        assert label_names == ["title", "title_2"]
+        assert window._selection_state.primary.name == "title_2"
+        window._undo_manager.mark_all_saved()
         window.close()
         window.deleteLater()
 

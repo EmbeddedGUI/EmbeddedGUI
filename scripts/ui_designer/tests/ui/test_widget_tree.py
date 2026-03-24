@@ -74,3 +74,22 @@ class TestWidgetTreePanel:
         names = [child.name for child in root.children if child.widget_type == "button"]
         assert names == ["button_1", "button_2"]
         panel.deleteLater()
+
+    def test_delete_selected_parent_and_child_removes_only_top_level_once(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        container = WidgetModel("group", name="container")
+        child = WidgetModel("label", name="title")
+        container.add_child(child)
+        root.add_child(container)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        panel.set_selected_widgets([container, child], primary=container)
+
+        panel._on_delete_clicked()
+
+        assert root.children == []
+        panel.deleteLater()

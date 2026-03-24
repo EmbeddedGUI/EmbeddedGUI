@@ -245,3 +245,27 @@ class TestPropertyPanelFileFlow:
         assert imported_events == ["imported"]
         assert selector is not None
         panel.deleteLater()
+
+    def test_multi_selection_form_toggles_designer_flags_for_all_widgets(self, qapp):
+        from qfluentwidgets import CheckBox
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        first = WidgetModel("label", name="first")
+        second = WidgetModel("button", name="second")
+
+        panel = PropertyPanel()
+        panel.set_selection([first, second], primary=second)
+
+        summary_group = panel._layout.itemAt(0).widget()
+        assert summary_group.title() == "Selection - 2 Widgets"
+
+        checkboxes = {checkbox.text(): checkbox for checkbox in panel.findChildren(CheckBox)}
+        checkboxes["Locked"].setChecked(True)
+        checkboxes["Hidden"].setChecked(True)
+
+        assert first.designer_locked is True
+        assert second.designer_locked is True
+        assert first.designer_hidden is True
+        assert second.designer_hidden is True
+        panel.deleteLater()

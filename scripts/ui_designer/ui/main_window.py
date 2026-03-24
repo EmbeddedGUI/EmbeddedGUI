@@ -14,6 +14,7 @@ Layout (default):
 
 import copy
 import os
+import re
 import shutil
 
 from PyQt5.QtWidgets import (
@@ -50,6 +51,7 @@ from ..model.workspace import (
     resolve_sdk_root_candidate,
 )
 from ..model.resource_binding import assign_resource_to_widget, resource_property_type
+from ..model.selection_state import SelectionState
 from ..model.undo_manager import UndoManager
 from ..generator.code_generator import generate_all_files, generate_all_files_preserved, generate_uicode
 from ..generator.resource_config_generator import ResourceConfigGenerator
@@ -57,6 +59,7 @@ from ..engine.compiler import CompilerEngine
 from ..engine.layout_engine import compute_layout, compute_page_layout
 from ..utils.scaffold import make_app_build_mk_content, make_app_config_h_content, make_empty_resource_config_content
 from .theme import apply_theme
+from .widgets.page_navigator import PageNavigator, PAGE_TEMPLATES
 
 
 def delete_page_generated_files(project_dir, page_name):
@@ -97,7 +100,10 @@ class MainWindow(QMainWindow):
         self.auto_compile = self._config.auto_compile
         self._project_dir = None      # directory containing .egui project file
         self._selected_widget = None
+        self._selection_state = SelectionState()
         self._current_page = None      # currently-displayed Page object
+        self._clipboard_payload = None
+        self._paste_serial = 0
 
         # Debounce timer for compile
         self._compile_timer = QTimer()
@@ -155,6 +161,15 @@ class MainWindow(QMainWindow):
         self.project_dock.setMinimumWidth(180)
         # self.project_dock.setMaximumWidth(320)
 
+        self.page_nav_dock = QDockWidget("Page Navigator", self)
+        self.page_nav_dock.setObjectName("page_navigator_dock")
+        self.page_nav_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.page_navigator = PageNavigator()
+        self.page_nav_dock.setWidget(self.page_navigator)
+        self.page_nav_dock.setMinimumWidth(180)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.page_nav_dock)
+        self.splitDockWidget(self.project_dock, self.page_nav_dock, Qt.Vertical)
+
         # ── Central area: Stacked Widget (Welcome / Editor) ──
         self._central_stack = QStackedWidget()
 
@@ -180,6 +195,8 @@ class MainWindow(QMainWindow):
         editor_layout.addWidget(self.page_tab_bar)
 
         self.preview_panel = PreviewPanel(screen_width=240, screen_height=320)
+        self.preview_panel.set_show_grid(self._config.show_grid)
+        self.preview_panel.set_grid_size(self._config.grid_size)
         self.editor_tabs = EditorTabs(self.preview_panel)
         editor_layout.addWidget(self.editor_tabs, 1)
 
@@ -219,8 +236,8 @@ class MainWindow(QMainWindow):
         self.res_dock.setWidget(self.res_panel)
         self.res_dock.setMinimumWidth(200)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.res_dock)
-        # Stack below project explorer
-        self.splitDockWidget(self.project_dock, self.res_dock, Qt.Vertical)
+        # Stack below the page navigator
+        self.splitDockWidget(self.page_nav_dock, self.res_dock, Qt.Vertical)
 
         # ── Bottom dock: Debug Output ──
         self.debug_dock = QDockWidget("Debug Output", self)
@@ -236,6 +253,7 @@ class MainWindow(QMainWindow):
         # ── Connect signals ──
 
         # Widget tree
+        self.widget_tree.selection_changed.connect(self._on_tree_selection_changed)
         self.widget_tree.widget_selected.connect(self._on_widget_selected)
         self.widget_tree.tree_changed.connect(self._on_tree_changed)
 
@@ -244,6 +262,7 @@ class MainWindow(QMainWindow):
         self.property_panel.resource_imported.connect(self._on_resource_imported)
 
         # Preview panel
+        self.preview_panel.selection_changed.connect(self._on_preview_selection_changed)
         self.preview_panel.widget_selected.connect(self._on_preview_widget_selected)
         self.preview_panel.widget_moved.connect(self._on_widget_moved)
         self.preview_panel.widget_resized.connect(self._on_widget_resized)
@@ -265,6 +284,11 @@ class MainWindow(QMainWindow):
         self.project_dock.page_renamed.connect(self._on_page_renamed)
         self.project_dock.startup_changed.connect(self._on_startup_changed)
         self.project_dock.page_mode_changed.connect(self._on_page_mode_changed)
+
+        self.page_navigator.page_selected.connect(self._on_page_selected)
+        self.page_navigator.page_copy_requested.connect(self._duplicate_page_from_navigator)
+        self.page_navigator.page_delete_requested.connect(self._on_page_removed)
+        self.page_navigator.page_add_requested.connect(self._on_page_add_from_template)
 
         # Resource panel
         self.res_panel.resource_selected.connect(self._on_resource_selected)
@@ -366,6 +390,7 @@ class MainWindow(QMainWindow):
         self.auto_compile_action.setEnabled(can_compile)
         self._stop_action.setEnabled(self.compiler is not None and self.compiler.is_preview_running())
         self._reload_project_action.setEnabled(self.project is not None and bool(self._project_dir))
+        self._update_edit_actions()
 
     def _switch_to_python_preview(self, reason=""):
         if self._current_page is None:
@@ -629,13 +654,18 @@ class MainWindow(QMainWindow):
         self._project_watch_snapshot = {}
         self._external_reload_pending = False
         self._selected_widget = None
+        self._selection_state.clear()
         self._current_page = None
         self._clear_page_tabs()
         self.widget_tree.set_project(None)
-        self.property_panel.set_widget(None)
+        self.property_panel.set_selection([])
         self.preview_panel.set_widgets([])
+        self.preview_panel.set_selection([])
         self.preview_panel.clear_background_image()
         self.project_dock.set_project(None)
+        self.page_navigator.set_pages({})
+        self.page_navigator.set_current_page("")
+        self._update_edit_actions()
 
     def _open_loaded_project(self, project, project_dir, preferred_sdk_root="", silent=False):
         project_dir = normalize_path(project_dir)
@@ -698,6 +728,7 @@ class MainWindow(QMainWindow):
 
         # Hide dock widgets when on welcome page
         self.project_dock.hide()
+        self.page_nav_dock.hide()
         self.res_dock.hide()
         self.tree_dock.hide()
         self.props_dock.hide()
@@ -708,6 +739,7 @@ class MainWindow(QMainWindow):
 
         # Show dock widgets
         self.project_dock.show()
+        self.page_nav_dock.show()
         self.res_dock.show()
         self.tree_dock.show()
         self.props_dock.show()
@@ -837,6 +869,89 @@ class MainWindow(QMainWindow):
         self._redo_action.triggered.connect(self._redo)
         edit_menu.addAction(self._redo_action)
 
+        edit_menu.addSeparator()
+
+        self._copy_action = QAction("Copy", self)
+        self._copy_action.setShortcut("Ctrl+C")
+        self._copy_action.triggered.connect(self._copy_selection)
+        edit_menu.addAction(self._copy_action)
+
+        self._cut_action = QAction("Cut", self)
+        self._cut_action.setShortcut("Ctrl+X")
+        self._cut_action.triggered.connect(self._cut_selection)
+        edit_menu.addAction(self._cut_action)
+
+        self._paste_action = QAction("Paste", self)
+        self._paste_action.setShortcut("Ctrl+V")
+        self._paste_action.triggered.connect(self._paste_selection)
+        edit_menu.addAction(self._paste_action)
+
+        self._duplicate_action = QAction("Duplicate", self)
+        self._duplicate_action.setShortcut("Ctrl+D")
+        self._duplicate_action.triggered.connect(self._duplicate_selection)
+        edit_menu.addAction(self._duplicate_action)
+
+        self._delete_action = QAction("Delete", self)
+        self._delete_action.setShortcut("Del")
+        self._delete_action.triggered.connect(self._delete_selection)
+        edit_menu.addAction(self._delete_action)
+
+        arrange_menu = menubar.addMenu("Arrange")
+
+        self._align_left_action = QAction("Align Left", self)
+        self._align_left_action.triggered.connect(lambda: self._align_selection("left"))
+        arrange_menu.addAction(self._align_left_action)
+
+        self._align_right_action = QAction("Align Right", self)
+        self._align_right_action.triggered.connect(lambda: self._align_selection("right"))
+        arrange_menu.addAction(self._align_right_action)
+
+        self._align_top_action = QAction("Align Top", self)
+        self._align_top_action.triggered.connect(lambda: self._align_selection("top"))
+        arrange_menu.addAction(self._align_top_action)
+
+        self._align_bottom_action = QAction("Align Bottom", self)
+        self._align_bottom_action.triggered.connect(lambda: self._align_selection("bottom"))
+        arrange_menu.addAction(self._align_bottom_action)
+
+        self._align_hcenter_action = QAction("Align Horizontal Center", self)
+        self._align_hcenter_action.triggered.connect(lambda: self._align_selection("hcenter"))
+        arrange_menu.addAction(self._align_hcenter_action)
+
+        self._align_vcenter_action = QAction("Align Vertical Center", self)
+        self._align_vcenter_action.triggered.connect(lambda: self._align_selection("vcenter"))
+        arrange_menu.addAction(self._align_vcenter_action)
+
+        arrange_menu.addSeparator()
+
+        self._distribute_h_action = QAction("Distribute Horizontally", self)
+        self._distribute_h_action.triggered.connect(lambda: self._distribute_selection("horizontal"))
+        arrange_menu.addAction(self._distribute_h_action)
+
+        self._distribute_v_action = QAction("Distribute Vertically", self)
+        self._distribute_v_action.triggered.connect(lambda: self._distribute_selection("vertical"))
+        arrange_menu.addAction(self._distribute_v_action)
+
+        arrange_menu.addSeparator()
+
+        self._bring_front_action = QAction("Bring to Front", self)
+        self._bring_front_action.triggered.connect(self._move_selection_to_front)
+        arrange_menu.addAction(self._bring_front_action)
+
+        self._send_back_action = QAction("Send to Back", self)
+        self._send_back_action.triggered.connect(self._move_selection_to_back)
+        arrange_menu.addAction(self._send_back_action)
+
+        arrange_menu.addSeparator()
+
+        self._toggle_lock_action = QAction("Toggle Lock", self)
+        self._toggle_lock_action.triggered.connect(self._toggle_selection_locked)
+        arrange_menu.addAction(self._toggle_lock_action)
+
+        self._toggle_hide_action = QAction("Toggle Hide", self)
+        self._toggle_hide_action.triggered.connect(self._toggle_selection_hidden)
+        arrange_menu.addAction(self._toggle_hide_action)
+
         # ── Build menu ──
         build_menu = menubar.addMenu("Build")
 
@@ -847,7 +962,7 @@ class MainWindow(QMainWindow):
 
         self.auto_compile_action = QAction("Auto Compile", self)
         self.auto_compile_action.setCheckable(True)
-        self.auto_compile_action.setChecked(True)
+        self.auto_compile_action.setChecked(self.auto_compile)
         self.auto_compile_action.toggled.connect(self._toggle_auto_compile)
         build_menu.addAction(self.auto_compile_action)
 
@@ -897,6 +1012,7 @@ class MainWindow(QMainWindow):
 
         # Dock panel toggles
         view_menu.addAction(self.project_dock.toggleViewAction())
+        view_menu.addAction(self.page_nav_dock.toggleViewAction())
         view_menu.addAction(self.res_dock.toggleViewAction())
         view_menu.addAction(self.tree_dock.toggleViewAction())
         view_menu.addAction(self.props_dock.toggleViewAction())
@@ -953,6 +1069,28 @@ class MainWindow(QMainWindow):
         zoom_reset_action.setShortcut("Ctrl+0")
         zoom_reset_action.triggered.connect(lambda: self.preview_panel.overlay.zoom_reset())
         view_menu.addAction(zoom_reset_action)
+
+        view_menu.addSeparator()
+
+        self._show_grid_action = QAction("Show Grid", self)
+        self._show_grid_action.setCheckable(True)
+        self._show_grid_action.setChecked(self.preview_panel.show_grid())
+        self._show_grid_action.toggled.connect(self._set_show_grid)
+        view_menu.addAction(self._show_grid_action)
+
+        grid_menu = view_menu.addMenu("Grid Size")
+        self._grid_size_group = QActionGroup(self)
+        self._grid_size_group.setExclusive(True)
+        self._grid_size_actions = {}
+        for size in (0, 4, 8, 12, 16, 24):
+            action = QAction("No Snap" if size == 0 else f"{size}px", self)
+            action.setCheckable(True)
+            if size == self.preview_panel.grid_size():
+                action.setChecked(True)
+            action.triggered.connect(lambda checked, s=size: self._set_grid_size(s))
+            self._grid_size_group.addAction(action)
+            self._grid_size_actions[size] = action
+            grid_menu.addAction(action)
 
         view_menu.addSeparator()
 
@@ -1016,6 +1154,8 @@ class MainWindow(QMainWindow):
         # Edit actions
         tb.addAction(self._undo_action)
         tb.addAction(self._redo_action)
+        tb.addAction(self._copy_action)
+        tb.addAction(self._paste_action)
 
         tb.addSeparator()
 
@@ -1025,6 +1165,7 @@ class MainWindow(QMainWindow):
 
         self._toolbar = tb
         self._update_compile_availability()
+        self._update_edit_actions()
 
     # ── Theme ──────────────────────────────────────────────────────
 
@@ -1684,6 +1825,7 @@ class MainWindow(QMainWindow):
         if self.compiler is not None:
             self.compiler.set_screen_size(self.project.screen_width, self.project.screen_height)
         self._clear_page_tabs()
+        self._refresh_page_navigator()
 
         # Refresh resource panel with catalog
         # Resource panel uses .eguiproject/resources/ as the source directory
@@ -1706,6 +1848,7 @@ class MainWindow(QMainWindow):
             self.property_panel.set_string_keys([])
 
         self._update_compile_availability()
+        self._update_edit_actions()
         if self.compiler is not None:
             self._start_precompile()
 
@@ -1743,6 +1886,43 @@ class MainWindow(QMainWindow):
             self.debug_panel.log_compile_output(False, message)
             self.debug_dock.show()
 
+    def _refresh_page_navigator(self):
+        if not self.project:
+            self.page_navigator.set_pages({})
+            self.page_navigator.set_current_page("")
+            return
+
+        self.page_navigator.set_screen_size(self.project.screen_width, self.project.screen_height)
+        self.page_navigator.set_pages({page.name: page for page in self.project.pages})
+
+        current_name = ""
+        if self._current_page and self.project.get_page_by_name(self._current_page.name):
+            current_name = self._current_page.name
+        self.page_navigator.set_current_page(current_name)
+
+    def _make_unique_page_name(self, base_name):
+        candidate = (base_name or "page").strip().replace(" ", "_").replace(".xml", "")
+        if not candidate:
+            candidate = "page"
+        if not self.project:
+            return candidate
+
+        existing = {page.name for page in self.project.pages}
+        if candidate not in existing:
+            return candidate
+
+        match = re.match(r"^(.*?)(?:_(\d+))?$", candidate)
+        stem = candidate
+        suffix = 2
+        if match:
+            stem = match.group(1) or candidate
+            if match.group(2):
+                suffix = int(match.group(2)) + 1
+
+        while f"{stem}_{suffix}" in existing:
+            suffix += 1
+        return f"{stem}_{suffix}"
+
     # ── Resource panel integration ──────────────────────────────────
 
     def _get_resource_dir(self):
@@ -1776,11 +1956,12 @@ class MainWindow(QMainWindow):
 
     def _on_resource_selected(self, res_type, filename):
         """User selected/assigned a resource from the ResourcePanel."""
-        if self._selected_widget is None:
+        target = self._primary_selected_widget()
+        if target is None:
             return
-        if not assign_resource_to_widget(self._selected_widget, res_type, filename):
+        if not assign_resource_to_widget(target, res_type, filename):
             return
-        self.property_panel.set_widget(self._selected_widget)
+        self.property_panel.set_selection(self._selected_widgets(), self._primary_selected_widget())
         self._on_model_changed()
 
     def _on_resource_renamed(self, res_type, old_name, new_name):
@@ -1847,14 +2028,16 @@ class MainWindow(QMainWindow):
         for page in touched_pages:
             stack = self._undo_manager.get_stack(page.name)
             stack.push(page.to_xml_string())
+            self.page_navigator.refresh_thumbnail(page.name)
             if page is self._current_page:
                 current_page_changed = True
 
         if current_page_changed:
             self.widget_tree.rebuild_tree()
-            if self._selected_widget is not None:
+            self.widget_tree.set_selected_widgets(self._selection_state.widgets, self._selection_state.primary)
+            if self._selection_state.primary is not None:
                 try:
-                    self.property_panel.set_widget(self._selected_widget)
+                    self.property_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
                 except RuntimeError:
                     pass
             self._update_preview_overlay()
@@ -1865,10 +2048,10 @@ class MainWindow(QMainWindow):
 
     def _on_resource_dropped(self, widget, res_type, filename):
         """Resource was dropped onto a widget in the preview overlay."""
-        self._selected_widget = widget
+        self._set_selection([widget], primary=widget, sync_tree=True, sync_preview=False)
         if not assign_resource_to_widget(widget, res_type, filename):
             return
-        self.property_panel.set_widget(widget)
+        self.property_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
         self._on_model_changed()
 
     def _run_resource_generation(self, silent=False):
@@ -1997,8 +2180,9 @@ class MainWindow(QMainWindow):
         if page is None:
             return
         self._current_page = page
-        self._selected_widget = None
+        self._clear_selection(sync_tree=True, sync_preview=True)
         self.project_dock.set_current_page(page_name)
+        self.page_navigator.set_current_page(page_name)
 
         # Initialize undo stack for this page if empty
         stack = self._undo_manager.get_stack(page_name)
@@ -2028,6 +2212,7 @@ class MainWindow(QMainWindow):
         # Trigger compile to show current page in preview
         self._trigger_compile()
         self._update_undo_actions()
+        self._update_edit_actions()
 
     def _on_page_selected(self, page_name):
         """User clicked a page in the Project Explorer."""
@@ -2039,6 +2224,7 @@ class MainWindow(QMainWindow):
             return
         self.project.create_new_page(page_name)
         self.project_dock.set_project(self.project)
+        self._refresh_page_navigator()
         self._ensure_page_tab(page_name)
         self._switch_page(page_name)
         self._trigger_compile()
@@ -2049,6 +2235,7 @@ class MainWindow(QMainWindow):
             return
         self.project.duplicate_page(source_name, page_name)
         self.project_dock.set_project(self.project)
+        self._refresh_page_navigator()
         self._ensure_page_tab(page_name)
         self._switch_page(page_name)
         self._trigger_compile()
@@ -2059,19 +2246,32 @@ class MainWindow(QMainWindow):
             return
         page = self.project.get_page_by_name(page_name)
         if page:
+            was_current = self._current_page is not None and self._current_page.name == page_name
             self.project.remove_page(page)
             self._undo_manager.remove_stack(page_name)
             self.project_dock.set_project(self.project)
+            self._refresh_page_navigator()
             self._remove_page_tab(page_name)
             # Delete generated files for the removed page so they are not
             # picked up by EGUI_CODE_SRC on the next build.
             if self._project_dir:
                 delete_page_generated_files(self._project_dir, page_name)
-            # Switch to another page
-            if self.project.pages:
+            if was_current and self.project.pages:
                 self._switch_page(self.project.pages[0].name)
+            elif not self.project.pages:
+                self._current_page = None
+                self._clear_selection(sync_tree=True, sync_preview=True)
+                self.widget_tree.set_project(None)
+                self.preview_panel.set_widgets([])
+                self.preview_panel.set_selection([])
+                self.page_navigator.set_current_page("")
+            elif self._current_page:
+                self.project_dock.set_current_page(self._current_page.name)
+                self.page_navigator.set_current_page(self._current_page.name)
+                self._update_preview_overlay()
             self._trigger_compile()
             self._update_window_title()
+            self._update_edit_actions()
 
     def _on_page_renamed(self, old_name, new_name):
         """User renamed a page."""
@@ -2079,14 +2279,59 @@ class MainWindow(QMainWindow):
             return
         page = self.project.get_page_by_name(old_name)
         if page:
+            was_current = self._current_page is not None and self._current_page.name == old_name
             page.file_path = f"layout/{new_name}.xml"
             # Update startup_page reference if needed
             if self.project.startup_page == old_name:
                 self.project.startup_page = new_name
             self._undo_manager.rename_stack(old_name, new_name)
             self.project_dock.set_project(self.project)
+            self._refresh_page_navigator()
             self._rename_page_tab(old_name, new_name)
-            self._switch_page(new_name)
+            if was_current:
+                self._switch_page(new_name)
+            elif self._current_page:
+                self.project_dock.set_current_page(self._current_page.name)
+                self.page_navigator.set_current_page(self._current_page.name)
+                self._trigger_compile()
+                self._update_edit_actions()
+
+    def _duplicate_page_from_navigator(self, page_name):
+        if not self.project or not page_name:
+            return
+        self._on_page_duplicated(page_name, self._make_unique_page_name(f"{page_name}_copy"))
+
+    def _on_page_add_from_template(self, template_key, anchor_page_name):
+        del anchor_page_name
+        if not self.project or template_key not in PAGE_TEMPLATES:
+            return
+
+        page_name = self._make_unique_page_name(f"{template_key}_page")
+        template = PAGE_TEMPLATES[template_key]
+        page = self.project.create_new_page(page_name)
+        page.dirty = True
+
+        existing_names = {widget.name for widget in page.get_all_widgets() if widget.name}
+        root_widget = page.root_widget
+        if root_widget is not None:
+            for spec in template.get("widgets", []):
+                widget = WidgetModel(
+                    spec.get("type", "label"),
+                    name=spec.get("name"),
+                    x=spec.get("x", 0),
+                    y=spec.get("y", 0),
+                    width=spec.get("w", 100),
+                    height=spec.get("h", 40),
+                )
+                widget.name = self._make_unique_widget_name(widget.name, existing_names=existing_names)
+                if "text" in spec and "text" in widget.properties:
+                    widget.properties["text"] = spec["text"]
+                root_widget.add_child(widget)
+
+        self.project_dock.set_project(self.project)
+        self._refresh_page_navigator()
+        self._ensure_page_tab(page_name)
+        self._switch_page(page_name)
 
     def _on_startup_changed(self, page_name):
         """User changed the startup page."""
@@ -2185,41 +2430,408 @@ class MainWindow(QMainWindow):
 
     # ── Widget selection / editing ─────────────────────────────────
 
+    def _set_selection(self, widgets=None, primary=None, sync_tree=True, sync_preview=True):
+        self._selection_state.set_widgets(widgets or [], primary=primary)
+        self._selected_widget = self._selection_state.primary
+        self.property_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
+        if sync_tree:
+            self.widget_tree.set_selected_widgets(self._selection_state.widgets, self._selection_state.primary)
+        if sync_preview:
+            self.preview_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
+        self._update_edit_actions()
+
+    def _clear_selection(self, sync_tree=True, sync_preview=True):
+        self._set_selection([], primary=None, sync_tree=sync_tree, sync_preview=sync_preview)
+
+    def _selected_widgets(self):
+        widgets = self._selection_state.widgets
+        if widgets:
+            return widgets
+        if self._selected_widget is not None:
+            return [self._selected_widget]
+        return []
+
+    def _primary_selected_widget(self):
+        return self._selection_state.primary or self._selected_widget
+
+    def _existing_widget_names(self, existing_names=None):
+        if existing_names is not None:
+            return existing_names
+        if not self._current_page:
+            return set()
+        return {widget.name for widget in self._current_page.get_all_widgets() if widget.name}
+
+    def _make_unique_widget_name(self, base_name, existing_names=None):
+        candidate = (base_name or "widget").strip().replace(" ", "_")
+        if not candidate:
+            candidate = "widget"
+
+        existing_names = self._existing_widget_names(existing_names)
+        if candidate not in existing_names:
+            existing_names.add(candidate)
+            return candidate
+
+        match = re.match(r"^(.*?)(?:_(\d+))?$", candidate)
+        stem = candidate
+        suffix = 2
+        if match:
+            stem = match.group(1) or candidate
+            if match.group(2):
+                suffix = int(match.group(2)) + 1
+
+        while f"{stem}_{suffix}" in existing_names:
+            suffix += 1
+
+        resolved = f"{stem}_{suffix}"
+        existing_names.add(resolved)
+        return resolved
+
+    def _rename_widget_subtree_uniquely(self, widget, existing_names):
+        if widget is None:
+            return
+        widget.name = self._make_unique_widget_name(widget.name or widget.widget_type, existing_names=existing_names)
+        for child in widget.children:
+            self._rename_widget_subtree_uniquely(child, existing_names)
+
+    def _top_level_selected_widgets(self, widgets=None, exclude_root=True):
+        widgets = [widget for widget in (widgets or self._selected_widgets()) if widget is not None]
+        if not widgets:
+            return []
+
+        selected_ids = {id(widget) for widget in widgets}
+        result = []
+        root_widget = self._current_page.root_widget if self._current_page else None
+
+        for widget in widgets:
+            if exclude_root and widget is root_widget:
+                continue
+            parent = widget.parent
+            skip = False
+            while parent is not None:
+                if id(parent) in selected_ids:
+                    skip = True
+                    break
+                parent = parent.parent
+            if not skip:
+                result.append(widget)
+        return result
+
+    def _parent_uses_layout(self, parent):
+        if parent is None:
+            return False
+        return WidgetModel._get_type_info(parent.widget_type).get("layout_func") is not None
+
+    def _shared_selection_parent(self, widgets=None):
+        widgets = [widget for widget in (widgets or []) if widget is not None]
+        if not widgets:
+            return None
+        parent = widgets[0].parent
+        if parent is None:
+            return None
+        for widget in widgets[1:]:
+            if widget.parent is not parent:
+                return None
+        if self._parent_uses_layout(parent):
+            return None
+        return parent
+
+    def _default_paste_parent(self):
+        if not self._current_page:
+            return None
+
+        primary = self._primary_selected_widget()
+        if primary is not None:
+            if primary.is_container:
+                return primary
+            if primary.parent is not None and primary.parent.is_container:
+                return primary.parent
+
+        root_widget = self._current_page.root_widget
+        if root_widget is not None and root_widget.is_container:
+            return root_widget
+        return None
+
+    def _selected_widget_payload(self):
+        widgets = self._top_level_selected_widgets()
+        if not widgets:
+            return None
+        return {
+            "widgets": [copy.deepcopy(widget.to_dict()) for widget in widgets],
+        }
+
+    def _paste_widget_payload(self, payload):
+        if not self._current_page or not payload:
+            return []
+
+        parent = self._default_paste_parent()
+        if parent is None:
+            return []
+
+        widgets_data = payload.get("widgets", [])
+        if not widgets_data:
+            return []
+
+        self._paste_serial += 1
+        offset = self.preview_panel.grid_size() or 12
+        offset *= self._paste_serial
+        existing_names = self._existing_widget_names()
+        use_offset = not self._parent_uses_layout(parent)
+
+        pasted_widgets = []
+        for widget_data in widgets_data:
+            widget = WidgetModel.from_dict(copy.deepcopy(widget_data))
+            self._rename_widget_subtree_uniquely(widget, existing_names)
+            if use_offset:
+                widget.x += offset
+                widget.y += offset
+                widget.display_x = widget.x
+                widget.display_y = widget.y
+            parent.add_child(widget)
+            pasted_widgets.append(widget)
+
+        self.widget_tree.rebuild_tree()
+        self._set_selection(pasted_widgets, primary=pasted_widgets[-1], sync_tree=True, sync_preview=True)
+        self._record_page_state_change()
+        return pasted_widgets
+
+    def _copy_selection(self):
+        payload = self._selected_widget_payload()
+        if not payload:
+            return
+        self._clipboard_payload = payload
+        self._paste_serial = 0
+        self._update_edit_actions()
+        self.statusBar().showMessage(f"Copied {len(payload['widgets'])} widget(s)", 3000)
+
+    def _cut_selection(self):
+        payload = self._selected_widget_payload()
+        if not payload:
+            return
+        self._clipboard_payload = payload
+        self._paste_serial = 0
+        self._delete_selection()
+        self.statusBar().showMessage(f"Cut {len(payload['widgets'])} widget(s)", 3000)
+
+    def _paste_selection(self):
+        pasted_widgets = self._paste_widget_payload(self._clipboard_payload)
+        if pasted_widgets:
+            self.statusBar().showMessage(f"Pasted {len(pasted_widgets)} widget(s)", 3000)
+
+    def _duplicate_selection(self):
+        payload = self._selected_widget_payload()
+        if not payload:
+            return
+        duplicated_widgets = self._paste_widget_payload(payload)
+        if duplicated_widgets:
+            self.statusBar().showMessage(f"Duplicated {len(duplicated_widgets)} widget(s)", 3000)
+
+    def _delete_selection(self):
+        widgets = self._top_level_selected_widgets()
+        if not widgets:
+            return
+
+        for widget in widgets:
+            if widget.parent is not None:
+                widget.parent.remove_child(widget)
+
+        self.widget_tree.rebuild_tree()
+        self._clear_selection(sync_tree=True, sync_preview=True)
+        self._record_page_state_change()
+        self.statusBar().showMessage(f"Deleted {len(widgets)} widget(s)", 3000)
+
+    def _align_selection(self, mode):
+        widgets = [widget for widget in self._top_level_selected_widgets() if not getattr(widget, "designer_locked", False)]
+        if len(widgets) < 2:
+            return
+        if self._shared_selection_parent(widgets) is None:
+            return
+
+        primary = self._primary_selected_widget()
+        if primary not in widgets:
+            primary = widgets[-1]
+
+        for widget in widgets:
+            if widget is primary:
+                continue
+            if mode == "left":
+                widget.x = primary.x
+            elif mode == "right":
+                widget.x = primary.x + primary.width - widget.width
+            elif mode == "top":
+                widget.y = primary.y
+            elif mode == "bottom":
+                widget.y = primary.y + primary.height - widget.height
+            elif mode == "hcenter":
+                widget.x = primary.x + (primary.width - widget.width) // 2
+            elif mode == "vcenter":
+                widget.y = primary.y + (primary.height - widget.height) // 2
+            widget.display_x = widget.x
+            widget.display_y = widget.y
+
+        self._record_page_state_change()
+
+    def _distribute_selection(self, axis):
+        widgets = [widget for widget in self._top_level_selected_widgets() if not getattr(widget, "designer_locked", False)]
+        if len(widgets) < 3:
+            return
+        if self._shared_selection_parent(widgets) is None:
+            return
+
+        key_name = "x" if axis == "horizontal" else "y"
+        size_name = "width" if axis == "horizontal" else "height"
+        widgets = sorted(widgets, key=lambda widget: getattr(widget, key_name))
+        first = widgets[0]
+        last = widgets[-1]
+        inner_widgets = widgets[1:-1]
+        if not inner_widgets:
+            return
+
+        start_edge = getattr(first, key_name) + getattr(first, size_name)
+        end_edge = getattr(last, key_name)
+        available = end_edge - start_edge
+        used = sum(getattr(widget, size_name) for widget in inner_widgets)
+        gap_count = len(widgets) - 1
+        if gap_count <= 0:
+            return
+        gap = (available - used) // gap_count if available > used else 0
+
+        cursor = start_edge + gap
+        for widget in inner_widgets:
+            setattr(widget, key_name, cursor)
+            widget.display_x = widget.x
+            widget.display_y = widget.y
+            cursor += getattr(widget, size_name) + gap
+
+        self._record_page_state_change()
+
+    def _move_selection_to_front(self):
+        widgets = self._top_level_selected_widgets()
+        if not widgets:
+            return
+        grouped = {}
+        for widget in widgets:
+            if widget.parent is None:
+                continue
+            grouped.setdefault(id(widget.parent), (widget.parent, []) )[1].append(widget)
+
+        for parent, children in grouped.values():
+            ordered = [child for child in parent.children if child in children]
+            remaining = [child for child in parent.children if child not in children]
+            parent.children = remaining + ordered
+
+        self.widget_tree.rebuild_tree()
+        self._set_selection(widgets, primary=self._primary_selected_widget(), sync_tree=True, sync_preview=True)
+        self._record_page_state_change()
+
+    def _move_selection_to_back(self):
+        widgets = self._top_level_selected_widgets()
+        if not widgets:
+            return
+        grouped = {}
+        for widget in widgets:
+            if widget.parent is None:
+                continue
+            grouped.setdefault(id(widget.parent), (widget.parent, []) )[1].append(widget)
+
+        for parent, children in grouped.values():
+            ordered = [child for child in parent.children if child in children]
+            remaining = [child for child in parent.children if child not in children]
+            parent.children = ordered + remaining
+
+        self.widget_tree.rebuild_tree()
+        self._set_selection(widgets, primary=self._primary_selected_widget(), sync_tree=True, sync_preview=True)
+        self._record_page_state_change()
+
+    def _set_selection_flag(self, field_name):
+        widgets = [widget for widget in self._selected_widgets() if self._current_page and widget is not self._current_page.root_widget]
+        if not widgets:
+            return
+        new_value = not all(bool(getattr(widget, field_name, False)) for widget in widgets)
+        for widget in widgets:
+            setattr(widget, field_name, new_value)
+        primary = self._primary_selected_widget()
+        self.widget_tree.rebuild_tree()
+        self._set_selection(widgets, primary=primary, sync_tree=True, sync_preview=True)
+        self._record_page_state_change(trigger_compile=False)
+
+    def _toggle_selection_locked(self):
+        self._set_selection_flag("designer_locked")
+
+    def _toggle_selection_hidden(self):
+        self._set_selection_flag("designer_hidden")
+
+    def _update_edit_actions(self):
+        if not hasattr(self, "_copy_action"):
+            return
+
+        selected_widgets = self._top_level_selected_widgets()
+        selectable_widgets = [widget for widget in selected_widgets if not getattr(widget, "designer_locked", False)]
+        has_selection = bool(selected_widgets)
+        has_project = self._current_page is not None
+        can_paste = has_project and self._clipboard_payload is not None and self._default_paste_parent() is not None
+        can_align = len(selectable_widgets) >= 2 and self._shared_selection_parent(selectable_widgets) is not None
+        can_distribute = len(selectable_widgets) >= 3 and self._shared_selection_parent(selectable_widgets) is not None
+
+        self._copy_action.setEnabled(has_selection)
+        self._cut_action.setEnabled(has_selection)
+        self._paste_action.setEnabled(can_paste)
+        self._duplicate_action.setEnabled(has_selection)
+        self._delete_action.setEnabled(has_selection)
+
+        self._align_left_action.setEnabled(can_align)
+        self._align_right_action.setEnabled(can_align)
+        self._align_top_action.setEnabled(can_align)
+        self._align_bottom_action.setEnabled(can_align)
+        self._align_hcenter_action.setEnabled(can_align)
+        self._align_vcenter_action.setEnabled(can_align)
+        self._distribute_h_action.setEnabled(can_distribute)
+        self._distribute_v_action.setEnabled(can_distribute)
+        self._bring_front_action.setEnabled(has_selection)
+        self._send_back_action.setEnabled(has_selection)
+        self._toggle_lock_action.setEnabled(has_selection)
+        self._toggle_hide_action.setEnabled(has_selection)
+
+    def _on_tree_selection_changed(self, widgets, primary):
+        self._set_selection(widgets, primary=primary, sync_tree=False, sync_preview=True)
+
+    def _on_preview_selection_changed(self, widgets, primary):
+        self._set_selection(widgets, primary=primary, sync_tree=True, sync_preview=False)
+
     def _on_widget_selected(self, widget):
         """Widget selected from tree panel."""
-        self._selected_widget = widget
-        self.property_panel.set_widget(widget)
-        self.preview_panel.set_selected(widget)
+        self._set_selection([widget] if widget is not None else [], primary=widget, sync_tree=False, sync_preview=True)
 
     def _on_preview_widget_selected(self, widget):
         """Widget selected from preview panel overlay."""
-        self._selected_widget = widget
-        self.property_panel.set_widget(widget)
+        self._set_selection([widget] if widget is not None else [], primary=widget, sync_tree=True, sync_preview=False)
 
     def _on_widget_moved(self, widget, new_x, new_y):
         """Widget dragged on preview overlay."""
-        if widget == self._selected_widget:
-            self.property_panel.set_widget(widget)
+        if widget == self._selection_state.primary:
+            self.property_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
         self._on_model_changed()
 
     def _on_widget_resized(self, widget, new_width, new_height):
         """Widget resized on preview overlay."""
-        if widget == self._selected_widget:
-            self.property_panel.set_widget(widget)
+        if widget == self._selection_state.primary:
+            self.property_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
         self._on_model_changed()
 
     def _on_widget_reordered(self, widget, new_index):
         """Widget reordered within a layout container."""
         self.widget_tree.rebuild_tree()
+        self.widget_tree.set_selected_widgets(self._selection_state.widgets, self._selection_state.primary)
         self._on_model_changed()
 
     def _on_tree_changed(self):
         """Widget tree structure changed (add/delete/reorder)."""
+        self.widget_tree.set_selected_widgets(self._selection_state.widgets, self._selection_state.primary)
         self._on_model_changed()
 
     def _on_property_changed(self):
         """A property value was changed in the property panel."""
         self.widget_tree.rebuild_tree()
+        self.widget_tree.set_selected_widgets(self._selection_state.widgets, self._selection_state.primary)
         self._on_model_changed()
 
     def _on_model_changed(self):
@@ -2269,8 +2881,7 @@ class MainWindow(QMainWindow):
             # Refresh UI
             self._page_shim = _PageProjectShim(self._current_page)
             self.widget_tree.set_project(self._page_shim)
-            self._selected_widget = None
-            self.property_panel.set_widget(None)
+            self._clear_selection(sync_tree=True, sync_preview=True)
             self._update_preview_overlay()
             self._apply_page_mockup()
             self._sync_xml_to_editors()
@@ -2334,8 +2945,7 @@ class MainWindow(QMainWindow):
             # Refresh tree and preview (without re-syncing XML back)
             self._page_shim = _PageProjectShim(self._current_page)
             self.widget_tree.set_project(self._page_shim)
-            self._selected_widget = None
-            self.property_panel.set_widget(None)
+            self._clear_selection(sync_tree=True, sync_preview=True)
             self._update_preview_overlay()
             self._apply_page_mockup()
             self._trigger_compile()
@@ -2361,7 +2971,8 @@ class MainWindow(QMainWindow):
             compute_page_layout(self._current_page)
             widgets = self._current_page.get_all_widgets()
             self.preview_panel.set_widgets(widgets)
-            self.preview_panel.set_selected(self._selected_widget)
+            self.preview_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
+            self.page_navigator.refresh_thumbnail(self._current_page.name)
             if self.compiler is None or not self.compiler.can_build() or self.preview_panel.is_python_preview_active():
                 reason = ""
                 if self.compiler is None:
@@ -2385,6 +2996,19 @@ class MainWindow(QMainWindow):
         self.preview_panel.flip_layout()
         self._config.overlay_flipped = self.preview_panel._flipped
         self._config.save()
+
+    def _set_show_grid(self, show):
+        self.preview_panel.set_show_grid(show)
+        self._config.show_grid = bool(show)
+        self._config.save()
+
+    def _set_grid_size(self, size):
+        self.preview_panel.set_grid_size(size)
+        self._config.grid_size = int(size)
+        self._config.save()
+        action = self._grid_size_actions.get(int(size))
+        if action is not None:
+            action.setChecked(True)
 
     def _toggle_auto_compile(self, enabled):
         self.auto_compile = enabled
