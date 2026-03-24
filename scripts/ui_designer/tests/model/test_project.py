@@ -95,6 +95,34 @@ class TestCreateNewPage:
         assert page.root_widget.height == 480
         assert page in proj.pages
 
+    def test_duplicate_page_copies_page_content(self):
+        proj = Project(screen_width=320, screen_height=480)
+
+        original = proj.create_new_page("settings")
+        label = WidgetModel("label", name="title", x=12, y=18, width=180, height=32)
+        label.properties["text"] = "Settings"
+        original.root_widget.add_child(label)
+        original.user_fields.append({"name": "counter", "type": "int", "default": 3})
+        original.mockup_image_path = "mockup/settings.png"
+        original.mockup_image_visible = False
+        original.mockup_image_opacity = 0.5
+
+        duplicated = proj.duplicate_page("settings", "settings_copy")
+
+        assert duplicated is not original
+        assert duplicated.name == "settings_copy"
+        assert duplicated.file_path == "layout/settings_copy.xml"
+        assert duplicated.dirty is True
+        assert duplicated.root_widget is not original.root_widget
+        assert len(duplicated.root_widget.children) == 1
+        assert duplicated.root_widget.children[0].name == "title"
+        assert duplicated.root_widget.children[0].properties["text"] == "Settings"
+        assert duplicated.user_fields == [{"name": "counter", "type": "int", "default": "3"}]
+        assert duplicated.mockup_image_path == "mockup/settings.png"
+        assert duplicated.mockup_image_visible is False
+        assert duplicated.mockup_image_opacity == 0.5
+        assert duplicated in proj.pages
+
 
 class TestRootWidgets:
     """Tests for root_widgets compatibility property."""

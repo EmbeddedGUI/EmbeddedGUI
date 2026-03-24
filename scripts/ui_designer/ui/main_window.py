@@ -259,6 +259,7 @@ class MainWindow(QMainWindow):
         # Project explorer
         self.project_dock.page_selected.connect(self._on_page_selected)
         self.project_dock.page_added.connect(self._on_page_added)
+        self.project_dock.page_duplicated.connect(self._on_page_duplicated)
         self.project_dock.page_removed.connect(self._on_page_removed)
         self.project_dock.page_renamed.connect(self._on_page_renamed)
         self.project_dock.startup_changed.connect(self._on_startup_changed)
@@ -1064,8 +1065,13 @@ class MainWindow(QMainWindow):
                 cached_sdk_root=default_sdk_install_dir(),
             )
             display_name = item.get("display_name") or os.path.splitext(os.path.basename(project_path))[0]
-            action = QAction(display_name, self)
-            action.setToolTip(project_path)
+            project_exists = bool(project_path) and os.path.exists(project_path)
+            action_label = display_name if project_exists else f"[Missing] {display_name}"
+            action = QAction(action_label, self)
+            tooltip = project_path
+            if not project_exists:
+                tooltip = f"{project_path}\nProject path is missing. Selecting it will offer to remove the stale entry."
+            action.setToolTip(tooltip)
             action.triggered.connect(
                 lambda checked, p=project_path, r=sdk_root: self._open_recent_project(p, r)
             )
@@ -1899,7 +1905,8 @@ class MainWindow(QMainWindow):
         stack = self._undo_manager.get_stack(page_name)
         if not stack._history:
             stack.push(page.to_xml_string())
-            stack.mark_saved()
+            if not page.dirty:
+                stack.mark_saved()
 
         # Ensure page tab exists and is selected
         self._syncing_tabs = True
@@ -1932,6 +1939,16 @@ class MainWindow(QMainWindow):
         if not self.project:
             return
         self.project.create_new_page(page_name)
+        self.project_dock.set_project(self.project)
+        self._ensure_page_tab(page_name)
+        self._switch_page(page_name)
+        self._trigger_compile()
+
+    def _on_page_duplicated(self, source_name, page_name):
+        """User requested duplicating an existing page."""
+        if not self.project:
+            return
+        self.project.duplicate_page(source_name, page_name)
         self.project_dock.set_project(self.project)
         self._ensure_page_tab(page_name)
         self._switch_page(page_name)

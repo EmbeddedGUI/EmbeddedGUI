@@ -27,6 +27,27 @@ def qapp():
 
 @_skip_no_qt
 class TestResourcePanelFileFlow:
+    def test_import_image_warns_before_opening_dialog_when_resource_dir_missing(self, qapp, monkeypatch):
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        panel = ResourcePanel()
+        warnings = []
+        dialog_calls = []
+
+        monkeypatch.setattr("ui_designer.ui.resource_panel.QMessageBox.warning", lambda *args: warnings.append(args[1:]))
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QFileDialog.getOpenFileNames",
+            lambda *args, **kwargs: dialog_calls.append(args) or ([], ""),
+        )
+
+        panel._on_import_image()
+
+        assert warnings
+        assert warnings[0][0] == "Error"
+        assert "No resource directory configured" in warnings[0][1]
+        assert dialog_calls == []
+        panel.deleteLater()
+
     def test_import_image_dialog_uses_project_images_dir_by_default(self, qapp, tmp_path, monkeypatch):
         from ui_designer.ui.resource_panel import ResourcePanel
 

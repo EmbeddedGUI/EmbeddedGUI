@@ -56,9 +56,12 @@ class RecentProjectItem(QWidget):
         path_label.setStyleSheet("color: #888;")
         text_layout.addWidget(path_label)
 
+        project_status = "ready" if os.path.exists(project_path) else "missing"
         sdk_status = describe_sdk_root(sdk_root)
-        self._status_label = QLabel(f"SDK: {sdk_status}")
-        if sdk_status == "ready":
+        self._status_label = QLabel(f"Project: {project_status}  |  SDK: {sdk_status}")
+        if project_status != "ready":
+            self._status_label.setStyleSheet("color: #f44336;")
+        elif sdk_status == "ready":
             self._status_label.setStyleSheet("color: #4caf50;")
         elif sdk_status == "invalid":
             self._status_label.setStyleSheet("color: #ff9800;")

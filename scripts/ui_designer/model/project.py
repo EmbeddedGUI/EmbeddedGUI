@@ -106,6 +106,22 @@ class Project:
         self.add_page(page)
         return page
 
+    def duplicate_page(self, source_name, new_name):
+        """Duplicate an existing page under a new page name."""
+        source_page = self.get_page_by_name(source_name)
+        if source_page is None:
+            raise ValueError(f"Page '{source_name}' does not exist.")
+        if self.get_page_by_name(new_name) is not None:
+            raise ValueError(f"Page '{new_name}' already exists.")
+
+        page = Page.from_xml_string(
+            source_page.to_xml_string(),
+            file_path=f"layout/{new_name}.xml",
+        )
+        page.dirty = True
+        self.add_page(page)
+        return page
+
     # ── Path helpers ──────────────────────────────────────────────
 
     def get_app_dir(self):

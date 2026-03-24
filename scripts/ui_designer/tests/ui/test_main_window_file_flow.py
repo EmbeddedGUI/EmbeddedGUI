@@ -812,6 +812,65 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_recent_menu_marks_missing_project_entries(self, qapp, isolated_config, tmp_path):
+        from ui_designer.ui.main_window import MainWindow
+
+        missing_project = tmp_path / "MissingApp" / "MissingApp.egui"
+        isolated_config.recent_projects = [
+            {
+                "project_path": str(missing_project),
+                "sdk_root": "",
+                "display_name": "MissingApp",
+            }
+        ]
+
+        window = MainWindow("")
+        window._update_recent_menu()
+
+        action = window._recent_menu.actions()[0]
+        assert action.text() == "[Missing] MissingApp"
+        assert "Project path is missing" in action.toolTip()
+        window.close()
+        window.deleteLater()
+
+    def test_duplicate_page_copies_existing_page_content(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "DuplicateDemo"
+        project = _create_project(project_dir, "DuplicateDemo", sdk_root)
+        source_page = project.get_page_by_name("main_page")
+        label = WidgetModel("label", name="title", x=12, y=16, width=100, height=24)
+        label.properties["text"] = "Original Title"
+        source_page.root_widget.add_child(label)
+        source_page.user_fields.append({"name": "counter", "type": "int", "default": 7})
+        source_page.mockup_image_path = "mockup/main.png"
+        source_page.mockup_image_opacity = 0.6
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window.project_dock._duplicate_page("main_page")
+
+        duplicated = window.project.get_page_by_name("main_page_copy")
+        assert duplicated is not None
+        assert window._current_page is duplicated
+        assert duplicated.root_widget is not source_page.root_widget
+        assert len(duplicated.root_widget.children) == 1
+        assert duplicated.root_widget.children[0].properties["text"] == "Original Title"
+        assert duplicated.user_fields == [{"name": "counter", "type": "int", "default": "7"}]
+        assert duplicated.mockup_image_path == "mockup/main.png"
+        assert duplicated.mockup_image_opacity == 0.6
+        assert window._undo_manager.is_any_dirty() is True
+        window._undo_manager.mark_all_saved()
+        window.close()
+        window.deleteLater()
+
     def test_property_panel_resource_imported_signal_triggers_resource_refresh_flow(self, qapp, isolated_config, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
 

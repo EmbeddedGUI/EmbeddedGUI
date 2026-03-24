@@ -41,6 +41,7 @@ class ProjectExplorerDock(QDockWidget):
     Signals:
         page_selected(str):    page name selected (filename without ext)
         page_added(str):       new page name
+        page_duplicated(str,str): (source_name, new page name)
         page_removed(str):     removed page name
         page_renamed(str,str): (old_name, new_name)
         startup_changed(str):  new startup page name
@@ -49,6 +50,7 @@ class ProjectExplorerDock(QDockWidget):
 
     page_selected = pyqtSignal(str)
     page_added = pyqtSignal(str)
+    page_duplicated = pyqtSignal(str, str)
     page_removed = pyqtSignal(str)
     page_renamed = pyqtSignal(str, str)
     startup_changed = pyqtSignal(str)
@@ -233,8 +235,7 @@ class ProjectExplorerDock(QDockWidget):
         while self._project and self._project.get_page_by_name(new_name):
             counter += 1
             new_name = f"{name}_copy{counter}"
-        self.page_added.emit(new_name)
-        # The MainWindow handler should copy the widget tree from `name` to `new_name`
+        self.page_duplicated.emit(name, new_name)
 
     def _delete_page(self, name):
         if self._project and len(self._project.pages) <= 1:

@@ -488,6 +488,28 @@ class TestWelcomePage:
         assert "ready" in widget._status_label.text().lower()
         page.deleteLater()
 
+    def test_recent_project_item_marks_missing_project_path(self, qapp, isolated_config, tmp_path):
+        from ui_designer.ui.welcome_page import WelcomePage
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        missing_project = tmp_path / "MissingApp" / "MissingApp.egui"
+        isolated_config.recent_projects = [
+            {
+                "project_path": str(missing_project),
+                "sdk_root": str(sdk_root),
+                "display_name": "MissingApp",
+            }
+        ]
+
+        page = WelcomePage()
+        widget = page._recent_list.itemAt(0).widget()
+
+        assert widget is not None
+        assert "project: missing" in widget._status_label.text().lower()
+        assert "sdk: ready" in widget._status_label.text().lower()
+        page.deleteLater()
+
     def test_refresh_shows_sdk_status_and_path(self, qapp, isolated_config, tmp_path):
         from ui_designer.ui.welcome_page import WelcomePage
 

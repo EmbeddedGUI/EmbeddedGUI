@@ -629,6 +629,8 @@ class ResourcePanel(QWidget):
     # -- Import (buttons) --
 
     def _on_import_image(self):
+        if not self._ensure_src_dir():
+            return
         paths, _ = QFileDialog.getOpenFileNames(
             self, "Import Images", self._default_external_import_dir("image"),
             "Images (*.png *.bmp *.jpg *.jpeg)"
@@ -638,6 +640,8 @@ class ResourcePanel(QWidget):
             self._do_import(paths, "image")
 
     def _on_import_font(self):
+        if not self._ensure_src_dir():
+            return
         paths, _ = QFileDialog.getOpenFileNames(
             self, "Import Fonts", self._default_external_import_dir("font"),
             "Fonts (*.ttf *.otf)"
@@ -647,6 +651,8 @@ class ResourcePanel(QWidget):
             self._do_import(paths, "font")
 
     def _on_import_text(self):
+        if not self._ensure_src_dir():
+            return
         paths, _ = QFileDialog.getOpenFileNames(
             self, "Import Text Files", self._default_external_import_dir("text"),
             "Text Files (*.txt);;All Files (*.*)"
@@ -654,8 +660,6 @@ class ResourcePanel(QWidget):
         if not paths:
             return
         self._remember_external_import_paths(paths)
-        if not self._ensure_src_dir():
-            return
         for src in paths:
             fname = os.path.basename(src)
             if not _validate_english_filename(fname):
