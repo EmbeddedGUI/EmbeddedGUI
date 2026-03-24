@@ -7,6 +7,8 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
+    from PyQt5.QtCore import QEvent, Qt
+    from PyQt5.QtGui import QKeyEvent
     from PyQt5.QtWidgets import QApplication
 
     _has_pyqt5 = True
@@ -394,6 +396,53 @@ class TestWidgetTreePanel:
 
         panel._select_previous_filter_match()
         assert panel._get_selected_widget() is second
+        panel.deleteLater()
+
+    def test_filter_edit_keyboard_shortcuts_navigate_matches(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        first = WidgetModel("label", name="field_label")
+        second = WidgetModel("button", name="field_button")
+        root.add_child(first)
+        root.add_child(second)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        panel.filter_edit.setText("field")
+
+        qapp.sendEvent(panel.filter_edit, QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.NoModifier))
+        assert panel._get_selected_widget() is first
+
+        qapp.sendEvent(panel.filter_edit, QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.NoModifier))
+        assert panel._get_selected_widget() is second
+
+        qapp.sendEvent(panel.filter_edit, QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.ShiftModifier))
+        assert panel._get_selected_widget() is first
+        panel.deleteLater()
+
+    def test_filter_edit_escape_clears_active_filter(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        label = WidgetModel("label", name="headline")
+        button = WidgetModel("button", name="cta")
+        root.add_child(label)
+        root.add_child(button)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        panel.filter_edit.setText("head")
+
+        qapp.sendEvent(panel.filter_edit, QKeyEvent(QEvent.KeyPress, Qt.Key_Escape, Qt.NoModifier))
+
+        assert panel.filter_edit.text() == ""
+        assert panel.filter_status_label.text() == "All widgets"
+        assert panel._item_map[id(root)].isHidden() is False
+        assert panel._item_map[id(label)].isHidden() is False
+        assert panel._item_map[id(button)].isHidden() is False
         panel.deleteLater()
 
     def test_rebuild_tree_preserves_manual_collapse_state(self, qapp):

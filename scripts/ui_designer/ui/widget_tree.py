@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
     QPushButton, QHBoxLayout, QMenu, QAction, QInputDialog, QAbstractItemView, QMessageBox, QLineEdit, QLabel,
 )
-from PyQt5.QtCore import pyqtSignal, Qt, QItemSelectionModel
+from PyQt5.QtCore import pyqtSignal, Qt, QItemSelectionModel, QEvent
 
 from ..model.widget_name import (
     is_valid_widget_name,
@@ -76,6 +76,7 @@ class WidgetTreePanel(QWidget):
         self.filter_edit.setPlaceholderText("Filter widgets by name or type")
         self.filter_edit.setClearButtonEnabled(True)
         self.filter_edit.textChanged.connect(self._apply_tree_filter)
+        self.filter_edit.installEventFilter(self)
         filter_layout = QHBoxLayout()
         filter_layout.addWidget(self.filter_edit, 1)
         self.filter_prev_btn = QPushButton("Prev")
@@ -148,6 +149,19 @@ class WidgetTreePanel(QWidget):
         if prefix:
             return f"{' '.join(prefix)} {widget.name}"
         return widget.name
+
+    def eventFilter(self, watched, event):
+        if watched is self.filter_edit and event.type() == QEvent.KeyPress:
+            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+                if event.modifiers() & Qt.ShiftModifier:
+                    self._select_previous_filter_match()
+                else:
+                    self._select_next_filter_match()
+                return True
+            if event.key() == Qt.Key_Escape and self.filter_edit.text():
+                self.filter_edit.clear()
+                return True
+        return super().eventFilter(watched, event)
 
     def _on_selection_changed(self):
         if self._building or self._syncing_selection:
