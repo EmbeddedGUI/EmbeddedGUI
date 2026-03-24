@@ -13,6 +13,11 @@
 #define EGUI_SHOWCASE_PARITY_RECORDING 0
 #endif
 
+#define SHOWCASE_CANVAS_WIDTH    HELLO_VIRTUAL_STAGE_SHOWCASE_CANVAS_WIDTH
+#define SHOWCASE_CANVAS_HEIGHT   HELLO_VIRTUAL_STAGE_SHOWCASE_CANVAS_HEIGHT
+#define SHOWCASE_KEYBOARD_HEIGHT 128
+#define SHOWCASE_KEYBOARD_Y      ((EGUI_CONFIG_SCEEN_HEIGHT > SHOWCASE_KEYBOARD_HEIGHT) ? (EGUI_CONFIG_SCEEN_HEIGHT - SHOWCASE_KEYBOARD_HEIGHT) : 0)
+
 #define SHOWCASE_NODE_COUNT 37U
 #if EGUI_SHOWCASE_PARITY_RECORDING
 #define SHOWCASE_LIVE_SLOT_LIMIT    20U
@@ -220,6 +225,7 @@ typedef struct showcase_context
 
 static showcase_context_t showcase_ctx;
 static showcase_scratch_widget_t showcase_scratch;
+static egui_view_canvas_panner_t showcase_root;
 static egui_view_virtual_stage_t showcase_stage_view;
 static egui_view_keyboard_t showcase_keyboard_view;
 static egui_timer_t showcase_anim_timer;
@@ -229,17 +235,63 @@ static egui_timer_t showcase_bootstrap_timer;
 #endif
 static egui_region_t showcase_scratch_dirty_backup[EGUI_CONFIG_DIRTY_AREA_COUNT];
 static uint8_t showcase_scratch_dirty_backup_valid;
+static egui_dim_t showcase_draw_origin_x;
+static egui_dim_t showcase_draw_origin_y;
 static egui_view_t *showcase_find_live_view(uint32_t stable_id);
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 
+static uint8_t showcase_recording_uses_small_screen(void)
+{
+    return (EGUI_CONFIG_SCEEN_WIDTH < SHOWCASE_CANVAS_WIDTH) || (EGUI_CONFIG_SCEEN_HEIGHT < SHOWCASE_CANVAS_HEIGHT);
+}
+
+static void showcase_sim_canvas_to_screen(egui_dim_t canvas_x, egui_dim_t canvas_y, int *x, int *y)
+{
+    egui_dim_t offset_x = egui_view_canvas_panner_get_offset_x(EGUI_VIEW_OF(&showcase_root));
+    egui_dim_t offset_y = egui_view_canvas_panner_get_offset_y(EGUI_VIEW_OF(&showcase_root));
+
+    *x = canvas_x - offset_x;
+    *y = canvas_y - offset_y;
+}
+
+static void showcase_runtime_focus_node(uint32_t node_index)
+{
+    const egui_region_t *region = &showcase_ctx.nodes[node_index].desc.region;
+    egui_dim_t target_x = region->location.x + region->size.width / 2 - EGUI_CONFIG_SCEEN_WIDTH / 2;
+    egui_dim_t target_y = region->location.y + region->size.height / 2 - EGUI_CONFIG_SCEEN_HEIGHT / 2;
+    egui_dim_t max_offset_x = SHOWCASE_CANVAS_WIDTH > EGUI_CONFIG_SCEEN_WIDTH ? (SHOWCASE_CANVAS_WIDTH - EGUI_CONFIG_SCEEN_WIDTH) : 0;
+    egui_dim_t max_offset_y = SHOWCASE_CANVAS_HEIGHT > EGUI_CONFIG_SCEEN_HEIGHT ? (SHOWCASE_CANVAS_HEIGHT - EGUI_CONFIG_SCEEN_HEIGHT) : 0;
+
+    if (target_x < 0)
+    {
+        target_x = 0;
+    }
+    else if (target_x > max_offset_x)
+    {
+        target_x = max_offset_x;
+    }
+
+    if (target_y < 0)
+    {
+        target_y = 0;
+    }
+    else if (target_y > max_offset_y)
+    {
+        target_y = max_offset_y;
+    }
+
+    egui_view_canvas_panner_set_offset(EGUI_VIEW_OF(&showcase_root), target_x, target_y);
+    EGUI_VIEW_OF(&showcase_root)->api->calculate_layout(EGUI_VIEW_OF(&showcase_root));
+    egui_view_invalidate(EGUI_VIEW_OF(&showcase_root));
+}
+
 static void showcase_sim_get_node_point(uint32_t node_index, uint8_t x_percent, uint8_t y_percent, int *x, int *y)
 {
     const egui_region_t *region = &showcase_ctx.nodes[node_index].desc.region;
 
-    *x = region->location.x + (region->size.width * x_percent) / 100;
-    *y = region->location.y + (region->size.height * y_percent) / 100;
+    showcase_sim_canvas_to_screen(region->location.x + (region->size.width * x_percent) / 100, region->location.y + (region->size.height * y_percent) / 100, x, y);
 }
 
 static void showcase_sim_set_click_node(egui_sim_action_t *p_action, uint32_t node_index, uint8_t x_percent, uint8_t y_percent, int interval_ms)
@@ -255,6 +307,17 @@ static void showcase_sim_set_drag_node(egui_sim_action_t *p_action, uint32_t nod
     showcase_sim_get_node_point(node_index, from_x_percent, from_y_percent, &p_action->x1, &p_action->y1);
     showcase_sim_get_node_point(node_index, to_x_percent, to_y_percent, &p_action->x2, &p_action->y2);
     p_action->type = EGUI_SIM_ACTION_DRAG;
+    p_action->steps = steps;
+    p_action->interval_ms = interval_ms;
+}
+
+static void showcase_sim_set_screen_drag(egui_sim_action_t *p_action, int x1, int y1, int x2, int y2, int steps, int interval_ms)
+{
+    p_action->type = EGUI_SIM_ACTION_DRAG;
+    p_action->x1 = x1;
+    p_action->y1 = y1;
+    p_action->x2 = x2;
+    p_action->y2 = y2;
     p_action->steps = steps;
     p_action->interval_ms = interval_ms;
 }
@@ -330,6 +393,7 @@ static void showcase_sim_get_arc_slider_point(uint8_t value, int *x, int *y)
 
     *x = center_x + (int)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(radius), EGUI_FLOAT_COS(angle_rad)));
     *y = center_y + (int)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(radius), EGUI_FLOAT_SIN(angle_rad)));
+    showcase_sim_canvas_to_screen(*x, *y, x, y);
 }
 
 static void showcase_sim_set_arc_slider_drag(egui_sim_action_t *p_action, uint8_t from_value, uint8_t to_value, int steps, int interval_ms)
@@ -363,8 +427,8 @@ static uint8_t showcase_sim_set_calendar_day_click(egui_sim_action_t *p_action, 
     row = (uint8_t)(pos / 7U);
 
     p_action->type = EGUI_SIM_ACTION_CLICK;
-    p_action->x1 = region->location.x + col * cell_w + cell_w / 2;
-    p_action->y1 = region->location.y + header_h * 2 + row * cell_h + cell_h / 2;
+    showcase_sim_canvas_to_screen(region->location.x + col * cell_w + cell_w / 2, region->location.y + header_h * 2 + row * cell_h + cell_h / 2, &p_action->x1,
+                                  &p_action->y1);
     p_action->interval_ms = interval_ms;
     return 1U;
 }
@@ -381,8 +445,8 @@ static void showcase_sim_set_button_matrix_click(egui_sim_action_t *p_action, ui
     uint8_t row = (uint8_t)(index / cols);
 
     p_action->type = EGUI_SIM_ACTION_CLICK;
-    p_action->x1 = region->location.x + col * (btn_w + gap) + btn_w / 2;
-    p_action->y1 = region->location.y + row * (btn_h + gap) + btn_h / 2;
+    showcase_sim_canvas_to_screen(region->location.x + col * (btn_w + gap) + btn_w / 2, region->location.y + row * (btn_h + gap) + btn_h / 2, &p_action->x1,
+                                  &p_action->y1);
     p_action->interval_ms = interval_ms;
 }
 
@@ -392,8 +456,7 @@ static void showcase_sim_set_tab_bar_click(egui_sim_action_t *p_action, uint8_t 
     egui_dim_t tab_w = region->size.width / 3;
 
     p_action->type = EGUI_SIM_ACTION_CLICK;
-    p_action->x1 = region->location.x + index * tab_w + tab_w / 2;
-    p_action->y1 = region->location.y + region->size.height / 2;
+    showcase_sim_canvas_to_screen(region->location.x + index * tab_w + tab_w / 2, region->location.y + region->size.height / 2, &p_action->x1, &p_action->y1);
     p_action->interval_ms = interval_ms;
 }
 #endif
@@ -791,7 +854,14 @@ static void showcase_notify_nodes(const uint32_t *stable_ids, uint32_t count)
 static void showcase_draw_view(egui_view_t *view)
 {
     egui_region_t *dirty_regions = egui_core_get_region_dirty_arr();
+    egui_location_t original_location = view->region.location;
 
+    if (view->parent == NULL)
+    {
+        view->region.location.x = (egui_dim_t)(view->region.location.x + showcase_draw_origin_x);
+        view->region.location.y = (egui_dim_t)(view->region.location.y + showcase_draw_origin_y);
+        egui_view_request_layout(view);
+    }
     view->api->calculate_layout(view);
 
     if (showcase_scratch_dirty_backup_valid)
@@ -801,6 +871,11 @@ static void showcase_draw_view(egui_view_t *view)
     }
 
     view->api->draw(view);
+
+    if (view->parent == NULL)
+    {
+        view->region.location = original_location;
+    }
 }
 
 static void showcase_reset_scratch(void)
@@ -1003,7 +1078,7 @@ static void showcase_bind_mini_calendar_view(egui_view_t *view)
     egui_view_mini_calendar_t *calendar = (egui_view_mini_calendar_t *)view;
 
     egui_view_mini_calendar_set_date(view, 2026, 3, showcase_ctx.calendar_day);
-    egui_view_mini_calendar_set_today(view, 2);
+    egui_view_mini_calendar_set_today(view, 0);
     egui_view_mini_calendar_set_weekday_labels(view, showcase_ctx.is_chinese ? showcase_calendar_weekdays_cn : NULL);
     calendar->font = showcase_get_text_font();
     calendar->text_color = showcase_get_text_color();
@@ -2570,7 +2645,9 @@ static void showcase_adapter_draw_node(void *user_context, egui_view_t *page, ui
     EGUI_UNUSED(user_context);
     EGUI_UNUSED(page);
     EGUI_UNUSED(index);
-    EGUI_UNUSED(screen_region);
+
+    showcase_draw_origin_x = (egui_dim_t)(screen_region->location.x - desc->region.location.x);
+    showcase_draw_origin_y = (egui_dim_t)(screen_region->location.y - desc->region.location.y);
 
     switch (desc->stable_id)
     {
@@ -2690,12 +2767,11 @@ static void showcase_adapter_draw_node(void *user_context, egui_view_t *page, ui
     }
 }
 
-EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_SCREEN_STATEFUL_BRIDGE_INIT_WITH_LIMIT(showcase_stage_bridge, SHOWCASE_LIVE_SLOT_LIMIT, showcase_ctx.nodes,
-                                                                          showcase_stage_node_t, desc, showcase_adapter_create_view,
-                                                                          showcase_adapter_destroy_view, showcase_adapter_bind_view,
-                                                                          showcase_adapter_save_state, showcase_adapter_restore_state,
-                                                                          showcase_adapter_draw_node, showcase_adapter_hit_test,
-                                                                          showcase_adapter_should_keep_alive, &showcase_ctx);
+EGUI_VIEW_VIRTUAL_STAGE_NODE_ARRAY_STATEFUL_BRIDGE_INIT_WITH_LIMIT(showcase_stage_bridge, 0, 0, SHOWCASE_CANVAS_WIDTH, SHOWCASE_CANVAS_HEIGHT,
+                                                                   SHOWCASE_LIVE_SLOT_LIMIT, showcase_ctx.nodes, showcase_stage_node_t, desc,
+                                                                   showcase_adapter_create_view, showcase_adapter_destroy_view, showcase_adapter_bind_view,
+                                                                   showcase_adapter_save_state, showcase_adapter_restore_state, showcase_adapter_draw_node,
+                                                                   showcase_adapter_hit_test, showcase_adapter_should_keep_alive, &showcase_ctx);
 
 void test_init_ui(void)
 {
@@ -2706,9 +2782,14 @@ void test_init_ui(void)
     runtime_fail_reported = 0U;
 #endif
 
+    egui_view_canvas_panner_init(EGUI_VIEW_OF(&showcase_root));
+    egui_view_set_size(EGUI_VIEW_OF(&showcase_root), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_canvas_panner_set_canvas_size(EGUI_VIEW_OF(&showcase_root), SHOWCASE_CANVAS_WIDTH, SHOWCASE_CANVAS_HEIGHT);
+
     EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(&showcase_stage_view, &showcase_stage_bridge);
     showcase_apply_stage_background();
-    EGUI_VIEW_VIRTUAL_STAGE_ADD_ROOT(&showcase_stage_view);
+    egui_view_group_add_child(EGUI_VIEW_OF(&showcase_root), EGUI_VIEW_OF(&showcase_stage_view));
+    egui_core_add_user_root_view(EGUI_VIEW_OF(&showcase_root));
 #if !EGUI_SHOWCASE_PARITY_RECORDING
     showcase_pin_fidelity_nodes();
 #endif
@@ -2719,8 +2800,8 @@ void test_init_ui(void)
 #endif
 
     egui_view_keyboard_init(EGUI_VIEW_OF(&showcase_keyboard_view));
-    egui_view_set_position(EGUI_VIEW_OF(&showcase_keyboard_view), 0, 896);
-    egui_view_set_size(EGUI_VIEW_OF(&showcase_keyboard_view), 1280, 128);
+    egui_view_set_position(EGUI_VIEW_OF(&showcase_keyboard_view), 0, SHOWCASE_KEYBOARD_Y);
+    egui_view_set_size(EGUI_VIEW_OF(&showcase_keyboard_view), EGUI_CONFIG_SCEEN_WIDTH, SHOWCASE_KEYBOARD_HEIGHT);
     egui_view_keyboard_set_font(EGUI_VIEW_OF(&showcase_keyboard_view), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_core_add_user_root_view(EGUI_VIEW_OF(&showcase_keyboard_view));
 
@@ -2748,6 +2829,8 @@ static void showcase_verify_runtime_state(int action_index)
 {
     egui_view_t *live_combobox;
     egui_view_t *live_list;
+    int verify_index = action_index;
+    uint8_t is_small_screen_recording = showcase_recording_uses_small_screen();
 
     if (EGUI_VIEW_VIRTUAL_STAGE_SLOT_COUNT(&showcase_stage_view) > SHOWCASE_LIVE_SLOT_LIMIT)
     {
@@ -2755,7 +2838,25 @@ static void showcase_verify_runtime_state(int action_index)
         return;
     }
 
-    switch (action_index)
+    if (is_small_screen_recording)
+    {
+        if (action_index == 2)
+        {
+            if (egui_view_canvas_panner_get_offset_x(EGUI_VIEW_OF(&showcase_root)) <= 0 &&
+                egui_view_canvas_panner_get_offset_y(EGUI_VIEW_OF(&showcase_root)) <= 0)
+            {
+                report_runtime_failure("small-screen showcase drag did not move canvas");
+            }
+            return;
+        }
+
+        if (action_index > 2)
+        {
+            verify_index = action_index - 1;
+        }
+    }
+
+    switch (verify_index)
     {
     case 0:
         if (EGUI_VIEW_VIRTUAL_STAGE_SLOT_COUNT(&showcase_stage_view) > SHOWCASE_PINNED_SLOT_BUDGET)
@@ -2909,6 +3010,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_WAIT(p_action, 1000);
         return true;
     case 1:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_THEME_BUTTON);
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_THEME_BUTTON, 50, 50, 500);
         return true;
     case 2:
@@ -2919,6 +3021,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_WAIT(p_action, 1000);
         return true;
     case 3:
+        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_LANG_BUTTON);
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_LANG_BUTTON, 50, 50, 500);
         return true;
     case 4:
@@ -2932,68 +3035,156 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         return false;
     }
 #else
+    static int last_action = -1;
+    int logical_action_index = action_index;
+    uint8_t is_small_screen_recording = showcase_recording_uses_small_screen();
+    int first_call = action_index != last_action;
+
+    last_action = action_index;
+
     showcase_verify_runtime_state(action_index);
 
-    switch (action_index)
+    if (is_small_screen_recording)
+    {
+        if (action_index == 1)
+        {
+            showcase_sim_set_screen_drag(p_action, 180, 220, 80, 120, 10, 350);
+            return true;
+        }
+        if (action_index > 1)
+        {
+            logical_action_index = action_index - 1;
+        }
+    }
+
+    switch (logical_action_index)
     {
     case 0:
         EGUI_SIM_SET_WAIT(p_action, 600);
         return true;
     case 1:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_THEME_BUTTON);
+        }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_THEME_BUTTON, 50, 50, 350);
         return true;
     case 2:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_LANG_BUTTON);
+        }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_LANG_BUTTON, 50, 50, 350);
         return true;
     case 3:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_SWITCH);
+        }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_SWITCH, 50, 50, 300);
         return true;
     case 4:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_CHECKBOX);
+        }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_CHECKBOX, 50, 50, 300);
         return true;
     case 5:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_OPTION2);
+        }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_OPTION2, 50, 50, 300);
         return true;
     case 6:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_TOGGLE_BUTTON);
+        }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_TOGGLE_BUTTON, 50, 50, 300);
         return true;
     case 7:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_SLIDER);
+        }
         showcase_sim_set_drag_node(p_action, SHOWCASE_NODE_INDEX_SLIDER, 60, 50, 22, 50, 8, 350);
         return true;
     case 8:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_ARC_SLIDER);
+        }
         showcase_sim_set_arc_slider_drag(p_action, 70U, 32U, 8, 350);
         return true;
     case 9:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_NUMBER_PICKER);
+        }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_NUMBER_PICKER, 50, 16, 300);
         return true;
     case 10:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_COMBOBOX);
+        }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_COMBOBOX, 50, 14, 350);
         return true;
     case 11:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_COMBOBOX);
+        }
         if (!showcase_sim_set_combobox_item_click(p_action, 1U, 350))
         {
             EGUI_SIM_SET_WAIT(p_action, 350);
         }
         return true;
     case 12:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_ROLLER);
+        }
         showcase_sim_set_drag_node(p_action, SHOWCASE_NODE_INDEX_ROLLER, 50, 68, 50, 28, 6, 350);
         return true;
     case 13:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_LIST);
+        }
         showcase_sim_set_drag_node(p_action, SHOWCASE_NODE_INDEX_LIST, 50, 90, 50, 8, 10, 350);
         return true;
     case 14:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_MINI_CALENDAR);
+        }
         if (!showcase_sim_set_calendar_day_click(p_action, 18U, 350))
         {
             EGUI_SIM_SET_WAIT(p_action, 350);
         }
         return true;
     case 15:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_BUTTON_MATRIX);
+        }
         showcase_sim_set_button_matrix_click(p_action, 4U, 350);
         return true;
     case 16:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_TAB_BAR);
+        }
         showcase_sim_set_tab_bar_click(p_action, 2U, 350);
         return true;
     case 17:
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_ALPHA1);
+        }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_ALPHA1, 50, 50, 350);
         return true;
     case 18:

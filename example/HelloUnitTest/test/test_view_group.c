@@ -58,6 +58,7 @@ static void test_view_group_setup_touch_children(void)
     egui_view_group_init(EGUI_VIEW_OF(&test_group));
     egui_view_init(&test_child1);
     egui_view_init(&test_child2);
+    egui_view_init(&test_child3);
 
     egui_view_layout(EGUI_VIEW_OF(&test_group), &root_region);
     egui_view_set_position(&test_child1, 10, 10);
@@ -228,6 +229,24 @@ static void test_vg_touch_listener_capture_path_sticks_to_original_target(void)
     EGUI_TEST_ASSERT_EQUAL_INT(0, g_child1_click_count);
     EGUI_TEST_ASSERT_EQUAL_INT(0, g_child2_click_count);
 }
+
+static void test_vg_invisible_top_child_does_not_capture_touch(void)
+{
+    test_view_group_setup_touch_children();
+
+    egui_view_set_position(&test_child3, 10, 10);
+    egui_view_set_size(&test_child3, 80, 40);
+    egui_view_set_on_click_listener(&test_child3, test_view_group_child2_click_cb);
+    egui_view_set_visible(&test_child3, false);
+    egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child3);
+    EGUI_VIEW_OF(&test_group)->api->calculate_layout(EGUI_VIEW_OF(&test_group));
+
+    EGUI_TEST_ASSERT_TRUE(test_view_group_send_touch(EGUI_MOTION_EVENT_ACTION_DOWN, 20, 20));
+    EGUI_TEST_ASSERT_TRUE(test_view_group_send_touch(EGUI_MOTION_EVENT_ACTION_UP, 20, 20));
+
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_child1_click_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_child2_click_count);
+}
 #endif
 
 void test_view_group_run(void)
@@ -244,6 +263,7 @@ void test_view_group_run(void)
     EGUI_TEST_RUN(test_vg_release_over_sibling_does_not_trigger_click);
     EGUI_TEST_RUN(test_vg_return_to_original_target_restores_click);
     EGUI_TEST_RUN(test_vg_touch_listener_capture_path_sticks_to_original_target);
+    EGUI_TEST_RUN(test_vg_invisible_top_child_does_not_capture_touch);
 #endif
 
     EGUI_TEST_SUITE_END();

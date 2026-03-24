@@ -1,0 +1,29 @@
+{
+    "img": [
+        {
+            "file": "star.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "8",
+            "dim": "40,40"
+        },
+        {
+            "file": "test.png",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "8",
+            "dim": "80,80"
+        }
+    ],
+    "font": [
+        {
+            "file": "NotoSansSC-VF.ttf",
+            "name": "notosanssc",
+            "pixelsize": "16",
+            "fontbitsize": "4",
+            "external": "0",
+            "weight": "500",
+            "text": "cn_text.txt"
+        }
+    ]
+}

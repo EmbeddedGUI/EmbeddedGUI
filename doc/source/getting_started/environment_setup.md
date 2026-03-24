@@ -1,12 +1,12 @@
 # 环境搭建
 
-本文介绍如何为 EmbeddedGUI 配置开发环境。当前推荐流程已经统一为：
+本文介绍如何为 EmbeddedGUI 配置开发环境。当前推荐入口已经统一为：
 
 - Windows 使用 `setup.bat`
 - Linux / macOS 使用 `setup.sh`
-- 实际环境安装逻辑统一由 `scripts/setup_env.py` 负责
+- 实际安装逻辑统一由 `scripts/setup_env.py` 负责
 
-默认情况下，安装脚本会创建虚拟环境并安装完整 Python 依赖，包含 UI Designer 所需组件。
+默认情况下，setup 脚本会创建虚拟环境、安装完整 Python 依赖，并准备构建与媒体处理所需的本地工具。
 
 ## 依赖概览
 
@@ -14,10 +14,11 @@
 |------|------|----------|
 | GCC | C 编译器（PC 模拟器） | 必需 |
 | GNU Make | 构建工具 | 必需 |
-| SDL2 | PC 模拟器显示和输入 | 必需（项目已内置 Windows 版本） |
+| SDL2 | PC 模拟器显示和输入 | 必需（Windows 版本已内置） |
 | Python 3.8+ | 资源生成、脚本工具、UI Designer | 必需 |
 | PyQt5 / PyQt-Fluent-Widgets | UI Designer 桌面界面 | 默认安装 |
 | Playwright | 设计稿截图与自动化验证 | 默认安装 Python 包 |
+| FFmpeg | MP4 转序列帧、GIF 录制等媒体处理 | 默认检查，Windows 缺失时自动下载 |
 | ARM GCC | STM32 / QEMU 交叉编译 | 可选 |
 | QEMU | ARM 仿真与性能测试 | 可选 |
 | Emscripten | WASM 构建 | 可选 |
@@ -32,7 +33,7 @@
 setup.bat
 ```
 
-`setup.bat` 现在只负责：
+`setup.bat` 只负责：
 
 - 检查系统里是否能找到 Python
 - 调用 `scripts/setup_env.py`
@@ -41,7 +42,7 @@ setup.bat
 
 ### 默认行为
 
-默认直接执行：
+直接执行：
 
 ```bat
 setup.bat
@@ -62,9 +63,11 @@ python scripts\setup_env.py --python-mode full
 5. 安装 `playwright` Python 包
 6. 校验 `json5`、`numpy`、`Pillow`、`freetype_py`、`pyelftools`
 7. 校验 `PyQt5`、`qfluentwidgets`、`ui_designer.main`
-8. 在 Windows 下检查本地或系统中的 `make` / `gcc`
-9. 如果缺失，自动尝试安装 `tools/w64devkit`
-10. 默认编译一次 `HelloSimple` 做验证
+8. 检查本地或系统中的 `make` / `gcc`
+9. 在缺失时自动安装 `tools/w64devkit`
+10. 检查 `ffmpeg`
+11. 在缺失时自动安装 `tools/ffmpeg`
+12. 默认编译一次 `HelloSimple` 做验证
 
 ### 常用参数
 
@@ -72,27 +75,33 @@ python scripts\setup_env.py --python-mode full
 setup.bat --python-mode basic
 setup.bat --python-mode none
 setup.bat --skip-toolchain
+setup.bat --skip-ffmpeg
 setup.bat --skip-build-check
 setup.bat --venv-dir .venv_custom
 setup.bat --install-toolchain
+setup.bat --install-ffmpeg
 ```
 
 说明：
 
 - `--python-mode full`
-  默认值。安装完整依赖，适合绝大多数开发者。
+  默认值。安装完整 Python 依赖，适合绝大多数开发者。
 - `--python-mode basic`
   只安装基础 Python 依赖，不安装 UI Designer 桌面依赖。
 - `--python-mode none`
   跳过 Python 依赖安装，仅做工具链检查。
 - `--skip-toolchain`
   跳过 `make` / `gcc` 检查和 `w64devkit` 自动安装。
+- `--skip-ffmpeg`
+  跳过 `ffmpeg` 检查和自动安装。仅在不需要 MP4 / GIF 相关流程时使用。
 - `--skip-build-check`
   跳过 `HelloSimple` 编译验证。
 - `--venv-dir`
   指定虚拟环境目录。
 - `--install-toolchain`
   仅安装 Windows 工具链并退出。
+- `--install-ffmpeg`
+  仅安装 Windows 的 FFmpeg 本地包并退出。
 
 ### 关于 `w64devkit`
 
@@ -102,7 +111,7 @@ setup.bat --install-toolchain
 tools/w64devkit/
 ```
 
-安装完成后，脚本会优先使用项目内的：
+安装完成后，脚本会优先使用：
 
 ```text
 tools/w64devkit/bin
@@ -112,6 +121,27 @@ tools/w64devkit/bin
 
 - 该路径只会在当前脚本进程中注入
 - 如果你想全局长期使用，需要手动加入系统 `PATH`
+
+### 关于 `ffmpeg`
+
+脚本会优先检查系统 `PATH` 中现有的 `ffmpeg`。如果在 Windows 下未找到，会自动下载并解压到：
+
+```text
+tools/ffmpeg/
+```
+
+安装完成后，脚本会优先使用：
+
+```text
+tools/ffmpeg/bin
+```
+
+这部分主要用于：
+
+- `scripts/tools/app_mp4_image_generate.py` 的 MP4 转序列帧流程
+- `scripts/gif_recorder.py` 的高质量 GIF 导出流程
+
+如果你不需要这些媒体处理能力，可以显式传入 `--skip-ffmpeg`。
 
 ## Linux / macOS 环境搭建
 
@@ -123,36 +153,37 @@ tools/w64devkit/bin
 ./setup.sh
 ```
 
-默认行为与 Windows 一致，也会安装完整 Python 依赖。
+默认行为与 Windows 一致，也会安装完整 Python 依赖，并检查系统中的 `make`、`gcc` 与 `ffmpeg`。
 
 常用参数同样支持：
 
 ```bash
 ./setup.sh --python-mode basic
 ./setup.sh --python-mode none
+./setup.sh --skip-ffmpeg
 ./setup.sh --skip-build-check
 ./setup.sh --venv-dir .venv_custom
 ```
 
-### 先安装系统编译依赖
+### 先安装系统依赖
 
 #### Ubuntu / Debian
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y build-essential libsdl2-dev python3 python3-venv python3-pip
+sudo apt-get install -y build-essential libsdl2-dev python3 python3-venv python3-pip ffmpeg
 ```
 
 #### Fedora
 
 ```bash
-sudo dnf install gcc make SDL2-devel python3 python3-pip
+sudo dnf install gcc make SDL2-devel python3 python3-pip ffmpeg
 ```
 
 #### Arch Linux
 
 ```bash
-sudo pacman -S base-devel sdl2 python python-pip
+sudo pacman -S base-devel sdl2 python python-pip ffmpeg
 ```
 
 #### macOS
@@ -160,12 +191,12 @@ sudo pacman -S base-devel sdl2 python python-pip
 先安装 Homebrew，然后执行：
 
 ```bash
-brew install gcc make sdl2 python
+brew install gcc make sdl2 python ffmpeg
 ```
 
 ## 手动安装方式
 
-如果不使用 `setup.bat` / `setup.sh`，也可以手动执行：
+如果不使用 `setup.bat` / `setup.sh`，也可以手动执行。
 
 ### 1. 创建虚拟环境
 
@@ -214,6 +245,20 @@ Windows 可选：
 - `w64devkit`
 
 如果使用 `w64devkit`，解压后确保 `bin` 目录可被找到。
+
+### 4. 准备 `ffmpeg`
+
+Windows 可直接运行：
+
+```bat
+setup.bat --install-ffmpeg
+```
+
+Linux / macOS 通过系统包管理器安装后，可用以下命令确认：
+
+```bash
+ffmpeg -version
+```
 
 ## 验证安装
 
@@ -266,26 +311,11 @@ EMSDK=<emsdk_root>
 
 ### Python 依赖安装失败
 
-脚本会先尝试镜像源，再回退到官方 PyPI。若仍失败，会打印手动恢复命令。按提示执行即可。
+脚本会先尝试镜像源，再回退到官方 PyPI。若仍失败，会打印手动恢复命令，按提示执行即可。
 
-### UI Designer 仍无法启动
+### `ffmpeg` 未找到
 
-先确认完整依赖已安装：
-
-```bash
-python -m pip install -r scripts/ui_designer/requirements-desktop.txt
-python -m pip install playwright
-```
-
-然后测试：
-
-```bash
-python -c "import os, sys; sys.path.insert(0, 'scripts'); import ui_designer.main"
-```
-
-### `libwinpthread-1.dll` 找不到
-
-当前构建系统已经改为仅在 DLL 实际存在时才复制。对于项目自带 `w64devkit`，通常不再需要这个 DLL。
+Windows 下重新运行 `setup.bat` 即可触发自动安装。Linux / macOS 请先通过系统包管理器安装，或在不需要相关流程时传入 `--skip-ffmpeg`。
 
 ## 下一步
 

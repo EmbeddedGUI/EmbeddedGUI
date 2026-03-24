@@ -8,6 +8,12 @@
 #define EGUI_SHOWCASE_PARITY_RECORDING 0
 #endif
 
+#define SHOWCASE_CANVAS_WIDTH    HELLO_SHOWCASE_CANVAS_WIDTH
+#define SHOWCASE_CANVAS_HEIGHT   HELLO_SHOWCASE_CANVAS_HEIGHT
+#define SHOWCASE_KEYBOARD_HEIGHT 128
+#define SHOWCASE_KEYBOARD_Y      ((EGUI_CONFIG_SCEEN_HEIGHT > SHOWCASE_KEYBOARD_HEIGHT) ? (EGUI_CONFIG_SCEEN_HEIGHT - SHOWCASE_KEYBOARD_HEIGHT) : 0)
+#define SHOWCASE_KEYBOARD_HIDDEN_Y (EGUI_CONFIG_SCEEN_HEIGHT + SHOWCASE_KEYBOARD_HEIGHT)
+
 // ============================================================================
 // Widget Showcase
 // Displays all visual widgets on 1280x1024 black canvas for promotion.
@@ -15,7 +21,7 @@
 
 // ---- Root container ----
 // Slate Ocean palette: Dark=#0D1117 Light=#F6F8FA Accent=#58A6FF/#0969DA
-static egui_view_group_t root;
+static egui_view_canvas_panner_t root;
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_root_p_dark_new, EGUI_COLOR_MAKE(13, 17, 23), EGUI_ALPHA_100); // #0D1117
 EGUI_BACKGROUND_PARAM_INIT(bg_root_params_dark_new, &bg_root_p_dark_new, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_root_dark_new, &bg_root_params_dark_new);
@@ -363,6 +369,7 @@ static void on_textinput_focus_changed(egui_view_t *self, int is_focused)
     {
         ti->cursor_visible = 1;
         egui_timer_start_timer(&ti->cursor_timer, EGUI_CONFIG_TEXTINPUT_CURSOR_BLINK_MS, 0);
+        egui_view_set_position(EGUI_VIEW_OF(&wg_keyboard), 0, SHOWCASE_KEYBOARD_Y);
         egui_view_keyboard_show(EGUI_VIEW_OF(&wg_keyboard), self);
     }
     else
@@ -370,6 +377,7 @@ static void on_textinput_focus_changed(egui_view_t *self, int is_focused)
         ti->cursor_visible = 0;
         egui_timer_stop_timer(&ti->cursor_timer);
         egui_view_keyboard_hide(EGUI_VIEW_OF(&wg_keyboard));
+        egui_view_set_position(EGUI_VIEW_OF(&wg_keyboard), 0, SHOWCASE_KEYBOARD_HIDDEN_Y);
     }
     egui_view_invalidate(self);
 }
@@ -870,9 +878,10 @@ static void init_caption(egui_view_label_t *lbl, int x, int y, int w, const char
 static void uicode_init_ui(void)
 {
     // ---- Root group ----
-    egui_view_group_init(EGUI_VIEW_OF(&root));
+    egui_view_canvas_panner_init(EGUI_VIEW_OF(&root));
     egui_view_set_position(EGUI_VIEW_OF(&root), 0, 0);
-    egui_view_set_size(EGUI_VIEW_OF(&root), 1280, 1024);
+    egui_view_set_size(EGUI_VIEW_OF(&root), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_canvas_panner_set_canvas_size(EGUI_VIEW_OF(&root), SHOWCASE_CANVAS_WIDTH, SHOWCASE_CANVAS_HEIGHT);
     // Theme background will be set in update_theme
 
     // ---- Language toggle button (CN font; shows target language name) ----
@@ -1453,8 +1462,8 @@ static void uicode_init_ui(void)
 
     // Keyboard widget - displayed at bottom of screen, hidden by default
     egui_view_keyboard_init(EGUI_VIEW_OF(&wg_keyboard));
-    egui_view_set_position(EGUI_VIEW_OF(&wg_keyboard), 0, 896);
-    egui_view_set_size(EGUI_VIEW_OF(&wg_keyboard), 1280, 128);
+    egui_view_set_position(EGUI_VIEW_OF(&wg_keyboard), 0, SHOWCASE_KEYBOARD_HIDDEN_Y);
+    egui_view_set_size(EGUI_VIEW_OF(&wg_keyboard), EGUI_CONFIG_SCEEN_WIDTH, SHOWCASE_KEYBOARD_HEIGHT);
     egui_view_keyboard_set_font(EGUI_VIEW_OF(&wg_keyboard), (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
     egui_core_add_user_root_view(EGUI_VIEW_OF(&wg_keyboard));
 
@@ -1513,6 +1522,57 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             recording_request_snapshot();
         }
         EGUI_SIM_SET_WAIT(p_action, 1000);
+        return true;
+    default:
+        return false;
+    }
+#else
+#if (SHOWCASE_CANVAS_WIDTH > EGUI_CONFIG_SCEEN_WIDTH) || (SHOWCASE_CANVAS_HEIGHT > EGUI_CONFIG_SCEEN_HEIGHT)
+    static int last_action = -1;
+    int first_call = action_index != last_action;
+
+    last_action = action_index;
+
+    switch (action_index)
+    {
+    case 0:
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 600);
+        return true;
+    case 1:
+        p_action->type = EGUI_SIM_ACTION_SWIPE;
+        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH - 20;
+        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT - 20;
+        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
+        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT - 20;
+        p_action->steps = 6;
+        p_action->interval_ms = 220;
+        return true;
+    case 2:
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 500);
+        return true;
+    case 3:
+        p_action->type = EGUI_SIM_ACTION_SWIPE;
+        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
+        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT - 20;
+        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
+        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 2;
+        p_action->steps = 6;
+        p_action->interval_ms = 220;
+        return true;
+    case 4:
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 500);
         return true;
     default:
         return false;
@@ -1580,6 +1640,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     default:
         return false;
     }
+#endif
 #endif
 }
 #endif

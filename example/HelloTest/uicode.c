@@ -1,354 +1,63 @@
 #include "egui.h"
-#include <stdlib.h>
-#include <math.h>
 #include "uicode.h"
 
 #include "egui_view_test.h"
 
-// views in test_view_group_1
-static egui_view_test_t test_view;
-static egui_view_group_t test_view_group_1;
-static egui_view_button_t button_1;
-static egui_view_button_t button_2;
-static egui_view_image_t image_1;
-
-// views in test_view_group_1
-static egui_view_test_t test_view_1;
-static egui_view_label_t label_1;
-static egui_view_label_t label_2;
-
-extern const LATTICE_FONT_INFO Consolas_19;
-EGUI_FONT_SUB_DEFINE(egui_font_lattice_t, font_consolas, &Consolas_19);
-
-EGUI_BACKGROUND_COLOR_PARAM_INIT_CIRCLE(bg_param_normal, EGUI_COLOR_WHITE, EGUI_ALPHA_100, 30);
-EGUI_BACKGROUND_PARAM_INIT(bg_params, &bg_param_normal, NULL, NULL);
-static egui_background_color_t bg;
-
-extern const egui_image_std_t egui_res_image_star_rgb32_8;
-extern const egui_image_std_t egui_res_image_star_rgb565_1;
-extern const egui_image_std_t egui_res_image_star_rgb565_2;
-extern const egui_image_std_t egui_res_image_star_rgb565_4;
-extern const egui_image_std_t egui_res_image_star_rgb565_8;
-
-extern const egui_image_std_t egui_res_image_test_rgb565_8;
-extern const egui_image_std_t egui_res_image_test_rgb32_8;
-
-EGUI_BACKGROUND_IMAGE_PARAM_INIT(bg_img_param_normal, (egui_image_t *)&egui_res_image_test_rgb565_8);
-EGUI_BACKGROUND_IMAGE_PARAM_INIT(bg_img_param_pressed, (egui_image_t *)&egui_res_image_star_rgb565_8);
-EGUI_BACKGROUND_PARAM_INIT(bg_img_params, &bg_img_param_normal, &bg_img_param_pressed, NULL);
-static egui_background_image_t bg_img;
-
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(bg_button_param_normal, EGUI_COLOR_WHITE, EGUI_ALPHA_100, 5);
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(bg_button_param_pressed, EGUI_COLOR_GREEN, EGUI_ALPHA_100, 5);
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(bg_button_param_disabled, EGUI_COLOR_RED, EGUI_ALPHA_100, 5);
-EGUI_BACKGROUND_PARAM_INIT(bg_button_params, &bg_button_param_normal, &bg_button_param_pressed, &bg_button_param_disabled);
-static egui_background_color_t bg_button;
-
-static void on_animation_set_start(egui_animation_t *self)
-{
-    EGUI_LOG_INF("on_animation_set_start\n");
-}
-
-static void on_animation_set_end(egui_animation_t *self)
-{
-    EGUI_LOG_INF("on_animation_set_end\n");
-}
-
-static void on_animation_set_repeat(egui_animation_t *self)
-{
-    EGUI_LOG_INF("on_animation_set_repeat\n");
-}
-
-static const egui_animation_handle_t anim_set_hanlde = {
-        .start = on_animation_set_start,
-        .end = on_animation_set_end,
-        .repeat = on_animation_set_repeat,
-};
-
-egui_animation_set_t anim_set;
-
-EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(anim_translate_param, 0, 50, 0, 50);
-egui_animation_translate_t anim_translate;
-
-EGUI_ANIMATION_ALPHA_PARAMS_INIT(anim_alpha_param, EGUI_ALPHA_0, EGUI_ALPHA_100);
-egui_animation_alpha_t anim_alpha;
-
-EGUI_ANIMATION_SCALE_SIZE_PARAMS_INIT(anim_scale_size_param, EGUI_FLOAT_VALUE(0.5f), EGUI_FLOAT_VALUE(1.0f));
-egui_animation_scale_size_t anim_scale_size;
-
-static uint32_t cnt = 1;
-static char button_str[20] = "Click me!";
-static void button_click_cb(egui_view_t *self)
-{
-    EGUI_LOG_INF("Clicked\n");
-
-    egui_api_sprintf(button_str, "Clicked %ds", cnt);
-    EGUI_LOG_INF("button_str: %s\n", button_str);
-
-    egui_view_label_set_text(self, button_str);
-    cnt++;
-}
-
-static uint32_t cnt_2 = 1;
-static char button_str_2[20] = "Img";
-static void button_2_click_cb(egui_view_t *self)
-{
-    EGUI_LOG_INF("Clicked 2\n");
-
-    egui_api_sprintf(button_str_2, "Img %ds", cnt_2);
-    EGUI_LOG_INF("button_str_2: %s\n", button_str_2);
-
-    egui_view_label_set_text(self, button_str_2);
-    cnt_2++;
-}
-
-static egui_location_t last_press_location;
-int test_on_touch_event_cb(egui_view_t *self, egui_motion_event_t *event)
-{
-    egui_dim_t df_x, df_y;
-    switch (event->type)
-    {
-    case EGUI_MOTION_EVENT_ACTION_UP:
-        break;
-    case EGUI_MOTION_EVENT_ACTION_DOWN:
-        last_press_location.x = event->location.x;
-        last_press_location.y = event->location.y;
-        break;
-    case EGUI_MOTION_EVENT_ACTION_MOVE:
-        df_x = event->location.x - last_press_location.x;
-        df_y = event->location.y - last_press_location.y;
-        egui_view_scroll_by(self, df_x, df_y);
-
-        last_press_location.x = event->location.x;
-        last_press_location.y = event->location.y;
-        break;
-    case EGUI_MOTION_EVENT_ACTION_CANCEL:
-        break;
-    default:
-        break;
-    }
-
-    return 1;
-}
-#if 0
-static void test_animation_basic(void)
-{
-    // anim_1
-    egui_animation_translate_init(EGUI_ANIM_OF(&anim_1));
-    egui_animation_translate_params_set(&anim_1, &anim_1_param);
-
-    // egui_animation_alpha_init(EGUI_ANIM_OF(&anim_1));
-    // egui_animation_alpha_params_set(&anim_1, &anim_1_param);
-
-    // egui_animation_scale_size_init(EGUI_ANIM_OF(&anim_1));
-    // egui_animation_scale_size_params_set(&anim_1, &anim_1_param);
-
-    // egui_animation_target_view_set(EGUI_ANIM_OF(&anim_1), EGUI_VIEW_OF(&test_view_1));
-    egui_animation_target_view_set(EGUI_ANIM_OF(&anim_1), EGUI_VIEW_OF(&test_view_group_1));
-    // egui_animation_target_view_set(EGUI_ANIM_OF(&anim_1), EGUI_VIEW_OF(&button_1));
-
-    egui_animation_repeat_count_set(EGUI_ANIM_OF(&anim_1), 4);
-    egui_animation_repeat_mode_set(EGUI_ANIM_OF(&anim_1), EGUI_ANIMATION_REPEAT_MODE_REVERSE);
-    egui_animation_handle_set(EGUI_ANIM_OF(&anim_1), &anim_1_hanlde);
-    egui_animation_duration_set(EGUI_ANIM_OF(&anim_1), 1000);
-    // egui_animation_is_fill_before_set(EGUI_ANIM_OF(&anim_1), true);
-
-    // egui_interpolator_accelerate_init((egui_interpolator_t *)&anim_1_interpolator);
-    // // egui_interpolator_accelerate_factor_set((egui_interpolator_t *)&anim_1_interpolator, EGUI_FLOAT_VALUE(0.2f));
-
-    // egui_interpolator_accelerate_decelerate_init((egui_interpolator_t *)&anim_1_interpolator);
-
-    // egui_interpolator_anticipate_init((egui_interpolator_t *)&anim_1_interpolator);
-
-    // egui_interpolator_anticipate_overshoot_init((egui_interpolator_t *)&anim_1_interpolator);
-
-    // egui_interpolator_bounce_init((egui_interpolator_t *)&anim_1_interpolator);
-
-    // egui_interpolator_cycle_init((egui_interpolator_t *)&anim_1_interpolator);
-
-    // egui_interpolator_decelerate_init((egui_interpolator_t *)&anim_1_interpolator);
-
-    egui_interpolator_overshoot_init((egui_interpolator_t *)&anim_1_interpolator);
-
-    egui_animation_interpolator_set(EGUI_ANIM_OF(&anim_1), (egui_interpolator_t *)&anim_1_interpolator);
-
-    egui_animation_start(EGUI_ANIM_OF(&anim_1));
-}
+#if EGUI_CONFIG_RECORDING_TEST
+#include "core/egui_input_simulator.h"
 #endif
 
-#if 0
-static void test_animation_set(void)
-{
-
-    // anim_translate
-    egui_animation_translate_init(EGUI_ANIM_OF(&anim_translate));
-    egui_animation_translate_params_set(&anim_translate, &anim_translate_param);
-    egui_animation_repeat_count_set(EGUI_ANIM_OF(&anim_translate), 4);
-    egui_animation_repeat_mode_set(EGUI_ANIM_OF(&anim_translate), EGUI_ANIMATION_REPEAT_MODE_REVERSE);
-    egui_animation_handle_set(EGUI_ANIM_OF(&anim_translate), &anim_translate_hanlde);
-    egui_animation_duration_set(EGUI_ANIM_OF(&anim_translate), 1000);
-
-    egui_animation_alpha_init(EGUI_ANIM_OF(&anim_alpha));
-    egui_animation_alpha_params_set(&anim_alpha, &anim_alpha_param);
-    egui_animation_repeat_count_set(EGUI_ANIM_OF(&anim_alpha), 4);
-    egui_animation_repeat_mode_set(EGUI_ANIM_OF(&anim_alpha), EGUI_ANIMATION_REPEAT_MODE_REVERSE);
-    egui_animation_handle_set(EGUI_ANIM_OF(&anim_alpha), &anim_alpha_hanlde);
-    egui_animation_duration_set(EGUI_ANIM_OF(&anim_alpha), 1000);
-
-    egui_animation_scale_size_init(EGUI_ANIM_OF(&anim_scale_size));
-    egui_animation_scale_size_params_set(&anim_scale_size, &anim_scale_size_param);
-    egui_animation_repeat_count_set(EGUI_ANIM_OF(&anim_scale_size), 4);
-    egui_animation_repeat_mode_set(EGUI_ANIM_OF(&anim_scale_size), EGUI_ANIMATION_REPEAT_MODE_REVERSE);
-    egui_animation_handle_set(EGUI_ANIM_OF(&anim_scale_size), &anim_scale_size_hanlde);
-    egui_animation_duration_set(EGUI_ANIM_OF(&anim_scale_size), 1000);
-
-    egui_animation_target_view_set(EGUI_ANIM_OF(&anim_translate), EGUI_VIEW_OF(&test_view_group_1));
-    egui_animation_target_view_set(EGUI_ANIM_OF(&anim_alpha), EGUI_VIEW_OF(&test_view_group_1));
-    egui_animation_target_view_set(EGUI_ANIM_OF(&anim_scale_size), EGUI_VIEW_OF(&test_view_group_1));
-
-    egui_animation_set_init(EGUI_ANIM_OF(&anim_set));
-    egui_animation_handle_set(EGUI_ANIM_OF(&anim_set), &anim_set_hanlde);
-    egui_animation_set_add_animation(&anim_set, EGUI_ANIM_OF(&anim_translate));
-    egui_animation_set_add_animation(&anim_set, EGUI_ANIM_OF(&anim_alpha));
-    egui_animation_set_add_animation(&anim_set, EGUI_ANIM_OF(&anim_scale_size));
-    egui_animation_target_view_set(EGUI_ANIM_OF(&anim_set), EGUI_VIEW_OF(&test_view_group_1));
-
-    egui_animation_start(EGUI_ANIM_OF(&anim_set));
-}
-#endif
-static void test_animation_set_1(void)
-{
-    // anim_translate
-    egui_animation_translate_init(EGUI_ANIM_OF(&anim_translate));
-    egui_animation_translate_params_set(&anim_translate, &anim_translate_param);
-
-    egui_animation_alpha_init(EGUI_ANIM_OF(&anim_alpha));
-    egui_animation_alpha_params_set(&anim_alpha, &anim_alpha_param);
-
-    egui_animation_scale_size_init(EGUI_ANIM_OF(&anim_scale_size));
-    egui_animation_scale_size_params_set(&anim_scale_size, &anim_scale_size_param);
-
-    egui_animation_set_init(EGUI_ANIM_OF(&anim_set));
-    egui_animation_repeat_count_set(EGUI_ANIM_OF(&anim_set), 3);
-    egui_animation_repeat_mode_set(EGUI_ANIM_OF(&anim_set), EGUI_ANIMATION_REPEAT_MODE_REVERSE);
-    egui_animation_handle_set(EGUI_ANIM_OF(&anim_set), &anim_set_hanlde);
-    egui_animation_duration_set(EGUI_ANIM_OF(&anim_set), 1000);
-
-    egui_animation_target_view_set(EGUI_ANIM_OF(&anim_set), EGUI_VIEW_OF(&test_view_group_1));
-
-    egui_animation_set_set_mask(&anim_set, 1, 1, 1, 1, 1);
-
-    // egui_interpolator_overshoot_init((egui_interpolator_t *)&anim_1_interpolator);
-    // egui_animation_interpolator_set(EGUI_ANIM_OF(&anim_set), (egui_interpolator_t *)&anim_1_interpolator);
-
-    // egui_animation_set_add_animation(&anim_set, EGUI_ANIM_OF(&anim_translate));
-    egui_animation_set_add_animation(&anim_set, EGUI_ANIM_OF(&anim_alpha));
-    egui_animation_set_add_animation(&anim_set, EGUI_ANIM_OF(&anim_scale_size));
-
-    egui_animation_start(EGUI_ANIM_OF(&anim_set));
-}
-
-// View params
-EGUI_VIEW_GROUP_PARAMS_INIT(test_view_params, 0, 0, 200, 200);
-EGUI_VIEW_GROUP_PARAMS_INIT(test_view_group_1_params, 50, 50, 150, 150);
-EGUI_VIEW_LABEL_PARAMS_INIT(button_1_params, 10, 200, 150, 30, NULL, (egui_font_t *)&egui_res_font_montserrat_18_4, EGUI_COLOR_BLUE, EGUI_ALPHA_100);
-EGUI_VIEW_LABEL_PARAMS_INIT(button_2_params, 150, 200, 60, 60, NULL, (egui_font_t *)&egui_res_font_montserrat_14_4, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-EGUI_VIEW_IMAGE_PARAMS_INIT(image_1_params, 150, 10, 60, 60, (egui_image_t *)&egui_res_image_test_rgb565_8);
-EGUI_VIEW_GROUP_PARAMS_INIT(test_view_1_params, 0, 0, 150, 150);
-EGUI_VIEW_LABEL_PARAMS_INIT(label_1_params, 10, 0, 100, 100, "Hello!", (egui_font_t *)&font_consolas, EGUI_COLOR_RED, EGUI_ALPHA_100);
-EGUI_VIEW_LABEL_PARAMS_INIT(label_2_params, 10, 50, 150, 50, "Test!", EGUI_CONFIG_FONT_DEFAULT, EGUI_COLOR_RED, EGUI_ALPHA_100);
-
-void uicode_init_ui(void)
-{
-    // Init all views
-    // test_view
-    egui_view_test_init(EGUI_VIEW_OF(&test_view));
-    egui_view_group_apply_params(EGUI_VIEW_OF(&test_view), &test_view_params);
-    static egui_view_api_t test_view_touch_api;
-    egui_view_override_api_on_touch(EGUI_VIEW_OF(&test_view), &test_view_touch_api, test_on_touch_event_cb);
-
-    // test_view_group_1
-    egui_view_group_init_with_params(EGUI_VIEW_OF(&test_view_group_1), &test_view_group_1_params);
-
-    // button_1
-    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_1), &button_1_params);
-    egui_view_label_set_text(EGUI_VIEW_OF(&button_1), button_str);
-    egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_1), button_click_cb);
-
-    // button_2
-    egui_view_button_init_with_params(EGUI_VIEW_OF(&button_2), &button_2_params);
-    egui_view_label_set_text(EGUI_VIEW_OF(&button_2), button_str_2);
-    egui_view_set_on_click_listener(EGUI_VIEW_OF(&button_2), button_2_click_cb);
-
-    // image_1
-    egui_view_image_init_with_params(EGUI_VIEW_OF(&image_1), &image_1_params);
-    egui_view_image_set_image_type(EGUI_VIEW_OF(&image_1), EGUI_VIEW_IMAGE_TYPE_RESIZE);
-
-    // test_view_1
-    egui_view_test_init(EGUI_VIEW_OF(&test_view_1));
-    egui_view_group_apply_params(EGUI_VIEW_OF(&test_view_1), &test_view_1_params);
-
-    // label_1
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_1), &label_1_params);
-
-    // label_2
-    egui_view_label_init_with_params(EGUI_VIEW_OF(&label_2), &label_2_params);
-
-    // bg
-    egui_background_color_init_with_params(EGUI_BG_OF(&bg), &bg_params);
-    egui_view_set_background(EGUI_VIEW_OF(&label_1), EGUI_BG_OF(&bg));
-
-    // bg_img
-    egui_background_image_init(EGUI_BG_OF(&bg_img));
-    egui_background_set_params(EGUI_BG_OF(&bg_img), &bg_img_params);
-    egui_view_set_background(EGUI_VIEW_OF(&button_2), EGUI_BG_OF(&bg_img));
-
-    // bg_button
-    egui_background_color_init_with_params(EGUI_BG_OF(&bg_button), &bg_button_params);
-    egui_view_set_background(EGUI_VIEW_OF(&button_1), EGUI_BG_OF(&bg_button));
-
-    // Disable Button, for test
-    // egui_view_set_enable(EGUI_VIEW_OF(&button_1), false);
-
-    // test_animation_basic();
-    // test_animation_set();
-    test_animation_set_1();
-
-    // Add To Group
-    egui_view_group_add_child(EGUI_VIEW_OF(&test_view_group_1), EGUI_VIEW_OF(&test_view_1));
-    egui_view_group_add_child(EGUI_VIEW_OF(&test_view_group_1), EGUI_VIEW_OF(&label_1));
-    egui_view_group_add_child(EGUI_VIEW_OF(&test_view_group_1), EGUI_VIEW_OF(&label_2));
-
-    // Add To Root
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&test_view));
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&test_view_group_1));
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&button_1));
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&button_2));
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&image_1));
-}
-
-static egui_timer_t ui_timer;
-void egui_view_test_timer_callback(egui_timer_t *timer)
-{
-    // test scroll
-    // egui_view_scroll_to(EGUI_VIEW_OF(&test_view), 50, 10);
-    // egui_view_scroll_by(EGUI_VIEW_OF(&test_view), 50, 50);
-
-    // egui_view_scroll_by(EGUI_VIEW_OF(&test_view_group_1), 5, 5);
-
-    // egui_view_set_visible(EGUI_VIEW_OF(&test_view_1), !egui_view_get_visible(EGUI_VIEW_OF(&test_view_1)));
-
-    // egui_view_set_enable(EGUI_VIEW_OF(&button_1), !egui_view_get_enable(EGUI_VIEW_OF(&button_1)));
-
-    // egui_view_set_alpha(EGUI_VIEW_OF(&test_view_group_1), EGUI_ALPHA_50);
-
-    // egui_view_set_alpha(EGUI_VIEW_OF(&test_view_1), EGUI_ALPHA_50);
-}
+static egui_view_test_t perf_scene;
 
 void uicode_create_ui(void)
 {
-    uicode_init_ui();
+    egui_view_test_init(EGUI_VIEW_OF(&perf_scene));
+    egui_view_set_position(EGUI_VIEW_OF(&perf_scene), 0, 0);
+    egui_view_set_size(EGUI_VIEW_OF(&perf_scene), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 
-    ui_timer.callback = egui_view_test_timer_callback;
-    egui_timer_start_timer(&ui_timer, 1000, 1000);
+    egui_core_add_user_root_view(EGUI_VIEW_OF(&perf_scene));
+    egui_view_invalidate(EGUI_VIEW_OF(&perf_scene));
 }
+
+#if EGUI_CONFIG_RECORDING_TEST
+bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
+{
+    static int last_action = -1;
+    int first_call = (action_index != last_action);
+    last_action = action_index;
+
+    switch (action_index)
+    {
+    case 0:
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 200);
+        return true;
+    case 1:
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 900);
+        return true;
+    case 2:
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 900);
+        return true;
+    case 3:
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 900);
+        return true;
+    default:
+        return false;
+    }
+}
+#endif

@@ -8,15 +8,18 @@
 #define DEMO_ALERT_RENDER_COUNT 9U
 #define DEMO_STATUS_TIMER_MS    160
 
+#define DEMO_CANVAS_WIDTH  HELLO_VIRTUAL_STAGE_CANVAS_WIDTH
+#define DEMO_CANVAS_HEIGHT HELLO_VIRTUAL_STAGE_CANVAS_HEIGHT
+
 #define DEMO_HEADER_X 16
 #define DEMO_HEADER_Y 16
-#define DEMO_HEADER_W (EGUI_CONFIG_SCEEN_WIDTH - 32)
+#define DEMO_HEADER_W (DEMO_CANVAS_WIDTH - 32)
 #define DEMO_HEADER_H 92
 
 #define DEMO_PAGE_X 16
 #define DEMO_PAGE_Y 124
-#define DEMO_PAGE_W (EGUI_CONFIG_SCEEN_WIDTH - 32)
-#define DEMO_PAGE_H (EGUI_CONFIG_SCEEN_HEIGHT - DEMO_PAGE_Y - 16)
+#define DEMO_PAGE_W (DEMO_CANVAS_WIDTH - 32)
+#define DEMO_PAGE_H (DEMO_CANVAS_HEIGHT - DEMO_PAGE_Y - 16)
 
 #define DEMO_OVERVIEW_X 12
 #define DEMO_OVERVIEW_Y 12
@@ -195,7 +198,7 @@ static const char *demo_dock_items[4] = {"D1", "D2", "D3", "D4"};
 static const char *demo_route_segments[2] = {"Std", "Fast"};
 static const char *demo_pack_segments[2] = {"Box", "Bag"};
 
-static egui_view_t background_view;
+static egui_view_canvas_panner_t demo_root;
 static egui_view_card_t header_card;
 static egui_view_label_t header_title;
 static egui_view_label_t header_detail;
@@ -4669,9 +4672,10 @@ void test_init_ui(void)
 
     demo_init_nodes();
 
-    egui_view_init(EGUI_VIEW_OF(&background_view));
-    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-    egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&screen_bg));
+    egui_view_canvas_panner_init(EGUI_VIEW_OF(&demo_root));
+    egui_view_set_size(EGUI_VIEW_OF(&demo_root), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_canvas_panner_set_canvas_size(EGUI_VIEW_OF(&demo_root), DEMO_CANVAS_WIDTH, DEMO_CANVAS_HEIGHT);
+    egui_view_set_background(EGUI_VIEW_OF(&demo_root), EGUI_BG_OF(&screen_bg));
 
     egui_view_card_init_with_params(EGUI_VIEW_OF(&header_card), &header_card_params);
     egui_view_set_background(EGUI_VIEW_OF(&header_card), EGUI_BG_OF(&header_bg));
@@ -4707,11 +4711,12 @@ void test_init_ui(void)
     EGUI_VIEW_VIRTUAL_STAGE_OVERRIDE_ON_TOUCH(&virtual_stage, &virtual_stage_touch_api, demo_page_touch_cb);
     EGUI_VIEW_VIRTUAL_STAGE_SET_ON_CLICK(&virtual_stage, demo_page_click_cb);
 
+    egui_view_group_add_child(EGUI_VIEW_OF(&demo_root), EGUI_VIEW_OF(&header_card));
+    egui_view_group_add_child(EGUI_VIEW_OF(&demo_root), EGUI_VIEW_OF(&virtual_stage));
+
     demo_refresh_status();
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&background_view));
-    EGUI_VIEW_VIRTUAL_STAGE_ADD_ROOT(&virtual_stage);
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&header_card));
+    egui_core_add_user_root_view(EGUI_VIEW_OF(&demo_root));
 
     egui_timer_init_timer(&status_timer, NULL, demo_status_timer_cb);
 #if !EGUI_CONFIG_RECORDING_TEST

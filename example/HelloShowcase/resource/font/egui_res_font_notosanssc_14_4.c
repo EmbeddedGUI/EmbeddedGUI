@@ -15,8 +15,8 @@
 
 
 /**
- * Total character count: 214 Support Text: 
-基础切换进度画布滑块/选择图表时间/日期特殊数据/容器按钮标签文本动态 42卡片控件开多行文本块你好请输入...已选中选项 1选项 2标签文本块动态标输入框开关LED徽章圆进度条仪表盘活动环页码指示渐变阴影边框1边框2图层1图层2HQ线弧滑块旋转框线条分割线EN中文周一周二周三周四周五天空薄荷钢铁首页设置信息菜单关于帮助名称值单位温度湿度主要次要第三窗口内容项目 A项目 B项目 C项目 D项目 E项目 F项目 G项目 H日六
+ * Total character count: 225 Support Text: 
+基础切换进度画布滑块/选择图表时间/日期特殊数据/容器按钮标签文本动态 42卡片控件开多行文本块你好请输入...已选中选项 1选项 2标签文本块动态标输入框开关LED徽章圆进度条仪表盘活动环页码指示渐变阴影边框1边框2图层1图层2HQ线弧滑块旋转框线条分割线EN中文周一周二周三周四周五天空薄荷钢铁首页设置信息菜单关于帮助名称值单位温度湿度主要次要第三窗口内容项目 A项目 B项目 C项目 D项目 E项目 F项目 G项目 H日六0123456789-
  */
 
 static const uint8_t egui_res_font_notosanssc_14_4_pixel_buffer[] = {
@@ -25,6 +25,9 @@ static const uint8_t egui_res_font_notosanssc_14_4_pixel_buffer[] = {
     /* Glyph for character " " 0x00000020 */
     0x00, 0x00, 0x00, 0x00,
 
+    /* Glyph for character "-" 0x0000002d */
+    0x11, 0x11, 0xff, 0xff, 0x44, 0x44,
+
     /* Glyph for character "." 0x0000002e */
     0x01, 0x8d, 0x6c,
 
@@ -32,6 +35,11 @@ static const uint8_t egui_res_font_notosanssc_14_4_pixel_buffer[] = {
     0x00, 0x10, 0x0f, 0x00, 0x50, 0x0c, 0x00, 0xa0, 0x07, 0x00, 0xe0, 0x03, 0x00, 0xe3, 0x00,
     0x00, 0xa7, 0x00, 0x00, 0x5b, 0x00, 0x00, 0x1f, 0x00, 0x40, 0x0d, 0x00, 0x90, 0x08, 0x00,
     0xd0, 0x04, 0x00, 0xf2, 0x00, 0x00, 0xb6, 0x00, 0x00, 0x6b, 0x00, 0x00,
+
+    /* Glyph for character "0" 0x00000030 */
+    0x50, 0xfd, 0x2b, 0x00, 0xf3, 0x6b, 0xde, 0x00, 0xfa, 0x00, 0xf5, 0x04, 0xce, 0x00, 0xf1,
+    0x08, 0xaf, 0x00, 0xf0, 0x09, 0xaf, 0x00, 0xf0, 0x09, 0xce, 0x00, 0xf1, 0x08, 0xfa, 0x00,
+    0xf5, 0x04, 0xf3, 0x6b, 0xde, 0x00, 0x50, 0xfd, 0x2b, 0x00,
 
     /* Glyph for character "1" 0x00000031 */
     0x72, 0xfd, 0x00, 0xc6, 0xfe, 0x00, 0x00, 0xfa, 0x00, 0x00, 0xfa, 0x00, 0x00, 0xfa, 0x00,
@@ -42,10 +50,40 @@ static const uint8_t egui_res_font_notosanssc_14_4_pixel_buffer[] = {
     0x0e, 0x00, 0x00, 0xf1, 0x0a, 0x00, 0x00, 0xf9, 0x02, 0x00, 0x50, 0x6f, 0x00, 0x00, 0xf5,
     0x08, 0x00, 0x50, 0xbf, 0x54, 0x55, 0xf0, 0xff, 0xff, 0xff,
 
+    /* Glyph for character "3" 0x00000033 */
+    0x40, 0xfc, 0x8e, 0x00, 0xd1, 0x69, 0xfa, 0x07, 0x00, 0x00, 0xf1, 0x09, 0x00, 0x20, 0xf9,
+    0x04, 0x00, 0xf8, 0x5f, 0x00, 0x00, 0x52, 0xfa, 0x05, 0x00, 0x00, 0xc0, 0x0e, 0x20, 0x00,
+    0xc0, 0x0f, 0xf6, 0x68, 0xfa, 0x09, 0x70, 0xfd, 0x8e, 0x00,
+
     /* Glyph for character "4" 0x00000034 */
     0x00, 0x00, 0xfb, 0x0a, 0x00, 0x60, 0xfe, 0x0a, 0x00, 0xf1, 0xf6, 0x0a, 0x00, 0xcb, 0xf0,
     0x0a, 0x60, 0x2f, 0xf0, 0x0a, 0xf1, 0x07, 0xf0, 0x0b, 0xf7, 0xff, 0xff, 0xff, 0x31, 0x33,
     0xf3, 0x3e, 0x00, 0x00, 0xf0, 0x0a, 0x00, 0x00, 0xf0, 0x0a,
+
+    /* Glyph for character "5" 0x00000035 */
+    0xf0, 0xff, 0xff, 0x00, 0xf0, 0x5b, 0x55, 0x00, 0xf0, 0x07, 0x00, 0x00, 0xf0, 0xfe, 0xaf,
+    0x00, 0xa0, 0x57, 0xfa, 0x09, 0x00, 0x00, 0xd0, 0x0e, 0x00, 0x00, 0xb0, 0x0f, 0x02, 0x00,
+    0xe0, 0x0c, 0xdc, 0x67, 0xfc, 0x05, 0x91, 0xfd, 0x5d, 0x00,
+
+    /* Glyph for character "6" 0x00000036 */
+    0x20, 0xfb, 0x8e, 0x00, 0xe1, 0x7e, 0xa6, 0x01, 0xf8, 0x02, 0x00, 0x00, 0xdd, 0xf9, 0x8f,
+    0x00, 0xff, 0x5a, 0xfc, 0x04, 0xdf, 0x00, 0xf2, 0x09, 0xce, 0x00, 0xf0, 0x0a, 0xfa, 0x01,
+    0xf3, 0x07, 0xf2, 0x6c, 0xfd, 0x01, 0x30, 0xfc, 0x3c, 0x00,
+
+    /* Glyph for character "7" 0x00000037 */
+    0xff, 0xff, 0xff, 0x0f, 0x55, 0x55, 0xf8, 0x08, 0x00, 0x00, 0xbd, 0x00, 0x00, 0x70, 0x1f,
+    0x00, 0x00, 0xe0, 0x09, 0x00, 0x00, 0xf5, 0x03, 0x00, 0x00, 0xf9, 0x00, 0x00, 0x00, 0xcc,
+    0x00, 0x00, 0x00, 0xbe, 0x00, 0x00, 0x00, 0xaf, 0x00, 0x00,
+
+    /* Glyph for character "8" 0x00000038 */
+    0x70, 0xfd, 0x7d, 0x00, 0xf6, 0x6b, 0xfc, 0x06, 0xf9, 0x01, 0xf1, 0x09, 0xf5, 0x02, 0xf1,
+    0x05, 0x60, 0x5e, 0x79, 0x00, 0xd2, 0x98, 0xbf, 0x00, 0xcc, 0x00, 0xf4, 0x06, 0xcf, 0x00,
+    0xf1, 0x09, 0xfa, 0x69, 0xfb, 0x05, 0x90, 0xfe, 0x6d, 0x00,
+
+    /* Glyph for character "9" 0x00000039 */
+    0x80, 0xfe, 0x1a, 0x00, 0xf8, 0x69, 0xde, 0x00, 0xce, 0x00, 0xf5, 0x05, 0xbf, 0x00, 0xf1,
+    0x08, 0xfc, 0x24, 0xfa, 0x0a, 0xe3, 0xff, 0xf7, 0x09, 0x00, 0x13, 0xf3, 0x07, 0x00, 0x00,
+    0xf8, 0x02, 0xc5, 0x96, 0xaf, 0x00, 0xb2, 0xef, 0x08, 0x00,
 
     /* Glyph for character "A" 0x00000041 */
     0x00, 0xa0, 0xaf, 0x00, 0x00, 0x00, 0xf0, 0xfc, 0x00, 0x00, 0x00, 0xf5, 0xf3, 0x05, 0x00,
@@ -1075,141 +1113,157 @@ static const uint8_t egui_res_font_notosanssc_14_4_pixel_buffer[] = {
 static const egui_font_std_char_descriptor_t egui_res_font_notosanssc_14_4_char_array[] = {
 
     {.idx=     0, .size=     4, .box_w=  7, .box_h=  1, .adv=  7, .off_x=  0, .off_y=  0}, /* " " 0x00000020 */
-    {.idx=     4, .size=     3, .box_w=  2, .box_h=  3, .adv=  4, .off_x=  1, .off_y= 11}, /* "." 0x0000002e */
-    {.idx=     7, .size=    42, .box_w=  6, .box_h= 14, .adv=  6, .off_x=  0, .off_y=  3}, /* "/" 0x0000002f */
-    {.idx=    49, .size=    30, .box_w=  6, .box_h= 10, .adv=  8, .off_x=  1, .off_y=  4}, /* "1" 0x00000031 */
-    {.idx=    79, .size=    40, .box_w=  8, .box_h= 10, .adv=  8, .off_x=  0, .off_y=  4}, /* "2" 0x00000032 */
-    {.idx=   119, .size=    40, .box_w=  8, .box_h= 10, .adv=  8, .off_x=  0, .off_y=  4}, /* "4" 0x00000034 */
-    {.idx=   159, .size=    50, .box_w=  9, .box_h= 10, .adv=  9, .off_x=  0, .off_y=  4}, /* "A" 0x00000041 */
-    {.idx=   209, .size=    40, .box_w=  8, .box_h= 10, .adv=  9, .off_x=  1, .off_y=  4}, /* "B" 0x00000042 */
-    {.idx=   249, .size=    40, .box_w=  8, .box_h= 10, .adv=  9, .off_x=  1, .off_y=  4}, /* "C" 0x00000043 */
-    {.idx=   289, .size=    40, .box_w=  8, .box_h= 10, .adv=  9, .off_x=  1, .off_y=  4}, /* "D" 0x00000044 */
-    {.idx=   329, .size=    40, .box_w=  7, .box_h= 10, .adv=  8, .off_x=  1, .off_y=  4}, /* "E" 0x00000045 */
-    {.idx=   369, .size=    40, .box_w=  7, .box_h= 10, .adv=  8, .off_x=  1, .off_y=  4}, /* "F" 0x00000046 */
-    {.idx=   409, .size=    40, .box_w=  8, .box_h= 10, .adv= 10, .off_x=  1, .off_y=  4}, /* "G" 0x00000047 */
-    {.idx=   449, .size=    40, .box_w=  8, .box_h= 10, .adv= 10, .off_x=  1, .off_y=  4}, /* "H" 0x00000048 */
-    {.idx=   489, .size=    40, .box_w=  7, .box_h= 10, .adv=  7, .off_x=  1, .off_y=  4}, /* "L" 0x0000004c */
-    {.idx=   529, .size=    40, .box_w=  8, .box_h= 10, .adv= 10, .off_x=  1, .off_y=  4}, /* "N" 0x0000004e */
-    {.idx=   569, .size=    65, .box_w= 10, .box_h= 13, .adv= 11, .off_x=  1, .off_y=  4}, /* "Q" 0x00000051 */
-    {.idx=   634, .size=    21, .box_w= 13, .box_h=  3, .adv= 14, .off_x=  1, .off_y=  7}, /* "一" 0x00e4b880 */
-    {.idx=   655, .size=    84, .box_w= 14, .box_h= 12, .adv= 14, .off_x=  0, .off_y=  3}, /* "三" 0x00e4b889 */
-    {.idx=   739, .size=    78, .box_w= 12, .box_h= 13, .adv= 14, .off_x=  1, .off_y=  2}, /* "中" 0x00e4b8ad */
-    {.idx=   817, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "主" 0x00e4b8bb */
-    {.idx=   908, .size=    70, .box_w= 14, .box_h= 10, .adv= 14, .off_x=  0, .off_y=  4}, /* "二" 0x00e4ba8c */
-    {.idx=   978, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "于" 0x00e4ba8e */
-    {.idx=  1069, .size=    84, .box_w= 13, .box_h= 12, .adv= 14, .off_x=  1, .off_y=  3}, /* "五" 0x00e4ba94 */
-    {.idx=  1153, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "仪" 0x00e4bbaa */
-    {.idx=  1251, .size=    98, .box_w= 13, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "件" 0x00e4bbb6 */
-    {.idx=  1349, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "位" 0x00e4bd8d */
-    {.idx=  1440, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "你" 0x00e4bda0 */
-    {.idx=  1531, .size=   105, .box_w= 13, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "信" 0x00e4bfa1 */
-    {.idx=  1636, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "值" 0x00e580bc */
-    {.idx=  1734, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "入" 0x00e585a5 */
-    {.idx=  1832, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "六" 0x00e585ad */
-    {.idx=  1930, .size=   105, .box_w= 14, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "关" 0x00e585b3 */
-    {.idx=  2035, .size=    78, .box_w= 12, .box_h= 13, .adv= 14, .off_x=  1, .off_y=  2}, /* "内" 0x00e58685 */
-    {.idx=  2113, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "分" 0x00e58886 */
-    {.idx=  2211, .size=    91, .box_w= 13, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "切" 0x00e58887 */
-    {.idx=  2302, .size=   105, .box_w= 13, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "割" 0x00e589b2 */
-    {.idx=  2407, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "动" 0x00e58aa8 */
-    {.idx=  2505, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "助" 0x00e58aa9 */
-    {.idx=  2603, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "单" 0x00e58d95 */
-    {.idx=  2694, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "卡" 0x00e58da1 */
-    {.idx=  2785, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "变" 0x00e58f98 */
-    {.idx=  2883, .size=    78, .box_w= 12, .box_h= 13, .adv= 14, .off_x=  1, .off_y=  3}, /* "口" 0x00e58fa3 */
-    {.idx=  2961, .size=    78, .box_w= 12, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "名" 0x00e5908d */
-    {.idx=  3039, .size=    91, .box_w= 14, .box_h= 13, .adv= 15, .off_x=  0, .off_y=  3}, /* "周" 0x00e591a8 */
-    {.idx=  3130, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "器" 0x00e599a8 */
-    {.idx=  3221, .size=    78, .box_w= 12, .box_h= 13, .adv= 14, .off_x=  1, .off_y=  3}, /* "四" 0x00e59b9b */
-    {.idx=  3299, .size=    84, .box_w= 13, .box_h= 12, .adv= 14, .off_x=  1, .off_y=  3}, /* "图" 0x00e59bbe */
-    {.idx=  3383, .size=    84, .box_w= 13, .box_h= 12, .adv= 14, .off_x=  1, .off_y=  3}, /* "圆" 0x00e59c86 */
-    {.idx=  3467, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "块" 0x00e59d97 */
-    {.idx=  3565, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "基" 0x00e59fba */
-    {.idx=  3656, .size=   105, .box_w= 14, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "多" 0x00e5a49a */
-    {.idx=  3761, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "天" 0x00e5a4a9 */
-    {.idx=  3852, .size=   105, .box_w= 14, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "好" 0x00e5a5bd */
-    {.idx=  3957, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "容" 0x00e5aeb9 */
-    {.idx=  4055, .size=    91, .box_w= 14, .box_h= 13, .adv= 15, .off_x=  0, .off_y=  3}, /* "层" 0x00e5b182 */
-    {.idx=  4146, .size=    84, .box_w= 13, .box_h= 12, .adv= 14, .off_x=  1, .off_y=  3}, /* "已" 0x00e5b7b2 */
-    {.idx=  4230, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "布" 0x00e5b883 */
-    {.idx=  4328, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "帮" 0x00e5b8ae */
-    {.idx=  4419, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "度" 0x00e5baa6 */
-    {.idx=  4510, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "开" 0x00e5bc80 */
-    {.idx=  4601, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "弧" 0x00e5bca7 */
-    {.idx=  4699, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "影" 0x00e5bdb1 */
-    {.idx=  4797, .size=   112, .box_w= 15, .box_h= 14, .adv= 15, .off_x=  0, .off_y=  2}, /* "徽" 0x00e5bebd */
-    {.idx=  4909, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "态" 0x00e68081 */
-    {.idx=  5000, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "息" 0x00e681af */
-    {.idx=  5098, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "择" 0x00e68ba9 */
-    {.idx=  5196, .size=   120, .box_w= 15, .box_h= 15, .adv= 15, .off_x=  0, .off_y=  1}, /* "指" 0x00e68c87 */
-    {.idx=  5316, .size=   105, .box_w= 13, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "按" 0x00e68c89 */
-    {.idx=  5421, .size=   105, .box_w= 14, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "换" 0x00e68da2 */
-    {.idx=  5526, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "据" 0x00e68dae */
-    {.idx=  5624, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "控" 0x00e68ea7 */
-    {.idx=  5722, .size=   104, .box_w= 15, .box_h= 13, .adv= 15, .off_x=  0, .off_y=  2}, /* "数" 0x00e695b0 */
-    {.idx=  5826, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "文" 0x00e69687 */
-    {.idx=  5924, .size=   112, .box_w= 15, .box_h= 14, .adv= 15, .off_x=  0, .off_y=  2}, /* "旋" 0x00e6978b */
-    {.idx=  6036, .size=    65, .box_w= 10, .box_h= 13, .adv= 14, .off_x=  2, .off_y=  3}, /* "日" 0x00e697a5 */
-    {.idx=  6101, .size=    98, .box_w= 13, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "时" 0x00e697b6 */
-    {.idx=  6199, .size=    98, .box_w= 13, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "期" 0x00e69c9f */
-    {.idx=  6297, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "本" 0x00e69cac */
-    {.idx=  6388, .size=   105, .box_w= 14, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "条" 0x00e69da1 */
-    {.idx=  6493, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "标" 0x00e6a087 */
-    {.idx=  6591, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "框" 0x00e6a186 */
-    {.idx=  6682, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "次" 0x00e6aca1 */
-    {.idx=  6780, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "殊" 0x00e6ae8a */
-    {.idx=  6871, .size=   105, .box_w= 14, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "活" 0x00e6b4bb */
-    {.idx=  6976, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "渐" 0x00e6b890 */
-    {.idx=  7074, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "温" 0x00e6b8a9 */
-    {.idx=  7165, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "湿" 0x00e6b9bf */
-    {.idx=  7256, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "滑" 0x00e6bb91 */
-    {.idx=  7354, .size=    98, .box_w= 13, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "片" 0x00e78987 */
-    {.idx=  7452, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "特" 0x00e789b9 */
-    {.idx=  7550, .size=    84, .box_w= 14, .box_h= 12, .adv= 14, .off_x=  0, .off_y=  3}, /* "环" 0x00e78eaf */
-    {.idx=  7634, .size=    84, .box_w= 13, .box_h= 12, .adv= 14, .off_x=  1, .off_y=  3}, /* "画" 0x00e794bb */
-    {.idx=  7718, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "盘" 0x00e79b98 */
-    {.idx=  7816, .size=    60, .box_w= 10, .box_h= 12, .adv= 14, .off_x=  2, .off_y=  3}, /* "目" 0x00e79bae */
-    {.idx=  7876, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "码" 0x00e7a081 */
-    {.idx=  7974, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "础" 0x00e7a180 */
-    {.idx=  8065, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "示" 0x00e7a4ba */
-    {.idx=  8156, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "称" 0x00e7a7b0 */
-    {.idx=  8247, .size=    78, .box_w= 12, .box_h= 13, .adv= 14, .off_x=  1, .off_y=  2}, /* "空" 0x00e7a9ba */
-    {.idx=  8325, .size=    90, .box_w= 12, .box_h= 15, .adv= 14, .off_x=  1, .off_y=  1}, /* "窗" 0x00e7aa97 */
-    {.idx=  8415, .size=    98, .box_w= 13, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "章" 0x00e7aba0 */
-    {.idx=  8513, .size=   105, .box_w= 14, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "第" 0x00e7acac */
-    {.idx=  8618, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "签" 0x00e7adbe */
-    {.idx=  8716, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "线" 0x00e7babf */
-    {.idx=  8807, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "置" 0x00e7bdae */
-    {.idx=  8898, .size=    98, .box_w= 13, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "荷" 0x00e88db7 */
-    {.idx=  8996, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "菜" 0x00e88f9c */
-    {.idx=  9087, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "薄" 0x00e89684 */
-    {.idx=  9185, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "行" 0x00e8a18c */
-    {.idx=  9283, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "表" 0x00e8a1a8 */
-    {.idx=  9381, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "要" 0x00e8a681 */
-    {.idx=  9472, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "设" 0x00e8aebe */
-    {.idx=  9563, .size=    91, .box_w= 13, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "请" 0x00e8afb7 */
-    {.idx=  9654, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "转" 0x00e8bdac */
-    {.idx=  9752, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "输" 0x00e8be93 */
-    {.idx=  9843, .size=   120, .box_w= 15, .box_h= 15, .adv= 15, .off_x=  0, .off_y=  1}, /* "边" 0x00e8beb9 */
-    {.idx=  9963, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "进" 0x00e8bf9b */
-    {.idx= 10061, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "选" 0x00e98089 */
-    {.idx= 10159, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "钢" 0x00e992a2 */
-    {.idx= 10250, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "钮" 0x00e992ae */
-    {.idx= 10348, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "铁" 0x00e99381 */
-    {.idx= 10446, .size=    78, .box_w= 12, .box_h= 13, .adv= 14, .off_x=  1, .off_y=  2}, /* "间" 0x00e997b4 */
-    {.idx= 10524, .size=    84, .box_w= 12, .box_h= 14, .adv= 14, .off_x=  1, .off_y=  2}, /* "阴" 0x00e998b4 */
-    {.idx= 10608, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "页" 0x00e9a1b5 */
-    {.idx= 10699, .size=    84, .box_w= 14, .box_h= 12, .adv= 14, .off_x=  0, .off_y=  3}, /* "项" 0x00e9a1b9 */
-    {.idx= 10783, .size=    91, .box_w= 13, .box_h= 13, .adv= 14, .off_x=  1, .off_y=  2}, /* "首" 0x00e9a696 */
+    {.idx=     4, .size=     6, .box_w=  4, .box_h=  3, .adv=  6, .off_x=  1, .off_y=  8}, /* "-" 0x0000002d */
+    {.idx=    10, .size=     3, .box_w=  2, .box_h=  3, .adv=  4, .off_x=  1, .off_y= 11}, /* "." 0x0000002e */
+    {.idx=    13, .size=    42, .box_w=  6, .box_h= 14, .adv=  6, .off_x=  0, .off_y=  3}, /* "/" 0x0000002f */
+    {.idx=    55, .size=    40, .box_w=  7, .box_h= 10, .adv=  8, .off_x=  1, .off_y=  4}, /* "0" 0x00000030 */
+    {.idx=    95, .size=    30, .box_w=  6, .box_h= 10, .adv=  8, .off_x=  1, .off_y=  4}, /* "1" 0x00000031 */
+    {.idx=   125, .size=    40, .box_w=  8, .box_h= 10, .adv=  8, .off_x=  0, .off_y=  4}, /* "2" 0x00000032 */
+    {.idx=   165, .size=    40, .box_w=  7, .box_h= 10, .adv=  8, .off_x=  0, .off_y=  4}, /* "3" 0x00000033 */
+    {.idx=   205, .size=    40, .box_w=  8, .box_h= 10, .adv=  8, .off_x=  0, .off_y=  4}, /* "4" 0x00000034 */
+    {.idx=   245, .size=    40, .box_w=  7, .box_h= 10, .adv=  8, .off_x=  0, .off_y=  4}, /* "5" 0x00000035 */
+    {.idx=   285, .size=    40, .box_w=  7, .box_h= 10, .adv=  8, .off_x=  1, .off_y=  4}, /* "6" 0x00000036 */
+    {.idx=   325, .size=    40, .box_w=  7, .box_h= 10, .adv=  8, .off_x=  1, .off_y=  4}, /* "7" 0x00000037 */
+    {.idx=   365, .size=    40, .box_w=  7, .box_h= 10, .adv=  8, .off_x=  1, .off_y=  4}, /* "8" 0x00000038 */
+    {.idx=   405, .size=    40, .box_w=  7, .box_h= 10, .adv=  8, .off_x=  1, .off_y=  4}, /* "9" 0x00000039 */
+    {.idx=   445, .size=    50, .box_w=  9, .box_h= 10, .adv=  9, .off_x=  0, .off_y=  4}, /* "A" 0x00000041 */
+    {.idx=   495, .size=    40, .box_w=  8, .box_h= 10, .adv=  9, .off_x=  1, .off_y=  4}, /* "B" 0x00000042 */
+    {.idx=   535, .size=    40, .box_w=  8, .box_h= 10, .adv=  9, .off_x=  1, .off_y=  4}, /* "C" 0x00000043 */
+    {.idx=   575, .size=    40, .box_w=  8, .box_h= 10, .adv=  9, .off_x=  1, .off_y=  4}, /* "D" 0x00000044 */
+    {.idx=   615, .size=    40, .box_w=  7, .box_h= 10, .adv=  8, .off_x=  1, .off_y=  4}, /* "E" 0x00000045 */
+    {.idx=   655, .size=    40, .box_w=  7, .box_h= 10, .adv=  8, .off_x=  1, .off_y=  4}, /* "F" 0x00000046 */
+    {.idx=   695, .size=    40, .box_w=  8, .box_h= 10, .adv= 10, .off_x=  1, .off_y=  4}, /* "G" 0x00000047 */
+    {.idx=   735, .size=    40, .box_w=  8, .box_h= 10, .adv= 10, .off_x=  1, .off_y=  4}, /* "H" 0x00000048 */
+    {.idx=   775, .size=    40, .box_w=  7, .box_h= 10, .adv=  7, .off_x=  1, .off_y=  4}, /* "L" 0x0000004c */
+    {.idx=   815, .size=    40, .box_w=  8, .box_h= 10, .adv= 10, .off_x=  1, .off_y=  4}, /* "N" 0x0000004e */
+    {.idx=   855, .size=    65, .box_w= 10, .box_h= 13, .adv= 11, .off_x=  1, .off_y=  4}, /* "Q" 0x00000051 */
+    {.idx=   920, .size=    21, .box_w= 13, .box_h=  3, .adv= 14, .off_x=  1, .off_y=  7}, /* "一" 0x00e4b880 */
+    {.idx=   941, .size=    84, .box_w= 14, .box_h= 12, .adv= 14, .off_x=  0, .off_y=  3}, /* "三" 0x00e4b889 */
+    {.idx=  1025, .size=    78, .box_w= 12, .box_h= 13, .adv= 14, .off_x=  1, .off_y=  2}, /* "中" 0x00e4b8ad */
+    {.idx=  1103, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "主" 0x00e4b8bb */
+    {.idx=  1194, .size=    70, .box_w= 14, .box_h= 10, .adv= 14, .off_x=  0, .off_y=  4}, /* "二" 0x00e4ba8c */
+    {.idx=  1264, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "于" 0x00e4ba8e */
+    {.idx=  1355, .size=    84, .box_w= 13, .box_h= 12, .adv= 14, .off_x=  1, .off_y=  3}, /* "五" 0x00e4ba94 */
+    {.idx=  1439, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "仪" 0x00e4bbaa */
+    {.idx=  1537, .size=    98, .box_w= 13, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "件" 0x00e4bbb6 */
+    {.idx=  1635, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "位" 0x00e4bd8d */
+    {.idx=  1726, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "你" 0x00e4bda0 */
+    {.idx=  1817, .size=   105, .box_w= 13, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "信" 0x00e4bfa1 */
+    {.idx=  1922, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "值" 0x00e580bc */
+    {.idx=  2020, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "入" 0x00e585a5 */
+    {.idx=  2118, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "六" 0x00e585ad */
+    {.idx=  2216, .size=   105, .box_w= 14, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "关" 0x00e585b3 */
+    {.idx=  2321, .size=    78, .box_w= 12, .box_h= 13, .adv= 14, .off_x=  1, .off_y=  2}, /* "内" 0x00e58685 */
+    {.idx=  2399, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "分" 0x00e58886 */
+    {.idx=  2497, .size=    91, .box_w= 13, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "切" 0x00e58887 */
+    {.idx=  2588, .size=   105, .box_w= 13, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "割" 0x00e589b2 */
+    {.idx=  2693, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "动" 0x00e58aa8 */
+    {.idx=  2791, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "助" 0x00e58aa9 */
+    {.idx=  2889, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "单" 0x00e58d95 */
+    {.idx=  2980, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "卡" 0x00e58da1 */
+    {.idx=  3071, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "变" 0x00e58f98 */
+    {.idx=  3169, .size=    78, .box_w= 12, .box_h= 13, .adv= 14, .off_x=  1, .off_y=  3}, /* "口" 0x00e58fa3 */
+    {.idx=  3247, .size=    78, .box_w= 12, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "名" 0x00e5908d */
+    {.idx=  3325, .size=    91, .box_w= 14, .box_h= 13, .adv= 15, .off_x=  0, .off_y=  3}, /* "周" 0x00e591a8 */
+    {.idx=  3416, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "器" 0x00e599a8 */
+    {.idx=  3507, .size=    78, .box_w= 12, .box_h= 13, .adv= 14, .off_x=  1, .off_y=  3}, /* "四" 0x00e59b9b */
+    {.idx=  3585, .size=    84, .box_w= 13, .box_h= 12, .adv= 14, .off_x=  1, .off_y=  3}, /* "图" 0x00e59bbe */
+    {.idx=  3669, .size=    84, .box_w= 13, .box_h= 12, .adv= 14, .off_x=  1, .off_y=  3}, /* "圆" 0x00e59c86 */
+    {.idx=  3753, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "块" 0x00e59d97 */
+    {.idx=  3851, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "基" 0x00e59fba */
+    {.idx=  3942, .size=   105, .box_w= 14, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "多" 0x00e5a49a */
+    {.idx=  4047, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "天" 0x00e5a4a9 */
+    {.idx=  4138, .size=   105, .box_w= 14, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "好" 0x00e5a5bd */
+    {.idx=  4243, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "容" 0x00e5aeb9 */
+    {.idx=  4341, .size=    91, .box_w= 14, .box_h= 13, .adv= 15, .off_x=  0, .off_y=  3}, /* "层" 0x00e5b182 */
+    {.idx=  4432, .size=    84, .box_w= 13, .box_h= 12, .adv= 14, .off_x=  1, .off_y=  3}, /* "已" 0x00e5b7b2 */
+    {.idx=  4516, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "布" 0x00e5b883 */
+    {.idx=  4614, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "帮" 0x00e5b8ae */
+    {.idx=  4705, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "度" 0x00e5baa6 */
+    {.idx=  4796, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "开" 0x00e5bc80 */
+    {.idx=  4887, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "弧" 0x00e5bca7 */
+    {.idx=  4985, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "影" 0x00e5bdb1 */
+    {.idx=  5083, .size=   112, .box_w= 15, .box_h= 14, .adv= 15, .off_x=  0, .off_y=  2}, /* "徽" 0x00e5bebd */
+    {.idx=  5195, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "态" 0x00e68081 */
+    {.idx=  5286, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "息" 0x00e681af */
+    {.idx=  5384, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "择" 0x00e68ba9 */
+    {.idx=  5482, .size=   120, .box_w= 15, .box_h= 15, .adv= 15, .off_x=  0, .off_y=  1}, /* "指" 0x00e68c87 */
+    {.idx=  5602, .size=   105, .box_w= 13, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "按" 0x00e68c89 */
+    {.idx=  5707, .size=   105, .box_w= 14, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "换" 0x00e68da2 */
+    {.idx=  5812, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "据" 0x00e68dae */
+    {.idx=  5910, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "控" 0x00e68ea7 */
+    {.idx=  6008, .size=   104, .box_w= 15, .box_h= 13, .adv= 15, .off_x=  0, .off_y=  2}, /* "数" 0x00e695b0 */
+    {.idx=  6112, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "文" 0x00e69687 */
+    {.idx=  6210, .size=   112, .box_w= 15, .box_h= 14, .adv= 15, .off_x=  0, .off_y=  2}, /* "旋" 0x00e6978b */
+    {.idx=  6322, .size=    65, .box_w= 10, .box_h= 13, .adv= 14, .off_x=  2, .off_y=  3}, /* "日" 0x00e697a5 */
+    {.idx=  6387, .size=    98, .box_w= 13, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "时" 0x00e697b6 */
+    {.idx=  6485, .size=    98, .box_w= 13, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "期" 0x00e69c9f */
+    {.idx=  6583, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "本" 0x00e69cac */
+    {.idx=  6674, .size=   105, .box_w= 14, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "条" 0x00e69da1 */
+    {.idx=  6779, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "标" 0x00e6a087 */
+    {.idx=  6877, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "框" 0x00e6a186 */
+    {.idx=  6968, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "次" 0x00e6aca1 */
+    {.idx=  7066, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "殊" 0x00e6ae8a */
+    {.idx=  7157, .size=   105, .box_w= 14, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "活" 0x00e6b4bb */
+    {.idx=  7262, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "渐" 0x00e6b890 */
+    {.idx=  7360, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "温" 0x00e6b8a9 */
+    {.idx=  7451, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "湿" 0x00e6b9bf */
+    {.idx=  7542, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "滑" 0x00e6bb91 */
+    {.idx=  7640, .size=    98, .box_w= 13, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "片" 0x00e78987 */
+    {.idx=  7738, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "特" 0x00e789b9 */
+    {.idx=  7836, .size=    84, .box_w= 14, .box_h= 12, .adv= 14, .off_x=  0, .off_y=  3}, /* "环" 0x00e78eaf */
+    {.idx=  7920, .size=    84, .box_w= 13, .box_h= 12, .adv= 14, .off_x=  1, .off_y=  3}, /* "画" 0x00e794bb */
+    {.idx=  8004, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "盘" 0x00e79b98 */
+    {.idx=  8102, .size=    60, .box_w= 10, .box_h= 12, .adv= 14, .off_x=  2, .off_y=  3}, /* "目" 0x00e79bae */
+    {.idx=  8162, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "码" 0x00e7a081 */
+    {.idx=  8260, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "础" 0x00e7a180 */
+    {.idx=  8351, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "示" 0x00e7a4ba */
+    {.idx=  8442, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "称" 0x00e7a7b0 */
+    {.idx=  8533, .size=    78, .box_w= 12, .box_h= 13, .adv= 14, .off_x=  1, .off_y=  2}, /* "空" 0x00e7a9ba */
+    {.idx=  8611, .size=    90, .box_w= 12, .box_h= 15, .adv= 14, .off_x=  1, .off_y=  1}, /* "窗" 0x00e7aa97 */
+    {.idx=  8701, .size=    98, .box_w= 13, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "章" 0x00e7aba0 */
+    {.idx=  8799, .size=   105, .box_w= 14, .box_h= 15, .adv= 14, .off_x=  0, .off_y=  1}, /* "第" 0x00e7acac */
+    {.idx=  8904, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  1}, /* "签" 0x00e7adbe */
+    {.idx=  9002, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "线" 0x00e7babf */
+    {.idx=  9093, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "置" 0x00e7bdae */
+    {.idx=  9184, .size=    98, .box_w= 13, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "荷" 0x00e88db7 */
+    {.idx=  9282, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "菜" 0x00e88f9c */
+    {.idx=  9373, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "薄" 0x00e89684 */
+    {.idx=  9471, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "行" 0x00e8a18c */
+    {.idx=  9569, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "表" 0x00e8a1a8 */
+    {.idx=  9667, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "要" 0x00e8a681 */
+    {.idx=  9758, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "设" 0x00e8aebe */
+    {.idx=  9849, .size=    91, .box_w= 13, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "请" 0x00e8afb7 */
+    {.idx=  9940, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "转" 0x00e8bdac */
+    {.idx= 10038, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "输" 0x00e8be93 */
+    {.idx= 10129, .size=   120, .box_w= 15, .box_h= 15, .adv= 15, .off_x=  0, .off_y=  1}, /* "边" 0x00e8beb9 */
+    {.idx= 10249, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "进" 0x00e8bf9b */
+    {.idx= 10347, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "选" 0x00e98089 */
+    {.idx= 10445, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  2}, /* "钢" 0x00e992a2 */
+    {.idx= 10536, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "钮" 0x00e992ae */
+    {.idx= 10634, .size=    98, .box_w= 14, .box_h= 14, .adv= 14, .off_x=  0, .off_y=  2}, /* "铁" 0x00e99381 */
+    {.idx= 10732, .size=    78, .box_w= 12, .box_h= 13, .adv= 14, .off_x=  1, .off_y=  2}, /* "间" 0x00e997b4 */
+    {.idx= 10810, .size=    84, .box_w= 12, .box_h= 14, .adv= 14, .off_x=  1, .off_y=  2}, /* "阴" 0x00e998b4 */
+    {.idx= 10894, .size=    91, .box_w= 14, .box_h= 13, .adv= 14, .off_x=  0, .off_y=  3}, /* "页" 0x00e9a1b5 */
+    {.idx= 10985, .size=    84, .box_w= 14, .box_h= 12, .adv= 14, .off_x=  0, .off_y=  3}, /* "项" 0x00e9a1b9 */
+    {.idx= 11069, .size=    91, .box_w= 13, .box_h= 13, .adv= 14, .off_x=  1, .off_y=  2}, /* "首" 0x00e9a696 */
 };
 static const egui_font_std_code_descriptor_t egui_res_font_notosanssc_14_4_code_array[] = {
 
     {.code=0x00000020}, /* " " */
+    {.code=0x0000002d}, /* "-" */
     {.code=0x0000002e}, /* "." */
     {.code=0x0000002f}, /* "/" */
+    {.code=0x00000030}, /* "0" */
     {.code=0x00000031}, /* "1" */
     {.code=0x00000032}, /* "2" */
+    {.code=0x00000033}, /* "3" */
     {.code=0x00000034}, /* "4" */
+    {.code=0x00000035}, /* "5" */
+    {.code=0x00000036}, /* "6" */
+    {.code=0x00000037}, /* "7" */
+    {.code=0x00000038}, /* "8" */
+    {.code=0x00000039}, /* "9" */
     {.code=0x00000041}, /* "A" */
     {.code=0x00000042}, /* "B" */
     {.code=0x00000043}, /* "C" */
@@ -1340,7 +1394,7 @@ static const egui_font_std_info_t egui_res_font_notosanssc_14_4_info = {
     .font_bit_mode = 4,
     .height = 17,
     .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
-    .count = 127,
+    .count = 135,
     .code_array = egui_res_font_notosanssc_14_4_code_array,
     .char_array = (void *)egui_res_font_notosanssc_14_4_char_array,
     .pixel_buffer = (void *)egui_res_font_notosanssc_14_4_pixel_buffer,

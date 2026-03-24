@@ -63,6 +63,18 @@ static void test_alpha_mix_partial(void)
     EGUI_TEST_ASSERT_TRUE(result > 50 && result < 80);
 }
 
+static void test_alpha_make(void)
+{
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_ALPHA_0, EGUI_ALPHA_MAKE(0));
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_ALPHA_10, EGUI_ALPHA_MAKE(10));
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_ALPHA_50, EGUI_ALPHA_MAKE(50));
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_ALPHA_90, EGUI_ALPHA_MAKE(90));
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_ALPHA_100, EGUI_ALPHA_MAKE(100));
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_ALPHA_100, EGUI_ALPHA_MAKE(135));
+    EGUI_TEST_ASSERT_EQUAL_INT(EGUI_ALPHA_0, EGUI_ALPHA_MAKE(-10));
+    EGUI_TEST_ASSERT_EQUAL_INT(94, EGUI_ALPHA_MAKE(37));
+}
+
 static void test_max_min_abs(void)
 {
     EGUI_TEST_ASSERT_EQUAL_INT(10, EGUI_MAX(5, 10));
@@ -83,6 +95,7 @@ void test_common_run(void)
     EGUI_TEST_RUN(test_alpha_mix_full);
     EGUI_TEST_RUN(test_alpha_mix_zero);
     EGUI_TEST_RUN(test_alpha_mix_partial);
+    EGUI_TEST_RUN(test_alpha_make);
     EGUI_TEST_RUN(test_max_min_abs);
 
     EGUI_TEST_SUITE_END();

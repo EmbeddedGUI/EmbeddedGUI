@@ -1594,14 +1594,30 @@ static void egui_view_virtual_stage_draw(egui_view_t *self)
     egui_alpha_t alpha = egui_canvas_get_alpha();
     egui_view_virtual_stage_cached_node_t *nodes = egui_view_virtual_stage_get_nodes(local);
     uint32_t draw_pos;
+    egui_region_t clip_region;
+    const egui_region_t *prev_clip = egui_canvas_get_extra_clip();
+    const egui_region_t *active_clip = &self->region_screen;
 
-    egui_canvas_set_extra_clip(&self->region_screen);
+    if (prev_clip != NULL)
+    {
+        egui_region_intersect(&self->region_screen, prev_clip, &clip_region);
+        active_clip = &clip_region;
+    }
+
+    egui_canvas_set_extra_clip(active_clip);
     egui_view_draw(self);
 
     if (!self->is_visible || self->is_gone || nodes == NULL || local->draw_order == NULL)
     {
         egui_canvas_set_alpha(alpha);
-        egui_canvas_clear_extra_clip();
+        if (prev_clip != NULL)
+        {
+            egui_canvas_set_extra_clip(prev_clip);
+        }
+        else
+        {
+            egui_canvas_clear_extra_clip();
+        }
         return;
     }
 
@@ -1642,7 +1658,14 @@ static void egui_view_virtual_stage_draw(egui_view_t *self)
     }
 
     egui_canvas_set_alpha(alpha);
-    egui_canvas_clear_extra_clip();
+    if (prev_clip != NULL)
+    {
+        egui_canvas_set_extra_clip(prev_clip);
+    }
+    else
+    {
+        egui_canvas_clear_extra_clip();
+    }
 }
 
 static void egui_view_virtual_stage_calculate_layout(egui_view_t *self)

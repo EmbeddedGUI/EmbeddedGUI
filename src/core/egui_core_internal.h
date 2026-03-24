@@ -10,6 +10,11 @@ extern "C" {
 
 extern egui_core_t egui_core;
 
+void egui_core_set_pfb_scan_direction(uint8_t reverse_x, uint8_t reverse_y);
+void egui_core_reset_pfb_scan_direction(void);
+uint8_t egui_core_get_pfb_scan_reverse_x(void);
+uint8_t egui_core_get_pfb_scan_reverse_y(void);
+
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

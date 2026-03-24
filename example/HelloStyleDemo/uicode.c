@@ -3,9 +3,14 @@
 #include "uicode.h"
 #include "style/egui_theme.h"
 
+#define STYLE_DEMO_CANVAS_WIDTH  HELLO_STYLE_DEMO_CANVAS_WIDTH
+#define STYLE_DEMO_CANVAS_HEIGHT HELLO_STYLE_DEMO_CANVAS_HEIGHT
+
+static egui_view_canvas_panner_t root;
+
 // ViewPage for 4 pages
 static egui_view_viewpage_t viewpage;
-EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_params, 0, 0, STYLE_DEMO_CANVAS_WIDTH, STYLE_DEMO_CANVAS_HEIGHT);
 
 // 4 page containers (groups)
 static egui_view_group_t page_smarthome;
@@ -13,7 +18,7 @@ static egui_view_group_t page_music;
 static egui_view_group_t page_dashboard;
 static egui_view_group_t page_watch;
 
-EGUI_VIEW_GROUP_PARAMS_INIT(page_params, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+EGUI_VIEW_GROUP_PARAMS_INIT(page_params, 0, 0, STYLE_DEMO_CANVAS_WIDTH, STYLE_DEMO_CANVAS_HEIGHT);
 
 // Background colors for pages
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_smarthome_param, EGUI_COLOR_MAKE(0xF0, 0xF4, 0xF8), EGUI_ALPHA_100);
@@ -108,6 +113,10 @@ void uicode_update_theme_icons(void)
 
 void uicode_create_ui(void)
 {
+    egui_view_canvas_panner_init(EGUI_VIEW_OF(&root));
+    egui_view_set_size(EGUI_VIEW_OF(&root), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_canvas_panner_set_canvas_size(EGUI_VIEW_OF(&root), STYLE_DEMO_CANVAS_WIDTH, STYLE_DEMO_CANVAS_HEIGHT);
+
     // Init ViewPage
     egui_view_viewpage_init_with_params(EGUI_VIEW_OF(&viewpage), &viewpage_params);
 
@@ -137,7 +146,8 @@ void uicode_create_ui(void)
 
     // Layout and add to root
     egui_view_viewpage_layout_childs(EGUI_VIEW_OF(&viewpage));
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&viewpage));
+    egui_view_group_add_child(EGUI_VIEW_OF(&root), EGUI_VIEW_OF(&viewpage));
+    egui_core_add_user_root_view(EGUI_VIEW_OF(&root));
 
     // Register page change callback and trigger first page entry animation
     egui_view_viewpage_set_on_page_changed(EGUI_VIEW_OF(&viewpage), viewpage_on_page_changed);

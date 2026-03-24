@@ -379,6 +379,11 @@ static int egui_view_group_dispatch_touch_event_capture_internal(egui_view_t *se
     EGUI_LOCAL_INIT(egui_view_group_t);
     int is_intercepted = 0;
 
+    if (!self->is_visible || self->is_gone)
+    {
+        return 0;
+    }
+
     if (egui_view_group_is_process_touch_event_disallowed(self))
     {
         return 0;
@@ -397,6 +402,11 @@ static int egui_view_group_dispatch_touch_event_capture_internal(egui_view_t *se
         EGUI_DLIST_FOR_EACH_NODE_REVERSE(&local->childs, p_head)
         {
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
+
+            if (!tmp->is_visible || tmp->is_gone)
+            {
+                continue;
+            }
 
             if (!egui_region_pt_in_rect(&tmp->region_screen, event->location.x, event->location.y))
             {

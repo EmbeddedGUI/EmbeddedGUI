@@ -45,7 +45,7 @@ web\docs
 /.venv/
 /tools/w64devkit/
 dist/
-
+tools/
 # Plan/design documents (local only)
 .claude/*.md
 docs/plans/

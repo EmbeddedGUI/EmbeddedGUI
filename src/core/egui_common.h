@@ -275,6 +275,21 @@ typedef union egui_color_rgb888_t
 
 typedef uint8_t egui_alpha_t; /*!< Alpha value in range 0-255 */
 
+__EGUI_STATIC_INLINE__ egui_alpha_t egui_alpha_make(int32_t percent)
+{
+    if (percent <= 0)
+    {
+        return EGUI_ALPHA_0;
+    }
+    if (percent >= 100)
+    {
+        return EGUI_ALPHA_100;
+    }
+    return (egui_alpha_t)(((uint32_t)percent * (uint32_t)EGUI_ALPHA_100) / 100U);
+}
+
+#define EGUI_ALPHA_MAKE(_percent) egui_alpha_make((int32_t)(_percent))
+
 #define EGUI_DIM_MAX 0x7FF0  /*!< Maximum value for egui_dim_t */
 #define egui_dim_t   int16_t /*!< GUI dimensions in units of pixels */
 #if EGUI_CONFIG_REDUCE_MARGIN_PADDING_SIZE

@@ -6,12 +6,27 @@ extern "C" {
 #endif
 
 // Large showcase canvas
-#define EGUI_CONFIG_SCEEN_WIDTH  1280
-#define EGUI_CONFIG_SCEEN_HEIGHT 1024
+#define HELLO_SHOWCASE_CANVAS_WIDTH  1280
+#define HELLO_SHOWCASE_CANVAS_HEIGHT 1024
 
-// PFB: 1280/32=40, 1024/32=32
-#define EGUI_CONFIG_PFB_WIDTH  320
-#define EGUI_CONFIG_PFB_HEIGHT 32
+// #define EGUI_CONFIG_SCEEN_WIDTH 240
+// #define EGUI_CONFIG_SCEEN_HEIGHT 320
+
+#ifndef EGUI_CONFIG_SCEEN_WIDTH
+#define EGUI_CONFIG_SCEEN_WIDTH HELLO_SHOWCASE_CANVAS_WIDTH
+#endif
+
+#ifndef EGUI_CONFIG_SCEEN_HEIGHT
+#define EGUI_CONFIG_SCEEN_HEIGHT HELLO_SHOWCASE_CANVAS_HEIGHT
+#endif
+
+#ifndef EGUI_CONFIG_PFB_WIDTH
+#define EGUI_CONFIG_PFB_WIDTH ((EGUI_CONFIG_SCEEN_WIDTH + 3) / 4)
+#endif
+
+#ifndef EGUI_CONFIG_PFB_HEIGHT
+#define EGUI_CONFIG_PFB_HEIGHT ((EGUI_CONFIG_SCEEN_HEIGHT + 31) / 32)
+#endif
 
 // Showcase often updates 9-10 distant widgets in the same frame.
 // Use a few more slots here to avoid large fallback unions without

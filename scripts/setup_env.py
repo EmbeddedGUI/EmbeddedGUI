@@ -11,7 +11,9 @@ import shutil
 import ssl
 import subprocess
 import sys
+import tempfile
 import urllib.request
+import zipfile
 
 
 MIN_PYTHON_VERSION = (3, 8)
@@ -36,6 +38,9 @@ W64DEVKIT_URL_MIRROR = (
     f"https://ghfast.top/https://github.com/skeeto/w64devkit/releases/download/v{W64DEVKIT_VERSION}/{W64DEVKIT_FILENAME}"
 )
 W64DEVKIT_SHA256 = ""
+
+FFMPEG_WINDOWS_FILENAME = "ffmpeg-release-essentials.zip"
+FFMPEG_WINDOWS_URL_PRIMARY = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
 
 
 def project_root() -> Path:
@@ -183,7 +188,7 @@ def print_manual_python_help(venv_python: Path, profile: str, venv_dir: Path) ->
         print(f"  source {venv_dir}/bin/activate")
 
 
-def verify_python_environment(venv_python: Path, profile: str, root_dir: Path) -> bool:
+def build_python_verify_script(profile: str, root_dir: Path) -> str:
     imports = [
         "import json5",
         "import numpy",
@@ -205,7 +210,11 @@ def verify_python_environment(venv_python: Path, profile: str, root_dir: Path) -
             ]
         )
 
-    script = "import os, sys\n" + "\n".join(imports) + "\nprint('ok')\n"
+    return "import os, sys\n" + "\n".join(imports) + "\nprint('ok')\n"
+
+
+def verify_python_environment(venv_python: Path, profile: str, root_dir: Path) -> bool:
+    script = build_python_verify_script(profile, root_dir)
     result = run([str(venv_python), "-c", script], capture_output=True)
     if result.returncode == 0:
         print("[OK] Python dependency verification passed.")
@@ -361,6 +370,144 @@ def prepend_path(env: dict[str, str], path: Path) -> dict[str, str]:
     return updated
 
 
+def ffmpeg_executable_name() -> str:
+    return "ffmpeg.exe" if is_windows() else "ffmpeg"
+
+
+def local_ffmpeg_bin(root_dir: Path) -> Path:
+    return root_dir / "tools" / "ffmpeg" / "bin"
+
+
+def print_manual_ffmpeg_help(root_dir: Path) -> None:
+    ffmpeg_dir = root_dir / "tools" / "ffmpeg"
+    print("Manual recovery steps:")
+    if is_windows():
+        print(f"  1. Download: {FFMPEG_WINDOWS_URL_PRIMARY}")
+        print("  2. Extract it so this file exists:")
+        print(f"     {ffmpeg_dir / 'bin' / 'ffmpeg.exe'}")
+        print(f"  3. Add {ffmpeg_dir / 'bin'} to PATH or rerun setup.")
+    else:
+        print("  Install FFmpeg with your package manager, then rerun setup.")
+        print("  Debian/Ubuntu: sudo apt install ffmpeg")
+        print("  Fedora      : sudo dnf install ffmpeg")
+        print("  Arch Linux  : sudo pacman -S ffmpeg")
+        print("  macOS       : brew install ffmpeg")
+        print(f"  Or place a local build under: {ffmpeg_dir}")
+    print("  Use --skip-ffmpeg if you do not need MP4 or GIF workflows.")
+
+
+def find_tool_dir_by_executable(search_root: Path, executable_name: str) -> Path | None:
+    for candidate in search_root.rglob(executable_name):
+        if candidate.parent.name == "bin":
+            return candidate.parent.parent
+    return None
+
+
+def extract_zip_tool_archive(archive_path: Path, destination_dir: Path, executable_name: str) -> bool:
+    destination_dir.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=f"{destination_dir.name}_", dir=str(destination_dir.parent)) as temp_dir_name:
+        temp_dir = Path(temp_dir_name)
+        try:
+            with zipfile.ZipFile(archive_path) as archive:
+                archive.extractall(temp_dir)
+        except (OSError, zipfile.BadZipFile) as exc:
+            print(f"[!!] Failed to extract zip archive: {exc}")
+            return False
+
+        extracted_dir = find_tool_dir_by_executable(temp_dir, executable_name)
+        if extracted_dir is None:
+            print(f"[!!] Extracted archive did not contain {executable_name}.")
+            return False
+
+        if destination_dir.exists():
+            shutil.rmtree(destination_dir, ignore_errors=True)
+        shutil.move(str(extracted_dir), str(destination_dir))
+
+    return True
+
+
+def validate_ffmpeg(ffmpeg_path: str, env: dict[str, str]) -> bool:
+    try:
+        result = run([ffmpeg_path, "-version"], env=env, capture_output=True)
+    except OSError as exc:
+        print(f"[!!] Found ffmpeg at {ffmpeg_path}, but it failed to start: {exc}")
+        return False
+
+    if result.returncode == 0:
+        return True
+
+    print(f"[!!] Found ffmpeg at {ffmpeg_path}, but it failed to run.")
+    if result.stderr.strip():
+        print(result.stderr.strip())
+    elif result.stdout.strip():
+        print(result.stdout.strip())
+    return False
+
+
+def download_ffmpeg_windows(root_dir: Path) -> bool:
+    tools_dir = root_dir / "tools"
+    ffmpeg_dir = tools_dir / "ffmpeg"
+    ffmpeg_exe = ffmpeg_dir / "bin" / "ffmpeg.exe"
+    if ffmpeg_exe.exists():
+        print(f"[OK] Reusing existing FFmpeg: {ffmpeg_exe}")
+        return True
+
+    tools_dir.mkdir(parents=True, exist_ok=True)
+    archive_path = tools_dir / FFMPEG_WINDOWS_FILENAME
+    if not archive_path.exists() and not download_file(FFMPEG_WINDOWS_URL_PRIMARY, archive_path):
+        print("[!!] Unable to download FFmpeg.")
+        print_manual_ffmpeg_help(root_dir)
+        return False
+
+    print("Extracting FFmpeg ...")
+    if not extract_zip_tool_archive(archive_path, ffmpeg_dir, "ffmpeg.exe"):
+        archive_path.unlink(missing_ok=True)
+        print_manual_ffmpeg_help(root_dir)
+        return False
+
+    archive_path.unlink(missing_ok=True)
+    if not ffmpeg_exe.exists():
+        print("[!!] FFmpeg extraction completed, but ffmpeg.exe was not found.")
+        print_manual_ffmpeg_help(root_dir)
+        return False
+
+    print(f"[OK] Installed FFmpeg to: {ffmpeg_dir}")
+    return True
+
+
+def ensure_ffmpeg(root_dir: Path, env: dict[str, str], auto_install: bool) -> tuple[dict[str, str], bool]:
+    log_header("Media Tools")
+    local_bin = local_ffmpeg_bin(root_dir)
+    if local_bin.exists():
+        env = prepend_path(env, local_bin)
+
+    ffmpeg_path = find_command("ffmpeg.exe", env) or find_command("ffmpeg", env)
+    if ffmpeg_path and validate_ffmpeg(ffmpeg_path, env):
+        print(f"[OK] ffmpeg: {ffmpeg_path}")
+        if local_bin.exists():
+            print(f"[OK] Local FFmpeg available: {local_bin}")
+        return env, True
+
+    print("[!!] ffmpeg not found in PATH, or the existing binary is unusable.")
+    if not is_windows() or not auto_install:
+        print_manual_ffmpeg_help(root_dir)
+        return env, False
+
+    if not download_ffmpeg_windows(root_dir):
+        return env, False
+
+    env = prepend_path(env, local_bin)
+    ffmpeg_path = find_command(ffmpeg_executable_name(), env) or find_command("ffmpeg", env)
+    if ffmpeg_path and validate_ffmpeg(ffmpeg_path, env):
+        print(f"[OK] ffmpeg: {ffmpeg_path}")
+        print(f"[OK] Add this to PATH if needed: {local_bin}")
+        return env, True
+
+    print("[!!] FFmpeg was downloaded, but ffmpeg is still unavailable.")
+    print_manual_ffmpeg_help(root_dir)
+    return env, False
+
+
 def ensure_windows_toolchain(root_dir: Path, auto_install: bool) -> tuple[dict[str, str], bool]:
     log_header("Windows Toolchain")
     env = os.environ.copy()
@@ -442,12 +589,151 @@ def run_build_verification(root_dir: Path, env: dict[str, str]) -> bool:
     return False
 
 
-def print_summary(root_dir: Path, venv_dir: Path, profile: str, toolchain_ready: bool) -> None:
+def display_path(path_or_text: str | Path, root_dir: Path | None = None) -> str:
+    path_text = str(path_or_text)
+    try:
+        path_obj = Path(path_text)
+        if root_dir is not None:
+            try:
+                path_text = str(path_obj.resolve().relative_to(root_dir.resolve()))
+            except ValueError:
+                path_text = str(path_obj.resolve())
+        else:
+            path_text = str(path_obj)
+    except OSError:
+        path_text = str(path_or_text)
+
+    if is_windows():
+        return path_text.replace("/", "\\")
+    return path_text
+
+
+def first_non_empty_line(text: str) -> str:
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped:
+            return stripped
+    return ""
+
+
+def last_non_empty_line(text: str) -> str:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    return lines[-1] if lines else ""
+
+
+def summarize_process_error(result: subprocess.CompletedProcess[str]) -> str:
+    return last_non_empty_line(result.stderr) or last_non_empty_line(result.stdout) or f"exit code {result.returncode}"
+
+
+def probe_python_host(root_dir: Path) -> str:
+    version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    return f"ready ({display_path(sys.executable, root_dir)}; Python {version})"
+
+
+def probe_virtualenv(venv_dir: Path, profile: str, root_dir: Path) -> tuple[Path | None, str]:
+    venv_python = venv_python_path(venv_dir)
+    if not venv_python.exists():
+        if profile == "none":
+            return None, "not requested"
+        return None, f"missing ({display_path(venv_dir, root_dir)})"
+
+    result = run([str(venv_python), "--version"], capture_output=True)
+    if result.returncode != 0:
+        return None, f"broken ({display_path(venv_python, root_dir)}; {summarize_process_error(result)})"
+
+    version_text = first_non_empty_line(result.stdout) or first_non_empty_line(result.stderr) or "Python"
+    if profile == "none":
+        return venv_python, f"present ({display_path(venv_python, root_dir)}; {version_text})"
+    return venv_python, f"ready ({display_path(venv_python, root_dir)}; {version_text})"
+
+
+def probe_python_dependencies(venv_python: Path | None, profile: str, root_dir: Path) -> str:
+    if profile == "none":
+        return "skipped (python-mode=none)"
+    if venv_python is None:
+        return "not ready (virtual environment unavailable)"
+
+    script = build_python_verify_script(profile, root_dir)
+    result = run([str(venv_python), "-c", script], capture_output=True)
+    if result.returncode == 0:
+        return f"ready ({profile})"
+    return f"not ready ({summarize_process_error(result)})"
+
+
+def probe_command_status(command_names: list[str], env: dict[str, str], root_dir: Path, version_args: list[str] | None = None) -> str:
+    version_args = version_args or ["--version"]
+    command_path = None
+    for name in command_names:
+        command_path = find_command(name, env)
+        if command_path:
+            break
+
+    if not command_path:
+        return "missing"
+
+    result = run([command_path] + version_args, env=env, capture_output=True)
+    if result.returncode != 0:
+        return f"broken ({display_path(command_path, root_dir)}; {summarize_process_error(result)})"
+
+    version_line = first_non_empty_line(result.stdout) or first_non_empty_line(result.stderr) or "ok"
+    return f"ready ({display_path(command_path, root_dir)}; {version_line})"
+
+
+def probe_local_tool_status(tool_dir: Path, executable_path: Path, root_dir: Path) -> str:
+    if executable_path.exists():
+        return f"installed ({display_path(tool_dir, root_dir)})"
+    if tool_dir.exists():
+        return f"incomplete ({display_path(tool_dir, root_dir)})"
+    return "not installed"
+
+
+def build_summary_env(root_dir: Path, env: dict[str, str] | None = None) -> dict[str, str]:
+    summary_env = (env or os.environ.copy()).copy()
+    local_toolchain = local_w64devkit_bin(root_dir)
+    local_media = local_ffmpeg_bin(root_dir)
+    if local_toolchain.exists():
+        summary_env = prepend_path(summary_env, local_toolchain)
+    if local_media.exists():
+        summary_env = prepend_path(summary_env, local_media)
+    return summary_env
+
+
+def print_status_line(label: str, value: str) -> None:
+    status = "INFO"
+    lowered = value.lower()
+
+    if lowered.startswith("ready") or lowered.startswith("passed") or lowered.startswith("installed") or lowered.startswith("present"):
+        status = "OK"
+    elif lowered.startswith("skipped") or lowered.startswith("not requested"):
+        status = "SKIP"
+    elif lowered.startswith("missing") or lowered.startswith("broken") or lowered.startswith("not ready") or lowered.startswith("failed") or lowered.startswith("incomplete"):
+        status = "FAIL"
+
+    print(f"[{status:<4}] {label:<14}: {value}")
+
+
+def print_summary(root_dir: Path, venv_dir: Path, profile: str, env: dict[str, str], build_status: str) -> None:
     log_header("Summary")
-    print(f"Project root : {root_dir}")
-    print(f"Python mode  : {profile}")
-    print(f"Virtual env  : {venv_dir}")
-    print(f"Toolchain    : {'ready' if toolchain_ready else 'not ready'}")
+    summary_env = build_summary_env(root_dir, env)
+    venv_python, venv_status = probe_virtualenv(venv_dir, profile, root_dir)
+
+    print_status_line("Project root", display_path(root_dir))
+    print_status_line("Platform", f"{sys.platform} ({os.name})")
+    print_status_line("Host Python", probe_python_host(root_dir))
+    print_status_line("Python mode", profile)
+    print_status_line("Virtual env", venv_status)
+    print_status_line("Python deps", probe_python_dependencies(venv_python, profile, root_dir))
+    print_status_line("make", probe_command_status(["make.exe", "make"], summary_env, root_dir))
+    print_status_line("gcc", probe_command_status(["gcc.exe", "gcc"], summary_env, root_dir))
+    if is_windows():
+        local_toolchain_dir = root_dir / "tools" / "w64devkit"
+        local_toolchain_exe = local_toolchain_dir / "bin" / "gcc.exe"
+        print_status_line("w64devkit", probe_local_tool_status(local_toolchain_dir, local_toolchain_exe, root_dir))
+    print_status_line("FFmpeg", probe_command_status([ffmpeg_executable_name(), "ffmpeg"], summary_env, root_dir, ["-version"]))
+    local_ffmpeg_dir = root_dir / "tools" / "ffmpeg"
+    local_ffmpeg_exe = local_ffmpeg_dir / "bin" / ffmpeg_executable_name()
+    print_status_line("Local FFmpeg", probe_local_tool_status(local_ffmpeg_dir, local_ffmpeg_exe, root_dir))
+    print_status_line("Build check", build_status)
     print()
     print("Common commands:")
     print("  make all APP=HelloSimple")
@@ -500,6 +786,16 @@ def parse_args() -> argparse.Namespace:
         help="Install the Windows w64devkit toolchain and exit.",
     )
     parser.add_argument(
+        "--skip-ffmpeg",
+        action="store_true",
+        help="Skip FFmpeg validation or installation for MP4 and GIF workflows.",
+    )
+    parser.add_argument(
+        "--install-ffmpeg",
+        action="store_true",
+        help="Install the Windows FFmpeg bundle and exit.",
+    )
+    parser.add_argument(
         "--skip-build-check",
         action="store_true",
         help="Skip the final HelloSimple build verification step.",
@@ -512,24 +808,46 @@ def main() -> int:
     root_dir = project_root()
     venv_dir = (root_dir / args.venv_dir).resolve()
     python_mode = normalize_python_mode(args)
+    summary_env = os.environ.copy()
+    build_status = "not run"
+    exit_code = 0
 
     os.chdir(root_dir)
+
+    if args.install_toolchain and args.install_ffmpeg:
+        print("[!!] Use only one of --install-toolchain or --install-ffmpeg.")
+        return 1
 
     if args.install_toolchain:
         if not is_windows():
             print("[!!] --install-toolchain is only supported on Windows.")
             return 1
-        _, ready = ensure_windows_toolchain(root_dir, auto_install=True)
-        return 0 if ready else 1
+        summary_env, ready = ensure_windows_toolchain(root_dir, auto_install=True)
+        build_status = "skipped (--install-toolchain)"
+        exit_code = 0 if ready else 1
+        print_summary(root_dir, venv_dir, python_mode, summary_env, build_status)
+        return exit_code
+
+    if args.install_ffmpeg:
+        if not is_windows():
+            print("[!!] --install-ffmpeg is only supported on Windows.")
+            return 1
+        summary_env, ready = ensure_ffmpeg(root_dir, os.environ.copy(), auto_install=True)
+        build_status = "skipped (--install-ffmpeg)"
+        exit_code = 0 if ready else 1
+        print_summary(root_dir, venv_dir, python_mode, summary_env, build_status)
+        return exit_code
 
     if python_mode != "none":
         if not install_python_environment(root_dir, venv_dir, python_mode):
+            build_status = "skipped (python setup failed)"
+            print_summary(root_dir, venv_dir, python_mode, summary_env, build_status)
             return 1
     else:
         print("Skipping Python dependency installation.")
 
     if args.skip_toolchain:
-        toolchain_env = os.environ.copy()
+        toolchain_env = summary_env.copy()
         toolchain_ready = True
         print("Skipping toolchain setup by request.")
     else:
@@ -538,16 +856,31 @@ def main() -> int:
         else:
             toolchain_env, toolchain_ready = check_posix_toolchain()
 
-    if toolchain_ready and not args.skip_build_check:
-        if not run_build_verification(root_dir, toolchain_env):
-            return 1
-    elif not toolchain_ready:
-        print("Build verification skipped because the toolchain is not ready.")
+    if args.skip_ffmpeg:
+        ffmpeg_ready = True
+        print("Skipping FFmpeg setup by request.")
+    else:
+        toolchain_env, ffmpeg_ready = ensure_ffmpeg(root_dir, toolchain_env, auto_install=is_windows())
 
-    print_summary(root_dir, venv_dir, python_mode, toolchain_ready)
+    summary_env = toolchain_env
+
+    if not toolchain_ready:
+        build_status = "skipped (toolchain not ready)"
+        print("Build verification skipped because the toolchain is not ready.")
+    elif args.skip_build_check:
+        build_status = "skipped by request"
+    elif run_build_verification(root_dir, toolchain_env):
+        build_status = "passed"
+    else:
+        build_status = "failed"
+        exit_code = 1
+
+    print_summary(root_dir, venv_dir, python_mode, summary_env, build_status)
     if not args.skip_toolchain and not toolchain_ready:
         return 1
-    return 0
+    if not args.skip_ffmpeg and not ffmpeg_ready:
+        return 1
+    return exit_code
 
 
 if __name__ == "__main__":

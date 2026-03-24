@@ -83,6 +83,28 @@ https://github.com/skeeto/w64devkit/releases
 
 ---
 
+### Q: `ffmpeg` 未找到，或者自动下载失败
+
+**问题描述：** 运行 `setup.bat` / `setup.sh` 时，脚本提示 `ffmpeg` 不存在，或者 Windows 下自动下载失败。
+**解决方案：**
+
+1. Windows 重新运行 `setup.bat`，脚本会优先尝试自动安装到 `tools/ffmpeg/`
+2. 如果自动下载失败，手动下载并解压，使下面这个文件存在：
+   `tools/ffmpeg/bin/ffmpeg.exe`
+3. Linux / macOS 通过系统包管理器安装 `ffmpeg`
+4. 如果当前不需要 MP4 转序列帧或 GIF 录制流程，可使用 `--skip-ffmpeg`
+
+常见安装命令：
+
+```bash
+sudo apt install ffmpeg
+sudo dnf install ffmpeg
+sudo pacman -S ffmpeg
+brew install ffmpeg
+```
+
+---
+
 ## 构建问题
 
 ### Q: 找不到 `make` 命令

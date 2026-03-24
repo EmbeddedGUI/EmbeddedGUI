@@ -16,6 +16,7 @@
 #include "test/test_common.h"
 #include "test/test_view.h"
 #include "test/test_view_group.h"
+#include "test/test_canvas_panner.h"
 #include "test/test_linearlayout.h"
 #include "test/test_list_view.h"
 #include "test/test_interpolator.h"
@@ -95,6 +96,7 @@ void uicode_create_ui(void)
     test_common_run();
     test_view_run();
     test_view_group_run();
+    test_canvas_panner_run();
     test_linearlayout_run();
     test_list_view_run();
     test_interpolator_run();

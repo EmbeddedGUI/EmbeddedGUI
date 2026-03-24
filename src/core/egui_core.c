@@ -373,6 +373,27 @@ egui_view_group_t *egui_core_get_root_view(void)
     return (egui_view_group_t *)&egui_core.root_view_group;
 }
 
+void egui_core_set_pfb_scan_direction(uint8_t reverse_x, uint8_t reverse_y)
+{
+    egui_core.pfb_scan_reverse_x = reverse_x ? 1U : 0U;
+    egui_core.pfb_scan_reverse_y = reverse_y ? 1U : 0U;
+}
+
+void egui_core_reset_pfb_scan_direction(void)
+{
+    egui_core_set_pfb_scan_direction(0U, 0U);
+}
+
+uint8_t egui_core_get_pfb_scan_reverse_x(void)
+{
+    return egui_core.pfb_scan_reverse_x;
+}
+
+uint8_t egui_core_get_pfb_scan_reverse_y(void)
+{
+    return egui_core.pfb_scan_reverse_y;
+}
+
 void egui_core_add_root_view(egui_view_t *view)
 {
     egui_view_group_add_child((egui_view_t *)&egui_core.root_view_group, view);
@@ -632,6 +653,8 @@ void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode)
     egui_dim_t tmp_pfb_width;
     egui_dim_t tmp_pfb_height;
     egui_dim_t pfb_width_count, pfb_height_count;
+    uint8_t reverse_x = egui_core.pfb_scan_reverse_x;
+    uint8_t reverse_y = egui_core.pfb_scan_reverse_y;
 
     EGUI_LOG_DBG("region_dirty, x: %d, y: %d, width: %d, height: %d\n", p_region_dirty->location.x, p_region_dirty->location.y, p_region_dirty->size.width,
                  p_region_dirty->size.height);
@@ -655,12 +678,16 @@ void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode)
                  pfb_height);
 
     // start draw
-    y_pos = y_pos_base;
     for (y = 0; y < pfb_height_count; y++)
     {
-        x_pos = x_pos_base;
+        egui_dim_t tile_y = reverse_y ? (pfb_height_count - 1 - y) : y;
+        y_pos = y_pos_base + tile_y * pfb_height;
+
         for (x = 0; x < pfb_width_count; x++)
         {
+            egui_dim_t tile_x = reverse_x ? (pfb_width_count - 1 - x) : x;
+
+            x_pos = x_pos_base + tile_x * pfb_width;
             tmp_pfb_width = EGUI_MIN(pfb_width, x_pos_base + width_dirty - x_pos);
             tmp_pfb_height = EGUI_MIN(pfb_height, y_pos_base + height_dirty - y_pos);
             EGUI_LOG_DBG("pfb_region, x_pos: %d, y_pos: %d, pfb_width: %d, pfb_height: %d\n", x_pos, y_pos, tmp_pfb_width, tmp_pfb_height);
@@ -715,10 +742,7 @@ void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode)
                 egui_api_refresh_display();
             }
 #endif // EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
-
-            x_pos += pfb_width;
         }
-        y_pos += pfb_height;
     }
 }
 
@@ -1198,6 +1222,7 @@ void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HE
     egui_core.screen_width = EGUI_CONFIG_SCEEN_WIDTH;
     egui_core.screen_height = EGUI_CONFIG_SCEEN_HEIGHT;
     egui_core.color_bytes = EGUI_CONFIG_COLOR_DEPTH >> 3;
+    egui_core_reset_pfb_scan_direction();
 
     egui_core_pfb_set_buffer(pfb[0], EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT);
 

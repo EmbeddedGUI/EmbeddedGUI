@@ -18,13 +18,16 @@
 #define BASIC_FONT_BODY ((const egui_font_t *)&egui_res_font_montserrat_10_4)
 #define BASIC_FONT_META ((const egui_font_t *)&egui_res_font_montserrat_8_4)
 
+#define BASIC_CANVAS_WIDTH  HELLO_VIRTUAL_STAGE_BASIC_CANVAS_WIDTH
+#define BASIC_CANVAS_HEIGHT HELLO_VIRTUAL_STAGE_BASIC_CANVAS_HEIGHT
+
 #define BASIC_SCREEN_MARGIN_X 8
 #define BASIC_SCREEN_MARGIN_Y 8
 
 #define BASIC_STAGE_X BASIC_SCREEN_MARGIN_X
 #define BASIC_STAGE_Y BASIC_SCREEN_MARGIN_Y
-#define BASIC_STAGE_W (EGUI_CONFIG_SCEEN_WIDTH - BASIC_SCREEN_MARGIN_X * 2)
-#define BASIC_STAGE_H (EGUI_CONFIG_SCEEN_HEIGHT - BASIC_STAGE_Y - BASIC_SCREEN_MARGIN_Y)
+#define BASIC_STAGE_W (BASIC_CANVAS_WIDTH - BASIC_SCREEN_MARGIN_X * 2)
+#define BASIC_STAGE_H (BASIC_CANVAS_HEIGHT - BASIC_STAGE_Y - BASIC_SCREEN_MARGIN_Y)
 
 enum
 {
@@ -104,7 +107,7 @@ struct basic_stage_context
 static const char *basic_mode_items[] = {"Auto", "Boost", "Inspect"};
 static const char *basic_device_names[] = {"Pump", "Valve", "Fan"};
 
-static egui_view_t background_view;
+static egui_view_canvas_panner_t basic_root;
 static egui_view_virtual_stage_t basic_stage_view;
 static basic_stage_context_t basic_ctx;
 
@@ -864,15 +867,17 @@ void test_init_ui(void)
     basic_apply_default_state();
     basic_init_nodes();
 
-    egui_view_init(EGUI_VIEW_OF(&background_view));
-    egui_view_set_size(EGUI_VIEW_OF(&background_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-    egui_view_set_background(EGUI_VIEW_OF(&background_view), EGUI_BG_OF(&basic_screen_bg));
+    egui_view_canvas_panner_init(EGUI_VIEW_OF(&basic_root));
+    egui_view_set_size(EGUI_VIEW_OF(&basic_root), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_canvas_panner_set_canvas_size(EGUI_VIEW_OF(&basic_root), BASIC_CANVAS_WIDTH, BASIC_CANVAS_HEIGHT);
+    egui_view_set_background(EGUI_VIEW_OF(&basic_root), EGUI_BG_OF(&basic_screen_bg));
 
     EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(&basic_stage_view, &basic_stage_bridge);
     EGUI_VIEW_VIRTUAL_STAGE_SET_BACKGROUND(&basic_stage_view, EGUI_BG_OF(&basic_stage_bg));
 
-    egui_core_add_user_root_view(EGUI_VIEW_OF(&background_view));
-    EGUI_VIEW_VIRTUAL_STAGE_ADD_ROOT(&basic_stage_view);
+    egui_view_group_add_child(EGUI_VIEW_OF(&basic_root), EGUI_VIEW_OF(&basic_stage_view));
+
+    egui_core_add_user_root_view(EGUI_VIEW_OF(&basic_root));
 }
 
 #if EGUI_CONFIG_RECORDING_TEST

@@ -27,6 +27,8 @@ struct egui_core
 
     int pfb_width_count;  // width of frame buffer count in screen width
     int pfb_height_count; // height of frame buffer count in screen width
+    uint8_t pfb_scan_reverse_x;
+    uint8_t pfb_scan_reverse_y;
 
 #if EGUI_CONFIG_DEBUG_VIEW_ID
     uint16_t unique_id; // unique id count

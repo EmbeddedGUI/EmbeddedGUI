@@ -79,6 +79,8 @@
 
 #include "widget/egui_view.h"
 #include "widget/egui_view_group.h"
+#include "widget/egui_view_canvas_panner.h"
+#include "widget/egui_view_canvas_viewport.h"
 #include "widget/egui_view_button.h"
 #include "widget/egui_view_dynamic_label.h"
 #include "widget/egui_view_label.h"
