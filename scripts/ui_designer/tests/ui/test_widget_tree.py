@@ -303,6 +303,7 @@ class TestWidgetTreePanel:
         assert panel._item_map[id(container)].font(0).bold() is False
         assert panel._item_map[id(target)].font(0).bold() is True
         assert panel._item_map[id(other)].isHidden() is True
+        assert panel.filter_position_label.text() == "0/1"
         assert panel.filter_status_label.text() == "1 match"
 
         panel.rebuild_tree()
@@ -312,12 +313,14 @@ class TestWidgetTreePanel:
         assert panel._item_map[id(target)].isHidden() is False
         assert panel._item_map[id(other)].isHidden() is True
         assert panel._item_map[id(target)].font(0).bold() is True
+        assert panel.filter_position_label.text() == "0/1"
         assert panel.filter_status_label.text() == "1 match"
 
         panel.filter_edit.setText("")
 
         assert panel._item_map[id(other)].isHidden() is False
         assert panel._item_map[id(target)].font(0).bold() is False
+        assert panel.filter_position_label.text() == ""
         assert panel.filter_status_label.text() == "All widgets"
         panel.deleteLater()
 
@@ -339,6 +342,7 @@ class TestWidgetTreePanel:
         assert panel._item_map[id(label)].isHidden() is True
         assert panel._item_map[id(button)].isHidden() is False
         assert panel._item_map[id(button)].font(0).bold() is True
+        assert panel.filter_position_label.text() == "0/1"
         assert panel.filter_status_label.text() == "1 match"
         panel.deleteLater()
 
@@ -360,6 +364,7 @@ class TestWidgetTreePanel:
         assert panel._item_map[id(root)].isHidden() is True
         assert panel._item_map[id(label)].isHidden() is True
         assert panel._item_map[id(button)].isHidden() is True
+        assert panel.filter_position_label.text() == ""
         assert panel.filter_status_label.text() == "No matches"
         assert panel.filter_prev_btn.isEnabled() is False
         assert panel.filter_next_btn.isEnabled() is False
@@ -381,21 +386,26 @@ class TestWidgetTreePanel:
         panel.set_project(project)
         panel.filter_edit.setText("field")
 
+        assert panel.filter_position_label.text() == "0/2"
         assert panel.filter_status_label.text() == "2 matches"
         assert panel.filter_prev_btn.isEnabled() is True
         assert panel.filter_next_btn.isEnabled() is True
 
         panel._select_next_filter_match()
         assert panel._get_selected_widget() is first
+        assert panel.filter_position_label.text() == "1/2"
 
         panel._select_next_filter_match()
         assert panel._get_selected_widget() is second
+        assert panel.filter_position_label.text() == "2/2"
 
         panel._select_next_filter_match()
         assert panel._get_selected_widget() is first
+        assert panel.filter_position_label.text() == "1/2"
 
         panel._select_previous_filter_match()
         assert panel._get_selected_widget() is second
+        assert panel.filter_position_label.text() == "2/2"
         panel.deleteLater()
 
     def test_filter_edit_keyboard_shortcuts_navigate_matches(self, qapp):
@@ -414,12 +424,15 @@ class TestWidgetTreePanel:
 
         qapp.sendEvent(panel.filter_edit, QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.NoModifier))
         assert panel._get_selected_widget() is first
+        assert panel.filter_position_label.text() == "1/2"
 
         qapp.sendEvent(panel.filter_edit, QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.NoModifier))
         assert panel._get_selected_widget() is second
+        assert panel.filter_position_label.text() == "2/2"
 
         qapp.sendEvent(panel.filter_edit, QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.ShiftModifier))
         assert panel._get_selected_widget() is first
+        assert panel.filter_position_label.text() == "1/2"
         panel.deleteLater()
 
     def test_filter_edit_escape_clears_active_filter(self, qapp):
@@ -439,10 +452,30 @@ class TestWidgetTreePanel:
         qapp.sendEvent(panel.filter_edit, QKeyEvent(QEvent.KeyPress, Qt.Key_Escape, Qt.NoModifier))
 
         assert panel.filter_edit.text() == ""
+        assert panel.filter_position_label.text() == ""
         assert panel.filter_status_label.text() == "All widgets"
         assert panel._item_map[id(root)].isHidden() is False
         assert panel._item_map[id(label)].isHidden() is False
         assert panel._item_map[id(button)].isHidden() is False
+        panel.deleteLater()
+
+    def test_filter_position_label_updates_for_manual_match_selection(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.widget_tree import WidgetTreePanel
+
+        project, root = _build_project_with_root()
+        first = WidgetModel("label", name="field_label")
+        second = WidgetModel("button", name="field_button")
+        root.add_child(first)
+        root.add_child(second)
+
+        panel = WidgetTreePanel()
+        panel.set_project(project)
+        panel.filter_edit.setText("field")
+
+        panel.set_selected_widgets([second], primary=second)
+
+        assert panel.filter_position_label.text() == "2/2"
         panel.deleteLater()
 
     def test_rebuild_tree_preserves_manual_collapse_state(self, qapp):

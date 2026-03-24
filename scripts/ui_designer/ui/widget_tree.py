@@ -87,6 +87,8 @@ class WidgetTreePanel(QWidget):
         self.filter_next_btn.setEnabled(False)
         filter_layout.addWidget(self.filter_prev_btn)
         filter_layout.addWidget(self.filter_next_btn)
+        self.filter_position_label = QLabel("")
+        filter_layout.addWidget(self.filter_position_label)
         self.filter_status_label = QLabel("All widgets")
         filter_layout.addWidget(self.filter_status_label)
         layout.addLayout(filter_layout)
@@ -170,6 +172,7 @@ class WidgetTreePanel(QWidget):
         primary = self._widget_map.get(id(self.tree.currentItem())) if self.tree.currentItem() else None
         if primary is None and widgets:
             primary = widgets[-1]
+        self._update_filter_position_label()
         self.widget_selected.emit(primary)
         self.selection_changed.emit(widgets, primary)
 
@@ -213,6 +216,7 @@ class WidgetTreePanel(QWidget):
                 self._reveal_item(current_item)
         finally:
             self._syncing_selection = False
+        self._update_filter_position_label()
 
     def _iter_widgets(self):
         if not self.project:
@@ -534,12 +538,29 @@ class WidgetTreePanel(QWidget):
         self.filter_next_btn.setEnabled(has_matches)
         if not query:
             self.filter_status_label.setText("All widgets")
+            self.filter_position_label.setText("")
             return
         if match_count == 0:
             self.filter_status_label.setText("No matches")
+            self.filter_position_label.setText("")
             return
         noun = "match" if match_count == 1 else "matches"
         self.filter_status_label.setText(f"{match_count} {noun}")
+        self._update_filter_position_label()
+
+    def _update_filter_position_label(self):
+        query = self.filter_edit.text().strip()
+        matches = [widget for widget in self._filter_matches if id(widget) in self._item_map]
+        if not query or not matches:
+            self.filter_position_label.setText("")
+            return
+
+        current = self._get_selected_widget()
+        if current in matches:
+            position = matches.index(current) + 1
+        else:
+            position = 0
+        self.filter_position_label.setText(f"{position}/{len(matches)}")
 
     def _select_previous_filter_match(self):
         self._select_filter_match(step=-1)
