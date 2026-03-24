@@ -423,6 +423,10 @@ class ResourcePanel(QWidget):
         import_img_btn = PushButton("Import Image...")
         import_img_btn.clicked.connect(self._on_import_image)
         img_btn_layout.addWidget(import_img_btn)
+        restore_img_btn = PushButton("Restore Missing...")
+        restore_img_btn.setToolTip("Restore missing image files by matching selected filenames against missing catalog entries.")
+        restore_img_btn.clicked.connect(lambda: self._restore_missing_resources("image"))
+        img_btn_layout.addWidget(restore_img_btn)
         img_btn_layout.addStretch()
         img_tab_layout.addLayout(img_btn_layout)
         self._tabs.addTab(img_tab, "Images")
@@ -446,6 +450,10 @@ class ResourcePanel(QWidget):
         import_font_btn = PushButton("Import Font...")
         import_font_btn.clicked.connect(self._on_import_font)
         font_btn_layout.addWidget(import_font_btn)
+        restore_font_btn = PushButton("Restore Missing...")
+        restore_font_btn.setToolTip("Restore missing font files by matching selected filenames against missing catalog entries.")
+        restore_font_btn.clicked.connect(lambda: self._restore_missing_resources("font"))
+        font_btn_layout.addWidget(restore_font_btn)
         font_btn_layout.addStretch()
         font_tab_layout.addLayout(font_btn_layout)
         self._tabs.addTab(font_tab, "Fonts")
@@ -470,6 +478,10 @@ class ResourcePanel(QWidget):
         import_text_btn.setToolTip("Import supported-text .txt file into .eguiproject/resources/")
         import_text_btn.clicked.connect(self._on_import_text)
         text_btn_layout.addWidget(import_text_btn)
+        restore_text_btn = PushButton("Restore Missing...")
+        restore_text_btn.setToolTip("Restore missing text files by matching selected filenames against missing catalog entries.")
+        restore_text_btn.clicked.connect(lambda: self._restore_missing_resources("text"))
+        text_btn_layout.addWidget(restore_text_btn)
         text_btn_layout.addStretch()
         text_tab_layout.addLayout(text_btn_layout)
         self._tabs.addTab(text_tab, "Text")
@@ -651,6 +663,26 @@ class ResourcePanel(QWidget):
             return self._text_list
         return None
 
+    def _missing_resource_names(self, resource_type):
+        target_dir = self._target_dir_for_resource_type(resource_type)
+        if resource_type == "image":
+            names = self._catalog.images
+        elif resource_type == "font":
+            names = self._catalog.fonts
+        elif resource_type == "text":
+            names = self._catalog.text_files
+        else:
+            return []
+        return [name for name in names if not os.path.isfile(os.path.join(target_dir, name))]
+
+    def _select_resource_item(self, resource_type, filename):
+        lst = self._list_widget_for_resource_type(resource_type)
+        if lst is None:
+            return
+        matches = lst.findItems(filename, Qt.MatchExactly)
+        if matches:
+            lst.setCurrentItem(matches[0])
+
     def _dialog_filter_for_resource_type(self, resource_type):
         if resource_type == "image":
             return "Images (*.png *.bmp *.jpg *.jpeg)"
@@ -777,6 +809,73 @@ class ResourcePanel(QWidget):
             self._remember_external_import_paths(paths)
             self._do_import(paths, "text")
 
+    def _restore_missing_resources_from_paths(self, resource_type, source_paths):
+        target_dir = self._target_dir_for_resource_type(resource_type)
+        missing_map = {name.lower(): name for name in self._missing_resource_names(resource_type)}
+        restored = []
+        unmatched = []
+        failures = []
+
+        for source_path in source_paths:
+            source_name = os.path.basename(source_path)
+            target_name = missing_map.get(source_name.lower())
+            if not target_name:
+                unmatched.append(source_name)
+                continue
+
+            target_path = os.path.join(target_dir, target_name)
+            try:
+                shutil.copy2(source_path, target_path)
+            except OSError as exc:
+                failures.append((target_name, str(exc)))
+                continue
+
+            self._catalog.add_file(target_name)
+            restored.append(target_name)
+            missing_map.pop(source_name.lower(), None)
+
+        if restored:
+            self.set_resource_dir(self._resource_dir)
+            self._select_resource_item(resource_type, restored[0])
+            self.resource_imported.emit()
+
+        return restored, unmatched, failures
+
+    def _restore_missing_resources(self, resource_type):
+        if not self._ensure_src_dir():
+            return
+
+        missing_names = self._missing_resource_names(resource_type)
+        if not missing_names:
+            QMessageBox.information(
+                self,
+                "Restore Missing Resources",
+                f"No missing {resource_type} resources were found.",
+            )
+            return
+
+        source_paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Restore Missing Resources",
+            self._default_external_import_dir(resource_type),
+            self._dialog_filter_for_resource_type(resource_type),
+        )
+        if not source_paths:
+            return
+
+        self._remember_external_import_paths(source_paths)
+        restored, unmatched, failures = self._restore_missing_resources_from_paths(resource_type, source_paths)
+        if restored:
+            return
+
+        message = f"No matching missing {resource_type} resources were found in the selected files."
+        if failures:
+            details = "\n".join(f"{name}: {error}" for name, error in failures)
+            message = f"{message}\n\nFailed copies:\n{details}"
+        elif unmatched:
+            message = f"{message}\n\nSelected files: {', '.join(unmatched)}"
+        QMessageBox.warning(self, "Restore Missing Resources", message)
+
     def _restore_missing_resource(self, filename, resource_type):
         if not self._ensure_src_dir():
             return
@@ -815,11 +914,7 @@ class ResourcePanel(QWidget):
         self._catalog.add_file(filename)
         self.set_resource_dir(self._resource_dir)
 
-        lst = self._list_widget_for_resource_type(resource_type)
-        if lst is not None:
-            matches = lst.findItems(filename, Qt.MatchExactly)
-            if matches:
-                lst.setCurrentItem(matches[0])
+        self._select_resource_item(resource_type, filename)
 
         self.resource_imported.emit()
 

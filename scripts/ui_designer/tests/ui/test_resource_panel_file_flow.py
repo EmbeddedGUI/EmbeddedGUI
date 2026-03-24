@@ -237,6 +237,79 @@ class TestResourcePanelFileFlow:
         assert "Expected a '.ttf' file to restore 'missing.ttf'." in warnings[0][1]
         panel.deleteLater()
 
+    def test_restore_missing_resources_batch_restores_only_matching_files(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        images_dir = resource_dir / "images"
+        images_dir.mkdir(parents=True)
+        external_dir = tmp_path / "external_images"
+        external_dir.mkdir()
+        first_match = external_dir / "missing_a.png"
+        first_match.write_bytes(b"A")
+        no_match = external_dir / "extra.png"
+        no_match.write_bytes(b"X")
+
+        catalog = ResourceCatalog()
+        catalog.add_image("missing_a.png")
+        catalog.add_image("missing_b.png")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+
+        imported = []
+        panel.resource_imported.connect(lambda: imported.append(True))
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QFileDialog.getOpenFileNames",
+            lambda *args, **kwargs: ([str(first_match), str(no_match)], "Images (*.png *.bmp *.jpg *.jpeg)"),
+        )
+
+        panel._restore_missing_resources("image")
+
+        assert (images_dir / "missing_a.png").is_file()
+        assert not (images_dir / "missing_b.png").exists()
+        assert imported == [True]
+        first_item = panel._image_list.item(0)
+        second_item = panel._image_list.item(1)
+        assert "File not found!" not in first_item.toolTip()
+        assert "File not found!" in second_item.toolTip()
+        panel.deleteLater()
+
+    def test_restore_missing_resources_warns_when_no_matching_files_selected(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        resource_dir.mkdir(parents=True)
+        external_dir = tmp_path / "external_fonts"
+        external_dir.mkdir()
+        no_match = external_dir / "other.ttf"
+        no_match.write_bytes(b"FONT")
+
+        catalog = ResourceCatalog()
+        catalog.add_font("missing.ttf")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+
+        warnings = []
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QFileDialog.getOpenFileNames",
+            lambda *args, **kwargs: ([str(no_match)], "Fonts (*.ttf *.otf)"),
+        )
+        monkeypatch.setattr("ui_designer.ui.resource_panel.QMessageBox.warning", lambda *args: warnings.append(args[1:]))
+
+        panel._restore_missing_resources("font")
+
+        assert not (resource_dir / "missing.ttf").exists()
+        assert warnings
+        assert warnings[0][0] == "Restore Missing Resources"
+        assert "No matching missing font resources were found in the selected files." in warnings[0][1]
+        panel.deleteLater()
+
     def test_rename_text_resource_updates_catalog_and_emits_signal(self, qapp, tmp_path, monkeypatch):
         from ui_designer.model.resource_catalog import ResourceCatalog
         from ui_designer.ui.resource_panel import ResourcePanel
