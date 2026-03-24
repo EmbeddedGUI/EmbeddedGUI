@@ -37,6 +37,22 @@ _UI_GROUP_LABELS = {
     "properties": "Properties",
 }
 
+_MULTI_SUPPORTED_PROPERTY_TYPES = {
+    "string",
+    "int",
+    "bool",
+    "color",
+    "alpha",
+    "align",
+    "orientation",
+    "image_format",
+    "image_alpha",
+    "image_external",
+    "font_pixelsize",
+    "font_fontbitsize",
+    "font_external",
+}
+
 
 class CollapsibleGroupBox(QGroupBox):
     """A QGroupBox that can be collapsed/expanded by clicking its title."""
@@ -439,8 +455,24 @@ class PropertyPanel(QWidget):
         widget_types = sorted({widget.widget_type for widget in self._selection})
         summary_form.addRow("Primary:", QLabel(self._primary_widget.name if self._primary_widget else ""))
         summary_form.addRow("Types:", QLabel(", ".join(widget_types)))
-        summary_form.addRow("Hint:", QLabel("Use Arrange commands for geometry and ordering changes."))
+        summary_form.addRow("Hint:", QLabel("Batch edits apply the same value to all selected widgets."))
         self._layout.addWidget(summary)
+
+        geometry_group = QGroupBox("Batch Geometry")
+        geometry_form = QFormLayout()
+        geometry_group.setLayout(geometry_form)
+        for field, label in (("x", "X:"), ("y", "Y:"), ("width", "Width:"), ("height", "Height:")):
+            spin = SpinBox()
+            spin.setRange(-9999, 9999)
+            spin.setValue(getattr(self._primary_widget, field))
+            if len({getattr(widget, field) for widget in self._selection}) > 1:
+                spin.setToolTip("Selected widgets currently have different values. Editing here will normalize them.")
+            spin.valueChanged.connect(lambda value, f=field: self._on_multi_common_changed(f, value))
+            geometry_form.addRow(label, spin)
+            self._editors[f"multi_{field}"] = spin
+        self._layout.addWidget(geometry_group)
+
+        self._build_multi_common_properties_group()
         self._layout.addWidget(self._build_designer_state_group())
         self._layout.addStretch()
 
@@ -460,6 +492,79 @@ class PropertyPanel(QWidget):
         form.addRow(hidden)
 
         return group
+
+    def _build_multi_common_properties_group(self):
+        common_props = self._collect_multi_common_properties()
+        if not common_props:
+            return
+
+        group = QGroupBox("Common Properties")
+        form = QFormLayout()
+        group.setLayout(form)
+
+        for prop_name, prop_info in common_props:
+            current_value = self._primary_widget.properties.get(prop_name)
+            editor = self._create_property_editor(
+                prop_name,
+                prop_info,
+                current_value,
+                prop_changed_handler=self._on_multi_prop_changed,
+            )
+            if editor is None:
+                continue
+
+            values = [widget.properties.get(prop_name) for widget in self._selection]
+            if len({str(value) for value in values}) > 1:
+                editor.setToolTip("Selected widgets currently have different values. Editing here will normalize them.")
+
+            label = prop_name
+            for prefix in ("image_", "font_"):
+                if label.startswith(prefix):
+                    label = label[len(prefix):]
+                    break
+            label = label.replace("_", " ").title() + ":"
+            form.addRow(label, editor)
+
+        if form.rowCount() > 0:
+            self._layout.addWidget(group)
+
+    def _collect_multi_common_properties(self):
+        if not self._selection:
+            return []
+
+        descriptors = [WidgetRegistry.instance().get(widget.widget_type) for widget in self._selection]
+        if not descriptors:
+            return []
+
+        base_props = descriptors[0].get("properties", {})
+        result = []
+        for prop_name, prop_info in base_props.items():
+            ptype = prop_info.get("type", "string")
+            if ptype not in _MULTI_SUPPORTED_PROPERTY_TYPES:
+                continue
+
+            shared = True
+            for widget, descriptor in zip(self._selection[1:], descriptors[1:]):
+                other_info = descriptor.get("properties", {}).get(prop_name)
+                if not other_info:
+                    shared = False
+                    break
+                if other_info.get("type", "string") != ptype:
+                    shared = False
+                    break
+                visible_when = other_info.get("ui_visible_when")
+                if visible_when and not self._check_visibility(widget, visible_when):
+                    shared = False
+                    break
+
+            visible_when = prop_info.get("ui_visible_when")
+            if visible_when and not self._check_visibility(self._selection[0], visible_when):
+                shared = False
+
+            if shared:
+                result.append((prop_name, prop_info))
+
+        return result
 
     # ── Property group builders ───────────────────────────────────
 
@@ -524,8 +629,10 @@ class PropertyPanel(QWidget):
 
     # ── Property editor factory ───────────────────────────────────
 
-    def _create_property_editor(self, prop_name, prop_info, current_value):
+    def _create_property_editor(self, prop_name, prop_info, current_value, prop_changed_handler=None, file_prop_handler=None):
         ptype = prop_info.get("type", "string")
+        prop_changed_handler = prop_changed_handler or self._on_prop_changed
+        file_prop_handler = file_prop_handler or self._on_file_prop_changed
 
         if ptype == "string":
             # For "text" property on label/button, use EditableComboBox with @string/ completions
@@ -538,13 +645,13 @@ class PropertyPanel(QWidget):
                 if cur and editor.findText(cur) < 0:
                     editor.addItem(cur)
                 editor.setCurrentText(cur)
-                editor.currentTextChanged.connect(lambda val: self._on_prop_changed(prop_name, val))
+                editor.currentTextChanged.connect(lambda val: prop_changed_handler(prop_name, val))
                 self._editors[f"prop_{prop_name}"] = editor
                 return editor
             else:
                 editor = LineEdit()
                 editor.setText(str(current_value or ""))
-                editor.textChanged.connect(lambda val: self._on_prop_changed(prop_name, val))
+                editor.textChanged.connect(lambda val: prop_changed_handler(prop_name, val))
                 self._editors[f"prop_{prop_name}"] = editor
                 return editor
 
@@ -552,21 +659,21 @@ class PropertyPanel(QWidget):
             editor = SpinBox()
             editor.setRange(prop_info.get("min", 0), prop_info.get("max", 9999))
             editor.setValue(int(current_value or 0))
-            editor.valueChanged.connect(lambda val: self._on_prop_changed(prop_name, val))
+            editor.valueChanged.connect(lambda val: prop_changed_handler(prop_name, val))
             self._editors[f"prop_{prop_name}"] = editor
             return editor
 
         elif ptype == "bool":
             editor = CheckBox()
             editor.setChecked(bool(current_value))
-            editor.toggled.connect(lambda val: self._on_prop_changed(prop_name, val))
+            editor.toggled.connect(lambda val: prop_changed_handler(prop_name, val))
             self._editors[f"prop_{prop_name}"] = editor
             return editor
 
         elif ptype == "color":
             editor = EguiColorPicker()
             editor.set_value(str(current_value or COLORS[0]))
-            editor.color_changed.connect(lambda val: self._on_prop_changed(prop_name, val))
+            editor.color_changed.connect(lambda val: prop_changed_handler(prop_name, val))
             self._editors[f"prop_{prop_name}"] = editor
             return editor
 
@@ -574,7 +681,7 @@ class PropertyPanel(QWidget):
             editor = ComboBox()
             editor.addItems(ALPHAS)
             editor.setCurrentText(str(current_value or "EGUI_ALPHA_100"))
-            editor.currentTextChanged.connect(lambda val: self._on_prop_changed(prop_name, val))
+            editor.currentTextChanged.connect(lambda val: prop_changed_handler(prop_name, val))
             self._editors[f"prop_{prop_name}"] = editor
             return editor
 
@@ -584,7 +691,7 @@ class PropertyPanel(QWidget):
             editor = EguiFontSelector(fonts=merged)
             cur = str(current_value or merged[0] if merged else "")
             editor.set_value(cur)
-            editor.font_changed.connect(lambda val: self._on_prop_changed(prop_name, val))
+            editor.font_changed.connect(lambda val: prop_changed_handler(prop_name, val))
             self._editors[f"prop_{prop_name}"] = editor
             return editor
 
@@ -592,7 +699,7 @@ class PropertyPanel(QWidget):
             editor = ComboBox()
             editor.addItems(ALIGNS)
             editor.setCurrentText(str(current_value or "EGUI_ALIGN_CENTER"))
-            editor.currentTextChanged.connect(lambda val: self._on_prop_changed(prop_name, val))
+            editor.currentTextChanged.connect(lambda val: prop_changed_handler(prop_name, val))
             self._editors[f"prop_{prop_name}"] = editor
             return editor
 
@@ -600,7 +707,7 @@ class PropertyPanel(QWidget):
             editor = ComboBox()
             editor.addItems(["vertical", "horizontal"])
             editor.setCurrentText(str(current_value or "vertical"))
-            editor.currentTextChanged.connect(lambda val: self._on_prop_changed(prop_name, val))
+            editor.currentTextChanged.connect(lambda val: prop_changed_handler(prop_name, val))
             self._editors[f"prop_{prop_name}"] = editor
             return editor
 
@@ -608,13 +715,13 @@ class PropertyPanel(QWidget):
 
         elif ptype == "image_file":
             return self._create_file_selector(prop_name, current_value,
-                                              self._catalog_images(), "Image files (*.png *.bmp *.jpg *.jpeg *.gif)")
+                                              self._catalog_images(), "Image files (*.png *.bmp *.jpg *.jpeg *.gif)", file_prop_handler=file_prop_handler)
 
         elif ptype == "image_format":
             editor = ComboBox()
             editor.addItems(IMAGE_FORMATS)
             editor.setCurrentText(str(current_value or "rgb565"))
-            editor.currentTextChanged.connect(lambda val: self._on_prop_changed(prop_name, val))
+            editor.currentTextChanged.connect(lambda val: prop_changed_handler(prop_name, val))
             self._editors[f"prop_{prop_name}"] = editor
             return editor
 
@@ -622,7 +729,7 @@ class PropertyPanel(QWidget):
             editor = ComboBox()
             editor.addItems(IMAGE_ALPHAS)
             editor.setCurrentText(str(current_value or "4"))
-            editor.currentTextChanged.connect(lambda val: self._on_prop_changed(prop_name, val))
+            editor.currentTextChanged.connect(lambda val: prop_changed_handler(prop_name, val))
             self._editors[f"prop_{prop_name}"] = editor
             return editor
 
@@ -630,19 +737,19 @@ class PropertyPanel(QWidget):
             editor = ComboBox()
             editor.addItems(IMAGE_EXTERNALS)
             editor.setCurrentText(str(current_value or "0"))
-            editor.currentTextChanged.connect(lambda val: self._on_prop_changed(prop_name, val))
+            editor.currentTextChanged.connect(lambda val: prop_changed_handler(prop_name, val))
             self._editors[f"prop_{prop_name}"] = editor
             return editor
 
         elif ptype == "font_file":
             return self._create_file_selector(prop_name, current_value,
-                                              self._catalog_fonts(), "Font files (*.ttf *.otf)")
+                                              self._catalog_fonts(), "Font files (*.ttf *.otf)", file_prop_handler=file_prop_handler)
 
         elif ptype == "font_pixelsize":
             editor = EditableComboBox()
             editor.addItems(FONT_PIXELSIZES)
             editor.setCurrentText(str(current_value or "16"))
-            editor.currentTextChanged.connect(lambda val: self._on_prop_changed(prop_name, val))
+            editor.currentTextChanged.connect(lambda val: prop_changed_handler(prop_name, val))
             self._editors[f"prop_{prop_name}"] = editor
             return editor
 
@@ -650,7 +757,7 @@ class PropertyPanel(QWidget):
             editor = ComboBox()
             editor.addItems(FONT_BITSIZES)
             editor.setCurrentText(str(current_value or "4"))
-            editor.currentTextChanged.connect(lambda val: self._on_prop_changed(prop_name, val))
+            editor.currentTextChanged.connect(lambda val: prop_changed_handler(prop_name, val))
             self._editors[f"prop_{prop_name}"] = editor
             return editor
 
@@ -658,18 +765,19 @@ class PropertyPanel(QWidget):
             editor = ComboBox()
             editor.addItems(FONT_EXTERNALS)
             editor.setCurrentText(str(current_value or "0"))
-            editor.currentTextChanged.connect(lambda val: self._on_prop_changed(prop_name, val))
+            editor.currentTextChanged.connect(lambda val: prop_changed_handler(prop_name, val))
             self._editors[f"prop_{prop_name}"] = editor
             return editor
 
         elif ptype == "text_file":
             return self._create_file_selector(prop_name, current_value,
-                                              self._catalog_text_files(), "Text files (*.txt)")
+                                              self._catalog_text_files(), "Text files (*.txt)", file_prop_handler=file_prop_handler)
 
         return None
 
-    def _create_file_selector(self, prop_name, current_value, catalog_items, file_filter):
+    def _create_file_selector(self, prop_name, current_value, catalog_items, file_filter, file_prop_handler=None):
         """Create a ComboBox + '...' browse button for file selection."""
+        file_prop_handler = file_prop_handler or self._on_file_prop_changed
         container = QWidget()
         h_layout = QHBoxLayout(container)
         h_layout.setContentsMargins(0, 0, 0, 0)
@@ -683,7 +791,7 @@ class PropertyPanel(QWidget):
         if cur and combo.findText(cur) < 0:
             combo.addItem(cur)
         combo.setCurrentText(cur)
-        combo.currentTextChanged.connect(lambda val: self._on_file_prop_changed(prop_name, val))
+        combo.currentTextChanged.connect(lambda val: file_prop_handler(prop_name, val))
         h_layout.addWidget(combo, 1)
 
         browse_btn = ToolButton()
@@ -789,6 +897,37 @@ class PropertyPanel(QWidget):
             return
         self._primary_widget.properties[prop_name] = value
         self.property_changed.emit()
+
+    def _on_multi_common_changed(self, field, value):
+        if self._updating or not self._selection:
+            return
+        for widget in self._selection:
+            setattr(widget, field, value)
+        self.property_changed.emit()
+
+    def _on_multi_prop_changed(self, prop_name, value):
+        if self._updating or not self._selection:
+            return
+
+        for widget in self._selection:
+            if prop_name in widget.properties:
+                widget.properties[prop_name] = value
+
+        if self._multi_prop_requires_rebuild(prop_name):
+            self._updating = True
+            self._rebuild_form()
+            self._updating = False
+
+        self.property_changed.emit()
+
+    def _multi_prop_requires_rebuild(self, prop_name):
+        for widget in self._selection:
+            descriptor = WidgetRegistry.instance().get(widget.widget_type)
+            for info in descriptor.get("properties", {}).values():
+                visible_when = info.get("ui_visible_when", {})
+                if prop_name in visible_when:
+                    return True
+        return False
 
     def _on_bg_changed(self, field, value):
         if self._updating or self._primary_widget is None:

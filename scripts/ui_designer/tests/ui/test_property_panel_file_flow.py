@@ -269,3 +269,22 @@ class TestPropertyPanelFileFlow:
         assert first.designer_hidden is True
         assert second.designer_hidden is True
         panel.deleteLater()
+
+    def test_multi_selection_common_geometry_and_text_update_all_widgets(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        first = WidgetModel("label", name="first", x=10, y=20, width=80, height=24)
+        second = WidgetModel("button", name="second", x=30, y=40, width=90, height=28)
+
+        panel = PropertyPanel()
+        panel.set_selection([first, second], primary=second)
+
+        panel._editors["multi_width"].setValue(120)
+        panel._editors["prop_text"].setText("Shared")
+
+        assert first.width == 120
+        assert second.width == 120
+        assert first.properties["text"] == "Shared"
+        assert second.properties["text"] == "Shared"
+        panel.deleteLater()
