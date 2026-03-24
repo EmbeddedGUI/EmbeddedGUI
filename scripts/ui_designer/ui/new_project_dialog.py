@@ -17,7 +17,9 @@ from PyQt5.QtWidgets import (
 
 from qfluentwidgets import LineEdit, PrimaryPushButton, PushButton
 
-from ..model.workspace import is_valid_sdk_root, normalize_path, resolve_sdk_root_candidate
+from ..model.config import get_config
+from ..model.sdk_bootstrap import default_sdk_install_dir
+from ..model.workspace import is_valid_sdk_root, normalize_path, resolve_available_sdk_root, resolve_sdk_root_candidate
 
 
 class NewProjectDialog(QDialog):
@@ -28,10 +30,25 @@ class NewProjectDialog(QDialog):
         self.setWindowTitle("New Project")
         self.resize(560, 260)
 
-        self._sdk_root = resolve_sdk_root_candidate(sdk_root) or normalize_path(sdk_root)
-        self._parent_dir = normalize_path(default_parent_dir) or self._sdk_root
+        config = get_config()
+        self._sdk_root = resolve_available_sdk_root(
+            sdk_root,
+            config.sdk_root,
+            config.egui_root,
+            cached_sdk_root=default_sdk_install_dir(),
+        )
+        default_parent_dir = normalize_path(default_parent_dir)
+        sdk_parent_dir = self._default_parent_dir_for_sdk(self._sdk_root)
+        self._parent_dir = default_parent_dir or sdk_parent_dir
+        self._parent_dir_auto_managed = not default_parent_dir or default_parent_dir == sdk_parent_dir
 
         self._init_ui()
+
+    def _default_parent_dir_for_sdk(self, sdk_root):
+        sdk_root = normalize_path(sdk_root)
+        if not is_valid_sdk_root(sdk_root):
+            return ""
+        return os.path.join(sdk_root, "example")
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
@@ -93,6 +110,7 @@ class NewProjectDialog(QDialog):
         layout.addLayout(buttons)
 
     def _browse_sdk_root(self):
+        previous_default_parent = self._default_parent_dir_for_sdk(self._sdk_root)
         path = QFileDialog.getExistingDirectory(self, "Select SDK Root", self._sdk_root or "")
         if not path:
             return
@@ -106,9 +124,10 @@ class NewProjectDialog(QDialog):
             return
         self._sdk_root = path
         self._sdk_edit.setText(path)
-        if not self._parent_dir or self._parent_dir == normalize_path(os.getcwd()):
-            self._parent_dir = os.path.join(path, "example")
+        if self._parent_dir_auto_managed or self._parent_dir == previous_default_parent:
+            self._parent_dir = self._default_parent_dir_for_sdk(path)
             self._parent_edit.setText(self._parent_dir)
+            self._parent_dir_auto_managed = True
 
     def _clear_sdk_root(self):
         self._sdk_root = ""
@@ -120,6 +139,7 @@ class NewProjectDialog(QDialog):
             return
         self._parent_dir = normalize_path(path)
         self._parent_edit.setText(self._parent_dir)
+        self._parent_dir_auto_managed = False
 
     def _accept_if_valid(self):
         app_name = self.app_name

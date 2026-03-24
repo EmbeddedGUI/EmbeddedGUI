@@ -1,0 +1,185 @@
+"""Qt UI tests for PropertyPanel file browsing and auto-import."""
+
+import os
+
+import pytest
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+try:
+    from PyQt5.QtWidgets import QApplication
+
+    _has_pyqt5 = True
+except ImportError:
+    _has_pyqt5 = False
+
+_skip_no_qt = pytest.mark.skipif(not _has_pyqt5, reason="PyQt5 not available")
+
+
+@pytest.fixture
+def qapp():
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
+    yield app
+    app.processEvents()
+
+
+@_skip_no_qt
+class TestPropertyPanelFileFlow:
+    def test_browse_file_warns_when_project_resource_dir_is_missing(self, qapp, monkeypatch):
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        panel = PropertyPanel()
+        selector = panel._create_file_selector("image_file", "", [], "Images (*.png *.bmp *.jpg *.jpeg)")
+        combo = panel._editors["prop_image_file"]
+        warnings = []
+        dialog_calls = []
+
+        monkeypatch.setattr("ui_designer.ui.property_panel.QMessageBox.warning", lambda *args: warnings.append(args[1:]))
+        monkeypatch.setattr(
+            "ui_designer.ui.property_panel.QFileDialog.getOpenFileName",
+            lambda *args, **kwargs: dialog_calls.append(args) or ("", ""),
+        )
+
+        panel._browse_file(combo, "Images (*.png *.bmp *.jpg *.jpeg)")
+
+        assert warnings
+        assert warnings[0][0] == "Resource Directory Missing"
+        assert dialog_calls == []
+        assert combo.currentText() == ""
+        assert selector is not None
+        panel.deleteLater()
+
+    def test_browse_file_uses_images_subdir_as_default_directory(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        images_dir = resource_dir / "images"
+        images_dir.mkdir(parents=True)
+        captured = {}
+
+        panel = PropertyPanel()
+        panel.set_source_resource_dir(str(resource_dir))
+        selector = panel._create_file_selector("image_file", "", [], "Images (*.png *.bmp *.jpg *.jpeg)")
+        combo = panel._editors["prop_image_file"]
+
+        def fake_get_open_file_name(parent, title, directory, filters):
+            captured["title"] = title
+            captured["directory"] = directory
+            captured["filters"] = filters
+            return "", ""
+
+        monkeypatch.setattr("ui_designer.ui.property_panel.QFileDialog.getOpenFileName", fake_get_open_file_name)
+
+        panel._browse_file(combo, "Images (*.png *.bmp *.jpg *.jpeg)")
+
+        assert captured["title"] == "Select File"
+        assert captured["directory"] == os.path.normpath(os.path.abspath(images_dir))
+        assert "Images" in captured["filters"]
+        assert selector is not None
+        panel.deleteLater()
+
+    def test_browse_file_auto_imports_image_and_emits_resource_imported(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        images_dir = resource_dir / "images"
+        images_dir.mkdir(parents=True)
+        external_dir = tmp_path / "external"
+        external_dir.mkdir()
+        image_path = external_dir / "star.png"
+        image_path.write_bytes(b"PNG")
+
+        panel = PropertyPanel()
+        panel.set_source_resource_dir(str(resource_dir))
+        catalog = ResourceCatalog()
+        panel.set_resource_catalog(catalog)
+        selector = panel._create_file_selector("image_file", "", [], "Images (*.png *.bmp *.jpg *.jpeg)")
+        combo = panel._editors["prop_image_file"]
+        imported_events = []
+        panel.resource_imported.connect(lambda: imported_events.append("imported"))
+
+        monkeypatch.setattr(
+            "ui_designer.ui.property_panel.QFileDialog.getOpenFileName",
+            lambda *args, **kwargs: (str(image_path), "Images (*.png *.bmp *.jpg *.jpeg)"),
+        )
+
+        panel._browse_file(combo, "Images (*.png *.bmp *.jpg *.jpeg)")
+
+        assert (images_dir / "star.png").is_file()
+        assert catalog.has_image("star.png")
+        assert combo.currentText() == "star.png"
+        assert imported_events == ["imported"]
+        assert selector is not None
+        panel.deleteLater()
+
+    def test_browse_file_prefers_last_external_directory_after_import(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        images_dir = resource_dir / "images"
+        images_dir.mkdir(parents=True)
+        external_dir = tmp_path / "external"
+        external_dir.mkdir()
+        image_path = external_dir / "star.png"
+        image_path.write_bytes(b"PNG")
+        captured = {}
+
+        panel = PropertyPanel()
+        panel.set_source_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(ResourceCatalog())
+        selector = panel._create_file_selector("image_file", "", [], "Images (*.png *.bmp *.jpg *.jpeg)")
+        combo = panel._editors["prop_image_file"]
+
+        monkeypatch.setattr(
+            "ui_designer.ui.property_panel.QFileDialog.getOpenFileName",
+            lambda *args, **kwargs: (str(image_path), "Images (*.png *.bmp *.jpg *.jpeg)"),
+        )
+        panel._browse_file(combo, "Images (*.png *.bmp *.jpg *.jpeg)")
+
+        def fake_get_open_file_name_second(parent, title, directory, filters):
+            captured["directory"] = directory
+            return "", ""
+
+        monkeypatch.setattr("ui_designer.ui.property_panel.QFileDialog.getOpenFileName", fake_get_open_file_name_second)
+        panel._browse_file(combo, "Images (*.png *.bmp *.jpg *.jpeg)")
+
+        assert captured["directory"] == os.path.normpath(os.path.abspath(external_dir))
+        assert selector is not None
+        panel.deleteLater()
+
+    def test_browse_file_selects_existing_catalog_image_without_reimport(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        images_dir = resource_dir / "images"
+        images_dir.mkdir(parents=True)
+        image_path = images_dir / "star.png"
+        image_path.write_bytes(b"PNG")
+
+        panel = PropertyPanel()
+        panel.set_source_resource_dir(str(resource_dir))
+        catalog = ResourceCatalog()
+        catalog.add_image("star.png")
+        panel.set_resource_catalog(catalog)
+        selector = panel._create_file_selector("image_file", "", ["star.png"], "Images (*.png *.bmp *.jpg *.jpeg)")
+        combo = panel._editors["prop_image_file"]
+        imported_events = []
+        panel.resource_imported.connect(lambda: imported_events.append("imported"))
+
+        monkeypatch.setattr(
+            "ui_designer.ui.property_panel.QFileDialog.getOpenFileName",
+            lambda *args, **kwargs: (str(image_path), "Images (*.png *.bmp *.jpg *.jpeg)"),
+        )
+
+        panel._browse_file(combo, "Images (*.png *.bmp *.jpg *.jpeg)")
+
+        assert catalog.images == ["star.png"]
+        assert combo.currentText() == "star.png"
+        assert imported_events == []
+        assert selector is not None
+        panel.deleteLater()

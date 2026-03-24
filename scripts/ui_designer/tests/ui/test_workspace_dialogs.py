@@ -40,6 +40,17 @@ def isolated_config(tmp_path, monkeypatch):
     DesignerConfig._instance = None
 
 
+@pytest.fixture(autouse=True)
+def bind_ui_config(isolated_config, monkeypatch):
+    import ui_designer.ui.app_selector as app_selector_module
+    import ui_designer.ui.new_project_dialog as new_project_dialog_module
+    import ui_designer.ui.welcome_page as welcome_page_module
+
+    monkeypatch.setattr(app_selector_module, "get_config", lambda: isolated_config)
+    monkeypatch.setattr(new_project_dialog_module, "get_config", lambda: isolated_config)
+    monkeypatch.setattr(welcome_page_module, "get_config", lambda: isolated_config)
+
+
 def _create_sdk_root(root):
     (root / "src").mkdir(parents=True)
     (root / "porting" / "designer").mkdir(parents=True)
@@ -78,6 +89,8 @@ class TestAppSelectorDialog:
     def test_shows_placeholder_when_sdk_root_missing(self, qapp, isolated_config):
         from ui_designer.ui.app_selector import AppSelectorDialog
 
+        isolated_config.sdk_root = ""
+        isolated_config.egui_root = ""
         dialog = AppSelectorDialog(egui_root="")
 
         assert dialog._app_list.count() == 1
@@ -89,6 +102,8 @@ class TestAppSelectorDialog:
     def test_shows_invalid_placeholder_when_sdk_root_is_invalid(self, qapp, isolated_config, tmp_path):
         from ui_designer.ui.app_selector import AppSelectorDialog
 
+        isolated_config.sdk_root = ""
+        isolated_config.egui_root = ""
         dialog = AppSelectorDialog(egui_root=str(tmp_path / "not_sdk"))
 
         assert dialog._app_list.count() == 1
@@ -245,6 +260,31 @@ class TestAppSelectorDialog:
         assert "Ready" in dialog._root_status_label.text()
         dialog.deleteLater()
 
+    def test_uses_default_sdk_cache_when_configured_root_is_missing(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.app_selector import AppSelectorDialog
+
+        sdk_root = tmp_path / "cache" / "EmbeddedGUI"
+        _create_sdk_root(sdk_root)
+        example_dir = sdk_root / "example"
+        example_dir.mkdir()
+        app_dir = example_dir / "HelloShowcase"
+        app_dir.mkdir()
+        (app_dir / "build.mk").write_text("")
+        (app_dir / "HelloShowcase.egui").write_text("")
+
+        isolated_config.sdk_root = str(tmp_path / "missing_sdk")
+        isolated_config.egui_root = str(tmp_path / "missing_sdk")
+        monkeypatch.setattr("ui_designer.ui.app_selector.default_sdk_install_dir", lambda: str(sdk_root))
+
+        dialog = AppSelectorDialog(egui_root="")
+
+        assert dialog.egui_root == os.path.normpath(os.path.abspath(sdk_root))
+        assert dialog._root_edit.text() == os.path.normpath(os.path.abspath(sdk_root))
+        assert dialog._app_list.count() == 1
+        assert dialog._app_list.item(0).text() == "HelloShowcase"
+        assert "Ready" in dialog._root_status_label.text()
+        dialog.deleteLater()
+
 
 @_skip_no_qt
 class TestNewProjectDialog:
@@ -252,7 +292,9 @@ class TestNewProjectDialog:
         from ui_designer.ui.new_project_dialog import NewProjectDialog
 
         warnings = []
-        dialog = NewProjectDialog(sdk_root="", default_parent_dir="")
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr("ui_designer.ui.new_project_dialog.default_sdk_install_dir", lambda: "")
+            dialog = NewProjectDialog(sdk_root="", default_parent_dir="")
         dialog._app_name_edit.setText("DemoApp")
 
         with pytest.MonkeyPatch.context() as mp:
@@ -267,7 +309,9 @@ class TestNewProjectDialog:
     def test_accept_succeeds_without_sdk_root(self, qapp, isolated_config, tmp_path):
         from ui_designer.ui.new_project_dialog import NewProjectDialog
 
-        dialog = NewProjectDialog(sdk_root="", default_parent_dir=str(tmp_path))
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr("ui_designer.ui.new_project_dialog.default_sdk_install_dir", lambda: "")
+            dialog = NewProjectDialog(sdk_root="", default_parent_dir=str(tmp_path))
         dialog._app_name_edit.setText("DemoApp")
         dialog._accept_if_valid()
 
@@ -327,6 +371,70 @@ class TestNewProjectDialog:
         assert dialog.screen_height == 240
         dialog.deleteLater()
 
+    def test_prefills_default_sdk_cache_when_available(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.new_project_dialog import NewProjectDialog
+
+        sdk_root = tmp_path / "cache" / "EmbeddedGUI"
+        _create_sdk_root(sdk_root)
+        isolated_config.sdk_root = str(tmp_path / "missing_sdk")
+        isolated_config.egui_root = str(tmp_path / "missing_sdk")
+        monkeypatch.setattr("ui_designer.ui.new_project_dialog.default_sdk_install_dir", lambda: str(sdk_root))
+
+        dialog = NewProjectDialog(sdk_root="", default_parent_dir="")
+
+        assert dialog.sdk_root == os.path.normpath(os.path.abspath(sdk_root))
+        assert dialog._sdk_edit.text() == os.path.normpath(os.path.abspath(sdk_root))
+        dialog.deleteLater()
+
+    def test_defaults_parent_dir_to_sdk_example_when_sdk_root_is_set(self, qapp, isolated_config, tmp_path):
+        from ui_designer.ui.new_project_dialog import NewProjectDialog
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+
+        dialog = NewProjectDialog(sdk_root=str(sdk_root), default_parent_dir="")
+
+        assert dialog.parent_dir == os.path.join(os.path.normpath(os.path.abspath(sdk_root)), "example")
+        dialog.deleteLater()
+
+    def test_browse_sdk_root_updates_auto_managed_parent_dir(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.new_project_dialog import NewProjectDialog
+
+        old_sdk_root = tmp_path / "sdk_old"
+        new_sdk_root = tmp_path / "sdk_new"
+        _create_sdk_root(old_sdk_root)
+        _create_sdk_root(new_sdk_root)
+
+        dialog = NewProjectDialog(sdk_root=str(old_sdk_root), default_parent_dir=os.path.join(str(old_sdk_root), "example"))
+        monkeypatch.setattr("ui_designer.ui.new_project_dialog.QFileDialog.getExistingDirectory", lambda *args, **kwargs: str(new_sdk_root))
+
+        dialog._browse_sdk_root()
+
+        assert dialog.sdk_root == os.path.normpath(os.path.abspath(new_sdk_root))
+        assert dialog.parent_dir == os.path.join(os.path.normpath(os.path.abspath(new_sdk_root)), "example")
+        dialog.deleteLater()
+
+    def test_browse_sdk_root_keeps_manual_parent_dir(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.new_project_dialog import NewProjectDialog
+
+        old_sdk_root = tmp_path / "sdk_old"
+        new_sdk_root = tmp_path / "sdk_new"
+        custom_parent = tmp_path / "workspace"
+        _create_sdk_root(old_sdk_root)
+        _create_sdk_root(new_sdk_root)
+        custom_parent.mkdir()
+
+        dialog = NewProjectDialog(sdk_root=str(old_sdk_root), default_parent_dir=os.path.join(str(old_sdk_root), "example"))
+        monkeypatch.setattr("ui_designer.ui.new_project_dialog.QFileDialog.getExistingDirectory", lambda *args, **kwargs: str(custom_parent))
+        dialog._browse_parent_dir()
+
+        monkeypatch.setattr("ui_designer.ui.new_project_dialog.QFileDialog.getExistingDirectory", lambda *args, **kwargs: str(new_sdk_root))
+        dialog._browse_sdk_root()
+
+        assert dialog.sdk_root == os.path.normpath(os.path.abspath(new_sdk_root))
+        assert dialog.parent_dir == os.path.normpath(os.path.abspath(custom_parent))
+        dialog.deleteLater()
+
 
 @_skip_no_qt
 class TestWelcomePage:
@@ -357,6 +465,29 @@ class TestWelcomePage:
         assert emitted == [(project_path, sdk_root)]
         page.deleteLater()
 
+    def test_recent_project_item_uses_cached_sdk_when_saved_sdk_is_invalid(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.welcome_page import WelcomePage
+
+        cache_dir = tmp_path / "cache" / "EmbeddedGUI"
+        _create_sdk_root(cache_dir)
+        project_path = str(tmp_path / "DemoApp" / "DemoApp.egui")
+        isolated_config.recent_projects = [
+            {
+                "project_path": project_path,
+                "sdk_root": str(tmp_path / "missing_sdk"),
+                "display_name": "DemoApp",
+            }
+        ]
+        monkeypatch.setattr("ui_designer.ui.welcome_page.default_sdk_install_dir", lambda: str(cache_dir))
+
+        page = WelcomePage()
+        widget = page._recent_list.itemAt(0).widget()
+
+        assert widget is not None
+        assert widget.sdk_root == os.path.normpath(os.path.abspath(cache_dir))
+        assert "ready" in widget._status_label.text().lower()
+        page.deleteLater()
+
     def test_refresh_shows_sdk_status_and_path(self, qapp, isolated_config, tmp_path):
         from ui_designer.ui.welcome_page import WelcomePage
 
@@ -382,6 +513,21 @@ class TestWelcomePage:
 
         assert "Missing" in page._sdk_status_label.text()
         assert str(cache_dir) in page._sdk_hint_label.text()
+        page.deleteLater()
+
+    def test_refresh_uses_default_sdk_cache_when_config_is_invalid(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.welcome_page import WelcomePage
+
+        cache_dir = tmp_path / "cache" / "EmbeddedGUI"
+        _create_sdk_root(cache_dir)
+        isolated_config.sdk_root = str(tmp_path / "missing_sdk")
+        isolated_config.egui_root = str(tmp_path / "missing_sdk")
+        monkeypatch.setattr("ui_designer.ui.welcome_page.default_sdk_install_dir", lambda: str(cache_dir))
+
+        page = WelcomePage()
+
+        assert "Ready" in page._sdk_status_label.text()
+        assert str(cache_dir) in page._sdk_path_label.text()
         page.deleteLater()
 
     def test_quick_action_buttons_emit_signals(self, qapp, isolated_config):

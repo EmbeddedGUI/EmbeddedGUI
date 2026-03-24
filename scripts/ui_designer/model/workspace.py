@@ -116,6 +116,38 @@ def resolve_sdk_root_candidate(path: str | None) -> str:
     return ""
 
 
+def resolve_preferred_sdk_root(*candidates: str | None) -> str:
+    """Return the first valid SDK root resolved from *candidates*.
+
+    If none of the candidates resolve to a valid SDK root, the first non-empty
+    normalized candidate is returned so the UI can still surface an invalid
+    configured path to the user.
+    """
+    normalized_candidates = _dedupe_paths(candidates)
+    for candidate in normalized_candidates:
+        resolved = resolve_sdk_root_candidate(candidate)
+        if resolved:
+            return resolved
+    return normalized_candidates[0] if normalized_candidates else ""
+
+
+def resolve_available_sdk_root(*candidates: str | None, cached_sdk_root: str | None = None) -> str:
+    """Resolve the best currently-usable SDK root.
+
+    Preference order:
+    1. The first valid SDK resolved from *candidates*
+    2. A valid *cached_sdk_root*
+    3. The first non-empty normalized candidate for UI display purposes
+    """
+    sdk_root = resolve_preferred_sdk_root(*candidates)
+    cached_sdk_root = normalize_path(cached_sdk_root)
+    if not is_valid_sdk_root(cached_sdk_root):
+        cached_sdk_root = ""
+    if cached_sdk_root and not is_valid_sdk_root(sdk_root):
+        return cached_sdk_root
+    return sdk_root
+
+
 def serialize_sdk_root(project_dir: str, sdk_root: str) -> str:
     """Serialize *sdk_root* for storage in a project file."""
     project_dir = normalize_path(project_dir)
@@ -179,6 +211,7 @@ def find_sdk_root(
     configured_sdk_root: str | None = None,
     project_path: str | None = None,
     env: dict[str, str] | None = None,
+    extra_candidates: Iterable[str] | None = None,
 ) -> str:
     """Find the best SDK root candidate."""
     env = env or os.environ
@@ -201,6 +234,9 @@ def find_sdk_root(
     env_sdk_root = env.get("EMBEDDEDGUI_SDK_ROOT", "")
     if env_sdk_root:
         candidates.append(env_sdk_root)
+
+    if extra_candidates:
+        candidates.extend(extra_candidates)
 
     runtime_anchor = os.path.dirname(sys.executable if getattr(sys, "frozen", False) else __file__)
     candidates.extend(_search_common_sdk_locations(runtime_anchor))

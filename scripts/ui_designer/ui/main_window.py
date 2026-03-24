@@ -42,7 +42,13 @@ from ..model.project import Project
 from ..model.page import Page
 from ..model.config import get_config
 from ..model.sdk_bootstrap import default_sdk_install_dir, ensure_sdk_downloaded
-from ..model.workspace import find_sdk_root, infer_sdk_root_from_project_dir, is_valid_sdk_root, normalize_path, resolve_sdk_root_candidate
+from ..model.workspace import (
+    find_sdk_root,
+    is_valid_sdk_root,
+    normalize_path,
+    resolve_available_sdk_root,
+    resolve_sdk_root_candidate,
+)
 from ..model.undo_manager import UndoManager
 from ..generator.code_generator import generate_all_files, generate_all_files_preserved, generate_uicode
 from ..generator.resource_config_generator import ResourceConfigGenerator
@@ -234,6 +240,7 @@ class MainWindow(QMainWindow):
 
         # Property panel
         self.property_panel.property_changed.connect(self._on_property_changed)
+        self.property_panel.resource_imported.connect(self._on_resource_imported)
 
         # Preview panel
         self.preview_panel.widget_selected.connect(self._on_preview_widget_selected)
@@ -615,8 +622,9 @@ class MainWindow(QMainWindow):
         project_dir = normalize_path(project_dir)
         resolved_sdk_root = find_sdk_root(
             cli_sdk_root=preferred_sdk_root or project.sdk_root,
-            configured_sdk_root=self._config.sdk_root or self.project_root,
+            configured_sdk_root=self._active_sdk_root(),
             project_path=project_dir,
+            extra_candidates=[default_sdk_install_dir()],
         )
         project.sdk_root = resolved_sdk_root or normalize_path(preferred_sdk_root or project.sdk_root)
         project.project_dir = project_dir
@@ -1051,7 +1059,10 @@ class MainWindow(QMainWindow):
 
         for item in recent[:10]:
             project_path = item.get("project_path", "")
-            sdk_root = item.get("sdk_root", "")
+            sdk_root = resolve_available_sdk_root(
+                item.get("sdk_root", ""),
+                cached_sdk_root=default_sdk_install_dir(),
+            )
             display_name = item.get("display_name") or os.path.splitext(os.path.basename(project_path))[0]
             action = QAction(display_name, self)
             action.setToolTip(project_path)
@@ -1062,7 +1073,7 @@ class MainWindow(QMainWindow):
 
     def _open_app_dialog(self):
         """Show dialog to select and open an SDK example."""
-        dialog = AppSelectorDialog(self, self.project_root, on_download_sdk=self._download_sdk)
+        dialog = AppSelectorDialog(self, self._active_sdk_root(), on_download_sdk=self._download_sdk)
         if dialog.exec_() != QDialog.Accepted:
             return
 
@@ -1089,7 +1100,7 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Error", f"Failed to import legacy example:\n{exc}")
 
     def _set_sdk_root(self):
-        path = QFileDialog.getExistingDirectory(self, "Select EmbeddedGUI SDK Root", self.project_root or "")
+        path = QFileDialog.getExistingDirectory(self, "Select EmbeddedGUI SDK Root", self._active_sdk_root() or "")
         if not path:
             return
 
@@ -1218,27 +1229,97 @@ class MainWindow(QMainWindow):
             title += " *"
         self.setWindowTitle(title)
 
+    def _active_sdk_root(self):
+        return resolve_available_sdk_root(
+            self.project_root,
+            self._config.sdk_root,
+            self._config.egui_root,
+            cached_sdk_root=default_sdk_install_dir(),
+        )
+
+    def _nearest_existing_directory(self, path=""):
+        candidate = normalize_path(path)
+        if not candidate:
+            return ""
+        while candidate and not os.path.exists(candidate):
+            parent = os.path.dirname(candidate)
+            if not parent or parent == candidate:
+                return ""
+            candidate = parent
+        if os.path.isfile(candidate):
+            candidate = os.path.dirname(candidate)
+        return candidate if os.path.isdir(candidate) else ""
+
     def _default_new_project_parent_dir(self, sdk_root=""):
-        sdk_root = normalize_path(sdk_root)
+        sdk_root = normalize_path(sdk_root) or self._active_sdk_root()
         if is_valid_sdk_root(sdk_root):
             return os.path.join(sdk_root, "example")
 
         if self._project_dir:
-            return os.path.dirname(self._project_dir)
+            existing_dir = self._nearest_existing_directory(os.path.dirname(self._project_dir))
+            if existing_dir:
+                return existing_dir
 
         last_project_path = normalize_path(self._config.last_project_path)
         if last_project_path:
-            last_project_dir = last_project_path if os.path.isdir(last_project_path) else os.path.dirname(last_project_path)
-            if last_project_dir:
-                return os.path.dirname(last_project_dir) or last_project_dir
+            existing_dir = self._nearest_existing_directory(os.path.dirname(last_project_path))
+            if existing_dir:
+                return existing_dir
 
         return normalize_path(os.getcwd())
 
+    def _default_open_project_dir(self):
+        if self._project_dir:
+            existing_dir = self._nearest_existing_directory(self._project_dir)
+            if existing_dir:
+                return existing_dir
+
+        last_project_path = normalize_path(self._config.last_project_path)
+        if last_project_path:
+            existing_dir = self._nearest_existing_directory(last_project_path)
+            if existing_dir:
+                return existing_dir
+
+        sdk_root = self._active_sdk_root()
+        if sdk_root:
+            return os.path.join(sdk_root, "example")
+
+        return normalize_path(os.getcwd())
+
+    def _default_save_project_as_dir(self):
+        if self._project_dir:
+            existing_dir = self._nearest_existing_directory(os.path.dirname(self._project_dir))
+            if existing_dir:
+                return existing_dir
+        return self._default_new_project_parent_dir()
+
+    def _default_export_code_dir(self):
+        if self._project_dir:
+            existing_dir = self._nearest_existing_directory(self._project_dir)
+            if existing_dir:
+                return existing_dir
+        return self._default_open_project_dir()
+
+    def _default_mockup_open_dir(self):
+        if self._current_page and self._current_page.mockup_image_path and self._project_dir:
+            mockup_path = os.path.join(self._project_dir, ".eguiproject", self._current_page.mockup_image_path)
+            mockup_dir = normalize_path(os.path.dirname(mockup_path))
+            if os.path.isdir(mockup_dir):
+                return mockup_dir
+
+        if self._project_dir:
+            mockup_dir = os.path.join(self._project_dir, ".eguiproject", "mockup")
+            if os.path.isdir(mockup_dir):
+                return normalize_path(mockup_dir)
+            existing_dir = self._nearest_existing_directory(self._project_dir)
+            if existing_dir:
+                return existing_dir
+
+        return self._default_open_project_dir()
+
     def _new_project(self):
         """Create a new project in a dedicated app directory."""
-        default_sdk_root = self.project_root if self._has_valid_sdk_root() else normalize_path(self._config.sdk_root)
-        if default_sdk_root and not is_valid_sdk_root(default_sdk_root):
-            default_sdk_root = ""
+        default_sdk_root = self._active_sdk_root()
         default_parent_dir = self._default_new_project_parent_dir(default_sdk_root)
         dialog = NewProjectDialog(self, sdk_root=default_sdk_root, default_parent_dir=default_parent_dir)
         if dialog.exec_() != QDialog.Accepted:
@@ -1277,7 +1358,7 @@ class MainWindow(QMainWindow):
 
     def _open_project(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Open Project", "",
+            self, "Open Project", self._default_open_project_dir(),
             "EmbeddedGUI Projects (*.egui);;All Files (*.*)"
         )
         if not path:
@@ -1326,7 +1407,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("No project to save")
             return
 
-        path = QFileDialog.getExistingDirectory(self, "Save Project To Directory")
+        path = QFileDialog.getExistingDirectory(self, "Save Project To Directory", self._default_save_project_as_dir())
         if not path:
             return
 
@@ -1394,7 +1475,7 @@ class MainWindow(QMainWindow):
         if not self.project:
             return
         path = QFileDialog.getExistingDirectory(
-            self, "Export C Code To Directory"
+            self, "Export C Code To Directory", self._default_export_code_dir()
         )
         if not path:
             return
@@ -1422,7 +1503,7 @@ class MainWindow(QMainWindow):
 
         from PyQt5.QtGui import QPixmap
         path, _ = QFileDialog.getOpenFileName(
-            self, "Load Mockup Image", "",
+            self, "Load Mockup Image", self._default_mockup_open_dir(),
             "Images (*.png *.jpg *.jpeg *.bmp);;All Files (*.*)"
         )
         if not path:

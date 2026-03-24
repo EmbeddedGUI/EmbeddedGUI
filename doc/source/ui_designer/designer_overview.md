@@ -335,8 +335,9 @@ python scripts/ui_designer/main.py --sdk-root /path/to/EmbeddedGUI
 2. 当前项目路径附近的常见目录（包括 `sdk_root/example/app` 这种可直接反推的情况）
 3. 配置文件中保存的 SDK 路径
 4. 环境变量 `EMBEDDEDGUI_SDK_ROOT`
-5. 当前可执行文件或脚本所在目录附近的常见目录
-6. 当前工作目录附近的常见目录
+5. Designer 默认自动下载缓存目录 `{config_dir}/sdk/EmbeddedGUI`
+6. 当前可执行文件或脚本所在目录附近的常见目录
+7. 当前工作目录附近的常见目录
 
 “常见目录”当前会覆盖这些实际布局：
 
@@ -350,6 +351,15 @@ python scripts/ui_designer/main.py --sdk-root /path/to/EmbeddedGUI
 
 欢迎页也提供了 `Open Project File...`、`Open SDK Example...`、`Set SDK Root...`、`Download SDK...` 四个直接入口，并显示当前 SDK 状态与路径，便于独立 exe 场景快速定位“为什么现在只能走 Python 预览”。
 当 SDK 缺失或无效时，欢迎页还会直接显示默认自动下载缓存路径，方便用户提前判断是否符合本机目录规划。
+如果配置里保存的 SDK 路径已经失效，但默认缓存目录 `{config_dir}/sdk/EmbeddedGUI` 里仍然有一份有效 SDK，欢迎页、`Open SDK Example...` 和 `New Project...` 都会优先自动接管这份缓存 SDK，而不是继续卡在旧的失效路径上。
+同样地，`Open Project File...` 和 `New Project...` 的默认目录也会优先落到这份恢复出来的 SDK 的 `example/` 目录，减少首次使用时手动找路径的步骤。
+`Set SDK Root...` 和 `Open SDK Example...` 也会优先以这份恢复出来的 SDK 作为初始路径，确保主窗口里的各个入口默认行为保持一致。
+最近项目列表里的 SDK 状态显示也会使用同样的恢复逻辑，因此在旧配置失效但缓存 SDK 仍然可用时，卡片会直接显示为可用状态，而不是误报 `invalid`。
+同一套恢复逻辑也已经下沉到 `DesignerConfig` 的路径 helper 中，因此后续新增调用即便只使用 `get_app_dir()`、`get_project_path()`、`list_available_apps()` 这类配置接口，也会优先命中可恢复的缓存 SDK。
+另外，最近项目被判定为失效并从列表移除时，Designer 也会同步清掉匹配的 `last_project_path`，避免后续文件对话框继续默认落到一个已经不存在的路径。对于仍然保留的失效路径，`Open Project...` 等入口会尽量回退到最近的现存父目录，而不是直接停留在无效路径上。
+`Save Project As...`、`Export C Code...` 和 `Load Mockup Image...` 这些项目内文件对话框也会尽量默认落到当前工程的相关目录，而不是每次都从空路径重新开始。
+资源面板里的 `Import Image...`、`Import Font...`、`Import Text...` 现在也会记住最近一次外部导入目录；属性面板里通过 `...` 浏览外部资源并自动导入后，也会立刻触发资源刷新与后续再生成链路，避免出现“属性已更新但资源面板还没同步”的状态不一致。
+如果工程还没保存、当前没有有效的资源目录，属性面板里的文件浏览按钮现在会直接提示用户先保存工程，而不是把一个实际上并不存在于工程里的文件名写进属性，减少后续预览或资源生成时的隐性错误。
 
 ### 新建项目与目录冲突
 
@@ -365,6 +375,8 @@ python scripts/ui_designer/main.py --sdk-root /path/to/EmbeddedGUI
 `SDK Root` 现在是可选项：
 
 - 如果已经配置有效 SDK，默认会落到 `sdk_root/example/`
+- 如果在 `New Project...` 对话框里切换到了另一份 SDK，且 `Parent Dir` 仍处于默认跟随状态，父目录也会自动跟到新的 `sdk_root/example/`
+- 如果用户已经手动指定过 `Parent Dir`，后续再切换 SDK 时不会强行覆盖这个手动目录
 - 如果暂时没有 SDK，也可以先创建项目并进入纯编辑模式，之后再通过 `File -> Set SDK Root...` 补上编译预览能力
 
 如果目标目录已存在且非空，会直接报错，避免把 Designer 项目写进一个有冲突内容的目录。

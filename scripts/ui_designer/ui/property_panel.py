@@ -62,6 +62,7 @@ class PropertyPanel(QWidget):
     """Dynamic property editor for the selected widget."""
 
     property_changed = pyqtSignal()  # emits when any property changes
+    resource_imported = pyqtSignal()  # emits when browse auto-import adds a new resource
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -70,6 +71,7 @@ class PropertyPanel(QWidget):
         self._editors = {}
         self._resource_dir = ""      # resource/ dir (for generated font scanning)
         self._source_resource_dir = ""  # .eguiproject/resources/ (source files)
+        self._last_external_file_dir = ""  # last browsed external file directory
         self._custom_fonts = []       # C expressions from project resource/
         self._resource_catalog = None  # ResourceCatalog instance
         self._string_keys = []        # list of i18n string keys for @string/ completions
@@ -650,13 +652,22 @@ class PropertyPanel(QWidget):
 
     def _browse_file(self, combo, file_filter):
         """Open a file dialog to select a file."""
-        src_dir = self._source_resource_dir or ""
-        if not src_dir or not os.path.isdir(src_dir):
-            src_dir = ""
+        src_dir = self._default_file_browse_dir(file_filter)
+        if not src_dir:
+            QMessageBox.warning(
+                self,
+                "Resource Directory Missing",
+                "Please save the project first so Designer has a resource directory for importing files.",
+            )
+            return
 
         path, _ = QFileDialog.getOpenFileName(self, "Select File", src_dir, file_filter)
         if path:
             filename = os.path.basename(path)
+            path_dir = os.path.dirname(path)
+            if path_dir and os.path.isdir(path_dir):
+                self._last_external_file_dir = path_dir
+            imported = False
             # Auto-import: copy to .eguiproject/resources/ if not there
             if self._source_resource_dir:
                 # Images go in images/ subfolder, fonts/text go in root
@@ -670,14 +681,40 @@ class PropertyPanel(QWidget):
                     import shutil
                     os.makedirs(dest_dir, exist_ok=True)
                     shutil.copy2(path, dest)
+                    imported = True
                 # Add to catalog
                 if self._resource_catalog:
+                    had_file = (
+                        self._resource_catalog.has_image(filename)
+                        or self._resource_catalog.has_font(filename)
+                        or self._resource_catalog.has_text_file(filename)
+                    )
                     self._resource_catalog.add_file(filename)
+                    if not had_file:
+                        imported = True
 
             # Ensure filename is in combo
             if combo.findText(filename) < 0:
                 combo.addItem(filename)
             combo.setCurrentText(filename)
+            if imported:
+                self.resource_imported.emit()
+
+    def _default_file_browse_dir(self, file_filter):
+        if self._last_external_file_dir and os.path.isdir(self._last_external_file_dir):
+            return self._last_external_file_dir
+
+        src_dir = self._source_resource_dir or ""
+        if not src_dir or not os.path.isdir(src_dir):
+            return ""
+
+        lower_filter = (file_filter or "").lower()
+        if any(ext in lower_filter for ext in (".png", ".bmp", ".jpg", ".jpeg")):
+            images_dir = os.path.join(src_dir, "images")
+            if os.path.isdir(images_dir):
+                return images_dir
+
+        return src_dir
 
     def _on_file_prop_changed(self, prop_name, value):
         """Handle file property change - rebuild form if needed for conditional groups."""

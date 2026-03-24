@@ -13,6 +13,8 @@ from ui_designer.model.workspace import (
     infer_sdk_root_from_project_dir,
     is_valid_sdk_root,
     normalize_path,
+    resolve_available_sdk_root,
+    resolve_preferred_sdk_root,
     resolve_sdk_root_candidate,
     resolve_project_sdk_root,
     serialize_sdk_root,
@@ -82,6 +84,16 @@ class TestWorkspaceHelpers:
         monkeypatch.setenv("EMBEDDEDGUI_SDK_ROOT", str(sdk_root))
         assert find_sdk_root() == normalize_path(str(sdk_root))
 
+    def test_find_sdk_root_uses_extra_candidates(self, tmp_path, monkeypatch):
+        sdk_root = tmp_path / "sdk_cache" / "EmbeddedGUI"
+        _create_sdk_root(sdk_root)
+
+        isolated_cwd = tmp_path / "isolated_cwd"
+        isolated_cwd.mkdir()
+        monkeypatch.chdir(isolated_cwd)
+
+        assert find_sdk_root(env={}, extra_candidates=[str(sdk_root)]) == normalize_path(str(sdk_root))
+
     def test_resolve_sdk_root_candidate_accepts_parent_with_embeddedgui_child(self, tmp_path):
         parent_dir = tmp_path / "tools"
         sdk_root = parent_dir / "EmbeddedGUI-main"
@@ -97,6 +109,31 @@ class TestWorkspaceHelpers:
         _create_sdk_root(sdk_root)
 
         assert resolve_sdk_root_candidate(str(sdk_container)) == normalize_path(str(sdk_root))
+
+    def test_resolve_preferred_sdk_root_falls_back_to_next_valid_candidate(self, tmp_path):
+        invalid_root = tmp_path / "invalid_sdk"
+        sdk_root = tmp_path / "sdk_cache" / "EmbeddedGUI"
+        _create_sdk_root(sdk_root)
+
+        assert resolve_preferred_sdk_root(str(invalid_root), str(sdk_root)) == normalize_path(str(sdk_root))
+
+    def test_resolve_preferred_sdk_root_returns_invalid_candidate_when_no_valid_root_exists(self, tmp_path):
+        invalid_root = tmp_path / "invalid_sdk"
+        assert resolve_preferred_sdk_root(str(invalid_root), "") == normalize_path(str(invalid_root))
+
+    def test_resolve_available_sdk_root_prefers_cache_when_candidates_are_invalid(self, tmp_path):
+        invalid_root = tmp_path / "invalid_sdk"
+        cached_sdk_root = tmp_path / "cache" / "EmbeddedGUI"
+        _create_sdk_root(cached_sdk_root)
+
+        assert resolve_available_sdk_root(
+            str(invalid_root),
+            cached_sdk_root=str(cached_sdk_root),
+        ) == normalize_path(str(cached_sdk_root))
+
+    def test_resolve_available_sdk_root_keeps_invalid_candidate_without_cache(self, tmp_path):
+        invalid_root = tmp_path / "invalid_sdk"
+        assert resolve_available_sdk_root(str(invalid_root), cached_sdk_root="") == normalize_path(str(invalid_root))
 
     def test_find_sdk_root_discovers_plain_sdk_sibling_from_project_path(self, tmp_path, monkeypatch):
         workspace_root = tmp_path / "workspace"

@@ -327,6 +327,7 @@ class ResourcePanel(QWidget):
         self._resource_dir = ""      # .eguiproject/resources/ base directory
         self._src_dir = ""           # same as _resource_dir (fonts/text root)
         self._images_dir = ""        # .eguiproject/resources/images/ subfolder
+        self._last_external_import_dir = ""
         self._catalog = ResourceCatalog()
         self._string_catalog = StringResourceCatalog()
         self._font_id_cache = {}
@@ -579,6 +580,27 @@ class ResourcePanel(QWidget):
         os.makedirs(self._images_dir, exist_ok=True)
         return True
 
+    def _default_external_import_dir(self, resource_type=""):
+        candidate = self._last_external_import_dir
+        if candidate and os.path.isdir(candidate):
+            return candidate
+
+        if resource_type == "image" and self._images_dir and os.path.isdir(self._images_dir):
+            return self._images_dir
+
+        if self._src_dir and os.path.isdir(self._src_dir):
+            return self._src_dir
+
+        return os.path.normpath(os.getcwd())
+
+    def _remember_external_import_paths(self, paths):
+        if not paths:
+            return
+        first_path = paths[0]
+        parent_dir = os.path.dirname(first_path)
+        if parent_dir and os.path.isdir(parent_dir):
+            self._last_external_import_dir = parent_dir
+
     # -- Selection / double-click --
 
     def _on_image_clicked(self, item):
@@ -608,27 +630,30 @@ class ResourcePanel(QWidget):
 
     def _on_import_image(self):
         paths, _ = QFileDialog.getOpenFileNames(
-            self, "Import Images", "",
+            self, "Import Images", self._default_external_import_dir("image"),
             "Images (*.png *.bmp *.jpg *.jpeg)"
         )
         if paths:
+            self._remember_external_import_paths(paths)
             self._do_import(paths, "image")
 
     def _on_import_font(self):
         paths, _ = QFileDialog.getOpenFileNames(
-            self, "Import Fonts", "",
+            self, "Import Fonts", self._default_external_import_dir("font"),
             "Fonts (*.ttf *.otf)"
         )
         if paths:
+            self._remember_external_import_paths(paths)
             self._do_import(paths, "font")
 
     def _on_import_text(self):
         paths, _ = QFileDialog.getOpenFileNames(
-            self, "Import Text Files", "",
+            self, "Import Text Files", self._default_external_import_dir("text"),
             "Text Files (*.txt);;All Files (*.*)"
         )
         if not paths:
             return
+        self._remember_external_import_paths(paths)
         if not self._ensure_src_dir():
             return
         for src in paths:
@@ -650,6 +675,7 @@ class ResourcePanel(QWidget):
     def _do_import(self, source_paths, resource_type):
         if not self._ensure_src_dir():
             return
+        self._remember_external_import_paths(source_paths)
         imported = 0
         # Choose target directory: images/ for images, root for fonts
         target_dir = self._images_dir if resource_type == "image" else self._src_dir

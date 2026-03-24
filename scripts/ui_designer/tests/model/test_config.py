@@ -146,6 +146,18 @@ class TestRecentApps:
         assert [item["display_name"] for item in config.recent_projects] == ["App2"]
         assert config.recent_apps == [("App2", normalize_path("/root"))]
 
+    def test_remove_recent_project_clears_last_project_path_when_matching(self, config, tmp_path):
+        config_path = tmp_path / "config.json"
+        with patch("ui_designer.model.config._get_config_path", return_value=str(config_path)):
+            with patch("ui_designer.model.config._get_config_dir", return_value=str(tmp_path)):
+                config.add_recent_project("/root/App1/App1.egui", "/root", "App1")
+                config.last_project_path = normalize_path("/root/App1/App1.egui")
+
+                removed = config.remove_recent_project("/root/App1/App1.egui")
+
+        assert removed is True
+        assert config.last_project_path == ""
+
 
 class TestPathManagement:
     """Test path helper methods."""
@@ -163,6 +175,19 @@ class TestPathManagement:
     def test_get_app_dir_empty_root(self, config):
         config.egui_root = ""
         assert config.get_app_dir() == ""
+
+    def test_get_app_dir_uses_cached_sdk_when_saved_root_is_invalid(self, config, tmp_path):
+        cached_sdk = tmp_path / "cfg" / "sdk" / "EmbeddedGUI"
+        (cached_sdk / "src").mkdir(parents=True)
+        (cached_sdk / "porting" / "designer").mkdir(parents=True)
+        (cached_sdk / "Makefile").write_text("all:\n")
+        config.sdk_root = str(tmp_path / "missing_sdk")
+        config.last_app = "MyApp"
+
+        with patch("ui_designer.model.config._get_config_dir", return_value=str(tmp_path / "cfg")):
+            result = config.get_app_dir()
+
+        assert result == os.path.join(normalize_path(str(cached_sdk)), "example", "MyApp")
 
     def test_get_project_path(self, config):
         config.egui_root = "/project"
@@ -196,6 +221,23 @@ class TestPathManagement:
     def test_list_available_apps_empty_root(self, config):
         config.sdk_root = ""
         assert config.list_available_apps() == []
+
+    def test_list_available_apps_uses_cached_sdk_when_saved_root_is_invalid(self, config, tmp_path):
+        cached_sdk = tmp_path / "cfg" / "sdk" / "EmbeddedGUI"
+        example_dir = cached_sdk / "example"
+        app_dir = example_dir / "CachedApp"
+        (app_dir).mkdir(parents=True)
+        (cached_sdk / "src").mkdir(parents=True, exist_ok=True)
+        (cached_sdk / "porting" / "designer").mkdir(parents=True, exist_ok=True)
+        (cached_sdk / "Makefile").write_text("all:\n")
+        (app_dir / "build.mk").write_text("")
+        (app_dir / "CachedApp.egui").write_text("")
+        config.sdk_root = str(tmp_path / "missing_sdk")
+
+        with patch("ui_designer.model.config._get_config_dir", return_value=str(tmp_path / "cfg")):
+            apps = config.list_available_apps()
+
+        assert apps == ["CachedApp"]
 
     def test_list_available_apps_no_example_dir(self, config, tmp_path):
         config.sdk_root = str(tmp_path)

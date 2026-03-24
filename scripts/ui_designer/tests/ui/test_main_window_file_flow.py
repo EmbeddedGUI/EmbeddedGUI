@@ -114,6 +114,54 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_open_project_uses_recovered_cached_sdk_example_as_default_dir(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        cached_sdk = tmp_path / "config" / "sdk" / "EmbeddedGUI"
+        _create_sdk_root(cached_sdk)
+        isolated_config.sdk_root = str(tmp_path / "missing_sdk")
+        isolated_config.egui_root = str(tmp_path / "missing_sdk")
+        captured = {}
+
+        def fake_get_open_file_name(parent, title, directory, filters):
+            captured["title"] = title
+            captured["directory"] = directory
+            captured["filters"] = filters
+            return "", ""
+
+        window = MainWindow("")
+        monkeypatch.setattr("ui_designer.ui.main_window.default_sdk_install_dir", lambda: str(cached_sdk))
+        monkeypatch.setattr("ui_designer.ui.main_window.QFileDialog.getOpenFileName", fake_get_open_file_name)
+
+        window._open_project()
+
+        assert captured["title"] == "Open Project"
+        assert captured["directory"] == os.path.join(os.path.normpath(os.path.abspath(cached_sdk)), "example")
+        assert "EmbeddedGUI Projects" in captured["filters"]
+        window.close()
+        window.deleteLater()
+
+    def test_open_project_uses_nearest_existing_parent_for_missing_last_project(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        recent_parent = tmp_path / "workspace" / "RecentApp"
+        recent_parent.mkdir(parents=True)
+        isolated_config.last_project_path = str(recent_parent / "Missing.egui")
+        captured = {}
+
+        def fake_get_open_file_name(parent, title, directory, filters):
+            captured["directory"] = directory
+            return "", ""
+
+        window = MainWindow("")
+        monkeypatch.setattr("ui_designer.ui.main_window.QFileDialog.getOpenFileName", fake_get_open_file_name)
+
+        window._open_project()
+
+        assert captured["directory"] == os.path.normpath(os.path.abspath(recent_parent))
+        window.close()
+        window.deleteLater()
+
     def test_save_project_writes_project_and_generated_files(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
 
@@ -190,6 +238,63 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_new_project_uses_current_project_parent_as_default_parent_dir(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        workspace_dir = tmp_path / "workspace"
+        project_dir = workspace_dir / "CurrentApp"
+        project_dir.mkdir(parents=True)
+        captured = {}
+
+        class FakeDialog:
+            Accepted = 1
+
+            def __init__(self, parent=None, sdk_root="", default_parent_dir=""):
+                captured["default_parent_dir"] = default_parent_dir
+
+            def exec_(self):
+                return 0
+
+        window = MainWindow("")
+        window._project_dir = str(project_dir)
+        monkeypatch.setattr("ui_designer.ui.main_window.NewProjectDialog", FakeDialog)
+
+        window._new_project()
+
+        assert captured["default_parent_dir"] == os.path.normpath(os.path.abspath(workspace_dir))
+        window.close()
+        window.deleteLater()
+
+    def test_new_project_prefers_recovered_cached_sdk_for_defaults(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        cached_sdk = tmp_path / "config" / "sdk" / "EmbeddedGUI"
+        _create_sdk_root(cached_sdk)
+        isolated_config.sdk_root = str(tmp_path / "missing_sdk")
+        isolated_config.egui_root = str(tmp_path / "missing_sdk")
+        captured = {}
+
+        class FakeDialog:
+            Accepted = 1
+
+            def __init__(self, parent=None, sdk_root="", default_parent_dir=""):
+                captured["sdk_root"] = sdk_root
+                captured["default_parent_dir"] = default_parent_dir
+
+            def exec_(self):
+                return 0
+
+        window = MainWindow("")
+        monkeypatch.setattr("ui_designer.ui.main_window.default_sdk_install_dir", lambda: str(cached_sdk))
+        monkeypatch.setattr("ui_designer.ui.main_window.NewProjectDialog", FakeDialog)
+
+        window._new_project()
+
+        assert captured["sdk_root"] == os.path.normpath(os.path.abspath(cached_sdk))
+        assert captured["default_parent_dir"] == os.path.join(os.path.normpath(os.path.abspath(cached_sdk)), "example")
+        window.close()
+        window.deleteLater()
+
     def test_save_project_as_copies_sidecar_files_and_updates_project_dir(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
 
@@ -260,6 +365,62 @@ class TestMainWindowFileFlow:
         window.close()
         window.deleteLater()
 
+    def test_save_project_as_uses_current_project_parent_as_initial_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        workspace_dir = tmp_path / "workspace"
+        src_dir = workspace_dir / "SrcDemo"
+        project = _create_project(src_dir, "SaveAsDemo", sdk_root)
+        captured = {}
+
+        window = MainWindow(str(sdk_root))
+        window.project = project
+        window.project_root = str(sdk_root)
+        window._project_dir = str(src_dir)
+
+        def fake_get_existing_directory(parent, title, directory):
+            captured["title"] = title
+            captured["directory"] = directory
+            return ""
+
+        monkeypatch.setattr("ui_designer.ui.main_window.QFileDialog.getExistingDirectory", fake_get_existing_directory)
+
+        window._save_project_as()
+
+        assert captured["title"] == "Save Project To Directory"
+        assert captured["directory"] == os.path.normpath(os.path.abspath(workspace_dir))
+        window.close()
+        window.deleteLater()
+
+    def test_export_code_uses_current_project_dir_as_initial_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "ExportDemo"
+        project = _create_project(project_dir, "ExportDemo", sdk_root)
+        captured = {}
+
+        window = MainWindow(str(sdk_root))
+        window.project = project
+        window._project_dir = str(project_dir)
+
+        def fake_get_existing_directory(parent, title, directory):
+            captured["title"] = title
+            captured["directory"] = directory
+            return ""
+
+        monkeypatch.setattr("ui_designer.ui.main_window.QFileDialog.getExistingDirectory", fake_get_existing_directory)
+
+        window._export_code()
+
+        assert captured["title"] == "Export C Code To Directory"
+        assert captured["directory"] == os.path.normpath(os.path.abspath(project_dir))
+        window.close()
+        window.deleteLater()
+
     def test_set_sdk_root_updates_current_project_and_rebuilds_compiler(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.project import Project
         from ui_designer.ui.main_window import MainWindow
@@ -321,6 +482,93 @@ class TestMainWindowFileFlow:
         assert window.project_root == os.path.normpath(os.path.abspath(sdk_root))
         assert isolated_config.sdk_root == os.path.normpath(os.path.abspath(sdk_root))
         assert "SDK root set to:" in window.statusBar().currentMessage()
+        window.close()
+        window.deleteLater()
+
+    def test_set_sdk_root_uses_recovered_cached_sdk_as_initial_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        cached_sdk = tmp_path / "config" / "sdk" / "EmbeddedGUI"
+        _create_sdk_root(cached_sdk)
+        isolated_config.sdk_root = str(tmp_path / "missing_sdk")
+        isolated_config.egui_root = str(tmp_path / "missing_sdk")
+        captured = {}
+
+        def fake_get_existing_directory(parent, title, directory):
+            captured["title"] = title
+            captured["directory"] = directory
+            return ""
+
+        window = MainWindow("")
+        monkeypatch.setattr("ui_designer.ui.main_window.default_sdk_install_dir", lambda: str(cached_sdk))
+        monkeypatch.setattr("ui_designer.ui.main_window.QFileDialog.getExistingDirectory", fake_get_existing_directory)
+
+        window._set_sdk_root()
+
+        assert captured["title"] == "Select EmbeddedGUI SDK Root"
+        assert captured["directory"] == os.path.normpath(os.path.abspath(cached_sdk))
+        window.close()
+        window.deleteLater()
+
+    def test_open_app_dialog_uses_recovered_cached_sdk_root(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        cached_sdk = tmp_path / "config" / "sdk" / "EmbeddedGUI"
+        _create_sdk_root(cached_sdk)
+        isolated_config.sdk_root = str(tmp_path / "missing_sdk")
+        isolated_config.egui_root = str(tmp_path / "missing_sdk")
+        captured = {}
+
+        class FakeDialog:
+            Accepted = 1
+
+            def __init__(self, parent=None, egui_root=None, on_download_sdk=None):
+                captured["egui_root"] = egui_root
+                captured["has_download_handler"] = callable(on_download_sdk)
+                self._selected_entry = None
+                self._egui_root = egui_root
+
+            def exec_(self):
+                return 0
+
+            @property
+            def selected_entry(self):
+                return self._selected_entry
+
+            @property
+            def egui_root(self):
+                return self._egui_root
+
+        window = MainWindow("")
+        monkeypatch.setattr("ui_designer.ui.main_window.default_sdk_install_dir", lambda: str(cached_sdk))
+        monkeypatch.setattr("ui_designer.ui.main_window.AppSelectorDialog", FakeDialog)
+
+        window._open_app_dialog()
+
+        assert captured["egui_root"] == os.path.normpath(os.path.abspath(cached_sdk))
+        assert captured["has_download_handler"] is True
+        window.close()
+        window.deleteLater()
+
+    def test_open_loaded_project_discovers_default_sdk_cache_when_config_is_empty(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.project import Project
+        from ui_designer.ui.main_window import MainWindow
+
+        project_dir = tmp_path / "CacheDemo"
+        project = _create_project(project_dir, "CacheDemo", "")
+        sdk_root = tmp_path / "config" / "sdk" / "EmbeddedGUI"
+        _create_sdk_root(sdk_root)
+
+        window = MainWindow("")
+        monkeypatch.setattr("ui_designer.ui.main_window.default_sdk_install_dir", lambda: str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(Project.load(str(project_dir)), str(project_dir), preferred_sdk_root="", silent=True)
+
+        assert window.project_root == os.path.normpath(os.path.abspath(sdk_root))
+        assert window.project.sdk_root == os.path.normpath(os.path.abspath(sdk_root))
+        assert isolated_config.sdk_root == os.path.normpath(os.path.abspath(sdk_root))
         window.close()
         window.deleteLater()
 
@@ -513,6 +761,7 @@ class TestMainWindowFileFlow:
 
         missing_project = tmp_path / "MissingApp" / "MissingApp.egui"
         window = MainWindow("")
+        isolated_config.last_project_path = str(missing_project)
         isolated_config.recent_projects = [
             {
                 "project_path": str(missing_project),
@@ -527,11 +776,114 @@ class TestMainWindowFileFlow:
         window._open_recent_project(str(missing_project))
 
         assert isolated_config.recent_projects == []
+        assert isolated_config.last_project_path == ""
         assert window._recent_menu.actions()[0].text() == "(No recent projects)"
         recent_widget = window._welcome_page._recent_list.itemAt(0).widget()
         assert recent_widget is not None
         assert "No recent projects" in recent_widget.text()
         assert "Removed missing project" in window.statusBar().currentMessage()
+        window.close()
+        window.deleteLater()
+
+    def test_recent_menu_action_uses_recovered_cached_sdk_root(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        cached_sdk = tmp_path / "config" / "sdk" / "EmbeddedGUI"
+        _create_sdk_root(cached_sdk)
+        project_path = tmp_path / "DemoApp" / "DemoApp.egui"
+        isolated_config.recent_projects = [
+            {
+                "project_path": str(project_path),
+                "sdk_root": str(tmp_path / "missing_sdk"),
+                "display_name": "DemoApp",
+            }
+        ]
+        captured = {}
+
+        window = MainWindow("")
+        monkeypatch.setattr("ui_designer.ui.main_window.default_sdk_install_dir", lambda: str(cached_sdk))
+        monkeypatch.setattr(window, "_open_recent_project", lambda path, sdk_root="": captured.update({"path": path, "sdk_root": sdk_root}))
+
+        window._update_recent_menu()
+        window._recent_menu.actions()[0].trigger()
+
+        assert captured["path"] == str(project_path)
+        assert captured["sdk_root"] == os.path.normpath(os.path.abspath(cached_sdk))
+        window.close()
+        window.deleteLater()
+
+    def test_property_panel_resource_imported_signal_triggers_resource_refresh_flow(self, qapp, isolated_config, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        window = MainWindow("")
+        monkeypatch.setattr(window, "_refresh_project_watch_snapshot", lambda: None)
+
+        window.property_panel.resource_imported.emit()
+
+        assert window._resources_need_regen is True
+        assert window._regen_timer.isActive() is True
+        assert "Resources changed, will regenerate..." in window.statusBar().currentMessage()
+        window._regen_timer.stop()
+        window.close()
+        window.deleteLater()
+
+    def test_load_background_image_uses_existing_mockup_dir_as_initial_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "MockupDemo"
+        project = _create_project(project_dir, "MockupDemo", sdk_root)
+        mockup_dir = project_dir / ".eguiproject" / "mockup"
+        mockup_dir.mkdir(parents=True, exist_ok=True)
+        (mockup_dir / "existing.png").write_bytes(b"PNG")
+        project.get_startup_page().mockup_image_path = "mockup/existing.png"
+        captured = {}
+
+        window = MainWindow(str(sdk_root))
+        window.project = project
+        window._project_dir = str(project_dir)
+        window._current_page = project.get_startup_page()
+
+        def fake_get_open_file_name(parent, title, directory, filters):
+            captured["title"] = title
+            captured["directory"] = directory
+            captured["filters"] = filters
+            return "", ""
+
+        monkeypatch.setattr("ui_designer.ui.main_window.QFileDialog.getOpenFileName", fake_get_open_file_name)
+
+        window._load_background_image()
+
+        assert captured["title"] == "Load Mockup Image"
+        assert captured["directory"] == os.path.normpath(os.path.abspath(mockup_dir))
+        assert "Images" in captured["filters"]
+        window.close()
+        window.deleteLater()
+
+    def test_load_background_image_falls_back_to_project_dir_when_mockup_dir_missing(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "MockupDemo"
+        project = _create_project(project_dir, "MockupDemo", sdk_root)
+        captured = {}
+
+        window = MainWindow(str(sdk_root))
+        window.project = project
+        window._project_dir = str(project_dir)
+        window._current_page = project.get_startup_page()
+
+        def fake_get_open_file_name(parent, title, directory, filters):
+            captured["directory"] = directory
+            return "", ""
+
+        monkeypatch.setattr("ui_designer.ui.main_window.QFileDialog.getOpenFileName", fake_get_open_file_name)
+
+        window._load_background_image()
+
+        assert captured["directory"] == os.path.normpath(os.path.abspath(project_dir))
         window.close()
         window.deleteLater()
 

@@ -12,7 +12,7 @@ from qfluentwidgets import PrimaryPushButton, PushButton
 
 from ..model.config import get_config
 from ..model.sdk_bootstrap import default_sdk_install_dir
-from ..model.workspace import describe_sdk_root
+from ..model.workspace import describe_sdk_root, resolve_available_sdk_root
 
 
 class RecentProjectItem(QWidget):
@@ -57,14 +57,14 @@ class RecentProjectItem(QWidget):
         text_layout.addWidget(path_label)
 
         sdk_status = describe_sdk_root(sdk_root)
-        status_label = QLabel(f"SDK: {sdk_status}")
+        self._status_label = QLabel(f"SDK: {sdk_status}")
         if sdk_status == "ready":
-            status_label.setStyleSheet("color: #4caf50;")
+            self._status_label.setStyleSheet("color: #4caf50;")
         elif sdk_status == "invalid":
-            status_label.setStyleSheet("color: #ff9800;")
+            self._status_label.setStyleSheet("color: #ff9800;")
         else:
-            status_label.setStyleSheet("color: #f44336;")
-        text_layout.addWidget(status_label)
+            self._status_label.setStyleSheet("color: #f44336;")
+        text_layout.addWidget(self._status_label)
 
         layout.addLayout(text_layout, 1)
 
@@ -209,7 +209,11 @@ class WelcomePage(QWidget):
         self._refresh_recent_list()
 
     def _refresh_sdk_status(self):
-        sdk_root = self._config.sdk_root or self._config.egui_root
+        sdk_root = resolve_available_sdk_root(
+            self._config.sdk_root,
+            self._config.egui_root,
+            cached_sdk_root=default_sdk_install_dir(),
+        )
         sdk_status = describe_sdk_root(sdk_root)
         default_cache_dir = default_sdk_install_dir()
         if sdk_status == "ready":
@@ -233,6 +237,12 @@ class WelcomePage(QWidget):
 
         self._sdk_path_label.setText(sdk_root or "No SDK root configured")
 
+    def _resolve_display_sdk_root(self, sdk_root=""):
+        return resolve_available_sdk_root(
+            sdk_root,
+            cached_sdk_root=default_sdk_install_dir(),
+        )
+
     def _refresh_recent_list(self):
         while self._recent_list.count():
             item = self._recent_list.takeAt(0)
@@ -248,7 +258,7 @@ class WelcomePage(QWidget):
 
         for item_data in recent[:8]:
             project_path = item_data.get("project_path", "")
-            sdk_root = item_data.get("sdk_root", "")
+            sdk_root = self._resolve_display_sdk_root(item_data.get("sdk_root", ""))
             display_name = item_data.get("display_name") or os.path.splitext(os.path.basename(project_path))[0]
             item = RecentProjectItem(project_path, sdk_root, display_name)
             item.item_clicked.connect(self._on_recent_clicked)

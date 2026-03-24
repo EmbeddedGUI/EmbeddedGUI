@@ -61,6 +61,7 @@ def main():
 
     from ui_designer.model.config import get_config
     from ui_designer.model.widget_registry import WidgetRegistry
+    from ui_designer.model.sdk_bootstrap import default_sdk_install_dir
     from ui_designer.model.workspace import find_sdk_root, normalize_path
     from ui_designer.ui.main_window import MainWindow
     from ui_designer.ui.theme import apply_theme
@@ -71,6 +72,7 @@ def main():
         cli_sdk_root=args.sdk_root,
         configured_sdk_root=config.sdk_root or config.egui_root,
         project_path=cli_project,
+        extra_candidates=[default_sdk_install_dir()],
     )
     app_name = args.app or config.last_app or "HelloDesigner"
 
@@ -94,9 +96,23 @@ def main():
     preferred_sdk_root = sdk_root
     if cli_project:
         project_to_open = cli_project
-    elif config.last_project_path and os.path.exists(config.last_project_path):
-        project_to_open = normalize_path(config.last_project_path)
-        preferred_sdk_root = preferred_sdk_root or config.sdk_root or config.egui_root
+    elif config.last_project_path:
+        last_project_path = normalize_path(config.last_project_path)
+        if os.path.exists(last_project_path):
+            project_to_open = last_project_path
+            preferred_sdk_root = preferred_sdk_root or config.sdk_root or config.egui_root
+        else:
+            removed = False
+            remove_recent_project = getattr(config, "remove_recent_project", None)
+            if callable(remove_recent_project):
+                try:
+                    removed = bool(remove_recent_project(last_project_path))
+                except Exception:
+                    removed = False
+            if getattr(config, "last_project_path", ""):
+                config.last_project_path = ""
+                if not removed:
+                    config.save()
 
     if project_to_open:
         try:

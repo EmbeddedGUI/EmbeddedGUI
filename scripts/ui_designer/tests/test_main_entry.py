@@ -14,12 +14,23 @@ class _FakeConfig:
         self.egui_root = ""
         self.last_app = "HelloDesigner"
         self.last_project_path = ""
+        self.recent_projects = []
         self.theme = "dark"
         self.font_size_px = 0
         self.save_calls = 0
 
     def save(self):
         self.save_calls += 1
+
+    def remove_recent_project(self, project_path):
+        original_len = len(self.recent_projects)
+        self.recent_projects = [item for item in self.recent_projects if item.get("project_path") != project_path]
+        removed = len(self.recent_projects) != original_len
+        if removed:
+            if self.last_project_path == project_path:
+                self.last_project_path = ""
+            self.save()
+        return removed
 
 
 class _FakeApp:
@@ -83,7 +94,7 @@ def main_module():
     return designer_main
 
 
-def _patch_main_dependencies(monkeypatch, config, sdk_root, main_module, open_error=None):
+def _patch_main_dependencies(monkeypatch, config, sdk_root, main_module, open_error=None, find_sdk_root_calls=None):
     import PyQt5.QtWidgets as qtwidgets
     import PyQt5.QtCore as qtcore
     import ui_designer.model.config as config_module
@@ -104,11 +115,12 @@ def _patch_main_dependencies(monkeypatch, config, sdk_root, main_module, open_er
             window_state["instance"] = self
 
     monkeypatch.setattr(config_module, "get_config", lambda: config)
-    monkeypatch.setattr(
-        workspace_module,
-        "find_sdk_root",
-        lambda **kwargs: sdk_root,
-    )
+    def _fake_find_sdk_root(**kwargs):
+        if find_sdk_root_calls is not None:
+            find_sdk_root_calls.append(kwargs)
+        return sdk_root
+
+    monkeypatch.setattr(workspace_module, "find_sdk_root", _fake_find_sdk_root)
     monkeypatch.setattr(
         registry_module.WidgetRegistry,
         "instance",
@@ -240,3 +252,62 @@ def test_main_starts_without_sdk_root_and_keeps_window_usable(monkeypatch, main_
     assert app.application_name == "EmbeddedGUI Designer"
     assert window.prompt_calls == 1
     assert exit_codes == [0]
+
+
+def test_main_clears_stale_last_project_path_before_showing_window(monkeypatch, tmp_path, main_module):
+    config = _FakeConfig()
+    missing_project = os.path.normpath(os.path.abspath(tmp_path / "Missing" / "Missing.egui"))
+    config.last_project_path = missing_project
+    config.recent_projects = [
+        {
+            "project_path": missing_project,
+            "sdk_root": "",
+            "display_name": "Missing",
+        }
+    ]
+
+    monkeypatch.setattr(
+        main_module,
+        "_parse_args",
+        lambda: argparse.Namespace(project=None, app=None, sdk_root=None),
+    )
+    _, _, exit_codes, window_state = _patch_main_dependencies(monkeypatch, config, "", main_module)
+
+    main_module.main()
+
+    window = window_state["instance"]
+    assert config.last_project_path == ""
+    assert config.recent_projects == []
+    assert config.save_calls == 1
+    assert window.open_calls == []
+    assert window.show_called is True
+    assert window.prompt_calls == 1
+    assert exit_codes == [0]
+
+
+def test_main_passes_default_sdk_cache_candidate_to_sdk_discovery(monkeypatch, tmp_path, main_module):
+    config = _FakeConfig()
+    find_sdk_root_calls = []
+    default_cache = os.path.normpath(os.path.abspath(tmp_path / "config" / "sdk" / "EmbeddedGUI"))
+
+    monkeypatch.setattr(
+        main_module,
+        "_parse_args",
+        lambda: argparse.Namespace(project=None, app=None, sdk_root=None),
+    )
+    monkeypatch.setattr(
+        "ui_designer.model.sdk_bootstrap.default_sdk_install_dir",
+        lambda: default_cache,
+    )
+    _, _, _, _ = _patch_main_dependencies(
+        monkeypatch,
+        config,
+        "",
+        main_module,
+        find_sdk_root_calls=find_sdk_root_calls,
+    )
+
+    main_module.main()
+
+    assert len(find_sdk_root_calls) == 1
+    assert find_sdk_root_calls[0]["extra_candidates"] == [default_cache]

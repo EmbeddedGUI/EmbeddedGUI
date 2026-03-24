@@ -6,7 +6,7 @@ import json
 import os
 import sys
 
-from .workspace import normalize_path
+from .workspace import normalize_path, resolve_available_sdk_root
 
 
 def _get_config_dir():
@@ -121,6 +121,17 @@ class DesignerConfig:
                 result.append((app_name, sdk_root))
         return result
 
+    def _default_cached_sdk_root(self):
+        return normalize_path(os.path.join(_get_config_dir(), "sdk", "EmbeddedGUI"))
+
+    def _resolve_sdk_root(self, sdk_root=""):
+        return resolve_available_sdk_root(
+            sdk_root,
+            self.sdk_root,
+            self.egui_root,
+            cached_sdk_root=self._default_cached_sdk_root(),
+        )
+
     def load(self):
         """Load configuration from file."""
         config_path = _get_config_path()
@@ -214,6 +225,8 @@ class DesignerConfig:
         self.recent_projects = [item for item in self.recent_projects if item.get("project_path") != project_path]
         removed = len(self.recent_projects) != original_len
         if removed:
+            if self.last_project_path == project_path:
+                self.last_project_path = ""
             self.recent_apps = self._legacy_recent_apps_from_projects()
             self.save()
         return removed
@@ -231,7 +244,7 @@ class DesignerConfig:
     def get_app_dir(self, app_name=None, sdk_root=None):
         """Get the default SDK example directory for an app."""
         app_name = app_name or self.last_app
-        sdk_root = normalize_path(sdk_root or self.sdk_root)
+        sdk_root = self._resolve_sdk_root(sdk_root)
         if not sdk_root or not app_name:
             return ""
         return os.path.join(sdk_root, "example", app_name)
@@ -246,7 +259,7 @@ class DesignerConfig:
 
     def list_available_app_entries(self, sdk_root=None, include_legacy=False):
         """List all available app entries in the SDK ``example/`` directory."""
-        sdk_root = normalize_path(sdk_root or self.sdk_root)
+        sdk_root = self._resolve_sdk_root(sdk_root)
         if not sdk_root:
             return []
 
