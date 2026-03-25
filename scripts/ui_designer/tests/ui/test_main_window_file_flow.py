@@ -1582,6 +1582,35 @@ class TestMainWindowFileFlow:
         window._undo_manager.mark_all_saved()
         _close_window(window)
 
+    def test_page_fields_panel_open_init_creates_page_source_and_updates_status(
+        self, qapp, isolated_config, tmp_path, monkeypatch
+    ):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "PageFieldsCodeDemo"
+        project = _create_project(project_dir, "PageFieldsCodeDemo", sdk_root)
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+        opened = []
+        monkeypatch.setattr(window, "_open_path_in_default_app", lambda path: opened.append(path) or True)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._on_page_user_code_section_requested("init")
+
+        source_path = project_dir / "main_page.c"
+        assert opened == [str(source_path)]
+        assert source_path.exists() is True
+        content = source_path.read_text(encoding="utf-8")
+        assert "void egui_main_page_init(egui_page_base_t *self)" in content
+        assert "// USER CODE BEGIN init" in content
+        assert window.statusBar().currentMessage() == "Opened user code: main_page.c (init)."
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
     def test_page_timers_panel_edit_updates_page_dirty_state_and_xml(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
 

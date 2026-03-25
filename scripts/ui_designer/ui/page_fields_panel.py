@@ -23,6 +23,7 @@ class PageFieldsPanel(QWidget):
 
     fields_changed = pyqtSignal(list)
     validation_message = pyqtSignal(str)
+    user_code_section_requested = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -42,6 +43,23 @@ class PageFieldsPanel(QWidget):
             "Page fields become generated struct members. Default is treated as a raw C expression and is applied on page open."
         )
         self._hint_label.setWordWrap(True)
+
+        self._code_hint_label = QLabel("Page lifecycle hooks live in {page}.c. Open a section to edit page-level setup and teardown logic.")
+        self._code_hint_label.setWordWrap(True)
+
+        code_buttons = QHBoxLayout()
+        code_buttons.setContentsMargins(0, 0, 0, 0)
+        code_buttons.setSpacing(6)
+        self._open_on_open_button = QPushButton("Open on_open")
+        self._open_on_close_button = QPushButton("Open on_close")
+        self._open_init_button = QPushButton("Open init")
+        self._open_on_open_button.clicked.connect(lambda: self._request_section("on_open"))
+        self._open_on_close_button.clicked.connect(lambda: self._request_section("on_close"))
+        self._open_init_button.clicked.connect(lambda: self._request_section("init"))
+        code_buttons.addWidget(self._open_on_open_button)
+        code_buttons.addWidget(self._open_on_close_button)
+        code_buttons.addWidget(self._open_init_button)
+        code_buttons.addStretch(1)
 
         self._table = QTableWidget(0, 3, self)
         self._table.setHorizontalHeaderLabels(["Name", "Type", "Default"])
@@ -67,6 +85,8 @@ class PageFieldsPanel(QWidget):
 
         layout.addWidget(self._summary_label)
         layout.addWidget(self._hint_label)
+        layout.addWidget(self._code_hint_label)
+        layout.addLayout(code_buttons)
         layout.addWidget(self._table, 1)
         layout.addLayout(buttons)
 
@@ -103,6 +123,9 @@ class PageFieldsPanel(QWidget):
         self._table.setEnabled(has_page)
         self._add_button.setEnabled(has_page)
         self._remove_button.setEnabled(has_page and has_selection)
+        self._open_on_open_button.setEnabled(has_page)
+        self._open_on_close_button.setEnabled(has_page)
+        self._open_init_button.setEnabled(has_page)
 
     def _table_fields(self):
         fields = []
@@ -167,3 +190,8 @@ class PageFieldsPanel(QWidget):
         self._fields = [field for index, field in enumerate(self._fields) if index != row]
         self._rebuild_table()
         self.fields_changed.emit(list(self._fields))
+
+    def _request_section(self, section_name):
+        if self._page is None or not section_name:
+            return
+        self.user_code_section_requested.emit(section_name)

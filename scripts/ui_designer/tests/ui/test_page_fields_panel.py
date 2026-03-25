@@ -95,6 +95,19 @@ class TestPageFieldsPanel:
         assert messages[-1] == "Page field 'title' conflicts with an auto-generated page member."
         assert panel._table.item(0, 0).text() == "field"
 
+    def test_panel_open_lifecycle_section_emits_request(self, qapp):
+        from ui_designer.ui.page_fields_panel import PageFieldsPanel
+
+        page = _make_page()
+        panel = PageFieldsPanel()
+        captured = []
+        panel.user_code_section_requested.connect(captured.append)
+        panel.set_page(page)
+
+        panel._request_section("init")
+
+        assert captured == ["init"]
+
     def test_panel_rejects_duplicate_field_name(self, qapp):
         from ui_designer.ui.page_fields_panel import PageFieldsPanel
 

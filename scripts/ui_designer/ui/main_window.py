@@ -395,6 +395,7 @@ class MainWindow(QMainWindow):
         self.animations_panel.animations_changed.connect(self._on_widget_animations_changed)
         self.page_fields_panel.fields_changed.connect(self._on_page_fields_changed)
         self.page_fields_panel.validation_message.connect(self._on_property_validation_message)
+        self.page_fields_panel.user_code_section_requested.connect(self._on_page_user_code_section_requested)
         self.page_timers_panel.timers_changed.connect(self._on_page_timers_changed)
         self.page_timers_panel.validation_message.connect(self._on_property_validation_message)
         self.page_timers_panel.user_code_requested.connect(self._on_user_code_requested)
@@ -2639,7 +2640,7 @@ class MainWindow(QMainWindow):
             self.debug_panel.log_error(f"Failed to open user source: {exc}")
             return False
 
-    def _on_user_code_requested(self, callback_name, signature):
+    def _open_page_user_source(self, callback_name="", signature="", section_name=""):
         if self.project is None or self._current_page is None:
             self.statusBar().showMessage("No active page available for user code.", 5000)
             return
@@ -2669,13 +2670,26 @@ class MainWindow(QMainWindow):
                 f"Opened user code: {self._current_page.name}.c ({callback_name}).",
                 5000,
             )
-        elif callback_name:
+            return
+        if callback_name:
             self.statusBar().showMessage(
                 f"Opened user code: {self._current_page.name}.c. Add '{callback_name}' manually if needed.",
                 5000,
             )
-        else:
-            self.statusBar().showMessage(f"Opened user code: {self._current_page.name}.c.", 5000)
+            return
+        if section_name:
+            self.statusBar().showMessage(
+                f"Opened user code: {self._current_page.name}.c ({section_name}).",
+                5000,
+            )
+            return
+        self.statusBar().showMessage(f"Opened user code: {self._current_page.name}.c.", 5000)
+
+    def _on_user_code_requested(self, callback_name, signature):
+        self._open_page_user_source(callback_name=callback_name, signature=signature)
+
+    def _on_page_user_code_section_requested(self, section_name):
+        self._open_page_user_source(section_name=section_name or "")
 
     def _on_diagnostic_requested(self, page_name, widget_name):
         if not self.project:
