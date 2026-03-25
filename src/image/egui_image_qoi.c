@@ -45,7 +45,13 @@ typedef struct
 
 static egui_image_qoi_decode_state_t qoi_state;
 
-#define EGUI_IMAGE_QOI_CHECKPOINT_COUNT 4
+#if EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT < 1
+#error "EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT must be >= 1"
+#endif
+
+#if (EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT & (EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT - 1)) != 0
+#error "EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT must be a power of two"
+#endif
 
 typedef struct
 {
@@ -59,7 +65,7 @@ typedef struct
  * so horizontal tile neighbors and repeated small images at different Y offsets
  * can restore instead of re-decoding from the beginning.
  */
-static egui_image_qoi_checkpoint_t qoi_checkpoints[EGUI_IMAGE_QOI_CHECKPOINT_COUNT];
+static egui_image_qoi_checkpoint_t qoi_checkpoints[EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT];
 static uint8_t qoi_checkpoint_next = 0;
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
@@ -141,7 +147,7 @@ static void egui_image_qoi_save_checkpoint(const egui_image_qoi_info_t *info, ui
 {
     uint8_t i;
 
-    for (i = 0; i < EGUI_IMAGE_QOI_CHECKPOINT_COUNT; i++)
+    for (i = 0; i < EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT; i++)
     {
         if (qoi_checkpoints[i].info == info && qoi_checkpoints[i].row == row)
         {
@@ -154,14 +160,14 @@ static void egui_image_qoi_save_checkpoint(const egui_image_qoi_info_t *info, ui
     qoi_checkpoints[qoi_checkpoint_next].row = row;
     qoi_checkpoints[qoi_checkpoint_next].info = info;
     qoi_checkpoint_next++;
-    qoi_checkpoint_next &= (EGUI_IMAGE_QOI_CHECKPOINT_COUNT - 1);
+    qoi_checkpoint_next &= (EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT - 1);
 }
 
 static int egui_image_qoi_restore_checkpoint(const egui_image_qoi_info_t *info, uint16_t target_row)
 {
     uint8_t i;
 
-    for (i = 0; i < EGUI_IMAGE_QOI_CHECKPOINT_COUNT; i++)
+    for (i = 0; i < EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT; i++)
     {
         if (qoi_checkpoints[i].info == info && qoi_checkpoints[i].row == target_row)
         {

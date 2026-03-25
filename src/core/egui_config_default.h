@@ -357,6 +357,15 @@ extern "C" {
 #endif
 
 /**
+ * QOI decoder checkpoint count.
+ * Each slot stores a full decoder state for restoring recent row bands.
+ * Must be a power of two.
+ */
+#ifndef EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT
+#define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 2
+#endif
+
+/**
  * Optional persistent full-image cache for external standard images.
  * Stores one external raw image in RAM across refreshes and repeated draws.
  * Total RAM budget in bytes for data + alpha buffers; 0 disables the feature.
