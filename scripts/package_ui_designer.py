@@ -17,6 +17,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 SPEC_PATH = SCRIPT_DIR / "ui_designer" / "ui_designer.spec"
+PREFLIGHT_SMOKE_SCRIPT_PATH = SCRIPT_DIR / "ui_designer_preview_smoke.py"
 DIST_APP_NAME = "EmbeddedGUI-Designer"
 SUPPRESSED_LOG_SNIPPETS = (
     "QFluentWidgets Pro is now released",
@@ -135,6 +136,12 @@ def build_pyinstaller_command(dist_dir: Path, work_dir: Path, clean: bool = True
     if clean:
         cmd.append("--clean")
     return cmd
+
+
+def build_preflight_command(smoke_script: Path | None = None) -> list[str]:
+    """Build the live-preview preflight command."""
+    script_path = Path(smoke_script or PREFLIGHT_SMOKE_SCRIPT_PATH).resolve()
+    return [sys.executable, str(script_path)]
 
 
 def ensure_pyinstaller_available():
@@ -318,6 +325,15 @@ def run_pyinstaller(dist_dir: Path, work_dir: Path, clean: bool = True):
         raise subprocess.CalledProcessError(returncode, cmd)
 
 
+def run_preflight_check(smoke_script: Path | None = None):
+    """Run the live-preview smoke check before packaging."""
+    cmd = build_preflight_command(smoke_script=smoke_script)
+    print("[INFO] Running UI Designer live preview preflight...", flush=True)
+    result = subprocess.run(cmd, cwd=PROJECT_ROOT)
+    if result.returncode != 0:
+        raise RuntimeError(f"UI Designer live preview preflight failed with exit code {result.returncode}")
+
+
 def create_archive(dist_dir: Path, archive_dir: Path, archive_format: str, base_name: str) -> Path:
     """Archive the built Designer directory."""
     archive_dir.mkdir(parents=True, exist_ok=True)
@@ -340,9 +356,12 @@ def package_ui_designer(
     clean: bool = True,
     bundle_sdk: bool = True,
     sdk_root: str | Path | None = None,
+    run_preflight: bool = True,
 ) -> dict[str, str | int]:
     """Build the Designer package and optionally archive it."""
     ensure_pyinstaller_available()
+    if run_preflight:
+        run_preflight_check()
 
     dist_dir = Path(output_dir or (PROJECT_ROOT / "dist")).resolve()
     build_dir = Path(work_dir or (PROJECT_ROOT / "build" / "pyinstaller")).resolve()
@@ -408,6 +427,11 @@ def parse_args():
         action="store_true",
         help="Do not pass --clean to PyInstaller",
     )
+    parser.add_argument(
+        "--skip-preflight",
+        action="store_true",
+        help="Skip the UI Designer live preview smoke check before packaging",
+    )
     bundle_group = parser.add_mutually_exclusive_group()
     bundle_group.add_argument(
         "--bundle-sdk",
@@ -441,6 +465,7 @@ def main():
             clean=not args.no_clean,
             bundle_sdk=args.bundle_sdk,
             sdk_root=args.sdk_root,
+            run_preflight=not args.skip_preflight,
         )
     except Exception as exc:
         print(f"[FAIL] {exc}")

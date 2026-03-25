@@ -125,7 +125,17 @@ def build_steps(args):
          [py, str(SCRIPT_DIR / "ui_designer_preview_smoke.py")]),
 
         ("ui_package", STEP_DESCRIPTIONS["ui_package"],
-         [py, str(SCRIPT_DIR / "package_ui_designer.py"), "--archive", "none", "--output-dir", str(PROJECT_ROOT / "dist"), "--work-dir", str(PROJECT_ROOT / "build" / "pyinstaller")]),
+         [
+             py,
+             str(SCRIPT_DIR / "package_ui_designer.py"),
+             "--archive",
+             "none",
+             "--output-dir",
+             str(PROJECT_ROOT / "dist"),
+             "--work-dir",
+             str(PROJECT_ROOT / "build" / "pyinstaller"),
+             "--skip-preflight",
+         ]),
 
         ("compile",  STEP_DESCRIPTIONS["compile"],
          compile_cmd),

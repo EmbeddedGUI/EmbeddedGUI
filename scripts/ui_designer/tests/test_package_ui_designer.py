@@ -51,6 +51,14 @@ def test_build_pyinstaller_command_includes_expected_paths(tmp_path):
     assert "-y" in cmd
 
 
+def test_build_preflight_command_uses_preview_smoke_script():
+    module = _load_module()
+
+    cmd = module.build_preflight_command()
+
+    assert cmd == [module.sys.executable, str(module.PREFLIGHT_SMOKE_SCRIPT_PATH.resolve())]
+
+
 def test_iter_filtered_build_output_strips_qfluentwidgets_promotion():
     module = _load_module()
 
@@ -85,6 +93,7 @@ def test_package_ui_designer_creates_archive_without_running_pyinstaller(tmp_pat
         package_suffix="dev",
         clean=False,
         bundle_sdk=False,
+        run_preflight=False,
     )
 
     assert result["app_dir"] == str(app_dir.resolve())
@@ -112,6 +121,7 @@ def test_package_ui_designer_can_skip_archive(tmp_path, monkeypatch):
         work_dir=tmp_path / "build",
         archive_mode="none",
         bundle_sdk=False,
+        run_preflight=False,
     )
 
     assert result["archive_path"] == ""
@@ -142,10 +152,65 @@ def test_package_ui_designer_bundles_sdk_by_default(tmp_path, monkeypatch):
         output_dir=dist_dir,
         work_dir=tmp_path / "build",
         archive_mode="none",
+        run_preflight=False,
     )
 
     assert calls == [(app_dir, None)]
     assert result["bundled_sdk_dir"] == str(bundled_dir)
+
+
+def test_package_ui_designer_runs_preflight_by_default(tmp_path, monkeypatch):
+    module = _load_module()
+
+    dist_dir = tmp_path / "dist"
+    app_dir = dist_dir / module.DIST_APP_NAME
+    calls = []
+
+    monkeypatch.setattr(module, "ensure_pyinstaller_available", lambda: calls.append("ensure"))
+    monkeypatch.setattr(module, "run_preflight_check", lambda: calls.append("preflight"))
+
+    def fake_run_pyinstaller(resolved_dist_dir, resolved_work_dir, clean=True):
+        calls.append("pyinstaller")
+        app_dir.mkdir(parents=True, exist_ok=True)
+        (app_dir / "designer.txt").write_text("ok", encoding="utf-8")
+
+    monkeypatch.setattr(module, "run_pyinstaller", fake_run_pyinstaller)
+
+    module.package_ui_designer(
+        output_dir=dist_dir,
+        work_dir=tmp_path / "build",
+        archive_mode="none",
+        bundle_sdk=False,
+    )
+
+    assert calls == ["ensure", "preflight", "pyinstaller"]
+
+
+def test_package_ui_designer_can_skip_preflight(tmp_path, monkeypatch):
+    module = _load_module()
+
+    dist_dir = tmp_path / "dist"
+    app_dir = dist_dir / module.DIST_APP_NAME
+    calls = []
+
+    monkeypatch.setattr(module, "ensure_pyinstaller_available", lambda: None)
+    monkeypatch.setattr(module, "run_preflight_check", lambda: calls.append("preflight"))
+
+    def fake_run_pyinstaller(resolved_dist_dir, resolved_work_dir, clean=True):
+        app_dir.mkdir(parents=True, exist_ok=True)
+        (app_dir / "designer.txt").write_text("ok", encoding="utf-8")
+
+    monkeypatch.setattr(module, "run_pyinstaller", fake_run_pyinstaller)
+
+    module.package_ui_designer(
+        output_dir=dist_dir,
+        work_dir=tmp_path / "build",
+        archive_mode="none",
+        bundle_sdk=False,
+        run_preflight=False,
+    )
+
+    assert calls == []
 
 
 def test_copy_sdk_bundle_copies_sdk_tree_into_app_dir(tmp_path):
@@ -222,6 +287,7 @@ def test_package_ui_designer_can_bundle_sdk(tmp_path, monkeypatch):
         archive_mode="none",
         bundle_sdk=True,
         sdk_root=sdk_root,
+        run_preflight=False,
     )
 
     bundled_dir = app_dir / "sdk" / module.SDK_BUNDLE_DIR_NAME
@@ -261,6 +327,16 @@ def test_parse_args_can_disable_sdk_bundle(monkeypatch):
     args = module.parse_args()
 
     assert args.bundle_sdk is False
+
+
+def test_parse_args_can_skip_preflight(monkeypatch):
+    module = _load_module()
+
+    monkeypatch.setattr(sys, "argv", ["package_ui_designer.py", "--skip-preflight"])
+
+    args = module.parse_args()
+
+    assert args.skip_preflight is True
 
 
 def test_format_byte_count_uses_compact_units():
