@@ -70,7 +70,23 @@
 - 用户可以先跳转检查 usage，再决定是否执行替换
 - 这样单资源替换与批量替换的安全行为保持一致
 
-### 4. 打开项目后的资源 catalog 丢失修复
+### 4. impact preview 支持 Current Page Only 过滤
+
+更新：
+
+- `scripts/ui_designer/ui/resource_panel.py`
+
+行为：
+
+- batch impact preview 对话框新增 `Current Page Only`
+- 当资源面板已经带有当前页上下文时，impact preview 可直接切换成“仅看当前页受影响 usages”
+- 过滤后：
+  - 分组 rename 列表会只显示当前页仍有 usage 的项
+  - usage 明细只显示当前页引用
+  - summary 会同时保留当前页统计和全项目总量，避免误判整体影响
+- 过滤状态下仍可直接 `Open Selected Usage` 跳转
+
+### 5. 打开项目后的资源 catalog 丢失修复
 
 更新：
 
@@ -95,6 +111,7 @@
 - batch impact preview 可取消且不执行替换
 - restore-only 场景不弹 batch impact preview
 - 单资源 replace 也会先经过 impact preview，且可取消
+- impact preview 可按当前页过滤，并在过滤后继续导航 usage
 - 主窗口 batch replace 确认后，仍可跨页改写资源引用并保持状态信息
 - `set_resource_catalog()` 在 resource dir 未设置前不会丢失 catalog
 
@@ -109,11 +126,11 @@
 
 结果：
 
-- `1040 passed`
+- `1042 passed`
 - preview smoke passed
 
 ## 后续建议
 
-1. 为 grouped impact preview 增加 `Current Page Only` 过滤，和资源面板 usage 视图保持一致。
-2. 继续补 editor maturity 方向的剩余能力，例如事件编辑器或更完整的批量属性编辑。
-3. 继续梳理主窗口打开项目时的资源面板初始化链路，把当前已修复的 catalog 顺序问题补成更明确的接口约束。
+1. 继续补 editor maturity 方向的剩余能力，例如事件编辑器或更完整的批量属性编辑。
+2. 继续梳理主窗口打开项目时的资源面板初始化链路，把当前已修复的 catalog 顺序问题补成更明确的接口约束。
+3. 视需要把 grouped impact preview 进一步推广到 diagnostics 或更多 destructive/bulk edit 流程。

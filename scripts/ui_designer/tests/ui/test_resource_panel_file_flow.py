@@ -743,6 +743,92 @@ class TestResourcePanelFileFlow:
         assert activated == [("detail_page", "hero")]
         panel.deleteLater()
 
+    def test_batch_replace_impact_dialog_can_filter_to_current_page(self, qapp):
+        from ui_designer.model.resource_usage import ResourceUsageEntry
+        from ui_designer.ui.resource_panel import _BatchReplaceImpactDialog
+
+        impacts = [
+            {
+                "old_name": "missing_a.png",
+                "new_name": "renamed_a.png",
+                "usages": [
+                    ResourceUsageEntry("image", "missing_a.png", "main_page", "hero_main", "image_file", "image"),
+                ],
+                "widget_count": 1,
+                "page_count": 1,
+            },
+            {
+                "old_name": "missing_b.png",
+                "new_name": "renamed_b.png",
+                "usages": [
+                    ResourceUsageEntry("image", "missing_b.png", "detail_page", "hero_detail", "image_file", "image"),
+                ],
+                "widget_count": 1,
+                "page_count": 1,
+            },
+        ]
+
+        dialog = _BatchReplaceImpactDialog(
+            None,
+            "Replace Missing Resources",
+            "image",
+            impacts,
+            2,
+            "Replace",
+            current_page_name="detail_page",
+        )
+
+        assert dialog._impact_table.rowCount() == 2
+
+        dialog._current_page_only.setChecked(True)
+
+        assert dialog._impact_table.rowCount() == 1
+        assert dialog._impact_table.item(0, 0).text() == "missing_b.png"
+        assert dialog._usage_table.rowCount() == 1
+        assert dialog._usage_table.item(0, 0).text() == "detail_page"
+        assert "Showing impacts on the current page: detail_page." in dialog._summary_label.text()
+        dialog.deleteLater()
+
+    def test_batch_replace_impact_confirmation_uses_current_page_filter_for_navigation(self, qapp):
+        from ui_designer.model.resource_usage import ResourceUsageEntry
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        panel = ResourcePanel()
+        panel.set_usage_page_context("detail_page")
+        panel.set_resource_usage_index(
+            {
+                ("image", "missing_a.png"): [
+                    ResourceUsageEntry("image", "missing_a.png", "main_page", "hero_main", "image_file", "image"),
+                ],
+                ("image", "missing_b.png"): [
+                    ResourceUsageEntry("image", "missing_b.png", "detail_page", "hero_detail", "image_file", "image"),
+                ],
+            }
+        )
+
+        activated = []
+        panel.usage_activated.connect(lambda page_name, widget_name: activated.append((page_name, widget_name)))
+        impacts, total_rename_count = panel._collect_batch_replace_impacts(
+            "image",
+            {
+                "missing_a.png": os.path.join("C:\\temp", "renamed_a.png"),
+                "missing_b.png": os.path.join("C:\\temp", "renamed_b.png"),
+            },
+        )
+
+        def open_selected_usage():
+            dialog = QApplication.activeModalWidget()
+            assert dialog is not None
+            dialog._current_page_only.setChecked(True)
+            dialog._open_selected_usage()
+
+        QTimer.singleShot(0, open_selected_usage)
+        confirmed = panel._confirm_batch_replace_impact("image", impacts, total_rename_count)
+
+        assert confirmed is False
+        assert activated == [("detail_page", "hero_detail")]
+        panel.deleteLater()
+
     def test_replace_missing_resources_shows_batch_impact_preview_before_apply(self, qapp, tmp_path, monkeypatch):
         from ui_designer.model.resource_catalog import ResourceCatalog
         from ui_designer.model.resource_usage import ResourceUsageEntry

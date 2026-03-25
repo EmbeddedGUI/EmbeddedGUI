@@ -518,47 +518,39 @@ class _BatchReplaceImpactDialog(QDialog):
 
     NAVIGATE_RESULT = 2
 
-    def __init__(self, parent, title, resource_type, impacts, total_rename_count, confirm_text):
+    def __init__(self, parent, title, resource_type, impacts, total_rename_count, confirm_text, current_page_name=""):
         super().__init__(parent)
-        self._impacts = list(impacts)
+        self._all_impacts = list(impacts)
+        self._visible_impacts = []
         self._selected_usage = ("", "")
+        self._resource_type = resource_type or ""
+        self._total_rename_count = total_rename_count
+        self._current_page_name = current_page_name or ""
         self.setWindowTitle(title)
         self.resize(720, 460)
-
-        total_widget_count = sum(entry["widget_count"] for entry in self._impacts)
-        total_page_count = len(
-            {
-                usage.page_name
-                for entry in self._impacts
-                for usage in entry["usages"]
-            }
-        )
-        impacted_rename_count = len(self._impacts)
-        rename_noun = "resource" if total_rename_count == 1 else "resources"
-        impacted_noun = "rename" if impacted_rename_count == 1 else "renames"
-        widget_noun = "widget reference" if total_widget_count == 1 else "widget references"
-        page_noun = "page" if total_page_count == 1 else "pages"
-
-        summary_lines = [f"The selected replacements will rename {total_rename_count} missing {resource_type} {rename_noun}."]
-        if impacted_rename_count != total_rename_count:
-            summary_lines.append(f"{impacted_rename_count} {impacted_noun} affect widget references.")
-        summary_lines.append(
-            f"Those renames affect {total_widget_count} {widget_noun} across {total_page_count} {page_noun}. "
-            "Select a rename to inspect the impacted widgets before continuing."
-        )
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(8)
 
-        summary_label = QLabel("\n".join(summary_lines))
-        summary_label.setWordWrap(True)
-        layout.addWidget(summary_label)
+        self._summary_label = QLabel("")
+        self._summary_label.setWordWrap(True)
+        layout.addWidget(self._summary_label)
+
+        if self._current_page_name:
+            filter_row = QHBoxLayout()
+            self._current_page_only = QCheckBox("Current Page Only")
+            self._current_page_only.toggled.connect(self._refresh_impact_view)
+            filter_row.addWidget(self._current_page_only)
+            filter_row.addStretch()
+            layout.addLayout(filter_row)
+        else:
+            self._current_page_only = None
 
         group_caption = QLabel("Rename Impact Summary")
         layout.addWidget(group_caption)
 
-        self._impact_table = QTableWidget(len(self._impacts), 4, self)
+        self._impact_table = QTableWidget(0, 4, self)
         self._impact_table.setHorizontalHeaderLabels(["Missing Resource", "Replacement File", "Widgets", "Pages"])
         self._impact_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self._impact_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
@@ -569,12 +561,7 @@ class _BatchReplaceImpactDialog(QDialog):
         self._impact_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self._impact_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self._impact_table.setMinimumHeight(160)
-        for row, entry in enumerate(self._impacts):
-            self._impact_table.setItem(row, 0, QTableWidgetItem(entry["old_name"]))
-            self._impact_table.setItem(row, 1, QTableWidgetItem(entry["new_name"]))
-            self._impact_table.setItem(row, 2, QTableWidgetItem(str(entry["widget_count"])))
-            self._impact_table.setItem(row, 3, QTableWidgetItem(str(entry["page_count"])))
-        self._impact_table.itemSelectionChanged.connect(self._refresh_usage_table)
+        self._impact_table.itemSelectionChanged.connect(self._refresh_usage_view)
         layout.addWidget(self._impact_table)
 
         usage_caption = QLabel("Affected Usages")
@@ -605,20 +592,112 @@ class _BatchReplaceImpactDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-        if self._impacts:
-            self._impact_table.selectRow(0)
-        self._refresh_usage_table()
+        self._refresh_impact_view()
 
     def selected_usage(self):
         return self._selected_usage
 
+    def _filter_to_current_page(self):
+        return self._current_page_only is not None and self._current_page_only.isChecked() and bool(self._current_page_name)
+
+    def _build_visible_impacts(self):
+        impacts = []
+        for entry in self._all_impacts:
+            usages = list(entry["usages"])
+            if self._filter_to_current_page():
+                usages = [usage for usage in usages if usage.page_name == self._current_page_name]
+            if not usages:
+                continue
+
+            impacts.append(
+                {
+                    "old_name": entry["old_name"],
+                    "new_name": entry["new_name"],
+                    "usages": usages,
+                    "widget_count": len(usages),
+                    "page_count": len({usage.page_name for usage in usages}),
+                }
+            )
+        return impacts
+
+    def _update_summary(self):
+        total_impacted_rename_count = len(self._all_impacts)
+        total_widget_count = sum(entry["widget_count"] for entry in self._all_impacts)
+        total_page_count = len(
+            {
+                usage.page_name
+                for entry in self._all_impacts
+                for usage in entry["usages"]
+            }
+        )
+        rename_noun = "resource" if self._total_rename_count == 1 else "resources"
+        impacted_noun = "rename" if total_impacted_rename_count == 1 else "renames"
+        widget_noun = "widget reference" if total_widget_count == 1 else "widget references"
+        page_noun = "page" if total_page_count == 1 else "pages"
+
+        summary_lines = [f"The selected replacements will rename {self._total_rename_count} missing {self._resource_type} {rename_noun}."]
+        if total_impacted_rename_count != self._total_rename_count:
+            summary_lines.append(f"{total_impacted_rename_count} {impacted_noun} affect widget references.")
+
+        if not self._filter_to_current_page():
+            summary_lines.append(
+                f"Those renames affect {total_widget_count} {widget_noun} across {total_page_count} {page_noun}. "
+                "Select a rename to inspect the impacted widgets before continuing."
+            )
+            self._summary_label.setText("\n".join(summary_lines))
+            return
+
+        visible_rename_count = len(self._visible_impacts)
+        visible_widget_count = sum(entry["widget_count"] for entry in self._visible_impacts)
+        current_page_widget_noun = "widget reference" if visible_widget_count == 1 else "widget references"
+        current_page_rename_noun = "rename" if visible_rename_count == 1 else "renames"
+        summary_lines.append(f"Showing impacts on the current page: {self._current_page_name}.")
+        if not self._visible_impacts:
+            summary_lines.append(
+                f"No affected usages were found on the current page ({total_widget_count} total {widget_noun} across {total_page_count} {page_noun})."
+            )
+            summary_lines.append("Uncheck Current Page Only to inspect all project usages.")
+            self._summary_label.setText("\n".join(summary_lines))
+            return
+
+        summary_lines.append(
+            f"{visible_rename_count} {current_page_rename_noun} affect {visible_widget_count} {current_page_widget_noun} on the current page "
+            f"({total_widget_count} total across {total_page_count} {page_noun})."
+        )
+        summary_lines.append("Select a rename to inspect the impacted widgets before continuing.")
+        self._summary_label.setText("\n".join(summary_lines))
+
+    def _refresh_impact_view(self):
+        selected_key = None
+        current_impact = self._current_impact()
+        if current_impact is not None:
+            selected_key = (current_impact["old_name"], current_impact["new_name"])
+
+        self._visible_impacts = self._build_visible_impacts()
+        self._impact_table.setRowCount(len(self._visible_impacts))
+        target_row = 0
+        matched_row = False
+        for row, entry in enumerate(self._visible_impacts):
+            self._impact_table.setItem(row, 0, QTableWidgetItem(entry["old_name"]))
+            self._impact_table.setItem(row, 1, QTableWidgetItem(entry["new_name"]))
+            self._impact_table.setItem(row, 2, QTableWidgetItem(str(entry["widget_count"])))
+            self._impact_table.setItem(row, 3, QTableWidgetItem(str(entry["page_count"])))
+            if selected_key == (entry["old_name"], entry["new_name"]):
+                target_row = row
+                matched_row = True
+
+        self._update_summary()
+        if self._visible_impacts:
+            self._impact_table.selectRow(target_row if matched_row else 0)
+        self._refresh_usage_view()
+
     def _current_impact(self):
         row = self._impact_table.currentRow()
-        if row < 0 or row >= len(self._impacts):
+        if row < 0 or row >= len(self._visible_impacts):
             return None
-        return self._impacts[row]
+        return self._visible_impacts[row]
 
-    def _refresh_usage_table(self):
+    def _refresh_usage_view(self):
         impact = self._current_impact()
         usages = [] if impact is None else impact["usages"]
         self._usage_table.setRowCount(len(usages))
@@ -1314,6 +1393,7 @@ class ResourcePanel(QWidget):
             impacts,
             total_rename_count,
             "Replace",
+            current_page_name=self._usage_page_name,
         )
         result = dialog.exec_()
         if result == _BatchReplaceImpactDialog.NAVIGATE_RESULT:
