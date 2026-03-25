@@ -3514,11 +3514,47 @@ typedef struct
 #error "EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_CACHE_COUNT must be >= 1"
 #endif
 
-static egui_image_std_round_rect_fast_cache_t g_egui_image_std_round_rect_fast_cache[EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_CACHE_COUNT];
-static uint8_t g_egui_image_std_round_rect_fast_cache_next = 0;
+typedef struct
+{
+    uint8_t next;
+    egui_image_std_round_rect_fast_cache_t entries[EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_CACHE_COUNT];
+} egui_image_std_round_rect_fast_cache_storage_t;
+
+static egui_image_std_round_rect_fast_cache_storage_t *g_egui_image_std_round_rect_fast_cache_storage = NULL;
+
+static void egui_image_std_release_round_rect_fast_cache_storage(void)
+{
+    if (g_egui_image_std_round_rect_fast_cache_storage != NULL)
+    {
+        egui_free(g_egui_image_std_round_rect_fast_cache_storage);
+        g_egui_image_std_round_rect_fast_cache_storage = NULL;
+    }
+}
+
+static egui_image_std_round_rect_fast_cache_storage_t *egui_image_std_get_round_rect_fast_cache_storage(void)
+{
+    if (g_egui_image_std_round_rect_fast_cache_storage == NULL)
+    {
+        g_egui_image_std_round_rect_fast_cache_storage =
+                (egui_image_std_round_rect_fast_cache_storage_t *)egui_malloc(sizeof(egui_image_std_round_rect_fast_cache_storage_t));
+        if (g_egui_image_std_round_rect_fast_cache_storage == NULL)
+        {
+            return NULL;
+        }
+
+        memset(g_egui_image_std_round_rect_fast_cache_storage, 0, sizeof(egui_image_std_round_rect_fast_cache_storage_t));
+    }
+
+    return g_egui_image_std_round_rect_fast_cache_storage;
+}
 
 __EGUI_STATIC_INLINE__ void egui_image_std_round_rect_fast_cache_invalidate(egui_image_std_round_rect_fast_cache_t *cache)
 {
+    if (cache == NULL)
+    {
+        return;
+    }
+
     for (egui_dim_t i = 0; i < EGUI_CONFIG_PFB_HEIGHT; i++)
     {
         cache->row_cache_y[i] = -32768;
@@ -3527,21 +3563,28 @@ __EGUI_STATIC_INLINE__ void egui_image_std_round_rect_fast_cache_invalidate(egui
 
 __EGUI_STATIC_INLINE__ egui_image_std_round_rect_fast_cache_t *egui_image_std_round_rect_fast_cache_get(const egui_mask_t *mask)
 {
-    for (uint8_t i = 0; i < (uint8_t)(sizeof(g_egui_image_std_round_rect_fast_cache) / sizeof(g_egui_image_std_round_rect_fast_cache[0])); i++)
+    egui_image_std_round_rect_fast_cache_storage_t *storage = egui_image_std_get_round_rect_fast_cache_storage();
+
+    if (storage == NULL || mask == NULL)
     {
-        if (g_egui_image_std_round_rect_fast_cache[i].mask == mask)
+        return NULL;
+    }
+
+    for (uint8_t i = 0; i < EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_CACHE_COUNT; i++)
+    {
+        if (storage->entries[i].mask == mask)
         {
-            return &g_egui_image_std_round_rect_fast_cache[i];
+            return &storage->entries[i];
         }
     }
 
     {
-        egui_image_std_round_rect_fast_cache_t *cache = &g_egui_image_std_round_rect_fast_cache[g_egui_image_std_round_rect_fast_cache_next];
+        egui_image_std_round_rect_fast_cache_t *cache = &storage->entries[storage->next];
 
-        g_egui_image_std_round_rect_fast_cache_next++;
-        if (g_egui_image_std_round_rect_fast_cache_next >= EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_CACHE_COUNT)
+        storage->next++;
+        if (storage->next >= EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_CACHE_COUNT)
         {
-            g_egui_image_std_round_rect_fast_cache_next = 0;
+            storage->next = 0;
         }
         cache->mask = mask;
         cache->cached_x = -1;
@@ -3558,6 +3601,11 @@ __EGUI_STATIC_INLINE__ egui_image_std_round_rect_fast_cache_t *egui_image_std_ro
 __EGUI_STATIC_INLINE__ void egui_image_std_round_rect_fast_cache_refresh(egui_image_std_round_rect_fast_cache_t *cache, const egui_mask_t *mask,
                                                                          egui_dim_t radius)
 {
+    if (cache == NULL || mask == NULL)
+    {
+        return;
+    }
+
     if (cache->cached_x == mask->region.location.x && cache->cached_y == mask->region.location.y && cache->cached_width == mask->region.size.width &&
         cache->cached_height == mask->region.size.height && cache->cached_radius == radius)
     {
@@ -3598,6 +3646,12 @@ __EGUI_STATIC_INLINE__ int egui_image_std_blend_rgb565_alpha8_round_rect_masked_
     }
 
     round_rect_cache = egui_image_std_round_rect_fast_cache_get(canvas->mask);
+    if (round_rect_cache == NULL)
+    {
+        egui_image_std_blend_rgb565_alpha8_masked_mapped_segment(canvas, dst_row, src_row, src_alpha_row, NULL, count, screen_x, screen_y, canvas_alpha);
+        return 1;
+    }
+
     egui_image_std_round_rect_fast_cache_refresh(round_rect_cache, canvas->mask, radius);
     round_rect_x = round_rect_cache->cached_x;
     round_rect_y = round_rect_cache->cached_y;
@@ -3902,6 +3956,62 @@ __EGUI_STATIC_INLINE__ int egui_image_std_blend_rgb565_round_rect_masked_row_fas
     }
 
     round_rect_cache = egui_image_std_round_rect_fast_cache_get(canvas->mask);
+    if (round_rect_cache == NULL)
+    {
+        if (canvas_alpha == EGUI_ALPHA_100)
+        {
+            for (egui_dim_t i = 0; i < count; i++)
+            {
+                egui_color_t color;
+                egui_alpha_t alpha = EGUI_ALPHA_100;
+
+                color.full = EGUI_COLOR_RGB565_TRANS(src_row[i]);
+                canvas->mask->api->mask_point(canvas->mask, screen_x + i, screen_y, &color, &alpha);
+
+                if (alpha == 0)
+                {
+                    continue;
+                }
+
+                if (alpha == EGUI_ALPHA_100)
+                {
+                    dst_row[i] = color.full;
+                }
+                else
+                {
+                    egui_rgb_mix_ptr((egui_color_t *)&dst_row[i], &color, (egui_color_t *)&dst_row[i], alpha);
+                }
+            }
+        }
+        else
+        {
+            for (egui_dim_t i = 0; i < count; i++)
+            {
+                egui_color_t color;
+                egui_alpha_t alpha = EGUI_ALPHA_100;
+
+                color.full = EGUI_COLOR_RGB565_TRANS(src_row[i]);
+                canvas->mask->api->mask_point(canvas->mask, screen_x + i, screen_y, &color, &alpha);
+                alpha = egui_color_alpha_mix(canvas_alpha, alpha);
+
+                if (alpha == 0)
+                {
+                    continue;
+                }
+
+                if (alpha == EGUI_ALPHA_100)
+                {
+                    dst_row[i] = color.full;
+                }
+                else
+                {
+                    egui_rgb_mix_ptr((egui_color_t *)&dst_row[i], &color, (egui_color_t *)&dst_row[i], alpha);
+                }
+            }
+        }
+        return 1;
+    }
+
     egui_image_std_round_rect_fast_cache_refresh(round_rect_cache, canvas->mask, radius);
     round_rect_x = round_rect_cache->cached_x;
     round_rect_y = round_rect_cache->cached_y;
@@ -7729,6 +7839,11 @@ __EGUI_STATIC_INLINE__ int egui_image_std_set_image_resize_rgb565_8_round_rect_f
 
     round_rect_mask = (egui_mask_round_rectangle_t *)canvas->mask;
     round_rect_cache = egui_image_std_round_rect_fast_cache_get(canvas->mask);
+    if (round_rect_cache == NULL)
+    {
+        return 0;
+    }
+
     round_rect_radius = round_rect_mask->radius;
     egui_image_std_round_rect_fast_cache_refresh(round_rect_cache, canvas->mask, round_rect_radius);
     round_rect_x = round_rect_cache->cached_x;
@@ -7835,6 +7950,11 @@ __EGUI_STATIC_INLINE__ int egui_image_std_set_image_resize_rgb565_round_rect_fas
 
     round_rect_mask = (egui_mask_round_rectangle_t *)canvas->mask;
     round_rect_cache = egui_image_std_round_rect_fast_cache_get(canvas->mask);
+    if (round_rect_cache == NULL)
+    {
+        return 0;
+    }
+
     round_rect_radius = round_rect_mask->radius;
     egui_image_std_round_rect_fast_cache_refresh(round_rect_cache, canvas->mask, round_rect_radius);
     round_rect_x = round_rect_cache->cached_x;
@@ -8743,6 +8863,7 @@ void egui_image_std_init(egui_image_t *self, const void *res)
 
 void egui_image_std_release_frame_cache(void)
 {
+    egui_image_std_release_round_rect_fast_cache_storage();
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     egui_image_std_release_external_alpha_row_persistent_cache(&g_egui_image_std_external_alpha_row_persistent_cache);
     egui_image_std_release_external_data_row_persistent_cache(&g_egui_image_std_external_data_row_persistent_cache);
