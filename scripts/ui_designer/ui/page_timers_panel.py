@@ -28,6 +28,7 @@ class PageTimersPanel(QWidget):
 
     timers_changed = pyqtSignal(list)
     validation_message = pyqtSignal(str)
+    user_code_requested = pyqtSignal(str, str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -66,10 +67,13 @@ class PageTimersPanel(QWidget):
         buttons.setSpacing(6)
         self._add_button = QPushButton("Add Timer")
         self._remove_button = QPushButton("Remove Timer")
+        self._open_code_button = QPushButton("Open User Code")
         self._add_button.clicked.connect(self._on_add_timer)
         self._remove_button.clicked.connect(self._on_remove_timer)
+        self._open_code_button.clicked.connect(self._on_open_user_code)
         buttons.addWidget(self._add_button)
         buttons.addWidget(self._remove_button)
+        buttons.addWidget(self._open_code_button)
         buttons.addStretch(1)
 
         layout.addWidget(self._summary_label)
@@ -112,6 +116,7 @@ class PageTimersPanel(QWidget):
         self._table.setEnabled(has_page)
         self._add_button.setEnabled(has_page)
         self._remove_button.setEnabled(has_page and has_selection)
+        self._open_code_button.setEnabled(has_page and has_selection)
 
     def _table_timers(self):
         timers = []
@@ -187,3 +192,17 @@ class PageTimersPanel(QWidget):
         self._timers = [timer for index, timer in enumerate(self._timers) if index != row]
         self._rebuild_table()
         self.timers_changed.emit(list(self._timers))
+
+    def _on_open_user_code(self):
+        if self._page is None:
+            return
+        selected_rows = self._table.selectionModel().selectedRows() if self._table.selectionModel() else []
+        if not selected_rows:
+            return
+        row = selected_rows[0].row()
+        if row < 0 or row >= len(self._timers):
+            return
+        callback_name = (self._timers[row].get("callback", "") or "").strip()
+        if not callback_name:
+            return
+        self.user_code_requested.emit(callback_name, "void {func_name}(egui_timer_t *timer)")

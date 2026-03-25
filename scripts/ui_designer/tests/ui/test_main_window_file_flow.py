@@ -1792,6 +1792,73 @@ class TestMainWindowFileFlow:
         window._undo_manager.mark_all_saved()
         _close_window(window)
 
+    def test_user_code_request_creates_page_source_and_opens_callback_stub(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "UserCodeCreateDemo"
+        project = _create_project(project_dir, "UserCodeCreateDemo", sdk_root)
+        slider = WidgetModel("slider", name="volume_slider", x=16, y=16, width=160, height=24)
+        slider.events["onValueChanged"] = "on_volume_changed"
+        project.get_startup_page().root_widget.add_child(slider)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+        opened = []
+        monkeypatch.setattr(window, "_open_path_in_default_app", lambda path: opened.append(path) or True)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._on_user_code_requested("on_volume_changed", "void {func_name}(egui_view_t *self, uint8_t value)")
+
+        source_path = project_dir / "main_page.c"
+        assert opened == [str(source_path)]
+        assert source_path.exists() is True
+        content = source_path.read_text(encoding="utf-8")
+        assert "void on_volume_changed(egui_view_t *self, uint8_t value)" in content
+        assert window.statusBar().currentMessage() == "Opened user code: main_page.c (on_volume_changed)."
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
+    def test_user_code_request_updates_existing_page_source_with_missing_callback_stub(
+        self, qapp, isolated_config, tmp_path, monkeypatch
+    ):
+        from ui_designer.generator.code_generator import generate_page_user_source
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "UserCodeUpdateDemo"
+        project = _create_project(project_dir, "UserCodeUpdateDemo", sdk_root)
+        page = project.get_startup_page()
+        source_path = project_dir / "main_page.c"
+        source_path.write_text(generate_page_user_source(page, project), encoding="utf-8")
+
+        timer = {"name": "refresh_timer", "callback": "tick_refresh", "delay_ms": "500", "period_ms": "1000", "auto_start": True}
+        page.timers = [timer]
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+        refresh_calls = []
+        monkeypatch.setattr(window, "_refresh_project_watch_snapshot", lambda: refresh_calls.append("refreshed"))
+        monkeypatch.setattr(window, "_open_path_in_default_app", lambda path: True)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        refresh_calls.clear()
+        window._on_user_code_requested("tick_refresh", "void {func_name}(egui_timer_t *timer)")
+
+        content = source_path.read_text(encoding="utf-8")
+        assert "void tick_refresh(egui_timer_t *timer)" in content
+        assert "EGUI_UNUSED(local);" in content
+        assert refresh_calls
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
     def test_property_panel_multi_selection_callback_edit_updates_widgets_and_dirty_state(
         self, qapp, isolated_config, tmp_path, monkeypatch
     ):

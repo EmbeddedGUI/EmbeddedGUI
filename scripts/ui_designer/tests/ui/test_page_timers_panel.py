@@ -77,6 +77,24 @@ class TestPageTimersPanel:
         assert panel._table.rowCount() == 0
         assert captured[-1] == []
 
+    def test_panel_open_user_code_emits_selected_timer_callback(self, qapp):
+        from ui_designer.ui.page_timers_panel import PageTimersPanel
+
+        page = _make_page()
+        page.timers = [
+            {"name": "refresh_timer", "callback": "tick_refresh", "delay_ms": "500", "period_ms": "1000", "auto_start": True},
+        ]
+
+        panel = PageTimersPanel()
+        captured = []
+        panel.user_code_requested.connect(lambda name, signature: captured.append((name, signature)))
+        panel.set_page(page)
+
+        panel._table.selectRow(0)
+        panel._on_open_user_code()
+
+        assert captured == [("tick_refresh", "void {func_name}(egui_timer_t *timer)")]
+
     def test_panel_rejects_conflicting_timer_name(self, qapp):
         from ui_designer.ui.page_timers_panel import PageTimersPanel
 

@@ -90,6 +90,7 @@ class PropertyPanel(QWidget):
     property_changed = pyqtSignal()  # emits when any property changes
     resource_imported = pyqtSignal()  # emits when browse auto-import adds a new resource
     validation_message = pyqtSignal(str)  # emits lightweight validation/normalization feedback
+    user_code_requested = pyqtSignal(str, str)  # emits callback_name, signature
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -98,6 +99,7 @@ class PropertyPanel(QWidget):
         self._primary_widget = None
         self._updating = False  # prevent signal loops
         self._editors = {}
+        self._callback_open_buttons = {}
         self._resource_dir = ""      # resource/ dir (for generated font scanning)
         self._source_resource_dir = ""  # .eguiproject/resources/ (source files)
         self._last_external_file_dir = ""  # last browsed external file directory
@@ -334,6 +336,7 @@ class PropertyPanel(QWidget):
     def _rebuild_form(self):
         self._clear_layout(self._layout)
         self._editors = {}
+        self._callback_open_buttons = {}
 
         if self._primary_widget is None:
             self._no_selection_label = QLabel("No widget selected")
@@ -1014,7 +1017,20 @@ class PropertyPanel(QWidget):
                 )
             )
             self._editors[f"callback_{event_name}"] = editor
-            form.addRow(f"{self._humanize_callback_name(event_name)}:", editor)
+            container, button = self._build_callback_editor_row(
+                editor,
+                lambda editor=editor,
+                current_widget=widget,
+                event_name=event_name,
+                signature=entry["signature"]: self._request_single_callback_user_code(
+                    editor,
+                    current_widget,
+                    event_name,
+                    signature,
+                ),
+            )
+            self._callback_open_buttons[f"callback_{event_name}"] = button
+            form.addRow(f"{self._humanize_callback_name(event_name)}:", container)
 
         return group
 
@@ -1055,6 +1071,13 @@ class PropertyPanel(QWidget):
             if hasattr(editor, "setModified"):
                 editor.setModified(False)
         editor.setToolTip(self._multi_callback_tooltip(event_name, signature, is_mixed))
+        button = self._callback_open_buttons.get(f"callback_{event_name}")
+        if button is not None:
+            button.setEnabled(not is_mixed)
+            if is_mixed:
+                button.setToolTip("Normalize this callback first to open a single user function.")
+            else:
+                button.setToolTip("Open or create this callback in the page user source.")
 
     def _build_multi_callbacks_group(self, entries=None):
         entries = list(entries or self._collect_multi_callback_entries())
@@ -1086,12 +1109,70 @@ class PropertyPanel(QWidget):
                 )
             )
             self._editors[f"callback_{event_name}"] = editor
+            container, button = self._build_callback_editor_row(
+                editor,
+                lambda editor=editor,
+                event_name=event_name,
+                signature=entry["signature"],
+                use_event_dict=entry["use_event_dict"]: self._request_multi_callback_user_code(
+                    editor,
+                    event_name,
+                    signature,
+                    use_event_dict,
+                ),
+                enabled=not entry["is_mixed"],
+                tooltip="Open or create this callback in the page user source."
+                if not entry["is_mixed"]
+                else "Normalize this callback first to open a single user function.",
+            )
+            self._callback_open_buttons[f"callback_{event_name}"] = button
             label = self._humanize_callback_name(event_name)
             if entry["is_mixed"]:
                 label += " (Mixed)"
-            form.addRow(f"{label}:", editor)
+            form.addRow(f"{label}:", container)
 
         return group
+
+    def _build_callback_editor_row(self, editor, open_handler, enabled=True, tooltip="Open or create this callback in the page user source."):
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+        layout.addWidget(editor, 1)
+
+        button = ToolButton()
+        button.setText("Code")
+        button.setEnabled(enabled)
+        button.setToolTip(tooltip)
+        button.clicked.connect(open_handler)
+        layout.addWidget(button)
+        return container, button
+
+    def _request_single_callback_user_code(self, editor, widget, event_name, signature):
+        if widget is None:
+            return
+        callback_name = sanitize_widget_name(editor.text().strip() or self._suggest_callback_name(widget, event_name))
+        if not callback_name:
+            return
+        self.user_code_requested.emit(callback_name, signature)
+
+    def _request_multi_callback_user_code(self, editor, event_name, signature, use_event_dict):
+        if not self._selection:
+            return
+        current_values = [
+            self._current_callback_value(widget, event_name, use_event_dict)
+            for widget in self._selection
+        ]
+        if self._is_mixed_values(current_values):
+            return
+        callback_name = sanitize_widget_name(editor.text().strip())
+        if not callback_name and current_values:
+            callback_name = sanitize_widget_name(current_values[0])
+        if not callback_name:
+            callback_name = sanitize_widget_name(self._suggest_multi_callback_name(event_name))
+        if not callback_name:
+            return
+        self.user_code_requested.emit(callback_name, signature)
 
     def _create_property_editor(self, prop_name, prop_info, current_value, prop_changed_handler=None, file_prop_handler=None):
         ptype = prop_info.get("type", "string")

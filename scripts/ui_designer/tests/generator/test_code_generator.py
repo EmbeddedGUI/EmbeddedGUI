@@ -494,10 +494,33 @@ class TestGeneratePageUserSource:
 
         output = generate_page_user_source(page, proj)
 
-        assert "static void tick_refresh(egui_timer_t *timer)" in output
+        assert "void tick_refresh(egui_timer_t *timer)" in output
+        assert "EGUI_UNUSED(local);" in output
         assert "egui_main_page_timers_start_auto(self);" in output
         assert "egui_main_page_timers_stop(self);" in output
         assert "egui_main_page_timers_init(self);" in output
+
+    def test_user_source_includes_on_click_callback_stub(self):
+        page, proj = self._make_simple()
+        button = WidgetModel("button", name="confirm_button", x=16, y=16, width=80, height=32)
+        button.on_click = "on_confirm_button_click"
+        page.root_widget.add_child(button)
+
+        output = generate_page_user_source(page, proj)
+
+        assert "void on_confirm_button_click(egui_view_t *self)" in output
+        assert "EGUI_UNUSED(self);" in output
+
+    def test_user_source_includes_widget_event_callback_stub(self):
+        page, proj = self._make_simple()
+        slider = WidgetModel("slider", name="volume_slider", x=16, y=16, width=120, height=24)
+        slider.events = {"onValueChanged": "on_volume_changed"}
+        page.root_widget.add_child(slider)
+
+        output = generate_page_user_source(page, proj)
+
+        assert "void on_volume_changed(egui_view_t *self, uint8_t value)" in output
+        assert "EGUI_UNUSED(value);" in output
 
 
 # ======================================================================

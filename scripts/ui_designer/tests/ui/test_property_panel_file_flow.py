@@ -593,6 +593,30 @@ class TestPropertyPanelFileFlow:
         assert messages[-1] == "Callback name normalized to 'handle_volume_changed'."
         panel.deleteLater()
 
+    def test_single_selection_callback_open_user_code_emits_current_name_and_signature(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        widget = WidgetModel("slider", name="volume_slider")
+        widget.events["onValueChanged"] = "on_slider_changed"
+
+        panel = PropertyPanel()
+        captured = []
+        panel.user_code_requested.connect(lambda name, signature: captured.append((name, signature)))
+        panel.set_widget(widget)
+
+        button = panel._callback_open_buttons["callback_onValueChanged"]
+        assert button is not None
+        panel._request_single_callback_user_code(
+            panel._editors["callback_onValueChanged"],
+            widget,
+            "onValueChanged",
+            "void {func_name}(egui_view_t *self, uint8_t value)",
+        )
+
+        assert captured == [("on_slider_changed", "void {func_name}(egui_view_t *self, uint8_t value)")]
+        panel.deleteLater()
+
     def test_single_selection_callback_edit_rejects_invalid_identifier(self, qapp):
         from ui_designer.model.widget_model import WidgetModel
         from ui_designer.ui.property_panel import PropertyPanel
@@ -644,6 +668,23 @@ class TestPropertyPanelFileFlow:
         assert "different callback names" in click_editor.toolTip()
         assert value_editor.text() == "on_volume_changed"
         assert "applies the same callback to all selected widgets" in value_editor.toolTip()
+        panel.deleteLater()
+
+    def test_multi_selection_callback_open_user_code_is_disabled_for_mixed_values(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        first = WidgetModel("slider", name="first_slider")
+        second = WidgetModel("slider", name="second_slider")
+        first.on_click = "on_first_click"
+        second.on_click = "on_second_click"
+
+        panel = PropertyPanel()
+        panel.set_selection([first, second], primary=second)
+
+        button = panel._callback_open_buttons["callback_onClick"]
+
+        assert button.isEnabled() is False
         panel.deleteLater()
 
     def test_multi_selection_callback_edit_updates_all_widgets(self, qapp):

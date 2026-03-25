@@ -21,6 +21,8 @@ This achieves zero overlap between generated and user code:
 Reference patterns taken from example/HelloEasyPage.
 """
 
+import re
+
 from ..model.widget_model import (
     WidgetModel, BackgroundModel,
     AnimationModel, ANIMATION_TYPES, INTERPOLATOR_TYPES,
@@ -115,6 +117,113 @@ def _timer_helper_names(name):
         "start_auto": f"{prefix}_timers_start_auto",
         "stop": f"{prefix}_timers_stop",
     }
+
+
+def _format_callback_signature(signature, func_name):
+    if not signature or not func_name:
+        return ""
+    try:
+        return signature.format(func_name=func_name)
+    except Exception:
+        return signature.replace("{func_name}", func_name)
+
+
+def _extract_parameter_names(signature_line):
+    if "(" not in signature_line or ")" not in signature_line:
+        return []
+    params = signature_line.split("(", 1)[1].rsplit(")", 1)[0].strip()
+    if not params or params == "void":
+        return []
+
+    names = []
+    for raw_param in params.split(","):
+        param = raw_param.strip()
+        if not param or param == "void":
+            continue
+        match = re.search(r"([A-Za-z_]\w*)\s*(?:\[[^\]]*\])?$", param)
+        if match:
+            names.append(match.group(1))
+    return names
+
+
+def collect_page_callback_stubs(page):
+    """Collect callback skeleton metadata for a page."""
+    callbacks = []
+    seen = set()
+
+    if page is None:
+        return callbacks
+
+    for widget in page.get_all_widgets():
+        if widget.on_click:
+            key = ("view", widget.on_click)
+            if key not in seen:
+                seen.add(key)
+                callbacks.append(
+                    {
+                        "kind": "view",
+                        "name": widget.on_click,
+                        "signature": "void {func_name}(egui_view_t *self)",
+                    }
+                )
+
+        type_info = _get_type_info(widget.widget_type)
+        events_def = type_info.get("events", {})
+        for event_name, func_name in sorted(widget.events.items()):
+            if not func_name:
+                continue
+            event_info = events_def.get(event_name)
+            if not event_info:
+                continue
+            key = ("view", func_name)
+            if key in seen:
+                continue
+            seen.add(key)
+            callbacks.append(
+                {
+                    "kind": "view",
+                    "name": func_name,
+                    "signature": event_info.get("signature", ""),
+                }
+            )
+
+    for timer in valid_page_timers(page, getattr(page, "timers", [])):
+        callback_name = timer.get("callback", "")
+        if not callback_name:
+            continue
+        key = ("timer", callback_name)
+        if key in seen:
+            continue
+        seen.add(key)
+        callbacks.append(
+            {
+                "kind": "timer",
+                "name": callback_name,
+                "signature": "void {func_name}(egui_timer_t *timer)",
+            }
+        )
+
+    return callbacks
+
+
+def render_page_callback_stub(page, callback_name, signature, kind="view"):
+    """Render a callback stub suitable for a page user source file."""
+    signature_line = _format_callback_signature(signature, callback_name)
+    if not signature_line:
+        return ""
+
+    lines = [signature_line, "{"]
+    if kind == "timer":
+        struct_type = f"egui_{page.name}_t"
+        lines.append(f"    {struct_type} *local = ({struct_type} *)timer->user_data;")
+        lines.append("    EGUI_UNUSED(local);")
+        lines.append("    // TODO: Handle timer tick here")
+    else:
+        for param_name in _extract_parameter_names(signature_line):
+            lines.append(f"    EGUI_UNUSED({param_name});")
+        lines.append("    // TODO: Handle callback here")
+    lines.append("}")
+    return "\n".join(lines)
 
 
 # ── Per-widget init code (data-driven) ───────────────────────────
@@ -909,6 +1018,7 @@ def generate_page_user_source(page, project):
     struct_type = f"egui_{name}_t"
     helper_names = _timer_helper_names(name)
     generated_timers = valid_page_timers(page, getattr(page, "timers", []))
+    generated_callbacks = collect_page_callback_stubs(page)
     has_timers = bool(generated_timers)
     has_auto_start_timers = any(timer.get("auto_start") for timer in generated_timers)
 
@@ -930,15 +1040,17 @@ def generate_page_user_source(page, project):
     lines.append("// USER CODE END variables")
     lines.append("")
     lines.append("// USER CODE BEGIN callbacks")
-    if generated_timers:
-        for timer in generated_timers:
-            lines.append(f"static void {timer['callback']}(egui_timer_t *timer)")
-            lines.append("{")
-            lines.append(f"    {struct_type} *local = ({struct_type} *)timer->user_data;")
-            lines.append("    EGUI_UNUSED(local);")
-            lines.append("    // TODO: Handle timer tick here")
-            lines.append("}")
-            lines.append("")
+    if generated_callbacks:
+        for callback in generated_callbacks:
+            stub = render_page_callback_stub(
+                page,
+                callback["name"],
+                callback["signature"],
+                kind=callback.get("kind", "view"),
+            )
+            if stub:
+                lines.append(stub)
+                lines.append("")
     lines.append("// USER CODE END callbacks")
     lines.append("")
 

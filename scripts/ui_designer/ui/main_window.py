@@ -64,7 +64,15 @@ from ..model.resource_usage import (
 from ..model.selection_state import SelectionState
 from ..model.diagnostics import analyze_page, analyze_selection
 from ..model.undo_manager import UndoManager
-from ..generator.code_generator import generate_all_files, generate_all_files_preserved, generate_uicode
+from ..generator.code_generator import (
+    collect_page_callback_stubs,
+    generate_all_files,
+    generate_all_files_preserved,
+    generate_page_user_source,
+    generate_uicode,
+    render_page_callback_stub,
+)
+from ..generator.user_code_preserver import compute_source_hash, embed_source_hash, read_existing_file
 from ..generator.resource_config_generator import ResourceConfigGenerator
 from ..engine.compiler import CompilerEngine
 from ..engine.layout_engine import compute_layout, compute_page_layout
@@ -107,6 +115,25 @@ def delete_page_generated_files(project_dir, page_name):
                 os.remove(fpath)
         except OSError:
             pass
+
+
+def _callback_definition_exists(content, callback_name):
+    if not content or not callback_name:
+        return False
+    pattern = rf"^\s*(?:static\s+)?void\s+{re.escape(callback_name)}\s*\("
+    return re.search(pattern, content, re.MULTILINE) is not None
+
+
+def _resolve_page_callback_target(page, callback_name, signature):
+    for callback in collect_page_callback_stubs(page):
+        if callback.get("name") == callback_name:
+            return callback
+    kind = "timer" if "egui_timer_t" in (signature or "") else "view"
+    return {
+        "kind": kind,
+        "name": callback_name,
+        "signature": signature,
+    }
 
 
 class MainWindow(QMainWindow):
@@ -327,6 +354,7 @@ class MainWindow(QMainWindow):
         self.property_panel.property_changed.connect(self._on_property_changed)
         self.property_panel.resource_imported.connect(self._on_resource_imported)
         self.property_panel.validation_message.connect(self._on_property_validation_message)
+        self.property_panel.user_code_requested.connect(self._on_user_code_requested)
 
         # Preview panel
         self.preview_panel.selection_changed.connect(self._on_preview_selection_changed)
@@ -369,6 +397,7 @@ class MainWindow(QMainWindow):
         self.page_fields_panel.validation_message.connect(self._on_property_validation_message)
         self.page_timers_panel.timers_changed.connect(self._on_page_timers_changed)
         self.page_timers_panel.validation_message.connect(self._on_property_validation_message)
+        self.page_timers_panel.user_code_requested.connect(self._on_user_code_requested)
         self.res_panel.resource_imported.connect(self._on_resource_imported)
         self.res_panel.feedback_message.connect(self._on_resource_feedback_message)
         self.res_panel.usage_activated.connect(self._on_resource_usage_activated)
@@ -2524,6 +2553,129 @@ class MainWindow(QMainWindow):
             return
         self._current_page.timers = list(timers or [])
         self._record_page_state_change(update_preview=False, trigger_compile=True, source="page timers edit")
+
+    def _page_user_source_path(self, page):
+        if page is None or not self._project_dir:
+            return ""
+        return os.path.join(self._project_dir, f"{page.name}.c")
+
+    def _generate_page_user_source_content(self, page):
+        content = generate_page_user_source(page, self.project)
+        return embed_source_hash(content, compute_source_hash(content))
+
+    def _insert_callback_stub_into_user_source(self, content, page, callback_name, signature):
+        if not content or not callback_name or _callback_definition_exists(content, callback_name):
+            return content, False
+
+        target = _resolve_page_callback_target(page, callback_name, signature)
+        stub = render_page_callback_stub(
+            page,
+            target.get("name", ""),
+            target.get("signature", ""),
+            kind=target.get("kind", "view"),
+        )
+        if not stub:
+            return content, False
+
+        begin_marker = "// USER CODE BEGIN callbacks"
+        end_marker = "// USER CODE END callbacks"
+        begin_index = content.find(begin_marker)
+        end_index = content.find(end_marker)
+        if begin_index < 0 or end_index < begin_index:
+            return content, False
+
+        body_start = content.find("\n", begin_index)
+        if body_start < 0 or body_start >= end_index:
+            return content, False
+
+        callback_body = content[body_start + 1:end_index]
+        if callback_body.strip():
+            new_body = callback_body.rstrip() + "\n\n" + stub + "\n"
+        else:
+            new_body = stub + "\n"
+        updated = content[:body_start + 1] + new_body + content[end_index:]
+        return updated, True
+
+    def _ensure_page_user_source_ready(self, page, callback_name="", signature=""):
+        filepath = self._page_user_source_path(page)
+        if not filepath:
+            return "", False, False
+
+        existing_content = read_existing_file(filepath)
+        if existing_content is None:
+            content = self._generate_page_user_source_content(page)
+        else:
+            content = existing_content
+
+        inserted = False
+        if callback_name:
+            content, inserted = self._insert_callback_stub_into_user_source(content, page, callback_name, signature)
+
+        should_write = existing_content is None or content != existing_content
+        if should_write:
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(content)
+
+        has_callback = not callback_name or _callback_definition_exists(content, callback_name)
+        return filepath, should_write or inserted, has_callback
+
+    def _open_path_in_default_app(self, path):
+        if not path or not os.path.exists(path):
+            return False
+
+        import subprocess
+        import sys
+
+        try:
+            if os.name == "nt":
+                os.startfile(os.path.normpath(path))
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", path])
+            else:
+                subprocess.Popen(["xdg-open", path])
+            return True
+        except Exception as exc:
+            self.debug_panel.log_error(f"Failed to open user source: {exc}")
+            return False
+
+    def _on_user_code_requested(self, callback_name, signature):
+        if self.project is None or self._current_page is None:
+            self.statusBar().showMessage("No active page available for user code.", 5000)
+            return
+        if not self._project_dir:
+            self.statusBar().showMessage("Save the project first to create user source files.", 5000)
+            return
+
+        self._flush_pending_xml()
+
+        filepath, updated, has_callback = self._ensure_page_user_source_ready(
+            self._current_page,
+            callback_name or "",
+            signature or "",
+        )
+        if not filepath:
+            self.statusBar().showMessage("Unable to resolve the page user source file.", 5000)
+            return
+        if updated:
+            self._refresh_project_watch_snapshot()
+
+        if not self._open_path_in_default_app(filepath):
+            QMessageBox.warning(self, "Open User Code", f"Failed to open:\n{filepath}")
+            return
+
+        if callback_name and has_callback:
+            self.statusBar().showMessage(
+                f"Opened user code: {self._current_page.name}.c ({callback_name}).",
+                5000,
+            )
+        elif callback_name:
+            self.statusBar().showMessage(
+                f"Opened user code: {self._current_page.name}.c. Add '{callback_name}' manually if needed.",
+                5000,
+            )
+        else:
+            self.statusBar().showMessage(f"Opened user code: {self._current_page.name}.c.", 5000)
 
     def _on_diagnostic_requested(self, page_name, widget_name):
         if not self.project:
