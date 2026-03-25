@@ -143,12 +143,17 @@ typedef struct
     const char *lines[EGUI_FONT_STD_LINE_CACHE_MAX_LINES];
 } egui_font_std_line_cache_t;
 
+typedef struct
+{
+    uint32_t stamp;
+    egui_font_std_line_cache_t entries[EGUI_FONT_STD_LINE_CACHE_SLOTS];
+} egui_font_std_line_cache_storage_t;
+
 static egui_font_std_ascii_lookup_cache_t *g_font_std_ascii_lookup_cache = NULL;
 
 static egui_font_std_draw_prefix_cache_t g_font_std_draw_prefix_cache[EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS];
 static uint32_t g_font_std_draw_prefix_cache_stamp = 0;
-static egui_font_std_line_cache_t g_font_std_line_cache[EGUI_FONT_STD_LINE_CACHE_SLOTS];
-static uint32_t g_font_std_line_cache_stamp = 0;
+static egui_font_std_line_cache_storage_t *g_font_std_line_cache_storage = NULL;
 
 __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_draw_fast(const egui_font_std_info_t *font, uint32_t utf8_code);
 
@@ -455,24 +460,59 @@ static int egui_font_std_find_prefix_first_visible(const egui_font_std_draw_pref
     return left;
 }
 
+static void egui_font_std_release_line_cache(void)
+{
+    if (g_font_std_line_cache_storage != NULL)
+    {
+        egui_free(g_font_std_line_cache_storage);
+        g_font_std_line_cache_storage = NULL;
+    }
+}
+
+static egui_font_std_line_cache_storage_t *egui_font_std_get_line_cache_storage(void)
+{
+    if (g_font_std_line_cache_storage == NULL)
+    {
+        g_font_std_line_cache_storage = (egui_font_std_line_cache_storage_t *)egui_malloc(sizeof(egui_font_std_line_cache_storage_t));
+        if (g_font_std_line_cache_storage == NULL)
+        {
+            return NULL;
+        }
+
+        memset(g_font_std_line_cache_storage, 0, sizeof(egui_font_std_line_cache_storage_t));
+    }
+
+    return g_font_std_line_cache_storage;
+}
+
 static const egui_font_std_line_cache_t *egui_font_std_prepare_line_cache(const char *s)
 {
     const char *cursor;
-    egui_font_std_line_cache_t *cache = &g_font_std_line_cache[0];
-    uint32_t content_hash = egui_font_std_hash_bytes(s, NULL, 0);
+    egui_font_std_line_cache_storage_t *line_cache_storage;
+    egui_font_std_line_cache_t *cache;
+    uint32_t content_hash;
 
     if (s == NULL)
     {
         return NULL;
     }
 
+    line_cache_storage = egui_font_std_get_line_cache_storage();
+    if (line_cache_storage == NULL)
+    {
+        return NULL;
+    }
+
+    cache = &line_cache_storage->entries[0];
+    content_hash = egui_font_std_hash_bytes(s, NULL, 0);
+
     for (int i = 0; i < EGUI_FONT_STD_LINE_CACHE_SLOTS; i++)
     {
-        egui_font_std_line_cache_t *entry = &g_font_std_line_cache[i];
+        egui_font_std_line_cache_t *entry = &line_cache_storage->entries[i];
 
         if (entry->is_ready && entry->string == s && entry->content_hash == content_hash)
         {
-            entry->stamp = ++g_font_std_line_cache_stamp;
+            entry->stamp = ++line_cache_storage->stamp;
             return entry;
         }
 
@@ -493,7 +533,7 @@ static const egui_font_std_line_cache_t *egui_font_std_prepare_line_cache(const 
     cache->content_hash = content_hash;
     cache->is_ready = 1;
     cache->is_complete = 0;
-    cache->stamp = ++g_font_std_line_cache_stamp;
+    cache->stamp = ++line_cache_storage->stamp;
 
     cursor = s;
     if (cache->line_count < EGUI_FONT_STD_LINE_CACHE_MAX_LINES)
@@ -990,6 +1030,7 @@ static const uint8_t *egui_font_std_get_readable_pixel_buffer(const egui_font_st
 void egui_font_std_release_frame_cache(void)
 {
     egui_font_std_release_ascii_lookup_cache();
+    egui_font_std_release_line_cache();
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     egui_font_std_release_external_desc_cache();
     egui_font_std_release_external_pixel_scratch_cache();
