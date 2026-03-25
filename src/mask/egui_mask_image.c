@@ -10,6 +10,11 @@
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 
+__EGUI_STATIC_INLINE__ egui_dim_t egui_mask_image_get_src_x(const egui_dim_t *src_x_map, egui_dim_t index)
+{
+    return (src_x_map != NULL) ? src_x_map[index] : index;
+}
+
 static void egui_mask_image_invalidate_row_cache(egui_mask_image_t *local)
 {
     local->point_cached_y = -32768;
@@ -1178,7 +1183,7 @@ int egui_mask_image_blend_rgb565_alpha8_segment(egui_mask_t *self, egui_color_in
         for (egui_dim_t i = seg_start - screen_x; i < seg_end - screen_x; i++, mask_src_acc += local->width_radio)
         {
             egui_dim_t mask_src_x = EGUI_FLOAT_INT_PART(mask_src_acc);
-            egui_dim_t src_x = src_x_map[i];
+            egui_dim_t src_x = egui_mask_image_get_src_x(src_x_map, i);
             egui_alpha_t alpha = src_alpha_row[src_x];
 
             if (alpha == 0 || mask_src_x < 0 || mask_src_x >= local->src_width)
@@ -1200,7 +1205,7 @@ int egui_mask_image_blend_rgb565_alpha8_segment(egui_mask_t *self, egui_color_in
         for (egui_dim_t i = seg_start - screen_x; i < seg_end - screen_x; i++, mask_src_acc += local->width_radio)
         {
             egui_dim_t mask_src_x = EGUI_FLOAT_INT_PART(mask_src_acc);
-            egui_dim_t src_x = src_x_map[i];
+            egui_dim_t src_x = egui_mask_image_get_src_x(src_x_map, i);
             egui_alpha_t alpha = src_alpha_row[src_x];
 
             if (alpha == 0 || mask_src_x < 0 || mask_src_x >= local->src_width)

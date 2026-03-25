@@ -236,6 +236,33 @@ static void egui_mask_round_rectangle_blend_rgb565_alpha8_range(egui_color_int_t
 {
     egui_dim_t mask_col = mask_col_start;
 
+    if (src_x_map == NULL)
+    {
+        for (egui_dim_t i = start_index; i < end_index; i++, mask_col += mask_col_step)
+        {
+            egui_alpha_t alpha = src_alpha_row[i];
+
+            if (alpha == 0)
+            {
+                continue;
+            }
+
+            alpha = egui_color_alpha_mix(egui_canvas_get_circle_corner_value_fixed_row(row_index, mask_col, info, items), alpha);
+            if (canvas_alpha != EGUI_ALPHA_100)
+            {
+                alpha = egui_color_alpha_mix(canvas_alpha, alpha);
+            }
+
+            if (alpha == 0)
+            {
+                continue;
+            }
+
+            egui_image_std_blend_rgb565_src_pixel_fast(&dst_row[i], src_row[i], alpha);
+        }
+        return;
+    }
+
     for (egui_dim_t i = start_index; i < end_index; i++, mask_col += mask_col_step)
     {
         egui_dim_t src_x = src_x_map[i];
@@ -265,6 +292,32 @@ static void egui_mask_round_rectangle_blend_rgb565_alpha8_middle(egui_color_int_
                                                                  const egui_dim_t *src_x_map, egui_dim_t start_index, egui_dim_t end_index,
                                                                  egui_alpha_t canvas_alpha)
 {
+    if (src_x_map == NULL)
+    {
+        for (egui_dim_t i = start_index; i < end_index; i++)
+        {
+            egui_alpha_t alpha = src_alpha_row[i];
+
+            if (alpha == 0)
+            {
+                continue;
+            }
+
+            if (canvas_alpha != EGUI_ALPHA_100)
+            {
+                alpha = egui_color_alpha_mix(canvas_alpha, alpha);
+            }
+
+            if (alpha == 0)
+            {
+                continue;
+            }
+
+            egui_image_std_blend_rgb565_src_pixel_fast(&dst_row[i], src_row[i], alpha);
+        }
+        return;
+    }
+
     for (egui_dim_t i = start_index; i < end_index; i++)
     {
         egui_dim_t src_x = src_x_map[i];

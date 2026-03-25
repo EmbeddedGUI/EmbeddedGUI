@@ -22,43 +22,17 @@ const uint8_t egui_image_alpha_type_size_table[] = {
         8, /* EGUI_IMAGE_ALPHA_TYPE_8 */
 };
 
-#if EGUI_CONFIG_COLOR_DEPTH == 16
-static egui_dim_t g_egui_image_std_identity_src_x_map[EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH];
-static egui_dim_t g_egui_image_std_identity_src_x_map_count;
-
-__EGUI_STATIC_INLINE__ const egui_dim_t *egui_image_std_get_identity_src_x_map(egui_dim_t count)
-{
-    EGUI_ASSERT(count <= EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH);
-
-    if (g_egui_image_std_identity_src_x_map_count < count)
-    {
-        for (egui_dim_t i = g_egui_image_std_identity_src_x_map_count; i < count; i++)
-        {
-            g_egui_image_std_identity_src_x_map[i] = i;
-        }
-        g_egui_image_std_identity_src_x_map_count = count;
-    }
-
-    return g_egui_image_std_identity_src_x_map;
-}
-
 int egui_image_std_get_linear_src_x_segment(const egui_dim_t *src_x_map, egui_dim_t start, egui_dim_t end, egui_dim_t *src_x_start)
 {
-    if (src_x_map == NULL || src_x_start == NULL || start >= end)
+    if (src_x_start == NULL || start >= end)
     {
         return 0;
     }
 
+    if (src_x_map == NULL)
     {
-        egui_uintptr_t map_addr = (egui_uintptr_t)src_x_map;
-        egui_uintptr_t identity_addr = (egui_uintptr_t)g_egui_image_std_identity_src_x_map;
-        egui_uintptr_t identity_end = (egui_uintptr_t)(g_egui_image_std_identity_src_x_map + g_egui_image_std_identity_src_x_map_count);
-
-        if (map_addr >= identity_addr && map_addr < identity_end && ((map_addr - identity_addr) % sizeof(egui_dim_t)) == 0)
-        {
-            *src_x_start = src_x_map[start];
-            return 1;
-        }
+        *src_x_start = start;
+        return 1;
     }
 
     *src_x_start = src_x_map[start];
@@ -72,26 +46,16 @@ int egui_image_std_get_linear_src_x_segment(const egui_dim_t *src_x_map, egui_di
 
     return 1;
 }
-#else
-int egui_image_std_get_linear_src_x_segment(const egui_dim_t *src_x_map, egui_dim_t start, egui_dim_t end, egui_dim_t *src_x_start)
+
+__EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_get_src_x(const egui_dim_t *src_x_map, egui_dim_t index)
 {
-    if (src_x_map == NULL || src_x_start == NULL || start >= end)
-    {
-        return 0;
-    }
-
-    *src_x_start = src_x_map[start];
-    for (egui_dim_t i = start + 1; i < end; i++)
-    {
-        if (src_x_map[i] != (*src_x_start + (i - start)))
-        {
-            return 0;
-        }
-    }
-
-    return 1;
+    return (src_x_map != NULL) ? src_x_map[index] : index;
 }
-#endif
+
+__EGUI_STATIC_INLINE__ const egui_dim_t *egui_image_std_get_src_x_sub_map(const egui_dim_t *src_x_map, egui_dim_t offset)
+{
+    return (src_x_map != NULL) ? &src_x_map[offset] : NULL;
+}
 
 typedef void(egui_image_std_get_pixel)(egui_image_std_info_t *image, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha);
 
@@ -1759,7 +1723,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
 
                 for (; i < end_index; i++, corner_col++)
                 {
-                    egui_dim_t src_x = src_x_map[i];
+                    egui_dim_t src_x = egui_image_std_get_src_x(src_x_map, i);
                     egui_alpha_t alpha = src_alpha_row[src_x];
                     egui_alpha_t mask_alpha;
 
@@ -1795,7 +1759,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
 
                 for (; i < end_index; i++, corner_col--)
                 {
-                    egui_dim_t src_x = src_x_map[i];
+                    egui_dim_t src_x = egui_image_std_get_src_x(src_x_map, i);
                     egui_alpha_t alpha = src_alpha_row[src_x];
                     egui_alpha_t mask_alpha;
 
@@ -1833,7 +1797,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
 
                 for (; i < end_index; i++, corner_col++)
                 {
-                    egui_dim_t src_x = src_x_map[i];
+                    egui_dim_t src_x = egui_image_std_get_src_x(src_x_map, i);
                     egui_alpha_t alpha = src_alpha_row[src_x];
                     egui_alpha_t mask_alpha;
 
@@ -1870,7 +1834,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
 
                 for (; i < end_index; i++, corner_col--)
                 {
-                    egui_dim_t src_x = src_x_map[i];
+                    egui_dim_t src_x = egui_image_std_get_src_x(src_x_map, i);
                     egui_alpha_t alpha = src_alpha_row[src_x];
                     egui_alpha_t mask_alpha;
 
@@ -1922,7 +1886,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
     {
         for (egui_dim_t i = 0; i < count; i++)
         {
-            egui_dim_t src_x = src_x_map[i];
+            egui_dim_t src_x = egui_image_std_get_src_x(src_x_map, i);
             egui_color_t color;
             egui_alpha_t alpha = src_alpha_row[src_x];
 
@@ -1948,7 +1912,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
 
     for (egui_dim_t i = 0; i < count; i++)
     {
-        egui_dim_t src_x = src_x_map[i];
+        egui_dim_t src_x = egui_image_std_get_src_x(src_x_map, i);
         egui_color_t color;
         egui_alpha_t alpha = src_alpha_row[src_x];
 
@@ -2004,8 +1968,7 @@ void egui_image_std_blend_rgb565_alpha8_masked_row(egui_canvas_t *canvas, egui_c
         }
     }
 
-    egui_image_std_blend_rgb565_alpha8_masked_mapped_segment(canvas, dst_row, src_row, src_alpha_row, egui_image_std_get_identity_src_x_map(count), count,
-                                                             screen_x, screen_y, canvas_alpha);
+    egui_image_std_blend_rgb565_alpha8_masked_mapped_segment(canvas, dst_row, src_row, src_alpha_row, NULL, count, screen_x, screen_y, canvas_alpha);
 #else
     EGUI_UNUSED(canvas);
     EGUI_UNUSED(dst_row);
@@ -2138,7 +2101,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_circle_masked_left_segme
                     }
                 }
 
-                src_x = src_x_map[i];
+                src_x = egui_image_std_get_src_x(src_x_map, i);
                 egui_image_std_blend_rgb565_src_pixel(&dst_row[i], src_row[src_x], alpha);
             }
             return;
@@ -2164,7 +2127,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_circle_masked_left_segme
             }
         }
 
-        src_x = src_x_map[i];
+        src_x = egui_image_std_get_src_x(src_x_map, i);
         egui_image_std_blend_rgb565_src_pixel(&dst_row[i], src_row[src_x], alpha);
     }
 }
@@ -2288,7 +2251,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_circle_masked_right_segm
                     }
                 }
 
-                src_x = src_x_map[i];
+                src_x = egui_image_std_get_src_x(src_x_map, i);
                 egui_image_std_blend_rgb565_src_pixel(&dst_row[i], src_row[src_x], alpha);
             }
             return;
@@ -2314,7 +2277,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_circle_masked_right_segm
             }
         }
 
-        src_x = src_x_map[i];
+        src_x = egui_image_std_get_src_x(src_x_map, i);
         egui_image_std_blend_rgb565_src_pixel(&dst_row[i], src_row[src_x], alpha);
     }
 }
@@ -2349,7 +2312,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_circle_masked_mapped_seg
 
         if (alpha != 0)
         {
-            egui_dim_t src_x = src_x_map[processed];
+            egui_dim_t src_x = egui_image_std_get_src_x(src_x_map, processed);
             if (canvas_alpha != EGUI_ALPHA_100)
             {
                 alpha = egui_color_alpha_mix(canvas_alpha, alpha);
@@ -2364,7 +2327,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_circle_masked_mapped_seg
 
     if (processed < count)
     {
-        egui_image_std_blend_rgb565_circle_masked_right_segment_fixed_row(&dst_row[processed], src_row, &src_x_map[processed], count - processed,
+        egui_image_std_blend_rgb565_circle_masked_right_segment_fixed_row(&dst_row[processed], src_row, egui_image_std_get_src_x_sub_map(src_x_map, processed), count - processed,
                                                                           screen_x + processed, center_x, radius, row_index, canvas_alpha, info, items);
     }
 }
@@ -2799,7 +2762,8 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_circle_masked_map
             egui_dim_t left_offset = seg_start - screen_x;
 
             egui_image_std_blend_rgb565_alpha8_circle_masked_partial_range_fixed_row(
-                    &dst_row[left_offset], src_row, src_alpha_row, &src_x_map[left_offset], left_end - seg_start, seg_start - (center_x - radius), 1, radius,
+                    &dst_row[left_offset], src_row, src_alpha_row, egui_image_std_get_src_x_sub_map(src_x_map, left_offset), left_end - seg_start,
+                    seg_start - (center_x - radius), 1, radius,
                     row_index, canvas_alpha, info, items);
         }
     }
@@ -2810,8 +2774,8 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_circle_masked_map
 
         if (mid_start < mid_end)
         {
-            egui_image_std_blend_rgb565_alpha8_mapped_row(&dst_row[mid_start - screen_x], src_row, src_alpha_row, &src_x_map[mid_start - screen_x],
-                                                          mid_end - mid_start, canvas_alpha);
+            egui_image_std_blend_rgb565_alpha8_mapped_row(&dst_row[mid_start - screen_x], src_row, src_alpha_row,
+                                                          egui_image_std_get_src_x_sub_map(src_x_map, mid_start - screen_x), mid_end - mid_start, canvas_alpha);
         }
     }
 
@@ -2823,7 +2787,8 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_circle_masked_map
             egui_dim_t right_offset = right_start - screen_x;
 
             egui_image_std_blend_rgb565_alpha8_circle_masked_partial_range_fixed_row(
-                    &dst_row[right_offset], src_row, src_alpha_row, &src_x_map[right_offset], seg_end - right_start, center_x + radius - right_start, -1,
+                    &dst_row[right_offset], src_row, src_alpha_row, egui_image_std_get_src_x_sub_map(src_x_map, right_offset), seg_end - right_start,
+                    center_x + radius - right_start, -1,
                     radius, row_index, canvas_alpha, info, items);
         }
     }
