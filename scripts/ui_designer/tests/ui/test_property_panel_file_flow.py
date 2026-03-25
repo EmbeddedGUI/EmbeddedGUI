@@ -547,3 +547,72 @@ class TestPropertyPanelFileFlow:
         assert panel._editors["name"].text() == "title_2"
         assert messages[-1] == "Widget name 'title' already exists. Renamed to 'title_2'."
         panel.deleteLater()
+
+    def test_single_selection_shows_callback_editors_for_click_and_widget_events(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        widget = WidgetModel("slider", name="volume_slider")
+        widget.on_click = "on_slider_click"
+        widget.events["onValueChanged"] = "on_slider_changed"
+
+        panel = PropertyPanel()
+        panel.set_widget(widget)
+
+        group = _find_group(panel, "Callbacks")
+        labels = _form_labels(group)
+
+        assert "Click:" in labels
+        assert "Value Changed:" in labels
+        assert panel._editors["callback_onClick"].text() == "on_slider_click"
+        assert panel._editors["callback_onValueChanged"].text() == "on_slider_changed"
+        assert "void callback_name(egui_view_t *self)" in panel._editors["callback_onClick"].toolTip()
+        assert "uint8_t value" in panel._editors["callback_onValueChanged"].toolTip()
+        panel.deleteLater()
+
+    def test_single_selection_callback_edit_normalizes_and_updates_widget(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        widget = WidgetModel("slider", name="volume_slider")
+
+        panel = PropertyPanel()
+        property_events = []
+        messages = []
+        panel.property_changed.connect(lambda: property_events.append("changed"))
+        panel.validation_message.connect(messages.append)
+        panel.set_widget(widget)
+
+        editor = panel._editors["callback_onValueChanged"]
+        editor.setText("handle volume changed")
+        editor.editingFinished.emit()
+
+        assert widget.events["onValueChanged"] == "handle_volume_changed"
+        assert editor.text() == "handle_volume_changed"
+        assert property_events == ["changed"]
+        assert messages[-1] == "Callback name normalized to 'handle_volume_changed'."
+        panel.deleteLater()
+
+    def test_single_selection_callback_edit_rejects_invalid_identifier(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        widget = WidgetModel("slider", name="volume_slider")
+        widget.events["onValueChanged"] = "on_slider_changed"
+
+        panel = PropertyPanel()
+        property_events = []
+        messages = []
+        panel.property_changed.connect(lambda: property_events.append("changed"))
+        panel.validation_message.connect(messages.append)
+        panel.set_widget(widget)
+
+        editor = panel._editors["callback_onValueChanged"]
+        editor.setText("123 bad-name")
+        editor.editingFinished.emit()
+
+        assert widget.events["onValueChanged"] == "on_slider_changed"
+        assert editor.text() == "on_slider_changed"
+        assert property_events == []
+        assert messages[-1].startswith("Callback name must be a valid C identifier")
+        panel.deleteLater()

@@ -19,6 +19,7 @@ class PageUndoStack:
 
     def __init__(self, max_size=50):
         self._history = []      # list of XML snapshot strings
+        self._labels = []       # user-facing labels for each snapshot
         self._index = -1        # points to current state in _history
         self._save_index = -1   # index at last save
         self._max_size = max_size
@@ -27,7 +28,7 @@ class PageUndoStack:
 
     # ── Push / Undo / Redo ────────────────────────────────────────
 
-    def push(self, xml_snapshot):
+    def push(self, xml_snapshot, label="State capture"):
         """Record a new snapshot.
 
         If a batch is active, intermediate pushes are suppressed — only
@@ -44,14 +45,17 @@ class PageUndoStack:
 
         # Truncate any redo tail
         del self._history[self._index + 1:]
+        del self._labels[self._index + 1:]
 
         self._history.append(xml_snapshot)
+        self._labels.append(label or "State capture")
         self._index = len(self._history) - 1
 
         # Enforce max size
         if len(self._history) > self._max_size:
             overflow = len(self._history) - self._max_size
             del self._history[:overflow]
+            del self._labels[:overflow]
             self._index -= overflow
             if self._save_index >= 0:
                 self._save_index -= overflow
@@ -99,7 +103,7 @@ class PageUndoStack:
         self._batch_active = True
         self._batch_start_index = self._index
 
-    def end_batch(self, xml_snapshot):
+    def end_batch(self, xml_snapshot, label="Batch edit"):
         """End a batch and commit the final state as one undo entry.
 
         If the final state is identical to the state before the batch,
@@ -118,22 +122,45 @@ class PageUndoStack:
         # Commit the final state normally
         # Truncate any redo tail
         del self._history[self._index + 1:]
+        del self._labels[self._index + 1:]
         self._history.append(xml_snapshot)
+        self._labels.append(label or "Batch edit")
         self._index = len(self._history) - 1
 
         # Enforce max size
         if len(self._history) > self._max_size:
             overflow = len(self._history) - self._max_size
             del self._history[:overflow]
+            del self._labels[:overflow]
             self._index -= overflow
             if self._save_index >= 0:
                 self._save_index -= overflow
                 if self._save_index < 0:
                     self._save_index = -2
 
+    def current_label(self):
+        """Return the label for the current snapshot."""
+        if self._index < 0 or self._index >= len(self._labels):
+            return ""
+        return self._labels[self._index]
+
+    def history_entries(self):
+        """Return structured entries for history visualization."""
+        entries = []
+        for index, (xml_snapshot, label) in enumerate(zip(self._history, self._labels)):
+            entries.append({
+                "index": index,
+                "xml": xml_snapshot,
+                "label": label,
+                "is_current": index == self._index,
+                "is_saved": index == self._save_index,
+            })
+        return entries
+
     def clear(self):
         """Discard all history."""
         self._history.clear()
+        self._labels.clear()
         self._index = -1
         self._save_index = -1
         self._batch_active = False
@@ -174,6 +201,20 @@ class UndoManager:
         """Mark all pages as saved."""
         for stack in self._stacks.values():
             stack.mark_saved()
+
+    def current_label(self, page_name):
+        """Return the current snapshot label for the given page."""
+        stack = self._stacks.get(page_name)
+        if stack is None:
+            return ""
+        return stack.current_label()
+
+    def history_entries(self, page_name):
+        """Return structured history entries for the given page."""
+        stack = self._stacks.get(page_name)
+        if stack is None:
+            return []
+        return stack.history_entries()
 
     def clear(self):
         """Clear all undo stacks."""

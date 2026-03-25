@@ -21,6 +21,7 @@ class Page:
         self.file_path = file_path  # relative path like 'layout/main_page.xml'
         self.root_widget = root_widget  # root WidgetModel for this page
         self.user_fields = []  # [{name, type, default?}, ...]
+        self.timers = []  # [{name, callback, delay_ms, period_ms, auto_start}, ...]
         self._dirty = False
         # Background mockup image (per-page, design-time only)
         self.mockup_image_path = ""      # relative path in .eguiproject/ (e.g., "mockup/main.png")
@@ -82,6 +83,16 @@ class Page:
                 if "default" in field:
                     f_elem.set("default", str(field["default"]))
 
+        if self.timers:
+            timers_elem = ET.SubElement(root_elem, "Timers")
+            for timer in self.timers:
+                t_elem = ET.SubElement(timers_elem, "Timer")
+                t_elem.set("name", timer.get("name", ""))
+                t_elem.set("callback", timer.get("callback", ""))
+                t_elem.set("delay_ms", str(timer.get("delay_ms", "")))
+                t_elem.set("period_ms", str(timer.get("period_ms", "")))
+                t_elem.set("auto_start", str(bool(timer.get("auto_start", False))).lower())
+
         return _indent_xml(root_elem)
 
     @classmethod
@@ -120,6 +131,16 @@ class Page:
                     if "default" in f_elem.attrib:
                         field["default"] = f_elem.get("default")
                     page.user_fields.append(field)
+            elif child.tag == "Timers":
+                for t_elem in child:
+                    timer = {
+                        "name": t_elem.get("name", ""),
+                        "callback": t_elem.get("callback", ""),
+                        "delay_ms": t_elem.get("delay_ms", ""),
+                        "period_ms": t_elem.get("period_ms", ""),
+                        "auto_start": t_elem.get("auto_start", "false").lower() == "true",
+                    }
+                    page.timers.append(timer)
             else:
                 # First non-UserFields child is the root widget
                 if page.root_widget is None:

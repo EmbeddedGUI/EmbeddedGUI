@@ -91,6 +91,100 @@ class TestUserOwnedFiles:
                      or "Your includes" in content or "Your callback" in content)
         assert has_hooks, "User-owned skeleton must contain customisation guidance comments"
 
+    def test_designer_managed_user_source_is_migrated_with_preserved_code(self, tmp_path):
+        proj = _make_project_with_page("main_page")
+        proj.get_page_by_name("main_page").timers = [
+            {
+                "name": "refresh_timer",
+                "callback": "tick_refresh",
+                "delay_ms": "500",
+                "period_ms": "1000",
+                "auto_start": True,
+            }
+        ]
+        output_dir = str(tmp_path)
+
+        user_file = tmp_path / "main_page.c"
+        user_file.write_text(
+            (
+                "// main_page.c - User implementation for main_page\n"
+                "// This file is YOUR code. The designer will NEVER overwrite it.\n"
+                "// Layout/widget init is in main_page_layout.c (auto-generated).\n"
+                "\n"
+                '#include "egui.h"\n'
+                "#include <stdlib.h>\n"
+                "\n"
+                '#include "uicode.h"\n'
+                '#include "main_page.h"\n'
+                '\n#include "my_logic.h"\n'
+                "\n"
+                "static void egui_main_page_on_open(egui_page_base_t *self)\n"
+                "{\n"
+                "    egui_main_page_t *local = (egui_main_page_t *)self;\n"
+                "    EGUI_UNUSED(local);\n"
+                "    // Call super on_open\n"
+                "    egui_page_base_on_open(self);\n"
+                "\n"
+                "    // Auto-generated layout initialization\n"
+                "    egui_main_page_layout_init(self);\n"
+                "\n"
+                "    egui_view_label_set_text((egui_view_t *)&local->title_label, \"ready\");\n"
+                "}\n"
+                "\n"
+                "static void egui_main_page_on_close(egui_page_base_t *self)\n"
+                "{\n"
+                "    egui_main_page_t *local = (egui_main_page_t *)self;\n"
+                "    EGUI_UNUSED(local);\n"
+                "    // Call super on_close\n"
+                "    egui_page_base_on_close(self);\n"
+                "\n"
+                "    cleanup_logic();\n"
+                "}\n"
+                "\n"
+                "static void egui_main_page_on_key_pressed(egui_page_base_t *self, uint16_t keycode)\n"
+                "{\n"
+                "    egui_main_page_t *local = (egui_main_page_t *)self;\n"
+                "    EGUI_UNUSED(local);\n"
+                "\n"
+                "    if (keycode == 1)\n"
+                "    {\n"
+                "        uicode_start_prev_page();\n"
+                "    }\n"
+                "}\n"
+                "\n"
+                "static const egui_page_base_api_t EGUI_VIEW_API_TABLE_NAME(egui_main_page_t) = {\n"
+                "    .on_open = egui_main_page_on_open,\n"
+                "    .on_close = egui_main_page_on_close,\n"
+                "    .on_key_pressed = egui_main_page_on_key_pressed,\n"
+                "};\n"
+                "\n"
+                "void egui_main_page_init(egui_page_base_t *self)\n"
+                "{\n"
+                "    egui_main_page_t *local = (egui_main_page_t *)self;\n"
+                "    EGUI_UNUSED(local);\n"
+                "    // Call super init\n"
+                "    egui_page_base_init(self);\n"
+                "    // Set vtable\n"
+                "    self->api = &EGUI_VIEW_API_TABLE_NAME(egui_main_page_t);\n"
+                '    egui_page_base_set_name(self, "main_page");\n'
+                "\n"
+                "    init_logic();\n"
+                "}\n"
+            ),
+            encoding="utf-8",
+        )
+
+        result = generate_all_files_preserved(proj, output_dir, backup=False)
+
+        assert "main_page.c" in result
+        assert '#include "my_logic.h"' in result["main_page.c"]
+        assert 'egui_view_label_set_text((egui_view_t *)&local->title_label, "ready");' in result["main_page.c"]
+        assert "cleanup_logic();" in result["main_page.c"]
+        assert "init_logic();" in result["main_page.c"]
+        assert "egui_main_page_timers_init(self);" in result["main_page.c"]
+        assert "egui_main_page_timers_start_auto(self);" in result["main_page.c"]
+        assert "egui_main_page_timers_stop(self);" in result["main_page.c"]
+
 
 # ======================================================================
 # TestGeneratedAlwaysFiles

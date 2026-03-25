@@ -164,14 +164,24 @@ class StringResourceCatalog:
 
     def rename_key(self, old_key, new_key):
         """Rename a string key across all locales."""
+        if old_key == new_key:
+            return
         if not _VALID_KEY_RE.match(new_key):
             raise ValueError(
                 f"Invalid string key '{new_key}': must be [A-Za-z_][A-Za-z0-9_]*"
             )
-        for locale_dict in self.strings.values():
-            if old_key in locale_dict:
-                value = locale_dict.pop(old_key)
-                locale_dict[new_key] = value
+        if new_key in self.all_keys:
+            raise ValueError(f"String key '{new_key}' already exists")
+        for locale, locale_dict in list(self.strings.items()):
+            if old_key not in locale_dict:
+                continue
+            updated = OrderedDict()
+            for key, value in locale_dict.items():
+                if key == old_key:
+                    updated[new_key] = value
+                else:
+                    updated[key] = value
+            self.strings[locale] = updated
 
     # ── Locale management ──────────────────────────────────────────
 

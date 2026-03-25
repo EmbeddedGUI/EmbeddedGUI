@@ -25,7 +25,7 @@ from ..model.widget_model import (
     FONT_PIXELSIZES, FONT_BITSIZES, FONT_EXTERNALS,
 )
 from ..model.resource_binding import assign_resource_to_widget
-from ..model.widget_name import resolve_widget_name
+from ..model.widget_name import resolve_widget_name, sanitize_widget_name, is_valid_widget_name
 from ..model.widget_registry import WidgetRegistry
 from .widgets.color_picker import EguiColorPicker
 from .widgets.font_selector import EguiFontSelector
@@ -37,6 +37,11 @@ _UI_GROUP_LABELS = {
     "image_config": "Image Config",
     "properties": "Properties",
 }
+
+_CALLBACK_INVALID_MESSAGE = (
+    "Callback name must be a valid C identifier using letters, numbers, and underscores, "
+    "and it cannot start with a digit."
+)
 
 _MULTI_SUPPORTED_PROPERTY_TYPES = {
     "string",
@@ -374,6 +379,10 @@ class PropertyPanel(QWidget):
 
         if props:
             self._build_grouped_properties(w, props)
+
+        callbacks_group = self._build_callbacks_group(w)
+        if callbacks_group is not None:
+            self._layout.addWidget(callbacks_group)
 
         # Background properties
         bg_group = QGroupBox("Background")
@@ -859,6 +868,105 @@ class PropertyPanel(QWidget):
 
             self._layout.addWidget(group_box)
 
+    def _humanize_callback_name(self, event_name):
+        name = str(event_name or "").strip()
+        if name.startswith("on") and len(name) > 2 and name[2].isupper():
+            name = name[2:]
+        name = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", name)
+        return name.strip().title() or "Callback"
+
+    def _suggest_callback_name(self, widget, event_name):
+        widget_name = sanitize_widget_name(getattr(widget, "name", "")) or getattr(widget, "widget_type", "widget")
+        suffix = self._humanize_callback_name(event_name).lower().replace(" ", "_")
+        return f"on_{widget_name}_{suffix}"
+
+    def _callback_signature_preview(self, signature):
+        if not signature:
+            return ""
+        try:
+            return signature.format(func_name="callback_name")
+        except Exception:
+            return signature
+
+    def _callback_tooltip(self, widget, event_name, signature):
+        parts = [
+            "Leave empty to disable this callback.",
+            f"Suggested: {self._suggest_callback_name(widget, event_name)}",
+        ]
+        preview = self._callback_signature_preview(signature)
+        if preview:
+            parts.append(f"Signature: {preview}")
+        return "\n".join(parts)
+
+    def _callback_entries(self, widget):
+        entries = [
+            {
+                "event_name": "onClick",
+                "value": widget.on_click,
+                "signature": "void {func_name}(egui_view_t *self)",
+                "use_event_dict": False,
+            }
+        ]
+
+        descriptor = WidgetRegistry.instance().get(widget.widget_type)
+        for event_name, event_info in descriptor.get("events", {}).items():
+            entries.append(
+                {
+                    "event_name": event_name,
+                    "value": widget.events.get(event_name, ""),
+                    "signature": event_info.get("signature", ""),
+                    "use_event_dict": True,
+                }
+            )
+
+        known_names = {entry["event_name"] for entry in entries}
+        for event_name in sorted(widget.events):
+            if event_name in known_names:
+                continue
+            entries.append(
+                {
+                    "event_name": event_name,
+                    "value": widget.events.get(event_name, ""),
+                    "signature": "",
+                    "use_event_dict": True,
+                }
+            )
+
+        return entries
+
+    def _build_callbacks_group(self, widget):
+        entries = self._callback_entries(widget)
+        if not entries:
+            return None
+
+        group = CollapsibleGroupBox("Callbacks")
+        form = QFormLayout()
+        group.setLayout(form)
+
+        for entry in entries:
+            event_name = entry["event_name"]
+            editor = LineEdit()
+            editor.setText(entry["value"])
+            editor.setPlaceholderText(self._suggest_callback_name(widget, event_name))
+            editor.setToolTip(self._callback_tooltip(widget, event_name, entry["signature"]))
+            editor.editingFinished.connect(
+                lambda editor=editor,
+                current_widget=widget,
+                event_name=event_name,
+                signature=entry["signature"],
+                use_event_dict=entry["use_event_dict"]: self._on_callback_editing_finished(
+                    editor,
+                    current_widget,
+                    event_name,
+                    signature,
+                    use_event_dict,
+                )
+            )
+            self._editors[f"callback_{event_name}"] = editor
+            form.addRow(f"{self._humanize_callback_name(event_name)}:", editor)
+
+        return group
+
     # ── Property editor factory ───────────────────────────────────
 
     def _create_property_editor(self, prop_name, prop_info, current_value, prop_changed_handler=None, file_prop_handler=None):
@@ -1158,6 +1266,53 @@ class PropertyPanel(QWidget):
             self.validation_message.emit(message)
 
         if name_changed:
+            self.property_changed.emit()
+
+    def _current_callback_value(self, widget, event_name, use_event_dict):
+        if use_event_dict:
+            return widget.events.get(event_name, "")
+        return widget.on_click
+
+    def _set_callback_value(self, widget, event_name, use_event_dict, value):
+        if use_event_dict:
+            if value:
+                widget.events[event_name] = value
+            else:
+                widget.events.pop(event_name, None)
+            return
+        widget.on_click = value
+
+    def _on_callback_editing_finished(self, editor, widget, event_name, signature, use_event_dict):
+        if self._updating or widget is None:
+            return
+
+        raw_name = editor.text()
+        normalized = sanitize_widget_name(raw_name)
+        current_value = self._current_callback_value(widget, event_name, use_event_dict)
+
+        if normalized and not is_valid_widget_name(normalized):
+            with QSignalBlocker(editor):
+                editor.setText(current_value)
+            editor.setToolTip(self._callback_tooltip(widget, event_name, signature))
+            self.validation_message.emit(_CALLBACK_INVALID_MESSAGE)
+            return
+
+        changed = normalized != current_value
+        text_changed = raw_name != normalized
+
+        if changed:
+            self._set_callback_value(widget, event_name, use_event_dict, normalized)
+
+        if changed or text_changed:
+            with QSignalBlocker(editor):
+                editor.setText(normalized)
+
+        editor.setToolTip(self._callback_tooltip(widget, event_name, signature))
+
+        if text_changed and normalized:
+            self.validation_message.emit(f"Callback name normalized to '{normalized}'.")
+
+        if changed:
             self.property_changed.emit()
 
     def _on_prop_changed(self, prop_name, value):

@@ -187,6 +187,31 @@ class TestBatchOperations:
         stack.end_batch("<B/>")  # no active batch, should be no-op
         assert not stack.can_undo(), "end_batch without begin should be no-op"
 
+    def test_history_entries_include_labels_and_saved_marker(self):
+        stack = PageUndoStack()
+        stack.push("<A/>", label="Loaded page")
+        stack.mark_saved()
+        stack.push("<B/>", label="property edit")
+
+        entries = stack.history_entries()
+
+        assert entries[0]["label"] == "Loaded page"
+        assert entries[0]["is_saved"] is True
+        assert entries[1]["label"] == "property edit"
+        assert entries[1]["is_current"] is True
+        assert stack.current_label() == "property edit"
+
+    def test_end_batch_records_label_metadata(self):
+        stack = PageUndoStack()
+        stack.push("<A/>", label="Loaded page")
+        stack.begin_batch()
+        stack.end_batch("<B/>", label="canvas move")
+
+        entries = stack.history_entries()
+
+        assert entries[-1]["label"] == "canvas move"
+        assert stack.current_label() == "canvas move"
+
 
 # ── TestUndoManager ──────────────────────────────────────────────
 
@@ -261,3 +286,14 @@ class TestUndoManager:
         assert not mgr.is_any_dirty()
         # Accessing after clear gives fresh stacks
         assert not mgr.get_stack("p1").can_undo()
+
+    def test_history_entries_and_current_label_proxy_to_page_stack(self):
+        mgr = UndoManager()
+        stack = mgr.get_stack("main_page")
+        stack.push("<A/>", label="Loaded page")
+        stack.mark_saved()
+        stack.push("<B/>", label="xml edit")
+
+        assert mgr.current_label("main_page") == "xml edit"
+        entries = mgr.history_entries("main_page")
+        assert [entry["label"] for entry in entries] == ["Loaded page", "xml edit"]

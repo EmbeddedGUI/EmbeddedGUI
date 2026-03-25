@@ -34,6 +34,11 @@ from .preview_panel import PreviewPanel, MODE_VERTICAL, MODE_HORIZONTAL, MODE_HI
 from .editor_tabs import EditorTabs, MODE_DESIGN, MODE_SPLIT, MODE_CODE
 from .project_dock import ProjectExplorerDock
 from .resource_panel import ResourcePanel
+from .history_panel import HistoryPanel
+from .diagnostics_panel import DiagnosticsPanel
+from .animations_panel import AnimationsPanel
+from .page_fields_panel import PageFieldsPanel
+from .page_timers_panel import PageTimersPanel
 from .app_selector import AppSelectorDialog
 from .new_project_dialog import NewProjectDialog
 from .welcome_page import WelcomePage
@@ -50,8 +55,14 @@ from ..model.workspace import (
     resolve_available_sdk_root,
     resolve_sdk_root_candidate,
 )
-from ..model.resource_binding import assign_resource_to_widget, resource_property_type
+from ..model.resource_binding import assign_resource_to_widget
+from ..model.resource_usage import (
+    collect_project_resource_usages,
+    rewrite_project_resource_references,
+    rewrite_project_string_references,
+)
 from ..model.selection_state import SelectionState
+from ..model.diagnostics import analyze_page, analyze_selection
 from ..model.undo_manager import UndoManager
 from ..generator.code_generator import generate_all_files, generate_all_files_preserved, generate_uicode
 from ..generator.resource_config_generator import ResourceConfigGenerator
@@ -60,6 +71,17 @@ from ..engine.layout_engine import compute_layout, compute_page_layout
 from ..utils.scaffold import make_app_build_mk_content, make_app_config_h_content, make_empty_resource_config_content
 from .theme import apply_theme
 from .widgets.page_navigator import PageNavigator, PAGE_TEMPLATES
+
+
+_DETACHED_WORKERS = set()
+
+
+def _release_detached_worker(worker):
+    _DETACHED_WORKERS.discard(worker)
+    try:
+        worker.deleteLater()
+    except Exception:
+        pass
 
 
 def delete_page_generated_files(project_dir, page_name):
@@ -104,21 +126,23 @@ class MainWindow(QMainWindow):
         self._current_page = None      # currently-displayed Page object
         self._clipboard_payload = None
         self._paste_serial = 0
+        self._async_generation = 0
+        self._is_closing = False
 
         # Debounce timer for compile
-        self._compile_timer = QTimer()
+        self._compile_timer = QTimer(self)
         self._compile_timer.setSingleShot(True)
         self._compile_timer.setInterval(500)
         self._compile_timer.timeout.connect(self._do_compile_and_run)
 
         # Timer to find and embed exe window after compile (legacy, kept for compat)
-        self._embed_timer = QTimer()
+        self._embed_timer = QTimer(self)
         self._embed_timer.setSingleShot(True)
         self._embed_timer.setInterval(0)  # Immediate - no delay
         self._embed_timer.timeout.connect(self._try_embed_exe)
 
         # Debounce timer for resource generation
-        self._regen_timer = QTimer()
+        self._regen_timer = QTimer(self)
         self._regen_timer.setSingleShot(True)
         self._regen_timer.setInterval(800)  # Wait 800ms after last change
         self._regen_timer.timeout.connect(lambda: self._generate_resources(silent=True))
@@ -130,10 +154,11 @@ class MainWindow(QMainWindow):
         self._pending_compile = False  # Track if compile needed after current one
         self._undo_manager = UndoManager()
         self._undoing = False  # True during undo/redo to suppress snapshot recording
+        self._active_batch_source = ""
         self._project_watch_snapshot = {}
         self._external_reload_pending = False
 
-        self._project_watch_timer = QTimer()
+        self._project_watch_timer = QTimer(self)
         self._project_watch_timer.setInterval(1000)
         self._project_watch_timer.timeout.connect(self._poll_project_files)
 
@@ -247,6 +272,46 @@ class MainWindow(QMainWindow):
         self.debug_dock.setWidget(self.debug_panel)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.debug_dock)
 
+        self.history_dock = QDockWidget("History", self)
+        self.history_dock.setObjectName("history_dock")
+        self.history_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
+        self.history_panel = HistoryPanel()
+        self.history_dock.setWidget(self.history_panel)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.history_dock)
+        self.tabifyDockWidget(self.debug_dock, self.history_dock)
+
+        self.diagnostics_dock = QDockWidget("Diagnostics", self)
+        self.diagnostics_dock.setObjectName("diagnostics_dock")
+        self.diagnostics_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
+        self.diagnostics_panel = DiagnosticsPanel()
+        self.diagnostics_dock.setWidget(self.diagnostics_panel)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.diagnostics_dock)
+        self.tabifyDockWidget(self.history_dock, self.diagnostics_dock)
+
+        self.animations_dock = QDockWidget("Animations", self)
+        self.animations_dock.setObjectName("animations_dock")
+        self.animations_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
+        self.animations_panel = AnimationsPanel()
+        self.animations_dock.setWidget(self.animations_panel)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.animations_dock)
+        self.tabifyDockWidget(self.props_dock, self.animations_dock)
+
+        self.page_fields_dock = QDockWidget("Page Fields", self)
+        self.page_fields_dock.setObjectName("page_fields_dock")
+        self.page_fields_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
+        self.page_fields_panel = PageFieldsPanel()
+        self.page_fields_dock.setWidget(self.page_fields_panel)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.page_fields_dock)
+        self.tabifyDockWidget(self.animations_dock, self.page_fields_dock)
+
+        self.page_timers_dock = QDockWidget("Page Timers", self)
+        self.page_timers_dock.setObjectName("page_timers_dock")
+        self.page_timers_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
+        self.page_timers_panel = PageTimersPanel()
+        self.page_timers_dock.setWidget(self.page_timers_panel)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.page_timers_dock)
+        self.tabifyDockWidget(self.page_fields_dock, self.page_timers_dock)
+
         # Status bar
         self.statusBar().showMessage("Ready")
 
@@ -296,8 +361,17 @@ class MainWindow(QMainWindow):
         self.res_panel.resource_selected.connect(self._on_resource_selected)
         self.res_panel.resource_renamed.connect(self._on_resource_renamed)
         self.res_panel.resource_deleted.connect(self._on_resource_deleted)
+        self.res_panel.string_key_renamed.connect(self._on_string_key_renamed)
+        self.res_panel.string_key_deleted.connect(self._on_string_key_deleted)
+        self.diagnostics_panel.diagnostic_activated.connect(self._on_diagnostic_requested)
+        self.animations_panel.animations_changed.connect(self._on_widget_animations_changed)
+        self.page_fields_panel.fields_changed.connect(self._on_page_fields_changed)
+        self.page_fields_panel.validation_message.connect(self._on_property_validation_message)
+        self.page_timers_panel.timers_changed.connect(self._on_page_timers_changed)
+        self.page_timers_panel.validation_message.connect(self._on_property_validation_message)
         self.res_panel.resource_imported.connect(self._on_resource_imported)
         self.res_panel.feedback_message.connect(self._on_resource_feedback_message)
+        self.res_panel.usage_activated.connect(self._on_resource_usage_activated)
 
     def _apply_stylesheet(self):
         pass  # Rely entirely on the global Fusion / Fluent theme
@@ -324,6 +398,86 @@ class MainWindow(QMainWindow):
         except Exception:
             self._config.window_geometry = ""
             self._config.window_state = ""
+
+    def _bump_async_generation(self):
+        self._async_generation += 1
+        self._pending_compile = False
+
+    def _stop_background_timers(self):
+        for timer in (
+            self._compile_timer,
+            self._embed_timer,
+            self._regen_timer,
+            self._project_watch_timer,
+        ):
+            timer.stop()
+
+    @staticmethod
+    def _disconnect_worker_signals(worker):
+        if worker is None:
+            return
+        for signal_name in ("finished", "log"):
+            signal = getattr(worker, signal_name, None)
+            if signal is None:
+                continue
+            try:
+                signal.disconnect()
+            except Exception:
+                pass
+
+    def _detach_worker(self, worker):
+        if worker is None:
+            return
+        self._disconnect_worker_signals(worker)
+        _DETACHED_WORKERS.add(worker)
+        try:
+            worker.finished.connect(lambda *args, _worker=worker: _release_detached_worker(_worker))
+        except Exception:
+            _release_detached_worker(worker)
+
+    def _cleanup_worker_ref(self, worker, attr_name):
+        if worker is None:
+            return
+        if getattr(self, attr_name, None) is worker:
+            setattr(self, attr_name, None)
+        if worker in _DETACHED_WORKERS:
+            _release_detached_worker(worker)
+            return
+        try:
+            worker.deleteLater()
+        except Exception:
+            pass
+
+    def _shutdown_worker(self, worker, attr_name, wait_ms=200):
+        if worker is None:
+            return
+        self._disconnect_worker_signals(worker)
+        try:
+            worker.requestInterruption()
+        except Exception:
+            pass
+        still_running = False
+        try:
+            still_running = worker.isRunning()
+        except Exception:
+            still_running = False
+        if still_running:
+            try:
+                still_running = not worker.wait(wait_ms)
+            except Exception:
+                still_running = True
+        if still_running:
+            self._detach_worker(worker)
+            if getattr(self, attr_name, None) is worker:
+                setattr(self, attr_name, None)
+            return
+        self._cleanup_worker_ref(worker, attr_name)
+
+    def _shutdown_async_activity(self, wait_ms=200):
+        self._stop_background_timers()
+        self.preview_panel.stop_rendering()
+        self._shutdown_worker(self._compile_worker, "_compile_worker", wait_ms=wait_ms)
+        self._shutdown_worker(self._precompile_worker, "_precompile_worker", wait_ms=wait_ms)
 
     def _describe_sdk_source(self, path=""):
         sdk_root = normalize_path(path or self.project_root)
@@ -353,6 +507,8 @@ class MainWindow(QMainWindow):
 
         if self.project is not None:
             self.project.sdk_root = path
+            self._bump_async_generation()
+            self._shutdown_async_activity()
             self._recreate_compiler()
             self._update_compile_availability()
             if self.compiler is None or not self.compiler.can_build():
@@ -652,10 +808,11 @@ class MainWindow(QMainWindow):
         return True
 
     def _clear_editor_state(self):
+        self._stop_background_timers()
         self.preview_panel.stop_rendering()
-        self._project_watch_timer.stop()
         self._project_watch_snapshot = {}
         self._external_reload_pending = False
+        self._active_batch_source = ""
         self._selected_widget = None
         self._selection_state.clear()
         self._current_page = None
@@ -668,10 +825,17 @@ class MainWindow(QMainWindow):
         self.project_dock.set_project(None)
         self.page_navigator.set_pages({})
         self.page_navigator.set_current_page("")
+        self.history_panel.clear()
+        self.diagnostics_panel.clear()
+        self.animations_panel.clear()
+        self.page_fields_panel.clear()
+        self.page_timers_panel.clear()
         self._update_edit_actions()
 
     def _open_loaded_project(self, project, project_dir, preferred_sdk_root="", silent=False):
         project_dir = normalize_path(project_dir)
+        self._bump_async_generation()
+        self._shutdown_async_activity()
         resolved_sdk_root = find_sdk_root(
             cli_sdk_root=preferred_sdk_root or project.sdk_root,
             configured_sdk_root=self._active_sdk_root(),
@@ -705,7 +869,7 @@ class MainWindow(QMainWindow):
             if self.compiler is not None and self.compiler.get_build_error():
                 reason = self.compiler.get_build_error()
             self._switch_to_python_preview(reason)
-            self.statusBar().showMessage("Opened project in editing-only mode")
+            self.statusBar().showMessage(f"Opened project in editing-only mode: {reason}")
         else:
             self._trigger_compile()
             sdk_source = self._describe_sdk_source(project.sdk_root)
@@ -735,6 +899,11 @@ class MainWindow(QMainWindow):
         self.res_dock.hide()
         self.tree_dock.hide()
         self.props_dock.hide()
+        self.animations_dock.hide()
+        self.history_dock.hide()
+        self.diagnostics_dock.hide()
+        self.page_fields_dock.hide()
+        self.page_timers_dock.hide()
 
     def _show_editor(self):
         """Show the editor (hide welcome page)."""
@@ -746,6 +915,11 @@ class MainWindow(QMainWindow):
         self.res_dock.show()
         self.tree_dock.show()
         self.props_dock.show()
+        self.animations_dock.show()
+        self.history_dock.show()
+        self.diagnostics_dock.show()
+        self.page_fields_dock.show()
+        self.page_timers_dock.show()
 
     def _create_page_tab_bar(self):
         page_tab_bar = TabBar()
@@ -1019,6 +1193,11 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.res_dock.toggleViewAction())
         view_menu.addAction(self.tree_dock.toggleViewAction())
         view_menu.addAction(self.props_dock.toggleViewAction())
+        view_menu.addAction(self.animations_dock.toggleViewAction())
+        view_menu.addAction(self.page_fields_dock.toggleViewAction())
+        view_menu.addAction(self.page_timers_dock.toggleViewAction())
+        view_menu.addAction(self.history_dock.toggleViewAction())
+        view_menu.addAction(self.diagnostics_dock.toggleViewAction())
         view_menu.addAction(self.debug_dock.toggleViewAction())
         view_menu.addSeparator()
 
@@ -1408,6 +1587,59 @@ class MainWindow(QMainWindow):
         if dirty_pages:
             title += " *"
         self.setWindowTitle(title)
+        self._update_history_panel()
+        self._update_diagnostics_panel()
+
+    def _update_history_panel(self):
+        if self._current_page is None:
+            self.history_panel.clear()
+            return
+
+        stack = self._undo_manager.get_stack(self._current_page.name)
+        dirty_source = stack.current_label() if stack.is_dirty() else ""
+        self.history_panel.set_history(
+            self._current_page.name,
+            stack.history_entries(),
+            dirty=stack.is_dirty(),
+            dirty_source=dirty_source,
+            can_undo=stack.can_undo(),
+            can_redo=stack.can_redo(),
+        )
+
+    def _update_diagnostics_panel(self):
+        if not hasattr(self, "diagnostics_panel"):
+            return
+        if self._current_page is None:
+            self.diagnostics_panel.clear()
+            return
+
+        resource_dir = self._get_eguiproject_resource_dir()
+        catalog = self.project.resource_catalog if self.project is not None else None
+        string_catalog = self.project.string_catalog if self.project is not None else None
+        entries = analyze_page(
+            self._current_page,
+            resource_catalog=catalog,
+            string_catalog=string_catalog,
+            source_resource_dir=resource_dir,
+        )
+        entries.extend(analyze_selection(self._selection_state.widgets))
+        self.diagnostics_panel.set_entries(entries)
+
+    def _update_resource_usage_panel(self):
+        if not hasattr(self, "res_panel"):
+            return
+        if self.project is None:
+            self.res_panel.set_resource_usage_index({})
+            return
+        self.res_panel.set_resource_usage_index(collect_project_resource_usages(self.project))
+
+    def _find_widget_in_page(self, page, widget_name):
+        if page is None or not widget_name:
+            return None
+        for widget in page.get_all_widgets():
+            if widget.name == widget_name:
+                return widget
+        return None
 
     def _active_sdk_root(self):
         return resolve_available_sdk_root(
@@ -1473,6 +1705,21 @@ class MainWindow(QMainWindow):
                 return existing_dir
         return self._default_new_project_parent_dir()
 
+    def _has_directory_conflict(self, path, *, allow_current=False):
+        path = normalize_path(path)
+        if not path:
+            return False
+        if allow_current and path == normalize_path(self._project_dir):
+            return False
+        return os.path.exists(path)
+
+    def _show_directory_conflict(self, path, message):
+        QMessageBox.warning(
+            self,
+            "Directory Conflict",
+            f"{message}:\n{normalize_path(path)}",
+        )
+
     def _default_export_code_dir(self):
         if self._project_dir:
             existing_dir = self._nearest_existing_directory(self._project_dir)
@@ -1507,12 +1754,8 @@ class MainWindow(QMainWindow):
 
         sdk_root = normalize_path(dialog.sdk_root)
         project_dir = normalize_path(os.path.join(dialog.parent_dir, dialog.app_name))
-        if os.path.isdir(project_dir) and os.listdir(project_dir):
-            QMessageBox.warning(
-                self,
-                "Directory Conflict",
-                f"The target directory already exists and is not empty:\n{project_dir}",
-            )
+        if self._has_directory_conflict(project_dir):
+            self._show_directory_conflict(project_dir, "The target directory already exists")
             return
 
         os.makedirs(project_dir, exist_ok=True)
@@ -1574,6 +1817,8 @@ class MainWindow(QMainWindow):
 
         os.makedirs(self._project_dir, exist_ok=True)
         files = self._save_project_files(self._project_dir)
+        self._bump_async_generation()
+        self._shutdown_async_activity()
         self._recreate_compiler()
         self._undo_manager.mark_all_saved()
         self._persist_current_project_to_config()
@@ -1592,12 +1837,8 @@ class MainWindow(QMainWindow):
             return
 
         path = normalize_path(path)
-        if path != normalize_path(self._project_dir) and os.path.isdir(path) and os.listdir(path):
-            QMessageBox.warning(
-                self,
-                "Directory Conflict",
-                f"The selected directory is not empty:\n{path}",
-            )
+        if self._has_directory_conflict(path, allow_current=True):
+            self._show_directory_conflict(path, "The selected directory already exists")
             return
 
         old_project_dir = self._project_dir
@@ -1606,6 +1847,8 @@ class MainWindow(QMainWindow):
         files = self._save_project_files(path)
         self._project_dir = path
         self.project.project_dir = path
+        self._bump_async_generation()
+        self._shutdown_async_activity()
         self._recreate_compiler()
         self._undo_manager.mark_all_saved()
         self._persist_current_project_to_config()
@@ -1633,13 +1876,13 @@ class MainWindow(QMainWindow):
             if reply == QMessageBox.Save:
                 self._save_project()
 
+        self._bump_async_generation()
+        self._shutdown_async_activity()
         if self.compiler is not None:
             self.compiler.stop_exe()
             self.compiler.cleanup()
             self.compiler = None
 
-        self.preview_panel.stop_rendering()
-        self._project_watch_timer.stop()
         self._project_watch_snapshot = {}
         self._external_reload_pending = False
         self.project = None
@@ -1847,6 +2090,7 @@ class MainWindow(QMainWindow):
         self.property_panel.set_resource_dir(res_dir)
         self.property_panel.set_source_resource_dir(eguiproject_res_dir)
         self.property_panel.set_resource_catalog(catalog)
+        self._update_resource_usage_panel()
 
         # Refresh i18n string catalog
         string_catalog = self.project.string_catalog if self.project else None
@@ -1866,6 +2110,8 @@ class MainWindow(QMainWindow):
         """Start background precompile if exe doesn't exist."""
         if not self.project:
             return
+        if self._is_closing:
+            return
         if self.compiler is None or not self.compiler.can_build():
             reason = "SDK unavailable, compile preview disabled"
             if self.compiler is not None and self.compiler.get_build_error():
@@ -1880,13 +2126,17 @@ class MainWindow(QMainWindow):
             self.debug_panel.log_cmd(
                 f"make -j main.exe APP={self.app_name} PORT=designer EGUI_APP_ROOT_PATH={self.compiler.app_root_arg} COMPILE_DEBUG= COMPILE_OPT_LEVEL=-O0"
             )
-            self._precompile_worker = self.compiler.precompile_async(
-                callback=self._on_precompile_done
+            generation = self._async_generation
+            worker = self.compiler.precompile_async(
+                callback=lambda success, message: self._on_precompile_done(worker, generation, success, message)
             )
+            self._precompile_worker = worker
 
-    def _on_precompile_done(self, success, message):
+    def _on_precompile_done(self, worker, generation, success, message):
         """Callback when background precompile finishes."""
-        self._precompile_worker = None
+        self._cleanup_worker_ref(worker, "_precompile_worker")
+        if self._is_closing or generation != self._async_generation:
+            return
         if success:
             self.statusBar().showMessage("Ready (precompiled)", 3000)
             self.debug_panel.log_success("Background precompile completed")
@@ -1972,6 +2222,7 @@ class MainWindow(QMainWindow):
         if not assign_resource_to_widget(target, res_type, filename):
             return
         self.property_panel.set_selection(self._selected_widgets(), self._primary_selected_widget())
+        self._update_resource_usage_panel()
         self._on_model_changed(source=f"{res_type} resource assignment")
 
     def _on_resource_renamed(self, res_type, old_name, new_name):
@@ -1984,6 +2235,24 @@ class MainWindow(QMainWindow):
         touched_pages = self._rewrite_resource_references(res_type, filename, "")
         self._finalize_resource_reference_change(touched_pages, source=f"{res_type} resource delete")
 
+    def _on_string_key_deleted(self, key, replacement_text):
+        """Rewrite widget text references after a string key was deleted."""
+        touched_pages, _ = rewrite_project_string_references(
+            self.project,
+            key,
+            replacement_text=replacement_text,
+        )
+        self._finalize_resource_reference_change(touched_pages, source="string key delete")
+
+    def _on_string_key_renamed(self, old_key, new_key):
+        """Rewrite widget text references after a string key was renamed."""
+        touched_pages, _ = rewrite_project_string_references(
+            self.project,
+            old_key,
+            new_key=new_key,
+        )
+        self._finalize_resource_reference_change(touched_pages, source="string key rename")
+
     def _on_resource_imported(self):
         """Resource files were imported — sync catalog and auto-regenerate."""
         # Sync catalog from resource panel back to project
@@ -1994,6 +2263,8 @@ class MainWindow(QMainWindow):
             # Sync i18n string catalog
             self.project.string_catalog = self.res_panel.get_string_catalog()
             self.property_panel.set_string_keys(self.project.string_catalog.all_keys)
+        self._update_resource_usage_panel()
+        self._update_diagnostics_panel()
         self._resources_need_regen = True
         # Auto-trigger resource generation with debounce
         self._refresh_project_watch_snapshot()
@@ -2006,33 +2277,20 @@ class MainWindow(QMainWindow):
         if message:
             self.statusBar().showMessage(message, 5000)
 
+    def _on_resource_usage_activated(self, page_name, widget_name):
+        if not self.project or not page_name or not widget_name:
+            return
+        if self._current_page is None or self._current_page.name != page_name:
+            self._switch_page(page_name)
+        target_page = self.project.get_page_by_name(page_name)
+        target_widget = self._find_widget_in_page(target_page, widget_name)
+        if target_widget is not None:
+            self._set_selection([target_widget], primary=target_widget, sync_tree=True, sync_preview=True)
+            self.statusBar().showMessage(f"Focused resource usage: {page_name}/{widget_name}.", 4000)
+
     def _rewrite_resource_references(self, res_type, old_name, new_name):
         """Rewrite matching resource filename references across all project pages."""
-        if not self.project or not old_name:
-            return []
-
-        from ..model.widget_registry import WidgetRegistry
-
-        resource_prop_type = resource_property_type(res_type)
-        if not resource_prop_type:
-            return []
-
-        registry = WidgetRegistry.instance()
-        touched_pages = []
-        for page in self.project.pages:
-            page_changed = False
-            for widget in page.get_all_widgets():
-                descriptor = registry.get(widget.widget_type)
-                properties = descriptor.get("properties", {})
-                for prop_name, prop_info in properties.items():
-                    if prop_info.get("type") != resource_prop_type:
-                        continue
-                    if widget.properties.get(prop_name, "") != old_name:
-                        continue
-                    widget.properties[prop_name] = new_name
-                    page_changed = True
-            if page_changed:
-                touched_pages.append(page)
+        touched_pages, _ = rewrite_project_resource_references(self.project, res_type, old_name, new_name)
         return touched_pages
 
     def _finalize_resource_reference_change(self, touched_pages, source="resource reference update"):
@@ -2043,7 +2301,7 @@ class MainWindow(QMainWindow):
         current_page_changed = False
         for page in touched_pages:
             stack = self._undo_manager.get_stack(page.name)
-            stack.push(page.to_xml_string())
+            stack.push(page.to_xml_string(), label=source or "resource reference update")
             self.page_navigator.refresh_thumbnail(page.name)
             if page is self._current_page:
                 current_page_changed = True
@@ -2059,6 +2317,8 @@ class MainWindow(QMainWindow):
             self._update_preview_overlay()
             self._sync_xml_to_editors()
 
+        self._update_resource_usage_panel()
+        self._update_diagnostics_panel()
         self._update_undo_actions()
         self._update_window_title()
         if source:
@@ -2072,6 +2332,7 @@ class MainWindow(QMainWindow):
         if not assign_resource_to_widget(widget, res_type, filename):
             return
         self.property_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
+        self._update_resource_usage_panel()
         self._on_model_changed(source=f"{res_type} resource drop")
 
     def _run_resource_generation(self, silent=False):
@@ -2207,7 +2468,7 @@ class MainWindow(QMainWindow):
         # Initialize undo stack for this page if empty
         stack = self._undo_manager.get_stack(page_name)
         if not stack._history:
-            stack.push(page.to_xml_string())
+            stack.push(page.to_xml_string(), label="Loaded page")
             if not page.dirty:
                 stack.mark_saved()
 
@@ -2221,6 +2482,8 @@ class MainWindow(QMainWindow):
         # Create a shim so WidgetTreePanel.set_project() works
         self._page_shim = _PageProjectShim(page)
         self.widget_tree.set_project(self._page_shim)
+        self.page_fields_panel.set_page(page)
+        self.page_timers_panel.set_page(page)
 
         # Update preview & XML
         self._update_preview_overlay()
@@ -2238,6 +2501,51 @@ class MainWindow(QMainWindow):
     def _on_page_selected(self, page_name):
         """User clicked a page in the Project Explorer."""
         self._switch_page(page_name)
+
+    def _on_widget_animations_changed(self, animations):
+        widget = self._primary_selected_widget()
+        if widget is None:
+            return
+        widget.animations = list(animations or [])
+        self._record_page_state_change(update_preview=False, trigger_compile=True, source="widget animations edit")
+
+    def _on_page_fields_changed(self, fields):
+        if self._current_page is None:
+            return
+        self._current_page.user_fields = list(fields or [])
+        self._record_page_state_change(update_preview=False, trigger_compile=True, source="page fields edit")
+
+    def _on_page_timers_changed(self, timers):
+        if self._current_page is None:
+            return
+        self._current_page.timers = list(timers or [])
+        self._record_page_state_change(update_preview=False, trigger_compile=True, source="page timers edit")
+
+    def _on_diagnostic_requested(self, page_name, widget_name):
+        if not self.project:
+            return
+
+        target_page_name = page_name or (self._current_page.name if self._current_page is not None else "")
+        if not target_page_name:
+            return
+
+        page = self.project.get_page_by_name(target_page_name)
+        if page is None:
+            return
+
+        if self._current_page is None or self._current_page.name != target_page_name:
+            self._switch_page(target_page_name)
+            page = self._current_page
+
+        if not widget_name:
+            return
+
+        widget = self._find_widget_in_page(page, widget_name)
+        if widget is None:
+            self.statusBar().showMessage(f"Diagnostic target not found: {target_page_name}/{widget_name}", 4000)
+            return
+
+        self._set_selection([widget], primary=widget, sync_tree=True, sync_preview=True)
 
     def _on_page_added(self, page_name):
         """User requested a new page."""
@@ -2471,11 +2779,13 @@ class MainWindow(QMainWindow):
         self._selection_state.set_widgets(widgets or [], primary=primary)
         self._selected_widget = self._selection_state.primary
         self.property_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
+        self.animations_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
         if sync_tree:
             self.widget_tree.set_selected_widgets(self._selection_state.widgets, self._selection_state.primary)
         if sync_preview:
             self.preview_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
         self._update_edit_actions()
+        self._update_diagnostics_panel()
         self._show_selection_feedback()
 
     def _clear_selection(self, sync_tree=True, sync_preview=True):
@@ -2931,12 +3241,14 @@ class MainWindow(QMainWindow):
 
     def _on_widget_moved(self, widget, new_x, new_y):
         """Widget dragged on preview overlay."""
+        self._active_batch_source = "canvas move"
         if widget == self._selection_state.primary:
             self.property_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
         self._on_model_changed(source="canvas move")
 
     def _on_widget_resized(self, widget, new_width, new_height):
         """Widget resized on preview overlay."""
+        self._active_batch_source = "canvas resize"
         if widget == self._selection_state.primary:
             self.property_panel.set_selection(self._selection_state.widgets, self._selection_state.primary)
         self._on_model_changed(source="canvas resize")
@@ -2960,6 +3272,7 @@ class MainWindow(QMainWindow):
         """A property value was changed in the property panel."""
         self.widget_tree.rebuild_tree()
         self.widget_tree.set_selected_widgets(self._selection_state.widgets, self._selection_state.primary)
+        self.animations_panel.refresh()
         self._on_model_changed(source="property edit")
 
     def _on_property_validation_message(self, message):
@@ -2980,10 +3293,11 @@ class MainWindow(QMainWindow):
         if self._current_page and not self._undoing:
             xml = self._current_page.to_xml_string()
             stack = self._undo_manager.get_stack(self._current_page.name)
-            stack.push(xml)
+            stack.push(xml, label=source or "property edit")
         if update_preview:
             self._update_preview_overlay()
         self._sync_xml_to_editors()
+        self._update_resource_usage_panel()
         if trigger_compile:
             self._trigger_compile()
         self._update_undo_actions()
@@ -3021,10 +3335,13 @@ class MainWindow(QMainWindow):
             # Refresh UI
             self._page_shim = _PageProjectShim(self._current_page)
             self.widget_tree.set_project(self._page_shim)
+            self.page_fields_panel.set_page(self._current_page)
+            self.page_timers_panel.set_page(self._current_page)
             self._clear_selection(sync_tree=True, sync_preview=True)
             self._update_preview_overlay()
             self._apply_page_mockup()
             self._sync_xml_to_editors()
+            self._update_resource_usage_panel()
             self._trigger_compile()
         finally:
             self._undoing = False
@@ -3044,6 +3361,7 @@ class MainWindow(QMainWindow):
     def _on_drag_started(self):
         """Preview drag/resize began — start undo batch."""
         if self._current_page:
+            self._active_batch_source = ""
             stack = self._undo_manager.get_stack(self._current_page.name)
             stack.begin_batch()
 
@@ -3052,7 +3370,8 @@ class MainWindow(QMainWindow):
         if self._current_page:
             xml = self._current_page.to_xml_string()
             stack = self._undo_manager.get_stack(self._current_page.name)
-            stack.end_batch(xml)
+            stack.end_batch(xml, label=self._active_batch_source or "canvas drag")
+            self._active_batch_source = ""
             self._update_undo_actions()
             self._update_window_title()
 
@@ -3080,7 +3399,7 @@ class MainWindow(QMainWindow):
 
             if not self._undoing:
                 stack = self._undo_manager.get_stack(self._current_page.name)
-                stack.push(xml_text)
+                stack.push(xml_text, label="xml edit")
 
             # Refresh tree and preview (without re-syncing XML back)
             self._page_shim = _PageProjectShim(self._current_page)
@@ -3088,9 +3407,12 @@ class MainWindow(QMainWindow):
             self._clear_selection(sync_tree=True, sync_preview=True)
             self._update_preview_overlay()
             self._apply_page_mockup()
+            self._update_resource_usage_panel()
             self._trigger_compile()
             self._update_undo_actions()
             self._update_window_title()
+            if not self._undoing:
+                self.statusBar().showMessage(f"Changed {self._current_page.name}: xml edit.", 3000)
         except Exception:
             # XML parse error — ignore until user fixes it
             pass
@@ -3101,6 +3423,7 @@ class MainWindow(QMainWindow):
         """Copy all serializable page state from source to target."""
         target_page.root_widget = source_page.root_widget
         target_page.user_fields = source_page.user_fields
+        target_page.timers = source_page.timers
         target_page.mockup_image_path = source_page.mockup_image_path
         target_page.mockup_image_visible = source_page.mockup_image_visible
         target_page.mockup_image_opacity = source_page.mockup_image_opacity
@@ -3155,6 +3478,8 @@ class MainWindow(QMainWindow):
 
     def _trigger_compile(self):
         """Trigger a debounced compile."""
+        if self._is_closing:
+            return
         if not self.auto_compile:
             return
         if self.compiler is None:
@@ -3171,6 +3496,8 @@ class MainWindow(QMainWindow):
     def _do_compile_and_run(self):
         """Execute compile and run cycle (async, multi-file)."""
         if not self.project:
+            return
+        if self._is_closing:
             return
         if self.compiler is None or not self.compiler.can_build():
             reason = "SDK unavailable, compile preview disabled"
@@ -3219,20 +3546,28 @@ class MainWindow(QMainWindow):
             f"make -j main.exe APP={self.app_name} PORT=designer EGUI_APP_ROOT_PATH={self.compiler.app_root_arg} COMPILE_DEBUG= COMPILE_OPT_LEVEL=-O0"
         )
 
-        self._compile_worker = self.compiler.compile_and_run_async(
+        generation = self._async_generation
+        worker = self.compiler.compile_and_run_async(
             code=None,
-            callback=self._on_compile_finished,
+            callback=lambda success, message, old_process: self._on_compile_finished(worker, generation, success, message, old_process),
             files_dict=files,
         )
+        self._compile_worker = worker
         # Connect log signal for detailed timing info
-        self._compile_worker.log.connect(self._on_compile_log)
+        worker.log.connect(lambda message, msg_type: self._on_compile_log(worker, generation, message, msg_type))
 
-    def _on_compile_log(self, message, msg_type):
+    def _on_compile_log(self, worker, generation, message, msg_type):
         """Handle log messages from compile worker."""
+        if self._is_closing or generation != self._async_generation or worker is not self._compile_worker:
+            return
         self.debug_panel.log(message, msg_type)
 
-    def _on_compile_finished(self, success, message, old_process):
+    def _on_compile_finished(self, worker, generation, success, message, old_process):
         """Callback when background compilation completes."""
+        del old_process
+        self._cleanup_worker_ref(worker, "_compile_worker")
+        if self._is_closing or generation != self._async_generation:
+            return
         # Update debug panel with compile output
         self.debug_panel.log_compile_output(success, message)
 
@@ -3258,6 +3593,8 @@ class MainWindow(QMainWindow):
         self._update_compile_availability()
 
     def _on_preview_runtime_failed(self, reason):
+        if self._is_closing:
+            return
         if self.compiler is not None:
             self.compiler.stop_exe()
         self.debug_panel.log_error(reason or "Headless preview stopped responding")
@@ -3271,6 +3608,7 @@ class MainWindow(QMainWindow):
         pass
 
     def _stop_exe(self):
+        self._stop_background_timers()
         self.preview_panel.stop_rendering()
         if self.compiler is not None:
             self.compiler.stop_exe()
@@ -3278,6 +3616,7 @@ class MainWindow(QMainWindow):
         self._update_compile_availability()
 
     def closeEvent(self, event):
+        self._is_closing = True
         if self.project and self._undo_manager.is_any_dirty():
             reply = QMessageBox.question(
                 self, "Unsaved Changes",
@@ -3286,6 +3625,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.Save
             )
             if reply == QMessageBox.Cancel:
+                self._is_closing = False
                 event.ignore()
                 return
             elif reply == QMessageBox.Save:
@@ -3301,10 +3641,12 @@ class MainWindow(QMainWindow):
             self._config.egui_root = self.project_root
         self._config.save()
 
-        self.preview_panel.stop_rendering()
+        self._bump_async_generation()
+        self._shutdown_async_activity(wait_ms=500)
         self.widget_tree.shutdown()
         if self.compiler is not None:
             self.compiler.cleanup()
+            self.compiler = None
         event.accept()
 
 

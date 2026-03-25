@@ -103,6 +103,15 @@ class TestCreateNewPage:
         label.properties["text"] = "Settings"
         original.root_widget.add_child(label)
         original.user_fields.append({"name": "counter", "type": "int", "default": 3})
+        original.timers.append(
+            {
+                "name": "refresh_timer",
+                "callback": "tick_refresh",
+                "delay_ms": "500",
+                "period_ms": "1000",
+                "auto_start": True,
+            }
+        )
         original.mockup_image_path = "mockup/settings.png"
         original.mockup_image_visible = False
         original.mockup_image_opacity = 0.5
@@ -118,6 +127,15 @@ class TestCreateNewPage:
         assert duplicated.root_widget.children[0].name == "title"
         assert duplicated.root_widget.children[0].properties["text"] == "Settings"
         assert duplicated.user_fields == [{"name": "counter", "type": "int", "default": "3"}]
+        assert duplicated.timers == [
+            {
+                "name": "refresh_timer",
+                "callback": "tick_refresh",
+                "delay_ms": "500",
+                "period_ms": "1000",
+                "auto_start": True,
+            }
+        ]
         assert duplicated.mockup_image_path == "mockup/settings.png"
         assert duplicated.mockup_image_visible is False
         assert duplicated.mockup_image_opacity == 0.5

@@ -1,7 +1,7 @@
 """C code generator for EmbeddedGUI Designer — MFC-style multi-file output.
 
 Architecture (per page):
-    {page_name}.h          — struct definition (generated, USER CODE for user_fields)
+    {page_name}.h          — struct definition (generated, auto page fields + USER CODE regions)
     {page_name}_layout.c   — pure layout code (100% generated, always overwritten)
     {page_name}.c          — user implementation (skeleton, created once, NEVER overwritten)
 
@@ -26,6 +26,8 @@ from ..model.widget_model import (
     AnimationModel, ANIMATION_TYPES, INTERPOLATOR_TYPES,
     derive_image_c_expr, derive_font_c_expr,
 )
+from ..model.page_fields import page_field_declaration, page_field_default_assignment, valid_page_fields
+from ..model.page_timers import valid_page_timers
 from ..model.widget_registry import WidgetRegistry
 from ..model.string_resource import parse_string_ref
 
@@ -104,6 +106,15 @@ def _gen_bg_param_init(param_name, bg, bg_type_override=None):
 def _upper_guard(name):
     """Convert page name to header guard: main_page -> _MAIN_PAGE_H_"""
     return f"_{name.upper()}_H_"
+
+
+def _timer_helper_names(name):
+    prefix = f"egui_{name}"
+    return {
+        "init": f"{prefix}_timers_init",
+        "start_auto": f"{prefix}_timers_start_auto",
+        "stop": f"{prefix}_timers_stop",
+    }
 
 
 # ── Per-widget init code (data-driven) ───────────────────────────
@@ -510,8 +521,8 @@ def _gen_anim_declarations(all_widgets, page_name):
 def generate_page_header(page, project):
     """Generate the {page_name}.h file content.
 
-    This file IS regenerated on every save, but contains a USER CODE
-    region for ``user_fields`` so users can add custom struct members.
+    This file IS regenerated on every save, but preserves a USER CODE
+    region for manual struct members after the Designer-generated page fields.
 
     Declares both:
       - ``egui_{page}_layout_init()``  (implemented in *_layout.c, generated)
@@ -572,6 +583,20 @@ def generate_page_header(page, project):
                 )
         lines.append("")
 
+    generated_timers = valid_page_timers(page, getattr(page, "timers", []))
+    if generated_timers:
+        lines.append("    // Timers (auto-generated from Designer metadata)")
+        for timer in generated_timers:
+            lines.append(f"    egui_timer_t {timer['name']};")
+        lines.append("")
+
+    generated_page_fields = [field for field in valid_page_fields(page, page.user_fields) if page_field_declaration(field)]
+    if generated_page_fields:
+        lines.append("    // Page fields (auto-generated from Designer metadata)")
+        for field in generated_page_fields:
+            lines.append(f"    {page_field_declaration(field)}")
+        lines.append("")
+
     # User-defined struct members
     lines.append("    // USER CODE BEGIN user_fields")
     lines.append("    // USER CODE END user_fields")
@@ -585,6 +610,13 @@ def generate_page_header(page, project):
     lines.append(f"// Page init (user-implemented in {name}.c)")
     lines.append(f"void {struct_name}_init(egui_page_base_t *self);")
     lines.append("")
+    if generated_timers:
+        helper_names = _timer_helper_names(name)
+        lines.append(f"// Timer helpers (auto-generated in {name}_layout.c)")
+        lines.append(f"void {helper_names['init']}(egui_page_base_t *self);")
+        lines.append(f"void {helper_names['start_auto']}(egui_page_base_t *self);")
+        lines.append(f"void {helper_names['stop']}(egui_page_base_t *self);")
+        lines.append("")
     lines.append("// USER CODE BEGIN declarations")
     lines.append("// USER CODE END declarations")
     lines.append("")
@@ -690,11 +722,64 @@ def generate_page_layout_source(page, project):
         lines.extend(anim_decl_lines)
         lines.append("")
 
+    generated_timers = valid_page_timers(page, getattr(page, "timers", []))
+    if generated_timers:
+        callback_names = sorted({timer["callback"] for timer in generated_timers if timer.get("callback")})
+        if callback_names:
+            lines.append("// Forward declarations for timer callbacks")
+            for callback_name in callback_names:
+                lines.append(f"extern void {callback_name}(egui_timer_t *timer);")
+            lines.append("")
+
+        helper_names = _timer_helper_names(name)
+        auto_start_timers = [timer for timer in generated_timers if timer.get("auto_start")]
+
+        lines.append(f"void {helper_names['init']}(egui_page_base_t *self)")
+        lines.append("{")
+        lines.append(f"    {struct_type} *local = ({struct_type} *)self;")
+        for timer in generated_timers:
+            lines.append(
+                f"    egui_timer_init_timer(&local->{timer['name']}, (void *)local, {timer['callback']});"
+            )
+        lines.append("}")
+        lines.append("")
+
+        lines.append(f"void {helper_names['start_auto']}(egui_page_base_t *self)")
+        lines.append("{")
+        lines.append(f"    {struct_type} *local = ({struct_type} *)self;")
+        if auto_start_timers:
+            for timer in auto_start_timers:
+                lines.append(
+                    f"    egui_timer_start_timer(&local->{timer['name']}, {timer['delay_ms']}, {timer['period_ms']});"
+                )
+        else:
+            lines.append("    EGUI_UNUSED(local);")
+        lines.append("}")
+        lines.append("")
+
+        lines.append(f"void {helper_names['stop']}(egui_page_base_t *self)")
+        lines.append("{")
+        lines.append(f"    {struct_type} *local = ({struct_type} *)self;")
+        for timer in generated_timers:
+            lines.append(f"    egui_timer_stop_timer(&local->{timer['name']});")
+        lines.append("}")
+        lines.append("")
+
     # ── layout_init function ──
     lines.append(f"void {prefix}_layout_init(egui_page_base_t *self)")
     lines.append("{")
     lines.append(f"    {struct_type} *local = ({struct_type} *)self;")
     lines.append("")
+
+    field_init_lines = []
+    for field in valid_page_fields(page, page.user_fields):
+        assignment = page_field_default_assignment(field)
+        if assignment:
+            field_init_lines.append(f"    {assignment}")
+    if field_init_lines:
+        lines.append("    // Initialize page fields")
+        lines.extend(field_init_lines)
+        lines.append("")
 
     if all_widgets:
         # Init each widget
@@ -822,10 +907,14 @@ def generate_page_user_source(page, project):
     name = page.name
     prefix = f"egui_{name}"
     struct_type = f"egui_{name}_t"
+    helper_names = _timer_helper_names(name)
+    generated_timers = valid_page_timers(page, getattr(page, "timers", []))
+    has_timers = bool(generated_timers)
+    has_auto_start_timers = any(timer.get("auto_start") for timer in generated_timers)
 
     lines = []
     lines.append(f"// {name}.c — User implementation for {name}")
-    lines.append(f"// This file is YOUR code. The designer will NEVER overwrite it.")
+    lines.append("// This file is YOUR code. The designer preserves USER CODE regions on regeneration.")
     lines.append(f"// Layout/widget init is in {name}_layout.c (auto-generated).")
     lines.append("")
     lines.append('#include "egui.h"')
@@ -833,6 +922,24 @@ def generate_page_user_source(page, project):
     lines.append("")
     lines.append('#include "uicode.h"')
     lines.append(f'#include "{name}.h"')
+    lines.append("")
+    lines.append("// USER CODE BEGIN includes")
+    lines.append("// USER CODE END includes")
+    lines.append("")
+    lines.append("// USER CODE BEGIN variables")
+    lines.append("// USER CODE END variables")
+    lines.append("")
+    lines.append("// USER CODE BEGIN callbacks")
+    if generated_timers:
+        for timer in generated_timers:
+            lines.append(f"static void {timer['callback']}(egui_timer_t *timer)")
+            lines.append("{")
+            lines.append(f"    {struct_type} *local = ({struct_type} *)timer->user_data;")
+            lines.append("    EGUI_UNUSED(local);")
+            lines.append("    // TODO: Handle timer tick here")
+            lines.append("}")
+            lines.append("")
+    lines.append("// USER CODE END callbacks")
     lines.append("")
 
     # Placeholder sections for user code
@@ -853,7 +960,11 @@ def generate_page_user_source(page, project):
     lines.append("")
     lines.append("    // Auto-generated layout initialization")
     lines.append(f"    {prefix}_layout_init(self);")
+    if has_timers and has_auto_start_timers:
+        lines.append(f"    {helper_names['start_auto']}(self);")
     lines.append("")
+    lines.append("    // USER CODE BEGIN on_open")
+    lines.append("    // USER CODE END on_open")
     lines.append("    // TODO: Add your post-init logic here")
     lines.append("    // e.g. register click listeners, start timers, set dynamic text")
     lines.append("}")
@@ -864,9 +975,15 @@ def generate_page_user_source(page, project):
     lines.append("{")
     lines.append(f"    {struct_type} *local = ({struct_type} *)self;")
     lines.append("    EGUI_UNUSED(local);")
+    if has_timers:
+        lines.append("    // Auto-generated timer cleanup")
+        lines.append(f"    {helper_names['stop']}(self);")
+        lines.append("")
     lines.append("    // Call super on_close")
     lines.append("    egui_page_base_on_close(self);")
     lines.append("")
+    lines.append("    // USER CODE BEGIN on_close")
+    lines.append("    // USER CODE END on_close")
     lines.append("    // TODO: Add your cleanup logic here")
     lines.append("}")
     lines.append("")
@@ -877,6 +994,8 @@ def generate_page_user_source(page, project):
     lines.append(f"    {struct_type} *local = ({struct_type} *)self;")
     lines.append("    EGUI_UNUSED(local);")
     lines.append("")
+    lines.append("    // USER CODE BEGIN on_key_pressed")
+    lines.append("    // USER CODE END on_key_pressed")
     lines.append("    // TODO: Handle key events here")
     lines.append("}")
     lines.append("")
@@ -898,8 +1017,13 @@ def generate_page_user_source(page, project):
     lines.append("    egui_page_base_init(self);")
     lines.append("    // Set vtable")
     lines.append(f"    self->api = &EGUI_VIEW_API_TABLE_NAME({struct_type});")
+    if has_timers:
+        lines.append("    // Auto-generated timer initialization")
+        lines.append(f"    {helper_names['init']}(self);")
     lines.append(f'    egui_page_base_set_name(self, "{name}");')
     lines.append("")
+    lines.append("    // USER CODE BEGIN init")
+    lines.append("    // USER CODE END init")
     lines.append("    // TODO: Add your custom init logic here")
     lines.append("}")
     lines.append("")
@@ -1512,10 +1636,21 @@ def generate_all_files_preserved(project, output_dir, backup=True):
                         if backup:
                             backup_file(filepath, backup_root)
                         result[filename] = migrated
-                # Otherwise: user file exists, don't touch it
+                    continue
+                if existing and _looks_like_designer_user_source(existing):
+                    source_hash = compute_source_hash(content)
+                    if should_skip_generation(filepath, source_hash):
+                        continue
+                    content_with_hash = embed_source_hash(content, source_hash)
+                    migrated = _migrate_designer_user_source(existing, content_with_hash, filename)
+                    if migrated and migrated != existing:
+                        if backup:
+                            backup_file(filepath, backup_root)
+                        result[filename] = migrated
                 continue
             else:
-                result[filename] = content
+                source_hash = compute_source_hash(content)
+                result[filename] = embed_source_hash(content, source_hash)
 
         elif category == GENERATED_PRESERVED:
             # Generated but preserves USER CODE regions
@@ -1551,11 +1686,22 @@ def _migrate_old_page_source(old_content, new_skeleton):
 
     Returns the migrated content, or None if migration is not needed.
     """
-    from .user_code_preserver import extract_user_code
+    from .user_code_preserver import extract_user_code, inject_user_code
 
     old_blocks = extract_user_code(old_content)
     if not old_blocks:
         return new_skeleton  # No user code to preserve, just replace
+
+    mapped_blocks = {
+        "includes": old_blocks.get("includes", ""),
+        "variables": old_blocks.get("variables", ""),
+        "callbacks": old_blocks.get("callbacks", ""),
+        "on_open": old_blocks.get("on_open", ""),
+        "on_close": old_blocks.get("on_close", ""),
+        "on_key_pressed": old_blocks.get("key_handler", ""),
+        "init": old_blocks.get("init", ""),
+    }
+    return inject_user_code(new_skeleton, mapped_blocks)
 
     # Map old USER CODE tags to locations in the new skeleton
     # Old format had: includes, variables, callbacks, on_open, on_close,
@@ -1611,6 +1757,150 @@ def _migrate_old_page_source(old_content, new_skeleton):
                 result_lines[-1] = code
 
     return "\n".join(result_lines)
+
+
+def _looks_like_designer_user_source(content):
+    return (
+        "Layout/widget init is in" in content
+        and "EGUI_VIEW_API_TABLE_NAME" in content
+        and "_on_open(egui_page_base_t *self)" in content
+    )
+
+
+def _extract_function_body(content, signature):
+    start = content.find(signature)
+    if start < 0:
+        return ""
+
+    brace_start = content.find("{", start)
+    if brace_start < 0:
+        return ""
+
+    depth = 0
+    index = brace_start
+    while index < len(content):
+        char = content[index]
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return content[brace_start + 1:index]
+        index += 1
+    return ""
+
+
+def _clean_preserved_block(text, skip_lines):
+    if not text:
+        return ""
+
+    normalized_skip = {line.strip() for line in skip_lines if line.strip()}
+    kept_lines = []
+    for line in text.splitlines():
+        if line.strip() in normalized_skip:
+            continue
+        kept_lines.append(line.rstrip())
+
+    while kept_lines and not kept_lines[0].strip():
+        kept_lines.pop(0)
+    while kept_lines and not kept_lines[-1].strip():
+        kept_lines.pop()
+
+    if not kept_lines:
+        return ""
+    return "\n".join(kept_lines) + "\n"
+
+
+def _extract_designer_user_blocks(existing_content, page_name):
+    prefix = f"egui_{page_name}"
+    struct_type = f"egui_{page_name}_t"
+    blocks = {}
+
+    include_anchor = f'#include "{page_name}.h"'
+    on_open_signature = f"static void {prefix}_on_open"
+    include_index = existing_content.find(include_anchor)
+    on_open_index = existing_content.find(on_open_signature)
+    if include_index >= 0 and on_open_index > include_index:
+        preamble = existing_content[include_index + len(include_anchor):on_open_index]
+        blocks["includes"] = _clean_preserved_block(preamble, set())
+
+    on_open_body = _extract_function_body(existing_content, on_open_signature)
+    blocks["on_open"] = _clean_preserved_block(
+        on_open_body,
+        {
+            f"{struct_type} *local = ({struct_type} *)self;",
+            "EGUI_UNUSED(local);",
+            "// Call super on_open",
+            "egui_page_base_on_open(self);",
+            "// Auto-generated layout initialization",
+            f"{prefix}_layout_init(self);",
+            f"{prefix}_timers_start_auto(self);",
+            "// USER CODE BEGIN on_open",
+            "// USER CODE END on_open",
+            "// TODO: Add your post-init logic here",
+            "// e.g. register click listeners, start timers, set dynamic text",
+        },
+    )
+
+    on_close_body = _extract_function_body(existing_content, f"static void {prefix}_on_close")
+    blocks["on_close"] = _clean_preserved_block(
+        on_close_body,
+        {
+            f"{struct_type} *local = ({struct_type} *)self;",
+            "EGUI_UNUSED(local);",
+            "// Auto-generated timer cleanup",
+            f"{prefix}_timers_stop(self);",
+            "// Call super on_close",
+            "egui_page_base_on_close(self);",
+            "// USER CODE BEGIN on_close",
+            "// USER CODE END on_close",
+            "// TODO: Add your cleanup logic here",
+        },
+    )
+
+    on_key_body = _extract_function_body(existing_content, f"static void {prefix}_on_key_pressed")
+    blocks["on_key_pressed"] = _clean_preserved_block(
+        on_key_body,
+        {
+            f"{struct_type} *local = ({struct_type} *)self;",
+            "EGUI_UNUSED(local);",
+            "// USER CODE BEGIN on_key_pressed",
+            "// USER CODE END on_key_pressed",
+            "// TODO: Handle key events here",
+        },
+    )
+
+    init_body = _extract_function_body(existing_content, f"void {prefix}_init")
+    blocks["init"] = _clean_preserved_block(
+        init_body,
+        {
+            f"{struct_type} *local = ({struct_type} *)self;",
+            "EGUI_UNUSED(local);",
+            "// Call super init",
+            "egui_page_base_init(self);",
+            "// Set vtable",
+            f"self->api = &EGUI_VIEW_API_TABLE_NAME({struct_type});",
+            "// Auto-generated timer initialization",
+            f"{prefix}_timers_init(self);",
+            f'egui_page_base_set_name(self, "{page_name}");',
+            "// USER CODE BEGIN init",
+            "// USER CODE END init",
+            "// TODO: Add your custom init logic here",
+        },
+    )
+
+    return {tag: body for tag, body in blocks.items() if body}
+
+
+def _migrate_designer_user_source(existing_content, new_skeleton, filename):
+    from .user_code_preserver import extract_user_code, inject_user_code
+    import os
+
+    user_blocks = extract_user_code(existing_content)
+    if not user_blocks:
+        page_name = os.path.splitext(os.path.basename(filename))[0]
+        user_blocks = _extract_designer_user_blocks(existing_content, page_name)
+    return inject_user_code(new_skeleton, user_blocks)
 
 
 # ── Legacy single-file generator (backward compatibility) ────────

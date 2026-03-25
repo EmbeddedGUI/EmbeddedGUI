@@ -97,6 +97,10 @@ class TestKeyManagement:
         with pytest.raises(ValueError):
             string_catalog.rename_key("greeting", "bad-key!")
 
+    def test_rename_key_duplicate_raises(self, string_catalog):
+        with pytest.raises(ValueError):
+            string_catalog.rename_key("greeting", "app_name")
+
 
 class TestProperties:
     """Tests for all_keys, has_strings, locales."""

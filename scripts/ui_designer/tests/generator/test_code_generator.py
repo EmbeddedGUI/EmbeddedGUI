@@ -278,6 +278,55 @@ class TestGeneratePageHeader:
         assert "#ifdef __cplusplus" in output
         assert 'extern "C" {' in output
 
+    def test_header_includes_generated_page_fields_before_user_code_region(self):
+        page, proj = self._make_simple_page_and_project()
+        page.user_fields = [
+            {"name": "counter", "type": "int", "default": "0"},
+            {"name": "buffer", "type": "uint8_t[16]"},
+        ]
+
+        output = generate_page_header(page, proj)
+
+        assert "    // Page fields (auto-generated from Designer metadata)" in output
+        assert "    int counter;" in output
+        assert "    uint8_t buffer[16];" in output
+        assert output.index("    int counter;") < output.index("    // USER CODE BEGIN user_fields")
+
+    def test_header_skips_invalid_or_conflicting_page_fields(self):
+        page, proj = self._make_simple_page_and_project()
+        page.user_fields = [
+            {"name": "my_label", "type": "int"},
+            {"name": "bad-name", "type": "int"},
+            {"name": "counter", "type": "int"},
+            {"name": "counter", "type": "uint32_t"},
+        ]
+
+        output = generate_page_header(page, proj)
+
+        assert "    int my_label;" not in output
+        assert "bad-name" not in output
+        assert "    int counter;" not in output
+        assert "    uint32_t counter;" not in output
+
+    def test_header_contains_page_timer_members_and_helpers(self):
+        page, proj = self._make_simple_page_and_project()
+        page.timers = [
+            {
+                "name": "refresh_timer",
+                "callback": "tick_refresh",
+                "delay_ms": "500",
+                "period_ms": "1000",
+                "auto_start": True,
+            }
+        ]
+
+        output = generate_page_header(page, proj)
+
+        assert "    egui_timer_t refresh_timer;" in output
+        assert "void egui_main_page_timers_init(egui_page_base_t *self);" in output
+        assert "void egui_main_page_timers_start_auto(egui_page_base_t *self);" in output
+        assert "void egui_main_page_timers_stop(egui_page_base_t *self);" in output
+
 
 # ======================================================================
 # TestGeneratePageLayoutSource
@@ -338,6 +387,58 @@ class TestGeneratePageLayoutSource:
         output = generate_page_layout_source(page, proj)
         assert "egui_page_base_add_view" in output
 
+    def test_layout_source_initializes_scalar_page_fields_and_skips_arrays(self):
+        page, proj = self._make_page_with_children()
+        page.user_fields = [
+            {"name": "counter", "type": "int", "default": "7"},
+            {"name": "title_text", "type": "char *", "default": "\"ready\""},
+            {"name": "buffer", "type": "uint8_t[16]", "default": "{0}"},
+        ]
+
+        output = generate_page_layout_source(page, proj)
+
+        assert "    // Initialize page fields" in output
+        assert "    local->counter = 7;" in output
+        assert '    local->title_text = "ready";' in output
+        assert "local->buffer =" not in output
+
+    def test_layout_source_skips_invalid_page_field_initializers(self):
+        page, proj = self._make_page_with_children()
+        page.user_fields = [
+            {"name": "title", "type": "int", "default": "1"},
+            {"name": "bad-name", "type": "int", "default": "2"},
+            {"name": "counter", "type": "int", "default": "3"},
+            {"name": "counter", "type": "uint32_t", "default": "4"},
+        ]
+
+        output = generate_page_layout_source(page, proj)
+
+        assert "local->title =" not in output
+        assert "bad-name" not in output
+        assert "local->counter =" not in output
+
+    def test_layout_source_emits_page_timer_helpers(self):
+        page, proj = self._make_page_with_children()
+        page.timers = [
+            {
+                "name": "refresh_timer",
+                "callback": "tick_refresh",
+                "delay_ms": "500",
+                "period_ms": "1000",
+                "auto_start": True,
+            }
+        ]
+
+        output = generate_page_layout_source(page, proj)
+
+        assert "extern void tick_refresh(egui_timer_t *timer);" in output
+        assert "void egui_main_page_timers_init(egui_page_base_t *self)" in output
+        assert "egui_timer_init_timer(&local->refresh_timer, (void *)local, tick_refresh);" in output
+        assert "void egui_main_page_timers_start_auto(egui_page_base_t *self)" in output
+        assert "egui_timer_start_timer(&local->refresh_timer, 500, 1000);" in output
+        assert "void egui_main_page_timers_stop(egui_page_base_t *self)" in output
+        assert "egui_timer_stop_timer(&local->refresh_timer);" in output
+
 
 # ======================================================================
 # TestGeneratePageUserSource
@@ -367,6 +468,36 @@ class TestGeneratePageUserSource:
         page, proj = self._make_simple()
         output = generate_page_user_source(page, proj)
         assert "EGUI_VIEW_API_TABLE_NAME" in output
+
+    def test_user_source_contains_user_code_regions(self):
+        page, proj = self._make_simple()
+        output = generate_page_user_source(page, proj)
+
+        assert "// USER CODE BEGIN includes" in output
+        assert "// USER CODE BEGIN callbacks" in output
+        assert "// USER CODE BEGIN on_open" in output
+        assert "// USER CODE BEGIN on_close" in output
+        assert "// USER CODE BEGIN on_key_pressed" in output
+        assert "// USER CODE BEGIN init" in output
+
+    def test_user_source_wires_timer_helpers_and_callback_stubs(self):
+        page, proj = self._make_simple()
+        page.timers = [
+            {
+                "name": "refresh_timer",
+                "callback": "tick_refresh",
+                "delay_ms": "500",
+                "period_ms": "1000",
+                "auto_start": True,
+            }
+        ]
+
+        output = generate_page_user_source(page, proj)
+
+        assert "static void tick_refresh(egui_timer_t *timer)" in output
+        assert "egui_main_page_timers_start_auto(self);" in output
+        assert "egui_main_page_timers_stop(self);" in output
+        assert "egui_main_page_timers_init(self);" in output
 
 
 # ======================================================================

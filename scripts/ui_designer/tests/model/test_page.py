@@ -78,6 +78,32 @@ class TestXmlSerialization:
         assert restored.user_fields[1]["name"] == "timer_id"
         assert restored.user_fields[1]["type"] == "int"
 
+    def test_timers_preserved(self):
+        root = WidgetModel("group", name="root_group", x=0, y=0, width=240, height=320)
+        page = Page(file_path="layout/test_page.xml", root_widget=root)
+        page.timers = [
+            {
+                "name": "refresh_timer",
+                "callback": "tick_refresh",
+                "delay_ms": "500",
+                "period_ms": "1000",
+                "auto_start": True,
+            }
+        ]
+
+        xml_str = page.to_xml_string()
+        restored = Page.from_xml_string(xml_str, file_path="layout/test_page.xml")
+
+        assert restored.timers == [
+            {
+                "name": "refresh_timer",
+                "callback": "tick_refresh",
+                "delay_ms": "500",
+                "period_ms": "1000",
+                "auto_start": True,
+            }
+        ]
+
     def test_mockup_attributes_preserved(self):
         root = WidgetModel("group", name="root_group", x=0, y=0, width=240, height=320)
         page = Page(file_path="layout/test_page.xml", root_widget=root)

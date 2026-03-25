@@ -456,6 +456,9 @@ class ResourcePanel(QWidget):
         resource_deleted(str, str): (resource_type, filename)
         resource_imported():         files were imported, refresh needed
         feedback_message(str):       user-facing operation summary for status bars
+        usage_activated(str, str):   (page_name, widget_name)
+        string_key_renamed(str, str): (old_key, new_key)
+        string_key_deleted(str, str): (key, replacement_text)
     """
 
     resource_selected = pyqtSignal(str, str)
@@ -463,6 +466,9 @@ class ResourcePanel(QWidget):
     resource_deleted = pyqtSignal(str, str)
     resource_imported = pyqtSignal()
     feedback_message = pyqtSignal(str)
+    usage_activated = pyqtSignal(str, str)
+    string_key_renamed = pyqtSignal(str, str)
+    string_key_deleted = pyqtSignal(str, str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -475,6 +481,9 @@ class ResourcePanel(QWidget):
         self._font_id_cache = {}
         self._font_family_cache = {}
         self._string_table_updating = False  # guard against cellChanged feedback
+        self._resource_usage_index = {}
+        self._current_resource_type = ""
+        self._current_resource_name = ""
         self.setAcceptDrops(True)
         self._init_ui()
 
@@ -496,6 +505,7 @@ class ResourcePanel(QWidget):
         top_layout.setSpacing(2)
 
         self._tabs = TabWidget()
+        self._tabs.currentChanged.connect(lambda _: self._refresh_usage_view())
 
         # Images tab
         img_tab = QWidget()
@@ -636,6 +646,8 @@ class ResourcePanel(QWidget):
         self._string_table.setSelectionBehavior(QTableWidget.SelectRows)
         self._string_table.setSelectionMode(QTableWidget.SingleSelection)
         self._string_table.cellChanged.connect(self._on_string_cell_changed)
+        self._string_table.currentCellChanged.connect(self._on_string_current_cell_changed)
+        self._string_table.itemSelectionChanged.connect(self._refresh_usage_view)
         strings_tab_layout.addWidget(self._string_table, 1)
 
         # Buttons
@@ -643,6 +655,9 @@ class ResourcePanel(QWidget):
         add_key_btn = PushButton("Add Key...")
         add_key_btn.clicked.connect(self._on_add_string_key)
         str_btn_layout.addWidget(add_key_btn)
+        rename_key_btn = PushButton("Rename Key...")
+        rename_key_btn.clicked.connect(self._on_rename_string_key)
+        str_btn_layout.addWidget(rename_key_btn)
         remove_key_btn = PushButton("Remove Key")
         remove_key_btn.clicked.connect(self._on_remove_string_key)
         str_btn_layout.addWidget(remove_key_btn)
@@ -654,13 +669,43 @@ class ResourcePanel(QWidget):
         top_layout.addWidget(self._tabs, 1)
         splitter.addWidget(top_widget)
 
-        # -- Bottom: Preview area --
+        # -- Bottom: Preview + usage area --
+        bottom_widget = QWidget()
+        bottom_layout = QVBoxLayout(bottom_widget)
+        bottom_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_layout.setSpacing(4)
+
+        preview_caption = QLabel("Preview")
+        bottom_layout.addWidget(preview_caption)
+
         self._preview = _PreviewWidget()
         self._preview.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        splitter.addWidget(self._preview)
+        bottom_layout.addWidget(self._preview, 1)
+
+        usage_caption = QLabel("Usage")
+        bottom_layout.addWidget(usage_caption)
+
+        self._usage_summary = QLabel("Select an image, font, text resource, or string key to inspect references.")
+        self._usage_summary.setWordWrap(True)
+        bottom_layout.addWidget(self._usage_summary)
+
+        self._usage_table = QTableWidget()
+        self._usage_table.setColumnCount(3)
+        self._usage_table.setHorizontalHeaderLabels(["Page", "Widget", "Property"])
+        self._usage_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self._usage_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self._usage_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self._usage_table.verticalHeader().setVisible(False)
+        self._usage_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self._usage_table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self._usage_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self._usage_table.itemDoubleClicked.connect(self._on_usage_item_activated)
+        bottom_layout.addWidget(self._usage_table, 1)
+
+        splitter.addWidget(bottom_widget)
 
         splitter.setStretchFactor(0, 3)
-        splitter.setStretchFactor(1, 1)
+        splitter.setStretchFactor(1, 2)
 
     # -- Public API --
 
@@ -671,6 +716,8 @@ class ResourcePanel(QWidget):
           - images/  subfolder for image files
           - font/text files directly
         """
+        selected_type = self._current_resource_type
+        selected_name = self._current_resource_name
         self._resource_dir = resource_dir or ""
         self._src_dir = resource_dir or ""
         self._images_dir = os.path.join(resource_dir, "images") if resource_dir else ""
@@ -682,6 +729,7 @@ class ResourcePanel(QWidget):
         if not self._src_dir or not os.path.isdir(self._src_dir):
             self._catalog = ResourceCatalog()
             self._update_tab_titles()
+            self._refresh_usage_view()
             return
 
         # Populate image list from catalog (images live in images/ subfolder)
@@ -731,6 +779,9 @@ class ResourcePanel(QWidget):
             self._text_list.addItem(item)
 
         self._update_tab_titles()
+        if selected_type and selected_name:
+            self._select_resource_item(selected_type, selected_name)
+        self._refresh_usage_view()
 
     def set_resource_catalog(self, catalog):
         """Set the resource catalog and refresh the panel."""
@@ -756,6 +807,11 @@ class ResourcePanel(QWidget):
         """Return the current string catalog."""
         return self._string_catalog
 
+    def set_resource_usage_index(self, usage_index):
+        """Set the current project resource usage map."""
+        self._resource_usage_index = usage_index or {}
+        self._refresh_usage_view()
+
     # -- Internal helpers --
 
     def _format_resource_tab_title(self, label, total, missing):
@@ -775,6 +831,88 @@ class ResourcePanel(QWidget):
         self._tabs.setTabText(1, self._format_resource_tab_title("Fonts", n_font, missing_font))
         self._tabs.setTabText(2, self._format_resource_tab_title("Text", n_text, missing_text))
         self._tabs.setTabText(3, f"Strings ({n_str})")
+
+    def _selected_resource_for_active_tab(self):
+        current_index = self._tabs.currentIndex()
+        if current_index == 0:
+            item = self._image_list.currentItem()
+            return "image", item.data(Qt.UserRole + 1) if item is not None else ""
+        if current_index == 1:
+            item = self._font_list.currentItem()
+            return "font", item.data(Qt.UserRole + 1) if item is not None else ""
+        if current_index == 2:
+            item = self._text_list.currentItem()
+            return "text", item.data(Qt.UserRole + 1) if item is not None else ""
+        if current_index == 3:
+            row = self._string_table.currentRow()
+            key_item = self._string_table.item(row, 0) if row >= 0 else None
+            return "string", key_item.text() if key_item is not None else ""
+        return "", ""
+
+    def _update_current_resource(self, resource_type, filename):
+        self._current_resource_type = resource_type or ""
+        self._current_resource_name = filename or ""
+        self._refresh_usage_view()
+
+    def _clear_usage_view(self, summary):
+        self._usage_summary.setText(summary)
+        self._usage_table.setRowCount(0)
+
+    def _refresh_usage_view(self):
+        if not hasattr(self, "_usage_table"):
+            return
+
+        resource_type = self._current_resource_type
+        resource_name = self._current_resource_name
+        active_type, active_name = self._selected_resource_for_active_tab()
+        if active_name:
+            resource_type = active_type
+            resource_name = active_name
+            self._current_resource_type = active_type
+            self._current_resource_name = active_name
+
+        if not resource_type or not resource_name:
+            self._clear_usage_view("Select an image, font, text resource, or string key to inspect references.")
+            return
+
+        usages = list(self._resource_usage_index.get((resource_type, resource_name), []))
+        if not usages:
+            self._clear_usage_view(f"'{resource_name}' is currently unused.")
+            return
+
+        page_count = len({entry.page_name for entry in usages})
+        widget_count = len(usages)
+        page_noun = "page" if page_count == 1 else "pages"
+        widget_noun = "widget" if widget_count == 1 else "widgets"
+        self._usage_summary.setText(
+            f"'{resource_name}' is used by {widget_count} {widget_noun} across {page_count} {page_noun}."
+        )
+        self._usage_table.setRowCount(len(usages))
+        for row, entry in enumerate(usages):
+            page_item = QTableWidgetItem(entry.page_name)
+            page_item.setData(Qt.UserRole, entry.page_name)
+            page_item.setData(Qt.UserRole + 1, entry.widget_name)
+            widget_text = entry.widget_name
+            if entry.widget_type:
+                widget_text = f"{entry.widget_name} ({entry.widget_type})"
+            widget_item = QTableWidgetItem(widget_text)
+            prop_item = QTableWidgetItem(entry.property_name)
+            self._usage_table.setItem(row, 0, page_item)
+            self._usage_table.setItem(row, 1, widget_item)
+            self._usage_table.setItem(row, 2, prop_item)
+        if self._usage_table.rowCount() > 0:
+            self._usage_table.selectRow(0)
+
+    def _on_usage_item_activated(self, item):
+        if item is None:
+            return
+        page_item = self._usage_table.item(item.row(), 0)
+        if page_item is None:
+            return
+        page_name = page_item.data(Qt.UserRole) or ""
+        widget_name = page_item.data(Qt.UserRole + 1) or ""
+        if page_name and widget_name:
+            self.usage_activated.emit(page_name, widget_name)
 
     def _target_dir_for_resource_type(self, resource_type):
         return self._images_dir if resource_type == "image" else self._src_dir
@@ -801,12 +939,26 @@ class ResourcePanel(QWidget):
         return [name for name in names if not os.path.isfile(os.path.join(target_dir, name))]
 
     def _select_resource_item(self, resource_type, filename):
+        if resource_type == "image":
+            self._tabs.setCurrentIndex(0)
+        elif resource_type == "font":
+            self._tabs.setCurrentIndex(1)
+        elif resource_type == "text":
+            self._tabs.setCurrentIndex(2)
+        elif resource_type == "string":
+            self._tabs.setCurrentIndex(3)
+            matches = self._string_table.findItems(filename, Qt.MatchExactly)
+            if matches:
+                self._string_table.setCurrentItem(matches[0])
+            self._update_current_resource(resource_type, filename)
+            return
         lst = self._list_widget_for_resource_type(resource_type)
         if lst is None:
             return
         matches = lst.findItems(filename, Qt.MatchExactly)
         if matches:
             lst.setCurrentItem(matches[0])
+        self._update_current_resource(resource_type, filename)
 
     def _focus_missing_resource(self, resource_type):
         lst = self._list_widget_for_resource_type(resource_type)
@@ -1009,6 +1161,9 @@ class ResourcePanel(QWidget):
         filename = item.data(Qt.UserRole + 1)
         if path and os.path.isfile(path):
             self._preview.show_image(path)
+        else:
+            self._preview.clear_preview()
+        self._update_current_resource("image", filename)
         self.resource_selected.emit("image", filename)
 
     def _on_font_clicked(self, item):
@@ -1017,6 +1172,9 @@ class ResourcePanel(QWidget):
         family = self._font_family_cache.get(path, "")
         if path and os.path.isfile(path):
             self._preview.show_font(path, family)
+        else:
+            self._preview.clear_preview()
+        self._update_current_resource("font", filename)
         self.resource_selected.emit("font", filename)
 
     def _on_text_clicked(self, item):
@@ -1024,18 +1182,24 @@ class ResourcePanel(QWidget):
         filename = item.data(Qt.UserRole + 1)
         if path and os.path.isfile(path):
             self._preview.show_text(path)
+        else:
+            self._preview.clear_preview()
+        self._update_current_resource("text", filename)
         self.resource_selected.emit("text", filename)
 
     def _on_image_double_clicked(self, item):
         filename = item.data(Qt.UserRole + 1)
+        self._update_current_resource("image", filename)
         self.resource_selected.emit("image", filename)
 
     def _on_font_double_clicked(self, item):
         filename = item.data(Qt.UserRole + 1)
+        self._update_current_resource("font", filename)
         self.resource_selected.emit("font", filename)
 
     def _on_text_double_clicked(self, item):
         filename = item.data(Qt.UserRole + 1)
+        self._update_current_resource("text", filename)
         self.resource_selected.emit("text", filename)
 
     # -- Import (buttons) --
@@ -1480,6 +1644,7 @@ class ResourcePanel(QWidget):
             self._update_tab_titles()
         finally:
             self._string_table_updating = False
+        self._refresh_usage_view()
 
     def _get_selected_locale(self):
         """Get the locale code of the currently selected combo item."""
@@ -1494,6 +1659,11 @@ class ResourcePanel(QWidget):
         try:
             locale = self._get_selected_locale()
             keys = self._string_catalog.all_keys
+            prev_key = ""
+            current_row = self._string_table.currentRow()
+            current_key_item = self._string_table.item(current_row, 0) if current_row >= 0 else None
+            if current_key_item is not None:
+                prev_key = current_key_item.text()
 
             self._string_table.setRowCount(len(keys))
             for row, key in enumerate(keys):
@@ -1506,6 +1676,13 @@ class ResourcePanel(QWidget):
                 value = self._string_catalog.get(key, locale)
                 val_item = QTableWidgetItem(value)
                 self._string_table.setItem(row, 1, val_item)
+
+            if keys:
+                target_key = prev_key if prev_key in keys else keys[0]
+                target_row = keys.index(target_key)
+                self._string_table.setCurrentCell(target_row, 0)
+            else:
+                self._update_current_resource("", "")
         finally:
             self._string_table_updating = False
 
@@ -1513,6 +1690,15 @@ class ResourcePanel(QWidget):
         """Locale combo selection changed."""
         if not self._string_table_updating:
             self._refresh_string_table()
+
+    def _on_string_current_cell_changed(self, current_row, current_column, previous_row, previous_column):
+        del current_column, previous_row, previous_column
+        if self._string_table_updating:
+            return
+        key_item = self._string_table.item(current_row, 0) if current_row >= 0 else None
+        key = key_item.text() if key_item is not None else ""
+        self._preview.clear_preview()
+        self._update_current_resource("string" if key else "", key)
 
     def _on_string_cell_changed(self, row, col):
         """Handle user editing a string value in the table."""
@@ -1553,6 +1739,41 @@ class ResourcePanel(QWidget):
         self._refresh_string_tab()
         self.resource_imported.emit()
 
+    def _on_rename_string_key(self):
+        """Rename the selected string key across all locales."""
+        row = self._string_table.currentRow()
+        if row < 0:
+            return
+        key_item = self._string_table.item(row, 0)
+        if key_item is None:
+            return
+        old_key = key_item.text().strip()
+        if not old_key:
+            return
+
+        new_key, ok = QInputDialog.getText(
+            self,
+            "Rename String Key",
+            "Enter new string key name:",
+            text=old_key,
+        )
+        if not ok:
+            return
+        new_key = new_key.strip()
+        if not new_key or new_key == old_key:
+            return
+
+        try:
+            self._string_catalog.rename_key(old_key, new_key)
+        except ValueError as exc:
+            QMessageBox.warning(self, "Invalid Key", str(exc))
+            return
+
+        self._refresh_string_tab()
+        self._select_resource_item("string", new_key)
+        self.string_key_renamed.emit(old_key, new_key)
+        self.resource_imported.emit()
+
     def _on_remove_string_key(self):
         """Remove the selected string key from all locales."""
         row = self._string_table.currentRow()
@@ -1562,15 +1783,31 @@ class ResourcePanel(QWidget):
         if not key_item:
             return
         key = key_item.text()
+        usages = list(self._resource_usage_index.get(("string", key), []))
+        replacement_text = self._string_catalog.get(key, DEFAULT_LOCALE)
+        if usages:
+            page_count = len({entry.page_name for entry in usages})
+            widget_count = len(usages)
+            page_noun = "page" if page_count == 1 else "pages"
+            widget_noun = "widget" if widget_count == 1 else "widgets"
+            rewrite_text = "convert those references to the default-locale literal text" if replacement_text else "clear those references"
+            prompt = (
+                f"Remove key '{key}' from all locales?\n"
+                f"It is used by {widget_count} {widget_noun} across {page_count} {page_noun}.\n"
+                f"This will {rewrite_text}."
+            )
+        else:
+            prompt = f"Remove key '{key}' from all locales?"
         reply = QMessageBox.question(
             self, "Remove String Key",
-            f"Remove key '{key}' from all locales?",
+            prompt,
             QMessageBox.Yes | QMessageBox.No,
         )
         if reply != QMessageBox.Yes:
             return
         self._string_catalog.remove_key(key)
         self._refresh_string_tab()
+        self.string_key_deleted.emit(key, replacement_text)
         self.resource_imported.emit()
 
     def _on_add_locale(self):

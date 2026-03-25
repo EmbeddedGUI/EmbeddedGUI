@@ -1,6 +1,10 @@
 """Qt UI tests for MainWindow project file flows."""
 
 import os
+import subprocess
+import sys
+import textwrap
+from pathlib import Path
 
 import pytest
 
@@ -24,9 +28,18 @@ def qapp():
     if app is None:
         app = QApplication([])
     yield app
-    for widget in QApplication.topLevelWidgets():
+    try:
+        app.sendPostedEvents()
+    except Exception:
+        pass
+    app.processEvents()
+    for widget in list(QApplication.topLevelWidgets()):
         try:
-            widget.close()
+            if widget.isVisible():
+                undo_manager = getattr(widget, "_undo_manager", None)
+                if undo_manager is not None:
+                    undo_manager.mark_all_saved()
+                widget.close()
             widget.deleteLater()
         except Exception:
             pass
@@ -67,6 +80,25 @@ def _create_project(project_dir, app_name, sdk_root=""):
     project.create_new_page("main_page")
     project.save(str(project_dir))
     return project
+
+
+def _close_window(window):
+    undo_manager = getattr(window, "_undo_manager", None)
+    if undo_manager is not None:
+        try:
+            # Avoid headless test teardown entering the unsaved-changes dialog path.
+            undo_manager.mark_all_saved()
+        except Exception:
+            pass
+    window.close()
+    window.deleteLater()
+    app = QApplication.instance()
+    if app is not None:
+        try:
+            app.sendPostedEvents()
+        except Exception:
+            pass
+        app.processEvents()
 
 
 class _DisabledCompiler:
@@ -121,8 +153,7 @@ class TestMainWindowFileFlow:
             "preferred_sdk_root": os.path.normpath(os.path.abspath(sdk_root)),
             "silent": True,
         }
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_open_project_uses_recovered_cached_sdk_example_as_default_dir(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -148,8 +179,7 @@ class TestMainWindowFileFlow:
         assert captured["title"] == "Open Project"
         assert captured["directory"] == os.path.join(os.path.normpath(os.path.abspath(cached_sdk)), "example")
         assert "EmbeddedGUI Projects" in captured["filters"]
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_open_project_uses_nearest_existing_parent_for_missing_last_project(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -169,8 +199,7 @@ class TestMainWindowFileFlow:
         window._open_project()
 
         assert captured["directory"] == os.path.normpath(os.path.abspath(recent_parent))
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_save_project_writes_project_and_generated_files(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -201,8 +230,7 @@ class TestMainWindowFileFlow:
         assert isolated_config.recent_projects[0]["project_path"] == os.path.join(str(project_dir), "SaveDemo.egui")
         assert window._undo_manager.is_any_dirty() is False
         assert "Saved:" in window.statusBar().currentMessage()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_new_project_can_be_created_without_sdk_root(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -245,8 +273,7 @@ class TestMainWindowFileFlow:
         assert opened["project_dir"] == os.path.normpath(os.path.abspath(project_dir))
         assert opened["preferred_sdk_root"] == ""
         assert "Created project: NoSdkDemo" in window.statusBar().currentMessage()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_new_project_uses_current_project_parent_as_default_parent_dir(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -272,8 +299,42 @@ class TestMainWindowFileFlow:
         window._new_project()
 
         assert captured["default_parent_dir"] == os.path.normpath(os.path.abspath(workspace_dir))
-        window.close()
-        window.deleteLater()
+        _close_window(window)
+
+    def test_new_project_warns_when_target_directory_already_exists_even_if_empty(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        parent_dir = tmp_path / "workspace"
+        target_dir = parent_dir / "ExistingDemo"
+        target_dir.mkdir(parents=True)
+
+        class FakeDialog:
+            Accepted = 1
+
+            def __init__(self, *args, **kwargs):
+                self.sdk_root = str(sdk_root)
+                self.parent_dir = str(parent_dir)
+                self.app_name = "ExistingDemo"
+                self.screen_width = 240
+                self.screen_height = 320
+
+            def exec_(self):
+                return self.Accepted
+
+        warnings = []
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr("ui_designer.ui.main_window.NewProjectDialog", FakeDialog)
+        monkeypatch.setattr("ui_designer.ui.main_window.QMessageBox.warning", lambda *args: warnings.append(args[1:]))
+        monkeypatch.setattr(window, "_open_loaded_project", lambda *args, **kwargs: pytest.fail("_open_loaded_project should not be called"))
+
+        window._new_project()
+
+        assert warnings
+        assert warnings[0][0] == "Directory Conflict"
+        assert "already exists" in warnings[0][1]
+        _close_window(window)
 
     def test_selection_feedback_status_mentions_locked_hidden_and_layout_managed_widget(self, qapp, isolated_config):
         from ui_designer.model.widget_model import WidgetModel
@@ -293,8 +354,7 @@ class TestMainWindowFileFlow:
         assert "child is locked" in message
         assert "hidden" in message
         assert "layout-managed by linearlayout" in message
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_selection_feedback_status_summarizes_multi_selection_constraints(self, qapp, isolated_config):
         from ui_designer.model.widget_model import WidgetModel
@@ -316,8 +376,7 @@ class TestMainWindowFileFlow:
         assert "1 locked widget" in message
         assert "1 hidden widget" in message
         assert "2 layout-managed widgets" in message
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_delete_selection_blocks_locked_widgets(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -345,8 +404,7 @@ class TestMainWindowFileFlow:
         assert skipped_locked == 1
         assert locked in project.get_startup_page().root_widget.children
         assert window.statusBar().currentMessage() == "Cannot delete selection: 1 locked widget."
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_delete_selection_skips_locked_widgets(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -379,8 +437,7 @@ class TestMainWindowFileFlow:
         assert locked in root.children
         assert window.statusBar().currentMessage() == "Deleted 1 widget(s); skipped 1 locked widget"
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_cut_selection_skips_locked_widgets(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -413,8 +470,7 @@ class TestMainWindowFileFlow:
         assert window._clipboard_payload["widgets"][0]["name"] == "removable"
         assert window.statusBar().currentMessage() == "Cut 1 widget(s); skipped 1 locked widget"
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_widget_tree_delete_skips_locked_widgets_and_updates_status(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -445,8 +501,7 @@ class TestMainWindowFileFlow:
         assert locked in root.children
         assert window.statusBar().currentMessage() == "Deleted 1 widget(s); skipped 1 locked widget"
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_selection_sync_reveals_widget_tree_path(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -480,8 +535,7 @@ class TestMainWindowFileFlow:
         assert container_item.isExpanded() is True
         assert nested_item.isExpanded() is True
         assert window.widget_tree._get_selected_widget() is target
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_widget_tree_rebuild_preserves_manual_collapse_state(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -515,40 +569,112 @@ class TestMainWindowFileFlow:
 
         assert window.widget_tree._item_map[id(container)].isExpanded() is False
         assert window.widget_tree._item_map[id(nested)].isExpanded() is False
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
-    def test_widget_tree_filter_updates_status_bar(self, qapp, isolated_config, tmp_path, monkeypatch):
-        from ui_designer.model.widget_model import WidgetModel
-        from ui_designer.ui.main_window import MainWindow
+    def test_widget_tree_filter_updates_status_bar(self):
+        repo_root = Path(__file__).resolve().parents[4]
+        script = textwrap.dedent(
+            f"""
+            import os
+            import shutil
+            import sys
+            import tempfile
+            from pathlib import Path
 
-        sdk_root = tmp_path / "sdk"
-        _create_sdk_root(sdk_root)
-        project_dir = tmp_path / "TreeFilterStatusDemo"
-        project = _create_project(project_dir, "TreeFilterStatusDemo", sdk_root)
-        root = project.get_startup_page().root_widget
-        first = WidgetModel("label", name="field_label")
-        second = WidgetModel("button", name="field_button")
-        root.add_child(first)
-        root.add_child(second)
-        project.save(str(project_dir))
+            os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-        window = MainWindow(str(sdk_root))
-        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
-        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+            repo_root = Path({repr(str(repo_root))})
+            sys.path.insert(0, str(repo_root / "scripts"))
 
-        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+            from PyQt5.QtWidgets import QApplication
 
-        window.widget_tree.filter_edit.setText("field")
-        assert window.statusBar().currentMessage() == "Widget filter 'field': 2 matches."
+            from ui_designer.model.project import Project
+            from ui_designer.model.widget_model import WidgetModel
+            from ui_designer.ui.main_window import MainWindow
 
-        window.widget_tree._select_next_filter_match()
-        assert window.statusBar().currentMessage() == "Widget filter 'field': 2 matches (1/2)."
 
-        window.widget_tree.filter_edit.setText("")
-        assert window.statusBar().currentMessage() == "Widget filter cleared."
-        window.close()
-        window.deleteLater()
+            def create_sdk_root(root: Path):
+                (root / "src").mkdir(parents=True)
+                (root / "porting" / "designer").mkdir(parents=True)
+                (root / "Makefile").write_text("all:\\n", encoding="utf-8")
+
+
+            class DisabledCompiler:
+                def can_build(self):
+                    return False
+
+                def is_preview_running(self):
+                    return False
+
+                def stop_exe(self):
+                    return None
+
+                def cleanup(self):
+                    return None
+
+                def get_build_error(self):
+                    return "preview disabled for test"
+
+                def set_screen_size(self, width, height):
+                    return None
+
+                def is_exe_ready(self):
+                    return False
+
+
+            temp_root = Path(tempfile.mkdtemp(prefix="ui_designer_filter_status_", dir=str(repo_root)))
+            app = QApplication.instance() or QApplication([])
+            try:
+                sdk_root = temp_root / "sdk"
+                project_dir = temp_root / "TreeFilterStatusDemo"
+                create_sdk_root(sdk_root)
+
+                project = Project(screen_width=240, screen_height=320, app_name="TreeFilterStatusDemo")
+                project.sdk_root = str(sdk_root)
+                project.project_dir = str(project_dir)
+                page = project.create_new_page("main_page")
+                page.root_widget.add_child(WidgetModel("label", name="field_label"))
+                page.root_widget.add_child(WidgetModel("button", name="field_button"))
+                project.save(str(project_dir))
+
+                window = MainWindow(str(sdk_root))
+                window._recreate_compiler = lambda _window=window: setattr(_window, "compiler", DisabledCompiler())
+                window._trigger_compile = lambda: None
+
+                window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+
+                window.widget_tree.filter_edit.setText("field")
+                assert window.statusBar().currentMessage() == "Widget filter 'field': 2 matches."
+
+                window.widget_tree._select_next_filter_match()
+                assert window.statusBar().currentMessage() == "Widget filter 'field': 2 matches (1/2)."
+
+                window.widget_tree.filter_edit.setText("")
+                assert window.statusBar().currentMessage() == "Widget filter cleared."
+
+                window._undo_manager.mark_all_saved()
+                window.close()
+                window.deleteLater()
+                app.sendPostedEvents()
+                app.processEvents()
+            finally:
+                shutil.rmtree(temp_root, ignore_errors=True)
+            """
+        )
+
+        env = os.environ.copy()
+        env.setdefault("QT_QPA_PLATFORM", "offscreen")
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=env,
+            timeout=60,
+        )
+
+        assert result.returncode == 0, f"stdout:\n{result.stdout}\n\nstderr:\n{result.stderr}"
 
     def test_widget_tree_batch_rename_updates_status_and_selection(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -586,8 +712,7 @@ class TestMainWindowFileFlow:
         assert window.widget_tree._get_selected_widget() is first
         assert window.statusBar().currentMessage() == "Renamed 2 widget(s) with prefix 'field'."
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_align_selection_reports_locked_constraint(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -615,8 +740,7 @@ class TestMainWindowFileFlow:
         window._align_selection("left")
 
         assert window.statusBar().currentMessage() == "Cannot align selection: locked widgets leave fewer than 2 editable widgets."
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_distribute_selection_reports_mixed_parent_constraint(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -649,8 +773,7 @@ class TestMainWindowFileFlow:
         window._distribute_selection("horizontal")
 
         assert window.statusBar().currentMessage() == "Cannot distribute selection: selected widgets do not share the same free-position parent."
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_move_selection_to_front_reports_all_locked(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -675,8 +798,7 @@ class TestMainWindowFileFlow:
         window._move_selection_to_front()
 
         assert window.statusBar().currentMessage() == "Cannot bring to front: all selected widgets are locked."
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_move_selection_to_back_reports_all_locked(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -701,8 +823,7 @@ class TestMainWindowFileFlow:
         window._move_selection_to_back()
 
         assert window.statusBar().currentMessage() == "Cannot send to back: all selected widgets are locked."
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_property_edit_status_mentions_dirty_source(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -728,8 +849,7 @@ class TestMainWindowFileFlow:
 
         assert window.statusBar().currentMessage() == "Changed main_page: property edit."
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_canvas_move_status_mentions_dirty_source(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -756,8 +876,7 @@ class TestMainWindowFileFlow:
 
         assert window.statusBar().currentMessage() == "Changed main_page: canvas move."
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_new_project_prefers_recovered_cached_sdk_for_defaults(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -786,8 +905,7 @@ class TestMainWindowFileFlow:
 
         assert captured["sdk_root"] == os.path.normpath(os.path.abspath(cached_sdk))
         assert captured["default_parent_dir"] == os.path.join(os.path.normpath(os.path.abspath(cached_sdk)), "example")
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_save_project_as_copies_sidecar_files_and_updates_project_dir(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -827,8 +945,7 @@ class TestMainWindowFileFlow:
         assert (dst_dir / ".eguiproject" / "resources" / "images" / "legacy.png").is_file()
         assert (dst_dir / ".eguiproject" / "mockup" / "legacy.txt").is_file()
         assert (dst_dir / "resource" / "src" / "legacy.png").is_file()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_save_project_as_warns_on_non_empty_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -856,8 +973,35 @@ class TestMainWindowFileFlow:
 
         assert warnings
         assert warnings[0][0] == "Directory Conflict"
-        window.close()
-        window.deleteLater()
+        _close_window(window)
+
+    def test_save_project_as_warns_on_existing_empty_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        src_dir = tmp_path / "SrcDemo"
+        dst_dir = tmp_path / "ExistingDir"
+        dst_dir.mkdir()
+        project = _create_project(src_dir, "SaveAsDemo", sdk_root)
+
+        window = MainWindow(str(sdk_root))
+        window.project = project
+        window.project_root = str(sdk_root)
+        window._project_dir = str(src_dir)
+        window.app_name = "SaveAsDemo"
+
+        warnings = []
+        monkeypatch.setattr("ui_designer.ui.main_window.QFileDialog.getExistingDirectory", lambda *args, **kwargs: str(dst_dir))
+        monkeypatch.setattr("ui_designer.ui.main_window.QMessageBox.warning", lambda *args: warnings.append(args[1:]))
+        monkeypatch.setattr(window, "_save_project_files", lambda *args, **kwargs: pytest.fail("_save_project_files should not be called"))
+
+        window._save_project_as()
+
+        assert warnings
+        assert warnings[0][0] == "Directory Conflict"
+        assert "already exists" in warnings[0][1]
+        _close_window(window)
 
     def test_save_project_as_uses_current_project_parent_as_initial_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -885,8 +1029,7 @@ class TestMainWindowFileFlow:
 
         assert captured["title"] == "Save Project To Directory"
         assert captured["directory"] == os.path.normpath(os.path.abspath(workspace_dir))
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_export_code_uses_current_project_dir_as_initial_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -912,8 +1055,7 @@ class TestMainWindowFileFlow:
 
         assert captured["title"] == "Export C Code To Directory"
         assert captured["directory"] == os.path.normpath(os.path.abspath(project_dir))
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_set_sdk_root_updates_current_project_and_rebuilds_compiler(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.project import Project
@@ -959,8 +1101,7 @@ class TestMainWindowFileFlow:
         assert calls == {"recreate": 1, "compile": 1}
         assert "SDK root set to:" in window.statusBar().currentMessage()
         assert "selected SDK root" in window.statusBar().currentMessage()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_set_sdk_root_auto_resolves_parent_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -978,8 +1119,7 @@ class TestMainWindowFileFlow:
         assert isolated_config.sdk_root == os.path.normpath(os.path.abspath(sdk_root))
         assert "SDK root set to:" in window.statusBar().currentMessage()
         assert "selected SDK root" in window.statusBar().currentMessage()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_set_sdk_root_uses_recovered_cached_sdk_as_initial_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1003,8 +1143,7 @@ class TestMainWindowFileFlow:
 
         assert captured["title"] == "Select EmbeddedGUI SDK Root"
         assert captured["directory"] == os.path.normpath(os.path.abspath(cached_sdk))
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_open_app_dialog_uses_recovered_cached_sdk_root(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1043,8 +1182,7 @@ class TestMainWindowFileFlow:
 
         assert captured["egui_root"] == os.path.normpath(os.path.abspath(cached_sdk))
         assert captured["has_download_handler"] is True
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_open_loaded_project_discovers_default_sdk_cache_when_config_is_empty(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.project import Project
@@ -1065,8 +1203,7 @@ class TestMainWindowFileFlow:
         assert window.project_root == os.path.normpath(os.path.abspath(sdk_root))
         assert window.project.sdk_root == os.path.normpath(os.path.abspath(sdk_root))
         assert isolated_config.sdk_root == os.path.normpath(os.path.abspath(sdk_root))
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_download_sdk_updates_config_and_project_root(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1090,8 +1227,7 @@ class TestMainWindowFileFlow:
         assert isolated_config.sdk_root == os.path.normpath(os.path.abspath(sdk_root))
         assert isolated_config.sdk_setup_prompted is True
         assert "SDK downloaded to:" in window.statusBar().currentMessage()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_download_sdk_failure_mentions_target_dir(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1115,8 +1251,7 @@ class TestMainWindowFileFlow:
         assert str(target_dir) in warnings[0][1]
         assert "GitHub archive" in warnings[0][1]
         assert "install git for clone fallback" in warnings[0][1]
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_initial_sdk_prompt_shows_target_dir_and_dispatches_download(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1176,8 +1311,7 @@ class TestMainWindowFileFlow:
         assert "GitHub archive" in captured["info"]
         assert isolated_config.sdk_setup_prompted is True
         assert download_calls == ["download"]
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_import_legacy_example_generates_project_and_uses_existing_dimensions(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.project import Project
@@ -1222,8 +1356,7 @@ class TestMainWindowFileFlow:
             "preferred_sdk_root": os.path.normpath(os.path.abspath(sdk_root)),
             "silent": False,
         }
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_import_legacy_example_warns_on_eguiproject_conflict(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1251,8 +1384,7 @@ class TestMainWindowFileFlow:
         assert warnings
         assert warnings[0][0] == "Legacy Example Conflict"
         assert not (app_dir / "LegacyConflict.egui").exists()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_open_recent_project_can_remove_missing_entry(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1280,8 +1412,7 @@ class TestMainWindowFileFlow:
         assert recent_widget is not None
         assert "No recent projects" in recent_widget.text()
         assert "Removed missing project" in window.statusBar().currentMessage()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_recent_menu_action_uses_recovered_cached_sdk_root(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1307,8 +1438,7 @@ class TestMainWindowFileFlow:
 
         assert captured["path"] == str(project_path)
         assert captured["sdk_root"] == os.path.normpath(os.path.abspath(cached_sdk))
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_recent_menu_marks_missing_project_entries(self, qapp, isolated_config, tmp_path):
         from ui_designer.ui.main_window import MainWindow
@@ -1328,8 +1458,7 @@ class TestMainWindowFileFlow:
         action = window._recent_menu.actions()[0]
         assert action.text() == "[Missing] MissingApp"
         assert "Project path is missing" in action.toolTip()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_duplicate_page_copies_existing_page_content(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -1344,6 +1473,15 @@ class TestMainWindowFileFlow:
         label.properties["text"] = "Original Title"
         source_page.root_widget.add_child(label)
         source_page.user_fields.append({"name": "counter", "type": "int", "default": 7})
+        source_page.timers.append(
+            {
+                "name": "refresh_timer",
+                "callback": "tick_refresh",
+                "delay_ms": "500",
+                "period_ms": "1000",
+                "auto_start": True,
+            }
+        )
         source_page.mockup_image_path = "mockup/main.png"
         source_page.mockup_image_opacity = 0.6
         project.save(str(project_dir))
@@ -1362,12 +1500,253 @@ class TestMainWindowFileFlow:
         assert len(duplicated.root_widget.children) == 1
         assert duplicated.root_widget.children[0].properties["text"] == "Original Title"
         assert duplicated.user_fields == [{"name": "counter", "type": "int", "default": "7"}]
+        assert duplicated.timers == [
+            {
+                "name": "refresh_timer",
+                "callback": "tick_refresh",
+                "delay_ms": "500",
+                "period_ms": "1000",
+                "auto_start": True,
+            }
+        ]
         assert duplicated.mockup_image_path == "mockup/main.png"
         assert duplicated.mockup_image_opacity == 0.6
         assert window._undo_manager.is_any_dirty() is True
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
+
+    def test_page_fields_panel_edit_updates_page_dirty_state_and_xml(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "PageFieldsDemo"
+        project = _create_project(project_dir, "PageFieldsDemo", sdk_root)
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        assert window.page_fields_dock.objectName() == "page_fields_dock"
+
+        window.page_fields_panel._on_add_field()
+        qapp.processEvents()
+
+        table = window.page_fields_panel._table
+        table.item(0, 0).setText("counter")
+        table.item(0, 1).setText("uint32_t")
+        table.item(0, 2).setText("7")
+        qapp.processEvents()
+
+        assert window._current_page.user_fields == [{"name": "counter", "type": "uint32_t", "default": "7"}]
+        assert window._undo_manager.is_any_dirty() is True
+        assert window.statusBar().currentMessage() == "Changed main_page: page fields edit."
+
+        xml = window._current_page.to_xml_string()
+        assert "<UserFields>" in xml
+        assert 'name="counter"' in xml
+        assert 'type="uint32_t"' in xml
+        assert 'default="7"' in xml
+
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
+    def test_page_fields_panel_tracks_current_page_when_switching_pages(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "PageFieldsSwitchDemo"
+        project = _create_project(project_dir, "PageFieldsSwitchDemo", sdk_root)
+        project.get_startup_page().user_fields = [{"name": "counter", "type": "int", "default": "0"}]
+        detail_page = project.create_new_page("detail_page")
+        detail_page.user_fields = [{"name": "state", "type": "bool", "default": "false"}]
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+
+        assert window.page_fields_panel._summary_label.text() == "Page Fields: 1 field on main_page"
+        assert window.page_fields_panel._table.item(0, 0).text() == "counter"
+
+        window._switch_page("detail_page")
+
+        assert window.page_fields_panel._summary_label.text() == "Page Fields: 1 field on detail_page"
+        assert window.page_fields_panel._table.item(0, 0).text() == "state"
+        assert window.page_fields_panel._table.item(0, 2).text() == "false"
+
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
+    def test_page_timers_panel_edit_updates_page_dirty_state_and_xml(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "PageTimersDemo"
+        project = _create_project(project_dir, "PageTimersDemo", sdk_root)
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        assert window.page_timers_dock.objectName() == "page_timers_dock"
+
+        window.page_timers_panel._on_add_timer()
+        qapp.processEvents()
+
+        table = window.page_timers_panel._table
+        table.item(0, 0).setText("refresh_timer")
+        table.item(0, 1).setText("tick_refresh")
+        table.item(0, 2).setText("500")
+        table.item(0, 3).setText("1000")
+        table.item(0, 4).setText("true")
+        qapp.processEvents()
+
+        assert window._current_page.timers == [
+            {
+                "name": "refresh_timer",
+                "callback": "tick_refresh",
+                "delay_ms": "500",
+                "period_ms": "1000",
+                "auto_start": True,
+            }
+        ]
+        assert window._undo_manager.is_any_dirty() is True
+        assert window.statusBar().currentMessage() == "Changed main_page: page timers edit."
+
+        xml = window._current_page.to_xml_string()
+        assert "<Timers>" in xml
+        assert 'name="refresh_timer"' in xml
+        assert 'callback="tick_refresh"' in xml
+        assert 'auto_start="true"' in xml
+
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
+    def test_page_timers_panel_tracks_current_page_when_switching_pages(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "PageTimersSwitchDemo"
+        project = _create_project(project_dir, "PageTimersSwitchDemo", sdk_root)
+        project.get_startup_page().timers = [
+            {"name": "refresh_timer", "callback": "tick_refresh", "delay_ms": "500", "period_ms": "1000", "auto_start": True}
+        ]
+        detail_page = project.create_new_page("detail_page")
+        detail_page.timers = [
+            {"name": "poll_timer", "callback": "tick_poll", "delay_ms": "250", "period_ms": "250", "auto_start": False}
+        ]
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+
+        assert window.page_timers_panel._summary_label.text() == "Page Timers: 1 timer on main_page"
+        assert window.page_timers_panel._table.item(0, 0).text() == "refresh_timer"
+
+        window._switch_page("detail_page")
+
+        assert window.page_timers_panel._summary_label.text() == "Page Timers: 1 timer on detail_page"
+        assert window.page_timers_panel._table.item(0, 0).text() == "poll_timer"
+        assert window.page_timers_panel._table.item(0, 4).text() == "false"
+
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
+    def test_animations_panel_edit_updates_widget_dirty_state_and_xml(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "AnimationsDemo"
+        project = _create_project(project_dir, "AnimationsDemo", sdk_root)
+        card = WidgetModel("group", name="card", x=12, y=16, width=100, height=60)
+        project.get_startup_page().root_widget.add_child(card)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._set_selection([card], primary=card, sync_tree=True, sync_preview=False)
+
+        assert window.animations_dock.objectName() == "animations_dock"
+        window.animations_panel._on_add_animation()
+        window.animations_panel._on_type_changed(0, "translate")
+        window.animations_panel._on_interpolator_changed(0, "bounce")
+        window.animations_panel._on_duration_changed(0, 900)
+        window.animations_panel._on_repeat_mode_changed(0, "reverse")
+        window.animations_panel._on_param_changed(0, "to_y", "64")
+        qapp.processEvents()
+
+        assert len(card.animations) == 1
+        assert card.animations[0].anim_type == "translate"
+        assert card.animations[0].interpolator == "bounce"
+        assert card.animations[0].duration == 900
+        assert card.animations[0].repeat_mode == "reverse"
+        assert card.animations[0].params["to_y"] == "64"
+        assert window._undo_manager.is_any_dirty() is True
+        assert window.statusBar().currentMessage() == "Changed main_page: widget animations edit."
+
+        xml = window._current_page.to_xml_string()
+        assert '<Animation type="translate"' in xml
+        assert 'duration="900"' in xml
+        assert 'interpolator="bounce"' in xml
+        assert 'repeat_mode="reverse"' in xml
+        assert 'to_y="64"' in xml
+
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
+    def test_animations_panel_tracks_primary_selection(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_animations import create_default_animation
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "AnimationsSelectionDemo"
+        project = _create_project(project_dir, "AnimationsSelectionDemo", sdk_root)
+        page = project.get_startup_page()
+        card = WidgetModel("group", name="card", x=12, y=16, width=100, height=60)
+        badge = WidgetModel("group", name="badge", x=12, y=88, width=80, height=40)
+        card.animations = [create_default_animation("alpha")]
+        badge.animations = [create_default_animation("color")]
+        page.root_widget.add_child(card)
+        page.root_widget.add_child(badge)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+
+        window._set_selection([card], primary=card, sync_tree=True, sync_preview=False)
+        assert window.animations_panel._summary_label.text() == "Animations: 1 animation on group card"
+        assert window.animations_panel._table.item(0, 0).text() == "alpha"
+
+        window._set_selection([badge], primary=badge, sync_tree=True, sync_preview=False)
+        assert window.animations_panel._summary_label.text() == "Animations: 1 animation on group badge"
+        assert window.animations_panel._table.item(0, 0).text() == "color"
+
+        window._set_selection([card, badge], primary=card, sync_tree=True, sync_preview=False)
+        assert "select a single widget" in window.animations_panel._summary_label.text().lower()
+
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
 
     def test_property_panel_resource_imported_signal_triggers_resource_refresh_flow(self, qapp, isolated_config, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1381,8 +1760,37 @@ class TestMainWindowFileFlow:
         assert window._regen_timer.isActive() is True
         assert "Resources changed, will regenerate..." in window.statusBar().currentMessage()
         window._regen_timer.stop()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
+
+    def test_property_panel_callback_edit_updates_widget_and_dirty_state(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "EventCallbackDemo"
+        project = _create_project(project_dir, "EventCallbackDemo", sdk_root)
+        slider = WidgetModel("slider", name="volume_slider", x=16, y=16, width=160, height=24)
+        project.get_startup_page().root_widget.add_child(slider)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._set_selection([slider], primary=slider, sync_tree=True, sync_preview=False)
+
+        editor = window.property_panel._editors["callback_onValueChanged"]
+        editor.setText("on_volume_changed")
+        editor.editingFinished.emit()
+
+        assert slider.events["onValueChanged"] == "on_volume_changed"
+        assert window._undo_manager.is_any_dirty() is True
+        assert window.statusBar().currentMessage() == "Changed main_page: property edit."
+        assert 'onValueChanged="on_volume_changed"' in window._current_page.to_xml_string()
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
 
     def test_resource_panel_feedback_signal_updates_status_bar(self, qapp, isolated_config):
         from ui_designer.ui.main_window import MainWindow
@@ -1392,8 +1800,7 @@ class TestMainWindowFileFlow:
         window.res_panel.feedback_message.emit("Restored image resources: 2 restored.")
 
         assert window.statusBar().currentMessage() == "Restored image resources: 2 restored."
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_focus_missing_resource_updates_main_window_status(self, qapp, isolated_config, tmp_path):
         from ui_designer.model.resource_catalog import ResourceCatalog
@@ -1416,8 +1823,7 @@ class TestMainWindowFileFlow:
 
         assert focused == "missing.png"
         assert window.statusBar().currentMessage() == "Focused missing image resource 1/1: missing.png."
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_load_background_image_uses_existing_mockup_dir_as_initial_directory(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1450,8 +1856,7 @@ class TestMainWindowFileFlow:
         assert captured["title"] == "Load Mockup Image"
         assert captured["directory"] == os.path.normpath(os.path.abspath(mockup_dir))
         assert "Images" in captured["filters"]
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_load_background_image_falls_back_to_project_dir_when_mockup_dir_missing(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1476,8 +1881,7 @@ class TestMainWindowFileFlow:
         window._load_background_image()
 
         assert captured["directory"] == os.path.normpath(os.path.abspath(project_dir))
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_xml_edit_updates_page_mockup_metadata(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1507,9 +1911,11 @@ class TestMainWindowFileFlow:
         assert window._current_page.mockup_image_visible is False
         assert window._current_page.mockup_image_opacity == 0.45
         assert window._undo_manager.is_any_dirty() is True
+        assert window.history_panel._source_value.text() == "Source: xml edit"
+        history_items = [window.history_panel._history_list.item(i).text() for i in range(window.history_panel._history_list.count())]
+        assert any("xml edit" in item and "Current" in item for item in history_items)
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_toggle_background_image_marks_dirty_and_supports_undo(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1534,13 +1940,16 @@ class TestMainWindowFileFlow:
 
         assert window._current_page.mockup_image_visible is False
         assert window._undo_manager.is_any_dirty() is True
+        assert window.history_panel._dirty_value.text() == "Dirty: Yes"
+        assert window.history_panel._source_value.text() == "Source: mockup visibility"
 
         window._undo()
 
         assert window._current_page.mockup_image_visible is True
         assert window._undo_manager.is_any_dirty() is False
-        window.close()
-        window.deleteLater()
+        assert window.history_panel._dirty_value.text() == "Dirty: No"
+        assert window.history_panel._source_value.text() == "Source: Saved state"
+        _close_window(window)
 
     def test_resource_rename_updates_widget_references_across_pages(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -1578,8 +1987,7 @@ class TestMainWindowFileFlow:
         assert window._undo_manager.get_stack("detail_page").is_dirty() is True
         assert window.statusBar().currentMessage() == "Updated resources in 2 pages: image resource rename."
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_replace_missing_resource_updates_widget_references_across_pages(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -1631,8 +2039,7 @@ class TestMainWindowFileFlow:
         assert window._undo_manager.get_stack("detail_page").is_dirty() is True
         assert window.statusBar().currentMessage() == "Replaced image resources: 1 renamed."
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_resource_panel_rename_preserves_specific_status_message(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -1677,8 +2084,7 @@ class TestMainWindowFileFlow:
         assert image_b.properties["image_file"] == "star_new.png"
         assert window.statusBar().currentMessage() == "Updated resources in 2 pages: image resource rename."
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_resource_delete_clears_widget_references(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -1707,8 +2113,7 @@ class TestMainWindowFileFlow:
         assert label.properties["font_file"] == ""
         assert window._undo_manager.get_stack("main_page").is_dirty() is True
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_resource_selected_assigns_text_file_to_selected_widget(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -1736,8 +2141,7 @@ class TestMainWindowFileFlow:
         assert label.properties["font_text_file"] == "chars.txt"
         assert window._undo_manager.get_stack("main_page").is_dirty() is True
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_resource_rename_updates_text_references_across_pages(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -1776,8 +2180,7 @@ class TestMainWindowFileFlow:
         assert window._undo_manager.get_stack("main_page").is_dirty() is True
         assert window._undo_manager.get_stack("detail_page").is_dirty() is True
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_resource_delete_clears_text_references(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -1806,8 +2209,241 @@ class TestMainWindowFileFlow:
         assert label.properties["font_text_file"] == ""
         assert window._undo_manager.get_stack("main_page").is_dirty() is True
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
+
+    def test_string_key_delete_rewrites_widget_text_refs_to_default_literal(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.string_resource import DEFAULT_LOCALE
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "DeleteStringKeyDemo"
+        project = _create_project(project_dir, "DeleteStringKeyDemo", sdk_root)
+        detail_page = project.create_new_page("detail_page")
+        project.string_catalog.set("greeting", "Hello", DEFAULT_LOCALE)
+        project.string_catalog.set("greeting", "Ni Hao", "zh")
+
+        title = WidgetModel("label", name="title")
+        title.properties["text"] = "@string/greeting"
+        project.get_page_by_name("main_page").root_widget.add_child(title)
+
+        subtitle = WidgetModel("label", name="subtitle")
+        subtitle.properties["text"] = "@string/greeting"
+        detail_page.root_widget.add_child(subtitle)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+        monkeypatch.setattr("ui_designer.ui.resource_panel.QMessageBox.question", lambda *args, **kwargs: QMessageBox.Yes)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window.res_panel._select_resource_item("string", "greeting")
+
+        window.res_panel._on_remove_string_key()
+
+        assert title.properties["text"] == "Hello"
+        assert subtitle.properties["text"] == "Hello"
+        assert "greeting" not in window.project.string_catalog.all_keys
+        assert window._undo_manager.get_stack("main_page").is_dirty() is True
+        assert window._undo_manager.get_stack("detail_page").is_dirty() is True
+        assert window.statusBar().currentMessage() == "Updated resources in 2 pages: string key delete."
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
+    def test_string_key_rename_updates_widget_text_refs_across_pages(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.string_resource import DEFAULT_LOCALE
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "RenameStringKeyDemo"
+        project = _create_project(project_dir, "RenameStringKeyDemo", sdk_root)
+        detail_page = project.create_new_page("detail_page")
+        project.string_catalog.set("greeting", "Hello", DEFAULT_LOCALE)
+        project.string_catalog.set("greeting", "Ni Hao", "zh")
+
+        title = WidgetModel("label", name="title")
+        title.properties["text"] = "@string/greeting"
+        project.get_page_by_name("main_page").root_widget.add_child(title)
+
+        subtitle = WidgetModel("label", name="subtitle")
+        subtitle.properties["text"] = "@string/greeting"
+        detail_page.root_widget.add_child(subtitle)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QInputDialog.getText",
+            lambda *args, **kwargs: ("salutation", True),
+        )
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window.res_panel._select_resource_item("string", "greeting")
+
+        window.res_panel._on_rename_string_key()
+
+        assert title.properties["text"] == "@string/salutation"
+        assert subtitle.properties["text"] == "@string/salutation"
+        assert window.project.string_catalog.get("salutation", DEFAULT_LOCALE) == "Hello"
+        assert "greeting" not in window.project.string_catalog.all_keys
+        assert window._undo_manager.get_stack("main_page").is_dirty() is True
+        assert window._undo_manager.get_stack("detail_page").is_dirty() is True
+        assert window.statusBar().currentMessage() == "Updated resources in 2 pages: string key rename."
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
+    def test_string_key_usage_activation_switches_page_and_selects_widget(self, tmp_path):
+        repo_root = Path(__file__).resolve().parents[4]
+        script = textwrap.dedent(
+            f"""
+            import os
+            import shutil
+            import sys
+            import tempfile
+            from pathlib import Path
+
+            os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+            repo_root = Path({repr(str(repo_root))})
+            sys.path.insert(0, str(repo_root / "scripts"))
+
+            from PyQt5.QtWidgets import QApplication
+
+            from ui_designer.model.project import Project
+            from ui_designer.model.string_resource import DEFAULT_LOCALE
+            from ui_designer.model.widget_model import WidgetModel
+            from ui_designer.ui.main_window import MainWindow
+
+
+            def create_sdk_root(root: Path):
+                (root / "src").mkdir(parents=True)
+                (root / "porting" / "designer").mkdir(parents=True)
+                (root / "Makefile").write_text("all:\\n", encoding="utf-8")
+
+
+            def create_project(project_dir: Path, app_name: str, sdk_root: Path):
+                project = Project(screen_width=240, screen_height=320, app_name=app_name)
+                project.sdk_root = str(sdk_root)
+                project.project_dir = str(project_dir)
+                project.create_new_page("main_page")
+                project.save(str(project_dir))
+                return project
+
+
+            class DisabledCompiler:
+                def can_build(self):
+                    return False
+
+                def is_preview_running(self):
+                    return False
+
+                def stop_exe(self):
+                    return None
+
+                def cleanup(self):
+                    return None
+
+                def get_build_error(self):
+                    return "preview disabled for test"
+
+                def set_screen_size(self, width, height):
+                    return None
+
+                def is_exe_ready(self):
+                    return False
+
+
+            temp_root = Path(tempfile.mkdtemp(prefix="ui_designer_string_usage_", dir=str(repo_root)))
+            app = QApplication.instance() or QApplication([])
+            try:
+                sdk_root = temp_root / "sdk"
+                create_sdk_root(sdk_root)
+                project_dir = temp_root / "StringUsageNavigationDemo"
+                project = create_project(project_dir, "StringUsageNavigationDemo", sdk_root)
+                detail_page = project.create_new_page("detail_page")
+                project.string_catalog.set("greeting", "Hello", DEFAULT_LOCALE)
+
+                subtitle = WidgetModel("label", name="subtitle")
+                subtitle.properties["text"] = "@string/greeting"
+                detail_page.root_widget.add_child(subtitle)
+                project.save(str(project_dir))
+
+                window = MainWindow(str(sdk_root))
+                window._recreate_compiler = lambda _window=window: setattr(_window, "compiler", DisabledCompiler())
+                window._trigger_compile = lambda: None
+
+                window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+                assert window._current_page.name == "main_page"
+
+                window.res_panel._select_resource_item("string", "greeting")
+                window.res_panel._on_usage_item_activated(window.res_panel._usage_table.item(0, 0))
+
+                assert window._current_page.name == "detail_page"
+                assert window._selection_state.primary is subtitle
+                assert window.statusBar().currentMessage() == "Focused resource usage: detail_page/subtitle."
+
+                window._undo_manager.mark_all_saved()
+                window.close()
+                window.deleteLater()
+                app.sendPostedEvents()
+                app.processEvents()
+            finally:
+                shutil.rmtree(temp_root, ignore_errors=True)
+            """
+        )
+
+        env = os.environ.copy()
+        env.setdefault("QT_QPA_PLATFORM", "offscreen")
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=env,
+            timeout=60,
+        )
+
+        assert result.returncode == 0, f"stdout:\\n{result.stdout}\\n\\nstderr:\\n{result.stderr}"
+
+    def test_resource_usage_activation_switches_page_and_selects_widget(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "ResourceUsageNavigationDemo"
+        project = _create_project(project_dir, "ResourceUsageNavigationDemo", sdk_root)
+        detail_page = project.create_new_page("detail_page")
+        project.resource_catalog.add_image("star.png")
+
+        hero = WidgetModel("image", name="hero")
+        hero.properties["image_file"] = "star.png"
+        detail_page.root_widget.add_child(hero)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+
+        assert window._current_page.name == "main_page"
+
+        window.res_panel._select_resource_item("image", "star.png")
+        window.res_panel._on_usage_item_activated(window.res_panel._usage_table.item(0, 0))
+
+        assert window._current_page.name == "detail_page"
+        assert window._selection_state.primary is hero
+        assert window._selection_state.widgets == [hero]
+        assert window.statusBar().currentMessage() == "Focused resource usage: detail_page/hero."
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
 
     def test_poll_project_files_auto_reloads_clean_project(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1838,8 +2474,7 @@ class TestMainWindowFileFlow:
         assert len(reload_calls) == 1
         assert reload_calls[0]["auto"] is True
         assert os.path.normpath(os.path.abspath(layout_file)) in reload_calls[0]["changed_paths"]
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_poll_project_files_marks_pending_when_project_is_dirty(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1872,8 +2507,7 @@ class TestMainWindowFileFlow:
         assert window._external_reload_pending is True
         assert "External project changes detected" in window.statusBar().currentMessage()
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_reload_project_from_disk_preserves_current_page(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.project import Project
@@ -1906,8 +2540,7 @@ class TestMainWindowFileFlow:
         assert window._current_page is not None
         assert window._current_page.name == "detail_page"
         assert window.project.get_page_by_name("summary_page") is not None
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_page_navigator_is_populated_and_tracks_current_page(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1931,8 +2564,7 @@ class TestMainWindowFileFlow:
         window._switch_page("detail_page")
 
         assert window.page_navigator._current_page == "detail_page"
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_page_navigator_copy_and_template_add_keep_pages_in_sync(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -1960,8 +2592,7 @@ class TestMainWindowFileFlow:
         assert window._current_page.name == "detail_page"
         assert [child.name for child in template_page.root_widget.children] == ["title", "hero_image", "description"]
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_dirty_page_indicators_sync_across_tabs_navigator_and_project_tree(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -2004,8 +2635,7 @@ class TestMainWindowFileFlow:
         assert all(not window.page_tab_bar.tabText(i).endswith("*") for i in range(window.page_tab_bar.count()))
         assert window.page_navigator._thumbnails["main_page"]._name_label.text() == "main_page"
         assert window.page_navigator._thumbnails["detail_page"]._name_label.text() == "detail_page"
-        window.close()
-        window.deleteLater()
+        _close_window(window)
 
     def test_copy_and_paste_selection_creates_unique_widget_names(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
@@ -2040,8 +2670,96 @@ class TestMainWindowFileFlow:
         assert label_names == ["title", "title_2"]
         assert window._selection_state.primary.name == "title_2"
         window._undo_manager.mark_all_saved()
-        window.close()
-        window.deleteLater()
+        _close_window(window)
+
+    def test_diagnostics_panel_lists_page_issues_and_selection_notes(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "DiagnosticsDemo"
+        project = _create_project(project_dir, "DiagnosticsDemo", sdk_root)
+        page = project.get_startup_page()
+
+        invalid = WidgetModel("label", name="bad-name", x=8, y=8, width=60, height=20)
+        duplicate_a = WidgetModel("label", name="dup_name", x=20, y=40, width=60, height=20)
+        duplicate_b = WidgetModel("label", name="dup_name", x=230, y=40, width=30, height=20)
+        layout_parent = WidgetModel("linearlayout", name="layout_parent", x=0, y=120, width=240, height=80)
+        managed = WidgetModel("label", name="managed_widget", x=12, y=8, width=80, height=20)
+        managed.designer_locked = True
+        managed.designer_hidden = True
+        layout_parent.add_child(managed)
+        missing = WidgetModel("image", name="missing_image", x=16, y=220, width=48, height=48)
+        missing.properties["image_file"] = "missing.png"
+
+        page.root_widget.add_child(invalid)
+        page.root_widget.add_child(duplicate_a)
+        page.root_widget.add_child(duplicate_b)
+        page.root_widget.add_child(layout_parent)
+        page.root_widget.add_child(missing)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._selection_state.set_widgets([managed], primary=managed)
+        window._selected_widget = managed
+        window._update_diagnostics_panel()
+
+        summary = window.diagnostics_panel._summary_label.text()
+        items = [window.diagnostics_panel._list.item(i).text() for i in range(window.diagnostics_panel._list.count())]
+
+        assert window.diagnostics_dock.objectName() == "diagnostics_dock"
+        assert summary == "Diagnostics: 3 error(s), 2 warning(s), 3 info item(s)"
+        assert any("bad-name" in item and "valid C identifier" in item for item in items)
+        assert sum("dup_name" in item and "duplicated" in item for item in items) == 2
+        assert any("dup_name" in item and "geometry issues" in item for item in items)
+        assert any("missing_image" in item and "missing from the resource catalog" in item for item in items)
+        assert any("canvas drag and resize are disabled" in item for item in items)
+        assert any("canvas hit testing" in item for item in items)
+        assert any("layout-managed by linearlayout" in item for item in items)
+
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
+    def test_diagnostic_request_switches_page_and_selects_widget(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "DiagnosticFocusDemo"
+        project = _create_project(project_dir, "DiagnosticFocusDemo", sdk_root)
+        detail_page = project.create_new_page("detail_page")
+        target = WidgetModel("label", name="target", x=16, y=16, width=80, height=20)
+        detail_page.root_widget.add_child(target)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+
+        def fake_set_selection(widgets=None, primary=None, sync_tree=True, sync_preview=True):
+            window._selection_state.set_widgets(widgets or [], primary=primary)
+            window._selected_widget = window._selection_state.primary
+
+        monkeypatch.setattr(window, "_set_selection", fake_set_selection)
+
+        assert window._current_page.name == "main_page"
+
+        window._on_diagnostic_requested("detail_page", "target")
+
+        assert window._current_page.name == "detail_page"
+        assert window._selection_state.primary is target
+        assert window._selection_state.widgets == [target]
+
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
 
     def test_window_state_helpers_roundtrip_with_config_storage(self, qapp, isolated_config, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
@@ -2069,8 +2787,10 @@ class TestMainWindowFileFlow:
         assert window.project_dock.objectName() == "project_explorer_dock"
         assert window.tree_dock.objectName() == "widget_tree_dock"
         assert window.props_dock.objectName() == "properties_dock"
+        assert window.animations_dock.objectName() == "animations_dock"
         assert window.res_dock.objectName() == "resources_dock"
+        assert window.history_dock.objectName() == "history_dock"
+        assert window.diagnostics_dock.objectName() == "diagnostics_dock"
         assert window.debug_dock.objectName() == "debug_output_dock"
         assert window._toolbar.objectName() == "main_toolbar"
-        window.close()
-        window.deleteLater()
+        _close_window(window)

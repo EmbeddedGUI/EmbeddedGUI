@@ -135,6 +135,169 @@ class TestResourcePanelFileFlow:
         assert captured == [("text", "supported_text.txt")]
         panel.deleteLater()
 
+    def test_usage_table_updates_for_selected_resource(self, qapp, tmp_path):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.model.resource_usage import ResourceUsageEntry
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        images_dir = resource_dir / "images"
+        images_dir.mkdir(parents=True)
+
+        catalog = ResourceCatalog()
+        catalog.add_image("star.png")
+
+        panel = ResourcePanel()
+        panel.set_resource_catalog(catalog)
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_usage_index(
+            {
+                ("image", "star.png"): [
+                    ResourceUsageEntry("image", "star.png", "main_page", "hero_image", "image_file", "image"),
+                    ResourceUsageEntry("image", "star.png", "detail_page", "badge", "image_file", "image"),
+                ]
+            }
+        )
+
+        panel._select_resource_item("image", "star.png")
+
+        assert panel._usage_summary.text() == "'star.png' is used by 2 widgets across 2 pages."
+        assert panel._usage_table.rowCount() == 2
+        assert panel._usage_table.item(0, 0).text() == "main_page"
+        assert panel._usage_table.item(0, 1).text() == "hero_image (image)"
+        assert panel._usage_table.item(1, 0).text() == "detail_page"
+        panel.deleteLater()
+
+    def test_usage_table_double_click_emits_navigation_signal(self, qapp, tmp_path):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.model.resource_usage import ResourceUsageEntry
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        fonts_dir = resource_dir
+        fonts_dir.mkdir(parents=True)
+
+        catalog = ResourceCatalog()
+        catalog.add_font("demo.ttf")
+
+        panel = ResourcePanel()
+        panel.set_resource_catalog(catalog)
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_usage_index(
+            {
+                ("font", "demo.ttf"): [
+                    ResourceUsageEntry("font", "demo.ttf", "main_page", "title", "font_file", "label"),
+                ]
+            }
+        )
+        panel._select_resource_item("font", "demo.ttf")
+
+        activated = []
+        panel.usage_activated.connect(lambda page_name, widget_name: activated.append((page_name, widget_name)))
+
+        panel._on_usage_item_activated(panel._usage_table.item(0, 0))
+
+        assert activated == [("main_page", "title")]
+        panel.deleteLater()
+
+    def test_string_usage_table_updates_for_selected_key(self, qapp):
+        from ui_designer.model.resource_usage import ResourceUsageEntry
+        from ui_designer.model.string_resource import DEFAULT_LOCALE, StringResourceCatalog
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        string_catalog = StringResourceCatalog()
+        string_catalog.set("greeting", "Hello", DEFAULT_LOCALE)
+
+        panel = ResourcePanel()
+        panel.set_string_catalog(string_catalog)
+        panel.set_resource_usage_index(
+            {
+                ("string", "greeting"): [
+                    ResourceUsageEntry("string", "greeting", "main_page", "title", "text", "label"),
+                ]
+            }
+        )
+
+        panel._select_resource_item("string", "greeting")
+
+        assert panel._tabs.currentIndex() == 3
+        assert panel._usage_summary.text() == "'greeting' is used by 1 widget across 1 page."
+        assert panel._usage_table.rowCount() == 1
+        assert panel._usage_table.item(0, 1).text() == "title (label)"
+        panel.deleteLater()
+
+    def test_remove_string_key_with_usages_emits_rewrite_signal(self, qapp, monkeypatch):
+        from ui_designer.model.resource_usage import ResourceUsageEntry
+        from ui_designer.model.string_resource import DEFAULT_LOCALE, StringResourceCatalog
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        string_catalog = StringResourceCatalog()
+        string_catalog.set("greeting", "Hello", DEFAULT_LOCALE)
+        string_catalog.set("greeting", "Ni Hao", "zh")
+
+        panel = ResourcePanel()
+        panel.set_string_catalog(string_catalog)
+        panel.set_resource_usage_index(
+            {
+                ("string", "greeting"): [
+                    ResourceUsageEntry("string", "greeting", "main_page", "title", "text", "label"),
+                    ResourceUsageEntry("string", "greeting", "detail_page", "subtitle", "text", "label"),
+                ]
+            }
+        )
+        panel._select_resource_item("string", "greeting")
+
+        prompts = []
+        rewrites = []
+        imported = []
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QMessageBox.question",
+            lambda *args, **kwargs: prompts.append(args[2]) or QMessageBox.Yes,
+        )
+        panel.string_key_deleted.connect(lambda key, replacement: rewrites.append((key, replacement)))
+        panel.resource_imported.connect(lambda: imported.append(True))
+
+        panel._on_remove_string_key()
+
+        assert prompts
+        assert "used by 2 widgets across 2 pages" in prompts[0]
+        assert "convert those references to the default-locale literal text" in prompts[0]
+        assert rewrites == [("greeting", "Hello")]
+        assert imported == [True]
+        assert "greeting" not in panel.get_string_catalog().all_keys
+        panel.deleteLater()
+
+    def test_rename_string_key_updates_catalog_and_emits_signal(self, qapp, monkeypatch):
+        from ui_designer.model.string_resource import DEFAULT_LOCALE, StringResourceCatalog
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        string_catalog = StringResourceCatalog()
+        string_catalog.set("greeting", "Hello", DEFAULT_LOCALE)
+        string_catalog.set("greeting", "Ni Hao", "zh")
+
+        panel = ResourcePanel()
+        panel.set_string_catalog(string_catalog)
+        panel._select_resource_item("string", "greeting")
+
+        renamed = []
+        imported = []
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QInputDialog.getText",
+            lambda *args, **kwargs: ("salutation", True),
+        )
+        panel.string_key_renamed.connect(lambda old, new: renamed.append((old, new)))
+        panel.resource_imported.connect(lambda: imported.append(True))
+
+        panel._on_rename_string_key()
+
+        assert panel.get_string_catalog().get("salutation", DEFAULT_LOCALE) == "Hello"
+        assert panel.get_string_catalog().get("salutation", "zh") == "Ni Hao"
+        assert "greeting" not in panel.get_string_catalog().all_keys
+        assert renamed == [("greeting", "salutation")]
+        assert imported == [True]
+        assert panel._string_table.item(panel._string_table.currentRow(), 0).text() == "salutation"
+        panel.deleteLater()
+
     def test_tab_title_shows_missing_resource_count(self, qapp, tmp_path):
         from ui_designer.model.resource_catalog import ResourceCatalog
         from ui_designer.ui.resource_panel import ResourcePanel
