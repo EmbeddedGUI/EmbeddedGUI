@@ -25,6 +25,7 @@
 static egui_view_test_performance_t test_view;
 
 static const char *egui_view_test_performance_type_string(int test_mode);
+static void egui_view_test_performance_set_test_mode(int test_mode);
 #if EGUI_CONFIG_RECORDING_TEST
 static void egui_view_test_performance_show_test_mode(int test_mode);
 static int egui_view_test_performance_get_recording_test_mode(int action_index);
@@ -47,6 +48,10 @@ void uicode_init_ui(void)
 
 static void user_manu_refresh_screen(void)
 {
+    // egui_screen_on() resumes the global refresh timer. Stop it again
+    // before entering the manual performance refresh path.
+    egui_core_stop_auto_refresh_screen();
+
     // Manual refresh screen three time to test performance.
     egui_core_force_refresh();
     egui_core_refresh_screen();
@@ -630,10 +635,21 @@ static const char *egui_view_test_performance_type_string(int test_mode)
     }
 }
 
+static void egui_view_test_performance_set_test_mode(int test_mode)
+{
+    if (test_view.test_mode == test_mode)
+    {
+        return;
+    }
+
+    test_view.test_mode = test_mode;
+    egui_view_invalidate(EGUI_VIEW_OF(&test_view));
+}
+
 void egui_view_test_performance_with_test_mode(int test_mode)
 {
     EGUI_LOG_INF("=========== Test Mode: %s ===========\r\n", egui_view_test_performance_type_string(test_mode));
-    test_view.test_mode = test_mode;
+    egui_view_test_performance_set_test_mode(test_mode);
     user_manu_refresh_screen();
 }
 
@@ -683,6 +699,13 @@ void uicode_create_ui(void)
 {
     uicode_init_ui();
 
+#if EGUI_TEST_CONFIG_SINGLE_TEST >= 0
+    if (egui_view_test_performance_is_enabled(EGUI_TEST_CONFIG_SINGLE_TEST))
+    {
+        egui_view_test_performance_set_test_mode(EGUI_TEST_CONFIG_SINGLE_TEST);
+    }
+#endif
+
     // For test performance, use manual refresh screen.
     egui_core_stop_auto_refresh_screen();
 
@@ -695,7 +718,8 @@ void uicode_create_ui(void)
 #if EGUI_CONFIG_RECORDING_TEST
 static void egui_view_test_performance_show_test_mode(int test_mode)
 {
-    test_view.test_mode = test_mode;
+    egui_core_stop_auto_refresh_screen();
+    egui_view_test_performance_set_test_mode(test_mode);
     egui_core_force_refresh();
     egui_core_refresh_screen();
 }

@@ -378,8 +378,9 @@ static egui_dim_t egui_mask_circle_corner_get_opaque_boundary(egui_dim_t row_in_
     }
     else
     {
-        // row deep inside: the primary-half opaque boundary starts at row_in_corner
-        left_boundary = row_in_corner;
+        // Rows below the compact table still become fully opaque from the
+        // reserve-rect strip that starts at item_count.
+        left_boundary = item_count;
     }
 
     // Mirror half boundary (col < min(row_in_corner, item_count))

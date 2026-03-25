@@ -276,7 +276,7 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_opaque_boundary(
     }
     else
     {
-        left_boundary = row_in_corner;
+        left_boundary = item_count;
     }
 
     mirror_limit = EGUI_MIN(row_in_corner, item_count);

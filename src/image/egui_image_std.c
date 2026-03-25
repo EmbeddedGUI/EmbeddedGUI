@@ -2435,9 +2435,9 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_get_circle_opaque_boundary_fixe
 
     if (row_index >= item_count)
     {
-        return 0;
+        boundary = item_count;
     }
-
+    else
     {
         const egui_circle_item_t *item = &items[row_index];
         boundary = (egui_dim_t)item->start_offset + (egui_dim_t)item->valid_count;
@@ -2535,10 +2535,12 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_get_circle_visible_boundary_fix
 
     if (row_index >= item_count)
     {
-        return 0;
+        boundary = item_count;
     }
-
-    boundary = (egui_dim_t)items[row_index].start_offset;
+    else
+    {
+        boundary = (egui_dim_t)items[row_index].start_offset;
+    }
 
     if (mirror_limit > 0)
     {
@@ -2970,23 +2972,6 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_round_rect_masked
     egui_dim_t corner_col = screen_x - mask_x;
     egui_dim_t i = 0;
     egui_dim_t end_index = count;
-    egui_dim_t item_count = (egui_dim_t)info->item_count;
-
-    if (row_index >= item_count)
-    {
-        egui_dim_t skip = 0;
-
-        if (screen_x < mask_x)
-        {
-            skip = EGUI_MIN(count, mask_x - screen_x);
-        }
-
-        if (skip < count)
-        {
-            egui_image_std_blend_rgb565_alpha8_row(&dst_row[skip], &src_row[skip], &src_alpha_row[skip], count - skip, canvas_alpha);
-        }
-        return;
-    }
 
     if (canvas_alpha == EGUI_ALPHA_100)
     {
@@ -3174,20 +3159,6 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_round_rect_masked
     egui_dim_t corner_col = mask_x_end - 1 - screen_x;
     egui_dim_t i = 0;
     egui_dim_t end_index = count;
-    egui_dim_t item_count = (egui_dim_t)info->item_count;
-
-    if (row_index >= item_count)
-    {
-        egui_dim_t right_bound = mask_x_end - 1;
-
-        if (screen_x <= right_bound)
-        {
-            egui_dim_t valid_count = EGUI_MIN(count, right_bound - screen_x + 1);
-
-            egui_image_std_blend_rgb565_alpha8_row(dst_row, src_row, src_alpha_row, valid_count, canvas_alpha);
-        }
-        return;
-    }
 
     if (canvas_alpha == EGUI_ALPHA_100)
     {
@@ -3357,22 +3328,6 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_round_rect_masked_left_s
     egui_dim_t end_index = count;
     egui_dim_t item_count = (egui_dim_t)info->item_count;
 
-    if (row_index >= item_count)
-    {
-        egui_dim_t skip = 0;
-
-        if (screen_x < mask_x)
-        {
-            skip = EGUI_MIN(count, mask_x - screen_x);
-        }
-
-        if (skip < count)
-        {
-            egui_image_std_blend_rgb565_mapped_row(&dst_row[skip], src_row, &src_x_map[skip], count - skip, EGUI_ALPHA_100);
-        }
-        return;
-    }
-
     if (corner_col < row_index)
     {
         egui_dim_t mirror_end = EGUI_MIN(end_index, row_index - corner_col);
@@ -3464,22 +3419,6 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_round_rect_masked_left_s
     egui_dim_t end_index = count;
     egui_dim_t item_count = (egui_dim_t)info->item_count;
 
-    if (row_index >= item_count)
-    {
-        egui_dim_t skip = 0;
-
-        if (screen_x < mask_x)
-        {
-            skip = EGUI_MIN(count, mask_x - screen_x);
-        }
-
-        if (skip < count)
-        {
-            egui_image_std_copy_rgb565_row(&dst_row[skip], &src_row[skip], count - skip);
-        }
-        return;
-    }
-
     if (corner_col < row_index)
     {
         egui_dim_t mirror_end = EGUI_MIN(end_index, row_index - corner_col);
@@ -3566,18 +3505,6 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_round_rect_masked_right_
     egui_dim_t i = 0;
     egui_dim_t end_index = count;
     egui_dim_t item_count = (egui_dim_t)info->item_count;
-
-    if (row_index >= item_count)
-    {
-        egui_dim_t right_bound = mask_x_end - 1;
-
-        if (screen_x <= right_bound)
-        {
-            egui_dim_t valid_count = EGUI_MIN(count, right_bound - screen_x + 1);
-            egui_image_std_blend_rgb565_mapped_row(dst_row, src_row, src_x_map, valid_count, EGUI_ALPHA_100);
-        }
-        return;
-    }
 
     if (corner_col > row_index && row_index < item_count)
     {
@@ -3667,19 +3594,6 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_round_rect_masked_right_
     egui_dim_t i = 0;
     egui_dim_t end_index = count;
     egui_dim_t item_count = (egui_dim_t)info->item_count;
-
-    if (row_index >= item_count)
-    {
-        egui_dim_t right_bound = mask_x_end - 1;
-
-        if (screen_x <= right_bound)
-        {
-            egui_dim_t valid_count = EGUI_MIN(count, right_bound - screen_x + 1);
-
-            egui_image_std_copy_rgb565_row(dst_row, src_row, valid_count);
-        }
-        return;
-    }
 
     if (corner_col > row_index && row_index < item_count)
     {
