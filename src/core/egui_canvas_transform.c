@@ -3680,23 +3680,21 @@ static void rasterize_layout_to_packed(const egui_font_std_info_t *font_info, co
     }
 }
 
-static uint16_t g_alpha4_expand_pair_table[256];
-static uint8_t g_alpha4_expand_pair_table_ready = 0;
+#define EGUI_ALPHA4_EXPAND_PAIR(_hi, _lo) (uint16_t)((((uint16_t)(_hi) * 0x11u) << 8) | ((uint16_t)(_lo) * 0x11u))
+#define EGUI_ALPHA4_EXPAND_PAIR_ROW(_hi)                                                                                                                 \
+    EGUI_ALPHA4_EXPAND_PAIR(_hi, 0x0), EGUI_ALPHA4_EXPAND_PAIR(_hi, 0x1), EGUI_ALPHA4_EXPAND_PAIR(_hi, 0x2), EGUI_ALPHA4_EXPAND_PAIR(_hi, 0x3),    \
+            EGUI_ALPHA4_EXPAND_PAIR(_hi, 0x4), EGUI_ALPHA4_EXPAND_PAIR(_hi, 0x5), EGUI_ALPHA4_EXPAND_PAIR(_hi, 0x6), EGUI_ALPHA4_EXPAND_PAIR(_hi, 0x7), \
+            EGUI_ALPHA4_EXPAND_PAIR(_hi, 0x8), EGUI_ALPHA4_EXPAND_PAIR(_hi, 0x9), EGUI_ALPHA4_EXPAND_PAIR(_hi, 0xA), EGUI_ALPHA4_EXPAND_PAIR(_hi, 0xB), \
+            EGUI_ALPHA4_EXPAND_PAIR(_hi, 0xC), EGUI_ALPHA4_EXPAND_PAIR(_hi, 0xD), EGUI_ALPHA4_EXPAND_PAIR(_hi, 0xE), EGUI_ALPHA4_EXPAND_PAIR(_hi, 0xF)
 
-static void ensure_alpha4_expand_pair_table(void)
-{
-    if (g_alpha4_expand_pair_table_ready)
-    {
-        return;
-    }
-
-    for (int i = 0; i < 256; i++)
-    {
-        g_alpha4_expand_pair_table[i] = (uint16_t)(egui_alpha_change_table_4[i & 0x0F] | (egui_alpha_change_table_4[(i >> 4) & 0x0F] << 8));
-    }
-
-    g_alpha4_expand_pair_table_ready = 1;
-}
+static const uint16_t g_alpha4_expand_pair_table[256] = {
+        EGUI_ALPHA4_EXPAND_PAIR_ROW(0x0), EGUI_ALPHA4_EXPAND_PAIR_ROW(0x1), EGUI_ALPHA4_EXPAND_PAIR_ROW(0x2), EGUI_ALPHA4_EXPAND_PAIR_ROW(0x3),
+        EGUI_ALPHA4_EXPAND_PAIR_ROW(0x4), EGUI_ALPHA4_EXPAND_PAIR_ROW(0x5), EGUI_ALPHA4_EXPAND_PAIR_ROW(0x6), EGUI_ALPHA4_EXPAND_PAIR_ROW(0x7),
+        EGUI_ALPHA4_EXPAND_PAIR_ROW(0x8), EGUI_ALPHA4_EXPAND_PAIR_ROW(0x9), EGUI_ALPHA4_EXPAND_PAIR_ROW(0xA), EGUI_ALPHA4_EXPAND_PAIR_ROW(0xB),
+        EGUI_ALPHA4_EXPAND_PAIR_ROW(0xC), EGUI_ALPHA4_EXPAND_PAIR_ROW(0xD), EGUI_ALPHA4_EXPAND_PAIR_ROW(0xE), EGUI_ALPHA4_EXPAND_PAIR_ROW(0xF),
+};
+#undef EGUI_ALPHA4_EXPAND_PAIR_ROW
+#undef EGUI_ALPHA4_EXPAND_PAIR
 
 static void rasterize_glyph4_to_alpha8_inside(uint8_t *buf, int buf_w, int dst_x, int dst_y, const uint8_t *glyph_data, int box_w, int box_h)
 {
@@ -3975,8 +3973,6 @@ static void rasterize_layout_to_alpha8_offset(const egui_font_std_info_t *font_i
 {
     if (bpp == 4)
     {
-        ensure_alpha4_expand_pair_table();
-
         for (int i = 0; i < glyph_count; i++)
         {
             const text_transform_layout_glyph_t *glyph = &glyphs[i];
@@ -5024,7 +5020,6 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
 
     alpha8_buf = g_text_transform_visible_alpha8_cache.buf;
     memset(alpha8_buf, 0, buf_size);
-    ensure_alpha4_expand_pair_table();
     pixel_buffer = font_info->pixel_buffer;
 
     if (glyphs_overlap)
@@ -5129,7 +5124,6 @@ static int rasterize_text_to_alpha8(const egui_font_std_info_t *font_info, const
 
     if (bpp == 4)
     {
-        ensure_alpha4_expand_pair_table();
     }
 
     {
