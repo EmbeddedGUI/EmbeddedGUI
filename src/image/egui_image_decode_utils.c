@@ -220,6 +220,72 @@ int egui_image_decode_get_horizontal_clip(egui_dim_t img_x, uint16_t img_width,
     return 1;
 }
 
+int egui_image_decode_get_fast_rgb565_dst(egui_dim_t screen_x, egui_dim_t screen_y, egui_color_int_t **dst_row, egui_dim_t *dst_stride)
+{
+    if (dst_row == NULL || dst_stride == NULL)
+    {
+        return 0;
+    }
+
+#if EGUI_CONFIG_COLOR_DEPTH == 16
+    {
+        egui_canvas_t *canvas = egui_canvas_get_canvas();
+
+        if (!egui_image_decode_can_use_rgb565_fast_path(canvas))
+        {
+            return 0;
+        }
+
+        *dst_row = egui_image_decode_get_row_dst(canvas, screen_x, screen_y);
+        *dst_stride = canvas->pfb_region.size.width;
+        return 1;
+    }
+#else
+    (void)screen_x;
+    (void)screen_y;
+    return 0;
+#endif
+}
+
+int egui_image_decode_get_rgb565_dst(egui_dim_t screen_x, egui_dim_t screen_y, egui_color_int_t **dst_row, egui_dim_t *dst_stride)
+{
+    if (dst_row == NULL || dst_stride == NULL)
+    {
+        return 0;
+    }
+
+#if EGUI_CONFIG_COLOR_DEPTH == 16
+    {
+        egui_canvas_t *canvas = egui_canvas_get_canvas();
+
+        if (canvas == NULL)
+        {
+            return 0;
+        }
+
+        *dst_row = egui_image_decode_get_row_dst(canvas, screen_x, screen_y);
+        *dst_stride = canvas->pfb_region.size.width;
+        return 1;
+    }
+#else
+    (void)screen_x;
+    (void)screen_y;
+    return 0;
+#endif
+}
+
+void egui_image_decode_blend_rgb565_alpha8_row_fast_path(egui_color_int_t *dst, const uint16_t *src_pixels, const uint8_t *src_alpha, egui_dim_t count)
+{
+#if EGUI_CONFIG_COLOR_DEPTH == 16
+    egui_image_decode_blend_row_rgb565_alpha8_fast(dst, src_pixels, src_alpha, count);
+#else
+    for (egui_dim_t i = 0; i < count; i++)
+    {
+        egui_image_std_blend_rgb565_src_pixel_fast(&dst[i], src_pixels[i], src_alpha[i]);
+    }
+#endif
+}
+
 void egui_image_decode_blend_row_clipped(egui_dim_t screen_x, egui_dim_t screen_y,
                                          egui_dim_t img_col_start, egui_dim_t count,
                                          uint8_t data_type, uint8_t alpha_type,

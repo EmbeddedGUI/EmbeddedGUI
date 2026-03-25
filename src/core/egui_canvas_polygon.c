@@ -115,6 +115,47 @@ __EGUI_STATIC_INLINE__ egui_alpha_t polygon_edge_alpha(int32_t cross, int32_t si
     return (egui_alpha_t)alpha_val;
 }
 
+__EGUI_STATIC_INLINE__ void polygon_blend_direct(egui_color_t *dst, egui_color_t color, egui_alpha_t alpha)
+{
+    if (alpha == 0)
+    {
+        return;
+    }
+
+    if (alpha == EGUI_ALPHA_100)
+    {
+        *dst = color;
+    }
+    else
+    {
+        egui_rgb_mix_ptr(dst, &color, dst, alpha);
+    }
+}
+
+__EGUI_STATIC_INLINE__ void polygon_fill_direct_span(egui_color_t *dst_row, egui_dim_t pfb_ofs_x, egui_dim_t x_start, egui_dim_t x_end, egui_color_t color,
+                                                     egui_alpha_t alpha)
+{
+    egui_color_int_t *dst;
+    uint32_t count;
+
+    if (alpha == 0 || x_start > x_end)
+    {
+        return;
+    }
+
+    dst = (egui_color_int_t *)&dst_row[x_start - pfb_ofs_x];
+    count = (uint32_t)(x_end - x_start + 1);
+
+    if (alpha == EGUI_ALPHA_100)
+    {
+        egui_canvas_fill_color_buffer(dst, count, color);
+    }
+    else
+    {
+        egui_canvas_blend_color_buffer_alpha(dst, count, color, alpha);
+    }
+}
+
 /**
  * \brief           Draw filled polygon with SDF anti-aliased edges
  * \param[in]       points: Array of vertex coordinates [x0,y0,x1,y1,...], flat array
@@ -208,6 +249,26 @@ void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui
 
     // Intersection buffer with edge tracking
     polygon_isect_t intersections[EGUI_CANVAS_POLYGON_MAX_VERTICES];
+    int use_direct_pfb = (self->mask == NULL) ? 1 : 0;
+    egui_dim_t pfb_width = self->pfb_region.size.width;
+    egui_dim_t pfb_height = self->pfb_region.size.height;
+    egui_dim_t pfb_ofs_x = self->pfb_location_in_base_view.x;
+    egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
+    egui_dim_t tile_x_start = pfb_ofs_x;
+    egui_dim_t tile_x_end = pfb_ofs_x + pfb_width - 1;
+    egui_dim_t tile_y_start = pfb_ofs_y;
+    egui_dim_t tile_y_end = pfb_ofs_y + pfb_height - 1;
+    egui_alpha_t eff_alpha = egui_color_alpha_mix(self->alpha, alpha);
+    int apply_draw_alpha = (alpha != EGUI_ALPHA_100);
+    int apply_canvas_alpha = (eff_alpha != EGUI_ALPHA_100);
+
+    if (use_direct_pfb)
+    {
+        work_x_start = EGUI_MAX(work_x_start, tile_x_start);
+        work_x_end = EGUI_MIN(work_x_end, tile_x_end);
+        scan_y_start = EGUI_MAX(scan_y_start, tile_y_start);
+        scan_y_end = EGUI_MIN(scan_y_end, tile_y_end);
+    }
 
 // AA zone width: 2 pixels on each side of the edge crossing
 #define POLY_AA_MARGIN 2
@@ -215,6 +276,12 @@ void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui
     for (egui_dim_t y = scan_y_start; y <= scan_y_end; y++)
     {
         int intersection_count = 0;
+        egui_color_t *dst_row = NULL;
+
+        if (use_direct_pfb)
+        {
+            dst_row = (egui_color_t *)&self->pfb[(y - pfb_ofs_y) * pfb_width];
+        }
 
         // Find intersections with all edges
         for (uint8_t i = 0; i < count; i++)
@@ -283,6 +350,16 @@ void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui
             egui_dim_t interior_left = aa_left_end + 1;
             egui_dim_t interior_right = aa_right_start - 1;
 
+            if (use_direct_pfb)
+            {
+                aa_left_start = EGUI_MAX(aa_left_start, tile_x_start);
+                aa_left_end = EGUI_MIN(aa_left_end, tile_x_end);
+                aa_right_start = EGUI_MAX(aa_right_start, tile_x_start);
+                aa_right_end = EGUI_MIN(aa_right_end, tile_x_end);
+                interior_left = EGUI_MAX(interior_left, tile_x_start);
+                interior_right = EGUI_MIN(interior_right, tile_x_end);
+            }
+
             // Edge origins for SDF computation
             egui_dim_t le_ox = points[left_edge * 2];
             egui_dim_t le_oy = points[left_edge * 2 + 1];
@@ -296,6 +373,12 @@ void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui
                 egui_dim_t span_start = EGUI_MAX(ix_left - 1, work_x_start);
                 egui_dim_t span_end = EGUI_MIN(ix_right + 1, work_x_end);
 
+                if (use_direct_pfb)
+                {
+                    span_start = EGUI_MAX(span_start, tile_x_start);
+                    span_end = EGUI_MIN(span_end, tile_x_end);
+                }
+
                 for (egui_dim_t px = span_start; px <= span_end; px++)
                 {
                     int32_t crossL = edx[left_edge] * (y - le_oy) - edy[left_edge] * (px - le_ox);
@@ -307,10 +390,18 @@ void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui
                     egui_alpha_t cov = (aL < aR) ? aL : aR;
                     if (cov > 0)
                     {
-                        egui_alpha_t mix = egui_color_alpha_mix(alpha, cov);
-                        if (mix > 0)
+                        if (use_direct_pfb)
                         {
-                            egui_canvas_draw_point(px, y, color, mix);
+                            egui_alpha_t mix = apply_canvas_alpha ? egui_color_alpha_mix(eff_alpha, cov) : cov;
+                            polygon_blend_direct(&dst_row[px - pfb_ofs_x], color, mix);
+                        }
+                        else
+                        {
+                            egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
+                            if (mix > 0)
+                            {
+                                egui_canvas_draw_point(px, y, color, mix);
+                            }
                         }
                     }
                 }
@@ -320,7 +411,14 @@ void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui
             // Draw interior span with hline (fast path)
             if (interior_left <= interior_right)
             {
-                egui_canvas_draw_hline(interior_left, y, interior_right - interior_left + 1, color, alpha);
+                if (use_direct_pfb)
+                {
+                    polygon_fill_direct_span(dst_row, pfb_ofs_x, interior_left, interior_right, color, eff_alpha);
+                }
+                else
+                {
+                    egui_canvas_draw_hline(interior_left, y, interior_right - interior_left + 1, color, alpha);
+                }
             }
 
             // Left AA zone: use SDF to the left-side edge, also check right edge near vertices
@@ -335,10 +433,18 @@ void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui
                 egui_alpha_t cov = (aL < aR) ? aL : aR;
                 if (cov > 0)
                 {
-                    egui_alpha_t mix = egui_color_alpha_mix(alpha, cov);
-                    if (mix > 0)
+                    if (use_direct_pfb)
                     {
-                        egui_canvas_draw_point(px, y, color, mix);
+                        egui_alpha_t mix = apply_canvas_alpha ? egui_color_alpha_mix(eff_alpha, cov) : cov;
+                        polygon_blend_direct(&dst_row[px - pfb_ofs_x], color, mix);
+                    }
+                    else
+                    {
+                        egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
+                        if (mix > 0)
+                        {
+                            egui_canvas_draw_point(px, y, color, mix);
+                        }
                     }
                 }
             }
@@ -355,10 +461,18 @@ void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui
                 egui_alpha_t cov = (aL < aR) ? aL : aR;
                 if (cov > 0)
                 {
-                    egui_alpha_t mix = egui_color_alpha_mix(alpha, cov);
-                    if (mix > 0)
+                    if (use_direct_pfb)
                     {
-                        egui_canvas_draw_point(px, y, color, mix);
+                        egui_alpha_t mix = apply_canvas_alpha ? egui_color_alpha_mix(eff_alpha, cov) : cov;
+                        polygon_blend_direct(&dst_row[px - pfb_ofs_x], color, mix);
+                    }
+                    else
+                    {
+                        egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
+                        if (mix > 0)
+                        {
+                            egui_canvas_draw_point(px, y, color, mix);
+                        }
                     }
                 }
             }

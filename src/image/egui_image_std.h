@@ -83,8 +83,14 @@ void egui_image_std_draw_image_resize_color(const egui_image_t *self, egui_dim_t
                                             egui_alpha_t alpha);
 int egui_image_std_blend_rgb565_masked_row(egui_canvas_t *canvas, egui_color_int_t *dst_row, const uint16_t *src_row, egui_dim_t count, egui_dim_t screen_x,
                                            egui_dim_t screen_y, egui_alpha_t canvas_alpha);
+int egui_image_std_blend_rgb565_masked_row_block(egui_canvas_t *canvas, egui_color_int_t *dst_row, egui_dim_t dst_stride, const uint16_t *src_row,
+                                                 egui_dim_t src_stride, egui_dim_t row_count, egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y,
+                                                 egui_alpha_t canvas_alpha);
 void egui_image_std_blend_rgb565_alpha8_masked_row(egui_canvas_t *canvas, egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
                                                    egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y, egui_alpha_t canvas_alpha);
+int egui_image_std_blend_rgb565_alpha8_masked_row_block(egui_canvas_t *canvas, egui_color_int_t *dst_row, egui_dim_t dst_stride, const uint16_t *src_row,
+                                                        egui_dim_t src_stride, const uint8_t *src_alpha_row, egui_dim_t alpha_stride, egui_dim_t row_count,
+                                                        egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y, egui_alpha_t canvas_alpha);
 
 void egui_image_std_get_width_height(const egui_image_t *self, egui_dim_t *width, egui_dim_t *height);
 void egui_image_std_init(egui_image_t *self, const void *res);

@@ -6,6 +6,43 @@
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 
+static const uint16_t block_mask_image_data[] = {
+        0x0000, 0x1111, 0x2222, 0x3333,
+        0x4444, 0x5555, 0x6666, 0x7777,
+        0x8888, 0x9999, 0xAAAA, 0xBBBB,
+        0xCCCC, 0xDDDD, 0xEEEE, 0xFFFF,
+};
+
+static const uint8_t block_mask_alpha_data[] = {
+        0, 64, 255, 32,
+        255, 128, 0, 255,
+        16, 255, 96, 0,
+        255, 48, 255, 200,
+};
+
+static const egui_image_std_info_t block_mask_image_info = {
+        .data_buf = block_mask_image_data,
+        .alpha_buf = block_mask_alpha_data,
+        .data_type = EGUI_IMAGE_DATA_TYPE_RGB565,
+        .alpha_type = EGUI_IMAGE_ALPHA_TYPE_8,
+        .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
+        .width = 4,
+        .height = 4,
+};
+
+EGUI_IMAGE_SUB_DEFINE_STATIC(egui_image_std_t, block_mask_image, &block_mask_image_info);
+
+static void init_identity_image_mask(egui_mask_image_t *mask)
+{
+    egui_mask_t *base = (egui_mask_t *)mask;
+
+    memset(mask, 0, sizeof(*mask));
+    egui_mask_image_init(base);
+    egui_mask_set_position(base, 1, 1);
+    egui_mask_set_size(base, 4, 4);
+    egui_mask_image_set_image(base, (egui_image_t *)&block_mask_image);
+}
+
 static void test_image_mask_null_point_passthrough(void)
 {
     egui_mask_image_t mask;
@@ -57,6 +94,59 @@ static void test_image_mask_null_row_queries_passthrough(void)
     EGUI_TEST_ASSERT_TRUE(result);
     EGUI_TEST_ASSERT_EQUAL_INT(4, x_start);
     EGUI_TEST_ASSERT_EQUAL_INT(11, x_end);
+}
+
+static void test_image_mask_row_block_matches_row_segment(void)
+{
+    enum
+    {
+        block_width = 6,
+        block_height = 6,
+    };
+    egui_mask_image_t block_mask;
+    egui_mask_image_t segment_mask;
+    egui_mask_t *block_base = (egui_mask_t *)&block_mask;
+    egui_mask_t *segment_base = (egui_mask_t *)&segment_mask;
+    egui_color_int_t opaque_block_dst[block_width * block_height];
+    egui_color_int_t opaque_segment_dst[block_width * block_height];
+    egui_color_int_t alpha_block_dst[block_width * block_height];
+    egui_color_int_t alpha_segment_dst[block_width * block_height];
+    uint16_t src_pixels[block_width * block_height];
+    uint8_t src_alpha[block_width * block_height];
+
+    for (int i = 0; i < block_width * block_height; i++)
+    {
+        opaque_block_dst[i] = (egui_color_int_t)(0x0101u * (uint16_t)(i + 1));
+        opaque_segment_dst[i] = opaque_block_dst[i];
+        alpha_block_dst[i] = (egui_color_int_t)(0x0202u * (uint16_t)(i + 3));
+        alpha_segment_dst[i] = alpha_block_dst[i];
+        src_pixels[i] = (uint16_t)(0x0010u * (uint16_t)(i + 5));
+        src_alpha[i] = (uint8_t)((i * 29) & 0xFF);
+    }
+
+    init_identity_image_mask(&block_mask);
+    init_identity_image_mask(&segment_mask);
+
+    EGUI_TEST_ASSERT_TRUE(egui_mask_image_blend_rgb565_row_block(block_base, opaque_block_dst, block_width, src_pixels, block_width, block_height, block_width,
+                                                                 0, 0, EGUI_ALPHA_100));
+    for (egui_dim_t y = 0; y < block_height; y++)
+    {
+        EGUI_TEST_ASSERT_TRUE(
+                egui_mask_image_blend_rgb565_row_segment(segment_base, &opaque_segment_dst[y * block_width], &src_pixels[y * block_width], block_width, 0, y,
+                                                         EGUI_ALPHA_100));
+    }
+    EGUI_TEST_ASSERT_EQUAL_INT(0, memcmp(opaque_block_dst, opaque_segment_dst, sizeof(opaque_block_dst)));
+
+    init_identity_image_mask(&block_mask);
+    init_identity_image_mask(&segment_mask);
+    EGUI_TEST_ASSERT_TRUE(egui_mask_image_blend_rgb565_alpha8_row_block(block_base, alpha_block_dst, block_width, src_pixels, block_width, src_alpha, block_width,
+                                                                        block_height, block_width, 0, 0, 173));
+    for (egui_dim_t y = 0; y < block_height; y++)
+    {
+        EGUI_TEST_ASSERT_TRUE(egui_mask_image_blend_rgb565_alpha8_row_segment(segment_base, &alpha_segment_dst[y * block_width], &src_pixels[y * block_width],
+                                                                              &src_alpha[y * block_width], block_width, 0, y, 173));
+    }
+    EGUI_TEST_ASSERT_EQUAL_INT(0, memcmp(alpha_block_dst, alpha_segment_dst, sizeof(alpha_block_dst)));
 }
 
 static void test_round_rectangle_init_resets_radius(void)
@@ -197,6 +287,52 @@ static void test_circle_mask_visible_range_center_row_without_row_range_cache(vo
     EGUI_TEST_ASSERT_EQUAL_INT(expected_visible_end, visible_x_end);
 }
 
+static void test_circle_mask_row_metrics_match_corner_alpha_scan(void)
+{
+    egui_dim_t radii[] = {1, 2, 5, 15, 30, 63, 119};
+
+    for (size_t i = 0; i < sizeof(radii) / sizeof(radii[0]); i++)
+    {
+        egui_dim_t radius = radii[i];
+
+        for (egui_dim_t row = 0; row <= radius; row++)
+        {
+            egui_dim_t expected_first_visible = radius + 1;
+            egui_dim_t expected_first_opaque = radius + 1;
+            egui_dim_t visible_half;
+            egui_dim_t opaque_boundary;
+
+            for (egui_dim_t col = 0; col <= radius; col++)
+            {
+                egui_alpha_t alpha = egui_mask_circle_get_corner_alpha(radius, row, col);
+
+                if (expected_first_visible > radius && alpha != EGUI_ALPHA_0)
+                {
+                    expected_first_visible = col;
+                }
+
+                if (expected_first_opaque > radius && alpha == EGUI_ALPHA_100)
+                {
+                    expected_first_opaque = col;
+                    break;
+                }
+            }
+
+            egui_mask_circle_get_row_metrics(radius, row, &visible_half, &opaque_boundary);
+
+            if (expected_first_visible > radius)
+            {
+                EGUI_TEST_ASSERT_EQUAL_INT(-1, visible_half);
+                EGUI_TEST_ASSERT_EQUAL_INT(radius + 1, opaque_boundary);
+                continue;
+            }
+
+            EGUI_TEST_ASSERT_EQUAL_INT(radius - expected_first_visible, visible_half);
+            EGUI_TEST_ASSERT_EQUAL_INT(expected_first_opaque, opaque_boundary);
+        }
+    }
+}
+
 static void test_circle_mask_row_queries_match_point_sampling(void)
 {
     enum
@@ -218,6 +354,9 @@ static void test_circle_mask_row_queries_match_point_sampling(void)
         egui_dim_t opaque_x_end = -1;
         egui_dim_t visible_x_start = -1;
         egui_dim_t visible_x_end = -1;
+        egui_dim_t row_index = -1;
+        egui_dim_t visible_half = -1;
+        egui_dim_t opaque_boundary = -1;
         egui_dim_t expected_opaque_start = circle_size;
         egui_dim_t expected_opaque_end = 0;
         egui_dim_t expected_visible_start = circle_size;
@@ -226,6 +365,7 @@ static void test_circle_mask_row_queries_match_point_sampling(void)
         int actual_range_result;
         int actual_visible_result;
         int expected_visible_result;
+        int prepare_result;
 
         actual_range_result = base->api->mask_get_row_range(base, y, 0, circle_size, &opaque_x_start, &opaque_x_end);
         actual_visible_result = base->api->mask_get_row_visible_range(base, y, 0, circle_size, &visible_x_start, &visible_x_end);
@@ -253,6 +393,8 @@ static void test_circle_mask_row_queries_match_point_sampling(void)
             }
         }
 
+        prepare_result = egui_mask_circle_prepare_row(&mask, y, &row_index, &visible_half, &opaque_boundary);
+
         expected_visible_result = (expected_visible_start < expected_visible_end);
         if (!expected_visible_result)
         {
@@ -273,6 +415,21 @@ static void test_circle_mask_row_queries_match_point_sampling(void)
             {
                 expected_opaque_start = 0;
                 expected_opaque_end = 0;
+            }
+        }
+
+        EGUI_TEST_ASSERT_EQUAL_INT(expected_visible_result, prepare_result);
+        if (prepare_result)
+        {
+            EGUI_TEST_ASSERT_EQUAL_INT(mask.radius - EGUI_ABS(mask.center_y - y), row_index);
+            EGUI_TEST_ASSERT_EQUAL_INT(mask.center_x - expected_visible_start, visible_half);
+            if (expected_opaque_start >= expected_opaque_end)
+            {
+                EGUI_TEST_ASSERT_EQUAL_INT(mask.radius + 1, opaque_boundary);
+            }
+            else
+            {
+                EGUI_TEST_ASSERT_EQUAL_INT(expected_opaque_start - (mask.center_x - mask.radius), opaque_boundary);
             }
         }
 
@@ -300,11 +457,13 @@ void test_mask_run(void)
 
     EGUI_TEST_RUN(test_image_mask_null_point_passthrough);
     EGUI_TEST_RUN(test_image_mask_null_row_queries_passthrough);
+    EGUI_TEST_RUN(test_image_mask_row_block_matches_row_segment);
     EGUI_TEST_RUN(test_round_rectangle_init_resets_radius);
     EGUI_TEST_RUN(test_round_rectangle_radius_is_clamped);
     EGUI_TEST_RUN(test_round_rectangle_row_range_outside_when_no_overlap);
     EGUI_TEST_RUN(test_circle_corner_fixed_row_matches_general_lookup);
     EGUI_TEST_RUN(test_circle_mask_visible_range_center_row_without_row_range_cache);
+    EGUI_TEST_RUN(test_circle_mask_row_metrics_match_corner_alpha_scan);
     EGUI_TEST_RUN(test_circle_mask_row_queries_match_point_sampling);
 
     EGUI_TEST_SUITE_END();

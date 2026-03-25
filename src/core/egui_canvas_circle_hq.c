@@ -68,6 +68,46 @@ __EGUI_STATIC_INLINE__ int32_t circle_hq_isqrt(int32_t n)
     return x;
 }
 
+__EGUI_STATIC_INLINE__ void circle_hq_blend_direct(egui_color_t *dst, egui_color_t color, egui_alpha_t alpha)
+{
+    if (alpha == 0)
+    {
+        return;
+    }
+
+    if (alpha == EGUI_ALPHA_100)
+    {
+        *dst = color;
+    }
+    else
+    {
+        egui_rgb_mix_ptr(dst, &color, dst, alpha);
+    }
+}
+
+__EGUI_STATIC_INLINE__ void circle_hq_fill_direct_span(egui_color_t *dst_base, egui_dim_t x_start, egui_dim_t x_end, egui_color_t color, egui_alpha_t alpha)
+{
+    egui_color_int_t *dst;
+    uint32_t count;
+
+    if (alpha == 0 || x_start > x_end)
+    {
+        return;
+    }
+
+    dst = (egui_color_int_t *)&dst_base[x_start];
+    count = (uint32_t)(x_end - x_start + 1);
+
+    if (alpha == EGUI_ALPHA_100)
+    {
+        egui_canvas_fill_color_buffer(dst, count, color);
+    }
+    else
+    {
+        egui_canvas_blend_color_buffer_alpha(dst, count, color, alpha);
+    }
+}
+
 /* ========================== Circle Fill HQ ========================== */
 
 void egui_canvas_draw_circle_fill_hq(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_color_t color, egui_alpha_t alpha)
@@ -100,6 +140,9 @@ void egui_canvas_draw_circle_fill_hq(egui_dim_t center_x, egui_dim_t center_y, e
     egui_dim_t pfb_width = self->pfb_region.size.width;
     egui_dim_t pfb_ofs_x = self->pfb_location_in_base_view.x;
     egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
+    egui_alpha_t eff_alpha = egui_color_alpha_mix(self->alpha, alpha);
+    int apply_draw_alpha = (alpha != EGUI_ALPHA_100);
+    int apply_canvas_alpha = (eff_alpha != EGUI_ALPHA_100);
 
     for (egui_dim_t y = y_start; y < y_end; y++)
     {
@@ -120,7 +163,6 @@ void egui_canvas_draw_circle_fill_hq(egui_dim_t center_x, egui_dim_t center_y, e
         if (use_direct_pfb)
         {
             egui_color_t *dst_base = (egui_color_t *)&self->pfb[(y - pfb_ofs_y) * pfb_width - pfb_ofs_x];
-            egui_alpha_t eff_alpha = egui_color_alpha_mix(self->alpha, alpha);
 
             if (x_inner_half > 0)
             {
@@ -131,7 +173,7 @@ void egui_canvas_draw_circle_fill_hq(egui_dim_t center_x, egui_dim_t center_y, e
                     egui_alpha_t cov = circle_hq_get_edge_alpha((int32_t)(x - center_x), dy, r_sq, inv128_r);
                     if (cov > 0)
                     {
-                        egui_alpha_t m = egui_color_alpha_mix(eff_alpha, cov);
+                        egui_alpha_t m = apply_canvas_alpha ? egui_color_alpha_mix(eff_alpha, cov) : cov;
                         if (m > 0)
                         {
                             egui_color_t *back_color = &dst_base[x];
@@ -146,18 +188,7 @@ void egui_canvas_draw_circle_fill_hq(egui_dim_t center_x, egui_dim_t center_y, e
                 egui_dim_t bl = il < x_start ? x_start : il, br = i_r >= x_end ? x_end - 1 : i_r;
                 if (bl <= br)
                 {
-                    egui_dim_t count = br - bl + 1;
-                    egui_color_t *dst = &dst_base[bl];
-                    if (eff_alpha == EGUI_ALPHA_100)
-                    {
-                        for (egui_dim_t i = 0; i < count; i++)
-                            dst[i] = color;
-                    }
-                    else
-                    {
-                        for (egui_dim_t i = 0; i < count; i++)
-                            egui_rgb_mix_ptr(&dst[i], &color, &dst[i], eff_alpha);
-                    }
+                    circle_hq_fill_direct_span(dst_base, bl, br, color, eff_alpha);
                 }
                 /* Right edge */
                 egui_dim_t rs = i_r + 1 < x_start ? x_start : i_r + 1;
@@ -166,7 +197,7 @@ void egui_canvas_draw_circle_fill_hq(egui_dim_t center_x, egui_dim_t center_y, e
                     egui_alpha_t cov = circle_hq_get_edge_alpha((int32_t)(x - center_x), dy, r_sq, inv128_r);
                     if (cov > 0)
                     {
-                        egui_alpha_t m = egui_color_alpha_mix(eff_alpha, cov);
+                        egui_alpha_t m = apply_canvas_alpha ? egui_color_alpha_mix(eff_alpha, cov) : cov;
                         if (m > 0)
                         {
                             egui_color_t *back_color = &dst_base[x];
@@ -184,8 +215,6 @@ void egui_canvas_draw_circle_fill_hq(egui_dim_t center_x, egui_dim_t center_y, e
                 {
                     int32_t dx = (int32_t)(x - center_x);
                     int32_t d_sq = dx * dx + dy_sq;
-                    if (d_sq > r_outer_sq)
-                        continue;
                     if (d_sq < r_inner_sq)
                     {
                         egui_color_t *back_color = &dst_base[x];
@@ -198,7 +227,7 @@ void egui_canvas_draw_circle_fill_hq(egui_dim_t center_x, egui_dim_t center_y, e
                     egui_alpha_t cov = circle_hq_get_edge_alpha(dx, dy, r_sq, inv128_r);
                     if (cov > 0)
                     {
-                        egui_alpha_t m = egui_color_alpha_mix(eff_alpha, cov);
+                        egui_alpha_t m = apply_canvas_alpha ? egui_color_alpha_mix(eff_alpha, cov) : cov;
                         if (m > 0)
                         {
                             egui_color_t *back_color = &dst_base[x];
@@ -221,7 +250,7 @@ void egui_canvas_draw_circle_fill_hq(egui_dim_t center_x, egui_dim_t center_y, e
                     egui_alpha_t cov = circle_hq_get_edge_alpha((int32_t)(x - center_x), dy, r_sq, inv128_r);
                     if (cov > 0)
                     {
-                        egui_alpha_t m = egui_color_alpha_mix(alpha, cov);
+                        egui_alpha_t m = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                         if (m > 0)
                             egui_canvas_draw_point(x, y, color, m);
                     }
@@ -235,7 +264,7 @@ void egui_canvas_draw_circle_fill_hq(egui_dim_t center_x, egui_dim_t center_y, e
                     egui_alpha_t cov = circle_hq_get_edge_alpha((int32_t)(x - center_x), dy, r_sq, inv128_r);
                     if (cov > 0)
                     {
-                        egui_alpha_t m = egui_color_alpha_mix(alpha, cov);
+                        egui_alpha_t m = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                         if (m > 0)
                             egui_canvas_draw_point(x, y, color, m);
                     }
@@ -247,8 +276,6 @@ void egui_canvas_draw_circle_fill_hq(egui_dim_t center_x, egui_dim_t center_y, e
                 {
                     int32_t dx = (int32_t)(x - center_x);
                     int32_t d_sq = dx * dx + dy_sq;
-                    if (d_sq > r_outer_sq)
-                        continue;
                     if (d_sq < r_inner_sq)
                     {
                         egui_canvas_draw_point(x, y, color, alpha);
@@ -257,7 +284,7 @@ void egui_canvas_draw_circle_fill_hq(egui_dim_t center_x, egui_dim_t center_y, e
                     egui_alpha_t cov = circle_hq_get_edge_alpha(dx, dy, r_sq, inv128_r);
                     if (cov > 0)
                     {
-                        egui_alpha_t m = egui_color_alpha_mix(alpha, cov);
+                        egui_alpha_t m = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                         if (m > 0)
                             egui_canvas_draw_point(x, y, color, m);
                     }
@@ -356,6 +383,95 @@ __EGUI_STATIC_INLINE__ egui_alpha_t circle_hq_arc_angle_alpha(egui_dim_t x, egui
     return egui_color_alpha_mix(alpha_start, alpha_end);
 }
 
+typedef struct circle_hq_arc_row_ctx_t
+{
+    egui_float_t start_signed;
+    egui_float_t end_signed;
+    egui_float_t start_step;
+    egui_float_t end_step;
+    uint8_t has_start;
+    uint8_t has_end;
+} circle_hq_arc_row_ctx_t;
+
+static void circle_hq_arc_row_ctx_init(circle_hq_arc_row_ctx_t *ctx, egui_dim_t qx, egui_dim_t qy, int16_t start_angle, int16_t end_angle, int32_t qx_step)
+{
+    egui_float_t qx_f = EGUI_FLOAT_VALUE_INT(qx);
+    egui_float_t qy_f = EGUI_FLOAT_VALUE_INT(qy);
+
+    ctx->has_start = (start_angle != 0);
+    ctx->has_end = (end_angle != 90);
+
+    if (ctx->has_start)
+    {
+        egui_float_t tan_sa = circle_hq_tan_val_list[start_angle];
+        egui_float_t cos_sa = circle_hq_cos_val_list[start_angle];
+        egui_float_t step = EGUI_FLOAT_MULT(tan_sa, cos_sa);
+        egui_float_t raw = qy_f - EGUI_FLOAT_MULT(tan_sa, qx_f);
+
+        ctx->start_signed = EGUI_FLOAT_MULT(raw, cos_sa);
+        ctx->start_step = (qx_step > 0) ? -step : step;
+    }
+    else
+    {
+        ctx->start_signed = 0;
+        ctx->start_step = 0;
+    }
+
+    if (ctx->has_end)
+    {
+        egui_float_t tan_ea = circle_hq_tan_val_list[end_angle];
+        egui_float_t cos_ea = circle_hq_cos_val_list[end_angle];
+        egui_float_t step = EGUI_FLOAT_MULT(tan_ea, cos_ea);
+        egui_float_t raw = EGUI_FLOAT_MULT(tan_ea, qx_f) - qy_f;
+
+        ctx->end_signed = EGUI_FLOAT_MULT(raw, cos_ea);
+        ctx->end_step = (qx_step > 0) ? step : -step;
+    }
+    else
+    {
+        ctx->end_signed = 0;
+        ctx->end_step = 0;
+    }
+}
+
+__EGUI_STATIC_INLINE__ egui_alpha_t circle_hq_arc_angle_alpha_from_ctx(const circle_hq_arc_row_ctx_t *ctx)
+{
+    egui_alpha_t alpha_start = EGUI_ALPHA_100;
+    egui_alpha_t alpha_end = EGUI_ALPHA_100;
+
+    if (ctx->has_start)
+    {
+        alpha_start = circle_hq_arc_edge_smoothstep(ctx->start_signed);
+        if (alpha_start == EGUI_ALPHA_0 && !ctx->has_end)
+        {
+            return EGUI_ALPHA_0;
+        }
+    }
+
+    if (ctx->has_end)
+    {
+        alpha_end = circle_hq_arc_edge_smoothstep(ctx->end_signed);
+        if (alpha_end == EGUI_ALPHA_0 && alpha_start == EGUI_ALPHA_100)
+        {
+            return EGUI_ALPHA_0;
+        }
+    }
+
+    return egui_color_alpha_mix(alpha_start, alpha_end);
+}
+
+__EGUI_STATIC_INLINE__ void circle_hq_arc_row_ctx_step(circle_hq_arc_row_ctx_t *ctx)
+{
+    if (ctx->has_start)
+    {
+        ctx->start_signed += ctx->start_step;
+    }
+    if (ctx->has_end)
+    {
+        ctx->end_signed += ctx->end_step;
+    }
+}
+
 enum
 {
     CIRCLE_HQ_TYPE_LEFT_TOP,
@@ -409,6 +525,7 @@ static void circle_hq_to_quadrant_coords(egui_dim_t x, egui_dim_t y, egui_dim_t 
         break;
     }
 }
+
 /* ========================== Circle Stroke HQ ========================== */
 
 void egui_canvas_draw_circle_hq(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
@@ -448,6 +565,9 @@ void egui_canvas_draw_circle_hq(egui_dim_t center_x, egui_dim_t center_y, egui_d
     egui_dim_t pfb_width = self->pfb_region.size.width;
     egui_dim_t pfb_ofs_x = self->pfb_location_in_base_view.x;
     egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
+    egui_alpha_t eff_alpha = egui_color_alpha_mix(self->alpha, alpha);
+    int apply_draw_alpha = (alpha != EGUI_ALPHA_100);
+    int apply_canvas_alpha = (eff_alpha != EGUI_ALPHA_100);
 
     for (egui_dim_t y = y_start; y < y_end; y++)
     {
@@ -463,13 +583,11 @@ void egui_canvas_draw_circle_hq(egui_dim_t center_x, egui_dim_t center_y, egui_d
         if (use_direct_pfb)
         {
             egui_color_t *dst_base = (egui_color_t *)&self->pfb[(y - pfb_ofs_y) * pfb_width - pfb_ofs_x];
-            egui_alpha_t eff_alpha = egui_color_alpha_mix(self->alpha, alpha);
 
             for (egui_dim_t x = ol; x <= or_; x++)
             {
-                int32_t dx = (int32_t)(x - center_x), d_sq = dx * dx + dy_sq;
-                if (d_sq > outer_outer_sq)
-                    continue;
+                int32_t dx = (int32_t)(x - center_x);
+                int32_t d_sq = dx * dx + dy_sq;
 
                 egui_alpha_t oc;
                 if (d_sq < outer_inner_sq)
@@ -489,18 +607,14 @@ void egui_canvas_draw_circle_hq(egui_dim_t center_x, egui_dim_t center_y, egui_d
 
                 if (oc > ic)
                 {
-                    egui_alpha_t m = egui_color_alpha_mix(eff_alpha, oc - ic);
+                    egui_alpha_t m = apply_canvas_alpha ? egui_color_alpha_mix(eff_alpha, oc - ic) : (egui_alpha_t)(oc - ic);
                     if (m > 0)
                     {
                         egui_color_t *back_color = &dst_base[x];
                         if (m == EGUI_ALPHA_100)
-                        {
                             *back_color = color;
-                        }
                         else
-                        {
                             egui_rgb_mix_ptr(back_color, &color, back_color, m);
-                        }
                     }
                 }
             }
@@ -509,9 +623,8 @@ void egui_canvas_draw_circle_hq(egui_dim_t center_x, egui_dim_t center_y, egui_d
         {
             for (egui_dim_t x = ol; x <= or_; x++)
             {
-                int32_t dx = (int32_t)(x - center_x), d_sq = dx * dx + dy_sq;
-                if (d_sq > outer_outer_sq)
-                    continue;
+                int32_t dx = (int32_t)(x - center_x);
+                int32_t d_sq = dx * dx + dy_sq;
 
                 egui_alpha_t oc;
                 if (d_sq < outer_inner_sq)
@@ -531,7 +644,7 @@ void egui_canvas_draw_circle_hq(egui_dim_t center_x, egui_dim_t center_y, egui_d
 
                 if (oc > ic)
                 {
-                    egui_alpha_t m = egui_color_alpha_mix(alpha, oc - ic);
+                    egui_alpha_t m = apply_draw_alpha ? egui_color_alpha_mix(alpha, oc - ic) : (egui_alpha_t)(oc - ic);
                     if (m > 0)
                         egui_canvas_draw_point(x, y, color, m);
                 }
@@ -611,6 +724,10 @@ static void circle_hq_draw_arc_corner_fill(egui_dim_t cx, egui_dim_t cy, egui_di
     egui_dim_t pfb_width = self->pfb_region.size.width;
     egui_dim_t pfb_ofs_x = self->pfb_location_in_base_view.x;
     egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
+    int32_t qx_step = (type == CIRCLE_HQ_TYPE_LEFT_TOP || type == CIRCLE_HQ_TYPE_LEFT_BOTTOM) ? -1 : 1;
+    egui_alpha_t eff_alpha = egui_color_alpha_mix(self->alpha, alpha);
+    int apply_draw_alpha = (alpha != EGUI_ALPHA_100);
+    int apply_canvas_alpha = (eff_alpha != EGUI_ALPHA_100);
 
     for (egui_dim_t y = y_s; y < y_e; y++)
     {
@@ -634,9 +751,9 @@ static void circle_hq_draw_arc_corner_fill(egui_dim_t cx, egui_dim_t cy, egui_di
         }
 
         /* Further narrow x-range based on arc angle boundaries */
+        int32_t qy = 0;
         if (!is_full)
         {
-            int32_t qy;
             if (type == CIRCLE_HQ_TYPE_RIGHT_BOTTOM || type == CIRCLE_HQ_TYPE_LEFT_BOTTOM)
                 qy = y - cy;
             else
@@ -665,25 +782,27 @@ static void circle_hq_draw_arc_corner_fill(egui_dim_t cx, egui_dim_t cy, egui_di
             }
         }
 
+        if (x_lo > x_hi)
+            continue;
+
         if (use_direct_pfb)
         {
             egui_color_t *dst_base = (egui_color_t *)&self->pfb[(y - pfb_ofs_y) * pfb_width - pfb_ofs_x];
-            egui_alpha_t eff_alpha = egui_color_alpha_mix(self->alpha, alpha);
 
             /* Incremental d²: d_sq[x+1] = d_sq[x] + 2*(x-cx) + 1 */
             int32_t dx_init = (int32_t)(x_lo - cx);
             int32_t d_sq = dx_init * dx_init + dy_sq;
             int32_t d_sq_step = (dx_init << 1) + 1;
+            circle_hq_arc_row_ctx_t angle_ctx;
+
+            if (!is_full)
+            {
+                egui_dim_t qx = (qx_step > 0) ? (egui_dim_t)(x_lo - cx) : (egui_dim_t)(cx - x_lo);
+                circle_hq_arc_row_ctx_init(&angle_ctx, qx, qy, sa, ea, qx_step);
+            }
 
             for (egui_dim_t x = x_lo; x <= x_hi; x++)
             {
-                if (d_sq > r_outer_sq)
-                {
-                    d_sq += d_sq_step;
-                    d_sq_step += 2;
-                    continue;
-                }
-
                 egui_alpha_t cc;
                 if (d_sq < r_inner_sq)
                     cc = EGUI_ALPHA_100;
@@ -692,6 +811,8 @@ static void circle_hq_draw_arc_corner_fill(egui_dim_t cx, egui_dim_t cy, egui_di
                     cc = circle_hq_get_edge_alpha_from_dsq(d_sq, r_sq_val, inv128_r_val);
                     if (cc == 0)
                     {
+                        if (!is_full)
+                            circle_hq_arc_row_ctx_step(&angle_ctx);
                         d_sq += d_sq_step;
                         d_sq_step += 2;
                         continue;
@@ -703,31 +824,22 @@ static void circle_hq_draw_arc_corner_fill(egui_dim_t cx, egui_dim_t cy, egui_di
                     ac = EGUI_ALPHA_100;
                 else
                 {
-                    egui_dim_t qx, qy;
-                    circle_hq_to_quadrant_coords(x, y, cx, cy, type, &qx, &qy);
-                    ac = circle_hq_arc_angle_alpha(qx, qy, sa, ea);
+                    ac = circle_hq_arc_angle_alpha_from_ctx(&angle_ctx);
                     if (ac == 0)
                     {
+                        circle_hq_arc_row_ctx_step(&angle_ctx);
                         d_sq += d_sq_step;
                         d_sq_step += 2;
                         continue;
                     }
                 }
 
-                egui_alpha_t m = egui_color_alpha_mix(eff_alpha, egui_color_alpha_mix(cc, ac));
-                if (m > 0)
-                {
-                    egui_color_t *back_color = &dst_base[x];
-                    if (m == EGUI_ALPHA_100)
-                    {
-                        *back_color = color;
-                    }
-                    else
-                    {
-                        egui_rgb_mix_ptr(back_color, &color, back_color, m);
-                    }
-                }
+                egui_alpha_t cov = egui_color_alpha_mix(cc, ac);
+                egui_alpha_t m = apply_canvas_alpha ? egui_color_alpha_mix(eff_alpha, cov) : cov;
+                circle_hq_blend_direct(&dst_base[x], color, m);
 
+                if (!is_full)
+                    circle_hq_arc_row_ctx_step(&angle_ctx);
                 d_sq += d_sq_step;
                 d_sq_step += 2;
             }
@@ -737,16 +849,16 @@ static void circle_hq_draw_arc_corner_fill(egui_dim_t cx, egui_dim_t cy, egui_di
             int32_t dx_init = (int32_t)(x_lo - cx);
             int32_t d_sq = dx_init * dx_init + dy_sq;
             int32_t d_sq_step = (dx_init << 1) + 1;
+            circle_hq_arc_row_ctx_t angle_ctx;
+
+            if (!is_full)
+            {
+                egui_dim_t qx = (qx_step > 0) ? (egui_dim_t)(x_lo - cx) : (egui_dim_t)(cx - x_lo);
+                circle_hq_arc_row_ctx_init(&angle_ctx, qx, qy, sa, ea, qx_step);
+            }
 
             for (egui_dim_t x = x_lo; x <= x_hi; x++)
             {
-                if (d_sq > r_outer_sq)
-                {
-                    d_sq += d_sq_step;
-                    d_sq_step += 2;
-                    continue;
-                }
-
                 egui_alpha_t cc;
                 if (d_sq < r_inner_sq)
                     cc = EGUI_ALPHA_100;
@@ -755,6 +867,8 @@ static void circle_hq_draw_arc_corner_fill(egui_dim_t cx, egui_dim_t cy, egui_di
                     cc = circle_hq_get_edge_alpha_from_dsq(d_sq, r_sq_val, inv128_r_val);
                     if (cc == 0)
                     {
+                        if (!is_full)
+                            circle_hq_arc_row_ctx_step(&angle_ctx);
                         d_sq += d_sq_step;
                         d_sq_step += 2;
                         continue;
@@ -766,21 +880,23 @@ static void circle_hq_draw_arc_corner_fill(egui_dim_t cx, egui_dim_t cy, egui_di
                     ac = EGUI_ALPHA_100;
                 else
                 {
-                    egui_dim_t qx, qy;
-                    circle_hq_to_quadrant_coords(x, y, cx, cy, type, &qx, &qy);
-                    ac = circle_hq_arc_angle_alpha(qx, qy, sa, ea);
+                    ac = circle_hq_arc_angle_alpha_from_ctx(&angle_ctx);
                     if (ac == 0)
                     {
+                        circle_hq_arc_row_ctx_step(&angle_ctx);
                         d_sq += d_sq_step;
                         d_sq_step += 2;
                         continue;
                     }
                 }
 
-                egui_alpha_t m = egui_color_alpha_mix(alpha, egui_color_alpha_mix(cc, ac));
+                egui_alpha_t cov = egui_color_alpha_mix(cc, ac);
+                egui_alpha_t m = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                 if (m > 0)
                     egui_canvas_draw_point(x, y, color, m);
 
+                if (!is_full)
+                    circle_hq_arc_row_ctx_step(&angle_ctx);
                 d_sq += d_sq_step;
                 d_sq_step += 2;
             }
@@ -790,10 +906,49 @@ static void circle_hq_draw_arc_corner_fill(egui_dim_t cx, egui_dim_t cy, egui_di
 
 /* ========================== Arc Fill HQ ========================== */
 
+static int circle_hq_try_get_single_quadrant(int16_t start_angle, int16_t end_angle, int *type, int16_t *sa_local, int16_t *ea_local)
+{
+    int16_t quadrant;
+
+    if (start_angle < 0 || end_angle <= start_angle || end_angle > 360)
+        return 0;
+
+    quadrant = start_angle / 90;
+    if (((end_angle - 1) / 90) != quadrant)
+        return 0;
+
+    switch (quadrant)
+    {
+    case 0:
+        *type = CIRCLE_HQ_TYPE_RIGHT_BOTTOM;
+        *sa_local = start_angle;
+        *ea_local = end_angle;
+        return 1;
+    case 1:
+        *type = CIRCLE_HQ_TYPE_LEFT_BOTTOM;
+        *sa_local = 180 - end_angle;
+        *ea_local = 180 - start_angle;
+        return 1;
+    case 2:
+        *type = CIRCLE_HQ_TYPE_LEFT_TOP;
+        *sa_local = start_angle - 180;
+        *ea_local = end_angle - 180;
+        return 1;
+    case 3:
+        *type = CIRCLE_HQ_TYPE_RIGHT_TOP;
+        *sa_local = 360 - end_angle;
+        *ea_local = 360 - start_angle;
+        return 1;
+    default:
+        return 0;
+    }
+}
+
 void egui_canvas_draw_arc_fill_hq(egui_dim_t cx, egui_dim_t cy, egui_dim_t radius, int16_t start_angle, int16_t end_angle, egui_color_t color,
                                   egui_alpha_t alpha)
 {
     int16_t sa_tmp, ea_tmp;
+    int type;
     int is_need_middle = 0;
 
     if (start_angle < 0 || end_angle < 0 || start_angle > end_angle || start_angle == end_angle)
@@ -804,6 +959,21 @@ void egui_canvas_draw_arc_fill_hq(egui_dim_t cx, egui_dim_t cy, egui_dim_t radiu
 #if EGUI_CONFIG_CIRCLE_HQ_INT32_ONLY
     EGUI_ASSERT(radius <= EGUI_CONFIG_CIRCLE_HQ_MAX_RADIUS);
 #endif
+
+    if (circle_hq_try_get_single_quadrant(start_angle, end_angle, &type, &sa_tmp, &ea_tmp))
+    {
+        circle_hq_draw_arc_corner_fill(cx, cy, radius, sa_tmp, ea_tmp, type, color, alpha);
+
+        if ((start_angle <= 0 && end_angle >= 0) || (start_angle <= 90 && end_angle >= 90) || (start_angle <= 180 && end_angle >= 180) ||
+            (start_angle <= 270 && end_angle >= 270))
+        {
+            is_need_middle = 1;
+        }
+
+        if (is_need_middle)
+            egui_canvas_draw_point(cx, cy, color, alpha);
+        return;
+    }
 
     do
     {
@@ -924,6 +1094,9 @@ static void circle_hq_draw_arc_corner(egui_dim_t cx, egui_dim_t cy, egui_dim_t r
     egui_dim_t pfb_width = self->pfb_region.size.width;
     egui_dim_t pfb_ofs_x = self->pfb_location_in_base_view.x;
     egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
+    egui_alpha_t eff_alpha = egui_color_alpha_mix(self->alpha, alpha);
+    int apply_draw_alpha = (alpha != EGUI_ALPHA_100);
+    int apply_canvas_alpha = (eff_alpha != EGUI_ALPHA_100);
 
     for (egui_dim_t y = y_s; y < y_e; y++)
     {
@@ -947,9 +1120,9 @@ static void circle_hq_draw_arc_corner(egui_dim_t cx, egui_dim_t cy, egui_dim_t r
         }
 
         /* Further narrow x-range based on arc angle boundaries */
+        int32_t qy = 0;
         if (!is_full)
         {
-            int32_t qy;
             if (type == CIRCLE_HQ_TYPE_RIGHT_BOTTOM || type == CIRCLE_HQ_TYPE_LEFT_BOTTOM)
                 qy = y - cy;
             else
@@ -978,17 +1151,17 @@ static void circle_hq_draw_arc_corner(egui_dim_t cx, egui_dim_t cy, egui_dim_t r
             }
         }
 
+        if (x_lo > x_hi)
+            continue;
+
         if (use_direct_pfb)
         {
             egui_color_t *dst_base = (egui_color_t *)&self->pfb[(y - pfb_ofs_y) * pfb_width - pfb_ofs_x];
-            egui_alpha_t eff_alpha = egui_color_alpha_mix(self->alpha, alpha);
 
             for (egui_dim_t x = x_lo; x <= x_hi; x++)
             {
                 int32_t dx = (int32_t)(x - cx);
                 int32_t d_sq = dx * dx + dy_sq;
-                if (d_sq > outer_outer_sq)
-                    continue;
 
                 egui_alpha_t oc;
                 if (d_sq < outer_inner_sq)
@@ -1014,25 +1187,22 @@ static void circle_hq_draw_arc_corner(egui_dim_t cx, egui_dim_t cy, egui_dim_t r
                     ac = EGUI_ALPHA_100;
                 else
                 {
-                    egui_dim_t qx, qy;
-                    circle_hq_to_quadrant_coords(x, y, cx, cy, type, &qx, &qy);
-                    ac = circle_hq_arc_angle_alpha(qx, qy, sa, ea);
+                    egui_dim_t px, py;
+                    circle_hq_to_quadrant_coords(x, y, cx, cy, type, &px, &py);
+                    ac = circle_hq_arc_angle_alpha(px, py, sa, ea);
                     if (ac == 0)
                         continue;
                 }
 
-                egui_alpha_t m = egui_color_alpha_mix(eff_alpha, egui_color_alpha_mix(cc, ac));
+                egui_alpha_t cov = egui_color_alpha_mix(cc, ac);
+                egui_alpha_t m = apply_canvas_alpha ? egui_color_alpha_mix(eff_alpha, cov) : cov;
                 if (m > 0)
                 {
                     egui_color_t *back_color = &dst_base[x];
                     if (m == EGUI_ALPHA_100)
-                    {
                         *back_color = color;
-                    }
                     else
-                    {
                         egui_rgb_mix_ptr(back_color, &color, back_color, m);
-                    }
                 }
             }
         }
@@ -1042,8 +1212,6 @@ static void circle_hq_draw_arc_corner(egui_dim_t cx, egui_dim_t cy, egui_dim_t r
             {
                 int32_t dx = (int32_t)(x - cx);
                 int32_t d_sq = dx * dx + dy_sq;
-                if (d_sq > outer_outer_sq)
-                    continue;
 
                 egui_alpha_t oc;
                 if (d_sq < outer_inner_sq)
@@ -1069,14 +1237,15 @@ static void circle_hq_draw_arc_corner(egui_dim_t cx, egui_dim_t cy, egui_dim_t r
                     ac = EGUI_ALPHA_100;
                 else
                 {
-                    egui_dim_t qx, qy;
-                    circle_hq_to_quadrant_coords(x, y, cx, cy, type, &qx, &qy);
-                    ac = circle_hq_arc_angle_alpha(qx, qy, sa, ea);
+                    egui_dim_t px, py;
+                    circle_hq_to_quadrant_coords(x, y, cx, cy, type, &px, &py);
+                    ac = circle_hq_arc_angle_alpha(px, py, sa, ea);
                     if (ac == 0)
                         continue;
                 }
 
-                egui_alpha_t m = egui_color_alpha_mix(alpha, egui_color_alpha_mix(cc, ac));
+                egui_alpha_t cov = egui_color_alpha_mix(cc, ac);
+                egui_alpha_t m = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                 if (m > 0)
                     egui_canvas_draw_point(x, y, color, m);
             }
@@ -1090,6 +1259,7 @@ void egui_canvas_draw_arc_hq(egui_dim_t cx, egui_dim_t cy, egui_dim_t radius, in
                              egui_color_t color, egui_alpha_t alpha)
 {
     int16_t sa_tmp, ea_tmp;
+    int type;
 
     if (radius <= stroke_width)
     {
@@ -1104,6 +1274,12 @@ void egui_canvas_draw_arc_hq(egui_dim_t cx, egui_dim_t cy, egui_dim_t radius, in
 #if EGUI_CONFIG_CIRCLE_HQ_INT32_ONLY
     EGUI_ASSERT(radius <= EGUI_CONFIG_CIRCLE_HQ_MAX_RADIUS);
 #endif
+
+    if (circle_hq_try_get_single_quadrant(start_angle, end_angle, &type, &sa_tmp, &ea_tmp))
+    {
+        circle_hq_draw_arc_corner(cx, cy, radius, sa_tmp, ea_tmp, stroke_width, type, color, alpha);
+        return;
+    }
 
     do
     {

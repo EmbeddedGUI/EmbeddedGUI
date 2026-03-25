@@ -131,6 +131,10 @@ static inline uint8_t *egui_image_decode_persistent_cache_alpha_row_bytes(uint16
  */
 int egui_image_decode_get_horizontal_clip(egui_dim_t img_x, uint16_t img_width,
                                           egui_dim_t *screen_x_start, egui_dim_t *img_col_start, egui_dim_t *count);
+int egui_image_decode_get_rgb565_dst(egui_dim_t screen_x, egui_dim_t screen_y, egui_color_int_t **dst_row, egui_dim_t *dst_stride);
+int egui_image_decode_get_fast_rgb565_dst(egui_dim_t screen_x, egui_dim_t screen_y, egui_color_int_t **dst_row, egui_dim_t *dst_stride);
+void egui_image_decode_blend_rgb565_alpha8_row_fast_path(egui_color_int_t *dst, const uint16_t *src_pixels, const uint8_t *src_alpha,
+                                                         egui_dim_t count);
 void egui_image_decode_blend_row_clipped(egui_dim_t screen_x, egui_dim_t screen_y,
                                          egui_dim_t img_col_start, egui_dim_t count,
                                          uint8_t data_type, uint8_t alpha_type,

@@ -337,6 +337,24 @@
             "dim": "120,120"
         },
         {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_120_ext",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "0",
+            "compress": "qoi",
+            "dim": "120,120"
+        },
+        {
+            "file": "test_img_2_1280_1280.png",
+            "name": "test_perf_120_ext",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "0",
+            "compress": "rle",
+            "dim": "120,120"
+        },
+        {
             "file": "star.png",
             "name": "star_240",
             "external": "0",
@@ -403,6 +421,24 @@
             "file": "star.png",
             "name": "star_120",
             "external": "0",
+            "format": "rgb565",
+            "alpha": "8",
+            "compress": "rle",
+            "dim": "120,120"
+        },
+        {
+            "file": "star.png",
+            "name": "star_120_ext",
+            "external": "1",
+            "format": "rgb565",
+            "alpha": "8",
+            "compress": "qoi",
+            "dim": "120,120"
+        },
+        {
+            "file": "star.png",
+            "name": "star_120_ext",
+            "external": "1",
             "format": "rgb565",
             "alpha": "8",
             "compress": "rle",

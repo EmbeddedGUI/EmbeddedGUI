@@ -208,6 +208,8 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
         scan_y_end = EGUI_MIN(vy2 - 1, work_y_end - 1);
     }
 
+    int apply_draw_alpha = (alpha != EGUI_ALPHA_100);
+
 // AA zone width: 2 pixels on each side of the edge crossing
 #define TRI_AA_MARGIN 2
 
@@ -352,7 +354,7 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
                 egui_alpha_t cov = (aL < aR) ? aL : aR;
                 if (cov > 0)
                 {
-                    egui_alpha_t mix = egui_color_alpha_mix(alpha, cov);
+                    egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                     if (mix > 0)
                     {
                         egui_canvas_draw_point(px, y, color, mix);
@@ -381,7 +383,7 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
             egui_alpha_t cov = (aL < aR) ? aL : aR;
             if (cov > 0)
             {
-                egui_alpha_t mix = egui_color_alpha_mix(alpha, cov);
+                egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                 if (mix > 0)
                 {
                     egui_canvas_draw_point(px, y, color, mix);
@@ -402,7 +404,7 @@ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2,
             egui_alpha_t cov = (aL < aR) ? aL : aR;
             if (cov > 0)
             {
-                egui_alpha_t mix = egui_color_alpha_mix(alpha, cov);
+                egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, cov) : cov;
                 if (mix > 0)
                 {
                     egui_canvas_draw_point(px, y, color, mix);
