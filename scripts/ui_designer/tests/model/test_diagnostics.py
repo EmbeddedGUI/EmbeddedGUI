@@ -36,6 +36,10 @@ class TestPageDiagnostics:
         assert codes.count("missing_resource") == 1
         assert any(entry.code == "missing_resource" and "missing on disk" in entry.message for entry in entries)
         assert all(entry.page_name == "main_page" for entry in entries)
+        missing_entry = next(entry for entry in entries if entry.code == "missing_resource")
+        assert missing_entry.resource_type == "image"
+        assert missing_entry.resource_name == "ghost.png"
+        assert missing_entry.property_name == "image_file"
 
     def test_analyze_page_reports_invalid_page_fields(self):
         page = Page.create_default("main_page", screen_width=240, screen_height=320)
@@ -87,6 +91,9 @@ class TestPageDiagnostics:
 
         assert [entry.code for entry in entries] == ["missing_string_resource"]
         assert "missing_key" in entries[0].message
+        assert entries[0].resource_type == "string"
+        assert entries[0].resource_name == "missing_key"
+        assert entries[0].property_name == "text"
 
 
 class TestSelectionDiagnostics:

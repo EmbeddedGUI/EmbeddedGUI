@@ -2926,6 +2926,230 @@ class TestMainWindowFileFlow:
         window._undo_manager.mark_all_saved()
         _close_window(window)
 
+    def test_missing_resource_diagnostic_activation_opens_resource_panel_usage(self, tmp_path):
+        repo_root = Path(__file__).resolve().parents[4]
+        script = textwrap.dedent(
+            f"""
+            import os
+            import shutil
+            import sys
+            import tempfile
+            from pathlib import Path
+
+            os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+            repo_root = Path({repr(str(repo_root))})
+            sys.path.insert(0, str(repo_root / "scripts"))
+
+            from PyQt5.QtWidgets import QApplication
+
+            from ui_designer.model.project import Project
+            from ui_designer.model.widget_model import WidgetModel
+            from ui_designer.ui.main_window import MainWindow
+
+
+            def create_sdk_root(root: Path):
+                (root / "src").mkdir(parents=True)
+                (root / "porting" / "designer").mkdir(parents=True)
+                (root / "Makefile").write_text("all:\\n", encoding="utf-8")
+
+
+            def create_project(project_dir: Path, app_name: str, sdk_root: Path):
+                project = Project(screen_width=240, screen_height=320, app_name=app_name)
+                project.sdk_root = str(sdk_root)
+                project.project_dir = str(project_dir)
+                project.create_new_page("main_page")
+                project.save(str(project_dir))
+                return project
+
+
+            class DisabledCompiler:
+                def can_build(self):
+                    return False
+
+                def is_preview_running(self):
+                    return False
+
+                def stop_exe(self):
+                    return None
+
+                def cleanup(self):
+                    return None
+
+                def get_build_error(self):
+                    return "preview disabled for test"
+
+                def set_screen_size(self, width, height):
+                    return None
+
+                def is_exe_ready(self):
+                    return False
+
+
+            temp_root = Path(tempfile.mkdtemp(prefix="ui_designer_diag_resource_", dir=str(repo_root)))
+            app = QApplication.instance() or QApplication([])
+            try:
+                sdk_root = temp_root / "sdk"
+                create_sdk_root(sdk_root)
+                project_dir = temp_root / "DiagnosticMissingResourceDemo"
+                project = create_project(project_dir, "DiagnosticMissingResourceDemo", sdk_root)
+                missing = WidgetModel("image", name="missing_image", x=16, y=16, width=48, height=48)
+                missing.properties["image_file"] = "ghost.png"
+                project.get_page_by_name("main_page").root_widget.add_child(missing)
+                project.save(str(project_dir))
+
+                window = MainWindow(str(sdk_root))
+                window._recreate_compiler = lambda _window=window: setattr(_window, "compiler", DisabledCompiler())
+                window._trigger_compile = lambda: None
+
+                window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+
+                item = window.diagnostics_panel._list.item(0)
+                window.diagnostics_panel._on_item_activated(item)
+
+                assert window._selection_state.primary is missing
+                assert window.res_panel._current_resource_type == "image"
+                assert window.res_panel._current_resource_name == "ghost.png"
+                assert window.res_panel._tabs.currentIndex() == 0
+                assert window.res_panel._usage_summary.text() == "'ghost.png' is used by 1 widget across 1 page."
+                assert window.statusBar().currentMessage() == "Opened diagnostic resource check: image/ghost.png."
+
+                window._undo_manager.mark_all_saved()
+                window.close()
+                window.deleteLater()
+                app.sendPostedEvents()
+                app.processEvents()
+            finally:
+                shutil.rmtree(temp_root, ignore_errors=True)
+            """
+        )
+
+        env = os.environ.copy()
+        env.setdefault("QT_QPA_PLATFORM", "offscreen")
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=env,
+            timeout=60,
+        )
+
+        assert result.returncode == 0, f"stdout:\\n{result.stdout}\\n\\nstderr:\\n{result.stderr}"
+
+    def test_missing_string_diagnostic_activation_opens_string_usage(self, tmp_path):
+        repo_root = Path(__file__).resolve().parents[4]
+        script = textwrap.dedent(
+            f"""
+            import os
+            import shutil
+            import sys
+            import tempfile
+            from pathlib import Path
+
+            os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+            repo_root = Path({repr(str(repo_root))})
+            sys.path.insert(0, str(repo_root / "scripts"))
+
+            from PyQt5.QtWidgets import QApplication
+
+            from ui_designer.model.project import Project
+            from ui_designer.model.widget_model import WidgetModel
+            from ui_designer.ui.main_window import MainWindow
+
+
+            def create_sdk_root(root: Path):
+                (root / "src").mkdir(parents=True)
+                (root / "porting" / "designer").mkdir(parents=True)
+                (root / "Makefile").write_text("all:\\n", encoding="utf-8")
+
+
+            def create_project(project_dir: Path, app_name: str, sdk_root: Path):
+                project = Project(screen_width=240, screen_height=320, app_name=app_name)
+                project.sdk_root = str(sdk_root)
+                project.project_dir = str(project_dir)
+                project.create_new_page("main_page")
+                project.save(str(project_dir))
+                return project
+
+
+            class DisabledCompiler:
+                def can_build(self):
+                    return False
+
+                def is_preview_running(self):
+                    return False
+
+                def stop_exe(self):
+                    return None
+
+                def cleanup(self):
+                    return None
+
+                def get_build_error(self):
+                    return "preview disabled for test"
+
+                def set_screen_size(self, width, height):
+                    return None
+
+                def is_exe_ready(self):
+                    return False
+
+
+            temp_root = Path(tempfile.mkdtemp(prefix="ui_designer_diag_string_", dir=str(repo_root)))
+            app = QApplication.instance() or QApplication([])
+            try:
+                sdk_root = temp_root / "sdk"
+                create_sdk_root(sdk_root)
+                project_dir = temp_root / "DiagnosticMissingStringDemo"
+                project = create_project(project_dir, "DiagnosticMissingStringDemo", sdk_root)
+                title = WidgetModel("label", name="title", x=16, y=16, width=80, height=20)
+                title.properties["text"] = "@string/missing_key"
+                project.get_page_by_name("main_page").root_widget.add_child(title)
+                project.save(str(project_dir))
+
+                window = MainWindow(str(sdk_root))
+                window._recreate_compiler = lambda _window=window: setattr(_window, "compiler", DisabledCompiler())
+                window._trigger_compile = lambda: None
+
+                window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+
+                item = window.diagnostics_panel._list.item(0)
+                window.diagnostics_panel._on_item_activated(item)
+
+                assert window._selection_state.primary is title
+                assert window.res_panel._current_resource_type == "string"
+                assert window.res_panel._current_resource_name == "missing_key"
+                assert window.res_panel._tabs.currentIndex() == 3
+                assert window.res_panel._usage_summary.text() == "'missing_key' is used by 1 widget across 1 page."
+                assert window.statusBar().currentMessage() == "Opened diagnostic resource check: string/missing_key."
+
+                window._undo_manager.mark_all_saved()
+                window.close()
+                window.deleteLater()
+                app.sendPostedEvents()
+                app.processEvents()
+            finally:
+                shutil.rmtree(temp_root, ignore_errors=True)
+            """
+        )
+
+        env = os.environ.copy()
+        env.setdefault("QT_QPA_PLATFORM", "offscreen")
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=env,
+            timeout=60,
+        )
+
+        assert result.returncode == 0, f"stdout:\\n{result.stdout}\\n\\nstderr:\\n{result.stderr}"
+
     def test_window_state_helpers_roundtrip_with_config_storage(self, qapp, isolated_config, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
 

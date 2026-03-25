@@ -2529,6 +2529,8 @@ class MainWindow(QMainWindow):
         if not self.project:
             return
 
+        diagnostic_entry = self.diagnostics_panel.current_activated_entry() if hasattr(self, "diagnostics_panel") else None
+
         target_page_name = page_name or (self._current_page.name if self._current_page is not None else "")
         if not target_page_name:
             return
@@ -2550,6 +2552,13 @@ class MainWindow(QMainWindow):
             return
 
         self._set_selection([widget], primary=widget, sync_tree=True, sync_preview=True)
+        if diagnostic_entry is not None and getattr(diagnostic_entry, "resource_type", "") and getattr(diagnostic_entry, "resource_name", ""):
+            self.res_dock.show()
+            self.res_panel._select_resource_item(diagnostic_entry.resource_type, diagnostic_entry.resource_name)
+            self.statusBar().showMessage(
+                f"Opened diagnostic resource check: {diagnostic_entry.resource_type}/{diagnostic_entry.resource_name}.",
+                4000,
+            )
 
     def _on_page_added(self, page_name):
         """User requested a new page."""

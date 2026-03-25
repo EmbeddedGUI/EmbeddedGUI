@@ -32,6 +32,9 @@ class DiagnosticEntry:
     message: str
     page_name: str = ""
     widget_name: str = ""
+    resource_type: str = ""
+    resource_name: str = ""
+    property_name: str = ""
 
 
 def _is_layout_managed(widget):
@@ -164,6 +167,9 @@ def _missing_resource_entries(page, resource_catalog=None, source_resource_dir="
                     message,
                     page_name=page.name,
                     widget_name=widget.name,
+                    resource_type=_RESOURCE_PROP_TYPES.get(prop_type, ""),
+                    resource_name=value,
+                    property_name=prop_name,
                 )
             )
 
@@ -187,6 +193,9 @@ def _missing_string_reference_entries(page, string_catalog=None):
                 f"Widget '{widget.name}' references text='@string/{string_key}', but that key is missing from the string catalog.",
                 page_name=page.name,
                 widget_name=widget.name,
+                resource_type="string",
+                resource_name=string_key,
+                property_name="text",
             )
         )
 

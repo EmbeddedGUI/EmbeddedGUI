@@ -19,6 +19,7 @@ class DiagnosticsPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._entries = []
+        self._activated_entry = None
         self._init_ui()
         self.clear()
 
@@ -41,6 +42,7 @@ class DiagnosticsPanel(QWidget):
 
     def clear(self):
         self._entries = []
+        self._activated_entry = None
         self._summary_label.setText("Diagnostics: no active issues")
         self._list.clear()
 
@@ -63,8 +65,13 @@ class DiagnosticsPanel(QWidget):
             prefix = _SEVERITY_PREFIX.get(entry.severity, entry.severity.title())
             item = QListWidgetItem(f"[{prefix}] {scope}{widget}: {entry.message}")
             item.setData(Qt.UserRole, (entry.page_name, entry.widget_name))
+            item.setData(Qt.UserRole + 1, entry)
             self._list.addItem(item)
 
+    def current_activated_entry(self):
+        return self._activated_entry
+
     def _on_item_activated(self, item):
+        self._activated_entry = item.data(Qt.UserRole + 1)
         page_name, widget_name = item.data(Qt.UserRole) or ("", "")
         self.diagnostic_activated.emit(page_name or "", widget_name or "")
