@@ -1057,6 +1057,37 @@ class TestMainWindowFileFlow:
         assert captured["directory"] == os.path.normpath(os.path.abspath(project_dir))
         _close_window(window)
 
+    def test_export_code_is_blocked_by_diagnostics_errors(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "ExportBlockedDemo"
+        export_dir = tmp_path / "export_out"
+        export_dir.mkdir()
+        project = _create_project(project_dir, "ExportBlockedDemo", sdk_root)
+        project.get_startup_page().root_widget.add_child(WidgetModel("label", name="bad-name", x=8, y=8, width=60, height=20))
+        project.save(str(project_dir))
+
+        warnings = []
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr("ui_designer.ui.main_window.QFileDialog.getExistingDirectory", lambda *args, **kwargs: str(export_dir))
+        monkeypatch.setattr("ui_designer.ui.main_window.QMessageBox.warning", lambda *args: warnings.append(args[1:]))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._export_code()
+
+        assert warnings
+        assert warnings[0][0] == "Export Blocked"
+        assert "blocked by diagnostics" in warnings[0][1]
+        assert not (export_dir / "main_page.c").exists()
+        assert window.statusBar().currentMessage() == "Export blocked: 1 error(s) in diagnostics."
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
     def test_set_sdk_root_updates_current_project_and_rebuilds_compiler(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.project import Project
         from ui_designer.ui.main_window import MainWindow
@@ -1227,6 +1258,58 @@ class TestMainWindowFileFlow:
         assert isolated_config.sdk_root == os.path.normpath(os.path.abspath(sdk_root))
         assert isolated_config.sdk_setup_prompted is True
         assert "SDK downloaded to:" in window.statusBar().currentMessage()
+        _close_window(window)
+
+    def test_compile_preview_is_blocked_by_diagnostics_errors(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "CompileBlockedDemo"
+        project = _create_project(project_dir, "CompileBlockedDemo", sdk_root)
+        project.get_startup_page().root_widget.add_child(WidgetModel("label", name="bad-name", x=8, y=8, width=60, height=20))
+        project.save(str(project_dir))
+
+        class CompileFailIfCalled:
+            app_root_arg = "app"
+
+            def can_build(self):
+                return True
+
+            def get_build_error(self):
+                return ""
+
+            def compile_and_run_async(self, *args, **kwargs):
+                raise AssertionError("compile_and_run_async should not be called when diagnostics block compile")
+
+            def set_screen_size(self, width, height):
+                return None
+
+            def is_preview_running(self):
+                return False
+
+            def stop_exe(self):
+                return None
+
+            def cleanup(self):
+                return None
+
+        window = MainWindow(str(sdk_root))
+        preview_reasons = []
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_ensure_resources_generated", lambda: (_ for _ in ()).throw(AssertionError("resource generation should not run")))
+        monkeypatch.setattr(window, "_switch_to_python_preview", lambda reason="": preview_reasons.append(reason))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window.compiler = CompileFailIfCalled()
+        preview_reasons.clear()
+        window._do_compile_and_run()
+
+        assert preview_reasons == ["Compile blocked by diagnostics"]
+        assert window.statusBar().currentMessage() == "Compile preview blocked: 1 error(s) in diagnostics."
+        window._undo_manager.mark_all_saved()
         _close_window(window)
 
     def test_download_sdk_failure_mentions_target_dir(self, qapp, isolated_config, tmp_path, monkeypatch):

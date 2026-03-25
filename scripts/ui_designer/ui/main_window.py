@@ -1667,6 +1667,70 @@ class MainWindow(QMainWindow):
         current_page_name = self._current_page.name if self._current_page is not None else ""
         self.res_panel.set_usage_page_context(current_page_name)
 
+    def _collect_codegen_blockers(self):
+        if self.project is None:
+            return []
+
+        resource_dir = self._get_eguiproject_resource_dir()
+        catalog = self.project.resource_catalog if self.project is not None else None
+        string_catalog = self.project.string_catalog if self.project is not None else None
+        entries = []
+        for page in self.project.pages:
+            entries.extend(
+                entry
+                for entry in analyze_page(
+                    page,
+                    resource_catalog=catalog,
+                    string_catalog=string_catalog,
+                    source_resource_dir=resource_dir,
+                )
+                if entry.severity == "error"
+            )
+        entries.extend(
+            entry
+            for entry in analyze_project_callback_conflicts(self.project)
+            if entry.severity == "error"
+        )
+        return sort_diagnostic_entries(entries)
+
+    def _format_codegen_blocker_summary(self, entries, limit=5):
+        entries = list(entries or [])
+        lines = []
+        for entry in entries[:limit]:
+            scope = entry.page_name or "project"
+            if entry.widget_name:
+                scope = f"{scope}/{entry.widget_name}"
+            lines.append(f"- {scope}: {entry.message}")
+        remaining = max(0, len(entries) - limit)
+        if remaining:
+            lines.append(f"- ... and {remaining} more issue(s)")
+        return "\n".join(lines)
+
+    def _ensure_codegen_preflight(self, action_name, show_dialog=False, switch_to_python_preview=False):
+        blockers = self._collect_codegen_blockers()
+        if not blockers:
+            return True
+
+        summary = self._format_codegen_blocker_summary(blockers)
+        self.debug_panel.log_error(f"{action_name} blocked by diagnostics ({len(blockers)} error(s))")
+        if summary:
+            self.debug_panel.log_error(summary)
+        self.diagnostics_dock.show()
+        self.diagnostics_dock.raise_()
+
+        if switch_to_python_preview:
+            self._switch_to_python_preview("Compile blocked by diagnostics")
+
+        self.statusBar().showMessage(f"{action_name} blocked: {len(blockers)} error(s) in diagnostics.", 5000)
+
+        if show_dialog:
+            QMessageBox.warning(
+                self,
+                f"{action_name} Blocked",
+                f"{action_name} blocked by diagnostics ({len(blockers)} error(s)).\n\n{summary}",
+            )
+        return False
+
     def _find_widget_in_page(self, page, widget_name):
         if page is None or not widget_name:
             return None
@@ -1935,6 +1999,10 @@ class MainWindow(QMainWindow):
             self, "Export C Code To Directory", self._default_export_code_dir()
         )
         if not path:
+            return
+        self._flush_pending_xml()
+        self._update_diagnostics_panel()
+        if not self._ensure_codegen_preflight("Export", show_dialog=True, switch_to_python_preview=False):
             return
         files = generate_all_files_preserved(
             self.project, path, backup=True,
@@ -3701,6 +3769,9 @@ class MainWindow(QMainWindow):
 
         # Always use the latest editor content
         self._flush_pending_xml()
+        self._update_diagnostics_panel()
+        if not self._ensure_codegen_preflight("Compile preview", show_dialog=False, switch_to_python_preview=True):
+            return
 
         self.statusBar().showMessage("Compiling...")
         self.preview_panel.status_label.setText("Compiling...")
