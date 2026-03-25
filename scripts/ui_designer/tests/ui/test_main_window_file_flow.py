@@ -2041,6 +2041,83 @@ class TestMainWindowFileFlow:
         window._undo_manager.mark_all_saved()
         _close_window(window)
 
+    def test_replace_missing_resources_batch_preview_confirmation_updates_widget_references_across_pages(
+        self, qapp, isolated_config, tmp_path, monkeypatch
+    ):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "ReplaceMissingBatchPreviewDemo"
+        project = _create_project(project_dir, "ReplaceMissingBatchPreviewDemo", sdk_root)
+        detail_page = project.create_new_page("detail_page")
+        project.resource_catalog.add_image("star.png")
+
+        image_a = WidgetModel("image", name="image_a")
+        image_a.properties["image_file"] = "star.png"
+        project.get_page_by_name("main_page").root_widget.add_child(image_a)
+
+        image_b = WidgetModel("image", name="image_b")
+        image_b.properties["image_file"] = "star.png"
+        detail_page.root_widget.add_child(image_b)
+
+        project.save(str(project_dir))
+
+        replacement_dir = tmp_path / "external_images"
+        replacement_dir.mkdir()
+        replacement_path = replacement_dir / "star_new.png"
+        replacement_path.write_bytes(b"PNG")
+
+        preview_calls = []
+
+        class FakeDialog:
+            def __init__(self, missing_names, source_paths, parent=None):
+                assert missing_names == ["star.png"]
+                assert source_paths == [str(replacement_path)]
+
+            def exec_(self):
+                return 1
+
+            def selected_mapping(self):
+                return {"star.png": str(replacement_path)}
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QFileDialog.getOpenFileNames",
+            lambda *args, **kwargs: ([str(replacement_path)], "Images (*.png *.bmp *.jpg *.jpeg)"),
+        )
+        monkeypatch.setattr("ui_designer.ui.resource_panel._MissingResourceReplaceDialog", FakeDialog)
+        monkeypatch.setattr(
+            window.res_panel,
+            "_confirm_batch_replace_impact",
+            lambda resource_type, impacts, total_rename_count: preview_calls.append((resource_type, impacts, total_rename_count)) or True,
+        )
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        assert window.res_panel._missing_resource_names("image") == ["star.png"]
+        window._selected_widget = image_a
+        window.property_panel.set_widget(image_a)
+
+        window.res_panel._replace_missing_resources("image")
+
+        assert len(preview_calls) == 1
+        assert preview_calls[0][0] == "image"
+        assert preview_calls[0][2] == 1
+        assert preview_calls[0][1][0]["old_name"] == "star.png"
+        assert preview_calls[0][1][0]["new_name"] == "star_new.png"
+        assert image_a.properties["image_file"] == "star_new.png"
+        assert image_b.properties["image_file"] == "star_new.png"
+        assert window.project.resource_catalog.has_image("star_new.png") is True
+        assert window.project.resource_catalog.has_image("star.png") is False
+        assert window._undo_manager.get_stack("main_page").is_dirty() is True
+        assert window._undo_manager.get_stack("detail_page").is_dirty() is True
+        assert window.statusBar().currentMessage() == "Replaced image resources: 1 renamed."
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
     def test_resource_panel_rename_preserves_specific_status_message(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
         from ui_designer.ui.main_window import MainWindow

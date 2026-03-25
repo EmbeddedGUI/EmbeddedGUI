@@ -513,6 +513,143 @@ class _ReferenceImpactDialog(QDialog):
         self.done(self.NAVIGATE_RESULT)
 
 
+class _BatchReplaceImpactDialog(QDialog):
+    """Preview grouped rename impacts before batch replacement."""
+
+    NAVIGATE_RESULT = 2
+
+    def __init__(self, parent, title, resource_type, impacts, total_rename_count, confirm_text):
+        super().__init__(parent)
+        self._impacts = list(impacts)
+        self._selected_usage = ("", "")
+        self.setWindowTitle(title)
+        self.resize(720, 460)
+
+        total_widget_count = sum(entry["widget_count"] for entry in self._impacts)
+        total_page_count = len(
+            {
+                usage.page_name
+                for entry in self._impacts
+                for usage in entry["usages"]
+            }
+        )
+        impacted_rename_count = len(self._impacts)
+        rename_noun = "resource" if total_rename_count == 1 else "resources"
+        impacted_noun = "rename" if impacted_rename_count == 1 else "renames"
+        widget_noun = "widget reference" if total_widget_count == 1 else "widget references"
+        page_noun = "page" if total_page_count == 1 else "pages"
+
+        summary_lines = [f"The selected replacements will rename {total_rename_count} missing {resource_type} {rename_noun}."]
+        if impacted_rename_count != total_rename_count:
+            summary_lines.append(f"{impacted_rename_count} {impacted_noun} affect widget references.")
+        summary_lines.append(
+            f"Those renames affect {total_widget_count} {widget_noun} across {total_page_count} {page_noun}. "
+            "Select a rename to inspect the impacted widgets before continuing."
+        )
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
+
+        summary_label = QLabel("\n".join(summary_lines))
+        summary_label.setWordWrap(True)
+        layout.addWidget(summary_label)
+
+        group_caption = QLabel("Rename Impact Summary")
+        layout.addWidget(group_caption)
+
+        self._impact_table = QTableWidget(len(self._impacts), 4, self)
+        self._impact_table.setHorizontalHeaderLabels(["Missing Resource", "Replacement File", "Widgets", "Pages"])
+        self._impact_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self._impact_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self._impact_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self._impact_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        self._impact_table.verticalHeader().setVisible(False)
+        self._impact_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self._impact_table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self._impact_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self._impact_table.setMinimumHeight(160)
+        for row, entry in enumerate(self._impacts):
+            self._impact_table.setItem(row, 0, QTableWidgetItem(entry["old_name"]))
+            self._impact_table.setItem(row, 1, QTableWidgetItem(entry["new_name"]))
+            self._impact_table.setItem(row, 2, QTableWidgetItem(str(entry["widget_count"])))
+            self._impact_table.setItem(row, 3, QTableWidgetItem(str(entry["page_count"])))
+        self._impact_table.itemSelectionChanged.connect(self._refresh_usage_table)
+        layout.addWidget(self._impact_table)
+
+        usage_caption = QLabel("Affected Usages")
+        layout.addWidget(usage_caption)
+
+        self._usage_table = QTableWidget(0, 3, self)
+        self._usage_table.setHorizontalHeaderLabels(["Page", "Widget", "Property"])
+        self._usage_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self._usage_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self._usage_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self._usage_table.verticalHeader().setVisible(False)
+        self._usage_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self._usage_table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self._usage_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self._usage_table.itemDoubleClicked.connect(lambda *_args: self._open_selected_usage())
+        layout.addWidget(self._usage_table, 1)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self)
+        self._open_usage_button = buttons.addButton("Open Selected Usage", QDialogButtonBox.ActionRole)
+        ok_button = buttons.button(QDialogButtonBox.Ok)
+        if ok_button is not None:
+            ok_button.setText(confirm_text or "Continue")
+        cancel_button = buttons.button(QDialogButtonBox.Cancel)
+        if cancel_button is not None:
+            cancel_button.setText("Cancel")
+        self._open_usage_button.clicked.connect(self._open_selected_usage)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+        if self._impacts:
+            self._impact_table.selectRow(0)
+        self._refresh_usage_table()
+
+    def selected_usage(self):
+        return self._selected_usage
+
+    def _current_impact(self):
+        row = self._impact_table.currentRow()
+        if row < 0 or row >= len(self._impacts):
+            return None
+        return self._impacts[row]
+
+    def _refresh_usage_table(self):
+        impact = self._current_impact()
+        usages = [] if impact is None else impact["usages"]
+        self._usage_table.setRowCount(len(usages))
+        for row, entry in enumerate(usages):
+            page_item = QTableWidgetItem(entry.page_name)
+            widget_text = entry.widget_name
+            if entry.widget_type:
+                widget_text = f"{entry.widget_name} ({entry.widget_type})"
+            widget_item = QTableWidgetItem(widget_text)
+            prop_item = QTableWidgetItem(entry.property_name)
+            self._usage_table.setItem(row, 0, page_item)
+            self._usage_table.setItem(row, 1, widget_item)
+            self._usage_table.setItem(row, 2, prop_item)
+        has_usages = bool(usages)
+        self._open_usage_button.setEnabled(has_usages)
+        if has_usages:
+            self._usage_table.selectRow(0)
+
+    def _open_selected_usage(self):
+        impact = self._current_impact()
+        if impact is None:
+            return
+        usages = impact["usages"]
+        row = self._usage_table.currentRow()
+        if row < 0 or row >= len(usages):
+            return
+        entry = usages[row]
+        self._selected_usage = (entry.page_name, entry.widget_name)
+        self.done(self.NAVIGATE_RESULT)
+
+
 # -- Main ResourcePanel --------------------------------------------------
 
 class ResourcePanel(QWidget):
@@ -865,7 +1002,12 @@ class ResourcePanel(QWidget):
     def set_resource_catalog(self, catalog):
         """Set the resource catalog and refresh the panel."""
         self._catalog = catalog or ResourceCatalog()
-        self.set_resource_dir(self._resource_dir)
+        if self._resource_dir:
+            self.set_resource_dir(self._resource_dir)
+            return
+
+        self._update_tab_titles()
+        self._refresh_usage_view()
 
     def get_resource_catalog(self):
         """Return the current resource catalog."""
@@ -1129,6 +1271,52 @@ class ResourcePanel(QWidget):
         dialog = _ReferenceImpactDialog(self, title, summary, usages, confirm_text)
         result = dialog.exec_()
         if result == _ReferenceImpactDialog.NAVIGATE_RESULT:
+            page_name, widget_name = dialog.selected_usage()
+            if page_name and widget_name:
+                self.usage_activated.emit(page_name, widget_name)
+            return False
+        return result == QDialog.Accepted
+
+    def _collect_batch_replace_impacts(self, resource_type, replacements):
+        impacts = []
+        total_rename_count = 0
+        for old_name, source_path in replacements.items():
+            new_name = os.path.basename(source_path or "")
+            if not new_name or new_name == old_name:
+                continue
+
+            total_rename_count += 1
+            usages = list(self._resource_usage_index.get((resource_type, old_name), []))
+            if not usages:
+                continue
+
+            impacts.append(
+                {
+                    "old_name": old_name,
+                    "new_name": new_name,
+                    "usages": usages,
+                    "widget_count": len(usages),
+                    "page_count": len({entry.page_name for entry in usages}),
+                }
+            )
+
+        impacts.sort(key=lambda entry: (entry["old_name"].lower(), entry["new_name"].lower()))
+        return impacts, total_rename_count
+
+    def _confirm_batch_replace_impact(self, resource_type, impacts, total_rename_count):
+        if not impacts:
+            return True
+
+        dialog = _BatchReplaceImpactDialog(
+            self,
+            "Replace Missing Resources",
+            resource_type,
+            impacts,
+            total_rename_count,
+            "Replace",
+        )
+        result = dialog.exec_()
+        if result == _BatchReplaceImpactDialog.NAVIGATE_RESULT:
             page_name, widget_name = dialog.selected_usage()
             if page_name and widget_name:
                 self.usage_activated.emit(page_name, widget_name)
@@ -1515,7 +1703,12 @@ class ResourcePanel(QWidget):
         if dialog.exec_() != QDialog.Accepted:
             return
 
-        restored, renamed, failures = self._replace_missing_resources_from_mapping(resource_type, dialog.selected_mapping())
+        replacements = dialog.selected_mapping()
+        impacts, total_rename_count = self._collect_batch_replace_impacts(resource_type, replacements)
+        if impacts and not self._confirm_batch_replace_impact(resource_type, impacts, total_rename_count):
+            return
+
+        restored, renamed, failures = self._replace_missing_resources_from_mapping(resource_type, replacements)
         if restored or renamed:
             if failures:
                 details = "\n".join(f"{name}: {error}" for name, error in failures)
