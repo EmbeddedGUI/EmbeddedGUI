@@ -940,6 +940,9 @@ void egui_polling_refresh_display(void)
     // wait for all PFB flush complete before next frame, to avoid too many pending buffers in the PFB manager when the screen is updated frequently.
     egui_pfb_manager_wait_all_complete(&egui_core.pfb_mgr);
 
+    /* Transform caches only need to persist while the current refresh walk spans multiple PFB tiles. */
+    egui_canvas_transform_release_frame_cache();
+
 #if EGUI_CONFIG_DEBUG_INFO_SHOW
     // refresh in next frame.
     uint32_t end_time = egui_api_timer_get_current();

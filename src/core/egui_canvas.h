@@ -1088,6 +1088,7 @@ void egui_canvas_draw_text_rotate_buffered(const egui_font_t *font, const void *
                                            egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_text_rotate_buffered_pivot(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x,
                                                  egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha);
+void egui_canvas_transform_release_frame_cache(void);
 
 void egui_canvas_calc_work_region(egui_region_t *base_region);
 void egui_canvas_register_spec_circle_info(uint16_t res_circle_info_count_spec, const egui_circle_info_t *res_circle_info_spec_arr);

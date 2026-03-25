@@ -1845,6 +1845,88 @@ static int g_text_transform_layout_capacity = 0;
 static text_transform_layout_line_t *g_text_transform_layout_lines = NULL;
 static int g_text_transform_layout_line_capacity = 0;
 
+typedef struct
+{
+    text_transform_glyph_t *glyphs;
+    const text_transform_layout_glyph_t **layout_glyphs;
+} text_transform_tile_cache_t;
+
+typedef struct
+{
+    uint8_t *buf;
+    int capacity;
+} text_transform_visible_alpha8_cache_t;
+
+typedef struct
+{
+    uint8_t *buf;
+    uint8_t packed_bpp;
+    const egui_font_t *font;
+    const void *string;
+    int16_t text_w;
+    int16_t text_h;
+    int16_t packed_src_x0;
+    int16_t packed_src_y0;
+    int16_t packed_src_w;
+    int16_t packed_src_h;
+} text_transform_buffered_cache_t;
+
+static text_transform_tile_cache_t g_text_transform_tile_cache = {0};
+static text_transform_visible_alpha8_cache_t g_text_transform_visible_alpha8_cache = {0};
+static text_transform_buffered_cache_t g_text_transform_buffered_cache = {0};
+
+static void text_transform_release_layout_cache(void)
+{
+    if (g_text_transform_layout_glyphs != NULL)
+    {
+        egui_free(g_text_transform_layout_glyphs);
+        g_text_transform_layout_glyphs = NULL;
+    }
+    if (g_text_transform_layout_lines != NULL)
+    {
+        egui_free(g_text_transform_layout_lines);
+        g_text_transform_layout_lines = NULL;
+    }
+
+    memset(&g_text_transform_layout_cache, 0, sizeof(g_text_transform_layout_cache));
+    g_text_transform_layout_capacity = 0;
+    g_text_transform_layout_line_capacity = 0;
+}
+
+static void text_transform_release_tile_cache(void)
+{
+    if (g_text_transform_tile_cache.glyphs != NULL)
+    {
+        egui_free(g_text_transform_tile_cache.glyphs);
+    }
+    if (g_text_transform_tile_cache.layout_glyphs != NULL)
+    {
+        egui_free(g_text_transform_tile_cache.layout_glyphs);
+    }
+
+    memset(&g_text_transform_tile_cache, 0, sizeof(g_text_transform_tile_cache));
+}
+
+static void text_transform_release_visible_alpha8_cache(void)
+{
+    if (g_text_transform_visible_alpha8_cache.buf != NULL)
+    {
+        egui_free(g_text_transform_visible_alpha8_cache.buf);
+    }
+
+    memset(&g_text_transform_visible_alpha8_cache, 0, sizeof(g_text_transform_visible_alpha8_cache));
+}
+
+static void text_transform_release_buffered_cache(void)
+{
+    if (g_text_transform_buffered_cache.buf != NULL)
+    {
+        egui_free(g_text_transform_buffered_cache.buf);
+    }
+
+    memset(&g_text_transform_buffered_cache, 0, sizeof(g_text_transform_buffered_cache));
+}
+
 static void text_transform_measure_layout_slots(const char *string, int *glyph_count, int *line_count)
 {
     const char *s = string;
@@ -1954,6 +2036,18 @@ static int text_transform_ensure_line_capacity(int needed)
     g_text_transform_layout_lines = new_lines;
     g_text_transform_layout_line_capacity = needed;
     return 0;
+}
+
+void egui_canvas_transform_release_frame_cache(void)
+{
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    image_transform_release_external_cache(&g_image_transform_external_cache);
+#endif
+
+    memset(&g_text_transform_prepare_cache, 0, sizeof(g_text_transform_prepare_cache));
+    text_transform_release_layout_cache();
+    text_transform_release_tile_cache();
+    text_transform_release_visible_alpha8_cache();
 }
 
 static int text_transform_build_layout(const egui_font_std_info_t *font_info, const char *string, text_transform_layout_glyph_t *glyphs, int max_glyphs,
@@ -2994,8 +3088,6 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
     /* Collect only glyphs visible in this tile's source bbox.
      * Use a static pointer allocated once via egui_malloc to avoid large stack usage. */
-    static text_transform_glyph_t *s_tile_glyphs = NULL;
-    static const text_transform_layout_glyph_t **s_tile_layout_glyphs = NULL;
     static text_transform_layout_line_t s_tile_lines[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES];
     int tile_line_count = 0;
     int16_t tile_src_x0 = 0;
@@ -3003,10 +3095,10 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     int16_t tile_src_x1 = 0;
     int16_t tile_src_y1 = 0;
     int tile_glyphs_overlap = 0;
-    if (s_tile_glyphs == NULL)
+    if (g_text_transform_tile_cache.glyphs == NULL)
     {
-        s_tile_glyphs = (text_transform_glyph_t *)egui_malloc(EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS * sizeof(text_transform_glyph_t));
-        if (s_tile_glyphs == NULL)
+        g_text_transform_tile_cache.glyphs = (text_transform_glyph_t *)egui_malloc(EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS * sizeof(text_transform_glyph_t));
+        if (g_text_transform_tile_cache.glyphs == NULL)
         {
             egui_font_std_release_access(&font_access);
             return;
@@ -3020,18 +3112,18 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
         if (use_visible_alpha8_tile)
         {
-            if (s_tile_layout_glyphs == NULL)
+            if (g_text_transform_tile_cache.layout_glyphs == NULL)
             {
-                s_tile_layout_glyphs =
-                        (const text_transform_layout_glyph_t **)egui_malloc(EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS * sizeof(*s_tile_layout_glyphs));
-                if (s_tile_layout_glyphs == NULL)
+                g_text_transform_tile_cache.layout_glyphs = (const text_transform_layout_glyph_t **)egui_malloc(
+                        EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS * sizeof(*g_text_transform_tile_cache.layout_glyphs));
+                if (g_text_transform_tile_cache.layout_glyphs == NULL)
                 {
                     egui_font_std_release_access(&font_access);
                     return;
                 }
             }
 
-            tile_count = collect_visible_layout_glyphs_alpha8(layout_glyphs, layout_lines, layout_line_count, s_tile_layout_glyphs,
+            tile_count = collect_visible_layout_glyphs_alpha8(layout_glyphs, layout_lines, layout_line_count, g_text_transform_tile_cache.layout_glyphs,
                                                               EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS, src_min_x, src_min_y, src_max_x, src_max_y,
                                                               &tile_src_x0, &tile_src_y0, &tile_src_x1, &tile_src_y1, &tile_glyphs_overlap);
 
@@ -3041,15 +3133,15 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                 return;
             }
 
-            if (text_transform_draw_visible_alpha8_tile_layout(&ctx, x, y, color, font_info, s_tile_layout_glyphs, tile_count, tile_src_x0, tile_src_y0,
-                                                               tile_src_x1, tile_src_y1, tile_glyphs_overlap))
+            if (text_transform_draw_visible_alpha8_tile_layout(&ctx, x, y, color, font_info, g_text_transform_tile_cache.layout_glyphs, tile_count,
+                                                               tile_src_x0, tile_src_y0, tile_src_x1, tile_src_y1, tile_glyphs_overlap))
             {
                 egui_font_std_release_access(&font_access);
                 return;
             }
         }
 
-        tile_count = collect_visible_glyphs(font_info, layout_glyphs, layout_lines, layout_line_count, s_tile_glyphs,
+        tile_count = collect_visible_glyphs(font_info, layout_glyphs, layout_lines, layout_line_count, g_text_transform_tile_cache.glyphs,
                                             EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS, s_tile_lines, EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES,
                                             &tile_line_count, src_min_x, src_min_y, src_max_x, src_max_y, NULL, NULL, NULL, NULL, NULL, 1);
 
@@ -3119,7 +3211,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                 /* Fast path: SIR within hint glyph interior */
                 if (hint >= 0)
                 {
-                    const text_transform_glyph_t *g = &s_tile_glyphs[hint];
+                    const text_transform_glyph_t *g = &g_text_transform_tile_cache.glyphs[hint];
                     int lx = sx - g->x;
                     int ly = sy - g->y;
                     if (lx >= 0 && lx + 1 < g->box_w && ly >= 0 && ly + 1 < g->box_h)
@@ -3380,7 +3472,8 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
                     if (line0 >= 0)
                     {
-                        sample_tile_alpha_pair_from_line(s_tile_glyphs, &s_tile_lines[line0], sx, sy, bpp, &a00, &a01, &hint00, &hint01);
+                        sample_tile_alpha_pair_from_line(g_text_transform_tile_cache.glyphs, &s_tile_lines[line0], sx, sy, bpp, &a00, &a01, &hint00,
+                                                         &hint01);
                     }
 
                     /* Early exit: preserve existing whitespace skip behavior based on a00 only */
@@ -3394,7 +3487,8 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                     line1 = sample_tile_find_pair_line(s_tile_lines, tile_line_count, sx, sy + 1, line0);
                     if (line1 >= 0)
                     {
-                        sample_tile_alpha_pair_from_line(s_tile_glyphs, &s_tile_lines[line1], sx, sy + 1, bpp, &a10, &a11, &hint10, &hint11);
+                        sample_tile_alpha_pair_from_line(g_text_transform_tile_cache.glyphs, &s_tile_lines[line1], sx, sy + 1, bpp, &a10, &a11, &hint10,
+                                                         &hint11);
                     }
 
                     if (hint11 >= 0)
@@ -4899,8 +4993,6 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
                                                           const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *const *glyphs,
                                                           int glyph_count, int16_t src_x0, int16_t src_y0, int16_t src_x1, int16_t src_y1, int glyphs_overlap)
 {
-    static uint8_t *s_visible_alpha8_buf = NULL;
-    static int s_visible_alpha8_capacity = 0;
     const uint8_t *pixel_buffer;
     int buf_w;
     int buf_h;
@@ -4925,12 +5017,12 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
     }
 
     buf_size = buf_w * buf_h;
-    if (text_transform_ensure_visible_alpha8_capacity(buf_size, &s_visible_alpha8_buf, &s_visible_alpha8_capacity) != 0)
+    if (text_transform_ensure_visible_alpha8_capacity(buf_size, &g_text_transform_visible_alpha8_cache.buf, &g_text_transform_visible_alpha8_cache.capacity) != 0)
     {
         return 0;
     }
 
-    alpha8_buf = s_visible_alpha8_buf;
+    alpha8_buf = g_text_transform_visible_alpha8_cache.buf;
     memset(alpha8_buf, 0, buf_size);
     ensure_alpha4_expand_pair_table();
     pixel_buffer = font_info->pixel_buffer;
@@ -5266,16 +5358,9 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
     uint8_t bpp = font_info->font_bit_mode;
 
     /* Static cache: rasterize once, reuse across PFB tiles */
-    static uint8_t *s_packed_buf = NULL;
-    static uint8_t s_packed_buf_bpp = 0;
-    static const egui_font_t *s_cached_font = NULL;
-    static const void *s_cached_string = NULL;
-    static int16_t s_cached_w = 0, s_cached_h = 0;
-    static int16_t s_packed_src_x0 = 0, s_packed_src_y0 = 0;
-    static int16_t s_packed_src_w = 0, s_packed_src_h = 0;
-
-    int16_t text_w = s_cached_w, text_h = s_cached_h;
-    if (font != s_cached_font || string != s_cached_string)
+    int16_t text_w = g_text_transform_buffered_cache.text_w;
+    int16_t text_h = g_text_transform_buffered_cache.text_h;
+    if (font != g_text_transform_buffered_cache.font || string != g_text_transform_buffered_cache.string)
     {
         /* Measure text dimensions */
         egui_dim_t tw = 0, th = 0;
@@ -5290,13 +5375,10 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
         return;
     }
 
-    if (font != s_cached_font || string != s_cached_string || text_w != s_cached_w || text_h != s_cached_h)
+    if (font != g_text_transform_buffered_cache.font || string != g_text_transform_buffered_cache.string || text_w != g_text_transform_buffered_cache.text_w ||
+        text_h != g_text_transform_buffered_cache.text_h)
     {
-        if (s_packed_buf)
-        {
-            egui_free(s_packed_buf);
-            s_packed_buf = NULL;
-        }
+        text_transform_release_buffered_cache();
 
         int buf_size = 0;
         uint8_t raster_bpp = bpp;
@@ -5313,9 +5395,6 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
 
         if (egui_font_std_prepare_access(font_info, &font_access) != 0)
         {
-            s_cached_font = NULL;
-            s_cached_string = NULL;
-            s_packed_buf_bpp = 0;
             return;
         }
 
@@ -5331,8 +5410,8 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
         if (bpp == 4)
         {
             buf_size = packed_src_w * packed_src_h;
-            s_packed_buf = (uint8_t *)egui_malloc(buf_size);
-            if (s_packed_buf != NULL)
+            g_text_transform_buffered_cache.buf = (uint8_t *)egui_malloc(buf_size);
+            if (g_text_transform_buffered_cache.buf != NULL)
             {
                 raster_bpp = 8;
             }
@@ -5345,19 +5424,16 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
             }
         }
 
-        if (s_packed_buf == NULL)
+        if (g_text_transform_buffered_cache.buf == NULL)
         {
             buf_size = packed_row_bytes(text_w, bpp) * text_h;
-            s_packed_buf = (uint8_t *)egui_malloc(buf_size);
+            g_text_transform_buffered_cache.buf = (uint8_t *)egui_malloc(buf_size);
             raster_bpp = bpp;
         }
 
-        if (!s_packed_buf)
+        if (g_text_transform_buffered_cache.buf == NULL)
         {
             egui_font_std_release_access(&font_access);
-            s_cached_font = NULL;
-            s_cached_string = NULL;
-            s_packed_buf_bpp = 0;
             return;
         }
 
@@ -5367,48 +5443,45 @@ void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const voi
         {
             if (raster_bpp == 8 && bpp == 4)
             {
-                memset(s_packed_buf, 0, buf_size);
-                rasterize_layout_to_alpha8_offset(raster_font_info, layout_glyphs, layout_count, s_packed_buf, packed_src_w, packed_src_h, bpp, packed_src_x0,
-                                                  packed_src_y0);
+                memset(g_text_transform_buffered_cache.buf, 0, buf_size);
+                rasterize_layout_to_alpha8_offset(raster_font_info, layout_glyphs, layout_count, g_text_transform_buffered_cache.buf, packed_src_w, packed_src_h,
+                                                  bpp, packed_src_x0, packed_src_y0);
             }
             else
             {
-                memset(s_packed_buf, 0, buf_size);
-                rasterize_layout_to_packed(raster_font_info, layout_glyphs, layout_count, s_packed_buf, text_w, text_h, bpp);
+                memset(g_text_transform_buffered_cache.buf, 0, buf_size);
+                rasterize_layout_to_packed(raster_font_info, layout_glyphs, layout_count, g_text_transform_buffered_cache.buf, text_w, text_h, bpp);
             }
         }
         else if (((raster_bpp == 8 && bpp == 4) &&
-                  rasterize_text_to_alpha8(raster_font_info, (const char *)string, s_packed_buf, text_w, text_h, bpp, 0) != 0) ||
-                 ((raster_bpp != 8 || bpp != 4) && rasterize_text_to_packed(raster_font_info, (const char *)string, s_packed_buf, text_w, text_h, bpp, 0) != 0))
+                  rasterize_text_to_alpha8(raster_font_info, (const char *)string, g_text_transform_buffered_cache.buf, text_w, text_h, bpp, 0) != 0) ||
+                 ((raster_bpp != 8 || bpp != 4) &&
+                  rasterize_text_to_packed(raster_font_info, (const char *)string, g_text_transform_buffered_cache.buf, text_w, text_h, bpp, 0) != 0))
         {
             egui_font_std_release_access(&font_access);
-            egui_free(s_packed_buf);
-            s_packed_buf = NULL;
-            s_cached_font = NULL;
-            s_cached_string = NULL;
-            s_packed_buf_bpp = 0;
+            text_transform_release_buffered_cache();
             return;
         }
 
         egui_font_std_release_access(&font_access);
 
-        s_cached_font = font;
-        s_cached_string = string;
-        s_cached_w = text_w;
-        s_cached_h = text_h;
-        s_packed_buf_bpp = raster_bpp;
-        s_packed_src_x0 = packed_src_x0;
-        s_packed_src_y0 = packed_src_y0;
-        s_packed_src_w = packed_src_w;
-        s_packed_src_h = packed_src_h;
+        g_text_transform_buffered_cache.font = font;
+        g_text_transform_buffered_cache.string = string;
+        g_text_transform_buffered_cache.text_w = text_w;
+        g_text_transform_buffered_cache.text_h = text_h;
+        g_text_transform_buffered_cache.packed_bpp = raster_bpp;
+        g_text_transform_buffered_cache.packed_src_x0 = packed_src_x0;
+        g_text_transform_buffered_cache.packed_src_y0 = packed_src_y0;
+        g_text_transform_buffered_cache.packed_src_w = packed_src_w;
+        g_text_transform_buffered_cache.packed_src_h = packed_src_h;
     }
 
-    uint8_t *packed_buf = s_packed_buf;
-    uint8_t packed_bpp = s_packed_buf_bpp;
-    int16_t src_x0 = s_packed_src_x0;
-    int16_t src_y0 = s_packed_src_y0;
-    int16_t src_w = s_packed_src_w;
-    int16_t src_h = s_packed_src_h;
+    uint8_t *packed_buf = g_text_transform_buffered_cache.buf;
+    uint8_t packed_bpp = g_text_transform_buffered_cache.packed_bpp;
+    int16_t src_x0 = g_text_transform_buffered_cache.packed_src_x0;
+    int16_t src_y0 = g_text_transform_buffered_cache.packed_src_y0;
+    int16_t src_w = g_text_transform_buffered_cache.packed_src_w;
+    int16_t src_h = g_text_transform_buffered_cache.packed_src_h;
     int packed_rb = packed_row_bytes(src_w, packed_bpp);
 
     if (packed_bpp == 8)
