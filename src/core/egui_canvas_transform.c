@@ -1849,6 +1849,7 @@ typedef struct
 {
     text_transform_glyph_t *glyphs;
     const text_transform_layout_glyph_t **layout_glyphs;
+    text_transform_layout_line_t *lines;
 } text_transform_tile_cache_t;
 
 typedef struct
@@ -1902,6 +1903,10 @@ static void text_transform_release_tile_cache(void)
     if (g_text_transform_tile_cache.layout_glyphs != NULL)
     {
         egui_free(g_text_transform_tile_cache.layout_glyphs);
+    }
+    if (g_text_transform_tile_cache.lines != NULL)
+    {
+        egui_free(g_text_transform_tile_cache.lines);
     }
 
     memset(&g_text_transform_tile_cache, 0, sizeof(g_text_transform_tile_cache));
@@ -3087,8 +3092,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     src_max_y += 2;
 
     /* Collect only glyphs visible in this tile's source bbox.
-     * Use a static pointer allocated once via egui_malloc to avoid large stack usage. */
-    static text_transform_layout_line_t s_tile_lines[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES];
+     * Keep the line buffer in the transient tile cache so it does not occupy persistent .bss. */
     int tile_line_count = 0;
     int16_t tile_src_x0 = 0;
     int16_t tile_src_y0 = 0;
@@ -3099,6 +3103,16 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     {
         g_text_transform_tile_cache.glyphs = (text_transform_glyph_t *)egui_malloc(EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS * sizeof(text_transform_glyph_t));
         if (g_text_transform_tile_cache.glyphs == NULL)
+        {
+            egui_font_std_release_access(&font_access);
+            return;
+        }
+    }
+    if (g_text_transform_tile_cache.lines == NULL)
+    {
+        g_text_transform_tile_cache.lines = (text_transform_layout_line_t *)egui_malloc(EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES *
+                                                                                        sizeof(*g_text_transform_tile_cache.lines));
+        if (g_text_transform_tile_cache.lines == NULL)
         {
             egui_font_std_release_access(&font_access);
             return;
@@ -3142,7 +3156,8 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
         }
 
         tile_count = collect_visible_glyphs(font_info, layout_glyphs, layout_lines, layout_line_count, g_text_transform_tile_cache.glyphs,
-                                            EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS, s_tile_lines, EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES,
+                                            EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS, g_text_transform_tile_cache.lines,
+                                            EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES,
                                             &tile_line_count, src_min_x, src_min_y, src_max_x, src_max_y, NULL, NULL, NULL, NULL, NULL, 1);
 
         if (tile_count == 0)
@@ -3458,7 +3473,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                 /* Ungrouped slow path: per-sample glyph lookup */
                 {
                     uint16_t a00, a01, a10, a11;
-                    int line0 = sample_tile_find_pair_line(s_tile_lines, tile_line_count, sx, sy, hint_line);
+                    int line0 = sample_tile_find_pair_line(g_text_transform_tile_cache.lines, tile_line_count, sx, sy, hint_line);
                     int line1;
                     int hint00 = -1;
                     int hint01 = -1;
@@ -3472,8 +3487,8 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
                     if (line0 >= 0)
                     {
-                        sample_tile_alpha_pair_from_line(g_text_transform_tile_cache.glyphs, &s_tile_lines[line0], sx, sy, bpp, &a00, &a01, &hint00,
-                                                         &hint01);
+                        sample_tile_alpha_pair_from_line(g_text_transform_tile_cache.glyphs, &g_text_transform_tile_cache.lines[line0], sx, sy, bpp, &a00,
+                                                         &a01, &hint00, &hint01);
                     }
 
                     /* Early exit: preserve existing whitespace skip behavior based on a00 only */
@@ -3484,11 +3499,11 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                         goto text_next_pixel;
                     }
 
-                    line1 = sample_tile_find_pair_line(s_tile_lines, tile_line_count, sx, sy + 1, line0);
+                    line1 = sample_tile_find_pair_line(g_text_transform_tile_cache.lines, tile_line_count, sx, sy + 1, line0);
                     if (line1 >= 0)
                     {
-                        sample_tile_alpha_pair_from_line(g_text_transform_tile_cache.glyphs, &s_tile_lines[line1], sx, sy + 1, bpp, &a10, &a11, &hint10,
-                                                         &hint11);
+                        sample_tile_alpha_pair_from_line(g_text_transform_tile_cache.glyphs, &g_text_transform_tile_cache.lines[line1], sx, sy + 1, bpp, &a10,
+                                                         &a11, &hint10, &hint11);
                     }
 
                     if (hint11 >= 0)
