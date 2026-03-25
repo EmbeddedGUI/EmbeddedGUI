@@ -3013,20 +3013,12 @@ done:
 int egui_font_std_get_str_size(const egui_font_t *self, const void *string, uint8_t is_multi_line, egui_dim_t line_space, egui_dim_t *width, egui_dim_t *height)
 {
     const char *s = (const char *)string;
-    egui_font_std_access_t font_access;
     egui_font_std_info_t *font = (egui_font_std_info_t *)self->res;
-    int font_access_ready = 0;
 
     if (NULL == s || NULL == font)
     {
         *width = *height = 0;
         return -1;
-    }
-
-    if (font->res_type == EGUI_RESOURCE_TYPE_EXTERNAL && egui_font_std_prepare_access(font, &font_access) == 0)
-    {
-        font = &font_access.info;
-        font_access_ready = 1;
     }
 
     int font_width = 0;
@@ -3114,11 +3106,6 @@ int egui_font_std_get_str_size(const egui_font_t *self, const void *string, uint
 
     *width = font_max_width;
     *height = font_height;
-
-    if (font_access_ready)
-    {
-        egui_font_std_release_access(&font_access);
-    }
 
     return 0;
 }
