@@ -298,6 +298,8 @@ python scripts/ui_designer/main.py --sdk-root /path/to/EmbeddedGUI
 - 项目目录不再要求必须位于 SDK 目录下面
 - 只要目标目录是标准 EmbeddedGUI App 结构，就可以独立保存、独立打开
 - 编译时通过 `EGUI_APP_ROOT_PATH` 把外部 App 挂接到 SDK 的构建系统中
+- 当前已经支持“SDK 在一处、App 在另一处”的同盘工作区分离
+- 如果 SDK 与 App 位于不同盘符，Designer 会继续显式报错，而不是静默退化到一条不可预测的编译链路
 
 ### SDK 自动发现与手动指定
 
@@ -380,7 +382,8 @@ python scripts/ui_designer/main.py --sdk-root /path/to/EmbeddedGUI
 - 如果用户已经手动指定过 `Parent Dir`，后续再切换 SDK 时不会强行覆盖这个手动目录
 - 如果暂时没有 SDK，也可以先创建项目并进入纯编辑模式，之后再通过 `File -> Set SDK Root...` 补上编译预览能力
 
-如果目标目录已存在且非空，会直接报错，避免把 Designer 项目写进一个有冲突内容的目录。
+如果目标目录已存在，无论它是空目录还是非空目录，都会直接报错，避免把 Designer 项目写进一个有冲突内容的目录。
+`Save Project As...` 也使用同样的规则；除非目标仍然是当前工程目录，否则已存在目录都会被视为冲突。
 
 ### 打开 SDK Example
 
@@ -410,6 +413,64 @@ python scripts/ui_designer/main.py --sdk-root /path/to/EmbeddedGUI
 - 预览运行中断开，无法继续取帧
 
 Python 预览只保证基础静态渲染与布局可见，不能替代真实交互验证；SDK 配置恢复后，Designer 会重新走真实编译预览链路。
+为了降低“旧异步任务把新工程状态写坏”的风险，`MainWindow` 在打开项目、切换 SDK、保存、关闭窗口时都会主动停止后台定时器、使旧编译回调失效，并清理挂起 worker。
+除了常规单元测试外，仓库还补了 `scripts/ui_designer/tests/ui/test_main_window_lifecycle.py` 和 `python scripts/ui_designer_preview_smoke.py` 两层回归，用来拦截实时预览生命周期再次被后续提交破坏的情况。
+
+### 历史与脏状态反馈
+
+当前版本新增了 `History` 停靠面板，用来补齐撤销栈可视化与脏状态来源提示：
+
+- 面板会显示当前页面名、历史条目数量、Undo/Redo 是否可用
+- 会标记当前条目与保存点，便于快速判断“现在是不是已经回到保存状态”
+- 当页面处于 dirty 状态时，会直接显示当前脏状态来源，例如 `property edit`、`canvas move`、`canvas resize`、`xml edit`、`resource rename`
+
+这套历史标签不会写入 `.egui` 文件格式，只是运行时的编辑器反馈能力，因此不会影响现有项目兼容性。
+
+### 诊断面板
+
+当前版本新增了 `Diagnostics` 停靠面板，作为轻量级问题扫描与定位入口：
+
+- 页面级检查：非法控件名、重名、越界、缺失资源
+- 选择级提示：锁定、隐藏、布局托管导致的编辑限制
+- 双击诊断项可以自动切页并尽量定位到对应控件，便于快速排查
+- 诊断规则集中在 `scripts/ui_designer/model/diagnostics.py`，后续可以继续扩展而不把规则散落到 UI 层
+
+这套诊断同样不会改动 `.egui` 文件格式，只提供运行时编辑反馈与排障辅助。
+
+### 事件回调编辑
+
+当前版本的属性面板已经补上了 `Callbacks` 分组，用于编辑运行时代码生成会用到的回调名：
+
+- 通用 `onClick` 入口现在可以直接在属性面板里配置
+- 控件注册表里定义的专属事件也会自动显示，例如 `Slider.onValueChanged`、`Switch.onCheckedChanged`
+- 面板会直接提示推荐回调名和函数签名，便于用户补齐对应的 C 函数
+- 回调名会做基本的 C 标识符校验；非法输入会被拒绝，空值则表示禁用该回调
+
+这部分仍然只是在设计器里编辑已有的 XML/模型字段，不会引入新的项目文件格式。
+
+### 控件动画编辑
+
+当前版本新增了 `Animations` 停靠面板，用于编辑当前单选控件上的 `animations` 列表：
+
+- 通过列表 + 明细表单编辑动画类型、时长、插值器、重复次数、重复模式和自动启动开关
+- 参数区会根据动画类型动态切换，例如 `alpha` 使用 `from_alpha/to_alpha`，`translate` 使用 `from_x/to_x/from_y/to_y`
+- 新增动画时会自动填入一组可直接编译的默认参数，避免空参数直接生成无效代码
+- 动画配置仍然写回页面 XML 的 `<Animation>` 子节点，不新增新的工程文件
+- 编辑动画会进入撤销栈并触发重新编译，便于用真实预览链路验证动效
+
+这条链路直接复用了既有 `AnimationModel -> XML -> code_generator` 能力，把此前“只能靠手改 XML”的动画能力补齐为可视化编辑入口。
+
+### 页面字段编辑
+
+当前版本新增了 `Page Fields` 停靠面板，用于管理 `Page.user_fields` 这类页面级运行时状态：
+
+- 可以直接维护字段名、C 类型和默认值，保存后写入页面 XML 的 `<UserFields>`
+- 通过校验的字段会自动生成到 `{page}.h` 的页面结构体里，并在 `{page}_layout.c` 中于页面打开时写入默认值
+- 默认值按原始 C 表达式处理；数组类型只生成结构体声明，不自动生成默认赋值语句
+- 如果字段名非法、缺失类型、与控件/动画成员冲突、或在同一页面内重复，面板会拒绝提交，`Diagnostics` 也会显示错误
+- 代码生成器会主动跳过这些无效字段，避免因为坏的设计器元数据直接破坏实时预览或导出的 C 代码
+
+这部分同样复用了现有的页面 XML，不新增额外项目文件格式，只是把已有的 `user_fields` 元数据真正打通到了编辑器与代码生成链路。
 
 ### 本地打包
 
