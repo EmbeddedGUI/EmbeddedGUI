@@ -6,9 +6,7 @@ UI Designer 工具
 
    designer_overview
    package_designer
+   designer_repo_migration
    widget_registry
-   html_to_xml
    xml_to_c
-   figma_pipeline
-   ai_workflow
    extend_widget

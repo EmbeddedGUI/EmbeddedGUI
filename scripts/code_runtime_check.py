@@ -271,7 +271,7 @@ def capture_animation_frames(app_name, output_dir, fps=10, duration=5,
                              snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
     """Capture animation frames at higher FPS for regression verification.
 
-    This is the programmatic API used by figmamake_regression.py.
+    This is the programmatic API used by the external Designer regression tooling.
     Captures at higher FPS to get animation keyframes (0%, 50%, 100%).
 
     Args:

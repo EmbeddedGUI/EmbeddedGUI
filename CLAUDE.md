@@ -226,7 +226,7 @@ WidgetRegistry.instance().register(
 - [ ] `src/widget/` 中存在对应的 C 实现（`egui_view_xxx.h/c`）
 - [ ] `custom_widgets/xxx.py` 中 `c_type`、`init_func`、`params_macro` 与 C 头文件一致
 - [ ] 所有 `code_gen.func` 函数名在 C 头文件中有声明
-- [ ] `xml_tag` 与 skill 文档 `.claude/skills/html-to-egui.md` 中的 XML 示例保持一致
+- [ ] `xml_tag` 与 `EmbeddedGUI_Designer` 仓库中的 HTML 转换文档示例保持一致
 - [ ] 构建通过且运行时验证截图正确
 
 ### 已注册控件一览
@@ -289,15 +289,16 @@ WidgetRegistry.instance().register(
 | `Window` | window | window.py |
 | `Menu` | menu | menu.py |
 
-## Figma/HTML → EGUI 转换后必做：动态特效增强
+## Figma/HTML 设计转换迁移说明
 
-静态布局转换完成后，必须为每个页面补充动态特效和交互行为。详见 `.claude/skills/dynamic-effects.md`。
+`html2egui_helper.py`、Figma Make 工具链以及围绕 Figma/HTML 的设计转换与动效工作流，已迁移到独立仓库 `EmbeddedGUI_Designer` 维护。
 
-核心原则：
-- **所有动效必须以 Figma Make TSX 源文件为准**，不得自行发挥
-- 实现前必须阅读 `.eguiproject/figmamake_src/src/app/components/*.tsx`，提取 `motion`、`animate`、`transition`、`useState`、`onClick` 等定义
-- 将 React/Framer Motion 语义映射为 EGUI Timer/Animation API
-- 参考实现：`example/HelloStyleDemo/uicode_dashboard.c`
+当前仓库仅保留 SDK、运行时、示例、控件与通用验证能力。凡是涉及以下场景，优先切换到 `EmbeddedGUI_Designer`：
+
+- Stitch HTML / Figma Make / Figma MCP 导入
+- XML 布局生成与 Designer 工程搭建
+- 基于 TSX 源码补齐动效与交互
+- 设计稿参考帧、像素回归与视觉对比
 
 ## 资源生成（图片 & 字体）
 
@@ -329,16 +330,16 @@ WidgetRegistry.instance().register(
 |----------|----------|
 | `resource-generation.md` | 添加图片/字体/图标；资源构建报 undefined reference；需要配置 `app_resource_config.json` |
 | `runtime-verification.md` | 修改代码后验证；截图检查渲染；诊断黑屏/控件缺失/布局错位 |
-| `html-to-egui.md` | 将 Stitch HTML 或 Figma Make JSX/TSX 设计稿转换为 EGUI C 代码 |
-| `figmamake-to-egui.md` | 处理 Figma Make `.eguiproject` 工程转换 |
-| `figma-mcp-to-egui.md` | 通过 Figma MCP 插件获取设计稿并转换 |
-| `dynamic-effects.md` | 静态布局完成后补充动画/交互效果 |
+| `html-to-egui.md` | 已迁移到 `EmbeddedGUI_Designer`，用于 HTML / JSX / TSX 设计转换 |
+| `figmamake-to-egui.md` | 已迁移到 `EmbeddedGUI_Designer`，用于 Figma Make 全流程转换 |
+| `figma-mcp-to-egui.md` | 已迁移到 `EmbeddedGUI_Designer`，用于 Figma MCP / REST 导入 |
+| `dynamic-effects.md` | 已迁移到 `EmbeddedGUI_Designer`，用于设计稿驱动的动效补齐 |
 | `performance-analysis.md` | 性能测试、帧率分析、QEMU 基准 |
 | `recording-simulation.md` | 配置录制动作用于 CI 运行时验证 |
 | `build-and-debug.md` | 构建失败排查、链接错误、平台移植问题 |
 | `github-pages-web.md` | 添加/修改 GitHub Pages Demo 页面 |
 
-**使用方式**：遇到上述场景时，先阅读对应 `.claude/skills/*.md` 文件，按其流程操作，不得跳过。
+**使用方式**：遇到上述场景时，先判断任务是否属于设计稿转换链路；如果属于，切换到 `EmbeddedGUI_Designer` 并阅读那里的迁移说明执行。
 
 ## Plan说明
 
