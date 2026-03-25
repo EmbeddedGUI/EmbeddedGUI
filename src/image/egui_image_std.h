@@ -77,6 +77,7 @@ int egui_image_std_get_linear_src_x_segment(const egui_dim_t *src_x_map, egui_di
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 const egui_image_std_info_t *egui_image_std_prepare_external_persistent_cache(const egui_image_std_info_t *image);
 #endif
+void egui_image_std_release_frame_cache(void);
 
 void egui_image_std_draw_image_color(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha);
 void egui_image_std_draw_image_resize_color(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,

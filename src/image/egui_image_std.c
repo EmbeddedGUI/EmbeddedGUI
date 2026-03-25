@@ -154,6 +154,25 @@ typedef struct
 
 static egui_image_std_external_alpha_row_persistent_cache_t g_egui_image_std_external_alpha_row_persistent_cache = {0};
 
+static void egui_image_std_release_external_alpha_row_persistent_cache(egui_image_std_external_alpha_row_persistent_cache_t *cache)
+{
+    if (cache == NULL)
+    {
+        return;
+    }
+
+    if (cache->data_buf != NULL)
+    {
+        egui_free(cache->data_buf);
+    }
+    if (cache->alpha_buf != NULL)
+    {
+        egui_free(cache->alpha_buf);
+    }
+
+    memset(cache, 0, sizeof(*cache));
+}
+
 static int egui_image_std_ensure_external_cache_buffer(void **buf, uint32_t *buf_size, uint32_t required_size)
 {
     if (*buf != NULL && *buf_size >= required_size)
@@ -340,6 +359,21 @@ typedef struct
 } egui_image_std_external_data_row_persistent_cache_t;
 
 static egui_image_std_external_data_row_persistent_cache_t g_egui_image_std_external_data_row_persistent_cache = {0};
+
+static void egui_image_std_release_external_data_row_persistent_cache(egui_image_std_external_data_row_persistent_cache_t *cache)
+{
+    if (cache == NULL)
+    {
+        return;
+    }
+
+    if (cache->data_buf != NULL)
+    {
+        egui_free(cache->data_buf);
+    }
+
+    memset(cache, 0, sizeof(*cache));
+}
 
 static int egui_image_std_prepare_external_data_row_persistent_cache_range_rows(egui_image_std_external_data_row_persistent_cache_t *cache,
                                                                                 const egui_image_std_info_t *image, uint32_t data_source_row_size,
@@ -8740,4 +8774,12 @@ void egui_image_std_init(egui_image_t *self, const void *res)
 
     // update api.
     self->api = &egui_image_std_t_api_table;
+}
+
+void egui_image_std_release_frame_cache(void)
+{
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    egui_image_std_release_external_alpha_row_persistent_cache(&g_egui_image_std_external_alpha_row_persistent_cache);
+    egui_image_std_release_external_data_row_persistent_cache(&g_egui_image_std_external_data_row_persistent_cache);
+#endif
 }
