@@ -49,14 +49,6 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE 2
 #endif
 
-// Keep one decoded compressed image across repeated refreshes.
-// Covers the largest HelloPerformance compressed case: 240x240 RGB565 + alpha8.
-#define EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES (EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT * 3)
-
-// Keep one external raw image across repeated refreshes.
-// Covers the largest HelloPerformance external RGB565 + alpha8 case: 240x240.
-#define EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES (EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT * 3)
-
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

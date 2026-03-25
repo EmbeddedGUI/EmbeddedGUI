@@ -634,6 +634,11 @@ __EGUI_STATIC_INLINE__ void egui_image_std_get_pixel_rgb32(egui_image_std_info_t
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+static void egui_image_std_set_image_resize_rgb565_external(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t x_total, egui_dim_t y_total,
+                                                            egui_dim_t x_base, egui_dim_t y_base, egui_float_t width_radio, egui_float_t height_radio);
+#endif
+
 __EGUI_STATIC_INLINE__ void egui_image_std_get_col_pixel_rgb565_limit(const uint16_t *p_data, egui_dim_t col_index, egui_color_t *color)
 {
     uint32_t sel_pos = col_index;
@@ -6165,8 +6170,8 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         if (image_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
         {
-            // External resource: fall through to generic path
-            EGUI_IMAGE_STD_DRAW_IMAGE_FUNC_DEFINE(egui_image_std_get_pixel_rgb565, self, x, y, x_total, y_total, x_base, y_base);
+            egui_image_std_set_image_resize_rgb565_external(self, x, y, x_total, y_total, x_base, y_base, EGUI_FLOAT_VALUE_INT(1), EGUI_FLOAT_VALUE_INT(1));
+            return;
         }
         else
 #endif
@@ -6240,6 +6245,13 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
     }
     else
     {
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+        if (((egui_image_std_info_t *)self->res)->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
+        {
+            egui_image_std_set_image_resize_rgb565_external(self, x, y, x_total, y_total, x_base, y_base, EGUI_FLOAT_VALUE_INT(1), EGUI_FLOAT_VALUE_INT(1));
+            return;
+        }
+#endif
         EGUI_IMAGE_STD_DRAW_IMAGE_FUNC_DEFINE(egui_image_std_get_pixel_rgb565, self, x, y, x_total, y_total, x_base, y_base);
     }
 }
