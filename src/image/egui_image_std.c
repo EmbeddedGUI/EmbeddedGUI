@@ -1511,7 +1511,6 @@ typedef struct
     int32_t radius_sq;
     int32_t min_diff;
     int32_t max_diff;
-    int32_t center_delta_sq[EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE + 1];
     egui_alpha_t alpha[(EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE * 4) + 1];
 } egui_image_std_circle_alpha_cache_t;
 
@@ -1527,6 +1526,13 @@ typedef struct
     const egui_image_std_circle_alpha_cache_t *cache;
     int32_t row_bias;
 } egui_image_std_circle_alpha_row_ctx_t;
+
+__EGUI_STATIC_INLINE__ int32_t egui_image_std_circle_center_delta_sq(egui_dim_t radius, egui_dim_t offset)
+{
+    int32_t delta = (int32_t)radius - (int32_t)offset;
+
+    return delta * delta;
+}
 
 __EGUI_STATIC_INLINE__ egui_alpha_t egui_image_std_circle_edge_smoothstep(int32_t signed_dist_256)
 {
@@ -1575,12 +1581,6 @@ __EGUI_STATIC_INLINE__ egui_image_std_circle_alpha_cache_t *egui_image_std_get_c
         cache->min_diff = 1 - ((int32_t)radius << 1);
         cache->max_diff = ((int32_t)radius << 1) + 1;
 
-        for (egui_dim_t i = 0; i <= radius; i++)
-        {
-            int32_t delta = (int32_t)radius - (int32_t)i;
-            cache->center_delta_sq[i] = delta * delta;
-        }
-
         for (int32_t diff = cache->min_diff; diff <= cache->max_diff; diff++)
         {
             int32_t signed_dist_256;
@@ -1622,13 +1622,13 @@ __EGUI_STATIC_INLINE__ int egui_image_std_prepare_circle_alpha_row_ctx(egui_dim_
     }
 
     ctx->cache = egui_image_std_get_circle_alpha_cache(radius);
-    ctx->row_bias = ctx->cache->center_delta_sq[row_index] - ctx->cache->radius_sq;
+    ctx->row_bias = egui_image_std_circle_center_delta_sq(radius, row_index) - ctx->cache->radius_sq;
     return 1;
 }
 
 __EGUI_STATIC_INLINE__ egui_alpha_t egui_image_std_get_circle_corner_alpha_from_row_ctx(const egui_image_std_circle_alpha_row_ctx_t *ctx, egui_dim_t corner_col)
 {
-    int32_t diff = ctx->cache->center_delta_sq[corner_col] + ctx->row_bias;
+    int32_t diff = egui_image_std_circle_center_delta_sq(ctx->cache->radius, corner_col) + ctx->row_bias;
 
     if (diff <= ctx->cache->min_diff)
     {
@@ -1645,7 +1645,7 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_image_std_get_circle_corner_alpha_from_
 
 __EGUI_STATIC_INLINE__ egui_alpha_t egui_image_std_get_circle_edge_alpha_from_row_ctx(const egui_image_std_circle_alpha_row_ctx_t *ctx, egui_dim_t corner_col)
 {
-    int32_t diff = ctx->cache->center_delta_sq[corner_col] + ctx->row_bias;
+    int32_t diff = egui_image_std_circle_center_delta_sq(ctx->cache->radius, corner_col) + ctx->row_bias;
 
     return ctx->cache->alpha[diff - ctx->cache->min_diff];
 }
@@ -1673,8 +1673,8 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_image_std_get_circle_corner_alpha_fixed
         }
 
         cache = egui_image_std_get_circle_alpha_cache(radius);
-        row_bias = cache->center_delta_sq[row_index] - cache->radius_sq;
-        diff = cache->center_delta_sq[corner_col] + row_bias;
+        row_bias = egui_image_std_circle_center_delta_sq(radius, row_index) - cache->radius_sq;
+        diff = egui_image_std_circle_center_delta_sq(radius, corner_col) + row_bias;
 
         if (diff <= cache->min_diff)
         {
