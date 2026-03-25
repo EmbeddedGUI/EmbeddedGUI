@@ -512,95 +512,218 @@ static inline uint32_t image_alpha_buf_size(int16_t w, int16_t h, uint8_t alpha_
     }
 }
 
+static int image_transform_get_alpha_row_bytes(int16_t w, uint8_t alpha_type)
+{
+    switch (alpha_type)
+    {
+    case EGUI_IMAGE_ALPHA_TYPE_8:
+        return w;
+    case EGUI_IMAGE_ALPHA_TYPE_4:
+        return (w + 1) >> 1;
+    case EGUI_IMAGE_ALPHA_TYPE_2:
+        return (w + 3) >> 2;
+    case EGUI_IMAGE_ALPHA_TYPE_1:
+        return (w + 7) >> 3;
+    default:
+        return 0;
+    }
+}
+
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+#ifndef EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES
+#define EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES 2048
+#endif
+
+#ifndef EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES
+#define EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES 1024
+#endif
+
 typedef struct
 {
     const egui_image_std_info_t *info;
-    const void *data_addr;
-    const void *alpha_addr;
-    void *data_buf;
-    void *alpha_buf;
-    uint32_t data_size;
-    uint32_t alpha_size;
-} image_transform_external_cache_t;
+    uint32_t data_row_bytes;
+    uint32_t alpha_row_bytes;
+} image_transform_external_source_t;
 
-static image_transform_external_cache_t g_image_transform_external_cache = {0};
-
-static void image_transform_release_external_cache(image_transform_external_cache_t *cache)
+typedef struct
 {
-    if (cache->data_buf != NULL)
-    {
-        egui_free(cache->data_buf);
-    }
-    if (cache->alpha_buf != NULL)
-    {
-        egui_free(cache->alpha_buf);
-    }
+    const egui_image_std_info_t *info;
+    const void *src_addr;
+    int32_t chunk_row_start;
+    int32_t chunk_row_count;
+    uint32_t row_bytes;
+    uint32_t rows_per_chunk;
+    uint16_t pixels[(EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES + sizeof(uint16_t) - 1) / sizeof(uint16_t)];
+} image_transform_external_data_row_slot_t;
 
-    memset(cache, 0, sizeof(*cache));
+typedef struct
+{
+    const egui_image_std_info_t *info;
+    const void *src_addr;
+    int32_t chunk_row_start;
+    int32_t chunk_row_count;
+    uint32_t row_bytes;
+    uint32_t rows_per_chunk;
+    uint8_t bytes[EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES];
+} image_transform_external_alpha_row_slot_t;
+
+static image_transform_external_data_row_slot_t g_image_transform_external_data_row_cache = {0};
+static image_transform_external_alpha_row_slot_t g_image_transform_external_alpha_row_cache = {0};
+
+static void image_transform_release_external_row_cache(void)
+{
+    memset(&g_image_transform_external_data_row_cache, 0, sizeof(g_image_transform_external_data_row_cache));
+    memset(&g_image_transform_external_alpha_row_cache, 0, sizeof(g_image_transform_external_alpha_row_cache));
 }
 
-static int image_transform_prepare_external_cache(const egui_image_std_info_t *info, int source_is_opaque, const uint16_t **data, const uint8_t **alpha_buf)
+static int image_transform_prepare_external_source(const egui_image_std_info_t *info, int source_is_opaque, image_transform_external_source_t *source)
 {
-    image_transform_external_cache_t *cache = &g_image_transform_external_cache;
-    const egui_image_std_info_t *cached_info = egui_image_std_prepare_external_persistent_cache(info);
-    uint32_t data_size = (uint32_t)info->width * info->height * sizeof(uint16_t);
-    uint32_t alpha_size = 0;
-    int data_hit;
-    int alpha_hit;
-
-    if (cached_info != NULL)
+    if (info == NULL || source == NULL || info->width <= 0 || info->height <= 0)
     {
-        *data = (const uint16_t *)cached_info->data_buf;
-        *alpha_buf = (!source_is_opaque && cached_info->alpha_buf != NULL) ? (const uint8_t *)cached_info->alpha_buf : NULL;
-        return 1;
+        return 0;
     }
 
+    source->info = info;
+    source->data_row_bytes = (uint32_t)info->width * sizeof(uint16_t);
+    source->alpha_row_bytes = 0;
     if (info->alpha_buf != NULL && !source_is_opaque)
     {
-        alpha_size = image_alpha_buf_size(info->width, info->height, info->alpha_type);
+        source->alpha_row_bytes = (uint32_t)image_transform_get_alpha_row_bytes(info->width, info->alpha_type);
     }
-
-    data_hit = cache->info == info && cache->data_addr == info->data_buf && cache->data_size == data_size && cache->data_buf != NULL;
-    alpha_hit = alpha_size == 0 || (cache->info == info && cache->alpha_addr == info->alpha_buf && cache->alpha_size == alpha_size && cache->alpha_buf != NULL);
-
-    if (!data_hit || !alpha_hit)
-    {
-        void *new_data_buf = egui_malloc((int)data_size);
-        void *new_alpha_buf = NULL;
-
-        if (new_data_buf == NULL)
-        {
-            return 0;
-        }
-
-        egui_api_load_external_resource(new_data_buf, (egui_uintptr_t)(info->data_buf), 0, data_size);
-
-        if (alpha_size > 0)
-        {
-            new_alpha_buf = egui_malloc((int)alpha_size);
-            if (new_alpha_buf == NULL)
-            {
-                egui_free(new_data_buf);
-                return 0;
-            }
-
-            egui_api_load_external_resource(new_alpha_buf, (egui_uintptr_t)(info->alpha_buf), 0, alpha_size);
-        }
-
-        image_transform_release_external_cache(cache);
-        cache->info = info;
-        cache->data_addr = info->data_buf;
-        cache->alpha_addr = info->alpha_buf;
-        cache->data_buf = new_data_buf;
-        cache->alpha_buf = new_alpha_buf;
-        cache->data_size = data_size;
-        cache->alpha_size = alpha_size;
-    }
-
-    *data = (const uint16_t *)cache->data_buf;
-    *alpha_buf = alpha_size > 0 ? (const uint8_t *)cache->alpha_buf : NULL;
     return 1;
+}
+
+static const uint16_t *image_transform_get_external_data_row(const image_transform_external_source_t *source, int32_t row)
+{
+    image_transform_external_data_row_slot_t *cache = &g_image_transform_external_data_row_cache;
+    int32_t rows_to_load;
+
+    if (source == NULL || source->info == NULL || row < 0 || row >= source->info->height ||
+        source->data_row_bytes == 0 || source->data_row_bytes > EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES)
+    {
+        return NULL;
+    }
+
+    if (cache->row_bytes != source->data_row_bytes || cache->rows_per_chunk == 0)
+    {
+        cache->rows_per_chunk = EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES / source->data_row_bytes;
+        if (cache->rows_per_chunk == 0)
+        {
+            cache->rows_per_chunk = 1;
+        }
+    }
+
+    if (cache->info != source->info || cache->src_addr != source->info->data_buf || cache->row_bytes != source->data_row_bytes)
+    {
+        cache->chunk_row_start = -1;
+        cache->chunk_row_count = 0;
+    }
+
+    cache->info = source->info;
+    cache->src_addr = source->info->data_buf;
+    cache->row_bytes = source->data_row_bytes;
+
+    if (row < cache->chunk_row_start || row >= (cache->chunk_row_start + cache->chunk_row_count))
+    {
+        rows_to_load = source->info->height - row;
+        if ((uint32_t)rows_to_load > cache->rows_per_chunk)
+        {
+            rows_to_load = (int32_t)cache->rows_per_chunk;
+        }
+
+        egui_api_load_external_resource(cache->pixels, (egui_uintptr_t)source->info->data_buf, (uint32_t)row * source->data_row_bytes,
+                                        (uint32_t)rows_to_load * source->data_row_bytes);
+        cache->chunk_row_start = row;
+        cache->chunk_row_count = rows_to_load;
+    }
+
+    return (const uint16_t *)((const uint8_t *)cache->pixels + (uint32_t)(row - cache->chunk_row_start) * cache->row_bytes);
+}
+
+static const uint8_t *image_transform_get_external_alpha_row(const image_transform_external_source_t *source, int32_t row)
+{
+    image_transform_external_alpha_row_slot_t *cache = &g_image_transform_external_alpha_row_cache;
+    int32_t rows_to_load;
+
+    if (source == NULL || source->info == NULL || source->info->alpha_buf == NULL ||
+        row < 0 || row >= source->info->height || source->alpha_row_bytes == 0 ||
+        source->alpha_row_bytes > EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES)
+    {
+        return NULL;
+    }
+
+    if (cache->row_bytes != source->alpha_row_bytes || cache->rows_per_chunk == 0)
+    {
+        cache->rows_per_chunk = EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES / source->alpha_row_bytes;
+        if (cache->rows_per_chunk == 0)
+        {
+            cache->rows_per_chunk = 1;
+        }
+    }
+
+    if (cache->info != source->info || cache->src_addr != source->info->alpha_buf || cache->row_bytes != source->alpha_row_bytes)
+    {
+        cache->chunk_row_start = -1;
+        cache->chunk_row_count = 0;
+    }
+
+    cache->info = source->info;
+    cache->src_addr = source->info->alpha_buf;
+    cache->row_bytes = source->alpha_row_bytes;
+
+    if (row < cache->chunk_row_start || row >= (cache->chunk_row_start + cache->chunk_row_count))
+    {
+        rows_to_load = source->info->height - row;
+        if ((uint32_t)rows_to_load > cache->rows_per_chunk)
+        {
+            rows_to_load = (int32_t)cache->rows_per_chunk;
+        }
+
+        egui_api_load_external_resource(cache->bytes, (egui_uintptr_t)source->info->alpha_buf, (uint32_t)row * source->alpha_row_bytes,
+                                        (uint32_t)rows_to_load * source->alpha_row_bytes);
+        cache->chunk_row_start = row;
+        cache->chunk_row_count = rows_to_load;
+    }
+
+    return cache->bytes + (uint32_t)(row - cache->chunk_row_start) * cache->row_bytes;
+}
+
+__EGUI_STATIC_INLINE__ uint16_t image_transform_read_rgb565_external(const image_transform_external_source_t *source, int32_t x, int32_t y)
+{
+    const uint16_t *row = image_transform_get_external_data_row(source, y);
+
+    if (row != NULL)
+    {
+        return row[x];
+    }
+
+    {
+        uint16_t pixel = 0;
+        uint32_t offset = ((uint32_t)y * (uint32_t)source->info->width + (uint32_t)x) * sizeof(uint16_t);
+        egui_api_load_external_resource(&pixel, (egui_uintptr_t)source->info->data_buf, offset, sizeof(pixel));
+        return pixel;
+    }
+}
+
+__EGUI_STATIC_INLINE__ void image_transform_fetch_bilinear_rgb565_external(const image_transform_external_source_t *source, int32_t x, int32_t y,
+                                                                           uint16_t *d00, uint16_t *d01, uint16_t *d10, uint16_t *d11)
+{
+    const uint16_t *row0 = image_transform_get_external_data_row(source, y);
+    const uint16_t *row1 = image_transform_get_external_data_row(source, y + 1);
+
+    if (row0 != NULL && row1 != NULL)
+    {
+        *d00 = row0[x];
+        *d01 = row0[x + 1];
+        *d10 = row1[x];
+        *d11 = row1[x + 1];
+        return;
+    }
+
+    *d00 = image_transform_read_rgb565_external(source, x, y);
+    *d01 = image_transform_read_rgb565_external(source, x + 1, y);
+    *d10 = image_transform_read_rgb565_external(source, x, y + 1);
+    *d11 = image_transform_read_rgb565_external(source, x + 1, y + 1);
 }
 #endif
 
@@ -609,9 +732,8 @@ static int image_transform_prepare_external_cache(const egui_image_std_info_t *i
  * Supports all alpha types (1/2/4/8 bits per pixel).
  * The alpha_row_bytes parameter is pre-computed for the specific alpha_type.
  */
-static inline uint8_t image_transform_read_alpha(const uint8_t *alpha_buf, int alpha_row_bytes, int x, int y, uint8_t alpha_type)
+static inline uint8_t image_transform_read_alpha_from_row(const uint8_t *row, int x, uint8_t alpha_type)
 {
-    const uint8_t *row = alpha_buf + y * alpha_row_bytes;
     switch (alpha_type)
     {
     case EGUI_IMAGE_ALPHA_TYPE_8:
@@ -626,6 +748,58 @@ static inline uint8_t image_transform_read_alpha(const uint8_t *alpha_buf, int a
         return 0;
     }
 }
+
+static inline uint8_t image_transform_read_alpha(const uint8_t *alpha_buf, int alpha_row_bytes, int x, int y, uint8_t alpha_type)
+{
+    const uint8_t *row = alpha_buf + y * alpha_row_bytes;
+    return image_transform_read_alpha_from_row(row, x, alpha_type);
+}
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+static inline uint8_t image_transform_read_alpha_external(const image_transform_external_source_t *source, int32_t x, int32_t y)
+{
+    const uint8_t *row = image_transform_get_external_alpha_row(source, y);
+
+    if (row != NULL)
+    {
+        return image_transform_read_alpha_from_row(row, x, source->info->alpha_type);
+    }
+
+    switch (source->info->alpha_type)
+    {
+    case EGUI_IMAGE_ALPHA_TYPE_8:
+    {
+        uint8_t value = 0;
+        uint32_t offset = (uint32_t)y * source->alpha_row_bytes + (uint32_t)x;
+        egui_api_load_external_resource(&value, (egui_uintptr_t)source->info->alpha_buf, offset, sizeof(value));
+        return value;
+    }
+    case EGUI_IMAGE_ALPHA_TYPE_4:
+    {
+        uint8_t packed = 0;
+        uint32_t offset = (uint32_t)y * source->alpha_row_bytes + ((uint32_t)x >> 1);
+        egui_api_load_external_resource(&packed, (egui_uintptr_t)source->info->alpha_buf, offset, sizeof(packed));
+        return egui_alpha_change_table_4[(packed >> ((x & 1) << 2)) & 0x0F];
+    }
+    case EGUI_IMAGE_ALPHA_TYPE_2:
+    {
+        uint8_t packed = 0;
+        uint32_t offset = (uint32_t)y * source->alpha_row_bytes + ((uint32_t)x >> 2);
+        egui_api_load_external_resource(&packed, (egui_uintptr_t)source->info->alpha_buf, offset, sizeof(packed));
+        return egui_alpha_change_table_2[(packed >> ((x & 3) << 1)) & 0x03];
+    }
+    case EGUI_IMAGE_ALPHA_TYPE_1:
+    {
+        uint8_t packed = 0;
+        uint32_t offset = (uint32_t)y * source->alpha_row_bytes + ((uint32_t)x >> 3);
+        egui_api_load_external_resource(&packed, (egui_uintptr_t)source->info->alpha_buf, offset, sizeof(packed));
+        return ((packed >> (x & 7)) & 1) ? 255 : 0;
+    }
+    default:
+        return 0;
+    }
+}
+#endif
 
 static inline uint8_t image_transform_bilinear_alpha_from_raw_4(uint8_t a00, uint8_t a01, uint8_t a10, uint8_t a11, uint8_t fx, uint8_t fy)
 {
@@ -657,12 +831,8 @@ static inline uint8_t image_transform_bilinear_alpha_from_raw_1(uint8_t a00, uin
     return (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
 }
 
-static inline uint8_t image_transform_sample_alpha_bilinear_fast(const uint8_t *alpha_buf, int alpha_row_bytes, int x, int y, uint8_t alpha_type, uint8_t fx,
-                                                                 uint8_t fy)
+static inline uint8_t image_transform_sample_alpha_bilinear_from_rows(const uint8_t *row0, const uint8_t *row1, int x, uint8_t alpha_type, uint8_t fx, uint8_t fy)
 {
-    const uint8_t *row0 = alpha_buf + y * alpha_row_bytes;
-    const uint8_t *row1 = row0 + alpha_row_bytes;
-
     switch (alpha_type)
     {
     case EGUI_IMAGE_ALPHA_TYPE_4:
@@ -845,6 +1015,38 @@ static inline uint8_t image_transform_sample_alpha_bilinear_fast(const uint8_t *
     }
 }
 
+static inline uint8_t image_transform_sample_alpha_bilinear_fast(const uint8_t *alpha_buf, int alpha_row_bytes, int x, int y, uint8_t alpha_type, uint8_t fx,
+                                                                 uint8_t fy)
+{
+    const uint8_t *row0 = alpha_buf + y * alpha_row_bytes;
+    const uint8_t *row1 = row0 + alpha_row_bytes;
+    return image_transform_sample_alpha_bilinear_from_rows(row0, row1, x, alpha_type, fx, fy);
+}
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+static inline uint8_t image_transform_sample_alpha_bilinear_external(const image_transform_external_source_t *source, int32_t x, int32_t y, uint8_t fx,
+                                                                     uint8_t fy)
+{
+    const uint8_t *row0 = image_transform_get_external_alpha_row(source, y);
+    const uint8_t *row1 = image_transform_get_external_alpha_row(source, y + 1);
+
+    if (row0 != NULL && row1 != NULL)
+    {
+        return image_transform_sample_alpha_bilinear_from_rows(row0, row1, x, source->info->alpha_type, fx, fy);
+    }
+
+    {
+        uint16_t a00 = image_transform_read_alpha_external(source, x, y);
+        uint16_t a01 = image_transform_read_alpha_external(source, x + 1, y);
+        uint16_t a10 = image_transform_read_alpha_external(source, x, y + 1);
+        uint16_t a11 = image_transform_read_alpha_external(source, x + 1, y + 1);
+        uint16_t ah0 = a00 + (((int32_t)(a01 - a00) * fx + 128) >> 8);
+        uint16_t ah1 = a10 + (((int32_t)(a11 - a10) * fx + 128) >> 8);
+        return (uint8_t)(ah0 + (((int32_t)(ah1 - ah0) * fy + 128) >> 8));
+    }
+}
+#endif
+
 __EGUI_STATIC_INLINE__ int transform_prepare_row_overlay(egui_mask_t *mask, egui_dim_t y, egui_color_t *overlay_color, egui_alpha_t *overlay_alpha)
 {
     overlay_color->full = 0;
@@ -998,16 +1200,21 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
     egui_mask_t *mask = canvas->mask;
 
     /* Source pixel data */
-    const uint16_t *data;
-    const uint8_t *alpha_buf;
+    const uint16_t *data = NULL;
+    const uint8_t *alpha_buf = NULL;
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    image_transform_external_source_t external_source_storage;
+    const image_transform_external_source_t *external_source = NULL;
+#endif
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     if (info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
     {
-        if (!image_transform_prepare_external_cache(info, source_is_opaque, &data, &alpha_buf))
+        if (!image_transform_prepare_external_source(info, source_is_opaque, &external_source_storage))
         {
             return;
         }
+        external_source = &external_source_storage;
     }
     else
 #endif
@@ -1015,31 +1222,69 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
         data = (const uint16_t *)info->data_buf;
         alpha_buf = source_is_opaque ? NULL : (const uint8_t *)info->alpha_buf;
     }
-    int has_alpha = (alpha_buf != NULL);
+    int has_alpha = 0;
     uint8_t alpha_type = info->alpha_type;
     int alpha_row_bytes = 0;
-    if (has_alpha)
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    if (external_source != NULL)
     {
-        switch (alpha_type)
+        has_alpha = (external_source->alpha_row_bytes > 0);
+        alpha_row_bytes = (int)external_source->alpha_row_bytes;
+    }
+    else
+#endif
+    {
+        has_alpha = (alpha_buf != NULL);
+        if (has_alpha)
         {
-        case EGUI_IMAGE_ALPHA_TYPE_8:
-            alpha_row_bytes = src_w;
-            break;
-        case EGUI_IMAGE_ALPHA_TYPE_4:
-            alpha_row_bytes = (src_w + 1) >> 1;
-            break;
-        case EGUI_IMAGE_ALPHA_TYPE_2:
-            alpha_row_bytes = (src_w + 3) >> 2;
-            break;
-        case EGUI_IMAGE_ALPHA_TYPE_1:
-            alpha_row_bytes = (src_w + 7) >> 3;
-            break;
-        default:
-            has_alpha = 0;
-            break;
+            alpha_row_bytes = image_transform_get_alpha_row_bytes(src_w, alpha_type);
+            if (alpha_row_bytes == 0)
+            {
+                has_alpha = 0;
+            }
         }
     }
     int opaque_mode = (!has_alpha && canvas_alpha == EGUI_ALPHA_100);
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+#define TRANSFORM_FETCH_BILINEAR_RGB565(_px, _py, _d00, _d01, _d10, _d11)                                                                                      \
+    do                                                                                                                                                           \
+    {                                                                                                                                                            \
+        if (external_source != NULL)                                                                                                                             \
+        {                                                                                                                                                        \
+            image_transform_fetch_bilinear_rgb565_external(external_source, (_px), (_py), &(_d00), &(_d01), &(_d10), &(_d11));                                \
+        }                                                                                                                                                        \
+        else                                                                                                                                                     \
+        {                                                                                                                                                        \
+            int32_t _offs = (_py) * src_w + (_px);                                                                                                              \
+            (_d00) = data[_offs];                                                                                                                                \
+            (_d01) = data[_offs + 1];                                                                                                                            \
+            (_d10) = data[_offs + src_w];                                                                                                                        \
+            (_d11) = data[_offs + src_w + 1];                                                                                                                    \
+        }                                                                                                                                                        \
+    } while (0)
+#define TRANSFORM_SAMPLE_ALPHA_BILINEAR(_px, _py, _fx, _fy)                                                                                                     \
+    ((external_source != NULL) ? image_transform_sample_alpha_bilinear_external(external_source, (_px), (_py), (_fx), (_fy))                                  \
+                                : image_transform_sample_alpha_bilinear_fast(alpha_buf, alpha_row_bytes, (_px), (_py), alpha_type, (_fx), (_fy)))
+#define TRANSFORM_READ_PIXEL_POINT(_px, _py)                                                                                                                     \
+    ((external_source != NULL) ? image_transform_read_rgb565_external(external_source, (_px), (_py)) : data[(_py) * src_w + (_px)])
+#define TRANSFORM_READ_ALPHA_POINT(_px, _py)                                                                                                                     \
+    ((external_source != NULL) ? image_transform_read_alpha_external(external_source, (_px), (_py))                                                             \
+                                : image_transform_read_alpha(alpha_buf, alpha_row_bytes, (_px), (_py), alpha_type))
+#else
+#define TRANSFORM_FETCH_BILINEAR_RGB565(_px, _py, _d00, _d01, _d10, _d11)                                                                                      \
+    do                                                                                                                                                           \
+    {                                                                                                                                                            \
+        int32_t _offs = (_py) * src_w + (_px);                                                                                                                  \
+        (_d00) = data[_offs];                                                                                                                                    \
+        (_d01) = data[_offs + 1];                                                                                                                                \
+        (_d10) = data[_offs + src_w];                                                                                                                            \
+        (_d11) = data[_offs + src_w + 1];                                                                                                                        \
+    } while (0)
+#define TRANSFORM_SAMPLE_ALPHA_BILINEAR(_px, _py, _fx, _fy) image_transform_sample_alpha_bilinear_fast(alpha_buf, alpha_row_bytes, (_px), (_py), alpha_type, (_fx), (_fy))
+#define TRANSFORM_READ_PIXEL_POINT(_px, _py)                  data[(_py) * src_w + (_px)]
+#define TRANSFORM_READ_ALPHA_POINT(_px, _py)                  image_transform_read_alpha(alpha_buf, alpha_row_bytes, (_px), (_py), alpha_type)
+#endif
 
     /* Row-constant terms for incremental scanning */
     int32_t Cx_base = inv_m01 * ((int32_t)draw_y0 - y) + ((int32_t)cx << 15) + offx;
@@ -1131,13 +1376,12 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                 {
                     for (int32_t i = 0; i < sir_count; i++)
                     {
-                        int32_t offs = (rotatedY >> 15) * src_w + (rotatedX >> 15);
+                        int32_t px = rotatedX >> 15;
+                        int32_t py = rotatedY >> 15;
                         uint8_t fx = (rotatedX >> 7) & 0xFF;
                         uint8_t fy = (rotatedY >> 7) & 0xFF;
-                        uint16_t d00 = data[offs];
-                        uint16_t d01 = data[offs + 1];
-                        uint16_t d10 = data[offs + src_w];
-                        uint16_t d11 = data[offs + src_w + 1];
+                        uint16_t d00, d01, d10, d11;
+                        TRANSFORM_FETCH_BILINEAR_RGB565(px, py, d00, d01, d10, d11);
                         egui_color_t color;
                         color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
                         if (row_overlay_alpha > 0)
@@ -1156,18 +1400,16 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                      * to skip color bilinear for transparent pixels */
                     for (int32_t i = 0; i < sir_count; i++)
                     {
-                        int32_t offs = (rotatedY >> 15) * src_w + (rotatedX >> 15);
+                        int32_t px = rotatedX >> 15;
+                        int32_t py = rotatedY >> 15;
                         uint8_t fx = (rotatedX >> 7) & 0xFF;
                         uint8_t fy = (rotatedY >> 7) & 0xFF;
-                        egui_alpha_t pixel_alpha =
-                                image_transform_sample_alpha_bilinear_fast(alpha_buf, alpha_row_bytes, rotatedX >> 15, rotatedY >> 15, alpha_type, fx, fy);
+                        egui_alpha_t pixel_alpha = TRANSFORM_SAMPLE_ALPHA_BILINEAR(px, py, fx, fy);
 
                         if (pixel_alpha > 0)
                         {
-                            uint16_t d00 = data[offs];
-                            uint16_t d01 = data[offs + 1];
-                            uint16_t d10 = data[offs + src_w];
-                            uint16_t d11 = data[offs + src_w + 1];
+                            uint16_t d00, d01, d10, d11;
+                            TRANSFORM_FETCH_BILINEAR_RGB565(px, py, d00, d01, d10, d11);
                             egui_color_t color;
                             color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
                             if (row_overlay_alpha > 0)
@@ -1198,13 +1440,10 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                     {
                         int32_t px = rotatedX >> 15;
                         int32_t py = rotatedY >> 15;
-                        int32_t offs = py * src_w + px;
                         uint8_t fx = (rotatedX >> 7) & 0xFF;
                         uint8_t fy = (rotatedY >> 7) & 0xFF;
-                        uint16_t d00 = data[offs];
-                        uint16_t d01 = data[offs + 1];
-                        uint16_t d10 = data[offs + src_w];
-                        uint16_t d11 = data[offs + src_w + 1];
+                        uint16_t d00, d01, d10, d11;
+                        TRANSFORM_FETCH_BILINEAR_RGB565(px, py, d00, d01, d10, d11);
                         egui_color_t color;
                         color.full = bilinear_rgb565_packed(d00, d01, d10, d11, fx, fy);
                         if (row_overlay_handled && row_overlay_alpha > 0)
@@ -1215,7 +1454,7 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                         egui_alpha_t pixel_alpha = EGUI_ALPHA_100;
                         if (has_alpha)
                         {
-                            pixel_alpha = image_transform_sample_alpha_bilinear_fast(alpha_buf, alpha_row_bytes, px, py, alpha_type, fx, fy);
+                            pixel_alpha = TRANSFORM_SAMPLE_ALPHA_BILINEAR(px, py, fx, fy);
                         }
                         if (mask_requires_point)
                         {
@@ -1251,7 +1490,7 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                 uint8_t fy = (rotatedY >> 7) & 0xFF;
 
                 uint16_t bg = *dst_row;
-#define TRANSFORM_FETCH_PIXEL(px, py) (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? data[(py) * src_w + (px)] : bg)
+#define TRANSFORM_FETCH_PIXEL(px, py) (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? TRANSFORM_READ_PIXEL_POINT((px), (py)) : bg)
                 uint16_t d00 = TRANSFORM_FETCH_PIXEL(sx, sy);
                 uint16_t d01 = TRANSFORM_FETCH_PIXEL(sx + 1, sy);
                 uint16_t d10 = TRANSFORM_FETCH_PIXEL(sx, sy + 1);
@@ -1270,7 +1509,7 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
                 {
                     /* Bilinear alpha from edge samples (out-of-bounds → 0) */
 #define TRANSFORM_FETCH_ALPHA(px, py)                                                                                                                          \
-    (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? image_transform_read_alpha(alpha_buf, alpha_row_bytes, (px), (py), alpha_type) : 0)
+    (((px) >= 0 && (px) < src_w && (py) >= 0 && (py) < src_h) ? TRANSFORM_READ_ALPHA_POINT((px), (py)) : 0)
                     uint16_t a00 = TRANSFORM_FETCH_ALPHA(sx, sy);
                     uint16_t a01 = TRANSFORM_FETCH_ALPHA(sx + 1, sy);
                     uint16_t a10 = TRANSFORM_FETCH_ALPHA(sx, sy + 1);
@@ -1312,6 +1551,11 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
         Cx_base += inv_m01;
         Cy_base += inv_m11;
     }
+
+#undef TRANSFORM_FETCH_BILINEAR_RGB565
+#undef TRANSFORM_SAMPLE_ALPHA_BILINEAR
+#undef TRANSFORM_READ_PIXEL_POINT
+#undef TRANSFORM_READ_ALPHA_POINT
 }
 
 // ============================================================================
@@ -2046,7 +2290,7 @@ static int text_transform_ensure_line_capacity(int needed)
 void egui_canvas_transform_release_frame_cache(void)
 {
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-    image_transform_release_external_cache(&g_image_transform_external_cache);
+    image_transform_release_external_row_cache();
 #endif
 
     memset(&g_text_transform_prepare_cache, 0, sizeof(g_text_transform_prepare_cache));

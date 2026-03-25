@@ -68,6 +68,21 @@ typedef struct
 static egui_image_qoi_checkpoint_t *qoi_checkpoints = NULL;
 static uint8_t qoi_checkpoint_next = 0;
 
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+#ifndef EGUI_IMAGE_QOI_EXTERNAL_STREAM_WINDOW_SIZE
+#define EGUI_IMAGE_QOI_EXTERNAL_STREAM_WINDOW_SIZE 128
+#endif
+
+typedef struct
+{
+    const egui_image_qoi_info_t *info;
+    uint32_t pos;
+    uint32_t window_offset;
+    uint16_t window_size;
+    uint8_t window[EGUI_IMAGE_QOI_EXTERNAL_STREAM_WINDOW_SIZE];
+} egui_image_qoi_external_stream_t;
+#endif
+
 static egui_image_qoi_checkpoint_t *egui_image_qoi_get_checkpoints(void)
 {
     if (qoi_checkpoints == NULL)
@@ -86,23 +101,97 @@ static egui_image_qoi_checkpoint_t *egui_image_qoi_get_checkpoints(void)
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-typedef struct
+static void egui_image_qoi_external_stream_init(egui_image_qoi_external_stream_t *stream, const egui_image_qoi_info_t *info, uint32_t pos)
 {
-    const egui_image_qoi_info_t *info;
-    const void *data_addr;
-    uint32_t data_size;
-    uint8_t *data_buf;
-} egui_image_qoi_external_cache_t;
+    stream->info = info;
+    stream->pos = pos;
+    stream->window_offset = 0;
+    stream->window_size = 0;
+}
 
-static egui_image_qoi_external_cache_t qoi_external_cache;
-
-static void egui_image_qoi_release_external_cache(void)
+static int egui_image_qoi_external_stream_refill(egui_image_qoi_external_stream_t *stream)
 {
-    if (qoi_external_cache.data_buf != NULL)
+    uint32_t remaining;
+    uint32_t load_size;
+
+    if (stream->pos >= stream->info->data_size)
     {
-        egui_free(qoi_external_cache.data_buf);
+        return 0;
     }
-    memset(&qoi_external_cache, 0, sizeof(qoi_external_cache));
+
+    remaining = stream->info->data_size - stream->pos;
+    load_size = remaining;
+    if (load_size > EGUI_IMAGE_QOI_EXTERNAL_STREAM_WINDOW_SIZE)
+    {
+        load_size = EGUI_IMAGE_QOI_EXTERNAL_STREAM_WINDOW_SIZE;
+    }
+
+    egui_api_load_external_resource(stream->window, (egui_uintptr_t)stream->info->data_buf, stream->pos, load_size);
+    stream->window_offset = stream->pos;
+    stream->window_size = (uint16_t)load_size;
+    return 1;
+}
+
+__EGUI_STATIC_INLINE__ int egui_image_qoi_external_stream_read_u8(egui_image_qoi_external_stream_t *stream, uint8_t *value)
+{
+    if (stream->pos >= stream->info->data_size)
+    {
+        return 0;
+    }
+
+    if (stream->window_size == 0 ||
+        stream->pos < stream->window_offset ||
+        stream->pos >= (stream->window_offset + stream->window_size))
+    {
+        if (!egui_image_qoi_external_stream_refill(stream))
+        {
+            return 0;
+        }
+    }
+
+    *value = stream->window[stream->pos - stream->window_offset];
+    stream->pos++;
+    return 1;
+}
+
+static int egui_image_qoi_external_stream_read_bytes(egui_image_qoi_external_stream_t *stream, uint8_t *dst, uint32_t size)
+{
+    uint32_t remaining = size;
+
+    while (remaining > 0)
+    {
+        uint32_t available;
+        uint32_t chunk;
+
+        if (stream->pos >= stream->info->data_size)
+        {
+            return 0;
+        }
+
+        if (stream->window_size == 0 ||
+            stream->pos < stream->window_offset ||
+            stream->pos >= (stream->window_offset + stream->window_size))
+        {
+            if (!egui_image_qoi_external_stream_refill(stream))
+            {
+                return 0;
+            }
+        }
+
+        available = (stream->window_offset + stream->window_size) - stream->pos;
+        chunk = remaining;
+        if (chunk > available)
+        {
+            chunk = available;
+        }
+
+        memcpy(dst, stream->window + (stream->pos - stream->window_offset), chunk);
+        dst += chunk;
+        stream->pos += chunk;
+        remaining -= chunk;
+    }
+
+    return 1;
 }
 #endif
 
@@ -110,35 +199,7 @@ static int egui_image_qoi_prepare_decode_info(const egui_image_qoi_info_t *info,
 {
     *decode_info = *info;
 
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-    if (info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
-    {
-        int cache_hit = qoi_external_cache.info == info &&
-                        qoi_external_cache.data_addr == info->data_buf &&
-                        qoi_external_cache.data_size == info->data_size &&
-                        qoi_external_cache.data_buf != NULL;
-
-        if (!cache_hit)
-        {
-            uint8_t *new_data_buf = (uint8_t *)egui_malloc((int)info->data_size);
-            if (new_data_buf == NULL)
-            {
-                return 0;
-            }
-
-            egui_api_load_external_resource(new_data_buf, (egui_uintptr_t)(info->data_buf), 0, info->data_size);
-            egui_image_qoi_release_external_cache();
-
-            qoi_external_cache.info = info;
-            qoi_external_cache.data_addr = info->data_buf;
-            qoi_external_cache.data_size = info->data_size;
-            qoi_external_cache.data_buf = new_data_buf;
-        }
-
-        decode_info->data_buf = qoi_external_cache.data_buf;
-        decode_info->res_type = EGUI_RESOURCE_TYPE_INTERNAL;
-    }
-#else
+#if !EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     if (info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
     {
         EGUI_ASSERT(0);
@@ -418,6 +479,172 @@ __EGUI_STATIC_INLINE__ void egui_image_qoi_decode_opcode_rgb(const uint8_t **dat
     *data_ptr = data;
 }
 
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+__EGUI_STATIC_INLINE__ void egui_image_qoi_decode_opcode_external(egui_image_qoi_external_stream_t *stream,
+                                                                  uint8_t *prev_r, uint8_t *prev_g, uint8_t *prev_b, uint8_t *prev_a,
+                                                                  uint16_t *prev_rgb565, uint16_t *index_rgb565, uint32_t *index_rgba, uint8_t *run)
+{
+    uint8_t hash;
+    uint8_t b1;
+
+    if (!egui_image_qoi_external_stream_read_u8(stream, &b1))
+    {
+        return;
+    }
+
+    if (b1 < QOI_OP_RUN)
+    {
+        if (b1 < QOI_OP_DIFF)
+        {
+            uint8_t index = b1 & 0x3F;
+            uint32_t rgba = index_rgba[index];
+
+            *prev_r = (uint8_t)rgba;
+            *prev_g = (uint8_t)(rgba >> 8);
+            *prev_b = (uint8_t)(rgba >> 16);
+            *prev_a = (uint8_t)(rgba >> 24);
+            *prev_rgb565 = index_rgb565[index];
+            return;
+        }
+
+        if (b1 < QOI_OP_LUMA)
+        {
+            *prev_r += ((b1 >> 4) & 0x03) - 2;
+            *prev_g += ((b1 >> 2) & 0x03) - 2;
+            *prev_b += (b1 & 0x03) - 2;
+        }
+        else
+        {
+            uint8_t b2;
+            int8_t vg;
+
+            if (!egui_image_qoi_external_stream_read_u8(stream, &b2))
+            {
+                return;
+            }
+
+            vg = (int8_t)((b1 & 0x3F) - 32);
+            *prev_r += vg - 8 + ((b2 >> 4) & 0x0F);
+            *prev_g += vg;
+            *prev_b += vg - 8 + (b2 & 0x0F);
+        }
+    }
+    else if (b1 < QOI_OP_RGB)
+    {
+        *run = (b1 & 0x3F);
+        return;
+    }
+    else if (b1 == QOI_OP_RGB)
+    {
+        uint8_t rgb[3];
+
+        if (!egui_image_qoi_external_stream_read_bytes(stream, rgb, sizeof(rgb)))
+        {
+            return;
+        }
+
+        *prev_r = rgb[0];
+        *prev_g = rgb[1];
+        *prev_b = rgb[2];
+    }
+    else
+    {
+        uint8_t rgba[4];
+
+        if (!egui_image_qoi_external_stream_read_bytes(stream, rgba, sizeof(rgba)))
+        {
+            return;
+        }
+
+        *prev_r = rgba[0];
+        *prev_g = rgba[1];
+        *prev_b = rgba[2];
+        *prev_a = rgba[3];
+    }
+
+    *prev_rgb565 = egui_image_qoi_rgb888_to_rgb565(*prev_r, *prev_g, *prev_b);
+    hash = QOI_COLOR_HASH(*prev_r, *prev_g, *prev_b, *prev_a);
+    index_rgb565[hash] = *prev_rgb565;
+    index_rgba[hash] = QOI_RGBA_PACK(*prev_r, *prev_g, *prev_b, *prev_a);
+}
+
+__EGUI_STATIC_INLINE__ void egui_image_qoi_decode_opcode_rgb_external(egui_image_qoi_external_stream_t *stream,
+                                                                      uint8_t *prev_r, uint8_t *prev_g, uint8_t *prev_b,
+                                                                      uint16_t *prev_rgb565, uint16_t *index_rgb565, uint32_t *index_rgba, uint8_t *run)
+{
+    uint8_t hash;
+    uint8_t b1;
+
+    if (!egui_image_qoi_external_stream_read_u8(stream, &b1))
+    {
+        return;
+    }
+
+    if (b1 < QOI_OP_RUN)
+    {
+        if (b1 < QOI_OP_DIFF)
+        {
+            uint8_t index = b1 & 0x3F;
+            uint32_t rgb = index_rgba[index];
+
+            *prev_r = (uint8_t)rgb;
+            *prev_g = (uint8_t)(rgb >> 8);
+            *prev_b = (uint8_t)(rgb >> 16);
+            *prev_rgb565 = index_rgb565[index];
+            return;
+        }
+        else if (b1 < QOI_OP_LUMA)
+        {
+            *prev_r += ((b1 >> 4) & 0x03) - 2;
+            *prev_g += ((b1 >> 2) & 0x03) - 2;
+            *prev_b += (b1 & 0x03) - 2;
+        }
+        else
+        {
+            uint8_t b2;
+            int8_t vg;
+
+            if (!egui_image_qoi_external_stream_read_u8(stream, &b2))
+            {
+                return;
+            }
+
+            vg = (int8_t)((b1 & 0x3F) - 32);
+            *prev_r += vg - 8 + ((b2 >> 4) & 0x0F);
+            *prev_g += vg;
+            *prev_b += vg - 8 + (b2 & 0x0F);
+        }
+    }
+    else if (b1 == QOI_OP_RGB)
+    {
+        uint8_t rgb[3];
+
+        if (!egui_image_qoi_external_stream_read_bytes(stream, rgb, sizeof(rgb)))
+        {
+            return;
+        }
+
+        *prev_r = rgb[0];
+        *prev_g = rgb[1];
+        *prev_b = rgb[2];
+    }
+    else if (b1 < QOI_OP_RGB)
+    {
+        *run = (b1 & 0x3F);
+        return;
+    }
+    else
+    {
+        return;
+    }
+
+    *prev_rgb565 = egui_image_qoi_rgb888_to_rgb565(*prev_r, *prev_g, *prev_b);
+    hash = QOI_COLOR_HASH(*prev_r, *prev_g, *prev_b, 255);
+    index_rgb565[hash] = *prev_rgb565;
+    index_rgba[hash] = QOI_RGBA_PACK(*prev_r, *prev_g, *prev_b, 255);
+}
+#endif
+
 static void egui_image_qoi_decode_row_rgb565_opaque(const egui_image_qoi_info_t *info, uint8_t *pixel_buf)
 {
     const uint8_t *src = info->data_buf;
@@ -664,8 +891,177 @@ static void egui_image_qoi_decode_row_rgb32(const egui_image_qoi_info_t *info, u
     qoi_state.run = run;
 }
 
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+static void egui_image_qoi_decode_row_external(const egui_image_qoi_info_t *info, uint8_t *pixel_buf, uint8_t *alpha_buf)
+{
+    egui_image_qoi_external_stream_t stream;
+    uint8_t prev_r = qoi_state.prev_r;
+    uint8_t prev_g = qoi_state.prev_g;
+    uint8_t prev_b = qoi_state.prev_b;
+    uint8_t prev_a = qoi_state.prev_a;
+    uint16_t prev_rgb565 = qoi_state.prev_rgb565;
+    uint8_t run = qoi_state.run;
+    uint16_t *index_rgb565 = qoi_state.index_rgb565;
+    uint32_t *index_rgba = qoi_state.index_rgba;
+    uint16_t remaining = info->width;
+
+    egui_image_qoi_external_stream_init(&stream, info, qoi_state.data_pos);
+
+    if (info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565)
+    {
+        uint16_t *dst = (uint16_t *)pixel_buf;
+        uint8_t *alpha = alpha_buf;
+
+        while (remaining > 0)
+        {
+            if (run > 0)
+            {
+                uint16_t repeat = remaining;
+
+                if (repeat > run)
+                {
+                    repeat = run;
+                }
+
+                egui_image_qoi_fill_rgb565(dst, prev_rgb565, repeat);
+                if (alpha != NULL)
+                {
+                    memset(alpha, prev_a, repeat);
+                    alpha += repeat;
+                }
+
+                run = (uint8_t)(run - repeat);
+                dst += repeat;
+                remaining = (uint16_t)(remaining - repeat);
+                continue;
+            }
+
+            if (info->channels == 3)
+            {
+                egui_image_qoi_decode_opcode_rgb_external(&stream, &prev_r, &prev_g, &prev_b, &prev_rgb565, index_rgb565, index_rgba, &run);
+            }
+            else
+            {
+                egui_image_qoi_decode_opcode_external(&stream, &prev_r, &prev_g, &prev_b, &prev_a, &prev_rgb565, index_rgb565, index_rgba, &run);
+            }
+
+            *dst++ = prev_rgb565;
+            if (alpha != NULL)
+            {
+                *alpha++ = prev_a;
+            }
+            remaining--;
+        }
+    }
+    else
+    {
+        while (remaining > 0)
+        {
+            if (run > 0)
+            {
+                uint16_t repeat = remaining;
+
+                if (repeat > run)
+                {
+                    repeat = run;
+                }
+
+                egui_image_qoi_fill_rgb32(pixel_buf, prev_r, prev_g, prev_b, prev_a, repeat);
+                run = (uint8_t)(run - repeat);
+                pixel_buf += (uint32_t)repeat << 2;
+                remaining = (uint16_t)(remaining - repeat);
+                continue;
+            }
+
+            if (info->channels == 3)
+            {
+                egui_image_qoi_decode_opcode_rgb_external(&stream, &prev_r, &prev_g, &prev_b, &prev_rgb565, index_rgb565, index_rgba, &run);
+            }
+            else
+            {
+                egui_image_qoi_decode_opcode_external(&stream, &prev_r, &prev_g, &prev_b, &prev_a, &prev_rgb565, index_rgb565, index_rgba, &run);
+            }
+
+            pixel_buf[0] = prev_r;
+            pixel_buf[1] = prev_g;
+            pixel_buf[2] = prev_b;
+            pixel_buf[3] = prev_a;
+            pixel_buf += 4;
+            remaining--;
+        }
+    }
+
+    qoi_state.data_pos = stream.pos;
+    qoi_state.prev_r = prev_r;
+    qoi_state.prev_g = prev_g;
+    qoi_state.prev_b = prev_b;
+    qoi_state.prev_a = prev_a;
+    qoi_state.prev_rgb565 = prev_rgb565;
+    qoi_state.run = run;
+}
+
+static void egui_image_qoi_skip_row_external(const egui_image_qoi_info_t *info)
+{
+    egui_image_qoi_external_stream_t stream;
+    uint8_t prev_r = qoi_state.prev_r;
+    uint8_t prev_g = qoi_state.prev_g;
+    uint8_t prev_b = qoi_state.prev_b;
+    uint8_t prev_a = qoi_state.prev_a;
+    uint16_t prev_rgb565 = qoi_state.prev_rgb565;
+    uint8_t run = qoi_state.run;
+    uint16_t *index_rgb565 = qoi_state.index_rgb565;
+    uint32_t *index_rgba = qoi_state.index_rgba;
+    uint16_t remaining = info->width;
+
+    egui_image_qoi_external_stream_init(&stream, info, qoi_state.data_pos);
+
+    while (remaining > 0)
+    {
+        if (run > 0)
+        {
+            uint16_t repeat = remaining;
+
+            if (repeat > run)
+            {
+                repeat = run;
+            }
+
+            run = (uint8_t)(run - repeat);
+            remaining = (uint16_t)(remaining - repeat);
+            continue;
+        }
+
+        if (info->channels == 3)
+        {
+            egui_image_qoi_decode_opcode_rgb_external(&stream, &prev_r, &prev_g, &prev_b, &prev_rgb565, index_rgb565, index_rgba, &run);
+        }
+        else
+        {
+            egui_image_qoi_decode_opcode_external(&stream, &prev_r, &prev_g, &prev_b, &prev_a, &prev_rgb565, index_rgb565, index_rgba, &run);
+        }
+        remaining--;
+    }
+
+    qoi_state.data_pos = stream.pos;
+    qoi_state.prev_r = prev_r;
+    qoi_state.prev_g = prev_g;
+    qoi_state.prev_b = prev_b;
+    qoi_state.prev_a = prev_a;
+    qoi_state.prev_rgb565 = prev_rgb565;
+    qoi_state.run = run;
+}
+#endif
+
 static void egui_image_qoi_decode_row(const egui_image_qoi_info_t *info, uint8_t *pixel_buf, uint8_t *alpha_buf)
 {
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    if (info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
+    {
+        egui_image_qoi_decode_row_external(info, pixel_buf, alpha_buf);
+        return;
+    }
+#endif
+
     if (info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565)
     {
         egui_image_qoi_decode_row_rgb565(info, pixel_buf, alpha_buf);
@@ -724,6 +1120,14 @@ static void egui_image_qoi_skip_row_rgb(const egui_image_qoi_info_t *info)
 
 static void egui_image_qoi_skip_row(const egui_image_qoi_info_t *info)
 {
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    if (info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
+    {
+        egui_image_qoi_skip_row_external(info);
+        return;
+    }
+#endif
+
     if (info->channels == 3)
     {
         egui_image_qoi_skip_row_rgb(info);
@@ -1204,7 +1608,6 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
     egui_dim_t count;
     int has_alpha = (draw_info->channels == 4);
     uint8_t pixel_size = (draw_info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565) ? 2 : 4;
-    uint16_t alpha_row_bytes = has_alpha ? draw_info->width : 0;
     uint8_t alpha_type = has_alpha ? EGUI_IMAGE_ALPHA_TYPE_8 : EGUI_IMAGE_ALPHA_TYPE_1;
     int use_fast_copy = (draw_info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565 && !has_alpha);
     int use_fast_alpha8 = (draw_info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565 && has_alpha && alpha_type == EGUI_IMAGE_ALPHA_TYPE_8);
