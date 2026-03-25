@@ -2236,7 +2236,7 @@ class TestMainWindowFileFlow:
         window = MainWindow(str(sdk_root))
         monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
         monkeypatch.setattr(window, "_trigger_compile", lambda: None)
-        monkeypatch.setattr("ui_designer.ui.resource_panel.QMessageBox.question", lambda *args, **kwargs: QMessageBox.Yes)
+        monkeypatch.setattr(window.res_panel, "_confirm_reference_impact", lambda *args: True)
 
         window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
         window.res_panel._select_resource_item("string", "greeting")

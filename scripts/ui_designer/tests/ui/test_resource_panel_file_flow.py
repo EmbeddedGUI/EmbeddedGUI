@@ -251,8 +251,9 @@ class TestResourcePanelFileFlow:
         rewrites = []
         imported = []
         monkeypatch.setattr(
-            "ui_designer.ui.resource_panel.QMessageBox.question",
-            lambda *args, **kwargs: prompts.append(args[2]) or QMessageBox.Yes,
+            panel,
+            "_confirm_reference_impact",
+            lambda *args: prompts.append(args) or True,
         )
         panel.string_key_deleted.connect(lambda key, replacement: rewrites.append((key, replacement)))
         panel.resource_imported.connect(lambda: imported.append(True))
@@ -260,8 +261,10 @@ class TestResourcePanelFileFlow:
         panel._on_remove_string_key()
 
         assert prompts
-        assert "used by 2 widgets across 2 pages" in prompts[0]
-        assert "convert those references to the default-locale literal text" in prompts[0]
+        assert prompts[0][0] == "Remove String Key"
+        assert prompts[0][1] == "greeting"
+        assert len(prompts[0][2]) == 2
+        assert "default-locale literal text" in prompts[0][4]
         assert rewrites == [("greeting", "Hello")]
         assert imported == [True]
         assert "greeting" not in panel.get_string_catalog().all_keys
@@ -683,4 +686,48 @@ class TestResourcePanelFileFlow:
         assert panel._text_list.count() == 0
         assert deleted == [("text", "chars.txt")]
         assert imported == [True]
+        panel.deleteLater()
+
+    def test_delete_resource_with_usages_uses_shared_impact_confirmation(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.model.resource_usage import ResourceUsageEntry
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        resource_dir.mkdir(parents=True)
+        text_path = resource_dir / "chars.txt"
+        text_path.write_text("abc\n", encoding="utf-8")
+
+        catalog = ResourceCatalog()
+        catalog.add_text_file("chars.txt")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+        panel.set_resource_usage_index(
+            {
+                ("text", "chars.txt"): [
+                    ResourceUsageEntry("text", "chars.txt", "main_page", "title", "font_text_file", "label"),
+                ]
+            }
+        )
+
+        prompts = []
+        deleted = []
+        monkeypatch.setattr(
+            panel,
+            "_confirm_reference_impact",
+            lambda *args: prompts.append(args) or True,
+        )
+        panel.resource_deleted.connect(lambda res_type, filename: deleted.append((res_type, filename)))
+
+        panel._delete_resource("chars.txt", "text")
+
+        assert prompts
+        assert prompts[0][0] == "Delete Resource"
+        assert prompts[0][1] == "chars.txt"
+        assert len(prompts[0][2]) == 1
+        assert "clear those widget references" in prompts[0][4]
+        assert deleted == [("text", "chars.txt")]
+        assert not text_path.exists()
         panel.deleteLater()

@@ -442,6 +442,59 @@ class _MissingResourceReplaceDialog(QDialog):
         super().accept()
 
 
+class _ReferenceImpactDialog(QDialog):
+    """Confirm destructive actions and show impacted references."""
+
+    def __init__(self, parent, title, summary, usages, confirm_text):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.resize(560, 360)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
+
+        summary_label = QLabel(summary)
+        summary_label.setWordWrap(True)
+        layout.addWidget(summary_label)
+
+        self._table = QTableWidget(len(usages), 3, self)
+        self._table.setHorizontalHeaderLabels(["Page", "Widget", "Property"])
+        self._table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self._table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self._table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self._table.verticalHeader().setVisible(False)
+        self._table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self._table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self._table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+
+        for row, entry in enumerate(usages):
+            page_item = QTableWidgetItem(entry.page_name)
+            widget_text = entry.widget_name
+            if entry.widget_type:
+                widget_text = f"{entry.widget_name} ({entry.widget_type})"
+            widget_item = QTableWidgetItem(widget_text)
+            prop_item = QTableWidgetItem(entry.property_name)
+            self._table.setItem(row, 0, page_item)
+            self._table.setItem(row, 1, widget_item)
+            self._table.setItem(row, 2, prop_item)
+
+        if usages:
+            self._table.selectRow(0)
+        layout.addWidget(self._table, 1)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self)
+        ok_button = buttons.button(QDialogButtonBox.Ok)
+        if ok_button is not None:
+            ok_button.setText(confirm_text or "Continue")
+        cancel_button = buttons.button(QDialogButtonBox.Cancel)
+        if cancel_button is not None:
+            cancel_button.setText("Cancel")
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+
 # -- Main ResourcePanel --------------------------------------------------
 
 class ResourcePanel(QWidget):
@@ -1004,6 +1057,27 @@ class ResourcePanel(QWidget):
         if not parts:
             return
         self.feedback_message.emit(f"{action} {resource_type} resources: {', '.join(parts)}.")
+
+    def _confirm_reference_impact(self, title, resource_name, usages, unused_prompt, impact_text, confirm_text):
+        if not usages:
+            reply = QMessageBox.question(
+                self,
+                title,
+                unused_prompt,
+                QMessageBox.Yes | QMessageBox.No,
+            )
+            return reply == QMessageBox.Yes
+
+        page_count = len({entry.page_name for entry in usages})
+        widget_count = len(usages)
+        page_noun = "page" if page_count == 1 else "pages"
+        widget_noun = "widget" if widget_count == 1 else "widgets"
+        summary = (
+            f"'{resource_name}' is used by {widget_count} {widget_noun} across {page_count} {page_noun}.\n"
+            f"{impact_text}"
+        )
+        dialog = _ReferenceImpactDialog(self, title, summary, usages, confirm_text)
+        return dialog.exec_() == QDialog.Accepted
 
     def _dialog_filter_for_resource_type(self, resource_type):
         if resource_type == "image":
@@ -1600,13 +1674,16 @@ class ResourcePanel(QWidget):
             QMessageBox.warning(self, "Error", f"Rename failed: {e}")
 
     def _delete_resource(self, filename, resource_type):
-        reply = QMessageBox.question(
-            self, "Delete Resource",
-            f"Remove '{filename}' from catalog and delete the file?\n"
-            "This cannot be undone.",
-            QMessageBox.Yes | QMessageBox.No,
+        usages = list(self._resource_usage_index.get((resource_type, filename), []))
+        confirmed = self._confirm_reference_impact(
+            "Delete Resource",
+            filename,
+            usages,
+            f"Remove '{filename}' from catalog and delete the file?\nThis cannot be undone.",
+            "Deleting it will clear those widget references.",
+            "Delete",
         )
-        if reply != QMessageBox.Yes:
+        if not confirmed:
             return
         self._catalog.remove_file(filename)
         file_dir = self._target_dir_for_resource_type(resource_type)
@@ -1785,25 +1862,16 @@ class ResourcePanel(QWidget):
         key = key_item.text()
         usages = list(self._resource_usage_index.get(("string", key), []))
         replacement_text = self._string_catalog.get(key, DEFAULT_LOCALE)
-        if usages:
-            page_count = len({entry.page_name for entry in usages})
-            widget_count = len(usages)
-            page_noun = "page" if page_count == 1 else "pages"
-            widget_noun = "widget" if widget_count == 1 else "widgets"
-            rewrite_text = "convert those references to the default-locale literal text" if replacement_text else "clear those references"
-            prompt = (
-                f"Remove key '{key}' from all locales?\n"
-                f"It is used by {widget_count} {widget_noun} across {page_count} {page_noun}.\n"
-                f"This will {rewrite_text}."
-            )
-        else:
-            prompt = f"Remove key '{key}' from all locales?"
-        reply = QMessageBox.question(
-            self, "Remove String Key",
-            prompt,
-            QMessageBox.Yes | QMessageBox.No,
+        rewrite_text = "convert those references to the default-locale literal text" if replacement_text else "clear those references"
+        confirmed = self._confirm_reference_impact(
+            "Remove String Key",
+            key,
+            usages,
+            f"Remove key '{key}' from all locales?",
+            f"Removing it will {rewrite_text}.",
+            "Remove",
         )
-        if reply != QMessageBox.Yes:
+        if not confirmed:
             return
         self._string_catalog.remove_key(key)
         self._refresh_string_tab()
