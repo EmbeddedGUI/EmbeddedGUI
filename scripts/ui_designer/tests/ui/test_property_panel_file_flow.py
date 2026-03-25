@@ -616,3 +616,84 @@ class TestPropertyPanelFileFlow:
         assert property_events == []
         assert messages[-1].startswith("Callback name must be a valid C identifier")
         panel.deleteLater()
+
+    def test_multi_selection_shows_shared_callback_editors_and_mixed_state(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        first = WidgetModel("slider", name="first_slider")
+        second = WidgetModel("slider", name="second_slider")
+        first.on_click = "on_first_click"
+        second.on_click = "on_second_click"
+        first.events["onValueChanged"] = "on_volume_changed"
+        second.events["onValueChanged"] = "on_volume_changed"
+
+        panel = PropertyPanel()
+        panel.set_selection([first, second], primary=second)
+
+        summary_group = _find_group(panel, "Selection - 2 Widgets")
+        callbacks_group = _find_group(panel, "Callbacks")
+        click_editor = panel._editors["callback_onClick"]
+        value_editor = panel._editors["callback_onValueChanged"]
+
+        assert _form_value_text(summary_group, "Mixed:") == "1"
+        assert "Click (Mixed):" in _form_labels(callbacks_group)
+        assert "Value Changed:" in _form_labels(callbacks_group)
+        assert click_editor.text() == ""
+        assert click_editor.placeholderText() == "Mixed values"
+        assert "different callback names" in click_editor.toolTip()
+        assert value_editor.text() == "on_volume_changed"
+        assert "applies the same callback to all selected widgets" in value_editor.toolTip()
+        panel.deleteLater()
+
+    def test_multi_selection_callback_edit_updates_all_widgets(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        first = WidgetModel("slider", name="first_slider")
+        second = WidgetModel("slider", name="second_slider")
+
+        panel = PropertyPanel()
+        property_events = []
+        messages = []
+        panel.property_changed.connect(lambda: property_events.append("changed"))
+        panel.validation_message.connect(messages.append)
+        panel.set_selection([first, second], primary=second)
+
+        editor = panel._editors["callback_onValueChanged"]
+        editor.setText("handle volume changed")
+        editor.editingFinished.emit()
+
+        assert first.events["onValueChanged"] == "handle_volume_changed"
+        assert second.events["onValueChanged"] == "handle_volume_changed"
+        assert editor.text() == "handle_volume_changed"
+        assert property_events == ["changed"]
+        assert messages[-1] == "Callback name normalized to 'handle_volume_changed'."
+        panel.deleteLater()
+
+    def test_multi_selection_callback_edit_rejects_invalid_identifier(self, qapp):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.property_panel import PropertyPanel
+
+        first = WidgetModel("slider", name="first_slider")
+        second = WidgetModel("slider", name="second_slider")
+        first.events["onValueChanged"] = "on_volume_changed"
+        second.events["onValueChanged"] = "on_volume_changed"
+
+        panel = PropertyPanel()
+        property_events = []
+        messages = []
+        panel.property_changed.connect(lambda: property_events.append("changed"))
+        panel.validation_message.connect(messages.append)
+        panel.set_selection([first, second], primary=second)
+
+        editor = panel._editors["callback_onValueChanged"]
+        editor.setText("123 bad-name")
+        editor.editingFinished.emit()
+
+        assert first.events["onValueChanged"] == "on_volume_changed"
+        assert second.events["onValueChanged"] == "on_volume_changed"
+        assert editor.text() == "on_volume_changed"
+        assert property_events == []
+        assert messages[-1].startswith("Callback name must be a valid C identifier")
+        panel.deleteLater()

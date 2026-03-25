@@ -1792,6 +1792,41 @@ class TestMainWindowFileFlow:
         window._undo_manager.mark_all_saved()
         _close_window(window)
 
+    def test_property_panel_multi_selection_callback_edit_updates_widgets_and_dirty_state(
+        self, qapp, isolated_config, tmp_path, monkeypatch
+    ):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "BatchEventCallbackDemo"
+        project = _create_project(project_dir, "BatchEventCallbackDemo", sdk_root)
+        first = WidgetModel("slider", name="volume_slider_a", x=16, y=16, width=160, height=24)
+        second = WidgetModel("slider", name="volume_slider_b", x=16, y=48, width=160, height=24)
+        project.get_startup_page().root_widget.add_child(first)
+        project.get_startup_page().root_widget.add_child(second)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._set_selection([first, second], primary=second, sync_tree=True, sync_preview=False)
+
+        editor = window.property_panel._editors["callback_onValueChanged"]
+        editor.setText("on_shared_volume_changed")
+        editor.editingFinished.emit()
+
+        assert first.events["onValueChanged"] == "on_shared_volume_changed"
+        assert second.events["onValueChanged"] == "on_shared_volume_changed"
+        assert window._undo_manager.is_any_dirty() is True
+        assert window.statusBar().currentMessage() == "Changed main_page: property edit."
+        assert window._current_page.to_xml_string().count('onValueChanged="on_shared_volume_changed"') == 2
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
     def test_resource_panel_feedback_signal_updates_status_bar(self, qapp, isolated_config):
         from ui_designer.ui.main_window import MainWindow
 

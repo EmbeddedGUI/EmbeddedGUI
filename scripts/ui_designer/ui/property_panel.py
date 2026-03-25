@@ -465,6 +465,7 @@ class PropertyPanel(QWidget):
         self._layout.addStretch()
 
     def _build_multi_selection_form(self):
+        callback_entries = self._collect_multi_callback_entries()
         summary = QGroupBox(f"Selection - {len(self._selection)} Widgets")
         summary_form = QFormLayout()
         summary.setLayout(summary_form)
@@ -472,9 +473,10 @@ class PropertyPanel(QWidget):
         widget_types = sorted({widget.widget_type for widget in self._selection})
         mixed_geometry = sum(1 for field in ("x", "y", "width", "height") if self._is_mixed_values(getattr(widget, field) for widget in self._selection))
         mixed_props = sum(1 for prop_name, _ in self._collect_multi_common_properties() if self._is_mixed_values(widget.properties.get(prop_name) for widget in self._selection))
+        mixed_callbacks = sum(1 for entry in callback_entries if entry["is_mixed"])
         summary_form.addRow("Primary:", QLabel(self._primary_widget.name if self._primary_widget else ""))
         summary_form.addRow("Types:", QLabel(", ".join(widget_types)))
-        summary_form.addRow("Mixed:", QLabel(str(mixed_geometry + mixed_props)))
+        summary_form.addRow("Mixed:", QLabel(str(mixed_geometry + mixed_props + mixed_callbacks)))
         summary_form.addRow("Hint:", QLabel("Batch edits apply the same value to all selected widgets."))
         self._layout.addWidget(summary)
 
@@ -494,6 +496,9 @@ class PropertyPanel(QWidget):
         self._layout.addWidget(geometry_group)
 
         self._build_multi_common_properties_group()
+        callbacks_group = self._build_multi_callbacks_group(callback_entries)
+        if callbacks_group is not None:
+            self._layout.addWidget(callbacks_group)
         self._layout.addWidget(self._build_designer_state_group())
         feedback_group = self._build_selection_feedback_group()
         if feedback_group is not None:
@@ -934,6 +939,52 @@ class PropertyPanel(QWidget):
 
         return entries
 
+    def _callback_entry_map(self, widget):
+        return {entry["event_name"]: entry for entry in self._callback_entries(widget)}
+
+    def _collect_multi_callback_entries(self):
+        if not self._selection:
+            return []
+
+        entry_maps = [self._callback_entry_map(widget) for widget in self._selection]
+        if not entry_maps:
+            return []
+
+        shared_names = set(entry_maps[0])
+        for entry_map in entry_maps[1:]:
+            shared_names &= set(entry_map)
+
+        entries = []
+        for event_name in sorted(shared_names, key=lambda name: (name != "onClick", self._humanize_callback_name(name))):
+            base_entry = entry_maps[0][event_name]
+            compatible = True
+            for entry_map in entry_maps[1:]:
+                other_entry = entry_map[event_name]
+                if (
+                    other_entry.get("use_event_dict") != base_entry.get("use_event_dict")
+                    or other_entry.get("signature", "") != base_entry.get("signature", "")
+                ):
+                    compatible = False
+                    break
+            if not compatible:
+                continue
+
+            current_values = [
+                self._current_callback_value(widget, event_name, base_entry.get("use_event_dict", False))
+                for widget in self._selection
+            ]
+            entries.append(
+                {
+                    "event_name": event_name,
+                    "signature": base_entry.get("signature", ""),
+                    "use_event_dict": base_entry.get("use_event_dict", False),
+                    "current_values": current_values,
+                    "is_mixed": self._is_mixed_values(current_values),
+                }
+            )
+
+        return entries
+
     def _build_callbacks_group(self, widget):
         entries = self._callback_entries(widget)
         if not entries:
@@ -968,6 +1019,79 @@ class PropertyPanel(QWidget):
         return group
 
     # ── Property editor factory ───────────────────────────────────
+
+    def _suggest_multi_callback_name(self, event_name):
+        suffix = self._humanize_callback_name(event_name).lower().replace(" ", "_")
+        widget_types = sorted({widget.widget_type for widget in self._selection})
+        if len(widget_types) == 1:
+            return f"on_{sanitize_widget_name(widget_types[0])}_{suffix}"
+        return f"on_selection_{suffix}"
+
+    def _multi_callback_tooltip(self, event_name, signature, is_mixed):
+        parts = []
+        if is_mixed:
+            parts.append("Selected widgets currently have different callback names. Editing here will normalize them.")
+        parts.extend(
+            [
+                "Editing this field applies the same callback to all selected widgets.",
+                "Leave empty to disable this callback for all selected widgets.",
+                f"Suggested: {self._suggest_multi_callback_name(event_name)}",
+            ]
+        )
+        preview = self._callback_signature_preview(signature)
+        if preview:
+            parts.append(f"Signature: {preview}")
+        return "\n".join(parts)
+
+    def _apply_multi_callback_editor_state(self, editor, event_name, signature, current_values):
+        is_mixed = self._is_mixed_values(current_values)
+        with QSignalBlocker(editor):
+            if is_mixed:
+                editor.clear()
+                editor.setPlaceholderText("Mixed values")
+            else:
+                editor.setText(current_values[0] if current_values else "")
+                editor.setPlaceholderText(self._suggest_multi_callback_name(event_name))
+            if hasattr(editor, "setModified"):
+                editor.setModified(False)
+        editor.setToolTip(self._multi_callback_tooltip(event_name, signature, is_mixed))
+
+    def _build_multi_callbacks_group(self, entries=None):
+        entries = list(entries or self._collect_multi_callback_entries())
+        if not entries:
+            return None
+
+        group = CollapsibleGroupBox("Callbacks")
+        form = QFormLayout()
+        group.setLayout(form)
+
+        for entry in entries:
+            event_name = entry["event_name"]
+            editor = LineEdit()
+            self._apply_multi_callback_editor_state(
+                editor,
+                event_name,
+                entry["signature"],
+                entry["current_values"],
+            )
+            editor.editingFinished.connect(
+                lambda editor=editor,
+                event_name=event_name,
+                signature=entry["signature"],
+                use_event_dict=entry["use_event_dict"]: self._on_multi_callback_editing_finished(
+                    editor,
+                    event_name,
+                    signature,
+                    use_event_dict,
+                )
+            )
+            self._editors[f"callback_{event_name}"] = editor
+            label = self._humanize_callback_name(event_name)
+            if entry["is_mixed"]:
+                label += " (Mixed)"
+            form.addRow(f"{label}:", editor)
+
+        return group
 
     def _create_property_editor(self, prop_name, prop_info, current_value, prop_changed_handler=None, file_prop_handler=None):
         ptype = prop_info.get("type", "string")
@@ -1308,6 +1432,44 @@ class PropertyPanel(QWidget):
                 editor.setText(normalized)
 
         editor.setToolTip(self._callback_tooltip(widget, event_name, signature))
+
+        if text_changed and normalized:
+            self.validation_message.emit(f"Callback name normalized to '{normalized}'.")
+
+        if changed:
+            self.property_changed.emit()
+
+    def _on_multi_callback_editing_finished(self, editor, event_name, signature, use_event_dict):
+        if self._updating or not self._selection:
+            return
+
+        current_values = [
+            self._current_callback_value(widget, event_name, use_event_dict)
+            for widget in self._selection
+        ]
+        is_mixed = self._is_mixed_values(current_values)
+        raw_name = editor.text()
+        if is_mixed and not raw_name and hasattr(editor, "isModified") and not editor.isModified():
+            self._apply_multi_callback_editor_state(editor, event_name, signature, current_values)
+            return
+
+        normalized = sanitize_widget_name(raw_name)
+
+        if normalized and not is_valid_widget_name(normalized):
+            self._apply_multi_callback_editor_state(editor, event_name, signature, current_values)
+            self.validation_message.emit(_CALLBACK_INVALID_MESSAGE)
+            return
+
+        changed = any(value != normalized for value in current_values)
+        text_changed = raw_name != normalized
+
+        if changed:
+            for widget in self._selection:
+                self._set_callback_value(widget, event_name, use_event_dict, normalized)
+            current_values = [normalized for _ in self._selection]
+
+        if changed or text_changed or is_mixed:
+            self._apply_multi_callback_editor_state(editor, event_name, signature, current_values)
 
         if text_changed and normalized:
             self.validation_message.emit(f"Callback name normalized to '{normalized}'.")
