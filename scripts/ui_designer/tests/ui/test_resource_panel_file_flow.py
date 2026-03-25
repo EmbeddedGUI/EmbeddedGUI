@@ -169,6 +169,39 @@ class TestResourcePanelFileFlow:
         assert panel._usage_table.item(1, 0).text() == "detail_page"
         panel.deleteLater()
 
+    def test_usage_table_can_filter_to_current_page(self, qapp, tmp_path):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.model.resource_usage import ResourceUsageEntry
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        images_dir = resource_dir / "images"
+        images_dir.mkdir(parents=True)
+
+        catalog = ResourceCatalog()
+        catalog.add_image("star.png")
+
+        panel = ResourcePanel()
+        panel.set_resource_catalog(catalog)
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_usage_index(
+            {
+                ("image", "star.png"): [
+                    ResourceUsageEntry("image", "star.png", "main_page", "hero_image", "image_file", "image"),
+                    ResourceUsageEntry("image", "star.png", "detail_page", "badge", "image_file", "image"),
+                ]
+            }
+        )
+        panel.set_usage_page_context("detail_page")
+        panel._select_resource_item("image", "star.png")
+
+        panel._usage_current_page_only.setChecked(True)
+
+        assert panel._usage_summary.text() == "'star.png' is used by 1 widget on the current page (2 total across 2 pages)."
+        assert panel._usage_table.rowCount() == 1
+        assert panel._usage_table.item(0, 0).text() == "detail_page"
+        panel.deleteLater()
+
     def test_usage_table_double_click_emits_navigation_signal(self, qapp, tmp_path):
         from ui_designer.model.resource_catalog import ResourceCatalog
         from ui_designer.model.resource_usage import ResourceUsageEntry

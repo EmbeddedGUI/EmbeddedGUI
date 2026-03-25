@@ -1630,8 +1630,11 @@ class MainWindow(QMainWindow):
             return
         if self.project is None:
             self.res_panel.set_resource_usage_index({})
+            self.res_panel.set_usage_page_context("")
             return
         self.res_panel.set_resource_usage_index(collect_project_resource_usages(self.project))
+        current_page_name = self._current_page.name if self._current_page is not None else ""
+        self.res_panel.set_usage_page_context(current_page_name)
 
     def _find_widget_in_page(self, page, widget_name):
         if page is None or not widget_name:
@@ -2461,6 +2464,7 @@ class MainWindow(QMainWindow):
         if page is None:
             return
         self._current_page = page
+        self.res_panel.set_usage_page_context(page_name)
         self._clear_selection(sync_tree=True, sync_preview=True)
         self.project_dock.set_current_page(page_name)
         self.page_navigator.set_current_page(page_name)

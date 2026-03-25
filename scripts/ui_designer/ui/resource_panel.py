@@ -28,7 +28,7 @@ from PyQt5.QtWidgets import (
     QDialog, QDialogButtonBox, QMenu, QApplication,
     QSplitter, QSizePolicy, QAbstractItemView,
     QInputDialog, QTableWidget, QTableWidgetItem, QHeaderView,
-    QComboBox,
+    QComboBox, QCheckBox,
 )
 from PyQt5.QtCore import (
     Qt, QSize, pyqtSignal, QMimeData, QUrl, QTimer, QRect,
@@ -555,6 +555,7 @@ class ResourcePanel(QWidget):
         self._resource_usage_index = {}
         self._current_resource_type = ""
         self._current_resource_name = ""
+        self._usage_page_name = ""
         self.setAcceptDrops(True)
         self._init_ui()
 
@@ -756,6 +757,13 @@ class ResourcePanel(QWidget):
         usage_caption = QLabel("Usage")
         bottom_layout.addWidget(usage_caption)
 
+        usage_filter_row = QHBoxLayout()
+        self._usage_current_page_only = QCheckBox("Current Page Only")
+        self._usage_current_page_only.toggled.connect(self._refresh_usage_view)
+        usage_filter_row.addWidget(self._usage_current_page_only)
+        usage_filter_row.addStretch()
+        bottom_layout.addLayout(usage_filter_row)
+
         self._usage_summary = QLabel("Select an image, font, text resource, or string key to inspect references.")
         self._usage_summary.setWordWrap(True)
         bottom_layout.addWidget(self._usage_summary)
@@ -883,6 +891,11 @@ class ResourcePanel(QWidget):
         self._resource_usage_index = usage_index or {}
         self._refresh_usage_view()
 
+    def set_usage_page_context(self, page_name):
+        """Set the current page name used by usage filtering."""
+        self._usage_page_name = page_name or ""
+        self._refresh_usage_view()
+
     # -- Internal helpers --
 
     def _format_resource_tab_title(self, label, total, missing):
@@ -946,18 +959,35 @@ class ResourcePanel(QWidget):
             self._clear_usage_view("Select an image, font, text resource, or string key to inspect references.")
             return
 
-        usages = list(self._resource_usage_index.get((resource_type, resource_name), []))
-        if not usages:
+        all_usages = list(self._resource_usage_index.get((resource_type, resource_name), []))
+        if not all_usages:
             self._clear_usage_view(f"'{resource_name}' is currently unused.")
             return
+
+        usages = all_usages
+        filter_to_current_page = self._usage_current_page_only.isChecked() and bool(self._usage_page_name)
+        if filter_to_current_page:
+            usages = [entry for entry in all_usages if entry.page_name == self._usage_page_name]
+            if not usages:
+                self._clear_usage_view(f"'{resource_name}' has no references on the current page.")
+                return
 
         page_count = len({entry.page_name for entry in usages})
         widget_count = len(usages)
         page_noun = "page" if page_count == 1 else "pages"
         widget_noun = "widget" if widget_count == 1 else "widgets"
-        self._usage_summary.setText(
-            f"'{resource_name}' is used by {widget_count} {widget_noun} across {page_count} {page_noun}."
-        )
+        if filter_to_current_page:
+            total_widget_count = len(all_usages)
+            total_page_count = len({entry.page_name for entry in all_usages})
+            total_page_noun = "page" if total_page_count == 1 else "pages"
+            self._usage_summary.setText(
+                f"'{resource_name}' is used by {widget_count} {widget_noun} on the current page "
+                f"({total_widget_count} total across {total_page_count} {total_page_noun})."
+            )
+        else:
+            self._usage_summary.setText(
+                f"'{resource_name}' is used by {widget_count} {widget_noun} across {page_count} {page_noun}."
+            )
         self._usage_table.setRowCount(len(usages))
         for row, entry in enumerate(usages):
             page_item = QTableWidgetItem(entry.page_name)

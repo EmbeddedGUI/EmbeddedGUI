@@ -2570,6 +2570,46 @@ class TestMainWindowFileFlow:
         window._undo_manager.mark_all_saved()
         _close_window(window)
 
+    def test_resource_usage_filter_tracks_current_page(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "ResourceUsageFilterDemo"
+        project = _create_project(project_dir, "ResourceUsageFilterDemo", sdk_root)
+        detail_page = project.create_new_page("detail_page")
+        project.resource_catalog.add_image("star.png")
+
+        hero_main = WidgetModel("image", name="hero_main")
+        hero_main.properties["image_file"] = "star.png"
+        project.get_page_by_name("main_page").root_widget.add_child(hero_main)
+
+        hero_detail = WidgetModel("image", name="hero_detail")
+        hero_detail.properties["image_file"] = "star.png"
+        detail_page.root_widget.add_child(hero_detail)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window.res_panel._usage_current_page_only.setChecked(True)
+        window.res_panel._select_resource_item("image", "star.png")
+
+        assert window._current_page.name == "main_page"
+        assert window.res_panel._usage_table.rowCount() == 1
+        assert window.res_panel._usage_table.item(0, 0).text() == "main_page"
+
+        window._switch_page("detail_page")
+
+        assert window.res_panel._usage_table.rowCount() == 1
+        assert window.res_panel._usage_table.item(0, 0).text() == "detail_page"
+        assert window.res_panel._usage_summary.text() == "'star.png' is used by 1 widget on the current page (2 total across 2 pages)."
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
     def test_poll_project_files_auto_reloads_clean_project(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.ui.main_window import MainWindow
 
