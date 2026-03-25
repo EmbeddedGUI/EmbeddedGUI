@@ -1,7 +1,8 @@
 """Tests for ui_designer.model.diagnostics."""
 
-from ui_designer.model.diagnostics import analyze_page, analyze_selection
+from ui_designer.model.diagnostics import analyze_page, analyze_project_callback_conflicts, analyze_selection
 from ui_designer.model.page import Page
+from ui_designer.model.project import Project
 from ui_designer.model.resource_catalog import ResourceCatalog
 from ui_designer.model.string_resource import StringResourceCatalog
 from ui_designer.model.widget_model import WidgetModel
@@ -132,3 +133,43 @@ class TestSelectionDiagnostics:
         assert "canvas drag and resize are disabled" in entries[0].message
         assert "canvas hit testing" in entries[1].message
         assert "layout-managed by linearlayout" in entries[2].message
+
+
+class TestProjectDiagnostics:
+    def test_analyze_project_reports_duplicate_callbacks_across_pages(self):
+        project = Project(screen_width=240, screen_height=320, app_name="DiagApp")
+        main_page = Page.create_default("main_page", screen_width=240, screen_height=320)
+        detail_page = Page.create_default("detail_page", screen_width=240, screen_height=320)
+        main_button = WidgetModel("button", name="confirm_button", x=8, y=8, width=80, height=28)
+        detail_button = WidgetModel("button", name="confirm_button_2", x=8, y=8, width=80, height=28)
+        main_button.on_click = "on_confirm"
+        detail_button.on_click = "on_confirm"
+        main_page.root_widget.add_child(main_button)
+        detail_page.root_widget.add_child(detail_button)
+        project.add_page(main_page)
+        project.add_page(detail_page)
+
+        entries = analyze_project_callback_conflicts(project)
+
+        assert [entry.code for entry in entries] == ["project_callback_duplicate"]
+        assert "main_page/confirm_button.onClick" in entries[0].message
+        assert "detail_page/confirm_button_2.onClick" in entries[0].message
+
+    def test_analyze_project_reports_callback_signature_conflicts_across_pages(self):
+        project = Project(screen_width=240, screen_height=320, app_name="DiagApp")
+        main_page = Page.create_default("main_page", screen_width=240, screen_height=320)
+        detail_page = Page.create_default("detail_page", screen_width=240, screen_height=320)
+        main_button = WidgetModel("button", name="confirm_button", x=8, y=8, width=80, height=28)
+        detail_slider = WidgetModel("slider", name="volume_slider", x=8, y=8, width=120, height=24)
+        main_button.on_click = "on_shared_action"
+        detail_slider.events["onValueChanged"] = "on_shared_action"
+        main_page.root_widget.add_child(main_button)
+        detail_page.root_widget.add_child(detail_slider)
+        project.add_page(main_page)
+        project.add_page(detail_page)
+
+        entries = analyze_project_callback_conflicts(project)
+
+        assert [entry.code for entry in entries] == ["project_callback_signature_conflict"]
+        assert "main_page/confirm_button.onClick" in entries[0].message
+        assert "detail_page/volume_slider.onValueChanged" in entries[0].message

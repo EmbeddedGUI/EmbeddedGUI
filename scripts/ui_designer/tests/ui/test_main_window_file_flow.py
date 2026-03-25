@@ -3098,6 +3098,39 @@ class TestMainWindowFileFlow:
         window._undo_manager.mark_all_saved()
         _close_window(window)
 
+    def test_diagnostics_panel_lists_project_callback_duplicates(self, qapp, isolated_config, tmp_path, monkeypatch):
+        from ui_designer.model.widget_model import WidgetModel
+        from ui_designer.ui.main_window import MainWindow
+
+        sdk_root = tmp_path / "sdk"
+        _create_sdk_root(sdk_root)
+        project_dir = tmp_path / "ProjectCallbackDiagnosticsDemo"
+        project = _create_project(project_dir, "ProjectCallbackDiagnosticsDemo", sdk_root)
+        detail_page = project.create_new_page("detail_page")
+        main_button = WidgetModel("button", name="confirm_button", x=8, y=8, width=80, height=28)
+        detail_button = WidgetModel("button", name="confirm_button_2", x=8, y=8, width=80, height=28)
+        main_button.on_click = "on_confirm"
+        detail_button.on_click = "on_confirm"
+        project.get_startup_page().root_widget.add_child(main_button)
+        detail_page.root_widget.add_child(detail_button)
+        project.save(str(project_dir))
+
+        window = MainWindow(str(sdk_root))
+        monkeypatch.setattr(window, "_recreate_compiler", lambda: setattr(window, "compiler", _DisabledCompiler()))
+        monkeypatch.setattr(window, "_trigger_compile", lambda: None)
+
+        window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+        window._update_diagnostics_panel()
+
+        summary = window.diagnostics_panel._summary_label.text()
+        items = [window.diagnostics_panel._list.item(i).text() for i in range(window.diagnostics_panel._list.count())]
+
+        assert summary == "Diagnostics: 1 error(s), 0 warning(s), 0 info item(s)"
+        assert any("project/on_confirm" in item and "duplicate global symbols" in item for item in items)
+
+        window._undo_manager.mark_all_saved()
+        _close_window(window)
+
     def test_diagnostic_request_switches_page_and_selects_widget(self, qapp, isolated_config, tmp_path, monkeypatch):
         from ui_designer.model.widget_model import WidgetModel
         from ui_designer.ui.main_window import MainWindow

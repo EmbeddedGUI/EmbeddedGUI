@@ -37,6 +37,18 @@ class DiagnosticEntry:
     property_name: str = ""
 
 
+def sort_diagnostic_entries(entries):
+    return sorted(
+        list(entries or []),
+        key=lambda entry: (
+            _SEVERITY_ORDER.get(entry.severity, 99),
+            entry.page_name,
+            entry.widget_name,
+            entry.message,
+        ),
+    )
+
+
 def _is_layout_managed(widget):
     parent = getattr(widget, "parent", None)
     if parent is None:
@@ -242,33 +254,65 @@ def _page_timer_entries(page):
     return entries
 
 
-def _callback_conflict_entries(page):
+def _collect_page_callback_bindings(page):
     registry = WidgetRegistry.instance()
-    callback_map = {}
-
-    def _record(callback_name, signature, source):
-        callback_name = (callback_name or "").strip()
-        signature = (signature or "").strip()
-        source = (source or "").strip()
-        if not callback_name or not signature:
-            return
-        entry = callback_map.setdefault(callback_name, {})
-        entry.setdefault(signature, set()).add(source)
+    bindings = []
 
     for widget in page.get_all_widgets():
         if widget.on_click:
-            _record(widget.on_click, "void {func_name}(egui_view_t *self)", f"{widget.name}.onClick")
+            bindings.append(
+                {
+                    "callback_name": widget.on_click,
+                    "signature": "void {func_name}(egui_view_t *self)",
+                    "source": f"{widget.name}.onClick",
+                    "page_name": page.name,
+                    "widget_name": widget.name,
+                }
+            )
 
         descriptor = registry.get(widget.widget_type)
         events = descriptor.get("events", {})
         for event_name, callback_name in sorted(widget.events.items()):
             event_info = events.get(event_name)
-            if not event_info:
+            if not event_info or not callback_name:
                 continue
-            _record(callback_name, event_info.get("signature", ""), f"{widget.name}.{event_name}")
+            bindings.append(
+                {
+                    "callback_name": callback_name,
+                    "signature": event_info.get("signature", ""),
+                    "source": f"{widget.name}.{event_name}",
+                    "page_name": page.name,
+                    "widget_name": widget.name,
+                }
+            )
 
     for timer in getattr(page, "timers", []) or []:
-        _record(timer.get("callback", ""), "void {func_name}(egui_timer_t *timer)", f"timer:{timer.get('name', '')}")
+        callback_name = timer.get("callback", "")
+        if not callback_name:
+            continue
+        bindings.append(
+            {
+                "callback_name": callback_name,
+                "signature": "void {func_name}(egui_timer_t *timer)",
+                "source": f"timer:{timer.get('name', '')}",
+                "page_name": page.name,
+                "widget_name": timer.get("name", ""),
+            }
+        )
+
+    return bindings
+
+
+def _callback_conflict_entries(page):
+    callback_map = {}
+    for binding in _collect_page_callback_bindings(page):
+        callback_name = binding["callback_name"].strip()
+        signature = binding["signature"].strip()
+        source = binding["source"].strip()
+        if not callback_name or not signature:
+            continue
+        entry = callback_map.setdefault(callback_name, {})
+        entry.setdefault(signature, set()).add(source)
 
     entries = []
     for callback_name, signatures in sorted(callback_map.items()):
@@ -291,6 +335,57 @@ def _callback_conflict_entries(page):
     return entries
 
 
+def analyze_project_callback_conflicts(project):
+    if project is None:
+        return []
+
+    callback_map = {}
+    for page in getattr(project, "pages", []) or []:
+        for binding in _collect_page_callback_bindings(page):
+            callback_name = binding["callback_name"].strip()
+            signature = binding["signature"].strip()
+            if not callback_name or not signature:
+                continue
+            entry = callback_map.setdefault(callback_name, {})
+            entry.setdefault(signature, []).append(binding)
+
+    entries = []
+    for callback_name, signatures in sorted(callback_map.items()):
+        pages = sorted({binding["page_name"] for bindings in signatures.values() for binding in bindings})
+        if len(pages) <= 1:
+            continue
+
+        detail_parts = []
+        for signature, bindings in sorted(signatures.items()):
+            resolved_signature = signature.replace("{func_name}", callback_name)
+            locations = ", ".join(sorted(f"{binding['page_name']}/{binding['source']}" for binding in bindings))
+            detail_parts.append(f"{resolved_signature} from {locations}")
+
+        code = "project_callback_signature_conflict" if len(signatures) > 1 else "project_callback_duplicate"
+        if len(signatures) > 1:
+            message = (
+                f"Callback '{callback_name}' is reused across pages with incompatible signatures: "
+                f"{'; '.join(detail_parts)}."
+            )
+        else:
+            message = (
+                f"Callback '{callback_name}' is reused across pages and may produce duplicate global symbols: "
+                f"{'; '.join(detail_parts)}."
+            )
+
+        entries.append(
+            DiagnosticEntry(
+                "error",
+                code,
+                message,
+                page_name="project",
+                widget_name=callback_name,
+            )
+        )
+
+    return sort_diagnostic_entries(entries)
+
+
 def analyze_page(page, resource_catalog=None, string_catalog=None, source_resource_dir=""):
     """Analyze a single page and return sorted diagnostics."""
     if page is None or page.root_widget is None:
@@ -306,7 +401,7 @@ def analyze_page(page, resource_catalog=None, string_catalog=None, source_resour
     entries.extend(_missing_resource_entries(page, resource_catalog=resource_catalog, source_resource_dir=source_resource_dir))
     entries.extend(_missing_string_reference_entries(page, string_catalog=string_catalog))
 
-    return sorted(entries, key=lambda entry: (_SEVERITY_ORDER.get(entry.severity, 99), entry.widget_name, entry.message))
+    return sort_diagnostic_entries(entries)
 
 
 def analyze_selection(widgets):

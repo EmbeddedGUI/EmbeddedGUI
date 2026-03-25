@@ -62,7 +62,7 @@ from ..model.resource_usage import (
     rewrite_project_string_references,
 )
 from ..model.selection_state import SelectionState
-from ..model.diagnostics import analyze_page, analyze_selection
+from ..model.diagnostics import analyze_page, analyze_project_callback_conflicts, analyze_selection, sort_diagnostic_entries
 from ..model.undo_manager import UndoManager
 from ..generator.code_generator import (
     collect_page_callback_stubs,
@@ -1652,8 +1652,9 @@ class MainWindow(QMainWindow):
             string_catalog=string_catalog,
             source_resource_dir=resource_dir,
         )
+        entries.extend(analyze_project_callback_conflicts(self.project))
         entries.extend(analyze_selection(self._selection_state.widgets))
-        self.diagnostics_panel.set_entries(entries)
+        self.diagnostics_panel.set_entries(sort_diagnostic_entries(entries))
 
     def _update_resource_usage_panel(self):
         if not hasattr(self, "res_panel"):
