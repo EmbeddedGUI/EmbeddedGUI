@@ -1,4 +1,4 @@
-name: Release
+﻿name: Release
 
 on:
   workflow_dispatch:
@@ -12,7 +12,6 @@ permissions:
   contents: write
 
 jobs:
-  # ─── CI check (reuse existing logic) ───
   ci-check:
     runs-on: windows-latest
     steps:
@@ -25,92 +24,21 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: python -m pip install -r scripts/ui_designer/requirements-desktop.txt
-
-      - name: Run UI Designer tests
-        run: python -m pytest -c scripts/ui_designer/pyproject.toml scripts/ui_designer/tests -v --tb=short
-
-      - name: UI Designer live preview smoke
-        run: python scripts\ui_designer_preview_smoke.py
-
       - name: Full compile check
         run: python scripts\code_compile_check.py --full-check --actions --bits64
+
       - name: Full runtime check
         run: python scripts\code_runtime_check.py --full-check --bits64
+
       - name: Dirty animation check
         run: python scripts\code_dirty_animation_check.py --bits64
+
       - name: Virtual stage showcase parity check
         run: python scripts\showcase_stage_parity_check.py --timeout 35 --bits64
+
       - name: HelloVirtual render workflow
         run: python scripts\hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --bits64
 
-  # ─── Build ui_designer on 3 platforms ───
-  build-designer:
-    needs: ci-check
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            artifact_name: EmbeddedGUI-Designer-windows-x64
-          - os: ubuntu-22.04
-            artifact_name: EmbeddedGUI-Designer-linux-x64
-          - os: macos-latest
-            artifact_name: EmbeddedGUI-Designer-macos-arm64
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Qt system deps (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libxcb-xinerama0 libxcb-cursor0 \
-            libxkbcommon-x11-0 libxcb-icccm4 \
-            libxcb-image0 libxcb-keysyms1 \
-            libxcb-randr0 libxcb-render-util0 \
-            libxcb-shape0 libegl1
-
-      - name: Install Python dependencies
-        run: |
-          pip install -r scripts/ui_designer/requirements-desktop.txt
-          pip install pyinstaller
-
-      - name: Build with PyInstaller
-        run: >
-          pyinstaller scripts/ui_designer/ui_designer.spec
-          --distpath dist --workpath build/pyinstaller --clean -y
-
-      - name: Package artifact (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          Compress-Archive -Path dist/EmbeddedGUI-Designer/* `
-            -DestinationPath "${{ matrix.artifact_name }}-${{ inputs.version }}.zip"
-
-      - name: Package artifact (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: |
-          tar -czf "${{ matrix.artifact_name }}-${{ inputs.version }}.tar.gz" \
-            -C dist EmbeddedGUI-Designer
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}
-          path: |
-            ${{ matrix.artifact_name }}-${{ inputs.version }}.zip
-            ${{ matrix.artifact_name }}-${{ inputs.version }}.tar.gz
-          retention-days: 5
-
-  # ─── Build WASM demos (parallel with designer) ───
   build-wasm:
     needs: ci-check
     runs-on: ubuntu-latest
@@ -145,9 +73,8 @@ jobs:
           path: "EmbeddedGUI-WASM-Demos-${{ inputs.version }}.tar.gz"
           retention-days: 5
 
-  # ─── Create GitHub Release ───
   create-release:
-    needs: [build-designer, build-wasm]
+    needs: [build-wasm]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -1,17 +1,16 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Release readiness check for EmbeddedGUI.
 
 Runs all release-quality checks in sequence: code formatting, example icon font
-explicitness, Keil project sync, UI Designer tests and packaging, full compile
-check, WASM build, runtime verification, binary size analysis, size report
-generation, QEMU performance regression, performance report generation,
-and Sphinx documentation build.
+explicitness, Keil project sync, full compile check, WASM build, runtime
+verification, binary size analysis, size report generation, QEMU performance
+regression, performance report generation, and Sphinx documentation build.
 
 Usage:
     python scripts/release_check.py
-    python scripts/release_check.py --skip perf,perf_doc,wasm,doc,ui_package
+    python scripts/release_check.py --skip perf,perf_doc,wasm,doc
     python scripts/release_check.py --keep-going
     python scripts/release_check.py --cmake
     python scripts/release_check.py --skip runtime --keep-going
@@ -27,17 +26,10 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 
-# ── Step definitions ──────────────────────────────────────────────────────────
-# Each step: (name, description, command_list)
-# command_list is built lazily in build_steps() so CLI args can influence it.
-
 ALL_STEP_NAMES = [
     "format",
     "icon_font",
     "keil_sync",
-    "pytest",
-    "ui_preview_smoke",
-    "ui_package",
     "compile",
     "wasm",
     "runtime",
@@ -52,29 +44,26 @@ ALL_STEP_NAMES = [
 ]
 
 STEP_DESCRIPTIONS = {
-    "format":   "Code formatting (clang-format)",
+    "format": "Code formatting (clang-format)",
     "icon_font": "Example icon font explicitness check",
     "keil_sync": "Keil project file sync (src/ vs .uvprojx)",
-    "pytest":   "UI Designer unit tests (pytest)",
-    "ui_preview_smoke": "UI Designer live preview smoke",
-    "ui_package": "UI Designer package build (PyInstaller)",
-    "compile":  "Full compile check (all examples)",
-    "wasm":     "WASM demos build",
-    "runtime":  "Runtime verification (screenshots)",
+    "compile": "Full compile check (all examples)",
+    "wasm": "WASM demos build",
+    "runtime": "Runtime verification (screenshots)",
     "dirty_anim": "Dirty-region animation verification",
     "stage_parity": "Virtual stage showcase parity verification",
     "virtual_render": "HelloVirtual render and interaction workflow",
-    "size":     "Binary size analysis (ELF)",
+    "size": "Binary size analysis (ELF)",
     "size_doc": "Size report generation",
-    "perf":     "QEMU performance regression test",
+    "perf": "QEMU performance regression test",
     "perf_doc": "Performance report generation",
-    "doc":      "Sphinx documentation build",
+    "doc": "Sphinx documentation build",
 }
 
 
 def build_steps(args):
     """Build the list of (name, description, command) tuples based on CLI args."""
-    py = sys.executable  # use the same Python interpreter
+    py = sys.executable
     emsdk_path = os.environ.get("EMSDK_PATH") or os.environ.get("EMSDK")
 
     compile_cmd = [py, str(SCRIPT_DIR / "code_compile_check.py"), "--full-check"]
@@ -108,77 +97,27 @@ def build_steps(args):
     if emsdk_path:
         wasm_cmd += ["--emsdk-path", emsdk_path]
 
-    steps = [
-        ("format",   STEP_DESCRIPTIONS["format"],
-         [py, str(SCRIPT_DIR / "code_format.py")]),
-
-        ("icon_font", STEP_DESCRIPTIONS["icon_font"],
-         [py, str(SCRIPT_DIR / "check_example_icon_font.py")]),
-
-        ("keil_sync", STEP_DESCRIPTIONS["keil_sync"],
-         [py, str(SCRIPT_DIR / "keil_project_sync.py")]),
-
-        ("pytest",   STEP_DESCRIPTIONS["pytest"],
-         [py, "-m", "pytest", "-c", str(SCRIPT_DIR / "ui_designer" / "pyproject.toml"), str(SCRIPT_DIR / "ui_designer" / "tests"), "-v", "--tb=short"]),
-
-        ("ui_preview_smoke", STEP_DESCRIPTIONS["ui_preview_smoke"],
-         [py, str(SCRIPT_DIR / "ui_designer_preview_smoke.py")]),
-
-        ("ui_package", STEP_DESCRIPTIONS["ui_package"],
-         [
-             py,
-             str(SCRIPT_DIR / "package_ui_designer.py"),
-             "--archive",
-             "none",
-             "--output-dir",
-             str(PROJECT_ROOT / "dist"),
-             "--work-dir",
-             str(PROJECT_ROOT / "build" / "pyinstaller"),
-             "--skip-preflight",
-         ]),
-
-        ("compile",  STEP_DESCRIPTIONS["compile"],
-         compile_cmd),
-
-        ("wasm",     STEP_DESCRIPTIONS["wasm"],
-         wasm_cmd),
-
-        ("runtime",  STEP_DESCRIPTIONS["runtime"],
-         runtime_cmd),
-
-        ("dirty_anim", STEP_DESCRIPTIONS["dirty_anim"],
-         dirty_anim_cmd),
-
-        ("stage_parity", STEP_DESCRIPTIONS["stage_parity"],
-         stage_parity_cmd),
-
-        ("virtual_render", STEP_DESCRIPTIONS["virtual_render"],
-         virtual_render_cmd),
-
-        ("size",     STEP_DESCRIPTIONS["size"],
-         [py, str(SCRIPT_DIR / "utils_analysis_elf_size.py")]),
-
-        ("size_doc", STEP_DESCRIPTIONS["size_doc"],
-         [py, str(SCRIPT_DIR / "size_to_doc.py")]),
-
-        ("perf",     STEP_DESCRIPTIONS["perf"],
-         perf_cmd),
-
-        ("perf_doc", STEP_DESCRIPTIONS["perf_doc"],
-         [py, str(SCRIPT_DIR / "perf_to_doc.py")]),
-
-        ("doc",      STEP_DESCRIPTIONS["doc"],
-         [py, "-m", "sphinx", "-M", "html", str(PROJECT_ROOT / "doc" / "source"), str(PROJECT_ROOT / "doc" / "build")]),
+    return [
+        ("format", STEP_DESCRIPTIONS["format"], [py, str(SCRIPT_DIR / "code_format.py")]),
+        ("icon_font", STEP_DESCRIPTIONS["icon_font"], [py, str(SCRIPT_DIR / "check_example_icon_font.py")]),
+        ("keil_sync", STEP_DESCRIPTIONS["keil_sync"], [py, str(SCRIPT_DIR / "keil_project_sync.py")]),
+        ("compile", STEP_DESCRIPTIONS["compile"], compile_cmd),
+        ("wasm", STEP_DESCRIPTIONS["wasm"], wasm_cmd),
+        ("runtime", STEP_DESCRIPTIONS["runtime"], runtime_cmd),
+        ("dirty_anim", STEP_DESCRIPTIONS["dirty_anim"], dirty_anim_cmd),
+        ("stage_parity", STEP_DESCRIPTIONS["stage_parity"], stage_parity_cmd),
+        ("virtual_render", STEP_DESCRIPTIONS["virtual_render"], virtual_render_cmd),
+        ("size", STEP_DESCRIPTIONS["size"], [py, str(SCRIPT_DIR / "utils_analysis_elf_size.py")]),
+        ("size_doc", STEP_DESCRIPTIONS["size_doc"], [py, str(SCRIPT_DIR / "size_to_doc.py")]),
+        ("perf", STEP_DESCRIPTIONS["perf"], perf_cmd),
+        ("perf_doc", STEP_DESCRIPTIONS["perf_doc"], [py, str(SCRIPT_DIR / "perf_to_doc.py")]),
+        ("doc", STEP_DESCRIPTIONS["doc"], [py, "-m", "sphinx", "-M", "html", str(PROJECT_ROOT / "doc" / "source"), str(PROJECT_ROOT / "doc" / "build")]),
     ]
-    return steps
 
-
-# ── Pretty output helpers ─────────────────────────────────────────────────────
 
 STATUS_PASS = "PASS"
 STATUS_FAIL = "FAIL"
 STATUS_SKIP = "SKIP"
-
 BANNER_WIDTH = 72
 
 
@@ -237,32 +176,29 @@ def print_summary(results, total_elapsed):
     return failed == 0
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
-
 def parse_args():
     parser = argparse.ArgumentParser(
         description="EmbeddedGUI release readiness check.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"Available steps: {', '.join(ALL_STEP_NAMES)}\n"
-               f"\nExamples:\n"
-               f"  python scripts/release_check.py\n"
-               f"  python scripts/release_check.py --skip perf,perf_doc,wasm,doc,ui_package\n"
-               f"  python scripts/release_check.py --keep-going\n"
-               f"  python scripts/release_check.py --cmake --skip runtime\n",
+        f"\nExamples:\n"
+        f"  python scripts/release_check.py\n"
+        f"  python scripts/release_check.py --skip perf,perf_doc,wasm,doc\n"
+        f"  python scripts/release_check.py --keep-going\n"
+        f"  python scripts/release_check.py --cmake --skip runtime\n",
     )
     parser.add_argument(
         "--skip",
         type=str,
         default="",
         help="Comma-separated list of steps to skip. "
-             f"Available: {', '.join(ALL_STEP_NAMES)}",
+        f"Available: {', '.join(ALL_STEP_NAMES)}",
     )
     parser.add_argument(
         "--keep-going",
         action="store_true",
         default=False,
-        help="Continue executing subsequent steps after a failure "
-             "(default: stop on first failure).",
+        help="Continue executing subsequent steps after a failure (default: stop on first failure).",
     )
     parser.add_argument(
         "--cmake",
@@ -291,14 +227,12 @@ def main():
     if args.no_bits64:
         args.bits64 = False
 
-    # Parse skip list
     skip_set = set()
     if args.skip:
         for name in args.skip.split(","):
             name = name.strip()
             if name not in ALL_STEP_NAMES:
-                print(f"Error: unknown step '{name}'. "
-                      f"Available: {', '.join(ALL_STEP_NAMES)}")
+                print(f"Error: unknown step '{name}'. Available: {', '.join(ALL_STEP_NAMES)}")
                 sys.exit(1)
             skip_set.add(name)
 
@@ -329,15 +263,14 @@ def main():
             else:
                 results.append((name, desc, STATUS_FAIL, elapsed))
                 had_failure = True
-        except FileNotFoundError as e:
+        except FileNotFoundError as exc:
             elapsed = time.time() - step_start
-            print(f"\n  Error: {e}")
+            print(f"\n  Error: {exc}")
             results.append((name, desc, STATUS_FAIL, elapsed))
             had_failure = True
         except KeyboardInterrupt:
             elapsed = time.time() - step_start
             results.append((name, desc, STATUS_FAIL, elapsed))
-            # Still print summary on Ctrl+C
             total_elapsed = time.time() - total_start
             print_summary(results, total_elapsed)
             sys.exit(130)
