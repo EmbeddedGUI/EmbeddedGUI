@@ -110,8 +110,6 @@ void egui_image_std_load_alpha_resource(void *dest, egui_image_std_info_t *image
 #define EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_SIZE  2048
 #define EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_SIZE 1024
 
-static uint8_t g_external_image_alpha_cache[EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_SIZE];
-
 static void *egui_image_std_acquire_external_buffer(uint32_t size, uint8_t *static_buf, uint32_t static_size)
 {
     if (size <= static_size)
@@ -253,23 +251,6 @@ retry_with_rows:
     cache->rows_per_chunk = (egui_dim_t)rows_per_chunk;
     cache->src_x_start = src_x_start;
     return 1;
-}
-
-static int egui_image_std_prepare_external_alpha_row_persistent_cache_range(egui_image_std_external_alpha_row_persistent_cache_t *cache,
-                                                                            const egui_image_std_info_t *image, uint32_t data_source_row_size,
-                                                                            uint32_t data_row_start_offset, uint32_t data_row_size,
-                                                                            uint32_t alpha_source_row_size, uint32_t alpha_row_start_offset,
-                                                                            uint32_t alpha_row_size, egui_dim_t src_x_start)
-{
-    return egui_image_std_prepare_external_alpha_row_persistent_cache_range_rows(cache, image, data_source_row_size, data_row_start_offset, data_row_size,
-                                                                                 alpha_source_row_size, alpha_row_start_offset, alpha_row_size, src_x_start, 0);
-}
-
-static int egui_image_std_prepare_external_alpha_row_persistent_cache(egui_image_std_external_alpha_row_persistent_cache_t *cache,
-                                                                      const egui_image_std_info_t *image, uint32_t data_row_size, uint32_t alpha_row_size)
-{
-    return egui_image_std_prepare_external_alpha_row_persistent_cache_range(cache, image, data_row_size, 0, data_row_size, alpha_row_size, 0, alpha_row_size,
-                                                                            0);
 }
 
 static int egui_image_std_prepare_external_alpha_row_persistent_cache_min_rows(egui_image_std_external_alpha_row_persistent_cache_t *cache,
@@ -2022,12 +2003,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_refresh_circle_mask_fast_cache(egui_m
     {
         circle_mask->radius = 0;
     }
-    circle_mask->visible_radius_sq = (uint32_t)(circle_mask->radius + 1) * (uint32_t)(circle_mask->radius + 1);
     circle_mask->info = egui_canvas_get_circle_item(circle_mask->radius);
-    circle_mask->visible_cached_dy = -1;
-    circle_mask->visible_cached_half = 0;
-    circle_mask->opaque_cached_row_index = -1;
-    circle_mask->opaque_cached_boundary = 0;
     circle_mask->point_cached_y = -32768;
     circle_mask->point_cached_row_index = 0;
     circle_mask->point_cached_row_valid = 0;
@@ -2381,51 +2357,6 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_std_circle_isqrt(uint32_t n)
     return root;
 }
 
-__EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_get_circle_visible_half_cached(egui_dim_t dy, uint32_t visible_radius_sq, egui_dim_t *cached_dy,
-                                                                                egui_dim_t *cached_half)
-{
-    if (dy == *cached_dy)
-    {
-        return *cached_half;
-    }
-
-    {
-        uint32_t dy_sq = (uint32_t)dy * (uint32_t)dy;
-        egui_dim_t half = *cached_half;
-
-        if (*cached_dy >= 0)
-        {
-            egui_dim_t delta = dy - *cached_dy;
-            if (delta < 0)
-            {
-                delta = -delta;
-            }
-
-            if (delta <= 4)
-            {
-                while (half > 0 && ((uint32_t)half * (uint32_t)half + dy_sq) > visible_radius_sq)
-                {
-                    half--;
-                }
-
-                while (((uint32_t)(half + 1) * (uint32_t)(half + 1) + dy_sq) <= visible_radius_sq)
-                {
-                    half++;
-                }
-
-                *cached_dy = dy;
-                *cached_half = half;
-                return half;
-            }
-        }
-
-        half = (egui_dim_t)egui_image_std_circle_isqrt((dy_sq < visible_radius_sq) ? (visible_radius_sq - dy_sq) : 0);
-        *cached_dy = dy;
-        *cached_half = half;
-        return half;
-    }
-}
-
 __EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_get_circle_opaque_boundary_fixed_row(egui_dim_t row_index, const egui_circle_info_t *info,
                                                                                       const egui_circle_item_t *items)
 {
@@ -2473,59 +2404,6 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_get_circle_opaque_boundary_fixe
     return boundary;
 }
 
-__EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_get_circle_opaque_boundary_cached(egui_dim_t row_index, egui_dim_t radius, const egui_circle_info_t *info,
-                                                                                   const egui_circle_item_t *items, egui_dim_t *cached_row_index,
-                                                                                   egui_dim_t *cached_boundary)
-{
-    egui_dim_t boundary;
-
-    if (row_index == *cached_row_index)
-    {
-        return *cached_boundary;
-    }
-
-    if (*cached_row_index >= 0)
-    {
-        egui_dim_t delta = row_index - *cached_row_index;
-        if (delta < 0)
-        {
-            delta = -delta;
-        }
-
-        if (delta <= 4)
-        {
-            boundary = *cached_boundary;
-            if (boundary < 0)
-            {
-                boundary = 0;
-            }
-            else if (boundary > radius)
-            {
-                boundary = radius;
-            }
-
-            while (boundary > 0 && egui_canvas_get_circle_corner_value_fixed_row(row_index, boundary - 1, info, items) == EGUI_ALPHA_100)
-            {
-                boundary--;
-            }
-
-            while (boundary < radius && egui_canvas_get_circle_corner_value_fixed_row(row_index, boundary, info, items) != EGUI_ALPHA_100)
-            {
-                boundary++;
-            }
-
-            *cached_row_index = row_index;
-            *cached_boundary = boundary;
-            return boundary;
-        }
-    }
-
-    boundary = egui_image_std_get_circle_opaque_boundary_fixed_row(row_index, info, items);
-    *cached_row_index = row_index;
-    *cached_boundary = boundary;
-    return boundary;
-}
-
 __EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_get_circle_visible_boundary_fixed_row(egui_dim_t row_index, const egui_circle_info_t *info,
                                                                                        const egui_circle_item_t *items)
 {
@@ -2566,59 +2444,6 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_get_circle_visible_boundary_fix
         }
     }
 
-    return boundary;
-}
-
-__EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_get_circle_visible_boundary_cached(egui_dim_t row_index, egui_dim_t radius, const egui_circle_info_t *info,
-                                                                                    const egui_circle_item_t *items, egui_dim_t *cached_row_index,
-                                                                                    egui_dim_t *cached_boundary)
-{
-    egui_dim_t boundary;
-
-    if (row_index == *cached_row_index)
-    {
-        return *cached_boundary;
-    }
-
-    if (*cached_row_index >= 0)
-    {
-        egui_dim_t delta = row_index - *cached_row_index;
-        if (delta < 0)
-        {
-            delta = -delta;
-        }
-
-        if (delta <= 4)
-        {
-            boundary = *cached_boundary;
-            if (boundary < 0)
-            {
-                boundary = 0;
-            }
-            else if (boundary > radius)
-            {
-                boundary = radius;
-            }
-
-            while (boundary > 0 && egui_canvas_get_circle_corner_value_fixed_row(row_index, boundary - 1, info, items) != 0)
-            {
-                boundary--;
-            }
-
-            while (boundary < radius && egui_canvas_get_circle_corner_value_fixed_row(row_index, boundary, info, items) == 0)
-            {
-                boundary++;
-            }
-
-            *cached_row_index = row_index;
-            *cached_boundary = boundary;
-            return boundary;
-        }
-    }
-
-    boundary = egui_image_std_get_circle_visible_boundary_fixed_row(row_index, info, items);
-    *cached_row_index = row_index;
-    *cached_boundary = boundary;
     return boundary;
 }
 
@@ -3678,14 +3503,14 @@ typedef struct
     egui_dim_t row_cache_y[EGUI_CONFIG_PFB_HEIGHT];
     egui_dim_t row_cache_visible_boundary[EGUI_CONFIG_PFB_HEIGHT];
     egui_dim_t row_cache_opaque_boundary[EGUI_CONFIG_PFB_HEIGHT];
-    egui_dim_t visible_cached_row_index;
-    egui_dim_t visible_cached_boundary;
-    egui_dim_t opaque_cached_row_index;
-    egui_dim_t opaque_cached_boundary;
     const egui_circle_info_t *info;
 } egui_image_std_round_rect_fast_cache_t;
 
-static egui_image_std_round_rect_fast_cache_t g_egui_image_std_round_rect_fast_cache[2];
+#if EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_CACHE_COUNT < 1
+#error "EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_CACHE_COUNT must be >= 1"
+#endif
+
+static egui_image_std_round_rect_fast_cache_t g_egui_image_std_round_rect_fast_cache[EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_CACHE_COUNT];
 static uint8_t g_egui_image_std_round_rect_fast_cache_next = 0;
 
 __EGUI_STATIC_INLINE__ void egui_image_std_round_rect_fast_cache_invalidate(egui_image_std_round_rect_fast_cache_t *cache)
@@ -3710,17 +3535,16 @@ __EGUI_STATIC_INLINE__ egui_image_std_round_rect_fast_cache_t *egui_image_std_ro
         egui_image_std_round_rect_fast_cache_t *cache = &g_egui_image_std_round_rect_fast_cache[g_egui_image_std_round_rect_fast_cache_next];
 
         g_egui_image_std_round_rect_fast_cache_next++;
-        g_egui_image_std_round_rect_fast_cache_next &= 0x01;
+        if (g_egui_image_std_round_rect_fast_cache_next >= EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_CACHE_COUNT)
+        {
+            g_egui_image_std_round_rect_fast_cache_next = 0;
+        }
         cache->mask = mask;
         cache->cached_x = -1;
         cache->cached_y = -1;
         cache->cached_width = -1;
         cache->cached_height = -1;
         cache->cached_radius = -1;
-        cache->visible_cached_row_index = -1;
-        cache->visible_cached_boundary = 0;
-        cache->opaque_cached_row_index = -1;
-        cache->opaque_cached_boundary = 0;
         cache->info = NULL;
         egui_image_std_round_rect_fast_cache_invalidate(cache);
         return cache;
@@ -3741,10 +3565,6 @@ __EGUI_STATIC_INLINE__ void egui_image_std_round_rect_fast_cache_refresh(egui_im
     cache->cached_width = mask->region.size.width;
     cache->cached_height = mask->region.size.height;
     cache->cached_radius = radius;
-    cache->visible_cached_row_index = -1;
-    cache->visible_cached_boundary = 0;
-    cache->opaque_cached_row_index = -1;
-    cache->opaque_cached_boundary = 0;
     cache->info = egui_canvas_get_circle_item(radius);
     egui_image_std_round_rect_fast_cache_invalidate(cache);
 }
@@ -6509,7 +6329,7 @@ __EGUI_STATIC_INLINE__ int egui_image_std_rgb565_alpha_row_is_all_opaque(const u
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 __EGUI_STATIC_INLINE__ int egui_image_std_rgb565_external_alpha_is_all_opaque(const egui_image_std_info_t *image, uint16_t alpha_row_size)
 {
-    uint32_t chunk_rows = (uint32_t)(sizeof(g_external_image_alpha_cache) / alpha_row_size);
+    uint32_t chunk_rows = (uint32_t)(EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_SIZE / alpha_row_size);
     uint32_t chunk_size;
     void *alpha_buf;
     int is_all_opaque = 1;
@@ -6520,7 +6340,7 @@ __EGUI_STATIC_INLINE__ int egui_image_std_rgb565_external_alpha_is_all_opaque(co
     }
 
     chunk_size = alpha_row_size * chunk_rows;
-    alpha_buf = egui_image_std_acquire_external_buffer(chunk_size, g_external_image_alpha_cache, sizeof(g_external_image_alpha_cache));
+    alpha_buf = egui_image_std_acquire_external_buffer(chunk_size, NULL, 0);
     if (alpha_buf == NULL)
     {
         return 0;
@@ -6554,7 +6374,7 @@ __EGUI_STATIC_INLINE__ int egui_image_std_rgb565_external_alpha_is_all_opaque(co
         }
     }
 
-    egui_image_std_release_external_buffer(alpha_buf, g_external_image_alpha_cache);
+    egui_image_std_release_external_buffer(alpha_buf, NULL);
     return is_all_opaque;
 }
 #endif

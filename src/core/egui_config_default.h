@@ -357,6 +357,14 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES 0
 #endif
 
+/**
+ * Slot count for the round-rect image fast cache.
+ * One slot is enough for the common single-mask path and saves RAM.
+ */
+#ifndef EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_CACHE_COUNT
+#define EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_CACHE_COUNT 1
+#endif
+
 /* ---- Reduce code/ram size ---- */
 
 /**

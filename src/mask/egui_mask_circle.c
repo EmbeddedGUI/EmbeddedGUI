@@ -79,12 +79,7 @@ __EGUI_STATIC_INLINE__ void egui_mask_circle_refresh_cache(egui_mask_t *self)
     {
         local->radius = 0;
     }
-    local->visible_radius_sq = (uint32_t)(local->radius + 1) * (uint32_t)(local->radius + 1);
     local->info = egui_canvas_get_circle_item(local->radius);
-    local->visible_cached_dy = -1;
-    local->visible_cached_half = 0;
-    local->opaque_cached_row_index = -1;
-    local->opaque_cached_boundary = 0;
     local->point_cached_y = -32768;
     local->point_cached_row_index = 0;
     local->point_cached_row_valid = 0;
@@ -633,11 +628,6 @@ void egui_mask_circle_init(egui_mask_t *self)
     local->center_x = 0;
     local->center_y = 0;
     local->radius = 0;
-    local->visible_radius_sq = 0;
-    local->visible_cached_dy = -1;
-    local->visible_cached_half = 0;
-    local->opaque_cached_row_index = -1;
-    local->opaque_cached_boundary = 0;
     local->point_cached_y = -32768;
     local->point_cached_row_index = 0;
     local->point_cached_row_valid = 0;
