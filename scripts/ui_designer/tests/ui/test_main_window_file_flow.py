@@ -2073,6 +2073,7 @@ class TestMainWindowFileFlow:
             "ui_designer.ui.resource_panel.QInputDialog.getText",
             lambda *args, **kwargs: ("star_new.png", True),
         )
+        monkeypatch.setattr(window.res_panel, "_confirm_reference_impact", lambda *args: True)
 
         window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
         window._selected_widget = image_a
@@ -2281,6 +2282,7 @@ class TestMainWindowFileFlow:
             "ui_designer.ui.resource_panel.QInputDialog.getText",
             lambda *args, **kwargs: ("salutation", True),
         )
+        monkeypatch.setattr(window.res_panel, "_confirm_reference_impact", lambda *args: True)
 
         window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
         window.res_panel._select_resource_item("string", "greeting")
@@ -2296,6 +2298,129 @@ class TestMainWindowFileFlow:
         assert window.statusBar().currentMessage() == "Updated resources in 2 pages: string key rename."
         window._undo_manager.mark_all_saved()
         _close_window(window)
+
+    def test_string_key_delete_can_focus_usage_without_deleting(self, tmp_path):
+        repo_root = Path(__file__).resolve().parents[4]
+        script = textwrap.dedent(
+            f"""
+            import os
+            import shutil
+            import sys
+            import tempfile
+            from pathlib import Path
+
+            os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+            repo_root = Path({repr(str(repo_root))})
+            sys.path.insert(0, str(repo_root / "scripts"))
+
+            from PyQt5.QtWidgets import QApplication
+
+            from ui_designer.model.project import Project
+            from ui_designer.model.string_resource import DEFAULT_LOCALE
+            from ui_designer.model.widget_model import WidgetModel
+            from ui_designer.ui.main_window import MainWindow
+
+
+            def create_sdk_root(root: Path):
+                (root / "src").mkdir(parents=True)
+                (root / "porting" / "designer").mkdir(parents=True)
+                (root / "Makefile").write_text("all:\\n", encoding="utf-8")
+
+
+            def create_project(project_dir: Path, app_name: str, sdk_root: Path):
+                project = Project(screen_width=240, screen_height=320, app_name=app_name)
+                project.sdk_root = str(sdk_root)
+                project.project_dir = str(project_dir)
+                project.create_new_page("main_page")
+                project.save(str(project_dir))
+                return project
+
+
+            class DisabledCompiler:
+                def can_build(self):
+                    return False
+
+                def is_preview_running(self):
+                    return False
+
+                def stop_exe(self):
+                    return None
+
+                def cleanup(self):
+                    return None
+
+                def get_build_error(self):
+                    return "preview disabled for test"
+
+                def set_screen_size(self, width, height):
+                    return None
+
+                def is_exe_ready(self):
+                    return False
+
+
+            temp_root = Path(tempfile.mkdtemp(prefix="ui_designer_string_delete_inspect_", dir=str(repo_root)))
+            app = QApplication.instance() or QApplication([])
+            try:
+                sdk_root = temp_root / "sdk"
+                create_sdk_root(sdk_root)
+                project_dir = temp_root / "DeleteStringKeyInspectDemo"
+                project = create_project(project_dir, "DeleteStringKeyInspectDemo", sdk_root)
+                detail_page = project.create_new_page("detail_page")
+                project.string_catalog.set("greeting", "Hello", DEFAULT_LOCALE)
+
+                subtitle = WidgetModel("label", name="subtitle")
+                subtitle.properties["text"] = "@string/greeting"
+                detail_page.root_widget.add_child(subtitle)
+                project.save(str(project_dir))
+
+                window = MainWindow(str(sdk_root))
+                window._recreate_compiler = lambda _window=window: setattr(_window, "compiler", DisabledCompiler())
+                window._trigger_compile = lambda: None
+
+                def inspect_usage(*args):
+                    window.res_panel.usage_activated.emit("detail_page", "subtitle")
+                    return False
+
+                window.res_panel._confirm_reference_impact = inspect_usage
+
+                window._open_loaded_project(project, str(project_dir), preferred_sdk_root=str(sdk_root), silent=True)
+                assert window._current_page.name == "main_page"
+                window.res_panel._select_resource_item("string", "greeting")
+
+                window.res_panel._on_remove_string_key()
+
+                assert window._current_page.name == "detail_page"
+                assert window._selection_state.primary is subtitle
+                assert window.project.string_catalog.get("greeting", DEFAULT_LOCALE) == "Hello"
+                assert subtitle.properties["text"] == "@string/greeting"
+                assert window.statusBar().currentMessage() == "Focused resource usage: detail_page/subtitle."
+                assert window._undo_manager.is_any_dirty() is False
+
+                window._undo_manager.mark_all_saved()
+                window.close()
+                window.deleteLater()
+                app.sendPostedEvents()
+                app.processEvents()
+            finally:
+                shutil.rmtree(temp_root, ignore_errors=True)
+            """
+        )
+
+        env = os.environ.copy()
+        env.setdefault("QT_QPA_PLATFORM", "offscreen")
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=env,
+            timeout=60,
+        )
+
+        assert result.returncode == 0, f"stdout:\\n{result.stdout}\\n\\nstderr:\\n{result.stderr}"
 
     def test_string_key_usage_activation_switches_page_and_selects_widget(self, tmp_path):
         repo_root = Path(__file__).resolve().parents[4]

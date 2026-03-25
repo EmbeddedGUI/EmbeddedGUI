@@ -445,8 +445,12 @@ class _MissingResourceReplaceDialog(QDialog):
 class _ReferenceImpactDialog(QDialog):
     """Confirm destructive actions and show impacted references."""
 
+    NAVIGATE_RESULT = 2
+
     def __init__(self, parent, title, summary, usages, confirm_text):
         super().__init__(parent)
+        self._usages = list(usages)
+        self._selected_usage = ("", "")
         self.setWindowTitle(title)
         self.resize(560, 360)
 
@@ -481,18 +485,32 @@ class _ReferenceImpactDialog(QDialog):
 
         if usages:
             self._table.selectRow(0)
+        self._table.itemDoubleClicked.connect(lambda *_args: self._open_selected_usage())
         layout.addWidget(self._table, 1)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self)
+        self._open_usage_button = buttons.addButton("Open Selected Usage", QDialogButtonBox.ActionRole)
         ok_button = buttons.button(QDialogButtonBox.Ok)
         if ok_button is not None:
             ok_button.setText(confirm_text or "Continue")
         cancel_button = buttons.button(QDialogButtonBox.Cancel)
         if cancel_button is not None:
             cancel_button.setText("Cancel")
+        self._open_usage_button.clicked.connect(self._open_selected_usage)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+
+    def selected_usage(self):
+        return self._selected_usage
+
+    def _open_selected_usage(self):
+        row = self._table.currentRow()
+        if row < 0 or row >= len(self._usages):
+            return
+        entry = self._usages[row]
+        self._selected_usage = (entry.page_name, entry.widget_name)
+        self.done(self.NAVIGATE_RESULT)
 
 
 # -- Main ResourcePanel --------------------------------------------------
@@ -1060,6 +1078,8 @@ class ResourcePanel(QWidget):
 
     def _confirm_reference_impact(self, title, resource_name, usages, unused_prompt, impact_text, confirm_text):
         if not usages:
+            if not unused_prompt:
+                return True
             reply = QMessageBox.question(
                 self,
                 title,
@@ -1077,7 +1097,13 @@ class ResourcePanel(QWidget):
             f"{impact_text}"
         )
         dialog = _ReferenceImpactDialog(self, title, summary, usages, confirm_text)
-        return dialog.exec_() == QDialog.Accepted
+        result = dialog.exec_()
+        if result == _ReferenceImpactDialog.NAVIGATE_RESULT:
+            page_name, widget_name = dialog.selected_usage()
+            if page_name and widget_name:
+                self.usage_activated.emit(page_name, widget_name)
+            return False
+        return result == QDialog.Accepted
 
     def _dialog_filter_for_resource_type(self, resource_type):
         if resource_type == "image":
@@ -1661,6 +1687,17 @@ class ResourcePanel(QWidget):
         if os.path.exists(new_path):
             QMessageBox.warning(self, "Error", f"'{new_name}' already exists.")
             return
+        usages = list(self._resource_usage_index.get((resource_type, old_name), []))
+        confirmed = self._confirm_reference_impact(
+            "Rename Resource",
+            old_name,
+            usages,
+            "",
+            f"Renaming it to '{new_name}' will update those widget references.",
+            "Rename",
+        )
+        if not confirmed:
+            return
         try:
             if os.path.exists(old_path):
                 os.rename(old_path, new_path)
@@ -1838,6 +1875,17 @@ class ResourcePanel(QWidget):
             return
         new_key = new_key.strip()
         if not new_key or new_key == old_key:
+            return
+        usages = list(self._resource_usage_index.get(("string", old_key), []))
+        confirmed = self._confirm_reference_impact(
+            "Rename String Key",
+            old_key,
+            usages,
+            "",
+            f"Renaming it to '{new_key}' will update those string references.",
+            "Rename",
+        )
+        if not confirmed:
             return
 
         try:

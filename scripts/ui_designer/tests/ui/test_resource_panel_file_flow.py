@@ -7,6 +7,7 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
+    from PyQt5.QtCore import QTimer
     from PyQt5.QtWidgets import QApplication, QMessageBox
 
     _has_pyqt5 = True
@@ -299,6 +300,46 @@ class TestResourcePanelFileFlow:
         assert renamed == [("greeting", "salutation")]
         assert imported == [True]
         assert panel._string_table.item(panel._string_table.currentRow(), 0).text() == "salutation"
+        panel.deleteLater()
+
+    def test_rename_string_key_with_usages_uses_shared_impact_confirmation(self, qapp, monkeypatch):
+        from ui_designer.model.resource_usage import ResourceUsageEntry
+        from ui_designer.model.string_resource import DEFAULT_LOCALE, StringResourceCatalog
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        string_catalog = StringResourceCatalog()
+        string_catalog.set("greeting", "Hello", DEFAULT_LOCALE)
+
+        panel = ResourcePanel()
+        panel.set_string_catalog(string_catalog)
+        panel.set_resource_usage_index(
+            {
+                ("string", "greeting"): [
+                    ResourceUsageEntry("string", "greeting", "detail_page", "subtitle", "text", "label"),
+                ]
+            }
+        )
+        panel._select_resource_item("string", "greeting")
+
+        prompts = []
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QInputDialog.getText",
+            lambda *args, **kwargs: ("salutation", True),
+        )
+        monkeypatch.setattr(
+            panel,
+            "_confirm_reference_impact",
+            lambda *args: prompts.append(args) or True,
+        )
+
+        panel._on_rename_string_key()
+
+        assert prompts
+        assert prompts[0][0] == "Rename String Key"
+        assert prompts[0][1] == "greeting"
+        assert len(prompts[0][2]) == 1
+        assert "salutation" in prompts[0][4]
+        assert panel.get_string_catalog().get("salutation", DEFAULT_LOCALE) == "Hello"
         panel.deleteLater()
 
     def test_tab_title_shows_missing_resource_count(self, qapp, tmp_path):
@@ -688,6 +729,52 @@ class TestResourcePanelFileFlow:
         assert imported == [True]
         panel.deleteLater()
 
+    def test_rename_text_resource_with_usages_uses_shared_impact_confirmation(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.model.resource_usage import ResourceUsageEntry
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        resource_dir.mkdir(parents=True)
+        old_path = resource_dir / "chars.txt"
+        old_path.write_text("abc\n", encoding="utf-8")
+
+        catalog = ResourceCatalog()
+        catalog.add_text_file("chars.txt")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+        panel.set_resource_usage_index(
+            {
+                ("text", "chars.txt"): [
+                    ResourceUsageEntry("text", "chars.txt", "main_page", "title", "font_text_file", "label"),
+                ]
+            }
+        )
+
+        prompts = []
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QInputDialog.getText",
+            lambda *args, **kwargs: ("chars_new.txt", True),
+        )
+        monkeypatch.setattr(
+            panel,
+            "_confirm_reference_impact",
+            lambda *args: prompts.append(args) or True,
+        )
+
+        panel._rename_resource("chars.txt", "text")
+
+        assert prompts
+        assert prompts[0][0] == "Rename Resource"
+        assert prompts[0][1] == "chars.txt"
+        assert len(prompts[0][2]) == 1
+        assert "chars_new.txt" in prompts[0][4]
+        assert not old_path.exists()
+        assert (resource_dir / "chars_new.txt").is_file()
+        panel.deleteLater()
+
     def test_delete_resource_with_usages_uses_shared_impact_confirmation(self, qapp, tmp_path, monkeypatch):
         from ui_designer.model.resource_catalog import ResourceCatalog
         from ui_designer.model.resource_usage import ResourceUsageEntry
@@ -730,4 +817,35 @@ class TestResourcePanelFileFlow:
         assert "clear those widget references" in prompts[0][4]
         assert deleted == [("text", "chars.txt")]
         assert not text_path.exists()
+        panel.deleteLater()
+
+    def test_reference_impact_confirmation_can_open_selected_usage(self, qapp):
+        from ui_designer.model.resource_usage import ResourceUsageEntry
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        panel = ResourcePanel()
+        activated = []
+        panel.usage_activated.connect(lambda page_name, widget_name: activated.append((page_name, widget_name)))
+
+        usages = [
+            ResourceUsageEntry("string", "greeting", "detail_page", "subtitle", "text", "label"),
+        ]
+
+        def open_selected_usage():
+            dialog = QApplication.activeModalWidget()
+            assert dialog is not None
+            dialog._open_selected_usage()
+
+        QTimer.singleShot(0, open_selected_usage)
+        confirmed = panel._confirm_reference_impact(
+            "Remove String Key",
+            "greeting",
+            usages,
+            "unused prompt",
+            "Removing it will convert those references to literal text.",
+            "Remove",
+        )
+
+        assert confirmed is False
+        assert activated == [("detail_page", "subtitle")]
         panel.deleteLater()
