@@ -242,6 +242,55 @@ def _page_timer_entries(page):
     return entries
 
 
+def _callback_conflict_entries(page):
+    registry = WidgetRegistry.instance()
+    callback_map = {}
+
+    def _record(callback_name, signature, source):
+        callback_name = (callback_name or "").strip()
+        signature = (signature or "").strip()
+        source = (source or "").strip()
+        if not callback_name or not signature:
+            return
+        entry = callback_map.setdefault(callback_name, {})
+        entry.setdefault(signature, set()).add(source)
+
+    for widget in page.get_all_widgets():
+        if widget.on_click:
+            _record(widget.on_click, "void {func_name}(egui_view_t *self)", f"{widget.name}.onClick")
+
+        descriptor = registry.get(widget.widget_type)
+        events = descriptor.get("events", {})
+        for event_name, callback_name in sorted(widget.events.items()):
+            event_info = events.get(event_name)
+            if not event_info:
+                continue
+            _record(callback_name, event_info.get("signature", ""), f"{widget.name}.{event_name}")
+
+    for timer in getattr(page, "timers", []) or []:
+        _record(timer.get("callback", ""), "void {func_name}(egui_timer_t *timer)", f"timer:{timer.get('name', '')}")
+
+    entries = []
+    for callback_name, signatures in sorted(callback_map.items()):
+        if len(signatures) <= 1:
+            continue
+        detail_parts = []
+        for signature, sources in sorted(signatures.items()):
+            resolved_signature = signature.replace("{func_name}", callback_name)
+            detail_parts.append(f"{resolved_signature} from {', '.join(sorted(sources))}")
+        entries.append(
+            DiagnosticEntry(
+                "error",
+                "callback_signature_conflict",
+                f"Callback '{callback_name}' is reused with incompatible signatures: {'; '.join(detail_parts)}.",
+                page_name=page.name,
+                widget_name=callback_name,
+            )
+        )
+
+    return entries
+
+
 def analyze_page(page, resource_catalog=None, string_catalog=None, source_resource_dir=""):
     """Analyze a single page and return sorted diagnostics."""
     if page is None or page.root_widget is None:
@@ -250,6 +299,7 @@ def analyze_page(page, resource_catalog=None, string_catalog=None, source_resour
     entries = []
     entries.extend(_page_field_entries(page))
     entries.extend(_page_timer_entries(page))
+    entries.extend(_callback_conflict_entries(page))
     entries.extend(_invalid_name_entries(page))
     entries.extend(_duplicate_name_entries(page))
     entries.extend(_bounds_entries(page))

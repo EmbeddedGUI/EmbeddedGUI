@@ -78,6 +78,22 @@ class TestPageDiagnostics:
         assert codes.count("page_timer_missing_callback") == 1
         assert any("callback function name" in entry.message for entry in entries)
 
+    def test_analyze_page_reports_callback_signature_conflicts(self):
+        page = Page.create_default("main_page", screen_width=240, screen_height=320)
+        button = WidgetModel("button", name="confirm_button", x=8, y=8, width=80, height=28)
+        slider = WidgetModel("slider", name="volume_slider", x=8, y=48, width=120, height=24)
+        button.on_click = "on_shared_action"
+        slider.events["onValueChanged"] = "on_shared_action"
+        page.root_widget.add_child(button)
+        page.root_widget.add_child(slider)
+
+        entries = analyze_page(page)
+
+        assert [entry.code for entry in entries] == ["callback_signature_conflict"]
+        assert "on_shared_action" in entries[0].message
+        assert "confirm_button.onClick" in entries[0].message
+        assert "volume_slider.onValueChanged" in entries[0].message
+
     def test_analyze_page_reports_missing_string_key_references(self):
         page = Page.create_default("main_page", screen_width=240, screen_height=320)
         title = WidgetModel("label", name="title", x=8, y=8, width=60, height=20)
