@@ -326,6 +326,14 @@ extern "C" {
 #endif
 
 /**
+ * Max decoded pixel bytes per pixel for compressed image scratch/cache buffers.
+ * Keep at 4 for RGB32-capable apps. RGB565-only apps can set this to 2 to save RAM.
+ */
+#ifndef EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE
+#define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE 4
+#endif
+
+/**
  * Enable row-band decode cache for compressed image codecs.
  * When enabled, the first PFB tile in a row band decodes all rows into
  * a cache; subsequent horizontal tiles blend from cache without re-decoding.

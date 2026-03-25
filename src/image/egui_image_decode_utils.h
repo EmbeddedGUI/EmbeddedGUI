@@ -1,6 +1,7 @@
 #ifndef _EGUI_IMAGE_DECODE_UTILS_H_
 #define _EGUI_IMAGE_DECODE_UTILS_H_
 
+#include "core/egui_api.h"
 #include "egui_image.h"
 #include "egui_image_std.h"
 
@@ -12,11 +13,17 @@ extern "C" {
 #if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE || EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
 
 /* Shared row decode buffers (static, zero dynamic allocation).
- * Pixel buffer: EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * 4 bytes (worst case RGB32)
+ * Pixel buffer: EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE bytes
  * Alpha buffer: EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH bytes
  */
 extern uint8_t egui_image_decode_row_pixel_buf[];
 extern uint8_t egui_image_decode_row_alpha_buf[];
+
+static inline uint8_t *egui_image_decode_get_row_pixel_buf(uint8_t bytes_per_pixel)
+{
+    EGUI_ASSERT(bytes_per_pixel > 0 && bytes_per_pixel <= EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE);
+    return egui_image_decode_row_pixel_buf;
+}
 
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 /*
@@ -37,6 +44,7 @@ typedef enum
 /* Return pointer to the pixel cache buffer for a given row offset within the band */
 static inline uint8_t *egui_image_decode_cache_pixel_row(uint16_t row_in_band, uint16_t img_width, uint8_t bytes_per_pixel)
 {
+    EGUI_ASSERT(bytes_per_pixel > 0 && bytes_per_pixel <= EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE);
     return &egui_image_decode_row_cache_pixel[(uint32_t)row_in_band * img_width * bytes_per_pixel];
 }
 

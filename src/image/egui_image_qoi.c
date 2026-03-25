@@ -1319,7 +1319,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
         uint8_t *alpha_buf = has_alpha ?
             egui_image_decode_cache_alpha_row(row_in_band, draw_info->width) : NULL;
 #else
-        uint8_t *pixel_buf = egui_image_decode_row_pixel_buf;
+        uint8_t *pixel_buf = egui_image_decode_get_row_pixel_buf(pixel_size);
         uint8_t *alpha_buf = has_alpha ? egui_image_decode_row_alpha_buf : NULL;
 #endif
         egui_image_qoi_decode_row(draw_info, pixel_buf, alpha_buf);

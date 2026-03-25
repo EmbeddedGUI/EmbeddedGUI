@@ -6,12 +6,12 @@
 #if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE || EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
 
 /* Shared row decode buffers */
-uint8_t egui_image_decode_row_pixel_buf[EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * 4];
+uint8_t egui_image_decode_row_pixel_buf[EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE];
 uint8_t egui_image_decode_row_alpha_buf[EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH];
 
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 /* Row-band decode cache: PFB_HEIGHT rows of decoded data */
-uint8_t egui_image_decode_row_cache_pixel[EGUI_CONFIG_PFB_HEIGHT * EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * 4];
+uint8_t egui_image_decode_row_cache_pixel[EGUI_CONFIG_PFB_HEIGHT * EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE];
 uint8_t egui_image_decode_row_cache_alpha[EGUI_CONFIG_PFB_HEIGHT * EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH];
 egui_image_decode_cache_state_t egui_image_decode_cache_state = {NULL, 0xFFFF, 0, EGUI_IMAGE_DECODE_CACHE_MODE_NONE};
 

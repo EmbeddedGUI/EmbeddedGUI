@@ -43,6 +43,12 @@ extern "C" {
 // RAM cost: PFB_HEIGHT * SCREEN_WIDTH * 5 = 30*240*5 = 36KB
 #define EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE 1
 
+// HelloPerformance compressed image resources are RGB565-only,
+// so decode scratch/cache buffers only need 2 bytes per pixel.
+#ifndef EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE
+#define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE 2
+#endif
+
 // Keep one decoded compressed image across repeated refreshes.
 // Covers the largest HelloPerformance compressed case: 240x240 RGB565 + alpha8.
 #define EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES (EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT * 3)
