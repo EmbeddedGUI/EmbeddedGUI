@@ -16,10 +16,14 @@ static egui_font_std_char_descriptor_t g_selected_char_desc;
 static const egui_font_std_info_t *g_cached_char_desc_font = NULL;
 static egui_font_std_char_descriptor_t g_cached_char_desc_array[EGUI_FONT_STD_EXTERNAL_DESC_CACHE_COUNT];
 #define EGUI_FONT_STD_EXTERNAL_PIXEL_CACHE_SIZE 1024
-static uint8_t g_selected_char_pixel_data[EGUI_FONT_STD_EXTERNAL_PIXEL_CACHE_SIZE];
 #ifndef EGUI_FONT_STD_EXTERNAL_PIXEL_FULL_CACHE_MAX_SIZE
 #define EGUI_FONT_STD_EXTERNAL_PIXEL_FULL_CACHE_MAX_SIZE 12288
 #endif
+
+typedef struct
+{
+    uint8_t *pixel_buffer;
+} egui_font_std_external_pixel_scratch_cache_t;
 
 typedef struct
 {
@@ -36,6 +40,9 @@ static egui_font_std_external_pixel_full_cache_t g_font_std_external_pixel_full_
         .pixel_size = 0,
         .is_ready = 0,
         .is_disabled = 0,
+};
+static egui_font_std_external_pixel_scratch_cache_t g_font_std_external_pixel_scratch_cache = {
+        .pixel_buffer = NULL,
 };
 #endif
 
@@ -742,6 +749,25 @@ static void egui_font_std_release_external_pixel_full_cache(void)
     g_font_std_external_pixel_full_cache.is_disabled = 0;
 }
 
+static void egui_font_std_release_external_pixel_scratch_cache(void)
+{
+    if (g_font_std_external_pixel_scratch_cache.pixel_buffer != NULL)
+    {
+        egui_free(g_font_std_external_pixel_scratch_cache.pixel_buffer);
+        g_font_std_external_pixel_scratch_cache.pixel_buffer = NULL;
+    }
+}
+
+static uint8_t *egui_font_std_get_external_pixel_scratch_cache(void)
+{
+    if (g_font_std_external_pixel_scratch_cache.pixel_buffer == NULL)
+    {
+        g_font_std_external_pixel_scratch_cache.pixel_buffer = (uint8_t *)egui_malloc(EGUI_FONT_STD_EXTERNAL_PIXEL_CACHE_SIZE);
+    }
+
+    return g_font_std_external_pixel_scratch_cache.pixel_buffer;
+}
+
 static uint32_t egui_font_std_get_external_pixel_total_size(const egui_font_std_info_t *font)
 {
     uint32_t max_extent = 0;
@@ -856,6 +882,13 @@ static const uint8_t *egui_font_std_get_readable_pixel_buffer(const egui_font_st
     return egui_font_std_get_external_pixel_full_cache(font);
 }
 #endif
+
+void egui_font_std_release_frame_cache(void)
+{
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    egui_font_std_release_external_pixel_scratch_cache();
+#endif
+}
 
 void egui_font_std_release_access(egui_font_std_access_t *access)
 {
@@ -2109,7 +2142,12 @@ static int egui_font_std_draw_single_char_desc(const egui_font_std_info_t *font,
             }
             else if (p_char_desc->size <= EGUI_FONT_STD_EXTERNAL_PIXEL_CACHE_SIZE)
             {
-                data_buf = g_selected_char_pixel_data;
+                data_buf = egui_font_std_get_external_pixel_scratch_cache();
+                if (data_buf == NULL)
+                {
+                    EGUI_ASSERT(0);
+                    return 0;
+                }
                 egui_api_load_external_resource(data_buf, (egui_uintptr_t)(font->pixel_buffer), p_char_desc->idx, p_char_desc->size);
                 p_pixer_buffer = data_buf;
             }
@@ -2137,7 +2175,7 @@ static int egui_font_std_draw_single_char_desc(const egui_font_std_info_t *font,
                                                    blend_ctx))
             {
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-                if (data_buf != NULL && data_buf != g_selected_char_pixel_data)
+                if (data_buf != NULL && data_buf != g_font_std_external_pixel_scratch_cache.pixel_buffer)
                 {
                     egui_free(data_buf);
                 }
@@ -2175,7 +2213,7 @@ static int egui_font_std_draw_single_char_desc(const egui_font_std_info_t *font,
         }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-        if (data_buf != NULL && data_buf != g_selected_char_pixel_data)
+        if (data_buf != NULL && data_buf != g_font_std_external_pixel_scratch_cache.pixel_buffer)
         {
             egui_free(data_buf);
         }

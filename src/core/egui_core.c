@@ -18,6 +18,7 @@
 #include "egui_focus.h"
 #endif
 #include "resource/egui_resource.h"
+#include "font/egui_font_std.h"
 #include "image/egui_image_std.h"
 #include "widget/egui_view.h"
 #include "widget/egui_view_label.h"
@@ -945,6 +946,8 @@ void egui_polling_refresh_display(void)
     egui_canvas_transform_release_frame_cache();
     /* External row caches only need to persist while the current refresh walk spans multiple PFB tiles. */
     egui_image_std_release_frame_cache();
+    /* External font scratch buffers only need to persist while the current refresh walk spans multiple PFB tiles. */
+    egui_font_std_release_frame_cache();
 
 #if EGUI_CONFIG_DEBUG_INFO_SHOW
     // refresh in next frame.
