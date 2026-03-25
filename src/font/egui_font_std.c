@@ -13,12 +13,17 @@ extern const egui_font_api_t egui_font_std_t_api_table;
 static egui_font_std_char_descriptor_t g_selected_char_desc;
 #define EGUI_FONT_STD_EXTERNAL_DESC_CACHE_SIZE  2048
 #define EGUI_FONT_STD_EXTERNAL_DESC_CACHE_COUNT (EGUI_FONT_STD_EXTERNAL_DESC_CACHE_SIZE / sizeof(egui_font_std_char_descriptor_t))
-static const egui_font_std_info_t *g_cached_char_desc_font = NULL;
-static egui_font_std_char_descriptor_t g_cached_char_desc_array[EGUI_FONT_STD_EXTERNAL_DESC_CACHE_COUNT];
 #define EGUI_FONT_STD_EXTERNAL_PIXEL_CACHE_SIZE 1024
 #ifndef EGUI_FONT_STD_EXTERNAL_PIXEL_FULL_CACHE_MAX_SIZE
 #define EGUI_FONT_STD_EXTERNAL_PIXEL_FULL_CACHE_MAX_SIZE 12288
 #endif
+
+typedef struct
+{
+    const egui_font_std_info_t *font;
+    egui_font_std_char_descriptor_t *char_array;
+    uint16_t capacity_count;
+} egui_font_std_external_desc_cache_t;
 
 typedef struct
 {
@@ -41,9 +46,15 @@ static egui_font_std_external_pixel_full_cache_t g_font_std_external_pixel_full_
         .is_ready = 0,
         .is_disabled = 0,
 };
+static egui_font_std_external_desc_cache_t g_font_std_external_desc_cache = {
+        .font = NULL,
+        .char_array = NULL,
+        .capacity_count = 0,
+};
 static egui_font_std_external_pixel_scratch_cache_t g_font_std_external_pixel_scratch_cache = {
         .pixel_buffer = NULL,
 };
+static const egui_font_std_char_descriptor_t *egui_font_std_get_external_desc_cache(const egui_font_std_info_t *font);
 #endif
 
 typedef struct
@@ -611,21 +622,22 @@ static const egui_font_std_char_descriptor_t *egui_font_std_get_desc(const egui_
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     {
+        const egui_font_std_char_descriptor_t *cached_char_desc_array = NULL;
+
         if (font->count <= EGUI_FONT_STD_EXTERNAL_DESC_CACHE_COUNT)
         {
-            if (g_cached_char_desc_font != font)
-            {
-                egui_api_load_external_resource(g_cached_char_desc_array, (egui_uintptr_t)font->char_array, 0,
-                                                font->count * sizeof(egui_font_std_char_descriptor_t));
-                g_cached_char_desc_font = font;
-            }
-
-            if (g_cached_char_desc_array[code_index].size == 0)
+            cached_char_desc_array = egui_font_std_get_external_desc_cache(font);
+            if (cached_char_desc_array == NULL)
             {
                 return NULL;
             }
 
-            return &g_cached_char_desc_array[code_index];
+            if (cached_char_desc_array[code_index].size == 0)
+            {
+                return NULL;
+            }
+
+            return &cached_char_desc_array[code_index];
         }
 
         egui_font_std_char_descriptor_t *p_char_desc = &g_selected_char_desc;
@@ -672,19 +684,18 @@ __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         if (font->count <= EGUI_FONT_STD_EXTERNAL_DESC_CACHE_COUNT)
         {
-            if (g_cached_char_desc_font != font)
-            {
-                egui_api_load_external_resource(g_cached_char_desc_array, (egui_uintptr_t)font->char_array, 0,
-                                                font->count * sizeof(egui_font_std_char_descriptor_t));
-                g_cached_char_desc_font = font;
-            }
-
-            if (g_cached_char_desc_array[code_index].size == 0)
+            const egui_font_std_char_descriptor_t *cached_char_desc_array = egui_font_std_get_external_desc_cache(font);
+            if (cached_char_desc_array == NULL)
             {
                 return NULL;
             }
 
-            return &g_cached_char_desc_array[code_index];
+            if (cached_char_desc_array[code_index].size == 0)
+            {
+                return NULL;
+            }
+
+            return &cached_char_desc_array[code_index];
         }
 #endif
     }
@@ -709,6 +720,61 @@ __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+static void egui_font_std_release_external_desc_cache(void)
+{
+    if (g_font_std_external_desc_cache.char_array != NULL)
+    {
+        egui_free(g_font_std_external_desc_cache.char_array);
+    }
+
+    g_font_std_external_desc_cache.font = NULL;
+    g_font_std_external_desc_cache.char_array = NULL;
+    g_font_std_external_desc_cache.capacity_count = 0;
+}
+
+static const egui_font_std_char_descriptor_t *egui_font_std_get_external_desc_cache(const egui_font_std_info_t *font)
+{
+    uint32_t cache_size;
+
+    if (font == NULL || font->res_type != EGUI_RESOURCE_TYPE_EXTERNAL || font->count > EGUI_FONT_STD_EXTERNAL_DESC_CACHE_COUNT)
+    {
+        return NULL;
+    }
+
+    if (g_font_std_external_desc_cache.char_array == NULL || g_font_std_external_desc_cache.capacity_count < font->count)
+    {
+        egui_font_std_char_descriptor_t *new_cache;
+
+        if (g_font_std_external_desc_cache.char_array != NULL)
+        {
+            egui_free(g_font_std_external_desc_cache.char_array);
+        }
+
+        cache_size = font->count * sizeof(egui_font_std_char_descriptor_t);
+        new_cache = (egui_font_std_char_descriptor_t *)egui_malloc(cache_size);
+        if (new_cache == NULL)
+        {
+            g_font_std_external_desc_cache.font = NULL;
+            g_font_std_external_desc_cache.char_array = NULL;
+            g_font_std_external_desc_cache.capacity_count = 0;
+            return NULL;
+        }
+
+        g_font_std_external_desc_cache.char_array = new_cache;
+        g_font_std_external_desc_cache.capacity_count = font->count;
+        g_font_std_external_desc_cache.font = NULL;
+    }
+
+    if (g_font_std_external_desc_cache.font != font)
+    {
+        cache_size = font->count * sizeof(egui_font_std_char_descriptor_t);
+        egui_api_load_external_resource(g_font_std_external_desc_cache.char_array, (egui_uintptr_t)font->char_array, 0, cache_size);
+        g_font_std_external_desc_cache.font = font;
+    }
+
+    return g_font_std_external_desc_cache.char_array;
+}
+
 static const egui_font_std_char_descriptor_t *egui_font_std_get_cached_char_array(const egui_font_std_info_t *font)
 {
     if (font == NULL)
@@ -726,13 +792,7 @@ static const egui_font_std_char_descriptor_t *egui_font_std_get_cached_char_arra
         return NULL;
     }
 
-    if (g_cached_char_desc_font != font)
-    {
-        egui_api_load_external_resource(g_cached_char_desc_array, (egui_uintptr_t)font->char_array, 0, font->count * sizeof(egui_font_std_char_descriptor_t));
-        g_cached_char_desc_font = font;
-    }
-
-    return g_cached_char_desc_array;
+    return egui_font_std_get_external_desc_cache(font);
 }
 
 static void egui_font_std_release_external_pixel_full_cache(void)
@@ -779,16 +839,15 @@ static uint32_t egui_font_std_get_external_pixel_total_size(const egui_font_std_
 
     if (font->count <= EGUI_FONT_STD_EXTERNAL_DESC_CACHE_COUNT)
     {
-        if (g_cached_char_desc_font != font)
+        const egui_font_std_char_descriptor_t *cached_char_desc_array = egui_font_std_get_external_desc_cache(font);
+        if (cached_char_desc_array == NULL)
         {
-            egui_api_load_external_resource(g_cached_char_desc_array, (egui_uintptr_t)font->char_array, 0,
-                                            font->count * sizeof(egui_font_std_char_descriptor_t));
-            g_cached_char_desc_font = font;
+            return 0;
         }
 
         for (int i = 0; i < font->count; i++)
         {
-            uint32_t extent = g_cached_char_desc_array[i].idx + g_cached_char_desc_array[i].size;
+            uint32_t extent = cached_char_desc_array[i].idx + cached_char_desc_array[i].size;
             if (extent > max_extent)
             {
                 max_extent = extent;
@@ -886,6 +945,7 @@ static const uint8_t *egui_font_std_get_readable_pixel_buffer(const egui_font_st
 void egui_font_std_release_frame_cache(void)
 {
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    egui_font_std_release_external_desc_cache();
     egui_font_std_release_external_pixel_scratch_cache();
 #endif
 }
