@@ -925,6 +925,110 @@ class TestResourcePanelFileFlow:
         assert apply_calls == [("image", {"missing.png": str(replacement_path)})]
         panel.deleteLater()
 
+    def test_replace_missing_resource_shows_batch_impact_preview_before_apply(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.model.resource_usage import ResourceUsageEntry
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        images_dir = resource_dir / "images"
+        images_dir.mkdir(parents=True)
+        replacement_dir = tmp_path / "external_images"
+        replacement_dir.mkdir()
+        replacement_path = replacement_dir / "renamed.png"
+        replacement_path.write_bytes(b"PNG")
+
+        catalog = ResourceCatalog()
+        catalog.add_image("missing.png")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+        panel.set_resource_usage_index(
+            {
+                ("image", "missing.png"): [
+                    ResourceUsageEntry("image", "missing.png", "main_page", "hero", "image_file", "image"),
+                ]
+            }
+        )
+
+        preview_calls = []
+        apply_calls = []
+
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QFileDialog.getOpenFileName",
+            lambda *args, **kwargs: (str(replacement_path), "Images (*.png *.bmp *.jpg *.jpeg)"),
+        )
+        monkeypatch.setattr(
+            panel,
+            "_confirm_batch_replace_impact",
+            lambda resource_type, impacts, total_rename_count: preview_calls.append((resource_type, impacts, total_rename_count)) or True,
+        )
+        monkeypatch.setattr(
+            panel,
+            "_replace_missing_resources_from_mapping",
+            lambda resource_type, replacements: apply_calls.append((resource_type, replacements)) or ([], [], []),
+        )
+
+        panel._replace_missing_resource("missing.png", "image")
+
+        assert len(preview_calls) == 1
+        assert preview_calls[0][0] == "image"
+        assert preview_calls[0][2] == 1
+        assert preview_calls[0][1][0]["old_name"] == "missing.png"
+        assert preview_calls[0][1][0]["new_name"] == "renamed.png"
+        assert apply_calls == [("image", {"missing.png": str(replacement_path)})]
+        panel.deleteLater()
+
+    def test_replace_missing_resource_can_cancel_batch_impact_preview(self, qapp, tmp_path, monkeypatch):
+        from ui_designer.model.resource_catalog import ResourceCatalog
+        from ui_designer.model.resource_usage import ResourceUsageEntry
+        from ui_designer.ui.resource_panel import ResourcePanel
+
+        resource_dir = tmp_path / "project" / ".eguiproject" / "resources"
+        images_dir = resource_dir / "images"
+        images_dir.mkdir(parents=True)
+        replacement_dir = tmp_path / "external_images"
+        replacement_dir.mkdir()
+        replacement_path = replacement_dir / "renamed.png"
+        replacement_path.write_bytes(b"PNG")
+
+        catalog = ResourceCatalog()
+        catalog.add_image("missing.png")
+
+        panel = ResourcePanel()
+        panel.set_resource_dir(str(resource_dir))
+        panel.set_resource_catalog(catalog)
+        panel.set_resource_usage_index(
+            {
+                ("image", "missing.png"): [
+                    ResourceUsageEntry("image", "missing.png", "main_page", "hero", "image_file", "image"),
+                ]
+            }
+        )
+
+        preview_calls = []
+
+        monkeypatch.setattr(
+            "ui_designer.ui.resource_panel.QFileDialog.getOpenFileName",
+            lambda *args, **kwargs: (str(replacement_path), "Images (*.png *.bmp *.jpg *.jpeg)"),
+        )
+        monkeypatch.setattr(
+            panel,
+            "_confirm_batch_replace_impact",
+            lambda resource_type, impacts, total_rename_count: preview_calls.append((resource_type, impacts, total_rename_count)) or False,
+        )
+        monkeypatch.setattr(
+            panel,
+            "_replace_missing_resources_from_mapping",
+            lambda *args, **kwargs: pytest.fail("_replace_missing_resources_from_mapping should not be called"),
+        )
+
+        panel._replace_missing_resource("missing.png", "image")
+
+        assert len(preview_calls) == 1
+        panel.deleteLater()
+
     def test_rename_text_resource_updates_catalog_and_emits_signal(self, qapp, tmp_path, monkeypatch):
         from ui_designer.model.resource_catalog import ResourceCatalog
         from ui_designer.ui.resource_panel import ResourcePanel

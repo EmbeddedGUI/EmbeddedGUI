@@ -1737,9 +1737,14 @@ class ResourcePanel(QWidget):
             return
         self._remember_external_import_paths([source_path])
 
+        replacements = {filename: source_path}
+        impacts, total_rename_count = self._collect_batch_replace_impacts(resource_type, replacements)
+        if impacts and not self._confirm_batch_replace_impact(resource_type, impacts, total_rename_count):
+            return
+
         restored, renamed, failures = self._replace_missing_resources_from_mapping(
             resource_type,
-            {filename: source_path},
+            replacements,
         )
         if restored or renamed:
             return
