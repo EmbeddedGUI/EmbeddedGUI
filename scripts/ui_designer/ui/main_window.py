@@ -392,6 +392,7 @@ class MainWindow(QMainWindow):
         self.res_panel.string_key_renamed.connect(self._on_string_key_renamed)
         self.res_panel.string_key_deleted.connect(self._on_string_key_deleted)
         self.diagnostics_panel.diagnostic_activated.connect(self._on_diagnostic_requested)
+        self.diagnostics_panel.copy_requested.connect(self._copy_diagnostics_summary)
         self.animations_panel.animations_changed.connect(self._on_widget_animations_changed)
         self.page_fields_panel.fields_changed.connect(self._on_page_fields_changed)
         self.page_fields_panel.validation_message.connect(self._on_property_validation_message)
@@ -1655,6 +1656,14 @@ class MainWindow(QMainWindow):
         entries.extend(analyze_project_callback_conflicts(self.project))
         entries.extend(analyze_selection(self._selection_state.widgets))
         self.diagnostics_panel.set_entries(sort_diagnostic_entries(entries))
+
+    def _copy_diagnostics_summary(self):
+        if not hasattr(self, "diagnostics_panel") or not self.diagnostics_panel.has_entries():
+            self.statusBar().showMessage("No diagnostics to copy.", 3000)
+            return
+
+        QApplication.clipboard().setText(self.diagnostics_panel.summary_text())
+        self.statusBar().showMessage("Copied diagnostics summary.", 3000)
 
     def _update_resource_usage_panel(self):
         if not hasattr(self, "res_panel"):
