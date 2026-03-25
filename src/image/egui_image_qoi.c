@@ -65,8 +65,25 @@ typedef struct
  * so horizontal tile neighbors and repeated small images at different Y offsets
  * can restore instead of re-decoding from the beginning.
  */
-static egui_image_qoi_checkpoint_t qoi_checkpoints[EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT];
+static egui_image_qoi_checkpoint_t *qoi_checkpoints = NULL;
 static uint8_t qoi_checkpoint_next = 0;
+
+static egui_image_qoi_checkpoint_t *egui_image_qoi_get_checkpoints(void)
+{
+    if (qoi_checkpoints == NULL)
+    {
+        qoi_checkpoints = (egui_image_qoi_checkpoint_t *)egui_malloc(sizeof(egui_image_qoi_checkpoint_t) * EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT);
+        if (qoi_checkpoints == NULL)
+        {
+            return NULL;
+        }
+
+        memset(qoi_checkpoints, 0, sizeof(egui_image_qoi_checkpoint_t) * EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT);
+        qoi_checkpoint_next = 0;
+    }
+
+    return qoi_checkpoints;
+}
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 typedef struct
@@ -146,19 +163,25 @@ static void egui_image_qoi_reset_state(const egui_image_qoi_info_t *info)
 static void egui_image_qoi_save_checkpoint(const egui_image_qoi_info_t *info, uint16_t row)
 {
     uint8_t i;
+    egui_image_qoi_checkpoint_t *checkpoints = egui_image_qoi_get_checkpoints();
+
+    if (checkpoints == NULL)
+    {
+        return;
+    }
 
     for (i = 0; i < EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT; i++)
     {
-        if (qoi_checkpoints[i].info == info && qoi_checkpoints[i].row == row)
+        if (checkpoints[i].info == info && checkpoints[i].row == row)
         {
-            qoi_checkpoints[i].state = qoi_state;
+            checkpoints[i].state = qoi_state;
             return;
         }
     }
 
-    qoi_checkpoints[qoi_checkpoint_next].state = qoi_state;
-    qoi_checkpoints[qoi_checkpoint_next].row = row;
-    qoi_checkpoints[qoi_checkpoint_next].info = info;
+    checkpoints[qoi_checkpoint_next].state = qoi_state;
+    checkpoints[qoi_checkpoint_next].row = row;
+    checkpoints[qoi_checkpoint_next].info = info;
     qoi_checkpoint_next++;
     qoi_checkpoint_next &= (EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT - 1);
 }
@@ -166,12 +189,18 @@ static void egui_image_qoi_save_checkpoint(const egui_image_qoi_info_t *info, ui
 static int egui_image_qoi_restore_checkpoint(const egui_image_qoi_info_t *info, uint16_t target_row)
 {
     uint8_t i;
+    egui_image_qoi_checkpoint_t *checkpoints = qoi_checkpoints;
+
+    if (checkpoints == NULL)
+    {
+        return 0;
+    }
 
     for (i = 0; i < EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT; i++)
     {
-        if (qoi_checkpoints[i].info == info && qoi_checkpoints[i].row == target_row)
+        if (checkpoints[i].info == info && checkpoints[i].row == target_row)
         {
-            qoi_state = qoi_checkpoints[i].state;
+            qoi_state = checkpoints[i].state;
             return 1;
         }
     }
