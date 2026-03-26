@@ -765,28 +765,6 @@ extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_0;
 extern const egui_image_std_t EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8;
 extern const egui_image_std_t EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_8;
 
-typedef enum
-{
-    PERF_MASK_SLOT_NONE = 0,
-    PERF_MASK_SLOT_ROUND_RECT,
-    PERF_MASK_SLOT_CIRCLE,
-    PERF_MASK_SLOT_IMAGE,
-    PERF_MASK_SLOT_GRADIENT,
-} perf_mask_slot_kind_t;
-
-typedef union
-{
-    egui_mask_round_rectangle_t round_rect;
-    egui_mask_circle_t circle;
-    egui_mask_image_t image;
-    egui_mask_gradient_t gradient;
-} perf_mask_slot_t;
-
-// Mask benchmarks only use one mask kind at a time, so reuse one storage slot
-// and lazily rebuild the active object when the benchmark kind changes.
-static perf_mask_slot_t perf_mask_slot;
-static perf_mask_slot_kind_t perf_mask_slot_kind = PERF_MASK_SLOT_NONE;
-
 // Multi-size test dimensions
 #define PERF_SIZE_QUARTER (EGUI_CONFIG_SCEEN_WIDTH / 2)
 #define PERF_SIZE_FULL    EGUI_CONFIG_SCEEN_WIDTH
@@ -795,105 +773,64 @@ static perf_mask_slot_kind_t perf_mask_slot_kind = PERF_MASK_SLOT_NONE;
 #define MASK_TEST_SIZE   PERF_SIZE_FULL
 #define MASK_TEST_RADIUS (MASK_TEST_SIZE / 16)
 
-static uint16_t perf_mask_round_rect_size = 0;
-static uint16_t perf_mask_round_rect_radius = 0;
-static uint16_t perf_mask_circle_size = 0;
-
-static egui_mask_round_rectangle_t *get_perf_round_rect_mask(void)
+static void prepare_perf_round_rect_mask(egui_mask_round_rectangle_t *mask, uint16_t size, uint16_t radius)
 {
-    if (perf_mask_slot_kind == PERF_MASK_SLOT_ROUND_RECT)
-    {
-        return &perf_mask_slot.round_rect;
-    }
-
-    perf_mask_slot_kind = PERF_MASK_SLOT_ROUND_RECT;
-    egui_mask_round_rectangle_init((egui_mask_t *)&perf_mask_slot.round_rect);
-    egui_mask_set_position((egui_mask_t *)&perf_mask_slot.round_rect, 0, 0);
-    egui_mask_set_size((egui_mask_t *)&perf_mask_slot.round_rect, MASK_TEST_SIZE, MASK_TEST_SIZE);
-    egui_mask_round_rectangle_set_radius((egui_mask_t *)&perf_mask_slot.round_rect, MASK_TEST_RADIUS);
-
-    perf_mask_round_rect_size = MASK_TEST_SIZE;
-    perf_mask_round_rect_radius = MASK_TEST_RADIUS;
-    return &perf_mask_slot.round_rect;
+    egui_mask_round_rectangle_init((egui_mask_t *)mask);
+    egui_mask_set_position((egui_mask_t *)mask, 0, 0);
+    egui_mask_set_size((egui_mask_t *)mask, size, size);
+    egui_mask_round_rectangle_set_radius((egui_mask_t *)mask, radius);
 }
 
-static egui_mask_circle_t *get_perf_circle_mask(void)
+static void prepare_perf_circle_mask(egui_mask_circle_t *mask, uint16_t size)
 {
-    if (perf_mask_slot_kind == PERF_MASK_SLOT_CIRCLE)
-    {
-        return &perf_mask_slot.circle;
-    }
-
-    perf_mask_slot_kind = PERF_MASK_SLOT_CIRCLE;
-    egui_mask_circle_init((egui_mask_t *)&perf_mask_slot.circle);
-    egui_mask_set_position((egui_mask_t *)&perf_mask_slot.circle, 0, 0);
-    egui_mask_set_size((egui_mask_t *)&perf_mask_slot.circle, MASK_TEST_SIZE, MASK_TEST_SIZE);
-
-    perf_mask_circle_size = MASK_TEST_SIZE;
-    return &perf_mask_slot.circle;
+    egui_mask_circle_init((egui_mask_t *)mask);
+    egui_mask_set_position((egui_mask_t *)mask, 0, 0);
+    egui_mask_set_size((egui_mask_t *)mask, size, size);
 }
 
-static egui_mask_image_t *get_perf_image_mask(void)
+static void prepare_perf_image_mask(egui_mask_image_t *mask)
 {
-    if (perf_mask_slot_kind == PERF_MASK_SLOT_IMAGE)
-    {
-        return &perf_mask_slot.image;
-    }
-
-    perf_mask_slot_kind = PERF_MASK_SLOT_IMAGE;
-    egui_mask_image_init((egui_mask_t *)&perf_mask_slot.image);
-    egui_mask_set_position((egui_mask_t *)&perf_mask_slot.image, 0, 0);
-    egui_mask_set_size((egui_mask_t *)&perf_mask_slot.image, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER);
-    egui_mask_image_set_image((egui_mask_t *)&perf_mask_slot.image, (egui_image_t *)&EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_8);
-    return &perf_mask_slot.image;
+    egui_mask_image_init((egui_mask_t *)mask);
+    egui_mask_set_position((egui_mask_t *)mask, 0, 0);
+    egui_mask_set_size((egui_mask_t *)mask, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER);
+    egui_mask_image_set_image((egui_mask_t *)mask, (egui_image_t *)&EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_8);
 }
 
-static egui_mask_gradient_t *get_perf_gradient_mask(void)
+static void prepare_perf_gradient_mask(egui_mask_gradient_t *mask)
 {
-    if (perf_mask_slot_kind == PERF_MASK_SLOT_GRADIENT)
-    {
-        return &perf_mask_slot.gradient;
-    }
-
-    perf_mask_slot_kind = PERF_MASK_SLOT_GRADIENT;
-    egui_mask_gradient_init((egui_mask_t *)&perf_mask_slot.gradient);
-    egui_mask_set_position((egui_mask_t *)&perf_mask_slot.gradient, 0, 0);
-    egui_mask_set_size((egui_mask_t *)&perf_mask_slot.gradient, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
-    egui_mask_gradient_set_gradient((egui_mask_t *)&perf_mask_slot.gradient, &perf_gradient_v);
-    egui_mask_gradient_set_overlay_alpha((egui_mask_t *)&perf_mask_slot.gradient, EGUI_ALPHA_100);
-    return &perf_mask_slot.gradient;
+    egui_mask_gradient_init((egui_mask_t *)mask);
+    egui_mask_set_position((egui_mask_t *)mask, 0, 0);
+    egui_mask_set_size((egui_mask_t *)mask, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_mask_gradient_set_gradient((egui_mask_t *)mask, &perf_gradient_v);
+    egui_mask_gradient_set_overlay_alpha((egui_mask_t *)mask, EGUI_ALPHA_100);
 }
 
 static void ensure_perf_masks_initialized(void)
 {
-    // Shared mask storage is initialized lazily by the per-kind getters.
+    // Stack-local perf masks are prepared at each draw site.
 }
 
-static void set_perf_round_rect_mask(uint16_t size, uint16_t radius)
+static void set_perf_round_rect_mask(egui_mask_round_rectangle_t *mask, uint16_t size, uint16_t radius)
 {
-    egui_mask_round_rectangle_t *mask = get_perf_round_rect_mask();
-
-    if (perf_mask_round_rect_size != size || perf_mask_round_rect_radius != radius)
-    {
-        egui_mask_set_size((egui_mask_t *)mask, size, size);
-        egui_mask_round_rectangle_set_radius((egui_mask_t *)mask, radius);
-        perf_mask_round_rect_size = size;
-        perf_mask_round_rect_radius = radius;
-    }
-
+    prepare_perf_round_rect_mask(mask, size, radius);
     egui_canvas_set_mask((egui_mask_t *)mask);
 }
 
-static void set_perf_circle_mask(uint16_t size)
+static void set_perf_circle_mask(egui_mask_circle_t *mask, uint16_t size)
 {
-    egui_mask_circle_t *mask = get_perf_circle_mask();
+    prepare_perf_circle_mask(mask, size);
+    egui_canvas_set_mask((egui_mask_t *)mask);
+}
 
-    if (perf_mask_circle_size != size)
-    {
-        egui_mask_set_size((egui_mask_t *)mask, size, size);
-        perf_mask_circle_size = size;
-    }
+static void set_perf_image_mask(egui_mask_image_t *mask)
+{
+    prepare_perf_image_mask(mask);
+    egui_canvas_set_mask((egui_mask_t *)mask);
+}
 
+static void set_perf_gradient_mask(egui_mask_gradient_t *mask)
+{
+    prepare_perf_gradient_mask(mask);
     egui_canvas_set_mask((egui_mask_t *)mask);
 }
 
@@ -904,21 +841,24 @@ static void egui_view_test_performance_test_mask_rect_fill_no_mask(egui_view_t *
 
 static void egui_view_test_performance_test_mask_rect_fill_round_rect(egui_view_t *self)
 {
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    egui_mask_round_rectangle_t mask;
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_rectangle_fill(0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_rect_fill_circle(egui_view_t *self)
 {
-    set_perf_circle_mask(MASK_TEST_SIZE);
+    egui_mask_circle_t mask;
+    set_perf_circle_mask(&mask, MASK_TEST_SIZE);
     egui_canvas_draw_rectangle_fill(0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_rect_fill_image(egui_view_t *self)
 {
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    egui_mask_image_t mask;
+    set_perf_image_mask(&mask);
     egui_canvas_draw_rectangle_fill(0, 0, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
     egui_canvas_clear_mask();
 }
@@ -930,21 +870,24 @@ static void egui_view_test_performance_test_mask_image_no_mask(egui_view_t *self
 
 static void egui_view_test_performance_test_mask_image_round_rect(egui_view_t *self)
 {
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    egui_mask_round_rectangle_t mask;
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, 0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_image_circle(egui_view_t *self)
 {
-    set_perf_circle_mask(MASK_TEST_SIZE);
+    egui_mask_circle_t mask;
+    set_perf_circle_mask(&mask, MASK_TEST_SIZE);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, 0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_image_image(egui_view_t *self)
 {
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    egui_mask_image_t mask;
+    set_perf_image_mask(&mask);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, 0, 0, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER);
     egui_canvas_clear_mask();
 }
@@ -956,21 +899,24 @@ static void egui_view_test_performance_test_mask_image_test_perf_no_mask(egui_vi
 
 static void egui_view_test_performance_test_mask_image_test_perf_round_rect(egui_view_t *self)
 {
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    egui_mask_round_rectangle_t mask;
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_0, 0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_image_test_perf_circle(egui_view_t *self)
 {
-    set_perf_circle_mask(MASK_TEST_SIZE);
+    egui_mask_circle_t mask;
+    set_perf_circle_mask(&mask, MASK_TEST_SIZE);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_0, 0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_image_test_perf_image(egui_view_t *self)
 {
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    egui_mask_image_t mask;
+    set_perf_image_mask(&mask);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_0, 0, 0, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER);
     egui_canvas_clear_mask();
 }
@@ -983,21 +929,24 @@ static void egui_view_test_performance_test_extern_mask_image_no_mask(egui_view_
 
 static void egui_view_test_performance_test_extern_mask_image_round_rect(egui_view_t *self)
 {
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    egui_mask_round_rectangle_t mask;
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_8, 0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_extern_mask_image_circle(egui_view_t *self)
 {
-    set_perf_circle_mask(MASK_TEST_SIZE);
+    egui_mask_circle_t mask;
+    set_perf_circle_mask(&mask, MASK_TEST_SIZE);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_8, 0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_extern_mask_image_image(egui_view_t *self)
 {
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    egui_mask_image_t mask;
+    set_perf_image_mask(&mask);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_8, 0, 0, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER);
     egui_canvas_clear_mask();
 }
@@ -1009,21 +958,24 @@ static void egui_view_test_performance_test_extern_mask_image_test_perf_no_mask(
 
 static void egui_view_test_performance_test_extern_mask_image_test_perf_round_rect(egui_view_t *self)
 {
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    egui_mask_round_rectangle_t mask;
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_0, 0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_extern_mask_image_test_perf_circle(egui_view_t *self)
 {
-    set_perf_circle_mask(MASK_TEST_SIZE);
+    egui_mask_circle_t mask;
+    set_perf_circle_mask(&mask, MASK_TEST_SIZE);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_0, 0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_extern_mask_image_test_perf_image(egui_view_t *self)
 {
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    egui_mask_image_t mask;
+    set_perf_image_mask(&mask);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_RESIZE_IMAGE_NAME_0, 0, 0, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER);
     egui_canvas_clear_mask();
 }
@@ -1036,7 +988,8 @@ static void egui_view_test_performance_test_mask_round_rect_fill_no_mask(egui_vi
 
 static void egui_view_test_performance_test_mask_round_rect_fill_with_mask(egui_view_t *self)
 {
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    egui_mask_round_rectangle_t mask;
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_rectangle_fill(0, 0, MASK_TEST_SIZE, MASK_TEST_SIZE, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
     egui_canvas_clear_mask();
 }
@@ -1798,53 +1751,59 @@ static void egui_view_test_performance_test_extern_text_rotate_buffered(egui_vie
 
 static void egui_view_test_performance_test_text_gradient(egui_view_t *self)
 {
+    egui_mask_gradient_t mask;
     ensure_perf_masks_initialized();
-    egui_canvas_set_mask((egui_mask_t *)get_perf_gradient_mask());
+    set_perf_gradient_mask(&mask);
     egui_canvas_draw_text((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, 0, 0, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_set_mask(NULL);
 }
 
 static void egui_view_test_performance_test_text_rect_gradient(egui_view_t *self)
 {
+    egui_mask_gradient_t mask;
     ensure_perf_masks_initialized();
     EGUI_REGION_DEFINE(text_rect, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, 200);
-    egui_canvas_set_mask((egui_mask_t *)get_perf_gradient_mask());
+    set_perf_gradient_mask(&mask);
     egui_canvas_draw_text_in_rect((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_set_mask(NULL);
 }
 
 static void egui_view_test_performance_test_text_rotate_gradient(egui_view_t *self)
 {
+    egui_mask_gradient_t mask;
     ensure_perf_masks_initialized();
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
-    egui_canvas_set_mask((egui_mask_t *)get_perf_gradient_mask());
+    set_perf_gradient_mask(&mask);
     egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, 256, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_set_mask(NULL);
 }
 
 static void egui_view_test_performance_test_text_rotate_buffered_gradient(egui_view_t *self)
 {
+    egui_mask_gradient_t mask;
     ensure_perf_masks_initialized();
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
-    egui_canvas_set_mask((egui_mask_t *)get_perf_gradient_mask());
+    set_perf_gradient_mask(&mask);
     egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, 256, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_set_mask(NULL);
 }
 
 static void egui_view_test_performance_test_mask_gradient_rect_fill(egui_view_t *self)
 {
+    egui_mask_gradient_t mask;
     ensure_perf_masks_initialized();
-    egui_canvas_set_mask((egui_mask_t *)get_perf_gradient_mask());
+    set_perf_gradient_mask(&mask);
     egui_canvas_draw_rectangle_fill(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_set_mask(NULL);
 }
 
 static void egui_view_test_performance_test_mask_gradient_image(egui_view_t *self)
 {
+    egui_mask_gradient_t mask;
     ensure_perf_masks_initialized();
-    egui_canvas_set_mask((egui_mask_t *)get_perf_gradient_mask());
+    set_perf_gradient_mask(&mask);
 #if EGUI_TEST_CONFIG_IMAGE_LARGE
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_4;
     egui_dim_t x = (self->region.size.width - 120) / 2;
@@ -1856,8 +1815,9 @@ static void egui_view_test_performance_test_mask_gradient_image(egui_view_t *sel
 
 static void egui_view_test_performance_test_mask_gradient_image_rotate(egui_view_t *self)
 {
+    egui_mask_gradient_t mask;
     ensure_perf_masks_initialized();
-    egui_canvas_set_mask((egui_mask_t *)get_perf_gradient_mask());
+    set_perf_gradient_mask(&mask);
 #if EGUI_TEST_CONFIG_IMAGE_LARGE
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_STAR_RESIZE_IMAGE_NAME_4;
     egui_dim_t cx = self->region.size.width / 2;
@@ -1936,45 +1896,51 @@ static void egui_view_test_performance_test_mask_rect_fill_no_mask_double(egui_v
 
 static void egui_view_test_performance_test_mask_rect_fill_round_rect_quarter(egui_view_t *self)
 {
+    egui_mask_round_rectangle_t mask;
     // Full-size mask + rect at screen center �?only 1/4 visible, tests clipping path
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_rectangle_fill(PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL, PERF_SIZE_FULL, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_rect_fill_round_rect_double(egui_view_t *self)
 {
-    set_perf_round_rect_mask(PERF_SIZE_DOUBLE, PERF_SIZE_DOUBLE / 16);
+    egui_mask_round_rectangle_t mask;
+    set_perf_round_rect_mask(&mask, PERF_SIZE_DOUBLE, PERF_SIZE_DOUBLE / 16);
     egui_canvas_draw_rectangle_fill(0, 0, PERF_SIZE_DOUBLE, PERF_SIZE_DOUBLE, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_rect_fill_circle_quarter(egui_view_t *self)
 {
+    egui_mask_circle_t mask;
     // Full-size mask + rect at screen center �?only 1/4 visible, tests clipping path
-    set_perf_circle_mask(MASK_TEST_SIZE);
+    set_perf_circle_mask(&mask, MASK_TEST_SIZE);
     egui_canvas_draw_rectangle_fill(PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL, PERF_SIZE_FULL, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_rect_fill_circle_double(egui_view_t *self)
 {
-    set_perf_circle_mask((uint16_t)(egui_view_test_performance_adjust_circle(EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE) * 2));
+    egui_mask_circle_t mask;
+    set_perf_circle_mask(&mask, (uint16_t)(egui_view_test_performance_adjust_circle(EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE) * 2));
     egui_canvas_draw_rectangle_fill(0, 0, PERF_SIZE_DOUBLE, PERF_SIZE_DOUBLE, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_rect_fill_image_quarter(egui_view_t *self)
 {
+    egui_mask_image_t mask;
     // Full-size mask + rect at screen center �?only 1/4 visible, tests clipping path
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    set_perf_image_mask(&mask);
     egui_canvas_draw_rectangle_fill(PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, 72, 72, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_rect_fill_image_double(egui_view_t *self)
 {
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    egui_mask_image_t mask;
+    set_perf_image_mask(&mask);
     egui_canvas_draw_rectangle_fill(0, 0, 72, 72, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
     egui_canvas_clear_mask();
 }
@@ -1997,8 +1963,9 @@ static void egui_view_test_performance_test_mask_image_no_mask_double(egui_view_
 
 static void egui_view_test_performance_test_mask_image_round_rect_quarter(egui_view_t *self)
 {
+    egui_mask_round_rectangle_t mask;
     // Full-size mask + image resize at screen center �?only 1/4 visible, tests clipping path
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL,
                                   PERF_SIZE_FULL);
     egui_canvas_clear_mask();
@@ -2006,15 +1973,17 @@ static void egui_view_test_performance_test_mask_image_round_rect_quarter(egui_v
 
 static void egui_view_test_performance_test_mask_image_round_rect_double(egui_view_t *self)
 {
-    set_perf_round_rect_mask(PERF_SIZE_DOUBLE, PERF_SIZE_DOUBLE / 16);
+    egui_mask_round_rectangle_t mask;
+    set_perf_round_rect_mask(&mask, PERF_SIZE_DOUBLE, PERF_SIZE_DOUBLE / 16);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, 0, 0, PERF_SIZE_DOUBLE, PERF_SIZE_DOUBLE);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_image_circle_quarter(egui_view_t *self)
 {
+    egui_mask_circle_t mask;
     // Full-size mask + image resize at screen center �?only 1/4 visible, tests clipping path
-    set_perf_circle_mask(MASK_TEST_SIZE);
+    set_perf_circle_mask(&mask, MASK_TEST_SIZE);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_FULL,
                                   PERF_SIZE_FULL);
     egui_canvas_clear_mask();
@@ -2022,14 +1991,16 @@ static void egui_view_test_performance_test_mask_image_circle_quarter(egui_view_
 
 static void egui_view_test_performance_test_mask_image_circle_double(egui_view_t *self)
 {
-    set_perf_circle_mask((uint16_t)(egui_view_test_performance_adjust_circle(EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE) * 2));
+    egui_mask_circle_t mask;
+    set_perf_circle_mask(&mask, (uint16_t)(egui_view_test_performance_adjust_circle(EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE) * 2));
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, 0, 0, PERF_SIZE_DOUBLE, PERF_SIZE_DOUBLE);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_image_image_quarter(egui_view_t *self)
 {
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    egui_mask_image_t mask;
+    set_perf_image_mask(&mask);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER,
                                   PERF_SIZE_QUARTER);
     egui_canvas_clear_mask();
@@ -2037,7 +2008,8 @@ static void egui_view_test_performance_test_mask_image_image_quarter(egui_view_t
 
 static void egui_view_test_performance_test_mask_image_image_double(egui_view_t *self)
 {
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    egui_mask_image_t mask;
+    set_perf_image_mask(&mask);
     egui_canvas_draw_image_resize((egui_image_t *)&EGUI_TEST_PERFORMANCE_RESIZE_IMAGE_NAME_8, 0, 0, PERF_SIZE_QUARTER, PERF_SIZE_QUARTER);
     egui_canvas_clear_mask();
 }
@@ -2164,24 +2136,27 @@ static void egui_view_test_performance_test_mask_image_qoi_no_mask(egui_view_t *
 
 static void egui_view_test_performance_test_mask_image_qoi_round_rect(egui_view_t *self)
 {
+    egui_mask_round_rectangle_t mask;
     extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_MASK_NAME_0;
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_MASK_NAME_0, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_image_qoi_circle(egui_view_t *self)
 {
+    egui_mask_circle_t mask;
     extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_MASK_NAME_0;
-    set_perf_circle_mask(MASK_TEST_SIZE);
+    set_perf_circle_mask(&mask, MASK_TEST_SIZE);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_MASK_NAME_0, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_image_qoi_image(egui_view_t *self)
 {
+    egui_mask_image_t mask;
     extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_MASK_QUARTER_0;
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    set_perf_image_mask(&mask);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_MASK_QUARTER_0, 0, 0);
     egui_canvas_clear_mask();
 }
@@ -2195,24 +2170,27 @@ static void egui_view_test_performance_test_mask_image_qoi_8_no_mask(egui_view_t
 
 static void egui_view_test_performance_test_mask_image_qoi_8_round_rect(egui_view_t *self)
 {
+    egui_mask_round_rectangle_t mask;
     extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_MASK_NAME_8;
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_MASK_NAME_8, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_image_qoi_8_circle(egui_view_t *self)
 {
+    egui_mask_circle_t mask;
     extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_MASK_NAME_8;
-    set_perf_circle_mask(MASK_TEST_SIZE);
+    set_perf_circle_mask(&mask, MASK_TEST_SIZE);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_MASK_NAME_8, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_image_qoi_8_image(egui_view_t *self)
 {
+    egui_mask_image_t mask;
     extern const egui_image_qoi_t EGUI_TEST_PERF_QOI_MASK_QUARTER_8;
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    set_perf_image_mask(&mask);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_QOI_MASK_QUARTER_8, 0, 0);
     egui_canvas_clear_mask();
 }
@@ -2226,24 +2204,27 @@ static void egui_view_test_performance_test_extern_mask_image_qoi_no_mask(egui_v
 
 static void egui_view_test_performance_test_extern_mask_image_qoi_round_rect(egui_view_t *self)
 {
+    egui_mask_round_rectangle_t mask;
     extern const egui_image_qoi_t EGUI_TEST_PERF_EXTERN_QOI_MASK_NAME_0;
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_QOI_MASK_NAME_0, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_extern_mask_image_qoi_circle(egui_view_t *self)
 {
+    egui_mask_circle_t mask;
     extern const egui_image_qoi_t EGUI_TEST_PERF_EXTERN_QOI_MASK_NAME_0;
-    set_perf_circle_mask(MASK_TEST_SIZE);
+    set_perf_circle_mask(&mask, MASK_TEST_SIZE);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_QOI_MASK_NAME_0, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_extern_mask_image_qoi_image(egui_view_t *self)
 {
+    egui_mask_image_t mask;
     extern const egui_image_qoi_t EGUI_TEST_PERF_EXTERN_QOI_MASK_QUARTER_0;
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    set_perf_image_mask(&mask);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_QOI_MASK_QUARTER_0, 0, 0);
     egui_canvas_clear_mask();
 }
@@ -2256,24 +2237,27 @@ static void egui_view_test_performance_test_extern_mask_image_qoi_8_no_mask(egui
 
 static void egui_view_test_performance_test_extern_mask_image_qoi_8_round_rect(egui_view_t *self)
 {
+    egui_mask_round_rectangle_t mask;
     extern const egui_image_qoi_t EGUI_TEST_PERF_EXTERN_QOI_MASK_NAME_8;
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_QOI_MASK_NAME_8, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_extern_mask_image_qoi_8_circle(egui_view_t *self)
 {
+    egui_mask_circle_t mask;
     extern const egui_image_qoi_t EGUI_TEST_PERF_EXTERN_QOI_MASK_NAME_8;
-    set_perf_circle_mask(MASK_TEST_SIZE);
+    set_perf_circle_mask(&mask, MASK_TEST_SIZE);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_QOI_MASK_NAME_8, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_extern_mask_image_qoi_8_image(egui_view_t *self)
 {
+    egui_mask_image_t mask;
     extern const egui_image_qoi_t EGUI_TEST_PERF_EXTERN_QOI_MASK_QUARTER_8;
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    set_perf_image_mask(&mask);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_QOI_MASK_QUARTER_8, 0, 0);
     egui_canvas_clear_mask();
 }
@@ -2353,24 +2337,27 @@ static void egui_view_test_performance_test_mask_image_rle_no_mask(egui_view_t *
 
 static void egui_view_test_performance_test_mask_image_rle_round_rect(egui_view_t *self)
 {
+    egui_mask_round_rectangle_t mask;
     extern const egui_image_rle_t EGUI_TEST_PERF_RLE_MASK_NAME_0;
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_MASK_NAME_0, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_image_rle_circle(egui_view_t *self)
 {
+    egui_mask_circle_t mask;
     extern const egui_image_rle_t EGUI_TEST_PERF_RLE_MASK_NAME_0;
-    set_perf_circle_mask(MASK_TEST_SIZE);
+    set_perf_circle_mask(&mask, MASK_TEST_SIZE);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_MASK_NAME_0, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_image_rle_image(egui_view_t *self)
 {
+    egui_mask_image_t mask;
     extern const egui_image_rle_t EGUI_TEST_PERF_RLE_MASK_QUARTER_0;
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    set_perf_image_mask(&mask);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_MASK_QUARTER_0, 0, 0);
     egui_canvas_clear_mask();
 }
@@ -2384,24 +2371,27 @@ static void egui_view_test_performance_test_mask_image_rle_8_no_mask(egui_view_t
 
 static void egui_view_test_performance_test_mask_image_rle_8_round_rect(egui_view_t *self)
 {
+    egui_mask_round_rectangle_t mask;
     extern const egui_image_rle_t EGUI_TEST_PERF_RLE_MASK_NAME_8;
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_MASK_NAME_8, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_image_rle_8_circle(egui_view_t *self)
 {
+    egui_mask_circle_t mask;
     extern const egui_image_rle_t EGUI_TEST_PERF_RLE_MASK_NAME_8;
-    set_perf_circle_mask(MASK_TEST_SIZE);
+    set_perf_circle_mask(&mask, MASK_TEST_SIZE);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_MASK_NAME_8, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_mask_image_rle_8_image(egui_view_t *self)
 {
+    egui_mask_image_t mask;
     extern const egui_image_rle_t EGUI_TEST_PERF_RLE_MASK_QUARTER_8;
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    set_perf_image_mask(&mask);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_RLE_MASK_QUARTER_8, 0, 0);
     egui_canvas_clear_mask();
 }
@@ -2415,24 +2405,27 @@ static void egui_view_test_performance_test_extern_mask_image_rle_no_mask(egui_v
 
 static void egui_view_test_performance_test_extern_mask_image_rle_round_rect(egui_view_t *self)
 {
+    egui_mask_round_rectangle_t mask;
     extern const egui_image_rle_t EGUI_TEST_PERF_EXTERN_RLE_MASK_NAME_0;
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_RLE_MASK_NAME_0, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_extern_mask_image_rle_circle(egui_view_t *self)
 {
+    egui_mask_circle_t mask;
     extern const egui_image_rle_t EGUI_TEST_PERF_EXTERN_RLE_MASK_NAME_0;
-    set_perf_circle_mask(MASK_TEST_SIZE);
+    set_perf_circle_mask(&mask, MASK_TEST_SIZE);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_RLE_MASK_NAME_0, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_extern_mask_image_rle_image(egui_view_t *self)
 {
+    egui_mask_image_t mask;
     extern const egui_image_rle_t EGUI_TEST_PERF_EXTERN_RLE_MASK_QUARTER_0;
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    set_perf_image_mask(&mask);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_RLE_MASK_QUARTER_0, 0, 0);
     egui_canvas_clear_mask();
 }
@@ -2445,24 +2438,27 @@ static void egui_view_test_performance_test_extern_mask_image_rle_8_no_mask(egui
 
 static void egui_view_test_performance_test_extern_mask_image_rle_8_round_rect(egui_view_t *self)
 {
+    egui_mask_round_rectangle_t mask;
     extern const egui_image_rle_t EGUI_TEST_PERF_EXTERN_RLE_MASK_NAME_8;
-    set_perf_round_rect_mask(MASK_TEST_SIZE, MASK_TEST_RADIUS);
+    set_perf_round_rect_mask(&mask, MASK_TEST_SIZE, MASK_TEST_RADIUS);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_RLE_MASK_NAME_8, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_extern_mask_image_rle_8_circle(egui_view_t *self)
 {
+    egui_mask_circle_t mask;
     extern const egui_image_rle_t EGUI_TEST_PERF_EXTERN_RLE_MASK_NAME_8;
-    set_perf_circle_mask(MASK_TEST_SIZE);
+    set_perf_circle_mask(&mask, MASK_TEST_SIZE);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_RLE_MASK_NAME_8, 0, 0);
     egui_canvas_clear_mask();
 }
 
 static void egui_view_test_performance_test_extern_mask_image_rle_8_image(egui_view_t *self)
 {
+    egui_mask_image_t mask;
     extern const egui_image_rle_t EGUI_TEST_PERF_EXTERN_RLE_MASK_QUARTER_8;
-    egui_canvas_set_mask((egui_mask_t *)get_perf_image_mask());
+    set_perf_image_mask(&mask);
     egui_canvas_draw_image((egui_image_t *)&EGUI_TEST_PERF_EXTERN_RLE_MASK_QUARTER_8, 0, 0);
     egui_canvas_clear_mask();
 }
