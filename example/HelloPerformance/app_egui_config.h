@@ -41,8 +41,8 @@ extern "C" {
 // HelloPerformance only drives single-pointer recorded interactions and its
 // widget tree is shallow, so the default motion queue / capture-path budgets
 // are larger than needed for this app.
-#define EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT 3
-#define EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX   12
+#define EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT 2
+#define EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX   8
 
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1 1
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2 1
@@ -107,10 +107,10 @@ extern "C" {
 #define EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE 0
 
 // HelloPerformance's external RLE scenes only stream 120px/240px RGB565 rows,
-// and a 128B external read window still keeps the control stream hot while
+// and a 64B external read window still keeps the control stream hot while
 // literal row copies above the window size fall back to direct loads anyway,
-// trimming another 128B of static RAM versus the current 256B window.
-#define EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 128
+// trimming another 64B of static RAM versus the current 128B window.
+#define EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 64
 
 // HelloPerformance's dominant external image paths use 240px/120px RGB565
 // rows (480B/240B) plus matching alpha rows (240B/120B). Keeping the shared
@@ -146,10 +146,10 @@ extern "C" {
 #define EGUI_FONT_STD_LINE_CACHE_SLOTS        1
 
 // The long single-line perf string still exits the cached prefix early on
-// screen-width clipping, and 8 cached glyphs retains the same measured BSS
-// footprint as 4 on HelloPerformance while leaving a bit more prefix reuse.
+// screen-width clipping, and 4 cached glyphs still covers the visible hot
+// prefix on HelloPerformance while trimming the prefix cache further.
 #ifndef EGUI_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS
-#define EGUI_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS 8
+#define EGUI_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS 4
 #endif
 
 // HelloPerformance only keeps one active perf font/string prefix hot at a
