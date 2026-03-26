@@ -11,6 +11,12 @@ extern "C" {
 
 #define EGUI_CONFIG_MAX_FPS 1
 
+// HelloPerformance runs on PC/QEMU with synchronous tile flush, so extra PFB
+// buffers do not create useful overlap and only increase static RAM.
+#ifndef EGUI_CONFIG_PFB_BUFFER_COUNT
+#define EGUI_CONFIG_PFB_BUFFER_COUNT 1
+#endif
+
 #define EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE 300
 
 #define EGUI_CONFIG_DEBUG_LOG_LEVEL EGUI_LOG_IMPL_LEVEL_INF
