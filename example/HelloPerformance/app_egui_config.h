@@ -127,6 +127,10 @@ extern "C" {
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 1
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT  1
 
+// HelloPerformance only reaches one text-rotation prepare call per draw, so
+// recomputing the affine bounds is cheaper than keeping a persistent 60B cache.
+#define EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE 0
+
 // HelloPerformance's rotated-text benchmarks only use a fixed 7-line string
 // (~70 glyphs), so building the per-draw layout on stack avoids the small
 // persistent heap layout cache without affecting current content coverage.

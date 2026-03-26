@@ -2220,7 +2220,13 @@ typedef struct
     int32_t offx, offy;
 } text_transform_prepare_cache_t;
 
+#ifndef EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE
+#define EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE 1
+#endif
+
+#if EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE
 static text_transform_prepare_cache_t g_text_transform_prepare_cache = {0};
+#endif
 
 static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color,
                                                           const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *const *glyphs,
@@ -2229,7 +2235,12 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
 static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8, egui_alpha_t alpha,
                                   text_transform_ctx_t *ctx)
 {
+#if EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE
     text_transform_prepare_cache_t *cache = &g_text_transform_prepare_cache;
+#else
+    text_transform_prepare_cache_t local_cache = {0};
+    text_transform_prepare_cache_t *cache = &local_cache;
+#endif
 
     if (text_w <= 0 || text_h <= 0)
     {
@@ -2525,7 +2536,9 @@ void egui_canvas_transform_release_frame_cache(void)
     image_transform_release_external_row_cache();
 #endif
 
+#if EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE
     memset(&g_text_transform_prepare_cache, 0, sizeof(g_text_transform_prepare_cache));
+#endif
     text_transform_release_layout_cache();
     text_transform_release_visible_tile_cache();
 }
