@@ -1027,7 +1027,7 @@ static void ensure_anim_perf_view_initialized(void)
 static void egui_view_test_performance_test_animation_translate(egui_view_t *self)
 {
     ensure_anim_perf_view_initialized();
-    static egui_animation_translate_t anim;
+    egui_animation_translate_t anim;
     EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(params, 0, 0, 0, EGUI_CONFIG_SCEEN_HEIGHT - ANIM_TEST_SIZE);
 
     egui_animation_translate_init(EGUI_ANIM_OF(&anim));
@@ -1046,7 +1046,7 @@ static void egui_view_test_performance_test_animation_translate(egui_view_t *sel
 static void egui_view_test_performance_test_animation_alpha(egui_view_t *self)
 {
     ensure_anim_perf_view_initialized();
-    static egui_animation_alpha_t anim;
+    egui_animation_alpha_t anim;
     EGUI_ANIMATION_ALPHA_PARAMS_INIT(params, EGUI_ALPHA_100, EGUI_ALPHA_0);
 
     egui_animation_alpha_init(EGUI_ANIM_OF(&anim));
@@ -1064,7 +1064,7 @@ static void egui_view_test_performance_test_animation_alpha(egui_view_t *self)
 static void egui_view_test_performance_test_animation_scale(egui_view_t *self)
 {
     ensure_anim_perf_view_initialized();
-    static egui_animation_scale_size_t anim;
+    egui_animation_scale_size_t anim;
     EGUI_ANIMATION_SCALE_SIZE_PARAMS_INIT(params, EGUI_FLOAT_VALUE(0.5f), EGUI_FLOAT_VALUE(1.5f));
 
     egui_animation_scale_size_init(EGUI_ANIM_OF(&anim));
@@ -1084,9 +1084,9 @@ static void egui_view_test_performance_test_animation_scale(egui_view_t *self)
 static void egui_view_test_performance_test_animation_set(egui_view_t *self)
 {
     ensure_anim_perf_view_initialized();
-    static egui_animation_translate_t anim_tr;
-    static egui_animation_alpha_t anim_al;
-    static egui_animation_set_t anim_set;
+    egui_animation_translate_t anim_tr;
+    egui_animation_alpha_t anim_al;
+    egui_animation_set_t anim_set;
     EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(tr_params, 0, 0, 0, EGUI_CONFIG_SCEEN_HEIGHT - ANIM_TEST_SIZE);
     EGUI_ANIMATION_ALPHA_PARAMS_INIT(al_params, EGUI_ALPHA_100, EGUI_ALPHA_0);
 
