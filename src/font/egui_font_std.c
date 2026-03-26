@@ -747,7 +747,7 @@ __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_
     return egui_font_std_get_desc_fast(font, utf8_code);
 }
 
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE && EGUI_FONT_STD_PREPARE_ACCESS_COPY_PIXEL_BUFFER
 static uint32_t egui_font_std_get_external_pixel_total_size(const egui_font_std_info_t *font)
 {
     uint32_t max_extent = 0;
@@ -863,6 +863,9 @@ int egui_font_std_prepare_access(const egui_font_std_info_t *font, egui_font_std
         return 0;
     }
 
+#if !EGUI_FONT_STD_PREPARE_ACCESS_COPY_PIXEL_BUFFER
+    return 0;
+#else
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     {
         uint32_t pixel_size = egui_font_std_get_external_pixel_total_size(font);
@@ -889,6 +892,7 @@ int egui_font_std_prepare_access(const egui_font_std_info_t *font, egui_font_std
         egui_font_std_release_access(access);
         return -1;
     }
+#endif
 #endif
 }
 
