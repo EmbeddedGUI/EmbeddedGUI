@@ -38,11 +38,13 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW 1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_MASK   1
 
-// HelloPerformance only drives single-pointer recorded interactions and its
-// widget tree is shallow, so the default motion queue / capture-path budgets
-// are larger than needed for this app.
-#define EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT 2
-#define EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX   8
+// HelloPerformance only replays one pointer event at a time and consumes it
+// immediately in the polling loop, so one cached motion slot is enough.
+#define EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT 1
+
+// The app keeps one root-group wrapper plus a single fullscreen test view, so
+// a 2-entry touch capture path still preserves follow-up DOWN/MOVE/UP routing.
+#define EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX 2
 
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1 1
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2 1
