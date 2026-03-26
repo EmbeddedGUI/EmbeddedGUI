@@ -4,6 +4,7 @@
 #include "uicode.h"
 
 #include "egui_view_test_performance.h"
+#include "image/egui_image_qoi.h"
 
 #if EGUI_CONFIG_RECORDING_TEST
 #include "core/egui_input_simulator.h"
@@ -26,6 +27,7 @@ static egui_view_test_performance_t test_view;
 
 static const char *egui_view_test_performance_type_string(int test_mode);
 static void egui_view_test_performance_set_test_mode(int test_mode);
+static int egui_view_test_performance_is_qoi_test_mode(int test_mode);
 #if EGUI_CONFIG_RECORDING_TEST
 static void egui_view_test_performance_show_test_mode(int test_mode);
 static int egui_view_test_performance_get_recording_test_mode(int action_index);
@@ -642,8 +644,21 @@ static void egui_view_test_performance_set_test_mode(int test_mode)
         return;
     }
 
+#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+    if (egui_view_test_performance_is_qoi_test_mode(test_view.test_mode) && !egui_view_test_performance_is_qoi_test_mode(test_mode))
+    {
+        egui_image_qoi_release_checkpoints();
+    }
+#endif
+
     test_view.test_mode = test_mode;
     egui_view_invalidate(EGUI_VIEW_OF(&test_view));
+}
+
+static int egui_view_test_performance_is_qoi_test_mode(int test_mode)
+{
+    return test_mode >= EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565 &&
+           test_mode <= EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_8_IMAGE;
 }
 
 void egui_view_test_performance_with_test_mode(int test_mode)

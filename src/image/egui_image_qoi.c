@@ -100,6 +100,17 @@ static egui_image_qoi_checkpoint_t *egui_image_qoi_get_checkpoints(void)
     return qoi_checkpoints;
 }
 
+void egui_image_qoi_release_checkpoints(void)
+{
+    if (qoi_checkpoints != NULL)
+    {
+        egui_free(qoi_checkpoints);
+        qoi_checkpoints = NULL;
+    }
+
+    qoi_checkpoint_next = 0;
+}
+
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 static void egui_image_qoi_external_stream_init(egui_image_qoi_external_stream_t *stream, const egui_image_qoi_info_t *info, uint32_t pos)
 {
