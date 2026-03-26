@@ -27,6 +27,12 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW 1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_MASK   1
 
+// HelloPerformance only drives single-pointer recorded interactions and its
+// widget tree is shallow, so the default motion queue / capture-path budgets
+// are larger than needed for this app.
+#define EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT 3
+#define EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX   12
+
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1 1
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2 1
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8 1
