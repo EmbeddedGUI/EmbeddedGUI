@@ -146,10 +146,10 @@ extern "C" {
 #define EGUI_FONT_STD_LINE_CACHE_SLOTS        1
 
 // The long single-line perf string still exits the cached prefix early on
-// screen-width clipping, and 16 cached glyphs still cover the visible hot
-// prefix on HelloPerformance while trimming static RAM a bit further.
+// screen-width clipping, and 8 cached glyphs retains the same measured BSS
+// footprint as 4 on HelloPerformance while leaving a bit more prefix reuse.
 #ifndef EGUI_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS
-#define EGUI_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS 16
+#define EGUI_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS 8
 #endif
 
 // HelloPerformance only keeps one active perf font/string prefix hot at a
