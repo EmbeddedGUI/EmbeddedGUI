@@ -1648,6 +1648,14 @@ typedef struct
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES 0
 #endif
 
+#ifndef EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE 1
+#endif
+
+#ifndef EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE
+#define EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE 1
+#endif
+
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 #ifndef EGUI_CONFIG_TEXT_TRANSFORM_EXTERNAL_GLYPH_ROW_CACHE_BYTES
 #define EGUI_CONFIG_TEXT_TRANSFORM_EXTERNAL_GLYPH_ROW_CACHE_BYTES 256
@@ -2371,6 +2379,7 @@ static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, 
 #define EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES 32
 #endif
 
+#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
 static text_transform_layout_cache_t g_text_transform_layout_cache = {
         .font = NULL,
         .string = NULL,
@@ -2378,6 +2387,7 @@ static text_transform_layout_cache_t g_text_transform_layout_cache = {
         .count = 0,
         .line_count = 0,
 };
+#endif
 static text_transform_layout_glyph_t *g_text_transform_layout_glyphs = NULL;
 static int g_text_transform_layout_capacity = 0;
 static text_transform_layout_line_t *g_text_transform_layout_lines = NULL;
@@ -2404,7 +2414,9 @@ static void text_transform_release_layout_cache(void)
         g_text_transform_layout_lines = NULL;
     }
 
+#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
     memset(&g_text_transform_layout_cache, 0, sizeof(g_text_transform_layout_cache));
+#endif
     g_text_transform_layout_capacity = 0;
     g_text_transform_layout_line_capacity = 0;
 }
@@ -2707,18 +2719,24 @@ static int text_transform_prepare_layout(const egui_font_t *font, const egui_fon
     int build_count;
     int needed;
     int line_needed;
+#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
+    text_transform_layout_cache_t *cache = &g_text_transform_layout_cache;
+#else
+    text_transform_layout_cache_t local_cache = {0};
+    text_transform_layout_cache_t *cache = &local_cache;
+#endif
 
     if (font == NULL || font_info == NULL || string == NULL || layout == NULL || count == NULL || lines == NULL || line_count == NULL)
     {
         return -1;
     }
 
-    if (g_text_transform_layout_cache.font == font && g_text_transform_layout_cache.string == string && g_text_transform_layout_cache.line_space == line_space)
+    if (cache->font == font && cache->string == string && cache->line_space == line_space)
     {
         *layout = g_text_transform_layout_glyphs;
-        *count = g_text_transform_layout_cache.count;
+        *count = cache->count;
         *lines = g_text_transform_layout_lines;
-        *line_count = g_text_transform_layout_cache.line_count;
+        *line_count = cache->line_count;
         return 0;
     }
 
@@ -2736,22 +2754,24 @@ static int text_transform_prepare_layout(const egui_font_t *font, const egui_fon
         return -1;
     }
 
-    g_text_transform_layout_cache.font = font;
-    g_text_transform_layout_cache.string = string;
-    g_text_transform_layout_cache.line_space = line_space;
-    build_count = text_transform_build_layout(font_info, string, g_text_transform_layout_glyphs, needed, g_text_transform_layout_lines, line_needed,
-                                              &g_text_transform_layout_cache.line_count, line_space);
+    cache->font = font;
+    cache->string = string;
+    cache->line_space = line_space;
+    build_count = text_transform_build_layout(font_info, string, g_text_transform_layout_glyphs, needed, g_text_transform_layout_lines, line_needed, &cache->line_count,
+                                              line_space);
     if (build_count < 0)
     {
-        memset(&g_text_transform_layout_cache, 0, sizeof(g_text_transform_layout_cache));
+#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
+        memset(cache, 0, sizeof(*cache));
+#endif
         return -1;
     }
-    g_text_transform_layout_cache.count = build_count;
+    cache->count = build_count;
 
     *layout = g_text_transform_layout_glyphs;
-    *count = g_text_transform_layout_cache.count;
+    *count = cache->count;
     *lines = g_text_transform_layout_lines;
-    *line_count = g_text_transform_layout_cache.line_count;
+    *line_count = cache->line_count;
     return 0;
 }
 
@@ -3598,6 +3618,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
         return;
     }
 
+#if EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE
     /* Lightweight dimension cache: avoid per-tile get_str_size string walk.
      * Only 12 bytes static, independent of text content/font size. */
     static const egui_font_t *s_dim_font = NULL;
@@ -3613,6 +3634,18 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
         s_dim_font = font;
         s_dim_string = string;
     }
+#else
+    int16_t s_dim_w = 0;
+    int16_t s_dim_h = 0;
+    {
+        egui_dim_t tw = 0;
+        egui_dim_t th = 0;
+
+        font->api->get_str_size(font, string, 1, 0, &tw, &th);
+        s_dim_w = tw;
+        s_dim_h = th;
+    }
+#endif
 
     text_transform_ctx_t ctx;
     if (text_transform_prepare(s_dim_w, s_dim_h, x, y, angle_deg, scale_q8, alpha, &ctx) != 0)

@@ -131,6 +131,12 @@ extern "C" {
 // recomputing the affine bounds is cheaper than keeping a persistent 60B cache.
 #define EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE 0
 
+// HelloPerformance's rotated-text scenes stay on the stack layout path and
+// only measure one short benchmark string per draw, so the remaining layout
+// and dimension metadata caches do not justify permanent static RAM.
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE 0
+#define EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE    0
+
 // HelloPerformance's rotated-text benchmarks only use a fixed 7-line string
 // (~70 glyphs), so building the per-draw layout on stack avoids the small
 // persistent heap layout cache without affecting current content coverage.
@@ -166,6 +172,11 @@ extern "C" {
 // single "alpha row is fully opaque" cache slot preserves the fast-path hit
 // without keeping extra global entries alive.
 #define EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 1
+
+// HelloPerformance already shares the external-image row buffers, and each
+// draw only needs one row-cache metadata block at a time, so keep that
+// metadata on stack instead of reserving a persistent global union in BSS.
+#define EGUI_CONFIG_IMAGE_STD_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE 0
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
