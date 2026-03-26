@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include <stdio.h>
 
 #include "egui.h"
 #include "core/egui_api.h"
@@ -8,7 +7,6 @@
 #include "uicode.h"
 
 extern void egui_port_init(void);
-extern void initialise_monitor_handles(void);
 extern void qemu_exit(int code);
 extern void qemu_systick_init(void);
 extern void qemu_heap_reset_stats(void);
@@ -16,6 +14,8 @@ extern uint32_t qemu_heap_get_alloc_count(void);
 extern uint32_t qemu_heap_get_current_bytes(void);
 extern uint32_t qemu_heap_get_free_count(void);
 extern uint32_t qemu_heap_get_peak_bytes(void);
+extern void qemu_log_printf(const char *format, ...);
+extern void qemu_log_write(const char *str);
 
 static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
 
@@ -105,7 +105,7 @@ static qemu_heap_stats_t qemu_heap_capture_stats(void)
 
 static void qemu_heap_print_metric(const char *key, uint32_t value)
 {
-    printf("HEAP_RESULT:%s=%lu\n", key, (unsigned long)value);
+    qemu_log_printf("HEAP_RESULT:%s=%lu\n", key, (unsigned long)value);
 }
 
 static void qemu_run_for_ms(uint32_t wait_ms)
@@ -200,9 +200,6 @@ static uint32_t qemu_run_heap_measure_actions(void)
 
 int main(void)
 {
-    /* Initialize semihosting for printf output */
-    initialise_monitor_handles();
-
     /* Initialize SysTick for millisecond timing */
     qemu_systick_init();
 
@@ -217,7 +214,7 @@ int main(void)
     uint32_t interaction_total_current;
     uint32_t interaction_total_peak;
 
-    printf("QEMU EGUI Heap Measure\n");
+    qemu_log_write("QEMU EGUI Heap Measure\n");
 
     qemu_heap_reset_stats();
     uicode_create_ui();
@@ -248,10 +245,10 @@ int main(void)
     qemu_heap_print_metric("interaction_delta_frees", interaction_stats.frees);
     qemu_heap_print_metric("interaction_total_current", interaction_total_current);
     qemu_heap_print_metric("interaction_total_peak", interaction_total_peak);
-    printf("HEAP_EXIT\n");
+    qemu_log_write("HEAP_EXIT\n");
     qemu_exit(0);
 #else
-    printf("QEMU EGUI Performance Benchmark\n");
+    qemu_log_write("QEMU EGUI Performance Benchmark\n");
 
     /* Create UI and run benchmark */
     uicode_create_ui();
@@ -267,7 +264,7 @@ int main(void)
         egui_polling_work();
     }
 
-    printf("PERF_EXIT\n");
+    qemu_log_write("PERF_EXIT\n");
     qemu_exit(0);
 #endif
 

@@ -68,6 +68,12 @@ extern "C" {
 // shared row-cache backing store without changing hot-path behavior.
 #define EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS 1
 
+// HelloPerformance's recorded runtime/perf flow no longer reaches any
+// allocator-backed paths after the app-side heap trims above, so keeping the
+// QEMU platform malloc hooks disabled avoids linking newlib malloc state into
+// the benchmark image.
+#define EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE 0
+
 // HelloPerformance's external RLE scenes only stream 120px/240px RGB565 rows,
 // so a 768B external read window still covers the active per-row decode chunks
 // while trimming static RAM versus the 1024B default.

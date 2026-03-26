@@ -1,11 +1,14 @@
 #include <string.h>
-#include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdlib.h>
 
 #include "egui.h"
 #include "egui_lcd.h"
+
+#ifndef EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE
+#define EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE 1
+#endif
 
 /**
  * QEMU ARM port: display with optional SPI timing simulation + semihosting I/O + SysTick timing.
@@ -123,6 +126,23 @@ static inline void semihosting_exit(int code)
     (void)code;
     register uint32_t r0 __asm__("r0") = 0x18;    /* SYS_EXIT */
     register uint32_t r1 __asm__("r1") = 0x20026; /* ADP_Stopped_ApplicationExit */
+    __asm__ volatile("bkpt 0xAB" : : "r"(r0), "r"(r1) : "memory");
+}
+
+static int semihosting_call(uint32_t operation, void *arguments)
+{
+    register uint32_t r0 __asm__("r0") = operation;
+    register void *r1 __asm__("r1") = arguments;
+
+    __asm__ volatile("bkpt 0xAB" : "+r"(r0) : "r"(r1) : "memory");
+    return (int)r0;
+}
+
+static void semihosting_write0(const char *str)
+{
+    register uint32_t r0 __asm__("r0") = 0x04U; /* SYS_WRITE0 */
+    register const char *r1 __asm__("r1") = str;
+
     __asm__ volatile("bkpt 0xAB" : : "r"(r0), "r"(r1) : "memory");
 }
 
@@ -267,47 +287,325 @@ static void qemu_lcd_setup(egui_hal_lcd_driver_t *storage)
  * Platform driver
  * ============================================================================ */
 
+static void qemu_append_char(char **cursor, int *remaining, char c)
+{
+    if (*remaining > 1)
+    {
+        **cursor = c;
+        (*cursor)++;
+        (*remaining)--;
+    }
+}
+
+static void qemu_append_string(char **cursor, int *remaining, const char *str)
+{
+    const char *text = str == NULL ? "(null)" : str;
+
+    while (*text != '\0')
+    {
+        qemu_append_char(cursor, remaining, *text++);
+    }
+}
+
+static void qemu_append_uint(char **cursor, int *remaining, uint64_t value, uint32_t base, int min_width, char pad_char, bool uppercase)
+{
+    char temp[32];
+    int digit_count = 0;
+    const char *digits = uppercase ? "0123456789ABCDEF" : "0123456789abcdef";
+
+    if (base < 2U || base > 16U)
+    {
+        return;
+    }
+
+    do
+    {
+        temp[digit_count++] = digits[value % base];
+        value /= base;
+    } while (value > 0U && digit_count < (int)sizeof(temp));
+
+    while (digit_count < min_width)
+    {
+        qemu_append_char(cursor, remaining, pad_char);
+        min_width--;
+    }
+
+    while (digit_count > 0)
+    {
+        qemu_append_char(cursor, remaining, temp[--digit_count]);
+    }
+}
+
+static void qemu_append_int(char **cursor, int *remaining, int64_t value, int min_width, char pad_char)
+{
+    uint64_t magnitude;
+
+    if (value < 0)
+    {
+        qemu_append_char(cursor, remaining, '-');
+        magnitude = (uint64_t)(-(value + 1)) + 1U;
+    }
+    else
+    {
+        magnitude = (uint64_t)value;
+    }
+
+    qemu_append_uint(cursor, remaining, magnitude, 10U, min_width, pad_char, false);
+}
+
+static void qemu_format_to_buffer(char *buffer, int buffer_size, const char *format, va_list args)
+{
+    char *cursor = buffer;
+    int remaining = buffer_size;
+
+    if (buffer_size <= 0)
+    {
+        return;
+    }
+
+    while (*format != '\0')
+    {
+        int min_width = 0;
+        char pad_char = ' ';
+        int long_count = 0;
+        char specifier;
+
+        if (*format != '%')
+        {
+            qemu_append_char(&cursor, &remaining, *format++);
+            continue;
+        }
+
+        format++;
+        if (*format == '%')
+        {
+            qemu_append_char(&cursor, &remaining, *format++);
+            continue;
+        }
+
+        if (*format == '0')
+        {
+            pad_char = '0';
+            format++;
+        }
+
+        while (*format >= '0' && *format <= '9')
+        {
+            min_width = min_width * 10 + (*format - '0');
+            format++;
+        }
+
+        while (*format == 'l')
+        {
+            long_count++;
+            format++;
+        }
+
+        specifier = *format;
+        if (specifier == '\0')
+        {
+            break;
+        }
+        format++;
+
+        switch (specifier)
+        {
+        case 'c':
+            qemu_append_char(&cursor, &remaining, (char)va_arg(args, int));
+            break;
+
+        case 's':
+            qemu_append_string(&cursor, &remaining, va_arg(args, const char *));
+            break;
+
+        case 'd':
+        case 'i':
+            if (long_count >= 2)
+            {
+                qemu_append_int(&cursor, &remaining, va_arg(args, long long), min_width, pad_char);
+            }
+            else if (long_count == 1)
+            {
+                qemu_append_int(&cursor, &remaining, va_arg(args, long), min_width, pad_char);
+            }
+            else
+            {
+                qemu_append_int(&cursor, &remaining, va_arg(args, int), min_width, pad_char);
+            }
+            break;
+
+        case 'u':
+            if (long_count >= 2)
+            {
+                qemu_append_uint(&cursor, &remaining, va_arg(args, unsigned long long), 10U, min_width, pad_char, false);
+            }
+            else if (long_count == 1)
+            {
+                qemu_append_uint(&cursor, &remaining, va_arg(args, unsigned long), 10U, min_width, pad_char, false);
+            }
+            else
+            {
+                qemu_append_uint(&cursor, &remaining, va_arg(args, unsigned int), 10U, min_width, pad_char, false);
+            }
+            break;
+
+        case 'x':
+        case 'X':
+            if (long_count >= 2)
+            {
+                qemu_append_uint(&cursor, &remaining, va_arg(args, unsigned long long), 16U, min_width, pad_char, specifier == 'X');
+            }
+            else if (long_count == 1)
+            {
+                qemu_append_uint(&cursor, &remaining, va_arg(args, unsigned long), 16U, min_width, pad_char, specifier == 'X');
+            }
+            else
+            {
+                qemu_append_uint(&cursor, &remaining, va_arg(args, unsigned int), 16U, min_width, pad_char, specifier == 'X');
+            }
+            break;
+
+        case 'p':
+            qemu_append_string(&cursor, &remaining, "0x");
+            qemu_append_uint(&cursor, &remaining, (uintptr_t)va_arg(args, void *), 16U, min_width > 0 ? min_width : 1, '0', false);
+            break;
+
+        default:
+            qemu_append_char(&cursor, &remaining, '%');
+            qemu_append_char(&cursor, &remaining, specifier);
+            break;
+        }
+    }
+
+    *cursor = '\0';
+}
+
+void qemu_log_write(const char *str)
+{
+    if (str != NULL)
+    {
+        semihosting_write0(str);
+    }
+}
+
+void qemu_log_printf(const char *format, ...)
+{
+    char buffer[384];
+    va_list args;
+
+    va_start(args, format);
+    qemu_format_to_buffer(buffer, (int)sizeof(buffer), format, args);
+    va_end(args);
+    qemu_log_write(buffer);
+}
+
 /* ============================================================================
  * External resource loading via semihosting file I/O
  * ============================================================================ */
 
 #if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
 
-static FILE *s_qemu_resource_file = NULL;
+enum
+{
+    QEMU_SEMIHOSTING_SYS_OPEN = 0x01U,
+    QEMU_SEMIHOSTING_SYS_CLOSE = 0x02U,
+    QEMU_SEMIHOSTING_SYS_READ = 0x06U,
+    QEMU_SEMIHOSTING_SYS_SEEK = 0x0AU,
+    QEMU_SEMIHOSTING_MODE_READ_BINARY = 0x01U,
+};
+
+typedef struct qemu_semihosting_open_args
+{
+    const char *path;
+    uint32_t mode;
+    uint32_t path_length;
+} qemu_semihosting_open_args_t;
+
+typedef struct qemu_semihosting_read_args
+{
+    int handle;
+    void *buffer;
+    uint32_t size;
+} qemu_semihosting_read_args_t;
+
+typedef struct qemu_semihosting_seek_args
+{
+    int handle;
+    uint32_t offset;
+} qemu_semihosting_seek_args_t;
+
+static int s_qemu_resource_handle = -1;
 static uint32_t s_qemu_resource_file_offset = 0;
 static uint8_t s_qemu_resource_file_offset_valid = 0;
 
+static int qemu_semihosting_open(const char *path, uint32_t mode)
+{
+    qemu_semihosting_open_args_t args = {
+            .path = path,
+            .mode = mode,
+            .path_length = (uint32_t)strlen(path),
+    };
+
+    return semihosting_call(QEMU_SEMIHOSTING_SYS_OPEN, &args);
+}
+
+static int qemu_semihosting_close(int handle)
+{
+    return semihosting_call(QEMU_SEMIHOSTING_SYS_CLOSE, &handle);
+}
+
+static int qemu_semihosting_read(int handle, void *buffer, uint32_t size)
+{
+    qemu_semihosting_read_args_t args = {
+            .handle = handle,
+            .buffer = buffer,
+            .size = size,
+    };
+
+    return semihosting_call(QEMU_SEMIHOSTING_SYS_READ, &args);
+}
+
+static int qemu_semihosting_seek(int handle, uint32_t offset)
+{
+    qemu_semihosting_seek_args_t args = {
+            .handle = handle,
+            .offset = offset,
+    };
+
+    return semihosting_call(QEMU_SEMIHOSTING_SYS_SEEK, &args);
+}
+
 static void qemu_close_external_resource_file(void)
 {
-    if (s_qemu_resource_file != NULL)
+    if (s_qemu_resource_handle >= 0)
     {
-        fclose(s_qemu_resource_file);
-        s_qemu_resource_file = NULL;
+        qemu_semihosting_close(s_qemu_resource_handle);
+        s_qemu_resource_handle = -1;
     }
     s_qemu_resource_file_offset = 0;
     s_qemu_resource_file_offset_valid = 0;
 }
 
-static FILE *qemu_get_external_resource_file(void)
+static int qemu_get_external_resource_handle(void)
 {
-    if (s_qemu_resource_file != NULL)
+    if (s_qemu_resource_handle >= 0)
     {
-        return s_qemu_resource_file;
+        return s_qemu_resource_handle;
     }
 
     /* Try CWD first, then output/ subdirectory */
-    s_qemu_resource_file = fopen("app_egui_resource_merge.bin", "rb");
-    if (s_qemu_resource_file == NULL)
+    s_qemu_resource_handle = qemu_semihosting_open("app_egui_resource_merge.bin", QEMU_SEMIHOSTING_MODE_READ_BINARY);
+    if (s_qemu_resource_handle < 0)
     {
-        s_qemu_resource_file = fopen("output/app_egui_resource_merge.bin", "rb");
+        s_qemu_resource_handle = qemu_semihosting_open("output/app_egui_resource_merge.bin", QEMU_SEMIHOSTING_MODE_READ_BINARY);
     }
-    if (s_qemu_resource_file == NULL)
+    if (s_qemu_resource_handle < 0)
     {
-        printf("QEMU: Error opening app_egui_resource_merge.bin\n");
-        return NULL;
+        qemu_log_write("QEMU: Error opening app_egui_resource_merge.bin\n");
+        return -1;
     }
 
-    return s_qemu_resource_file;
+    return s_qemu_resource_handle;
 }
 
 static void qemu_load_external_resource(void *dest, uint32_t res_id, uint32_t start_offset, uint32_t size)
@@ -315,26 +613,25 @@ static void qemu_load_external_resource(void *dest, uint32_t res_id, uint32_t st
     extern const uint32_t egui_ext_res_id_map[];
     uint32_t res_offset = egui_ext_res_id_map[res_id];
     uint32_t res_real_offset = res_offset + start_offset;
-    FILE *file = qemu_get_external_resource_file();
-    if (file == NULL)
+    int handle = qemu_get_external_resource_handle();
+    if (handle < 0)
     {
         return;
     }
 
     if (!s_qemu_resource_file_offset_valid || s_qemu_resource_file_offset != res_real_offset)
     {
-        if (fseek(file, res_real_offset, SEEK_SET) != 0)
+        if (qemu_semihosting_seek(handle, res_real_offset) != 0)
         {
-            printf("QEMU: Error seeking in resource file\n");
+            qemu_log_write("QEMU: Error seeking in resource file\n");
             qemu_close_external_resource_file();
             return;
         }
     }
 
-    int read_size = fread(dest, 1, size, file);
-    if (read_size != (int)size)
+    if (qemu_semihosting_read(handle, dest, size) != 0)
     {
-        printf("QEMU: Error reading resource, read_size: %d, size: %d\n", read_size, (int)size);
+        qemu_log_printf("QEMU: Error reading resource, size: %d\n", (int)size);
         qemu_close_external_resource_file();
         return;
     }
@@ -347,18 +644,21 @@ static void qemu_load_external_resource(void *dest, uint32_t res_id, uint32_t st
 
 static void qemu_vlog(const char *format, va_list args)
 {
-    vprintf(format, args);
+    char buffer[384];
+
+    qemu_format_to_buffer(buffer, (int)sizeof(buffer), format, args);
+    qemu_log_write(buffer);
 }
 
 static void qemu_assert_handler(const char *file, int line)
 {
-    printf("ASSERT: %s:%d\n", file, line);
+    qemu_log_printf("ASSERT: %s:%d\n", file, line);
     qemu_exit(1);
 }
 
 static void qemu_vsprintf(char *str, const char *format, va_list args)
 {
-    vsprintf(str, format, args);
+    qemu_format_to_buffer(str, 0x7fffffff, format, args);
 }
 
 static uint32_t qemu_get_tick_ms(void)
@@ -392,6 +692,7 @@ static uint32_t s_qemu_heap_measure_peak_bytes = 0U;
 static uint32_t s_qemu_heap_measure_base_alloc_count = 0U;
 static uint32_t s_qemu_heap_measure_base_free_count = 0U;
 
+#if EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE
 static void qemu_heap_refresh_measure_peak(void)
 {
     uint32_t delta = 0U;
@@ -411,7 +712,6 @@ static void qemu_heap_refresh_measure_peak(void)
         s_qemu_heap_measure_peak_bytes = delta;
     }
 }
-
 static void *qemu_malloc(int size)
 {
     qemu_heap_block_header_t *block;
@@ -457,6 +757,7 @@ static void qemu_free(void *ptr)
     qemu_heap_refresh_measure_peak();
     free(block);
 }
+#endif
 
 void qemu_heap_reset_stats(void)
 {
@@ -504,8 +805,13 @@ static void qemu_interrupt_enable(egui_base_t level)
 }
 
 static const egui_platform_ops_t qemu_platform_ops = {
+#if EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE
         .malloc = qemu_malloc,
         .free = qemu_free,
+#else
+        .malloc = NULL,
+        .free = NULL,
+#endif
         .vlog = qemu_vlog,
         .assert_handler = qemu_assert_handler,
         .vsprintf = qemu_vsprintf,
@@ -557,7 +863,7 @@ void egui_port_init(void)
     uint32_t cal_mid = qemu_get_tick_us();
     qemu_delay(10);
     uint32_t cal_end = qemu_get_tick_us();
-    printf("TIMING_CAL: loop=%luus delay10ms=%luus\n", (unsigned long)(cal_mid - cal_start), (unsigned long)(cal_end - cal_mid));
+    qemu_log_printf("TIMING_CAL: loop=%luus delay10ms=%luus\n", (unsigned long)(cal_mid - cal_start), (unsigned long)(cal_end - cal_mid));
 #endif
     egui_hal_lcd_config_t lcd_config = {
             .width = EGUI_CONFIG_SCEEN_WIDTH,
