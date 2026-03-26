@@ -4,7 +4,6 @@
 #include <stdlib.h>
 
 #include "egui.h"
-#include "egui_lcd.h"
 
 #ifndef EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE
 #define EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE 1
@@ -210,12 +209,36 @@ static void spi_sim_poll(void)
 }
 
 /* ============================================================================
- * Display HAL driver
+ * Display driver
  * ============================================================================ */
 
-static egui_hal_lcd_driver_t s_qemu_lcd_driver;
+static void port_display_draw_area(int16_t x, int16_t y, int16_t w, int16_t h, const egui_color_int_t *data)
+{
+    EGUI_UNUSED(x);
+    EGUI_UNUSED(y);
+    EGUI_UNUSED(w);
+    EGUI_UNUSED(h);
+    EGUI_UNUSED(data);
 
-static egui_display_driver_ops_t port_display_ops = {0};
+#if QEMU_SPI_SPEED_MHZ > 0
+    spi_sim_start_async((uint32_t)w * h * sizeof(egui_color_int_t));
+#endif
+}
+
+#if QEMU_SPI_SPEED_MHZ > 0
+static void port_display_wait_draw_complete(void)
+{
+    while (spi_sim_busy)
+        ;
+}
+#endif
+
+static const egui_display_driver_ops_t port_display_ops = {
+        .draw_area = port_display_draw_area,
+#if QEMU_SPI_SPEED_MHZ > 0
+        .wait_draw_complete = port_display_wait_draw_complete,
+#endif
+};
 
 static egui_display_driver_t port_display_driver = {
         .ops = &port_display_ops,
@@ -225,63 +248,6 @@ static egui_display_driver_t port_display_driver = {
         .brightness = 255,
         .power_on = 1,
 };
-
-static int qemu_lcd_init(egui_hal_lcd_driver_t *self, const egui_hal_lcd_config_t *config)
-{
-    memcpy(&self->config, config, sizeof(*config));
-    return 0;
-}
-
-static int qemu_lcd_reset(egui_hal_lcd_driver_t *self)
-{
-    (void)self;
-    return 0; /* No hardware to reset in QEMU */
-}
-
-static void qemu_lcd_del(egui_hal_lcd_driver_t *self)
-{
-    memset(self, 0, sizeof(egui_hal_lcd_driver_t));
-}
-
-static void qemu_lcd_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y, int16_t w, int16_t h, const void *data, uint32_t len)
-{
-    EGUI_UNUSED(self);
-    EGUI_UNUSED(x);
-    EGUI_UNUSED(y);
-    EGUI_UNUSED(w);
-    EGUI_UNUSED(h);
-    EGUI_UNUSED(data);
-
-#if QEMU_SPI_SPEED_MHZ > 0
-    spi_sim_start_async(len);
-#else
-    EGUI_UNUSED(len);
-#endif
-}
-
-#if QEMU_SPI_SPEED_MHZ > 0
-static void qemu_lcd_wait_dma_complete(void)
-{
-    while (spi_sim_busy)
-        ;
-}
-
-#endif
-static void qemu_lcd_setup(egui_hal_lcd_driver_t *storage)
-{
-    memset(storage, 0, sizeof(*storage));
-    storage->name = "QEMU_LCD";
-    storage->reset = qemu_lcd_reset;
-    storage->init = qemu_lcd_init;
-    storage->del = qemu_lcd_del;
-    storage->draw_area = qemu_lcd_draw_area;
-    storage->mirror = NULL;
-    storage->swap_xy = NULL;
-    storage->set_power = NULL;
-    storage->set_invert = NULL;
-    storage->io = NULL;
-    storage->set_rst = NULL;
-}
 
 /* ============================================================================
  * Platform driver
@@ -843,13 +809,6 @@ static egui_platform_t qemu_platform = {
  * Port initialization
  * ============================================================================ */
 
-#if QEMU_SPI_SPEED_MHZ > 0
-static void port_display_wait_draw_complete(void)
-{
-    qemu_lcd_wait_dma_complete();
-}
-#endif
-
 void egui_port_init(void)
 {
 #if QEMU_SPI_SPEED_MHZ > 0
@@ -865,26 +824,6 @@ void egui_port_init(void)
     uint32_t cal_end = qemu_get_tick_us();
     qemu_log_printf("TIMING_CAL: loop=%luus delay10ms=%luus\n", (unsigned long)(cal_mid - cal_start), (unsigned long)(cal_end - cal_mid));
 #endif
-    egui_hal_lcd_config_t lcd_config = {
-            .width = EGUI_CONFIG_SCEEN_WIDTH,
-            .height = EGUI_CONFIG_SCEEN_HEIGHT,
-            .color_depth = EGUI_CONFIG_COLOR_DEPTH,
-            .color_swap = 0,
-            .x_offset = 0,
-            .y_offset = 0,
-            .invert_color = 0,
-            .mirror_x = 0,
-            .mirror_y = 0,
-            .custom_init = NULL,
-    };
-
-    qemu_lcd_setup(&s_qemu_lcd_driver);
-    egui_hal_lcd_register(&port_display_driver, &s_qemu_lcd_driver, &lcd_config);
-
-#if QEMU_SPI_SPEED_MHZ > 0
-    /* Patch in SPI simulation wait callback */
-    port_display_ops.wait_draw_complete = port_display_wait_draw_complete;
-#endif
-
+    egui_display_driver_register(&port_display_driver);
     egui_platform_register(&qemu_platform);
 }
