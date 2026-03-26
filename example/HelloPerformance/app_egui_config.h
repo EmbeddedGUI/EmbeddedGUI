@@ -106,6 +106,13 @@ extern "C" {
 #define EGUI_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS 32
 #endif
 
+// HelloPerformance only keeps one active perf font/string prefix hot at a
+// time, so a single prefix-cache slot preserves reuse while trimming another
+// cache entry from static RAM.
+#ifndef EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS
+#define EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 1
+#endif
+
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }
