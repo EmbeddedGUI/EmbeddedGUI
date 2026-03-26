@@ -375,6 +375,34 @@ extern "C" {
 #endif
 
 /**
+ * External raw-image row cache data budget in bytes.
+ * Shared by the standard external image draw/resize path and, optionally,
+ * by the external image transform path.
+ */
+#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES
+#define EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES 2048
+#endif
+
+/**
+ * External raw-image row cache alpha budget in bytes.
+ * Shared by the standard external image draw/resize path and, optionally,
+ * by the external image transform path.
+ */
+#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES
+#define EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES 1024
+#endif
+
+/**
+ * Reuse one backing store for standard external-image row caches and
+ * external-transform row caches.
+ * Saves static RAM, but alternating both paths within one frame may reduce
+ * cache hit rate because ownership switches invalidate the shared storage.
+ */
+#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+#define EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS 0
+#endif
+
+/**
  * Slot count for the round-rect image fast cache.
  * One slot is enough for the common single-mask path and saves RAM.
  */

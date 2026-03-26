@@ -71,12 +71,39 @@ typedef void(egui_image_std_blend_repeat2_row_func)(egui_color_int_t *dst_row, c
 void egui_image_std_load_data_resource(void *dest, egui_image_std_info_t *image, uint32_t start_offset, uint32_t size);
 void egui_image_std_load_alpha_resource(void *dest, egui_image_std_info_t *image, uint32_t start_offset, uint32_t size);
 
-#ifndef EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_MAX_BYTES
-#define EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_MAX_BYTES 2048
-#endif
+#define EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_MAX_BYTES EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES
+#define EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_MAX_BYTES EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES
 
-#ifndef EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_MAX_BYTES
-#define EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_MAX_BYTES 1024
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+static uint16_t g_egui_image_std_shared_external_data_cache[(EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_MAX_BYTES + sizeof(uint16_t) - 1) / sizeof(uint16_t)];
+static uint8_t g_egui_image_std_shared_external_alpha_cache[EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_MAX_BYTES];
+static uint8_t g_egui_image_std_shared_external_cache_owner = EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_NONE;
+static uint32_t g_egui_image_std_shared_external_cache_generation = 1U;
+
+uint32_t egui_image_std_claim_shared_external_row_cache(egui_image_external_row_cache_owner_t owner)
+{
+    if ((uint8_t)owner != g_egui_image_std_shared_external_cache_owner)
+    {
+        g_egui_image_std_shared_external_cache_owner = (uint8_t)owner;
+        g_egui_image_std_shared_external_cache_generation++;
+        if (g_egui_image_std_shared_external_cache_generation == 0U)
+        {
+            g_egui_image_std_shared_external_cache_generation = 1U;
+        }
+    }
+
+    return g_egui_image_std_shared_external_cache_generation;
+}
+
+uint16_t *egui_image_std_get_shared_external_data_cache(void)
+{
+    return g_egui_image_std_shared_external_data_cache;
+}
+
+uint8_t *egui_image_std_get_shared_external_alpha_cache(void)
+{
+    return g_egui_image_std_shared_external_alpha_cache;
+}
 #endif
 
 typedef struct
@@ -92,9 +119,53 @@ typedef struct
     egui_dim_t chunk_row_count;
     egui_dim_t rows_per_chunk;
     egui_dim_t src_x_start;
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+    uint32_t shared_generation;
+#else
     uint16_t data_buf[(EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_MAX_BYTES + sizeof(uint16_t) - 1) / sizeof(uint16_t)];
     uint8_t alpha_buf[EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_MAX_BYTES];
+#endif
 } egui_image_std_external_alpha_row_persistent_cache_t;
+
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+static void egui_image_std_sync_external_row_cache_generation(uint32_t *shared_generation, egui_dim_t *chunk_row_start, egui_dim_t *chunk_row_count)
+{
+    uint32_t generation = egui_image_std_claim_shared_external_row_cache(EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_STD);
+
+    if (shared_generation != NULL && *shared_generation != generation)
+    {
+        if (chunk_row_start != NULL)
+        {
+            *chunk_row_start = -1;
+        }
+        if (chunk_row_count != NULL)
+        {
+            *chunk_row_count = 0;
+        }
+        *shared_generation = generation;
+    }
+}
+#endif
+
+__EGUI_STATIC_INLINE__ uint16_t *egui_image_std_get_external_alpha_row_persistent_cache_data_buf(egui_image_std_external_alpha_row_persistent_cache_t *cache)
+{
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+    EGUI_UNUSED(cache);
+    return egui_image_std_get_shared_external_data_cache();
+#else
+    return cache->data_buf;
+#endif
+}
+
+__EGUI_STATIC_INLINE__ uint8_t *egui_image_std_get_external_alpha_row_persistent_cache_alpha_buf(egui_image_std_external_alpha_row_persistent_cache_t *cache)
+{
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+    EGUI_UNUSED(cache);
+    return egui_image_std_get_shared_external_alpha_cache();
+#else
+    return cache->alpha_buf;
+#endif
+}
 
 static int egui_image_std_prepare_external_alpha_row_persistent_cache_range_rows(egui_image_std_external_alpha_row_persistent_cache_t *cache,
                                                                                  const egui_image_std_info_t *image, uint32_t data_source_row_size,
@@ -111,6 +182,10 @@ static int egui_image_std_prepare_external_alpha_row_persistent_cache_range_rows
     {
         return 0;
     }
+
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+    egui_image_std_sync_external_row_cache_generation(&cache->shared_generation, &cache->chunk_row_start, &cache->chunk_row_count);
+#endif
 
     EGUI_UNUSED(min_rows_per_chunk);
 
@@ -160,11 +235,16 @@ static int egui_image_std_prepare_external_alpha_row_persistent_cache_min_rows(e
 static int egui_image_std_load_external_alpha_row_persistent_cache(egui_image_std_external_alpha_row_persistent_cache_t *cache, egui_dim_t row)
 {
     egui_dim_t rows_to_load;
+    uint16_t *data_buf;
+    uint8_t *alpha_buf;
 
     if (cache == NULL || cache->image == NULL || row < 0 || row >= cache->image->height)
     {
         return 0;
     }
+
+    data_buf = egui_image_std_get_external_alpha_row_persistent_cache_data_buf(cache);
+    alpha_buf = egui_image_std_get_external_alpha_row_persistent_cache_alpha_buf(cache);
 
     if (row >= cache->chunk_row_start && row < (cache->chunk_row_start + cache->chunk_row_count))
     {
@@ -179,28 +259,28 @@ static int egui_image_std_load_external_alpha_row_persistent_cache(egui_image_st
 
     if (cache->data_source_row_size == cache->data_row_size && cache->data_row_start_offset == 0)
     {
-        egui_image_std_load_data_resource(cache->data_buf, (egui_image_std_info_t *)cache->image, (uint32_t)row * cache->data_source_row_size,
+        egui_image_std_load_data_resource(data_buf, (egui_image_std_info_t *)cache->image, (uint32_t)row * cache->data_source_row_size,
                                           (uint32_t)rows_to_load * cache->data_row_size);
     }
     else
     {
         for (egui_dim_t i = 0; i < rows_to_load; i++)
         {
-            egui_image_std_load_data_resource((uint8_t *)cache->data_buf + (uint32_t)i * cache->data_row_size, (egui_image_std_info_t *)cache->image,
+            egui_image_std_load_data_resource((uint8_t *)data_buf + (uint32_t)i * cache->data_row_size, (egui_image_std_info_t *)cache->image,
                                               (uint32_t)(row + i) * cache->data_source_row_size + cache->data_row_start_offset, cache->data_row_size);
         }
     }
 
     if (cache->alpha_source_row_size == cache->alpha_row_size && cache->alpha_row_start_offset == 0)
     {
-        egui_image_std_load_alpha_resource(cache->alpha_buf, (egui_image_std_info_t *)cache->image, (uint32_t)row * cache->alpha_source_row_size,
+        egui_image_std_load_alpha_resource(alpha_buf, (egui_image_std_info_t *)cache->image, (uint32_t)row * cache->alpha_source_row_size,
                                            (uint32_t)rows_to_load * cache->alpha_row_size);
     }
     else
     {
         for (egui_dim_t i = 0; i < rows_to_load; i++)
         {
-            egui_image_std_load_alpha_resource(cache->alpha_buf + (uint32_t)i * cache->alpha_row_size, (egui_image_std_info_t *)cache->image,
+            egui_image_std_load_alpha_resource(alpha_buf + (uint32_t)i * cache->alpha_row_size, (egui_image_std_info_t *)cache->image,
                                                (uint32_t)(row + i) * cache->alpha_source_row_size + cache->alpha_row_start_offset, cache->alpha_row_size);
         }
     }
@@ -213,13 +293,16 @@ static int egui_image_std_load_external_alpha_row_persistent_cache(egui_image_st
 __EGUI_STATIC_INLINE__ const uint16_t *egui_image_std_get_external_alpha_row_persistent_data(const egui_image_std_external_alpha_row_persistent_cache_t *cache,
                                                                                              egui_dim_t row)
 {
-    return (const uint16_t *)((const uint8_t *)cache->data_buf + (uint32_t)(row - cache->chunk_row_start) * cache->data_row_size);
+    return (const uint16_t *)((const uint8_t *)egui_image_std_get_external_alpha_row_persistent_cache_data_buf(
+                                      (egui_image_std_external_alpha_row_persistent_cache_t *)cache) +
+                              (uint32_t)(row - cache->chunk_row_start) * cache->data_row_size);
 }
 
 __EGUI_STATIC_INLINE__ const uint8_t *egui_image_std_get_external_alpha_row_persistent_alpha(const egui_image_std_external_alpha_row_persistent_cache_t *cache,
                                                                                              egui_dim_t row)
 {
-    return cache->alpha_buf + (uint32_t)(row - cache->chunk_row_start) * cache->alpha_row_size;
+    return egui_image_std_get_external_alpha_row_persistent_cache_alpha_buf((egui_image_std_external_alpha_row_persistent_cache_t *)cache) +
+           (uint32_t)(row - cache->chunk_row_start) * cache->alpha_row_size;
 }
 
 typedef struct
@@ -231,7 +314,11 @@ typedef struct
     egui_dim_t chunk_row_start;
     egui_dim_t chunk_row_count;
     egui_dim_t rows_per_chunk;
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+    uint32_t shared_generation;
+#else
     uint16_t data_buf[(EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_MAX_BYTES + sizeof(uint16_t) - 1) / sizeof(uint16_t)];
+#endif
 } egui_image_std_external_data_row_persistent_cache_t;
 
 typedef union
@@ -254,7 +341,22 @@ __EGUI_STATIC_INLINE__ egui_image_std_external_data_row_persistent_cache_t *egui
 
 __EGUI_STATIC_INLINE__ uint8_t *egui_image_std_get_external_alpha_probe_buf(void)
 {
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+    egui_image_std_claim_shared_external_row_cache(EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_STD);
+    return egui_image_std_get_shared_external_alpha_cache();
+#else
     return g_egui_image_std_external_row_persistent_cache_storage.alpha.alpha_buf;
+#endif
+}
+
+__EGUI_STATIC_INLINE__ uint16_t *egui_image_std_get_external_data_row_persistent_cache_data_buf(egui_image_std_external_data_row_persistent_cache_t *cache)
+{
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+    EGUI_UNUSED(cache);
+    return egui_image_std_get_shared_external_data_cache();
+#else
+    return cache->data_buf;
+#endif
 }
 
 static int egui_image_std_prepare_external_data_row_persistent_cache_range_rows(egui_image_std_external_data_row_persistent_cache_t *cache,
@@ -269,6 +371,10 @@ static int egui_image_std_prepare_external_data_row_persistent_cache_range_rows(
     {
         return 0;
     }
+
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+    egui_image_std_sync_external_row_cache_generation(&cache->shared_generation, &cache->chunk_row_start, &cache->chunk_row_count);
+#endif
 
     EGUI_UNUSED(min_rows_per_chunk);
 
@@ -309,11 +415,14 @@ static int egui_image_std_prepare_external_data_row_persistent_cache_min_rows(eg
 static int egui_image_std_load_external_data_row_persistent_cache(egui_image_std_external_data_row_persistent_cache_t *cache, egui_dim_t row)
 {
     egui_dim_t rows_to_load;
+    uint16_t *data_buf;
 
     if (cache == NULL || cache->image == NULL || row < 0 || row >= cache->image->height)
     {
         return 0;
     }
+
+    data_buf = egui_image_std_get_external_data_row_persistent_cache_data_buf(cache);
 
     if (row >= cache->chunk_row_start && row < (cache->chunk_row_start + cache->chunk_row_count))
     {
@@ -328,14 +437,14 @@ static int egui_image_std_load_external_data_row_persistent_cache(egui_image_std
 
     if (cache->data_source_row_size == cache->data_row_size && cache->data_row_start_offset == 0)
     {
-        egui_image_std_load_data_resource(cache->data_buf, (egui_image_std_info_t *)cache->image, (uint32_t)row * cache->data_source_row_size,
+        egui_image_std_load_data_resource(data_buf, (egui_image_std_info_t *)cache->image, (uint32_t)row * cache->data_source_row_size,
                                           (uint32_t)rows_to_load * cache->data_row_size);
     }
     else
     {
         for (egui_dim_t i = 0; i < rows_to_load; i++)
         {
-            egui_image_std_load_data_resource((uint8_t *)cache->data_buf + (uint32_t)i * cache->data_row_size, (egui_image_std_info_t *)cache->image,
+            egui_image_std_load_data_resource((uint8_t *)data_buf + (uint32_t)i * cache->data_row_size, (egui_image_std_info_t *)cache->image,
                                               (uint32_t)(row + i) * cache->data_source_row_size + cache->data_row_start_offset, cache->data_row_size);
         }
     }
@@ -348,7 +457,9 @@ static int egui_image_std_load_external_data_row_persistent_cache(egui_image_std
 __EGUI_STATIC_INLINE__ const uint16_t *egui_image_std_get_external_data_row_persistent_data(const egui_image_std_external_data_row_persistent_cache_t *cache,
                                                                                             egui_dim_t row)
 {
-    return (const uint16_t *)((const uint8_t *)cache->data_buf + (uint32_t)(row - cache->chunk_row_start) * cache->data_row_size);
+    return (const uint16_t *)((const uint8_t *)egui_image_std_get_external_data_row_persistent_cache_data_buf(
+                                      (egui_image_std_external_data_row_persistent_cache_t *)cache) +
+                              (uint32_t)(row - cache->chunk_row_start) * cache->data_row_size);
 }
 
 __EGUI_STATIC_INLINE__ uint32_t egui_image_std_alpha_buf_size(egui_dim_t width, egui_dim_t height, uint8_t alpha_type)

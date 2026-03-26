@@ -54,6 +54,11 @@ extern "C" {
 // from ~824B to ~412B without changing current QEMU QOI timings.
 #define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 1
 
+// HelloPerformance exercises external raw-image draw/resize and external
+// raw-image transform in separate benchmark scenes, so they can reuse one
+// shared row-cache backing store without changing hot-path behavior.
+#define EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS 1
+
 // HelloPerformance text transform only uses short benchmark strings and the
 // 26pt perf font whose bitmap offsets stay well below 64KB, so the cached
 // text-transform layout can use 16-bit offsets/indices to trim heap.

@@ -530,13 +530,8 @@ static int image_transform_get_alpha_row_bytes(int16_t w, uint8_t alpha_type)
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-#ifndef EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES
-#define EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES 2048
-#endif
-
-#ifndef EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES
-#define EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES 1024
-#endif
+#define EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES
+#define EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES
 
 typedef struct
 {
@@ -553,7 +548,11 @@ typedef struct
     int32_t chunk_row_count;
     uint32_t row_bytes;
     uint32_t rows_per_chunk;
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+    uint32_t shared_generation;
+#else
     uint16_t pixels[(EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES + sizeof(uint16_t) - 1) / sizeof(uint16_t)];
+#endif
 } image_transform_external_data_row_slot_t;
 
 typedef struct
@@ -564,11 +563,55 @@ typedef struct
     int32_t chunk_row_count;
     uint32_t row_bytes;
     uint32_t rows_per_chunk;
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+    uint32_t shared_generation;
+#else
     uint8_t bytes[EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES];
+#endif
 } image_transform_external_alpha_row_slot_t;
 
 static image_transform_external_data_row_slot_t g_image_transform_external_data_row_cache = {0};
 static image_transform_external_alpha_row_slot_t g_image_transform_external_alpha_row_cache = {0};
+
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+static void image_transform_sync_external_row_cache_generation(uint32_t *shared_generation, int32_t *chunk_row_start, int32_t *chunk_row_count)
+{
+    uint32_t generation = egui_image_std_claim_shared_external_row_cache(EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_TRANSFORM);
+
+    if (shared_generation != NULL && *shared_generation != generation)
+    {
+        if (chunk_row_start != NULL)
+        {
+            *chunk_row_start = -1;
+        }
+        if (chunk_row_count != NULL)
+        {
+            *chunk_row_count = 0;
+        }
+        *shared_generation = generation;
+    }
+}
+#endif
+
+static uint16_t *image_transform_get_external_data_cache_pixels(image_transform_external_data_row_slot_t *cache)
+{
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+    EGUI_UNUSED(cache);
+    return egui_image_std_get_shared_external_data_cache();
+#else
+    return cache->pixels;
+#endif
+}
+
+static uint8_t *image_transform_get_external_alpha_cache_bytes(image_transform_external_alpha_row_slot_t *cache)
+{
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+    EGUI_UNUSED(cache);
+    return egui_image_std_get_shared_external_alpha_cache();
+#else
+    return cache->bytes;
+#endif
+}
 
 static void image_transform_release_external_row_cache(void)
 {
@@ -590,6 +633,15 @@ static int image_transform_prepare_external_source(const egui_image_std_info_t *
     {
         source->alpha_row_bytes = (uint32_t)image_transform_get_alpha_row_bytes(info->width, info->alpha_type);
     }
+
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+    image_transform_sync_external_row_cache_generation(&g_image_transform_external_data_row_cache.shared_generation,
+                                                       &g_image_transform_external_data_row_cache.chunk_row_start,
+                                                       &g_image_transform_external_data_row_cache.chunk_row_count);
+    image_transform_sync_external_row_cache_generation(&g_image_transform_external_alpha_row_cache.shared_generation,
+                                                       &g_image_transform_external_alpha_row_cache.chunk_row_start,
+                                                       &g_image_transform_external_alpha_row_cache.chunk_row_count);
+#endif
     return 1;
 }
 
@@ -597,12 +649,15 @@ static const uint16_t *image_transform_get_external_data_row(const image_transfo
 {
     image_transform_external_data_row_slot_t *cache = &g_image_transform_external_data_row_cache;
     int32_t rows_to_load;
+    uint16_t *pixels;
 
     if (source == NULL || source->info == NULL || row < 0 || row >= source->info->height ||
         source->data_row_bytes == 0 || source->data_row_bytes > EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES)
     {
         return NULL;
     }
+
+    pixels = image_transform_get_external_data_cache_pixels(cache);
 
     if (cache->row_bytes != source->data_row_bytes || cache->rows_per_chunk == 0)
     {
@@ -631,19 +686,20 @@ static const uint16_t *image_transform_get_external_data_row(const image_transfo
             rows_to_load = (int32_t)cache->rows_per_chunk;
         }
 
-        egui_api_load_external_resource(cache->pixels, (egui_uintptr_t)source->info->data_buf, (uint32_t)row * source->data_row_bytes,
+        egui_api_load_external_resource(pixels, (egui_uintptr_t)source->info->data_buf, (uint32_t)row * source->data_row_bytes,
                                         (uint32_t)rows_to_load * source->data_row_bytes);
         cache->chunk_row_start = row;
         cache->chunk_row_count = rows_to_load;
     }
 
-    return (const uint16_t *)((const uint8_t *)cache->pixels + (uint32_t)(row - cache->chunk_row_start) * cache->row_bytes);
+    return (const uint16_t *)((const uint8_t *)pixels + (uint32_t)(row - cache->chunk_row_start) * cache->row_bytes);
 }
 
 static const uint8_t *image_transform_get_external_alpha_row(const image_transform_external_source_t *source, int32_t row)
 {
     image_transform_external_alpha_row_slot_t *cache = &g_image_transform_external_alpha_row_cache;
     int32_t rows_to_load;
+    uint8_t *bytes;
 
     if (source == NULL || source->info == NULL || source->info->alpha_buf == NULL ||
         row < 0 || row >= source->info->height || source->alpha_row_bytes == 0 ||
@@ -651,6 +707,8 @@ static const uint8_t *image_transform_get_external_alpha_row(const image_transfo
     {
         return NULL;
     }
+
+    bytes = image_transform_get_external_alpha_cache_bytes(cache);
 
     if (cache->row_bytes != source->alpha_row_bytes || cache->rows_per_chunk == 0)
     {
@@ -679,13 +737,13 @@ static const uint8_t *image_transform_get_external_alpha_row(const image_transfo
             rows_to_load = (int32_t)cache->rows_per_chunk;
         }
 
-        egui_api_load_external_resource(cache->bytes, (egui_uintptr_t)source->info->alpha_buf, (uint32_t)row * source->alpha_row_bytes,
+        egui_api_load_external_resource(bytes, (egui_uintptr_t)source->info->alpha_buf, (uint32_t)row * source->alpha_row_bytes,
                                         (uint32_t)rows_to_load * source->alpha_row_bytes);
         cache->chunk_row_start = row;
         cache->chunk_row_count = rows_to_load;
     }
 
-    return cache->bytes + (uint32_t)(row - cache->chunk_row_start) * cache->row_bytes;
+    return bytes + (uint32_t)(row - cache->chunk_row_start) * cache->row_bytes;
 }
 
 __EGUI_STATIC_INLINE__ uint16_t image_transform_read_rgb565_external(const image_transform_external_source_t *source, int32_t x, int32_t y)

@@ -76,6 +76,19 @@ int egui_image_std_rgb565_is_opaque_source(const egui_image_std_info_t *image);
 int egui_image_std_get_linear_src_x_segment(const egui_dim_t *src_x_map, egui_dim_t start, egui_dim_t end, egui_dim_t *src_x_start);
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 const egui_image_std_info_t *egui_image_std_prepare_external_persistent_cache(const egui_image_std_info_t *image);
+
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+typedef enum
+{
+    EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_NONE = 0,
+    EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_STD = 1,
+    EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_TRANSFORM = 2,
+} egui_image_external_row_cache_owner_t;
+
+uint32_t egui_image_std_claim_shared_external_row_cache(egui_image_external_row_cache_owner_t owner);
+uint16_t *egui_image_std_get_shared_external_data_cache(void);
+uint8_t *egui_image_std_get_shared_external_alpha_cache(void);
+#endif
 #endif
 void egui_image_std_release_frame_cache(void);
 
