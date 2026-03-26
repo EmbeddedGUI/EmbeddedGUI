@@ -85,9 +85,9 @@ extern "C" {
 #define EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE 0
 
 // HelloPerformance's external RLE scenes only stream 120px/240px RGB565 rows,
-// so a 768B external read window still covers the active per-row decode chunks
-// while trimming static RAM versus the 1024B default.
-#define EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 768
+// and a 512B external read window still preserves the current hot-path working
+// set while trimming more static RAM versus the 1024B default.
+#define EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 512
 
 // HelloPerformance's dominant external image paths use 240px/120px RGB565
 // rows (480B/240B) plus matching alpha rows (240B/120B). Keeping the shared
