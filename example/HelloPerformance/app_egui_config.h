@@ -40,7 +40,8 @@ extern "C" {
 
 // Enable row-band decode cache: first PFB tile decodes to cache,
 // horizontal tile neighbors blend from cache without re-decoding.
-// RAM cost: PFB_HEIGHT * SCREEN_WIDTH * 5 = 30*240*5 = 36KB
+// HelloPerformance uses RGB565-only compressed images, so actual RAM
+// cost here is about PFB_HEIGHT * SCREEN_WIDTH * (2 + 1) = 21.6KB.
 #define EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE 1
 
 // HelloPerformance compressed image resources are RGB565-only,

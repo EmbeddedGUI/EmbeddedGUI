@@ -4388,6 +4388,7 @@ static void rasterize_external_glyph4_to_alpha8_inside_overwrite(uint8_t *buf, i
 
 static int text_transform_ensure_visible_tile_capacity(int needed, uint8_t **buf, int *capacity)
 {
+    int alloc_size;
     uint8_t *new_buf;
 
     if (*buf != NULL && needed <= *capacity)
@@ -4395,7 +4396,20 @@ static int text_transform_ensure_visible_tile_capacity(int needed, uint8_t **buf
         return 0;
     }
 
-    new_buf = (uint8_t *)egui_malloc(needed);
+    alloc_size = needed;
+#if EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES > 0
+    if (alloc_size < EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES)
+    {
+        /*
+         * Text rotation often visits multiple tiles in ascending visible sizes
+         * within the same frame. Reserve the alpha8 fast-path ceiling upfront
+         * so we do not stack old+new transient buffers during repeated growth.
+         */
+        alloc_size = EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES;
+    }
+#endif
+
+    new_buf = (uint8_t *)egui_malloc(alloc_size);
     if (new_buf == NULL)
     {
         return -1;
@@ -4407,7 +4421,7 @@ static int text_transform_ensure_visible_tile_capacity(int needed, uint8_t **buf
     }
 
     *buf = new_buf;
-    *capacity = needed;
+    *capacity = alloc_size;
     return 0;
 }
 
