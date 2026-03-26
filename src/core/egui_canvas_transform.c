@@ -1636,6 +1636,10 @@ typedef struct
 #define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 4096
 #endif
 
+#ifndef EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES
+#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES 0
+#endif
+
 #ifndef EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS 0
 #endif
@@ -4288,9 +4292,6 @@ static void rasterize_glyph4_to_alpha8_inside(uint8_t *buf, int buf_w, int dst_x
         for (int pair_idx = 0; pair_idx < pair_count; pair_idx++)
         {
             uint8_t packed = *src++;
-            uint16_t pair;
-            uint8_t alpha0;
-            uint8_t alpha1;
 
             if (packed == 0)
             {
@@ -4305,17 +4306,19 @@ static void rasterize_glyph4_to_alpha8_inside(uint8_t *buf, int buf_w, int dst_x
                 continue;
             }
 
-            pair = g_alpha4_expand_pair_table[packed];
-            alpha0 = (uint8_t)(pair & 0xFF);
-            alpha1 = (uint8_t)(pair >> 8);
+            {
+                uint16_t pair = g_alpha4_expand_pair_table[packed];
+                uint8_t alpha0 = (uint8_t)(pair & 0xFF);
+                uint8_t alpha1 = (uint8_t)(pair >> 8);
 
-            if (alpha0 > dst[0])
-            {
-                dst[0] = alpha0;
-            }
-            if (alpha1 > dst[1])
-            {
-                dst[1] = alpha1;
+                if (alpha0 > dst[0])
+                {
+                    dst[0] = alpha0;
+                }
+                if (alpha1 > dst[1])
+                {
+                    dst[1] = alpha1;
+                }
             }
 
             dst += 2;
@@ -4526,6 +4529,59 @@ static void rasterize_external_glyph4_to_alpha8_inside_overwrite(uint8_t *buf, i
 }
 #endif
 
+static void text_transform_rasterize_visible_alpha8_layout(uint8_t *alpha8_buf, int buf_w, int buf_h, int16_t src_x0, int16_t src_y0,
+                                                           const egui_font_std_info_t *font_info, const text_transform_layout_glyph_t *const *glyphs,
+                                                           int glyph_count, int glyphs_overlap)
+{
+    if (alpha8_buf == NULL || font_info == NULL || glyphs == NULL || glyph_count <= 0 || buf_w <= 0 || buf_h <= 0)
+    {
+        return;
+    }
+
+    memset(alpha8_buf, 0, buf_w * buf_h);
+
+    if (glyphs_overlap)
+    {
+        for (int i = 0; i < glyph_count; i++)
+        {
+            const text_transform_layout_glyph_t *glyph = glyphs[i];
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+            if (font_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
+            {
+                rasterize_external_glyph4_to_alpha8_inside(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, font_info->pixel_buffer, glyph->pixel_idx,
+                                                           glyph->box_w, glyph->box_h);
+            }
+            else
+#endif
+            {
+                rasterize_glyph4_to_alpha8_inside(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, font_info->pixel_buffer + glyph->pixel_idx,
+                                                  glyph->box_w, glyph->box_h);
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < glyph_count; i++)
+        {
+            const text_transform_layout_glyph_t *glyph = glyphs[i];
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+            if (font_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
+            {
+                rasterize_external_glyph4_to_alpha8_inside_overwrite(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, font_info->pixel_buffer,
+                                                                     glyph->pixel_idx, glyph->box_w, glyph->box_h);
+            }
+            else
+#endif
+            {
+                rasterize_glyph4_to_alpha8_inside_overwrite(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, font_info->pixel_buffer + glyph->pixel_idx,
+                                                            glyph->box_w, glyph->box_h);
+            }
+        }
+    }
+}
+
 static int text_transform_ensure_visible_tile_capacity(int needed, uint8_t **buf, int *capacity)
 {
     int alloc_size;
@@ -4566,7 +4622,8 @@ static int text_transform_ensure_visible_tile_capacity(int needed, uint8_t **buf
 }
 
 static int text_transform_draw_alpha8_buffer_opaque_nomask(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color,
-                                                           const uint8_t *alpha8_buf, int16_t src_x0, int16_t src_y0, int buf_w, int buf_h)
+                                                           const uint8_t *alpha8_buf, int16_t src_x0, int16_t src_y0, int buf_w, int buf_h,
+                                                           int32_t core_src_lo_y_q15, int32_t core_src_hi_y_q15)
 {
     int32_t inv_m00;
     int32_t inv_m01;
@@ -4686,6 +4743,14 @@ static int text_transform_draw_alpha8_buffer_opaque_nomask(const text_transform_
 
                 for (int32_t i = 0; i < sir_count; i++)
                 {
+                    if (rotatedY < core_src_lo_y_q15 || rotatedY >= core_src_hi_y_q15)
+                    {
+                        rotatedX += inv_m00;
+                        rotatedY += inv_m10;
+                        dst_row++;
+                        continue;
+                    }
+
                     int32_t sample_sx = rotatedX >> 15;
                     int32_t sample_sy = rotatedY >> 15;
                     const uint8_t *row0 = alpha8_buf + sample_sy * buf_w + sample_sx;
@@ -4756,6 +4821,14 @@ static int text_transform_draw_alpha8_buffer_opaque_nomask(const text_transform_
                 uint8_t pixel_alpha;
 
                 entered = 1;
+
+                if (rotatedY < core_src_lo_y_q15 || rotatedY >= core_src_hi_y_q15)
+                {
+                    rotatedX += inv_m00;
+                    rotatedY += inv_m10;
+                    dst_row++;
+                    continue;
+                }
 
                 if ((uint32_t)sy < (uint32_t)buf_h)
                 {
@@ -4838,7 +4911,8 @@ static int text_transform_draw_alpha8_buffer_opaque_nomask(const text_transform_
 }
 
 static int text_transform_draw_alpha8_buffer_opaque_row_color(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color,
-                                                              const uint8_t *alpha8_buf, int16_t src_x0, int16_t src_y0, int buf_w, int buf_h)
+                                                              const uint8_t *alpha8_buf, int16_t src_x0, int16_t src_y0, int buf_w, int buf_h,
+                                                              int32_t core_src_lo_y_q15, int32_t core_src_hi_y_q15)
 {
     int32_t inv_m00;
     int32_t inv_m01;
@@ -4969,6 +5043,14 @@ static int text_transform_draw_alpha8_buffer_opaque_row_color(const text_transfo
 
                 for (int32_t i = 0; i < sir_count; i++)
                 {
+                    if (rotatedY < core_src_lo_y_q15 || rotatedY >= core_src_hi_y_q15)
+                    {
+                        rotatedX += inv_m00;
+                        rotatedY += inv_m10;
+                        dst_row++;
+                        continue;
+                    }
+
                     int32_t sample_sx = rotatedX >> 15;
                     int32_t sample_sy = rotatedY >> 15;
                     const uint8_t *row0 = alpha8_buf + sample_sy * buf_w + sample_sx;
@@ -5039,6 +5121,14 @@ static int text_transform_draw_alpha8_buffer_opaque_row_color(const text_transfo
                 uint8_t pixel_alpha;
 
                 entered = 1;
+
+                if (rotatedY < core_src_lo_y_q15 || rotatedY >= core_src_hi_y_q15)
+                {
+                    rotatedX += inv_m00;
+                    rotatedY += inv_m10;
+                    dst_row++;
+                    continue;
+                }
 
                 if ((uint32_t)sy < (uint32_t)buf_h)
                 {
@@ -5121,7 +5211,7 @@ static int text_transform_draw_alpha8_buffer_opaque_row_color(const text_transfo
 }
 
 static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, egui_dim_t x, egui_dim_t y, egui_color_t color, const uint8_t *alpha8_buf,
-                                             int16_t src_x0, int16_t src_y0, int buf_w, int buf_h)
+                                             int16_t src_x0, int16_t src_y0, int buf_w, int buf_h, int16_t core_src_y0, int16_t core_src_y1)
 {
     int row_color_only_mode = 0;
     int32_t inv_m00;
@@ -5144,6 +5234,8 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
     int32_t buf_src_hi_y_q15;
     int32_t buf_int_max_x_q15;
     int32_t buf_int_max_y_q15;
+    int32_t core_src_lo_y_q15;
+    int32_t core_src_hi_y_q15;
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
     uint32_t fg_rb_g;
 #endif
@@ -5153,9 +5245,27 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
         return 0;
     }
 
+    if (core_src_y1 <= core_src_y0)
+    {
+        return 1;
+    }
+
+    core_src_lo_y_q15 = ((int32_t)core_src_y0 - src_y0) << 15;
+    core_src_hi_y_q15 = ((int32_t)core_src_y1 - src_y0) << 15;
+
+    if (core_src_lo_y_q15 < 0)
+    {
+        core_src_lo_y_q15 = 0;
+    }
+    if (core_src_hi_y_q15 > ((int32_t)buf_h << 15))
+    {
+        core_src_hi_y_q15 = (int32_t)buf_h << 15;
+    }
+
     if (ctx->mask == NULL && ctx->canvas_alpha == EGUI_ALPHA_100)
     {
-        return text_transform_draw_alpha8_buffer_opaque_nomask(ctx, x, y, color, alpha8_buf, src_x0, src_y0, buf_w, buf_h);
+        return text_transform_draw_alpha8_buffer_opaque_nomask(ctx, x, y, color, alpha8_buf, src_x0, src_y0, buf_w, buf_h, core_src_lo_y_q15,
+                                                               core_src_hi_y_q15);
     }
     if (ctx->canvas_alpha == EGUI_ALPHA_100 && ctx->mask != NULL && ctx->mask->api != NULL && ctx->mask->api->kind == EGUI_MASK_KIND_GRADIENT &&
         ctx->mask->api->mask_blend_row_color != NULL)
@@ -5164,7 +5274,8 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
 
         if (transform_prepare_row_color(ctx->mask, (egui_dim_t)ctx->draw_y0, &probe_color))
         {
-            return text_transform_draw_alpha8_buffer_opaque_row_color(ctx, x, y, color, alpha8_buf, src_x0, src_y0, buf_w, buf_h);
+            return text_transform_draw_alpha8_buffer_opaque_row_color(ctx, x, y, color, alpha8_buf, src_x0, src_y0, buf_w, buf_h, core_src_lo_y_q15,
+                                                                      core_src_hi_y_q15);
         }
     }
 
@@ -5292,6 +5403,14 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
                 {
                     for (int32_t i = 0; i < sir_count; i++)
                     {
+                        if (rotatedY < core_src_lo_y_q15 || rotatedY >= core_src_hi_y_q15)
+                        {
+                            rotatedX += inv_m00;
+                            rotatedY += inv_m10;
+                            dst_row++;
+                            continue;
+                        }
+
                         int32_t sample_sx = rotatedX >> 15;
                         int32_t sample_sy = rotatedY >> 15;
                         const uint8_t *row0 = alpha8_buf + sample_sy * buf_w + sample_sx;
@@ -5352,6 +5471,14 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
                 {
                     for (int32_t i = 0; i < sir_count; i++)
                     {
+                        if (rotatedY < core_src_lo_y_q15 || rotatedY >= core_src_hi_y_q15)
+                        {
+                            rotatedX += inv_m00;
+                            rotatedY += inv_m10;
+                            dst_row++;
+                            continue;
+                        }
+
                         int32_t sample_sx = rotatedX >> 15;
                         int32_t sample_sy = rotatedY >> 15;
                         const uint8_t *row0 = alpha8_buf + sample_sy * buf_w + sample_sx;
@@ -5424,6 +5551,14 @@ static int text_transform_draw_alpha8_buffer(const text_transform_ctx_t *ctx, eg
                 uint8_t a11 = 0;
 
                 entered = 1;
+
+                if (rotatedY < core_src_lo_y_q15 || rotatedY >= core_src_hi_y_q15)
+                {
+                    rotatedX += inv_m00;
+                    rotatedY += inv_m10;
+                    dst_row++;
+                    continue;
+                }
 
                 if ((uint32_t)sy < (uint32_t)buf_h)
                 {
@@ -6089,55 +6224,27 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
     }
 
     buf_size = buf_w * buf_h;
+#if EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES > 0
+    if (buf_size > 0 && buf_size <= EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES)
+    {
+        uint8_t alpha8_stack_buf[EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES];
+
+        text_transform_rasterize_visible_alpha8_layout(alpha8_stack_buf, buf_w, buf_h, src_x0, src_y0, font_info, glyphs, glyph_count, glyphs_overlap);
+        if (text_transform_draw_alpha8_buffer(ctx, x, y, color, alpha8_stack_buf, src_x0, src_y0, buf_w, buf_h, src_y0, src_y1))
+        {
+            return 1;
+        }
+    }
+#endif
+
     /* Keep the alpha8 fast path for smaller visible tiles, but cap its peak heap usage. */
     if (buf_size > 0 && buf_size <= EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES &&
         text_transform_ensure_visible_tile_capacity(buf_size, &g_text_transform_visible_tile_cache.buf, &g_text_transform_visible_tile_cache.capacity) == 0)
     {
         alpha8_buf = g_text_transform_visible_tile_cache.buf;
-        memset(alpha8_buf, 0, buf_size);
+        text_transform_rasterize_visible_alpha8_layout(alpha8_buf, buf_w, buf_h, src_x0, src_y0, font_info, glyphs, glyph_count, glyphs_overlap);
 
-        if (glyphs_overlap)
-        {
-            for (int i = 0; i < glyph_count; i++)
-            {
-                const text_transform_layout_glyph_t *glyph = glyphs[i];
-
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-                if (font_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
-                {
-                    rasterize_external_glyph4_to_alpha8_inside(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, font_info->pixel_buffer, glyph->pixel_idx,
-                                                               glyph->box_w, glyph->box_h);
-                }
-                else
-#endif
-                {
-                    rasterize_glyph4_to_alpha8_inside(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, font_info->pixel_buffer + glyph->pixel_idx,
-                                                      glyph->box_w, glyph->box_h);
-                }
-            }
-        }
-        else
-        {
-            for (int i = 0; i < glyph_count; i++)
-            {
-                const text_transform_layout_glyph_t *glyph = glyphs[i];
-
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-                if (font_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
-                {
-                    rasterize_external_glyph4_to_alpha8_inside_overwrite(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, font_info->pixel_buffer,
-                                                                         glyph->pixel_idx, glyph->box_w, glyph->box_h);
-                }
-                else
-#endif
-                {
-                    rasterize_glyph4_to_alpha8_inside_overwrite(alpha8_buf, buf_w, glyph->x - src_x0, glyph->y - src_y0, font_info->pixel_buffer + glyph->pixel_idx,
-                                                                glyph->box_w, glyph->box_h);
-                }
-            }
-        }
-
-        if (text_transform_draw_alpha8_buffer(ctx, x, y, color, alpha8_buf, src_x0, src_y0, buf_w, buf_h))
+        if (text_transform_draw_alpha8_buffer(ctx, x, y, color, alpha8_buf, src_x0, src_y0, buf_w, buf_h, src_y0, src_y1))
         {
             return 1;
         }

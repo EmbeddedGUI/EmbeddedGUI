@@ -85,6 +85,11 @@ extern "C" {
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS 80
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES  8
 
+// The rotated-text visible alpha8 tile peaks a little above 4KB in
+// HelloPerformance. Keeping tiles up to 6KB on stack preserves the fast
+// alpha8 path while avoiding the transient heap spike in those scenes.
+#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES 6144
+
 // HelloPerformance only uses small ASCII subsets (88/93 glyphs), so the
 // frame-local ASCII lookup cache can use 8-bit indices and the multi-line
 // text cache only needs one small slot for the 7-line benchmark string.
