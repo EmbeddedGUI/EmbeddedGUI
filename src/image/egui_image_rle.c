@@ -897,8 +897,7 @@ static void egui_image_rle_blend_masked_rgb565_image_row(egui_canvas_t *canvas, 
         {
             if (*opaque_alpha_row == NULL)
             {
-                memset(egui_image_decode_row_alpha_buf, EGUI_ALPHA_100, (size_t)count);
-                *opaque_alpha_row = egui_image_decode_row_alpha_buf;
+                *opaque_alpha_row = egui_image_decode_get_opaque_alpha_row(count);
             }
             alpha_row = *opaque_alpha_row;
         }
@@ -1005,8 +1004,7 @@ static void egui_image_rle_blend_cached_rows(const egui_image_rle_info_t *info, 
                 {
                     if (opaque_alpha_row == NULL)
                     {
-                        memset(egui_image_decode_row_alpha_buf, EGUI_ALPHA_100, (size_t)count);
-                        opaque_alpha_row = egui_image_decode_row_alpha_buf;
+                        opaque_alpha_row = egui_image_decode_get_opaque_alpha_row(count);
                     }
                     egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, opaque_alpha_row, count, screen_x_start,
                                                                   screen_y, canvas_alpha);
@@ -1158,8 +1156,7 @@ static void egui_image_rle_blend_persistent_cached_rows(const egui_image_rle_inf
                 {
                     if (opaque_alpha_row == NULL)
                     {
-                        memset(egui_image_decode_row_alpha_buf, EGUI_ALPHA_100, (size_t)count);
-                        opaque_alpha_row = egui_image_decode_row_alpha_buf;
+                        opaque_alpha_row = egui_image_decode_get_opaque_alpha_row(count);
                     }
                     egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, opaque_alpha_row, count, screen_x_start,
                                                                   screen_y, canvas_alpha);
@@ -1513,8 +1510,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
             {
                 if (opaque_alpha_row == NULL)
                 {
-                    memset(egui_image_decode_row_alpha_buf, EGUI_ALPHA_100, (size_t)count);
-                    opaque_alpha_row = egui_image_decode_row_alpha_buf;
+                    opaque_alpha_row = egui_image_decode_get_opaque_alpha_row(count);
                 }
                 egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, opaque_alpha_row, count, screen_x_start,
                                                               screen_y, masked_canvas->alpha);

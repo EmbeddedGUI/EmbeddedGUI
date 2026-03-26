@@ -348,6 +348,17 @@ extern "C" {
 #endif
 
 /**
+ * Reuse the first row of the compressed-image row cache as the temporary
+ * "all opaque alpha" buffer for masked RGB565 blend fallbacks.
+ * Saves one decode-row alpha buffer, but may clobber compressed alpha cache
+ * contents if mixed compressed-image cache hits and opaque masked draws share
+ * a frame. Keep disabled unless the app guarantees those paths do not overlap.
+ */
+#ifndef EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
+#define EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE 0
+#endif
+
+/**
  * Optional persistent full-image cache for compressed image codecs.
  * Stores one fully decoded compressed image across refreshes and repeated draws.
  * Total RAM budget in bytes for pixel + alpha buffers; 0 disables the feature.

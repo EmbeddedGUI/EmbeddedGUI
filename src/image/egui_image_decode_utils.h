@@ -17,13 +17,17 @@ extern "C" {
  * Alpha buffer: EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH bytes
  */
 extern uint8_t egui_image_decode_row_pixel_buf[];
+#if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE || !EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
 extern uint8_t egui_image_decode_row_alpha_buf[];
+#endif
 
 static inline uint8_t *egui_image_decode_get_row_pixel_buf(uint8_t bytes_per_pixel)
 {
     EGUI_ASSERT(bytes_per_pixel > 0 && bytes_per_pixel <= EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE);
     return egui_image_decode_row_pixel_buf;
 }
+
+uint8_t *egui_image_decode_get_opaque_alpha_row(egui_dim_t count);
 
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 /*

@@ -59,6 +59,11 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE 2
 #endif
 
+// HelloPerformance draws one compressed-image workload at a time, so masked
+// opaque fallback rows can borrow the codec row-cache alpha backing store
+// instead of reserving a dedicated 240B decode-row alpha buffer in BSS.
+#define EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE 1
+
 // HelloPerformance's QOI scenes currently run acceptably from the row-band
 // cache alone, so disable decoder checkpoints to remove their persistent heap.
 #define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 0

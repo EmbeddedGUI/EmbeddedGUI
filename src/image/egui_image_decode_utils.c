@@ -7,7 +7,12 @@
 
 /* Shared row decode buffers */
 uint8_t egui_image_decode_row_pixel_buf[EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE];
+#if EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE && !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#error "EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE requires EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE"
+#endif
+#if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE || !EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
 uint8_t egui_image_decode_row_alpha_buf[EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH];
+#endif
 
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 /* Row-band decode cache: PFB_HEIGHT rows of decoded data */
@@ -52,6 +57,22 @@ void egui_image_decode_cache_set_full_image(const void *image_info, uint16_t row
     egui_image_decode_cache_state.mode = EGUI_IMAGE_DECODE_CACHE_MODE_FULL_IMAGE;
 }
 #endif
+
+uint8_t *egui_image_decode_get_opaque_alpha_row(egui_dim_t count)
+{
+    uint8_t *opaque_alpha_row;
+
+    EGUI_ASSERT(count >= 0 && count <= EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH);
+
+#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE && EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
+    opaque_alpha_row = egui_image_decode_row_cache_alpha;
+#else
+    opaque_alpha_row = egui_image_decode_row_alpha_buf;
+#endif
+
+    memset(opaque_alpha_row, EGUI_ALPHA_100, (size_t)count);
+    return opaque_alpha_row;
+}
 
 #if EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES > 0
 egui_image_decode_persistent_cache_t egui_image_decode_persistent_cache = {0};
@@ -314,8 +335,7 @@ void egui_image_decode_blend_row_clipped(egui_dim_t screen_x, egui_dim_t screen_
                     return;
                 }
 
-                memset(egui_image_decode_row_alpha_buf, EGUI_ALPHA_100, (size_t)count);
-                egui_image_std_blend_rgb565_alpha8_masked_row(canvas, dst, src_pixels, egui_image_decode_row_alpha_buf, count, screen_x, screen_y,
+                egui_image_std_blend_rgb565_alpha8_masked_row(canvas, dst, src_pixels, egui_image_decode_get_opaque_alpha_row(count), count, screen_x, screen_y,
                                                               canvas->alpha);
                 return;
             }
@@ -505,8 +525,8 @@ void egui_image_decode_blend_row(egui_dim_t img_x, egui_dim_t img_y, uint16_t ro
                     return;
                 }
 
-                memset(egui_image_decode_row_alpha_buf, EGUI_ALPHA_100, (size_t)count);
-                egui_image_std_blend_rgb565_alpha8_masked_row(canvas, dst, src_pixels, egui_image_decode_row_alpha_buf, count, col_start, screen_y,
+                egui_image_std_blend_rgb565_alpha8_masked_row(canvas, dst, src_pixels, egui_image_decode_get_opaque_alpha_row(count), count, col_start,
+                                                              screen_y,
                                                               canvas->alpha);
                 return;
             }
