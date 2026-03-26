@@ -79,6 +79,13 @@ extern "C" {
 // while trimming static RAM versus the 1024B default.
 #define EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 768
 
+// HelloPerformance's dominant external image paths use 240px/120px RGB565
+// rows (480B/240B) plus matching alpha rows (240B/120B). Keeping the shared
+// external caches at 1920B/960B preserves the same 4-row/8-row chunking for
+// those hot scenes while trimming the unused tail from the default 2048B/1024B.
+#define EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES  1920
+#define EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES 960
+
 // HelloPerformance text transform only uses short benchmark strings and the
 // 26pt perf font whose bitmap offsets stay well below 64KB, so the cached
 // text-transform layout can use 16-bit offsets/indices to trim heap.
