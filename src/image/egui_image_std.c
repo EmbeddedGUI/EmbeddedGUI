@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "egui_image_std.h"
+#include "egui_image_decode_utils.h"
 #include "core/egui_api.h"
 #include "mask/egui_mask_circle.h"
 #include "mask/egui_mask_round_rectangle.h"
@@ -21,6 +22,23 @@ const uint8_t egui_image_alpha_type_size_table[] = {
         4, /* EGUI_IMAGE_ALPHA_TYPE_4 */
         8, /* EGUI_IMAGE_ALPHA_TYPE_8 */
 };
+
+#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE
+#define EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE 0
+#endif
+
+#if EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE && !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+#error "EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE requires EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE"
+#endif
+
+#if EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE
+#if EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES > (EGUI_CONFIG_PFB_HEIGHT * EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE)
+#error "Codec row cache pixel buffer is smaller than the shared external data cache request"
+#endif
+#if EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES > (EGUI_CONFIG_PFB_HEIGHT * EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH)
+#error "Codec row cache alpha buffer is smaller than the shared external alpha cache request"
+#endif
+#endif
 
 int egui_image_std_get_linear_src_x_segment(const egui_dim_t *src_x_map, egui_dim_t start, egui_dim_t end, egui_dim_t *src_x_start)
 {
@@ -75,8 +93,10 @@ void egui_image_std_load_alpha_resource(void *dest, egui_image_std_info_t *image
 #define EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_MAX_BYTES EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES
 
 #if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
+#if !EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE
 static uint16_t g_egui_image_std_shared_external_data_cache[(EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_MAX_BYTES + sizeof(uint16_t) - 1) / sizeof(uint16_t)];
 static uint8_t g_egui_image_std_shared_external_alpha_cache[EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_MAX_BYTES];
+#endif
 static uint8_t g_egui_image_std_shared_external_cache_owner = EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_NONE;
 static uint32_t g_egui_image_std_shared_external_cache_generation = 1U;
 
@@ -97,12 +117,20 @@ uint32_t egui_image_std_claim_shared_external_row_cache(egui_image_external_row_
 
 uint16_t *egui_image_std_get_shared_external_data_cache(void)
 {
+#if EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE
+    return (uint16_t *)egui_image_decode_row_cache_pixel;
+#else
     return g_egui_image_std_shared_external_data_cache;
+#endif
 }
 
 uint8_t *egui_image_std_get_shared_external_alpha_cache(void)
 {
+#if EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE
+    return egui_image_decode_row_cache_alpha;
+#else
     return g_egui_image_std_shared_external_alpha_cache;
+#endif
 }
 #endif
 
