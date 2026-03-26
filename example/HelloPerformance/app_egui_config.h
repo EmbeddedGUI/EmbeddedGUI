@@ -54,6 +54,12 @@ extern "C" {
 // from ~824B to ~412B without changing current QEMU QOI timings.
 #define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 1
 
+// HelloPerformance text transform only uses short benchmark strings and the
+// 26pt perf font whose bitmap offsets stay well below 64KB, so the cached
+// text-transform layout can use 16-bit offsets/indices to trim heap.
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 1
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT  1
+
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

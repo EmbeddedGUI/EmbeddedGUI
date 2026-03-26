@@ -1598,13 +1598,37 @@ typedef struct
 } text_transform_external_glyph_row_cache_t;
 #endif
 
+#ifndef EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 0
+#endif
+
+#ifndef EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT 0
+#endif
+
+#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT
+typedef uint16_t text_transform_layout_pixel_idx_t;
+#define TEXT_TRANSFORM_LAYOUT_PIXEL_IDX_MAX UINT16_MAX
+#else
+typedef uint32_t text_transform_layout_pixel_idx_t;
+#define TEXT_TRANSFORM_LAYOUT_PIXEL_IDX_MAX UINT32_MAX
+#endif
+
+#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT
+typedef uint16_t text_transform_layout_index_t;
+#define TEXT_TRANSFORM_LAYOUT_INDEX_MAX UINT16_MAX
+#else
+typedef int text_transform_layout_index_t;
+#define TEXT_TRANSFORM_LAYOUT_INDEX_MAX 0x7FFFFFFF
+#endif
+
 typedef struct
 {
-    uint32_t pixel_idx; /* packed bitmap byte offset */
-    int16_t x;          /* glyph box left edge in text space */
-    int16_t y;          /* glyph box top edge in text space */
-    uint8_t box_w;      /* glyph box width */
-    uint8_t box_h;      /* glyph box height */
+    text_transform_layout_pixel_idx_t pixel_idx; /* packed bitmap byte offset */
+    int16_t x;                                   /* glyph box left edge in text space */
+    int16_t y;                                   /* glyph box top edge in text space */
+    uint8_t box_w;                               /* glyph box width */
+    uint8_t box_h;                               /* glyph box height */
 } text_transform_layout_glyph_t;
 
 typedef struct
@@ -1618,8 +1642,8 @@ typedef struct
 
 typedef struct
 {
-    int start;
-    int end;
+    text_transform_layout_index_t start;
+    text_transform_layout_index_t end;
     int16_t x_min;
     int16_t x_max;
     int16_t y_min;
@@ -2519,7 +2543,12 @@ static int text_transform_build_layout(const egui_font_std_info_t *font_info, co
 
         if (count < max_glyphs)
         {
-            glyphs[count].pixel_idx = desc->idx;
+            if (desc->idx > TEXT_TRANSFORM_LAYOUT_PIXEL_IDX_MAX)
+            {
+                return -1;
+            }
+
+            glyphs[count].pixel_idx = (text_transform_layout_pixel_idx_t)desc->idx;
             glyphs[count].x = cursor_x + desc->off_x;
             glyphs[count].y = cursor_y + desc->off_y;
             glyphs[count].box_w = desc->box_w;
@@ -2592,6 +2621,7 @@ static int text_transform_build_layout(const egui_font_std_info_t *font_info, co
 static int text_transform_prepare_layout(const egui_font_t *font, const egui_font_std_info_t *font_info, const char *string, egui_dim_t line_space,
                                          const text_transform_layout_glyph_t **layout, int *count, const text_transform_layout_line_t **lines, int *line_count)
 {
+    int build_count;
     int needed;
     int line_needed;
 
@@ -2610,6 +2640,10 @@ static int text_transform_prepare_layout(const egui_font_t *font, const egui_fon
     }
 
     text_transform_measure_layout_slots(string, &needed, &line_needed);
+    if (needed > TEXT_TRANSFORM_LAYOUT_INDEX_MAX)
+    {
+        return -1;
+    }
     if (needed > 0 && text_transform_ensure_layout_capacity(needed) != 0)
     {
         return -1;
@@ -2622,8 +2656,14 @@ static int text_transform_prepare_layout(const egui_font_t *font, const egui_fon
     g_text_transform_layout_cache.font = font;
     g_text_transform_layout_cache.string = string;
     g_text_transform_layout_cache.line_space = line_space;
-    g_text_transform_layout_cache.count = text_transform_build_layout(font_info, string, g_text_transform_layout_glyphs, needed, g_text_transform_layout_lines,
-                                                                      line_needed, &g_text_transform_layout_cache.line_count, line_space);
+    build_count = text_transform_build_layout(font_info, string, g_text_transform_layout_glyphs, needed, g_text_transform_layout_lines, line_needed,
+                                              &g_text_transform_layout_cache.line_count, line_space);
+    if (build_count < 0)
+    {
+        memset(&g_text_transform_layout_cache, 0, sizeof(g_text_transform_layout_cache));
+        return -1;
+    }
+    g_text_transform_layout_cache.count = build_count;
 
     *layout = g_text_transform_layout_glyphs;
     *count = g_text_transform_layout_cache.count;

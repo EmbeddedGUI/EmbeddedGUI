@@ -56,6 +56,10 @@ void qemu_notify_perf_complete(void)
     g_qemu_perf_complete = 1;
 }
 #else
+void qemu_notify_perf_complete(void)
+{
+}
+
 typedef struct qemu_heap_stats
 {
     uint32_t current;
