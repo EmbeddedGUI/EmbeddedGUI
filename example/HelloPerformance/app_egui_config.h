@@ -17,7 +17,10 @@ extern "C" {
 #define EGUI_CONFIG_PFB_BUFFER_COUNT 1
 #endif
 
-#define EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE 300
+// HelloPerformance's largest built-in round/circle benchmark radius is 240,
+// and the canvas lookup uses a strict `< range` check, so 241 is the minimum
+// value that still preserves current coverage while trimming circle LUT/cache RAM.
+#define EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE 241
 
 #define EGUI_CONFIG_DEBUG_LOG_LEVEL EGUI_LOG_IMPL_LEVEL_INF
 
