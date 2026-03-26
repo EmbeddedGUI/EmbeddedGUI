@@ -1480,192 +1480,16 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_circle_masked_map
         egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y, egui_dim_t center_x, egui_dim_t radius, egui_dim_t row_index, egui_alpha_t canvas_alpha,
         const egui_circle_info_t *info, const egui_circle_item_t *items);
 
-#define EGUI_IMAGE_STD_CIRCLE_AA_HALF_256 192
-
-typedef struct
-{
-    egui_dim_t radius;
-    int32_t radius_sq;
-    int32_t min_diff;
-    int32_t max_diff;
-    egui_alpha_t alpha[(EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE * 4) + 1];
-} egui_image_std_circle_alpha_cache_t;
-
-static egui_image_std_circle_alpha_cache_t g_egui_image_std_circle_alpha_cache = {
-        .radius = -1,
-        .radius_sq = 0,
-        .min_diff = 0,
-        .max_diff = 0,
-};
-
-typedef struct
-{
-    const egui_image_std_circle_alpha_cache_t *cache;
-    int32_t row_bias;
-} egui_image_std_circle_alpha_row_ctx_t;
-
-__EGUI_STATIC_INLINE__ int32_t egui_image_std_circle_center_delta_sq(egui_dim_t radius, egui_dim_t offset)
-{
-    int32_t delta = (int32_t)radius - (int32_t)offset;
-
-    return delta * delta;
-}
-
-__EGUI_STATIC_INLINE__ egui_alpha_t egui_image_std_circle_edge_smoothstep(int32_t signed_dist_256)
-{
-    int32_t coverage;
-    int32_t t;
-    int32_t t_sq;
-    int32_t smooth;
-    int32_t alpha_range_sq = EGUI_ALPHA_100 * EGUI_ALPHA_100;
-
-    if (signed_dist_256 <= -EGUI_IMAGE_STD_CIRCLE_AA_HALF_256)
-    {
-        return EGUI_ALPHA_100;
-    }
-
-    if (signed_dist_256 >= EGUI_IMAGE_STD_CIRCLE_AA_HALF_256)
-    {
-        return EGUI_ALPHA_0;
-    }
-
-    coverage = EGUI_IMAGE_STD_CIRCLE_AA_HALF_256 - signed_dist_256;
-    t = (coverage * EGUI_ALPHA_100 + EGUI_IMAGE_STD_CIRCLE_AA_HALF_256) / (EGUI_IMAGE_STD_CIRCLE_AA_HALF_256 << 1);
-    t_sq = t * t;
-    smooth = (3 * t_sq * EGUI_ALPHA_100 - 2 * t_sq * t + (alpha_range_sq >> 1)) / alpha_range_sq;
-
-    if (smooth <= 0)
-    {
-        return EGUI_ALPHA_0;
-    }
-
-    if (smooth >= EGUI_ALPHA_100)
-    {
-        return EGUI_ALPHA_100;
-    }
-
-    return (egui_alpha_t)smooth;
-}
-
-__EGUI_STATIC_INLINE__ egui_image_std_circle_alpha_cache_t *egui_image_std_get_circle_alpha_cache(egui_dim_t radius)
-{
-    egui_image_std_circle_alpha_cache_t *cache = &g_egui_image_std_circle_alpha_cache;
-
-    if (cache->radius != radius)
-    {
-        cache->radius = radius;
-        cache->radius_sq = (int32_t)radius * (int32_t)radius;
-        cache->min_diff = 1 - ((int32_t)radius << 1);
-        cache->max_diff = ((int32_t)radius << 1) + 1;
-
-        for (int32_t diff = cache->min_diff; diff <= cache->max_diff; diff++)
-        {
-            int32_t signed_dist_256;
-
-            if (diff <= cache->min_diff)
-            {
-                cache->alpha[diff - cache->min_diff] = EGUI_ALPHA_100;
-                continue;
-            }
-
-            if (diff >= cache->max_diff)
-            {
-                cache->alpha[diff - cache->min_diff] = EGUI_ALPHA_0;
-                continue;
-            }
-
-            if (diff >= 0)
-            {
-                signed_dist_256 = (diff * 128 + (radius >> 1)) / radius;
-            }
-            else
-            {
-                signed_dist_256 = -(((-diff) * 128 + (radius >> 1)) / radius);
-            }
-
-            cache->alpha[diff - cache->min_diff] = egui_image_std_circle_edge_smoothstep(signed_dist_256);
-        }
-    }
-
-    return cache;
-}
-
-__EGUI_STATIC_INLINE__ int egui_image_std_prepare_circle_alpha_row_ctx(egui_dim_t radius, egui_dim_t row_index, const egui_circle_info_t *info,
-                                                                       egui_image_std_circle_alpha_row_ctx_t *ctx)
-{
-    if (info == NULL || radius <= 0 || row_index < 0 || row_index > radius)
-    {
-        return 0;
-    }
-
-    ctx->cache = egui_image_std_get_circle_alpha_cache(radius);
-    ctx->row_bias = egui_image_std_circle_center_delta_sq(radius, row_index) - ctx->cache->radius_sq;
-    return 1;
-}
-
-__EGUI_STATIC_INLINE__ egui_alpha_t egui_image_std_get_circle_corner_alpha_from_row_ctx(const egui_image_std_circle_alpha_row_ctx_t *ctx, egui_dim_t corner_col)
-{
-    int32_t diff = egui_image_std_circle_center_delta_sq(ctx->cache->radius, corner_col) + ctx->row_bias;
-
-    if (diff <= ctx->cache->min_diff)
-    {
-        return EGUI_ALPHA_100;
-    }
-
-    if (diff >= ctx->cache->max_diff)
-    {
-        return EGUI_ALPHA_0;
-    }
-
-    return ctx->cache->alpha[diff - ctx->cache->min_diff];
-}
-
-__EGUI_STATIC_INLINE__ egui_alpha_t egui_image_std_get_circle_edge_alpha_from_row_ctx(const egui_image_std_circle_alpha_row_ctx_t *ctx, egui_dim_t corner_col)
-{
-    int32_t diff = egui_image_std_circle_center_delta_sq(ctx->cache->radius, corner_col) + ctx->row_bias;
-
-    return ctx->cache->alpha[diff - ctx->cache->min_diff];
-}
-
 __EGUI_STATIC_INLINE__ egui_alpha_t egui_image_std_get_circle_corner_alpha_fixed_row(egui_dim_t radius, egui_dim_t row_index, egui_dim_t corner_col,
                                                                                       const egui_circle_info_t *info,
                                                                                       const egui_circle_item_t *items)
 {
-    EGUI_UNUSED(items);
-
     if (info != NULL)
     {
-        egui_image_std_circle_alpha_cache_t *cache;
-        int32_t row_bias;
-        int32_t diff;
-
-        if (radius <= 0)
-        {
-            return (row_index == 0 && corner_col == 0) ? EGUI_ALPHA_100 : EGUI_ALPHA_0;
-        }
-
-        if (row_index < 0 || corner_col < 0 || row_index > radius || corner_col > radius)
-        {
-            return EGUI_ALPHA_0;
-        }
-
-        cache = egui_image_std_get_circle_alpha_cache(radius);
-        row_bias = egui_image_std_circle_center_delta_sq(radius, row_index) - cache->radius_sq;
-        diff = egui_image_std_circle_center_delta_sq(radius, corner_col) + row_bias;
-
-        if (diff <= cache->min_diff)
-        {
-            return EGUI_ALPHA_100;
-        }
-
-        if (diff >= cache->max_diff)
-        {
-            return EGUI_ALPHA_0;
-        }
-
-        return cache->alpha[diff - cache->min_diff];
+        return egui_canvas_get_circle_corner_value_fixed_row(row_index, corner_col, info, items);
     }
 
+    EGUI_UNUSED(items);
     return egui_mask_circle_get_corner_alpha(radius, row_index, corner_col);
 }
 
@@ -2087,43 +1911,10 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_circle_masked_left_segme
                                                                                               const egui_circle_item_t *items)
 {
     egui_dim_t corner_col = screen_x - (center_x - radius);
-    EGUI_UNUSED(items);
-
-    if (info != NULL)
-    {
-        egui_image_std_circle_alpha_row_ctx_t row_ctx;
-
-        if (egui_image_std_prepare_circle_alpha_row_ctx(radius, row_index, info, &row_ctx))
-        {
-            for (egui_dim_t i = 0; i < count; i++, corner_col++)
-            {
-                egui_alpha_t alpha = egui_image_std_get_circle_edge_alpha_from_row_ctx(&row_ctx, corner_col);
-                egui_dim_t src_x;
-
-                if (alpha < EGUI_IMAGE_STD_RGB565_MIN_VISIBLE_ALPHA)
-                {
-                    continue;
-                }
-
-                if (canvas_alpha != EGUI_ALPHA_100)
-                {
-                    alpha = egui_color_alpha_mix(canvas_alpha, alpha);
-                    if (alpha < EGUI_IMAGE_STD_RGB565_MIN_VISIBLE_ALPHA)
-                    {
-                        continue;
-                    }
-                }
-
-                src_x = egui_image_std_get_src_x(src_x_map, i);
-                egui_image_std_blend_rgb565_src_pixel(&dst_row[i], src_row[src_x], alpha);
-            }
-            return;
-        }
-    }
 
     for (egui_dim_t i = 0; i < count; i++, corner_col++)
     {
-        egui_alpha_t alpha = egui_mask_circle_get_corner_alpha(radius, row_index, corner_col);
+        egui_alpha_t alpha = egui_image_std_get_circle_corner_alpha_fixed_row(radius, row_index, corner_col, info, items);
         egui_dim_t src_x;
 
         if (alpha < EGUI_IMAGE_STD_RGB565_MIN_VISIBLE_ALPHA)
@@ -2150,56 +1941,11 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_circle_masked_segment_fi
                                                                                                  egui_dim_t radius, egui_dim_t row_index, egui_alpha_t canvas_alpha,
                                                                                                  const egui_circle_info_t *info, const egui_circle_item_t *items)
 {
-    EGUI_UNUSED(items);
-
-    if (info != NULL)
-    {
-        egui_image_std_circle_alpha_row_ctx_t row_ctx;
-
-        if (egui_image_std_prepare_circle_alpha_row_ctx(radius, row_index, info, &row_ctx))
-        {
-            if (canvas_alpha == EGUI_ALPHA_100)
-            {
-                for (egui_dim_t i = 0; i < count; i++, corner_col += corner_step)
-                {
-                    egui_alpha_t alpha = egui_image_std_get_circle_edge_alpha_from_row_ctx(&row_ctx, corner_col);
-
-                    if (alpha < EGUI_IMAGE_STD_RGB565_MIN_VISIBLE_ALPHA)
-                    {
-                        continue;
-                    }
-
-                    egui_image_std_blend_rgb565_src_pixel(&dst_row[i], src_row[i], alpha);
-                }
-                return;
-            }
-
-            for (egui_dim_t i = 0; i < count; i++, corner_col += corner_step)
-            {
-                egui_alpha_t alpha = egui_image_std_get_circle_edge_alpha_from_row_ctx(&row_ctx, corner_col);
-
-                if (alpha < EGUI_IMAGE_STD_RGB565_MIN_VISIBLE_ALPHA)
-                {
-                    continue;
-                }
-
-                alpha = egui_color_alpha_mix(canvas_alpha, alpha);
-                if (alpha < EGUI_IMAGE_STD_RGB565_MIN_VISIBLE_ALPHA)
-                {
-                    continue;
-                }
-
-                egui_image_std_blend_rgb565_src_pixel(&dst_row[i], src_row[i], alpha);
-            }
-            return;
-        }
-    }
-
     if (canvas_alpha == EGUI_ALPHA_100)
     {
         for (egui_dim_t i = 0; i < count; i++, corner_col += corner_step)
         {
-            egui_alpha_t alpha = egui_mask_circle_get_corner_alpha(radius, row_index, corner_col);
+            egui_alpha_t alpha = egui_image_std_get_circle_corner_alpha_fixed_row(radius, row_index, corner_col, info, items);
 
             if (alpha < EGUI_IMAGE_STD_RGB565_MIN_VISIBLE_ALPHA)
             {
@@ -2213,7 +1959,7 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_circle_masked_segment_fi
 
     for (egui_dim_t i = 0; i < count; i++, corner_col += corner_step)
     {
-        egui_alpha_t alpha = egui_mask_circle_get_corner_alpha(radius, row_index, corner_col);
+        egui_alpha_t alpha = egui_image_std_get_circle_corner_alpha_fixed_row(radius, row_index, corner_col, info, items);
 
         if (alpha < EGUI_IMAGE_STD_RGB565_MIN_VISIBLE_ALPHA)
         {
@@ -2237,43 +1983,10 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_circle_masked_right_segm
                                                                                               const egui_circle_info_t *info, const egui_circle_item_t *items)
 {
     egui_dim_t corner_col = (center_x + radius) - screen_x;
-    EGUI_UNUSED(items);
-
-    if (info != NULL)
-    {
-        egui_image_std_circle_alpha_row_ctx_t row_ctx;
-
-        if (egui_image_std_prepare_circle_alpha_row_ctx(radius, row_index, info, &row_ctx))
-        {
-            for (egui_dim_t i = 0; i < count; i++, corner_col--)
-            {
-                egui_alpha_t alpha = egui_image_std_get_circle_edge_alpha_from_row_ctx(&row_ctx, corner_col);
-                egui_dim_t src_x;
-
-                if (alpha < EGUI_IMAGE_STD_RGB565_MIN_VISIBLE_ALPHA)
-                {
-                    continue;
-                }
-
-                if (canvas_alpha != EGUI_ALPHA_100)
-                {
-                    alpha = egui_color_alpha_mix(canvas_alpha, alpha);
-                    if (alpha < EGUI_IMAGE_STD_RGB565_MIN_VISIBLE_ALPHA)
-                    {
-                        continue;
-                    }
-                }
-
-                src_x = egui_image_std_get_src_x(src_x_map, i);
-                egui_image_std_blend_rgb565_src_pixel(&dst_row[i], src_row[src_x], alpha);
-            }
-            return;
-        }
-    }
 
     for (egui_dim_t i = 0; i < count; i++, corner_col--)
     {
-        egui_alpha_t alpha = egui_mask_circle_get_corner_alpha(radius, row_index, corner_col);
+        egui_alpha_t alpha = egui_image_std_get_circle_corner_alpha_fixed_row(radius, row_index, corner_col, info, items);
         egui_dim_t src_x;
 
         if (alpha < EGUI_IMAGE_STD_RGB565_MIN_VISIBLE_ALPHA)
