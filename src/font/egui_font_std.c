@@ -50,6 +50,10 @@ static egui_font_std_code_lookup_cache_t g_font_std_code_lookup_cache = {
 #ifndef EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS
 #define EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 2
 #endif
+#define EGUI_FONT_STD_DRAW_PREFIX_CACHE_ENABLED \
+    ((EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS > 0) && (EGUI_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS > 0))
+#define EGUI_FONT_STD_DRAW_PREFIX_CACHE_GLYPH_STORAGE_MAX \
+    ((EGUI_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS > 0) ? EGUI_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS : 1)
 #ifndef EGUI_FONT_STD_LINE_CACHE_MAX_LINES
 #define EGUI_FONT_STD_LINE_CACHE_MAX_LINES 16
 #endif
@@ -92,7 +96,7 @@ typedef struct
     uint8_t is_complete_line;
     uint8_t is_ready;
     uint32_t stamp;
-    egui_font_std_draw_prefix_glyph_t glyphs[EGUI_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS];
+    egui_font_std_draw_prefix_glyph_t glyphs[EGUI_FONT_STD_DRAW_PREFIX_CACHE_GLYPH_STORAGE_MAX];
 } egui_font_std_draw_prefix_cache_t;
 
 typedef struct
@@ -125,8 +129,10 @@ typedef struct
 static egui_font_std_ascii_lookup_cache_t *g_font_std_ascii_lookup_cache = NULL;
 #endif
 
+#if EGUI_FONT_STD_DRAW_PREFIX_CACHE_ENABLED
 static egui_font_std_draw_prefix_cache_t g_font_std_draw_prefix_cache[EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS];
 static uint32_t g_font_std_draw_prefix_cache_stamp = 0;
+#endif
 #if EGUI_FONT_STD_LINE_CACHE_ENABLE
 static egui_font_std_line_cache_storage_t *g_font_std_line_cache_storage = NULL;
 #endif
@@ -288,6 +294,12 @@ static const egui_font_std_ascii_lookup_cache_t *egui_font_std_prepare_ascii_loo
 
 static const egui_font_std_draw_prefix_cache_t *egui_font_std_prepare_draw_prefix_cache(const void *font_key, const egui_font_std_info_t *font, const char *s)
 {
+#if !EGUI_FONT_STD_DRAW_PREFIX_CACHE_ENABLED
+    (void)font_key;
+    (void)font;
+    (void)s;
+    return NULL;
+#else
     int cursor_x = 0;
     int cached_bytes = 0;
     int glyph_count = 0;
@@ -438,6 +450,7 @@ static const egui_font_std_draw_prefix_cache_t *egui_font_std_prepare_draw_prefi
     cache->cached_advance = (int16_t)cursor_x;
     cache->glyph_count = (uint16_t)glyph_count;
     return cache;
+#endif
 }
 
 static int egui_font_std_find_prefix_first_visible(const egui_font_std_draw_prefix_cache_t *cache, int16_t local_x0)
