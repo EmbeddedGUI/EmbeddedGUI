@@ -60,6 +60,13 @@ extern "C" {
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 1
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT  1
 
+// HelloPerformance only uses small ASCII subsets (88/93 glyphs), so the
+// frame-local ASCII lookup cache can use 8-bit indices and the multi-line
+// text cache only needs one small slot for the 7-line benchmark string.
+#define EGUI_FONT_STD_ASCII_LOOKUP_INDEX_8BIT 1
+#define EGUI_FONT_STD_LINE_CACHE_MAX_LINES    8
+#define EGUI_FONT_STD_LINE_CACHE_SLOTS        1
+
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

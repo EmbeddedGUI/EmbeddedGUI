@@ -35,7 +35,9 @@ static egui_font_std_code_lookup_cache_t g_font_std_code_lookup_cache = {
 };
 
 #define EGUI_FONT_STD_ASCII_CACHE_SIZE 128
-#define EGUI_FONT_STD_ASCII_INDEX_INVALID 0xFFFFU
+#ifndef EGUI_FONT_STD_ASCII_LOOKUP_INDEX_8BIT
+#define EGUI_FONT_STD_ASCII_LOOKUP_INDEX_8BIT 0
+#endif
 #ifndef EGUI_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS
 #define EGUI_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS 64
 #endif
@@ -47,6 +49,14 @@ static egui_font_std_code_lookup_cache_t g_font_std_code_lookup_cache = {
 #endif
 #ifndef EGUI_FONT_STD_LINE_CACHE_SLOTS
 #define EGUI_FONT_STD_LINE_CACHE_SLOTS 2
+#endif
+
+#if EGUI_FONT_STD_ASCII_LOOKUP_INDEX_8BIT
+typedef uint8_t egui_font_std_ascii_index_t;
+#define EGUI_FONT_STD_ASCII_INDEX_INVALID UINT8_MAX
+#else
+typedef uint16_t egui_font_std_ascii_index_t;
+#define EGUI_FONT_STD_ASCII_INDEX_INVALID UINT16_MAX
 #endif
 
 typedef struct
@@ -84,7 +94,7 @@ typedef struct
     const egui_font_std_code_descriptor_t *code_array;
     const egui_font_std_char_descriptor_t *char_array;
     uint16_t count;
-    uint16_t ascii_index[EGUI_FONT_STD_ASCII_CACHE_SIZE];
+    egui_font_std_ascii_index_t ascii_index[EGUI_FONT_STD_ASCII_CACHE_SIZE];
     uint8_t is_ready;
 } egui_font_std_ascii_lookup_cache_t;
 
@@ -190,6 +200,16 @@ __EGUI_STATIC_INLINE__ void egui_font_std_reset_ascii_lookup_cache(const egui_fo
     }
 }
 
+__EGUI_STATIC_INLINE__ int egui_font_std_ascii_lookup_cache_supports_font(const egui_font_std_info_t *font)
+{
+    if (font == NULL)
+    {
+        return 0;
+    }
+
+    return font->count <= EGUI_FONT_STD_ASCII_INDEX_INVALID;
+}
+
 __EGUI_STATIC_INLINE__ int egui_font_std_get_ascii_lookup_index(const egui_font_std_ascii_lookup_cache_t *cache, uint8_t ascii_code)
 {
     uint16_t index;
@@ -214,6 +234,11 @@ static const egui_font_std_ascii_lookup_cache_t *egui_font_std_prepare_ascii_loo
     egui_font_std_ascii_lookup_cache_t *cache = egui_font_std_get_ascii_lookup_cache();
 
     if (cache == NULL || font == NULL)
+    {
+        return NULL;
+    }
+
+    if (!egui_font_std_ascii_lookup_cache_supports_font(font))
     {
         return NULL;
     }
