@@ -93,9 +93,7 @@ struct egui_view_virtual_stage
 
     void *node_cache;
     void *pin_entries;
-    uint32_t *draw_order;
     uint32_t cached_node_count;
-    uint32_t cached_capacity;
     uint16_t pin_count;
     uint16_t pin_capacity;
     uint32_t slot_use_seq;
