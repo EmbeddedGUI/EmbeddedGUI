@@ -38,6 +38,9 @@ static egui_font_std_code_lookup_cache_t g_font_std_code_lookup_cache = {
 #ifndef EGUI_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE
 #define EGUI_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE 1
 #endif
+#ifndef EGUI_FONT_STD_LINE_CACHE_ENABLE
+#define EGUI_FONT_STD_LINE_CACHE_ENABLE 1
+#endif
 #ifndef EGUI_FONT_STD_ASCII_LOOKUP_INDEX_8BIT
 #define EGUI_FONT_STD_ASCII_LOOKUP_INDEX_8BIT 0
 #endif
@@ -124,7 +127,9 @@ static egui_font_std_ascii_lookup_cache_t *g_font_std_ascii_lookup_cache = NULL;
 
 static egui_font_std_draw_prefix_cache_t g_font_std_draw_prefix_cache[EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS];
 static uint32_t g_font_std_draw_prefix_cache_stamp = 0;
+#if EGUI_FONT_STD_LINE_CACHE_ENABLE
 static egui_font_std_line_cache_storage_t *g_font_std_line_cache_storage = NULL;
+#endif
 
 __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_draw_fast(const egui_font_std_info_t *font, uint32_t utf8_code);
 
@@ -459,15 +464,20 @@ static int egui_font_std_find_prefix_first_visible(const egui_font_std_draw_pref
 
 static void egui_font_std_release_line_cache(void)
 {
+#if EGUI_FONT_STD_LINE_CACHE_ENABLE
     if (g_font_std_line_cache_storage != NULL)
     {
         egui_free(g_font_std_line_cache_storage);
         g_font_std_line_cache_storage = NULL;
     }
+#endif
 }
 
 static egui_font_std_line_cache_storage_t *egui_font_std_get_line_cache_storage(void)
 {
+#if !EGUI_FONT_STD_LINE_CACHE_ENABLE
+    return NULL;
+#else
     if (g_font_std_line_cache_storage == NULL)
     {
         g_font_std_line_cache_storage = (egui_font_std_line_cache_storage_t *)egui_malloc(sizeof(egui_font_std_line_cache_storage_t));
@@ -480,6 +490,7 @@ static egui_font_std_line_cache_storage_t *egui_font_std_get_line_cache_storage(
     }
 
     return g_font_std_line_cache_storage;
+#endif
 }
 
 static const egui_font_std_line_cache_t *egui_font_std_prepare_line_cache(const char *s)
