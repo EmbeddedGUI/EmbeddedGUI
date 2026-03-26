@@ -50,6 +50,10 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE 2
 #endif
 
+// One checkpoint cuts HelloPerformance QOI decode persistent heap
+// from ~824B to ~412B without changing current QEMU QOI timings.
+#define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 1
+
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }
