@@ -758,6 +758,11 @@ __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_
     return egui_font_std_get_desc(font, utf8_code);
 }
 
+const egui_font_std_char_descriptor_t *egui_font_std_get_desc_fast_api(const egui_font_std_info_t *font, uint32_t utf8_code)
+{
+    return egui_font_std_get_desc_fast(font, utf8_code);
+}
+
 __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_draw_fast(const egui_font_std_info_t *font, uint32_t utf8_code)
 {
     if (font == NULL)

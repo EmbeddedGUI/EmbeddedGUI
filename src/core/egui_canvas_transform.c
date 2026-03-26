@@ -2502,21 +2502,16 @@ static int text_transform_build_layout(const egui_font_std_info_t *font_info, co
         }
 
         int char_bytes = egui_font_get_utf8_code_fast(s, &utf8_code);
+        const egui_font_std_char_descriptor_t *desc;
+
         if (char_bytes <= 0)
         {
             break;
         }
         s += char_bytes;
 
-        int found = egui_font_std_find_code_index(font_info, utf8_code);
-        if (found < 0)
-        {
-            cursor_x += font_info->height >> 1;
-            continue;
-        }
-
-        const egui_font_std_char_descriptor_t *desc = &font_info->char_array[found];
-        if (desc->size == 0)
+        desc = egui_font_std_get_desc_fast_api(font_info, utf8_code);
+        if (desc == NULL || desc->size == 0)
         {
             cursor_x += font_info->height >> 1;
             continue;
@@ -3504,7 +3499,6 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
     egui_font_std_info_t *font_info = (egui_font_std_info_t *)font->res;
     uint8_t bpp = font_info->font_bit_mode;
-    egui_font_std_access_t font_access;
     const text_transform_layout_glyph_t *layout_glyphs = NULL;
     int layout_count = 0;
     const text_transform_layout_line_t *layout_lines = NULL;
@@ -3512,12 +3506,6 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     text_transform_glyph_t tile_glyphs[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS];
     const text_transform_layout_glyph_t *tile_layout_glyphs[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS];
     text_transform_layout_line_t tile_lines[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES];
-
-    if (egui_font_std_prepare_desc_access(font_info, &font_access) != 0)
-    {
-        return;
-    }
-    font_info = &font_access.info;
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     int draw_font_is_external = (font_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL);
     text_transform_external_glyph_row_cache_t external_row_cache = {
@@ -3532,13 +3520,11 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
     if (text_transform_prepare_layout(font, font_info, (const char *)string, 0, &layout_glyphs, &layout_count, &layout_lines, &layout_line_count) != 0)
     {
-        egui_font_std_release_access(&font_access);
         return;
     }
 
     if (layout_count == 0)
     {
-        egui_font_std_release_access(&font_access);
         return;
     }
 
@@ -3594,14 +3580,12 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
             if (tile_count == 0)
             {
-                egui_font_std_release_access(&font_access);
                 return;
             }
 
             if (text_transform_draw_visible_alpha8_tile_layout(&ctx, x, y, color, font_info, tile_layout_glyphs, tile_count, tile_src_x0, tile_src_y0,
                                                                tile_src_x1, tile_src_y1, tile_glyphs_overlap))
             {
-                egui_font_std_release_access(&font_access);
                 return;
             }
         }
@@ -3612,7 +3596,6 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
         if (tile_count == 0)
         {
-            egui_font_std_release_access(&font_access);
             return;
         }
 
@@ -3735,7 +3718,6 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                         if (!text_transform_batch_extract_external_glyph_alpha(g, glyph_lx, glyph_ly, bpp, &external_row_cache, &sa00, &sa01,
                                                                                                &sa10, &sa11))
                                         {
-                                            egui_font_std_release_access(&font_access);
                                             return;
                                         }
 #endif
@@ -3795,7 +3777,6 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                         if (!text_transform_batch_extract_external_glyph_alpha(g, glyph_lx, glyph_ly, bpp, &external_row_cache, &sa00, &sa01,
                                                                                                &sa10, &sa11))
                                         {
-                                            egui_font_std_release_access(&font_access);
                                             return;
                                         }
 #endif
@@ -3858,7 +3839,6 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                         if (!text_transform_batch_extract_external_glyph_alpha(g, glyph_lx, glyph_ly, bpp, &external_row_cache, &sa00, &sa01,
                                                                                                &sa10, &sa11))
                                         {
-                                            egui_font_std_release_access(&font_access);
                                             return;
                                         }
 #endif
@@ -3925,7 +3905,6 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                                         if (!text_transform_batch_extract_external_glyph_alpha(g, glyph_lx, glyph_ly, bpp, &external_row_cache, &sa00, &sa01,
                                                                                                &sa10, &sa11))
                                         {
-                                            egui_font_std_release_access(&font_access);
                                             return;
                                         }
 #endif
@@ -4130,8 +4109,6 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
         ctx.Cx_base += ctx.inv_m01;
         ctx.Cy_base += ctx.inv_m11;
     }
-
-    egui_font_std_release_access(&font_access);
 }
 
 // ============================================================================
