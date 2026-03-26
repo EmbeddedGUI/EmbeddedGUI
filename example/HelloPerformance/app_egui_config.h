@@ -59,9 +59,9 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE 2
 #endif
 
-// One checkpoint cuts HelloPerformance QOI decode persistent heap
-// from ~824B to ~412B without changing current QEMU QOI timings.
-#define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 1
+// HelloPerformance's QOI scenes currently run acceptably from the row-band
+// cache alone, so disable decoder checkpoints to remove their persistent heap.
+#define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 0
 
 // HelloPerformance exercises external raw-image draw/resize and external
 // raw-image transform in separate benchmark scenes, so they can reuse one

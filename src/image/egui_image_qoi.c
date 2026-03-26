@@ -45,10 +45,11 @@ typedef struct
 
 static egui_image_qoi_decode_state_t qoi_state;
 
-#if EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT < 1
-#error "EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT must be >= 1"
+#if EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT < 0
+#error "EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT must be >= 0"
 #endif
 
+#if EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT > 0
 #if (EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT & (EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT - 1)) != 0
 #error "EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT must be a power of two"
 #endif
@@ -67,6 +68,7 @@ typedef struct
  */
 static egui_image_qoi_checkpoint_t *qoi_checkpoints = NULL;
 static uint8_t qoi_checkpoint_next = 0;
+#endif
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 #ifndef EGUI_IMAGE_QOI_EXTERNAL_STREAM_WINDOW_SIZE
@@ -83,6 +85,7 @@ typedef struct
 } egui_image_qoi_external_stream_t;
 #endif
 
+#if EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT > 0
 static egui_image_qoi_checkpoint_t *egui_image_qoi_get_checkpoints(void)
 {
     if (qoi_checkpoints == NULL)
@@ -110,6 +113,11 @@ void egui_image_qoi_release_checkpoints(void)
 
     qoi_checkpoint_next = 0;
 }
+#else
+void egui_image_qoi_release_checkpoints(void)
+{
+}
+#endif
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 static void egui_image_qoi_external_stream_init(egui_image_qoi_external_stream_t *stream, const egui_image_qoi_info_t *info, uint32_t pos)
@@ -234,6 +242,7 @@ static void egui_image_qoi_reset_state(const egui_image_qoi_info_t *info)
 
 static void egui_image_qoi_save_checkpoint(const egui_image_qoi_info_t *info, uint16_t row)
 {
+#if EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT > 0
     uint8_t i;
     egui_image_qoi_checkpoint_t *checkpoints = egui_image_qoi_get_checkpoints();
 
@@ -256,10 +265,15 @@ static void egui_image_qoi_save_checkpoint(const egui_image_qoi_info_t *info, ui
     checkpoints[qoi_checkpoint_next].info = info;
     qoi_checkpoint_next++;
     qoi_checkpoint_next &= (EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT - 1);
+#else
+    EGUI_UNUSED(info);
+    EGUI_UNUSED(row);
+#endif
 }
 
 static int egui_image_qoi_restore_checkpoint(const egui_image_qoi_info_t *info, uint16_t target_row)
 {
+#if EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT > 0
     uint8_t i;
     egui_image_qoi_checkpoint_t *checkpoints = qoi_checkpoints;
 
@@ -278,6 +292,11 @@ static int egui_image_qoi_restore_checkpoint(const egui_image_qoi_info_t *info, 
     }
 
     return 0;
+#else
+    EGUI_UNUSED(info);
+    EGUI_UNUSED(target_row);
+    return 0;
+#endif
 }
 
 __EGUI_STATIC_INLINE__ uint16_t egui_image_qoi_rgb888_to_rgb565(uint8_t r, uint8_t g, uint8_t b)
