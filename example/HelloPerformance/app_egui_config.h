@@ -63,6 +63,11 @@ extern "C" {
 // cache alone, so disable decoder checkpoints to remove their persistent heap.
 #define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 0
 
+// HelloPerformance's QOI decode stays on one active image stream per scene, so
+// the RGBA index table can reconstruct RGB565 on demand without keeping a
+// duplicate 64-entry RGB565 index array in static RAM.
+#define EGUI_CONFIG_IMAGE_QOI_INDEX_RGB565_CACHE_ENABLE 0
+
 // HelloPerformance exercises external raw-image draw/resize and external
 // raw-image transform in separate benchmark scenes, so they can reuse one
 // shared row-cache backing store without changing hot-path behavior.
@@ -125,6 +130,11 @@ extern "C" {
 #ifndef EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS
 #define EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 1
 #endif
+
+// HelloPerformance image benchmarks keep one source image hot per scene, so a
+// single "alpha row is fully opaque" cache slot preserves the fast-path hit
+// without keeping extra global entries alive.
+#define EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 1
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
