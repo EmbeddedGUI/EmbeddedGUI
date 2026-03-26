@@ -11,15 +11,15 @@ extern "C" {
 
 #define EGUI_CONFIG_MAX_FPS 1
 
-// HelloPerformance is dominated by full-screen benchmark scenes, and a 40x20
+// HelloPerformance is dominated by full-screen benchmark scenes, and a 48x16
 // tile still divides the 240x240 canvas cleanly while cutting the PFB-height-
 // proportional row caches much harder than the default 30x30 tile.
 #ifndef EGUI_CONFIG_PFB_WIDTH
-#define EGUI_CONFIG_PFB_WIDTH 40
+#define EGUI_CONFIG_PFB_WIDTH 48
 #endif
 
 #ifndef EGUI_CONFIG_PFB_HEIGHT
-#define EGUI_CONFIG_PFB_HEIGHT 20
+#define EGUI_CONFIG_PFB_HEIGHT 16
 #endif
 
 // HelloPerformance runs on PC/QEMU with synchronous tile flush, so extra PFB
@@ -67,7 +67,7 @@ extern "C" {
 // Enable row-band decode cache: first PFB tile decodes to cache,
 // horizontal tile neighbors blend from cache without re-decoding.
 // HelloPerformance uses RGB565-only compressed images, so actual RAM
-// cost here is about PFB_HEIGHT * SCREEN_WIDTH * (2 + 1) = 14.4KB.
+// cost here is about PFB_HEIGHT * SCREEN_WIDTH * (2 + 1) = 11.5KB.
 #define EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE 1
 
 // HelloPerformance compressed image resources are RGB565-only,
