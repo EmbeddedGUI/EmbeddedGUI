@@ -68,6 +68,11 @@ extern "C" {
 // shared row-cache backing store without changing hot-path behavior.
 #define EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS 1
 
+// HelloPerformance's external RLE scenes only stream 120px/240px RGB565 rows,
+// so a 768B external read window still covers the active per-row decode chunks
+// while trimming static RAM versus the 1024B default.
+#define EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 768
+
 // HelloPerformance text transform only uses short benchmark strings and the
 // 26pt perf font whose bitmap offsets stay well below 64KB, so the cached
 // text-transform layout can use 16-bit offsets/indices to trim heap.
