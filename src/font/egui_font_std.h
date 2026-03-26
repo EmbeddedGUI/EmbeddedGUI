@@ -54,6 +54,7 @@ struct egui_font_std
 };
 
 int egui_font_std_find_code_index(const egui_font_std_info_t *font, uint32_t utf8_code);
+int egui_font_std_prepare_desc_access(const egui_font_std_info_t *font, egui_font_std_access_t *access);
 int egui_font_std_prepare_access(const egui_font_std_info_t *font, egui_font_std_access_t *access);
 void egui_font_std_release_access(egui_font_std_access_t *access);
 void egui_font_std_release_frame_cache(void);

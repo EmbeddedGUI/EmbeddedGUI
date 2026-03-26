@@ -913,7 +913,7 @@ void egui_font_std_release_access(egui_font_std_access_t *access)
     memset(access, 0, sizeof(*access));
 }
 
-int egui_font_std_prepare_access(const egui_font_std_info_t *font, egui_font_std_access_t *access)
+int egui_font_std_prepare_desc_access(const egui_font_std_info_t *font, egui_font_std_access_t *access)
 {
     if (font == NULL || access == NULL)
     {
@@ -930,7 +930,6 @@ int egui_font_std_prepare_access(const egui_font_std_info_t *font, egui_font_std
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     {
-        uint32_t pixel_size;
         const egui_font_std_char_descriptor_t *char_array = NULL;
 
         if (font->count <= EGUI_FONT_STD_EXTERNAL_DESC_CACHE_COUNT)
@@ -953,7 +952,37 @@ int egui_font_std_prepare_access(const egui_font_std_info_t *font, egui_font_std
             char_array = access->owned_char_array;
         }
 
-        pixel_size = egui_font_std_get_external_pixel_total_size(font);
+        access->info.char_array = char_array;
+        return 0;
+    }
+#else
+    {
+        egui_font_std_release_access(access);
+        return -1;
+    }
+#endif
+}
+
+int egui_font_std_prepare_access(const egui_font_std_info_t *font, egui_font_std_access_t *access)
+{
+    if (egui_font_std_prepare_desc_access(font, access) != 0)
+    {
+        return -1;
+    }
+
+    if (font == NULL || access == NULL)
+    {
+        return -1;
+    }
+
+    if (font->res_type != EGUI_RESOURCE_TYPE_EXTERNAL)
+    {
+        return 0;
+    }
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    {
+        uint32_t pixel_size = egui_font_std_get_external_pixel_total_size(font);
         if (pixel_size == 0)
         {
             egui_font_std_release_access(access);
@@ -968,7 +997,6 @@ int egui_font_std_prepare_access(const egui_font_std_info_t *font, egui_font_std
         }
 
         egui_api_load_external_resource(access->owned_pixel_buffer, (egui_uintptr_t)font->pixel_buffer, 0, pixel_size);
-        access->info.char_array = char_array;
         access->info.pixel_buffer = access->owned_pixel_buffer;
         access->info.res_type = EGUI_RESOURCE_TYPE_INTERNAL;
         return 0;
