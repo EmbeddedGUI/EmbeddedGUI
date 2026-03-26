@@ -2208,12 +2208,6 @@ static int text_transform_prepare(int16_t text_w, int16_t text_h, egui_dim_t x, 
 #define EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES 32
 #endif
 
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_EXTERNAL_TILE_PIXEL_STACK_BYTES
-#define EGUI_CONFIG_TEXT_TRANSFORM_EXTERNAL_TILE_PIXEL_STACK_BYTES 4096
-#endif
-#endif
-
 static text_transform_layout_cache_t g_text_transform_layout_cache = {
         .font = NULL,
         .string = NULL,
@@ -2228,18 +2222,10 @@ static int g_text_transform_layout_line_capacity = 0;
 
 typedef struct
 {
-    text_transform_glyph_t *glyphs;
-    const text_transform_layout_glyph_t **layout_glyphs;
-    text_transform_layout_line_t *lines;
-} text_transform_tile_cache_t;
-
-typedef struct
-{
     uint8_t *buf;
     int capacity;
 } text_transform_visible_alpha8_cache_t;
 
-static text_transform_tile_cache_t g_text_transform_tile_cache = {0};
 static text_transform_visible_alpha8_cache_t g_text_transform_visible_alpha8_cache = {0};
 
 static void text_transform_release_layout_cache(void)
@@ -2258,24 +2244,6 @@ static void text_transform_release_layout_cache(void)
     memset(&g_text_transform_layout_cache, 0, sizeof(g_text_transform_layout_cache));
     g_text_transform_layout_capacity = 0;
     g_text_transform_layout_line_capacity = 0;
-}
-
-static void text_transform_release_tile_cache(void)
-{
-    if (g_text_transform_tile_cache.glyphs != NULL)
-    {
-        egui_free(g_text_transform_tile_cache.glyphs);
-    }
-    if (g_text_transform_tile_cache.layout_glyphs != NULL)
-    {
-        egui_free(g_text_transform_tile_cache.layout_glyphs);
-    }
-    if (g_text_transform_tile_cache.lines != NULL)
-    {
-        egui_free(g_text_transform_tile_cache.lines);
-    }
-
-    memset(&g_text_transform_tile_cache, 0, sizeof(g_text_transform_tile_cache));
 }
 
 static void text_transform_release_visible_alpha8_cache(void)
@@ -2407,7 +2375,6 @@ void egui_canvas_transform_release_frame_cache(void)
 
     memset(&g_text_transform_prepare_cache, 0, sizeof(g_text_transform_prepare_cache));
     text_transform_release_layout_cache();
-    text_transform_release_tile_cache();
     text_transform_release_visible_alpha8_cache();
 }
 
@@ -2978,40 +2945,6 @@ static int collect_visible_layout_glyphs_alpha8(const text_transform_layout_glyp
     return count;
 }
 
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-static int text_transform_preload_external_tile_glyphs(text_transform_glyph_t *glyphs, int glyph_count, uint8_t *buf, int buf_size)
-{
-    int offset = 0;
-
-    if (glyphs == NULL || buf == NULL || glyph_count <= 0 || buf_size <= 0)
-    {
-        return 0;
-    }
-
-    for (int i = 0; i < glyph_count; i++)
-    {
-        int glyph_size = glyphs[i].row_bytes * glyphs[i].box_h;
-
-        if (glyph_size <= 0)
-        {
-            continue;
-        }
-
-        if ((offset + glyph_size) > buf_size)
-        {
-            return 0;
-        }
-
-        egui_api_load_external_resource(buf + offset, (egui_uintptr_t)glyphs[i].data, glyphs[i].pixel_idx, glyph_size);
-        glyphs[i].data = buf + offset;
-        glyphs[i].pixel_idx = 0;
-        offset += glyph_size;
-    }
-
-    return 1;
-}
-#endif
-
 /**
  * Sample text alpha by searching the PFB-local glyph array.
  * With typically <20 glyph entries, linear scan with hint is efficient.
@@ -3518,6 +3451,9 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     int layout_count = 0;
     const text_transform_layout_line_t *layout_lines = NULL;
     int layout_line_count = 0;
+    text_transform_glyph_t tile_glyphs[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS];
+    const text_transform_layout_glyph_t *tile_layout_glyphs[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS];
+    text_transform_layout_line_t tile_lines[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES];
 
     if (egui_font_std_prepare_desc_access(font_info, &font_access) != 0)
     {
@@ -3525,9 +3461,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     }
     font_info = &font_access.info;
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-    int font_is_external = (font_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL);
-    int draw_font_is_external = font_is_external;
-    uint8_t external_tile_pixel_stack[EGUI_CONFIG_TEXT_TRANSFORM_EXTERNAL_TILE_PIXEL_STACK_BYTES];
+    int draw_font_is_external = (font_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL);
     text_transform_external_glyph_row_cache_t external_row_cache = {
             .glyph = NULL,
             .row0_y = -1,
@@ -3588,25 +3522,6 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     int16_t tile_src_x1 = 0;
     int16_t tile_src_y1 = 0;
     int tile_glyphs_overlap = 0;
-    if (g_text_transform_tile_cache.glyphs == NULL)
-    {
-        g_text_transform_tile_cache.glyphs = (text_transform_glyph_t *)egui_malloc(EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS * sizeof(text_transform_glyph_t));
-        if (g_text_transform_tile_cache.glyphs == NULL)
-        {
-            egui_font_std_release_access(&font_access);
-            return;
-        }
-    }
-    if (g_text_transform_tile_cache.lines == NULL)
-    {
-        g_text_transform_tile_cache.lines = (text_transform_layout_line_t *)egui_malloc(EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES *
-                                                                                        sizeof(*g_text_transform_tile_cache.lines));
-        if (g_text_transform_tile_cache.lines == NULL)
-        {
-            egui_font_std_release_access(&font_access);
-            return;
-        }
-    }
     {
         int use_visible_alpha8_tile = (bpp == 4 && scale_q8 >= 256 &&
                                        (ctx.mask == NULL || (ctx.mask->api != NULL && ctx.mask->api->kind == EGUI_MASK_KIND_GRADIENT &&
@@ -3615,18 +3530,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
         if (use_visible_alpha8_tile)
         {
-            if (g_text_transform_tile_cache.layout_glyphs == NULL)
-            {
-                g_text_transform_tile_cache.layout_glyphs = (const text_transform_layout_glyph_t **)egui_malloc(
-                        EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS * sizeof(*g_text_transform_tile_cache.layout_glyphs));
-                if (g_text_transform_tile_cache.layout_glyphs == NULL)
-                {
-                    egui_font_std_release_access(&font_access);
-                    return;
-                }
-            }
-
-            tile_count = collect_visible_layout_glyphs_alpha8(layout_glyphs, layout_lines, layout_line_count, g_text_transform_tile_cache.layout_glyphs,
+            tile_count = collect_visible_layout_glyphs_alpha8(layout_glyphs, layout_lines, layout_line_count, tile_layout_glyphs,
                                                               EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS, src_min_x, src_min_y, src_max_x, src_max_y,
                                                               &tile_src_x0, &tile_src_y0, &tile_src_x1, &tile_src_y1, &tile_glyphs_overlap);
 
@@ -3636,17 +3540,16 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                 return;
             }
 
-            if (text_transform_draw_visible_alpha8_tile_layout(&ctx, x, y, color, font_info, g_text_transform_tile_cache.layout_glyphs, tile_count,
-                                                               tile_src_x0, tile_src_y0, tile_src_x1, tile_src_y1, tile_glyphs_overlap))
+            if (text_transform_draw_visible_alpha8_tile_layout(&ctx, x, y, color, font_info, tile_layout_glyphs, tile_count, tile_src_x0, tile_src_y0,
+                                                               tile_src_x1, tile_src_y1, tile_glyphs_overlap))
             {
                 egui_font_std_release_access(&font_access);
                 return;
             }
         }
 
-        tile_count = collect_visible_glyphs(font_info, layout_glyphs, layout_lines, layout_line_count, g_text_transform_tile_cache.glyphs,
-                                            EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS, g_text_transform_tile_cache.lines,
-                                            EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES,
+        tile_count = collect_visible_glyphs(font_info, layout_glyphs, layout_lines, layout_line_count, tile_glyphs, EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS,
+                                            tile_lines, EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES,
                                             &tile_line_count, src_min_x, src_min_y, src_max_x, src_max_y, NULL, NULL, NULL, NULL, NULL, 1);
 
         if (tile_count == 0)
@@ -3654,14 +3557,6 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
             egui_font_std_release_access(&font_access);
             return;
         }
-
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-        if (font_is_external && text_transform_preload_external_tile_glyphs(g_text_transform_tile_cache.glyphs, tile_count, external_tile_pixel_stack,
-                                                                            sizeof(external_tile_pixel_stack)))
-        {
-            draw_font_is_external = 0;
-        }
-#endif
 
         (void)tile_count;
     }
@@ -3723,7 +3618,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                 /* Fast path: SIR within hint glyph interior */
                 if (hint >= 0)
                 {
-                    const text_transform_glyph_t *g = &g_text_transform_tile_cache.glyphs[hint];
+                    const text_transform_glyph_t *g = &tile_glyphs[hint];
                     int lx = sx - g->x;
                     int ly = sy - g->y;
                     if (lx >= 0 && lx + 1 < g->box_w && ly >= 0 && ly + 1 < g->box_h)
@@ -4034,7 +3929,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                 /* Ungrouped slow path: per-sample glyph lookup */
                 {
                     uint16_t a00, a01, a10, a11;
-                    int line0 = sample_tile_find_pair_line(g_text_transform_tile_cache.lines, tile_line_count, sx, sy, hint_line);
+                    int line0 = sample_tile_find_pair_line(tile_lines, tile_line_count, sx, sy, hint_line);
                     int line1;
                     int hint00 = -1;
                     int hint01 = -1;
@@ -4051,14 +3946,13 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                         if (draw_font_is_external)
                         {
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-                            sample_tile_alpha_pair_from_line_external(g_text_transform_tile_cache.glyphs, &g_text_transform_tile_cache.lines[line0], sx, sy, bpp,
-                                                                      &a00, &a01, &hint00, &hint01, &external_row_cache);
+                            sample_tile_alpha_pair_from_line_external(tile_glyphs, &tile_lines[line0], sx, sy, bpp, &a00, &a01, &hint00, &hint01,
+                                                                      &external_row_cache);
 #endif
                         }
                         else
                         {
-                            sample_tile_alpha_pair_from_line(g_text_transform_tile_cache.glyphs, &g_text_transform_tile_cache.lines[line0], sx, sy, bpp, &a00,
-                                                             &a01, &hint00, &hint01);
+                            sample_tile_alpha_pair_from_line(tile_glyphs, &tile_lines[line0], sx, sy, bpp, &a00, &a01, &hint00, &hint01);
                         }
                     }
 
@@ -4070,20 +3964,19 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
                         goto text_next_pixel;
                     }
 
-                    line1 = sample_tile_find_pair_line(g_text_transform_tile_cache.lines, tile_line_count, sx, sy + 1, line0);
+                    line1 = sample_tile_find_pair_line(tile_lines, tile_line_count, sx, sy + 1, line0);
                     if (line1 >= 0)
                     {
                         if (draw_font_is_external)
                         {
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-                            sample_tile_alpha_pair_from_line_external(g_text_transform_tile_cache.glyphs, &g_text_transform_tile_cache.lines[line1], sx, sy + 1, bpp,
-                                                                      &a10, &a11, &hint10, &hint11, &external_row_cache);
+                            sample_tile_alpha_pair_from_line_external(tile_glyphs, &tile_lines[line1], sx, sy + 1, bpp, &a10, &a11, &hint10, &hint11,
+                                                                      &external_row_cache);
 #endif
                         }
                         else
                         {
-                            sample_tile_alpha_pair_from_line(g_text_transform_tile_cache.glyphs, &g_text_transform_tile_cache.lines[line1], sx, sy + 1, bpp, &a10,
-                                                             &a11, &hint10, &hint11);
+                            sample_tile_alpha_pair_from_line(tile_glyphs, &tile_lines[line1], sx, sy + 1, bpp, &a10, &a11, &hint10, &hint11);
                         }
                     }
 
