@@ -1636,6 +1636,14 @@ typedef struct
 #define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 4096
 #endif
 
+#ifndef EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS 0
+#endif
+
+#ifndef EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES 0
+#endif
+
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 #ifndef EGUI_CONFIG_TEXT_TRANSFORM_EXTERNAL_GLYPH_ROW_CACHE_BYTES
 #define EGUI_CONFIG_TEXT_TRANSFORM_EXTERNAL_GLYPH_ROW_CACHE_BYTES 256
@@ -3601,6 +3609,10 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     int layout_count = 0;
     const text_transform_layout_line_t *layout_lines = NULL;
     int layout_line_count = 0;
+#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS > 0 && EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES > 0
+    text_transform_layout_glyph_t stack_layout_glyphs[EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS];
+    text_transform_layout_line_t stack_layout_lines[EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES];
+#endif
     text_transform_glyph_t tile_glyphs[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS];
     const text_transform_layout_glyph_t *tile_layout_glyphs[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS];
     text_transform_layout_line_t tile_lines[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES];
@@ -3616,7 +3628,37 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     int draw_font_is_external = 0;
 #endif
 
-    if (text_transform_prepare_layout(font, font_info, (const char *)string, 0, &layout_glyphs, &layout_count, &layout_lines, &layout_line_count) != 0)
+    {
+        const char *text = (const char *)string;
+
+#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS > 0 && EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES > 0
+        int stack_needed = 0;
+        int stack_line_needed = 0;
+
+        text_transform_measure_layout_slots(text, &stack_needed, &stack_line_needed);
+        if (stack_needed > 0 &&
+            stack_needed <= EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS &&
+            stack_line_needed > 0 &&
+            stack_line_needed <= EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES &&
+            stack_needed <= TEXT_TRANSFORM_LAYOUT_INDEX_MAX)
+        {
+            layout_count = text_transform_build_layout(font_info, text, stack_layout_glyphs, stack_needed, stack_layout_lines, stack_line_needed, &layout_line_count, 0);
+            if (layout_count < 0)
+            {
+                return;
+            }
+            layout_glyphs = stack_layout_glyphs;
+            layout_lines = stack_layout_lines;
+        }
+        else
+#endif
+        if (text_transform_prepare_layout(font, font_info, text, 0, &layout_glyphs, &layout_count, &layout_lines, &layout_line_count) != 0)
+        {
+            return;
+        }
+    }
+
+    if (layout_glyphs == NULL || layout_lines == NULL)
     {
         return;
     }

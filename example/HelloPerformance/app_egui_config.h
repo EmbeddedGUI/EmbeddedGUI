@@ -79,6 +79,12 @@ extern "C" {
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 1
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT  1
 
+// HelloPerformance's rotated-text benchmarks only use a fixed 7-line string
+// (~70 glyphs), so building the per-draw layout on stack avoids the small
+// persistent heap layout cache without affecting current content coverage.
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS 80
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES  8
+
 // HelloPerformance only uses small ASCII subsets (88/93 glyphs), so the
 // frame-local ASCII lookup cache can use 8-bit indices and the multi-line
 // text cache only needs one small slot for the 7-line benchmark string.
