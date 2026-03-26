@@ -83,6 +83,7 @@ typedef enum
     EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_NONE = 0,
     EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_STD = 1,
     EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_TRANSFORM = 2,
+    EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_RLE = 3,
 } egui_image_external_row_cache_owner_t;
 
 uint32_t egui_image_std_claim_shared_external_row_cache(egui_image_external_row_cache_owner_t owner);
