@@ -17,8 +17,10 @@ ENTRY(Reset_Handler)
 
 _estack = ORIGIN(RAM) + LENGTH(RAM);
 
-_Min_Heap_Size = 0x40000;  /* 256KB heap (needed for image transform external resource loading) */
-_Min_Stack_Size = 0x2000; /* 8KB stack */
+/* Allow app-specific QEMU builds to override the reserved heap/stack budget
+ * via linker --defsym without changing the default for other apps. */
+_Min_Heap_Size = DEFINED(__qemu_min_heap_size__) ? __qemu_min_heap_size__ : 0x40000; /* 256KB heap */
+_Min_Stack_Size = DEFINED(__qemu_min_stack_size__) ? __qemu_min_stack_size__ : 0x2000; /* 8KB stack */
 
 MEMORY
 {
