@@ -20,6 +20,7 @@
 | --- | --- | ---: | ---: | ---: | ---: | --- | --- |
 | 2026-03-27 | Alpha change tables moved to rodata | 2172668 | 52 | 22132 | 22184 | 0 / 0 | Baseline before this round |
 | 2026-03-27 | Disable HelloPerformance RLE checkpoint fallback state | 2172576 | 52 | 22116 | 22168 | 0 / 0 | `static RAM -16B`, `rle_checkpoint` removed |
+| 2026-03-27 | Disable HelloPerformance touch pipeline | 2168220 | 52 | 22036 | 22088 | 0 / 0 | `static RAM -80B`, removed unused touch/input state for timer-driven recording |
 
 ## Current Breakdown
 
@@ -31,17 +32,18 @@
 | `egui_image_decode_row_cache_alpha` | `.bss` | 3840 | Decode row-band alpha cache |
 | `egui_pfb` | `.bss` | 1536 | User-configurable PFB, not an optimization target |
 | `qoi_state` | `.bss` | 276 | QOI decoder state |
-| `egui_core` | `.bss` | 236 | Core runtime state |
-| `test_view` | `.bss` | 60 | HelloPerformance scene object |
-| `anim_perf_view` | `.bss` | 56 | HelloPerformance scene object |
+| `egui_core` | `.bss` | 228 | Core runtime state |
+| `test_view` | `.bss` | 56 | HelloPerformance scene object |
+| `anim_perf_view` | `.bss` | 52 | HelloPerformance scene object |
 | `canvas_data` | `.bss` | 44 | Canvas runtime state |
 | `ui_timer` | `.bss` | 20 | App timer state |
 | `rle_state` | `.bss` | 16 | Remaining RLE decoder state |
 | `port_display_driver` | `.data` | 16 | QEMU display driver state |
-| `input_motion_pool_data_storage` | `.bss` | 16 | Input motion pool |
-| `input_motion_pool` | `.bss` | 16 | Input motion pool metadata |
 | `g_font_std_code_lookup_cache` | `.data` | 12 | Font lookup cache |
 | `egui_image_decode_cache_state` | `.data` | 12 | Decode cache metadata |
+| `g_selected_char_desc` | `.bss` | 12 | Text transform selection state |
+
+- This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
 
 ### Heap Measurement
 

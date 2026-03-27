@@ -7,6 +7,8 @@
 #include "egui_touch.h"
 #include "core/egui_touch_driver.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+
 static egui_hal_touch_driver_t *s_hal_touch = NULL;
 static egui_touch_driver_t s_core_touch;
 static egui_touch_driver_ops_t s_core_touch_ops;
@@ -131,3 +133,13 @@ void egui_hal_touch_register(egui_hal_touch_driver_t *touch, const egui_hal_touc
 
     egui_touch_driver_register(&s_core_touch);
 }
+
+#else
+
+void egui_hal_touch_register(egui_hal_touch_driver_t *touch, const egui_hal_touch_config_t *config)
+{
+    (void)touch;
+    (void)config;
+}
+
+#endif

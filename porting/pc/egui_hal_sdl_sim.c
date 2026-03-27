@@ -68,6 +68,8 @@ void egui_hal_sdl_lcd_setup(egui_hal_lcd_driver_t *storage)
     storage->set_rst = NULL;
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+
 static int sdl_touch_init(egui_hal_touch_driver_t *self, const egui_hal_touch_config_t *config)
 {
     memcpy(&self->config, config, sizeof(*config));
@@ -126,3 +128,12 @@ void egui_hal_sdl_touch_setup(egui_hal_touch_driver_t *storage)
     storage->set_int = NULL;
     storage->get_int = NULL;
 }
+
+#else
+
+void egui_hal_sdl_touch_setup(egui_hal_touch_driver_t *storage)
+{
+    memset(storage, 0, sizeof(*storage));
+}
+
+#endif

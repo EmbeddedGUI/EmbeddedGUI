@@ -332,3 +332,38 @@ void egui_input_key_init(void)
 }
 
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+
+#if !EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH && !EGUI_CONFIG_FUNCTION_SUPPORT_KEY
+
+int egui_input_add_motion(uint8_t type, egui_dim_t x, egui_dim_t y)
+{
+    EGUI_UNUSED(type);
+    EGUI_UNUSED(x);
+    EGUI_UNUSED(y);
+    return 0;
+}
+
+egui_float_t egui_input_get_velocity_x(void)
+{
+    return 0;
+}
+
+egui_float_t egui_input_get_velocity_y(void)
+{
+    return 0;
+}
+
+int egui_input_check_idle(void)
+{
+    return 1;
+}
+
+void egui_input_polling_work(void)
+{
+}
+
+void egui_input_init(void)
+{
+}
+
+#endif

@@ -160,6 +160,11 @@ extern "C" {
 // switch invalidates that whole surface, so one dirty-region slot is enough.
 #define EGUI_CONFIG_DIRTY_AREA_COUNT 1
 
+// HelloPerformance advances scenes through its timer/recording pipeline and
+// does not rely on touch interaction, so the touch dispatcher and motion queue
+// only consume persistent RAM in this app.
+#define EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH 0
+
 // HelloPerformance only reaches one text-rotation prepare call per draw, so
 // recomputing the affine bounds is cheaper than keeping a persistent 60B cache.
 #define EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE 0
