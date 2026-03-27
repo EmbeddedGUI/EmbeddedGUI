@@ -182,15 +182,17 @@ extern "C" {
 #define EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE    0
 
 // HelloPerformance's rotated-text benchmarks only use a fixed 7-line string
-// (~70 glyphs), so building the per-draw layout on stack avoids the small
-// persistent heap layout cache without affecting current content coverage.
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS 80
+// (70 glyphs), so the stack layout and tile collectors only need a small
+// margin above that current content size.
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS 72
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES  8
+#define EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS         72
+#define EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES          8
 
-// The rotated-text visible alpha8 tile peaks a little above 4KB in
-// HelloPerformance. Keeping tiles up to 6KB on stack preserves the fast
-// alpha8 path while avoiding the transient heap spike in those scenes.
-#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES 6144
+// The rotated-text visible alpha8 tile peaks just above 4KB in
+// HelloPerformance. Keeping a 4352B stack ceiling still covers the current
+// scenes, avoids heap fallback, and trims the worst transient stack frame.
+#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES 4352
 
 // HelloPerformance only uses small ASCII subsets (88/93 glyphs), so the
 // frame-local ASCII lookup cache can use 8-bit indices and the multi-line

@@ -1,8 +1,8 @@
-# HelloPerformance RAM Tracking
+# HelloPerformance Memory Tracking
 
 ## Scope
 
-- This file tracks `HelloPerformance` static RAM and heap after each RAM-focused change.
+- This file tracks `HelloPerformance` static RAM, heap, and stack after each RAM-focused change.
 - `PFB` is listed for completeness, but it is user-configurable and not an optimization target.
 - Static RAM numbers use the normal QEMU performance build:
   - `make clean`
@@ -13,15 +13,21 @@
   - `make all APP=HelloPerformance PORT=qemu CPU_ARCH=cortex-m3 USER_CFLAGS="-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1"`
   - `Copy-Item example\HelloPerformance\resource\app_egui_resource_merge.bin output\app_egui_resource_merge.bin -Force`
   - `qemu-system-arm ... -kernel output/main.elf`
+- Stack numbers use the QEMU stack-usage build:
+  - `make clean`
+  - `make all APP=HelloPerformance PORT=qemu CPU_ARCH=cortex-m3 USER_CFLAGS="-fstack-usage"`
+  - summarize `output/obj/HelloPerformance_qemu/**/*.su`
+- `-fstack-usage` reports per-function stack frame size, not the full runtime call-chain peak.
 
 ## History
 
-| Date | Change | text | data | bss | static RAM | Heap | Notes |
-| --- | --- | ---: | ---: | ---: | ---: | --- | --- |
-| 2026-03-27 | Alpha change tables moved to rodata | 2172668 | 52 | 22132 | 22184 | 0 / 0 | Baseline before this round |
-| 2026-03-27 | Disable HelloPerformance RLE checkpoint fallback state | 2172576 | 52 | 22116 | 22168 | 0 / 0 | `static RAM -16B`, `rle_checkpoint` removed |
-| 2026-03-27 | Disable HelloPerformance touch pipeline | 2168220 | 52 | 22036 | 22088 | 0 / 0 | `static RAM -80B`, removed unused touch/input state for timer-driven recording |
-| 2026-03-27 | Compact HelloPerformance QOI RGB565 index | 2168836 | 52 | 21972 | 22024 | 0 / 0 | `static RAM -64B`, `qoi_state 276B -> 212B`, text `+616B` |
+| Date | Change | text | data | bss | static RAM | Heap | Max stack frame | Notes |
+| --- | --- | ---: | ---: | ---: | ---: | --- | ---: | --- |
+| 2026-03-27 | Alpha change tables moved to rodata | 2172668 | 52 | 22132 | 22184 | 0 / 0 | n/a | Baseline before this round |
+| 2026-03-27 | Disable HelloPerformance RLE checkpoint fallback state | 2172576 | 52 | 22116 | 22168 | 0 / 0 | n/a | `static RAM -16B`, `rle_checkpoint` removed |
+| 2026-03-27 | Disable HelloPerformance touch pipeline | 2168220 | 52 | 22036 | 22088 | 0 / 0 | n/a | `static RAM -80B`, removed unused touch/input state for timer-driven recording |
+| 2026-03-27 | Compact HelloPerformance QOI RGB565 index | 2168836 | 52 | 21972 | 22024 | 0 / 0 | n/a | `static RAM -64B`, `qoi_state 276B -> 212B`, text `+616B` |
+| 2026-03-27 | Tighten HelloPerformance text transform stack bounds | 2166116 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text -2720B`, rotated-text top frames `6248/4888 -> 4456/3416`, heap stays `0` |
 
 ## Current Breakdown
 
@@ -45,7 +51,7 @@
 | `g_selected_char_desc` | `.bss` | 12 | Text transform selection state |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
-- Current normal QEMU build: `text=2168836`, `data=52`, `bss=21972`, `static RAM=22024`.
+- Current normal QEMU build: `text=2166116`, `data=52`, `bss=21972`, `static RAM=22024`.
 
 ### Heap Measurement
 
@@ -55,6 +61,21 @@
 
 - Heap log contains `HEAP_EXIT`.
 - This round keeps the existing `heap = 0` requirement unchanged.
+
+### Stack Measurement
+
+| Function | File | Frame (B) | Relevance | Notes |
+| --- | --- | ---: | --- | --- |
+| `text_transform_draw_visible_alpha8_tile_layout` | `src/core/egui_canvas_transform.c` | 4456 | HelloPerformance rotated-text runtime path | Dominated by `alpha8_stack_buf[4352]`; this round cut it from `6248B` |
+| `egui_canvas_draw_text_transform` | `src/core/egui_canvas_transform.c` | 3416 | HelloPerformance rotated-text runtime path | Stack layout/tile arrays now capped to `72 glyphs / 8 lines`; this round cut it from `4888B` |
+| `egui_shadow_draw_corner` | `src/shadow/egui_shadow.c` | 1048 | HelloPerformance shadow scenes | Runtime hotspot, but much smaller than rotated-text path |
+| `egui_canvas_draw_ellipse` | `src/core/egui_canvas_ellipse.c` | 1048 | HelloPerformance ellipse scenes | Runtime hotspot, but much smaller than rotated-text path |
+| `egui_view_heart_rate_on_draw` | `src/widget/egui_view_heart_rate.c` | 1200 | Framework compiled hotspot, not in current HelloPerformance flow | Large locals: `points[240]`, `raw_vals[120]`, `smooth_vals[120]` |
+| `egui_view_virtual_tree_walk_internal` | `src/widget/egui_view_virtual_tree.c` | 1112 | Framework compiled hotspot, not in current HelloPerformance flow | Large local stack frame: `frames[EGUI_VIEW_VIRTUAL_TREE_MAX_DEPTH]` |
+
+- Current `HelloPerformance` stack risk is concentrated in the rotated-text path used by `TEXT_ROTATE*` and `EXTERN_TEXT_ROTATE*` benchmark scenes.
+- This round only tightened HelloPerformance-specific stack bounds. It did not increase static RAM, did not reintroduce heap, and did not touch `pfb`.
+- Current stack-usage build top frames `>= 1KB`: `4456`, `3416`, `1200`, `1112`, `1048`, `1048`.
 
 ### RLE Checkpoint A/B
 
