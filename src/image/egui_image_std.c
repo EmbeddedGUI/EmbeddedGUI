@@ -6148,8 +6148,8 @@ void egui_image_std_set_image_rgb32(const egui_image_t *self, egui_dim_t x, egui
 #define EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 4
 #endif
 
-#if EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS <= 0
-#error "EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS must be > 0"
+#if EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS < 0
+#error "EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS must be >= 0"
 #endif
 
 typedef struct
@@ -6158,8 +6158,12 @@ typedef struct
     uint8_t is_all_opaque;
 } egui_image_std_alpha_opaque_cache_t;
 
+#if EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS > 0
 static egui_image_std_alpha_opaque_cache_t g_egui_image_std_alpha_opaque_cache[EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS];
+#if EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS > 1
 static uint8_t g_egui_image_std_alpha_opaque_cache_next = 0;
+#endif
+#endif
 
 __EGUI_STATIC_INLINE__ uint16_t egui_image_std_rgb565_alpha_row_size(egui_dim_t width, uint8_t alpha_type)
 {
@@ -6283,6 +6287,7 @@ __EGUI_STATIC_INLINE__ int egui_image_std_rgb565_alpha_is_all_opaque(const egui_
         return 0;
     }
 
+#if EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS > 0
     for (uint8_t i = 0; i < (uint8_t)(sizeof(g_egui_image_std_alpha_opaque_cache) / sizeof(g_egui_image_std_alpha_opaque_cache[0])); i++)
     {
         if (g_egui_image_std_alpha_opaque_cache[i].image == image)
@@ -6324,6 +6329,10 @@ __EGUI_STATIC_INLINE__ int egui_image_std_rgb565_alpha_is_all_opaque(const egui_
             }
         }
 
+#if EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS == 1
+        g_egui_image_std_alpha_opaque_cache[0].image = image;
+        g_egui_image_std_alpha_opaque_cache[0].is_all_opaque = (uint8_t)is_all_opaque;
+#elif EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS > 1
         g_egui_image_std_alpha_opaque_cache[g_egui_image_std_alpha_opaque_cache_next].image = image;
         g_egui_image_std_alpha_opaque_cache[g_egui_image_std_alpha_opaque_cache_next].is_all_opaque = (uint8_t)is_all_opaque;
         g_egui_image_std_alpha_opaque_cache_next++;
@@ -6331,8 +6340,42 @@ __EGUI_STATIC_INLINE__ int egui_image_std_rgb565_alpha_is_all_opaque(const egui_
         {
             g_egui_image_std_alpha_opaque_cache_next = 0;
         }
+#endif
         return is_all_opaque;
     }
+#else
+    {
+        const uint8_t *alpha = (const uint8_t *)image->alpha_buf;
+        uint16_t alpha_row_size = egui_image_std_rgb565_alpha_row_size(image->width, image->alpha_type);
+        int is_all_opaque = 1;
+
+        if (image->width == 0 || image->height == 0 || alpha_row_size == 0)
+        {
+            return 0;
+        }
+
+        if (image->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
+        {
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+            return egui_image_std_rgb565_external_alpha_is_all_opaque(image, alpha_row_size);
+#else
+            return 0;
+#endif
+        }
+
+        for (egui_dim_t y = 0; y < image->height; y++)
+        {
+            if (!egui_image_std_rgb565_alpha_row_is_all_opaque(alpha, image->width, image->alpha_type))
+            {
+                is_all_opaque = 0;
+                break;
+            }
+            alpha += alpha_row_size;
+        }
+
+        return is_all_opaque;
+    }
+#endif
 }
 
 int egui_image_std_rgb565_is_opaque_source(const egui_image_std_info_t *image)

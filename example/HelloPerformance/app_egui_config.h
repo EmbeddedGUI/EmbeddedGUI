@@ -173,10 +173,9 @@ extern "C" {
 #define EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 0
 #endif
 
-// HelloPerformance image benchmarks keep one source image hot per scene, so a
-// single "alpha row is fully opaque" cache slot preserves the fast-path hit
-// without keeping extra global entries alive.
-#define EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 1
+// HelloPerformance's current image workloads do not justify keeping a
+// persistent "source alpha is fully opaque" metadata slot alive in BSS.
+#define EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 0
 
 // HelloPerformance already shares the external-image row buffers, and each
 // draw only needs one row-cache metadata block at a time, so keep that
