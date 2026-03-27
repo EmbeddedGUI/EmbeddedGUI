@@ -4,6 +4,7 @@
 
 - This file tracks `HelloPerformance` static RAM, heap, and stack after each RAM-focused change.
 - `PFB` is listed for completeness, but it is user-configurable and not an optimization target.
+- Any buffer whose size follows font size, image size, screen size, or `PFB` size must use `heap`; do not replace that with macro-fixed RAM, static storage, or large stack locals just to keep `heap=0`.
 - Static RAM numbers use the normal QEMU performance build:
   - `make clean`
   - `make all APP=HelloPerformance PORT=qemu CPU_ARCH=cortex-m3`
@@ -31,6 +32,7 @@
 | 2026-03-27 | Shrink HelloPerformance external text transform stack buffers | 2166120 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text +4B`, `egui_canvas_draw_text_transform 3416 -> 2936`, external glyph helpers `856/864 -> 392/400`, heap stays `0` |
 | 2026-03-27 | Shrink HelloPerformance shadow corner stack LUT | 2166120 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `egui_shadow_draw_corner 1048 -> 792`, `SHADOW_ROUND 7.158 -> 6.113 (-14.6%)`, heap stays `0` |
 | 2026-03-27 | Refactor HelloPerformance ellipse outline stack frame | 2162556 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text -3564B`, `egui_canvas_draw_ellipse 1048 -> 360`, helper frames `40/144`, `ELLIPSE 2.253 ms`, heap stays `0` |
+| 2026-03-27 | Refactor HelloPerformance line HQ polyline stack frame | 2162556 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `line_hq_draw_polyline_internal 1016 -> 152`, new `line_hq_draw_polyline_segment 976`, `LINE_HQ 3.557 ms`, heap stays `0` |
 
 ## Current Breakdown
 
@@ -73,16 +75,20 @@
 | `egui_canvas_draw_text_transform` | `src/core/egui_canvas_transform.c` | 2936 | HelloPerformance rotated-text runtime path | External row/glyph scratch bounds now `16B / 288B`; this round cut it from `3416B` |
 | `egui_view_heart_rate_on_draw` | `src/widget/egui_view_heart_rate.c` | 1200 | Framework compiled hotspot, not in current HelloPerformance flow | Large locals: `points[240]`, `raw_vals[120]`, `smooth_vals[120]` |
 | `egui_view_virtual_tree_walk_internal` | `src/widget/egui_view_virtual_tree.c` | 1112 | Framework compiled hotspot, not in current HelloPerformance flow | Large local stack frame: `frames[EGUI_VIEW_VIRTUAL_TREE_MAX_DEPTH]` |
-| `line_hq_draw_polyline_internal` | `src/core/egui_canvas_line_hq.c` | 1016 | HelloPerformance line/polyline scenes | Current HelloPerformance non-text top stack frame |
+| `egui_canvas_draw_circle_fill_gradient` | `src/core/egui_canvas_gradient.c` | 1000 | HelloPerformance gradient circle scenes | Large local fixed LUT: `color_cache[256]`; fixed-size and not tied to font/image/screen/PFB |
+| `egui_canvas_draw_round_rectangle_corners_fill_gradient` | `src/core/egui_canvas_gradient.c` | 992 | HelloPerformance gradient round-rect scenes | Large local fixed LUT: `color_cache[256]`; fixed-size and not tied to font/image/screen/PFB |
+| `line_hq_draw_polyline_segment` | `src/core/egui_canvas_line_hq.c` | 976 | HelloPerformance line/polyline scenes | Split out from `line_hq_draw_polyline_internal`; remaining frame is scalar segment state, no large local arrays |
+| `egui_canvas_draw_line_hq` | `src/core/egui_canvas_line_hq.c` | 824 | HelloPerformance line scenes | Current lower-level line HQ hotspot after the polyline split |
 | `egui_shadow_draw_corner` | `src/shadow/egui_shadow.c` | 792 | HelloPerformance shadow scenes | `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 256 -> 128`; local LUT stack reduced by `256B` |
+| `egui_canvas_draw_line_round_cap_hq` | `src/core/egui_canvas_line_hq.c` | 744 | HelloPerformance line round-cap scenes | Below current polyline helper; unchanged in this round |
 | `egui_canvas_draw_ellipse` | `src/core/egui_canvas_ellipse.c` | 360 | HelloPerformance ellipse scenes | Outline scanline preparation/render split into helpers; helper frames `40B` and `144B` |
-| `rasterize_external_glyph4_to_packed_inside_common` | `src/core/egui_canvas_transform.c` | 400 | HelloPerformance external rotated-text helper | Local external glyph scratch shrank from `864B` |
-| `rasterize_external_glyph4_to_alpha8_inside_common` | `src/core/egui_canvas_transform.c` | 392 | HelloPerformance external rotated-text helper | Local external glyph scratch shrank from `856B` |
+| `line_hq_draw_polyline_internal` | `src/core/egui_canvas_line_hq.c` | 152 | HelloPerformance line/polyline scenes | Coordinator-only after refactor; was `1016B` before this round |
 
 - Current `HelloPerformance` stack risk is still concentrated in the rotated-text path used by `TEXT_ROTATE*` and `EXTERN_TEXT_ROTATE*` benchmark scenes.
-- After the ellipse refactor, the current `HelloPerformance` non-text stack hotspot is `line_hq_draw_polyline_internal (1016B)`.
-- This round only refactored the HelloPerformance ellipse outline scanline path. It did not increase static RAM, did not reintroduce heap, and did not touch `pfb`.
-- Current stack-usage build top frames `>= 1KB`: `4456`, `2936`, `1200`, `1112`, `1016`.
+- This round split `line_hq_draw_polyline_internal` into a small coordinator plus `line_hq_draw_polyline_segment`; measured `1016B -> 152B`, with the new helper at `976B`.
+- Current `HelloPerformance` non-text heads are `egui_canvas_draw_circle_fill_gradient (1000B)`, `egui_canvas_draw_round_rectangle_corners_fill_gradient (992B)`, `line_hq_draw_polyline_segment (976B)`, and `egui_canvas_draw_line_hq (824B)`.
+- `HelloPerformance` non-text paths now have no stack frame `>= 1KB`; the remaining `>= 1KB` frames are `4456`, `2936`, `1200`, `1112`.
+- This round did not increase static RAM, did not reintroduce heap, and did not touch `pfb`.
 
 ### RLE Checkpoint A/B
 

@@ -113,6 +113,27 @@ typedef struct line_hq_sample_ctx_t
     int64_t dot_step_x;
 } line_hq_sample_ctx_t;
 
+typedef struct line_hq_polyline_draw_ctx_t
+{
+    egui_canvas_t *self;
+    egui_dim_t stroke_width;
+    egui_dim_t pfb_width;
+    egui_dim_t pfb_ofs_x;
+    egui_dim_t pfb_ofs_y;
+    egui_dim_t work_x1;
+    egui_dim_t work_y1;
+    egui_dim_t work_x2;
+    egui_dim_t work_y2;
+    egui_color_t color;
+    const egui_alpha_t *sample_alpha_table;
+    const egui_alpha_t *direct_alpha_table;
+    egui_alpha_t solid_alpha;
+    egui_alpha_t solid_direct_alpha;
+    uint8_t use_direct_pfb;
+    uint8_t round_cap;
+    uint8_t seg_count;
+} line_hq_polyline_draw_ctx_t;
+
 __EGUI_STATIC_INLINE__ void line_hq_blend_direct(egui_color_t *dst, egui_color_t color, egui_alpha_t alpha)
 {
     if (alpha == 0)
@@ -659,6 +680,225 @@ void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t
  *
  * round_cap: when 1, first and last endpoints get round caps.
  */
+static void line_hq_draw_polyline_segment(const line_hq_polyline_draw_ctx_t *ctx, const egui_dim_t *points, uint8_t seg)
+{
+    egui_canvas_t *self = ctx->self;
+    egui_dim_t stroke_width = ctx->stroke_width;
+    egui_color_t color = ctx->color;
+    int32_t round_cap = ctx->round_cap;
+    uint8_t seg_count = ctx->seg_count;
+    int use_direct_pfb = ctx->use_direct_pfb;
+    egui_dim_t pfb_width = ctx->pfb_width;
+    egui_dim_t pfb_ofs_x = ctx->pfb_ofs_x;
+    egui_dim_t pfb_ofs_y = ctx->pfb_ofs_y;
+    const egui_alpha_t *sample_alpha_table = ctx->sample_alpha_table;
+    const egui_alpha_t *direct_alpha_table = ctx->direct_alpha_table;
+    egui_alpha_t solid_alpha = ctx->solid_alpha;
+    egui_alpha_t solid_direct_alpha = ctx->solid_direct_alpha;
+    int32_t sx1 = points[seg * 2];
+    int32_t sy1 = points[seg * 2 + 1];
+    int32_t sx2 = points[(seg + 1) * 2];
+    int32_t sy2 = points[(seg + 1) * 2 + 1];
+    int32_t dx = sx2 - sx1;
+    int32_t dy = sy2 - sy1;
+    int64_t line_len_sq = (int64_t)dx * dx + (int64_t)dy * dy;
+
+    if (line_len_sq == 0)
+    {
+        return;
+    }
+
+    int64_t half_w_sq_x_len_sq = (int64_t)stroke_width * stroke_width * line_len_sq / 4;
+
+    // Compute scan bounds for this segment
+    egui_dim_t half_sw = (stroke_width >> 1) + 1;
+    egui_dim_t scan_x1 = EGUI_MIN(sx1, sx2) - half_sw;
+    egui_dim_t scan_y1 = EGUI_MIN(sy1, sy2) - half_sw;
+    egui_dim_t scan_x2 = EGUI_MAX(sx1, sx2) + half_sw;
+    egui_dim_t scan_y2 = EGUI_MAX(sy1, sy2) + half_sw;
+
+    scan_x1 = EGUI_MAX(scan_x1, ctx->work_x1);
+    scan_y1 = EGUI_MAX(scan_y1, ctx->work_y1);
+    scan_x2 = EGUI_MIN(scan_x2, ctx->work_x2 - 1);
+    scan_y2 = EGUI_MIN(scan_y2, ctx->work_y2 - 1);
+
+    // Outer threshold for fast rejection
+    int32_t outer_w = stroke_width + 2;
+    int64_t outer_thresh = (int64_t)outer_w * outer_w * line_len_sq / 4;
+
+    // Next segment data (for joint handling)
+    int32_t has_next = (seg + 1 < seg_count);
+    int32_t ndx = 0;
+    int32_t ndy = 0;
+    int64_t nline_len_sq = 0;
+    int64_t nhalf_w_sq_x_len_sq = 0;
+    line_hq_sample_ctx_t next_sample_ctx = {0};
+    if (has_next)
+    {
+        int32_t nx1 = points[(seg + 1) * 2];
+        int32_t ny1 = points[(seg + 1) * 2 + 1];
+        int32_t nx2 = points[(seg + 2) * 2];
+        int32_t ny2 = points[(seg + 2) * 2 + 1];
+        ndx = nx2 - nx1;
+        ndy = ny2 - ny1;
+        nline_len_sq = (int64_t)ndx * ndx + (int64_t)ndy * ndy;
+        nhalf_w_sq_x_len_sq = (int64_t)stroke_width * stroke_width * nline_len_sq / 4;
+        if (nline_len_sq > 0)
+        {
+            line_hq_init_sample_ctx(&next_sample_ctx, ndx, ndy, nline_len_sq, nhalf_w_sq_x_len_sq);
+        }
+    }
+
+    // Inner threshold
+    int32_t inner_w = stroke_width - 2;
+    int64_t inner_thresh = (inner_w > 0) ? (int64_t)inner_w * inner_w * line_len_sq / 4 : 0;
+
+    int32_t is_first = (seg == 0);
+    int32_t is_last = (seg == seg_count - 1);
+    int32_t cap_start = (round_cap && is_first);
+    int32_t cap_end = (round_cap && is_last);
+    int32_t margin = stroke_width * stroke_width;
+    int32_t half_w_sq = (stroke_width * stroke_width) / 4 + stroke_width + 1;
+    line_hq_sample_ctx_t sample_ctx;
+
+    line_hq_init_sample_ctx(&sample_ctx, dx, dy, line_len_sq, half_w_sq_x_len_sq);
+
+    // Pre-compute for per-row x-range narrowing
+    int32_t ady = (dy > 0) ? dy : -dy;
+    int32_t half_range_x = 32767;
+    if (ady > 0)
+    {
+        uint16_t line_len = line_hq_isqrt32((uint32_t)line_len_sq);
+        half_range_x = (int32_t)((int64_t)outer_w * (line_len + 1) / (2 * ady)) + 2;
+    }
+
+    for (egui_dim_t py = scan_y1; py <= scan_y2; py++)
+    {
+        egui_color_t *dst_row = NULL;
+        if (use_direct_pfb)
+        {
+            dst_row = (egui_color_t *)&self->pfb[(py - pfb_ofs_y) * pfb_width];
+        }
+
+        // Narrow x scan range based on cross product geometry
+        int32_t x_center = (ady > 0) ? sx1 + (int32_t)((int64_t)dx * (py - sy1) / dy) : (sx1 + sx2) / 2;
+        egui_dim_t row_x1 = (egui_dim_t)EGUI_MAX((int32_t)scan_x1, x_center - half_range_x);
+        egui_dim_t row_x2 = (egui_dim_t)EGUI_MIN((int32_t)scan_x2, x_center + half_range_x);
+        int32_t rel_y = py - sy1;
+        int32_t rel_x = row_x1 - sx1;
+        int64_t cross = (int64_t)dx * (sy1 - py) - (int64_t)(sx1 - row_x1) * dy;
+        int64_t dot = (int64_t)(row_x1 - sx1) * dx + (int64_t)(py - sy1) * dy;
+
+        for (egui_dim_t px = row_x1; px <= row_x2; px++, rel_x++, cross += dy, dot += dx)
+        {
+            int64_t cross_sq = cross * cross;
+
+            if (dot < 0)
+            {
+                if (cap_start)
+                {
+                    // Round cap at start: check distance to start point
+                    int32_t dpx = rel_x;
+                    int32_t dpy = rel_y;
+                    if (dpx * dpx + dpy * dpy > half_w_sq)
+                    {
+                        continue;
+                    }
+                }
+                else if (is_first)
+                {
+                    if (dot < -(int64_t)margin)
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    continue; // Previous segment handles this region
+                }
+            }
+            else if (dot > line_len_sq)
+            {
+                if (cap_end)
+                {
+                    // Round cap at end: check distance to end point
+                    int32_t dpx = rel_x - dx;
+                    int32_t dpy = rel_y - dy;
+                    if (dpx * dpx + dpy * dpy > half_w_sq)
+                    {
+                        continue;
+                    }
+                }
+                else if (is_last)
+                {
+                    if (dot > line_len_sq + (int64_t)margin)
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    continue; // Next segment handles this region
+                }
+            }
+            else
+            {
+                // Within segment projection
+                if (cross_sq > outer_thresh)
+                {
+                    continue;
+                }
+                // Inner zone fast path
+                if (inner_w > 0 && cross_sq <= inner_thresh)
+                {
+                    if (use_direct_pfb)
+                    {
+                        line_hq_blend_direct(&dst_row[px - pfb_ofs_x], color, solid_direct_alpha);
+                    }
+                    else
+                    {
+                        egui_canvas_draw_point(px, py, color, solid_alpha);
+                    }
+                    continue;
+                }
+            }
+
+            // Edge zone: sub-pixel sampling
+            uint8_t cov_idx;
+            if (cap_start || cap_end)
+            {
+                cov_idx = line_hq_get_pixel_coverage_round_cap(rel_x, rel_y, &sample_ctx, cap_start, cap_end);
+            }
+            else
+            {
+                cov_idx = line_hq_get_pixel_coverage(rel_x, rel_y, &sample_ctx);
+            }
+
+            // At the end joint, also sample next segment and take max
+            if (has_next && dot > line_len_sq - (int64_t)margin && nline_len_sq > 0)
+            {
+                uint8_t ncov_idx = line_hq_get_pixel_coverage(rel_x - dx, rel_y - dy, &next_sample_ctx);
+                if (ncov_idx > cov_idx)
+                {
+                    cov_idx = ncov_idx;
+                }
+            }
+
+            if (cov_idx > 0)
+            {
+                if (use_direct_pfb)
+                {
+                    line_hq_blend_direct(&dst_row[px - pfb_ofs_x], color, direct_alpha_table[cov_idx]);
+                }
+                else
+                {
+                    egui_canvas_draw_point(px, py, color, sample_alpha_table[cov_idx]);
+                }
+            }
+        }
+    }
+}
+
 static void line_hq_draw_polyline_internal(const egui_dim_t *points, uint8_t count, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha,
                                            int32_t round_cap)
 {
@@ -687,6 +927,7 @@ static void line_hq_draw_polyline_internal(const egui_dim_t *points, uint8_t cou
     egui_dim_t work_y1 = self->base_view_work_region.location.y;
     egui_dim_t work_x2 = work_x1 + self->base_view_work_region.size.width;
     egui_dim_t work_y2 = work_y1 + self->base_view_work_region.size.height;
+    line_hq_polyline_draw_ctx_t draw_ctx;
     egui_alpha_t sample_alpha_table[EGUI_ARRAY_SIZE(line_hq_alpha_table)];
     egui_alpha_t direct_alpha_table[EGUI_ARRAY_SIZE(line_hq_alpha_table)];
     egui_alpha_t solid_alpha;
@@ -696,212 +937,27 @@ static void line_hq_draw_polyline_internal(const egui_dim_t *points, uint8_t cou
     solid_alpha = sample_alpha_table[EGUI_ARRAY_SIZE(sample_alpha_table) - 1];
     solid_direct_alpha = direct_alpha_table[EGUI_ARRAY_SIZE(direct_alpha_table) - 1];
 
-    // Pre-compute segment data
+    draw_ctx.self = self;
+    draw_ctx.stroke_width = stroke_width;
+    draw_ctx.pfb_width = pfb_width;
+    draw_ctx.pfb_ofs_x = pfb_ofs_x;
+    draw_ctx.pfb_ofs_y = pfb_ofs_y;
+    draw_ctx.work_x1 = work_x1;
+    draw_ctx.work_y1 = work_y1;
+    draw_ctx.work_x2 = work_x2;
+    draw_ctx.work_y2 = work_y2;
+    draw_ctx.color = color;
+    draw_ctx.sample_alpha_table = sample_alpha_table;
+    draw_ctx.direct_alpha_table = direct_alpha_table;
+    draw_ctx.solid_alpha = solid_alpha;
+    draw_ctx.solid_direct_alpha = solid_direct_alpha;
+    draw_ctx.use_direct_pfb = use_direct_pfb;
+    draw_ctx.round_cap = (uint8_t)round_cap;
+    draw_ctx.seg_count = seg_count;
+
     for (uint8_t seg = 0; seg < seg_count; seg++)
     {
-        int32_t sx1 = points[seg * 2];
-        int32_t sy1 = points[seg * 2 + 1];
-        int32_t sx2 = points[(seg + 1) * 2];
-        int32_t sy2 = points[(seg + 1) * 2 + 1];
-
-        int32_t dx = sx2 - sx1;
-        int32_t dy = sy2 - sy1;
-        int64_t line_len_sq = (int64_t)dx * dx + (int64_t)dy * dy;
-
-        if (line_len_sq == 0)
-        {
-            continue;
-        }
-
-        int64_t half_w_sq_x_len_sq = (int64_t)stroke_width * stroke_width * line_len_sq / 4;
-
-        // Compute scan bounds for this segment
-        egui_dim_t half_sw = (stroke_width >> 1) + 1;
-        egui_dim_t scan_x1 = EGUI_MIN(sx1, sx2) - half_sw;
-        egui_dim_t scan_y1 = EGUI_MIN(sy1, sy2) - half_sw;
-        egui_dim_t scan_x2 = EGUI_MAX(sx1, sx2) + half_sw;
-        egui_dim_t scan_y2 = EGUI_MAX(sy1, sy2) + half_sw;
-
-        scan_x1 = EGUI_MAX(scan_x1, work_x1);
-        scan_y1 = EGUI_MAX(scan_y1, work_y1);
-        scan_x2 = EGUI_MIN(scan_x2, work_x2 - 1);
-        scan_y2 = EGUI_MIN(scan_y2, work_y2 - 1);
-
-        // Outer threshold for fast rejection
-        int32_t outer_w = stroke_width + 2;
-        int64_t outer_thresh = (int64_t)outer_w * outer_w * line_len_sq / 4;
-
-        // Next segment data (for joint handling)
-        int32_t has_next = (seg + 1 < seg_count);
-        int32_t nx1 = 0, ny1 = 0, nx2 = 0, ny2 = 0;
-        int32_t ndx = 0, ndy = 0;
-        int64_t nline_len_sq = 0;
-        int64_t nhalf_w_sq_x_len_sq = 0;
-        line_hq_sample_ctx_t next_sample_ctx = {0};
-        if (has_next)
-        {
-            nx1 = points[(seg + 1) * 2];
-            ny1 = points[(seg + 1) * 2 + 1];
-            nx2 = points[(seg + 2) * 2];
-            ny2 = points[(seg + 2) * 2 + 1];
-            ndx = nx2 - nx1;
-            ndy = ny2 - ny1;
-            nline_len_sq = (int64_t)ndx * ndx + (int64_t)ndy * ndy;
-            nhalf_w_sq_x_len_sq = (int64_t)stroke_width * stroke_width * nline_len_sq / 4;
-            if (nline_len_sq > 0)
-            {
-                line_hq_init_sample_ctx(&next_sample_ctx, ndx, ndy, nline_len_sq, nhalf_w_sq_x_len_sq);
-            }
-        }
-
-        // Inner threshold
-        int32_t inner_w = stroke_width - 2;
-        int64_t inner_thresh = (inner_w > 0) ? (int64_t)inner_w * inner_w * line_len_sq / 4 : 0;
-
-        int32_t is_first = (seg == 0);
-        int32_t is_last = (seg == seg_count - 1);
-        int32_t cap_start = (round_cap && is_first);
-        int32_t cap_end = (round_cap && is_last);
-        int32_t margin = stroke_width * stroke_width;
-        int32_t half_w_sq = (stroke_width * stroke_width) / 4 + stroke_width + 1;
-        line_hq_sample_ctx_t sample_ctx;
-
-        line_hq_init_sample_ctx(&sample_ctx, dx, dy, line_len_sq, half_w_sq_x_len_sq);
-
-        // Pre-compute for per-row x-range narrowing
-        int32_t ady = (dy > 0) ? dy : -dy;
-        int32_t half_range_x = 32767;
-        if (ady > 0)
-        {
-            uint16_t line_len = line_hq_isqrt32((uint32_t)line_len_sq);
-            half_range_x = (int32_t)((int64_t)outer_w * (line_len + 1) / (2 * ady)) + 2;
-        }
-
-        for (egui_dim_t py = scan_y1; py <= scan_y2; py++)
-        {
-            egui_color_t *dst_row = NULL;
-            if (use_direct_pfb)
-            {
-                dst_row = (egui_color_t *)&self->pfb[(py - pfb_ofs_y) * pfb_width];
-            }
-
-            // Narrow x scan range based on cross product geometry
-            int32_t x_center = (ady > 0) ? sx1 + (int32_t)((int64_t)dx * (py - sy1) / dy) : (sx1 + sx2) / 2;
-            egui_dim_t row_x1 = (egui_dim_t)EGUI_MAX((int32_t)scan_x1, x_center - half_range_x);
-            egui_dim_t row_x2 = (egui_dim_t)EGUI_MIN((int32_t)scan_x2, x_center + half_range_x);
-            int32_t rel_y = py - sy1;
-            int32_t rel_x = row_x1 - sx1;
-            int64_t cross = (int64_t)dx * (sy1 - py) - (int64_t)(sx1 - row_x1) * dy;
-            int64_t dot = (int64_t)(row_x1 - sx1) * dx + (int64_t)(py - sy1) * dy;
-
-            for (egui_dim_t px = row_x1; px <= row_x2; px++, rel_x++, cross += dy, dot += dx)
-            {
-                int64_t cross_sq = cross * cross;
-
-                if (dot < 0)
-                {
-                    if (cap_start)
-                    {
-                        // Round cap at start: check distance to start point
-                        int32_t dpx = rel_x;
-                        int32_t dpy = rel_y;
-                        if (dpx * dpx + dpy * dpy > half_w_sq)
-                        {
-                            continue;
-                        }
-                    }
-                    else if (is_first)
-                    {
-                        if (dot < -(int64_t)margin)
-                        {
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        continue; // Previous segment handles this region
-                    }
-                }
-                else if (dot > line_len_sq)
-                {
-                    if (cap_end)
-                    {
-                        // Round cap at end: check distance to end point
-                        int32_t dpx = rel_x - dx;
-                        int32_t dpy = rel_y - dy;
-                        if (dpx * dpx + dpy * dpy > half_w_sq)
-                        {
-                            continue;
-                        }
-                    }
-                    else if (is_last)
-                    {
-                        if (dot > line_len_sq + (int64_t)margin)
-                        {
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        continue; // Next segment handles this region
-                    }
-                }
-                else
-                {
-                    // Within segment projection
-                    if (cross_sq > outer_thresh)
-                    {
-                        continue;
-                    }
-                    // Inner zone fast path
-                    if (inner_w > 0 && cross_sq <= inner_thresh)
-                    {
-                        if (use_direct_pfb)
-                        {
-                            line_hq_blend_direct(&dst_row[px - pfb_ofs_x], color, solid_direct_alpha);
-                        }
-                        else
-                        {
-                            egui_canvas_draw_point(px, py, color, solid_alpha);
-                        }
-                        continue;
-                    }
-                }
-
-                // Edge zone: sub-pixel sampling
-                uint8_t cov_idx;
-                if (cap_start || cap_end)
-                {
-                    cov_idx = line_hq_get_pixel_coverage_round_cap(rel_x, rel_y, &sample_ctx, cap_start, cap_end);
-                }
-                else
-                {
-                    cov_idx = line_hq_get_pixel_coverage(rel_x, rel_y, &sample_ctx);
-                }
-
-                // At the end joint, also sample next segment and take max
-                if (has_next && dot > line_len_sq - (int64_t)margin && nline_len_sq > 0)
-                {
-                    uint8_t ncov_idx = line_hq_get_pixel_coverage(rel_x - dx, rel_y - dy, &next_sample_ctx);
-                    if (ncov_idx > cov_idx)
-                    {
-                        cov_idx = ncov_idx;
-                    }
-                }
-
-                if (cov_idx > 0)
-                {
-                    if (use_direct_pfb)
-                    {
-                        line_hq_blend_direct(&dst_row[px - pfb_ofs_x], color, direct_alpha_table[cov_idx]);
-                    }
-                    else
-                    {
-                        egui_canvas_draw_point(px, py, color, sample_alpha_table[cov_idx]);
-                    }
-                }
-            }
-        }
+        line_hq_draw_polyline_segment(&draw_ctx, points, seg);
     }
 
     // Fill interior joints to avoid tiny seam pixels between adjacent segments
