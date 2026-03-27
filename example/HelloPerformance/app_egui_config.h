@@ -152,9 +152,9 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES 960
 
 // HelloPerformance's shadow benchmarks use width=20 with radius 0/30, so a
-// 128-entry d_sq->alpha LUT still covers the current blur range while cutting
-// the per-call shadow corner stack frame versus the default 256-entry table.
-#define EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 128
+// 96-entry d_sq->alpha LUT still covers the current blur range while further
+// shrinking the per-call shadow corner stack frame versus the 128-entry setup.
+#define EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 96
 
 // HelloPerformance text transform only uses short benchmark strings and the
 // 26pt perf font whose bitmap offsets stay well below 64KB, so the cached
