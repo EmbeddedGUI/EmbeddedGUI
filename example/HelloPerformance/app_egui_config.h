@@ -119,11 +119,11 @@ extern "C" {
 // borrow the codec row-cache backing store instead of reserving separate BSS.
 #define EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE 1
 
-// HelloPerformance's recorded runtime/perf flow no longer reaches any
-// allocator-backed paths after the app-side heap trims above, so keeping the
-// QEMU platform malloc hooks disabled avoids linking newlib malloc state into
-// the benchmark image.
-#define EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE 0
+// HelloPerformance's rotated-text visible alpha8 tile buffer follows the
+// actual transformed glyph bounds. Per the RAM rule for size-related buffers,
+// keep the QEMU heap hooks enabled so this transient scratch can use frame
+// heap instead of a large fixed stack array.
+#define EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE 1
 
 // HelloPerformance's external RLE scenes only stream 120px/240px RGB565 rows,
 // and a 64B external read window still keeps the control stream hot while
@@ -194,10 +194,10 @@ extern "C" {
 #define EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS         72
 #define EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES          8
 
-// The rotated-text visible alpha8 tile peaks just above 4KB in
-// HelloPerformance. Keeping a 4352B stack ceiling still covers the current
-// scenes, avoids heap fallback, and trims the worst transient stack frame.
-#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES 4352
+// The rotated-text visible alpha8 tile size follows actual transformed glyph
+// bounds, so do not keep a fixed large stack buffer here. Let the existing
+// per-frame heap cache size itself dynamically and release at frame end.
+#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES 0
 
 // HelloPerformance only uses the external 26pt perf font whose current glyph
 // descriptors peak at 29x25 pixels, so the external rotated-text path only

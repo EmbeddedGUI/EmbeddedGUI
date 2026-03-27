@@ -1,7 +1,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <stdlib.h>
 
 #include "egui.h"
 
@@ -644,11 +643,6 @@ static void qemu_pfb_clear(void *s, int n)
     memset(s, 0, n);
 }
 
-typedef struct qemu_heap_block_header
-{
-    uint32_t size;
-} qemu_heap_block_header_t;
-
 static uint32_t s_qemu_heap_current_bytes = 0U;
 static uint32_t s_qemu_heap_peak_bytes = 0U;
 static uint32_t s_qemu_heap_alloc_count = 0U;
@@ -659,6 +653,96 @@ static uint32_t s_qemu_heap_measure_base_alloc_count = 0U;
 static uint32_t s_qemu_heap_measure_base_free_count = 0U;
 
 #if EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE
+extern uint8_t _ebss[];
+extern uint8_t _estack[];
+extern uint32_t _Min_Stack_Size;
+
+#define QEMU_HEAP_ALIGN_BYTES 8U
+
+typedef struct qemu_heap_alloc_header
+{
+    uint32_t block_size;
+    uint32_t payload_size;
+} qemu_heap_alloc_header_t;
+
+typedef struct qemu_heap_free_block
+{
+    uint32_t block_size;
+    struct qemu_heap_free_block *next;
+} qemu_heap_free_block_t;
+
+static qemu_heap_free_block_t *s_qemu_heap_free_list = NULL;
+static uint8_t s_qemu_heap_initialized = 0U;
+
+static uint32_t qemu_heap_align_up(uint32_t size)
+{
+    return (size + (QEMU_HEAP_ALIGN_BYTES - 1U)) & ~(QEMU_HEAP_ALIGN_BYTES - 1U);
+}
+
+static void qemu_heap_init(void)
+{
+    uintptr_t heap_start;
+    uintptr_t heap_end;
+    uint32_t heap_bytes;
+
+    if (s_qemu_heap_initialized)
+    {
+        return;
+    }
+
+    s_qemu_heap_initialized = 1U;
+    heap_start = qemu_heap_align_up((uint32_t)(uintptr_t)_ebss);
+    heap_end = ((uintptr_t)_estack - (uintptr_t)&_Min_Stack_Size) & ~(uintptr_t)(QEMU_HEAP_ALIGN_BYTES - 1U);
+    if (heap_end <= heap_start)
+    {
+        return;
+    }
+
+    heap_bytes = (uint32_t)(heap_end - heap_start);
+    if (heap_bytes < sizeof(qemu_heap_free_block_t))
+    {
+        return;
+    }
+
+    s_qemu_heap_free_list = (qemu_heap_free_block_t *)heap_start;
+    s_qemu_heap_free_list->block_size = heap_bytes;
+    s_qemu_heap_free_list->next = NULL;
+}
+
+static void qemu_heap_insert_free_block(qemu_heap_free_block_t *block)
+{
+    qemu_heap_free_block_t *prev = NULL;
+    qemu_heap_free_block_t *current = s_qemu_heap_free_list;
+
+    while (current != NULL && current < block)
+    {
+        prev = current;
+        current = current->next;
+    }
+
+    block->next = current;
+    if (prev != NULL)
+    {
+        prev->next = block;
+    }
+    else
+    {
+        s_qemu_heap_free_list = block;
+    }
+
+    if (current != NULL && ((uintptr_t)block + block->block_size) == (uintptr_t)current)
+    {
+        block->block_size += current->block_size;
+        block->next = current->next;
+    }
+
+    if (prev != NULL && ((uintptr_t)prev + prev->block_size) == (uintptr_t)block)
+    {
+        prev->block_size += block->block_size;
+        prev->next = block->next;
+    }
+}
+
 static void qemu_heap_refresh_measure_peak(void)
 {
     uint32_t delta = 0U;
@@ -680,40 +764,95 @@ static void qemu_heap_refresh_measure_peak(void)
 }
 static void *qemu_malloc(int size)
 {
-    qemu_heap_block_header_t *block;
+    qemu_heap_free_block_t *prev = NULL;
+    qemu_heap_free_block_t *block;
+    qemu_heap_alloc_header_t *header;
+    uint32_t aligned_payload;
+    uint32_t needed_total;
+    uint32_t remaining;
 
     if (size <= 0)
     {
         return NULL;
     }
 
-    block = (qemu_heap_block_header_t *)malloc(sizeof(*block) + (size_t)size);
+    qemu_heap_init();
+    aligned_payload = qemu_heap_align_up((uint32_t)size);
+    needed_total = aligned_payload + (uint32_t)sizeof(qemu_heap_alloc_header_t);
+    if (needed_total < aligned_payload)
+    {
+        return NULL;
+    }
+
+    block = s_qemu_heap_free_list;
+    while (block != NULL)
+    {
+        if (block->block_size >= needed_total)
+        {
+            break;
+        }
+        prev = block;
+        block = block->next;
+    }
+
     if (block == NULL)
     {
         return NULL;
     }
 
-    block->size = (uint32_t)size;
-    s_qemu_heap_current_bytes += block->size;
+    remaining = block->block_size - needed_total;
+    if (remaining >= sizeof(qemu_heap_free_block_t))
+    {
+        qemu_heap_free_block_t *next_block = (qemu_heap_free_block_t *)((uint8_t *)block + needed_total);
+        next_block->block_size = remaining;
+        next_block->next = block->next;
+        if (prev != NULL)
+        {
+            prev->next = next_block;
+        }
+        else
+        {
+            s_qemu_heap_free_list = next_block;
+        }
+        header = (qemu_heap_alloc_header_t *)block;
+        header->block_size = needed_total;
+    }
+    else
+    {
+        if (prev != NULL)
+        {
+            prev->next = block->next;
+        }
+        else
+        {
+            s_qemu_heap_free_list = block->next;
+        }
+        header = (qemu_heap_alloc_header_t *)block;
+        header->block_size = block->block_size;
+    }
+
+    header->payload_size = (uint32_t)size;
+    s_qemu_heap_current_bytes += header->payload_size;
     s_qemu_heap_alloc_count++;
     qemu_heap_refresh_measure_peak();
 
-    return (void *)(block + 1);
+    return (void *)(header + 1);
 }
 
 static void qemu_free(void *ptr)
 {
-    qemu_heap_block_header_t *block;
+    qemu_heap_alloc_header_t *header;
+    qemu_heap_free_block_t *block;
 
     if (ptr == NULL)
     {
         return;
     }
 
-    block = ((qemu_heap_block_header_t *)ptr) - 1;
-    if (s_qemu_heap_current_bytes >= block->size)
+    header = ((qemu_heap_alloc_header_t *)ptr) - 1;
+    if (s_qemu_heap_current_bytes >= header->payload_size)
     {
-        s_qemu_heap_current_bytes -= block->size;
+        s_qemu_heap_current_bytes -= header->payload_size;
     }
     else
     {
@@ -721,7 +860,10 @@ static void qemu_free(void *ptr)
     }
     s_qemu_heap_free_count++;
     qemu_heap_refresh_measure_peak();
-    free(block);
+
+    block = (qemu_heap_free_block_t *)header;
+    block->block_size = header->block_size;
+    qemu_heap_insert_free_block(block);
 }
 #endif
 
