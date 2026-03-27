@@ -146,10 +146,15 @@ egui_view_t *egui_view_group_get_first_child(egui_view_t *self)
 
 void egui_view_group_set_disallow_process_touch_event(egui_view_t *self, int disallow)
 {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     if (self->api == &EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t))
     {
         EGUI_CAST_TO(egui_view_root_group_t, self)->is_disallow_process_touch_event = disallow;
     }
+#else
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(disallow);
+#endif
 }
 
 void egui_view_group_calculate_all_child_width(egui_view_t *self, egui_dim_t *width)
@@ -868,7 +873,11 @@ void egui_view_root_group_init(egui_view_t *self)
 
     egui_view_group_init(self);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     local->is_disallow_process_touch_event = 0;
+#else
+    EGUI_UNUSED(local);
+#endif
 
     egui_view_set_view_name(self, "egui_view_root_group");
 }

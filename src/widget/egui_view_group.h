@@ -20,7 +20,9 @@ struct egui_view_root_group
 {
     egui_view_group_t base;
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     uint8_t is_disallow_process_touch_event; // if set, the root group will not process touch events
+#endif
 };
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH

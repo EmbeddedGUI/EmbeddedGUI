@@ -34,6 +34,11 @@ __EGUI_WEAK__ void egui_port_notify_frame_render_complete(void)
 
 egui_core_t egui_core;
 
+static uint32_t egui_core_calc_pfb_buffer_size(egui_dim_t width, egui_dim_t height)
+{
+    return (uint32_t)width * (uint32_t)height * (uint32_t)sizeof(egui_color_int_t);
+}
+
 #if EGUI_CONFIG_SOFTWARE_ROTATION
 static egui_color_int_t egui_rotation_scratch[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
 #endif
@@ -655,6 +660,7 @@ void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode)
     egui_dim_t tmp_pfb_width;
     egui_dim_t tmp_pfb_height;
     egui_dim_t pfb_width_count, pfb_height_count;
+    uint32_t pfb_total_pixel_count = (uint32_t)egui_core.pfb_width * (uint32_t)egui_core.pfb_height;
     uint8_t reverse_x = egui_core.pfb_scan_reverse_x;
     uint8_t reverse_y = egui_core.pfb_scan_reverse_y;
 
@@ -665,12 +671,12 @@ void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode)
     if (pfb_width > width_dirty)
     {
         pfb_width = width_dirty;
-        pfb_height = (egui_core.pfb_total_buffer_size / sizeof(egui_color_int_t)) / pfb_width;
+        pfb_height = (egui_dim_t)(pfb_total_pixel_count / (uint32_t)pfb_width);
     }
     else if (pfb_height > height_dirty)
     {
         pfb_height = height_dirty;
-        pfb_width = (egui_core.pfb_total_buffer_size / sizeof(egui_color_int_t)) / pfb_height;
+        pfb_width = (egui_dim_t)(pfb_total_pixel_count / (uint32_t)pfb_height);
     }
 
     pfb_width_count = (width_dirty + pfb_width - 1) / pfb_width;
@@ -1123,7 +1129,6 @@ void egui_core_pfb_set_buffer(egui_color_int_t *pfb, uint16_t width, uint16_t he
     egui_core.pfb = pfb;
     egui_core.pfb_width = width;
     egui_core.pfb_height = height;
-    egui_core.pfb_total_buffer_size = (uint32_t)width * (uint32_t)height * (uint32_t)sizeof(egui_color_int_t);
 }
 
 void egui_core_power_off(void)
@@ -1177,9 +1182,10 @@ void egui_core_clear_screen(void)
     int16_t screen_h = egui_display_get_height();
     int16_t pfb_w = egui_core.pfb_width;
     int16_t pfb_h = egui_core.pfb_height;
+    uint32_t pfb_total_buffer_size = egui_core_calc_pfb_buffer_size(egui_core.pfb_width, egui_core.pfb_height);
 
     // Clear PFB buffer to black
-    egui_api_pfb_clear(egui_core.pfb, egui_core.pfb_total_buffer_size);
+    egui_api_pfb_clear(egui_core.pfb, pfb_total_buffer_size);
 
     // Send black tiles to cover entire screen
     for (int16_t y = 0; y < screen_h; y += pfb_h)
@@ -1194,7 +1200,7 @@ void egui_core_clear_screen(void)
             {
                 egui_core.pfb = egui_pfb_manager_get_render_buffer(&egui_core.pfb_mgr);
                 // Clear PFB buffer to black
-                egui_api_pfb_clear(egui_core.pfb, egui_core.pfb_total_buffer_size);
+                egui_api_pfb_clear(egui_core.pfb, pfb_total_buffer_size);
             }
 
             egui_core_draw_data(&region);

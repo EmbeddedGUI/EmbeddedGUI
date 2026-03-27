@@ -24,7 +24,6 @@ extern "C" {
 struct egui_core
 {
     egui_color_int_t *pfb;         // pointer to frame buffer
-    uint32_t pfb_total_buffer_size; // size of frame buffer in bytes, for speed up.
     egui_dim_t pfb_width;          // width of frame buffer
     egui_dim_t pfb_height;         // height of frame buffer
     egui_dim_t screen_width;       // width of screen
