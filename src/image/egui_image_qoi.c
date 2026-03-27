@@ -36,6 +36,18 @@
 #define EGUI_CONFIG_IMAGE_QOI_COMPACT_RGB565_INDEX_ENABLE 0
 #endif
 
+#ifndef EGUI_CONFIG_IMAGE_QOI_ROW_INDEX_8BIT_ENABLE
+#define EGUI_CONFIG_IMAGE_QOI_ROW_INDEX_8BIT_ENABLE 0
+#endif
+
+#if EGUI_CONFIG_IMAGE_QOI_ROW_INDEX_8BIT_ENABLE
+typedef uint8_t egui_image_qoi_row_index_t;
+#define EGUI_IMAGE_QOI_ROW_INDEX_MAX UINT8_MAX
+#else
+typedef uint16_t egui_image_qoi_row_index_t;
+#define EGUI_IMAGE_QOI_ROW_INDEX_MAX UINT16_MAX
+#endif
+
 #if EGUI_CONFIG_IMAGE_QOI_COMPACT_RGB565_INDEX_ENABLE
 #define EGUI_IMAGE_QOI_INDEX_STATE_MEMBER uint16_t index_rgb565[64]; uint8_t index_aux[64];
 #define EGUI_IMAGE_QOI_INDEX_PARAM , uint16_t *index_rgb565, uint8_t *index_aux
@@ -108,13 +120,13 @@ typedef struct
 {
     const egui_image_qoi_info_t *info;
     uint32_t data_pos;    /* current read position in QOI stream */
-    uint16_t current_row; /* next row to decode */
+    egui_image_qoi_row_index_t current_row; /* next row to decode */
 
     /* QOI decoder state */
-    uint8_t prev_r, prev_g, prev_b, prev_a;
-    uint16_t prev_rgb565;
-    EGUI_IMAGE_QOI_INDEX_STATE_MEMBER
     uint8_t run; /* remaining run-length count */
+    uint16_t prev_rgb565;
+    uint8_t prev_r, prev_g, prev_b, prev_a;
+    EGUI_IMAGE_QOI_INDEX_STATE_MEMBER
 } egui_image_qoi_decode_state_t;
 
 static egui_image_qoi_decode_state_t qoi_state;
@@ -291,6 +303,12 @@ static int egui_image_qoi_external_stream_read_bytes(egui_image_qoi_external_str
 static int egui_image_qoi_prepare_decode_info(const egui_image_qoi_info_t *info, egui_image_qoi_info_t *decode_info)
 {
     *decode_info = *info;
+
+    if (decode_info->height > EGUI_IMAGE_QOI_ROW_INDEX_MAX)
+    {
+        EGUI_ASSERT(0);
+        return 0;
+    }
 
 #if !EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     if (info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)

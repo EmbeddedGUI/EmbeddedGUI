@@ -98,6 +98,10 @@ extern "C" {
 // cache alone, so disable decoder checkpoints to remove their persistent heap.
 #define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 0
 
+// HelloPerformance's generated QOI assets are 40/120/240px tall, so the
+// decoder's current-row cursor can stay 8-bit and drop another 4B from qoi_state.
+#define EGUI_CONFIG_IMAGE_QOI_ROW_INDEX_8BIT_ENABLE 1
+
 // HelloPerformance's QOI decode stays on one active image stream per scene, so
 // the RGBA index table can reconstruct RGB565 on demand without keeping a
 // duplicate 64-entry RGB565 index array in static RAM.

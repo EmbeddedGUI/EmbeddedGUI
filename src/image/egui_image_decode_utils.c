@@ -80,7 +80,7 @@ static uint8_t *egui_image_decode_prepare_single_row_alpha_buf(uint16_t alpha_ro
 /* Row-band decode cache: frame-local heap scratch sized from the active image row band. */
 uint8_t *egui_image_decode_row_cache_pixel = NULL;
 uint8_t *egui_image_decode_row_cache_alpha = NULL;
-egui_image_decode_cache_state_t egui_image_decode_cache_state = {NULL, 0xFFFF, 0, EGUI_IMAGE_DECODE_CACHE_MODE_NONE};
+egui_image_decode_cache_state_t egui_image_decode_cache_state = {NULL, 0xFFFF, EGUI_IMAGE_DECODE_CACHE_MODE_NONE};
 static uint32_t g_egui_image_decode_row_cache_pixel_capacity = 0;
 static uint32_t g_egui_image_decode_row_cache_alpha_capacity = 0;
 
@@ -196,7 +196,6 @@ void egui_image_decode_release_frame_cache(void)
     g_egui_image_decode_row_cache_alpha_capacity = 0;
     egui_image_decode_cache_state.image_info = NULL;
     egui_image_decode_cache_state.row_band_start = 0xFFFF;
-    egui_image_decode_cache_state.row_count = 0;
     egui_image_decode_cache_state.mode = EGUI_IMAGE_DECODE_CACHE_MODE_NONE;
 }
 
@@ -223,17 +222,17 @@ int egui_image_decode_cache_can_hold_full_image(uint16_t img_width, uint16_t img
 
 void egui_image_decode_cache_set_row_band(const void *image_info, uint16_t row_band_start, uint16_t row_count)
 {
+    EGUI_UNUSED(row_count);
     egui_image_decode_cache_state.image_info = image_info;
     egui_image_decode_cache_state.row_band_start = row_band_start;
-    egui_image_decode_cache_state.row_count = row_count;
     egui_image_decode_cache_state.mode = EGUI_IMAGE_DECODE_CACHE_MODE_ROW_BAND;
 }
 
 void egui_image_decode_cache_set_full_image(const void *image_info, uint16_t row_count)
 {
+    EGUI_UNUSED(row_count);
     egui_image_decode_cache_state.image_info = image_info;
     egui_image_decode_cache_state.row_band_start = 0;
-    egui_image_decode_cache_state.row_count = row_count;
     egui_image_decode_cache_state.mode = EGUI_IMAGE_DECODE_CACHE_MODE_FULL_IMAGE;
 }
 #else

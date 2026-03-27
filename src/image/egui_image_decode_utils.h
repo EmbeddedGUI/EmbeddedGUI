@@ -76,7 +76,6 @@ typedef struct
 {
     const void *image_info; /* pointer to the info struct that populated the cache */
     uint16_t row_band_start; /* first image row in the cached band */
-    uint16_t row_count;      /* number of rows cached */
     uint8_t mode;            /* row-band cache or whole-image cache */
 } egui_image_decode_cache_state_t;
 
