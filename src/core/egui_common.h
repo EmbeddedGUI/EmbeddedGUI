@@ -302,8 +302,8 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_alpha_make(int32_t percent)
 
 #define egui_uintptr_t uintptr_t
 
-extern uint8_t egui_alpha_change_table_2[4];
-extern uint8_t egui_alpha_change_table_4[16];
+extern const uint8_t egui_alpha_change_table_2[4];
+extern const uint8_t egui_alpha_change_table_4[16];
 
 __EGUI_STATIC_INLINE__ egui_alpha_t egui_color_alpha_mix(egui_alpha_t alpha_0, egui_alpha_t alpha_1)
 {

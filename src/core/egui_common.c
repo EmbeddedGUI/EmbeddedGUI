@@ -9,7 +9,7 @@
 
 #define EGUI_ALPHA_VALUE_2(_val) EGUI_ALPHA_VALUE(_val, 2)
 // we don't use multiple alpha value, so we don't need to calculate it.
-uint8_t egui_alpha_change_table_2[4] = {
+const uint8_t egui_alpha_change_table_2[4] = {
         EGUI_ALPHA_VALUE_2(0x00),
         EGUI_ALPHA_VALUE_2(0x01),
         EGUI_ALPHA_VALUE_2(0x02),
@@ -18,7 +18,7 @@ uint8_t egui_alpha_change_table_2[4] = {
 
 #define EGUI_ALPHA_VALUE_4(_val) EGUI_ALPHA_VALUE(_val, 4)
 // we don't use multiple alpha value, so we don't need to calculate it.
-uint8_t egui_alpha_change_table_4[16] = {
+const uint8_t egui_alpha_change_table_4[16] = {
         EGUI_ALPHA_VALUE_4(0x00), EGUI_ALPHA_VALUE_4(0x01), EGUI_ALPHA_VALUE_4(0x02), EGUI_ALPHA_VALUE_4(0x03),
         EGUI_ALPHA_VALUE_4(0x04), EGUI_ALPHA_VALUE_4(0x05), EGUI_ALPHA_VALUE_4(0x06), EGUI_ALPHA_VALUE_4(0x07),
         EGUI_ALPHA_VALUE_4(0x08), EGUI_ALPHA_VALUE_4(0x09), EGUI_ALPHA_VALUE_4(0x0a), EGUI_ALPHA_VALUE_4(0x0b),
