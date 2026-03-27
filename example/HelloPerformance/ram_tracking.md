@@ -4,6 +4,7 @@
 
 - This file tracks `HelloPerformance` static RAM, heap, and stack after each RAM-focused change.
 - `PFB` is listed for completeness, but it is user-configurable and not an optimization target.
+- If a change yields less than `5%` performance gain, prefer the lower-RAM option instead of keeping extra SRAM for a marginal speedup.
 - Any buffer whose size follows font size, image size, screen size, or `PFB` size must use `heap`; do not replace that with macro-fixed RAM, static storage, or large stack locals just to keep `heap=0`.
 - Static RAM numbers use the normal QEMU performance build:
   - `make clean`
@@ -37,6 +38,7 @@
 | 2026-03-27 | Reduce HelloPerformance shadow d_sq LUT cap to 64 | 2162556 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 96 -> 64`, `egui_shadow_draw_corner 728 -> 664`, `SHADOW_ROUND 5.584 -> 5.584`, same heap `0` |
 | 2026-03-27 | Remove HelloPerformance round-rect gradient cache LUT | 2162492 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text -64B`, `egui_canvas_draw_round_rectangle_corners_fill_gradient 992 -> 472`, `GRADIENT_ROUND_RECT 3.766 -> 3.766`, `GRADIENT_ROUND_RECT_CORNERS 2.235 -> 2.235`, heap stays `0` |
 | 2026-03-27 | Shrink HelloPerformance circle gradient cache LUT | 2162644 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text +152B`, `color_cache 256 -> 129`, `egui_canvas_draw_circle_fill_gradient 1000 -> 752`, `GRADIENT_CIRCLE 10.428 -> 9.802 (-6.0%)`, heap stays `0` |
+| 2026-03-27 | Shrink HelloPerformance rectangle gradient cache LUT | 2162756 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text +112B`, `color_cache 256 -> 129`, `egui_canvas_draw_rectangle_fill_gradient 792 -> 528`, `GRADIENT_RADIAL 7.080 -> 6.727 (-5.0%)`, `GRADIENT_ANGULAR 7.427 -> 6.914 (-6.9%)`, heap stays `0` |
 
 ## Current Breakdown
 
@@ -60,7 +62,7 @@
 | `g_selected_char_desc` | `.bss` | 12 | Text transform selection state |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
-- Current normal QEMU build: `text=2162644`, `data=52`, `bss=21972`, `static RAM=22024`.
+- Current normal QEMU build: `text=2162756`, `data=52`, `bss=21972`, `static RAM=22024`.
 
 ### Heap Measurement
 
@@ -81,7 +83,6 @@
 | `egui_view_virtual_tree_walk_internal` | `src/widget/egui_view_virtual_tree.c` | 1112 | Framework compiled hotspot, not in current HelloPerformance flow | Large local stack frame: `frames[EGUI_VIEW_VIRTUAL_TREE_MAX_DEPTH]` |
 | `line_hq_draw_polyline_segment` | `src/core/egui_canvas_line_hq.c` | 976 | HelloPerformance line/polyline scenes | Split out from `line_hq_draw_polyline_internal`; remaining frame is scalar segment state, no large local arrays |
 | `egui_canvas_draw_line_hq` | `src/core/egui_canvas_line_hq.c` | 824 | HelloPerformance line scenes | Current lower-level line HQ hotspot after the polyline split |
-| `egui_canvas_draw_rectangle_fill_gradient` | `src/core/egui_canvas_gradient.c` | 792 | HelloPerformance gradient rectangle scenes | Large local fixed LUT: `color_cache[256]`; fixed-size and not tied to font/image/screen/PFB |
 | `egui_canvas_draw_circle_fill_gradient` | `src/core/egui_canvas_gradient.c` | 752 | HelloPerformance gradient circle scenes | Fixed LUT shrunk to `129` entries for `t={0,2,...,254,255}`; still fixed-size and not tied to font/image/screen/PFB |
 | `egui_canvas_draw_line_round_cap_hq` | `src/core/egui_canvas_line_hq.c` | 744 | HelloPerformance line round-cap scenes | Below current polyline helper; unchanged in this round |
 | `egui_canvas_draw_image_transform` | `src/core/egui_canvas_transform.c` | 736 | HelloPerformance image rotate scenes | Current image-transform hotspot; no large dynamic-size stack buffer |
@@ -89,11 +90,12 @@
 | `egui_shadow_draw_corner` | `src/shadow/egui_shadow.c` | 664 | HelloPerformance shadow scenes | `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 96 -> 64`; same `dsq_shift`, local LUT stack reduced by another `64B` |
 | `egui_canvas_draw_triangle_fill_gradient` | `src/core/egui_canvas_gradient.c` | 544 | HelloPerformance gradient triangle scenes | Current next-tier gradient hotspot after round-rect cleanup |
 | `egui_canvas_draw_ellipse_fill_gradient` | `src/core/egui_canvas_gradient.c` | 544 | Framework compiled hotspot | Scalar-only gradient fill path after previous ellipse cleanup |
+| `egui_canvas_draw_rectangle_fill_gradient` | `src/core/egui_canvas_gradient.c` | 528 | HelloPerformance gradient rectangle scenes | Fixed LUT shrunk to `129` entries for `t={0,2,...,254,255}`; this round cut the frame from `792B`, still not tied to font/image/screen/PFB |
 | `egui_canvas_draw_round_rectangle_corners_fill_gradient` | `src/core/egui_canvas_gradient.c` | 472 | HelloPerformance gradient round-rect scenes | Removed local `color_cache[256]`; non-vertical branches now resolve colors directly and the frame dropped out of the top-stack set |
 
 - Current `HelloPerformance` stack risk is still concentrated in the rotated-text path used by `TEXT_ROTATE*` and `EXTERN_TEXT_ROTATE*` benchmark scenes.
-- This round shrank the fixed `color_cache` in `egui_canvas_draw_circle_fill_gradient` from `256` to `129` entries; measured `1000B -> 752B`, while `GRADIENT_CIRCLE` improved from `10.428 ms` to `9.802 ms`. PC runtime check frame `frame_0116.png` shows the radial circle remains visually correct.
-- Current `HelloPerformance` non-text heads are `line_hq_draw_polyline_segment (976B)`, `egui_canvas_draw_line_hq (824B)`, `egui_canvas_draw_rectangle_fill_gradient (792B)`, `egui_canvas_draw_circle_fill_gradient (752B)`, `egui_canvas_draw_line_round_cap_hq (744B)`, `egui_canvas_draw_image_transform (736B)`, `egui_canvas_draw_polygon_fill_gradient (720B)`, and `egui_shadow_draw_corner (664B)`.
+- This round shrank the fixed `color_cache` in `egui_canvas_draw_rectangle_fill_gradient` from `256` to `129` entries; measured `792B -> 528B`, while `GRADIENT_RADIAL` improved from `7.080 ms` to `6.727 ms` and `GRADIENT_ANGULAR` improved from `7.427 ms` to `6.914 ms`. PC runtime check frames `frame_0120.png` and `frame_0121.png` show the radial/angular rectangle gradients remain visually correct.
+- Current `HelloPerformance` non-text heads are `line_hq_draw_polyline_segment (976B)`, `egui_canvas_draw_line_hq (824B)`, `egui_canvas_draw_circle_fill_gradient (752B)`, `egui_canvas_draw_line_round_cap_hq (744B)`, `egui_canvas_draw_image_transform (736B)`, `egui_canvas_draw_polygon_fill_gradient (720B)`, `egui_shadow_draw_corner (664B)`, `egui_canvas_draw_triangle_fill_gradient (544B)`, `egui_canvas_draw_ellipse_fill_gradient (544B)`, and `egui_canvas_draw_rectangle_fill_gradient (528B)`.
 - `HelloPerformance` non-text paths now have no stack frame `>= 1KB`; the remaining `>= 1KB` frames are `4456`, `2936`, `1200`, `1112`.
 - This round did not increase static RAM, did not reintroduce heap, and did not touch `pfb`.
 

@@ -401,8 +401,8 @@ __EGUI_STATIC_INLINE__ egui_color_t gradient_get_color_pixel(const egui_gradient
 }
 
 /* 129-entry cache stores t = {0, 2, ..., 254, 255}.
- * This keeps circle-gradient lookup O(1) while cutting the old 256-entry LUT stack roughly in half. */
-__EGUI_STATIC_INLINE__ uint8_t gradient_circle_cache_index(uint8_t t)
+ * This keeps lookup O(1) while cutting the old 256-entry LUT stack roughly in half. */
+__EGUI_STATIC_INLINE__ uint8_t gradient_compact_cache_index(uint8_t t)
 {
     return (t == 255) ? 128 : (t >> 1);
 }
@@ -493,11 +493,12 @@ void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t x, egui_dim_t y, egui_d
         /* Angular gradient: per-pixel atan2 with direct PFB write.
          * Per-row optimization: precompute reciprocal of |dy| to replace divisions
          * when |dy| > |dx| (~50% of pixels). */
-        egui_color_t color_cache[256];
-        for (int i = 0; i < 256; i++)
+        egui_color_t color_cache[129];
+        for (uint16_t i = 0; i < 128; i++)
         {
-            color_cache[i] = egui_gradient_get_color(gradient->stops, gradient->stop_count, i);
+            color_cache[i] = egui_gradient_get_color(gradient->stops, gradient->stop_count, (uint8_t)(i << 1));
         }
+        color_cache[128] = egui_gradient_get_color(gradient->stops, gradient->stop_count, 255);
 
         int use_direct = (self->mask == NULL) ? 1 : 0;
         egui_dim_t pfb_w = self->pfb_region.size.width;
@@ -550,7 +551,7 @@ void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t x, egui_dim_t y, egui_d
                         t = (dy >= 0) ? (uint8_t)(128 - q_angle) : (uint8_t)(128 + q_angle);
                     }
 
-                    egui_color_t color = color_cache[t];
+                    egui_color_t color = color_cache[gradient_compact_cache_index(t)];
                     if (eff_alpha == EGUI_ALPHA_100)
                     {
                         dst_row[col] = color;
@@ -594,7 +595,7 @@ void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t x, egui_dim_t y, egui_d
                         t = (dy >= 0) ? (uint8_t)(128 - q_angle) : (uint8_t)(128 + q_angle);
                     }
 
-                    egui_color_t color = color_cache[t];
+                    egui_color_t color = color_cache[gradient_compact_cache_index(t)];
                     egui_canvas_draw_point_limit(x + col, y + row, color, base_alpha);
                 }
             }
@@ -602,15 +603,16 @@ void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t x, egui_dim_t y, egui_d
     }
     else /* RADIAL */
     {
-        egui_color_t color_cache[256];
-        for (int i = 0; i < 256; i++)
+        egui_color_t color_cache[129];
+        for (uint16_t i = 0; i < 128; i++)
         {
-            color_cache[i] = egui_gradient_get_color(gradient->stops, gradient->stop_count, i);
+            color_cache[i] = egui_gradient_get_color(gradient->stops, gradient->stop_count, (uint8_t)(i << 1));
         }
+        color_cache[128] = egui_gradient_get_color(gradient->stops, gradient->stop_count, 255);
 
         if (gradient->radius <= 0)
         {
-            egui_color_t solid = color_cache[255];
+            egui_color_t solid = color_cache[128];
             for (egui_dim_t row = vis_y_start; row < vis_y_end; row++)
             {
                 for (egui_dim_t col = vis_x_start; col < vis_x_end; col++)
@@ -641,7 +643,7 @@ void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t x, egui_dim_t y, egui_d
         uint32_t _t = (dist * t_mul) >> 12;                                                                                                                    \
         if (_t > 255)                                                                                                                                          \
             _t = 255;                                                                                                                                          \
-        egui_color_t _color = color_cache[_t];                                                                                                                 \
+        egui_color_t _color = color_cache[gradient_compact_cache_index((uint8_t)_t)];                                                                        \
         if (use_direct)                                                                                                                                        \
         {                                                                                                                                                      \
             if (eff_alpha == EGUI_ALPHA_100)                                                                                                                   \
@@ -962,7 +964,7 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
                     if (cov > 0)
                     {
                         uint8_t t = gradient_linear_t(x - bbox_x, bbox_size);
-                        egui_color_t color = color_cache[gradient_circle_cache_index(t)];
+                        egui_color_t color = color_cache[gradient_compact_cache_index(t)];
                         egui_alpha_t m = egui_color_alpha_mix(eff_alpha, cov);
                         if (m > 0)
                         {
@@ -1008,7 +1010,7 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
                     uint32_t _t = (dist * t_mul) >> 12;                                                                                                        \
                     if (_t > 255)                                                                                                                              \
                         _t = 255;                                                                                                                              \
-                    _color = color_cache[gradient_circle_cache_index((uint8_t)_t)];                                                                           \
+                    _color = color_cache[gradient_compact_cache_index((uint8_t)_t)];                                                                          \
                 }                                                                                                                                              \
                 egui_alpha_t _m = egui_color_alpha_mix(eff_alpha, _cov);                                                                                       \
                 if (_m > 0)                                                                                                                                    \
@@ -1175,7 +1177,7 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
                     if (cov > 0)
                     {
                         uint8_t t = gradient_linear_t(x - bbox_x, bbox_size);
-                        egui_color_t color = color_cache[gradient_circle_cache_index(t)];
+                        egui_color_t color = color_cache[gradient_compact_cache_index(t)];
                         egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
                         if (m > 0)
                         {
@@ -1213,7 +1215,7 @@ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t cente
                     uint32_t _t = (dist * t_mul) >> 12;                                                                                                        \
                     if (_t > 255)                                                                                                                              \
                         _t = 255;                                                                                                                              \
-                    _color = color_cache[gradient_circle_cache_index((uint8_t)_t)];                                                                           \
+                    _color = color_cache[gradient_compact_cache_index((uint8_t)_t)];                                                                          \
                 }                                                                                                                                              \
                 egui_alpha_t _m = egui_color_alpha_mix(base_alpha, _cov);                                                                                      \
                 if (_m > 0)                                                                                                                                    \
