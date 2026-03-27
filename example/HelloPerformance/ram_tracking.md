@@ -34,6 +34,7 @@
 | 2026-03-27 | Refactor HelloPerformance ellipse outline stack frame | 2162556 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text -3564B`, `egui_canvas_draw_ellipse 1048 -> 360`, helper frames `40/144`, `ELLIPSE 2.253 ms`, heap stays `0` |
 | 2026-03-27 | Refactor HelloPerformance line HQ polyline stack frame | 2162556 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `line_hq_draw_polyline_internal 1016 -> 152`, new `line_hq_draw_polyline_segment 976`, `LINE_HQ 3.557 ms`, heap stays `0` |
 | 2026-03-27 | Reduce HelloPerformance shadow d_sq LUT cap to 96 | 2162556 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 128 -> 96`, `egui_shadow_draw_corner 792 -> 728`, `SHADOW_ROUND 6.113 -> 5.584 (-8.7%)`, heap stays `0` |
+| 2026-03-27 | Reduce HelloPerformance shadow d_sq LUT cap to 64 | 2162556 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 96 -> 64`, `egui_shadow_draw_corner 728 -> 664`, `SHADOW_ROUND 5.584 -> 5.584`, same heap `0` |
 
 ## Current Breakdown
 
@@ -83,12 +84,12 @@
 | `egui_canvas_draw_rectangle_fill_gradient` | `src/core/egui_canvas_gradient.c` | 792 | HelloPerformance gradient rectangle scenes | Large local fixed LUT: `color_cache[256]`; fixed-size and not tied to font/image/screen/PFB |
 | `egui_canvas_draw_line_round_cap_hq` | `src/core/egui_canvas_line_hq.c` | 744 | HelloPerformance line round-cap scenes | Below current polyline helper; unchanged in this round |
 | `egui_canvas_draw_image_transform` | `src/core/egui_canvas_transform.c` | 736 | HelloPerformance image rotate scenes | Current image-transform hotspot; no large dynamic-size stack buffer |
-| `egui_shadow_draw_corner` | `src/shadow/egui_shadow.c` | 728 | HelloPerformance shadow scenes | `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 128 -> 96`; local LUT stack reduced by another `64B` |
 | `egui_canvas_draw_polygon_fill_gradient` | `src/core/egui_canvas_gradient.c` | 720 | HelloPerformance gradient polygon scenes | Gradient scanline scratch is scalar-only after prior cleanups |
+| `egui_shadow_draw_corner` | `src/shadow/egui_shadow.c` | 664 | HelloPerformance shadow scenes | `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 96 -> 64`; same `dsq_shift`, local LUT stack reduced by another `64B` |
 
 - Current `HelloPerformance` stack risk is still concentrated in the rotated-text path used by `TEXT_ROTATE*` and `EXTERN_TEXT_ROTATE*` benchmark scenes.
-- This round reduced `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX` from `128` to `96`; measured `egui_shadow_draw_corner 792B -> 728B`, while `SHADOW_ROUND` improved from `6.113 ms` to `5.584 ms`.
-- Current `HelloPerformance` non-text heads are `egui_canvas_draw_circle_fill_gradient (1000B)`, `egui_canvas_draw_round_rectangle_corners_fill_gradient (992B)`, `line_hq_draw_polyline_segment (976B)`, `egui_canvas_draw_line_hq (824B)`, `egui_canvas_draw_rectangle_fill_gradient (792B)`, `egui_canvas_draw_image_transform (736B)`, and `egui_shadow_draw_corner (728B)`.
+- This round reduced `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX` from `96` to `64`; measured `egui_shadow_draw_corner 728B -> 664B`, while `SHADOW_ROUND` stayed at `5.584 ms` because the current path keeps the same `dsq_shift`.
+- Current `HelloPerformance` non-text heads are `egui_canvas_draw_circle_fill_gradient (1000B)`, `egui_canvas_draw_round_rectangle_corners_fill_gradient (992B)`, `line_hq_draw_polyline_segment (976B)`, `egui_canvas_draw_line_hq (824B)`, `egui_canvas_draw_rectangle_fill_gradient (792B)`, `egui_canvas_draw_image_transform (736B)`, and `egui_shadow_draw_corner (664B)`.
 - `HelloPerformance` non-text paths now have no stack frame `>= 1KB`; the remaining `>= 1KB` frames are `4456`, `2936`, `1200`, `1112`.
 - This round did not increase static RAM, did not reintroduce heap, and did not touch `pfb`.
 

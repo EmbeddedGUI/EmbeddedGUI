@@ -151,10 +151,10 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES  1920
 #define EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES 960
 
-// HelloPerformance's shadow benchmarks use width=20 with radius 0/30, so a
-// 96-entry d_sq->alpha LUT still covers the current blur range while further
-// shrinking the per-call shadow corner stack frame versus the 128-entry setup.
-#define EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 96
+// HelloPerformance's shadow benchmarks use width=20 with radius 0/30. The
+// rounded-shadow path only needs about 51 d_sq buckets at the current shift,
+// so a 64-entry cap preserves the same lookup precision while trimming stack.
+#define EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 64
 
 // HelloPerformance text transform only uses short benchmark strings and the
 // 26pt perf font whose bitmap offsets stay well below 64KB, so the cached
