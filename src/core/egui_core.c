@@ -1119,11 +1119,7 @@ void egui_core_pfb_set_buffer(egui_color_int_t *pfb, uint16_t width, uint16_t he
     egui_core.pfb = pfb;
     egui_core.pfb_width = width;
     egui_core.pfb_height = height;
-    egui_core.pfb_total_buffer_size = width * height * egui_core.color_bytes;
-
-    // Calculate the number of pixels in each row and column of the PFB
-    egui_core.pfb_width_count = (EGUI_CONFIG_SCEEN_WIDTH + width - 1) / width;
-    egui_core.pfb_height_count = (EGUI_CONFIG_SCEEN_HEIGHT + height - 1) / height;
+    egui_core.pfb_total_buffer_size = (uint32_t)width * (uint32_t)height * (uint32_t)sizeof(egui_color_int_t);
 }
 
 void egui_core_power_off(void)
@@ -1140,10 +1136,6 @@ void egui_core_set_screen_size(int16_t width, int16_t height)
 {
     egui_core.screen_width = width;
     egui_core.screen_height = height;
-
-    // Recalculate PFB tile counts for the new screen size
-    egui_core.pfb_width_count = (width + egui_core.pfb_width - 1) / egui_core.pfb_width;
-    egui_core.pfb_height_count = (height + egui_core.pfb_height - 1) / egui_core.pfb_height;
 
     // Update root view group sizes
     egui_view_set_size((egui_view_t *)&egui_core.root_view_group, width, height);
@@ -1230,13 +1222,12 @@ void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HE
 {
     egui_core.screen_width = EGUI_CONFIG_SCEEN_WIDTH;
     egui_core.screen_height = EGUI_CONFIG_SCEEN_HEIGHT;
-    egui_core.color_bytes = EGUI_CONFIG_COLOR_DEPTH >> 3;
     egui_core_reset_pfb_scan_direction();
 
     egui_core_pfb_set_buffer(pfb[0], EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT);
 
     // Initialize PFB manager with first buffer
-    egui_pfb_manager_init(&egui_core.pfb_mgr, pfb[0], EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT, egui_core.color_bytes);
+    egui_pfb_manager_init(&egui_core.pfb_mgr, pfb[0], EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT, sizeof(egui_color_int_t));
 
     // Auto-add extra buffers based on EGUI_CONFIG_PFB_BUFFER_COUNT
     {

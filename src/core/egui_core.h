@@ -23,18 +23,15 @@ extern "C" {
 
 struct egui_core
 {
-    egui_color_int_t *pfb;     // pointer to frame buffer
-    int pfb_width;             // width of frame buffer
-    int pfb_height;            // height of frame buffer
-    int pfb_total_buffer_size; // size of frame buffer in bytes, for speed up.
-    int screen_width;          // width of screen
-    int screen_height;         // height of screen
-    int color_bytes;           // bytes per pixel
-
-    int pfb_width_count;  // width of frame buffer count in screen width
-    int pfb_height_count; // height of frame buffer count in screen width
+    egui_color_int_t *pfb;         // pointer to frame buffer
+    uint32_t pfb_total_buffer_size; // size of frame buffer in bytes, for speed up.
+    egui_dim_t pfb_width;          // width of frame buffer
+    egui_dim_t pfb_height;         // height of frame buffer
+    egui_dim_t screen_width;       // width of screen
+    egui_dim_t screen_height;      // height of screen
     uint8_t pfb_scan_reverse_x;
     uint8_t pfb_scan_reverse_y;
+    uint8_t is_suspended; // 1 if GUI refresh is paused
 
 #if EGUI_CONFIG_DEBUG_VIEW_ID
     uint16_t unique_id; // unique id count
@@ -70,8 +67,6 @@ struct egui_core
     egui_region_t region_dirty_arr[EGUI_CONFIG_DIRTY_AREA_COUNT]; // dirty region of screen
 
     egui_pfb_manager_t pfb_mgr; // PFB double buffer manager
-
-    uint8_t is_suspended; // 1 if GUI refresh is paused
 };
 
 /**
