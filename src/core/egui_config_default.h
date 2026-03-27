@@ -270,6 +270,15 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_SUPPORT_TOAST 1
 #endif
 
+/**
+ * Core state options.
+ * Select whether to keep a separate user-root wrapper under the top-level root group.
+ * Disable only when the app can place user views directly on the root group.
+ */
+#ifndef EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
+#define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 1
+#endif
+
 /* Dialog support depends on the activity stack. */
 #if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
 #undef EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY

@@ -21,6 +21,14 @@
 extern "C" {
 #endif
 
+#if !EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE && EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
+#error "EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE=0 requires EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY=0"
+#endif
+
+#if !EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE && EGUI_CONFIG_DEBUG_INFO_SHOW
+#error "EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE=0 requires EGUI_CONFIG_DEBUG_INFO_SHOW=0"
+#endif
+
 struct egui_core
 {
     egui_color_int_t *pfb;         // pointer to frame buffer
@@ -61,7 +69,9 @@ struct egui_core
 #endif
 
     egui_view_root_group_t root_view_group;      // root view group
+#if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
     egui_view_root_group_t user_root_view_group; // user root view group
+#endif
 
     egui_region_t region_dirty_arr[EGUI_CONFIG_DIRTY_AREA_COUNT]; // dirty region of screen
 

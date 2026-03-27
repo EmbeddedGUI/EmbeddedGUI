@@ -45,6 +45,11 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG   0
 #define EGUI_CONFIG_FUNCTION_SUPPORT_TOAST    0
 
+// HelloPerformance mounts its only benchmark view directly at the root level,
+// so the extra user-root wrapper inside egui_core just adds one unused
+// root-group object in persistent RAM.
+#define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 0
+
 // HelloPerformance only replays one pointer event at a time and consumes it
 // immediately in the polling loop, so one cached motion slot is enough.
 #define EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT 1

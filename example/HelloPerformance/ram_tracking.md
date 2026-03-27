@@ -48,6 +48,7 @@
 | 2026-03-27 | Drop HelloPerformance dead root-group touch flag and core PFB size cache | 2163452 | 48 | 10392 | 10440 | 0 / 11520 | 2936 | `static RAM -16B`, `egui_core 192 -> 180`; `touch=0` now compiles `egui_view_root_group_t 64 -> 60`, `egui_core` no longer stores `pfb_total_buffer_size`, heap peak stays `11520B`, runtime screenshots stay `223/223` with `changed=0`, no new `>5%` perf regression |
 | 2026-03-27 | Trim HelloPerformance canvas dead clip/spec metadata | 2163340 | 48 | 10384 | 10432 | 0 / 11520 | 2936 | `static RAM -8B`, `text -112B`, `canvas_data 44 -> 32`; compile out canvas extra-clip pointer and spec-circle registration state, runtime screenshots stay `223/223` with `changed=0`, heap peak stays `11520B`, no new `>5%` perf regression |
 | 2026-03-27 | Compile out default QEMU heap measurement counters | 2163152 | 48 | 10360 | 10408 | 0 / 11520 | 2936 | `static RAM -24B`, `text -188B`; normal HelloPerformance build no longer keeps QEMU heap current/peak accounting in `.bss`, while the `QEMU_HEAP_MEASURE=1` build still reports the same `interaction_total_peak=11520`, runtime screenshots stay `223/223` with `changed=0`, no new `>5%` perf regression |
+| 2026-03-28 | Alias HelloPerformance user root to core root group | 2163104 | 48 | 10296 | 10344 | 0 / 11520 | 2936 | `static RAM -64B`, `text -48B`, `egui_core 180 -> 120`; runtime screenshots stay `223/223` with `changed=0`, heap peak stays `11520B`, stack peak stays `2936B`, QEMU perf profile rerun with no hot-path change expected |
 
 ## Current Breakdown
 
@@ -57,7 +58,7 @@
 | --- | --- | ---: | --- |
 | `egui_pfb` | `.bss` | 1536 | User-configurable PFB, not an optimization target |
 | `qoi_state` | `.bss` | 208 | Compact QOI decoder state (`rgb565[64] + aux[64]`), with 8-bit current-row cursor for HelloPerformance's 40/120/240px assets |
-| `egui_core` | `.bss` | 180 | Core runtime state; removed cached `pfb_total_buffer_size`, and `touch=0` strips dead root-group touch flags |
+| `egui_core` | `.bss` | 120 | Core runtime state; removed cached `pfb_total_buffer_size`, `touch=0` strips dead root-group touch flags, and HelloPerformance aliases the user root to the main root group |
 | `test_view` | `.bss` | 56 | HelloPerformance scene object |
 | `canvas_data` | `.bss` | 32 | Canvas runtime state; HelloPerformance compiles out extra clip/spec-circle metadata |
 | `ui_timer` | `.bss` | 20 | App timer state |
@@ -69,7 +70,7 @@
 | `g_text_transform_visible_tile_cache` | `.bss` | 8 | Visible alpha8 tile heap cache handle |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
-- Current normal QEMU build: `text=2163152`, `data=48`, `bss=10360`, `static RAM=10408`.
+- Current normal QEMU build: `text=2163104`, `data=48`, `bss=10296`, `static RAM=10344`.
 - The codec row-band pixel/alpha cache no longer occupies fixed `.bss`; it is now allocated per frame from heap because its required size follows active image width, alpha format, and `PFB` row-band height.
 - The single-row decode pixel/opaque-alpha scratch also no longer occupies fixed `.bss`; it is now allocated per frame from heap because `EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH` follows screen width in the default config, and the required bytes follow pixel format / alpha row width.
 - There is no longer any decode row scratch parked in fixed SRAM between frames; the remaining static decode footprint is only metadata such as `qoi_state`, `rle_state`, and `egui_image_decode_cache_state`.
@@ -77,7 +78,8 @@
 - The decode row-band metadata no longer stores an unused `row_count`; the remaining `8B` only tracks `image_info`, `row_band_start`, and cache mode.
 - HelloPerformance now opts into an 8-bit QOI current-row cursor because its generated QOI resources are only `40/120/240` pixels tall; `egui_image_qoi_prepare_decode_info()` asserts that bound before decoding.
 - `egui_core` no longer stores a cached `pfb_total_buffer_size`; the few resize/clear paths derive bytes or pixel count from `pfb_width * pfb_height` on demand, which keeps the perf check within noise while removing fixed core RAM.
-- With `EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH=0`, `egui_view_root_group_t` no longer carries the `is_disallow_process_touch_event` field, so HelloPerformance's two root groups shrink from `64B` to `60B`.
+- With `EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH=0`, `egui_view_root_group_t` no longer carries the `is_disallow_process_touch_event` field, so the root-group object shrinks from `64B` to `60B`.
+- With `EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE=0`, HelloPerformance no longer keeps a second `user_root_view_group`; `egui_core_get_user_root_view()` and the add/remove/layout helpers now alias directly to `root_view_group`, which cuts another `60B` from `egui_core` without affecting the single-root benchmark app flow.
 - With `EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE=0` and `EGUI_CONFIG_CANVAS_SPEC_CIRCLE_INFO_ENABLE=0`, `canvas_data` no longer carries the scroll/list extra-clip pointer or out-of-range circle registration metadata; HelloPerformance stays within built-in circle LUT range and does not use nested clip widgets.
 - The QEMU port now uses a self-managed runtime heap carved from `[_ebss, _estack - _Min_Stack_Size)`, so enabling `EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE` does not pull in newlib `malloc` state.
 - The default QEMU build no longer keeps heap measurement counters in fixed SRAM; only the allocator topology (`free_list` / init flag) remains resident, while `QEMU_HEAP_MEASURE=1` recompiles the counters back in for telemetry.
@@ -97,6 +99,7 @@
 - The latest core/root-group metadata cleanup also does not change heap usage; it only removes fixed-size static fields from `egui_core` / `egui_view_root_group_t`.
 - The latest canvas metadata cleanup also does not change heap usage; it only removes fixed canvas-side state that HelloPerformance never uses.
 - The latest QEMU heap-stats cleanup also does not change heap usage; it only removes normal-build telemetry counters from `.bss`, and the dedicated heap-measure build still reports the same `11520B` interaction peak.
+- The latest user-root alias cleanup also does not change heap usage; it only drops one persistent root-group object from `egui_core`, and the dedicated heap-measure build still reports the same `11520B` interaction peak.
 - The measured heap build now reaches the former `.bss` cache footprint only while the decode-heavy scenes are active, and releases it back to `0B` at idle.
 
 ### Stack Measurement
@@ -127,6 +130,7 @@
 - The latest core/root-group cleanup also keeps stack flat: `egui_core_calc_pfb_buffer_size` is only a `16B` helper frame, `egui_core_clear_screen` is `40B`, and the max frame remains `2936B`.
 - The latest canvas metadata cleanup also keeps stack flat; it only removes unused fields from `canvas_data`, and the current max frame remains `2936B`.
 - The latest QEMU heap-stats cleanup also keeps stack flat; it only gates normal-build heap telemetry bookkeeping and does not add any new local buffers.
+- The latest user-root alias cleanup also keeps stack flat; it only removes a persistent wrapper object from `egui_core`, while `egui_core_calc_pfb_buffer_size` stays `16B`, `egui_core_clear_screen` stays `40B`, and the max frame remains `2936B`.
 - The earlier rectangle-gradient round shrank the fixed `color_cache` in `egui_canvas_draw_rectangle_fill_gradient` from `256` to `129` entries; measured `792B -> 528B`, while `GRADIENT_RADIAL` improved from `7.080 ms` to `6.727 ms` and `GRADIENT_ANGULAR` improved from `7.427 ms` to `6.914 ms`. PC runtime check frames `frame_0120.png` and `frame_0121.png` show the radial/angular rectangle gradients remain visually correct.
 - Current `HelloPerformance` non-text heads are `line_hq_draw_polyline_segment (976B)`, `egui_canvas_draw_line_hq (824B)`, `egui_canvas_draw_circle_fill_gradient (752B)`, `egui_canvas_draw_line_round_cap_hq (744B)`, `egui_canvas_draw_image_transform (736B)`, `egui_canvas_draw_polygon_fill_gradient (720B)`, `egui_canvas_draw_polygon_fill (712B)`, `egui_shadow_draw_corner (664B)`, `egui_canvas_draw_triangle_fill_gradient (544B)`, `egui_canvas_draw_ellipse_fill_gradient (544B)`, and `egui_canvas_draw_rectangle_fill_gradient (528B)`.
 - Current compiled frames `>= 1KB` are `2936`, `1200`, and `1112`; only `2936` belongs to an active HelloPerformance runtime path.

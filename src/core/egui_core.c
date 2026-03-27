@@ -34,6 +34,12 @@ __EGUI_WEAK__ void egui_port_notify_frame_render_complete(void)
 
 egui_core_t egui_core;
 
+#if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
+#define EGUI_CORE_USER_ROOT_VIEW_PTR() ((egui_view_t *)&egui_core.user_root_view_group)
+#else
+#define EGUI_CORE_USER_ROOT_VIEW_PTR() ((egui_view_t *)&egui_core.root_view_group)
+#endif
+
 static uint32_t egui_core_calc_pfb_buffer_size(egui_dim_t width, egui_dim_t height)
 {
     return (uint32_t)width * (uint32_t)height * (uint32_t)sizeof(egui_color_int_t);
@@ -599,24 +605,24 @@ void egui_core_force_refresh(void)
 
 egui_view_group_t *egui_core_get_user_root_view(void)
 {
-    return (egui_view_group_t *)&egui_core.user_root_view_group;
+    return (egui_view_group_t *)EGUI_CORE_USER_ROOT_VIEW_PTR();
 }
 
 void egui_core_add_user_root_view(egui_view_t *view)
 {
-    egui_view_group_add_child((egui_view_t *)&egui_core.user_root_view_group, view);
+    egui_view_group_add_child(EGUI_CORE_USER_ROOT_VIEW_PTR(), view);
 }
 
 void egui_core_remove_user_root_view(egui_view_t *view)
 {
-    egui_view_group_remove_child((egui_view_t *)&egui_core.user_root_view_group, view);
+    egui_view_group_remove_child(EGUI_CORE_USER_ROOT_VIEW_PTR(), view);
 
     egui_core_update_region_dirty_all();
 }
 
 void egui_core_layout_childs_user_root_view(uint8_t is_orientation_horizontal, uint8_t align_type)
 {
-    egui_view_group_layout_childs((egui_view_t *)&egui_core.user_root_view_group, is_orientation_horizontal, 0, 0, align_type);
+    egui_view_group_layout_childs(EGUI_CORE_USER_ROOT_VIEW_PTR(), is_orientation_horizontal, 0, 0, align_type);
 }
 
 void egui_core_draw_data(egui_region_t *p_region)
@@ -1152,7 +1158,9 @@ void egui_core_set_screen_size(int16_t width, int16_t height)
 
     // Update root view group sizes
     egui_view_set_size((egui_view_t *)&egui_core.root_view_group, width, height);
+#if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
     egui_view_set_size((egui_view_t *)&egui_core.user_root_view_group, width, height);
+#endif
 
     // Force full screen refresh
     egui_core_update_region_dirty_all();
@@ -1302,11 +1310,13 @@ void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HE
     egui_view_set_position((egui_view_t *)&egui_core.root_view_group, 0, 0);
     egui_view_set_size((egui_view_t *)&egui_core.root_view_group, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 
+#if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
     egui_view_root_group_init((egui_view_t *)&egui_core.user_root_view_group);
     egui_view_set_position((egui_view_t *)&egui_core.user_root_view_group, 0, 0);
     egui_view_set_size((egui_view_t *)&egui_core.user_root_view_group, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 
     egui_core_add_root_view((egui_view_t *)&egui_core.user_root_view_group);
+#endif
 
 #if EGUI_CONFIG_DEBUG_INFO_SHOW
     // Inintialize the debug view
