@@ -15,10 +15,14 @@ void egui_image_decode_release_frame_cache(void);
 #if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE || EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
 
 /* Shared row decode buffers.
- * Pixel buffer: EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE bytes
- * Alpha buffer: EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH bytes
+ * Pixel buffer: EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE bytes.
+ * With row-band cache enabled, the single-row pixel scratch borrows the same
+ * heap-backed pixel buffer instead of keeping a second persistent handle.
+ * Alpha buffer: EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH bytes.
  */
+#if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 extern uint8_t *egui_image_decode_row_pixel_buf;
+#endif
 #if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE || !EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
 extern uint8_t *egui_image_decode_row_alpha_buf;
 #endif
