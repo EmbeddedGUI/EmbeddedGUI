@@ -1695,8 +1695,16 @@ typedef struct
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE 1
 #endif
 
+#ifndef EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE 1
+#endif
+
 #ifndef EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE
 #define EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE 1
+#endif
+
+#if !EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE && EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
+#error "EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE=0 requires EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE=0"
 #endif
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
@@ -2431,10 +2439,12 @@ static text_transform_layout_cache_t g_text_transform_layout_cache = {
         .line_count = 0,
 };
 #endif
+#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
 static text_transform_layout_glyph_t *g_text_transform_layout_glyphs = NULL;
 static int g_text_transform_layout_capacity = 0;
 static text_transform_layout_line_t *g_text_transform_layout_lines = NULL;
 static int g_text_transform_layout_line_capacity = 0;
+#endif
 
 typedef struct
 {
@@ -2446,6 +2456,7 @@ static text_transform_visible_tile_cache_t g_text_transform_visible_tile_cache =
 
 static void text_transform_release_layout_cache(void)
 {
+#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
     if (g_text_transform_layout_glyphs != NULL)
     {
         egui_free(g_text_transform_layout_glyphs);
@@ -2462,6 +2473,7 @@ static void text_transform_release_layout_cache(void)
 #endif
     g_text_transform_layout_capacity = 0;
     g_text_transform_layout_line_capacity = 0;
+#endif
 }
 
 static void text_transform_release_visible_tile_cache(void)
@@ -2535,6 +2547,7 @@ static inline uint8_t read_packed_mask_alpha_4_rb(const uint8_t *buf, int row_by
     return egui_alpha_change_table_4[(packed >> ((x & 1) << 2)) & 0x0F];
 }
 
+#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
 static int text_transform_ensure_layout_capacity(int needed)
 {
     text_transform_layout_glyph_t *new_layout;
@@ -2584,6 +2597,7 @@ static int text_transform_ensure_line_capacity(int needed)
     g_text_transform_layout_line_capacity = needed;
     return 0;
 }
+#endif
 
 void egui_canvas_transform_release_frame_cache(void)
 {
@@ -2756,6 +2770,7 @@ static int text_transform_build_layout(const egui_font_std_info_t *font_info, co
     return count;
 }
 
+#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
 static int text_transform_prepare_layout(const egui_font_t *font, const egui_font_std_info_t *font_info, const char *string, egui_dim_t line_space,
                                          const text_transform_layout_glyph_t **layout, int *count, const text_transform_layout_line_t **lines, int *line_count)
 {
@@ -2817,6 +2832,7 @@ static int text_transform_prepare_layout(const egui_font_t *font, const egui_fon
     *line_count = cache->line_count;
     return 0;
 }
+#endif
 
 /**
  * Collect only cached layout glyphs that overlap the source bounding box [sx0..sx1, sy0..sy1].
@@ -3729,6 +3745,11 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
         int stack_line_needed = 0;
 
         text_transform_measure_layout_slots(text, &stack_needed, &stack_line_needed);
+        if (stack_needed == 0 || stack_line_needed == 0)
+        {
+            return;
+        }
+
         if (stack_needed > 0 &&
             stack_needed <= EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS &&
             stack_line_needed > 0 &&
@@ -3745,10 +3766,17 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
         }
         else
 #endif
+#if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE
         if (text_transform_prepare_layout(font, font_info, text, 0, &layout_glyphs, &layout_count, &layout_lines, &layout_line_count) != 0)
         {
             return;
         }
+#else
+        {
+            EGUI_ASSERT(0);
+            return;
+        }
+#endif
     }
 
     if (layout_glyphs == NULL || layout_lines == NULL)

@@ -203,6 +203,7 @@ extern "C" {
 // only measure one short benchmark string per draw, so the remaining layout
 // and dimension metadata caches do not justify permanent static RAM.
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE 0
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE  0
 #define EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE    0
 
 // HelloPerformance's rotated-text benchmarks only use a fixed 7-line string
