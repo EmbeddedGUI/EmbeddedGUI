@@ -849,19 +849,17 @@ static void egui_image_rle_reset_state(const egui_image_rle_info_t *info)
  * beginning.  RLE state is small (~10 bytes), so checkpoint is cheap.
  */
 static egui_image_rle_decode_state_t rle_checkpoint;
-static uint16_t rle_checkpoint_row;
-static const egui_image_rle_info_t *rle_checkpoint_info;
 
 static void egui_image_rle_save_checkpoint(const egui_image_rle_info_t *info, uint16_t row)
 {
+    EGUI_UNUSED(info);
+    EGUI_UNUSED(row);
     rle_checkpoint = rle_state;
-    rle_checkpoint_row = row;
-    rle_checkpoint_info = info;
 }
 
 static int egui_image_rle_restore_checkpoint(const egui_image_rle_info_t *info, uint16_t target_row)
 {
-    if (rle_checkpoint_info == info && rle_checkpoint_row == target_row)
+    if (rle_checkpoint.info == info && rle_checkpoint.current_row == target_row)
     {
         rle_state = rle_checkpoint;
         return 1;
@@ -1472,7 +1470,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
 
     /* Save checkpoint at the start of this row band so horizontal tile
      * neighbors can restore directly instead of re-scanning from row 0. */
-    if (rle_checkpoint_info != info || rle_checkpoint_row != (uint16_t)img_y_start)
+    if (rle_checkpoint.info != info || rle_checkpoint.current_row != (uint16_t)img_y_start)
     {
         egui_image_rle_save_checkpoint(info, (uint16_t)img_y_start);
     }
