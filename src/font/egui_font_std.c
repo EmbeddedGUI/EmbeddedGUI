@@ -14,24 +14,41 @@ static egui_font_std_char_descriptor_t g_selected_char_desc;
 #define EGUI_FONT_STD_EXTERNAL_PIXEL_ROW_BUFFER_SIZE 256
 #endif
 
+#ifndef EGUI_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT
+#define EGUI_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT 0
+#endif
+
+#if EGUI_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT
+typedef uint8_t egui_font_std_code_lookup_count_t;
+typedef uint8_t egui_font_std_code_lookup_code_t;
+typedef int8_t egui_font_std_code_lookup_index_t;
+#define EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID (-1)
+#define EGUI_FONT_STD_CODE_LOOKUP_INDEX_CAPACITY ((uint16_t)INT8_MAX + 1u)
+#else
+typedef uint16_t egui_font_std_code_lookup_count_t;
+typedef uint32_t egui_font_std_code_lookup_code_t;
+typedef int egui_font_std_code_lookup_index_t;
+#define EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID (-1)
+#endif
+
 typedef struct
 {
     const egui_font_std_code_descriptor_t *code_array;
-    uint16_t count;
-    uint32_t last_code;
-    int last_index;
-    uint32_t block_start_code;
-    uint32_t block_end_code;
-    int block_start_index;
-    int block_end_index;
+    egui_font_std_code_lookup_count_t count;
+    egui_font_std_code_lookup_code_t last_code;
+    egui_font_std_code_lookup_index_t last_index;
+    egui_font_std_code_lookup_code_t block_start_code;
+    egui_font_std_code_lookup_code_t block_end_code;
+    egui_font_std_code_lookup_index_t block_start_index;
+    egui_font_std_code_lookup_index_t block_end_index;
 } egui_font_std_code_lookup_cache_t;
 
 static egui_font_std_code_lookup_cache_t g_font_std_code_lookup_cache = {
         .code_array = NULL,
         .count = 0,
-        .last_index = -1,
-        .block_start_index = -1,
-        .block_end_index = -1,
+        .last_index = EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID,
+        .block_start_index = EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID,
+        .block_end_index = EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID,
 };
 
 #define EGUI_FONT_STD_ASCII_CACHE_SIZE 128
@@ -138,6 +155,31 @@ static egui_font_std_line_cache_storage_t *g_font_std_line_cache_storage = NULL;
 #endif
 
 __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_draw_fast(const egui_font_std_info_t *font, uint32_t utf8_code);
+
+__EGUI_STATIC_INLINE__ egui_font_std_code_lookup_count_t egui_font_std_code_lookup_cache_store_count(uint16_t count)
+{
+#if EGUI_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT
+    EGUI_ASSERT(count <= EGUI_FONT_STD_CODE_LOOKUP_INDEX_CAPACITY);
+#endif
+    return (egui_font_std_code_lookup_count_t)count;
+}
+
+__EGUI_STATIC_INLINE__ egui_font_std_code_lookup_code_t egui_font_std_code_lookup_cache_store_code(uint32_t code)
+{
+#if EGUI_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT
+    EGUI_ASSERT(code <= UINT8_MAX);
+#endif
+    return (egui_font_std_code_lookup_code_t)code;
+}
+
+__EGUI_STATIC_INLINE__ egui_font_std_code_lookup_index_t egui_font_std_code_lookup_cache_store_index(int index)
+{
+#if EGUI_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT
+    EGUI_ASSERT(index >= EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID);
+    EGUI_ASSERT(index < (int)EGUI_FONT_STD_CODE_LOOKUP_INDEX_CAPACITY);
+#endif
+    return (egui_font_std_code_lookup_index_t)index;
+}
 
 static uint32_t egui_font_std_hash_bytes(const char *s, uint16_t *byte_count, int stop_at_newline)
 {
@@ -585,10 +627,10 @@ static void egui_font_std_reset_code_lookup_cache(const egui_font_std_info_t *fo
     if (g_font_std_code_lookup_cache.code_array != font->code_array || g_font_std_code_lookup_cache.count != font->count)
     {
         g_font_std_code_lookup_cache.code_array = font->code_array;
-        g_font_std_code_lookup_cache.count = font->count;
-        g_font_std_code_lookup_cache.last_index = -1;
-        g_font_std_code_lookup_cache.block_start_index = -1;
-        g_font_std_code_lookup_cache.block_end_index = -1;
+        g_font_std_code_lookup_cache.count = egui_font_std_code_lookup_cache_store_count(font->count);
+        g_font_std_code_lookup_cache.last_index = EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID;
+        g_font_std_code_lookup_cache.block_start_index = EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID;
+        g_font_std_code_lookup_cache.block_end_index = EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID;
     }
 }
 
@@ -616,12 +658,12 @@ static void egui_font_std_update_code_lookup_cache(const egui_font_std_info_t *f
         block_end++;
     }
 
-    g_font_std_code_lookup_cache.last_code = code_array[code_index].code;
-    g_font_std_code_lookup_cache.last_index = code_index;
-    g_font_std_code_lookup_cache.block_start_code = code_array[block_start].code;
-    g_font_std_code_lookup_cache.block_end_code = code_array[block_end].code;
-    g_font_std_code_lookup_cache.block_start_index = block_start;
-    g_font_std_code_lookup_cache.block_end_index = block_end;
+    g_font_std_code_lookup_cache.last_code = egui_font_std_code_lookup_cache_store_code(code_array[code_index].code);
+    g_font_std_code_lookup_cache.last_index = egui_font_std_code_lookup_cache_store_index(code_index);
+    g_font_std_code_lookup_cache.block_start_code = egui_font_std_code_lookup_cache_store_code(code_array[block_start].code);
+    g_font_std_code_lookup_cache.block_end_code = egui_font_std_code_lookup_cache_store_code(code_array[block_end].code);
+    g_font_std_code_lookup_cache.block_start_index = egui_font_std_code_lookup_cache_store_index(block_start);
+    g_font_std_code_lookup_cache.block_end_index = egui_font_std_code_lookup_cache_store_index(block_end);
 }
 
 int egui_font_std_find_code_index(const egui_font_std_info_t *font, uint32_t utf8_code)
