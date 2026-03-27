@@ -171,6 +171,16 @@ extern "C" {
 // be removed entirely.
 #define EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE 0
 
+// HelloPerformance only draws a single fullscreen benchmark view and never
+// uses scroll/list/viewport style nested clip regions, so the canvas does not
+// need to retain an extra clip pointer in persistent RAM.
+#define EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE 0
+
+// HelloPerformance's circle/round-rect workloads stay within the built-in
+// radius LUT range configured above, so canvas never needs runtime-registered
+// out-of-range circle metadata.
+#define EGUI_CONFIG_CANVAS_SPEC_CIRCLE_INFO_ENABLE 0
+
 // HelloPerformance keeps a single fullscreen benchmark view and every scene
 // switch invalidates that whole surface, so one dirty-region slot is enough.
 #define EGUI_CONFIG_DIRTY_AREA_COUNT 1

@@ -25,6 +25,25 @@ extern "C" {
 #define EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE 50
 #endif
 
+/**
+ * Canvas state options.
+ * When 1, keep the extra clip pointer used by scroll/list/viewport style widgets.
+ * Disable only when the application never relies on nested clip regions.
+ */
+#ifndef EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE
+#define EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE 1
+#endif
+
+/**
+ * Canvas state options.
+ * When 1, keep the optional runtime-registered circle LUT list for radii beyond
+ * EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE.
+ * Disable only when the application never registers extra circle info.
+ */
+#ifndef EGUI_CONFIG_CANVAS_SPEC_CIRCLE_INFO_ENABLE
+#define EGUI_CONFIG_CANVAS_SPEC_CIRCLE_INFO_ENABLE 1
+#endif
+
 /* ---- Circle/Arc default algorithm ---- */
 
 /**

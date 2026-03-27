@@ -142,6 +142,7 @@ const egui_circle_info_t *egui_canvas_get_circle_item(egui_dim_t r)
         return NULL;
     }
 
+#if EGUI_CONFIG_CANVAS_SPEC_CIRCLE_INFO_ENABLE
     for (int i = 0; i < self->res_circle_info_count_spec; i++)
     {
         if (self->res_circle_info_spec_arr[i].radius == r)
@@ -149,6 +150,9 @@ const egui_circle_info_t *egui_canvas_get_circle_item(egui_dim_t r)
             return &self->res_circle_info_spec_arr[i];
         }
     }
+#else
+    EGUI_UNUSED(self);
+#endif
 
     return NULL;
 }
@@ -3058,12 +3062,14 @@ void egui_canvas_calc_work_region(egui_region_t *base_region)
 
     // If an extra clip is set (e.g. scroll view viewport), also intersect with it.
     // This prevents children of scroll views from rendering outside the visible viewport.
+#if EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE
     if (self->extra_clip_region != NULL)
     {
         egui_region_t clipped;
         egui_region_intersect_fast(region, self->extra_clip_region, &clipped);
         *region = clipped;
     }
+#endif
 
     // change to base_region coordinate.
     region->location.x -= base_region->location.x;
@@ -3076,10 +3082,15 @@ void egui_canvas_calc_work_region(egui_region_t *base_region)
 
 void egui_canvas_register_spec_circle_info(uint16_t res_circle_info_count_spec, const egui_circle_info_t *res_circle_info_spec_arr)
 {
+#if EGUI_CONFIG_CANVAS_SPEC_CIRCLE_INFO_ENABLE
     egui_canvas_t *self = &canvas_data;
 
     self->res_circle_info_count_spec = res_circle_info_count_spec;
     self->res_circle_info_spec_arr = res_circle_info_spec_arr;
+#else
+    EGUI_UNUSED(res_circle_info_count_spec);
+    EGUI_UNUSED(res_circle_info_spec_arr);
+#endif
 }
 
 void egui_canvas_init(egui_color_int_t *pfb, egui_region_t *region)
@@ -3090,5 +3101,7 @@ void egui_canvas_init(egui_color_int_t *pfb, egui_region_t *region)
     egui_region_copy(&self->pfb_region, region);
 
     self->alpha = EGUI_ALPHA_100;
+#if EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE
     self->extra_clip_region = NULL;
+#endif
 }

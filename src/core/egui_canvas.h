@@ -42,12 +42,16 @@ struct egui_canvas
 
     egui_mask_t *mask; // current mask for alpha blending
 
+#if EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE
     // Optional extra clip region in screen coordinates (used by scroll views to clip children).
     // When set, egui_canvas_calc_work_region also intersects with this region.
     const egui_region_t *extra_clip_region;
+#endif
 
+#if EGUI_CONFIG_CANVAS_SPEC_CIRCLE_INFO_ENABLE
     uint16_t res_circle_info_count_spec;
     const egui_circle_info_t *res_circle_info_spec_arr;
+#endif
 };
 
 extern egui_canvas_t canvas_data;
@@ -94,17 +98,27 @@ __EGUI_STATIC_INLINE__ void egui_canvas_clear_mask(void)
  */
 __EGUI_STATIC_INLINE__ void egui_canvas_set_extra_clip(const egui_region_t *clip_region)
 {
+#if EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE
     canvas_data.extra_clip_region = clip_region;
+#else
+    EGUI_UNUSED(clip_region);
+#endif
 }
 
 __EGUI_STATIC_INLINE__ void egui_canvas_clear_extra_clip(void)
 {
+#if EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE
     canvas_data.extra_clip_region = NULL;
+#endif
 }
 
 __EGUI_STATIC_INLINE__ const egui_region_t *egui_canvas_get_extra_clip(void)
 {
+#if EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE
     return canvas_data.extra_clip_region;
+#else
+    return NULL;
+#endif
 }
 
 __EGUI_STATIC_INLINE__ void egui_canvas_set_mask(egui_mask_t *mask)
