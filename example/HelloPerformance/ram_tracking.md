@@ -21,6 +21,7 @@
 | 2026-03-27 | Alpha change tables moved to rodata | 2172668 | 52 | 22132 | 22184 | 0 / 0 | Baseline before this round |
 | 2026-03-27 | Disable HelloPerformance RLE checkpoint fallback state | 2172576 | 52 | 22116 | 22168 | 0 / 0 | `static RAM -16B`, `rle_checkpoint` removed |
 | 2026-03-27 | Disable HelloPerformance touch pipeline | 2168220 | 52 | 22036 | 22088 | 0 / 0 | `static RAM -80B`, removed unused touch/input state for timer-driven recording |
+| 2026-03-27 | Compact HelloPerformance QOI RGB565 index | 2168836 | 52 | 21972 | 22024 | 0 / 0 | `static RAM -64B`, `qoi_state 276B -> 212B`, text `+616B` |
 
 ## Current Breakdown
 
@@ -31,7 +32,7 @@
 | `egui_image_decode_row_cache_pixel` | `.bss` | 7680 | Decode row-band pixel cache |
 | `egui_image_decode_row_cache_alpha` | `.bss` | 3840 | Decode row-band alpha cache |
 | `egui_pfb` | `.bss` | 1536 | User-configurable PFB, not an optimization target |
-| `qoi_state` | `.bss` | 276 | QOI decoder state |
+| `qoi_state` | `.bss` | 212 | Compact QOI decoder state (`rgb565[64] + aux[64]`) |
 | `egui_core` | `.bss` | 228 | Core runtime state |
 | `test_view` | `.bss` | 56 | HelloPerformance scene object |
 | `anim_perf_view` | `.bss` | 52 | HelloPerformance scene object |
@@ -44,6 +45,7 @@
 | `g_selected_char_desc` | `.bss` | 12 | Text transform selection state |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
+- Current normal QEMU build: `text=2168836`, `data=52`, `bss=21972`, `static RAM=22024`.
 
 ### Heap Measurement
 

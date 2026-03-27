@@ -103,6 +103,12 @@ extern "C" {
 // duplicate 64-entry RGB565 index array in static RAM.
 #define EGUI_CONFIG_IMAGE_QOI_INDEX_RGB565_CACHE_ENABLE 0
 
+// HelloPerformance's QOI assets are all RGB565 sources. RGB565+alpha images
+// can rebuild RGB888 from canonical expansion plus cached alpha, and opaque
+// RGB565 images only need one small variant byte for the encoder's speed-
+// biased representative choice. This trims another 64B from qoi_state.
+#define EGUI_CONFIG_IMAGE_QOI_COMPACT_RGB565_INDEX_ENABLE 1
+
 // HelloPerformance exercises external raw-image draw/resize and external
 // raw-image transform in separate benchmark scenes, so they can reuse one
 // shared row-cache backing store without changing hot-path behavior.
