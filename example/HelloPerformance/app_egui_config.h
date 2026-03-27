@@ -148,6 +148,10 @@ extern "C" {
 // be removed entirely.
 #define EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE 0
 
+// HelloPerformance keeps a single fullscreen benchmark view and every scene
+// switch invalidates that whole surface, so one dirty-region slot is enough.
+#define EGUI_CONFIG_DIRTY_AREA_COUNT 1
+
 // HelloPerformance only reaches one text-rotation prepare call per draw, so
 // recomputing the affine bounds is cheaper than keeping a persistent 60B cache.
 #define EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE 0
