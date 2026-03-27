@@ -49,6 +49,10 @@ extern "C" {
 // immediately in the polling loop, so one cached motion slot is enough.
 #define EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT 1
 
+// HelloPerformance does not use fling/scroll velocity, so the input module
+// can drop its persistent velocity tracker state.
+#define EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE 0
+
 // The app keeps one root-group wrapper plus a single fullscreen test view, so
 // a 2-entry touch capture path still preserves follow-up DOWN/MOVE/UP routing.
 #define EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX 2
@@ -138,6 +142,11 @@ extern "C" {
 // text-transform layout can use 16-bit offsets/indices to trim heap.
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 1
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT  1
+
+// HelloPerformance refreshes every benchmark scene manually and never relies
+// on the framework's periodic refresh loop, so the core auto-refresh timer can
+// be removed entirely.
+#define EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE 0
 
 // HelloPerformance only reaches one text-rotation prepare call per draw, so
 // recomputing the affine bounds is cheaper than keeping a persistent 60B cache.

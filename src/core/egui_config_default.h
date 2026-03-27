@@ -92,6 +92,15 @@ extern "C" {
 #define EGUI_CONFIG_MAX_FPS 60
 #endif
 
+/**
+ * Keep a core-owned periodic refresh timer running in the background.
+ * Apps that drive every refresh manually can disable this to remove the
+ * persistent timer state.
+ */
+#ifndef EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE
+#define EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE 1
+#endif
+
 /* Set the dirty area count. Limit is 1, use the buffer to reduce need refresh area. */
 #ifndef EGUI_CONFIG_DIRTY_AREA_COUNT
 #define EGUI_CONFIG_DIRTY_AREA_COUNT 5
@@ -112,6 +121,15 @@ extern "C" {
 /* Set the motion cache count, use to save the motion of the input device. */
 #ifndef EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT
 #define EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT 5
+#endif
+
+/**
+ * Track touch release velocity for fling-capable widgets such as scroll/viewpage.
+ * Apps that never read egui_input_get_velocity_*() can disable this to trim
+ * persistent input state.
+ */
+#ifndef EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE
+#define EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE 1
 #endif
 
 /**

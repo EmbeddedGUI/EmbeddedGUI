@@ -15,7 +15,10 @@ typedef struct egui_input egui_input_t;
 struct egui_input
 {
     egui_slist_t motion_list; // the position in screen coordinates
+
+#if EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE
     egui_velocity_tracker_t velocity_tracker;
+#endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
     egui_slist_t key_list; // key event queue

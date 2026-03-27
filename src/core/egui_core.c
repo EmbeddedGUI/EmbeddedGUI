@@ -1071,6 +1071,7 @@ void egui_core_refresh_screen(void)
     }
 }
 
+#if EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE
 static egui_timer_t egui_refresh_timer;
 static void egui_refresh_timer_callback(egui_timer_t *timer)
 {
@@ -1088,10 +1089,13 @@ static void egui_refresh_timer_callback(egui_timer_t *timer)
         egui_timer_start_timer(&egui_refresh_timer, EGUI_CORE_REFRESH_INTERVAL_MS - start_time, 0);
     }
 }
+#endif
 
 void egui_core_stop_auto_refresh_screen(void)
 {
+#if EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE
     egui_timer_stop_timer(&egui_refresh_timer);
+#endif
 }
 
 egui_color_int_t *egui_core_get_pfb_buffer_ptr(void)
@@ -1124,12 +1128,16 @@ void egui_core_pfb_set_buffer(egui_color_int_t *pfb, uint16_t width, uint16_t he
 
 void egui_core_power_off(void)
 {
+#if EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE
     egui_timer_stop_timer(&egui_refresh_timer);
+#endif
 }
 
 void egui_core_power_on(void)
 {
+#if EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE
     egui_timer_start_timer(&egui_refresh_timer, 0, 0);
+#endif
 }
 
 void egui_core_set_screen_size(int16_t width, int16_t height)
@@ -1343,5 +1351,7 @@ void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HE
 #endif
 
     // Prepare refresh timer callback (not started yet — egui_screen_on() will start it)
+#if EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE
     egui_refresh_timer.callback = egui_refresh_timer_callback;
+#endif
 }
