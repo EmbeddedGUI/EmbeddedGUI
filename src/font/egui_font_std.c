@@ -10,7 +10,6 @@
 extern const egui_font_api_t egui_font_std_t_api_table;
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-static egui_font_std_char_descriptor_t g_selected_char_desc;
 #define EGUI_FONT_STD_EXTERNAL_PIXEL_ROW_BUFFER_SIZE 256
 #endif
 
@@ -154,7 +153,8 @@ static uint32_t g_font_std_draw_prefix_cache_stamp = 0;
 static egui_font_std_line_cache_storage_t *g_font_std_line_cache_storage = NULL;
 #endif
 
-__EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_draw_fast(const egui_font_std_info_t *font, uint32_t utf8_code);
+__EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_draw_fast(const egui_font_std_info_t *font, uint32_t utf8_code,
+                                                                                                egui_font_std_char_descriptor_t *external_desc_scratch);
 
 __EGUI_STATIC_INLINE__ egui_font_std_code_lookup_count_t egui_font_std_code_lookup_cache_store_count(uint16_t count)
 {
@@ -345,6 +345,7 @@ static const egui_font_std_draw_prefix_cache_t *egui_font_std_prepare_draw_prefi
     int cursor_x = 0;
     int cached_bytes = 0;
     int glyph_count = 0;
+    egui_font_std_char_descriptor_t external_desc_scratch;
     int advance_limit;
     const char *cursor = s;
     egui_font_std_draw_prefix_cache_t *cache = &g_font_std_draw_prefix_cache[0];
@@ -438,7 +439,7 @@ static const egui_font_std_draw_prefix_cache_t *egui_font_std_prepare_draw_prefi
         else
         {
             char_bytes = egui_font_get_utf8_code_fast(cursor, &utf8_code);
-            p_char_desc = egui_font_std_get_desc_draw_fast(font, utf8_code);
+            p_char_desc = egui_font_std_get_desc_draw_fast(font, utf8_code, &external_desc_scratch);
             adv = p_char_desc ? p_char_desc->adv : FONT_ERROR_FONT_SIZE(font->height);
         }
 
@@ -747,7 +748,8 @@ int egui_font_std_find_code_index(const egui_font_std_info_t *font, uint32_t utf
     return -1;
 }
 
-__EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_by_index(const egui_font_std_info_t *font, int code_index)
+__EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_by_index(const egui_font_std_info_t *font, int code_index,
+                                                                                               egui_font_std_char_descriptor_t *external_desc_scratch)
 {
     if (font == NULL || code_index < 0 || code_index >= font->count)
     {
@@ -761,25 +763,30 @@ __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     {
-        egui_font_std_char_descriptor_t *p_char_desc = &g_selected_char_desc;
-
-        egui_api_load_external_resource(p_char_desc, (egui_uintptr_t)font->char_array, code_index * sizeof(egui_font_std_char_descriptor_t),
-                                        sizeof(egui_font_std_char_descriptor_t));
-        if (p_char_desc->size == 0)
+        if (external_desc_scratch == NULL)
         {
             return NULL;
         }
 
-        return p_char_desc;
+        egui_api_load_external_resource(external_desc_scratch, (egui_uintptr_t)font->char_array, code_index * sizeof(egui_font_std_char_descriptor_t),
+                                        sizeof(egui_font_std_char_descriptor_t));
+        if (external_desc_scratch->size == 0)
+        {
+            return NULL;
+        }
+
+        return external_desc_scratch;
     }
 #else
     {
+        (void)external_desc_scratch;
         return NULL;
     }
 #endif
 }
 
-static const egui_font_std_char_descriptor_t *egui_font_std_get_desc(const egui_font_std_info_t *font, uint32_t utf8_code)
+static const egui_font_std_char_descriptor_t *egui_font_std_get_desc(const egui_font_std_info_t *font, uint32_t utf8_code,
+                                                                     egui_font_std_char_descriptor_t *external_desc_scratch)
 {
     int code_index = egui_font_std_find_code_index(font, utf8_code);
     if (code_index < 0)
@@ -787,10 +794,11 @@ static const egui_font_std_char_descriptor_t *egui_font_std_get_desc(const egui_
         return NULL;
     }
 
-    return egui_font_std_get_desc_by_index(font, code_index);
+    return egui_font_std_get_desc_by_index(font, code_index, external_desc_scratch);
 }
 
-__EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_fast(const egui_font_std_info_t *font, uint32_t utf8_code)
+__EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_fast(const egui_font_std_info_t *font, uint32_t utf8_code,
+                                                                                           egui_font_std_char_descriptor_t *external_desc_scratch)
 {
     if (font == NULL)
     {
@@ -804,7 +812,7 @@ __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_
 
         if (ascii_cache == NULL)
         {
-            return egui_font_std_get_desc(font, utf8_code);
+            return egui_font_std_get_desc(font, utf8_code, external_desc_scratch);
         }
 
         code_index = egui_font_std_get_ascii_lookup_index(ascii_cache, (uint8_t)utf8_code);
@@ -813,18 +821,20 @@ __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_
             return NULL;
         }
 
-        return egui_font_std_get_desc_by_index(font, code_index);
+        return egui_font_std_get_desc_by_index(font, code_index, external_desc_scratch);
     }
 
-    return egui_font_std_get_desc(font, utf8_code);
+    return egui_font_std_get_desc(font, utf8_code, external_desc_scratch);
 }
 
-const egui_font_std_char_descriptor_t *egui_font_std_get_desc_fast_api(const egui_font_std_info_t *font, uint32_t utf8_code)
+const egui_font_std_char_descriptor_t *egui_font_std_get_desc_fast_api(const egui_font_std_info_t *font, uint32_t utf8_code,
+                                                                       egui_font_std_char_descriptor_t *external_desc_scratch)
 {
-    return egui_font_std_get_desc_fast(font, utf8_code);
+    return egui_font_std_get_desc_fast(font, utf8_code, external_desc_scratch);
 }
 
-__EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_draw_fast(const egui_font_std_info_t *font, uint32_t utf8_code)
+__EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_draw_fast(const egui_font_std_info_t *font, uint32_t utf8_code,
+                                                                                                egui_font_std_char_descriptor_t *external_desc_scratch)
 {
     if (font == NULL)
     {
@@ -846,7 +856,7 @@ __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_
         }
     }
 
-    return egui_font_std_get_desc_fast(font, utf8_code);
+    return egui_font_std_get_desc_fast(font, utf8_code, external_desc_scratch);
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE && EGUI_FONT_STD_PREPARE_ACCESS_COPY_PIXEL_BUFFER
@@ -2345,6 +2355,7 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
                                             egui_alpha_t draw_alpha, const egui_font_std_blend_ctx_t *blend_ctx)
 {
     int str_cnt = 0;
+    egui_font_std_char_descriptor_t external_desc_scratch;
     egui_dim_t work_x0 = work_region->location.x;
     egui_dim_t work_y0 = work_region->location.y;
     egui_dim_t work_x1 = work_x0 + work_region->size.width;
@@ -2485,7 +2496,7 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
         else
         {
             char_bytes = egui_font_get_utf8_code_fast(s, &utf8_code);
-            p_char_desc = egui_font_std_get_desc_draw_fast(font, utf8_code);
+            p_char_desc = egui_font_std_get_desc_draw_fast(font, utf8_code, &external_desc_scratch);
             adv = p_char_desc ? p_char_desc->adv : FONT_ERROR_FONT_SIZE(font->height);
         }
 
@@ -2548,6 +2559,7 @@ static int egui_font_std_draw_string_fast_4_mask(const void *font_key, const egu
                                                  egui_color_t color, egui_alpha_t alpha, const egui_region_t *work_region)
 {
     int str_cnt = 0;
+    egui_font_std_char_descriptor_t external_desc_scratch;
     egui_dim_t work_x0 = work_region->location.x;
     egui_dim_t work_y0 = work_region->location.y;
     egui_dim_t work_x1 = work_x0 + work_region->size.width;
@@ -2657,7 +2669,7 @@ static int egui_font_std_draw_string_fast_4_mask(const void *font_key, const egu
             else
             {
                 char_bytes = egui_font_get_utf8_code_fast(s, &utf8_code);
-                p_char_desc = egui_font_std_get_desc_draw_fast(font, utf8_code);
+                p_char_desc = egui_font_std_get_desc_draw_fast(font, utf8_code, &external_desc_scratch);
                 adv = p_char_desc ? p_char_desc->adv : FONT_ERROR_FONT_SIZE(font->height);
             }
 
@@ -2842,6 +2854,7 @@ int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_
     const char *s = (const char *)string;
     const char *next_line;
     int str_cnt = 0;
+    egui_font_std_char_descriptor_t external_desc_scratch;
     int offset = x;
     int char_bytes;
     uint32_t utf8_code;
@@ -2946,7 +2959,7 @@ int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_
             else
             {
                 char_bytes = egui_font_get_utf8_code_fast(s, &utf8_code);
-                p_char_desc = egui_font_std_get_desc_draw_fast(font, utf8_code);
+                p_char_desc = egui_font_std_get_desc_draw_fast(font, utf8_code, &external_desc_scratch);
                 adv = p_char_desc ? p_char_desc->adv : FONT_ERROR_FONT_SIZE(font->height);
             }
 
@@ -2973,6 +2986,7 @@ int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_
 int egui_font_std_get_str_size(const egui_font_t *self, const void *string, uint8_t is_multi_line, egui_dim_t line_space, egui_dim_t *width, egui_dim_t *height)
 {
     const char *s = (const char *)string;
+    egui_font_std_char_descriptor_t external_desc_scratch;
     egui_font_std_info_t *font = (egui_font_std_info_t *)self->res;
 
     if (NULL == s || NULL == font)
@@ -3032,7 +3046,7 @@ int egui_font_std_get_str_size(const egui_font_t *self, const void *string, uint
         else
         {
             utf8_bytes = egui_font_get_utf8_code_fast(s, &utf8_code);
-            p_char_desc = egui_font_std_get_desc_draw_fast(font, utf8_code);
+            p_char_desc = egui_font_std_get_desc_draw_fast(font, utf8_code, &external_desc_scratch);
             adv = p_char_desc ? p_char_desc->adv : FONT_ERROR_FONT_SIZE(font->height);
         }
         s += utf8_bytes;

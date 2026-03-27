@@ -2616,6 +2616,7 @@ static int text_transform_build_layout(const egui_font_std_info_t *font_info, co
                                        text_transform_layout_line_t *lines, int max_lines, int *line_count, egui_dim_t line_space)
 {
     const char *s = string;
+    egui_font_std_char_descriptor_t external_desc_scratch;
     int cursor_x = 0;
     int cursor_y = 0;
     int count = 0;
@@ -2686,7 +2687,7 @@ static int text_transform_build_layout(const egui_font_std_info_t *font_info, co
         }
         s += char_bytes;
 
-        desc = egui_font_std_get_desc_fast_api(font_info, utf8_code);
+        desc = egui_font_std_get_desc_fast_api(font_info, utf8_code, &external_desc_scratch);
         if (desc == NULL || desc->size == 0)
         {
             cursor_x += font_info->height >> 1;
