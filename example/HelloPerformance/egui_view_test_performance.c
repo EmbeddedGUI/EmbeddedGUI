@@ -1000,35 +1000,27 @@ static void egui_view_test_performance_test_mask_round_rect_fill_with_mask(egui_
 
 #define ANIM_TEST_SIZE 60
 
-static egui_view_t anim_perf_view;
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(anim_perf_bg_param, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(anim_perf_bg_params, &anim_perf_bg_param, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(anim_perf_bg, &anim_perf_bg_params);
 
-static int anim_perf_view_initialized = 0;
-static egui_interpolator_linear_t anim_perf_interp;
-
-static void ensure_anim_perf_view_initialized(void)
+static void init_anim_perf_context(egui_view_t *view, egui_interpolator_linear_t *interp)
 {
-    if (anim_perf_view_initialized)
-    {
-        return;
-    }
-    anim_perf_view_initialized = 1;
-
-    egui_view_init(EGUI_VIEW_OF(&anim_perf_view));
-    egui_view_set_position(EGUI_VIEW_OF(&anim_perf_view), 0, 0);
-    egui_view_set_size(EGUI_VIEW_OF(&anim_perf_view), ANIM_TEST_SIZE, ANIM_TEST_SIZE);
-    egui_view_set_background(EGUI_VIEW_OF(&anim_perf_view), EGUI_BG_OF(&anim_perf_bg));
-    egui_interpolator_linear_init((egui_interpolator_t *)&anim_perf_interp);
+    egui_view_init(EGUI_VIEW_OF(view));
+    egui_view_set_position(EGUI_VIEW_OF(view), 0, 0);
+    egui_view_set_size(EGUI_VIEW_OF(view), ANIM_TEST_SIZE, ANIM_TEST_SIZE);
+    egui_view_set_background(EGUI_VIEW_OF(view), EGUI_BG_OF(&anim_perf_bg));
+    egui_interpolator_linear_init((egui_interpolator_t *)interp);
 }
 
 static void egui_view_test_performance_test_animation_translate(egui_view_t *self)
 {
-    ensure_anim_perf_view_initialized();
+    egui_view_t anim_perf_view;
+    egui_interpolator_linear_t anim_perf_interp;
     egui_animation_translate_t anim;
     EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(params, 0, 0, 0, EGUI_CONFIG_SCEEN_HEIGHT - ANIM_TEST_SIZE);
 
+    init_anim_perf_context(&anim_perf_view, &anim_perf_interp);
     egui_animation_translate_init(EGUI_ANIM_OF(&anim));
     egui_animation_translate_params_set(&anim, &params);
     egui_animation_duration_set(EGUI_ANIM_OF(&anim), 1000);
@@ -1044,10 +1036,12 @@ static void egui_view_test_performance_test_animation_translate(egui_view_t *sel
 
 static void egui_view_test_performance_test_animation_alpha(egui_view_t *self)
 {
-    ensure_anim_perf_view_initialized();
+    egui_view_t anim_perf_view;
+    egui_interpolator_linear_t anim_perf_interp;
     egui_animation_alpha_t anim;
     EGUI_ANIMATION_ALPHA_PARAMS_INIT(params, EGUI_ALPHA_100, EGUI_ALPHA_0);
 
+    init_anim_perf_context(&anim_perf_view, &anim_perf_interp);
     egui_animation_alpha_init(EGUI_ANIM_OF(&anim));
     egui_animation_alpha_params_set(&anim, &params);
     egui_animation_duration_set(EGUI_ANIM_OF(&anim), 1000);
@@ -1062,10 +1056,12 @@ static void egui_view_test_performance_test_animation_alpha(egui_view_t *self)
 
 static void egui_view_test_performance_test_animation_scale(egui_view_t *self)
 {
-    ensure_anim_perf_view_initialized();
+    egui_view_t anim_perf_view;
+    egui_interpolator_linear_t anim_perf_interp;
     egui_animation_scale_size_t anim;
     EGUI_ANIMATION_SCALE_SIZE_PARAMS_INIT(params, EGUI_FLOAT_VALUE(0.5f), EGUI_FLOAT_VALUE(1.5f));
 
+    init_anim_perf_context(&anim_perf_view, &anim_perf_interp);
     egui_animation_scale_size_init(EGUI_ANIM_OF(&anim));
     egui_animation_scale_size_params_set(&anim, &params);
     egui_animation_duration_set(EGUI_ANIM_OF(&anim), 1000);
@@ -1082,13 +1078,15 @@ static void egui_view_test_performance_test_animation_scale(egui_view_t *self)
 
 static void egui_view_test_performance_test_animation_set(egui_view_t *self)
 {
-    ensure_anim_perf_view_initialized();
+    egui_view_t anim_perf_view;
+    egui_interpolator_linear_t anim_perf_interp;
     egui_animation_translate_t anim_tr;
     egui_animation_alpha_t anim_al;
     egui_animation_set_t anim_set;
     EGUI_ANIMATION_TRANSLATE_PARAMS_INIT(tr_params, 0, 0, 0, EGUI_CONFIG_SCEEN_HEIGHT - ANIM_TEST_SIZE);
     EGUI_ANIMATION_ALPHA_PARAMS_INIT(al_params, EGUI_ALPHA_100, EGUI_ALPHA_0);
 
+    init_anim_perf_context(&anim_perf_view, &anim_perf_interp);
     egui_animation_translate_init(EGUI_ANIM_OF(&anim_tr));
     egui_animation_translate_params_set(&anim_tr, &tr_params);
     egui_animation_alpha_init(EGUI_ANIM_OF(&anim_al));

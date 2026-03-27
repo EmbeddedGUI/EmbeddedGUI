@@ -43,6 +43,7 @@
 | 2026-03-27 | Move visible alpha8 tile scratch to heap with QEMU self-managed allocator | 2162144 | 52 | 21964 | 22016 | 0 / 4096 | 2936 | `text -528B`, `static RAM +32B`, `text_transform_draw_visible_alpha8_tile_layout 4456 -> 104`, QEMU heap uses runtime RAM gap instead of libc/newlib |
 | 2026-03-27 | Move codec row-band decode cache from `.bss` to frame heap | 2163132 | 52 | 10940 | 10992 | 0 / 11520 | 2936 | `static RAM -11024B`, row-band pixel/alpha cache now follows image width + row count on heap, `HelloPerformance` runtime screenshots `223/223` unchanged, only older saved perf snapshot (`git 789827a`) outlier is `IMAGE_TILED_QOI_565_0 0.888 -> 1.270 (+43.0%)` |
 | 2026-03-27 | Move single-row decode scratch from `.bss` to frame heap | 2163368 | 52 | 10468 | 10520 | 0 / 11520 | 2936 | `static RAM -472B`, single-row pixel/opaque-alpha decode scratch now follows screen/image row width on heap, `HelloPerformance` runtime screenshots `223/223` unchanged with `changed=0`, no new `>5%` perf regression |
+| 2026-03-27 | Localize HelloPerformance animation benchmark context | 2163408 | 52 | 10412 | 10464 | 0 / 11520 | 2936 | `static RAM -56B`, removed persistent animation view/interpolator/init flag from `.bss`; animation test stack frames are only `128/128/136/208B`, runtime screenshots stay `223/223` with `changed=0`, no new `>5%` perf regression |
 
 ## Current Breakdown
 
@@ -54,7 +55,6 @@
 | `qoi_state` | `.bss` | 212 | Compact QOI decoder state (`rgb565[64] + aux[64]`) |
 | `egui_core` | `.bss` | 192 | Core runtime state; embedded `pfb_manager` metadata now follows `EGUI_CONFIG_PFB_BUFFER_COUNT=1` |
 | `test_view` | `.bss` | 56 | HelloPerformance scene object |
-| `anim_perf_view` | `.bss` | 52 | HelloPerformance scene object |
 | `canvas_data` | `.bss` | 44 | Canvas runtime state |
 | `ui_timer` | `.bss` | 20 | App timer state |
 | `rle_state` | `.bss` | 16 | Remaining RLE decoder state |
@@ -65,10 +65,11 @@
 | `g_text_transform_visible_tile_cache` | `.bss` | 8 | Visible alpha8 tile heap cache handle |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
-- Current normal QEMU build: `text=2163368`, `data=52`, `bss=10468`, `static RAM=10520`.
+- Current normal QEMU build: `text=2163408`, `data=52`, `bss=10412`, `static RAM=10464`.
 - The codec row-band pixel/alpha cache no longer occupies fixed `.bss`; it is now allocated per frame from heap because its required size follows active image width, alpha format, and `PFB` row-band height.
 - The single-row decode pixel/opaque-alpha scratch also no longer occupies fixed `.bss`; it is now allocated per frame from heap because `EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH` follows screen width in the default config, and the required bytes follow pixel format / alpha row width.
 - There is no longer any decode row scratch parked in fixed SRAM between frames; the remaining static decode footprint is only metadata such as `qoi_state`, `rle_state`, and `egui_image_decode_cache_state`.
+- The animation benchmark helper no longer parks `anim_perf_view`, `anim_perf_interp`, or an init flag in fixed SRAM; each animation scene now uses a tiny local context and releases it with the draw call.
 - The QEMU port now uses a self-managed runtime heap carved from `[_ebss, _estack - _Min_Stack_Size)`, so enabling `EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE` does not pull in newlib `malloc` state.
 
 ### Heap Measurement
@@ -81,6 +82,7 @@
 - Interaction alloc/free count is `164 / 164`; the measured heap peak is the transient codec row-band decode cache plus the existing rotated-text visible alpha8 tile scratch.
 - This round intentionally allows `heap peak = 11520B` because the moved row-band cache follows image width, alpha format, and `PFB` row count; per the RAM rule, this size-related buffer must stay heap-backed instead of returning to fixed `.bss` or large stack locals.
 - Moving the single-row decode scratch to heap does not raise the measured peak beyond `11520B`; the extra row buffer demand stays below the existing decode-heavy peak window.
+- Localizing the animation benchmark context does not change heap usage; the view/interpolator are small fixed-size temporaries and stay on stack.
 - The measured heap build now reaches the former `.bss` cache footprint only while the decode-heavy scenes are active, and releases it back to `0B` at idle.
 
 ### Stack Measurement
@@ -106,6 +108,7 @@
 - Current `HelloPerformance` stack risk is still concentrated in the rotated-text path used by `TEXT_ROTATE*` and `EXTERN_TEXT_ROTATE*` benchmark scenes, but the max single frame is now `2936B` instead of `4456B`.
 - The visible alpha8 tile scratch now follows transformed glyph bounds and therefore lives on heap, which is the required placement for this size-related buffer.
 - The decode heap path still does not introduce a new stack hotspot: `egui_image_qoi_draw_image` is `240B`, `egui_image_rle_draw_image` is `280B`, `egui_image_decode_prepare_single_row_pixel_buf` is `24B`, and the new row-scratch accessors stay at `16B / 24B`.
+- The animation benchmark context move adds only small per-function frames: `ANIMATION_TRANSLATE 128B`, `ANIMATION_ALPHA 128B`, `ANIMATION_SCALE 136B`, `ANIMATION_SET 208B`; it removes `56B` of fixed static RAM without creating a new stack hotspot.
 - The earlier rectangle-gradient round shrank the fixed `color_cache` in `egui_canvas_draw_rectangle_fill_gradient` from `256` to `129` entries; measured `792B -> 528B`, while `GRADIENT_RADIAL` improved from `7.080 ms` to `6.727 ms` and `GRADIENT_ANGULAR` improved from `7.427 ms` to `6.914 ms`. PC runtime check frames `frame_0120.png` and `frame_0121.png` show the radial/angular rectangle gradients remain visually correct.
 - Current `HelloPerformance` non-text heads are `line_hq_draw_polyline_segment (976B)`, `egui_canvas_draw_line_hq (824B)`, `egui_canvas_draw_circle_fill_gradient (752B)`, `egui_canvas_draw_line_round_cap_hq (744B)`, `egui_canvas_draw_image_transform (736B)`, `egui_canvas_draw_polygon_fill_gradient (720B)`, `egui_canvas_draw_polygon_fill (712B)`, `egui_shadow_draw_corner (664B)`, `egui_canvas_draw_triangle_fill_gradient (544B)`, `egui_canvas_draw_ellipse_fill_gradient (544B)`, and `egui_canvas_draw_rectangle_fill_gradient (528B)`.
 - Current compiled frames `>= 1KB` are `2936`, `1200`, and `1112`; only `2936` belongs to an active HelloPerformance runtime path.
