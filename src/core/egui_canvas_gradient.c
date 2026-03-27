@@ -1316,15 +1316,6 @@ void egui_canvas_draw_round_rectangle_corners_fill_gradient(egui_dim_t x, egui_d
         return;
     }
 
-    egui_color_t color_cache[256];
-    if (gradient->type != EGUI_GRADIENT_TYPE_LINEAR_VERTICAL)
-    {
-        for (int i = 0; i < 256; i++)
-        {
-            color_cache[i] = egui_gradient_get_color(gradient->stops, gradient->stop_count, i);
-        }
-    }
-
     /* Clamp radii: allow radius == half (pill/stadium shape) but prevent overlap */
     egui_dim_t half_h = height >> 1;
     egui_dim_t half_w = width >> 1;
@@ -1447,7 +1438,7 @@ void egui_canvas_draw_round_rectangle_corners_fill_gradient(egui_dim_t x, egui_d
                 for (egui_dim_t col = fill_left; col <= fill_right; col++)
                 {
                     uint8_t ct = gradient_linear_t(col - x, width);
-                    egui_color_t color = color_cache[ct];
+                    egui_color_t color = egui_gradient_get_color(gradient->stops, gradient->stop_count, ct);
                     egui_canvas_draw_point_limit(col, abs_row, color, base_alpha);
                 }
             }
@@ -1931,7 +1922,7 @@ void egui_canvas_draw_round_rectangle_corners_fill_gradient(egui_dim_t x, egui_d
                 if (cov > 0)
                 {
                     uint8_t ct = gradient_linear_t(col - x, width);
-                    egui_color_t color = color_cache[ct];
+                    egui_color_t color = egui_gradient_get_color(gradient->stops, gradient->stop_count, ct);
                     egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
                     if (m > 0)
                     {
@@ -1984,7 +1975,7 @@ void egui_canvas_draw_round_rectangle_corners_fill_gradient(egui_dim_t x, egui_d
                     egui_color_t color;
                     if (gradient->radius <= 0)
                     {
-                        color = color_cache[255];
+                        color = egui_gradient_get_color(gradient->stops, gradient->stop_count, 255);
                     }
                     else
                     {
@@ -1992,7 +1983,7 @@ void egui_canvas_draw_round_rectangle_corners_fill_gradient(egui_dim_t x, egui_d
                         uint32_t t = dist * 255 / gradient->radius;
                         if (t > 255)
                             t = 255;
-                        color = color_cache[t];
+                        color = egui_gradient_get_color(gradient->stops, gradient->stop_count, (uint8_t)t);
                     }
                     egui_alpha_t m = egui_color_alpha_mix(base_alpha, cov);
                     if (m > 0)
