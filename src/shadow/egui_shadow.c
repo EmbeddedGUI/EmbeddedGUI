@@ -93,7 +93,9 @@ static egui_alpha_t egui_shadow_get_alpha(egui_dim_t distance, egui_dim_t width,
 
 // Maximum entries in the per-shadow d_sq→alpha lookup table.
 // The table maps distance-squared directly to alpha, eliminating isqrt per pixel.
-#define EGUI_SHADOW_DSQ_LUT_MAX 256
+#ifndef EGUI_CONFIG_SHADOW_DSQ_LUT_MAX
+#define EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 256
+#endif
 
 // Draw one corner zone with sub-pixel precision.
 // bx0..bx1, by0..by1: iteration bounds (pre-clipped to PFB work region).
@@ -257,12 +259,12 @@ static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t b
         // Maps (d_sq - R_scaled_sq) >> shift to pre-computed alpha value.
         uint32_t dsq_delta = RW_scaled_sq - R_scaled_sq;
         uint32_t dsq_shift = 0;
-        while ((dsq_delta >> dsq_shift) > EGUI_SHADOW_DSQ_LUT_MAX)
+        while ((dsq_delta >> dsq_shift) > EGUI_CONFIG_SHADOW_DSQ_LUT_MAX)
         {
             dsq_shift++;
         }
         uint32_t dsq_lut_size = (dsq_delta >> dsq_shift) + 1;
-        uint8_t dsq_alpha_lut[EGUI_SHADOW_DSQ_LUT_MAX + 1];
+        uint8_t dsq_alpha_lut[EGUI_CONFIG_SHADOW_DSQ_LUT_MAX + 1];
         for (uint32_t k = 0; k < dsq_lut_size; k++)
         {
             // Recover approximate d_sq and compute alpha
@@ -496,14 +498,14 @@ static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t b
     uint8_t fb_dsq_shift = 0;
     {
         uint32_t tmp = fb_dsq_range;
-        while (tmp > EGUI_SHADOW_DSQ_LUT_MAX)
+        while (tmp > EGUI_CONFIG_SHADOW_DSQ_LUT_MAX)
         {
             tmp >>= 1;
             fb_dsq_shift++;
         }
     }
     uint32_t fb_dsq_entries = (fb_dsq_range >> fb_dsq_shift) + 1;
-    egui_alpha_t fb_dsq_alpha_lut[EGUI_SHADOW_DSQ_LUT_MAX + 1];
+    egui_alpha_t fb_dsq_alpha_lut[EGUI_CONFIG_SHADOW_DSQ_LUT_MAX + 1];
     for (uint32_t i = 0; i < fb_dsq_entries; i++)
     {
         uint32_t d_sq_sample = R_scaled_sq + (i << fb_dsq_shift) + (1U << fb_dsq_shift >> 1);
