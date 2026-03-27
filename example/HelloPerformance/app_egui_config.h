@@ -38,6 +38,13 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW 1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_MASK   1
 
+// HelloPerformance drives one benchmark root view directly and never enters
+// the activity/dialog/toast stack, so keeping those core-side state machines
+// alive only increases persistent RAM.
+#define EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY 0
+#define EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG   0
+#define EGUI_CONFIG_FUNCTION_SUPPORT_TOAST    0
+
 // HelloPerformance only replays one pointer event at a time and consumes it
 // immediately in the polling loop, so one cached motion slot is enough.
 #define EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT 1

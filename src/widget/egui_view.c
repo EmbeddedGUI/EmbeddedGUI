@@ -582,6 +582,7 @@ void egui_view_draw(egui_view_t *self)
     egui_alpha_t alpha = egui_canvas_get_alpha();
 
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
+#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
     egui_activity_t *activity = egui_core_activity_get_by_view(self);
     if (activity)
     {
@@ -599,6 +600,13 @@ void egui_view_draw(egui_view_t *self)
         EGUI_LOG_DBG("draw view visible: %d, name: %s\n", self->is_visible, self->name);
 #endif
     }
+#else
+#if EGUI_CONFIG_DEBUG_VIEW_ID
+    EGUI_LOG_DBG("draw view id: %02d, visible: %d, name: %s\n", self->id, self->is_visible, self->name);
+#else
+    EGUI_LOG_DBG("draw view visible: %d, name: %s\n", self->is_visible, self->name);
+#endif
+#endif
 #endif
 
     if (self->is_visible == false || self->is_gone == true)

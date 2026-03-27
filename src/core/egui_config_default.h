@@ -228,6 +228,36 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR 1
 #endif
 
+/**
+ * Function options.
+ * Select support activity stack APIs/state. if 0, remove activity runtime support.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
+#define EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY 1
+#endif
+
+/**
+ * Function options.
+ * Select support dialog APIs/state. if 0, remove dialog runtime support.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
+#define EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG 1
+#endif
+
+/**
+ * Function options.
+ * Select support toast APIs/state. if 0, remove toast runtime support.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
+#define EGUI_CONFIG_FUNCTION_SUPPORT_TOAST 1
+#endif
+
+/* Dialog support depends on the activity stack. */
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
+#undef EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
+#define EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY 1
+#endif
+
 /* ---- Resource management ---- */
 
 /**

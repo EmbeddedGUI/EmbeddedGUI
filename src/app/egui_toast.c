@@ -2,6 +2,8 @@
 #include <assert.h>
 
 #include "egui_toast.h"
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
 #include "widget/egui_view.h"
 #include "core/egui_core.h"
 #include "core/egui_api.h"
@@ -65,3 +67,5 @@ void egui_toast_init(egui_toast_t *self)
     // init api
     self->api = &EGUI_TOAST_API_TABLE_NAME(egui_toast_t);
 }
+
+#endif

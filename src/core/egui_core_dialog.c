@@ -7,6 +7,8 @@
 #include "app/egui_dialog.h"
 #include "widget/egui_view.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
+
 egui_dialog_t *egui_core_dialog_get(void)
 {
     return egui_core.dialog;
@@ -144,3 +146,5 @@ void egui_core_dialog_set_anim(egui_animation_t *open_anim, egui_animation_t *cl
         egui_animation_handle_set(close_anim, &dialog_anim_finish_hanlde);
     }
 }
+
+#endif

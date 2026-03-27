@@ -6,9 +6,15 @@
 #include "egui_pfb_manager.h"
 #include "widget/egui_view_group.h"
 #include "anim/egui_animation.h"
+#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
 #include "app/egui_activity.h"
+#endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
 #include "app/egui_dialog.h"
+#endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
 #include "app/egui_toast.h"
+#endif
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
@@ -34,8 +40,10 @@ struct egui_core
     uint16_t unique_id; // unique id count
 #endif
 
-    egui_dlist_t activitys; // list of activitys
     egui_slist_t anims;     // list of animation
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
+    egui_dlist_t activitys; // list of activitys
 
     egui_animation_t *activity_anim_start_open;   // activity anim start open
     egui_animation_t *activity_anim_start_close;  // activity anim start close
@@ -44,12 +52,17 @@ struct egui_core
 
     egui_activity_t *activity_open;  // activity current open
     egui_activity_t *activity_close; // activity current close
+#endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
     egui_animation_t *dialog_anim_start;  // dialog anim start
     egui_animation_t *dialog_anim_finish; // dialog anim finish
     egui_dialog_t *dialog;                // dialog current open
+#endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
     egui_toast_t *toast; // toast
+#endif
 
     egui_view_root_group_t root_view_group;      // root view group
     egui_view_root_group_t user_root_view_group; // user root view group
@@ -131,6 +144,7 @@ void egui_core_clear_screen(void);
 void egui_screen_off(void);
 void egui_screen_on(void);
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
 egui_activity_t *egui_core_activity_get_current(void);
 void egui_core_activity_force_finish_all(void);
 void egui_core_activity_force_finish_to_activity(egui_activity_t *activity);
@@ -143,17 +157,22 @@ void egui_core_activity_finish(egui_activity_t *self);
 void egui_core_activity_set_start_anim(egui_animation_t *open_anim, egui_animation_t *close_anim);
 void egui_core_activity_set_finish_anim(egui_animation_t *open_anim, egui_animation_t *close_anim);
 egui_activity_t *egui_core_activity_get_by_view(egui_view_t *view);
+#endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
 egui_dialog_t *egui_core_dialog_get(void);
 void egui_core_dialog_start(egui_activity_t *activity, egui_dialog_t *self);
 void egui_core_dialog_start_with_current(egui_dialog_t *self);
 int egui_core_dialog_check_in_process(egui_dialog_t *dialog);
 void egui_core_dialog_finish(egui_dialog_t *self);
 void egui_core_dialog_set_anim(egui_animation_t *open_anim, egui_animation_t *close_anim);
+#endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
 egui_toast_t *egui_core_toast_get(void);
 void egui_core_toast_set(egui_toast_t *toast);
 void egui_core_toast_show_info(const char *text);
+#endif
 
 void egui_core_animation_append(egui_animation_t *anim);
 void egui_core_animation_remove(egui_animation_t *anim);

@@ -4,6 +4,8 @@
 
 #include "egui_toast_std.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
+
 EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE(bg_toast_param_normal, EGUI_COLOR_BLACK, EGUI_ALPHA_50, 30);
 EGUI_BACKGROUND_PARAM_INIT(bg_toast_params, &bg_toast_param_normal, NULL, NULL);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_toast, &bg_toast_params);
@@ -74,3 +76,5 @@ void egui_toast_std_init(egui_toast_t *self)
     // Set Background
     egui_view_set_background((egui_view_t *)&local->label, (egui_background_t *)&bg_toast);
 }
+
+#endif

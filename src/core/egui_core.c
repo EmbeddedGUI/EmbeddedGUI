@@ -1273,18 +1273,24 @@ void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HE
     egui_core_update_region_dirty_all();
 
     egui_slist_init(&egui_core.anims);
+#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
     egui_dlist_init(&egui_core.activitys);
 
     egui_core.activity_anim_start_open = NULL;
     egui_core.activity_anim_start_close = NULL;
     egui_core.activity_anim_finish_open = NULL;
     egui_core.activity_anim_finish_close = NULL;
+#endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
     egui_core.dialog_anim_start = NULL;
     egui_core.dialog_anim_finish = NULL;
     egui_core.dialog = NULL;
+#endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
     egui_core.toast = NULL;
+#endif
 
     // Initialize the root view group
     egui_view_root_group_init((egui_view_t *)&egui_core.root_view_group);

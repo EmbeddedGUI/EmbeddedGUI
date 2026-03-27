@@ -2,6 +2,8 @@
 #include <assert.h>
 
 #include "egui_activity.h"
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
 #include "widget/egui_view.h"
 #include "core/egui_core.h"
 #include "core/egui_api.h"
@@ -128,3 +130,5 @@ void egui_activity_init(egui_activity_t *self)
     // init api
     self->api = &EGUI_ACTIVITY_API_TABLE_NAME(egui_activity_t);
 }
+
+#endif

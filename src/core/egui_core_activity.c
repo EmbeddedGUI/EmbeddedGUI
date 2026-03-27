@@ -7,6 +7,8 @@
 #include "widget/egui_view.h"
 #include "utils/egui_dlist.h"
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
+
 egui_activity_t *egui_core_activity_get_by_view(egui_view_t *view)
 {
     egui_view_t *view_activity = NULL;
@@ -371,3 +373,5 @@ void egui_core_activity_set_finish_anim(egui_animation_t *open_anim, egui_animat
         egui_animation_handle_set(close_anim, &activity_anim_finish_close_hanlde);
     }
 }
+
+#endif

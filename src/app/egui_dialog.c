@@ -2,6 +2,8 @@
 #include <assert.h>
 
 #include "egui_dialog.h"
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
 #include "widget/egui_view.h"
 #include "core/egui_core.h"
 #include "core/egui_api.h"
@@ -160,3 +162,5 @@ void egui_dialog_init(egui_dialog_t *self)
     // init api
     self->api = &EGUI_DIALOG_API_TABLE_NAME(egui_dialog_t);
 }
+
+#endif
