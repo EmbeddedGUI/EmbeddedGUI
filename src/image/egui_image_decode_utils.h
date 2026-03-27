@@ -18,17 +18,12 @@ void egui_image_decode_release_frame_cache(void);
  * Pixel buffer: EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE bytes
  * Alpha buffer: EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH bytes
  */
-extern uint8_t egui_image_decode_row_pixel_buf[];
+extern uint8_t *egui_image_decode_row_pixel_buf;
 #if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE || !EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
-extern uint8_t egui_image_decode_row_alpha_buf[];
+extern uint8_t *egui_image_decode_row_alpha_buf;
 #endif
 
-static inline uint8_t *egui_image_decode_get_row_pixel_buf(uint8_t bytes_per_pixel)
-{
-    EGUI_ASSERT(bytes_per_pixel > 0 && bytes_per_pixel <= EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE);
-    return egui_image_decode_row_pixel_buf;
-}
-
+uint8_t *egui_image_decode_get_row_pixel_buf(uint8_t bytes_per_pixel);
 uint8_t *egui_image_decode_get_opaque_alpha_row(egui_dim_t count);
 uint8_t *egui_image_decode_get_row_alpha_scratch(uint16_t alpha_row_bytes);
 
