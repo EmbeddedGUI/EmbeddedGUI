@@ -8,11 +8,9 @@
 extern "C" {
 #endif
 
-/**
- * Maximum number of PFB buffers supported.
- * User configures actual count via EGUI_CONFIG_PFB_BUFFER_COUNT (1..4).
- */
-#define EGUI_PFB_BUFFER_MAX 4
+#if EGUI_CONFIG_PFB_BUFFER_COUNT < 1 || EGUI_CONFIG_PFB_BUFFER_COUNT > 4
+#error "EGUI_CONFIG_PFB_BUFFER_COUNT must be in range [1, 4]"
+#endif
 
 /**
  * Draw parameters stored per ring entry.
@@ -38,14 +36,14 @@ typedef struct egui_pfb_flush_params
  */
 struct egui_pfb_manager
 {
-    egui_color_int_t *buffers[EGUI_PFB_BUFFER_MAX];
-    egui_pfb_flush_params_t flush_params[EGUI_PFB_BUFFER_MAX];
+    egui_color_int_t *buffers[EGUI_CONFIG_PFB_BUFFER_COUNT];
+    egui_pfb_flush_params_t flush_params[EGUI_CONFIG_PFB_BUFFER_COUNT];
 
     int16_t width;
     int16_t height;
     int buffer_size_bytes;
 
-    uint8_t buffer_count;           // Total buffers configured (1..EGUI_PFB_BUFFER_MAX)
+    uint8_t buffer_count;           // Total buffers configured (1..EGUI_CONFIG_PFB_BUFFER_COUNT)
     uint8_t render_idx;             // Next buffer for CPU to render into
     uint8_t flush_idx;              // Next buffer for DMA to send
     volatile uint8_t pending_count; // Buffers rendered but not yet flushed by DMA
@@ -61,7 +59,7 @@ void egui_pfb_manager_init(egui_pfb_manager_t *mgr, egui_color_int_t *pfb, int16
 
 /**
  * Add an additional buffer to the ring.
- * Can be called multiple times up to EGUI_PFB_BUFFER_MAX total.
+ * Can be called multiple times up to EGUI_CONFIG_PFB_BUFFER_COUNT total.
  * Must be called before rendering starts (i.e., before egui_screen_on).
  */
 void egui_pfb_manager_add_buffer(egui_pfb_manager_t *mgr, egui_color_int_t *buf);

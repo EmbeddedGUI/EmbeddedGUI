@@ -6,7 +6,7 @@
 void egui_pfb_manager_init(egui_pfb_manager_t *mgr, egui_color_int_t *pfb, int16_t width, int16_t height, int color_bytes)
 {
     int i;
-    for (i = 0; i < EGUI_PFB_BUFFER_MAX; i++)
+    for (i = 0; i < EGUI_CONFIG_PFB_BUFFER_COUNT; i++)
     {
         mgr->buffers[i] = NULL;
     }
@@ -24,7 +24,7 @@ void egui_pfb_manager_init(egui_pfb_manager_t *mgr, egui_color_int_t *pfb, int16
 
 void egui_pfb_manager_add_buffer(egui_pfb_manager_t *mgr, egui_color_int_t *buf)
 {
-    if (mgr->buffer_count >= EGUI_PFB_BUFFER_MAX || buf == NULL)
+    if (mgr->buffer_count >= EGUI_CONFIG_PFB_BUFFER_COUNT || buf == NULL)
     {
         return;
     }

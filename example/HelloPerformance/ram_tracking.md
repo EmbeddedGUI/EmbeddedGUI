@@ -39,6 +39,7 @@
 | 2026-03-27 | Remove HelloPerformance round-rect gradient cache LUT | 2162492 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text -64B`, `egui_canvas_draw_round_rectangle_corners_fill_gradient 992 -> 472`, `GRADIENT_ROUND_RECT 3.766 -> 3.766`, `GRADIENT_ROUND_RECT_CORNERS 2.235 -> 2.235`, heap stays `0` |
 | 2026-03-27 | Shrink HelloPerformance circle gradient cache LUT | 2162644 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text +152B`, `color_cache 256 -> 129`, `egui_canvas_draw_circle_fill_gradient 1000 -> 752`, `GRADIENT_CIRCLE 10.428 -> 9.802 (-6.0%)`, heap stays `0` |
 | 2026-03-27 | Shrink HelloPerformance rectangle gradient cache LUT | 2162756 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text +112B`, `color_cache 256 -> 129`, `egui_canvas_draw_rectangle_fill_gradient 792 -> 528`, `GRADIENT_RADIAL 7.080 -> 6.727 (-5.0%)`, `GRADIENT_ANGULAR 7.427 -> 6.914 (-6.9%)`, heap stays `0` |
+| 2026-03-27 | Shrink HelloPerformance pfb manager metadata arrays | 2162672 | 52 | 21932 | 21984 | 0 / 0 | 4456 | `static RAM -40B`, `egui_core 228 -> 192`, perf stays in noise, `frame_0171.png` / `frame_0175.png` confirm round-rect mask scene still correct |
 
 ## Current Breakdown
 
@@ -50,7 +51,7 @@
 | `egui_image_decode_row_cache_alpha` | `.bss` | 3840 | Decode row-band alpha cache |
 | `egui_pfb` | `.bss` | 1536 | User-configurable PFB, not an optimization target |
 | `qoi_state` | `.bss` | 212 | Compact QOI decoder state (`rgb565[64] + aux[64]`) |
-| `egui_core` | `.bss` | 228 | Core runtime state |
+| `egui_core` | `.bss` | 192 | Core runtime state; embedded `pfb_manager` metadata now follows `EGUI_CONFIG_PFB_BUFFER_COUNT=1` |
 | `test_view` | `.bss` | 56 | HelloPerformance scene object |
 | `anim_perf_view` | `.bss` | 52 | HelloPerformance scene object |
 | `canvas_data` | `.bss` | 44 | Canvas runtime state |
@@ -62,7 +63,8 @@
 | `g_selected_char_desc` | `.bss` | 12 | Text transform selection state |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
-- Current normal QEMU build: `text=2162756`, `data=52`, `bss=21972`, `static RAM=22024`.
+- Current normal QEMU build: `text=2162672`, `data=52`, `bss=21932`, `static RAM=21984`.
+- Latest RAM drop comes from compiling `egui_pfb_manager_t` with the real `EGUI_CONFIG_PFB_BUFFER_COUNT` instead of keeping 4 ring slots worth of metadata in `egui_core`.
 
 ### Heap Measurement
 
@@ -94,10 +96,11 @@
 | `egui_canvas_draw_round_rectangle_corners_fill_gradient` | `src/core/egui_canvas_gradient.c` | 472 | HelloPerformance gradient round-rect scenes | Removed local `color_cache[256]`; non-vertical branches now resolve colors directly and the frame dropped out of the top-stack set |
 
 - Current `HelloPerformance` stack risk is still concentrated in the rotated-text path used by `TEXT_ROTATE*` and `EXTERN_TEXT_ROTATE*` benchmark scenes.
-- This round shrank the fixed `color_cache` in `egui_canvas_draw_rectangle_fill_gradient` from `256` to `129` entries; measured `792B -> 528B`, while `GRADIENT_RADIAL` improved from `7.080 ms` to `6.727 ms` and `GRADIENT_ANGULAR` improved from `7.427 ms` to `6.914 ms`. PC runtime check frames `frame_0120.png` and `frame_0121.png` show the radial/angular rectangle gradients remain visually correct.
-- Current `HelloPerformance` non-text heads are `line_hq_draw_polyline_segment (976B)`, `egui_canvas_draw_line_hq (824B)`, `egui_canvas_draw_circle_fill_gradient (752B)`, `egui_canvas_draw_line_round_cap_hq (744B)`, `egui_canvas_draw_image_transform (736B)`, `egui_canvas_draw_polygon_fill_gradient (720B)`, `egui_shadow_draw_corner (664B)`, `egui_canvas_draw_triangle_fill_gradient (544B)`, `egui_canvas_draw_ellipse_fill_gradient (544B)`, and `egui_canvas_draw_rectangle_fill_gradient (528B)`.
+- The latest `pfb manager` metadata shrink does not move any pressure to stack: top frame stays `4456B`, `heap` stays `0`, and the change is limited to static core state (`egui_core 228 -> 192`, total `bss -40B`).
+- The earlier rectangle-gradient round shrank the fixed `color_cache` in `egui_canvas_draw_rectangle_fill_gradient` from `256` to `129` entries; measured `792B -> 528B`, while `GRADIENT_RADIAL` improved from `7.080 ms` to `6.727 ms` and `GRADIENT_ANGULAR` improved from `7.427 ms` to `6.914 ms`. PC runtime check frames `frame_0120.png` and `frame_0121.png` show the radial/angular rectangle gradients remain visually correct.
+- Current `HelloPerformance` non-text heads are `line_hq_draw_polyline_segment (976B)`, `egui_canvas_draw_line_hq (824B)`, `egui_canvas_draw_circle_fill_gradient (752B)`, `egui_canvas_draw_line_round_cap_hq (744B)`, `egui_canvas_draw_image_transform (736B)`, `egui_canvas_draw_polygon_fill_gradient (720B)`, `egui_canvas_draw_polygon_fill (712B)`, `egui_shadow_draw_corner (664B)`, `egui_canvas_draw_triangle_fill_gradient (544B)`, `egui_canvas_draw_ellipse_fill_gradient (544B)`, and `egui_canvas_draw_rectangle_fill_gradient (528B)`.
 - `HelloPerformance` non-text paths now have no stack frame `>= 1KB`; the remaining `>= 1KB` frames are `4456`, `2936`, `1200`, `1112`.
-- This round did not increase static RAM, did not reintroduce heap, and did not touch `pfb`.
+- The latest round reduces static RAM, does not reintroduce heap, and does not touch the user-configurable `pfb` pixel buffer itself.
 
 ### RLE Checkpoint A/B
 
