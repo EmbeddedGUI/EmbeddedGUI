@@ -413,6 +413,222 @@ __EGUI_STATIC_INLINE__ void ellipse_draw_direct_span(egui_color_t *dst_row, egui
     }
 }
 
+typedef struct
+{
+    egui_canvas_t *self;
+    egui_dim_t center_x;
+    egui_dim_t x_start;
+    egui_dim_t x_end;
+    egui_dim_t tile_dx_start;
+    egui_dim_t tile_dx_end;
+    egui_dim_t pfb_width;
+    egui_dim_t pfb_ofs_x;
+    egui_dim_t pfb_ofs_y;
+    egui_color_t color;
+    egui_alpha_t alpha;
+    egui_alpha_t eff_alpha;
+    int32_t orx_sq;
+    int32_t ory_sq;
+    int64_t orxry_sq;
+    int32_t irx_sq;
+    int32_t iry_sq;
+    int64_t irxry_sq;
+    uint8_t use_direct_pfb;
+    uint8_t apply_draw_alpha;
+    uint8_t apply_canvas_alpha;
+} ellipse_outline_draw_ctx_t;
+
+static int ellipse_prepare_outline_scanline(egui_dim_t abs_dy, int32_t iry, int32_t irx_sq, int32_t iry_sq, int64_t irxry_sq, uint32_t *warm_i_dx_max,
+                                            int32_t orx_sq, int32_t ory_sq, int64_t orxry_sq, uint32_t *warm_o_dx_max,
+                                            ellipse_scanline_info_t *outer_info, ellipse_scanline_info_t *inner_info)
+{
+    ellipse_prepare_scanline_info(abs_dy, orx_sq, ory_sq, orxry_sq, warm_o_dx_max, outer_info);
+    if (!outer_info->valid)
+    {
+        inner_info->valid = 0;
+        return 0;
+    }
+
+    inner_info->valid = 0;
+    if (irx_sq > 0 && iry_sq > 0 && abs_dy <= iry)
+    {
+        ellipse_prepare_scanline_info(abs_dy, irx_sq, iry_sq, irxry_sq, warm_i_dx_max, inner_info);
+    }
+
+    return 1;
+}
+
+static void ellipse_draw_outline_scanline(const ellipse_outline_draw_ctx_t *ctx, egui_dim_t abs_y, egui_dim_t abs_dy, const ellipse_scanline_info_t *outer_info,
+                                          const ellipse_scanline_info_t *inner_info)
+{
+    egui_canvas_t *self = ctx->self;
+    egui_color_t color = ctx->color;
+    egui_dim_t outer_left = EGUI_MAX(-(egui_dim_t)(outer_info->dx_scan + 1), ctx->x_start);
+    egui_dim_t outer_right = EGUI_MIN((egui_dim_t)(outer_info->dx_scan + 1), ctx->x_end);
+    int has_inner_info = inner_info->valid;
+    egui_dim_t inner_skip_left = (has_inner_info && inner_info->dx_max > 1) ? -(egui_dim_t)(inner_info->dx_max - 1) : 0;
+    egui_dim_t inner_skip_right = (has_inner_info && inner_info->dx_max > 1) ? (egui_dim_t)(inner_info->dx_max - 1) : 0;
+    egui_dim_t left_end;
+    egui_dim_t right_start;
+
+    outer_left = EGUI_MAX(outer_left, ctx->tile_dx_start);
+    outer_right = EGUI_MIN(outer_right, ctx->tile_dx_end);
+    if (outer_left > outer_right)
+    {
+        return;
+    }
+
+    left_end = EGUI_MIN(inner_skip_left - 1, outer_right);
+    right_start = EGUI_MAX(inner_skip_right + 1, outer_left);
+    if (!has_inner_info || inner_info->dx_max <= 1)
+    {
+        right_start = EGUI_MAX(left_end + 1, outer_left);
+    }
+
+    if (ctx->use_direct_pfb)
+    {
+        egui_color_t *dst_row = (egui_color_t *)&self->pfb[(abs_y - ctx->pfb_ofs_y) * ctx->pfb_width];
+
+        for (egui_dim_t dx = outer_left; dx <= left_end; dx++)
+        {
+            egui_dim_t abs_dx = EGUI_ABS(dx);
+            egui_alpha_t outer_cov = (abs_dx <= outer_info->dx_inner)
+                                             ? EGUI_ALPHA_100
+                                             : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, ctx->orx_sq, ctx->ory_sq, ctx->orxry_sq, outer_info->inv_grad_q24);
+            if (outer_cov == 0)
+            {
+                continue;
+            }
+
+            egui_alpha_t inner_cov = 0;
+            if (has_inner_info && abs_dx <= (egui_dim_t)(inner_info->dx_scan + 1))
+            {
+                inner_cov = (abs_dx <= inner_info->dx_inner)
+                                    ? EGUI_ALPHA_100
+                                    : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, ctx->irx_sq, ctx->iry_sq, ctx->irxry_sq, inner_info->inv_grad_q24);
+            }
+
+            if (outer_cov > inner_cov)
+            {
+                egui_alpha_t band_cov = outer_cov - inner_cov;
+                egui_alpha_t mix = ctx->apply_canvas_alpha ? egui_color_alpha_mix(ctx->eff_alpha, band_cov) : band_cov;
+                if (mix > 0)
+                {
+                    egui_color_t *back_color = &dst_row[ctx->center_x + dx - ctx->pfb_ofs_x];
+                    if (mix == EGUI_ALPHA_100)
+                    {
+                        *back_color = color;
+                    }
+                    else
+                    {
+                        egui_rgb_mix_ptr(back_color, &color, back_color, mix);
+                    }
+                }
+            }
+        }
+
+        for (egui_dim_t dx = right_start; dx <= outer_right; dx++)
+        {
+            egui_dim_t abs_dx = EGUI_ABS(dx);
+            egui_alpha_t outer_cov = (abs_dx <= outer_info->dx_inner)
+                                             ? EGUI_ALPHA_100
+                                             : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, ctx->orx_sq, ctx->ory_sq, ctx->orxry_sq, outer_info->inv_grad_q24);
+            if (outer_cov == 0)
+            {
+                continue;
+            }
+
+            egui_alpha_t inner_cov = 0;
+            if (has_inner_info && abs_dx <= (egui_dim_t)(inner_info->dx_scan + 1))
+            {
+                inner_cov = (abs_dx <= inner_info->dx_inner)
+                                    ? EGUI_ALPHA_100
+                                    : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, ctx->irx_sq, ctx->iry_sq, ctx->irxry_sq, inner_info->inv_grad_q24);
+            }
+
+            if (outer_cov > inner_cov)
+            {
+                egui_alpha_t band_cov = outer_cov - inner_cov;
+                egui_alpha_t mix = ctx->apply_canvas_alpha ? egui_color_alpha_mix(ctx->eff_alpha, band_cov) : band_cov;
+                if (mix > 0)
+                {
+                    egui_color_t *back_color = &dst_row[ctx->center_x + dx - ctx->pfb_ofs_x];
+                    if (mix == EGUI_ALPHA_100)
+                    {
+                        *back_color = color;
+                    }
+                    else
+                    {
+                        egui_rgb_mix_ptr(back_color, &color, back_color, mix);
+                    }
+                }
+            }
+        }
+
+        return;
+    }
+
+    for (egui_dim_t dx = outer_left; dx <= left_end; dx++)
+    {
+        egui_dim_t abs_dx = EGUI_ABS(dx);
+        egui_alpha_t outer_cov = (abs_dx <= outer_info->dx_inner)
+                                         ? EGUI_ALPHA_100
+                                         : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, ctx->orx_sq, ctx->ory_sq, ctx->orxry_sq, outer_info->inv_grad_q24);
+        if (outer_cov == 0)
+        {
+            continue;
+        }
+
+        egui_alpha_t inner_cov = 0;
+        if (has_inner_info && abs_dx <= (egui_dim_t)(inner_info->dx_scan + 1))
+        {
+            inner_cov = (abs_dx <= inner_info->dx_inner)
+                                ? EGUI_ALPHA_100
+                                : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, ctx->irx_sq, ctx->iry_sq, ctx->irxry_sq, inner_info->inv_grad_q24);
+        }
+
+        if (outer_cov > inner_cov)
+        {
+            egui_alpha_t band_cov = outer_cov - inner_cov;
+            egui_alpha_t mix = ctx->apply_draw_alpha ? egui_color_alpha_mix(ctx->alpha, band_cov) : band_cov;
+            if (mix > 0)
+            {
+                egui_canvas_draw_point(ctx->center_x + dx, abs_y, color, mix);
+            }
+        }
+    }
+
+    for (egui_dim_t dx = right_start; dx <= outer_right; dx++)
+    {
+        egui_dim_t abs_dx = EGUI_ABS(dx);
+        egui_alpha_t outer_cov = (abs_dx <= outer_info->dx_inner)
+                                         ? EGUI_ALPHA_100
+                                         : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, ctx->orx_sq, ctx->ory_sq, ctx->orxry_sq, outer_info->inv_grad_q24);
+        if (outer_cov == 0)
+        {
+            continue;
+        }
+
+        egui_alpha_t inner_cov = 0;
+        if (has_inner_info && abs_dx <= (egui_dim_t)(inner_info->dx_scan + 1))
+        {
+            inner_cov = (abs_dx <= inner_info->dx_inner)
+                                ? EGUI_ALPHA_100
+                                : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, ctx->irx_sq, ctx->iry_sq, ctx->irxry_sq, inner_info->inv_grad_q24);
+        }
+
+        if (outer_cov > inner_cov)
+        {
+            egui_alpha_t band_cov = outer_cov - inner_cov;
+            egui_alpha_t mix = ctx->apply_draw_alpha ? egui_color_alpha_mix(ctx->alpha, band_cov) : band_cov;
+            if (mix > 0)
+            {
+                egui_canvas_draw_point(ctx->center_x + dx, abs_y, color, mix);
+            }
+        }
+    }
+}
+
 /**
  * \brief           Draw filled ellipse with anti-aliased edges
  * \param[in]       center_x: Center X position
@@ -685,309 +901,48 @@ void egui_canvas_draw_ellipse(egui_dim_t center_x, egui_dim_t center_y, egui_dim
     egui_dim_t x_start = EGUI_MAX(-radius_x, region_intersect.location.x - center_x);
     egui_dim_t x_end = EGUI_MIN(radius_x, region_intersect.location.x + region_intersect.size.width - 1 - center_x);
 
-    /* Direct PFB write setup for no-mask fast path */
-    int use_direct_pfb = (self->mask == NULL) ? 1 : 0;
-    egui_dim_t pfb_width = self->pfb_region.size.width;
-    egui_dim_t pfb_ofs_x = self->pfb_location_in_base_view.x;
-    egui_dim_t pfb_ofs_y = self->pfb_location_in_base_view.y;
-    egui_alpha_t canvas_alpha = self->alpha;
-    egui_alpha_t eff_alpha = egui_color_alpha_mix(canvas_alpha, alpha);
-    int apply_draw_alpha = (alpha != EGUI_ALPHA_100);
-    int apply_canvas_alpha = (eff_alpha != EGUI_ALPHA_100);
+    ellipse_outline_draw_ctx_t draw_ctx = {
+            .self = self,
+            .center_x = center_x,
+            .x_start = x_start,
+            .x_end = x_end,
+            .tile_dx_start = self->pfb_location_in_base_view.x - center_x,
+            .tile_dx_end = self->pfb_location_in_base_view.x + self->pfb_region.size.width - 1 - center_x,
+            .pfb_width = self->pfb_region.size.width,
+            .pfb_ofs_x = self->pfb_location_in_base_view.x,
+            .pfb_ofs_y = self->pfb_location_in_base_view.y,
+            .color = color,
+            .alpha = alpha,
+            .eff_alpha = egui_color_alpha_mix(self->alpha, alpha),
+            .orx_sq = orx_sq,
+            .ory_sq = ory_sq,
+            .orxry_sq = orxry_sq,
+            .irx_sq = irx_sq,
+            .iry_sq = iry_sq,
+            .irxry_sq = irxry_sq,
+            .use_direct_pfb = (self->mask == NULL) ? 1 : 0,
+            .apply_draw_alpha = (alpha != EGUI_ALPHA_100),
+            .apply_canvas_alpha = 0,
+    };
 
     uint32_t warm_o_dx_max = 0; /* NR warm start for outer isqrt */
     uint32_t warm_i_dx_max = 0; /* NR warm start for inner isqrt */
+
+    draw_ctx.apply_canvas_alpha = (draw_ctx.eff_alpha != EGUI_ALPHA_100);
 
     for (egui_dim_t dy = y_start; dy <= y_end; dy++)
     {
         egui_dim_t abs_dy = EGUI_ABS(dy);
         egui_dim_t abs_y = center_y + dy;
+        ellipse_scanline_info_t outer_info;
+        ellipse_scanline_info_t inner_info;
 
-        int32_t o_dx_max;
-        int32_t o_dx_scan;
-        int32_t o_dx_inner = 0;
-        int32_t i_dx_max = 0;
-        int32_t i_dx_scan = 0;
-        int32_t i_dx_inner = 0;
-        int64_t o_inv_grad_q24;
-        int64_t i_inv_grad_q24 = (int64_t)128 << 24;
-        int has_inner_info = 0;
-
-        int64_t o_dy_term = (int64_t)abs_dy * abs_dy * orx_sq;
-        if (o_dy_term > orxry_sq)
+        if (!ellipse_prepare_outline_scanline(abs_dy, iry, irx_sq, iry_sq, irxry_sq, &warm_i_dx_max, orx_sq, ory_sq, orxry_sq, &warm_o_dx_max, &outer_info,
+                                              &inner_info))
         {
             continue;
         }
 
-        o_dx_max = (int32_t)ellipse_isqrt_warm((uint32_t)((orxry_sq - o_dy_term) / ory_sq), warm_o_dx_max);
-        warm_o_dx_max = (uint32_t)o_dx_max;
-        o_dx_scan = o_dx_max;
-
-        if (abs_dy > 0)
-        {
-            int32_t abs_dy_adj = abs_dy - 1;
-            int64_t o_dy_term_adj = (int64_t)abs_dy_adj * abs_dy_adj * orx_sq;
-            if (o_dy_term_adj < orxry_sq)
-            {
-                int32_t o_dx_adj = (int32_t)ellipse_isqrt_warm((uint32_t)((orxry_sq - o_dy_term_adj) / ory_sq), warm_o_dx_max);
-                if (o_dx_adj > o_dx_scan)
-                {
-                    o_dx_scan = o_dx_adj;
-                }
-            }
-        }
-
-        if (irx > 0 && iry > 0 && abs_dy < iry)
-        {
-            int64_t i_dy_term = (int64_t)abs_dy * abs_dy * irx_sq;
-            if (i_dy_term < irxry_sq)
-            {
-                i_dx_max = (int32_t)ellipse_isqrt_warm((uint32_t)((irxry_sq - i_dy_term) / iry_sq), warm_i_dx_max);
-                warm_i_dx_max = (uint32_t)i_dx_max;
-            }
-        }
-
-        {
-            int64_t ogx = (int64_t)o_dx_max * ory_sq;
-            int64_t ogy = (int64_t)abs_dy * orx_sq;
-            uint32_t o_grad_half_ref = ellipse_grad_approx(ogx, ogy);
-            if (o_grad_half_ref == 0)
-            {
-                o_grad_half_ref = 1;
-            }
-            o_inv_grad_q24 = ellipse_inv_grad_from_approx(ogx, ogy);
-
-            if (o_dx_max > 0)
-            {
-                int64_t f_at_boundary = (int64_t)o_dx_max * o_dx_max * ory_sq + o_dy_term - orxry_sq;
-                int64_t f_plus_grad = (int64_t)o_grad_half_ref + f_at_boundary;
-
-                if (f_plus_grad <= 0)
-                {
-                    o_dx_inner = o_dx_max;
-                }
-                else
-                {
-                    int64_t denom = 2 * ogx;
-                    int32_t margin = (int32_t)((f_plus_grad + denom - 1) / denom);
-                    o_dx_inner = (o_dx_max > margin) ? (o_dx_max - margin) : 0;
-                }
-            }
-        }
-
-        if (irx > 0 && iry > 0 && abs_dy <= iry)
-        {
-            int64_t igx = (int64_t)i_dx_max * iry_sq;
-            int64_t igy = (int64_t)abs_dy * irx_sq;
-            uint32_t i_grad_half_ref = ellipse_grad_approx(igx, igy);
-            if (i_grad_half_ref == 0)
-            {
-                i_grad_half_ref = 1;
-            }
-
-            i_dx_scan = i_dx_max;
-            if (abs_dy > 0)
-            {
-                int32_t abs_dy_adj = abs_dy - 1;
-                int64_t i_dy_term_adj = (int64_t)abs_dy_adj * abs_dy_adj * irx_sq;
-                if (i_dy_term_adj < irxry_sq)
-                {
-                    int32_t i_dx_adj = (int32_t)ellipse_isqrt_warm((uint32_t)((irxry_sq - i_dy_term_adj) / iry_sq), warm_i_dx_max);
-                    if (i_dx_adj > i_dx_scan)
-                    {
-                        i_dx_scan = i_dx_adj;
-                    }
-                }
-            }
-
-            i_inv_grad_q24 = ellipse_inv_grad_from_approx(igx, igy);
-
-            if (i_dx_max > 0)
-            {
-                int64_t i_dy_term = (int64_t)abs_dy * abs_dy * irx_sq;
-                int64_t f_at_boundary = (int64_t)i_dx_max * i_dx_max * iry_sq + i_dy_term - irxry_sq;
-                int64_t f_plus_grad = (int64_t)i_grad_half_ref + f_at_boundary;
-
-                if (f_plus_grad <= 0)
-                {
-                    i_dx_inner = i_dx_max;
-                }
-                else
-                {
-                    int64_t denom = 2 * igx;
-                    int32_t margin = (int32_t)((f_plus_grad + denom - 1) / denom);
-                    i_dx_inner = (i_dx_max > margin) ? (i_dx_max - margin) : 0;
-                }
-            }
-            has_inner_info = 1;
-        }
-
-        // Only iterate over the stroke band: [-(o_dx_scan+1), -(i_dx_max-1)] and [(i_dx_max-1), (o_dx_scan+1)]
-        egui_dim_t outer_left = EGUI_MAX(-(egui_dim_t)(o_dx_scan + 1), x_start);
-        egui_dim_t outer_right = EGUI_MIN((egui_dim_t)(o_dx_scan + 1), x_end);
-        egui_dim_t tile_dx_start = pfb_ofs_x - center_x;
-        egui_dim_t tile_dx_end = pfb_ofs_x + pfb_width - 1 - center_x;
-        egui_dim_t inner_skip_left = (has_inner_info && i_dx_max > 1) ? -(egui_dim_t)(i_dx_max - 1) : 0;
-        egui_dim_t inner_skip_right = (has_inner_info && i_dx_max > 1) ? (egui_dim_t)(i_dx_max - 1) : 0;
-        outer_left = EGUI_MAX(outer_left, tile_dx_start);
-        outer_right = EGUI_MIN(outer_right, tile_dx_end);
-
-        if (use_direct_pfb)
-        {
-            egui_color_t *dst_row = (egui_color_t *)&self->pfb[(abs_y - pfb_ofs_y) * pfb_width];
-
-            // Left band
-            egui_dim_t left_end = EGUI_MIN(inner_skip_left - 1, outer_right);
-            for (egui_dim_t dx = outer_left; dx <= left_end; dx++)
-            {
-                egui_dim_t abs_x = center_x + dx;
-                egui_dim_t abs_dx = EGUI_ABS(dx);
-
-                egui_alpha_t outer_cov = (abs_dx <= o_dx_inner) ? EGUI_ALPHA_100
-                                                                 : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, orx_sq, ory_sq, orxry_sq, o_inv_grad_q24);
-                if (outer_cov == 0)
-                {
-                    continue;
-                }
-
-                egui_alpha_t inner_cov = 0;
-                if (has_inner_info && abs_dx <= (egui_dim_t)(i_dx_scan + 1))
-                {
-                    inner_cov = (abs_dx <= i_dx_inner) ? EGUI_ALPHA_100
-                                                       : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, irx_sq, iry_sq, irxry_sq, i_inv_grad_q24);
-                }
-
-                if (outer_cov > inner_cov)
-                {
-                    egui_alpha_t band_cov = outer_cov - inner_cov;
-                    egui_alpha_t m = apply_canvas_alpha ? egui_color_alpha_mix(eff_alpha, band_cov) : band_cov;
-                    if (m > 0)
-                    {
-                        egui_color_t *back_color = &dst_row[abs_x - pfb_ofs_x];
-                        if (m == EGUI_ALPHA_100)
-                        {
-                            *back_color = color;
-                        }
-                        else
-                        {
-                            egui_rgb_mix_ptr(back_color, &color, back_color, m);
-                        }
-                    }
-                }
-            }
-
-            // Right band
-            egui_dim_t right_start = EGUI_MAX(inner_skip_right + 1, outer_left);
-            if (!has_inner_info || i_dx_max <= 1)
-            {
-                right_start = EGUI_MAX(left_end + 1, outer_left);
-            }
-            for (egui_dim_t dx = right_start; dx <= outer_right; dx++)
-            {
-                egui_dim_t abs_x = center_x + dx;
-                egui_dim_t abs_dx = EGUI_ABS(dx);
-
-                egui_alpha_t outer_cov = (abs_dx <= o_dx_inner) ? EGUI_ALPHA_100
-                                                                 : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, orx_sq, ory_sq, orxry_sq, o_inv_grad_q24);
-                if (outer_cov == 0)
-                {
-                    continue;
-                }
-
-                egui_alpha_t inner_cov = 0;
-                if (has_inner_info && abs_dx <= (egui_dim_t)(i_dx_scan + 1))
-                {
-                    inner_cov = (abs_dx <= i_dx_inner) ? EGUI_ALPHA_100
-                                                       : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, irx_sq, iry_sq, irxry_sq, i_inv_grad_q24);
-                }
-
-                if (outer_cov > inner_cov)
-                {
-                    egui_alpha_t band_cov = outer_cov - inner_cov;
-                    egui_alpha_t m = apply_canvas_alpha ? egui_color_alpha_mix(eff_alpha, band_cov) : band_cov;
-                    if (m > 0)
-                    {
-                        egui_color_t *back_color = &dst_row[abs_x - pfb_ofs_x];
-                        if (m == EGUI_ALPHA_100)
-                        {
-                            *back_color = color;
-                        }
-                        else
-                        {
-                            egui_rgb_mix_ptr(back_color, &color, back_color, m);
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            // Fallback: with mask, use original draw_point path but still use fast alpha
-            // Left band
-            egui_dim_t left_end = EGUI_MIN(inner_skip_left - 1, outer_right);
-            for (egui_dim_t dx = outer_left; dx <= left_end; dx++)
-            {
-                egui_dim_t abs_dx = EGUI_ABS(dx);
-
-                egui_alpha_t outer_cov = (abs_dx <= o_dx_inner) ? EGUI_ALPHA_100
-                                                                 : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, orx_sq, ory_sq, orxry_sq, o_inv_grad_q24);
-                if (outer_cov == 0)
-                {
-                    continue;
-                }
-
-                egui_alpha_t inner_cov = 0;
-                if (has_inner_info && abs_dx <= (egui_dim_t)(i_dx_scan + 1))
-                {
-                    inner_cov = (abs_dx <= i_dx_inner) ? EGUI_ALPHA_100
-                                                       : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, irx_sq, iry_sq, irxry_sq, i_inv_grad_q24);
-                }
-
-                if (outer_cov > inner_cov)
-                {
-                    egui_alpha_t band_cov = outer_cov - inner_cov;
-                    egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, band_cov) : band_cov;
-                    if (mix > 0)
-                    {
-                        egui_canvas_draw_point(center_x + dx, abs_y, color, mix);
-                    }
-                }
-            }
-
-            // Right band
-            egui_dim_t right_start = EGUI_MAX(inner_skip_right + 1, outer_left);
-            if (!has_inner_info || i_dx_max <= 1)
-            {
-                right_start = EGUI_MAX(left_end + 1, outer_left);
-            }
-            for (egui_dim_t dx = right_start; dx <= outer_right; dx++)
-            {
-                egui_dim_t abs_dx = EGUI_ABS(dx);
-
-                egui_alpha_t outer_cov = (abs_dx <= o_dx_inner) ? EGUI_ALPHA_100
-                                                                 : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, orx_sq, ory_sq, orxry_sq, o_inv_grad_q24);
-                if (outer_cov == 0)
-                {
-                    continue;
-                }
-
-                egui_alpha_t inner_cov = 0;
-                if (has_inner_info && abs_dx <= (egui_dim_t)(i_dx_scan + 1))
-                {
-                    inner_cov = (abs_dx <= i_dx_inner) ? EGUI_ALPHA_100
-                                                       : ellipse_get_edge_alpha_fast(abs_dx, abs_dy, irx_sq, iry_sq, irxry_sq, i_inv_grad_q24);
-                }
-
-                if (outer_cov > inner_cov)
-                {
-                    egui_alpha_t band_cov = outer_cov - inner_cov;
-                    egui_alpha_t mix = apply_draw_alpha ? egui_color_alpha_mix(alpha, band_cov) : band_cov;
-                    if (mix > 0)
-                    {
-                        egui_canvas_draw_point(center_x + dx, abs_y, color, mix);
-                    }
-                }
-            }
-        }
+        ellipse_draw_outline_scanline(&draw_ctx, abs_y, abs_dy, &outer_info, &inner_info);
     }
 }

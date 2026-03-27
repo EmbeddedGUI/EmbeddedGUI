@@ -321,6 +321,21 @@ WidgetRegistry.instance().register(
 - 所有页面内容由 `web/demos/demos.json` 驱动，**不要手动编辑 `index.html` / `basic.html` 的 demo 列表**
 - 响应式布局通过 CSS 变量令牌（`--content-max-width` 等）统一控制，新增页面直接套用已有 class
 
+## Buffer 分配约束
+
+涉及以下任一维度变化的 buffer：
+- 字体大小
+- 图片大小
+- 屏幕尺寸
+- `PFB` 尺寸
+
+必须使用 `heap` 动态申请与释放/复用，不能为了维持 `heap=0` 而改成宏固定大小、静态全局/静态局部，或超大的栈上局部数组。
+
+换句话说：
+- **尺寸相关 buffer 禁止用“宏展开 + 固定 RAM 占用”代替 heap**
+- **尺寸相关 buffer 禁止用“大栈数组”代替 heap**
+- 做 RAM 优化时，只有与上述尺寸无关、且上界稳定明确的小型 scratch/cache，才允许继续评估是否放在栈或静态区
+
 ## Skills 技能文件说明
 
 项目技能文件位于 `.claude/skills/`，**在当前 VS Code + Copilot 环境下不会自动触发**——需要 AI 根据任务类型主动阅读对应文件。下表列出所有技能及触发时机：

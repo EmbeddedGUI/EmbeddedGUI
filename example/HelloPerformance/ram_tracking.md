@@ -30,6 +30,7 @@
 | 2026-03-27 | Tighten HelloPerformance text transform stack bounds | 2166116 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text -2720B`, rotated-text top frames `6248/4888 -> 4456/3416`, heap stays `0` |
 | 2026-03-27 | Shrink HelloPerformance external text transform stack buffers | 2166120 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text +4B`, `egui_canvas_draw_text_transform 3416 -> 2936`, external glyph helpers `856/864 -> 392/400`, heap stays `0` |
 | 2026-03-27 | Shrink HelloPerformance shadow corner stack LUT | 2166120 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `egui_shadow_draw_corner 1048 -> 792`, `SHADOW_ROUND 7.158 -> 6.113 (-14.6%)`, heap stays `0` |
+| 2026-03-27 | Refactor HelloPerformance ellipse outline stack frame | 2162556 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text -3564B`, `egui_canvas_draw_ellipse 1048 -> 360`, helper frames `40/144`, `ELLIPSE 2.253 ms`, heap stays `0` |
 
 ## Current Breakdown
 
@@ -53,7 +54,7 @@
 | `g_selected_char_desc` | `.bss` | 12 | Text transform selection state |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
-- Current normal QEMU build: `text=2166120`, `data=52`, `bss=21972`, `static RAM=22024`.
+- Current normal QEMU build: `text=2162556`, `data=52`, `bss=21972`, `static RAM=22024`.
 
 ### Heap Measurement
 
@@ -72,16 +73,16 @@
 | `egui_canvas_draw_text_transform` | `src/core/egui_canvas_transform.c` | 2936 | HelloPerformance rotated-text runtime path | External row/glyph scratch bounds now `16B / 288B`; this round cut it from `3416B` |
 | `egui_view_heart_rate_on_draw` | `src/widget/egui_view_heart_rate.c` | 1200 | Framework compiled hotspot, not in current HelloPerformance flow | Large locals: `points[240]`, `raw_vals[120]`, `smooth_vals[120]` |
 | `egui_view_virtual_tree_walk_internal` | `src/widget/egui_view_virtual_tree.c` | 1112 | Framework compiled hotspot, not in current HelloPerformance flow | Large local stack frame: `frames[EGUI_VIEW_VIRTUAL_TREE_MAX_DEPTH]` |
-| `egui_canvas_draw_ellipse` | `src/core/egui_canvas_ellipse.c` | 1048 | HelloPerformance ellipse scenes | Current HelloPerformance non-text top stack frame |
 | `line_hq_draw_polyline_internal` | `src/core/egui_canvas_line_hq.c` | 1016 | HelloPerformance line/polyline scenes | Current HelloPerformance non-text top stack frame |
 | `egui_shadow_draw_corner` | `src/shadow/egui_shadow.c` | 792 | HelloPerformance shadow scenes | `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 256 -> 128`; local LUT stack reduced by `256B` |
+| `egui_canvas_draw_ellipse` | `src/core/egui_canvas_ellipse.c` | 360 | HelloPerformance ellipse scenes | Outline scanline preparation/render split into helpers; helper frames `40B` and `144B` |
 | `rasterize_external_glyph4_to_packed_inside_common` | `src/core/egui_canvas_transform.c` | 400 | HelloPerformance external rotated-text helper | Local external glyph scratch shrank from `864B` |
 | `rasterize_external_glyph4_to_alpha8_inside_common` | `src/core/egui_canvas_transform.c` | 392 | HelloPerformance external rotated-text helper | Local external glyph scratch shrank from `856B` |
 
 - Current `HelloPerformance` stack risk is still concentrated in the rotated-text path used by `TEXT_ROTATE*` and `EXTERN_TEXT_ROTATE*` benchmark scenes.
-- After the shadow LUT cut, the next `HelloPerformance` non-text stack candidates are `egui_canvas_draw_ellipse (1048B)` and `line_hq_draw_polyline_internal (1016B)`.
-- This round only tightened the HelloPerformance shadow LUT bound. It did not increase static RAM, did not reintroduce heap, and did not touch `pfb`.
-- Current stack-usage build top frames `>= 1KB`: `4456`, `2936`, `1200`, `1112`, `1048`, `1016`.
+- After the ellipse refactor, the current `HelloPerformance` non-text stack hotspot is `line_hq_draw_polyline_internal (1016B)`.
+- This round only refactored the HelloPerformance ellipse outline scanline path. It did not increase static RAM, did not reintroduce heap, and did not touch `pfb`.
+- Current stack-usage build top frames `>= 1KB`: `4456`, `2936`, `1200`, `1112`, `1016`.
 
 ### RLE Checkpoint A/B
 
