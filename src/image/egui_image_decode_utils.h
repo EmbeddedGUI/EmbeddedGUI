@@ -10,9 +10,11 @@
 extern "C" {
 #endif
 
+void egui_image_decode_release_frame_cache(void);
+
 #if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE || EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
 
-/* Shared row decode buffers (static, zero dynamic allocation).
+/* Shared row decode buffers.
  * Pixel buffer: EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE bytes
  * Alpha buffer: EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH bytes
  */
@@ -28,6 +30,7 @@ static inline uint8_t *egui_image_decode_get_row_pixel_buf(uint8_t bytes_per_pix
 }
 
 uint8_t *egui_image_decode_get_opaque_alpha_row(egui_dim_t count);
+uint8_t *egui_image_decode_get_row_alpha_scratch(uint16_t alpha_row_bytes);
 
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 /*
@@ -35,8 +38,15 @@ uint8_t *egui_image_decode_get_opaque_alpha_row(egui_dim_t count);
  * On the first tile of a row band, all rows are decoded into the cache.
  * Subsequent horizontal tiles blend from the cache without re-decoding.
  */
-extern uint8_t egui_image_decode_row_cache_pixel[];
-extern uint8_t egui_image_decode_row_cache_alpha[];
+#define EGUI_IMAGE_DECODE_ROW_CACHE_PIXEL_MAX_BYTES                                                                                                            \
+    (EGUI_CONFIG_PFB_HEIGHT * EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE)
+#define EGUI_IMAGE_DECODE_ROW_CACHE_ALPHA_MAX_BYTES (EGUI_CONFIG_PFB_HEIGHT * EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH)
+
+extern uint8_t *egui_image_decode_row_cache_pixel;
+extern uint8_t *egui_image_decode_row_cache_alpha;
+
+int egui_image_decode_cache_prepare_bytes(uint32_t pixel_bytes, uint32_t alpha_bytes);
+int egui_image_decode_cache_prepare_rows(uint16_t img_width, uint16_t row_count, uint8_t bytes_per_pixel, uint16_t alpha_row_bytes);
 
 typedef enum
 {
@@ -49,17 +59,20 @@ typedef enum
 static inline uint8_t *egui_image_decode_cache_pixel_row(uint16_t row_in_band, uint16_t img_width, uint8_t bytes_per_pixel)
 {
     EGUI_ASSERT(bytes_per_pixel > 0 && bytes_per_pixel <= EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE);
+    EGUI_ASSERT(egui_image_decode_row_cache_pixel != NULL);
     return &egui_image_decode_row_cache_pixel[(uint32_t)row_in_band * img_width * bytes_per_pixel];
 }
 
 /* Return pointer to the alpha cache buffer for a given row offset within the band */
 static inline uint8_t *egui_image_decode_cache_alpha_row(uint16_t row_in_band, uint16_t img_width)
 {
+    EGUI_ASSERT(egui_image_decode_row_cache_alpha != NULL);
     return &egui_image_decode_row_cache_alpha[(uint32_t)row_in_band * img_width];
 }
 
 static inline uint8_t *egui_image_decode_cache_alpha_row_bytes(uint16_t row_in_band, uint16_t alpha_row_bytes)
 {
+    EGUI_ASSERT(egui_image_decode_row_cache_alpha != NULL);
     return &egui_image_decode_row_cache_alpha[(uint32_t)row_in_band * alpha_row_bytes];
 }
 

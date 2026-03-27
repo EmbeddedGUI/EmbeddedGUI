@@ -41,6 +41,7 @@
 | 2026-03-27 | Shrink HelloPerformance rectangle gradient cache LUT | 2162756 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text +112B`, `color_cache 256 -> 129`, `egui_canvas_draw_rectangle_fill_gradient 792 -> 528`, `GRADIENT_RADIAL 7.080 -> 6.727 (-5.0%)`, `GRADIENT_ANGULAR 7.427 -> 6.914 (-6.9%)`, heap stays `0` |
 | 2026-03-27 | Shrink HelloPerformance pfb manager metadata arrays | 2162672 | 52 | 21932 | 21984 | 0 / 0 | 4456 | `static RAM -40B`, `egui_core 228 -> 192`, perf stays in noise, `frame_0171.png` / `frame_0175.png` confirm round-rect mask scene still correct |
 | 2026-03-27 | Move visible alpha8 tile scratch to heap with QEMU self-managed allocator | 2162144 | 52 | 21964 | 22016 | 0 / 4096 | 2936 | `text -528B`, `static RAM +32B`, `text_transform_draw_visible_alpha8_tile_layout 4456 -> 104`, QEMU heap uses runtime RAM gap instead of libc/newlib |
+| 2026-03-27 | Move codec row-band decode cache from `.bss` to frame heap | 2163132 | 52 | 10940 | 10992 | 0 / 11520 | 2936 | `static RAM -11024B`, row-band pixel/alpha cache now follows image width + row count on heap, `HelloPerformance` runtime screenshots `223/223` unchanged, only older saved perf snapshot (`git 789827a`) outlier is `IMAGE_TILED_QOI_565_0 0.888 -> 1.270 (+43.0%)` |
 
 ## Current Breakdown
 
@@ -48,9 +49,8 @@
 
 | Symbol | Section | Size (B) | Notes |
 | --- | --- | ---: | --- |
-| `egui_image_decode_row_cache_pixel` | `.bss` | 7680 | Decode row-band pixel cache |
-| `egui_image_decode_row_cache_alpha` | `.bss` | 3840 | Decode row-band alpha cache |
 | `egui_pfb` | `.bss` | 1536 | User-configurable PFB, not an optimization target |
+| `egui_image_decode_row_pixel_buf` | `.bss` | 480 | Single-row decode scratch; fixed upper bound independent of image height |
 | `qoi_state` | `.bss` | 212 | Compact QOI decoder state (`rgb565[64] + aux[64]`) |
 | `egui_core` | `.bss` | 192 | Core runtime state; embedded `pfb_manager` metadata now follows `EGUI_CONFIG_PFB_BUFFER_COUNT=1` |
 | `test_view` | `.bss` | 56 | HelloPerformance scene object |
@@ -64,19 +64,21 @@
 | `g_selected_char_desc` | `.bss` | 12 | Text transform selection state |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
-- Current normal QEMU build: `text=2162144`, `data=52`, `bss=21964`, `static RAM=22016`.
-- The latest round accepts `static RAM +32B` to restore the size-related rotated-text alpha8 tile scratch to heap, while keeping that buffer out of fixed `.bss` or large stack locals.
+- Current normal QEMU build: `text=2163132`, `data=52`, `bss=10940`, `static RAM=10992`.
+- The codec row-band pixel/alpha cache no longer occupies fixed `.bss`; it is now allocated per frame from heap because its required size follows active image width, alpha format, and `PFB` row-band height.
+- The remaining static decode scratch is only the single-row `egui_image_decode_row_pixel_buf (480B)` plus metadata; there is no longer any multi-row decode cache parked in SRAM between frames.
 - The QEMU port now uses a self-managed runtime heap carved from `[_ebss, _estack - _Min_Stack_Size)`, so enabling `EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE` does not pull in newlib `malloc` state.
 
 ### Heap Measurement
 
 | Build | idle current | idle peak | interaction delta current | interaction delta peak | interaction total current | interaction total peak | action count |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `QEMU_HEAP_MEASURE=1` | 0 | 0 | 0 | 4096 | 0 | 4096 | 222 |
+| `QEMU_HEAP_MEASURE=1` | 0 | 0 | 0 | 11520 | 0 | 11520 | 222 |
 
 - Heap log contains `HEAP_EXIT`.
-- Interaction alloc/free count is `10 / 10`; the measured heap peak is the transient rotated-text visible alpha8 tile scratch.
-- This round intentionally allows `heap peak = 4096B` because that buffer follows transformed glyph bounds and therefore must stay heap-backed per the RAM rule.
+- Interaction alloc/free count is `164 / 164`; the measured heap peak is the transient codec row-band decode cache plus the existing rotated-text visible alpha8 tile scratch.
+- This round intentionally allows `heap peak = 11520B` because the moved row-band cache follows image width, alpha format, and `PFB` row count; per the RAM rule, this size-related buffer must stay heap-backed instead of returning to fixed `.bss` or large stack locals.
+- The measured heap build now reaches the former `.bss` cache footprint only while the decode-heavy scenes are active, and releases it back to `0B` at idle.
 
 ### Stack Measurement
 
@@ -100,6 +102,7 @@
 
 - Current `HelloPerformance` stack risk is still concentrated in the rotated-text path used by `TEXT_ROTATE*` and `EXTERN_TEXT_ROTATE*` benchmark scenes, but the max single frame is now `2936B` instead of `4456B`.
 - The visible alpha8 tile scratch now follows transformed glyph bounds and therefore lives on heap, which is the required placement for this size-related buffer.
+- The new codec row-band heap path does not introduce a new stack hotspot: `egui_image_qoi_draw_image` is `240B` and `egui_image_rle_draw_image` is `280B`.
 - The earlier rectangle-gradient round shrank the fixed `color_cache` in `egui_canvas_draw_rectangle_fill_gradient` from `256` to `129` entries; measured `792B -> 528B`, while `GRADIENT_RADIAL` improved from `7.080 ms` to `6.727 ms` and `GRADIENT_ANGULAR` improved from `7.427 ms` to `6.914 ms`. PC runtime check frames `frame_0120.png` and `frame_0121.png` show the radial/angular rectangle gradients remain visually correct.
 - Current `HelloPerformance` non-text heads are `line_hq_draw_polyline_segment (976B)`, `egui_canvas_draw_line_hq (824B)`, `egui_canvas_draw_circle_fill_gradient (752B)`, `egui_canvas_draw_line_round_cap_hq (744B)`, `egui_canvas_draw_image_transform (736B)`, `egui_canvas_draw_polygon_fill_gradient (720B)`, `egui_canvas_draw_polygon_fill (712B)`, `egui_shadow_draw_corner (664B)`, `egui_canvas_draw_triangle_fill_gradient (544B)`, `egui_canvas_draw_ellipse_fill_gradient (544B)`, and `egui_canvas_draw_rectangle_fill_gradient (528B)`.
 - Current compiled frames `>= 1KB` are `2936`, `1200`, and `1112`; only `2936` belongs to an active HelloPerformance runtime path.

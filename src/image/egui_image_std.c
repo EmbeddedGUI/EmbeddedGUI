@@ -126,6 +126,11 @@ uint32_t egui_image_std_claim_shared_external_row_cache(egui_image_external_row_
 uint16_t *egui_image_std_get_shared_external_data_cache(void)
 {
 #if EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE
+    if (egui_image_decode_row_cache_pixel == NULL &&
+        !egui_image_decode_cache_prepare_bytes(EGUI_IMAGE_STD_EXTERNAL_DATA_CACHE_MAX_BYTES, 0))
+    {
+        return NULL;
+    }
     return (uint16_t *)egui_image_decode_row_cache_pixel;
 #else
     return g_egui_image_std_shared_external_data_cache;
@@ -135,6 +140,11 @@ uint16_t *egui_image_std_get_shared_external_data_cache(void)
 uint8_t *egui_image_std_get_shared_external_alpha_cache(void)
 {
 #if EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE
+    if (egui_image_decode_row_cache_alpha == NULL &&
+        !egui_image_decode_cache_prepare_bytes(0, EGUI_IMAGE_STD_EXTERNAL_ALPHA_CACHE_MAX_BYTES))
+    {
+        return NULL;
+    }
     return egui_image_decode_row_cache_alpha;
 #else
     return g_egui_image_std_shared_external_alpha_cache;
@@ -8688,6 +8698,7 @@ void egui_image_std_init(egui_image_t *self, const void *res)
 
 void egui_image_std_release_frame_cache(void)
 {
+    egui_image_decode_release_frame_cache();
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 #if EGUI_CONFIG_IMAGE_STD_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
     memset(&g_egui_image_std_external_row_persistent_cache_storage, 0, sizeof(g_egui_image_std_external_row_persistent_cache_storage));

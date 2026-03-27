@@ -1803,6 +1803,9 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
     egui_dim_t masked_dst_stride = 0;
     int use_masked_opaque = 0;
     int use_masked_alpha8 = 0;
+#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+    int use_row_cache = 0;
+#endif
 
     if (!egui_image_decode_get_horizontal_clip(x, draw_info->width, &screen_x_start, &img_col_start, &count))
     {
@@ -1877,7 +1880,8 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
         return;
     }
 
-    if (egui_image_decode_cache_can_hold_full_image(draw_info->width, draw_info->height, pixel_size, has_alpha ? draw_info->width : 0))
+    if (egui_image_decode_cache_can_hold_full_image(draw_info->width, draw_info->height, pixel_size, has_alpha ? draw_info->width : 0) &&
+        egui_image_decode_cache_prepare_rows(draw_info->width, draw_info->height, pixel_size, has_alpha ? draw_info->width : 0))
     {
         egui_image_qoi_reset_state(info);
 
@@ -1907,6 +1911,8 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
                                          use_fast_alpha8, use_masked_opaque, use_masked_alpha8);
         return;
     }
+    use_row_cache = egui_image_decode_cache_prepare_rows(draw_info->width, (uint16_t)(img_y_end - img_y_start), pixel_size,
+                                                         has_alpha ? draw_info->width : 0);
 #endif /* EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE */
 
     /* If PFB requests rows before current state, try checkpoint restore.
@@ -1936,14 +1942,23 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
     for (egui_dim_t row = img_y_start; row < img_y_end; row++)
     {
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
-        /* Decode into cache buffer and blend from it */
-        uint16_t row_in_band = (uint16_t)row - (uint16_t)img_y_start;
-        uint8_t *pixel_buf = egui_image_decode_cache_pixel_row(row_in_band, draw_info->width, pixel_size);
-        uint8_t *alpha_buf = has_alpha ?
-            egui_image_decode_cache_alpha_row(row_in_band, draw_info->width) : NULL;
+        uint8_t *pixel_buf;
+        uint8_t *alpha_buf;
+
+        if (use_row_cache)
+        {
+            uint16_t row_in_band = (uint16_t)row - (uint16_t)img_y_start;
+            pixel_buf = egui_image_decode_cache_pixel_row(row_in_band, draw_info->width, pixel_size);
+            alpha_buf = has_alpha ? egui_image_decode_cache_alpha_row(row_in_band, draw_info->width) : NULL;
+        }
+        else
+        {
+            pixel_buf = egui_image_decode_get_row_pixel_buf(pixel_size);
+            alpha_buf = has_alpha ? egui_image_decode_get_row_alpha_scratch(draw_info->width) : NULL;
+        }
 #else
         uint8_t *pixel_buf = egui_image_decode_get_row_pixel_buf(pixel_size);
-        uint8_t *alpha_buf = has_alpha ? egui_image_decode_row_alpha_buf : NULL;
+        uint8_t *alpha_buf = has_alpha ? egui_image_decode_get_row_alpha_scratch(draw_info->width) : NULL;
 #endif
         egui_image_qoi_decode_row(draw_info, pixel_buf, alpha_buf);
         qoi_state.current_row++;
@@ -2017,7 +2032,10 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
 
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
     /* Mark this row band as cached for subsequent horizontal tiles */
-    egui_image_decode_cache_set_row_band((const void *)info, (uint16_t)img_y_start, (uint16_t)(img_y_end - img_y_start));
+    if (use_row_cache)
+    {
+        egui_image_decode_cache_set_row_band((const void *)info, (uint16_t)img_y_start, (uint16_t)(img_y_end - img_y_start));
+    }
 #endif
 }
 

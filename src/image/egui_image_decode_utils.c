@@ -15,16 +15,118 @@ uint8_t egui_image_decode_row_alpha_buf[EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH];
 #endif
 
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
-/* Row-band decode cache: PFB_HEIGHT rows of decoded data */
-uint8_t egui_image_decode_row_cache_pixel[EGUI_CONFIG_PFB_HEIGHT * EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE];
-uint8_t egui_image_decode_row_cache_alpha[EGUI_CONFIG_PFB_HEIGHT * EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH];
+/* Row-band decode cache: frame-local heap scratch sized from the active image row band. */
+uint8_t *egui_image_decode_row_cache_pixel = NULL;
+uint8_t *egui_image_decode_row_cache_alpha = NULL;
 egui_image_decode_cache_state_t egui_image_decode_cache_state = {NULL, 0xFFFF, 0, EGUI_IMAGE_DECODE_CACHE_MODE_NONE};
+static uint32_t g_egui_image_decode_row_cache_pixel_capacity = 0;
+static uint32_t g_egui_image_decode_row_cache_alpha_capacity = 0;
+
+int egui_image_decode_cache_prepare_bytes(uint32_t pixel_bytes, uint32_t alpha_bytes)
+{
+    uint8_t *new_pixel = egui_image_decode_row_cache_pixel;
+    uint8_t *new_alpha = egui_image_decode_row_cache_alpha;
+
+    if (pixel_bytes > EGUI_IMAGE_DECODE_ROW_CACHE_PIXEL_MAX_BYTES || alpha_bytes > EGUI_IMAGE_DECODE_ROW_CACHE_ALPHA_MAX_BYTES)
+    {
+        return 0;
+    }
+
+    if (pixel_bytes > g_egui_image_decode_row_cache_pixel_capacity)
+    {
+        new_pixel = (uint8_t *)egui_malloc((int)pixel_bytes);
+        if (new_pixel == NULL)
+        {
+            return 0;
+        }
+    }
+
+    if (alpha_bytes > g_egui_image_decode_row_cache_alpha_capacity)
+    {
+        new_alpha = (uint8_t *)egui_malloc((int)alpha_bytes);
+        if (new_alpha == NULL)
+        {
+            if (new_pixel != egui_image_decode_row_cache_pixel)
+            {
+                egui_free(new_pixel);
+            }
+            return 0;
+        }
+    }
+
+    if (new_pixel != egui_image_decode_row_cache_pixel)
+    {
+        if (egui_image_decode_row_cache_pixel != NULL)
+        {
+            egui_free(egui_image_decode_row_cache_pixel);
+        }
+        egui_image_decode_row_cache_pixel = new_pixel;
+        g_egui_image_decode_row_cache_pixel_capacity = pixel_bytes;
+    }
+
+    if (new_alpha != egui_image_decode_row_cache_alpha)
+    {
+        if (egui_image_decode_row_cache_alpha != NULL)
+        {
+            egui_free(egui_image_decode_row_cache_alpha);
+        }
+        egui_image_decode_row_cache_alpha = new_alpha;
+        g_egui_image_decode_row_cache_alpha_capacity = alpha_bytes;
+    }
+
+    return 1;
+}
+
+int egui_image_decode_cache_prepare_rows(uint16_t img_width, uint16_t row_count, uint8_t bytes_per_pixel, uint16_t alpha_row_bytes)
+{
+    uint32_t pixel_bytes;
+    uint32_t alpha_bytes;
+
+    if (img_width == 0 || row_count == 0 || bytes_per_pixel == 0 || bytes_per_pixel > EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE)
+    {
+        return 0;
+    }
+
+    pixel_bytes = (uint32_t)img_width * row_count * bytes_per_pixel;
+    alpha_bytes = (uint32_t)row_count * alpha_row_bytes;
+
+#if EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
+    if (alpha_bytes < EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH)
+    {
+        alpha_bytes = EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH;
+    }
+#endif
+
+    return egui_image_decode_cache_prepare_bytes(pixel_bytes, alpha_bytes);
+}
+
+void egui_image_decode_release_frame_cache(void)
+{
+    if (egui_image_decode_row_cache_pixel != NULL)
+    {
+        egui_free(egui_image_decode_row_cache_pixel);
+        egui_image_decode_row_cache_pixel = NULL;
+    }
+
+    if (egui_image_decode_row_cache_alpha != NULL)
+    {
+        egui_free(egui_image_decode_row_cache_alpha);
+        egui_image_decode_row_cache_alpha = NULL;
+    }
+
+    g_egui_image_decode_row_cache_pixel_capacity = 0;
+    g_egui_image_decode_row_cache_alpha_capacity = 0;
+    egui_image_decode_cache_state.image_info = NULL;
+    egui_image_decode_cache_state.row_band_start = 0xFFFF;
+    egui_image_decode_cache_state.row_count = 0;
+    egui_image_decode_cache_state.mode = EGUI_IMAGE_DECODE_CACHE_MODE_NONE;
+}
 
 int egui_image_decode_cache_can_hold_full_image(uint16_t img_width, uint16_t img_height, uint8_t bytes_per_pixel, uint16_t alpha_row_bytes)
 {
     uint32_t pixel_bytes = (uint32_t)img_width * img_height * bytes_per_pixel;
 
-    if (pixel_bytes > sizeof(egui_image_decode_row_cache_pixel))
+    if (pixel_bytes > EGUI_IMAGE_DECODE_ROW_CACHE_PIXEL_MAX_BYTES)
     {
         return 0;
     }
@@ -32,7 +134,7 @@ int egui_image_decode_cache_can_hold_full_image(uint16_t img_width, uint16_t img
     if (alpha_row_bytes != 0)
     {
         uint32_t alpha_bytes = (uint32_t)img_height * alpha_row_bytes;
-        if (alpha_bytes > sizeof(egui_image_decode_row_cache_alpha))
+        if (alpha_bytes > EGUI_IMAGE_DECODE_ROW_CACHE_ALPHA_MAX_BYTES)
         {
             return 0;
         }
@@ -56,6 +158,10 @@ void egui_image_decode_cache_set_full_image(const void *image_info, uint16_t row
     egui_image_decode_cache_state.row_count = row_count;
     egui_image_decode_cache_state.mode = EGUI_IMAGE_DECODE_CACHE_MODE_FULL_IMAGE;
 }
+#else
+void egui_image_decode_release_frame_cache(void)
+{
+}
 #endif
 
 uint8_t *egui_image_decode_get_opaque_alpha_row(egui_dim_t count)
@@ -65,6 +171,10 @@ uint8_t *egui_image_decode_get_opaque_alpha_row(egui_dim_t count)
     EGUI_ASSERT(count >= 0 && count <= EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH);
 
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE && EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
+    if (egui_image_decode_row_cache_alpha == NULL && !egui_image_decode_cache_prepare_bytes(0, EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH))
+    {
+        return NULL;
+    }
     opaque_alpha_row = egui_image_decode_row_cache_alpha;
 #else
     opaque_alpha_row = egui_image_decode_row_alpha_buf;
@@ -72,6 +182,21 @@ uint8_t *egui_image_decode_get_opaque_alpha_row(egui_dim_t count)
 
     memset(opaque_alpha_row, EGUI_ALPHA_100, (size_t)count);
     return opaque_alpha_row;
+}
+
+uint8_t *egui_image_decode_get_row_alpha_scratch(uint16_t alpha_row_bytes)
+{
+    EGUI_ASSERT(alpha_row_bytes <= EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH);
+
+#if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE || !EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
+    return egui_image_decode_row_alpha_buf;
+#else
+    if (egui_image_decode_row_cache_alpha == NULL && !egui_image_decode_cache_prepare_bytes(0, alpha_row_bytes))
+    {
+        return NULL;
+    }
+    return egui_image_decode_row_cache_alpha;
+#endif
 }
 
 #if EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES > 0
@@ -664,3 +789,9 @@ void egui_image_decode_blend_row(egui_dim_t img_x, egui_dim_t img_y, uint16_t ro
 }
 
 #endif /* EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE || EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE */
+
+#if !EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE && !EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+void egui_image_decode_release_frame_cache(void)
+{
+}
+#endif
