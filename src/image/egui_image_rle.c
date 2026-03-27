@@ -8,6 +8,10 @@
 
 #if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
 
+#ifndef EGUI_CONFIG_IMAGE_RLE_CHECKPOINT_ENABLE
+#define EGUI_CONFIG_IMAGE_RLE_CHECKPOINT_ENABLE 1
+#endif
+
 /*
  * RLE control byte format (compatible with LVGL RLE):
  *   bit7 = 1: literal mode, count = ctrl & 0x7F, copy count * blk_size raw bytes
@@ -848,12 +852,15 @@ static void egui_image_rle_reset_state(const egui_image_rle_info_t *info)
  * so horizontal tile neighbors can restore instead of re-scanning from the
  * beginning.  RLE state is small (~10 bytes), so checkpoint is cheap.
  */
+#if EGUI_CONFIG_IMAGE_RLE_CHECKPOINT_ENABLE
 static egui_image_rle_decode_state_t rle_checkpoint;
 
 static void egui_image_rle_save_checkpoint(const egui_image_rle_info_t *info, uint16_t row)
 {
-    EGUI_UNUSED(info);
-    EGUI_UNUSED(row);
+    if (rle_checkpoint.info == info && rle_checkpoint.current_row == row)
+    {
+        return;
+    }
     rle_checkpoint = rle_state;
 }
 
@@ -866,6 +873,20 @@ static int egui_image_rle_restore_checkpoint(const egui_image_rle_info_t *info, 
     }
     return 0;
 }
+#else
+static void egui_image_rle_save_checkpoint(const egui_image_rle_info_t *info, uint16_t row)
+{
+    EGUI_UNUSED(info);
+    EGUI_UNUSED(row);
+}
+
+static int egui_image_rle_restore_checkpoint(const egui_image_rle_info_t *info, uint16_t target_row)
+{
+    EGUI_UNUSED(info);
+    EGUI_UNUSED(target_row);
+    return 0;
+}
+#endif
 
 static int egui_image_rle_get_point(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
@@ -1470,10 +1491,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
 
     /* Save checkpoint at the start of this row band so horizontal tile
      * neighbors can restore directly instead of re-scanning from row 0. */
-    if (rle_checkpoint.info != info || rle_checkpoint.current_row != (uint16_t)img_y_start)
-    {
-        egui_image_rle_save_checkpoint(info, (uint16_t)img_y_start);
-    }
+    egui_image_rle_save_checkpoint(info, (uint16_t)img_y_start);
 
     /* Decode and blend visible rows */
     egui_dim_t screen_y = y + img_y_start;
