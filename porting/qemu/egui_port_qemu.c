@@ -643,6 +643,11 @@ static void qemu_pfb_clear(void *s, int n)
     memset(s, 0, n);
 }
 
+#ifndef QEMU_HEAP_MEASURE
+#define QEMU_HEAP_MEASURE 0
+#endif
+
+#if QEMU_HEAP_MEASURE
 static uint32_t s_qemu_heap_current_bytes = 0U;
 static uint32_t s_qemu_heap_peak_bytes = 0U;
 static uint32_t s_qemu_heap_alloc_count = 0U;
@@ -651,6 +656,55 @@ static uint32_t s_qemu_heap_measure_base_current = 0U;
 static uint32_t s_qemu_heap_measure_peak_bytes = 0U;
 static uint32_t s_qemu_heap_measure_base_alloc_count = 0U;
 static uint32_t s_qemu_heap_measure_base_free_count = 0U;
+
+static void qemu_heap_refresh_measure_peak(void)
+{
+    uint32_t delta = 0U;
+
+    if (s_qemu_heap_current_bytes > s_qemu_heap_peak_bytes)
+    {
+        s_qemu_heap_peak_bytes = s_qemu_heap_current_bytes;
+    }
+
+    if (s_qemu_heap_current_bytes > s_qemu_heap_measure_base_current)
+    {
+        delta = s_qemu_heap_current_bytes - s_qemu_heap_measure_base_current;
+    }
+
+    if (delta > s_qemu_heap_measure_peak_bytes)
+    {
+        s_qemu_heap_measure_peak_bytes = delta;
+    }
+}
+
+#define QEMU_HEAP_TRACK_ALLOC(_size)                                                                                                                        \
+    do                                                                                                                                                      \
+    {                                                                                                                                                       \
+        uint32_t _payload_size = (_size);                                                                                                                   \
+        s_qemu_heap_current_bytes += _payload_size;                                                                                                         \
+        s_qemu_heap_alloc_count++;                                                                                                                          \
+        qemu_heap_refresh_measure_peak();                                                                                                                   \
+    } while (0)
+
+#define QEMU_HEAP_TRACK_FREE(_size)                                                                                                                         \
+    do                                                                                                                                                      \
+    {                                                                                                                                                       \
+        uint32_t _payload_size = (_size);                                                                                                                   \
+        if (s_qemu_heap_current_bytes >= _payload_size)                                                                                                     \
+        {                                                                                                                                                   \
+            s_qemu_heap_current_bytes -= _payload_size;                                                                                                     \
+        }                                                                                                                                                   \
+        else                                                                                                                                                \
+        {                                                                                                                                                   \
+            s_qemu_heap_current_bytes = 0U;                                                                                                                 \
+        }                                                                                                                                                   \
+        s_qemu_heap_free_count++;                                                                                                                           \
+        qemu_heap_refresh_measure_peak();                                                                                                                   \
+    } while (0)
+#else
+#define QEMU_HEAP_TRACK_ALLOC(_size) EGUI_UNUSED(_size)
+#define QEMU_HEAP_TRACK_FREE(_size)  EGUI_UNUSED(_size)
+#endif
 
 #if EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE
 extern uint8_t _ebss[];
@@ -742,26 +796,6 @@ static void qemu_heap_insert_free_block(qemu_heap_free_block_t *block)
         prev->next = block->next;
     }
 }
-
-static void qemu_heap_refresh_measure_peak(void)
-{
-    uint32_t delta = 0U;
-
-    if (s_qemu_heap_current_bytes > s_qemu_heap_peak_bytes)
-    {
-        s_qemu_heap_peak_bytes = s_qemu_heap_current_bytes;
-    }
-
-    if (s_qemu_heap_current_bytes > s_qemu_heap_measure_base_current)
-    {
-        delta = s_qemu_heap_current_bytes - s_qemu_heap_measure_base_current;
-    }
-
-    if (delta > s_qemu_heap_measure_peak_bytes)
-    {
-        s_qemu_heap_measure_peak_bytes = delta;
-    }
-}
 static void *qemu_malloc(int size)
 {
     qemu_heap_free_block_t *prev = NULL;
@@ -832,9 +866,7 @@ static void *qemu_malloc(int size)
     }
 
     header->payload_size = (uint32_t)size;
-    s_qemu_heap_current_bytes += header->payload_size;
-    s_qemu_heap_alloc_count++;
-    qemu_heap_refresh_measure_peak();
+    QEMU_HEAP_TRACK_ALLOC(header->payload_size);
 
     return (void *)(header + 1);
 }
@@ -850,16 +882,7 @@ static void qemu_free(void *ptr)
     }
 
     header = ((qemu_heap_alloc_header_t *)ptr) - 1;
-    if (s_qemu_heap_current_bytes >= header->payload_size)
-    {
-        s_qemu_heap_current_bytes -= header->payload_size;
-    }
-    else
-    {
-        s_qemu_heap_current_bytes = 0U;
-    }
-    s_qemu_heap_free_count++;
-    qemu_heap_refresh_measure_peak();
+    QEMU_HEAP_TRACK_FREE(header->payload_size);
 
     block = (qemu_heap_free_block_t *)header;
     block->block_size = header->block_size;
@@ -867,6 +890,7 @@ static void qemu_free(void *ptr)
 }
 #endif
 
+#if QEMU_HEAP_MEASURE
 void qemu_heap_reset_stats(void)
 {
     s_qemu_heap_measure_base_current = s_qemu_heap_current_bytes;
@@ -898,6 +922,31 @@ uint32_t qemu_heap_get_free_count(void)
 {
     return s_qemu_heap_free_count - s_qemu_heap_measure_base_free_count;
 }
+#else
+void qemu_heap_reset_stats(void)
+{
+}
+
+uint32_t qemu_heap_get_current_bytes(void)
+{
+    return 0U;
+}
+
+uint32_t qemu_heap_get_peak_bytes(void)
+{
+    return 0U;
+}
+
+uint32_t qemu_heap_get_alloc_count(void)
+{
+    return 0U;
+}
+
+uint32_t qemu_heap_get_free_count(void)
+{
+    return 0U;
+}
+#endif
 
 static egui_base_t qemu_interrupt_disable(void)
 {
