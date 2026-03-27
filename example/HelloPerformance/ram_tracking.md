@@ -28,6 +28,7 @@
 | 2026-03-27 | Disable HelloPerformance touch pipeline | 2168220 | 52 | 22036 | 22088 | 0 / 0 | n/a | `static RAM -80B`, removed unused touch/input state for timer-driven recording |
 | 2026-03-27 | Compact HelloPerformance QOI RGB565 index | 2168836 | 52 | 21972 | 22024 | 0 / 0 | n/a | `static RAM -64B`, `qoi_state 276B -> 212B`, text `+616B` |
 | 2026-03-27 | Tighten HelloPerformance text transform stack bounds | 2166116 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text -2720B`, rotated-text top frames `6248/4888 -> 4456/3416`, heap stays `0` |
+| 2026-03-27 | Shrink HelloPerformance external text transform stack buffers | 2166120 | 52 | 21972 | 22024 | 0 / 0 | 4456 | `text +4B`, `egui_canvas_draw_text_transform 3416 -> 2936`, external glyph helpers `856/864 -> 392/400`, heap stays `0` |
 
 ## Current Breakdown
 
@@ -51,7 +52,7 @@
 | `g_selected_char_desc` | `.bss` | 12 | Text transform selection state |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
-- Current normal QEMU build: `text=2166116`, `data=52`, `bss=21972`, `static RAM=22024`.
+- Current normal QEMU build: `text=2166120`, `data=52`, `bss=21972`, `static RAM=22024`.
 
 ### Heap Measurement
 
@@ -66,8 +67,10 @@
 
 | Function | File | Frame (B) | Relevance | Notes |
 | --- | --- | ---: | --- | --- |
-| `text_transform_draw_visible_alpha8_tile_layout` | `src/core/egui_canvas_transform.c` | 4456 | HelloPerformance rotated-text runtime path | Dominated by `alpha8_stack_buf[4352]`; this round cut it from `6248B` |
-| `egui_canvas_draw_text_transform` | `src/core/egui_canvas_transform.c` | 3416 | HelloPerformance rotated-text runtime path | Stack layout/tile arrays now capped to `72 glyphs / 8 lines`; this round cut it from `4888B` |
+| `text_transform_draw_visible_alpha8_tile_layout` | `src/core/egui_canvas_transform.c` | 4456 | HelloPerformance rotated-text runtime path | Dominated by `alpha8_stack_buf[4352]`; unchanged in this round |
+| `egui_canvas_draw_text_transform` | `src/core/egui_canvas_transform.c` | 2936 | HelloPerformance rotated-text runtime path | External row/glyph scratch bounds now `16B / 288B`; this round cut it from `3416B` |
+| `rasterize_external_glyph4_to_packed_inside_common` | `src/core/egui_canvas_transform.c` | 400 | HelloPerformance external rotated-text helper | Local external glyph scratch shrank from `864B` |
+| `rasterize_external_glyph4_to_alpha8_inside_common` | `src/core/egui_canvas_transform.c` | 392 | HelloPerformance external rotated-text helper | Local external glyph scratch shrank from `856B` |
 | `egui_shadow_draw_corner` | `src/shadow/egui_shadow.c` | 1048 | HelloPerformance shadow scenes | Runtime hotspot, but much smaller than rotated-text path |
 | `egui_canvas_draw_ellipse` | `src/core/egui_canvas_ellipse.c` | 1048 | HelloPerformance ellipse scenes | Runtime hotspot, but much smaller than rotated-text path |
 | `egui_view_heart_rate_on_draw` | `src/widget/egui_view_heart_rate.c` | 1200 | Framework compiled hotspot, not in current HelloPerformance flow | Large locals: `points[240]`, `raw_vals[120]`, `smooth_vals[120]` |
@@ -75,7 +78,7 @@
 
 - Current `HelloPerformance` stack risk is concentrated in the rotated-text path used by `TEXT_ROTATE*` and `EXTERN_TEXT_ROTATE*` benchmark scenes.
 - This round only tightened HelloPerformance-specific stack bounds. It did not increase static RAM, did not reintroduce heap, and did not touch `pfb`.
-- Current stack-usage build top frames `>= 1KB`: `4456`, `3416`, `1200`, `1112`, `1048`, `1048`.
+- Current stack-usage build top frames `>= 1KB`: `4456`, `2936`, `1200`, `1112`, `1048`, `1048`, `1016`.
 
 ### RLE Checkpoint A/B
 

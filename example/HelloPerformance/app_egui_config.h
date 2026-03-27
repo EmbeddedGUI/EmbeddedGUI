@@ -194,6 +194,12 @@ extern "C" {
 // scenes, avoids heap fallback, and trims the worst transient stack frame.
 #define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES 4352
 
+// HelloPerformance only uses the external 26pt perf font whose current glyph
+// descriptors peak at 29x25 pixels, so the external rotated-text path only
+// needs 15 bytes per glyph row and 270 bytes for one full glyph bitmap.
+#define EGUI_CONFIG_TEXT_TRANSFORM_EXTERNAL_GLYPH_ROW_CACHE_BYTES    16
+#define EGUI_CONFIG_TEXT_TRANSFORM_EXTERNAL_ALPHA8_GLYPH_STACK_BYTES 288
+
 // HelloPerformance only uses small ASCII subsets (88/93 glyphs), so the
 // frame-local ASCII lookup cache can use 8-bit indices and the multi-line
 // text cache only needs one small slot for the 7-line benchmark string.
