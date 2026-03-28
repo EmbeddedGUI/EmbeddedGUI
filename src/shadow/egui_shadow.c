@@ -100,8 +100,9 @@ static egui_alpha_t egui_shadow_get_alpha(egui_dim_t distance, egui_dim_t width,
 // Draw one corner zone with sub-pixel precision.
 // bx0..bx1, by0..by1: iteration bounds (pre-clipped to PFB work region).
 // cx, cy: arc center coordinates.
-static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t bx1, egui_dim_t by1, egui_dim_t cx, egui_dim_t cy, egui_dim_t R, egui_dim_t W,
-                                    egui_color_t color, egui_alpha_t opa, egui_alpha_t center_opa)
+__attribute__((optimize("Os"))) static void egui_shadow_draw_corner(egui_dim_t bx0, egui_dim_t by0, egui_dim_t bx1, egui_dim_t by1, egui_dim_t cx,
+                                                                    egui_dim_t cy, egui_dim_t R, egui_dim_t W, egui_color_t color, egui_alpha_t opa,
+                                                                    egui_alpha_t center_opa)
 {
     uint32_t W_scaled = (uint32_t)W << EGUI_SHADOW_DIST_SHIFT;
     uint32_t lut_range = EGUI_SHADOW_LUT_SIZE - 1 - EGUI_SHADOW_LUT_INNER_OFFSET;

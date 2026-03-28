@@ -1222,7 +1222,8 @@ __EGUI_STATIC_INLINE__ void transform_apply_mask_and_blend(egui_mask_t *mask, eg
  * @param angle_deg Rotation angle in degrees (0-360, counter-clockwise)
  * @param scale_q8  Scale factor in Q8 format (256 = 1.0x, 512 = 2.0x, 128 = 0.5x)
  */
-void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8)
+__attribute__((optimize("Os"))) void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg,
+                                                                      int16_t scale_q8)
 {
     egui_canvas_t *canvas = &canvas_data;
     egui_image_std_info_t *info = (egui_image_std_info_t *)img->res;

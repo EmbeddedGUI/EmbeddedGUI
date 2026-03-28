@@ -492,8 +492,8 @@ void egui_canvas_draw_line_segment_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x
  * The round cap extends the line by half_w at each endpoint as a semicircle,
  * giving a smooth rounded appearance. Uses sub-pixel sampling for AA.
  */
-void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
-                                        egui_alpha_t alpha)
+__attribute__((optimize("Os"))) void egui_canvas_draw_line_round_cap_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2,
+                                                                        egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
 {
     egui_canvas_t *self = &canvas_data;
 

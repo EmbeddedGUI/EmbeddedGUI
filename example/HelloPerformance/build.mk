@@ -18,5 +18,5 @@ APP_LDFLAGS += -Wl,--defsym=__qemu_min_heap_size__=0
 # app image, so a 768B QEMU stack reserve is the smallest validated reserve
 # that still lets the full benchmark path run without wasting more static RAM
 # in `._user_heap_stack`.
-APP_LDFLAGS += -Wl,--defsym=__qemu_min_stack_size__=0x0300
+APP_LDFLAGS += -Wl,--defsym=__qemu_min_stack_size__=0x0220
 endif
