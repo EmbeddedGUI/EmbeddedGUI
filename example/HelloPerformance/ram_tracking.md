@@ -59,6 +59,7 @@
 | 2026-03-28 | Move HelloPerformance rotated-text layout/tile scratch to transient heap | 2160560 | 48 | 10272 | 10320 | 0 / 11616 | 1200 | `text +760B`, static RAM unchanged; rotated-text layout/tile collectors now allocate by actual glyph/line counts and free at `cleanup`, `egui_canvas_draw_text_transform 2920 -> 760`, heap peak stays `11616B` with alloc/free `5683 / 5683 -> 7403 / 7403`, runtime screenshots stay `223/223` with `changed=0` vs `04cc338`, `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5` PASSED |
 | 2026-03-28 | Restore HelloPerformance rotated-text tiny caches and alpha8 fast path | 2160724 | 48 | 10344 | 10392 | 0 / 11616 | 1200 | `static RAM +72B`; restore `g_text_transform_prepare_cache (60B)` and `s_dim_* (12B)` so buffered rotated text stops redoing affine/string measurement every frame, raise `EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 4096 -> 5120` but measured heap peak still stays `11616B`; `TEXT_ROTATE_BUFFERED 12.325 -> 9.159 (-25.7%)`, `EXTERN_TEXT_ROTATE_BUFFERED 14.985 -> 10.759 (-28.2%)`, PC screenshots for `TEXT_ROTATE_BUFFERED` and `EXTERN_TEXT_ROTATE_BUFFERED` confirmed rendering unchanged |
 | 2026-03-28 | Keep HelloPerformance decode row-band cache and expose A/B override knobs | 2160724 | 48 | 10344 | 10392 | 0 / 11616 | 1200 | Default build unchanged; `app_egui_config.h` now wraps row-cache knobs in `#ifndef` so `USER_CFLAGS` can isolate A/B tests. `row-cache off` experiment drops heap peak to `7520B`, but compressed-image scenes regress catastrophically and the experiment build rises to `data=44`, `bss=13236`, `static RAM=13280`, so the default config must keep row-cache enabled |
+| 2026-03-28 | Delay HelloPerformance alpha8 text tile scratch until fallback path | 2160808 | 48 | 10344 | 10392 | 0 / 11616 | 1200 | `text +84B`, static RAM unchanged; buffered rotated-text alpha8 fast path no longer allocates the full tile scratch before it knows fallback is needed. Whole-run heap peak still stays `11616B` because compressed-image row-band cache dominates, but `TEXT_ROTATE_BUFFERED 7220 -> 6032 (-16.5%)` and `EXTERN_TEXT_ROTATE_BUFFERED` now measures `6332B`; runtime screenshots stay `223/223` with `changed=0`, `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5` PASSED |
 
 ## Current Breakdown
 
@@ -82,7 +83,7 @@
 | `s_qemu_resource_handle` | `.data` | 4 | External resource semihosting handle |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
-- Current normal QEMU build: `text=2160724`, `data=48`, `bss=10344`, `static RAM=10392`.
+- Current normal QEMU build: `text=2160808`, `data=48`, `bss=10344`, `static RAM=10392`.
 - Section split from `llvm-size -A`: `.bss=2160`, `._user_heap_stack=8196`.
 - The latest rotated-text perf restore adds only fixed metadata: `g_text_transform_prepare_cache (60B)` plus `s_dim_font/s_dim_string/s_dim_w/s_dim_h (12B)`; both are tiny caches and do not scale with font size, image size, screen size, or `PFB` size.
 - `g_text_transform_visible_tile_cache` still only stores the `8B` heap handle/capacity pair; the visible alpha8 tile itself remains heap-backed, and HelloPerformance only raises the reuse ceiling from `4096` to `5120` so the buffered text benchmarks stay on the fast path.
@@ -122,10 +123,11 @@
 - The new image-size / `PFB`-size scratch does not stay resident after rendering; resize `src_x_map` and round-rect fast row cache are allocated per draw call and released immediately after use. If a later change keeps them persistent to reduce alloc/free count, it must be listed here with explicit bytes and lifetime.
 - The circle-mask frame scratch is owned by the active `egui_mask_circle_t`, sized `3 * EGUI_CONFIG_PFB_HEIGHT * sizeof(egui_dim_t) = 96B` at the current `240x240 / PFB_HEIGHT=16` config, allocated on first row use within the frame, and released by `egui_mask_circle_release_frame_cache()` at frame end; it does not stay resident at idle.
 - The measured heap build reaches the former `.bss` cache footprint only while decode-heavy or rotated-text scenes are active, and releases it back to `0B` at idle.
+- The latest alpha8 text scratch timing cleanup reduces the buffered rotated-text scene-local heap, but it does not change the whole-run `11616B` headline because compressed alpha-image row-band cache is still the dominant peak window.
 
 ### Row-Band Cache A/B
 
-Same code, only toggle the row-band cache related overrides through `USER_CFLAGS`.
+Historical A/B data from the row-cache study baseline on 2026-03-28, before the later alpha8 text tile-scratch timing cleanup added `text +84B`. The conclusion still stands: row-cache must stay enabled by default.
 
 | Config | text | data | bss | static RAM | interaction total peak | Key result |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
@@ -143,12 +145,13 @@ Single-scene heap spot checks use `QEMU_HEAP_MEASURE=1`, `QEMU_HEAP_ACTIONS_APP_
 
 | Scene | interaction total peak | alloc/free | Current big head |
 | --- | ---: | ---: | --- |
-| `TEXT_ROTATE_BUFFERED` | 7220 | `151 / 151` | Rotated-text visible alpha8 tile cache plus transient layout/tile scratch |
 | `IMAGE_QOI_565_8` | 11520 | `2 / 2` | Codec row-band pixel/alpha cache (`240 * 16 * (2 + 1)`) |
+| `EXTERN_TEXT_ROTATE_BUFFERED` | 6332 | `289 / 289` | External rotated-text visible alpha8 tile cache plus transient layout/tile scratch |
+| `TEXT_ROTATE_BUFFERED` | 6032 | `151 / 151` | Rotated-text visible alpha8 tile cache plus transient layout/tile scratch |
 
 - The current whole-run heap peak is effectively set by compressed alpha-image scenes, not by text scenes: `IMAGE_QOI_565_8` alone already reaches `11520B`, matching the dominant cache size.
-- The current next-largest verified hotspot is `TEXT_ROTATE_BUFFERED` at `7220B`; this is the main non-codec heap target left if later work wants to shrink scene-local peaks without touching compressed-image behavior first.
-- Because `TEXT_ROTATE_BUFFERED` stays well below the decode row-band peak, reducing text-only scratch will not lower the current full-run `11616B` headline unless the decode row-band cache policy also changes.
+- The latest text-scratch timing change trims `TEXT_ROTATE_BUFFERED` from `7220B` to `6032B` by deferring the full tile collector allocation until the alpha8 fast path actually falls back.
+- The current next-largest verified non-codec hotspot is now `EXTERN_TEXT_ROTATE_BUFFERED` at `6332B`; reducing text-only scratch further still will not lower the current full-run `11616B` headline unless the decode row-band cache policy also changes.
 
 ### Stack Measurement
 

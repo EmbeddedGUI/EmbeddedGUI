@@ -4002,6 +4002,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     text_transform_glyph_t *tile_glyphs = NULL;
     const text_transform_layout_glyph_t **tile_layout_glyphs = NULL;
     text_transform_layout_line_t *tile_lines = NULL;
+    const text_transform_layout_glyph_t **tile_alpha8_layout_glyphs = NULL;
     int tile_glyph_capacity = 0;
     int tile_line_capacity = 0;
 #else
@@ -4107,15 +4108,6 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     {
         goto cleanup;
     }
-
-    if (text_transform_prepare_tile_scratch(tile_glyph_capacity, tile_line_capacity, &tile_scratch) != 0)
-    {
-        goto cleanup;
-    }
-
-    tile_glyphs = tile_scratch.glyphs;
-    tile_layout_glyphs = tile_scratch.layout_glyphs;
-    tile_lines = tile_scratch.lines;
 #endif
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
@@ -4181,6 +4173,18 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
         if (use_visible_alpha8_tile)
         {
+#if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
+            if (tile_alpha8_layout_glyphs == NULL)
+            {
+                tile_alpha8_layout_glyphs =
+                        (const text_transform_layout_glyph_t **)egui_malloc((int)((size_t)tile_glyph_capacity * sizeof(*tile_alpha8_layout_glyphs)));
+                if (tile_alpha8_layout_glyphs == NULL)
+                {
+                    goto cleanup;
+                }
+            }
+            tile_layout_glyphs = tile_alpha8_layout_glyphs;
+#endif
             tile_count = collect_visible_layout_glyphs_alpha8(layout_glyphs, layout_lines, layout_line_count, tile_layout_glyphs,
                                                               tile_glyph_capacity, src_min_x, src_min_y, src_max_x, src_max_y,
                                                               &tile_src_x0, &tile_src_y0, &tile_src_x1, &tile_src_y1, &tile_glyphs_overlap);
@@ -4197,6 +4201,22 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
             }
         }
 
+#if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
+        if (tile_alpha8_layout_glyphs != NULL)
+        {
+            egui_free((void *)tile_alpha8_layout_glyphs);
+            tile_alpha8_layout_glyphs = NULL;
+        }
+
+        if (text_transform_prepare_tile_scratch(tile_glyph_capacity, tile_line_capacity, &tile_scratch) != 0)
+        {
+            goto cleanup;
+        }
+
+        tile_glyphs = tile_scratch.glyphs;
+        tile_layout_glyphs = tile_scratch.layout_glyphs;
+        tile_lines = tile_scratch.lines;
+#endif
         tile_count = collect_visible_glyphs(font_info, layout_glyphs, layout_lines, layout_line_count, tile_glyphs, tile_glyph_capacity,
                                             tile_lines, tile_line_capacity,
                                             &tile_line_count, src_min_x, src_min_y, src_max_x, src_max_y, NULL, NULL, NULL, NULL, NULL, 1);
@@ -4719,6 +4739,10 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
 
 cleanup:
 #if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
+    if (tile_alpha8_layout_glyphs != NULL)
+    {
+        egui_free((void *)tile_alpha8_layout_glyphs);
+    }
     text_transform_release_tile_scratch(&tile_scratch);
     text_transform_release_layout_scratch(&layout_scratch);
 #endif
