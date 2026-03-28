@@ -150,6 +150,18 @@
 - 所有尺寸相关 scratch 最终都会回到 `0B` current heap；默认路径没有常驻 heap 大块缓存。
 - 当前 `9360B` 的压缩图热点已经可以精确拆开：`192` 列 tail-row cache 乘以 `16` 行、乘以 `RGB565 2B + alpha8 1B`，得到 `9216B`；再加首个 `48px` tile 的可见段瞬时 scratch `144B`，就是默认压缩 alpha 场景的实际 heap floor。`MASK_IMAGE_*_ROUND_RECT` 再叠加 `96B` circle-mask row cache，所以整轮 headline 是 `9456B`。
 - 2026-03-29 对 `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS` 做过 A/B：`144` 和 `96` 都会让 QOI/RLE alpha 场景退化到数倍，说明在当前 `240px` 屏宽、`PFB_WIDTH=48`、横向逐 tile refresh walk 下，`192` 尾列已经是默认单次解码路径的硬下限，而不是随手还能继续压的余量。
+- 2026-03-29 第二轮 A/B 又测了 `176` 和 `184` 两档 tail cap，并配合 `EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT=1/2` 与 `EGUI_CONFIG_IMAGE_RLE_CHECKPOINT_ENABLE=1`。相对当前 `d3d37bf` 基线（`IMAGE_QOI_565_8 2.258`、`EXTERN_IMAGE_QOI_565_8 2.734`、`IMAGE_RLE_565_8 1.561`、`EXTERN_IMAGE_RLE_565_8 2.385`），四组组合仍然退化 `+45% ~ +66%`，因此不再继续补 heap 数据，直接判定默认路径拒绝。
+- 这背后的几何约束已经比较清楚：在 `240px` 图宽、`48px` 水平 PFB walk 下，首个可见 tile 覆盖 `0..47`，后续横向邻居需要的列并集是 `48..239`，正好就是 `192` 列。只要单次 tail cache 小于 `192`，最后一个 tile 就必然 miss，进而触发额外 row-band 重解；checkpoint 只能把解码状态恢复到 row-band 起点，并不能改变这个覆盖条件。这里是根据当前 walk 顺序做的推导，上面的实测数据正好印证了这个结论。
+
+| 配置 | `IMAGE_QOI_565_8` | `EXTERN_IMAGE_QOI_565_8` | `IMAGE_RLE_565_8` | `EXTERN_IMAGE_RLE_565_8` | 结论 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 基线（`d3d37bf`） | `2.258` | `2.734` | `1.561` | `2.385` | 当前默认 |
+| `tail=176, qoi_cp=1, rle_cp=1` | `3.616 (+60.14%)` | `4.536 (+65.91%)` | `2.270 (+45.42%)` | `3.911 (+63.98%)` | 拒绝 |
+| `tail=176, qoi_cp=2, rle_cp=1` | `3.617 (+60.19%)` | `4.537 (+65.95%)` | `2.270 (+45.42%)` | `3.911 (+63.98%)` | 拒绝 |
+| `tail=184, qoi_cp=1, rle_cp=1` | `3.629 (+60.72%)` | `4.544 (+66.20%)` | `2.284 (+46.32%)` | `3.927 (+64.65%)` | 拒绝 |
+| `tail=184, qoi_cp=2, rle_cp=1` | `3.630 (+60.76%)` | `4.544 (+66.20%)` | `2.284 (+46.32%)` | `3.927 (+64.65%)` | 拒绝 |
+
+- 按同样的几何关系推算，`176` 和 `184` 其实也只是在 `192` 列 tail 上少了 `16` / `8` 列，checkpoint 开销扣除前的 raw tail 节省不过 `768B` / `384B`。在已经实测到 `+45% ~ +66%` 退化的前提下，这条线没有继续做默认路径 heap 复测的必要。
 - buffered rotated-text 的可见 alpha8 ceiling 仍保持 `3072B`：此前从 `3648B` 压到 `3072B` 时，两条 text 热点都再降了 `576B`，同时仍满足 `>500B => 10%` 的性能线；再往下到 `2560B` 会越线。
 - 在这个 `3072B` ceiling 基础上，latest external rotated-text 又把 visible-tile external glyph scratch 从整 glyph heap block 改成 `14` 行 chunk stream，令 `EXTERN_TEXT_ROTATE_BUFFERED 4254B -> 4194B`，同时性能只从 `12.713ms` 变到 `12.885ms (+1.35%)`，满足更严格的 `<=500B => 5%` 线。
 - 当前 next-largest 的非 codec heap 热点仍是 `EXTERN_TEXT_ROTATE_BUFFERED`，但它现在只比内部路径多 `210B`，说明 external glyph scratch 的额外成本已经被压到较小尾差。
