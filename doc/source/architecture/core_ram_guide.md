@@ -37,7 +37,7 @@
 
 | 项目 | 当前值 | 说明 |
 | --- | ---: | --- |
-| `text` | `2160044B` | 代码和只读数据 |
+| `text` | `2160936B` | 代码和只读数据 |
 | `data` | `52B` | 已初始化静态 RAM |
 | `bss` | `2924B` | `llvm-size` 汇总值，包含链接脚本保留区 |
 | `.bss` | `2152B` | 实际未初始化静态符号区 |
@@ -57,6 +57,7 @@
 - `heap peak=9456B` 是运行时峰值，不是 idle 常驻占用；当前默认示例结束后 `current heap` 会回到 `0B`。
 - 如需继续追峰值归因，可在测量构建里额外打开 `QEMU_HEAP_TRACE_ACTIONS=1`，让 QEMU 按录制 action 输出 `HEAP_ACTION:<idx>:current/peak/allocs/frees`，默认关闭时不会改变当前 RAM 口径。
 - `HelloPerformance` 现在把 QEMU 链接脚本保留栈压到 `768B`，所以静态 RAM headline 已反映这一调整。
+- 当前正常 QEMU 构建口径是 `text=2160936`、`data=52`、`bss=2924`、`static RAM=2976`；这轮 external rotated-text `14` 行 chunk stream 只增加 `892B text`，不增加静态 RAM。
 
 ## 静态 RAM 分布
 
@@ -84,6 +85,7 @@
 - 可以留在静态区的，应该是与字体大小、图片大小、屏幕尺寸、`PFB` 尺寸无关的小型状态对象。
 - 如果静态对象只是某个 heap buffer 的 `owner / pointer / capacity` 元数据，通常可以接受，因为真正的大块数据已经不再常驻 `.bss`。
 - `PFB` 必须单独看。它通常是静态 RAM 里最大的一项，但这是应用配置，不是 core 算法残留。
+- 最新 external rotated-text 优化仍遵守这条线：只新增了流式读取控制代码，没有把任何 glyph 尺寸相关 scratch 落回静态区。
 
 ## 跟随尺寸走的 buffer
 
@@ -106,7 +108,7 @@
 | 图片 resize `src_x_map` | `egui_image_std_*` | 当前绘制宽度 | `heap` | 单次绘制 |
 | round-rect 图片快速路径 row cache | `egui_image_std_*` | `min(PFB_HEIGHT, image_height)` | `heap` | 当前 refresh walk |
 | circle mask row cache | `egui_mask_circle_*` | `3 * PFB_HEIGHT * sizeof(egui_dim_t)` | `heap` | 当前帧 |
-| 外部字体 glyph / row scratch | `egui_font_std_*`、`egui_canvas_transform_*` | 字体大小、glyph bitmap 尺寸 | `heap` | 单次绘制 / 当前 refresh walk |
+| 外部字体 glyph / row scratch | `egui_font_std_*`、`egui_canvas_transform_*` | 字体大小、glyph bitmap 尺寸 | `heap` | 单次绘制 / 当前 refresh walk，visible-tile 外部旋转文字按 `14` 行 chunk 流式读取 |
 关于宏的使用边界：
 
 - 宏可以表达“是否启用某个能力”或“某个路径的预算上限”。
@@ -125,7 +127,7 @@
 | rotated text scratch | `egui_canvas_draw_text_transform()` | 随文本布局结果变化 | 已改为按 glyph/line 数动态申请 |
 | 图片 resize / round-rect scratch | `egui_image_std_*` | 随绘制宽度、图片高度、`PFB_HEIGHT` 变化 | 用完立即释放 |
 | circle mask frame scratch | `egui_mask_circle_*` | 随 `PFB_HEIGHT` 变化 | 帧结束释放 |
-| 外部字体 scratch | `egui_font_std_*` / `egui_canvas_transform_*` | 随 glyph bitmap 尺寸变化 | 用完或 frame 结束释放 |
+| 外部字体 scratch | `egui_font_std_*` / `egui_canvas_transform_*` | 随 glyph bitmap 尺寸变化 | 用完或 frame 结束释放；visible-tile 外部旋转文字改为 `14` 行 chunk heap scratch |
 
 ### 默认路径的单场景 heap 热点
 
@@ -135,7 +137,7 @@
 | `EXTERN_IMAGE_QOI_565_8` | `9360B` | 同上，外部 QOI alpha 场景 |
 | `IMAGE_RLE_565_8` | `9360B` | 同上，内部 RLE alpha 场景 |
 | `EXTERN_IMAGE_RLE_565_8` | `9360B` | 同上，外部 RLE alpha 场景 |
-| `EXTERN_TEXT_ROTATE_BUFFERED` | `4254B` | external rotated-text visible alpha8 tile cache + transient layout/tile scratch |
+| `EXTERN_TEXT_ROTATE_BUFFERED` | `4194B` | external rotated-text visible alpha8 tile cache + `14` 行 external glyph chunk scratch + transient layout/tile scratch |
 | `TEXT_ROTATE_BUFFERED` | `3984B` | rotated-text visible alpha8 tile cache + transient layout/tile scratch |
 
 补充说明：
@@ -144,7 +146,9 @@
 - 所有尺寸相关 scratch 最终都会回到 `0B` current heap；默认路径没有常驻 heap 大块缓存。
 - 当前 `9360B` 的压缩图热点已经可以精确拆开：`192` 列 tail-row cache 乘以 `16` 行、乘以 `RGB565 2B + alpha8 1B`，得到 `9216B`；再加首个 `48px` tile 的可见段瞬时 scratch `144B`，就是默认压缩 alpha 场景的实际 heap floor。`MASK_IMAGE_*_ROUND_RECT` 再叠加 `96B` circle-mask row cache，所以整轮 headline 是 `9456B`。
 - 2026-03-29 对 `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS` 做过 A/B：`144` 和 `96` 都会让 QOI/RLE alpha 场景退化到数倍，说明在当前 `240px` 屏宽、`PFB_WIDTH=48`、横向逐 tile refresh walk 下，`192` 尾列已经是默认单次解码路径的硬下限，而不是随手还能继续压的余量。
-- 最新一轮把 buffered rotated-text 的可见 alpha8 ceiling 从 `3648B` 继续压到 `3072B`，两条 text 热点都再降 `576B`，同时仍满足 `>500B => 10%` 的性能线；再往下到 `2560B` 会越线。
+- buffered rotated-text 的可见 alpha8 ceiling 仍保持 `3072B`：此前从 `3648B` 压到 `3072B` 时，两条 text 热点都再降了 `576B`，同时仍满足 `>500B => 10%` 的性能线；再往下到 `2560B` 会越线。
+- 在这个 `3072B` ceiling 基础上，latest external rotated-text 又把 visible-tile external glyph scratch 从整 glyph heap block 改成 `14` 行 chunk stream，令 `EXTERN_TEXT_ROTATE_BUFFERED 4254B -> 4194B`，同时性能只从 `12.713ms` 变到 `12.885ms (+1.35%)`，满足更严格的 `<=500B => 5%` 线。
+- 当前 next-largest 的非 codec heap 热点仍是 `EXTERN_TEXT_ROTATE_BUFFERED`，但它现在只比内部路径多 `210B`，说明 external glyph scratch 的额外成本已经被压到较小尾差。
 - 只要收益不足阈值，就优先保 RAM：`<=500B` RAM 变化用 `5%` 线，`>500B` RAM 变化用 `10%` 线。
 - 如果后续还要继续压缩这一段 heap，手段就不能再是“简单缩 tail 列数”，而需要新的解码/渲染架构，例如改变 PFB walk 顺序，或引入更细粒度的 decoder checkpoint。
 
