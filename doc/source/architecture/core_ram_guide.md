@@ -134,14 +134,14 @@
 | `EXTERN_IMAGE_QOI_565_8` | `9360B` | 同上，外部 QOI alpha 场景 |
 | `IMAGE_RLE_565_8` | `9360B` | 同上，内部 RLE alpha 场景 |
 | `EXTERN_IMAGE_RLE_565_8` | `9360B` | 同上，外部 RLE alpha 场景 |
-| `EXTERN_TEXT_ROTATE_BUFFERED` | `4830B` | external rotated-text visible alpha8 tile cache + transient layout/tile scratch |
-| `TEXT_ROTATE_BUFFERED` | `4560B` | rotated-text visible alpha8 tile cache + transient layout/tile scratch |
+| `EXTERN_TEXT_ROTATE_BUFFERED` | `4254B` | external rotated-text visible alpha8 tile cache + transient layout/tile scratch |
+| `TEXT_ROTATE_BUFFERED` | `3984B` | rotated-text visible alpha8 tile cache + transient layout/tile scratch |
 
 补充说明：
 
 - 当前 whole-run heap peak 仍然由压缩 alpha 图片场景决定，而不是 text 场景。
 - 所有尺寸相关 scratch 最终都会回到 `0B` current heap；默认路径没有常驻 heap 大块缓存。
-- 最新一轮把 buffered rotated-text 的可见 alpha8 ceiling 从 `4160B` 继续压到 `3648B`，两条 text 热点都再降 `512B`，同时仍满足 `>500B => 10%` 的性能线。
+- 最新一轮把 buffered rotated-text 的可见 alpha8 ceiling 从 `3648B` 继续压到 `3072B`，两条 text 热点都再降 `576B`，同时仍满足 `>500B => 10%` 的性能线；再往下到 `2560B` 会越线。
 - 只要收益不足阈值，就优先保 RAM：`<=500B` RAM 变化用 `5%` 线，`>500B` RAM 变化用 `10%` 线。
 
 ### 不接受的方向
