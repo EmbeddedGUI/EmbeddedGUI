@@ -23,13 +23,21 @@
 - 大局部数组同样可能把系统栈顶爆。
 - 任何新引入的大栈对象，都必须说明必要性，并用 `-fstack-usage` 复核。
 
+额外的 HelloPerformance 硬约束：
+
+- 不接受整个图像尺寸的 resident heap，即使它能换来明显性能收益。
+- 尺寸相关 heap 的上限只接受两类：
+  - 不超过 `1 * PFB` 字节；
+  - 或最多 `2` 行 / `2` 列图像、屏幕尺寸相关 scratch/cache。
+- 如果后续确实需要更高性能版本，也必须在这个上限内做“双版本”选择，不能靠 whole-image cache。
+
 ## 当前 HelloPerformance / QEMU 快照
 
 当前 `HelloPerformance/QEMU` 的 RAM 观测值如下：
 
 | 项目 | 当前值 | 说明 |
 | --- | ---: | --- |
-| `text` | `2163120B` | 代码和只读数据 |
+| `text` | `2163080B` | 代码和只读数据 |
 | `data` | `52B` | 已初始化静态 RAM |
 | `bss` | `6252B` | `llvm-size` 汇总值，包含链接脚本保留区 |
 | `.bss` | `2152B` | 实际未初始化静态符号区 |
@@ -98,8 +106,6 @@
 | round-rect 图片快速路径 row cache | `egui_image_std_*` | `min(PFB_HEIGHT, image_height)` | `heap` | 当前 refresh walk |
 | circle mask row cache | `egui_mask_circle_*` | `3 * PFB_HEIGHT * sizeof(egui_dim_t)` | `heap` | 当前帧 |
 | 外部字体 glyph / row scratch | `egui_font_std_*`、`egui_canvas_transform_*` | 字体大小、glyph bitmap 尺寸 | `heap` | 单次绘制 / 当前 refresh walk |
-| 外部图片 full-image persistent cache（可选 HQ） | `egui_image_std_prepare_external_persistent_cache()` | 图片宽高、像素格式、alpha 格式 | `heap` | 跨帧常驻，默认关闭 |
-
 关于宏的使用边界：
 
 - 宏可以表达“是否启用某个能力”或“某个路径的预算上限”。
@@ -137,25 +143,20 @@
 - 所有尺寸相关 scratch 最终都会回到 `0B` current heap；默认路径没有常驻 heap 大块缓存。
 - 只要收益不足阈值，就优先保 RAM：`<=500B` RAM 变化用 `5%` 线，`>500B` RAM 变化用 `10%` 线。
 
-### 可选 HQ 外部 persistent cache
+### 不接受的方向
 
-默认配置保持 `EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES=0`。只有当“跟随图片尺寸走”的 heap cache 带来 `>=2x` 性能收益时，才建议单独保留 HQ/perf 变体。
+下列方案即使性能收益明显，也不再接受：
 
-| 场景 | cache 预算 | 常驻 heap | 默认 low-RAM | HQ cache | 提升 | 结论 |
-| --- | ---: | ---: | ---: | ---: | ---: | --- |
-| `EXTERN_IMAGE_ROTATE_565_8` | `50000B` | `43200B` | `15.616ms` | `4.921ms` | `3.17x` | 建议保留为独立 HQ 路径 |
-| `EXTERN_IMAGE_ROTATE_TILED_565_0` | `5000B` | `3200B` | `10.540ms` | `5.132ms` | `2.05x` | 建议保留为独立 HQ 路径 |
-| `EXTERN_IMAGE_ROTATE_TILED_565_8` | `5000B` | `4800B` | `15.720ms` | `6.545ms` | `2.40x` | 建议保留为独立 HQ 路径 |
-| `EXTERN_IMAGE_RESIZE_565_8` | `50000B` | `43200B` | `1.941ms` | `1.780ms` | `1.09x` | 不建议为了这点提升常驻 heap |
-| `EXTERN_IMAGE_TILED_565_8` | `5000B` | `4800B` | `3.627ms` | `3.181ms` | `1.14x` | 不建议为了这点提升常驻 heap |
-| `EXTERN_IMAGE_RESIZE_TILED_565_8` | `5000B` | `4800B` | `3.320ms` | `3.201ms` | `1.04x` | 不建议为了这点提升常驻 heap |
+| 方向 | 原因 |
+| --- | --- |
+| whole-image resident cache | 直接按整图尺寸申请 heap，违反 HelloPerformance 的 RAM 上限规则 |
+| 用宏上限把整图或整屏 scratch 固定进 `.bss` / `stack` | 本质仍是尺寸相关 buffer，只是把风险从 heap 转移到静态区或栈 |
 
-这些 HQ cache 的 owner / lifetime / bytes 如下：
+因此，后续允许保留的高性能变体只能是：
 
-- `EXTERN_IMAGE_ROTATE_565_8`：owner 为 `egui_image_std_prepare_external_persistent_cache()`，跨帧常驻，`43200B = 28800B RGB565 + 14400B alpha8`。
-- `EXTERN_IMAGE_ROTATE_TILED_565_0`：同一 owner，跨帧常驻，`3200B = 40 * 40 * 2`。
-- `EXTERN_IMAGE_ROTATE_TILED_565_8`：同一 owner，跨帧常驻，`4800B = 3200B RGB565 + 1600B alpha8`。
-- `EXTERN_IMAGE_TILED_565_8` 和 `EXTERN_IMAGE_RESIZE_TILED_565_8` 虽然也能吃到同一类 cache，但收益不到 `2x`，默认不建议单独开放这条 HQ 方案。
+- 行缓存、列缓存、`PFB` 级 scratch；
+- 最多 `2` 行 / `2` 列图像、屏幕尺寸相关 heap；
+- 且必须和默认低 RAM 方案分开记录。
 
 ## 栈使用评估
 
@@ -168,7 +169,7 @@
 | `line_hq_draw_polyline_segment()` | `976B` | 是 | 当前活跃路径最大栈帧 |
 | `egui_canvas_draw_line_hq()` | `824B` | 是 | 线段 HQ 路径 |
 | `egui_canvas_draw_text_transform()` | `760B` | 是 | 旋转文字 scratch 已迁到 heap 后显著下降 |
-| `egui_canvas_draw_image_transform()` | `744B` | 是 | 新增外部 persistent cache 探测后仍低于当前活跃热点 |
+| `egui_canvas_draw_image_transform()` | `736B` | 是 | 外部 whole-image cache 探测已撤掉，保持默认低 RAM 路径 |
 
 栈侧规则：
 
@@ -188,7 +189,7 @@
 通常最值得优先关注的是：
 
 - 图像解码 row cache / single-row scratch
-- 外部图像 row cache / persistent cache
+- 外部图像 row cache
 - 文字变换 scratch
 - 外部字体 glyph scratch
 - 跟随 `PFB_HEIGHT` 的 mask / round-rect row cache
@@ -241,4 +242,4 @@ make all APP=HelloPerformance PORT=qemu CPU_ARCH=cortex-m3 USER_CFLAGS="-fstack-
 - 固定静态 RAM 已经比较小，当前示例真正常驻的 `.data + .bss` 为 `2204B`，其中 `PFB` 就占了 `1536B`。
 - 需要跟随字体、图片、屏幕、`PFB` 尺寸变化的 buffer，必须继续保持 `heap` 化，不能为了追求“heap=0”回退到静态区或大栈。
 - 当前默认 heap 峰值 `10032B` 主要来自运行时 scratch，空间可回到 `0B`；若后续引入常驻 heap，必须明确记录 owner、lifetime、bytes。
-- 对于真正能带来 `>=2x` 提升的尺寸相关 cache，可以单独保留 HQ/perf 变体，但必须与默认低 RAM 路径分开记录和交付。
+- 对于高性能变体，也只能在 `1 * PFB` 或 `2` 行 / 列尺寸相关 heap 的约束内做选择，不能回到 whole-image cache。

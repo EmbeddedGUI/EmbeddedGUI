@@ -1213,16 +1213,6 @@ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egu
     egui_canvas_t *canvas = &canvas_data;
     egui_image_std_info_t *info = (egui_image_std_info_t *)img->res;
 
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-    {
-        const egui_image_std_info_t *cached_info = egui_image_std_prepare_external_persistent_cache(info);
-        if (cached_info != NULL)
-        {
-            info = (egui_image_std_info_t *)cached_info;
-        }
-    }
-#endif
-
     int source_is_opaque = egui_image_std_rgb565_is_opaque_source(info);
 
     int16_t src_w = info->width;
