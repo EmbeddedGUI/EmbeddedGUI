@@ -5,6 +5,7 @@
    :maxdepth: 2
 
    pfb_design
+   core_ram_guide
    dirty_rect
    oop_pattern
    view_system
