@@ -6,6 +6,7 @@
 - `PFB` is listed for completeness, but it is user-configurable and not an optimization target.
 - If a change yields less than `5%` performance gain, prefer the lower-RAM option instead of keeping extra SRAM for a marginal speedup.
 - Any buffer whose size follows font size, image size, screen size, or `PFB` size must use `heap`; do not replace that with macro-fixed RAM, static storage, or large stack locals just to keep `heap=0`.
+- If such a size-related buffer must stay resident on heap, record the owner, lifetime, and byte size in this file instead of leaving it implicit.
 - Static RAM numbers use the normal QEMU performance build:
   - `make clean`
   - `make all APP=HelloPerformance PORT=qemu CPU_ARCH=cortex-m3`
@@ -52,6 +53,8 @@
 | 2026-03-28 | Compile out HelloPerformance text-transform layout heap fallback | 2162384 | 48 | 10280 | 10328 | 0 / 11520 | 2936 | `static RAM -16B`, `text -720B`; compile out dead text-layout fallback metadata for HelloPerformance, runtime screenshots stay `223/223` with `changed=0`, heap peak stays `11520B`, stack peak stays `2936B`, no active-path perf change expected |
 | 2026-03-28 | Reuse HelloPerformance codec row-cache handle for single-row scratch | 2162320 | 48 | 10272 | 10320 | 0 / 11520 | 2936 | `static RAM -8B`, `text -64B`; single-row codec pixel scratch now borrows the row-cache pixel heap handle, and current decode capacity metadata compacts to 16-bit under HelloPerformance bounds; runtime screenshots stay `223/223` with `changed=0`, heap peak stays `11520B`, stack peak stays `2936B`, no new `>5%` perf regression |
 | 2026-03-28 | Localize HelloPerformance external font desc scratch | 2162420 | 48 | 10256 | 10304 | 0 / 11520 | 2936 | `static RAM -16B`, `text +100B`; removed persistent `g_selected_char_desc`, runtime screenshots stay `223/223` with `changed=0` vs `0ed8fdb`, heap peak stays `11520B`, stack peak stays `2936B`, `python scripts/code_perf_check.py --profile cortex-m3` PASSED |
+| 2026-03-28 | Move HelloPerformance external font row/glyph scratch to transient heap | 2162436 | 48 | 10256 | 10304 | 0 / 11520 | 2920 | `text +16B`, static RAM unchanged; external text transform row cache, visible-tile glyph bitmap scratch, and direct external glyph pixel scratch now follow actual glyph size on heap and free after use, runtime screenshots stay `223/223` with `changed=0` vs `e8d5ef8`, heap peak stays `11520B` with alloc/free `716 / 716`, stack peak `2936 -> 2920`, `python scripts/code_perf_check.py --profile cortex-m3` PASSED |
+| 2026-03-28 | Move HelloPerformance image resize and round-rect scratch to transient heap | 2160520 | 48 | 10256 | 10304 | 0 / 11616 | 2920 | `text -1916B`, static RAM unchanged; resize `src_x_map` and round-rect fast row cache now follow actual draw width / tile height on heap and free after use, runtime screenshots stay `223/223` with `changed=0` vs `e8d5ef8`, heap peak `11520 -> 11616`, alloc/free `716 / 716 -> 5666 / 5666`, `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5` PASSED |
 
 ## Current Breakdown
 
@@ -73,7 +76,7 @@
 | `s_qemu_resource_handle` | `.data` | 4 | External resource semihosting handle |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
-- Current normal QEMU build: `text=2162420`, `data=48`, `bss=10256`, `static RAM=10304`.
+- Current normal QEMU build: `text=2160520`, `data=48`, `bss=10256`, `static RAM=10304`.
 - The codec row-band pixel/alpha cache no longer occupies fixed `.bss`; it is now allocated per frame from heap because its required size follows active image width, alpha format, and `PFB` row-band height.
 - The single-row decode pixel/opaque-alpha scratch also no longer occupies fixed `.bss`; it is now allocated per frame from heap because `EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH` follows screen width in the default config, and the required bytes follow pixel format / alpha row width.
 - There is no longer any decode row scratch parked in fixed SRAM between frames; the remaining static decode footprint is only metadata such as `qoi_state`, `rle_state`, and `egui_image_decode_cache_state`.
@@ -89,35 +92,39 @@
 - The QEMU port now uses a self-managed runtime heap carved from `[_ebss, _estack - _Min_Stack_Size)`, so enabling `EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE` does not pull in newlib `malloc` state.
 - The default QEMU build no longer keeps heap measurement counters in fixed SRAM; only the allocator topology (`free_list` / init flag) remains resident, while `QEMU_HEAP_MEASURE=1` recompiles the counters back in for telemetry.
 - With `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE=0`, HelloPerformance no longer keeps persistent text-layout fallback pointers/capacities in fixed SRAM; the rotated-text benchmarks stay on the existing bounded stack layout path, and exceeding that bound now asserts instead of retaining a dead heap fallback.
+- HelloPerformance no longer keeps macro-sized external font row/glyph/pixel scratch on stack; external text transform now allocates a two-row scanline cache and visible-glyph bitmap scratch by actual glyph dimensions on heap, and direct external font drawing reuses a per-call heap scratch sized by the loaded glyph bitmap.
+- HelloPerformance no longer keeps `PFB_WIDTH`-sized resize maps or `PFB_HEIGHT`-sized round-rect row caches on stack; image resize and round-rect fast paths now allocate those buffers from heap by current draw width / tile height and release them immediately after use.
+- There is still no size-related heap that stays resident at idle for external text or image resize; the new font/image scratch buffers are allocated only inside the active draw call and return to `0B` current heap after the recording finishes.
 
 ### Heap Measurement
 
 | Build | idle current | idle peak | interaction delta current | interaction delta peak | interaction total current | interaction total peak | action count |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `QEMU_HEAP_MEASURE=1` | 0 | 0 | 0 | 11520 | 0 | 11520 | 222 |
+| `QEMU_HEAP_MEASURE=1` | 0 | 0 | 0 | 11616 | 0 | 11616 | 222 |
 
 - Heap log contains `HEAP_EXIT`.
-- Interaction alloc/free count is `164 / 164`; the measured heap peak is the transient codec row-band decode cache plus the existing rotated-text visible alpha8 tile scratch.
-- This round intentionally allows `heap peak = 11520B` because the moved row-band cache follows image width, alpha format, and `PFB` row count; per the RAM rule, this size-related buffer must stay heap-backed instead of returning to fixed `.bss` or large stack locals.
-- Moving the single-row decode scratch to heap does not raise the measured peak beyond `11520B`; the extra row buffer demand stays below the existing decode-heavy peak window.
+- Interaction alloc/free count is `5666 / 5666`; the measured heap peak is now the transient codec row-band decode cache plus rotated-text / image-resize scratch, while all new size-related buffers still release back to `0B` current heap after the recording.
+- This round intentionally allows `heap peak = 11616B` because the dominant row-band cache, rotated-text scratch, and the new image resize scratch all follow image width, glyph bounds, or `PFB` tile size; per the RAM rule, these size-related buffers must stay heap-backed instead of returning to fixed `.bss` or large stack locals.
+- Moving the single-row decode scratch to heap still does not dominate the measured peak; that row-sized demand stays below the existing decode-heavy peak window.
 - Localizing the animation benchmark context does not change heap usage; the view/interpolator are small fixed-size temporaries and stay on stack.
-- Packing the QOI row cursor and removing decode-cache dead metadata does not change heap usage; both changes only shrink fixed decode metadata.
-- The latest core/root-group metadata cleanup also does not change heap usage; it only removes fixed-size static fields from `egui_core` / `egui_view_root_group_t`.
-- The latest canvas metadata cleanup also does not change heap usage; it only removes fixed canvas-side state that HelloPerformance never uses.
-- The latest QEMU heap-stats cleanup also does not change heap usage; it only removes normal-build telemetry counters from `.bss`, and the dedicated heap-measure build still reports the same `11520B` interaction peak.
-- The latest user-root alias cleanup also does not change heap usage; it only drops one persistent root-group object from `egui_core`, and the dedicated heap-measure build still reports the same `11520B` interaction peak.
-- The latest text-transform layout fallback cleanup also does not change heap usage; HelloPerformance never entered that fallback at runtime, so the dedicated heap-measure build still reports the same `11520B` interaction peak.
-- The latest codec scratch-handle cleanup also does not change heap usage; it only reuses the existing row-cache pixel handle and shrinks fixed metadata, while the dedicated heap-measure build still reports the same `11520B` interaction peak.
+- Packing the QOI row cursor, removing decode-cache dead metadata, trimming core/root-group/canvas metadata, and compiling out normal-build QEMU heap counters only shrink fixed RAM metadata; the current heap-measure build still returns to `0B` current heap at idle.
 - HelloPerformance no longer keeps a persistent external-font descriptor scratch in `.bss`; external glyph desc loads now reuse tiny caller-local scratch instead of the removed `g_selected_char_desc`.
-- The latest external-font desc scratch cleanup also does not change heap usage; it only removes a fixed `12B` `.bss` scratch object and reuses small caller-local stack temporaries while the dedicated heap-measure build still reports the same `11520B` interaction peak.
+- The latest external-font desc scratch cleanup also does not change heap topology; it only removes a fixed `12B` `.bss` scratch object and reuses small caller-local temporaries while the current dedicated heap-measure build reports `11616B` interaction peak.
+- The latest external-font scratch cleanup keeps those font-size-related buffers transient on heap instead of stack/static RAM.
+- The latest image resize / round-rect scratch cleanup raises the measured heap peak only `+96B` (`11520 -> 11616`), but removes `PFB_WIDTH` / `PFB_HEIGHT` sized locals from the active image paths.
+- The new image-size / `PFB`-size scratch does not stay resident after rendering; resize `src_x_map` and round-rect fast row cache are allocated per draw call and released immediately after use. If a later change keeps them persistent to reduce alloc/free count, it must be listed here with explicit bytes and lifetime.
 - The measured heap build now reaches the former `.bss` cache footprint only while the decode-heavy scenes are active, and releases it back to `0B` at idle.
 
 ### Stack Measurement
 
 | Function | File | Frame (B) | Relevance | Notes |
 | --- | --- | ---: | --- | --- |
-| `egui_canvas_draw_text_transform` | `src/core/egui_canvas_transform.c` | 2936 | HelloPerformance rotated-text runtime path | Current max frame after visible alpha8 scratch moves to heap; external row/glyph scratch bounds stay `16B / 288B` |
+| `egui_canvas_draw_text_transform` | `src/core/egui_canvas_transform.c` | 2920 | HelloPerformance rotated-text runtime path | Current max frame after external row cache also moves to heap; rotated-text size-dependent scratch now follows actual glyph bounds instead of fixed stack arrays |
 | `text_transform_draw_visible_alpha8_tile_layout` | `src/core/egui_canvas_transform.c` | 104 | HelloPerformance rotated-text helper | Former `4352B` stack scratch removed; visible alpha8 tile now allocates from heap according to actual transformed bounds |
+| `text_transform_rasterize_visible_alpha8_layout` | `src/core/egui_canvas_transform.c` | 96 | HelloPerformance external rotated-text visible-tile helper | External glyph bitmap scratch moved from local arrays to transient heap sized by visible glyph bitmap bytes |
+| `egui_font_std_draw_single_char_desc_external_stream` | `src/font/egui_font_std.c` | 88 | HelloPerformance external font draw path | Removed former `pixel_buf[256]`; full glyph bitmap now loads into heap scratch, reused by `fast_4` / `fast_4_mask` string draw calls |
+| `egui_image_std_set_image_resize_rgb565_8_common` | `src/image/egui_image_std.c` | 384 | HelloPerformance image resize + alpha path | Former `src_x_map[EGUI_CONFIG_PFB_WIDTH]` now uses heap; active frame is scalar-only plus small state |
+| `egui_image_std_set_image_resize_rgb565` | `src/image/egui_image_std.c` | 328 | HelloPerformance image resize rgb565 path | Resize `src_x_map` and round-rect row cache now allocate from heap by draw width / tile height |
 | `egui_view_heart_rate_on_draw` | `src/widget/egui_view_heart_rate.c` | 1200 | Framework compiled hotspot, not in current HelloPerformance flow | Large locals: `points[240]`, `raw_vals[120]`, `smooth_vals[120]` |
 | `egui_view_virtual_tree_walk_internal` | `src/widget/egui_view_virtual_tree.c` | 1112 | Framework compiled hotspot, not in current HelloPerformance flow | Large local stack frame: `frames[EGUI_VIEW_VIRTUAL_TREE_MAX_DEPTH]` |
 | `line_hq_draw_polyline_segment` | `src/core/egui_canvas_line_hq.c` | 976 | HelloPerformance line/polyline scenes | Split out from `line_hq_draw_polyline_internal`; remaining frame is scalar segment state, no large local arrays |
@@ -132,21 +139,24 @@
 | `egui_canvas_draw_rectangle_fill_gradient` | `src/core/egui_canvas_gradient.c` | 528 | HelloPerformance gradient rectangle scenes | Fixed LUT shrunk to `129` entries for `t={0,2,...,254,255}`; still not tied to font/image/screen/PFB |
 | `egui_canvas_draw_round_rectangle_corners_fill_gradient` | `src/core/egui_canvas_gradient.c` | 472 | HelloPerformance gradient round-rect scenes | Removed local `color_cache[256]`; non-vertical branches now resolve colors directly |
 
-- Current `HelloPerformance` stack risk is still concentrated in the rotated-text path used by `TEXT_ROTATE*` and `EXTERN_TEXT_ROTATE*` benchmark scenes, but the max single frame is now `2936B` instead of `4456B`.
+- Current `HelloPerformance` stack risk is still concentrated in the rotated-text path used by `TEXT_ROTATE*` and `EXTERN_TEXT_ROTATE*` benchmark scenes, but the max single frame is now `2920B` instead of `4456B`.
 - The visible alpha8 tile scratch now follows transformed glyph bounds and therefore lives on heap, which is the required placement for this size-related buffer.
+- The external font scanline row cache, visible-glyph bitmap scratch, and direct-draw glyph pixel scratch also now follow actual glyph dimensions on heap, which removes the remaining font-size-related local arrays from `egui_canvas_transform.c` and `egui_font_std.c`.
 - The decode heap path still does not introduce a new stack hotspot: `egui_image_qoi_draw_image` is `240B`, `egui_image_rle_draw_image` is `280B`, `egui_image_decode_prepare_single_row_pixel_buf` is `24B`, and the new row-scratch accessors stay at `16B / 24B`.
 - The animation benchmark context move adds only small per-function frames: `ANIMATION_TRANSLATE 128B`, `ANIMATION_ALPHA 128B`, `ANIMATION_SCALE 136B`, `ANIMATION_SET 208B`; it removes `56B` of fixed static RAM without creating a new stack hotspot.
-- The latest decode-metadata cleanup does not change any measured stack frame; the current `2936B` max frame remains in the rotated-text path.
-- The latest core/root-group cleanup also keeps stack flat: `egui_core_calc_pfb_buffer_size` is only a `16B` helper frame, `egui_core_clear_screen` is `40B`, and the max frame remains `2936B`.
-- The latest canvas metadata cleanup also keeps stack flat; it only removes unused fields from `canvas_data`, and the current max frame remains `2936B`.
+- The latest decode-metadata cleanup does not change any measured stack frame; the current `2920B` max frame remains in the rotated-text path.
+- The latest core/root-group cleanup also keeps stack flat: `egui_core_calc_pfb_buffer_size` is only a `16B` helper frame, `egui_core_clear_screen` is `40B`, and the max frame remains `2920B`.
+- The latest canvas metadata cleanup also keeps stack flat; it only removes unused fields from `canvas_data`, and the current max frame remains `2920B`.
 - The latest QEMU heap-stats cleanup also keeps stack flat; it only gates normal-build heap telemetry bookkeeping and does not add any new local buffers.
-- The latest user-root alias cleanup also keeps stack flat; it only removes a persistent wrapper object from `egui_core`, while `egui_core_calc_pfb_buffer_size` stays `16B`, `egui_core_clear_screen` stays `40B`, and the max frame remains `2936B`.
-- The latest text-transform layout fallback cleanup also keeps stack flat; the rotated-text path still peaks at `2936B`, and the removed fallback only strips dead persistent metadata from the normal build.
-- The latest codec scratch-handle cleanup also keeps stack flat; it only reuses existing heap-backed decode storage and shrinks fixed metadata, so the max frame remains `2936B`.
-- The latest external-font desc scratch cleanup also keeps stack flat; moving the external font descriptor scratch out of `.bss` only raises small caller frames to `24B` (`egui_font_std_prepare_draw_prefix_cache`), `88B` (`text_transform_build_layout` / `egui_font_std_get_str_size`), `144B` (`egui_font_std_draw_string`), `152B` (`egui_font_std_draw_string_fast_4_mask`), and `224B` (`egui_font_std_draw_string_fast_4`), while the max frame remains `2936B`.
+- The latest user-root alias cleanup also keeps stack flat; it only removes a persistent wrapper object from `egui_core`, while `egui_core_calc_pfb_buffer_size` stays `16B`, `egui_core_clear_screen` stays `40B`, and the max frame remains `2920B`.
+- The latest text-transform layout fallback cleanup also keeps stack flat; the rotated-text path still peaks at `2920B`, and the removed fallback only strips dead persistent metadata from the normal build.
+- The latest codec scratch-handle cleanup also keeps stack flat; it only reuses existing heap-backed decode storage and shrinks fixed metadata, so the max frame remains `2920B`.
+- The latest external-font desc scratch cleanup also keeps stack flat; moving the external font descriptor scratch out of `.bss` only raises small caller frames to `24B` (`egui_font_std_prepare_draw_prefix_cache`), `88B` (`text_transform_build_layout` / `egui_font_std_get_str_size`), `144B` (`egui_font_std_draw_string`), `184B` (`egui_font_std_draw_string_fast_4_mask`), and `232B` (`egui_font_std_draw_string_fast_4`), while the max frame remains `2920B`.
+- The latest external-font row/glyph scratch cleanup further trims active frames to `2920B` (`egui_canvas_draw_text_transform`), `232B` (`egui_font_std_draw_string_fast_4`), `184B` (`egui_font_std_draw_string_fast_4_mask`), `96B` (`text_transform_rasterize_visible_alpha8_layout`), `88B` (`egui_font_std_draw_single_char_desc_external_stream`), `56B` (`rasterize_external_glyph4_to_packed_inside_common`), and `48B` (`rasterize_external_glyph4_to_alpha8_inside_common`) by removing font-size-related local arrays.
+- The latest image resize / round-rect scratch cleanup caps the modified image frames at `384B` (`egui_image_std_set_image_resize_rgb565_8_common`), `360B` (`egui_image_std_set_image_rgb565_8`), `328B` (`egui_image_std_set_image_resize_rgb565`), and `280B` (`egui_image_std_set_image_rgb565`); the former `PFB_WIDTH` / `PFB_HEIGHT` sized locals are gone.
 - The earlier rectangle-gradient round shrank the fixed `color_cache` in `egui_canvas_draw_rectangle_fill_gradient` from `256` to `129` entries; measured `792B -> 528B`, while `GRADIENT_RADIAL` improved from `7.080 ms` to `6.727 ms` and `GRADIENT_ANGULAR` improved from `7.427 ms` to `6.914 ms`. PC runtime check frames `frame_0120.png` and `frame_0121.png` show the radial/angular rectangle gradients remain visually correct.
 - Current `HelloPerformance` non-text heads are `line_hq_draw_polyline_segment (976B)`, `egui_canvas_draw_line_hq (824B)`, `egui_canvas_draw_circle_fill_gradient (752B)`, `egui_canvas_draw_line_round_cap_hq (744B)`, `egui_canvas_draw_image_transform (736B)`, `egui_canvas_draw_polygon_fill_gradient (720B)`, `egui_canvas_draw_polygon_fill (712B)`, `egui_shadow_draw_corner (664B)`, `egui_canvas_draw_triangle_fill_gradient (544B)`, `egui_canvas_draw_ellipse_fill_gradient (544B)`, and `egui_canvas_draw_rectangle_fill_gradient (528B)`.
-- Current compiled frames `>= 1KB` are `2936`, `1200`, and `1112`; only `2936` belongs to an active HelloPerformance runtime path.
+- Current compiled frames `>= 1KB` are `2920`, `1200`, and `1112`; only `2920` belongs to an active HelloPerformance runtime path.
 - The latest round keeps the user-configurable `pfb` pixel buffer unchanged and moves pressure from stack to transient heap instead of fixed static RAM.
 
 ### RLE Checkpoint A/B
