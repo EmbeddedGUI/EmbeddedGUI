@@ -17,12 +17,6 @@
 /**
  * @brief Intersection record: x position + originating edge index.
  */
-typedef struct
-{
-    egui_float_t x;
-    uint8_t edge_idx;
-} polygon_isect_t;
-
 /**
  * @brief Integer square root (bit-by-bit) for edge length computation.
  */
@@ -57,18 +51,21 @@ static uint32_t polygon_isqrt(uint32_t n)
 /**
  * @brief Simple insertion sort for intersection records (max 16 elements).
  */
-static void sort_polygon_intersections(polygon_isect_t *arr, int count)
+static void sort_polygon_intersections(egui_float_t *x_arr, uint8_t *edge_idx_arr, int count)
 {
     for (int i = 1; i < count; i++)
     {
-        polygon_isect_t key = arr[i];
+        egui_float_t key_x = x_arr[i];
+        uint8_t key_edge_idx = edge_idx_arr[i];
         int j = i - 1;
-        while (j >= 0 && arr[j].x > key.x)
+        while (j >= 0 && x_arr[j] > key_x)
         {
-            arr[j + 1] = arr[j];
+            x_arr[j + 1] = x_arr[j];
+            edge_idx_arr[j + 1] = edge_idx_arr[j];
             j--;
         }
-        arr[j + 1] = key;
+        x_arr[j + 1] = key_x;
+        edge_idx_arr[j + 1] = key_edge_idx;
     }
 }
 
@@ -208,8 +205,8 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_polygon_fill(const egui_di
     // =========================================================================
     int32_t edx[EGUI_CANVAS_POLYGON_MAX_VERTICES];
     int32_t edy[EGUI_CANVAS_POLYGON_MAX_VERTICES];
-    uint32_t elen[EGUI_CANVAS_POLYGON_MAX_VERTICES];
-    int32_t esign[EGUI_CANVAS_POLYGON_MAX_VERTICES];
+    uint16_t elen[EGUI_CANVAS_POLYGON_MAX_VERTICES];
+    int8_t esign[EGUI_CANVAS_POLYGON_MAX_VERTICES];
 
     // Compute centroid (scaled by count to avoid division) for inside determination
     int32_t cx_sum = 0, cy_sum = 0;
@@ -248,7 +245,8 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_polygon_fill(const egui_di
     egui_dim_t scan_y_end = EGUI_MIN(max_y, work_y_end - 1);
 
     // Intersection buffer with edge tracking
-    polygon_isect_t intersections[EGUI_CANVAS_POLYGON_MAX_VERTICES];
+    egui_float_t intersection_x[EGUI_CANVAS_POLYGON_MAX_VERTICES];
+    uint8_t intersection_edge_idx[EGUI_CANVAS_POLYGON_MAX_VERTICES];
     int use_direct_pfb = (self->mask == NULL) ? 1 : 0;
     egui_dim_t pfb_width = self->pfb_region.size.width;
     egui_dim_t pfb_height = self->pfb_region.size.height;
@@ -313,8 +311,8 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_polygon_fill(const egui_di
 
             if (intersection_count < EGUI_CANVAS_POLYGON_MAX_VERTICES)
             {
-                intersections[intersection_count].x = ix;
-                intersections[intersection_count].edge_idx = i;
+                intersection_x[intersection_count] = ix;
+                intersection_edge_idx[intersection_count] = i;
                 intersection_count++;
             }
         }
@@ -325,15 +323,15 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_polygon_fill(const egui_di
         }
 
         // Sort intersections by x
-        sort_polygon_intersections(intersections, intersection_count);
+        sort_polygon_intersections(intersection_x, intersection_edge_idx, intersection_count);
 
         // Fill between pairs of intersections (even-odd rule)
         for (int k = 0; k + 1 < intersection_count; k += 2)
         {
-            egui_float_t left_fx = intersections[k].x;
-            egui_float_t right_fx = intersections[k + 1].x;
-            uint8_t left_edge = intersections[k].edge_idx;
-            uint8_t right_edge = intersections[k + 1].edge_idx;
+            egui_float_t left_fx = intersection_x[k];
+            egui_float_t right_fx = intersection_x[k + 1];
+            uint8_t left_edge = intersection_edge_idx[k];
+            uint8_t right_edge = intersection_edge_idx[k + 1];
 
             egui_dim_t ix_left = EGUI_FLOAT_INT_PART(left_fx);
             egui_dim_t ix_right = EGUI_FLOAT_INT_PART(right_fx);

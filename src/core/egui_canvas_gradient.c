@@ -1305,9 +1305,10 @@ __EGUI_STATIC_INLINE__ egui_dim_t round_rect_corner_inset(egui_dim_t dy, egui_di
     return (egui_dim_t)(r - x_boundary);
 }
 
-void egui_canvas_draw_round_rectangle_corners_fill_gradient(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t radius_left_top,
-                                                            egui_dim_t radius_left_bottom, egui_dim_t radius_right_top, egui_dim_t radius_right_bottom,
-                                                            const egui_gradient_t *gradient)
+__attribute__((optimize("Os"))) void egui_canvas_draw_round_rectangle_corners_fill_gradient(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
+                                                                                             egui_dim_t radius_left_top, egui_dim_t radius_left_bottom,
+                                                                                             egui_dim_t radius_right_top, egui_dim_t radius_right_bottom,
+                                                                                             const egui_gradient_t *gradient)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -2604,12 +2605,6 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_ellipse_fill_gradient(egui
 /**
  * @brief Intersection record: x position + originating edge index.
  */
-typedef struct
-{
-    egui_float_t x;
-    uint8_t edge_idx;
-} gradient_polygon_isect_t;
-
 /**
  * @brief Integer square root for edge length computation.
  */
@@ -2641,18 +2636,21 @@ static uint32_t gradient_polygon_isqrt(uint32_t n)
     return root;
 }
 
-static void gradient_sort_polygon_isects(gradient_polygon_isect_t *arr, int count)
+static void gradient_sort_polygon_isects(egui_float_t *x_arr, uint8_t *edge_idx_arr, int count)
 {
     for (int i = 1; i < count; i++)
     {
-        gradient_polygon_isect_t key = arr[i];
+        egui_float_t key_x = x_arr[i];
+        uint8_t key_edge_idx = edge_idx_arr[i];
         int j = i - 1;
-        while (j >= 0 && arr[j].x > key.x)
+        while (j >= 0 && x_arr[j] > key_x)
         {
-            arr[j + 1] = arr[j];
+            x_arr[j + 1] = x_arr[j];
+            edge_idx_arr[j + 1] = edge_idx_arr[j];
             j--;
         }
-        arr[j + 1] = key;
+        x_arr[j + 1] = key_x;
+        edge_idx_arr[j + 1] = key_edge_idx;
     }
 }
 
@@ -2736,8 +2734,8 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_polygon_fill_gradient(cons
     /* Precompute edge vectors, lengths, and inside-direction signs */
     int32_t edx[EGUI_CANVAS_POLYGON_MAX_VERTICES];
     int32_t edy[EGUI_CANVAS_POLYGON_MAX_VERTICES];
-    uint32_t elen[EGUI_CANVAS_POLYGON_MAX_VERTICES];
-    int32_t esign[EGUI_CANVAS_POLYGON_MAX_VERTICES];
+    uint16_t elen[EGUI_CANVAS_POLYGON_MAX_VERTICES];
+    int8_t esign[EGUI_CANVAS_POLYGON_MAX_VERTICES];
 
     int32_t cx_sum = 0, cy_sum = 0;
     for (uint8_t i = 0; i < count; i++)
@@ -2769,7 +2767,8 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_polygon_fill_gradient(cons
     egui_dim_t scan_y_start = EGUI_MAX(min_y, work_y_start);
     egui_dim_t scan_y_end = EGUI_MIN(max_y, work_y_end - 1);
 
-    gradient_polygon_isect_t intersections[EGUI_CANVAS_POLYGON_MAX_VERTICES];
+    egui_float_t intersection_x[EGUI_CANVAS_POLYGON_MAX_VERTICES];
+    uint8_t intersection_edge_idx[EGUI_CANVAS_POLYGON_MAX_VERTICES];
 
 #define GRAD_POLY_AA_MARGIN 2
 
@@ -2802,8 +2801,8 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_polygon_fill_gradient(cons
 
             if (intersection_count < EGUI_CANVAS_POLYGON_MAX_VERTICES)
             {
-                intersections[intersection_count].x = ix;
-                intersections[intersection_count].edge_idx = i;
+                intersection_x[intersection_count] = ix;
+                intersection_edge_idx[intersection_count] = i;
                 intersection_count++;
             }
         }
@@ -2813,14 +2812,14 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_polygon_fill_gradient(cons
             continue;
         }
 
-        gradient_sort_polygon_isects(intersections, intersection_count);
+        gradient_sort_polygon_isects(intersection_x, intersection_edge_idx, intersection_count);
 
         for (int k = 0; k + 1 < intersection_count; k += 2)
         {
-            egui_float_t left_fx = intersections[k].x;
-            egui_float_t right_fx = intersections[k + 1].x;
-            uint8_t left_edge = intersections[k].edge_idx;
-            uint8_t right_edge = intersections[k + 1].edge_idx;
+            egui_float_t left_fx = intersection_x[k];
+            egui_float_t right_fx = intersection_x[k + 1];
+            uint8_t left_edge = intersection_edge_idx[k];
+            uint8_t right_edge = intersection_edge_idx[k + 1];
 
             egui_dim_t ix_left = EGUI_FLOAT_INT_PART(left_fx);
             egui_dim_t ix_right = EGUI_FLOAT_INT_PART(right_fx);

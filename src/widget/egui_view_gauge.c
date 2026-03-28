@@ -225,6 +225,70 @@ static const egui_font_t *egui_view_gauge_get_text_font(egui_view_gauge_t *local
     return NULL;
 }
 
+#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+__attribute__((optimize("Os"))) static void egui_view_gauge_draw_ring_gradient(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t inner_r,
+                                                                               int16_t start_angle, int16_t end_angle,
+                                                                               egui_color_t start_color, egui_color_t end_color)
+{
+    egui_gradient_stop_t stops[2] = {
+            {.position = 0, .color = start_color},
+            {.position = 255, .color = end_color},
+    };
+    egui_gradient_t grad = {
+            .type = EGUI_GRADIENT_TYPE_RADIAL,
+            .stop_count = 2,
+            .alpha = EGUI_ALPHA_100,
+            .stops = stops,
+    };
+
+    egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, radius, inner_r, start_angle, end_angle, &grad);
+}
+
+__attribute__((optimize("Os"))) static void egui_view_gauge_draw_center_dot_gradient(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius,
+                                                                                      egui_color_t start_color, egui_color_t end_color)
+{
+    egui_gradient_stop_t stops[2] = {
+            {.position = 0, .color = start_color},
+            {.position = 255, .color = end_color},
+    };
+    egui_gradient_t grad = {
+            .type = EGUI_GRADIENT_TYPE_RADIAL,
+            .stop_count = 2,
+            .alpha = EGUI_ALPHA_100,
+            .stops = stops,
+    };
+
+    egui_canvas_draw_circle_fill_gradient(center_x, center_y, radius, &grad);
+}
+#endif
+
+__attribute__((optimize("Os"))) static void egui_view_gauge_draw_value_text(egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y,
+                                                                             egui_dim_t inner_r, egui_dim_t center_dot_r)
+{
+    const egui_font_t *text_font;
+    char val_buf[8];
+    egui_region_t text_rect;
+    egui_dim_t font_h;
+    egui_dim_t lbl_w;
+    egui_dim_t lbl_h;
+
+    text_font = egui_view_gauge_get_text_font(local, inner_r);
+    if (text_font == NULL)
+    {
+        return;
+    }
+
+    egui_sprintf_int(val_buf, sizeof(val_buf), (int32_t)local->value);
+    font_h = (egui_dim_t)EGUI_FONT_STD_GET_FONT_HEIGHT(text_font);
+    lbl_w = inner_r * 2 - 4;
+    lbl_h = font_h + 4;
+    text_rect.location.x = center_x - lbl_w / 2;
+    text_rect.location.y = center_y + center_dot_r + 1;
+    text_rect.size.width = lbl_w;
+    text_rect.size.height = lbl_h;
+    egui_canvas_draw_text_in_rect(text_font, val_buf, &text_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+}
+
 static void egui_view_gauge_invalidate_value_change(egui_view_t *self, egui_view_gauge_t *local, uint8_t old_value)
 {
     egui_region_t region;
@@ -359,7 +423,7 @@ void egui_view_gauge_set_text_color(egui_view_t *self, egui_color_t color)
     egui_view_invalidate(self);
 }
 
-void egui_view_gauge_on_draw(egui_view_t *self)
+__attribute__((optimize("Os"))) void egui_view_gauge_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_gauge_t);
 
@@ -385,19 +449,7 @@ void egui_view_gauge_on_draw(egui_view_t *self)
     int16_t bg_start = local->start_angle;
     int16_t bg_end = local->start_angle + local->sweep_angle;
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-    {
-        egui_gradient_stop_t bg_stops[2] = {
-                {.position = 0, .color = local->bk_color},
-                {.position = 255, .color = local->bk_color},
-        };
-        egui_gradient_t bg_grad = {
-                .type = EGUI_GRADIENT_TYPE_RADIAL,
-                .stop_count = 2,
-                .alpha = EGUI_ALPHA_100,
-                .stops = bg_stops,
-        };
-        egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, radius, inner_r, bg_start, bg_end, &bg_grad);
-    }
+    egui_view_gauge_draw_ring_gradient(center_x, center_y, radius, inner_r, bg_start, bg_end, local->bk_color, local->bk_color);
 #else
     egui_canvas_draw_arc(center_x, center_y, radius, bg_start, bg_end, local->stroke_width, local->bk_color, EGUI_ALPHA_100);
 #endif
@@ -407,20 +459,8 @@ void egui_view_gauge_on_draw(egui_view_t *self)
     if (local->value > 0)
     {
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-        {
-            egui_color_t color_light = egui_rgb_mix(local->progress_color, EGUI_COLOR_WHITE, 80);
-            egui_gradient_stop_t stops[2] = {
-                    {.position = 0, .color = color_light},
-                    {.position = 255, .color = local->progress_color},
-            };
-            egui_gradient_t grad = {
-                    .type = EGUI_GRADIENT_TYPE_RADIAL,
-                    .stop_count = 2,
-                    .alpha = EGUI_ALPHA_100,
-                    .stops = stops,
-            };
-            egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, radius, inner_r, bg_start, progress_end, &grad);
-        }
+        egui_color_t color_light = egui_rgb_mix(local->progress_color, EGUI_COLOR_WHITE, 80);
+        egui_view_gauge_draw_ring_gradient(center_x, center_y, radius, inner_r, bg_start, progress_end, color_light, local->progress_color);
 #else
         egui_canvas_draw_arc(center_x, center_y, radius, bg_start, progress_end, local->stroke_width, local->progress_color, EGUI_ALPHA_100);
 #endif
@@ -467,43 +507,15 @@ void egui_view_gauge_on_draw(egui_view_t *self)
 
     // Center dot decoration
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-    {
-        egui_color_t color_light = egui_rgb_mix(local->needle_color, EGUI_COLOR_WHITE, 80);
-        egui_gradient_stop_t stops[2] = {
-                {.position = 0, .color = color_light},
-                {.position = 255, .color = local->needle_color},
-        };
-        egui_gradient_t grad = {
-                .type = EGUI_GRADIENT_TYPE_RADIAL,
-                .stop_count = 2,
-                .alpha = EGUI_ALPHA_100,
-                .stops = stops,
-        };
-        egui_canvas_draw_circle_fill_gradient(center_x, center_y, center_dot_r, &grad);
-    }
+    egui_color_t color_light = egui_rgb_mix(local->needle_color, EGUI_COLOR_WHITE, 80);
+    egui_view_gauge_draw_center_dot_gradient(center_x, center_y, center_dot_r, color_light, local->needle_color);
 #else
     egui_canvas_draw_circle_fill(center_x, center_y, center_dot_r, local->needle_color, EGUI_ALPHA_100);
 #endif
 
     // Center value text below the pivot dot
     // Auto-select font based on inner_r when user has not explicitly set one
-    {
-        const egui_font_t *text_font = egui_view_gauge_get_text_font(local, inner_r);
-        if (text_font != NULL)
-        {
-            char val_buf[8];
-            egui_sprintf_int(val_buf, sizeof(val_buf), (int32_t)local->value);
-            egui_region_t text_rect;
-            egui_dim_t font_h = (egui_dim_t)EGUI_FONT_STD_GET_FONT_HEIGHT(text_font);
-            egui_dim_t lbl_w = inner_r * 2 - 4;
-            egui_dim_t lbl_h = font_h + 4;
-            text_rect.location.x = center_x - lbl_w / 2;
-            text_rect.location.y = center_y + center_dot_r + 1;
-            text_rect.size.width = lbl_w;
-            text_rect.size.height = lbl_h;
-            egui_canvas_draw_text_in_rect(text_font, val_buf, &text_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
-        }
-    }
+    egui_view_gauge_draw_value_text(local, center_x, center_y, inner_r, center_dot_r);
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_gauge_t) = {
