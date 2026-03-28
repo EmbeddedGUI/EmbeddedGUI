@@ -181,6 +181,9 @@ extern "C" {
 // 2 image rows / columns. For the 240px RGB565+alpha hot scenes, cap the shared
 // row caches to exactly 2 rows: 960B data + 480B alpha. This stays within the
 // current RAM rule while still covering the 120px external cases in 4-row chunks.
+// A later 1-row A/B (480B data + 240B alpha) halves those scene-local heaps
+// again, but current direct-draw / rotate regressions reach about +12% ~ +24%,
+// so 2 rows stays the default and 1 row remains measurement-only.
 #ifndef EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES
 #define EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES 960
 #endif
