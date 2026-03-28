@@ -152,6 +152,7 @@
 - 2026-03-29 对 `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS` 做过 A/B：`144` 和 `96` 都会让 QOI/RLE alpha 场景退化到数倍，说明在当前 `240px` 屏宽、`PFB_WIDTH=48`、横向逐 tile refresh walk 下，`192` 尾列已经是默认单次解码路径的硬下限，而不是随手还能继续压的余量。
 - 2026-03-29 第二轮 A/B 又测了 `176` 和 `184` 两档 tail cap，并配合 `EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT=1/2` 与 `EGUI_CONFIG_IMAGE_RLE_CHECKPOINT_ENABLE=1`。相对当前 `d3d37bf` 基线（`IMAGE_QOI_565_8 2.258`、`EXTERN_IMAGE_QOI_565_8 2.734`、`IMAGE_RLE_565_8 1.561`、`EXTERN_IMAGE_RLE_565_8 2.385`），四组组合仍然退化 `+45% ~ +66%`，因此不再继续补 heap 数据，直接判定默认路径拒绝。
 - 这背后的几何约束已经比较清楚：在 `240px` 图宽、`48px` 水平 PFB walk 下，首个可见 tile 覆盖 `0..47`，后续横向邻居需要的列并集是 `48..239`，正好就是 `192` 列。只要单次 tail cache 小于 `192`，最后一个 tile 就必然 miss，进而触发额外 row-band 重解；checkpoint 只能把解码状态恢复到 row-band 起点，并不能改变这个覆盖条件。这里是根据当前 walk 顺序做的推导，上面的实测数据正好印证了这个结论。
+- 2026-03-29 还做过 `tail alpha sparse` A/B：尝试只保留 raw RGB565 tail-row cache，把 alpha8 改成 sparse row table（`-DEGUI_CONFIG_IMAGE_CODEC_TAIL_ALPHA_SPARSE_ENABLE=1`）。单场景 heap 确实从 `9360B` 降到 `7512B`，即 `-1848B`，但 `IMAGE_QOI_565_8 / EXTERN_IMAGE_QOI_565_8 / IMAGE_RLE_565_8 / EXTERN_IMAGE_RLE_565_8` 分别退化到 `8.988 / 9.464 / 8.296 / 9.119 ms`，相对当前默认 `2.264 / 2.740 / 1.572 / 2.395 ms` 是 `+245% ~ +428%`。同时 alloc/free 也从 `32 / 32` 跳到 `376 / 376`，说明 sparse pack/expand 的运行时成本远超当前 RAM 收益，因此这一方向同样明确拒绝，不进入默认实现。
 
 | 配置 | `IMAGE_QOI_565_8` | `EXTERN_IMAGE_QOI_565_8` | `IMAGE_RLE_565_8` | `EXTERN_IMAGE_RLE_565_8` | 结论 |
 | --- | ---: | ---: | ---: | ---: | --- |

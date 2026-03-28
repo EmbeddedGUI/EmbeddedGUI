@@ -202,6 +202,20 @@ Single-scene heap spot checks use `QEMU_HEAP_MEASURE=1`, `QEMU_HEAP_ACTIONS_APP_
 | `tail=184, qoi_cp=2, rle_cp=1` | `3.630 (+60.76%)` | `4.544 (+66.20%)` | `2.284 (+46.32%)` | `3.927 (+64.65%)` | Reject |
 
 - Inferred from the same geometry, `176` and `184` only remove `16` / `8` columns from the `192`-column tail cache, so the raw tail payload saving before checkpoint overhead is only `768B` / `384B`. With the measured `+45% ~ +66%` perf cliff, these variants do not justify additional heap measurements for the default path.
+
+### Rejected Sparse Alpha Tail Cache A/B
+
+2026-03-29 also tried a `tail alpha -> sparse row table` direction for the current `192`-column codec tail cache, with `-DEGUI_CONFIG_IMAGE_CODEC_TAIL_ALPHA_SPARSE_ENABLE=1`. The idea was to keep tail RGB565 raw, but pack alpha8 rows into a sparse `nonzero_bits + partial_bits + partial_values` form because the `star` alpha assets are mostly `0/255`.
+
+| Config | `IMAGE_QOI_565_8` | `EXTERN_IMAGE_QOI_565_8` | `IMAGE_RLE_565_8` | `EXTERN_IMAGE_RLE_565_8` | Heap peak | alloc/free | Verdict |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Current default | `2.264` | `2.740` | `1.572` | `2.395` | `9360B` | `32 / 32` | Baseline |
+| `tail_alpha_sparse=1` | `8.988 (+297.00%)` | `9.464 (+245.40%)` | `8.296 (+427.74%)` | `9.119 (+280.75%)` | `7512B` | `376 / 376` | Reject |
+
+- This sparse-alpha variant does cut the four compressed alpha hotspots from `9360B` down to `7512B`, i.e. `-1848B`, which is larger than the current `>500B => 10%` RAM/perf trade gate.
+- However the hit-path expansion and per-row sparse packing cost is far beyond the acceptable line: the measured regressions are `+245% ~ +428%`, and alloc/free traffic jumps from `32 / 32` to `376 / 376`.
+- Because this is a default-path codec regression, not a small-scene corner case, the implementation is rejected and not kept in-tree. The official HelloPerformance baseline therefore stays at `9360B` scene-local codec peak and `9456B` whole-run peak.
+
 - The latest buffered-text round trims `TEXT_ROTATE_BUFFERED` further from `4560B` to `3984B` by tightening the visible-alpha8 heap ceiling from `3648B` to `3072B`.
 - The current next-largest verified non-codec hotspot is now `EXTERN_TEXT_ROTATE_BUFFERED` at `4194B`; the remaining gap above the internal path is down to `210B` after switching the visible-tile external glyph scratch to `14`-row chunk streaming.
 - The default external raw-image path now enforces the `<= 2 rows/cols` heap ceiling as well: the shared row caches move from `1920/960` down to `960/480`, so representative external raw-image scene-local heap drops to `1440B` (`EXTERN_IMAGE_565_8`, `EXTERN_IMAGE_ROTATE_565_8`) or `1536B` (`EXTERN_IMAGE_RESIZE_565_8` with its extra `src_x_map`).
