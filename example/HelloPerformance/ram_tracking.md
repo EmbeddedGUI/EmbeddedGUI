@@ -63,6 +63,7 @@
 | 2026-03-28 | Delay HelloPerformance alpha8 text tile scratch until fallback path | 2160808 | 48 | 10344 | 10392 | 0 / 11616 | 1200 | `text +84B`, static RAM unchanged; buffered rotated-text alpha8 fast path no longer allocates the full tile scratch before it knows fallback is needed. Whole-run heap peak still stays `11616B` because compressed-image row-band cache dominates, but `TEXT_ROTATE_BUFFERED 7220 -> 6032 (-16.5%)` and `EXTERN_TEXT_ROTATE_BUFFERED` now measures `6332B`; runtime screenshots stay `223/223` with `changed=0`, `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5` PASSED |
 | 2026-03-28 | Tighten HelloPerformance buffered-text alpha8 heap ceiling | 2160804 | 48 | 10344 | 10392 | 0 / 11616 | 1200 | `text -4B`, static RAM unchanged; external rotated-text row cache now allocates only after the visible-alpha8 fast path actually falls back, and the default `EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES` is trimmed `5120 -> 4160` after A/B checks showed `4096` exceeds the `5%` perf budget while `4160` stays within it. Whole-run heap peak still stays `11616B`, but `TEXT_ROTATE_BUFFERED 6032 -> 5072 (-15.9%)` and `EXTERN_TEXT_ROTATE_BUFFERED 6332 -> 5342 (-15.6%)`; `python scripts/code_runtime_check.py --app HelloPerformance --keep-screenshots` passed `223/223`, and `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5` PASSED |
 | 2026-03-28 | Add HelloPerformance low-RAM codec tail row-cache mode | 2163080 | 52 | 10348 | 10400 | 0 / 10032 | 1200 | `heap peak 11616 -> 10032 (-1584B)`, `static RAM +8B`, `egui_image_decode_cache_state 8 -> 12`; `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE=1` keeps row-cache enabled but stores only later-tile tail columns for QOI/RLE alpha scenes, compressed-image hot cases stay within the `10%` perf budget for `>500B` RAM savings (worst verified case `IMAGE_RLE_565_8 +8.35%`), scene-local heap for `IMAGE_QOI_565_8` / `EXTERN_IMAGE_QOI_565_8` / `IMAGE_RLE_565_8` / `EXTERN_IMAGE_RLE_565_8` drops to `9936B`, runtime `223/223`, unit test `649/649`, `python scripts/code_perf_check.py --profile cortex-m3 --threshold 10` PASSED |
+| 2026-03-28 | Cut HelloPerformance QEMU reserved stack to 4KB | 2163080 | 52 | 6252 | 6304 | 0 / 10032 | 1200 | `static RAM -4096B`; app-specific linker override drops `__qemu_min_stack_size__ 0x2000 -> 0x1000`, so `._user_heap_stack 8196 -> 4100` while compiled stack frames stay unchanged and the measured heap peak stays `10032B`; `python scripts/code_runtime_check.py --app HelloPerformance --keep-screenshots` passed `223/223`, unit test `649/649` passed |
 
 ## Current Breakdown
 
@@ -86,8 +87,9 @@
 | `s_qemu_resource_handle` | `.data` | 4 | External resource semihosting handle |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
-- Current normal QEMU build: `text=2163080`, `data=52`, `bss=10348`, `static RAM=10400`.
-- Section split from `llvm-size -A`: `.bss=2152`, `._user_heap_stack=8196`.
+- Current normal QEMU build: `text=2163080`, `data=52`, `bss=6252`, `static RAM=6304`.
+- Section split from `llvm-size -A`: `.bss=2152`, `._user_heap_stack=4100`.
+- `HelloPerformance` now overrides the QEMU linker reserve with `__qemu_min_stack_size__=0x1000`, so the reported static RAM headline reflects a 4KB stack budget instead of the port default 8KB.
 - The latest rotated-text perf restore adds only fixed metadata: `g_text_transform_prepare_cache (60B)` plus `s_dim_font/s_dim_string/s_dim_w/s_dim_h (12B)`; both are tiny caches and do not scale with font size, image size, screen size, or `PFB` size.
 - `g_text_transform_visible_tile_cache` still only stores the `8B` heap handle/capacity pair; the visible alpha8 tile itself remains heap-backed, and HelloPerformance now keeps the reuse ceiling at `4160B` because `4096B` exceeded the `<=500B` small-change `5%` perf budget for buffered rotated text while `4160B` stayed within it.
 - The circle-mask fixed RAM from the prior round is still only `g_egui_mask_circle_frame_row_cache (16B)` metadata; the former `3 * PFB_HEIGHT * sizeof(egui_dim_t)` circle row arrays no longer live inside `egui_mask_circle_t`.
@@ -190,6 +192,7 @@ Single-scene heap spot checks use `QEMU_HEAP_MEASURE=1`, `QEMU_HEAP_ACTIONS_APP_
 
 - Current compiled frames `>= 1KB` are only `1200` and `1112`, and both belong to framework code that is not exercised by the current HelloPerformance recording path.
 - Current active HelloPerformance max frame is `line_hq_draw_polyline_segment (976B)`; there is no active runtime path `>= 1KB` after this round.
+- The HelloPerformance QEMU linker reserve is now `4KB` via `__qemu_min_stack_size__=0x1000`; that leaves more than `3x` headroom over the largest compiled frame (`1200B`) and more than `4x` over the current active HelloPerformance max frame (`976B`).
 - The latest rotated-text scratch cleanup trims `egui_canvas_draw_text_transform` from `2920B` to `760B` by moving layout/tile collectors to transient heap sized by the measured glyph and line count of the current string.
 - The visible alpha8 tile scratch, external font scanline row cache, visible-glyph bitmap scratch, and direct-draw glyph pixel scratch all remain heap-backed, which is the required placement for these font-size-related buffers.
 - The image resize / round-rect scratch cleanup still caps the modified image frames at `384B` (`egui_image_std_set_image_resize_rgb565_8_common`) and `328B` (`egui_image_std_set_image_resize_rgb565`); the former `PFB_WIDTH` / `PFB_HEIGHT` sized locals are gone.
