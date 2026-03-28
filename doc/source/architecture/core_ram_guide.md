@@ -37,26 +37,26 @@
 
 | 项目 | 当前值 | 说明 |
 | --- | ---: | --- |
-| `text` | `2168304B` | 代码和只读数据 |
+| `text` | `2165884B` | 代码和只读数据 |
 | `data` | `52B` | 已初始化静态 RAM |
-| `bss` | `3180B` | `llvm-size` 汇总值，包含链接脚本保留区 |
+| `bss` | `2924B` | `llvm-size` 汇总值，包含链接脚本保留区 |
 | `.bss` | `2152B` | 实际未初始化静态符号区 |
-| `._user_heap_stack` | `1028B` | 当前链接脚本保留区，不是 core 固定对象本身 |
+| `._user_heap_stack` | `772B` | 当前链接脚本保留区，不是 core 固定对象本身 |
 | 固定静态 RAM 小计 | `2204B` | `.data + .bss`，不含链接脚本保留区 |
 | Heap 峰值 | `9456B` | `QEMU_HEAP_MEASURE=1` 实测峰值 |
 | Heap 空闲 current | `0B` | 当前默认低 RAM 方案下，尺寸相关 scratch 最终都会释放 |
 | alloc/free | `8069 / 8069` | 完整录制流程结束后配平 |
 | 编译期最大栈帧 | `1200B` | `egui_view_heart_rate_on_draw()`，不在当前录制热路径 |
-| 当前活跃路径最大栈帧 | `824B` | `egui_canvas_draw_line_hq()` |
+| 当前活跃路径最大栈帧 | `760B` | `egui_canvas_draw_text_transform()` |
 
 说明：
 
-- `llvm-size` 的 `bss=3180B` 里包含了 `._user_heap_stack=1028B`，看总表时不要把它全部当成 core 固定静态 RAM。
+- `llvm-size` 的 `bss=2924B` 里包含了 `._user_heap_stack=772B`，看总表时不要把它全部当成 core 固定静态 RAM。
 - 从 core 固定对象角度看，当前真正长期常驻的 `.data + .bss` 只有 `2204B`。
 - 其中 `egui_pfb=1536B` 是当前应用配置下的 `PFB`，这是用户自己选择的空间换时间项，不应被当成框架裁剪成果。
 - `heap peak=9456B` 是运行时峰值，不是 idle 常驻占用；当前默认示例结束后 `current heap` 会回到 `0B`。
 - 如需继续追峰值归因，可在测量构建里额外打开 `QEMU_HEAP_TRACE_ACTIONS=1`，让 QEMU 按录制 action 输出 `HEAP_ACTION:<idx>:current/peak/allocs/frees`，默认关闭时不会改变当前 RAM 口径。
-- `HelloPerformance` 现在把 QEMU 链接脚本保留栈压到 `1KB`，所以静态 RAM headline 已反映这一调整。
+- `HelloPerformance` 现在把 QEMU 链接脚本保留栈压到 `768B`，所以静态 RAM headline 已反映这一调整。
 
 ## 静态 RAM 分布
 
@@ -169,9 +169,9 @@
 | `egui_view_heart_rate_on_draw()` | `1200B` | 否（仅编译进入，已被当前镜像 GC 丢弃） | 大局部数组热点；`output/main.map` 只在 `Discarded input sections` 中出现 |
 | `egui_view_virtual_tree_walk_internal()` | `1112B` | 否（仅编译进入，已被当前镜像 GC 丢弃） | 大局部 `frames[EGUI_VIEW_VIRTUAL_TREE_MAX_DEPTH]`；仅出现在 `Discarded input sections` |
 | `line_hq_draw_polyline_segment()` | `976B` | 否（仅编译进入，已被当前镜像 GC 丢弃） | polyline helper 没有链接进当前 HelloPerformance benchmark 镜像 |
-| `egui_canvas_draw_line_hq()` | `824B` | 是 | 当前最终链接镜像里的最大单函数栈帧 |
-| `egui_canvas_draw_text_transform()` | `760B` | 是 | 旋转文字 scratch 已迁到 heap 后显著下降 |
+| `egui_canvas_draw_text_transform()` | `760B` | 是 | 当前最终链接镜像里的最大单函数栈帧 |
 | `egui_canvas_draw_image_transform()` | `736B` | 是 | 外部 whole-image cache 探测已撤掉，保持默认低 RAM 路径 |
+| `egui_canvas_draw_line_hq()` | `288B` | 是 | 函数级 `optimize("Os")` 后由 `824B` 降到 `288B`，不再是当前 linked 栈热点 |
 
 栈侧规则：
 
@@ -180,8 +180,8 @@
 - 提交前建议至少对热路径跑一次 `-fstack-usage`，确认没有新的异常膨胀。
 
 - `Map` 交叉复核结果：`.su` 里的 `1200B`、`1112B`、`976B` 这三个大栈帧，在当前 HelloPerformance 镜像里都只出现在 `Discarded input sections`，并未进入最终链接结果。
-- 当前最终链接镜像里的最大单函数栈帧是 `egui_canvas_draw_line_hq (824B)`；最终镜像中已经没有 `>=1KB` 的链接热点。
-- HelloPerformance 现在使用 `__qemu_min_stack_size__=0x0400`，即 `1KB` QEMU 预留栈；这是当前经过完整 `cortex-m3` perf、运行时截图和单元测试复核后的最小已验证值。
+- 当前最终链接镜像里的最大单函数栈帧是 `egui_canvas_draw_text_transform (760B)`；`egui_canvas_draw_line_hq` 已降到 `288B`，最终镜像中仍然没有 `>=1KB` 的链接热点。
+- HelloPerformance 现在使用 `__qemu_min_stack_size__=0x0300`，即 `768B` QEMU 预留栈；这是当前经过完整 `cortex-m3` perf、运行时截图和单元测试复核后的最小已验证值。
 
 ## 建议的裁剪顺序
 

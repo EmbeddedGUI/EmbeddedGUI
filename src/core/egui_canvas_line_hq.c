@@ -299,7 +299,8 @@ static uint8_t line_hq_get_pixel_coverage_round_cap(int32_t rel_x, int32_t rel_y
 
 /* ========================== Line HQ ========================== */
 
-void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color, egui_alpha_t alpha)
+__attribute__((optimize("Os"))) void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width,
+                                                              egui_color_t color, egui_alpha_t alpha)
 {
     egui_canvas_t *self = &canvas_data;
 
