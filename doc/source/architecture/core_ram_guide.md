@@ -58,6 +58,7 @@
 - 如需继续追峰值归因，可在测量构建里额外打开 `QEMU_HEAP_TRACE_ACTIONS=1`，让 QEMU 按录制 action 输出 `HEAP_ACTION:<idx>:current/peak/allocs/frees`，默认关闭时不会改变当前 RAM 口径。
 - `HelloPerformance` 现在把 QEMU 链接脚本保留栈压到 `768B`，所以静态 RAM headline 已反映这一调整。
 - 当前正常 QEMU 构建口径是 `text=2160936`、`data=52`、`bss=2924`、`static RAM=2976`；这轮 external rotated-text `14` 行 chunk stream 只增加 `892B text`，不增加静态 RAM。
+- 当前默认 external raw-image shared row cache 也已收紧到 `2` 行上限：`EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES=960`、`EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES=480`。这不会改变 whole-run `9456B` headline，但会把 `240px` 外部 RGB565+alpha 场景的 scene-local heap 从旧的 `2880B` 压到 `1440B`，resize 场景则是 `1536B`。
 
 ## 静态 RAM 分布
 
@@ -139,6 +140,9 @@
 | `EXTERN_IMAGE_RLE_565_8` | `9360B` | 同上，外部 RLE alpha 场景 |
 | `EXTERN_TEXT_ROTATE_BUFFERED` | `4194B` | external rotated-text visible alpha8 tile cache + `14` 行 external glyph chunk scratch + transient layout/tile scratch |
 | `TEXT_ROTATE_BUFFERED` | `3984B` | rotated-text visible alpha8 tile cache + transient layout/tile scratch |
+| `EXTERN_IMAGE_RESIZE_565_8` | `1536B` | `2` 行 external shared RGB565+alpha row cache + resize `src_x_map` |
+| `EXTERN_IMAGE_565_8` | `1440B` | `2` 行 external shared RGB565+alpha row cache |
+| `EXTERN_IMAGE_ROTATE_565_8` | `1440B` | `2` 行 external transform-side shared RGB565+alpha row cache |
 
 补充说明：
 
@@ -149,6 +153,8 @@
 - buffered rotated-text 的可见 alpha8 ceiling 仍保持 `3072B`：此前从 `3648B` 压到 `3072B` 时，两条 text 热点都再降了 `576B`，同时仍满足 `>500B => 10%` 的性能线；再往下到 `2560B` 会越线。
 - 在这个 `3072B` ceiling 基础上，latest external rotated-text 又把 visible-tile external glyph scratch 从整 glyph heap block 改成 `14` 行 chunk stream，令 `EXTERN_TEXT_ROTATE_BUFFERED 4254B -> 4194B`，同时性能只从 `12.713ms` 变到 `12.885ms (+1.35%)`，满足更严格的 `<=500B => 5%` 线。
 - 当前 next-largest 的非 codec heap 热点仍是 `EXTERN_TEXT_ROTATE_BUFFERED`，但它现在只比内部路径多 `210B`，说明 external glyph scratch 的额外成本已经被压到较小尾差。
+- 当前默认 external raw-image 路径也已经强制遵守 `<=2` 行 / 列尺寸相关 heap 约束：shared row cache 从旧的 `1920/960` 收紧到 `960/480`，因此代表性 scene-local heap 变为 `EXTERN_IMAGE_565_8 1440B`、`EXTERN_IMAGE_RESIZE_565_8 1536B`、`EXTERN_IMAGE_ROTATE_565_8 1440B`。
+- 这一轮属于“按 RAM 规则收口”的默认低 RAM 路径，而不是 perf-neutral 优化：旧的 `4` 行 external raw-image 默认 cache 已经超出当前 HelloPerformance 上限，因此现在接受一部分外部原始图片场景变慢，最差实测为 `EXTERN_IMAGE_565_1 +13.11%`、`EXTERN_IMAGE_ROTATE_565_1 +12.56%`、`EXTERN_IMAGE_ROTATE_TILED_565_8 +12.26%`。
 - 只要收益不足阈值，就优先保 RAM：`<=500B` RAM 变化用 `5%` 线，`>500B` RAM 变化用 `10%` 线。
 - 如果后续还要继续压缩这一段 heap，手段就不能再是“简单缩 tail 列数”，而需要新的解码/渲染架构，例如改变 PFB walk 顺序，或引入更细粒度的 decoder checkpoint。
 

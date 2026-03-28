@@ -177,12 +177,16 @@ extern "C" {
 // reserving a persistent global slot in BSS.
 #define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE 0
 
-// HelloPerformance's dominant external image paths use 240px/120px RGB565
-// rows (480B/240B) plus matching alpha rows (240B/120B). Keeping the shared
-// external caches at 1920B/960B preserves the same 4-row/8-row chunking for
-// those hot scenes while trimming the unused tail from the default 2048B/1024B.
-#define EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES  1920
-#define EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES 960
+// HelloPerformance only accepts size-related external-image heap scratch up to
+// 2 image rows / columns. For the 240px RGB565+alpha hot scenes, cap the shared
+// row caches to exactly 2 rows: 960B data + 480B alpha. This stays within the
+// current RAM rule while still covering the 120px external cases in 4-row chunks.
+#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES
+#define EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES 960
+#endif
+#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES
+#define EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES 480
+#endif
 
 // HelloPerformance's shadow benchmarks use width=20 with radius 0/30. The
 // rounded-shadow path only needs about 51 d_sq buckets at the current shift,
