@@ -137,6 +137,19 @@ Same code, only toggle the row-band cache related overrides through `USER_CFLAGS
 - Measured compressed-image regressions with `row-cache off` include `IMAGE_TILED_QOI_565_0 1.232 -> 46.212 (+3651%)`, `IMAGE_QOI_565 12.271 -> 434.547 (+3441%)`, `EXTERN_IMAGE_QOI_565 18.747 -> 589.348 (+3044%)`, and `EXTERN_IMAGE_RLE_565 4.647 -> 91.420 (+1867%)`.
 - Across `44` QOI/RLE related benchmark cases, the average slowdown is `+1314.6%`, so this cache stays enabled by default even under the current heap-pressure goal.
 
+### Scene-Local Heap Hotspots
+
+Single-scene heap spot checks use `QEMU_HEAP_MEASURE=1`, `QEMU_HEAP_ACTIONS_APP_RECORDING=1`, `EGUI_CONFIG_RECORDING_TEST=1`, and `EGUI_TEST_CONFIG_SINGLE_TEST=<scene>`.
+
+| Scene | interaction total peak | alloc/free | Current big head |
+| --- | ---: | ---: | --- |
+| `TEXT_ROTATE_BUFFERED` | 7220 | `151 / 151` | Rotated-text visible alpha8 tile cache plus transient layout/tile scratch |
+| `IMAGE_QOI_565_8` | 11520 | `2 / 2` | Codec row-band pixel/alpha cache (`240 * 16 * (2 + 1)`) |
+
+- The current whole-run heap peak is effectively set by compressed alpha-image scenes, not by text scenes: `IMAGE_QOI_565_8` alone already reaches `11520B`, matching the dominant cache size.
+- The current next-largest verified hotspot is `TEXT_ROTATE_BUFFERED` at `7220B`; this is the main non-codec heap target left if later work wants to shrink scene-local peaks without touching compressed-image behavior first.
+- Because `TEXT_ROTATE_BUFFERED` stays well below the decode row-band peak, reducing text-only scratch will not lower the current full-run `11616B` headline unless the decode row-band cache policy also changes.
+
 ### Stack Measurement
 
 | Function | File | Frame (B) | Relevance | Notes |
