@@ -2380,7 +2380,7 @@ static void text_transform_external_glyph_scratch_release(text_transform_externa
     scratch->glyph_capacity = 0;
 }
 
-static int text_transform_measure_layout_max_row_bytes(const text_transform_layout_glyph_t *glyphs, int glyph_count, uint8_t bpp)
+static int text_transform_measure_tile_max_row_bytes(const text_transform_glyph_t *glyphs, int glyph_count)
 {
     int max_row_bytes = 0;
 
@@ -2391,11 +2391,9 @@ static int text_transform_measure_layout_max_row_bytes(const text_transform_layo
 
     for (int i = 0; i < glyph_count; i++)
     {
-        int row_bytes = packed_row_bytes(glyphs[i].box_w, bpp);
-
-        if (row_bytes > max_row_bytes)
+        if (glyphs[i].row_bytes > max_row_bytes)
         {
-            max_row_bytes = row_bytes;
+            max_row_bytes = glyphs[i].row_bytes;
         }
     }
 
@@ -4110,23 +4108,6 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     }
 #endif
 
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-    if (draw_font_is_external)
-    {
-        int max_external_row_bytes = text_transform_measure_layout_max_row_bytes(layout_glyphs, layout_count, bpp);
-
-        if (max_external_row_bytes > 0)
-        {
-            if (text_transform_external_glyph_row_cache_init(&external_row_cache, max_external_row_bytes) != 0)
-            {
-                EGUI_ASSERT(0);
-                goto cleanup;
-            }
-            external_row_cache_ready = 1;
-        }
-    }
-#endif
-
     /* Compute source bbox: inverse-map the 4 corners of the draw region */
     int32_t src_min_x = 0x7FFFFFFF, src_min_y = 0x7FFFFFFF;
     int32_t src_max_x = -0x7FFFFFFF, src_max_y = -0x7FFFFFFF;
@@ -4165,11 +4146,11 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     int16_t tile_src_x1 = 0;
     int16_t tile_src_y1 = 0;
     int tile_glyphs_overlap = 0;
+    int tile_count = 0;
     {
         int use_visible_alpha8_tile = (bpp == 4 && scale_q8 >= 256 &&
                                        (ctx.mask == NULL || (ctx.mask->api != NULL && ctx.mask->api->kind == EGUI_MASK_KIND_GRADIENT &&
                                                              ctx.mask->api->mask_blend_row_color != NULL)));
-        int tile_count;
 
         if (use_visible_alpha8_tile)
         {
@@ -4225,9 +4206,24 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
         {
             goto cleanup;
         }
-
-        (void)tile_count;
     }
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    if (draw_font_is_external)
+    {
+        int max_external_row_bytes = text_transform_measure_tile_max_row_bytes(tile_glyphs, tile_count);
+
+        if (max_external_row_bytes > 0)
+        {
+            if (text_transform_external_glyph_row_cache_init(&external_row_cache, max_external_row_bytes) != 0)
+            {
+                EGUI_ASSERT(0);
+                goto cleanup;
+            }
+            external_row_cache_ready = 1;
+        }
+    }
+#endif
 
     int hint = -1;
     int hint_line = -1;

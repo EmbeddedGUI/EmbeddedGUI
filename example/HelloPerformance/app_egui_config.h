@@ -223,10 +223,15 @@ extern "C" {
 // The rotated-text visible alpha8 tile size follows actual transformed glyph
 // bounds, so do not keep a fixed large stack buffer here. Let the existing
 // per-frame heap cache size itself dynamically and release at frame end.
-// Raising the alpha8 fast-path ceiling by 1KB keeps the buffered benchmark on
-// the faster alpha8 path without introducing large permanent RAM usage.
-#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 5120
+// Keep the alpha8 fast-path ceiling at the smallest value that stays within
+// the 5% perf budget for both buffered rotated-text scenes on HelloPerformance.
+#ifndef EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES
+#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 4160
+#endif
+
+#ifndef EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES
 #define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES 0
+#endif
 
 // External font row/glyph scratch follows actual glyph bitmap size now, so it
 // must stay on transient heap instead of macro-sized stack or static buffers.
