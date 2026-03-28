@@ -47,6 +47,10 @@ static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_W
 #define QEMU_HEAP_ACTIONS_APP_RECORDING 0
 #endif
 
+#ifndef QEMU_HEAP_TRACE_ACTIONS
+#define QEMU_HEAP_TRACE_ACTIONS 0
+#endif
+
 #if !QEMU_HEAP_MEASURE
 /* Flag set by benchmark code when all tests are done */
 volatile int g_qemu_perf_complete = 0;
@@ -191,6 +195,17 @@ static uint32_t qemu_run_heap_measure_actions(void)
     {
         qemu_run_for_ms((uint32_t)action.interval_ms);
         qemu_execute_action(&action);
+#if QEMU_HEAP_TRACE_ACTIONS
+        {
+            qemu_heap_stats_t action_stats = qemu_heap_capture_stats();
+            qemu_log_printf("HEAP_ACTION:%lu:current=%lu:peak=%lu:allocs=%lu:frees=%lu\n",
+                            (unsigned long)action_count,
+                            (unsigned long)action_stats.current,
+                            (unsigned long)action_stats.peak,
+                            (unsigned long)action_stats.allocs,
+                            (unsigned long)action_stats.frees);
+        }
+#endif
         action_count++;
     }
 

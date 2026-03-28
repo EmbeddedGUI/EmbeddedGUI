@@ -55,6 +55,7 @@
 - 从 core 固定对象角度看，当前真正长期常驻的 `.data + .bss` 只有 `2204B`。
 - 其中 `egui_pfb=1536B` 是当前应用配置下的 `PFB`，这是用户自己选择的空间换时间项，不应被当成框架裁剪成果。
 - `heap peak=9456B` 是运行时峰值，不是 idle 常驻占用；当前默认示例结束后 `current heap` 会回到 `0B`。
+- 如需继续追峰值归因，可在测量构建里额外打开 `QEMU_HEAP_TRACE_ACTIONS=1`，让 QEMU 按录制 action 输出 `HEAP_ACTION:<idx>:current/peak/allocs/frees`，默认关闭时不会改变当前 RAM 口径。
 - `HelloPerformance` 现在把 QEMU 链接脚本保留栈压到 `1KB`，所以静态 RAM headline 已反映这一调整。
 
 ## 静态 RAM 分布
@@ -227,6 +228,13 @@ Heap 观测：
 ```bash
 make clean
 make all APP=HelloPerformance PORT=qemu CPU_ARCH=cortex-m3 USER_CFLAGS="-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1"
+```
+
+按 action 追踪 heap 峰值归因：
+
+```bash
+make clean
+make all APP=HelloPerformance PORT=qemu CPU_ARCH=cortex-m3 USER_CFLAGS="-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DQEMU_HEAP_TRACE_ACTIONS=1 -DEGUI_CONFIG_RECORDING_TEST=1"
 ```
 
 Stack 观测：

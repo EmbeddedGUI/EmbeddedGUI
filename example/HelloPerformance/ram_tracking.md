@@ -17,6 +17,7 @@
 - Heap numbers use the QEMU measurement build:
   - `make clean`
   - `make all APP=HelloPerformance PORT=qemu CPU_ARCH=cortex-m3 USER_CFLAGS="-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1"`
+  - add `-DQEMU_HEAP_TRACE_ACTIONS=1` when action-level heap attribution is needed
   - `Copy-Item example\HelloPerformance\resource\app_egui_resource_merge.bin output\app_egui_resource_merge.bin -Force`
   - `qemu-system-arm ... -kernel output/main.elf`
 - Stack numbers use the QEMU stack-usage build:
@@ -74,6 +75,7 @@
 | 2026-03-28 | Cut HelloPerformance QEMU reserved stack to 2KB | 2168304 | 52 | 4204 | 4256 | 0 / 9456 | 1200 | `static RAM -512B`; app-specific linker override drops `__qemu_min_stack_size__ 0x0a00 -> 0x0800`, so `._user_heap_stack 2564 -> 2052` while compiled stack frames stay unchanged and the measured heap peak stays `9456B`; verified in a clean worktree with runtime `223/223` and unit test `649/649` |
 | 2026-03-28 | Cut HelloPerformance QEMU reserved stack to 1.5KB | 2168304 | 52 | 3692 | 3744 | 0 / 9456 | 1200 | `static RAM -512B`; app-specific linker override drops `__qemu_min_stack_size__ 0x0800 -> 0x0600`, so `._user_heap_stack 2052 -> 1540` while compiled stack frames stay unchanged and the measured heap peak stays `9456B`; verified in a clean worktree with runtime `223/223` and unit test `649/649` |
 | 2026-03-29 | Cut HelloPerformance QEMU reserved stack to 1KB | 2168304 | 52 | 3180 | 3232 | 0 / 9456 | 824 | `static RAM -512B`; app-specific linker override drops `__qemu_min_stack_size__ 0x0600 -> 0x0400`, so `._user_heap_stack 1540 -> 1028` while the real fixed `.bss` stays `2152B`. `output/main.map` cross-check shows the former `1200B` / `1112B` / `976B` frames live only in discarded input sections for this app image, leaving `egui_canvas_draw_line_hq (824B)` as the largest linked frame. `python scripts/code_runtime_check.py --app HelloPerformance --keep-screenshots` passed `223/223`, `HelloUnitTest` passed `649/649`, and `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5` PASSED. |
+| 2026-03-29 | Add optional QEMU heap action trace for HelloPerformance analysis | 2168304 | 52 | 3180 | 3232 | 0 / 9456 | 824 | `default RAM unchanged`; `QEMU_HEAP_TRACE_ACTIONS=1` now emits per-recording-action `HEAP_ACTION:<idx>:current/peak/allocs/frees` telemetry for heap-measure builds, without affecting normal builds when left at `0`. This is only analysis tooling for chasing the remaining `9456B` heap peak; the shipped low-RAM path, static RAM headline, and current linked stack peak remain unchanged. |
 
 ## Current Breakdown
 
@@ -132,6 +134,7 @@
 | `QEMU_HEAP_MEASURE=1` | 0 | 0 | 0 | 9456 | 0 | 9456 | 222 |
 
 - Heap log contains `HEAP_EXIT`.
+- Add `QEMU_HEAP_TRACE_ACTIONS=1` to the measurement build when action-level attribution is needed; QEMU will then also print `HEAP_ACTION:<index>:current=<...>:peak=<...>:allocs=<...>:frees=<...>` after each recorded action, while the default `0` keeps normal RAM/perf builds unchanged.
 - Interaction alloc/free count is `8069 / 8069`; the measured heap peak is now the low-RAM codec tail-row cache plus the existing rotated-text / image-resize / circle-mask scratch, while all size-related buffers still release back to `0B` current heap after the recording.
 - The latest codec scratch split drops the whole-run heap peak from `10032B` to `9456B`: rotated-text layout/tile scratch, image resize scratch, circle-mask scratch, and the visible alpha8 tile all stay heap-backed by actual runtime size, and the dominant compressed-image path now keeps only a visible-width first-tile scratch on top of the tail-row cache policy.
 - The buffered rotated-text alpha8 fast-path ceiling now stays at `3072B`: trimming `3648 -> 3072` saves another `576B` in both buffered rotated-text hotspots (`TEXT_ROTATE_BUFFERED 4560 -> 3984`, `EXTERN_TEXT_ROTATE_BUFFERED 4830 -> 4254`) while keeping perf within the `>500B => 10%` rule (`+8.79%` / `+7.76%`); the next `2560B` step is rejected because `TEXT_ROTATE_BUFFERED` reaches `+10.6%`.
