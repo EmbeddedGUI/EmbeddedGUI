@@ -67,6 +67,7 @@
 | 2026-03-28 | Add HelloPerformance low-RAM codec tail row-cache mode | 2163080 | 52 | 10348 | 10400 | 0 / 10032 | 1200 | `heap peak 11616 -> 10032 (-1584B)`, `static RAM +8B`, `egui_image_decode_cache_state 8 -> 12`; `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE=1` keeps row-cache enabled but stores only later-tile tail columns for QOI/RLE alpha scenes, compressed-image hot cases stay within the `10%` perf budget for `>500B` RAM savings (worst verified case `IMAGE_RLE_565_8 +8.35%`), scene-local heap for `IMAGE_QOI_565_8` / `EXTERN_IMAGE_QOI_565_8` / `IMAGE_RLE_565_8` / `EXTERN_IMAGE_RLE_565_8` drops to `9936B`, runtime `223/223`, unit test `649/649`, `python scripts/code_perf_check.py --profile cortex-m3 --threshold 10` PASSED |
 | 2026-03-28 | Cut HelloPerformance QEMU reserved stack to 4KB | 2163080 | 52 | 6252 | 6304 | 0 / 10032 | 1200 | `static RAM -4096B`; app-specific linker override drops `__qemu_min_stack_size__ 0x2000 -> 0x1000`, so `._user_heap_stack 8196 -> 4100` while compiled stack frames stay unchanged and the measured heap peak stays `10032B`; `python scripts/code_runtime_check.py --app HelloPerformance --keep-screenshots` passed `223/223`, unit test `649/649` passed |
 | 2026-03-28 | Remove HelloPerformance external whole-image HQ cache path | 2163080 | 52 | 6252 | 6304 | 0 / 10032 | 1200 | Revert the transform-side probe added for external whole-image persistent cache and drop the app-local override knob. New policy: HelloPerformance does not accept whole-image-size resident heap, even as an opt-in HQ path. Keep the default low-RAM row-cache path only; larger variants must still stay within `1 * PFB` or `2` rows/columns of image/screen-sized scratch |
+| 2026-03-28 | Shrink HelloPerformance codec first-tile scratch width | 2168304 | 52 | 6252 | 6304 | 0 / 9456 | 1200 | `static RAM unchanged`; QOI/RLE now split the first visible tile decode so the transient scratch only covers the visible segment while later tiles still reuse the tail-row cache. Whole-run heap `10032 -> 9456 (-576B)`, compressed alpha scene-local heap `9936 -> 9360`, verified perf stays within the `>500B => 10%` rule (`IMAGE_QOI_565_8 +0.36%`, `EXTERN_IMAGE_QOI_565_8 +1.98%`, `IMAGE_RLE_565_8 +2.83%`, `EXTERN_IMAGE_RLE_565_8 +1.97%`), runtime `223/223`, unit test `649/649`, `python scripts/code_perf_check.py --profile cortex-m3 --threshold 10` PASSED |
 
 ## Current Breakdown
 
@@ -90,7 +91,7 @@
 | `s_qemu_resource_handle` | `.data` | 4 | External resource semihosting handle |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
-- Current normal QEMU build: `text=2163080`, `data=52`, `bss=6252`, `static RAM=6304`.
+- Current normal QEMU build: `text=2168304`, `data=52`, `bss=6252`, `static RAM=6304`.
 - Section split from `llvm-size -A`: `.bss=2152`, `._user_heap_stack=4100`.
 - `HelloPerformance` now overrides the QEMU linker reserve with `__qemu_min_stack_size__=0x1000`, so the reported static RAM headline reflects a 4KB stack budget instead of the port default 8KB.
 - The latest rotated-text perf restore adds only fixed metadata: `g_text_transform_prepare_cache (60B)` plus `s_dim_font/s_dim_string/s_dim_w/s_dim_h (12B)`; both are tiny caches and do not scale with font size, image size, screen size, or `PFB` size.
@@ -100,7 +101,8 @@
 - The single-row decode pixel/opaque-alpha scratch also no longer occupies fixed `.bss`; it is now allocated per frame from heap because `EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH` follows screen width in the default config, and the required bytes follow pixel format / alpha row width.
 - There is no longer any decode row scratch parked in fixed SRAM between frames; the remaining static decode footprint is only metadata such as `qoi_state`, `rle_state`, and `egui_image_decode_cache_state`.
 - The animation benchmark helper no longer parks `anim_perf_view`, `anim_perf_interp`, or an init flag in fixed SRAM; each animation scene now uses a tiny local context and releases it with the draw call.
-- `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE=1` is the current HelloPerformance low-RAM codec mode: the first visible tile decodes through transient full-row heap scratch, then only the later-tile tail columns remain in the row-band cache.
+- `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE=1` is the current HelloPerformance low-RAM codec mode: the first visible tile decodes through transient visible-width heap scratch, then only the later-tile tail columns remain in the row-band cache.
+- The current default codec path no longer allocates a full-width first-tile scratch row: QOI/RLE now decode the visible span directly into transient scratch sized by `count`, then copy only the later-tile tail window into the row-band cache.
 - The decode row-band metadata no longer stores an unused `row_count`; the current `12B` tracks `image_info`, `row_band_start`, `cache_col_start`, `cache_col_count`, and cache mode, which is the only fixed-RAM cost of the tail-row cache policy.
 - The codec single-row pixel scratch no longer keeps a second persistent heap handle/capacity pair when row-band cache is enabled; it now borrows the same row-cache pixel buffer and invalidates any previous cache tag before reuse.
 - Under the current HelloPerformance decode bounds (`single-row <= 480B`, `row-cache pixel <= 7680B`, `row-cache alpha <= 3840B`), the remaining decode capacity metadata also compacts from 32-bit to 16-bit counters.
@@ -121,18 +123,18 @@
 
 | Build | idle current | idle peak | interaction delta current | interaction delta peak | interaction total current | interaction total peak | action count |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `QEMU_HEAP_MEASURE=1` | 0 | 0 | 0 | 10032 | 0 | 10032 | 222 |
+| `QEMU_HEAP_MEASURE=1` | 0 | 0 | 0 | 9456 | 0 | 9456 | 222 |
 
 - Heap log contains `HEAP_EXIT`.
 - Interaction alloc/free count is `8069 / 8069`; the measured heap peak is now the low-RAM codec tail-row cache plus the existing rotated-text / image-resize / circle-mask scratch, while all size-related buffers still release back to `0B` current heap after the recording.
-- This round drops the whole-run heap peak to `10032B`: rotated-text layout/tile scratch, image resize scratch, circle-mask scratch, and the visible alpha8 tile all stay heap-backed by actual runtime size, but the dominant compressed-image peak now uses the tail-row cache policy instead of keeping a full-width cached row band.
+- The latest codec scratch split drops the whole-run heap peak from `10032B` to `9456B`: rotated-text layout/tile scratch, image resize scratch, circle-mask scratch, and the visible alpha8 tile all stay heap-backed by actual runtime size, and the dominant compressed-image path now keeps only a visible-width first-tile scratch on top of the tail-row cache policy.
 - The buffered rotated-text alpha8 fast-path ceiling now stays at `4160B`: measured A/B runs showed `4096B` regresses `TEXT_ROTATE_BUFFERED 9.151 -> 9.736 (+6.4%)` and `EXTERN_TEXT_ROTATE_BUFFERED 10.511 -> 11.095 (+5.6%)`, while `4160B` keeps them at `9.548` and `10.906`, both within the `<=500B` small-change `5%` perf budget.
 - The new rotated-text scratch is owned by `egui_canvas_draw_text_transform()`, allocated as two transient blocks after measuring the current string layout, and released at `cleanup`; it does not stay resident at idle.
 - Relative to the pre-rotated-text-heap baseline (`5683 / 5683`), the current draw path still uses more transient alloc/free traffic (`8069 / 8069`), but the active text scenes stay within the `<=500B` small-change `5%` perf threshold and all size-related buffers still return to `0B` current heap at idle.
 - The new image-size / `PFB`-size scratch does not stay resident after rendering; resize `src_x_map` and round-rect fast row cache are allocated per draw call and released immediately after use. If a later change keeps them persistent to reduce alloc/free count, it must be listed here with explicit bytes and lifetime.
 - The circle-mask frame scratch is owned by the active `egui_mask_circle_t`, sized `3 * EGUI_CONFIG_PFB_HEIGHT * sizeof(egui_dim_t) = 96B` at the current `240x240 / PFB_HEIGHT=16` config, allocated on first row use within the frame, and released by `egui_mask_circle_release_frame_cache()` at frame end; it does not stay resident at idle.
-- The low-RAM codec mode is owned by `egui_image_qoi_draw_image()` / `egui_image_rle_draw_image()`: the first visible tile allocates transient full-row pixel and alpha scratch, then copies only the remaining tail columns into the row-band cache for later tiles, and frees the transient full-row scratch at `cleanup`.
-- Because this round saves `1584B` peak heap, the active perf gate follows the `>500B => 10%` rule; the verified compressed-image hot cases stay within that line, with the worst measured regression at `IMAGE_RLE_565_8 1.401 -> 1.518 (+8.35%)`.
+- The low-RAM codec mode is owned by `egui_image_qoi_draw_image()` / `egui_image_rle_draw_image()`: the first visible tile allocates transient pixel and alpha scratch only for the visible segment, then copies only the remaining tail columns into the row-band cache for later tiles, and frees the transient scratch at `cleanup`.
+- The latest split-scratch refinement saves another `576B` peak heap, so the active perf gate still follows the `>500B => 10%` rule; the verified compressed-image hot cases stay well within that line, with the worst measured regression at `IMAGE_RLE_565_8 1.518 -> 1.561 (+2.83%)` versus the prior low-RAM tail-row-cache baseline.
 - The measured heap build reaches the former `.bss` cache footprint only while decode-heavy or rotated-text scenes are active, and releases it back to `0B` at idle.
 - External image draw/transform now stays on the existing row-cache path only. Whole-image resident cache is no longer accepted on HelloPerformance, because it violates the project rule against image-sized resident heap.
 
@@ -146,7 +148,7 @@ Historical A/B data from the full-width row-cache study baseline on 2026-03-28, 
 | Experiment (`row-cache off`) | 2154296 | 44 | 13236 | 13280 | 7520 | Heap peak `-4096B`, but static RAM `+2888B` and QOI/RLE scenes collapse |
 
 - The default HelloPerformance config now keeps the row-cache related macros overridable via `USER_CFLAGS` only for measurement; default behavior and default RAM numbers remain unchanged.
-- The current default keeps row-cache enabled and additionally turns on `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE=1`, which lowers the enabled-cache whole-run heap headline from `11616B` to `10032B` without reverting to the catastrophic `row-cache off` behavior.
+- The current default keeps row-cache enabled and additionally turns on `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE=1`, which lowers the enabled-cache whole-run heap headline from `11616B` to `9456B` after the later first-tile scratch split, without reverting to the catastrophic `row-cache off` behavior.
 - Turning row-band cache off saves `4096B` peak heap in the measurement build, but it is not an acceptable tradeoff because the compressed-image fast path depends on this cache.
 - Measured compressed-image regressions with `row-cache off` include `IMAGE_TILED_QOI_565_0 1.232 -> 46.212 (+3651%)`, `IMAGE_QOI_565 12.271 -> 434.547 (+3441%)`, `EXTERN_IMAGE_QOI_565 18.747 -> 589.348 (+3044%)`, and `EXTERN_IMAGE_RLE_565 4.647 -> 91.420 (+1867%)`.
 - Across `44` QOI/RLE related benchmark cases, the average slowdown is `+1314.6%`, so this cache stays enabled by default even under the current heap-pressure goal.
@@ -157,15 +159,15 @@ Single-scene heap spot checks use `QEMU_HEAP_MEASURE=1`, `QEMU_HEAP_ACTIONS_APP_
 
 | Scene | interaction total peak | alloc/free | Current big head |
 | --- | ---: | ---: | --- |
-| `IMAGE_QOI_565_8` | 9936 | `32 / 32` | Low-RAM codec tail-row cache plus transient full-row scratch for the first visible tile |
-| `EXTERN_IMAGE_QOI_565_8` | 9936 | `32 / 32` | Same tail-row cache pattern as internal QOI alpha scene |
-| `IMAGE_RLE_565_8` | 9936 | `32 / 32` | Same tail-row cache pattern as internal RLE alpha scene |
-| `EXTERN_IMAGE_RLE_565_8` | 9936 | `32 / 32` | Same tail-row cache pattern as external RLE alpha scene |
+| `IMAGE_QOI_565_8` | 9360 | `32 / 32` | Low-RAM codec tail-row cache plus visible-width scratch for the first visible tile |
+| `EXTERN_IMAGE_QOI_565_8` | 9360 | `32 / 32` | Same tail-row cache pattern as internal QOI alpha scene |
+| `IMAGE_RLE_565_8` | 9360 | `32 / 32` | Same tail-row cache pattern as internal RLE alpha scene |
+| `EXTERN_IMAGE_RLE_565_8` | 9360 | `32 / 32` | Same tail-row cache pattern as external RLE alpha scene |
 | `EXTERN_TEXT_ROTATE_BUFFERED` | 5342 | `214 / 214` | External rotated-text visible alpha8 tile cache plus transient layout/tile scratch |
 | `TEXT_ROTATE_BUFFERED` | 5072 | `151 / 151` | Rotated-text visible alpha8 tile cache plus transient layout/tile scratch |
 
-- The current whole-run heap peak is still set by compressed alpha-image scenes, not by text scenes: the verified QOI/RLE alpha hot cases now sit at `9936B`, which is still well above the text scenes.
-- The latest codec tail-row cache round trims the dominant compressed-image scene-local peak from `11520B` to `9936B`, and the full-run headline from `11616B` to `10032B`.
+- The current whole-run heap peak is still set by compressed alpha-image scenes, not by text scenes: the verified QOI/RLE alpha hot cases now sit at `9360B`, which is still well above the text scenes.
+- The latest codec scratch split trims the dominant compressed-image scene-local peak from `9936B` to `9360B`, and the full-run headline from `10032B` to `9456B`.
 - The latest buffered-text round trims `TEXT_ROTATE_BUFFERED` further from `6032B` to `5072B` by tightening the visible-alpha8 heap ceiling from `5120B` to `4160B`.
 - The current next-largest verified non-codec hotspot is now `EXTERN_TEXT_ROTATE_BUFFERED` at `5342B`; the extra `270B` above the internal path is the remaining external glyph row-cache cost after delaying its allocation until fallback is actually needed.
 - Even after cutting both buffered text scenes below `5.5KB`, the dominant heap headline is still controlled by compressed-image row caching rather than text.
@@ -215,7 +217,7 @@ The earlier external whole-image resident-cache experiments are now explicitly r
 - The image resize / round-rect scratch cleanup still caps the modified image frames at `384B` (`egui_image_std_set_image_resize_rgb565_8_common`) and `328B` (`egui_image_std_set_image_resize_rgb565`); the former `PFB_WIDTH` / `PFB_HEIGHT` sized locals are gone.
 - Removing the rejected whole-image cache hook keeps `egui_canvas_draw_image_transform` at `736B`, still below the active `976B` stack hotspot line.
 - The circle-mask row-cache cleanup still keeps the modified benchmark entry frames at only `72B` (`egui_view_test_performance_test_mask_rect_fill_circle`) and `64B` (`egui_view_test_performance_test_mask_image_circle`, `egui_view_test_performance_test_mask_image_test_perf_circle`, `egui_view_test_performance_test_extern_mask_image_circle`, `egui_view_test_performance_test_extern_mask_image_test_perf_circle`).
-- The decode heap path still does not introduce a new stack hotspot: `egui_image_qoi_draw_image` is `272B`, `egui_image_rle_draw_image` is `368B`, `egui_image_qoi_blend_cached_rows` is `168B`, `egui_image_rle_blend_cached_rows` is `160B`, and `egui_image_decode_cache_set_row_band` is `24B`.
+- The latest codec split-scratch refinement still does not introduce a new stack hotspot: `egui_image_qoi_draw_image` is `272B`, `egui_image_rle_draw_image` is `376B`, `egui_image_rle_decompress_row_split` is `176B`, `egui_image_qoi_blend_cached_rows` is `168B`, `egui_image_rle_blend_cached_rows` is `160B`, `egui_image_qoi_decode_row_rgb565_split` is `32B`, and `egui_image_decode_cache_set_row_band` is `24B`.
 - The latest round keeps the user-configurable `pfb` pixel buffer unchanged and moves pressure from stack to transient heap instead of fixed static RAM.
 
 ### RLE Checkpoint A/B

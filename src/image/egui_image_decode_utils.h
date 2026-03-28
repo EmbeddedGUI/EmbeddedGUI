@@ -14,6 +14,10 @@ void egui_image_decode_release_frame_cache(void);
 
 #if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE || EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
 
+#ifndef EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS
+#define EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS 0
+#endif
+
 /* Shared row decode buffers.
  * Pixel buffer: EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE bytes.
  * With row-band cache enabled, the single-row pixel scratch borrows the same
@@ -46,6 +50,17 @@ extern uint8_t *egui_image_decode_row_cache_alpha;
 
 int egui_image_decode_cache_prepare_bytes(uint32_t pixel_bytes, uint32_t alpha_bytes);
 int egui_image_decode_cache_prepare_rows(uint16_t img_width, uint16_t row_count, uint8_t bytes_per_pixel, uint16_t alpha_row_bytes);
+
+static inline uint16_t egui_image_decode_limit_tail_cache_cols(uint16_t cache_col_count)
+{
+#if EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS > 0
+    if (cache_col_count > EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS)
+    {
+        return EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS;
+    }
+#endif
+    return cache_col_count;
+}
 
 typedef enum
 {

@@ -37,13 +37,13 @@
 
 | 项目 | 当前值 | 说明 |
 | --- | ---: | --- |
-| `text` | `2163080B` | 代码和只读数据 |
+| `text` | `2168304B` | 代码和只读数据 |
 | `data` | `52B` | 已初始化静态 RAM |
 | `bss` | `6252B` | `llvm-size` 汇总值，包含链接脚本保留区 |
 | `.bss` | `2152B` | 实际未初始化静态符号区 |
 | `._user_heap_stack` | `4100B` | 当前链接脚本保留区，不是 core 固定对象本身 |
 | 固定静态 RAM 小计 | `2204B` | `.data + .bss`，不含链接脚本保留区 |
-| Heap 峰值 | `10032B` | `QEMU_HEAP_MEASURE=1` 实测峰值 |
+| Heap 峰值 | `9456B` | `QEMU_HEAP_MEASURE=1` 实测峰值 |
 | Heap 空闲 current | `0B` | 当前默认低 RAM 方案下，尺寸相关 scratch 最终都会释放 |
 | alloc/free | `8069 / 8069` | 完整录制流程结束后配平 |
 | 编译期最大栈帧 | `1200B` | `egui_view_heart_rate_on_draw()`，不在当前录制热路径 |
@@ -54,7 +54,7 @@
 - `llvm-size` 的 `bss=6252B` 里包含了 `._user_heap_stack=4100B`，看总表时不要把它全部当成 core 固定静态 RAM。
 - 从 core 固定对象角度看，当前真正长期常驻的 `.data + .bss` 只有 `2204B`。
 - 其中 `egui_pfb=1536B` 是当前应用配置下的 `PFB`，这是用户自己选择的空间换时间项，不应被当成框架裁剪成果。
-- `heap peak=10032B` 是运行时峰值，不是 idle 常驻占用；当前默认示例结束后 `current heap` 会回到 `0B`。
+- `heap peak=9456B` 是运行时峰值，不是 idle 常驻占用；当前默认示例结束后 `current heap` 会回到 `0B`。
 - `HelloPerformance` 现在把 QEMU 链接脚本保留栈压到 `4KB`，所以静态 RAM headline 已反映这一调整。
 
 ## 静态 RAM 分布
@@ -114,13 +114,13 @@
 
 ## 当前 Heap 分布
 
-当前默认示例的 heap 以短生命周期 scratch 为主，峰值 `10032B`，空闲 `current` 回到 `0B`。
+当前默认示例的 heap 以短生命周期 scratch 为主，峰值 `9456B`，空闲 `current` 回到 `0B`。
 
 ### 默认低 RAM 路径的大头
 
 | 类型 | 典型 owner | 特征 | 备注 |
 | --- | --- | --- | --- |
-| 压缩图 tail-row cache | `egui_image_qoi_draw_image()` / `egui_image_rle_draw_image()` | 当前默认 heap 峰值主因 | 首个 tile 用全宽瞬时 scratch，后续只保留横向 tail 列 |
+| 压缩图 tail-row cache | `egui_image_qoi_draw_image()` / `egui_image_rle_draw_image()` | 当前默认 heap 峰值主因 | 首个 tile 只为可见段申请瞬时 scratch，后续只保留横向 tail 列 |
 | rotated text scratch | `egui_canvas_draw_text_transform()` | 随文本布局结果变化 | 已改为按 glyph/line 数动态申请 |
 | 图片 resize / round-rect scratch | `egui_image_std_*` | 随绘制宽度、图片高度、`PFB_HEIGHT` 变化 | 用完立即释放 |
 | circle mask frame scratch | `egui_mask_circle_*` | 随 `PFB_HEIGHT` 变化 | 帧结束释放 |
@@ -130,10 +130,10 @@
 
 | 场景 | interaction total peak | 说明 |
 | --- | ---: | --- |
-| `IMAGE_QOI_565_8` | `9936B` | 低 RAM codec tail-row cache + 首个 tile 的瞬时全行 scratch |
-| `EXTERN_IMAGE_QOI_565_8` | `9936B` | 同上，外部 QOI alpha 场景 |
-| `IMAGE_RLE_565_8` | `9936B` | 同上，内部 RLE alpha 场景 |
-| `EXTERN_IMAGE_RLE_565_8` | `9936B` | 同上，外部 RLE alpha 场景 |
+| `IMAGE_QOI_565_8` | `9360B` | 低 RAM codec tail-row cache + 首个 tile 的可见段瞬时 scratch |
+| `EXTERN_IMAGE_QOI_565_8` | `9360B` | 同上，外部 QOI alpha 场景 |
+| `IMAGE_RLE_565_8` | `9360B` | 同上，内部 RLE alpha 场景 |
+| `EXTERN_IMAGE_RLE_565_8` | `9360B` | 同上，外部 RLE alpha 场景 |
 | `EXTERN_TEXT_ROTATE_BUFFERED` | `5342B` | external rotated-text visible alpha8 tile cache + transient layout/tile scratch |
 | `TEXT_ROTATE_BUFFERED` | `5072B` | rotated-text visible alpha8 tile cache + transient layout/tile scratch |
 
@@ -241,5 +241,5 @@ make all APP=HelloPerformance PORT=qemu CPU_ARCH=cortex-m3 USER_CFLAGS="-fstack-
 
 - 固定静态 RAM 已经比较小，当前示例真正常驻的 `.data + .bss` 为 `2204B`，其中 `PFB` 就占了 `1536B`。
 - 需要跟随字体、图片、屏幕、`PFB` 尺寸变化的 buffer，必须继续保持 `heap` 化，不能为了追求“heap=0”回退到静态区或大栈。
-- 当前默认 heap 峰值 `10032B` 主要来自运行时 scratch，空间可回到 `0B`；若后续引入常驻 heap，必须明确记录 owner、lifetime、bytes。
+- 当前默认 heap 峰值 `9456B` 主要来自运行时 scratch，空间可回到 `0B`；若后续引入常驻 heap，必须明确记录 owner、lifetime、bytes。
 - 对于高性能变体，也只能在 `1 * PFB` 或 `2` 行 / 列尺寸相关 heap 的约束内做选择，不能回到 whole-image cache。
