@@ -232,9 +232,10 @@ extern "C" {
 // bounds, so do not keep a fixed large stack buffer here. Let the existing
 // per-frame heap cache size itself dynamically and release at frame end.
 // Keep the alpha8 fast-path ceiling at the smallest value that stays within
-// the 5% perf budget for both buffered rotated-text scenes on HelloPerformance.
+// the >500B RAM-change 10% perf budget for both buffered rotated-text scenes
+// on HelloPerformance.
 #ifndef EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES
-#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 4160
+#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 3648
 #endif
 
 #ifndef EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES
