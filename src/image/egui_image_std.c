@@ -1648,33 +1648,17 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_seg
         const egui_circle_info_t *info;
         const egui_circle_item_t *items;
         egui_dim_t row_index;
-        egui_dim_t center_x = circle_mask->center_x;
-        egui_dim_t radius = circle_mask->radius;
+        egui_dim_t center_x;
+        egui_dim_t radius;
         egui_dim_t screen_x_end = screen_x + count;
 
-        if (screen_y == circle_mask->point_cached_y)
+        if (!egui_mask_circle_prepare_row(circle_mask, screen_y, &row_index, NULL, NULL))
         {
-            if (!circle_mask->point_cached_row_valid)
-            {
-                return;
-            }
-            row_index = circle_mask->point_cached_row_index;
-        }
-        else
-        {
-            egui_dim_t dy = (screen_y > circle_mask->center_y) ? (screen_y - circle_mask->center_y) : (circle_mask->center_y - screen_y);
-            if (dy > radius)
-            {
-                circle_mask->point_cached_y = screen_y;
-                circle_mask->point_cached_row_valid = 0;
-                return;
-            }
-            row_index = radius - dy;
-            circle_mask->point_cached_y = screen_y;
-            circle_mask->point_cached_row_index = row_index;
-            circle_mask->point_cached_row_valid = 1;
+            return;
         }
 
+        center_x = circle_mask->center_x;
+        radius = circle_mask->radius;
         info = circle_mask->info;
         items = (info != NULL) ? (const egui_circle_item_t *)info->items : NULL;
 
@@ -1955,90 +1939,10 @@ void egui_image_std_blend_rgb565_alpha8_masked_row(egui_canvas_t *canvas, egui_c
 #endif
 }
 
-__EGUI_STATIC_INLINE__ void egui_image_std_refresh_circle_mask_fast_cache(egui_mask_circle_t *circle_mask)
-{
-    egui_mask_t *mask = (egui_mask_t *)circle_mask;
-
-    if (circle_mask->cached_x == mask->region.location.x && circle_mask->cached_y == mask->region.location.y &&
-        circle_mask->cached_width == mask->region.size.width && circle_mask->cached_height == mask->region.size.height)
-    {
-        return;
-    }
-
-    circle_mask->cached_x = mask->region.location.x;
-    circle_mask->cached_y = mask->region.location.y;
-    circle_mask->cached_width = mask->region.size.width;
-    circle_mask->cached_height = mask->region.size.height;
-    circle_mask->cached_x_end = mask->region.location.x + mask->region.size.width;
-    circle_mask->cached_y_end = mask->region.location.y + mask->region.size.height;
-    circle_mask->center_x = mask->region.location.x + (mask->region.size.width >> 1);
-    circle_mask->center_y = mask->region.location.y + (mask->region.size.height >> 1);
-    circle_mask->radius = EGUI_MIN(mask->region.size.width, mask->region.size.height);
-    circle_mask->radius = (circle_mask->radius >> 1) - 1;
-    if (circle_mask->radius < 0)
-    {
-        circle_mask->radius = 0;
-    }
-    circle_mask->info = egui_canvas_get_circle_item(circle_mask->radius);
-    circle_mask->point_cached_y = -32768;
-    circle_mask->point_cached_row_index = 0;
-    circle_mask->point_cached_row_valid = 0;
-
-    for (egui_dim_t i = 0; i < EGUI_CONFIG_PFB_HEIGHT; i++)
-    {
-        circle_mask->row_cache_y[i] = -32768;
-    }
-}
-
 __EGUI_STATIC_INLINE__ int egui_image_std_prepare_circle_mask_row_fast(egui_mask_circle_t *circle_mask, egui_dim_t screen_y, egui_dim_t *row_index,
                                                                        egui_dim_t *visible_half, egui_dim_t *opaque_boundary)
 {
-    egui_dim_t dy;
-    egui_dim_t current_row_index;
-    egui_dim_t current_visible_half;
-    egui_dim_t current_opaque_boundary;
-    egui_dim_t row_cache_slot;
-
-    egui_image_std_refresh_circle_mask_fast_cache(circle_mask);
-
-    if (screen_y < circle_mask->center_y - circle_mask->radius || screen_y > circle_mask->center_y + circle_mask->radius)
-    {
-        return 0;
-    }
-
-    dy = (screen_y < circle_mask->center_y) ? (circle_mask->center_y - screen_y) : (screen_y - circle_mask->center_y);
-    current_row_index = circle_mask->radius - dy;
-    row_cache_slot = ((uint16_t)screen_y) % EGUI_CONFIG_PFB_HEIGHT;
-
-    if (circle_mask->row_cache_y[row_cache_slot] == screen_y)
-    {
-        current_visible_half = circle_mask->row_cache_visible_half[row_cache_slot];
-        current_opaque_boundary = circle_mask->row_cache_opaque_boundary[row_cache_slot];
-    }
-    else
-    {
-        egui_mask_circle_get_row_metrics(circle_mask->radius, current_row_index, &current_visible_half, &current_opaque_boundary);
-        circle_mask->row_cache_y[row_cache_slot] = screen_y;
-        circle_mask->row_cache_visible_half[row_cache_slot] = current_visible_half;
-        circle_mask->row_cache_opaque_boundary[row_cache_slot] = current_opaque_boundary;
-    }
-
-    if (row_index != NULL)
-    {
-        *row_index = current_row_index;
-    }
-
-    if (visible_half != NULL)
-    {
-        *visible_half = current_visible_half;
-    }
-
-    if (opaque_boundary != NULL)
-    {
-        *opaque_boundary = current_opaque_boundary;
-    }
-
-    return 1;
+    return egui_mask_circle_prepare_row(circle_mask, screen_y, row_index, visible_half, opaque_boundary);
 }
 
 __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_circle_masked_left_segment_fixed_row(egui_color_int_t *dst_row, const uint16_t *src_row,
@@ -2583,7 +2487,6 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_circle_masked_map
     egui_dim_t screen_x_end = screen_x + count;
     egui_dim_t visible_half;
     egui_dim_t opaque_boundary;
-    egui_dim_t row_cache_slot = ((uint16_t)screen_y) % EGUI_CONFIG_PFB_HEIGHT;
     egui_dim_t seg_start;
     egui_dim_t seg_end;
     egui_dim_t opaque_start;
@@ -2594,17 +2497,9 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_circle_masked_map
         return;
     }
 
-    if (circle_mask->row_cache_y[row_cache_slot] == screen_y)
+    if (!egui_mask_circle_prepare_row(circle_mask, screen_y, NULL, &visible_half, &opaque_boundary))
     {
-        visible_half = circle_mask->row_cache_visible_half[row_cache_slot];
-        opaque_boundary = circle_mask->row_cache_opaque_boundary[row_cache_slot];
-    }
-    else
-    {
-        egui_mask_circle_get_row_metrics(radius, row_index, &visible_half, &opaque_boundary);
-        circle_mask->row_cache_y[row_cache_slot] = screen_y;
-        circle_mask->row_cache_visible_half[row_cache_slot] = visible_half;
-        circle_mask->row_cache_opaque_boundary[row_cache_slot] = opaque_boundary;
+        return;
     }
 
     seg_start = EGUI_MAX(screen_x, center_x - visible_half);

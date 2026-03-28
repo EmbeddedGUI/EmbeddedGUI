@@ -55,6 +55,7 @@
 | 2026-03-28 | Localize HelloPerformance external font desc scratch | 2162420 | 48 | 10256 | 10304 | 0 / 11520 | 2936 | `static RAM -16B`, `text +100B`; removed persistent `g_selected_char_desc`, runtime screenshots stay `223/223` with `changed=0` vs `0ed8fdb`, heap peak stays `11520B`, stack peak stays `2936B`, `python scripts/code_perf_check.py --profile cortex-m3` PASSED |
 | 2026-03-28 | Move HelloPerformance external font row/glyph scratch to transient heap | 2162436 | 48 | 10256 | 10304 | 0 / 11520 | 2920 | `text +16B`, static RAM unchanged; external text transform row cache, visible-tile glyph bitmap scratch, and direct external glyph pixel scratch now follow actual glyph size on heap and free after use, runtime screenshots stay `223/223` with `changed=0` vs `e8d5ef8`, heap peak stays `11520B` with alloc/free `716 / 716`, stack peak `2936 -> 2920`, `python scripts/code_perf_check.py --profile cortex-m3` PASSED |
 | 2026-03-28 | Move HelloPerformance image resize and round-rect scratch to transient heap | 2160520 | 48 | 10256 | 10304 | 0 / 11616 | 2920 | `text -1916B`, static RAM unchanged; resize `src_x_map` and round-rect fast row cache now follow actual draw width / tile height on heap and free after use, runtime screenshots stay `223/223` with `changed=0` vs `e8d5ef8`, heap peak `11520 -> 11616`, alloc/free `716 / 716 -> 5666 / 5666`, `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5` PASSED |
+| 2026-03-28 | Move HelloPerformance circle mask row cache to frame heap | 2159800 | 48 | 10272 | 10320 | 0 / 11616 | 2920 | `text -720B`, `static RAM +16B`; circle-mask `PFB_HEIGHT` row cache moves from `egui_mask_circle_t` to frame heap scratch (`3 * EGUI_CONFIG_PFB_HEIGHT * sizeof(egui_dim_t) = 96B` at current config) and releases at frame end, runtime screenshots stay `223/223` with `changed=0` vs `04cc338`, heap peak stays `11616B` with alloc/free `5683 / 5683`, `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5` PASSED |
 
 ## Current Breakdown
 
@@ -69,6 +70,7 @@
 | `canvas_data` | `.bss` | 32 | Canvas runtime state; HelloPerformance compiles out extra clip/spec-circle metadata |
 | `ui_timer` | `.bss` | 20 | App timer state |
 | `port_display_driver` | `.data` | 16 | QEMU display driver state |
+| `g_egui_mask_circle_frame_row_cache` | `.bss` | 16 | Circle-mask frame-cache metadata only; the `PFB_HEIGHT` row scratch itself is heap-backed and released at frame end |
 | `rle_state` | `.bss` | 16 | Remaining RLE decoder state |
 | `g_font_std_code_lookup_cache` | `.data` | 12 | Font lookup cache |
 | `egui_image_decode_cache_state` | `.data` | 8 | Decode cache metadata; dropped unused `row_count` field |
@@ -76,7 +78,9 @@
 | `s_qemu_resource_handle` | `.data` | 4 | External resource semihosting handle |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
-- Current normal QEMU build: `text=2160520`, `data=48`, `bss=10256`, `static RAM=10304`.
+- Current normal QEMU build: `text=2159800`, `data=48`, `bss=10272`, `static RAM=10320`.
+- Section split from `llvm-size -A`: `.bss=2080`, `._user_heap_stack=8192`.
+- The only new fixed RAM in this round is `g_egui_mask_circle_frame_row_cache (16B)` metadata; the former `3 * PFB_HEIGHT * sizeof(egui_dim_t)` circle row arrays no longer live inside `egui_mask_circle_t`.
 - The codec row-band pixel/alpha cache no longer occupies fixed `.bss`; it is now allocated per frame from heap because its required size follows active image width, alpha format, and `PFB` row-band height.
 - The single-row decode pixel/opaque-alpha scratch also no longer occupies fixed `.bss`; it is now allocated per frame from heap because `EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH` follows screen width in the default config, and the required bytes follow pixel format / alpha row width.
 - There is no longer any decode row scratch parked in fixed SRAM between frames; the remaining static decode footprint is only metadata such as `qoi_state`, `rle_state`, and `egui_image_decode_cache_state`.
@@ -94,7 +98,8 @@
 - With `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE=0`, HelloPerformance no longer keeps persistent text-layout fallback pointers/capacities in fixed SRAM; the rotated-text benchmarks stay on the existing bounded stack layout path, and exceeding that bound now asserts instead of retaining a dead heap fallback.
 - HelloPerformance no longer keeps macro-sized external font row/glyph/pixel scratch on stack; external text transform now allocates a two-row scanline cache and visible-glyph bitmap scratch by actual glyph dimensions on heap, and direct external font drawing reuses a per-call heap scratch sized by the loaded glyph bitmap.
 - HelloPerformance no longer keeps `PFB_WIDTH`-sized resize maps or `PFB_HEIGHT`-sized round-rect row caches on stack; image resize and round-rect fast paths now allocate those buffers from heap by current draw width / tile height and release them immediately after use.
-- There is still no size-related heap that stays resident at idle for external text or image resize; the new font/image scratch buffers are allocated only inside the active draw call and return to `0B` current heap after the recording finishes.
+- HelloPerformance no longer keeps `PFB_HEIGHT`-sized circle-mask row caches inside mask objects; the active circle mask now borrows a frame-local heap scratch shared by the current `egui_mask_circle_t`, because the required bytes follow tile height.
+- There is still no size-related heap that stays resident at idle for external text, image resize, or circle mask; the new font/image/circle scratch buffers are allocated only inside the active draw or frame walk and return to `0B` current heap after the recording finishes.
 
 ### Heap Measurement
 
@@ -103,8 +108,8 @@
 | `QEMU_HEAP_MEASURE=1` | 0 | 0 | 0 | 11616 | 0 | 11616 | 222 |
 
 - Heap log contains `HEAP_EXIT`.
-- Interaction alloc/free count is `5666 / 5666`; the measured heap peak is now the transient codec row-band decode cache plus rotated-text / image-resize scratch, while all new size-related buffers still release back to `0B` current heap after the recording.
-- This round intentionally allows `heap peak = 11616B` because the dominant row-band cache, rotated-text scratch, and the new image resize scratch all follow image width, glyph bounds, or `PFB` tile size; per the RAM rule, these size-related buffers must stay heap-backed instead of returning to fixed `.bss` or large stack locals.
+- Interaction alloc/free count is `5683 / 5683`; the measured heap peak is still the transient codec row-band decode cache plus rotated-text / image-resize / circle-mask scratch, while all new size-related buffers still release back to `0B` current heap after the recording.
+- This round intentionally allows `heap peak = 11616B` because the dominant row-band cache, rotated-text scratch, image resize scratch, and circle-mask row scratch all follow image width, glyph bounds, or `PFB` tile size; per the RAM rule, these size-related buffers must stay heap-backed instead of returning to fixed `.bss` or large stack locals.
 - Moving the single-row decode scratch to heap still does not dominate the measured peak; that row-sized demand stays below the existing decode-heavy peak window.
 - Localizing the animation benchmark context does not change heap usage; the view/interpolator are small fixed-size temporaries and stay on stack.
 - Packing the QOI row cursor, removing decode-cache dead metadata, trimming core/root-group/canvas metadata, and compiling out normal-build QEMU heap counters only shrink fixed RAM metadata; the current heap-measure build still returns to `0B` current heap at idle.
@@ -113,6 +118,7 @@
 - The latest external-font scratch cleanup keeps those font-size-related buffers transient on heap instead of stack/static RAM.
 - The latest image resize / round-rect scratch cleanup raises the measured heap peak only `+96B` (`11520 -> 11616`), but removes `PFB_WIDTH` / `PFB_HEIGHT` sized locals from the active image paths.
 - The new image-size / `PFB`-size scratch does not stay resident after rendering; resize `src_x_map` and round-rect fast row cache are allocated per draw call and released immediately after use. If a later change keeps them persistent to reduce alloc/free count, it must be listed here with explicit bytes and lifetime.
+- The new circle-mask frame scratch is owned by the active `egui_mask_circle_t`, sized `3 * EGUI_CONFIG_PFB_HEIGHT * sizeof(egui_dim_t) = 96B` at the current `240x240 / PFB_HEIGHT=16` config, allocated on first row use within the frame, and released by `egui_mask_circle_release_frame_cache()` at frame end; it does not stay resident at idle.
 - The measured heap build now reaches the former `.bss` cache footprint only while the decode-heavy scenes are active, and releases it back to `0B` at idle.
 
 ### Stack Measurement
@@ -120,7 +126,7 @@
 | Function | File | Frame (B) | Relevance | Notes |
 | --- | --- | ---: | --- | --- |
 | `egui_canvas_draw_text_transform` | `src/core/egui_canvas_transform.c` | 2920 | HelloPerformance rotated-text runtime path | Current max frame after external row cache also moves to heap; rotated-text size-dependent scratch now follows actual glyph bounds instead of fixed stack arrays |
-| `text_transform_draw_visible_alpha8_tile_layout` | `src/core/egui_canvas_transform.c` | 104 | HelloPerformance rotated-text helper | Former `4352B` stack scratch removed; visible alpha8 tile now allocates from heap according to actual transformed bounds |
+| `text_transform_draw_visible_alpha8_tile_layout` | `src/core/egui_canvas_transform.c` | 128 | HelloPerformance rotated-text helper | Former `4352B` stack scratch removed; visible alpha8 tile now allocates from heap according to actual transformed bounds |
 | `text_transform_rasterize_visible_alpha8_layout` | `src/core/egui_canvas_transform.c` | 96 | HelloPerformance external rotated-text visible-tile helper | External glyph bitmap scratch moved from local arrays to transient heap sized by visible glyph bitmap bytes |
 | `egui_font_std_draw_single_char_desc_external_stream` | `src/font/egui_font_std.c` | 88 | HelloPerformance external font draw path | Removed former `pixel_buf[256]`; full glyph bitmap now loads into heap scratch, reused by `fast_4` / `fast_4_mask` string draw calls |
 | `egui_image_std_set_image_resize_rgb565_8_common` | `src/image/egui_image_std.c` | 384 | HelloPerformance image resize + alpha path | Former `src_x_map[EGUI_CONFIG_PFB_WIDTH]` now uses heap; active frame is scalar-only plus small state |
@@ -154,6 +160,7 @@
 - The latest external-font desc scratch cleanup also keeps stack flat; moving the external font descriptor scratch out of `.bss` only raises small caller frames to `24B` (`egui_font_std_prepare_draw_prefix_cache`), `88B` (`text_transform_build_layout` / `egui_font_std_get_str_size`), `144B` (`egui_font_std_draw_string`), `184B` (`egui_font_std_draw_string_fast_4_mask`), and `232B` (`egui_font_std_draw_string_fast_4`), while the max frame remains `2920B`.
 - The latest external-font row/glyph scratch cleanup further trims active frames to `2920B` (`egui_canvas_draw_text_transform`), `232B` (`egui_font_std_draw_string_fast_4`), `184B` (`egui_font_std_draw_string_fast_4_mask`), `96B` (`text_transform_rasterize_visible_alpha8_layout`), `88B` (`egui_font_std_draw_single_char_desc_external_stream`), `56B` (`rasterize_external_glyph4_to_packed_inside_common`), and `48B` (`rasterize_external_glyph4_to_alpha8_inside_common`) by removing font-size-related local arrays.
 - The latest image resize / round-rect scratch cleanup caps the modified image frames at `384B` (`egui_image_std_set_image_resize_rgb565_8_common`), `360B` (`egui_image_std_set_image_rgb565_8`), `328B` (`egui_image_std_set_image_resize_rgb565`), and `280B` (`egui_image_std_set_image_rgb565`); the former `PFB_WIDTH` / `PFB_HEIGHT` sized locals are gone.
+- The latest circle-mask row-cache cleanup keeps the modified benchmark entry frames at only `72B` (`egui_view_test_performance_test_mask_rect_fill_circle`) and `64B` (`egui_view_test_performance_test_mask_image_circle`, `egui_view_test_performance_test_mask_image_test_perf_circle`, `egui_view_test_performance_test_extern_mask_image_circle`, `egui_view_test_performance_test_extern_mask_image_test_perf_circle`); the `PFB_HEIGHT`-related row arrays now live in transient frame heap instead of fixed object storage or large locals.
 - The earlier rectangle-gradient round shrank the fixed `color_cache` in `egui_canvas_draw_rectangle_fill_gradient` from `256` to `129` entries; measured `792B -> 528B`, while `GRADIENT_RADIAL` improved from `7.080 ms` to `6.727 ms` and `GRADIENT_ANGULAR` improved from `7.427 ms` to `6.914 ms`. PC runtime check frames `frame_0120.png` and `frame_0121.png` show the radial/angular rectangle gradients remain visually correct.
 - Current `HelloPerformance` non-text heads are `line_hq_draw_polyline_segment (976B)`, `egui_canvas_draw_line_hq (824B)`, `egui_canvas_draw_circle_fill_gradient (752B)`, `egui_canvas_draw_line_round_cap_hq (744B)`, `egui_canvas_draw_image_transform (736B)`, `egui_canvas_draw_polygon_fill_gradient (720B)`, `egui_canvas_draw_polygon_fill (712B)`, `egui_shadow_draw_corner (664B)`, `egui_canvas_draw_triangle_fill_gradient (544B)`, `egui_canvas_draw_ellipse_fill_gradient (544B)`, and `egui_canvas_draw_rectangle_fill_gradient (528B)`.
 - Current compiled frames `>= 1KB` are `2920`, `1200`, and `1112`; only `2920` belongs to an active HelloPerformance runtime path.

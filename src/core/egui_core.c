@@ -20,6 +20,7 @@
 #include "resource/egui_resource.h"
 #include "font/egui_font_std.h"
 #include "image/egui_image_std.h"
+#include "mask/egui_mask_circle.h"
 #include "widget/egui_view.h"
 #include "widget/egui_view_label.h"
 #include "background/egui_background_color.h"
@@ -958,6 +959,8 @@ void egui_polling_refresh_display(void)
     egui_canvas_transform_release_frame_cache();
     /* External row caches only need to persist while the current refresh walk spans multiple PFB tiles. */
     egui_image_std_release_frame_cache();
+    /* Circle-mask row cache follows PFB height and only needs to persist within the current frame walk. */
+    egui_mask_circle_release_frame_cache();
     /* External font scratch buffers only need to persist while the current refresh walk spans multiple PFB tiles. */
     egui_font_std_release_frame_cache();
 
