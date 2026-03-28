@@ -72,6 +72,7 @@
 | 2026-03-28 | Trim HelloPerformance buffered-text alpha8 ceiling to 3072B | 2168304 | 52 | 6252 | 6304 | 0 / 9456 | 1200 | `text/static RAM unchanged`; default `EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES` trims `3648 -> 3072`, whole-run heap peak still stays `9456B` because compressed-image row-cache dominates, but `TEXT_ROTATE_BUFFERED 4560 -> 3984 (-576B)` and `EXTERN_TEXT_ROTATE_BUFFERED 4830 -> 4254 (-576B)`; verified perf stays within the `>500B => 10%` rule (`TEXT_ROTATE_BUFFERED 10.481 -> 11.402 (+8.79%)`, `EXTERN_TEXT_ROTATE_BUFFERED 11.837 -> 12.756 (+7.76%)`), runtime `223/223`, unit test `649/649`; `2560B` is rejected because `TEXT_ROTATE_BUFFERED` rises to `11.596ms (+10.6%)` |
 | 2026-03-28 | Cut HelloPerformance QEMU reserved stack to 2.5KB | 2168304 | 52 | 4716 | 4768 | 0 / 9456 | 1200 | `static RAM -1536B`; app-specific linker override drops `__qemu_min_stack_size__ 0x1000 -> 0x0a00`, so `._user_heap_stack 4100 -> 2564` while compiled stack frames stay unchanged and the measured heap peak stays `9456B`; verified in a clean worktree with runtime `223/223` and unit test `649/649` |
 | 2026-03-28 | Cut HelloPerformance QEMU reserved stack to 2KB | 2168304 | 52 | 4204 | 4256 | 0 / 9456 | 1200 | `static RAM -512B`; app-specific linker override drops `__qemu_min_stack_size__ 0x0a00 -> 0x0800`, so `._user_heap_stack 2564 -> 2052` while compiled stack frames stay unchanged and the measured heap peak stays `9456B`; verified in a clean worktree with runtime `223/223` and unit test `649/649` |
+| 2026-03-28 | Cut HelloPerformance QEMU reserved stack to 1.5KB | 2168304 | 52 | 3692 | 3744 | 0 / 9456 | 1200 | `static RAM -512B`; app-specific linker override drops `__qemu_min_stack_size__ 0x0800 -> 0x0600`, so `._user_heap_stack 2052 -> 1540` while compiled stack frames stay unchanged and the measured heap peak stays `9456B`; verified in a clean worktree with runtime `223/223` and unit test `649/649` |
 
 ## Current Breakdown
 
@@ -95,9 +96,9 @@
 | `s_qemu_resource_handle` | `.data` | 4 | External resource semihosting handle |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
-- Current normal QEMU build: `text=2168304`, `data=52`, `bss=4204`, `static RAM=4256`.
-- Section split from `llvm-size -A`: `.bss=2152`, `._user_heap_stack=2052`.
-- `HelloPerformance` now overrides the QEMU linker reserve with `__qemu_min_stack_size__=0x0800`, so the reported static RAM headline reflects a 2KB stack budget instead of the port default 8KB.
+- Current normal QEMU build: `text=2168304`, `data=52`, `bss=3692`, `static RAM=3744`.
+- Section split from `llvm-size -A`: `.bss=2152`, `._user_heap_stack=1540`.
+- `HelloPerformance` now overrides the QEMU linker reserve with `__qemu_min_stack_size__=0x0600`, so the reported static RAM headline reflects a 1.5KB stack budget instead of the port default 8KB.
 - The latest rotated-text perf restore adds only fixed metadata: `g_text_transform_prepare_cache (60B)` plus `s_dim_font/s_dim_string/s_dim_w/s_dim_h (12B)`; both are tiny caches and do not scale with font size, image size, screen size, or `PFB` size.
 - `g_text_transform_visible_tile_cache` still only stores the `8B` heap handle/capacity pair; the visible alpha8 tile itself remains heap-backed, and HelloPerformance now keeps the reuse ceiling at `3072B`: the old `4096B` option was not worth its tiny `64B` saving under the `<=500B => 5%` rule, `2560B` now crosses the `>500B => 10%` line, and `3072B` is the smallest verified point that still keeps both buffered rotated-text scenes within budget.
 - The circle-mask fixed RAM from the prior round is still only `g_egui_mask_circle_frame_row_cache (16B)` metadata; the former `3 * PFB_HEIGHT * sizeof(egui_dim_t)` circle row arrays no longer live inside `egui_mask_circle_t`.
@@ -215,7 +216,7 @@ The earlier external whole-image resident-cache experiments are now explicitly r
 
 - Current compiled frames `>= 1KB` are only `1200` and `1112`, and both belong to framework code that is not exercised by the current HelloPerformance recording path.
 - Current active HelloPerformance max frame is `line_hq_draw_polyline_segment (976B)`; there is no active runtime path `>= 1KB` after this round.
-- The HelloPerformance QEMU linker reserve is now `2KB` via `__qemu_min_stack_size__=0x0800`; that still leaves about `1.7x` headroom over the largest compiled frame (`1200B`) and about `2.1x` over the current active HelloPerformance max frame (`976B`).
+- The HelloPerformance QEMU linker reserve is now `1.5KB` via `__qemu_min_stack_size__=0x0600`; that still leaves about `1.3x` headroom over the largest compiled frame (`1200B`) and about `1.6x` over the current active HelloPerformance max frame (`976B`).
 - The latest rotated-text scratch cleanup trims `egui_canvas_draw_text_transform` from `2920B` to `760B` by moving layout/tile collectors to transient heap sized by the measured glyph and line count of the current string.
 - The visible alpha8 tile scratch, external font scanline row cache, visible-glyph bitmap scratch, and direct-draw glyph pixel scratch all remain heap-backed, which is the required placement for these font-size-related buffers.
 - The image resize / round-rect scratch cleanup still caps the modified image frames at `384B` (`egui_image_std_set_image_resize_rgb565_8_common`) and `328B` (`egui_image_std_set_image_resize_rgb565`); the former `PFB_WIDTH` / `PFB_HEIGHT` sized locals are gone.
