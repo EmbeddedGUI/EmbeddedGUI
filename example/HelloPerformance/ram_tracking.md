@@ -66,6 +66,7 @@
 | 2026-03-28 | Add HelloPerformance low-RAM codec tail row-cache mode | 2163080 | 52 | 10348 | 10400 | 0 / 10032 | 1200 | `heap peak 11616 -> 10032 (-1584B)`, `static RAM +8B`, `egui_image_decode_cache_state 8 -> 12`; `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE=1` keeps row-cache enabled but stores only later-tile tail columns for QOI/RLE alpha scenes, compressed-image hot cases stay within the `10%` perf budget for `>500B` RAM savings (worst verified case `IMAGE_RLE_565_8 +8.35%`), scene-local heap for `IMAGE_QOI_565_8` / `EXTERN_IMAGE_QOI_565_8` / `IMAGE_RLE_565_8` / `EXTERN_IMAGE_RLE_565_8` drops to `9936B`, runtime `223/223`, unit test `649/649`, `python scripts/code_perf_check.py --profile cortex-m3 --threshold 10` PASSED |
 | 2026-03-28 | Cut HelloPerformance QEMU reserved stack to 4KB | 2163080 | 52 | 6252 | 6304 | 0 / 10032 | 1200 | `static RAM -4096B`; app-specific linker override drops `__qemu_min_stack_size__ 0x2000 -> 0x1000`, so `._user_heap_stack 8196 -> 4100` while compiled stack frames stay unchanged and the measured heap peak stays `10032B`; `python scripts/code_runtime_check.py --app HelloPerformance --keep-screenshots` passed `223/223`, unit test `649/649` passed |
 | 2026-03-28 | Let HelloPerformance external image transform reuse the full-image persistent cache | 2163120 | 52 | 6252 | 6304 | 0 / 10032 | 1200 | Default low-RAM build stays effectively unchanged (`text +40B`, static RAM unchanged, `egui_canvas_draw_image_transform 736 -> 744B`). The new path only matters when a performance/HQ build overrides `EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES`: with `50000B`, `EXTERN_IMAGE_ROTATE_565_8 15.616 -> 4.921 (-68.5%, 3.17x faster)` while `EXTERN_IMAGE_RESIZE_565_8 1.941 -> 1.780 (-8.3%)`, so keep the default at `0` and record this as an opt-in HQ path only. The HQ scene-local resident heap is `43200B` (`120x120 RGB565 + alpha8`) with `idle/peak current=43200B`, alloc/free `2 / 0` |
+| 2026-03-28 | Document HelloPerformance external tiled-rotate HQ cache A/B | 2163120 | 52 | 6252 | 6304 | 0 / 10032 | 1200 | No default code change. With `EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES=5000`, `EXTERN_IMAGE_ROTATE_TILED_565_0 10.540 -> 5.132 (-51.3%, 2.05x)` and `EXTERN_IMAGE_ROTATE_TILED_565_8 15.720 -> 6.545 (-58.4%, 2.40x)` now qualify as separate opt-in HQ paths, with resident heap `3200B` and `4800B`; `EXTERN_IMAGE_TILED_565_8 3.627 -> 3.181 (-12.3%)` and `EXTERN_IMAGE_RESIZE_TILED_565_8 3.320 -> 3.201 (-3.6%)` do not justify the same cache story |
 
 ## Current Breakdown
 
@@ -92,7 +93,7 @@
 - Current normal QEMU build: `text=2163120`, `data=52`, `bss=6252`, `static RAM=6304`.
 - Section split from `llvm-size -A`: `.bss=2152`, `._user_heap_stack=4100`.
 - `HelloPerformance` now overrides the QEMU linker reserve with `__qemu_min_stack_size__=0x1000`, so the reported static RAM headline reflects a 4KB stack budget instead of the port default 8KB.
-- `EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES` now has an app-local default of `0`, keeping the low-RAM build on the existing external row-cache path. Opt-in HQ builds can override it when a measured `>=2x` win justifies keeping a size-following external image cache resident on heap.
+- `EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES` now has an app-local default of `0`, keeping the low-RAM build on the existing external row-cache path. Opt-in HQ builds can override it when a measured `>=2x` win justifies keeping a size-following external image cache resident on heap: `5000B` is enough for the current `40x40` tiled rotate sources (`3200B` opaque / `4800B` alpha8), while `50000B` covers the `120x120` alpha transform source (`43200B`).
 - The latest rotated-text perf restore adds only fixed metadata: `g_text_transform_prepare_cache (60B)` plus `s_dim_font/s_dim_string/s_dim_w/s_dim_h (12B)`; both are tiny caches and do not scale with font size, image size, screen size, or `PFB` size.
 - `g_text_transform_visible_tile_cache` still only stores the `8B` heap handle/capacity pair; the visible alpha8 tile itself remains heap-backed, and HelloPerformance now keeps the reuse ceiling at `4160B` because `4096B` exceeded the `<=500B` small-change `5%` perf budget for buffered rotated text while `4160B` stayed within it.
 - The circle-mask fixed RAM from the prior round is still only `g_egui_mask_circle_frame_row_cache (16B)` metadata; the former `3 * PFB_HEIGHT * sizeof(egui_dim_t)` circle row arrays no longer live inside `egui_mask_circle_t`.
@@ -170,17 +171,32 @@ Single-scene heap spot checks use `QEMU_HEAP_MEASURE=1`, `QEMU_HEAP_ACTIONS_APP_
 - The current next-largest verified non-codec hotspot is now `EXTERN_TEXT_ROTATE_BUFFERED` at `5342B`; the extra `270B` above the internal path is the remaining external glyph row-cache cost after delaying its allocation until fallback is actually needed.
 - Even after cutting both buffered text scenes below `5.5KB`, the dominant heap headline is still controlled by compressed-image row caching rather than text.
 
-### Opt-in HQ External Transform Cache
+### Opt-in HQ External Persistent Cache
 
-Single-scene A/B below uses `EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES=50000` so the `120x120 RGB565 + alpha8` external source (`43200B`) can stay resident on heap across refreshes.
+Single-scene A/B below uses app-local `EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES` overrides. Keep the default at `0`; only HQ/perf builds should opt in after a measured `>=2x` win justifies the resident heap.
+
+#### 120x120 source (`cache_max_bytes=50000`)
 
 | Scene | low-RAM default (ms) | HQ cache (ms) | Delta | HQ heap current/peak | Verdict |
 | --- | ---: | ---: | ---: | ---: | --- |
 | `EXTERN_IMAGE_ROTATE_565_8` | 15.616 | 4.921 | `-68.5%` | `43200 / 43200` | Worth keeping as an opt-in HQ path (`3.17x`) |
 | `EXTERN_IMAGE_RESIZE_565_8` | 1.941 | 1.780 | `-8.3%` | same cache | Not enough to justify a separate HQ story by itself |
 
-- The HQ cache allocates exactly two resident heap blocks for the current benchmark source: `28800B` RGB565 data plus `14400B` alpha8.
-- Because the cache persists after the first draw, the QEMU heap-measure build reports `idle_current=43200`, `idle_peak=43200`, alloc/free `2 / 0` for the single-scene run.
+- The `120x120` alpha source keeps exactly two resident heap blocks: `28800B` RGB565 data plus `14400B` alpha8.
+- Because the cache persists after the first draw, the heap-measure build reports `idle_current=43200`, `idle_peak=43200`, alloc/free `2 / 0` for this single-scene run.
+
+#### 40x40 tiled source (`cache_max_bytes=5000`)
+
+| Scene | low-RAM default (ms) | HQ cache (ms) | Delta | HQ heap current/peak | Verdict |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `EXTERN_IMAGE_ROTATE_TILED_565_0` | 10.540 | 5.132 | `-51.3%` | `3200 / 3200` | Worth keeping as an opt-in HQ path (`2.05x`) |
+| `EXTERN_IMAGE_ROTATE_TILED_565_8` | 15.720 | 6.545 | `-58.4%` | `4800 / 4800` | Worth keeping as an opt-in HQ path (`2.40x`) |
+| `EXTERN_IMAGE_TILED_565_8` | 3.627 | 3.181 | `-12.3%` | same `4800B` alpha cache | Not enough to justify resident heap |
+| `EXTERN_IMAGE_RESIZE_TILED_565_8` | 3.320 | 3.201 | `-3.6%` | same `4800B` alpha cache | Not enough to justify resident heap |
+
+- The `40x40` opaque scene keeps one resident `RGB565` block: `40 * 40 * 2 = 3200B`.
+- The `40x40` alpha scene keeps two resident blocks: `3200B` RGB565 plus `1600B` alpha8 = `4800B`.
+- Heap-measure runs report `interaction_total_current/peak=3200`, alloc/free `1 / 0` for `EXTERN_IMAGE_ROTATE_TILED_565_0`, and `interaction_total_current/peak=4800`, alloc/free `2 / 0` for `EXTERN_IMAGE_ROTATE_TILED_565_8`.
 - This cache remains off in the default HelloPerformance build. Users only opt in when they explicitly want the higher-performance external transform path and accept the resident heap cost.
 
 ### Stack Measurement
