@@ -40,6 +40,10 @@ const uint8_t egui_image_alpha_type_size_table[] = {
 #endif
 #endif
 
+#ifndef EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE
+#define EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE 0
+#endif
+
 int egui_image_std_get_linear_src_x_segment(const egui_dim_t *src_x_map, egui_dim_t start, egui_dim_t end, egui_dim_t *src_x_start)
 {
     if (src_x_start == NULL || start >= end)
@@ -3284,26 +3288,12 @@ __EGUI_STATIC_INLINE__ void egui_image_std_round_rect_fast_cache_invalidate(egui
 
 __EGUI_STATIC_INLINE__ int egui_image_std_round_rect_fast_cache_init(egui_image_std_round_rect_fast_cache_t *cache, egui_dim_t row_cache_capacity)
 {
-    egui_dim_t capacity = row_cache_capacity > 0 ? row_cache_capacity : 1;
-    egui_dim_t *rows;
-
     if (cache == NULL)
     {
         return 0;
     }
 
     memset(cache, 0, sizeof(*cache));
-
-    rows = (egui_dim_t *)egui_malloc((int)((uint32_t)capacity * 3U * sizeof(egui_dim_t)));
-    if (rows == NULL)
-    {
-        return 0;
-    }
-
-    cache->row_cache_y = rows;
-    cache->row_cache_visible_boundary = rows + capacity;
-    cache->row_cache_opaque_boundary = rows + capacity * 2;
-    cache->row_cache_capacity = capacity;
     cache->mask = NULL;
     cache->cached_x = -1;
     cache->cached_y = -1;
@@ -3311,6 +3301,22 @@ __EGUI_STATIC_INLINE__ int egui_image_std_round_rect_fast_cache_init(egui_image_
     cache->cached_height = -1;
     cache->cached_radius = -1;
     cache->info = NULL;
+#if EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE
+    {
+        egui_dim_t capacity = row_cache_capacity > 0 ? row_cache_capacity : 1;
+        egui_dim_t *rows = (egui_dim_t *)egui_malloc((int)((uint32_t)capacity * 3U * sizeof(egui_dim_t)));
+
+        if (rows == NULL)
+        {
+            return 0;
+        }
+
+        cache->row_cache_y = rows;
+        cache->row_cache_visible_boundary = rows + capacity;
+        cache->row_cache_opaque_boundary = rows + capacity * 2;
+        cache->row_cache_capacity = capacity;
+    }
+#endif
     egui_image_std_round_rect_fast_cache_invalidate(cache);
     return 1;
 }
@@ -3322,10 +3328,12 @@ __EGUI_STATIC_INLINE__ void egui_image_std_round_rect_fast_cache_deinit(egui_ima
         return;
     }
 
+#if EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE
     if (cache->row_cache_y != NULL)
     {
         egui_free(cache->row_cache_y);
     }
+#endif
 
     cache->row_cache_y = NULL;
     cache->row_cache_visible_boundary = NULL;
@@ -3336,11 +3344,17 @@ __EGUI_STATIC_INLINE__ void egui_image_std_round_rect_fast_cache_deinit(egui_ima
 __EGUI_STATIC_INLINE__ int egui_image_std_round_rect_fast_cache_prepare(egui_image_std_round_rect_fast_cache_t *cache, const egui_mask_t *mask,
                                                                         egui_dim_t radius)
 {
-    if (cache == NULL || mask == NULL || cache->row_cache_y == NULL || cache->row_cache_visible_boundary == NULL || cache->row_cache_opaque_boundary == NULL ||
-        cache->row_cache_capacity <= 0)
+    if (cache == NULL || mask == NULL)
     {
         return 0;
     }
+
+#if EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE
+    if (cache->row_cache_y == NULL || cache->row_cache_visible_boundary == NULL || cache->row_cache_opaque_boundary == NULL || cache->row_cache_capacity <= 0)
+    {
+        return 0;
+    }
+#endif
 
     if (cache->mask != mask)
     {
@@ -3386,6 +3400,7 @@ __EGUI_STATIC_INLINE__ int egui_image_std_round_rect_fast_cache_get_boundaries(e
     info = cache->info;
     items = (const egui_circle_item_t *)info->items;
     *row_index = (screen_y < cache->cached_y + radius) ? (screen_y - cache->cached_y) : (cache->cached_y + cache->cached_height - 1 - screen_y);
+#if EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE
     row_cache_slot = ((uint16_t)screen_y) % cache->row_cache_capacity;
 
     if (cache->row_cache_y[row_cache_slot] != screen_y)
@@ -3397,6 +3412,11 @@ __EGUI_STATIC_INLINE__ int egui_image_std_round_rect_fast_cache_get_boundaries(e
 
     *visible_boundary = cache->row_cache_visible_boundary[row_cache_slot];
     *opaque_boundary = cache->row_cache_opaque_boundary[row_cache_slot];
+#else
+    (void)row_cache_slot;
+    *visible_boundary = egui_image_std_get_circle_visible_boundary_fixed_row(*row_index, info, items);
+    *opaque_boundary = egui_image_std_get_circle_opaque_boundary_fixed_row(*row_index, info, items);
+#endif
     return 1;
 }
 
