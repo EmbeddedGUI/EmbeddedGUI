@@ -179,9 +179,12 @@ Single-scene heap spot checks use `QEMU_HEAP_MEASURE=1`, `QEMU_HEAP_ACTIONS_APP_
 
 - The current whole-run heap peak is still set by compressed alpha-image scenes, not by text scenes: the verified QOI/RLE alpha hot cases now sit at `9360B`, which is still well above the text scenes.
 - The latest codec scratch split trims the dominant compressed-image scene-local peak from `9936B` to `9360B`, and the full-run headline from `10032B` to `9456B`.
+- The current `9360B` compressed-alpha floor is now fully attributed: `192 tail cols * 16 rows * (2B RGB565 + 1B alpha8) = 9216B`, plus the first visible `48px` tile scratch (`96B` pixel + `48B` alpha = `144B`). The `9456B` whole-run peak is this `9360B` codec hot path plus the active `96B` circle-mask frame scratch in the round-rect mask scene.
+- 2026-03-29 cap experiments confirmed that this `192` tail is the current minimum single-pass width under `240px` screen width and `48px` horizontal PFB walk: `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS=144` regresses `IMAGE_QOI_565_8 2.133 -> 8.887`, `EXTERN_IMAGE_QOI_565_8 2.565 -> 12.507`, `IMAGE_RLE_565_8 1.401 -> 3.234`, `EXTERN_IMAGE_RLE_565_8 2.222 -> 7.961`; `96` is even worse at `8.677 / 12.398 / 3.376 / 8.034`. These narrower-tail variants stay rejected for the default low-RAM path.
 - The latest buffered-text round trims `TEXT_ROTATE_BUFFERED` further from `4560B` to `3984B` by tightening the visible-alpha8 heap ceiling from `3648B` to `3072B`.
 - The current next-largest verified non-codec hotspot is now `EXTERN_TEXT_ROTATE_BUFFERED` at `4254B`; the extra `270B` above the internal path is the remaining external glyph row-cache cost after delaying its allocation until fallback is actually needed.
 - Even after cutting both buffered text scenes below `4.3KB`, the dominant heap headline is still controlled by compressed-image row caching rather than text.
+- Further default heap reduction below this codec floor now requires a different architecture, such as a different PFB walk or finer-grained decoder checkpoints. Simply shrinking tail columns is no longer a viable default optimization path.
 
 ### Rejected Whole-Image HQ Cache Direction
 

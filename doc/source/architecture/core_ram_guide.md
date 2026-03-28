@@ -142,8 +142,11 @@
 
 - 当前 whole-run heap peak 仍然由压缩 alpha 图片场景决定，而不是 text 场景。
 - 所有尺寸相关 scratch 最终都会回到 `0B` current heap；默认路径没有常驻 heap 大块缓存。
+- 当前 `9360B` 的压缩图热点已经可以精确拆开：`192` 列 tail-row cache 乘以 `16` 行、乘以 `RGB565 2B + alpha8 1B`，得到 `9216B`；再加首个 `48px` tile 的可见段瞬时 scratch `144B`，就是默认压缩 alpha 场景的实际 heap floor。`MASK_IMAGE_*_ROUND_RECT` 再叠加 `96B` circle-mask row cache，所以整轮 headline 是 `9456B`。
+- 2026-03-29 对 `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS` 做过 A/B：`144` 和 `96` 都会让 QOI/RLE alpha 场景退化到数倍，说明在当前 `240px` 屏宽、`PFB_WIDTH=48`、横向逐 tile refresh walk 下，`192` 尾列已经是默认单次解码路径的硬下限，而不是随手还能继续压的余量。
 - 最新一轮把 buffered rotated-text 的可见 alpha8 ceiling 从 `3648B` 继续压到 `3072B`，两条 text 热点都再降 `576B`，同时仍满足 `>500B => 10%` 的性能线；再往下到 `2560B` 会越线。
 - 只要收益不足阈值，就优先保 RAM：`<=500B` RAM 变化用 `5%` 线，`>500B` RAM 变化用 `10%` 线。
+- 如果后续还要继续压缩这一段 heap，手段就不能再是“简单缩 tail 列数”，而需要新的解码/渲染架构，例如改变 PFB walk 顺序，或引入更细粒度的 decoder checkpoint。
 
 ### 不接受的方向
 

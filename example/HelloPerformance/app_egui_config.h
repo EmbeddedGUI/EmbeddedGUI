@@ -117,6 +117,12 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE 1
 #endif
 
+// Do not cap EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS in the default
+// HelloPerformance build. With 240px-wide alpha scenes and 48px PFB tiles, any
+// cap below the required 192 tail columns forces extra row-band re-decodes and
+// measured QOI/RLE alpha performance collapses from the ~2ms / ~1.4ms class to
+// roughly ~9ms / ~3ms. Keep narrower caps as measurement-only experiments.
+
 // HelloPerformance's generated QOI assets are 40/120/240px tall, so the
 // decoder's current-row cursor can stay 8-bit and drop another 4B from qoi_state.
 #define EGUI_CONFIG_IMAGE_QOI_ROW_INDEX_8BIT_ENABLE 1
