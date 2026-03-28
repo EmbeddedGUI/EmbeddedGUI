@@ -86,7 +86,9 @@ extern "C" {
 // horizontal tile neighbors blend from cache without re-decoding.
 // HelloPerformance uses RGB565-only compressed images, so actual RAM
 // cost here is about PFB_HEIGHT * SCREEN_WIDTH * (2 + 1) = 11.5KB.
+#ifndef EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 #define EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE 1
+#endif
 
 // HelloPerformance compressed image resources are RGB565-only,
 // so decode scratch/cache buffers only need 2 bytes per pixel.
@@ -97,11 +99,15 @@ extern "C" {
 // HelloPerformance draws one compressed-image workload at a time, so masked
 // opaque fallback rows can borrow the codec row-cache alpha backing store
 // instead of reserving a dedicated 240B decode-row alpha buffer in BSS.
+#ifndef EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
 #define EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE 1
+#endif
 
 // HelloPerformance's QOI scenes currently run acceptably from the row-band
 // cache alone, so disable decoder checkpoints to remove their persistent heap.
+#ifndef EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT
 #define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 0
+#endif
 
 // HelloPerformance's generated QOI assets are 40/120/240px tall, so the
 // decoder's current-row cursor can stay 8-bit and drop another 4B from qoi_state.
@@ -121,12 +127,16 @@ extern "C" {
 // HelloPerformance exercises external raw-image draw/resize and external
 // raw-image transform in separate benchmark scenes, so they can reuse one
 // shared row-cache backing store without changing hot-path behavior.
+#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
 #define EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS 1
+#endif
 
 // HelloPerformance never mixes external raw-image row-cache scenes with
 // QOI/RLE row-cache scenes in one frame, so the external shared row caches can
 // borrow the codec row-cache backing store instead of reserving separate BSS.
+#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE
 #define EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE 1
+#endif
 
 // HelloPerformance's rotated-text visible alpha8 tile buffer follows the
 // actual transformed glyph bounds. Per the RAM rule for size-related buffers,

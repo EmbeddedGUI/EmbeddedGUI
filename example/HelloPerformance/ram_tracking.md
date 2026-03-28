@@ -58,6 +58,7 @@
 | 2026-03-28 | Move HelloPerformance circle mask row cache to frame heap | 2159800 | 48 | 10272 | 10320 | 0 / 11616 | 2920 | `text -720B`, `static RAM +16B`; circle-mask `PFB_HEIGHT` row cache moves from `egui_mask_circle_t` to frame heap scratch (`3 * EGUI_CONFIG_PFB_HEIGHT * sizeof(egui_dim_t) = 96B` at current config) and releases at frame end, runtime screenshots stay `223/223` with `changed=0` vs `04cc338`, heap peak stays `11616B` with alloc/free `5683 / 5683`, `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5` PASSED |
 | 2026-03-28 | Move HelloPerformance rotated-text layout/tile scratch to transient heap | 2160560 | 48 | 10272 | 10320 | 0 / 11616 | 1200 | `text +760B`, static RAM unchanged; rotated-text layout/tile collectors now allocate by actual glyph/line counts and free at `cleanup`, `egui_canvas_draw_text_transform 2920 -> 760`, heap peak stays `11616B` with alloc/free `5683 / 5683 -> 7403 / 7403`, runtime screenshots stay `223/223` with `changed=0` vs `04cc338`, `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5` PASSED |
 | 2026-03-28 | Restore HelloPerformance rotated-text tiny caches and alpha8 fast path | 2160724 | 48 | 10344 | 10392 | 0 / 11616 | 1200 | `static RAM +72B`; restore `g_text_transform_prepare_cache (60B)` and `s_dim_* (12B)` so buffered rotated text stops redoing affine/string measurement every frame, raise `EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 4096 -> 5120` but measured heap peak still stays `11616B`; `TEXT_ROTATE_BUFFERED 12.325 -> 9.159 (-25.7%)`, `EXTERN_TEXT_ROTATE_BUFFERED 14.985 -> 10.759 (-28.2%)`, PC screenshots for `TEXT_ROTATE_BUFFERED` and `EXTERN_TEXT_ROTATE_BUFFERED` confirmed rendering unchanged |
+| 2026-03-28 | Keep HelloPerformance decode row-band cache and expose A/B override knobs | 2160724 | 48 | 10344 | 10392 | 0 / 11616 | 1200 | Default build unchanged; `app_egui_config.h` now wraps row-cache knobs in `#ifndef` so `USER_CFLAGS` can isolate A/B tests. `row-cache off` experiment drops heap peak to `7520B`, but compressed-image scenes regress catastrophically and the experiment build rises to `data=44`, `bss=13236`, `static RAM=13280`, so the default config must keep row-cache enabled |
 
 ## Current Breakdown
 
@@ -121,6 +122,20 @@
 - The new image-size / `PFB`-size scratch does not stay resident after rendering; resize `src_x_map` and round-rect fast row cache are allocated per draw call and released immediately after use. If a later change keeps them persistent to reduce alloc/free count, it must be listed here with explicit bytes and lifetime.
 - The circle-mask frame scratch is owned by the active `egui_mask_circle_t`, sized `3 * EGUI_CONFIG_PFB_HEIGHT * sizeof(egui_dim_t) = 96B` at the current `240x240 / PFB_HEIGHT=16` config, allocated on first row use within the frame, and released by `egui_mask_circle_release_frame_cache()` at frame end; it does not stay resident at idle.
 - The measured heap build reaches the former `.bss` cache footprint only while decode-heavy or rotated-text scenes are active, and releases it back to `0B` at idle.
+
+### Row-Band Cache A/B
+
+Same code, only toggle the row-band cache related overrides through `USER_CFLAGS`.
+
+| Config | text | data | bss | static RAM | interaction total peak | Key result |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Default (`row-cache on`) | 2160724 | 48 | 10344 | 10392 | 11616 | Baseline; compressed image benchmarks stay in the expected range |
+| Experiment (`row-cache off`) | 2154296 | 44 | 13236 | 13280 | 7520 | Heap peak `-4096B`, but static RAM `+2888B` and QOI/RLE scenes collapse |
+
+- The default HelloPerformance config now keeps the row-cache related macros overridable via `USER_CFLAGS` only for measurement; default behavior and default RAM numbers remain unchanged.
+- Turning row-band cache off saves `4096B` peak heap in the measurement build, but it is not an acceptable tradeoff because the compressed-image fast path depends on this cache.
+- Measured compressed-image regressions with `row-cache off` include `IMAGE_TILED_QOI_565_0 1.232 -> 46.212 (+3651%)`, `IMAGE_QOI_565 12.271 -> 434.547 (+3441%)`, `EXTERN_IMAGE_QOI_565 18.747 -> 589.348 (+3044%)`, and `EXTERN_IMAGE_RLE_565 4.647 -> 91.420 (+1867%)`.
+- Across `44` QOI/RLE related benchmark cases, the average slowdown is `+1314.6%`, so this cache stays enabled by default even under the current heap-pressure goal.
 
 ### Stack Measurement
 
