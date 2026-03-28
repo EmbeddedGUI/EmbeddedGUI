@@ -34,8 +34,8 @@ uint8_t *egui_image_decode_get_row_alpha_scratch(uint16_t alpha_row_bytes);
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 /*
  * Row-band decode cache: PFB_HEIGHT rows of decoded pixel + alpha data.
- * On the first tile of a row band, all rows are decoded into the cache.
- * Subsequent horizontal tiles blend from the cache without re-decoding.
+ * Depending on the caller, the cache may hold the whole row band or only the
+ * horizontal tail that later tiles still need.
  */
 #define EGUI_IMAGE_DECODE_ROW_CACHE_PIXEL_MAX_BYTES                                                                                                            \
     (EGUI_CONFIG_PFB_HEIGHT * EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE)
@@ -80,20 +80,39 @@ typedef struct
 {
     const void *image_info; /* pointer to the info struct that populated the cache */
     uint16_t row_band_start; /* first image row in the cached band */
+    uint16_t cache_col_start; /* first image column stored in the cache */
+    uint16_t cache_col_count; /* cached columns per row */
     uint8_t mode;            /* row-band cache or whole-image cache */
 } egui_image_decode_cache_state_t;
 
 extern egui_image_decode_cache_state_t egui_image_decode_cache_state;
 
 int egui_image_decode_cache_can_hold_full_image(uint16_t img_width, uint16_t img_height, uint8_t bytes_per_pixel, uint16_t alpha_row_bytes);
-void egui_image_decode_cache_set_row_band(const void *image_info, uint16_t row_band_start, uint16_t row_count);
-void egui_image_decode_cache_set_full_image(const void *image_info, uint16_t row_count);
+void egui_image_decode_cache_set_row_band(const void *image_info, uint16_t row_band_start, uint16_t row_count,
+                                          uint16_t cache_col_start, uint16_t cache_col_count);
+void egui_image_decode_cache_set_full_image(const void *image_info, uint16_t row_count, uint16_t img_width);
 
-static inline int egui_image_decode_cache_is_row_band_hit(const void *image_info, uint16_t row_band_start)
+static inline uint16_t egui_image_decode_cache_col_start(void)
 {
+    return egui_image_decode_cache_state.cache_col_start;
+}
+
+static inline uint16_t egui_image_decode_cache_row_width(void)
+{
+    return egui_image_decode_cache_state.cache_col_count;
+}
+
+static inline int egui_image_decode_cache_is_row_band_hit(const void *image_info, uint16_t row_band_start,
+                                                          uint16_t img_col_start, uint16_t count)
+{
+    uint32_t cache_col_end = (uint32_t)egui_image_decode_cache_state.cache_col_start + egui_image_decode_cache_state.cache_col_count;
+    uint32_t request_col_end = (uint32_t)img_col_start + count;
+
     return egui_image_decode_cache_state.mode == EGUI_IMAGE_DECODE_CACHE_MODE_ROW_BAND &&
            egui_image_decode_cache_state.image_info == image_info &&
-           egui_image_decode_cache_state.row_band_start == row_band_start;
+           egui_image_decode_cache_state.row_band_start == row_band_start &&
+           img_col_start >= egui_image_decode_cache_state.cache_col_start &&
+           request_col_end <= cache_col_end;
 }
 
 static inline int egui_image_decode_cache_is_full_image_hit(const void *image_info)

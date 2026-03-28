@@ -109,6 +109,14 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 0
 #endif
 
+// Low-RAM QOI row-cache mode: the first visible tile draws from a transient
+// full-row scratch and only the remaining horizontal tail stays cached for the
+// later tiles. This saves about 1.5KB peak heap on 240px alpha-QOI scenes.
+// Set to 0 to keep the original full-width HQ row-band cache instead.
+#ifndef EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE
+#define EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE 1
+#endif
+
 // HelloPerformance's generated QOI assets are 40/120/240px tall, so the
 // decoder's current-row cursor can stay 8-bit and drop another 4B from qoi_state.
 #define EGUI_CONFIG_IMAGE_QOI_ROW_INDEX_8BIT_ENABLE 1

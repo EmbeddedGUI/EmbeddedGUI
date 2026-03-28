@@ -108,6 +108,8 @@ static void egui_image_decode_reset_row_cache_state(void)
 {
     egui_image_decode_cache_state.image_info = NULL;
     egui_image_decode_cache_state.row_band_start = 0xFFFF;
+    egui_image_decode_cache_state.cache_col_start = 0;
+    egui_image_decode_cache_state.cache_col_count = 0;
     egui_image_decode_cache_state.mode = EGUI_IMAGE_DECODE_CACHE_MODE_NONE;
 }
 
@@ -259,19 +261,24 @@ int egui_image_decode_cache_can_hold_full_image(uint16_t img_width, uint16_t img
     return 1;
 }
 
-void egui_image_decode_cache_set_row_band(const void *image_info, uint16_t row_band_start, uint16_t row_count)
+void egui_image_decode_cache_set_row_band(const void *image_info, uint16_t row_band_start, uint16_t row_count,
+                                          uint16_t cache_col_start, uint16_t cache_col_count)
 {
     EGUI_UNUSED(row_count);
     egui_image_decode_cache_state.image_info = image_info;
     egui_image_decode_cache_state.row_band_start = row_band_start;
+    egui_image_decode_cache_state.cache_col_start = cache_col_start;
+    egui_image_decode_cache_state.cache_col_count = cache_col_count;
     egui_image_decode_cache_state.mode = EGUI_IMAGE_DECODE_CACHE_MODE_ROW_BAND;
 }
 
-void egui_image_decode_cache_set_full_image(const void *image_info, uint16_t row_count)
+void egui_image_decode_cache_set_full_image(const void *image_info, uint16_t row_count, uint16_t img_width)
 {
     EGUI_UNUSED(row_count);
     egui_image_decode_cache_state.image_info = image_info;
     egui_image_decode_cache_state.row_band_start = 0;
+    egui_image_decode_cache_state.cache_col_start = 0;
+    egui_image_decode_cache_state.cache_col_count = img_width;
     egui_image_decode_cache_state.mode = EGUI_IMAGE_DECODE_CACHE_MODE_FULL_IMAGE;
 }
 #else
