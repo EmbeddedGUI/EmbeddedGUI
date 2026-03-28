@@ -15,7 +15,7 @@ QEMU_USE_RDIMON_STARTFILES ?= 0
 APP_LDFLAGS += -Wl,--defsym=__qemu_min_heap_size__=0
 # The current stack report keeps all active HelloPerformance paths below 1KB
 # per frame and below 1.2KB even in compiled but non-recorded code paths, so
-# a 2.5KB QEMU stack reserve still leaves >2x headroom over the compiled peak
+# a 2KB QEMU stack reserve still leaves useful headroom over the compiled peak
 # while trimming more static RAM from `._user_heap_stack`.
-APP_LDFLAGS += -Wl,--defsym=__qemu_min_stack_size__=0x0a00
+APP_LDFLAGS += -Wl,--defsym=__qemu_min_stack_size__=0x0800
 endif

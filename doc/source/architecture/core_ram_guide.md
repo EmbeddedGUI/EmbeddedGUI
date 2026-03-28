@@ -39,9 +39,9 @@
 | --- | ---: | --- |
 | `text` | `2168304B` | 代码和只读数据 |
 | `data` | `52B` | 已初始化静态 RAM |
-| `bss` | `4716B` | `llvm-size` 汇总值，包含链接脚本保留区 |
+| `bss` | `4204B` | `llvm-size` 汇总值，包含链接脚本保留区 |
 | `.bss` | `2152B` | 实际未初始化静态符号区 |
-| `._user_heap_stack` | `2564B` | 当前链接脚本保留区，不是 core 固定对象本身 |
+| `._user_heap_stack` | `2052B` | 当前链接脚本保留区，不是 core 固定对象本身 |
 | 固定静态 RAM 小计 | `2204B` | `.data + .bss`，不含链接脚本保留区 |
 | Heap 峰值 | `9456B` | `QEMU_HEAP_MEASURE=1` 实测峰值 |
 | Heap 空闲 current | `0B` | 当前默认低 RAM 方案下，尺寸相关 scratch 最终都会释放 |
@@ -51,11 +51,11 @@
 
 说明：
 
-- `llvm-size` 的 `bss=4716B` 里包含了 `._user_heap_stack=2564B`，看总表时不要把它全部当成 core 固定静态 RAM。
+- `llvm-size` 的 `bss=4204B` 里包含了 `._user_heap_stack=2052B`，看总表时不要把它全部当成 core 固定静态 RAM。
 - 从 core 固定对象角度看，当前真正长期常驻的 `.data + .bss` 只有 `2204B`。
 - 其中 `egui_pfb=1536B` 是当前应用配置下的 `PFB`，这是用户自己选择的空间换时间项，不应被当成框架裁剪成果。
 - `heap peak=9456B` 是运行时峰值，不是 idle 常驻占用；当前默认示例结束后 `current heap` 会回到 `0B`。
-- `HelloPerformance` 现在把 QEMU 链接脚本保留栈压到 `2.5KB`，所以静态 RAM headline 已反映这一调整。
+- `HelloPerformance` 现在把 QEMU 链接脚本保留栈压到 `2KB`，所以静态 RAM headline 已反映这一调整。
 
 ## 静态 RAM 分布
 
