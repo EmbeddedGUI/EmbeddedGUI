@@ -37,7 +37,7 @@
 
 | 项目 | 当前值 | 说明 |
 | --- | ---: | --- |
-| `text` | `2165884B` | 代码和只读数据 |
+| `text` | `2160044B` | 代码和只读数据 |
 | `data` | `52B` | 已初始化静态 RAM |
 | `bss` | `2924B` | `llvm-size` 汇总值，包含链接脚本保留区 |
 | `.bss` | `2152B` | 实际未初始化静态符号区 |
@@ -47,7 +47,7 @@
 | Heap 空闲 current | `0B` | 当前默认低 RAM 方案下，尺寸相关 scratch 最终都会释放 |
 | alloc/free | `8069 / 8069` | 完整录制流程结束后配平 |
 | 编译期最大栈帧 | `1200B` | `egui_view_heart_rate_on_draw()`，不在当前录制热路径 |
-| 当前活跃路径最大栈帧 | `760B` | `egui_canvas_draw_text_transform()` |
+| 当前活跃路径最大栈帧 | `752B` | `egui_canvas_draw_circle_fill_gradient()` |
 
 说明：
 
@@ -169,8 +169,9 @@
 | `egui_view_heart_rate_on_draw()` | `1200B` | 否（仅编译进入，已被当前镜像 GC 丢弃） | 大局部数组热点；`output/main.map` 只在 `Discarded input sections` 中出现 |
 | `egui_view_virtual_tree_walk_internal()` | `1112B` | 否（仅编译进入，已被当前镜像 GC 丢弃） | 大局部 `frames[EGUI_VIEW_VIRTUAL_TREE_MAX_DEPTH]`；仅出现在 `Discarded input sections` |
 | `line_hq_draw_polyline_segment()` | `976B` | 否（仅编译进入，已被当前镜像 GC 丢弃） | polyline helper 没有链接进当前 HelloPerformance benchmark 镜像 |
-| `egui_canvas_draw_text_transform()` | `760B` | 是 | 当前最终链接镜像里的最大单函数栈帧 |
+| `egui_canvas_draw_circle_fill_gradient()` | `752B` | 是 | 当前最终链接镜像里的最大单函数栈帧 |
 | `egui_canvas_draw_image_transform()` | `736B` | 是 | 外部 whole-image cache 探测已撤掉，保持默认低 RAM 路径 |
+| `egui_canvas_draw_text_transform()` | `376B` | 是 | 函数级 `optimize("Os")` 后由 `760B` 降到 `376B` |
 | `egui_canvas_draw_line_hq()` | `288B` | 是 | 函数级 `optimize("Os")` 后由 `824B` 降到 `288B`，不再是当前 linked 栈热点 |
 
 栈侧规则：
@@ -180,7 +181,7 @@
 - 提交前建议至少对热路径跑一次 `-fstack-usage`，确认没有新的异常膨胀。
 
 - `Map` 交叉复核结果：`.su` 里的 `1200B`、`1112B`、`976B` 这三个大栈帧，在当前 HelloPerformance 镜像里都只出现在 `Discarded input sections`，并未进入最终链接结果。
-- 当前最终链接镜像里的最大单函数栈帧是 `egui_canvas_draw_text_transform (760B)`；`egui_canvas_draw_line_hq` 已降到 `288B`，最终镜像中仍然没有 `>=1KB` 的链接热点。
+- 当前最终链接镜像里的最大单函数栈帧是 `egui_canvas_draw_circle_fill_gradient (752B)`；`egui_canvas_draw_text_transform` 已降到 `376B`、`egui_canvas_draw_line_hq` 已降到 `288B`，最终镜像中仍然没有 `>=1KB` 的链接热点。
 - HelloPerformance 现在使用 `__qemu_min_stack_size__=0x0300`，即 `768B` QEMU 预留栈；这是当前经过完整 `cortex-m3` perf、运行时截图和单元测试复核后的最小已验证值。
 
 ## 建议的裁剪顺序

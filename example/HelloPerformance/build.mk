@@ -13,7 +13,7 @@ QEMU_USE_RDIMON_STARTFILES ?= 0
 # HelloPerformance uses the self-managed QEMU heap, so the linker-side
 # reserved heap budget can stay at 0.
 APP_LDFLAGS += -Wl,--defsym=__qemu_min_heap_size__=0
-# The current linked HelloPerformance stack hotspot is 760B per frame, while
+# The current linked HelloPerformance stack hotspot is 752B per frame, while
 # the larger 1.1-1.2KB stack frames belong to discarded widget code in this
 # app image, so a 768B QEMU stack reserve is the smallest validated reserve
 # that still lets the full benchmark path run without wasting more static RAM

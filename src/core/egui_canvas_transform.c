@@ -3934,8 +3934,8 @@ static int text_transform_try_draw_axis_aligned(const egui_font_t *font, const v
  * collectors use transient heap sized by the measured glyph and line count.
  * Text dimensions are cached (12 bytes static) to avoid per-tile string measurement.
  */
-void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
-                                     egui_color_t color, egui_alpha_t alpha)
+__attribute__((optimize("Os"))) void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y,
+                                                                     int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
 {
     if (!font || !string || !font->res)
     {
