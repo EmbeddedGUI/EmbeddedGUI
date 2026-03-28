@@ -195,18 +195,17 @@ extern "C" {
 // only consume persistent RAM in this app.
 #define EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH 0
 
-// HelloPerformance only reaches one text-rotation prepare call per draw, so
-// recomputing the affine bounds is cheaper than keeping a persistent 60B cache.
-#define EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE 0
+// Restoring the small affine prepare cache recovers a noticeable amount of
+// rotated-text performance while only costing a fixed ~60B metadata block.
+#define EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE 1
 
-// HelloPerformance only measures one short rotated-text benchmark string per
-// draw, so the persistent layout/dimension metadata caches do not justify
-// permanent static RAM. The active layout/tile scratch should still follow
-// actual glyph and line counts on transient heap.
+// Keep the active layout/tile scratch transient on heap, but restore the tiny
+// dimension cache so repeated rotated-text draws do not remeasure the same
+// benchmark string every frame.
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE 0
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE  0
 #define EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE 1
-#define EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE    0
+#define EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE    1
 
 // The rotated-text layout/tile scratch now follows actual glyph and line
 // counts, so keep it on transient heap instead of fixed stack arrays.
@@ -214,6 +213,9 @@ extern "C" {
 // The rotated-text visible alpha8 tile size follows actual transformed glyph
 // bounds, so do not keep a fixed large stack buffer here. Let the existing
 // per-frame heap cache size itself dynamically and release at frame end.
+// Raising the alpha8 fast-path ceiling by 1KB keeps the buffered benchmark on
+// the faster alpha8 path without introducing large permanent RAM usage.
+#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 5120
 #define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES 0
 
 // External font row/glyph scratch follows actual glyph bitmap size now, so it
