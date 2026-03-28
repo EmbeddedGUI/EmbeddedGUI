@@ -199,20 +199,17 @@ extern "C" {
 // recomputing the affine bounds is cheaper than keeping a persistent 60B cache.
 #define EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE 0
 
-// HelloPerformance's rotated-text scenes stay on the stack layout path and
-// only measure one short benchmark string per draw, so the remaining layout
-// and dimension metadata caches do not justify permanent static RAM.
+// HelloPerformance only measures one short rotated-text benchmark string per
+// draw, so the persistent layout/dimension metadata caches do not justify
+// permanent static RAM. The active layout/tile scratch should still follow
+// actual glyph and line counts on transient heap.
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE 0
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE  0
+#define EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE 1
 #define EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE    0
 
-// HelloPerformance's rotated-text benchmarks only use a fixed 7-line string
-// (70 glyphs), so the stack layout and tile collectors only need a small
-// margin above that current content size.
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS 72
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES  8
-#define EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS         72
-#define EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES          8
+// The rotated-text layout/tile scratch now follows actual glyph and line
+// counts, so keep it on transient heap instead of fixed stack arrays.
 
 // The rotated-text visible alpha8 tile size follows actual transformed glyph
 // bounds, so do not keep a fixed large stack buffer here. Let the existing

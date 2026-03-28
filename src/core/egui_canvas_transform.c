@@ -1683,6 +1683,10 @@ typedef struct
 #define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES 0
 #endif
 
+#ifndef EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
+#define EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE 0
+#endif
+
 #ifndef EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS 0
 #endif
@@ -1776,6 +1780,125 @@ typedef struct
     int16_t y_min;
     int16_t y_max;
 } text_transform_layout_line_t;
+
+#if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
+typedef struct
+{
+    uint8_t *block;
+    text_transform_layout_glyph_t *glyphs;
+    text_transform_layout_line_t *lines;
+} text_transform_layout_scratch_t;
+
+typedef struct
+{
+    uint8_t *block;
+    text_transform_glyph_t *glyphs;
+    const text_transform_layout_glyph_t **layout_glyphs;
+    text_transform_layout_line_t *lines;
+} text_transform_tile_scratch_t;
+
+__EGUI_STATIC_INLINE__ size_t text_transform_align_scratch_size(size_t size)
+{
+    const size_t align = sizeof(void *);
+    return (size + align - 1U) & ~(align - 1U);
+}
+
+static int text_transform_prepare_layout_scratch(int glyph_count, int line_count, text_transform_layout_scratch_t *scratch)
+{
+    size_t glyph_bytes;
+    size_t line_bytes;
+    size_t line_offset;
+    uint8_t *block;
+
+    if (scratch == NULL || glyph_count <= 0 || line_count <= 0)
+    {
+        return -1;
+    }
+
+    glyph_bytes = (size_t)glyph_count * sizeof(text_transform_layout_glyph_t);
+    line_bytes = (size_t)line_count * sizeof(text_transform_layout_line_t);
+    line_offset = text_transform_align_scratch_size(glyph_bytes);
+
+    block = (uint8_t *)egui_malloc((int)(line_offset + line_bytes));
+    if (block == NULL)
+    {
+        return -1;
+    }
+
+    scratch->block = block;
+    scratch->glyphs = (text_transform_layout_glyph_t *)block;
+    scratch->lines = (text_transform_layout_line_t *)(block + line_offset);
+    return 0;
+}
+
+static void text_transform_release_layout_scratch(text_transform_layout_scratch_t *scratch)
+{
+    if (scratch == NULL)
+    {
+        return;
+    }
+
+    if (scratch->block != NULL)
+    {
+        egui_free(scratch->block);
+    }
+
+    scratch->block = NULL;
+    scratch->glyphs = NULL;
+    scratch->lines = NULL;
+}
+
+static int text_transform_prepare_tile_scratch(int glyph_count, int line_count, text_transform_tile_scratch_t *scratch)
+{
+    size_t glyph_bytes;
+    size_t layout_glyph_bytes;
+    size_t line_bytes;
+    size_t layout_glyph_offset;
+    size_t line_offset;
+    uint8_t *block;
+
+    if (scratch == NULL || glyph_count <= 0 || line_count <= 0)
+    {
+        return -1;
+    }
+
+    glyph_bytes = (size_t)glyph_count * sizeof(text_transform_glyph_t);
+    layout_glyph_bytes = (size_t)glyph_count * sizeof(text_transform_layout_glyph_t *);
+    line_bytes = (size_t)line_count * sizeof(text_transform_layout_line_t);
+    layout_glyph_offset = text_transform_align_scratch_size(glyph_bytes);
+    line_offset = text_transform_align_scratch_size(layout_glyph_offset + layout_glyph_bytes);
+
+    block = (uint8_t *)egui_malloc((int)(line_offset + line_bytes));
+    if (block == NULL)
+    {
+        return -1;
+    }
+
+    scratch->block = block;
+    scratch->glyphs = (text_transform_glyph_t *)block;
+    scratch->layout_glyphs = (const text_transform_layout_glyph_t **)(block + layout_glyph_offset);
+    scratch->lines = (text_transform_layout_line_t *)(block + line_offset);
+    return 0;
+}
+
+static void text_transform_release_tile_scratch(text_transform_tile_scratch_t *scratch)
+{
+    if (scratch == NULL)
+    {
+        return;
+    }
+
+    if (scratch->block != NULL)
+    {
+        egui_free(scratch->block);
+    }
+
+    scratch->block = NULL;
+    scratch->glyphs = NULL;
+    scratch->layout_glyphs = NULL;
+    scratch->lines = NULL;
+}
+#endif
 
 /**
  * Extract alpha value from packed font bitmap at local glyph coordinates.
@@ -3805,9 +3928,11 @@ static int text_transform_try_draw_axis_aligned(const egui_font_t *font, const v
  * Draw rotated and scaled text (zero-buffer, PFB-proportional memory).
  *
  * Per PFB tile: inverse-maps tile corners to find source bbox, walks string to
- * collect only visible glyphs into a small stack array, then samples directly
- * from packed ROM font data. Extra memory = ~1280 bytes stack (128 glyphs × 10 bytes),
- * proportional to PFB size, independent of total text content.
+ * collect only visible glyphs into per-draw scratch, then samples directly
+ * from packed ROM font data. Extra scratch size depends on visible glyph count,
+ * line count, and transformed tile bounds instead of total text content.
+ * When EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE=1, the layout/tile
+ * collectors use transient heap sized by the measured glyph and line count.
  * Text dimensions are cached (12 bytes static) to avoid per-tile string measurement.
  */
 void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
@@ -3864,13 +3989,31 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     int layout_count = 0;
     const text_transform_layout_line_t *layout_lines = NULL;
     int layout_line_count = 0;
+#if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
+    text_transform_layout_scratch_t layout_scratch = {0};
+#else
 #if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS > 0 && EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES > 0
     text_transform_layout_glyph_t stack_layout_glyphs[EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS];
     text_transform_layout_line_t stack_layout_lines[EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES];
 #endif
-    text_transform_glyph_t tile_glyphs[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS];
-    const text_transform_layout_glyph_t *tile_layout_glyphs[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS];
-    text_transform_layout_line_t tile_lines[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES];
+#endif
+#if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
+    text_transform_tile_scratch_t tile_scratch = {0};
+    text_transform_glyph_t *tile_glyphs = NULL;
+    const text_transform_layout_glyph_t **tile_layout_glyphs = NULL;
+    text_transform_layout_line_t *tile_lines = NULL;
+    int tile_glyph_capacity = 0;
+    int tile_line_capacity = 0;
+#else
+    text_transform_glyph_t tile_glyphs_storage[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS];
+    const text_transform_layout_glyph_t *tile_layout_glyphs_storage[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS];
+    text_transform_layout_line_t tile_lines_storage[EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES];
+    text_transform_glyph_t *tile_glyphs = tile_glyphs_storage;
+    const text_transform_layout_glyph_t **tile_layout_glyphs = tile_layout_glyphs_storage;
+    text_transform_layout_line_t *tile_lines = tile_lines_storage;
+    int tile_glyph_capacity = EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS;
+    int tile_line_capacity = EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES;
+#endif
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     int draw_font_is_external = (font_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL);
     text_transform_external_glyph_row_cache_t external_row_cache;
@@ -3882,6 +4025,31 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     {
         const char *text = (const char *)string;
 
+#if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
+        int scratch_needed = 0;
+        int scratch_line_needed = 0;
+
+        text_transform_measure_layout_slots(text, &scratch_needed, &scratch_line_needed);
+        if (scratch_needed == 0 || scratch_line_needed == 0 || scratch_needed > TEXT_TRANSFORM_LAYOUT_INDEX_MAX)
+        {
+            return;
+        }
+
+        if (text_transform_prepare_layout_scratch(scratch_needed, scratch_line_needed, &layout_scratch) != 0)
+        {
+            return;
+        }
+
+        layout_count = text_transform_build_layout(font_info, text, layout_scratch.glyphs, scratch_needed, layout_scratch.lines, scratch_line_needed,
+                                                   &layout_line_count, 0);
+        if (layout_count < 0)
+        {
+            goto cleanup;
+        }
+
+        layout_glyphs = layout_scratch.glyphs;
+        layout_lines = layout_scratch.lines;
+#else
 #if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_GLYPHS > 0 && EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_STACK_MAX_LINES > 0
         int stack_needed = 0;
         int stack_line_needed = 0;
@@ -3919,17 +4087,36 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
             return;
         }
 #endif
+#endif
     }
 
     if (layout_glyphs == NULL || layout_lines == NULL)
     {
-        return;
+        goto cleanup;
     }
 
     if (layout_count == 0)
     {
-        return;
+        goto cleanup;
     }
+
+#if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
+    tile_glyph_capacity = layout_count;
+    tile_line_capacity = layout_line_count;
+    if (tile_glyph_capacity <= 0 || tile_line_capacity <= 0)
+    {
+        goto cleanup;
+    }
+
+    if (text_transform_prepare_tile_scratch(tile_glyph_capacity, tile_line_capacity, &tile_scratch) != 0)
+    {
+        goto cleanup;
+    }
+
+    tile_glyphs = tile_scratch.glyphs;
+    tile_layout_glyphs = tile_scratch.layout_glyphs;
+    tile_lines = tile_scratch.lines;
+#endif
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     if (draw_font_is_external)
@@ -3995,7 +4182,7 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
         if (use_visible_alpha8_tile)
         {
             tile_count = collect_visible_layout_glyphs_alpha8(layout_glyphs, layout_lines, layout_line_count, tile_layout_glyphs,
-                                                              EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS, src_min_x, src_min_y, src_max_x, src_max_y,
+                                                              tile_glyph_capacity, src_min_x, src_min_y, src_max_x, src_max_y,
                                                               &tile_src_x0, &tile_src_y0, &tile_src_x1, &tile_src_y1, &tile_glyphs_overlap);
 
             if (tile_count == 0)
@@ -4010,8 +4197,8 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
             }
         }
 
-        tile_count = collect_visible_glyphs(font_info, layout_glyphs, layout_lines, layout_line_count, tile_glyphs, EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_GLYPHS,
-                                            tile_lines, EGUI_CONFIG_TEXT_TRANSFORM_TILE_MAX_LINES,
+        tile_count = collect_visible_glyphs(font_info, layout_glyphs, layout_lines, layout_line_count, tile_glyphs, tile_glyph_capacity,
+                                            tile_lines, tile_line_capacity,
                                             &tile_line_count, src_min_x, src_min_y, src_max_x, src_max_y, NULL, NULL, NULL, NULL, NULL, 1);
 
         if (tile_count == 0)
@@ -4531,6 +4718,10 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     }
 
 cleanup:
+#if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
+    text_transform_release_tile_scratch(&tile_scratch);
+    text_transform_release_layout_scratch(&layout_scratch);
+#endif
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     if (external_row_cache_ready)
     {
