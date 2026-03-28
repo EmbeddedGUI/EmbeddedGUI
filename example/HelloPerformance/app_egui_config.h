@@ -146,6 +146,15 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE 1
 #endif
 
+// Low-RAM default keeps external full-image persistent cache disabled.
+// Performance/HQ variants may override this via USER_CFLAGS when a scene
+// needs a size-following heap cache and the measured speedup is large enough
+// to justify the resident heap cost. For the current 120x120 RGB565+alpha8
+// external transform scene, >=43200B enables the whole-image cache path.
+#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES
+#define EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES 0
+#endif
+
 // HelloPerformance's rotated-text visible alpha8 tile buffer follows the
 // actual transformed glyph bounds. Per the RAM rule for size-related buffers,
 // keep the QEMU heap hooks enabled so this transient scratch can use frame

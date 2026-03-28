@@ -96,6 +96,7 @@ EmbeddedGUI 的 RAM 建议按下面三类来看：
 | rotated text layout scratch | `egui_canvas_draw_text_transform()` | glyph 数、line 数、字体布局结果 | `heap` | 单次绘制 |
 | rotated text tile scratch | `egui_canvas_draw_text_transform()` | 可见 glyph 数、line 数 | `heap` | 单次绘制 |
 | 外部字体 glyph / row scratch | `egui_font_std_*`、`egui_canvas_transform_*` | 字体大小、glyph bitmap 尺寸 | `heap` | 单次绘制 / 当前 refresh walk |
+| 外部图像 full-image persistent cache（可选 HQ） | `egui_image_std_prepare_external_persistent_cache()` | 图片宽高、像素格式、alpha 格式 | `heap` | 跨帧常驻，默认关闭 |
 
 这类 buffer 的共性是：
 
@@ -141,6 +142,11 @@ EmbeddedGUI 的 RAM 建议按下面三类来看：
 - 带来的性能收益是否超过 `5%`
 
 若性能收益不足 `5%`，优先选择更省 RAM 的方案，而不是为了边际性能保留大块常驻 heap。
+
+补充一条针对性能/HQ 变体的规则：
+
+- 如果某个“跟随字体大小、图片大小、屏幕尺寸、`PFB` 尺寸变化”的常驻 heap cache 能带来 `>=2x` 的性能收益，可以保留一条单独的性能/HQ 路径。
+- 这条 HQ 路径应与默认低 RAM 路径分开，并明确记录 `owner / lifetime / bytes / speedup`，避免默认配置在无感收益下长期占用 SRAM。
 
 ### 当前代码里的常见 heap 生命周期
 
