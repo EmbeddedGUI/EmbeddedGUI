@@ -680,9 +680,20 @@ static int image_transform_prepare_external_source(const egui_image_std_info_t *
     return 1;
 }
 
+__EGUI_STATIC_INLINE__ int32_t image_transform_align_external_chunk_row(int32_t row, uint32_t rows_per_chunk)
+{
+    if (row <= 0 || rows_per_chunk <= 1)
+    {
+        return row;
+    }
+
+    return row - (row % (int32_t)rows_per_chunk);
+}
+
 static const uint16_t *image_transform_get_external_data_row(const image_transform_external_source_t *source, int32_t row)
 {
     image_transform_external_data_row_slot_t *cache = image_transform_get_external_data_row_cache(source);
+    int32_t load_row;
     int32_t rows_to_load;
     uint16_t *pixels;
 
@@ -715,15 +726,16 @@ static const uint16_t *image_transform_get_external_data_row(const image_transfo
 
     if (row < cache->chunk_row_start || row >= (cache->chunk_row_start + cache->chunk_row_count))
     {
-        rows_to_load = source->info->height - row;
+        load_row = image_transform_align_external_chunk_row(row, cache->rows_per_chunk);
+        rows_to_load = source->info->height - load_row;
         if ((uint32_t)rows_to_load > cache->rows_per_chunk)
         {
             rows_to_load = (int32_t)cache->rows_per_chunk;
         }
 
-        egui_api_load_external_resource(pixels, (egui_uintptr_t)source->info->data_buf, (uint32_t)row * source->data_row_bytes,
+        egui_api_load_external_resource(pixels, (egui_uintptr_t)source->info->data_buf, (uint32_t)load_row * source->data_row_bytes,
                                         (uint32_t)rows_to_load * source->data_row_bytes);
-        cache->chunk_row_start = row;
+        cache->chunk_row_start = load_row;
         cache->chunk_row_count = rows_to_load;
     }
 
@@ -733,6 +745,7 @@ static const uint16_t *image_transform_get_external_data_row(const image_transfo
 static const uint8_t *image_transform_get_external_alpha_row(const image_transform_external_source_t *source, int32_t row)
 {
     image_transform_external_alpha_row_slot_t *cache = image_transform_get_external_alpha_row_cache(source);
+    int32_t load_row;
     int32_t rows_to_load;
     uint8_t *bytes;
 
@@ -766,15 +779,16 @@ static const uint8_t *image_transform_get_external_alpha_row(const image_transfo
 
     if (row < cache->chunk_row_start || row >= (cache->chunk_row_start + cache->chunk_row_count))
     {
-        rows_to_load = source->info->height - row;
+        load_row = image_transform_align_external_chunk_row(row, cache->rows_per_chunk);
+        rows_to_load = source->info->height - load_row;
         if ((uint32_t)rows_to_load > cache->rows_per_chunk)
         {
             rows_to_load = (int32_t)cache->rows_per_chunk;
         }
 
-        egui_api_load_external_resource(bytes, (egui_uintptr_t)source->info->alpha_buf, (uint32_t)row * source->alpha_row_bytes,
+        egui_api_load_external_resource(bytes, (egui_uintptr_t)source->info->alpha_buf, (uint32_t)load_row * source->alpha_row_bytes,
                                         (uint32_t)rows_to_load * source->alpha_row_bytes);
-        cache->chunk_row_start = row;
+        cache->chunk_row_start = load_row;
         cache->chunk_row_count = rows_to_load;
     }
 
