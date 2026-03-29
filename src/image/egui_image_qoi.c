@@ -44,10 +44,6 @@
 #define EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE 0
 #endif
 
-#ifndef EGUI_IMAGE_QOI_MASKED_VISIBLE_CHUNK_PIXELS
-#define EGUI_IMAGE_QOI_MASKED_VISIBLE_CHUNK_PIXELS 48
-#endif
-
 #if EGUI_CONFIG_IMAGE_QOI_ROW_INDEX_8BIT_ENABLE
 typedef uint8_t egui_image_qoi_row_index_t;
 #define EGUI_IMAGE_QOI_ROW_INDEX_MAX UINT8_MAX
@@ -1783,14 +1779,11 @@ static void egui_image_qoi_decode_row_rgb565_alpha8_blend_split(const egui_image
 static void egui_image_qoi_decode_row_rgb565_alpha8_masked_split(const egui_image_qoi_info_t *info, egui_canvas_t *canvas, egui_color_int_t *dst_row,
                                                                  egui_dim_t screen_x, egui_dim_t screen_y, egui_alpha_t canvas_alpha,
                                                                  uint16_t visible_col_start, uint16_t visible_col_count,
+                                                                 uint8_t *visible_pixel_buf, uint8_t *visible_alpha_buf,
                                                                  uint8_t *tail_pixel_buf, uint8_t *tail_alpha_buf,
                                                                  uint16_t tail_col_start, uint16_t tail_col_count)
 {
-    uint8_t pixel_chunk[EGUI_IMAGE_QOI_MASKED_VISIBLE_CHUNK_PIXELS * sizeof(uint16_t)];
-    uint8_t alpha_chunk[EGUI_IMAGE_QOI_MASKED_VISIBLE_CHUNK_PIXELS];
     uint16_t current_col = 0;
-    uint16_t remaining = visible_col_count;
-    egui_dim_t visible_offset = 0;
     int use_image_mask = (canvas != NULL && canvas->mask != NULL && canvas->mask->api->kind == EGUI_MASK_KIND_IMAGE);
 
     EGUI_ASSERT(info->channels == 4);
@@ -1798,36 +1791,25 @@ static void egui_image_qoi_decode_row_rgb565_alpha8_masked_split(const egui_imag
     EGUI_ASSERT(visible_col_start + visible_col_count <= info->width);
     EGUI_ASSERT(tail_col_count == 0 || tail_col_start >= (uint16_t)(visible_col_start + visible_col_count));
     EGUI_ASSERT(tail_col_start + tail_col_count <= info->width);
+    EGUI_ASSERT(visible_pixel_buf != NULL);
+    EGUI_ASSERT(visible_alpha_buf != NULL);
 
     if (visible_col_start > 0)
     {
         egui_image_qoi_decode_pixels_rgb565_partial_any(info, NULL, NULL, visible_col_start);
     }
 
-    while (remaining > 0)
+    egui_image_qoi_decode_pixels_rgb565_partial_any(info, visible_pixel_buf, visible_alpha_buf, visible_col_count);
+
+    if (use_image_mask)
     {
-        uint16_t chunk = remaining;
-
-        if (chunk > EGUI_IMAGE_QOI_MASKED_VISIBLE_CHUNK_PIXELS)
-        {
-            chunk = EGUI_IMAGE_QOI_MASKED_VISIBLE_CHUNK_PIXELS;
-        }
-
-        egui_image_qoi_decode_pixels_rgb565_partial_any(info, pixel_chunk, alpha_chunk, chunk);
-
-        if (use_image_mask)
-        {
-            egui_image_qoi_blend_masked_rgb565_image_row(canvas, &dst_row[visible_offset], (const uint16_t *)pixel_chunk, alpha_chunk, chunk,
-                                                         screen_x + visible_offset, screen_y, canvas_alpha, NULL);
-        }
-        else
-        {
-            egui_image_std_blend_rgb565_alpha8_masked_row(canvas, &dst_row[visible_offset], (const uint16_t *)pixel_chunk, alpha_chunk, chunk,
-                                                          screen_x + visible_offset, screen_y, canvas_alpha);
-        }
-
-        visible_offset += chunk;
-        remaining = (uint16_t)(remaining - chunk);
+        egui_image_qoi_blend_masked_rgb565_image_row(canvas, dst_row, (const uint16_t *)visible_pixel_buf, visible_alpha_buf, visible_col_count,
+                                                     screen_x, screen_y, canvas_alpha, NULL);
+    }
+    else
+    {
+        egui_image_std_blend_rgb565_alpha8_masked_row(canvas, dst_row, (const uint16_t *)visible_pixel_buf, visible_alpha_buf, visible_col_count,
+                                                      screen_x, screen_y, canvas_alpha);
     }
 
     current_col = (uint16_t)(visible_col_start + visible_col_count);
@@ -2555,9 +2537,32 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
             }
             else if (masked_canvas != NULL && masked_dst_row != NULL && use_masked_alpha8)
             {
-                use_row_cache = 1;
-                use_tail_row_cache = 1;
-                use_direct_masked_alpha8 = 1;
+                /* This visible-span scratch follows the current clipped tile width,
+                 * so keep it transient on heap instead of fixed stack storage. */
+                row_pixel_scratch = (uint8_t *)egui_malloc((int)((uint32_t)count * pixel_size));
+                row_alpha_scratch = (uint8_t *)egui_malloc((int)count);
+
+                if (row_pixel_scratch != NULL && row_alpha_scratch != NULL)
+                {
+                    use_row_cache = 1;
+                    use_tail_row_cache = 1;
+                    use_direct_masked_alpha8 = 1;
+                }
+                else
+                {
+                    if (row_alpha_scratch != NULL)
+                    {
+                        egui_free(row_alpha_scratch);
+                        row_alpha_scratch = NULL;
+                    }
+                    if (row_pixel_scratch != NULL)
+                    {
+                        egui_free(row_pixel_scratch);
+                        row_pixel_scratch = NULL;
+                    }
+                    cache_col_start = 0;
+                    cache_col_count = 0;
+                }
             }
             else
             {
@@ -2679,6 +2684,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
                 egui_image_qoi_decode_row_rgb565_alpha8_masked_split(draw_info, masked_canvas, masked_dst_row,
                                                                      screen_x_start, screen_y, masked_canvas->alpha,
                                                                      (uint16_t)img_col_start, (uint16_t)count,
+                                                                     row_pixel_scratch, row_alpha_scratch,
                                                                      cache_pixel_row, cache_alpha_row,
                                                                      cache_col_start, cache_col_count);
             }
