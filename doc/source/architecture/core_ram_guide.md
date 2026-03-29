@@ -37,7 +37,7 @@
 
 | 项目 | 当前值 | 说明 |
 | --- | ---: | --- |
-| `text` | `2135492B` | 代码和只读数据 |
+| `text` | `2135512B` | 代码和只读数据 |
 | `data` | `52B` | 已初始化静态 RAM |
 | `bss` | `2356B` | `llvm-size` 汇总值，包含链接脚本保留区 |
 | `.bss` | `1920B` | 实际未初始化静态符号区 |
@@ -57,7 +57,7 @@
 - `heap peak=9424B` 是运行时峰值，不是 idle 常驻占用；当前默认示例结束后 `current heap` 会回到 `0B`。
 - 如需继续追峰值归因，可在测量构建里额外打开 `QEMU_HEAP_TRACE_ACTIONS=1`，让 QEMU 按录制 action 输出 `HEAP_ACTION:<idx>:current/peak/allocs/frees`，默认关闭时不会改变当前 RAM 口径。
 - `HelloPerformance` 现在把 QEMU 链接脚本保留栈压到 `432B`，所以静态 RAM headline 已反映这一调整。
-- 当前正常 QEMU 构建口径是 `text=2135492`、`data=52`、`bss=2356`、`static RAM=2408`；最新一轮在保留默认关闭的 core logical PFB probe 测量工具基础上，又把 QOI alpha 可见段改成直接 blend/固定 `48px` 栈块路径，因此 `.data/.bss` 不变，whole-run heap 从 `9568B` 继续降到 `9424B`，而活跃路径最大栈帧轻微变为 `432B`。
+- 当前正常 QEMU 构建口径是 `text=2135512`、`data=52`、`bss=2356`、`static RAM=2408`；在保留默认关闭的 core logical PFB probe 测量工具和当前 QOI direct-blend 低 RAM 路径的基础上，最新一轮又把 buffered rotated-text 的可见 glyph 列表从指针数组压成 layout index，因此 `.data/.bss` 和 whole-run heap 都不变，仍是 `9424B`，而两个文字热点继续降到 `TEXT_ROTATE_BUFFERED=3846B`、`EXTERN_TEXT_ROTATE_BUFFERED=4056B`。
 - QOI/RLE 解码状态已经从固定 `.bss` 挪到按帧 heap，因此当前 whole-run heap headline 是 `9424B`：QOI alpha 路径已经去掉旧的 `144B` 首个可见 tile heap scratch，只剩 `9216B` tail-row cache + `208B` QOI 解码状态；RLE alpha 场景仍是 `9376B`，因为它们还保留 `144B` 可见段 scratch + `16B` RLE 解码状态。
 - `EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE`、`EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH` 和弱符号 `egui_core_get_logical_pfb_target_width_hint()` 只用于手工 A/B；默认返回 `0`，因此 shipped path 仍直接使用配置好的 `PFB_WIDTH/PFB_HEIGHT`。
 - 当前默认 `EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE=0`、`EGUI_CONFIG_MASK_CIRCLE_FRAME_ROW_CACHE_ENABLE=0`；这两个 `PFB_HEIGHT` 相关行缓存如果以后重新打开，仍然必须走 `heap`，不能回退为静态 RAM 或大栈数组。
@@ -141,8 +141,8 @@
 | `EXTERN_IMAGE_QOI_565_8` | `9424B` | 同上，外部 QOI alpha 场景 |
 | `IMAGE_RLE_565_8` | `9376B` | 低 RAM codec tail-row cache + 首个 tile 的可见段瞬时 scratch + `16B` RLE 解码状态 |
 | `EXTERN_IMAGE_RLE_565_8` | `9376B` | 同上，外部 RLE alpha 场景 |
-| `EXTERN_TEXT_ROTATE_BUFFERED` | `4194B` | external rotated-text visible alpha8 tile cache + `14` 行 external glyph chunk scratch + transient layout/tile scratch |
-| `TEXT_ROTATE_BUFFERED` | `3984B` | rotated-text visible alpha8 tile cache + transient layout/tile scratch |
+| `EXTERN_TEXT_ROTATE_BUFFERED` | `4056B` | external rotated-text visible alpha8 tile cache + compact visible-layout index list + `14` 行 external glyph chunk scratch + transient layout/tile scratch |
+| `TEXT_ROTATE_BUFFERED` | `3846B` | rotated-text visible alpha8 tile cache + compact visible-layout index list + transient layout/tile scratch |
 | `EXTERN_IMAGE_RESIZE_565_8` | `1536B` | `2` 行 external shared RGB565+alpha row cache + resize `src_x_map` |
 | `EXTERN_IMAGE_565_8` | `1440B` | `2` 行 external shared RGB565+alpha row cache |
 | `EXTERN_IMAGE_ROTATE_565_8` | `1440B` | `2` 行 external transform-side shared RGB565+alpha row cache |
@@ -167,8 +167,8 @@
 
 - 按同样的几何关系推算，`176` 和 `184` 其实也只是在 `192` 列 tail 上少了 `16` / `8` 列，checkpoint 开销扣除前的 raw tail 节省不过 `768B` / `384B`。在已经实测到 `+45% ~ +66%` 退化的前提下，这条线没有继续做默认路径 heap 复测的必要。
 - buffered rotated-text 的可见 alpha8 ceiling 仍保持 `3072B`：此前从 `3648B` 压到 `3072B` 时，两条 text 热点都再降了 `576B`，同时仍满足 `>500B => 10%` 的性能线；再往下到 `2560B` 会越线。
-- 在这个 `3072B` ceiling 基础上，latest external rotated-text 又把 visible-tile external glyph scratch 从整 glyph heap block 改成 `14` 行 chunk stream，令 `EXTERN_TEXT_ROTATE_BUFFERED 4254B -> 4194B`，同时性能只从 `12.713ms` 变到 `12.885ms (+1.35%)`，满足更严格的 `<=500B => 5%` 线。
-- 当前 next-largest 的非 codec heap 热点仍是 `EXTERN_TEXT_ROTATE_BUFFERED`，但它现在只比内部路径多 `210B`，说明 external glyph scratch 的额外成本已经被压到较小尾差。
+- 在这个 `3072B` ceiling 基础上，latest rotated-text visible-list round 再把可见 glyph 列表从整指针数组改成 compact layout index，令 `TEXT_ROTATE_BUFFERED 3984B -> 3846B`、`EXTERN_TEXT_ROTATE_BUFFERED 4194B -> 4056B`。相对 clean `6af3f2c` 基线，性能仍保持在 `11.358ms / 12.884ms`，对应 `11.360 -> 11.358` 和 `12.885 -> 12.884`，满足更严格的 `<=500B => 5%` 线。
+- 当前 next-largest 的非 codec heap 热点仍是 `EXTERN_TEXT_ROTATE_BUFFERED`，但它现在只比内部路径多 `210B`，说明 external glyph scratch 与 visible-list 元数据的额外成本都已经被压到较小尾差。
 - 当前默认 external raw-image 路径也已经强制遵守 `<=2` 行 / 列尺寸相关 heap 约束：shared row cache 从旧的 `1920/960` 收紧到 `960/480`，因此代表性 scene-local heap 变为 `EXTERN_IMAGE_565_8 1440B`、`EXTERN_IMAGE_RESIZE_565_8 1536B`、`EXTERN_IMAGE_ROTATE_565_8 1440B`。
 - 2026-03-29 又补做过 `1` 行 external raw-image row cache A/B：把 shared row cache 再压到 `480/240` 后，代表性 scene-local heap 会继续降到 `EXTERN_IMAGE_565_8 720B`、`EXTERN_IMAGE_RESIZE_565_8 816B`、`EXTERN_IMAGE_ROTATE_565_8 720B`，但 whole-run heap headline 仍然不变，还是被 codec 场景钉在当前的 `9424B`。
 - 同一轮实测里，`1` 行方案在关键 direct-draw / rotate 场景退化超出当前 `>500B => 10%` 默认门线：`EXTERN_IMAGE_565_1 1.458 -> 1.795 (+23.11%)`、`EXTERN_IMAGE_565_8 1.630 -> 1.967 (+20.67%)`、`EXTERN_IMAGE_ROTATE_565_1 13.474 -> 15.161 (+12.52%)`、`EXTERN_IMAGE_ROTATE_565_8 15.875 -> 19.655 (+23.81%)`，因此当前正式默认值仍保持 `2` 行，`1` 行只保留为测量用 override，不进入默认实现。
@@ -221,7 +221,7 @@
 | `egui_view_gauge_on_draw()` | `88B` | 是 | ring gradient / center dot / value text 拆到小 helper 后，app 侧 draw 帧已不再是热点 |
 | `egui_canvas_draw_triangle_fill()` | `248B` | 是 | 函数级 `optimize("Os")` 把原来的 `504B` frame 压到 `248B` |
 | `egui_canvas_draw_image_transform()` | `344B` | 是 | 外部 whole-image cache 探测已撤掉，函数级 `optimize("Os")` 后进一步压缩 |
-| `egui_canvas_draw_text_transform()` | `376B` | 是 | 函数级 `optimize("Os")` 后由 `760B` 降到 `376B` |
+| `egui_canvas_draw_text_transform()` | `368B` | 是 | 函数级 `optimize("Os")` 后由 `760B` 降到 `376B`，最新 visible-list scratch 简化又轻微降到 `368B` |
 | `egui_canvas_draw_line_round_cap_hq()` | `280B` | 是 | 函数级 `optimize("Os")` 后由旧的高栈帧降到 `280B` |
 | `egui_canvas_draw_line_hq()` | `288B` | 是 | 函数级 `optimize("Os")` 后由 `824B` 降到 `288B`，不再是当前 linked 栈热点 |
 | `egui_shadow_draw_corner()` | `176B` | 是 | 函数级 `optimize("Os")` 后明显缩小，且 `SHADOW_ROUND` 实测更快 |
@@ -233,9 +233,9 @@
 - 提交前建议至少对热路径跑一次 `-fstack-usage`，确认没有新的异常膨胀。
 
 - `Map` 交叉复核结果：`.su` 里的 `1200B`、`1112B`、`976B` 这三个大栈帧，在当前 HelloPerformance 镜像里都只出现在 `Discarded input sections`，并未进入最终链接结果。
-- 当前最终链接镜像里的最大单函数栈帧是 `432B`，由 `egui_canvas_draw_thick_line_scan` 持有；其后是 `egui_canvas_draw_circle_fill_gradient (424B)`、`egui_canvas_draw_rectangle_fill_gradient (416B)`、`egui_canvas_draw_polygon_fill_gradient (408B)`、`egui_canvas_draw_polygon_fill (408B)`、`egui_image_rle_draw_image (392B)`、`egui_canvas_draw_text_transform (376B)`、`egui_canvas_draw_image_transform (344B)` 和 `egui_canvas_draw_line_hq (288B)`，最终镜像中仍然没有 `>=1KB` 的链接热点。
+- 当前最终链接镜像里的最大单函数栈帧是 `432B`，由 `egui_canvas_draw_thick_line_scan` 持有；其后是 `egui_canvas_draw_circle_fill_gradient (424B)`、`egui_canvas_draw_rectangle_fill_gradient (416B)`、`egui_canvas_draw_polygon_fill_gradient (408B)`、`egui_canvas_draw_polygon_fill (408B)`、`egui_image_rle_draw_image (392B)`、`egui_canvas_draw_text_transform (368B)`、`egui_canvas_draw_image_transform (344B)` 和 `egui_canvas_draw_line_hq (288B)`，最终镜像中仍然没有 `>=1KB` 的链接热点。
 - 默认关闭的 logical PFB probe 也已经做过 `-fstack-usage` 复核：`egui_core_get_logical_pfb_target_width_hint=4B`、`egui_core_get_logical_pfb_probe_width=32B`、`egui_core_apply_logical_pfb_probe_shape=32B`，没有引入新的大栈对象。
-- HelloPerformance 现在使用 `__qemu_min_stack_size__=0x01b0`，即 `432B` QEMU 预留栈；这轮最小值由 clean `cortex-m3` perf rerun 与 `.su`/`main.map` 交叉复核支撑，运行时截图和单元测试没有在这一轮重跑。
+- HelloPerformance 现在使用 `__qemu_min_stack_size__=0x01b0`，即 `432B` QEMU 预留栈；当前口径已由最新 `.su`/`main.map` 交叉复核、runtime `223/223`、unit test `649/649` 和 `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5` 共同支撑。
 
 ## 建议的裁剪顺序
 
