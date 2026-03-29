@@ -873,7 +873,7 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_prepare_resize_src_x_map(egui_d
     egui_dim_t count = x_total - x;
     egui_float_t src_x_acc = (egui_float_t)((int64_t)x * (int64_t)width_radio);
 
-    EGUI_ASSERT(count <= EGUI_CONFIG_PFB_WIDTH);
+    EGUI_ASSERT(count >= 0);
     for (egui_dim_t i = 0; i < count; i++)
     {
         src_x_map[i] = EGUI_FLOAT_INT_PART(src_x_acc);
@@ -890,7 +890,7 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_image_std_prepare_resize_src_x_map_limit(
     egui_float_t width_step = (width_radio >> 8);
     egui_float_t src_x_acc = x * width_step;
 
-    EGUI_ASSERT(count <= EGUI_CONFIG_PFB_WIDTH);
+    EGUI_ASSERT(count >= 0);
     for (egui_dim_t i = 0; i < count; i++)
     {
         src_x_map[i] = src_x_acc >> 8;

@@ -60,6 +60,7 @@
 - 当前正常 QEMU 构建口径是 `text=2135512`、`data=52`、`bss=2356`、`static RAM=2408`；在保留默认关闭的 core logical PFB probe 测量工具和当前 QOI direct-blend 低 RAM 路径的基础上，最新一轮又把 buffered rotated-text 的 visible alpha8 ceiling 从 `3072B` 收到 `2560B`。`.data/.bss` 和 whole-run heap 仍保持 `9424B`，而两个文字热点继续降到 `TEXT_ROTATE_BUFFERED=3334B`、`EXTERN_TEXT_ROTATE_BUFFERED=3544B`；继续往下到 `2304B` 反而会触发 packed4 fallback heap cliff，scene-local heap 回跳到 `5410B/5252B`。
 - QOI/RLE 解码状态已经从固定 `.bss` 挪到按帧 heap，因此当前 whole-run heap headline 是 `9424B`：QOI alpha 路径已经去掉旧的 `144B` 首个可见 tile heap scratch，只剩 `9216B` tail-row cache + `208B` QOI 解码状态；RLE alpha 场景仍是 `9376B`，因为它们还保留 `144B` 可见段 scratch + `16B` RLE 解码状态。
 - `EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE`、`EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH` 和弱符号 `egui_core_get_logical_pfb_target_width_hint()` 只用于手工 A/B；默认返回 `0`，因此 shipped path 仍直接使用配置好的 `PFB_WIDTH/PFB_HEIGHT`。
+- 2026-03-30 的 probe follow-up 还顺手清掉了 resize `src_x_map` heap 路径里遗留的 `count <= EGUI_CONFIG_PFB_WIDTH` 断言。这个断言会把逻辑 tile 宽于物理 `48px` 的 probe build 直接卡死，但对默认 shipped path 的 `48x16` 几何、RAM headline 和性能结果都没有任何变化。
 - 当前默认 `EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE=0`、`EGUI_CONFIG_MASK_CIRCLE_FRAME_ROW_CACHE_ENABLE=0`；这两个 `PFB_HEIGHT` 相关行缓存如果以后重新打开，仍然必须走 `heap`，不能回退为静态 RAM 或大栈数组。
 - 当前默认 external raw-image shared row cache 也已收紧到 `2` 行上限：`EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES=960`、`EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES=480`。这不会改变压缩图主导的 whole-run headline，只是当前 headline 现在是 `9424B`；对应 `240px` 外部 RGB565+alpha 场景的 scene-local heap 从旧的 `2880B` 压到 `1440B`，resize 场景则是 `1536B`。
 
@@ -189,6 +190,16 @@
 
 - `MASK_IMAGE_TEST_PERF_ROUND_RECT` 等局部圆角遮罩场景在更宽逻辑 tile 下确实更快，但 shipped default 必须看整套场景是否满足当前 RAM/perf 规则，不能因为单个热点收益就带进默认路径。
 - `python scripts/code_perf_check.py` 的 `PASSED` 只表示当前跑通，不代表通过基线对比；这三组 probe 实验都是手工对照 `doc/source/performance/perf_report.md` 后判定拒绝。
+- 2026-03-30 的 follow-up 把 probe-only 的 resize 断言补齐后，`96x8 / 128x6 / 192x4` 这些更宽 shape 终于可以完整跑完；但它们依然没有一个能通过 shipped default 的全场景门线。
+
+| 实验 | Heap 变化 | 性能结果 | 结论 |
+| --- | ---: | --- | --- |
+| 全场景 logical `96x8` tiles | 未继续重跑 heap | codec 热点本身大多仍在可接受区间：`IMAGE_QOI_565_8 -5.32%`、`EXTERN_IMAGE_QOI_565_8 -4.51%`、`IMAGE_RLE_565 +8.80%`、`IMAGE_RLE_565_8 +1.91%`；但一旦看完整 benchmark，非 codec 场景大面积退化：`TEXT_ROTATE_BUFFERED +33.13%`、`TEXT +17.51%`、`CIRCLE_FILL +25.29%`、`ANIMATION_TRANSLATE +15.65%`、`IMAGE_TILED_565_0 +10.06%` | 拒绝 |
+| 更宽 logical `128x6` tiles spot check | 未继续重跑 heap | 更宽 shape 的 targeted spot check 已经跨过门线：`IMAGE_QOI_565_8 -10.22%`、`EXTERN_IMAGE_QOI_565_8 -8.63%`、`IMAGE_RLE_565 +11.07%`、`MASK_IMAGE_QOI_8_ROUND_RECT +6.65%`、`EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT +8.98%` | 拒绝 |
+| 最宽 logical `192x4` tiles spot check | 未继续重跑 heap | 最激进宽度方向更差：`IMAGE_RLE_565 +25.52%`、`IMAGE_RLE_565_8 +8.68%`、`EXTERN_IMAGE_RLE_565 +9.27%`、`MASK_IMAGE_TEST_PERF_ROUND_RECT +14.11%`、`MASK_IMAGE_QOI_8_ROUND_RECT +17.83%`、`EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT +20.21%` | 拒绝 |
+
+- 这三组更宽 shape 都是在性能已经明显失败后就停止，没有继续补新的 whole-run heap headline，因为 shipped default 的前提是先过完整 RAM/perf 门线，而不是只看 codec 局部热点。
+- 因此结论没有变化：logical PFB probe 仍然只保留为测量工具；在当前 HelloPerformance 的规则下，物理 `48x16` 之外仍然没有能正式落地的默认 walk 形状。
 
 ### 不接受的方向
 
