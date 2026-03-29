@@ -33,6 +33,11 @@ __EGUI_WEAK__ void egui_port_notify_frame_render_complete(void)
 {
 }
 
+__EGUI_WEAK__ egui_dim_t egui_core_get_logical_pfb_target_width_hint(void)
+{
+    return 0;
+}
+
 egui_core_t egui_core;
 
 #if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
@@ -44,6 +49,69 @@ egui_core_t egui_core;
 static uint32_t egui_core_calc_pfb_buffer_size(egui_dim_t width, egui_dim_t height)
 {
     return (uint32_t)width * (uint32_t)height * (uint32_t)sizeof(egui_color_int_t);
+}
+
+static egui_dim_t egui_core_get_logical_pfb_probe_width(uint32_t pfb_total_pixel_count)
+{
+    egui_dim_t target_width = 0;
+    int32_t candidate_width;
+    egui_dim_t hint_width = egui_core_get_logical_pfb_target_width_hint();
+
+#if EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE
+    target_width = EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH;
+#endif
+    if (hint_width > target_width)
+    {
+        target_width = hint_width;
+    }
+
+    if (target_width <= egui_core.pfb_width)
+    {
+        return 0;
+    }
+
+    if ((uint32_t)target_width > pfb_total_pixel_count)
+    {
+        target_width = (egui_dim_t)pfb_total_pixel_count;
+    }
+
+    if (target_width > egui_core.screen_width)
+    {
+        target_width = egui_core.screen_width;
+    }
+
+    for (candidate_width = target_width; candidate_width > egui_core.pfb_width; candidate_width--)
+    {
+        uint32_t candidate_height;
+
+        if ((pfb_total_pixel_count % (uint32_t)candidate_width) != 0U)
+        {
+            continue;
+        }
+
+        candidate_height = pfb_total_pixel_count / (uint32_t)candidate_width;
+        if (candidate_height == 0U || candidate_height > (uint32_t)egui_core.pfb_height)
+        {
+            continue;
+        }
+
+        return (egui_dim_t)candidate_width;
+    }
+
+    return 0;
+}
+
+static void egui_core_apply_logical_pfb_probe_shape(egui_dim_t *pfb_width, egui_dim_t *pfb_height, uint32_t pfb_total_pixel_count)
+{
+    egui_dim_t logical_width = egui_core_get_logical_pfb_probe_width(pfb_total_pixel_count);
+
+    if (logical_width <= 0)
+    {
+        return;
+    }
+
+    *pfb_width = logical_width;
+    *pfb_height = (egui_dim_t)(pfb_total_pixel_count / (uint32_t)logical_width);
 }
 
 #if EGUI_CONFIG_SOFTWARE_ROTATION
@@ -673,6 +741,8 @@ void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode)
 
     EGUI_LOG_DBG("region_dirty, x: %d, y: %d, width: %d, height: %d\n", p_region_dirty->location.x, p_region_dirty->location.y, p_region_dirty->size.width,
                  p_region_dirty->size.height);
+
+    egui_core_apply_logical_pfb_probe_shape(&pfb_width, &pfb_height, pfb_total_pixel_count);
 
     // change pfb size to fit the dirty region
     if (pfb_width > width_dirty)

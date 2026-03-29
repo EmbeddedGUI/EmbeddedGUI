@@ -37,7 +37,7 @@
 
 | 项目 | 当前值 | 说明 |
 | --- | ---: | --- |
-| `text` | `2132620B` | 代码和只读数据 |
+| `text` | `2132928B` | 代码和只读数据 |
 | `data` | `52B` | 已初始化静态 RAM |
 | `bss` | `2356B` | `llvm-size` 汇总值，包含链接脚本保留区 |
 | `.bss` | `1920B` | 实际未初始化静态符号区 |
@@ -57,7 +57,9 @@
 - `heap peak=9568B` 是运行时峰值，不是 idle 常驻占用；当前默认示例结束后 `current heap` 会回到 `0B`。
 - 如需继续追峰值归因，可在测量构建里额外打开 `QEMU_HEAP_TRACE_ACTIONS=1`，让 QEMU 按录制 action 输出 `HEAP_ACTION:<idx>:current/peak/allocs/frees`，默认关闭时不会改变当前 RAM 口径。
 - `HelloPerformance` 现在把 QEMU 链接脚本保留栈压到 `432B`，所以静态 RAM headline 已反映这一调整。
-- 当前正常 QEMU 构建口径是 `text=2132620`、`data=52`、`bss=2356`、`static RAM=2408`；最新一轮把 QOI/RLE 解码状态从固定 `.bss` 挪到按帧 heap，因此 `static RAM -216B`，而 whole-run heap headline 变为 `9568B`，活跃路径最大栈帧仍保持 `424B`。
+- 当前正常 QEMU 构建口径是 `text=2132928`、`data=52`、`bss=2356`、`static RAM=2408`；最新一轮保留了默认关闭的 core logical PFB probe 测量工具，因此只带来 `text +308B`，`.data/.bss`、whole-run heap 和活跃路径最大栈帧都不变。
+- QOI/RLE 解码状态已经从固定 `.bss` 挪到按帧 heap，因此当前 whole-run heap headline 是 `9568B`，而活跃路径最大栈帧仍保持 `424B`。
+- `EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE`、`EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH` 和弱符号 `egui_core_get_logical_pfb_target_width_hint()` 只用于手工 A/B；默认返回 `0`，因此 shipped path 仍直接使用配置好的 `PFB_WIDTH/PFB_HEIGHT`。
 - 当前默认 `EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE=0`、`EGUI_CONFIG_MASK_CIRCLE_FRAME_ROW_CACHE_ENABLE=0`；这两个 `PFB_HEIGHT` 相关行缓存如果以后重新打开，仍然必须走 `heap`，不能回退为静态 RAM 或大栈数组。
 - 当前默认 external raw-image shared row cache 也已收紧到 `2` 行上限：`EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES=960`、`EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES=480`。这不会改变压缩图主导的 whole-run headline，只是当前 headline 现在是 `9568B`；对应 `240px` 外部 RGB565+alpha 场景的 scene-local heap 从旧的 `2880B` 压到 `1440B`，resize 场景则是 `1536B`。
 
@@ -175,6 +177,19 @@
 - 只要收益不足阈值，就优先保 RAM：`<=500B` RAM 变化用 `5%` 线，`>500B` RAM 变化用 `10%` 线。
 - 如果后续还要继续压缩这一段 heap，手段就不能再是“简单缩 tail 列数”，而需要新的解码/渲染架构，例如改变 PFB walk 顺序，或引入更细粒度的 decoder checkpoint。
 
+### Rejected Logical PFB Probe A/B
+
+2026-03-30 在 core 里补了默认关闭的 logical PFB probe，只用于测量，不改变物理 `PFB` 字节数。工具本身只增加 `text +308B`，`.data/.bss`、whole-run heap 和活跃路径最大栈帧都不变；是否启用、目标宽度以及按场景 override 都必须手工打开。
+
+| 实验 | Heap 变化 | 性能结果 | 结论 |
+| --- | ---: | --- | --- |
+| 全 codec 场景逻辑 tile 改为 `64x12` | `9568B -> 6736B` (`-2832B`) | QOI alpha 仍有 `+2.11% / +6.23% / +1.46% / +6.98%`，但内部 RLE 热点超出 `>500B => 10%` 门线：`IMAGE_RLE_565 +16.26%`、`IMAGE_RLE_565_8 +12.92%` | 拒绝 |
+| 仅 QOI 场景逻辑 tile 改为 `64x12` | `9568B -> 9376B` (`-192B`) | 节省只有 `192B`，但 `IMAGE_QOI_565_8` / `EXTERN_IMAGE_QOI_565_8` 仍退化约 `+6% ~ +7%`，超过 `<=500B => 5%` 门线 | 拒绝 |
+| 全 codec `64x12` + `EGUI_CONFIG_IMAGE_RLE_CHECKPOINT_ENABLE=1` | `9568B -> 6736B` (`-2832B`) | RLE checkpoint 对这条实验线几乎没有恢复作用，整体结果与上一行基本相同 | 拒绝 |
+
+- `MASK_IMAGE_TEST_PERF_ROUND_RECT` 等局部圆角遮罩场景在更宽逻辑 tile 下确实更快，但 shipped default 必须看整套场景是否满足当前 RAM/perf 规则，不能因为单个热点收益就带进默认路径。
+- `python scripts/code_perf_check.py` 的 `PASSED` 只表示当前跑通，不代表通过基线对比；这三组 probe 实验都是手工对照 `doc/source/performance/perf_report.md` 后判定拒绝。
+
 ### 不接受的方向
 
 下列方案即使性能收益明显，也不再接受：
@@ -218,6 +233,7 @@
 
 - `Map` 交叉复核结果：`.su` 里的 `1200B`、`1112B`、`976B` 这三个大栈帧，在当前 HelloPerformance 镜像里都只出现在 `Discarded input sections`，并未进入最终链接结果。
 - 当前最终链接镜像里的最大单函数栈帧是 `424B`，由 `egui_canvas_draw_circle_fill_gradient` 持有；其后是 `egui_canvas_draw_rectangle_fill_gradient (416B)`、`egui_canvas_draw_polygon_fill_gradient (408B)`、`egui_canvas_draw_polygon_fill (408B)`、`egui_canvas_draw_text_transform (376B)`、`egui_canvas_draw_image_transform (344B)`、`egui_canvas_draw_line_hq (288B)` 和 `egui_canvas_draw_triangle_fill (248B)`，最终镜像中仍然没有 `>=1KB` 的链接热点。
+- 默认关闭的 logical PFB probe 也已经做过 `-fstack-usage` 复核：`egui_core_get_logical_pfb_target_width_hint=4B`、`egui_core_get_logical_pfb_probe_width=32B`、`egui_core_apply_logical_pfb_probe_shape=32B`，没有引入新的大栈对象。
 - HelloPerformance 现在使用 `__qemu_min_stack_size__=0x01b0`，即 `432B` QEMU 预留栈；这轮最小值由 clean `cortex-m3` perf rerun 与 `.su`/`main.map` 交叉复核支撑，运行时截图和单元测试没有在这一轮重跑。
 
 ## 建议的裁剪顺序
@@ -292,4 +308,5 @@ make all APP=HelloPerformance PORT=qemu CPU_ARCH=cortex-m3 USER_CFLAGS="-fstack-
 - 固定静态 RAM 已经比较小，当前示例真正常驻的 `.data + .bss` 为 `1972B`，其中 `PFB` 就占了 `1536B`。
 - 需要跟随字体、图片、屏幕、`PFB` 尺寸变化的 buffer，必须继续保持 `heap` 化，不能为了追求“heap=0”回退到静态区或大栈。
 - 当前默认 heap 峰值 `9568B` 主要来自运行时 scratch，空间可回到 `0B`；其中稳定的 codec row-cache floor 仍是 `9360B`，额外的 `208B/16B` 来自 QOI/RLE 按帧解码状态；若后续引入常驻 heap，必须明确记录 owner、lifetime、bytes。
+- 默认关闭的 core logical PFB probe 现在保留在树里，作为后续架构 A/B 的测量工具；它不改变 shipped path，也不能在没有通过整套 RAM/perf 门线之前被当成正式优化。
 - 对于高性能变体，也只能在 `1 * PFB` 或 `2` 行 / 列尺寸相关 heap 的约束内做选择，不能回到 whole-image cache。

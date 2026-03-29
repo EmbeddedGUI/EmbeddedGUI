@@ -101,6 +101,14 @@ void egui_core_remove_user_root_view(egui_view_t *view);
 void egui_core_layout_childs_user_root_view(uint8_t is_orientation_horizontal, uint8_t align_type);
 egui_region_t *egui_core_get_region_dirty_arr(void);
 void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode);
+/**
+ * Optional app/port hook: return a wider logical PFB target width for the
+ * current scene, or 0 to keep the configured PFB geometry unchanged.
+ *
+ * Core keeps the physical PFB bytes unchanged and only reinterprets the tile
+ * shape when the returned width is larger than EGUI_CONFIG_PFB_WIDTH.
+ */
+egui_dim_t egui_core_get_logical_pfb_target_width_hint(void);
 void egui_core_process_input_motion(egui_motion_event_t *motion_event);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 void egui_core_process_input_key(egui_key_event_t *key_event);

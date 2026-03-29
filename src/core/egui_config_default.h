@@ -56,6 +56,28 @@ extern "C" {
 #endif
 
 /**
+ * Default-off logical PFB probe for measurement experiments.
+ * Core keeps the physical PFB bytes unchanged and only reinterprets the tile
+ * geometry during the refresh walk.
+ *
+ * Only enable this for perf/RAM experiments. The shipped default path should
+ * keep using the configured PFB geometry directly.
+ */
+#ifndef EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE
+#define EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE 0
+#endif
+
+/**
+ * Target logical tile width for the measurement-only probe above.
+ * When enabled, core picks the largest divisor of (PFB_WIDTH * PFB_HEIGHT)
+ * that does not exceed this target and still keeps logical height within the
+ * configured PFB height.
+ */
+#ifndef EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH
+#define EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH EGUI_CONFIG_PFB_WIDTH
+#endif
+
+/**
  * PFB multi-buffer count.
  * Controls how many PFB buffers the ring queue uses:
  *   1 = single buffer, synchronous draw (no DMA overlap)
