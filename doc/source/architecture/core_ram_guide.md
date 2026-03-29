@@ -57,7 +57,7 @@
 - `heap peak=9424B` 是运行时峰值，不是 idle 常驻占用；当前默认示例结束后 `current heap` 会回到 `0B`。
 - 如需继续追峰值归因，可在测量构建里额外打开 `QEMU_HEAP_TRACE_ACTIONS=1`，让 QEMU 按录制 action 输出 `HEAP_ACTION:<idx>:current/peak/allocs/frees`，默认关闭时不会改变当前 RAM 口径。
 - `HelloPerformance` 现在把 QEMU 链接脚本保留栈压到 `432B`，所以静态 RAM headline 已反映这一调整。
-- 当前正常 QEMU 构建口径是 `text=2135512`、`data=52`、`bss=2356`、`static RAM=2408`；在保留默认关闭的 core logical PFB probe 测量工具和当前 QOI direct-blend 低 RAM 路径的基础上，最新一轮又把 buffered rotated-text 的可见 glyph 列表从指针数组压成 layout index，因此 `.data/.bss` 和 whole-run heap 都不变，仍是 `9424B`，而两个文字热点继续降到 `TEXT_ROTATE_BUFFERED=3846B`、`EXTERN_TEXT_ROTATE_BUFFERED=4056B`。
+- 当前正常 QEMU 构建口径是 `text=2135512`、`data=52`、`bss=2356`、`static RAM=2408`；在保留默认关闭的 core logical PFB probe 测量工具和当前 QOI direct-blend 低 RAM 路径的基础上，最新一轮又把 buffered rotated-text 的 visible alpha8 ceiling 从 `3072B` 收到 `2560B`。`.data/.bss` 和 whole-run heap 仍保持 `9424B`，而两个文字热点继续降到 `TEXT_ROTATE_BUFFERED=3334B`、`EXTERN_TEXT_ROTATE_BUFFERED=3544B`；继续往下到 `2304B` 反而会触发 packed4 fallback heap cliff，scene-local heap 回跳到 `5410B/5252B`。
 - QOI/RLE 解码状态已经从固定 `.bss` 挪到按帧 heap，因此当前 whole-run heap headline 是 `9424B`：QOI alpha 路径已经去掉旧的 `144B` 首个可见 tile heap scratch，只剩 `9216B` tail-row cache + `208B` QOI 解码状态；RLE alpha 场景仍是 `9376B`，因为它们还保留 `144B` 可见段 scratch + `16B` RLE 解码状态。
 - `EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE`、`EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH` 和弱符号 `egui_core_get_logical_pfb_target_width_hint()` 只用于手工 A/B；默认返回 `0`，因此 shipped path 仍直接使用配置好的 `PFB_WIDTH/PFB_HEIGHT`。
 - 当前默认 `EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE=0`、`EGUI_CONFIG_MASK_CIRCLE_FRAME_ROW_CACHE_ENABLE=0`；这两个 `PFB_HEIGHT` 相关行缓存如果以后重新打开，仍然必须走 `heap`，不能回退为静态 RAM 或大栈数组。
@@ -141,8 +141,8 @@
 | `EXTERN_IMAGE_QOI_565_8` | `9424B` | 同上，外部 QOI alpha 场景 |
 | `IMAGE_RLE_565_8` | `9376B` | 低 RAM codec tail-row cache + 首个 tile 的可见段瞬时 scratch + `16B` RLE 解码状态 |
 | `EXTERN_IMAGE_RLE_565_8` | `9376B` | 同上，外部 RLE alpha 场景 |
-| `EXTERN_TEXT_ROTATE_BUFFERED` | `4056B` | external rotated-text visible alpha8 tile cache + compact visible-layout index list + `14` 行 external glyph chunk scratch + transient layout/tile scratch |
-| `TEXT_ROTATE_BUFFERED` | `3846B` | rotated-text visible alpha8 tile cache + compact visible-layout index list + transient layout/tile scratch |
+| `EXTERN_TEXT_ROTATE_BUFFERED` | `3544B` | external rotated-text visible alpha8 tile cache（`2560B` ceiling）+ compact visible-layout index list + `14` 行 external glyph chunk scratch + transient layout/tile scratch |
+| `TEXT_ROTATE_BUFFERED` | `3334B` | rotated-text visible alpha8 tile cache（`2560B` ceiling）+ compact visible-layout index list + transient layout/tile scratch |
 | `EXTERN_IMAGE_RESIZE_565_8` | `1536B` | `2` 行 external shared RGB565+alpha row cache + resize `src_x_map` |
 | `EXTERN_IMAGE_565_8` | `1440B` | `2` 行 external shared RGB565+alpha row cache |
 | `EXTERN_IMAGE_ROTATE_565_8` | `1440B` | `2` 行 external transform-side shared RGB565+alpha row cache |
@@ -166,8 +166,8 @@
 | `tail=184, qoi_cp=2, rle_cp=1` | `3.630 (+60.76%)` | `4.544 (+66.20%)` | `2.284 (+46.32%)` | `3.927 (+64.65%)` | 拒绝 |
 
 - 按同样的几何关系推算，`176` 和 `184` 其实也只是在 `192` 列 tail 上少了 `16` / `8` 列，checkpoint 开销扣除前的 raw tail 节省不过 `768B` / `384B`。在已经实测到 `+45% ~ +66%` 退化的前提下，这条线没有继续做默认路径 heap 复测的必要。
-- buffered rotated-text 的可见 alpha8 ceiling 仍保持 `3072B`：此前从 `3648B` 压到 `3072B` 时，两条 text 热点都再降了 `576B`，同时仍满足 `>500B => 10%` 的性能线；再往下到 `2560B` 会越线。
-- 在这个 `3072B` ceiling 基础上，latest rotated-text visible-list round 再把可见 glyph 列表从整指针数组改成 compact layout index，令 `TEXT_ROTATE_BUFFERED 3984B -> 3846B`、`EXTERN_TEXT_ROTATE_BUFFERED 4194B -> 4056B`。相对 clean `6af3f2c` 基线，性能仍保持在 `11.358ms / 12.884ms`，对应 `11.360 -> 11.358` 和 `12.885 -> 12.884`，满足更严格的 `<=500B => 5%` 线。
+- buffered rotated-text 的可见 alpha8 ceiling 现在保持 `2560B`：latest visible-list compaction 之后，`3072 -> 2560` 这一步已经重新落回严格的 `<=500B => 5%` 线内，同时又把两条 text 热点各再降了 `512B`，即 `TEXT_ROTATE_BUFFERED 3846 -> 3334`、`EXTERN_TEXT_ROTATE_BUFFERED 4056 -> 3544`；对应 perf 只是 `11.358 -> 11.552` 和 `12.884 -> 13.072`。
+- 这轮 A/B 还补出了真正的 heap cliff：`2304B` 时 `TEXT_ROTATE_BUFFERED` 已经回跳到 `5410B`，`2048B` 及以下则稳定在 `5252B`。原因不是性能线，而是 packed4 fallback scratch 比收缩后的 alpha8 cache 更大，所以默认值不能再继续往下压。
 - 当前 next-largest 的非 codec heap 热点仍是 `EXTERN_TEXT_ROTATE_BUFFERED`，但它现在只比内部路径多 `210B`，说明 external glyph scratch 与 visible-list 元数据的额外成本都已经被压到较小尾差。
 - 当前默认 external raw-image 路径也已经强制遵守 `<=2` 行 / 列尺寸相关 heap 约束：shared row cache 从旧的 `1920/960` 收紧到 `960/480`，因此代表性 scene-local heap 变为 `EXTERN_IMAGE_565_8 1440B`、`EXTERN_IMAGE_RESIZE_565_8 1536B`、`EXTERN_IMAGE_ROTATE_565_8 1440B`。
 - 2026-03-29 又补做过 `1` 行 external raw-image row cache A/B：把 shared row cache 再压到 `480/240` 后，代表性 scene-local heap 会继续降到 `EXTERN_IMAGE_565_8 720B`、`EXTERN_IMAGE_RESIZE_565_8 816B`、`EXTERN_IMAGE_ROTATE_565_8 720B`，但 whole-run heap headline 仍然不变，还是被 codec 场景钉在当前的 `9424B`。

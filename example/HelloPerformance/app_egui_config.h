@@ -244,11 +244,13 @@ extern "C" {
 // The rotated-text visible alpha8 tile size follows actual transformed glyph
 // bounds, so do not keep a fixed large stack buffer here. Let the existing
 // per-frame heap cache size itself dynamically and release at frame end.
-// Keep the alpha8 fast-path ceiling at the smallest value that stays within
-// the >500B RAM-change 10% perf budget for both buffered rotated-text scenes
-// on HelloPerformance.
+// Keep the alpha8 fast-path ceiling at the smallest value that still avoids
+// the packed4 fallback heap cliff on HelloPerformance buffered rotated-text
+// scenes. Values below 2560B raise the scene-local heap peak sharply even when
+// the timing delta still looks small, so keep 2560B as the shipped low-RAM
+// default until the fallback path itself is reduced.
 #ifndef EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES
-#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 3072
+#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 2560
 #endif
 
 #ifndef EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES
