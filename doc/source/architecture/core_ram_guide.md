@@ -57,6 +57,7 @@
 - `heap peak=9424B` 是运行时峰值，不是 idle 常驻占用；当前默认示例结束后 `current heap` 会回到 `0B`。
 - 如需继续追峰值归因，可在测量构建里额外打开 `QEMU_HEAP_TRACE_ACTIONS=1`，让 QEMU 按录制 action 输出 `HEAP_ACTION:<idx>:current/peak/allocs/frees`，默认关闭时不会改变当前 RAM 口径。
 - `HelloPerformance` 现在把 QEMU 链接脚本保留栈压到 `432B`，所以静态 RAM headline 已反映这一调整。
+- 2026-03-30 又做过一次继续下压到 `0x0180`（`384B`）的 A/B，但该 probe 已明确拒绝且没有保留。原因不是 `egui_canvas_draw_thick_line_scan()` 不能再降，而是 fresh clean `-fstack-usage` / `main.map` / `llvm-nm` 交叉复核后，新的 linked ceiling 会立刻转移到 `egui_canvas_draw_circle_fill_gradient (424B)`，后面还有 `egui_canvas_draw_rectangle_fill_gradient (416B)`、`egui_canvas_draw_polygon_fill_gradient (408B)`、`egui_canvas_draw_polygon_fill (408B)` 和 `egui_image_rle_draw_image (392B)`；在“几个字节的不管”这条规则下，这意味着当前默认 reserve 没必要继续为了 `<=24B` 的静态 RAM 去冒险。
 - 当前正常 QEMU 构建口径是 `text=2135580`、`data=52`、`bss=2356`、`static RAM=2408`；在保留默认关闭的 core logical PFB probe 测量工具和当前 shipped 低 RAM 路径的基础上，buffered rotated-text 的 visible alpha8 ceiling 仍保持 `2560B`，两个文字热点继续维持在 `TEXT_ROTATE_BUFFERED=3334B`、`EXTERN_TEXT_ROTATE_BUFFERED=3544B`；继续往下到 `2304B` 反而会触发 packed4 fallback heap cliff，scene-local heap 回跳到 `5410B/5252B`。
 - QOI/RLE 解码状态已经从固定 `.bss` 挪到按帧 heap，因此当前 whole-run heap headline 是 `9424B`：共享 tail-row cache 仍是 `9216B`，unmasked QOI alpha 场景保持 `9424B = 9216 + 208`；masked QOI alpha 场景在当前 shipped `48px` walk 上也保持 `9424B`，因为它会借用已分配的 tail-row heap row，只在更宽的 clipped span 超过该行容量时才回退到额外 `144B` transient scratch；RLE alpha 场景保持 `9376B = 9216 + 144 + 16`。
 - `EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE`、`EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH` 和弱符号 `egui_core_get_logical_pfb_target_width_hint()` 只用于手工 A/B；默认返回 `0`，因此 shipped path 仍直接使用配置好的 `PFB_WIDTH/PFB_HEIGHT`。
@@ -250,6 +251,7 @@
 - 当前最终链接镜像里的最大单函数栈帧是 `432B`，由 `egui_canvas_draw_thick_line_scan` 持有；其后是 `egui_canvas_draw_circle_fill_gradient (424B)`、`egui_canvas_draw_rectangle_fill_gradient (416B)`、`egui_canvas_draw_polygon_fill_gradient (408B)`、`egui_canvas_draw_polygon_fill (408B)`、`egui_image_rle_draw_image (392B)`、`egui_canvas_draw_text_transform (368B)`、`egui_canvas_draw_image_transform (344B)` 和 `egui_canvas_draw_line_hq (288B)`，最终镜像中仍然没有 `>=1KB` 的链接热点。
 - 默认关闭的 logical PFB probe 也已经做过 `-fstack-usage` 复核：`egui_core_get_logical_pfb_target_width_hint=4B`、`egui_core_get_logical_pfb_probe_width=32B`、`egui_core_apply_logical_pfb_probe_shape=32B`，没有引入新的大栈对象。
 - HelloPerformance 现在使用 `__qemu_min_stack_size__=0x01b0`，即 `432B` QEMU 预留栈；当前口径已由最新 `.su`/`main.map` 交叉复核、runtime `223/223`、unit test `649/649` 和 `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5` 共同支撑。
+- 这也说明当前 stack 方向已经接近收尾：后续如果只是把某一个 `432B` 或 `424B` 热点单独压下去，而没有一起带动 `416B/408B/392B` 这组 active linked frame 下移，就不会带来值得保留的静态 RAM headline 变化。
 
 ## 建议的裁剪顺序
 
