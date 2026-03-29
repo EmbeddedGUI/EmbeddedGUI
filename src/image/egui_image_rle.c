@@ -31,7 +31,19 @@ typedef struct
     uint16_t current_row; /* next row to be decoded */
 } egui_image_rle_decode_state_t;
 
-static egui_image_rle_decode_state_t rle_state;
+static egui_image_rle_decode_state_t *rle_state_ptr = NULL;
+#define rle_state (*rle_state_ptr)
+
+static int egui_image_rle_prepare_state(void)
+{
+    if (rle_state_ptr != NULL)
+    {
+        return 1;
+    }
+
+    rle_state_ptr = (egui_image_rle_decode_state_t *)egui_malloc(sizeof(egui_image_rle_decode_state_t));
+    return rle_state_ptr != NULL;
+}
 
 static int egui_image_rle_prepare_decode_info(const egui_image_rle_info_t *info, egui_image_rle_info_t *decode_info)
 {
@@ -1798,6 +1810,11 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
     }
 #endif
 
+    if (!egui_image_rle_prepare_state())
+    {
+        return;
+    }
+
     /* Check if info changed or state needs reset (new frame) */
     if (rle_state.info != info || rle_state.current_row > info->height)
     {
@@ -2240,6 +2257,15 @@ void egui_image_rle_init(egui_image_t *self, const void *res)
 
     /* Update vtable to RLE implementation */
     self->api = &egui_image_rle_t_api_table;
+}
+
+void egui_image_rle_release_frame_cache(void)
+{
+    if (rle_state_ptr != NULL)
+    {
+        egui_free(rle_state_ptr);
+        rle_state_ptr = NULL;
+    }
 }
 
 #endif /* EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE */

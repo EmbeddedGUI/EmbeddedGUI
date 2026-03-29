@@ -133,7 +133,19 @@ typedef struct
     EGUI_IMAGE_QOI_INDEX_STATE_MEMBER
 } egui_image_qoi_decode_state_t;
 
-static egui_image_qoi_decode_state_t qoi_state;
+static egui_image_qoi_decode_state_t *qoi_state_ptr = NULL;
+#define qoi_state (*qoi_state_ptr)
+
+static int egui_image_qoi_prepare_state(void)
+{
+    if (qoi_state_ptr != NULL)
+    {
+        return 1;
+    }
+
+    qoi_state_ptr = (egui_image_qoi_decode_state_t *)egui_malloc(sizeof(egui_image_qoi_decode_state_t));
+    return qoi_state_ptr != NULL;
+}
 
 #if EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT < 0
 #error "EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT must be >= 0"
@@ -2118,6 +2130,11 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
     }
     draw_info = &decode_info;
 
+    if (!egui_image_qoi_prepare_state())
+    {
+        return;
+    }
+
     /* Check if info changed or state needs reset */
     if (qoi_state.info != info || qoi_state.current_row > info->height)
     {
@@ -2509,6 +2526,15 @@ void egui_image_qoi_init(egui_image_t *self, const void *res)
 
     /* Update vtable to QOI implementation */
     self->api = &egui_image_qoi_t_api_table;
+}
+
+void egui_image_qoi_release_frame_cache(void)
+{
+    if (qoi_state_ptr != NULL)
+    {
+        egui_free(qoi_state_ptr);
+        qoi_state_ptr = NULL;
+    }
 }
 
 #endif /* EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE */

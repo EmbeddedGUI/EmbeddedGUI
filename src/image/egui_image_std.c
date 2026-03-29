@@ -2,6 +2,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include "egui_image_qoi.h"
+#include "egui_image_rle.h"
 #include "egui_image_std.h"
 #include "egui_image_decode_utils.h"
 #include "core/egui_api.h"
@@ -8789,6 +8791,12 @@ void egui_image_std_init(egui_image_t *self, const void *res)
 
 void egui_image_std_release_frame_cache(void)
 {
+#if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
+    egui_image_qoi_release_frame_cache();
+#endif
+#if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
+    egui_image_rle_release_frame_cache();
+#endif
     egui_image_decode_release_frame_cache();
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 #if EGUI_CONFIG_IMAGE_STD_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE

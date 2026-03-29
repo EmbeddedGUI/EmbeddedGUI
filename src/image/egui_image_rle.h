@@ -33,6 +33,7 @@ struct egui_image_rle
 };
 
 void egui_image_rle_init(egui_image_t *self, const void *res);
+void egui_image_rle_release_frame_cache(void);
 
 #endif /* EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE */
 
