@@ -2537,12 +2537,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
             }
             else if (masked_canvas != NULL && masked_dst_row != NULL && use_masked_alpha8)
             {
-                /* This visible-span scratch follows the current clipped tile width,
-                 * so keep it transient on heap instead of fixed stack storage. */
-                row_pixel_scratch = (uint8_t *)egui_malloc((int)((uint32_t)count * pixel_size));
-                row_alpha_scratch = (uint8_t *)egui_malloc((int)count);
-
-                if (row_pixel_scratch != NULL && row_alpha_scratch != NULL)
+                if (cache_col_count >= (uint16_t)count)
                 {
                     use_row_cache = 1;
                     use_tail_row_cache = 1;
@@ -2550,18 +2545,32 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
                 }
                 else
                 {
-                    if (row_alpha_scratch != NULL)
+                    /* The masked visible-span scratch still follows the clipped tile width,
+                     * so allocate it on heap only when the tail-row heap buffer is too small to borrow. */
+                    row_pixel_scratch = (uint8_t *)egui_malloc((int)((uint32_t)count * pixel_size));
+                    row_alpha_scratch = (uint8_t *)egui_malloc((int)count);
+
+                    if (row_pixel_scratch != NULL && row_alpha_scratch != NULL)
                     {
-                        egui_free(row_alpha_scratch);
-                        row_alpha_scratch = NULL;
+                        use_row_cache = 1;
+                        use_tail_row_cache = 1;
+                        use_direct_masked_alpha8 = 1;
                     }
-                    if (row_pixel_scratch != NULL)
+                    else
                     {
-                        egui_free(row_pixel_scratch);
-                        row_pixel_scratch = NULL;
+                        if (row_alpha_scratch != NULL)
+                        {
+                            egui_free(row_alpha_scratch);
+                            row_alpha_scratch = NULL;
+                        }
+                        if (row_pixel_scratch != NULL)
+                        {
+                            egui_free(row_pixel_scratch);
+                            row_pixel_scratch = NULL;
+                        }
+                        cache_col_start = 0;
+                        cache_col_count = 0;
                     }
-                    cache_col_start = 0;
-                    cache_col_count = 0;
                 }
             }
             else
@@ -2681,10 +2690,19 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
             }
             else if (use_direct_masked_alpha8)
             {
+                uint8_t *visible_pixel_row = cache_pixel_row;
+                uint8_t *visible_alpha_row = cache_alpha_row;
+
+                if (row_pixel_scratch != NULL && row_alpha_scratch != NULL)
+                {
+                    visible_pixel_row = row_pixel_scratch;
+                    visible_alpha_row = row_alpha_scratch;
+                }
+
                 egui_image_qoi_decode_row_rgb565_alpha8_masked_split(draw_info, masked_canvas, masked_dst_row,
                                                                      screen_x_start, screen_y, masked_canvas->alpha,
                                                                      (uint16_t)img_col_start, (uint16_t)count,
-                                                                     row_pixel_scratch, row_alpha_scratch,
+                                                                     visible_pixel_row, visible_alpha_row,
                                                                      cache_pixel_row, cache_alpha_row,
                                                                      cache_col_start, cache_col_count);
             }
