@@ -85,6 +85,7 @@
   - `EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE`
   - `EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE`
   - `EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE`
+  - 这组 benchmark workload 开关的现行依据见 `benchmark_capability_retention.md`
 - heap/decode 行为宏：
   - `EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE`
   - `EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE`
