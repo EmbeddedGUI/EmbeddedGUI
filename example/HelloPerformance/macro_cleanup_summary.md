@@ -47,13 +47,14 @@
 | `EGUI_CONFIG_FUNCTION_SUPPORT_TOAST` | 回退到默认 | `38637ba` |
 | `EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES` | 删除 override | `183aaca` |
 | `EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE` | 删除 override | `9c08111` |
-| `EGUI_TEST_CONFIG_IMAGE_LARGE` | 删除 override | `be80d98` |
+| `EGUI_TEST_CONFIG_IMAGE_LARGE` | 删除 app 侧 override | `be80d98` |
 | `EGUI_CONFIG_IMAGE_QOI_INDEX_RGB565_CACHE_ENABLE` | 回退到默认 | `ec28479` |
 | `EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES` | 删除 override | `7292758` |
 | `EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES` | 删除 override | `b9fc98a` / `af6e912` |
 | `EGUI_TEST_CONFIG_IMAGE_DOUBLE` | 默认打开，移除 app 侧 override | `96dae0b` |
 
 - 本轮继续移除了 `EGUI_CONFIG_SCEEN_WIDTH` app override，直接继承库默认 `240`；同时把 `code_perf_check.py` 调整为按维度回默认值，避免缺宽度定义时误判成 `240x320`。`2026-03-31` 已复跑 HelloPerformance clean perf，`read_screen_size()` 仍识别为 `(240, 240)`，报告继续输出 `222` 个 case。
+- 本轮继续折叠了 `example/HelloPerformance/egui_view_test_performance.c` 中固定为 `1` 的 `EGUI_TEST_CONFIG_IMAGE_LARGE` 编译期开关。对应 HelloPerformance clean perf 仍保持 `222` 个 case，关键锚点维持 `IMAGE_565_DOUBLE 0.551ms`、`TEXT_ROTATE_BUFFERED 11.498ms`、`ANIMATION_SCALE 0.320ms`。
 
 ## 已确认保留项
 
