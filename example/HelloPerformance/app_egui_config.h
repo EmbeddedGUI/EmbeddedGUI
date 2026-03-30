@@ -50,10 +50,6 @@ extern "C" {
 // root-group object in persistent RAM.
 #define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 0
 
-// HelloPerformance only replays one pointer event at a time and consumes it
-// immediately in the polling loop, so one cached motion slot is enough.
-#define EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT 1
-
 // HelloPerformance does not use fling/scroll velocity, so the input module
 // can drop its persistent velocity tracker state.
 #define EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE 0
