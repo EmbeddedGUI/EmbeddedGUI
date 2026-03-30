@@ -106,16 +106,6 @@ extern "C" {
 // measured QOI/RLE alpha performance collapses from the ~2ms / ~1.4ms class to
 // roughly ~9ms / ~3ms. Keep narrower caps as measurement-only experiments.
 
-// HelloPerformance's QOI decode stays on one active image stream per scene, so
-// the RGBA index table can reconstruct RGB565 on demand without keeping a
-// duplicate 64-entry RGB565 index array in static RAM.
-#define EGUI_CONFIG_IMAGE_QOI_INDEX_RGB565_CACHE_ENABLE 0
-
-// HelloPerformance's QOI assets are all RGB565 sources. RGB565+alpha images
-// can rebuild RGB888 from canonical expansion plus cached alpha, and opaque
-// RGB565 images only need one small variant byte for the encoder's speed-
-// biased representative choice. This trims another 64B from qoi_state.
-
 // External raw-image row cache sharing is now always enabled (mandatory).
 // The former EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS and
 // EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE macros have
