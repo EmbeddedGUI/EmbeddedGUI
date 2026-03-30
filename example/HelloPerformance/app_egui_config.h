@@ -164,11 +164,6 @@ extern "C" {
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 1
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT  1
 
-// HelloPerformance's circle/round-rect workloads stay within the built-in
-// radius LUT range configured above, so canvas never needs runtime-registered
-// out-of-range circle metadata.
-#define EGUI_CONFIG_CANVAS_SPEC_CIRCLE_INFO_ENABLE 0
-
 // HelloPerformance keeps a single fullscreen benchmark view and every scene
 // switch invalidates that whole surface, so one dirty-region slot is enough.
 #define EGUI_CONFIG_DIRTY_AREA_COUNT 1
