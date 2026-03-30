@@ -96,8 +96,12 @@
   - `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT`
   - `EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE`
   - `EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES`
+- 保留的 test/measurement 覆盖入口：
+  - `EGUI_TEST_CONFIG_SINGLE_TEST`
+  - 用途：单场景 heap/perf spot check
+  - 结论：保留外部覆盖能力，不纳入这轮“默认固定开启”清理
 
 ## 结论
 
 - 满足 `<100B static RAM` 且 `<5%` perf 的 app 侧小宏，已经清完。
-- 当前剩余项要么已确认不能回收，要么超出 `<100B` 门槛，要么属于 heap/stack/codec 行为控制或 benchmark 功能选择，不再属于这轮 small static-RAM cleanup。
+- 当前剩余项要么已确认不能回收，要么超出 `<100B` 门槛，要么属于 heap/stack/codec 行为控制、benchmark 功能选择，或单场景测量入口，不再属于这轮 small static-RAM cleanup。
