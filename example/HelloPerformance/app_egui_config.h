@@ -155,11 +155,6 @@ extern "C" {
 // trimming another 64B of static RAM versus the current 128B window.
 #define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 64
 
-// HelloPerformance's external RLE benchmarks only keep one decode stream
-// alive per draw, so the window-cache metadata can live on stack instead of
-// reserving a persistent global slot in BSS.
-#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE 0
-
 // HelloPerformance only accepts size-related external-image heap scratch up to
 // 2 image rows / columns. For the 240px RGB565+alpha hot scenes, cap the shared
 // row caches to exactly 2 rows: 960B data + 480B alpha. This stays within the
