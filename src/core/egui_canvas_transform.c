@@ -537,9 +537,6 @@ static int image_transform_get_alpha_row_bytes(int16_t w, uint8_t alpha_type)
 #define EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE 1
 #endif
 
-#if !EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE && !EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
-#error "EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE=0 requires EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS"
-#endif
 
 typedef struct
 {
@@ -549,11 +546,7 @@ typedef struct
     int32_t chunk_row_count;
     uint32_t row_bytes;
     uint32_t rows_per_chunk;
-#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
     uint32_t shared_generation;
-#else
-    uint16_t pixels[(EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES + sizeof(uint16_t) - 1) / sizeof(uint16_t)];
-#endif
 } image_transform_external_data_row_slot_t;
 
 typedef struct
@@ -564,11 +557,7 @@ typedef struct
     int32_t chunk_row_count;
     uint32_t row_bytes;
     uint32_t rows_per_chunk;
-#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
     uint32_t shared_generation;
-#else
-    uint8_t bytes[EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES];
-#endif
 } image_transform_external_alpha_row_slot_t;
 
 typedef struct
@@ -587,7 +576,6 @@ static image_transform_external_data_row_slot_t g_image_transform_external_data_
 static image_transform_external_alpha_row_slot_t g_image_transform_external_alpha_row_cache = {0};
 #endif
 
-#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
 static void image_transform_sync_external_row_cache_generation(uint32_t *shared_generation, int32_t *chunk_row_start, int32_t *chunk_row_count)
 {
     uint32_t generation = egui_image_std_claim_shared_external_row_cache(EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_TRANSFORM);
@@ -605,26 +593,17 @@ static void image_transform_sync_external_row_cache_generation(uint32_t *shared_
         *shared_generation = generation;
     }
 }
-#endif
 
 static uint16_t *image_transform_get_external_data_cache_pixels(image_transform_external_data_row_slot_t *cache)
 {
-#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
     EGUI_UNUSED(cache);
     return egui_image_std_get_shared_external_data_cache();
-#else
-    return cache->pixels;
-#endif
 }
 
 static uint8_t *image_transform_get_external_alpha_cache_bytes(image_transform_external_alpha_row_slot_t *cache)
 {
-#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
     EGUI_UNUSED(cache);
     return egui_image_std_get_shared_external_alpha_cache();
-#else
-    return cache->bytes;
-#endif
 }
 
 static image_transform_external_data_row_slot_t *image_transform_get_external_data_row_cache(const image_transform_external_source_t *source)
@@ -673,10 +652,8 @@ static int image_transform_prepare_external_source(const egui_image_std_info_t *
     image_transform_external_data_row_slot_t *data_cache = image_transform_get_external_data_row_cache(source);
     image_transform_external_alpha_row_slot_t *alpha_cache = image_transform_get_external_alpha_row_cache(source);
 
-#if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
     image_transform_sync_external_row_cache_generation(&data_cache->shared_generation, &data_cache->chunk_row_start, &data_cache->chunk_row_count);
     image_transform_sync_external_row_cache_generation(&alpha_cache->shared_generation, &alpha_cache->chunk_row_start, &alpha_cache->chunk_row_count);
-#endif
     return 1;
 }
 

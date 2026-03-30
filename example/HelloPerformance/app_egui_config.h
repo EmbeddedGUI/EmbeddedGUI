@@ -138,19 +138,10 @@ extern "C" {
 // biased representative choice. This trims another 64B from qoi_state.
 #define EGUI_CONFIG_IMAGE_QOI_COMPACT_RGB565_INDEX_ENABLE 1
 
-// HelloPerformance exercises external raw-image draw/resize and external
-// raw-image transform in separate benchmark scenes, so they can reuse one
-// shared row-cache backing store without changing hot-path behavior.
-#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS
-#define EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS 1
-#endif
-
-// HelloPerformance never mixes external raw-image row-cache scenes with
-// QOI/RLE row-cache scenes in one frame, so the external shared row caches can
-// borrow the codec row-cache backing store instead of reserving separate BSS.
-#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE
-#define EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE 1
-#endif
+// External raw-image row cache sharing is now always enabled (mandatory).
+// The former EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS and
+// EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE macros have
+// been removed. Shared buffers are heap-allocated on first use.
 
 // HelloPerformance's rotated-text visible alpha8 tile buffer follows the
 // actual transformed glyph bounds. Per the RAM rule for size-related buffers,
