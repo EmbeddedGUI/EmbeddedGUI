@@ -39,9 +39,7 @@
 #endif
 
 // Small image tests (40x40 tiled): always enabled, negligible flash cost.
-#ifndef EGUI_TEST_CONFIG_IMAGE_SMALL
 #define EGUI_TEST_CONFIG_IMAGE_SMALL 1
-#endif
 
 // Double-size (480x480) image tests are part of the shipped benchmark set now.
 #ifndef EGUI_TEST_CONFIG_IMAGE_DOUBLE
