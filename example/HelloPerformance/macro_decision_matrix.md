@@ -34,11 +34,11 @@
 | `EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT` | `0` | `2` | decode/heap 行为 | 保留 | `1/2` checkpoint 无法挽回窄 tail 方案的 `+45% ~ +66%` 回退；详见 `codec_heap_override_retention.md` |
 | `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE` | `1` | `0` | decode/heap 行为 | 保留 | 当前默认是 `-1584B heap / +8B static RAM` 的 codec 模式，主要不是 small static-RAM 取舍 |
 | `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE` | `64` | `1024` | static RAM | 保留 | 恢复默认 `+1016B static RAM`，远超本轮阈值；详见 `static_ram_override_retention.md` |
-| `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX` | `64` | `256` | stack 行为 | 保留 | 这是 stack/LUT 上限，不是 fixed static RAM 项 |
-| `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT` | `1` | `0` | heap 行为 | 保留 | 属于 text-transform heap/layout 策略 |
-| `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT` | `1` | `0` | heap 行为 | 保留 | 属于 text-transform heap/layout 策略 |
+| `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX` | `64` | `256` | stack 行为 | 保留 | shadow 栈预算 policy 点，`96 -> 64` 后 `SHADOW_ROUND` 仍保持 `5.584ms`；详见 `stack_heap_policy_retention.md` |
+| `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT` | `1` | `0` | heap 行为 | 保留 | 压缩的是 transient heap layout 索引，不是 fixed static RAM；详见 `stack_heap_policy_retention.md` |
+| `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT` | `1` | `0` | heap 行为 | 保留 | 同上，属于 text-transform transient heap policy |
 | `EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH` | `0` | `1` | static RAM | 保留 | 恢复默认后 static RAM `+328B`，`ANIMATION_SCALE +16.56%`；详见 `static_ram_override_retention.md` |
-| `EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE` | `1` | `0` | heap 行为 | 保留 | 属于 stack/heap 放置策略，不在本轮范围内 |
+| `EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE` | `1` | `0` | heap 行为 | 保留 | rotated-text scratch 放置策略，要求按实际 glyph/line 走 transient heap；详见 `stack_heap_policy_retention.md` |
 | `EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES` | `2560` | `4096` | heap 行为 | 保留 | `2560` 是当前最小可接受 shipped 点；`2304` 以下会触发 heap cliff，详见 `text_transform_heap_override_retention.md` |
 | `EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS` | `0` | `4` | static RAM | 保留 | 仅约 `~33B` BSS，但最坏 `EXTERN_IMAGE_RESIZE_TILED_565_8 +17.78%`；详见 `static_ram_override_retention.md` |
 
