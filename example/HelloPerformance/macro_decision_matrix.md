@@ -8,14 +8,14 @@
 
 | 宏 | 当前值 | 默认值 | 分类 | 当前结论 | 依据 |
 | --- | --- | --- | --- | --- | --- |
-| `EGUI_CONFIG_SCEEN_WIDTH` | `240` | `240` | benchmark 环境 | 保留 | HelloPerformance 固定测试分辨率 |
-| `EGUI_CONFIG_SCEEN_HEIGHT` | `240` | `320` | benchmark 环境 | 保留 | HelloPerformance 固定为 `240x240` |
-| `EGUI_CONFIG_MAX_FPS` | `1` | `60` | benchmark 环境 | 保留 | 限制录制/基准刷新节奏 |
+| `EGUI_CONFIG_SCEEN_WIDTH` | `240` | `240` | benchmark 环境 | 保留 | 固定 `240x240` benchmark harness；详见 `benchmark_environment_retention.md` |
+| `EGUI_CONFIG_SCEEN_HEIGHT` | `240` | `320` | benchmark 环境 | 保留 | 当前 clean perf 锚定在 `240x240`；详见 `benchmark_environment_retention.md` |
+| `EGUI_CONFIG_MAX_FPS` | `1` | `60` | benchmark 环境 | 保留 | benchmark 节奏锚点；详见 `benchmark_environment_retention.md` |
 | `EGUI_CONFIG_PFB_WIDTH` | `48` | `(EGUI_CONFIG_SCEEN_WIDTH / 8)` | benchmark 环境 | 保留 | `48x16x1=1536B`；仅回退到 `30x30x1` 就是 `+264B`，且 `--pfb-matrix` 依赖此入口 |
 | `EGUI_CONFIG_PFB_HEIGHT` | `16` | `(EGUI_CONFIG_SCEEN_HEIGHT / 8)` | benchmark 环境 | 保留 | 与 `PFB_WIDTH` 一起定义当前低 SRAM 基准几何；详见 `benchmark_override_retention.md` |
 | `EGUI_CONFIG_PFB_BUFFER_COUNT` | `1` | `2` | benchmark 环境 | 保留 | 当前 `1 -> 2` 直接 `+1536B`，且 `--spi-matrix` 依赖此入口 |
-| `EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE` | `241` | `50` | benchmark 环境 | 保留 | HelloPerformance 覆盖大圆场景 |
-| `EGUI_CONFIG_DEBUG_LOG_LEVEL` | `EGUI_LOG_IMPL_LEVEL_INF` | `EGUI_LOG_IMPL_LEVEL_NONE` | benchmark 环境 | 保留 | 便于当前 benchmark 运行观察 |
+| `EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE` | `241` | `50` | benchmark 环境 | 保留 | 保持 `radius=240` 场景 coverage 的最小值；详见 `benchmark_environment_retention.md` |
+| `EGUI_CONFIG_DEBUG_LOG_LEVEL` | `EGUI_LOG_IMPL_LEVEL_INF` | `EGUI_LOG_IMPL_LEVEL_NONE` | benchmark 环境 | 保留 | perf 报告依赖 `PERF_RESULT/PERF_COMPLETE`；详见 `benchmark_environment_retention.md` |
 | `EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW` | `1` | `0` | benchmark 能力 | 保留 | clean perf 仍直接覆盖 `SHADOW/SHADOW_ROUND`；详见 `benchmark_capability_retention.md` |
 | `EGUI_CONFIG_FUNCTION_SUPPORT_MASK` | `1` | `0` | benchmark 能力 | 保留 | clean perf 仍有 `49` 个 `MASK_*` 场景；详见 `benchmark_capability_retention.md` |
 | `EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY` | `0` | `1` | static RAM / 依赖链 | 保留 | 被 rejected `user_root=1` 路径阻塞，不能独立回收；详见 `static_ram_override_retention.md` |

@@ -76,6 +76,7 @@
   - `EGUI_CONFIG_PFB_BUFFER_COUNT`
   - `EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE`
   - `EGUI_CONFIG_DEBUG_LOG_LEVEL`
+  - 其中 `SCEEN_WIDTH / SCEEN_HEIGHT / MAX_FPS / CIRCLE_SUPPORT_RADIUS_BASIC_RANGE / DEBUG_LOG_LEVEL` 的现行依据见 `benchmark_environment_retention.md`
   - 其中 `PFB_WIDTH / PFB_HEIGHT / PFB_BUFFER_COUNT` 的现行 perf 支撑见 `benchmark_override_retention.md`
 - benchmark 能力选择宏：
   - `EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW`
