@@ -164,11 +164,6 @@ extern "C" {
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 1
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT  1
 
-// HelloPerformance refreshes every benchmark scene manually and never relies
-// on the framework's periodic refresh loop, so the core auto-refresh timer can
-// be removed entirely.
-#define EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE 0
-
 // HelloPerformance only draws a single fullscreen benchmark view and never
 // uses scroll/list/viewport style nested clip regions, so the canvas does not
 // need to retain an extra clip pointer in persistent RAM.
