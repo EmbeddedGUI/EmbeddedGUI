@@ -164,11 +164,6 @@ extern "C" {
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 1
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT  1
 
-// HelloPerformance only draws a single fullscreen benchmark view and never
-// uses scroll/list/viewport style nested clip regions, so the canvas does not
-// need to retain an extra clip pointer in persistent RAM.
-#define EGUI_CONFIG_CANVAS_EXTRA_CLIP_ENABLE 0
-
 // HelloPerformance's circle/round-rect workloads stay within the built-in
 // radius LUT range configured above, so canvas never needs runtime-registered
 // out-of-range circle metadata.
