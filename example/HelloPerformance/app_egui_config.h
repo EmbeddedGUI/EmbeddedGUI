@@ -199,7 +199,6 @@ extern "C" {
 // HelloPerformance only uses small ASCII subsets (88/93 glyphs), so the
 // frame-local ASCII lookup cache can use 8-bit indices and the multi-line
 // text cache only needs one small slot for the 7-line benchmark string.
-#define EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE         0
 #define EGUI_FONT_STD_LINE_CACHE_MAX_LINES    8
 #define EGUI_FONT_STD_LINE_CACHE_SLOTS        1
 
