@@ -737,4 +737,57 @@ void egui_mask_circle_init(egui_mask_t *self)
     local->info = NULL;
 }
 
+#else
+
+egui_alpha_t egui_mask_circle_get_corner_alpha(egui_dim_t radius, egui_dim_t row_index, egui_dim_t col_index)
+{
+    EGUI_UNUSED(radius);
+    EGUI_UNUSED(row_index);
+    EGUI_UNUSED(col_index);
+    return EGUI_ALPHA_0;
+}
+
+void egui_mask_circle_get_row_metrics(egui_dim_t radius, egui_dim_t row_index, egui_dim_t *visible_half, egui_dim_t *opaque_boundary)
+{
+    EGUI_UNUSED(radius);
+    EGUI_UNUSED(row_index);
+
+    if (visible_half != NULL)
+    {
+        *visible_half = -1;
+    }
+
+    if (opaque_boundary != NULL)
+    {
+        *opaque_boundary = 0;
+    }
+}
+
+int egui_mask_circle_prepare_row(egui_mask_circle_t *local, egui_dim_t y, egui_dim_t *row_index, egui_dim_t *visible_half, egui_dim_t *opaque_boundary)
+{
+    EGUI_UNUSED(local);
+    EGUI_UNUSED(y);
+
+    if (row_index != NULL)
+    {
+        *row_index = 0;
+    }
+
+    if (visible_half != NULL)
+    {
+        *visible_half = -1;
+    }
+
+    if (opaque_boundary != NULL)
+    {
+        *opaque_boundary = 0;
+    }
+
+    return 0;
+}
+
+void egui_mask_circle_release_frame_cache(void)
+{
+}
+
 #endif

@@ -123,7 +123,11 @@ GC_LDFLAGS = -Wl,--gc-sections -Wl,--check-sections
 endif
 
 ## Common flags ##
-COMMON_FLAGS += -g
+COMPILE_OPT_LEVEL ?= -O0
+COMPILE_DEBUG ?= -g
+
+COMMON_FLAGS += $(COMPILE_OPT_LEVEL)
+COMMON_FLAGS += $(COMPILE_DEBUG)
 
 STDCLIB_LDFLAGS ?= --specs=rdimon.specs -lc -lrdimon -lgcc
 

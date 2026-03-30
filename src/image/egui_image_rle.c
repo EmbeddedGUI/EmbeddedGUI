@@ -166,6 +166,11 @@ __EGUI_STATIC_INLINE__ int egui_image_rle_external_load_bytes(const uint8_t *src
     egui_api_load_external_resource(dst, (egui_uintptr_t)src, src_offset, size);
     return 1;
 }
+#else
+typedef struct
+{
+    uint8_t unused;
+} egui_image_rle_external_window_cache_t;
 #endif
 
 __EGUI_STATIC_INLINE__ void egui_image_rle_fill_u16(uint16_t *dst, uint16_t value, uint32_t count)
@@ -1777,12 +1782,12 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
     const egui_image_rle_info_t *info = (const egui_image_rle_info_t *)self->res;
     egui_image_rle_info_t decode_info;
     const egui_image_rle_info_t *draw_info;
+    egui_image_rle_external_window_cache_t *external_window_cache = NULL;
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 #if !EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE
     egui_image_rle_external_window_cache_t external_window_cache_storage = {0};
-    egui_image_rle_external_window_cache_t *external_window_cache = NULL;
 #else
-    egui_image_rle_external_window_cache_t *external_window_cache = &g_egui_image_rle_external_window_cache;
+    external_window_cache = &g_egui_image_rle_external_window_cache;
 #endif
 #endif
 
@@ -1851,7 +1856,6 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
     egui_dim_t masked_dst_stride = 0;
     int use_masked_opaque = 0;
     int use_masked_alpha8 = 0;
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
     int use_row_cache = 0;
     int use_tail_row_cache = 0;
     int use_direct_fast_copy = 0;
@@ -1859,6 +1863,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
     uint16_t cache_col_count = 0;
     uint8_t *row_pixel_scratch = NULL;
     uint8_t *row_alpha_scratch = NULL;
+#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 #endif
 
     if (!egui_image_decode_get_horizontal_clip(x, draw_info->width, &screen_x_start, &img_col_start, &count))
@@ -2071,10 +2076,10 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
     const uint8_t *opaque_alpha_row = NULL;
     for (egui_dim_t row = img_y_start; row < img_y_end; row++)
     {
+        egui_dim_t blend_img_col_start = img_col_start;
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
         uint8_t *pixel_buf;
         uint8_t *alpha_buf;
-        egui_dim_t blend_img_col_start = img_col_start;
 
         if (use_row_cache && use_tail_row_cache && !use_direct_fast_copy)
         {

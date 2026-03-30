@@ -2400,7 +2400,6 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
     egui_dim_t masked_dst_stride = 0;
     int use_masked_opaque = 0;
     int use_masked_alpha8 = 0;
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
     int use_row_cache = 0;
     int use_tail_row_cache = 0;
     int use_direct_fast_copy = 0;
@@ -2410,6 +2409,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
     uint16_t cache_col_count = 0;
     uint8_t *row_pixel_scratch = NULL;
     uint8_t *row_alpha_scratch = NULL;
+#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 #endif
 
     if (!egui_image_decode_get_horizontal_clip(x, draw_info->width, &screen_x_start, &img_col_start, &count))
@@ -2637,10 +2637,10 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
     const uint8_t *opaque_alpha_row = NULL;
     for (egui_dim_t row = img_y_start; row < img_y_end; row++)
     {
+        egui_dim_t blend_img_col_start = img_col_start;
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
         uint8_t *pixel_buf;
         uint8_t *alpha_buf;
-        egui_dim_t blend_img_col_start = img_col_start;
 
         if (use_row_cache && use_tail_row_cache && !use_direct_fast_copy && !use_direct_fast_alpha8 && !use_direct_masked_alpha8)
         {

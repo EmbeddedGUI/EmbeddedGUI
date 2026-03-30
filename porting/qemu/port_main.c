@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 
 #include "egui.h"
 #include "core/egui_api.h"
@@ -16,8 +17,12 @@ extern uint32_t qemu_heap_get_free_count(void);
 extern uint32_t qemu_heap_get_peak_bytes(void);
 extern void qemu_log_printf(const char *format, ...);
 extern void qemu_log_write(const char *str);
+extern uint8_t _estack[];
+extern uint32_t _Min_Stack_Size;
 
-static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
+#define QEMU_PFB_SECTION __attribute__((section(".bss.pfb_area")))
+
+static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT] QEMU_PFB_SECTION;
 
 #ifndef QEMU_HEAP_MEASURE
 #define QEMU_HEAP_MEASURE 0
@@ -72,6 +77,59 @@ typedef struct qemu_heap_stats
     uint32_t frees;
 } qemu_heap_stats_t;
 
+#define QEMU_STACK_MEASURE_FILL_BYTE 0xCDU
+
+static uintptr_t qemu_stack_get_current_sp(void)
+{
+    uintptr_t sp;
+
+    __asm volatile("mov %0, sp" : "=r"(sp));
+    return sp;
+}
+
+static uintptr_t qemu_stack_get_base(void)
+{
+    return (uintptr_t)_estack - (uintptr_t)&_Min_Stack_Size;
+}
+
+static uint32_t qemu_stack_begin_measure(void)
+{
+    uintptr_t stack_base = qemu_stack_get_base();
+    uintptr_t current_sp = qemu_stack_get_current_sp();
+
+    if (current_sp <= stack_base)
+    {
+        return 0U;
+    }
+
+    memset((void *)stack_base, (int)QEMU_STACK_MEASURE_FILL_BYTE, (size_t)(current_sp - stack_base));
+    return (uint32_t)((uintptr_t)_estack - current_sp);
+}
+
+static uint32_t qemu_stack_get_peak_used(uint32_t baseline_bytes)
+{
+    uintptr_t stack_base = qemu_stack_get_base();
+    uintptr_t current_sp = qemu_stack_get_current_sp();
+    uintptr_t first_used = current_sp;
+    uintptr_t p;
+
+    if (current_sp <= stack_base)
+    {
+        return baseline_bytes;
+    }
+
+    for (p = stack_base; p < current_sp; ++p)
+    {
+        if (*(const uint8_t *)p != (uint8_t)QEMU_STACK_MEASURE_FILL_BYTE)
+        {
+            first_used = p;
+            break;
+        }
+    }
+
+    return (uint32_t)((uintptr_t)_estack - first_used);
+}
+
 static const egui_sim_action_t s_showcase_common_actions[] = {
         EGUI_SIM_WAIT(600),
         EGUI_SIM_CLICK(1218, 34, 350),
@@ -92,6 +150,10 @@ __EGUI_WEAK__ bool egui_port_get_recording_action(int action_index, egui_sim_act
     EGUI_UNUSED(action_index);
     EGUI_UNUSED(p_action);
     return false;
+}
+
+__EGUI_WEAK__ void recording_request_snapshot(void)
+{
 }
 #endif
 
@@ -228,8 +290,12 @@ int main(void)
     uint32_t action_count = 0U;
     uint32_t interaction_total_current;
     uint32_t interaction_total_peak;
+    uint32_t stack_baseline_bytes;
+    uint32_t stack_peak_bytes;
 
     qemu_log_write("QEMU EGUI Heap Measure\n");
+
+    stack_baseline_bytes = qemu_stack_begin_measure();
 
     qemu_heap_reset_stats();
     uicode_create_ui();
@@ -260,6 +326,8 @@ int main(void)
     qemu_heap_print_metric("interaction_delta_frees", interaction_stats.frees);
     qemu_heap_print_metric("interaction_total_current", interaction_total_current);
     qemu_heap_print_metric("interaction_total_peak", interaction_total_peak);
+    stack_peak_bytes = qemu_stack_get_peak_used(stack_baseline_bytes);
+    qemu_heap_print_metric("stack_peak_bytes", stack_peak_bytes);
     qemu_log_write("HEAP_EXIT\n");
     qemu_exit(0);
 #else

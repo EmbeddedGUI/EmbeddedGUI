@@ -1,97 +1,93 @@
-# Binary Size Report
+# QEMU Size And Memory Report
 
-- Commit: `8bb09fb`
-- Date: 2026-03-13T21:19:43.440543
-- Platform: STM32G0 (Cortex-M0+, stm32g0_empty)
-- Total apps: 75
+- Commit: `e60544f`
+- Date: 2026-03-31T06:56:15.706118
+- Build target: `PORT=qemu CPU_ARCH=cortex-m0plus`
+- Runtime target: `qemu-system-arm -machine mps2-an385 -cpu cortex-m3`
+- Scope: HelloBasic 全子 case、HelloSimple、HelloPerformance、HelloShowcase、HelloStyleDemo、HelloVirtual(virtual_stage_showcase)
+- Successful apps: 64
+- Failed apps: 0
 
 ## Overview
 
-- Smallest Code: **HelloBasic(divider)** (15184 bytes)
-- Largest Code: **HelloShowcase** (133576 bytes)
-- Smallest RAM: **HelloBasic(image)** (904 bytes)
-- Largest RAM: **HelloShowcase** (16480 bytes)
+- Smallest Code: **HelloBasic(divider)** (15040 bytes)
+- Largest Code: **HelloPerformance** (267512 bytes)
+- Smallest RAM: **HelloPerformance** (708 bytes)
+- Largest RAM: **HelloShowcase** (14960 bytes)
+- Smallest Heap Peak: **HelloBasic(activity_ring)** (0 bytes)
+- Largest Heap Peak: **HelloPerformance** (6644 bytes)
+- Smallest Stack Peak: **HelloPerformance** (432 bytes)
+- Largest Stack Peak: **HelloBasic(mask)** (4124 bytes)
 
-## ROM Usage (Code + Resource)
+## Charts
 
 ![Size Report](images/size_report.png)
 
-## Detailed Size Table
+## Detailed Table
 
-| App | Code (Bytes) | Resource (Bytes) | RAM (Bytes) | PFB (Bytes) | Total ROM (Bytes) |
-|-----|-------------|-----------------|------------|------------|------------------|
-| HelloActivity | 30848 | 11224 | 1696 | 2400 | 42072 |
-| HelloAPP | 59656 | 78636 | 1640 | 2400 | 138292 |
-| HelloBasic(activity_ring) | 34108 | 5856 | 1060 | 2400 | 39964 |
-| HelloBasic(analog_clock) | 30132 | 4680 | 1060 | 2400 | 34812 |
-| HelloBasic(anim) | 24984 | 4188 | 1316 | 2400 | 29172 |
-| HelloBasic(animated_image) | 43680 | 33596 | 1020 | 2400 | 77276 |
-| HelloBasic(arc_slider) | 27884 | 5144 | 1228 | 2400 | 33028 |
-| HelloBasic(autocomplete) | 32212 | 9468 | 1572 | 2400 | 41680 |
-| HelloBasic(button) | 21892 | 10572 | 1312 | 2400 | 32464 |
-| HelloBasic(button_img) | 46972 | 38112 | 928 | 2400 | 85084 |
-| HelloBasic(button_matrix) | 24336 | 9264 | 996 | 2400 | 33600 |
-| HelloBasic(card) | 27536 | 10828 | 1952 | 2400 | 38364 |
-| HelloBasic(checkbox) | 28032 | 10532 | 1264 | 2400 | 38564 |
-| HelloBasic(chips) | 27824 | 9472 | 1556 | 2400 | 37296 |
-| HelloBasic(circular_progress_bar) | 29944 | 18212 | 1244 | 2400 | 48156 |
-| HelloBasic(combobox) | 29492 | 9396 | 1344 | 2400 | 38888 |
-| HelloBasic(compass) | 32676 | 10532 | 1084 | 2400 | 43208 |
-| HelloBasic(digital_clock) | 27028 | 9364 | 1036 | 2400 | 36392 |
-| HelloBasic(divider) | 15184 | 420 | 1148 | 2400 | 15604 |
-| HelloBasic(enhanced_widgets) | 59172 | 11600 | 2628 | 2400 | 70772 |
-| HelloBasic(gauge) | 39324 | 14064 | 1292 | 2400 | 53388 |
-| HelloBasic(gridlayout) | 21164 | 4940 | 1200 | 2400 | 26104 |
-| HelloBasic(heart_rate) | 35628 | 20596 | 1132 | 2400 | 56224 |
-| HelloBasic(image) | 43464 | 7924 | 904 | 2400 | 51388 |
-| HelloBasic(image_button) | 46064 | 8060 | 1200 | 2400 | 54124 |
-| HelloBasic(label) | 18240 | 6036 | 1228 | 2400 | 24276 |
-| HelloBasic(led) | 20628 | 3732 | 1260 | 2400 | 24360 |
-| HelloBasic(line) | 21624 | 488 | 1028 | 2400 | 22112 |
-| HelloBasic(linearlayout) | 26128 | 9360 | 1076 | 2400 | 35488 |
-| HelloBasic(list) | 23628 | 10672 | 2256 | 2400 | 34300 |
-| HelloBasic(mask) | 45564 | 31304 | 1016 | 2400 | 76868 |
-| HelloBasic(menu) | 17716 | 6076 | 948 | 2400 | 23792 |
-| HelloBasic(mini_calendar) | 25636 | 9348 | 932 | 2400 | 34984 |
-| HelloBasic(mp4) | 38472 | 230828 | 936 | 2400 | 269300 |
-| HelloBasic(notification_badge) | 22028 | 9276 | 1244 | 2400 | 31304 |
-| HelloBasic(number_picker) | 29084 | 6000 | 1308 | 2400 | 35084 |
-| HelloBasic(page_indicator) | 28452 | 9580 | 1356 | 2400 | 38032 |
-| HelloBasic(pattern_lock) | 34592 | 10820 | 1680 | 2400 | 45412 |
-| HelloBasic(progress_bar) | 21064 | 4936 | 1184 | 2400 | 26000 |
-| HelloBasic(radio_button) | 23912 | 9328 | 1292 | 2400 | 33240 |
-| HelloBasic(roller) | 18724 | 6000 | 1296 | 2400 | 24724 |
-| HelloBasic(rotation) | 24320 | 10736 | 2560 | 800 | 35056 |
-| HelloBasic(scale) | 21628 | 5908 | 1012 | 2400 | 27536 |
-| HelloBasic(scroll) | 27948 | 9492 | 1260 | 2400 | 37440 |
-| HelloBasic(segmented_control) | 26204 | 9396 | 1248 | 2400 | 35600 |
-| HelloBasic(slider) | 21420 | 4932 | 1184 | 2400 | 26352 |
-| HelloBasic(spangroup) | 17104 | 5940 | 1004 | 2400 | 23044 |
-| HelloBasic(spinner) | 26540 | 4800 | 1260 | 2400 | 31340 |
-| HelloBasic(stepper) | 25116 | 10724 | 1616 | 2400 | 35840 |
-| HelloBasic(stopwatch) | 27296 | 9384 | 1124 | 2400 | 36680 |
-| HelloBasic(switch) | 21172 | 4940 | 1200 | 2400 | 26112 |
-| HelloBasic(table) | 22192 | 5952 | 1436 | 2400 | 28144 |
-| HelloBasic(tab_bar) | 28708 | 9620 | 1376 | 2400 | 38328 |
-| HelloBasic(textblock) | 24036 | 9548 | 1044 | 2400 | 33584 |
-| HelloBasic(textinput) | 31776 | 11504 | 4964 | 2400 | 43280 |
-| HelloBasic(tileview) | 25868 | 9552 | 1292 | 2400 | 35420 |
-| HelloBasic(toggle_button) | 21720 | 9316 | 1260 | 2400 | 31036 |
-| HelloBasic(viewpage) | 27996 | 9492 | 1260 | 2400 | 37488 |
-| HelloBasic(viewpage_cache) | 26980 | 9464 | 1036 | 2400 | 36444 |
-| HelloBasic(window) | 17372 | 6060 | 1236 | 2400 | 23432 |
-| HelloCanvas | 72280 | 101464 | 1740 | 7200 | 173744 |
-| HelloChart | 50404 | 17028 | 2320 | 2400 | 67432 |
-| HelloCustomWidgets | 35584 | 21308 | 1580 | 2400 | 56892 |
-| HelloEasyPage | 29140 | 10900 | 1552 | 2400 | 40040 |
-| HelloGradient | 63336 | 34460 | 1452 | 4800 | 97796 |
-| HelloLayer | 27900 | 32156 | 1760 | 2400 | 60056 |
-| HelloPerformance | 116208 | 303488 | 1300 | 2400 | 419696 |
-| HelloPFB | 26232 | 10296 | 1172 | 5120 | 36528 |
-| HelloResourceManager | 57656 | 14800 | 1276 | 2400 | 72456 |
-| HelloShowcase | 133576 | 62552 | 16480 | 20480 | 196128 |
-| HelloSimple | 21672 | 7996 | 1104 | 2400 | 29668 |
-| HelloStyleDemo | 87920 | 100664 | 7568 | 9600 | 188584 |
-| HelloTest | 61672 | 57748 | 1888 | 1536 | 119420 |
-| HelloUnitTest | 29044 | 8524 | 1960 | 2400 | 37568 |
-| HelloViewPageAndScroll | 30604 | 11188 | 1960 | 2400 | 41792 |
+| App | Code | Resource | RAM | PFB | Heap Idle | Heap Init Peak | Heap Interaction Peak | Heap Peak | Stack Peak | Actions | Total ROM |
+|-----|------|----------|-----|-----|-----------|----------------|-----------------------|-----------|------------|---------|-----------|
+| HelloBasic(activity_ring) | 46400 | 6472 | 1060 | 4800 | 0 | 0 | 0 | 0 | 1232 | 1 | 52872 |
+| HelloBasic(analog_clock) | 33512 | 4968 | 1060 | 4800 | 0 | 0 | 0 | 0 | 1116 | 1 | 38480 |
+| HelloBasic(anim) | 29248 | 4468 | 1316 | 4800 | 0 | 0 | 0 | 0 | 752 | 3 | 33716 |
+| HelloBasic(animated_image) | 57728 | 37200 | 1076 | 4800 | 0 | 0 | 0 | 0 | 1024 | 1 | 94928 |
+| HelloBasic(arc_slider) | 35812 | 5440 | 1212 | 4800 | 0 | 0 | 0 | 0 | 1272 | 5 | 41252 |
+| HelloBasic(autocomplete) | 41148 | 25376 | 1600 | 4800 | 0 | 0 | 0 | 0 | 1192 | 5 | 66524 |
+| HelloBasic(button) | 31892 | 26488 | 1348 | 4800 | 0 | 0 | 0 | 0 | 1128 | 5 | 58380 |
+| HelloBasic(button_img) | 62220 | 53996 | 1000 | 4800 | 0 | 60 | 60 | 60 | 908 | 3 | 116216 |
+| HelloBasic(button_matrix) | 38404 | 25208 | 1048 | 4800 | 0 | 0 | 0 | 0 | 1264 | 4 | 63612 |
+| HelloBasic(card) | 40492 | 11144 | 1844 | 4800 | 0 | 0 | 0 | 0 | 1136 | 1 | 51636 |
+| HelloBasic(checkbox) | 40516 | 26432 | 1300 | 4800 | 0 | 0 | 0 | 0 | 1112 | 5 | 66948 |
+| HelloBasic(chips) | 41888 | 25500 | 1616 | 4800 | 0 | 0 | 0 | 0 | 1296 | 4 | 67388 |
+| HelloBasic(circular_progress_bar) | 47628 | 18848 | 1232 | 4800 | 0 | 0 | 0 | 0 | 1248 | 1 | 66476 |
+| HelloBasic(combobox) | 38944 | 25376 | 1480 | 4800 | 0 | 0 | 0 | 0 | 1192 | 13 | 64320 |
+| HelloBasic(compass) | 42512 | 10840 | 1088 | 4800 | 0 | 0 | 0 | 0 | 1192 | 1 | 53352 |
+| HelloBasic(digital_clock) | 40132 | 9672 | 1056 | 4800 | 0 | 0 | 0 | 0 | 1024 | 1 | 49804 |
+| HelloBasic(divider) | 15040 | 732 | 1132 | 4800 | 0 | 0 | 0 | 0 | 752 | 1 | 15772 |
+| HelloBasic(enhanced_widgets) | 72696 | 27648 | 2596 | 4800 | 0 | 0 | 0 | 0 | 1320 | 3 | 100344 |
+| HelloBasic(gauge) | 47852 | 14568 | 1280 | 4800 | 0 | 0 | 0 | 0 | 1208 | 1 | 62420 |
+| HelloBasic(gridlayout) | 35924 | 21148 | 1268 | 4800 | 0 | 0 | 0 | 0 | 904 | 4 | 57072 |
+| HelloBasic(heart_rate) | 42984 | 20904 | 1136 | 4800 | 0 | 0 | 0 | 0 | 2344 | 1 | 63888 |
+| HelloBasic(image) | 78760 | 72632 | 2036 | 4800 | 824 | 1724 | 1804 | 1804 | 1168 | 3 | 151392 |
+| HelloBasic(image_button) | 37952 | 25308 | 1296 | 4800 | 0 | 0 | 0 | 0 | 1136 | 5 | 63260 |
+| HelloBasic(label) | 26892 | 6368 | 1216 | 4800 | 0 | 0 | 0 | 0 | 1056 | 1 | 33260 |
+| HelloBasic(led) | 23604 | 4020 | 1244 | 4800 | 0 | 0 | 0 | 0 | 856 | 1 | 27624 |
+| HelloBasic(line) | 22904 | 800 | 1036 | 4800 | 0 | 0 | 0 | 0 | 1000 | 1 | 23704 |
+| HelloBasic(linearlayout) | 39260 | 9668 | 1080 | 4800 | 0 | 0 | 0 | 0 | 1056 | 1 | 48928 |
+| HelloBasic(list) | 34848 | 26680 | 2460 | 4800 | 0 | 0 | 0 | 0 | 1080 | 6 | 61528 |
+| HelloBasic(mask) | 95660 | 43972 | 1468 | 4800 | 0 | 28 | 0 | 28 | 4124 | 1 | 139632 |
+| HelloBasic(menu) | 26920 | 22052 | 984 | 4800 | 0 | 0 | 0 | 0 | 1104 | 5 | 48972 |
+| HelloBasic(mini_calendar) | 38084 | 9656 | 992 | 4800 | 0 | 0 | 0 | 0 | 1112 | 3 | 47740 |
+| HelloBasic(mp4) | 71384 | 3149652 | 2116 | 4800 | 0 | 0 | 1724 | 1724 | 1152 | 3 | 3221036 |
+| HelloBasic(notification_badge) | 31392 | 25196 | 1280 | 4800 | 0 | 0 | 0 | 0 | 1104 | 1 | 56588 |
+| HelloBasic(number_picker) | 32512 | 21940 | 1344 | 4800 | 0 | 0 | 0 | 0 | 1128 | 5 | 54452 |
+| HelloBasic(page_indicator) | 42356 | 25508 | 1344 | 4800 | 0 | 0 | 0 | 0 | 1136 | 4 | 67864 |
+| HelloBasic(pattern_lock) | 46092 | 26724 | 1692 | 4800 | 0 | 0 | 0 | 0 | 1128 | 5 | 72816 |
+| HelloBasic(progress_bar) | 23912 | 5224 | 1168 | 4800 | 0 | 0 | 0 | 0 | 760 | 1 | 29136 |
+| HelloBasic(radio_button) | 36232 | 25248 | 1328 | 4800 | 0 | 0 | 0 | 0 | 1096 | 5 | 61480 |
+| HelloBasic(roller) | 27384 | 6332 | 1280 | 4800 | 0 | 0 | 0 | 0 | 1080 | 5 | 33716 |
+| HelloBasic(rotation) | 34268 | 26636 | 2556 | 1600 | 0 | 0 | 0 | 0 | 1088 | 7 | 60904 |
+| HelloBasic(scale) | 30024 | 6240 | 1032 | 4800 | 0 | 0 | 0 | 0 | 1112 | 1 | 36264 |
+| HelloBasic(scroll) | 41044 | 9808 | 1240 | 4800 | 0 | 0 | 0 | 0 | 1152 | 2 | 50852 |
+| HelloBasic(segmented_control) | 38880 | 25352 | 1320 | 4800 | 0 | 0 | 0 | 0 | 1216 | 9 | 64232 |
+| HelloBasic(slider) | 25076 | 5220 | 1168 | 4800 | 0 | 0 | 0 | 0 | 896 | 5 | 30296 |
+| HelloBasic(spangroup) | 25716 | 6272 | 1032 | 4800 | 0 | 0 | 0 | 0 | 952 | 1 | 31988 |
+| HelloBasic(spinner) | 34388 | 5416 | 1244 | 4800 | 0 | 0 | 0 | 0 | 908 | 1 | 39804 |
+| HelloBasic(stepper) | 41100 | 26736 | 1652 | 4800 | 0 | 0 | 0 | 0 | 1128 | 6 | 67836 |
+| HelloBasic(stopwatch) | 41116 | 9692 | 1128 | 4800 | 0 | 0 | 0 | 0 | 1056 | 1 | 50808 |
+| HelloBasic(switch) | 36088 | 21156 | 1268 | 4800 | 0 | 0 | 0 | 0 | 1104 | 5 | 57244 |
+| HelloBasic(tab_bar) | 42656 | 25544 | 1376 | 4800 | 0 | 0 | 0 | 0 | 1136 | 4 | 68200 |
+| HelloBasic(table) | 30596 | 6284 | 1464 | 4800 | 0 | 0 | 0 | 0 | 1096 | 1 | 36880 |
+| HelloBasic(textblock) | 36240 | 9856 | 1064 | 4800 | 0 | 0 | 0 | 0 | 968 | 1 | 46096 |
+| HelloBasic(textinput) | 46660 | 27844 | 4380 | 4800 | 0 | 0 | 0 | 0 | 1144 | 9 | 74504 |
+| HelloBasic(thermostat) | 39504 | 47000 | 1392 | 6400 | 0 | 0 | 0 | 0 | 1088 | 6 | 86504 |
+| HelloBasic(tileview) | 38996 | 9868 | 1280 | 4800 | 0 | 0 | 0 | 0 | 1056 | 4 | 48864 |
+| HelloBasic(toggle_button) | 31748 | 25252 | 1296 | 4800 | 0 | 0 | 0 | 0 | 1120 | 5 | 57000 |
+| HelloBasic(viewpage) | 41092 | 9808 | 1240 | 4800 | 0 | 0 | 0 | 0 | 1136 | 4 | 50900 |
+| HelloBasic(viewpage_cache) | 40072 | 9780 | 1040 | 4800 | 304 | 304 | 456 | 456 | 1120 | 4 | 49852 |
+| HelloBasic(window) | 30324 | 25276 | 1296 | 4800 | 0 | 0 | 0 | 0 | 1088 | 2 | 55600 |
+| HelloSimple | 31484 | 23892 | 1124 | 4800 | 0 | 0 | 0 | 0 | 1128 | 3 | 55376 |
+| HelloPerformance | 267512 | 1795432 | 708 | 1536 | 0 | 0 | 6644 | 6644 | 432 | 222 | 2062944 |
+| HelloShowcase | 167000 | 82380 | 14960 | 40960 | 0 | 0 | 0 | 0 | 2424 | 13 | 249380 |
+| HelloStyleDemo | 119756 | 118156 | 6748 | 19200 | 0 | 0 | 0 | 0 | 2592 | 4 | 237912 |
+| HelloVirtual(virtual_stage_showcase) | 179660 | 83324 | 8668 | 2400 | 2536 | 2536 | 2648 | 2648 | 2648 | 19 | 262984 |
