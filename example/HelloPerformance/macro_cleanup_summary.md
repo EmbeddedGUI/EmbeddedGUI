@@ -98,6 +98,7 @@
   - `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT`
   - `EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE`
   - `EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES`
+  - 其中 `TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES` 的现行依据见 `text_transform_heap_override_retention.md`
 - 保留的 test/measurement 覆盖入口：
   - `EGUI_TEST_CONFIG_SINGLE_TEST`
   - 用途：单场景 heap/perf spot check

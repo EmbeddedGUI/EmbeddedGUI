@@ -39,7 +39,7 @@
 | `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT` | `1` | `0` | heap 行为 | 保留 | 属于 text-transform heap/layout 策略 |
 | `EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH` | `0` | `1` | static RAM | 保留 | 恢复默认后 static RAM `+328B`，`ANIMATION_SCALE +16.56%` |
 | `EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE` | `1` | `0` | heap 行为 | 保留 | 属于 stack/heap 放置策略，不在本轮范围内 |
-| `EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES` | `2560` | `4096` | heap 行为 | 保留 | 属于 transient heap ceiling，不是 fixed static RAM 项 |
+| `EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES` | `2560` | `4096` | heap 行为 | 保留 | `2560` 是当前最小可接受 shipped 点；`2304` 以下会触发 heap cliff，详见 `text_transform_heap_override_retention.md` |
 | `EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS` | `0` | `4` | static RAM | 保留 | 恢复默认后最坏 perf 回退约 `+10% ~ +18%` |
 
 ## 结论
