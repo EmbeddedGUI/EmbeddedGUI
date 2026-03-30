@@ -58,9 +58,6 @@ extern "C" {
 // QEMU uses semihosting file I/O for resource loading.
 #define EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE 1
 
-// Double-size (480x480) image tests - always enabled (was 960x960 before, now small enough for QEMU too)
-#define EGUI_TEST_CONFIG_IMAGE_DOUBLE 1
-
 // Enable image compression codecs for performance testing
 #define EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE 1
 #define EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE 1

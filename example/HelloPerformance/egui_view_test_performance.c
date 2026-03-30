@@ -43,8 +43,9 @@
 #define EGUI_TEST_CONFIG_IMAGE_SMALL 1
 #endif
 
+// Double-size (480x480) image tests are part of the shipped benchmark set now.
 #ifndef EGUI_TEST_CONFIG_IMAGE_DOUBLE
-#define EGUI_TEST_CONFIG_IMAGE_DOUBLE 0
+#define EGUI_TEST_CONFIG_IMAGE_DOUBLE 1
 #endif
 
 /*
