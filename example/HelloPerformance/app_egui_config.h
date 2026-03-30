@@ -125,12 +125,6 @@ extern "C" {
 // EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE macros have
 // been removed. Shared buffers are heap-allocated on first use.
 
-// HelloPerformance's rotated-text visible alpha8 tile buffer follows the
-// actual transformed glyph bounds. Per the RAM rule for size-related buffers,
-// keep the QEMU heap hooks enabled so this transient scratch can use frame
-// heap instead of a large fixed stack array.
-#define EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE 1
-
 // HelloPerformance's external RLE scenes only stream 120px/240px RGB565 rows,
 // and a 64B external read window still keeps the control stream hot while
 // literal row copies above the window size fall back to direct loads anyway,
