@@ -43,7 +43,6 @@ extern "C" {
 // alive only increases persistent RAM.
 #define EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY 0
 #define EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG   0
-#define EGUI_CONFIG_FUNCTION_SUPPORT_TOAST    0
 
 // HelloPerformance mounts its only benchmark view directly at the root level,
 // so the extra user-root wrapper inside egui_core just adds one unused
