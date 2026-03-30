@@ -50,6 +50,11 @@ extern "C" {
 // root-group object in persistent RAM.
 #define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 0
 
+// HelloPerformance mounts its only benchmark view directly at the root level,
+// so the extra user-root wrapper inside egui_core just adds one unused
+// root-group object in persistent RAM.
+#define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 0
+
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1 1
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2 1
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8 1
@@ -176,7 +181,6 @@ extern "C" {
 // Keep the active layout/tile scratch transient on heap, but restore the tiny
 // dimension cache so repeated rotated-text draws do not remeasure the same
 // benchmark string every frame.
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE 0
 #define EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE 1
 #define EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE    1
 
