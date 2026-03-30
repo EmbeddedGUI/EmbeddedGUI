@@ -25,6 +25,19 @@
   - `128 -> 96` 时，`SHADOW_ROUND 6.113 -> 5.584 (-8.7%)`
   - `96 -> 64` 时，`SHADOW_ROUND 5.584 -> 5.584`
   - 对应 `egui_shadow_draw_corner` 栈帧 `792 -> 728 -> 664`
+- `2026-03-31` 又补做了一次“当前默认 `256` vs 强制 `64`”的定向 HelloPerformance QEMU perf A/B。
+  - 测试方法：沿用 `scripts/code_perf_check.py` 的同一套 `cortex-m3` QEMU perf harness，只额外用 `USER_CFLAGS` 覆盖 `-DEGUI_CONFIG_SHADOW_DSQ_LUT_MAX=64`
+  - 两组构建都保持 `222` 个 case、`24` 个 skip
+  - `SHADOW 4.039 -> 4.039 (0.00%)`
+  - `SHADOW_ROUND 4.949 -> 6.306 (+27.42%)`
+  - 其它锚点基本不动：`TEXT_ROTATE_BUFFERED 6.411 -> 6.411`、`EXTERN_TEXT_ROTATE_BUFFERED 6.792 -> 6.792`、`ANIMATION_SCALE 0.320 -> 0.321`
+- 这次定向 A/B 说明：默认关闭 low-RAM tail block 之后，`SHADOW_ROUND` 变慢的根因就是这里回到了框架默认 `256`，不是 text-transform 那几项影响了 shadow。
+- 原因分析：
+  - `SHADOW_ROUND` 场景在 `example/HelloPerformance/egui_view_test_performance.c` 里固定使用 `width=20`、`corner_radius=30`
+  - round shadow 会走 `src/shadow/egui_shadow.c` 里的 `egui_shadow_draw_corner()`，并且每个角都会先构建一张 `d_sq -> alpha` LUT
+  - 对当前场景，`64` 上限时只需要 `51` 个 LUT bucket；回到默认 `256` 后会扩成 `201` 个 bucket
+  - 这会让每个角额外做约 `150` 次 `egui_shadow_isqrt()` + LUT 填充，四个角合计多约 `600` 次预计算，所以 `SHADOW_ROUND` 会明显变慢
+  - 同一轮 `-fstack-usage` 复测也印证了这一点：`egui_shadow_draw_corner` 当前栈帧在默认 `256` 时是 `368B`，强制 `64` 时是 `176B`
 - 它不是 fixed static RAM 宏，而是 shadow corner path 的 stack/LUT policy 点。
 - 处理结论：
   - `64` 继续保留在尾部可选 low-RAM 块中，作为 tighter stack profile 取值
