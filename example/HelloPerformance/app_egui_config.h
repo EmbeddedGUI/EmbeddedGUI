@@ -54,10 +54,6 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8 1
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_ALPHA_8  1
 
-// Enable large image tests (480px/240px direct-draw, resize, rotate)
-// Set to 0 to save flash on constrained devices; 40x40 tiled tests still run.
-#define EGUI_TEST_CONFIG_IMAGE_LARGE 1
-
 // Enable external resource support.
 // QEMU uses semihosting file I/O for resource loading.
 #define EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE 1
