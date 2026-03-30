@@ -213,6 +213,164 @@ static page_views_t page_views;
 
 GUI 框架的栈使用量取决于控件嵌套深度。典型配置下 2-4KB 栈空间即可。避免在回调函数中分配大的局部数组。
 
+### RAM 缓存配置优化
+
+EmbeddedGUI 提供了多个缓存机制来提升渲染性能，但这些缓存会占用 RAM。根据项目的 RAM 预算，可以选择性地禁用或调整这些缓存。
+
+#### 字体渲染缓存
+
+##### Draw Prefix Cache（~2.6 KB BSS）
+
+**最大的 RAM 占用项**，缓存字符串的字形布局元数据（每个字符的 x 坐标、bbox、advance、字形下标等）。
+
+```c
+// 默认配置（禁用以节省 RAM）
+#define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS 0
+#define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 0
+// RAM 占用：0 B
+
+// 启用缓存（适合静态文字 UI）
+#define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS 64
+#define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 2
+// RAM 占用：2 slots × 64 glyphs × ~20 B ≈ 2612 B BSS
+```
+
+**适用场景**：静态文字 UI（label、title 等），同一字符串在多帧重复绘制时跳过字符串扫描和字形查找。
+
+**使用建议**：
+- 默认关闭以节省 RAM
+- 如果应用有大量静态文字（如仪表盘、状态栏），可以开启以提升性能
+- 全帧刷新场景（如性能测试、动画）缓存命中率为 0，不应开启
+
+##### Line Cache（~164 B heap）
+
+缓存多行文本的行分割结果，避免每次 `get_str_size` 或绘制时重新扫描 `\n`。
+
+```c
+// 默认配置（禁用以节省 RAM）
+#define EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE 0
+// RAM 占用：0 B
+
+// 启用缓存（适合多行文本）
+#define EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE 1
+// RAM 占用：~164 B heap
+```
+
+**适用场景**：多行文本控件（如多行 label）。
+
+**使用建议**：
+- 默认关闭以节省 RAM
+- 如果应用有大量多行文本，可以开启以提升性能
+- 仅单行文本或固定字符串的场景无需开启
+
+##### ASCII Lookup Cache（~140 B heap）
+
+为 ASCII (0~127) 字符预建直查表，将字形查找从 O(log n) 降至 O(1)。
+
+```c
+// 默认配置（禁用以节省 RAM）
+#define EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE 0
+// RAM 占用：0 B
+
+// 启用缓存（适合纯英文 UI）
+#define EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE 1
+// RAM 占用：~140 B heap + 8 B BSS
+```
+
+**适用场景**：纯英文 UI 应用，频繁 ASCII 字符渲染。
+
+**性能提升**：
+- 纯英文 UI：整体渲染加速约 10-20%
+- 中英混合 UI：整体渲染加速约 5-10%
+- 纯中�� UI：整体渲染加速约 1-2%
+
+**使用建议**：
+- 默认关闭以节省 RAM
+- 即使禁用，系统仍有多级优化缓存（last_code、block、相邻字符），性能已经很好
+- 仅在纯英文 UI 且追求极致性能时开启
+- 中文 UI 或低 RAM 场景无需开启
+
+##### ASCII Lookup Index 8-bit（~128 B heap）
+
+将 ASCII lookup 索引从 uint16_t 降为 uint8_t（需配合 `ASCII_LOOKUP_CACHE_ENABLE=1`）。
+
+```c
+// 默认配置（支持大字体）
+#define EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_INDEX_8BIT 0
+// 索引宽度：uint16_t (2 字节)
+
+// 低 RAM 优化（小字体子集）
+#define EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_INDEX_8BIT 1
+// 索引宽度：uint8_t (1 字节)
+// 节省：~128 B heap
+// 限制：字体字形数 ≤ 255
+```
+
+**适用场景**：小 ASCII 子集字体（如只有 88/93 个字形）。
+
+#### 图像解码缓存
+
+##### RLE External Cache Window（~1 KB BSS）
+
+RLE 外部资源解码���的 I/O 窗口缓存，缓存控制字节（操作码+长度字段）以减少 semihosting I/O 调用。
+
+```c
+// 默认配置（适合常规场景）
+#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 1024
+// RAM 占用：~1024 B BSS
+
+// 低 RAM 优化
+#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 64
+// 节省：~960 B BSS
+// 说明：像素字面量行（如 240px × 2B = 480 B）超过窗口大小时自动走直接 load，正确性不受影响
+```
+
+**适用场景**：外部 RLE 压缩图像资源。
+
+**低 RAM 建议**：64 字节窗口满足控制流缓存需求，同时节省 960 B。
+
+#### 其他小型缓存（< 100 字节）
+
+以下缓存占用较小，可根据需要调整：
+
+```c
+// Alpha Opaque Cache（~33 B BSS）
+// 缓存"RGB565+alpha 图片的 alpha 通道是否全为不透明"的探测结果
+#define EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 4  // 默认
+#define EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 0  // 禁用，节省 ~33 B
+
+// Code Lookup Cache ASCII Compact（~20 B BSS）
+// 使用 uint8_t 紧凑字段（仅适用于纯 ASCII 字体）
+#define EGUI_CONFIG_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT 0  // 默认（支持 Unicode）
+#define EGUI_CONFIG_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT 1  // 紧凑模式，节省 ~20 B
+```
+
+#### 低 RAM 配置示例
+
+参考 `example/HelloPerformance/app_egui_config.h` 的激进低 RAM 配置：
+
+```c
+// 禁用所有字体缓存（节省 ~2.9 KB）
+#define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS 0
+#define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 0
+#define EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE 0
+#define EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE 0
+
+// 缩小 RLE 窗口（节省 ~960 B）
+#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 64
+
+// 禁用 Alpha Opaque Cache（节省 ~33 B）
+#define EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 0
+
+// 启用紧凑模式（节省 ~20 B）
+#define EGUI_CONFIG_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT 1
+#define EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_INDEX_8BIT 1
+```
+
+**总节省**：约 3.9 KB RAM（BSS + heap）
+
+**代价**：字体渲染性能下降（每帧重新扫描字符串、重新查找字形）。适合全帧刷新的性能测试场景，不适合常规 UI 应用。
+
 ## 综合优化检查清单
 
 - [ ] 字体只包含实际使用的字符

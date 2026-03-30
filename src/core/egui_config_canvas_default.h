@@ -171,11 +171,12 @@ extern "C" {
  * Font cache options.
  * When 1, build ASCII (0~127) direct lookup table for O(1) glyph access.
  * Allocates ~140 B heap + 8 B BSS on first use, persists across frames.
- * When 0, all ASCII characters use binary search O(log n).
- * Recommended for UI with frequent ASCII text rendering.
+ * When 0, all ASCII characters use optimized binary search with multi-level cache.
+ * Default: 0 (disabled) to save RAM. Enable for pure English UI applications.
+ * Performance gain: ~10-20% for pure English UI, ~1-2% for Chinese UI.
  */
 #ifndef EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE
-#define EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE 1
+#define EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE 0
 #endif
 
 /**
@@ -193,10 +194,10 @@ extern "C" {
  * When 1, cache multi-line text line split results to avoid rescanning '\n' on every draw.
  * Allocates ~164 B heap for recent string split cache.
  * When 0, rescan line breaks on every get_str_size or draw call.
- * Recommended for UI with multi-line labels.
+ * Default: 0 (disabled) to save RAM. Enable for UI with multi-line labels.
  */
 #ifndef EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE
-#define EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE 1
+#define EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE 0
 #endif
 
 /**
@@ -204,22 +205,23 @@ extern "C" {
  * Maximum glyphs per cache slot for draw-prefix cache.
  * Draw-prefix cache stores glyph layout metadata (x position, bbox, advance, index) per character.
  * When same string is drawn repeatedly across frames, skips string scan and glyph lookup.
- * Set to 0 to disable cache (saves ~2612 B BSS with default SLOTS=2, MAX_GLYPHS=64).
- * Recommended for static UI text (labels, titles). Not useful for full-frame refresh scenarios.
+ * Default: 0 (disabled) to save ~2612 B BSS. Enable for static UI text (labels, titles).
+ * Not useful for full-frame refresh scenarios.
+ * Example: Set to 64 with SLOTS=2 for typical UI applications.
  */
 #ifndef EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS
-#define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS 64
+#define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS 0
 #endif
 
 /**
  * Font cache options.
  * Number of cache slots for draw-prefix cache.
  * Each slot can cache one string's glyph layout (up to MAX_GLYPHS characters).
- * Set to 0 to disable cache (must also set MAX_GLYPHS to 0).
- * Default: 2 slots. Total BSS = SLOTS × MAX_GLYPHS × ~20 bytes.
+ * Default: 0 (disabled). Must be set together with MAX_GLYPHS.
+ * Example: Set to 2 for typical UI applications. Total BSS = SLOTS × MAX_GLYPHS × ~20 bytes.
  */
 #ifndef EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS
-#define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 2
+#define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 0
 #endif
 
 #ifdef __cplusplus
