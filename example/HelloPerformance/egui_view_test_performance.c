@@ -33,10 +33,8 @@
 #include "app_egui_resource_generate.h"
 #endif
 
-// Large image tests (480px/240px): set to 0 to save flash on constrained devices.
-#ifndef EGUI_TEST_CONFIG_IMAGE_LARGE
+// Large image tests (480px/240px) stay in the shipped benchmark set.
 #define EGUI_TEST_CONFIG_IMAGE_LARGE 1
-#endif
 
 // Small image tests (40x40 tiled): always enabled, negligible flash cost.
 #define EGUI_TEST_CONFIG_IMAGE_SMALL 1
