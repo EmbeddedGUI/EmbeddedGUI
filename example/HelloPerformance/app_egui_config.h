@@ -120,7 +120,6 @@ extern "C" {
 // can rebuild RGB888 from canonical expansion plus cached alpha, and opaque
 // RGB565 images only need one small variant byte for the encoder's speed-
 // biased representative choice. This trims another 64B from qoi_state.
-#define EGUI_CONFIG_IMAGE_QOI_COMPACT_RGB565_INDEX_ENABLE 1
 
 // External raw-image row cache sharing is now always enabled (mandatory).
 // The former EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS and
