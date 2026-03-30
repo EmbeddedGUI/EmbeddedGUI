@@ -162,7 +162,7 @@ extern "C" {
 // and a 64B external read window still keeps the control stream hot while
 // literal row copies above the window size fall back to direct loads anyway,
 // trimming another 64B of static RAM versus the current 128B window.
-#define EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 64
+#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 64
 
 // HelloPerformance's RLE benchmarks keep one compressed image workload active
 // per scene, and the row-band cache already handles the hot horizontal-tile
@@ -263,27 +263,27 @@ extern "C" {
 // HelloPerformance only uses small ASCII subsets (88/93 glyphs), so the
 // frame-local ASCII lookup cache can use 8-bit indices and the multi-line
 // text cache only needs one small slot for the 7-line benchmark string.
-#define EGUI_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT 1
-#define EGUI_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE 0
-#define EGUI_FONT_STD_LINE_CACHE_ENABLE         0
-#define EGUI_FONT_STD_ASCII_LOOKUP_INDEX_8BIT 1
+#define EGUI_CONFIG_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT 1
+#define EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE 0
+#define EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE         0
+#define EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_INDEX_8BIT 1
 #define EGUI_FONT_STD_LINE_CACHE_MAX_LINES    8
 #define EGUI_FONT_STD_LINE_CACHE_SLOTS        1
 
 // HelloPerformance only draws a few short benchmark strings per scene, so the
 // draw-prefix cache's persistent BSS is not worth keeping for this app.
-#ifndef EGUI_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS
-#define EGUI_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS 0
+#ifndef EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS
+#define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS 0
 #endif
 
 // Disable prefix-cache slots together with the glyph budget above.
-#ifndef EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS
-#define EGUI_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 0
+#ifndef EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS
+#define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 0
 #endif
 
 // HelloPerformance's current image workloads do not justify keeping a
 // persistent "source alpha is fully opaque" metadata slot alive in BSS.
-#define EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 0
+#define EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 0
 
 // HelloPerformance already shares the external-image row buffers, and each
 // draw only needs one row-cache metadata block at a time, so keep that

@@ -61,8 +61,8 @@ static int egui_image_rle_prepare_decode_info(const egui_image_rle_info_t *info,
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-#ifndef EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE
-#define EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 1024
+#ifndef EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE
+#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 1024
 #endif
 
 #ifndef EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE
@@ -75,7 +75,7 @@ static int egui_image_rle_prepare_decode_info(const egui_image_rle_info_t *info,
 
 #if EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS && \
     !EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE && \
-    (EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES >= EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE)
+    (EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES >= EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE)
 #define EGUI_IMAGE_RLE_EXTERNAL_CACHE_SHARE_WINDOW 1
 #else
 #define EGUI_IMAGE_RLE_EXTERNAL_CACHE_SHARE_WINDOW 0
@@ -90,7 +90,7 @@ typedef struct
 #if EGUI_IMAGE_RLE_EXTERNAL_CACHE_SHARE_WINDOW
     uint32_t shared_generation;
 #else
-    uint8_t window[EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE];
+    uint8_t window[EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE];
 #endif
 } egui_image_rle_external_window_cache_t;
 
@@ -141,7 +141,7 @@ __EGUI_STATIC_INLINE__ int egui_image_rle_external_load_bytes(const uint8_t *src
 
     window = egui_image_rle_external_get_window_buf(cache);
 
-    if (size <= EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE &&
+    if (size <= EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE &&
         cache->src == src &&
         cache->src_len == src_len &&
         src_offset >= cache->window_offset &&
@@ -151,13 +151,13 @@ __EGUI_STATIC_INLINE__ int egui_image_rle_external_load_bytes(const uint8_t *src
         return 1;
     }
 
-    if (size <= EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE)
+    if (size <= EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE)
     {
         uint32_t load_size = src_len - src_offset;
 
-        if (load_size > EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE)
+        if (load_size > EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE)
         {
-            load_size = EGUI_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE;
+            load_size = EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE;
         }
 
         egui_api_load_external_resource(window, (egui_uintptr_t)src, src_offset, load_size);

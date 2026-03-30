@@ -6188,12 +6188,12 @@ void egui_image_std_set_image_rgb32(const egui_image_t *self, egui_dim_t x, egui
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB32
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565
-#ifndef EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS
-#define EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 4
+#ifndef EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS
+#define EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 4
 #endif
 
-#if EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS < 0
-#error "EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS must be >= 0"
+#if EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS < 0
+#error "EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS must be >= 0"
 #endif
 
 typedef struct
@@ -6202,9 +6202,9 @@ typedef struct
     uint8_t is_all_opaque;
 } egui_image_std_alpha_opaque_cache_t;
 
-#if EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS > 0
-static egui_image_std_alpha_opaque_cache_t g_egui_image_std_alpha_opaque_cache[EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS];
-#if EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS > 1
+#if EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS > 0
+static egui_image_std_alpha_opaque_cache_t g_egui_image_std_alpha_opaque_cache[EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS];
+#if EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS > 1
 static uint8_t g_egui_image_std_alpha_opaque_cache_next = 0;
 #endif
 #endif
@@ -6331,7 +6331,7 @@ __EGUI_STATIC_INLINE__ int egui_image_std_rgb565_alpha_is_all_opaque(const egui_
         return 0;
     }
 
-#if EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS > 0
+#if EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS > 0
     for (uint8_t i = 0; i < (uint8_t)(sizeof(g_egui_image_std_alpha_opaque_cache) / sizeof(g_egui_image_std_alpha_opaque_cache[0])); i++)
     {
         if (g_egui_image_std_alpha_opaque_cache[i].image == image)
@@ -6373,14 +6373,14 @@ __EGUI_STATIC_INLINE__ int egui_image_std_rgb565_alpha_is_all_opaque(const egui_
             }
         }
 
-#if EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS == 1
+#if EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS == 1
         g_egui_image_std_alpha_opaque_cache[0].image = image;
         g_egui_image_std_alpha_opaque_cache[0].is_all_opaque = (uint8_t)is_all_opaque;
-#elif EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS > 1
+#elif EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS > 1
         g_egui_image_std_alpha_opaque_cache[g_egui_image_std_alpha_opaque_cache_next].image = image;
         g_egui_image_std_alpha_opaque_cache[g_egui_image_std_alpha_opaque_cache_next].is_all_opaque = (uint8_t)is_all_opaque;
         g_egui_image_std_alpha_opaque_cache_next++;
-        if (g_egui_image_std_alpha_opaque_cache_next >= EGUI_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS)
+        if (g_egui_image_std_alpha_opaque_cache_next >= EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS)
         {
             g_egui_image_std_alpha_opaque_cache_next = 0;
         }
