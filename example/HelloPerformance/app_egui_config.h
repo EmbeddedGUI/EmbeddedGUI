@@ -208,7 +208,6 @@ extern "C" {
 // dimension cache so repeated rotated-text draws do not remeasure the same
 // benchmark string every frame.
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE 0
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_HEAP_ENABLE  0
 #define EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE 1
 #define EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE    1
 
