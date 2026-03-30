@@ -290,9 +290,10 @@ QEMU_BASE_CFLAGS = "-DEGUI_TEST_CONFIG_IMAGE_565=1"
 def read_screen_size():
     """Read EGUI_CONFIG_SCEEN_WIDTH/HEIGHT from app_egui_config.h.
 
-    Falls back to 240x320 if the file cannot be parsed.
+    Falls back per-dimension to the library defaults if one side is omitted.
     """
-    default = (240, 320)
+    default_w = 240
+    default_h = 320
     try:
         text = APP_CONFIG_PATH.read_text(encoding="utf-8")
         w = h = None
@@ -303,11 +304,10 @@ def read_screen_size():
             m = re.match(r"\s*#\s*define\s+EGUI_CONFIG_SCEEN_HEIGHT\s+(\d+)", line)
             if m:
                 h = int(m.group(1))
-        if w and h:
-            return w, h
+        return (w if w is not None else default_w, h if h is not None else default_h)
     except Exception:
         pass
-    return default
+    return default_w, default_h
 
 
 def run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout):

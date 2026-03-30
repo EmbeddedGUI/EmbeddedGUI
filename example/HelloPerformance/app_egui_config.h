@@ -6,7 +6,6 @@
 extern "C" {
 #endif
 
-#define EGUI_CONFIG_SCEEN_WIDTH  240
 #define EGUI_CONFIG_SCEEN_HEIGHT 240
 
 #define EGUI_CONFIG_MAX_FPS 1
