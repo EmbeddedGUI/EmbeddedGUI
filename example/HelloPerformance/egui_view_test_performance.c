@@ -36,7 +36,6 @@
 // Large image tests (480px/240px) stay in the shipped benchmark set.
 
 // Small image tests (40x40 tiled): always enabled, negligible flash cost.
-#define EGUI_TEST_CONFIG_IMAGE_SMALL 1
 
 /*
  * HelloPerformance asset policy:
@@ -1308,38 +1307,28 @@ static void egui_test_tiled_rotate_impl(egui_view_t *self, const egui_image_t *i
 /* --- tiled draw: test_perf_40 --- */
 static void egui_view_test_performance_test_image_tiled_565_0(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_0;
     egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_0);
-#endif
 }
 static void egui_view_test_performance_test_image_tiled_565_1(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_1;
     egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_1);
-#endif
 }
 static void egui_view_test_performance_test_image_tiled_565_2(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_2;
     egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_2);
-#endif
 }
 static void egui_view_test_performance_test_image_tiled_565_4(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_4;
     egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_4);
-#endif
 }
 static void egui_view_test_performance_test_image_tiled_565_8(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_8;
     egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_8);
-#endif
 }
 
 /* --- tiled draw: star_40 --- */
@@ -1367,75 +1356,55 @@ static void egui_view_test_performance_test_image_tiled_star_565_8(egui_view_t *
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 static void egui_view_test_performance_test_extern_image_tiled_565_0(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_0);
-#endif
 }
 
 static void egui_view_test_performance_test_extern_image_tiled_565_1(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_1);
-#endif
 }
 
 static void egui_view_test_performance_test_extern_image_tiled_565_2(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_2);
-#endif
 }
 
 static void egui_view_test_performance_test_extern_image_tiled_565_4(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_4);
-#endif
 }
 
 static void egui_view_test_performance_test_extern_image_tiled_565_8(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     egui_test_tiled_draw_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_8);
-#endif
 }
 #endif
 
 /* --- tiled resize: test_perf_40 (src 40x40 -> 160x160 slot) --- */
 static void egui_view_test_performance_test_image_resize_tiled_565_0(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_0;
     egui_test_tiled_resize_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_0);
-#endif
 }
 static void egui_view_test_performance_test_image_resize_tiled_565_1(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_1;
     egui_test_tiled_resize_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_1);
-#endif
 }
 static void egui_view_test_performance_test_image_resize_tiled_565_2(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_2;
     egui_test_tiled_resize_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_2);
-#endif
 }
 static void egui_view_test_performance_test_image_resize_tiled_565_4(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_4;
     egui_test_tiled_resize_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_4);
-#endif
 }
 static void egui_view_test_performance_test_image_resize_tiled_565_8(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_8;
     egui_test_tiled_resize_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_8);
-#endif
 }
 
 /* --- tiled resize: star_40 (src 40x40 -> 160x160 slot) --- */
@@ -1463,75 +1432,55 @@ static void egui_view_test_performance_test_image_resize_tiled_star_565_8(egui_v
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 static void egui_view_test_performance_test_extern_image_resize_tiled_565_0(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     egui_test_tiled_resize_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_0);
-#endif
 }
 
 static void egui_view_test_performance_test_extern_image_resize_tiled_565_1(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     egui_test_tiled_resize_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_1);
-#endif
 }
 
 static void egui_view_test_performance_test_extern_image_resize_tiled_565_2(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     egui_test_tiled_resize_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_2);
-#endif
 }
 
 static void egui_view_test_performance_test_extern_image_resize_tiled_565_4(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     egui_test_tiled_resize_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_4);
-#endif
 }
 
 static void egui_view_test_performance_test_extern_image_resize_tiled_565_8(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     egui_test_tiled_resize_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_8);
-#endif
 }
 #endif
 
 /* --- tiled rotate: test_perf_40 (src 40x40, 80x80 slots, 45deg) --- */
 static void egui_view_test_performance_test_image_rotate_tiled_565_0(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_0;
     egui_test_tiled_rotate_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_0);
-#endif
 }
 static void egui_view_test_performance_test_image_rotate_tiled_565_1(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_1;
     egui_test_tiled_rotate_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_1);
-#endif
 }
 static void egui_view_test_performance_test_image_rotate_tiled_565_2(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_2;
     egui_test_tiled_rotate_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_2);
-#endif
 }
 static void egui_view_test_performance_test_image_rotate_tiled_565_4(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_4;
     egui_test_tiled_rotate_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_4);
-#endif
 }
 static void egui_view_test_performance_test_image_rotate_tiled_565_8(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     extern const egui_image_std_t EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_8;
     egui_test_tiled_rotate_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_TILED_IMAGE_NAME_8);
-#endif
 }
 
 /* --- tiled rotate: star_40 (src 40x40, 80x80 slots, 45deg) --- */
@@ -1559,37 +1508,27 @@ static void egui_view_test_performance_test_image_rotate_tiled_star_565_8(egui_v
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 static void egui_view_test_performance_test_extern_image_rotate_tiled_565_0(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     egui_test_tiled_rotate_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_0);
-#endif
 }
 
 static void egui_view_test_performance_test_extern_image_rotate_tiled_565_1(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     egui_test_tiled_rotate_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_1);
-#endif
 }
 
 static void egui_view_test_performance_test_extern_image_rotate_tiled_565_2(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     egui_test_tiled_rotate_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_2);
-#endif
 }
 
 static void egui_view_test_performance_test_extern_image_rotate_tiled_565_4(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     egui_test_tiled_rotate_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_4);
-#endif
 }
 
 static void egui_view_test_performance_test_extern_image_rotate_tiled_565_8(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_SMALL
     egui_test_tiled_rotate_impl(self, (egui_image_t *)&EGUI_TEST_PERFORMANCE_EXTERN_TILED_IMAGE_NAME_8);
-#endif
 }
 #endif
 
@@ -3491,7 +3430,7 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_565_2:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_565_4:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_565_8:
-        return EGUI_TEST_CONFIG_IMAGE_SMALL;
+        return 1;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_0:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_1:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_STAR_565_2:
@@ -3504,7 +3443,7 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_TILED_565_4:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_TILED_565_8:
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-        return EGUI_TEST_CONFIG_IMAGE_SMALL;
+        return 1;
 #else
         return 0;
 #endif
@@ -3515,7 +3454,7 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_565_2:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_565_4:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_565_8:
-        return EGUI_TEST_CONFIG_IMAGE_SMALL;
+        return 1;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_0:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_1:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RESIZE_TILED_STAR_565_2:
@@ -3528,7 +3467,7 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_TILED_565_4:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RESIZE_TILED_565_8:
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-        return EGUI_TEST_CONFIG_IMAGE_SMALL;
+        return 1;
 #else
         return 0;
 #endif
@@ -3539,7 +3478,7 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_565_2:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_565_4:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_565_8:
-        return EGUI_TEST_CONFIG_IMAGE_SMALL;
+        return 1;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_0:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_1:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_ROTATE_TILED_STAR_565_2:
@@ -3552,7 +3491,7 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_TILED_565_4:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_ROTATE_TILED_565_8:
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-        return EGUI_TEST_CONFIG_IMAGE_SMALL;
+        return 1;
 #else
         return 0;
 #endif
