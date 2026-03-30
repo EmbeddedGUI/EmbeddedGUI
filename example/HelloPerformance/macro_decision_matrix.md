@@ -28,11 +28,11 @@
 | `EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE` | `1` | `0` | benchmark 能力 | 保留 | 当前场景包含外部资源基准 |
 | `EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE` | `1` | `0` | benchmark 能力 | 保留 | 当前场景包含 QOI benchmark |
 | `EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE` | `1` | `0` | benchmark 能力 | 保留 | 当前场景包含 RLE benchmark |
-| `EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE` | `1` | `0` | decode/heap 行为 | 保留 | `row-cache off` 已被历史 A/B 明确拒绝 |
-| `EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE` | `2` | `4` | decode/heap 行为 | 保留 | 绑定 HelloPerformance 当前 RGB565-only decode 路径 |
-| `EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE` | `1` | `0` | decode/heap 行为 | 保留 | 属于 decode heap 形态，不是小 static-RAM 宏 |
-| `EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT` | `0` | `2` | decode/heap 行为 | 保留 | 属于 codec heap/perf 路径，不在本轮 `<100B static RAM` 规则内 |
-| `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE` | `1` | `0` | decode/heap 行为 | 保留 | 属于 codec heap/perf 路径，不在本轮 `<100B static RAM` 规则内 |
+| `EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE` | `1` | `0` | decode/heap 行为 | 保留 | `row-cache off` 会让 QOI/RLE 热点出现 `+1800% ~ +3600%` 级回退；详见 `codec_heap_override_retention.md` |
+| `EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE` | `2` | `4` | decode/heap 行为 | 保留 | 绑定 RGB565-only decode 路径，主要影响约 `7680B` heap 上界，不是 small static-RAM 宏 |
+| `EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE` | `1` | `0` | decode/heap 行为 | 保留 | 复用 row-cache alpha 头部，影响约 `248B` decode heap 形态；详见 `codec_heap_override_retention.md` |
+| `EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT` | `0` | `2` | decode/heap 行为 | 保留 | `1/2` checkpoint 无法挽回窄 tail 方案的 `+45% ~ +66%` 回退；详见 `codec_heap_override_retention.md` |
+| `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE` | `1` | `0` | decode/heap 行为 | 保留 | 当前默认是 `-1584B heap / +8B static RAM` 的 codec 模式，主要不是 small static-RAM 取舍 |
 | `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE` | `64` | `1024` | static RAM | 保留 | 恢复默认会带来 `+1016B` static RAM，超出本轮阈值 |
 | `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX` | `64` | `256` | stack 行为 | 保留 | 这是 stack/LUT 上限，不是 fixed static RAM 项 |
 | `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT` | `1` | `0` | heap 行为 | 保留 | 属于 text-transform heap/layout 策略 |
