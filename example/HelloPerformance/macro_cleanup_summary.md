@@ -63,6 +63,8 @@
 | `EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS` | `0` | 恢复默认后最坏 perf 回退约 `+10% ~ +18%` |
 | `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE` | `64` | 恢复默认 `1024` 会带来 `+1016B` static RAM，超出本轮 `<100B` 范围 |
 
+- 这组 retained static-RAM 项的现行依据见 `static_ram_override_retention.md`
+
 ## 剩余 override 分类
 
 - benchmark 环境宏：
