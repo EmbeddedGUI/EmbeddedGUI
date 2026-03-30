@@ -113,41 +113,10 @@ extern "C" {
 // trimming another 64B of static RAM versus the current 128B window.
 #define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 64
 
-// HelloPerformance's shadow benchmarks use width=20 with radius 0/30. The
-// rounded-shadow path only needs about 51 d_sq buckets at the current shift,
-// so a 64-entry cap preserves the same lookup precision while trimming stack.
-#define EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 64
-
-// HelloPerformance text transform only uses short benchmark strings and the
-// 26pt perf font whose bitmap offsets stay well below 64KB, so the cached
-// text-transform layout can use 16-bit offsets/indices to trim heap.
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 1
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT  1
-
 // HelloPerformance advances scenes through its timer/recording pipeline and
 // does not rely on touch interaction, so the touch dispatcher and motion queue
 // only consume persistent RAM in this app.
 #define EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH 0
-
-// Keep the active layout/tile scratch transient on heap, but restore the tiny
-// dimension cache so repeated rotated-text draws do not remeasure the same
-// benchmark string every frame.
-#define EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE 1
-
-// The rotated-text layout/tile scratch now follows actual glyph and line
-// counts, so keep it on transient heap instead of fixed stack arrays.
-
-// The rotated-text visible alpha8 tile size follows actual transformed glyph
-// bounds, so do not keep a fixed large stack buffer here. Let the existing
-// per-frame heap cache size itself dynamically and release at frame end.
-// Keep the alpha8 fast-path ceiling at the smallest value that still avoids
-// the packed4 fallback heap cliff on HelloPerformance buffered rotated-text
-// scenes. Values below 2560B raise the scene-local heap peak sharply even when
-// the timing delta still looks small, so keep 2560B as the shipped low-RAM
-// default until the fallback path itself is reduced.
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES
-#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 2560
-#endif
 
 // External font row/glyph scratch follows actual glyph bitmap size now, so it
 // must stay on transient heap instead of macro-sized stack or static buffers.
@@ -158,6 +127,32 @@ extern "C" {
 // HelloPerformance's current image workloads do not justify keeping a
 // persistent "source alpha is fully opaque" metadata slot alive in BSS.
 #define EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 0
+
+/*
+ * Optional low-RAM stack/transient-heap policy overrides.
+ *
+ * Keep this block disabled by default so HelloPerformance uses the framework
+ * defaults, which spend more stack/transient heap headroom and generally favor
+ * rendering throughput over the tighter low-RAM policy.
+ *
+ * Turn this block on only when you want to re-enter the old low-RAM
+ * HelloPerformance profile for SRAM-sensitive measurements.
+ */
+#if 0
+// Shadow corner path: 64-entry cap trims stack/LUT headroom versus the default
+// 256-entry table.
+#define EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 64
+
+// Text-transform layout: 16-bit indices shrink transient heap for the current
+// benchmark strings and font offsets.
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 1
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT  1
+
+// Rotated-text scratch: keep layout/tile scratch on transient heap and cap the
+// visible alpha8 fast-path cache at the smaller low-RAM ceiling.
+#define EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE 1
+#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 2560
+#endif
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
