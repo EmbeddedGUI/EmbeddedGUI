@@ -124,9 +124,6 @@ extern "C" {
 // A later 1-row A/B (480B data + 240B alpha) halves those scene-local heaps
 // again, but current direct-draw / rotate regressions reach about +12% ~ +24%,
 // so 2 rows stays the default and 1 row remains measurement-only.
-#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES
-#define EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES 960
-#endif
 #ifndef EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES
 #define EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES 480
 #endif
