@@ -690,6 +690,24 @@ __EGUI_STATIC_INLINE__ int32_t image_transform_align_external_chunk_row(int32_t 
     return row - (row % (int32_t)rows_per_chunk);
 }
 
+__EGUI_STATIC_INLINE__ uint32_t image_transform_external_rows_per_chunk(uint32_t cache_max_bytes, uint32_t row_bytes)
+{
+    uint32_t rows_per_chunk;
+
+    if (row_bytes == 0)
+    {
+        return 1;
+    }
+
+    rows_per_chunk = cache_max_bytes / row_bytes;
+    return rows_per_chunk != 0 ? rows_per_chunk : 1;
+}
+
+__EGUI_STATIC_INLINE__ int image_transform_external_rows_share_chunk(int32_t row0, int32_t row1, uint32_t rows_per_chunk)
+{
+    return image_transform_align_external_chunk_row(row0, rows_per_chunk) == image_transform_align_external_chunk_row(row1, rows_per_chunk);
+}
+
 static const uint16_t *image_transform_get_external_data_row(const image_transform_external_source_t *source, int32_t row)
 {
     image_transform_external_data_row_slot_t *cache = image_transform_get_external_data_row_cache(source);
@@ -815,16 +833,27 @@ __EGUI_STATIC_INLINE__ uint16_t image_transform_read_rgb565_external(const image
 __EGUI_STATIC_INLINE__ void image_transform_fetch_bilinear_rgb565_external(const image_transform_external_source_t *source, int32_t x, int32_t y,
                                                                            uint16_t *d00, uint16_t *d01, uint16_t *d10, uint16_t *d11)
 {
-    const uint16_t *row0 = image_transform_get_external_data_row(source, y);
-    const uint16_t *row1 = image_transform_get_external_data_row(source, y + 1);
+    uint32_t rows_per_chunk = image_transform_external_rows_per_chunk(EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES, source->data_row_bytes);
+    const uint16_t *row0 = NULL;
+    const uint16_t *row1 = NULL;
 
-    if (row0 != NULL && row1 != NULL)
+    /* The external transform path keeps one chunk buffer per source plane.
+     * When y and y + 1 cross a chunk boundary, fetching row1 would reload the
+     * shared buffer and invalidate row0. Fall back to point loads there so the
+     * bilinear sample still uses the correct source rows. */
+    if (image_transform_external_rows_share_chunk(y, y + 1, rows_per_chunk))
     {
-        *d00 = row0[x];
-        *d01 = row0[x + 1];
-        *d10 = row1[x];
-        *d11 = row1[x + 1];
-        return;
+        row0 = image_transform_get_external_data_row(source, y);
+        row1 = image_transform_get_external_data_row(source, y + 1);
+
+        if (row0 != NULL && row1 != NULL)
+        {
+            *d00 = row0[x];
+            *d01 = row0[x + 1];
+            *d10 = row1[x];
+            *d11 = row1[x + 1];
+            return;
+        }
     }
 
     *d00 = image_transform_read_rgb565_external(source, x, y);
@@ -1134,12 +1163,19 @@ static inline uint8_t image_transform_sample_alpha_bilinear_fast(const uint8_t *
 static inline uint8_t image_transform_sample_alpha_bilinear_external(const image_transform_external_source_t *source, int32_t x, int32_t y, uint8_t fx,
                                                                      uint8_t fy)
 {
-    const uint8_t *row0 = image_transform_get_external_alpha_row(source, y);
-    const uint8_t *row1 = image_transform_get_external_alpha_row(source, y + 1);
+    uint32_t rows_per_chunk = image_transform_external_rows_per_chunk(EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES, source->alpha_row_bytes);
+    const uint8_t *row0 = NULL;
+    const uint8_t *row1 = NULL;
 
-    if (row0 != NULL && row1 != NULL)
+    if (image_transform_external_rows_share_chunk(y, y + 1, rows_per_chunk))
     {
-        return image_transform_sample_alpha_bilinear_from_rows(row0, row1, x, source->info->alpha_type, fx, fy);
+        row0 = image_transform_get_external_alpha_row(source, y);
+        row1 = image_transform_get_external_alpha_row(source, y + 1);
+
+        if (row0 != NULL && row1 != NULL)
+        {
+            return image_transform_sample_alpha_bilinear_from_rows(row0, row1, x, source->info->alpha_type, fx, fy);
+        }
     }
 
     {
