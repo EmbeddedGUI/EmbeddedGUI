@@ -118,11 +118,11 @@
 | `s_qemu_resource_handle` | `.data` | 4 | External resource semihosting handle |
 
 - This build no longer contains `egui_input_info`, `input_motion_pool*`, or `egui_view_group_touch_state`.
-- Current normal QEMU build: `text=2135636`, `data=52`, `bss=2356`, `static RAM=2408`.
-- Section split from `llvm-size -A`: `.bss=1920`, `._user_heap_stack=436`.
+- Current normal QEMU build: `text=2135132`, `data=72`, `bss=2600`, `static RAM=2672`.
+- Section split from `llvm-size -A`: `.data=72`, `.bss=2164`, `._user_heap_stack=436`.
 - `HelloPerformance` now overrides the QEMU linker reserve with `__qemu_min_stack_size__=0x01b0`, so the reported static RAM headline reflects a 432B stack budget instead of the port default 8KB.
 - A 2026-03-30 follow-up A/B tried to push the reserve down to `0x0180` after temporarily splitting `egui_canvas_draw_thick_line_scan()` to `384B`, but that probe was rejected and not kept. Fresh clean `-fstack-usage` plus `main.map`/`llvm-nm` cross-checks showed the real linked ceiling would then move to `egui_canvas_draw_circle_fill_gradient (424B)`, followed by `egui_canvas_draw_rectangle_fill_gradient (416B)`, `egui_canvas_draw_polygon_fill_gradient (408B)`, `egui_canvas_draw_polygon_fill (408B)`, and `egui_image_rle_draw_image (392B)`, so lowering the shipped reserve below `0x01b0` would only recover `<= 24B` before hitting the next verified hotspot.
-- Fixed resident `.data + .bss` is now `1972B`; `egui_pfb=1536B` still dominates that total and remains user-configurable rather than a core optimization target.
+- Fixed resident `.data + .bss` is now `2236B`; `egui_pfb=1536B` still dominates that total and remains user-configurable rather than a core optimization target.
 - Core still keeps the default-off global logical-PFB probe tooling for manual A/B, but HelloPerformance now uses the weak width-hint hook in the shipped path for the current high-heap codec scenes: `egui_core_get_logical_pfb_target_width_hint()` returns `96` for the selected QOI/RLE opaque+alpha hotspots and `0` elsewhere. Non-hotspot scenes therefore keep the configured logical/physical `48x16` walk, and `IMAGE_TILED_RLE_565_0` stays on the default walk because the wider hint exceeds the current perf gate.
 - The app-side logical-width hint remains tiny on stack: `egui_view_test_performance_uses_logical_pfb_96_hint()` is `16B`, `egui_core_get_logical_pfb_target_width_hint()` in `uicode.c` is `8B`, and the active linked stack peak still stays at `432B`.
 - The same probe infrastructure now also leaves the heap-backed resize `src_x_map` path runtime-safe when the logical tile width is wider than the physical `48px` PFB tile. This only affects manual probe builds; the shipped default still uses the configured `48x16` geometry and keeps the same RAM headline.
@@ -152,6 +152,12 @@
 - HelloPerformance no longer keeps `PFB_WIDTH`-sized resize maps or `PFB_HEIGHT`-sized round-rect row caches on stack; image resize scratch still allocates from heap by current draw width, while the optional round-rect row cache is now disabled by default and only allocates from heap when explicitly re-enabled for measurement.
 - HelloPerformance no longer keeps `PFB_HEIGHT`-sized circle-mask row caches inside mask objects; the optional circle-mask frame row cache is also disabled by default now, and when re-enabled it still uses heap because the required bytes follow tile height.
 - There is still no size-related heap that stays resident at idle for rotated text, external text, image resize, or circle mask; the new text/font/image/circle scratch buffers are allocated only inside the active draw or frame walk and return to `0B` current heap after the recording finishes.
+
+### Small-Macro Cleanup Follow-Up
+
+- A clean 2026-03-31 rebuild at `96dae0b` confirms the current shipped small-macro-cleanup baseline at `static RAM=2672B` (`.data=72`, `.bss=2164`, `._user_heap_stack=436`).
+- `EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH=1` was rechecked against the same `96dae0b` HelloPerformance QEMU perf baseline and is still rejected for the current rule: static RAM rises `2672 -> 3000 (+328B)`, while the worst benchmark regression is `ANIMATION_SCALE 0.320 -> 0.373 ms (+16.56%)`.
+- Under the current `<100B static RAM` and `<5%` perf rule, there is still no remaining HelloPerformance app-side override that qualifies for removal: `EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE=1` still regresses about `+19.92%`, `EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS=4` still regresses about `+10% ~ +18%`, and `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 64 -> 1024` costs `+1016B` static RAM.
 
 ### Heap Measurement
 
