@@ -28,7 +28,7 @@ static egui_view_test_performance_t test_view;
 static const char *egui_view_test_performance_type_string(int test_mode);
 static void egui_view_test_performance_set_test_mode(int test_mode);
 static int egui_view_test_performance_is_qoi_test_mode(int test_mode);
-static int egui_view_test_performance_is_codec_alpha_test_mode(int test_mode);
+static int egui_view_test_performance_uses_logical_pfb_96_hint(int test_mode);
 #if EGUI_CONFIG_RECORDING_TEST
 static void egui_view_test_performance_show_test_mode(int test_mode);
 static int egui_view_test_performance_get_recording_test_mode(int action_index);
@@ -662,28 +662,49 @@ static int egui_view_test_performance_is_qoi_test_mode(int test_mode)
            test_mode <= EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_8_IMAGE;
 }
 
-static int egui_view_test_performance_is_codec_alpha_test_mode(int test_mode)
+static int egui_view_test_performance_uses_logical_pfb_96_hint(int test_mode)
 {
     switch (test_mode)
     {
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_QOI_565_0:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_QOI_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_NO_MASK:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_ROUND_RECT:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_CIRCLE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_IMAGE:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_8_NO_MASK:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_8_ROUND_RECT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_8_CIRCLE:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_QOI_8_IMAGE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_NO_MASK:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_ROUND_RECT:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_CIRCLE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_IMAGE:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_8_NO_MASK:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_8_CIRCLE:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_8_IMAGE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RLE_565:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RLE_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RLE_565:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RLE_565_8:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_TILED_RLE_565_8:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_NO_MASK:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_ROUND_RECT:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_CIRCLE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_IMAGE:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_8_NO_MASK:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_8_ROUND_RECT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_8_CIRCLE:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_IMAGE_RLE_8_IMAGE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_NO_MASK:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_ROUND_RECT:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_CIRCLE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_IMAGE:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_8_NO_MASK:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_8_ROUND_RECT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_8_CIRCLE:
@@ -697,10 +718,10 @@ static int egui_view_test_performance_is_codec_alpha_test_mode(int test_mode)
 
 egui_dim_t egui_core_get_logical_pfb_target_width_hint(void)
 {
-    /* Keep the default 48x16 walk for non-codec scenes.
-     * Alpha codec scenes can reuse a wider logical 96x8 walk, which shrinks the
-     * tail-row cache without changing the physical PFB bytes. */
-    return egui_view_test_performance_is_codec_alpha_test_mode(test_view.test_mode) ? 96 : 0;
+    /* Keep the default 48x16 walk for most scenes.
+     * The current high-heap codec hotspots can reuse a wider logical 96x8 walk,
+     * which shrinks the tail-row cache without changing the physical PFB bytes. */
+    return egui_view_test_performance_uses_logical_pfb_96_hint(test_view.test_mode) ? 96 : 0;
 }
 
 void egui_view_test_performance_with_test_mode(int test_mode)
