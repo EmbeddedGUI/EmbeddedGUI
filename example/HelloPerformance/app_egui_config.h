@@ -169,10 +169,6 @@ extern "C" {
 // only consume persistent RAM in this app.
 #define EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH 0
 
-// Restoring the small affine prepare cache recovers a noticeable amount of
-// rotated-text performance while only costing a fixed ~60B metadata block.
-#define EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE 1
-
 // Keep the active layout/tile scratch transient on heap, but restore the tiny
 // dimension cache so repeated rotated-text draws do not remeasure the same
 // benchmark string every frame.
