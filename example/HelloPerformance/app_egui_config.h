@@ -187,10 +187,6 @@ extern "C" {
 #define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 2560
 #endif
 
-#ifndef EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES
-#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_STACK_MAX_BYTES 0
-#endif
-
 // External font row/glyph scratch follows actual glyph bitmap size now, so it
 // must stay on transient heap instead of macro-sized stack or static buffers.
 
