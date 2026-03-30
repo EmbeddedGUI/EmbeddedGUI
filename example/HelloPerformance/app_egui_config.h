@@ -155,14 +155,6 @@ extern "C" {
 // trimming another 64B of static RAM versus the current 128B window.
 #define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 64
 
-// HelloPerformance's RLE benchmarks keep one compressed image workload active
-// per scene, and the row-band cache already handles the hot horizontal-tile
-// reuse path. The extra decoder checkpoint only keeps a 16B fallback state in
-// BSS, so disable it here and let rare backward seeks restart from row 0.
-#ifndef EGUI_CONFIG_IMAGE_RLE_CHECKPOINT_ENABLE
-#define EGUI_CONFIG_IMAGE_RLE_CHECKPOINT_ENABLE 0
-#endif
-
 // HelloPerformance's external RLE benchmarks only keep one decode stream
 // alive per draw, so the window-cache metadata can live on stack instead of
 // reserving a persistent global slot in BSS.
