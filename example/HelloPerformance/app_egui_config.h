@@ -164,10 +164,6 @@ extern "C" {
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 1
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT  1
 
-// HelloPerformance keeps a single fullscreen benchmark view and every scene
-// switch invalidates that whole surface, so one dirty-region slot is enough.
-#define EGUI_CONFIG_DIRTY_AREA_COUNT 1
-
 // HelloPerformance advances scenes through its timer/recording pipeline and
 // does not rely on touch interaction, so the touch dispatcher and motion queue
 // only consume persistent RAM in this app.
