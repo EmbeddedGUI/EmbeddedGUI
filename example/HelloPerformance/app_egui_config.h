@@ -200,11 +200,7 @@ extern "C" {
 
 // HelloPerformance only draws a few short benchmark strings per scene, so the
 // draw-prefix cache's persistent BSS is not worth keeping for this app.
-#ifndef EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS
-#define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS 0
-#endif
-
-// Disable prefix-cache slots together with the glyph budget above.
+// Keep prefix-cache slots disabled too.
 #ifndef EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS
 #define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 0
 #endif
