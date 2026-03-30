@@ -198,13 +198,6 @@ extern "C" {
 // HelloPerformance only uses small ASCII subsets (88/93 glyphs), so the
 // frame-local ASCII lookup cache can use 8-bit indices.
 
-// HelloPerformance only draws a few short benchmark strings per scene, so the
-// draw-prefix cache's persistent BSS is not worth keeping for this app.
-// Keep prefix-cache slots disabled too.
-#ifndef EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS
-#define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 0
-#endif
-
 // HelloPerformance's current image workloads do not justify keeping a
 // persistent "source alpha is fully opaque" metadata slot alive in BSS.
 #define EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 0
