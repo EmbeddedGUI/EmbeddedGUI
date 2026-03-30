@@ -268,11 +268,6 @@ extern "C" {
 // persistent "source alpha is fully opaque" metadata slot alive in BSS.
 #define EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 0
 
-// HelloPerformance already shares the external-image row buffers, and each
-// draw only needs one row-cache metadata block at a time, so keep that
-// metadata on stack instead of reserving a persistent global union in BSS.
-#define EGUI_CONFIG_IMAGE_STD_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE 0
-
 // HelloPerformance's external image transform benchmarks also reuse the same
 // shared row buffers and only keep one transform source alive per draw, so the
 // transform-side row-cache metadata can move to stack as well.
