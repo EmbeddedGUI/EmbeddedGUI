@@ -50,10 +50,6 @@ extern "C" {
 // root-group object in persistent RAM.
 #define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 0
 
-// HelloPerformance does not use fling/scroll velocity, so the input module
-// can drop its persistent velocity tracker state.
-#define EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE 0
-
 // The app keeps one root-group wrapper plus a single fullscreen test view, so
 // a 2-entry touch capture path still preserves follow-up DOWN/MOVE/UP routing.
 #define EGUI_CONFIG_TOUCH_CAPTURE_PATH_MAX 2
