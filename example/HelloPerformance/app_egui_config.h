@@ -173,7 +173,6 @@ extern "C" {
 // dimension cache so repeated rotated-text draws do not remeasure the same
 // benchmark string every frame.
 #define EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE 1
-#define EGUI_CONFIG_TEXT_TRANSFORM_DIM_CACHE_ENABLE    1
 
 // The rotated-text layout/tile scratch now follows actual glyph and line
 // counts, so keep it on transient heap instead of fixed stack arrays.
