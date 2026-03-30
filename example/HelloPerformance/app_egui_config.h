@@ -196,9 +196,7 @@ extern "C" {
 // must stay on transient heap instead of macro-sized stack or static buffers.
 
 // HelloPerformance only uses small ASCII subsets (88/93 glyphs), so the
-// frame-local ASCII lookup cache can use 8-bit indices and the multi-line
-// text cache only needs one small slot for the 7-line benchmark string.
-#define EGUI_FONT_STD_LINE_CACHE_SLOTS        1
+// frame-local ASCII lookup cache can use 8-bit indices.
 
 // HelloPerformance only draws a few short benchmark strings per scene, so the
 // draw-prefix cache's persistent BSS is not worth keeping for this app.
