@@ -202,13 +202,6 @@ int egui_image_decode_cache_prepare_rows(uint16_t img_width, uint16_t row_count,
     pixel_bytes = (uint32_t)img_width * row_count * bytes_per_pixel;
     alpha_bytes = (uint32_t)row_count * alpha_row_bytes;
 
-#if EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
-    if (alpha_bytes < EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH)
-    {
-        alpha_bytes = EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH;
-    }
-#endif
-
     return egui_image_decode_cache_prepare_bytes(pixel_bytes, alpha_bytes);
 }
 
@@ -314,13 +307,13 @@ uint8_t *egui_image_decode_get_opaque_alpha_row(egui_dim_t count)
     EGUI_ASSERT(count >= 0 && count <= EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH);
 
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE && EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
-    if (egui_image_decode_row_cache_alpha == NULL && !egui_image_decode_cache_prepare_bytes(0, EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH))
+    if (!egui_image_decode_cache_prepare_bytes(0, (uint32_t)count))
     {
         return NULL;
     }
     opaque_alpha_row = egui_image_decode_row_cache_alpha;
 #else
-    opaque_alpha_row = egui_image_decode_prepare_single_row_alpha_buf(EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH);
+    opaque_alpha_row = egui_image_decode_prepare_single_row_alpha_buf((uint16_t)count);
 #endif
 
     if (opaque_alpha_row == NULL)
