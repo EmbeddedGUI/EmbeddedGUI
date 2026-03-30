@@ -39,9 +39,6 @@
 // Small image tests (40x40 tiled): always enabled, negligible flash cost.
 #define EGUI_TEST_CONFIG_IMAGE_SMALL 1
 
-// Double-size (480x480) image tests are part of the shipped benchmark set now.
-#define EGUI_TEST_CONFIG_IMAGE_DOUBLE 1
-
 /*
  * HelloPerformance asset policy:
  * - test_perf_* stays opaque RGB565 only.
@@ -1119,7 +1116,7 @@ static void egui_view_test_performance_test_image_565_quarter(egui_view_t *self)
 
 static void egui_view_test_performance_test_image_565_double(egui_view_t *self)
 {
-#if EGUI_TEST_CONFIG_IMAGE_LARGE && EGUI_TEST_CONFIG_IMAGE_DOUBLE
+#if EGUI_TEST_CONFIG_IMAGE_LARGE
     extern const egui_image_std_t egui_res_image_test_perf_480_rgb565_0;
     egui_canvas_draw_image((egui_image_t *)&egui_res_image_test_perf_480_rgb565_0, 0, 0);
 #endif
@@ -3465,7 +3462,7 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_QUARTER:
         return EGUI_TEST_CONFIG_IMAGE_LARGE;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_DOUBLE:
-        return EGUI_TEST_CONFIG_IMAGE_LARGE && EGUI_TEST_CONFIG_IMAGE_DOUBLE;
+        return EGUI_TEST_CONFIG_IMAGE_LARGE;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_8_QUARTER:
         return EGUI_TEST_CONFIG_IMAGE_LARGE;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_8_DOUBLE:
