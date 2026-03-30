@@ -117,13 +117,6 @@ extern "C" {
 // trimming another 64B of static RAM versus the current 128B window.
 #define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 64
 
-// HelloPerformance only accepts size-related external-image heap scratch up to
-// 2 image rows / columns. For the 240px RGB565+alpha hot scenes, cap the shared
-// row caches to exactly 2 rows: 960B data + 480B alpha. This stays within the
-// current RAM rule while still covering the 120px external cases in 4-row chunks.
-// A later 1-row A/B (480B data + 240B alpha) halves those scene-local heaps
-// again, but current direct-draw / rotate regressions reach about +12% ~ +24%,
-// so 2 rows stays the default and 1 row remains measurement-only.
 // HelloPerformance's shadow benchmarks use width=20 with radius 0/30. The
 // rounded-shadow path only needs about 51 d_sq buckets at the current shift,
 // so a 64-entry cap preserves the same lookup precision while trimming stack.
