@@ -159,6 +159,17 @@
 - `EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH=1` was rechecked against the same `96dae0b` HelloPerformance QEMU perf baseline and is still rejected for the current rule: static RAM rises `2672 -> 3000 (+328B)`, while the worst benchmark regression is `ANIMATION_SCALE 0.320 -> 0.373 ms (+16.56%)`.
 - Under the current `<100B static RAM` and `<5%` perf rule, there is still no remaining HelloPerformance app-side override that qualifies for removal: `EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE=1` still regresses about `+19.92%`, `EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS=4` still regresses about `+10% ~ +18%`, and `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 64 -> 1024` costs `+1016B` static RAM.
 
+| Macro | Current value | Why it stays | Current status |
+| --- | ---: | --- | --- |
+| `EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH` | `0` | Static-RAM item, but reverting to the default touches active animation/input code paths | Reject removal: `+328B`, worst perf regression `+16.56%` |
+| `EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE` | `0` | Static-RAM item, but default `1` reintroduces the extra user-root wrapper and forces the activity/dialog dependency chain back on | Reject removal: about `+56B`, worst perf regression about `+19.92%` |
+| `EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY` / `EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG` | `0 / 0` | Not independently removable in the current config: `dialog=1` implies `activity=1`, and `activity=1` requires `user_root=1` | Blocked by the rejected `user_root=1` path above |
+| `EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS` | `0` | Static-RAM item, but restoring the default cache hurts active image paths too much | Reject removal: worst perf regression about `+10% ~ +18%` |
+| `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE` | `64` | Static-RAM item, but the default window is far above the small-macro threshold | Keep override: `64 -> 1024` costs `+1016B` static RAM |
+| `EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE` / `EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE` / `EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT` / `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE` | app override | These are heap/decode-path controls rather than `<100B` static-RAM knobs | Out of scope for this small static-RAM cleanup round |
+| `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX` / `EGUI_CONFIG_TEXT_TRANSFORM_*` | app override | These govern stack or transient heap ceilings, not fixed static RAM | Out of scope for this small static-RAM cleanup round |
+| Codec/image-format/external-resource feature macros | app override | These are benchmark capability switches, not RAM A/B cleanup knobs | Keep as app feature selection, not part of this cleanup rule |
+
 ### Heap Measurement
 
 | Build | idle current | idle peak | interaction delta current | interaction delta peak | interaction total current | interaction total peak | action count |
