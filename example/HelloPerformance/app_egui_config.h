@@ -123,10 +123,6 @@ extern "C" {
 // measured QOI/RLE alpha performance collapses from the ~2ms / ~1.4ms class to
 // roughly ~9ms / ~3ms. Keep narrower caps as measurement-only experiments.
 
-// HelloPerformance's generated QOI assets are 40/120/240px tall, so the
-// decoder's current-row cursor can stay 8-bit and drop another 4B from qoi_state.
-#define EGUI_CONFIG_IMAGE_QOI_ROW_INDEX_8BIT_ENABLE 1
-
 // HelloPerformance's QOI decode stays on one active image stream per scene, so
 // the RGBA index table can reconstruct RGB565 on demand without keeping a
 // duplicate 64-entry RGB565 index array in static RAM.
