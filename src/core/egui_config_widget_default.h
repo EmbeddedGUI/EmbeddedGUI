@@ -10,7 +10,8 @@ extern "C" {
 /**
  * Widget icon-font auto fallback.
  * When disabled, widgets only draw icon glyphs after the user explicitly sets
- * an icon font via the corresponding `*_set_icon_font()` API.
+ * an icon font via the corresponding
+ * `*_set_icon_font()` API.
  */
 #ifndef EGUI_CONFIG_WIDGET_AUTO_ICON_FONT_FALLBACK
 #define EGUI_CONFIG_WIDGET_AUTO_ICON_FONT_FALLBACK 0

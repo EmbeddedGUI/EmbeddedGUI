@@ -291,7 +291,8 @@ static void showcase_sim_get_node_point(uint32_t node_index, uint8_t x_percent, 
 {
     const egui_region_t *region = &showcase_ctx.nodes[node_index].desc.region;
 
-    showcase_sim_canvas_to_screen(region->location.x + (region->size.width * x_percent) / 100, region->location.y + (region->size.height * y_percent) / 100, x, y);
+    showcase_sim_canvas_to_screen(region->location.x + (region->size.width * x_percent) / 100, region->location.y + (region->size.height * y_percent) / 100, x,
+                                  y);
 }
 
 static void showcase_sim_set_click_node(egui_sim_action_t *p_action, uint32_t node_index, uint8_t x_percent, uint8_t y_percent, int interval_ms)

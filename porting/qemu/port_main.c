@@ -260,12 +260,8 @@ static uint32_t qemu_run_heap_measure_actions(void)
 #if QEMU_HEAP_TRACE_ACTIONS
         {
             qemu_heap_stats_t action_stats = qemu_heap_capture_stats();
-            qemu_log_printf("HEAP_ACTION:%lu:current=%lu:peak=%lu:allocs=%lu:frees=%lu\n",
-                            (unsigned long)action_count,
-                            (unsigned long)action_stats.current,
-                            (unsigned long)action_stats.peak,
-                            (unsigned long)action_stats.allocs,
-                            (unsigned long)action_stats.frees);
+            qemu_log_printf("HEAP_ACTION:%lu:current=%lu:peak=%lu:allocs=%lu:frees=%lu\n", (unsigned long)action_count, (unsigned long)action_stats.current,
+                            (unsigned long)action_stats.peak, (unsigned long)action_stats.allocs, (unsigned long)action_stats.frees);
         }
 #endif
         action_count++;

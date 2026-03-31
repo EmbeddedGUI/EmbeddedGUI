@@ -53,10 +53,8 @@ static void mp4_callback(egui_view_mp4_t *view, int is_end)
     }
 }
 
-static void init_mp4_row(egui_view_group_t *page,
-                         egui_view_label_t *lbl, const egui_view_label_params_t *lbl_p, const char *text,
-                         egui_view_mp4_t *mp4, const egui_view_mp4_params_t *mp4_p,
-                         const egui_image_t **frames, uint16_t count)
+static void init_mp4_row(egui_view_group_t *page, egui_view_label_t *lbl, const egui_view_label_params_t *lbl_p, const char *text, egui_view_mp4_t *mp4,
+                         const egui_view_mp4_params_t *mp4_p, const egui_image_t **frames, uint16_t count)
 {
     egui_view_label_init_with_params(EGUI_VIEW_OF(lbl), lbl_p);
     egui_view_label_set_text(EGUI_VIEW_OF(lbl), text);
@@ -88,12 +86,9 @@ void test_init_ui(void)
 
     /* ----- Page 2: Compressed comparison ----- */
     egui_view_group_init_with_params(EGUI_VIEW_OF(&page2), &page2_p);
-    init_mp4_row(&page2, &lbl_cmp_std, &lbl_cmp_std_p, "STD",
-                 &mp4_cmp_std, &mp4_cmp_std_p, mp4_arr_cmp_std, MP4_IMAGE_COUNT_CMP_STD);
-    init_mp4_row(&page2, &lbl_cmp_qoi, &lbl_cmp_qoi_p, "QOI",
-                 &mp4_cmp_qoi, &mp4_cmp_qoi_p, mp4_arr_cmp_qoi, MP4_IMAGE_COUNT_CMP_QOI);
-    init_mp4_row(&page2, &lbl_cmp_rle, &lbl_cmp_rle_p, "RLE",
-                 &mp4_cmp_rle, &mp4_cmp_rle_p, mp4_arr_cmp_rle, MP4_IMAGE_COUNT_CMP_RLE);
+    init_mp4_row(&page2, &lbl_cmp_std, &lbl_cmp_std_p, "STD", &mp4_cmp_std, &mp4_cmp_std_p, mp4_arr_cmp_std, MP4_IMAGE_COUNT_CMP_STD);
+    init_mp4_row(&page2, &lbl_cmp_qoi, &lbl_cmp_qoi_p, "QOI", &mp4_cmp_qoi, &mp4_cmp_qoi_p, mp4_arr_cmp_qoi, MP4_IMAGE_COUNT_CMP_QOI);
+    init_mp4_row(&page2, &lbl_cmp_rle, &lbl_cmp_rle_p, "RLE", &mp4_cmp_rle, &mp4_cmp_rle_p, mp4_arr_cmp_rle, MP4_IMAGE_COUNT_CMP_RLE);
     egui_view_group_layout_childs(EGUI_VIEW_OF(&page2), 0, 0, 0, EGUI_ALIGN_CENTER);
 
     /* ----- ViewPage ----- */

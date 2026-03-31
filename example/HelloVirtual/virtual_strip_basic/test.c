@@ -9,13 +9,13 @@
 
 #include "uicode.h"
 
-#define STRIP_BASIC_ITEM_COUNT    96U
-#define STRIP_BASIC_STABLE_BASE   3000U
-#define STRIP_BASIC_INVALID_INDEX 0xFFFFFFFFUL
-#define STRIP_BASIC_TITLE_LEN     28
-#define STRIP_BASIC_BADGE_LEN     16
-#define STRIP_BASIC_META_LEN      24
-#define STRIP_BASIC_JUMP_STEP     13U
+#define STRIP_BASIC_ITEM_COUNT             96U
+#define STRIP_BASIC_STABLE_BASE            3000U
+#define STRIP_BASIC_INVALID_INDEX          0xFFFFFFFFUL
+#define STRIP_BASIC_TITLE_LEN              28
+#define STRIP_BASIC_BADGE_LEN              16
+#define STRIP_BASIC_META_LEN               24
+#define STRIP_BASIC_JUMP_STEP              13U
 #define STRIP_BASIC_RESET_VERIFY_RETRY_MAX 3U
 
 #define STRIP_BASIC_MARGIN_X   8

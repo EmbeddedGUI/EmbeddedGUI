@@ -13,11 +13,11 @@ extern "C" {
 typedef struct
 {
     /* Common prefix – binary-compatible with egui_image_std_info_t */
-    const uint8_t *data_buf;    /* RLE compressed pixel data stream */
-    const uint8_t *alpha_buf;   /* RLE compressed alpha stream (NULL if no alpha) */
-    uint8_t data_type;          /* EGUI_IMAGE_DATA_TYPE_RGB565 / RGB32 / GRAY8 */
-    uint8_t alpha_type;         /* EGUI_IMAGE_ALPHA_TYPE_1/2/4/8 */
-    uint8_t res_type;           /* EGUI_RESOURCE_TYPE_INTERNAL / EXTERNAL */
+    const uint8_t *data_buf;  /* RLE compressed pixel data stream */
+    const uint8_t *alpha_buf; /* RLE compressed alpha stream (NULL if no alpha) */
+    uint8_t data_type;        /* EGUI_IMAGE_DATA_TYPE_RGB565 / RGB32 / GRAY8 */
+    uint8_t alpha_type;       /* EGUI_IMAGE_ALPHA_TYPE_1/2/4/8 */
+    uint8_t res_type;         /* EGUI_RESOURCE_TYPE_INTERNAL / EXTERNAL */
     uint16_t width;
     uint16_t height;
     /* RLE-specific fields */

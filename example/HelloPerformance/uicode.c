@@ -642,8 +642,7 @@ static void egui_view_test_performance_set_test_mode(int test_mode)
 
 static int egui_view_test_performance_is_qoi_test_mode(int test_mode)
 {
-    return test_mode >= EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565 &&
-           test_mode <= EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_8_IMAGE;
+    return test_mode >= EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565 && test_mode <= EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_8_IMAGE;
 }
 
 static int egui_view_test_performance_uses_logical_pfb_96_hint(int test_mode)

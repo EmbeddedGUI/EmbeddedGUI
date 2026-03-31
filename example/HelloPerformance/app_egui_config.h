@@ -73,34 +73,34 @@ extern "C" {
 #if 0
 // Compressed image resources are RGB565-only, so decode scratch/cache buffers
 // only need 2 bytes per pixel instead of the default 4.
-#define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE 2
+#define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE                 2
 
 // Masked opaque fallback rows can borrow the codec row-cache alpha backing
 // store instead of reserving a dedicated 240B decode-row alpha buffer in BSS.
 #define EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE 1
 
 // Disable QOI decoder checkpoints to remove their persistent heap allocation.
-#define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 0
+#define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT                  0
 
 // Low-RAM QOI row-cache mode: only cache the horizontal tail instead of the
 // full row-band. Saves about 1.5KB peak heap on 240px alpha-QOI scenes.
-#define EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE 1
+#define EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE           1
 
 // External RLE read window: 64B instead of default 128B, saves 64B static RAM.
-#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 64
+#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE        64
 
 // Disable persistent "source alpha is fully opaque" metadata cache slots.
-#define EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 0
+#define EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS          0
 
 // Text-transform layout: 16-bit indices shrink transient heap for the current
 // benchmark strings and font offsets.
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 1
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT  1
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT     1
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT      1
 
 // Rotated-text scratch: keep layout/tile scratch on transient heap and cap the
 // visible alpha8 fast-path cache at the smaller low-RAM ceiling.
-#define EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE 1
-#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 2560
+#define EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE          1
+#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES     2560
 #endif
 
 /* Ends C function definitions when using C++ */

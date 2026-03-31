@@ -410,7 +410,7 @@ __EGUI_STATIC_INLINE__ uint8_t gradient_compact_cache_index(uint8_t t)
 /* ========================== Rectangle Fill Gradient ========================== */
 
 __attribute__((optimize("Os"))) void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
-                                                                               const egui_gradient_t *gradient)
+                                                                              const egui_gradient_t *gradient)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -493,7 +493,8 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_rectangle_fill_gradient(eg
     {
         /* Angular gradient: per-pixel atan2 with direct PFB write.
          * Per-row optimization: precompute reciprocal of |dy| to replace divisions
-         * when |dy| > |dx| (~50% of pixels). */
+ * when
+         * |dy| > |dx| (~50% of pixels). */
         egui_color_t color_cache[129];
         for (uint16_t i = 0; i < 128; i++)
         {
@@ -644,7 +645,7 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_rectangle_fill_gradient(eg
         uint32_t _t = (dist * t_mul) >> 12;                                                                                                                    \
         if (_t > 255)                                                                                                                                          \
             _t = 255;                                                                                                                                          \
-        egui_color_t _color = color_cache[gradient_compact_cache_index((uint8_t)_t)];                                                                        \
+        egui_color_t _color = color_cache[gradient_compact_cache_index((uint8_t)_t)];                                                                          \
         if (use_direct)                                                                                                                                        \
         {                                                                                                                                                      \
             if (eff_alpha == EGUI_ALPHA_100)                                                                                                                   \
@@ -1012,7 +1013,7 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_circle_fill_gradient(egui_
                     uint32_t _t = (dist * t_mul) >> 12;                                                                                                        \
                     if (_t > 255)                                                                                                                              \
                         _t = 255;                                                                                                                              \
-                    _color = color_cache[gradient_compact_cache_index((uint8_t)_t)];                                                                          \
+                    _color = color_cache[gradient_compact_cache_index((uint8_t)_t)];                                                                           \
                 }                                                                                                                                              \
                 egui_alpha_t _m = egui_color_alpha_mix(eff_alpha, _cov);                                                                                       \
                 if (_m > 0)                                                                                                                                    \
@@ -1217,7 +1218,7 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_circle_fill_gradient(egui_
                     uint32_t _t = (dist * t_mul) >> 12;                                                                                                        \
                     if (_t > 255)                                                                                                                              \
                         _t = 255;                                                                                                                              \
-                    _color = color_cache[gradient_compact_cache_index((uint8_t)_t)];                                                                          \
+                    _color = color_cache[gradient_compact_cache_index((uint8_t)_t)];                                                                           \
                 }                                                                                                                                              \
                 egui_alpha_t _m = egui_color_alpha_mix(base_alpha, _cov);                                                                                      \
                 if (_m > 0)                                                                                                                                    \
@@ -1306,9 +1307,9 @@ __EGUI_STATIC_INLINE__ egui_dim_t round_rect_corner_inset(egui_dim_t dy, egui_di
 }
 
 __attribute__((optimize("Os"))) void egui_canvas_draw_round_rectangle_corners_fill_gradient(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
-                                                                                             egui_dim_t radius_left_top, egui_dim_t radius_left_bottom,
-                                                                                             egui_dim_t radius_right_top, egui_dim_t radius_right_bottom,
-                                                                                             const egui_gradient_t *gradient)
+                                                                                            egui_dim_t radius_left_top, egui_dim_t radius_left_bottom,
+                                                                                            egui_dim_t radius_right_top, egui_dim_t radius_right_bottom,
+                                                                                            const egui_gradient_t *gradient)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -2049,7 +2050,7 @@ __EGUI_STATIC_INLINE__ egui_alpha_t gradient_triangle_edge_alpha(int32_t cross, 
 }
 
 __attribute__((optimize("Os"))) void egui_canvas_draw_triangle_fill_gradient(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3,
-                                                                              egui_dim_t y3, const egui_gradient_t *gradient)
+                                                                             egui_dim_t y3, const egui_gradient_t *gradient)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -2432,8 +2433,8 @@ __EGUI_STATIC_INLINE__ egui_alpha_t gradient_ellipse_edge_alpha(int32_t dx, int3
     return (egui_alpha_t)alpha_val;
 }
 
-__attribute__((optimize("Os"))) void egui_canvas_draw_ellipse_fill_gradient(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius_x,
-                                                                             egui_dim_t radius_y, const egui_gradient_t *gradient)
+__attribute__((optimize("Os"))) void egui_canvas_draw_ellipse_fill_gradient(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius_x, egui_dim_t radius_y,
+                                                                            const egui_gradient_t *gradient)
 {
     egui_canvas_t *self = &canvas_data;
 

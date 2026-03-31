@@ -206,7 +206,7 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_row_index(int ty
 }
 
 __EGUI_STATIC_INLINE__ void egui_canvas_circle_corner_col_range_to_screen_x(egui_dim_t center_x, egui_dim_t radius, int type, egui_dim_t col_start,
-                                                                             egui_dim_t col_end, egui_dim_t *screen_x_start, egui_dim_t *screen_x_end)
+                                                                            egui_dim_t col_end, egui_dim_t *screen_x_start, egui_dim_t *screen_x_end)
 {
     if (egui_canvas_circle_corner_is_left(type))
     {
@@ -231,7 +231,7 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_screen_x_to_col(egui
 }
 
 __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_visible_boundary(egui_dim_t row_in_corner, const egui_circle_info_t *info,
-                                                                                  const egui_circle_item_t *items)
+                                                                                 const egui_circle_item_t *items)
 {
     egui_dim_t item_count = (egui_dim_t)info->item_count;
     egui_dim_t left_boundary = (row_in_corner < item_count) ? (egui_dim_t)items[row_in_corner].start_offset : item_count;
@@ -266,7 +266,7 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_visible_boundary
 }
 
 __EGUI_STATIC_INLINE__ egui_dim_t egui_canvas_circle_corner_get_opaque_boundary(egui_dim_t row_in_corner, const egui_circle_info_t *info,
-                                                                                 const egui_circle_item_t *items)
+                                                                                const egui_circle_item_t *items)
 {
     egui_dim_t item_count = (egui_dim_t)info->item_count;
     egui_dim_t left_boundary;
@@ -626,8 +626,7 @@ static void egui_canvas_draw_circle_corner_direct_stroke(egui_canvas_t *self, eg
         dst_row = (egui_color_t *)&self->pfb[(screen_y - pfb_ofs_y) * pfb_width];
 
         egui_canvas_draw_circle_corner_stroke_edge_direct_row(dst_row, pfb_ofs_x, clip_x_start, clip_x_end, center_x, radius, type, row_index, stroke_width,
-                                                              outer_visible, solid_col_start, info, items, info_inner, items_inner, color, alpha,
-                                                              self->alpha);
+                                                              outer_visible, solid_col_start, info, items, info_inner, items_inner, color, alpha, self->alpha);
 
         egui_canvas_circle_corner_col_range_to_screen_x(center_x, radius, type, solid_col_start, solid_col_end, &seg_x_start, &seg_x_end);
         egui_canvas_draw_direct_row_span(dst_row, pfb_ofs_x, clip_x_start, clip_x_end, seg_x_start, seg_x_end, color, solid_alpha);

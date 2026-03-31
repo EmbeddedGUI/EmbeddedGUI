@@ -31,10 +31,10 @@
 #define SECTION_LIST_BASIC_ACTION_GAP 6
 #define SECTION_LIST_BASIC_ACTION_W   ((SECTION_LIST_BASIC_HEADER_W - 20 - SECTION_LIST_BASIC_ACTION_GAP * 2) / 3)
 
-#define SECTION_LIST_BASIC_HEADER_ENTRY_H 46
-#define SECTION_LIST_BASIC_ITEM_H         54
-#define SECTION_LIST_BASIC_ITEM_DETAIL_H  72
-#define SECTION_LIST_BASIC_ENTRY_GAP      4
+#define SECTION_LIST_BASIC_HEADER_ENTRY_H        46
+#define SECTION_LIST_BASIC_ITEM_H                54
+#define SECTION_LIST_BASIC_ITEM_DETAIL_H         72
+#define SECTION_LIST_BASIC_ENTRY_GAP             4
 #define SECTION_LIST_BASIC_JUMP_VERIFY_RETRY_MAX 3U
 
 #define SECTION_LIST_BASIC_FONT_TITLE ((const egui_font_t *)&egui_res_font_montserrat_10_4)
@@ -1330,7 +1330,8 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         expected_target_section = section_list_basic_ctx.jump_cursor;
         expected_target_item = (expected_target_section + 1U) % SECTION_LIST_BASIC_ITEMS_PER_SECTION;
         view = section_list_basic_find_visible_view_by_stable_id(section_list_basic_ctx.jump_target_id);
-        if (section_list_basic_ctx.jump_target_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID || section_list_basic_ctx.sections[expected_target_section].collapsed ||
+        if (section_list_basic_ctx.jump_target_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID ||
+            section_list_basic_ctx.sections[expected_target_section].collapsed ||
             section_list_basic_ctx.selected_item_id != section_list_basic_ctx.jump_target_id)
         {
             if (recording_jump_verify_retry < SECTION_LIST_BASIC_JUMP_VERIFY_RETRY_MAX)
@@ -1340,8 +1341,8 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
                     section_list_basic_abort_motion();
                     egui_view_virtual_viewport_set_anchor(EGUI_VIEW_OF(&section_list_view), section_list_basic_ctx.jump_target_id, 0);
                     egui_view_virtual_section_list_scroll_to_item_by_stable_id(EGUI_VIEW_OF(&section_list_view), section_list_basic_ctx.jump_target_id, 0);
-                    (void)egui_view_virtual_section_list_ensure_entry_visible_by_stable_id(EGUI_VIEW_OF(&section_list_view), section_list_basic_ctx.jump_target_id,
-                                                                                           0);
+                    (void)egui_view_virtual_section_list_ensure_entry_visible_by_stable_id(EGUI_VIEW_OF(&section_list_view),
+                                                                                           section_list_basic_ctx.jump_target_id, 0);
                 }
                 recording_jump_verify_retry++;
                 EGUI_SIM_SET_WAIT(p_action, 180);

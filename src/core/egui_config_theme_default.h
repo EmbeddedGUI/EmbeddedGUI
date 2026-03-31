@@ -11,7 +11,8 @@ extern "C" {
  * Theme options.
  * Default theme pointer used to initialize egui_current_theme.
  * Set to 0 to keep theme support on-demand only.
- * Example: (&egui_theme_light) or (&egui_theme_dark)
+ * Example:
+ * (&egui_theme_light) or (&egui_theme_dark)
  */
 #ifndef EGUI_CONFIG_THEME_DEFAULT
 #define EGUI_CONFIG_THEME_DEFAULT 0

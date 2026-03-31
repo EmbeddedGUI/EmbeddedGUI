@@ -13,12 +13,12 @@ extern "C" {
 typedef struct
 {
     /* Common prefix – binary-compatible with egui_image_std_info_t */
-    const uint8_t *data_buf;    /* QOI compressed data stream */
-    const void *alpha_buf;      /* NULL for QOI (alpha embedded in stream) */
-    uint8_t data_type;          /* EGUI_IMAGE_DATA_TYPE_RGB565 / RGB32 */
-    uint8_t alpha_type;         /* EGUI_IMAGE_ALPHA_TYPE_8 or no alpha */
-    uint8_t res_type;           /* EGUI_RESOURCE_TYPE_INTERNAL / EXTERNAL */
-    uint8_t channels;           /* 3 = RGB, 4 = RGBA (in QOI stream) */
+    const uint8_t *data_buf; /* QOI compressed data stream */
+    const void *alpha_buf;   /* NULL for QOI (alpha embedded in stream) */
+    uint8_t data_type;       /* EGUI_IMAGE_DATA_TYPE_RGB565 / RGB32 */
+    uint8_t alpha_type;      /* EGUI_IMAGE_ALPHA_TYPE_8 or no alpha */
+    uint8_t res_type;        /* EGUI_RESOURCE_TYPE_INTERNAL / EXTERNAL */
+    uint8_t channels;        /* 3 = RGB, 4 = RGBA (in QOI stream) */
     uint16_t width;
     uint16_t height;
     /* QOI-specific fields */

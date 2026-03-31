@@ -314,8 +314,8 @@ static void egui_mask_image_blend_rgb565_alpha8_identity_row(egui_color_int_t *d
     }
 }
 
-static void egui_mask_image_blend_rgb565_identity_row(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *mask_alpha_row,
-                                                      egui_dim_t count, egui_alpha_t canvas_alpha)
+static void egui_mask_image_blend_rgb565_identity_row(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *mask_alpha_row, egui_dim_t count,
+                                                      egui_alpha_t canvas_alpha)
 {
     egui_dim_t i = 0;
 
@@ -1046,9 +1046,8 @@ int egui_mask_image_blend_rgb565_row_segment(egui_mask_t *self, egui_color_int_t
     return 1;
 }
 
-int egui_mask_image_blend_rgb565_row_block(egui_mask_t *self, egui_color_int_t *dst_row, egui_dim_t dst_stride, const uint16_t *src_row,
-                                           egui_dim_t src_stride, egui_dim_t row_count, egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y,
-                                           egui_alpha_t canvas_alpha)
+int egui_mask_image_blend_rgb565_row_block(egui_mask_t *self, egui_color_int_t *dst_row, egui_dim_t dst_stride, const uint16_t *src_row, egui_dim_t src_stride,
+                                           egui_dim_t row_count, egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y, egui_alpha_t canvas_alpha)
 {
     EGUI_LOCAL_INIT(egui_mask_image_t);
     egui_dim_t seg_start;

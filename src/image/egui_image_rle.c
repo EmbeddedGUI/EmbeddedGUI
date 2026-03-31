@@ -117,8 +117,7 @@ __EGUI_STATIC_INLINE__ uint8_t *egui_image_rle_external_get_window_buf(egui_imag
 #endif
 }
 
-__EGUI_STATIC_INLINE__ int egui_image_rle_external_load_bytes(const uint8_t *src, uint32_t src_len,
-                                                              uint32_t src_offset, void *dst, uint32_t size,
+__EGUI_STATIC_INLINE__ int egui_image_rle_external_load_bytes(const uint8_t *src, uint32_t src_len, uint32_t src_offset, void *dst, uint32_t size,
                                                               egui_image_rle_external_window_cache_t *cache)
 {
     uint8_t *window;
@@ -135,10 +134,7 @@ __EGUI_STATIC_INLINE__ int egui_image_rle_external_load_bytes(const uint8_t *src
 
     window = egui_image_rle_external_get_window_buf(cache);
 
-    if (size <= EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE &&
-        cache->src == src &&
-        cache->src_len == src_len &&
-        src_offset >= cache->window_offset &&
+    if (size <= EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE && cache->src == src && cache->src_len == src_len && src_offset >= cache->window_offset &&
         (src_offset + size) <= (cache->window_offset + cache->window_size))
     {
         egui_api_memcpy(dst, window + (src_offset - cache->window_offset), size);
@@ -229,10 +225,7 @@ __EGUI_STATIC_INLINE__ void egui_image_rle_fill_u16(uint16_t *dst, uint16_t valu
     }
 }
 
-__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_skip_row_internal(const uint8_t *src, uint32_t src_len,
-                                                                 uint32_t src_offset,
-                                                                 uint16_t pixels,
-                                                                 uint8_t blk_size)
+__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_skip_row_internal(const uint8_t *src, uint32_t src_len, uint32_t src_offset, uint16_t pixels, uint8_t blk_size)
 {
     const uint8_t *data = src + src_offset;
     const uint8_t *data_end = src + src_len;
@@ -272,10 +265,7 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_skip_row_internal(const uint8_t *
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_skip_row_external(const uint8_t *src, uint32_t src_len,
-                                                                 uint32_t src_offset,
-                                                                 uint16_t pixels,
-                                                                 uint8_t blk_size,
+__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_skip_row_external(const uint8_t *src, uint32_t src_len, uint32_t src_offset, uint16_t pixels, uint8_t blk_size,
                                                                  egui_image_rle_external_window_cache_t *cache)
 {
     egui_image_rle_external_sync_window_cache(cache);
@@ -322,11 +312,8 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_skip_row_external(const uint8_t *
 }
 #endif
 
-__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_skip_row(const uint8_t *src, uint32_t src_len,
-                                                        uint32_t src_offset,
-                                                        uint16_t pixels,
-                                                        uint8_t blk_size, uint8_t res_type,
-                                                        egui_image_rle_external_window_cache_t *cache)
+__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_skip_row(const uint8_t *src, uint32_t src_len, uint32_t src_offset, uint16_t pixels, uint8_t blk_size,
+                                                        uint8_t res_type, egui_image_rle_external_window_cache_t *cache)
 {
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     if (res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
@@ -338,9 +325,8 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_skip_row(const uint8_t *src, uint
     return egui_image_rle_skip_row_internal(src, src_len, src_offset, pixels, blk_size);
 }
 
-__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u8_internal(const uint8_t *src, uint32_t src_len,
-                                                                          uint32_t src_offset,
-                                                                          uint8_t *dst, uint16_t pixels)
+__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u8_internal(const uint8_t *src, uint32_t src_len, uint32_t src_offset, uint8_t *dst,
+                                                                          uint16_t pixels)
 {
     const uint8_t *data = src + src_offset;
     const uint8_t *data_end = src + src_len;
@@ -398,10 +384,8 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u8_internal(const 
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u8_external(const uint8_t *src, uint32_t src_len,
-                                                                          uint32_t src_offset,
-                                                                          uint8_t *dst, uint16_t pixels,
-                                                                          egui_image_rle_external_window_cache_t *cache)
+__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u8_external(const uint8_t *src, uint32_t src_len, uint32_t src_offset, uint8_t *dst,
+                                                                          uint16_t pixels, egui_image_rle_external_window_cache_t *cache)
 {
     egui_image_rle_external_sync_window_cache(cache);
     uint32_t offset = src_offset;
@@ -466,9 +450,8 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u8_external(const 
 }
 #endif
 
-__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u16_internal(const uint8_t *src, uint32_t src_len,
-                                                                           uint32_t src_offset,
-                                                                           uint8_t *dst, uint16_t pixels)
+__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u16_internal(const uint8_t *src, uint32_t src_len, uint32_t src_offset, uint8_t *dst,
+                                                                           uint16_t pixels)
 {
     const uint8_t *data = src + src_offset;
     const uint8_t *data_end = src + src_len;
@@ -533,10 +516,8 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u16_internal(const
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u16_external(const uint8_t *src, uint32_t src_len,
-                                                                           uint32_t src_offset,
-                                                                           uint8_t *dst, uint16_t pixels,
-                                                                           egui_image_rle_external_window_cache_t *cache)
+__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u16_external(const uint8_t *src, uint32_t src_len, uint32_t src_offset, uint8_t *dst,
+                                                                           uint16_t pixels, egui_image_rle_external_window_cache_t *cache)
 {
     egui_image_rle_external_sync_window_cache(cache);
     uint32_t offset = src_offset;
@@ -604,10 +585,8 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u16_external(const
 }
 #endif
 
-__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_blocks_internal(const uint8_t *src, uint32_t src_len,
-                                                                              uint32_t src_offset,
-                                                                              uint8_t *dst, uint16_t pixels,
-                                                                              uint8_t blk_size)
+__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_blocks_internal(const uint8_t *src, uint32_t src_len, uint32_t src_offset, uint8_t *dst,
+                                                                              uint16_t pixels, uint8_t blk_size)
 {
     const uint8_t *data = src + src_offset;
     const uint8_t *data_end = src + src_len;
@@ -678,11 +657,8 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_blocks_internal(co
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_blocks_external(const uint8_t *src, uint32_t src_len,
-                                                                              uint32_t src_offset,
-                                                                              uint8_t *dst, uint16_t pixels,
-                                                                              uint8_t blk_size,
-                                                                              egui_image_rle_external_window_cache_t *cache)
+__EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_blocks_external(const uint8_t *src, uint32_t src_len, uint32_t src_offset, uint8_t *dst,
+                                                                              uint16_t pixels, uint8_t blk_size, egui_image_rle_external_window_cache_t *cache)
 {
     egui_image_rle_external_sync_window_cache(cache);
     uint32_t offset = src_offset;
@@ -766,11 +742,8 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_blocks_external(co
  * Decompress exactly `pixels` pixels from RLE stream into output buffer.
  * Returns the new read position in the source stream.
  */
-static uint32_t egui_image_rle_decompress_row(const uint8_t *src, uint32_t src_len,
-                                              uint32_t src_offset,
-                                              uint8_t *dst, uint16_t pixels,
-                                              uint8_t blk_size, uint8_t res_type,
-                                              egui_image_rle_external_window_cache_t *cache)
+static uint32_t egui_image_rle_decompress_row(const uint8_t *src, uint32_t src_len, uint32_t src_offset, uint8_t *dst, uint16_t pixels, uint8_t blk_size,
+                                              uint8_t res_type, egui_image_rle_external_window_cache_t *cache)
 {
     if (dst == NULL)
     {
@@ -835,8 +808,7 @@ static void egui_image_rle_fill_blocks(uint8_t *dst, const uint8_t *block, uint1
 #endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
-static void egui_image_rle_copy_overlap_internal(uint8_t *dst, uint16_t dst_col_start, uint16_t dst_col_count,
-                                                 uint16_t run_col_start, uint16_t run_col_count,
+static void egui_image_rle_copy_overlap_internal(uint8_t *dst, uint16_t dst_col_start, uint16_t dst_col_count, uint16_t run_col_start, uint16_t run_col_count,
                                                  const uint8_t *src, uint8_t blk_size)
 {
     uint16_t dst_col_end = (uint16_t)(dst_col_start + dst_col_count);
@@ -854,8 +826,7 @@ static void egui_image_rle_copy_overlap_internal(uint8_t *dst, uint16_t dst_col_
     }
 }
 
-static void egui_image_rle_fill_overlap(uint8_t *dst, uint16_t dst_col_start, uint16_t dst_col_count,
-                                        uint16_t run_col_start, uint16_t run_col_count,
+static void egui_image_rle_fill_overlap(uint8_t *dst, uint16_t dst_col_start, uint16_t dst_col_count, uint16_t run_col_start, uint16_t run_col_count,
                                         const uint8_t *block, uint8_t blk_size)
 {
     uint16_t dst_col_end = (uint16_t)(dst_col_start + dst_col_count);
@@ -873,11 +844,9 @@ static void egui_image_rle_fill_overlap(uint8_t *dst, uint16_t dst_col_start, ui
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-static int egui_image_rle_copy_overlap_external(const uint8_t *src, uint32_t src_len,
-                                                uint32_t literal_offset,
-                                                uint8_t *dst, uint16_t dst_col_start, uint16_t dst_col_count,
-                                                uint16_t run_col_start, uint16_t run_col_count,
-                                                uint8_t blk_size, egui_image_rle_external_window_cache_t *cache)
+static int egui_image_rle_copy_overlap_external(const uint8_t *src, uint32_t src_len, uint32_t literal_offset, uint8_t *dst, uint16_t dst_col_start,
+                                                uint16_t dst_col_count, uint16_t run_col_start, uint16_t run_col_count, uint8_t blk_size,
+                                                egui_image_rle_external_window_cache_t *cache)
 {
     uint16_t dst_col_end = (uint16_t)(dst_col_start + dst_col_count);
     uint16_t run_col_end = (uint16_t)(run_col_start + run_col_count);
@@ -890,9 +859,7 @@ static int egui_image_rle_copy_overlap_external(const uint8_t *src, uint32_t src
         uint16_t src_col_offset = (uint16_t)(overlap_start - run_col_start);
         uint16_t dst_col_offset = (uint16_t)(overlap_start - dst_col_start);
 
-        return egui_image_rle_external_load_bytes(src, src_len,
-                                                  literal_offset + (uint32_t)src_col_offset * blk_size,
-                                                  dst + (uint32_t)dst_col_offset * blk_size,
+        return egui_image_rle_external_load_bytes(src, src_len, literal_offset + (uint32_t)src_col_offset * blk_size, dst + (uint32_t)dst_col_offset * blk_size,
                                                   (uint32_t)overlap_cols * blk_size, cache);
     }
 
@@ -900,13 +867,9 @@ static int egui_image_rle_copy_overlap_external(const uint8_t *src, uint32_t src
 }
 #endif
 
-static uint32_t egui_image_rle_decompress_row_split(const uint8_t *src, uint32_t src_len,
-                                                    uint32_t src_offset,
-                                                    uint8_t *visible_dst, uint16_t visible_col_start, uint16_t visible_count,
-                                                    uint8_t *tail_dst, uint16_t tail_col_start, uint16_t tail_count,
-                                                    uint16_t total_pixels,
-                                                    uint8_t blk_size, uint8_t res_type,
-                                                    egui_image_rle_external_window_cache_t *cache)
+static uint32_t egui_image_rle_decompress_row_split(const uint8_t *src, uint32_t src_len, uint32_t src_offset, uint8_t *visible_dst, uint16_t visible_col_start,
+                                                    uint16_t visible_count, uint8_t *tail_dst, uint16_t tail_col_start, uint16_t tail_count,
+                                                    uint16_t total_pixels, uint8_t blk_size, uint8_t res_type, egui_image_rle_external_window_cache_t *cache)
 {
     uint16_t current_col = 0;
 
@@ -979,9 +942,8 @@ static uint32_t egui_image_rle_decompress_row_split(const uint8_t *src, uint32_t
 
                         if (copy_tail != 0)
                         {
-                            if (!egui_image_rle_external_load_bytes(src, src_len,
-                                                                    offset + (uint32_t)copy_visible * blk_size,
-                                                                    tail_out, (uint32_t)copy_tail * blk_size, cache))
+                            if (!egui_image_rle_external_load_bytes(src, src_len, offset + (uint32_t)copy_visible * blk_size, tail_out,
+                                                                    (uint32_t)copy_tail * blk_size, cache))
                             {
                                 break;
                             }
@@ -1191,10 +1153,10 @@ static uint32_t egui_image_rle_decompress_row_split(const uint8_t *src, uint32_t
                     break;
                 }
 
-                if (!egui_image_rle_copy_overlap_external(src, src_len, offset, visible_dst, visible_col_start, visible_count,
-                                                          current_col, count, blk_size, cache) ||
-                    (tail_count > 0 && !egui_image_rle_copy_overlap_external(src, src_len, offset, tail_dst, tail_col_start, tail_count,
-                                                                             current_col, count, blk_size, cache)))
+                if (!egui_image_rle_copy_overlap_external(src, src_len, offset, visible_dst, visible_col_start, visible_count, current_col, count, blk_size,
+                                                          cache) ||
+                    (tail_count > 0 &&
+                     !egui_image_rle_copy_overlap_external(src, src_len, offset, tail_dst, tail_col_start, tail_count, current_col, count, blk_size, cache)))
                 {
                     break;
                 }
@@ -1377,9 +1339,8 @@ static int egui_image_rle_get_point(const egui_image_t *self, egui_dim_t x, egui
     return 0;
 }
 
-static int egui_image_rle_get_point_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y,
-                                           egui_dim_t width, egui_dim_t height,
-                                           egui_color_t *color, egui_alpha_t *alpha)
+static int egui_image_rle_get_point_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t *color,
+                                           egui_alpha_t *alpha)
 {
     /* Resize not supported for compressed images */
     color->full = 0;
@@ -1441,22 +1402,17 @@ static void egui_image_rle_blend_masked_rgb565_image_row(egui_canvas_t *canvas, 
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 static int egui_image_rle_can_use_tail_row_cache(const egui_image_rle_info_t *info, egui_dim_t img_col_start, egui_dim_t count, int has_alpha)
 {
-    return EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE &&
-           info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565 &&
-           (!has_alpha || info->alpha_type == EGUI_IMAGE_ALPHA_TYPE_8) &&
-           img_col_start >= 0 &&
-           count > 0 &&
+    return EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE && info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565 &&
+           (!has_alpha || info->alpha_type == EGUI_IMAGE_ALPHA_TYPE_8) && img_col_start >= 0 && count > 0 &&
            ((uint32_t)img_col_start + (uint32_t)count) < info->width &&
            egui_image_decode_limit_tail_cache_cols((uint16_t)(info->width - (uint16_t)(img_col_start + count))) > 0;
 }
 
-static void egui_image_rle_blend_cached_rows(const egui_image_rle_info_t *info, egui_dim_t y,
-                                             egui_dim_t screen_x_start, egui_dim_t img_col_start, egui_dim_t count,
-                                             egui_dim_t img_y_start, egui_dim_t img_y_end,
-                                             egui_dim_t cache_row_start, uint8_t data_blk_size, uint16_t alpha_row_bytes, int has_alpha,
-                                             egui_color_int_t *fast_dst_row, egui_dim_t fast_dst_stride,
-                                             egui_canvas_t *masked_canvas, egui_color_int_t *masked_dst_row, egui_dim_t masked_dst_stride,
-                                             int use_fast_copy, int use_fast_alpha8, int use_masked_opaque, int use_masked_alpha8)
+static void egui_image_rle_blend_cached_rows(const egui_image_rle_info_t *info, egui_dim_t y, egui_dim_t screen_x_start, egui_dim_t img_col_start,
+                                             egui_dim_t count, egui_dim_t img_y_start, egui_dim_t img_y_end, egui_dim_t cache_row_start, uint8_t data_blk_size,
+                                             uint16_t alpha_row_bytes, int has_alpha, egui_color_int_t *fast_dst_row, egui_dim_t fast_dst_stride,
+                                             egui_canvas_t *masked_canvas, egui_color_int_t *masked_dst_row, egui_dim_t masked_dst_stride, int use_fast_copy,
+                                             int use_fast_alpha8, int use_masked_opaque, int use_masked_alpha8)
 {
     egui_dim_t row_count = img_y_end - img_y_start;
     egui_dim_t screen_y = y + img_y_start;
@@ -1519,8 +1475,8 @@ static void egui_image_rle_blend_cached_rows(const egui_image_rle_info_t *info, 
 
         if (use_image_mask)
         {
-            if (egui_mask_image_blend_rgb565_row_block(masked_canvas->mask, masked_dst_row, masked_dst_stride, src_pixels, cache_row_width, row_count,
-                                                       count, screen_x_start, screen_y, canvas_alpha))
+            if (egui_mask_image_blend_rgb565_row_block(masked_canvas->mask, masked_dst_row, masked_dst_stride, src_pixels, cache_row_width, row_count, count,
+                                                       screen_x_start, screen_y, canvas_alpha))
             {
                 return;
             }
@@ -1553,8 +1509,8 @@ static void egui_image_rle_blend_cached_rows(const egui_image_rle_info_t *info, 
                             return;
                         }
                     }
-                    egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, opaque_alpha_row, count, screen_x_start,
-                                                                  screen_y, canvas_alpha);
+                    egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, opaque_alpha_row, count, screen_x_start, screen_y,
+                                                                  canvas_alpha);
                 }
                 masked_dst_row += masked_dst_stride;
                 src_pixels += cache_row_width;
@@ -1611,8 +1567,8 @@ static void egui_image_rle_blend_cached_rows(const egui_image_rle_info_t *info, 
 
     for (egui_dim_t row = 0; row < row_count; row++)
     {
-        egui_image_decode_blend_row_clipped(screen_x_start, screen_y, cache_img_col_start, count,
-                                            info->data_type, info->alpha_type, has_alpha, pixel_buf, alpha_buf);
+        egui_image_decode_blend_row_clipped(screen_x_start, screen_y, cache_img_col_start, count, info->data_type, info->alpha_type, has_alpha, pixel_buf,
+                                            alpha_buf);
 
         pixel_buf += pixel_row_bytes;
         if (alpha_buf != NULL)
@@ -1625,12 +1581,11 @@ static void egui_image_rle_blend_cached_rows(const egui_image_rle_info_t *info, 
 #endif
 
 #if EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES > 0
-static void egui_image_rle_blend_persistent_cached_rows(const egui_image_rle_info_t *info, egui_dim_t y,
-                                                        egui_dim_t screen_x_start, egui_dim_t img_col_start, egui_dim_t count,
-                                                        egui_dim_t img_y_start, egui_dim_t img_y_end, uint16_t alpha_row_bytes, int has_alpha,
-                                                        egui_color_int_t *fast_dst_row, egui_dim_t fast_dst_stride,
-                                                        egui_canvas_t *masked_canvas, egui_color_int_t *masked_dst_row, egui_dim_t masked_dst_stride,
-                                                        int use_fast_copy, int use_fast_alpha8, int use_masked_opaque, int use_masked_alpha8)
+static void egui_image_rle_blend_persistent_cached_rows(const egui_image_rle_info_t *info, egui_dim_t y, egui_dim_t screen_x_start, egui_dim_t img_col_start,
+                                                        egui_dim_t count, egui_dim_t img_y_start, egui_dim_t img_y_end, uint16_t alpha_row_bytes, int has_alpha,
+                                                        egui_color_int_t *fast_dst_row, egui_dim_t fast_dst_stride, egui_canvas_t *masked_canvas,
+                                                        egui_color_int_t *masked_dst_row, egui_dim_t masked_dst_stride, int use_fast_copy, int use_fast_alpha8,
+                                                        int use_masked_opaque, int use_masked_alpha8)
 {
     egui_dim_t row_count = img_y_end - img_y_start;
     egui_dim_t screen_y = y + img_y_start;
@@ -1675,8 +1630,8 @@ static void egui_image_rle_blend_persistent_cached_rows(const egui_image_rle_inf
 
         if (use_image_mask)
         {
-            if (egui_mask_image_blend_rgb565_row_block(masked_canvas->mask, masked_dst_row, masked_dst_stride, src_pixels, info->width, row_count,
-                                                       count, screen_x_start, screen_y, canvas_alpha))
+            if (egui_mask_image_blend_rgb565_row_block(masked_canvas->mask, masked_dst_row, masked_dst_stride, src_pixels, info->width, row_count, count,
+                                                       screen_x_start, screen_y, canvas_alpha))
             {
                 return;
             }
@@ -1709,8 +1664,8 @@ static void egui_image_rle_blend_persistent_cached_rows(const egui_image_rle_inf
                             return;
                         }
                     }
-                    egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, opaque_alpha_row, count, screen_x_start,
-                                                                  screen_y, canvas_alpha);
+                    egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, opaque_alpha_row, count, screen_x_start, screen_y,
+                                                                  canvas_alpha);
                 }
                 masked_dst_row += masked_dst_stride;
                 src_pixels += info->width;
@@ -1767,8 +1722,7 @@ static void egui_image_rle_blend_persistent_cached_rows(const egui_image_rle_inf
 
     for (egui_dim_t row = 0; row < row_count; row++)
     {
-        egui_image_decode_blend_row_clipped(screen_x_start, screen_y, img_col_start, count,
-                                            info->data_type, info->alpha_type, has_alpha, pixel_buf, alpha_buf);
+        egui_image_decode_blend_row_clipped(screen_x_start, screen_y, img_col_start, count, info->data_type, info->alpha_type, has_alpha, pixel_buf, alpha_buf);
 
         pixel_buf += pixel_row_bytes;
         if (alpha_buf != NULL)
@@ -1851,8 +1805,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
     uint8_t alpha_blk_size = egui_image_rle_get_alpha_blk_size(draw_info->alpha_type);
     uint16_t alpha_row_bytes = has_alpha ? egui_image_rle_get_alpha_row_bytes(draw_info->alpha_type, draw_info->width) : 0;
     int use_fast_copy = (draw_info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565 && !has_alpha);
-    int use_fast_alpha8 = (draw_info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565 &&
-                           has_alpha && draw_info->alpha_type == EGUI_IMAGE_ALPHA_TYPE_8);
+    int use_fast_alpha8 = (draw_info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565 && has_alpha && draw_info->alpha_type == EGUI_IMAGE_ALPHA_TYPE_8);
     egui_color_int_t *fast_dst_row = NULL;
     egui_dim_t fast_dst_stride = 0;
     egui_canvas_t *masked_canvas = NULL;
@@ -1875,8 +1828,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
         return;
     }
 
-    if ((use_fast_copy || use_fast_alpha8) &&
-        !egui_image_decode_get_fast_rgb565_dst(screen_x_start, y + img_y_start, &fast_dst_row, &fast_dst_stride))
+    if ((use_fast_copy || use_fast_alpha8) && !egui_image_decode_get_fast_rgb565_dst(screen_x_start, y + img_y_start, &fast_dst_row, &fast_dst_stride))
     {
         fast_dst_row = NULL;
     }
@@ -1907,9 +1859,9 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
 #if EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES > 0
     if (egui_image_decode_persistent_cache_is_hit((const void *)info))
     {
-        egui_image_rle_blend_persistent_cached_rows(draw_info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, alpha_row_bytes,
-                                                    has_alpha, fast_dst_row, fast_dst_stride, masked_canvas, masked_dst_row, masked_dst_stride,
-                                                    use_fast_copy, use_fast_alpha8, use_masked_opaque, use_masked_alpha8);
+        egui_image_rle_blend_persistent_cached_rows(draw_info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, alpha_row_bytes, has_alpha,
+                                                    fast_dst_row, fast_dst_stride, masked_canvas, masked_dst_row, masked_dst_stride, use_fast_copy,
+                                                    use_fast_alpha8, use_masked_opaque, use_masked_alpha8);
         return;
     }
 
@@ -1922,24 +1874,22 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
             uint8_t *pixel_buf = egui_image_decode_persistent_cache_pixel_row((uint16_t)row);
             uint8_t *alpha_buf = has_alpha ? egui_image_decode_persistent_cache_alpha_row_bytes((uint16_t)row) : NULL;
 
-            rle_state.data_pos = egui_image_rle_decompress_row(
-                    draw_info->data_buf, draw_info->data_size, rle_state.data_pos,
-                    pixel_buf, draw_info->width, data_blk_size, draw_info->res_type, external_window_cache);
+            rle_state.data_pos = egui_image_rle_decompress_row(draw_info->data_buf, draw_info->data_size, rle_state.data_pos, pixel_buf, draw_info->width,
+                                                               data_blk_size, draw_info->res_type, external_window_cache);
 
             if (has_alpha)
             {
-                rle_state.alpha_pos = egui_image_rle_decompress_row(
-                        draw_info->alpha_buf, draw_info->alpha_size, rle_state.alpha_pos,
-                        alpha_buf, alpha_row_bytes, alpha_blk_size, draw_info->res_type, external_window_cache);
+                rle_state.alpha_pos = egui_image_rle_decompress_row(draw_info->alpha_buf, draw_info->alpha_size, rle_state.alpha_pos, alpha_buf,
+                                                                    alpha_row_bytes, alpha_blk_size, draw_info->res_type, external_window_cache);
             }
 
             rle_state.current_row++;
         }
 
         egui_image_decode_persistent_cache_set_image((const void *)info);
-        egui_image_rle_blend_persistent_cached_rows(draw_info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, alpha_row_bytes,
-                                                    has_alpha, fast_dst_row, fast_dst_stride, masked_canvas, masked_dst_row, masked_dst_stride,
-                                                    use_fast_copy, use_fast_alpha8, use_masked_opaque, use_masked_alpha8);
+        egui_image_rle_blend_persistent_cached_rows(draw_info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, alpha_row_bytes, has_alpha,
+                                                    fast_dst_row, fast_dst_stride, masked_canvas, masked_dst_row, masked_dst_stride, use_fast_copy,
+                                                    use_fast_alpha8, use_masked_opaque, use_masked_alpha8);
         return;
     }
 #endif
@@ -1963,15 +1913,13 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
             uint8_t *pixel_buf = egui_image_decode_cache_pixel_row((uint16_t)row, draw_info->width, data_blk_size);
             uint8_t *alpha_buf = has_alpha ? egui_image_decode_cache_alpha_row_bytes((uint16_t)row, alpha_row_bytes) : NULL;
 
-            rle_state.data_pos = egui_image_rle_decompress_row(
-                    draw_info->data_buf, draw_info->data_size, rle_state.data_pos,
-                    pixel_buf, draw_info->width, data_blk_size, draw_info->res_type, external_window_cache);
+            rle_state.data_pos = egui_image_rle_decompress_row(draw_info->data_buf, draw_info->data_size, rle_state.data_pos, pixel_buf, draw_info->width,
+                                                               data_blk_size, draw_info->res_type, external_window_cache);
 
             if (has_alpha)
             {
-                rle_state.alpha_pos = egui_image_rle_decompress_row(
-                        draw_info->alpha_buf, draw_info->alpha_size, rle_state.alpha_pos,
-                        alpha_buf, alpha_row_bytes, alpha_blk_size, draw_info->res_type, external_window_cache);
+                rle_state.alpha_pos = egui_image_rle_decompress_row(draw_info->alpha_buf, draw_info->alpha_size, rle_state.alpha_pos, alpha_buf,
+                                                                    alpha_row_bytes, alpha_blk_size, draw_info->res_type, external_window_cache);
             }
 
             rle_state.current_row++;
@@ -1999,8 +1947,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
         cache_col_count = egui_image_decode_limit_tail_cache_cols((uint16_t)(draw_info->width - cache_col_start));
 
         if (cache_col_count != 0 &&
-            egui_image_decode_cache_prepare_rows(cache_col_count, (uint16_t)(img_y_end - img_y_start), data_blk_size,
-                                                 has_alpha ? cache_col_count : 0))
+            egui_image_decode_cache_prepare_rows(cache_col_count, (uint16_t)(img_y_end - img_y_start), data_blk_size, has_alpha ? cache_col_count : 0))
         {
             if (fast_dst_row != NULL && use_fast_copy)
             {
@@ -2058,15 +2005,13 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
     /* Skip rows to reach img_y_start */
     while (rle_state.current_row < (uint16_t)img_y_start)
     {
-        rle_state.data_pos = egui_image_rle_skip_row(
-            draw_info->data_buf, draw_info->data_size, rle_state.data_pos,
-            draw_info->width, data_blk_size, draw_info->res_type, external_window_cache);
+        rle_state.data_pos = egui_image_rle_skip_row(draw_info->data_buf, draw_info->data_size, rle_state.data_pos, draw_info->width, data_blk_size,
+                                                     draw_info->res_type, external_window_cache);
 
         if (has_alpha)
         {
-            rle_state.alpha_pos = egui_image_rle_skip_row(
-                draw_info->alpha_buf, draw_info->alpha_size, rle_state.alpha_pos,
-                alpha_row_bytes, alpha_blk_size, draw_info->res_type, external_window_cache);
+            rle_state.alpha_pos = egui_image_rle_skip_row(draw_info->alpha_buf, draw_info->alpha_size, rle_state.alpha_pos, alpha_row_bytes, alpha_blk_size,
+                                                          draw_info->res_type, external_window_cache);
         }
         rle_state.current_row++;
     }
@@ -2119,26 +2064,20 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
             if (use_direct_fast_copy)
             {
                 rle_state.data_pos = egui_image_rle_decompress_row_split(
-                        draw_info->data_buf, draw_info->data_size, rle_state.data_pos,
-                        (uint8_t *)fast_dst_row, (uint16_t)img_col_start, (uint16_t)count,
-                        cache_pixel_row, cache_col_start, cache_col_count,
-                        draw_info->width, data_blk_size, draw_info->res_type, external_window_cache);
+                        draw_info->data_buf, draw_info->data_size, rle_state.data_pos, (uint8_t *)fast_dst_row, (uint16_t)img_col_start, (uint16_t)count,
+                        cache_pixel_row, cache_col_start, cache_col_count, draw_info->width, data_blk_size, draw_info->res_type, external_window_cache);
             }
             else
             {
                 rle_state.data_pos = egui_image_rle_decompress_row_split(
-                        draw_info->data_buf, draw_info->data_size, rle_state.data_pos,
-                        pixel_buf, (uint16_t)img_col_start, (uint16_t)count,
-                        cache_pixel_row, cache_col_start, cache_col_count,
-                        draw_info->width, data_blk_size, draw_info->res_type, external_window_cache);
+                        draw_info->data_buf, draw_info->data_size, rle_state.data_pos, pixel_buf, (uint16_t)img_col_start, (uint16_t)count, cache_pixel_row,
+                        cache_col_start, cache_col_count, draw_info->width, data_blk_size, draw_info->res_type, external_window_cache);
 
                 if (has_alpha)
                 {
                     rle_state.alpha_pos = egui_image_rle_decompress_row_split(
-                            draw_info->alpha_buf, draw_info->alpha_size, rle_state.alpha_pos,
-                            alpha_buf, (uint16_t)img_col_start, (uint16_t)count,
-                            cache_alpha_row, cache_col_start, cache_col_count,
-                            alpha_row_bytes, alpha_blk_size, draw_info->res_type, external_window_cache);
+                            draw_info->alpha_buf, draw_info->alpha_size, rle_state.alpha_pos, alpha_buf, (uint16_t)img_col_start, (uint16_t)count,
+                            cache_alpha_row, cache_col_start, cache_col_count, alpha_row_bytes, alpha_blk_size, draw_info->res_type, external_window_cache);
                 }
 
                 blend_img_col_start = 0;
@@ -2148,16 +2087,14 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
 #endif
         {
             /* Decode pixel data */
-            rle_state.data_pos = egui_image_rle_decompress_row(
-                draw_info->data_buf, draw_info->data_size, rle_state.data_pos,
-                pixel_buf, draw_info->width, data_blk_size, draw_info->res_type, external_window_cache);
+            rle_state.data_pos = egui_image_rle_decompress_row(draw_info->data_buf, draw_info->data_size, rle_state.data_pos, pixel_buf, draw_info->width,
+                                                               data_blk_size, draw_info->res_type, external_window_cache);
 
             /* Decode alpha data if present */
             if (has_alpha)
             {
-                rle_state.alpha_pos = egui_image_rle_decompress_row(
-                    draw_info->alpha_buf, draw_info->alpha_size, rle_state.alpha_pos,
-                    alpha_buf, alpha_row_bytes, alpha_blk_size, draw_info->res_type, external_window_cache);
+                rle_state.alpha_pos = egui_image_rle_decompress_row(draw_info->alpha_buf, draw_info->alpha_size, rle_state.alpha_pos, alpha_buf,
+                                                                    alpha_row_bytes, alpha_blk_size, draw_info->res_type, external_window_cache);
             }
         }
 
@@ -2186,8 +2123,8 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
             }
             else
             {
-                egui_image_decode_blend_row_clipped(screen_x_start, screen_y, blend_img_col_start, count,
-                                                    draw_info->data_type, draw_info->alpha_type, has_alpha, pixel_buf, alpha_buf);
+                egui_image_decode_blend_row_clipped(screen_x_start, screen_y, blend_img_col_start, count, draw_info->data_type, draw_info->alpha_type,
+                                                    has_alpha, pixel_buf, alpha_buf);
             }
 
             fast_dst_row += fast_dst_stride;
@@ -2202,8 +2139,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
                 egui_image_rle_blend_masked_rgb565_image_row(masked_canvas, masked_dst_row, src_pixels, NULL, count, screen_x_start, screen_y,
                                                              masked_canvas->alpha, &opaque_alpha_row);
             }
-            else if (!egui_image_std_blend_rgb565_masked_row(masked_canvas, masked_dst_row, src_pixels, count, screen_x_start, screen_y,
-                                                             masked_canvas->alpha))
+            else if (!egui_image_std_blend_rgb565_masked_row(masked_canvas, masked_dst_row, src_pixels, count, screen_x_start, screen_y, masked_canvas->alpha))
             {
                 if (opaque_alpha_row == NULL)
                 {
@@ -2213,8 +2149,8 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
                         goto cleanup;
                     }
                 }
-                egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, opaque_alpha_row, count, screen_x_start,
-                                                              screen_y, masked_canvas->alpha);
+                egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, opaque_alpha_row, count, screen_x_start, screen_y,
+                                                              masked_canvas->alpha);
             }
             masked_dst_row += masked_dst_stride;
         }
@@ -2230,15 +2166,15 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
             }
             else
             {
-                egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, alpha_buf + blend_img_col_start, count,
-                                                              screen_x_start, screen_y, masked_canvas->alpha);
+                egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, alpha_buf + blend_img_col_start, count, screen_x_start,
+                                                              screen_y, masked_canvas->alpha);
             }
             masked_dst_row += masked_dst_stride;
         }
         else
         {
-            egui_image_decode_blend_row_clipped(screen_x_start, screen_y, blend_img_col_start, count,
-                                                draw_info->data_type, draw_info->alpha_type, has_alpha, pixel_buf, alpha_buf);
+            egui_image_decode_blend_row_clipped(screen_x_start, screen_y, blend_img_col_start, count, draw_info->data_type, draw_info->alpha_type, has_alpha,
+                                                pixel_buf, alpha_buf);
         }
         screen_y++;
     }
@@ -2247,8 +2183,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
     /* Mark this row band as cached for subsequent horizontal tiles */
     if (use_row_cache)
     {
-        egui_image_decode_cache_set_row_band((const void *)info, (uint16_t)img_y_start, (uint16_t)(img_y_end - img_y_start),
-                                             cache_col_start, cache_col_count);
+        egui_image_decode_cache_set_row_band((const void *)info, (uint16_t)img_y_start, (uint16_t)(img_y_end - img_y_start), cache_col_start, cache_col_count);
     }
 #endif
 
@@ -2265,8 +2200,7 @@ cleanup:
 #endif
 }
 
-static void egui_image_rle_draw_image_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y,
-                                             egui_dim_t width, egui_dim_t height)
+static void egui_image_rle_draw_image_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
     /* Resize not supported for compressed images */
     (void)self;
@@ -2277,10 +2211,10 @@ static void egui_image_rle_draw_image_resize(const egui_image_t *self, egui_dim_
 }
 
 const egui_image_api_t egui_image_rle_t_api_table = {
-    .get_point = egui_image_rle_get_point,
-    .get_point_resize = egui_image_rle_get_point_resize,
-    .draw_image = egui_image_rle_draw_image,
-    .draw_image_resize = egui_image_rle_draw_image_resize,
+        .get_point = egui_image_rle_get_point,
+        .get_point_resize = egui_image_rle_get_point_resize,
+        .draw_image = egui_image_rle_draw_image,
+        .draw_image_resize = egui_image_rle_draw_image_resize,
 };
 
 void egui_image_rle_init(egui_image_t *self, const void *res)

@@ -45,9 +45,8 @@ EGUI_VIEW_GROUP_PARAMS_INIT(page1_p, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_
 EGUI_VIEW_GROUP_PARAMS_INIT(page2_p, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 EGUI_VIEW_VIEWPAGE_PARAMS_INIT(viewpage_p, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 
-static void init_image_row(egui_view_group_t *page,
-                           egui_view_label_t *lbl, const egui_view_label_params_t *lbl_p, const char *text,
-                           egui_view_image_t *img, const egui_view_image_params_t *img_p)
+static void init_image_row(egui_view_group_t *page, egui_view_label_t *lbl, const egui_view_label_params_t *lbl_p, const char *text, egui_view_image_t *img,
+                           const egui_view_image_params_t *img_p)
 {
     egui_view_label_init_with_params(EGUI_VIEW_OF(lbl), lbl_p);
     egui_view_label_set_text(EGUI_VIEW_OF(lbl), text);

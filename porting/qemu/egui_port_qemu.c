@@ -672,29 +672,29 @@ static void qemu_heap_refresh_measure_peak(void)
     }
 }
 
-#define QEMU_HEAP_TRACK_ALLOC(_size)                                                                                                                        \
-    do                                                                                                                                                      \
-    {                                                                                                                                                       \
-        uint32_t _payload_size = (_size);                                                                                                                   \
-        s_qemu_heap_current_bytes += _payload_size;                                                                                                         \
-        s_qemu_heap_alloc_count++;                                                                                                                          \
-        qemu_heap_refresh_measure_peak();                                                                                                                   \
+#define QEMU_HEAP_TRACK_ALLOC(_size)                                                                                                                           \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        uint32_t _payload_size = (_size);                                                                                                                      \
+        s_qemu_heap_current_bytes += _payload_size;                                                                                                            \
+        s_qemu_heap_alloc_count++;                                                                                                                             \
+        qemu_heap_refresh_measure_peak();                                                                                                                      \
     } while (0)
 
-#define QEMU_HEAP_TRACK_FREE(_size)                                                                                                                         \
-    do                                                                                                                                                      \
-    {                                                                                                                                                       \
-        uint32_t _payload_size = (_size);                                                                                                                   \
-        if (s_qemu_heap_current_bytes >= _payload_size)                                                                                                     \
-        {                                                                                                                                                   \
-            s_qemu_heap_current_bytes -= _payload_size;                                                                                                     \
-        }                                                                                                                                                   \
-        else                                                                                                                                                \
-        {                                                                                                                                                   \
-            s_qemu_heap_current_bytes = 0U;                                                                                                                 \
-        }                                                                                                                                                   \
-        s_qemu_heap_free_count++;                                                                                                                           \
-        qemu_heap_refresh_measure_peak();                                                                                                                   \
+#define QEMU_HEAP_TRACK_FREE(_size)                                                                                                                            \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        uint32_t _payload_size = (_size);                                                                                                                      \
+        if (s_qemu_heap_current_bytes >= _payload_size)                                                                                                        \
+        {                                                                                                                                                      \
+            s_qemu_heap_current_bytes -= _payload_size;                                                                                                        \
+        }                                                                                                                                                      \
+        else                                                                                                                                                   \
+        {                                                                                                                                                      \
+            s_qemu_heap_current_bytes = 0U;                                                                                                                    \
+        }                                                                                                                                                      \
+        s_qemu_heap_free_count++;                                                                                                                              \
+        qemu_heap_refresh_measure_peak();                                                                                                                      \
     } while (0)
 #else
 #define QEMU_HEAP_TRACK_ALLOC(_size) EGUI_UNUSED(_size)

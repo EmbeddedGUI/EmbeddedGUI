@@ -40,7 +40,7 @@ struct egui_view_canvas_panner_params
     egui_dim_t canvas_height;
 };
 
-#define EGUI_VIEW_CANVAS_PANNER_PARAMS_INIT(_name, _x, _y, _w, _h, _canvas_w, _canvas_h)                                                                      \
+#define EGUI_VIEW_CANVAS_PANNER_PARAMS_INIT(_name, _x, _y, _w, _h, _canvas_w, _canvas_h)                                                                       \
     static const egui_view_canvas_panner_params_t _name = {                                                                                                    \
             .region = {{(_x), (_y)}, {(_w), (_h)}},                                                                                                            \
             .canvas_width = (_canvas_w),                                                                                                                       \

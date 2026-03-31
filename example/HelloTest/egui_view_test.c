@@ -390,11 +390,11 @@ static void egui_view_test_add_transform_region(egui_region_t *dirty_region, con
         sin_val = -sin_val;
     }
 
-    bbox_half_w = EGUI_FLOAT_INT_PART((EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(scaled_half_w), cos_val) +
-                                       EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(scaled_half_h), sin_val))) +
+    bbox_half_w = EGUI_FLOAT_INT_PART(
+                          (EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(scaled_half_w), cos_val) + EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(scaled_half_h), sin_val))) +
                   1;
-    bbox_half_h = EGUI_FLOAT_INT_PART((EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(scaled_half_w), sin_val) +
-                                       EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(scaled_half_h), cos_val))) +
+    bbox_half_h = EGUI_FLOAT_INT_PART(
+                          (EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(scaled_half_w), sin_val) + EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(scaled_half_h), cos_val))) +
                   1;
 
     center_x = item->x + item->width / 2;

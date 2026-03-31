@@ -8,8 +8,8 @@
 #define EGUI_IMAGE_DECODE_SINGLE_ROW_PIXEL_MAX_BYTES (EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE)
 
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
-#define EGUI_IMAGE_DECODE_CAPACITY_CAN_USE_16BIT                                                                                                            \
-    ((EGUI_IMAGE_DECODE_SINGLE_ROW_PIXEL_MAX_BYTES <= 0xFFFFu) && (EGUI_IMAGE_DECODE_ROW_CACHE_PIXEL_MAX_BYTES <= 0xFFFFu) &&                             \
+#define EGUI_IMAGE_DECODE_CAPACITY_CAN_USE_16BIT                                                                                                               \
+    ((EGUI_IMAGE_DECODE_SINGLE_ROW_PIXEL_MAX_BYTES <= 0xFFFFu) && (EGUI_IMAGE_DECODE_ROW_CACHE_PIXEL_MAX_BYTES <= 0xFFFFu) &&                                  \
      (EGUI_IMAGE_DECODE_ROW_CACHE_ALPHA_MAX_BYTES <= 0xFFFFu))
 #else
 #define EGUI_IMAGE_DECODE_CAPACITY_CAN_USE_16BIT (EGUI_IMAGE_DECODE_SINGLE_ROW_PIXEL_MAX_BYTES <= 0xFFFFu)
@@ -254,8 +254,8 @@ int egui_image_decode_cache_can_hold_full_image(uint16_t img_width, uint16_t img
     return 1;
 }
 
-void egui_image_decode_cache_set_row_band(const void *image_info, uint16_t row_band_start, uint16_t row_count,
-                                          uint16_t cache_col_start, uint16_t cache_col_count)
+void egui_image_decode_cache_set_row_band(const void *image_info, uint16_t row_band_start, uint16_t row_count, uint16_t cache_col_start,
+                                          uint16_t cache_col_count)
 {
     EGUI_UNUSED(row_count);
     egui_image_decode_cache_state.image_info = image_info;
@@ -432,7 +432,7 @@ __EGUI_STATIC_INLINE__ void egui_image_decode_blend_rgb565_src_pixel(egui_color_
 }
 
 __EGUI_STATIC_INLINE__ void egui_image_decode_blend_row_rgb565_alpha8_fast(egui_color_int_t *dst, const uint16_t *src_pixels, const uint8_t *src_alpha,
-                                                                            egui_dim_t count)
+                                                                           egui_dim_t count)
 {
     egui_dim_t i = 0;
 
@@ -480,8 +480,7 @@ __EGUI_STATIC_INLINE__ void egui_image_decode_blend_row_rgb565_alpha8_fast(egui_
 }
 #endif
 
-int egui_image_decode_get_horizontal_clip(egui_dim_t img_x, uint16_t img_width,
-                                          egui_dim_t *screen_x_start, egui_dim_t *img_col_start, egui_dim_t *count)
+int egui_image_decode_get_horizontal_clip(egui_dim_t img_x, uint16_t img_width, egui_dim_t *screen_x_start, egui_dim_t *img_col_start, egui_dim_t *count)
 {
     egui_region_t *work_region = egui_canvas_get_base_view_work_region();
     egui_dim_t img_x_end = img_x + (egui_dim_t)img_width;
@@ -573,11 +572,8 @@ void egui_image_decode_blend_rgb565_alpha8_row_fast_path(egui_color_int_t *dst, 
 #endif
 }
 
-void egui_image_decode_blend_row_clipped(egui_dim_t screen_x, egui_dim_t screen_y,
-                                         egui_dim_t img_col_start, egui_dim_t count,
-                                         uint8_t data_type, uint8_t alpha_type,
-                                         int has_alpha,
-                                         const uint8_t *pixel_buf, const uint8_t *alpha_buf)
+void egui_image_decode_blend_row_clipped(egui_dim_t screen_x, egui_dim_t screen_y, egui_dim_t img_col_start, egui_dim_t count, uint8_t data_type,
+                                         uint8_t alpha_type, int has_alpha, const uint8_t *pixel_buf, const uint8_t *alpha_buf)
 {
     if (count <= 0)
     {
@@ -740,9 +736,7 @@ void egui_image_decode_blend_row_clipped(egui_dim_t screen_x, egui_dim_t screen_
     }
 }
 
-void egui_image_decode_blend_row(egui_dim_t img_x, egui_dim_t img_y, uint16_t row,
-                                 uint16_t img_width, uint8_t data_type, uint8_t alpha_type,
-                                 int has_alpha,
+void egui_image_decode_blend_row(egui_dim_t img_x, egui_dim_t img_y, uint16_t row, uint16_t img_width, uint8_t data_type, uint8_t alpha_type, int has_alpha,
                                  const uint8_t *pixel_buf, const uint8_t *alpha_buf)
 {
     egui_region_t *work_region = egui_canvas_get_base_view_work_region();
@@ -751,8 +745,7 @@ void egui_image_decode_blend_row(egui_dim_t img_x, egui_dim_t img_y, uint16_t ro
     egui_dim_t screen_y = img_y + (egui_dim_t)row;
 
     /* Check if this row is within the work region vertically */
-    if (screen_y < work_region->location.y ||
-        screen_y >= (work_region->location.y + work_region->size.height))
+    if (screen_y < work_region->location.y || screen_y >= (work_region->location.y + work_region->size.height))
     {
         return;
     }

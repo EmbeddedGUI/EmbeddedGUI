@@ -439,8 +439,8 @@ typedef struct
 } ellipse_outline_draw_ctx_t;
 
 static int ellipse_prepare_outline_scanline(egui_dim_t abs_dy, int32_t iry, int32_t irx_sq, int32_t iry_sq, int64_t irxry_sq, uint32_t *warm_i_dx_max,
-                                            int32_t orx_sq, int32_t ory_sq, int64_t orxry_sq, uint32_t *warm_o_dx_max,
-                                            ellipse_scanline_info_t *outer_info, ellipse_scanline_info_t *inner_info)
+                                            int32_t orx_sq, int32_t ory_sq, int64_t orxry_sq, uint32_t *warm_o_dx_max, ellipse_scanline_info_t *outer_info,
+                                            ellipse_scanline_info_t *inner_info)
 {
     ellipse_prepare_scanline_info(abs_dy, orx_sq, ory_sq, orxry_sq, warm_o_dx_max, outer_info);
     if (!outer_info->valid)

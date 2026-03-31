@@ -23,7 +23,7 @@ typedef struct
 typedef uint8_t egui_font_std_code_lookup_count_t;
 typedef uint8_t egui_font_std_code_lookup_code_t;
 typedef int8_t egui_font_std_code_lookup_index_t;
-#define EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID (-1)
+#define EGUI_FONT_STD_CODE_LOOKUP_INDEX_INVALID  (-1)
 #define EGUI_FONT_STD_CODE_LOOKUP_INDEX_CAPACITY ((uint16_t)INT8_MAX + 1u)
 #else
 typedef uint16_t egui_font_std_code_lookup_count_t;
@@ -83,9 +83,8 @@ static egui_font_std_code_lookup_cache_t g_font_std_code_lookup_cache = {
 #ifndef EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
 #define EGUI_CONFIG_FUNCTION_FONT_FORMAT_8 0
 #endif
-#define EGUI_FONT_STD_DRAW_PREFIX_CACHE_ENABLED \
-    ((EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS > 0) && (EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS > 0))
-#define EGUI_FONT_STD_DRAW_PREFIX_CACHE_GLYPH_STORAGE_MAX \
+#define EGUI_FONT_STD_DRAW_PREFIX_CACHE_ENABLED ((EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS > 0) && (EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS > 0))
+#define EGUI_FONT_STD_DRAW_PREFIX_CACHE_GLYPH_STORAGE_MAX                                                                                                      \
     ((EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS > 0) ? EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS : 1)
 #ifndef EGUI_FONT_STD_LINE_CACHE_MAX_LINES
 #define EGUI_FONT_STD_LINE_CACHE_MAX_LINES 16
@@ -171,7 +170,7 @@ static egui_font_std_line_cache_storage_t *g_font_std_line_cache_storage = NULL;
 #endif
 
 __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_draw_fast(const egui_font_std_info_t *font, uint32_t utf8_code,
-                                                                                                egui_font_std_char_descriptor_t *external_desc_scratch);
+                                                                                               egui_font_std_char_descriptor_t *external_desc_scratch);
 
 __EGUI_STATIC_INLINE__ egui_font_std_code_lookup_count_t egui_font_std_code_lookup_cache_store_count(uint16_t count)
 {
@@ -772,7 +771,7 @@ int egui_font_std_find_code_index(const egui_font_std_info_t *font, uint32_t utf
 }
 
 __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_by_index(const egui_font_std_info_t *font, int code_index,
-                                                                                               egui_font_std_char_descriptor_t *external_desc_scratch)
+                                                                                              egui_font_std_char_descriptor_t *external_desc_scratch)
 {
     if (font == NULL || code_index < 0 || code_index >= font->count)
     {
@@ -821,7 +820,7 @@ static const egui_font_std_char_descriptor_t *egui_font_std_get_desc(const egui_
 }
 
 __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_fast(const egui_font_std_info_t *font, uint32_t utf8_code,
-                                                                                           egui_font_std_char_descriptor_t *external_desc_scratch)
+                                                                                          egui_font_std_char_descriptor_t *external_desc_scratch)
 {
     if (font == NULL)
     {
@@ -857,7 +856,7 @@ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_fast_api(const egu
 }
 
 __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_draw_fast(const egui_font_std_info_t *font, uint32_t utf8_code,
-                                                                                                egui_font_std_char_descriptor_t *external_desc_scratch)
+                                                                                               egui_font_std_char_descriptor_t *external_desc_scratch)
 {
     if (font == NULL)
     {
@@ -1612,26 +1611,26 @@ static int egui_font_std_draw_fast(const egui_font_std_info_t *font, egui_dim_t 
 
     switch (font->font_bit_mode)
     {
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
     case 1:
         egui_font_std_draw_fast_1(canvas, pfb_x, pfb_y, width, 0, 0, width, height, p_data, color, draw_alpha);
         return 1;
-    #endif
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
     case 2:
         egui_font_std_draw_fast_2(canvas, pfb_x, pfb_y, width, 0, 0, width, height, p_data, color, draw_alpha);
         return 1;
-    #endif
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     case 4:
         egui_font_std_draw_fast_4(canvas, pfb_x, pfb_y, width, 0, 0, width, height, p_data, color, draw_alpha);
         return 1;
-    #endif
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
     case 8:
         egui_font_std_draw_fast_8(canvas, pfb_x, pfb_y, width, 0, 0, width, height, p_data, color, draw_alpha);
         return 1;
-    #endif
+#endif
     default:
         break;
     }
@@ -1674,26 +1673,26 @@ static int egui_font_std_draw_fast_clipped(const egui_font_std_info_t *font, egu
 
     switch (font->font_bit_mode)
     {
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
     case 1:
         egui_font_std_draw_fast_1(canvas, pfb_x, pfb_y, width, col0, row0, visible_rect.size.width, visible_rect.size.height, p_data, color, draw_alpha);
         return 1;
-    #endif
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
     case 2:
         egui_font_std_draw_fast_2(canvas, pfb_x, pfb_y, width, col0, row0, visible_rect.size.width, visible_rect.size.height, p_data, color, draw_alpha);
         return 1;
-    #endif
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     case 4:
         egui_font_std_draw_fast_4(canvas, pfb_x, pfb_y, width, col0, row0, visible_rect.size.width, visible_rect.size.height, p_data, color, draw_alpha);
         return 1;
-    #endif
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
     case 8:
         egui_font_std_draw_fast_8(canvas, pfb_x, pfb_y, width, col0, row0, visible_rect.size.width, visible_rect.size.height, p_data, color, draw_alpha);
         return 1;
-    #endif
+#endif
     default:
         return 0;
     }
@@ -1757,7 +1756,7 @@ static int egui_font_std_draw_fast_mask(const egui_font_std_info_t *font, egui_d
 
     switch (font->font_bit_mode)
     {
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
     case 1:
     {
         uint16_t row_stride = (width + 7) >> 3;
@@ -1777,8 +1776,8 @@ static int egui_font_std_draw_fast_mask(const egui_font_std_info_t *font, egui_d
         }
         return 1;
     }
-    #endif
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
     case 2:
     {
         uint16_t row_stride = (width + 3) >> 2;
@@ -1800,8 +1799,8 @@ static int egui_font_std_draw_fast_mask(const egui_font_std_info_t *font, egui_d
         }
         return 1;
     }
-    #endif
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     case 4:
     {
         uint16_t row_stride = (width + 1) >> 1;
@@ -2039,8 +2038,8 @@ static int egui_font_std_draw_fast_mask(const egui_font_std_info_t *font, egui_d
         }
         return 1;
     }
-    #endif
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
     case 8:
     {
         for (egui_dim_t row = row0; row < row1; row++)
@@ -2059,7 +2058,7 @@ static int egui_font_std_draw_fast_mask(const egui_font_std_info_t *font, egui_d
         }
         return 1;
     }
-    #endif
+#endif
     default:
         return 0;
     }
@@ -2263,22 +2262,22 @@ static uint16_t egui_font_std_get_external_pixel_row_stride(const egui_font_std_
 
     switch (font->font_bit_mode)
     {
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
     case 1:
         return (uint16_t)((width + 7) >> 3);
-    #endif
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
     case 2:
         return (uint16_t)((width + 3) >> 2);
-    #endif
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     case 4:
         return (uint16_t)((width + 1) >> 1);
-    #endif
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
     case 8:
         return (uint16_t)width;
-    #endif
+#endif
     default:
         return 0;
     }
@@ -2293,7 +2292,7 @@ static int egui_font_std_draw_loaded_glyph(const egui_font_std_info_t *font, egu
         return 0;
     }
 
-    #if EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE && EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
+#if EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE && EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     if (font->font_bit_mode == 4 && canvas != NULL && work_region != NULL && canvas->mask == NULL && blend_ctx != NULL)
     {
         if (egui_font_std_draw_fast_4_prepared(canvas, work_region, x, y, width, height, pixel_buf, draw_alpha, blend_ctx))
@@ -2312,41 +2311,41 @@ static int egui_font_std_draw_loaded_glyph(const egui_font_std_info_t *font, egu
         return 1;
     }
 
-    #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
     if (egui_font_std_draw_fast_mask(font, x, y, width, height, pixel_buf, color, alpha))
     {
         return 1;
     }
-    #endif
-    #else
+#endif
+#else
     (void)canvas;
     (void)work_region;
     (void)draw_alpha;
     (void)blend_ctx;
-    #endif
+#endif
 
     switch (font->font_bit_mode)
     {
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
     case 1:
         egui_font_std_draw_1(x, y, width, height, pixel_buf, color, alpha);
         return 1;
-    #endif
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
     case 2:
         egui_font_std_draw_2(x, y, width, height, pixel_buf, color, alpha);
         return 1;
-    #endif
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     case 4:
         egui_font_std_draw_4(x, y, width, height, pixel_buf, color, alpha);
         return 1;
-    #endif
-    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
     case 8:
         egui_font_std_draw_8(x, y, width, height, pixel_buf, color, alpha);
         return 1;
-    #endif
+#endif
     default:
         EGUI_ASSERT(0);
         return 0;
@@ -2354,10 +2353,9 @@ static int egui_font_std_draw_loaded_glyph(const egui_font_std_info_t *font, egu
 }
 
 static int egui_font_std_draw_single_char_desc_external_stream(const egui_font_std_info_t *font, const egui_font_std_char_descriptor_t *p_char_desc,
-                                                               egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha,
-                                                               const egui_canvas_t *canvas, const egui_region_t *work_region,
-                                                               egui_alpha_t draw_alpha, const egui_font_std_blend_ctx_t *blend_ctx,
-                                                               egui_font_std_external_draw_scratch_t *scratch)
+                                                               egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha, const egui_canvas_t *canvas,
+                                                               const egui_region_t *work_region, egui_alpha_t draw_alpha,
+                                                               const egui_font_std_blend_ctx_t *blend_ctx, egui_font_std_external_draw_scratch_t *scratch)
 {
     uint16_t row_stride;
     uint32_t pixel_size;
@@ -2400,8 +2398,8 @@ static int egui_font_std_draw_single_char_desc_external_stream(const egui_font_s
 
     has_temp_pixel_buf = (scratch == NULL);
     egui_api_load_external_resource(pixel_buf, (egui_uintptr_t)font->pixel_buffer, p_char_desc->idx, pixel_size);
-    if (egui_font_std_draw_loaded_glyph(font, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, pixel_buf, color, alpha, canvas, work_region,
-                                        draw_alpha, blend_ctx))
+    if (egui_font_std_draw_loaded_glyph(font, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, pixel_buf, color, alpha, canvas, work_region, draw_alpha,
+                                        blend_ctx))
     {
         if (has_temp_pixel_buf)
         {
@@ -2445,7 +2443,7 @@ static int egui_font_std_draw_single_char_desc(const egui_font_std_info_t *font,
         egui_dim_t draw_x = x + p_char_desc->off_x;
         egui_dim_t draw_y = y + p_char_desc->off_y;
 
-        #if EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE && EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
+#if EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE && EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
         if (font->font_bit_mode == 4 && font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && canvas != NULL && work_region != NULL && canvas->mask == NULL &&
             blend_ctx != NULL)
         {
@@ -2467,26 +2465,26 @@ static int egui_font_std_draw_single_char_desc(const egui_font_std_info_t *font,
                     {
                         switch (font->font_bit_mode)
                         {
-                        #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
                         case 1:
                             egui_font_std_draw_1(draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha);
                             break;
-                        #endif
-                        #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
                         case 2:
                             egui_font_std_draw_2(draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha);
                             break;
-                        #endif
-                        #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
                         case 4:
                             egui_font_std_draw_4(draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha);
                             break;
-                        #endif
-                        #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
                         case 8:
                             egui_font_std_draw_8(draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha);
                             break;
-                        #endif
+#endif
                         default:
                             EGUI_ASSERT(0);
                             break;
@@ -2495,7 +2493,7 @@ static int egui_font_std_draw_single_char_desc(const egui_font_std_info_t *font,
                 }
             }
         }
-        #else
+#else
         (void)canvas;
         (void)work_region;
         (void)draw_alpha;
@@ -2503,31 +2501,31 @@ static int egui_font_std_draw_single_char_desc(const egui_font_std_info_t *font,
 
         switch (font->font_bit_mode)
         {
-        #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
         case 1:
             egui_font_std_draw_1(draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha);
             break;
-        #endif
-        #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
         case 2:
             egui_font_std_draw_2(draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha);
             break;
-        #endif
-        #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
         case 4:
             egui_font_std_draw_4(draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha);
             break;
-        #endif
-        #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
+#endif
+#if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
         case 8:
             egui_font_std_draw_8(draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha);
             break;
-        #endif
+#endif
         default:
             EGUI_ASSERT(0);
             break;
         }
-        #endif
+#endif
         return p_char_desc->adv;
     }
 
@@ -2614,7 +2612,7 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
                         };
 
                         if (egui_font_std_draw_single_char_desc_external_stream(font, &glyph_desc, offset, y, color, alpha, canvas, work_region, draw_alpha,
-                                                                               blend_ctx, &external_draw_scratch) == 0)
+                                                                                blend_ctx, &external_draw_scratch) == 0)
                         {
                             result = 0;
                             goto cleanup;
@@ -2825,7 +2823,7 @@ static int egui_font_std_draw_string_fast_4_mask(const void *font_key, const egu
                         };
 
                         if (egui_font_std_draw_single_char_desc_external_stream(font, &glyph_desc, offset, y, color, alpha, NULL, work_region, 0, NULL,
-                                                                               &external_draw_scratch) == 0)
+                                                                                &external_draw_scratch) == 0)
                         {
                             result = 0;
                             goto cleanup;
@@ -2968,7 +2966,7 @@ cleanup:
 int egui_font_std_try_draw_string_in_rect_fast(const egui_font_t *self, const void *string, egui_region_t *rect, uint8_t align_type, egui_dim_t line_space,
                                                egui_color_t color, egui_alpha_t alpha)
 {
-    #if !EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE || !EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
+#if !EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE || !EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     (void)self;
     (void)string;
     (void)rect;
@@ -2977,7 +2975,7 @@ int egui_font_std_try_draw_string_in_rect_fast(const egui_font_t *self, const vo
     (void)color;
     (void)alpha;
     return 0;
-    #else
+#else
     const char *s = (const char *)string;
     const egui_font_std_line_cache_t *line_cache = NULL;
     egui_font_std_info_t *font;
@@ -3017,12 +3015,12 @@ int egui_font_std_try_draw_string_in_rect_fast(const egui_font_t *self, const vo
         {
             use_fast_no_mask = 1;
         }
-        #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
         else if (canvas->mask->api->mask_blend_row_color != NULL)
         {
             use_fast_mask = 1;
         }
-        #endif
+#endif
     }
 
     if (!use_fast_no_mask && !use_fast_mask)
@@ -3068,12 +3066,12 @@ int egui_font_std_try_draw_string_in_rect_fast(const egui_font_t *self, const vo
                 str_bytes = egui_font_std_draw_string_fast_4(self->res, font, line_s, rect->location.x, draw_y, color, alpha, canvas, work_region, draw_alpha,
                                                              &blend_ctx);
             }
-            #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
             else
             {
                 str_bytes = egui_font_std_draw_string_fast_4_mask(self->res, font, line_s, rect->location.x, draw_y, color, alpha, work_region);
             }
-            #endif
+#endif
             if (str_bytes <= 0)
             {
                 break;
@@ -3113,12 +3111,12 @@ int egui_font_std_try_draw_string_in_rect_fast(const egui_font_t *self, const vo
             str_bytes =
                     egui_font_std_draw_string_fast_4(self->res, font, s, rect->location.x, draw_y, color, alpha, canvas, work_region, draw_alpha, &blend_ctx);
         }
-        #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
         else
         {
             str_bytes = egui_font_std_draw_string_fast_4_mask(self->res, font, s, rect->location.x, draw_y, color, alpha, work_region);
         }
-        #endif
+#endif
         if (str_bytes <= 0)
         {
             break;
@@ -3128,7 +3126,7 @@ int egui_font_std_try_draw_string_in_rect_fast(const egui_font_t *self, const vo
         draw_y += line_step;
     }
     return 1;
-    #endif
+#endif
 }
 
 int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
@@ -3146,30 +3144,30 @@ int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_
     egui_alpha_t draw_alpha = egui_color_alpha_mix(canvas->alpha, alpha);
     const egui_font_std_blend_ctx_t *p_blend_ctx = NULL;
     const egui_font_std_ascii_lookup_cache_t *ascii_cache = NULL;
-    #if EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE && EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
+#if EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE && EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     egui_font_std_blend_ctx_t blend_ctx;
     int use_fast_mask = 0;
-    #endif
+#endif
 
     if (0 == s)
     {
         return 0;
     }
 
-    #if EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE && EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
+#if EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE && EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     if (draw_alpha != 0 && font->font_bit_mode == 4 && canvas->mask == NULL)
     {
         egui_font_std_blend_ctx_init(&blend_ctx, color);
         p_blend_ctx = &blend_ctx;
     }
-    #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
     else if (draw_alpha != 0 && font->font_bit_mode == 4 && font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && canvas->mask != NULL &&
              canvas->mask->api->mask_blend_row_color != NULL)
     {
         use_fast_mask = 1;
     }
-    #endif
-    #endif
+#endif
+#endif
 
     if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && font->code_array != NULL)
     {
@@ -3191,21 +3189,21 @@ int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_
         return str_cnt;
     }
 
-    #if EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE && EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
+#if EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE && EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     if (p_blend_ctx != NULL)
     {
         str_cnt = egui_font_std_draw_string_fast_4(self->res, font, s, x, y, color, alpha, canvas, base_region, draw_alpha, p_blend_ctx);
         return str_cnt;
     }
 
-    #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
     if (use_fast_mask)
     {
         str_cnt = egui_font_std_draw_string_fast_4_mask(self->res, font, s, x, y, color, alpha, base_region);
         return str_cnt;
     }
-    #endif
-    #endif
+#endif
+#endif
 
     while ((*s != '\0'))
     {

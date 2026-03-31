@@ -26,7 +26,7 @@
 #define QOI_MASK_2 0xC0 /* top 2 bits mask */
 
 #define QOI_COLOR_HASH(r, g, b, a) (((r) * 3 + (g) * 5 + (b) * 7 + (a) * 11) & 63)
-#define QOI_RGBA_PACK(r, g, b, a) ((uint32_t)(r) | ((uint32_t)(g) << 8) | ((uint32_t)(b) << 16) | ((uint32_t)(a) << 24))
+#define QOI_RGBA_PACK(r, g, b, a)  ((uint32_t)(r) | ((uint32_t)(g) << 8) | ((uint32_t)(b) << 16) | ((uint32_t)(a) << 24))
 
 #ifndef EGUI_CONFIG_IMAGE_QOI_INDEX_RGB565_CACHE_ENABLE
 #define EGUI_CONFIG_IMAGE_QOI_INDEX_RGB565_CACHE_ENABLE 1
@@ -53,69 +53,73 @@ typedef uint16_t egui_image_qoi_row_index_t;
 #endif
 
 #if EGUI_CONFIG_IMAGE_QOI_COMPACT_RGB565_INDEX_ENABLE
-#define EGUI_IMAGE_QOI_INDEX_STATE_MEMBER uint16_t index_rgb565[64]; uint8_t index_aux[64];
+#define EGUI_IMAGE_QOI_INDEX_STATE_MEMBER                                                                                                                      \
+    uint16_t index_rgb565[64];                                                                                                                                 \
+    uint8_t index_aux[64];
 #define EGUI_IMAGE_QOI_INDEX_PARAM , uint16_t *index_rgb565, uint8_t *index_aux
-#define EGUI_IMAGE_QOI_INDEX_ARG , index_rgb565, index_aux
-#define EGUI_IMAGE_QOI_INDEX_DECLARE uint16_t *index_rgb565 = qoi_state.index_rgb565; uint8_t *index_aux = qoi_state.index_aux;
-#define EGUI_IMAGE_QOI_INDEX_LOAD_RGB(_index, _prev_r, _prev_g, _prev_b, _prev_rgb565) \
+#define EGUI_IMAGE_QOI_INDEX_ARG   , index_rgb565, index_aux
+#define EGUI_IMAGE_QOI_INDEX_DECLARE                                                                                                                           \
+    uint16_t *index_rgb565 = qoi_state.index_rgb565;                                                                                                           \
+    uint8_t *index_aux = qoi_state.index_aux;
+#define EGUI_IMAGE_QOI_INDEX_LOAD_RGB(_index, _prev_r, _prev_g, _prev_b, _prev_rgb565)                                                                         \
     egui_image_qoi_index_load_rgb_compact(index_rgb565, index_aux, _index, _prev_r, _prev_g, _prev_b, _prev_rgb565)
-#define EGUI_IMAGE_QOI_INDEX_LOAD_RGBA(_index, _prev_r, _prev_g, _prev_b, _prev_a, _prev_rgb565) \
+#define EGUI_IMAGE_QOI_INDEX_LOAD_RGBA(_index, _prev_r, _prev_g, _prev_b, _prev_a, _prev_rgb565)                                                               \
     egui_image_qoi_index_load_rgba_compact(index_rgb565, index_aux, _index, _prev_r, _prev_g, _prev_b, _prev_a, _prev_rgb565)
-#define EGUI_IMAGE_QOI_INDEX_STORE_RGB(_hash, _prev_r, _prev_g, _prev_b, _prev_rgb565) \
+#define EGUI_IMAGE_QOI_INDEX_STORE_RGB(_hash, _prev_r, _prev_g, _prev_b, _prev_rgb565)                                                                         \
     egui_image_qoi_index_store_rgb_compact(index_rgb565, index_aux, _hash, _prev_r, _prev_g, _prev_b, _prev_rgb565)
-#define EGUI_IMAGE_QOI_INDEX_STORE_RGBA(_hash, _prev_r, _prev_g, _prev_b, _prev_a, _prev_rgb565) \
+#define EGUI_IMAGE_QOI_INDEX_STORE_RGBA(_hash, _prev_r, _prev_g, _prev_b, _prev_a, _prev_rgb565)                                                               \
     egui_image_qoi_index_store_rgba_compact(index_rgb565, index_aux, _hash, _prev_r, _prev_g, _prev_b, _prev_a, _prev_rgb565)
 #else
 #if EGUI_CONFIG_IMAGE_QOI_INDEX_RGB565_CACHE_ENABLE
-#define EGUI_IMAGE_QOI_INDEX_RGB565_STATE_MEMBER uint16_t index_rgb565[64];
-#define EGUI_IMAGE_QOI_INDEX_RGB565_PARAM , uint16_t *index_rgb565
-#define EGUI_IMAGE_QOI_INDEX_RGB565_ARG , index_rgb565
-#define EGUI_IMAGE_QOI_INDEX_RGB565_DECLARE uint16_t *index_rgb565 = qoi_state.index_rgb565;
-#define EGUI_IMAGE_QOI_INDEX_RGB565_LOAD(_index, _prev_rgb565, _prev_r, _prev_g, _prev_b) (*( _prev_rgb565) = index_rgb565[_index])
-#define EGUI_IMAGE_QOI_INDEX_RGB565_STORE(_hash, _prev_rgb565) (index_rgb565[_hash] = *(_prev_rgb565))
+#define EGUI_IMAGE_QOI_INDEX_RGB565_STATE_MEMBER                                          uint16_t index_rgb565[64];
+#define EGUI_IMAGE_QOI_INDEX_RGB565_PARAM                                                 , uint16_t *index_rgb565
+#define EGUI_IMAGE_QOI_INDEX_RGB565_ARG                                                   , index_rgb565
+#define EGUI_IMAGE_QOI_INDEX_RGB565_DECLARE                                               uint16_t *index_rgb565 = qoi_state.index_rgb565;
+#define EGUI_IMAGE_QOI_INDEX_RGB565_LOAD(_index, _prev_rgb565, _prev_r, _prev_g, _prev_b) (*(_prev_rgb565) = index_rgb565[_index])
+#define EGUI_IMAGE_QOI_INDEX_RGB565_STORE(_hash, _prev_rgb565)                            (index_rgb565[_hash] = *(_prev_rgb565))
 #else
 #define EGUI_IMAGE_QOI_INDEX_RGB565_STATE_MEMBER
 #define EGUI_IMAGE_QOI_INDEX_RGB565_PARAM
 #define EGUI_IMAGE_QOI_INDEX_RGB565_ARG
 #define EGUI_IMAGE_QOI_INDEX_RGB565_DECLARE
-#define EGUI_IMAGE_QOI_INDEX_RGB565_LOAD(_index, _prev_rgb565, _prev_r, _prev_g, _prev_b) \
+#define EGUI_IMAGE_QOI_INDEX_RGB565_LOAD(_index, _prev_rgb565, _prev_r, _prev_g, _prev_b)                                                                      \
     (*(_prev_rgb565) = egui_image_qoi_rgb888_to_rgb565(*(_prev_r), *(_prev_g), *(_prev_b)))
 #define EGUI_IMAGE_QOI_INDEX_RGB565_STORE(_hash, _prev_rgb565) ((void)(_hash), (void)(_prev_rgb565))
 #endif
 #define EGUI_IMAGE_QOI_INDEX_STATE_MEMBER EGUI_IMAGE_QOI_INDEX_RGB565_STATE_MEMBER uint32_t index_rgba[64];
-#define EGUI_IMAGE_QOI_INDEX_PARAM EGUI_IMAGE_QOI_INDEX_RGB565_PARAM, uint32_t *index_rgba
-#define EGUI_IMAGE_QOI_INDEX_ARG EGUI_IMAGE_QOI_INDEX_RGB565_ARG, index_rgba
-#define EGUI_IMAGE_QOI_INDEX_DECLARE EGUI_IMAGE_QOI_INDEX_RGB565_DECLARE uint32_t *index_rgba = qoi_state.index_rgba;
-#define EGUI_IMAGE_QOI_INDEX_LOAD_RGB(_index, _prev_r, _prev_g, _prev_b, _prev_rgb565)                                                                     \
-    do                                                                                                                                                      \
-    {                                                                                                                                                       \
-        uint32_t _rgb = index_rgba[_index];                                                                                                                 \
-        *(_prev_r) = (uint8_t)_rgb;                                                                                                                         \
-        *(_prev_g) = (uint8_t)(_rgb >> 8);                                                                                                                  \
-        *(_prev_b) = (uint8_t)(_rgb >> 16);                                                                                                                 \
-        EGUI_IMAGE_QOI_INDEX_RGB565_LOAD(_index, _prev_rgb565, _prev_r, _prev_g, _prev_b);                                                                \
+#define EGUI_IMAGE_QOI_INDEX_PARAM        EGUI_IMAGE_QOI_INDEX_RGB565_PARAM, uint32_t *index_rgba
+#define EGUI_IMAGE_QOI_INDEX_ARG          EGUI_IMAGE_QOI_INDEX_RGB565_ARG, index_rgba
+#define EGUI_IMAGE_QOI_INDEX_DECLARE      EGUI_IMAGE_QOI_INDEX_RGB565_DECLARE uint32_t *index_rgba = qoi_state.index_rgba;
+#define EGUI_IMAGE_QOI_INDEX_LOAD_RGB(_index, _prev_r, _prev_g, _prev_b, _prev_rgb565)                                                                         \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        uint32_t _rgb = index_rgba[_index];                                                                                                                    \
+        *(_prev_r) = (uint8_t)_rgb;                                                                                                                            \
+        *(_prev_g) = (uint8_t)(_rgb >> 8);                                                                                                                     \
+        *(_prev_b) = (uint8_t)(_rgb >> 16);                                                                                                                    \
+        EGUI_IMAGE_QOI_INDEX_RGB565_LOAD(_index, _prev_rgb565, _prev_r, _prev_g, _prev_b);                                                                     \
     } while (0)
-#define EGUI_IMAGE_QOI_INDEX_LOAD_RGBA(_index, _prev_r, _prev_g, _prev_b, _prev_a, _prev_rgb565)                                                          \
-    do                                                                                                                                                      \
-    {                                                                                                                                                       \
-        uint32_t _rgba = index_rgba[_index];                                                                                                                \
-        *(_prev_r) = (uint8_t)_rgba;                                                                                                                        \
-        *(_prev_g) = (uint8_t)(_rgba >> 8);                                                                                                                 \
-        *(_prev_b) = (uint8_t)(_rgba >> 16);                                                                                                                \
-        *(_prev_a) = (uint8_t)(_rgba >> 24);                                                                                                                \
-        EGUI_IMAGE_QOI_INDEX_RGB565_LOAD(_index, _prev_rgb565, _prev_r, _prev_g, _prev_b);                                                                \
+#define EGUI_IMAGE_QOI_INDEX_LOAD_RGBA(_index, _prev_r, _prev_g, _prev_b, _prev_a, _prev_rgb565)                                                               \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        uint32_t _rgba = index_rgba[_index];                                                                                                                   \
+        *(_prev_r) = (uint8_t)_rgba;                                                                                                                           \
+        *(_prev_g) = (uint8_t)(_rgba >> 8);                                                                                                                    \
+        *(_prev_b) = (uint8_t)(_rgba >> 16);                                                                                                                   \
+        *(_prev_a) = (uint8_t)(_rgba >> 24);                                                                                                                   \
+        EGUI_IMAGE_QOI_INDEX_RGB565_LOAD(_index, _prev_rgb565, _prev_r, _prev_g, _prev_b);                                                                     \
     } while (0)
-#define EGUI_IMAGE_QOI_INDEX_STORE_RGB(_hash, _prev_r, _prev_g, _prev_b, _prev_rgb565)                                                                    \
-    do                                                                                                                                                      \
-    {                                                                                                                                                       \
-        EGUI_IMAGE_QOI_INDEX_RGB565_STORE(_hash, _prev_rgb565);                                                                                             \
-        index_rgba[_hash] = QOI_RGBA_PACK(*(_prev_r), *(_prev_g), *(_prev_b), 255);                                                                        \
+#define EGUI_IMAGE_QOI_INDEX_STORE_RGB(_hash, _prev_r, _prev_g, _prev_b, _prev_rgb565)                                                                         \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        EGUI_IMAGE_QOI_INDEX_RGB565_STORE(_hash, _prev_rgb565);                                                                                                \
+        index_rgba[_hash] = QOI_RGBA_PACK(*(_prev_r), *(_prev_g), *(_prev_b), 255);                                                                            \
     } while (0)
-#define EGUI_IMAGE_QOI_INDEX_STORE_RGBA(_hash, _prev_r, _prev_g, _prev_b, _prev_a, _prev_rgb565)                                                          \
-    do                                                                                                                                                      \
-    {                                                                                                                                                       \
-        EGUI_IMAGE_QOI_INDEX_RGB565_STORE(_hash, _prev_rgb565);                                                                                             \
-        index_rgba[_hash] = QOI_RGBA_PACK(*(_prev_r), *(_prev_g), *(_prev_b), *(_prev_a));                                                                 \
+#define EGUI_IMAGE_QOI_INDEX_STORE_RGBA(_hash, _prev_r, _prev_g, _prev_b, _prev_a, _prev_rgb565)                                                               \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        EGUI_IMAGE_QOI_INDEX_RGB565_STORE(_hash, _prev_rgb565);                                                                                                \
+        index_rgba[_hash] = QOI_RGBA_PACK(*(_prev_r), *(_prev_g), *(_prev_b), *(_prev_a));                                                                     \
     } while (0)
 #endif
 
@@ -123,7 +127,7 @@ typedef uint16_t egui_image_qoi_row_index_t;
 typedef struct
 {
     const egui_image_qoi_info_t *info;
-    uint32_t data_pos;    /* current read position in QOI stream */
+    uint32_t data_pos;                      /* current read position in QOI stream */
     egui_image_qoi_row_index_t current_row; /* next row to decode */
 
     /* QOI decoder state */
@@ -264,9 +268,7 @@ __EGUI_STATIC_INLINE__ int egui_image_qoi_external_stream_read_u8(egui_image_qoi
         return 0;
     }
 
-    if (stream->window_size == 0 ||
-        stream->pos < stream->window_offset ||
-        stream->pos >= (stream->window_offset + stream->window_size))
+    if (stream->window_size == 0 || stream->pos < stream->window_offset || stream->pos >= (stream->window_offset + stream->window_size))
     {
         if (!egui_image_qoi_external_stream_refill(stream))
         {
@@ -293,9 +295,7 @@ static int egui_image_qoi_external_stream_read_bytes(egui_image_qoi_external_str
             return 0;
         }
 
-        if (stream->window_size == 0 ||
-            stream->pos < stream->window_offset ||
-            stream->pos >= (stream->window_offset + stream->window_size))
+        if (stream->window_size == 0 || stream->pos < stream->window_offset || stream->pos >= (stream->window_offset + stream->window_size))
         {
             if (!egui_image_qoi_external_stream_refill(stream))
             {
@@ -501,33 +501,31 @@ __EGUI_STATIC_INLINE__ uint8_t egui_image_qoi_rgb565_pack_variant(uint16_t rgb56
     return (uint8_t)(variant + 1U);
 }
 
-__EGUI_STATIC_INLINE__ void egui_image_qoi_index_load_rgb_compact(uint16_t *index_rgb565, uint8_t *index_aux, uint8_t index,
-                                                                  uint8_t *prev_r, uint8_t *prev_g, uint8_t *prev_b, uint16_t *prev_rgb565)
+__EGUI_STATIC_INLINE__ void egui_image_qoi_index_load_rgb_compact(uint16_t *index_rgb565, uint8_t *index_aux, uint8_t index, uint8_t *prev_r, uint8_t *prev_g,
+                                                                  uint8_t *prev_b, uint16_t *prev_rgb565)
 {
     *prev_rgb565 = index_rgb565[index];
     egui_image_qoi_rgb565_to_variant_rgb888(*prev_rgb565, index_aux[index], prev_r, prev_g, prev_b);
 }
 
-__EGUI_STATIC_INLINE__ void egui_image_qoi_index_load_rgba_compact(uint16_t *index_rgb565, uint8_t *index_aux, uint8_t index,
-                                                                   uint8_t *prev_r, uint8_t *prev_g, uint8_t *prev_b, uint8_t *prev_a,
-                                                                   uint16_t *prev_rgb565)
+__EGUI_STATIC_INLINE__ void egui_image_qoi_index_load_rgba_compact(uint16_t *index_rgb565, uint8_t *index_aux, uint8_t index, uint8_t *prev_r, uint8_t *prev_g,
+                                                                   uint8_t *prev_b, uint8_t *prev_a, uint16_t *prev_rgb565)
 {
     *prev_rgb565 = index_rgb565[index];
     egui_image_qoi_rgb565_to_default_rgb888(*prev_rgb565, prev_r, prev_g, prev_b);
     *prev_a = index_aux[index];
 }
 
-__EGUI_STATIC_INLINE__ void egui_image_qoi_index_store_rgb_compact(uint16_t *index_rgb565, uint8_t *index_aux, uint8_t hash,
-                                                                   const uint8_t *prev_r, const uint8_t *prev_g, const uint8_t *prev_b,
-                                                                   const uint16_t *prev_rgb565)
+__EGUI_STATIC_INLINE__ void egui_image_qoi_index_store_rgb_compact(uint16_t *index_rgb565, uint8_t *index_aux, uint8_t hash, const uint8_t *prev_r,
+                                                                   const uint8_t *prev_g, const uint8_t *prev_b, const uint16_t *prev_rgb565)
 {
     index_rgb565[hash] = *prev_rgb565;
     index_aux[hash] = egui_image_qoi_rgb565_pack_variant(*prev_rgb565, *prev_r, *prev_g, *prev_b);
 }
 
-__EGUI_STATIC_INLINE__ void egui_image_qoi_index_store_rgba_compact(uint16_t *index_rgb565, uint8_t *index_aux, uint8_t hash,
-                                                                    const uint8_t *prev_r, const uint8_t *prev_g, const uint8_t *prev_b,
-                                                                    const uint8_t *prev_a, const uint16_t *prev_rgb565)
+__EGUI_STATIC_INLINE__ void egui_image_qoi_index_store_rgba_compact(uint16_t *index_rgb565, uint8_t *index_aux, uint8_t hash, const uint8_t *prev_r,
+                                                                    const uint8_t *prev_g, const uint8_t *prev_b, const uint8_t *prev_a,
+                                                                    const uint16_t *prev_rgb565)
 {
     EGUI_UNUSED(prev_r);
     EGUI_UNUSED(prev_g);
@@ -603,9 +601,8 @@ __EGUI_STATIC_INLINE__ void egui_image_qoi_fill_rgb32(uint8_t *dst, uint8_t r, u
     }
 }
 
-__EGUI_STATIC_INLINE__ void egui_image_qoi_decode_opcode(const uint8_t **data_ptr, const uint8_t *src_end,
-                                                         uint8_t *prev_r, uint8_t *prev_g, uint8_t *prev_b, uint8_t *prev_a,
-                                                         uint16_t *prev_rgb565 EGUI_IMAGE_QOI_INDEX_PARAM, uint8_t *run)
+__EGUI_STATIC_INLINE__ void egui_image_qoi_decode_opcode(const uint8_t **data_ptr, const uint8_t *src_end, uint8_t *prev_r, uint8_t *prev_g, uint8_t *prev_b,
+                                                         uint8_t *prev_a, uint16_t *prev_rgb565 EGUI_IMAGE_QOI_INDEX_PARAM, uint8_t *run)
 {
     const uint8_t *data = *data_ptr;
     uint8_t hash;
@@ -670,9 +667,8 @@ __EGUI_STATIC_INLINE__ void egui_image_qoi_decode_opcode(const uint8_t **data_pt
     *data_ptr = data;
 }
 
-__EGUI_STATIC_INLINE__ void egui_image_qoi_decode_opcode_rgb(const uint8_t **data_ptr, const uint8_t *src_end,
-                                                             uint8_t *prev_r, uint8_t *prev_g, uint8_t *prev_b,
-                                                             uint16_t *prev_rgb565 EGUI_IMAGE_QOI_INDEX_PARAM, uint8_t *run)
+__EGUI_STATIC_INLINE__ void egui_image_qoi_decode_opcode_rgb(const uint8_t **data_ptr, const uint8_t *src_end, uint8_t *prev_r, uint8_t *prev_g,
+                                                             uint8_t *prev_b, uint16_t *prev_rgb565 EGUI_IMAGE_QOI_INDEX_PARAM, uint8_t *run)
 {
     const uint8_t *data = *data_ptr;
     uint8_t hash;
@@ -732,9 +728,8 @@ __EGUI_STATIC_INLINE__ void egui_image_qoi_decode_opcode_rgb(const uint8_t **dat
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-__EGUI_STATIC_INLINE__ void egui_image_qoi_decode_opcode_external(egui_image_qoi_external_stream_t *stream,
-                                                                  uint8_t *prev_r, uint8_t *prev_g, uint8_t *prev_b, uint8_t *prev_a,
-                                                                  uint16_t *prev_rgb565 EGUI_IMAGE_QOI_INDEX_PARAM, uint8_t *run)
+__EGUI_STATIC_INLINE__ void egui_image_qoi_decode_opcode_external(egui_image_qoi_external_stream_t *stream, uint8_t *prev_r, uint8_t *prev_g, uint8_t *prev_b,
+                                                                  uint8_t *prev_a, uint16_t *prev_rgb565 EGUI_IMAGE_QOI_INDEX_PARAM, uint8_t *run)
 {
     uint8_t hash;
     uint8_t b1;
@@ -813,9 +808,8 @@ __EGUI_STATIC_INLINE__ void egui_image_qoi_decode_opcode_external(egui_image_qoi
     EGUI_IMAGE_QOI_INDEX_STORE_RGBA(hash, prev_r, prev_g, prev_b, prev_a, prev_rgb565);
 }
 
-__EGUI_STATIC_INLINE__ void egui_image_qoi_decode_opcode_rgb_external(egui_image_qoi_external_stream_t *stream,
-                                                                      uint8_t *prev_r, uint8_t *prev_g, uint8_t *prev_b,
-                                                                      uint16_t *prev_rgb565 EGUI_IMAGE_QOI_INDEX_PARAM, uint8_t *run)
+__EGUI_STATIC_INLINE__ void egui_image_qoi_decode_opcode_rgb_external(egui_image_qoi_external_stream_t *stream, uint8_t *prev_r, uint8_t *prev_g,
+                                                                      uint8_t *prev_b, uint16_t *prev_rgb565 EGUI_IMAGE_QOI_INDEX_PARAM, uint8_t *run)
 {
     uint8_t hash;
     uint8_t b1;
@@ -1420,7 +1414,8 @@ static void egui_image_qoi_decode_row_external(const egui_image_qoi_info_t *info
     qoi_state.run = run;
 }
 
-static void egui_image_qoi_decode_pixels_rgb565_external_partial(const egui_image_qoi_info_t *info, uint8_t *pixel_buf, uint8_t *alpha_buf, uint16_t pixel_count)
+static void egui_image_qoi_decode_pixels_rgb565_external_partial(const egui_image_qoi_info_t *info, uint8_t *pixel_buf, uint8_t *alpha_buf,
+                                                                 uint16_t pixel_count)
 {
     egui_image_qoi_external_stream_t stream;
     uint8_t prev_r = qoi_state.prev_r;
@@ -1705,10 +1700,8 @@ static void egui_image_qoi_decode_pixels_rgb565_alpha8_blend_partial_any(const e
     egui_image_qoi_decode_pixels_rgb565_alpha8_blend_partial(info, dst, pixel_count);
 }
 
-static void egui_image_qoi_decode_row_rgb565_split(const egui_image_qoi_info_t *info,
-                                                   uint8_t *visible_pixel_buf, uint8_t *visible_alpha_buf,
-                                                   uint16_t visible_col_start, uint16_t visible_col_count,
-                                                   uint8_t *tail_pixel_buf, uint8_t *tail_alpha_buf,
+static void egui_image_qoi_decode_row_rgb565_split(const egui_image_qoi_info_t *info, uint8_t *visible_pixel_buf, uint8_t *visible_alpha_buf,
+                                                   uint16_t visible_col_start, uint16_t visible_col_count, uint8_t *tail_pixel_buf, uint8_t *tail_alpha_buf,
                                                    uint16_t tail_col_start, uint16_t tail_col_count)
 {
     uint16_t current_col = 0;
@@ -1743,9 +1736,8 @@ static void egui_image_qoi_decode_row_rgb565_split(const egui_image_qoi_info_t *
     }
 }
 
-static void egui_image_qoi_decode_row_rgb565_alpha8_blend_split(const egui_image_qoi_info_t *info, egui_color_int_t *visible_dst,
-                                                                uint16_t visible_col_start, uint16_t visible_col_count,
-                                                                uint8_t *tail_pixel_buf, uint8_t *tail_alpha_buf,
+static void egui_image_qoi_decode_row_rgb565_alpha8_blend_split(const egui_image_qoi_info_t *info, egui_color_int_t *visible_dst, uint16_t visible_col_start,
+                                                                uint16_t visible_col_count, uint8_t *tail_pixel_buf, uint8_t *tail_alpha_buf,
                                                                 uint16_t tail_col_start, uint16_t tail_col_count)
 {
     uint16_t current_col = 0;
@@ -1783,9 +1775,8 @@ static void egui_image_qoi_decode_row_rgb565_alpha8_blend_split(const egui_image
 
 static void egui_image_qoi_decode_row_rgb565_alpha8_masked_split(const egui_image_qoi_info_t *info, egui_canvas_t *canvas, egui_color_int_t *dst_row,
                                                                  egui_dim_t screen_x, egui_dim_t screen_y, egui_alpha_t canvas_alpha,
-                                                                 uint16_t visible_col_start, uint16_t visible_col_count,
-                                                                 uint8_t *visible_pixel_buf, uint8_t *visible_alpha_buf,
-                                                                 uint8_t *tail_pixel_buf, uint8_t *tail_alpha_buf,
+                                                                 uint16_t visible_col_start, uint16_t visible_col_count, uint8_t *visible_pixel_buf,
+                                                                 uint8_t *visible_alpha_buf, uint8_t *tail_pixel_buf, uint8_t *tail_alpha_buf,
                                                                  uint16_t tail_col_start, uint16_t tail_col_count)
 {
     uint16_t current_col = 0;
@@ -1808,13 +1799,13 @@ static void egui_image_qoi_decode_row_rgb565_alpha8_masked_split(const egui_imag
 
     if (use_image_mask)
     {
-        egui_image_qoi_blend_masked_rgb565_image_row(canvas, dst_row, (const uint16_t *)visible_pixel_buf, visible_alpha_buf, visible_col_count,
-                                                     screen_x, screen_y, canvas_alpha, NULL);
+        egui_image_qoi_blend_masked_rgb565_image_row(canvas, dst_row, (const uint16_t *)visible_pixel_buf, visible_alpha_buf, visible_col_count, screen_x,
+                                                     screen_y, canvas_alpha, NULL);
     }
     else
     {
-        egui_image_std_blend_rgb565_alpha8_masked_row(canvas, dst_row, (const uint16_t *)visible_pixel_buf, visible_alpha_buf, visible_col_count,
-                                                      screen_x, screen_y, canvas_alpha);
+        egui_image_std_blend_rgb565_alpha8_masked_row(canvas, dst_row, (const uint16_t *)visible_pixel_buf, visible_alpha_buf, visible_col_count, screen_x,
+                                                      screen_y, canvas_alpha);
     }
 
     current_col = (uint16_t)(visible_col_start + visible_col_count);
@@ -1935,8 +1926,7 @@ static void egui_image_qoi_skip_row(const egui_image_qoi_info_t *info)
     qoi_state.run = run;
 }
 
-static int egui_image_qoi_get_point(const egui_image_t *self, egui_dim_t x, egui_dim_t y,
-                                    egui_color_t *color, egui_alpha_t *alpha)
+static int egui_image_qoi_get_point(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
     /* QOI is sequential-only; random access not efficiently supported */
     color->full = 0;
@@ -1944,9 +1934,8 @@ static int egui_image_qoi_get_point(const egui_image_t *self, egui_dim_t x, egui
     return 0;
 }
 
-static int egui_image_qoi_get_point_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y,
-                                           egui_dim_t width, egui_dim_t height,
-                                           egui_color_t *color, egui_alpha_t *alpha)
+static int egui_image_qoi_get_point_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t *color,
+                                           egui_alpha_t *alpha)
 {
     /* Resize not supported for compressed images */
     color->full = 0;
@@ -2008,21 +1997,16 @@ static void egui_image_qoi_blend_masked_rgb565_image_row(egui_canvas_t *canvas, 
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 static int egui_image_qoi_can_use_tail_row_cache(const egui_image_qoi_info_t *info, egui_dim_t img_col_start, egui_dim_t count)
 {
-    return EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE &&
-           info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565 &&
-           img_col_start >= 0 &&
-           count > 0 &&
+    return EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE && info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565 && img_col_start >= 0 && count > 0 &&
            ((uint32_t)img_col_start + (uint32_t)count) < info->width &&
            egui_image_decode_limit_tail_cache_cols((uint16_t)(info->width - (uint16_t)(img_col_start + count))) > 0;
 }
 
-static void egui_image_qoi_blend_cached_rows(const egui_image_qoi_info_t *info, egui_dim_t y,
-                                             egui_dim_t screen_x_start, egui_dim_t img_col_start, egui_dim_t count,
-                                             egui_dim_t img_y_start, egui_dim_t img_y_end,
-                                             egui_dim_t cache_row_start,
-                                             egui_color_int_t *fast_dst_row, egui_dim_t fast_dst_stride,
-                                             egui_canvas_t *masked_canvas, egui_color_int_t *masked_dst_row, egui_dim_t masked_dst_stride,
-                                             int use_fast_copy, int use_fast_alpha8, int use_masked_opaque, int use_masked_alpha8)
+static void egui_image_qoi_blend_cached_rows(const egui_image_qoi_info_t *info, egui_dim_t y, egui_dim_t screen_x_start, egui_dim_t img_col_start,
+                                             egui_dim_t count, egui_dim_t img_y_start, egui_dim_t img_y_end, egui_dim_t cache_row_start,
+                                             egui_color_int_t *fast_dst_row, egui_dim_t fast_dst_stride, egui_canvas_t *masked_canvas,
+                                             egui_color_int_t *masked_dst_row, egui_dim_t masked_dst_stride, int use_fast_copy, int use_fast_alpha8,
+                                             int use_masked_opaque, int use_masked_alpha8)
 {
     int has_alpha = (info->channels == 4);
     uint8_t pixel_size = (info->data_type == EGUI_IMAGE_DATA_TYPE_RGB565) ? 2 : 4;
@@ -2112,8 +2096,8 @@ static void egui_image_qoi_blend_cached_rows(const egui_image_qoi_info_t *info, 
                             return;
                         }
                     }
-                    egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, opaque_alpha_row, count, screen_x_start,
-                                                                  screen_y, canvas_alpha);
+                    egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, opaque_alpha_row, count, screen_x_start, screen_y,
+                                                                  canvas_alpha);
                 }
                 masked_dst_row += masked_dst_stride;
                 src_pixels += cache_row_width;
@@ -2170,8 +2154,7 @@ static void egui_image_qoi_blend_cached_rows(const egui_image_qoi_info_t *info, 
 
     for (egui_dim_t row = 0; row < row_count; row++)
     {
-        egui_image_decode_blend_row_clipped(screen_x_start, screen_y, cache_img_col_start, count,
-                                            info->data_type, alpha_type, has_alpha, pixel_buf, alpha_buf);
+        egui_image_decode_blend_row_clipped(screen_x_start, screen_y, cache_img_col_start, count, info->data_type, alpha_type, has_alpha, pixel_buf, alpha_buf);
 
         pixel_buf += pixel_row_bytes;
         if (alpha_buf != NULL)
@@ -2184,12 +2167,11 @@ static void egui_image_qoi_blend_cached_rows(const egui_image_qoi_info_t *info, 
 #endif
 
 #if EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES > 0
-static void egui_image_qoi_blend_persistent_cached_rows(const egui_image_qoi_info_t *info, egui_dim_t y,
-                                                        egui_dim_t screen_x_start, egui_dim_t img_col_start, egui_dim_t count,
-                                                        egui_dim_t img_y_start, egui_dim_t img_y_end,
-                                                        egui_color_int_t *fast_dst_row, egui_dim_t fast_dst_stride,
-                                                        egui_canvas_t *masked_canvas, egui_color_int_t *masked_dst_row, egui_dim_t masked_dst_stride,
-                                                        int use_fast_copy, int use_fast_alpha8, int use_masked_opaque, int use_masked_alpha8)
+static void egui_image_qoi_blend_persistent_cached_rows(const egui_image_qoi_info_t *info, egui_dim_t y, egui_dim_t screen_x_start, egui_dim_t img_col_start,
+                                                        egui_dim_t count, egui_dim_t img_y_start, egui_dim_t img_y_end, egui_color_int_t *fast_dst_row,
+                                                        egui_dim_t fast_dst_stride, egui_canvas_t *masked_canvas, egui_color_int_t *masked_dst_row,
+                                                        egui_dim_t masked_dst_stride, int use_fast_copy, int use_fast_alpha8, int use_masked_opaque,
+                                                        int use_masked_alpha8)
 {
     int has_alpha = (info->channels == 4);
     uint8_t alpha_type = has_alpha ? EGUI_IMAGE_ALPHA_TYPE_8 : EGUI_IMAGE_ALPHA_TYPE_1;
@@ -2272,8 +2254,8 @@ static void egui_image_qoi_blend_persistent_cached_rows(const egui_image_qoi_inf
                             return;
                         }
                     }
-                    egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, opaque_alpha_row, count, screen_x_start,
-                                                                  screen_y, canvas_alpha);
+                    egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, opaque_alpha_row, count, screen_x_start, screen_y,
+                                                                  canvas_alpha);
                 }
                 masked_dst_row += masked_dst_stride;
                 src_pixels += info->width;
@@ -2330,8 +2312,7 @@ static void egui_image_qoi_blend_persistent_cached_rows(const egui_image_qoi_inf
 
     for (egui_dim_t row = 0; row < row_count; row++)
     {
-        egui_image_decode_blend_row_clipped(screen_x_start, screen_y, img_col_start, count,
-                                            info->data_type, alpha_type, has_alpha, pixel_buf, alpha_buf);
+        egui_image_decode_blend_row_clipped(screen_x_start, screen_y, img_col_start, count, info->data_type, alpha_type, has_alpha, pixel_buf, alpha_buf);
 
         pixel_buf += pixel_row_bytes;
         if (alpha_buf != NULL)
@@ -2423,8 +2404,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
         return;
     }
 
-    if ((use_fast_copy || use_fast_alpha8) &&
-        !egui_image_decode_get_fast_rgb565_dst(screen_x_start, y + img_y_start, &fast_dst_row, &fast_dst_stride))
+    if ((use_fast_copy || use_fast_alpha8) && !egui_image_decode_get_fast_rgb565_dst(screen_x_start, y + img_y_start, &fast_dst_row, &fast_dst_stride))
     {
         fast_dst_row = NULL;
     }
@@ -2455,9 +2435,9 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
 #if EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES > 0
     if (egui_image_decode_persistent_cache_is_hit((const void *)info))
     {
-        egui_image_qoi_blend_persistent_cached_rows(draw_info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, fast_dst_row,
-                                                    fast_dst_stride, masked_canvas, masked_dst_row, masked_dst_stride, use_fast_copy, use_fast_alpha8,
-                                                    use_masked_opaque, use_masked_alpha8);
+        egui_image_qoi_blend_persistent_cached_rows(draw_info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, fast_dst_row, fast_dst_stride,
+                                                    masked_canvas, masked_dst_row, masked_dst_stride, use_fast_copy, use_fast_alpha8, use_masked_opaque,
+                                                    use_masked_alpha8);
         return;
     }
 
@@ -2475,9 +2455,9 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
         }
 
         egui_image_decode_persistent_cache_set_image((const void *)info);
-        egui_image_qoi_blend_persistent_cached_rows(draw_info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, fast_dst_row,
-                                                    fast_dst_stride, masked_canvas, masked_dst_row, masked_dst_stride, use_fast_copy, use_fast_alpha8,
-                                                    use_masked_opaque, use_masked_alpha8);
+        egui_image_qoi_blend_persistent_cached_rows(draw_info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, fast_dst_row, fast_dst_stride,
+                                                    masked_canvas, masked_dst_row, masked_dst_stride, use_fast_copy, use_fast_alpha8, use_masked_opaque,
+                                                    use_masked_alpha8);
         return;
     }
 #endif
@@ -2485,9 +2465,8 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
     if (egui_image_decode_cache_is_full_image_hit((const void *)info))
     {
-        egui_image_qoi_blend_cached_rows(info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, 0, fast_dst_row, fast_dst_stride,
-                                         masked_canvas, masked_dst_row, masked_dst_stride, use_fast_copy, use_fast_alpha8, use_masked_opaque,
-                                         use_masked_alpha8);
+        egui_image_qoi_blend_cached_rows(info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, 0, fast_dst_row, fast_dst_stride, masked_canvas,
+                                         masked_dst_row, masked_dst_stride, use_fast_copy, use_fast_alpha8, use_masked_opaque, use_masked_alpha8);
         return;
     }
 
@@ -2506,9 +2485,8 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
         }
 
         egui_image_decode_cache_set_full_image((const void *)info, draw_info->height, draw_info->width);
-        egui_image_qoi_blend_cached_rows(info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, 0, fast_dst_row, fast_dst_stride,
-                                         masked_canvas, masked_dst_row, masked_dst_stride, use_fast_copy, use_fast_alpha8, use_masked_opaque,
-                                         use_masked_alpha8);
+        egui_image_qoi_blend_cached_rows(info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, 0, fast_dst_row, fast_dst_stride, masked_canvas,
+                                         masked_dst_row, masked_dst_stride, use_fast_copy, use_fast_alpha8, use_masked_opaque, use_masked_alpha8);
         return;
     }
 
@@ -2516,9 +2494,9 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
     if (egui_image_decode_cache_is_row_band_hit((const void *)info, (uint16_t)img_y_start, (uint16_t)img_col_start, (uint16_t)count))
     {
         /* Cache hit — blend directly from cached rows without decoding */
-        egui_image_qoi_blend_cached_rows(draw_info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, img_y_start,
-                                         fast_dst_row, fast_dst_stride, masked_canvas, masked_dst_row, masked_dst_stride, use_fast_copy,
-                                         use_fast_alpha8, use_masked_opaque, use_masked_alpha8);
+        egui_image_qoi_blend_cached_rows(draw_info, y, screen_x_start, img_col_start, count, img_y_start, img_y_end, img_y_start, fast_dst_row, fast_dst_stride,
+                                         masked_canvas, masked_dst_row, masked_dst_stride, use_fast_copy, use_fast_alpha8, use_masked_opaque,
+                                         use_masked_alpha8);
         return;
     }
     if (egui_image_qoi_can_use_tail_row_cache(draw_info, img_col_start, count))
@@ -2681,18 +2659,13 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
 
             if (use_direct_fast_copy)
             {
-                egui_image_qoi_decode_row_rgb565_split(draw_info,
-                                                       (uint8_t *)fast_dst_row, NULL,
-                                                       (uint16_t)img_col_start, (uint16_t)count,
-                                                       cache_pixel_row, NULL,
-                                                       cache_col_start, cache_col_count);
+                egui_image_qoi_decode_row_rgb565_split(draw_info, (uint8_t *)fast_dst_row, NULL, (uint16_t)img_col_start, (uint16_t)count, cache_pixel_row,
+                                                       NULL, cache_col_start, cache_col_count);
             }
             else if (use_direct_fast_alpha8)
             {
-                egui_image_qoi_decode_row_rgb565_alpha8_blend_split(draw_info, fast_dst_row,
-                                                                    (uint16_t)img_col_start, (uint16_t)count,
-                                                                    cache_pixel_row, cache_alpha_row,
-                                                                    cache_col_start, cache_col_count);
+                egui_image_qoi_decode_row_rgb565_alpha8_blend_split(draw_info, fast_dst_row, (uint16_t)img_col_start, (uint16_t)count, cache_pixel_row,
+                                                                    cache_alpha_row, cache_col_start, cache_col_count);
             }
             else if (use_direct_masked_alpha8)
             {
@@ -2705,20 +2678,14 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
                     visible_alpha_row = row_alpha_scratch;
                 }
 
-                egui_image_qoi_decode_row_rgb565_alpha8_masked_split(draw_info, masked_canvas, masked_dst_row,
-                                                                     screen_x_start, screen_y, masked_canvas->alpha,
-                                                                     (uint16_t)img_col_start, (uint16_t)count,
-                                                                     visible_pixel_row, visible_alpha_row,
-                                                                     cache_pixel_row, cache_alpha_row,
-                                                                     cache_col_start, cache_col_count);
+                egui_image_qoi_decode_row_rgb565_alpha8_masked_split(draw_info, masked_canvas, masked_dst_row, screen_x_start, screen_y, masked_canvas->alpha,
+                                                                     (uint16_t)img_col_start, (uint16_t)count, visible_pixel_row, visible_alpha_row,
+                                                                     cache_pixel_row, cache_alpha_row, cache_col_start, cache_col_count);
             }
             else
             {
-                egui_image_qoi_decode_row_rgb565_split(draw_info,
-                                                       pixel_buf, alpha_buf,
-                                                       (uint16_t)img_col_start, (uint16_t)count,
-                                                       cache_pixel_row, cache_alpha_row,
-                                                       cache_col_start, cache_col_count);
+                egui_image_qoi_decode_row_rgb565_split(draw_info, pixel_buf, alpha_buf, (uint16_t)img_col_start, (uint16_t)count, cache_pixel_row,
+                                                       cache_alpha_row, cache_col_start, cache_col_count);
                 blend_img_col_start = 0;
             }
         }
@@ -2759,8 +2726,8 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
             }
             else
             {
-                egui_image_decode_blend_row_clipped(screen_x_start, screen_y, blend_img_col_start, count,
-                                                    draw_info->data_type, alpha_type, has_alpha, pixel_buf, alpha_buf);
+                egui_image_decode_blend_row_clipped(screen_x_start, screen_y, blend_img_col_start, count, draw_info->data_type, alpha_type, has_alpha,
+                                                    pixel_buf, alpha_buf);
             }
 
             fast_dst_row += fast_dst_stride;
@@ -2775,8 +2742,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
                 egui_image_qoi_blend_masked_rgb565_image_row(masked_canvas, masked_dst_row, src_pixels, NULL, count, screen_x_start, screen_y,
                                                              masked_canvas->alpha, &opaque_alpha_row);
             }
-            else if (!egui_image_std_blend_rgb565_masked_row(masked_canvas, masked_dst_row, src_pixels, count, screen_x_start, screen_y,
-                                                             masked_canvas->alpha))
+            else if (!egui_image_std_blend_rgb565_masked_row(masked_canvas, masked_dst_row, src_pixels, count, screen_x_start, screen_y, masked_canvas->alpha))
             {
                 if (opaque_alpha_row == NULL)
                 {
@@ -2786,8 +2752,8 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
                         goto cleanup;
                     }
                 }
-                egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, opaque_alpha_row, count, screen_x_start,
-                                                              screen_y, masked_canvas->alpha);
+                egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, opaque_alpha_row, count, screen_x_start, screen_y,
+                                                              masked_canvas->alpha);
             }
             masked_dst_row += masked_dst_stride;
         }
@@ -2803,15 +2769,15 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
             }
             else
             {
-                egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, alpha_buf + blend_img_col_start, count,
-                                                              screen_x_start, screen_y, masked_canvas->alpha);
+                egui_image_std_blend_rgb565_alpha8_masked_row(masked_canvas, masked_dst_row, src_pixels, alpha_buf + blend_img_col_start, count, screen_x_start,
+                                                              screen_y, masked_canvas->alpha);
             }
             masked_dst_row += masked_dst_stride;
         }
         else
         {
-            egui_image_decode_blend_row_clipped(screen_x_start, screen_y, blend_img_col_start, count,
-                                                draw_info->data_type, alpha_type, has_alpha, pixel_buf, alpha_buf);
+            egui_image_decode_blend_row_clipped(screen_x_start, screen_y, blend_img_col_start, count, draw_info->data_type, alpha_type, has_alpha, pixel_buf,
+                                                alpha_buf);
         }
         screen_y++;
     }
@@ -2820,8 +2786,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
     /* Mark this row band as cached for subsequent horizontal tiles */
     if (use_row_cache)
     {
-        egui_image_decode_cache_set_row_band((const void *)info, (uint16_t)img_y_start, (uint16_t)(img_y_end - img_y_start),
-                                             cache_col_start, cache_col_count);
+        egui_image_decode_cache_set_row_band((const void *)info, (uint16_t)img_y_start, (uint16_t)(img_y_end - img_y_start), cache_col_start, cache_col_count);
     }
 #endif
 
@@ -2838,8 +2803,7 @@ cleanup:
 #endif
 }
 
-static void egui_image_qoi_draw_image_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y,
-                                             egui_dim_t width, egui_dim_t height)
+static void egui_image_qoi_draw_image_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
     /* Resize not supported for compressed images */
     (void)self;
@@ -2850,10 +2814,10 @@ static void egui_image_qoi_draw_image_resize(const egui_image_t *self, egui_dim_
 }
 
 const egui_image_api_t egui_image_qoi_t_api_table = {
-    .get_point = egui_image_qoi_get_point,
-    .get_point_resize = egui_image_qoi_get_point_resize,
-    .draw_image = egui_image_qoi_draw_image,
-    .draw_image_resize = egui_image_qoi_draw_image_resize,
+        .get_point = egui_image_qoi_get_point,
+        .get_point_resize = egui_image_qoi_get_point_resize,
+        .draw_image = egui_image_qoi_draw_image,
+        .draw_image_resize = egui_image_qoi_draw_image_resize,
 };
 
 void egui_image_qoi_init(egui_image_t *self, const void *res)

@@ -7,17 +7,11 @@
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 
 static const uint16_t block_mask_image_data[] = {
-        0x0000, 0x1111, 0x2222, 0x3333,
-        0x4444, 0x5555, 0x6666, 0x7777,
-        0x8888, 0x9999, 0xAAAA, 0xBBBB,
-        0xCCCC, 0xDDDD, 0xEEEE, 0xFFFF,
+        0x0000, 0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888, 0x9999, 0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD, 0xEEEE, 0xFFFF,
 };
 
 static const uint8_t block_mask_alpha_data[] = {
-        0, 64, 255, 32,
-        255, 128, 0, 255,
-        16, 255, 96, 0,
-        255, 48, 255, 200,
+        0, 64, 255, 32, 255, 128, 0, 255, 16, 255, 96, 0, 255, 48, 255, 200,
 };
 
 static const egui_image_std_info_t block_mask_image_info = {
@@ -131,16 +125,15 @@ static void test_image_mask_row_block_matches_row_segment(void)
                                                                  0, 0, EGUI_ALPHA_100));
     for (egui_dim_t y = 0; y < block_height; y++)
     {
-        EGUI_TEST_ASSERT_TRUE(
-                egui_mask_image_blend_rgb565_row_segment(segment_base, &opaque_segment_dst[y * block_width], &src_pixels[y * block_width], block_width, 0, y,
-                                                         EGUI_ALPHA_100));
+        EGUI_TEST_ASSERT_TRUE(egui_mask_image_blend_rgb565_row_segment(segment_base, &opaque_segment_dst[y * block_width], &src_pixels[y * block_width],
+                                                                       block_width, 0, y, EGUI_ALPHA_100));
     }
     EGUI_TEST_ASSERT_EQUAL_INT(0, memcmp(opaque_block_dst, opaque_segment_dst, sizeof(opaque_block_dst)));
 
     init_identity_image_mask(&block_mask);
     init_identity_image_mask(&segment_mask);
-    EGUI_TEST_ASSERT_TRUE(egui_mask_image_blend_rgb565_alpha8_row_block(block_base, alpha_block_dst, block_width, src_pixels, block_width, src_alpha, block_width,
-                                                                        block_height, block_width, 0, 0, 173));
+    EGUI_TEST_ASSERT_TRUE(egui_mask_image_blend_rgb565_alpha8_row_block(block_base, alpha_block_dst, block_width, src_pixels, block_width, src_alpha,
+                                                                        block_width, block_height, block_width, 0, 0, 173));
     for (egui_dim_t y = 0; y < block_height; y++)
     {
         EGUI_TEST_ASSERT_TRUE(egui_mask_image_blend_rgb565_alpha8_row_segment(segment_base, &alpha_segment_dst[y * block_width], &src_pixels[y * block_width],

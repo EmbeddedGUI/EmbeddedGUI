@@ -35,10 +35,10 @@
 #define TREE_BASIC_ACTION_GAP 6
 #define TREE_BASIC_ACTION_W   ((TREE_BASIC_HEADER_W - 20 - TREE_BASIC_ACTION_GAP * 2) / 3)
 
-#define TREE_BASIC_ROOT_H        56
-#define TREE_BASIC_GROUP_H       50
-#define TREE_BASIC_TASK_H        56
-#define TREE_BASIC_TASK_DETAIL_H 74
+#define TREE_BASIC_ROOT_H                56
+#define TREE_BASIC_GROUP_H               50
+#define TREE_BASIC_TASK_H                56
+#define TREE_BASIC_TASK_DETAIL_H         74
 #define TREE_BASIC_JUMP_VERIFY_RETRY_MAX 3U
 
 #define TREE_BASIC_FONT_TITLE ((const egui_font_t *)&egui_res_font_montserrat_10_4)

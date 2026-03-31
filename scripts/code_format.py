@@ -35,6 +35,12 @@ def format_all_file(root):
                     continue
                 if 'Drivers' in root:
                     continue
+                if 'ref' in root:
+                    continue
+                if 'temp' in root:
+                    continue
+                if 'tmp' in root:
+                    continue
                 
                 full_path = os.path.join(root, f)
                 #print("root: %s, path: %s" % (root, full_path))

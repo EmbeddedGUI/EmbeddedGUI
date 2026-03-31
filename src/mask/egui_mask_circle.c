@@ -174,7 +174,7 @@ __EGUI_STATIC_INLINE__ void egui_mask_circle_refresh_cache(egui_mask_t *self)
     egui_mask_circle_invalidate_row_cache(local);
 }
 
-#define EGUI_MASK_CIRCLE_AA_HALF_256 192
+#define EGUI_MASK_CIRCLE_AA_HALF_256  192
 #define EGUI_MASK_CIRCLE_ROW_EDGE_256 183
 
 __EGUI_STATIC_INLINE__ uint32_t egui_mask_circle_isqrt(uint32_t n)

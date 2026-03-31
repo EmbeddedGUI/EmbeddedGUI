@@ -1896,19 +1896,19 @@ static void egui_view_test_performance_test_triangle_fill_double(egui_view_t *se
 #if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
 
 // Compressed image resource name macros (QOI)
-#define EGUI_TEST_PERF_QOI_IMAGE_NAME_0     egui_res_image_test_perf_240_qoi_rgb565_0
-#define EGUI_TEST_PERF_QOI_IMAGE_NAME_8     egui_res_image_star_240_qoi_rgb565_8
-#define EGUI_TEST_PERF_QOI_TILED_NAME_0     egui_res_image_test_perf_40_qoi_rgb565_0
-#define EGUI_TEST_PERF_QOI_TILED_NAME_8     egui_res_image_star_40_qoi_rgb565_8
-#define EGUI_TEST_PERF_QOI_MASK_NAME_0      egui_res_image_test_perf_240_qoi_rgb565_0
-#define EGUI_TEST_PERF_QOI_MASK_NAME_8      egui_res_image_star_240_qoi_rgb565_8
-#define EGUI_TEST_PERF_QOI_MASK_QUARTER_0   egui_res_image_test_perf_120_qoi_rgb565_0
-#define EGUI_TEST_PERF_QOI_MASK_QUARTER_8   egui_res_image_star_120_qoi_rgb565_8
+#define EGUI_TEST_PERF_QOI_IMAGE_NAME_0   egui_res_image_test_perf_240_qoi_rgb565_0
+#define EGUI_TEST_PERF_QOI_IMAGE_NAME_8   egui_res_image_star_240_qoi_rgb565_8
+#define EGUI_TEST_PERF_QOI_TILED_NAME_0   egui_res_image_test_perf_40_qoi_rgb565_0
+#define EGUI_TEST_PERF_QOI_TILED_NAME_8   egui_res_image_star_40_qoi_rgb565_8
+#define EGUI_TEST_PERF_QOI_MASK_NAME_0    egui_res_image_test_perf_240_qoi_rgb565_0
+#define EGUI_TEST_PERF_QOI_MASK_NAME_8    egui_res_image_star_240_qoi_rgb565_8
+#define EGUI_TEST_PERF_QOI_MASK_QUARTER_0 egui_res_image_test_perf_120_qoi_rgb565_0
+#define EGUI_TEST_PERF_QOI_MASK_QUARTER_8 egui_res_image_star_120_qoi_rgb565_8
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-#define EGUI_TEST_PERF_EXTERN_QOI_IMAGE_NAME_0 egui_res_image_test_perf_240_ext_qoi_rgb565_0_bin
-#define EGUI_TEST_PERF_EXTERN_QOI_IMAGE_NAME_8 egui_res_image_star_240_ext_qoi_rgb565_8_bin
-#define EGUI_TEST_PERF_EXTERN_QOI_MASK_NAME_0  EGUI_TEST_PERF_EXTERN_QOI_IMAGE_NAME_0
-#define EGUI_TEST_PERF_EXTERN_QOI_MASK_NAME_8  EGUI_TEST_PERF_EXTERN_QOI_IMAGE_NAME_8
+#define EGUI_TEST_PERF_EXTERN_QOI_IMAGE_NAME_0   egui_res_image_test_perf_240_ext_qoi_rgb565_0_bin
+#define EGUI_TEST_PERF_EXTERN_QOI_IMAGE_NAME_8   egui_res_image_star_240_ext_qoi_rgb565_8_bin
+#define EGUI_TEST_PERF_EXTERN_QOI_MASK_NAME_0    EGUI_TEST_PERF_EXTERN_QOI_IMAGE_NAME_0
+#define EGUI_TEST_PERF_EXTERN_QOI_MASK_NAME_8    EGUI_TEST_PERF_EXTERN_QOI_IMAGE_NAME_8
 #define EGUI_TEST_PERF_EXTERN_QOI_MASK_QUARTER_0 egui_res_image_test_perf_120_ext_qoi_rgb565_0_bin
 #define EGUI_TEST_PERF_EXTERN_QOI_MASK_QUARTER_8 egui_res_image_star_120_ext_qoi_rgb565_8_bin
 #endif
@@ -2097,19 +2097,19 @@ static void egui_view_test_performance_test_extern_mask_image_qoi_8_image(egui_v
 #if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
 
 // Compressed image resource name macros (RLE)
-#define EGUI_TEST_PERF_RLE_IMAGE_NAME_0     egui_res_image_test_perf_240_rle_rgb565_0
-#define EGUI_TEST_PERF_RLE_IMAGE_NAME_8     egui_res_image_star_240_rle_rgb565_8
-#define EGUI_TEST_PERF_RLE_TILED_NAME_0     egui_res_image_test_perf_40_rle_rgb565_0
-#define EGUI_TEST_PERF_RLE_TILED_NAME_8     egui_res_image_star_40_rle_rgb565_8
-#define EGUI_TEST_PERF_RLE_MASK_NAME_0      egui_res_image_test_perf_240_rle_rgb565_0
-#define EGUI_TEST_PERF_RLE_MASK_NAME_8      egui_res_image_star_240_rle_rgb565_8
-#define EGUI_TEST_PERF_RLE_MASK_QUARTER_0   egui_res_image_test_perf_120_rle_rgb565_0
-#define EGUI_TEST_PERF_RLE_MASK_QUARTER_8   egui_res_image_star_120_rle_rgb565_8
+#define EGUI_TEST_PERF_RLE_IMAGE_NAME_0   egui_res_image_test_perf_240_rle_rgb565_0
+#define EGUI_TEST_PERF_RLE_IMAGE_NAME_8   egui_res_image_star_240_rle_rgb565_8
+#define EGUI_TEST_PERF_RLE_TILED_NAME_0   egui_res_image_test_perf_40_rle_rgb565_0
+#define EGUI_TEST_PERF_RLE_TILED_NAME_8   egui_res_image_star_40_rle_rgb565_8
+#define EGUI_TEST_PERF_RLE_MASK_NAME_0    egui_res_image_test_perf_240_rle_rgb565_0
+#define EGUI_TEST_PERF_RLE_MASK_NAME_8    egui_res_image_star_240_rle_rgb565_8
+#define EGUI_TEST_PERF_RLE_MASK_QUARTER_0 egui_res_image_test_perf_120_rle_rgb565_0
+#define EGUI_TEST_PERF_RLE_MASK_QUARTER_8 egui_res_image_star_120_rle_rgb565_8
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-#define EGUI_TEST_PERF_EXTERN_RLE_IMAGE_NAME_0 egui_res_image_test_perf_240_ext_rle_rgb565_0_bin
-#define EGUI_TEST_PERF_EXTERN_RLE_IMAGE_NAME_8 egui_res_image_star_240_ext_rle_rgb565_8_bin
-#define EGUI_TEST_PERF_EXTERN_RLE_MASK_NAME_0  EGUI_TEST_PERF_EXTERN_RLE_IMAGE_NAME_0
-#define EGUI_TEST_PERF_EXTERN_RLE_MASK_NAME_8  EGUI_TEST_PERF_EXTERN_RLE_IMAGE_NAME_8
+#define EGUI_TEST_PERF_EXTERN_RLE_IMAGE_NAME_0   egui_res_image_test_perf_240_ext_rle_rgb565_0_bin
+#define EGUI_TEST_PERF_EXTERN_RLE_IMAGE_NAME_8   egui_res_image_star_240_ext_rle_rgb565_8_bin
+#define EGUI_TEST_PERF_EXTERN_RLE_MASK_NAME_0    EGUI_TEST_PERF_EXTERN_RLE_IMAGE_NAME_0
+#define EGUI_TEST_PERF_EXTERN_RLE_MASK_NAME_8    EGUI_TEST_PERF_EXTERN_RLE_IMAGE_NAME_8
 #define EGUI_TEST_PERF_EXTERN_RLE_MASK_QUARTER_0 egui_res_image_test_perf_120_ext_rle_rgb565_0_bin
 #define EGUI_TEST_PERF_EXTERN_RLE_MASK_QUARTER_8 egui_res_image_star_120_ext_rle_rgb565_8_bin
 #endif
@@ -3005,7 +3005,7 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
         egui_view_test_performance_test_text_rotate_gradient(self);
         break;
 
-    // Compressed image tests (QOI)
+        // Compressed image tests (QOI)
 #if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565:
         egui_view_test_performance_test_image_qoi_565(self);
@@ -3095,7 +3095,7 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
 #endif
 #endif // EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
 
-    // Compressed image tests (RLE)
+        // Compressed image tests (RLE)
 #if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_RLE_565:
         egui_view_test_performance_test_image_rle_565(self);
@@ -3460,8 +3460,7 @@ int egui_view_test_performance_is_enabled(int test_mode)
 #if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE && EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         return 1;
 #elif EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
-        return test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565 &&
-               test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565_8 &&
+        return test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565 && test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565_8 &&
                test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_NO_MASK &&
                test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_ROUND_RECT &&
                test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_QOI_CIRCLE &&
@@ -3500,8 +3499,7 @@ int egui_view_test_performance_is_enabled(int test_mode)
 #if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE && EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         return 1;
 #elif EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
-        return test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RLE_565 &&
-               test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RLE_565_8 &&
+        return test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RLE_565 && test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_RLE_565_8 &&
                test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_NO_MASK &&
                test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_ROUND_RECT &&
                test_mode != EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_CIRCLE &&

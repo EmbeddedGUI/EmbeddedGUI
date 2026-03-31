@@ -451,8 +451,7 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
                 const egui_font_t *icon_font = egui_view_button_matrix_get_icon_font(local, EGUI_MIN(content_rect.size.width, content_rect.size.height));
                 if (icon_font == NULL)
                 {
-                    egui_view_button_matrix_draw_text_clipped(font, label, &content_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color,
-                                                              EGUI_ALPHA_100);
+                    egui_view_button_matrix_draw_text_clipped(font, label, &content_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
                     continue;
                 }
 
@@ -509,8 +508,7 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
                 text_rect.size.width = content_rect.size.width;
                 text_rect.size.height = content_rect.location.y + content_rect.size.height - text_rect.location.y;
 
-                egui_view_button_matrix_draw_text_clipped(icon_font, icon, &icon_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color,
-                                                          EGUI_ALPHA_100);
+                egui_view_button_matrix_draw_text_clipped(icon_font, icon, &icon_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
                 egui_view_button_matrix_draw_text_clipped(font, label, &text_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
             }
             else
