@@ -414,10 +414,10 @@ extern "C" {
 
 /**
  * Max decoded pixel bytes per pixel for compressed image scratch/cache buffers.
- * Keep at 4 for RGB32-capable apps. RGB565-only apps can set this to 2 to save RAM.
+ * Default: 2 (RGB565). RGB32-capable apps should set this to 4.
  */
 #ifndef EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE
-#define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE 4
+#define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE 2
 #endif
 
 /**

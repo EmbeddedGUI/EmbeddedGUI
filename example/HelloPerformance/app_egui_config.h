@@ -52,82 +52,46 @@ extern "C" {
 
 // Enable row-band decode cache: first PFB tile decodes to cache,
 // horizontal tile neighbors blend from cache without re-decoding.
-// HelloPerformance uses RGB565-only compressed images, so actual RAM
-// cost here is about PFB_HEIGHT * SCREEN_WIDTH * (2 + 1) = 11.5KB.
 #ifndef EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 #define EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE 1
 #endif
-
-// HelloPerformance compressed image resources are RGB565-only,
-// so decode scratch/cache buffers only need 2 bytes per pixel.
-#ifndef EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE
-#define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE 2
-#endif
-
-// HelloPerformance draws one compressed-image workload at a time, so masked
-// opaque fallback rows can borrow the codec row-cache alpha backing store
-// instead of reserving a dedicated 240B decode-row alpha buffer in BSS.
-#ifndef EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
-#define EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE 1
-#endif
-
-// HelloPerformance's QOI scenes currently run acceptably from the row-band
-// cache alone, so disable decoder checkpoints to remove their persistent heap.
-#ifndef EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT
-#define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 0
-#endif
-
-// Low-RAM QOI row-cache mode: the first visible tile draws from a transient
-// full-row scratch and only the remaining horizontal tail stays cached for the
-// later tiles. This saves about 1.5KB peak heap on 240px alpha-QOI scenes.
-// Set to 0 to keep the original full-width HQ row-band cache instead.
-#ifndef EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE
-#define EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE 1
-#endif
-
-// Do not cap EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS in the default
-// HelloPerformance build. With 240px-wide alpha scenes and 48px PFB tiles, any
-// cap below the required 192 tail columns forces extra row-band re-decodes and
-// measured QOI/RLE alpha performance collapses from the ~2ms / ~1.4ms class to
-// roughly ~9ms / ~3ms. Keep narrower caps as measurement-only experiments.
-
-// External raw-image row cache sharing is now always enabled (mandatory).
-// The former EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS and
-// EGUI_CONFIG_IMAGE_EXTERNAL_SHARED_CACHE_USE_CODEC_ROW_CACHE macros have
-// been removed. Shared buffers are heap-allocated on first use.
-
-// HelloPerformance's external RLE scenes only stream 120px/240px RGB565 rows,
-// and a 64B external read window still keeps the control stream hot while
-// literal row copies above the window size fall back to direct loads anyway,
-// trimming another 64B of static RAM versus the current 128B window.
-#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 64
 
 // HelloPerformance advances scenes through its timer/recording pipeline and
 // does not rely on touch interaction, so the touch dispatcher and motion queue
 // only consume persistent RAM in this app.
 #define EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH 0
 
-// External font row/glyph scratch follows actual glyph bitmap size now, so it
-// must stay on transient heap instead of macro-sized stack or static buffers.
-
-// HelloPerformance only uses small ASCII subsets (88/93 glyphs), so the
-// frame-local ASCII lookup cache can use 8-bit indices.
-
-// HelloPerformance's current image workloads do not justify keeping a
-// persistent "source alpha is fully opaque" metadata slot alive in BSS.
-#define EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 0
-
 /*
- * Optional low-RAM stack/transient-heap policy overrides.
+ * Optional low-RAM codec/decode policy overrides.
  *
  * Keep this block disabled by default so HelloPerformance uses the framework
- * defaults, which spend more stack/transient heap headroom and generally favor
- * rendering throughput over the tighter low-RAM policy.
+ * defaults, which favor maximum rendering throughput over RAM savings.
  *
- * Turn this block on only when you want to re-enter the old low-RAM
- * HelloPerformance profile for SRAM-sensitive measurements.
+ * Turn this block on only when you want to measure the old low-RAM
+ * HelloPerformance profile for SRAM-sensitive benchmarks.
  */
 #if 0
+// Compressed image resources are RGB565-only, so decode scratch/cache buffers
+// only need 2 bytes per pixel instead of the default 4.
+#define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE 2
+
+// Masked opaque fallback rows can borrow the codec row-cache alpha backing
+// store instead of reserving a dedicated 240B decode-row alpha buffer in BSS.
+#define EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE 1
+
+// Disable QOI decoder checkpoints to remove their persistent heap allocation.
+#define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 0
+
+// Low-RAM QOI row-cache mode: only cache the horizontal tail instead of the
+// full row-band. Saves about 1.5KB peak heap on 240px alpha-QOI scenes.
+#define EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE 1
+
+// External RLE read window: 64B instead of default 128B, saves 64B static RAM.
+#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 64
+
+// Disable persistent "source alpha is fully opaque" metadata cache slots.
+#define EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 0
+
 // Text-transform layout: 16-bit indices shrink transient heap for the current
 // benchmark strings and font offsets.
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 1
