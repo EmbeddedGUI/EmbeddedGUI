@@ -163,11 +163,11 @@ WidgetRegistry.instance().register(
 ### 生成并构建
 
 ```bash
-# 生成 C 代码
-python scripts/html2egui_helper.py generate-code --app MyApp
+# 在 EmbeddedGUI_Designer 仓库根目录执行
+python html2egui_helper.py generate-code --app MyApp
 
 # 生成资源
-python scripts/html2egui_helper.py gen-resource --app MyApp
+python html2egui_helper.py gen-resource --app MyApp
 
 # 构建
 make all APP=MyApp PORT=pc BITS=64
@@ -189,7 +189,7 @@ python scripts/code_runtime_check.py --app MyApp --bits64 --keep-screenshots
 - [ ] `init_func` 与 C 头文件中的初始化函数名一致
 - [ ] `params_macro` 与 C 头文件中的参数宏名一致
 - [ ] 所有 `code_gen.func` 函数名在 C 头文件中有声明
-- [ ] `xml_tag` 与 `.claude/skills/html-to-egui.md` 中的 XML 示例保持一致
+- [ ] `xml_tag` 与 `EmbeddedGUI_Designer` 仓库中的 HTML 转换文档示例保持一致
 - [ ] 属性的 `type` 和 `default` 值合理
 - [ ] 容器控件设置了 `is_container`、`add_child_func`
 - [ ] 构建通过（无 `undefined reference` 错误）
@@ -325,7 +325,8 @@ WidgetRegistry.instance().register(
 ### 4. 生成并验证
 
 ```bash
-python scripts/html2egui_helper.py generate-code --app MyApp
+# 在 EmbeddedGUI_Designer 仓库根目录执行
+python html2egui_helper.py generate-code --app MyApp
 make all APP=MyApp PORT=pc BITS=64
 python scripts/code_runtime_check.py --app MyApp --bits64 --keep-screenshots
 ```
