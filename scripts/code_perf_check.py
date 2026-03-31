@@ -103,8 +103,13 @@ def build_for_profile(profile_name, profile_config, clean=False, extra_cflags=No
     if clean:
         subprocess.run(['make', 'clean'], capture_output=True, cwd=PROJECT_ROOT)
 
+    # Use unique APP_OBJ_SUFFIX for each config to enable incremental builds.
+    # Replace '/' with '_' to create valid directory names.
+    obj_suffix = profile_name.replace('/', '_')
+
     # Build — pass config overrides via USER_CFLAGS, never touch app_egui_config.h
-    build_cmd = ['make', 'all', 'APP=HelloPerformance', 'PORT=qemu', f'CPU_ARCH={cpu_arch}']
+    build_cmd = ['make', 'all', 'APP=HelloPerformance', 'PORT=qemu',
+                 f'CPU_ARCH={cpu_arch}', f'APP_OBJ_SUFFIX={obj_suffix}']
     if extra_cflags:
         build_cmd.append(f'USER_CFLAGS={extra_cflags}')
     result = subprocess.run(
@@ -337,9 +342,9 @@ def run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout):
         )
 
         try:
-            # Build
+            # Build (incremental: each config has its own obj dir via APP_OBJ_SUFFIX)
             if not build_for_profile(f"{profile_name}/{pfb_name}", profile_config,
-                                     clean=True, extra_cflags=extra_cflags):
+                                     clean=False, extra_cflags=extra_cflags):
                 print(f"  SKIP: build failed for PFB {pfb_name}")
                 continue
 
@@ -480,9 +485,9 @@ def run_spi_matrix(profile_name, profile_config, spi_configs, timeout):
         extra_cflags = " ".join(parts)
 
         try:
-            # Build
+            # Build (incremental: each config has its own obj dir via APP_OBJ_SUFFIX)
             if not build_for_profile(f"{profile_name}/{cfg_name}", profile_config,
-                                     clean=True, extra_cflags=extra_cflags):
+                                     clean=False, extra_cflags=extra_cflags):
                 print(f"  SKIP: build failed for {cfg_name}")
                 continue
 
