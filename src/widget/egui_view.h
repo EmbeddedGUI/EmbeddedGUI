@@ -89,6 +89,7 @@ struct egui_view
     uint8_t is_pressed : 1;        // whether the view is pressed
     uint8_t is_clickable : 1;      // whether the view is clickable
     uint8_t is_request_layout : 1; // whether the view is requested to layout
+    uint8_t is_attached_to_window : 1;
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
     uint8_t is_focusable : 1;      // whether the view can receive focus
     uint8_t is_focused : 1;        // whether the view currently has focus
@@ -111,6 +112,7 @@ struct egui_view
     egui_region_t region; // size of the region
 
     egui_region_t region_screen; // size of the region in screen coordinate
+    uint32_t last_dirty_epoch;
 
     egui_background_t *background; // background
 
@@ -130,7 +132,9 @@ struct egui_view
 };
 
 void egui_view_invalidate(egui_view_t *self);
+void egui_view_invalidate_full(egui_view_t *self);
 void egui_view_invalidate_region(egui_view_t *self, const egui_region_t *dirty_region);
+uint8_t egui_view_has_pending_dirty(egui_view_t *self);
 
 typedef struct egui_sub_region
 {
@@ -193,6 +197,8 @@ int egui_view_dispatch_touch_event(egui_view_t *self, egui_motion_event_t *event
 int egui_view_perform_click(egui_view_t *self);
 int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event);
 
+void egui_view_dispatch_attach_to_window(egui_view_t *self);
+void egui_view_dispatch_detach_from_window(egui_view_t *self);
 void egui_view_on_attach_to_window(egui_view_t *self);
 void egui_view_on_draw(egui_view_t *self);
 void egui_view_on_detach_from_window(egui_view_t *self);

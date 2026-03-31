@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "egui_view_mini_calendar.h"
+#include "core/egui_api.h"
 #include "utils/egui_sprintf.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
@@ -188,7 +189,7 @@ void egui_view_mini_calendar_set_weekday_labels(egui_view_t *self, const char *c
 
     if (labels == NULL)
     {
-        egui_api_memset(local->weekday_labels, 0, sizeof(local->weekday_labels));
+        egui_api_memset(local->weekday_labels, 0, (int)sizeof(local->weekday_labels));
     }
     else
     {
@@ -446,7 +447,7 @@ void egui_view_mini_calendar_init(egui_view_t *self)
     local->selected_color = EGUI_THEME_SECONDARY;
     local->weekend_color = EGUI_THEME_TEXT_SECONDARY;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
-    egui_api_memset(local->weekday_labels, 0, sizeof(local->weekday_labels));
+    egui_api_memset(local->weekday_labels, 0, (int)sizeof(local->weekday_labels));
     local->on_date_selected = NULL;
 
     egui_view_set_view_name(self, "egui_view_mini_calendar");

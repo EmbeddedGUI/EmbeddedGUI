@@ -244,6 +244,12 @@ void egui_view_activity_ring_set_value(egui_view_t *self, uint8_t ring_index, ui
             return;
         }
 
+        if (egui_view_has_pending_dirty(self))
+        {
+            egui_view_invalidate_full(self);
+            return;
+        }
+
         if (egui_view_activity_ring_get_value_dirty_region(self, local, ring_index, old_value, value, &dirty_region))
         {
             egui_view_invalidate_region(self, &dirty_region);

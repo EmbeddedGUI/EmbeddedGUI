@@ -11,6 +11,7 @@ enum
     TEST_VIRTUAL_STAGE_VIEW_TYPE_BUTTON = 1,
     TEST_VIRTUAL_STAGE_VIEW_TYPE_TEXTINPUT = 2,
     TEST_VIRTUAL_STAGE_VIEW_TYPE_LIST = 3,
+    TEST_VIRTUAL_STAGE_VIEW_TYPE_SPINNER = 4,
 };
 
 typedef struct test_virtual_stage_node_data test_virtual_stage_node_data_t;
@@ -159,6 +160,19 @@ static egui_view_t *adapter_create_view(void *adapter_context, uint16_t view_typ
 
         egui_view_list_init(EGUI_VIEW_OF(list));
         return EGUI_VIEW_OF(list);
+    }
+
+    if (view_type == TEST_VIRTUAL_STAGE_VIEW_TYPE_SPINNER)
+    {
+        egui_view_spinner_t *spinner = (egui_view_spinner_t *)egui_malloc(sizeof(egui_view_spinner_t));
+        if (spinner == NULL)
+        {
+            return NULL;
+        }
+
+        egui_view_spinner_init(EGUI_VIEW_OF(spinner));
+        egui_view_spinner_start(EGUI_VIEW_OF(spinner));
+        return EGUI_VIEW_OF(spinner);
     }
 
     return NULL;
@@ -507,6 +521,20 @@ static void configure_list_node(uint32_t index, egui_dim_t x, egui_dim_t y, egui
     node->desc.region.size.height = height;
     node->desc.stable_id = stable_id;
     node->desc.view_type = TEST_VIRTUAL_STAGE_VIEW_TYPE_LIST;
+    node->desc.flags = flags;
+}
+
+static void configure_spinner_node(uint32_t index, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, uint32_t stable_id, uint8_t flags)
+{
+    test_virtual_stage_node_data_t *node = &test_context.nodes[index];
+
+    memset(node, 0, sizeof(*node));
+    node->desc.region.location.x = x;
+    node->desc.region.location.y = y;
+    node->desc.region.size.width = width;
+    node->desc.region.size.height = height;
+    node->desc.stable_id = stable_id;
+    node->desc.view_type = TEST_VIRTUAL_STAGE_VIEW_TYPE_SPINNER;
     node->desc.flags = flags;
 }
 
@@ -1418,6 +1446,48 @@ static void test_virtual_stage_notify_node_changed_restores_keepalive_textinput_
     EGUI_TEST_ASSERT_TRUE(strcmp(egui_view_textinput_get_text(slot->view), "abc") == 0);
 }
 
+static void test_virtual_stage_timer_view_stops_on_detach_and_restarts_on_reattach(void)
+{
+    const egui_view_virtual_stage_slot_t *slot;
+    egui_view_t *spinner_view;
+    egui_view_spinner_t *spinner;
+
+    reset_page_with_adapter(1, &test_pooling_adapter, &test_context);
+    egui_view_dispatch_attach_to_window(EGUI_VIEW_OF(&test_page));
+
+    test_context.node_count = 1;
+    configure_spinner_node(0, 8, 8, 36, 36, 6492, EGUI_VIRTUAL_STAGE_NODE_FLAG_KEEPALIVE);
+    layout_page();
+
+    slot = find_slot_by_stable_id(6492);
+    EGUI_TEST_ASSERT_NOT_NULL(slot);
+    EGUI_TEST_ASSERT_EQUAL_INT(TEST_VIRTUAL_STAGE_VIEW_TYPE_SPINNER, slot->view_type);
+    spinner_view = slot->view;
+    spinner = (egui_view_spinner_t *)spinner_view;
+    EGUI_TEST_ASSERT_TRUE(spinner_view->is_attached_to_window);
+    EGUI_TEST_ASSERT_TRUE(egui_timer_check_timer_start(&spinner->spin_timer));
+
+    test_context.nodes[0].desc.flags = EGUI_VIRTUAL_STAGE_NODE_FLAG_HIDDEN | EGUI_VIRTUAL_STAGE_NODE_FLAG_KEEPALIVE;
+    egui_view_virtual_stage_notify_node_changed(EGUI_VIEW_OF(&test_page), 6492);
+    EGUI_VIEW_OF(&test_page)->api->calculate_layout(EGUI_VIEW_OF(&test_page));
+
+    EGUI_TEST_ASSERT_NULL(find_slot_by_stable_id(6492));
+    EGUI_TEST_ASSERT_FALSE(spinner_view->is_attached_to_window);
+    EGUI_TEST_ASSERT_FALSE(egui_timer_check_timer_start(&spinner->spin_timer));
+
+    test_context.nodes[0].desc.flags = EGUI_VIRTUAL_STAGE_NODE_FLAG_KEEPALIVE;
+    egui_view_virtual_stage_notify_node_changed(EGUI_VIEW_OF(&test_page), 6492);
+    EGUI_VIEW_OF(&test_page)->api->calculate_layout(EGUI_VIEW_OF(&test_page));
+
+    slot = find_slot_by_stable_id(6492);
+    EGUI_TEST_ASSERT_NOT_NULL(slot);
+    EGUI_TEST_ASSERT_TRUE(slot->view == spinner_view);
+    EGUI_TEST_ASSERT_TRUE(spinner_view->is_attached_to_window);
+    EGUI_TEST_ASSERT_TRUE(egui_timer_check_timer_start(&spinner->spin_timer));
+
+    egui_view_dispatch_detach_from_window(EGUI_VIEW_OF(&test_page));
+}
+
 static void test_virtual_stage_nested_list_drag_keeps_internal_touch_capture(void)
 {
     const egui_view_virtual_stage_slot_t *slot;
@@ -1752,6 +1822,7 @@ void test_virtual_stage_run(void)
     EGUI_TEST_RUN(test_virtual_stage_custom_hit_test_followup_move_back_inside_restores_click);
     EGUI_TEST_RUN(test_virtual_stage_notify_node_changed_recreates_view_when_type_changes);
     EGUI_TEST_RUN(test_virtual_stage_notify_node_changed_restores_keepalive_textinput_after_render_only_round_trip);
+    EGUI_TEST_RUN(test_virtual_stage_timer_view_stops_on_detach_and_restarts_on_reattach);
     EGUI_TEST_RUN(test_virtual_stage_array_adapter_bridge_exposes_count_and_desc);
     EGUI_TEST_RUN(test_virtual_stage_array_adapter_default_hit_test_falls_back_to_rect);
     EGUI_TEST_RUN(test_virtual_stage_init_with_setup_applies_params_and_adapter);

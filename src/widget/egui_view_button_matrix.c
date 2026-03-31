@@ -124,6 +124,12 @@ static void egui_view_button_matrix_invalidate_indices(egui_view_t *self, egui_v
         return;
     }
 
+    if (egui_view_has_pending_dirty(self))
+    {
+        egui_view_invalidate_full(self);
+        return;
+    }
+
     egui_region_init_empty(&dirty_region);
     for (i = 0; i < count; i++)
     {
@@ -503,7 +509,8 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
                 text_rect.size.width = content_rect.size.width;
                 text_rect.size.height = content_rect.location.y + content_rect.size.height - text_rect.location.y;
 
-                egui_view_button_matrix_draw_text_clipped(icon_font, icon, &icon_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+                egui_view_button_matrix_draw_text_clipped(icon_font, icon, &icon_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color,
+                                                          EGUI_ALPHA_100);
                 egui_view_button_matrix_draw_text_clipped(font, label, &text_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
             }
             else

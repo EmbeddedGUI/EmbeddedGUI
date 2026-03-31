@@ -8,6 +8,9 @@ static egui_view_group_t test_group;
 static egui_view_t test_child1;
 static egui_view_t test_child2;
 static egui_view_t test_child3;
+static egui_view_api_t test_lifecycle_api;
+static int g_lifecycle_attach_count;
+static int g_lifecycle_detach_count;
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static int g_child1_click_count;
 static int g_child2_click_count;
@@ -91,6 +94,26 @@ static int test_view_group_send_touch(uint8_t type, egui_dim_t x, egui_dim_t y)
 }
 #endif
 
+static void test_view_group_lifecycle_attach_cb(egui_view_t *self)
+{
+    EGUI_UNUSED(self);
+    g_lifecycle_attach_count++;
+}
+
+static void test_view_group_lifecycle_detach_cb(egui_view_t *self)
+{
+    EGUI_UNUSED(self);
+    g_lifecycle_detach_count++;
+}
+
+static void test_view_group_init_lifecycle_view(egui_view_t *view)
+{
+    egui_view_init(view);
+    egui_view_copy_api(view, &test_lifecycle_api);
+    test_lifecycle_api.on_attach_to_window = test_view_group_lifecycle_attach_cb;
+    test_lifecycle_api.on_detach_from_window = test_view_group_lifecycle_detach_cb;
+}
+
 static void test_vg_init_defaults(void)
 {
     egui_view_group_init(EGUI_VIEW_OF(&test_group));
@@ -159,6 +182,71 @@ static void test_vg_clear_childs(void)
 
     egui_view_group_clear_childs(EGUI_VIEW_OF(&test_group));
     EGUI_TEST_ASSERT_EQUAL_INT(0, egui_view_group_get_child_count(EGUI_VIEW_OF(&test_group)));
+}
+
+static void test_vg_child_added_after_parent_attach_gets_lifecycle_callbacks(void)
+{
+    egui_view_group_init(EGUI_VIEW_OF(&test_group));
+    test_view_group_init_lifecycle_view(&test_child1);
+    g_lifecycle_attach_count = 0;
+    g_lifecycle_detach_count = 0;
+
+    egui_view_dispatch_attach_to_window(EGUI_VIEW_OF(&test_group));
+    egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child1);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_lifecycle_attach_count);
+    EGUI_TEST_ASSERT_TRUE(test_child1.is_attached_to_window);
+
+    egui_view_group_remove_child(EGUI_VIEW_OF(&test_group), &test_child1);
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_lifecycle_detach_count);
+    EGUI_TEST_ASSERT_FALSE(test_child1.is_attached_to_window);
+    EGUI_TEST_ASSERT_NULL(test_child1.parent);
+}
+
+static void test_vg_parent_attach_propagates_to_existing_children(void)
+{
+    egui_view_group_init(EGUI_VIEW_OF(&test_group));
+    test_view_group_init_lifecycle_view(&test_child1);
+    g_lifecycle_attach_count = 0;
+    g_lifecycle_detach_count = 0;
+
+    egui_view_group_add_child(EGUI_VIEW_OF(&test_group), &test_child1);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, g_lifecycle_attach_count);
+    EGUI_TEST_ASSERT_FALSE(test_child1.is_attached_to_window);
+
+    egui_view_dispatch_attach_to_window(EGUI_VIEW_OF(&test_group));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_lifecycle_attach_count);
+    EGUI_TEST_ASSERT_TRUE(test_child1.is_attached_to_window);
+
+    egui_view_dispatch_detach_from_window(EGUI_VIEW_OF(&test_group));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_lifecycle_detach_count);
+    EGUI_TEST_ASSERT_FALSE(test_child1.is_attached_to_window);
+}
+
+static void test_vg_attached_parent_propagates_lifecycle_to_inserted_subtree(void)
+{
+    egui_view_group_t nested_group;
+
+    egui_view_group_init(EGUI_VIEW_OF(&test_group));
+    egui_view_group_init(EGUI_VIEW_OF(&nested_group));
+    test_view_group_init_lifecycle_view(&test_child1);
+    g_lifecycle_attach_count = 0;
+    g_lifecycle_detach_count = 0;
+
+    egui_view_group_add_child(EGUI_VIEW_OF(&nested_group), &test_child1);
+    EGUI_TEST_ASSERT_FALSE(test_child1.is_attached_to_window);
+
+    egui_view_dispatch_attach_to_window(EGUI_VIEW_OF(&test_group));
+    egui_view_group_add_child(EGUI_VIEW_OF(&test_group), EGUI_VIEW_OF(&nested_group));
+
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_lifecycle_attach_count);
+    EGUI_TEST_ASSERT_TRUE(EGUI_VIEW_OF(&nested_group)->is_attached_to_window);
+    EGUI_TEST_ASSERT_TRUE(test_child1.is_attached_to_window);
+
+    egui_view_group_remove_child(EGUI_VIEW_OF(&test_group), EGUI_VIEW_OF(&nested_group));
+    EGUI_TEST_ASSERT_EQUAL_INT(1, g_lifecycle_detach_count);
+    EGUI_TEST_ASSERT_FALSE(EGUI_VIEW_OF(&nested_group)->is_attached_to_window);
+    EGUI_TEST_ASSERT_FALSE(test_child1.is_attached_to_window);
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -259,6 +347,9 @@ void test_view_group_run(void)
     EGUI_TEST_RUN(test_vg_parent_link);
     EGUI_TEST_RUN(test_vg_remove_child);
     EGUI_TEST_RUN(test_vg_clear_childs);
+    EGUI_TEST_RUN(test_vg_child_added_after_parent_attach_gets_lifecycle_callbacks);
+    EGUI_TEST_RUN(test_vg_parent_attach_propagates_to_existing_children);
+    EGUI_TEST_RUN(test_vg_attached_parent_propagates_lifecycle_to_inserted_subtree);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_vg_release_over_sibling_does_not_trigger_click);
     EGUI_TEST_RUN(test_vg_return_to_original_target_restores_click);

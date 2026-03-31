@@ -6,48 +6,36 @@
 #include "egui_pfb_manager.h"
 #include "widget/egui_view_group.h"
 #include "anim/egui_animation.h"
-#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
 #include "app/egui_activity.h"
-#endif
-#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
 #include "app/egui_dialog.h"
-#endif
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
 #include "app/egui_toast.h"
-#endif
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#if !EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE && EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
-#error "EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE=0 requires EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY=0"
-#endif
-
-#if !EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE && EGUI_CONFIG_DEBUG_INFO_SHOW
-#error "EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE=0 requires EGUI_CONFIG_DEBUG_INFO_SHOW=0"
-#endif
-
 struct egui_core
 {
-    egui_color_int_t *pfb;         // pointer to frame buffer
-    egui_dim_t pfb_width;          // width of frame buffer
-    egui_dim_t pfb_height;         // height of frame buffer
-    egui_dim_t screen_width;       // width of screen
-    egui_dim_t screen_height;      // height of screen
+    egui_color_int_t *pfb;     // pointer to frame buffer
+    int pfb_width;             // width of frame buffer
+    int pfb_height;            // height of frame buffer
+    int pfb_total_buffer_size; // size of frame buffer in bytes, for speed up.
+    int screen_width;          // width of screen
+    int screen_height;         // height of screen
+    int color_bytes;           // bytes per pixel
+
+    int pfb_width_count;  // width of frame buffer count in screen width
+    int pfb_height_count; // height of frame buffer count in screen width
     uint8_t pfb_scan_reverse_x;
     uint8_t pfb_scan_reverse_y;
-    uint8_t is_suspended; // 1 if GUI refresh is paused
 
 #if EGUI_CONFIG_DEBUG_VIEW_ID
     uint16_t unique_id; // unique id count
 #endif
 
-    egui_slist_t anims;     // list of animation
-
-#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
     egui_dlist_t activitys; // list of activitys
+    egui_slist_t anims;     // list of animation
 
     egui_animation_t *activity_anim_start_open;   // activity anim start open
     egui_animation_t *activity_anim_start_close;  // activity anim start close
@@ -56,26 +44,22 @@ struct egui_core
 
     egui_activity_t *activity_open;  // activity current open
     egui_activity_t *activity_close; // activity current close
-#endif
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
     egui_animation_t *dialog_anim_start;  // dialog anim start
     egui_animation_t *dialog_anim_finish; // dialog anim finish
     egui_dialog_t *dialog;                // dialog current open
-#endif
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
     egui_toast_t *toast; // toast
-#endif
 
     egui_view_root_group_t root_view_group;      // root view group
-#if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
     egui_view_root_group_t user_root_view_group; // user root view group
-#endif
 
     egui_region_t region_dirty_arr[EGUI_CONFIG_DIRTY_AREA_COUNT]; // dirty region of screen
+    uint32_t dirty_epoch;
 
     egui_pfb_manager_t pfb_mgr; // PFB double buffer manager
+
+    uint8_t is_suspended; // 1 if GUI refresh is paused
 };
 
 /**
@@ -100,15 +84,8 @@ void egui_core_add_user_root_view(egui_view_t *view);
 void egui_core_remove_user_root_view(egui_view_t *view);
 void egui_core_layout_childs_user_root_view(uint8_t is_orientation_horizontal, uint8_t align_type);
 egui_region_t *egui_core_get_region_dirty_arr(void);
+uint32_t egui_core_get_dirty_epoch(void);
 void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode);
-/**
- * Optional app/port hook: return a wider logical PFB target width for the
- * current scene, or 0 to keep the configured PFB geometry unchanged.
- *
- * Core keeps the physical PFB bytes unchanged and only reinterprets the tile
- * shape when the returned width is larger than EGUI_CONFIG_PFB_WIDTH.
- */
-egui_dim_t egui_core_get_logical_pfb_target_width_hint(void);
 void egui_core_process_input_motion(egui_motion_event_t *motion_event);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 void egui_core_process_input_key(egui_key_event_t *key_event);
@@ -156,7 +133,6 @@ void egui_core_clear_screen(void);
 void egui_screen_off(void);
 void egui_screen_on(void);
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
 egui_activity_t *egui_core_activity_get_current(void);
 void egui_core_activity_force_finish_all(void);
 void egui_core_activity_force_finish_to_activity(egui_activity_t *activity);
@@ -169,22 +145,17 @@ void egui_core_activity_finish(egui_activity_t *self);
 void egui_core_activity_set_start_anim(egui_animation_t *open_anim, egui_animation_t *close_anim);
 void egui_core_activity_set_finish_anim(egui_animation_t *open_anim, egui_animation_t *close_anim);
 egui_activity_t *egui_core_activity_get_by_view(egui_view_t *view);
-#endif
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
 egui_dialog_t *egui_core_dialog_get(void);
 void egui_core_dialog_start(egui_activity_t *activity, egui_dialog_t *self);
 void egui_core_dialog_start_with_current(egui_dialog_t *self);
 int egui_core_dialog_check_in_process(egui_dialog_t *dialog);
 void egui_core_dialog_finish(egui_dialog_t *self);
 void egui_core_dialog_set_anim(egui_animation_t *open_anim, egui_animation_t *close_anim);
-#endif
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
 egui_toast_t *egui_core_toast_get(void);
 void egui_core_toast_set(egui_toast_t *toast);
 void egui_core_toast_show_info(const char *text);
-#endif
 
 void egui_core_animation_append(egui_animation_t *anim);
 void egui_core_animation_remove(egui_animation_t *anim);

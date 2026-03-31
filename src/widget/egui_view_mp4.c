@@ -5,6 +5,22 @@
 #include "egui_view_mp4.h"
 #include "egui.h"
 
+static void egui_view_mp4_update_timer(egui_view_t *self)
+{
+    egui_view_mp4_t *local = (egui_view_mp4_t *)self;
+
+    if (local->is_playing && self->is_attached_to_window && local->frame_interval_ms > 0 && local->mp4_image_list != NULL && local->mp4_image_count > 0 &&
+        local->mp4_image_index < local->mp4_image_count)
+    {
+        egui_timer_stop_timer(&local->anim_timer);
+        egui_timer_start_timer(&local->anim_timer, 0, local->frame_interval_ms);
+    }
+    else
+    {
+        egui_timer_stop_timer(&local->anim_timer);
+    }
+}
+
 void egui_view_mp4_on_draw(egui_view_t *self)
 {
     egui_view_mp4_t *local = (egui_view_mp4_t *)self;
@@ -37,6 +53,7 @@ static void anim_timer_callback(egui_timer_t *timer)
 
     if (local->mp4_image_index >= local->mp4_image_count - 1)
     {
+        local->is_playing = 0;
         egui_timer_stop_timer(timer);
         if (local->callback)
         {
@@ -49,6 +66,20 @@ static void anim_timer_callback(egui_timer_t *timer)
 
         egui_view_invalidate((egui_view_t *)local);
     }
+}
+
+static void egui_view_mp4_on_attach_to_window(egui_view_t *self)
+{
+    egui_view_on_attach_to_window(self);
+    egui_view_mp4_update_timer(self);
+}
+
+static void egui_view_mp4_on_detach_from_window(egui_view_t *self)
+{
+    egui_view_mp4_t *local = (egui_view_mp4_t *)self;
+
+    egui_timer_stop_timer(&local->anim_timer);
+    egui_view_on_detach_from_window(self);
 }
 
 void egui_view_mp4_set_align_type(egui_view_t *self, uint8_t align_type)
@@ -83,14 +114,17 @@ void egui_view_mp4_start_work(egui_view_t *self, int interval_ms)
     egui_view_mp4_t *local = (egui_view_mp4_t *)self;
 
     local->mp4_image_index = 0;
-    egui_timer_start_timer(&local->anim_timer, 0, interval_ms);
+    local->frame_interval_ms = (uint16_t)interval_ms;
+    local->is_playing = 1;
+    egui_view_mp4_update_timer(self);
 }
 
 void egui_view_mp4_stop_work(egui_view_t *self)
 {
     egui_view_mp4_t *local = (egui_view_mp4_t *)self;
 
-    egui_timer_stop_timer(&local->anim_timer);
+    local->is_playing = 0;
+    egui_view_mp4_update_timer(self);
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_mp4_t) = {
@@ -101,9 +135,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_mp4_t) = {
         .calculate_layout = egui_view_calculate_layout,
         .request_layout = egui_view_request_layout,
         .draw = egui_view_draw,
-        .on_attach_to_window = egui_view_on_attach_to_window,
+        .on_attach_to_window = egui_view_mp4_on_attach_to_window,
         .on_draw = egui_view_mp4_on_draw, // changed
-        .on_detach_from_window = egui_view_on_detach_from_window,
+        .on_detach_from_window = egui_view_mp4_on_detach_from_window,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_dispatch_key_event,
         .on_key_event = egui_view_on_key_event,
@@ -122,10 +156,12 @@ void egui_view_mp4_init(egui_view_t *self)
     local->callback = NULL;
 
     local->align_type = EGUI_ALIGN_CENTER;
+    local->is_playing = 0;
 
     local->mp4_image_list = NULL;
     local->mp4_image_count = 0;
     local->mp4_image_index = 0;
+    local->frame_interval_ms = 0;
 
     local->anim_timer.callback = anim_timer_callback;
     local->anim_timer.user_data = self;

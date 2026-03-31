@@ -23,10 +23,12 @@ struct egui_view_mp4
     egui_view_mp4_callback_func callback;
 
     uint8_t align_type;
+    uint8_t is_playing;
 
     const egui_image_t **mp4_image_list;
     uint16_t mp4_image_index;
     uint16_t mp4_image_count;
+    uint16_t frame_interval_ms;
 };
 
 // ============== MP4 Params ==============

@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "egui_view_stopwatch.h"
+#include "core/egui_api.h"
 #include "core/egui_common.h"
 #include "resource/egui_resource.h"
 #include "utils/egui_sprintf.h"
@@ -81,6 +82,13 @@ static void stopwatch_update_text(egui_view_t *self, egui_view_stopwatch_t *loca
     {
         local->base.text = local->time_buffer;
         egui_view_invalidate(self);
+        return;
+    }
+
+    if (egui_view_has_pending_dirty(self))
+    {
+        local->base.text = local->time_buffer;
+        egui_view_invalidate_full(self);
         return;
     }
 
@@ -226,7 +234,7 @@ void egui_view_stopwatch_init(egui_view_t *self)
     local->elapsed_ms = 0;
     local->state = EGUI_VIEW_STOPWATCH_STATE_STOPPED;
     local->show_ms = 1;
-    egui_api_memset(local->time_buffer, 0, sizeof(local->time_buffer));
+    egui_api_memset(local->time_buffer, 0, (int)sizeof(local->time_buffer));
 
     format_elapsed(self);
 

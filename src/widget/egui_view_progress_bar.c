@@ -31,6 +31,12 @@ static void egui_view_progress_bar_invalidate_process_change(egui_view_t *self, 
         return;
     }
 
+    if (egui_view_has_pending_dirty(self))
+    {
+        egui_view_invalidate_full(self);
+        return;
+    }
+
     egui_view_get_work_region(self, &region);
     height = EGUI_THEME_TRACK_THICKNESS;
     if (height > region.size.height)

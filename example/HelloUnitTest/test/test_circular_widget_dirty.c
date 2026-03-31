@@ -222,6 +222,18 @@ static void test_circular_progress_bar_process_change_uses_partial_dirty_region(
     EGUI_TEST_ASSERT_TRUE(region_area(&dirty_union) < region_area(&EGUI_VIEW_OF(&test_progress_bar)->region_screen) / 4);
 }
 
+static void test_circular_progress_bar_repeated_process_change_same_frame_falls_back_to_full_dirty_region(void)
+{
+    setup_circular_progress_bar();
+    egui_view_circular_progress_bar_set_process(EGUI_VIEW_OF(&test_progress_bar), 75);
+
+    egui_core_clear_region_dirty();
+    egui_view_circular_progress_bar_set_process(EGUI_VIEW_OF(&test_progress_bar), 80);
+    egui_view_circular_progress_bar_set_process(EGUI_VIEW_OF(&test_progress_bar), 25);
+
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_progress_bar));
+}
+
 static void test_gauge_value_change_uses_partial_dirty_region(void)
 {
     egui_region_t dirty_union;
@@ -253,6 +265,18 @@ static void test_gauge_value_change_uses_partial_dirty_region(void)
     EGUI_TEST_ASSERT_TRUE(region_area(&dirty_union) < region_area(&EGUI_VIEW_OF(&test_gauge)->region_screen) / 2);
 }
 
+static void test_gauge_repeated_value_change_same_frame_falls_back_to_full_dirty_region(void)
+{
+    setup_gauge();
+    egui_view_gauge_set_value(EGUI_VIEW_OF(&test_gauge), 35);
+
+    egui_core_clear_region_dirty();
+    egui_view_gauge_set_value(EGUI_VIEW_OF(&test_gauge), 60);
+    egui_view_gauge_set_value(EGUI_VIEW_OF(&test_gauge), 20);
+
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_gauge));
+}
+
 static void test_arc_slider_value_change_uses_partial_dirty_region(void)
 {
     setup_arc_slider();
@@ -262,6 +286,18 @@ static void test_arc_slider_value_change_uses_partial_dirty_region(void)
     egui_view_arc_slider_set_value(EGUI_VIEW_OF(&test_arc_slider), 55);
 
     assert_partial_dirty_region(EGUI_VIEW_OF(&test_arc_slider));
+}
+
+static void test_arc_slider_repeated_value_change_same_frame_falls_back_to_full_dirty_region(void)
+{
+    setup_arc_slider();
+    egui_view_arc_slider_set_value(EGUI_VIEW_OF(&test_arc_slider), 40);
+
+    egui_core_clear_region_dirty();
+    egui_view_arc_slider_set_value(EGUI_VIEW_OF(&test_arc_slider), 55);
+    egui_view_arc_slider_set_value(EGUI_VIEW_OF(&test_arc_slider), 15);
+
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_arc_slider));
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -328,6 +364,18 @@ static void test_analog_clock_second_tick_uses_partial_dirty_region(void)
     assert_partial_dirty_region(EGUI_VIEW_OF(&test_clock));
 }
 
+static void test_analog_clock_repeated_time_change_same_frame_falls_back_to_full_dirty_region(void)
+{
+    setup_analog_clock();
+    egui_view_analog_clock_set_time(EGUI_VIEW_OF(&test_clock), 3, 15, 0);
+
+    egui_core_clear_region_dirty();
+    egui_view_analog_clock_set_time(EGUI_VIEW_OF(&test_clock), 3, 15, 1);
+    egui_view_analog_clock_set_time(EGUI_VIEW_OF(&test_clock), 3, 15, 2);
+
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_clock));
+}
+
 static void test_analog_clock_hidden_second_change_skips_dirty_region(void)
 {
     egui_region_t *arr = egui_core_get_region_dirty_arr();
@@ -353,19 +401,35 @@ static void test_spinner_rotation_step_uses_partial_dirty_region(void)
     assert_partial_dirty_region(EGUI_VIEW_OF(&test_spinner));
 }
 
+static void test_spinner_repeated_rotation_same_frame_falls_back_to_full_dirty_region(void)
+{
+    setup_spinner();
+
+    egui_core_clear_region_dirty();
+    test_spinner.spin_timer.callback(&test_spinner.spin_timer);
+    test_spinner.spin_timer.callback(&test_spinner.spin_timer);
+
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_spinner));
+}
+
 void test_circular_widget_dirty_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(circular_widget_dirty);
     EGUI_TEST_RUN(test_circular_progress_bar_process_change_uses_partial_dirty_region);
+    EGUI_TEST_RUN(test_circular_progress_bar_repeated_process_change_same_frame_falls_back_to_full_dirty_region);
     EGUI_TEST_RUN(test_gauge_value_change_uses_partial_dirty_region);
+    EGUI_TEST_RUN(test_gauge_repeated_value_change_same_frame_falls_back_to_full_dirty_region);
     EGUI_TEST_RUN(test_arc_slider_value_change_uses_partial_dirty_region);
+    EGUI_TEST_RUN(test_arc_slider_repeated_value_change_same_frame_falls_back_to_full_dirty_region);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_arc_slider_touch_down_same_value_skips_dirty_region);
     EGUI_TEST_RUN(test_arc_slider_touch_up_same_value_skips_dirty_region);
     EGUI_TEST_RUN(test_arc_slider_touch_down_with_pressed_background_uses_full_dirty_region);
 #endif
     EGUI_TEST_RUN(test_analog_clock_second_tick_uses_partial_dirty_region);
+    EGUI_TEST_RUN(test_analog_clock_repeated_time_change_same_frame_falls_back_to_full_dirty_region);
     EGUI_TEST_RUN(test_analog_clock_hidden_second_change_skips_dirty_region);
     EGUI_TEST_RUN(test_spinner_rotation_step_uses_partial_dirty_region);
+    EGUI_TEST_RUN(test_spinner_repeated_rotation_same_frame_falls_back_to_full_dirty_region);
     EGUI_TEST_SUITE_END();
 }

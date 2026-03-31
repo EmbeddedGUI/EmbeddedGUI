@@ -373,7 +373,7 @@ static void egui_view_virtual_grid_row_detach_child(egui_view_virtual_grid_t *lo
 
     if (egui_view_virtual_grid_is_attached_to_window(local))
     {
-        child->api->on_detach_from_window(child);
+        egui_view_dispatch_detach_from_window(child);
     }
 
     if (child->parent == &row_view->root)
@@ -455,7 +455,7 @@ static uint8_t egui_view_virtual_grid_row_prepare_cell_view(egui_view_virtual_gr
     egui_view_group_add_child(EGUI_VIEW_OF(&row_view->root), view);
     if (egui_view_virtual_grid_is_attached_to_window(local))
     {
-        view->api->on_attach_to_window(view);
+        egui_view_dispatch_attach_to_window(view);
     }
 
     egui_view_virtual_grid_row_hide_cell(row_view, cell);

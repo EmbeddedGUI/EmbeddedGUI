@@ -46,6 +46,21 @@ static void test_activity_ring_value_change_uses_partial_dirty_region(void)
     EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[1]));
 }
 
+static void test_activity_ring_repeated_value_change_same_frame_falls_back_to_full_dirty_region(void)
+{
+    egui_region_t *arr = egui_core_get_region_dirty_arr();
+
+    setup_ring();
+    egui_view_activity_ring_set_value(EGUI_VIEW_OF(&test_ring), 0, 75);
+
+    egui_core_clear_region_dirty();
+    egui_view_activity_ring_set_value(EGUI_VIEW_OF(&test_ring), 0, 80);
+    egui_view_activity_ring_set_value(EGUI_VIEW_OF(&test_ring), 0, 25);
+
+    EGUI_TEST_ASSERT_REGION_EQUAL(&EGUI_VIEW_OF(&test_ring)->region_screen, &arr[0]);
+    EGUI_TEST_ASSERT_TRUE(egui_region_is_empty(&arr[1]));
+}
+
 static void test_activity_ring_hidden_ring_change_skips_dirty_region(void)
 {
     egui_region_t *arr = egui_core_get_region_dirty_arr();
@@ -64,6 +79,7 @@ void test_activity_ring_dirty_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(activity_ring_dirty);
     EGUI_TEST_RUN(test_activity_ring_value_change_uses_partial_dirty_region);
+    EGUI_TEST_RUN(test_activity_ring_repeated_value_change_same_frame_falls_back_to_full_dirty_region);
     EGUI_TEST_RUN(test_activity_ring_hidden_ring_change_skips_dirty_region);
     EGUI_TEST_SUITE_END();
 }

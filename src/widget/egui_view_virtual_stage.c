@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "egui_view_virtual_stage.h"
+#include "core/egui_api.h"
 #include "core/egui_common.h"
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
@@ -59,7 +60,7 @@ static uint8_t egui_view_virtual_stage_array_adapter_get_desc(void *adapter_cont
     }
 
     item_ptr = (const uint8_t *)node_source->items + index * node_source->item_size + node_source->desc_offset;
-    egui_api_memcpy(out_desc, item_ptr, sizeof(*out_desc));
+    egui_api_memcpy(out_desc, item_ptr, (int)sizeof(*out_desc));
     return 1;
 }
 
@@ -199,12 +200,12 @@ static void egui_view_virtual_stage_reset_slot(egui_view_virtual_stage_slot_t *s
     slot->index = 0;
     slot->stable_id = EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID;
     slot->view = NULL;
-    egui_api_memset(&slot->render_region, 0, sizeof(slot->render_region));
-    egui_api_memset(&slot->bound_desc, 0, sizeof(slot->bound_desc));
+    egui_api_memset(&slot->render_region, 0, (int)sizeof(slot->render_region));
+    egui_api_memset(&slot->bound_desc, 0, (int)sizeof(slot->bound_desc));
     slot->last_used_seq = 0;
     slot->needs_bind = 0;
     slot->needs_layout = 0;
-    egui_api_memset(&slot->touch_state, 0, sizeof(slot->touch_state));
+    egui_api_memset(&slot->touch_state, 0, (int)sizeof(slot->touch_state));
 }
 
 static void egui_view_virtual_stage_reset_slots(egui_view_virtual_stage_t *local)
@@ -243,8 +244,14 @@ static void egui_view_virtual_stage_release_cache(egui_view_virtual_stage_t *loc
         egui_free(local->node_cache);
         local->node_cache = NULL;
     }
+    if (local->draw_order != NULL)
+    {
+        egui_free(local->draw_order);
+        local->draw_order = NULL;
+    }
 
     local->cached_node_count = 0;
+    local->cached_capacity = 0;
 }
 
 static void egui_view_virtual_stage_release_pins(egui_view_virtual_stage_t *local)
@@ -297,25 +304,25 @@ static uint32_t egui_view_virtual_stage_get_node_count(egui_view_virtual_stage_t
     return local->adapter->get_count(local->adapter_context);
 }
 
-static void egui_view_virtual_stage_sort_nodes(egui_view_virtual_stage_t *local)
+static void egui_view_virtual_stage_sort_draw_order(egui_view_virtual_stage_t *local)
 {
     egui_view_virtual_stage_cached_node_t *nodes = egui_view_virtual_stage_get_nodes(local);
     uint32_t i;
 
-    if (nodes == NULL)
+    if (nodes == NULL || local->draw_order == NULL)
     {
         return;
     }
 
     for (i = 1; i < local->cached_node_count; i++)
     {
-        egui_view_virtual_stage_cached_node_t key = nodes[i];
+        uint32_t key = local->draw_order[i];
         uint32_t j = i;
 
         while (j > 0)
         {
-            egui_view_virtual_stage_cached_node_t *lhs = &nodes[j - 1];
-            egui_view_virtual_stage_cached_node_t *rhs = &key;
+            egui_view_virtual_stage_cached_node_t *lhs = &nodes[local->draw_order[j - 1]];
+            egui_view_virtual_stage_cached_node_t *rhs = &nodes[key];
 
             if (lhs->desc.z_order < rhs->desc.z_order)
             {
@@ -326,11 +333,11 @@ static void egui_view_virtual_stage_sort_nodes(egui_view_virtual_stage_t *local)
                 break;
             }
 
-            nodes[j] = nodes[j - 1];
+            local->draw_order[j] = local->draw_order[j - 1];
             j--;
         }
 
-        nodes[j] = key;
+        local->draw_order[j] = key;
     }
 }
 
@@ -338,6 +345,7 @@ static uint8_t egui_view_virtual_stage_reload_cache(egui_view_virtual_stage_t *l
 {
     uint32_t count = egui_view_virtual_stage_get_node_count(local);
     egui_view_virtual_stage_cached_node_t *new_nodes = NULL;
+    uint32_t *new_order = NULL;
     uint32_t write_count = 0;
     uint32_t index;
 
@@ -353,10 +361,17 @@ static uint8_t egui_view_virtual_stage_reload_cache(egui_view_virtual_stage_t *l
         return 0;
     }
 
+    new_order = (uint32_t *)egui_malloc((int)(sizeof(uint32_t) * count));
+    if (new_order == NULL)
+    {
+        egui_free(new_nodes);
+        return 0;
+    }
+
     for (index = 0; index < count; index++)
     {
         egui_virtual_stage_node_desc_t desc;
-        egui_api_memset(&desc, 0, sizeof(desc));
+        egui_api_memset(&desc, 0, (int)sizeof(desc));
         if (!local->adapter->get_desc(local->adapter_context, index, &desc))
         {
             continue;
@@ -367,6 +382,7 @@ static uint8_t egui_view_virtual_stage_reload_cache(egui_view_virtual_stage_t *l
         }
         new_nodes[write_count].index = index;
         new_nodes[write_count].desc = desc;
+        new_order[write_count] = write_count;
         write_count++;
     }
 
@@ -375,12 +391,15 @@ static uint8_t egui_view_virtual_stage_reload_cache(egui_view_virtual_stage_t *l
     if (write_count == 0)
     {
         egui_free(new_nodes);
+        egui_free(new_order);
         return 1;
     }
 
     local->node_cache = new_nodes;
+    local->draw_order = new_order;
     local->cached_node_count = write_count;
-    egui_view_virtual_stage_sort_nodes(local);
+    local->cached_capacity = count;
+    egui_view_virtual_stage_sort_draw_order(local);
     egui_view_virtual_stage_prune_pins_against_cache(local);
     return 1;
 }
@@ -437,7 +456,7 @@ static uint8_t egui_view_virtual_stage_resolve_node_desc_by_stable_id(egui_view_
         for (index = 0; index < count; index++)
         {
             egui_virtual_stage_node_desc_t desc;
-            egui_api_memset(&desc, 0, sizeof(desc));
+            egui_api_memset(&desc, 0, (int)sizeof(desc));
             if (!local->adapter->get_desc(local->adapter_context, index, &desc))
             {
                 continue;
@@ -569,7 +588,7 @@ static uint8_t egui_view_virtual_stage_ensure_pin_capacity(egui_view_virtual_sta
 
     if (local->pin_entries != NULL && local->pin_count > 0)
     {
-        egui_api_memcpy(pins, local->pin_entries, sizeof(egui_view_virtual_stage_pin_entry_t) * local->pin_count);
+        egui_api_memcpy(pins, local->pin_entries, (int)(sizeof(egui_view_virtual_stage_pin_entry_t) * local->pin_count));
         egui_free(local->pin_entries);
     }
 
@@ -639,7 +658,7 @@ static void egui_view_virtual_stage_cancel_slot_capture(egui_view_virtual_stage_
         return;
     }
 
-    egui_api_memset(&cancel_event, 0, sizeof(cancel_event));
+    egui_api_memset(&cancel_event, 0, (int)sizeof(cancel_event));
     cancel_event.type = EGUI_MOTION_EVENT_ACTION_CANCEL;
     (void)slot->view->api->dispatch_touch_event(slot->view, &cancel_event);
     local->captured_slot = EGUI_VIEW_VIRTUAL_STAGE_INVALID_SLOT;
@@ -674,8 +693,8 @@ static void egui_view_virtual_stage_save_and_unbind(egui_view_virtual_stage_t *l
 
     slot->index = 0;
     slot->stable_id = EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID;
-    egui_api_memset(&slot->render_region, 0, sizeof(slot->render_region));
-    egui_api_memset(&slot->bound_desc, 0, sizeof(slot->bound_desc));
+    egui_api_memset(&slot->render_region, 0, (int)sizeof(slot->render_region));
+    egui_api_memset(&slot->bound_desc, 0, (int)sizeof(slot->bound_desc));
 }
 
 static void egui_view_virtual_stage_destroy_slot_view(egui_view_t *self, egui_view_virtual_stage_t *local, egui_view_virtual_stage_slot_t *slot,
@@ -699,7 +718,7 @@ static void egui_view_virtual_stage_destroy_slot_view(egui_view_t *self, egui_vi
 
     if (local->is_attached_to_window)
     {
-        slot->view->api->on_detach_from_window(slot->view);
+        egui_view_dispatch_detach_from_window(slot->view);
     }
 
     if (slot->view->parent == &local->content_layer)
@@ -743,6 +762,10 @@ static void egui_view_virtual_stage_release_slot(egui_view_t *self, egui_view_vi
 
     if (slot->view != NULL)
     {
+        if (local->is_attached_to_window)
+        {
+            egui_view_dispatch_detach_from_window(slot->view);
+        }
         slot->state = EGUI_VIEW_VIRTUAL_STAGE_SLOT_STATE_POOLED;
         slot->last_used_seq = 0;
         egui_view_virtual_stage_hide_slot_view(self, slot);
@@ -815,7 +838,7 @@ static uint8_t egui_view_virtual_stage_prepare_slot_view(egui_view_t *self, egui
     egui_view_group_add_child(EGUI_VIEW_OF(&local->content_layer), view);
     if (local->is_attached_to_window)
     {
-        view->api->on_attach_to_window(view);
+        egui_view_dispatch_attach_to_window(view);
     }
 
     egui_view_virtual_stage_hide_slot_view(self, slot);
@@ -981,7 +1004,7 @@ static uint8_t egui_view_virtual_stage_bind_slot(egui_view_t *self, egui_view_vi
     }
     if (slot->stable_id != node->desc.stable_id || slot->state == EGUI_VIEW_VIRTUAL_STAGE_SLOT_STATE_POOLED || recreated_view)
     {
-        egui_api_memset(&slot->touch_state, 0, sizeof(slot->touch_state));
+        egui_api_memset(&slot->touch_state, 0, (int)sizeof(slot->touch_state));
     }
 
     if (needs_bind && local->adapter != NULL && local->adapter->bind_view != NULL)
@@ -1003,6 +1026,10 @@ static uint8_t egui_view_virtual_stage_bind_slot(egui_view_t *self, egui_view_vi
     slot->stable_id = node->desc.stable_id;
     slot->last_used_seq = ++local->slot_use_seq;
     slot->bound_desc = node->desc;
+    if (local->is_attached_to_window)
+    {
+        egui_view_dispatch_attach_to_window(slot->view);
+    }
     if (preserve_runtime_region)
     {
         slot->render_region = slot->view->region;
@@ -1025,11 +1052,10 @@ static uint8_t egui_view_virtual_stage_refresh_cached_node(egui_view_t *self, eg
     egui_virtual_stage_node_desc_t old_desc;
     egui_virtual_stage_node_desc_t new_desc;
     uint8_t needs_layout;
-    uint8_t needs_resort = 0;
     int slot_index;
 
     if (stable_id == EGUI_VIEW_VIRTUAL_STAGE_INVALID_ID || local->adapter == NULL || local->adapter->get_desc == NULL || local->node_cache == NULL ||
-        local->is_data_dirty)
+        local->draw_order == NULL || local->is_data_dirty)
     {
         return 0;
     }
@@ -1041,7 +1067,7 @@ static uint8_t egui_view_virtual_stage_refresh_cached_node(egui_view_t *self, eg
     }
 
     old_desc = node->desc;
-    egui_api_memset(&new_desc, 0, sizeof(new_desc));
+    egui_api_memset(&new_desc, 0, (int)sizeof(new_desc));
     if (!local->adapter->get_desc(local->adapter_context, node->index, &new_desc))
     {
         return 0;
@@ -1058,7 +1084,7 @@ static uint8_t egui_view_virtual_stage_refresh_cached_node(egui_view_t *self, eg
     node->desc = new_desc;
     if (old_desc.z_order != new_desc.z_order)
     {
-        needs_resort = 1;
+        egui_view_virtual_stage_sort_draw_order(local);
     }
 
     needs_layout = force_layout || !egui_region_equal(&old_desc.region, &new_desc.region) || old_desc.view_type != new_desc.view_type ||
@@ -1088,10 +1114,6 @@ static uint8_t egui_view_virtual_stage_refresh_cached_node(egui_view_t *self, eg
         {
             if (egui_view_virtual_stage_bind_slot(self, local, slot, node, slot->state))
             {
-                if (needs_resort)
-                {
-                    egui_view_virtual_stage_sort_nodes(local);
-                }
                 return 1;
             }
         }
@@ -1102,11 +1124,6 @@ static uint8_t egui_view_virtual_stage_refresh_cached_node(egui_view_t *self, eg
     {
         local->is_layout_dirty = 1;
         egui_view_request_layout(self);
-    }
-
-    if (needs_resort)
-    {
-        egui_view_virtual_stage_sort_nodes(local);
     }
 
     return 1;
@@ -1231,7 +1248,7 @@ static void egui_view_virtual_stage_sync_slots(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_virtual_stage_t);
     uint8_t i;
-    uint32_t node_pos;
+    uint32_t draw_order_pos;
 
     if (local->is_data_dirty)
     {
@@ -1273,18 +1290,18 @@ static void egui_view_virtual_stage_sync_slots(egui_view_t *self)
         }
     }
 
-    for (node_pos = 0; node_pos < local->cached_node_count; node_pos++)
+    for (draw_order_pos = 0; draw_order_pos < local->cached_node_count; draw_order_pos++)
     {
         egui_view_virtual_stage_cached_node_t *nodes = egui_view_virtual_stage_get_nodes(local);
         egui_view_virtual_stage_cached_node_t *node;
         int slot_index;
 
-        if (nodes == NULL)
+        if (nodes == NULL || local->draw_order == NULL)
         {
             break;
         }
 
-        node = &nodes[node_pos];
+        node = &nodes[local->draw_order[draw_order_pos]];
         if (!egui_view_virtual_stage_node_requires_materialization(local, node))
         {
             continue;
@@ -1434,7 +1451,7 @@ static int egui_view_virtual_stage_dispatch_touch_to_slot(egui_view_virtual_stag
     }
 
     slot->last_used_seq = ++local->slot_use_seq;
-    egui_api_memset(&outer_touch_state, 0, sizeof(outer_touch_state));
+    egui_api_memset(&outer_touch_state, 0, (int)sizeof(outer_touch_state));
     egui_view_group_touch_state_exchange(&outer_touch_state);
     egui_view_group_touch_state_exchange(&slot->touch_state);
     {
@@ -1473,14 +1490,14 @@ static int egui_view_virtual_stage_dispatch_touch_event(egui_view_t *self, egui_
             return 0;
         }
 
-        if (nodes == NULL)
+        if (nodes == NULL || local->draw_order == NULL)
         {
             return egui_view_dispatch_touch_event(self, event);
         }
 
         for (draw_pos = (int32_t)local->cached_node_count - 1; draw_pos >= 0; draw_pos--)
         {
-            egui_view_virtual_stage_cached_node_t *node = &nodes[draw_pos];
+            egui_view_virtual_stage_cached_node_t *node = &nodes[local->draw_order[draw_pos]];
             int slot_index;
 
             if (!egui_view_virtual_stage_hit_test_node(self, local, node, event))
@@ -1599,7 +1616,7 @@ static void egui_view_virtual_stage_draw(egui_view_t *self)
     egui_canvas_set_extra_clip(active_clip);
     egui_view_draw(self);
 
-    if (!self->is_visible || self->is_gone || nodes == NULL)
+    if (!self->is_visible || self->is_gone || nodes == NULL || local->draw_order == NULL)
     {
         egui_canvas_set_alpha(alpha);
         if (prev_clip != NULL)
@@ -1615,7 +1632,7 @@ static void egui_view_virtual_stage_draw(egui_view_t *self)
 
     for (draw_pos = 0; draw_pos < local->cached_node_count; draw_pos++)
     {
-        egui_view_virtual_stage_cached_node_t *node = &nodes[draw_pos];
+        egui_view_virtual_stage_cached_node_t *node = &nodes[local->draw_order[draw_pos]];
         egui_region_t screen_region;
         int slot_index;
 
@@ -1744,7 +1761,7 @@ void egui_view_virtual_stage_apply_array_setup(egui_view_t *self, egui_view_virt
         return;
     }
 
-    egui_api_memset(&bridge_setup, 0, sizeof(bridge_setup));
+    egui_api_memset(&bridge_setup, 0, (int)sizeof(bridge_setup));
     if (setup != NULL)
     {
         egui_view_virtual_stage_array_adapter_init(adapter, setup->node_source, setup->ops, setup->user_context);
@@ -1775,7 +1792,7 @@ void egui_view_virtual_stage_array_adapter_init(egui_view_virtual_stage_array_ad
         return;
     }
 
-    egui_api_memset(adapter, 0, sizeof(*adapter));
+    egui_api_memset(adapter, 0, (int)sizeof(*adapter));
     adapter->adapter.get_count = egui_view_virtual_stage_array_adapter_get_count;
     adapter->adapter.get_desc = egui_view_virtual_stage_array_adapter_get_desc;
     adapter->adapter.create_view = egui_view_virtual_stage_array_adapter_create_view;
@@ -2136,7 +2153,9 @@ void egui_view_virtual_stage_init(egui_view_t *self)
     local->adapter_context = NULL;
     local->node_cache = NULL;
     local->pin_entries = NULL;
+    local->draw_order = NULL;
     local->cached_node_count = 0;
+    local->cached_capacity = 0;
     local->pin_count = 0;
     local->pin_capacity = 0;
     local->slot_use_seq = 0;

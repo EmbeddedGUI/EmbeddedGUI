@@ -252,6 +252,12 @@ static void egui_view_circular_progress_bar_invalidate_process_change(egui_view_
         return;
     }
 
+    if (egui_view_has_pending_dirty(self))
+    {
+        egui_view_invalidate_full(self);
+        return;
+    }
+
     egui_view_get_work_region(self, &region);
     center_x = region.location.x + region.size.width / 2;
     center_y = region.location.y + region.size.height / 2;

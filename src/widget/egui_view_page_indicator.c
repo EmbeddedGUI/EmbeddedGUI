@@ -69,6 +69,12 @@ static void egui_view_page_indicator_invalidate_current_index_change(egui_view_t
         return;
     }
 
+    if (egui_view_has_pending_dirty(self))
+    {
+        egui_view_invalidate_full(self);
+        return;
+    }
+
     egui_region_init_empty(&dirty_region);
     egui_view_page_indicator_add_marker_dirty_region(self, local, old_index, &dirty_region);
     egui_view_page_indicator_add_marker_dirty_region(self, local, local->current_index, &dirty_region);

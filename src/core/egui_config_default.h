@@ -56,28 +56,6 @@ extern "C" {
 #endif
 
 /**
- * Default-off logical PFB probe for measurement experiments.
- * Core keeps the physical PFB bytes unchanged and only reinterprets the tile
- * geometry during the refresh walk.
- *
- * Only enable this for perf/RAM experiments. The shipped default path should
- * keep using the configured PFB geometry directly.
- */
-#ifndef EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE
-#define EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE 0
-#endif
-
-/**
- * Target logical tile width for the measurement-only probe above.
- * When enabled, core picks the largest divisor of (PFB_WIDTH * PFB_HEIGHT)
- * that does not exceed this target and still keeps logical height within the
- * configured PFB height.
- */
-#ifndef EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH
-#define EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH EGUI_CONFIG_PFB_WIDTH
-#endif
-
-/**
  * PFB multi-buffer count.
  * Controls how many PFB buffers the ring queue uses:
  *   1 = single buffer, synchronous draw (no DMA overlap)
@@ -114,15 +92,6 @@ extern "C" {
 #define EGUI_CONFIG_MAX_FPS 60
 #endif
 
-/**
- * Keep a core-owned periodic refresh timer running in the background.
- * Apps that drive every refresh manually can disable this to remove the
- * persistent timer state.
- */
-#ifndef EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE
-#define EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE 1
-#endif
-
 /* Set the dirty area count. Limit is 1, use the buffer to reduce need refresh area. */
 #ifndef EGUI_CONFIG_DIRTY_AREA_COUNT
 #define EGUI_CONFIG_DIRTY_AREA_COUNT 5
@@ -143,15 +112,6 @@ extern "C" {
 /* Set the motion cache count, use to save the motion of the input device. */
 #ifndef EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT
 #define EGUI_CONFIG_INPUT_MOTION_CACHE_COUNT 5
-#endif
-
-/**
- * Track touch release velocity for fling-capable widgets such as scroll/viewpage.
- * Apps that never read egui_input_get_velocity_*() can disable this to trim
- * persistent input state.
- */
-#ifndef EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE
-#define EGUI_CONFIG_INPUT_VELOCITY_TRACKER_ENABLE 1
 #endif
 
 /**
@@ -268,53 +228,6 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR 1
 #endif
 
-/**
- * Function options.
- * Select support activity stack APIs/state. if 0, remove activity runtime support.
- * Default: 0 (disabled). Enable explicitly when using activity stack.
- */
-#ifndef EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
-#define EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY 0
-#endif
-
-/**
- * Function options.
- * Select support dialog APIs/state. if 0, remove dialog runtime support.
- * Default: 0 (disabled). Enable explicitly when using dialogs.
- */
-#ifndef EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
-#define EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG 0
-#endif
-
-/**
- * Function options.
- * Select support toast APIs/state. if 0, remove toast runtime support.
- */
-#ifndef EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
-#define EGUI_CONFIG_FUNCTION_SUPPORT_TOAST 1
-#endif
-
-/* Dialog support depends on the activity stack. */
-#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
-#undef EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
-#define EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY 1
-#endif
-
-/**
- * Core state options.
- * Select whether to keep a separate user-root wrapper under the top-level root group.
- * Default: 0 (disabled). Auto-enabled when activity/dialog/debug is enabled.
- * Simple apps can place user views directly on the root group for better performance.
- */
-#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY || EGUI_CONFIG_DEBUG_INFO_SHOW
-#undef EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
-#define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 1
-#endif
-
-#ifndef EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
-#define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 0
-#endif
-
 /* ---- Resource management ---- */
 
 /**
@@ -413,14 +326,6 @@ extern "C" {
 #endif
 
 /**
- * Max decoded pixel bytes per pixel for compressed image scratch/cache buffers.
- * Default: 2 (RGB565). RGB32-capable apps should set this to 4.
- */
-#ifndef EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE
-#define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE 2
-#endif
-
-/**
  * Enable row-band decode cache for compressed image codecs.
  * When enabled, the first PFB tile in a row band decodes all rows into
  * a cache; subsequent horizontal tiles blend from cache without re-decoding.
@@ -435,17 +340,6 @@ extern "C" {
 #endif
 
 /**
- * Reuse the first row of the compressed-image row cache as the temporary
- * "all opaque alpha" buffer for masked RGB565 blend fallbacks.
- * Saves one decode-row alpha buffer, but may clobber compressed alpha cache
- * contents if mixed compressed-image cache hits and opaque masked draws share
- * a frame. Keep disabled unless the app guarantees those paths do not overlap.
- */
-#ifndef EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
-#define EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE 0
-#endif
-
-/**
  * Optional persistent full-image cache for compressed image codecs.
  * Stores one fully decoded compressed image across refreshes and repeated draws.
  * Total RAM budget in bytes for pixel + alpha buffers; 0 disables the feature.
@@ -455,54 +349,12 @@ extern "C" {
 #endif
 
 /**
- * QOI decoder checkpoint count.
- * Each slot stores a full decoder state for restoring recent row bands.
- * Must be a power of two.
- */
-#ifndef EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT
-#define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 2
-#endif
-
-/**
  * Optional persistent full-image cache for external standard images.
  * Stores one external raw image in RAM across refreshes and repeated draws.
  * Total RAM budget in bytes for data + alpha buffers; 0 disables the feature.
  */
 #ifndef EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES
 #define EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES 0
-#endif
-
-/**
- * External raw-image row cache data budget in bytes.
- * Shared by the standard external image draw/resize path and the transform path.
- * Formula: SCREEN_WIDTH × PIXEL_SIZE × N_ROWS
- * Default: 2 rows of RGB565 data (SCREEN_WIDTH × 2 × 2)
- */
-#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES
-#define EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES (EGUI_CONFIG_SCEEN_WIDTH * 2 * 2)
-#endif
-
-/**
- * External raw-image row cache alpha budget in bytes.
- * Shared by the standard external image draw/resize path and the transform path.
- * Formula: SCREEN_WIDTH × N_ROWS
- * Default: 2 rows of alpha data (SCREEN_WIDTH × 2)
- */
-#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES
-#define EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES (EGUI_CONFIG_SCEEN_WIDTH * 2)
-#endif
-
-/* External raw-image row cache sharing is always enabled (mandatory).
- * Std and transform paths share one heap-allocated backing store with
- * generation-based invalidation.  The former config macro
- * EGUI_CONFIG_IMAGE_EXTERNAL_ROW_CACHE_SHARE_BUFFERS has been removed. */
-
-/**
- * Slot count for the round-rect image fast cache.
- * One slot is enough for the common single-mask path and saves RAM.
- */
-#ifndef EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_CACHE_COUNT
-#define EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_CACHE_COUNT 1
 #endif
 
 /* ---- Reduce code/ram size ---- */
@@ -529,38 +381,6 @@ extern "C" {
  */
 #ifndef EGUI_CONFIG_REDUCE_MARGIN_PADDING_SIZE
 #define EGUI_CONFIG_REDUCE_MARGIN_PADDING_SIZE 1
-#endif
-
-/* ---- Platform callback customization ---- */
-
-/**
- * When 0, egui_api_malloc / egui_api_free call stdlib malloc/free directly.
- * Set to 1 when the porting layer provides a custom allocator (e.g. DMA-safe
- * pool, instrumented heap).  The callback is used via ops->malloc / ops->free.
- */
-#ifndef EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
-#define EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC 0
-#endif
-
-/**
- * When 0, egui_api_pfb_clear / egui_api_memcpy call memset / memcpy directly.
- * Set to 1 when the porting layer has hardware-accelerated memory operations
- * (e.g. DMA memset/memcpy).  The callbacks are used via ops->pfb_clear /
- * ops->memcpy_fast.  Porting layers only need to implement the callbacks
- * they actually accelerate; NULL callbacks fall back to stdlib.
- */
-#ifndef EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
-#define EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP 0
-#endif
-
-/**
- * When 0, egui_api_log calls vprintf and egui_api_sprintf calls vsprintf
- * directly.  Set to 1 when the porting layer redirects log/format output
- * (e.g. semihosting, stderr, UART ring buffer, minimal printf without float).
- * The callbacks are used via ops->vlog / ops->vsprintf.
- */
-#ifndef EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
-#define EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF 0
 #endif
 
 /* ---- Recording ---- */

@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "egui_view_heart_rate.h"
+#include "core/egui_api.h"
 #include "utils/egui_sprintf.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
@@ -58,6 +59,41 @@ static void heart_rate_timer_cb(egui_timer_t *timer)
     egui_view_invalidate((egui_view_t *)local);
 }
 
+static void egui_view_heart_rate_update_timer(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_heart_rate_t);
+    uint32_t period;
+
+    if (!local->animate || local->bpm == 0 || !self->is_attached_to_window)
+    {
+        egui_timer_stop_timer(&local->anim_timer);
+        return;
+    }
+
+    period = 60000u / (uint32_t)local->bpm / 32u;
+    if (period < 15u)
+    {
+        period = 15u;
+    }
+
+    egui_timer_stop_timer(&local->anim_timer);
+    egui_timer_start_timer(&local->anim_timer, period, period);
+}
+
+static void egui_view_heart_rate_on_attach_to_window(egui_view_t *self)
+{
+    egui_view_on_attach_to_window(self);
+    egui_view_heart_rate_update_timer(self);
+}
+
+static void egui_view_heart_rate_on_detach_from_window(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_heart_rate_t);
+
+    egui_timer_stop_timer(&local->anim_timer);
+    egui_view_on_detach_from_window(self);
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -69,16 +105,7 @@ void egui_view_heart_rate_set_bpm(egui_view_t *self, uint8_t bpm)
         return;
     }
     local->bpm = bpm;
-    if (local->animate && bpm > 0)
-    {
-        uint32_t period = 60000u / (uint32_t)bpm / 32u;
-        if (period < 15u)
-        {
-            period = 15u;
-        }
-        egui_timer_stop_timer(&local->anim_timer);
-        egui_timer_start_timer(&local->anim_timer, period, period);
-    }
+    egui_view_heart_rate_update_timer(self);
     egui_view_invalidate(self);
 }
 
@@ -91,23 +118,7 @@ void egui_view_heart_rate_set_animate(egui_view_t *self, uint8_t enable)
     }
 
     local->animate = enable;
-    if (enable && local->bpm > 0)
-    {
-        // Only start if not already running
-        if (!egui_timer_check_timer_start(&local->anim_timer))
-        {
-            uint32_t period = 60000u / (uint32_t)local->bpm / 32u;
-            if (period < 15u)
-            {
-                period = 15u;
-            }
-            egui_timer_start_timer(&local->anim_timer, period, period);
-        }
-    }
-    else
-    {
-        egui_timer_stop_timer(&local->anim_timer);
-    }
+    egui_view_heart_rate_update_timer(self);
     egui_view_invalidate(self);
 }
 
@@ -374,9 +385,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_heart_rate_t) = {
         .calculate_layout = egui_view_calculate_layout,
         .request_layout = egui_view_request_layout,
         .draw = egui_view_draw,
-        .on_attach_to_window = egui_view_on_attach_to_window,
+        .on_attach_to_window = egui_view_heart_rate_on_attach_to_window,
         .on_draw = egui_view_heart_rate_on_draw,
-        .on_detach_from_window = egui_view_on_detach_from_window,
+        .on_detach_from_window = egui_view_heart_rate_on_detach_from_window,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_dispatch_key_event,
         .on_key_event = egui_view_on_key_event,
@@ -394,7 +405,7 @@ void egui_view_heart_rate_init(egui_view_t *self)
     local->heart_color = EGUI_THEME_DANGER;
     local->text_color = EGUI_THEME_PRIMARY_DARK;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
-    egui_api_memset(local->text_buffer, 0, sizeof(local->text_buffer));
+    egui_api_memset(local->text_buffer, 0, (int)sizeof(local->text_buffer));
     local->ecg_offset = 0;
     local->beat_phase = 0;
 

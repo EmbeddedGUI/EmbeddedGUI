@@ -20,9 +20,13 @@ struct egui_view_textblock
 
     egui_dim_t line_space;
     egui_dim_t max_lines;
+    egui_dim_t content_line_count;
+    egui_dim_t layout_width;
 
     uint8_t align_type;
     uint8_t is_auto_height;
+    uint8_t is_auto_wrap_enabled;
+    uint8_t is_scroll_enabled;
     egui_alpha_t alpha;
     egui_color_t color;
 
@@ -80,11 +84,15 @@ struct egui_view_textblock_params
     egui_alpha_t alpha;
     egui_dim_t line_space;
     egui_dim_t max_lines;
+    uint8_t is_auto_wrap_enabled;
+    uint8_t is_scroll_enabled;
 };
 
 #define EGUI_VIEW_TEXTBLOCK_PARAMS_INIT(_name, _x, _y, _w, _h, _text, _font, _color, _alpha)                                                                   \
     static const egui_view_textblock_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}},                                                                 \
                                                        .align_type = EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP,                                                         \
+                                                       .is_auto_wrap_enabled = 1,                                                                              \
+                                                       .is_scroll_enabled = 1,                                                                                 \
                                                        .text = (_text),                                                                                        \
                                                        .font = (const egui_font_t *)(_font),                                                                   \
                                                        .color = (_color),                                                                                      \
@@ -95,6 +103,8 @@ struct egui_view_textblock_params
 #define EGUI_VIEW_TEXTBLOCK_PARAMS_INIT_SIMPLE(_name, _x, _y, _w, _h, _text)                                                                                   \
     static const egui_view_textblock_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}},                                                                 \
                                                        .align_type = EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP,                                                         \
+                                                       .is_auto_wrap_enabled = 1,                                                                              \
+                                                       .is_scroll_enabled = 1,                                                                                 \
                                                        .text = (_text),                                                                                        \
                                                        .font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT,                                                  \
                                                        .color = EGUI_COLOR_WHITE,                                                                              \
@@ -109,6 +119,8 @@ void egui_view_textblock_on_draw(egui_view_t *self);
 void egui_view_textblock_set_line_space(egui_view_t *self, egui_dim_t line_space);
 void egui_view_textblock_set_max_lines(egui_view_t *self, egui_dim_t max_lines);
 void egui_view_textblock_set_auto_height(egui_view_t *self, uint8_t is_auto_height);
+void egui_view_textblock_set_auto_wrap(egui_view_t *self, uint8_t enabled);
+void egui_view_textblock_set_scroll_enabled(egui_view_t *self, uint8_t enabled);
 void egui_view_textblock_set_font(egui_view_t *self, const egui_font_t *font);
 void egui_view_textblock_set_font_color(egui_view_t *self, egui_color_t color, egui_alpha_t alpha);
 void egui_view_textblock_set_align_type(egui_view_t *self, uint8_t align_type);

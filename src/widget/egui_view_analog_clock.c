@@ -47,6 +47,12 @@ static void egui_view_analog_clock_invalidate_time_change(egui_view_t *self, egu
         return;
     }
 
+    if (egui_view_has_pending_dirty(self))
+    {
+        egui_view_invalidate_full(self);
+        return;
+    }
+
     egui_view_get_work_region(self, &region);
     w = region.size.width;
     h = region.size.height;

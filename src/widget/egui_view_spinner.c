@@ -32,6 +32,12 @@ static void egui_view_spinner_invalidate_rotation_change(egui_view_t *self, egui
         return;
     }
 
+    if (egui_view_has_pending_dirty(self))
+    {
+        egui_view_invalidate_full(self);
+        return;
+    }
+
     egui_view_get_work_region(self, &region);
     w = region.size.width;
     h = region.size.height;
@@ -82,13 +88,44 @@ static void egui_view_spinner_timer_callback(egui_timer_t *timer)
     egui_view_spinner_invalidate_rotation_change((egui_view_t *)local, local, old_rotation_angle);
 }
 
+static void egui_view_spinner_update_timer(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_spinner_t);
+
+    if (local->is_spinning && self->is_attached_to_window)
+    {
+        if (!egui_timer_check_timer_start(&local->spin_timer))
+        {
+            egui_timer_start_timer(&local->spin_timer, 50, 50);
+        }
+    }
+    else
+    {
+        egui_timer_stop_timer(&local->spin_timer);
+    }
+}
+
+static void egui_view_spinner_on_attach_to_window(egui_view_t *self)
+{
+    egui_view_on_attach_to_window(self);
+    egui_view_spinner_update_timer(self);
+}
+
+static void egui_view_spinner_on_detach_from_window(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_spinner_t);
+
+    egui_timer_stop_timer(&local->spin_timer);
+    egui_view_on_detach_from_window(self);
+}
+
 void egui_view_spinner_start(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_spinner_t);
     if (!local->is_spinning)
     {
         local->is_spinning = 1;
-        egui_timer_start_timer(&local->spin_timer, 50, 50);
+        egui_view_spinner_update_timer(self);
     }
 }
 
@@ -98,7 +135,7 @@ void egui_view_spinner_stop(egui_view_t *self)
     if (local->is_spinning)
     {
         local->is_spinning = 0;
-        egui_timer_stop_timer(&local->spin_timer);
+        egui_view_spinner_update_timer(self);
     }
 }
 
@@ -158,9 +195,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_spinner_t) = {
         .calculate_layout = egui_view_calculate_layout,
         .request_layout = egui_view_request_layout,
         .draw = egui_view_draw,
-        .on_attach_to_window = egui_view_on_attach_to_window,
+        .on_attach_to_window = egui_view_spinner_on_attach_to_window,
         .on_draw = egui_view_spinner_on_draw,
-        .on_detach_from_window = egui_view_on_detach_from_window,
+        .on_detach_from_window = egui_view_spinner_on_detach_from_window,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_dispatch_key_event,
         .on_key_event = egui_view_on_key_event,

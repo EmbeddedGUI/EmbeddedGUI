@@ -92,6 +92,7 @@
 #include "widget/egui_view_button.h"
 #include "widget/egui_view_dynamic_label.h"
 #include "widget/egui_view_label.h"
+#include "widget/egui_view_lyric_scroller.h"
 #include "widget/egui_view_autocomplete.h"
 #include "widget/egui_view_chips.h"
 #include "widget/egui_view_linearlayout.h"

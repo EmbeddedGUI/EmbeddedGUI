@@ -507,6 +507,18 @@ static void test_slider_value_change_uses_partial_dirty_region(void)
     assert_partial_dirty_region(EGUI_VIEW_OF(&test_slider));
 }
 
+static void test_slider_repeated_value_change_same_frame_falls_back_to_full_dirty_region(void)
+{
+    setup_slider();
+    egui_view_slider_set_value(EGUI_VIEW_OF(&test_slider), 20);
+
+    egui_core_clear_region_dirty();
+    egui_view_slider_set_value(EGUI_VIEW_OF(&test_slider), 75);
+    egui_view_slider_set_value(EGUI_VIEW_OF(&test_slider), 35);
+
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_slider));
+}
+
 static void test_progress_bar_process_change_uses_partial_dirty_region(void)
 {
     setup_progress_bar();
@@ -518,6 +530,31 @@ static void test_progress_bar_process_change_uses_partial_dirty_region(void)
     assert_partial_dirty_region(EGUI_VIEW_OF(&test_progress_bar));
 }
 
+static void test_progress_bar_repeated_process_change_same_frame_falls_back_to_full_dirty_region(void)
+{
+    setup_progress_bar();
+    egui_view_progress_bar_set_process(EGUI_VIEW_OF(&test_progress_bar), 20);
+
+    egui_core_clear_region_dirty();
+    egui_view_progress_bar_set_process(EGUI_VIEW_OF(&test_progress_bar), 70);
+    egui_view_progress_bar_set_process(EGUI_VIEW_OF(&test_progress_bar), 35);
+
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_progress_bar));
+}
+
+static void test_progress_bar_with_control_repeated_process_change_same_frame_falls_back_to_full_dirty_region(void)
+{
+    setup_progress_bar();
+    test_progress_bar.is_show_control = 1;
+    egui_view_progress_bar_set_process(EGUI_VIEW_OF(&test_progress_bar), 20);
+
+    egui_core_clear_region_dirty();
+    egui_view_progress_bar_set_process(EGUI_VIEW_OF(&test_progress_bar), 70);
+    egui_view_progress_bar_set_process(EGUI_VIEW_OF(&test_progress_bar), 35);
+
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_progress_bar));
+}
+
 static void test_page_indicator_dot_index_change_uses_partial_dirty_region(void)
 {
     setup_page_indicator();
@@ -527,6 +564,18 @@ static void test_page_indicator_dot_index_change_uses_partial_dirty_region(void)
     egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&test_indicator), 3);
 
     assert_partial_dirty_region(EGUI_VIEW_OF(&test_indicator));
+}
+
+static void test_page_indicator_repeated_index_change_same_frame_falls_back_to_full_dirty_region(void)
+{
+    setup_page_indicator();
+    egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&test_indicator), 1);
+
+    egui_core_clear_region_dirty();
+    egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&test_indicator), 3);
+    egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&test_indicator), 4);
+
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_indicator));
 }
 
 static void test_page_indicator_icon_index_change_uses_partial_dirty_region(void)
@@ -541,6 +590,21 @@ static void test_page_indicator_icon_index_change_uses_partial_dirty_region(void
     egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&test_indicator), 4);
 
     assert_partial_dirty_region(EGUI_VIEW_OF(&test_indicator));
+}
+
+static void test_page_indicator_icon_repeated_index_change_same_frame_falls_back_to_full_dirty_region(void)
+{
+    setup_page_indicator();
+    egui_view_page_indicator_set_mark_style(EGUI_VIEW_OF(&test_indicator), EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_ICON);
+    egui_view_page_indicator_set_icons(EGUI_VIEW_OF(&test_indicator), s_indicator_icons);
+    egui_view_page_indicator_set_icon_font(EGUI_VIEW_OF(&test_indicator), EGUI_FONT_ICON_MS_16);
+    egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&test_indicator), 1);
+
+    egui_core_clear_region_dirty();
+    egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&test_indicator), 3);
+    egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&test_indicator), 4);
+
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_indicator));
 }
 
 static void test_checkbox_checked_change_uses_partial_dirty_region(void)
@@ -584,6 +648,17 @@ static void test_button_matrix_selected_change_uses_partial_dirty_region(void)
     assert_dirty_area_less_than(EGUI_VIEW_OF(&test_button_matrix), region_area(&EGUI_VIEW_OF(&test_button_matrix)->region_screen) / 2);
 }
 
+static void test_button_matrix_repeated_selected_change_same_frame_falls_back_to_full_dirty_region(void)
+{
+    setup_button_matrix();
+
+    egui_core_clear_region_dirty();
+    egui_view_button_matrix_set_selected_index(EGUI_VIEW_OF(&test_button_matrix), 4);
+    egui_view_button_matrix_set_selected_index(EGUI_VIEW_OF(&test_button_matrix), 8);
+
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_button_matrix));
+}
+
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static void test_button_matrix_touch_release_uses_partial_dirty_region(void)
 {
@@ -599,8 +674,7 @@ static void test_button_matrix_touch_release_uses_partial_dirty_region(void)
     send_button_matrix_touch(EGUI_MOTION_EVENT_ACTION_DOWN, touch_x, touch_y);
     send_button_matrix_touch(EGUI_MOTION_EVENT_ACTION_UP, touch_x, touch_y);
 
-    assert_partial_dirty_region(EGUI_VIEW_OF(&test_button_matrix));
-    assert_dirty_area_less_than(EGUI_VIEW_OF(&test_button_matrix), region_area(&EGUI_VIEW_OF(&test_button_matrix)->region_screen) / 2);
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_button_matrix));
 }
 
 static void test_slider_touch_down_uses_partial_dirty_region(void)
@@ -648,6 +722,25 @@ static void test_slider_touch_down_with_pressed_background_uses_full_dirty_regio
 
     egui_core_clear_region_dirty();
     send_slider_touch(EGUI_MOTION_EVENT_ACTION_DOWN, touch_x, touch_y);
+
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_slider));
+}
+
+static void test_slider_touch_move_then_programmatic_change_same_frame_uses_full_dirty_region(void)
+{
+    egui_dim_t touch_x;
+    egui_dim_t touch_y;
+    egui_dim_t move_x;
+
+    setup_slider();
+    egui_view_slider_set_value(EGUI_VIEW_OF(&test_slider), 50);
+    get_slider_thumb_center(&touch_x, &touch_y);
+    move_x = EGUI_VIEW_OF(&test_slider)->region_screen.location.x + EGUI_VIEW_OF(&test_slider)->region_screen.size.width - 4;
+
+    egui_core_clear_region_dirty();
+    send_slider_touch(EGUI_MOTION_EVENT_ACTION_DOWN, touch_x, touch_y);
+    send_slider_touch(EGUI_MOTION_EVENT_ACTION_MOVE, move_x, touch_y);
+    egui_view_slider_set_value(EGUI_VIEW_OF(&test_slider), 20);
 
     assert_full_dirty_region(EGUI_VIEW_OF(&test_slider));
 }
@@ -819,21 +912,40 @@ static void test_stopwatch_elapsed_change_uses_partial_dirty_region(void)
     EGUI_TEST_ASSERT_TRUE(region_area(&arr[0]) < region_area(&EGUI_VIEW_OF(&test_stopwatch)->region_screen));
 }
 
+static void test_stopwatch_repeated_elapsed_change_same_frame_falls_back_to_full_dirty_region(void)
+{
+    setup_stopwatch();
+    egui_view_stopwatch_set_elapsed(EGUI_VIEW_OF(&test_stopwatch), 12340);
+
+    egui_core_clear_region_dirty();
+    egui_view_stopwatch_set_elapsed(EGUI_VIEW_OF(&test_stopwatch), 12350);
+    egui_view_stopwatch_set_elapsed(EGUI_VIEW_OF(&test_stopwatch), 12400);
+
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_stopwatch));
+}
+
 void test_basic_widget_dirty_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(basic_widget_dirty);
     EGUI_TEST_RUN(test_slider_value_change_uses_partial_dirty_region);
+    EGUI_TEST_RUN(test_slider_repeated_value_change_same_frame_falls_back_to_full_dirty_region);
     EGUI_TEST_RUN(test_progress_bar_process_change_uses_partial_dirty_region);
+    EGUI_TEST_RUN(test_progress_bar_repeated_process_change_same_frame_falls_back_to_full_dirty_region);
+    EGUI_TEST_RUN(test_progress_bar_with_control_repeated_process_change_same_frame_falls_back_to_full_dirty_region);
     EGUI_TEST_RUN(test_page_indicator_dot_index_change_uses_partial_dirty_region);
+    EGUI_TEST_RUN(test_page_indicator_repeated_index_change_same_frame_falls_back_to_full_dirty_region);
     EGUI_TEST_RUN(test_page_indicator_icon_index_change_uses_partial_dirty_region);
+    EGUI_TEST_RUN(test_page_indicator_icon_repeated_index_change_same_frame_falls_back_to_full_dirty_region);
     EGUI_TEST_RUN(test_checkbox_checked_change_uses_partial_dirty_region);
     EGUI_TEST_RUN(test_radio_button_checked_change_uses_partial_dirty_region);
     EGUI_TEST_RUN(test_led_on_change_uses_partial_dirty_region);
     EGUI_TEST_RUN(test_button_matrix_selected_change_uses_partial_dirty_region);
+    EGUI_TEST_RUN(test_button_matrix_repeated_selected_change_same_frame_falls_back_to_full_dirty_region);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     EGUI_TEST_RUN(test_slider_touch_down_uses_partial_dirty_region);
     EGUI_TEST_RUN(test_slider_touch_up_uses_partial_dirty_region);
     EGUI_TEST_RUN(test_slider_touch_down_with_pressed_background_uses_full_dirty_region);
+    EGUI_TEST_RUN(test_slider_touch_move_then_programmatic_change_same_frame_uses_full_dirty_region);
     EGUI_TEST_RUN(test_button_matrix_touch_release_uses_partial_dirty_region);
     EGUI_TEST_RUN(test_mini_calendar_selected_day_change_uses_partial_dirty_region);
     EGUI_TEST_RUN(test_mini_calendar_touch_down_with_pressed_background_uses_full_dirty_region);
@@ -846,5 +958,6 @@ void test_basic_widget_dirty_run(void)
     EGUI_TEST_RUN(test_textinput_cursor_blink_uses_partial_dirty_region);
 #endif
     EGUI_TEST_RUN(test_stopwatch_elapsed_change_uses_partial_dirty_region);
+    EGUI_TEST_RUN(test_stopwatch_repeated_elapsed_change_same_frame_falls_back_to_full_dirty_region);
     EGUI_TEST_SUITE_END();
 }

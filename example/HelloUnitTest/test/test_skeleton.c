@@ -86,7 +86,7 @@ static void stop_timer_if_started(void)
 {
     if (test_skeleton.timer_started)
     {
-        EGUI_VIEW_OF(&test_skeleton)->api->on_detach_from_window(EGUI_VIEW_OF(&test_skeleton));
+        egui_view_dispatch_detach_from_window(EGUI_VIEW_OF(&test_skeleton));
     }
 }
 
@@ -176,14 +176,14 @@ static void test_skeleton_attach_detach_and_helper_functions(void)
     EGUI_TEST_ASSERT_EQUAL_INT(egui_rgb_mix(sample, EGUI_COLOR_DARK_GREY, 62).full, egui_view_skeleton_mix_disabled(sample).full);
 
     egui_view_skeleton_set_animation_mode(EGUI_VIEW_OF(&test_skeleton), EGUI_VIEW_SKELETON_ANIM_WAVE);
-    EGUI_VIEW_OF(&test_skeleton)->api->on_attach_to_window(EGUI_VIEW_OF(&test_skeleton));
+    egui_view_dispatch_attach_to_window(EGUI_VIEW_OF(&test_skeleton));
     EGUI_TEST_ASSERT_EQUAL_INT(1, test_skeleton.timer_started);
 
     test_skeleton.anim_phase = 23;
     egui_view_skeleton_tick(&test_skeleton.anim_timer);
     EGUI_TEST_ASSERT_EQUAL_INT(0, test_skeleton.anim_phase);
 
-    EGUI_VIEW_OF(&test_skeleton)->api->on_detach_from_window(EGUI_VIEW_OF(&test_skeleton));
+    egui_view_dispatch_detach_from_window(EGUI_VIEW_OF(&test_skeleton));
     EGUI_TEST_ASSERT_EQUAL_INT(0, test_skeleton.timer_started);
 }
 

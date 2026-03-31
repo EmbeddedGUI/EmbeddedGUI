@@ -84,10 +84,16 @@ static void egui_view_invalidate_full_region(egui_view_t *self)
     egui_view_invalidate_region(self, &dirty_region);
 }
 
+void egui_view_invalidate_full(egui_view_t *self)
+{
+    egui_view_invalidate_full_region(self);
+}
+
 void egui_view_invalidate(egui_view_t *self)
 {
     if (egui_view_is_visible(self))
     {
+        self->last_dirty_epoch = egui_core_get_dirty_epoch();
         self->api->request_layout(self);
     }
 }
@@ -105,11 +111,22 @@ void egui_view_invalidate_region(egui_view_t *self, const egui_region_t *dirty_r
 
     if (!egui_region_is_empty(&screen_region))
     {
+        self->last_dirty_epoch = egui_core_get_dirty_epoch();
 #if EGUI_CONFIG_DEBUG_DIRTY_REGION_TRACE
         egui_view_log_dirty_source("subregion", self, &screen_region);
 #endif
         egui_core_update_region_dirty(&screen_region);
     }
+}
+
+uint8_t egui_view_has_pending_dirty(egui_view_t *self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+
+    return (self->last_dirty_epoch == egui_core_get_dirty_epoch()) ? 1U : 0U;
 }
 
 void egui_view_invalidate_sub_region(egui_view_t *self, const egui_sub_region_table_t *table, uint16_t index)
@@ -562,6 +579,35 @@ int egui_view_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 }
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 
+void egui_view_dispatch_attach_to_window(egui_view_t *self)
+{
+    if (self == NULL || self->is_attached_to_window)
+    {
+        return;
+    }
+
+    self->is_attached_to_window = 1;
+    self->api->on_attach_to_window(self);
+}
+
+void egui_view_dispatch_detach_from_window(egui_view_t *self)
+{
+    if (self == NULL || !self->is_attached_to_window)
+    {
+        return;
+    }
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (self->is_focused)
+    {
+        egui_focus_manager_clear_focus();
+    }
+#endif
+
+    self->api->on_detach_from_window(self);
+    self->is_attached_to_window = 0;
+}
+
 void egui_view_on_attach_to_window(egui_view_t *self)
 {
     // EGUI_LOG_DBG("on_attach_to_window %d\n", self->id);
@@ -582,7 +628,6 @@ void egui_view_draw(egui_view_t *self)
     egui_alpha_t alpha = egui_canvas_get_alpha();
 
 #if EGUI_CONFIG_DEBUG_CLASS_NAME
-#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
     egui_activity_t *activity = egui_core_activity_get_by_view(self);
     if (activity)
     {
@@ -600,13 +645,6 @@ void egui_view_draw(egui_view_t *self)
         EGUI_LOG_DBG("draw view visible: %d, name: %s\n", self->is_visible, self->name);
 #endif
     }
-#else
-#if EGUI_CONFIG_DEBUG_VIEW_ID
-    EGUI_LOG_DBG("draw view id: %02d, visible: %d, name: %s\n", self->id, self->is_visible, self->name);
-#else
-    EGUI_LOG_DBG("draw view visible: %d, name: %s\n", self->is_visible, self->name);
-#endif
-#endif
 #endif
 
     if (self->is_visible == false || self->is_gone == true)
@@ -866,8 +904,10 @@ void egui_view_init(egui_view_t *self)
     self->is_visible = true;
     self->is_gone = false;
     self->is_request_layout = true;
+    self->is_attached_to_window = false;
 
     self->background = NULL;
+    self->last_dirty_epoch = UINT32_MAX;
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
     self->shadow = NULL;
 #endif

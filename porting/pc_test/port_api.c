@@ -77,7 +77,7 @@ static void test_lcd_setup(egui_hal_lcd_driver_t *storage)
 
 static void *test_malloc(int size)
 {
-    return malloc(size);
+    return malloc((size_t)size);
 }
 
 static void test_free(void *ptr)
@@ -90,14 +90,14 @@ static void test_vlog(const char *format, va_list args)
     vprintf(format, args);
 }
 
-static void test_assert_handler(const char *file, int line)
-{
-    printf("ASSERT: %s:%d\n", file, line);
-}
-
 static void test_vsprintf(char *str, const char *format, va_list args)
 {
     vsprintf(str, format, args);
+}
+
+static void test_assert_handler(const char *file, int line)
+{
+    printf("ASSERT: %s:%d\n", file, line);
 }
 
 static uint32_t test_get_tick_ms(void)
@@ -110,9 +110,14 @@ static void test_delay(uint32_t ms)
     EGUI_UNUSED(ms);
 }
 
-static void test_pfb_clear(void *s, int n)
+static void test_memset_fast(void *s, int c, int n)
 {
-    memset(s, 0, n);
+    memset(s, c, n);
+}
+
+static void test_memcpy_fast(void *dst, const void *src, int n)
+{
+    memcpy(dst, src, (size_t)n);
 }
 
 static egui_base_t test_interrupt_disable(void)
@@ -126,14 +131,9 @@ static void test_interrupt_enable(egui_base_t level)
 }
 
 static const egui_platform_ops_t test_platform_ops = {
-        .malloc = test_malloc,
-        .free = test_free,
-        .vlog = test_vlog,
         .assert_handler = test_assert_handler,
-        .vsprintf = test_vsprintf,
         .delay = test_delay,
         .get_tick_ms = test_get_tick_ms,
-        .pfb_clear = test_pfb_clear,
         .interrupt_disable = test_interrupt_disable,
         .interrupt_enable = test_interrupt_enable,
         .load_external_resource = NULL,
@@ -143,8 +143,19 @@ static const egui_platform_ops_t test_platform_ops = {
         .mutex_destroy = NULL,
         .timer_start = NULL,
         .timer_stop = NULL,
-        .memcpy_fast = NULL,
         .watchdog_feed = NULL,
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
+        .malloc = test_malloc,
+        .free = test_free,
+#endif
+#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
+        .vlog = test_vlog,
+        .vsprintf = test_vsprintf,
+#endif
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
+        .memset_fast = test_memset_fast,
+        .memcpy_fast = test_memcpy_fast,
+#endif
 };
 
 static egui_platform_t test_platform = {

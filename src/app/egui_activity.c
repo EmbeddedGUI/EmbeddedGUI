@@ -2,8 +2,6 @@
 #include <assert.h>
 
 #include "egui_activity.h"
-
-#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
 #include "widget/egui_view.h"
 #include "core/egui_core.h"
 #include "core/egui_api.h"
@@ -60,6 +58,10 @@ void egui_activity_on_start(egui_activity_t *self)
 #endif
     self->state = EGUI_ACTIVITY_STATE_START;
     egui_view_set_visible((egui_view_t *)&self->root_view, true); // show view group
+    if (EGUI_VIEW_OF(&self->root_view)->parent != NULL)
+    {
+        egui_view_dispatch_attach_to_window((egui_view_t *)&self->root_view);
+    }
 }
 
 void egui_activity_on_resume(egui_activity_t *self)
@@ -86,6 +88,7 @@ void egui_activity_on_stop(egui_activity_t *self)
     EGUI_LOG_DBG("on_stop, name: %s, last_state: %s\n", self->name, egui_activity_state_str(self->state));
 #endif
     self->state = EGUI_ACTIVITY_STATE_STOP;
+    egui_view_dispatch_detach_from_window((egui_view_t *)&self->root_view);
     egui_view_set_visible((egui_view_t *)&self->root_view, false); // hide view group
 
     if (self->is_need_finish)
@@ -130,5 +133,3 @@ void egui_activity_init(egui_activity_t *self)
     // init api
     self->api = &EGUI_ACTIVITY_API_TABLE_NAME(egui_activity_t);
 }
-
-#endif

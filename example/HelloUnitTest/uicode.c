@@ -35,6 +35,7 @@
 #include "test/test_command_bar.h"
 #include "test/test_data_list_panel.h"
 #include "test/test_grid_view.h"
+#include "test/test_lyric_scroller.h"
 #include "test/test_date_picker.h"
 #include "test/test_drop_down_button.h"
 #include "test/test_dialog_sheet.h"
@@ -52,6 +53,7 @@
 #include "test/test_number_picker.h"
 #include "test/test_persona_group.h"
 #include "test/test_password_box.h"
+#include "test/test_page_activity_lifecycle.h"
 #include "test/test_parallax_view.h"
 #include "test/test_pips_pager.h"
 #include "test/test_rating_control.h"
@@ -69,6 +71,7 @@
 #include "test/test_skeleton_loader.h"
 #include "test/test_teaching_tip.h"
 #include "test/test_time_picker.h"
+#include "test/test_textblock.h"
 #include "test/test_tree_view.h"
 #include "test/test_toggle_button.h"
 #include "test/test_toggle_split_button.h"
@@ -77,6 +80,7 @@
 #include "test/test_token_input.h"
 #include "test/test_virtual_stage.h"
 #include "test/test_virtual_viewport.h"
+#include "test/test_widget_timer_lifecycle.h"
 
 void uicode_init_ui(void)
 {
@@ -121,6 +125,7 @@ void uicode_create_ui(void)
     test_command_bar_run();
     test_data_list_panel_run();
     test_grid_view_run();
+    test_lyric_scroller_run();
     test_date_picker_run();
     test_drop_down_button_run();
     test_dialog_sheet_run();
@@ -136,6 +141,7 @@ void uicode_create_ui(void)
     test_node_topology_run();
     test_number_box_run();
     test_number_picker_run();
+    test_page_activity_lifecycle_run();
     test_persona_group_run();
     test_password_box_run();
     test_parallax_view_run();
@@ -155,6 +161,7 @@ void uicode_create_ui(void)
     test_skeleton_loader_run();
     test_teaching_tip_run();
     test_time_picker_run();
+    test_textblock_run();
     test_tree_view_run();
     test_toggle_button_run();
     test_toggle_split_button_run();
@@ -163,4 +170,5 @@ void uicode_create_ui(void)
     test_token_input_run();
     test_virtual_stage_run();
     test_virtual_viewport_run();
+    test_widget_timer_lifecycle_run();
 }

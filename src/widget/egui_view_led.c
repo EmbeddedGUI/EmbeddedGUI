@@ -60,6 +60,37 @@ static void egui_view_led_blink_callback(egui_timer_t *timer)
     egui_view_led_invalidate_indicator((egui_view_t *)local);
 }
 
+static void egui_view_led_update_blink_timer(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_led_t);
+
+    if (local->is_blinking && self->is_attached_to_window && local->blink_period > 0)
+    {
+        if (!egui_timer_check_timer_start(&local->blink_timer))
+        {
+            egui_timer_start_timer(&local->blink_timer, local->blink_period, local->blink_period);
+        }
+    }
+    else
+    {
+        egui_timer_stop_timer(&local->blink_timer);
+    }
+}
+
+static void egui_view_led_on_attach_to_window(egui_view_t *self)
+{
+    egui_view_on_attach_to_window(self);
+    egui_view_led_update_blink_timer(self);
+}
+
+static void egui_view_led_on_detach_from_window(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_led_t);
+
+    egui_timer_stop_timer(&local->blink_timer);
+    egui_view_on_detach_from_window(self);
+}
+
 void egui_view_led_set_on(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_led_t);
@@ -92,14 +123,14 @@ void egui_view_led_set_blink(egui_view_t *self, uint16_t period_ms)
     EGUI_LOCAL_INIT(egui_view_led_t);
     local->blink_period = period_ms;
     local->is_blinking = 1;
-    egui_timer_start_timer(&local->blink_timer, period_ms, period_ms);
+    egui_view_led_update_blink_timer(self);
 }
 
 void egui_view_led_stop_blink(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_led_t);
     local->is_blinking = 0;
-    egui_timer_stop_timer(&local->blink_timer);
+    egui_view_led_update_blink_timer(self);
 }
 
 void egui_view_led_set_colors(egui_view_t *self, egui_color_t on_color, egui_color_t off_color)
@@ -172,9 +203,9 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_led_t) = {
         .calculate_layout = egui_view_calculate_layout,
         .request_layout = egui_view_request_layout,
         .draw = egui_view_draw,
-        .on_attach_to_window = egui_view_on_attach_to_window,
+        .on_attach_to_window = egui_view_led_on_attach_to_window,
         .on_draw = egui_view_led_on_draw,
-        .on_detach_from_window = egui_view_on_detach_from_window,
+        .on_detach_from_window = egui_view_led_on_detach_from_window,
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
         .dispatch_key_event = egui_view_dispatch_key_event,
         .on_key_event = egui_view_on_key_event,

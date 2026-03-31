@@ -3,48 +3,326 @@
 #include <string.h>
 
 #include "egui_view_textblock.h"
+#include "core/egui_api.h"
 #include "core/egui_canvas_gradient.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-#include "core/egui_api.h"
-#endif
-
 #define EGUI_TEXTBLOCK_CURSOR_WIDTH  1
 #define EGUI_TEXTBLOCK_BORDER_STROKE 1
+
+static const char *egui_view_textblock_get_active_text(const egui_view_textblock_t *local)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (local->is_editable)
+    {
+        return local->edit_buf;
+    }
+#endif
+    return local->text;
+}
+
+static uint8_t egui_view_textblock_is_auto_wrap_enabled(const egui_view_textblock_t *local)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (local->is_editable)
+    {
+        return 0;
+    }
+#endif
+    return local->is_auto_wrap_enabled;
+}
+
+static uint8_t egui_view_textblock_is_scroll_enabled(const egui_view_textblock_t *local)
+{
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (local->is_editable)
+    {
+        return 1;
+    }
+#endif
+    return local->is_scroll_enabled;
+}
+
+static egui_dim_t egui_view_textblock_get_line_height(const egui_font_t *font)
+{
+    egui_dim_t dummy_width = 0;
+    egui_dim_t line_height = 0;
+
+    if (font == NULL)
+    {
+        return 0;
+    }
+
+    font->api->get_str_size(font, "A", 0, 0, &dummy_width, &line_height);
+    return line_height;
+}
+
+static void egui_view_textblock_get_char_metrics(const egui_font_t *font, const char *text, int *out_bytes, egui_dim_t *out_width)
+{
+    char glyph_buf[8];
+    int glyph_bytes = 0;
+    egui_dim_t glyph_width = 0;
+    egui_dim_t glyph_height = 0;
+    uint32_t utf8_code = 0;
+
+    if (out_bytes != NULL)
+    {
+        *out_bytes = 0;
+    }
+    if (out_width != NULL)
+    {
+        *out_width = 0;
+    }
+    if (font == NULL || text == NULL || text[0] == '\0')
+    {
+        return;
+    }
+
+    glyph_bytes = egui_font_get_utf8_code_fast(text, &utf8_code);
+    if (glyph_bytes <= 0)
+    {
+        glyph_bytes = 1;
+    }
+    if (glyph_bytes >= (int)sizeof(glyph_buf))
+    {
+        glyph_bytes = (int)sizeof(glyph_buf) - 1;
+    }
+
+    egui_api_memcpy(glyph_buf, text, glyph_bytes);
+    glyph_buf[glyph_bytes] = '\0';
+    font->api->get_str_size(font, glyph_buf, 0, 0, &glyph_width, &glyph_height);
+
+    if (out_bytes != NULL)
+    {
+        *out_bytes = glyph_bytes;
+    }
+    if (out_width != NULL)
+    {
+        *out_width = glyph_width;
+    }
+}
+
+static const char *egui_view_textblock_get_next_line(const egui_font_t *font, const char *text, egui_dim_t max_width, uint8_t is_auto_wrap, int *out_line_len,
+                                                     egui_dim_t *out_line_width)
+{
+    const char *cursor = text;
+    egui_dim_t line_width = 0;
+
+    if (out_line_len != NULL)
+    {
+        *out_line_len = 0;
+    }
+    if (out_line_width != NULL)
+    {
+        *out_line_width = 0;
+    }
+    if (font == NULL || text == NULL)
+    {
+        return NULL;
+    }
+
+    while (*cursor != '\0')
+    {
+        int glyph_bytes = 0;
+        egui_dim_t glyph_width = 0;
+
+        if (*cursor == '\r')
+        {
+            cursor++;
+            continue;
+        }
+        if (*cursor == '\n')
+        {
+            break;
+        }
+
+        egui_view_textblock_get_char_metrics(font, cursor, &glyph_bytes, &glyph_width);
+        if (glyph_bytes <= 0)
+        {
+            break;
+        }
+
+        if (is_auto_wrap && max_width > 0 && line_width > 0 && (line_width + glyph_width) > max_width)
+        {
+            break;
+        }
+
+        line_width += glyph_width;
+        cursor += glyph_bytes;
+    }
+
+    if (out_line_len != NULL)
+    {
+        *out_line_len = (int)(cursor - text);
+    }
+    if (out_line_width != NULL)
+    {
+        *out_line_width = line_width;
+    }
+
+    if (*cursor == '\n')
+    {
+        return cursor + 1;
+    }
+    if (*cursor == '\0')
+    {
+        return NULL;
+    }
+    return cursor;
+}
+
+static void egui_view_textblock_measure_text(const egui_font_t *font, const char *text, egui_dim_t line_space, egui_dim_t max_width, uint8_t is_auto_wrap,
+                                             egui_dim_t max_lines, egui_dim_t *out_width, egui_dim_t *out_height, egui_dim_t *out_line_count)
+{
+    const char *cursor = text;
+    egui_dim_t line_height = egui_view_textblock_get_line_height(font);
+    egui_dim_t line_count = 0;
+    egui_dim_t max_line_width = 0;
+    int line_limit = max_lines > 0 ? max_lines : 0x7FFF;
+    size_t text_len = 0;
+
+    if (out_width != NULL)
+    {
+        *out_width = 0;
+    }
+    if (out_height != NULL)
+    {
+        *out_height = 0;
+    }
+    if (out_line_count != NULL)
+    {
+        *out_line_count = 0;
+    }
+    if (font == NULL || text == NULL || text[0] == '\0')
+    {
+        return;
+    }
+
+    text_len = strlen(text);
+    while (cursor != NULL && *cursor != '\0' && line_count < line_limit)
+    {
+        int line_len = 0;
+        egui_dim_t line_width = 0;
+        const char *next = egui_view_textblock_get_next_line(font, cursor, max_width, is_auto_wrap, &line_len, &line_width);
+
+        if (line_width > max_line_width)
+        {
+            max_line_width = line_width;
+        }
+        line_count++;
+
+        if (next == cursor)
+        {
+            break;
+        }
+        cursor = next;
+    }
+
+    if (line_count < line_limit && cursor != NULL && *cursor == '\0' && text_len > 0 && text[text_len - 1] == '\n')
+    {
+        line_count++;
+    }
+
+    if (out_width != NULL)
+    {
+        *out_width = max_line_width;
+    }
+    if (out_height != NULL && line_count > 0)
+    {
+        *out_height = (egui_dim_t)(line_count * line_height + (line_count - 1) * line_space);
+    }
+    if (out_line_count != NULL)
+    {
+        *out_line_count = line_count;
+    }
+}
+
+static void egui_view_textblock_update_clickable_state(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    self->is_clickable = egui_view_textblock_is_scroll_enabled(local);
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+    if (local->is_editable)
+    {
+        self->is_clickable = 1;
+        self->is_focusable = 1;
+    }
+    else
+    {
+        self->is_focusable = 0;
+    }
+#endif
+}
+
+static void egui_view_textblock_apply_auto_height(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    egui_dim_t desired_height;
+
+    if (!local->is_auto_height)
+    {
+        return;
+    }
+
+    desired_height = local->content_height + self->padding.top + self->padding.bottom;
+    if (desired_height < 0)
+    {
+        desired_height = 0;
+    }
+
+    if (self->region.size.height != desired_height)
+    {
+        egui_view_set_size(self, self->region.size.width, desired_height);
+    }
+}
 
 static void egui_view_textblock_update_content_size(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
+    egui_region_t work_region;
+    const char *measure_text = egui_view_textblock_get_active_text(local);
+    uint8_t is_auto_wrap = egui_view_textblock_is_auto_wrap_enabled(local);
+    egui_dim_t wrap_width;
 
-    const char *measure_text;
-#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-    measure_text = (local->is_editable) ? local->edit_buf : local->text;
-#else
-    measure_text = local->text;
-#endif
-
-    if (local->font == NULL || measure_text == NULL || measure_text[0] == '\0')
+    egui_view_get_work_region(self, &work_region);
+    wrap_width = work_region.size.width;
+    if (wrap_width < 0)
     {
-        local->content_width = 0;
-        local->content_height = 0;
-        return;
+        wrap_width = 0;
     }
-    egui_dim_t w = 0, h = 0;
-    local->font->api->get_str_size(local->font, measure_text, 1, local->line_space, &w, &h);
-    local->content_width = w;
-    local->content_height = h;
+
+    egui_view_textblock_measure_text(local->font, measure_text, local->line_space, wrap_width, is_auto_wrap, local->max_lines, &local->content_width,
+                                     &local->content_height, &local->content_line_count);
+    local->layout_width = wrap_width;
 }
 
 static void egui_view_textblock_clamp_scroll(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
     egui_region_t work_region;
+    uint8_t is_scroll_enabled = egui_view_textblock_is_scroll_enabled(local);
+
     egui_view_get_work_region(self, &work_region);
+    if (work_region.size.width < 0)
+    {
+        work_region.size.width = 0;
+    }
+    if (work_region.size.height < 0)
+    {
+        work_region.size.height = 0;
+    }
 
     egui_dim_t max_scroll_x = local->content_width - work_region.size.width;
     egui_dim_t max_scroll_y = local->content_height - work_region.size.height;
+
+    if (!is_scroll_enabled)
+    {
+        local->scroll_offset_x = 0;
+        local->scroll_offset_y = 0;
+        return;
+    }
 
     if (max_scroll_x < 0)
     {
@@ -101,7 +379,7 @@ static egui_dim_t egui_view_textblock_get_cursor_x(egui_view_textblock_t *local,
     // Measure width from line_start to pos
     char tmp[EGUI_CONFIG_TEXTBLOCK_EDIT_MAX_LENGTH + 1];
     uint16_t len = pos - line_start;
-    egui_api_memcpy(tmp, &text[line_start], len);
+    egui_api_memcpy(tmp, &text[line_start], (int)len);
     tmp[len] = '\0';
 
     egui_dim_t width = 0, height = 0;
@@ -214,9 +492,143 @@ static void egui_view_textblock_on_focus_change(egui_view_t *self, int is_focuse
 
 // ========================= Draw =========================
 
+static uint8_t egui_view_textblock_get_scroll_axis_mask(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    egui_region_t work_region;
+    uint8_t axis_mask = 0;
+
+    if (!egui_view_textblock_is_scroll_enabled(local))
+    {
+        return 0;
+    }
+
+    egui_view_get_work_region(self, &work_region);
+    if (work_region.size.width < 0)
+    {
+        work_region.size.width = 0;
+    }
+    if (work_region.size.height < 0)
+    {
+        work_region.size.height = 0;
+    }
+
+    if (local->content_width > work_region.size.width)
+    {
+        axis_mask |= 0x01;
+    }
+    if (local->content_height > work_region.size.height)
+    {
+        axis_mask |= 0x02;
+    }
+
+    return axis_mask;
+}
+
+static egui_dim_t egui_view_textblock_resolve_line_x(egui_view_t *self, egui_view_textblock_t *local, egui_dim_t line_width, egui_region_t *work_region,
+                                                     uint8_t is_horizontal_scroll)
+{
+    egui_dim_t draw_x = self->padding.left;
+
+    if (is_horizontal_scroll)
+    {
+        return draw_x - local->scroll_offset_x;
+    }
+
+    switch (local->align_type & EGUI_ALIGN_HMASK)
+    {
+    case EGUI_ALIGN_HCENTER:
+        if (work_region->size.width > line_width)
+        {
+            draw_x += (work_region->size.width - line_width) >> 1;
+        }
+        break;
+    case EGUI_ALIGN_RIGHT:
+        if (work_region->size.width > line_width)
+        {
+            draw_x += work_region->size.width - line_width;
+        }
+        break;
+    default:
+        break;
+    }
+
+    return draw_x;
+}
+
+static egui_dim_t egui_view_textblock_resolve_start_y(egui_view_t *self, egui_view_textblock_t *local, egui_region_t *work_region, uint8_t is_vertical_scroll)
+{
+    egui_dim_t draw_y = self->padding.top;
+
+    if (is_vertical_scroll)
+    {
+        return draw_y - local->scroll_offset_y;
+    }
+
+    switch (local->align_type & EGUI_ALIGN_VMASK)
+    {
+    case EGUI_ALIGN_VCENTER:
+        if (work_region->size.height > local->content_height)
+        {
+            draw_y += (work_region->size.height - local->content_height) >> 1;
+        }
+        break;
+    case EGUI_ALIGN_BOTTOM:
+        if (work_region->size.height > local->content_height)
+        {
+            draw_y += work_region->size.height - local->content_height;
+        }
+        break;
+    default:
+        break;
+    }
+
+    return draw_y;
+}
+
+static void egui_view_textblock_draw_line(const egui_font_t *font, const char *text, int text_len, egui_dim_t x, egui_dim_t y, egui_color_t color,
+                                          egui_alpha_t alpha)
+{
+    int offset = 0;
+
+    while (offset < text_len)
+    {
+        char glyph_buf[8];
+        int glyph_bytes = 0;
+        egui_dim_t glyph_width = 0;
+
+        if (text[offset] == '\r' || text[offset] == '\n')
+        {
+            offset++;
+            continue;
+        }
+
+        egui_view_textblock_get_char_metrics(font, &text[offset], &glyph_bytes, &glyph_width);
+        if (glyph_bytes <= 0)
+        {
+            break;
+        }
+        if (glyph_bytes >= (int)sizeof(glyph_buf))
+        {
+            glyph_bytes = (int)sizeof(glyph_buf) - 1;
+        }
+
+        egui_api_memcpy(glyph_buf, &text[offset], glyph_bytes);
+        glyph_buf[glyph_bytes] = '\0';
+        egui_canvas_draw_text(font, glyph_buf, x, y, color, alpha);
+
+        x += glyph_width;
+        offset += glyph_bytes;
+    }
+}
+
 void egui_view_textblock_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
+    egui_region_t work_region;
+    const char *draw_text = egui_view_textblock_get_active_text(local);
+    uint8_t is_auto_wrap = egui_view_textblock_is_auto_wrap_enabled(local);
+    uint8_t scroll_axis_mask;
 
     if (local->font == NULL)
     {
@@ -241,43 +653,70 @@ void egui_view_textblock_on_draw(egui_view_t *self)
     }
 
     // --- Draw text content ---
-    egui_region_t work_region;
     egui_view_get_work_region(self, &work_region);
-
-    // Determine the text pointer to use
-    const char *draw_text;
-#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-    draw_text = (local->is_editable) ? local->edit_buf : local->text;
-#else
-    draw_text = local->text;
-#endif
+    scroll_axis_mask = egui_view_textblock_get_scroll_axis_mask(self);
 
     if (draw_text == NULL || draw_text[0] == '\0')
     {
         goto draw_cursor;
     }
 
+    if (!is_auto_wrap)
     {
-        // Build a virtual content rect adjusted for scroll offset.
-        // The canvas work region (already set to view screen region) will clip overflow.
         egui_region_t draw_rect;
-        draw_rect.location.x = self->padding.left - local->scroll_offset_x;
-        draw_rect.location.y = self->padding.top - local->scroll_offset_y;
+        uint8_t draw_align = local->align_type;
+
+        draw_rect.location.x = self->padding.left - ((scroll_axis_mask & 0x01) ? local->scroll_offset_x : 0);
+        draw_rect.location.y = self->padding.top - ((scroll_axis_mask & 0x02) ? local->scroll_offset_y : 0);
         draw_rect.size.width = EGUI_MAX(local->content_width, work_region.size.width);
         draw_rect.size.height = EGUI_MAX(local->content_height, work_region.size.height);
 
-        // Use LEFT|TOP alignment when scrolling on that axis, otherwise keep user alignment
-        uint8_t draw_align = local->align_type;
-        if (local->content_width > work_region.size.width)
+        if (scroll_axis_mask & 0x01)
         {
             draw_align = (draw_align & ~EGUI_ALIGN_HMASK) | EGUI_ALIGN_LEFT;
         }
-        if (local->content_height > work_region.size.height)
+        if (scroll_axis_mask & 0x02)
         {
             draw_align = (draw_align & ~EGUI_ALIGN_VMASK) | EGUI_ALIGN_TOP;
         }
 
         egui_canvas_draw_text_in_rect_with_line_space(local->font, draw_text, &draw_rect, draw_align, local->line_space, local->color, local->alpha);
+    }
+    else
+    {
+        const char *cursor = draw_text;
+        egui_dim_t line_height = egui_view_textblock_get_line_height(local->font);
+        egui_dim_t draw_y = egui_view_textblock_resolve_start_y(self, local, &work_region, (scroll_axis_mask & 0x02) != 0);
+        egui_dim_t visible_y0 = work_region.location.y;
+        egui_dim_t visible_y1 = work_region.location.y + work_region.size.height;
+        int line_limit = local->max_lines > 0 ? local->max_lines : 0x7FFF;
+        int line_index = 0;
+
+        while (cursor != NULL && *cursor != '\0' && line_index < line_limit)
+        {
+            int line_len = 0;
+            egui_dim_t line_width = 0;
+            egui_dim_t draw_x;
+            const char *next = egui_view_textblock_get_next_line(local->font, cursor, local->layout_width, 1, &line_len, &line_width);
+
+            draw_x = egui_view_textblock_resolve_line_x(self, local, line_width, &work_region, (scroll_axis_mask & 0x01) != 0);
+            if ((draw_y + line_height) > visible_y0 && draw_y < visible_y1)
+            {
+                egui_view_textblock_draw_line(local->font, cursor, line_len, draw_x, draw_y, local->color, local->alpha);
+            }
+
+            draw_y += line_height + local->line_space;
+            line_index++;
+            if (draw_y >= visible_y1)
+            {
+                break;
+            }
+            if (next == cursor)
+            {
+                break;
+            }
+            cursor = next;
+        }
     }
 
 draw_cursor:
@@ -300,14 +739,14 @@ draw_cursor:
 
     // --- Draw scrollbars ---
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
-    if (local->is_scrollbar_enabled)
+    if (local->is_scrollbar_enabled && scroll_axis_mask != 0)
     {
         egui_dim_t view_w = work_region.size.width;
         egui_dim_t view_h = work_region.size.height;
         egui_dim_t margin = EGUI_THEME_SCROLLBAR_MARGIN;
 
         // Vertical scrollbar
-        if (local->content_height > view_h && view_h > 0 && local->content_height > 0)
+        if ((scroll_axis_mask & 0x02) && view_h > 0 && local->content_height > 0)
         {
             egui_dim_t track_length = self->region.size.height - 2 * margin;
             if (track_length > 0)
@@ -361,7 +800,7 @@ draw_cursor:
         }
 
         // Horizontal scrollbar
-        if (local->content_width > view_w && view_w > 0 && local->content_width > 0)
+        if ((scroll_axis_mask & 0x01) && view_w > 0 && local->content_width > 0)
         {
             egui_dim_t track_length = self->region.size.width - 2 * margin;
             if (track_length > 0)
@@ -429,8 +868,9 @@ draw_cursor:
 static int egui_view_textblock_handle_scrollbar_drag(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
+    uint8_t scroll_axis_mask = egui_view_textblock_get_scroll_axis_mask(self);
 
-    if (!local->is_scrollbar_enabled)
+    if (!local->is_scrollbar_enabled || scroll_axis_mask == 0)
     {
         return 0;
     }
@@ -444,7 +884,7 @@ static int egui_view_textblock_handle_scrollbar_drag(egui_view_t *self, egui_mot
     if (event->type == EGUI_MOTION_EVENT_ACTION_DOWN)
     {
         // Check vertical scrollbar area (right edge)
-        if (local->content_height > work_region.size.height)
+        if (scroll_axis_mask & 0x02)
         {
             egui_dim_t sb_area_start = self->region.size.width - EGUI_THEME_SCROLLBAR_TOUCH_WIDTH;
             if (local_x >= sb_area_start)
@@ -456,7 +896,7 @@ static int egui_view_textblock_handle_scrollbar_drag(egui_view_t *self, egui_mot
         }
 
         // Check horizontal scrollbar area (bottom edge)
-        if (!local->is_scrollbar_v_dragging && local->content_width > work_region.size.width)
+        if (!local->is_scrollbar_v_dragging && (scroll_axis_mask & 0x01))
         {
             egui_dim_t sb_area_start = self->region.size.height - EGUI_THEME_SCROLLBAR_TOUCH_WIDTH;
             if (local_y >= sb_area_start)
@@ -551,10 +991,23 @@ static int egui_view_textblock_handle_scrollbar_drag(egui_view_t *self, egui_mot
 static int egui_view_textblock_on_touch_event(egui_view_t *self, egui_motion_event_t *event)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
+    uint8_t scroll_axis_mask = egui_view_textblock_get_scroll_axis_mask(self);
 
     if (!self->is_enable)
     {
         return 0;
+    }
+
+    if (scroll_axis_mask == 0)
+    {
+#if EGUI_CONFIG_FUNCTION_SUPPORT_KEY && EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
+        if (!local->is_editable)
+        {
+            return 0;
+        }
+#else
+        return 0;
+#endif
     }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
@@ -595,8 +1048,14 @@ static int egui_view_textblock_on_touch_event(egui_view_t *self, egui_motion_eve
 
         if (local->is_touch_dragging)
         {
-            local->scroll_offset_x -= dx;
-            local->scroll_offset_y -= dy;
+            if (scroll_axis_mask & 0x01)
+            {
+                local->scroll_offset_x -= dx;
+            }
+            if (scroll_axis_mask & 0x02)
+            {
+                local->scroll_offset_y -= dy;
+            }
             egui_view_textblock_clamp_scroll(self);
             egui_view_invalidate(self);
 
@@ -677,7 +1136,7 @@ static int egui_view_textblock_on_key_event(egui_view_t *self, egui_key_event_t 
             {
                 char tmp[EGUI_CONFIG_TEXTBLOCK_EDIT_MAX_LENGTH + 1];
                 uint16_t len = i - prev_start;
-                egui_api_memcpy(tmp, &local->edit_buf[prev_start], len);
+                egui_api_memcpy(tmp, &local->edit_buf[prev_start], (int)len);
                 tmp[len] = '\0';
                 egui_dim_t w = 0, h = 0;
                 local->font->api->get_str_size(local->font, tmp, 0, 0, &w, &h);
@@ -720,7 +1179,7 @@ static int egui_view_textblock_on_key_event(egui_view_t *self, egui_key_event_t 
             {
                 char tmp[EGUI_CONFIG_TEXTBLOCK_EDIT_MAX_LENGTH + 1];
                 uint16_t len = i - next_start;
-                egui_api_memcpy(tmp, &local->edit_buf[next_start], len);
+                egui_api_memcpy(tmp, &local->edit_buf[next_start], (int)len);
                 tmp[len] = '\0';
                 egui_dim_t w = 0, h = 0;
                 local->font->api->get_str_size(local->font, tmp, 0, 0, &w, &h);
@@ -815,13 +1274,25 @@ void egui_view_textblock_set_line_space(egui_view_t *self, egui_dim_t line_space
     local->line_space = line_space;
     egui_view_textblock_update_content_size(self);
     egui_view_textblock_clamp_scroll(self);
+    egui_view_textblock_apply_auto_height(self);
     egui_view_invalidate(self);
 }
 
 void egui_view_textblock_set_max_lines(egui_view_t *self, egui_dim_t max_lines)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
+    if (max_lines < 0)
+    {
+        max_lines = 0;
+    }
+    if (local->max_lines == max_lines)
+    {
+        return;
+    }
     local->max_lines = max_lines;
+    egui_view_textblock_update_content_size(self);
+    egui_view_textblock_clamp_scroll(self);
+    egui_view_textblock_apply_auto_height(self);
     egui_view_invalidate(self);
 }
 
@@ -829,11 +1300,45 @@ void egui_view_textblock_set_auto_height(egui_view_t *self, uint8_t is_auto_heig
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
     local->is_auto_height = is_auto_height;
-    if (is_auto_height && local->font != NULL && local->text != NULL)
+    egui_view_textblock_update_content_size(self);
+    egui_view_textblock_apply_auto_height(self);
+    egui_view_textblock_clamp_scroll(self);
+    egui_view_invalidate(self);
+}
+
+void egui_view_textblock_set_auto_wrap(egui_view_t *self, uint8_t enabled)
+{
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    enabled = enabled ? 1 : 0;
+    if (local->is_auto_wrap_enabled == enabled)
     {
-        egui_view_textblock_update_content_size(self);
-        egui_view_set_size(self, self->region.size.width, local->content_height + self->padding.top + self->padding.bottom);
+        return;
     }
+    local->is_auto_wrap_enabled = enabled;
+    egui_view_textblock_update_content_size(self);
+    egui_view_textblock_clamp_scroll(self);
+    egui_view_textblock_apply_auto_height(self);
+    egui_view_invalidate(self);
+}
+
+void egui_view_textblock_set_scroll_enabled(egui_view_t *self, uint8_t enabled)
+{
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    enabled = enabled ? 1 : 0;
+    if (local->is_scroll_enabled == enabled)
+    {
+        return;
+    }
+    local->is_scroll_enabled = enabled;
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+    local->is_touch_dragging = 0;
+#endif
+#if EGUI_CONFIG_FUNCTION_SUPPORT_SCROLLBAR
+    local->is_scrollbar_v_dragging = 0;
+    local->is_scrollbar_h_dragging = 0;
+#endif
+    egui_view_textblock_clamp_scroll(self);
+    egui_view_textblock_update_clickable_state(self);
     egui_view_invalidate(self);
 }
 
@@ -847,6 +1352,7 @@ void egui_view_textblock_set_font(egui_view_t *self, const egui_font_t *font)
     local->font = font;
     egui_view_textblock_update_content_size(self);
     egui_view_textblock_clamp_scroll(self);
+    egui_view_textblock_apply_auto_height(self);
     egui_view_invalidate(self);
 }
 
@@ -880,7 +1386,7 @@ void egui_view_textblock_set_text(egui_view_t *self, const char *text)
             {
                 len = local->max_length;
             }
-            egui_api_memcpy(local->edit_buf, text, len);
+            egui_api_memcpy(local->edit_buf, text, (int)len);
             local->edit_buf[len] = '\0';
             local->text_len = len;
         }
@@ -896,18 +1402,15 @@ void egui_view_textblock_set_text(egui_view_t *self, const char *text)
     egui_view_textblock_update_content_size(self);
     local->scroll_offset_x = 0;
     local->scroll_offset_y = 0;
-
-    if (local->is_auto_height && local->font != NULL)
-    {
-        egui_view_set_size(self, self->region.size.width, local->content_height + self->padding.top + self->padding.bottom);
-    }
-
+    egui_view_textblock_apply_auto_height(self);
     egui_view_invalidate(self);
 }
 
 int egui_view_textblock_get_text_size(egui_view_t *self, const char *text, egui_dim_t max_width, egui_dim_t *width, egui_dim_t *height)
 {
     EGUI_LOCAL_INIT(egui_view_textblock_t);
+    egui_region_t work_region;
+    uint8_t is_auto_wrap = egui_view_textblock_is_auto_wrap_enabled(local);
 
     if (local->font == NULL || text == NULL)
     {
@@ -915,7 +1418,12 @@ int egui_view_textblock_get_text_size(egui_view_t *self, const char *text, egui_
         *height = 0;
         return 0;
     }
-    local->font->api->get_str_size(local->font, text, 1, local->line_space, width, height);
+    if (max_width <= 0)
+    {
+        egui_view_get_work_region(self, &work_region);
+        max_width = work_region.size.width;
+    }
+    egui_view_textblock_measure_text(local->font, text, local->line_space, max_width, is_auto_wrap, local->max_lines, width, height, NULL);
     return 1;
 }
 
@@ -986,7 +1494,7 @@ void egui_view_textblock_set_editable(egui_view_t *self, uint8_t is_editable)
             {
                 len = local->max_length;
             }
-            egui_api_memcpy(local->edit_buf, local->text, len);
+            egui_api_memcpy(local->edit_buf, local->text, (int)len);
             local->edit_buf[len] = '\0';
             local->text_len = len;
         }
@@ -999,6 +1507,8 @@ void egui_view_textblock_set_editable(egui_view_t *self, uint8_t is_editable)
     }
 
     egui_view_textblock_update_content_size(self);
+    egui_view_textblock_clamp_scroll(self);
+    egui_view_textblock_update_clickable_state(self);
     egui_view_invalidate(self);
 }
 
@@ -1034,6 +1544,7 @@ void egui_view_textblock_insert_char(egui_view_t *self, char c)
     egui_timer_start_timer(&local->cursor_timer, EGUI_CONFIG_TEXTBLOCK_CURSOR_BLINK_MS, 0);
 
     egui_view_textblock_update_content_size(self);
+    egui_view_textblock_apply_auto_height(self);
     egui_view_textblock_ensure_cursor_visible(self);
     egui_view_invalidate(self);
 }
@@ -1062,6 +1573,7 @@ void egui_view_textblock_delete_char(egui_view_t *self)
     egui_timer_start_timer(&local->cursor_timer, EGUI_CONFIG_TEXTBLOCK_CURSOR_BLINK_MS, 0);
 
     egui_view_textblock_update_content_size(self);
+    egui_view_textblock_apply_auto_height(self);
     egui_view_textblock_ensure_cursor_visible(self);
     egui_view_invalidate(self);
 }
@@ -1106,6 +1618,30 @@ const char *egui_view_textblock_get_edit_text(egui_view_t *self)
 
 // ========================= API Table =========================
 
+static void egui_view_textblock_calculate_layout(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_textblock_t);
+    egui_region_t work_region;
+    egui_dim_t current_width;
+
+    egui_view_calculate_layout(self);
+    egui_view_get_work_region(self, &work_region);
+
+    current_width = work_region.size.width;
+    if (current_width < 0)
+    {
+        current_width = 0;
+    }
+
+    if (local->layout_width != current_width)
+    {
+        egui_view_textblock_update_content_size(self);
+        egui_view_textblock_apply_auto_height(self);
+    }
+
+    egui_view_textblock_clamp_scroll(self);
+}
+
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_textblock_t) = {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
         .dispatch_touch_event = egui_view_dispatch_touch_event,
@@ -1116,7 +1652,7 @@ const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_textblock_t) = {
 #endif
         .on_intercept_touch_event = egui_view_on_intercept_touch_event,
         .compute_scroll = egui_view_compute_scroll,
-        .calculate_layout = egui_view_calculate_layout,
+        .calculate_layout = egui_view_textblock_calculate_layout,
         .request_layout = egui_view_request_layout,
         .draw = egui_view_draw,
         .on_attach_to_window = egui_view_on_attach_to_window,
@@ -1150,8 +1686,12 @@ void egui_view_textblock_init(egui_view_t *self)
     // Init text fields
     local->line_space = 2;
     local->max_lines = 0;
+    local->content_line_count = 0;
+    local->layout_width = -1;
     local->align_type = EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP;
     local->is_auto_height = 0;
+    local->is_auto_wrap_enabled = 1;
+    local->is_scroll_enabled = 1;
     local->alpha = EGUI_ALPHA_100;
     local->color = EGUI_THEME_TEXT_PRIMARY;
     local->font = NULL;
@@ -1196,8 +1736,7 @@ void egui_view_textblock_init(egui_view_t *self)
     egui_timer_init_timer(&local->cursor_timer, (void *)local, egui_view_textblock_cursor_timer_callback);
 #endif
 
-    // Make clickable so touch events work for scroll dragging
-    self->is_clickable = 1;
+    egui_view_textblock_update_clickable_state(self);
 
     egui_view_set_view_name(self, "egui_view_textblock");
 }
@@ -1213,6 +1752,9 @@ void egui_view_textblock_apply_params(egui_view_t *self, const egui_view_textblo
     local->alpha = params->alpha;
     local->line_space = params->line_space;
     local->max_lines = params->max_lines;
+    local->is_auto_wrap_enabled = params->is_auto_wrap_enabled ? 1 : 0;
+    local->is_scroll_enabled = params->is_scroll_enabled ? 1 : 0;
+    egui_view_textblock_update_clickable_state(self);
 
     // Set text (this also updates content size)
     egui_view_textblock_set_text(self, params->text);

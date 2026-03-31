@@ -18,9 +18,6 @@
 #include "egui_focus.h"
 #endif
 #include "resource/egui_resource.h"
-#include "font/egui_font_std.h"
-#include "image/egui_image_std.h"
-#include "mask/egui_mask_circle.h"
 #include "widget/egui_view.h"
 #include "widget/egui_view_label.h"
 #include "background/egui_background_color.h"
@@ -33,86 +30,7 @@ __EGUI_WEAK__ void egui_port_notify_frame_render_complete(void)
 {
 }
 
-__EGUI_WEAK__ egui_dim_t egui_core_get_logical_pfb_target_width_hint(void)
-{
-    return 0;
-}
-
 egui_core_t egui_core;
-
-#if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
-#define EGUI_CORE_USER_ROOT_VIEW_PTR() ((egui_view_t *)&egui_core.user_root_view_group)
-#else
-#define EGUI_CORE_USER_ROOT_VIEW_PTR() ((egui_view_t *)&egui_core.root_view_group)
-#endif
-
-static uint32_t egui_core_calc_pfb_buffer_size(egui_dim_t width, egui_dim_t height)
-{
-    return (uint32_t)width * (uint32_t)height * (uint32_t)sizeof(egui_color_int_t);
-}
-
-static egui_dim_t egui_core_get_logical_pfb_probe_width(uint32_t pfb_total_pixel_count)
-{
-    egui_dim_t target_width = 0;
-    int32_t candidate_width;
-    egui_dim_t hint_width = egui_core_get_logical_pfb_target_width_hint();
-
-#if EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE
-    target_width = EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH;
-#endif
-    if (hint_width > target_width)
-    {
-        target_width = hint_width;
-    }
-
-    if (target_width <= egui_core.pfb_width)
-    {
-        return 0;
-    }
-
-    if ((uint32_t)target_width > pfb_total_pixel_count)
-    {
-        target_width = (egui_dim_t)pfb_total_pixel_count;
-    }
-
-    if (target_width > egui_core.screen_width)
-    {
-        target_width = egui_core.screen_width;
-    }
-
-    for (candidate_width = target_width; candidate_width > egui_core.pfb_width; candidate_width--)
-    {
-        uint32_t candidate_height;
-
-        if ((pfb_total_pixel_count % (uint32_t)candidate_width) != 0U)
-        {
-            continue;
-        }
-
-        candidate_height = pfb_total_pixel_count / (uint32_t)candidate_width;
-        if (candidate_height == 0U || candidate_height > (uint32_t)egui_core.pfb_height)
-        {
-            continue;
-        }
-
-        return (egui_dim_t)candidate_width;
-    }
-
-    return 0;
-}
-
-static void egui_core_apply_logical_pfb_probe_shape(egui_dim_t *pfb_width, egui_dim_t *pfb_height, uint32_t pfb_total_pixel_count)
-{
-    egui_dim_t logical_width = egui_core_get_logical_pfb_probe_width(pfb_total_pixel_count);
-
-    if (logical_width <= 0)
-    {
-        return;
-    }
-
-    *pfb_width = logical_width;
-    *pfb_height = (egui_dim_t)(pfb_total_pixel_count / (uint32_t)logical_width);
-}
 
 #if EGUI_CONFIG_SOFTWARE_ROTATION
 static egui_color_int_t egui_rotation_scratch[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
@@ -501,6 +419,11 @@ egui_region_t *egui_core_get_region_dirty_arr(void)
     return egui_core.region_dirty_arr;
 }
 
+uint32_t egui_core_get_dirty_epoch(void)
+{
+    return egui_core.dirty_epoch;
+}
+
 void egui_core_update_region_dirty(egui_region_t *region_dirty)
 {
     int i, j;
@@ -659,6 +582,8 @@ void egui_core_clear_region_dirty(void)
     {
         egui_region_init_empty(&egui_core.region_dirty_arr[i]);
     }
+
+    egui_core.dirty_epoch++;
 }
 
 void egui_core_update_region_dirty_all(void)
@@ -674,24 +599,24 @@ void egui_core_force_refresh(void)
 
 egui_view_group_t *egui_core_get_user_root_view(void)
 {
-    return (egui_view_group_t *)EGUI_CORE_USER_ROOT_VIEW_PTR();
+    return (egui_view_group_t *)&egui_core.user_root_view_group;
 }
 
 void egui_core_add_user_root_view(egui_view_t *view)
 {
-    egui_view_group_add_child(EGUI_CORE_USER_ROOT_VIEW_PTR(), view);
+    egui_view_group_add_child((egui_view_t *)&egui_core.user_root_view_group, view);
 }
 
 void egui_core_remove_user_root_view(egui_view_t *view)
 {
-    egui_view_group_remove_child(EGUI_CORE_USER_ROOT_VIEW_PTR(), view);
+    egui_view_group_remove_child((egui_view_t *)&egui_core.user_root_view_group, view);
 
     egui_core_update_region_dirty_all();
 }
 
 void egui_core_layout_childs_user_root_view(uint8_t is_orientation_horizontal, uint8_t align_type)
 {
-    egui_view_group_layout_childs(EGUI_CORE_USER_ROOT_VIEW_PTR(), is_orientation_horizontal, 0, 0, align_type);
+    egui_view_group_layout_childs((egui_view_t *)&egui_core.user_root_view_group, is_orientation_horizontal, 0, 0, align_type);
 }
 
 void egui_core_draw_data(egui_region_t *p_region)
@@ -712,7 +637,7 @@ void egui_core_draw_data(egui_region_t *p_region)
         // in egui_core.pfb. Use scratch as intermediate, then copy back.
         egui_rotation_transform_pfb(drv->rotation, drv->physical_width, drv->physical_height, &x, &y, &w, &h, data, egui_rotation_scratch,
                                     EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT);
-        egui_api_memcpy((void *)data, egui_rotation_scratch, w * h * sizeof(egui_color_int_t));
+        egui_memcpy((void *)data, egui_rotation_scratch, w * h * sizeof(egui_color_int_t));
     }
 #endif
 
@@ -735,25 +660,22 @@ void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode)
     egui_dim_t tmp_pfb_width;
     egui_dim_t tmp_pfb_height;
     egui_dim_t pfb_width_count, pfb_height_count;
-    uint32_t pfb_total_pixel_count = (uint32_t)egui_core.pfb_width * (uint32_t)egui_core.pfb_height;
     uint8_t reverse_x = egui_core.pfb_scan_reverse_x;
     uint8_t reverse_y = egui_core.pfb_scan_reverse_y;
 
     EGUI_LOG_DBG("region_dirty, x: %d, y: %d, width: %d, height: %d\n", p_region_dirty->location.x, p_region_dirty->location.y, p_region_dirty->size.width,
                  p_region_dirty->size.height);
 
-    egui_core_apply_logical_pfb_probe_shape(&pfb_width, &pfb_height, pfb_total_pixel_count);
-
     // change pfb size to fit the dirty region
     if (pfb_width > width_dirty)
     {
         pfb_width = width_dirty;
-        pfb_height = (egui_dim_t)(pfb_total_pixel_count / (uint32_t)pfb_width);
+        pfb_height = (egui_core.pfb_total_buffer_size / sizeof(egui_color_int_t)) / pfb_width;
     }
     else if (pfb_height > height_dirty)
     {
         pfb_height = height_dirty;
-        pfb_width = (egui_dim_t)(pfb_total_pixel_count / (uint32_t)pfb_height);
+        pfb_width = (egui_core.pfb_total_buffer_size / sizeof(egui_color_int_t)) / pfb_height;
     }
 
     pfb_width_count = (width_dirty + pfb_width - 1) / pfb_width;
@@ -925,7 +847,7 @@ static void egui_debug_set_info_text(uint32_t fps, uint32_t cpu_use_percent_x100
 
 static void egui_debug_reset_info_stats(void)
 {
-    egui_api_memset(&debug_info_stats, 0, sizeof(debug_info_stats));
+    egui_api_memset(&debug_info_stats, 0, (int)sizeof(debug_info_stats));
 }
 
 static void egui_debug_record_work_time(uint32_t work_time, uint32_t timestamp)
@@ -1024,15 +946,6 @@ void egui_polling_refresh_display(void)
 
     // wait for all PFB flush complete before next frame, to avoid too many pending buffers in the PFB manager when the screen is updated frequently.
     egui_pfb_manager_wait_all_complete(&egui_core.pfb_mgr);
-
-    /* Transform caches only need to persist while the current refresh walk spans multiple PFB tiles. */
-    egui_canvas_transform_release_frame_cache();
-    /* External row caches only need to persist while the current refresh walk spans multiple PFB tiles. */
-    egui_image_std_release_frame_cache();
-    /* Circle-mask row cache follows PFB height and only needs to persist within the current frame walk. */
-    egui_mask_circle_release_frame_cache();
-    /* External font scratch buffers only need to persist while the current refresh walk spans multiple PFB tiles. */
-    egui_font_std_release_frame_cache();
 
 #if EGUI_CONFIG_DEBUG_INFO_SHOW
     // refresh in next frame.
@@ -1156,7 +1069,6 @@ void egui_core_refresh_screen(void)
     }
 }
 
-#if EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE
 static egui_timer_t egui_refresh_timer;
 static void egui_refresh_timer_callback(egui_timer_t *timer)
 {
@@ -1174,13 +1086,10 @@ static void egui_refresh_timer_callback(egui_timer_t *timer)
         egui_timer_start_timer(&egui_refresh_timer, EGUI_CORE_REFRESH_INTERVAL_MS - start_time, 0);
     }
 }
-#endif
 
 void egui_core_stop_auto_refresh_screen(void)
 {
-#if EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE
     egui_timer_stop_timer(&egui_refresh_timer);
-#endif
 }
 
 egui_color_int_t *egui_core_get_pfb_buffer_ptr(void)
@@ -1208,20 +1117,21 @@ void egui_core_pfb_set_buffer(egui_color_int_t *pfb, uint16_t width, uint16_t he
     egui_core.pfb = pfb;
     egui_core.pfb_width = width;
     egui_core.pfb_height = height;
+    egui_core.pfb_total_buffer_size = width * height * egui_core.color_bytes;
+
+    // Calculate the number of pixels in each row and column of the PFB
+    egui_core.pfb_width_count = (EGUI_CONFIG_SCEEN_WIDTH + width - 1) / width;
+    egui_core.pfb_height_count = (EGUI_CONFIG_SCEEN_HEIGHT + height - 1) / height;
 }
 
 void egui_core_power_off(void)
 {
-#if EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE
     egui_timer_stop_timer(&egui_refresh_timer);
-#endif
 }
 
 void egui_core_power_on(void)
 {
-#if EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE
     egui_timer_start_timer(&egui_refresh_timer, 0, 0);
-#endif
 }
 
 void egui_core_set_screen_size(int16_t width, int16_t height)
@@ -1229,11 +1139,13 @@ void egui_core_set_screen_size(int16_t width, int16_t height)
     egui_core.screen_width = width;
     egui_core.screen_height = height;
 
+    // Recalculate PFB tile counts for the new screen size
+    egui_core.pfb_width_count = (width + egui_core.pfb_width - 1) / egui_core.pfb_width;
+    egui_core.pfb_height_count = (height + egui_core.pfb_height - 1) / egui_core.pfb_height;
+
     // Update root view group sizes
     egui_view_set_size((egui_view_t *)&egui_core.root_view_group, width, height);
-#if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
     egui_view_set_size((egui_view_t *)&egui_core.user_root_view_group, width, height);
-#endif
 
     // Force full screen refresh
     egui_core_update_region_dirty_all();
@@ -1263,10 +1175,9 @@ void egui_core_clear_screen(void)
     int16_t screen_h = egui_display_get_height();
     int16_t pfb_w = egui_core.pfb_width;
     int16_t pfb_h = egui_core.pfb_height;
-    uint32_t pfb_total_buffer_size = egui_core_calc_pfb_buffer_size(egui_core.pfb_width, egui_core.pfb_height);
 
     // Clear PFB buffer to black
-    egui_api_pfb_clear(egui_core.pfb, pfb_total_buffer_size);
+    egui_api_pfb_clear(egui_core.pfb, egui_core.pfb_total_buffer_size);
 
     // Send black tiles to cover entire screen
     for (int16_t y = 0; y < screen_h; y += pfb_h)
@@ -1281,7 +1192,7 @@ void egui_core_clear_screen(void)
             {
                 egui_core.pfb = egui_pfb_manager_get_render_buffer(&egui_core.pfb_mgr);
                 // Clear PFB buffer to black
-                egui_api_pfb_clear(egui_core.pfb, pfb_total_buffer_size);
+                egui_api_pfb_clear(egui_core.pfb, egui_core.pfb_total_buffer_size);
             }
 
             egui_core_draw_data(&region);
@@ -1317,12 +1228,13 @@ void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HE
 {
     egui_core.screen_width = EGUI_CONFIG_SCEEN_WIDTH;
     egui_core.screen_height = EGUI_CONFIG_SCEEN_HEIGHT;
+    egui_core.color_bytes = EGUI_CONFIG_COLOR_DEPTH >> 3;
     egui_core_reset_pfb_scan_direction();
 
     egui_core_pfb_set_buffer(pfb[0], EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT);
 
     // Initialize PFB manager with first buffer
-    egui_pfb_manager_init(&egui_core.pfb_mgr, pfb[0], EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT, sizeof(egui_color_int_t));
+    egui_pfb_manager_init(&egui_core.pfb_mgr, pfb[0], EGUI_CONFIG_PFB_WIDTH, EGUI_CONFIG_PFB_HEIGHT, egui_core.color_bytes);
 
     // Auto-add extra buffers based on EGUI_CONFIG_PFB_BUFFER_COUNT
     {
@@ -1338,6 +1250,7 @@ void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HE
     egui_core.unique_id = 0;
 #endif
     egui_core.is_suspended = 1; // Start suspended; user calls egui_screen_on() when ready
+    egui_core.dirty_epoch = 0;
 
     egui_timer_init();
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -1359,37 +1272,30 @@ void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HE
     egui_core_update_region_dirty_all();
 
     egui_slist_init(&egui_core.anims);
-#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
     egui_dlist_init(&egui_core.activitys);
 
     egui_core.activity_anim_start_open = NULL;
     egui_core.activity_anim_start_close = NULL;
     egui_core.activity_anim_finish_open = NULL;
     egui_core.activity_anim_finish_close = NULL;
-#endif
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
     egui_core.dialog_anim_start = NULL;
     egui_core.dialog_anim_finish = NULL;
     egui_core.dialog = NULL;
-#endif
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOAST
     egui_core.toast = NULL;
-#endif
 
     // Initialize the root view group
     egui_view_root_group_init((egui_view_t *)&egui_core.root_view_group);
     egui_view_set_position((egui_view_t *)&egui_core.root_view_group, 0, 0);
     egui_view_set_size((egui_view_t *)&egui_core.root_view_group, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_dispatch_attach_to_window((egui_view_t *)&egui_core.root_view_group);
 
-#if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
     egui_view_root_group_init((egui_view_t *)&egui_core.user_root_view_group);
     egui_view_set_position((egui_view_t *)&egui_core.user_root_view_group, 0, 0);
     egui_view_set_size((egui_view_t *)&egui_core.user_root_view_group, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 
     egui_core_add_root_view((egui_view_t *)&egui_core.user_root_view_group);
-#endif
 
 #if EGUI_CONFIG_DEBUG_INFO_SHOW
     // Inintialize the debug view
@@ -1440,7 +1346,5 @@ void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HE
 #endif
 
     // Prepare refresh timer callback (not started yet — egui_screen_on() will start it)
-#if EGUI_CONFIG_CORE_AUTO_REFRESH_TIMER_ENABLE
     egui_refresh_timer.callback = egui_refresh_timer_callback;
-#endif
 }

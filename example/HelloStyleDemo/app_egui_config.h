@@ -29,6 +29,8 @@ extern "C" {
 #define EGUI_THEME_TRACK_THICKNESS         10
 #define EGUI_CONFIG_FUNCTION_SUPPORT_KEY   1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS 1
+
+#define EGUI_CONFIG_FUNCTION_SUPPORT_MASK 1
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

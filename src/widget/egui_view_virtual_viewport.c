@@ -919,6 +919,10 @@ static void egui_view_virtual_viewport_recycle_slot(egui_view_t *self, egui_view
 
     if (slot->view != NULL)
     {
+        if (local->is_attached_to_window)
+        {
+            egui_view_dispatch_detach_from_window(slot->view);
+        }
         slot->state = EGUI_VIEW_VIRTUAL_SLOT_STATE_POOLED;
         slot->last_used_seq = 0;
         egui_view_virtual_viewport_hide_slot_view(self, local, slot);
@@ -945,7 +949,7 @@ static void egui_view_virtual_viewport_destroy_slot_view(egui_view_t *self, egui
 
     if (local->is_attached_to_window)
     {
-        slot->view->api->on_detach_from_window(slot->view);
+        egui_view_dispatch_detach_from_window(slot->view);
     }
 
     if (slot->view->parent == &local->content_layer)
@@ -1008,6 +1012,11 @@ static void egui_view_virtual_viewport_apply_render_region(egui_view_t *self, eg
     region.size.width = width;
     region.size.height = height;
 
+    if (local->is_attached_to_window)
+    {
+        egui_view_dispatch_attach_to_window(slot->view);
+    }
+
     /* Use layout so both the old and new screen regions are marked dirty. */
     egui_view_layout(slot->view, &region);
     egui_view_set_gone(slot->view, 0);
@@ -1050,7 +1059,7 @@ static uint8_t egui_view_virtual_viewport_prepare_slot_view(egui_view_t *self, e
     egui_view_group_add_child(EGUI_VIEW_OF(&local->content_layer), view);
     if (local->is_attached_to_window)
     {
-        view->api->on_attach_to_window(view);
+        egui_view_dispatch_attach_to_window(view);
     }
 
     egui_view_virtual_viewport_hide_slot_view(self, local, slot);

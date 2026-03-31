@@ -177,8 +177,7 @@ enum
     EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_NONE = 0,
     EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_HORIZONTAL = 1,
     EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_VERTICAL = 2,
-    EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_BOTH =
-            EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_HORIZONTAL | EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_VERTICAL,
+    EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_BOTH = EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_HORIZONTAL | EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_VERTICAL,
 };
 
 static uint8_t egui_view_canvas_viewport_can_drag(egui_view_t *self, egui_view_canvas_viewport_t *local)
@@ -275,7 +274,7 @@ static uint8_t egui_view_canvas_viewport_get_virtual_viewport_drag_axis_mask(egu
     }
 
     return virtual_viewport->orientation == EGUI_VIEW_VIRTUAL_VIEWPORT_ORIENTATION_HORIZONTAL ? EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_HORIZONTAL
-                                                                                                : EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_VERTICAL;
+                                                                                              : EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_VERTICAL;
 }
 
 static uint8_t egui_view_canvas_viewport_get_textblock_drag_axis_mask(egui_view_t *view, egui_view_textblock_t *textblock)
@@ -283,6 +282,11 @@ static uint8_t egui_view_canvas_viewport_get_textblock_drag_axis_mask(egui_view_
     egui_dim_t content_width = view->region.size.width - (view->padding.left + view->padding.right);
     egui_dim_t content_height = view->region.size.height - (view->padding.top + view->padding.bottom);
     uint8_t axis_mask = EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_NONE;
+
+    if (!textblock->is_scroll_enabled)
+    {
+        return axis_mask;
+    }
 
     if (content_width < 0)
     {
@@ -356,8 +360,7 @@ static uint8_t egui_view_canvas_viewport_get_drag_axis_mask_for_view(egui_view_t
 
     if (api == &EGUI_VIEW_API_TABLE_NAME(egui_view_roller_t))
     {
-        return ((egui_view_roller_t *)view)->item_count > 1U ? EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_VERTICAL
-                                                              : EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_NONE;
+        return ((egui_view_roller_t *)view)->item_count > 1U ? EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_VERTICAL : EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_NONE;
     }
 
     if (api == &EGUI_VIEW_API_TABLE_NAME(egui_view_textblock_t))
@@ -426,8 +429,7 @@ static uint8_t egui_view_canvas_viewport_resolve_child_drag_target(egui_view_can
 {
     if (!local->is_drag_target_resolved)
     {
-        local->child_drag_axis_mask =
-                egui_view_canvas_viewport_resolve_hit_drag_axis_mask(EGUI_VIEW_OF(&local->content_layer), local->down_x, local->down_y);
+        local->child_drag_axis_mask = egui_view_canvas_viewport_resolve_hit_drag_axis_mask(EGUI_VIEW_OF(&local->content_layer), local->down_x, local->down_y);
         local->is_child_drag_target = local->child_drag_axis_mask != EGUI_VIEW_CANVAS_VIEWPORT_DRAG_AXIS_NONE ? 1U : 0U;
         local->is_drag_target_resolved = 1;
     }

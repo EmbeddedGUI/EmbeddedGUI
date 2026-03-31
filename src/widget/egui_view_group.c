@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "egui_view_group.h"
+#include "core/egui_api.h"
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW
 #include "shadow/egui_shadow.h"
@@ -24,7 +25,7 @@ static egui_view_group_touch_state_t egui_view_group_touch_state;
 
 static void egui_view_group_touch_state_reset(void)
 {
-    egui_api_memset(&egui_view_group_touch_state, 0, sizeof(egui_view_group_touch_state));
+    egui_api_memset(&egui_view_group_touch_state, 0, (int)sizeof(egui_view_group_touch_state));
 }
 
 static void egui_view_group_touch_state_set_path_entry(uint8_t depth, egui_view_t *view)
@@ -76,9 +77,9 @@ void egui_view_group_touch_state_exchange(egui_view_group_touch_state_snapshot_t
         return;
     }
 
-    egui_api_memcpy(&current_state, &egui_view_group_touch_state, sizeof(current_state));
-    egui_api_memcpy(&egui_view_group_touch_state, snapshot, sizeof(egui_view_group_touch_state));
-    egui_api_memcpy(snapshot, &current_state, sizeof(*snapshot));
+    egui_api_memcpy(&current_state, &egui_view_group_touch_state, (int)sizeof(current_state));
+    egui_api_memcpy(&egui_view_group_touch_state, snapshot, (int)sizeof(egui_view_group_touch_state));
+    egui_api_memcpy(snapshot, &current_state, (int)sizeof(*snapshot));
 }
 #endif
 
@@ -102,6 +103,11 @@ void egui_view_group_add_child(egui_view_t *self, egui_view_t *child)
 #else
     egui_dlist_append(&local->childs, &child->node);
 #endif // EGUI_CONFIG_FUNCTION_SUPPORT_LAYER
+
+    if (self->is_attached_to_window)
+    {
+        egui_view_dispatch_attach_to_window(child);
+    }
 }
 
 void egui_view_group_remove_child(egui_view_t *self, egui_view_t *child)
@@ -113,17 +119,39 @@ void egui_view_group_remove_child(egui_view_t *self, egui_view_t *child)
         egui_view_group_touch_state_reset();
     }
 #endif
+
+    if (self->is_attached_to_window)
+    {
+        egui_view_dispatch_detach_from_window(child);
+    }
+
     egui_dlist_remove(&child->node);
+    egui_view_set_parent(child, NULL);
 }
 
 void egui_view_group_clear_childs(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_group_t);
+    egui_dnode_t *p_head;
+    egui_dnode_t *p_next;
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-    EGUI_UNUSED(self);
     egui_view_group_touch_state_reset();
 #endif
+
+    EGUI_DLIST_FOR_EACH_NODE_SAFE(&local->childs, p_head, p_next)
+    {
+        egui_view_t *tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
+
+        if (self->is_attached_to_window)
+        {
+            egui_view_dispatch_detach_from_window(tmp);
+        }
+
+        egui_dlist_remove(&tmp->node);
+        egui_view_set_parent(tmp, NULL);
+    }
+
     egui_dlist_init(&local->childs);
 }
 
@@ -146,15 +174,10 @@ egui_view_t *egui_view_group_get_first_child(egui_view_t *self)
 
 void egui_view_group_set_disallow_process_touch_event(egui_view_t *self, int disallow)
 {
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     if (self->api == &EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t))
     {
         EGUI_CAST_TO(egui_view_root_group_t, self)->is_disallow_process_touch_event = disallow;
     }
-#else
-    EGUI_UNUSED(self);
-    EGUI_UNUSED(disallow);
-#endif
 }
 
 void egui_view_group_calculate_all_child_width(egui_view_t *self, egui_dim_t *width)
@@ -343,7 +366,7 @@ void egui_view_group_request_disallow_intercept_touch_event(egui_view_t *self, i
 int egui_view_group_dispatch_transformed_touch_event(egui_view_t *self, int is_canceled, egui_view_t *child, egui_motion_event_t *event)
 {
     egui_motion_event_t transformed_event;
-    egui_api_memcpy(&transformed_event, event, sizeof(egui_motion_event_t));
+    egui_api_memcpy(&transformed_event, event, (int)sizeof(egui_motion_event_t));
 
     // change to cancel event if is_canceled is true.
     if (is_canceled)
@@ -469,7 +492,7 @@ static int egui_view_group_dispatch_touch_event_followup_internal(egui_view_t *s
     if (is_intercepted)
     {
         egui_motion_event_t cancel_event;
-        egui_api_memcpy(&cancel_event, event, sizeof(cancel_event));
+        egui_api_memcpy(&cancel_event, event, (int)sizeof(cancel_event));
         cancel_event.type = EGUI_MOTION_EVENT_ACTION_CANCEL;
 
         is_handled = egui_view_dispatch_touch_event_followup(captured_child, &cancel_event, depth + 1);
@@ -626,7 +649,7 @@ void egui_view_group_on_attach_to_window(egui_view_t *self)
         {
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
 
-            tmp->api->on_attach_to_window(tmp);
+            egui_view_dispatch_attach_to_window(tmp);
         }
     }
 }
@@ -643,7 +666,7 @@ void egui_view_group_on_detach_from_window(egui_view_t *self)
         {
             tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
 
-            tmp->api->on_detach_from_window(tmp);
+            egui_view_dispatch_detach_from_window(tmp);
         }
     }
 }
@@ -873,11 +896,7 @@ void egui_view_root_group_init(egui_view_t *self)
 
     egui_view_group_init(self);
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_root_group_t);
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
     local->is_disallow_process_touch_event = 0;
-#else
-    EGUI_UNUSED(local);
-#endif
 
     egui_view_set_view_name(self, "egui_view_root_group");
 }
