@@ -121,11 +121,11 @@ PC 平台的 Platform Driver 使用标准库函数：
 
 | 接口 | PC 实现 |
 |------|---------|
-| `malloc/free` | 标准 `malloc`/`free` |
-| `vlog` | `vprintf`（输出到终端） |
+| 堆分配 | 默认走标准 `malloc`/`free`，无需注册 ops 回调 |
+| 日志/格式化 | 默认走标准 `vprintf`/`vsprintf`，无需注册 ops 回调 |
 | `get_tick_ms` | `sdl_get_system_timestamp_ms()`（SDL 时间戳） |
 | `delay` | `sdl_port_sleep()` |
-| `pfb_clear` | `memset` |
+| 内存清零/拷贝 | 默认走标准 `memset`/`memcpy`，无需注册 ops 回调 |
 | `interrupt_disable/enable` | 空操作（PC 无中断概念） |
 
 ## 主循环结构

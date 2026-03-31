@@ -78,14 +78,21 @@ typedef struct egui_display_driver_ops {
 ```c
 typedef struct egui_platform_ops {
     // --- 基础服务 ---
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
     void *(*malloc)(int size);
     void (*free)(void *ptr);
+#endif
+#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
     void (*vlog)(const char *fmt, va_list args);
-    void (*assert_handler)(const char *file, int line);
     void (*vsprintf)(char *str, const char *fmt, va_list args);
+#endif
+    void (*assert_handler)(const char *file, int line);
     void (*delay)(uint32_t ms);
     uint32_t (*get_tick_ms)(void);
-    void (*pfb_clear)(void *s, int n);
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
+    void (*memset_fast)(void *s, int c, int n);
+    void (*memcpy_fast)(void *dst, const void *src, int n);
+#endif
     egui_base_t (*interrupt_disable)(void);
     void (*interrupt_enable)(egui_base_t level);
 
@@ -98,21 +105,24 @@ typedef struct egui_platform_ops {
     void (*mutex_destroy)(void *mutex);
     void (*timer_start)(uint32_t expiry_time_ms);
     void (*timer_stop)(void);
-    void (*memcpy_fast)(void *dst, const void *src, int n);
     void (*watchdog_feed)(void);
 } egui_platform_ops_t;
 ```
+
+`EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC`、`EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF`、`EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP`
+默认都为 `0`。当宏关闭时，对应字段在编译期不会出现在 `egui_platform_ops_t` 中，框架会直接调用标准库实现；
+只有在需要平台定制堆、日志重定向或 DMA/优化版 `memset`/`memcpy` 时，才需要开启对应宏并注册回调。
 
 关键函数优先级：
 
 | 函数 | 重要性 | 说明 |
 |------|--------|------|
 | `get_tick_ms` | 必须 | 返回单调递增的毫秒时间戳 |
-| `pfb_clear` | 必须 | 每帧渲染前清零 PFB 缓冲区 |
-| `vlog` | 建议 | 调试日志输出 |
-| `assert_handler` | 建议 | 断言失败处理 |
+| `assert_handler` | 建议 | 断言失败时输出定位信息并停机 |
+| `vlog` | 建议 | 启用 `EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF=1` 时提供调试日志输出 |
 | `interrupt_disable/enable` | 建议 | 保护共享数据 |
-| `malloc/free` | 可选 | 动态内存分配 |
+| `memset_fast/memcpy_fast` | 可选 | 启用 `EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP=1` 时，可接 DMA 或平台优化例程 |
+| `malloc/free` | 可选 | 启用 `EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC=1` 时，提供定制动态内存分配 |
 | `mutex_*` | 可选 | RTOS 线程安全 |
 
 ## 可选接口
@@ -263,7 +273,7 @@ PFB 宽高必须是屏幕宽高的整数约数。
 - [ ] `egui_port_init()` 中注册了 Display Driver 和 Platform Driver
 - [ ] `draw_area()` 能正确将像素数据发送到屏幕
 - [ ] `get_tick_ms()` 返回单调递增的毫秒时间戳
-- [ ] `pfb_clear()` 能正确清零缓冲区
+- [ ] 默认配置下标准库 `memset` / `memcpy` 可用；若启用 `EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP`，`memset_fast()` / `memcpy_fast()` 工作正确
 - [ ] `app_egui_config.h` 中配置了正确的屏幕尺寸和 PFB 大小
 - [ ] PFB 宽高是屏幕宽高的整数约数
 - [ ] 主循环中按正确顺序调用初始化函数
