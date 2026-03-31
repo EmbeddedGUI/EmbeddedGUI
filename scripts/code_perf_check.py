@@ -287,6 +287,13 @@ APP_CONFIG_PATH = PROJECT_ROOT / "example" / "HelloPerformance" / "app_egui_conf
 QEMU_BASE_CFLAGS = "-DEGUI_TEST_CONFIG_IMAGE_565=1"
 
 
+def merge_extra_cflags(user_extra_cflags=None):
+    parts = [QEMU_BASE_CFLAGS]
+    if user_extra_cflags:
+        parts.append(user_extra_cflags)
+    return " ".join(part for part in parts if part)
+
+
 def read_screen_size():
     """Read EGUI_CONFIG_SCEEN_WIDTH/HEIGHT from app_egui_config.h.
 
@@ -324,7 +331,7 @@ def run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout):
 
         # Pass PFB dimensions via USER_CFLAGS — never modify app_egui_config.h
         extra_cflags = (
-            f"{QEMU_BASE_CFLAGS}"
+            f"{merge_extra_cflags()}"
             f" -DEGUI_CONFIG_PFB_WIDTH={pfb_w}"
             f" -DEGUI_CONFIG_PFB_HEIGHT={pfb_h}"
         )
@@ -462,7 +469,7 @@ def run_spi_matrix(profile_name, profile_config, spi_configs, timeout):
         print(f"\n[{idx}/{total}] SPI config: {cfg_name} - {desc}")
 
         # Build extra_cflags from SPI/buffer settings — never modify app_egui_config.h
-        parts = [QEMU_BASE_CFLAGS]
+        parts = [merge_extra_cflags()]
         if spi_mhz > 0:
             parts.append(f"-DQEMU_SPI_SPEED_MHZ={spi_mhz}")
         if buf_count > 1:
@@ -765,6 +772,8 @@ def main():
                         help="Filter test results by keyword (e.g., RECT,CIRCLE)")
     parser.add_argument("--with-scenes", action="store_true",
                         help="Capture HelloPerformance renders and generate a scene contact sheet")
+    parser.add_argument("--extra-cflags", type=str,
+                        help="Append extra USER_CFLAGS for A/B config testing (e.g. -DMY_MACRO=0)")
     args = parser.parse_args()
 
     profiles, defaults, pfb_configs, spi_configs = load_profiles()
@@ -811,7 +820,7 @@ def main():
 
         # Build — enable all image tests via USER_CFLAGS (no flash limit on QEMU)
         if not build_for_profile(name, config, clean=need_clean,
-                                 extra_cflags=QEMU_BASE_CFLAGS):
+                                 extra_cflags=merge_extra_cflags(args.extra_cflags)):
             failed_profiles.append(name)
             continue
 
