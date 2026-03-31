@@ -1,10 +1,16 @@
 # Performance Report
 
-- Commit: `9943a46`
-- Date: 2026-03-31T16:15:37.806097
+- Commit: `61f56ed`
+- Date: 2026-03-31T17:16:37.304435
 - Profile: cortex-m3
 
 ![Performance Chart](images/perf_report.png)
+
+## Scene Contact Sheet
+
+Timing data comes from QEMU. The contact sheet below is rendered with the PC simulator for scene reference.
+
+![Scene Contact Sheet](images/perf_scenes.png)
 
 ## Basic Shapes
 

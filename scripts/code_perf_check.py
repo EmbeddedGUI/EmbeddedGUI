@@ -750,6 +750,19 @@ def run_scene_capture(profile_name, keyword_filter=None, timeout=180):
     return True
 
 
+def _generate_perf_documentation():
+    """Generate all performance documentation reports."""
+    try:
+        import perf_to_doc
+        perf_to_doc.generate_perf_report()
+        perf_to_doc.generate_pfb_matrix_report()
+        perf_to_doc.generate_spi_matrix_report()
+    except ImportError:
+        print("Warning: perf_to_doc module not found, skipping documentation generation")
+    except Exception as e:
+        raise Exception(f"Failed to generate performance documentation: {e}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="EmbeddedGUI QEMU Performance Regression Check"
@@ -866,7 +879,8 @@ def main():
     print(f"\nResults saved to: {RESULTS_FILE}")
 
     scenes_failed = False
-    if args.with_scenes and all_results:
+    # Generate scene capture if --with-scenes or --doc is specified
+    if (args.with_scenes or args.doc) and all_results:
         first_profile_name = next(iter(all_results.keys()))
         print(f"\n{'='*60}")
         print("Scene Capture")
@@ -914,6 +928,17 @@ def main():
         print(f"{'='*60}")
         try:
             _generate_perf_documentation()
+
+            # Copy scene capture image to documentation directory
+            doc_img_dir = PROJECT_ROOT / "doc" / "source" / "performance" / "images"
+            doc_img_dir.mkdir(parents=True, exist_ok=True)
+
+            if SCENE_SHEET_FILE.exists():
+                import shutil
+                dest_scene = doc_img_dir / "perf_scenes.png"
+                shutil.copy2(SCENE_SHEET_FILE, dest_scene)
+                print(f"  Scene capture copied to: {dest_scene}")
+
             print("Documentation updated successfully")
         except Exception as e:
             print(f"Warning: Failed to generate documentation: {e}")
