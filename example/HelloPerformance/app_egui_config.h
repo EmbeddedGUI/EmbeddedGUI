@@ -37,17 +37,6 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW 1
 #define EGUI_CONFIG_FUNCTION_SUPPORT_MASK   1
 
-// HelloPerformance drives one benchmark root view directly and never enters
-// the activity/dialog/toast stack, so keeping those core-side state machines
-// alive only increases persistent RAM.
-#define EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY 0
-#define EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG   0
-
-// HelloPerformance mounts its only benchmark view directly at the root level,
-// so the extra user-root wrapper inside egui_core just adds one unused
-// root-group object in persistent RAM.
-#define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 0
-
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1 1
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_2 1
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8 1

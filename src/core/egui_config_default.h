@@ -271,17 +271,19 @@ extern "C" {
 /**
  * Function options.
  * Select support activity stack APIs/state. if 0, remove activity runtime support.
+ * Default: 0 (disabled). Enable explicitly when using activity stack.
  */
 #ifndef EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
-#define EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY 1
+#define EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY 0
 #endif
 
 /**
  * Function options.
  * Select support dialog APIs/state. if 0, remove dialog runtime support.
+ * Default: 0 (disabled). Enable explicitly when using dialogs.
  */
 #ifndef EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
-#define EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG 1
+#define EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG 0
 #endif
 
 /**
@@ -292,19 +294,25 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_SUPPORT_TOAST 1
 #endif
 
-/**
- * Core state options.
- * Select whether to keep a separate user-root wrapper under the top-level root group.
- * Disable only when the app can place user views directly on the root group.
- */
-#ifndef EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
-#define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 1
-#endif
-
 /* Dialog support depends on the activity stack. */
 #if EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
 #undef EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY
 #define EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY 1
+#endif
+
+/**
+ * Core state options.
+ * Select whether to keep a separate user-root wrapper under the top-level root group.
+ * Default: 0 (disabled). Auto-enabled when activity/dialog/debug is enabled.
+ * Simple apps can place user views directly on the root group for better performance.
+ */
+#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY || EGUI_CONFIG_DEBUG_INFO_SHOW
+#undef EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
+#define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 1
+#endif
+
+#ifndef EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
+#define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 0
 #endif
 
 /* ---- Resource management ---- */
