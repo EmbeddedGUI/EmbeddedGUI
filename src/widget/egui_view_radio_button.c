@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "egui_view_radio_button.h"
+#include "egui_view_icon_font.h"
 #include "egui_view_circle_dirty.h"
 #include "resource/egui_resource.h"
 
@@ -16,15 +17,7 @@ static const egui_font_t *egui_view_radio_button_get_icon_font(egui_view_radio_b
         return local->icon_font;
     }
 
-    if (area_size <= 18)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (area_size <= 22)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
 static uint8_t egui_view_radio_button_get_indicator_dirty_region(egui_view_t *self, egui_view_radio_button_t *local, egui_region_t *dirty_region)
@@ -271,8 +264,11 @@ void egui_view_radio_button_on_draw(egui_view_t *self)
                     {center_x - icon_size / 2, center_y - icon_size / 2},
                     {icon_size, icon_size},
             };
-            egui_canvas_draw_text_in_rect(egui_view_radio_button_get_icon_font(local, icon_size), local->mark_icon, &icon_region, EGUI_ALIGN_CENTER, fill_color,
-                                          local->alpha);
+            const egui_font_t *icon_font = egui_view_radio_button_get_icon_font(local, icon_size);
+            if (icon_font != NULL && local->mark_icon[0] != '\0')
+            {
+                egui_canvas_draw_text_in_rect(icon_font, local->mark_icon, &icon_region, EGUI_ALIGN_CENTER, fill_color, local->alpha);
+            }
         }
         else
         {

@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "egui_view_window.h"
+#include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
@@ -15,18 +16,10 @@
 
 static const egui_font_t *egui_view_window_get_icon_font(egui_dim_t area_size)
 {
-    if (area_size <= 18)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (area_size <= 22)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
-static const egui_font_t *egui_view_window_get_close_icon_font(egui_view_window_t *local)
+static const egui_font_t *egui_view_window_get_close_icon_font(const egui_view_window_t *local)
 {
     if (local->close_icon_font != NULL)
     {
@@ -36,6 +29,12 @@ static const egui_font_t *egui_view_window_get_close_icon_font(egui_view_window_
     return egui_view_window_get_icon_font(local->header_height);
 }
 
+static uint8_t egui_view_window_has_close_icon(const egui_view_window_t *local)
+{
+    const egui_font_t *icon_font = egui_view_window_get_close_icon_font(local);
+    return (icon_font != NULL && local->close_icon != NULL && local->close_icon[0] != '\0') ? 1U : 0U;
+}
+
 static void egui_view_window_update_layout(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_window_t);
@@ -43,7 +42,7 @@ static void egui_view_window_update_layout(egui_view_t *self)
     egui_dim_t header_height = local->header_height;
     egui_dim_t window_width = self->region.size.width;
     egui_dim_t window_height = self->region.size.height;
-    egui_dim_t close_width = header_height;
+    egui_dim_t close_width = egui_view_window_has_close_icon(local) ? header_height : 0;
     egui_dim_t title_width;
     egui_dim_t content_height;
 
@@ -124,6 +123,7 @@ void egui_view_window_set_close_icon(egui_view_t *self, const char *icon)
 
     local->close_icon = icon;
     egui_view_label_set_text(EGUI_VIEW_OF(&local->close_label), local->close_icon);
+    egui_view_window_update_layout(self);
     egui_view_invalidate(self);
 }
 
@@ -137,7 +137,7 @@ void egui_view_window_set_close_icon_font(egui_view_t *self, const egui_font_t *
     }
 
     local->close_icon_font = font;
-    egui_view_label_set_font(EGUI_VIEW_OF(&local->close_label), egui_view_window_get_close_icon_font(local));
+    egui_view_window_update_layout(self);
     egui_view_invalidate(self);
 }
 

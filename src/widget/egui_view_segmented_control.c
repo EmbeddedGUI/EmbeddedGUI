@@ -1,4 +1,5 @@
 #include "egui_view_segmented_control.h"
+#include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 
 static const egui_font_t *egui_view_segmented_control_get_icon_font(egui_view_segmented_control_t *local, egui_dim_t area_size)
@@ -8,15 +9,7 @@ static const egui_font_t *egui_view_segmented_control_get_icon_font(egui_view_se
         return local->icon_font;
     }
 
-    if (area_size <= 18)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (area_size <= 22)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
 static uint8_t egui_view_segmented_control_clamp_count(uint8_t count)
@@ -126,10 +119,18 @@ static bool egui_view_segmented_control_build_layout(egui_view_t *self, egui_vie
 static void egui_view_segmented_control_draw_segment_content(egui_view_segmented_control_t *local, const egui_region_t *segment_region, const char *icon,
                                                              const char *text, egui_color_t color)
 {
-    if (icon != NULL)
+    if (icon != NULL && icon[0] != '\0')
     {
+        const egui_font_t *icon_font = egui_view_segmented_control_get_icon_font(local, EGUI_MIN(segment_region->size.width, segment_region->size.height));
         if (text != NULL && text[0] != '\0')
         {
+            if (icon_font == NULL)
+            {
+                egui_region_t text_region = *segment_region;
+                egui_canvas_draw_text_in_rect(local->font, text, &text_region, EGUI_ALIGN_CENTER, color, local->alpha);
+                return;
+            }
+
             egui_dim_t text_w = 0;
             egui_dim_t text_h = 0;
             egui_dim_t icon_area_h;
@@ -195,18 +196,16 @@ static void egui_view_segmented_control_draw_segment_content(egui_view_segmented
             text_region.size.width = content_region.size.width;
             text_region.size.height = content_region.location.y + content_region.size.height - text_region.location.y;
 
-            egui_canvas_draw_text_in_rect(egui_view_segmented_control_get_icon_font(local, EGUI_MIN(icon_region.size.width, icon_region.size.height)), icon,
-                                          &icon_region, EGUI_ALIGN_CENTER, color, local->alpha);
+            egui_canvas_draw_text_in_rect(icon_font, icon, &icon_region, EGUI_ALIGN_CENTER, color, local->alpha);
             egui_canvas_draw_text_in_rect(local->font, text, &text_region, EGUI_ALIGN_CENTER, color, local->alpha);
         }
-        else
+        else if (icon_font != NULL)
         {
             egui_region_t icon_region = *segment_region;
-            egui_canvas_draw_text_in_rect(egui_view_segmented_control_get_icon_font(local, EGUI_MIN(icon_region.size.width, icon_region.size.height)), icon,
-                                          &icon_region, EGUI_ALIGN_CENTER, color, local->alpha);
+            egui_canvas_draw_text_in_rect(icon_font, icon, &icon_region, EGUI_ALIGN_CENTER, color, local->alpha);
         }
     }
-    else if (text != NULL)
+    else if (text != NULL && text[0] != '\0')
     {
         egui_region_t text_region = *segment_region;
         egui_canvas_draw_text_in_rect(local->font, text, &text_region, EGUI_ALIGN_CENTER, color, local->alpha);

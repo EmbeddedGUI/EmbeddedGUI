@@ -158,6 +158,52 @@ extern "C" {
 /* ---- Font cache options ---- */
 
 /**
+ * Font draw options.
+ * When 1, enable the std font fast draw path.
+ * This keeps the larger text rendering fast path code for text-heavy UIs.
+ * When 0, always use the generic draw path to reduce code size.
+ */
+#ifndef EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE
+#define EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE 1
+#endif
+
+/**
+ * Font format options.
+ * Enable support for 1-bit packed std font bitmaps.
+ * Default: 0 (off). Enable only when the application really uses 1bpp fonts.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
+#define EGUI_CONFIG_FUNCTION_FONT_FORMAT_1 0
+#endif
+
+/**
+ * Font format options.
+ * Enable support for 2-bit packed std font bitmaps.
+ * Default: 0 (off). Enable only when the application really uses 2bpp fonts.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
+#define EGUI_CONFIG_FUNCTION_FONT_FORMAT_2 0
+#endif
+
+/**
+ * Font format options.
+ * Enable support for 4-bit packed std font bitmaps.
+ * Default: 1 (on). This is the default built-in font format.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
+#define EGUI_CONFIG_FUNCTION_FONT_FORMAT_4 1
+#endif
+
+/**
+ * Font format options.
+ * Enable support for 8-bit packed std font bitmaps.
+ * Default: 0 (off). Enable only when the application really uses 8bpp fonts.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
+#define EGUI_CONFIG_FUNCTION_FONT_FORMAT_8 0
+#endif
+
+/**
  * Font cache options.
  * When 1, use compact uint8_t fields for ASCII code lookup cache (saves ~20 B BSS).
  * Only suitable for pure ASCII fonts (code <= 255).

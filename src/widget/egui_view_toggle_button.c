@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "egui_view_toggle_button.h"
+#include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
@@ -15,15 +16,7 @@ static const egui_font_t *egui_view_toggle_button_get_icon_font(egui_view_toggle
         return local->icon_font;
     }
 
-    if (area_size <= 20)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (area_size <= 26)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(area_size, 20, 26);
 }
 
 static void egui_view_toggle_button_draw_content(egui_view_toggle_button_t *local, const egui_region_t *region, egui_color_t text_color)
@@ -46,13 +39,22 @@ static void egui_view_toggle_button_draw_content(egui_view_toggle_button_t *loca
 
     if (text == NULL || text[0] == '\0')
     {
-        egui_canvas_draw_text_in_rect(egui_view_toggle_button_get_icon_font(local, EGUI_MIN(region->size.width, region->size.height)), icon, &draw_region,
-                                      EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
+        const egui_font_t *icon_font = egui_view_toggle_button_get_icon_font(local, EGUI_MIN(region->size.width, region->size.height));
+        if (icon_font != NULL)
+        {
+            egui_canvas_draw_text_in_rect(icon_font, icon, &draw_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
+        }
         return;
     }
 
     {
         const egui_font_t *icon_font = egui_view_toggle_button_get_icon_font(local, region->size.height);
+        if (icon_font == NULL)
+        {
+            egui_canvas_draw_text_in_rect(text_font, text, &draw_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
+            return;
+        }
+
         egui_dim_t icon_width = 0;
         egui_dim_t icon_height = 0;
         egui_dim_t text_width = 0;

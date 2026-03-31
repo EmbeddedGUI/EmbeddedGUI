@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "egui_view_notification_badge.h"
+#include "egui_view_icon_font.h"
 #include "utils/egui_sprintf.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
@@ -18,15 +19,7 @@ static const egui_font_t *egui_view_notification_badge_get_icon_font(egui_view_n
         return local->icon_font;
     }
 
-    if (area_size <= 18)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (area_size <= 22)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
 void egui_view_notification_badge_set_count(egui_view_t *self, uint16_t count)
@@ -162,11 +155,15 @@ void egui_view_notification_badge_on_draw(egui_view_t *self)
     display_font = (local->content_style == EGUI_VIEW_NOTIFICATION_BADGE_CONTENT_STYLE_ICON)
                            ? egui_view_notification_badge_get_icon_font(local, EGUI_MIN(region.size.width, region.size.height))
                            : local->font;
+    if (display_font == NULL)
+    {
+        return;
+    }
 
     // Get text dimensions
     egui_dim_t text_w = 0;
     egui_dim_t text_h = 0;
-    if (display_font && display_font->api)
+    if (display_font->api != NULL && display_font->api->get_str_size != NULL)
     {
         display_font->api->get_str_size(display_font, display_text, 0, 0, &text_w, &text_h);
     }

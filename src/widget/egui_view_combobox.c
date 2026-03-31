@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "egui_view_combobox.h"
+#include "egui_view_icon_font.h"
 #include "widget/egui_view_group.h"
 #include "resource/egui_resource.h"
 #include "core/egui_core.h"
@@ -12,15 +13,7 @@
 
 static const egui_font_t *egui_view_combobox_get_icon_font(egui_dim_t area_size)
 {
-    if (area_size <= 18)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (area_size <= 22)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
 static const egui_font_t *egui_view_combobox_get_item_icon_font(egui_view_combobox_t *local, egui_dim_t area_size)
@@ -49,7 +42,12 @@ static egui_dim_t egui_view_combobox_get_content_icon_width(egui_view_combobox_t
     egui_dim_t icon_width = 0;
     egui_dim_t icon_height = 0;
 
-    if (icon_font != NULL && icon != NULL && icon_font->api != NULL && icon_font->api->get_str_size != NULL)
+    if (icon_font == NULL || icon == NULL || icon[0] == '\0')
+    {
+        return 0;
+    }
+
+    if (icon_font->api != NULL && icon_font->api->get_str_size != NULL)
     {
         icon_font->api->get_str_size(icon_font, icon, 0, 0, &icon_width, &icon_height);
     }
@@ -88,29 +86,33 @@ static void egui_view_combobox_draw_item_content(egui_view_combobox_t *local, co
 
     if (icon != NULL && icon[0] != '\0')
     {
-        egui_region_t icon_rect = *rect;
-        egui_dim_t icon_width = egui_view_combobox_get_content_icon_width(local, rect->size.height, icon);
-        egui_dim_t gap = local->icon_text_gap;
-
-        if (gap < 0)
+        const egui_font_t *icon_font = egui_view_combobox_get_item_icon_font(local, rect->size.height);
+        if (icon_font != NULL)
         {
-            gap = 0;
-        }
+            egui_region_t icon_rect = *rect;
+            egui_dim_t icon_width = egui_view_combobox_get_content_icon_width(local, rect->size.height, icon);
+            egui_dim_t gap = local->icon_text_gap;
 
-        icon_rect.size.width = EGUI_MIN(icon_width, rect->size.width);
-        egui_canvas_draw_text_in_rect(egui_view_combobox_get_item_icon_font(local, rect->size.height), icon, &icon_rect, EGUI_ALIGN_CENTER, color, alpha);
+            if (gap < 0)
+            {
+                gap = 0;
+            }
 
-        text_rect.location.x += icon_rect.size.width;
-        text_rect.size.width -= icon_rect.size.width;
+            icon_rect.size.width = EGUI_MIN(icon_width, rect->size.width);
+            egui_canvas_draw_text_in_rect(icon_font, icon, &icon_rect, EGUI_ALIGN_CENTER, color, alpha);
 
-        if (text != NULL && text[0] != '\0' && text_rect.size.width > gap)
-        {
-            text_rect.location.x += gap;
-            text_rect.size.width -= gap;
-        }
-        else
-        {
-            text_rect.size.width = 0;
+            text_rect.location.x += icon_rect.size.width;
+            text_rect.size.width -= icon_rect.size.width;
+
+            if (text != NULL && text[0] != '\0' && text_rect.size.width > gap)
+            {
+                text_rect.location.x += gap;
+                text_rect.size.width -= gap;
+            }
+            else if (text != NULL && text[0] != '\0')
+            {
+                text_rect.size.width = 0;
+            }
         }
     }
 
@@ -480,6 +482,11 @@ static void egui_view_combobox_draw_arrow(egui_view_combobox_t *local, egui_dim_
     const egui_font_t *icon_font = egui_view_combobox_get_item_icon_font(local, EGUI_MIN(width, height));
     const char *icon_text = egui_view_combobox_get_arrow_icon(local, is_expanded);
 
+    if (icon_font == NULL || icon_text == NULL || icon_text[0] == '\0')
+    {
+        return;
+    }
+
     egui_canvas_draw_text_in_rect(icon_font, icon_text, &arrow_rect, EGUI_ALIGN_CENTER, color, alpha);
 }
 
@@ -518,7 +525,9 @@ void egui_view_combobox_on_draw(egui_view_t *self)
 
     egui_dim_t header_height = local->collapsed_height;
     egui_dim_t padding = 4;
-    egui_dim_t arrow_slot_width = header_height;
+    const egui_font_t *arrow_font = egui_view_combobox_get_item_icon_font(local, header_height);
+    const char *arrow_icon = egui_view_combobox_get_arrow_icon(local, local->is_expanded);
+    egui_dim_t arrow_slot_width = (arrow_font != NULL && arrow_icon != NULL && arrow_icon[0] != '\0') ? header_height : 0;
     egui_dim_t border_radius = EGUI_THEME_RADIUS_SM;
 
     if (local->is_expanded)
@@ -602,8 +611,11 @@ void egui_view_combobox_on_draw(egui_view_t *self)
         egui_view_combobox_draw_item_content(local, &text_rect, local->item_icons[local->current_index], NULL, text_color, local->alpha);
     }
 
-    egui_dim_t arrow_x = region.location.x + region.size.width - arrow_slot_width;
-    egui_view_combobox_draw_arrow(local, arrow_x, region.location.y, arrow_slot_width, header_height, local->is_expanded, arrow_color, local->alpha);
+    if (arrow_slot_width > 0)
+    {
+        egui_dim_t arrow_x = region.location.x + region.size.width - arrow_slot_width;
+        egui_view_combobox_draw_arrow(local, arrow_x, region.location.y, arrow_slot_width, header_height, local->is_expanded, arrow_color, local->alpha);
+    }
 
     if (local->is_expanded && local->items != NULL)
     {

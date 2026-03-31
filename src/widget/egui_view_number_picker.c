@@ -1,6 +1,7 @@
 #include <assert.h>
 
 #include "egui_view_number_picker.h"
+#include "egui_view_icon_font.h"
 #include "utils/egui_sprintf.h"
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
@@ -12,15 +13,7 @@ static const egui_font_t *egui_view_number_picker_get_icon_font(egui_view_number
         return local->icon_font;
     }
 
-    if (area_size <= 18)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (area_size <= 22)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
 static void egui_view_number_picker_get_zone_region(egui_view_t *self, int8_t zone, egui_region_t *zone_region)
@@ -191,7 +184,10 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
                 egui_canvas_draw_fillrect(top_rect.location.x, top_rect.location.y, top_rect.size.width, top_rect.size.height, EGUI_COLOR_MAKE(255, 255, 255),
                                           30);
             }
-            egui_canvas_draw_text_in_rect(icon_font, local->icon_inc, &top_rect, EGUI_ALIGN_CENTER, local->button_color, local->alpha);
+            if (icon_font != NULL && local->icon_inc != NULL && local->icon_inc[0] != '\0')
+            {
+                egui_canvas_draw_text_in_rect(icon_font, local->icon_inc, &top_rect, EGUI_ALIGN_CENTER, local->button_color, local->alpha);
+            }
         }
     }
 
@@ -217,7 +213,10 @@ void egui_view_number_picker_on_draw(egui_view_t *self)
                 egui_canvas_draw_fillrect(bottom_rect.location.x, bottom_rect.location.y, bottom_rect.size.width, bottom_rect.size.height,
                                           EGUI_COLOR_MAKE(255, 255, 255), 30);
             }
-            egui_canvas_draw_text_in_rect(icon_font, local->icon_dec, &bottom_rect, EGUI_ALIGN_CENTER, local->button_color, local->alpha);
+            if (icon_font != NULL && local->icon_dec != NULL && local->icon_dec[0] != '\0')
+            {
+                egui_canvas_draw_text_in_rect(icon_font, local->icon_dec, &bottom_rect, EGUI_ALIGN_CENTER, local->button_color, local->alpha);
+            }
         }
     }
 }

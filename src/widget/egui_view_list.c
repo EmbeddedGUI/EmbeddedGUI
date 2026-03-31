@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "egui_view_list.h"
+#include "egui_view_icon_font.h"
 #include "font/egui_font.h"
 #include "resource/egui_resource.h"
 #include "style/egui_theme.h"
@@ -23,15 +24,7 @@ static const egui_font_t *egui_view_list_get_icon_font(egui_view_list_t *local)
         return local->icon_font;
     }
 
-    if (local->item_height <= 30)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (local->item_height <= 36)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(local->item_height, 30, 36);
 }
 
 static egui_dim_t egui_view_list_get_icon_area_width(egui_view_list_t *local)
@@ -41,6 +34,11 @@ static egui_dim_t egui_view_list_get_icon_area_width(egui_view_list_t *local)
     egui_dim_t height = 0;
     uint8_t has_icon = 0;
     uint8_t i;
+
+    if (icon_font == NULL)
+    {
+        return 0;
+    }
 
     for (i = 0; i < local->item_count; i++)
     {

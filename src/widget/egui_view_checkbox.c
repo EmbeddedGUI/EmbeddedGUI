@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "egui_view_checkbox.h"
+#include "egui_view_icon_font.h"
 #include "egui_view_circle_dirty.h"
 #include "resource/egui_resource.h"
 #include "style/egui_theme.h"
@@ -18,15 +19,7 @@ static const egui_font_t *egui_view_checkbox_get_icon_font(egui_view_checkbox_t 
         return local->icon_font;
     }
 
-    if (box_size <= 18)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (box_size <= 22)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(box_size, 18, 22);
 }
 
 static uint8_t egui_view_checkbox_get_indicator_dirty_region(egui_view_t *self, egui_view_checkbox_t *local, egui_region_t *dirty_region)
@@ -247,8 +240,11 @@ void egui_view_checkbox_on_draw(egui_view_t *self)
         if (local->mark_style == EGUI_VIEW_CHECKBOX_MARK_STYLE_ICON)
         {
             egui_region_t icon_region = {{box_x, box_y}, {box_size, box_size}};
-            egui_canvas_draw_text_in_rect(egui_view_checkbox_get_icon_font(local, box_size), local->mark_icon, &icon_region, EGUI_ALIGN_CENTER, check_color,
-                                          local->alpha);
+            const egui_font_t *icon_font = egui_view_checkbox_get_icon_font(local, box_size);
+            if (icon_font != NULL && local->mark_icon != NULL && local->mark_icon[0] != '\0')
+            {
+                egui_canvas_draw_text_in_rect(icon_font, local->mark_icon, &icon_region, EGUI_ALIGN_CENTER, check_color, local->alpha);
+            }
         }
         else
         {

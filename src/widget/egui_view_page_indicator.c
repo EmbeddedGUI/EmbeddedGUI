@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "egui_view_page_indicator.h"
+#include "egui_view_icon_font.h"
 #include "egui_view_circle_dirty.h"
 #include "resource/egui_resource.h"
 
@@ -16,15 +17,7 @@ static const egui_font_t *egui_view_page_indicator_get_icon_font(egui_view_page_
         return local->icon_font;
     }
 
-    if (area_size <= 18)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (area_size <= 22)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
 static void egui_view_page_indicator_add_marker_dirty_region(egui_view_t *self, egui_view_page_indicator_t *local, uint8_t index, egui_region_t *dirty_region)
@@ -40,6 +33,12 @@ static void egui_view_page_indicator_add_marker_dirty_region(egui_view_t *self, 
 
     if (local->mark_style == EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_ICON && local->icons != NULL)
     {
+        const egui_font_t *icon_font = egui_view_page_indicator_get_icon_font(local, region.size.height);
+        if (icon_font == NULL)
+        {
+            return;
+        }
+
         egui_dim_t item_size = region.size.height;
         egui_dim_t item_gap = EGUI_MAX(local->dot_spacing - 2, 2);
         egui_dim_t total_width = local->total_count * item_size + (local->total_count - 1) * item_gap;
@@ -160,6 +159,12 @@ void egui_view_page_indicator_on_draw(egui_view_t *self)
 
     if (local->mark_style == EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_ICON && local->icons != NULL)
     {
+        const egui_font_t *icon_font = egui_view_page_indicator_get_icon_font(local, region.size.height);
+        if (icon_font == NULL)
+        {
+            return;
+        }
+
         egui_dim_t item_size = region.size.height;
         egui_dim_t item_gap = EGUI_MAX(local->dot_spacing - 2, 2);
         egui_dim_t total_width = local->total_count * item_size + (local->total_count - 1) * item_gap;
@@ -178,8 +183,7 @@ void egui_view_page_indicator_on_draw(egui_view_t *self)
             {
                 continue;
             }
-            egui_canvas_draw_text_in_rect(egui_view_page_indicator_get_icon_font(local, item_size), icon_text, &icon_region, EGUI_ALIGN_CENTER, color,
-                                          local->alpha);
+            egui_canvas_draw_text_in_rect(icon_font, icon_text, &icon_region, EGUI_ALIGN_CENTER, color, local->alpha);
         }
         return;
     }

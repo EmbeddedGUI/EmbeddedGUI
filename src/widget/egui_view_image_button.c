@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "egui_view_image_button.h"
+#include "egui_view_icon_font.h"
 #include "core/egui_canvas_gradient.h"
 #include "resource/egui_resource.h"
 #include "style/egui_theme.h"
@@ -13,15 +14,7 @@ static const egui_font_t *egui_view_image_button_get_icon_font(egui_view_image_b
         return local->icon_font;
     }
 
-    if (area_size <= 20)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (area_size <= 26)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(area_size, 20, 26);
 }
 
 static void egui_view_image_button_draw_content(egui_view_image_button_t *local, const egui_region_t *region, egui_color_t color, egui_alpha_t alpha)
@@ -51,6 +44,12 @@ static void egui_view_image_button_draw_content(egui_view_image_button_t *local,
     {
         if (text != NULL && text[0] != '\0')
         {
+            if (egui_view_image_button_get_icon_font(local, EGUI_MIN(content_region.size.width, content_region.size.height)) == NULL)
+            {
+                egui_canvas_draw_text_in_rect(font, text, &content_region, EGUI_ALIGN_CENTER, color, alpha);
+                return;
+            }
+
             egui_dim_t text_w = 0;
             egui_dim_t text_h = 0;
             egui_dim_t icon_area_h;
@@ -110,8 +109,11 @@ static void egui_view_image_button_draw_content(egui_view_image_button_t *local,
         }
         else
         {
-            egui_canvas_draw_text_in_rect(egui_view_image_button_get_icon_font(local, EGUI_MIN(content_region.size.width, content_region.size.height)), icon,
-                                          &content_region, EGUI_ALIGN_CENTER, color, alpha);
+            const egui_font_t *icon_font = egui_view_image_button_get_icon_font(local, EGUI_MIN(content_region.size.width, content_region.size.height));
+            if (icon_font != NULL)
+            {
+                egui_canvas_draw_text_in_rect(icon_font, icon, &content_region, EGUI_ALIGN_CENTER, color, alpha);
+            }
         }
     }
     else if (text != NULL && text[0] != '\0')

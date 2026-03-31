@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "egui_view_menu.h"
+#include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
@@ -17,22 +18,14 @@
 #define EGUI_VIEW_MENU_TEXT_PADDING     6
 #define EGUI_VIEW_MENU_ICON_GAP_DEFAULT 6
 
-static const egui_font_t *egui_view_menu_get_icon_font(egui_view_menu_t *local, egui_dim_t area_size)
+static const egui_font_t *egui_view_menu_get_icon_font(const egui_view_menu_t *local, egui_dim_t area_size)
 {
     if (local->icon_font != NULL)
     {
         return local->icon_font;
     }
 
-    if (area_size <= 18)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (area_size <= 22)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
 static const char *egui_view_menu_get_back_icon(const egui_view_menu_t *local)
@@ -53,6 +46,18 @@ static const char *egui_view_menu_get_submenu_icon(const egui_view_menu_t *local
     }
 
     return EGUI_ICON_MS_ARROW_FORWARD;
+}
+
+static uint8_t egui_view_menu_has_back_icon(const egui_view_menu_t *local)
+{
+    const char *icon = egui_view_menu_get_back_icon(local);
+    return (local->stack_depth > 0 && icon != NULL && icon[0] != '\0' && egui_view_menu_get_icon_font(local, local->header_height) != NULL) ? 1U : 0U;
+}
+
+static uint8_t egui_view_menu_has_submenu_icon(const egui_view_menu_t *local)
+{
+    const char *icon = egui_view_menu_get_submenu_icon(local);
+    return (icon != NULL && icon[0] != '\0' && egui_view_menu_get_icon_font(local, local->item_height) != NULL) ? 1U : 0U;
 }
 
 void egui_view_menu_set_pages(egui_view_t *self, const egui_view_menu_page_t *pages, uint8_t page_count)
@@ -205,6 +210,8 @@ void egui_view_menu_on_draw(egui_view_t *self)
     egui_dim_t item_h = local->item_height;
     const egui_font_t *header_icon_font = egui_view_menu_get_icon_font(local, hdr_h);
     const egui_font_t *item_icon_font = egui_view_menu_get_icon_font(local, item_h);
+    uint8_t has_back_icon = egui_view_menu_has_back_icon(local);
+    uint8_t has_submenu_icon = egui_view_menu_has_submenu_icon(local);
 
     // Fill full widget background first to prevent shadow inner-rect bleed-through
     // in rows below the last item when items don't span the full widget height.
@@ -231,7 +238,7 @@ void egui_view_menu_on_draw(egui_view_t *self)
 #endif
 
     // Draw back arrow if we have stack depth
-    if (local->stack_depth > 0)
+    if (has_back_icon)
     {
         egui_region_t back_rect = {{x, y}, {hdr_h, hdr_h}};
         egui_canvas_draw_text_in_rect(header_icon_font, egui_view_menu_get_back_icon(local), &back_rect, EGUI_ALIGN_CENTER, local->header_text_color,
@@ -241,7 +248,7 @@ void egui_view_menu_on_draw(egui_view_t *self)
     // Draw title centered in header
     {
         egui_region_t title_rect = {{x, y}, {w, hdr_h}};
-        if (local->stack_depth > 0 && w > hdr_h * 2)
+        if (has_back_icon && w > hdr_h * 2)
         {
             title_rect.location.x += hdr_h;
             title_rect.size.width -= hdr_h * 2;
@@ -272,14 +279,14 @@ void egui_view_menu_on_draw(egui_view_t *self)
             egui_dim_t leading_width = 0;
             egui_dim_t text_width;
 
-            if (page->items[i].icon != NULL)
+            if (item_icon_font != NULL && page->items[i].icon != NULL && page->items[i].icon[0] != '\0')
             {
                 egui_region_t icon_rect = {{x, item_y}, {item_h, item_h}};
                 egui_canvas_draw_text_in_rect(item_icon_font, page->items[i].icon, &icon_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
                 leading_width = item_h + local->icon_text_gap;
             }
 
-            if (page->items[i].sub_page_index != EGUI_VIEW_MENU_ITEM_LEAF)
+            if (page->items[i].sub_page_index != EGUI_VIEW_MENU_ITEM_LEAF && has_submenu_icon)
             {
                 trailing_width = item_h;
             }
@@ -294,7 +301,7 @@ void egui_view_menu_on_draw(egui_view_t *self)
         }
 
         // Draw trailing arrow icon for sub-menu items
-        if (page->items[i].sub_page_index != EGUI_VIEW_MENU_ITEM_LEAF)
+        if (page->items[i].sub_page_index != EGUI_VIEW_MENU_ITEM_LEAF && has_submenu_icon)
         {
             egui_region_t arrow_rect = {{x + w - item_h, item_y}, {item_h, item_h}};
             egui_canvas_draw_text_in_rect(item_icon_font, egui_view_menu_get_submenu_icon(local), &arrow_rect, EGUI_ALIGN_CENTER, local->text_color,

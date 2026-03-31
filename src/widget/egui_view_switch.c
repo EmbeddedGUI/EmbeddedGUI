@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "egui_view_switch.h"
+#include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 #include "style/egui_theme.h"
 
@@ -17,15 +18,7 @@ static const egui_font_t *egui_view_switch_get_icon_font(egui_view_switch_t *loc
         return local->icon_font;
     }
 
-    if (area_size <= 18)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (area_size <= 22)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
 void egui_view_switch_set_on_checked_listener(egui_view_t *self, egui_view_on_checked_listener_t listener)
@@ -196,13 +189,18 @@ void egui_view_switch_on_draw(egui_view_t *self)
         const char *icon_text = local->is_checked ? local->icon_on : local->icon_off;
         if (icon_text != NULL)
         {
+            const egui_font_t *icon_font = egui_view_switch_get_icon_font(local, thumb_radius * 2);
+            if (icon_font == NULL || icon_text[0] == '\0')
+            {
+                return;
+            }
+
             egui_region_t icon_region = {
                     {thumb_x - thumb_radius, thumb_y - thumb_radius},
                     {thumb_radius * 2, thumb_radius * 2},
             };
             egui_color_t icon_color = egui_view_get_enable(self) ? track_color : EGUI_THEME_DISABLED;
-            egui_canvas_draw_text_in_rect(egui_view_switch_get_icon_font(local, thumb_radius * 2), icon_text, &icon_region, EGUI_ALIGN_CENTER, icon_color,
-                                          local->alpha);
+            egui_canvas_draw_text_in_rect(icon_font, icon_text, &icon_region, EGUI_ALIGN_CENTER, icon_color, local->alpha);
         }
     }
 }

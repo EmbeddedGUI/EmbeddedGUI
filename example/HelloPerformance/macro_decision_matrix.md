@@ -38,21 +38,22 @@
 
 ## 可选 Low-RAM Tail Block
 
-- `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX`
 - `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT`
 - `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT`
 - `EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE`
 - `EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES`
 
-以上 5 项已移动到 `example/HelloPerformance/app_egui_config.h` 尾部的 `#if 0` 可选块，默认关闭，不再属于当前 active app-side override 集合。
+- `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX=64` 已上收为库默认值，不再属于 `HelloPerformance` 的可选 app-side tail block
+
+以上 4 项已移动到 `example/HelloPerformance/app_egui_config.h` 尾部的 `#if 0` 可选块，默认关闭，不再属于当前 active app-side override 集合。
 
 - 默认关闭后的当前 clean perf：
   - `222` 个 case
   - `TEXT_ROTATE_BUFFERED 6.411ms`
   - `EXTERN_TEXT_ROTATE_BUFFERED 6.792ms`
-  - `SHADOW_ROUND 6.306ms`
+  - `SHADOW_ROUND 4.949ms`
   - `IMAGE_565_DOUBLE 0.551ms`
-  - `ANIMATION_SCALE 0.321ms`
+  - `ANIMATION_SCALE 0.320ms`
 - 对应 runtime check：`223/223`
 - 低 RAM 取值、历史 A/B 和重新打开这些宏时的取舍，分别见 `stack_heap_policy_retention.md` 与 `text_transform_heap_override_retention.md`
 

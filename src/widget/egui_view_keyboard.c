@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "egui_view_keyboard.h"
+#include "egui_view_icon_font.h"
 #include "font/egui_font.h"
 #include "core/egui_api.h"
 #include "core/egui_core.h"
@@ -210,7 +211,7 @@ static const egui_font_t *egui_view_keyboard_get_icon_font(const egui_view_keybo
         return keyboard->icon_font;
     }
 
-    return EGUI_FONT_ICON_MS_20;
+    return egui_view_icon_font_get_auto_fixed(EGUI_FONT_ICON_MS_20);
 }
 
 static const char *egui_view_keyboard_get_mode_label_table(uint8_t mode, int key_idx)

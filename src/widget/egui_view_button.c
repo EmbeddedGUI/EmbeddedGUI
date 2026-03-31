@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "egui_view_button.h"
+#include "egui_view_icon_font.h"
 #include "font/egui_font.h"
 #include "egui_view.h" // Fixed include path
 #include "resource/egui_resource.h"
@@ -19,15 +20,7 @@ static const egui_font_t *egui_view_button_get_icon_font(egui_view_button_t *loc
         return local->icon_font;
     }
 
-    if (area_size <= 20)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (area_size <= 26)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(area_size, 20, 26);
 }
 
 static void egui_view_button_draw_content(egui_view_button_t *local, const egui_region_t *region, egui_color_t text_color, egui_alpha_t text_alpha)
@@ -51,12 +44,21 @@ static void egui_view_button_draw_content(egui_view_button_t *local, const egui_
 
     if (text == NULL || text[0] == '\0')
     {
-        egui_canvas_draw_text_in_rect(egui_view_button_get_icon_font(local, EGUI_MIN(region->size.width, region->size.height)), icon, &draw_region,
-                                      label->align_type, text_color, text_alpha);
+        const egui_font_t *icon_font = egui_view_button_get_icon_font(local, EGUI_MIN(region->size.width, region->size.height));
+        if (icon_font != NULL)
+        {
+            egui_canvas_draw_text_in_rect(icon_font, icon, &draw_region, label->align_type, text_color, text_alpha);
+        }
         return;
     }
 
     const egui_font_t *icon_font = egui_view_button_get_icon_font(local, region->size.height);
+    if (icon_font == NULL)
+    {
+        egui_canvas_draw_text_in_rect_with_line_space(text_font, text, &draw_region, label->align_type, label->line_space, text_color, text_alpha);
+        return;
+    }
+
     egui_dim_t icon_width = 0;
     egui_dim_t icon_height = 0;
     egui_dim_t text_width = 0;

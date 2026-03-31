@@ -1,4 +1,5 @@
 #include "egui_view_stepper.h"
+#include "egui_view_icon_font.h"
 #include "resource/egui_resource.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
@@ -12,15 +13,7 @@ static const egui_font_t *egui_view_stepper_get_icon_font(egui_view_stepper_t *l
         return local->icon_font;
     }
 
-    if (area_size <= 18)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (area_size <= 22)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
 void egui_view_stepper_set_total_steps(egui_view_t *self, uint8_t total_steps)
@@ -207,12 +200,17 @@ static void egui_view_stepper_draw_icon_marks(egui_view_t *self)
 #endif
             if (local->completed_icon != NULL)
             {
+                const egui_font_t *icon_font = egui_view_stepper_get_icon_font(local, node_radius * 2);
+                if (icon_font == NULL || local->completed_icon[0] == '\0')
+                {
+                    continue;
+                }
+
                 egui_region_t icon_region = {
                         {cx - node_radius, center_y - node_radius},
                         {node_radius * 2, node_radius * 2},
                 };
-                egui_canvas_draw_text_in_rect(egui_view_stepper_get_icon_font(local, node_radius * 2), local->completed_icon, &icon_region, EGUI_ALIGN_CENTER,
-                                              EGUI_COLOR_WHITE, indicator->alpha);
+                egui_canvas_draw_text_in_rect(icon_font, local->completed_icon, &icon_region, EGUI_ALIGN_CENTER, EGUI_COLOR_WHITE, indicator->alpha);
             }
         }
         else if (i == indicator->current_index)

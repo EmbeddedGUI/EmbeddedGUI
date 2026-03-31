@@ -1933,6 +1933,7 @@ static inline uint8_t extract_packed_alpha(const uint8_t *data, uint8_t box_w, i
 {
     switch (bpp)
     {
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
     case 1:
     {
         int row_bytes = (box_w + 7) >> 3;
@@ -1940,6 +1941,8 @@ static inline uint8_t extract_packed_alpha(const uint8_t *data, uint8_t box_w, i
         int bit = local_x & 7;
         return (data[idx] >> bit) & 1 ? 255 : 0;
     }
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
     case 2:
     {
         int row_bytes = (box_w + 3) >> 2;
@@ -1947,6 +1950,8 @@ static inline uint8_t extract_packed_alpha(const uint8_t *data, uint8_t box_w, i
         int bit = (local_x & 3) << 1;
         return egui_alpha_change_table_2[(data[idx] >> bit) & 0x03];
     }
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     case 4:
     {
         int row_bytes = (box_w + 1) >> 1;
@@ -1954,8 +1959,11 @@ static inline uint8_t extract_packed_alpha(const uint8_t *data, uint8_t box_w, i
         int bit = (local_x & 1) << 2;
         return egui_alpha_change_table_4[(data[idx] >> bit) & 0x0F];
     }
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
     case 8:
         return data[local_y * box_w + local_x];
+    #endif
     default:
         return 0;
     }
@@ -1998,14 +2006,22 @@ static inline uint8_t extract_packed_alpha_from_row(const uint8_t *row, int loca
 {
     switch (bpp)
     {
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
     case 1:
         return (row[local_x >> 3] >> (local_x & 7)) & 1 ? 255 : 0;
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
     case 2:
         return egui_alpha_change_table_2[(row[local_x >> 2] >> ((local_x & 3) << 1)) & 0x03];
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     case 4:
         return egui_alpha_change_table_4[(row[local_x >> 1] >> ((local_x & 1) << 2)) & 0x0F];
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
     case 8:
         return row[local_x];
+    #endif
     default:
         return 0;
     }
@@ -2246,9 +2262,12 @@ static inline void batch_extract_glyph_alpha(const uint8_t *data, uint8_t box_w,
 {
     switch (bpp)
     {
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     case 4:
         batch_extract_glyph_alpha_4(data, box_w, lx, ly, a00, a01, a10, a11);
         break;
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
     case 2:
     {
         int rb = (box_w + 3) >> 2;
@@ -2264,6 +2283,8 @@ static inline void batch_extract_glyph_alpha(const uint8_t *data, uint8_t box_w,
         *a11 = egui_alpha_change_table_2[(data[base1 + x1_idx] >> x1_bit) & 0x03];
         break;
     }
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
     case 1:
     {
         int rb = (box_w + 7) >> 3;
@@ -2279,7 +2300,9 @@ static inline void batch_extract_glyph_alpha(const uint8_t *data, uint8_t box_w,
         *a11 = (data[base1 + x1_idx] >> x1_bit) & 1 ? 255 : 0;
         break;
     }
-    default: /* 8bpp */
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
+    case 8:
     {
         int base0 = ly * box_w;
         int base1 = base0 + box_w;
@@ -2289,6 +2312,10 @@ static inline void batch_extract_glyph_alpha(const uint8_t *data, uint8_t box_w,
         *a11 = data[base1 + lx + 1];
         break;
     }
+    #endif
+    default:
+        *a00 = *a01 = *a10 = *a11 = 0;
+        break;
     }
 }
 
@@ -2299,14 +2326,24 @@ static inline int packed_row_bytes(int width, uint8_t bpp)
 {
     switch (bpp)
     {
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
     case 1:
         return (width + 7) >> 3;
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
     case 2:
         return (width + 3) >> 2;
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     case 4:
         return (width + 1) >> 1;
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
+    case 8:
+        return width;
+    #endif
     default:
-        return width; /* 8bpp or fallback */
+        return 0;
     }
 }
 
@@ -2493,23 +2530,31 @@ static inline uint8_t extract_packed_raw(const uint8_t *data, int data_w, int x,
 {
     switch (bpp)
     {
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
     case 1:
     {
         int rb = (data_w + 7) >> 3;
         return (data[y * rb + (x >> 3)] >> (x & 7)) & 1;
     }
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
     case 2:
     {
         int rb = (data_w + 3) >> 2;
         return (data[y * rb + (x >> 2)] >> ((x & 3) << 1)) & 0x03;
     }
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     case 4:
     {
         int rb = (data_w + 1) >> 1;
         return (data[y * rb + (x >> 1)] >> ((x & 1) << 2)) & 0x0F;
     }
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
     case 8:
         return data[y * data_w + x];
+    #endif
     default:
         return 0;
     }
@@ -2519,27 +2564,35 @@ static inline void write_packed_raw(uint8_t *buf, int buf_w, int x, int y, uint8
 {
     switch (bpp)
     {
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
     case 1:
     {
         int rb = (buf_w + 7) >> 3;
         buf[y * rb + (x >> 3)] |= (raw_val & 1) << (x & 7);
         break;
     }
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
     case 2:
     {
         int rb = (buf_w + 3) >> 2;
         buf[y * rb + (x >> 2)] |= (raw_val & 0x03) << ((x & 3) << 1);
         break;
     }
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     case 4:
     {
         int rb = (buf_w + 1) >> 1;
         buf[y * rb + (x >> 1)] |= (raw_val & 0x0F) << ((x & 1) << 2);
         break;
     }
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
     case 8:
         buf[y * buf_w + x] = raw_val;
         break;
+    #endif
     }
 }
 
@@ -2551,23 +2604,31 @@ static inline uint8_t read_packed_mask_alpha(const uint8_t *buf, int buf_w, int 
 {
     switch (bpp)
     {
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
     case 1:
     {
         int rb = (buf_w + 7) >> 3;
         return (buf[y * rb + (x >> 3)] >> (x & 7)) & 1 ? 255 : 0;
     }
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
     case 2:
     {
         int rb = (buf_w + 3) >> 2;
         return egui_alpha_change_table_2[(buf[y * rb + (x >> 2)] >> ((x & 3) << 1)) & 0x03];
     }
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     case 4:
     {
         int rb = (buf_w + 1) >> 1;
         return egui_alpha_change_table_4[(buf[y * rb + (x >> 1)] >> ((x & 1) << 2)) & 0x0F];
     }
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
     case 8:
         return buf[y * buf_w + x];
+    #endif
     default:
         return 0;
     }
@@ -7017,6 +7078,7 @@ static inline void batch_bilinear_packed_alpha(const uint8_t *buf, int rb, int s
     int base1 = base0 + rb;
     switch (bpp)
     {
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     case 4:
     {
         const uint8_t *row0 = buf + base0;
@@ -7047,6 +7109,8 @@ static inline void batch_bilinear_packed_alpha(const uint8_t *buf, int rb, int s
         }
         break;
     }
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_2
     case 2:
     {
         int x0_idx = (sx >> 2);
@@ -7059,6 +7123,8 @@ static inline void batch_bilinear_packed_alpha(const uint8_t *buf, int rb, int s
         *a11 = egui_alpha_change_table_2[(buf[base1 + x1_idx] >> x1_bit) & 0x03];
         break;
     }
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
     case 1:
     {
         int x0_idx = (sx >> 3);
@@ -7071,11 +7137,17 @@ static inline void batch_bilinear_packed_alpha(const uint8_t *buf, int rb, int s
         *a11 = (buf[base1 + x1_idx] >> x1_bit) & 1 ? 255 : 0;
         break;
     }
-    default: /* 8bpp */
+    #endif
+    #if EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
+    case 8:
         *a00 = buf[base0 + sx];
         *a01 = buf[base0 + sx + 1];
         *a10 = buf[base1 + sx];
         *a11 = buf[base1 + sx + 1];
+        break;
+    #endif
+    default:
+        *a00 = *a01 = *a10 = *a11 = 0;
         break;
     }
 }

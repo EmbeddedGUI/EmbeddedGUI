@@ -94,7 +94,7 @@ static egui_alpha_t egui_shadow_get_alpha(egui_dim_t distance, egui_dim_t width,
 // Maximum entries in the per-shadow d_sq→alpha lookup table.
 // The table maps distance-squared directly to alpha, eliminating isqrt per pixel.
 #ifndef EGUI_CONFIG_SHADOW_DSQ_LUT_MAX
-#define EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 256
+#define EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 64
 #endif
 
 // Draw one corner zone with sub-pixel precision.

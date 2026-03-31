@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "egui_view_button_matrix.h"
+#include "egui_view_icon_font.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
@@ -20,15 +21,7 @@ static const egui_font_t *egui_view_button_matrix_get_icon_font(egui_view_button
         return local->icon_font;
     }
 
-    if (area_size <= 18)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (area_size <= 22)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
 static void egui_view_button_matrix_draw_text_clipped(const egui_font_t *font, const char *text, const egui_region_t *text_rect, const egui_region_t *clip_rect,
@@ -37,6 +30,11 @@ static void egui_view_button_matrix_draw_text_clipped(const egui_font_t *font, c
     egui_region_t draw_rect = *text_rect;
     egui_region_t text_clip = *clip_rect;
     const egui_region_t *prev_clip = egui_canvas_get_extra_clip();
+
+    if (font == NULL || text == NULL || text[0] == '\0')
+    {
+        return;
+    }
 
     if (prev_clip != NULL)
     {
@@ -440,10 +438,18 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
 
         // Draw centered content with per-cell clip to avoid overflow into neighboring cells.
         egui_region_t content_rect = {{btn_x + 4, btn_y + 4}, {btn_w > 8 ? (btn_w - 8) : btn_w, btn_h > 8 ? (btn_h - 8) : btn_h}};
-        if (icon != NULL)
+        if (icon != NULL && icon[0] != '\0')
         {
             if (label != NULL && label[0] != '\0')
             {
+                const egui_font_t *icon_font = egui_view_button_matrix_get_icon_font(local, EGUI_MIN(content_rect.size.width, content_rect.size.height));
+                if (icon_font == NULL)
+                {
+                    egui_view_button_matrix_draw_text_clipped(font, label, &content_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color,
+                                                              EGUI_ALPHA_100);
+                    continue;
+                }
+
                 egui_dim_t text_w = 0;
                 egui_dim_t text_h = 0;
                 egui_dim_t icon_area_h;
@@ -497,18 +503,20 @@ void egui_view_button_matrix_on_draw(egui_view_t *self)
                 text_rect.size.width = content_rect.size.width;
                 text_rect.size.height = content_rect.location.y + content_rect.size.height - text_rect.location.y;
 
-                egui_view_button_matrix_draw_text_clipped(egui_view_button_matrix_get_icon_font(local, EGUI_MIN(icon_rect.size.width, icon_rect.size.height)),
-                                                          icon, &icon_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+                egui_view_button_matrix_draw_text_clipped(icon_font, icon, &icon_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
                 egui_view_button_matrix_draw_text_clipped(font, label, &text_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
             }
             else
             {
-                egui_view_button_matrix_draw_text_clipped(
-                        egui_view_button_matrix_get_icon_font(local, EGUI_MIN(content_rect.size.width, content_rect.size.height)), icon, &content_rect,
-                        &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+                const egui_font_t *icon_font = egui_view_button_matrix_get_icon_font(local, EGUI_MIN(content_rect.size.width, content_rect.size.height));
+                if (icon_font != NULL)
+                {
+                    egui_view_button_matrix_draw_text_clipped(icon_font, icon, &content_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color,
+                                                              EGUI_ALPHA_100);
+                }
             }
         }
-        else if (label != NULL)
+        else if (label != NULL && label[0] != '\0')
         {
             egui_view_button_matrix_draw_text_clipped(font, label, &content_rect, &content_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
         }

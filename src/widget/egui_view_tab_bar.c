@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include "egui_view_tab_bar.h"
+#include "egui_view_icon_font.h"
 #include "core/egui_canvas_gradient.h"
 #include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
@@ -13,15 +14,7 @@ static const egui_font_t *egui_view_tab_bar_get_icon_font(egui_view_tab_bar_t *l
         return local->icon_font;
     }
 
-    if (area_size <= 18)
-    {
-        return EGUI_FONT_ICON_MS_16;
-    }
-    if (area_size <= 22)
-    {
-        return EGUI_FONT_ICON_MS_20;
-    }
-    return EGUI_FONT_ICON_MS_24;
+    return egui_view_icon_font_get_auto(area_size, 18, 22);
 }
 
 void egui_view_tab_bar_set_tabs(egui_view_t *self, const char **tab_texts, uint8_t tab_count)
@@ -135,10 +128,17 @@ void egui_view_tab_bar_on_draw(egui_view_t *self)
         tab_rect.size.height = region.size.height - indicator_h;
 
         egui_color_t color = (i == local->current_index) ? local->active_text_color : local->text_color;
-        if (tab_icon != NULL)
+        if (tab_icon != NULL && tab_icon[0] != '\0')
         {
+            const egui_font_t *icon_font = egui_view_tab_bar_get_icon_font(local, tab_rect.size.height);
             if (tab_text != NULL && tab_text[0] != '\0')
             {
+                if (icon_font == NULL)
+                {
+                    egui_canvas_draw_text_in_rect(local->font, tab_text, &tab_rect, EGUI_ALIGN_CENTER, color, local->alpha);
+                    continue;
+                }
+
                 egui_dim_t text_w = 0;
                 egui_dim_t text_h = 0;
                 egui_dim_t text_gap = local->icon_text_gap;
@@ -188,14 +188,12 @@ void egui_view_tab_bar_on_draw(egui_view_t *self)
                 text_rect.size.width = tab_rect.size.width;
                 text_rect.size.height = tab_rect.location.y + tab_rect.size.height - text_rect.location.y;
 
-                egui_canvas_draw_text_in_rect(egui_view_tab_bar_get_icon_font(local, icon_area_height), tab_icon, &icon_rect, EGUI_ALIGN_CENTER, color,
-                                              local->alpha);
+                egui_canvas_draw_text_in_rect(icon_font, tab_icon, &icon_rect, EGUI_ALIGN_CENTER, color, local->alpha);
                 egui_canvas_draw_text_in_rect(local->font, tab_text, &text_rect, EGUI_ALIGN_CENTER, color, local->alpha);
             }
-            else
+            else if (icon_font != NULL)
             {
-                egui_canvas_draw_text_in_rect(egui_view_tab_bar_get_icon_font(local, tab_rect.size.height), tab_icon, &tab_rect, EGUI_ALIGN_CENTER, color,
-                                              local->alpha);
+                egui_canvas_draw_text_in_rect(icon_font, tab_icon, &tab_rect, EGUI_ALIGN_CENTER, color, local->alpha);
             }
         }
         else

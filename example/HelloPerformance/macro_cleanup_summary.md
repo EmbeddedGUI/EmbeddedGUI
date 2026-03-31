@@ -57,7 +57,7 @@
 - 本轮继续移除了 `EGUI_CONFIG_SCEEN_WIDTH` app override，直接继承库默认 `240`；同时把 `code_perf_check.py` 调整为按维度回默认值，避免缺宽度定义时误判成 `240x320`。`2026-03-31` 已复跑 HelloPerformance clean perf，`read_screen_size()` 仍识别为 `(240, 240)`，报告继续输出 `222` 个 case。
 - 本轮继续折叠了 `example/HelloPerformance/egui_view_test_performance.c` 中固定为 `1` 的 `EGUI_TEST_CONFIG_IMAGE_LARGE` 编译期开关。对应 HelloPerformance clean perf 仍保持 `222` 个 case，关键锚点维持 `IMAGE_565_DOUBLE 0.551ms`、`TEXT_ROTATE_BUFFERED 11.498ms`、`ANIMATION_SCALE 0.320ms`。
 - 本轮继续折叠了 `example/HelloPerformance/egui_view_test_performance.c` 中固定为 `1` 的 `EGUI_TEST_CONFIG_IMAGE_SMALL` 编译期开关。对应 HelloPerformance clean perf 仍保持 `222` 个 case，关键锚点继续维持 `IMAGE_565_DOUBLE 0.551ms`、`TEXT_ROTATE_BUFFERED 11.498ms`、`ANIMATION_SCALE 0.320ms`。
-- 本轮把 stack/transient-heap 低 RAM 策略宏移到了 `example/HelloPerformance/app_egui_config.h` 尾部，并收敛成默认关闭的 `#if 0` 可选块。默认构建恢复框架原始 headroom 后，HelloPerformance clean perf 仍是 `222` 个 case，当前关键锚点为 `TEXT_ROTATE_BUFFERED 6.411ms`、`EXTERN_TEXT_ROTATE_BUFFERED 6.792ms`、`SHADOW_ROUND 6.306ms`、`IMAGE_565_DOUBLE 0.551ms`、`ANIMATION_SCALE 0.321ms`；runtime check 仍是 `223/223`。
+- 本轮把 stack/transient-heap 低 RAM 策略宏移到了 `example/HelloPerformance/app_egui_config.h` 尾部，并收敛成默认关闭的 `#if 0` 可选块。随后又把 `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX=64` 直接上收为库默认值，因此 `HelloPerformance` 不再重复定义它。当前关键锚点仍按 `64` 这个默认值统计：`TEXT_ROTATE_BUFFERED 6.411ms`、`EXTERN_TEXT_ROTATE_BUFFERED 6.792ms`、`SHADOW_ROUND 4.949ms`、`IMAGE_565_DOUBLE 0.551ms`、`ANIMATION_SCALE 0.320ms`；runtime check 仍是 `223/223`。
 
 ## 已确认保留项
 
@@ -103,7 +103,6 @@
   - `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE`
   - 这组 codec/decode override 的现行依据见 `codec_heap_override_retention.md`
 - 可选 low-RAM stack/transient-heap 策略块：
-  - `EGUI_CONFIG_SHADOW_DSQ_LUT_MAX`
   - `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT`
   - `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT`
   - `EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE`

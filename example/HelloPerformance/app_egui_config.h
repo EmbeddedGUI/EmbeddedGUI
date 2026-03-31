@@ -139,10 +139,6 @@ extern "C" {
  * HelloPerformance profile for SRAM-sensitive measurements.
  */
 #if 0
-// Shadow corner path: 64-entry cap trims stack/LUT headroom versus the default
-// 256-entry table.
-#define EGUI_CONFIG_SHADOW_DSQ_LUT_MAX 64
-
 // Text-transform layout: 16-bit indices shrink transient heap for the current
 // benchmark strings and font offsets.
 #define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 1
