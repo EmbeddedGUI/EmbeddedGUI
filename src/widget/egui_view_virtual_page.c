@@ -367,7 +367,7 @@ void egui_view_virtual_page_set_data_source(egui_view_t *self, const egui_view_v
 
     if (data_source == NULL)
     {
-        memset(&local->data_source_adapter, 0, sizeof(local->data_source_adapter));
+        egui_api_memset(&local->data_source_adapter, 0, sizeof(local->data_source_adapter));
         egui_view_virtual_viewport_set_adapter(self, NULL, NULL);
         return;
     }
@@ -767,7 +767,7 @@ void egui_view_virtual_page_init(egui_view_t *self)
     egui_view_virtual_viewport_init(self);
     local->data_source = NULL;
     local->data_source_context = NULL;
-    memset(&local->data_source_adapter, 0, sizeof(local->data_source_adapter));
+    egui_api_memset(&local->data_source_adapter, 0, sizeof(local->data_source_adapter));
     egui_view_virtual_page_sync_vertical_mode(self);
     egui_view_set_view_name(self, "egui_view_virtual_page");
 }

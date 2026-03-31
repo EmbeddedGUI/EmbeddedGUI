@@ -40,11 +40,6 @@ static egui_panel_io_i2c_t s_touch_io;
  * Platform driver
  * ============================================================ */
 
-static void mcu_vlog(const char *format, va_list args)
-{
-    vprintf(format, args);
-}
-
 static void mcu_assert_handler(const char *file, int line)
 {
 #if EGUI_CONFIG_DEBUG_LOG_LEVEL >= EGUI_LOG_IMPL_LEVEL_DBG
@@ -57,21 +52,6 @@ static void mcu_assert_handler(const char *file, int line)
         ;
 }
 
-static void *mcu_malloc(int size)
-{
-    return malloc(size);
-}
-
-static void mcu_free(void *ptr)
-{
-    free(ptr);
-}
-
-static void mcu_vsprintf(char *str, const char *format, va_list args)
-{
-    vsprintf(str, format, args);
-}
-
 static uint32_t mcu_get_tick_ms(void)
 {
     return HAL_GetTick();
@@ -82,21 +62,28 @@ static void mcu_delay(uint32_t ms)
     HAL_Delay(ms);
 }
 
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
 #if APP_EGUI_CONFIG_USE_DMA_TO_RESET_PFB_BUFFER
 extern DMA_HandleTypeDef hdma_memtomem_dma2_channel5;
 const egui_color_int_t fixed_0_buffer[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT] = {0};
 
-static void mcu_pfb_clear(void *s, int n)
+static void mcu_memset_fast(void *s, int c, int n)
 {
-    HAL_DMA_Start(&hdma_memtomem_dma2_channel5, (uint32_t)fixed_0_buffer, (uint32_t)s, n >> 2);
-    HAL_DMA_PollForTransfer(&hdma_memtomem_dma2_channel5, HAL_DMA_FULL_TRANSFER, 1000);
+    if (c == 0)
+    {
+        HAL_DMA_Start(&hdma_memtomem_dma2_channel5, (uint32_t)fixed_0_buffer, (uint32_t)s, n >> 2);
+        HAL_DMA_PollForTransfer(&hdma_memtomem_dma2_channel5, HAL_DMA_FULL_TRANSFER, 1000);
+        return;
+    }
+    memset(s, c, n);
 }
 #else
-static void mcu_pfb_clear(void *s, int n)
+static void mcu_memset_fast(void *s, int c, int n)
 {
-    memset(s, 0, n);
+    memset(s, c, n);
 }
 #endif
+#endif /* EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP */
 
 static egui_base_t mcu_interrupt_disable(void)
 {
@@ -111,14 +98,13 @@ static void mcu_interrupt_enable(egui_base_t level)
 }
 
 static const egui_platform_ops_t mcu_platform_ops = {
-        .malloc = mcu_malloc,
-        .free = mcu_free,
-        .vlog = mcu_vlog,
         .assert_handler = mcu_assert_handler,
-        .vsprintf = mcu_vsprintf,
         .delay = mcu_delay,
         .get_tick_ms = mcu_get_tick_ms,
-        .pfb_clear = mcu_pfb_clear,
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
+        .memset_fast = mcu_memset_fast,
+        .memcpy_fast = NULL,
+#endif
         .interrupt_disable = mcu_interrupt_disable,
         .interrupt_enable = mcu_interrupt_enable,
         .load_external_resource = NULL,
@@ -128,7 +114,6 @@ static const egui_platform_ops_t mcu_platform_ops = {
         .mutex_destroy = NULL,
         .timer_start = NULL,
         .timer_stop = NULL,
-        .memcpy_fast = NULL,
         .watchdog_feed = NULL,
 };
 

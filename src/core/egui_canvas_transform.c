@@ -629,8 +629,8 @@ static image_transform_external_alpha_row_slot_t *image_transform_get_external_a
 static void image_transform_release_external_row_cache(void)
 {
 #if EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
-    memset(&g_image_transform_external_data_row_cache, 0, sizeof(g_image_transform_external_data_row_cache));
-    memset(&g_image_transform_external_alpha_row_cache, 0, sizeof(g_image_transform_external_alpha_row_cache));
+    egui_api_memset(&g_image_transform_external_data_row_cache, 0, sizeof(g_image_transform_external_data_row_cache));
+    egui_api_memset(&g_image_transform_external_alpha_row_cache, 0, sizeof(g_image_transform_external_alpha_row_cache));
 #endif
 }
 
@@ -2854,7 +2854,7 @@ static void text_transform_release_layout_cache(void)
     }
 
 #if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
-    memset(&g_text_transform_layout_cache, 0, sizeof(g_text_transform_layout_cache));
+    egui_api_memset(&g_text_transform_layout_cache, 0, sizeof(g_text_transform_layout_cache));
 #endif
     g_text_transform_layout_capacity = 0;
     g_text_transform_layout_line_capacity = 0;
@@ -2868,7 +2868,7 @@ static void text_transform_release_visible_tile_cache(void)
         egui_free(g_text_transform_visible_tile_cache.buf);
     }
 
-    memset(&g_text_transform_visible_tile_cache, 0, sizeof(g_text_transform_visible_tile_cache));
+    egui_api_memset(&g_text_transform_visible_tile_cache, 0, sizeof(g_text_transform_visible_tile_cache));
 }
 
 static void text_transform_measure_layout_slots(const char *string, int *glyph_count, int *line_count)
@@ -2991,7 +2991,7 @@ void egui_canvas_transform_release_frame_cache(void)
 #endif
 
 #if EGUI_CONFIG_TEXT_TRANSFORM_PREPARE_CACHE_ENABLE
-    memset(&g_text_transform_prepare_cache, 0, sizeof(g_text_transform_prepare_cache));
+    egui_api_memset(&g_text_transform_prepare_cache, 0, sizeof(g_text_transform_prepare_cache));
 #endif
     text_transform_release_layout_cache();
     text_transform_release_visible_tile_cache();
@@ -3206,7 +3206,7 @@ static int text_transform_prepare_layout(const egui_font_t *font, const egui_fon
     if (build_count < 0)
     {
 #if EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_CACHE_ENABLE
-        memset(cache, 0, sizeof(*cache));
+        egui_api_memset(cache, 0, sizeof(*cache));
 #endif
         return -1;
     }
@@ -5186,7 +5186,7 @@ static int text_transform_rasterize_visible_alpha8_layout(uint8_t *alpha8_buf, i
     }
 #endif
 
-    memset(alpha8_buf, 0, buf_w * buf_h);
+    egui_api_memset(alpha8_buf, 0, buf_w * buf_h);
 
     if (glyphs_overlap)
     {
@@ -6968,7 +6968,7 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
         };
 #endif
         packed_buf = g_text_transform_visible_tile_cache.buf;
-        memset(packed_buf, 0, packed_size);
+        egui_api_memset(packed_buf, 0, packed_size);
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         if (font_info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)

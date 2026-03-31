@@ -539,7 +539,7 @@ static void egui_image_std_release_external_persistent_cache(egui_image_std_exte
         egui_free(cache->alpha_buf);
     }
 
-    memset(cache, 0, sizeof(*cache));
+    egui_api_memset(cache, 0, sizeof(*cache));
 }
 
 const egui_image_std_info_t *egui_image_std_prepare_external_persistent_cache(const egui_image_std_info_t *image)
@@ -3242,7 +3242,7 @@ __EGUI_STATIC_INLINE__ int egui_image_std_round_rect_fast_cache_init(egui_image_
         return 0;
     }
 
-    memset(cache, 0, sizeof(*cache));
+    egui_api_memset(cache, 0, sizeof(*cache));
     cache->mask = NULL;
     cache->cached_x = -1;
     cache->cached_y = -1;
@@ -4906,7 +4906,7 @@ void egui_image_std_load_data_resource(void *dest, egui_image_std_info_t *image,
     // EGUI_LOG_INF("egui_image_std_load_data_resource, start_offset: %d, size: %d\n", start_offset, size);
     if (image->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
     {
-        egui_memcpy(dest, (const void *)((const uint8_t *)image->data_buf + start_offset), size);
+        egui_api_memcpy(dest, (const void *)((const uint8_t *)image->data_buf + start_offset), size);
     }
     else
     {
@@ -4926,7 +4926,7 @@ void egui_image_std_load_alpha_resource(void *dest, egui_image_std_info_t *image
     // EGUI_LOG_INF("egui_image_std_load_alpha_resource, start_offset: %d, size: %d\n", start_offset, size);
     if (image->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
     {
-        egui_memcpy(dest, (const void *)((const uint8_t *)image->alpha_buf + start_offset), size);
+        egui_api_memcpy(dest, (const void *)((const uint8_t *)image->alpha_buf + start_offset), size);
     }
     else
     {
@@ -8748,7 +8748,7 @@ void egui_image_std_release_frame_cache(void)
     egui_image_decode_release_frame_cache();
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 #if EGUI_CONFIG_IMAGE_STD_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
-    memset(&g_egui_image_std_external_row_persistent_cache_storage, 0, sizeof(g_egui_image_std_external_row_persistent_cache_storage));
+    egui_api_memset(&g_egui_image_std_external_row_persistent_cache_storage, 0, sizeof(g_egui_image_std_external_row_persistent_cache_storage));
 #endif
 #endif
 }

@@ -763,7 +763,7 @@ void egui_view_virtual_section_list_set_data_source(egui_view_t *self, const egu
 
     if (data_source == NULL)
     {
-        memset(&local->flat_data_source, 0, sizeof(local->flat_data_source));
+        egui_api_memset(&local->flat_data_source, 0, sizeof(local->flat_data_source));
         egui_view_virtual_list_set_data_source(self, NULL, NULL);
         return;
     }
@@ -1333,6 +1333,6 @@ void egui_view_virtual_section_list_init(egui_view_t *self)
     egui_view_virtual_list_init(self);
     local->data_source = NULL;
     local->data_source_context = NULL;
-    memset(&local->flat_data_source, 0, sizeof(local->flat_data_source));
+    egui_api_memset(&local->flat_data_source, 0, sizeof(local->flat_data_source));
     egui_view_set_view_name(self, "egui_view_virtual_section_list");
 }

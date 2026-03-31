@@ -531,6 +531,38 @@ extern "C" {
 #define EGUI_CONFIG_REDUCE_MARGIN_PADDING_SIZE 1
 #endif
 
+/* ---- Platform callback customization ---- */
+
+/**
+ * When 0, egui_api_malloc / egui_api_free call stdlib malloc/free directly.
+ * Set to 1 when the porting layer provides a custom allocator (e.g. DMA-safe
+ * pool, instrumented heap).  The callback is used via ops->malloc / ops->free.
+ */
+#ifndef EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
+#define EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC 0
+#endif
+
+/**
+ * When 0, egui_api_pfb_clear / egui_api_memcpy call memset / memcpy directly.
+ * Set to 1 when the porting layer has hardware-accelerated memory operations
+ * (e.g. DMA memset/memcpy).  The callbacks are used via ops->pfb_clear /
+ * ops->memcpy_fast.  Porting layers only need to implement the callbacks
+ * they actually accelerate; NULL callbacks fall back to stdlib.
+ */
+#ifndef EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
+#define EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP 0
+#endif
+
+/**
+ * When 0, egui_api_log calls vprintf and egui_api_sprintf calls vsprintf
+ * directly.  Set to 1 when the porting layer redirects log/format output
+ * (e.g. semihosting, stderr, UART ring buffer, minimal printf without float).
+ * The callbacks are used via ops->vlog / ops->vsprintf.
+ */
+#ifndef EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
+#define EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF 0
+#endif
+
 /* ---- Recording ---- */
 
 /**

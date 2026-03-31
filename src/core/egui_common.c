@@ -90,62 +90,7 @@ void egui_common_align_get_x_y(egui_dim_t parent_width, egui_dim_t parent_height
 
 void egui_memcpy(void *dest, const void *src, uint32_t n)
 {
-    uint32_t i;
-    uint8_t *p_dest = (uint8_t *)dest;
-    const uint8_t *p_src = (const uint8_t *)src;
-    // Check base offset alignment
-    uint8_t base_offset_dest = (uint8_t)((egui_uintptr_t)(p_dest) & 0x03);
-    uint8_t base_offset_src = (uint8_t)((egui_uintptr_t)(p_src) & 0x03);
-    if ((base_offset_dest != base_offset_src) || (n < 4))
-    {
-        for (i = 0; i < n; i++)
-        {
-            *p_dest = *p_src;
-            p_src++;
-            p_dest++;
-        }
-    }
-    else
-    {
-        uint32_t size_before;
-        switch (base_offset_dest)
-        {
-        case 1:
-            size_before = 3;
-            break;
-        case 2:
-            size_before = 2;
-            break;
-        case 3:
-            size_before = 1;
-            break;
-        default:
-            size_before = 0;
-            break;
-        }
-        n = n - size_before;
-        uint32_t size_32 = n >> 2;
-        uint32_t size_8 = n & 0x03;
-
-        for (i = 0; i < size_before; i++)
-        {
-            *p_dest = *p_src;
-            p_src++;
-            p_dest++;
-        }
-        for (i = 0; i < size_32; i++)
-        {
-            *((uint32_t *)p_dest) = *((uint32_t *)p_src);
-            p_src += 4;
-            p_dest += 4;
-        }
-        for (i = 0; i < size_8; i++)
-        {
-            *p_dest = *p_src;
-            p_src++;
-            p_dest++;
-        }
-    }
+    egui_api_memcpy(dest, src, (int)n);
 }
 
 void *egui_malloc(int size)

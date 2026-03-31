@@ -198,16 +198,6 @@ void designer_touch_set_state(uint8_t pressed, int16_t x, int16_t y)
  * Platform driver
  * ============================================================================ */
 
-static void *designer_malloc(int size)
-{
-    return malloc(size);
-}
-
-static void designer_free(void *ptr)
-{
-    free(ptr);
-}
-
 static void designer_vlog(const char *format, va_list args)
 {
     /* Write to stderr to avoid corrupting stdout IPC pipe */
@@ -218,11 +208,6 @@ static void designer_assert_handler(const char *file, int line)
 {
     fprintf(stderr, "Assert@ file = %s, line = %d\n", file, line);
     exit(1);
-}
-
-static void designer_vsprintf(char *str, const char *format, va_list args)
-{
-    vsprintf(str, format, args);
 }
 
 #ifdef _WIN32
@@ -251,11 +236,6 @@ static uint32_t designer_get_tick_ms(void)
     return (uint32_t)(ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
 }
 #endif
-
-static void designer_pfb_clear(void *s, int n)
-{
-    memset(s, 0, n);
-}
 
 static egui_base_t designer_interrupt_disable(void)
 {
@@ -351,14 +331,13 @@ static void designer_load_external_resource(void *dest, uint32_t res_id, uint32_
 #endif
 
 static const egui_platform_ops_t designer_platform_ops = {
-        .malloc = designer_malloc,
-        .free = designer_free,
+#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
         .vlog = designer_vlog,
+        .vsprintf = NULL,
+#endif
         .assert_handler = designer_assert_handler,
-        .vsprintf = designer_vsprintf,
         .delay = designer_delay,
         .get_tick_ms = designer_get_tick_ms,
-        .pfb_clear = designer_pfb_clear,
         .interrupt_disable = designer_interrupt_disable,
         .interrupt_enable = designer_interrupt_enable,
 #if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
@@ -372,7 +351,6 @@ static const egui_platform_ops_t designer_platform_ops = {
         .mutex_destroy = NULL,
         .timer_start = NULL,
         .timer_stop = NULL,
-        .memcpy_fast = NULL,
         .watchdog_feed = NULL,
 };
 

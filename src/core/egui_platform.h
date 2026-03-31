@@ -14,21 +14,29 @@ extern "C" {
 /**
  * Platform operations (vtable).
  * Separates OS/platform services from hardware drivers.
+ *
+ * Fields guarded by EGUI_CONFIG_PLATFORM_CUSTOM_xxx macros only exist when
+ * the corresponding macro is set to 1.  When the macro is 0, the framework
+ * calls the standard C library directly and the porting layer does NOT need
+ * to register any callback for that feature.
  */
 struct egui_platform_ops
 {
-    /** Memory allocation (can be NULL if malloc not available) */
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
+    /** Custom memory allocator (e.g. DMA-safe pool, instrumented heap). */
     void *(*malloc)(int size);
     void (*free)(void *ptr);
+#endif
 
-    /** Logging (va_list version) */
+#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
+    /** Logging (va_list version, e.g. semihosting, UART). */
     void (*vlog)(const char *format, va_list args);
+    /** String formatting (va_list version, e.g. minimal printf). */
+    void (*vsprintf)(char *str, const char *format, va_list args);
+#endif
 
     /** Assert handler */
     void (*assert_handler)(const char *file, int line);
-
-    /** String formatting (va_list version) */
-    void (*vsprintf)(char *str, const char *format, va_list args);
 
     /** Delay in milliseconds */
     void (*delay)(uint32_t ms);
@@ -36,8 +44,12 @@ struct egui_platform_ops
     /** Get current time in milliseconds (monotonic) */
     uint32_t (*get_tick_ms)(void);
 
-    /** Fast memory clear for PFB (can be DMA-accelerated) */
-    void (*pfb_clear)(void *s, int n);
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
+    /** Fast memory set (can be DMA-accelerated). NULL = use memset. */
+    void (*memset_fast)(void *s, int c, int n);
+    /** Fast memory copy (can be DMA-accelerated). NULL = use memcpy. */
+    void (*memcpy_fast)(void *dst, const void *src, int n);
+#endif
 
     /** Interrupt disable/enable */
     egui_base_t (*interrupt_disable)(void);
@@ -73,9 +85,6 @@ struct egui_platform_ops
     void (*timer_stop)(void);
 
     /* ---- Misc ---- */
-
-    /** Fast memory copy (can be DMA-accelerated). NULL = use memcpy. */
-    void (*memcpy_fast)(void *dst, const void *src, int n);
 
     /** Feed the watchdog during long operations. NULL = no watchdog. */
     void (*watchdog_feed)(void);

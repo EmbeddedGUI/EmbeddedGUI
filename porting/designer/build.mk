@@ -10,6 +10,9 @@ INCLUDE	+= $(EGUI_PORT_PATH)
 COMMON_FLAGS += -DEGUI_PORT_PC=1
 COMMON_FLAGS += -DEGUI_PORT_DESIGNER=1
 
+# Designer outputs log to stderr to preserve stdout IPC pipe
+COMMON_FLAGS += -DEGUI_CONFIG_PLATFORM_CUSTOM_PRINTF=1
+
 # define lib directory
 LIB		+=
 

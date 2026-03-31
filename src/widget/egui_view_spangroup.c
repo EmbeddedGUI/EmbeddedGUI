@@ -143,7 +143,7 @@ void egui_view_spangroup_init(egui_view_t *self)
     local->line_spacing = 2;
     local->align = EGUI_ALIGN_LEFT;
 
-    memset(local->spans, 0, sizeof(local->spans));
+    egui_api_memset(local->spans, 0, sizeof(local->spans));
 
     egui_view_set_view_name(self, "egui_view_spangroup");
 }

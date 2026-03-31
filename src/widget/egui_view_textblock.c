@@ -101,7 +101,7 @@ static egui_dim_t egui_view_textblock_get_cursor_x(egui_view_textblock_t *local,
     // Measure width from line_start to pos
     char tmp[EGUI_CONFIG_TEXTBLOCK_EDIT_MAX_LENGTH + 1];
     uint16_t len = pos - line_start;
-    memcpy(tmp, &text[line_start], len);
+    egui_api_memcpy(tmp, &text[line_start], len);
     tmp[len] = '\0';
 
     egui_dim_t width = 0, height = 0;
@@ -677,7 +677,7 @@ static int egui_view_textblock_on_key_event(egui_view_t *self, egui_key_event_t 
             {
                 char tmp[EGUI_CONFIG_TEXTBLOCK_EDIT_MAX_LENGTH + 1];
                 uint16_t len = i - prev_start;
-                memcpy(tmp, &local->edit_buf[prev_start], len);
+                egui_api_memcpy(tmp, &local->edit_buf[prev_start], len);
                 tmp[len] = '\0';
                 egui_dim_t w = 0, h = 0;
                 local->font->api->get_str_size(local->font, tmp, 0, 0, &w, &h);
@@ -720,7 +720,7 @@ static int egui_view_textblock_on_key_event(egui_view_t *self, egui_key_event_t 
             {
                 char tmp[EGUI_CONFIG_TEXTBLOCK_EDIT_MAX_LENGTH + 1];
                 uint16_t len = i - next_start;
-                memcpy(tmp, &local->edit_buf[next_start], len);
+                egui_api_memcpy(tmp, &local->edit_buf[next_start], len);
                 tmp[len] = '\0';
                 egui_dim_t w = 0, h = 0;
                 local->font->api->get_str_size(local->font, tmp, 0, 0, &w, &h);
@@ -880,7 +880,7 @@ void egui_view_textblock_set_text(egui_view_t *self, const char *text)
             {
                 len = local->max_length;
             }
-            memcpy(local->edit_buf, text, len);
+            egui_api_memcpy(local->edit_buf, text, len);
             local->edit_buf[len] = '\0';
             local->text_len = len;
         }
@@ -986,7 +986,7 @@ void egui_view_textblock_set_editable(egui_view_t *self, uint8_t is_editable)
             {
                 len = local->max_length;
             }
-            memcpy(local->edit_buf, local->text, len);
+            egui_api_memcpy(local->edit_buf, local->text, len);
             local->edit_buf[len] = '\0';
             local->text_len = len;
         }

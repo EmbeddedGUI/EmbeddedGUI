@@ -106,7 +106,7 @@ void egui_view_digital_clock_init(egui_view_t *self)
     local->show_second = 1;
     local->colon_blink = 0;
     local->colon_visible = 1;
-    memset(local->time_buffer, 0, sizeof(local->time_buffer));
+    egui_api_memset(local->time_buffer, 0, sizeof(local->time_buffer));
     format_time(self);
     egui_view_set_view_name(self, "egui_view_digital_clock");
 }

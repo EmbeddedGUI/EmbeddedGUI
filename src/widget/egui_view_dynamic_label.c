@@ -26,7 +26,7 @@ void egui_view_dynamic_label_set_text(egui_view_t *self, const char *text)
             return;
         }
     }
-    egui_memcpy(local->text_buffer, text, len + 1);
+    egui_api_memcpy(local->text_buffer, text, len + 1);
     // EGUI_LOG_DBG("egui_view_dynamic_label_set_text after new: %s, old: %s, index: %d\n", text, local->text_buffer, len);
 
     egui_view_invalidate(self);
@@ -40,7 +40,7 @@ void egui_view_dynamic_label_init(egui_view_t *self)
     egui_view_label_set_text(self, local->text_buffer);
 
     // init local data.
-    memset(local->text_buffer, 0, EGUI_VIEW_DYNAMIC_LABEL_MAX_SIZE);
+    egui_api_memset(local->text_buffer, 0, EGUI_VIEW_DYNAMIC_LABEL_MAX_SIZE);
     egui_view_set_view_name(self, "egui_view_dynamic_label");
 }
 

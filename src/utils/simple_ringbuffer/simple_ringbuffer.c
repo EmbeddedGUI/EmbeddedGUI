@@ -20,10 +20,10 @@ uint32_t simple_ringbuffer_put(simple_ringbuffer_t *ringbuf, uint8_t *buffer, ui
 
     /* first put the data starting from ringbuf->write_index to buffer end */
     l = MIN(len, ringbuf->total_size - wptr);
-    memcpy(ringbuf->buffer + wptr, buffer, l);
+    egui_api_memcpy(ringbuf->buffer + wptr, buffer, l);
 
     /* then put the rest (if any) at the beginning of the buffer */
-    memcpy(ringbuf->buffer, buffer + l, len - l);
+    egui_api_memcpy(ringbuf->buffer, buffer + l, len - l);
 
     write_index = ringbuf->write_index + len;
     if (write_index >= (ringbuf->total_size << 1))
@@ -45,10 +45,10 @@ uint32_t simple_ringbuffer_get(simple_ringbuffer_t *ringbuf, uint8_t *buffer, ui
 
     /* first get the data from ringbuf->read_index until the end of the buffer */
     l = MIN(len, ringbuf->total_size - rptr);
-    memcpy(buffer, ringbuf->buffer + rptr, l);
+    egui_api_memcpy(buffer, ringbuf->buffer + rptr, l);
 
     /* then get the rest (if any) from the beginning of the buffer */
-    memcpy(buffer + l, ringbuf->buffer, len - l);
+    egui_api_memcpy(buffer + l, ringbuf->buffer, len - l);
 
     read_index = ringbuf->read_index + len;
     if (read_index >= (ringbuf->total_size << 1))

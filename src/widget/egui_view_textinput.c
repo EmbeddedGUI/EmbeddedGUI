@@ -31,7 +31,7 @@ static egui_dim_t egui_view_textinput_get_text_width_to_pos(egui_view_textinput_
     {
         len = local->text_len;
     }
-    memcpy(tmp, local->text, len);
+    egui_api_memcpy(tmp, local->text, len);
     tmp[len] = '\0';
 
     egui_dim_t width = 0;
@@ -160,7 +160,7 @@ void egui_view_textinput_set_text(egui_view_t *self, const char *text)
         {
             len = local->max_length;
         }
-        memcpy(local->text, text, len);
+        egui_api_memcpy(local->text, text, len);
         local->text[len] = '\0';
         local->text_len = len;
     }

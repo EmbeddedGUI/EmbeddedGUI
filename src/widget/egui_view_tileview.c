@@ -210,8 +210,8 @@ void egui_view_tileview_init(egui_view_t *self)
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_tileview_t);
 
     // init local data.
-    memset(local->tiles, 0, sizeof(local->tiles));
-    memset(local->tile_positions, 0, sizeof(local->tile_positions));
+    egui_api_memset(local->tiles, 0, sizeof(local->tiles));
+    egui_api_memset(local->tile_positions, 0, sizeof(local->tile_positions));
     local->tile_count = 0;
     local->current_col = 0;
     local->current_row = 0;

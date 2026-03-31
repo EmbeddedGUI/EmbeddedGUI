@@ -202,7 +202,7 @@ static egui_image_qoi_checkpoint_t *egui_image_qoi_get_checkpoints(void)
             return NULL;
         }
 
-        memset(qoi_checkpoints, 0, sizeof(egui_image_qoi_checkpoint_t) * EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT);
+        egui_api_memset(qoi_checkpoints, 0, sizeof(egui_image_qoi_checkpoint_t) * EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT);
         qoi_checkpoint_next = 0;
     }
 
@@ -310,7 +310,7 @@ static int egui_image_qoi_external_stream_read_bytes(egui_image_qoi_external_str
             chunk = available;
         }
 
-        memcpy(dst, stream->window + (stream->pos - stream->window_offset), chunk);
+        egui_api_memcpy(dst, stream->window + (stream->pos - stream->window_offset), chunk);
         dst += chunk;
         stream->pos += chunk;
         remaining -= chunk;
@@ -343,7 +343,7 @@ static int egui_image_qoi_prepare_decode_info(const egui_image_qoi_info_t *info,
 
 static void egui_image_qoi_reset_state(const egui_image_qoi_info_t *info)
 {
-    memset(&qoi_state, 0, sizeof(qoi_state));
+    egui_api_memset(&qoi_state, 0, sizeof(qoi_state));
     qoi_state.info = info;
     qoi_state.prev_r = 0;
     qoi_state.prev_g = 0;
@@ -1049,7 +1049,7 @@ static void egui_image_qoi_decode_row_rgb565(const egui_image_qoi_info_t *info, 
                     repeat = run;
                 }
                 egui_image_qoi_fill_rgb565(dst, prev_pixel, repeat);
-                memset(alpha, prev_a, repeat);
+                egui_api_memset(alpha, prev_a, repeat);
                 run = (uint8_t)(run - repeat);
                 dst += repeat;
                 alpha += repeat;
@@ -1234,7 +1234,7 @@ static void egui_image_qoi_decode_pixels_rgb565_partial(const egui_image_qoi_inf
             }
             if (alpha != NULL)
             {
-                memset(alpha, prev_a, repeat);
+                egui_api_memset(alpha, prev_a, repeat);
                 alpha += repeat;
             }
             run = (uint8_t)(run - repeat);
@@ -1346,7 +1346,7 @@ static void egui_image_qoi_decode_row_external(const egui_image_qoi_info_t *info
                 egui_image_qoi_fill_rgb565(dst, prev_rgb565, repeat);
                 if (alpha != NULL)
                 {
-                    memset(alpha, prev_a, repeat);
+                    egui_api_memset(alpha, prev_a, repeat);
                     alpha += repeat;
                 }
 
@@ -1454,7 +1454,7 @@ static void egui_image_qoi_decode_pixels_rgb565_external_partial(const egui_imag
             }
             if (alpha != NULL)
             {
-                memset(alpha, prev_a, repeat);
+                egui_api_memset(alpha, prev_a, repeat);
                 alpha += repeat;
             }
 
@@ -2047,7 +2047,7 @@ static void egui_image_qoi_blend_cached_rows(const egui_image_qoi_info_t *info, 
 
         for (egui_dim_t row = 0; row < row_count; row++)
         {
-            memcpy(fast_dst_row, src_pixels, (size_t)count * sizeof(uint16_t));
+            egui_api_memcpy(fast_dst_row, src_pixels, (size_t)count * sizeof(uint16_t));
             fast_dst_row += fast_dst_stride;
             src_pixels += cache_row_width;
         }
@@ -2207,7 +2207,7 @@ static void egui_image_qoi_blend_persistent_cached_rows(const egui_image_qoi_inf
 
         for (egui_dim_t row = 0; row < row_count; row++)
         {
-            memcpy(fast_dst_row, src_pixels, (size_t)count * sizeof(uint16_t));
+            egui_api_memcpy(fast_dst_row, src_pixels, (size_t)count * sizeof(uint16_t));
             fast_dst_row += fast_dst_stride;
             src_pixels += info->width;
         }
@@ -2751,7 +2751,7 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
 
             if (use_fast_copy)
             {
-                memcpy(fast_dst_row, src_pixels, (size_t)count * sizeof(uint16_t));
+                egui_api_memcpy(fast_dst_row, src_pixels, (size_t)count * sizeof(uint16_t));
             }
             else if (use_fast_alpha8)
             {

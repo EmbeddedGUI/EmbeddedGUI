@@ -526,7 +526,7 @@ static egui_view_t *egui_view_virtual_grid_row_create_view(void *adapter_context
         return NULL;
     }
 
-    memset(row_view, 0, sizeof(*row_view));
+    egui_api_memset(row_view, 0, sizeof(*row_view));
     egui_view_virtual_grid_row_view_init(row_view);
     return EGUI_VIEW_OF(&row_view->root);
 }
@@ -936,7 +936,7 @@ void egui_view_virtual_grid_set_data_source(egui_view_t *self, const egui_view_v
 
     if (data_source == NULL)
     {
-        memset(&local->row_data_source, 0, sizeof(local->row_data_source));
+        egui_api_memset(&local->row_data_source, 0, sizeof(local->row_data_source));
         egui_view_virtual_list_set_data_source(self, NULL, NULL);
         return;
     }
@@ -1574,7 +1574,7 @@ void egui_view_virtual_grid_init(egui_view_t *self)
     egui_view_virtual_list_init(self);
     local->data_source = NULL;
     local->data_source_context = NULL;
-    memset(&local->row_data_source, 0, sizeof(local->row_data_source));
+    egui_api_memset(&local->row_data_source, 0, sizeof(local->row_data_source));
     local->column_count = 2;
     local->column_spacing = 6;
     local->row_spacing = 6;

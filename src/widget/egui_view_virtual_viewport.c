@@ -32,7 +32,7 @@ static void egui_view_virtual_viewport_reset_slot(egui_view_virtual_viewport_slo
     slot->index = 0;
     slot->stable_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
     slot->view = NULL;
-    memset(&slot->render_region, 0, sizeof(slot->render_region));
+    egui_api_memset(&slot->render_region, 0, sizeof(slot->render_region));
     slot->logical_main_origin = 0;
     slot->logical_main_size = 0;
     slot->last_used_seq = 0;
@@ -424,7 +424,7 @@ static void egui_view_virtual_viewport_invalidate_all_index_blocks(egui_view_vir
 {
     if (local->index_block_valid != NULL && local->index_block_capacity > 0)
     {
-        memset(local->index_block_valid, 0, local->index_block_capacity);
+        egui_api_memset(local->index_block_valid, 0, local->index_block_capacity);
     }
 
     local->indexed_item_count = 0;
@@ -467,7 +467,7 @@ static uint8_t egui_view_virtual_viewport_ensure_index_storage(egui_view_virtual
     {
         if (local->index_block_valid != NULL && block_count > local->index_block_count)
         {
-            memset(&local->index_block_valid[local->index_block_count], 0, block_count - local->index_block_count);
+            egui_api_memset(&local->index_block_valid[local->index_block_count], 0, block_count - local->index_block_count);
         }
 
         local->index_block_count = block_count;
@@ -499,7 +499,7 @@ static uint8_t egui_view_virtual_viewport_ensure_index_storage(egui_view_virtual
             return 0;
         }
 
-        memset(new_block_valid, 0, block_count);
+        egui_api_memset(new_block_valid, 0, block_count);
         egui_view_virtual_viewport_release_index_storage(local);
 
         local->index_block_extents = new_block_extents;
@@ -890,7 +890,7 @@ static void egui_view_virtual_viewport_save_and_unbind(egui_view_virtual_viewpor
 
     slot->index = 0;
     slot->stable_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
-    memset(&slot->render_region, 0, sizeof(slot->render_region));
+    egui_api_memset(&slot->render_region, 0, sizeof(slot->render_region));
     slot->logical_main_origin = 0;
     slot->logical_main_size = 0;
 }
@@ -1939,7 +1939,7 @@ uint8_t egui_view_virtual_viewport_write_state(egui_view_t *self, uint32_t stabl
     entry = egui_view_virtual_viewport_find_state_entry(local, stable_id);
     if (entry != NULL && entry->size == size)
     {
-        memcpy(entry->data, data, size);
+        egui_api_memcpy(entry->data, data, size);
         egui_view_virtual_viewport_touch_state_entry(local, entry);
         return 1;
     }
@@ -1952,7 +1952,7 @@ uint8_t egui_view_virtual_viewport_write_state(egui_view_t *self, uint32_t stabl
 
     entry->stable_id = stable_id;
     entry->size = size;
-    memcpy(entry->data, data, size);
+    egui_api_memcpy(entry->data, data, size);
     egui_dlist_append(&local->state_entries, &entry->node);
     local->state_entry_count++;
     local->state_total_bytes += size;
@@ -1982,7 +1982,7 @@ uint16_t egui_view_virtual_viewport_read_state(egui_view_t *self, uint32_t stabl
     egui_view_virtual_viewport_touch_state_entry(local, entry);
     if (data != NULL && capacity > 0)
     {
-        memcpy(data, entry->data, entry->size < capacity ? entry->size : capacity);
+        egui_api_memcpy(data, entry->data, entry->size < capacity ? entry->size : capacity);
     }
 
     return entry->size;

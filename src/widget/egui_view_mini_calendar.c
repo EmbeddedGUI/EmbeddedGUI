@@ -188,7 +188,7 @@ void egui_view_mini_calendar_set_weekday_labels(egui_view_t *self, const char *c
 
     if (labels == NULL)
     {
-        memset(local->weekday_labels, 0, sizeof(local->weekday_labels));
+        egui_api_memset(local->weekday_labels, 0, sizeof(local->weekday_labels));
     }
     else
     {
@@ -446,7 +446,7 @@ void egui_view_mini_calendar_init(egui_view_t *self)
     local->selected_color = EGUI_THEME_SECONDARY;
     local->weekend_color = EGUI_THEME_TEXT_SECONDARY;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
-    memset(local->weekday_labels, 0, sizeof(local->weekday_labels));
+    egui_api_memset(local->weekday_labels, 0, sizeof(local->weekday_labels));
     local->on_date_selected = NULL;
 
     egui_view_set_view_name(self, "egui_view_mini_calendar");

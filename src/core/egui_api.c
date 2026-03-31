@@ -1,5 +1,7 @@
 #include <string.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "egui_api.h"
 #include "egui_core.h"
@@ -7,14 +9,18 @@
 #include "egui_platform.h"
 
 /**
- * Bridge layer: implements egui_api_* functions by dispatching through
- * registered display driver and platform driver.
+ * Bridge layer: implements egui_api_* functions.
  *
- * This replaces both the old weak defaults and per-port direct implementations
- * (api_pc.c, api_mcu.c). Ports now register drivers instead of implementing
- * these functions directly.
+ * When the corresponding EGUI_CONFIG_PLATFORM_CUSTOM_xxx macro is 0 (default),
+ * the function calls the standard C library directly — no callback, no
+ * function-pointer dereference, shortest possible path.
+ *
+ * When the macro is 1, the function dispatches through the registered
+ * platform ops callback so that the porting layer can provide a
+ * hardware-accelerated or otherwise specialised implementation.
  */
 
+#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
 void egui_api_log(const char *format, ...)
 {
     egui_platform_t *plat = egui_platform_get();
@@ -26,6 +32,15 @@ void egui_api_log(const char *format, ...)
         va_end(args);
     }
 }
+#else
+void egui_api_log(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+}
+#endif
 
 void egui_api_assert(const char *file, int line)
 {
@@ -38,6 +53,7 @@ void egui_api_assert(const char *file, int line)
         ;
 }
 
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
 void egui_api_free(void *ptr)
 {
     egui_platform_t *plat = egui_platform_get();
@@ -56,7 +72,19 @@ void *egui_api_malloc(int size)
     }
     return NULL;
 }
+#else
+void *egui_api_malloc(int size)
+{
+    return malloc(size);
+}
 
+void egui_api_free(void *ptr)
+{
+    free(ptr);
+}
+#endif
+
+#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
 void egui_api_sprintf(char *str, const char *format, ...)
 {
     egui_platform_t *plat = egui_platform_get();
@@ -68,6 +96,15 @@ void egui_api_sprintf(char *str, const char *format, ...)
         va_end(args);
     }
 }
+#else
+void egui_api_sprintf(char *str, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    vsprintf(str, format, args);
+    va_end(args);
+}
+#endif
 
 void egui_api_draw_data(int16_t x, int16_t y, int16_t width, int16_t height, const egui_color_int_t *data)
 {
@@ -133,18 +170,53 @@ void egui_api_delay(uint32_t ms)
     }
 }
 
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
 void egui_api_pfb_clear(void *s, int n)
 {
+    egui_api_memset(s, 0, n);
+}
+
+void egui_api_memset(void *s, int c, int n)
+{
     egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->pfb_clear != NULL)
+    if (plat != NULL && plat->ops->memset_fast != NULL)
     {
-        plat->ops->pfb_clear(s, n);
+        plat->ops->memset_fast(s, c, n);
     }
     else
     {
-        memset(s, 0, n);
+        memset(s, c, n);
     }
 }
+
+void egui_api_memcpy(void *dst, const void *src, int n)
+{
+    egui_platform_t *plat = egui_platform_get();
+    if (plat != NULL && plat->ops->memcpy_fast != NULL)
+    {
+        plat->ops->memcpy_fast(dst, src, n);
+    }
+    else
+    {
+        memcpy(dst, src, n);
+    }
+}
+#else
+void egui_api_pfb_clear(void *s, int n)
+{
+    memset(s, 0, n);
+}
+
+void egui_api_memset(void *s, int c, int n)
+{
+    memset(s, c, n);
+}
+
+void egui_api_memcpy(void *dst, const void *src, int n)
+{
+    memcpy(dst, src, n);
+}
+#endif
 
 void egui_api_load_external_resource(void *dest, const uint32_t res_id, uint32_t start_offset, uint32_t size)
 {

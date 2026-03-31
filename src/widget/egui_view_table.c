@@ -166,7 +166,7 @@ void egui_view_table_init(egui_view_t *self)
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_table_t);
 
     // init local data.
-    memset(local->cells, 0, sizeof(local->cells));
+    egui_api_memset(local->cells, 0, sizeof(local->cells));
     local->row_count = 0;
     local->col_count = 0;
     local->header_rows = 1;

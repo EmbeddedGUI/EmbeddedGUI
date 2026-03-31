@@ -226,7 +226,7 @@ void egui_view_stopwatch_init(egui_view_t *self)
     local->elapsed_ms = 0;
     local->state = EGUI_VIEW_STOPWATCH_STATE_STOPPED;
     local->show_ms = 1;
-    memset(local->time_buffer, 0, sizeof(local->time_buffer));
+    egui_api_memset(local->time_buffer, 0, sizeof(local->time_buffer));
 
     format_elapsed(self);
 

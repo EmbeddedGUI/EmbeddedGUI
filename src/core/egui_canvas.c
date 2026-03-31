@@ -2965,7 +2965,7 @@ void egui_canvas_test_circle(void)
     egui_canvas_t canvas;
     egui_color_int_t pfb_arr[30 * 30];
 
-    memset(pfb_arr, 0, sizeof(pfb_arr));
+    egui_api_memset(pfb_arr, 0, sizeof(pfb_arr));
 
     canvas.pfb = pfb_arr;
     canvas.pfb_region.size.width = 30;

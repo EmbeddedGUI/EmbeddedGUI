@@ -394,7 +394,7 @@ void egui_view_heart_rate_init(egui_view_t *self)
     local->heart_color = EGUI_THEME_DANGER;
     local->text_color = EGUI_THEME_PRIMARY_DARK;
     local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
-    memset(local->text_buffer, 0, sizeof(local->text_buffer));
+    egui_api_memset(local->text_buffer, 0, sizeof(local->text_buffer));
     local->ecg_offset = 0;
     local->beat_phase = 0;
 

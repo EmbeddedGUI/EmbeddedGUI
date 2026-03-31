@@ -260,7 +260,7 @@ static egui_font_std_ascii_lookup_cache_t *egui_font_std_get_ascii_lookup_cache(
             return NULL;
         }
 
-        memset(g_font_std_ascii_lookup_cache, 0, sizeof(egui_font_std_ascii_lookup_cache_t));
+        egui_api_memset(g_font_std_ascii_lookup_cache, 0, sizeof(egui_font_std_ascii_lookup_cache_t));
     }
 
     return g_font_std_ascii_lookup_cache;
@@ -564,7 +564,7 @@ static egui_font_std_line_cache_storage_t *egui_font_std_get_line_cache_storage(
             return NULL;
         }
 
-        memset(g_font_std_line_cache_storage, 0, sizeof(egui_font_std_line_cache_storage_t));
+        egui_api_memset(g_font_std_line_cache_storage, 0, sizeof(egui_font_std_line_cache_storage_t));
     }
 
     return g_font_std_line_cache_storage;
@@ -938,7 +938,7 @@ void egui_font_std_release_access(egui_font_std_access_t *access)
         egui_free(access->owned_pixel_buffer);
     }
 
-    memset(access, 0, sizeof(*access));
+    egui_api_memset(access, 0, sizeof(*access));
 }
 
 int egui_font_std_prepare_desc_access(const egui_font_std_info_t *font, egui_font_std_access_t *access)
@@ -948,7 +948,7 @@ int egui_font_std_prepare_desc_access(const egui_font_std_info_t *font, egui_fon
         return -1;
     }
 
-    memset(access, 0, sizeof(*access));
+    egui_api_memset(access, 0, sizeof(*access));
     access->info = *font;
 
     if (font->res_type != EGUI_RESOURCE_TYPE_EXTERNAL)

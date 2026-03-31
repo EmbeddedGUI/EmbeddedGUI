@@ -8,7 +8,7 @@ egui_test_state_t g_egui_test_state;
 
 void egui_test_init(void)
 {
-    memset(&g_egui_test_state, 0, sizeof(g_egui_test_state));
+    egui_api_memset(&g_egui_test_state, 0, sizeof(g_egui_test_state));
 }
 
 void egui_test_suite_begin(const char *name)

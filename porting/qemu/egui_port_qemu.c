@@ -638,11 +638,6 @@ static void qemu_delay(uint32_t ms)
         ;
 }
 
-static void qemu_pfb_clear(void *s, int n)
-{
-    memset(s, 0, n);
-}
-
 #ifndef QEMU_HEAP_MEASURE
 #define QEMU_HEAP_MEASURE 0
 #endif
@@ -962,6 +957,7 @@ static void qemu_interrupt_enable(egui_base_t level)
 }
 
 static const egui_platform_ops_t qemu_platform_ops = {
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
 #if EGUI_CONFIG_QEMU_PLATFORM_MALLOC_ENABLE
         .malloc = qemu_malloc,
         .free = qemu_free,
@@ -969,12 +965,14 @@ static const egui_platform_ops_t qemu_platform_ops = {
         .malloc = NULL,
         .free = NULL,
 #endif
+#endif
+#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
         .vlog = qemu_vlog,
-        .assert_handler = qemu_assert_handler,
         .vsprintf = qemu_vsprintf,
+#endif
+        .assert_handler = qemu_assert_handler,
         .delay = qemu_delay,
         .get_tick_ms = qemu_get_tick_ms,
-        .pfb_clear = qemu_pfb_clear,
         .interrupt_disable = qemu_interrupt_disable,
         .interrupt_enable = qemu_interrupt_enable,
 #if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
@@ -988,7 +986,6 @@ static const egui_platform_ops_t qemu_platform_ops = {
         .mutex_destroy = NULL,
         .timer_start = NULL,
         .timer_stop = NULL,
-        .memcpy_fast = NULL,
         .watchdog_feed = NULL,
 };
 

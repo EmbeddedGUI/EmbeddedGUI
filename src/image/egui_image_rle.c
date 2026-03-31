@@ -141,7 +141,7 @@ __EGUI_STATIC_INLINE__ int egui_image_rle_external_load_bytes(const uint8_t *src
         src_offset >= cache->window_offset &&
         (src_offset + size) <= (cache->window_offset + cache->window_size))
     {
-        memcpy(dst, window + (src_offset - cache->window_offset), size);
+        egui_api_memcpy(dst, window + (src_offset - cache->window_offset), size);
         return 1;
     }
 
@@ -159,7 +159,7 @@ __EGUI_STATIC_INLINE__ int egui_image_rle_external_load_bytes(const uint8_t *src
         cache->src_len = src_len;
         cache->window_offset = src_offset;
         cache->window_size = (uint16_t)load_size;
-        memcpy(dst, window, size);
+        egui_api_memcpy(dst, window, size);
         return 1;
     }
 
@@ -362,12 +362,12 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u8_internal(const 
 
             if (count >= remaining)
             {
-                memcpy(out, data, (size_t)remaining);
+                egui_api_memcpy(out, data, (size_t)remaining);
                 data += count;
                 return (uint32_t)(data - src);
             }
 
-            memcpy(out, data, (size_t)count);
+            egui_api_memcpy(out, data, (size_t)count);
             out += count;
             data += count;
         }
@@ -381,12 +381,12 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u8_internal(const 
 
             if (count >= remaining)
             {
-                memset(out, *data, (size_t)remaining);
+                egui_api_memset(out, *data, (size_t)remaining);
                 data += 1;
                 return (uint32_t)(data - src);
             }
 
-            memset(out, *data, (size_t)count);
+            egui_api_memset(out, *data, (size_t)count);
             out += count;
             data += 1;
         }
@@ -449,12 +449,12 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u8_external(const 
 
             if (count >= remaining)
             {
-                memset(out, value, (size_t)remaining);
+                egui_api_memset(out, value, (size_t)remaining);
                 offset += 1;
                 return offset;
             }
 
-            memset(out, value, (size_t)count);
+            egui_api_memset(out, value, (size_t)count);
             out += count;
             offset += 1;
         }
@@ -493,12 +493,12 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u16_internal(const
 
             if (count >= remaining)
             {
-                memcpy(out, data, (size_t)remaining * 2U);
+                egui_api_memcpy(out, data, (size_t)remaining * 2U);
                 data += bytes;
                 return (uint32_t)(data - src);
             }
 
-            memcpy(out, data, (size_t)bytes);
+            egui_api_memcpy(out, data, (size_t)bytes);
             out += count;
             data += bytes;
         }
@@ -512,7 +512,7 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_u16_internal(const
                 break;
             }
 
-            memcpy(&value, data, 2);
+            egui_api_memcpy(&value, data, 2);
 
             if (count >= remaining)
             {
@@ -637,7 +637,7 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_blocks_internal(co
                 pixels_to_copy = remaining;
             }
 
-            memcpy(out, data, (size_t)pixels_to_copy * blk_size);
+            egui_api_memcpy(out, data, (size_t)pixels_to_copy * blk_size);
             out += pixels_to_copy * blk_size;
             data += bytes;
         }
@@ -659,7 +659,7 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_blocks_internal(co
 
             for (uint32_t i = 0; i < pixels_to_fill; i++)
             {
-                memcpy(out, data, blk_size);
+                egui_api_memcpy(out, data, blk_size);
                 out += blk_size;
             }
 
@@ -743,7 +743,7 @@ __EGUI_STATIC_INLINE__ uint32_t egui_image_rle_decompress_row_blocks_external(co
 
             for (uint32_t i = 0; i < pixels_to_fill; i++)
             {
-                memcpy(out, block, blk_size);
+                egui_api_memcpy(out, block, blk_size);
                 out += blk_size;
             }
 
@@ -814,20 +814,20 @@ static void egui_image_rle_fill_blocks(uint8_t *dst, const uint8_t *block, uint1
     switch (blk_size)
     {
     case 1:
-        memset(dst, block[0], count);
+        egui_api_memset(dst, block[0], count);
         break;
     case 2:
     {
         uint16_t value;
 
-        memcpy(&value, block, sizeof(value));
+        egui_api_memcpy(&value, block, sizeof(value));
         egui_image_rle_fill_u16((uint16_t *)dst, value, count);
         break;
     }
     default:
         for (uint16_t i = 0; i < count; i++)
         {
-            memcpy(dst + (uint32_t)i * blk_size, block, blk_size);
+            egui_api_memcpy(dst + (uint32_t)i * blk_size, block, blk_size);
         }
         break;
     }
@@ -850,7 +850,7 @@ static void egui_image_rle_copy_overlap_internal(uint8_t *dst, uint16_t dst_col_
         uint16_t src_col_offset = (uint16_t)(overlap_start - run_col_start);
         uint16_t dst_col_offset = (uint16_t)(overlap_start - dst_col_start);
 
-        memcpy(dst + (uint32_t)dst_col_offset * blk_size, src + (uint32_t)src_col_offset * blk_size, (size_t)overlap_cols * blk_size);
+        egui_api_memcpy(dst + (uint32_t)dst_col_offset * blk_size, src + (uint32_t)src_col_offset * blk_size, (size_t)overlap_cols * blk_size);
     }
 }
 
@@ -1080,7 +1080,7 @@ static uint32_t egui_image_rle_decompress_row_split(const uint8_t *src, uint32_t
 
                     if (copy_visible != 0)
                     {
-                        memcpy(visible_out, data, (size_t)copy_visible * blk_size);
+                        egui_api_memcpy(visible_out, data, (size_t)copy_visible * blk_size);
                         visible_out += (uint32_t)copy_visible * blk_size;
                         visible_remaining = (uint16_t)(visible_remaining - copy_visible);
                     }
@@ -1096,7 +1096,7 @@ static uint32_t egui_image_rle_decompress_row_split(const uint8_t *src, uint32_t
 
                         if (copy_tail != 0)
                         {
-                            memcpy(tail_out, data + (uint32_t)copy_visible * blk_size, (size_t)copy_tail * blk_size);
+                            egui_api_memcpy(tail_out, data + (uint32_t)copy_visible * blk_size, (size_t)copy_tail * blk_size);
                             tail_out += (uint32_t)copy_tail * blk_size;
                             tail_remaining = (uint16_t)(tail_remaining - copy_tail);
                         }
@@ -1488,7 +1488,7 @@ static void egui_image_rle_blend_cached_rows(const egui_image_rle_info_t *info, 
 
         for (egui_dim_t row = 0; row < row_count; row++)
         {
-            memcpy(fast_dst_row, src_pixels, (size_t)count * sizeof(uint16_t));
+            egui_api_memcpy(fast_dst_row, src_pixels, (size_t)count * sizeof(uint16_t));
             fast_dst_row += fast_dst_stride;
             src_pixels += cache_row_width;
         }
@@ -1644,7 +1644,7 @@ static void egui_image_rle_blend_persistent_cached_rows(const egui_image_rle_inf
 
         for (egui_dim_t row = 0; row < row_count; row++)
         {
-            memcpy(fast_dst_row, src_pixels, (size_t)count * sizeof(uint16_t));
+            egui_api_memcpy(fast_dst_row, src_pixels, (size_t)count * sizeof(uint16_t));
             fast_dst_row += fast_dst_stride;
             src_pixels += info->width;
         }
@@ -2178,7 +2178,7 @@ static void egui_image_rle_draw_image(const egui_image_t *self, egui_dim_t x, eg
 
             if (use_fast_copy)
             {
-                memcpy(fast_dst_row, src_pixels, (size_t)count * sizeof(uint16_t));
+                egui_api_memcpy(fast_dst_row, src_pixels, (size_t)count * sizeof(uint16_t));
             }
             else if (use_fast_alpha8)
             {

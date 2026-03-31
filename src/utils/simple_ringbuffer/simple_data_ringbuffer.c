@@ -19,7 +19,7 @@ int simple_data_ringbuffer_put(simple_data_ringbuffer_t *ringbuf, void *buffer)
     }
 
     wptr = DATA_RINGBUFFER_INDEX_TO_PTR(ringbuf->write_index, ringbuf->total_size);
-    memcpy(ringbuf->buffer + wptr * ringbuf->item_size, buffer, ringbuf->item_size);
+    egui_api_memcpy(ringbuf->buffer + wptr * ringbuf->item_size, buffer, ringbuf->item_size);
 
     write_index = ringbuf->write_index + 1;
     if (write_index >= (ringbuf->total_size << 1))
@@ -43,7 +43,7 @@ int simple_data_ringbuffer_get(simple_data_ringbuffer_t *ringbuf, void *buffer)
     if (buffer != NULL)
     {
         rptr = DATA_RINGBUFFER_INDEX_TO_PTR(ringbuf->read_index, ringbuf->total_size);
-        memcpy(buffer, ringbuf->buffer + rptr * ringbuf->item_size, ringbuf->item_size);
+        egui_api_memcpy(buffer, ringbuf->buffer + rptr * ringbuf->item_size, ringbuf->item_size);
     }
 
     read_index = ringbuf->read_index + 1;

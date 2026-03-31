@@ -24,7 +24,7 @@ static egui_view_group_touch_state_t egui_view_group_touch_state;
 
 static void egui_view_group_touch_state_reset(void)
 {
-    memset(&egui_view_group_touch_state, 0, sizeof(egui_view_group_touch_state));
+    egui_api_memset(&egui_view_group_touch_state, 0, sizeof(egui_view_group_touch_state));
 }
 
 static void egui_view_group_touch_state_set_path_entry(uint8_t depth, egui_view_t *view)
@@ -76,9 +76,9 @@ void egui_view_group_touch_state_exchange(egui_view_group_touch_state_snapshot_t
         return;
     }
 
-    memcpy(&current_state, &egui_view_group_touch_state, sizeof(current_state));
-    memcpy(&egui_view_group_touch_state, snapshot, sizeof(egui_view_group_touch_state));
-    memcpy(snapshot, &current_state, sizeof(*snapshot));
+    egui_api_memcpy(&current_state, &egui_view_group_touch_state, sizeof(current_state));
+    egui_api_memcpy(&egui_view_group_touch_state, snapshot, sizeof(egui_view_group_touch_state));
+    egui_api_memcpy(snapshot, &current_state, sizeof(*snapshot));
 }
 #endif
 
@@ -343,7 +343,7 @@ void egui_view_group_request_disallow_intercept_touch_event(egui_view_t *self, i
 int egui_view_group_dispatch_transformed_touch_event(egui_view_t *self, int is_canceled, egui_view_t *child, egui_motion_event_t *event)
 {
     egui_motion_event_t transformed_event;
-    memcpy(&transformed_event, event, sizeof(egui_motion_event_t));
+    egui_api_memcpy(&transformed_event, event, sizeof(egui_motion_event_t));
 
     // change to cancel event if is_canceled is true.
     if (is_canceled)
@@ -469,7 +469,7 @@ static int egui_view_group_dispatch_touch_event_followup_internal(egui_view_t *s
     if (is_intercepted)
     {
         egui_motion_event_t cancel_event;
-        memcpy(&cancel_event, event, sizeof(cancel_event));
+        egui_api_memcpy(&cancel_event, event, sizeof(cancel_event));
         cancel_event.type = EGUI_MOTION_EVENT_ACTION_CANCEL;
 
         is_handled = egui_view_dispatch_touch_event_followup(captured_child, &cancel_event, depth + 1);

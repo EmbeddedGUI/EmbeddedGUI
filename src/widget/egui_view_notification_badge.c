@@ -262,7 +262,7 @@ void egui_view_notification_badge_init(egui_view_t *self)
     local->content_style = EGUI_VIEW_NOTIFICATION_BADGE_CONTENT_STYLE_COUNT;
     local->icon = EGUI_ICON_MS_NOTIFICATIONS;
     local->icon_font = NULL;
-    memset(local->text_buffer, 0, sizeof(local->text_buffer));
+    egui_api_memset(local->text_buffer, 0, sizeof(local->text_buffer));
 
     egui_view_set_view_name(self, "egui_view_notification_badge");
 }

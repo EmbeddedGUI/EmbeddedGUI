@@ -351,8 +351,8 @@ void egui_view_list_clear(egui_view_t *self)
 
     egui_view_group_clear_childs(EGUI_VIEW_OF(&local->base.container));
     local->item_count = 0;
-    memset(local->item_icons, 0, sizeof(local->item_icons));
-    memset(local->item_texts, 0, sizeof(local->item_texts));
+    egui_api_memset(local->item_icons, 0, sizeof(local->item_icons));
+    egui_api_memset(local->item_texts, 0, sizeof(local->item_texts));
 
     egui_view_invalidate(self);
 }
@@ -474,8 +474,8 @@ void egui_view_list_init(egui_view_t *self)
     local->icon_color = EGUI_THEME_TEXT_SECONDARY;
     local->icon_font = NULL;
     local->on_item_click = NULL;
-    memset(local->item_icons, 0, sizeof(local->item_icons));
-    memset(local->item_texts, 0, sizeof(local->item_texts));
+    egui_api_memset(local->item_icons, 0, sizeof(local->item_icons));
+    egui_api_memset(local->item_texts, 0, sizeof(local->item_texts));
 
     egui_view_set_view_name(self, "egui_view_list");
 }

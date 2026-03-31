@@ -712,7 +712,7 @@ void egui_core_draw_data(egui_region_t *p_region)
         // in egui_core.pfb. Use scratch as intermediate, then copy back.
         egui_rotation_transform_pfb(drv->rotation, drv->physical_width, drv->physical_height, &x, &y, &w, &h, data, egui_rotation_scratch,
                                     EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT);
-        egui_memcpy((void *)data, egui_rotation_scratch, w * h * sizeof(egui_color_int_t));
+        egui_api_memcpy((void *)data, egui_rotation_scratch, w * h * sizeof(egui_color_int_t));
     }
 #endif
 
@@ -925,7 +925,7 @@ static void egui_debug_set_info_text(uint32_t fps, uint32_t cpu_use_percent_x100
 
 static void egui_debug_reset_info_stats(void)
 {
-    memset(&debug_info_stats, 0, sizeof(debug_info_stats));
+    egui_api_memset(&debug_info_stats, 0, sizeof(debug_info_stats));
 }
 
 static void egui_debug_record_work_time(uint32_t work_time, uint32_t timestamp)

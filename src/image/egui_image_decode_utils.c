@@ -321,7 +321,7 @@ uint8_t *egui_image_decode_get_opaque_alpha_row(egui_dim_t count)
         return NULL;
     }
 
-    memset(opaque_alpha_row, EGUI_ALPHA_100, (size_t)count);
+    egui_api_memset(opaque_alpha_row, EGUI_ALPHA_100, (size_t)count);
     return opaque_alpha_row;
 }
 
@@ -461,7 +461,7 @@ __EGUI_STATIC_INLINE__ void egui_image_decode_blend_row_rgb565_alpha8_fast(egui_
 
             if (opaque_start < i)
             {
-                memcpy(&dst[opaque_start], &src_pixels[opaque_start], (size_t)(i - opaque_start) * sizeof(uint16_t));
+                egui_api_memcpy(&dst[opaque_start], &src_pixels[opaque_start], (size_t)(i - opaque_start) * sizeof(uint16_t));
                 continue;
             }
         }
@@ -614,7 +614,7 @@ void egui_image_decode_blend_row_clipped(egui_dim_t screen_x, egui_dim_t screen_
             if (egui_image_decode_can_use_rgb565_fast_path(canvas))
             {
                 egui_color_int_t *dst = egui_image_decode_get_row_dst(canvas, screen_x, screen_y);
-                memcpy(dst, src_pixels, (size_t)count * sizeof(uint16_t));
+                egui_api_memcpy(dst, src_pixels, (size_t)count * sizeof(uint16_t));
             }
             else
 #endif /* EGUI_CONFIG_COLOR_DEPTH == 16 */
@@ -810,7 +810,7 @@ void egui_image_decode_blend_row(egui_dim_t img_x, egui_dim_t img_y, uint16_t ro
             if (egui_image_decode_can_use_rgb565_fast_path(canvas))
             {
                 egui_color_int_t *dst = egui_image_decode_get_row_dst(canvas, col_start, screen_y);
-                memcpy(dst, src_pixels, (size_t)count * sizeof(uint16_t));
+                egui_api_memcpy(dst, src_pixels, (size_t)count * sizeof(uint16_t));
             }
             else
 #endif /* EGUI_CONFIG_COLOR_DEPTH == 16 */

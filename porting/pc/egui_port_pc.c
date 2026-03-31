@@ -33,21 +33,6 @@ static egui_display_driver_t port_display_driver = {
 // Platform driver
 // ============================================================================
 
-static void *pc_malloc(int size)
-{
-    return malloc(size);
-}
-
-static void pc_free(void *ptr)
-{
-    free(ptr);
-}
-
-static void pc_vlog(const char *format, va_list args)
-{
-    vprintf(format, args);
-}
-
 static void pc_assert_handler(const char *file, int line)
 {
 #if EGUI_CONFIG_DEBUG_LOG_LEVEL >= EGUI_LOG_IMPL_LEVEL_DBG
@@ -62,11 +47,6 @@ static void pc_assert_handler(const char *file, int line)
         ;
 }
 
-static void pc_vsprintf(char *str, const char *format, va_list args)
-{
-    vsprintf(str, format, args);
-}
-
 static void pc_delay(uint32_t ms)
 {
     sdl_port_sleep(ms);
@@ -75,11 +55,6 @@ static void pc_delay(uint32_t ms)
 static uint32_t pc_get_tick_ms(void)
 {
     return sdl_get_system_timestamp_ms();
-}
-
-static void pc_pfb_clear(void *s, int n)
-{
-    memset(s, 0, n);
 }
 
 static SDL_mutex *pc_isr_mutex = NULL;
@@ -200,14 +175,9 @@ static void pc_load_external_resource(void *dest, uint32_t res_id, uint32_t star
 #endif
 
 static const egui_platform_ops_t pc_platform_ops = {
-        .malloc = pc_malloc,
-        .free = pc_free,
-        .vlog = pc_vlog,
         .assert_handler = pc_assert_handler,
-        .vsprintf = pc_vsprintf,
         .delay = pc_delay,
         .get_tick_ms = pc_get_tick_ms,
-        .pfb_clear = pc_pfb_clear,
         .interrupt_disable = pc_interrupt_disable,
         .interrupt_enable = pc_interrupt_enable,
 #if EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER
@@ -221,7 +191,6 @@ static const egui_platform_ops_t pc_platform_ops = {
         .mutex_destroy = NULL,
         .timer_start = NULL,
         .timer_stop = NULL,
-        .memcpy_fast = NULL,
         .watchdog_feed = NULL,
 };
 

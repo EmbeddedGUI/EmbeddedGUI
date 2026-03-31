@@ -204,7 +204,7 @@ static egui_view_t *egui_view_grid_view_data_source_create_item_view(void *data_
         return NULL;
     }
 
-    memset(host, 0, sizeof(*host));
+    egui_api_memset(host, 0, sizeof(*host));
     egui_view_group_init(EGUI_VIEW_OF(&host->root));
     egui_view_set_view_name(EGUI_VIEW_OF(&host->root), "egui_view_grid_view_item");
 
@@ -386,7 +386,7 @@ void egui_view_grid_view_set_data_model(egui_view_t *self, const egui_view_grid_
 
     if (data_model == NULL || holder_ops == NULL || holder_ops->create_holder == NULL)
     {
-        memset(&local->bridge_data_source, 0, sizeof(local->bridge_data_source));
+        egui_api_memset(&local->bridge_data_source, 0, sizeof(local->bridge_data_source));
         egui_view_virtual_grid_set_data_source(self, NULL, NULL);
         return;
     }
@@ -725,6 +725,6 @@ void egui_view_grid_view_init(egui_view_t *self)
     local->data_model = NULL;
     local->holder_ops = NULL;
     local->data_model_context = NULL;
-    memset(&local->bridge_data_source, 0, sizeof(local->bridge_data_source));
+    egui_api_memset(&local->bridge_data_source, 0, sizeof(local->bridge_data_source));
     egui_view_set_view_name(self, "egui_view_grid_view");
 }
