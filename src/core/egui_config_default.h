@@ -318,6 +318,14 @@ extern "C" {
 #endif
 
 /**
+ * Maximum bytes per pixel for image decode buffers.
+ * Keep at 4 for RGB32-capable apps. RGB565-only apps can set this to 2 to save RAM.
+ */
+#ifndef EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE
+#define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE 2
+#endif
+
+/**
  * Decode row buffer width (pixels). Used by compressed image codecs
  * as temporary storage for one decoded row. Default = screen width.
  */
@@ -355,6 +363,24 @@ extern "C" {
  */
 #ifndef EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES
 #define EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES 0
+#endif
+
+/**
+ * External raw-image row cache data budget in bytes.
+ * Shared by the standard external image draw/resize path and the transform path.
+ * Default: 2 rows of RGB565 data.
+ */
+#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES
+#define EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES (EGUI_CONFIG_SCEEN_WIDTH * 2 * 2)
+#endif
+
+/**
+ * External raw-image row cache alpha budget in bytes.
+ * Shared by the standard external image draw/resize path and the transform path.
+ * Default: 2 rows of alpha data.
+ */
+#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES
+#define EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES (EGUI_CONFIG_SCEEN_WIDTH * 2)
 #endif
 
 /* ---- Reduce code/ram size ---- */

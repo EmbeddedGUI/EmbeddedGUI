@@ -58,7 +58,7 @@
 - 如需继续追峰值归因，可在测量构建里额外打开 `QEMU_HEAP_TRACE_ACTIONS=1`，让 QEMU 按录制 action 输出 `HEAP_ACTION:<idx>:current/peak/allocs/frees`，默认关闭时不会改变当前 RAM 口径。
 - `HelloPerformance` 现在把 QEMU 链接脚本保留栈压到 `432B`，所以静态 RAM headline 已反映这一调整。
 - 2026-03-30 又做过一次继续下压到 `0x0180`（`384B`）的 A/B，但该 probe 已明确拒绝且没有保留。原因不是 `egui_canvas_draw_thick_line_scan()` 不能再降，而是 fresh clean `-fstack-usage` / `main.map` / `llvm-nm` 交叉复核后，新的 linked ceiling 会立刻转移到 `egui_canvas_draw_circle_fill_gradient (424B)`，后面还有 `egui_canvas_draw_rectangle_fill_gradient (416B)`、`egui_canvas_draw_polygon_fill_gradient (408B)`、`egui_canvas_draw_polygon_fill (408B)` 和 `egui_image_rle_draw_image (392B)`；在“几个字节的不管”这条规则下，这意味着当前默认 reserve 没必要继续为了 `<=24B` 的静态 RAM 去冒险。
-- 当前正常 QEMU 构建口径是 `text=2135636`、`data=52`、`bss=2356`、`static RAM=2408`；buffered rotated-text 的 visible alpha8 ceiling 仍保持 `2560B`，两个文字热点继续维持在 `TEXT_ROTATE_BUFFERED=3334B`、`EXTERN_TEXT_ROTATE_BUFFERED=3544B`；继续往下到 `2304B` 反而会触发 packed4 fallback heap cliff，scene-local heap 回跳到 `5410B/5252B`。
+- 当前正常 QEMU 构建口径是 `text=2135636`、`data=52`、`bss=2356`、`static RAM=2408`；buffered rotated-text 路径已于 `2026-03-31` 删除，相关 alpha8 visible-cache / packed4 fallback heap 口径不再属于当前 shipped path；当前 whole-run heap headline 仍由 codec 场景决定。
 - Core 仍保留默认关闭的 global logical PFB probe 作为测量工具，但 `HelloPerformance` 现在已经接受一个 shipped 的按场景 width hint：`egui_core_get_logical_pfb_target_width_hint()` 对当前高 heap 的 codec hotspot 返回 `96`，其他场景返回 `0`。因此非热点场景仍走原始 `48x16`，被选中的 codec 场景改为逻辑 `96x8`，而物理 `PFB` 字节数完全不变。
 - QOI/RLE 解码状态已经从固定 `.bss` 挪到按帧 heap，而当前 shipped 的按场景 logical `96x8` walk 继续把 whole-run heap headline 压到 `5008B`。当前第一峰值 owner 是 `IMAGE_TILED_QOI_565_8`，已验证的热点梯队是 `IMAGE_TILED_QOI_565_8 5008B`、`IMAGE_TILED_RLE_565_8 4816B`、`IMAGE_RLE_565_8` / `EXTERN_IMAGE_RLE_565_8 3760B`，以及 `IMAGE_QOI_565_8` / `EXTERN_IMAGE_QOI_565_8` / `MASK_IMAGE_QOI_8_ROUND_RECT` / `EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT 3664B`。
 - `EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE`、`EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH` 和弱符号 `egui_core_get_logical_pfb_target_width_hint()` 仍主要用于手工 A/B；core 默认返回 `0`，而当前 shipped path 只是在 `HelloPerformance` 里额外覆写了一个按场景 hint：当前高 heap codec hotspot 返回 `96`，其他场景仍返回 `0`。`IMAGE_TILED_RLE_565_0` 由于会带来 `+13.10%` 回归，明确不进入这组 hint。
@@ -149,8 +149,6 @@
 | `EXTERN_IMAGE_QOI_565_8` | `3664B` | 同上，外部资源版本 |
 | `MASK_IMAGE_QOI_8_ROUND_RECT` | `3664B` | QOI alpha8 round-rect 场景，已经明显低于当前 tiled codec 热点 |
 | `EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT` | `3664B` | 同上，外部资源版本 |
-| `EXTERN_TEXT_ROTATE_BUFFERED` | `3544B` | external rotated-text visible alpha8 tile cache（`2560B` ceiling）+ compact visible-layout index list + `14` 行 external glyph chunk scratch + transient layout/tile scratch |
-| `TEXT_ROTATE_BUFFERED` | `3334B` | rotated-text visible alpha8 tile cache（`2560B` ceiling）+ compact visible-layout index list + transient layout/tile scratch |
 | `EXTERN_IMAGE_RESIZE_565_8` | `1536B` | `2` 行 external shared RGB565+alpha row cache + resize `src_x_map` |
 | `EXTERN_IMAGE_565_8` | `1440B` | `2` 行 external shared RGB565+alpha row cache |
 | `EXTERN_IMAGE_ROTATE_565_8` | `1440B` | `2` 行 external transform-side shared RGB565+alpha row cache |
@@ -174,9 +172,7 @@
 | `tail=184, qoi_cp=2, rle_cp=1` | `3.630 (+60.76%)` | `4.544 (+66.20%)` | `2.284 (+46.32%)` | `3.927 (+64.65%)` | 拒绝 |
 
 - 按同样的几何关系推算，`176` 和 `184` 其实也只是在 `192` 列 tail 上少了 `16` / `8` 列，checkpoint 开销扣除前的 raw tail 节省不过 `768B` / `384B`。在已经实测到 `+45% ~ +66%` 退化的前提下，这条线没有继续做默认路径 heap 复测的必要。
-- buffered rotated-text 的可见 alpha8 ceiling 现在保持 `2560B`：latest visible-list compaction 之后，`3072 -> 2560` 这一步已经重新落回严格的 `<=500B => 5%` 线内，同时又把两条 text 热点各再降了 `512B`，即 `TEXT_ROTATE_BUFFERED 3846 -> 3334`、`EXTERN_TEXT_ROTATE_BUFFERED 4056 -> 3544`；对应 perf 只是 `11.358 -> 11.552` 和 `12.884 -> 13.072`。
-- 这轮 A/B 还补出了真正的 heap cliff：`2304B` 时 `TEXT_ROTATE_BUFFERED` 已经回跳到 `5410B`，`2048B` 及以下则稳定在 `5252B`。原因不是性能线，而是 packed4 fallback scratch 比收缩后的 alpha8 cache 更大，所以默认值不能再继续往下压。
-- 当前 next-largest 的非 codec heap 热点仍是 `EXTERN_TEXT_ROTATE_BUFFERED`，但它现在只比内部路径多 `210B`，说明 external glyph scratch 与 visible-list 元数据的额外成本都已经被压到较小尾差。
+- 这组 buffered rotated-text heap/perf A/B 已经转入历史记录：当前代码已删除整条路径，后续默认口径不再单独跟踪这组 alpha8 visible-cache / packed4 fallback 指标。
 - 当前默认 external raw-image 路径也已经强制遵守 `<=2` 行 / 列尺寸相关 heap 约束：shared row cache 从旧的 `1920/960` 收紧到 `960/480`，因此代表性 scene-local heap 变为 `EXTERN_IMAGE_565_8 1440B`、`EXTERN_IMAGE_RESIZE_565_8 1536B`、`EXTERN_IMAGE_ROTATE_565_8 1440B`。
 - 2026-03-29 又补做过 `1` 行 external raw-image row cache A/B：把 shared row cache 再压到 `480/240` 后，代表性 scene-local heap 会继续降到 `EXTERN_IMAGE_565_8 720B`、`EXTERN_IMAGE_RESIZE_565_8 816B`、`EXTERN_IMAGE_ROTATE_565_8 720B`，但 whole-run heap headline 仍然不变，还是被 codec 场景钉在当前的 `5008B`。
 - 同一轮实测里，`1` 行方案在关键 direct-draw / rotate 场景退化超出当前 `>500B => 10%` 默认门线：`EXTERN_IMAGE_565_1 1.458 -> 1.795 (+23.11%)`、`EXTERN_IMAGE_565_8 1.630 -> 1.967 (+20.67%)`、`EXTERN_IMAGE_ROTATE_565_1 13.474 -> 15.161 (+12.52%)`、`EXTERN_IMAGE_ROTATE_565_8 15.875 -> 19.655 (+23.81%)`，因此当前正式默认值仍保持 `2` 行，`1` 行只保留为测量用 override，不进入默认实现。
@@ -201,7 +197,7 @@
 
 | 实验 | Heap 变化 | 性能结果 | 结论 |
 | --- | ---: | --- | --- |
-| 全场景 logical `96x8` tiles | 未继续重跑 heap | codec 热点本身大多仍在可接受区间：`IMAGE_QOI_565_8 -5.32%`、`EXTERN_IMAGE_QOI_565_8 -4.51%`、`IMAGE_RLE_565 +8.80%`、`IMAGE_RLE_565_8 +1.91%`；但一旦看完整 benchmark，非 codec 场景大面积退化：`TEXT_ROTATE_BUFFERED +33.13%`、`TEXT +17.51%`、`CIRCLE_FILL +25.29%`、`ANIMATION_TRANSLATE +15.65%`、`IMAGE_TILED_565_0 +10.06%` | 拒绝 |
+| 全场景 logical `96x8` tiles | 未继续重跑 heap | codec 热点本身大多仍在可接受区间：`IMAGE_QOI_565_8 -5.32%`、`EXTERN_IMAGE_QOI_565_8 -4.51%`、`IMAGE_RLE_565 +8.80%`、`IMAGE_RLE_565_8 +1.91%`；但一旦看完整 benchmark，非 codec 场景大面积退化：`TEXT +17.51%`、`CIRCLE_FILL +25.29%`、`ANIMATION_TRANSLATE +15.65%`、`IMAGE_TILED_565_0 +10.06%` | 拒绝 |
 | 更宽 logical `128x6` tiles spot check | 未继续重跑 heap | 更宽 shape 的 targeted spot check 已经跨过门线：`IMAGE_QOI_565_8 -10.22%`、`EXTERN_IMAGE_QOI_565_8 -8.63%`、`IMAGE_RLE_565 +11.07%`、`MASK_IMAGE_QOI_8_ROUND_RECT +6.65%`、`EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT +8.98%` | 拒绝 |
 | 最宽 logical `192x4` tiles spot check | 未继续重跑 heap | 最激进宽度方向更差：`IMAGE_RLE_565 +25.52%`、`IMAGE_RLE_565_8 +8.68%`、`EXTERN_IMAGE_RLE_565 +9.27%`、`MASK_IMAGE_TEST_PERF_ROUND_RECT +14.11%`、`MASK_IMAGE_QOI_8_ROUND_RECT +17.83%`、`EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT +20.21%` | 拒绝 |
 

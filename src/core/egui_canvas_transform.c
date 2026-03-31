@@ -286,8 +286,7 @@ void egui_canvas_draw_image_rotate_pivot(const egui_image_t *img, egui_dim_t x, 
 }
 
 static void transform_draw_text_rotate_pivot_impl(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x,
-                                                  egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha,
-                                                  int use_buffered)
+                                                  egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
 {
     egui_dim_t text_w;
     egui_dim_t text_h;
@@ -313,14 +312,7 @@ static void transform_draw_text_rotate_pivot_impl(const egui_font_t *font, const
     }
 
     transform_compute_center_from_anchor_pivot(x, y, text_w, text_h, pivot_x, pivot_y, normalized_angle, final_scale, &center_x, &center_y);
-    if (use_buffered)
-    {
-        egui_canvas_draw_text_transform_buffered(font, string, center_x, center_y, normalized_angle, final_scale, color, alpha);
-    }
-    else
-    {
-        egui_canvas_draw_text_transform(font, string, center_x, center_y, normalized_angle, final_scale, color, alpha);
-    }
+    egui_canvas_draw_text_transform(font, string, center_x, center_y, normalized_angle, final_scale, color, alpha);
 }
 
 void egui_canvas_draw_text_rotate(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, egui_color_t color,
@@ -334,7 +326,7 @@ void egui_canvas_draw_text_rotate(const egui_font_t *font, const void *string, e
         return;
     }
 
-    transform_draw_text_rotate_pivot_impl(font, string, x, y, text_w / 2, text_h / 2, angle_deg, 256, color, alpha, 0);
+    transform_draw_text_rotate_pivot_impl(font, string, x, y, text_w / 2, text_h / 2, angle_deg, 256, color, alpha);
 }
 
 void egui_canvas_draw_text_rotate_scale(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
@@ -348,33 +340,13 @@ void egui_canvas_draw_text_rotate_scale(const egui_font_t *font, const void *str
         return;
     }
 
-    transform_draw_text_rotate_pivot_impl(font, string, x, y, text_w / 2, text_h / 2, angle_deg, scale_q8, color, alpha, 0);
+    transform_draw_text_rotate_pivot_impl(font, string, x, y, text_w / 2, text_h / 2, angle_deg, scale_q8, color, alpha);
 }
 
 void egui_canvas_draw_text_rotate_pivot(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x, egui_dim_t pivot_y,
                                         int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
 {
-    transform_draw_text_rotate_pivot_impl(font, string, x, y, pivot_x, pivot_y, angle_deg, scale_q8, color, alpha, 0);
-}
-
-void egui_canvas_draw_text_rotate_buffered(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
-                                           egui_color_t color, egui_alpha_t alpha)
-{
-    egui_dim_t text_w;
-    egui_dim_t text_h;
-
-    if (!transform_measure_text_box(font, string, &text_w, &text_h))
-    {
-        return;
-    }
-
-    transform_draw_text_rotate_pivot_impl(font, string, x, y, text_w / 2, text_h / 2, angle_deg, scale_q8, color, alpha, 1);
-}
-
-void egui_canvas_draw_text_rotate_buffered_pivot(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x,
-                                                 egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
-{
-    transform_draw_text_rotate_pivot_impl(font, string, x, y, pivot_x, pivot_y, angle_deg, scale_q8, color, alpha, 1);
+    transform_draw_text_rotate_pivot_impl(font, string, x, y, pivot_x, pivot_y, angle_deg, scale_q8, color, alpha);
 }
 
 /**
@@ -4872,7 +4844,7 @@ cleanup:
 }
 
 // ============================================================================
-// Buffered text transform: packed bpp mask buffer (SCGUI-style)
+// Text transform alpha8 tile helpers
 // ============================================================================
 
 #define EGUI_ALPHA4_EXPAND_PAIR(_hi, _lo) (uint16_t)((((uint16_t)(_hi) * 0x11u) << 8) | ((uint16_t)(_lo) * 0x11u))
@@ -7045,28 +7017,6 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
 }
 
 /**
- * Rasterize multi-line text string to a packed bpp mask buffer.
- * Keeps original font bpp (1/2/4/8) – no expansion to 8bpp.
- * Returns 0 on success, -1 on failure.
- */
-/**
- * Buffered text transform compatibility entry.
- *
- * Keeps the original font bpp format (1/2/4/8) in the mask buffer, saving memory:
- *   4bpp → 50% of 8bpp, 2bpp → 25%, 1bpp → 12.5%.
- * This compatibility entry now forwards directly to the zero-buffer transform path.
- *
- * @param font      Font to use
- * @param string    Multi-line text (supports \n)
- * @param x         Center X position in view coordinates
- * @param y         Center Y position in view coordinates
- * @param angle_deg Rotation angle in degrees (0-360)
- * @param scale_q8  Scale factor in Q8 format (256 = 1.0x)
- * @param color     Foreground color
- * @param alpha     Global alpha (EGUI_ALPHA_100 for fully opaque)
- */
-
-/**
  * Batch read 4 bilinear alpha samples from packed mask buffer.
  * One switch per pixel instead of 4; shares row offset and bit position calculations.
  * Requires all 4 sample coordinates to be in bounds.
@@ -7210,8 +7160,3 @@ static inline int batch_extract_packed_raw_4_trivial(const uint8_t *buf, int rb,
     return 0;
 }
 
-void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
-                                              egui_color_t color, egui_alpha_t alpha)
-{
-    egui_canvas_draw_text_transform(font, string, x, y, angle_deg, scale_q8, color, alpha);
-}

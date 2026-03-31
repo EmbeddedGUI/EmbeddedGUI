@@ -1086,8 +1086,6 @@ void egui_canvas_draw_image_rotate_pivot(const egui_image_t *img, egui_dim_t x, 
 
 void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
                                      egui_color_t color, egui_alpha_t alpha);
-void egui_canvas_draw_text_transform_buffered(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
-                                              egui_color_t color, egui_alpha_t alpha);
 /* Convenience text rotation helpers.
  * x/y use the same top-left coordinates as egui_canvas_draw_text().
  * pivot_x/pivot_y are relative to the measured
@@ -1098,10 +1096,6 @@ void egui_canvas_draw_text_rotate_scale(const egui_font_t *font, const void *str
                                         egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_text_rotate_pivot(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x, egui_dim_t pivot_y,
                                         int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha);
-void egui_canvas_draw_text_rotate_buffered(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
-                                           egui_color_t color, egui_alpha_t alpha);
-void egui_canvas_draw_text_rotate_buffered_pivot(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, egui_dim_t pivot_x,
-                                                 egui_dim_t pivot_y, int16_t angle_deg, int16_t scale_q8, egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_transform_release_frame_cache(void);
 
 void egui_canvas_calc_work_region(egui_region_t *base_region);

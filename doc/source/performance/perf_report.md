@@ -60,13 +60,7 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 | TEXT_ROTATE_RESIZE | 2.418 |
 | TEXT_ROTATE_QUARTER | 1.852 |
 | TEXT_ROTATE_DOUBLE | 2.839 |
-| TEXT_ROTATE_BUFFERED_NONE | 0.526 |
-| TEXT_ROTATE_BUFFERED | 2.418 |
-| TEXT_ROTATE_BUFFERED_RESIZE | 2.419 |
-| TEXT_ROTATE_BUFFERED_QUARTER | 1.853 |
-| TEXT_ROTATE_BUFFERED_DOUBLE | 2.840 |
 | EXTERN_TEXT_ROTATE | 2.632 |
-| EXTERN_TEXT_ROTATE_BUFFERED | 2.633 |
 
 ## Image Direct Draw
 
@@ -228,7 +222,6 @@ Timing data comes from QEMU. The contact sheet below is rendered with the PC sim
 | TEXT_GRADIENT | 0.190 |
 | TEXT_RECT_GRADIENT | 0.761 |
 | TEXT_ROTATE_GRADIENT | 2.551 |
-| TEXT_ROTATE_BUFFERED_GRADIENT | 2.552 |
 
 ## Shadow
 

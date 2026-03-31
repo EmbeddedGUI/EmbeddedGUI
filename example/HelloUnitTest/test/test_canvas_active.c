@@ -196,20 +196,6 @@ static void test_canvas_text_rotate_helper_zero_angle_matches_draw_text(void)
     EGUI_TEST_ASSERT_TRUE(memcmp(expected_pfb, test_pfb, sizeof(test_pfb)) == 0);
 }
 
-static void test_canvas_text_rotate_buffered_helper_zero_angle_matches_draw_text(void)
-{
-    const egui_font_t *font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
-
-    setup_canvas_local_full();
-    egui_canvas_draw_text(font, "A", 8, 6, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-    memcpy(expected_pfb, test_pfb, sizeof(test_pfb));
-
-    setup_canvas_local_full();
-    egui_canvas_draw_text_rotate_buffered(font, "A", 8, 6, 360, 256, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-
-    EGUI_TEST_ASSERT_TRUE(memcmp(expected_pfb, test_pfb, sizeof(test_pfb)) == 0);
-}
-
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 static void test_canvas_circle_mask_draw_image_handles_cold_mask_cache(void)
 {
@@ -277,7 +263,6 @@ void test_canvas_active_run(void)
     EGUI_TEST_RUN(test_canvas_arc_sweep_helper_matches_direct_range);
     EGUI_TEST_RUN(test_canvas_image_rotate_helper_zero_angle_matches_draw_image);
     EGUI_TEST_RUN(test_canvas_text_rotate_helper_zero_angle_matches_draw_text);
-    EGUI_TEST_RUN(test_canvas_text_rotate_buffered_helper_zero_angle_matches_draw_text);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
     EGUI_TEST_RUN(test_canvas_circle_mask_draw_image_handles_cold_mask_cache);
 #endif

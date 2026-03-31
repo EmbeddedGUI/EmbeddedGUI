@@ -21,12 +21,11 @@ void egui_view_test_mask_set_image_transform(egui_view_t *self, int16_t angle_de
     local->scale_q8 = scale_q8;
     local->background_color = background_color;
     local->background_alpha = background_alpha;
-    local->use_buffered_transform = 0;
     local->font = NULL;
     local->text = NULL;
 }
 
-void egui_view_test_mask_set_text_transform(egui_view_t *self, const egui_font_t *font, const char *text, int is_buffered, int16_t angle_deg, int16_t scale_q8,
+void egui_view_test_mask_set_text_transform(egui_view_t *self, const egui_font_t *font, const char *text, int16_t angle_deg, int16_t scale_q8,
                                             egui_color_t color, egui_alpha_t alpha, egui_color_t background_color, egui_alpha_t background_alpha)
 {
     egui_view_test_mask_t *local = (egui_view_test_mask_t *)self;
@@ -34,7 +33,6 @@ void egui_view_test_mask_set_text_transform(egui_view_t *self, const egui_font_t
     local->draw_mode = EGUI_VIEW_TEST_MASK_DRAW_TEXT_TRANSFORM;
     local->font = font;
     local->text = text;
-    local->use_buffered_transform = is_buffered ? 1 : 0;
     local->angle_deg = angle_deg;
     local->scale_q8 = scale_q8;
     local->draw_color = color;
@@ -74,15 +72,7 @@ void egui_view_test_mask_on_draw(egui_view_t *self)
     case EGUI_VIEW_TEST_MASK_DRAW_TEXT_TRANSFORM:
         if (local->font != NULL && local->text != NULL)
         {
-            if (local->use_buffered_transform)
-            {
-                egui_canvas_draw_text_transform_buffered(local->font, local->text, cx, cy, local->angle_deg, local->scale_q8, local->draw_color,
-                                                         local->draw_alpha);
-            }
-            else
-            {
-                egui_canvas_draw_text_transform(local->font, local->text, cx, cy, local->angle_deg, local->scale_q8, local->draw_color, local->draw_alpha);
-            }
+            egui_canvas_draw_text_transform(local->font, local->text, cx, cy, local->angle_deg, local->scale_q8, local->draw_color, local->draw_alpha);
         }
         break;
 
@@ -128,5 +118,4 @@ void egui_view_test_mask_init(egui_view_t *self)
     local->angle_deg = 45;
     local->scale_q8 = 256;
     local->draw_mode = EGUI_VIEW_TEST_MASK_DRAW_IMAGE;
-    local->use_buffered_transform = 0;
 }

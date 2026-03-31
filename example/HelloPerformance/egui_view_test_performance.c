@@ -1573,43 +1573,6 @@ static void egui_view_test_performance_test_text_rotate_double(egui_view_t *self
     egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, scale, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
-static void egui_view_test_performance_test_text_rotate_buffered_none(egui_view_t *self)
-{
-    egui_dim_t cx = self->region.size.width / 2;
-    egui_dim_t cy = self->region.size.height / 2;
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 0, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-}
-
-static void egui_view_test_performance_test_text_rotate_buffered(egui_view_t *self)
-{
-    egui_dim_t cx = self->region.size.width / 2;
-    egui_dim_t cy = self->region.size.height / 2;
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-}
-
-static void egui_view_test_performance_test_text_rotate_buffered_resize(egui_view_t *self)
-{
-    egui_dim_t cx = self->region.size.width / 2;
-    egui_dim_t cy = self->region.size.height / 2;
-    int16_t scale = (int16_t)((int32_t)self->region.size.width * 256 / 240);
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, scale, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-}
-
-static void egui_view_test_performance_test_text_rotate_buffered_quarter(egui_view_t *self)
-{
-    egui_dim_t cx = self->region.size.width / 2;
-    egui_dim_t cy = self->region.size.height / 2;
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, 128, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-}
-
-static void egui_view_test_performance_test_text_rotate_buffered_double(egui_view_t *self)
-{
-    egui_dim_t cx = self->region.size.width / 2;
-    egui_dim_t cy = self->region.size.height / 2;
-    int16_t scale = (int16_t)((int32_t)self->region.size.width * 2 * 256 / 240);
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, scale, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-}
-
 // ============================================================================
 // External text transform (rotation) tests
 // ============================================================================
@@ -1620,14 +1583,6 @@ static void egui_view_test_performance_test_extern_text_rotate(egui_view_t *self
     egui_dim_t cx = self->region.size.width / 2;
     egui_dim_t cy = self->region.size.height / 2;
     egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin, text_rect_str, cx, cy, 45, 256, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-}
-
-static void egui_view_test_performance_test_extern_text_rotate_buffered(egui_view_t *self)
-{
-    egui_dim_t cx = self->region.size.width / 2;
-    egui_dim_t cy = self->region.size.height / 2;
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin, text_rect_str, cx, cy, 45, 256, EGUI_COLOR_GREEN,
-                                             EGUI_ALPHA_100);
 }
 #endif // EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 
@@ -1662,17 +1617,6 @@ static void egui_view_test_performance_test_text_rotate_gradient(egui_view_t *se
     egui_dim_t cy = self->region.size.height / 2;
     set_perf_gradient_mask(&mask);
     egui_canvas_draw_text_transform((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, 256, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
-    egui_canvas_set_mask(NULL);
-}
-
-static void egui_view_test_performance_test_text_rotate_buffered_gradient(egui_view_t *self)
-{
-    egui_mask_gradient_t mask;
-    ensure_perf_masks_initialized();
-    egui_dim_t cx = self->region.size.width / 2;
-    egui_dim_t cy = self->region.size.height / 2;
-    set_perf_gradient_mask(&mask);
-    egui_canvas_draw_text_transform_buffered((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, cx, cy, 45, 256, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
     egui_canvas_set_mask(NULL);
 }
 
@@ -3042,29 +2986,11 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_DOUBLE:
         egui_view_test_performance_test_text_rotate_double(self);
         break;
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_NONE:
-        egui_view_test_performance_test_text_rotate_buffered_none(self);
-        break;
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED:
-        egui_view_test_performance_test_text_rotate_buffered(self);
-        break;
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_RESIZE:
-        egui_view_test_performance_test_text_rotate_buffered_resize(self);
-        break;
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_QUARTER:
-        egui_view_test_performance_test_text_rotate_buffered_quarter(self);
-        break;
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_DOUBLE:
-        egui_view_test_performance_test_text_rotate_buffered_double(self);
-        break;
 
         // External text transform (rotation)
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_ROTATE:
         egui_view_test_performance_test_extern_text_rotate(self);
-        break;
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_ROTATE_BUFFERED:
-        egui_view_test_performance_test_extern_text_rotate_buffered(self);
         break;
 #endif
 
@@ -3077,9 +3003,6 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
         break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_GRADIENT:
         egui_view_test_performance_test_text_rotate_gradient(self);
-        break;
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_GRADIENT:
-        egui_view_test_performance_test_text_rotate_buffered_gradient(self);
         break;
 
     // Compressed image tests (QOI)
@@ -3332,7 +3255,6 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_GRADIENT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_RECT_GRADIENT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_GRADIENT:
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_GRADIENT:
         return 1;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_GRADIENT_IMAGE:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_MASK_GRADIENT_IMAGE_ROTATE:
@@ -3502,16 +3424,10 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_RESIZE:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_QUARTER:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_DOUBLE:
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_NONE:
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED:
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_RESIZE:
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_QUARTER:
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_ROTATE_BUFFERED_DOUBLE:
         return 1;
 
     // External text transform: gate on image transform + external resource
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_ROTATE:
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_ROTATE_BUFFERED:
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         return 1;
 #else

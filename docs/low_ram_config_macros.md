@@ -335,7 +335,7 @@ Text transform 先将所有字形的像素偏移和行索引打包到 heap layou
 | 大小 | ~60 B BSS |
 
 **机制：**
-预计算 text transform 的逆仿射矩阵（sin/cos × scale 混合）及旋转后包围盒，一帧内多个 PFB tile 渲染同一段文字只计算一次，其余 tile 直接复用。禁用后每 tile 均需重新执行三角函数和矩阵求逆，性能损失显著（实测 `TEXT_ROTATE_BUFFERED` 约 +9% 以上），60 B BSS 换取的性价比极高，HelloPerformance 选择保留。
+预计算 text transform 的逆仿射矩阵（sin/cos × scale 混合）及旋转后包围盒，一帧内多个 PFB tile 渲染同一段文字只计算一次，其余 tile 直接复用。禁用后每 tile 均需重新执行三角函数和矩阵求逆，当前 rotated-text 场景会出现稳定回归，60 B BSS 换取的性价比仍然很高，HelloPerformance 选择保留。
 
 ---
 

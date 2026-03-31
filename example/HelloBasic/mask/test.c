@@ -26,7 +26,7 @@ void test_init_ui(void)
     // Init all views
     // test_mask_1
     egui_view_test_mask_init(EGUI_VIEW_OF(&test_mask_1));
-    egui_view_test_mask_set_text_transform(EGUI_VIEW_OF(&test_mask_1), (egui_font_t *)&egui_res_font_montserrat_24_4, "A", 0, -18, 256, EGUI_COLOR_WHITE,
+    egui_view_test_mask_set_text_transform(EGUI_VIEW_OF(&test_mask_1), (egui_font_t *)&egui_res_font_montserrat_24_4, "A", -18, 256, EGUI_COLOR_WHITE,
                                            EGUI_ALPHA_100, EGUI_COLOR_HEX(0x163B47), EGUI_ALPHA_100);
     egui_view_set_size(EGUI_VIEW_OF(&test_mask_1), TEST_MASK_SIZE, TEST_MASK_SIZE);
     egui_view_set_margin_all(EGUI_VIEW_OF(&test_mask_1), TEST_MASK_MARGIN);
@@ -49,7 +49,7 @@ void test_init_ui(void)
 
     // test_mask_4
     egui_view_test_mask_init(EGUI_VIEW_OF(&test_mask_4));
-    egui_view_test_mask_set_text_transform(EGUI_VIEW_OF(&test_mask_4), (egui_font_t *)&egui_res_font_montserrat_24_4, "A", 1, 18, 256, EGUI_COLOR_WHITE,
+    egui_view_test_mask_set_text_transform(EGUI_VIEW_OF(&test_mask_4), (egui_font_t *)&egui_res_font_montserrat_24_4, "A", 18, 256, EGUI_COLOR_WHITE,
                                            EGUI_ALPHA_100, EGUI_COLOR_HEX(0x23304A), EGUI_ALPHA_100);
     egui_view_set_size(EGUI_VIEW_OF(&test_mask_4), TEST_MASK_SIZE, TEST_MASK_SIZE);
     egui_view_set_margin_all(EGUI_VIEW_OF(&test_mask_4), TEST_MASK_MARGIN);
