@@ -76,11 +76,77 @@
   - 不应该新增长期维护的用户宏
   - 本轮实验开关只用于 A/B，结论确认后应回到始终开启
 
+## 本轮新增 A/B: `image mask circle / round-rect fast path`
+
+### 测试环境
+
+- 日期：`2026-03-31`
+- 提交基线：`e1144cf`
+- `HelloBasic(mask)` code size A/B
+  - `make all APP=HelloBasic APP_SUB=mask PORT=qemu CPU_ARCH=cortex-m0plus`
+  - `make all APP=HelloBasic APP_SUB=mask PORT=qemu CPU_ARCH=cortex-m0plus USER_CFLAGS=-DEGUI_CONFIG_IMAGE_STD_MASK_FAST_ENABLE=0`
+- `HelloPerformance` perf A/B
+  - 基线结果：`.claude/perf_fast_path_image_mask_fast_on_results.json`
+  - 关闭 fast path：`.claude/perf_fast_path_image_mask_fast_off_results.json`
+
+### 代码量证据
+
+- `HelloBasic(mask)` 默认开启时：
+  - `__code_size = 95660`
+  - `__rodata_size = 43972`
+  - `__data_size = 56`
+  - `__bss_size = 6212`
+  - 链接汇总：`text=139748 data=56 bss=276552`
+- 强制关闭 fast path 后：
+  - `__code_size = 90496`
+  - `__rodata_size = 43972`
+  - `__data_size = 56`
+  - `__bss_size = 6212`
+  - 链接汇总：`text=134584 data=56 bss=276552`
+- 结论：
+  - 只看代码段，关闭后减少 `5164B`
+  - `rodata/data/bss` 都没有变化，说明这块主要是纯代码体积
+  - 这部分不会拉低 `HelloSimple`，但会实打实进入带 mask image 的小项目
+
+### 性能证据
+
+| 场景 | 默认开启 | 强制关闭 | 变化 |
+| --- | ---: | ---: | ---: |
+| `MASK_IMAGE_RLE_CIRCLE` | `1.880ms` | `3.327ms` | `+77.0%` |
+| `EXTERN_MASK_IMAGE_RLE_CIRCLE` | `2.788ms` | `4.362ms` | `+56.5%` |
+| `MASK_IMAGE_RLE_8_CIRCLE` | `1.702ms` | `2.533ms` | `+48.8%` |
+| `MASK_IMAGE_QOI_CIRCLE` | `3.127ms` | `4.598ms` | `+47.0%` |
+| `MASK_IMAGE_QOI_8_CIRCLE` | `1.892ms` | `2.716ms` | `+43.6%` |
+| `MASK_IMAGE_RLE_ROUND_RECT` | `1.724ms` | `2.420ms` | `+40.4%` |
+| `EXTERN_MASK_IMAGE_QOI_CIRCLE` | `6.448ms` | `8.048ms` | `+24.8%` |
+| `MASK_IMAGE_TEST_PERF_CIRCLE` | `1.318ms` | `1.632ms` | `+23.8%` |
+| `MASK_IMAGE_QOI_ROUND_RECT` | `2.970ms` | `3.667ms` | `+23.5%` |
+| `MASK_IMAGE_QOI_8_ROUND_RECT` | `1.790ms` | `2.024ms` | `+13.1%` |
+| `EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT` | `1.980ms` | `2.214ms` | `+11.8%` |
+| `EXTERN_MASK_IMAGE_QOI_ROUND_RECT` | `6.291ms` | `6.987ms` | `+11.1%` |
+
+- 同时也能看到，这块对纯 resize 路径基本没收益负担：
+  - `IMAGE_RESIZE_565_8 1.045 -> 1.050 (+0.5%)`
+  - `EXTERN_IMAGE_RESIZE_565_8 1.118 -> 1.121 (+0.3%)`
+  - `IMAGE_RESIZE_TILED_565_8 1.575 -> 1.521 (-3.4%)`
+  - `EXTERN_IMAGE_RESIZE_TILED_565_8 1.462 -> 1.417 (-3.1%)`
+- 说明这条 specialized path 的价值集中在 masked image 的 circle / round-rect 热点，尤其是 QOI/RLE 和 external resource 组合。
+
+### 结论
+
+- 这条路径属于“中等偏大代码量，但高价值”的 fast path。
+- 它并不符合“收益低于 10% 且代码量又大的路径应该回收”的条件。
+- 因此：
+  - 不能拿掉
+  - 不应该保留长期用户宏
+  - 本轮实验开关只用于 A/B，结论确认后应回到默认始终开启
+
 ## 当前 fast path 结论矩阵
 
 | 路径 | 代码/资源证据 | HelloPerformance 证据 | 当前结论 |
 | --- | --- | --- | --- |
 | `font std fast draw` | `HelloSimple __code_size -8328B`；主 helper 合计约 `6KB+` | 关闭后 `TEXT +27.3%`、`TEXT_RECT +316.6%`、`TEXT_RECT_GRADIENT +464.8%` | 保留，且不要新增长期宏 |
+| `image mask circle / round-rect fast path` | `HelloBasic(mask) __code_size -5164B`；主要是 masked image 专用代码体积 | 关闭后 `MASK_IMAGE_RLE_CIRCLE +77.0%`、`MASK_IMAGE_QOI_CIRCLE +47.0%`、`MASK_IMAGE_RLE_ROUND_RECT +40.4%` | 保留，且不要新增长期宏 |
 | rotated-text visible alpha8 fast path | `text_transform_draw_visible_alpha8_tile_layout` 当前约 `8128B` | 历史 A/B 显示 `5120` 相比 `4096` 时 `TEXT_ROTATE_BUFFERED -25.7%`、`EXTERN_TEXT_ROTATE_BUFFERED -28.2%`；`2560B` 已被拒绝 | 保留 fast path，本体不拆；仅把 low-RAM heap ceiling 继续放尾部按需块 |
 | `shadow d_sq -> alpha LUT` 策略 | `egui_shadow_draw_corner` 当前约 `1980B`；本质是 stack/LUT 上限策略，不是常规小项目 code-size 宏 | `256 -> 64` 时 `SHADOW_ROUND 6.306 -> 4.949 (-21.5%)`，其它锚点基本不动 | 继续放 `app_egui_config.h` 尾部 `#if 0` low-RAM 块，默认不打开 |
 | round-rect / circle `PFB_HEIGHT` row cache | 已有历史结论：关闭后 `text -708B`、`static RAM -16B` | 关闭后无 `>5%` 回退，且 `MASK_IMAGE_QOI_8_ROUND_RECT`、`MASK_IMAGE_RLE_8_ROUND_RECT` 还变快 | 已处理完，默认关闭，不再作为 active override |
@@ -89,7 +155,10 @@
 
 ## 当前收敛结论
 
-- 已经能明确确认的“大代码快路径”里，`font std fast draw` 不符合淘汰条件，必须保留。
+- 已经能明确确认的“大代码快路径”里：
+  - `font std fast draw`
+  - `image mask circle / round-rect fast path`
+  - 都不符合淘汰条件，必须保留。
 - 已有的 low-RAM policy 项里：
   - `shadow dsq LUT`
   - `text transform` 的 stack/transient-heap 策略
@@ -100,14 +169,15 @@
   - 这两项已经处理完，默认关闭。
 - 已经证明确实“不能回收”的快路径项里：
   - `font std fast draw`
+  - `image mask circle / round-rect fast path`
   - `IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS`
   - `IMAGE_CODEC_ROW_CACHE_ENABLE`
   - 都需要保留。
 
 ## 后续候选
 
-- 下一批如果继续拆，最值得单独做 A/B 的是 `src/image/egui_image_std.c` 里的 circle / round-rect masked-row fast implementation。
-- 这块当前有明显的 specialized 代码体积，但还没有独立的总开关和单独 retention 结论。
-- 如果继续下一轮，应先做一个只用于实验的编译期开关，再按同样方法量化：
-  - 一个会真正拉下来的小项目 code-size case
-  - 对应的 `MASK_IMAGE_*_CIRCLE` / `MASK_IMAGE_*_ROUND_RECT` QEMU perf A/B
+- 下一批如果继续拆，建议优先看仍然存在明显 helper 体积、且能找到明确小项目 size case 的 specialized text/image 路径。
+- 处理原则维持不变：
+  - 先做只用于实验的编译期开关
+  - 再补一个会真实下探的 code-size case
+  - 最后用 `HelloPerformance` QEMU 跑完整 A/B 再决定是否回收
