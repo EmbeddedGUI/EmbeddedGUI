@@ -115,35 +115,20 @@ static egui_display_driver_t my_display = {
 #include <stdio.h>
 #include <stdarg.h>
 
-static void my_vlog(const char *format, va_list args)
-{
-    vprintf(format, args);  // 或通过 UART 输出
-}
-
 static void my_assert_handler(const char *file, int line)
 {
     printf("ASSERT: %s:%d\n", file, line);
     while (1) { }
 }
 
-static void my_vsprintf(char *str, const char *format, va_list args)
-{
-    vsprintf(str, format, args);
-}
-
 static uint32_t my_get_tick_ms(void)
 {
-    return HAL_GetTick();  // 替换为你的平台 API
+    return HAL_GetTick();  // replace with your platform API
 }
 
 static void my_delay(uint32_t ms)
 {
     HAL_Delay(ms);
-}
-
-static void my_pfb_clear(void *s, int n)
-{
-    memset(s, 0, n);
 }
 
 static egui_base_t my_interrupt_disable(void)
@@ -158,15 +143,38 @@ static void my_interrupt_enable(egui_base_t level)
     __enable_irq();
 }
 
+// Enable EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF=1 in build flags to route
+// log output and sprintf through the platform ops.
+#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
+static void my_vlog(const char *format, va_list args)
+{
+    vprintf(format, args);  // or output via UART
+}
+
+static void my_vsprintf(char *str, const char *format, va_list args)
+{
+    vsprintf(str, format, args);
+}
+#endif
+
+// Enable EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP=1 to route all internal
+// memset/memcpy calls through the ops, e.g. via DMA or SRAM-optimized routine.
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
+static void my_memset_fast(void *s, int c, int n)
+{
+    memset(s, c, n);  // replace with DMA or platform-optimized implementation
+}
+
+static void my_memcpy_fast(void *dst, const void *src, int n)
+{
+    memcpy(dst, src, n);  // replace with DMA or platform-optimized implementation
+}
+#endif
+
 static const egui_platform_ops_t my_platform_ops = {
-    .malloc                 = NULL,
-    .free                   = NULL,
-    .vlog                   = my_vlog,
     .assert_handler         = my_assert_handler,
-    .vsprintf               = my_vsprintf,
     .delay                  = my_delay,
     .get_tick_ms            = my_get_tick_ms,
-    .pfb_clear              = my_pfb_clear,
     .interrupt_disable      = my_interrupt_disable,
     .interrupt_enable       = my_interrupt_enable,
     .load_external_resource = NULL,
@@ -176,8 +184,25 @@ static const egui_platform_ops_t my_platform_ops = {
     .mutex_destroy          = NULL,
     .timer_start            = NULL,
     .timer_stop             = NULL,
-    .memcpy_fast            = NULL,
     .watchdog_feed          = NULL,
+
+// Enable EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF=1 to route log/sprintf through ops.
+#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
+    .vlog                   = my_vlog,
+    .vsprintf               = my_vsprintf,
+#endif
+
+// Enable EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC=1 to route heap through ops.
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
+    .malloc                 = NULL,
+    .free                   = NULL,
+#endif
+
+// Enable EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP=1 to route memset/memcpy through ops.
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
+    .memset_fast            = my_memset_fast,
+    .memcpy_fast            = my_memcpy_fast,
+#endif
 };
 
 static egui_platform_t my_platform = {
@@ -223,7 +248,29 @@ void port_main(void)
 EGUI_CODE_SRC += porting/your_platform/Porting/egui_port_mcu.c
 EGUI_CODE_SRC += porting/your_platform/Porting/port_main.c
 EGUI_CODE_INCLUDE += -Iporting/your_platform
+
+# Optional platform override macros (default 0, no overhead when disabled):
+#   EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF=1    Route vlog/vsprintf through ops
+#   EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC=1    Route malloc/free through ops
+#   EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP=1 Route memset/memcpy through ops
+EGUI_CFLAGS += -DEGUI_CONFIG_PLATFORM_CUSTOM_PRINTF=1
+# EGUI_CFLAGS += -DEGUI_CONFIG_PLATFORM_CUSTOM_MALLOC=1
+# EGUI_CFLAGS += -DEGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP=1
 ```
+
+## 平台扩展宏说明
+
+EmbeddedGUI 提供三个独立的平台扩展宏，控制是否通过 `egui_platform_ops_t` 注册特定回调。
+所有宏默认为 0（禁用），仅在需要时启用，不引入额外开销。
+
+| 宏 | 说明 |
+|----|------|
+| `EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC` | 启用后，`malloc`/`free` 字段加入 ops；可替换为 RTOS heap 或内存池 |
+| `EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF` | 启用后，`vlog`/`vsprintf` 字段加入 ops；可重定向日志输出到 UART、RTT 等 |
+| `EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP` | 启用后，`memset_fast`/`memcpy_fast` 字段加入 ops；可接入 DMA 或 SRAM 优化实现 |
+
+当宏为 0 时，对应 ops 字段不存在（编译期消除），porting 层无需注册。
+当宏为 1 时，所有内部 `memset`/`memcpy` 调用都会经过 `egui_api_memset`/`egui_api_memcpy` 并转发到注册的回调；若回调为 NULL，则回退到标准库。
 
 ## 调试检查点
 
