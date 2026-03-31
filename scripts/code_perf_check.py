@@ -774,6 +774,8 @@ def main():
                         help="Capture HelloPerformance renders and generate a scene contact sheet")
     parser.add_argument("--extra-cflags", type=str,
                         help="Append extra USER_CFLAGS for A/B config testing (e.g. -DMY_MACRO=0)")
+    parser.add_argument("--doc", action="store_true",
+                        help="Generate documentation (Markdown reports and charts) after tests complete")
     args = parser.parse_args()
 
     profiles, defaults, pfb_configs, spi_configs = load_profiles()
@@ -904,6 +906,19 @@ def main():
         print(f"{'='*60}")
         if not _do_spi_matrix(profiles, spi_configs, args, timeout):
             matrix_failed = True
+
+    # Generate documentation from performance results (if --doc flag is set)
+    if args.doc:
+        print(f"\n{'='*60}")
+        print(f"Generating Documentation")
+        print(f"{'='*60}")
+        try:
+            _generate_perf_documentation()
+            print("Documentation updated successfully")
+        except Exception as e:
+            print(f"Warning: Failed to generate documentation: {e}")
+            import traceback
+            traceback.print_exc()
 
     if failed_profiles or matrix_failed or scenes_failed:
         print(f"\nWARNING: some tests failed to build/run")

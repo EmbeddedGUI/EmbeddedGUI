@@ -11,6 +11,12 @@ from pathlib import Path
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
 
+# Import size_to_doc for automatic documentation generation
+try:
+    import size_to_doc
+except ImportError:
+    size_to_doc = None
+
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
@@ -372,6 +378,14 @@ def get_git_commit():
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="EmbeddedGUI Binary Size and Memory Analysis"
+    )
+    parser.add_argument("--doc", action="store_true",
+                        help="Generate documentation from analysis results")
+    args = parser.parse_args()
+
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     cases = discover_cases()
@@ -415,6 +429,20 @@ def main():
     }
     RESULT_JSON_PATH.write_text(json.dumps(json_data, indent=2, ensure_ascii=False), encoding="utf-8")
     print("JSON saved: %s" % RESULT_JSON_PATH)
+
+    # Generate documentation from size analysis results (if --doc flag is set)
+    if args.doc:
+        print("\n=== Generating Documentation ===")
+        try:
+            if size_to_doc:
+                size_to_doc.main()
+                print("Documentation updated successfully")
+            else:
+                print("Warning: size_to_doc module not found")
+        except Exception as e:
+            print("Warning: Failed to generate documentation: %s" % e)
+            import traceback
+            traceback.print_exc()
 
     if failures:
         print("Completed with %d failures." % len(failures))

@@ -33,13 +33,3 @@ EmbeddedGUI 的 size 文档现在只覆盖指定示例集合，并统一基于 q
 python scripts/utils_analysis_elf_size.py
 python scripts/size_to_doc.py
 ```
-## QEMU vs stm32g0_empty
-
-- 对比范围：61 个共同成功 case；qemu 为当前正式口径，`stm32g0_empty` 仅用于静态 size 交叉验证。
-- Code delta（qemu - stm32g0_empty）：min -728 B / median -728 B / max -292 B。
-- ROM delta（code + resource）：min -520 B / median -520 B / max -80 B。
-- RAM delta（不含 PFB）：min -120 B / median -112 B / max 48 B。
-- PFB delta：min 0 B / median 0 B / max 0 B。
-- 超过阈值统计：`code > +10KB` 为 0 个，`ram > +1KB` 为 0 个。
-- 结论：当前 qemu 口径没有引入用户担心的 `>10KB` 代码膨胀或 `>1KB` 静态 RAM 膨胀，并且额外提供了运行期 heap/stack 数据。
-- 旧链路额外维护成本：`stm32g0_empty` 在 Windows 下仍有 3 个大 case 无法稳定完成链接：HelloBasic(mp4)、HelloPerformance、HelloVirtual(virtual_stage_showcase)。

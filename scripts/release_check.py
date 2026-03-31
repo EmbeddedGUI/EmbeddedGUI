@@ -37,9 +37,7 @@ ALL_STEP_NAMES = [
     "stage_parity",
     "virtual_render",
     "size",
-    "size_doc",
     "perf",
-    "perf_doc",
     "doc",
 ]
 
@@ -53,10 +51,8 @@ STEP_DESCRIPTIONS = {
     "dirty_anim": "Dirty-region animation verification",
     "stage_parity": "Virtual stage showcase parity verification",
     "virtual_render": "HelloVirtual render and interaction workflow",
-    "size": "Binary size analysis (ELF)",
-    "size_doc": "Size report generation",
-    "perf": "QEMU performance regression test",
-    "perf_doc": "Performance report generation",
+    "size": "Binary size analysis and documentation",
+    "perf": "QEMU performance test and documentation",
     "doc": "Sphinx documentation build",
 }
 
@@ -91,7 +87,7 @@ def build_steps(args):
         stage_parity_cmd.append("--bits64")
         virtual_render_cmd.append("--bits64")
 
-    perf_cmd = [py, str(SCRIPT_DIR / "code_perf_check.py"), "--full-check"]
+    perf_cmd = [py, str(SCRIPT_DIR / "code_perf_check.py"), "--full-check", "--doc"]
 
     wasm_cmd = [py, str(SCRIPT_DIR / "wasm_build_demos.py")]
     if emsdk_path:
@@ -107,10 +103,8 @@ def build_steps(args):
         ("dirty_anim", STEP_DESCRIPTIONS["dirty_anim"], dirty_anim_cmd),
         ("stage_parity", STEP_DESCRIPTIONS["stage_parity"], stage_parity_cmd),
         ("virtual_render", STEP_DESCRIPTIONS["virtual_render"], virtual_render_cmd),
-        ("size", STEP_DESCRIPTIONS["size"], [py, str(SCRIPT_DIR / "utils_analysis_elf_size.py")]),
-        ("size_doc", STEP_DESCRIPTIONS["size_doc"], [py, str(SCRIPT_DIR / "size_to_doc.py")]),
+        ("size", STEP_DESCRIPTIONS["size"], [py, str(SCRIPT_DIR / "utils_analysis_elf_size.py"), "--doc"]),
         ("perf", STEP_DESCRIPTIONS["perf"], perf_cmd),
-        ("perf_doc", STEP_DESCRIPTIONS["perf_doc"], [py, str(SCRIPT_DIR / "perf_to_doc.py")]),
         ("doc", STEP_DESCRIPTIONS["doc"], [py, "-m", "sphinx", "-M", "html", str(PROJECT_ROOT / "doc" / "source"), str(PROJECT_ROOT / "doc" / "build")]),
     ]
 
