@@ -1073,6 +1073,7 @@ static void egui_image_qoi_decode_row_rgb565(const egui_image_qoi_info_t *info, 
     qoi_state.run = run;
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 static void egui_image_qoi_decode_pixels_rgb565_opaque_partial(const egui_image_qoi_info_t *info, uint8_t *pixel_buf, uint16_t pixel_count)
 {
     const uint8_t *src = info->data_buf;
@@ -1192,7 +1193,9 @@ static void egui_image_qoi_decode_pixels_rgb565_opaque_partial(const egui_image_
     qoi_state.prev_rgb565 = prev_pixel;
     qoi_state.run = run;
 }
+#endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 static void egui_image_qoi_decode_pixels_rgb565_partial(const egui_image_qoi_info_t *info, uint8_t *pixel_buf, uint8_t *alpha_buf, uint16_t pixel_count)
 {
     const uint8_t *src = info->data_buf;
@@ -1259,6 +1262,7 @@ static void egui_image_qoi_decode_pixels_rgb565_partial(const egui_image_qoi_inf
     qoi_state.prev_rgb565 = prev_pixel;
     qoi_state.run = run;
 }
+#endif
 
 static void egui_image_qoi_decode_row_rgb32(const egui_image_qoi_info_t *info, uint8_t *pixel_buf)
 {
@@ -1561,6 +1565,7 @@ static void egui_image_qoi_decode_row(const egui_image_qoi_info_t *info, uint8_t
     }
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 static void egui_image_qoi_decode_pixels_rgb565_partial_any(const egui_image_qoi_info_t *info, uint8_t *pixel_buf, uint8_t *alpha_buf, uint16_t pixel_count)
 {
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
@@ -1830,6 +1835,7 @@ static void egui_image_qoi_decode_row_rgb565_alpha8_masked_split(const egui_imag
         egui_image_qoi_decode_pixels_rgb565_partial_any(info, NULL, NULL, (uint16_t)(info->width - current_col));
     }
 }
+#endif
 
 /**
  * Skip one row in the QOI stream without format conversion or buffer write.

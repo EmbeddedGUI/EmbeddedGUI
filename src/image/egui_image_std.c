@@ -1568,6 +1568,7 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_image_std_get_circle_corner_alpha_fixed
     return egui_mask_circle_get_corner_alpha(radius, row_index, corner_col);
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_segment(egui_canvas_t *canvas, egui_color_int_t *dst_row, const uint16_t *src_row,
                                                                                      const uint8_t *src_alpha_row, const egui_dim_t *src_x_map,
                                                                                      egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y,
@@ -1876,6 +1877,20 @@ void egui_image_std_blend_rgb565_alpha8_masked_row(egui_canvas_t *canvas, egui_c
     EGUI_UNUSED(canvas_alpha);
 #endif
 }
+#else
+void egui_image_std_blend_rgb565_alpha8_masked_row(egui_canvas_t *canvas, egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
+                                                    egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y, egui_alpha_t canvas_alpha)
+{
+    EGUI_UNUSED(canvas);
+    EGUI_UNUSED(dst_row);
+    EGUI_UNUSED(src_row);
+    EGUI_UNUSED(src_alpha_row);
+    EGUI_UNUSED(count);
+    EGUI_UNUSED(screen_x);
+    EGUI_UNUSED(screen_y);
+    EGUI_UNUSED(canvas_alpha);
+}
+#endif
 
 __EGUI_STATIC_INLINE__ int egui_image_std_prepare_circle_mask_row_fast(egui_mask_circle_t *circle_mask, egui_dim_t screen_y, egui_dim_t *row_index,
                                                                        egui_dim_t *visible_half, egui_dim_t *opaque_boundary)
@@ -4959,7 +4974,7 @@ void egui_image_std_draw_image(const egui_image_t *self, egui_dim_t x, egui_dim_
     x_total = region.location.x + region.size.width;
     y_total = region.location.y + region.size.height;
 
-    if (canvas->mask != NULL)
+    if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL)
     {
         if (canvas->mask->api->mask_get_row_range != NULL)
         {
@@ -5074,7 +5089,7 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
     x_total = region.location.x + region.size.width;
     y_total = region.location.y + region.size.height;
 
-    if (canvas->mask != NULL)
+    if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL)
     {
         if (canvas->mask->api->mask_get_row_range != NULL)
         {
@@ -5156,7 +5171,7 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
     egui_color_t color;                                                                                                                                        \
     egui_alpha_t alpha;                                                                                                                                        \
     egui_canvas_t *canvas = egui_canvas_get_canvas();                                                                                                          \
-    if (canvas->mask != NULL)                                                                                                                                  \
+    if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL)                                                                                              \
     {                                                                                                                                                          \
         if (canvas->mask->api->mask_get_row_range != NULL)                                                                                                     \
         {                                                                                                                                                      \
@@ -5286,8 +5301,9 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
         // Check mask row range BEFORE loading data (avoids wasted I/O for extern resources)
         egui_dim_t rr_x_start = 0, rr_x_end = 0;
         int rr_res = -1; // -1 = no mask or no row_range API
-        int image_mask_full_row_fast_path = (canvas->mask != NULL && canvas->mask->api->kind == EGUI_MASK_KIND_IMAGE);
-        if (!image_mask_full_row_fast_path && canvas->mask != NULL && canvas->mask->api->mask_get_row_range != NULL)
+        int image_mask_full_row_fast_path =
+                (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL && canvas->mask->api->kind == EGUI_MASK_KIND_IMAGE);
+        if (!image_mask_full_row_fast_path && EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL && canvas->mask->api->mask_get_row_range != NULL)
         {
             rr_res = canvas->mask->api->mask_get_row_range(canvas->mask, rr_sy, x_base + x, x_base + x_total, &rr_x_start, &rr_x_end);
             if (rr_res == EGUI_MASK_ROW_OUTSIDE)
@@ -5316,7 +5332,7 @@ void egui_image_std_set_image_rgb565_8(const egui_image_t *self, egui_dim_t x, e
             p_data = (const void *)((const uint8_t *)image->data_buf + (row_start << 1));
             p_alpha = (const void *)((const uint8_t *)image->alpha_buf + (row_start));
         }
-        if (canvas->mask != NULL)
+        if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL)
         {
             if (image_mask_full_row_fast_path)
             {
@@ -5585,7 +5601,7 @@ void egui_image_std_set_image_rgb565_4(const egui_image_t *self, egui_dim_t x, e
         // Check mask row range BEFORE loading data (avoids wasted I/O for extern resources)
         egui_dim_t rr_x_start = 0, rr_x_end = 0;
         int rr_res = -1; // -1 = no mask or no row_range API
-        if (canvas->mask != NULL && canvas->mask->api->mask_get_row_range != NULL)
+        if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL && canvas->mask->api->mask_get_row_range != NULL)
         {
             rr_res = canvas->mask->api->mask_get_row_range(canvas->mask, rr_sy, x_base + x, x_base + x_total, &rr_x_start, &rr_x_end);
             if (rr_res == EGUI_MASK_ROW_OUTSIDE)
@@ -5617,7 +5633,7 @@ void egui_image_std_set_image_rgb565_4(const egui_image_t *self, egui_dim_t x, e
             p_alpha = (const void *)((const uint8_t *)image->alpha_buf + (row_start_alpha));
         }
 
-        if (canvas->mask != NULL)
+        if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL)
         {
             if (rr_res == EGUI_MASK_ROW_INSIDE)
             {
@@ -5715,7 +5731,7 @@ void egui_image_std_set_image_rgb565_2(const egui_image_t *self, egui_dim_t x, e
         // Check mask row range BEFORE loading data (avoids wasted I/O for extern resources)
         egui_dim_t rr_x_start = 0, rr_x_end = 0;
         int rr_res = -1; // -1 = no mask or no row_range API
-        if (canvas->mask != NULL && canvas->mask->api->mask_get_row_range != NULL)
+        if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL && canvas->mask->api->mask_get_row_range != NULL)
         {
             rr_res = canvas->mask->api->mask_get_row_range(canvas->mask, rr_sy, x_base + x, x_base + x_total, &rr_x_start, &rr_x_end);
             if (rr_res == EGUI_MASK_ROW_OUTSIDE)
@@ -5747,7 +5763,7 @@ void egui_image_std_set_image_rgb565_2(const egui_image_t *self, egui_dim_t x, e
             p_alpha = (const void *)((const uint8_t *)image->alpha_buf + (row_start_alpha));
         }
 
-        if (canvas->mask != NULL)
+        if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL)
         {
             if (rr_res == EGUI_MASK_ROW_INSIDE)
             {
@@ -5845,7 +5861,7 @@ void egui_image_std_set_image_rgb565_1(const egui_image_t *self, egui_dim_t x, e
         // Check mask row range BEFORE loading data (avoids wasted I/O for extern resources)
         egui_dim_t rr_x_start = 0, rr_x_end = 0;
         int rr_res = -1; // -1 = no mask or no row_range API
-        if (canvas->mask != NULL && canvas->mask->api->mask_get_row_range != NULL)
+        if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL && canvas->mask->api->mask_get_row_range != NULL)
         {
             rr_res = canvas->mask->api->mask_get_row_range(canvas->mask, rr_sy, x_base + x, x_base + x_total, &rr_x_start, &rr_x_end);
             if (rr_res == EGUI_MASK_ROW_OUTSIDE)
@@ -5877,7 +5893,7 @@ void egui_image_std_set_image_rgb565_1(const egui_image_t *self, egui_dim_t x, e
             p_alpha = (const void *)((const uint8_t *)image->alpha_buf + (row_start_alpha));
         }
 
-        if (canvas->mask != NULL)
+        if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL)
         {
             if (rr_res == EGUI_MASK_ROW_INSIDE)
             {
@@ -6006,7 +6022,7 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
             dst_row += pfb_width;
         }
     }
-    else if ((egui_canvas_get_canvas()->alpha == EGUI_ALPHA_100) && (egui_canvas_get_canvas()->mask != NULL) &&
+    else if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && (egui_canvas_get_canvas()->alpha == EGUI_ALPHA_100) && (egui_canvas_get_canvas()->mask != NULL) &&
              (egui_canvas_get_canvas()->mask->api->mask_get_row_overlay != NULL))
     {
         // Fast path: RGB565 image with row-level overlay (e.g. linear-vertical gradient overlay).
@@ -6562,7 +6578,7 @@ static void egui_image_std_set_image_resize_rgb565_8_common(const egui_image_t *
         return;
     }
 
-    if (canvas->mask != NULL)
+    if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL)
     {
         egui_dim_t mask_x = canvas->mask->region.location.x;
         egui_dim_t mask_x_end = mask_x + canvas->mask->region.size.width;
@@ -6941,7 +6957,7 @@ cleanup:
         {                                                                                                                                                      \
             return;                                                                                                                                            \
         }                                                                                                                                                      \
-        if (canvas->mask != NULL)                                                                                                                              \
+        if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL)                                                                                          \
         {                                                                                                                                                      \
             if (canvas->mask->api->mask_get_row_range != NULL)                                                                                                 \
             {                                                                                                                                                  \
@@ -7127,7 +7143,7 @@ static void egui_image_std_draw_image_resize_external_alpha(const egui_image_t *
         return;
     }
 
-    if (canvas->mask != NULL)
+    if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL)
     {
         if (canvas->mask->api->mask_get_row_range != NULL)
         {
@@ -7276,7 +7292,7 @@ static void egui_image_std_set_image_resize_rgb565_external(const egui_image_t *
         return;
     }
 
-    if (canvas->mask != NULL)
+    if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL)
     {
         if (canvas->mask->api->mask_get_row_range != NULL)
         {
@@ -7450,7 +7466,7 @@ static void egui_image_std_set_image_resize_rgb565_external(const egui_image_t *
     {                                                                                                                                                          \
         return;                                                                                                                                                \
     }                                                                                                                                                          \
-    if (canvas->mask != NULL)                                                                                                                                  \
+    if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL)                                                                                              \
     {                                                                                                                                                          \
         if (canvas->mask->api->mask_get_row_range != NULL)                                                                                                     \
         {                                                                                                                                                      \
@@ -7933,7 +7949,7 @@ void egui_image_std_set_image_resize_rgb565(const egui_image_t *self, egui_dim_t
         return;
     }
 
-    if (canvas->mask != NULL)
+    if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL)
     {
         if (egui_image_std_set_image_resize_rgb565_round_rect_fast(image, src_x_map, count, x, y, x_total, y_total, x_base, y_base, height_radio))
         {
@@ -8374,7 +8390,7 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
     egui_canvas_t *canvas = egui_canvas_get_canvas();                                                                                                          \
     uint16_t alpha_row_size = _alpha_row_size_expr;                                                                                                            \
     EGUI_UNUSED(alpha_row_size);                                                                                                                               \
-    if (canvas->mask != NULL)                                                                                                                                  \
+    if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL)                                                                                              \
     {                                                                                                                                                          \
         for (egui_dim_t y_ = y; y_ < y_total; y_++)                                                                                                            \
         {                                                                                                                                                      \
@@ -8618,7 +8634,7 @@ void egui_image_std_draw_image_resize_color(const egui_image_t *self, egui_dim_t
         }
         EGUI_UNUSED(count);
 
-        if (canvas->mask != NULL)
+        if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && canvas->mask != NULL)
         {
             // Mask path: use per-pixel draw_point_limit for mask support
             // Still benefits from src_x_map and hoisted src_y
