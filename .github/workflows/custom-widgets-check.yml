@@ -34,6 +34,9 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
       - name: Audit core widget touch release semantics
         run: python scripts/check_touch_release_semantics.py --scope core
 
@@ -53,6 +56,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
 
       - name: Audit custom widget touch release semantics (${{ matrix.category }})
         run: python scripts/check_touch_release_semantics.py --scope custom --category ${{ matrix.category }}
