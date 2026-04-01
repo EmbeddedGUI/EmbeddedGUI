@@ -32,6 +32,10 @@ extern "C" {
 // value that still preserves current coverage while trimming circle LUT/cache RAM.
 #define EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE 241
 
+// Keep the larger basic-circle fill fast path only in HelloPerformance.
+// Other apps keep the smaller legacy path by default to reduce code size.
+#define EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE 1
+
 #define EGUI_CONFIG_DEBUG_LOG_LEVEL EGUI_LOG_IMPL_LEVEL_INF
 
 #define EGUI_CONFIG_FUNCTION_SUPPORT_SHADOW 1

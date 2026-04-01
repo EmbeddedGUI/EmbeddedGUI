@@ -2,14 +2,12 @@
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-
-from elftools.elf.elffile import ELFFile
-from elftools.elf.sections import SymbolTableSection
 
 # Import size_to_doc for automatic documentation generation
 try:
@@ -62,29 +60,109 @@ def create_case(app, app_sub=None):
 
 
 def utils_process_elf_file(filename):
-    elf_size_info = ElfSizeInfo()
+    raise RuntimeError("ELF symbol size parsing has been replaced by linker map parsing")
 
-    with open(filename, "rb") as f:
-        elffile = ELFFile(f)
-        section = elffile.get_section_by_name(".symtab")
 
-        if not section:
-            raise RuntimeError("No symbol table found in ELF")
+MAP_MEMORY_MARKER = "Linker script and memory map"
+MAP_TOP_LEVEL_SECTION_RE = re.compile(r"^([.][^\s]*)\s+0x[0-9a-fA-F]+\s+0x[0-9a-fA-F]+(?:\s+load address\s+0x[0-9a-fA-F]+)?$")
+MAP_INPUT_SECTION_INLINE_RE = re.compile(r"^\s+([.*][^\s]*|[.][^\s]*)\s+0x([0-9a-fA-F]+)\s+0x([0-9a-fA-F]+)\s+(\S.*)$")
+MAP_INPUT_SECTION_NAME_RE = re.compile(r"^\s+([.][^\s]*)\s*$")
+MAP_INPUT_SECTION_CONT_RE = re.compile(r"^\s+0x([0-9a-fA-F]+)\s+0x([0-9a-fA-F]+)\s+(\S.*)$")
+MAP_OUTPUT_SECTION_TO_FIELD = {
+    ".text": "code_size",
+    ".rodata": "rodata_size",
+    ".data": "data_size",
+    ".bss": "bss_size",
+}
 
-        if isinstance(section, SymbolTableSection):
-            for symbol in section.iter_symbols():
-                if symbol.name == "__code_size":
-                    elf_size_info.code_size = symbol["st_value"]
-                elif symbol.name == "__rodata_size":
-                    elf_size_info.rodata_size = symbol["st_value"]
-                elif symbol.name == "__data_size":
-                    elf_size_info.data_size = symbol["st_value"]
-                elif symbol.name == "__bss_size":
-                    elf_size_info.bss_size = symbol["st_value"]
-                elif symbol.name == "__bss_pfb_size":
-                    elf_size_info.bss_pfb_size = symbol["st_value"]
 
-    return elf_size_info
+def normalize_map_object_ref(object_ref):
+    return object_ref.strip().replace("\\", "/")
+
+
+def extract_repo_object_path(object_ref):
+    object_ref = normalize_map_object_ref(object_ref)
+    match = re.search(r"(?:^|/)output/obj/[^/]+/(.+)$", object_ref)
+    if match is None:
+        return None
+    return match.group(1)
+
+
+def should_count_repo_object(repo_object_path):
+    return repo_object_path.startswith("src/") or repo_object_path.startswith("example/")
+
+
+def collect_map_section_size(size_info, output_section, input_section, object_ref, size):
+    repo_object_path = extract_repo_object_path(object_ref)
+
+    if output_section == ".bss" and input_section.startswith(".bss.pfb_area"):
+        size_info.bss_pfb_size += size
+        return
+
+    if repo_object_path is None or not should_count_repo_object(repo_object_path):
+        return
+
+    field_name = MAP_OUTPUT_SECTION_TO_FIELD[output_section]
+    setattr(size_info, field_name, getattr(size_info, field_name) + size)
+
+
+def utils_process_map_file(filename):
+    size_info = ElfSizeInfo()
+    in_memory_map = False
+    current_output_section = None
+    pending_input_section = None
+
+    with open(filename, "r", encoding="utf-8", errors="ignore") as f:
+        for raw_line in f:
+            line = raw_line.rstrip("\r\n")
+
+            if not in_memory_map:
+                if line.strip() == MAP_MEMORY_MARKER:
+                    in_memory_map = True
+                continue
+
+            top_level_match = MAP_TOP_LEVEL_SECTION_RE.match(line)
+            if top_level_match:
+                section_name = top_level_match.group(1)
+                current_output_section = section_name if section_name in MAP_OUTPUT_SECTION_TO_FIELD else None
+                pending_input_section = None
+                continue
+
+            if current_output_section is None:
+                pending_input_section = None
+                continue
+
+            inline_match = MAP_INPUT_SECTION_INLINE_RE.match(line)
+            if inline_match:
+                input_section = inline_match.group(1)
+                size = int(inline_match.group(3), 16)
+                object_ref = inline_match.group(4)
+                if size > 0:
+                    collect_map_section_size(size_info, current_output_section, input_section, object_ref, size)
+                pending_input_section = None
+                continue
+
+            name_match = MAP_INPUT_SECTION_NAME_RE.match(line)
+            if name_match:
+                pending_input_section = name_match.group(1)
+                continue
+
+            if pending_input_section is not None:
+                cont_match = MAP_INPUT_SECTION_CONT_RE.match(line)
+                if cont_match:
+                    size = int(cont_match.group(2), 16)
+                    object_ref = cont_match.group(3)
+                    if size > 0:
+                        collect_map_section_size(size_info, current_output_section, pending_input_section, object_ref, size)
+                pending_input_section = None
+                continue
+
+            pending_input_section = None
+
+    if not in_memory_map:
+        raise RuntimeError("Linker memory map section not found: %s" % filename)
+
+    return size_info
 
 
 def find_qemu_executable():
@@ -142,6 +220,10 @@ def describe_scope(case_set):
     if case_set == "full":
         return "`HelloBasic/*`, `HelloSimple`, `HelloPerformance`, `HelloShowcase`, `HelloStyleDemo`, `HelloVirtual(virtual_stage_showcase)`"
     return "`HelloBasic(button,image,label)`, `HelloSimple`, `HelloShowcase`, `HelloVirtual(virtual_stage_showcase)`"
+
+
+def describe_static_size_scope():
+    return "Map input sections from repo-side `src/` + `example/` objects only; exclude toolchain libraries, `driver/`, `porting/`; `ram_bytes` excludes `PFB`, and `pfb_bytes` still comes from `.bss.pfb_area`."
 
 
 def get_case_resource_bin(case):
@@ -311,8 +393,11 @@ def process_case(current_work_cnt, total_work_cnt, case, runtime_timeout):
     if not ELF_PATH.exists():
         return None, make_failure(case, "build_measure", "ELF not found after build", format_cmd(measure_cmd))
 
-    # Extract size info from the measure build (instead of separate size build)
-    elf_size_info = utils_process_elf_file(str(ELF_PATH))
+    if not MAP_PATH.exists():
+        return None, make_failure(case, "build_measure", "Map not found after build", format_cmd(measure_cmd))
+
+    # Extract repo-only static size info from the final linker map.
+    elf_size_info = utils_process_map_file(str(MAP_PATH))
 
     sync_runtime_resource(case)
 
@@ -332,7 +417,7 @@ def process_case(current_work_cnt, total_work_cnt, case, runtime_timeout):
         "app_sub": case.get("app_sub"),
         "code_bytes": elf_size_info.code_size,
         "resource_bytes": elf_size_info.rodata_size,
-        "ram_bytes": elf_size_info.data_size + elf_size_info.bss_size - elf_size_info.bss_pfb_size,
+        "ram_bytes": elf_size_info.data_size + elf_size_info.bss_size,
         "pfb_bytes": elf_size_info.bss_pfb_size,
         "heap_idle_bytes": metrics["idle_current"],
         "heap_init_peak_bytes": metrics["idle_peak"],
@@ -351,6 +436,7 @@ def build_readme(size_results, failures, case_set):
     lines.append("- Build target: `PORT=qemu CPU_ARCH=%s`" % BUILD_CPU_ARCH)
     lines.append("- Runtime measurement: `qemu-system-arm -machine %s -cpu %s`" % (RUNTIME_MACHINE, RUNTIME_CPU))
     lines.append("- Scope: %s" % describe_scope(case_set))
+    lines.append("- Static size scope: %s" % describe_static_size_scope())
     lines.append("")
     lines.append("| App | Code(Bytes) | Resource(Bytes) | RAM(Bytes) | PFB(Bytes) | Heap Peak(Bytes) | Stack Peak(Bytes) |")
     lines.append("|-----|-------------|-----------------|------------|------------|------------------|-------------------|")
@@ -446,6 +532,10 @@ def main():
             "case_set": args.case_set,
             "description": describe_scope(args.case_set),
             "cases": [case["name"] for case in cases],
+        },
+        "static_size_scope": {
+            "source": "output/main.map",
+            "description": describe_static_size_scope(),
         },
         "apps": size_results,
         "failures": failures,

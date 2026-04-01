@@ -56,6 +56,16 @@ extern "C" {
 #define EGUI_CONFIG_CIRCLE_DEFAULT_ALGO_HQ 0
 #endif
 
+/**
+ * Canvas draw options.
+ * When 1, enable the larger direct-PFB / row-wise fast paths for basic circle fill.
+ * This improves fill-heavy benchmark scenes, but noticeably increases code size.
+ * Default: 0 (off). Enable only for performance-focused apps such as HelloPerformance.
+ */
+#ifndef EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE
+#define EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE 0
+#endif
+
 /* ---- Enhanced widget drawing ---- */
 
 /**

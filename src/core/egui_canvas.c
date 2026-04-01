@@ -722,6 +722,7 @@ static void egui_canvas_draw_circle_corner_direct_stroke(egui_canvas_t *self, eg
     }
 }
 
+#if EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE
 static void egui_canvas_draw_circle_corner_fill_direct(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int type,
                                                        egui_color_t color, egui_alpha_t alpha, const egui_circle_info_t *info,
                                                        egui_dim_t row_start, egui_dim_t row_end, egui_dim_t col_start, egui_dim_t col_end,
@@ -930,6 +931,7 @@ static void egui_canvas_draw_circle_corner_fill_direct(egui_canvas_t *self, egui
                                      len, color, solid_alpha);
     }
 }
+#endif
 
 void egui_canvas_draw_circle_corner_fill(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int type, egui_color_t color, egui_alpha_t alpha)
 {
@@ -977,6 +979,189 @@ void egui_canvas_draw_circle_corner_fill(egui_dim_t center_x, egui_dim_t center_
         EGUI_LOG_WRN("Circle radius %d not supported, increase EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE or register spec circle.\n", radius);
         return;
     }
+
+#if !EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE
+    // Legacy corner-fill path: smaller code size, slower on fill-heavy benchmarks.
+    egui_dim_t diff_x = region_intersect.location.x - region.location.x;
+    egui_dim_t diff_y = region_intersect.location.y - region.location.y;
+    egui_dim_t row_start = 0;
+    egui_dim_t row_end = 0;
+    egui_dim_t col_start = 0;
+    egui_dim_t col_end = 0;
+    int apply_draw_alpha = (alpha != EGUI_ALPHA_100);
+
+    switch (type)
+    {
+    case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
+        row_start = diff_y;
+        row_end = row_start + region_intersect.size.height;
+        col_start = diff_x;
+        col_end = col_start + region_intersect.size.width;
+        break;
+    case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
+        row_end = radius - diff_y;
+        row_start = row_end - region_intersect.size.height;
+        col_start = diff_x;
+        col_end = col_start + region_intersect.size.width;
+        break;
+    case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
+        row_start = diff_y;
+        row_end = row_start + region_intersect.size.height;
+        col_end = radius - diff_x;
+        col_start = col_end - region_intersect.size.width;
+        break;
+    case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
+        row_end = radius - diff_y;
+        row_start = row_end - region_intersect.size.height;
+        col_end = radius - diff_x;
+        col_start = col_end - region_intersect.size.width;
+        break;
+    }
+
+    egui_dim_t iter_start = EGUI_MAX(EGUI_MIN(row_start, col_start), 0);
+    egui_dim_t iter_end = EGUI_MIN(EGUI_MAX(row_end, col_end), (egui_dim_t)info->item_count);
+
+    for (row_index = iter_start; row_index < iter_end; row_index++)
+    {
+        const egui_circle_item_t *ptr = &((const egui_circle_item_t *)info->items)[row_index];
+        uint16_t start_offset = ptr->start_offset;
+        uint16_t valid_count = ptr->valid_count;
+        uint16_t data_value_offset = ptr->data_offset;
+
+        sel_y = radius - row_index;
+
+        // Primary row visible: row_index acts as y-offset in corner coords
+        int primary_visible = (row_index >= row_start && row_index < row_end);
+        // Mirror column visible: row_index acts as x-offset in corner coords (mirrored)
+        int mirror_visible = (row_index >= col_start && row_index < col_end);
+
+        // Edge pixels
+        for (int i = 0; i < valid_count; i++)
+        {
+            col_index = start_offset + i;
+            sel_x = radius - col_index;
+            mix_alpha = info->data[data_value_offset + i];
+
+            if (apply_draw_alpha)
+            {
+                mix_alpha = egui_color_alpha_mix(alpha, mix_alpha);
+            }
+
+            // Primary pixel: visible when row_index in Y-range AND col_index in X-range
+            if (primary_visible && col_index >= col_start && col_index < col_end)
+            {
+                switch (type)
+                {
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
+                    egui_canvas_draw_point_limit(center_x + (-sel_x), center_y + (-sel_y), color, mix_alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
+                    egui_canvas_draw_point_limit(center_x + (-sel_x), center_y + (sel_y), color, mix_alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
+                    egui_canvas_draw_point_limit(center_x + (sel_x), center_y + (-sel_y), color, mix_alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
+                    egui_canvas_draw_point_limit(center_x + (sel_x), center_y + (sel_y), color, mix_alpha);
+                    break;
+                }
+            }
+            // skip the diagonal write twice
+            if (sel_x == sel_y)
+            {
+                continue;
+            }
+            // Mirror pixel: visible when row_index in X-range AND col_index in Y-range
+            if (mirror_visible && col_index >= row_start && col_index < row_end)
+            {
+                switch (type)
+                {
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
+                    egui_canvas_draw_point_limit(center_x + (-sel_y), center_y + (-sel_x), color, mix_alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
+                    egui_canvas_draw_point_limit(center_x + (-sel_y), center_y + (sel_x), color, mix_alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
+                    egui_canvas_draw_point_limit(center_x + (sel_y), center_y + (-sel_x), color, mix_alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
+                    egui_canvas_draw_point_limit(center_x + (sel_y), center_y + (sel_x), color, mix_alpha);
+                    break;
+                }
+            }
+        }
+
+        // write the reserve value to reserve the space, here can use write line or write column
+        {
+            egui_dim_t offset = start_offset + valid_count;
+            len = radius - offset;
+        }
+        if (len > 0)
+        {
+            // hline: at primary y position, visible when row_index in Y-range
+            if (primary_visible)
+            {
+                switch (type)
+                {
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
+                    egui_canvas_draw_hline(center_x + (-(radius - (start_offset + valid_count))), center_y + (-sel_y), len, color, alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
+                    egui_canvas_draw_hline(center_x + (-(radius - (start_offset + valid_count))), center_y + (sel_y), len, color, alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
+                    egui_canvas_draw_hline(center_x + 1, center_y + (-sel_y), len, color, alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
+                    egui_canvas_draw_hline(center_x + 1, center_y + (sel_y), len, color, alpha);
+                    break;
+                }
+            }
+            // vline: at mirror x position, visible when row_index in X-range
+            if (mirror_visible)
+            {
+                switch (type)
+                {
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
+                    egui_canvas_draw_vline(center_x + (-sel_y), center_y + (-(radius - (start_offset + valid_count))), len, color, alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
+                    egui_canvas_draw_vline(center_x + (-sel_y), center_y + 1, len, color, alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
+                    egui_canvas_draw_vline(center_x + (sel_y), center_y + (-(radius - (start_offset + valid_count))), len, color, alpha);
+                    break;
+                case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
+                    egui_canvas_draw_vline(center_x + (sel_y), center_y + 1, len, color, alpha);
+                    break;
+                }
+            }
+        }
+    }
+
+    // write reserve value with rect
+    len = radius - info->item_count;
+    if (len > 0)
+    {
+        switch (type)
+        {
+        case EGUI_CANVAS_CIRCLE_TYPE_LEFT_TOP:
+            egui_canvas_draw_fillrect(center_x + (-len), center_y + (-len), len, len, color, alpha);
+            break;
+        case EGUI_CANVAS_CIRCLE_TYPE_LEFT_BOTTOM:
+            egui_canvas_draw_fillrect(center_x + (-len), center_y + 1, len, len, color, alpha);
+            break;
+        case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_TOP:
+            egui_canvas_draw_fillrect(center_x + 1, center_y + (-len), len, len, color, alpha);
+            break;
+        case EGUI_CANVAS_CIRCLE_TYPE_RIGHT_BOTTOM:
+            egui_canvas_draw_fillrect(center_x + 1, center_y + 1, len, len, color, alpha);
+            break;
+        }
+    }
+    return;
+#else
     // Compute visible row/col ranges from intersection (same as circle_corner outline)
     egui_dim_t diff_x = region_intersect.location.x - region.location.x;
     egui_dim_t diff_y = region_intersect.location.y - region.location.y;
@@ -1338,8 +1523,10 @@ void egui_canvas_draw_circle_corner_fill(egui_dim_t center_x, egui_dim_t center_
             }
         }
     }
+#endif
 }
 
+#if EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE
 __EGUI_STATIC_INLINE__ void egui_canvas_draw_circle_fill_basic_edge_direct_row(egui_color_t *dst_row, egui_dim_t pfb_ofs_x, egui_dim_t clip_x_start,
                                                                                egui_dim_t clip_x_end, egui_dim_t base_x, egui_dim_t screen_x_start,
                                                                                egui_dim_t screen_x_end, egui_dim_t row_index, egui_dim_t total_width,
@@ -1448,6 +1635,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_get_circle_fill_basic_row_layout_fast(eg
         *fill_end = ((radius << 1) + 1) - opaque_boundary;
     }
 }
+#endif
 
 static void egui_canvas_draw_circle_fill_basic_legacy(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_color_t color, egui_alpha_t alpha)
 {
@@ -2834,15 +3022,6 @@ void egui_canvas_draw_circle_fill_basic(egui_dim_t center_x, egui_dim_t center_y
 {
     egui_canvas_t *self = &canvas_data;
     egui_region_t region_intersect;
-    const egui_circle_info_t *info;
-    const egui_circle_item_t *items;
-    egui_dim_t total_width;
-    egui_dim_t clip_x_start;
-    egui_dim_t clip_x_end;
-    egui_dim_t clip_y_end;
-    egui_dim_t base_x;
-    egui_alpha_t solid_alpha;
-    int use_direct_pfb;
 
     if (radius < 0)
     {
@@ -2861,6 +3040,20 @@ void egui_canvas_draw_circle_fill_basic(egui_dim_t center_x, egui_dim_t center_y
     {
         return;
     }
+
+#if !EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE
+    egui_canvas_draw_circle_fill_basic_legacy(center_x, center_y, radius, color, alpha);
+    return;
+#else
+    const egui_circle_info_t *info;
+    const egui_circle_item_t *items;
+    egui_dim_t total_width;
+    egui_dim_t clip_x_start;
+    egui_dim_t clip_x_end;
+    egui_dim_t clip_y_end;
+    egui_dim_t base_x;
+    egui_alpha_t solid_alpha;
+    int use_direct_pfb;
 
     if (egui_canvas_should_use_circle_fill_basic_legacy_clip(radius, region_intersect.size.width, region_intersect.size.height))
     {
@@ -2944,6 +3137,7 @@ void egui_canvas_draw_circle_fill_basic(egui_dim_t center_x, egui_dim_t center_y
                                                         total_width, 1, info, items, color, alpha);
         }
     }
+#endif
 }
 
 static int egui_canvas_arc_try_get_single_quadrant(int16_t start_angle, int16_t end_angle, int *type, int16_t *start_angle_local, int16_t *end_angle_local)

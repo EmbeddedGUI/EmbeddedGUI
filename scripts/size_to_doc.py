@@ -57,6 +57,15 @@ def _get_case_scope(data=None):
     return _format_case_scope()
 
 
+def _get_static_size_scope(data=None):
+    if data:
+        static_size_scope = data.get("static_size_scope", {})
+        description = static_size_scope.get("description")
+        if description:
+            return description
+    return "Map input sections from repo-side `src/` + `example/` objects only; exclude toolchain libraries, `driver/`, `porting/`; `ram_bytes` excludes `PFB`, and `pfb_bytes` still comes from `.bss.pfb_area`."
+
+
 def _format_case_scope():
     return "HelloBasic 全子 case、HelloSimple、HelloPerformance、HelloShowcase、HelloStyleDemo、HelloVirtual(virtual_stage_showcase)"
 
@@ -167,7 +176,7 @@ def generate_size_report():
     ax1.set_yticks(y_pos)
     ax1.set_yticklabels(app_names, fontsize=6)
     ax1.set_xlabel("Size (KB)")
-    ax1.set_title("ROM Usage: Code + Resource")
+    ax1.set_title("EGUI ROM Usage: Code + Resource")
     ax1.invert_yaxis()
     ax1.legend(fontsize=8, loc="lower right")
 
@@ -176,7 +185,7 @@ def generate_size_report():
     ax2.set_yticks(y_pos)
     ax2.set_yticklabels(app_names, fontsize=6)
     ax2.set_xlabel("Size (KB)")
-    ax2.set_title("Static RAM Usage: RAM + PFB")
+    ax2.set_title("EGUI Static RAM Usage: RAM + PFB")
     ax2.invert_yaxis()
     ax2.legend(fontsize=8, loc="lower right")
 
@@ -214,6 +223,7 @@ def generate_size_report():
         "- Build target: `PORT=%s CPU_ARCH=%s`" % (build_platform.get("port", "qemu"), build_platform.get("cpu_arch", "cortex-m0plus")),
         "- Runtime target: `qemu-system-arm -machine %s -cpu %s`" % (runtime_platform.get("machine", "mps2-an385"), runtime_platform.get("cpu", "cortex-m3")),
         "- Scope: %s" % _get_case_scope(data),
+        "- Static size scope: %s" % _get_static_size_scope(data),
         "- Successful apps: %d" % len(apps),
         "- Failed apps: %d" % len(failures),
         "",
@@ -296,7 +306,8 @@ def generate_size_overview():
         "## Measurement Method",
         "",
         "- **Static size build**: `make all PORT=%s CPU_ARCH=%s`" % (build_platform.get("port", "qemu"), build_platform.get("cpu_arch", "cortex-m0plus")),
-        "- **Static data source**: ELF symbols `__code_size`, `__rodata_size`, `__data_size`, `__bss_size`, `__bss_pfb_size`",
+        "- **Static data source**: `output/main.map` input sections from repo-side `src/` + `example/` objects",
+        "- **Static size scope**: %s" % _get_static_size_scope(data),
         "- **Runtime measure**: `qemu-system-arm -machine %s -cpu %s -icount shift=0`" % (
             runtime_platform.get("machine", "mps2-an385"),
             runtime_platform.get("cpu", "cortex-m3"),
