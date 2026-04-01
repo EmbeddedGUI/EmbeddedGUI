@@ -140,9 +140,9 @@ def format_duration(seconds):
 
 def print_summary(results, total_elapsed):
     """Print a summary table of all step results."""
-    print("\n" + "=" * BANNER_WIDTH)
-    print("  RELEASE CHECK SUMMARY")
-    print("=" * BANNER_WIDTH)
+    print("\n" + "=" * BANNER_WIDTH, flush=True)
+    print("  RELEASE CHECK SUMMARY", flush=True)
+    print("=" * BANNER_WIDTH, flush=True)
 
     name_width = max(len(desc) for _, desc, _, _ in results) + 2
 
@@ -155,21 +155,21 @@ def print_summary(results, total_elapsed):
             mark = "[SKIP]"
 
         time_str = format_duration(elapsed) if elapsed > 0 else "-"
-        print(f"  {mark}  {desc:<{name_width}}  {time_str:>10}")
+        print(f"  {mark}  {desc:<{name_width}}  {time_str:>10}", flush=True)
 
-    print("-" * BANNER_WIDTH)
-    print(f"  Total time: {format_duration(total_elapsed)}")
+    print("-" * BANNER_WIDTH, flush=True)
+    print(f"  Total time: {format_duration(total_elapsed)}", flush=True)
 
     passed = sum(1 for _, _, s, _ in results if s == STATUS_PASS)
     failed = sum(1 for _, _, s, _ in results if s == STATUS_FAIL)
     skipped = sum(1 for _, _, s, _ in results if s == STATUS_SKIP)
-    print(f"  {passed} passed, {failed} failed, {skipped} skipped")
+    print(f"  {passed} passed, {failed} failed, {skipped} skipped", flush=True)
 
     if failed > 0:
-        print("\n  ** RELEASE CHECK FAILED **")
+        print("\n  ** RELEASE CHECK FAILED **", flush=True)
     else:
-        print("\n  ** ALL CHECKS PASSED **")
-    print("=" * BANNER_WIDTH)
+        print("\n  ** ALL CHECKS PASSED **", flush=True)
+    print("=" * BANNER_WIDTH, flush=True)
 
     return failed == 0
 
@@ -254,7 +254,9 @@ def main():
 
         step_start = time.time()
         try:
-            ret = subprocess.run(cmd, cwd=PROJECT_ROOT)
+            env = os.environ.copy()
+            env.setdefault("PYTHONUNBUFFERED", "1")
+            ret = subprocess.run(cmd, cwd=PROJECT_ROOT, env=env)
             elapsed = time.time() - step_start
             if ret.returncode == 0:
                 results.append((name, desc, STATUS_PASS, elapsed))
@@ -263,7 +265,7 @@ def main():
                 had_failure = True
         except FileNotFoundError as exc:
             elapsed = time.time() - step_start
-            print(f"\n  Error: {exc}")
+            print(f"\n  Error: {exc}", flush=True)
             results.append((name, desc, STATUS_FAIL, elapsed))
             had_failure = True
         except KeyboardInterrupt:

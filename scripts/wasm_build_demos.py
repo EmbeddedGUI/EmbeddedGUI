@@ -23,7 +23,9 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 
-WASM_SKIP_APPS = {"HelloUnitTest"}
+# Default full-site WASM publishing excludes test-only and long-running demo families.
+# They can still be built explicitly with --app/--app-sub when needed.
+WASM_SKIP_APPS = {"HelloUnitTest", "HelloCustomWidgets"}
 
 
 def get_example_list():
@@ -70,6 +72,21 @@ def format_demo_name(app, app_sub):
     if not app_sub:
         return app
     return f"{app}_{app_sub.replace('/', '_')}"
+
+
+def prune_demo_dirs(output_dir, app_names):
+    """Remove previously generated demo directories for skipped app families."""
+    output_path = Path(output_dir)
+    if not output_path.exists():
+        return
+
+    prefixes = tuple(f"{app}_" for app in app_names)
+    exact_names = set(app_names)
+    for child in output_path.iterdir():
+        if not child.is_dir():
+            continue
+        if child.name in exact_names or child.name.startswith(prefixes):
+            shutil.rmtree(child, ignore_errors=True)
 
 
 def run_cmd(cmd, cwd=None):
@@ -285,9 +302,14 @@ def main():
         out_path = os.path.join(root_dir, "output")
         if os.path.exists(out_path):
             shutil.rmtree(out_path)
-            print("Cleaned output/ directory")
+            print("Cleaned output/ directory", flush=True)
 
     os.makedirs(output_dir, exist_ok=True)
+
+    # Default full-site builds should also prune demo families excluded from demos.json,
+    # otherwise old directories remain in web/demos and get packaged accidentally.
+    if not args.app and not args.app_sub:
+        prune_demo_dirs(output_dir, WASM_SKIP_APPS)
 
     # Build task list from directory scan
     build_list = []
@@ -320,57 +342,57 @@ def main():
 
     # Build HelloBasic sub-apps sequentially (shared OBJDIR for incremental builds)
     if basic_group:
-        print(f"\n--- HelloBasic sub-apps ({len(basic_group)} demos, sequential) ---")
+        print(f"\n--- HelloBasic sub-apps ({len(basic_group)} demos, sequential) ---", flush=True)
         for app, sub, category in basic_group:
             count += 1
             name = format_demo_name(app, sub)
-            print(f"\n[{count}/{total}] {name}")
+            print(f"\n[{count}/{total}] {name}", flush=True)
             result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir)
             result["category"] = category
             if "error" in result:
-                print(f"  FAILED: {result['error']}")
+                print(f"  FAILED: {result['error']}", flush=True)
                 failed.append(result["name"])
             else:
-                print(f"  OK -> {os.path.join(output_dir, result['name'])}")
+                print(f"  OK -> {os.path.join(output_dir, result['name'])}", flush=True)
                 demos_built.append(make_demo_entry(root_dir, result, category))
 
     # Build HelloCustomWidgets sub-apps sequentially
     if custom_group:
-        print(f"\n--- HelloCustomWidgets ({len(custom_group)} demos, sequential) ---")
+        print(f"\n--- HelloCustomWidgets ({len(custom_group)} demos, sequential) ---", flush=True)
         for app, sub, category in custom_group:
             count += 1
             name = format_demo_name(app, sub)
-            print(f"\n[{count}/{total}] {name}")
+            print(f"\n[{count}/{total}] {name}", flush=True)
             result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir)
             result["category"] = category
             if "error" in result:
-                print(f"  FAILED: {result['error']}")
+                print(f"  FAILED: {result['error']}", flush=True)
                 failed.append(result["name"])
             else:
-                print(f"  OK -> {os.path.join(output_dir, result['name'])}")
+                print(f"  OK -> {os.path.join(output_dir, result['name'])}", flush=True)
                 demos_built.append(make_demo_entry(root_dir, result, category))
 
     # Build HelloVirtual sub-apps sequentially (shared output/HelloVirtual.* artifacts)
     if virtual_group:
-        print(f"\n--- HelloVirtual ({len(virtual_group)} demos, sequential) ---")
+        print(f"\n--- HelloVirtual ({len(virtual_group)} demos, sequential) ---", flush=True)
         for app, sub, category in virtual_group:
             count += 1
             name = format_demo_name(app, sub)
-            print(f"\n[{count}/{total}] {name}")
+            print(f"\n[{count}/{total}] {name}", flush=True)
             result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir)
             result["category"] = category
             if "error" in result:
-                print(f"  FAILED: {result['error']}")
+                print(f"  FAILED: {result['error']}", flush=True)
                 failed.append(result["name"])
             else:
-                print(f"  OK -> {os.path.join(output_dir, result['name'])}")
+                print(f"  OK -> {os.path.join(output_dir, result['name'])}", flush=True)
                 demos_built.append(make_demo_entry(root_dir, result, category))
 
     # Build standalone apps (can be parallel - each has its own OBJDIR)
     if standalone_list:
         jobs = max(1, min(args.jobs, len(standalone_list)))
         mode = f"parallel x{jobs}" if jobs > 1 else "sequential"
-        print(f"\n--- Standalone apps ({len(standalone_list)} demos, {mode}) ---")
+        print(f"\n--- Standalone apps ({len(standalone_list)} demos, {mode}) ---", flush=True)
 
         if jobs > 1:
             with ProcessPoolExecutor(max_workers=jobs) as executor:
@@ -387,23 +409,23 @@ def main():
                     result = future.result()
                     result["category"] = category
                     if "error" in result:
-                        print(f"[{count}/{total}] {name} FAILED")
+                        print(f"[{count}/{total}] {name} FAILED", flush=True)
                         failed.append(result["name"])
                     else:
-                        print(f"[{count}/{total}] {name} OK")
+                        print(f"[{count}/{total}] {name} OK", flush=True)
                         demos_built.append(make_demo_entry(root_dir, result, category))
         else:
             for app, sub, category in standalone_list:
                 count += 1
                 name = format_demo_name(app, sub)
-                print(f"\n[{count}/{total}] {name}")
+                print(f"\n[{count}/{total}] {name}", flush=True)
                 result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir)
                 result["category"] = category
                 if "error" in result:
-                    print(f"  FAILED: {result['error']}")
+                    print(f"  FAILED: {result['error']}", flush=True)
                     failed.append(result["name"])
                 else:
-                    print(f"  OK -> {os.path.join(output_dir, result['name'])}")
+                    print(f"  OK -> {os.path.join(output_dir, result['name'])}", flush=True)
                     demos_built.append(make_demo_entry(root_dir, result, category))
 
     elapsed = time.time() - start_time
@@ -426,12 +448,12 @@ def main():
 
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(demos_built, f, indent=2)
-    print(f"\nGenerated {json_path} with {len(demos_built)} demos")
+    print(f"\nGenerated {json_path} with {len(demos_built)} demos", flush=True)
 
-    print(f"\n{'='*50}")
-    print(f"Built: {len(demos_built)}/{total}  Time: {elapsed:.1f}s")
+    print(f"\n{'='*50}", flush=True)
+    print(f"Built: {len(demos_built)}/{total}  Time: {elapsed:.1f}s", flush=True)
     if failed:
-        print(f"Failed: {', '.join(failed)}")
+        print(f"Failed: {', '.join(failed)}", flush=True)
 
     return 0 if not failed else 1
 

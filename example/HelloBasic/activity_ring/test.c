@@ -33,19 +33,31 @@ static uint8_t clamp_percent(int value)
 static void dirty_anim_timer_callback(egui_timer_t *timer)
 {
     int frame;
+    uint8_t slot;
 
     (void)timer;
 
     dirty_anim_tick = (uint8_t)((dirty_anim_tick + 1) % 100);
     frame = dirty_anim_tick;
+    slot = (uint8_t)(frame % 3);
 
-    egui_view_activity_ring_set_value(EGUI_VIEW_OF(&ring_1), 0, clamp_percent(25 + ((frame * 3) % 70)));
-    egui_view_activity_ring_set_value(EGUI_VIEW_OF(&ring_1), 1, clamp_percent(18 + ((frame * 5) % 64)));
-    egui_view_activity_ring_set_value(EGUI_VIEW_OF(&ring_1), 2, clamp_percent(12 + ((frame * 7) % 56)));
-
-    egui_view_activity_ring_set_value(EGUI_VIEW_OF(&ring_2), 0, clamp_percent(20 + (((frame + 10) * 4) % 68)));
-    egui_view_activity_ring_set_value(EGUI_VIEW_OF(&ring_2), 1, clamp_percent(14 + (((frame + 20) * 6) % 58)));
-    egui_view_activity_ring_set_value(EGUI_VIEW_OF(&ring_2), 2, clamp_percent(10 + (((frame + 30) * 8) % 48)));
+    // Dirty-animation regression should exercise partial redraw, so only mutate
+    // one ring per widget each frame and avoid same-frame fallback to full dirty.
+    if (slot == 0)
+    {
+        egui_view_activity_ring_set_value(EGUI_VIEW_OF(&ring_1), 0, clamp_percent(25 + ((frame * 3) % 70)));
+        egui_view_activity_ring_set_value(EGUI_VIEW_OF(&ring_2), 0, clamp_percent(20 + (((frame + 10) * 4) % 68)));
+    }
+    else if (slot == 1)
+    {
+        egui_view_activity_ring_set_value(EGUI_VIEW_OF(&ring_1), 1, clamp_percent(18 + ((frame * 5) % 64)));
+        egui_view_activity_ring_set_value(EGUI_VIEW_OF(&ring_2), 1, clamp_percent(14 + (((frame + 20) * 6) % 58)));
+    }
+    else
+    {
+        egui_view_activity_ring_set_value(EGUI_VIEW_OF(&ring_1), 2, clamp_percent(12 + ((frame * 7) % 56)));
+        egui_view_activity_ring_set_value(EGUI_VIEW_OF(&ring_2), 2, clamp_percent(10 + (((frame + 30) * 8) % 48)));
+    }
 }
 #endif
 
