@@ -9,6 +9,9 @@
 static egui_color_int_t test_pfb[TEST_CANVAS_W * TEST_CANVAS_H];
 static egui_color_int_t expected_pfb[TEST_CANVAS_W * TEST_CANVAS_H];
 
+int egui_canvas_get_arc_fill_basic_row_angle_opaque_range(egui_dim_t radius, egui_dim_t qy, int16_t start_angle, int16_t end_angle, egui_dim_t *qx_min,
+                                                          egui_dim_t *qx_max);
+
 static const uint16_t canvas_helper_image_data[] = {
         0xF800, 0x07E0, 0x001F, 0xFFE0, 0xFFFF, 0x07FF, 0xF81F, 0x8410, 0x0000,
 };
@@ -327,6 +330,80 @@ static void test_canvas_circle_fill_basic_clipped_fullwidth_strip_matches_full_r
     assert_clip_matches_expected(&clip_region);
 }
 
+static void test_canvas_arc_fill_basic_angle_opaque_range_full_quadrant(void)
+{
+    egui_dim_t qx_min = 99;
+    egui_dim_t qx_max = 99;
+
+    EGUI_TEST_ASSERT_TRUE(egui_canvas_get_arc_fill_basic_row_angle_opaque_range(12, 6, 0, 90, &qx_min, &qx_max));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, qx_min);
+    EGUI_TEST_ASSERT_EQUAL_INT(12, qx_max);
+}
+
+static void test_canvas_arc_fill_basic_angle_opaque_range_shrinks_45_to_90_sector(void)
+{
+    egui_dim_t qx_min = 99;
+    egui_dim_t qx_max = 99;
+
+    EGUI_TEST_ASSERT_TRUE(egui_canvas_get_arc_fill_basic_row_angle_opaque_range(12, 6, 45, 90, &qx_min, &qx_max));
+    EGUI_TEST_ASSERT_EQUAL_INT(0, qx_min);
+    EGUI_TEST_ASSERT_EQUAL_INT(4, qx_max);
+}
+
+static void test_canvas_arc_fill_basic_angle_opaque_range_reports_empty_span(void)
+{
+    egui_dim_t qx_min = 0;
+    egui_dim_t qx_max = 0;
+
+    EGUI_TEST_ASSERT_FALSE(egui_canvas_get_arc_fill_basic_row_angle_opaque_range(12, 6, 44, 46, &qx_min, &qx_max));
+}
+
+static void test_canvas_arc_fill_basic_clipped_fullheight_strip_matches_full_render(void)
+{
+    enum
+    {
+        center_x = 18,
+        center_y = 20,
+        radius = 12,
+    };
+    egui_color_t color = EGUI_COLOR_RED;
+    egui_region_t clip_region;
+
+    egui_region_init(&clip_region, 24, 8, 1, 24);
+
+    setup_canvas_local_full();
+    egui_canvas_draw_arc_fill_basic(center_x, center_y, radius, 0, 120, color, EGUI_ALPHA_100);
+    memcpy(expected_pfb, test_pfb, sizeof(test_pfb));
+
+    setup_canvas_local_clip(clip_region.location.x, clip_region.location.y, clip_region.size.width, clip_region.size.height);
+    egui_canvas_draw_arc_fill_basic(center_x - clip_region.location.x, center_y - clip_region.location.y, radius, 0, 120, color, EGUI_ALPHA_100);
+
+    assert_clip_matches_expected(&clip_region);
+}
+
+static void test_canvas_arc_fill_basic_clipped_small_tile_matches_full_render(void)
+{
+    enum
+    {
+        center_x = 32,
+        center_y = 20,
+        radius = 12,
+    };
+    egui_color_t color = EGUI_COLOR_BLUE;
+    egui_region_t clip_region;
+
+    egui_region_init(&clip_region, 26, 14, 15, 15);
+
+    setup_canvas_local_full();
+    egui_canvas_draw_arc_fill_basic(center_x, center_y, radius, 0, 120, color, EGUI_ALPHA_100);
+    memcpy(expected_pfb, test_pfb, sizeof(test_pfb));
+
+    setup_canvas_local_clip(clip_region.location.x, clip_region.location.y, clip_region.size.width, clip_region.size.height);
+    egui_canvas_draw_arc_fill_basic(center_x - clip_region.location.x, center_y - clip_region.location.y, radius, 0, 120, color, EGUI_ALPHA_100);
+
+    assert_clip_matches_expected(&clip_region);
+}
+
 static void test_canvas_image_rotate_helper_zero_angle_matches_draw_image(void)
 {
     const egui_image_t *image = (const egui_image_t *)&canvas_helper_image;
@@ -425,6 +502,11 @@ void test_canvas_active_run(void)
     EGUI_TEST_RUN(test_canvas_circle_fill_basic_legacy_clip_preserves_strip_fast_paths);
     EGUI_TEST_RUN(test_canvas_circle_fill_basic_clipped_small_tile_matches_full_render);
     EGUI_TEST_RUN(test_canvas_circle_fill_basic_clipped_fullwidth_strip_matches_full_render);
+    EGUI_TEST_RUN(test_canvas_arc_fill_basic_angle_opaque_range_full_quadrant);
+    EGUI_TEST_RUN(test_canvas_arc_fill_basic_angle_opaque_range_shrinks_45_to_90_sector);
+    EGUI_TEST_RUN(test_canvas_arc_fill_basic_angle_opaque_range_reports_empty_span);
+    EGUI_TEST_RUN(test_canvas_arc_fill_basic_clipped_fullheight_strip_matches_full_render);
+    EGUI_TEST_RUN(test_canvas_arc_fill_basic_clipped_small_tile_matches_full_render);
     EGUI_TEST_RUN(test_canvas_image_rotate_helper_zero_angle_matches_draw_image);
     EGUI_TEST_RUN(test_canvas_text_rotate_helper_zero_angle_matches_draw_text);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
