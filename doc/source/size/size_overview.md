@@ -4,7 +4,7 @@ EmbeddedGUI 的 size 文档现在只覆盖指定示例集合，并统一基于 q
 
 ## Scope
 
-- HelloBasic 全子 case、HelloSimple、HelloPerformance、HelloShowcase、HelloStyleDemo、HelloVirtual(virtual_stage_showcase)
+- `HelloBasic(button,image,label)`, `HelloSimple`, `HelloShowcase`, `HelloVirtual(virtual_stage_showcase)`
 
 ## Measurement Method
 
@@ -30,6 +30,6 @@ EmbeddedGUI 的 size 文档现在只覆盖指定示例集合，并统一基于 q
 ## Generation Command
 
 ```bash
-python scripts/utils_analysis_elf_size.py
+python scripts/utils_analysis_elf_size.py --case-set typical
 python scripts/size_to_doc.py
 ```

@@ -56,6 +56,10 @@ static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_W
 #define QEMU_HEAP_TRACE_ACTIONS 0
 #endif
 
+#ifndef QEMU_HEAP_TRACE_STAGE
+#define QEMU_HEAP_TRACE_STAGE 0
+#endif
+
 #if !QEMU_HEAP_MEASURE
 /* Flag set by benchmark code when all tests are done */
 volatile int g_qemu_perf_complete = 0;
@@ -92,6 +96,16 @@ static uintptr_t qemu_stack_get_base(void)
     return (uintptr_t)_estack - (uintptr_t)&_Min_Stack_Size;
 }
 
+static void qemu_stack_fill_region(uintptr_t start, uintptr_t end, uint8_t value)
+{
+    volatile uint8_t *cursor = (volatile uint8_t *)start;
+
+    while ((uintptr_t)cursor < end)
+    {
+        *cursor++ = value;
+    }
+}
+
 static uint32_t qemu_stack_begin_measure(void)
 {
     uintptr_t stack_base = qemu_stack_get_base();
@@ -102,7 +116,7 @@ static uint32_t qemu_stack_begin_measure(void)
         return 0U;
     }
 
-    memset((void *)stack_base, (int)QEMU_STACK_MEASURE_FILL_BYTE, (size_t)(current_sp - stack_base));
+    qemu_stack_fill_region(stack_base, current_sp, (uint8_t)QEMU_STACK_MEASURE_FILL_BYTE);
     return (uint32_t)((uintptr_t)_estack - current_sp);
 }
 
@@ -172,6 +186,15 @@ static qemu_heap_stats_t qemu_heap_capture_stats(void)
 static void qemu_heap_print_metric(const char *key, uint32_t value)
 {
     qemu_log_printf("HEAP_RESULT:%s=%lu\n", key, (unsigned long)value);
+}
+
+static void qemu_heap_trace_stage(const char *stage)
+{
+#if QEMU_HEAP_TRACE_STAGE
+    qemu_log_printf("HEAP_STAGE:%s,tick=%lu\n", stage, (unsigned long)egui_api_timer_get_current());
+#else
+    EGUI_UNUSED(stage);
+#endif
 }
 
 static void qemu_run_for_ms(uint32_t wait_ms)
@@ -290,21 +313,30 @@ int main(void)
     uint32_t stack_peak_bytes;
 
     qemu_log_write("QEMU EGUI Heap Measure\n");
+    qemu_heap_trace_stage("start");
 
     stack_baseline_bytes = qemu_stack_begin_measure();
+    qemu_heap_trace_stage("stack_ready");
 
     qemu_heap_reset_stats();
+    qemu_heap_trace_stage("idle_reset");
     uicode_create_ui();
+    qemu_heap_trace_stage("ui_created");
     egui_screen_on();
+    qemu_heap_trace_stage("screen_on");
 
     qemu_run_for_ms(QEMU_HEAP_IDLE_WAIT_MS);
+    qemu_heap_trace_stage("idle_wait_done");
     idle_stats = qemu_heap_capture_stats();
 
     qemu_heap_reset_stats();
+    qemu_heap_trace_stage("interaction_reset");
     action_count = qemu_run_heap_measure_actions();
+    qemu_heap_trace_stage("actions_done");
     if (action_count > 0U)
     {
         qemu_run_for_ms(QEMU_HEAP_SETTLE_WAIT_MS);
+        qemu_heap_trace_stage("settle_done");
         interaction_stats = qemu_heap_capture_stats();
     }
 
@@ -324,6 +356,7 @@ int main(void)
     qemu_heap_print_metric("interaction_total_peak", interaction_total_peak);
     stack_peak_bytes = qemu_stack_get_peak_used(stack_baseline_bytes);
     qemu_heap_print_metric("stack_peak_bytes", stack_peak_bytes);
+    qemu_heap_trace_stage("complete");
     qemu_log_write("HEAP_EXIT\n");
     qemu_exit(0);
 #else

@@ -14,12 +14,17 @@ COMMON_FLAGS += -DEGUI_PORT_PC=1
 # Disable recording test for web builds
 COMMON_FLAGS += -DEGUI_CONFIG_RECORDING_TEST=0
 
-# Emscripten compiler - EMSDK_PATH can be overridden
+# Emscripten compiler - prefer the repo-local emsdk install when present,
+# otherwise fall back to environment variables or plain emcc in PATH.
+ifneq ($(wildcard tools/emsdk/upstream/emscripten),)
+EMSDK_PATH := tools/emsdk
+else
 EMSDK_PATH ?= $(EMSDK)
+endif
 ifeq ($(strip $(EMSDK_PATH)),)
 CC := emcc
 else ifeq ($(OS),Windows_NT)
-CC := $(EMSDK_PATH)/upstream/emscripten/emcc.bat
+CC := python scripts/emcc_wrapper.py
 else
 CC := $(EMSDK_PATH)/upstream/emscripten/emcc
 endif

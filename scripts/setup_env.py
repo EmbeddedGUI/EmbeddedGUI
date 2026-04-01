@@ -41,6 +41,11 @@ W64DEVKIT_SHA256 = ""
 
 FFMPEG_WINDOWS_FILENAME = "ffmpeg-release-essentials.zip"
 FFMPEG_WINDOWS_URL_PRIMARY = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+EMSDK_ENV_KEYS = ("EMSDK_PATH", "EMSDK")
+EMSDK_GIT_URL_PRIMARY = "https://github.com/emscripten-core/emsdk.git"
+EMSDK_GIT_URL_MIRROR = "https://ghfast.top/https://github.com/emscripten-core/emsdk.git"
+DEFAULT_EMSDK_VERSION = os.environ.get("EMSDK_VERSION", "latest")
+EMSDK_COMMAND_TIMEOUT = 3600
 
 
 def project_root() -> Path:
@@ -74,6 +79,7 @@ def run(
     cwd: Path | None = None,
     env: dict[str, str] | None = None,
     capture_output: bool = False,
+    timeout: float | None = None,
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
@@ -81,6 +87,7 @@ def run(
         env=env,
         text=True,
         capture_output=capture_output,
+        timeout=timeout,
     )
 
 
@@ -376,6 +383,10 @@ def ffmpeg_executable_name() -> str:
 
 def local_ffmpeg_bin(root_dir: Path) -> Path:
     return root_dir / "tools" / "ffmpeg" / "bin"
+
+
+def local_emsdk_dir(root_dir: Path) -> Path:
+    return root_dir / "tools" / "emsdk"
 
 
 def print_manual_ffmpeg_help(root_dir: Path) -> None:
@@ -687,6 +698,272 @@ def probe_local_tool_status(tool_dir: Path, executable_path: Path, root_dir: Pat
     return "not installed"
 
 
+def emsdk_script_name() -> str:
+    return "emsdk.bat" if is_windows() else "emsdk"
+
+
+def emsdk_env_script_name() -> str:
+    return "emsdk_env.bat" if is_windows() else "emsdk_env.sh"
+
+
+def emcc_executable_name() -> str:
+    return "emcc.bat" if is_windows() else "emcc"
+
+
+def emsdk_script_path(emsdk_root: Path) -> Path:
+    return emsdk_root / emsdk_script_name()
+
+
+def emsdk_env_script_path(emsdk_root: Path) -> Path:
+    return emsdk_root / emsdk_env_script_name()
+
+
+def local_emcc_path(root_dir: Path) -> Path:
+    return local_emsdk_dir(root_dir) / "upstream" / "emscripten" / emcc_executable_name()
+
+
+def format_shell_command(parts: list[str]) -> str:
+    return " ".join(quoted(part) if " " in part else part for part in parts)
+
+
+def print_manual_emsdk_help(root_dir: Path, version: str = DEFAULT_EMSDK_VERSION) -> None:
+    emsdk_dir = local_emsdk_dir(root_dir)
+    print("Manual recovery steps:")
+    if is_windows():
+        print("  1. Ensure git is installed and available in PATH.")
+        print(f"  2. Clone: git clone {EMSDK_GIT_URL_PRIMARY} {quoted(display_path(emsdk_dir, root_dir))}")
+        print(f"  3. Install: {display_path(emsdk_dir / 'emsdk.bat', root_dir)} install {version}")
+        print(f"  4. Activate: {display_path(emsdk_dir / 'emsdk.bat', root_dir)} activate {version}")
+        print(f"  5. Enable for a shell: call {display_path(emsdk_dir / 'emsdk_env.bat', root_dir)}")
+    else:
+        print("  1. Ensure git is installed and available in PATH.")
+        print(f"  2. Clone: git clone {EMSDK_GIT_URL_PRIMARY} {quoted(display_path(emsdk_dir, root_dir))}")
+        print(f"  3. Install: {display_path(emsdk_dir / 'emsdk', root_dir)} install {version}")
+        print(f"  4. Activate: {display_path(emsdk_dir / 'emsdk', root_dir)} activate {version}")
+        print(f"  5. Enable for a shell: source {display_path(emsdk_dir / 'emsdk_env.sh', root_dir)}")
+    print("  Use --skip-emsdk if you do not need WASM workflows.")
+
+
+def run_emsdk_command(
+    emsdk_root: Path,
+    args: list[str],
+    env: dict[str, str],
+    *,
+    capture_output: bool = False,
+    timeout: float | None = EMSDK_COMMAND_TIMEOUT,
+) -> subprocess.CompletedProcess[str]:
+    script = emsdk_script_path(emsdk_root)
+    if is_windows():
+        command_text = f'call "{script}"'
+        for arg in args:
+            command_text += " " + (quoted(arg) if " " in arg else arg)
+        return subprocess.run(
+            command_text,
+            cwd=str(emsdk_root),
+            env=env,
+            text=True,
+            capture_output=capture_output,
+            timeout=timeout,
+            shell=True,
+            executable=os.environ.get("COMSPEC", "cmd.exe"),
+        )
+
+    return run([str(script)] + args, cwd=emsdk_root, env=env, capture_output=capture_output, timeout=timeout)
+
+
+def clone_emsdk_repository(root_dir: Path, env: dict[str, str]) -> bool:
+    emsdk_dir = local_emsdk_dir(root_dir)
+    emsdk_script = emsdk_script_path(emsdk_dir)
+
+    if emsdk_script.exists():
+        print(f"[OK] Reusing existing emsdk repository: {emsdk_dir}")
+        return True
+
+    if emsdk_dir.exists():
+        print(f"[!!] Existing emsdk directory is incomplete: {emsdk_dir}")
+        print_manual_emsdk_help(root_dir)
+        return False
+
+    git_path = find_command("git.exe", env) or find_command("git", env)
+    if not git_path:
+        print("[!!] git not found in PATH, cannot clone emsdk.")
+        print_manual_emsdk_help(root_dir)
+        return False
+
+    emsdk_dir.parent.mkdir(parents=True, exist_ok=True)
+    for url in [EMSDK_GIT_URL_MIRROR, EMSDK_GIT_URL_PRIMARY]:
+        print(f"Cloning emsdk repository from: {url}")
+        result = run([git_path, "clone", "--depth", "1", url, str(emsdk_dir)], cwd=root_dir, env=env, capture_output=True, timeout=EMSDK_COMMAND_TIMEOUT)
+        if result.returncode == 0 and emsdk_script.exists():
+            print(f"[OK] Cloned emsdk to: {emsdk_dir}")
+            return True
+
+        shutil.rmtree(emsdk_dir, ignore_errors=True)
+
+    print("[!!] Unable to clone emsdk repository.")
+    if result.stderr.strip():
+        print(result.stderr.strip())
+    elif result.stdout.strip():
+        print(result.stdout.strip())
+    print_manual_emsdk_help(root_dir)
+    return False
+
+
+def capture_emsdk_environment(emsdk_root: Path, env: dict[str, str]) -> tuple[dict[str, str] | None, str | None]:
+    env_script = emsdk_env_script_path(emsdk_root)
+    if not env_script.exists():
+        return None, f"{display_path(env_script)} missing"
+
+    activation_env = env.copy()
+    activation_env["EMSDK_QUIET"] = "1"
+
+    if is_windows():
+        result = subprocess.run(
+            f'call "{env_script}" >nul && set',
+            cwd=str(emsdk_root),
+            env=activation_env,
+            text=True,
+            capture_output=True,
+            timeout=EMSDK_COMMAND_TIMEOUT,
+            shell=True,
+            executable=os.environ.get("COMSPEC", "cmd.exe"),
+        )
+    else:
+        bash = find_command("bash", env) or "bash"
+        result = run(
+            [bash, "-lc", f'source "{env_script}" >/dev/null && env'],
+            cwd=emsdk_root,
+            env=activation_env,
+            capture_output=True,
+            timeout=EMSDK_COMMAND_TIMEOUT,
+        )
+
+    if result.returncode != 0:
+        return None, summarize_process_error(result)
+
+    activated_env: dict[str, str] = {}
+    for line in result.stdout.splitlines():
+        if "=" not in line or line.startswith("="):
+            continue
+        key, value = line.split("=", 1)
+        if key:
+            activated_env[key] = value
+
+    if not activated_env:
+        return None, "environment capture produced no output"
+    return activated_env, None
+
+
+def inject_emsdk_paths(env: dict[str, str], emsdk_root: Path) -> dict[str, str]:
+    updated = env.copy()
+    updated["EMSDK"] = str(emsdk_root)
+    updated["EMSDK_PATH"] = str(emsdk_root)
+
+    if "EM_CONFIG" not in updated:
+        em_config = Path.home() / ".emscripten"
+        if em_config.exists():
+            updated["EM_CONFIG"] = str(em_config)
+
+    path_entries: list[Path] = [emsdk_root, emsdk_root / "upstream" / "emscripten"]
+    for tool_dir_name in ("node", "python"):
+        tool_dir = emsdk_root / tool_dir_name
+        if not tool_dir.exists():
+            continue
+        for child in sorted(tool_dir.iterdir()):
+            if not child.is_dir():
+                continue
+            if (child / "bin").exists():
+                path_entries.append(child / "bin")
+            else:
+                path_entries.append(child)
+
+    for path in reversed(path_entries):
+        if path.exists():
+            updated = prepend_path(updated, path)
+    return updated
+
+
+def build_emsdk_runtime_env(root_dir: Path, env: dict[str, str]) -> dict[str, str]:
+    source, emsdk_root = find_emsdk_root(root_dir, env)
+    if emsdk_root is None or not emsdk_root.exists():
+        return env
+
+    activated_env, error = capture_emsdk_environment(emsdk_root, env)
+    if activated_env is not None:
+        return activated_env
+
+    updated = inject_emsdk_paths(env, emsdk_root)
+    if error:
+        updated["_EMSDK_CAPTURE_WARNING"] = error
+    return updated
+
+
+def ensure_emsdk(root_dir: Path, env: dict[str, str], auto_install: bool, version: str) -> tuple[dict[str, str], bool]:
+    log_header("Emscripten SDK")
+    runtime_env = build_emsdk_runtime_env(root_dir, env.copy())
+    emcc_status = probe_emcc_status(root_dir, runtime_env)
+    source, emsdk_root = find_emsdk_root(root_dir, runtime_env)
+
+    if emcc_status.startswith("ready"):
+        if emsdk_root is not None:
+            print(f"[OK] EMSDK: {display_path(emsdk_root, root_dir)}")
+        print(f"[OK] emcc : {emcc_status[len('ready ('):-1] if emcc_status.startswith('ready (') and emcc_status.endswith(')') else emcc_status}")
+        return runtime_env, True
+
+    print("[!!] emcc not found in PATH, or the existing Emscripten activation is unusable.")
+    if source is not None and emsdk_root is not None and not emsdk_root.exists():
+        print(f"[!!] {source} points to a missing directory: {display_path(emsdk_root, root_dir)}")
+
+    if not auto_install:
+        print_manual_emsdk_help(root_dir, version)
+        return env, False
+
+    target_root = emsdk_root if emsdk_root is not None and emsdk_root.exists() else local_emsdk_dir(root_dir)
+    if target_root == local_emsdk_dir(root_dir) and not emsdk_script_path(target_root).exists():
+        if not clone_emsdk_repository(root_dir, env):
+            return env, False
+
+    emsdk_script = emsdk_script_path(target_root)
+    if not emsdk_script.exists():
+        print(f"[!!] emsdk script not found: {emsdk_script}")
+        print_manual_emsdk_help(root_dir, version)
+        return env, False
+
+    print(f"Installing Emscripten toolchain: {version}")
+    install_result = run_emsdk_command(target_root, ["install", version], env, timeout=EMSDK_COMMAND_TIMEOUT)
+    if install_result.returncode != 0:
+        print("[!!] Failed to install Emscripten toolchain.")
+        print_manual_emsdk_help(root_dir, version)
+        return env, False
+
+    print(f"Activating Emscripten toolchain: {version}")
+    activate_result = run_emsdk_command(target_root, ["activate", version], env, timeout=EMSDK_COMMAND_TIMEOUT)
+    if activate_result.returncode != 0:
+        print("[!!] Failed to activate Emscripten toolchain.")
+        print_manual_emsdk_help(root_dir, version)
+        return env, False
+
+    runtime_env = build_emsdk_runtime_env(root_dir, env.copy())
+    emcc_status = probe_emcc_status(root_dir, runtime_env)
+    if emcc_status.startswith("ready"):
+        print(f"[OK] EMSDK: {display_path(target_root, root_dir)}")
+        print(f"[OK] emcc : {emcc_status[len('ready ('):-1] if emcc_status.startswith('ready (') and emcc_status.endswith(')') else emcc_status}")
+        env_script = emsdk_env_script_path(target_root)
+        if env_script.exists():
+            if is_windows():
+                print(f"[OK] Activate for a shell if needed: call {display_path(env_script, root_dir)}")
+            else:
+                print(f"[OK] Activate for a shell if needed: source {display_path(env_script, root_dir)}")
+        return runtime_env, True
+
+    print("[!!] emsdk was installed, but emcc is still unavailable.")
+    warning = runtime_env.get("_EMSDK_CAPTURE_WARNING")
+    if warning:
+        print(f"[!!] emsdk_env activation warning: {warning}")
+    print_manual_emsdk_help(root_dir, version)
+    return env, False
+
+
 def build_summary_env(root_dir: Path, env: dict[str, str] | None = None) -> dict[str, str]:
     summary_env = (env or os.environ.copy()).copy()
     local_toolchain = local_w64devkit_bin(root_dir)
@@ -695,7 +972,56 @@ def build_summary_env(root_dir: Path, env: dict[str, str] | None = None) -> dict
         summary_env = prepend_path(summary_env, local_toolchain)
     if local_media.exists():
         summary_env = prepend_path(summary_env, local_media)
+    summary_env = build_emsdk_runtime_env(root_dir, summary_env)
     return summary_env
+
+
+def find_emsdk_root(root_dir: Path, env: dict[str, str] | None = None) -> tuple[str | None, Path | None]:
+    search_env = env or os.environ
+    local_dir = local_emsdk_dir(root_dir)
+
+    for key in EMSDK_ENV_KEYS:
+        value = search_env.get(key)
+        if not value:
+            continue
+        candidate = Path(value)
+        if candidate.exists() or not local_dir.exists():
+            return key, candidate
+        return "local", local_dir
+
+    if local_dir.exists():
+        return "local", local_dir
+    return None, None
+
+
+def probe_emsdk_status(root_dir: Path, env: dict[str, str] | None = None) -> str:
+    source, emsdk_root = find_emsdk_root(root_dir, env)
+    if emsdk_root is None:
+        return "missing"
+    if not emsdk_root.exists():
+        return f"broken ({source}={display_path(emsdk_root, root_dir)} missing)"
+    return f"present ({source}={display_path(emsdk_root, root_dir)})"
+
+
+def probe_emcc_status(root_dir: Path, env: dict[str, str]) -> str:
+    command_path = find_command("emcc.bat", env) or find_command("emcc", env)
+    if command_path:
+        return probe_command_status(["emcc.bat", "emcc"], env, root_dir, ["--version"])
+
+    _, emsdk_root = find_emsdk_root(root_dir, env)
+    if emsdk_root is None or not emsdk_root.exists():
+        return "missing"
+
+    emcc_name = emcc_executable_name()
+    candidate = emsdk_root / "upstream" / "emscripten" / emcc_name
+    if not candidate.exists():
+        return f"broken ({display_path(candidate, root_dir)} missing)"
+
+    result = run([str(candidate), "--version"], env=env, capture_output=True)
+    if result.returncode != 0:
+        return f"broken ({display_path(candidate, root_dir)}; {summarize_process_error(result)})"
+    version_line = first_non_empty_line(result.stdout) or first_non_empty_line(result.stderr) or "ok"
+    return f"ready ({display_path(candidate, root_dir)}; {version_line})"
 
 
 def print_status_line(label: str, value: str) -> None:
@@ -733,13 +1059,22 @@ def print_summary(root_dir: Path, venv_dir: Path, profile: str, env: dict[str, s
     local_ffmpeg_dir = root_dir / "tools" / "ffmpeg"
     local_ffmpeg_exe = local_ffmpeg_dir / "bin" / ffmpeg_executable_name()
     print_status_line("Local FFmpeg", probe_local_tool_status(local_ffmpeg_dir, local_ffmpeg_exe, root_dir))
+    local_emsdk = local_emsdk_dir(root_dir)
+    print_status_line("EMSDK", probe_emsdk_status(root_dir, summary_env))
+    print_status_line("Local EMSDK", probe_local_tool_status(local_emsdk, emsdk_script_path(local_emsdk), root_dir))
+    print_status_line("emcc", probe_emcc_status(root_dir, summary_env))
     print_status_line("Build check", build_status)
     print()
     print("Common commands:")
     print("  make all APP=HelloSimple")
+    if probe_emcc_status(root_dir, summary_env).startswith("ready"):
+        print("  make all APP=HelloSimple PORT=emscripten")
     print("  make run")
     if is_windows():
         print(f"  {venv_dir}\\Scripts\\activate.bat")
+        local_emsdk_env = local_emsdk / "emsdk_env.bat"
+        if local_emsdk_env.exists():
+            print(f"  call {display_path(local_emsdk_env, root_dir)}")
     else:
         print(f"  source {venv_dir}/bin/activate")
 
@@ -796,6 +1131,21 @@ def parse_args() -> argparse.Namespace:
         help="Install the Windows FFmpeg bundle and exit.",
     )
     parser.add_argument(
+        "--skip-emsdk",
+        action="store_true",
+        help="Skip Emscripten validation or installation for WASM workflows.",
+    )
+    parser.add_argument(
+        "--install-emsdk",
+        action="store_true",
+        help="Install the Emscripten SDK bundle and exit.",
+    )
+    parser.add_argument(
+        "--emsdk-version",
+        default=DEFAULT_EMSDK_VERSION,
+        help=f"Emscripten SDK version or alias to install/activate (default: {DEFAULT_EMSDK_VERSION}).",
+    )
+    parser.add_argument(
         "--skip-build-check",
         action="store_true",
         help="Skip the final HelloSimple build verification step.",
@@ -814,8 +1164,9 @@ def main() -> int:
 
     os.chdir(root_dir)
 
-    if args.install_toolchain and args.install_ffmpeg:
-        print("[!!] Use only one of --install-toolchain or --install-ffmpeg.")
+    install_only_flags = [args.install_toolchain, args.install_ffmpeg, args.install_emsdk]
+    if sum(1 for flag in install_only_flags if flag) > 1:
+        print("[!!] Use only one of --install-toolchain, --install-ffmpeg, or --install-emsdk.")
         return 1
 
     if args.install_toolchain:
@@ -834,6 +1185,13 @@ def main() -> int:
             return 1
         summary_env, ready = ensure_ffmpeg(root_dir, os.environ.copy(), auto_install=True)
         build_status = "skipped (--install-ffmpeg)"
+        exit_code = 0 if ready else 1
+        print_summary(root_dir, venv_dir, python_mode, summary_env, build_status)
+        return exit_code
+
+    if args.install_emsdk:
+        summary_env, ready = ensure_emsdk(root_dir, os.environ.copy(), auto_install=is_windows(), version=args.emsdk_version)
+        build_status = "skipped (--install-emsdk)"
         exit_code = 0 if ready else 1
         print_summary(root_dir, venv_dir, python_mode, summary_env, build_status)
         return exit_code
@@ -862,6 +1220,12 @@ def main() -> int:
     else:
         toolchain_env, ffmpeg_ready = ensure_ffmpeg(root_dir, toolchain_env, auto_install=is_windows())
 
+    if args.skip_emsdk:
+        emsdk_ready = True
+        print("Skipping Emscripten setup by request.")
+    else:
+        toolchain_env, emsdk_ready = ensure_emsdk(root_dir, toolchain_env, auto_install=is_windows(), version=args.emsdk_version)
+
     summary_env = toolchain_env
 
     if not toolchain_ready:
@@ -879,6 +1243,8 @@ def main() -> int:
     if not args.skip_toolchain and not toolchain_ready:
         return 1
     if not args.skip_ffmpeg and not ffmpeg_ready:
+        return 1
+    if not args.skip_emsdk and not emsdk_ready:
         return 1
     return exit_code
 

@@ -253,8 +253,15 @@ def resolve_requested_builds(app_name, app_sub):
 
 
 def main():
+    local_emsdk = Path(__file__).resolve().parents[1] / "tools" / "emsdk"
+    default_emsdk_path = ""
+    if local_emsdk.exists():
+        default_emsdk_path = str(local_emsdk)
+    else:
+        default_emsdk_path = os.environ.get("EMSDK_PATH") or os.environ.get("EMSDK")
+
     parser = argparse.ArgumentParser(description="Build WASM demos")
-    parser.add_argument("--emsdk-path", default=os.environ.get("EMSDK", ""),
+    parser.add_argument("--emsdk-path", default=default_emsdk_path or "",
                         help="Path to emsdk (default: $EMSDK)")
     parser.add_argument("--output-dir", default="web/demos",
                         help="Output directory (default: web/demos)")

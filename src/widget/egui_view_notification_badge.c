@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "egui_view_notification_badge.h"
+#include "core/egui_api.h"
 #include "egui_view_icon_font.h"
 #include "utils/egui_sprintf.h"
 #include "font/egui_font.h"

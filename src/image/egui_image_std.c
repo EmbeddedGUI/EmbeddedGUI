@@ -1891,6 +1891,26 @@ void egui_image_std_blend_rgb565_alpha8_masked_row(egui_canvas_t *canvas, egui_c
 }
 #endif
 
+#if !EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+__EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha8_masked_mapped_segment(egui_canvas_t *canvas, egui_color_int_t *dst_row, const uint16_t *src_row,
+                                                                                     const uint8_t *src_alpha_row, const egui_dim_t *src_x_map,
+                                                                                     egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y,
+                                                                                     egui_alpha_t canvas_alpha)
+{
+    EGUI_UNUSED(canvas);
+    EGUI_UNUSED(screen_x);
+    EGUI_UNUSED(screen_y);
+
+    if (src_x_map != NULL)
+    {
+        egui_image_std_blend_rgb565_alpha8_mapped_row(dst_row, src_row, src_alpha_row, src_x_map, count, canvas_alpha);
+        return;
+    }
+
+    egui_image_std_blend_rgb565_alpha8_row(dst_row, src_row, src_alpha_row, count, canvas_alpha);
+}
+#endif
+
 __EGUI_STATIC_INLINE__ int egui_image_std_prepare_circle_mask_row_fast(egui_mask_circle_t *circle_mask, egui_dim_t screen_y, egui_dim_t *row_index,
                                                                        egui_dim_t *visible_half, egui_dim_t *opaque_boundary)
 {

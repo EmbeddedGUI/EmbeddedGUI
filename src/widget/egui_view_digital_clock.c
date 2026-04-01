@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "egui_view_digital_clock.h"
+#include "core/egui_api.h"
 #include "utils/egui_sprintf.h"
 #include "font/egui_font.h"
 #include "resource/egui_resource.h"

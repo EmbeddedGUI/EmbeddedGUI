@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "core/egui_api.h"
+
 #define EGUI_VIEW_VIRTUAL_SECTION_LIST_HEADER_VIEW_TYPE_FLAG 0x8000U
 #define EGUI_VIEW_VIRTUAL_SECTION_LIST_VIEW_TYPE_MASK        0x7FFFU
 

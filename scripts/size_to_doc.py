@@ -48,6 +48,15 @@ def load_json(path):
         return json.load(f)
 
 
+def _get_case_scope(data=None):
+    if data:
+        scope = data.get("scope", {})
+        description = scope.get("description")
+        if description:
+            return description
+    return _format_case_scope()
+
+
 def _format_case_scope():
     return "HelloBasic 全子 case、HelloSimple、HelloPerformance、HelloShowcase、HelloStyleDemo、HelloVirtual(virtual_stage_showcase)"
 
@@ -204,7 +213,7 @@ def generate_size_report():
         "- Date: %s" % timestamp,
         "- Build target: `PORT=%s CPU_ARCH=%s`" % (build_platform.get("port", "qemu"), build_platform.get("cpu_arch", "cortex-m0plus")),
         "- Runtime target: `qemu-system-arm -machine %s -cpu %s`" % (runtime_platform.get("machine", "mps2-an385"), runtime_platform.get("cpu", "cortex-m3")),
-        "- Scope: %s" % _format_case_scope(),
+        "- Scope: %s" % _get_case_scope(data),
         "- Successful apps: %d" % len(apps),
         "- Failed apps: %d" % len(failures),
         "",
@@ -282,7 +291,7 @@ def generate_size_overview():
         "",
         "## Scope",
         "",
-        "- %s" % _format_case_scope(),
+        "- %s" % _get_case_scope(data),
         "",
         "## Measurement Method",
         "",
@@ -311,7 +320,7 @@ def generate_size_overview():
         "## Generation Command",
         "",
         "```bash",
-        "python scripts/utils_analysis_elf_size.py",
+        "python scripts/utils_analysis_elf_size.py --case-set typical",
         "python scripts/size_to_doc.py",
         "```",
     ]

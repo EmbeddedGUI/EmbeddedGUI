@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "egui_view_tileview.h"
+#include "core/egui_api.h"
 
 #define EGUI_VIEW_TILEVIEW_OFFSCREEN_POS (-9999)
 

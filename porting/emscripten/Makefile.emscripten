@@ -91,11 +91,13 @@ INCLUDEDIRS := $(INCLUDE)
 LIBDIRS := $(LIB)
 ifeq ($(OS),Windows_NT)
 RM = rmdir /S /Q
+RM_FILE = del /F /Q
 MD := mkdir
 FIXPATH = $(subst /,\,$1)
 PYTHON = python
 else
 RM = rm -rf
+RM_FILE = rm -f
 MD := mkdir -p
 FIXPATH = $1
 PYTHON = python3
@@ -147,7 +149,7 @@ $(OBJDIR):
 	$(Q)$(MD) $(call FIXPATH,$@)
 
 $(APP_CONFIG_STAMP): | $(OUTPUT_PATH)
-	-$(Q)rm -f $(OUTPUT_PATH)/.app_stamp_*
+	-$(Q)$(RM_FILE) $(call FIXPATH,$(OUTPUT_PATH)/.app_stamp_*)
 	$(Q)$(ECHO) stamp > $@
 
 # Link: emcc outputs .html + .js + .wasm

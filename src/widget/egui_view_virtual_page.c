@@ -1,6 +1,8 @@
 #include "egui_view_virtual_page.h"
 #include <string.h>
 
+#include "core/egui_api.h"
+
 static void egui_view_virtual_page_sync_vertical_mode(egui_view_t *self)
 {
     egui_view_virtual_viewport_set_orientation(self, EGUI_VIEW_VIRTUAL_VIEWPORT_ORIENTATION_VERTICAL);

@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "egui_view_list.h"
+#include "core/egui_api.h"
 #include "egui_view_icon_font.h"
 #include "font/egui_font.h"
 #include "resource/egui_resource.h"

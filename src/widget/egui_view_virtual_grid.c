@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "core/egui_api.h"
+
 typedef struct egui_view_virtual_grid_row_cell egui_view_virtual_grid_row_cell_t;
 typedef struct egui_view_virtual_grid_row_view egui_view_virtual_grid_row_view_t;
 

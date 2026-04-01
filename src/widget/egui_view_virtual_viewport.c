@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "egui_view_virtual_viewport.h"
+#include "core/egui_api.h"
 #include "core/egui_common.h"
 #include "core/egui_input.h"
 

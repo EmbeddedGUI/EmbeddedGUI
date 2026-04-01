@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "simple_data_ringbuffer.h"
+#include "core/egui_api.h"
 
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))

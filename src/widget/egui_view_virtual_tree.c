@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "core/egui_api.h"
+
 typedef struct egui_view_virtual_tree_iter_frame
 {
     uint32_t parent_stable_id;

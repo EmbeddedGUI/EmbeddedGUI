@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "egui_view_spangroup.h"
+#include "core/egui_api.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
 

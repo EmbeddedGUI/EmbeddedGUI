@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#include "core/egui_api.h"
 #include "core/egui_common.h"
 
 typedef struct egui_view_grid_view_item_host egui_view_grid_view_item_host_t;

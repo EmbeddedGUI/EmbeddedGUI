@@ -60,7 +60,11 @@ STEP_DESCRIPTIONS = {
 def build_steps(args):
     """Build the list of (name, description, command) tuples based on CLI args."""
     py = sys.executable
-    emsdk_path = os.environ.get("EMSDK_PATH") or os.environ.get("EMSDK")
+    local_emsdk = PROJECT_ROOT / "tools" / "emsdk"
+    if local_emsdk.exists():
+        emsdk_path = str(local_emsdk)
+    else:
+        emsdk_path = os.environ.get("EMSDK_PATH") or os.environ.get("EMSDK")
 
     compile_cmd = [py, str(SCRIPT_DIR / "code_compile_check.py"), "--full-check"]
     if args.bits64:
@@ -103,7 +107,7 @@ def build_steps(args):
         ("dirty_anim", STEP_DESCRIPTIONS["dirty_anim"], dirty_anim_cmd),
         ("stage_parity", STEP_DESCRIPTIONS["stage_parity"], stage_parity_cmd),
         ("virtual_render", STEP_DESCRIPTIONS["virtual_render"], virtual_render_cmd),
-        ("size", STEP_DESCRIPTIONS["size"], [py, str(SCRIPT_DIR / "utils_analysis_elf_size.py"), "--doc"]),
+        ("size", STEP_DESCRIPTIONS["size"], [py, str(SCRIPT_DIR / "utils_analysis_elf_size.py"), "--case-set", "typical", "--doc"]),
         ("perf", STEP_DESCRIPTIONS["perf"], perf_cmd),
         ("doc", STEP_DESCRIPTIONS["doc"], [py, "-m", "sphinx", "-M", "html", str(PROJECT_ROOT / "doc" / "source"), str(PROJECT_ROOT / "doc" / "build")]),
     ]

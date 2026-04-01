@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "core/egui_api.h"
+
 static void egui_view_virtual_strip_sync_horizontal_mode(egui_view_t *self)
 {
     egui_view_virtual_viewport_set_orientation(self, EGUI_VIEW_VIRTUAL_VIEWPORT_ORIENTATION_HORIZONTAL);

@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "egui_view_dynamic_label.h"
+#include "core/egui_api.h"
 #include "font/egui_font.h"
 
 void egui_view_dynamic_label_set_text(egui_view_t *self, const char *text)

@@ -239,6 +239,49 @@ python3 -m http.server 8000
 # http://localhost:8000/HelloSimple.html
 ```
 
+## Windows 本地 emsdk 工作流
+
+推荐先在仓库根目录准备本地 emsdk：
+
+```bat
+python scripts\setup_env.py --python-mode none --install-emsdk
+```
+
+Windows 下 `porting/emscripten/build.mk` 会通过 `python scripts/emcc_wrapper.py` 优先使用仓库内的 `tools\emsdk`。因此直接执行以下命令即可，不要求先手动激活当前 shell：
+
+```bat
+make all APP=HelloSimple PORT=emscripten
+```
+
+`scripts/wasm_build_demos.py` 也会优先复用本地 emsdk。只有在当前终端手动执行 `emcc -v`、`em++ -v` 等命令时，才需要额外运行：
+
+```bat
+call tools\emsdk\emsdk_env.bat
+```
+
+如需跳过 Emscripten 检查，可在环境脚本中使用：
+
+```bat
+python scripts\setup_env.py --python-mode none --skip-emsdk
+```
+
+## SDL2 端口缓存排障
+
+当前 WASM 端口使用 `-s USE_SDL=2`。首次构建时，Emscripten 会在 `tools/emsdk/upstream/emscripten/cache/ports/` 下载 SDL2 端口，因此第一次构建可能明显更慢。
+
+如果下载过程中网络中断，或者历史代理残留导致 SDL2 端口缓存变成半成品，常见现象是构建长时间停在 SDL2 port 阶段。可删除以下缓存后重试：
+
+```text
+tools/emsdk/upstream/emscripten/cache/ports/sdl2/
+tools/emsdk/upstream/emscripten/cache/ports/sdl2.zip
+```
+
+清理后重新执行：
+
+```bat
+make all APP=HelloSimple PORT=emscripten
+```
+
 ## 注意事项
 
 - Emscripten 构建禁用了录制测试（`EGUI_CONFIG_RECORDING_TEST=0`）

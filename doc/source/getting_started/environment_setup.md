@@ -303,6 +303,34 @@ QEMU_PATH=<qemu_install_dir>
 EMSDK=<emsdk_root>
 ```
 
+### 使用 `setup_env.py` 安装本地 emsdk（Windows）
+
+如需补齐 WASM 构建环境，可在仓库根目录直接执行：
+
+```bat
+python scripts\setup_env.py --python-mode none --install-emsdk
+```
+
+常用参数：
+
+- `--install-emsdk`：仅安装并激活 emsdk，然后输出环境摘要
+- `--emsdk-version <version>`：指定要安装/激活的 emsdk 版本或别名，例如 `latest`
+- `--skip-emsdk`：当本次只验证 PC / QEMU / STM32 工作流时，跳过 Emscripten 检查
+
+安装完成后，脚本会优先使用仓库内的 `tools\emsdk`。即使系统环境变量中的 `EMSDK` 或 `EMSDK_PATH` 指向了失效路径，也会自动回退到本地副本。
+
+Windows 下项目的 WASM 构建已经接入本地 wrapper，因此无需先手动激活 shell，直接执行以下命令即可：
+
+```bat
+make all APP=HelloSimple PORT=emscripten
+```
+
+如果你希望在当前终端里直接调用 `emcc`、`em++`、`emar` 等命令，再额外执行：
+
+```bat
+call tools\emsdk\emsdk_env.bat
+```
+
 ## 常见问题
 
 ### `setup.bat` 或 `setup.sh` 提示 Python 未找到
@@ -316,6 +344,20 @@ EMSDK=<emsdk_root>
 ### `ffmpeg` 未找到
 
 Windows 下重新运行 `setup.bat` 即可触发自动安装。Linux / macOS 请先通过系统包管理器安装，或在不需要相关流程时传入 `--skip-ffmpeg`。
+
+### `emcc` 未找到或版本不对
+
+优先运行：
+
+```bat
+python scripts\setup_env.py --python-mode none --install-emsdk
+```
+
+构建系统会优先使用仓库内的 `tools\emsdk`。如果只是想在当前 shell 手动执行 `emcc -v`，再运行：
+
+```bat
+call tools\emsdk\emsdk_env.bat
+```
 
 ## 下一步
 

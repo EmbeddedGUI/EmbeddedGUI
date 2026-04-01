@@ -31,9 +31,15 @@ BUILD_PORT = "qemu"
 BUILD_CPU_ARCH = "cortex-m0plus"
 RUNTIME_MACHINE = "mps2-an385"
 RUNTIME_CPU = "cortex-m3"
-RUNTIME_TIMEOUT = 180
+DEFAULT_RUNTIME_TIMEOUT_FULL = 180
+DEFAULT_RUNTIME_TIMEOUT_TYPICAL = 60
 
 QEMU_MEASURE_CFLAGS = "-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1"
+
+DEFAULT_CASE_SET = "typical"
+TYPICAL_HELLO_BASIC_SUBS = ("button", "image", "label")
+FULL_STANDALONE_APPS = ("HelloSimple", "HelloPerformance", "HelloShowcase", "HelloStyleDemo")
+TYPICAL_STANDALONE_APPS = ("HelloSimple", "HelloShowcase")
 
 
 class ElfSizeInfo(object):
@@ -43,6 +49,16 @@ class ElfSizeInfo(object):
         self.data_size = 0
         self.bss_size = 0
         self.bss_pfb_size = 0
+
+
+def create_case(app, app_sub=None):
+    case = {
+        "name": "%s(%s)" % (app, app_sub) if app_sub else app,
+        "app": app,
+    }
+    if app_sub:
+        case["app_sub"] = app_sub
+    return case
 
 
 def utils_process_elf_file(filename):
@@ -98,38 +114,34 @@ def find_qemu_executable():
     return "qemu-system-arm"
 
 
-def discover_cases():
+def discover_cases(case_set):
     hello_basic_root = PROJECT_ROOT / "example" / "HelloBasic"
     hello_basic_subs = sorted(
         path.name for path in hello_basic_root.iterdir() if path.is_dir() and (path / "app_egui_config.h").exists()
     )
 
     cases = []
-    for app_sub in hello_basic_subs:
-        cases.append(
-            {
-                "name": "HelloBasic(%s)" % app_sub,
-                "app": "HelloBasic",
-                "app_sub": app_sub,
-            }
-        )
+    if case_set == "full":
+        hello_basic_targets = hello_basic_subs
+        standalone_targets = FULL_STANDALONE_APPS
+    else:
+        hello_basic_targets = [app_sub for app_sub in TYPICAL_HELLO_BASIC_SUBS if app_sub in hello_basic_subs]
+        standalone_targets = TYPICAL_STANDALONE_APPS
 
-    for app in ["HelloSimple", "HelloPerformance", "HelloShowcase", "HelloStyleDemo"]:
-        cases.append(
-            {
-                "name": app,
-                "app": app,
-            }
-        )
+    for app_sub in hello_basic_targets:
+        cases.append(create_case("HelloBasic", app_sub))
 
-    cases.append(
-        {
-            "name": "HelloVirtual(virtual_stage_showcase)",
-            "app": "HelloVirtual",
-            "app_sub": "virtual_stage_showcase",
-        }
-    )
+    for app in standalone_targets:
+        cases.append(create_case(app))
+
+    cases.append(create_case("HelloVirtual", "virtual_stage_showcase"))
     return cases
+
+
+def describe_scope(case_set):
+    if case_set == "full":
+        return "`HelloBasic/*`, `HelloSimple`, `HelloPerformance`, `HelloShowcase`, `HelloStyleDemo`, `HelloVirtual(virtual_stage_showcase)`"
+    return "`HelloBasic(button,image,label)`, `HelloSimple`, `HelloShowcase`, `HelloVirtual(virtual_stage_showcase)`"
 
 
 def get_case_resource_bin(case):
@@ -280,7 +292,7 @@ def make_failure(case, phase, message, command=None):
     return item
 
 
-def process_case(current_work_cnt, total_work_cnt, case):
+def process_case(current_work_cnt, total_work_cnt, case, runtime_timeout):
     print("=================================================================================")
     print(
         "Total Work Cnt: %d, Current Cnt: %d, Process: %.2f%%, Case: %s"
@@ -305,7 +317,7 @@ def process_case(current_work_cnt, total_work_cnt, case):
     sync_runtime_resource(case)
 
     try:
-        qemu_output = run_qemu(RUNTIME_TIMEOUT)
+        qemu_output = run_qemu(runtime_timeout)
         metrics = parse_measure_output(qemu_output)
     except Exception as exc:
         return None, make_failure(case, "run_measure", str(exc))
@@ -332,13 +344,13 @@ def process_case(current_work_cnt, total_work_cnt, case):
     return json_entry, None
 
 
-def build_readme(size_results, failures):
+def build_readme(size_results, failures, case_set):
     lines = []
     lines.append("# QEMU Size Report")
     lines.append("")
     lines.append("- Build target: `PORT=qemu CPU_ARCH=%s`" % BUILD_CPU_ARCH)
     lines.append("- Runtime measurement: `qemu-system-arm -machine %s -cpu %s`" % (RUNTIME_MACHINE, RUNTIME_CPU))
-    lines.append("- Scope: `HelloBasic/*`, `HelloSimple`, `HelloPerformance`, `HelloShowcase`, `HelloStyleDemo`, `HelloVirtual(virtual_stage_showcase)`")
+    lines.append("- Scope: %s" % describe_scope(case_set))
     lines.append("")
     lines.append("| App | Code(Bytes) | Resource(Bytes) | RAM(Bytes) | PFB(Bytes) | Heap Peak(Bytes) | Stack Peak(Bytes) |")
     lines.append("|-----|-------------|-----------------|------------|------------|------------------|-------------------|")
@@ -385,23 +397,38 @@ def main():
     )
     parser.add_argument("--doc", action="store_true",
                         help="Generate documentation from analysis results")
+    parser.add_argument(
+        "--case-set",
+        choices=("typical", "full"),
+        default=DEFAULT_CASE_SET,
+        help="Analysis scope: typical (fast representative set) or full (all configured cases). Default: %(default)s",
+    )
+    parser.add_argument(
+        "--runtime-timeout",
+        type=int,
+        default=None,
+        help="Per-case QEMU runtime timeout in seconds. Default: 60 for typical, 180 for full.",
+    )
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    cases = discover_cases()
+    cases = discover_cases(args.case_set)
     total_work_cnt = len(cases)
+    runtime_timeout = args.runtime_timeout
+    if runtime_timeout is None:
+        runtime_timeout = DEFAULT_RUNTIME_TIMEOUT_TYPICAL if args.case_set == "typical" else DEFAULT_RUNTIME_TIMEOUT_FULL
 
     size_results = []
     failures = []
     for index, case in enumerate(cases, 1):
-        json_entry, failure = process_case(index, total_work_cnt, case)
+        json_entry, failure = process_case(index, total_work_cnt, case, runtime_timeout)
         if json_entry is not None:
             size_results.append(json_entry)
         if failure is not None:
             failures.append(failure)
 
-    README_PATH.write_text(build_readme(size_results, failures), encoding="utf-8")
+    README_PATH.write_text(build_readme(size_results, failures, args.case_set), encoding="utf-8")
     print("Markdown saved: %s" % README_PATH)
 
     json_data = {
@@ -416,14 +443,9 @@ def main():
             "cpu": RUNTIME_CPU,
         },
         "scope": {
-            "hello_basic_all_subcases": True,
-            "apps": [
-                "HelloSimple",
-                "HelloPerformance",
-                "HelloShowcase",
-                "HelloStyleDemo",
-                "HelloVirtual(virtual_stage_showcase)",
-            ],
+            "case_set": args.case_set,
+            "description": describe_scope(args.case_set),
+            "cases": [case["name"] for case in cases],
         },
         "apps": size_results,
         "failures": failures,
@@ -436,7 +458,12 @@ def main():
         print("\n=== Generating Documentation ===")
         try:
             if size_to_doc:
-                size_to_doc.main()
+                original_argv = sys.argv[:]
+                try:
+                    sys.argv = [str(SCRIPT_DIR / "size_to_doc.py")]
+                    size_to_doc.main()
+                finally:
+                    sys.argv = original_argv
                 print("Documentation updated successfully")
             else:
                 print("Warning: size_to_doc module not found")
