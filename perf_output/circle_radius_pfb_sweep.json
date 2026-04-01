@@ -1,0 +1,280 @@
+{
+  "CIRCLE_FILL": {
+    "tiny8": {
+      "pfb_width": 8,
+      "pfb_height": 8,
+      "time_ms": 3.199,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "legacy_compact_tile"
+    },
+    "small12": {
+      "pfb_width": 12,
+      "pfb_height": 12,
+      "time_ms": 1.69,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "legacy_compact_tile"
+    },
+    "small15": {
+      "pfb_width": 15,
+      "pfb_height": 15,
+      "time_ms": 1.234,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "legacy_compact_tile"
+    },
+    "rect24x10": {
+      "pfb_width": 24,
+      "pfb_height": 10,
+      "time_ms": 1.179,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "legacy_compact_tile"
+    },
+    "rect30x8": {
+      "pfb_width": 30,
+      "pfb_height": 8,
+      "time_ms": 1.212,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "legacy_compact_tile"
+    },
+    "mid30": {
+      "pfb_width": 30,
+      "pfb_height": 30,
+      "time_ms": 0.532,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "legacy_compact_tile"
+    },
+    "cross40x6": {
+      "pfb_width": 40,
+      "pfb_height": 6,
+      "time_ms": 0.795,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "row_wise_tile"
+    },
+    "default48x16": {
+      "pfb_width": 48,
+      "pfb_height": 16,
+      "time_ms": 0.588,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "row_wise_tile"
+    },
+    "cross60x12": {
+      "pfb_width": 60,
+      "pfb_height": 12,
+      "time_ms": 0.517,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "row_wise_tile"
+    },
+    "wide80x10": {
+      "pfb_width": 80,
+      "pfb_height": 10,
+      "time_ms": 0.433,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "row_wise_tile"
+    },
+    "fullwidth240x1": {
+      "pfb_width": 240,
+      "pfb_height": 1,
+      "time_ms": 0.414,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "row_wise_horizontal_strip"
+    },
+    "fullheight1x240": {
+      "pfb_width": 1,
+      "pfb_height": 240,
+      "time_ms": 4.881,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "legacy_vertical_strip"
+    },
+    "fullscreen240x240": {
+      "pfb_width": 240,
+      "pfb_height": 240,
+      "time_ms": 0.222,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "row_wise_tile"
+    }
+  },
+  "CIRCLE_FILL_DOUBLE": {
+    "tiny8": {
+      "pfb_width": 8,
+      "pfb_height": 8,
+      "time_ms": 4.221,
+      "radius": 239,
+      "compact_tile_limit": 60,
+      "expected_path": "legacy_compact_tile"
+    },
+    "small12": {
+      "pfb_width": 12,
+      "pfb_height": 12,
+      "time_ms": 2.139,
+      "radius": 239,
+      "compact_tile_limit": 60,
+      "expected_path": "legacy_compact_tile"
+    },
+    "small15": {
+      "pfb_width": 15,
+      "pfb_height": 15,
+      "time_ms": 1.514,
+      "radius": 239,
+      "compact_tile_limit": 60,
+      "expected_path": "legacy_compact_tile"
+    },
+    "rect24x10": {
+      "pfb_width": 24,
+      "pfb_height": 10,
+      "time_ms": 1.424,
+      "radius": 239,
+      "compact_tile_limit": 60,
+      "expected_path": "legacy_compact_tile"
+    },
+    "rect30x8": {
+      "pfb_width": 30,
+      "pfb_height": 8,
+      "time_ms": 1.473,
+      "radius": 239,
+      "compact_tile_limit": 60,
+      "expected_path": "legacy_compact_tile"
+    },
+    "mid30": {
+      "pfb_width": 30,
+      "pfb_height": 30,
+      "time_ms": 0.595,
+      "radius": 239,
+      "compact_tile_limit": 60,
+      "expected_path": "legacy_compact_tile"
+    },
+    "cross40x6": {
+      "pfb_width": 40,
+      "pfb_height": 6,
+      "time_ms": 1.542,
+      "radius": 239,
+      "compact_tile_limit": 60,
+      "expected_path": "legacy_compact_tile"
+    },
+    "default48x16": {
+      "pfb_width": 48,
+      "pfb_height": 16,
+      "time_ms": 0.658,
+      "radius": 239,
+      "compact_tile_limit": 60,
+      "expected_path": "legacy_compact_tile"
+    },
+    "cross60x12": {
+      "pfb_width": 60,
+      "pfb_height": 12,
+      "time_ms": 0.717,
+      "radius": 239,
+      "compact_tile_limit": 60,
+      "expected_path": "legacy_compact_tile"
+    },
+    "wide80x10": {
+      "pfb_width": 80,
+      "pfb_height": 10,
+      "time_ms": 0.43,
+      "radius": 239,
+      "compact_tile_limit": 60,
+      "expected_path": "row_wise_tile"
+    },
+    "fullwidth240x1": {
+      "pfb_width": 240,
+      "pfb_height": 1,
+      "time_ms": 0.398,
+      "radius": 239,
+      "compact_tile_limit": 60,
+      "expected_path": "row_wise_horizontal_strip"
+    },
+    "fullheight1x240": {
+      "pfb_width": 1,
+      "pfb_height": 240,
+      "time_ms": 4.872,
+      "radius": 239,
+      "compact_tile_limit": 60,
+      "expected_path": "legacy_vertical_strip"
+    },
+    "fullscreen240x240": {
+      "pfb_width": 240,
+      "pfb_height": 240,
+      "time_ms": 0.206,
+      "radius": 239,
+      "compact_tile_limit": 60,
+      "expected_path": "row_wise_tile"
+    }
+  },
+  "CIRCLE_FILL_HQ": {
+    "small15": {
+      "pfb_width": 15,
+      "pfb_height": 15,
+      "time_ms": 1.238,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "legacy_compact_tile"
+    },
+    "mid30": {
+      "pfb_width": 30,
+      "pfb_height": 30,
+      "time_ms": 0.647,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "legacy_compact_tile"
+    },
+    "default48x16": {
+      "pfb_width": 48,
+      "pfb_height": 16,
+      "time_ms": 0.487,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "row_wise_tile"
+    },
+    "cross60x12": {
+      "pfb_width": 60,
+      "pfb_height": 12,
+      "time_ms": 0.438,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "row_wise_tile"
+    },
+    "wide80x10": {
+      "pfb_width": 80,
+      "pfb_height": 10,
+      "time_ms": 0.376,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "row_wise_tile"
+    },
+    "fullwidth240x1": {
+      "pfb_width": 240,
+      "pfb_height": 1,
+      "time_ms": 0.396,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "row_wise_horizontal_strip"
+    },
+    "fullheight1x240": {
+      "pfb_width": 1,
+      "pfb_height": 240,
+      "time_ms": 12.697,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "legacy_vertical_strip"
+    },
+    "fullscreen240x240": {
+      "pfb_width": 240,
+      "pfb_height": 240,
+      "time_ms": 0.211,
+      "radius": 119,
+      "compact_tile_limit": 30,
+      "expected_path": "row_wise_tile"
+    }
+  }
+}

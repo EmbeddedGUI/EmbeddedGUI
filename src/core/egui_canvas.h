@@ -933,6 +933,79 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_canvas_get_circle_corner_value_fixed_ro
     }
 }
 
+__EGUI_STATIC_INLINE__ int egui_canvas_get_circle_fill_basic_row_layout(egui_dim_t radius, egui_dim_t row_index, egui_dim_t *start_offset,
+                                                                        egui_dim_t *valid_count, egui_dim_t *fill_start, egui_dim_t *fill_end)
+{
+    const egui_circle_info_t *info = egui_canvas_get_circle_item(radius);
+    const egui_circle_item_t *items;
+    egui_dim_t edge_start = radius + 1;
+    egui_dim_t edge_count = 0;
+    egui_dim_t fill_offset = radius + 1;
+
+    if (info == NULL || row_index < 0 || row_index > radius)
+    {
+        return 0;
+    }
+
+    items = (const egui_circle_item_t *)info->items;
+
+    {
+        egui_dim_t first_visible = radius + 1;
+        egui_dim_t first_opaque = radius + 1;
+
+        for (egui_dim_t col_index = 0; col_index <= radius; col_index++)
+        {
+            egui_alpha_t pixel_alpha = egui_canvas_get_circle_corner_value_fixed_row(row_index, col_index, info, items);
+
+            if (first_visible > radius && pixel_alpha != EGUI_ALPHA_0)
+            {
+                first_visible = col_index;
+            }
+
+            if (first_opaque > radius && pixel_alpha == EGUI_ALPHA_100)
+            {
+                first_opaque = col_index;
+                break;
+            }
+        }
+
+        if (first_visible <= radius)
+        {
+            edge_start = first_visible;
+            fill_offset = first_opaque;
+
+            if (fill_offset > radius)
+            {
+                fill_offset = radius + 1;
+            }
+
+            edge_count = fill_offset - edge_start;
+        }
+    }
+
+    if (start_offset != NULL)
+    {
+        *start_offset = edge_start;
+    }
+
+    if (valid_count != NULL)
+    {
+        *valid_count = edge_count;
+    }
+
+    if (fill_start != NULL)
+    {
+        *fill_start = fill_offset;
+    }
+
+    if (fill_end != NULL)
+    {
+        *fill_end = ((radius << 1) + 1) - fill_offset;
+    }
+
+    return 1;
+}
+
 // void egui_canvas_draw_point_limit(egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha);
 void egui_canvas_draw_point(egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha);
 
@@ -1072,6 +1145,33 @@ void egui_canvas_draw_image_resize_color(const egui_image_t *img, egui_dim_t x, 
  */
 void egui_canvas_draw_arc_sweep(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle, egui_dim_t stroke_width,
                                 egui_color_t color, egui_alpha_t alpha);
+
+__EGUI_STATIC_INLINE__ int egui_canvas_should_use_circle_fill_basic_legacy_clip(egui_dim_t radius, egui_dim_t clip_width, egui_dim_t clip_height)
+{
+    egui_dim_t circle_diameter;
+    egui_dim_t compact_tile_limit;
+
+    if (radius < 0 || clip_width <= 0 || clip_height <= 0)
+    {
+        return 0;
+    }
+
+    if (clip_width <= 1)
+    {
+        return 1;
+    }
+
+    if (clip_height <= 1)
+    {
+        return 0;
+    }
+
+    // Keep only compact 2-D clips on the legacy path; long strips stay on the row-wise path.
+    circle_diameter = (radius << 1) + 1;
+    compact_tile_limit = EGUI_MAX(2, (circle_diameter + 7) >> 3);
+
+    return EGUI_MAX(clip_width, clip_height) <= compact_tile_limit;
+}
 void egui_canvas_draw_arc_fill_sweep(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle, egui_color_t color,
                                      egui_alpha_t alpha);
 void egui_canvas_draw_arc_round_cap_sweep_hq(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, int16_t sweep_angle,

@@ -17,6 +17,7 @@ import os
 import sys
 import json
 import re
+import hashlib
 import subprocess
 import argparse
 import platform
@@ -104,8 +105,11 @@ def build_for_profile(profile_name, profile_config, clean=False, extra_cflags=No
         subprocess.run(['make', 'clean'], capture_output=True, cwd=PROJECT_ROOT)
 
     # Use unique APP_OBJ_SUFFIX for each config to enable incremental builds.
-    # Replace '/' with '_' to create valid directory names.
+    # Include extra_cflags hash so A/B macro runs never reuse stale objects.
     obj_suffix = profile_name.replace('/', '_')
+    if extra_cflags:
+        extra_hash = hashlib.sha1(extra_cflags.encode("utf-8")).hexdigest()[:8]
+        obj_suffix = f"{obj_suffix}_{extra_hash}"
 
     # Build — pass config overrides via USER_CFLAGS, never touch app_egui_config.h
     build_cmd = ['make', 'all', 'APP=HelloPerformance', 'PORT=qemu',
@@ -322,7 +326,7 @@ def read_screen_size():
     return default_w, default_h
 
 
-def run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout):
+def run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout, user_extra_cflags=None):
     """Run performance tests across all PFB configurations."""
     matrix_results = {}
 
@@ -336,7 +340,7 @@ def run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout):
 
         # Pass PFB dimensions via USER_CFLAGS — never modify app_egui_config.h
         extra_cflags = (
-            f"{merge_extra_cflags()}"
+            f"{merge_extra_cflags(user_extra_cflags)}"
             f" -DEGUI_CONFIG_PFB_WIDTH={pfb_w}"
             f" -DEGUI_CONFIG_PFB_HEIGHT={pfb_h}"
         )
@@ -458,7 +462,7 @@ def generate_pfb_matrix_report(matrix_results, profile_name, git_commit):
     return "\n".join(lines)
 
 
-def run_spi_matrix(profile_name, profile_config, spi_configs, timeout):
+def run_spi_matrix(profile_name, profile_config, spi_configs, timeout, user_extra_cflags=None):
     """Run performance tests across SPI/buffer configurations."""
     matrix_results = {}
 
@@ -474,7 +478,7 @@ def run_spi_matrix(profile_name, profile_config, spi_configs, timeout):
         print(f"\n[{idx}/{total}] SPI config: {cfg_name} - {desc}")
 
         # Build extra_cflags from SPI/buffer settings — never modify app_egui_config.h
-        parts = [merge_extra_cflags()]
+        parts = [merge_extra_cflags(user_extra_cflags)]
         if spi_mhz > 0:
             parts.append(f"-DQEMU_SPI_SPEED_MHZ={spi_mhz}")
         if buf_count > 1:
@@ -651,8 +655,12 @@ def _do_pfb_matrix(profiles, pfb_configs, args, timeout):
     git_commit = get_git_commit()
     profile_config = profiles[profile_name]
 
+    if args.clean:
+        subprocess.run(["make", "clean"], capture_output=True, cwd=PROJECT_ROOT)
+
     print(f"PFB Matrix Test: profile={profile_name}, {len(pfb_configs)} configs")
-    matrix_results = run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout)
+    matrix_results = run_pfb_matrix(profile_name, profile_config, pfb_configs, timeout,
+                                    user_extra_cflags=args.extra_cflags)
 
     matrix_data = {
         "timestamp": datetime.now().isoformat(),
@@ -688,8 +696,12 @@ def _do_spi_matrix(profiles, spi_configs, args, timeout):
     git_commit = get_git_commit()
     profile_config = profiles[profile_name]
 
+    if args.clean:
+        subprocess.run(["make", "clean"], capture_output=True, cwd=PROJECT_ROOT)
+
     print(f"SPI Matrix Test: profile={profile_name}, {len(spi_configs)} configs")
-    matrix_results = run_spi_matrix(profile_name, profile_config, spi_configs, timeout)
+    matrix_results = run_spi_matrix(profile_name, profile_config, spi_configs, timeout,
+                                    user_extra_cflags=args.extra_cflags)
 
     matrix_data = {
         "timestamp": datetime.now().isoformat(),
