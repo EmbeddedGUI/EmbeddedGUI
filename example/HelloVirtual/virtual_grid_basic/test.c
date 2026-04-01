@@ -771,6 +771,9 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[GRID_BASIC_ACTION_COLS]), 220);
         return true;
     case 5:
+        EGUI_SIM_SET_WAIT(p_action, 180);
+        return true;
+    case 6:
         if (first_call)
         {
             if (grid_basic_get_column_count() != 3U)
@@ -785,10 +788,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[GRID_BASIC_ACTION_RESET]), 220);
         return true;
-    case 6:
+    case 7:
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
-    case 7:
+    case 8:
         if (first_call)
         {
             if (grid_basic_ctx.selected_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)

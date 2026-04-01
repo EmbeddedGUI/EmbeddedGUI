@@ -384,6 +384,9 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&holder->enabled_switch), 220);
         return true;
     case 2:
+        EGUI_SIM_SET_WAIT(p_action, 140);
+        return true;
+    case 3:
         if (first_call && list_view_basic_ctx.items[0].enabled != 1U)
         {
             report_runtime_failure("switch change did not update data model");
@@ -397,7 +400,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&holder->mode_combo), 220);
         return true;
-    case 3:
+    case 4:
         holder = list_view_basic_find_holder_by_index(1);
         if (first_call)
         {
@@ -409,7 +412,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         EGUI_SIM_SET_WAIT(p_action, 120);
         return true;
-    case 4:
+    case 5:
         holder = list_view_basic_find_holder_by_index(1);
         if (holder == NULL)
         {
@@ -423,14 +426,14 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->y1 = y;
         p_action->interval_ms = 220;
         return true;
-    case 5:
+    case 6:
         if (first_call && list_view_basic_ctx.items[1].mode_index != 1U)
         {
             report_runtime_failure("combobox selection did not update data model");
         }
         list_view_basic_set_scroll_action(p_action, 320);
         return true;
-    case 6:
+    case 7:
         if (first_call)
         {
             if (egui_view_list_view_get_scroll_y(EGUI_VIEW_OF(&list_view)) <= 0)

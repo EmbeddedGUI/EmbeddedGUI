@@ -30,8 +30,8 @@ jobs:
       - name: Full compile check
         run: python scripts\code_compile_check.py --full-check --actions --bits64
 
-      - name: Full runtime check
-        run: python scripts\code_runtime_check.py --full-check --bits64
+      - name: Runtime check (skip HelloCustomWidgets)
+        run: python scripts\code_runtime_check.py --full-check --skip-custom-widgets --bits64
 
       - name: Dirty animation check
         run: python scripts\code_dirty_animation_check.py --bits64

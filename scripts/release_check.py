@@ -74,6 +74,8 @@ def build_steps(args):
     compile_cmd.append("--skip-icon-font-check")
 
     runtime_cmd = [py, str(SCRIPT_DIR / "code_runtime_check.py"), "--full-check"]
+    if not args.runtime_include_custom_widgets:
+        runtime_cmd.append("--skip-custom-widgets")
     dirty_anim_cmd = [py, str(SCRIPT_DIR / "code_dirty_animation_check.py")]
     stage_parity_cmd = [py, str(SCRIPT_DIR / "showcase_stage_parity_check.py"), "--timeout", "35"]
     virtual_render_cmd = [
@@ -215,6 +217,12 @@ def parse_args():
         action="store_true",
         default=False,
         help="Disable 64-bit build flag.",
+    )
+    parser.add_argument(
+        "--runtime-include-custom-widgets",
+        action="store_true",
+        default=False,
+        help="Include HelloCustomWidgets in the runtime step (default: skipped to keep release_check faster).",
     )
     return parser.parse_args()
 

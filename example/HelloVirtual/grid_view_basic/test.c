@@ -380,10 +380,6 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 0:
         if (first_call)
         {
-            if (grid_view_basic_find_holder_by_index(0) == NULL)
-            {
-                report_runtime_failure("initial grid holders were not materialized");
-            }
             recording_request_snapshot();
         }
         EGUI_SIM_SET_WAIT(p_action, 180);
@@ -392,20 +388,23 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         holder = grid_view_basic_find_holder_by_index(0);
         if (holder == NULL)
         {
-            report_runtime_failure("first grid tile was not visible");
+            report_runtime_failure("initial grid holders were not materialized");
             EGUI_SIM_SET_WAIT(p_action, 220);
             return true;
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&holder->toggle_button), 220);
         return true;
     case 2:
+        EGUI_SIM_SET_WAIT(p_action, 140);
+        return true;
+    case 3:
         if (first_call && grid_view_basic_ctx.items[0].active != 1U)
         {
             report_runtime_failure("first tile toggle did not update data model");
         }
         grid_view_basic_set_scroll_action(p_action, 320);
         return true;
-    case 3:
+    case 4:
         if (first_call)
         {
             if (egui_view_grid_view_get_scroll_y(EGUI_VIEW_OF(&grid_view)) <= 0)

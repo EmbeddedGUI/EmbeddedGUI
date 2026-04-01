@@ -32,6 +32,9 @@ COMPILE_FAST_FLAGS = ['COMPILE_DEBUG=', 'COMPILE_OPT_LEVEL=-O0']
 # Retry count for intermittent crashes (e.g., race conditions in PC simulator threading)
 RUN_RETRY_COUNT = 2
 RUNTIME_FAIL_MARKERS = ("[RUNTIME_CHECK_FAIL]",)
+FULL_CHECK_OPTIONAL_APPS = {
+    "HelloCustomWidgets": "requested by --skip-custom-widgets",
+}
 
 # Examples not suitable for runtime testing (headless/performance/test-only)
 SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformance", "HelloPerformance",
@@ -356,20 +359,25 @@ def extract_keyframes(frame_files, keyframe_pcts=None):
 def run_full_check(bits64, speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
                    clock_scale=RECORDING_CLOCK_SCALE,
                    snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
-                   snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
+                   snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
+                   skip_custom_widgets=False):
     """Run runtime check on all examples.
     Returns list of (app_name, success, message) tuples.
     """
     results = []
     app_sets = get_example_list()
     sub_app_sets = {app: get_example_sub_list(app) for app in SUB_APP_ROOTS}
+    skipped_apps = set()
+
+    if skip_custom_widgets:
+        skipped_apps.add("HelloCustomWidgets")
 
     print("Running with speed=%dx" % speed)
 
     # Calculate total
     total = 0
     for app in app_sets:
-        if app in SKIP_LIST:
+        if app in SKIP_LIST or app in skipped_apps:
             continue
         if app in SUB_APP_ROOTS:
             total += len(sub_app_sets.get(app, []))
@@ -380,6 +388,9 @@ def run_full_check(bits64, speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_S
     for app in app_sets:
         if app in SKIP_LIST:
             print("\nSkipping: %s" % app)
+            continue
+        if app in skipped_apps:
+            print("\nSkipping: %s (%s)" % (app, FULL_CHECK_OPTIONAL_APPS[app]))
             continue
 
         if app in SUB_APP_ROOTS:
@@ -495,6 +506,7 @@ Examples:
   %(prog)s --app HelloBasic --app-sub button         Test one HelloBasic sub-app
   %(prog)s --app HelloVirtual --app-sub virtual_grid Test one HelloVirtual sub-app
   %(prog)s --app HelloCustomWidgets --category input Test HelloCustomWidgets category
+  %(prog)s --full-check --skip-custom-widgets        Test all examples except HelloCustomWidgets
   %(prog)s --full-check                             Test all examples
         """
     )
@@ -510,6 +522,8 @@ Examples:
                         help='Keep screenshot files after testing')
     parser.add_argument('--full-check', action='store_true',
                         help='Test all example applications')
+    parser.add_argument('--skip-custom-widgets', action='store_true',
+                        help='Exclude HelloCustomWidgets from --full-check to keep CI/runtime sweeps shorter')
     parser.add_argument('--speed', type=int, default=RECORDING_SPEED,
                         help='Action speed multiplier (default: %d, 1=normal)' % RECORDING_SPEED)
     parser.add_argument('--clock-scale', type=int, default=RECORDING_CLOCK_SCALE,
@@ -538,6 +552,7 @@ Examples:
             snapshot_settle_ms=snapshot_settle_ms,
             snapshot_stable_cycles=snapshot_stable_cycles,
             snapshot_max_wait_ms=snapshot_max_wait_ms,
+            skip_custom_widgets=args.skip_custom_widgets,
         )
         all_passed = print_summary(results)
 

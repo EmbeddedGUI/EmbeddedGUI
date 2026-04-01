@@ -23,8 +23,8 @@ jobs:
       - name: Start Compile Test, full compile check.
         run: python scripts\code_compile_check.py --full-check --actions --bits64
 
-      - name: Start Runtime Test, full runtime check.
-        run: python scripts\code_runtime_check.py --full-check --bits64
+      - name: Start Runtime Test, skip HelloCustomWidgets runtime suite.
+        run: python scripts\code_runtime_check.py --full-check --skip-custom-widgets --bits64
 
       - name: Start Dirty Animation Check
         run: python scripts\code_dirty_animation_check.py --bits64

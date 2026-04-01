@@ -998,23 +998,26 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[PAGE_BASIC_ACTION_PATCH]), 220);
         return true;
     case 5:
+        EGUI_SIM_SET_WAIT(p_action, 180);
+        return true;
+    case 6:
         if (first_call && !page_basic_ctx.sections[page_basic_ctx.jump_cursor].expanded)
         {
             report_runtime_failure("patch action did not expand checklist section");
         }
         page_basic_set_scroll_action(p_action, 320);
         return true;
-    case 6:
+    case 7:
         if (first_call && egui_view_virtual_page_get_scroll_y(EGUI_VIEW_OF(&page_view)) <= 0)
         {
             report_runtime_failure("scroll action did not move page viewport");
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[PAGE_BASIC_ACTION_RESET]), 220);
         return true;
-    case 7:
+    case 8:
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
-    case 8:
+    case 9:
         if (first_call)
         {
             if (page_basic_ctx.selected_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
@@ -1029,7 +1032,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
-    case 9:
+    case 10:
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     default:

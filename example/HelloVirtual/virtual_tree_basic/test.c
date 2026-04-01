@@ -1150,6 +1150,9 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         return true;
     case 3:
+        EGUI_SIM_SET_WAIT(p_action, 180);
+        return true;
+    case 4:
         if (first_call && egui_view_virtual_tree_get_visible_node_count(EGUI_VIEW_OF(&tree_view)) >= visible_before_collapse)
         {
             report_runtime_failure("branch collapse did not reduce visible nodes");
@@ -1157,7 +1160,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         recording_jump_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[TREE_BASIC_ACTION_JUMP]), 220);
         return true;
-    case 4:
+    case 5:
         view = tree_basic_find_visible_view_by_stable_id(tree_basic_ctx.jump_target_id);
         if (tree_basic_ctx.jump_target_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID || tree_basic_ctx.selected_id != tree_basic_ctx.jump_target_id)
         {
@@ -1194,14 +1197,14 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
-    case 5:
+    case 6:
         if (first_call && tree_basic_ctx.selected_id != tree_basic_ctx.jump_target_id)
         {
             report_runtime_failure("target task was not selected correctly after jump");
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[TREE_BASIC_ACTION_PATCH]), 220);
         return true;
-    case 6:
+    case 7:
         node = tree_basic_get_node_by_stable_id(tree_basic_ctx.jump_target_id);
         if (first_call && (node == NULL || !node->detail))
         {
@@ -1213,20 +1216,20 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
-    case 7:
+    case 8:
         tree_basic_set_scroll_action(p_action, 320);
         return true;
-    case 8:
+    case 9:
         if (first_call && tree_basic_get_first_center_visible_id() == tree_basic_ctx.nodes[tree_basic_ctx.root_indices[0]].stable_id)
         {
             report_runtime_failure("scroll action did not move tree viewport");
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[TREE_BASIC_ACTION_RESET]), 220);
         return true;
-    case 9:
+    case 10:
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
-    case 10:
+    case 11:
         if (first_call)
         {
             if (tree_basic_ctx.selected_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)

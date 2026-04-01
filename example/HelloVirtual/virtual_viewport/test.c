@@ -2201,27 +2201,30 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
         return true;
     case 1:
+        EGUI_SIM_SET_WAIT(p_action, 140);
+        return true;
+    case 2:
         if (first_call && viewport_context.last_clicked_index != 1U)
         {
             report_runtime_failure("feed row click did not update selected index");
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[DEMO_ACTION_PATCH]), 180);
         return true;
-    case 2:
+    case 3:
         if (first_call && viewport_context.mutation_count < 1U)
         {
             report_runtime_failure("feed patch did not mutate data");
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[DEMO_ACTION_MOVE]), 180);
         return true;
-    case 3:
+    case 4:
         if (first_call && viewport_context.mutation_count < 2U)
         {
             report_runtime_failure("feed move did not mutate data");
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[DEMO_ACTION_ADD]), 180);
         return true;
-    case 4:
+    case 5:
         if (first_call && viewport_context.item_count != DEMO_FEED_ITEMS + 1U)
         {
             report_runtime_failure("feed insert did not change item count");
@@ -2234,7 +2237,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->steps = 4;
         p_action->interval_ms = 520;
         return true;
-    case 5:
+    case 6:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
         p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
         p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 3 / 4;
@@ -2243,7 +2246,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->steps = 5;
         p_action->interval_ms = 620;
         return true;
-    case 6:
+    case 7:
         view = find_first_visible_view_after(3);
         if (view == NULL)
         {
@@ -2257,17 +2260,17 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, view, 180);
         return true;
-    case 7:
+    case 8:
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&scene_buttons[DEMO_SCENE_CHAT]), 220);
         return true;
-    case 8:
+    case 9:
         if (first_call && viewport_context.scene != DEMO_SCENE_CHAT)
         {
             report_runtime_failure("scene switch to chat failed");
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[DEMO_ACTION_JUMP]), 180);
         return true;
-    case 9:
+    case 10:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
         p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
         p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 4 / 5;
@@ -2276,7 +2279,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->steps = 4;
         p_action->interval_ms = 520;
         return true;
-    case 10:
+    case 11:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
         p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
         p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 3 / 4;
@@ -2285,7 +2288,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->steps = 5;
         p_action->interval_ms = 620;
         return true;
-    case 11:
+    case 12:
         view = find_first_visible_view_after(4);
         if (view == NULL)
         {
@@ -2299,31 +2302,31 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, view, 180);
         return true;
-    case 12:
+    case 13:
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[DEMO_ACTION_PATCH]), 180);
         return true;
-    case 13:
+    case 14:
         if (first_call && viewport_context.mutation_count < 4U)
         {
             report_runtime_failure("chat patch did not mutate data");
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&scene_buttons[DEMO_SCENE_TASK]), 220);
         return true;
-    case 14:
+    case 15:
         if (first_call && viewport_context.scene != DEMO_SCENE_TASK)
         {
             report_runtime_failure("scene switch to ops failed");
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[DEMO_ACTION_DEL]), 180);
         return true;
-    case 15:
+    case 16:
         if (first_call && viewport_context.mutation_count < 5U)
         {
             report_runtime_failure("ops delete did not mutate data");
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[DEMO_ACTION_PATCH]), 180);
         return true;
-    case 16:
+    case 17:
         if (first_call && viewport_context.mutation_count < 6U)
         {
             report_runtime_failure("ops patch did not mutate data");
@@ -2336,7 +2339,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->steps = 4;
         p_action->interval_ms = 520;
         return true;
-    case 17:
+    case 18:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
         p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
         p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 3 / 4;
@@ -2345,7 +2348,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         p_action->steps = 5;
         p_action->interval_ms = 620;
         return true;
-    case 18:
+    case 19:
         view = find_first_visible_view_after(0);
         if (view == NULL)
         {
@@ -2359,7 +2362,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         EGUI_SIM_SET_CLICK_VIEW(p_action, view, 180);
         return true;
-    case 19:
+    case 20:
         if (first_call)
         {
             if (viewport_context.mutation_count < 6U)
