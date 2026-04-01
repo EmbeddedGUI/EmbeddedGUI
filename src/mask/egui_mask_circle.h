@@ -8,7 +8,10 @@
 extern "C" {
 #endif
 
+#ifndef EGUI_CIRCLE_INFO_T_DEFINED
+#define EGUI_CIRCLE_INFO_T_DEFINED
 typedef struct egui_circle_info egui_circle_info_t;
+#endif
 typedef struct egui_mask_circle_frame_row_cache egui_mask_circle_frame_row_cache_t;
 
 typedef struct egui_mask_circle egui_mask_circle_t;

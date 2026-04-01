@@ -467,7 +467,7 @@ static int32_t transform_scanline_skip(int32_t rotatedX, int32_t rotatedY, int32
  * Compute alpha buffer byte size for a given image dimension and alpha type.
  * Used by external resource loading and row-byte calculations.
  */
-static inline uint32_t image_alpha_buf_size(int16_t w, int16_t h, uint8_t alpha_type)
+__EGUI_STATIC_INLINE__ uint32_t image_alpha_buf_size(int16_t w, int16_t h, uint8_t alpha_type)
 {
     switch (alpha_type)
     {
@@ -1206,7 +1206,7 @@ __EGUI_STATIC_INLINE__ void transform_apply_mask_and_blend(egui_mask_t *mask, eg
  * @param angle_deg Rotation angle in degrees (0-360, counter-clockwise)
  * @param scale_q8  Scale factor in Q8 format (256 = 1.0x, 512 = 2.0x, 128 = 0.5x)
  */
-__attribute__((optimize("Os"))) void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8)
+__EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8)
 {
     egui_canvas_t *canvas = &canvas_data;
     egui_image_std_info_t *info = (egui_image_std_info_t *)img->res;
@@ -2016,7 +2016,7 @@ static inline void extract_packed_alpha_pair_4_from_row(const uint8_t *row, int 
     }
 }
 
-static inline void extract_packed_alpha_pair_from_row(const uint8_t *row, int local_x, uint8_t bpp, uint16_t *a0, uint16_t *a1)
+__EGUI_STATIC_INLINE__ void extract_packed_alpha_pair_from_row(const uint8_t *row, int local_x, uint8_t bpp, uint16_t *a0, uint16_t *a1)
 {
     if (bpp == 4)
     {
@@ -2028,8 +2028,8 @@ static inline void extract_packed_alpha_pair_from_row(const uint8_t *row, int lo
     *a1 = extract_packed_alpha_from_row(row, local_x + 1, bpp);
 }
 
-static inline void batch_extract_glyph_alpha_from_rows(const uint8_t *row0, const uint8_t *row1, int lx, uint8_t bpp, uint16_t *a00, uint16_t *a01,
-                                                       uint16_t *a10, uint16_t *a11)
+__EGUI_STATIC_INLINE__ void batch_extract_glyph_alpha_from_rows(const uint8_t *row0, const uint8_t *row1, int lx, uint8_t bpp, uint16_t *a00, uint16_t *a01,
+                                                                uint16_t *a10, uint16_t *a11)
 {
     if (bpp == 4)
     {
@@ -2569,7 +2569,7 @@ static inline void write_packed_raw(uint8_t *buf, int buf_w, int x, int y, uint8
  * Read alpha value from a packed mask buffer (int width, supports text_w > 255).
  * Same logic as extract_packed_alpha() but with int width parameter.
  */
-static inline uint8_t read_packed_mask_alpha(const uint8_t *buf, int buf_w, int x, int y, uint8_t bpp)
+__EGUI_STATIC_INLINE__ uint8_t read_packed_mask_alpha(const uint8_t *buf, int buf_w, int x, int y, uint8_t bpp)
 {
     switch (bpp)
     {
@@ -2888,7 +2888,7 @@ static void text_transform_measure_layout_slots(const char *string, int *glyph_c
     }
 }
 
-static inline uint8_t read_packed_mask_alpha_4(const uint8_t *buf, int buf_w, int x, int y)
+__EGUI_STATIC_INLINE__ uint8_t read_packed_mask_alpha_4(const uint8_t *buf, int buf_w, int x, int y)
 {
     int rb = (buf_w + 1) >> 1;
     uint8_t packed = buf[y * rb + (x >> 1)];
@@ -3825,8 +3825,8 @@ static inline void sample_tile_alpha_pair_from_line_external(const text_transfor
 }
 #endif
 
-static inline uint8_t sample_tile_alpha(const text_transform_glyph_t *glyphs, int count, const text_transform_layout_line_t *lines, int line_count, int sx,
-                                        int sy, uint8_t bpp, int *hint, int *hint_line)
+__EGUI_STATIC_INLINE__ uint8_t sample_tile_alpha(const text_transform_glyph_t *glyphs, int count, const text_transform_layout_line_t *lines, int line_count,
+                                                 int sx, int sy, uint8_t bpp, int *hint, int *hint_line)
 {
     if (sx < 0 || sy < 0)
     {
@@ -3896,8 +3896,8 @@ static inline uint8_t sample_tile_alpha(const text_transform_glyph_t *glyphs, in
     return 0;
 }
 
-static inline uint8_t sample_tile_alpha_4(const text_transform_glyph_t *glyphs, int count, const text_transform_layout_line_t *lines, int line_count, int sx,
-                                          int sy, int *hint, int *hint_line)
+__EGUI_STATIC_INLINE__ uint8_t sample_tile_alpha_4(const text_transform_glyph_t *glyphs, int count, const text_transform_layout_line_t *lines, int line_count,
+                                                   int sx, int sy, int *hint, int *hint_line)
 {
     if (sx < 0 || sy < 0)
     {
@@ -4021,7 +4021,7 @@ static int text_transform_try_draw_axis_aligned(const egui_font_t *font, const v
  * collectors use transient heap sized by the measured glyph and line count.
  * Text dimensions are cached (12 bytes static) to avoid per-tile string measurement.
  */
-__attribute__((optimize("Os"))) void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg,
+__EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg,
                                                                      int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
 {
     if (!font || !string || !font->res)
@@ -4418,7 +4418,7 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_text_transform(const egui_
                             {
                                 for (int32_t i = 0; i < sir_count; i++)
                                 {
-                                    uint16_t sa00, sa01, sa10, sa11;
+                                    uint16_t sa00 = 0, sa01 = 0, sa10 = 0, sa11 = 0;
                                     int glyph_lx = (rotatedX >> 15) - g_x;
                                     int glyph_ly = (rotatedY >> 15) - g_y;
 
@@ -4477,7 +4477,7 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_text_transform(const egui_
                             {
                                 for (int32_t i = 0; i < sir_count; i++)
                                 {
-                                    uint16_t sa00, sa01, sa10, sa11;
+                                    uint16_t sa00 = 0, sa01 = 0, sa10 = 0, sa11 = 0;
                                     int glyph_lx = (rotatedX >> 15) - g_x;
                                     int glyph_ly = (rotatedY >> 15) - g_y;
 
@@ -4539,7 +4539,7 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_text_transform(const egui_
                             {
                                 for (int32_t i = 0; i < sir_count; i++)
                                 {
-                                    uint16_t sa00, sa01, sa10, sa11;
+                                    uint16_t sa00 = 0, sa01 = 0, sa10 = 0, sa11 = 0;
                                     int glyph_lx = (rotatedX >> 15) - g->x;
                                     int glyph_ly = (rotatedY >> 15) - g->y;
 
@@ -4605,7 +4605,7 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_text_transform(const egui_
                             {
                                 for (int32_t i = 0; i < sir_count; i++)
                                 {
-                                    uint16_t sa00, sa01, sa10, sa11;
+                                    uint16_t sa00 = 0, sa01 = 0, sa10 = 0, sa11 = 0;
                                     int glyph_lx = (rotatedX >> 15) - g->x;
                                     int glyph_ly = (rotatedY >> 15) - g->y;
 
@@ -4821,6 +4821,7 @@ __attribute__((optimize("Os"))) void egui_canvas_draw_text_transform(const egui_
     }
 
 cleanup:
+    ;
 #if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
     if (tile_alpha8_layout_glyph_indices != NULL)
     {
@@ -5204,6 +5205,7 @@ static int text_transform_rasterize_visible_alpha8_layout(uint8_t *alpha8_buf, i
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 cleanup:
+    ;
     text_transform_external_layout_glyph_row_scratch_release(&external_row_scratch);
 #endif
     return status;
@@ -7013,8 +7015,8 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
  * One switch per pixel instead of 4; shares row offset and bit position calculations.
  * Requires all 4 sample coordinates to be in bounds.
  */
-static inline void batch_bilinear_packed_alpha(const uint8_t *buf, int rb, int sx, int sy, uint8_t bpp, uint16_t *a00, uint16_t *a01, uint16_t *a10,
-                                               uint16_t *a11)
+__EGUI_STATIC_INLINE__ void batch_bilinear_packed_alpha(const uint8_t *buf, int rb, int sx, int sy, uint8_t bpp, uint16_t *a00, uint16_t *a01,
+                                                        uint16_t *a10, uint16_t *a11)
 {
     int base0 = sy * rb;
     int base1 = base0 + rb;

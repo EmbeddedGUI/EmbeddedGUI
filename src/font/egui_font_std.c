@@ -3146,7 +3146,6 @@ int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_
     const egui_font_std_ascii_lookup_cache_t *ascii_cache = NULL;
 #if EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE && EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
     egui_font_std_blend_ctx_t blend_ctx;
-    int use_fast_mask = 0;
 #endif
 
     if (0 == s)
@@ -3161,10 +3160,15 @@ int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_
         p_blend_ctx = &blend_ctx;
     }
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
-    else if (draw_alpha != 0 && font->font_bit_mode == 4 && font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && canvas->mask != NULL &&
-             canvas->mask->api->mask_blend_row_color != NULL)
+    else
     {
-        use_fast_mask = 1;
+        int use_fast_mask = (draw_alpha != 0 && font->font_bit_mode == 4 && font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && canvas->mask != NULL &&
+                             canvas->mask->api->mask_blend_row_color != NULL);
+        if (use_fast_mask)
+        {
+            str_cnt = egui_font_std_draw_string_fast_4_mask(self->res, font, s, x, y, color, alpha, base_region);
+            return str_cnt;
+        }
     }
 #endif
 #endif
@@ -3195,14 +3199,6 @@ int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_
         str_cnt = egui_font_std_draw_string_fast_4(self->res, font, s, x, y, color, alpha, canvas, base_region, draw_alpha, p_blend_ctx);
         return str_cnt;
     }
-
-#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
-    if (use_fast_mask)
-    {
-        str_cnt = egui_font_std_draw_string_fast_4_mask(self->res, font, s, x, y, color, alpha, base_region);
-        return str_cnt;
-    }
-#endif
 #endif
 
     while ((*s != '\0'))

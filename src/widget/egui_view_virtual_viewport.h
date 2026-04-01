@@ -29,7 +29,10 @@ enum
 };
 
 typedef struct egui_view_virtual_viewport_adapter egui_view_virtual_viewport_adapter_t;
+#ifndef EGUI_VIEW_VIRTUAL_VIEWPORT_STATE_ENTRY_T_DEFINED
+#define EGUI_VIEW_VIRTUAL_VIEWPORT_STATE_ENTRY_T_DEFINED
 typedef struct egui_view_virtual_viewport_state_entry egui_view_virtual_viewport_state_entry_t;
+#endif
 typedef struct egui_view_virtual_viewport_slot egui_view_virtual_viewport_slot_t;
 typedef struct egui_view_virtual_viewport egui_view_virtual_viewport_t;
 typedef struct egui_view_virtual_viewport_entry egui_view_virtual_viewport_entry_t;

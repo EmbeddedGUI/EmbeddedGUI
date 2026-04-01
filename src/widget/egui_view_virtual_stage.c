@@ -1182,6 +1182,7 @@ static uint8_t egui_view_virtual_stage_node_requires_materialization(egui_view_v
     return 0;
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static int egui_view_virtual_stage_acquire_slot(egui_view_t *self, egui_view_virtual_stage_t *local, const egui_view_virtual_stage_cached_node_t *node)
 {
     int slot_index;
@@ -1213,6 +1214,7 @@ static int egui_view_virtual_stage_acquire_slot(egui_view_t *self, egui_view_vir
 
     return -1;
 }
+#endif
 
 static void egui_view_virtual_stage_trim_to_limit(egui_view_t *self, egui_view_virtual_stage_t *local)
 {
@@ -1329,6 +1331,7 @@ static void egui_view_virtual_stage_sync_slots(egui_view_t *self)
     local->needs_slot_sync = 0;
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static uint8_t egui_view_virtual_stage_hit_test_node(egui_view_t *self, egui_view_virtual_stage_t *local, const egui_view_virtual_stage_cached_node_t *node,
                                                      const egui_motion_event_t *event)
 {
@@ -1355,7 +1358,9 @@ static uint8_t egui_view_virtual_stage_hit_test_node(egui_view_t *self, egui_vie
 
     return egui_region_pt_in_rect(&screen_region, event->location.x, event->location.y) ? 1 : 0;
 }
+#endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static const egui_motion_event_t *egui_view_virtual_stage_adjust_followup_event_for_hit_test(egui_view_t *self, egui_view_virtual_stage_t *local,
                                                                                              const egui_view_virtual_stage_cached_node_t *node,
                                                                                              const egui_motion_event_t *event,
@@ -1596,6 +1601,7 @@ static int egui_view_virtual_stage_dispatch_touch_event(egui_view_t *self, egui_
         return 0;
     }
 }
+#endif
 
 static void egui_view_virtual_stage_draw(egui_view_t *self)
 {

@@ -181,6 +181,7 @@ static grid_view_demo_item_t *grid_view_demo_get_item(uint32_t index)
     return &grid_view_demo_ctx.items[index];
 }
 
+#if EGUI_CONFIG_RECORDING_TEST
 static grid_view_demo_item_t *grid_view_demo_find_item_by_stable_id_internal(uint32_t stable_id)
 {
     uint32_t index;
@@ -195,6 +196,7 @@ static grid_view_demo_item_t *grid_view_demo_find_item_by_stable_id_internal(uin
 
     return NULL;
 }
+#endif
 
 static int32_t grid_view_demo_find_index_by_stable_id_internal(uint32_t stable_id)
 {

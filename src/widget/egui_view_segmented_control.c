@@ -212,6 +212,7 @@ static void egui_view_segmented_control_draw_segment_content(egui_view_segmented
     }
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static uint8_t egui_view_segmented_control_get_hit_index(egui_view_t *self, egui_dim_t local_x, egui_dim_t local_y)
 {
     EGUI_LOCAL_INIT(egui_view_segmented_control_t);
@@ -239,6 +240,7 @@ static uint8_t egui_view_segmented_control_get_hit_index(egui_view_t *self, egui
     }
     return EGUI_VIEW_SEGMENTED_CONTROL_PRESSED_NONE;
 }
+#endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 static int egui_view_segmented_control_on_key_event(egui_view_t *self, egui_key_event_t *event);

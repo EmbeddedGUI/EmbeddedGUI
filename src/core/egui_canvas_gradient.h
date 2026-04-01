@@ -29,7 +29,10 @@ struct egui_gradient_stop
 };
 
 /* Unified gradient descriptor */
+#ifndef EGUI_GRADIENT_T_DEFINED
+#define EGUI_GRADIENT_T_DEFINED
 typedef struct egui_gradient egui_gradient_t;
+#endif
 struct egui_gradient
 {
     uint8_t type;                      /* EGUI_GRADIENT_TYPE_* */

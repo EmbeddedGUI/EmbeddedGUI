@@ -65,7 +65,19 @@ extern "C" {
 
 #define __EGUI_WEAK__ __attribute__((weak))
 
-#define __EGUI_STATIC_INLINE__ static inline
+#if defined(__clang__)
+#define __EGUI_UNUSED_ATTR__ __attribute__((unused))
+#else
+#define __EGUI_UNUSED_ATTR__
+#endif
+
+#if defined(__GNUC__) && !defined(__clang__)
+#define __EGUI_OPTIMIZE_SIZE__ __attribute__((optimize("Os")))
+#else
+#define __EGUI_OPTIMIZE_SIZE__
+#endif
+
+#define __EGUI_STATIC_INLINE__ static inline __EGUI_UNUSED_ATTR__
 
 /*---------------------- Graphic LCD color definitions -----------------------*/
 

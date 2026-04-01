@@ -16,6 +16,7 @@ void egui_view_slider_set_on_value_changed_listener(egui_view_t *self, egui_view
     local->on_value_changed = listener;
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static uint8_t egui_view_slider_get_thumb_metrics(egui_view_t *self, egui_view_slider_t *local, uint8_t value, egui_dim_t *out_thumb_x, egui_dim_t *out_thumb_y,
                                                   egui_dim_t *out_thumb_radius)
 {
@@ -68,7 +69,9 @@ static uint8_t egui_view_slider_get_thumb_metrics(egui_view_t *self, egui_view_s
 
     return 1;
 }
+#endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static uint8_t egui_view_slider_get_thumb_dirty_region(egui_view_t *self, egui_view_slider_t *local, uint8_t value, egui_region_t *dirty_region)
 {
     egui_dim_t thumb_x;
@@ -90,6 +93,7 @@ static uint8_t egui_view_slider_get_thumb_dirty_region(egui_view_t *self, egui_v
     egui_view_circle_dirty_add_circle_region(dirty_region, thumb_x, thumb_y, thumb_radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD + 1);
     return !egui_region_is_empty(dirty_region);
 }
+#endif
 
 static void egui_view_slider_invalidate_value_change(egui_view_t *self, egui_view_slider_t *local, uint8_t old_value)
 {
@@ -193,6 +197,7 @@ uint8_t egui_view_slider_get_value(egui_view_t *self)
     return local->value;
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static void egui_view_slider_update_value_from_touch(egui_view_t *self, egui_dim_t touch_x)
 {
     EGUI_LOCAL_INIT(egui_view_slider_t);
@@ -230,6 +235,7 @@ static void egui_view_slider_update_value_from_touch(egui_view_t *self, egui_dim
     uint8_t new_value = (uint8_t)((uint32_t)offset * 100 / usable_width);
     egui_view_slider_set_value(self, new_value);
 }
+#endif
 
 void egui_view_slider_on_draw(egui_view_t *self)
 {

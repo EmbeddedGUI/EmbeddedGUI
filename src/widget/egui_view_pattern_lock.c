@@ -80,6 +80,7 @@ static void egui_view_pattern_lock_get_node_center(const egui_view_pattern_lock_
     *y = layout->region.location.y + (layout->step_y / 2) + row * layout->step_y;
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static uint8_t egui_view_pattern_lock_find_hit_node(egui_view_t *self, egui_dim_t local_x, egui_dim_t local_y)
 {
     EGUI_LOCAL_INIT(egui_view_pattern_lock_t);
@@ -170,6 +171,7 @@ static void egui_view_pattern_lock_add_node_with_bridge(egui_view_t *self, uint8
     }
     egui_view_pattern_lock_add_node(self, node);
 }
+#endif
 
 void egui_view_pattern_lock_set_min_nodes(egui_view_t *self, uint8_t min_nodes)
 {

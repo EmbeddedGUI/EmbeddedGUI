@@ -163,6 +163,7 @@ void egui_view_checkbox_set_checked(egui_view_t *self, uint8_t is_checked)
     }
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static int egui_view_checkbox_perform_click(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_checkbox_t);
@@ -170,6 +171,7 @@ static int egui_view_checkbox_perform_click(egui_view_t *self)
     egui_view_checkbox_set_checked(self, !local->is_checked);
     return 1;
 }
+#endif
 
 void egui_view_checkbox_on_draw(egui_view_t *self)
 {

@@ -185,6 +185,7 @@ static list_view_demo_item_t *list_view_demo_get_item(uint32_t index)
     return &list_view_demo_ctx.items[index];
 }
 
+#if EGUI_CONFIG_RECORDING_TEST
 static list_view_demo_item_t *list_view_demo_find_item_by_stable_id_internal(uint32_t stable_id)
 {
     uint32_t index;
@@ -199,6 +200,7 @@ static list_view_demo_item_t *list_view_demo_find_item_by_stable_id_internal(uin
 
     return NULL;
 }
+#endif
 
 static int32_t list_view_demo_find_index_by_stable_id_internal(uint32_t stable_id)
 {

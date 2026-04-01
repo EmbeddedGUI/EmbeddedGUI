@@ -20,7 +20,10 @@ struct egui_circle_item
     uint16_t data_offset;
 };
 
+#ifndef EGUI_CIRCLE_INFO_T_DEFINED
+#define EGUI_CIRCLE_INFO_T_DEFINED
 typedef struct egui_circle_info egui_circle_info_t;
+#endif
 struct egui_circle_info
 {
     uint16_t radius;

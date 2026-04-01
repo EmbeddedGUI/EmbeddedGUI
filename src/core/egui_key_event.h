@@ -94,7 +94,10 @@ enum egui_key_code
     EGUI_KEY_CODE_MAX = 127,
 };
 
+#ifndef EGUI_KEY_EVENT_T_DEFINED
+#define EGUI_KEY_EVENT_T_DEFINED
 typedef struct egui_key_event egui_key_event_t;
+#endif
 struct egui_key_event
 {
     egui_snode_t node;

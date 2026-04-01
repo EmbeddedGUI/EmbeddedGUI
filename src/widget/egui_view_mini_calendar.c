@@ -63,6 +63,7 @@ static const char *const *egui_view_mini_calendar_get_weekday_labels(egui_view_m
     return local->first_day_of_week == 1 ? egui_view_mini_calendar_default_weekdays_mon : egui_view_mini_calendar_default_weekdays_sun;
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static uint8_t egui_view_mini_calendar_hit_day(egui_view_t *self, egui_view_mini_calendar_t *local, egui_dim_t touch_x, egui_dim_t touch_y)
 {
     egui_dim_t w = self->region.size.width;
@@ -103,6 +104,7 @@ static uint8_t egui_view_mini_calendar_hit_day(egui_view_t *self, egui_view_mini
 
     return (uint8_t)(pos - start_col + 1);
 }
+#endif
 
 static int egui_view_mini_calendar_get_day_cell_region(egui_view_t *self, egui_view_mini_calendar_t *local, uint8_t day, egui_region_t *out_region)
 {

@@ -212,6 +212,7 @@ void egui_view_radio_button_set_checked(egui_view_t *self, uint8_t is_checked)
     }
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static int egui_view_radio_button_perform_click(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
@@ -223,6 +224,7 @@ static int egui_view_radio_button_perform_click(egui_view_t *self)
     }
     return 1;
 }
+#endif
 
 void egui_view_radio_button_on_draw(egui_view_t *self)
 {

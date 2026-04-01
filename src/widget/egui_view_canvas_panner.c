@@ -54,6 +54,7 @@ static egui_dim_t egui_view_canvas_panner_get_max_offset_y(egui_view_t *self, eg
     return canvas_height > self->region.size.height ? (egui_dim_t)(canvas_height - self->region.size.height) : 0;
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static uint8_t egui_view_canvas_panner_can_pan(egui_view_t *self, egui_view_canvas_panner_t *local)
 {
     return egui_view_canvas_panner_get_max_offset_x(self, local) > 0 || egui_view_canvas_panner_get_max_offset_y(self, local) > 0;
@@ -63,6 +64,7 @@ static uint8_t egui_view_canvas_panner_is_group_like(egui_view_t *view)
 {
     return view != NULL && view->api != NULL && view->api->request_layout == egui_view_group_request_layout;
 }
+#endif
 
 static void egui_view_canvas_panner_clamp_offset(egui_view_t *self, egui_view_canvas_panner_t *local)
 {

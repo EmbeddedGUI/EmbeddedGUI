@@ -220,6 +220,7 @@ static uint8_t egui_view_combobox_get_visible_start_index(const egui_view_combob
     return start_index;
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static uint8_t egui_view_combobox_get_hit_target(egui_view_t *self, egui_view_combobox_t *local, egui_dim_t touch_x, egui_dim_t touch_y, uint8_t *is_header,
                                                  uint8_t *item_index)
 {
@@ -261,7 +262,9 @@ static uint8_t egui_view_combobox_get_hit_target(egui_view_t *self, egui_view_co
     *item_index = (uint8_t)(start_index + clicked_index);
     return 1;
 }
+#endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 static void egui_view_combobox_notify_selected(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
@@ -271,7 +274,9 @@ static void egui_view_combobox_notify_selected(egui_view_t *self)
         local->on_selected(self, local->current_index);
     }
 }
+#endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH || EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 static void egui_view_combobox_commit_current_index(egui_view_t *self, uint8_t index, uint8_t notify)
 {
     EGUI_LOCAL_INIT(egui_view_combobox_t);
@@ -292,6 +297,7 @@ static void egui_view_combobox_commit_current_index(egui_view_t *self, uint8_t i
         egui_view_combobox_notify_selected(self);
     }
 }
+#endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 static int egui_view_combobox_on_key_event(egui_view_t *self, egui_key_event_t *event);

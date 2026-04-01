@@ -37,6 +37,7 @@ LFLAGS += -s INITIAL_MEMORY=33554432
 LFLAGS += -s STACK_SIZE=5242880
 LFLAGS += -s EXPORTED_FUNCTIONS='["_main"]'
 LFLAGS += -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]'
+LFLAGS += -Wno-limited-postlink-optimizations
 LFLAGS += --shell-file $(EGUI_PORT_PATH)/shell.html
 
 # OUTPUT_PATH must be defined here (same default as Makefile.emscripten) so the

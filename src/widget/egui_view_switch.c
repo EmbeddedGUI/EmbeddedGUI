@@ -67,6 +67,7 @@ void egui_view_switch_set_icon_font(egui_view_t *self, const egui_font_t *font)
     egui_view_invalidate(self);
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static int egui_view_switch_perform_click(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_switch_t);
@@ -74,6 +75,7 @@ static int egui_view_switch_perform_click(egui_view_t *self)
     egui_view_switch_set_checked(self, !local->is_checked);
     return 1;
 }
+#endif
 
 void egui_view_switch_on_draw(egui_view_t *self)
 {

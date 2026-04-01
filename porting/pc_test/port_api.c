@@ -75,6 +75,7 @@ static void test_lcd_setup(egui_hal_lcd_driver_t *storage)
 // Platform driver
 // ============================================================================
 
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
 static void *test_malloc(int size)
 {
     return malloc((size_t)size);
@@ -84,7 +85,9 @@ static void test_free(void *ptr)
 {
     free(ptr);
 }
+#endif
 
+#if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
 static void test_vlog(const char *format, va_list args)
 {
     vprintf(format, args);
@@ -94,6 +97,7 @@ static void test_vsprintf(char *str, const char *format, va_list args)
 {
     vsprintf(str, format, args);
 }
+#endif
 
 static void test_assert_handler(const char *file, int line)
 {
@@ -110,6 +114,7 @@ static void test_delay(uint32_t ms)
     EGUI_UNUSED(ms);
 }
 
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MEMORY_OP
 static void test_memset_fast(void *s, int c, int n)
 {
     memset(s, c, n);
@@ -119,6 +124,7 @@ static void test_memcpy_fast(void *dst, const void *src, int n)
 {
     memcpy(dst, src, (size_t)n);
 }
+#endif
 
 static egui_base_t test_interrupt_disable(void)
 {

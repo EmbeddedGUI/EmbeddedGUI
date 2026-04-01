@@ -10,6 +10,7 @@
 #include "core/egui_canvas_gradient.h"
 #endif
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 // Integer atan2 approximation returning degrees 0-359
 static int16_t integer_atan2_deg(int32_t dy, int32_t dx)
 {
@@ -50,6 +51,7 @@ static int16_t integer_atan2_deg(int32_t dy, int32_t dx)
 
     return angle % 360;
 }
+#endif
 
 void egui_view_arc_slider_set_on_value_changed_listener(egui_view_t *self, egui_view_on_arc_value_changed_listener_t listener)
 {

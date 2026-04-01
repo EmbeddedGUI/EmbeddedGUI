@@ -1304,11 +1304,11 @@ static void recording_simulate_action(void)
 static void recording_do_save_frame(void)
 {
     char filename[1024];
-    const char *frame_name = NULL;
-    const char *windows_frame_name = NULL;
     snprintf(filename, sizeof(filename), "%s/frame_%04d.png", g_recording_output_dir, g_recording_frame_count);
     snap_shot(filename);
 #if EGUI_CONFIG_RECORDING_TEST
+    const char *frame_name = NULL;
+    const char *windows_frame_name = NULL;
     frame_name = strrchr(filename, '/');
     windows_frame_name = strrchr(filename, '\\');
     if (frame_name == NULL || (windows_frame_name != NULL && windows_frame_name > frame_name))

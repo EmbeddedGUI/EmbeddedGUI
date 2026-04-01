@@ -37,7 +37,10 @@ typedef struct egui_location egui_location_t;
 typedef struct egui_size egui_size_t;
 typedef struct egui_region egui_region_t;
 
+#ifndef EGUI_KEY_EVENT_T_DEFINED
+#define EGUI_KEY_EVENT_T_DEFINED
 typedef struct egui_key_event egui_key_event_t;
+#endif
 typedef struct egui_focus_manager egui_focus_manager_t;
 
 typedef struct egui_display_driver egui_display_driver_t;

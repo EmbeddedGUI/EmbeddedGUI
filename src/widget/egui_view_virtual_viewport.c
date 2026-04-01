@@ -6,7 +6,10 @@
 #include "core/egui_input.h"
 
 typedef struct egui_view_virtual_viewport_item_layout egui_view_virtual_viewport_item_layout_t;
+#ifndef EGUI_VIEW_VIRTUAL_VIEWPORT_STATE_ENTRY_T_DEFINED
+#define EGUI_VIEW_VIRTUAL_VIEWPORT_STATE_ENTRY_T_DEFINED
 typedef struct egui_view_virtual_viewport_state_entry egui_view_virtual_viewport_state_entry_t;
+#endif
 struct egui_view_virtual_viewport_item_layout
 {
     uint16_t view_type;
@@ -1554,6 +1557,7 @@ static void egui_view_virtual_viewport_sync_slots(egui_view_t *self)
     local->is_layout_dirty = 0;
 }
 
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static int egui_view_virtual_viewport_can_scroll(egui_view_virtual_viewport_t *local)
 {
     return local->logical_extent > local->viewport_extent;
@@ -1711,6 +1715,7 @@ static int egui_view_virtual_viewport_on_touch_event(egui_view_t *self, egui_mot
         return 0;
     }
 }
+#endif
 
 static void egui_view_virtual_viewport_compute_scroll(egui_view_t *self)
 {

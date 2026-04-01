@@ -11,7 +11,10 @@ extern "C" {
 
 /* Forward declarations to avoid circular includes */
 struct egui_gradient;
+#ifndef EGUI_GRADIENT_T_DEFINED
+#define EGUI_GRADIENT_T_DEFINED
 typedef struct egui_gradient egui_gradient_t;
+#endif
 
 /* Style property flags */
 #define EGUI_STYLE_PROP_BG_COLOR    (1 << 0)

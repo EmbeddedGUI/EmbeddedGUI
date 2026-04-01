@@ -2387,16 +2387,16 @@ static void egui_image_qoi_draw_image(const egui_image_t *self, egui_dim_t x, eg
     egui_dim_t masked_dst_stride = 0;
     int use_masked_opaque = 0;
     int use_masked_alpha8 = 0;
-    int use_row_cache = 0;
-    int use_tail_row_cache = 0;
     int use_direct_fast_copy = 0;
     int use_direct_fast_alpha8 = 0;
     int use_direct_masked_alpha8 = 0;
+#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
+    int use_row_cache = 0;
+    int use_tail_row_cache = 0;
     uint16_t cache_col_start = 0;
     uint16_t cache_col_count = 0;
     uint8_t *row_pixel_scratch = NULL;
     uint8_t *row_alpha_scratch = NULL;
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 #endif
 
     if (!egui_image_decode_get_horizontal_clip(x, draw_info->width, &screen_x_start, &img_col_start, &count))
