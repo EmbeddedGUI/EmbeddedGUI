@@ -670,6 +670,11 @@
               <FilePath>..\..\..\src\core\egui_canvas_polygon.c</FilePath>
             </File>
             <File>
+              <FileName>egui_canvas_transform.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_canvas_transform.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_canvas_triangle.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_canvas_triangle.c</FilePath>
@@ -785,6 +790,21 @@
               <FilePath>..\..\..\src\image\egui_image.c</FilePath>
             </File>
             <File>
+              <FileName>egui_image_decode_utils.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\image\egui_image_decode_utils.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_image_qoi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\image\egui_image_qoi.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_image_rle.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\image\egui_image_rle.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_image_std.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\image\egui_image_std.c</FilePath>
@@ -823,6 +843,21 @@
               <FileName>egui_res_circle_info.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\resource\egui_res_circle_info.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_res_font_material_symbols_common_16_4.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\resource\egui_res_font_material_symbols_common_16_4.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_res_font_material_symbols_common_20_4.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\resource\egui_res_font_material_symbols_common_20_4.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_res_font_material_symbols_common_24_4.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\resource\egui_res_font_material_symbols_common_24_4.c</FilePath>
             </File>
             <File>
               <FileName>egui_res_font_montserrat_10_4.c</FileName>
@@ -1025,6 +1060,16 @@
               <FilePath>..\..\..\src\widget\egui_view_button_matrix.c</FilePath>
             </File>
             <File>
+              <FileName>egui_view_canvas_panner.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_canvas_panner.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_canvas_viewport.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_canvas_viewport.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_view_card.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view_card.c</FilePath>
@@ -1105,6 +1150,11 @@
               <FilePath>..\..\..\src\widget\egui_view_gauge.c</FilePath>
             </File>
             <File>
+              <FileName>egui_view_grid_view.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_grid_view.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_view_gridlayout.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view_gridlayout.c</FilePath>
@@ -1158,6 +1208,16 @@
               <FileName>egui_view_list.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view_list.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_list_view.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_list_view.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_lyric_scroller.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_lyric_scroller.c</FilePath>
             </File>
             <File>
               <FileName>egui_view_menu.c</FileName>
@@ -1293,6 +1353,46 @@
               <FileName>egui_view_viewpage_cache.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view_viewpage_cache.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_virtual_grid.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_virtual_grid.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_virtual_list.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_virtual_list.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_virtual_page.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_virtual_page.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_virtual_section_list.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_virtual_section_list.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_virtual_stage.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_virtual_stage.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_virtual_strip.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_virtual_strip.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_virtual_tree.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_virtual_tree.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_virtual_viewport.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_virtual_viewport.c</FilePath>
             </File>
             <File>
               <FileName>egui_view_window.c</FileName>

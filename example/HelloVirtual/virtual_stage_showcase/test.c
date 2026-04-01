@@ -13,10 +13,16 @@
 #define EGUI_SHOWCASE_PARITY_RECORDING 0
 #endif
 
+#ifndef EGUI_EXAMPLE_DIRTY_ANIMATION_CHECK
+#define EGUI_EXAMPLE_DIRTY_ANIMATION_CHECK 0
+#endif
+
 #define SHOWCASE_CANVAS_WIDTH    HELLO_VIRTUAL_STAGE_SHOWCASE_CANVAS_WIDTH
 #define SHOWCASE_CANVAS_HEIGHT   HELLO_VIRTUAL_STAGE_SHOWCASE_CANVAS_HEIGHT
 #define SHOWCASE_KEYBOARD_HEIGHT 128
 #define SHOWCASE_KEYBOARD_Y      ((EGUI_CONFIG_SCEEN_HEIGHT > SHOWCASE_KEYBOARD_HEIGHT) ? (EGUI_CONFIG_SCEEN_HEIGHT - SHOWCASE_KEYBOARD_HEIGHT) : 0)
+#define SHOWCASE_DIRTY_ANIM_FOCUS_X 96
+#define SHOWCASE_DIRTY_ANIM_FOCUS_Y 250
 
 #define SHOWCASE_NODE_COUNT 37U
 #if EGUI_SHOWCASE_PARITY_RECORDING
@@ -2786,6 +2792,12 @@ void test_init_ui(void)
     egui_view_canvas_panner_init(EGUI_VIEW_OF(&showcase_root));
     egui_view_set_size(EGUI_VIEW_OF(&showcase_root), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_canvas_panner_set_canvas_size(EGUI_VIEW_OF(&showcase_root), SHOWCASE_CANVAS_WIDTH, SHOWCASE_CANVAS_HEIGHT);
+#if EGUI_EXAMPLE_DIRTY_ANIMATION_CHECK
+    if (!EGUI_CONFIG_RECORDING_TEST)
+    {
+        egui_view_canvas_panner_set_offset(EGUI_VIEW_OF(&showcase_root), SHOWCASE_DIRTY_ANIM_FOCUS_X, SHOWCASE_DIRTY_ANIM_FOCUS_Y);
+    }
+#endif
 
     EGUI_VIEW_VIRTUAL_STAGE_INIT_ARRAY_BRIDGE(&showcase_stage_view, &showcase_stage_bridge);
     showcase_apply_stage_background();
@@ -3004,14 +3016,13 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     switch (action_index)
     {
     case 0:
-        if (first_call)
-        {
-            recording_request_snapshot();
-        }
-        EGUI_SIM_SET_WAIT(p_action, 1000);
+        EGUI_SIM_SET_WAIT(p_action, 0);
         return true;
     case 1:
-        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_THEME_BUTTON);
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_THEME_BUTTON);
+        }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_THEME_BUTTON, 50, 50, 500);
         return true;
     case 2:
@@ -3019,10 +3030,13 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             recording_request_snapshot();
         }
-        EGUI_SIM_SET_WAIT(p_action, 1000);
+        EGUI_SIM_SET_WAIT(p_action, 0);
         return true;
     case 3:
-        showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_LANG_BUTTON);
+        if (first_call)
+        {
+            showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_LANG_BUTTON);
+        }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_LANG_BUTTON, 50, 50, 500);
         return true;
     case 4:
@@ -3030,7 +3044,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             recording_request_snapshot();
         }
-        EGUI_SIM_SET_WAIT(p_action, 1000);
+        EGUI_SIM_SET_WAIT(p_action, 0);
         return true;
     default:
         return false;

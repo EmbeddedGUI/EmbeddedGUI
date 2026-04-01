@@ -493,7 +493,7 @@ __EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t 
     {
         /* Angular gradient: per-pixel atan2 with direct PFB write.
          * Per-row optimization: precompute reciprocal of |dy| to replace divisions
- * when
+         * when
          * |dy| > |dx| (~50% of pixels). */
         egui_color_t color_cache[129];
         for (uint16_t i = 0; i < 128; i++)

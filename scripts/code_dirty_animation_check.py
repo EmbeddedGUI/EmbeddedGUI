@@ -100,6 +100,7 @@ SCENARIOS = (
         min_unique_frames=8,
         min_partial_frames=12,
         max_avg_partial_ratio=26.0,
+        extra_cflags="-DEGUI_EXAMPLE_DIRTY_ANIMATION_CHECK=1",
     ),
 )
 

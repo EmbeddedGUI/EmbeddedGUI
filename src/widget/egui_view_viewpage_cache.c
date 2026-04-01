@@ -71,6 +71,34 @@ void egui_view_viewpage_cache_on_paged_free(egui_view_t *self, int index, egui_v
     }
 }
 
+static void egui_view_viewpage_cache_release_loaded_pages(egui_view_t *self, int start_index)
+{
+    EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
+    egui_view_group_t *container = (egui_view_group_t *)&local->container;
+    egui_dnode_t *p_head;
+    egui_dnode_t *p_next;
+    egui_view_t *tmp;
+    int index = start_index;
+
+    if (index < 0)
+    {
+        index = 0;
+    }
+
+    EGUI_DLIST_FOR_EACH_NODE_SAFE(&container->childs, p_head, p_next)
+    {
+        tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
+
+        /*
+         * The free callback may release the page storage. Remove it from the
+         * container first so no later list operation touches freed memory.
+         */
+        egui_view_group_remove_child((egui_view_t *)container, tmp);
+        egui_view_viewpage_cache_on_paged_free(self, index, tmp);
+        index++;
+    }
+}
+
 void egui_view_viewpage_cache_reload_page(egui_view_t *self, int center_page_index)
 {
     EGUI_LOCAL_INIT(egui_view_viewpage_cache_t);
@@ -78,30 +106,10 @@ void egui_view_viewpage_cache_reload_page(egui_view_t *self, int center_page_ind
     int last_center_page_index = local->current_page_index;
     int index = 0;
 
-    // Free last childs
     egui_view_group_t *container = (egui_view_group_t *)&local->container;
-    egui_dnode_t *p_head;
-    egui_dnode_t *p_next;
-    egui_view_t *tmp;
 
     index = last_center_page_index - EGUI_VIEW_VIEWPAGE_CACHE_BASE_OFFSET;
-    if (index < 0)
-    {
-        index = 0;
-    }
-    if (!egui_dlist_is_empty(&container->childs))
-    {
-        EGUI_DLIST_FOR_EACH_NODE_SAFE(&container->childs, p_head, p_next)
-        {
-            tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
-
-            egui_view_viewpage_cache_on_paged_free(self, index, tmp);
-            index++;
-        }
-    }
-
-    // clear all childs.
-    egui_view_group_clear_childs((egui_view_t *)&local->container);
+    egui_view_viewpage_cache_release_loaded_pages(self, index);
 
     // Create new childs.
     index = center_page_index - EGUI_VIEW_VIEWPAGE_CACHE_BASE_OFFSET;
@@ -133,30 +141,8 @@ void egui_view_viewpage_cache_on_paged_free_all(egui_view_t *self)
     int last_center_page_index = local->current_page_index;
     int index = 0;
 
-    // Free last childs
-    egui_view_group_t *container = (egui_view_group_t *)&local->container;
-    egui_dnode_t *p_head;
-    egui_dnode_t *p_next;
-    egui_view_t *tmp;
-
     index = last_center_page_index - EGUI_VIEW_VIEWPAGE_CACHE_BASE_OFFSET;
-    if (index < 0)
-    {
-        index = 0;
-    }
-    if (!egui_dlist_is_empty(&container->childs))
-    {
-        EGUI_DLIST_FOR_EACH_NODE_SAFE(&container->childs, p_head, p_next)
-        {
-            tmp = EGUI_DLIST_ENTRY(p_head, egui_view_t, node);
-
-            egui_view_viewpage_cache_on_paged_free(self, index, tmp);
-            index++;
-        }
-    }
-
-    // clear all childs.
-    egui_view_group_clear_childs((egui_view_t *)&local->container);
+    egui_view_viewpage_cache_release_loaded_pages(self, index);
 }
 
 void egui_view_viewpage_cache_on_paged_changed(egui_view_t *self, int index)

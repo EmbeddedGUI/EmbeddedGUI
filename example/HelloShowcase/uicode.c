@@ -1497,11 +1497,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     switch (action_index)
     {
     case 0:
-        if (first_call)
-        {
-            recording_request_snapshot();
-        }
-        EGUI_SIM_SET_WAIT(p_action, 1000);
+        EGUI_SIM_SET_WAIT(p_action, 0);
         return true;
     case 1:
         EGUI_SIM_SET_CLICK_VIEW(p_action, &btn_theme, 500);
@@ -1511,7 +1507,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             recording_request_snapshot();
         }
-        EGUI_SIM_SET_WAIT(p_action, 1000);
+        EGUI_SIM_SET_WAIT(p_action, 0);
         return true;
     case 3:
         EGUI_SIM_SET_CLICK_VIEW(p_action, &btn_lang, 500);
@@ -1521,7 +1517,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             recording_request_snapshot();
         }
-        EGUI_SIM_SET_WAIT(p_action, 1000);
+        EGUI_SIM_SET_WAIT(p_action, 0);
         return true;
     default:
         return false;

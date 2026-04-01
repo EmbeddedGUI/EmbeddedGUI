@@ -176,6 +176,8 @@ static tree_demo_context_t tree_demo_ctx;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t runtime_drag_reverse;
+static int32_t runtime_scroll_before_drag;
 #endif
 
 EGUI_VIEW_CARD_PARAMS_INIT(tree_demo_header_card_params, TREE_DEMO_MARGIN_X, TREE_DEMO_TOP_Y, TREE_DEMO_HEADER_W, TREE_DEMO_HEADER_H, 14);
@@ -1751,6 +1753,8 @@ void test_init_ui(void)
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
+    runtime_drag_reverse = 0;
+    runtime_scroll_before_drag = 0;
 #endif
 
     egui_view_init(EGUI_VIEW_OF(&background_view));
@@ -1831,6 +1835,16 @@ static void report_runtime_failure(const char *message)
 
     runtime_fail_reported = 1;
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
+}
+
+static uint32_t tree_demo_get_drag_target_min_visible_index(void)
+{
+    if (tree_demo_ctx.last_clicked_visible_index == TREE_DEMO_INVALID_INDEX)
+    {
+        return 4U;
+    }
+
+    return tree_demo_ctx.last_clicked_visible_index < 4U ? 4U : tree_demo_ctx.last_clicked_visible_index + 1U;
 }
 
 typedef struct tree_demo_visible_search_context
@@ -1926,25 +1940,38 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[TREE_DEMO_ACTION_JUMP]), 220);
         return true;
     case 4:
+        if (first_call)
+        {
+            runtime_scroll_before_drag = egui_view_virtual_tree_get_scroll_y(EGUI_VIEW_OF(&tree_view));
+            runtime_drag_reverse = runtime_scroll_before_drag > 20 ? 1U : 0U;
+        }
         p_action->type = EGUI_SIM_ACTION_SWIPE;
         p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 4 / 5;
+        p_action->y1 = runtime_drag_reverse ? EGUI_CONFIG_SCEEN_HEIGHT * 3 / 5 : EGUI_CONFIG_SCEEN_HEIGHT * 4 / 5;
         p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT * 3 / 5;
+        p_action->y2 = runtime_drag_reverse ? EGUI_CONFIG_SCEEN_HEIGHT * 4 / 5 : EGUI_CONFIG_SCEEN_HEIGHT * 3 / 5;
         p_action->steps = 4;
         p_action->interval_ms = 520;
         return true;
     case 5:
         p_action->type = EGUI_SIM_ACTION_SWIPE;
         p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 3 / 4;
+        p_action->y1 = runtime_drag_reverse ? EGUI_CONFIG_SCEEN_HEIGHT / 3 : EGUI_CONFIG_SCEEN_HEIGHT * 3 / 4;
         p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 2;
-        p_action->y2 = EGUI_CONFIG_SCEEN_HEIGHT / 3;
+        p_action->y2 = runtime_drag_reverse ? EGUI_CONFIG_SCEEN_HEIGHT * 3 / 4 : EGUI_CONFIG_SCEEN_HEIGHT / 3;
         p_action->steps = 5;
         p_action->interval_ms = 620;
         return true;
     case 6:
-        view = tree_demo_find_visible_view(0, 2, 8);
+        if (first_call && EGUI_ABS(egui_view_virtual_tree_get_scroll_y(EGUI_VIEW_OF(&tree_view)) - runtime_scroll_before_drag) <= 20)
+        {
+            report_runtime_failure("tree drag did not advance scroll");
+        }
+        view = tree_demo_find_visible_view(0, 2, tree_demo_get_drag_target_min_visible_index());
+        if (view == NULL)
+        {
+            view = tree_demo_find_visible_view(0, 2, 0);
+        }
         if (view == NULL)
         {
             report_runtime_failure("task node after drag was not visible");
