@@ -296,72 +296,19 @@ def run_target_app(app: str, target_name: str, widget: str, args: argparse.Names
     if exe_path is None:
         return False, "executable not found: " + ", ".join(str(path) for path in exe_candidates)
 
-    cmd = [
-        str(exe_path),
-        str(resource_path),
-        "--record",
-        str(frames_dir),
-        str(runtime_check.RECORDING_FPS),
-        str(runtime_check.RECORDING_DURATION),
-        "--speed",
-        str(args.speed),
-        "--clock-scale",
-        str(args.clock_scale),
-        "--snapshot-settle-ms",
-        str(args.snapshot_settle_ms),
-        "--snapshot-stable-cycles",
-        str(args.snapshot_stable_cycles),
-        "--snapshot-max-wait-ms",
-        str(args.snapshot_max_wait_ms),
-        "--headless",
-    ]
-
-    last_error = ""
     timeout = max(runtime_check.RECORDING_DURATION + 5, args.timeout)
-    for attempt in range(runtime_check.RUN_RETRY_COUNT):
-        for old_frame in frames_dir.glob("frame_*.png"):
-            old_frame.unlink()
-
-        try:
-            result = subprocess.run(
-                cmd,
-                timeout=timeout,
-                capture_output=True,
-                text=True,
-                **get_windows_hidden_run_kwargs(),
-            )
-            if result.returncode != 0:
-                stderr_msg = result.stderr.strip() if result.stderr else ""
-                last_error = f"exit code {result.returncode}" + (f": {stderr_msg}" if stderr_msg else "")
-                if attempt < runtime_check.RUN_RETRY_COUNT - 1:
-                    time.sleep(1)
-                    continue
-                return False, last_error
-        except subprocess.TimeoutExpired:
-            return False, f"timeout after {timeout}s"
-        except Exception as exc:
-            return False, f"run error: {exc}"
-
-        combined_output = f"{result.stdout or ''}\n{result.stderr or ''}"
-        for marker in runtime_check.RUNTIME_FAIL_MARKERS:
-            if marker in combined_output:
-                marker_line = marker
-                for line in combined_output.splitlines():
-                    if marker in line:
-                        marker_line = line.strip()
-                        break
-                return False, f"runtime self-check failed: {marker_line}"
-        break
-
-    frame_files = sorted(frames_dir.glob("frame_*.png"))
-    if not frame_files:
-        return False, "no frames generated"
-
-    for frame in frame_files:
-        if frame.stat().st_size < 100:
-            return False, f"frame {frame.name} too small ({frame.stat().st_size} bytes)"
-
-    return True, f"{len(frame_files)} frames captured -> {frames_dir}"
+    return runtime_check.run_recording_capture(
+        exe_path,
+        resource_path,
+        frames_dir,
+        timeout,
+        runtime_check.RECORDING_DURATION,
+        args.speed,
+        args.snapshot_settle_ms,
+        args.clock_scale,
+        args.snapshot_stable_cycles,
+        args.snapshot_max_wait_ms,
+    )
 
 
 def run_hello_unit_test(bits64: bool = False) -> tuple[bool, str]:

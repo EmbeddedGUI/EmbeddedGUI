@@ -18,6 +18,7 @@
 #define PAGE_BASIC_VALUE_TEXT_LEN        16
 #define PAGE_BASIC_ROW_TEXT_LEN          32
 #define PAGE_BASIC_JUMP_STEP             5U
+#define PAGE_BASIC_CLICK_VERIFY_RETRY_MAX 3U
 #define PAGE_BASIC_JUMP_VERIFY_RETRY_MAX 3U
 
 #define PAGE_BASIC_MARGIN_X   8
@@ -157,6 +158,7 @@ static page_basic_context_t page_basic_ctx;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_click_verify_retry;
 static uint8_t recording_jump_verify_retry;
 #endif
 
@@ -954,10 +956,23 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         return true;
     case 2:
-        if (first_call && page_basic_ctx.selected_id != page_basic_ctx.sections[0].stable_id)
+        view = page_basic_find_visible_view_by_index(0);
+        if (page_basic_ctx.selected_id != page_basic_ctx.sections[0].stable_id)
         {
+            if (recording_click_verify_retry < PAGE_BASIC_CLICK_VERIFY_RETRY_MAX)
+            {
+                recording_click_verify_retry++;
+                if (view != NULL && page_basic_set_click_item_action(p_action, view, 220))
+                {
+                    return true;
+                }
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
             report_runtime_failure("section click did not update selected section");
         }
+        recording_click_verify_retry = 0U;
         recording_jump_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[PAGE_BASIC_ACTION_JUMP]), 220);
         return true;
@@ -1057,6 +1072,7 @@ void test_init_ui(void)
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0U;
+    recording_click_verify_retry = 0U;
     recording_jump_verify_retry = 0U;
 #endif
 

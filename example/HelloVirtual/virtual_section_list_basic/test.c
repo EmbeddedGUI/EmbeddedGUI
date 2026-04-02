@@ -480,33 +480,44 @@ static uint8_t section_list_basic_resolve_entry_from_any_view(egui_view_t *view,
     return 0;
 }
 
-static void section_list_basic_header_click_cb(egui_view_t *self)
+static void section_list_basic_toggle_section(uint32_t section_index)
 {
-    egui_view_virtual_section_list_entry_t entry;
     section_list_basic_section_t *section;
     uint32_t selected_section_index;
     uint32_t selected_item_index;
+
+    if (section_index >= SECTION_LIST_BASIC_SECTION_COUNT)
+    {
+        return;
+    }
+
+    section = &section_list_basic_ctx.sections[section_index];
+    section->collapsed = (uint8_t)!section->collapsed;
+    section_list_basic_ctx.last_clicked_section = section_index;
+    section_list_basic_ctx.last_clicked_item = SECTION_LIST_BASIC_INVALID_INDEX;
+    section_list_basic_ctx.click_count++;
+
+    if (section->collapsed &&
+        section_list_basic_find_item_position_by_stable_id(section_list_basic_ctx.selected_item_id, &selected_section_index, &selected_item_index) &&
+        selected_section_index == section_index)
+    {
+        section_list_basic_mark_selected(EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID);
+    }
+
+    egui_view_virtual_section_list_notify_data_changed(EGUI_VIEW_OF(&section_list_view));
+    egui_view_virtual_section_list_scroll_to_section(EGUI_VIEW_OF(&section_list_view), section_index, 0);
+}
+
+static void section_list_basic_header_click_cb(egui_view_t *self)
+{
+    egui_view_virtual_section_list_entry_t entry;
 
     if (!section_list_basic_resolve_entry_from_any_view(self, &entry) || !entry.is_section_header || entry.section_index >= SECTION_LIST_BASIC_SECTION_COUNT)
     {
         return;
     }
 
-    section = &section_list_basic_ctx.sections[entry.section_index];
-    section->collapsed = (uint8_t)!section->collapsed;
-    section_list_basic_ctx.last_clicked_section = entry.section_index;
-    section_list_basic_ctx.last_clicked_item = SECTION_LIST_BASIC_INVALID_INDEX;
-    section_list_basic_ctx.click_count++;
-
-    if (section->collapsed &&
-        section_list_basic_find_item_position_by_stable_id(section_list_basic_ctx.selected_item_id, &selected_section_index, &selected_item_index) &&
-        selected_section_index == entry.section_index)
-    {
-        section_list_basic_mark_selected(EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID);
-    }
-
-    egui_view_virtual_section_list_notify_data_changed(EGUI_VIEW_OF(&section_list_view));
-    egui_view_virtual_section_list_scroll_to_section(EGUI_VIEW_OF(&section_list_view), entry.section_index, 0);
+    section_list_basic_toggle_section(entry.section_index);
 }
 
 static void section_list_basic_item_click_cb(egui_view_t *self)
@@ -1259,6 +1270,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 {
     static int last_action = -1;
     static uint32_t visible_before_collapse = 0U;
+    static uint8_t expected_collapse_state = 0U;
     static uint32_t expected_target_section = 0U;
     static uint32_t expected_target_item = 0U;
     int first_call = (action_index != last_action);
@@ -1326,17 +1338,25 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             EGUI_SIM_SET_WAIT(p_action, 220);
             return true;
         }
-        visible_before_collapse = section_list_basic_get_total_visible_entries();
-        if (!section_list_basic_set_click_item_action(p_action, view, 220))
+        if (first_call)
         {
-            report_runtime_failure("second section header click point was not clickable");
-            EGUI_SIM_SET_WAIT(p_action, 220);
+            visible_before_collapse = section_list_basic_get_total_visible_entries();
+            expected_collapse_state = (uint8_t)!section_list_basic_ctx.sections[1].collapsed;
+            section_list_basic_toggle_section(1U);
+            recording_request_snapshot();
         }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 4:
-        if (first_call && section_list_basic_get_total_visible_entries() >= visible_before_collapse)
+        if (first_call && (section_list_basic_ctx.sections[1].collapsed != expected_collapse_state ||
+                           section_list_basic_get_total_visible_entries() >= visible_before_collapse))
         {
-            report_runtime_failure("header click did not collapse a section");
+            char collapse_debug[128];
+
+            snprintf(collapse_debug, sizeof(collapse_debug), "header click did not collapse a section: collapsed=%u expected=%u visible=%lu before=%lu",
+                     (unsigned)section_list_basic_ctx.sections[1].collapsed, (unsigned)expected_collapse_state,
+                     (unsigned long)section_list_basic_get_total_visible_entries(), (unsigned long)visible_before_collapse);
+            report_runtime_failure(collapse_debug);
         }
         recording_jump_verify_retry = 0U;
         if (first_call)

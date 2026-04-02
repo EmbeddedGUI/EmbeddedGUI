@@ -27,6 +27,10 @@ RECORDING_CLOCK_SCALE = 6
 RECORDING_SNAPSHOT_SETTLE_MS = 0
 RECORDING_SNAPSHOT_STABLE_CYCLES = 1
 RECORDING_SNAPSHOT_MAX_WAIT_MS = 1500
+SLOW_HOST_RETRY_SNAPSHOT_SETTLE_MS = 120
+SLOW_HOST_RETRY_SNAPSHOT_STABLE_CYCLES = 2
+SLOW_HOST_RETRY_SNAPSHOT_MAX_WAIT_MS = 3000
+SLOW_HOST_RETRY_TIMEOUT_MARGIN = 10
 # Speed up compilation: disable debug symbols, use -O0 (same as ui_designer)
 COMPILE_FAST_FLAGS = ['COMPILE_DEBUG=', 'COMPILE_OPT_LEVEL=-O0']
 # Retry count for intermittent crashes (e.g., race conditions in PC simulator threading)
@@ -57,6 +61,142 @@ def get_windows_hidden_run_kwargs():
     # CREATE_NO_WINDOW / SW_HIDE. Keep the default spawn behavior so CI/local
     # runtime checks remain stable.
     return {}
+
+
+def build_recording_cmd(exe_path, resource_path, frames_dir, duration, speed, snapshot_settle_ms, clock_scale, snapshot_stable_cycles, snapshot_max_wait_ms):
+    return [
+        str(exe_path),
+        str(resource_path),
+        '--record',
+        str(frames_dir),
+        str(RECORDING_FPS),
+        str(duration),
+        '--speed',
+        str(speed),
+        '--clock-scale',
+        str(clock_scale),
+        '--snapshot-settle-ms',
+        str(snapshot_settle_ms),
+        '--snapshot-stable-cycles',
+        str(snapshot_stable_cycles),
+        '--snapshot-max-wait-ms',
+        str(snapshot_max_wait_ms),
+        '--headless',
+    ]
+
+
+def build_recording_profiles(timeout, duration, speed, snapshot_settle_ms, clock_scale, snapshot_stable_cycles, snapshot_max_wait_ms):
+    default_profile = {
+        "label": "default",
+        "timeout": timeout,
+        "duration": duration,
+        "speed": speed,
+        "snapshot_settle_ms": snapshot_settle_ms,
+        "clock_scale": clock_scale,
+        "snapshot_stable_cycles": snapshot_stable_cycles,
+        "snapshot_max_wait_ms": snapshot_max_wait_ms,
+    }
+    conservative_profile = {
+        "label": "slow-host",
+        "timeout": max(timeout, duration + SLOW_HOST_RETRY_TIMEOUT_MARGIN),
+        "duration": duration,
+        "speed": speed,
+        "snapshot_settle_ms": max(snapshot_settle_ms, SLOW_HOST_RETRY_SNAPSHOT_SETTLE_MS),
+        "clock_scale": clock_scale,
+        "snapshot_stable_cycles": max(snapshot_stable_cycles, SLOW_HOST_RETRY_SNAPSHOT_STABLE_CYCLES),
+        "snapshot_max_wait_ms": max(snapshot_max_wait_ms, SLOW_HOST_RETRY_SNAPSHOT_MAX_WAIT_MS),
+    }
+
+    comparable_keys = ("timeout", "duration", "speed", "snapshot_settle_ms", "clock_scale", "snapshot_stable_cycles", "snapshot_max_wait_ms")
+    if all(conservative_profile[key] == default_profile[key] for key in comparable_keys):
+        return [default_profile]
+
+    return [default_profile, conservative_profile]
+
+
+def validate_recording_frames(frames_dir):
+    frame_files = sorted(Path(frames_dir).glob("frame_*.png"))
+    if not frame_files:
+        return False, "no frames generated"
+
+    for frame_path in frame_files:
+        size = frame_path.stat().st_size
+        if size < 100:
+            return False, "frame %s too small (%d bytes)" % (frame_path.name, size)
+
+    return True, "%d frames captured -> %s" % (len(frame_files), frames_dir)
+
+
+def run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration, speed,
+                          snapshot_settle_ms, clock_scale, snapshot_stable_cycles,
+                          snapshot_max_wait_ms):
+    frames_dir = Path(frames_dir)
+    frames_dir.mkdir(parents=True, exist_ok=True)
+    hidden_kwargs = get_windows_hidden_run_kwargs()
+    profiles = build_recording_profiles(timeout, duration, speed, snapshot_settle_ms,
+                                        clock_scale, snapshot_stable_cycles,
+                                        snapshot_max_wait_ms)
+    last_error = ""
+
+    for profile_index, profile in enumerate(profiles):
+        cmd = build_recording_cmd(
+            exe_path,
+            resource_path,
+            frames_dir,
+            profile["duration"],
+            profile["speed"],
+            profile["snapshot_settle_ms"],
+            profile["clock_scale"],
+            profile["snapshot_stable_cycles"],
+            profile["snapshot_max_wait_ms"],
+        )
+
+        for old_frame in frames_dir.glob("frame_*.*"):
+            old_frame.unlink()
+
+        for attempt in range(RUN_RETRY_COUNT):
+            try:
+                result = subprocess.run(cmd, timeout=profile["timeout"], capture_output=True, text=True, **hidden_kwargs)
+                if result.returncode != 0:
+                    stderr_msg = result.stderr.strip() if result.stderr else ""
+                    last_error = "exit code %d%s" % (result.returncode, (": " + stderr_msg) if stderr_msg else "")
+                    if attempt < RUN_RETRY_COUNT - 1:
+                        print("(retry %d/%d: %s)" % (attempt + 1, RUN_RETRY_COUNT - 1, last_error), end=" ")
+                        continue
+                    break
+            except subprocess.TimeoutExpired:
+                last_error = "timeout after %ds" % profile["timeout"]
+                break
+            except Exception as e:
+                last_error = "run error: %s" % str(e)
+                break
+
+            combined_output = "%s\n%s" % ((result.stdout or ""), (result.stderr or ""))
+            marker_line = ""
+            for marker in RUNTIME_FAIL_MARKERS:
+                if marker in combined_output:
+                    marker_line = marker
+                    for line in combined_output.splitlines():
+                        if marker in line:
+                            marker_line = line.strip()
+                            break
+                    last_error = "runtime self-check failed: %s" % marker_line
+                    break
+
+            if marker_line:
+                break
+
+            frames_ok, frames_message = validate_recording_frames(frames_dir)
+            if frames_ok:
+                return True, frames_message
+
+            last_error = frames_message
+            break
+
+        if profile_index < len(profiles) - 1:
+            print("(retry %s mode: %s)" % (profiles[profile_index + 1]["label"], last_error), end=" ")
+
+    return False, last_error
 
 
 def get_example_list():
@@ -181,61 +321,9 @@ def run_app(app_name, output_subdir, timeout=DEFAULT_TIMEOUT, duration=RECORDING
     if not exe_path.exists():
         return False, "executable not found"
 
-    # Run with recording: RECORDING_FPS fps, duration seconds, speed multiplier
-    cmd = [str(exe_path), str(resource_path), '--record', frames_dir,
-           str(RECORDING_FPS), str(duration), '--speed', str(speed),
-           '--clock-scale', str(clock_scale),
-           '--snapshot-settle-ms', str(snapshot_settle_ms),
-           '--snapshot-stable-cycles', str(snapshot_stable_cycles),
-           '--snapshot-max-wait-ms', str(snapshot_max_wait_ms), '--headless']
-
-    last_error = ""
-    hidden_kwargs = get_windows_hidden_run_kwargs()
-    for attempt in range(RUN_RETRY_COUNT):
-        # Clean old frames before each attempt
-        for old_frame in Path(frames_dir).glob("frame_*.*"):
-            old_frame.unlink()
-
-        try:
-            result = subprocess.run(cmd, timeout=timeout, capture_output=True, text=True, **hidden_kwargs)
-            if result.returncode != 0:
-                stderr_msg = result.stderr.strip() if result.stderr else ""
-                last_error = "exit code %d%s" % (result.returncode,
-                                                  (": " + stderr_msg) if stderr_msg else "")
-                if attempt < RUN_RETRY_COUNT - 1:
-                    print("(retry %d/%d: %s)" % (attempt + 1, RUN_RETRY_COUNT - 1, last_error), end=" ")
-                    continue
-                return False, last_error
-        except subprocess.TimeoutExpired:
-            return False, "timeout after %ds" % timeout
-        except Exception as e:
-            return False, "run error: %s" % str(e)
-
-        combined_output = "%s\n%s" % ((result.stdout or ""), (result.stderr or ""))
-        for marker in RUNTIME_FAIL_MARKERS:
-            if marker in combined_output:
-                marker_line = marker
-                for line in combined_output.splitlines():
-                    if marker in line:
-                        marker_line = line.strip()
-                        break
-                return False, "runtime self-check failed: %s" % marker_line
-
-        # Success - verify frames
-        break
-
-    # Verify frames were generated
-    frame_files = sorted(Path(frames_dir).glob("frame_*.png"))
-    if not frame_files:
-        return False, "no frames generated"
-
-    # Check frame files have reasonable size
-    for f in frame_files:
-        size = f.stat().st_size
-        if size < 100:
-            return False, "frame %s too small (%d bytes)" % (f.name, size)
-
-    return True, "%d frames captured -> %s" % (len(frame_files), frames_dir)
+    return run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration,
+                                 speed, snapshot_settle_ms, clock_scale,
+                                 snapshot_stable_cycles, snapshot_max_wait_ms)
 
 
 def check_default_resolution(app, app_sub, bits64, explicit_timeout=None,

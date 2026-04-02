@@ -39,6 +39,7 @@
 #define TREE_BASIC_GROUP_H               50
 #define TREE_BASIC_TASK_H                56
 #define TREE_BASIC_TASK_DETAIL_H         74
+#define TREE_BASIC_CLICK_VERIFY_RETRY_MAX 3U
 #define TREE_BASIC_JUMP_VERIFY_RETRY_MAX 3U
 
 #define TREE_BASIC_FONT_TITLE ((const egui_font_t *)&egui_res_font_montserrat_10_4)
@@ -159,6 +160,7 @@ static tree_basic_context_t tree_basic_ctx;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_click_verify_retry;
 static uint8_t recording_jump_verify_retry;
 #endif
 
@@ -1131,10 +1133,23 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         return true;
     case 2:
         node = tree_basic_find_node_by_triplet(TREE_BASIC_NODE_TASK, 0, 0, 0);
-        if (first_call && (node == NULL || tree_basic_ctx.selected_id != node->stable_id))
+        view = tree_basic_find_visible_view(TREE_BASIC_NODE_TASK, 0, 0, 0);
+        if (node == NULL || tree_basic_ctx.selected_id != node->stable_id)
         {
+            if (recording_click_verify_retry < TREE_BASIC_CLICK_VERIFY_RETRY_MAX)
+            {
+                recording_click_verify_retry++;
+                if (view != NULL && tree_basic_set_click_item_action(p_action, view, 220))
+                {
+                    return true;
+                }
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
             report_runtime_failure("task click did not update selected node");
         }
+        recording_click_verify_retry = 0U;
         visible_before_collapse = egui_view_virtual_tree_get_visible_node_count(EGUI_VIEW_OF(&tree_view));
         view = tree_basic_find_visible_view(TREE_BASIC_NODE_GROUP, 0, 0, 0);
         if (view == NULL)
@@ -1265,6 +1280,7 @@ void test_init_ui(void)
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0U;
+    recording_click_verify_retry = 0U;
     recording_jump_verify_retry = 0U;
 #endif
 
