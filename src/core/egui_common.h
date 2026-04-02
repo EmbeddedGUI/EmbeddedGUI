@@ -187,9 +187,28 @@ enum
 #define EGUI_ALIGN_VMASK   0xF0
 
 #define EGUI_ALIGN_CENTER (EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER)
+#define EGUI_ALIGN_TOP_LEFT (EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP)
+#define EGUI_ALIGN_TOP_MID (EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP)
+#define EGUI_ALIGN_TOP_RIGHT (EGUI_ALIGN_RIGHT | EGUI_ALIGN_TOP)
+#define EGUI_ALIGN_BOTTOM_LEFT (EGUI_ALIGN_LEFT | EGUI_ALIGN_BOTTOM)
+#define EGUI_ALIGN_BOTTOM_MID (EGUI_ALIGN_HCENTER | EGUI_ALIGN_BOTTOM)
+#define EGUI_ALIGN_BOTTOM_RIGHT (EGUI_ALIGN_RIGHT | EGUI_ALIGN_BOTTOM)
 
 #define EGUI_LAYOUT_VERTICAL   0
 #define EGUI_LAYOUT_HORIZONTAL 1
+
+typedef struct egui_mem_monitor
+{
+    size_t used_size;
+    size_t total_size;
+    size_t free_cnt;
+    size_t free_size;
+    size_t free_biggest_size;
+    size_t used_cnt;
+    size_t max_used;
+    uint8_t used_pct;
+    uint8_t frag_pct;
+} egui_mem_monitor_t;
 
 /*----------------------------------------------------------------------------*
  * Colour definitions                                                         *

@@ -16,7 +16,9 @@
 | `EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH` | `0` | 在每个 dirty region 外画蓝色边框 | 看脏区是否过大、是否漏刷 | 常和 `PFB_REFRESH` 一起开 |
 | `EGUI_CONFIG_DEBUG_PFB_DIRTY_REGION_CLEAR` | `1` | 控制调试可视化时是否先清掉上一次的脏区结果 | `0` 适合只看当前一轮，`1` 适合看累计扫描轨迹 | 只在 `PFB_REFRESH` 或 `DIRTY_REGION_REFRESH` 开启时有意义 |
 | `EGUI_CONFIG_DEBUG_REFRESH_DELAY` | `0` | 调试可视化时，每个 tile flush 之间额外延时 | 设成 `20~50ms` 更容易肉眼观察 | 会显著拉低刷新速度 |
-| `EGUI_CONFIG_DEBUG_INFO_SHOW` | `0` | 在屏幕底部显示 `FPS / CPU / LCD-Latency` | 快速看运行状态 | 统计口径是 500ms 窗口平均，不是单帧瞬时值 |
+| `EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW` | `0` | 显示 `FPS / CPU / ms(render \| flush)` | 快速看刷新节奏和绘制耗时 | 统计口径是窗口平均，不是单帧瞬时值 |
+| `EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW` | `0` | 显示 EGUI 自身 `malloc` 的 `current / peak` | 快速看框架自身 SRAM 占用变化 | 只统计 `egui_api_malloc/free` 路径，不代表系统总 heap |
+| `EGUI_CONFIG_DEBUG_MONITOR_FONT` | `&egui_res_font_montserrat_12_4` | 设置屏幕 monitor 共用字体 | 觉得默认字太大或太小时覆盖字体资源 | 需传入字体对象地址，详细行为见 {doc}`../performance/debug_monitor` |
 | `EGUI_CONFIG_DEBUG_TOUCH_TRACE` | `0` | 自动记录并绘制最新一条触摸轨迹 | 排查点击、拖动、坐标映射问题 | 现在位于 `egui_core`，不是 PC 端单独叠加 |
 | `EGUI_CONFIG_DEBUG_TOUCH_TRACE_MAX_POINTS` | `256` | 触摸轨迹最多保留的点数 | 长拖动或高采样设备可调大 | 点数越多，占用的静态内存越多 |
 
@@ -99,12 +101,12 @@ make all APP=HelloShowcase PORT=pc \
 
 ### 实时运行信息
 
-`EGUI_CONFIG_DEBUG_INFO_SHOW=1` 会在屏幕底部加一条半透明 label，显示 `FPS / CPU / LCD-Latency`。当前实现按 500ms 窗口平均更新，并且只有文本变化时才刷新，减少 debug label 自身对刷新的干扰。
+`EGUI_CONFIG_DEBUG_INFO_SHOW` 已移除，当前请直接使用 `EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW=1` 和 `EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW=1`。详细计算规则、显示格式、位置参数和运行截图见 {doc}`../performance/debug_monitor`。
 
 ```{figure} images/debug_info_show.png
 :name: debug-info-show
 
-`EGUI_CONFIG_DEBUG_INFO_SHOW=1` 的效果。
+旧 `EGUI_CONFIG_DEBUG_INFO_SHOW` 所覆盖的调试监视器效果。
 ```
 
 ### 触摸轨迹

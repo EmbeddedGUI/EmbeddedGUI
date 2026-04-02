@@ -48,10 +48,66 @@ extern "C" {
 
 /**
  * Debug options.
- * For show debug info on the screen.
+ * EGUI performance monitor.
  */
-#ifndef EGUI_CONFIG_DEBUG_INFO_SHOW
-#define EGUI_CONFIG_DEBUG_INFO_SHOW 0
+#ifndef EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW
+#define EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW 0
+#endif
+
+/**
+ * Debug options.
+ * EGUI memory monitor (current/peak from egui_api_malloc).
+ */
+#ifndef EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
+#define EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW 0
+#endif
+
+/**
+ * Debug options.
+ * Performance monitor statistics window in milliseconds.
+ */
+#ifndef EGUI_CONFIG_DEBUG_MONITOR_REFR_PERIOD
+#define EGUI_CONFIG_DEBUG_MONITOR_REFR_PERIOD 300U
+#endif
+
+/**
+ * Debug options.
+ * Shared font used by the on-screen debug monitors.
+ */
+#ifndef EGUI_CONFIG_DEBUG_MONITOR_FONT
+#define EGUI_CONFIG_DEBUG_MONITOR_FONT (&egui_res_font_montserrat_12_4)
+#endif
+
+/**
+ * Debug options.
+ * Performance monitor position and offset.
+ */
+#ifndef EGUI_CONFIG_DEBUG_PERF_MONITOR_POS
+#define EGUI_CONFIG_DEBUG_PERF_MONITOR_POS EGUI_ALIGN_BOTTOM_RIGHT
+#endif
+
+#ifndef EGUI_CONFIG_DEBUG_PERF_MONITOR_OFFSET_X
+#define EGUI_CONFIG_DEBUG_PERF_MONITOR_OFFSET_X 0
+#endif
+
+#ifndef EGUI_CONFIG_DEBUG_PERF_MONITOR_OFFSET_Y
+#define EGUI_CONFIG_DEBUG_PERF_MONITOR_OFFSET_Y 0
+#endif
+
+/**
+ * Debug options.
+ * Memory monitor position and offset.
+ */
+#ifndef EGUI_CONFIG_DEBUG_MEM_MONITOR_POS
+#define EGUI_CONFIG_DEBUG_MEM_MONITOR_POS EGUI_ALIGN_BOTTOM_LEFT
+#endif
+
+#ifndef EGUI_CONFIG_DEBUG_MEM_MONITOR_OFFSET_X
+#define EGUI_CONFIG_DEBUG_MEM_MONITOR_OFFSET_X 0
+#endif
+
+#ifndef EGUI_CONFIG_DEBUG_MEM_MONITOR_OFFSET_Y
+#define EGUI_CONFIG_DEBUG_MEM_MONITOR_OFFSET_Y 0
 #endif
 
 /**

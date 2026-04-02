@@ -194,7 +194,8 @@ Touch 轨迹逻辑现在位于 `egui_core` 的 debug 模块中，不再由 PC SD
 #define EGUI_CONFIG_DEBUG_LOG_LEVEL EGUI_LOG_IMPL_LEVEL_DBG
 #define EGUI_CONFIG_DEBUG_PFB_REFRESH 1          // 显示 PFB 刷新区域
 #define EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH 1 // 显示脏区域
-#define EGUI_CONFIG_DEBUG_INFO_SHOW 1            // 显示帧率等信息
+#define EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW 1    // 显示 FPS / CPU / render / flush
+#define EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW  1    // 显示 EGUI 自身 malloc current / peak
 ```
 
 ### 运行时验证

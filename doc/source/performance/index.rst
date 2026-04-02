@@ -5,6 +5,7 @@
    :maxdepth: 2
 
    perf_overview
+   debug_monitor
    nano_specs_memcpy_regression
    perf_report
    pfb_matrix_report

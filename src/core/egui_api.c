@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #include "egui_api.h"
 #include "egui_core.h"
@@ -19,6 +20,55 @@
  * platform ops callback so that the porting layer can provide a
  * hardware-accelerated or otherwise specialised implementation.
  */
+
+static void *egui_api_platform_malloc(int size)
+{
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
+    egui_platform_t *plat = egui_platform_get();
+    if (plat != NULL && plat->ops->malloc != NULL)
+    {
+        return plat->ops->malloc(size);
+    }
+    return NULL;
+#else
+    return malloc((size_t)size);
+#endif
+}
+
+static void egui_api_platform_free(void *ptr)
+{
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
+    egui_platform_t *plat = egui_platform_get();
+    if (plat != NULL && plat->ops->free != NULL)
+    {
+        plat->ops->free(ptr);
+    }
+#else
+    free(ptr);
+#endif
+}
+
+#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
+typedef union egui_api_alloc_header
+{
+    size_t payload_size;
+    uintptr_t align_uintptr;
+    long double align_long_double;
+} egui_api_alloc_header_t;
+
+static size_t s_egui_api_mem_used_size;
+static size_t s_egui_api_mem_peak_size;
+
+static void *egui_api_malloc_raw(int size)
+{
+    return egui_api_platform_malloc(size);
+}
+
+static void egui_api_free_raw(void *ptr)
+{
+    egui_api_platform_free(ptr);
+}
+#endif
 
 #if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
 void egui_api_log(const char *format, ...)
@@ -53,36 +103,86 @@ void egui_api_assert(const char *file, int line)
         ;
 }
 
-#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
 void egui_api_free(void *ptr)
 {
-    egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->free != NULL)
-    {
-        plat->ops->free(ptr);
-    }
-}
+#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
+    egui_api_alloc_header_t *header;
 
-void *egui_api_malloc(int size)
-{
-    egui_platform_t *plat = egui_platform_get();
-    if (plat != NULL && plat->ops->malloc != NULL)
+    if (ptr == NULL)
     {
-        return plat->ops->malloc(size);
+        return;
     }
-    return NULL;
-}
+
+    header = ((egui_api_alloc_header_t *)ptr) - 1;
+    if (s_egui_api_mem_used_size >= header->payload_size)
+    {
+        s_egui_api_mem_used_size -= header->payload_size;
+    }
+    else
+    {
+        s_egui_api_mem_used_size = 0U;
+    }
+    egui_api_free_raw((void *)header);
 #else
-void *egui_api_malloc(int size)
-{
-    return malloc(size);
+    egui_api_platform_free(ptr);
+#endif
 }
 
-void egui_api_free(void *ptr)
+void *egui_api_malloc(int size)
 {
-    free(ptr);
-}
+#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
+    egui_api_alloc_header_t *header;
+    size_t payload_size;
+    size_t raw_size;
 #endif
+
+    if (size <= 0)
+    {
+        return NULL;
+    }
+
+#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
+    payload_size = (size_t)size;
+    if (payload_size > (size_t)INT_MAX - sizeof(egui_api_alloc_header_t))
+    {
+        return NULL;
+    }
+
+    raw_size = sizeof(egui_api_alloc_header_t) + payload_size;
+    header = (egui_api_alloc_header_t *)egui_api_malloc_raw((int)raw_size);
+    if (header == NULL)
+    {
+        return NULL;
+    }
+
+    header->payload_size = payload_size;
+    s_egui_api_mem_used_size += payload_size;
+    if (s_egui_api_mem_used_size > s_egui_api_mem_peak_size)
+    {
+        s_egui_api_mem_peak_size = s_egui_api_mem_used_size;
+    }
+    return (void *)(header + 1);
+#else
+    return egui_api_platform_malloc(size);
+#endif
+}
+
+int egui_api_get_mem_monitor(egui_mem_monitor_t *monitor)
+{
+    if (monitor == NULL)
+    {
+        return 0;
+    }
+
+    memset(monitor, 0, sizeof(*monitor));
+
+#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
+    monitor->used_size = s_egui_api_mem_used_size;
+    monitor->max_used = s_egui_api_mem_peak_size;
+#endif
+
+    return 1;
+}
 
 #if EGUI_CONFIG_PLATFORM_CUSTOM_PRINTF
 void egui_api_sprintf(char *str, const char *format, ...)

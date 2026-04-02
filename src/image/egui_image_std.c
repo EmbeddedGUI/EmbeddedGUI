@@ -90,9 +90,34 @@ static uint16_t *g_egui_image_std_shared_external_data_cache = NULL;
 static uint8_t *g_egui_image_std_shared_external_alpha_cache = NULL;
 static uint8_t g_egui_image_std_shared_external_cache_owner = EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_NONE;
 static uint32_t g_egui_image_std_shared_external_cache_generation = 1U;
+static uint8_t g_egui_image_std_shared_external_cache_used_in_frame = 0;
+
+static void egui_image_std_release_shared_external_row_cache(void)
+{
+    if (g_egui_image_std_shared_external_data_cache != NULL)
+    {
+        egui_free(g_egui_image_std_shared_external_data_cache);
+        g_egui_image_std_shared_external_data_cache = NULL;
+    }
+
+    if (g_egui_image_std_shared_external_alpha_cache != NULL)
+    {
+        egui_free(g_egui_image_std_shared_external_alpha_cache);
+        g_egui_image_std_shared_external_alpha_cache = NULL;
+    }
+
+    g_egui_image_std_shared_external_cache_owner = EGUI_IMAGE_EXTERNAL_ROW_CACHE_OWNER_NONE;
+    g_egui_image_std_shared_external_cache_generation++;
+    if (g_egui_image_std_shared_external_cache_generation == 0U)
+    {
+        g_egui_image_std_shared_external_cache_generation = 1U;
+    }
+}
 
 uint32_t egui_image_std_claim_shared_external_row_cache(egui_image_external_row_cache_owner_t owner)
 {
+    g_egui_image_std_shared_external_cache_used_in_frame = 1;
+
     if ((uint8_t)owner != g_egui_image_std_shared_external_cache_owner)
     {
         g_egui_image_std_shared_external_cache_owner = (uint8_t)owner;
@@ -8768,5 +8793,10 @@ void egui_image_std_release_frame_cache(void)
 #if EGUI_CONFIG_IMAGE_STD_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
     egui_api_memset(&g_egui_image_std_external_row_persistent_cache_storage, 0, sizeof(g_egui_image_std_external_row_persistent_cache_storage));
 #endif
+    if (!g_egui_image_std_shared_external_cache_used_in_frame)
+    {
+        egui_image_std_release_shared_external_row_cache();
+    }
+    g_egui_image_std_shared_external_cache_used_in_frame = 0;
 #endif
 }

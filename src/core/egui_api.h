@@ -95,6 +95,7 @@ void egui_api_log(const char *format, ...);
 void egui_api_assert(const char *file, int line);
 void egui_api_free(void *ptr);
 void *egui_api_malloc(int size);
+int egui_api_get_mem_monitor(egui_mem_monitor_t *monitor);
 void egui_api_sprintf(char *str, const char *format, ...);
 void egui_api_draw_data(int16_t x, int16_t y, int16_t width, int16_t height, const egui_color_int_t *data);
 void egui_api_refresh_display(void);

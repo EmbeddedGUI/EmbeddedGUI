@@ -36,6 +36,7 @@ typedef struct egui_shadow egui_shadow_t;
 typedef struct egui_location egui_location_t;
 typedef struct egui_size egui_size_t;
 typedef struct egui_region egui_region_t;
+typedef struct egui_mem_monitor egui_mem_monitor_t;
 
 #ifndef EGUI_KEY_EVENT_T_DEFINED
 #define EGUI_KEY_EVENT_T_DEFINED

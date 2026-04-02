@@ -17,7 +17,7 @@ extern "C" {
 
 #define EGUI_CONFIG_DEBUG_PFB_REFRESH          0
 #define EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH 0
-#define EGUI_CONFIG_DEBUG_INFO_SHOW            1
+#define EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW    1
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

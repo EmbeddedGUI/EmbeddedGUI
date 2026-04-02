@@ -24,7 +24,6 @@ extern "C" {
 // debug options
 #define EGUI_CONFIG_DEBUG_PFB_REFRESH          1
 #define EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH 1
-#define EGUI_CONFIG_DEBUG_INFO_SHOW            0
 
 #define EGUI_CONFIG_DEBUG_REFRESH_DELAY 50
 /* Ends C function definitions when using C++ */
