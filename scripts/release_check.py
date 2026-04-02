@@ -109,7 +109,7 @@ def build_steps(args):
         ("dirty_anim", STEP_DESCRIPTIONS["dirty_anim"], dirty_anim_cmd),
         ("stage_parity", STEP_DESCRIPTIONS["stage_parity"], stage_parity_cmd),
         ("virtual_render", STEP_DESCRIPTIONS["virtual_render"], virtual_render_cmd),
-        ("size", STEP_DESCRIPTIONS["size"], [py, str(SCRIPT_DIR / "utils_analysis_elf_size.py"), "--case-set", "typical", "--doc"]),
+        ("size", STEP_DESCRIPTIONS["size"], [py, str(SCRIPT_DIR / "size_analysis" / "utils_analysis_elf_size.py"), "--case-set", "typical", "--doc"]),
         ("perf", STEP_DESCRIPTIONS["perf"], perf_cmd),
         ("doc", STEP_DESCRIPTIONS["doc"], [py, "-m", "sphinx", "-M", "html", str(PROJECT_ROOT / "doc" / "source"), str(PROJECT_ROOT / "doc" / "build")]),
     ]
@@ -290,3 +290,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

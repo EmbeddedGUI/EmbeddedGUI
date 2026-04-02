@@ -1,4 +1,4 @@
-# QEMU Size And Memory Report
+﻿# QEMU Size And Memory Report
 
 - Commit: `9943a46`
 - Date: 2026-03-31T16:54:53.533712

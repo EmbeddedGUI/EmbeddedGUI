@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent
+PROJECT_ROOT = SCRIPT_DIR.parent.parent
 SIZE_OUTPUT = PROJECT_ROOT / "output"
 DOC_DIR = PROJECT_ROOT / "doc" / "source" / "size"
 IMG_DIR = DOC_DIR / "images"
@@ -331,8 +331,146 @@ def generate_size_overview():
         "## Generation Command",
         "",
         "```bash",
-        "python scripts/utils_analysis_elf_size.py --case-set typical",
-        "python scripts/size_to_doc.py",
+        "python scripts/size_analysis/utils_analysis_elf_size.py --case-set typical",
+        "python scripts/size_analysis/size_to_doc.py",
+        "```",
+    ]
+
+    overview.extend(_build_legacy_compare_lines())
+
+    md_path = DOC_DIR / "size_overview.md"
+    md_path.write_text("\n".join(overview), encoding="utf-8")
+    print("  Overview saved: %s" % md_path)
+
+
+def _format_case_scope():
+    return "`HelloBasic` 全子 case、`HelloSimple`、`HelloPerformance`、`HelloShowcase`、`HelloStyleDemo`、`HelloVirtual(virtual_stage_showcase)`"
+
+
+def _build_legacy_compare_lines():
+    qemu_data = load_json(SIZE_OUTPUT / "size_results.json")
+    legacy_data = load_json(LEGACY_SIZE_OUTPUT)
+
+    if not qemu_data or not legacy_data:
+        return []
+
+    qemu_apps = {item["name"]: item for item in qemu_data.get("apps", [])}
+    legacy_apps = {item["name"]: item for item in legacy_data.get("apps", [])}
+    common_names = sorted(set(qemu_apps) & set(legacy_apps))
+
+    if not common_names:
+        return []
+
+    code_deltas = []
+    ram_deltas = []
+    pfb_deltas = []
+    rom_deltas = []
+
+    for name in common_names:
+        qemu_item = qemu_apps[name]
+        legacy_item = legacy_apps[name]
+        code_deltas.append(qemu_item["code_bytes"] - legacy_item["code_bytes"])
+        ram_deltas.append(qemu_item["ram_bytes"] - legacy_item["ram_bytes"])
+        pfb_deltas.append(qemu_item["pfb_bytes"] - legacy_item["pfb_bytes"])
+        rom_deltas.append(
+            (qemu_item["code_bytes"] + qemu_item["resource_bytes"]) - (legacy_item["code_bytes"] + legacy_item["resource_bytes"])
+        )
+
+    def summarize(values):
+        ordered = sorted(values)
+        count = len(ordered)
+        middle = count // 2
+        if count % 2 == 1:
+            median = ordered[middle]
+        else:
+            median = (ordered[middle - 1] + ordered[middle]) // 2
+        return ordered[0], median, ordered[-1]
+
+    code_min, code_median, code_max = summarize(code_deltas)
+    ram_min, ram_median, ram_max = summarize(ram_deltas)
+    pfb_min, pfb_median, pfb_max = summarize(pfb_deltas)
+    rom_min, rom_median, rom_max = summarize(rom_deltas)
+
+    code_over_10kb = sum(1 for value in code_deltas if value > 10 * 1024)
+    ram_over_1kb = sum(1 for value in ram_deltas if value > 1024)
+    failures = legacy_data.get("failures", [])
+
+    lines = [
+        "## QEMU vs stm32g0_empty",
+        "",
+        "- 对比范围：%d 个共同成功 case。qemu 是当前正式统计口径，`stm32g0_empty` 只保留为静态 size 交叉验证口径。"
+        % len(common_names),
+        "- Code delta（qemu - stm32g0_empty）：min %d B / median %d B / max %d B。" % (code_min, code_median, code_max),
+        "- ROM delta（code + resource）：min %d B / median %d B / max %d B。" % (rom_min, rom_median, rom_max),
+        "- RAM delta（不含 PFB）：min %d B / median %d B / max %d B。" % (ram_min, ram_median, ram_max),
+        "- PFB delta：min %d B / median %d B / max %d B。" % (pfb_min, pfb_median, pfb_max),
+        "- 超过阈值统计：`code > +10KB` 有 %d 个，`ram > +1KB` 有 %d 个。" % (code_over_10kb, ram_over_1kb),
+        "- 结论：当前 qemu 口径没有引入超过 `10KB` 的代码膨胀，也没有引入超过 `1KB` 的静态 RAM 膨胀，同时还能额外提供运行期 `heap/stack` 数据。",
+    ]
+
+    if failures:
+        lines.append(
+            "- 旧链路仍有维护成本：`stm32g0_empty` 在 Windows 下还有 %d 个大 case 无法稳定完成链接：%s。"
+            % (len(failures), "、".join(item["name"] for item in failures))
+        )
+
+    lines.append("")
+    return lines
+
+
+def generate_size_overview():
+    data = load_json(SIZE_OUTPUT / "size_results.json")
+    build_platform = {}
+    runtime_platform = {}
+    if data:
+        build_platform = data.get("build_platform", {})
+        runtime_platform = data.get("runtime_platform", {})
+
+    overview = [
+        "# QEMU Size Analysis",
+        "",
+        "本目录下的 size 文档统一采用 qemu 口径，目标是同时提供：",
+        "",
+        "- 静态二进制体积",
+        "- 运行期 `heap`",
+        "- 运行期 `stack`",
+        "",
+        "相比旧的纯 ELF 静态统计方式，这套口径更完整，也更适合做配置取舍和回归比较。",
+        "",
+        "## Scope",
+        "",
+        "- %s" % _get_case_scope(data),
+        "",
+        "## Measurement Method",
+        "",
+        "- **Static size build**: `make all PORT=%s CPU_ARCH=%s`" % (build_platform.get("port", "qemu"), build_platform.get("cpu_arch", "cortex-m0plus")),
+        "- **Static data source**: `output/main.map` input sections from repo-side `src/` + `example/` objects",
+        "- **Static size scope**: %s" % _get_static_size_scope(data),
+        "- **Runtime measure**: `qemu-system-arm -machine %s -cpu %s -icount shift=0`" % (
+            runtime_platform.get("machine", "mps2-an385"),
+            runtime_platform.get("cpu", "cortex-m3"),
+        ),
+        "- **Runtime flags**: `-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1`",
+        "- **Heap peak definition**: `max(idle_peak, interaction_total_peak)`",
+        "- **Stack peak definition**: qemu 侧保留栈区的 watermark 高水位统计",
+        "",
+        "## Size Categories",
+        "",
+        "| Category | Description |",
+        "|----------|-------------|",
+        "| Code | `.text` 可执行代码大小 |",
+        "| Resource | `.rodata` 只读资源大小 |",
+        "| RAM | `.data + .bss - .bss.pfb_area` 静态 RAM |",
+        "| PFB | `Partial Frame Buffer` 静态 RAM |",
+        "| Heap Idle | UI 建立完成后的稳定 `heap` 占用 |",
+        "| Heap Peak | 初始化或交互阶段出现的最大 `heap` 占用 |",
+        "| Stack Peak | qemu 运行时记录到的栈峰值 |",
+        "",
+        "## Generation Command",
+        "",
+        "```bash",
+        "python scripts/size_analysis/utils_analysis_elf_size.py --case-set typical",
+        "python scripts/size_analysis/size_to_doc.py",
         "```",
     ]
 

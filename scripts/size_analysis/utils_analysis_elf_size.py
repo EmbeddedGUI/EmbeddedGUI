@@ -17,7 +17,7 @@ except ImportError:
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent
+PROJECT_ROOT = SCRIPT_DIR.parent.parent
 OUTPUT_DIR = PROJECT_ROOT / "output"
 ELF_PATH = OUTPUT_DIR / "main.elf"
 MAP_PATH = OUTPUT_DIR / "main.map"
