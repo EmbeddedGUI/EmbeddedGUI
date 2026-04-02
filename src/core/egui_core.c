@@ -19,8 +19,6 @@
 #endif
 #include "resource/egui_resource.h"
 #include "widget/egui_view.h"
-#include "widget/egui_view_label.h"
-#include "background/egui_background_color.h"
 #include "utils/egui_slist.h"
 #include "utils/egui_dlist.h"
 
@@ -31,6 +29,17 @@ __EGUI_WEAK__ void egui_port_notify_frame_render_complete(void)
 }
 
 egui_core_t egui_core;
+
+#if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
+#define EGUI_CORE_USER_ROOT_VIEW_PTR() ((egui_view_t *)&egui_core.user_root_view_group)
+#else
+#define EGUI_CORE_USER_ROOT_VIEW_PTR() ((egui_view_t *)&egui_core.root_view_group)
+#endif
+
+#if EGUI_CONFIG_DEBUG_INFO_SHOW
+static void egui_debug_draw_info_overlay_for_current_pfb(void);
+static void egui_debug_commit_info_overlay_region(void);
+#endif
 
 #if EGUI_CONFIG_SOFTWARE_ROTATION
 static egui_color_int_t egui_rotation_scratch[EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
@@ -599,24 +608,24 @@ void egui_core_force_refresh(void)
 
 egui_view_group_t *egui_core_get_user_root_view(void)
 {
-    return (egui_view_group_t *)&egui_core.user_root_view_group;
+    return (egui_view_group_t *)EGUI_CORE_USER_ROOT_VIEW_PTR();
 }
 
 void egui_core_add_user_root_view(egui_view_t *view)
 {
-    egui_view_group_add_child((egui_view_t *)&egui_core.user_root_view_group, view);
+    egui_view_group_add_child(EGUI_CORE_USER_ROOT_VIEW_PTR(), view);
 }
 
 void egui_core_remove_user_root_view(egui_view_t *view)
 {
-    egui_view_group_remove_child((egui_view_t *)&egui_core.user_root_view_group, view);
+    egui_view_group_remove_child(EGUI_CORE_USER_ROOT_VIEW_PTR(), view);
 
     egui_core_update_region_dirty_all();
 }
 
 void egui_core_layout_childs_user_root_view(uint8_t is_orientation_horizontal, uint8_t align_type)
 {
-    egui_view_group_layout_childs((egui_view_t *)&egui_core.user_root_view_group, is_orientation_horizontal, 0, 0, align_type);
+    egui_view_group_layout_childs(EGUI_CORE_USER_ROOT_VIEW_PTR(), is_orientation_horizontal, 0, 0, align_type);
 }
 
 void egui_core_draw_data(egui_region_t *p_region)
@@ -740,6 +749,10 @@ void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode)
             egui_core_debug_touch_trace_draw();
 #endif
 
+#if EGUI_CONFIG_DEBUG_INFO_SHOW
+            egui_debug_draw_info_overlay_for_current_pfb();
+#endif
+
             egui_core_draw_data(&region);
 
 #if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
@@ -806,43 +819,75 @@ uint16_t egui_core_get_unique_id(void)
 #endif
 
 #if EGUI_CONFIG_DEBUG_INFO_SHOW
-#define EGUI_DEBUG_INFO_UPDATE_INTERVAL_MS 500U
+#define EGUI_DEBUG_INFO_UPDATE_INTERVAL_MS 300U
+#define EGUI_DEBUG_INFO_OVERLAY_PADDING    3
+#define EGUI_DEBUG_INFO_OVERLAY_BG_ALPHA   128
+#define EGUI_DEBUG_INFO_OVERLAY_FONT()     ((egui_font_t *)&egui_res_font_montserrat_14_4)
 
 typedef struct egui_debug_info_stats
 {
     uint32_t window_start_time;
-    uint32_t frame_count;
-    uint32_t total_work_time;
+    uint32_t refr_count;
+    uint32_t render_count;
+    uint32_t total_render_time;
+    uint32_t total_flush_time;
     uint8_t initialized;
 } egui_debug_info_stats_t;
 
 static egui_debug_info_stats_t debug_info_stats;
 static char debug_string_info[100];
+static egui_region_t debug_info_overlay_region_last;
+static uint8_t debug_info_overlay_region_last_valid;
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_debug_normal, EGUI_COLOR_MAKE(128, 128, 128), 128);
-EGUI_BACKGROUND_PARAM_INIT(bg_debug_params, &bg_debug_normal, NULL, NULL);
-static egui_background_color_t bg_debug;
-static egui_view_label_t label_debug;
-
-static void egui_debug_set_info_text(uint32_t fps, uint32_t cpu_use_percent_x100, uint32_t latency_ms)
+static int egui_debug_get_info_overlay_region(egui_region_t *region)
 {
-    char next_string[sizeof(debug_string_info)];
+    egui_dim_t text_width = 0;
+    egui_dim_t text_height = 0;
+    egui_dim_t overlay_width;
+    egui_dim_t overlay_height;
+    const egui_font_t *font = EGUI_DEBUG_INFO_OVERLAY_FONT();
 
-    if (cpu_use_percent_x100 > 9999U)
+    if (region == NULL || egui_core.screen_width <= 0 || egui_core.screen_height <= 0)
     {
-        cpu_use_percent_x100 = 9999U;
+        return 0;
     }
 
-    egui_api_sprintf(next_string, "FPS: %lu, CPU %lu.%02lu%%, LCD-Latency: %lums", (unsigned long)fps, (unsigned long)(cpu_use_percent_x100 / 100U),
-                     (unsigned long)(cpu_use_percent_x100 % 100U), (unsigned long)latency_ms);
+    font->api->get_str_size(font, debug_string_info, 1, 0, &text_width, &text_height);
+
+    overlay_width = text_width + (EGUI_DEBUG_INFO_OVERLAY_PADDING << 1);
+    overlay_height = text_height + (EGUI_DEBUG_INFO_OVERLAY_PADDING << 1);
+    overlay_width = EGUI_MIN(overlay_width, (egui_dim_t)egui_core.screen_width);
+    overlay_height = EGUI_MIN(overlay_height, (egui_dim_t)egui_core.screen_height);
+
+    if (overlay_width <= 0 || overlay_height <= 0)
+    {
+        return 0;
+    }
+
+    egui_region_init(region, egui_core.screen_width - overlay_width, egui_core.screen_height - overlay_height, overlay_width, overlay_height);
+    return 1;
+}
+
+static uint8_t egui_debug_set_info_text(uint32_t fps, uint32_t cpu_percent, uint32_t render_avg_time_ms, uint32_t flush_avg_time_ms)
+{
+    char next_string[sizeof(debug_string_info)];
+    uint32_t refr_avg_time_ms = render_avg_time_ms + flush_avg_time_ms;
+
+    if (cpu_percent > 100U)
+    {
+        cpu_percent = 100U;
+    }
+
+    egui_api_sprintf(next_string, "%lu FPS, %lu%% CPU\n%lu ms (%lu | %lu)", (unsigned long)fps, (unsigned long)cpu_percent, (unsigned long)refr_avg_time_ms,
+                     (unsigned long)render_avg_time_ms, (unsigned long)flush_avg_time_ms);
 
     if (strcmp(debug_string_info, next_string) == 0)
     {
-        return;
+        return 0;
     }
 
     strcpy(debug_string_info, next_string);
-    egui_view_label_set_text((egui_view_t *)&label_debug, debug_string_info);
+    return 1;
 }
 
 static void egui_debug_reset_info_stats(void)
@@ -850,12 +895,44 @@ static void egui_debug_reset_info_stats(void)
     egui_api_memset(&debug_info_stats, 0, (int)sizeof(debug_info_stats));
 }
 
-static void egui_debug_record_work_time(uint32_t work_time, uint32_t timestamp)
+static void egui_debug_mark_info_overlay_dirty(void)
+{
+    egui_region_t overlay_region;
+    egui_region_t refresh_region;
+    int has_overlay_region = egui_debug_get_info_overlay_region(&overlay_region);
+
+    if (!has_overlay_region && !debug_info_overlay_region_last_valid)
+    {
+        return;
+    }
+
+    if (debug_info_overlay_region_last_valid && has_overlay_region)
+    {
+        egui_region_union(&debug_info_overlay_region_last, &overlay_region, &refresh_region);
+    }
+    else if (has_overlay_region)
+    {
+        egui_region_copy(&refresh_region, &overlay_region);
+    }
+    else
+    {
+        egui_region_copy(&refresh_region, &debug_info_overlay_region_last);
+    }
+
+    if (!egui_region_is_empty(&refresh_region))
+    {
+        egui_core_update_region_dirty(&refresh_region);
+    }
+}
+
+static void egui_debug_record_refresh_tick(uint32_t timestamp)
 {
     uint32_t elapsed;
     uint32_t fps;
-    uint32_t cpu_use_percent_x100;
-    uint32_t latency_ms;
+    uint32_t cpu_percent;
+    uint32_t render_avg_time_ms;
+    uint32_t flush_avg_time_ms;
+    uint32_t total_work_time;
 
     if (!debug_info_stats.initialized)
     {
@@ -863,36 +940,113 @@ static void egui_debug_record_work_time(uint32_t work_time, uint32_t timestamp)
         debug_info_stats.initialized = 1;
     }
 
-    debug_info_stats.frame_count++;
-    debug_info_stats.total_work_time += work_time;
+    debug_info_stats.refr_count++;
 
     elapsed = timestamp - debug_info_stats.window_start_time;
-    if (elapsed < EGUI_DEBUG_INFO_UPDATE_INTERVAL_MS || debug_info_stats.frame_count == 0)
+    if (elapsed < EGUI_DEBUG_INFO_UPDATE_INTERVAL_MS || debug_info_stats.refr_count == 0)
     {
         return;
     }
 
-    fps = (debug_info_stats.frame_count * 1000U + elapsed / 2U) / elapsed;
+    fps = (debug_info_stats.refr_count * 1000U + elapsed / 2U) / elapsed;
     if (fps > EGUI_CONFIG_MAX_FPS)
     {
         fps = EGUI_CONFIG_MAX_FPS;
     }
 
-    cpu_use_percent_x100 = (debug_info_stats.total_work_time * 10000U + elapsed / 2U) / elapsed;
-    latency_ms = (debug_info_stats.total_work_time + debug_info_stats.frame_count / 2U) / debug_info_stats.frame_count;
+    total_work_time = debug_info_stats.total_render_time + debug_info_stats.total_flush_time;
+    cpu_percent = (total_work_time * 100U + elapsed / 2U) / elapsed;
+    if (debug_info_stats.render_count > 0)
+    {
+        render_avg_time_ms = (debug_info_stats.total_render_time + debug_info_stats.render_count / 2U) / debug_info_stats.render_count;
+        flush_avg_time_ms = (debug_info_stats.total_flush_time + debug_info_stats.render_count / 2U) / debug_info_stats.render_count;
+    }
+    else
+    {
+        render_avg_time_ms = 0;
+        flush_avg_time_ms = 0;
+    }
 
-    egui_debug_set_info_text(fps, cpu_use_percent_x100, latency_ms);
+    if (egui_debug_set_info_text(fps, cpu_percent, render_avg_time_ms, flush_avg_time_ms))
+    {
+        egui_debug_mark_info_overlay_dirty();
+    }
 
     debug_info_stats.window_start_time = timestamp;
-    debug_info_stats.frame_count = 0;
-    debug_info_stats.total_work_time = 0;
+    debug_info_stats.refr_count = 0;
+    debug_info_stats.render_count = 0;
+    debug_info_stats.total_render_time = 0;
+    debug_info_stats.total_flush_time = 0;
+}
+
+static void egui_debug_record_work_time(uint32_t render_time, uint32_t flush_time, uint32_t timestamp)
+{
+    if (!debug_info_stats.initialized)
+    {
+        debug_info_stats.window_start_time = timestamp;
+        debug_info_stats.initialized = 1;
+    }
+
+    debug_info_stats.render_count++;
+    debug_info_stats.total_render_time += render_time;
+    debug_info_stats.total_flush_time += flush_time;
+}
+
+static void egui_debug_draw_info_overlay_for_current_pfb(void)
+{
+    egui_region_t overlay_region;
+    egui_region_t text_region;
+    egui_region_t *pfb_region = egui_canvas_get_pfb_region();
+    EGUI_REGION_DEFINE(region_screen, 0, 0, egui_core.screen_width, egui_core.screen_height);
+
+    if (!egui_debug_get_info_overlay_region(&overlay_region))
+    {
+        return;
+    }
+
+    if (pfb_region != NULL && !egui_region_is_intersect(&overlay_region, pfb_region))
+    {
+        return;
+    }
+
+    egui_canvas_calc_work_region(&region_screen);
+    egui_canvas_draw_rectangle_fill(overlay_region.location.x, overlay_region.location.y, overlay_region.size.width, overlay_region.size.height, EGUI_COLOR_BLACK,
+                                    EGUI_DEBUG_INFO_OVERLAY_BG_ALPHA);
+
+    egui_region_copy(&text_region, &overlay_region);
+    if (text_region.size.width <= (EGUI_DEBUG_INFO_OVERLAY_PADDING << 1) || text_region.size.height <= (EGUI_DEBUG_INFO_OVERLAY_PADDING << 1))
+    {
+        return;
+    }
+
+    text_region.location.x += EGUI_DEBUG_INFO_OVERLAY_PADDING;
+    text_region.location.y += EGUI_DEBUG_INFO_OVERLAY_PADDING;
+    text_region.size.width -= (EGUI_DEBUG_INFO_OVERLAY_PADDING << 1);
+    text_region.size.height -= (EGUI_DEBUG_INFO_OVERLAY_PADDING << 1);
+    egui_canvas_draw_text_in_rect(EGUI_DEBUG_INFO_OVERLAY_FONT(), debug_string_info, &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP, EGUI_COLOR_WHITE,
+                                  EGUI_ALPHA_100);
+}
+
+static void egui_debug_commit_info_overlay_region(void)
+{
+    egui_region_t overlay_region;
+
+    if (!egui_debug_get_info_overlay_region(&overlay_region))
+    {
+        return;
+    }
+
+    egui_region_copy(&debug_info_overlay_region_last, &overlay_region);
+    debug_info_overlay_region_last_valid = 1;
 }
 
 static void egui_debug_init_info_text(void)
 {
     debug_string_info[0] = '\0';
-    egui_debug_set_info_text(0, 0, 0);
+    egui_debug_set_info_text(0, 0, 0, 0);
     egui_debug_reset_info_stats();
+    egui_region_init_empty(&debug_info_overlay_region_last);
+    debug_info_overlay_region_last_valid = 0;
     if (debug_info_stats.initialized == 0)
     {
         debug_info_stats.window_start_time = egui_api_timer_get_current();
@@ -904,7 +1058,9 @@ static void egui_debug_init_info_text(void)
 void egui_polling_refresh_display(void)
 {
 #if EGUI_CONFIG_DEBUG_INFO_SHOW
-    uint32_t start_time = egui_api_timer_get_current();
+    uint32_t render_start_time = egui_api_timer_get_current();
+    uint32_t render_end_time;
+    uint32_t flush_end_time;
 #endif
 
 #if EGUI_CONFIG_DEBUG_PFB_REFRESH || EGUI_CONFIG_DEBUG_DIRTY_REGION_REFRESH
@@ -944,14 +1100,20 @@ void egui_polling_refresh_display(void)
     // clear the dirty region
     egui_core_clear_region_dirty();
 
+#if EGUI_CONFIG_DEBUG_INFO_SHOW
+    egui_debug_commit_info_overlay_region();
+#endif
+
+#if EGUI_CONFIG_DEBUG_INFO_SHOW
+    render_end_time = egui_api_timer_get_current();
+#endif
+
     // wait for all PFB flush complete before next frame, to avoid too many pending buffers in the PFB manager when the screen is updated frequently.
     egui_pfb_manager_wait_all_complete(&egui_core.pfb_mgr);
 
 #if EGUI_CONFIG_DEBUG_INFO_SHOW
-    // refresh in next frame.
-    uint32_t end_time = egui_api_timer_get_current();
-    start_time = end_time - start_time;
-    egui_debug_record_work_time(start_time, end_time);
+    flush_end_time = egui_api_timer_get_current();
+    egui_debug_record_work_time(render_end_time - render_start_time, flush_end_time - render_end_time, flush_end_time);
 #endif
 }
 
@@ -1073,6 +1235,9 @@ static egui_timer_t egui_refresh_timer;
 static void egui_refresh_timer_callback(egui_timer_t *timer)
 {
     uint32_t start_time = egui_api_timer_get_current();
+#if EGUI_CONFIG_DEBUG_INFO_SHOW
+    egui_debug_record_refresh_tick(start_time);
+#endif
     egui_core_refresh_screen();
     // get the time used to refresh the screen.
     // avoid refresh too frequently.
@@ -1145,7 +1310,9 @@ void egui_core_set_screen_size(int16_t width, int16_t height)
 
     // Update root view group sizes
     egui_view_set_size((egui_view_t *)&egui_core.root_view_group, width, height);
+#if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
     egui_view_set_size((egui_view_t *)&egui_core.user_root_view_group, width, height);
+#endif
 
     // Force full screen refresh
     egui_core_update_region_dirty_all();
@@ -1291,28 +1458,15 @@ void egui_init(egui_color_int_t pfb[][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HE
     egui_view_set_size((egui_view_t *)&egui_core.root_view_group, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
     egui_view_dispatch_attach_to_window((egui_view_t *)&egui_core.root_view_group);
 
+#if EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
     egui_view_root_group_init((egui_view_t *)&egui_core.user_root_view_group);
     egui_view_set_position((egui_view_t *)&egui_core.user_root_view_group, 0, 0);
     egui_view_set_size((egui_view_t *)&egui_core.user_root_view_group, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
 
     egui_core_add_root_view((egui_view_t *)&egui_core.user_root_view_group);
+#endif
 
 #if EGUI_CONFIG_DEBUG_INFO_SHOW
-    // Inintialize the debug view
-    egui_background_color_init((egui_background_t *)&bg_debug);
-    egui_background_set_params((egui_background_t *)&bg_debug, &bg_debug_params);
-
-    egui_view_label_init((egui_view_t *)&label_debug);
-    egui_view_set_position((egui_view_t *)&label_debug, 0, EGUI_CONFIG_SCEEN_HEIGHT - 40);
-    egui_view_set_size((egui_view_t *)&label_debug, EGUI_CONFIG_SCEEN_WIDTH, 0);
-    egui_view_label_set_text((egui_view_t *)&label_debug, NULL);
-    egui_view_label_set_align_type((egui_view_t *)&label_debug, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
-    egui_view_label_set_font_with_std_height((egui_view_t *)&label_debug, (egui_font_t *)&egui_res_font_montserrat_10_4);
-    egui_view_label_set_font_color((egui_view_t *)&label_debug, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
-    egui_view_set_background((egui_view_t *)&label_debug, (egui_background_t *)&bg_debug);
-
-    egui_core_add_root_view((egui_view_t *)&label_debug);
-
     egui_debug_init_info_text();
 #endif
 

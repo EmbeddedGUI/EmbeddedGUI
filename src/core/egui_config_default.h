@@ -183,6 +183,21 @@ extern "C" {
 #endif
 
 /**
+ * Core state options.
+ * Select whether to keep a separate user-root wrapper under the top-level root group.
+ * Default: 0 (disabled). Auto-enabled when activity or dialog is enabled.
+ * Debug info no longer needs this because it is drawn directly as an overlay.
+ */
+#if EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY || EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG
+#undef EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
+#define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 1
+#endif
+
+#ifndef EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE
+#define EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE 0
+#endif
+
+/**
  * Function options.
  * Select support key event. if 0, disable key event.
  */
