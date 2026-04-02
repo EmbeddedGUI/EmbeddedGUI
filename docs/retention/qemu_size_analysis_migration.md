@@ -58,7 +58,7 @@ python scripts/size_analysis/size_to_doc.py
   - `doc/source/size/size_report.md`
   - `doc/source/size/images/size_report.png`
 
-## qemu vs stm32g0_empty 对比结论
+## qemu vs 旧 stm32g0_empty 对比结论
 
 为了评估 qemu 是否带来无关膨胀，本次额外做了同一批 case 的 `stm32g0_empty` 静态体积对比。
 
@@ -80,7 +80,7 @@ python scripts/size_analysis/size_to_doc.py
 
 - qemu 口径没有引入超过阈值的额外 `code` 膨胀
 - qemu 口径没有引入超过阈值的额外 `static RAM` 膨胀
-- 在这批样本里，qemu 的静态体积通常还略小于 `stm32g0_empty`
+- 在这批样本里，qemu 的静态体积通常还略小于旧 `stm32g0_empty`
 
 ## 迁移决策
 
@@ -89,9 +89,9 @@ python scripts/size_analysis/size_to_doc.py
 1. `scripts/size_analysis/utils_analysis_elf_size.py` 默认统计口径切到 qemu 是可行的
 2. qemu 可以同时提供静态体积与运行期 `heap/stack`，信息完整性优于旧链路
 3. qemu 没有带来不可接受的额外体积膨胀
-4. `stm32g0_empty` 保留为移植模板和必要时的定向对比口径，不再作为 size 文档的默认自动统计依赖
+4. 这份对比报告只保留为历史记录；当前仓库已删除 `stm32g0_empty`，相关 MCU 入口统一收敛到 `stm32g0`
 
 ## 后续建议
 
-- 如果后续需要评估“真实 MCU linker/startup/HAL”带来的差异，建议单独做定向对比，不要再把默认 size 文档绑回 `stm32g0_empty`
+- 如果后续需要评估“真实 MCU linker/startup/HAL”带来的差异，建议基于 `stm32g0` 单独做定向对比，不要再把默认 size 文档绑回旧模板口径
 - 如果后续需要增加新的运行期指标，例如更细的 `heap` 或 `stack` 分层统计，继续沿用 qemu 这条链路扩展即可

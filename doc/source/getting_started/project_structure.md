@@ -172,7 +172,6 @@ src/
 |------|------|
 | `pc/` | PC 模拟器 (基于 SDL2，支持 Windows/Linux/macOS) |
 | `stm32g0/` | STM32G0 系列 MCU (ARM Cortex-M0+) |
-| `stm32g0_empty/` | STM32G0 空模板 (最小移植参考) |
 | `qemu/` | QEMU ARM 虚拟化环境 (自动化测试和性能基准) |
 | `emscripten/` | WebAssembly 编译 (浏览器在线演示) |
 | `designer/` | UI Designer 专用移植 |

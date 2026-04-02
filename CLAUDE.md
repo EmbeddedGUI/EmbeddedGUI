@@ -57,7 +57,7 @@ python scripts/code_compile_check.py --cmake --full-check
 ### 目录结构
 - `src/` - 核心库（控件、动画、字体、图片、遮罩）
 - `example/` - 示例应用
-- `porting/` - 平台移植（pc, stm32g0, stm32g0_empty）
+- `porting/` - 平台移植（pc, stm32g0, qemu, emscripten, designer, pc_test）
 - `scripts/` - 构建自动化和资源生成工具
 
 ### 面向对象的 C 语言模式

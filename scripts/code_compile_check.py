@@ -245,7 +245,7 @@ def run_touch_release_semantics_check(scope='all', category=None):
 
 
 # port_sets = ['pc'
-#              , 'stm32g0_empty'
+#              , 'stm32g0'
 #              ]
 port_sets = ['pc'
              ]

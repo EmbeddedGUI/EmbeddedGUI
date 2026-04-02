@@ -71,10 +71,10 @@
 新的对比口径是：
 
 - 只统计示例自身对象文件的 `.data* + .bss*`
-- `HelloShowcase` 统计目录：`output/obj/HelloShowcase_stm32g0_empty/example/HelloShowcase/`
-- `HelloVirtual/virtual_stage_showcase` 统计目录：`output/obj/HelloVirtual_virtual_stage_showcase_stm32g0_empty/example/HelloVirtual/virtual_stage_showcase/`
+- `HelloShowcase` 统计目录：`output/obj/HelloShowcase_stm32g0/example/HelloShowcase/`
+- `HelloVirtual/virtual_stage_showcase` 统计目录：`output/obj/HelloVirtual_virtual_stage_showcase_stm32g0/example/HelloVirtual/virtual_stage_showcase/`
 
-以 `PORT=stm32g0_empty`、`COMPILE_OPT_LEVEL=-Os` 为例：
+以 `PORT=stm32g0`、`COMPILE_OPT_LEVEL=-Os` 为例：
 
 | 示例 | 示例自身静态 SRAM |
 | --- | ---: |
@@ -170,11 +170,11 @@ HelloVirtual 渲染工作流：
 python scripts/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage_showcase --skip-unit-tests --bits64
 ```
 
-`stm32g0_empty` 对比构建：
+`stm32g0` 对比构建：
 
 ```bash
-make -j1 all APP=HelloShowcase PORT=stm32g0_empty
-make -j1 all APP=HelloVirtual APP_SUB=virtual_stage_showcase PORT=stm32g0_empty
+make -j1 all APP=HelloShowcase PORT=stm32g0
+make -j1 all APP=HelloVirtual APP_SUB=virtual_stage_showcase PORT=stm32g0
 python scripts/compare_virtual_showcase_ram.py --skip-build
 python scripts/compare_virtual_showcase_heap_qemu.py --mode app-recording
 ```

@@ -34,19 +34,19 @@ class RamReport:
 TARGETS = (
     Target(
         label="HelloShowcase",
-        object_root=ROOT / "output" / "obj" / "HelloShowcase_stm32g0_empty" / "example" / "HelloShowcase",
-        make_args=("APP=HelloShowcase", "PORT=stm32g0_empty", "COMPILE_DEBUG=", "COMPILE_OPT_LEVEL=-Os"),
+        object_root=ROOT / "output" / "obj" / "HelloShowcase_stm32g0" / "example" / "HelloShowcase",
+        make_args=("APP=HelloShowcase", "PORT=stm32g0", "COMPILE_DEBUG=", "COMPILE_OPT_LEVEL=-Os"),
     ),
     Target(
         label="HelloVirtual/virtual_stage_showcase",
         object_root=ROOT
         / "output"
         / "obj"
-        / "HelloVirtual_virtual_stage_showcase_stm32g0_empty"
+        / "HelloVirtual_virtual_stage_showcase_stm32g0"
         / "example"
         / "HelloVirtual"
         / "virtual_stage_showcase",
-        make_args=("APP=HelloVirtual", "APP_SUB=virtual_stage_showcase", "PORT=stm32g0_empty", "COMPILE_DEBUG=", "COMPILE_OPT_LEVEL=-Os"),
+        make_args=("APP=HelloVirtual", "APP_SUB=virtual_stage_showcase", "PORT=stm32g0", "COMPILE_DEBUG=", "COMPILE_OPT_LEVEL=-Os"),
     ),
 )
 

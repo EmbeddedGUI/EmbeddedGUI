@@ -736,10 +736,10 @@ EGUI_VIEW_VIRTUAL_STAGE_TOGGLE_PIN(&page, MY_NODE_CORE_CARD_ID);
 
 对应目录分别是：
 
-- `output/obj/HelloShowcase_stm32g0_empty/example/HelloShowcase/`
-- `output/obj/HelloVirtual_virtual_stage_showcase_stm32g0_empty/example/HelloVirtual/virtual_stage_showcase/`
+- `output/obj/HelloShowcase_stm32g0/example/HelloShowcase/`
+- `output/obj/HelloVirtual_virtual_stage_showcase_stm32g0/example/HelloVirtual/virtual_stage_showcase/`
 
-以 `PORT=stm32g0_empty`、`COMPILE_OPT_LEVEL=-Os` 为例：
+以 `PORT=stm32g0`、`COMPILE_OPT_LEVEL=-Os` 为例：
 
 | 示例 | 示例自身静态 SRAM |
 | --- | ---: |
@@ -831,8 +831,8 @@ python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage_
 python scripts/showcase_stage_parity_check.py --timeout 35 --bits64
 python scripts/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage_showcase --skip-unit-tests --bits64
 
-make -j1 all APP=HelloShowcase PORT=stm32g0_empty
-make -j1 all APP=HelloVirtual APP_SUB=virtual_stage_showcase PORT=stm32g0_empty
+make -j1 all APP=HelloShowcase PORT=stm32g0
+make -j1 all APP=HelloVirtual APP_SUB=virtual_stage_showcase PORT=stm32g0
 python scripts/compare_virtual_showcase_ram.py --skip-build
 python scripts/compare_virtual_showcase_heap_qemu.py --mode app-recording
 

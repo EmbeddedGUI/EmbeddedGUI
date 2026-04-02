@@ -253,7 +253,8 @@ void port_main(void)
 make all APP=HelloSimple PORT=stm32g0
 
 # 使用空平台（仅分析大小，不含硬件驱动）
-make all APP=HelloSimple PORT=stm32g0_empty
+# 打开 Keil 工程
+# porting/stm32g0/MDK-ARM/proj_stm32g0.uvprojx
 ```
 
 ## 中断优先级

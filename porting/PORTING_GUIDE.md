@@ -47,7 +47,7 @@ EmbeddedGUI 当前采用三层结构：
 
 推荐按下面顺序完成一次新 port：
 
-1. 复制 `porting/stm32g0_empty/` 作为起点，或参考 `porting/stm32g0/Porting/egui_port_mcu.c`
+1. 复制 `porting/stm32g0/` 作为起点并按需裁剪板级驱动，或直接参考 `porting/stm32g0/Porting/egui_port_mcu.c`
 2. 实现 Bus / GPIO 操作层：SPI、I2C、8080、RST、DC、BL、INT 等
 3. 选择 LCD 驱动和可选 Touch 驱动，优先复用 `driver/lcd/`、`driver/touch/` 下已有实现
 4. 在 `egui_port_init()` 中实例化 HAL 驱动，调用 `reset()` → `init()`，实现 `egui_display_driver_ops_t` 并注册到 Core；触摸通过 `egui_hal_touch_register()` 注册

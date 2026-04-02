@@ -14,7 +14,6 @@ APP ?= HelloSimple
 # include port info
 PORT ?= pc
 # PORT ?= stm32g0
-# PORT ?= stm32g0_empty
 
 # set special cflag, if need.
 # COMPILE_OPT_LEVEL ?= -O0

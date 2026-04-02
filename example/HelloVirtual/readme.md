@@ -43,11 +43,11 @@ python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage_
 python scripts/hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --bits64
 ```
 
-`stm32g0_empty` 体积对比：
+`stm32g0` 体积对比：
 
 ```bash
-make -j1 all APP=HelloShowcase PORT=stm32g0_empty
-make -j1 all APP=HelloVirtual APP_SUB=virtual_stage_showcase PORT=stm32g0_empty
+make -j1 all APP=HelloShowcase PORT=stm32g0
+make -j1 all APP=HelloVirtual APP_SUB=virtual_stage_showcase PORT=stm32g0
 python scripts/compare_virtual_showcase_ram.py --skip-build
 ```
 

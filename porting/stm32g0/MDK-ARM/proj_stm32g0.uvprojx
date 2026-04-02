@@ -7,7 +7,7 @@
 
   <Targets>
     <Target>
-      <TargetName>proj_stm32g0_empty</TargetName>
+      <TargetName>proj_stm32g0</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
       <pCCUsed>5060960::V5.06 update 7 (build 960)::.\ARMCC</pCCUsed>
@@ -48,8 +48,8 @@
             <NotGenerated>0</NotGenerated>
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
-          <OutputDirectory>proj_stm32g0_empty\</OutputDirectory>
-          <OutputName>proj_stm32g0_empty</OutputName>
+          <OutputDirectory>proj_stm32g0\</OutputDirectory>
+          <OutputName>proj_stm32g0</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>
@@ -1405,6 +1405,11 @@
           <GroupName>Porting</GroupName>
           <Files>
             <File>
+              <FileName>egui_hal_stm32g0.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Porting\egui_hal_stm32g0.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_port_mcu.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Porting\egui_port_mcu.c</FilePath>
@@ -1439,7 +1444,7 @@
       <component Cclass="CMSIS" Cgroup="CORE" Cvendor="ARM" Cversion="4.3.0" condition="CMSIS Core">
         <package name="CMSIS" schemaVersion="1.3" url="http://www.keil.com/pack/" vendor="ARM" version="4.5.0"/>
         <targetInfos>
-          <targetInfo name="proj_stm32g0_empty"/>
+          <targetInfo name="proj_stm32g0"/>
         </targetInfos>
       </component>
     </components>

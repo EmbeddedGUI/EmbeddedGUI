@@ -18,7 +18,7 @@ python scripts/utils_analysis_elf_size.py
 脚本对每个示例执行以下步骤：
 
 1. `make clean` 清理上次构建产物
-2. `make all -j PORT=stm32g0_empty APP=xxx` 使用 stm32g0_empty 平台编译
+2. `make all -j PORT=qemu APP=xxx` 使用 qemu 平台编译并收集静态/运行期数据
 3. 解析 `output/main.elf` 中的符号表，提取各段大小
 
 ### ELF 符号提取
@@ -56,7 +56,7 @@ python scripts/utils_analysis_elf_size.py
 
 ## 典型示例分析
 
-以下是各类示例的典型资源占用范围（基于 stm32g0_empty 平台，RGB565，PFB 30x40）：
+以下是各类示例的典型资源占用范围（基于 qemu 口径；静态 size 只统计仓库侧 `src/` + `example/` 对象，PFB 单独列出）：
 
 ### 基础控件类
 
@@ -86,7 +86,7 @@ python scripts/utils_analysis_elf_size.py
 ### 前提条件
 
 1. 安装 Python 依赖：`pip install pyelftools`
-2. 确保 ARM GCC 工具链已安装（用于 stm32g0_empty 平台编译）
+2. 确保 ARM GCC 与 qemu 工具链已安装（用于 qemu 口径编译与运行）
 3. 链接脚本中需要定义 `__code_size`、`__rodata_size` 等符号
 
 ### 链接脚本符号定义

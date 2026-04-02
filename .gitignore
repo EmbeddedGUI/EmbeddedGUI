@@ -4,8 +4,6 @@
 /.vscode/settings.json
 /porting/stm32g0/Debug
 /porting/stm32g0/.settings
-/porting/stm32g0_empty/Debug
-/porting/stm32g0_empty/.settings
 /doc/build
 *.pyc
 /build
@@ -56,6 +54,8 @@ scripts/ui_designer/.config/
 __pycache__
 
 MDK-ARM/
+!porting/stm32g0/MDK-ARM/
+!porting/stm32g0/MDK-ARM/**
 
 iteration_log/
 

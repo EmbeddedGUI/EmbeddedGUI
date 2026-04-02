@@ -1,7 +1,0 @@
-r
-h
-loadfile .\\output\\main.hex 0 reset
-r
-h
-g
-exit

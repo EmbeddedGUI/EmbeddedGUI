@@ -11,7 +11,7 @@ PROJECT_ROOT = SCRIPT_DIR.parent.parent
 SIZE_OUTPUT = PROJECT_ROOT / "output"
 DOC_DIR = PROJECT_ROOT / "doc" / "source" / "size"
 IMG_DIR = DOC_DIR / "images"
-LEGACY_SIZE_OUTPUT = SIZE_OUTPUT / "stm32g0_empty_size_results.json"
+LEGACY_SIZE_OUTPUT = SIZE_OUTPUT / "stm32g0_size_results.json"
 
 
 def setup_matplotlib():
@@ -119,10 +119,10 @@ def _build_legacy_compare_lines():
     failures = legacy_data.get("failures", [])
 
     lines = [
-        "## QEMU vs stm32g0_empty",
+        "## QEMU vs stm32g0",
         "",
-        "- 对比范围：%d 个共同成功 case；qemu 为当前正式口径，`stm32g0_empty` 仅用于静态 size 交叉验证。" % len(common_names),
-        "- Code delta（qemu - stm32g0_empty）：min %d B / median %d B / max %d B。" % (code_min, code_median, code_max),
+        "- 对比范围：%d 个共同成功 case；qemu 为当前正式口径，`stm32g0` 仅用于静态 size 交叉验证。" % len(common_names),
+        "- Code delta（qemu - stm32g0）：min %d B / median %d B / max %d B。" % (code_min, code_median, code_max),
         "- ROM delta（code + resource）：min %d B / median %d B / max %d B。" % (rom_min, rom_median, rom_max),
         "- RAM delta（不含 PFB）：min %d B / median %d B / max %d B。" % (ram_min, ram_median, ram_max),
         "- PFB delta：min %d B / median %d B / max %d B。" % (pfb_min, pfb_median, pfb_max),
@@ -132,7 +132,7 @@ def _build_legacy_compare_lines():
 
     if failures:
         lines.append(
-            "- 旧链路额外维护成本：`stm32g0_empty` 在 Windows 下仍有 %d 个大 case 无法稳定完成链接：%s。"
+            "- 旧链路额外维护成本：`stm32g0` 在 Windows 下仍有 %d 个大 case 无法稳定完成链接：%s。"
             % (len(failures), "、".join(item["name"] for item in failures))
         )
 
@@ -396,11 +396,11 @@ def _build_legacy_compare_lines():
     failures = legacy_data.get("failures", [])
 
     lines = [
-        "## QEMU vs stm32g0_empty",
+        "## QEMU vs stm32g0",
         "",
-        "- 对比范围：%d 个共同成功 case。qemu 是当前正式统计口径，`stm32g0_empty` 只保留为静态 size 交叉验证口径。"
+        "- 对比范围：%d 个共同成功 case。qemu 是当前正式统计口径，`stm32g0` 只保留为静态 size 交叉验证口径。"
         % len(common_names),
-        "- Code delta（qemu - stm32g0_empty）：min %d B / median %d B / max %d B。" % (code_min, code_median, code_max),
+        "- Code delta（qemu - stm32g0）：min %d B / median %d B / max %d B。" % (code_min, code_median, code_max),
         "- ROM delta（code + resource）：min %d B / median %d B / max %d B。" % (rom_min, rom_median, rom_max),
         "- RAM delta（不含 PFB）：min %d B / median %d B / max %d B。" % (ram_min, ram_median, ram_max),
         "- PFB delta：min %d B / median %d B / max %d B。" % (pfb_min, pfb_median, pfb_max),
@@ -410,7 +410,7 @@ def _build_legacy_compare_lines():
 
     if failures:
         lines.append(
-            "- 旧链路仍有维护成本：`stm32g0_empty` 在 Windows 下还有 %d 个大 case 无法稳定完成链接：%s。"
+            "- 旧链路仍有维护成本：`stm32g0` 在 Windows 下还有 %d 个大 case 无法稳定完成链接：%s。"
             % (len(failures), "、".join(item["name"] for item in failures))
         )
 

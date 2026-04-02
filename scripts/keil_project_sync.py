@@ -21,7 +21,7 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 
 # Keil project file path
-UVPROJX_PATH = PROJECT_ROOT / "porting" / "stm32g0_empty" / "MDK-ARM" / "proj_stm32g0_empty.uvprojx"
+UVPROJX_PATH = PROJECT_ROOT / "porting" / "stm32g0" / "MDK-ARM" / "proj_stm32g0.uvprojx"
 
 # Template for a single <File> entry (matches original indentation: 12 spaces)
 FILE_ENTRY_TEMPLATE = """\
@@ -52,7 +52,7 @@ SYNC_GROUPS = [
     },
     {
         "group_name": "Porting",
-        "scan_base_dir": "porting/stm32g0_empty/Porting",
+        "scan_base_dir": "porting/stm32g0/Porting",
         "scan_subdirs": None,  # scan base dir directly
         "keil_prefix": r"..\Porting",
         "recursive": False,

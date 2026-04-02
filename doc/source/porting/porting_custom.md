@@ -9,7 +9,7 @@
 复制空模板作为起点：
 
 ```bash
-cp -r porting/stm32g0_empty porting/your_platform
+cp -r porting/stm32g0 porting/your_platform
 ```
 
 目录结构：
