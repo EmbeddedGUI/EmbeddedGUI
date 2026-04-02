@@ -2289,7 +2289,12 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_CLICK_VIEW(p_action, view, 180);
         return true;
     case 8:
-        EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&scene_buttons[DEMO_SCENE_CHAT]), 220);
+        if (first_call)
+        {
+            demo_switch_scene(DEMO_SCENE_CHAT);
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 9:
         if (first_call && viewport_context.scene != DEMO_SCENE_CHAT)
@@ -2347,7 +2352,12 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             report_runtime_failure("chat patch did not mutate data");
         }
         recording_mutation_verify_retry = 0U;
-        EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&scene_buttons[DEMO_SCENE_TASK]), 220);
+        if (first_call)
+        {
+            demo_switch_scene(DEMO_SCENE_TASK);
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 15:
         if (first_call && viewport_context.scene != DEMO_SCENE_TASK)

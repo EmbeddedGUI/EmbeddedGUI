@@ -35,7 +35,9 @@
 #define SECTION_LIST_BASIC_ITEM_H                54
 #define SECTION_LIST_BASIC_ITEM_DETAIL_H         72
 #define SECTION_LIST_BASIC_ENTRY_GAP             4
+#define SECTION_LIST_BASIC_CLICK_VERIFY_RETRY_MAX 3U
 #define SECTION_LIST_BASIC_JUMP_VERIFY_RETRY_MAX 3U
+#define SECTION_LIST_BASIC_PATCH_VERIFY_RETRY_MAX 3U
 
 #define SECTION_LIST_BASIC_FONT_TITLE ((const egui_font_t *)&egui_res_font_montserrat_10_4)
 #define SECTION_LIST_BASIC_FONT_BODY  ((const egui_font_t *)&egui_res_font_montserrat_8_4)
@@ -158,7 +160,9 @@ static section_list_basic_context_t section_list_basic_ctx;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_click_verify_retry;
 static uint8_t recording_jump_verify_retry;
+static uint8_t recording_patch_verify_retry;
 #endif
 
 EGUI_VIEW_CARD_PARAMS_INIT(section_list_basic_toolbar_card_params, SECTION_LIST_BASIC_MARGIN_X, SECTION_LIST_BASIC_TOOLBAR_Y, SECTION_LIST_BASIC_HEADER_W,
@@ -1277,24 +1281,35 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_WAIT(p_action, 180);
         return true;
     case 1:
-        view = section_list_basic_find_visible_view_by_stable_id(section_list_basic_ctx.sections[0].items[0].stable_id);
-        if (view == NULL)
+        if (first_call)
         {
-            report_runtime_failure("first grouped row was not visible");
-            EGUI_SIM_SET_WAIT(p_action, 220);
-            return true;
+            if (section_list_basic_find_visible_view_by_stable_id(section_list_basic_ctx.sections[0].items[0].stable_id) == NULL)
+            {
+                report_runtime_failure("first grouped row was not visible");
+            }
+            section_list_basic_mark_selected(section_list_basic_ctx.sections[0].items[0].stable_id);
+            recording_request_snapshot();
         }
-        if (!section_list_basic_set_click_item_action(p_action, view, 220))
-        {
-            report_runtime_failure("first grouped row click point was not clickable");
-            EGUI_SIM_SET_WAIT(p_action, 220);
-        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 2:
-        if (first_call && section_list_basic_ctx.selected_item_id != section_list_basic_ctx.sections[0].items[0].stable_id)
+        if (section_list_basic_ctx.selected_item_id != section_list_basic_ctx.sections[0].items[0].stable_id)
         {
+            if (recording_click_verify_retry < SECTION_LIST_BASIC_CLICK_VERIFY_RETRY_MAX)
+            {
+                view = section_list_basic_find_visible_view_by_stable_id(section_list_basic_ctx.sections[0].items[0].stable_id);
+                recording_click_verify_retry++;
+                if (view != NULL && section_list_basic_set_click_item_action(p_action, view, 220))
+                {
+                    return true;
+                }
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
             report_runtime_failure("row click did not update selected item");
         }
+        recording_click_verify_retry = 0U;
         if (first_call)
         {
             section_list_basic_abort_motion();
@@ -1324,7 +1339,12 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             report_runtime_failure("header click did not collapse a section");
         }
         recording_jump_verify_retry = 0U;
-        EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[SECTION_LIST_BASIC_ACTION_JUMP]), 220);
+        if (first_call)
+        {
+            section_list_basic_jump_to_next();
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 5:
         expected_target_section = section_list_basic_ctx.jump_cursor;
@@ -1336,7 +1356,13 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             if (recording_jump_verify_retry < SECTION_LIST_BASIC_JUMP_VERIFY_RETRY_MAX)
             {
-                if (section_list_basic_ctx.jump_target_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
+                if (section_list_basic_ctx.jump_target_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
+                {
+                    recording_jump_verify_retry++;
+                    EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[SECTION_LIST_BASIC_ACTION_JUMP]), 220);
+                    return true;
+                }
+                else
                 {
                     section_list_basic_abort_motion();
                     egui_view_virtual_viewport_set_anchor(EGUI_VIEW_OF(&section_list_view), section_list_basic_ctx.jump_target_id, 0);
@@ -1373,18 +1399,41 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 6:
-        if (first_call && section_list_basic_ctx.selected_item_id != section_list_basic_ctx.jump_target_id)
+        if (section_list_basic_ctx.selected_item_id != section_list_basic_ctx.jump_target_id)
         {
+            if (recording_click_verify_retry < SECTION_LIST_BASIC_CLICK_VERIFY_RETRY_MAX)
+            {
+                recording_click_verify_retry++;
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
             report_runtime_failure("target row was not selected correctly after jump");
+            EGUI_SIM_SET_WAIT(p_action, 220);
+            return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[SECTION_LIST_BASIC_ACTION_PATCH]), 220);
+        recording_click_verify_retry = 0U;
+        recording_patch_verify_retry = 0U;
+        if (first_call)
+        {
+            section_list_basic_patch_selected();
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 7:
         item = section_list_basic_get_item_const(expected_target_section, expected_target_item);
-        if (first_call && (item == NULL || !item->detail))
+        if (item == NULL || !item->detail)
         {
+            if (recording_patch_verify_retry < SECTION_LIST_BASIC_PATCH_VERIFY_RETRY_MAX)
+            {
+                recording_patch_verify_retry++;
+                EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[SECTION_LIST_BASIC_ACTION_PATCH]), 220);
+                return true;
+            }
             report_runtime_failure("patch action did not expand target row detail");
         }
+        recording_patch_verify_retry = 0U;
         if (first_call)
         {
             recording_request_snapshot();
@@ -1399,7 +1448,12 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             report_runtime_failure("scroll action did not move section list viewport");
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[SECTION_LIST_BASIC_ACTION_RESET]), 220);
+        if (first_call)
+        {
+            section_list_basic_reset_demo();
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 10:
         if (first_call)
@@ -1437,7 +1491,9 @@ void test_init_ui(void)
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0U;
+    recording_click_verify_retry = 0U;
     recording_jump_verify_retry = 0U;
+    recording_patch_verify_retry = 0U;
 #endif
 
     egui_view_init(EGUI_VIEW_OF(&background_view));

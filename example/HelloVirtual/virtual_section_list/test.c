@@ -1812,7 +1812,11 @@ static egui_view_t *section_demo_find_first_visible_item_view(void)
 
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
+    static int last_action = -1;
+    int first_call = (action_index != last_action);
     egui_view_t *view;
+
+    last_action = action_index;
 
     switch (action_index)
     {
@@ -1874,7 +1878,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[SECTION_DEMO_ACTION_DEL]), 220);
         return true;
     case 9:
-        recording_request_snapshot();
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         EGUI_SIM_SET_WAIT(p_action, 320);
         return true;
     default:

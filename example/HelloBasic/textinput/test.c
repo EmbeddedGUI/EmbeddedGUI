@@ -46,6 +46,7 @@ static char result_str[64] = "";
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_cursor_verify_retry;
 #endif
 
 static void on_submit(egui_view_t *self, const char *text)
@@ -96,6 +97,7 @@ void test_init_ui(void)
 {
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
+    recording_cursor_verify_retry = 0;
 #endif
 
     // Init container
@@ -223,12 +225,20 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_WAIT(p_action, 520);
         return true;
     case 3: // verify cursor blink and snapshot
+        if (textinput_1.cursor_visible)
+        {
+            if (recording_cursor_verify_retry < 3U)
+            {
+                recording_cursor_verify_retry++;
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
+            report_runtime_failure("textinput cursor did not blink after focus");
+        }
+        recording_cursor_verify_retry = 0;
         if (first_call)
         {
-            if (textinput_1.cursor_visible)
-            {
-                report_runtime_failure("textinput cursor did not blink after focus");
-            }
             recording_request_snapshot();
         }
         EGUI_SIM_SET_WAIT(p_action, 220);

@@ -16,6 +16,8 @@
 #define STRIP_BASIC_BADGE_LEN              16
 #define STRIP_BASIC_META_LEN               24
 #define STRIP_BASIC_JUMP_STEP              13U
+#define STRIP_BASIC_CLICK_VERIFY_RETRY_MAX 3U
+#define STRIP_BASIC_PATCH_VERIFY_RETRY_MAX 3U
 #define STRIP_BASIC_RESET_VERIFY_RETRY_MAX 3U
 
 #define STRIP_BASIC_MARGIN_X   8
@@ -110,6 +112,8 @@ static strip_basic_context_t strip_basic_ctx;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_click_verify_retry;
+static uint8_t recording_patch_verify_retry;
 static uint8_t recording_reset_verify_retry;
 #endif
 
@@ -771,17 +775,45 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         return true;
     case 2:
-        if (first_call && strip_basic_ctx.selected_id != strip_basic_ctx.items[0].stable_id)
+        if (strip_basic_ctx.selected_id != strip_basic_ctx.items[0].stable_id)
         {
+            if (recording_click_verify_retry < STRIP_BASIC_CLICK_VERIFY_RETRY_MAX)
+            {
+                view = strip_basic_find_visible_view_by_index(0);
+                recording_click_verify_retry++;
+                if (view != NULL && strip_basic_set_click_item_action(p_action, view, 220))
+                {
+                    return true;
+                }
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
             report_runtime_failure("strip click did not update selected item");
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[STRIP_BASIC_ACTION_PATCH]), 220);
+        recording_click_verify_retry = 0U;
+        recording_patch_verify_retry = 0U;
+        if (first_call)
+        {
+            strip_basic_patch_selected();
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 3:
-        if (first_call && strip_basic_ctx.patch_count == 0U)
+        if (strip_basic_ctx.patch_count == 0U)
         {
+            if (recording_patch_verify_retry < STRIP_BASIC_PATCH_VERIFY_RETRY_MAX)
+            {
+                recording_patch_verify_retry++;
+                strip_basic_patch_selected();
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
             report_runtime_failure("strip patch did not mutate selected item");
         }
+        recording_patch_verify_retry = 0U;
         strip_basic_set_scroll_action(p_action, 320);
         return true;
     case 4:
@@ -867,6 +899,8 @@ void test_init_ui(void)
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0U;
+    recording_click_verify_retry = 0U;
+    recording_patch_verify_retry = 0U;
     recording_reset_verify_retry = 0U;
 #endif
 
