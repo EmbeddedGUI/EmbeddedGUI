@@ -55,6 +55,16 @@ extern "C" {
 #define EGUI_CONFIG_PFB_HEIGHT (EGUI_CONFIG_SCEEN_HEIGHT / 8)
 #endif
 
+/* Default-off logical PFB probe for perf/RAM experiments. */
+#ifndef EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE
+#define EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE 0
+#endif
+
+/* Preferred logical tile width when the probe above is enabled. */
+#ifndef EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH
+#define EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH EGUI_CONFIG_PFB_WIDTH
+#endif
+
 /**
  * PFB multi-buffer count.
  * Controls how many PFB buffers the ring queue uses:
@@ -360,6 +370,23 @@ extern "C" {
  */
 #ifndef EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 #define EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE 0
+#endif
+
+/**
+ * Reuse the first compressed-image row-cache row as the temporary
+ * "all opaque alpha" scratch buffer for masked RGB565 blend fallbacks.
+ */
+#ifndef EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
+#define EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE 0
+#endif
+
+/**
+ * QOI decoder checkpoint count.
+ * Each slot stores a full decoder state for restoring recent row bands.
+ * Must be a power of two.
+ */
+#ifndef EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT
+#define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 2
 #endif
 
 /**

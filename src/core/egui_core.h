@@ -86,6 +86,7 @@ void egui_core_layout_childs_user_root_view(uint8_t is_orientation_horizontal, u
 egui_region_t *egui_core_get_region_dirty_arr(void);
 uint32_t egui_core_get_dirty_epoch(void);
 void egui_core_draw_view_group(egui_region_t *p_region_dirty, int is_debug_mode);
+egui_dim_t egui_core_get_logical_pfb_target_width_hint(void);
 void egui_core_process_input_motion(egui_motion_event_t *motion_event);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_KEY
 void egui_core_process_input_key(egui_key_event_t *key_event);
