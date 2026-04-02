@@ -398,6 +398,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             EGUI_SIM_SET_WAIT(p_action, 220);
             return true;
         }
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&holder->mode_combo), 220);
         return true;
     case 4:
@@ -430,6 +434,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         if (first_call && list_view_basic_ctx.items[1].mode_index != 1U)
         {
             report_runtime_failure("combobox selection did not update data model");
+        }
+        if (first_call)
+        {
+            recording_request_snapshot();
         }
         list_view_basic_set_scroll_action(p_action, 320);
         return true;

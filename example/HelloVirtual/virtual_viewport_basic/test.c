@@ -16,6 +16,7 @@
 #define BASIC_TITLE_TEXT_LEN         28
 #define BASIC_VALUE_TEXT_LEN         16
 #define BASIC_JUMP_STEP              32U
+#define BASIC_PATCH_VERIFY_RETRY_MAX 3U
 #define BASIC_JUMP_VERIFY_RETRY_MAX  3U
 #define BASIC_RESET_VERIFY_RETRY_MAX 3U
 
@@ -126,6 +127,7 @@ static basic_viewport_context_t basic_ctx;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_patch_verify_retry;
 static uint8_t recording_jump_verify_retry;
 static uint8_t recording_reset_verify_retry;
 #endif
@@ -794,13 +796,22 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             report_runtime_failure("scroll did not keep visible items");
         }
+        recording_patch_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[BASIC_ACTION_PATCH]), 220);
         return true;
     case 5:
-        if (first_call && basic_ctx.patch_count == 0U)
+        if (basic_ctx.patch_count == 0U)
         {
+            if (recording_patch_verify_retry < BASIC_PATCH_VERIFY_RETRY_MAX)
+            {
+                recording_patch_verify_retry++;
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 0);
+                return true;
+            }
             report_runtime_failure("patch action did not mutate selected item");
         }
+        recording_patch_verify_retry = 0U;
         recording_jump_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[BASIC_ACTION_JUMP]), 220);
         return true;
@@ -878,6 +889,7 @@ void test_init_ui(void)
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
+    recording_patch_verify_retry = 0U;
     recording_jump_verify_retry = 0U;
     recording_reset_verify_retry = 0U;
 #endif

@@ -3080,6 +3080,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 1:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_THEME_BUTTON);
         }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_THEME_BUTTON, 50, 50, 350);
@@ -3087,6 +3088,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 2:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_LANG_BUTTON);
         }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_LANG_BUTTON, 50, 50, 350);
@@ -3094,6 +3096,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 3:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_SWITCH);
         }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_SWITCH, 50, 50, 300);
@@ -3101,6 +3104,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 4:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_CHECKBOX);
         }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_CHECKBOX, 50, 50, 300);
@@ -3108,6 +3112,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 5:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_OPTION2);
         }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_OPTION2, 50, 50, 300);
@@ -3115,6 +3120,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 6:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_TOGGLE_BUTTON);
         }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_TOGGLE_BUTTON, 50, 50, 300);
@@ -3122,6 +3128,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 7:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_SLIDER);
         }
         showcase_sim_set_drag_node(p_action, SHOWCASE_NODE_INDEX_SLIDER, 60, 50, 22, 50, 8, 350);
@@ -3129,6 +3136,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 8:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_ARC_SLIDER);
         }
         showcase_sim_set_arc_slider_drag(p_action, 70U, 32U, 8, 350);
@@ -3136,6 +3144,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 9:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_NUMBER_PICKER);
         }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_NUMBER_PICKER, 50, 16, 300);
@@ -3143,6 +3152,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 10:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_COMBOBOX);
         }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_COMBOBOX, 50, 14, 350);
@@ -3150,6 +3160,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 11:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_COMBOBOX);
         }
         if (!showcase_sim_set_combobox_item_click(p_action, 1U, 350))
@@ -3160,6 +3171,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 12:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_ROLLER);
         }
         showcase_sim_set_drag_node(p_action, SHOWCASE_NODE_INDEX_ROLLER, 50, 68, 50, 28, 6, 350);
@@ -3167,6 +3179,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 13:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_LIST);
         }
         showcase_sim_set_drag_node(p_action, SHOWCASE_NODE_INDEX_LIST, 50, 90, 50, 8, 10, 350);
@@ -3174,6 +3187,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 14:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_MINI_CALENDAR);
         }
         if (!showcase_sim_set_calendar_day_click(p_action, 18U, 350))
@@ -3184,6 +3198,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 15:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_BUTTON_MATRIX);
         }
         showcase_sim_set_button_matrix_click(p_action, 4U, 350);
@@ -3191,6 +3206,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 16:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_TAB_BAR);
         }
         showcase_sim_set_tab_bar_click(p_action, 2U, 350);
@@ -3198,11 +3214,16 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 17:
         if (first_call)
         {
+            recording_request_snapshot();
             showcase_runtime_focus_node(SHOWCASE_NODE_INDEX_ALPHA1);
         }
         showcase_sim_set_click_node(p_action, SHOWCASE_NODE_INDEX_ALPHA1, 50, 50, 350);
         return true;
     case 18:
+        if (first_call)
+        {
+            recording_request_snapshot();
+        }
         EGUI_SIM_SET_WAIT(p_action, 500);
         return true;
     default:

@@ -197,6 +197,7 @@ static int g_recording_drag_current_step = 0;
 static egui_sim_action_t g_recording_current_action;
 // Snapshot-driven frame capture (replaces fixed-time settle)
 static bool g_recording_snapshot_requested = false; // Snapshot requested by user code or auto-fallback
+static bool g_recording_snapshot_blocks_actions = false;
 static uint32_t g_recording_snapshot_request_time = 0;
 static uint32_t g_recording_snapshot_request_frame_count = 0;
 static uint32_t g_recording_snapshot_last_hash = 0;
@@ -224,6 +225,7 @@ static void sdl_port_present_frame(void);
 #if EGUI_CONFIG_RECORDING_TEST
 static void recording_simulate_action(void);
 static uint32_t recording_calc_frame_hash(void);
+static void recording_request_snapshot_internal(bool block_actions);
 #endif
 static uint32_t recording_apply_clock_scale(uint32_t real_ms);
 
@@ -927,6 +929,7 @@ void recording_init(const char *output_dir, int fps, int duration_sec)
     g_recording_drag_current_step = 0;
     memset(&g_recording_current_action, 0, sizeof(g_recording_current_action));
     g_recording_snapshot_requested = false;
+    g_recording_snapshot_blocks_actions = false;
     g_recording_snapshot_request_time = 0;
     g_recording_snapshot_request_frame_count = 0;
     g_recording_snapshot_last_hash = 0;
@@ -1013,12 +1016,13 @@ void recording_set_snapshot_stability(int stable_cycles, int max_wait_ms)
 #endif
 }
 
-void recording_request_snapshot(void)
+static void recording_request_snapshot_internal(bool block_actions)
 {
     if (g_recording_enabled)
     {
 #if EGUI_CONFIG_RECORDING_TEST
         g_recording_snapshot_requested = true;
+        g_recording_snapshot_blocks_actions = block_actions;
         g_recording_snapshot_request_time = sdl_get_system_timestamp_ms_raw();
         g_recording_snapshot_request_frame_count = g_recording_completed_frame_count;
         g_recording_snapshot_last_hash = recording_calc_frame_hash();
@@ -1026,6 +1030,11 @@ void recording_request_snapshot(void)
         g_recording_snapshot_seen_change = false;
 #endif
     }
+}
+
+void recording_request_snapshot(void)
+{
+    recording_request_snapshot_internal(true);
 }
 
 void sdl_port_set_headless(bool headless)
@@ -1205,6 +1214,11 @@ static void recording_simulate_action(void)
         return;
     }
 
+    if (g_recording_snapshot_requested && g_recording_snapshot_blocks_actions)
+    {
+        return;
+    }
+
     // If drag is in progress, continue it
     if (g_recording_drag_in_progress)
     {
@@ -1223,7 +1237,7 @@ static void recording_simulate_action(void)
                 g_recording_drag_in_progress = false;
                 g_recording_action_index++;
                 // Auto-snapshot after drag completes (fallback)
-                recording_request_snapshot();
+                recording_request_snapshot_internal(false);
             }
         }
         return;
@@ -1240,7 +1254,7 @@ static void recording_simulate_action(void)
         g_recording_last_action_time = now;
         recording_execute_action_step();
         g_recording_action_index++;
-        recording_request_snapshot();
+        recording_request_snapshot_internal(false);
         return;
     }
 
@@ -1253,8 +1267,13 @@ static void recording_simulate_action(void)
         {
             g_recording_all_actions_done = true;
             g_recording_quit_after_snapshot = true;
-            recording_request_snapshot();
+            recording_request_snapshot_internal(false);
         }
+        return;
+    }
+
+    if (g_recording_snapshot_requested && g_recording_snapshot_blocks_actions)
+    {
         return;
     }
 
@@ -1296,7 +1315,7 @@ static void recording_simulate_action(void)
     {
         g_recording_action_index++;
         // Auto-snapshot after action completes (fallback)
-        recording_request_snapshot();
+        recording_request_snapshot_internal(false);
     }
 }
 #endif // EGUI_CONFIG_RECORDING_TEST
@@ -1348,7 +1367,7 @@ static void recording_save_frame(void)
         g_recording_start_real_time = real_now;
         // In recording-test mode, wait for the first stable rendered frame
         // instead of saving the uninitialized backbuffer as frame_0000.
-        recording_request_snapshot();
+        recording_request_snapshot_internal(true);
 #else
         // Save the initial frame (page 1 before any action)
         recording_do_save_frame();
@@ -1404,6 +1423,7 @@ static void recording_save_frame(void)
         }
 
         g_recording_snapshot_requested = false;
+        g_recording_snapshot_blocks_actions = false;
         g_recording_last_frame_time = now;
         recording_do_save_frame();
 

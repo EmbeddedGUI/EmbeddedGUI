@@ -8,6 +8,7 @@
 #define DEMO_CHAT_ITEMS        720U
 #define DEMO_TASK_ITEMS        260U
 #define DEMO_INVALID_INDEX     0xFFFFFFFFUL
+#define DEMO_MUTATION_VERIFY_RETRY_MAX 4U
 #define DEMO_STATUS_TEXT_LEN   96
 #define DEMO_TITLE_TEXT_LEN    48
 #define DEMO_SUBTEXT_LEN       72
@@ -165,6 +166,7 @@ static demo_virtual_viewport_context_t viewport_context;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_mutation_verify_retry;
 #endif
 
 EGUI_VIEW_CARD_PARAMS_INIT(header_card_params, DEMO_MARGIN_X, DEMO_TOP_Y, DEMO_HEADER_W, DEMO_HEADER_H, 14);
@@ -2098,6 +2100,7 @@ void test_init_ui(void)
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
+    recording_mutation_verify_retry = 0U;
 #endif
 
     egui_view_init(EGUI_VIEW_OF(&background_view));
@@ -2208,27 +2211,52 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             report_runtime_failure("feed row click did not update selected index");
         }
+        recording_mutation_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[DEMO_ACTION_PATCH]), 180);
         return true;
     case 3:
-        if (first_call && viewport_context.mutation_count < 1U)
+        if (viewport_context.mutation_count < 1U)
         {
+            if (recording_mutation_verify_retry < DEMO_MUTATION_VERIFY_RETRY_MAX)
+            {
+                recording_mutation_verify_retry++;
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 0);
+                return true;
+            }
             report_runtime_failure("feed patch did not mutate data");
         }
+        recording_mutation_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[DEMO_ACTION_MOVE]), 180);
         return true;
     case 4:
-        if (first_call && viewport_context.mutation_count < 2U)
+        if (viewport_context.mutation_count < 2U)
         {
+            if (recording_mutation_verify_retry < DEMO_MUTATION_VERIFY_RETRY_MAX)
+            {
+                recording_mutation_verify_retry++;
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 0);
+                return true;
+            }
             report_runtime_failure("feed move did not mutate data");
         }
+        recording_mutation_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[DEMO_ACTION_ADD]), 180);
         return true;
     case 5:
-        if (first_call && viewport_context.item_count != DEMO_FEED_ITEMS + 1U)
+        if (viewport_context.item_count != DEMO_FEED_ITEMS + 1U)
         {
+            if (recording_mutation_verify_retry < DEMO_MUTATION_VERIFY_RETRY_MAX)
+            {
+                recording_mutation_verify_retry++;
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 0);
+                return true;
+            }
             report_runtime_failure("feed insert did not change item count");
         }
+        recording_mutation_verify_retry = 0U;
         p_action->type = EGUI_SIM_ACTION_SWIPE;
         p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
         p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 4 / 5;
@@ -2303,13 +2331,22 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_CLICK_VIEW(p_action, view, 180);
         return true;
     case 13:
+        recording_mutation_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[DEMO_ACTION_PATCH]), 180);
         return true;
     case 14:
-        if (first_call && viewport_context.mutation_count < 4U)
+        if (viewport_context.mutation_count < 4U)
         {
+            if (recording_mutation_verify_retry < DEMO_MUTATION_VERIFY_RETRY_MAX)
+            {
+                recording_mutation_verify_retry++;
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 0);
+                return true;
+            }
             report_runtime_failure("chat patch did not mutate data");
         }
+        recording_mutation_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&scene_buttons[DEMO_SCENE_TASK]), 220);
         return true;
     case 15:
@@ -2317,20 +2354,37 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             report_runtime_failure("scene switch to ops failed");
         }
+        recording_mutation_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[DEMO_ACTION_DEL]), 180);
         return true;
     case 16:
-        if (first_call && viewport_context.mutation_count < 5U)
+        if (viewport_context.mutation_count < 5U)
         {
+            if (recording_mutation_verify_retry < DEMO_MUTATION_VERIFY_RETRY_MAX)
+            {
+                recording_mutation_verify_retry++;
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 0);
+                return true;
+            }
             report_runtime_failure("ops delete did not mutate data");
         }
+        recording_mutation_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[DEMO_ACTION_PATCH]), 180);
         return true;
     case 17:
-        if (first_call && viewport_context.mutation_count < 6U)
+        if (viewport_context.mutation_count < 6U)
         {
+            if (recording_mutation_verify_retry < DEMO_MUTATION_VERIFY_RETRY_MAX)
+            {
+                recording_mutation_verify_retry++;
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 0);
+                return true;
+            }
             report_runtime_failure("ops patch did not mutate data");
         }
+        recording_mutation_verify_retry = 0U;
         p_action->type = EGUI_SIM_ACTION_SWIPE;
         p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH / 2;
         p_action->y1 = EGUI_CONFIG_SCEEN_HEIGHT * 4 / 5;
