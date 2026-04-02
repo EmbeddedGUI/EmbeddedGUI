@@ -25,12 +25,12 @@ jobs:
   core-touch-audit:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: rlalik/setup-cpp-compiler@v1.2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -48,12 +48,12 @@ jobs:
       matrix:
         category: [input, display, layout, chart, navigation, feedback, media, decoration]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: rlalik/setup-cpp-compiler@v1.2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
