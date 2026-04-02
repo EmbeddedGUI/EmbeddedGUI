@@ -14,9 +14,12 @@ from typing import Optional
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = SCRIPT_DIR.parent
+PERF_ANALYSIS_DIR = SCRIPT_DIR / "perf_analysis"
 
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
+if str(PERF_ANALYSIS_DIR) not in sys.path:
+    sys.path.insert(0, str(PERF_ANALYSIS_DIR))
 
 import code_runtime_check as runtime_check
 import dirty_region_stats_report as dirty_stats_report

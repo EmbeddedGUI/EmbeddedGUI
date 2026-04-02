@@ -185,10 +185,10 @@ src/
 | `code_runtime_check.py` | 运行时验证 (截图对比) |
 | `code_format.py` | 代码格式化 |
 | `check_example_icon_font.py` | 示例图标字体显式配置检查 |
-| `code_perf_check.py` | 性能测试 |
+| `perf_analysis/code_perf_check.py` | 性能测试 |
 | `release_check.py` | 发布前多步骤一键检查 |
 | `setup_env.py` | 跨平台环境配置主脚本，负责 Python 依赖、工具链检查和 FFmpeg 准备 |
-| `utils_analysis_elf_size.py` | ELF 二进制大小分析 |
+| `size_analysis/utils_analysis_elf_size.py` | ELF 二进制大小分析 |
 | `wasm_build_demos.py` | WebAssembly 演示构建 |
 | `gif_recorder.py` | GIF 录制工具 |
 | `ui_designer/` | UI 可视化设计器 (基于 PyQt5) |

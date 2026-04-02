@@ -19,7 +19,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent
+SCRIPTS_ROOT = SCRIPT_DIR.parent
+PROJECT_ROOT = SCRIPTS_ROOT.parent
 PERF_OUTPUT_DIR = PROJECT_ROOT / "perf_output"
 DEFAULT_RESULTS_PATH = PERF_OUTPUT_DIR / "perf_results.json"
 DEFAULT_FRAMES_DIR = PERF_OUTPUT_DIR / "perf_scene_frames"
@@ -46,6 +47,8 @@ IMAGE_LANCZOS = getattr(Image, "Resampling", Image).LANCZOS
 
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
 
 import code_runtime_check as runtime_check
 from perf_to_doc import _get_categorized_tests

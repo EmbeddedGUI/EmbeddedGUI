@@ -224,7 +224,7 @@ egui_view_invalidate(my_custom_view);
 - `screen_area`：屏幕总面积
 - `pfb_tiles`：本帧参与刷新的 PFB tile 数量
 
-这些日志可以用 `scripts/dirty_region_stats_report.py` 自动汇总为 Markdown 和 CSV 报告，方便横向对比多个控件或多个版本的优化结果。
+这些日志可以用 `scripts/perf_analysis/dirty_region_stats_report.py` 自动汇总为 Markdown 和 CSV 报告，方便横向对比多个控件或多个版本的优化结果。
 
 需要注意的是：
 

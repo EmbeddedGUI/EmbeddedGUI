@@ -1,12 +1,12 @@
 # 二进制大小分析
 
-EmbeddedGUI 提供了 `scripts/utils_analysis_elf_size.py` 脚本，用于分析各示例应用的二进制大小，帮助开发者了解代码、资源和 RAM 的占用情况。
+EmbeddedGUI 提供了 `scripts/size_analysis/utils_analysis_elf_size.py` 脚本，用于分析各示例应用的二进制大小，帮助开发者了解代码、资源和 RAM 的占用情况。
 
 ## 基本用法
 
 ```bash
 # 在项目根目录执行
-python scripts/utils_analysis_elf_size.py
+python scripts/size_analysis/utils_analysis_elf_size.py
 ```
 
 脚本会自动遍历 `example/` 目录下的所有示例应用（包括 HelloBasic 的所有子应用），逐个编译并分析 ELF 文件，最终生成 `output/README.md` 报告。
@@ -112,7 +112,7 @@ __bss_size = SIZEOF(.bss);
 如果只想分析单个 ELF 文件，可以直接调用脚本中的函数：
 
 ```python
-from scripts.utils_analysis_elf_size import utils_process_elf_file
+from scripts.size_analysis.utils_analysis_elf_size import utils_process_elf_file
 
 info = utils_process_elf_file('output/main.elf')
 print(f"Code:     {info.code_size} bytes")
@@ -127,11 +127,11 @@ print(f"PFB:      {info.bss_pfb_size} bytes")
 
 ```bash
 # 修改前
-python scripts/utils_analysis_elf_size.py
+python scripts/size_analysis/utils_analysis_elf_size.py
 cp output/README.md output/README_before.md
 
 # 修改后
-python scripts/utils_analysis_elf_size.py
+python scripts/size_analysis/utils_analysis_elf_size.py
 
 # 对比
 diff output/README_before.md output/README.md

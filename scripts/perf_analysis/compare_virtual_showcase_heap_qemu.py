@@ -17,7 +17,7 @@ except Exception:  # pragma: no cover - fallback only
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent
+PROJECT_ROOT = SCRIPT_DIR.parent.parent
 OUTPUT_DIR = PROJECT_ROOT / "perf_output"
 ELF_PATH = PROJECT_ROOT / "output" / "main.elf"
 RESOURCE_DST = PROJECT_ROOT / "output" / "app_egui_resource_merge.bin"

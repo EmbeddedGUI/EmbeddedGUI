@@ -3,18 +3,18 @@
 #include <string.h>
 #include "uicode.h"
 
-#define DEMO_MAX_ITEMS         1200U
-#define DEMO_FEED_ITEMS        1080U
-#define DEMO_CHAT_ITEMS        720U
-#define DEMO_TASK_ITEMS        260U
-#define DEMO_INVALID_INDEX     0xFFFFFFFFUL
+#define DEMO_MAX_ITEMS                 1200U
+#define DEMO_FEED_ITEMS                1080U
+#define DEMO_CHAT_ITEMS                720U
+#define DEMO_TASK_ITEMS                260U
+#define DEMO_INVALID_INDEX             0xFFFFFFFFUL
 #define DEMO_MUTATION_VERIFY_RETRY_MAX 4U
-#define DEMO_STATUS_TEXT_LEN   96
-#define DEMO_TITLE_TEXT_LEN    48
-#define DEMO_SUBTEXT_LEN       72
-#define DEMO_META_TEXT_LEN     72
-#define DEMO_BADGE_TEXT_LEN    20
-#define DEMO_STATE_CACHE_COUNT 96U
+#define DEMO_STATUS_TEXT_LEN           96
+#define DEMO_TITLE_TEXT_LEN            48
+#define DEMO_SUBTEXT_LEN               72
+#define DEMO_META_TEXT_LEN             72
+#define DEMO_BADGE_TEXT_LEN            20
+#define DEMO_STATE_CACHE_COUNT         96U
 
 #define DEMO_MARGIN_X          8
 #define DEMO_TOP_Y             8

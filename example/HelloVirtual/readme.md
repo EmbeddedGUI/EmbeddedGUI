@@ -48,13 +48,13 @@ python scripts/hello_basic_render_workflow.py --app HelloVirtual --suite basic -
 ```bash
 make -j1 all APP=HelloShowcase PORT=stm32g0
 make -j1 all APP=HelloVirtual APP_SUB=virtual_stage_showcase PORT=stm32g0
-python scripts/compare_virtual_showcase_ram.py --skip-build
+python scripts/perf_analysis/compare_virtual_showcase_ram.py --skip-build
 ```
 
 QEMU heap 对比：
 
 ```bash
-python scripts/compare_virtual_showcase_heap_qemu.py --mode app-recording
+python scripts/perf_analysis/compare_virtual_showcase_heap_qemu.py --mode app-recording
 ```
 
 ## 推荐阅读顺序

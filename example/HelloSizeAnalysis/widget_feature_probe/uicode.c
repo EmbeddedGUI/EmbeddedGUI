@@ -49,11 +49,7 @@ static const egui_view_line_point_t probe_line_points[] = {
 };
 
 static const egui_chart_point_t probe_chart_points[] = {
-        {0, 10},
-        {10, 35},
-        {20, 18},
-        {30, 42},
-        {40, 24},
+        {0, 10}, {10, 35}, {20, 18}, {30, 42}, {40, 24},
 };
 
 static const egui_chart_series_t probe_chart_series[] = {

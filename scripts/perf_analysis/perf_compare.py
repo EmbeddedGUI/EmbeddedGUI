@@ -1,14 +1,34 @@
 #!/usr/bin/env python3
 """Compare two perf JSON files and output a markdown table."""
+
 import json
 import sys
+from pathlib import Path
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+def resolve_input(path_text: str, default_path: Path) -> Path:
+    path = Path(path_text) if path_text else default_path
+    if path.is_absolute():
+        return path
+    return PROJECT_ROOT / path
 
 def main():
-    baseline_path = sys.argv[1] if len(sys.argv) > 1 else "perf_output/perf_baseline_999bb88.json"
-    current_path = sys.argv[2] if len(sys.argv) > 2 else "perf_output/perf_results.json"
+    baseline_path = resolve_input(
+        sys.argv[1] if len(sys.argv) > 1 else "",
+        PROJECT_ROOT / "perf_output" / "perf_baseline_999bb88.json",
+    )
+    current_path = resolve_input(
+        sys.argv[2] if len(sys.argv) > 2 else "",
+        PROJECT_ROOT / "perf_output" / "perf_results.json",
+    )
 
-    b = json.load(open(baseline_path))["profiles"]["cortex-m3"]
-    c = json.load(open(current_path))["profiles"]["cortex-m3"]
+    with open(baseline_path, "r", encoding="utf-8") as baseline_file:
+        b = json.load(baseline_file)["profiles"]["cortex-m3"]
+    with open(current_path, "r", encoding="utf-8") as current_file:
+        c = json.load(current_file)["profiles"]["cortex-m3"]
 
     header = "| Test | Baseline(ms) | Current(ms) | Delta(ms) | Change% |"
     sep    = "|------|-------------|-------------|-----------|---------|"

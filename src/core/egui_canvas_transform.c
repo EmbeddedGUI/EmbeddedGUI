@@ -4022,7 +4022,7 @@ static int text_transform_try_draw_axis_aligned(const egui_font_t *font, const v
  * Text dimensions are cached (12 bytes static) to avoid per-tile string measurement.
  */
 __EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg,
-                                                                     int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
+                                                            int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
 {
     if (!font || !string || !font->res)
     {
@@ -4820,8 +4820,7 @@ __EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_text_transform(const egui_font_t *f
         ctx.Cy_base += ctx.inv_m11;
     }
 
-cleanup:
-    ;
+cleanup:;
 #if EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE
     if (tile_alpha8_layout_glyph_indices != NULL)
     {
@@ -5204,8 +5203,7 @@ static int text_transform_rasterize_visible_alpha8_layout(uint8_t *alpha8_buf, i
     }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-cleanup:
-    ;
+cleanup:;
     text_transform_external_layout_glyph_row_scratch_release(&external_row_scratch);
 #endif
     return status;
@@ -7015,8 +7013,8 @@ static int text_transform_draw_visible_alpha8_tile_layout(const text_transform_c
  * One switch per pixel instead of 4; shares row offset and bit position calculations.
  * Requires all 4 sample coordinates to be in bounds.
  */
-__EGUI_STATIC_INLINE__ void batch_bilinear_packed_alpha(const uint8_t *buf, int rb, int sx, int sy, uint8_t bpp, uint16_t *a00, uint16_t *a01,
-                                                        uint16_t *a10, uint16_t *a11)
+__EGUI_STATIC_INLINE__ void batch_bilinear_packed_alpha(const uint8_t *buf, int rb, int sx, int sy, uint8_t bpp, uint16_t *a00, uint16_t *a01, uint16_t *a10,
+                                                        uint16_t *a11)
 {
     int base0 = sy * rb;
     int base1 = base0 + rb;

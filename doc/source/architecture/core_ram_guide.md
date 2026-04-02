@@ -192,7 +192,7 @@
 | 全 codec `64x12` + `EGUI_CONFIG_IMAGE_RLE_CHECKPOINT_ENABLE=1` | `9568B -> 6736B` (`-2832B`) | RLE checkpoint 对这条实验线几乎没有恢复作用，整体结果与上一行基本相同 | 拒绝 |
 
 - `MASK_IMAGE_TEST_PERF_ROUND_RECT` 等局部圆角遮罩场景在更宽逻辑 tile 下确实更快，但 shipped default 必须看整套场景是否满足当前 RAM/perf 规则，不能因为单个热点收益就带进默认路径。
-- `python scripts/code_perf_check.py` 的 `PASSED` 只表示当前跑通，不代表通过基线对比；这三组 probe 实验都是手工对照 `doc/source/performance/perf_report.md` 后判定拒绝。
+- `python scripts/perf_analysis/code_perf_check.py` 的 `PASSED` 只表示当前跑通，不代表通过基线对比；这三组 probe 实验都是手工对照 `doc/source/performance/perf_report.md` 后判定拒绝。
 - 2026-03-30 的 follow-up 把 probe-only 的 resize 断言补齐后，`96x8 / 128x6 / 192x4` 这些更宽 shape 终于可以完整跑完；但它们依然没有一个能通过 shipped default 的全场景门线。
 
 | 实验 | Heap 变化 | 性能结果 | 结论 |
@@ -249,7 +249,7 @@
 - `Map` 交叉复核结果：`.su` 里的 `1200B`、`1112B`、`976B` 这三个大栈帧，在当前 HelloPerformance 镜像里都只出现在 `Discarded input sections`，并未进入最终链接结果。
 - 当前最终链接镜像里的最大单函数栈帧是 `432B`，由 `egui_canvas_draw_thick_line_scan` 持有；其后是 `egui_canvas_draw_circle_fill_gradient (424B)`、`egui_canvas_draw_rectangle_fill_gradient (416B)`、`egui_canvas_draw_polygon_fill_gradient (408B)`、`egui_canvas_draw_polygon_fill (408B)`、`egui_image_rle_draw_image (392B)`、`egui_canvas_draw_text_transform (368B)`、`egui_canvas_draw_image_transform (344B)` 和 `egui_canvas_draw_line_hq (288B)`，最终镜像中仍然没有 `>=1KB` 的链接热点。
 - logical PFB 相关路径也已经做过 `-fstack-usage` 复核：core 侧 `egui_core_get_logical_pfb_target_width_hint=4B`、`egui_core_get_logical_pfb_probe_width=32B`、`egui_core_apply_logical_pfb_probe_shape=32B`，而 `HelloPerformance` 新增的 app 侧 helper `egui_view_test_performance_uses_logical_pfb_96_hint=16B`、override `egui_core_get_logical_pfb_target_width_hint=8B`，都没有引入新的大栈对象。
-- HelloPerformance 现在使用 `__qemu_min_stack_size__=0x01b0`，即 `432B` QEMU 预留栈；当前口径已由最新 `.su`/`main.map` 交叉复核、runtime `223/223`、unit test `649/649` 和 `python scripts/code_perf_check.py --profile cortex-m3 --threshold 10` 共同支撑。
+- HelloPerformance 现在使用 `__qemu_min_stack_size__=0x01b0`，即 `432B` QEMU 预留栈；当前口径已由最新 `.su`/`main.map` 交叉复核、runtime `223/223`、unit test `649/649` 和 `python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --threshold 10` 共同支撑。
 - 这也说明当前 stack 方向已经接近收尾：后续如果只是把某一个 `432B` 或 `424B` 热点单独压下去，而没有一起带动 `416B/408B/392B` 这组 active linked frame 下移，就不会带来值得保留的静态 RAM headline 变化。
 
 ## 建议的裁剪顺序

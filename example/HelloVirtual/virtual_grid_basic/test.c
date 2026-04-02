@@ -9,13 +9,13 @@
 
 #include "uicode.h"
 
-#define GRID_BASIC_ITEM_COUNT    120U
-#define GRID_BASIC_STABLE_BASE   5000U
-#define GRID_BASIC_INVALID_INDEX 0xFFFFFFFFUL
+#define GRID_BASIC_ITEM_COUNT             120U
+#define GRID_BASIC_STABLE_BASE            5000U
+#define GRID_BASIC_INVALID_INDEX          0xFFFFFFFFUL
 #define GRID_BASIC_PATCH_VERIFY_RETRY_MAX 3U
-#define GRID_BASIC_TITLE_LEN     28
-#define GRID_BASIC_BADGE_LEN     16
-#define GRID_BASIC_META_LEN      24
+#define GRID_BASIC_TITLE_LEN              28
+#define GRID_BASIC_BADGE_LEN              16
+#define GRID_BASIC_META_LEN               24
 
 #define GRID_BASIC_MARGIN_X     8
 #define GRID_BASIC_TOP_Y        8

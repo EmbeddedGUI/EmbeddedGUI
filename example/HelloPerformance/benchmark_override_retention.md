@@ -15,9 +15,9 @@
 - 测量时间：`2026-03-31`
 - 测量提交：`885c25c`
 - 命令：
-  - `python scripts/code_perf_check.py --pfb-matrix`
-  - `python scripts/code_perf_check.py --spi-matrix`
-- 这些报告对应 `scripts/code_perf_check.py` 里通过 `USER_CFLAGS` 做的外部覆盖：
+  - `python scripts/perf_analysis/code_perf_check.py --pfb-matrix`
+  - `python scripts/perf_analysis/code_perf_check.py --spi-matrix`
+- 这些报告对应 `scripts/perf_analysis/code_perf_check.py` 里通过 `USER_CFLAGS` 做的外部覆盖：
   - `EGUI_CONFIG_PFB_WIDTH`
   - `EGUI_CONFIG_PFB_HEIGHT`
   - `EGUI_CONFIG_PFB_BUFFER_COUNT`

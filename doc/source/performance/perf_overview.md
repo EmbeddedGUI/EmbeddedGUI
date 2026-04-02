@@ -41,7 +41,7 @@ qemu-system-arm \
 
 ### CPU Profile 配置
 
-框架支持多种 Cortex-M 内核配置，定义在 `scripts/perf_cpu_profiles.json` 中：
+框架支持多种 Cortex-M 内核配置，定义在 `scripts/perf_analysis/perf_cpu_profiles.json` 中：
 
 | Profile | QEMU Machine | 典型芯片 |
 |---------|-------------|---------|
@@ -107,13 +107,13 @@ qemu-system-arm \
 
 ```bash
 # 运行所有 CPU profile 的完整性能测试
-python scripts/code_perf_check.py --full-check
+python scripts/perf_analysis/code_perf_check.py --full-check
 
 # 指定单个 profile
-python scripts/code_perf_check.py --profile cortex-m3
+python scripts/perf_analysis/code_perf_check.py --profile cortex-m3
 
 # 自定义超时时间（秒）
-python scripts/code_perf_check.py --profile cortex-m3 --timeout 600
+python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --timeout 600
 ```
 
 ### PFB 矩阵测试
@@ -121,7 +121,7 @@ python scripts/code_perf_check.py --profile cortex-m3 --timeout 600
 测试不同 PFB（局部帧缓冲）尺寸对性能的影响：
 
 ```bash
-python scripts/code_perf_check.py --pfb-matrix
+python scripts/perf_analysis/code_perf_check.py --pfb-matrix
 ```
 
 可用的 PFB 配置：
@@ -139,7 +139,7 @@ python scripts/code_perf_check.py --pfb-matrix
 测试不同 SPI 速率和缓冲区配置对帧传输的影响：
 
 ```bash
-python scripts/code_perf_check.py --spi-matrix
+python scripts/perf_analysis/code_perf_check.py --spi-matrix
 ```
 
 ## 基线管理
@@ -149,7 +149,7 @@ python scripts/code_perf_check.py --spi-matrix
 当性能优化被合入主分支后，需要更新基线：
 
 ```bash
-python scripts/code_perf_check.py --update-baseline
+python scripts/perf_analysis/code_perf_check.py --update-baseline
 ```
 
 基线数据保存在 `perf_output/baseline.json`，包含每个测试项的参考耗时。
@@ -160,7 +160,7 @@ python scripts/code_perf_check.py --update-baseline
 
 ```bash
 # 使用自定义阈值
-python scripts/code_perf_check.py --threshold 15
+python scripts/perf_analysis/code_perf_check.py --threshold 15
 ```
 
 回归检测公式：
@@ -187,7 +187,7 @@ regression = change_pct > threshold_percent
 使用 `perf_to_doc.py` 将 JSON 数据转换为带图表的 Markdown 文档：
 
 ```bash
-python scripts/perf_to_doc.py
+python scripts/perf_analysis/perf_to_doc.py
 ```
 
 生成的文档位于 `doc/source/performance/` 目录，包含柱状图、热力图等可视化图表。
@@ -198,7 +198,7 @@ python scripts/perf_to_doc.py
 
 ```bash
 # CI 中的典型用法
-python scripts/code_perf_check.py --full-check --threshold 10
+python scripts/perf_analysis/code_perf_check.py --full-check --threshold 10
 ```
 
 如果检测到回归（任何测试项超过阈值），脚本返回非零退出码，CI 流水线将失败。

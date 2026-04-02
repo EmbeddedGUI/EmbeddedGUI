@@ -26,7 +26,7 @@
   - `96 -> 64` 时，`SHADOW_ROUND 5.584 -> 5.584`
   - 对应 `egui_shadow_draw_corner` 栈帧 `792 -> 728 -> 664`
 - `2026-03-31` 又补做了一次“当时的框架默认 `256` vs 强制 `64`”的定向 HelloPerformance QEMU perf A/B。
-  - 测试方法：沿用 `scripts/code_perf_check.py` 的同一套 `cortex-m3` QEMU perf harness，只额外用 `USER_CFLAGS` 覆盖 `-DEGUI_CONFIG_SHADOW_DSQ_LUT_MAX=64`
+  - 测试方法：沿用 `scripts/perf_analysis/code_perf_check.py` 的同一套 `cortex-m3` QEMU perf harness，只额外用 `USER_CFLAGS` 覆盖 `-DEGUI_CONFIG_SHADOW_DSQ_LUT_MAX=64`
   - 两组构建都保持 `222` 个 case、`24` 个 skip
   - `SHADOW 4.039 -> 4.039 (0.00%)`
   - `SHADOW_ROUND 6.306 -> 4.949 (-21.52%)`

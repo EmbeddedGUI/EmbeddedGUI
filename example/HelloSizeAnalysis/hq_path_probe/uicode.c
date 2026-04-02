@@ -38,8 +38,8 @@ static void button_click_cb(egui_view_t *self)
     cnt++;
 }
 
-#if defined(EGUI_SIZE_PROBE_LINK_LINE_HQ) || defined(EGUI_SIZE_PROBE_LINK_CIRCLE_HQ) || defined(EGUI_SIZE_PROBE_LINK_ARC_HQ) || \
-    defined(EGUI_SIZE_PROBE_LINK_ARC_ROUND_CAP_HQ)
+#if defined(EGUI_SIZE_PROBE_LINK_LINE_HQ) || defined(EGUI_SIZE_PROBE_LINK_CIRCLE_HQ) || defined(EGUI_SIZE_PROBE_LINK_ARC_HQ) ||                                \
+        defined(EGUI_SIZE_PROBE_LINK_ARC_ROUND_CAP_HQ)
 static volatile int g_uicode_size_probe_runtime_enable = 0;
 
 EGUI_SIZE_PROBE_FUNC uicode_size_probe_link_hq_paths(void)
@@ -78,8 +78,8 @@ EGUI_SIZE_PROBE_FUNC uicode_size_probe_link_hq_paths(void)
 
 void uicode_init_ui(void)
 {
-#if defined(EGUI_SIZE_PROBE_LINK_LINE_HQ) || defined(EGUI_SIZE_PROBE_LINK_CIRCLE_HQ) || defined(EGUI_SIZE_PROBE_LINK_ARC_HQ) || \
-    defined(EGUI_SIZE_PROBE_LINK_ARC_ROUND_CAP_HQ)
+#if defined(EGUI_SIZE_PROBE_LINK_LINE_HQ) || defined(EGUI_SIZE_PROBE_LINK_CIRCLE_HQ) || defined(EGUI_SIZE_PROBE_LINK_ARC_HQ) ||                                \
+        defined(EGUI_SIZE_PROBE_LINK_ARC_ROUND_CAP_HQ)
     uicode_size_probe_link_hq_paths();
 #endif
 

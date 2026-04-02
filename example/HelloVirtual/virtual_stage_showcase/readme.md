@@ -100,7 +100,7 @@
 如果要看运行时 heap，要单独跑 QEMU：
 
 ```bash
-python scripts/compare_virtual_showcase_heap_qemu.py --mode app-recording
+python scripts/perf_analysis/compare_virtual_showcase_heap_qemu.py --mode app-recording
 ```
 
 `app-recording` 模式会直接复用 `HelloShowcase` 和 `virtual_stage_showcase` 各自的 `egui_port_get_recording_action()`，因此比统一假动作更接近页面真实交互。
@@ -175,6 +175,6 @@ python scripts/hello_basic_render_workflow.py --app HelloVirtual --widgets virtu
 ```bash
 make -j1 all APP=HelloShowcase PORT=stm32g0
 make -j1 all APP=HelloVirtual APP_SUB=virtual_stage_showcase PORT=stm32g0
-python scripts/compare_virtual_showcase_ram.py --skip-build
-python scripts/compare_virtual_showcase_heap_qemu.py --mode app-recording
+python scripts/perf_analysis/compare_virtual_showcase_ram.py --skip-build
+python scripts/perf_analysis/compare_virtual_showcase_heap_qemu.py --mode app-recording
 ```

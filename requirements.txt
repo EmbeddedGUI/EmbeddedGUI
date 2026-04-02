@@ -1,5 +1,6 @@
 freetype_py
 json5
+matplotlib
 numpy
 Pillow
 pyelftools

@@ -1,4 +1,4 @@
-﻿# QEMU Size Analysis
+# QEMU Size Analysis
 
 本目录下的 size 文档统一采用 qemu 口径，目标是同时提供：
 
@@ -10,7 +10,7 @@
 
 ## Scope
 
-- `HelloBasic` 全子 case、`HelloSimple`、`HelloPerformance`、`HelloShowcase`、`HelloStyleDemo`、`HelloVirtual(virtual_stage_showcase)`
+- `HelloBasic(button,image,label)`, `HelloSimple`, `HelloShowcase`, `HelloVirtual(virtual_stage_showcase)`
 
 ## Measurement Method
 

@@ -281,7 +281,7 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 | 运行 | `make run` | 启动 PC 模拟器 |
 | 资源生成 | `make resource_refresh APP=<APP>` | 生成字体 / 图片 C 文件 |
 | 运行时验证 | `python scripts/code_runtime_check.py --app <APP> [--app-sub <SUB>]` | 截图验证渲染正确性 |
-| 体积分析 | `python scripts/utils_analysis_elf_size.py` | 生成 ROM/RAM 报告 |
+| 体积分析 | `python scripts/size_analysis/utils_analysis_elf_size.py` | 生成 ROM/RAM 报告 |
 | CI 编译检查 | `python scripts/code_compile_check.py --full-check` | 全量编译检查 |
 | UI Designer | `python scripts/ui_designer/main.py` | 设计稿转 C 代码 |
 
@@ -303,7 +303,7 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 | HelloPerformance | 114624 | 303508 | 1164 | 2400 | 418132 |
 | HelloStyleDemo | 118308 | 105604 | 7368 | 9600 | 223912 |
 
-> 运行 `python scripts/utils_analysis_elf_size.py` 生成完整报告（含 HelloBasic 全部 62 个子应用和 HelloVirtual 全部 19 个子应用）。
+> 运行 `python scripts/size_analysis/utils_analysis_elf_size.py` 生成完整报告（含 HelloBasic 全部 62 个子应用和 HelloVirtual 全部 19 个子应用）。
 
 ---
 

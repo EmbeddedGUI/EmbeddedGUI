@@ -23,8 +23,8 @@
   - `make all APP=HelloSimple PORT=qemu CPU_ARCH=cortex-m0plus`
   - `make all APP=HelloSimple PORT=qemu CPU_ARCH=cortex-m0plus USER_CFLAGS=-DEGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE=0`
 - `HelloPerformance` perf A/B
-  - `python scripts/code_perf_check.py --profile cortex-m3 --clean`
-  - `python scripts/code_perf_check.py --profile cortex-m3 --clean --extra-cflags=-DEGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE=0`
+  - `python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --clean`
+  - `python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --clean --extra-cflags=-DEGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE=0`
 
 ### 代码量证据
 

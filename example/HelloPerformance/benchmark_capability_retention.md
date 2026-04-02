@@ -19,7 +19,7 @@
 - 测量时间：`2026-03-31`
 - 测量提交：`c11cbcd`
 - 命令：
-  - `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5 --clean`
+  - `python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --threshold 5 --clean`
 - 结果：
   - 当前 clean perf 报告共输出 `222` 个测试项
   - 其中：

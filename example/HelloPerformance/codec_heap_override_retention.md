@@ -15,8 +15,8 @@
 - `example/HelloPerformance/ram_tracking.md`
 - `docs/low_ram_config_macros.md`
 - 相关 QEMU 检查命令均已在历史 A/B 中使用：
-  - `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5`
-  - `python scripts/code_perf_check.py --profile cortex-m3 --threshold 10`
+  - `python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --threshold 5`
+  - `python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --threshold 10`
 
 ## 宏结论
 
@@ -65,7 +65,7 @@
   - whole-run heap peak `11616B -> 10032B`，减少 `1584B`
   - `static RAM` 仅 `+8B`
   - 最坏已验证 perf 为 `IMAGE_RLE_565_8 +8.35%`
-  - `python scripts/code_perf_check.py --profile cortex-m3 --threshold 10` PASSED
+  - `python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --threshold 10` PASSED
 - 这里的主要取舍是“大幅调整瞬时 heap 形态”，而不是处理 `<100B static RAM` 的小宏。
 - `2026-03-29` 后续也验证了更窄 tail cap + checkpoint 组合仍然会掉到 `+45% ~ +66%` 的 perf cliff，说明这条路径后续还需要保留外部覆盖能力做 codec A/B。
 - 处理结论：保持 `1`，并继续保留 `#ifndef` 外部覆盖入口。

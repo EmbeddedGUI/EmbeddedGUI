@@ -761,7 +761,7 @@ EGUI_VIEW_VIRTUAL_STAGE_TOGGLE_PIN(&page, MY_NODE_CORE_CARD_ID);
 推荐命令：
 
 ```bash
-python scripts/compare_virtual_showcase_heap_qemu.py --mode app-recording
+python scripts/perf_analysis/compare_virtual_showcase_heap_qemu.py --mode app-recording
 ```
 
 `app-recording` 模式会直接复用各自示例的 `egui_port_get_recording_action()`，比统一假动作更接近真实页面交互。
@@ -833,8 +833,8 @@ python scripts/hello_basic_render_workflow.py --app HelloVirtual --widgets virtu
 
 make -j1 all APP=HelloShowcase PORT=stm32g0
 make -j1 all APP=HelloVirtual APP_SUB=virtual_stage_showcase PORT=stm32g0
-python scripts/compare_virtual_showcase_ram.py --skip-build
-python scripts/compare_virtual_showcase_heap_qemu.py --mode app-recording
+python scripts/perf_analysis/compare_virtual_showcase_ram.py --skip-build
+python scripts/perf_analysis/compare_virtual_showcase_heap_qemu.py --mode app-recording
 
 make all APP=HelloVirtual APP_SUB=virtual_stage PORT=pc
 python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage --keep-screenshots

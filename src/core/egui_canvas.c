@@ -363,8 +363,8 @@ __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_pixel(egui_color_t *dst, egu
 
 __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_vertical_span(egui_color_t *pfb, egui_dim_t pfb_width, egui_dim_t pfb_ofs_x, egui_dim_t pfb_ofs_y,
                                                                   egui_dim_t clip_x_start, egui_dim_t clip_x_end, egui_dim_t clip_y_start,
-                                                                  egui_dim_t clip_y_end, egui_dim_t screen_x, egui_dim_t seg_y_start,
-                                                                  egui_dim_t seg_y_end, egui_color_t color, egui_alpha_t alpha)
+                                                                  egui_dim_t clip_y_end, egui_dim_t screen_x, egui_dim_t seg_y_start, egui_dim_t seg_y_end,
+                                                                  egui_color_t color, egui_alpha_t alpha)
 {
     egui_dim_t local_x;
 
@@ -404,9 +404,9 @@ __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_vertical_span(egui_color_t *
 }
 
 __EGUI_STATIC_INLINE__ void egui_canvas_draw_direct_rect(egui_color_t *pfb, egui_dim_t pfb_width, egui_dim_t pfb_ofs_x, egui_dim_t pfb_ofs_y,
-                                                         egui_dim_t clip_x_start, egui_dim_t clip_x_end, egui_dim_t clip_y_start,
-                                                         egui_dim_t clip_y_end, egui_dim_t rect_x, egui_dim_t rect_y, egui_dim_t rect_width,
-                                                         egui_dim_t rect_height, egui_color_t color, egui_alpha_t alpha)
+                                                         egui_dim_t clip_x_start, egui_dim_t clip_x_end, egui_dim_t clip_y_start, egui_dim_t clip_y_end,
+                                                         egui_dim_t rect_x, egui_dim_t rect_y, egui_dim_t rect_width, egui_dim_t rect_height,
+                                                         egui_color_t color, egui_alpha_t alpha)
 {
     egui_dim_t rect_y_start;
     egui_dim_t rect_y_end;
@@ -724,9 +724,9 @@ static void egui_canvas_draw_circle_corner_direct_stroke(egui_canvas_t *self, eg
 
 #if EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE
 static void egui_canvas_draw_circle_corner_fill_direct(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int type,
-                                                       egui_color_t color, egui_alpha_t alpha, const egui_circle_info_t *info,
-                                                       egui_dim_t row_start, egui_dim_t row_end, egui_dim_t col_start, egui_dim_t col_end,
-                                                       egui_dim_t iter_start, egui_dim_t iter_end, const egui_region_t *region_intersect)
+                                                       egui_color_t color, egui_alpha_t alpha, const egui_circle_info_t *info, egui_dim_t row_start,
+                                                       egui_dim_t row_end, egui_dim_t col_start, egui_dim_t col_end, egui_dim_t iter_start, egui_dim_t iter_end,
+                                                       const egui_region_t *region_intersect)
 {
     egui_dim_t row_index;
     egui_dim_t col_index;
@@ -895,8 +895,8 @@ static void egui_canvas_draw_circle_corner_fill_direct(egui_canvas_t *self, egui
                     break;
                 }
 
-                egui_canvas_draw_direct_vertical_span(pfb, pfb_width, pfb_ofs_x, pfb_ofs_y, clip_x_start, clip_x_end, clip_y_start, clip_y_end,
-                                                      screen_x, screen_y, screen_y + len, color, solid_alpha);
+                egui_canvas_draw_direct_vertical_span(pfb, pfb_width, pfb_ofs_x, pfb_ofs_y, clip_x_start, clip_x_end, clip_y_start, clip_y_end, screen_x,
+                                                      screen_y, screen_y + len, color, solid_alpha);
             }
         }
     }
@@ -927,8 +927,8 @@ static void egui_canvas_draw_circle_corner_fill_direct(egui_canvas_t *self, egui
             break;
         }
 
-        egui_canvas_draw_direct_rect(pfb, pfb_width, pfb_ofs_x, pfb_ofs_y, clip_x_start, clip_x_end, clip_y_start, clip_y_end, rect_x, rect_y, len,
-                                     len, color, solid_alpha);
+        egui_canvas_draw_direct_rect(pfb, pfb_width, pfb_ofs_x, pfb_ofs_y, clip_x_start, clip_x_end, clip_y_start, clip_y_end, rect_x, rect_y, len, len, color,
+                                     solid_alpha);
     }
 }
 #endif
@@ -1447,8 +1447,8 @@ void egui_canvas_draw_circle_corner_fill(egui_dim_t center_x, egui_dim_t center_
                         break;
                     }
 
-                    egui_canvas_draw_direct_vertical_span(pfb, pfb_width, pfb_ofs_x, pfb_ofs_y, clip_x_start, clip_x_end, clip_y_start, clip_y_end,
-                                                          screen_x, screen_y, screen_y + len, color, solid_alpha);
+                    egui_canvas_draw_direct_vertical_span(pfb, pfb_width, pfb_ofs_x, pfb_ofs_y, clip_x_start, clip_x_end, clip_y_start, clip_y_end, screen_x,
+                                                          screen_y, screen_y + len, color, solid_alpha);
                 }
                 else
                 {
@@ -1501,8 +1501,8 @@ void egui_canvas_draw_circle_corner_fill(egui_dim_t center_x, egui_dim_t center_
                 break;
             }
 
-            egui_canvas_draw_direct_rect(pfb, pfb_width, pfb_ofs_x, pfb_ofs_y, clip_x_start, clip_x_end, clip_y_start, clip_y_end, rect_x, rect_y, len,
-                                         len, color, solid_alpha);
+            egui_canvas_draw_direct_rect(pfb, pfb_width, pfb_ofs_x, pfb_ofs_y, clip_x_start, clip_x_end, clip_y_start, clip_y_end, rect_x, rect_y, len, len,
+                                         color, solid_alpha);
         }
         else
         {
@@ -1530,8 +1530,8 @@ void egui_canvas_draw_circle_corner_fill(egui_dim_t center_x, egui_dim_t center_
 __EGUI_STATIC_INLINE__ void egui_canvas_draw_circle_fill_basic_edge_direct_row(egui_color_t *dst_row, egui_dim_t pfb_ofs_x, egui_dim_t clip_x_start,
                                                                                egui_dim_t clip_x_end, egui_dim_t base_x, egui_dim_t screen_x_start,
                                                                                egui_dim_t screen_x_end, egui_dim_t row_index, egui_dim_t total_width,
-                                                                               int mirrored, const egui_circle_info_t *info,
-                                                                               const egui_circle_item_t *items, egui_color_t color, egui_alpha_t alpha)
+                                                                               int mirrored, const egui_circle_info_t *info, const egui_circle_item_t *items,
+                                                                               egui_color_t color, egui_alpha_t alpha)
 {
     egui_color_t *dst;
     egui_dim_t col_index;
@@ -1568,11 +1568,10 @@ __EGUI_STATIC_INLINE__ void egui_canvas_draw_circle_fill_basic_edge_direct_row(e
     }
 }
 
-__EGUI_STATIC_INLINE__ void egui_canvas_draw_circle_fill_basic_edge_row(egui_dim_t screen_y, egui_dim_t clip_x_start, egui_dim_t clip_x_end,
-                                                                        egui_dim_t base_x, egui_dim_t screen_x_start, egui_dim_t screen_x_end,
-                                                                        egui_dim_t row_index, egui_dim_t total_width, int mirrored,
-                                                                        const egui_circle_info_t *info, const egui_circle_item_t *items,
-                                                                        egui_color_t color, egui_alpha_t alpha)
+__EGUI_STATIC_INLINE__ void egui_canvas_draw_circle_fill_basic_edge_row(egui_dim_t screen_y, egui_dim_t clip_x_start, egui_dim_t clip_x_end, egui_dim_t base_x,
+                                                                        egui_dim_t screen_x_start, egui_dim_t screen_x_end, egui_dim_t row_index,
+                                                                        egui_dim_t total_width, int mirrored, const egui_circle_info_t *info,
+                                                                        const egui_circle_item_t *items, egui_color_t color, egui_alpha_t alpha)
 {
     egui_dim_t col_index;
     egui_dim_t col_step;
@@ -1605,8 +1604,8 @@ __EGUI_STATIC_INLINE__ void egui_canvas_draw_circle_fill_basic_edge_row(egui_dim
 }
 
 __EGUI_STATIC_INLINE__ void egui_canvas_get_circle_fill_basic_row_layout_fast(egui_dim_t radius, egui_dim_t row_index, const egui_circle_info_t *info,
-                                                                               const egui_circle_item_t *items, egui_dim_t *start_offset,
-                                                                               egui_dim_t *fill_start, egui_dim_t *fill_end)
+                                                                              const egui_circle_item_t *items, egui_dim_t *start_offset, egui_dim_t *fill_start,
+                                                                              egui_dim_t *fill_end)
 {
     egui_dim_t visible_boundary = egui_canvas_circle_corner_get_visible_boundary(row_index, info, items);
     egui_dim_t opaque_boundary = egui_canvas_circle_corner_get_opaque_boundary(row_index, info, items);
@@ -2127,8 +2126,8 @@ int egui_canvas_get_arc_fill_basic_row_angle_opaque_range(egui_dim_t radius, egu
 
     if (start_angle > 0)
     {
-        egui_float_t max_bound = EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(qy), ctan_val_list[start_angle]) -
-                                 EGUI_FLOAT_DIV(ARC_AA_HALF_TRANSITION, cos_val_list[start_angle]);
+        egui_float_t max_bound =
+                EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(qy), ctan_val_list[start_angle]) - EGUI_FLOAT_DIV(ARC_AA_HALF_TRANSITION, cos_val_list[start_angle]);
 
         if (!egui_canvas_arc_fill_basic_qx_floor_nonnegative(max_bound, &local_max))
         {
@@ -2138,8 +2137,8 @@ int egui_canvas_get_arc_fill_basic_row_angle_opaque_range(egui_dim_t radius, egu
 
     if (end_angle < 90)
     {
-        egui_float_t min_bound = EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(qy), ctan_val_list[end_angle]) +
-                                 EGUI_FLOAT_DIV(ARC_AA_HALF_TRANSITION, cos_val_list[end_angle]);
+        egui_float_t min_bound =
+                EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(qy), ctan_val_list[end_angle]) + EGUI_FLOAT_DIV(ARC_AA_HALF_TRANSITION, cos_val_list[end_angle]);
 
         local_min = egui_canvas_arc_fill_basic_qx_ceil_nonnegative(min_bound);
     }
@@ -2162,8 +2161,8 @@ int egui_canvas_get_arc_fill_basic_row_angle_opaque_range(egui_dim_t radius, egu
 
 __EGUI_STATIC_INLINE__ egui_alpha_t arc_edge_smoothstep_alpha(egui_float_t signed_dist)
 {
-// 1.5-pixel wide AA transition zone with smoothstep for smoother radial edges
-// half_transition = 0.75 in Q16.16 = 49152
+    // 1.5-pixel wide AA transition zone with smoothstep for smoother radial edges
+    // half_transition = 0.75 in Q16.16 = 49152
 
     if (signed_dist >= ARC_AA_HALF_TRANSITION)
     {
@@ -2534,9 +2533,8 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
             {
                 if (has_opaque_span && col_index == opaque_col_start)
                 {
-                    egui_canvas_draw_direct_row_span(dst_row, pfb_ofs_x, region_intersect.location.x,
-                                                     region_intersect.location.x + region_intersect.size.width, opaque_screen_start,
-                                                     opaque_screen_end, color, opaque_alpha);
+                    egui_canvas_draw_direct_row_span(dst_row, pfb_ofs_x, region_intersect.location.x, region_intersect.location.x + region_intersect.size.width,
+                                                     opaque_screen_start, opaque_screen_end, color, opaque_alpha);
                     circle_alpha = EGUI_ALPHA_100;
                     col_index = opaque_col_end - 1;
                     continue;
@@ -3122,8 +3120,8 @@ void egui_canvas_draw_circle_fill_basic(egui_dim_t center_x, egui_dim_t center_y
         {
             egui_dim_t solid_width;
 
-            egui_canvas_draw_circle_fill_basic_edge_row(screen_y, clip_x_start, clip_x_end, base_x, left_edge_start_x, left_edge_end_x, row_index,
-                                                        total_width, 0, info, items, color, alpha);
+            egui_canvas_draw_circle_fill_basic_edge_row(screen_y, clip_x_start, clip_x_end, base_x, left_edge_start_x, left_edge_end_x, row_index, total_width,
+                                                        0, info, items, color, alpha);
 
             solid_start_x = EGUI_MAX(solid_start_x, clip_x_start);
             solid_end_x = EGUI_MIN(solid_end_x, clip_x_end);

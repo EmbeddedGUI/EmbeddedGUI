@@ -15,7 +15,7 @@
 - `example/HelloPerformance/app_egui_config.h`
 - `example/HelloPerformance/uicode.c`
 - `example/HelloPerformance/egui_view_test_performance.c`
-- `scripts/code_perf_check.py`
+- `scripts/perf_analysis/code_perf_check.py`
 - `src/core/egui_core.c`
 - `src/core/egui_api.h`
 - `src/core/egui_canvas.c`
@@ -30,12 +30,12 @@
 - 本轮复跑时间：`2026-03-31`
 - 报告头部提交：`eaeea78`
 - 命令：
-  - `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5 --clean`
+  - `python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --threshold 5 --clean`
 - 结果：
   - 删除 `EGUI_CONFIG_SCEEN_WIDTH` app override 后，`read_screen_size()` 仍返回 `(240, 240)`
   - `perf_output/perf_report.md` 当前输出 `222` 个 clean perf case
   - 报告覆盖 `Basic Shapes / Text / Image / Compress / Gradient / Shadow / Mask / Animation`
-  - `scripts/code_perf_check.py` 现在按维度读取 `EGUI_CONFIG_SCEEN_WIDTH / HEIGHT`，缺省时分别回退到库默认值
+  - `scripts/perf_analysis/code_perf_check.py` 现在按维度读取 `EGUI_CONFIG_SCEEN_WIDTH / HEIGHT`，缺省时分别回退到库默认值
   - 这次复跑发生在脏工作树上，报告头部仍记录当前 `HEAD`；但实际 benchmark 输出与此前 `240x240` clean harness 一致
   - 报告生成依赖 `PERF_RESULT` / `PERF_SKIP` / `PERF_COMPLETE` 结构化日志
 
@@ -45,7 +45,7 @@
 
 - 当前库默认宽度本来就是 `240`，与 HelloPerformance 原 app override 相同。
 - `uicode.c` 和 `egui_view_test_performance.c` 继续通过 `EGUI_CONFIG_SCEEN_WIDTH` 使用同一套 `240px` 几何；去掉 app 侧重复定义不会改变编译后的 benchmark harness。
-- 之前真正阻止删除的是 `scripts/code_perf_check.py`：旧逻辑要求 `app_egui_config.h` 同时显式写出宽高，否则会整体回退成 `240x320`。本轮已改成宽高分别回默认值，因此删除宽度 override 后，perf harness 仍会被正确识别为 `240x240`。
+- 之前真正阻止删除的是 `scripts/perf_analysis/code_perf_check.py`：旧逻辑要求 `app_egui_config.h` 同时显式写出宽高，否则会整体回退成 `240x320`。本轮已改成宽高分别回默认值，因此删除宽度 override 后，perf harness 仍会被正确识别为 `240x240`。
 - 处理结论：删除 app override，直接继承库默认 `240`。
 
 ### `EGUI_CONFIG_SCEEN_HEIGHT`
@@ -72,7 +72,7 @@
 
 ### `EGUI_CONFIG_DEBUG_LOG_LEVEL`
 
-- `scripts/code_perf_check.py` 只认 `PERF_RESULT:` / `PERF_SKIP:` / `PERF_COMPLETE` 结构化输出。
+- `scripts/perf_analysis/code_perf_check.py` 只认 `PERF_RESULT:` / `PERF_SKIP:` / `PERF_COMPLETE` 结构化输出。
 - `uicode.c` 通过 `EGUI_LOG_INF` 发出这些标记；`egui_api.h` 在 log level 小于 `INF` 时会把 `EGUI_LOG_INF` 编译为空宏。
 - 默认 `EGUI_CONFIG_DEBUG_LOG_LEVEL` 是 `EGUI_LOG_IMPL_LEVEL_NONE`。如果直接回默认，clean perf 报告就失去采样输出入口。
 - 这不是 small static-RAM switch，而是 benchmark report harness 的 I/O 契约。

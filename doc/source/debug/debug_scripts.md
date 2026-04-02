@@ -9,7 +9,7 @@
 | `scripts/code_runtime_check.py` | 运行示例、自动录制、保留截图 | `python scripts/code_runtime_check.py --app HelloBasic --app-sub slider --keep-screenshots` | `runtime_check_output/<app>/` |
 | `scripts/code_compile_check.py` | 批量编译示例并跑 `HelloUnitTest` | `python scripts/code_compile_check.py --full-check` | 终端日志 |
 | `scripts/code_dirty_animation_check.py` | 检查代表性动画是否仍是局部刷新 | `python scripts/code_dirty_animation_check.py --scenario showcase` | `runtime_check_output/dirty_animation_check/` |
-| `scripts/dirty_region_stats_report.py` | 把 `DIRTY_REGION_STATS` 日志转成 Markdown/CSV | `python scripts/dirty_region_stats_report.py --input showcase=perf_output/showcase.log` | `*.md`、`*.csv` |
+| `scripts/perf_analysis/dirty_region_stats_report.py` | 把 `DIRTY_REGION_STATS` 日志转成 Markdown/CSV | `python scripts/perf_analysis/dirty_region_stats_report.py --input showcase=perf_output/showcase.log` | `*.md`、`*.csv` |
 | `scripts/hello_basic_render_workflow.py` | 批量检查 HelloBasic / HelloVirtual 的录制动作、截图和交互变化 | `python scripts/hello_basic_render_workflow.py --app HelloVirtual --suite basic` | JSON 报告和截图 |
 | `scripts/showcase_stage_parity_check.py` | 对比 `HelloShowcase` 和 `virtual_stage_showcase` 的关键画面状态 | `python scripts/showcase_stage_parity_check.py --bits64` | 对比图、diff 图 |
 
@@ -96,7 +96,7 @@ python scripts/code_dirty_animation_check.py --scenario virtual_stage_showcase
 常用命令：
 
 ```bash
-python scripts/dirty_region_stats_report.py \
+python scripts/perf_analysis/dirty_region_stats_report.py \
   --input showcase=perf_output/dirty_region_logs/showcase.log \
   --input stage=perf_output/dirty_region_logs/virtual_stage_showcase.log \
   --output-prefix perf_output/dirty_region_compare

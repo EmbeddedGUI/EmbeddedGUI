@@ -8,9 +8,9 @@ instruction counting (-icount shift=0), parses structured PERF_RESULT output,
 and generates JSON + Markdown reports.
 
 Usage:
-    python scripts/code_perf_check.py --full-check
-    python scripts/code_perf_check.py --profile cortex-m3
-    python scripts/code_perf_check.py --threshold 15
+    python scripts/perf_analysis/code_perf_check.py --full-check
+    python scripts/perf_analysis/code_perf_check.py --profile cortex-m3
+    python scripts/perf_analysis/code_perf_check.py --threshold 15
 """
 
 import os
@@ -22,11 +22,12 @@ import subprocess
 import argparse
 import platform
 import shutil
+import importlib.util
 from datetime import datetime
 from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).parent
-PROJECT_ROOT = SCRIPT_DIR.parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent.parent
 PROFILES_FILE = SCRIPT_DIR / "perf_cpu_profiles.json"
 OUTPUT_DIR = PROJECT_ROOT / "perf_output"
 RESULTS_FILE = OUTPUT_DIR / "perf_results.json"
@@ -767,17 +768,42 @@ def run_scene_capture(profile_name, keyword_filter=None, timeout=180):
     return True
 
 
+def load_perf_to_doc_module():
+    """Load perf_to_doc.py from the current script directory."""
+    module_path = SCRIPT_DIR / "perf_to_doc.py"
+    if not module_path.exists():
+        raise ImportError(f"perf_to_doc.py not found: {module_path}")
+
+    spec = importlib.util.spec_from_file_location("perf_to_doc", module_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"failed to create module spec for: {module_path}")
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def _generate_perf_documentation():
     """Generate all performance documentation reports."""
     try:
-        import perf_to_doc
+        perf_to_doc = load_perf_to_doc_module()
+    except ImportError as exc:
+        raise RuntimeError(f"failed to load perf_to_doc.py: {exc}") from exc
+
+    try:
         perf_to_doc.generate_perf_report()
         perf_to_doc.generate_pfb_matrix_report()
         perf_to_doc.generate_spi_matrix_report()
-    except ImportError:
-        print("Warning: perf_to_doc module not found, skipping documentation generation")
-    except Exception as e:
-        raise Exception(f"Failed to generate performance documentation: {e}")
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "missing Python dependency for documentation generation: "
+            f"{exc.name}. Install it in the current environment first "
+            "(for example: pip install -r requirements.txt)."
+        ) from exc
+    except ImportError as exc:
+        raise RuntimeError(f"failed while importing documentation dependencies: {exc}") from exc
+    except Exception as exc:
+        raise RuntimeError(f"failed to generate performance documentation: {exc}") from exc
 
 
 def main():
@@ -939,6 +965,7 @@ def main():
             matrix_failed = True
 
     # Generate documentation from performance results (if --doc flag is set)
+    docs_failed = False
     if args.doc:
         print(f"\n{'='*60}")
         print(f"Generating Documentation")
@@ -958,11 +985,12 @@ def main():
 
             print("Documentation updated successfully")
         except Exception as e:
+            docs_failed = True
             print(f"Warning: Failed to generate documentation: {e}")
             import traceback
             traceback.print_exc()
 
-    if failed_profiles or matrix_failed or scenes_failed:
+    if failed_profiles or matrix_failed or scenes_failed or docs_failed:
         print(f"\nWARNING: some tests failed to build/run")
         sys.exit(2)
     else:

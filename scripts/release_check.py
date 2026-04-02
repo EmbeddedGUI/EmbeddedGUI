@@ -93,7 +93,7 @@ def build_steps(args):
         stage_parity_cmd.append("--bits64")
         virtual_render_cmd.append("--bits64")
 
-    perf_cmd = [py, str(SCRIPT_DIR / "code_perf_check.py"), "--full-check", "--doc"]
+    perf_cmd = [py, str(SCRIPT_DIR / "perf_analysis" / "code_perf_check.py"), "--full-check", "--doc"]
 
     wasm_cmd = [py, str(SCRIPT_DIR / "wasm_build_demos.py")]
     if emsdk_path:

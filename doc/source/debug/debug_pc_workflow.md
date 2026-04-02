@@ -106,7 +106,7 @@ python scripts/code_runtime_check.py --app HelloTest --keep-screenshots
 -DEGUI_CONFIG_DEBUG_DIRTY_REGION_STATS=1
 ```
 
-然后配合 `scripts/dirty_region_stats_report.py` 出报告。
+然后配合 `scripts/perf_analysis/dirty_region_stats_report.py` 出报告。
 
 ## 运行时验证
 

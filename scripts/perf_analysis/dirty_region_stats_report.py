@@ -4,7 +4,7 @@
 Generate Markdown and CSV reports from DIRTY_REGION_STATS logs.
 
 Usage:
-    python scripts/dirty_region_stats_report.py \
+    python scripts/perf_analysis/dirty_region_stats_report.py \
         --input textinput=perf_output/dirty_region_logs/textinput.log \
         --input number_picker=perf_output/dirty_region_logs/number_picker.log \
         --output-prefix perf_output/dirty_region_stats
@@ -18,8 +18,8 @@ from datetime import datetime
 from pathlib import Path
 
 
-SCRIPT_DIR = Path(__file__).parent
-PROJECT_ROOT = SCRIPT_DIR.parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent.parent
 DEFAULT_OUTPUT_PREFIX = PROJECT_ROOT / "perf_output" / "dirty_region_stats"
 
 DIRTY_REGION_PATTERN = re.compile(

@@ -28,7 +28,7 @@ make clean
 make resource
 
 # 分析二进制大小（生成 output/README.md）
-python scripts/utils_analysis_elf_size.py
+python scripts/size_analysis/utils_analysis_elf_size.py
 
 # 格式化代码
 python scripts/code_format.py

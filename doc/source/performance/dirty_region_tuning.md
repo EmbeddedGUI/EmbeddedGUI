@@ -12,7 +12,7 @@
 - `egui_view_invalidate_sub_region()`：通过预定义的子区域表失效固定分区
 - `egui_canvas_is_region_active()`：在 `on_draw()` 内判断当前子元素是否落在当前 PFB tile 中，避免无关绘制计算
 - `EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS`：输出每帧脏区面积和 PFB tile 统计
-- `scripts/dirty_region_stats_report.py`：把日志自动汇总成 Markdown / CSV 报告
+- `scripts/perf_analysis/dirty_region_stats_report.py`：把日志自动汇总成 Markdown / CSV 报告
 
 注意：这套方法优化的是**脏区面积**和**绘制计算量**。最终帧时间仍应通过 QEMU 性能测试确认，PC 录制结果更适合用来观察脏区覆盖是否缩小。
 
@@ -41,7 +41,7 @@
 | `egui_view_invalidate_sub_region()` | 通过固定索引失效子区域 | 网格、分段按钮、仪表盘固定分区 |
 | `egui_canvas_is_region_active()` | 判断子区域是否与当前 PFB tile 相交 | `on_draw()` 内跳过不相关绘制 |
 | `EGUI_CONFIG_DEBUG_DIRTY_REGION_STATS` | 输出每帧脏区统计 | 观察优化是否真正缩小了脏区 |
-| `scripts/dirty_region_stats_report.py` | 汇总日志为 Markdown / CSV | 多个场景横向对比、留档 |
+| `scripts/perf_analysis/dirty_region_stats_report.py` | 汇总日志为 Markdown / CSV | 多个场景横向对比、留档 |
 
 ## 推荐实现模式
 
@@ -177,7 +177,7 @@ make all APP=HelloBasic APP_SUB=textinput PORT=pc \
 ### 3. 生成汇总报告
 
 ```bash
-python scripts/dirty_region_stats_report.py \
+python scripts/perf_analysis/dirty_region_stats_report.py \
   --input textinput=perf_output/dirty_region_logs/textinput.log \
   --input number_picker=perf_output/dirty_region_logs/number_picker.log \
   --input mini_calendar=perf_output/dirty_region_logs/mini_calendar.log \

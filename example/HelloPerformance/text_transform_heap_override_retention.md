@@ -11,7 +11,7 @@
 
 - `example/HelloPerformance/ram_tracking.md`
 - 历史 QEMU 检查命令：
-  - `python scripts/code_perf_check.py --profile cortex-m3 --threshold 5`
+  - `python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --threshold 5`
   - `python scripts/code_runtime_check.py --app HelloPerformance --keep-screenshots`
 
 ## 当前结论

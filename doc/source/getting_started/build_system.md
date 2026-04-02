@@ -356,7 +356,7 @@ python scripts/check_example_icon_font.py --include-untracked
 python scripts/release_check.py --skip perf,perf_doc,wasm,doc,ui_package
 
 # ELF 二进制大小分析
-python scripts/utils_analysis_elf_size.py
+python scripts/size_analysis/utils_analysis_elf_size.py
 
 # 资源生成
 python scripts/tools/app_resource_generate.py -r example/HelloSimple/resource -o output
