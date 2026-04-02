@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_LCD_EK79007_ENABLE
+
 /**
  * @file egui_lcd_ek79007.c
  * @brief EK79007 LCD driver implementation
@@ -172,3 +174,5 @@ void egui_lcd_ek79007_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_
 
     ek79007_setup_driver(storage, io, set_rst);
 }
+
+#endif /* EGUI_DRIVER_LCD_EK79007_ENABLE */

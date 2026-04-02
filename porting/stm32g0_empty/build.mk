@@ -8,6 +8,10 @@ SRC		+= $(EGUI_PORT_PATH)/Porting
 INCLUDE	+= $(EGUI_PORT_PATH)
 INCLUDE	+= $(EGUI_PORT_PATH)/Core/Inc
 
+# driver file selection is port-owned
+EGUI_CODE_SRC_FILES += \
+    driver/lcd/egui_lcd.c
+
 # define lib directory
 LIB		+=
 

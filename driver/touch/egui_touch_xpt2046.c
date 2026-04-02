@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_TOUCH_XPT2046_ENABLE
+
 /**
  * @file egui_touch_xpt2046.c
  * @brief XPT2046 resistive touch driver implementation
@@ -234,3 +236,5 @@ void egui_touch_xpt2046_set_pressure_threshold(egui_hal_touch_driver_t *driver, 
     egui_touch_xpt2046_priv_t *priv = (egui_touch_xpt2046_priv_t *)driver->priv;
     priv->pressure_threshold = threshold;
 }
+
+#endif /* EGUI_DRIVER_TOUCH_XPT2046_ENABLE */

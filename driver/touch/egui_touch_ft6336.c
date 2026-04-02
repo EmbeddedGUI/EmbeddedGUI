@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_TOUCH_FT6336_ENABLE
+
 /**
  * @file egui_touch_ft6336.c
  * @brief FT6336 capacitive touch driver implementation
@@ -172,3 +174,5 @@ void egui_touch_ft6336_init(egui_hal_touch_driver_t *storage, egui_panel_io_hand
     storage->set_int = set_int;
     storage->get_int = get_int;
 }
+
+#endif /* EGUI_DRIVER_TOUCH_FT6336_ENABLE */

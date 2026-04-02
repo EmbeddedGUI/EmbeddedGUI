@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_LCD_ST7262_ENABLE
+
 /**
  * @file egui_lcd_st7262.c
  * @brief ST7262 LCD driver implementation
@@ -155,3 +157,5 @@ void egui_lcd_st7262_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t
 
     st7262_setup_driver(storage, io, set_rst);
 }
+
+#endif /* EGUI_DRIVER_LCD_ST7262_ENABLE */

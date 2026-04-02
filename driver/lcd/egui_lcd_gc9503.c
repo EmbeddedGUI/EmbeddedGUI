@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_LCD_GC9503_ENABLE
+
 /**
  * @file egui_lcd_gc9503.c
  * @brief GC9503 LCD driver implementation
@@ -164,3 +166,5 @@ void egui_lcd_gc9503_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t
 
     gc9503_setup_driver(storage, io, set_rst);
 }
+
+#endif /* EGUI_DRIVER_LCD_GC9503_ENABLE */

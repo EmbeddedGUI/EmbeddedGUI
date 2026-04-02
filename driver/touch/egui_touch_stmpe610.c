@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_TOUCH_STMPE610_ENABLE
+
 /**
  * @file egui_touch_stmpe610.c
  * @brief STMPE610 resistive touch driver implementation
@@ -393,3 +395,5 @@ void egui_touch_stmpe610_set_pressure_threshold(egui_hal_touch_driver_t *driver,
     egui_touch_stmpe610_priv_t *priv = (egui_touch_stmpe610_priv_t *)driver->priv;
     priv->pressure_threshold = threshold;
 }
+
+#endif /* EGUI_DRIVER_TOUCH_STMPE610_ENABLE */

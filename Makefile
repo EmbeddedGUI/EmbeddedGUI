@@ -50,6 +50,7 @@ QEMU_PATH ?= C:/Program Files/qemu/
 
 
 EGUI_CODE_SRC := 
+EGUI_CODE_SRC_FILES :=
 EGUI_CODE_INCLUDE := 
 
 # don't edit below this line.
@@ -79,6 +80,7 @@ EGUI_DRIVER_PATH := driver
 include $(EGUI_DRIVER_PATH)/build.mk
 
 SRC += $(EGUI_CODE_SRC)
+C_SRCS += $(sort $(EGUI_CODE_SRC_FILES))
 INCLUDE += $(EGUI_CODE_INCLUDE)
 
 # include port info

@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_LCD_ST77916_ENABLE
+
 /**
  * @file egui_lcd_st77916.c
  * @brief ST77916 LCD driver implementation
@@ -155,3 +157,5 @@ void egui_lcd_st77916_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_
 
     st77916_setup_driver(storage, io, set_rst);
 }
+
+#endif /* EGUI_DRIVER_LCD_ST77916_ENABLE */

@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_TOUCH_FT5X06_ENABLE
+
 /**
  * @file egui_touch_ft5x06.c
  * @brief FT5x06 capacitive touch driver implementation
@@ -191,3 +193,5 @@ void egui_touch_ft5x06_init(egui_hal_touch_driver_t *storage, egui_panel_io_hand
 
     ft5x06_setup_driver(storage, io, set_rst, set_int, get_int);
 }
+
+#endif /* EGUI_DRIVER_TOUCH_FT5X06_ENABLE */

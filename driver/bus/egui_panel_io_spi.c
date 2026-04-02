@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_PANEL_IO_SPI_ENABLE
+
 /**
  * @file egui_panel_io_spi.c
  * @brief SPI Panel IO implementation
@@ -216,3 +218,5 @@ void egui_panel_io_spi_init(egui_panel_io_spi_t *io, const egui_bus_spi_ops_t *s
     io->set_dc = set_dc;
     io->set_cs = set_cs;
 }
+
+#endif /* EGUI_DRIVER_PANEL_IO_SPI_ENABLE */

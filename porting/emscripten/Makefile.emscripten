@@ -111,14 +111,14 @@ INCLUDES := $(patsubst %,-I%, $(INCLUDEDIRS:%/=%))
 LIBS := $(patsubst %,-L%, $(LIBDIRS:%/=%))
 
 # Source files - exclude PC's main.c (we use main_emscripten.c)
-ALL_SOURCES := $(wildcard $(patsubst %,%/*.c, $(SOURCEDIRS)))
+ALL_SOURCES := $(sort $(wildcard $(patsubst %,%/*.c, $(SOURCEDIRS))) $(wildcard $(C_SRCS)))
 SOURCES := $(filter-out porting/pc/main.c,$(ALL_SOURCES))
 # Also exclude PC's egui_port_pc.c (we use egui_port_emscripten.c)
 SOURCES := $(filter-out porting/pc/egui_port_pc.c,$(SOURCES))
 
 # Object files
 OBJECTS := $(patsubst %, $(OBJDIR)/%, $(SOURCES:.c=.o))
-OBJ_MD := $(addprefix $(OBJDIR)/, $(SOURCEDIRS))
+OBJ_MD := $(sort $(addprefix $(OBJDIR)/, $(SOURCEDIRS) $(patsubst %/,%,$(dir $(C_SRCS)))))
 
 ALL_DEPS := $(OBJECTS:.o=.d)
 

@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_PANEL_IO_I2C_ENABLE
+
 /**
  * @file egui_panel_io_i2c.c
  * @brief I2C Panel IO implementation
@@ -89,3 +91,5 @@ void egui_panel_io_i2c_set_addr(egui_panel_io_i2c_t *io, uint8_t dev_addr)
         io->dev_addr = dev_addr;
     }
 }
+
+#endif /* EGUI_DRIVER_PANEL_IO_I2C_ENABLE */

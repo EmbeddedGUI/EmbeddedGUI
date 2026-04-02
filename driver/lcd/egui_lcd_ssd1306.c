@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_LCD_SSD1306_ENABLE
+
 /**
  * @file egui_lcd_ssd1306.c
  * @brief SSD1306 OLED driver implementation
@@ -306,3 +308,5 @@ void egui_lcd_ssd1306_set_contrast(egui_hal_lcd_driver_t *self, uint8_t contrast
     ssd1306_write_cmd(self, SSD1306_SETCONTRAST);
     ssd1306_write_cmd(self, contrast);
 }
+
+#endif /* EGUI_DRIVER_LCD_SSD1306_ENABLE */

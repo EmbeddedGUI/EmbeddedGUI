@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_LCD_ILI9881C_ENABLE
+
 /**
  * @file egui_lcd_ili9881c.c
  * @brief ILI9881C LCD driver implementation
@@ -167,3 +169,5 @@ void egui_lcd_ili9881c_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle
 
     ili9881c_setup_driver(storage, io, set_rst);
 }
+
+#endif /* EGUI_DRIVER_LCD_ILI9881C_ENABLE */

@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_LCD_SH8601_ENABLE
+
 /**
  * @file egui_lcd_sh8601.c
  * @brief SH8601 LCD driver implementation
@@ -173,3 +175,5 @@ void egui_lcd_sh8601_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t
 
     sh8601_setup_driver(storage, io, set_rst);
 }
+
+#endif /* EGUI_DRIVER_LCD_SH8601_ENABLE */

@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_LCD_ILI9341_ENABLE
+
 /**
  * @file egui_lcd_ili9341.c
  * @brief ILI9341 LCD driver implementation
@@ -204,3 +206,5 @@ void egui_lcd_ili9341_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_
 
     ili9341_setup_driver(storage, io, set_rst);
 }
+
+#endif /* EGUI_DRIVER_LCD_ILI9341_ENABLE */

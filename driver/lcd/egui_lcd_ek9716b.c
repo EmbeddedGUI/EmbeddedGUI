@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_LCD_EK9716B_ENABLE
+
 /**
  * @file egui_lcd_ek9716b.c
  * @brief EK9716B LCD driver implementation
@@ -155,3 +157,5 @@ void egui_lcd_ek9716b_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_
 
     ek9716b_setup_driver(storage, io, set_rst);
 }
+
+#endif /* EGUI_DRIVER_LCD_EK9716B_ENABLE */

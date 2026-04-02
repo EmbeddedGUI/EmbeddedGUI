@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_TOUCH_AXS15231B_ENABLE
+
 /**
  * @file egui_touch_axs15231b.c
  * @brief AXS15231B capacitive touch driver implementation
@@ -164,3 +166,5 @@ void egui_touch_axs15231b_init(egui_hal_touch_driver_t *storage, egui_panel_io_h
     storage->set_int = set_int;
     storage->get_int = get_int;
 }
+
+#endif /* EGUI_DRIVER_TOUCH_AXS15231B_ENABLE */

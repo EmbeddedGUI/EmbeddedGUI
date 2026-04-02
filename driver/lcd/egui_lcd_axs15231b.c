@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_LCD_AXS15231B_ENABLE
+
 /**
  * @file egui_lcd_axs15231b.c
  * @brief AXS15231B LCD driver implementation
@@ -162,3 +164,5 @@ void egui_lcd_axs15231b_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handl
 
     axs15231b_setup_driver(storage, io, set_rst);
 }
+
+#endif /* EGUI_DRIVER_LCD_AXS15231B_ENABLE */

@@ -181,11 +181,11 @@ INCLUDES	:= $(patsubst %,-I%, $(INCLUDEDIRS:%/=%))
 LIBS		:= $(patsubst %,-L%, $(LIBDIRS:%/=%))
 
 # define the C source files
-SOURCES		:= $(wildcard $(patsubst %,%/*.c, $(SOURCEDIRS)))
+SOURCES		:= $(sort $(wildcard $(patsubst %,%/*.c, $(SOURCEDIRS))) $(wildcard $(C_SRCS)))
 
 # define the C object files 
 OBJECTS			:= $(patsubst %, $(OBJDIR)/%, $(SOURCES:.c=.o))
-OBJ_MD			:= $(addprefix $(OBJDIR)/, $(SOURCEDIRS))
+OBJ_MD			:= $(sort $(addprefix $(OBJDIR)/, $(SOURCEDIRS) $(patsubst %/,%,$(dir $(C_SRCS)))))
 
 
 

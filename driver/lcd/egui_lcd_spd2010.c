@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_LCD_SPD2010_ENABLE
+
 /**
  * @file egui_lcd_spd2010.c
  * @brief SPD2010 LCD driver implementation
@@ -165,3 +167,5 @@ void egui_lcd_spd2010_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_
 
     spd2010_setup_driver(storage, io, set_rst);
 }
+
+#endif /* EGUI_DRIVER_LCD_SPD2010_ENABLE */

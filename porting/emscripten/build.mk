@@ -8,6 +8,11 @@ SRC += porting/pc
 INCLUDE += $(EGUI_PORT_PATH)
 INCLUDE += porting/pc
 
+# driver file selection is port-owned
+EGUI_CODE_SRC_FILES += \
+    driver/lcd/egui_lcd.c \
+    driver/touch/egui_touch.c
+
 # PC port identifier (reuse PC display/platform abstractions)
 COMMON_FLAGS += -DEGUI_PORT_PC=1
 

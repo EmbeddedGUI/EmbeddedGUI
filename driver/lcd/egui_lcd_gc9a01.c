@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_LCD_GC9A01_ENABLE
+
 /**
  * @file egui_lcd_gc9a01.c
  * @brief GC9A01 LCD driver implementation
@@ -206,3 +208,5 @@ void egui_lcd_gc9a01_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t
 
     gc9a01_setup_driver(storage, io, set_rst);
 }
+
+#endif /* EGUI_DRIVER_LCD_GC9A01_ENABLE */

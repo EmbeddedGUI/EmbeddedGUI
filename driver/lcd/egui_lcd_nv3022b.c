@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_LCD_NV3022B_ENABLE
+
 /**
  * @file egui_lcd_nv3022b.c
  * @brief NV3022B LCD driver implementation
@@ -157,3 +159,5 @@ void egui_lcd_nv3022b_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_
 
     nv3022b_setup_driver(storage, io, set_rst);
 }
+
+#endif /* EGUI_DRIVER_LCD_NV3022B_ENABLE */

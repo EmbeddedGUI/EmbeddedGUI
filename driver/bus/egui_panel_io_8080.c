@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_PANEL_IO_8080_ENABLE
+
 /**
  * @file egui_panel_io_8080.c
  * @brief 8080 Parallel Bus Panel IO implementation
@@ -94,3 +96,5 @@ void egui_panel_io_8080_init(egui_panel_io_8080_t *io, const egui_bus_8080_ops_t
 
     io->bus_8080 = bus_8080;
 }
+
+#endif /* EGUI_DRIVER_PANEL_IO_8080_ENABLE */

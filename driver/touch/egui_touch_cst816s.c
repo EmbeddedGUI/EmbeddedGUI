@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_TOUCH_CST816S_ENABLE
+
 /**
  * @file egui_touch_cst816s.c
  * @brief CST816S capacitive touch driver implementation
@@ -160,3 +162,5 @@ void egui_touch_cst816s_init(egui_hal_touch_driver_t *storage, egui_panel_io_han
 
     cst816s_setup_driver(storage, io, set_rst, set_int, get_int);
 }
+
+#endif /* EGUI_DRIVER_TOUCH_CST816S_ENABLE */

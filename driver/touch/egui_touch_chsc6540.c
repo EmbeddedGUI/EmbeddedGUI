@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_TOUCH_CHSC6540_ENABLE
+
 /**
  * @file egui_touch_chsc6540.c
  * @brief CHSC6540 capacitive touch driver implementation
@@ -129,3 +131,5 @@ void egui_touch_chsc6540_init(egui_hal_touch_driver_t *storage, egui_panel_io_ha
 
     chsc6540_setup_driver(storage, io, set_rst, set_int, get_int);
 }
+
+#endif /* EGUI_DRIVER_TOUCH_CHSC6540_ENABLE */

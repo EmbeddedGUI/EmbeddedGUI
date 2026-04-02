@@ -9,7 +9,20 @@ INCLUDE	+= $(EGUI_PORT_PATH)
 INCLUDE	+= $(EGUI_PORT_PATH)/Core/Inc
 INCLUDE	+= $(EGUI_PORT_PATH)/Porting
 
-# EGUI driver sources/includes are provided by driver/build.mk
+# driver file selection is port-owned
+EGUI_CODE_SRC_FILES += \
+    driver/lcd/egui_lcd.c \
+    driver/touch/egui_touch.c \
+    driver/bus/egui_panel_io_spi.c \
+    driver/bus/egui_panel_io_i2c.c \
+    driver/lcd/egui_lcd_st7789.c \
+    driver/touch/egui_touch_ft6336.c
+
+COMMON_FLAGS += \
+    -DEGUI_DRIVER_PANEL_IO_SPI_ENABLE=1 \
+    -DEGUI_DRIVER_PANEL_IO_I2C_ENABLE=1 \
+    -DEGUI_DRIVER_LCD_ST7789_ENABLE=1 \
+    -DEGUI_DRIVER_TOUCH_FT6336_ENABLE=1
 
 # define lib directory
 LIB		+=

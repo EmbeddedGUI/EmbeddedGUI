@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_LCD_NV3007_ENABLE
+
 /**
  * @file egui_lcd_nv3007.c
  * @brief NV3007 LCD driver implementation
@@ -160,3 +162,5 @@ void egui_lcd_nv3007_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t
 
     nv3007_setup_driver(storage, io, set_rst);
 }
+
+#endif /* EGUI_DRIVER_LCD_NV3007_ENABLE */

@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_LCD_JD9165_ENABLE
+
 /**
  * @file egui_lcd_jd9165.c
  * @brief JD9165 LCD driver implementation
@@ -155,3 +157,5 @@ void egui_lcd_jd9165_init(egui_hal_lcd_driver_t *storage, egui_panel_io_handle_t
 
     jd9165_setup_driver(storage, io, set_rst);
 }
+
+#endif /* EGUI_DRIVER_LCD_JD9165_ENABLE */

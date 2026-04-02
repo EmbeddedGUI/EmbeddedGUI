@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_TOUCH_GT911_ENABLE
+
 /**
  * @file egui_touch_gt911.c
  * @brief GT911 capacitive touch driver implementation
@@ -187,3 +189,5 @@ void egui_touch_gt911_init(egui_hal_touch_driver_t *storage, egui_panel_io_handl
 
     gt911_setup_driver(storage, io, set_rst, set_int, get_int);
 }
+
+#endif /* EGUI_DRIVER_TOUCH_GT911_ENABLE */

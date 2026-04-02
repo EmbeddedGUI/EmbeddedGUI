@@ -1,3 +1,5 @@
+#if EGUI_DRIVER_TOUCH_SPD2010_ENABLE
+
 /**
  * @file egui_touch_spd2010.c
  * @brief SPD2010 capacitive touch driver implementation
@@ -299,3 +301,5 @@ void egui_touch_spd2010_init(egui_hal_touch_driver_t *storage, egui_panel_io_han
 
     spd2010_setup_driver(storage, io, set_rst, set_int, get_int);
 }
+
+#endif /* EGUI_DRIVER_TOUCH_SPD2010_ENABLE */
