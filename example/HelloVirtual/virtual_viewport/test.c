@@ -2352,7 +2352,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             report_runtime_failure("chat patch did not mutate data");
         }
         recording_mutation_verify_retry = 0U;
-        if (first_call)
+        if (viewport_context.scene != DEMO_SCENE_TASK)
         {
             demo_switch_scene(DEMO_SCENE_TASK);
             recording_request_snapshot();
