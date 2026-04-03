@@ -5,6 +5,10 @@
 /porting/stm32g0/Debug
 /porting/stm32g0/.settings
 /doc/build
+.pytest-tmp/
+.coverage
+.DS_Store
+.claude/settings.local.json
 *.pyc
 /build
 /build_cmake

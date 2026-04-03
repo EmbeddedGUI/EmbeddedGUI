@@ -11,6 +11,8 @@ import subprocess
 import platform
 import argparse
 import shutil
+import json
+import re
 from pathlib import Path
 
 SCREENSHOT_DIR = "runtime_check_output"
@@ -36,6 +38,8 @@ COMPILE_FAST_FLAGS = ['COMPILE_DEBUG=', 'COMPILE_OPT_LEVEL=-O0']
 # Retry count for intermittent crashes (e.g., race conditions in PC simulator threading)
 RUN_RETRY_COUNT = 2
 RUNTIME_FAIL_MARKERS = ("[RUNTIME_CHECK_FAIL]",)
+FRAME_LABEL_PATTERN = re.compile(r"PERF_FRAME:(frame_\d+\.png):([A-Za-z0-9_.-]+)")
+FRAME_LABEL_MANIFEST = "recording_frame_labels.json"
 FULL_CHECK_OPTIONAL_APPS = {
     "HelloCustomWidgets": "requested by --skip-custom-widgets",
 }
@@ -127,11 +131,40 @@ def validate_recording_frames(frames_dir):
     return True, "%d frames captured -> %s" % (len(frame_files), frames_dir)
 
 
+def write_frame_label_manifest(frames_dir, capture_output):
+    frames_dir = Path(frames_dir)
+    manifest_path = frames_dir / FRAME_LABEL_MANIFEST
+    if manifest_path.exists():
+        manifest_path.unlink()
+
+    matches = FRAME_LABEL_PATTERN.findall(capture_output)
+    if not matches:
+        return
+
+    frames_by_name = {path.name: path for path in sorted(frames_dir.glob("frame_*.png"))}
+    entries = []
+    missing_frames = []
+    for frame_name, label in matches:
+        if frame_name not in frames_by_name:
+            missing_frames.append(frame_name)
+            continue
+        entries.append({"frame": frame_name, "label": label})
+
+    if not entries:
+        return
+
+    manifest_path.write_text(json.dumps({"entries": entries}, ensure_ascii=False, indent=2), encoding='utf-8')
+
+    if missing_frames:
+        print("[runtime-check] PERF_FRAME markers referenced missing frames: %s" % ", ".join(sorted(set(missing_frames))))
+
+
 def run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration, speed,
                           snapshot_settle_ms, clock_scale, snapshot_stable_cycles,
                           snapshot_max_wait_ms):
     frames_dir = Path(frames_dir)
     frames_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = frames_dir / FRAME_LABEL_MANIFEST
     hidden_kwargs = get_windows_hidden_run_kwargs()
     profiles = build_recording_profiles(timeout, duration, speed, snapshot_settle_ms,
                                         clock_scale, snapshot_stable_cycles,
@@ -153,6 +186,8 @@ def run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration
 
         for old_frame in frames_dir.glob("frame_*.*"):
             old_frame.unlink()
+        if manifest_path.exists():
+            manifest_path.unlink()
 
         for attempt in range(RUN_RETRY_COUNT):
             try:
@@ -188,6 +223,7 @@ def run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration
 
             frames_ok, frames_message = validate_recording_frames(frames_dir)
             if frames_ok:
+                write_frame_label_manifest(frames_dir, combined_output)
                 return True, frames_message
 
             last_error = frames_message

@@ -239,6 +239,9 @@ static uint8_t showcase_force_english_text;
 #if EGUI_SHOWCASE_PARITY_RECORDING
 static egui_timer_t showcase_bootstrap_timer;
 #endif
+#if EGUI_CONFIG_RECORDING_TEST && EGUI_SHOWCASE_PARITY_RECORDING
+static const char *showcase_parity_frame_label_pending;
+#endif
 static egui_region_t showcase_scratch_dirty_backup[EGUI_CONFIG_DIRTY_AREA_COUNT];
 static uint8_t showcase_scratch_dirty_backup_valid;
 static egui_dim_t showcase_draw_origin_x;
@@ -2082,7 +2085,13 @@ static void showcase_anim_cb(egui_timer_t *timer)
     showcase_notify_animated_nodes();
 }
 
-#if EGUI_SHOWCASE_PARITY_RECORDING
+#if EGUI_CONFIG_RECORDING_TEST && EGUI_SHOWCASE_PARITY_RECORDING
+static void showcase_request_parity_snapshot(const char *label)
+{
+    showcase_parity_frame_label_pending = label;
+    recording_request_snapshot();
+}
+
 static void showcase_bootstrap_cb(egui_timer_t *timer)
 {
     EGUI_UNUSED(timer);
@@ -2827,6 +2836,15 @@ void test_init_ui(void)
 }
 
 #if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_SHOWCASE_PARITY_RECORDING && EGUI_PORT == EGUI_PORT_TYPE_PC
+const char *egui_port_get_recording_frame_label(void)
+{
+    const char *label = showcase_parity_frame_label_pending;
+    showcase_parity_frame_label_pending = NULL;
+    return label;
+}
+#endif
+
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)
@@ -3016,6 +3034,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     switch (action_index)
     {
     case 0:
+        if (first_call)
+        {
+            showcase_request_parity_snapshot("dark_initial");
+        }
         EGUI_SIM_SET_WAIT(p_action, 0);
         return true;
     case 1:
@@ -3028,7 +3050,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 2:
         if (first_call)
         {
-            recording_request_snapshot();
+            showcase_request_parity_snapshot("light_en");
         }
         EGUI_SIM_SET_WAIT(p_action, 0);
         return true;
@@ -3042,7 +3064,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 4:
         if (first_call)
         {
-            recording_request_snapshot();
+            showcase_request_parity_snapshot("light_cn");
         }
         EGUI_SIM_SET_WAIT(p_action, 0);
         return true;

@@ -9,16 +9,17 @@
 
 #include "uicode.h"
 
-#define BASIC_VIEWPORT_ITEM_COUNT    160U
-#define BASIC_VIEWPORT_STABLE_BASE   1000U
-#define BASIC_INVALID_INDEX          0xFFFFFFFFUL
-#define BASIC_BUTTON_TEXT_LEN        32
-#define BASIC_TITLE_TEXT_LEN         28
-#define BASIC_VALUE_TEXT_LEN         16
-#define BASIC_JUMP_STEP              32U
-#define BASIC_PATCH_VERIFY_RETRY_MAX 3U
-#define BASIC_JUMP_VERIFY_RETRY_MAX  3U
-#define BASIC_RESET_VERIFY_RETRY_MAX 3U
+#define BASIC_VIEWPORT_ITEM_COUNT     160U
+#define BASIC_VIEWPORT_STABLE_BASE    1000U
+#define BASIC_INVALID_INDEX           0xFFFFFFFFUL
+#define BASIC_BUTTON_TEXT_LEN         32
+#define BASIC_TITLE_TEXT_LEN          28
+#define BASIC_VALUE_TEXT_LEN          16
+#define BASIC_JUMP_STEP               32U
+#define BASIC_SELECT_VERIFY_RETRY_MAX 3U
+#define BASIC_PATCH_VERIFY_RETRY_MAX  3U
+#define BASIC_JUMP_VERIFY_RETRY_MAX   3U
+#define BASIC_RESET_VERIFY_RETRY_MAX  3U
 
 #define BASIC_MARGIN_X   8
 #define BASIC_TOP_Y      8
@@ -127,6 +128,7 @@ static basic_viewport_context_t basic_ctx;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_select_verify_retry;
 static uint8_t recording_patch_verify_retry;
 static uint8_t recording_jump_verify_retry;
 static uint8_t recording_reset_verify_retry;
@@ -738,6 +740,19 @@ static uint32_t basic_get_first_visible_index(void)
     return summary.has_first ? summary.first_index : BASIC_INVALID_INDEX;
 }
 
+static uint8_t basic_recording_schedule_verify_retry(uint8_t *retry_counter, uint8_t retry_max, egui_sim_action_t *p_action)
+{
+    if (*retry_counter >= retry_max)
+    {
+        return 0U;
+    }
+
+    (*retry_counter)++;
+    recording_request_snapshot();
+    EGUI_SIM_SET_WAIT(p_action, 0);
+    return 1U;
+}
+
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;
@@ -764,6 +779,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_WAIT(p_action, 180);
         return true;
     case 1:
+        if (first_call)
+        {
+            recording_select_verify_retry = 0U;
+        }
         view = basic_find_visible_view_by_index(0);
         if (view == NULL)
         {
@@ -778,10 +797,15 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         return true;
     case 2:
-        if (first_call && basic_ctx.selected_id != basic_ctx.items[0].stable_id)
+        if (basic_ctx.selected_id != basic_ctx.items[0].stable_id)
         {
+            if (basic_recording_schedule_verify_retry(&recording_select_verify_retry, BASIC_SELECT_VERIFY_RETRY_MAX, p_action))
+            {
+                return true;
+            }
             report_runtime_failure("button row click did not update selected item");
         }
+        recording_select_verify_retry = 0U;
         basic_set_slider_drag_action(p_action, 1, 260);
         return true;
     case 3:
@@ -802,11 +826,8 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 5:
         if (basic_ctx.patch_count == 0U)
         {
-            if (recording_patch_verify_retry < BASIC_PATCH_VERIFY_RETRY_MAX)
+            if (basic_recording_schedule_verify_retry(&recording_patch_verify_retry, BASIC_PATCH_VERIFY_RETRY_MAX, p_action))
             {
-                recording_patch_verify_retry++;
-                recording_request_snapshot();
-                EGUI_SIM_SET_WAIT(p_action, 0);
                 return true;
             }
             report_runtime_failure("patch action did not mutate selected item");
@@ -819,10 +840,8 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         view = basic_find_visible_view_by_index(basic_ctx.jump_cursor);
         if (basic_ctx.selected_id != basic_ctx.items[basic_ctx.jump_cursor].stable_id)
         {
-            if (recording_jump_verify_retry < BASIC_JUMP_VERIFY_RETRY_MAX)
+            if (basic_recording_schedule_verify_retry(&recording_jump_verify_retry, BASIC_JUMP_VERIFY_RETRY_MAX, p_action))
             {
-                recording_jump_verify_retry++;
-                EGUI_SIM_SET_WAIT(p_action, 180);
                 return true;
             }
             report_runtime_failure("jump action did not select target item");
@@ -845,10 +864,8 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 8:
         if (basic_ctx.selected_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID || egui_view_virtual_viewport_get_logical_offset(EGUI_VIEW_OF(&viewport_view)) != 0)
         {
-            if (recording_reset_verify_retry < BASIC_RESET_VERIFY_RETRY_MAX)
+            if (basic_recording_schedule_verify_retry(&recording_reset_verify_retry, BASIC_RESET_VERIFY_RETRY_MAX, p_action))
             {
-                recording_reset_verify_retry++;
-                EGUI_SIM_SET_WAIT(p_action, 180);
                 return true;
             }
             if (basic_ctx.selected_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
@@ -889,6 +906,7 @@ void test_init_ui(void)
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
+    recording_select_verify_retry = 0U;
     recording_patch_verify_retry = 0U;
     recording_jump_verify_retry = 0U;
     recording_reset_verify_retry = 0U;

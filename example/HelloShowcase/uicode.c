@@ -4,6 +4,10 @@
 #include "uicode.h"
 #include "app_egui_resource_generate.h"
 
+#if EGUI_CONFIG_RECORDING_TEST
+#include "core/egui_input_simulator.h"
+#endif
+
 #ifndef EGUI_SHOWCASE_PARITY_RECORDING
 #define EGUI_SHOWCASE_PARITY_RECORDING 0
 #endif
@@ -168,6 +172,10 @@ static uint8_t active_layer = 2;
 // ---- Language ----
 static egui_view_button_t btn_lang;
 static uint8_t is_chinese = 0;
+
+#if EGUI_CONFIG_RECORDING_TEST && EGUI_SHOWCASE_PARITY_RECORDING
+static const char *showcase_parity_frame_label_pending;
+#endif
 
 static void update_theme(void);
 static void update_language(void);
@@ -381,6 +389,14 @@ static void on_textinput_focus_changed(egui_view_t *self, int is_focused)
     }
     egui_view_invalidate(self);
 }
+
+#if EGUI_CONFIG_RECORDING_TEST && EGUI_SHOWCASE_PARITY_RECORDING
+static void showcase_request_parity_snapshot(const char *label)
+{
+    showcase_parity_frame_label_pending = label;
+    recording_request_snapshot();
+}
+#endif
 
 // ============================================================================
 // Theme & Layer Callbacks
@@ -1486,6 +1502,15 @@ void uicode_create_ui(void)
 // Recording actions for runtime verification
 // ============================================================================
 #if EGUI_CONFIG_RECORDING_TEST
+#if EGUI_SHOWCASE_PARITY_RECORDING && EGUI_PORT == EGUI_PORT_TYPE_PC
+const char *egui_port_get_recording_frame_label(void)
+{
+    const char *label = showcase_parity_frame_label_pending;
+    showcase_parity_frame_label_pending = NULL;
+    return label;
+}
+#endif
+
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
 #if EGUI_SHOWCASE_PARITY_RECORDING
@@ -1497,6 +1522,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     switch (action_index)
     {
     case 0:
+        if (first_call)
+        {
+            showcase_request_parity_snapshot("dark_initial");
+        }
         EGUI_SIM_SET_WAIT(p_action, 0);
         return true;
     case 1:
@@ -1505,7 +1534,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 2:
         if (first_call)
         {
-            recording_request_snapshot();
+            showcase_request_parity_snapshot("light_en");
         }
         EGUI_SIM_SET_WAIT(p_action, 0);
         return true;
@@ -1515,7 +1544,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     case 4:
         if (first_call)
         {
-            recording_request_snapshot();
+            showcase_request_parity_snapshot("light_cn");
         }
         EGUI_SIM_SET_WAIT(p_action, 0);
         return true;

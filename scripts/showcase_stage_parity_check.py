@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -34,8 +35,6 @@ STATE_LABELS = (
     "light_en",
     "light_cn",
 )
-MIN_STATE_COUNT = 2
-STATE_DEDUPE_MAX_MEAN_ABS = 0.05
 DEFAULT_MAX_MEAN_ABS = 0.25
 DEFAULT_MAX_RMS = 5.5
 DEFAULT_MAX_HOT_PIXEL_RATIO = 0.003
@@ -141,44 +140,46 @@ def compute_metrics(showcase_frame: Path, stage_frame: Path, hot_pixel_delta: in
     )
 
 
-def collect_state_frames(app_name: str, output_subdir: str, dedupe_max_mean_abs: float) -> list[Path]:
-    frames = sorted(output_dir_for(app_name, output_subdir).glob("frame_*.png"))
-    if not frames:
-        return []
+def load_explicit_state_frames(app_name: str, output_subdir: str) -> dict[str, Path]:
+    output_dir = output_dir_for(app_name, output_subdir)
+    manifest_path = output_dir / runtime_check.FRAME_LABEL_MANIFEST
+    if not manifest_path.exists():
+        raise RuntimeError(f"{app_name} did not produce {runtime_check.FRAME_LABEL_MANIFEST}")
 
-    states = []
-    current_last = frames[0]
-    for frame in frames[1:]:
-        metrics = compute_metrics(current_last, frame, hot_pixel_delta=1)
-        if metrics.mean_abs > dedupe_max_mean_abs:
-            states.append(current_last)
-        current_last = frame
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    entries = payload.get("entries", [])
+    if not isinstance(entries, list) or not entries:
+        raise RuntimeError(f"{app_name} produced an empty frame-label manifest")
 
-    states.append(current_last)
-    return states
+    state_frames: dict[str, Path] = {}
+    state_order: list[str] = []
+    duplicates: list[str] = []
 
+    for entry in entries:
+        frame_name = str(entry.get("frame", "")).strip()
+        label = str(entry.get("label", "")).strip()
+        if label not in STATE_LABELS:
+            continue
+        frame_path = output_dir / frame_name
+        if not frame_path.exists():
+            raise RuntimeError(f"{app_name} labeled a missing frame: {frame_name}")
+        if label in state_frames:
+            duplicates.append(f"{label}={frame_name}")
+            continue
+        state_frames[label] = frame_path
+        state_order.append(label)
 
-def normalize_state_frames(states: list[Path], target_count: int) -> list[Path]:
-    if target_count <= 0 or len(states) < target_count:
-        return []
-    if target_count == 1:
-        return [states[0]]
-    if target_count == 2:
-        return [states[0], states[-1]]
-    if target_count == 3:
-        if len(states) == 3:
-            return states
-        middle_index = len(states) // 2
-        return [states[0], states[middle_index], states[-1]]
-    return states[:target_count]
+    missing_labels = [label for label in STATE_LABELS if label not in state_frames]
+    if missing_labels:
+        raise RuntimeError(f"{app_name} missing labeled parity states: {', '.join(missing_labels)}")
+    if state_order != list(STATE_LABELS):
+        raise RuntimeError(
+            f"{app_name} parity state order mismatch: expected {', '.join(STATE_LABELS)} got {', '.join(state_order)}"
+        )
+    if duplicates:
+        print(f"[WARN] {app_name} produced duplicate labeled snapshots: {', '.join(duplicates)}")
 
-
-def state_labels_for_count(count: int) -> tuple[str, ...]:
-    if count >= 3:
-        return STATE_LABELS
-    if count == 2:
-        return (STATE_LABELS[0], STATE_LABELS[-1])
-    return STATE_LABELS[:count]
+    return state_frames
 
 
 def compare_state(label: str, showcase_frame: Path, stage_frame: Path, output_dir: Path, max_mean_abs: float, max_rms: float, max_hot_pixel_ratio: float,
@@ -266,30 +267,22 @@ def main() -> int:
     compare_output_dir = output_dir_for(STAGE_APP_NAME, STAGE_OUTPUT_SUBDIR)
     compare_output_dir.mkdir(parents=True, exist_ok=True)
 
-    showcase_states = collect_state_frames(SHOWCASE_APP_NAME, SHOWCASE_OUTPUT_SUBDIR, STATE_DEDUPE_MAX_MEAN_ABS)
-    stage_states = collect_state_frames(STAGE_APP_NAME, STAGE_OUTPUT_SUBDIR, STATE_DEDUPE_MAX_MEAN_ABS)
-
-    print("Showcase states:", ", ".join(frame.name for frame in showcase_states))
-    print("Stage states:", ", ".join(frame.name for frame in stage_states))
-
-    common_state_count = min(len(showcase_states), len(stage_states), len(STATE_LABELS))
-    if common_state_count < MIN_STATE_COUNT:
-        print(f"[FAIL] insufficient stable parity states: showcase={len(showcase_states)} stage={len(stage_states)}")
+    try:
+        showcase_states = load_explicit_state_frames(SHOWCASE_APP_NAME, SHOWCASE_OUTPUT_SUBDIR)
+        stage_states = load_explicit_state_frames(STAGE_APP_NAME, STAGE_OUTPUT_SUBDIR)
+    except RuntimeError as exc:
+        print(f"[FAIL] {exc}")
         return 1
 
-    labels = state_labels_for_count(common_state_count)
-    showcase_states = normalize_state_frames(showcase_states, common_state_count)
-    stage_states = normalize_state_frames(stage_states, common_state_count)
-
-    if common_state_count < len(STATE_LABELS):
-        print(f"[WARN] parity reduced to {common_state_count} stable states; comparing first/last states only")
+    print("Showcase states:", ", ".join(f"{label}={showcase_states[label].name}" for label in STATE_LABELS))
+    print("Stage states:", ", ".join(f"{label}={stage_states[label].name}" for label in STATE_LABELS))
 
     all_passed = True
-    for label, showcase_frame, stage_frame in zip(labels, showcase_states, stage_states):
+    for label in STATE_LABELS:
         matched, message = compare_state(
             label,
-            showcase_frame,
-            stage_frame,
+            showcase_states[label],
+            stage_states[label],
             compare_output_dir,
             args.max_mean_abs,
             args.max_rms,
