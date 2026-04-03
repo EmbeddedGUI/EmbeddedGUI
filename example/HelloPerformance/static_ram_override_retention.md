@@ -13,7 +13,7 @@
 ## 依据来源
 
 - `example/HelloPerformance/ram_tracking.md`
-- `docs/low_ram_config_macros.md`
+- `../../doc/source/performance/low_ram_config_macros.md`
 - 已保留在本地 `.claude/` 的历史 QEMU perf A/B 结果：
   - `perf_macro_function_support_touch_default_on_results.json`
   - `perf_macro_core_separate_user_root_default_on_results.json`
@@ -49,7 +49,7 @@
 
 ### `EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS`
 
-- `docs/low_ram_config_macros.md` 对当前量级给出的估算是：
+- `../../doc/source/performance/low_ram_config_macros.md` 对当前量级给出的估算是：
   - 默认 `4`
   - HelloPerformance `0`
   - 约 `~33B` BSS

@@ -161,13 +161,13 @@ make all APP=HelloVirtual APP_SUB=virtual_stage_showcase PORT=pc
 
 ```bash
 python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage_showcase --keep-screenshots
-python scripts/showcase_stage_parity_check.py --timeout 35 --bits64
+python scripts/checks/showcase_stage_parity_check.py --timeout 35 --bits64
 ```
 
 HelloVirtual 渲染工作流：
 
 ```bash
-python scripts/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage_showcase --skip-unit-tests --bits64
+python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage_showcase --skip-unit-tests --bits64
 ```
 
 `stm32g0` 对比构建：

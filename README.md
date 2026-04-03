@@ -115,7 +115,7 @@ setup.bat
 make all APP=HelloStyleDemo && make run
 ```
 
-> 安装脚本默认会创建 `.venv` 并安装完整 Python 依赖（包含 UI Designer 依赖）。
+> 安装脚本默认会创建 `.venv` 并安装当前仓库所需的 Python 依赖。
 > 更多说明见[环境搭建文档](https://embeddedgui.readthedocs.io/en/latest/)。
 
 ### 平台支持
@@ -250,18 +250,15 @@ make all APP=HelloStyleDemo && make run
 
 ## 🛠️ UI Designer
 
-从设计稿到 C 代码的全流程工具链：
+UI Designer 桌面端和设计稿转换链路已经迁移到独立仓库 `EmbeddedGUI_Designer` 维护。
 
 ```
 Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 ```
 
-- **支持导入源**：Stitch HTML · Figma Make JSX/TSX · Figma MCP 插件
-- **代码生成**：57 个控件注册描述符，自动生成初始化 / 属性调用代码
-- **资源协同**：自动提取字符串，配合 `make resource_refresh` 生成字体 / 图片 C 文件
-- **扩展机制**：`scripts/ui_designer/custom_widgets/` 渐进注册新控件，无需修改核心
-- **入口**：`python scripts/ui_designer/main.py`
-- **实时渲染交互**：支持实时渲染并支持交互。
+- **当前仓库定位**：保留 SDK、运行时、资源生成、示例和文档
+- **Designer 仓库定位**：维护桌面设计器、设计稿导入、XML 编辑和预览打包
+- **迁移入口**：见 `doc/source/ui_designer/designer_repo_migration.md`
 
 ![UI_Designer](doc/source/images/UI_Designer.gif)
 
@@ -283,7 +280,6 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 | 运行时验证 | `python scripts/code_runtime_check.py --app <APP> [--app-sub <SUB>]` | 截图验证渲染正确性 |
 | 体积分析 | `python scripts/size_analysis/utils_analysis_elf_size.py` | 生成 ROM/RAM 报告 |
 | CI 编译检查 | `python scripts/code_compile_check.py --full-check` | 全量编译检查 |
-| UI Designer | `python scripts/ui_designer/main.py` | 设计稿转 C 代码 |
 
 ---
 

@@ -824,12 +824,12 @@ python scripts/perf_analysis/compare_virtual_showcase_heap_qemu.py --mode app-re
 make all APP=HelloVirtual APP_SUB=virtual_stage_basic PORT=pc
 python scripts/code_runtime_check.py --app HelloVirtual --keep-screenshots
 python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage_basic --keep-screenshots
-python scripts/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage_basic --skip-unit-tests --bits64
+python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage_basic --skip-unit-tests --bits64
 
 make all APP=HelloVirtual APP_SUB=virtual_stage_showcase PORT=pc
 python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage_showcase --keep-screenshots
-python scripts/showcase_stage_parity_check.py --timeout 35 --bits64
-python scripts/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage_showcase --skip-unit-tests --bits64
+python scripts/checks/showcase_stage_parity_check.py --timeout 35 --bits64
+python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage_showcase --skip-unit-tests --bits64
 
 make -j1 all APP=HelloShowcase PORT=stm32g0
 make -j1 all APP=HelloVirtual APP_SUB=virtual_stage_showcase PORT=stm32g0
@@ -838,7 +838,7 @@ python scripts/perf_analysis/compare_virtual_showcase_heap_qemu.py --mode app-re
 
 make all APP=HelloVirtual APP_SUB=virtual_stage PORT=pc
 python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage --keep-screenshots
-python scripts/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage,virtual_stage_showcase,virtual_stage_basic --skip-unit-tests --bits64
+python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage,virtual_stage_showcase,virtual_stage_basic --skip-unit-tests --bits64
 ```
 
 如果改了框架层，再执行：

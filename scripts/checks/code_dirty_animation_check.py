@@ -13,11 +13,14 @@ from pathlib import Path
 from typing import Optional
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent
-PERF_ANALYSIS_DIR = SCRIPT_DIR / "perf_analysis"
+SCRIPTS_ROOT = SCRIPT_DIR.parent
+ROOT_DIR = SCRIPTS_ROOT.parent
+PERF_ANALYSIS_DIR = SCRIPTS_ROOT / "perf_analysis"
 
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
 if str(PERF_ANALYSIS_DIR) not in sys.path:
     sys.path.insert(0, str(PERF_ANALYSIS_DIR))
 

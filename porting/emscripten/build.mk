@@ -29,7 +29,7 @@ endif
 ifeq ($(strip $(EMSDK_PATH)),)
 CC := emcc
 else ifeq ($(OS),Windows_NT)
-CC := python scripts/emcc_wrapper.py
+CC := python scripts/web/emcc_wrapper.py
 else
 CC := $(EMSDK_PATH)/upstream/emscripten/emcc
 endif

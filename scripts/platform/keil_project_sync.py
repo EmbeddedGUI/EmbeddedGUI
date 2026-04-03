@@ -8,8 +8,8 @@ in the Keil project file to match. Adds missing files and removes stale entries.
 Uses string-level replacement to preserve original XML formatting.
 
 Usage:
-    python scripts/keil_project_sync.py
-    python scripts/keil_project_sync.py --check   # dry-run, exit 1 if out of sync
+    python scripts/platform/keil_project_sync.py
+    python scripts/platform/keil_project_sync.py --check   # dry-run, exit 1 if out of sync
 """
 
 import re
@@ -18,7 +18,8 @@ import argparse
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
-PROJECT_ROOT = SCRIPT_DIR.parent
+SCRIPTS_ROOT = SCRIPT_DIR.parent
+PROJECT_ROOT = SCRIPTS_ROOT.parent
 
 # Keil project file path
 UVPROJX_PATH = PROJECT_ROOT / "porting" / "stm32g0" / "MDK-ARM" / "proj_stm32g0.uvprojx"

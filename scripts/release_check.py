@@ -10,7 +10,7 @@ regression, performance report generation, and Sphinx documentation build.
 
 Usage:
     python scripts/release_check.py
-    python scripts/release_check.py --skip perf,perf_doc,wasm,doc
+    python scripts/release_check.py --skip perf,wasm,doc
     python scripts/release_check.py --keep-going
     python scripts/release_check.py --cmake
     python scripts/release_check.py --skip runtime --keep-going
@@ -76,11 +76,11 @@ def build_steps(args):
     runtime_cmd = [py, str(SCRIPT_DIR / "code_runtime_check.py"), "--full-check"]
     if not args.runtime_include_custom_widgets:
         runtime_cmd.append("--skip-custom-widgets")
-    dirty_anim_cmd = [py, str(SCRIPT_DIR / "code_dirty_animation_check.py")]
-    stage_parity_cmd = [py, str(SCRIPT_DIR / "showcase_stage_parity_check.py"), "--timeout", "35"]
+    dirty_anim_cmd = [py, str(SCRIPT_DIR / "checks" / "code_dirty_animation_check.py")]
+    stage_parity_cmd = [py, str(SCRIPT_DIR / "checks" / "showcase_stage_parity_check.py"), "--timeout", "35"]
     virtual_render_cmd = [
         py,
-        str(SCRIPT_DIR / "hello_basic_render_workflow.py"),
+        str(SCRIPT_DIR / "checks" / "hello_basic_render_workflow.py"),
         "--app",
         "HelloVirtual",
         "--suite",
@@ -95,14 +95,14 @@ def build_steps(args):
 
     perf_cmd = [py, str(SCRIPT_DIR / "perf_analysis" / "code_perf_check.py"), "--full-check", "--doc"]
 
-    wasm_cmd = [py, str(SCRIPT_DIR / "wasm_build_demos.py")]
+    wasm_cmd = [py, str(SCRIPT_DIR / "web" / "wasm_build_demos.py")]
     if emsdk_path:
         wasm_cmd += ["--emsdk-path", emsdk_path]
 
     return [
         ("format", STEP_DESCRIPTIONS["format"], [py, str(SCRIPT_DIR / "code_format.py")]),
-        ("icon_font", STEP_DESCRIPTIONS["icon_font"], [py, str(SCRIPT_DIR / "check_example_icon_font.py")]),
-        ("keil_sync", STEP_DESCRIPTIONS["keil_sync"], [py, str(SCRIPT_DIR / "keil_project_sync.py")]),
+        ("icon_font", STEP_DESCRIPTIONS["icon_font"], [py, str(SCRIPT_DIR / "checks" / "check_example_icon_font.py")]),
+        ("keil_sync", STEP_DESCRIPTIONS["keil_sync"], [py, str(SCRIPT_DIR / "platform" / "keil_project_sync.py")]),
         ("compile", STEP_DESCRIPTIONS["compile"], compile_cmd),
         ("wasm", STEP_DESCRIPTIONS["wasm"], wasm_cmd),
         ("runtime", STEP_DESCRIPTIONS["runtime"], runtime_cmd),
@@ -183,7 +183,7 @@ def parse_args():
         epilog=f"Available steps: {', '.join(ALL_STEP_NAMES)}\n"
         f"\nExamples:\n"
         f"  python scripts/release_check.py\n"
-        f"  python scripts/release_check.py --skip perf,perf_doc,wasm,doc\n"
+        f"  python scripts/release_check.py --skip perf,wasm,doc\n"
         f"  python scripts/release_check.py --keep-going\n"
         f"  python scripts/release_check.py --cmake --skip runtime\n",
     )

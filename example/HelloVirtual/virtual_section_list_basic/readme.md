@@ -50,7 +50,7 @@
 ```bash
 make all APP=HelloVirtual APP_SUB=virtual_section_list_basic PORT=pc
 python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_section_list_basic --keep-screenshots
-python scripts/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_section_list_basic --skip-unit-tests
+python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_section_list_basic --skip-unit-tests
 ```
 
 ## 看图时重点确认

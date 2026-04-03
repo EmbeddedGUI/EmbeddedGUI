@@ -81,7 +81,7 @@ egui_view_label_set_text(EGUI_VIEW_OF(&icon_label), EGUI_ICON_MS_SETTINGS);
 
 为防止示例回退到隐式推断，仓库增加了检查脚本：
 
-- `scripts/check_example_icon_font.py`
+- `scripts/checks/check_example_icon_font.py`
 
 这个脚本会扫描 `example/` 下的 `.c` 文件（跳过 `resource/`），检查常见图标控件是否在设置图标内容后，也设置了对应的 icon font。
 

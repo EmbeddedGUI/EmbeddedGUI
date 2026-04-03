@@ -28,6 +28,7 @@
 :maxdepth: 1
 
 virtual_design
+virtual_container_family_guide
 virtual_api
 ```
 
@@ -39,6 +40,12 @@ virtual_api
 - `stable_id`、slot 复用、`keepalive`、`state cache` 的设计目的
 - 各个 virtual 容器的适用边界
 - 带截图的语义差异对比
+
+[容器家族使用指南](virtual_container_family_guide.md)
+
+- 面向 `virtual_viewport`、`virtual_page`、`virtual_strip`、`virtual_grid`、`virtual_section_list`、`virtual_tree` 的完整选型与接入说明
+- 汇总各示例入口、头文件、helper 和通知接口
+- 解释状态缓存、`keepalive`、对象池复用与验证流程
 
 [API 与接入模板](virtual_api.md)
 

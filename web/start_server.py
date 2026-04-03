@@ -32,7 +32,7 @@ def main() -> int:
     if not index_file.exists():
         print("[!!] index.html not found")
         print("    Please build WASM demos first:")
-        print("      python scripts/wasm_build_demos.py")
+        print("      python scripts/web/wasm_build_demos.py")
         return 1
 
     url = f"http://localhost:{port}"

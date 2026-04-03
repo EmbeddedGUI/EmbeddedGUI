@@ -2,7 +2,7 @@
 """Build all EmbeddedGUI WASM demos and prepare web deployment directory.
 
 Usage:
-    python scripts/wasm_build_demos.py [--emsdk-path PATH] [--output-dir DIR] [--app APP] [--app-sub SUB]
+    python scripts/web/wasm_build_demos.py [--emsdk-path PATH] [--output-dir DIR] [--app APP] [--app-sub SUB]
 
 Optimization: per-app OBJDIR avoids recompiling shared core library.
 HelloBasic sub-apps share OBJDIR, so core is compiled once and reused.
@@ -21,6 +21,10 @@ import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPTS_ROOT = SCRIPT_DIR.parent
+ROOT_DIR = SCRIPTS_ROOT.parent
 
 
 # Default full-site WASM publishing excludes test-only and long-running demo families.
@@ -270,7 +274,7 @@ def resolve_requested_builds(app_name, app_sub):
 
 
 def main():
-    local_emsdk = Path(__file__).resolve().parents[1] / "tools" / "emsdk"
+    local_emsdk = ROOT_DIR / "tools" / "emsdk"
     default_emsdk_path = ""
     if local_emsdk.exists():
         default_emsdk_path = str(local_emsdk)
@@ -292,7 +296,7 @@ def main():
                         help="Parallel build jobs for standalone apps (default: 1)")
     args = parser.parse_args()
 
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    root_dir = str(ROOT_DIR)
     os.chdir(root_dir)
 
     output_dir = os.path.join(root_dir, args.output_dir)

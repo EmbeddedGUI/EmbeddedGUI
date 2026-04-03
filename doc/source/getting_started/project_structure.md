@@ -184,14 +184,14 @@ src/
 | `code_compile_check.py` | 完整编译检查 (CI 使用，含示例 icon font 检查) |
 | `code_runtime_check.py` | 运行时验证 (截图对比) |
 | `code_format.py` | 代码格式化 |
-| `check_example_icon_font.py` | 示例图标字体显式配置检查 |
-| `perf_analysis/code_perf_check.py` | 性能测试 |
 | `release_check.py` | 发布前多步骤一键检查 |
 | `setup_env.py` | 跨平台环境配置主脚本，负责 Python 依赖、工具链检查和 FFmpeg 准备 |
+| `checks/` | 专项检查脚本（icon font、dirty animation、parity、render workflow、touch 语义） |
+| `platform/` | 平台/工程维护脚本（如 `keil_project_sync.py`） |
+| `web/` | Emscripten/WASM 构建脚本（如 `wasm_build_demos.py`、`emcc_wrapper.py`） |
+| `recording/` | 录制与 GIF 导出辅助脚本 |
+| `perf_analysis/code_perf_check.py` | 性能测试 |
 | `size_analysis/utils_analysis_elf_size.py` | ELF 二进制大小分析 |
-| `wasm_build_demos.py` | WebAssembly 演示构建 |
-| `gif_recorder.py` | GIF 录制工具 |
-| `ui_designer/` | UI 可视化设计器 (基于 PyQt5) |
 | `tools/` | 本地工具与资源生成工具（如 w64devkit、ffmpeg） |
 
 ## doc/ -- 文档
@@ -209,7 +209,7 @@ doc/source/
 |-- resource/               # 资源管理
 |-- porting/                # 移植指南
 |-- performance/            # 性能优化
-|-- ui_designer/            # UI 设计器
+|-- ui_designer/            # UI Designer 迁移说明
 `-- conf.py                 # Sphinx 配置
 ```
 

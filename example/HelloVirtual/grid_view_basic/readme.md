@@ -47,7 +47,7 @@ python scripts/code_runtime_check.py --app HelloVirtual --app-sub grid_view_basi
 渲染工作流：
 
 ```bash
-python scripts/hello_basic_render_workflow.py --app HelloVirtual --widgets grid_view_basic --skip-unit-tests
+python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --widgets grid_view_basic --skip-unit-tests
 ```
 
 ## 截图里要确认什么

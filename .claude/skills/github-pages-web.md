@@ -66,7 +66,7 @@ example/MyNewApp/
 make all APP=MyNewApp
 
 # WASM 单独构建（需要 Emscripten 环境）
-python scripts/wasm_build_demos.py --app MyNewApp
+python scripts/web/wasm_build_demos.py --app MyNewApp
 ```
 
 `wasm_build_demos.py` 会自动：
@@ -93,9 +93,9 @@ example/HelloBasic/my_widget/
 
 ### 步骤 2：本地 WASM 构建
 ```bash
-python scripts/wasm_build_demos.py --app HelloBasic_my_widget
+python scripts/web/wasm_build_demos.py --app HelloBasic_my_widget
 # 等价于：
-python scripts/wasm_build_demos.py --app-sub my_widget
+python scripts/web/wasm_build_demos.py --app-sub my_widget
 ```
 
 产物目录为 `web/demos/HelloBasic_my_widget/`，条目自动写入 demos.json。
@@ -221,7 +221,7 @@ Canvas 会自动按比例缩放，不需要额外处理。
 ```
 push → main
   └─ wasm-deploy.yml
-       ├─ python scripts/wasm_build_demos.py  （全量构建）
+       ├─ python scripts/web/wasm_build_demos.py  （全量构建）
        └─ actions/deploy-pages → GitHub Pages  （部署 web/ 目录）
 ```
 

@@ -19,11 +19,8 @@ import zipfile
 MIN_PYTHON_VERSION = (3, 8)
 DEFAULT_VENV_DIR = ".venv"
 REQUIREMENTS_BASIC = [Path("requirements.txt")]
-REQUIREMENTS_FULL = [
-    Path("requirements.txt"),
-    Path("scripts/ui_designer/requirements-desktop.txt"),
-]
-EXTRA_PACKAGES_FULL = ["playwright"]
+REQUIREMENTS_FULL = [Path("requirements.txt")]
+EXTRA_PACKAGES_FULL = []
 PIP_INDEX_URLS = [
     ("TUNA mirror", "https://pypi.tuna.tsinghua.edu.cn/simple"),
     ("PyPI", "https://pypi.org/simple"),
@@ -183,10 +180,6 @@ def print_manual_python_help(venv_python: Path, profile: str, venv_dir: Path) ->
 
     print("Manual recovery steps:")
     print(f"  {rel_python} -m pip install -r requirements.txt")
-    if profile == "full":
-        print(f"  {rel_python} -m pip install -r scripts/ui_designer/requirements-desktop.txt")
-        print(f"  {rel_python} -m pip install playwright")
-        print(f"  {rel_python} -m playwright install chromium")
     print()
     print("Virtual environment activation:")
     if is_windows():
@@ -203,20 +196,6 @@ def build_python_verify_script(profile: str, root_dir: Path) -> str:
         "import freetype",
         "from elftools.elf.elffile import ELFFile",
     ]
-    if profile == "full":
-        imports.extend(
-            [
-                f"root = {str(root_dir)!r}",
-                "scripts_dir = os.path.join(root, 'scripts')",
-                "if scripts_dir not in sys.path:",
-                "    sys.path.insert(0, scripts_dir)",
-                "from PyQt5.QtWidgets import QApplication",
-                "import qfluentwidgets",
-                "import ui_designer.main",
-                "from playwright.sync_api import sync_playwright",
-            ]
-        )
-
     return "import os, sys\n" + "\n".join(imports) + "\nprint('ok')\n"
 
 

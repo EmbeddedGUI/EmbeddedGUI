@@ -13,25 +13,25 @@
 完整基础控件集：
 
 ```bash
-python scripts/hello_basic_render_workflow.py --suite basic
+python scripts/checks/hello_basic_render_workflow.py --suite basic
 ```
 
 只跑交互控件：
 
 ```bash
-python scripts/hello_basic_render_workflow.py --suite interactive
+python scripts/checks/hello_basic_render_workflow.py --suite interactive
 ```
 
 快速冒烟：
 
 ```bash
-python scripts/hello_basic_render_workflow.py --suite smoke
+python scripts/checks/hello_basic_render_workflow.py --suite smoke
 ```
 
 自定义控件列表：
 
 ```bash
-python scripts/hello_basic_render_workflow.py --widgets button,checkbox,slider,combobox,textinput
+python scripts/checks/hello_basic_render_workflow.py --widgets button,checkbox,slider,combobox,textinput
 ```
 
 ## 流程
@@ -51,7 +51,7 @@ python scripts/hello_basic_render_workflow.py --widgets button,checkbox,slider,c
 
 工作流配置文件：
 
-- `scripts/hello_basic_render_workflow.json`
+- `scripts/checks/hello_basic_render_workflow.json`
 
 配置里定义：
 
@@ -73,7 +73,7 @@ python scripts/hello_basic_render_workflow.py --widgets button,checkbox,slider,c
 1. 先补齐 `test.c` 的录制动作；离散点击控件不要用跨目标 drag 代替真实点击。
 2. 对关键交互补 `[RUNTIME_CHECK_FAIL]` 自检。
 3. 如果控件位于 `src/widget/` 且属于非拖拽/非连续交互模型，补 `HelloUnitTest` 回归，至少覆盖 `DOWN(A) -> MOVE(B) -> UP(B)` 不提交，以及 `DOWN(A) -> MOVE(B) -> MOVE(A) -> UP(A)` 才提交。
-4. 执行 `python scripts/check_touch_release_semantics.py --scope core`；若是连续交互控件，在脚本 allowlist 中登记例外理由。
+4. 执行 `python scripts/checks/check_touch_release_semantics.py --scope core`；若是连续交互控件，在脚本 allowlist 中登记例外理由。
 5. 如果控件行为是多步状态切换，录制动作不能只保留一次点击。
-6. 同步更新 `scripts/hello_basic_render_workflow.json`。
-7. 重新执行 `python scripts/hello_basic_render_workflow.py --suite basic`。
+6. 同步更新 `scripts/checks/hello_basic_render_workflow.json`。
+7. 重新执行 `python scripts/checks/hello_basic_render_workflow.py --suite basic`。

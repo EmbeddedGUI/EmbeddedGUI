@@ -14,9 +14,12 @@ import numpy as np
 from PIL import Image, ImageChops
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent
+SCRIPTS_ROOT = SCRIPT_DIR.parent
+ROOT_DIR = SCRIPTS_ROOT.parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
 
 import code_runtime_check as runtime_check
 
@@ -209,8 +212,8 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  python scripts/showcase_stage_parity_check.py --timeout 35 --bits64\n"
-            "  python scripts/showcase_stage_parity_check.py --max-mean-abs 0.2 --max-rms 5.0 --bits64\n"
+            "  python scripts/checks/showcase_stage_parity_check.py --timeout 35 --bits64\n"
+            "  python scripts/checks/showcase_stage_parity_check.py --max-mean-abs 0.2 --max-rms 5.0 --bits64\n"
         ),
     )
     parser.add_argument("--timeout", type=int, default=35, help="Per-app runtime timeout in seconds")

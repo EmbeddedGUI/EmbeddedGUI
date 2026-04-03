@@ -107,7 +107,7 @@ python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage_
 录制工作流检查：
 
 ```bash
-python scripts/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage_basic --skip-unit-tests --bits64
+python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage_basic --skip-unit-tests --bits64
 ```
 
 ## 看图时建议关注什么

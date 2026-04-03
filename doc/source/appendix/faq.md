@@ -21,7 +21,7 @@
 
 ### Q: Python 依赖安装失败
 
-**问题描述：** `setup_env.py` 在安装 `requirements.txt` 或 `requirements-desktop.txt` 时失败。
+**问题描述：** `setup_env.py` 在安装 `requirements.txt` 时失败。
 
 **原因分析：**
 
@@ -40,28 +40,19 @@
 ```bash
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-python -m pip install -r scripts/ui_designer/requirements-desktop.txt
-python -m pip install playwright
-python -m playwright install chromium
 ```
 
 ---
 
-### Q: UI Designer 依赖装了，但 `python scripts/ui_designer/main.py` 还是启动失败
+### Q: 还想使用 UI Designer 桌面端，当前仓库为什么没有启动入口
 
-**问题描述：** 提示 `PyQt5`、`qfluentwidgets` 或 `ui_designer` 导入失败。
+**说明：** UI Designer 桌面端和设计稿转换链路已经迁移到 `EmbeddedGUI_Designer` 仓库，当前仓库不再提供 `scripts/ui_designer/main.py` 或桌面端依赖安装。
 
-**解决方案：**
+**处理方式：**
 
-1. 确认你使用的是项目虚拟环境里的 Python
-2. 重新安装完整依赖
-3. 用一条命令验证导入链路
-
-```bash
-python -m pip install -r scripts/ui_designer/requirements-desktop.txt
-python -m pip install playwright
-python -c "import os, sys; sys.path.insert(0, 'scripts'); import ui_designer.main"
-```
+1. 继续在当前仓库开发 SDK、运行时、示例和资源
+2. 需要 Designer 桌面端时，切换到 `EmbeddedGUI_Designer`
+3. 迁移入口见 `doc/source/ui_designer/designer_repo_migration.md`
 
 ---
 
@@ -223,7 +214,7 @@ python scripts/setup_env.py --python-mode none
 setup.bat --python-mode none
 ```
 
-### Q: 想只安装基础 Python 依赖，不装 UI Designer
+### Q: 想只安装基础 Python 依赖
 
 可以执行：
 

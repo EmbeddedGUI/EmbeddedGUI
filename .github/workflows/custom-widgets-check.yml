@@ -5,7 +5,7 @@ on:
     paths:
       - '.github/workflows/custom-widgets-check.yml'
       - 'example/HelloCustomWidgets/**'
-      - 'scripts/check_touch_release_semantics.py'
+      - 'scripts/checks/check_touch_release_semantics.py'
       - 'scripts/code_compile_check.py'
       - 'scripts/code_runtime_check.py'
       - 'src/widget/**'
@@ -38,7 +38,7 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Audit core widget touch release semantics
-        run: python scripts/check_touch_release_semantics.py --scope core
+        run: python scripts/checks/check_touch_release_semantics.py --scope core
 
   check:
     needs: core-touch-audit
@@ -61,7 +61,7 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Audit custom widget touch release semantics (${{ matrix.category }})
-        run: python scripts/check_touch_release_semantics.py --scope custom --category ${{ matrix.category }}
+        run: python scripts/checks/check_touch_release_semantics.py --scope custom --category ${{ matrix.category }}
 
       - name: Check custom widgets (${{ matrix.category }})
         run: python scripts/code_compile_check.py --custom-widgets --category ${{ matrix.category }} --bits64

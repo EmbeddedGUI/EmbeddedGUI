@@ -124,8 +124,8 @@ python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage_
 ### 批量跑 HelloBasic / HelloVirtual
 
 ```bash
-python scripts/hello_basic_render_workflow.py --app HelloBasic --suite basic
-python scripts/hello_basic_render_workflow.py --app HelloVirtual --suite basic
+python scripts/checks/hello_basic_render_workflow.py --app HelloBasic --suite basic
+python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --suite basic
 ```
 
 这个脚本除了抓图，还会检查：

@@ -9,7 +9,8 @@ from pathlib import Path
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent
+SCRIPTS_ROOT = SCRIPT_DIR.parent
+REPO_ROOT = SCRIPTS_ROOT.parent
 CUSTOM_WIDGET_ROOT = REPO_ROOT / "example" / "HelloCustomWidgets"
 CORE_WIDGET_ROOT = REPO_ROOT / "src" / "widget"
 

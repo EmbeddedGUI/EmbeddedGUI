@@ -213,7 +213,7 @@ def run_example_icon_font_check():
     print("Checking Example Icon Fonts")
     print("=================================================================================")
 
-    cmd = [sys.executable, os.path.join(SCRIPT_DIR, 'check_example_icon_font.py')]
+    cmd = [sys.executable, os.path.join(SCRIPT_DIR, 'checks', 'check_example_icon_font.py')]
     print(' '.join('"%s"' % part if ' ' in part else part for part in cmd))
     res = subprocess.call(cmd)
     if res != 0:
@@ -229,7 +229,7 @@ def run_touch_release_semantics_check(scope='all', category=None):
     print("Checking Widget Touch Release Semantics")
     print("=================================================================================")
 
-    cmd = [sys.executable, os.path.join(SCRIPT_DIR, 'check_touch_release_semantics.py')]
+    cmd = [sys.executable, os.path.join(SCRIPT_DIR, 'checks', 'check_touch_release_semantics.py')]
     if scope:
         cmd.extend(['--scope', scope])
     if category:

@@ -49,8 +49,8 @@ make all APP=HelloBasic APP_SUB=slider PORT=pc \
 | 点击、拖动位置不对 | `EGUI_CONFIG_DEBUG_TOUCH_TRACE` | `scripts/code_runtime_check.py` 或手工录制 |
 | 想确认当前 FPS、CPU 占用和 LCD latency | `EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW` | 如需一起看 EGUI 自身 SRAM current / peak，再叠加 `EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW` |
 | 想知道是哪个控件触发了日志 | `EGUI_CONFIG_DEBUG_CLASS_NAME` | `EGUI_CONFIG_DEBUG_VIEW_ID`、`EGUI_CONFIG_DEBUG_LOG_LEVEL=EGUI_LOG_IMPL_LEVEL_DBG` |
-| 想批量检查示例渲染和交互 | `scripts/code_runtime_check.py` | `scripts/hello_basic_render_workflow.py` |
-| 想确认动画是否仍然是局部刷新 | `scripts/code_dirty_animation_check.py` | `scripts/perf_analysis/dirty_region_stats_report.py` |
+| 想批量检查示例渲染和交互 | `scripts/code_runtime_check.py` | `scripts/checks/hello_basic_render_workflow.py` |
+| 想确认动画是否仍然是局部刷新 | `scripts/checks/code_dirty_animation_check.py` | `scripts/perf_analysis/dirty_region_stats_report.py` |
 
 ## 这组文档覆盖什么
 

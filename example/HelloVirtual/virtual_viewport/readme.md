@@ -1,7 +1,7 @@
 # Virtual Viewport 高层容器总览
 
 完整使用指南见：
-- [docs/virtual_container_family_guide.md](../../../docs/virtual_container_family_guide.md)
+- [doc/source/widgets/virtual_container_family_guide.md](../../../doc/source/widgets/virtual_container_family_guide.md)
 
 如果你是第一次接触 raw `virtual_viewport`，建议先看：
 - [../virtual_viewport_basic/readme.md](../virtual_viewport_basic/readme.md)

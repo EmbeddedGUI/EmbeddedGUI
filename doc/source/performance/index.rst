@@ -11,5 +11,6 @@
    pfb_matrix_report
    spi_matrix_report
    perf_tuning
+   low_ram_config_macros
    dirty_region_interfaces
    dirty_region_tuning

@@ -18,7 +18,7 @@ make hello_basic_render_workflow ARGS="--suite basic"
 也可以直接调用脚本：
 
 ```bash
-python scripts/hello_basic_render_workflow.py --suite basic
+python scripts/checks/hello_basic_render_workflow.py --suite basic
 ```
 
 ## 常用套件
@@ -32,13 +32,13 @@ make hello_basic_render_workflow ARGS="--suite smoke --skip-unit-tests"
 只跑交互控件：
 
 ```bash
-python scripts/hello_basic_render_workflow.py --suite interactive
+python scripts/checks/hello_basic_render_workflow.py --suite interactive
 ```
 
 只跑指定控件：
 
 ```bash
-python scripts/hello_basic_render_workflow.py --widgets button,checkbox,slider,combobox,textinput
+python scripts/checks/hello_basic_render_workflow.py --widgets button,checkbox,slider,combobox,textinput
 ```
 
 ## 工作流内容
@@ -57,7 +57,7 @@ python scripts/hello_basic_render_workflow.py --widgets button,checkbox,slider,c
 
 工作流配置文件：
 
-- `scripts/hello_basic_render_workflow.json`
+- `scripts/checks/hello_basic_render_workflow.json`
 
 这里定义：
 
@@ -83,5 +83,5 @@ python scripts/hello_basic_render_workflow.py --widgets button,checkbox,slider,c
 1. 在对应 `test.c` 里补齐 `egui_port_get_recording_action()`
 2. 对关键状态提交补上 `[RUNTIME_CHECK_FAIL]` 自检
 3. 如果控件有明显操作行为，不要只保留静态 `wait`
-4. 把控件补进 `scripts/hello_basic_render_workflow.json`
+4. 把控件补进 `scripts/checks/hello_basic_render_workflow.json`
 5. 跑一遍 `make hello_basic_render_workflow ARGS="--suite basic"`

@@ -32,7 +32,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Build all WASM demos
-        run: python scripts/wasm_build_demos.py
+        run: python scripts/web/wasm_build_demos.py
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -13,7 +13,7 @@
 ## 依据来源
 
 - `example/HelloPerformance/ram_tracking.md`
-- `docs/low_ram_config_macros.md`
+- `../../doc/source/performance/low_ram_config_macros.md`
 - `perf_output/perf_report.md`
 
 ## 宏结论
@@ -49,7 +49,7 @@
 
 ### `EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT`
 
-- `docs/low_ram_config_macros.md` 已说明这两项都会把 text-transform layout 数组元素从 32-bit 压到 16-bit。
+- `../../doc/source/performance/low_ram_config_macros.md` 已说明这两项都会把 text-transform layout 数组元素从 32-bit 压到 16-bit。
 - 它们影响的是 transient heap：
   - 对短 benchmark 字符串，按字形数 `N` 约节省 `4N B`
   - 每帧分配、每帧释放，不是 fixed static RAM

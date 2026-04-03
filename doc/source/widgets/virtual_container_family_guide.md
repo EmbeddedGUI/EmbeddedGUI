@@ -15,25 +15,25 @@
 
 相关示例入口：
 
-- [raw viewport 入门示例](../example/HelloVirtual/virtual_viewport_basic/readme.md)
-- [raw viewport 总览](../example/HelloVirtual/virtual_viewport/readme.md)
-- [virtual_page 入门示例](../example/HelloVirtual/virtual_page_basic/readme.md)
-- [virtual_page 示例](../example/HelloVirtual/virtual_page/readme.md)
-- [virtual_strip 入门示例](../example/HelloVirtual/virtual_strip_basic/readme.md)
-- [virtual_strip 示例](../example/HelloVirtual/virtual_strip/readme.md)
-- [virtual_grid 入门示例](../example/HelloVirtual/virtual_grid_basic/readme.md)
-- [virtual_grid 示例](../example/HelloVirtual/virtual_grid/readme.md)
-- [virtual_section_list 入门示例](../example/HelloVirtual/virtual_section_list_basic/readme.md)
-- [virtual_section_list 示例](../example/HelloVirtual/virtual_section_list/readme.md)
-- [virtual_tree 入门示例](../example/HelloVirtual/virtual_tree_basic/readme.md)
-- [virtual_tree 示例](../example/HelloVirtual/virtual_tree/readme.md)
+- `example/HelloVirtual/virtual_viewport_basic/readme.md`
+- `example/HelloVirtual/virtual_viewport/readme.md`
+- `example/HelloVirtual/virtual_page_basic/readme.md`
+- `example/HelloVirtual/virtual_page/readme.md`
+- `example/HelloVirtual/virtual_strip_basic/readme.md`
+- `example/HelloVirtual/virtual_strip/readme.md`
+- `example/HelloVirtual/virtual_grid_basic/readme.md`
+- `example/HelloVirtual/virtual_grid/readme.md`
+- `example/HelloVirtual/virtual_section_list_basic/readme.md`
+- `example/HelloVirtual/virtual_section_list/readme.md`
+- `example/HelloVirtual/virtual_tree_basic/readme.md`
+- `example/HelloVirtual/virtual_tree/readme.md`
 
 补充说明：如果你的页面不是“滚动数据集”，而是“固定画布 + 大量绝对定位节点 + 少量活跃控件”，请直接看：
 
-- [virtual_stage_basic 入门示例](../example/HelloVirtual/virtual_stage_basic/readme.md)
-- [virtual_stage_showcase 对比示例](../example/HelloVirtual/virtual_stage_showcase/readme.md)
-- [virtual_stage 复杂示例](../example/HelloVirtual/virtual_stage/readme.md)
-- [virtual_stage 架构说明](../doc/source/architecture/virtual_stage.md)
+- `example/HelloVirtual/virtual_stage_basic/readme.md`
+- `example/HelloVirtual/virtual_stage_showcase/readme.md`
+- `example/HelloVirtual/virtual_stage/readme.md`
+- [virtual_stage 架构说明](../architecture/virtual_stage.md)
 
 实践上再记住两点：
 
@@ -292,15 +292,15 @@
 
 **Canvas 场景**
 
-![Raw Viewport Canvas](../runtime_check_output/HelloVirtual_virtual_viewport/default/frame_0000.png)
+![Raw Viewport Canvas](images/virtual/viewport_canvas.png)
 
 **Chat 场景**
 
-![Raw Viewport Chat](../runtime_check_output/HelloVirtual_virtual_viewport/default/frame_0012.png)
+![Raw Viewport Chat](images/virtual/viewport_chat.png)
 
 **Board 场景**
 
-![Raw Viewport Board](../runtime_check_output/HelloVirtual_virtual_viewport/default/frame_0016.png)
+![Raw Viewport Board](images/virtual/viewport_board.png)
 
 ### 4.2 `virtual_page`：一页里的异构模块
 
@@ -309,7 +309,7 @@
 
 如果只想先理解最小接入模式，建议先看 `virtual_page_basic`；它去掉了顶部摘要 Header，只保留一个简单 action bar 和三类 section，更适合快速建立 API 心智模型。
 
-![Virtual Page](../runtime_check_output/HelloVirtual_virtual_page/default/frame_0004.png)
+![Virtual Page](images/virtual/virtual_page.png)
 
 ### 4.3 `virtual_strip`：横向轨道
 
@@ -317,21 +317,21 @@
 它适合 poster rail、queue rail、timeline strip。
 如果你只想先建立最小 API 心智模型，建议先看 `virtual_strip_basic`；它去掉了顶部摘要 Header，只保留一个简单 action bar 和单一 strip，更容易对照 `init_with_setup`、点击回查、单项刷新和 jump helper。
 
-![Virtual Strip](../runtime_check_output/HelloVirtual_virtual_strip/default/frame_0004.png)
+![Virtual Strip](images/virtual/virtual_strip.png)
 
 ### 4.4 `virtual_grid`：二维 tile 墙
 
 `virtual_grid` 的重点不是“把 list 缩成多列”，而是按 tile 语义设计二维密度、列数切换和宽度自适应布局。
 如果你只想先看最小接法，建议先读 `virtual_grid_basic`；它去掉了顶部摘要 Header，只保留一个简单 action bar 和单一 grid，更适合快速理解 `set_column_count()`、item height 变化通知和基础定位 helper。
 
-![Virtual Grid](../runtime_check_output/HelloVirtual_virtual_grid/default/frame_0010.png)
+![Virtual Grid](images/virtual/virtual_grid.png)
 
 ### 4.5 `virtual_section_list`：先有组头，再有组内条目
 
 `virtual_section_list` 适合“天然存在 section header + 组内明细”的业务，而不是把组头硬塞进普通 list。
 如果只想先理解最小接入模式，建议先看 `virtual_section_list_basic`；它去掉了顶部摘要 Header，只保留一个简单 action bar 和一个最小 grouped list，更适合快速建立 section data source、entry 回查和结构刷新通知的心智模型。
 
-![Virtual Section List](../runtime_check_output/HelloVirtual_virtual_section_list/default/frame_0000.png)
+![Virtual Section List](images/virtual/virtual_section_list.png)
 
 ### 4.6 `virtual_tree`：层级与连接关系优先
 
@@ -340,7 +340,7 @@
 
 如果只想先理解最小接入模式，建议先看 `virtual_tree_basic`；它去掉了顶部摘要 Header，只保留一个简单 action bar 和 `root / group / task` 三层树，更适合快速建立 tree data source、结构刷新和点击回查的心智模型。
 
-![Virtual Tree](../runtime_check_output/HelloVirtual_virtual_tree/default/frame_0004.png)
+![Virtual Tree](images/virtual/virtual_tree.png)
 
 ---
 
@@ -580,7 +580,7 @@ static void card_click_cb(egui_view_t *self)
 
 头文件：
 
-- [egui_view_virtual_list.h](../src/widget/egui_view_virtual_list.h)
+- [egui_view_virtual_list.h](../../../src/widget/egui_view_virtual_list.h)
 
 适合：
 
@@ -644,8 +644,8 @@ egui_view_virtual_list_init_with_setup(EGUI_VIEW_OF(&list_view), &list_setup);
 
 头文件与示例：
 
-- [egui_view_virtual_page.h](../src/widget/egui_view_virtual_page.h)
-- [virtual_page/test.c](../example/HelloVirtual/virtual_page/test.c)
+- [egui_view_virtual_page.h](../../../src/widget/egui_view_virtual_page.h)
+- [virtual_page/test.c](../../../example/HelloVirtual/virtual_page/test.c)
 
 适合：
 
@@ -710,9 +710,9 @@ egui_view_virtual_page_init_with_setup(EGUI_VIEW_OF(&page_view), &page_setup);
 
 头文件与示例：
 
-- [egui_view_virtual_strip.h](../src/widget/egui_view_virtual_strip.h)
-- [virtual_strip_basic/test.c](../example/HelloVirtual/virtual_strip_basic/test.c)
-- [virtual_strip/test.c](../example/HelloVirtual/virtual_strip/test.c)
+- [egui_view_virtual_strip.h](../../../src/widget/egui_view_virtual_strip.h)
+- [virtual_strip_basic/test.c](../../../example/HelloVirtual/virtual_strip_basic/test.c)
+- [virtual_strip/test.c](../../../example/HelloVirtual/virtual_strip/test.c)
 
 适合：
 
@@ -769,9 +769,9 @@ static const egui_view_virtual_strip_data_source_t strip_source = {
 
 头文件与示例：
 
-- [egui_view_virtual_grid.h](../src/widget/egui_view_virtual_grid.h)
-- [virtual_grid_basic/test.c](../example/HelloVirtual/virtual_grid_basic/test.c)
-- [virtual_grid/test.c](../example/HelloVirtual/virtual_grid/test.c)
+- [egui_view_virtual_grid.h](../../../src/widget/egui_view_virtual_grid.h)
+- [virtual_grid_basic/test.c](../../../example/HelloVirtual/virtual_grid_basic/test.c)
+- [virtual_grid/test.c](../../../example/HelloVirtual/virtual_grid/test.c)
 
 适合：
 
@@ -837,9 +837,9 @@ egui_view_virtual_grid_notify_item_resized_by_stable_id(EGUI_VIEW_OF(&grid_view)
 
 头文件与示例：
 
-- [egui_view_virtual_section_list.h](../src/widget/egui_view_virtual_section_list.h)
-- [virtual_section_list_basic/test.c](../example/HelloVirtual/virtual_section_list_basic/test.c)
-- [virtual_section_list/test.c](../example/HelloVirtual/virtual_section_list/test.c)
+- [egui_view_virtual_section_list.h](../../../src/widget/egui_view_virtual_section_list.h)
+- [virtual_section_list_basic/test.c](../../../example/HelloVirtual/virtual_section_list_basic/test.c)
+- [virtual_section_list/test.c](../../../example/HelloVirtual/virtual_section_list/test.c)
 
 适合：
 
@@ -900,8 +900,8 @@ static const egui_view_virtual_section_list_data_source_t section_source = {
 
 头文件与示例：
 
-- [egui_view_virtual_tree.h](../src/widget/egui_view_virtual_tree.h)
-- [virtual_tree/test.c](../example/HelloVirtual/virtual_tree/test.c)
+- [egui_view_virtual_tree.h](../../../src/widget/egui_view_virtual_tree.h)
+- [virtual_tree/test.c](../../../example/HelloVirtual/virtual_tree/test.c)
 
 适合：
 
@@ -1177,13 +1177,13 @@ output\\main.exe
 
 | 容器 | 头文件 | 初始化核心 | 定位核心 | 状态核心 |
 | --- | --- | --- | --- | --- |
-| `virtual_viewport` | [egui_view_virtual_viewport.h](../src/widget/egui_view_virtual_viewport.h) | `init_with_setup` | `resolve_item_by_view` / `ensure_item_visible_by_stable_id` | `set_state_cache_limits` / `write_state` |
-| `virtual_list` | [egui_view_virtual_list.h](../src/widget/egui_view_virtual_list.h) | `init_with_setup` | `resolve_item_by_view` / `ensure_item_visible_by_stable_id` | `write_item_state` / `get_state_cache_entry_limit` |
-| `virtual_page` | [egui_view_virtual_page.h](../src/widget/egui_view_virtual_page.h) | `init_with_setup` | `resolve_section_by_view` / `ensure_section_visible_by_stable_id` | `write_section_state` / `get_state_cache_entry_limit` |
-| `virtual_strip` | [egui_view_virtual_strip.h](../src/widget/egui_view_virtual_strip.h) | `init_with_setup` | `resolve_item_by_view` / `ensure_item_visible_by_stable_id` | `write_item_state` / `get_state_cache_entry_limit` |
-| `virtual_grid` | [egui_view_virtual_grid.h](../src/widget/egui_view_virtual_grid.h) | `init_with_setup` | `resolve_item_by_view` / `ensure_item_visible_by_stable_id` | `write_item_state` / `get_state_cache_entry_limit` |
-| `virtual_section_list` | [egui_view_virtual_section_list.h](../src/widget/egui_view_virtual_section_list.h) | `init_with_setup` | `resolve_entry_by_view` / `ensure_entry_visible_by_stable_id` | `write_entry_state` / `get_state_cache_entry_limit` |
-| `virtual_tree` | [egui_view_virtual_tree.h](../src/widget/egui_view_virtual_tree.h) | `init_with_setup` | `resolve_node_by_view` / `ensure_node_visible_by_stable_id` | `write_node_state` / `get_state_cache_entry_limit` |
+| `virtual_viewport` | [egui_view_virtual_viewport.h](../../../src/widget/egui_view_virtual_viewport.h) | `init_with_setup` | `resolve_item_by_view` / `ensure_item_visible_by_stable_id` | `set_state_cache_limits` / `write_state` |
+| `virtual_list` | [egui_view_virtual_list.h](../../../src/widget/egui_view_virtual_list.h) | `init_with_setup` | `resolve_item_by_view` / `ensure_item_visible_by_stable_id` | `write_item_state` / `get_state_cache_entry_limit` |
+| `virtual_page` | [egui_view_virtual_page.h](../../../src/widget/egui_view_virtual_page.h) | `init_with_setup` | `resolve_section_by_view` / `ensure_section_visible_by_stable_id` | `write_section_state` / `get_state_cache_entry_limit` |
+| `virtual_strip` | [egui_view_virtual_strip.h](../../../src/widget/egui_view_virtual_strip.h) | `init_with_setup` | `resolve_item_by_view` / `ensure_item_visible_by_stable_id` | `write_item_state` / `get_state_cache_entry_limit` |
+| `virtual_grid` | [egui_view_virtual_grid.h](../../../src/widget/egui_view_virtual_grid.h) | `init_with_setup` | `resolve_item_by_view` / `ensure_item_visible_by_stable_id` | `write_item_state` / `get_state_cache_entry_limit` |
+| `virtual_section_list` | [egui_view_virtual_section_list.h](../../../src/widget/egui_view_virtual_section_list.h) | `init_with_setup` | `resolve_entry_by_view` / `ensure_entry_visible_by_stable_id` | `write_entry_state` / `get_state_cache_entry_limit` |
+| `virtual_tree` | [egui_view_virtual_tree.h](../../../src/widget/egui_view_virtual_tree.h) | `init_with_setup` | `resolve_node_by_view` / `ensure_node_visible_by_stable_id` | `write_node_state` / `get_state_cache_entry_limit` |
 
 ---
 

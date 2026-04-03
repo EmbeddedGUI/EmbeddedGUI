@@ -50,7 +50,6 @@ dist/
 tools/
 # Plan/design documents (local only)
 .claude/*.md
-docs/plans/
 
 # UI Designer local config
 scripts/ui_designer/.config/

@@ -190,7 +190,7 @@ python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage 
 渲染工作流：
 
 ```bash
-python scripts/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage --skip-unit-tests
+python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage --skip-unit-tests
 ```
 
 框架回归：

@@ -111,7 +111,7 @@ python scripts/code_compile_check.py --custom-widgets
 ### Web
 
 ```bash
-python scripts/wasm_build_demos.py
+python scripts/web/wasm_build_demos.py
 ```
 
 ## 当前开发流程

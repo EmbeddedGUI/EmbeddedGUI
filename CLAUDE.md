@@ -162,132 +162,22 @@ python scripts/code_runtime_check.py --full-check
 - **多页面应用必须验证所有页面渲染**：对于包含多个页面的应用，运行时验证必须覆盖每一个页面，不能只验证首页。代码生成器会自动为多页面项目生成 `egui_port_get_recording_action()` 录制动作，通过 `uicode_switch_page()` 依次切换所有页面。验证时需检查截图确认每个页面都有正确渲染输出
 - **性能测试必须使用 QEMU 验证**：PC 模拟器的计时器精度只有 1ms，不适合做性能基准测试。性能数据必须通过 QEMU 运行获取（使用微秒级计时器 `qemu_get_tick_us`）。PC 运行仅用于方便查看渲染效果，不作为性能数据依据
 
-## UI Designer Widget 注册与渐进式扩展
+## UI Designer 迁移说明
 
-设计转换管道（HTML/JSX → XML → C）依赖 widget 注册系统。当转换新设计遇到不支持的属性或控件时，**必须扩展 widget 注册而非手写 C 代码**。
+UI Designer 桌面端、Widget 注册系统、代码生成器与设计稿转换链路，已迁移到独立仓库 `EmbeddedGUI_Designer` 维护。
 
-### 架构
+当前仓库仅保留：
 
-```
-scripts/ui_designer/custom_widgets/   ← Widget 注册插件（每控件一个 .py）
-scripts/ui_designer/model/widget_registry.py  ← 注册中心
-scripts/ui_designer/generator/        ← 代码生成器（读注册信息生成 C）
-src/widget/                           ← C 层控件实现（头文件中有实际 API）
-```
+- SDK、运行时、控件与示例
+- 资源生成与发布检查脚本
+- 与 Designer 相关的迁移说明文档
 
-### Widget 注册文件格式
+当任务涉及以下场景时，优先切换到 `EmbeddedGUI_Designer`：
 
-每个 `custom_widgets/*.py` 描述一个控件的代码生成规则：
-
-```python
-WidgetRegistry.instance().register(
-    type_name="progress_bar",          # 内部类型名
-    descriptor={
-        "c_type": "egui_view_progress_bar_t",           # C 结构体类型
-        "init_func": "egui_view_progress_bar_init_with_params",  # 初始化函数
-        "params_macro": "EGUI_VIEW_PROGRESS_BAR_PARAMS_INIT",   # 参数宏
-        "params_type": "egui_view_progress_bar_params_t",        # 参数类型
-        "is_container": False,         # 是否是容器控件
-        "properties": {
-            "value": {
-                "type": "int", "default": 50,
-                "code_gen": {"kind": "setter", "func": "egui_view_progress_bar_set_process"},
-            },
-        },
-    },
-    xml_tag="ProgressBar",             # XML 中的标签名
-    display_name="ProgressBar",        # 显示名称
-)
-```
-
-### code_gen kind 类型
-
-| kind | 说明 | 示例 |
-|------|------|------|
-| `setter` | 调用 `func(view, value)` | `egui_view_switch_set_checked` |
-| `text_setter` | 设置静态字符串 | `egui_view_label_set_text` |
-| `multi_setter` | 多参数调用，用 `args` 模板 | `egui_view_label_set_font_color` |
-| `derived_setter` | 从资源派生参数 | `egui_view_label_set_font` |
-
-### 遇到不支持属性时的扩展流程
-
-当设计转换过程中遇到构建失败（如 `undefined reference`）或渲染异常，按以下步骤排查扩展：
-
-1. **确认 C 层 API**：在 `src/widget/egui_view_*.h` 中查找实际的函数签名
-2. **对比 widget 注册**：检查 `custom_widgets/*.py` 中 `code_gen.func` 是否与 C 层一致
-3. **修复或新增属性**：
-   - 函数名错误 → 修正 `func` 字段（如 `set_value` → `set_process`）
-   - 缺少属性 → 在 `properties` 中新增条目
-   - 缺少控件 → 新建 `custom_widgets/xxx.py` 注册文件
-4. **重新生成验证**：`generate-code` → `gen-resource` → `verify`
-
-### 新增控件的检查清单
-
-- [ ] `src/widget/` 中存在对应的 C 实现（`egui_view_xxx.h/c`）
-- [ ] `custom_widgets/xxx.py` 中 `c_type`、`init_func`、`params_macro` 与 C 头文件一致
-- [ ] 所有 `code_gen.func` 函数名在 C 头文件中有声明
-- [ ] `xml_tag` 与 `EmbeddedGUI_Designer` 仓库中的 HTML 转换文档示例保持一致
-- [ ] 构建通过且运行时验证截图正确
-
-### 已注册控件一览
-
-| XML 标签 | type_name | 注册文件 |
-|----------|-----------|----------|
-| `Group` | group | group.py |
-| `Card` | card | card.py |
-| `Label` | label | label.py |
-| `Image` | image | image.py |
-| `Button` | button | button.py |
-| `Switch` | switch | switch.py |
-| `ProgressBar` | progress_bar | progress_bar.py |
-| `CircularProgressBar` | circular_progress_bar | circular_progress_bar.py |
-| `Slider` | slider | slider.py |
-| `LinearLayout` | linearlayout | linearlayout.py |
-| `GridLayout` | gridlayout | gridlayout.py |
-| `Scroll` | scroll | scroll.py |
-| `ViewPage` | viewpage | viewpage.py |
-| `Checkbox` | checkbox | checkbox.py |
-| `RadioButton` | radio_button | radio_button.py |
-| `Spinner` | spinner | spinner.py |
-| `Led` | led | led.py |
-| `ToggleButton` | toggle_button | toggle_button.py |
-| `ImageButton` | image_button | image_button.py |
-| `Divider` | divider | divider.py |
-| `Textblock` | textblock | textblock.py |
-| `Textinput` | textinput | textinput.py |
-| `DynamicLabel` | dynamic_label | dynamic_label.py |
-| `NumberPicker` | number_picker | number_picker.py |
-| `ArcSlider` | arc_slider | arc_slider.py |
-| `Combobox` | combobox | combobox.py |
-| `Roller` | roller | roller.py |
-| `Gauge` | gauge | gauge.py |
-| `TabBar` | tab_bar | tab_bar.py |
-| `PageIndicator` | page_indicator | page_indicator.py |
-| `Keyboard` | keyboard | keyboard.py |
-| `Mp4` | mp4 | mp4.py |
-| `ChartLine` | chart_line | chart_line.py |
-| `ChartScatter` | chart_scatter | chart_scatter.py |
-| `ChartBar` | chart_bar | chart_bar.py |
-| `ChartPie` | chart_pie | chart_pie.py |
-| `AnalogClock` | analog_clock | analog_clock.py |
-| `DigitalClock` | digital_clock | digital_clock.py |
-| `Stopwatch` | stopwatch | stopwatch.py |
-| `ActivityRing` | activity_ring | activity_ring.py |
-| `HeartRate` | heart_rate | heart_rate.py |
-| `Compass` | compass | compass.py |
-| `NotificationBadge` | notification_badge | notification_badge.py |
-| `MiniCalendar` | mini_calendar | mini_calendar.py |
-| `Line` | line | line.py |
-| `Scale` | scale | scale.py |
-| `ButtonMatrix` | button_matrix | button_matrix.py |
-| `Table` | table | table.py |
-| `AnimatedImage` | animated_image | animated_image.py |
-| `List` | list | list.py |
-| `Spangroup` | spangroup | spangroup.py |
-| `TileView` | tileview | tileview.py |
-| `ViewPageCache` | viewpage_cache | viewpage_cache.py |
-| `Window` | window | window.py |
-| `Menu` | menu | menu.py |
+- Widget 注册与属性扩展
+- XML -> C 代码生成
+- HTML / JSX / Figma Make / Figma MCP 导入
+- Designer 桌面端预览、打包与发布
 
 ## Figma/HTML 设计转换迁移说明
 

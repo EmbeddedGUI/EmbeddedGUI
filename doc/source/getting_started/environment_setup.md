@@ -15,9 +15,7 @@
 | GCC | C 编译器（PC 模拟器） | 必需 |
 | GNU Make | 构建工具 | 必需 |
 | SDL2 | PC 模拟器显示和输入 | 必需（Windows 版本已内置） |
-| Python 3.8+ | 资源生成、脚本工具、UI Designer | 必需 |
-| PyQt5 / PyQt-Fluent-Widgets | UI Designer 桌面界面 | 默认安装 |
-| Playwright | 设计稿截图与自动化验证 | 默认安装 Python 包 |
+| Python 3.8+ | 资源生成与脚本工具 | 必需 |
 | FFmpeg | MP4 转序列帧、GIF 录制等媒体处理 | 默认检查，Windows 缺失时自动下载 |
 | ARM GCC | STM32 / QEMU 交叉编译 | 可选 |
 | QEMU | ARM 仿真与性能测试 | 可选 |
@@ -59,15 +57,12 @@ python scripts\setup_env.py --python-mode full
 1. 创建 `.venv`
 2. 升级 `pip`
 3. 安装 `requirements.txt`
-4. 安装 `scripts/ui_designer/requirements-desktop.txt`
-5. 安装 `playwright` Python 包
-6. 校验 `json5`、`numpy`、`Pillow`、`freetype_py`、`pyelftools`
-7. 校验 `PyQt5`、`qfluentwidgets`、`ui_designer.main`
-8. 检查本地或系统中的 `make` / `gcc`
-9. 在缺失时自动安装 `tools/w64devkit`
-10. 检查 `ffmpeg`
-11. 在缺失时自动安装 `tools/ffmpeg`
-12. 默认编译一次 `HelloSimple` 做验证
+4. 校验 `json5`、`numpy`、`Pillow`、`freetype_py`、`pyelftools`
+5. 检查本地或系统中的 `make` / `gcc`
+6. 在缺失时自动安装 `tools/w64devkit`
+7. 检查 `ffmpeg`
+8. 在缺失时自动安装 `tools/ffmpeg`
+9. 默认编译一次 `HelloSimple` 做验证
 
 ### 常用参数
 
@@ -85,9 +80,9 @@ setup.bat --install-ffmpeg
 说明：
 
 - `--python-mode full`
-  默认值。安装完整 Python 依赖，适合绝大多数开发者。
+  默认值。当前仓库下与 `basic` 等价，安装 `requirements.txt` 中的依赖。
 - `--python-mode basic`
-  只安装基础 Python 依赖，不安装 UI Designer 桌面依赖。
+  安装 `requirements.txt` 中的基础依赖。
 - `--python-mode none`
   跳过 Python 依赖安装，仅做工具链检查。
 - `--skip-toolchain`
@@ -139,7 +134,7 @@ tools/ffmpeg/bin
 这部分主要用于：
 
 - `scripts/tools/app_mp4_image_generate.py` 的 MP4 转序列帧流程
-- `scripts/gif_recorder.py` 的高质量 GIF 导出流程
+- `scripts/recording/gif_recorder.py` 的高质量 GIF 导出流程
 
 如果你不需要这些媒体处理能力，可以显式传入 `--skip-ffmpeg`。
 
@@ -222,18 +217,10 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-完整依赖（包含 UI Designer）：
+当前仓库完整依赖：
 
 ```bash
 python -m pip install -r requirements.txt
-python -m pip install -r scripts/ui_designer/requirements-desktop.txt
-python -m pip install playwright
-```
-
-如需浏览器运行时，再执行：
-
-```bash
-python -m playwright install chromium
 ```
 
 ### 3. 安装编译工具链

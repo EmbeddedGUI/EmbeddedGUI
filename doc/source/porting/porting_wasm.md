@@ -158,22 +158,22 @@ strcpy(input_file_path, "app_egui_resource_merge.bin");
 
 ## wasm_build_demos.py 批量构建
 
-`scripts/wasm_build_demos.py` 用于批量构建所有示例的 WASM 版本。
+`scripts/web/wasm_build_demos.py` 用于批量构建所有示例的 WASM 版本。
 
 ### 用法
 
 ```bash
 # 构建所有示例
-python scripts/wasm_build_demos.py
+python scripts/web/wasm_build_demos.py
 
 # 指定 emsdk 路径
-python scripts/wasm_build_demos.py --emsdk-path /path/to/emsdk
+python scripts/web/wasm_build_demos.py --emsdk-path /path/to/emsdk
 
 # 指定输出目录
-python scripts/wasm_build_demos.py --output-dir web/demos
+python scripts/web/wasm_build_demos.py --output-dir web/demos
 
 # 只构建指定示例
-python scripts/wasm_build_demos.py --app HelloSimple
+python scripts/web/wasm_build_demos.py --app HelloSimple
 ```
 
 ### 工作流程
@@ -220,7 +220,7 @@ web/
   uses: mymindstorm/setup-emsdk@v11
 
 - name: Build WASM demos
-  run: python scripts/wasm_build_demos.py --output-dir web/demos
+  run: python scripts/web/wasm_build_demos.py --output-dir web/demos
 
 - name: Deploy to GitHub Pages
   uses: peaceiris/actions-gh-pages@v3
@@ -247,13 +247,13 @@ python3 -m http.server 8000
 python scripts\setup_env.py --python-mode none --install-emsdk
 ```
 
-Windows 下 `porting/emscripten/build.mk` 会通过 `python scripts/emcc_wrapper.py` 优先使用仓库内的 `tools\emsdk`。因此直接执行以下命令即可，不要求先手动激活当前 shell：
+Windows 下 `porting/emscripten/build.mk` 会通过 `python scripts/web/emcc_wrapper.py` 优先使用仓库内的 `tools\emsdk`。因此直接执行以下命令即可，不要求先手动激活当前 shell：
 
 ```bat
 make all APP=HelloSimple PORT=emscripten
 ```
 
-`scripts/wasm_build_demos.py` 也会优先复用本地 emsdk。只有在当前终端手动执行 `emcc -v`、`em++ -v` 等命令时，才需要额外运行：
+`scripts/web/wasm_build_demos.py` 也会优先复用本地 emsdk。只有在当前终端手动执行 `emcc -v`、`em++ -v` 等命令时，才需要额外运行：
 
 ```bat
 call tools\emsdk\emsdk_env.bat

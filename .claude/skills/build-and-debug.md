@@ -74,10 +74,10 @@ python scripts/code_compile_check.py --clean --full-check
 
 ```bash
 # 默认只检查 git 已跟踪的 example 源文件
-python scripts/check_example_icon_font.py
+python scripts/checks/check_example_icon_font.py
 
 # 连同本地未跟踪目录一起检查
-python scripts/check_example_icon_font.py --include-untracked
+python scripts/checks/check_example_icon_font.py --include-untracked
 ```
 
 用途：防止示例代码只设置图标字符串、不设置对应的 `*_set_icon_font()`，从而回退到控件内部的隐式推断逻辑。
@@ -161,7 +161,7 @@ EGUI_LOG_INF("value: %d\n", some_value);
 | `Makefile` | 根构建配置 |
 | `porting/pc/Makefile.base` | 核心构建逻辑 |
 | `scripts/code_compile_check.py` | 全量编译检查（`--full-check` 含示例 icon font 检查） |
-| `scripts/check_example_icon_font.py` | 示例 icon font 显式配置检查 |
+| `scripts/checks/check_example_icon_font.py` | 示例 icon font 显式配置检查 |
 | `scripts/code_format.py` | clang-format 代码格式化 |
 | `scripts/release_check.py` | 发布前多步骤一键检查 |
 | `example/{APP}/build.mk` | 应用构建模块 |

@@ -16,9 +16,12 @@ from pathlib import Path
 from PIL import Image, ImageChops, ImageStat
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent
+SCRIPTS_ROOT = SCRIPT_DIR.parent
+ROOT_DIR = SCRIPTS_ROOT.parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
 
 import code_runtime_check as runtime_check
 
@@ -423,9 +426,9 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  python scripts/hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --bits64\n"
-            "  python scripts/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage_showcase --skip-unit-tests --bits64\n"
-            "  python scripts/hello_basic_render_workflow.py --app HelloBasic --suite smoke\n"
+            "  python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --bits64\n"
+            "  python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage_showcase --skip-unit-tests --bits64\n"
+            "  python scripts/checks/hello_basic_render_workflow.py --app HelloBasic --suite smoke\n"
         ),
     )
     parser.add_argument("--app", default="HelloBasic", choices=sorted(SUB_APP_ROOTS.keys()), help="Sub-app example suite to run")

@@ -40,7 +40,7 @@ PC 运行：
 make all APP=HelloVirtual APP_SUB=virtual_stage_basic PORT=pc
 python scripts/code_runtime_check.py --app HelloVirtual --keep-screenshots
 python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage_basic --keep-screenshots
-python scripts/hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --bits64
+python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --bits64
 ```
 
 `stm32g0` 体积对比：

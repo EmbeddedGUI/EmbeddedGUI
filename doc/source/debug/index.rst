@@ -8,3 +8,4 @@
    debug_macros
    debug_pc_workflow
    debug_scripts
+   hello_basic_render_workflow

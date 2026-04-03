@@ -18,7 +18,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPTS_ROOT = SCRIPT_DIR.parent
+PROJECT_ROOT = SCRIPTS_ROOT.parent
 DEFAULT_SCAN_ROOT = PROJECT_ROOT / "example"
 
 
@@ -173,9 +175,9 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  python scripts/check_example_icon_font.py\n"
-            "  python scripts/check_example_icon_font.py --include-untracked\n"
-            "  python scripts/check_example_icon_font.py --root example/HelloBasic\n"
+            "  python scripts/checks/check_example_icon_font.py\n"
+            "  python scripts/checks/check_example_icon_font.py --include-untracked\n"
+            "  python scripts/checks/check_example_icon_font.py --root example/HelloBasic\n"
         ),
     )
     parser.add_argument(

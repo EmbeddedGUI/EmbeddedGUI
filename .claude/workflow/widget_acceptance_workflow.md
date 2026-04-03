@@ -95,7 +95,7 @@
 说明：
 
 - 当前阶段默认先做 `HelloCustomWidgets` 版本，不要求一开始就放进 `src/widget/`。
-- 只有当该控件已经稳定、确定需要复用到框架层时，再单独规划升级为核心控件，并补 `scripts/ui_designer/custom_widgets/<widget>.py`。
+- 只有当该控件已经稳定、确定需要复用到框架层时，再单独规划升级为核心控件；如果需要 Designer 侧注册，同步到 `EmbeddedGUI_Designer` 仓库补对应注册文件。
 
 ## Step 3：编译验证（必做）
 
@@ -116,7 +116,7 @@ make all APP=HelloCustomWidgets APP_SUB=<category>/<widget> PORT=pc
 先执行：
 
 ```bash
-python scripts/check_touch_release_semantics.py --scope custom --category <category>
+python scripts/checks/check_touch_release_semantics.py --scope custom --category <category>
 ```
 
 要求：
@@ -124,8 +124,8 @@ python scripts/check_touch_release_semantics.py --scope custom --category <categ
 - 非拖拽/非连续交互控件，`ACTION_MOVE` 不得改写 `pressed_*` 之类的“按下目标”状态。
 - 非拖拽/非连续交互控件，`ACTION_UP` 只能在 `ACTION_DOWN` 命中的同一目标上提交，不能在移动到其他目标后于新目标触发点击或选择。
 - 必须补充模拟交互测试，至少覆盖 `DOWN(A) -> MOVE(B) -> UP(B)` 不提交，以及 `DOWN(A) -> MOVE(B) -> MOVE(A) -> UP(A)` 才提交。
-- 若控件本身就是拖拽/连续交互模型，必须在 `scripts/check_touch_release_semantics.py` 的 allowlist 中登记，并在提交说明中写清楚为何属于例外。
-- 若本轮同时修改了 `src/widget/`，或该控件准备下沉到核心层，必须额外执行 `python scripts/check_touch_release_semantics.py --scope core`，并同步补 `HelloUnitTest` 的 same-target release 回归测试。
+- 若控件本身就是拖拽/连续交互模型，必须在 `scripts/checks/check_touch_release_semantics.py` 的 allowlist 中登记，并在提交说明中写清楚为何属于例外。
+- 若本轮同时修改了 `src/widget/`，或该控件准备下沉到核心层，必须额外执行 `python scripts/checks/check_touch_release_semantics.py --scope core`，并同步补 `HelloUnitTest` 的 same-target release 回归测试。
 - 审计失败时，必须先修复事件分发语义，再继续 runtime 验证。
 
 ## Step 4：Runtime 验证（必做）
@@ -191,7 +191,7 @@ python scripts/code_runtime_check.py --app HelloCustomWidgets --category <catego
 
 1. 改代码
 2. 执行 `make all APP=HelloCustomWidgets APP_SUB=<category>/<widget> PORT=pc`
-3. 执行 `python scripts/check_touch_release_semantics.py --scope custom --category <category>`
+3. 执行 `python scripts/checks/check_touch_release_semantics.py --scope custom --category <category>`
 4. 执行 `python scripts/code_runtime_check.py --app HelloCustomWidgets --app-sub <category>/<widget> --timeout 10 --keep-screenshots`
 5. 检查截图中的视觉问题
 6. 复制关键截图到 `iteration_log/images/iter_xx/`
@@ -224,7 +224,7 @@ python scripts/code_runtime_check.py --app HelloCustomWidgets --category <catego
 - `readme.md` 完整且与当前实现一致
 - `iteration_log/iteration_log.md` 已记录至少 30 次迭代
 - `make all APP=HelloCustomWidgets APP_SUB=<category>/<widget> PORT=pc` 通过
-- `python scripts/check_touch_release_semantics.py --scope custom --category <category>` 通过；若触及核心控件，还需额外通过 `python scripts/check_touch_release_semantics.py --scope core`；若属于拖拽例外，已同步更新 allowlist 并写明理由
+- `python scripts/checks/check_touch_release_semantics.py --scope custom --category <category>` 通过；若触及核心控件，还需额外通过 `python scripts/checks/check_touch_release_semantics.py --scope core`；若属于拖拽例外，已同步更新 allowlist 并写明理由
 - `code_runtime_check.py` 运行通过
 - 已对当前控件相关代码执行格式化，并确认格式化后仍可通过构建与 runtime 验证
 - 关键截图已整理到 `iteration_log/` 且能通过 `iteration_log/iteration_log.md` 直接 review
@@ -274,5 +274,5 @@ git commit -m "feat: add radial_menu custom widget"
 ## 备注
 
 - 当前工作流的主目标是批量推进 `HelloCustomWidgets` 下的 1000 个控件，而不是优先把控件沉入框架核心层。
-- 如果后续某个控件确定要升级为框架公共控件，再单独补一轮 `src/widget/`、`src/egui.h`、`scripts/ui_designer/custom_widgets/` 的升级计划。
+- 如果后续某个控件确定要升级为框架公共控件，再单独补一轮 `src/widget/`、`src/egui.h`，以及 `EmbeddedGUI_Designer` 仓库里的注册层升级计划。
 

@@ -54,19 +54,6 @@ def run_runtime_check(widget: str, timeout: int, speed: int,
         raise RuntimeError("runtime check failed")
 
 
-def find_widget_registry(widget: str) -> Path | None:
-    direct = Path("scripts/ui_designer/custom_widgets") / f"{widget}.py"
-    if direct.exists():
-        return direct
-
-    pattern = re.compile(rf"type_name\s*=\s*['\"]{re.escape(widget)}['\"]")
-    for py_file in Path("scripts/ui_designer/custom_widgets").glob("*.py"):
-        content = py_file.read_text(encoding="utf-8")
-        if pattern.search(content):
-            return py_file
-    return None
-
-
 def ensure_not_blank(image_path: Path, min_stddev: float) -> tuple[bool, float]:
     image = Image.open(image_path).convert("L")
     stddev = ImageStat.Stat(image).stddev[0]
@@ -436,11 +423,6 @@ def main() -> int:
         print(f"[FAIL] HelloBasic example missing: {example_dir}")
         return 1
 
-    registry_file = find_widget_registry(widget)
-    if registry_file is None:
-        print(f"[FAIL] UI Designer registry missing for widget: {widget}")
-        return 1
-
     if not args.skip_runtime_self_check_rule:
         check_ok, check_msg = verify_runtime_self_check_rule(widget)
         if not check_ok:
@@ -449,7 +431,6 @@ def main() -> int:
         print(f"[OK] Runtime self-check rule: {check_msg}")
 
     print(f"[OK] Widget example: {example_dir}")
-    print(f"[OK] Widget registry: {registry_file}")
 
     def finalize_with_quality_gates() -> bool:
         if not args.skip_readme_gate:

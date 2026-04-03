@@ -245,10 +245,10 @@ EGUI_SIM_DRAG(120, 250, 120, 50, 20, 500)
 
 ```bash
 # Record single app
-python scripts/gif_recorder.py --app HelloSimple
+python scripts/recording/gif_recorder.py --app HelloSimple
 
 # Custom duration and FPS
-python scripts/gif_recorder.py --app HelloSimple --duration 8 --fps 15
+python scripts/recording/gif_recorder.py --app HelloSimple --duration 8 --fps 15
 ```
 
 ## Files Reference

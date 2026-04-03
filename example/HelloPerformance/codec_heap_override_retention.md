@@ -13,7 +13,7 @@
 ## 证据来源
 
 - `example/HelloPerformance/ram_tracking.md`
-- `docs/low_ram_config_macros.md`
+- `../../doc/source/performance/low_ram_config_macros.md`
 - 相关 QEMU 检查命令均已在历史 A/B 中使用：
   - `python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --threshold 5`
   - `python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --threshold 10`
@@ -35,7 +35,7 @@
 
 ### `EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE`
 
-- `docs/low_ram_config_macros.md` 已给出当前量级：
+- `../../doc/source/performance/low_ram_config_macros.md` 已给出当前量级：
   - 默认 `4`
   - HelloPerformance 固定 `2`
   - 对应约 `7680B` 的 heap 峰值上界差异
@@ -44,7 +44,7 @@
 
 ### `EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE`
 
-- `docs/low_ram_config_macros.md` 已说明此宏依赖 `IMAGE_CODEC_ROW_CACHE_ENABLE=1`，作用是复用现有 row-cache 的 alpha 缓冲头部，而不是再单独保留一份不透明 alpha 参考行。
+- `../../doc/source/performance/low_ram_config_macros.md` 已说明此宏依赖 `IMAGE_CODEC_ROW_CACHE_ENABLE=1`，作用是复用现有 row-cache 的 alpha 缓冲头部，而不是再单独保留一份不透明 alpha 参考行。
 - 当前量级约为：
   - `~240B` alpha 行数据
   - `+8B` 指针/容量元数据

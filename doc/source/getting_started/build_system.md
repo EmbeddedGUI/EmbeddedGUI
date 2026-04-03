@@ -347,13 +347,13 @@ python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage_
 python scripts/code_format.py
 
 # 示例图标字体显式配置检查
-python scripts/check_example_icon_font.py
+python scripts/checks/check_example_icon_font.py
 
 # 如果要把本地未跟踪目录也一起扫描
-python scripts/check_example_icon_font.py --include-untracked
+python scripts/checks/check_example_icon_font.py --include-untracked
 
 # 发布前一键检查
-python scripts/release_check.py --skip perf,perf_doc,wasm,doc,ui_package
+python scripts/release_check.py --skip perf,wasm,doc
 
 # ELF 二进制大小分析
 python scripts/size_analysis/utils_analysis_elf_size.py
@@ -364,7 +364,7 @@ python scripts/tools/app_resource_generate.py -r example/HelloSimple/resource -o
 
 说明：
 
-- `check_example_icon_font.py` 默认只扫描 git 已跟踪的 `example/` 源文件，避免本地临时目录影响 CI 风格检查
+- `scripts/checks/check_example_icon_font.py` 默认只扫描 git 已跟踪的 `example/` 源文件，避免本地临时目录影响 CI 风格检查
 - `code_compile_check.py --full-check` 默认会包含这一步；如果你在外层已经单独跑过 icon font 检查，可用 `--skip-icon-font-check` 避免重复执行
 
 ## 下一步
