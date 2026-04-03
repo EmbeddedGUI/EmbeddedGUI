@@ -41,7 +41,7 @@ example/HelloXXX/
 │   ├── src/
 │   │   ├── app_resource_config.json    # 资源配置文件
 │   │   ├── star.png                     # 原始图片文件
-│   │   ├── test.ttf                     # 原始字体文件
+│   │   ├── optional_local_font.ttf      # 非 build-in 字体时放这里
 │   │   └── supported_text.txt           # 所需文本列表
 │   ├── font/                            # 生成的字体资源
 │   ├── img/                             # 生成的图片资源
@@ -91,7 +91,8 @@ example/HelloXXX/
 {
     "font": [
         {
-            "file": "test.ttf",
+            "file": "build_in/Montserrat-Medium.ttf",
+            "name": "demo_font",
             "text": "supported_text.txt",
             "external": "0",
             "pixelsize": "16",
@@ -103,13 +104,14 @@ example/HelloXXX/
 
 | 参数 | 说明 | 可选值 |
 |------|------|--------|
-| `file` | TTF 字体文件名 | `*.ttf` |
+| `file` | TTF 字体文件名 | `resource/src/*.ttf` 或 `build_in/xxx.ttf` |
 | `text` | 所需文本列表文件 | `*.txt`（UTF-8 编码） |
 | `external` | 存储位置 | `0`=内部, `1`=外部, `all`=两者都生成 |
 | `pixelsize` | 字体像素大小 | `4`-`32`, `all` |
 | `fontbitsize` | 字形位深 | `1`, `2`, `4`, `8`, `all` |
 
 相同字体文件、相同参数的多个配置项会自动合并文本列表，重复文字会去重。
+优先直接引用 `scripts/tools/build_in/` 中的内置字体；只有 build-in 不满足时才把额外 TTF 放到 `resource/src/`。
 
 ## 资源生成命令
 

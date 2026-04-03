@@ -33,14 +33,16 @@
     // fontbitsize: Font bit size (all, 1, 2, 4, 8)
     "font": [
         {
-            "file": "test.ttf",
+            "file": "build_in/Montserrat-Medium.ttf",
+            "name": "test",
             "text": "supported_text_page0.txt",
             "external": "0",
             "pixelsize": "25",
             "fontbitsize": "4",
         },
         {
-            "file": "DejaVuSans.ttf",
+            "file": "build_in/DejaVuSans.ttf",
+            "name": "dejavusans",
             "text": "supported_text_page1.txt",
             "external": "0",
             "pixelsize": "30",

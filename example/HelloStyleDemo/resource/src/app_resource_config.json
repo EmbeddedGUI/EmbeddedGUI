@@ -3,35 +3,40 @@
     ],
     "font": [
         {
-            "file": "MaterialSymbolsOutlined-Regular.ttf",
+            "file": "build_in/MaterialSymbolsOutlined-Regular.ttf",
+            "name": "materialsymbolsoutlined_regular",
             "pixelsize": "20",
             "fontbitsize": "4",
             "external": "0",
             "text": "_generated_text_materialsymbolsoutlined_regular_20_4.txt"
         },
         {
-            "file": "MaterialSymbolsOutlined-Regular.ttf",
+            "file": "build_in/MaterialSymbolsOutlined-Regular.ttf",
+            "name": "materialsymbolsoutlined_regular",
             "pixelsize": "40",
             "fontbitsize": "4",
             "external": "0",
             "text": "_generated_text_materialsymbolsoutlined_regular_40_4.txt"
         },
         {
-            "file": "MaterialSymbolsOutlined-Regular.ttf",
+            "file": "build_in/MaterialSymbolsOutlined-Regular.ttf",
+            "name": "materialsymbolsoutlined_regular",
             "pixelsize": "14",
             "fontbitsize": "4",
             "external": "0",
             "text": "_generated_text_materialsymbolsoutlined_regular_14_4.txt"
         },
         {
-            "file": "Montserrat-Medium.ttf",
+            "file": "build_in/Montserrat-Medium.ttf",
+            "name": "montserrat_medium",
             "pixelsize": "20",
             "fontbitsize": "4",
             "external": "0",
             "text": "_generated_text_montserrat_medium_20_4.txt"
         },
         {
-            "file": "Montserrat-Medium.ttf",
+            "file": "build_in/Montserrat-Medium.ttf",
+            "name": "montserrat_medium",
             "pixelsize": "14",
             "fontbitsize": "4",
             "external": "0",

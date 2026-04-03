@@ -40,7 +40,8 @@
     // fontbitsize: Font bit size (all, 1, 2, 4, 8)
     "font": [
         {
-            "file": "test.ttf",
+            "file": "build_in/Montserrat-Medium.ttf",
+            "name": "test",
             "text": "supported_text_test.txt",
             "external": "all",
             "pixelsize": "16",

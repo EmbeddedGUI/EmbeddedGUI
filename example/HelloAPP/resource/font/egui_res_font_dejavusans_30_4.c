@@ -15,26 +15,12 @@
 
 
 /**
- * Total character count: 29 Support Text: 
-egui_page_1
-0123456789
-Time: 
+ * Total character count: 27 Support Text: 
+egui_page_10123456789Time: 
  */
 
 static const uint8_t egui_res_font_dejavusans_30_4_pixel_buffer[] = {
 
-
-    /* Glyph for character "
-" 0x0000000a */
-    0xf8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x8f, 0xf8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8,
-    0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02,
-    0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00,
-    0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00,
-    0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00,
-    0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00,
-    0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20,
-    0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x20, 0x8f, 0xf8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x8f,
-    0xf8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x8f,
 
     /* Glyph for character " " 0x00000020 */
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -220,34 +206,30 @@ static const uint8_t egui_res_font_dejavusans_30_4_pixel_buffer[] = {
 
 static const egui_font_std_char_descriptor_t egui_res_font_dejavusans_30_4_char_array[] = {
 
-    {.idx=     0, .size=   208, .box_w= 16, .box_h= 26, .adv= 18, .off_x=  1, .off_y=  7}, /* "
-" 0x0000000a */
-    {.idx=   208, .size=     6, .box_w= 12, .box_h=  1, .adv= 12, .off_x=  0, .off_y=  0}, /* " " 0x00000020 */
-    {.idx=   214, .size=   198, .box_w= 17, .box_h= 22, .adv= 19, .off_x=  1, .off_y=  6}, /* "0" 0x00000030 */
-    {.idx=   412, .size=   154, .box_w= 14, .box_h= 22, .adv= 19, .off_x=  3, .off_y=  6}, /* "1" 0x00000031 */
-    {.idx=   566, .size=   176, .box_w= 15, .box_h= 22, .adv= 19, .off_x=  2, .off_y=  6}, /* "2" 0x00000032 */
-    {.idx=   742, .size=   176, .box_w= 15, .box_h= 22, .adv= 19, .off_x=  2, .off_y=  6}, /* "3" 0x00000033 */
-    {.idx=   918, .size=   198, .box_w= 17, .box_h= 22, .adv= 19, .off_x=  1, .off_y=  6}, /* "4" 0x00000034 */
-    {.idx=  1116, .size=   176, .box_w= 15, .box_h= 22, .adv= 19, .off_x=  2, .off_y=  6}, /* "5" 0x00000035 */
-    {.idx=  1292, .size=   176, .box_w= 16, .box_h= 22, .adv= 19, .off_x=  2, .off_y=  6}, /* "6" 0x00000036 */
-    {.idx=  1468, .size=   176, .box_w= 15, .box_h= 22, .adv= 19, .off_x=  2, .off_y=  6}, /* "7" 0x00000037 */
-    {.idx=  1644, .size=   176, .box_w= 16, .box_h= 22, .adv= 19, .off_x=  2, .off_y=  6}, /* "8" 0x00000038 */
-    {.idx=  1820, .size=   176, .box_w= 16, .box_h= 22, .adv= 19, .off_x=  1, .off_y=  6}, /* "9" 0x00000039 */
-    {.idx=  1996, .size=    32, .box_w=  4, .box_h= 16, .adv= 10, .off_x=  3, .off_y= 12}, /* ":" 0x0000003a */
-    {.idx=  2028, .size=   220, .box_w= 20, .box_h= 22, .adv= 20, .off_x=  0, .off_y=  6}, /* "T" 0x00000054 */
-    {.idx=  2248, .size=    27, .box_w= 17, .box_h=  3, .adv= 17, .off_x=  0, .off_y= 28}, /* "_" 0x0000005f */
-    {.idx=  2275, .size=   128, .box_w= 15, .box_h= 16, .adv= 18, .off_x=  1, .off_y= 12}, /* "a" 0x00000061 */
-    {.idx=  2403, .size=   128, .box_w= 16, .box_h= 16, .adv= 18, .off_x=  1, .off_y= 12}, /* "e" 0x00000065 */
-    {.idx=  2531, .size=   176, .box_w= 16, .box_h= 22, .adv= 19, .off_x=  1, .off_y= 12}, /* "g" 0x00000067 */
-    {.idx=  2707, .size=    46, .box_w=  4, .box_h= 23, .adv=  8, .off_x=  2, .off_y=  5}, /* "i" 0x00000069 */
-    {.idx=  2753, .size=   208, .box_w= 25, .box_h= 16, .adv= 29, .off_x=  2, .off_y= 12}, /* "m" 0x0000006d */
-    {.idx=  2961, .size=   176, .box_w= 16, .box_h= 22, .adv= 19, .off_x=  2, .off_y= 12}, /* "p" 0x00000070 */
-    {.idx=  3137, .size=   128, .box_w= 15, .box_h= 16, .adv= 19, .off_x=  2, .off_y= 12}, /* "u" 0x00000075 */
+    {.idx=     0, .size=     6, .box_w= 12, .box_h=  1, .adv= 12, .off_x=  0, .off_y=  0}, /* " " 0x00000020 */
+    {.idx=     6, .size=   198, .box_w= 17, .box_h= 22, .adv= 19, .off_x=  1, .off_y=  6}, /* "0" 0x00000030 */
+    {.idx=   204, .size=   154, .box_w= 14, .box_h= 22, .adv= 19, .off_x=  3, .off_y=  6}, /* "1" 0x00000031 */
+    {.idx=   358, .size=   176, .box_w= 15, .box_h= 22, .adv= 19, .off_x=  2, .off_y=  6}, /* "2" 0x00000032 */
+    {.idx=   534, .size=   176, .box_w= 15, .box_h= 22, .adv= 19, .off_x=  2, .off_y=  6}, /* "3" 0x00000033 */
+    {.idx=   710, .size=   198, .box_w= 17, .box_h= 22, .adv= 19, .off_x=  1, .off_y=  6}, /* "4" 0x00000034 */
+    {.idx=   908, .size=   176, .box_w= 15, .box_h= 22, .adv= 19, .off_x=  2, .off_y=  6}, /* "5" 0x00000035 */
+    {.idx=  1084, .size=   176, .box_w= 16, .box_h= 22, .adv= 19, .off_x=  2, .off_y=  6}, /* "6" 0x00000036 */
+    {.idx=  1260, .size=   176, .box_w= 15, .box_h= 22, .adv= 19, .off_x=  2, .off_y=  6}, /* "7" 0x00000037 */
+    {.idx=  1436, .size=   176, .box_w= 16, .box_h= 22, .adv= 19, .off_x=  2, .off_y=  6}, /* "8" 0x00000038 */
+    {.idx=  1612, .size=   176, .box_w= 16, .box_h= 22, .adv= 19, .off_x=  1, .off_y=  6}, /* "9" 0x00000039 */
+    {.idx=  1788, .size=    32, .box_w=  4, .box_h= 16, .adv= 10, .off_x=  3, .off_y= 12}, /* ":" 0x0000003a */
+    {.idx=  1820, .size=   220, .box_w= 20, .box_h= 22, .adv= 20, .off_x=  0, .off_y=  6}, /* "T" 0x00000054 */
+    {.idx=  2040, .size=    27, .box_w= 17, .box_h=  3, .adv= 17, .off_x=  0, .off_y= 28}, /* "_" 0x0000005f */
+    {.idx=  2067, .size=   128, .box_w= 15, .box_h= 16, .adv= 18, .off_x=  1, .off_y= 12}, /* "a" 0x00000061 */
+    {.idx=  2195, .size=   128, .box_w= 16, .box_h= 16, .adv= 18, .off_x=  1, .off_y= 12}, /* "e" 0x00000065 */
+    {.idx=  2323, .size=   176, .box_w= 16, .box_h= 22, .adv= 19, .off_x=  1, .off_y= 12}, /* "g" 0x00000067 */
+    {.idx=  2499, .size=    46, .box_w=  4, .box_h= 23, .adv=  8, .off_x=  2, .off_y=  5}, /* "i" 0x00000069 */
+    {.idx=  2545, .size=   208, .box_w= 25, .box_h= 16, .adv= 29, .off_x=  2, .off_y= 12}, /* "m" 0x0000006d */
+    {.idx=  2753, .size=   176, .box_w= 16, .box_h= 22, .adv= 19, .off_x=  2, .off_y= 12}, /* "p" 0x00000070 */
+    {.idx=  2929, .size=   128, .box_w= 15, .box_h= 16, .adv= 19, .off_x=  2, .off_y= 12}, /* "u" 0x00000075 */
 };
 static const egui_font_std_code_descriptor_t egui_res_font_dejavusans_30_4_code_array[] = {
 
-    {.code=0x0000000a}, /* "
-" */
     {.code=0x00000020}, /* " " */
     {.code=0x00000030}, /* "0" */
     {.code=0x00000031}, /* "1" */
@@ -278,7 +260,7 @@ static const egui_font_std_info_t egui_res_font_dejavusans_30_4_info = {
     .font_bit_mode = 4,
     .height = 36,
     .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
-    .count = 22,
+    .count = 21,
     .code_array = egui_res_font_dejavusans_30_4_code_array,
     .char_array = (void *)egui_res_font_dejavusans_30_4_char_array,
     .pixel_buffer = (void *)egui_res_font_dejavusans_30_4_pixel_buffer,

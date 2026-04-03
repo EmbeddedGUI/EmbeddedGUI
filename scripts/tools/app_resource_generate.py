@@ -7,6 +7,10 @@ import ttf2c
 import img2c
 
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+BUILD_IN_DIR = os.path.join(SCRIPT_DIR, 'build_in')
+
+
 app_egui_resource_generate_h_string="""
 
 #ifndef _APP_EGUI_RESOURCE_GENERATE_H_
@@ -67,6 +71,23 @@ def format_file_name(file_name):
     file_name = file_name.replace('__', '_')
     file_name = file_name.lower()
     return file_name
+
+
+def resolve_input_file_path(resource_src_path, file_name):
+    if os.path.isabs(file_name):
+        return os.path.normpath(file_name)
+
+    normalized_file_name = file_name.replace('\\', '/')
+    if normalized_file_name.startswith('build_in/'):
+        build_in_relative_path = normalized_file_name[len('build_in/'):]
+        return os.path.normpath(os.path.join(BUILD_IN_DIR, build_in_relative_path))
+
+    return os.path.normpath(os.path.join(resource_src_path, file_name))
+
+
+def make_report_link(resource_path, input_file_path):
+    relative_path = os.path.relpath(os.path.normpath(input_file_path), resource_path)
+    return relative_path.replace('\\', '/')
 
 
 def clear_last_resource(resource_path):
@@ -229,7 +250,7 @@ def generate_font_resource(resource_src_path, font_res_output_path, config_info_
         # print(font_config_item)
         font_info = font_config_item[0]
         file_name = font_info.file_name
-        font_file_path = os.path.join(resource_src_path, file_name)
+        font_file_path = resolve_input_file_path(resource_src_path, file_name)
         c_file_name = format_file_name(file_name.split('.')[0])
 
         output_path = font_res_output_path
@@ -667,7 +688,8 @@ def generate_resource(resource_path, output_path, force):
             tmp_pixel_size = len(tool.pixel_buffer_bin_data)
             tmp_char_size = len(tool.char_desc_bin_data)
             font_total_size += tmp_pixel_size + tmp_char_size
-            font_file_string = f"[{tool.input_font_file_name}](src/{tool.input_font_file_name})"
+            font_report_path = make_report_link(resource_path, tool.input_font_file)
+            font_file_string = f"[{tool.input_font_file_name}]({font_report_path})"
 
             text_file_string = ""
             for file in tool.text_file:

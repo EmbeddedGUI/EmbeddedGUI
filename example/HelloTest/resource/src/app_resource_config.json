@@ -17,7 +17,7 @@
     ],
     "font": [
         {
-            "file": "NotoSansSC-VF.ttf",
+            "file": "build_in/NotoSansSC-VF.ttf",
             "name": "notosanssc",
             "pixelsize": "16",
             "fontbitsize": "4",

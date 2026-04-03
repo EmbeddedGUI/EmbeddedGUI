@@ -2,7 +2,7 @@
     "img": [],
     "font": [
         {
-            "file": "NotoSansSC-VF.ttf",
+            "file": "build_in/NotoSansSC-VF.ttf",
             "name": "notosanssc",
             "pixelsize": "14",
             "fontbitsize": "4",
@@ -11,7 +11,7 @@
             "text": "cn_text.txt"
         },
         {
-            "file": "MaterialSymbolsOutlined-Regular.ttf",
+            "file": "build_in/MaterialSymbolsOutlined-Regular.ttf",
             "name": "materialicon",
             "pixelsize": "20",
             "fontbitsize": "4",
