@@ -12,7 +12,7 @@ Figma Make 到 EGUI 的整条自动化转换管道已经迁移到 `EmbeddedGUI_D
 在 `EmbeddedGUI_Designer` 仓库根目录执行：
 
 ```bash
-python figmamake/figmamake2egui.py --project-dir figma_make_project --app HelloBattery --width 320 --height 240
+python figmamake/figmamake2egui.py --project-dir figma_make_project --app MyApp --width 320 --height 240
 python figmamake/figmamake_capture.py --tsx-dir figma_make_project --output-dir reference_frames
 python figmamake/figmamake_regression.py --reference-dir reference_frames --rendered-dir runtime_check_output
 ```

@@ -174,21 +174,25 @@ python scripts/web/wasm_build_demos.py --output-dir web/demos
 
 # 只构建指定示例
 python scripts/web/wasm_build_demos.py --app HelloSimple
+
+# 显式构建 HelloCustomWidgets（默认整站构建会跳过）
+python scripts/web/wasm_build_demos.py --app HelloCustomWidgets
 ```
 
 ### 工作流程
 
-1. 扫描 `example/` 目录获取所有示例列表
+1. 扫描 `example/` 目录获取示例列表；默认整站构建会跳过 `HelloUnitTest` 和 `HelloCustomWidgets`
 2. 对每个示例：
    - 生成资源文件（`make resource`）
    - 使用 Emscripten 编译（`make all PORT=emscripten`）
    - 复制输出文件到部署目录
-3. 使用 per-app OBJDIR 优化，核心库只编译一次
-4. HelloBasic 的子应用共享 OBJDIR，进一步减少编译时间
+3. 使用 per-app OBJDIR 优化构建产物复用
+4. `HelloBasic`、`HelloVirtual`、`HelloCustomWidgets` 这类多子应用示例会按家族顺序构建，共享中间产物或避免共享输出互相覆盖
+5. 在输出目录生成 `demos.json`，供 `web/index.html`、`basic.html`、`examples.html`、`custom.html` 读取
 
 ### 并行构建
 
-脚本使用 `ProcessPoolExecutor` 支持并行构建多个示例，大幅缩短总构建时间。
+脚本使用 `ProcessPoolExecutor` 并行构建独立示例；多子应用家族则保持顺序构建，以兼顾速度和输出隔离。
 
 ## GitHub Pages 部署
 
@@ -198,8 +202,16 @@ python scripts/web/wasm_build_demos.py --app HelloSimple
 
 ```
 web/
-├── index.html          # 示例列表页面
+├── index.html          # 首页
+├── basic.html          # HelloBasic 聚合页
+├── examples.html       # 独立示例聚合页
+├── custom.html         # HelloCustomWidgets 聚合页
+├── doc-render.js       # README 渲染
+├── i18n.js             # 多语言切换
+├── style.css           # 页面样式
+├── lib/
 └── demos/
+    ├── demos.json
     ├── HelloSimple/
     │   ├── HelloSimple.html
     │   ├── HelloSimple.js
@@ -217,26 +229,32 @@ web/
 
 ```yaml
 - name: Setup Emscripten
-  uses: mymindstorm/setup-emsdk@v11
+  uses: mymindstorm/setup-emsdk@v14
 
 - name: Build WASM demos
-  run: python scripts/web/wasm_build_demos.py --output-dir web/demos
+  run: python scripts/web/wasm_build_demos.py
+
+- name: Upload Pages artifact
+  uses: actions/upload-pages-artifact@v3
+  with:
+    path: web
 
 - name: Deploy to GitHub Pages
-  uses: peaceiris/actions-gh-pages@v3
-  with:
-    publish_dir: ./web
+  uses: actions/deploy-pages@v4
 ```
 
 ### 本地预览
 
 ```bash
-# 构建完成后，在 output/ 目录启动 HTTP 服务器
+# 构建单个示例后，预览 output/ 下的 HTML
 cd output
 python3 -m http.server 8000
 
 # 浏览器打开
 # http://localhost:8000/HelloSimple.html
+
+# 构建整站后，直接启动 web/ 下的本地服务器
+python web/start_server.py
 ```
 
 ## Windows 本地 emsdk 工作流

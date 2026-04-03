@@ -4,6 +4,10 @@
 
 图表控件用于数据可视化展示。EmbeddedGUI 提供了四种图表：ChartLine 折线图、ChartBar 柱状图、ChartScatter 散点图和 ChartPie 饼图。前三种基于坐标轴(Axis)体系，共享数据系列、坐标轴配置、图例和缩放等能力；ChartPie 使用独立的饼图切片数据模型。
 
+当前在线示例统一由 `HelloChart` 承载，打开页面后可在同一 demo 里切换 line / scatter / bar / pie 四页：
+
+[在线演示（HelloChart）](https://embeddedgui.github.io/EmbeddedGUI/examples.html?app=HelloChart)
+
 ### 公共数据结构
 
 所有坐标轴类图表共享以下数据结构：
@@ -96,7 +100,7 @@ typedef struct egui_chart_axis_config
 
 ### 效果展示
 
-[在线演示](https://embeddedgui.github.io/EmbeddedGUI/basic.html?app=chart_line)
+[在线演示（HelloChart）](https://embeddedgui.github.io/EmbeddedGUI/examples.html?app=HelloChart)
 
 ### 专有 API
 
@@ -158,7 +162,7 @@ void init_ui(void)
 
 ### 效果展示
 
-[在线演示](https://embeddedgui.github.io/EmbeddedGUI/basic.html?app=chart_bar)
+[在线演示（HelloChart）](https://embeddedgui.github.io/EmbeddedGUI/examples.html?app=HelloChart)
 
 ### 专有 API
 
@@ -216,7 +220,7 @@ void init_ui(void)
 
 ### 效果展示
 
-[在线演示](https://embeddedgui.github.io/EmbeddedGUI/basic.html?app=chart_scatter)
+[在线演示（HelloChart）](https://embeddedgui.github.io/EmbeddedGUI/examples.html?app=HelloChart)
 
 ### 专有 API
 
@@ -273,7 +277,7 @@ void init_ui(void)
 
 ### 效果展示
 
-[在线演示](https://embeddedgui.github.io/EmbeddedGUI/basic.html?app=chart_pie)
+[在线演示（HelloChart）](https://embeddedgui.github.io/EmbeddedGUI/examples.html?app=HelloChart)
 
 ### API
 

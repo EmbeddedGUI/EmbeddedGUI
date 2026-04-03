@@ -11,10 +11,10 @@ EmbeddedGUI/
 |-- porting/                # 平台移植层
 |-- scripts/                # 构建工具和辅助脚本
 |-- doc/                    # Sphinx 文档源码
-|-- web/                    # WebAssembly 在线演示
+|-- web/                    # WebAssembly 在线演示站点静态文件
 |-- tools/                  # 内置开发工具 (w64devkit 等)
-|-- build/                  # CMake 构建目录
-|-- output/                 # 编译产物输出目录
+|-- build_cmake/            # CMake 构建目录（按需生成）
+|-- output/                 # 编译产物输出目录（按需生成）
 |-- Makefile                # 顶层 Makefile (配置 APP/PORT 等参数)
 |-- CMakeLists.txt          # CMake 构建配置
 |-- setup.bat               # Windows 环境入口脚本（转发到 setup_env.py）
@@ -146,23 +146,27 @@ src/
 | 示例 | 说明 |
 |------|------|
 | `HelloSimple` | 最简单的入门示例 (标签 + 按钮) |
-| `HelloBasic` | 控件演示集合，包含 50+ 子应用 |
+| `HelloBasic` | 基础控件演示集合，当前包含 59 个子应用 |
+| `HelloVirtual` | Virtual / ListView / GridView / Stage 示例集合，当前包含 19 个子应用 |
+| `HelloCustomWidgets` | 自定义控件集合，使用 `category/widget` 两级 `APP_SUB` |
 | `HelloActivity` | Activity 生命周期和页面管理 |
 | `HelloAPP` | 多 Activity 应用示例 |
-| `HelloStyleDemo` | 样式和主题演示 |
+| `HelloCanvas` | 画布绘图 API 演示 |
 | `HelloChart` | 图表控件演示 |
-| `HelloBattery` | 电池监控界面 |
-| `HelloPFB` | PFB 机制演示 |
 | `HelloEasyPage` | 简易分页应用 |
-| `HelloViewPageAndScroll` | 分页和滚动组合 |
+| `HelloGradient` | 渐变效果演示 |
+| `HelloLayer` | Layer 机制演示 |
+| `HelloPFB` | PFB 机制演示 |
 | `HelloPerformance` | 性能测试基准 |
 | `HelloResourceManager` | 资源管理器示例 |
-| `HelloCanvas` | 画布绘图 API 演示 |
-| `HelloGradient` | 渐变效果演示 |
+| `HelloShowcase` | 综合展示示例 |
+| `HelloSizeAnalysis` | 体积分析 probe / 配置模板集合 |
+| `HelloStyleDemo` | 样式和主题演示 |
 | `HelloTest` | 功能测试 |
 | `HelloUnitTest` | 单元测试 |
+| `HelloViewPageAndScroll` | 分页和滚动组合 |
 
-其中 `HelloBasic` 是最丰富的示例，通过 `APP_SUB` 参数选择不同的子应用来演示各种控件。
+其中 `HelloBasic`、`HelloVirtual`、`HelloCustomWidgets` 和 `HelloSizeAnalysis` 都通过 `APP_SUB` 选择不同子目录；`HelloCustomWidgets` 使用 `category/widget` 两级路径。
 
 ## porting/ -- 平台移植层
 
@@ -201,15 +205,19 @@ src/
 ```
 doc/source/
 |-- index.rst               # 文档首页
-|-- introduction/           # 项目介绍
 |-- getting_started/        # 快速入门 (本系列文档)
 |-- architecture/           # 架构说明
 |-- widgets/                # 控件参考
 |-- animation/              # 动画系统
-|-- resource/               # 资源管理
+|-- app/                    # Activity / Dialog / Toast / 页面框架
+|-- debug/                  # 调试与渲染验证
+|-- performance/            # 性能优化与基准
 |-- porting/                # 移植指南
-|-- performance/            # 性能优化
+|-- resource/               # 资源管理
+|-- size/                   # 体积分析与配置模板
+|-- appendix/               # FAQ / Changelog / API 索引
 |-- ui_designer/            # UI Designer 迁移说明
+|-- images/                 # 文档配图
 `-- conf.py                 # Sphinx 配置
 ```
 
@@ -219,10 +227,15 @@ doc/source/
 
 ```
 web/
-|-- index.html              # 演示首页
-|-- demos/                  # 各示例的 WASM 编译产物
+|-- index.html              # 演示首页（HelloShowcase）
+|-- basic.html              # HelloBasic 聚合页
+|-- examples.html           # 独立示例聚合页
+|-- custom.html             # HelloCustomWidgets 聚合页
+|-- doc-render.js           # README 渲染逻辑
+|-- i18n.js                 # 中英文本切换
 |-- lib/                    # JavaScript 依赖库
-`-- style.css               # 页面样式
+|-- style.css               # 页面样式
+`-- demos/                  # 运行 `scripts/web/wasm_build_demos.py` 后生成的 demo 包和 `demos.json`
 ```
 
 ## 下一步

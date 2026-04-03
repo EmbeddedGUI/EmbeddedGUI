@@ -116,8 +116,8 @@ make run
 make all APP=HelloBasic APP_SUB=slider
 make run
 
-# 查看图表控件
-make all APP=HelloBasic APP_SUB=chart_line
+# 查看图表控件（HelloChart 内含 line / scatter / bar / pie 四页）
+make all APP=HelloChart
 make run
 ```
 

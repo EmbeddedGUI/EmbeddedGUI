@@ -26,53 +26,59 @@ make all APP=HelloStyleDemo
 | APP 值 | 说明 |
 |--------|------|
 | `HelloSimple` | 最简单的入门示例 |
-| `HelloBasic` | 控件演示集合 (需配合 APP_SUB) |
-| `HelloVirtual` | Virtual / ListView / GridView / Stage 示例集合 (需配合 APP_SUB) |
+| `HelloBasic` | 基础控件演示集合（59 个子应用，需配合 `APP_SUB`） |
+| `HelloVirtual` | Virtual / ListView / GridView / Stage 示例集合（19 个子应用，需配合 `APP_SUB`） |
+| `HelloCustomWidgets` | 自定义控件集合（使用 `category/widget` 两级 `APP_SUB`） |
 | `HelloActivity` | Activity 生命周期演示 |
 | `HelloAPP` | 多 Activity 应用 |
-| `HelloStyleDemo` | 样式和主题演示 |
-| `HelloChart` | 图表控件 |
-| `HelloBattery` | 电池界面 |
+| `HelloCanvas` | 画布绘图 API 演示 |
+| `HelloChart` | 图表控件演示 |
+| `HelloEasyPage` | 简易分页应用 |
+| `HelloGradient` | 渐变效果演示 |
+| `HelloLayer` | Layer 机制演示 |
+| `HelloPerformance` | 性能测试基准 |
 | `HelloPFB` | PFB 机制演示 |
-| `HelloEasyPage` | 简易分页 |
-| `HelloViewPageAndScroll` | 分页和滚动 |
-| `HelloPerformance` | 性能测试 |
-| `HelloResourceManager` | 资源管理器 |
-| `HelloCanvas` | 画布绘图 |
-| `HelloGradient` | 渐变效果 |
+| `HelloResourceManager` | 资源管理器示例 |
+| `HelloShowcase` | 综合展示示例 |
+| `HelloSizeAnalysis` | 体积分析 probe / 配置模板集合（需配合 `APP_SUB`） |
+| `HelloStyleDemo` | 样式和主题演示 |
 | `HelloTest` | 功能测试 |
 | `HelloUnitTest` | 单元测试 |
+| `HelloViewPageAndScroll` | 分页和滚动组合 |
 
-### APP_SUB -- 选择 HelloBasic / HelloVirtual 子应用
+### APP_SUB -- 选择带子应用的示例
 
-`APP_SUB` 适用于 `HelloBasic` 和 `HelloVirtual` 这类多子应用示例：
+`APP_SUB` 适用于 `HelloBasic`、`HelloVirtual`、`HelloCustomWidgets` 和 `HelloSizeAnalysis` 这类多子应用示例：
 
-- `HelloBasic`: 基础控件演示，当前包含 58 个子应用
+- `HelloBasic`: 基础控件演示，当前包含 59 个子应用
 - `HelloVirtual`: virtual/list/grid/stage 示例，当前包含 19 个子应用
+- `HelloCustomWidgets`: 自定义控件集合，使用 `category/widget` 两级子路径
+- `HelloSizeAnalysis`: probe / preset 目录集合，通常配合 `PORT=qemu`
 
 ```bash
 # 编译按钮演示
 make all APP=HelloBasic APP_SUB=button
 
-# 编译滑块演示
-make all APP=HelloBasic APP_SUB=slider
-
-# 编译折线图演示
-make all APP=HelloBasic APP_SUB=chart_line
-
-# 编译模拟时钟演示
-make all APP=HelloBasic APP_SUB=analog_clock
+# 编译 Stepper 演示
+make all APP=HelloBasic APP_SUB=stepper
 
 # 编译 HelloVirtual basic stage 演示
 make all APP=HelloVirtual APP_SUB=virtual_stage_basic
 
-# 编译 HelloVirtual showcase 对照演示
-make all APP=HelloVirtual APP_SUB=virtual_stage_showcase
+# 编译 HelloCustomWidgets 的 XY Pad
+make all APP=HelloCustomWidgets APP_SUB=input/xy_pad
+
+# 编译 HelloSizeAnalysis 的 widget probe
+make all APP=HelloSizeAnalysis APP_SUB=widget_feature_probe PORT=qemu
 ```
 
-常用 `HelloBasic` 子应用: `button`、`slider`、`combobox`、`textinput`、`table`、`activity_ring`、`mini_calendar`、`button_matrix`、`window`、`menu` 等。
+常用 `HelloBasic` 子应用: `button`、`slider`、`combobox`、`textinput`、`table`、`activity_ring`、`mini_calendar`、`button_matrix`、`autocomplete`、`chips`、`stepper`、`pattern_lock` 等。
 
 常用 `HelloVirtual` 子应用: `virtual_viewport_basic`、`virtual_page_basic`、`virtual_grid_basic`、`list_view_basic`、`grid_view_basic`、`virtual_stage_basic`、`virtual_stage_showcase`、`virtual_stage` 等。
+
+常用 `HelloCustomWidgets` 子应用: `input/xy_pad`、`feedback/alert_banner`、`navigation/breadcrumb_trail` 等。
+
+常用 `HelloSizeAnalysis` 子应用: `widget_feature_probe`、`canvas_path_probe`、`hq_path_probe`、`preset_validation`。
 
 ### PORT -- 选择目标平台
 
@@ -95,8 +101,8 @@ make all APP=HelloSimple PORT=emscripten
 ### 其他参数
 
 ```bash
-# 优化级别 (默认 -O0 无优化)
-make all COMPILE_OPT_LEVEL=-O2     # 速度优化
+# 优化级别 (根目录 Makefile 默认 -O2)
+make all COMPILE_OPT_LEVEL=-O0     # 快速调试构建
 make all COMPILE_OPT_LEVEL=-Os     # 大小优化
 
 # 调试信息 (默认 -g 包含调试信息)
@@ -224,7 +230,7 @@ EGUI_CODE_INCLUDE += $(EGUI_APP_SUB_PATH)
 EGUI_CODE_INCLUDE += $(EGUI_APP_SUB_PATH)/resource
 ```
 
-`HelloVirtual` 也使用同样的 `APP_SUB` 机制，但每个子应用通常带有自己的 `app_egui_config.h`，因此其 `build.mk` 还会设置独立的 `APP_OBJ_SUFFIX`，避免不同子应用复用错误的编译产物。
+`HelloBasic`、`HelloVirtual`、`HelloCustomWidgets` 和 `HelloSizeAnalysis` 这类多子应用示例都会设置独立的 `APP_OBJ_SUFFIX`，避免不同子应用复用错误的编译产物。
 
 ### 示例: 核心库的 build.mk
 
@@ -282,15 +288,27 @@ EGUI_CODE_INCLUDE += $(EGUI_APP_PATH)/my_module
 
 ## CMake 构建
 
-EGUI 也提供了 CMake 构建支持:
+EGUI 也提供了 CMake 构建支持，适合 IDE 集成和代码索引。当前仓库已经提供 CMake 移植层的平台是 `pc` 和 `pc_test`：
 
 ```bash
-mkdir build && cd build
-cmake ..
-make all
+# 构建独立示例
+cmake -B build_cmake/HelloSimple -DAPP=HelloSimple -DPORT=pc -G "MinGW Makefiles"
+cmake --build build_cmake/HelloSimple -j
+
+# 构建 HelloBasic 子应用
+cmake -B build_cmake/HelloBasic_button -DAPP=HelloBasic -DAPP_SUB=button -DPORT=pc -G "MinGW Makefiles"
+cmake --build build_cmake/HelloBasic_button -j
+
+# 构建 HelloVirtual 子应用
+cmake -B build_cmake/HelloVirtual_virtual_stage_basic -DAPP=HelloVirtual -DAPP_SUB=virtual_stage_basic -DPORT=pc -G "MinGW Makefiles"
+cmake --build build_cmake/HelloVirtual_virtual_stage_basic -j
+
+# 构建单元测试（pc_test）
+cmake -B build_cmake/HelloUnitTest_pc_test -DAPP=HelloUnitTest -DPORT=pc_test -G "MinGW Makefiles"
+cmake --build build_cmake/HelloUnitTest_pc_test -j
 ```
 
-CMake 构建主要用于 IDE 集成和代码索引。日常开发和 CI 流程推荐使用 Makefile 方式。
+CMake 产物默认输出到对应 `build_cmake/<target>/output/` 目录。对于 `stm32g0`、`qemu`、`emscripten` 这类非 CMake 移植层，日常开发仍推荐使用 Makefile。
 
 ## 交叉编译
 

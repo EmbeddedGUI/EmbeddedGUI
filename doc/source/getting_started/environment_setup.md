@@ -133,7 +133,7 @@ tools/ffmpeg/bin
 
 这部分主要用于：
 
-- `scripts/tools/app_mp4_image_generate.py` 的 MP4 转序列帧流程
+- `scripts/tools/app_resource_generate.py` 内置的 MP4 抽帧流程（由 `app_resource_config.json` 的 `mp4` 配置触发）
 - `scripts/recording/gif_recorder.py` 的高质量 GIF 导出流程
 
 如果你不需要这些媒体处理能力，可以显式传入 `--skip-ffmpeg`。
