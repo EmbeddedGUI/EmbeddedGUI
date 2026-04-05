@@ -122,8 +122,8 @@ static void test_image_mask_row_block_matches_row_segment(void)
     init_identity_image_mask(&segment_mask);
 
     {
-        int used_fast_path = egui_mask_image_blend_rgb565_row_block(block_base, opaque_block_dst, block_width, src_pixels, block_width, block_height, block_width,
-                                                                    0, 0, EGUI_ALPHA_100);
+        int used_fast_path = egui_mask_image_blend_rgb565_row_block(block_base, opaque_block_dst, block_width, src_pixels, block_width, block_height,
+                                                                    block_width, 0, 0, EGUI_ALPHA_100);
 
 #if EGUI_CONFIG_MASK_IMAGE_IDENTITY_SCALE_BLEND_FAST_PATH_ENABLE
         EGUI_TEST_ASSERT_TRUE(used_fast_path);
@@ -131,8 +131,8 @@ static void test_image_mask_row_block_matches_row_segment(void)
         EGUI_TEST_ASSERT_FALSE(used_fast_path);
         for (egui_dim_t y = 0; y < block_height; y++)
         {
-            EGUI_TEST_ASSERT_TRUE(egui_mask_image_blend_rgb565_row_segment(block_base, &opaque_block_dst[y * block_width], &src_pixels[y * block_width], block_width,
-                                                                           0, y, EGUI_ALPHA_100));
+            EGUI_TEST_ASSERT_TRUE(egui_mask_image_blend_rgb565_row_segment(block_base, &opaque_block_dst[y * block_width], &src_pixels[y * block_width],
+                                                                           block_width, 0, y, EGUI_ALPHA_100));
         }
 #endif
     }

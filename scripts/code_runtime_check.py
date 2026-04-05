@@ -51,6 +51,7 @@ SUB_APP_ROOTS = {
     "HelloBasic": "example/HelloBasic",
     "HelloVirtual": "example/HelloVirtual",
     "HelloCustomWidgets": "example/HelloCustomWidgets",
+    "HelloSizeAnalysis": "example/HelloSizeAnalysis",
 }
 
 WINDOWS_RUNTIME_SKIP_SET = {
@@ -244,7 +245,7 @@ def get_example_list():
 
     for file in os.listdir(path):
         file_path = os.path.join(path, file)
-        if os.path.isdir(file_path):
+        if os.path.isdir(file_path) and os.path.exists(os.path.join(file_path, 'build.mk')):
             app_list.append(file)
 
     return sorted(app_list)
@@ -272,7 +273,7 @@ def get_example_sub_list(app):
 
     for file in os.listdir(path):
         file_path = os.path.join(path, file)
-        if os.path.isdir(file_path):
+        if os.path.isdir(file_path) and os.path.exists(os.path.join(file_path, 'app_egui_config.h')):
             app_list.append(file)
 
     return sorted(app_list)
@@ -310,7 +311,7 @@ def get_runtime_skip_reason(app, app_sub=None):
 def compile_app(app, app_sub=None, bits64=False, user_cflags="", recording_test=True):
     """Compile application with optional CFLAGS override.
     Uses per-app OBJDIR (no make clean needed).
-    HelloBasic/HelloVirtual sub-apps use per-sub-app OBJDIR.
+    HelloBasic/HelloVirtual/HelloSizeAnalysis sub-apps use per-sub-app OBJDIR.
     Returns True on success, False on failure.
     """
     # Clean before build to ensure fresh compilation with correct config.
@@ -627,6 +628,7 @@ def main():
 Examples:
   %(prog)s --app HelloSimple                          Test single app
   %(prog)s --app HelloVirtual                        Test all HelloVirtual sub-apps
+  %(prog)s --app HelloSizeAnalysis                   Test all HelloSizeAnalysis sub-apps
   %(prog)s --app HelloBasic --app-sub button         Test one HelloBasic sub-app
   %(prog)s --app HelloVirtual --app-sub virtual_grid Test one HelloVirtual sub-app
   %(prog)s --app HelloCustomWidgets --category input Test HelloCustomWidgets category
@@ -635,9 +637,9 @@ Examples:
         """
     )
     parser.add_argument('--app', type=str,
-                        help='Specific app to test. For HelloBasic/HelloVirtual/HelloCustomWidgets without --app-sub, tests all sub-apps.')
+                        help='Specific app to test. For HelloBasic/HelloVirtual/HelloCustomWidgets/HelloSizeAnalysis without --app-sub, tests all sub-apps.')
     parser.add_argument('--app-sub', type=str,
-                        help='Single sub-app for HelloBasic/HelloVirtual/HelloCustomWidgets. If omitted, all sub-apps are tested.')
+                        help='Single sub-app for HelloBasic/HelloVirtual/HelloCustomWidgets/HelloSizeAnalysis. If omitted, all sub-apps are tested.')
     parser.add_argument('--category', type=str, help='HelloCustomWidgets category filter (e.g. input)')
     parser.add_argument('--bits64', action='store_true', help='Build for 64-bit')
     parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,

@@ -8,14 +8,6 @@
 
 #if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
 
-#ifndef EGUI_CONFIG_IMAGE_RLE_CHECKPOINT_ENABLE
-#define EGUI_CONFIG_IMAGE_RLE_CHECKPOINT_ENABLE 1
-#endif
-
-#ifndef EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE
-#define EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE 0
-#endif
-
 /*
  * RLE control byte format (compatible with LVGL RLE):
  *   bit7 = 1: literal mode, count = ctrl & 0x7F, copy count * blk_size raw bytes
@@ -61,14 +53,6 @@ static int egui_image_rle_prepare_decode_info(const egui_image_rle_info_t *info,
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-#ifndef EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE
-#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 1024
-#endif
-
-#ifndef EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE
-#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE 1
-#endif
-
 #if (EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES >= EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE)
 #define EGUI_IMAGE_RLE_EXTERNAL_CACHE_SHARE_WINDOW 1
 #else
@@ -1523,13 +1507,13 @@ static void egui_image_rle_blend_cached_rows(const egui_image_rle_info_t *info, 
                 screen_y++;
             }
         }
-        #if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
+#if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
         else if (egui_image_std_blend_rgb565_masked_row_block(masked_canvas, masked_dst_row, masked_dst_stride, src_pixels, cache_row_width, row_count, count,
                                                               screen_x_start, screen_y, canvas_alpha))
         {
             return;
         }
-        #endif
+#endif
         else
         {
             for (egui_dim_t row = 0; row < row_count; row++)
@@ -1582,13 +1566,13 @@ static void egui_image_rle_blend_cached_rows(const egui_image_rle_info_t *info, 
                 screen_y++;
             }
         }
-        #if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
+#if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
         else if (egui_image_std_blend_rgb565_alpha8_masked_row_block(masked_canvas, masked_dst_row, masked_dst_stride, src_pixels, cache_row_width, src_alpha,
                                                                      cached_alpha_row_bytes, row_count, count, screen_x_start, screen_y, canvas_alpha))
         {
             return;
         }
-        #endif
+#endif
         else
         {
             for (egui_dim_t row = 0; row < row_count; row++)
@@ -1686,13 +1670,13 @@ static void egui_image_rle_blend_persistent_cached_rows(const egui_image_rle_inf
                 screen_y++;
             }
         }
-        #if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
+#if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
         else if (egui_image_std_blend_rgb565_masked_row_block(masked_canvas, masked_dst_row, masked_dst_stride, src_pixels, info->width, row_count, count,
                                                               screen_x_start, screen_y, canvas_alpha))
         {
             return;
         }
-        #endif
+#endif
         else
         {
             for (egui_dim_t row = 0; row < row_count; row++)
@@ -1745,13 +1729,13 @@ static void egui_image_rle_blend_persistent_cached_rows(const egui_image_rle_inf
                 screen_y++;
             }
         }
-        #if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
+#if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
         else if (egui_image_std_blend_rgb565_alpha8_masked_row_block(masked_canvas, masked_dst_row, masked_dst_stride, src_pixels, info->width, src_alpha,
                                                                      alpha_row_bytes, row_count, count, screen_x_start, screen_y, canvas_alpha))
         {
             return;
         }
-        #endif
+#endif
         else
         {
             for (egui_dim_t row = 0; row < row_count; row++)

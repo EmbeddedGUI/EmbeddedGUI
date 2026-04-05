@@ -1053,8 +1053,8 @@ static void egui_debug_draw_overlay_for_current_pfb(const egui_debug_overlay_t *
     }
 
     egui_canvas_calc_work_region(&region_screen);
-    egui_canvas_draw_rectangle_fill(overlay_region.location.x, overlay_region.location.y, overlay_region.size.width, overlay_region.size.height, EGUI_COLOR_BLACK,
-                                    EGUI_DEBUG_MONITOR_OVERLAY_BG_ALPHA);
+    egui_canvas_draw_rectangle_fill(overlay_region.location.x, overlay_region.location.y, overlay_region.size.width, overlay_region.size.height,
+                                    EGUI_COLOR_BLACK, EGUI_DEBUG_MONITOR_OVERLAY_BG_ALPHA);
 
     egui_region_copy(&text_region, &overlay_region);
     if (text_region.size.width <= (EGUI_DEBUG_MONITOR_OVERLAY_PADDING << 1) || text_region.size.height <= (EGUI_DEBUG_MONITOR_OVERLAY_PADDING << 1))
@@ -1247,7 +1247,8 @@ static void egui_debug_commit_overlay_regions(void)
 static void egui_debug_init_monitors(void)
 {
 #if EGUI_CONFIG_DEBUG_PERF_MONITOR_SHOW
-    egui_debug_overlay_init(&debug_perf_overlay, EGUI_CONFIG_DEBUG_PERF_MONITOR_POS, EGUI_CONFIG_DEBUG_PERF_MONITOR_OFFSET_X, EGUI_CONFIG_DEBUG_PERF_MONITOR_OFFSET_Y);
+    egui_debug_overlay_init(&debug_perf_overlay, EGUI_CONFIG_DEBUG_PERF_MONITOR_POS, EGUI_CONFIG_DEBUG_PERF_MONITOR_OFFSET_X,
+                            EGUI_CONFIG_DEBUG_PERF_MONITOR_OFFSET_Y);
     egui_debug_set_perf_text(0, 0, 0, 0);
     egui_debug_reset_perf_stats();
     debug_perf_stats.window_start_time = egui_api_timer_get_current();
@@ -1257,7 +1258,8 @@ static void egui_debug_init_monitors(void)
 #if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
     egui_mem_monitor_t monitor;
 
-    egui_debug_overlay_init(&debug_mem_overlay, EGUI_CONFIG_DEBUG_MEM_MONITOR_POS, EGUI_CONFIG_DEBUG_MEM_MONITOR_OFFSET_X, EGUI_CONFIG_DEBUG_MEM_MONITOR_OFFSET_Y);
+    egui_debug_overlay_init(&debug_mem_overlay, EGUI_CONFIG_DEBUG_MEM_MONITOR_POS, EGUI_CONFIG_DEBUG_MEM_MONITOR_OFFSET_X,
+                            EGUI_CONFIG_DEBUG_MEM_MONITOR_OFFSET_Y);
     if (!egui_api_get_mem_monitor(&monitor))
     {
         egui_api_memset(&monitor, 0, (int)sizeof(monitor));
@@ -1335,6 +1337,7 @@ void egui_polling_refresh_display(void)
 
     /* Release per-frame heap caches after the full dirty-frame finishes.
      * They need to stay alive across PFB tiles within the same frame, but
+     *
      * should not remain resident once the frame is done. */
     egui_image_std_release_frame_cache();
     egui_canvas_transform_release_frame_cache();

@@ -15,6 +15,11 @@ COMPILE_FAST_FLAGS = ' COMPILE_DEBUG= COMPILE_OPT_LEVEL=-O0'
 # Build system: 'make' or 'cmake'
 build_system = 'make'
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+APP_SUB_ROOTS = {
+    "HelloBasic": "example/HelloBasic",
+    "HelloVirtual": "example/HelloVirtual",
+    "HelloSizeAnalysis": "example/HelloSizeAnalysis",
+}
 
 def get_example_list():
     path = 'example'
@@ -24,40 +29,37 @@ def get_example_list():
     for file in files:
         file_path = os.path.join(path, file)
 
-        if os.path.isdir(file_path):
+        if os.path.isdir(file_path) and os.path.exists(os.path.join(file_path, 'build.mk')):
             app_list.append(file)
 
     return sorted(app_list)
 
-def get_example_basic_list():
-    path = 'example/HelloBasic'
+def get_example_sub_list(app):
+    path = APP_SUB_ROOTS.get(app)
     app_list = []
 
-    files = os.listdir(path)
-    for file in files:
-        file_path = os.path.join(path, file)
-
-        if os.path.isdir(file_path):
-            app_list.append(file)
-
-    return sorted(app_list)
-
-
-def get_example_virtual_list():
-    path = 'example/HelloVirtual'
-    app_list = []
-
-    if not os.path.isdir(path):
+    if not path or not os.path.isdir(path):
         return app_list
 
     files = os.listdir(path)
     for file in files:
         file_path = os.path.join(path, file)
 
-        if os.path.isdir(file_path):
+        if os.path.isdir(file_path) and os.path.exists(os.path.join(file_path, 'app_egui_config.h')):
             app_list.append(file)
 
     return sorted(app_list)
+
+def get_example_basic_list():
+    return get_example_sub_list("HelloBasic")
+
+
+def get_example_virtual_list():
+    return get_example_sub_list("HelloVirtual")
+
+
+def get_example_size_analysis_list():
+    return get_example_sub_list("HelloSizeAnalysis")
 
 def get_custom_widgets_list(category=None):
     """Discover HelloCustomWidgets sub-apps (category/widget_name pairs)."""
@@ -83,7 +85,7 @@ def compile_code(params):
     """Compile code using per-app OBJDIR (no make clean needed).
 
     PC Makefile uses APP_OBJ_SUFFIX so each APP gets its own obj directory.
-    HelloBasic/HelloVirtual sub-apps use dedicated OBJDIRs per sub-app.
+    HelloBasic/HelloVirtual/HelloSizeAnalysis sub-apps use dedicated OBJDIRs per sub-app.
     """
     if build_system == 'cmake':
         return compile_code_cmake(params)
@@ -264,7 +266,7 @@ def parse_args():
     parser.add_argument("--full-check",
                         action="store_true",
                         default=False,
-                        help="Compile all tracked standard examples plus HelloBasic/HelloVirtual sub-apps.")
+                        help="Compile all tracked standard examples plus HelloBasic/HelloVirtual/HelloSizeAnalysis sub-apps.")
 
     parser.add_argument("--actions",
                         action="store_true",
@@ -340,6 +342,7 @@ if __name__ == '__main__':
     app_sets = get_example_list()
     app_basic_sets = get_example_basic_list()
     app_virtual_sets = get_example_virtual_list()
+    app_size_analysis_sets = get_example_size_analysis_list()
 
     # Clean once at start if requested (or for backward compat on first run)
     if args.clean:
@@ -392,6 +395,9 @@ if __name__ == '__main__':
                 elif app == "HelloVirtual":
                     for app_virtual in app_virtual_sets:
                         total_work_cnt += 1
+                elif app == "HelloSizeAnalysis":
+                    for app_probe in app_size_analysis_sets:
+                        total_work_cnt += 1
                 else:
                     total_work_cnt += 1
 
@@ -409,6 +415,10 @@ if __name__ == '__main__':
                     for app_virtual in app_virtual_sets:
                         current_work_cnt += 1
                         process_app(current_work_cnt, total_work_cnt, app, port, app_virtual, params)
+                elif app == "HelloSizeAnalysis":
+                    for app_probe in app_size_analysis_sets:
+                        current_work_cnt += 1
+                        process_app(current_work_cnt, total_work_cnt, app, port, app_probe, params)
                 else:
                     current_work_cnt += 1
                     process_app(current_work_cnt, total_work_cnt, app, port, None, params)

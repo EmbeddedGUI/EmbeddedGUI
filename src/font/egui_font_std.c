@@ -68,9 +68,6 @@ static egui_font_std_code_lookup_cache_t g_font_std_code_lookup_cache = {
 #ifndef EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS
 #define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 2
 #endif
-#ifndef EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE
-#define EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE 1
-#endif
 #ifndef EGUI_CONFIG_FUNCTION_FONT_FORMAT_1
 #define EGUI_CONFIG_FUNCTION_FONT_FORMAT_1 0
 #endif

@@ -30,27 +30,39 @@ ROOT_DIR = SCRIPTS_ROOT.parent
 # Default full-site WASM publishing excludes test-only and long-running demo families.
 # They can still be built explicitly with --app/--app-sub when needed.
 WASM_SKIP_APPS = {"HelloUnitTest", "HelloCustomWidgets"}
+APP_SUB_ROOTS = {
+    "HelloBasic": "example/HelloBasic",
+    "HelloVirtual": "example/HelloVirtual",
+}
 
 
 def get_example_list():
     """Scan example/ directory for app names."""
     path = 'example'
     return sorted([f for f in os.listdir(path)
-                   if os.path.isdir(os.path.join(path, f))])
+                   if os.path.isdir(os.path.join(path, f))
+                   and os.path.exists(os.path.join(path, f, 'build.mk'))])
+
+
+def get_example_sub_list(app):
+    """Scan APP_SUB roots for buildable sub-app names."""
+    path = APP_SUB_ROOTS.get(app)
+    if not path or not os.path.isdir(path):
+        return []
+
+    return sorted([f for f in os.listdir(path)
+                   if os.path.isdir(os.path.join(path, f))
+                   and os.path.exists(os.path.join(path, f, 'app_egui_config.h'))])
 
 
 def get_example_basic_list():
     """Scan example/HelloBasic/ for sub-app names."""
-    path = 'example/HelloBasic'
-    return sorted([f for f in os.listdir(path)
-                   if os.path.isdir(os.path.join(path, f))])
+    return get_example_sub_list("HelloBasic")
 
 
 def get_example_virtual_list():
     """Scan example/HelloVirtual/ for sub-app names."""
-    path = 'example/HelloVirtual'
-    return sorted([f for f in os.listdir(path)
-                   if os.path.isdir(os.path.join(path, f))])
+    return get_example_sub_list("HelloVirtual")
 
 
 def get_custom_widgets_list():

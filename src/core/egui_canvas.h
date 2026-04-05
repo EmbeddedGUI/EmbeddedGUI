@@ -450,7 +450,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_fill_masked_row_segment(egui_canvas_t *s
     egui_dim_t pfb_y = y - self->pfb_location_in_base_view.y;
     egui_color_int_t *dst = &self->pfb[pfb_y * pfb_width + pfb_x];
 
-    #if EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE && EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_SEGMENT_FAST_PATH_ENABLE
+#if EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE && EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_SEGMENT_FAST_PATH_ENABLE
     if (self->mask->api->kind == EGUI_MASK_KIND_CIRCLE)
     {
         egui_mask_circle_t *circle_mask = (egui_mask_circle_t *)self->mask;
@@ -511,9 +511,9 @@ __EGUI_STATIC_INLINE__ void egui_canvas_fill_masked_row_segment(egui_canvas_t *s
         }
         return;
     }
-    #endif
+#endif
 
-    #if EGUI_CONFIG_CANVAS_MASK_FILL_ROUND_RECT_FAST_PATH_ENABLE
+#if EGUI_CONFIG_CANVAS_MASK_FILL_ROUND_RECT_FAST_PATH_ENABLE
     if (self->mask->api->kind == EGUI_MASK_KIND_ROUND_RECTANGLE)
     {
         if (egui_mask_round_rectangle_fill_row_segment(self->mask, dst, y, x_start, x_end, color, alpha))
@@ -521,9 +521,9 @@ __EGUI_STATIC_INLINE__ void egui_canvas_fill_masked_row_segment(egui_canvas_t *s
             return;
         }
     }
-    #endif
+#endif
 
-    #if EGUI_CONFIG_CANVAS_MASK_FILL_IMAGE_FAST_PATH_ENABLE
+#if EGUI_CONFIG_CANVAS_MASK_FILL_IMAGE_FAST_PATH_ENABLE
     if (self->mask->api->kind == EGUI_MASK_KIND_IMAGE)
     {
         if (egui_mask_image_fill_row_segment(self->mask, dst, y, x_start, x_end, color, alpha))
@@ -531,7 +531,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_fill_masked_row_segment(egui_canvas_t *s
             return;
         }
     }
-    #endif
+#endif
 
     for (egui_dim_t xp = x_start; xp < x_end; xp++, dst++)
     {
@@ -567,7 +567,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
     x_total = x + width;
     y_total = y + height;
 
-    #if EGUI_CONFIG_CANVAS_MASK_FILL_ROW_BLEND_FAST_PATH_ENABLE
+#if EGUI_CONFIG_CANVAS_MASK_FILL_ROW_BLEND_FAST_PATH_ENABLE
     // Check if mask has uniform row-level color blend (e.g., LINEAR_VERTICAL gradient)
     if (self->mask->api->mask_blend_row_color != NULL)
     {
@@ -599,19 +599,19 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
         }
         return;
     }
-    #endif
+#endif
 
-    #if EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE || EGUI_CONFIG_CANVAS_MASK_FILL_ROUND_RECT_FAST_PATH_ENABLE
+#if EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE || EGUI_CONFIG_CANVAS_MASK_FILL_ROUND_RECT_FAST_PATH_ENABLE
     if (
-    #if EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE
+#if EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE
             self->mask->api->kind == EGUI_MASK_KIND_CIRCLE
-    #endif
-    #if EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE && EGUI_CONFIG_CANVAS_MASK_FILL_ROUND_RECT_FAST_PATH_ENABLE
+#endif
+#if EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE && EGUI_CONFIG_CANVAS_MASK_FILL_ROUND_RECT_FAST_PATH_ENABLE
             ||
-    #endif
-    #if EGUI_CONFIG_CANVAS_MASK_FILL_ROUND_RECT_FAST_PATH_ENABLE
+#endif
+#if EGUI_CONFIG_CANVAS_MASK_FILL_ROUND_RECT_FAST_PATH_ENABLE
             self->mask->api->kind == EGUI_MASK_KIND_ROUND_RECTANGLE
-    #endif
+#endif
     )
     {
         egui_dim_t pfb_x_offset = self->pfb_location_in_base_view.x;
@@ -621,7 +621,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
         for (yp = y; yp < y_total; yp++)
         {
             egui_color_int_t *dst = &self->pfb[(yp - pfb_y_offset) * pfb_width + (x - pfb_x_offset)];
-            #if EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE && EGUI_CONFIG_CANVAS_MASK_FILL_ROUND_RECT_FAST_PATH_ENABLE
+#if EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE && EGUI_CONFIG_CANVAS_MASK_FILL_ROUND_RECT_FAST_PATH_ENABLE
             if (self->mask->api->kind == EGUI_MASK_KIND_CIRCLE)
             {
                 egui_mask_circle_fill_row_segment(self->mask, dst, yp, x, x_total, color, alpha);
@@ -630,17 +630,17 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
             {
                 egui_mask_round_rectangle_fill_row_segment(self->mask, dst, yp, x, x_total, color, alpha);
             }
-            #elif EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE
+#elif EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE
             egui_mask_circle_fill_row_segment(self->mask, dst, yp, x, x_total, color, alpha);
-            #else
+#else
             egui_mask_round_rectangle_fill_row_segment(self->mask, dst, yp, x, x_total, color, alpha);
-            #endif
+#endif
         }
         return;
     }
-    #endif
+#endif
 
-    #if EGUI_CONFIG_CANVAS_MASK_FILL_IMAGE_FAST_PATH_ENABLE
+#if EGUI_CONFIG_CANVAS_MASK_FILL_IMAGE_FAST_PATH_ENABLE
     if (self->mask->api->kind == EGUI_MASK_KIND_IMAGE)
     {
         egui_dim_t pfb_x_offset = self->pfb_location_in_base_view.x;
@@ -662,9 +662,9 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
             return;
         }
     }
-    #endif
+#endif
 
-    #if EGUI_CONFIG_CANVAS_MASK_FILL_ROW_RANGE_FAST_PATH_ENABLE
+#if EGUI_CONFIG_CANVAS_MASK_FILL_ROW_RANGE_FAST_PATH_ENABLE
     // Check if row-range optimization is available
     if (self->mask->api->mask_get_row_range != NULL)
     {
@@ -684,7 +684,7 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
 
             if (result == EGUI_MASK_ROW_INSIDE)
             {
-                #if EGUI_CONFIG_CANVAS_MASK_FILL_ROW_INSIDE_FAST_PATH_ENABLE
+#if EGUI_CONFIG_CANVAS_MASK_FILL_ROW_INSIDE_FAST_PATH_ENABLE
                 // Fast fill: entire row is fully opaque through mask - use direct pointer
                 egui_dim_t pfb_xs = x_start - pfb_x_offset;
                 egui_dim_t pfb_xe = x_end - pfb_x_offset;
@@ -699,13 +699,13 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
                 {
                     egui_canvas_blend_color_buffer_alpha(dst, count, color, alpha);
                 }
-                #else
+#else
                 egui_canvas_fill_masked_row_segment(self, yp, x_start, x_end, color, alpha);
-                #endif
+#endif
             }
             else // EGUI_MASK_ROW_PARTIAL
             {
-                #if EGUI_CONFIG_CANVAS_MASK_FILL_ROW_PARTIAL_FAST_PATH_ENABLE
+#if EGUI_CONFIG_CANVAS_MASK_FILL_ROW_PARTIAL_FAST_PATH_ENABLE
                 egui_dim_t visible_x_start = x;
                 egui_dim_t visible_x_end = x_total;
                 if (self->mask->api->mask_get_row_visible_range != NULL &&
@@ -735,14 +735,14 @@ __EGUI_STATIC_INLINE__ void egui_canvas_set_rect_color_with_mask(egui_dim_t x, e
                 }
                 // Right edge: per-pixel with mask
                 egui_canvas_fill_masked_row_segment(self, yp, EGUI_MAX(x_end, visible_x_start), visible_x_end, color, alpha);
-                #else
+#else
                 egui_canvas_fill_masked_row_segment(self, yp, x, x_total, color, alpha);
-                #endif
+#endif
             }
         }
         return;
     }
-    #endif
+#endif
 
     // Fallback: original per-pixel path
     for (yp = y; yp < y_total; yp++)

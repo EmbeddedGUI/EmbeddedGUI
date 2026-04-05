@@ -318,7 +318,7 @@ static void egui_mask_image_blend_rgb565_alpha8_identity_row(egui_color_int_t *d
 }
 
 static void egui_mask_image_blend_rgb565_identity_row(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *mask_alpha_row, egui_dim_t count,
-                                                       egui_alpha_t canvas_alpha)
+                                                      egui_alpha_t canvas_alpha)
 {
     egui_dim_t i = 0;
 

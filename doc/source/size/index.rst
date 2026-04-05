@@ -6,6 +6,7 @@ Size Analysis
 
    size_reading_map
    size_overview
+   fast_path_config
    size_report
    hq_size_report
    canvas_path_size_report

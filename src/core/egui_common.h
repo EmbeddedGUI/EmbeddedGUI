@@ -186,12 +186,12 @@ enum
 #define EGUI_ALIGN_BOTTOM  0x40
 #define EGUI_ALIGN_VMASK   0xF0
 
-#define EGUI_ALIGN_CENTER (EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER)
-#define EGUI_ALIGN_TOP_LEFT (EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP)
-#define EGUI_ALIGN_TOP_MID (EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP)
-#define EGUI_ALIGN_TOP_RIGHT (EGUI_ALIGN_RIGHT | EGUI_ALIGN_TOP)
-#define EGUI_ALIGN_BOTTOM_LEFT (EGUI_ALIGN_LEFT | EGUI_ALIGN_BOTTOM)
-#define EGUI_ALIGN_BOTTOM_MID (EGUI_ALIGN_HCENTER | EGUI_ALIGN_BOTTOM)
+#define EGUI_ALIGN_CENTER       (EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER)
+#define EGUI_ALIGN_TOP_LEFT     (EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP)
+#define EGUI_ALIGN_TOP_MID      (EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP)
+#define EGUI_ALIGN_TOP_RIGHT    (EGUI_ALIGN_RIGHT | EGUI_ALIGN_TOP)
+#define EGUI_ALIGN_BOTTOM_LEFT  (EGUI_ALIGN_LEFT | EGUI_ALIGN_BOTTOM)
+#define EGUI_ALIGN_BOTTOM_MID   (EGUI_ALIGN_HCENTER | EGUI_ALIGN_BOTTOM)
 #define EGUI_ALIGN_BOTTOM_RIGHT (EGUI_ALIGN_RIGHT | EGUI_ALIGN_BOTTOM)
 
 #define EGUI_LAYOUT_VERTICAL   0
@@ -212,7 +212,8 @@ typedef struct egui_mem_monitor
 
 /*----------------------------------------------------------------------------*
  * Colour definitions                                                         *
- *----------------------------------------------------------------------------*/
+
+ * *----------------------------------------------------------------------------*/
 
 /*!
  * \brief the colour type for gray8 (8bit gray scale)

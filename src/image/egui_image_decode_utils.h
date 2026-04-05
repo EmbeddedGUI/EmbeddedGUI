@@ -14,10 +14,6 @@ void egui_image_decode_release_frame_cache(void);
 
 #if EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE || EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
 
-#ifndef EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS
-#define EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS 0
-#endif
-
 /* Shared row decode buffers.
  * Pixel buffer: EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH * EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE bytes.
  * With row-band cache enabled, the single-row pixel scratch borrows the same
