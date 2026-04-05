@@ -1698,7 +1698,7 @@ static int egui_font_std_draw_fast_clipped(const egui_font_std_info_t *font, egu
     }
 }
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK && EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE && EGUI_CONFIG_FONT_STD_MASK_ROW_BLEND_FAST_PATH_ENABLE
 // Fast path for font rendering with masks that support row-level color blend
 // (e.g., LINEAR_VERTICAL gradient masks). Avoids per-pixel mask_point vtable dispatch.
 // Handles clipping to PFB work region, so partially-visible glyphs are covered too.
@@ -2311,7 +2311,7 @@ static int egui_font_std_draw_loaded_glyph(const egui_font_std_info_t *font, egu
         return 1;
     }
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK && EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE && EGUI_CONFIG_FONT_STD_MASK_ROW_BLEND_FAST_PATH_ENABLE
     if (egui_font_std_draw_fast_mask(font, x, y, width, height, pixel_buf, color, alpha))
     {
         return 1;
@@ -2459,7 +2459,7 @@ static int egui_font_std_draw_single_char_desc(const egui_font_std_info_t *font,
             if (!egui_font_std_draw_fast_clipped(font, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha))
             {
                 {
-#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK && EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE && EGUI_CONFIG_FONT_STD_MASK_ROW_BLEND_FAST_PATH_ENABLE
                     if (!egui_font_std_draw_fast_mask(font, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, color, alpha))
 #endif
                     {
@@ -2756,7 +2756,7 @@ cleanup:
     return result;
 }
 
-#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK && EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE
 static int egui_font_std_draw_string_fast_4_mask(const void *font_key, const egui_font_std_info_t *font, const char *s, egui_dim_t x, egui_dim_t y,
                                                  egui_color_t color, egui_alpha_t alpha, const egui_region_t *work_region)
 {
@@ -2767,7 +2767,9 @@ static int egui_font_std_draw_string_fast_4_mask(const void *font_key, const egu
     egui_dim_t work_y0 = work_region->location.y;
     egui_dim_t work_x1 = work_x0 + work_region->size.width;
     egui_dim_t work_y1 = work_y0 + work_region->size.height;
+#if EGUI_CONFIG_FONT_STD_MASK_ROW_BLEND_FAST_PATH_ENABLE
     const uint8_t *pixel_buffer = font->pixel_buffer;
+#endif
     const egui_font_std_draw_prefix_cache_t *prefix_cache = egui_font_std_prepare_draw_prefix_cache(font_key, font, s);
     const egui_font_std_ascii_lookup_cache_t *ascii_cache = NULL;
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
@@ -2800,14 +2802,28 @@ static int egui_font_std_draw_string_fast_4_mask(const void *font_key, const egu
 
             if (glyph->has_desc)
             {
-                egui_dim_t draw_x = offset + glyph->off_x;
                 egui_dim_t draw_y = y + glyph->off_y;
 
                 if (draw_y < work_y1 && (draw_y + glyph->box_h) > work_y0)
                 {
                     if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
                     {
+#if EGUI_CONFIG_FONT_STD_MASK_ROW_BLEND_FAST_PATH_ENABLE
+                        egui_dim_t draw_x = offset + glyph->off_x;
                         egui_font_std_draw_fast_mask(font, draw_x, draw_y, glyph->box_w, glyph->box_h, pixel_buffer + glyph->idx, color, alpha);
+#else
+                        egui_font_std_char_descriptor_t internal_desc = {
+                                .idx = glyph->idx,
+                                .size = 0,
+                                .box_w = glyph->box_w,
+                                .box_h = glyph->box_h,
+                                .adv = glyph->adv,
+                                .off_x = glyph->off_x,
+                                .off_y = glyph->off_y,
+                        };
+
+                        egui_font_std_draw_single_char_desc(font, &internal_desc, offset, y, color, alpha, NULL, NULL, 0, NULL);
+#endif
                     }
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
                     else
@@ -2919,15 +2935,19 @@ static int egui_font_std_draw_string_fast_4_mask(const void *font_key, const egu
 
             if ((offset + font->height) > work_x0)
             {
-                egui_dim_t draw_x = offset + p_char_desc->off_x;
                 egui_dim_t draw_y = y + p_char_desc->off_y;
 
                 if (draw_y < work_y1 && (draw_y + p_char_desc->box_h) > work_y0)
                 {
                     if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
                     {
+#if EGUI_CONFIG_FONT_STD_MASK_ROW_BLEND_FAST_PATH_ENABLE
+                        egui_dim_t draw_x = offset + p_char_desc->off_x;
                         egui_font_std_draw_fast_mask(font, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, pixel_buffer + p_char_desc->idx, color,
                                                      alpha);
+#else
+                        egui_font_std_draw_single_char_desc(font, p_char_desc, offset, y, color, alpha, NULL, NULL, 0, NULL);
+#endif
                     }
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
                     else
@@ -3015,7 +3035,7 @@ int egui_font_std_try_draw_string_in_rect_fast(const egui_font_t *self, const vo
         {
             use_fast_no_mask = 1;
         }
-#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK && EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE
         else if (canvas->mask->api->mask_blend_row_color != NULL)
         {
             use_fast_mask = 1;
@@ -3066,7 +3086,7 @@ int egui_font_std_try_draw_string_in_rect_fast(const egui_font_t *self, const vo
                 str_bytes = egui_font_std_draw_string_fast_4(self->res, font, line_s, rect->location.x, draw_y, color, alpha, canvas, work_region, draw_alpha,
                                                              &blend_ctx);
             }
-#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK && EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE
             else
             {
                 str_bytes = egui_font_std_draw_string_fast_4_mask(self->res, font, line_s, rect->location.x, draw_y, color, alpha, work_region);
@@ -3111,7 +3131,7 @@ int egui_font_std_try_draw_string_in_rect_fast(const egui_font_t *self, const vo
             str_bytes =
                     egui_font_std_draw_string_fast_4(self->res, font, s, rect->location.x, draw_y, color, alpha, canvas, work_region, draw_alpha, &blend_ctx);
         }
-#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK && EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE
         else
         {
             str_bytes = egui_font_std_draw_string_fast_4_mask(self->res, font, s, rect->location.x, draw_y, color, alpha, work_region);
@@ -3159,7 +3179,7 @@ int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_
         egui_font_std_blend_ctx_init(&blend_ctx, color);
         p_blend_ctx = &blend_ctx;
     }
-#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK && EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE
     else
     {
         int use_fast_mask = (draw_alpha != 0 && font->font_bit_mode == 4 && font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && canvas->mask != NULL &&

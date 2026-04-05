@@ -84,12 +84,20 @@ typedef struct
 #if EGUI_IMAGE_RLE_EXTERNAL_CACHE_SHARE_WINDOW
     uint32_t shared_generation;
 #else
+#if EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE
     uint8_t window[EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE];
+#else
+    uint8_t *window;
+#endif
 #endif
 } egui_image_rle_external_window_cache_t;
 
 #if EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE
 static egui_image_rle_external_window_cache_t g_egui_image_rle_external_window_cache = {0};
+#endif
+
+#if !EGUI_IMAGE_RLE_EXTERNAL_CACHE_SHARE_WINDOW && !EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE
+static uint8_t *g_egui_image_rle_external_window_cache_buf = NULL;
 #endif
 
 __EGUI_STATIC_INLINE__ void egui_image_rle_external_sync_window_cache(egui_image_rle_external_window_cache_t *cache)
@@ -113,7 +121,26 @@ __EGUI_STATIC_INLINE__ uint8_t *egui_image_rle_external_get_window_buf(egui_imag
 #if EGUI_IMAGE_RLE_EXTERNAL_CACHE_SHARE_WINDOW
     return egui_image_std_get_shared_external_alpha_cache();
 #else
+#if EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE
     return cache->window;
+#else
+    if (cache == NULL)
+    {
+        return NULL;
+    }
+
+    if (cache->window == NULL)
+    {
+        if (g_egui_image_rle_external_window_cache_buf == NULL)
+        {
+            g_egui_image_rle_external_window_cache_buf = (uint8_t *)egui_malloc(EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE);
+        }
+
+        cache->window = g_egui_image_rle_external_window_cache_buf;
+    }
+
+    return cache->window;
+#endif
 #endif
 }
 
@@ -133,6 +160,10 @@ __EGUI_STATIC_INLINE__ int egui_image_rle_external_load_bytes(const uint8_t *src
     }
 
     window = egui_image_rle_external_get_window_buf(cache);
+    if (window == NULL)
+    {
+        return 0;
+    }
 
     if (size <= EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE && cache->src == src && cache->src_len == src_len && src_offset >= cache->window_offset &&
         (src_offset + size) <= (cache->window_offset + cache->window_size))
@@ -1475,11 +1506,13 @@ static void egui_image_rle_blend_cached_rows(const egui_image_rle_info_t *info, 
 
         if (use_image_mask)
         {
+#if EGUI_CONFIG_IMAGE_CODEC_MASK_IMAGE_ROW_BLOCK_FAST_PATH_ENABLE
             if (egui_mask_image_blend_rgb565_row_block(masked_canvas->mask, masked_dst_row, masked_dst_stride, src_pixels, cache_row_width, row_count, count,
                                                        screen_x_start, screen_y, canvas_alpha))
             {
                 return;
             }
+#endif
 
             for (egui_dim_t row = 0; row < row_count; row++)
             {
@@ -1490,11 +1523,13 @@ static void egui_image_rle_blend_cached_rows(const egui_image_rle_info_t *info, 
                 screen_y++;
             }
         }
+        #if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
         else if (egui_image_std_blend_rgb565_masked_row_block(masked_canvas, masked_dst_row, masked_dst_stride, src_pixels, cache_row_width, row_count, count,
                                                               screen_x_start, screen_y, canvas_alpha))
         {
             return;
         }
+        #endif
         else
         {
             for (egui_dim_t row = 0; row < row_count; row++)
@@ -1529,11 +1564,13 @@ static void egui_image_rle_blend_cached_rows(const egui_image_rle_info_t *info, 
 
         if (use_image_mask)
         {
+#if EGUI_CONFIG_IMAGE_CODEC_MASK_IMAGE_ROW_BLOCK_FAST_PATH_ENABLE
             if (egui_mask_image_blend_rgb565_alpha8_row_block(masked_canvas->mask, masked_dst_row, masked_dst_stride, src_pixels, cache_row_width, src_alpha,
                                                               cached_alpha_row_bytes, row_count, count, screen_x_start, screen_y, canvas_alpha))
             {
                 return;
             }
+#endif
 
             for (egui_dim_t row = 0; row < row_count; row++)
             {
@@ -1545,11 +1582,13 @@ static void egui_image_rle_blend_cached_rows(const egui_image_rle_info_t *info, 
                 screen_y++;
             }
         }
+        #if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
         else if (egui_image_std_blend_rgb565_alpha8_masked_row_block(masked_canvas, masked_dst_row, masked_dst_stride, src_pixels, cache_row_width, src_alpha,
                                                                      cached_alpha_row_bytes, row_count, count, screen_x_start, screen_y, canvas_alpha))
         {
             return;
         }
+        #endif
         else
         {
             for (egui_dim_t row = 0; row < row_count; row++)
@@ -1630,11 +1669,13 @@ static void egui_image_rle_blend_persistent_cached_rows(const egui_image_rle_inf
 
         if (use_image_mask)
         {
+#if EGUI_CONFIG_IMAGE_CODEC_MASK_IMAGE_ROW_BLOCK_FAST_PATH_ENABLE
             if (egui_mask_image_blend_rgb565_row_block(masked_canvas->mask, masked_dst_row, masked_dst_stride, src_pixels, info->width, row_count, count,
                                                        screen_x_start, screen_y, canvas_alpha))
             {
                 return;
             }
+#endif
 
             for (egui_dim_t row = 0; row < row_count; row++)
             {
@@ -1645,11 +1686,13 @@ static void egui_image_rle_blend_persistent_cached_rows(const egui_image_rle_inf
                 screen_y++;
             }
         }
+        #if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
         else if (egui_image_std_blend_rgb565_masked_row_block(masked_canvas, masked_dst_row, masked_dst_stride, src_pixels, info->width, row_count, count,
                                                               screen_x_start, screen_y, canvas_alpha))
         {
             return;
         }
+        #endif
         else
         {
             for (egui_dim_t row = 0; row < row_count; row++)
@@ -1684,11 +1727,13 @@ static void egui_image_rle_blend_persistent_cached_rows(const egui_image_rle_inf
 
         if (use_image_mask)
         {
+#if EGUI_CONFIG_IMAGE_CODEC_MASK_IMAGE_ROW_BLOCK_FAST_PATH_ENABLE
             if (egui_mask_image_blend_rgb565_alpha8_row_block(masked_canvas->mask, masked_dst_row, masked_dst_stride, src_pixels, info->width, src_alpha,
                                                               alpha_row_bytes, row_count, count, screen_x_start, screen_y, canvas_alpha))
             {
                 return;
             }
+#endif
 
             for (egui_dim_t row = 0; row < row_count; row++)
             {
@@ -1700,11 +1745,13 @@ static void egui_image_rle_blend_persistent_cached_rows(const egui_image_rle_inf
                 screen_y++;
             }
         }
+        #if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
         else if (egui_image_std_blend_rgb565_alpha8_masked_row_block(masked_canvas, masked_dst_row, masked_dst_stride, src_pixels, info->width, src_alpha,
                                                                      alpha_row_bytes, row_count, count, screen_x_start, screen_y, canvas_alpha))
         {
             return;
         }
+        #endif
         else
         {
             for (egui_dim_t row = 0; row < row_count; row++)
@@ -2233,6 +2280,14 @@ void egui_image_rle_release_frame_cache(void)
         egui_free(rle_state_ptr);
         rle_state_ptr = NULL;
     }
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE && !EGUI_IMAGE_RLE_EXTERNAL_CACHE_SHARE_WINDOW && !EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE
+    if (g_egui_image_rle_external_window_cache_buf != NULL)
+    {
+        egui_free(g_egui_image_rle_external_window_cache_buf);
+        g_egui_image_rle_external_window_cache_buf = NULL;
+    }
+#endif
 }
 
 #endif /* EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE */

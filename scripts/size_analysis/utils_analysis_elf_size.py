@@ -92,6 +92,10 @@ def should_count_repo_object(repo_object_path):
     return repo_object_path.startswith("src/") or repo_object_path.startswith("example/")
 
 
+def is_matching_output_input_section(output_section, input_section):
+    return input_section == output_section or input_section.startswith(output_section + ".")
+
+
 def collect_map_section_size(size_info, output_section, input_section, object_ref, size):
     repo_object_path = extract_repo_object_path(object_ref)
 
@@ -100,6 +104,9 @@ def collect_map_section_size(size_info, output_section, input_section, object_re
         return
 
     if repo_object_path is None or not should_count_repo_object(repo_object_path):
+        return
+
+    if not is_matching_output_input_section(output_section, input_section):
         return
 
     field_name = MAP_OUTPUT_SECTION_TO_FIELD[output_section]

@@ -102,6 +102,7 @@ static int egui_mask_image_is_identity_scale(const egui_mask_image_t *local)
     return local->identity_scale;
 }
 
+#if EGUI_CONFIG_MASK_IMAGE_IDENTITY_SCALE_FAST_PATH_ENABLE
 static void egui_mask_image_blend_solid_row(egui_color_int_t *dst, egui_dim_t count, egui_color_t color, egui_alpha_t alpha)
 {
     if (count <= 0 || alpha == 0)
@@ -120,7 +121,9 @@ static void egui_mask_image_blend_solid_row(egui_color_int_t *dst, egui_dim_t co
         egui_rgb_mix_ptr((egui_color_t *)&dst[i], &color, (egui_color_t *)&dst[i], alpha);
     }
 }
+#endif
 
+#if EGUI_CONFIG_MASK_IMAGE_IDENTITY_SCALE_BLEND_FAST_PATH_ENABLE
 static void egui_mask_image_copy_rgb565_row(egui_color_int_t *dst_row, const uint16_t *src_row, egui_dim_t count)
 {
     if (count <= 0)
@@ -315,7 +318,7 @@ static void egui_mask_image_blend_rgb565_alpha8_identity_row(egui_color_int_t *d
 }
 
 static void egui_mask_image_blend_rgb565_identity_row(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *mask_alpha_row, egui_dim_t count,
-                                                      egui_alpha_t canvas_alpha)
+                                                       egui_alpha_t canvas_alpha)
 {
     egui_dim_t i = 0;
 
@@ -417,6 +420,7 @@ static void egui_mask_image_blend_rgb565_identity_row(egui_color_int_t *dst_row,
         }
     }
 }
+#endif
 
 static int egui_mask_image_get_linear_src_segment(const egui_dim_t *src_x_map, egui_dim_t start, egui_dim_t end, egui_dim_t *src_x_start)
 {
@@ -666,6 +670,7 @@ int egui_mask_image_fill_row_segment(egui_mask_t *self, egui_color_int_t *dst, e
     }
 
     dst += seg_start - x_start;
+#if EGUI_CONFIG_MASK_IMAGE_IDENTITY_SCALE_FAST_PATH_ENABLE
     if (egui_mask_image_is_identity_scale(local))
     {
         const uint8_t *mask_alpha_row = local->point_cached_alpha_row + (seg_start - local->cached_x);
@@ -731,6 +736,7 @@ int egui_mask_image_fill_row_segment(egui_mask_t *self, egui_color_int_t *dst, e
 
         return 1;
     }
+#endif
 
     src_x_acc = (egui_float_t)(seg_start - local->cached_x) * local->width_radio;
     for (egui_dim_t xp = seg_start; xp < seg_end; xp++, dst++, src_x_acc += local->width_radio)
@@ -811,12 +817,14 @@ int egui_mask_image_blend_rgb565_alpha8_row_segment(egui_mask_t *self, egui_colo
     dst_row += seg_start - screen_x;
     src_row += seg_start - screen_x;
     src_alpha_row += seg_start - screen_x;
+#if EGUI_CONFIG_MASK_IMAGE_IDENTITY_SCALE_BLEND_FAST_PATH_ENABLE
     if (egui_mask_image_is_identity_scale(local))
     {
         const uint8_t *mask_alpha_row = local->point_cached_alpha_row + (seg_start - local->cached_x);
         egui_mask_image_blend_rgb565_alpha8_identity_row(dst_row, src_row, src_alpha_row, mask_alpha_row, seg_end - seg_start, canvas_alpha);
         return 1;
     }
+#endif
 
     mask_src_acc = (egui_float_t)(seg_start - local->cached_x) * local->width_radio;
 
@@ -871,6 +879,21 @@ int egui_mask_image_blend_rgb565_alpha8_row_block(egui_mask_t *self, egui_color_
                                                   egui_dim_t src_stride, const uint8_t *src_alpha_row, egui_dim_t alpha_stride, egui_dim_t row_count,
                                                   egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y, egui_alpha_t canvas_alpha)
 {
+#if !EGUI_CONFIG_MASK_IMAGE_IDENTITY_SCALE_BLEND_FAST_PATH_ENABLE
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(dst_row);
+    EGUI_UNUSED(dst_stride);
+    EGUI_UNUSED(src_row);
+    EGUI_UNUSED(src_stride);
+    EGUI_UNUSED(src_alpha_row);
+    EGUI_UNUSED(alpha_stride);
+    EGUI_UNUSED(row_count);
+    EGUI_UNUSED(count);
+    EGUI_UNUSED(screen_x);
+    EGUI_UNUSED(screen_y);
+    EGUI_UNUSED(canvas_alpha);
+    return 0;
+#else
     EGUI_LOCAL_INIT(egui_mask_image_t);
     egui_dim_t seg_start;
     egui_dim_t seg_end;
@@ -935,6 +958,7 @@ int egui_mask_image_blend_rgb565_alpha8_row_block(egui_mask_t *self, egui_color_
     }
 
     return 1;
+#endif
 }
 
 int egui_mask_image_blend_rgb565_row_segment(egui_mask_t *self, egui_color_int_t *dst_row, const uint16_t *src_row, egui_dim_t count, egui_dim_t screen_x,
@@ -985,6 +1009,7 @@ int egui_mask_image_blend_rgb565_row_segment(egui_mask_t *self, egui_color_int_t
 
     dst_row += seg_start - screen_x;
     src_row += seg_start - screen_x;
+#if EGUI_CONFIG_MASK_IMAGE_IDENTITY_SCALE_BLEND_FAST_PATH_ENABLE
     if (egui_mask_image_is_identity_scale(local))
     {
         const uint8_t *mask_alpha_row = local->point_cached_alpha_row + (seg_start - local->cached_x);
@@ -992,6 +1017,7 @@ int egui_mask_image_blend_rgb565_row_segment(egui_mask_t *self, egui_color_int_t
         egui_mask_image_blend_rgb565_identity_row(dst_row, src_row, mask_alpha_row, seg_end - seg_start, canvas_alpha);
         return 1;
     }
+#endif
 
     mask_src_acc = (egui_float_t)(seg_start - local->cached_x) * local->width_radio;
     if (canvas_alpha == EGUI_ALPHA_100)
@@ -1049,6 +1075,19 @@ int egui_mask_image_blend_rgb565_row_segment(egui_mask_t *self, egui_color_int_t
 int egui_mask_image_blend_rgb565_row_block(egui_mask_t *self, egui_color_int_t *dst_row, egui_dim_t dst_stride, const uint16_t *src_row, egui_dim_t src_stride,
                                            egui_dim_t row_count, egui_dim_t count, egui_dim_t screen_x, egui_dim_t screen_y, egui_alpha_t canvas_alpha)
 {
+#if !EGUI_CONFIG_MASK_IMAGE_IDENTITY_SCALE_BLEND_FAST_PATH_ENABLE
+    EGUI_UNUSED(self);
+    EGUI_UNUSED(dst_row);
+    EGUI_UNUSED(dst_stride);
+    EGUI_UNUSED(src_row);
+    EGUI_UNUSED(src_stride);
+    EGUI_UNUSED(row_count);
+    EGUI_UNUSED(count);
+    EGUI_UNUSED(screen_x);
+    EGUI_UNUSED(screen_y);
+    EGUI_UNUSED(canvas_alpha);
+    return 0;
+#else
     EGUI_LOCAL_INIT(egui_mask_image_t);
     egui_dim_t seg_start;
     egui_dim_t seg_end;
@@ -1111,6 +1150,7 @@ int egui_mask_image_blend_rgb565_row_block(egui_mask_t *self, egui_color_int_t *
     }
 
     return 1;
+#endif
 }
 
 int egui_mask_image_blend_rgb565_alpha8_segment(egui_mask_t *self, egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
@@ -1160,6 +1200,7 @@ int egui_mask_image_blend_rgb565_alpha8_segment(egui_mask_t *self, egui_color_in
         local->point_cached_valid = 1;
     }
 
+#if EGUI_CONFIG_MASK_IMAGE_IDENTITY_SCALE_BLEND_FAST_PATH_ENABLE
     if (egui_mask_image_is_identity_scale(local))
     {
         egui_dim_t dst_start = seg_start - screen_x;
@@ -1175,6 +1216,7 @@ int egui_mask_image_blend_rgb565_alpha8_segment(egui_mask_t *self, egui_color_in
             return 1;
         }
     }
+#endif
 
     mask_src_acc = (egui_float_t)(seg_start - local->cached_x) * local->width_radio;
     if (canvas_alpha == EGUI_ALPHA_100)

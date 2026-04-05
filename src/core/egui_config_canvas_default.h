@@ -66,6 +66,102 @@ extern "C" {
 #define EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE 0
 #endif
 
+/**
+ * Canvas masked-fill circle fast path options.
+ * When 1, keep the specialized row-segment fast paths for solid fills under
+ * circle masks.
+ * When 0, these paths fall back to the generic row-range / mask_point-based
+ * masked fill path to reduce code size.
+ */
+#ifndef EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE
+#define EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE 1
+#endif
+
+/**
+ * Canvas masked-fill circle segment fast path options.
+ * When 1, keep the specialized partial-row segment fill path used inside
+ * `egui_canvas_fill_masked_row_segment()` for circle masks.
+ * When 0, the whole-row circle masked-fill path can still remain enabled
+ * while partial row segments fall back to the generic mask_point loop.
+ *
+ * By default this follows the circle masked-fill umbrella switch.
+ */
+#ifndef EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_SEGMENT_FAST_PATH_ENABLE
+#define EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_SEGMENT_FAST_PATH_ENABLE EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE
+#endif
+
+/**
+ * Canvas masked-fill round-rectangle fast path options.
+ * When 1, keep the specialized row-segment fast paths for solid fills under
+ * round-rectangle masks.
+ * When 0, these paths fall back to the generic row-range / mask_point-based
+ * masked fill path to reduce code size.
+ */
+#ifndef EGUI_CONFIG_CANVAS_MASK_FILL_ROUND_RECT_FAST_PATH_ENABLE
+#define EGUI_CONFIG_CANVAS_MASK_FILL_ROUND_RECT_FAST_PATH_ENABLE 1
+#endif
+
+/**
+ * Canvas masked-fill row-blend fast path options.
+ * When 1, keep the specialized row-level color-blend path for masks that can
+ * provide a uniform row color transform (for example vertical gradients).
+ * When 0, these paths fall back to the generic masked row fill path to reduce
+ * code size.
+ */
+#ifndef EGUI_CONFIG_CANVAS_MASK_FILL_ROW_BLEND_FAST_PATH_ENABLE
+#define EGUI_CONFIG_CANVAS_MASK_FILL_ROW_BLEND_FAST_PATH_ENABLE 1
+#endif
+
+/**
+ * Canvas masked-fill image fast path options.
+ * When 1, keep the specialized row-segment fast path for solid fills under
+ * image masks.
+ * When 0, image-masked solid fills fall back to the generic row-range /
+ * mask_point-based masked fill path to reduce code size.
+ */
+#ifndef EGUI_CONFIG_CANVAS_MASK_FILL_IMAGE_FAST_PATH_ENABLE
+#define EGUI_CONFIG_CANVAS_MASK_FILL_IMAGE_FAST_PATH_ENABLE 1
+#endif
+
+/**
+ * Canvas masked-fill row-range fast path options.
+ * When 1, keep the generic row-range / visible-range acceleration used by
+ * masks that can report opaque spans for a row.
+ * When 0, these masks fall back to the generic per-pixel masked fill path to
+ * reduce code size.
+ */
+#ifndef EGUI_CONFIG_CANVAS_MASK_FILL_ROW_RANGE_FAST_PATH_ENABLE
+#define EGUI_CONFIG_CANVAS_MASK_FILL_ROW_RANGE_FAST_PATH_ENABLE 1
+#endif
+
+/**
+ * Canvas masked-fill row-partial fast path options.
+ * When 1, keep the partial-row acceleration used after `mask_get_row_range()`
+ * reports a row with AA edges plus an opaque middle span.
+ * When 0, partial rows fall back to the generic per-pixel masked fill path,
+ * while fully outside / fully inside rows can still use row-range acceleration
+ * to reduce code size.
+ *
+ * By default this follows the canvas masked-fill row-range umbrella switch.
+ */
+#ifndef EGUI_CONFIG_CANVAS_MASK_FILL_ROW_PARTIAL_FAST_PATH_ENABLE
+#define EGUI_CONFIG_CANVAS_MASK_FILL_ROW_PARTIAL_FAST_PATH_ENABLE EGUI_CONFIG_CANVAS_MASK_FILL_ROW_RANGE_FAST_PATH_ENABLE
+#endif
+
+/**
+ * Canvas masked-fill row-inside fast path options.
+ * When 1, keep the direct-fill path used after `mask_get_row_range()` reports
+ * the requested row segment is fully inside the mask.
+ * When 0, fully-inside rows fall back to the generic masked row fill path,
+ * while `OUTSIDE` skip and optional `PARTIAL` acceleration can still stay on
+ * to reduce code size.
+ *
+ * By default this follows the canvas masked-fill row-range umbrella switch.
+ */
+#ifndef EGUI_CONFIG_CANVAS_MASK_FILL_ROW_INSIDE_FAST_PATH_ENABLE
+#define EGUI_CONFIG_CANVAS_MASK_FILL_ROW_INSIDE_FAST_PATH_ENABLE EGUI_CONFIG_CANVAS_MASK_FILL_ROW_RANGE_FAST_PATH_ENABLE
+#endif
+
 /* ---- Enhanced widget drawing ---- */
 
 /**
@@ -165,6 +261,18 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 1024
 #endif
 
+/**
+ * Image codec options.
+ * Keep the RLE external-resource I/O window buffer persistent across draws.
+ * When 1, reserves one window-sized persistent cache in BSS and reuses the
+ * decoded metadata across external RLE draws in the current frame.
+ * When 0, the window buffer moves to transient frame heap storage to reduce
+ * fixed RAM, but external RLE scenes may pay extra re-warm cost.
+ */
+#ifndef EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE
+#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE 1
+#endif
+
 /* ---- Font cache options ---- */
 
 /**
@@ -176,6 +284,39 @@ extern "C" {
  */
 #ifndef EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE
 #define EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE 1
+#endif
+
+/**
+ * Font draw options.
+ * When 1, keep the specialized masked std-font fast draw path.
+ * When 0, masked text falls back to the generic glyph draw path while
+ * unmasked std font fast draw stays available.
+ *
+ * Default follows EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE.
+ */
+#ifndef EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE
+#if EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE
+#define EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE 1
+#else
+#define EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE 0
+#endif
+#endif
+
+/**
+ * Font draw options.
+ * When 1, keep the row-blend masked glyph fast path used by std-font masked
+ * draw helpers.
+ * When 0, masked string-level dispatch stays available, but each glyph falls
+ * back to the generic draw path.
+ *
+ * Default follows EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE.
+ */
+#ifndef EGUI_CONFIG_FONT_STD_MASK_ROW_BLEND_FAST_PATH_ENABLE
+#if EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE
+#define EGUI_CONFIG_FONT_STD_MASK_ROW_BLEND_FAST_PATH_ENABLE 1
+#else
+#define EGUI_CONFIG_FONT_STD_MASK_ROW_BLEND_FAST_PATH_ENABLE 0
+#endif
 #endif
 
 /**

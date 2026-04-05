@@ -2062,11 +2062,13 @@ static void egui_image_qoi_blend_cached_rows(const egui_image_qoi_info_t *info, 
 
         if (use_image_mask)
         {
+#if EGUI_CONFIG_IMAGE_CODEC_MASK_IMAGE_ROW_BLOCK_FAST_PATH_ENABLE
             if (egui_mask_image_blend_rgb565_row_block(masked_canvas->mask, masked_dst_row, masked_dst_stride, src_pixels, cache_row_width, row_count, count,
                                                        screen_x_start, screen_y, canvas_alpha))
             {
                 return;
             }
+#endif
 
             for (egui_dim_t row = 0; row < row_count; row++)
             {
@@ -2077,11 +2079,13 @@ static void egui_image_qoi_blend_cached_rows(const egui_image_qoi_info_t *info, 
                 screen_y++;
             }
         }
+        #if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
         else if (egui_image_std_blend_rgb565_masked_row_block(masked_canvas, masked_dst_row, masked_dst_stride, src_pixels, cache_row_width, row_count, count,
                                                               screen_x_start, screen_y, canvas_alpha))
         {
             return;
         }
+        #endif
         else
         {
             for (egui_dim_t row = 0; row < row_count; row++)
@@ -2116,11 +2120,13 @@ static void egui_image_qoi_blend_cached_rows(const egui_image_qoi_info_t *info, 
 
         if (use_image_mask)
         {
+#if EGUI_CONFIG_IMAGE_CODEC_MASK_IMAGE_ROW_BLOCK_FAST_PATH_ENABLE
             if (egui_mask_image_blend_rgb565_alpha8_row_block(masked_canvas->mask, masked_dst_row, masked_dst_stride, src_pixels, cache_row_width, src_alpha,
                                                               alpha_row_bytes, row_count, count, screen_x_start, screen_y, canvas_alpha))
             {
                 return;
             }
+#endif
 
             for (egui_dim_t row = 0; row < row_count; row++)
             {
@@ -2132,11 +2138,13 @@ static void egui_image_qoi_blend_cached_rows(const egui_image_qoi_info_t *info, 
                 screen_y++;
             }
         }
+        #if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
         else if (egui_image_std_blend_rgb565_alpha8_masked_row_block(masked_canvas, masked_dst_row, masked_dst_stride, src_pixels, cache_row_width, src_alpha,
                                                                      alpha_row_bytes, row_count, count, screen_x_start, screen_y, canvas_alpha))
         {
             return;
         }
+        #endif
         else
         {
             for (egui_dim_t row = 0; row < row_count; row++)
@@ -2220,11 +2228,13 @@ static void egui_image_qoi_blend_persistent_cached_rows(const egui_image_qoi_inf
 
         if (use_image_mask)
         {
+#if EGUI_CONFIG_IMAGE_CODEC_MASK_IMAGE_ROW_BLOCK_FAST_PATH_ENABLE
             if (egui_mask_image_blend_rgb565_row_block(masked_canvas->mask, masked_dst_row, masked_dst_stride, src_pixels, info->width, row_count, count,
                                                        screen_x_start, screen_y, canvas_alpha))
             {
                 return;
             }
+#endif
 
             for (egui_dim_t row = 0; row < row_count; row++)
             {
@@ -2235,11 +2245,13 @@ static void egui_image_qoi_blend_persistent_cached_rows(const egui_image_qoi_inf
                 screen_y++;
             }
         }
+        #if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
         else if (egui_image_std_blend_rgb565_masked_row_block(masked_canvas, masked_dst_row, masked_dst_stride, src_pixels, info->width, row_count, count,
                                                               screen_x_start, screen_y, canvas_alpha))
         {
             return;
         }
+        #endif
         else
         {
             for (egui_dim_t row = 0; row < row_count; row++)
@@ -2274,11 +2286,13 @@ static void egui_image_qoi_blend_persistent_cached_rows(const egui_image_qoi_inf
 
         if (use_image_mask)
         {
+#if EGUI_CONFIG_IMAGE_CODEC_MASK_IMAGE_ROW_BLOCK_FAST_PATH_ENABLE
             if (egui_mask_image_blend_rgb565_alpha8_row_block(masked_canvas->mask, masked_dst_row, masked_dst_stride, src_pixels, info->width, src_alpha,
                                                               alpha_row_bytes, row_count, count, screen_x_start, screen_y, canvas_alpha))
             {
                 return;
             }
+#endif
 
             for (egui_dim_t row = 0; row < row_count; row++)
             {
@@ -2290,11 +2304,13 @@ static void egui_image_qoi_blend_persistent_cached_rows(const egui_image_qoi_inf
                 screen_y++;
             }
         }
+        #if EGUI_CONFIG_IMAGE_CODEC_MASKED_ROW_BLOCK_FAST_PATH_ENABLE
         else if (egui_image_std_blend_rgb565_alpha8_masked_row_block(masked_canvas, masked_dst_row, masked_dst_stride, src_pixels, info->width, src_alpha,
                                                                      alpha_row_bytes, row_count, count, screen_x_start, screen_y, canvas_alpha))
         {
             return;
         }
+        #endif
         else
         {
             for (egui_dim_t row = 0; row < row_count; row++)
