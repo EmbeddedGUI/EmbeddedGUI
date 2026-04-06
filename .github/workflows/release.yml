@@ -69,7 +69,41 @@ jobs:
       - name: Compile shard ${{ matrix.name }}
         run: python scripts\code_compile_check.py ${{ matrix.args }} --actions --bits64 --jobs 2
 
-  ci-check:
+  ci-runtime-matrix:
+    needs: [ci-compile-meta, ci-compile-matrix]
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - name: standard
+            args: --scope standard
+          - name: basic-1
+            args: --scope basic --shard-count 3 --shard-index 1
+          - name: basic-2
+            args: --scope basic --shard-count 3 --shard-index 2
+          - name: basic-3
+            args: --scope basic --shard-count 3 --shard-index 3
+          - name: virtual
+            args: --scope virtual
+          - name: size-analysis
+            args: --scope size-analysis
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: rlalik/setup-cpp-compiler@v1.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Runtime shard ${{ matrix.name }}
+        run: python scripts\code_runtime_check.py ${{ matrix.args }} --skip-custom-widgets --bits64 --jobs 2
+
+  ci-dirty-animation:
     needs: [ci-compile-meta, ci-compile-matrix]
     runs-on: windows-latest
     steps:
@@ -85,17 +119,53 @@ jobs:
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Runtime check (skip HelloCustomWidgets)
-        run: python scripts\code_runtime_check.py --full-check --skip-custom-widgets --bits64
-
       - name: Dirty animation check
         run: python scripts\checks\code_dirty_animation_check.py --bits64
+
+  ci-showcase-parity:
+    needs: [ci-compile-meta, ci-compile-matrix]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: rlalik/setup-cpp-compiler@v1.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
 
       - name: Virtual stage showcase parity check
         run: python scripts\checks\showcase_stage_parity_check.py --timeout 35 --bits64
 
+  ci-virtual-render:
+    needs: [ci-compile-meta, ci-compile-matrix]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: rlalik/setup-cpp-compiler@v1.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
       - name: HelloVirtual render workflow
         run: python scripts\checks\hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --bits64
+
+  ci-check:
+    needs: [ci-runtime-matrix, ci-dirty-animation, ci-showcase-parity, ci-virtual-render]
+    runs-on: windows-latest
+    steps:
+      - name: Aggregate CI Result
+        run: echo "All Windows CI validation jobs passed."
 
   build-wasm:
     needs: ci-check

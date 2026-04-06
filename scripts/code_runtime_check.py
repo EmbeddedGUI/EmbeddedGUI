@@ -59,6 +59,7 @@ SUB_APP_ROOTS = {
     "HelloCustomWidgets": "example/HelloCustomWidgets",
     "HelloSizeAnalysis": "example/HelloSizeAnalysis",
 }
+SUB_APP_FAMILY_APPS = tuple(SUB_APP_ROOTS.keys())
 RUNTIME_BUILD_ROOT = Path("output") / "rt"
 LAST_BUILD_OUTPUT_DIR = None
 
@@ -301,6 +302,55 @@ def filter_sub_apps(app, app_subs, category=None):
 
     prefix = prefix.replace('\\', '/')
     return sorted([app_sub for app_sub in app_subs if app_sub.startswith(prefix + '/')])
+
+
+def build_sub_app_sets():
+    return {app: get_example_sub_list(app) for app in SUB_APP_ROOTS}
+
+
+def build_standard_app_list(app_sets, skipped_apps=None):
+    skipped = set(skipped_apps or [])
+    return [
+        app for app in app_sets
+        if app not in SKIP_LIST and app not in SUB_APP_FAMILY_APPS and app not in skipped
+    ]
+
+
+def expand_runtime_cases(app, sub_app_sets):
+    if app in SUB_APP_ROOTS:
+        return [(app, app_sub) for app_sub in sub_app_sets.get(app, [])]
+    return [(app, None)]
+
+
+def build_runtime_case_specs(scope, app_sets, sub_app_sets, skipped_apps=None):
+    skipped = set(skipped_apps or [])
+    if scope == "standard":
+        selected_apps = build_standard_app_list(app_sets, skipped)
+    elif scope == "basic":
+        selected_apps = ["HelloBasic"]
+    elif scope == "virtual":
+        selected_apps = ["HelloVirtual"]
+    elif scope == "size-analysis":
+        selected_apps = ["HelloSizeAnalysis"]
+    elif scope == "full":
+        selected_apps = [app for app in app_sets if app not in SKIP_LIST and app not in skipped]
+    else:
+        raise ValueError("unknown runtime scope: %s" % scope)
+
+    case_specs = []
+    for app in selected_apps:
+        case_specs.extend(expand_runtime_cases(app, sub_app_sets))
+    return case_specs
+
+
+def apply_case_shard(case_specs, shard_count, shard_index):
+    if shard_count <= 1:
+        return case_specs
+
+    if shard_index < 1 or shard_index > shard_count:
+        raise ValueError("--shard-index must be in [1, --shard-count]")
+
+    return [case for index, case in enumerate(case_specs) if index % shard_count == (shard_index - 1)]
 
 
 def format_app_name(app, app_sub=None):
@@ -757,32 +807,56 @@ def run_full_check(bits64, speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_S
     Returns list of (app_name, success, message) tuples.
     """
     app_sets = get_example_list()
-    sub_app_sets = {app: get_example_sub_list(app) for app in SUB_APP_ROOTS}
+    sub_app_sets = build_sub_app_sets()
     skipped_apps = set()
-    case_specs = []
 
     if skip_custom_widgets:
         skipped_apps.add("HelloCustomWidgets")
 
     print("Running with speed=%dx" % speed)
-
     for app in app_sets:
         if app in SKIP_LIST:
             print("\nSkipping: %s" % app)
-            continue
-        if app in skipped_apps:
+        elif app in skipped_apps:
             print("\nSkipping: %s (%s)" % (app, FULL_CHECK_OPTIONAL_APPS[app]))
-            continue
 
-        if app in SUB_APP_ROOTS:
-            for app_sub in sub_app_sets.get(app, []):
-                case_specs.append((app, app_sub))
-        else:
-            case_specs.append((app, None))
+    case_specs = build_runtime_case_specs("full", app_sets, sub_app_sets, skipped_apps=skipped_apps)
 
     return run_runtime_case_batch(
         case_specs,
         bits64,
+        jobs=jobs,
+        speed=speed,
+        snapshot_settle_ms=snapshot_settle_ms,
+        clock_scale=clock_scale,
+        snapshot_stable_cycles=snapshot_stable_cycles,
+        snapshot_max_wait_ms=snapshot_max_wait_ms,
+    )
+
+
+def run_scope_check(scope, bits64, explicit_timeout=None,
+                    speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
+                    clock_scale=RECORDING_CLOCK_SCALE,
+                    snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
+                    snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
+                    skip_custom_widgets=False, jobs=0, shard_count=1, shard_index=1):
+    app_sets = get_example_list()
+    sub_app_sets = build_sub_app_sets()
+    skipped_apps = set()
+    if skip_custom_widgets:
+        skipped_apps.add("HelloCustomWidgets")
+
+    case_specs = build_runtime_case_specs(scope, app_sets, sub_app_sets, skipped_apps=skipped_apps)
+    case_specs = apply_case_shard(case_specs, shard_count, shard_index)
+
+    print("=" * 60)
+    print("Runtime Check Scope: %s shard=%d/%d speed=%dx cases=%d" % (scope, shard_index, shard_count, speed, len(case_specs)))
+    print("=" * 60)
+
+    return run_runtime_case_batch(
+        case_specs,
+        bits64,
+        explicit_timeout=explicit_timeout,
         jobs=jobs,
         speed=speed,
         snapshot_settle_ms=snapshot_settle_ms,
@@ -853,6 +927,8 @@ Examples:
   %(prog)s --app HelloBasic --app-sub button         Test one HelloBasic sub-app
   %(prog)s --app HelloVirtual --app-sub virtual_grid Test one HelloVirtual sub-app
   %(prog)s --app HelloCustomWidgets --category input Test HelloCustomWidgets category
+  %(prog)s --scope standard --jobs 2                 Test standard runtime examples only
+  %(prog)s --scope basic --shard-count 3 --shard-index 1 --jobs 2
   %(prog)s --full-check --skip-custom-widgets        Test all examples except HelloCustomWidgets
   %(prog)s --full-check                             Test all examples
         """
@@ -869,10 +945,16 @@ Examples:
                         help='Keep screenshot files after testing')
     parser.add_argument('--full-check', action='store_true',
                         help='Test all example applications')
+    parser.add_argument('--scope', choices=['standard', 'basic', 'virtual', 'size-analysis'],
+                        help='Run one runtime case family only, useful for CI sharding')
     parser.add_argument('--skip-custom-widgets', action='store_true',
                         help='Exclude HelloCustomWidgets from --full-check to keep CI/runtime sweeps shorter')
     parser.add_argument('--jobs', type=int, default=0,
                         help='Parallel runtime cases for batch/full checks (default: auto, 0=auto)')
+    parser.add_argument('--shard-count', type=int, default=1,
+                        help='Split scoped runtime cases into N shards')
+    parser.add_argument('--shard-index', type=int, default=1,
+                        help='1-based shard index used with --shard-count')
     parser.add_argument('--speed', type=int, default=RECORDING_SPEED,
                         help='Action speed multiplier (default: %d, 1=normal)' % RECORDING_SPEED)
     parser.add_argument('--clock-scale', type=int, default=RECORDING_CLOCK_SCALE,
@@ -893,6 +975,30 @@ Examples:
     snapshot_stable_cycles = args.snapshot_stable_cycles
     snapshot_max_wait_ms = args.snapshot_max_wait_ms
 
+    if args.full_check and args.scope:
+        print("Error: --full-check cannot be combined with --scope")
+        sys.exit(1)
+
+    if args.app and args.scope:
+        print("Error: --app cannot be combined with --scope")
+        sys.exit(1)
+
+    if args.scope is None and args.shard_count != 1:
+        print("Error: --shard-count requires --scope")
+        sys.exit(1)
+
+    if args.scope is None and args.shard_index != 1:
+        print("Error: --shard-index requires --scope")
+        sys.exit(1)
+
+    if args.scope is not None and args.shard_count < 1:
+        print("Error: --shard-count must be >= 1")
+        sys.exit(1)
+
+    if args.scope is not None and args.shard_count == 1 and args.shard_index != 1:
+        print("Error: --shard-index must be 1 when --shard-count is 1")
+        sys.exit(1)
+
     if args.full_check:
         results = run_full_check(
             args.bits64,
@@ -904,6 +1010,27 @@ Examples:
             skip_custom_widgets=args.skip_custom_widgets,
             jobs=args.jobs,
         )
+        all_passed = print_summary(results)
+
+    elif args.scope:
+        try:
+            results = run_scope_check(
+                args.scope,
+                args.bits64,
+                explicit_timeout=args.timeout,
+                speed=speed,
+                clock_scale=clock_scale,
+                snapshot_settle_ms=snapshot_settle_ms,
+                snapshot_stable_cycles=snapshot_stable_cycles,
+                snapshot_max_wait_ms=snapshot_max_wait_ms,
+                skip_custom_widgets=args.skip_custom_widgets,
+                jobs=args.jobs,
+                shard_count=args.shard_count,
+                shard_index=args.shard_index,
+            )
+        except ValueError as exc:
+            print("Error: %s" % exc)
+            sys.exit(1)
         all_passed = print_summary(results)
 
     elif args.app:
