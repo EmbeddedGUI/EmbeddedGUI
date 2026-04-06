@@ -106,6 +106,13 @@ jobs:
   ci-dirty-animation:
     needs: [ci-compile-meta, ci-compile-matrix]
     runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - name: core
+            args: --scenario activity_ring --scenario analog_clock --scenario spinner
+          - name: showcase
+            args: --scenario animated_image --scenario showcase --scenario virtual_stage_showcase
     steps:
       - uses: actions/checkout@v6
 
@@ -119,8 +126,8 @@ jobs:
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Dirty animation check
-        run: python scripts\checks\code_dirty_animation_check.py --bits64
+      - name: Dirty animation check ${{ matrix.name }}
+        run: python scripts\checks\code_dirty_animation_check.py --bits64 ${{ matrix.args }}
 
   ci-showcase-parity:
     needs: [ci-compile-meta, ci-compile-matrix]
@@ -144,6 +151,15 @@ jobs:
   ci-virtual-render:
     needs: [ci-compile-meta, ci-compile-matrix]
     runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - name: shard-1
+            args: --shard-count 3 --shard-index 1
+          - name: shard-2
+            args: --shard-count 3 --shard-index 2
+          - name: shard-3
+            args: --shard-count 3 --shard-index 3
     steps:
       - uses: actions/checkout@v6
 
@@ -157,8 +173,8 @@ jobs:
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: HelloVirtual render workflow
-        run: python scripts\checks\hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --bits64
+      - name: HelloVirtual render workflow ${{ matrix.name }}
+        run: python scripts\checks\hello_basic_render_workflow.py --app HelloVirtual --suite basic ${{ matrix.args }} --skip-unit-tests --bits64
 
   ci-check:
     needs: [ci-runtime-matrix, ci-dirty-animation, ci-showcase-parity, ci-virtual-render]

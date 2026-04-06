@@ -97,6 +97,16 @@ def resolve_suite(config: dict, app: str, suite: str, explicit_widgets: str) -> 
     raise ValueError(f"unknown suite: {suite}")
 
 
+def apply_widget_shard(widgets: list[str], shard_count: int, shard_index: int) -> list[str]:
+    if shard_count <= 1:
+        return widgets
+
+    if shard_index < 1 or shard_index > shard_count:
+        raise ValueError("--shard-index must be in [1, --shard-count]")
+
+    return [widget for index, widget in enumerate(widgets) if index % shard_count == (shard_index - 1)]
+
+
 def detect_action_types(test_text: str) -> list[str]:
     action_tokens = {
         "click": ("EGUI_SIM_ACTION_CLICK", "EGUI_SIM_SET_CLICK_VIEW"),
@@ -428,6 +438,7 @@ def build_parser() -> argparse.ArgumentParser:
             "Examples:\n"
             "  python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --bits64\n"
             "  python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --widgets virtual_stage_showcase --skip-unit-tests --bits64\n"
+            "  python scripts/checks/hello_basic_render_workflow.py --app HelloVirtual --suite basic --shard-count 3 --shard-index 1 --skip-unit-tests --bits64\n"
             "  python scripts/checks/hello_basic_render_workflow.py --app HelloBasic --suite smoke\n"
         ),
     )
@@ -442,6 +453,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--snapshot-stable-cycles", type=int, default=runtime_check.RECORDING_SNAPSHOT_STABLE_CYCLES, help="Stable cycles before snapshot")
     parser.add_argument("--snapshot-max-wait-ms", type=int, default=runtime_check.RECORDING_SNAPSHOT_MAX_WAIT_MS, help="Snapshot max wait")
     parser.add_argument("--skip-unit-tests", action="store_true", help="Skip HelloUnitTest pre-check")
+    parser.add_argument("--shard-count", type=int, default=1, help="Split resolved widget set into N shards")
+    parser.add_argument("--shard-index", type=int, default=1, help="1-based shard index used with --shard-count")
     parser.add_argument("--report", default="", help="Report output path")
     return parser
 
@@ -451,9 +464,17 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
+    if args.shard_count < 1:
+        print("[FAIL] --shard-count must be >= 1")
+        return 1
+    if args.shard_count == 1 and args.shard_index != 1:
+        print("[FAIL] --shard-index must be 1 when --shard-count is 1")
+        return 1
+
     config = load_config()
     try:
         widgets = resolve_suite(config, args.app, args.suite, args.widgets)
+        widgets = apply_widget_shard(widgets, args.shard_count, args.shard_index)
     except ValueError as exc:
         print(f"[FAIL] {exc}")
         return 1
@@ -465,10 +486,13 @@ def main() -> int:
 
     report = {
         "suite": args.suite if not args.widgets else "custom",
+        "shard": {"count": args.shard_count, "index": args.shard_index},
         "widgets": widgets,
         "unit_test": {"skipped": bool(args.skip_unit_tests), "passed": False, "message": ""},
         "results": [],
     }
+
+    print(f"[INFO] Widget shard: {args.shard_index}/{args.shard_count}, selected {len(widgets)} widgets")
 
     if not args.skip_unit_tests:
         unit_ok, unit_message = run_hello_unit_test(bits64=args.bits64)
