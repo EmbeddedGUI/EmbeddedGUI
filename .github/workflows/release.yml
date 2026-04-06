@@ -23,6 +23,8 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
@@ -62,6 +64,8 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
@@ -96,6 +100,8 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
@@ -122,6 +128,8 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
@@ -141,12 +149,14 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
 
       - name: Virtual stage showcase parity check
-        run: python scripts\checks\showcase_stage_parity_check.py --timeout 35 --bits64
+        run: python scripts\checks\showcase_stage_parity_check.py --timeout 35 --bits64 --jobs 2
 
   ci-virtual-render:
     needs: [ci-compile-meta, ci-compile-matrix]
@@ -169,6 +179,8 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
@@ -198,6 +210,8 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt

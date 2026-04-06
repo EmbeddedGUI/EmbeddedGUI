@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import os
 import json
 import subprocess
 import sys
@@ -32,6 +34,7 @@ STAGE_APP_NAME = f"{STAGE_APP}_{STAGE_SUB_APP}"
 SHOWCASE_OUTPUT_SUBDIR = "parity_showcase"
 STAGE_OUTPUT_SUBDIR = "parity_stage"
 SHOWCASE_SNAPSHOT_MAX_WAIT_MS = 200
+PARITY_BUILD_ROOT = ROOT_DIR / "output" / "parity"
 
 STATE_LABELS = (
     "dark_initial",
@@ -63,9 +66,11 @@ def capture_app(
     snapshot_max_wait_ms: int,
     timeout: int,
     bits64: bool,
+    jobs: int,
 ) -> tuple[bool, str]:
-    if not compile_app_for_parity(app, app_sub, bits64):
-        return False, f"compile failed: {app_name}"
+    compile_ok, compile_result = compile_app_for_parity(app, app_sub, bits64, jobs)
+    if not compile_ok:
+        return False, f"compile failed: {app_name}: {compile_result}"
 
     return runtime_check.run_app(
         app_name,
@@ -77,25 +82,52 @@ def capture_app(
         snapshot_settle_ms=runtime_check.RECORDING_SNAPSHOT_SETTLE_MS,
         snapshot_stable_cycles=runtime_check.RECORDING_SNAPSHOT_STABLE_CYCLES,
         snapshot_max_wait_ms=snapshot_max_wait_ms,
+        build_output_dir=Path(compile_result),
     )
 
 
-def compile_app_for_parity(app: str, app_sub: str | None, bits64: bool) -> bool:
+def build_output_dir_for(app: str, app_sub: str | None, bits64: bool) -> Path:
+    key = build_parity_key(app, app_sub, bits64)
+    return PARITY_BUILD_ROOT / key
+
+
+def build_obj_suffix_for(app: str, app_sub: str | None, bits64: bool) -> str:
+    return "parity_" + build_parity_key(app, app_sub, bits64)
+
+
+def build_parity_key(app: str, app_sub: str | None, bits64: bool) -> str:
+    payload = "%s|%s|%s" % (app, app_sub or "", "64" if bits64 else "32")
+    return hashlib.sha1(payload.encode("utf-8")).hexdigest()[:10]
+
+
+def resolve_make_jobs(requested_jobs: int) -> int:
+    if requested_jobs > 0:
+        return requested_jobs
+    cpu_count = os.cpu_count() or 1
+    return min(2, max(1, cpu_count))
+
+
+def compile_app_for_parity(app: str, app_sub: str | None, bits64: bool, jobs: int) -> tuple[bool, str]:
     """Build with normal optimization so recording actions keep intermediate frames.
 
     The generic runtime-check path uses a fast `-O0` build. That is good enough for
     smoke checks, but `HelloShowcase` collapses its recording snapshots into a single
     final frame under that build mode, which makes parity comparison meaningless.
     """
-    subprocess.run(["make", "clean"], cwd=ROOT_DIR, capture_output=True)
+    build_output_dir = build_output_dir_for(app, app_sub, bits64)
+    build_output_dir.mkdir(parents=True, exist_ok=True)
+    make_jobs = resolve_make_jobs(jobs)
 
     command = [
         "make",
-        "-j1",
+        f"-j{make_jobs}",
         "all",
         f"APP={app}",
         "PORT=pc",
+        "COMPILE_DEBUG=",
         "USER_CFLAGS=-DEGUI_CONFIG_RECORDING_TEST=1 -DEGUI_SHOWCASE_PARITY_RECORDING=1",
+        f"OUTPUT_PATH={build_output_dir.as_posix()}",
+        f"APP_OBJ_SUFFIX={build_obj_suffix_for(app, app_sub, bits64)}",
     ]
     if bits64:
         command.append("BITS=64")
@@ -103,7 +135,13 @@ def compile_app_for_parity(app: str, app_sub: str | None, bits64: bool) -> bool:
         command.append(f"APP_SUB={app_sub}")
 
     result = subprocess.run(command, cwd=ROOT_DIR, capture_output=True, text=True)
-    return result.returncode == 0
+    if result.returncode == 0:
+        return True, str(build_output_dir)
+
+    combined_output = ((result.stdout or "") + "\n" + (result.stderr or "")).strip()
+    if not combined_output:
+        combined_output = "make returned non-zero exit code"
+    return False, combined_output
 
 
 def save_side_by_side(label: str, left_path: Path, right_path: Path, output_dir: Path) -> Path:
@@ -234,6 +272,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-hot-pixel-ratio", type=float, default=DEFAULT_MAX_HOT_PIXEL_RATIO, help="Maximum allowed changed-pixel ratio")
     parser.add_argument("--hot-pixel-delta", type=int, default=DEFAULT_HOT_PIXEL_DELTA, help="Per-pixel RGB delta used for changed-pixel ratio")
     parser.add_argument("--bits64", action="store_true", help="Build and run 64-bit binaries")
+    parser.add_argument("--jobs", type=int, default=0, help="Parallel make jobs for parity builds (0=auto)")
     return parser.parse_args()
 
 
@@ -249,6 +288,7 @@ def main() -> int:
         args.showcase_snapshot_max_wait_ms,
         args.timeout,
         args.bits64,
+        args.jobs,
     )
     print(f"[{'PASS' if success else 'FAIL'}] {SHOWCASE_APP_NAME}: {message}")
     if not success:
@@ -262,6 +302,7 @@ def main() -> int:
         args.stage_snapshot_max_wait_ms,
         args.timeout,
         args.bits64,
+        args.jobs,
     )
     print(f"[{'PASS' if success else 'FAIL'}] {STAGE_APP_NAME}: {message}")
     if not success:
