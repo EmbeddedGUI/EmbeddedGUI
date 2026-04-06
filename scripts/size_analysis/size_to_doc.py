@@ -331,8 +331,8 @@ def generate_size_overview():
         "## Generation Command",
         "",
         "```bash",
-        "python scripts/size_analysis/utils_analysis_elf_size.py --case-set typical",
-        "python scripts/size_analysis/size_to_doc.py",
+        "python scripts/size_analysis/main.py --case-set typical",
+        "python scripts/size_analysis/main.py size-to-doc",
         "```",
     ]
 
@@ -469,8 +469,8 @@ def generate_size_overview():
         "## Generation Command",
         "",
         "```bash",
-        "python scripts/size_analysis/utils_analysis_elf_size.py --case-set typical",
-        "python scripts/size_analysis/size_to_doc.py",
+        "python scripts/size_analysis/main.py --case-set typical",
+        "python scripts/size_analysis/main.py size-to-doc",
         "```",
     ]
 

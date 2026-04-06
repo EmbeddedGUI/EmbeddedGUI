@@ -484,7 +484,7 @@ def generate_report(entries, json_path, doc_path=None):
             "## Reproduce",
             "",
             "```bash",
-            "python scripts/size_analysis/widget_feature_size_to_doc.py",
+            "python scripts/size_analysis/main.py widget-feature-size-to-doc",
             "```",
             "",
             "Raw JSON is written to `output/widget_feature_size_results.json`.",

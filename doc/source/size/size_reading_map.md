@@ -134,10 +134,10 @@
 如果不想逐个记脚本入口，可以直接使用统一调度脚本：
 
 ```bash
-python scripts/size_analysis/run_size_suite.py --quick
-python scripts/size_analysis/run_size_suite.py --full
-python scripts/size_analysis/run_size_suite.py --only hq,widget
-python scripts/size_analysis/run_size_suite.py --list-steps
+python scripts/size_analysis/main.py run-size-suite --quick
+python scripts/size_analysis/main.py run-size-suite --full
+python scripts/size_analysis/main.py run-size-suite --only hq,widget
+python scripts/size_analysis/main.py run-size-suite --list-steps
 ```
 
 说明：

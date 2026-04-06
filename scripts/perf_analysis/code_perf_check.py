@@ -8,9 +8,9 @@ instruction counting (-icount shift=0), parses structured PERF_RESULT output,
 and generates JSON + Markdown reports.
 
 Usage:
-    python scripts/perf_analysis/code_perf_check.py --full-check
-    python scripts/perf_analysis/code_perf_check.py --profile cortex-m3
-    python scripts/perf_analysis/code_perf_check.py --threshold 15
+    python scripts/perf_analysis/main.py --full-check
+    python scripts/perf_analysis/main.py --profile cortex-m3
+    python scripts/perf_analysis/main.py --threshold 15
 """
 
 import os

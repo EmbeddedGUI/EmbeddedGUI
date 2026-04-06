@@ -119,7 +119,7 @@
 如果需要跑一轮统一回归，直接用：
 
 ```bash
-python scripts/size_analysis/run_size_suite.py --quick
-python scripts/size_analysis/run_size_suite.py --full
-python scripts/size_analysis/run_size_suite.py --only hq,canvas_feature,widget
+python scripts/size_analysis/main.py run-size-suite --quick
+python scripts/size_analysis/main.py run-size-suite --full
+python scripts/size_analysis/main.py run-size-suite --only hq,canvas_feature,widget
 ```

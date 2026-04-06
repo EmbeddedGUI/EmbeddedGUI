@@ -194,8 +194,8 @@ src/
 | `platform/` | 平台/工程维护脚本（如 `keil_project_sync.py`） |
 | `web/` | Emscripten/WASM 构建脚本（如 `wasm_build_demos.py`、`emcc_wrapper.py`） |
 | `recording/` | 录制与 GIF 导出辅助脚本 |
-| `perf_analysis/code_perf_check.py` | 性能测试 |
-| `size_analysis/utils_analysis_elf_size.py` | ELF 二进制大小分析 |
+| `perf_analysis/main.py` | 性能测试统一入口 |
+| `size_analysis/main.py` | ELF 二进制大小分析统一入口 |
 | `tools/` | 本地工具与资源生成工具（如 w64devkit、ffmpeg） |
 
 ## doc/ -- 文档

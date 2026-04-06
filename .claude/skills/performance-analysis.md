@@ -21,7 +21,7 @@ description: QEMU性能分析工作流 - 用于绘制优化、PFB设计、多缓
 ### 1) CPU基准（单配置）
 
 ```bash
-python scripts/perf_analysis/code_perf_check.py --profile cortex-m3
+python scripts/perf_analysis/main.py --profile cortex-m3
 ```
 
 输出：
@@ -31,7 +31,7 @@ python scripts/perf_analysis/code_perf_check.py --profile cortex-m3
 ### 2) PFB矩阵
 
 ```bash
-python scripts/perf_analysis/code_perf_check.py --pfb-matrix
+python scripts/perf_analysis/main.py --pfb-matrix
 ```
 
 输出：
@@ -41,7 +41,7 @@ python scripts/perf_analysis/code_perf_check.py --pfb-matrix
 ### 3) SPI矩阵（缓冲区数量/传输速率）
 
 ```bash
-python scripts/perf_analysis/code_perf_check.py --spi-matrix
+python scripts/perf_analysis/main.py --spi-matrix
 ```
 
 输出：
@@ -51,7 +51,7 @@ python scripts/perf_analysis/code_perf_check.py --spi-matrix
 ### 4) 一次跑全套
 
 ```bash
-python scripts/perf_analysis/code_perf_check.py --full-check
+python scripts/perf_analysis/main.py --full-check
 ```
 
 ## 建议工作流
@@ -89,7 +89,7 @@ python scripts/perf_analysis/code_perf_check.py --full-check
 ### 一次性生成所有报告和图片（推荐）
 
 ```bash
-python scripts/perf_analysis/code_perf_check.py --full-check --doc
+python scripts/perf_analysis/main.py --full-check --doc
 ```
 
 这个命令会：
@@ -105,7 +105,7 @@ python scripts/perf_analysis/code_perf_check.py --full-check --doc
 ### 仅生成文档和图片（使用已有测试结果）
 
 ```bash
-python scripts/perf_analysis/code_perf_check.py --doc
+python scripts/perf_analysis/main.py --doc
 ```
 
 如果 `perf_output/` 目录下已经有测试结果（`perf_results.json`, `pfb_matrix_results.json`, `spi_matrix_results.json`），这个命令会：
@@ -115,10 +115,10 @@ python scripts/perf_analysis/code_perf_check.py --doc
 
 ### 图片生成说明
 
-- **perf_report.png**：由 `scripts/perf_analysis/perf_to_doc.py` 的 `generate_perf_report()` 生成，使用 matplotlib 绘制分类柱状图
-- **pfb_matrix_report.png**：由 `scripts/perf_analysis/perf_to_doc.py` 的 `generate_pfb_matrix_report()` 生成，使用 matplotlib 绘制热力图
-- **spi_matrix_report.png**：由 `scripts/perf_analysis/perf_to_doc.py` 的 `generate_spi_matrix_report()` 生成，使用 matplotlib 绘制对比柱状图
-- **perf_scenes.png**：由 `scripts/perf_analysis/perf_scene_capture.py` 生成，使用 PC 模拟器渲染所有测试场景并拼接成联系表
+- **perf_report.png**：可通过 `python scripts/perf_analysis/main.py perf-to-doc` 生成，底层使用 matplotlib 绘制分类柱状图
+- **pfb_matrix_report.png**：可通过 `python scripts/perf_analysis/main.py perf-to-doc --only pfb` 生成，底层使用 matplotlib 绘制热力图
+- **spi_matrix_report.png**：可通过 `python scripts/perf_analysis/main.py perf-to-doc --only spi` 生成，底层使用 matplotlib 绘制对比柱状图
+- **perf_scenes.png**：可通过 `python scripts/perf_analysis/main.py scene-capture` 生成，使用 PC 模拟器渲染所有测试场景并拼接成联系表
 
 ### 重要提示
 

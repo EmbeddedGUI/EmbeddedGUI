@@ -4,7 +4,7 @@
 Generate Markdown and CSV reports from DIRTY_REGION_STATS logs.
 
 Usage:
-    python scripts/perf_analysis/dirty_region_stats_report.py \
+    python scripts/perf_analysis/main.py dirty-region-report \
         --input textinput=perf_output/dirty_region_logs/textinput.log \
         --input number_picker=perf_output/dirty_region_logs/number_picker.log \
         --output-prefix perf_output/dirty_region_stats
