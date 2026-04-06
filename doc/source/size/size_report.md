@@ -1,7 +1,7 @@
 # QEMU Size And Memory Report
 
-- Commit: `e0b6ff8`
-- Date: 2026-04-05T18:02:35.777092
+- Commit: `80ac987`
+- Date: 2026-04-06T21:19:56.243500
 - Build target: `PORT=qemu CPU_ARCH=cortex-m0plus`
 - Runtime target: `qemu-system-arm -machine mps2-an385 -cpu cortex-m3`
 - Scope: `HelloBasic(button,image,label)`, `HelloSimple`, `HelloShowcase`, `HelloVirtual(virtual_stage_showcase)`
@@ -11,14 +11,14 @@
 
 ## Overview
 
-- Smallest Code: **HelloBasic(label)** (17180 bytes)
-- Largest Code: **HelloVirtual(virtual_stage_showcase)** (178356 bytes)
+- Smallest Code: **HelloBasic(label)** (16352 bytes)
+- Largest Code: **HelloVirtual(virtual_stage_showcase)** (165848 bytes)
 - Smallest RAM: **HelloSimple** (1049 bytes)
-- Largest RAM: **HelloShowcase** (14897 bytes)
+- Largest RAM: **HelloShowcase** (14945 bytes)
 - Smallest Heap Peak: **HelloBasic(button)** (0 bytes)
 - Largest Heap Peak: **HelloVirtual(virtual_stage_showcase)** (2872 bytes)
-- Smallest Stack Peak: **HelloSimple** (788 bytes)
-- Largest Stack Peak: **HelloVirtual(virtual_stage_showcase)** (2608 bytes)
+- Smallest Stack Peak: **HelloSimple** (820 bytes)
+- Largest Stack Peak: **HelloVirtual(virtual_stage_showcase)** (2600 bytes)
 
 ## Charts
 
@@ -28,9 +28,9 @@
 
 | App | Code | Resource | RAM | PFB | Heap Idle | Heap Init Peak | Heap Interaction Peak | Heap Peak | Stack Peak | Actions | Total ROM |
 |-----|------|----------|-----|-----|-----------|----------------|-----------------------|-----------|------------|---------|-----------|
-| HelloBasic(button) | 22744 | 17956 | 1294 | 4800 | 0 | 0 | 0 | 0 | 1040 | 5 | 40700 |
-| HelloBasic(image) | 45212 | 72176 | 2003 | 4800 | 824 | 1724 | 1804 | 1804 | 1080 | 3 | 117388 |
-| HelloBasic(label) | 17180 | 5993 | 1153 | 4800 | 0 | 0 | 0 | 0 | 968 | 1 | 23173 |
-| HelloSimple | 18236 | 6708 | 1049 | 4800 | 0 | 0 | 0 | 0 | 788 | 3 | 24944 |
-| HelloShowcase | 158260 | 64858 | 14897 | 40960 | 0 | 0 | 0 | 0 | 2400 | 13 | 223118 |
-| HelloVirtual(virtual_stage_showcase) | 178356 | 66846 | 8819 | 40960 | 2756 | 2756 | 2872 | 2872 | 2608 | 19 | 245202 |
+| HelloBasic(button) | 20608 | 17956 | 1294 | 4800 | 0 | 0 | 0 | 0 | 1048 | 5 | 38564 |
+| HelloBasic(image) | 42164 | 72176 | 2003 | 4800 | 824 | 1724 | 1804 | 1804 | 1088 | 3 | 114340 |
+| HelloBasic(label) | 16352 | 5993 | 1153 | 4800 | 0 | 0 | 0 | 0 | 976 | 1 | 22345 |
+| HelloSimple | 16480 | 6708 | 1049 | 4800 | 0 | 0 | 0 | 0 | 820 | 3 | 23188 |
+| HelloShowcase | 145752 | 65222 | 14945 | 40960 | 0 | 0 | 0 | 0 | 2408 | 13 | 210974 |
+| HelloVirtual(virtual_stage_showcase) | 165848 | 67210 | 8819 | 40960 | 2756 | 2756 | 2872 | 2872 | 2600 | 19 | 233058 |
