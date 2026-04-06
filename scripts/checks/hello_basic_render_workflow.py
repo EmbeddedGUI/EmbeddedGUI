@@ -48,32 +48,27 @@ def get_all_widgets(app: str) -> list[str]:
 
 
 def clean_runtime_build() -> tuple[bool, str]:
-    result = subprocess.run(["make", "clean"], cwd=ROOT_DIR, capture_output=True, text=True)
-    if result.returncode != 0:
-        return False, "make clean failed before sub-app workflow"
-    return True, "make clean passed"
+    return True, "isolated runtime build dirs enabled"
 
 
-def compile_widget_runtime(app: str, widget: str, bits64: bool = False) -> tuple[bool, str]:
-    recording_flag = "-DEGUI_CONFIG_RECORDING_TEST=1"
-    target_name = f"{app}_{widget}"
-    cmd = ["make", "-j", f"APP={app}", "PORT=pc"] + runtime_check.COMPILE_FAST_FLAGS
-    cmd.append(f"APP_SUB={widget}")
-    cmd.append(f"TARGET={target_name}")
-    if bits64:
-        cmd.append("BITS=64")
-    cmd.append(f"USER_CFLAGS={recording_flag}")
-
-    last_message = "compile failed"
-    for attempt in range(3):
-        result = subprocess.run(cmd, cwd=ROOT_DIR, capture_output=True, text=True)
-        if result.returncode == 0:
-            return True, target_name
-        combined_output = ((result.stdout or "") + "\n" + (result.stderr or "")).strip()
-        last_message = combined_output or "compile failed"
-        time.sleep(1)
-
-    return False, last_message
+def compile_widget_runtime(app: str, widget: str, bits64: bool = False, make_jobs: int | None = None) -> tuple[bool, str]:
+    build_output_dir = runtime_check.get_runtime_build_output_dir(
+        app,
+        app_sub=widget,
+        bits64=bits64,
+        recording_test=True,
+    )
+    compile_ok = runtime_check.compile_app(
+        app,
+        widget,
+        bits64,
+        recording_test=True,
+        build_output_dir=build_output_dir,
+        make_jobs=make_jobs,
+    )
+    if not compile_ok:
+        return False, "compile failed"
+    return True, str(build_output_dir)
 
 
 def resolve_suite(config: dict, app: str, suite: str, explicit_widgets: str) -> list[str]:
@@ -291,36 +286,19 @@ def get_windows_hidden_run_kwargs() -> dict:
     return {}
 
 
-def run_target_app(app: str, target_name: str, widget: str, args: argparse.Namespace) -> tuple[bool, str]:
-    frames_dir = OUTPUT_ROOT / f"{app}_{widget}" / "default"
-    frames_dir.mkdir(parents=True, exist_ok=True)
-
-    exe_candidates = []
-    if platform.system() == "Windows":
-        exe_candidates.append(ROOT_DIR / "output" / f"{target_name}.exe")
-        exe_candidates.append(ROOT_DIR / "output" / "main.exe")
-    else:
-        exe_candidates.append(ROOT_DIR / "output" / target_name)
-        exe_candidates.append(ROOT_DIR / "output" / "main")
-
-    exe_path = next((candidate for candidate in exe_candidates if candidate.exists()), None)
-    resource_path = ROOT_DIR / "output" / "app_egui_resource_merge.bin"
-
-    if exe_path is None:
-        return False, "executable not found: " + ", ".join(str(path) for path in exe_candidates)
-
+def run_target_app(app: str, build_output_dir: str, widget: str, args: argparse.Namespace) -> tuple[bool, str]:
     timeout = max(runtime_check.RECORDING_DURATION + 5, args.timeout)
-    return runtime_check.run_recording_capture(
-        exe_path,
-        resource_path,
-        frames_dir,
-        timeout,
-        runtime_check.RECORDING_DURATION,
-        args.speed,
-        args.snapshot_settle_ms,
-        args.clock_scale,
-        args.snapshot_stable_cycles,
-        args.snapshot_max_wait_ms,
+    return runtime_check.run_app(
+        runtime_check.format_app_name(app, widget),
+        "default",
+        timeout=timeout,
+        duration=runtime_check.RECORDING_DURATION,
+        speed=args.speed,
+        snapshot_settle_ms=args.snapshot_settle_ms,
+        clock_scale=args.clock_scale,
+        snapshot_stable_cycles=args.snapshot_stable_cycles,
+        snapshot_max_wait_ms=args.snapshot_max_wait_ms,
+        build_output_dir=Path(build_output_dir),
     )
 
 
@@ -375,7 +353,8 @@ def run_widget(app: str, widget: str, args: argparse.Namespace, config: dict) ->
         result["runtime_check"]["message"] = static_info["reason"]
         return result
 
-    compile_ok, compile_message = compile_widget_runtime(app, widget, bits64=args.bits64)
+    make_jobs = args.make_jobs if args.make_jobs > 0 else None
+    compile_ok, compile_message = compile_widget_runtime(app, widget, bits64=args.bits64, make_jobs=make_jobs)
     result["compile_check"] = {"passed": bool(compile_ok), "message": compile_message}
     if not compile_ok:
         return result
@@ -455,6 +434,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--skip-unit-tests", action="store_true", help="Skip HelloUnitTest pre-check")
     parser.add_argument("--shard-count", type=int, default=1, help="Split resolved widget set into N shards")
     parser.add_argument("--shard-index", type=int, default=1, help="1-based shard index used with --shard-count")
+    parser.add_argument("--make-jobs", type=int, default=0, help="Per-widget make -j value, 0 uses make default")
     parser.add_argument("--report", default="", help="Report output path")
     return parser
 

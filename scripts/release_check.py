@@ -21,6 +21,7 @@ import sys
 import time
 import argparse
 import subprocess
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
@@ -56,6 +57,14 @@ STEP_DESCRIPTIONS = {
     "doc": "Sphinx documentation build",
 }
 
+LOCAL_DIRTY_SCENARIO_GROUPS = (
+    ("core", ["activity_ring", "analog_clock", "spinner"]),
+    ("showcase", ["animated_image", "showcase", "virtual_stage_showcase"]),
+)
+
+LOCAL_VIRTUAL_RENDER_SHARDS = 3
+LOCAL_VIRTUAL_RENDER_MAKE_JOBS = 4
+
 
 def build_steps(args):
     """Build the list of (name, description, command) tuples based on CLI args."""
@@ -77,7 +86,7 @@ def build_steps(args):
     if not args.runtime_include_custom_widgets:
         runtime_cmd.append("--skip-custom-widgets")
     dirty_anim_cmd = [py, str(SCRIPT_DIR / "checks" / "code_dirty_animation_check.py")]
-    stage_parity_cmd = [py, str(SCRIPT_DIR / "checks" / "showcase_stage_parity_check.py"), "--timeout", "35"]
+    stage_parity_cmd = [py, str(SCRIPT_DIR / "checks" / "showcase_stage_parity_check.py"), "--timeout", "35", "--jobs", "2"]
     virtual_render_cmd = [
         py,
         str(SCRIPT_DIR / "checks" / "hello_basic_render_workflow.py"),
@@ -113,6 +122,101 @@ def build_steps(args):
         ("perf", STEP_DESCRIPTIONS["perf"], perf_cmd),
         ("doc", STEP_DESCRIPTIONS["doc"], [py, "-m", "sphinx", "-M", "html", str(PROJECT_ROOT / "doc" / "source"), str(PROJECT_ROOT / "doc" / "build")]),
     ]
+
+
+def format_command(cmd):
+    return " ".join(cmd)
+
+
+def build_parallel_step_commands(step_name, args):
+    py = sys.executable
+
+    if step_name == "dirty_anim":
+        commands = []
+        for label, scenarios in LOCAL_DIRTY_SCENARIO_GROUPS:
+            cmd = [py, str(SCRIPT_DIR / "checks" / "code_dirty_animation_check.py")]
+            if args.bits64:
+                cmd.append("--bits64")
+            for scenario in scenarios:
+                cmd.extend(["--scenario", scenario])
+            commands.append((label, cmd))
+        return commands
+
+    if step_name == "virtual_render":
+        commands = []
+        for shard_index in range(1, LOCAL_VIRTUAL_RENDER_SHARDS + 1):
+            cmd = [
+                py,
+                str(SCRIPT_DIR / "checks" / "hello_basic_render_workflow.py"),
+                "--app",
+                "HelloVirtual",
+                "--suite",
+                "basic",
+                "--skip-unit-tests",
+                "--shard-count",
+                str(LOCAL_VIRTUAL_RENDER_SHARDS),
+                "--shard-index",
+                str(shard_index),
+                "--make-jobs",
+                str(LOCAL_VIRTUAL_RENDER_MAKE_JOBS),
+            ]
+            if args.bits64:
+                cmd.append("--bits64")
+            commands.append((f"shard-{shard_index}", cmd))
+        return commands
+
+    return None
+
+
+def run_parallel_commands(step_name, commands, env):
+    print("  Parallel subcommands:", flush=True)
+    for label, cmd in commands:
+        print(f"    - [{label}] {format_command(cmd)}", flush=True)
+
+    failures = []
+    with ThreadPoolExecutor(max_workers=len(commands)) as executor:
+        future_map = {
+            executor.submit(
+                subprocess.run,
+                cmd,
+                cwd=PROJECT_ROOT,
+                env=env,
+                capture_output=True,
+                text=True,
+            ): (label, cmd)
+            for label, cmd in commands
+        }
+
+        completed = 0
+        total = len(commands)
+        for future in as_completed(future_map):
+            completed += 1
+            label, cmd = future_map[future]
+            result = future.result()
+            status = "PASS" if result.returncode == 0 else "FAIL"
+            print(f"  [{completed}/{total}] {label} {status}", flush=True)
+            if result.returncode != 0:
+                failures.append((label, cmd, result))
+
+    if not failures:
+        return 0
+
+    print(f"\n  {step_name} failed in {len(failures)} subcommand(s):", flush=True)
+    for label, cmd, result in failures:
+        print(f"  --- {label} ---", flush=True)
+        print(f"  Command: {format_command(cmd)}", flush=True)
+        stdout_tail = (result.stdout or "").splitlines()[-80:]
+        stderr_tail = (result.stderr or "").splitlines()[-80:]
+        if stdout_tail:
+            print("  stdout:", flush=True)
+            for line in stdout_tail:
+                print("    " + line, flush=True)
+        if stderr_tail:
+            print("  stderr:", flush=True)
+            for line in stderr_tail:
+                print("    " + line, flush=True)
+
+    return 1
 
 
 STATUS_PASS = "PASS"
@@ -264,9 +368,15 @@ def main():
         try:
             env = os.environ.copy()
             env.setdefault("PYTHONUNBUFFERED", "1")
-            ret = subprocess.run(cmd, cwd=PROJECT_ROOT, env=env)
+            parallel_cmds = build_parallel_step_commands(name, args)
+            if parallel_cmds:
+                retcode = run_parallel_commands(name, parallel_cmds, env)
+                ret = None
+            else:
+                ret = subprocess.run(cmd, cwd=PROJECT_ROOT, env=env)
+                retcode = ret.returncode
             elapsed = time.time() - step_start
-            if ret.returncode == 0:
+            if retcode == 0:
                 results.append((name, desc, STATUS_PASS, elapsed))
             else:
                 results.append((name, desc, STATUS_FAIL, elapsed))
