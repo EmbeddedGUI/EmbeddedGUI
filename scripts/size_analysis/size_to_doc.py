@@ -40,9 +40,10 @@ def setup_matplotlib():
     return plt
 
 
-def load_json(path):
+def load_json(path, warn_if_missing=True):
     if not path.exists():
-        print("  [WARN] File not found: %s" % path)
+        if warn_if_missing:
+            print("  [WARN] File not found: %s" % path)
         return None
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -72,7 +73,7 @@ def _format_case_scope():
 
 def _build_legacy_compare_lines():
     qemu_data = load_json(SIZE_OUTPUT / "size_results.json")
-    legacy_data = load_json(LEGACY_SIZE_OUTPUT)
+    legacy_data = load_json(LEGACY_SIZE_OUTPUT, warn_if_missing=False)
 
     if not qemu_data or not legacy_data:
         return []
@@ -349,7 +350,7 @@ def _format_case_scope():
 
 def _build_legacy_compare_lines():
     qemu_data = load_json(SIZE_OUTPUT / "size_results.json")
-    legacy_data = load_json(LEGACY_SIZE_OUTPUT)
+    legacy_data = load_json(LEGACY_SIZE_OUTPUT, warn_if_missing=False)
 
     if not qemu_data or not legacy_data:
         return []
