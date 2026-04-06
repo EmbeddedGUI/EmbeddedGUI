@@ -176,17 +176,6 @@ extern "C" {
 
 /**
  * Font cache options.
- * When 1, use compact uint8_t fields for ASCII code lookup cache (saves ~20 B BSS).
- * Only suitable for pure ASCII fonts (code <=
- * 255).
- * When 0, use uint16_t/uint32_t fields for full Unicode support.
- */
-#ifndef EGUI_CONFIG_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT
-#define EGUI_CONFIG_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT 0
-#endif
-
-/**
- * Font cache options.
  * When 1, build ASCII (0~127) direct lookup table for O(1) glyph access.
  * Allocates ~140 B heap + 8 B BSS on first use, persists across frames.
  * When 0, all ASCII characters use optimized binary search with multi-level cache.
@@ -195,27 +184,6 @@ extern "C" {
  */
 #ifndef EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE
 #define EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE 0
-#endif
-
-/**
- * Font cache options.
- * When 1, use uint8_t for ASCII lookup index (max 255 glyphs, saves ~128 B heap).
- * When 0, use uint16_t (supports up to 65535 glyphs).
- * Only effective when EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE is 1.
- */
-#ifndef EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_INDEX_8BIT
-#define EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_INDEX_8BIT 0
-#endif
-
-/**
- * Font cache options.
- * When 1, cache multi-line text line split results to avoid rescanning '\n' on every draw.
- * Allocates ~164 B heap for recent string split cache.
- * When 0, rescan line breaks on every get_str_size or draw call.
- * Default: 0 (disabled) to save RAM. Enable for UI with multi-line labels.
- */
-#ifndef EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE
-#define EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE 0
 #endif
 
 /**

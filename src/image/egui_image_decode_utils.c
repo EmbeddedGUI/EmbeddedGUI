@@ -26,13 +26,8 @@ typedef uint32_t egui_image_decode_capacity_t;
 uint8_t *egui_image_decode_row_pixel_buf = NULL;
 static egui_image_decode_capacity_t g_egui_image_decode_row_pixel_buf_capacity = 0;
 #endif
-#if EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE && !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
-#error "EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE requires EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE"
-#endif
-#if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE || !EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
 uint8_t *egui_image_decode_row_alpha_buf = NULL;
 static egui_image_decode_capacity_t g_egui_image_decode_row_alpha_buf_capacity = 0;
-#endif
 
 #if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 static uint8_t *egui_image_decode_prepare_single_row_pixel_buf(uint8_t bytes_per_pixel)
@@ -65,7 +60,6 @@ static uint8_t *egui_image_decode_prepare_single_row_pixel_buf(uint8_t bytes_per
 }
 #endif
 
-#if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE || !EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
 static uint8_t *egui_image_decode_prepare_single_row_alpha_buf(uint16_t alpha_row_bytes)
 {
     uint32_t required_bytes;
@@ -94,7 +88,6 @@ static uint8_t *egui_image_decode_prepare_single_row_alpha_buf(uint16_t alpha_ro
     g_egui_image_decode_row_alpha_buf_capacity = (egui_image_decode_capacity_t)required_bytes;
     return egui_image_decode_row_alpha_buf;
 }
-#endif
 
 #if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 /* Row-band decode cache: frame-local heap scratch sized from the active image row band. */
@@ -207,14 +200,12 @@ int egui_image_decode_cache_prepare_rows(uint16_t img_width, uint16_t row_count,
 
 void egui_image_decode_release_frame_cache(void)
 {
-#if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE || !EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
     if (egui_image_decode_row_alpha_buf != NULL)
     {
         egui_free(egui_image_decode_row_alpha_buf);
         egui_image_decode_row_alpha_buf = NULL;
     }
     g_egui_image_decode_row_alpha_buf_capacity = 0;
-#endif
 
     if (egui_image_decode_row_cache_pixel != NULL)
     {
@@ -284,14 +275,12 @@ void egui_image_decode_release_frame_cache(void)
     }
     g_egui_image_decode_row_pixel_buf_capacity = 0;
 
-#if !EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
     if (egui_image_decode_row_alpha_buf != NULL)
     {
         egui_free(egui_image_decode_row_alpha_buf);
         egui_image_decode_row_alpha_buf = NULL;
     }
     g_egui_image_decode_row_alpha_buf_capacity = 0;
-#endif
 }
 #endif
 
@@ -306,15 +295,7 @@ uint8_t *egui_image_decode_get_opaque_alpha_row(egui_dim_t count)
 
     EGUI_ASSERT(count >= 0 && count <= EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH);
 
-#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE && EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
-    if (!egui_image_decode_cache_prepare_bytes(0, (uint32_t)count))
-    {
-        return NULL;
-    }
-    opaque_alpha_row = egui_image_decode_row_cache_alpha;
-#else
     opaque_alpha_row = egui_image_decode_prepare_single_row_alpha_buf((uint16_t)count);
-#endif
 
     if (opaque_alpha_row == NULL)
     {
@@ -329,15 +310,7 @@ uint8_t *egui_image_decode_get_row_alpha_scratch(uint16_t alpha_row_bytes)
 {
     EGUI_ASSERT(alpha_row_bytes <= EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH);
 
-#if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE || !EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
     return egui_image_decode_prepare_single_row_alpha_buf(alpha_row_bytes);
-#else
-    if (egui_image_decode_row_cache_alpha == NULL && !egui_image_decode_cache_prepare_bytes(0, alpha_row_bytes))
-    {
-        return NULL;
-    }
-    return egui_image_decode_row_cache_alpha;
-#endif
 }
 
 #if EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES > 0

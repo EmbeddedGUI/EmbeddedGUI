@@ -12,7 +12,7 @@
 - 其中：
   - `EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH` 仍是当前 HelloPerformance app-side active 设置
   - `EGUI_CONFIG_CORE_SEPARATE_USER_ROOT_GROUP_ENABLE` / `EGUI_CONFIG_FUNCTION_SUPPORT_ACTIVITY` / `EGUI_CONFIG_FUNCTION_SUPPORT_DIALOG` 已不再由 `HelloPerformance/app_egui_config.h` 明确定义，但旧文档长期把它们当 active override，需要用当前主线结论纠偏
-  - `EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS` / `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE` 已回到框架默认，只保留历史实验值记录
+  - `EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS` / `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE` 已分别收敛为“实现内固定 `4`”与“框架默认 `1024`”，这里只保留历史实验值记录
 
 ## 依据来源
 
@@ -95,6 +95,8 @@
 
 ### `EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS`
 
+> `2026-04-06` 起，这个名字不再是当前框架 public 配置入口；当前主线已把它内收为 `src/image/egui_image_std.c` 私有默认 `4`。下面保留的是历史 A/B 记录，用来说明为什么它不再值得继续保留为公共宏。
+
 - `../../doc/source/performance/low_ram_config_macros.md` 对当前量级给出的估算是：
   - 默认 `4`
   - HelloPerformance 当前默认 `4`（历史实验值 `0`）
@@ -123,7 +125,7 @@
   - 这颗宏当前不应再被写成 `HelloPerformance=0`
   - 虽然关闭后当前 perf 没有变慢，且还能回收 `text -156B, bss -40B`
   - 但它会带来 `8` 帧真实 render diff，因此当前不能把 `0` 视为安全等价的 low-RAM 档位
-  - 结论是保持当前默认 `4`，历史实验值 `0` 仅保留为后续 render-diff 排查入口
+  - 结论是：这个名字已从 public 配置面移除，当前实现内固定 `4`；历史实验值 `0` 仅保留为后续 render-diff 排查入口
 
 ### `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE`
 
@@ -167,5 +169,5 @@
 - 这组项已经全部有结论：
 - `touch` 仍是当前唯一 active static-RAM override，且已被完整 `size / perf / runtime / unit` 重新确认需要继续保留
 - `user_root / activity / dialog` 已从当前 active override 清单移出；若后续继续评估，语义应是行为/功能实验，而不是 small static-RAM cleanup
-  - `alpha opaque slots` 已回到默认 `4`，`2026-04-05` recheck 继续确认历史实验值 `0` 会带来 `8` 帧真实 render diff，而 `4 vs 4 repeat` 控制组全量等价
+  - `alpha opaque slots` 已内收到实现私有默认 `4`，`2026-04-05` recheck 继续确认历史实验值 `0` 会带来 `8` 帧真实 render diff，而 `4 vs 4 repeat` 控制组全量等价
   - `RLE external cache window` 已回到默认 `1024`，`2026-04-05` recheck 继续确认历史实验值 `64` 虽能回收 `bss -1024B`，但 external RLE 主路径仍会回退 `+17.5% ~ +21.8%`

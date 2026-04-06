@@ -11,115 +11,6 @@
 
 extern const egui_circle_info_t egui_res_circle_info_arr[];
 
-#ifndef EGUI_CONFIG_MASK_CIRCLE_FRAME_ROW_CACHE_ENABLE
-#define EGUI_CONFIG_MASK_CIRCLE_FRAME_ROW_CACHE_ENABLE 0
-#endif
-
-#if EGUI_CONFIG_MASK_CIRCLE_FRAME_ROW_CACHE_ENABLE
-struct egui_mask_circle_frame_row_cache
-{
-    egui_mask_circle_t *owner;
-    egui_dim_t *row_cache_y;
-    egui_dim_t *row_cache_visible_half;
-    egui_dim_t *row_cache_opaque_boundary;
-};
-
-static egui_mask_circle_frame_row_cache_t g_egui_mask_circle_frame_row_cache = {0};
-
-__EGUI_STATIC_INLINE__ void egui_mask_circle_fill_invalid_row_cache(egui_mask_circle_frame_row_cache_t *cache)
-{
-    if (cache == NULL || cache->row_cache_y == NULL)
-    {
-        return;
-    }
-
-    for (egui_dim_t i = 0; i < EGUI_CONFIG_PFB_HEIGHT; i++)
-    {
-        cache->row_cache_y[i] = -32768;
-    }
-}
-
-__EGUI_STATIC_INLINE__ egui_mask_circle_frame_row_cache_t *egui_mask_circle_prepare_frame_row_cache(egui_mask_circle_t *local)
-{
-    egui_mask_circle_frame_row_cache_t *cache = &g_egui_mask_circle_frame_row_cache;
-
-    if (cache->row_cache_y == NULL)
-    {
-        egui_dim_t *rows = (egui_dim_t *)egui_malloc((int)(sizeof(egui_dim_t) * EGUI_CONFIG_PFB_HEIGHT * 3));
-
-        if (rows == NULL)
-        {
-            return NULL;
-        }
-
-        cache->row_cache_y = rows;
-        cache->row_cache_visible_half = rows + EGUI_CONFIG_PFB_HEIGHT;
-        cache->row_cache_opaque_boundary = rows + EGUI_CONFIG_PFB_HEIGHT * 2;
-        egui_mask_circle_fill_invalid_row_cache(cache);
-    }
-
-    if (cache->owner != local)
-    {
-        cache->owner = local;
-        egui_mask_circle_fill_invalid_row_cache(cache);
-    }
-
-    return cache;
-}
-
-__EGUI_STATIC_INLINE__ void egui_mask_circle_invalidate_row_cache(egui_mask_circle_t *local)
-{
-    if (g_egui_mask_circle_frame_row_cache.owner != local)
-    {
-        return;
-    }
-
-    egui_mask_circle_fill_invalid_row_cache(&g_egui_mask_circle_frame_row_cache);
-}
-
-__EGUI_STATIC_INLINE__ egui_dim_t egui_mask_circle_get_row_cache_slot(egui_dim_t y)
-{
-    return ((uint16_t)y) % EGUI_CONFIG_PFB_HEIGHT;
-}
-
-__EGUI_STATIC_INLINE__ int egui_mask_circle_get_cached_row(egui_mask_circle_t *local, egui_dim_t y, egui_dim_t *visible_half, egui_dim_t *opaque_boundary)
-{
-    egui_mask_circle_frame_row_cache_t *cache = egui_mask_circle_prepare_frame_row_cache(local);
-    egui_dim_t slot = egui_mask_circle_get_row_cache_slot(y);
-
-    if (cache == NULL || cache->row_cache_y[slot] != y)
-    {
-        return 0;
-    }
-
-    if (visible_half != NULL)
-    {
-        *visible_half = cache->row_cache_visible_half[slot];
-    }
-
-    if (opaque_boundary != NULL)
-    {
-        *opaque_boundary = cache->row_cache_opaque_boundary[slot];
-    }
-
-    return 1;
-}
-
-__EGUI_STATIC_INLINE__ void egui_mask_circle_store_row(egui_mask_circle_t *local, egui_dim_t y, egui_dim_t visible_half, egui_dim_t opaque_boundary)
-{
-    egui_mask_circle_frame_row_cache_t *cache = egui_mask_circle_prepare_frame_row_cache(local);
-    egui_dim_t slot = egui_mask_circle_get_row_cache_slot(y);
-
-    if (cache == NULL)
-    {
-        return;
-    }
-
-    cache->row_cache_y[slot] = y;
-    cache->row_cache_visible_half[slot] = visible_half;
-    cache->row_cache_opaque_boundary[slot] = opaque_boundary;
-}
-#else
 __EGUI_STATIC_INLINE__ void egui_mask_circle_invalidate_row_cache(egui_mask_circle_t *local)
 {
     (void)local;
@@ -141,7 +32,6 @@ __EGUI_STATIC_INLINE__ void egui_mask_circle_store_row(egui_mask_circle_t *local
     (void)visible_half;
     (void)opaque_boundary;
 }
-#endif
 
 __EGUI_STATIC_INLINE__ void egui_mask_circle_refresh_cache(egui_mask_t *self)
 {
@@ -431,17 +321,6 @@ int egui_mask_circle_prepare_row(egui_mask_circle_t *local, egui_dim_t y, egui_d
 
 void egui_mask_circle_release_frame_cache(void)
 {
-#if EGUI_CONFIG_MASK_CIRCLE_FRAME_ROW_CACHE_ENABLE
-    if (g_egui_mask_circle_frame_row_cache.row_cache_y != NULL)
-    {
-        egui_free(g_egui_mask_circle_frame_row_cache.row_cache_y);
-    }
-
-    g_egui_mask_circle_frame_row_cache.owner = NULL;
-    g_egui_mask_circle_frame_row_cache.row_cache_y = NULL;
-    g_egui_mask_circle_frame_row_cache.row_cache_visible_half = NULL;
-    g_egui_mask_circle_frame_row_cache.row_cache_opaque_boundary = NULL;
-#endif
 }
 
 static void egui_mask_circle_blend_solid_row(egui_color_int_t *dst, egui_dim_t count, egui_color_t color, egui_alpha_t alpha)

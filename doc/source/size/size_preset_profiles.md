@@ -83,7 +83,7 @@
 
 当前模板的特点：
 
-- 打开 `SCROLLBAR`、`TOUCH`、`FONT_STD_FAST_DRAW_ENABLE`
+- 打开 `SCROLLBAR`、`TOUCH`、`EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE`
 - 关闭 `MASK`、`QOI`、`RLE`、`LAYER`、`FOCUS`、默认 HQ
 - 仍然保持增强绘制和阴影关闭
 

@@ -23,9 +23,7 @@ void egui_image_decode_release_frame_cache(void);
 #if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 extern uint8_t *egui_image_decode_row_pixel_buf;
 #endif
-#if !EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE || !EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
 extern uint8_t *egui_image_decode_row_alpha_buf;
-#endif
 
 uint8_t *egui_image_decode_get_row_pixel_buf(uint8_t bytes_per_pixel);
 uint8_t *egui_image_decode_get_opaque_alpha_row(egui_dim_t count);
@@ -48,12 +46,6 @@ int egui_image_decode_cache_prepare_rows(uint16_t img_width, uint16_t row_count,
 
 static inline uint16_t egui_image_decode_limit_tail_cache_cols(uint16_t cache_col_count)
 {
-#if EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS > 0
-    if (cache_col_count > EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS)
-    {
-        return EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS;
-    }
-#endif
     return cache_col_count;
 }
 

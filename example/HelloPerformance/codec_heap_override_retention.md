@@ -5,13 +5,9 @@
 - 本文记录当前仍保留为 shipped override 或 low-RAM 条件实验值的 codec/decode 宏：
   - `EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE`
   - `EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE`
-  - `EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE`
-  - `EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT`
   - `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE`
-  - `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE`
-  - `EGUI_CONFIG_IMAGE_QOI_COMPACT_RGB565_INDEX_ENABLE`
-  - `EGUI_CONFIG_IMAGE_QOI_INDEX_RGB565_CACHE_ENABLE`
 - 这些宏控制的是瞬时 decode heap 形态和 codec 行为，不是本轮 small static-RAM cleanup 的 `<100B static RAM` 候选。
+- 下文仍保留已经内收的 QOI / RLE checkpoint、decode-state 与 external-window policy 宏历史 A/B 记录，用来说明为什么它们不再暴露 public 配置入口。
 
 ## 证据来源
 
@@ -94,7 +90,7 @@
   - shipped/default 记为 `2`
   - `4` 继续保留为历史默认/外部 A/B 对比值；若未来重新引入 RGBA32 decode 需求，再做更广覆盖验证后评估是否恢复
 
-### `EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE`
+### `EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE`（已内收）
 
 - `docs/low_ram_config_macros.md` 已说明此宏依赖 `IMAGE_CODEC_ROW_CACHE_ENABLE=1`，作用是复用现有 row-cache 的 alpha 缓冲头部，而不是再单独保留一份不透明 alpha 参考行。
 - 先纠正当前 shipped 关系：
@@ -122,10 +118,12 @@
 - 这属于 decode heap 组织方式，且与 row-cache A/B 绑定，不是可按 `<100B static RAM` 规则清掉的 app 小宏。
 - 处理结论：
   - 不再把它写成 `HelloPerformance` 当前 active override
-  - shipped/default 记为 `0`
-  - `1` 继续保留为历史 low-RAM 条件实验值和外部 A/B 入口；是否改框架默认需要更广覆盖验证
+  - `2026-04-06` 起，框架 public 入口也已内收，当前实现私有默认值固定为 `0`
+  - `1` 只保留为历史 low-RAM A/B 记录，不再作为当前 app-side override 或外部入口
 
-### `EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT`
+### `EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT`（已内收）
+
+> `2026-04-06` 起，这个名字不再是当前框架 public 配置入口；当前主线已把它内收到 `src/image/egui_image_qoi.c` 的实现私有常量，默认行为固定为 `2`。下面保留的是历史 A/B 记录，用来说明为什么它不再值得继续保留成公共宏。
 
 - 先纠正当前 shipped 关系：
   - 框架默认值是 `2`
@@ -164,8 +162,8 @@
 - 这说明它是 QOI 恢复路径的 heap/perf 调参点，不是可安全压掉的低成本 decode 宏。
 - 处理结论：
   - 不再把它写成 `HelloPerformance` 当前 active override
-  - shipped/default 记为 `2`
-  - 历史实验值 `0` 当前只额外换来 `text -276B, bss -8B`，但会打穿整条 QOI draw 主路径，因此不再作为 `HelloPerformance` 的可推荐 low-RAM 值
+  - `2026-04-06` 起，框架 public 入口也已内收，当前实现私有默认值固定为 `2`
+  - 历史实验值 `0` 当前只额外换来 `text -276B, bss -8B`，但会打穿整条 QOI draw 主路径；由于收益低于 1KB 门槛，它现在只保留为历史 A/B 记录，不再作为当前外部入口
 
 ### `EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE`
 
@@ -207,7 +205,9 @@
   - 但它也不是已经失效的旧 low-RAM 思路：在当前实现里，`1` 仍是会显著改善 `QOI/RLE` 热点吞吐的高杠杆 codec policy 宏
   - 因此保持 `#ifndef` 外部覆盖入口，并把它从“当前默认”改写成“历史实验值 1（当前默认 0）”；如果未来要重新审 codec policy，优先级应高于已经被证明不划算的 `QOI_COMPACT_RGB565_INDEX`
 
-### `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE`
+### `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE`（已内收）
+
+> `2026-04-06` 起，这个名字不再是当前框架 public 配置入口；当前主线已把它内收到 `src/image/egui_image_rle.c` 的实现私有常量，默认行为固定为 `1`。下面保留的是历史 A/B 记录，用来说明为什么它不再值得继续保留成公共宏。
 
 - 先纠正当前 shipped 关系：
   - 框架默认值是 `1`
@@ -240,11 +240,13 @@
   - 全量 `241` 帧 `hash mismatch 0`、`pixel mismatch 0`
   - `HelloUnitTest` on / off 都是 `688/688 passed`
 - 处理结论：
-  - 当前 shipped/default 继续保持 `1`
-  - `0` 继续保留为 low-RAM 条件实验值：它能把 external RLE window 从 persistent BSS 切到 transient frame heap，并稳定回收 `bss -1040B`
-  - 但它不是 code-size 宏，因为当前代价是 `text +816B`；若采用 `0`，也要接受 tiled / external RLE 的 `+2.7% ~ +6.2%` 局部回退
+  - `2026-04-06` 起，框架 public 入口也已内收，当前实现私有默认值固定为 `1`
+  - 历史实验值 `0` 虽然能把 external RLE window 从 persistent BSS 切到 transient frame heap，并稳定回收 `bss -1040B`
+  - 但它当前会带来 `text +816B`，也要接受 tiled / external RLE 的 `+2.7% ~ +6.2%` 局部回退；因此现在只保留为历史 A/B 记录，不再作为当前外部入口
 
-### `EGUI_CONFIG_IMAGE_QOI_COMPACT_RGB565_INDEX_ENABLE`
+### `EGUI_CONFIG_IMAGE_QOI_COMPACT_RGB565_INDEX_ENABLE`（已内收）
+
+> `2026-04-06` 起，这个名字不再是当前框架 public 配置入口；当前主线已把它内收为 `src/image/egui_image_qoi.c` 私有默认 `0`。下面保留的是历史 A/B 记录，用来说明为什么它不再值得继续保留为公共宏。
 
 - 先纠正当前 shipped 关系：
   - 框架默认值是 `0`
@@ -281,10 +283,10 @@
   - `HelloUnitTest` on / off 都是 `688/688 passed`
 - 处理结论：
   - 当前不应再把它写成 `HelloPerformance=1`
-  - 保持 shipped/default `0`
-  - `1` 虽然还能换到约 `192B`/活动实例的 `QOI decode heap` 收益，但它已经不是“低代价堆压缩”，而是会稳定打穿 `QOI RGB565` 主路径性能的 codec 状态压缩开关，因此不再列入 `HelloPerformance` 当前 low-RAM 推荐集合
+  - `2026-04-06` 起，框架 public 入口也已内收，当前实现私有默认值固定为 `0`
+  - `1` 虽然还能换到约 `192B`/活动实例的 `QOI decode heap` 收益，但它已经不是“低代价堆压缩”，而是会稳定打穿 `QOI RGB565` 主路径性能的 codec 状态压缩开关，因此只保留为历史 A/B 记录，不再作为当前外部入口
 
-### `EGUI_CONFIG_IMAGE_QOI_INDEX_RGB565_CACHE_ENABLE`
+### `EGUI_CONFIG_IMAGE_QOI_INDEX_RGB565_CACHE_ENABLE`（已内收）
 
 - `2026-04-05` 用当前 `HelloPerformance` 基线重新做了完整 A/B，并补齐了 off 侧 `HelloUnitTest` 与 perf compare 汇总：
   - on：`EGUI_CONFIG_IMAGE_QOI_INDEX_RGB565_CACHE_ENABLE=1`（当前默认）
@@ -312,16 +314,17 @@
   - `HelloUnitTest` on / off 都是 `688/688 passed`
 - 处理结论：
   - 这颗宏当前不应再被写成 `HelloPerformance=0`
-  - 但它也不值得为了当前 shipped 配置专门去改默认：关闭只换来 `text -64B` 和约 `128B`/活动实例的 QOI decode heap 回收
-  - 因此保持框架默认 `1`，继续保留 `#ifndef` 外部覆盖入口，作为收益很小但行为稳定的条件实验宏
+  - `2026-04-06` 起，框架 public 入口也已内收，当前实现私有默认值固定为 `1`
+  - 关闭只换来 `text -64B` 和约 `128B`/活动实例的 QOI decode heap 回收，因此只保留历史 A/B 记录，不再作为当前外部入口
 
 ## 最终结论
 
 - 这 8 个宏都属于 HelloPerformance 的 codec/decode heap 调参入口。
 - 它们的主要影响面是 heap 峰值、codec 行缓存形态和压缩图热点性能，而不是 `<100B` 的固定 static RAM。
-- 因此本轮不做“默认打开后移除宏管理”，仅保留当前 shipped 默认值和外部 A/B 能力。
+- 因此本轮不把这些项统一改成“默认打开后移除宏管理”；但对收益低于 1KB 门槛、且当前仓内没有真实 shipped 依赖的微型入口，继续按同一规则内收到实现私有常量。
 - 额外补充：`2026-04-05` 当前主线重跑后，`EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE` 当前 shipped/default 仍是 `0`。虽然开启 `1` 会带来 `text +9976B`，但关闭到默认值 `0` 会让完整 `239` 场景中的 `40` 个 `QOI/RLE` 压缩图热点出现 `+16.2% ~ +189.9%` 回退，因此它仍应保留为高优先级 codec policy 候选，而不是被降格成“已失效的旧 low-RAM 宏”。
-- 额外补充：`EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE` 当前 shipped 默认仍是 `1`。关闭后虽然能稳定回收 `bss -1040B`，但会带来 `text +816B`，且 tiled / external RLE 路径存在 `+2.7% ~ +6.2%` 的局部回退，因此当前更适合作为 low-RAM 条件实验宏，而不是默认配置。
-- 额外补充：`EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT` 当前 shipped/default 仍是 `2`。关闭为 `0` 虽然可回收 `text -276B, bss -8B`，但完整 `239` 场景会出现 `20` 个 `>=10%` 的 QOI 主路径回退，峰值 `+911.4%`，因此不再把它列入 `HelloPerformance` 的 low-RAM 推荐集合。
-- 额外补充：`2026-04-05` 当前主线重跑后，历史上的 `EGUI_CONFIG_IMAGE_QOI_COMPACT_RGB565_INDEX_ENABLE=1` 继续不适配当前主线。它虽然还能压 `192B`/活动实例的 QOI decode heap，但会额外带来 `text +780B`，并在完整 `239` 场景中出现 `10` 个 `>=10%` 的 `QOI RGB565` 主路径回退，因此当前不再把它列入 `HelloPerformance` 的低 RAM 推荐集合。
-- 额外补充：`EGUI_CONFIG_IMAGE_QOI_INDEX_RGB565_CACHE_ENABLE` 当前 shipped 默认仍是 `1`。关闭后只多拿到 `text -64B` 和约 `128B`/活动实例 heap，当前完整 `239` 场景则全部维持在噪声内，因此它更适合作为条件实验宏，而不是再被文档写回旧的 `HelloPerformance=0`。
+- 额外补充：`2026-04-06` 起，`EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE` 也已从 public 配置面内收。历史 `0` 虽然能稳定回收 `bss -1040B`，但会带来 `text +816B`，且 tiled / external RLE 路径存在 `+2.7% ~ +6.2%` 的局部回退，因此当前只保留历史 A/B 记录。
+- 额外补充：`2026-04-06` 起，`EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT` 也已从 public 配置面内收。历史 `0` 虽然还能回收 `text -276B, bss -8B`，但完整 `239` 场景会出现 `20` 个 `>=10%` 的 QOI 主路径回退，峰值 `+911.4%`，因此当前只保留历史 A/B 记录。
+- 额外补充：`2026-04-06` 起，`EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_MAX_COLS` 也已从 public 配置面内收。它没有任何 code-size 收益可言，历史更窄 cap `184/176/144/96` 反而会打破当前 `240px` 图宽、`PFB_WIDTH=48` 横向 walk 下的 tail 覆盖条件，让 QOI/RLE alpha 热点出现 `+45% ~ +66%` 乃至数倍回退，因此当前只保留历史 A/B 记录。
+- 额外补充：`2026-04-06` 起，`EGUI_CONFIG_IMAGE_QOI_COMPACT_RGB565_INDEX_ENABLE` 也已从 public 配置面内收。历史 `1` 虽然还能压 `192B`/活动实例的 QOI decode heap，但会额外带来 `text +780B`，并在完整 `239` 场景中出现 `10` 个 `>=10%` 的 `QOI RGB565` 主路径回退，因此当前只保留历史 A/B 记录。
+- 额外补充：`EGUI_CONFIG_IMAGE_QOI_INDEX_RGB565_CACHE_ENABLE` 当前 shipped 默认仍是 `1`。关闭后只多拿到 `text -64B` 和约 `128B`/活动实例 heap，当前完整 `239` 场景则全部维持在噪声内；由于收益低于 1KB 门槛，这颗宏也已从 public 配置面内收。

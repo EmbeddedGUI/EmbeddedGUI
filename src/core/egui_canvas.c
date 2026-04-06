@@ -722,7 +722,7 @@ static void egui_canvas_draw_circle_corner_direct_stroke(egui_canvas_t *self, eg
     }
 }
 
-#if EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE
+#if defined(EGUI_CONFIG_CIRCLE_FILL_BASIC) && EGUI_CONFIG_CIRCLE_FILL_BASIC
 static void egui_canvas_draw_circle_corner_fill_direct(egui_canvas_t *self, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int type,
                                                        egui_color_t color, egui_alpha_t alpha, const egui_circle_info_t *info, egui_dim_t row_start,
                                                        egui_dim_t row_end, egui_dim_t col_start, egui_dim_t col_end, egui_dim_t iter_start, egui_dim_t iter_end,
@@ -980,7 +980,7 @@ void egui_canvas_draw_circle_corner_fill(egui_dim_t center_x, egui_dim_t center_
         return;
     }
 
-#if !EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE
+#if !defined(EGUI_CONFIG_CIRCLE_FILL_BASIC) || !EGUI_CONFIG_CIRCLE_FILL_BASIC
     // Legacy corner-fill path: smaller code size, slower on fill-heavy benchmarks.
     egui_dim_t diff_x = region_intersect.location.x - region.location.x;
     egui_dim_t diff_y = region_intersect.location.y - region.location.y;
@@ -1526,7 +1526,7 @@ void egui_canvas_draw_circle_corner_fill(egui_dim_t center_x, egui_dim_t center_
 #endif
 }
 
-#if EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE
+#if defined(EGUI_CONFIG_CIRCLE_FILL_BASIC) && EGUI_CONFIG_CIRCLE_FILL_BASIC
 __EGUI_STATIC_INLINE__ void egui_canvas_draw_circle_fill_basic_edge_direct_row(egui_color_t *dst_row, egui_dim_t pfb_ofs_x, egui_dim_t clip_x_start,
                                                                                egui_dim_t clip_x_end, egui_dim_t base_x, egui_dim_t screen_x_start,
                                                                                egui_dim_t screen_x_end, egui_dim_t row_index, egui_dim_t total_width,
@@ -3039,7 +3039,7 @@ void egui_canvas_draw_circle_fill_basic(egui_dim_t center_x, egui_dim_t center_y
         return;
     }
 
-#if !EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE
+#if !defined(EGUI_CONFIG_CIRCLE_FILL_BASIC) || !EGUI_CONFIG_CIRCLE_FILL_BASIC
     egui_canvas_draw_circle_fill_basic_legacy(center_x, center_y, radius, color, alpha);
     return;
 #else

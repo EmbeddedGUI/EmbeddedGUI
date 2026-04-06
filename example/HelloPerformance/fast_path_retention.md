@@ -15,18 +15,32 @@
     - 基本图片 `std image fast draw`
   - 已有 retention / perf 资料：`stack_heap_policy_retention.md`、`text_transform_heap_override_retention.md`、`static_ram_override_retention.md`、`codec_heap_override_retention.md`、`ram_tracking.md`
 
+## 当前公开口径（2026-04-06）
+
+- 本文保留了大量历史 A/B、优先级结论和“值得保留的实验记录”，但它们不等于当前主线仍公开暴露的 `EGUI_CONFIG_*` 集合。
+- 当前主线已经没有继续挂在 shared default 头里的公共 fast-path 宏。
+- 当前框架侧已经不再保留公开 `EGUI_CONFIG_*` fast-path/perf-opt 入口。
+- 当前仍保留的示例局部 override 兼容入口只有 `EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE` 与 `EGUI_CONFIG_CIRCLE_FILL_BASIC`。
+- 像 `EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_SEGMENT_FAST_PATH_ENABLE`、`EGUI_CONFIG_CANVAS_MASK_FILL_ROW_BLEND_FAST_PATH_ENABLE`、`EGUI_CONFIG_CANVAS_MASK_FILL_IMAGE_FAST_PATH_ENABLE`、`EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE`、`EGUI_CONFIG_FONT_STD_MASK_ROW_BLEND_FAST_PATH_ENABLE`、`EGUI_CONFIG_MASK_IMAGE_IDENTITY_SCALE_BLEND_FAST_PATH_ENABLE`、`EGUI_CONFIG_IMAGE_CODEC_MASK_IMAGE_ROW_BLOCK_FAST_PATH_ENABLE`、`EGUI_CONFIG_IMAGE_STD_ROW_OVERLAY_ALPHA8_FAST_PATH_ENABLE` 这类名字，本文里继续保留的是 A/B 证据和优先级结论；当前主线实现已经把它们收成 private policy，不再建议应用侧继续把它们当公开配置依赖。
+- `EGUI_CONFIG_IMAGE_STD_ROW_OVERLAY_NON_RGB565_FAST_PATH_ENABLE`、`EGUI_CONFIG_CANVAS_MASK_FILL_ROW_RANGE_FAST_PATH_ENABLE`、`EGUI_CONFIG_CANVAS_MASK_FILL_ROW_PARTIAL_FAST_PATH_ENABLE`、`EGUI_CONFIG_CANVAS_MASK_FILL_ROW_INSIDE_FAST_PATH_ENABLE` 这 4 个名字虽然历史上保留过应用侧 bridge，但当前仓内已经没有真实配置继续依赖，主线实现也已经把 bridge 收回。
+- 上面这 2 个保留名字现在都只是应用局部 override，而不是框架级共享默认 fast-path 配置。
+- 因此，阅读本文时需要区分两层：
+  - “当前仍公开暴露的宏”
+  - “历史上做过、但现在只保留证据记录的实验宏”
+
 ## 本轮新增 A/B: `font std fast draw`
 
 ### 测试环境
 
 - 日期：`2026-03-31`
 - 提交基线：`214edcf`
+- 说明：下面命令已经按当前 app-local 名字更新；原始历史 A/B 当时仍使用框架侧旧名。
 - `HelloSimple` code size A/B
   - `make all APP=HelloSimple PORT=qemu CPU_ARCH=cortex-m0plus`
-  - `make all APP=HelloSimple PORT=qemu CPU_ARCH=cortex-m0plus USER_CFLAGS=-DEGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE=0`
+  - `make all APP=HelloSimple PORT=qemu CPU_ARCH=cortex-m0plus USER_CFLAGS=-DAPP_EGUI_FONT_STD_FAST_DRAW_ENABLE=0`
 - `HelloPerformance` perf A/B
   - `python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --clean`
-  - `python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --clean --extra-cflags=-DEGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE=0`
+  - `python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --clean --extra-cflags=-DAPP_EGUI_FONT_STD_FAST_DRAW_ENABLE=0`
 
 ### 代码量证据
 
@@ -4468,7 +4482,7 @@
 | 路径 | 代码/资源证据 | HelloPerformance 证据 | 当前结论 |
 | --- | --- | --- | --- |
 | `rectangle basic canvas path` | 当前未发现值得长期维护的独立大 helper，也没有现成能带来 `>1KB` 收益的关闭候选 | 本轮 `std image fast draw` A/B 下 `RECTANGLE +0.0%`，说明这次能回收的代码不在 rectangle 主路径 | 暂不新增宏 |
-| `circle / round-rectangle basic fill fast path` | 已有 `EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE`；默认全局关闭，仅 `HelloPerformance` 打开 | 历史结论已确认这是 HelloPerformance 需要保留的加速路径；本轮 image 宏 A/B 下 `CIRCLE/ROUND_RECTANGLE` 也均为 `+0.0%` | 维持现状，继续作为 HelloPerformance 专用 override |
+| `circle / round-rectangle basic fill fast path` | 当前只保留 `EGUI_CONFIG_CIRCLE_FILL_BASIC` 这颗 HelloPerformance 示例局部 override，不再写入共享默认头 | 历史结论已确认这是 HelloPerformance 需要保留的加速路径；本轮 image 宏 A/B 下 `CIRCLE/ROUND_RECTANGLE` 也均为 `+0.0%` | 维持现状，继续作为 HelloPerformance 专用 override |
 | `canvas masked-fill shape child fast path` | `MASK_FILL_CIRCLE text -3648B`；继续细拆 `CIRCLE_SEGMENT child -3328B`；`MASK_FILL_ROUND_RECT text -876B` | 基础路径都在噪声范围；`MASK_FILL_CIRCLE` 主要拖慢 circle masked-fill 热点；`CIRCLE_SEGMENT child` 当前完整 `239` 场景 perf / runtime / unit 全量等价；`MASK_FILL_ROUND_RECT` 主要拖慢 round-rect masked-fill 热点 | 保留 `EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_FAST_PATH_ENABLE` 作为条件实验宏，并优先保留更保守的 `CIRCLE_SEGMENT` child；`ROUND_RECT` 当前收益低于 `1KB`，降级为低优先级 |
 | `canvas masked-fill circle segment fast path` | `2026-04-05` current-mainline `HelloPerformance text -3328B`；主要是 `egui_canvas_fill_masked_row_segment()` 里的 circle partial-row segment helper | 基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565 / IMAGE_RESIZE_565 / EXTERN_IMAGE_RESIZE_565` 不退化；完整 `239` 场景没有任何 `>=10%` 回退；`MASK_RECT_FILL_CIRCLE / MASK_RECT_FILL_ROUND_RECT / MASK_RECT_FILL_IMAGE / MASK_GRADIENT_RECT_FILL / MASK_ROUND_RECT_FILL_WITH_MASK` 也都不退化；runtime `241` 帧 hash / pixel mismatch `0`；`HelloUnitTest 688/688 passed` | 保留 `EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_SEGMENT_FAST_PATH_ENABLE`，作为比 `MASK_FILL_CIRCLE` 更保守的 child；若项目要保住当前 circle masked-fill 主路径，应优先试这颗宏 |
 | `canvas masked-fill shape umbrella fast path` | 当前树最终 `HelloPerformance text +0B`；对象级 shrink 不能转化为最终 ELF 收益 | 基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565` 不退化；但 `MASK_RECT_FILL_CIRCLE +37.0%`，`MASK_RECT_FILL_ROUND_RECT` / `MASK_ROUND_RECT_FILL_WITH_MASK +13.0%` | 直接拒绝，不保留 `EGUI_CONFIG_CANVAS_MASK_SHAPE_FILL_FAST_PATH_ENABLE` |
@@ -4532,14 +4546,15 @@
 | `image rle external window persistent cache` | `HelloPerformance text +816B, bss -1040B`；把 external RLE read window 从 persistent BSS 切到 transient frame heap | 完整 `239` 场景没有任何 `>=10%` 波动；基础主路径不退化；`IMAGE_TILED_RLE_565_0 +6.2%`，external RLE 主路径与 masked 变体约 `+2.7% ~ +5.1%`；runtime `241` 帧 hash / pixel mismatch `0`；`HelloUnitTest 688/688 passed` | 可保留 `EGUI_CONFIG_IMAGE_RLE_EXTERNAL_WINDOW_PERSISTENT_CACHE_ENABLE` 作为 low-RAM 条件实验宏；current shipped/default 继续保持 `1`，不进入 text-first split 主线 |
 | `std image external row persistent cache` | `HelloPerformance text +20B, bss -40B`；只影响 std external image 的跨帧 row persistent cache storage | `HelloPerformance` 全量 `239` 场景 on / off 都在噪声内，没有场景超过 `10%`；基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565 / IMAGE_RESIZE_565 / EXTERN_IMAGE_RESIZE_565` 保持在 `0% ~ +1.7%`，`EXTERN_IMAGE_QOI_565 / EXTERN_IMAGE_RLE_565 / EXTERN_MASK_IMAGE_QOI_IMAGE / EXTERN_MASK_IMAGE_RLE_IMAGE` 也保持 `+0.0%`；runtime `241` 帧 hash / pixel mismatch `0`；`HelloUnitTest 688/688 passed` | 可保留为低优先级 low-RAM 条件实验宏 `EGUI_CONFIG_IMAGE_STD_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE`；它不属于当前 text-first split 主线，但可以用 `text +20B` 换 `bss -40B` |
 | `transform external row persistent cache` | `HelloPerformance text -24B, bss -56B`；只影响 transform/external source 的跨帧 row persistent cache storage | `HelloPerformance` 全量 `239` 场景 on / off 都在噪声内，没有场景超过 `10%`；基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565 / IMAGE_RESIZE_565 / EXTERN_IMAGE_RESIZE_565` 保持在 `-0.1% ~ +0.0%`，旋转/变换场景最大也只有 `+0.8%`；runtime `241` 帧 hash / pixel mismatch `0`；`HelloUnitTest 688/688 passed` | 可保留为低优先级 low-RAM 条件实验宏 `EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE`；它不属于当前 text-first split 主线，但比 std external row persistent 更像“顺手可留”的 RAM 宏 |
-| `decode opaque alpha row use row cache` | `HelloPerformance text -132B, bss -8B`；让 masked opaque fallback row 复用 codec row-cache alpha backing store，而不是单独保留 decode-row alpha buffer | `HelloPerformance` 全量 `239` 场景 `ge10=0 / le10=0`，最大绝对波动仅 `0.431%`；基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565 / IMAGE_RESIZE_565 / EXTERN_IMAGE_RESIZE_565` 全部 `+0.0%`；runtime `241` 帧 hash / pixel mismatch `0`；`HelloUnitTest 688/688 passed` | current shipped/default 继续保持 `0`；可把 `EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE=1` 保留为收益很小但行为稳定的 low-RAM 条件实验值 |
+| `decode opaque alpha row use row cache` | `HelloPerformance text -132B, bss -8B`；让 masked opaque fallback row 复用 codec row-cache alpha backing store，而不是单独保留 decode-row alpha buffer | `HelloPerformance` 全量 `239` 场景 `ge10=0 / le10=0`，最大绝对波动仅 `0.431%`；基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565 / IMAGE_RESIZE_565 / EXTERN_IMAGE_RESIZE_565` 全部 `+0.0%`；runtime `241` 帧 hash / pixel mismatch `0`；`HelloUnitTest 688/688 passed` | current shipped/default 继续保持 `0`；由于收益低于 1KB 门槛，这颗宏已从 public 配置面内收，只保留历史 A/B 记录 |
+| `qoi index rgb565 cache` | `HelloPerformance text -64B`；关闭时不再在 QOI index table 里缓存 RGB565 预转换结果，每个活动实例少约 `128B heap` | `HelloPerformance` 全量 `239` 场景 `ge10=0 / le10=0`；基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565 / IMAGE_RESIZE_565 / EXTERN_IMAGE_RESIZE_565` 全部 `+0.0%`；QOI 场景最大绝对波动也只在 `+2.8% / -1.7%` 噪声内；runtime `241` 帧 hash / pixel mismatch `0`；`HelloUnitTest 688/688 passed` | current shipped/default 继续保持 `1`；由于收益低于 1KB 门槛，这颗宏也已从 public 配置面内收，只保留历史 A/B 记录 |
 | `rle external cache window size` | `HelloPerformance text +96B, bss -1024B`；把 external RLE read window 从默认 `1024B` 缩到 `64B` | 基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565 / IMAGE_RESIZE_565 / EXTERN_IMAGE_RESIZE_565` 不退化，但完整 `239` 场景里有 `5` 个 `>=10%` 回退，全部集中在 external RLE 主路径，范围约 `+17.5% ~ +21.8%`；`EXTERN_IMAGE_RLE_565_8 / EXTERN_MASK_IMAGE_RLE_8_*` 也稳定回退 `+9.4%`；runtime `241` 帧 hash / pixel mismatch `0`；`HelloUnitTest 688/688 passed` | current shipped/default 继续保持 `1024`；`64` 仍可保留为高收益 low-RAM 条件实验值，但只适合明确不关心 external RLE 热点的项目 |
 | `qoi checkpoint count` | `HelloPerformance text -276B, bss -8B`；把 QOI decoder checkpoints 从默认 `2` 降到 `0` | 基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565 / IMAGE_RESIZE_565 / EXTERN_IMAGE_RESIZE_565` 不退化，但完整 `239` 场景里有 `20` 个 `>=10%` 回退，全部集中在 QOI draw / mask 主路径，范围约 `+110.0% ~ +911.4%`；runtime `241` 帧 hash / pixel mismatch `0`；`HelloUnitTest 688/688 passed` | 不建议把 `EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT` 设为 `0`；current shipped/default 继续保持 `2`，历史 low-RAM 值只保留为外部条件实验入口 |
 | `image qoi checkpoint` | `HelloPerformance text -276B, bss -8B`；只覆盖 QOI row-band checkpoint 的 save/restore 与 checkpoint table 管理 | `HelloPerformance` 全量 `239` 场景里有 `20` 个 `>=10%` 回退；基础 `RECTANGLE / CIRCLE / ROUND_RECTANGLE / TEXT / IMAGE_565 / EXTERN_IMAGE_565 / IMAGE_RESIZE_565 / EXTERN_IMAGE_RESIZE_565` 不退化，但 `IMAGE_QOI_565 +819.2%`、`EXTERN_IMAGE_QOI_565 +911.4%`、`MASK_IMAGE_QOI_NO_MASK +819.2%`、`EXTERN_MASK_IMAGE_QOI_NO_MASK +911.4%`、`MASK_IMAGE_QOI_8_IMAGE +110.0%`；runtime `241` 帧 hash / pixel mismatch `0`；`HelloUnitTest 688/688 passed` | 不保留临时 `EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_ENABLE`；独立收益太小且会打穿整条 QOI draw 主路径，代码已回退 |
 | rotated-text visible alpha8 fast path | `text_transform_draw_visible_alpha8_tile_layout` 当前约 `8128B` | 历史 A/B 显示 `5120` 相比 `4096` 时 `TEXT_ROTATE_BUFFERED -25.7%`、`EXTERN_TEXT_ROTATE_BUFFERED -28.2%`；`2560B` 已被拒绝 | 保留 fast path，本体不拆；仅把 low-RAM heap ceiling 继续放尾部按需块 |
 | `shadow d_sq -> alpha LUT` 策略 | `egui_shadow_draw_corner` 当前约 `1980B`；本质是 stack/LUT 上限策略，不是常规小项目 code-size 宏 | `256 -> 64` 时 `SHADOW_ROUND 6.306 -> 4.949 (-21.5%)`，其它锚点基本不动 | 继续放 `app_egui_config.h` 尾部 `#if 0` low-RAM 块，默认不打开 |
 | round-rect / circle `PFB_HEIGHT` row cache | 已有历史结论：关闭后 `text -708B`、`static RAM -16B` | 关闭后无 `>5%` 回退，且 `MASK_IMAGE_QOI_8_ROUND_RECT`、`MASK_IMAGE_RLE_8_ROUND_RECT` 还变快 | 已处理完，默认关闭，不再作为 active override |
-| `IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS` | 约 `33B` BSS，不是大代码块 | 关闭后最差 `EXTERN_IMAGE_RESIZE_TILED_565_8 +17.78%` | 保留 |
+| `alpha opaque slots` | `HelloPerformance text -156B, bss -40B`；关闭后不再缓存 RGB565+alpha source 是否全 opaque 的探测结果 | 完整 `239` 场景 `ge10=0 / le10=1`，只有 `EXTERN_IMAGE_RESIZE_TILED_565_8 -11.4%` 这一处 `<=-10%` 改善；但 runtime `4 vs 0` 仍有 `8` 帧真实像素差，`4 vs 4 repeat` 控制组 hash / pixel mismatch `0`；`HelloUnitTest 688/688 passed` | current shipped/default 继续保持实现私有默认 `4`；由于 `4 -> 0` 只回收 `text -156B, bss -40B`，远低于 1KB 门槛，而且 `0` 路径不再 render-equivalent，这颗宏已从 public 配置面内收，只保留历史 A/B 记录 |
 | `IMAGE_CODEC_ROW_CACHE_ENABLE` | 主要影响 heap，不是 small-project code-size toggle | `row-cache off` 会把 QOI/RLE 热点打到 `+1800% ~ +3600%` 量级 | 保留 |
 
 ### 矩阵补充
@@ -4730,10 +4745,10 @@
 
 - 围绕本轮优先路径：
   - `RECTANGLE`：暂未发现值得单独宏化的独立大 fast path，先不新增宏。
-  - `CIRCLE` / `ROUND_RECTANGLE`：继续使用已有 `EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE`，默认全局关闭，仅 `HelloPerformance` 打开。
+  - `CIRCLE` / `ROUND_RECTANGLE`：继续保留 `EGUI_CONFIG_CIRCLE_FILL_BASIC` 这颗示例局部 override，只给 `HelloPerformance` 打开，不再写入共享默认头。
   - `canvas masked-fill`：当前最值得暴露给 size-first 项目的顺序已经比较清楚，优先是 `EGUI_CONFIG_CANVAS_MASK_FILL_ROW_RANGE_FAST_PATH_ENABLE`，其次是 `EGUI_CONFIG_CANVAS_MASK_FILL_CIRCLE_SEGMENT_FAST_PATH_ENABLE`，第三档是 `EGUI_CONFIG_CANVAS_MASK_FILL_ROW_PARTIAL_FAST_PATH_ENABLE`，第四档是更保守的 `EGUI_CONFIG_CANVAS_MASK_FILL_ROW_INSIDE_FAST_PATH_ENABLE`；其中 `ROW_RANGE`、`CIRCLE_SEGMENT`、`ROW_PARTIAL` 与 `ROW_INSIDE` 都已在 `2026-04-05` current-mainline 下补齐完整 `239` 场景 perf、`241` 帧 runtime 和 `688` 项 unit，全量保持等价。再往后才是 `MASK_FILL_IMAGE`、`ROW_BLEND`，以及会明确牺牲 circle masked-fill 热点的父宏 `MASK_FILL_CIRCLE`。`visible-range` 调用侧 split 已证伪，`text` 不减反增 `+1552B`；`shape umbrella` 也已证伪，当前树最终 ELF `+0B`；`MASK_FILL_IMAGE` 往下再拆出来的 `IMAGE_SCALE child` 也只剩 `-196B`。这三条都不再继续保留新宏。
   - `canvas masked-fill round-rect child`：继续保留宏即可，但当前收益只有 `876B`，已经不属于这轮优先回收对象。
-  - `TEXT`：`EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE` 已存在，但关闭后的性能回退远超 `<10%`，不能作为 size-first 默认关闭候选。
+  - `TEXT`：`EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE` 仍作为示例局部 override 存在，但关闭后的性能回退远超 `<10%`，不能作为 size-first 默认关闭候选。
   - `TEXT` 继续细拆后，`EGUI_CONFIG_FONT_STD_FAST_MASK_DRAW_ENABLE` 已经满足基础优先场景的阈值，可作为更局部的 size-first 实验开关。
   - `IMAGE_565` / `EXTERN_IMAGE_565`：`EGUI_CONFIG_IMAGE_STD_FAST_DRAW_ENABLE` 太粗，只适合作为实验型 size-first 开关，不能默认关闭。
   - `IMAGE_565` / `EXTERN_IMAGE_565` 继续细拆后，`EGUI_CONFIG_IMAGE_STD_FAST_DRAW_ALPHA_ENABLE` 已经满足基础优先场景阈值，可作为“只牺牲 alpha direct draw”的更局部实验开关。
@@ -4775,17 +4790,17 @@
   - `text transform` 的 stack/transient-heap 策略
   - 都已经归到 `app_egui_config.h` 尾部的 `#if 0` 可选块，不再污染默认构建面。
 - 已经证明确实“不值得默认开”的快路径缓存项里：
-  - `EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE`
-  - `EGUI_CONFIG_MASK_CIRCLE_FRAME_ROW_CACHE_ENABLE`
-  - 这两项已经处理完，默认关闭。
+  - 历史名字 `EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE`
+  - 历史名字 `EGUI_CONFIG_MASK_CIRCLE_FRAME_ROW_CACHE_ENABLE`
+  - 这两项已经处理完，现已收回实现私有并保持默认关闭，不再作为 active override。
 - 已经证明确实“不能回收”的快路径项里：
   - `font std fast draw`
   - `std image fast draw main switch`
   - `std image fast resize fast path`
   - `image mask circle / round-rect fast path（整条）`
-  - `IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS`
   - `IMAGE_CODEC_ROW_CACHE_ENABLE`
   - 都需要保留。
+- 其中 `alpha opaque slots` 已按同一规则内收到实现私有默认 `4`：它不是值得继续保留 public 宏名的项，只是 shipped 行为仍保持不变。
 - 已经证明确实“可以继续细拆成实验宏”的项里：
   - `font std fast mask draw`
   - `std image fast draw alpha fast path`

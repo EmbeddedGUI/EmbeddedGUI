@@ -532,16 +532,10 @@ typedef struct
     const egui_image_std_info_t *info;
     uint32_t data_row_bytes;
     uint32_t alpha_row_bytes;
-#if !EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
-    image_transform_external_data_row_slot_t *data_cache;
-    image_transform_external_alpha_row_slot_t *alpha_cache;
-#endif
 } image_transform_external_source_t;
 
-#if EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
 static image_transform_external_data_row_slot_t g_image_transform_external_data_row_cache = {0};
 static image_transform_external_alpha_row_slot_t g_image_transform_external_alpha_row_cache = {0};
-#endif
 
 static void image_transform_sync_external_row_cache_generation(uint32_t *shared_generation, int32_t *chunk_row_start, int32_t *chunk_row_count)
 {
@@ -575,30 +569,20 @@ static uint8_t *image_transform_get_external_alpha_cache_bytes(image_transform_e
 
 static image_transform_external_data_row_slot_t *image_transform_get_external_data_row_cache(const image_transform_external_source_t *source)
 {
-#if EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
     EGUI_UNUSED(source);
     return &g_image_transform_external_data_row_cache;
-#else
-    return source != NULL ? source->data_cache : NULL;
-#endif
 }
 
 static image_transform_external_alpha_row_slot_t *image_transform_get_external_alpha_row_cache(const image_transform_external_source_t *source)
 {
-#if EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
     EGUI_UNUSED(source);
     return &g_image_transform_external_alpha_row_cache;
-#else
-    return source != NULL ? source->alpha_cache : NULL;
-#endif
 }
 
 static void image_transform_release_external_row_cache(void)
 {
-#if EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
     egui_api_memset(&g_image_transform_external_data_row_cache, 0, sizeof(g_image_transform_external_data_row_cache));
     egui_api_memset(&g_image_transform_external_alpha_row_cache, 0, sizeof(g_image_transform_external_alpha_row_cache));
-#endif
 }
 
 static int image_transform_prepare_external_source(const egui_image_std_info_t *info, int source_is_opaque, image_transform_external_source_t *source)
@@ -1293,19 +1277,11 @@ __EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_image_transform(const egui_image_t 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     image_transform_external_source_t external_source_storage;
     const image_transform_external_source_t *external_source = NULL;
-#if !EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
-    image_transform_external_data_row_slot_t external_data_row_cache = {0};
-    image_transform_external_alpha_row_slot_t external_alpha_row_cache = {0};
-#endif
 #endif
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     if (info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
     {
-#if !EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
-        external_source_storage.data_cache = &external_data_row_cache;
-        external_source_storage.alpha_cache = &external_alpha_row_cache;
-#endif
         if (!image_transform_prepare_external_source(info, source_is_opaque, &external_source_storage))
         {
             return;

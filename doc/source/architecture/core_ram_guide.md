@@ -63,7 +63,7 @@
 - QOI/RLE 解码状态已经从固定 `.bss` 挪到按帧 heap，而当前 shipped 的按场景 logical `96x8` walk 继续把 whole-run heap headline 压到 `5008B`。当前第一峰值 owner 是 `IMAGE_TILED_QOI_565_8`，已验证的热点梯队是 `IMAGE_TILED_QOI_565_8 5008B`、`IMAGE_TILED_RLE_565_8 4816B`、`IMAGE_RLE_565_8` / `EXTERN_IMAGE_RLE_565_8 3760B`，以及 `IMAGE_QOI_565_8` / `EXTERN_IMAGE_QOI_565_8` / `MASK_IMAGE_QOI_8_ROUND_RECT` / `EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT 3664B`。
 - `EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE`、`EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH` 和弱符号 `egui_core_get_logical_pfb_target_width_hint()` 仍主要用于手工 A/B；core 默认返回 `0`，而当前 shipped path 只是在 `HelloPerformance` 里额外覆写了一个按场景 hint：当前高 heap codec hotspot 返回 `96`，其他场景仍返回 `0`。`IMAGE_TILED_RLE_565_0` 由于会带来 `+13.10%` 回归，明确不进入这组 hint。
 - 2026-03-30 的 probe follow-up 还顺手清掉了 resize `src_x_map` heap 路径里遗留的 `count <= EGUI_CONFIG_PFB_WIDTH` 断言。这个断言会把逻辑 tile 宽于物理 `48px` 的 probe build 直接卡死，但对默认 shipped path 的 `48x16` 几何、RAM headline 和性能结果都没有任何变化。
-- 当前默认 `EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE=0`、`EGUI_CONFIG_MASK_CIRCLE_FRAME_ROW_CACHE_ENABLE=0`；这两个 `PFB_HEIGHT` 相关行缓存如果以后重新打开，仍然必须走 `heap`，不能回退为静态 RAM 或大栈数组。
+- 历史上的 `EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE`、`EGUI_CONFIG_MASK_CIRCLE_FRAME_ROW_CACHE_ENABLE` 已收回实现私有并保持默认关闭；这两个 `PFB_HEIGHT` 相关行缓存如果以后重新评估，也仍然必须走 `heap`，不能回退为静态 RAM 或大栈数组。
 - 当前默认 external raw-image shared row cache 也已收紧到 `2` 行上限：`EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES=960`、`EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES=480`。这不会改变压缩图主导的 whole-run headline，只是当前 headline 现在是 `5008B`；对应 `240px` 外部 RGB565+alpha 场景的 scene-local heap 从旧的 `2880B` 压到 `1440B`，resize 场景则是 `1536B`。
 
 ## 静态 RAM 分布

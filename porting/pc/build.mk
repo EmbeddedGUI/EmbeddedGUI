@@ -14,6 +14,7 @@ COMMON_FLAGS += -DEGUI_PORT_PC=1
 
 # define lib directory
 LIB		+=
+OUTPUT_PATH ?= output
 
 ifeq ($(OS),Windows_NT)
 	INCLUDE  += porting/pc/sdl2/$(BITS)/include
@@ -29,9 +30,9 @@ ifeq ($(OS),Windows_NT)
 		LDFLAGS  +=  -flto
 	endif
 
-	USER_COMPILE_TARGETS := output/SDL2.dll
+	USER_COMPILE_TARGETS := $(OUTPUT_PATH)/SDL2.dll
 	ifneq ($(strip $(LIBWINPTHREAD_DLL)),)
-		USER_COMPILE_TARGETS += output/libwinpthread-1.dll
+		USER_COMPILE_TARGETS += $(OUTPUT_PATH)/libwinpthread-1.dll
 	endif
 
 else ifeq ($(shell uname), Darwin)
@@ -51,13 +52,13 @@ else
 endif
 
 
-output/SDL2.dll:
+$(OUTPUT_PATH)/SDL2.dll: | $(OUTPUT_PATH)
 	@$(ECHO) Copy SDL2.dll
-	@-cmd /c copy $(call FIXPATH, porting\pc\sdl2\$(BITS)\bin\SDL2.dll) $(OUTPUT_PATH)\SDL2.dll
+	@-cmd /c copy $(call FIXPATH, porting\pc\sdl2\$(BITS)\bin\SDL2.dll) $(call FIXPATH, $@)
 
-output/libwinpthread-1.dll:
+$(OUTPUT_PATH)/libwinpthread-1.dll: | $(OUTPUT_PATH)
 	@$(ECHO) Copy libwinpthread-1.dll
-	@-cmd /c copy $(call FIXPATH, $(LIBWINPTHREAD_DLL)) $(OUTPUT_PATH)\libwinpthread-1.dll
+	@-cmd /c copy $(call FIXPATH, $(LIBWINPTHREAD_DLL)) $(call FIXPATH, $@)
 
 
 include $(EGUI_PORT_PATH)/Makefile.base
