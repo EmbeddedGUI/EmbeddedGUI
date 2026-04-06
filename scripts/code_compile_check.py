@@ -7,7 +7,7 @@ import time
 import shutil
 import subprocess
 
-mutil_work = True
+make_jobs = None
 
 # Speed up compilation: disable debug symbols, use -O0 (same as ui_designer)
 COMPILE_FAST_FLAGS = ' COMPILE_DEBUG= COMPILE_OPT_LEVEL=-O0'
@@ -20,6 +20,8 @@ APP_SUB_ROOTS = {
     "HelloVirtual": "example/HelloVirtual",
     "HelloSizeAnalysis": "example/HelloSizeAnalysis",
 }
+SUB_APP_FAMILY_APPS = tuple(APP_SUB_ROOTS.keys())
+FULL_CHECK_SKIP_APPS = {"HelloCustomWidgets"}
 
 def get_example_list():
     path = 'example'
@@ -81,6 +83,82 @@ def get_custom_widgets_list(category=None):
                 result.append(f"{cat}/{widget}")
     return result
 
+
+def get_make_parallel_arg():
+    if make_jobs is None:
+        return "-j"
+    if make_jobs <= 1:
+        return ""
+    return "-j%d" % make_jobs
+
+
+def resolve_make_jobs(actions, requested_jobs):
+    if requested_jobs < 0:
+        raise ValueError("--jobs must be >= 0")
+
+    if requested_jobs > 0:
+        return requested_jobs
+
+    if actions:
+        cpu_count = os.cpu_count() or 1
+        return min(2, max(1, cpu_count))
+
+    return None
+
+
+def build_sub_app_sets():
+    return {
+        "HelloBasic": get_example_basic_list(),
+        "HelloVirtual": get_example_virtual_list(),
+        "HelloSizeAnalysis": get_example_size_analysis_list(),
+    }
+
+
+def expand_app_cases(app, port, sub_app_sets):
+    if app in sub_app_sets:
+        return [(app, port, app_sub) for app_sub in sub_app_sets[app]]
+    return [(app, port, None)]
+
+
+def build_compile_cases_for_apps(apps, ports, sub_app_sets):
+    cases = []
+    for app in apps:
+        for port in ports:
+            cases.extend(expand_app_cases(app, port, sub_app_sets))
+    return cases
+
+
+def build_standard_app_list(app_sets):
+    return [app for app in app_sets if app not in SUB_APP_FAMILY_APPS and app not in FULL_CHECK_SKIP_APPS]
+
+
+def build_compile_cases(scope, app_sets, ports, sub_app_sets):
+    if scope == "standard":
+        selected_apps = build_standard_app_list(app_sets)
+    elif scope == "basic":
+        selected_apps = ["HelloBasic"]
+    elif scope == "virtual":
+        selected_apps = ["HelloVirtual"]
+    elif scope == "size-analysis":
+        selected_apps = ["HelloSizeAnalysis"]
+    elif scope == "full":
+        selected_apps = [app for app in app_sets if app not in FULL_CHECK_SKIP_APPS]
+    else:
+        raise ValueError("unknown scope: %s" % scope)
+
+    return build_compile_cases_for_apps(selected_apps, ports, sub_app_sets)
+
+
+def apply_case_shard(cases, shard_count, shard_index):
+    if shard_count <= 1:
+        return cases
+
+    if shard_index < 1 or shard_index > shard_count:
+        raise ValueError("--shard-index must be in [1, --shard-count]")
+
+    shard_cases = [case for index, case in enumerate(cases) if index % shard_count == (shard_index - 1)]
+    return shard_cases
+
 def compile_code(params):
     """Compile code using per-app OBJDIR (no make clean needed).
 
@@ -90,10 +168,11 @@ def compile_code(params):
     if build_system == 'cmake':
         return compile_code_cmake(params)
 
-    if mutil_work:
-        cmd = 'make -j' + params + COMPILE_FAST_FLAGS
-    else:
-        cmd = 'make' + params + COMPILE_FAST_FLAGS
+    cmd = 'make'
+    parallel_arg = get_make_parallel_arg()
+    if parallel_arg:
+        cmd += ' ' + parallel_arg
+    cmd += params + COMPILE_FAST_FLAGS
     print(cmd)
     res = os.system(cmd)
     if res != 0:
@@ -150,10 +229,10 @@ def compile_code_cmake(params):
         return res
 
     # CMake build
-    if mutil_work:
-        build_cmd = 'cmake --build %s -j' % build_dir
-    else:
-        build_cmd = 'cmake --build %s' % build_dir
+    build_cmd = 'cmake --build %s' % build_dir
+    parallel_arg = get_make_parallel_arg()
+    if parallel_arg:
+        build_cmd += ' ' + parallel_arg
     print(build_cmd)
     res = os.system(build_cmd)
     if res != 0:
@@ -261,6 +340,8 @@ def parse_args():
             "  python scripts/code_compile_check.py --full-check\n"
             "  python scripts/code_compile_check.py --full-check --cmake\n"
             "  python scripts/code_compile_check.py --custom-widgets --category input\n"
+            "  python scripts/code_compile_check.py --scope basic --shard-count 3 --shard-index 1 --actions --bits64\n"
+            "  python scripts/code_compile_check.py --unit-tests-only --bits64\n"
         ),
     )
     parser.add_argument("--full-check",
@@ -268,10 +349,15 @@ def parse_args():
                         default=False,
                         help="Compile all tracked standard examples plus HelloBasic/HelloVirtual/HelloSizeAnalysis sub-apps.")
 
+    parser.add_argument("--scope",
+                        choices=["standard", "basic", "virtual", "size-analysis"],
+                        default=None,
+                        help="Compile only one case family, useful for CI sharding.")
+
     parser.add_argument("--actions",
                         action="store_true",
                         default=False,
-                        help="Use GitHub Actions friendly settings (single-threaded app loop).")
+                        help="Use GitHub Actions friendly settings.")
 
     parser.add_argument("--bits64",
                         action="store_true",
@@ -293,6 +379,11 @@ def parse_args():
                         default=False,
                         help="Compile HelloCustomWidgets demos instead of standard example apps.")
 
+    parser.add_argument("--unit-tests-only",
+                        action="store_true",
+                        default=False,
+                        help="Only build and run HelloUnitTest on pc_test.")
+
     parser.add_argument("--skip-icon-font-check",
                         action="store_true",
                         default=False,
@@ -303,16 +394,31 @@ def parse_args():
                         default=None,
                         help="Only check specific category (e.g. input, display).")
 
+    parser.add_argument("--jobs",
+                        type=int,
+                        default=0,
+                        help="Parallel build jobs. 0=auto (Actions defaults to 2, local preserves make -j).")
+
+    parser.add_argument("--shard-count",
+                        type=int,
+                        default=1,
+                        help="Split scoped compile cases into N shards.")
+
+    parser.add_argument("--shard-index",
+                        type=int,
+                        default=1,
+                        help="1-based shard index used with --shard-count.")
+
     return parser.parse_args()
 
-def process_app(current_work_cnt, total_work_cnt, app, port, app_basic, params):
+def process_app(current_work_cnt, total_work_cnt, app, port, app_sub, params):
     print("=================================================================================")
     print("Total Work Cnt: %d, Current Cnt: %d, Process: %.2f%%"
         % (total_work_cnt, current_work_cnt, current_work_cnt * 100.0 / total_work_cnt))
     print("=================================================================================")
 
-    if app_basic != None:
-        params_full = params + (' APP=%s PORT=%s APP_SUB=%s') % (app, port, app_basic)
+    if app_sub is not None:
+        params_full = params + (' APP=%s PORT=%s APP_SUB=%s') % (app, port, app_sub)
     else:
         params_full = params + (' APP=%s PORT=%s') % (app, port)
 
@@ -321,13 +427,56 @@ def process_app(current_work_cnt, total_work_cnt, app, port, app_basic, params):
         sys.exit(res)
 
 
+def run_compile_cases(cases, params):
+    total_work_cnt = len(cases)
+    if total_work_cnt == 0:
+        print("No compile cases selected.")
+        return
+
+    for current_work_cnt, (app, port, app_sub) in enumerate(cases, start=1):
+        process_app(current_work_cnt, total_work_cnt, app, port, app_sub, params)
+
+
 if __name__ == '__main__':
     args = parse_args()
+
+    if args.full_check and args.scope is not None:
+        print("Error: --full-check cannot be combined with --scope")
+        sys.exit(1)
+
+    if args.custom_widgets and args.scope is not None:
+        print("Error: --custom-widgets cannot be combined with --scope")
+        sys.exit(1)
+
+    if args.unit_tests_only and (args.full_check or args.custom_widgets or args.scope is not None):
+        print("Error: --unit-tests-only cannot be combined with compile scopes")
+        sys.exit(1)
+
+    if args.shard_count < 1:
+        print("Error: --shard-count must be >= 1")
+        sys.exit(1)
+
+    if args.scope is None and args.shard_count != 1:
+        print("Error: --shard-count requires --scope")
+        sys.exit(1)
+
+    if args.scope is None and args.shard_index != 1:
+        print("Error: --shard-index requires --scope")
+        sys.exit(1)
+
+    if args.scope is not None and args.shard_count == 1 and args.shard_index != 1:
+        print("Error: --shard-index must be 1 when --shard-count is 1")
+        sys.exit(1)
 
     actions = args.actions
     if actions:
         port_sets = ['pc']
-        mutil_work = False
+
+    try:
+        make_jobs = resolve_make_jobs(actions, args.jobs)
+    except ValueError as exc:
+        print("Error: %s" % exc)
+        sys.exit(1)
 
     # Select build system
     if args.cmake:
@@ -340,9 +489,7 @@ if __name__ == '__main__':
         params += ' BITS=64'
 
     app_sets = get_example_list()
-    app_basic_sets = get_example_basic_list()
-    app_virtual_sets = get_example_virtual_list()
-    app_size_analysis_sets = get_example_size_analysis_list()
+    sub_app_sets = build_sub_app_sets()
 
     # Clean once at start if requested (or for backward compat on first run)
     if args.clean:
@@ -354,10 +501,6 @@ if __name__ == '__main__':
 
     start_time = time.time()
 
-    res = compile_code(params)
-    if(res != 0):
-        sys.exit(res)
-
     # Custom widgets check mode
     if args.custom_widgets:
         res = run_touch_release_semantics_check(scope='custom', category=args.category)
@@ -365,11 +508,8 @@ if __name__ == '__main__':
             sys.exit(res)
 
         custom_list = get_custom_widgets_list(args.category)
-        total_work_cnt = len(custom_list)
-        current_work_cnt = 0
-        for widget_sub in custom_list:
-            current_work_cnt += 1
-            process_app(current_work_cnt, total_work_cnt, "HelloCustomWidgets", "pc", widget_sub, params)
+        custom_cases = [("HelloCustomWidgets", "pc", widget_sub) for widget_sub in custom_list]
+        run_compile_cases(custom_cases, params)
 
         elapsed = time.time() - start_time
         print("=================================================================================")
@@ -377,58 +517,65 @@ if __name__ == '__main__':
         print("=================================================================================")
         sys.exit(0)
 
-    full_check = args.full_check
-    if full_check:
+    if args.unit_tests_only:
+        res = run_unit_tests(params)
+        if res != 0:
+            sys.exit(res)
+
+        elapsed = time.time() - start_time
+        print("=================================================================================")
+        print("Unit tests passed! Time: %.1fs" % elapsed)
+        print("=================================================================================")
+        sys.exit(0)
+
+    if args.full_check:
         res = run_touch_release_semantics_check(scope='all')
         if res != 0:
             sys.exit(res)
 
-        total_work_cnt = 0
-        for app in app_sets:
-            for port in port_sets:
-                if app == "HelloCustomWidgets":
-                    # Custom widgets checked separately via --custom-widgets
-                    continue
-                if app == "HelloBasic":
-                    for app_basic in app_basic_sets:
-                        total_work_cnt += 1
-                elif app == "HelloVirtual":
-                    for app_virtual in app_virtual_sets:
-                        total_work_cnt += 1
-                elif app == "HelloSizeAnalysis":
-                    for app_probe in app_size_analysis_sets:
-                        total_work_cnt += 1
-                else:
-                    total_work_cnt += 1
-
-        current_work_cnt = 0
-        for app in app_sets:
-            for port in port_sets:
-                if app == "HelloCustomWidgets":
-                    # Custom widgets checked separately via --custom-widgets
-                    continue
-                if app == "HelloBasic":
-                    for app_basic in app_basic_sets:
-                        current_work_cnt += 1
-                        process_app(current_work_cnt, total_work_cnt, app, port, app_basic, params)
-                elif app == "HelloVirtual":
-                    for app_virtual in app_virtual_sets:
-                        current_work_cnt += 1
-                        process_app(current_work_cnt, total_work_cnt, app, port, app_virtual, params)
-                elif app == "HelloSizeAnalysis":
-                    for app_probe in app_size_analysis_sets:
-                        current_work_cnt += 1
-                        process_app(current_work_cnt, total_work_cnt, app, port, app_probe, params)
-                else:
-                    current_work_cnt += 1
-                    process_app(current_work_cnt, total_work_cnt, app, port, None, params)
+        full_cases = build_compile_cases("full", app_sets, port_sets, sub_app_sets)
+        run_compile_cases(full_cases, params)
 
         if not args.skip_icon_font_check:
             res = run_example_icon_font_check()
             if res != 0:
                 sys.exit(res)
+        res = run_unit_tests(params)
+        if res != 0:
+            sys.exit(res)
 
-    # Run unit tests
+        elapsed = time.time() - start_time
+        print("=================================================================================")
+        print("All checks passed! Time: %.1fs" % elapsed)
+        print("=================================================================================")
+        sys.exit(0)
+
+    if args.scope is not None:
+        try:
+            scope_cases = build_compile_cases(args.scope, app_sets, port_sets, sub_app_sets)
+            scope_cases = apply_case_shard(scope_cases, args.shard_count, args.shard_index)
+        except ValueError as exc:
+            print("Error: %s" % exc)
+            sys.exit(1)
+
+        print("Selected scope=%s shard=%d/%d cases=%d" % (
+            args.scope,
+            args.shard_index,
+            args.shard_count,
+            len(scope_cases),
+        ))
+        run_compile_cases(scope_cases, params)
+
+        elapsed = time.time() - start_time
+        print("=================================================================================")
+        print("Scope compile passed! Time: %.1fs" % elapsed)
+        print("=================================================================================")
+        sys.exit(0)
+
+    res = compile_code(params)
+    if(res != 0):
+        sys.exit(res)
+
     res = run_unit_tests(params)
     if res != 0:
         sys.exit(res)

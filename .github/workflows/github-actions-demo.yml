@@ -3,7 +3,7 @@ run-name: ${{ github.actor }} is start compile check
 on: [push]
 
 jobs:
-  env_and_compile_check:
+  compile_check_meta:
     runs-on: windows-latest
     steps:
       - name: Check out repository code
@@ -20,8 +20,67 @@ jobs:
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Start Compile Test, full compile check.
-        run: python scripts\code_compile_check.py --full-check --actions --bits64
+      - name: Check Touch Release Semantics
+        run: python scripts\checks\check_touch_release_semantics.py --scope all
+
+      - name: Check Example Icon Fonts
+        run: python scripts\checks\check_example_icon_font.py
+
+      - name: Run Unit Tests
+        run: python scripts\code_compile_check.py --unit-tests-only --actions --bits64 --jobs 2
+
+  compile_check_matrix:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - name: standard
+            args: --scope standard
+          - name: basic-1
+            args: --scope basic --shard-count 3 --shard-index 1
+          - name: basic-2
+            args: --scope basic --shard-count 3 --shard-index 2
+          - name: basic-3
+            args: --scope basic --shard-count 3 --shard-index 3
+          - name: virtual
+            args: --scope virtual
+          - name: size-analysis
+            args: --scope size-analysis
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6
+
+      - name: Setup C/C++ env
+        uses: rlalik/setup-cpp-compiler@v1.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Start Compile Test (${{ matrix.name }})
+        run: python scripts\code_compile_check.py ${{ matrix.args }} --actions --bits64 --jobs 2
+
+  env_and_compile_check:
+    needs: [compile_check_meta, compile_check_matrix]
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6
+
+      - name: Setup C/C++ env
+        uses: rlalik/setup-cpp-compiler@v1.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
 
       - name: Start Runtime Test, skip HelloCustomWidgets runtime suite.
         run: python scripts\code_runtime_check.py --full-check --skip-custom-widgets --bits64

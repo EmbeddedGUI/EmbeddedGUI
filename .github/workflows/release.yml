@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  ci-check:
+  ci-compile-meta:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
@@ -27,8 +27,63 @@ jobs:
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Full compile check
-        run: python scripts\code_compile_check.py --full-check --actions --bits64
+      - name: Check touch release semantics
+        run: python scripts\checks\check_touch_release_semantics.py --scope all
+
+      - name: Check example icon fonts
+        run: python scripts\checks\check_example_icon_font.py
+
+      - name: Run unit tests
+        run: python scripts\code_compile_check.py --unit-tests-only --actions --bits64 --jobs 2
+
+  ci-compile-matrix:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - name: standard
+            args: --scope standard
+          - name: basic-1
+            args: --scope basic --shard-count 3 --shard-index 1
+          - name: basic-2
+            args: --scope basic --shard-count 3 --shard-index 2
+          - name: basic-3
+            args: --scope basic --shard-count 3 --shard-index 3
+          - name: virtual
+            args: --scope virtual
+          - name: size-analysis
+            args: --scope size-analysis
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: rlalik/setup-cpp-compiler@v1.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Compile shard ${{ matrix.name }}
+        run: python scripts\code_compile_check.py ${{ matrix.args }} --actions --bits64 --jobs 2
+
+  ci-check:
+    needs: [ci-compile-meta, ci-compile-matrix]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: rlalik/setup-cpp-compiler@v1.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
 
       - name: Runtime check (skip HelloCustomWidgets)
         run: python scripts\code_runtime_check.py --full-check --skip-custom-widgets --bits64
