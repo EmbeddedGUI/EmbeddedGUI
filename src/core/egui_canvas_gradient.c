@@ -409,8 +409,7 @@ __EGUI_STATIC_INLINE__ uint8_t gradient_compact_cache_index(uint8_t t)
 
 /* ========================== Rectangle Fill Gradient ========================== */
 
-__EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
-                                                                     const egui_gradient_t *gradient)
+void egui_canvas_draw_rectangle_fill_gradient(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const egui_gradient_t *gradient)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -757,7 +756,7 @@ __EGUI_STATIC_INLINE__ egui_alpha_t gradient_circle_edge_alpha_sdf(int32_t d_sq,
     return (egui_alpha_t)(cov > 255 ? 255 : cov);
 }
 
-__EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, const egui_gradient_t *gradient)
+void egui_canvas_draw_circle_fill_gradient(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, const egui_gradient_t *gradient)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -1305,10 +1304,9 @@ __EGUI_STATIC_INLINE__ egui_dim_t round_rect_corner_inset(egui_dim_t dy, egui_di
     return (egui_dim_t)(r - x_boundary);
 }
 
-__EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_round_rectangle_corners_fill_gradient(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
-                                                                                   egui_dim_t radius_left_top, egui_dim_t radius_left_bottom,
-                                                                                   egui_dim_t radius_right_top, egui_dim_t radius_right_bottom,
-                                                                                   const egui_gradient_t *gradient)
+void egui_canvas_draw_round_rectangle_corners_fill_gradient(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_dim_t radius_left_top,
+                                                            egui_dim_t radius_left_bottom, egui_dim_t radius_right_top, egui_dim_t radius_right_bottom,
+                                                            const egui_gradient_t *gradient)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -2048,8 +2046,8 @@ __EGUI_STATIC_INLINE__ egui_alpha_t gradient_triangle_edge_alpha(int32_t cross, 
     return (egui_alpha_t)alpha_val;
 }
 
-__EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_triangle_fill_gradient(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3,
-                                                                    const egui_gradient_t *gradient)
+void egui_canvas_draw_triangle_fill_gradient(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3,
+                                             const egui_gradient_t *gradient)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -2432,8 +2430,7 @@ __EGUI_STATIC_INLINE__ egui_alpha_t gradient_ellipse_edge_alpha(int32_t dx, int3
     return (egui_alpha_t)alpha_val;
 }
 
-__EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_ellipse_fill_gradient(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius_x, egui_dim_t radius_y,
-                                                                   const egui_gradient_t *gradient)
+void egui_canvas_draw_ellipse_fill_gradient(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius_x, egui_dim_t radius_y, const egui_gradient_t *gradient)
 {
     egui_canvas_t *self = &canvas_data;
 
@@ -2682,7 +2679,7 @@ __EGUI_STATIC_INLINE__ egui_alpha_t gradient_polygon_edge_alpha(int32_t cross, i
     return (egui_alpha_t)alpha_val;
 }
 
-__EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_polygon_fill_gradient(const egui_dim_t *points, uint8_t count, const egui_gradient_t *gradient)
+void egui_canvas_draw_polygon_fill_gradient(const egui_dim_t *points, uint8_t count, const egui_gradient_t *gradient)
 {
     egui_canvas_t *self = &canvas_data;
 

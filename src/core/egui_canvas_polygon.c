@@ -160,7 +160,7 @@ __EGUI_STATIC_INLINE__ void polygon_fill_direct_span(egui_color_t *dst_row, egui
  * \param[in]       color: Color used for drawing operation
  * \param[in]       alpha: Alpha value for blending
  */
-__EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_polygon_fill(const egui_dim_t *points, uint8_t count, egui_color_t color, egui_alpha_t alpha)
 {
     egui_canvas_t *self = &canvas_data;
 

@@ -186,8 +186,10 @@ static void on_layer_click(egui_view_t *view);
 static void on_textinput_focus_changed(egui_view_t *self, int is_focused);
 
 // ---- Animation ----
+#if !EGUI_SHOWCASE_PARITY_RECORDING
 static egui_timer_t anim_timer;
 static uint16_t anim_tick = 0;
+#endif
 
 // ============================================================================
 // Static data for widgets
@@ -830,6 +832,7 @@ static void on_layer_click(egui_view_t *view)
 // ============================================================================
 // Animation timer callback
 // ============================================================================
+#if !EGUI_SHOWCASE_PARITY_RECORDING
 static void anim_cb(egui_timer_t *timer)
 {
     anim_tick++;
@@ -857,6 +860,7 @@ static void anim_cb(egui_timer_t *timer)
     // Stopwatch: tick
     egui_view_stopwatch_set_elapsed(EGUI_VIEW_OF(&wg_stopwatch), anim_tick * 100);
 }
+#endif
 
 // ============================================================================
 // Helper: init a category title label

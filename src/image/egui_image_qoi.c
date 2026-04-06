@@ -883,6 +883,7 @@ static void egui_image_qoi_decode_row_rgb565(const egui_image_qoi_info_t *info, 
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 static void egui_image_qoi_decode_pixels_rgb565_opaque_partial(const egui_image_qoi_info_t *info, uint8_t *pixel_buf, uint16_t pixel_count)
 {
     const uint8_t *src = info->data_buf;
@@ -1003,8 +1004,10 @@ static void egui_image_qoi_decode_pixels_rgb565_opaque_partial(const egui_image_
     qoi_state.run = run;
 }
 #endif
+#endif
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 static void egui_image_qoi_decode_pixels_rgb565_partial(const egui_image_qoi_info_t *info, uint8_t *pixel_buf, uint8_t *alpha_buf, uint16_t pixel_count)
 {
     const uint8_t *src = info->data_buf;
@@ -1071,6 +1074,7 @@ static void egui_image_qoi_decode_pixels_rgb565_partial(const egui_image_qoi_inf
     qoi_state.prev_rgb565 = prev_pixel;
     qoi_state.run = run;
 }
+#endif
 #endif
 
 static void egui_image_qoi_decode_row_rgb32(const egui_image_qoi_info_t *info, uint8_t *pixel_buf)
@@ -1229,6 +1233,7 @@ static void egui_image_qoi_decode_row_external(const egui_image_qoi_info_t *info
     qoi_state.run = run;
 }
 
+#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 static void egui_image_qoi_decode_pixels_rgb565_external_partial(const egui_image_qoi_info_t *info, uint8_t *pixel_buf, uint8_t *alpha_buf,
                                                                  uint16_t pixel_count)
 {
@@ -1301,6 +1306,7 @@ static void egui_image_qoi_decode_pixels_rgb565_external_partial(const egui_imag
     qoi_state.prev_rgb565 = prev_rgb565;
     qoi_state.run = run;
 }
+#endif
 
 static void egui_image_qoi_skip_row_external(const egui_image_qoi_info_t *info)
 {
@@ -1376,6 +1382,7 @@ static void egui_image_qoi_decode_row(const egui_image_qoi_info_t *info, uint8_t
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 static void egui_image_qoi_decode_pixels_rgb565_partial_any(const egui_image_qoi_info_t *info, uint8_t *pixel_buf, uint8_t *alpha_buf, uint16_t pixel_count)
 {
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
@@ -1641,6 +1648,7 @@ static void egui_image_qoi_decode_row_rgb565_alpha8_masked_split(const egui_imag
         egui_image_qoi_decode_pixels_rgb565_partial_any(info, NULL, NULL, (uint16_t)(info->width - current_col));
     }
 }
+#endif
 #endif
 
 /**

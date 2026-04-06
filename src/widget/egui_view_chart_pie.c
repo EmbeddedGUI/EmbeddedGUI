@@ -3,12 +3,81 @@
 #include <string.h>
 
 #include "egui_view_chart_pie.h"
-#include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
 #include "core/egui_canvas_gradient.h"
 #endif
+
+typedef egui_dim_t (*egui_view_chart_pie_get_font_height_fn)(egui_view_chart_pie_t *local);
+typedef void (*egui_view_chart_pie_draw_legend_text_fn)(egui_view_chart_pie_t *local, const char *text, egui_region_t *text_rect);
+
+struct egui_view_chart_pie_text_ops
+{
+    egui_view_chart_pie_get_font_height_fn get_font_height;
+    egui_view_chart_pie_draw_legend_text_fn draw_legend_text;
+};
+
+static egui_dim_t egui_view_chart_pie_get_font_height_basic(egui_view_chart_pie_t *local)
+{
+    (void)local;
+    return egui_chart_get_font_height((const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
+}
+
+static egui_dim_t egui_view_chart_pie_get_font_height_rich(egui_view_chart_pie_t *local)
+{
+    if (local == NULL || local->font == NULL)
+    {
+        return 8;
+    }
+
+    return EGUI_FONT_STD_GET_FONT_HEIGHT(local->font);
+}
+
+static void egui_view_chart_pie_draw_legend_text_basic(egui_view_chart_pie_t *local, const char *text, egui_region_t *text_rect)
+{
+    const egui_font_t *font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+
+    if (local == NULL || text == NULL || text_rect == NULL)
+    {
+        return;
+    }
+
+    if (font != NULL)
+    {
+        egui_canvas_draw_text_in_rect(font, text, text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, local->text_color, EGUI_ALPHA_100);
+    }
+}
+
+static void egui_view_chart_pie_draw_legend_text_rich(egui_view_chart_pie_t *local, const char *text, egui_region_t *text_rect)
+{
+    if (local == NULL || local->font == NULL || text == NULL || text_rect == NULL)
+    {
+        return;
+    }
+
+    egui_canvas_draw_text_in_rect(local->font, text, text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, local->text_color, EGUI_ALPHA_100);
+}
+
+static const egui_view_chart_pie_text_ops_t egui_view_chart_pie_basic_text_ops = {
+        .get_font_height = egui_view_chart_pie_get_font_height_basic,
+        .draw_legend_text = egui_view_chart_pie_draw_legend_text_basic,
+};
+
+static const egui_view_chart_pie_text_ops_t egui_view_chart_pie_rich_text_ops = {
+        .get_font_height = egui_view_chart_pie_get_font_height_rich,
+        .draw_legend_text = egui_view_chart_pie_draw_legend_text_rich,
+};
+
+static egui_dim_t egui_view_chart_pie_get_font_height(egui_view_chart_pie_t *local)
+{
+    if (local == NULL || local->text_ops == NULL || local->text_ops->get_font_height == NULL)
+    {
+        return 8;
+    }
+
+    return local->text_ops->get_font_height(local);
+}
 
 // ============== Pie Chart Drawing ==============
 
@@ -31,8 +100,7 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_regi
     }
 
     // Calculate available space considering legend
-    const egui_font_t *font = local->font ? local->font : (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
-    egui_dim_t font_h = egui_chart_get_font_height(font);
+    egui_dim_t font_h = egui_view_chart_pie_get_font_height(local);
 
     egui_dim_t avail_x = region->location.x;
     egui_dim_t avail_y = region->location.y;
@@ -128,8 +196,7 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_regi
 
 static void egui_view_chart_pie_draw_legend(egui_view_chart_pie_t *local, egui_region_t *region)
 {
-    const egui_font_t *font = local->font ? local->font : (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
-    egui_dim_t font_h = egui_chart_get_font_height(font);
+    egui_dim_t font_h = egui_view_chart_pie_get_font_height(local);
     egui_dim_t swatch_size = font_h > 2 ? font_h - 2 : 4;
     egui_dim_t item_gap = 6;
     egui_dim_t text_w = font_h * 3;
@@ -165,9 +232,7 @@ static void egui_view_chart_pie_draw_legend(egui_view_chart_pie_t *local, egui_r
     else if (local->legend_pos == EGUI_CHART_LEGEND_RIGHT)
     {
         // For pie, legend goes to the right of the pie area
-        const egui_font_t *f = local->font ? local->font : (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
-        egui_dim_t fh = egui_chart_get_font_height(f);
-        egui_dim_t pie_w = region->size.width - fh * 4;
+        egui_dim_t pie_w = region->size.width - font_h * 4;
         lx = region->location.x + pie_w + 6;
         ly = region->location.y + (region->size.height - count * (font_h + 2)) / 2;
         if (ly < region->location.y)
@@ -195,7 +260,10 @@ static void egui_view_chart_pie_draw_legend(egui_view_chart_pie_t *local, egui_r
 
         // Draw name text
         EGUI_REGION_DEFINE(text_rect, lx + swatch_size + 2, ly, text_w, font_h);
-        egui_canvas_draw_text_in_rect(font, name, &text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, local->text_color, EGUI_ALPHA_100);
+        if (local->text_ops != NULL && local->text_ops->draw_legend_text != NULL)
+        {
+            local->text_ops->draw_legend_text(local, name, &text_rect);
+        }
 
         // Advance position
         if (local->legend_pos == EGUI_CHART_LEGEND_RIGHT)
@@ -276,6 +344,7 @@ void egui_view_chart_pie_init(egui_view_t *self)
     local->bg_color = EGUI_THEME_SURFACE;
     local->text_color = EGUI_THEME_TEXT_SECONDARY;
     local->font = NULL;
+    local->text_ops = &egui_view_chart_pie_basic_text_ops;
 
     egui_view_set_view_name(self, "egui_view_chart_pie");
 }
@@ -324,5 +393,6 @@ void egui_view_chart_pie_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_chart_pie_t);
     local->font = font;
+    local->text_ops = (font == NULL) ? &egui_view_chart_pie_basic_text_ops : &egui_view_chart_pie_rich_text_ops;
     egui_view_invalidate(self);
 }

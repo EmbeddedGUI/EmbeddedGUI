@@ -31,7 +31,7 @@ VARIANTS = [
         "suffix": "wfp_base",
         "cflags": [],
         "items": [],
-        "description": "不强制链接任何 widget probe。",
+        "description": "No widget probe is force-linked.",
     },
     {
         "name": "slider_widget",
@@ -39,7 +39,7 @@ VARIANTS = [
         "suffix": "wfp_slider",
         "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_SLIDER=1"],
         "items": ["egui_view_slider"],
-        "description": "真实 slider 控件成本。",
+        "description": "Real slider widget cost.",
     },
     {
         "name": "switch_widget",
@@ -47,7 +47,7 @@ VARIANTS = [
         "suffix": "wfp_switch",
         "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_SWITCH=1"],
         "items": ["egui_view_switch"],
-        "description": "真实 switch 控件成本。",
+        "description": "Real switch widget cost.",
     },
     {
         "name": "page_indicator_widget",
@@ -55,7 +55,7 @@ VARIANTS = [
         "suffix": "wfp_pi",
         "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_PAGE_INDICATOR=1"],
         "items": ["egui_view_page_indicator"],
-        "description": "真实 page indicator 控件成本。",
+        "description": "Real page indicator widget cost.",
     },
     {
         "name": "stepper_widget",
@@ -63,7 +63,63 @@ VARIANTS = [
         "suffix": "wfp_stepper",
         "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_STEPPER=1"],
         "items": ["egui_view_stepper"],
-        "description": "真实 stepper 控件成本。",
+        "description": "Real stepper widget cost.",
+    },
+    {
+        "name": "checkbox_widget",
+        "title": "CHECKBOX",
+        "suffix": "wfp_checkbox",
+        "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_CHECKBOX=1"],
+        "items": ["egui_view_checkbox"],
+        "description": "Real checkbox widget cost.",
+    },
+    {
+        "name": "radio_button_widget",
+        "title": "RADIO_BUTTON",
+        "suffix": "wfp_radio",
+        "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_RADIO_BUTTON=1"],
+        "items": ["egui_view_radio_button"],
+        "description": "Real radio button widget cost.",
+    },
+    {
+        "name": "progress_bar_widget",
+        "title": "PROGRESS_BAR",
+        "suffix": "wfp_progress",
+        "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_PROGRESS_BAR=1"],
+        "items": ["egui_view_progress_bar"],
+        "description": "Real progress bar widget cost.",
+    },
+    {
+        "name": "toggle_button_widget",
+        "title": "TOGGLE_BUTTON",
+        "suffix": "wfp_toggle",
+        "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_TOGGLE_BUTTON=1"],
+        "items": ["egui_view_toggle_button"],
+        "description": "Real toggle button widget cost.",
+    },
+    {
+        "name": "notification_badge_widget",
+        "title": "NOTIFICATION_BADGE",
+        "suffix": "wfp_badge",
+        "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_NOTIFICATION_BADGE=1"],
+        "items": ["egui_view_notification_badge"],
+        "description": "Real notification badge widget cost.",
+    },
+    {
+        "name": "button_widget",
+        "title": "BUTTON",
+        "suffix": "wfp_button",
+        "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_BUTTON=1"],
+        "items": ["egui_view_button"],
+        "description": "Real button widget cost.",
+    },
+    {
+        "name": "image_button_widget",
+        "title": "IMAGE_BUTTON",
+        "suffix": "wfp_image_button",
+        "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_IMAGE_BUTTON=1"],
+        "items": ["egui_view_image_button"],
+        "description": "Real image button widget cost.",
     },
     {
         "name": "cpb_widget",
@@ -71,7 +127,7 @@ VARIANTS = [
         "suffix": "wfp_cpb",
         "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_CPB=1"],
         "items": ["egui_view_circular_progress_bar"],
-        "description": "真实 circular progress bar 控件成本。",
+        "description": "Real circular progress bar widget cost.",
     },
     {
         "name": "gauge_widget",
@@ -79,7 +135,7 @@ VARIANTS = [
         "suffix": "wfp_gauge",
         "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_GAUGE=1"],
         "items": ["egui_view_gauge"],
-        "description": "真实 gauge 控件成本。",
+        "description": "Real gauge widget cost.",
     },
     {
         "name": "activity_ring_widget",
@@ -87,7 +143,7 @@ VARIANTS = [
         "suffix": "wfp_ring",
         "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_ACTIVITY_RING=1"],
         "items": ["egui_view_activity_ring"],
-        "description": "真实 activity_ring 控件成本。",
+        "description": "Real activity ring widget cost.",
     },
     {
         "name": "analog_clock_widget",
@@ -95,7 +151,7 @@ VARIANTS = [
         "suffix": "wfp_clock",
         "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_ANALOG_CLOCK=1"],
         "items": ["egui_view_analog_clock"],
-        "description": "真实 analog_clock 控件成本。",
+        "description": "Real analog clock widget cost.",
     },
     {
         "name": "line_widget",
@@ -103,7 +159,7 @@ VARIANTS = [
         "suffix": "wfp_line",
         "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_LINE=1"],
         "items": ["egui_view_line"],
-        "description": "真实 line 控件成本。",
+        "description": "Real line widget cost.",
     },
     {
         "name": "chart_line_widget",
@@ -111,7 +167,15 @@ VARIANTS = [
         "suffix": "wfp_chart",
         "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_CHART_LINE=1"],
         "items": ["egui_view_chart_line"],
-        "description": "真实 chart_line 控件成本。",
+        "description": "Real chart-line widget cost.",
+    },
+    {
+        "name": "chart_pie_widget",
+        "title": "CHART_PIE",
+        "suffix": "wfp_chart_pie",
+        "cflags": ["-DEGUI_SIZE_PROBE_WIDGET_CHART_PIE=1"],
+        "items": ["egui_view_chart_pie"],
+        "description": "Real chart-pie widget cost.",
     },
     {
         "name": "indicator_widget_set",
@@ -124,7 +188,7 @@ VARIANTS = [
             "-DEGUI_SIZE_PROBE_WIDGET_STEPPER=1",
         ],
         "items": ["slider", "switch", "page_indicator", "stepper"],
-        "description": "一组常见 indicator 控件组合。",
+        "description": "A common indicator widget set.",
     },
     {
         "name": "ring_widget_set",
@@ -136,7 +200,7 @@ VARIANTS = [
             "-DEGUI_SIZE_PROBE_WIDGET_ACTIVITY_RING=1",
         ],
         "items": ["circular_progress_bar", "gauge", "activity_ring"],
-        "description": "一组 ring/gauge 类控件组合。",
+        "description": "A ring and gauge widget set.",
     },
     {
         "name": "line_visual_widget_set",
@@ -148,7 +212,7 @@ VARIANTS = [
             "-DEGUI_SIZE_PROBE_WIDGET_ANALOG_CLOCK=1",
         ],
         "items": ["line", "chart_line", "analog_clock"],
-        "description": "一组 line/clock/data-visual 控件组合。",
+        "description": "A line, clock and data-visual widget set.",
     },
     {
         "name": "all_widget_probes",
@@ -159,15 +223,23 @@ VARIANTS = [
             "-DEGUI_SIZE_PROBE_WIDGET_SWITCH=1",
             "-DEGUI_SIZE_PROBE_WIDGET_PAGE_INDICATOR=1",
             "-DEGUI_SIZE_PROBE_WIDGET_STEPPER=1",
+            "-DEGUI_SIZE_PROBE_WIDGET_CHECKBOX=1",
+            "-DEGUI_SIZE_PROBE_WIDGET_RADIO_BUTTON=1",
+            "-DEGUI_SIZE_PROBE_WIDGET_PROGRESS_BAR=1",
+            "-DEGUI_SIZE_PROBE_WIDGET_TOGGLE_BUTTON=1",
+            "-DEGUI_SIZE_PROBE_WIDGET_NOTIFICATION_BADGE=1",
+            "-DEGUI_SIZE_PROBE_WIDGET_BUTTON=1",
+            "-DEGUI_SIZE_PROBE_WIDGET_IMAGE_BUTTON=1",
             "-DEGUI_SIZE_PROBE_WIDGET_CPB=1",
             "-DEGUI_SIZE_PROBE_WIDGET_GAUGE=1",
             "-DEGUI_SIZE_PROBE_WIDGET_ACTIVITY_RING=1",
             "-DEGUI_SIZE_PROBE_WIDGET_ANALOG_CLOCK=1",
             "-DEGUI_SIZE_PROBE_WIDGET_LINE=1",
             "-DEGUI_SIZE_PROBE_WIDGET_CHART_LINE=1",
+            "-DEGUI_SIZE_PROBE_WIDGET_CHART_PIE=1",
         ],
         "items": ["all widget probes"],
-        "description": "当前 probe 覆盖的所有真实 widget 一起打开。",
+        "description": "All widget probes enabled together.",
     },
 ]
 
@@ -178,12 +250,20 @@ WIDGET_FEATURE_DESCRIPTION_OVERRIDES = {
     "switch_widget": "Real switch widget cost.",
     "page_indicator_widget": "Real page indicator widget cost.",
     "stepper_widget": "Real stepper widget cost.",
+    "checkbox_widget": "Real checkbox widget cost.",
+    "radio_button_widget": "Real radio button widget cost.",
+    "progress_bar_widget": "Real progress bar widget cost.",
+    "toggle_button_widget": "Real toggle button widget cost.",
+    "notification_badge_widget": "Real notification badge widget cost.",
+    "button_widget": "Real button widget cost.",
+    "image_button_widget": "Real image button widget cost.",
     "cpb_widget": "Real circular progress bar widget cost.",
     "gauge_widget": "Real gauge widget cost.",
     "activity_ring_widget": "Real activity ring widget cost.",
     "analog_clock_widget": "Real analog clock widget cost.",
     "line_widget": "Real line widget cost.",
     "chart_line_widget": "Real chart-line widget cost.",
+    "chart_pie_widget": "Real chart-pie widget cost.",
     "indicator_widget_set": "A common indicator widget set.",
     "ring_widget_set": "A ring and gauge widget set.",
     "line_visual_widget_set": "A line, clock and data-visual widget set.",
@@ -191,10 +271,10 @@ WIDGET_FEATURE_DESCRIPTION_OVERRIDES = {
 }
 
 WIDGET_FEATURE_DOC_REPLACEMENTS = {
-    "## 璇存槑": "## Notes",
-    "- 杩欎唤鎶ュ憡瑙ｅ喅鐨勬槸鈥滈€夋煇涓湡瀹炴帶浠惰浠樺嚭澶氬皯 ROM/RAM 鎴愭湰鈥濈殑闂銆?": "- This report answers how much ROM and RAM a real widget or widget set costs to bring in.",
-    "- 杩欓噷鐢ㄧ殑涓嶆槸 canvas 鏇胯韩锛岃€屾槸鐪熷疄 widget 鐨?`init_with_params` / setter 璺緞銆?": "- The probe uses real widget `init_with_params` and setter paths rather than canvas-only stand-ins.",
-    "- 鐢变簬 widget 涔嬮棿鍏变韩 base/view/theme/canvas 璺緞锛岀粍鍚堥」涓嶈兘绠€鍗曠敱鍗曟帶浠剁洿鎺ョ浉鍔犮€?": "- Widgets share base/view/theme/canvas paths, so widget-set totals must not be computed by summing single-widget deltas.",
+    "## 鐠囧瓨妲?: "## Notes",
+    "- 鏉╂瑤鍞ら幎銉ユ啞鐟欙絽鍠呴惃鍕Ц閳ユ粓鈧鐓囨稉顏嗘埂鐎圭偞甯舵禒鎯邦洣娴犳ê鍤径姘毌 ROM/RAM 閹存劖婀伴垾婵堟畱闂傤噣顣介妴?": "- This report answers how much ROM and RAM a real widget or widget set costs to bring in.",
+    "- 鏉╂瑩鍣烽悽銊ф畱娑撳秵妲?canvas 閺囪儻闊╅敍宀冣偓灞炬Ц閻喎鐤?widget 閻?`init_with_params` / setter 鐠侯垰绶為妴?": "- The probe uses real widget `init_with_params` and setter paths rather than canvas-only stand-ins.",
+    "- 閻㈠彉绨?widget 娑斿妫块崗鍙橀煩 base/view/theme/canvas 鐠侯垰绶為敍宀€绮嶉崥鍫ャ€嶆稉宥堝厴缁犫偓閸楁洜鏁遍崡鏇熷付娴犲墎娲块幒銉ф祲閸旂姰鈧?": "- Widgets share base/view/theme/canvas paths, so widget-set totals must not be computed by summing single-widget deltas.",
 }
 
 
@@ -326,6 +406,7 @@ def parse_size_output(text):
 
 def build_variant(variant):
     write_probe_config(variant["cflags"])
+    app_obj_suffix = "%s_%s" % (APP_OBJ_SUFFIX, variant["suffix"])
 
     build_cmd = [
         "make",
@@ -335,7 +416,7 @@ def build_variant(variant):
         "APP_SUB=%s" % APP_SUB,
         "PORT=%s" % PORT,
         "CPU_ARCH=%s" % CPU_ARCH,
-        "APP_OBJ_SUFFIX=%s" % APP_OBJ_SUFFIX,
+        "APP_OBJ_SUFFIX=%s" % app_obj_suffix,
     ]
 
     build_result = run_make_with_fallback(build_cmd, timeout=300)
@@ -396,11 +477,11 @@ def generate_report(entries, json_path, doc_path=None):
         "- Measurement method: compile a dedicated widget probe app, then rewrite the app-local probe config header to force-link a real widget or widget set.",
         "- Scope: widget-level static qemu ELF sections only (`.text/.rodata/.data/.bss`).",
         "",
-        "## 说明",
+        "## Notes",
         "",
-        "- 这份报告解决的是“选某个真实控件要付出多少 ROM/RAM 成本”的问题。",
-        "- 这里用的不是 canvas 替身，而是真实 widget 的 `init_with_params` / setter 路径。",
-        "- 由于 widget 之间共享 base/view/theme/canvas 路径，组合项不能简单由单控件直接相加。",
+        "- This report answers how much ROM and RAM a real widget or widget set costs to bring in.",
+        "- The probe uses real widget `init_with_params` and setter paths rather than canvas-only stand-ins.",
+        "- Widgets share base/view/theme/canvas paths, so widget-set totals must not be computed by summing single-widget deltas.",
         "",
         "## Baseline",
         "",
@@ -521,22 +602,27 @@ def main():
     json_path = report_dir / "widget_feature_size_results.json"
     doc_path = None if args.no_doc else report_dir / "widget_feature_size_report.md"
 
-    clean_result = run_cmd(["make", "clean"], timeout=180)
-    if clean_result.returncode != 0:
-        raise RuntimeError("make clean failed\n%s" % (clean_result.stderr or clean_result.stdout))
+    original_probe_config = PROBE_CONFIG_PATH.read_text(encoding="utf-8")
 
-    requested = args.variants.split(",") if args.variants else []
-    variants = select_variants(VARIANTS, requested)
+    try:
+        clean_result = run_cmd(["make", "clean"], timeout=180)
+        if clean_result.returncode != 0:
+            raise RuntimeError("make clean failed\n%s" % (clean_result.stderr or clean_result.stdout))
 
-    entries = []
-    for variant in variants:
-        print("=== Building %s ===" % variant["title"])
-        entries.append(build_variant(variant))
+        requested = args.variants.split(",") if args.variants else []
+        variants = select_variants(VARIANTS, requested)
 
-    generate_report(entries, json_path, doc_path)
-    print("JSON saved: %s" % json_path)
-    if doc_path is not None:
-        print("Report saved: %s" % doc_path)
+        entries = []
+        for variant in variants:
+            print("=== Building %s ===" % variant["title"])
+            entries.append(build_variant(variant))
+
+        generate_report(entries, json_path, doc_path)
+        print("JSON saved: %s" % json_path)
+        if doc_path is not None:
+            print("Report saved: %s" % doc_path)
+    finally:
+        PROBE_CONFIG_PATH.write_text(original_probe_config, encoding="utf-8")
 
 
 if __name__ == "__main__":
@@ -545,3 +631,4 @@ if __name__ == "__main__":
     except Exception as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(1)
+

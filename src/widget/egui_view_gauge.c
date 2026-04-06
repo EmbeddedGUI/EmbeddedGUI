@@ -1,171 +1,111 @@
-#include <stdio.h>
-#include <assert.h>
-
 #include "egui_view_gauge.h"
 #include "core/egui_common.h"
-#include "utils/egui_fixmath.h"
-#include "utils/egui_sprintf.h"
-#include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
+#include "utils/egui_fixmath.h"
 #include "egui_view_circle_dirty.h"
+#include "egui_view_ring_text_basic.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
 #include "core/egui_canvas_gradient.h"
 #endif
 
-static int egui_view_gauge_get_font_code_index(const egui_font_std_info_t *font, uint32_t utf8_code)
+typedef uint8_t (*egui_view_gauge_get_text_region_fn)(egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t inner_r,
+                                                      uint8_t value, egui_region_t *text_region);
+typedef void (*egui_view_gauge_draw_text_fn)(egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t inner_r);
+
+struct egui_view_gauge_text_ops
 {
-    int first = 0;
-    int last;
-    int middle;
+    egui_view_gauge_get_text_region_fn get_text_region;
+    egui_view_gauge_draw_text_fn draw_text;
+};
 
-    if (font == NULL || font->count == 0)
+static const egui_font_t *egui_view_gauge_get_text_font(const egui_view_gauge_t *local)
+{
+    if (local->font != NULL)
     {
-        return -1;
+        return local->font;
     }
 
-    last = font->count - 1;
-    middle = (first + last) / 2;
-    while (first <= last)
-    {
-        if (font->code_array[middle].code < utf8_code)
-        {
-            first = middle + 1;
-        }
-        else if (font->code_array[middle].code == utf8_code)
-        {
-            return middle;
-        }
-        else
-        {
-            last = middle - 1;
-        }
-        middle = (first + last) / 2;
-    }
-
-    return -1;
+    return (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
 }
 
-static const egui_font_std_char_descriptor_t *egui_view_gauge_get_font_desc(const egui_font_t *text_font, uint32_t utf8_code)
+static uint8_t egui_view_gauge_get_text_box_rich(egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t inner_r,
+                                                 const char *text, egui_region_t *text_box)
 {
-    const egui_font_std_info_t *font_info;
-    int code_index;
+    egui_dim_t text_w;
+    egui_dim_t text_h;
+    egui_dim_t box_width;
+    egui_dim_t box_height;
+    const egui_font_t *text_font = egui_view_gauge_get_text_font(local);
 
-    if (text_font == NULL || text_font->res == NULL)
-    {
-        return NULL;
-    }
-
-    font_info = (const egui_font_std_info_t *)text_font->res;
-    if (font_info->res_type != EGUI_RESOURCE_TYPE_INTERNAL || font_info->char_array == NULL || font_info->code_array == NULL)
-    {
-        return NULL;
-    }
-
-    code_index = egui_view_gauge_get_font_code_index(font_info, utf8_code);
-    if (code_index < 0)
-    {
-        return NULL;
-    }
-
-    return &font_info->char_array[code_index];
-}
-
-static uint8_t egui_view_gauge_measure_text(const egui_font_t *text_font, const char *text, egui_dim_t *text_w, egui_dim_t *text_h)
-{
-    const egui_font_std_info_t *font_info;
-    const egui_font_std_char_descriptor_t *char_desc;
-    const char *cursor;
-    uint32_t utf8_code;
-    int utf8_bytes;
-    egui_dim_t width;
-
-    if (text_w == NULL || text_h == NULL)
+    if (text_box == NULL || text == NULL || text[0] == '\0')
     {
         return 0;
     }
 
-    *text_w = 0;
-    *text_h = 0;
-
-    if (text_font == NULL || text == NULL)
+    box_width = inner_r * 2 - 4;
+    if (box_width <= 0)
     {
         return 0;
     }
 
-    if (text_font->api != NULL && text_font->api->get_str_size != NULL)
+    box_height = box_width;
+    text_w = 0;
+    text_h = 0;
+    if (text_font != NULL && text_font->api != NULL && text_font->api->get_str_size != NULL)
     {
-        return (text_font->api->get_str_size(text_font, text, 0, 0, text_w, text_h) == 0) ? 1 : 0;
-    }
-
-    if (text_font->res == NULL)
-    {
-        return 0;
-    }
-
-    font_info = (const egui_font_std_info_t *)text_font->res;
-    width = 0;
-    cursor = text;
-    while (*cursor != '\0')
-    {
-        utf8_bytes = egui_font_get_utf8_code(cursor, &utf8_code);
-        if (utf8_bytes <= 0)
+        text_font->api->get_str_size(text_font, text, 0, 0, &text_w, &text_h);
+        if (text_h > 0)
         {
-            return 0;
+            box_height = EGUI_MIN(box_height, text_h + 4);
         }
-
-        char_desc = egui_view_gauge_get_font_desc(text_font, utf8_code);
-        width += (char_desc != NULL) ? char_desc->adv : EGUI_MAX((egui_dim_t)1, (egui_dim_t)(font_info->height / 2));
-        cursor += utf8_bytes;
     }
 
-    *text_w = width;
-    *text_h = font_info->height;
-    return (width > 0 && font_info->height > 0) ? 1 : 0;
+    text_box->location.x = center_x - box_width / 2;
+    text_box->location.y = center_y + EGUI_MAX(radius / 10, 3) + 1;
+    text_box->size.width = box_width;
+    text_box->size.height = box_height;
+
+    return egui_region_is_empty(text_box) ? 0 : 1;
 }
 
-static void egui_view_gauge_format_text(uint8_t value, char *buf, uint32_t buf_size)
+static uint8_t egui_view_gauge_get_text_region_basic(egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t inner_r,
+                                                     uint8_t value, egui_region_t *text_region)
 {
-    if (buf == NULL || buf_size < 2)
-    {
-        return;
-    }
-
-    egui_sprintf_int(buf, buf_size - 1, (int32_t)value);
+    (void)local;
+    return egui_view_ring_text_get_region_basic(center_x, center_y, inner_r, EGUI_MAX(radius / 10, 3) + 1, 0, value, 0, text_region);
 }
 
-static uint8_t egui_view_gauge_get_text_region(const egui_font_t *text_font, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t inner_r,
-                                               uint8_t value, egui_region_t *text_region)
+static uint8_t egui_view_gauge_get_text_region_rich(egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t inner_r,
+                                                    uint8_t value, egui_region_t *text_region)
 {
     egui_region_t text_box;
     egui_dim_t text_w;
     egui_dim_t text_h;
     egui_dim_t offset_x;
     egui_dim_t offset_y;
-    egui_dim_t font_h;
-    egui_dim_t lbl_w;
-    egui_dim_t lbl_h;
     char text_buf[8];
+    const egui_font_t *text_font = egui_view_gauge_get_text_font(local);
 
-    if (text_font == NULL || text_region == NULL)
+    if (text_region == NULL)
     {
         return 0;
     }
 
-    font_h = (egui_dim_t)EGUI_FONT_STD_GET_FONT_HEIGHT(text_font);
-    lbl_w = inner_r * 2 - 4;
-    lbl_h = font_h + 4;
-    text_box.location.x = center_x - lbl_w / 2;
-    text_box.location.y = center_y + EGUI_MAX(radius / 10, 3) + 1;
-    text_box.size.width = lbl_w;
-    text_box.size.height = lbl_h;
-    if (egui_region_is_empty(&text_box))
+    egui_view_ring_text_format_value(value, 0, text_buf, sizeof(text_buf));
+    if (!egui_view_gauge_get_text_box_rich(local, center_x, center_y, radius, inner_r, text_buf, &text_box))
     {
         return 0;
     }
 
-    egui_view_gauge_format_text(value, text_buf, sizeof(text_buf));
-    if (!egui_view_gauge_measure_text(text_font, text_buf, &text_w, &text_h) || text_w <= 0 || text_h <= 0)
+    if (text_font == NULL || text_font->api == NULL || text_font->api->get_str_size == NULL)
+    {
+        egui_region_copy(text_region, &text_box);
+        return 1;
+    }
+
+    text_font->api->get_str_size(text_font, text_buf, 0, 0, &text_w, &text_h);
+    if (text_w <= 0 || text_h <= 0)
     {
         egui_region_copy(text_region, &text_box);
         return 1;
@@ -203,27 +143,33 @@ static uint8_t egui_view_gauge_get_text_region(const egui_font_t *text_font, egu
     return egui_region_is_empty(text_region) ? 0 : 1;
 }
 
-static const egui_font_t *egui_view_gauge_get_text_font(egui_view_gauge_t *local, egui_dim_t inner_r)
+static void egui_view_gauge_draw_text_basic(egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t inner_r)
 {
-    if (local->font != NULL)
-    {
-        return local->font;
-    }
-
-    if (inner_r >= 40)
-    {
-        return (const egui_font_t *)&egui_res_font_montserrat_14_4;
-    }
-    if (inner_r >= 28)
-    {
-        return (const egui_font_t *)&egui_res_font_montserrat_12_4;
-    }
-    if (inner_r >= 18)
-    {
-        return (const egui_font_t *)&egui_res_font_montserrat_8_4;
-    }
-    return NULL;
+    egui_view_ring_text_draw_basic(center_x, center_y, inner_r, EGUI_MAX(radius / 10, 3) + 1, 0, local->value, 0, local->text_color, EGUI_ALPHA_100);
 }
+
+static void egui_view_gauge_draw_text_rich(egui_view_gauge_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_dim_t inner_r)
+{
+    char val_buf[8];
+    egui_region_t text_rect;
+    const egui_font_t *text_font = egui_view_gauge_get_text_font(local);
+
+    egui_view_ring_text_format_value(local->value, 0, val_buf, sizeof(val_buf));
+    if (text_font != NULL && egui_view_gauge_get_text_box_rich(local, center_x, center_y, radius, inner_r, val_buf, &text_rect))
+    {
+        egui_canvas_draw_text_in_rect(text_font, val_buf, &text_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+    }
+}
+
+static const egui_view_gauge_text_ops_t egui_view_gauge_basic_text_ops = {
+        .get_text_region = egui_view_gauge_get_text_region_basic,
+        .draw_text = egui_view_gauge_draw_text_basic,
+};
+
+static const egui_view_gauge_text_ops_t egui_view_gauge_rich_text_ops = {
+        .get_text_region = egui_view_gauge_get_text_region_rich,
+        .draw_text = egui_view_gauge_draw_text_rich,
+};
 
 static void egui_view_gauge_invalidate_value_change(egui_view_t *self, egui_view_gauge_t *local, uint8_t old_value)
 {
@@ -232,7 +178,6 @@ static void egui_view_gauge_invalidate_value_change(egui_view_t *self, egui_view
     egui_region_t arc_region;
     egui_region_t text_region;
     egui_region_t text_dirty_region;
-    const egui_font_t *text_font;
     egui_dim_t center_x;
     egui_dim_t center_y;
     egui_dim_t radius;
@@ -306,17 +251,14 @@ static void egui_view_gauge_invalidate_value_change(egui_view_t *self, egui_view
     egui_view_circle_dirty_get_circle_point(center_x, center_y, needle_len, new_end_angle, &tip_x, &tip_y);
     egui_view_circle_dirty_add_line_region(&indicator_dirty_region, center_x, center_y, tip_x, tip_y, local->needle_width, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD);
 
-    text_font = egui_view_gauge_get_text_font(local, inner_r);
-    if (text_font != NULL)
+    if (local->text_ops != NULL && local->text_ops->get_text_region(local, center_x, center_y, radius, inner_r, old_value, &text_region))
     {
-        if (egui_view_gauge_get_text_region(text_font, center_x, center_y, radius, inner_r, old_value, &text_region))
-        {
-            egui_view_circle_dirty_union_region(&text_dirty_region, &text_region);
-        }
-        if (old_value != local->value && egui_view_gauge_get_text_region(text_font, center_x, center_y, radius, inner_r, local->value, &text_region))
-        {
-            egui_view_circle_dirty_union_region(&text_dirty_region, &text_region);
-        }
+        egui_view_circle_dirty_union_region(&text_dirty_region, &text_region);
+    }
+    if (old_value != local->value && local->text_ops != NULL &&
+        local->text_ops->get_text_region(local, center_x, center_y, radius, inner_r, local->value, &text_region))
+    {
+        egui_view_circle_dirty_union_region(&text_dirty_region, &text_region);
     }
 
     if (egui_region_is_empty(&indicator_dirty_region) && egui_region_is_empty(&text_dirty_region))
@@ -355,6 +297,7 @@ void egui_view_gauge_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_gauge_t);
     local->font = font;
+    local->text_ops = (font == NULL) ? &egui_view_gauge_basic_text_ops : &egui_view_gauge_rich_text_ops;
     egui_view_invalidate(self);
 }
 
@@ -442,16 +385,16 @@ void egui_view_gauge_on_draw(egui_view_t *self)
         for (int i = 0; i <= 10; i++)
         {
             int16_t tick_deg = local->start_angle + (int16_t)((int32_t)local->sweep_angle * i / 10);
-            egui_float_t a = EGUI_FLOAT_DIV(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(tick_deg), EGUI_FLOAT_PI), EGUI_FLOAT_VALUE_INT(180));
-            egui_float_t c = EGUI_FLOAT_COS(a);
-            egui_float_t s = EGUI_FLOAT_SIN(a);
             int is_major = (i % 5 == 0);
             egui_dim_t tlen = is_major ? 9 : 5;
             egui_alpha_t ta = is_major ? 200 : 110;
-            egui_dim_t x1 = center_x + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(tick_base), c));
-            egui_dim_t y1 = center_y + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(tick_base), s));
-            egui_dim_t x2 = center_x + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(tick_base - tlen), c));
-            egui_dim_t y2 = center_y + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(tick_base - tlen), s));
+            egui_dim_t x1;
+            egui_dim_t y1;
+            egui_dim_t x2;
+            egui_dim_t y2;
+
+            egui_view_circle_dirty_get_circle_point(center_x, center_y, tick_base, tick_deg, &x1, &y1);
+            egui_view_circle_dirty_get_circle_point(center_x, center_y, tick_base - tlen, tick_deg, &x2, &y2);
             egui_canvas_draw_line(x1, y1, x2, y2, is_major ? 2 : 1, local->needle_color, ta);
         }
     }
@@ -459,15 +402,11 @@ void egui_view_gauge_on_draw(egui_view_t *self)
     {
         // angle_deg = start_angle + value * sweep_angle / 100
         int16_t needle_deg = local->start_angle + (int16_t)((int32_t)local->sweep_angle * local->value / 100);
-        // Convert degrees to fixed-point radians: rad = deg * PI / 180
-        egui_float_t angle_rad = EGUI_FLOAT_DIV(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(needle_deg), EGUI_FLOAT_PI), EGUI_FLOAT_VALUE_INT(180));
-
-        egui_float_t cos_val = EGUI_FLOAT_COS(angle_rad);
-        egui_float_t sin_val = EGUI_FLOAT_SIN(angle_rad);
-
-        egui_dim_t tip_x = center_x + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(needle_len), cos_val));
-        egui_dim_t tip_y = center_y + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(needle_len), sin_val));
+        egui_dim_t tip_x;
+        egui_dim_t tip_y;
         egui_dim_t hand_w = local->needle_width;
+
+        egui_view_circle_dirty_get_circle_point(center_x, center_y, needle_len, needle_deg, &tip_x, &tip_y);
         egui_canvas_draw_line_round_cap_hq(center_x, center_y, tip_x, tip_y, hand_w, local->needle_color, EGUI_ALPHA_100);
     }
 
@@ -491,24 +430,10 @@ void egui_view_gauge_on_draw(egui_view_t *self)
     egui_canvas_draw_circle_fill(center_x, center_y, center_dot_r, local->needle_color, EGUI_ALPHA_100);
 #endif
 
-    // Center value text below the pivot dot
-    // Auto-select font based on inner_r when user has not explicitly set one
+    // Center value text below the pivot dot. NULL font falls back to the default widget font.
+    if (local->text_ops != NULL)
     {
-        const egui_font_t *text_font = egui_view_gauge_get_text_font(local, inner_r);
-        if (text_font != NULL)
-        {
-            char val_buf[8];
-            egui_sprintf_int(val_buf, sizeof(val_buf), (int32_t)local->value);
-            egui_region_t text_rect;
-            egui_dim_t font_h = (egui_dim_t)EGUI_FONT_STD_GET_FONT_HEIGHT(text_font);
-            egui_dim_t lbl_w = inner_r * 2 - 4;
-            egui_dim_t lbl_h = font_h + 4;
-            text_rect.location.x = center_x - lbl_w / 2;
-            text_rect.location.y = center_y + center_dot_r + 1;
-            text_rect.size.width = lbl_w;
-            text_rect.size.height = lbl_h;
-            egui_canvas_draw_text_in_rect(text_font, val_buf, &text_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
-        }
+        local->text_ops->draw_text(local, center_x, center_y, radius, inner_r);
     }
 }
 
@@ -547,7 +472,8 @@ void egui_view_gauge_init(egui_view_t *self)
     local->needle_color = EGUI_THEME_DANGER;
     local->needle_width = 3;
     local->text_color = EGUI_THEME_TEXT_PRIMARY;
-    local->font = NULL; // NULL means auto-select based on gauge size
+    local->font = NULL;
+    local->text_ops = &egui_view_gauge_basic_text_ops;
 
     egui_view_set_view_name(self, "egui_view_gauge");
 }

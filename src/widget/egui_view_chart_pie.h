@@ -10,6 +10,7 @@ extern "C" {
 
 // ============== Pie Chart Widget ==============
 typedef struct egui_view_chart_pie egui_view_chart_pie_t;
+typedef struct egui_view_chart_pie_text_ops egui_view_chart_pie_text_ops_t;
 struct egui_view_chart_pie
 {
     egui_view_t base;
@@ -25,6 +26,7 @@ struct egui_view_chart_pie
     egui_color_t bg_color;
     egui_color_t text_color;
     const egui_font_t *font;
+    const egui_view_chart_pie_text_ops_t *text_ops;
 };
 
 // ============== Pie Chart Params ==============

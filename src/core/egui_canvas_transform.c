@@ -7,15 +7,10 @@
 #include "image/egui_image_std.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
+#include "egui_trig_lut.h"
 
-/* Q15 quarter sine table: sin_q15[i] = round(sin(i deg) * 32767), i = 0..90 */
-static const int16_t transform_sin_q15_lut[91] = {
-        0,     572,   1144,  1715,  2286,  2856,  3425,  3993,  4560,  5126,  5690,  6252,  6813,  7371,  7927,  8481,  9032,  9580,  10126,
-        10668, 11207, 11743, 12275, 12803, 13328, 13848, 14365, 14876, 15384, 15886, 16384, 16877, 17364, 17847, 18324, 18795, 19261, 19720,
-        20174, 20622, 21063, 21498, 21926, 22348, 22763, 23170, 23571, 23965, 24351, 24730, 25102, 25466, 25822, 26170, 26510, 26842, 27166,
-        27482, 27789, 28088, 28378, 28660, 28932, 29197, 29452, 29698, 29935, 30163, 30382, 30592, 30792, 30983, 31164, 31336, 31499, 31651,
-        31795, 31928, 32052, 32167, 32270, 32365, 32449, 32524, 32588, 32643, 32689, 32724, 32749, 32764, 32767,
-};
+/* Quarter sine table in egui_float_t, i = 0..90. */
+static const egui_float_t transform_sin_lut[91] = {EGUI_TRIG_SIN_LUT_VALUES};
 
 static int32_t transform_sin_q15(int32_t deg)
 {
@@ -30,7 +25,7 @@ static int32_t transform_sin_q15(int32_t deg)
     {
         deg = 180 - deg;
     }
-    return transform_sin_q15_lut[deg] * sign;
+    return egui_trig_float_to_q15(transform_sin_lut[deg]) * sign;
 }
 
 static int32_t transform_cos_q15(int32_t deg)
@@ -1186,7 +1181,7 @@ __EGUI_STATIC_INLINE__ void transform_apply_mask_and_blend(egui_mask_t *mask, eg
  * @param angle_deg Rotation angle in degrees (0-360, counter-clockwise)
  * @param scale_q8  Scale factor in Q8 format (256 = 1.0x, 512 = 2.0x, 128 = 0.5x)
  */
-__EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8)
+void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8)
 {
     egui_canvas_t *canvas = &canvas_data;
     egui_image_std_info_t *info = (egui_image_std_info_t *)img->res;
@@ -3993,8 +3988,8 @@ static int text_transform_try_draw_axis_aligned(const egui_font_t *font, const v
  * collectors use transient heap sized by the measured glyph and line count.
  * Text dimensions are cached (12 bytes static) to avoid per-tile string measurement.
  */
-__EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg,
-                                                            int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
+                                     egui_color_t color, egui_alpha_t alpha)
 {
     if (!font || !string || !font->res)
     {

@@ -3,89 +3,13 @@
 
 #include "egui_view_page_indicator.h"
 #include "egui_view_icon_font.h"
-#include "egui_view_circle_dirty.h"
 #include "resource/egui_resource.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
 #include "core/egui_canvas_gradient.h"
 #endif
 
-static const egui_font_t *egui_view_page_indicator_get_icon_font(egui_view_page_indicator_t *local, egui_dim_t area_size)
-{
-    if (local->icon_font != NULL)
-    {
-        return local->icon_font;
-    }
-
-    return egui_view_icon_font_get_auto(area_size, 18, 22);
-}
-
-static void egui_view_page_indicator_add_marker_dirty_region(egui_view_t *self, egui_view_page_indicator_t *local, uint8_t index, egui_region_t *dirty_region)
-{
-    egui_region_t region;
-
-    if (dirty_region == NULL || local->total_count == 0 || index >= local->total_count)
-    {
-        return;
-    }
-
-    egui_view_get_work_region(self, &region);
-
-    if (local->mark_style == EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_ICON && local->icons != NULL)
-    {
-        const egui_font_t *icon_font = egui_view_page_indicator_get_icon_font(local, region.size.height);
-        if (icon_font == NULL)
-        {
-            return;
-        }
-
-        egui_dim_t item_size = region.size.height;
-        egui_dim_t item_gap = EGUI_MAX(local->dot_spacing - 2, 2);
-        egui_dim_t total_width = local->total_count * item_size + (local->total_count - 1) * item_gap;
-        egui_dim_t start_x = region.location.x + (region.size.width - total_width) / 2;
-
-        egui_view_circle_dirty_add_rect_region(dirty_region, start_x + index * (item_size + item_gap), region.location.y, item_size, region.size.height, 1);
-        return;
-    }
-
-    {
-        egui_dim_t dot_diameter = local->dot_radius * 2;
-        egui_dim_t total_width = local->total_count * dot_diameter + (local->total_count - 1) * local->dot_spacing;
-        egui_dim_t start_x = region.location.x + (region.size.width - total_width) / 2 + local->dot_radius;
-        egui_dim_t center_y = region.location.y + region.size.height / 2;
-        egui_dim_t cx = start_x + index * (dot_diameter + local->dot_spacing);
-
-        egui_view_circle_dirty_add_circle_region(dirty_region, cx, center_y, local->dot_radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD);
-    }
-}
-
-static void egui_view_page_indicator_invalidate_current_index_change(egui_view_t *self, egui_view_page_indicator_t *local, uint8_t old_index)
-{
-    egui_region_t dirty_region;
-
-    if (self->region_screen.size.width <= 0 || self->region_screen.size.height <= 0)
-    {
-        egui_view_invalidate(self);
-        return;
-    }
-
-    if (egui_view_has_pending_dirty(self))
-    {
-        egui_view_invalidate_full(self);
-        return;
-    }
-
-    egui_region_init_empty(&dirty_region);
-    egui_view_page_indicator_add_marker_dirty_region(self, local, old_index, &dirty_region);
-    egui_view_page_indicator_add_marker_dirty_region(self, local, local->current_index, &dirty_region);
-
-    if (egui_region_is_empty(&dirty_region))
-    {
-        return;
-    }
-
-    egui_view_invalidate_region(self, &dirty_region);
-}
+extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_page_indicator_t);
 
 void egui_view_page_indicator_set_total_count(egui_view_t *self, uint8_t total_count)
 {
@@ -95,13 +19,12 @@ void egui_view_page_indicator_set_total_count(egui_view_t *self, uint8_t total_c
         return;
     }
     local->total_count = total_count;
-    egui_view_invalidate(self);
+    egui_view_invalidate_full(self);
 }
 
 void egui_view_page_indicator_set_current_index(egui_view_t *self, uint8_t current_index)
 {
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
-    uint8_t old_index;
     if (current_index >= local->total_count)
     {
         current_index = local->total_count > 0 ? local->total_count - 1 : 0;
@@ -110,9 +33,8 @@ void egui_view_page_indicator_set_current_index(egui_view_t *self, uint8_t curre
     {
         return;
     }
-    old_index = local->current_index;
     local->current_index = current_index;
-    egui_view_page_indicator_invalidate_current_index_change(self, local, old_index);
+    egui_view_invalidate_full(self);
 }
 
 void egui_view_page_indicator_set_mark_style(egui_view_t *self, egui_view_page_indicator_mark_style_t style)
@@ -151,7 +73,7 @@ void egui_view_page_indicator_set_icon_font(egui_view_t *self, const egui_font_t
     egui_view_invalidate(self);
 }
 
-void egui_view_page_indicator_on_draw(egui_view_t *self)
+void egui_view_page_indicator_on_draw_dot(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_page_indicator_t);
 
@@ -162,37 +84,6 @@ void egui_view_page_indicator_on_draw(egui_view_t *self)
 
     egui_region_t region;
     egui_view_get_work_region(self, &region);
-
-    if (local->mark_style == EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_ICON && local->icons != NULL)
-    {
-        const egui_font_t *icon_font = egui_view_page_indicator_get_icon_font(local, region.size.height);
-        if (icon_font == NULL)
-        {
-            return;
-        }
-
-        egui_dim_t item_size = region.size.height;
-        egui_dim_t item_gap = EGUI_MAX(local->dot_spacing - 2, 2);
-        egui_dim_t total_width = local->total_count * item_size + (local->total_count - 1) * item_gap;
-        egui_dim_t start_x = region.location.x + (region.size.width - total_width) / 2;
-        uint8_t i;
-
-        for (i = 0; i < local->total_count; i++)
-        {
-            const char *icon_text = local->icons[i];
-            egui_region_t icon_region = {
-                    {start_x + i * (item_size + item_gap), region.location.y},
-                    {item_size, region.size.height},
-            };
-            egui_color_t color = (i == local->current_index) ? local->active_color : local->inactive_color;
-            if (icon_text == NULL)
-            {
-                continue;
-            }
-            egui_canvas_draw_text_in_rect(icon_font, icon_text, &icon_region, EGUI_ALIGN_CENTER, color, local->alpha);
-        }
-        return;
-    }
 
     egui_dim_t dot_diameter = local->dot_radius * 2;
     egui_dim_t total_width = local->total_count * dot_diameter + (local->total_count - 1) * local->dot_spacing;
@@ -230,9 +121,68 @@ void egui_view_page_indicator_on_draw(egui_view_t *self)
             egui_canvas_draw_circle_fill_hq(cx, center_y, local->dot_radius, color, local->alpha);
         }
 #else
-        egui_canvas_draw_circle_fill(cx, center_y, local->dot_radius, color, local->alpha);
+        egui_canvas_draw_circle_fill_basic(cx, center_y, local->dot_radius, color, local->alpha);
 #endif
     }
+}
+
+static void egui_view_page_indicator_on_draw_icon_impl(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_page_indicator_t);
+    egui_region_t region;
+    const egui_font_t *icon_font;
+    egui_dim_t item_size;
+    egui_dim_t item_gap;
+    egui_dim_t total_width;
+    egui_dim_t start_x;
+    uint8_t i;
+
+    if (local->total_count == 0 || local->icons == NULL)
+    {
+        return;
+    }
+
+    egui_view_get_work_region(self, &region);
+    icon_font = EGUI_VIEW_ICON_FONT_RESOLVE(local->icon_font, region.size.height, 18, 22);
+    if (icon_font == NULL)
+    {
+        return;
+    }
+
+    item_size = region.size.height;
+    item_gap = EGUI_MAX(local->dot_spacing - 2, 2);
+    total_width = local->total_count * item_size + (local->total_count - 1) * item_gap;
+    start_x = region.location.x + (region.size.width - total_width) / 2;
+
+    for (i = 0; i < local->total_count; i++)
+    {
+        const char *icon_text = local->icons[i];
+        egui_region_t icon_region = {
+                {start_x + i * (item_size + item_gap), region.location.y},
+                {item_size, region.size.height},
+        };
+        egui_color_t color = (i == local->current_index) ? local->active_color : local->inactive_color;
+
+        if (!EGUI_VIEW_ICON_TEXT_VALID(icon_text))
+        {
+            continue;
+        }
+
+        egui_canvas_draw_text_in_rect(icon_font, icon_text, &icon_region, EGUI_ALIGN_CENTER, color, local->alpha);
+    }
+}
+
+void egui_view_page_indicator_on_draw(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_page_indicator_t);
+
+    if (local->mark_style != EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_ICON || local->icons == NULL)
+    {
+        egui_view_page_indicator_on_draw_dot(self);
+        return;
+    }
+
+    egui_view_page_indicator_on_draw_icon_impl(self);
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_page_indicator_t) = {

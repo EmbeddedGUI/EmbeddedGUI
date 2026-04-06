@@ -645,6 +645,11 @@
               <FilePath>..\..\..\src\core\egui_canvas_circle_hq.c</FilePath>
             </File>
             <File>
+              <FileName>egui_canvas_compact.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_canvas_compact.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_canvas_ellipse.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_canvas_ellipse.c</FilePath>
@@ -1115,6 +1120,11 @@
               <FilePath>..\..\..\src\widget\egui_view_chips.c</FilePath>
             </File>
             <File>
+              <FileName>egui_view_circle_dirty.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_circle_dirty.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_view_circular_progress_bar.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view_circular_progress_bar.c</FilePath>
@@ -1200,6 +1210,11 @@
               <FilePath>..\..\..\src\widget\egui_view_line.c</FilePath>
             </File>
             <File>
+              <FileName>egui_view_linear_value_helper.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_linear_value_helper.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_view_linearlayout.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view_linearlayout.c</FilePath>
@@ -1263,6 +1278,11 @@
               <FileName>egui_view_radio_button.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view_radio_button.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_ring_text_basic.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_ring_text_basic.c</FilePath>
             </File>
             <File>
               <FileName>egui_view_roller.c</FileName>

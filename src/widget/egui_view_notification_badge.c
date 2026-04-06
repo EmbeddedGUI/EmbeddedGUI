@@ -1,26 +1,132 @@
-#include <assert.h>
-#include <string.h>
-
 #include "egui_view_notification_badge.h"
 #include "core/egui_api.h"
 #include "egui_view_icon_font.h"
-#include "utils/egui_sprintf.h"
-#include "font/egui_font.h"
-#include "font/egui_font_std.h"
+#include "egui_view_notification_badge_internal.h"
 #include "resource/egui_resource.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
 #include "core/egui_canvas_gradient.h"
 #endif
 
-static const egui_font_t *egui_view_notification_badge_get_icon_font(egui_view_notification_badge_t *local, egui_dim_t area_size)
+static char *egui_view_notification_badge_append_uint(char *cursor, char *end, uint16_t value)
 {
-    if (local->icon_font != NULL)
+    char tmp[5];
+    uint8_t len = 0;
+
+    if (cursor == NULL || end == NULL || cursor >= end)
     {
-        return local->icon_font;
+        return cursor;
     }
 
-    return egui_view_icon_font_get_auto(area_size, 18, 22);
+    do
+    {
+        tmp[len++] = (char)('0' + (value % 10));
+        value /= 10;
+    } while (value > 0 && len < sizeof(tmp));
+
+    while (len > 0 && cursor < end)
+    {
+        *cursor++ = tmp[--len];
+    }
+
+    *cursor = '\0';
+    return cursor;
+}
+
+static const egui_font_t *egui_view_notification_badge_get_default_font(void)
+{
+    return (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+}
+
+uint8_t egui_view_notification_badge_get_text_region(const egui_region_t *region, egui_region_t *text_region)
+{
+    if (region == NULL || text_region == NULL || region->size.width <= 2 || region->size.height <= 2)
+    {
+        return 0;
+    }
+
+    *text_region = *region;
+    text_region->location.x++;
+    text_region->location.y++;
+    text_region->size.width -= 2;
+    text_region->size.height -= 2;
+    return (uint8_t)(!egui_region_is_empty(text_region));
+}
+
+void egui_view_notification_badge_format_count_text(egui_view_notification_badge_t *local)
+{
+    char *cursor = local->text_buffer;
+    char *end = local->text_buffer + sizeof(local->text_buffer) - 1;
+
+    if (local->count <= local->max_display)
+    {
+        egui_view_notification_badge_append_uint(cursor, end, local->count);
+        return;
+    }
+
+    cursor = egui_view_notification_badge_append_uint(cursor, end, local->max_display);
+    if (cursor < end)
+    {
+        *cursor++ = '+';
+        *cursor = '\0';
+    }
+}
+
+void egui_view_notification_badge_draw_background(const egui_region_t *region, egui_color_t badge_color, uint8_t use_circle)
+{
+    egui_dim_t w = region->size.width;
+    egui_dim_t h = region->size.height;
+    egui_dim_t center_x = region->location.x + w / 2;
+    egui_dim_t center_y = region->location.y + h / 2;
+    egui_dim_t radius = EGUI_MIN(w, h) / 2;
+
+    if (use_circle)
+    {
+#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+        {
+            egui_color_t badge_light = egui_rgb_mix(badge_color, EGUI_COLOR_WHITE, 80);
+            egui_gradient_stop_t badge_stops[2] = {
+                    {.position = 0, .color = badge_light},
+                    {.position = 255, .color = badge_color},
+            };
+            egui_gradient_t badge_grad = {
+                    .type = EGUI_GRADIENT_TYPE_RADIAL,
+                    .stop_count = 2,
+                    .alpha = EGUI_ALPHA_100,
+                    .stops = badge_stops,
+                    .center_x = 0,
+                    .center_y = 0,
+                    .radius = radius - 1,
+            };
+            egui_canvas_draw_circle_fill_gradient(center_x, center_y, radius - 1, &badge_grad);
+        }
+#else
+        egui_canvas_draw_circle_fill_basic(center_x, center_y, radius - 1, badge_color, EGUI_ALPHA_100);
+#endif
+        return;
+    }
+
+    {
+        egui_dim_t round_radius = h / 2;
+#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+        {
+            egui_color_t badge_light = egui_rgb_mix(badge_color, EGUI_COLOR_WHITE, 80);
+            egui_gradient_stop_t badge_stops[2] = {
+                    {.position = 0, .color = badge_light},
+                    {.position = 255, .color = badge_color},
+            };
+            egui_gradient_t badge_grad = {
+                    .type = EGUI_GRADIENT_TYPE_LINEAR_VERTICAL,
+                    .stop_count = 2,
+                    .alpha = EGUI_ALPHA_100,
+                    .stops = badge_stops,
+            };
+            egui_canvas_draw_round_rectangle_fill_gradient(region->location.x, region->location.y, w, h, round_radius, &badge_grad);
+        }
+#else
+        egui_canvas_draw_round_rectangle_fill(region->location.x, region->location.y, w, h, round_radius, badge_color, EGUI_ALPHA_100);
+#endif
+    }
 }
 
 void egui_view_notification_badge_set_count(egui_view_t *self, uint16_t count)
@@ -70,6 +176,11 @@ void egui_view_notification_badge_set_text_color(egui_view_t *self, egui_color_t
 void egui_view_notification_badge_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_notification_badge_t);
+    if (local->font == font)
+    {
+        return;
+    }
+
     local->font = font;
     egui_view_invalidate(self);
 }
@@ -113,120 +224,58 @@ void egui_view_notification_badge_set_icon_font(egui_view_t *self, const egui_fo
 void egui_view_notification_badge_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_notification_badge_t);
-    const char *display_text = NULL;
-    const egui_font_t *display_font = NULL;
-    uint8_t use_circle = 0;
+    egui_region_t region;
+
+    egui_view_get_work_region(self, &region);
 
     if (local->content_style == EGUI_VIEW_NOTIFICATION_BADGE_CONTENT_STYLE_ICON)
     {
-        if (local->icon == NULL)
-        {
-            return;
-        }
-        display_text = local->icon;
-        use_circle = 1;
-    }
-    else
-    {
-        if (local->count == 0)
+        const egui_font_t *icon_font;
+
+        if (!EGUI_VIEW_ICON_TEXT_VALID(local->icon))
         {
             return;
         }
 
-        if (local->count <= local->max_display)
+        icon_font = EGUI_VIEW_ICON_FONT_RESOLVE(local->icon_font, EGUI_MIN(region.size.width, region.size.height), 18, 22);
+        if (icon_font == NULL)
         {
-            egui_sprintf_int(local->text_buffer, sizeof(local->text_buffer), local->count);
+            return;
         }
-        else
-        {
-            int pos = 0;
-            pos += egui_sprintf_int(&local->text_buffer[pos], (int)sizeof(local->text_buffer) - pos, local->max_display);
-            pos += egui_sprintf_char(&local->text_buffer[pos], (int)sizeof(local->text_buffer) - pos, '+');
-        }
-        display_text = local->text_buffer;
-    }
 
-    if (display_text == NULL)
-    {
+        egui_view_notification_badge_draw_background(&region, local->badge_color, 1);
+        egui_canvas_draw_text_in_rect(icon_font, local->icon, &region, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
         return;
     }
 
-    egui_region_t region;
-    egui_view_get_work_region(self, &region);
-    display_font = (local->content_style == EGUI_VIEW_NOTIFICATION_BADGE_CONTENT_STYLE_ICON)
-                           ? egui_view_notification_badge_get_icon_font(local, EGUI_MIN(region.size.width, region.size.height))
-                           : local->font;
-    if (display_font == NULL)
     {
-        return;
-    }
+        const egui_font_t *font = local->font ? local->font : egui_view_notification_badge_get_default_font();
+        egui_region_t text_region;
+        egui_dim_t text_width = 0;
+        egui_dim_t text_height = 0;
+        uint8_t use_circle;
 
-    // Get text dimensions
-    egui_dim_t text_w = 0;
-    egui_dim_t text_h = 0;
-    if (display_font->api != NULL && display_font->api->get_str_size != NULL)
-    {
-        display_font->api->get_str_size(display_font, display_text, 0, 0, &text_w, &text_h);
-    }
-
-    egui_dim_t w = region.size.width;
-    egui_dim_t h = region.size.height;
-    egui_dim_t center_x = region.location.x + w / 2;
-    egui_dim_t center_y = region.location.y + h / 2;
-
-    // Draw background: circle for small numbers, rounded rect for wider text
-    egui_dim_t radius = EGUI_MIN(w, h) / 2;
-    if (use_circle || text_w + 4 <= h)
-    {
-        // Circle background
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+        if (local->count == 0 || font == NULL)
         {
-            egui_color_t badge_light = egui_rgb_mix(local->badge_color, EGUI_COLOR_WHITE, 80);
-            egui_gradient_stop_t badge_stops[2] = {
-                    {.position = 0, .color = badge_light},
-                    {.position = 255, .color = local->badge_color},
-            };
-            egui_gradient_t badge_grad = {
-                    .type = EGUI_GRADIENT_TYPE_RADIAL,
-                    .stop_count = 2,
-                    .alpha = EGUI_ALPHA_100,
-                    .stops = badge_stops,
-                    .center_x = 0,
-                    .center_y = 0,
-                    .radius = radius - 1,
-            };
-            egui_canvas_draw_circle_fill_gradient(center_x, center_y, radius - 1, &badge_grad);
+            return;
         }
-#else
-        egui_canvas_draw_circle_fill(center_x, center_y, radius - 1, local->badge_color, EGUI_ALPHA_100);
-#endif
-    }
-    else
-    {
-        // Rounded rectangle background
-        egui_dim_t r = h / 2;
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-        {
-            egui_color_t badge_light = egui_rgb_mix(local->badge_color, EGUI_COLOR_WHITE, 80);
-            egui_gradient_stop_t badge_stops[2] = {
-                    {.position = 0, .color = badge_light},
-                    {.position = 255, .color = local->badge_color},
-            };
-            egui_gradient_t badge_grad = {
-                    .type = EGUI_GRADIENT_TYPE_LINEAR_VERTICAL,
-                    .stop_count = 2,
-                    .alpha = EGUI_ALPHA_100,
-                    .stops = badge_stops,
-            };
-            egui_canvas_draw_round_rectangle_fill_gradient(region.location.x, region.location.y, w, h, r, &badge_grad);
-        }
-#else
-        egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, w, h, r, local->badge_color, EGUI_ALPHA_100);
-#endif
-    }
 
-    // Draw centered text
-    egui_canvas_draw_text_in_rect(display_font, display_text, &region, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+        egui_view_notification_badge_format_count_text(local);
+        if (!egui_view_notification_badge_get_text_region(&region, &text_region))
+        {
+            return;
+        }
+
+        if (font->api != NULL && font->api->get_str_size != NULL)
+        {
+            font->api->get_str_size(font, local->text_buffer, 0, 0, &text_width, &text_height);
+        }
+        EGUI_UNUSED(text_height);
+
+        use_circle = (uint8_t)(text_width + 4 <= region.size.height);
+        egui_view_notification_badge_draw_background(&region, local->badge_color, use_circle);
+        egui_canvas_draw_text_in_rect(font, local->text_buffer, &text_region, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+    }
 }
 
 const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_notification_badge_t) = {
@@ -259,7 +308,7 @@ void egui_view_notification_badge_init(egui_view_t *self)
     local->max_display = 99;
     local->badge_color = EGUI_THEME_DANGER;
     local->text_color = EGUI_THEME_TEXT;
-    local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    local->font = NULL;
     local->content_style = EGUI_VIEW_NOTIFICATION_BADGE_CONTENT_STYLE_COUNT;
     local->icon = EGUI_ICON_MS_NOTIFICATIONS;
     local->icon_font = NULL;

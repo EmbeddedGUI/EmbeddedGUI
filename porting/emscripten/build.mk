@@ -45,14 +45,9 @@ LFLAGS += -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]'
 LFLAGS += -Wno-limited-postlink-optimizations
 LFLAGS += --shell-file $(EGUI_PORT_PATH)/shell.html
 
-# OUTPUT_PATH must be defined here (same default as Makefile.emscripten) so the
-# wildcard check below resolves before Makefile.emscripten is included.
+# OUTPUT_PATH must be defined here (same default as Makefile.emscripten) so
+# resource generation can reuse the shared location across ports.
 OUTPUT_PATH ?= output
-
-# Preload resource file into Emscripten virtual filesystem
-ifneq ($(wildcard $(OUTPUT_PATH)/app_egui_resource_merge.bin),)
-LFLAGS += --preload-file $(OUTPUT_PATH)/app_egui_resource_merge.bin@app_egui_resource_merge.bin
-endif
 
 # Output as HTML
 TARGET := $(APP).html

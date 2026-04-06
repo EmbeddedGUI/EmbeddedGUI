@@ -91,10 +91,10 @@ INCLUDEDIRS := $(INCLUDE)
 LIBDIRS := $(LIB)
 ifeq ($(OS),Windows_NT)
 RM = rmdir /S /Q
-RM_FILE = del /F /Q
-MD := mkdir
-FIXPATH = $(subst /,\,$1)
 PYTHON = python
+RM_FILE = $(PYTHON) -c "import glob, os, sys; [os.remove(path) for pattern in sys.argv[1:] for path in glob.glob(pattern)]"
+MD := $(PYTHON) -c "import os,sys; os.makedirs(sys.argv[1], exist_ok=True)"
+FIXPATH = $(subst /,\,$1)
 else
 RM = rm -rf
 RM_FILE = rm -f
@@ -127,15 +127,23 @@ ifneq ($(MAKECMDGOALS),clean)
 endif
 
 OUTPUT_MAIN := $(OUTPUT_PATH)/$(MAIN)
-OUTPUT_MAIN_RESOURCE := $(OUTPUT_PATH)/app_egui_resource_merge.bin
+OUTPUT_MAIN_DATA := $(OUTPUT_PATH)/$(basename $(MAIN)).data
+APP_RESOURCE_CONFIG := $(wildcard $(EGUI_APP_RESOURCE_PATH)/src/app_resource_config.json)
+OUTPUT_MAIN_RESOURCE :=
+RESOURCE_OUTPUT_ARG :=
+ifneq ($(strip $(APP_RESOURCE_CONFIG)),)
+OUTPUT_MAIN_RESOURCE := $(OUTPUT_PATH)/app_egui_resource_merge_$(BUILD_OBJ_SUFFIX).bin
+RESOURCE_OUTPUT_ARG := --output-bin-path $(OUTPUT_MAIN_RESOURCE)
+LFLAGS += --preload-file $(OUTPUT_MAIN_RESOURCE)@app_egui_resource_merge.bin
+endif
 
-.PHONY: all clean info
+.PHONY: all clean info FORCE
 
 info:
 	@$(ECHO) Current Configuration: APP=$(APP) PORT=$(PORT)
 
 .PHONY: all
-all: | info $(OUTPUT_MAIN_RESOURCE) $(MAIN)
+all: | info $(MAIN)
 	@$(ECHO) Executing 'all' complete!
 
 # Create object directories
@@ -149,14 +157,21 @@ $(OBJDIR):
 	$(Q)$(MD) $(call FIXPATH,$@)
 
 $(APP_CONFIG_STAMP): | $(OUTPUT_PATH)
-	-$(Q)$(RM_FILE) $(call FIXPATH,$(OUTPUT_PATH)/.app_stamp_*)
 	$(Q)$(ECHO) stamp > $@
 
 # Link: emcc outputs .html + .js + .wasm
-$(OUTPUT_MAIN): $(OBJECTS) $(APP_CONFIG_STAMP)
+# output/$(APP).* is shared by multiple APP_SUB variants, so timestamp-based
+# reuse is unsafe after switching between sub-demos. Force the final link step
+# every invocation while still reusing the per-suffix object cache.
+$(OUTPUT_MAIN): FORCE $(OBJECTS) $(APP_CONFIG_STAMP) $(OUTPUT_MAIN_RESOURCE)
 	@$(ECHO) Linking    : "$@"
 	$(Q)$(file >$(OBJLIST_FILE),$(OBJECTS))
+ifneq ($(strip $(OUTPUT_MAIN_RESOURCE)),)
 	$(Q)$(CC) $(COMMON_FLAGS) $(LDFLAGS) $(INCLUDES) -o $(OUTPUT_MAIN) @$(OBJLIST_FILE) $(LFLAGS) $(LIBS)
+else
+	$(Q)$(RM_FILE) $(call FIXPATH,$(OUTPUT_MAIN_DATA))
+	$(Q)$(CC) $(COMMON_FLAGS) $(LDFLAGS) $(INCLUDES) -o $(OUTPUT_MAIN) @$(OBJLIST_FILE) $(LFLAGS) $(LIBS)
+endif
 
 $(MAIN): | $(OUTPUT_PATH) $(OBJDIR) $(OBJ_MD) $(OUTPUT_MAIN)
 	@$(ECHO) Building   : "$(OUTPUT_MAIN)"
@@ -173,11 +188,13 @@ clean:
 run: all
 	@$(ECHO) "Run 'python3 -m http.server 8000' in output/ and open http://localhost:8000/$(TARGET)"
 
+ifneq ($(strip $(OUTPUT_MAIN_RESOURCE)),)
 $(OUTPUT_MAIN_RESOURCE): resource
 	@$(ECHO) Generating resource file complete!
+endif
 
 resource: $(OUTPUT_PATH)
-	$(PYTHON) ./scripts/tools/app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH)
+	$(PYTHON) ./scripts/tools/app_resource_generate.py -r $(EGUI_APP_RESOURCE_PATH) -o $(OUTPUT_PATH) $(RESOURCE_OUTPUT_ARG)
 
 resource_refresh: $(OUTPUT_PATH)
-	$(PYTHON) ./scripts/tools/app_resource_generate.py -r $(EGUI_APP_PATH)/resource -o $(OUTPUT_PATH) -f ture
+	$(PYTHON) ./scripts/tools/app_resource_generate.py -r $(EGUI_APP_RESOURCE_PATH) -o $(OUTPUT_PATH) $(RESOURCE_OUTPUT_ARG) -f ture

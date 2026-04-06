@@ -3,6 +3,7 @@
 
 #include "egui_view_progress_bar.h"
 #include "egui_view_circle_dirty.h"
+#include "egui_view_linear_value_helper.h"
 #include "style/egui_theme.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
@@ -19,9 +20,7 @@ static void egui_view_progress_bar_invalidate_process_change(egui_view_t *self, 
 {
     egui_region_t region;
     egui_region_t dirty_region;
-    egui_dim_t height;
-    egui_dim_t radius;
-    egui_dim_t y;
+    egui_view_linear_value_metrics_t metrics;
     egui_dim_t old_width;
     egui_dim_t new_width;
 
@@ -38,64 +37,28 @@ static void egui_view_progress_bar_invalidate_process_change(egui_view_t *self, 
     }
 
     egui_view_get_work_region(self, &region);
-    height = EGUI_THEME_TRACK_THICKNESS;
-    if (height > region.size.height)
-    {
-        height = region.size.height;
-    }
-    if (height <= 0 || region.size.width <= 0)
+    if (!egui_view_linear_value_get_metrics(&region, 0, &metrics))
     {
         egui_view_invalidate(self);
         return;
     }
 
-    radius = height / 2;
-    y = region.location.y + (region.size.height - height) / 2;
-    old_width = region.size.width * old_process / 100;
-    new_width = region.size.width * local->process / 100;
+    old_width = (egui_dim_t)((uint32_t)metrics.usable_width * old_process / 100);
+    new_width = (egui_dim_t)((uint32_t)metrics.usable_width * local->process / 100);
 
     egui_region_init_empty(&dirty_region);
-    egui_view_circle_dirty_add_rect_region(&dirty_region, region.location.x + EGUI_MIN(old_width, new_width) - radius, y,
-                                           EGUI_ABS(new_width - old_width) + radius * 2 + 1, height, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD);
+    egui_view_circle_dirty_add_rect_region(&dirty_region, metrics.start_x + EGUI_MIN(old_width, new_width) - metrics.track_radius, metrics.track_y,
+                                           EGUI_ABS(new_width - old_width) + metrics.track_radius * 2 + 1, metrics.track_height, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD);
 
     if (local->is_show_control)
     {
-        egui_dim_t knob_radius = (region.size.height / 2) - 1;
         egui_dim_t knob_x;
-        egui_dim_t knob_y;
 
-        if (knob_radius < EGUI_THEME_RADIUS_SM)
-        {
-            knob_radius = EGUI_THEME_RADIUS_SM;
-        }
-        if (knob_radius > EGUI_THEME_RADIUS_LG)
-        {
-            knob_radius = EGUI_THEME_RADIUS_LG;
-        }
+        knob_x = egui_view_linear_value_clamp_x(&metrics, metrics.start_x + old_width);
+        egui_view_circle_dirty_add_circle_region(&dirty_region, knob_x, metrics.center_y, metrics.knob_radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD + 1);
 
-        knob_y = region.location.y + region.size.height / 2;
-
-        knob_x = region.location.x + old_width;
-        if (knob_x < region.location.x + knob_radius)
-        {
-            knob_x = region.location.x + knob_radius;
-        }
-        if (knob_x > region.location.x + region.size.width - knob_radius)
-        {
-            knob_x = region.location.x + region.size.width - knob_radius;
-        }
-        egui_view_circle_dirty_add_circle_region(&dirty_region, knob_x, knob_y, knob_radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD + 1);
-
-        knob_x = region.location.x + new_width;
-        if (knob_x < region.location.x + knob_radius)
-        {
-            knob_x = region.location.x + knob_radius;
-        }
-        if (knob_x > region.location.x + region.size.width - knob_radius)
-        {
-            knob_x = region.location.x + region.size.width - knob_radius;
-        }
-        egui_view_circle_dirty_add_circle_region(&dirty_region, knob_x, knob_y, knob_radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD + 1);
+        knob_x = egui_view_linear_value_clamp_x(&metrics, metrics.start_x + new_width);
+        egui_view_circle_dirty_add_circle_region(&dirty_region, knob_x, metrics.center_y, metrics.knob_radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD + 1);
     }
 
     if (egui_region_is_empty(&dirty_region))
@@ -140,14 +103,14 @@ void egui_view_progress_bar_on_draw(egui_view_t *self)
     EGUI_LOCAL_INIT(egui_view_progress_bar_t);
 
     egui_region_t region;
+    egui_view_linear_value_metrics_t metrics;
+    egui_dim_t progress_width;
     egui_view_get_work_region(self, &region);
 
-    egui_dim_t height = EGUI_THEME_TRACK_THICKNESS;
-    if (height > region.size.height)
-        height = region.size.height;
-
-    egui_dim_t radius = height / 2;
-    egui_dim_t y = region.location.y + (region.size.height - height) / 2;
+    if (!egui_view_linear_value_get_metrics(&region, 0, &metrics))
+    {
+        return;
+    }
 
     /* Query theme styles for 2 parts */
     const egui_widget_style_desc_t *desc = egui_current_theme ? egui_current_theme->progress_bar : NULL;
@@ -161,45 +124,33 @@ void egui_view_progress_bar_on_draw(egui_view_t *self)
     // draw background (thin rounded track)
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
     {
-        egui_canvas_draw_round_rectangle_fill(region.location.x, y, region.size.width, height, radius, bk, EGUI_ALPHA_100);
+        egui_canvas_draw_round_rectangle_fill(metrics.start_x, metrics.track_y, metrics.usable_width, metrics.track_height, metrics.track_radius, bk,
+                                              EGUI_ALPHA_100);
     }
 #else
-    egui_canvas_draw_round_rectangle_fill(region.location.x, y, region.size.width, height, radius, bk, EGUI_ALPHA_100);
+    egui_canvas_draw_round_rectangle_fill(metrics.start_x, metrics.track_y, metrics.usable_width, metrics.track_height, metrics.track_radius, bk,
+                                          EGUI_ALPHA_100);
 #endif
 
     // draw progress
-    egui_dim_t progress_width = region.size.width * local->process / 100;
+    progress_width = (egui_dim_t)((uint32_t)metrics.usable_width * local->process / 100);
     if (progress_width > 0)
     {
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-        egui_canvas_draw_round_rectangle_fill(region.location.x, y, progress_width, height, radius, prog, EGUI_ALPHA_100);
+        egui_canvas_draw_round_rectangle_fill(metrics.start_x, metrics.track_y, progress_width, metrics.track_height, metrics.track_radius, prog,
+                                              EGUI_ALPHA_100);
 #else
-        egui_canvas_draw_round_rectangle_fill(region.location.x, y, progress_width, height, radius, prog, EGUI_ALPHA_100);
+        egui_canvas_draw_round_rectangle_fill(metrics.start_x, metrics.track_y, progress_width, metrics.track_height, metrics.track_radius, prog,
+                                              EGUI_ALPHA_100);
 #endif
     }
 
     if (local->is_show_control)
     {
-        // draw control knob at the end of progress
-        egui_dim_t knob_radius = (region.size.height / 2) - 1;
-        if (knob_radius < EGUI_THEME_RADIUS_SM)
-            knob_radius = EGUI_THEME_RADIUS_SM;
-        if (knob_radius > EGUI_THEME_RADIUS_LG)
-            knob_radius = EGUI_THEME_RADIUS_LG;
+        egui_dim_t knob_x = egui_view_linear_value_clamp_x(&metrics, metrics.start_x + progress_width);
 
-        egui_dim_t knob_x = region.location.x + progress_width;
-        if (knob_x < region.location.x + knob_radius)
-        {
-            knob_x = region.location.x + knob_radius;
-        }
-        if (knob_x > region.location.x + region.size.width - knob_radius)
-        {
-            knob_x = region.location.x + region.size.width - knob_radius;
-        }
-        egui_dim_t knob_y = region.location.y + region.size.height / 2;
-
-        egui_canvas_draw_circle_fill(knob_x, knob_y, knob_radius, local->control_color, EGUI_ALPHA_100);
-        egui_canvas_draw_circle(knob_x, knob_y, knob_radius, 1, EGUI_THEME_BORDER, EGUI_ALPHA_100);
+        egui_canvas_draw_circle_fill_basic(knob_x, metrics.center_y, metrics.knob_radius, local->control_color, EGUI_ALPHA_100);
+        egui_canvas_draw_circle_basic(knob_x, metrics.center_y, metrics.knob_radius, 1, EGUI_THEME_BORDER, EGUI_ALPHA_100);
     }
 }
 

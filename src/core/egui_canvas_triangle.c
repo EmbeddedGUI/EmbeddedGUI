@@ -89,8 +89,8 @@ __EGUI_STATIC_INLINE__ egui_alpha_t triangle_edge_alpha(int32_t cross, int32_t s
  * \param[in]       color: Color used for drawing operation
  * \param[in]       alpha: Alpha value for blending
  */
-__EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3,
-                                                           egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_triangle_fill(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t x3, egui_dim_t y3, egui_color_t color,
+                                    egui_alpha_t alpha)
 {
     egui_canvas_t *self = &canvas_data;
 

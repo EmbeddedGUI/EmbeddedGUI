@@ -10,6 +10,172 @@
 #include "egui_view_group.h"
 #endif
 
+typedef egui_dim_t (*egui_chart_get_font_height_fn)(egui_chart_axis_base_t *ab);
+typedef void (*egui_chart_draw_text_fn)(egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type);
+
+struct egui_chart_text_ops
+{
+    egui_chart_get_font_height_fn get_font_height;
+    egui_chart_draw_text_fn draw_text;
+};
+
+static egui_dim_t egui_chart_get_font_height_basic(egui_chart_axis_base_t *ab)
+{
+    (void)ab;
+    return egui_chart_get_font_height((const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT);
+}
+
+static egui_dim_t egui_chart_get_font_height_rich(egui_chart_axis_base_t *ab)
+{
+    if (ab == NULL || ab->font == NULL)
+    {
+        return 8;
+    }
+
+    return EGUI_FONT_STD_GET_FONT_HEIGHT(ab->font);
+}
+
+static void egui_chart_draw_text_basic(egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type)
+{
+    const egui_font_t *font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+
+    if (ab == NULL || text == NULL || text_rect == NULL)
+    {
+        return;
+    }
+
+    if (font != NULL)
+    {
+        egui_canvas_draw_text_in_rect(font, text, text_rect, align_type, ab->text_color, EGUI_ALPHA_100);
+    }
+}
+
+static void egui_chart_draw_text_rich(egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type)
+{
+    if (ab == NULL || ab->font == NULL || text == NULL || text_rect == NULL)
+    {
+        return;
+    }
+
+    egui_canvas_draw_text_in_rect(ab->font, text, text_rect, align_type, ab->text_color, EGUI_ALPHA_100);
+}
+
+static const egui_chart_text_ops_t egui_chart_basic_text_ops = {
+        .get_font_height = egui_chart_get_font_height_basic,
+        .draw_text = egui_chart_draw_text_basic,
+};
+
+static const egui_chart_text_ops_t egui_chart_rich_text_ops = {
+        .get_font_height = egui_chart_get_font_height_rich,
+        .draw_text = egui_chart_draw_text_rich,
+};
+
+static egui_dim_t egui_chart_get_axis_font_height(egui_chart_axis_base_t *ab)
+{
+    if (ab == NULL || ab->text_ops == NULL || ab->text_ops->get_font_height == NULL)
+    {
+        return 8;
+    }
+
+    return ab->text_ops->get_font_height(ab);
+}
+
+static void egui_chart_draw_axis_text(egui_chart_axis_base_t *ab, const char *text, egui_region_t *text_rect, uint8_t align_type)
+{
+    if (ab == NULL || ab->text_ops == NULL || ab->text_ops->draw_text == NULL)
+    {
+        return;
+    }
+
+    ab->text_ops->draw_text(ab, text, text_rect, align_type);
+}
+
+static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h, int16_t view_x_min, int16_t view_x_max)
+{
+    (void)view_x_min;
+    (void)view_x_max;
+
+    if (ab->series_count == 0 || ab->series[0].point_count == 0)
+    {
+        return;
+    }
+
+    char label_buf[8];
+    uint8_t n_cat = ab->series[0].point_count;
+    egui_dim_t slot_w = plot_area->size.width / n_cat;
+
+    for (uint8_t i = 0; i < n_cat; i++)
+    {
+        egui_dim_t slot_center = plot_area->location.x + slot_w * i + slot_w / 2;
+
+        if (ab->axis_x.show_axis)
+        {
+            egui_canvas_draw_vline(slot_center, plot_area->location.y + plot_area->size.height, 3, ab->axis_color, EGUI_ALPHA_100);
+        }
+
+        if (ab->axis_x.show_grid && i > 0)
+        {
+            egui_dim_t boundary = plot_area->location.x + slot_w * i;
+            egui_canvas_draw_vline(boundary, plot_area->location.y, plot_area->size.height, ab->grid_color, EGUI_ALPHA_30);
+        }
+
+        if (ab->axis_x.show_labels)
+        {
+            egui_chart_int_to_str(ab->series[0].points[i].x, label_buf, sizeof(label_buf));
+            EGUI_REGION_DEFINE(label_rect, slot_center - 12, plot_area->location.y + plot_area->size.height + 3, 24, font_h);
+            egui_chart_draw_axis_text(ab, label_buf, &label_rect, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP);
+        }
+    }
+}
+
+static void egui_chart_draw_x_axis_continuous(egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h, int16_t view_x_min, int16_t view_x_max)
+{
+    char label_buf[8];
+    int16_t step = ab->axis_x.tick_step;
+    if (step <= 0)
+    {
+        int16_t range = view_x_max - view_x_min;
+        uint8_t count = ab->axis_x.tick_count > 0 ? ab->axis_x.tick_count : 5;
+        step = range / count;
+        if (step <= 0)
+        {
+            step = 1;
+        }
+    }
+
+    int16_t start_v = ((view_x_min + step - 1) / step) * step;
+    if (view_x_min <= 0 && start_v > view_x_min)
+    {
+        start_v = (view_x_min / step) * step;
+        if (start_v < view_x_min)
+        {
+            start_v += step;
+        }
+    }
+
+    for (int16_t v = start_v; v <= view_x_max; v += step)
+    {
+        egui_dim_t px = egui_chart_map_x(ab, v, plot_area->location.x, plot_area->size.width);
+
+        if (ab->axis_x.show_axis)
+        {
+            egui_canvas_draw_vline(px, plot_area->location.y + plot_area->size.height, 3, ab->axis_color, EGUI_ALPHA_100);
+        }
+
+        if (ab->axis_x.show_grid)
+        {
+            egui_canvas_draw_vline(px, plot_area->location.y, plot_area->size.height, ab->grid_color, EGUI_ALPHA_30);
+        }
+
+        if (ab->axis_x.show_labels)
+        {
+            egui_chart_int_to_str(v, label_buf, sizeof(label_buf));
+            EGUI_REGION_DEFINE(label_rect, px - 12, plot_area->location.y + plot_area->size.height + 3, 24, font_h);
+            egui_chart_draw_axis_text(ab, label_buf, &label_rect, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP);
+        }
+    }
+}
+
 // ============== Axis Base Init ==============
 
 void egui_chart_axis_base_init_defaults(egui_chart_axis_base_t *ab)
@@ -46,6 +212,9 @@ void egui_chart_axis_base_init_defaults(egui_chart_axis_base_t *ab)
     ab->grid_color = EGUI_THEME_BORDER;
     ab->text_color = EGUI_THEME_TEXT_SECONDARY;
     ab->font = NULL;
+    ab->text_ops = &egui_chart_basic_text_ops;
+    ab->draw_axis_x = egui_chart_draw_x_axis_continuous;
+    ab->draw_legend_series = NULL;
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
     ab->zoom_enabled = 0;
@@ -59,6 +228,28 @@ void egui_chart_axis_base_init_defaults(egui_chart_axis_base_t *ab)
     ab->pinch_start_dx_abs = 0;
     ab->pinch_start_dy_abs = 0;
 #endif
+}
+
+void egui_chart_axis_base_set_axis_x_categorical(egui_chart_axis_base_t *ab, uint8_t is_categorical)
+{
+    if (ab == NULL)
+    {
+        return;
+    }
+
+    ab->axis_x.is_categorical = is_categorical ? 1 : 0;
+    ab->draw_axis_x = ab->axis_x.is_categorical ? egui_chart_draw_x_axis_categorical : egui_chart_draw_x_axis_continuous;
+}
+
+void egui_chart_axis_base_set_font(egui_chart_axis_base_t *ab, const egui_font_t *font)
+{
+    if (ab == NULL)
+    {
+        return;
+    }
+
+    ab->font = font;
+    ab->text_ops = (font == NULL) ? &egui_chart_basic_text_ops : &egui_chart_rich_text_ops;
 }
 
 // ============== Internal Helpers ==============
@@ -205,8 +396,7 @@ egui_dim_t egui_chart_map_y(egui_chart_axis_base_t *ab, int16_t data_y, egui_dim
 
 void egui_chart_calc_plot_area(egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area)
 {
-    const egui_font_t *font = ab->font ? ab->font : (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
-    egui_dim_t font_h = egui_chart_get_font_height(font);
+    egui_dim_t font_h = egui_chart_get_axis_font_height(ab);
 
     egui_dim_t margin_left = 0;
     egui_dim_t margin_bottom = 0;
@@ -271,8 +461,7 @@ void egui_chart_calc_plot_area(egui_chart_axis_base_t *ab, egui_region_t *region
 
 void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area)
 {
-    const egui_font_t *font = ab->font ? ab->font : (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
-    egui_dim_t font_h = egui_chart_get_font_height(font);
+    egui_dim_t font_h = egui_chart_get_axis_font_height(ab);
 
     // Get viewport range for tick iteration
     int16_t view_x_min, view_x_max, view_y_min, view_y_max;
@@ -294,90 +483,9 @@ void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egu
     // X axis ticks, grid, labels
     if (ab->axis_x.show_labels || ab->axis_x.show_grid)
     {
-        char label_buf[8];
-
-        if (ab->axis_x.is_categorical && ab->series_count > 0 && ab->series[0].point_count > 0)
+        if (ab->draw_axis_x != NULL)
         {
-            // Categorical mode: divide plot into equal slots, labels centered on each slot
-            uint8_t n_cat = ab->series[0].point_count;
-            egui_dim_t slot_w = plot_area->size.width / n_cat;
-
-            for (uint8_t i = 0; i < n_cat; i++)
-            {
-                egui_dim_t slot_center = plot_area->location.x + slot_w * i + slot_w / 2;
-
-                // Tick mark at slot center
-                if (ab->axis_x.show_axis)
-                {
-                    egui_canvas_draw_vline(slot_center, plot_area->location.y + plot_area->size.height, 3, ab->axis_color, EGUI_ALPHA_100);
-                }
-
-                // Grid line between slots (at slot left boundary, skip first)
-                if (ab->axis_x.show_grid && i > 0)
-                {
-                    egui_dim_t boundary = plot_area->location.x + slot_w * i;
-                    egui_canvas_draw_vline(boundary, plot_area->location.y, plot_area->size.height, ab->grid_color, EGUI_ALPHA_30);
-                }
-
-                // Label (use data point x value)
-                if (ab->axis_x.show_labels)
-                {
-                    egui_chart_int_to_str(ab->series[0].points[i].x, label_buf, sizeof(label_buf));
-                    EGUI_REGION_DEFINE(label_rect, slot_center - 12, plot_area->location.y + plot_area->size.height + 3, 24, font_h);
-                    egui_canvas_draw_text_in_rect(font, label_buf, &label_rect, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP, ab->text_color, EGUI_ALPHA_100);
-                }
-            }
-        }
-        else
-        {
-            // Continuous mode: ticks at regular value intervals
-            int16_t step = ab->axis_x.tick_step;
-            if (step <= 0)
-            {
-                int16_t range = view_x_max - view_x_min;
-                uint8_t count = ab->axis_x.tick_count > 0 ? ab->axis_x.tick_count : 5;
-                step = range / count;
-                if (step <= 0)
-                {
-                    step = 1;
-                }
-            }
-
-            // Align start to tick step boundary
-            int16_t start_v = ((view_x_min + step - 1) / step) * step;
-            if (view_x_min <= 0 && start_v > view_x_min)
-            {
-                start_v = (view_x_min / step) * step;
-                if (start_v < view_x_min)
-                {
-                    start_v += step;
-                }
-            }
-
-            for (int16_t v = start_v; v <= view_x_max; v += step)
-            {
-                egui_dim_t px = egui_chart_map_x(ab, v, plot_area->location.x, plot_area->size.width);
-
-                // Tick mark
-                if (ab->axis_x.show_axis)
-                {
-                    egui_canvas_draw_vline(px, plot_area->location.y + plot_area->size.height, 3, ab->axis_color, EGUI_ALPHA_100);
-                }
-
-                // Grid line
-                if (ab->axis_x.show_grid)
-                {
-                    egui_canvas_draw_vline(px, plot_area->location.y, plot_area->size.height, ab->grid_color, EGUI_ALPHA_30);
-                }
-
-                // Label
-                if (ab->axis_x.show_labels)
-                {
-                    egui_chart_int_to_str(v, label_buf, sizeof(label_buf));
-                    EGUI_REGION_DEFINE(label_rect, px - 12, plot_area->location.y + plot_area->size.height + 3, 24, font_h);
-                    egui_canvas_draw_text_in_rect(font, label_buf, &label_rect, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP, ab->text_color, EGUI_ALPHA_100);
-                }
-            }
+            ab->draw_axis_x(ab, plot_area, font_h, view_x_min, view_x_max);
         }
     }
 
@@ -439,7 +547,7 @@ void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egu
                     label_y = region->location.y + region->size.height - font_h;
                 }
                 EGUI_REGION_DEFINE(label_rect, plot_area->location.x - label_w - 4, label_y, label_w, font_h);
-                egui_canvas_draw_text_in_rect(font, label_buf, &label_rect, EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER, ab->text_color, EGUI_ALPHA_100);
+                egui_chart_draw_axis_text(ab, label_buf, &label_rect, EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER);
             }
         }
     }
@@ -449,8 +557,7 @@ void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egu
 
 void egui_chart_draw_legend_series(egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area)
 {
-    const egui_font_t *font = ab->font ? ab->font : (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
-    egui_dim_t font_h = egui_chart_get_font_height(font);
+    egui_dim_t font_h = egui_chart_get_axis_font_height(ab);
     egui_dim_t swatch_size = font_h > 2 ? font_h - 2 : 4;
     egui_dim_t item_gap = 6;
     egui_dim_t text_w = font_h * 3;
@@ -508,7 +615,7 @@ void egui_chart_draw_legend_series(egui_chart_axis_base_t *ab, egui_region_t *re
 
         // Draw name text
         EGUI_REGION_DEFINE(text_rect, lx + swatch_size + 2, ly, text_w, font_h);
-        egui_canvas_draw_text_in_rect(font, name, &text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, ab->text_color, EGUI_ALPHA_100);
+        egui_chart_draw_axis_text(ab, name, &text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
 
         // Advance position
         if (ab->legend_pos == EGUI_CHART_LEGEND_RIGHT)

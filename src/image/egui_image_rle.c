@@ -763,6 +763,7 @@ static uint32_t egui_image_rle_decompress_row(const uint8_t *src, uint32_t src_l
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
+#if EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
 static void egui_image_rle_fill_blocks(uint8_t *dst, const uint8_t *block, uint16_t count, uint8_t blk_size)
 {
     if (count == 0)
@@ -791,9 +792,6 @@ static void egui_image_rle_fill_blocks(uint8_t *dst, const uint8_t *block, uint1
         break;
     }
 }
-#endif
-
-#if EGUI_CONFIG_FUNCTION_SUPPORT_MASK
 static void egui_image_rle_copy_overlap_internal(uint8_t *dst, uint16_t dst_col_start, uint16_t dst_col_count, uint16_t run_col_start, uint16_t run_col_count,
                                                  const uint8_t *src, uint8_t blk_size)
 {
@@ -1217,6 +1215,7 @@ static uint32_t egui_image_rle_decompress_row_split(const uint8_t *src, uint32_t
         return (uint32_t)(data - src);
     }
 }
+#endif
 #endif
 
 /**

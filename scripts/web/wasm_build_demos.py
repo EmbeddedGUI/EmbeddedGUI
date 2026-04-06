@@ -11,6 +11,7 @@ Works on both Windows (local dev) and Linux (CI).
 """
 
 import argparse
+import hashlib
 import json
 import locale
 import os
@@ -20,6 +21,7 @@ import subprocess
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from functools import lru_cache
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -133,17 +135,46 @@ def parse_define_int(content, macro_name, default):
     return int(number_match.group(0))
 
 
-def get_screen_size(root_dir, app, app_sub=None):
-    """Read app screen size from the most specific app_egui_config.h."""
+def get_config_paths(root_dir, app, app_sub=None):
+    """Return candidate app config paths from most specific to least specific."""
     config_paths = []
     if app_sub:
-        config_paths.append(os.path.join(root_dir, "example", app, app_sub, "app_egui_config.h"))
-    config_paths.append(os.path.join(root_dir, "example", app, "app_egui_config.h"))
+        config_paths.append(Path(root_dir) / "example" / app / app_sub / "app_egui_config.h")
+    config_paths.append(Path(root_dir) / "example" / app / "app_egui_config.h")
+    return config_paths
 
-    for config_path in config_paths:
-        if not os.path.exists(config_path):
-            continue
 
+@lru_cache(maxsize=None)
+def get_config_path(root_dir, app, app_sub=None):
+    """Resolve the config path used by one app/sub-app."""
+    for config_path in get_config_paths(root_dir, app, app_sub):
+        if config_path.exists():
+            return config_path
+    return None
+
+
+@lru_cache(maxsize=None)
+def get_config_hash(root_dir, app, app_sub=None):
+    """Hash the effective config so same-config demos can reuse object files."""
+    config_path = get_config_path(root_dir, app, app_sub)
+    if config_path is None:
+        return "default"
+
+    digest = hashlib.sha256(config_path.read_bytes()).hexdigest()
+    return digest[:12]
+
+
+def get_shared_obj_suffix(root_dir, app, app_sub=None):
+    """Reuse one OBJDIR per config hash for expensive multi-demo families."""
+    if app not in ("HelloBasic", "HelloVirtual"):
+        return None
+    return f"{app}_cfg_{get_config_hash(root_dir, app, app_sub)}"
+
+
+def get_screen_size(root_dir, app, app_sub=None):
+    """Read app screen size from the most specific app_egui_config.h."""
+    config_path = get_config_path(root_dir, app, app_sub)
+    if config_path is not None:
         with open(config_path, "r", encoding="utf-8") as f:
             content = f.read()
 
@@ -173,17 +204,27 @@ def make_demo_entry(root_dir, result, category):
     return entry
 
 
-def build_demo(root_dir, app, app_sub, emsdk_path, output_dir):
+def get_auto_make_jobs(concurrent_builds=1):
+    """Choose a balanced make -j value for the current machine."""
+    cpu_count = os.cpu_count() or 1
+    return max(1, cpu_count // max(1, concurrent_builds))
+
+
+def get_auto_standalone_jobs(standalone_count):
+    """Choose a conservative default for standalone app parallelism."""
+    if standalone_count <= 1:
+        return 1
+    cpu_count = os.cpu_count() or 1
+    return max(1, min(standalone_count, 4, cpu_count // 8 or 1))
+
+
+def build_demo(root_dir, app, app_sub, emsdk_path, output_dir, make_jobs=1, app_obj_suffix=None):
     """Build a single demo and copy output to web/demos/.
 
     Uses per-app OBJDIR (set in Makefile) so no make clean is needed.
     """
     demo_name = format_demo_name(app, app_sub)
     make_extra = f"APP_SUB={app_sub}" if app_sub else ""
-
-    # Generate resources (may fail if no resources needed)
-    res_cmd = f"make resource APP={app} {make_extra}".strip()
-    run_cmd(res_cmd, cwd=root_dir)
 
     if not app_sub:
         objdir = Path(root_dir) / "output" / "obj" / app
@@ -193,8 +234,9 @@ def build_demo(root_dir, app, app_sub, emsdk_path, output_dir):
 
     # Build (no make clean - per-app OBJDIR handles isolation)
     emsdk_arg = f"EMSDK_PATH={emsdk_path}" if emsdk_path else ""
-    make_parallel_flag = "-j " if os.name != "nt" else ""
-    build_cmd = f"make {make_parallel_flag}all APP={app} {make_extra} PORT=emscripten {emsdk_arg}".strip()
+    make_parallel_flag = f"-j{max(1, int(make_jobs))} " if make_jobs and int(make_jobs) > 1 else ""
+    obj_suffix_arg = f"APP_OBJ_SUFFIX={app_obj_suffix}" if app_obj_suffix else ""
+    build_cmd = f"make {make_parallel_flag}all APP={app} {make_extra} PORT=emscripten {obj_suffix_arg} {emsdk_arg}".strip()
     ok, stderr = run_cmd(build_cmd, cwd=root_dir)
     if not ok:
         err_lines = stderr.strip().split('\n')[-3:] if stderr else []
@@ -304,8 +346,10 @@ def main():
                         help="Build single sub-app (e.g. button, virtual_stage_showcase, or chart/radar_chart)")
     parser.add_argument("--clean", action="store_true",
                         help="Clean output directory before building")
-    parser.add_argument("--jobs", "-j", type=int, default=1,
-                        help="Parallel build jobs for standalone apps (default: 1)")
+    parser.add_argument("--jobs", "-j", type=int, default=0,
+                        help="Parallel build jobs for standalone apps. 0 means auto-detect.")
+    parser.add_argument("--make-jobs", type=int, default=0,
+                        help="Per-build make parallelism. 0 means auto-detect.")
     args = parser.parse_args()
 
     root_dir = str(ROOT_DIR)
@@ -355,6 +399,7 @@ def main():
     demos_built = []
     failed = []
     count = 0
+    sequential_make_jobs = args.make_jobs if args.make_jobs > 0 else get_auto_make_jobs(1)
 
     # Build HelloBasic sub-apps sequentially (shared OBJDIR for incremental builds)
     if basic_group:
@@ -363,7 +408,15 @@ def main():
             count += 1
             name = format_demo_name(app, sub)
             print(f"\n[{count}/{total}] {name}", flush=True)
-            result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir)
+            result = build_demo(
+                root_dir,
+                app,
+                sub,
+                args.emsdk_path,
+                output_dir,
+                sequential_make_jobs,
+                get_shared_obj_suffix(root_dir, app, sub),
+            )
             result["category"] = category
             if "error" in result:
                 print(f"  FAILED: {result['error']}", flush=True)
@@ -379,7 +432,7 @@ def main():
             count += 1
             name = format_demo_name(app, sub)
             print(f"\n[{count}/{total}] {name}", flush=True)
-            result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir)
+            result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir, sequential_make_jobs)
             result["category"] = category
             if "error" in result:
                 print(f"  FAILED: {result['error']}", flush=True)
@@ -395,7 +448,15 @@ def main():
             count += 1
             name = format_demo_name(app, sub)
             print(f"\n[{count}/{total}] {name}", flush=True)
-            result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir)
+            result = build_demo(
+                root_dir,
+                app,
+                sub,
+                args.emsdk_path,
+                output_dir,
+                sequential_make_jobs,
+                get_shared_obj_suffix(root_dir, app, sub),
+            )
             result["category"] = category
             if "error" in result:
                 print(f"  FAILED: {result['error']}", flush=True)
@@ -406,16 +467,17 @@ def main():
 
     # Build standalone apps (can be parallel - each has its own OBJDIR)
     if standalone_list:
-        jobs = max(1, min(args.jobs, len(standalone_list)))
+        jobs = get_auto_standalone_jobs(len(standalone_list)) if args.jobs <= 0 else max(1, min(args.jobs, len(standalone_list)))
+        standalone_make_jobs = args.make_jobs if args.make_jobs > 0 else get_auto_make_jobs(jobs)
         mode = f"parallel x{jobs}" if jobs > 1 else "sequential"
-        print(f"\n--- Standalone apps ({len(standalone_list)} demos, {mode}) ---", flush=True)
+        print(f"\n--- Standalone apps ({len(standalone_list)} demos, {mode}, make -j{standalone_make_jobs}) ---", flush=True)
 
         if jobs > 1:
             with ProcessPoolExecutor(max_workers=jobs) as executor:
                 future_map = {}
                 for app, sub, category in standalone_list:
                     f = executor.submit(build_demo, root_dir, app, sub,
-                                        args.emsdk_path, output_dir)
+                                        args.emsdk_path, output_dir, standalone_make_jobs)
                     future_map[f] = (app, sub, category)
 
                 for future in as_completed(future_map):
@@ -435,7 +497,7 @@ def main():
                 count += 1
                 name = format_demo_name(app, sub)
                 print(f"\n[{count}/{total}] {name}", flush=True)
-                result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir)
+                result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir, standalone_make_jobs)
                 result["category"] = category
                 if "error" in result:
                     print(f"  FAILED: {result['error']}", flush=True)

@@ -33,6 +33,7 @@
 #include "test/test_chapter_strip.h"
 #include "test/test_color_picker.h"
 #include "test/test_command_bar.h"
+#include "test/test_compact_text.h"
 #include "test/test_data_list_panel.h"
 #include "test/test_grid_view.h"
 #include "test/test_lyric_scroller.h"
@@ -49,6 +50,7 @@
 #include "test/test_menu_flyout.h"
 #include "test/test_nav_panel.h"
 #include "test/test_node_topology.h"
+#include "test/test_notification_badge.h"
 #include "test/test_number_box.h"
 #include "test/test_number_picker.h"
 #include "test/test_persona_group.h"
@@ -123,6 +125,7 @@ void uicode_create_ui(void)
     test_chapter_strip_run();
     test_color_picker_run();
     test_command_bar_run();
+    test_compact_text_run();
     test_data_list_panel_run();
     test_grid_view_run();
     test_lyric_scroller_run();
@@ -139,6 +142,7 @@ void uicode_create_ui(void)
     test_menu_flyout_run();
     test_nav_panel_run();
     test_node_topology_run();
+    test_notification_badge_run();
     test_number_box_run();
     test_number_picker_run();
     test_page_activity_lifecycle_run();

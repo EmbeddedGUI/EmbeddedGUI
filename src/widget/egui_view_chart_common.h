@@ -63,6 +63,9 @@ struct egui_chart_axis_config
 
 // ============== Axis Base (shared by line/scatter/bar) ==============
 typedef struct egui_chart_axis_base egui_chart_axis_base_t;
+typedef struct egui_chart_text_ops egui_chart_text_ops_t;
+typedef void (*egui_chart_draw_axis_x_fn)(egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h, int16_t view_x_min, int16_t view_x_max);
+typedef void (*egui_chart_draw_legend_series_fn)(egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area);
 struct egui_chart_axis_base
 {
     // series data
@@ -82,6 +85,9 @@ struct egui_chart_axis_base
     egui_color_t grid_color;
     egui_color_t text_color;
     const egui_font_t *font;
+    const egui_chart_text_ops_t *text_ops;
+    egui_chart_draw_axis_x_fn draw_axis_x;
+    egui_chart_draw_legend_series_fn draw_legend_series;
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
     // zoom/viewport state
@@ -115,6 +121,8 @@ struct egui_chart_axis_base
 
 // Initialize axis base with default values
 void egui_chart_axis_base_init_defaults(egui_chart_axis_base_t *ab);
+void egui_chart_axis_base_set_axis_x_categorical(egui_chart_axis_base_t *ab, uint8_t is_categorical);
+void egui_chart_axis_base_set_font(egui_chart_axis_base_t *ab, const egui_font_t *font);
 
 // Convert int16_t to string without snprintf (embedded-safe)
 void egui_chart_int_to_str(int16_t value, char *buf, int buf_size);
