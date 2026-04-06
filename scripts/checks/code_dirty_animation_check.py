@@ -165,12 +165,20 @@ def collect_frame_hashes(frames_dir):
     return frame_files, unique_hashes
 
 
-def run_recording(scenario, frames_dir, log_path):
-    if sys.platform.startswith("win"):
-        exe_path = ROOT_DIR / "output" / "main.exe"
-    else:
-        exe_path = ROOT_DIR / "output" / "main"
-    resource_path = ROOT_DIR / "output" / "app_egui_resource_merge.bin"
+def get_build_output_dir(scenario, bits64):
+    return runtime_check.get_runtime_build_output_dir(
+        scenario.app,
+        app_sub=scenario.app_sub,
+        bits64=bits64,
+        user_cflags=build_user_cflags(scenario.extra_cflags),
+        recording_test=False,
+    )
+
+
+def run_recording(scenario, bits64, frames_dir, log_path):
+    build_output_dir = get_build_output_dir(scenario, bits64)
+    exe_path = runtime_check.get_runtime_executable_path(build_output_dir)
+    resource_path = runtime_check.get_runtime_resource_path(build_output_dir)
 
     command = [
         str(exe_path),
@@ -286,6 +294,7 @@ def main():
             args.bits64,
             user_cflags=build_user_cflags(scenario.extra_cflags),
             recording_test=False,
+            build_output_dir=get_build_output_dir(scenario, args.bits64),
         )
         if not compiled:
             print("[FAIL] compile failed")
@@ -293,7 +302,7 @@ def main():
             continue
 
         try:
-            success, run_message = run_recording(scenario, frames_dir, log_path)
+            success, run_message = run_recording(scenario, args.bits64, frames_dir, log_path)
         except subprocess.TimeoutExpired:
             print("[FAIL] timeout after %ds" % (scenario.duration + 12))
             all_passed = False
