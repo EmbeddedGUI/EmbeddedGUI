@@ -68,20 +68,24 @@ static SDL_Renderer *renderer;
 static SDL_Texture *texture;
 #if VT_SDL_NATIVE_RGB565
 static uint16_t tft_fb[VT_WIDTH * VT_HEIGHT];
+static uint16_t sdl_present_fb[VT_WIDTH * VT_HEIGHT];
 #define VT_FB_PIXEL_SIZE    sizeof(uint16_t)
 #define VT_SDL_PIXEL_FORMAT SDL_PIXELFORMAT_RGB565
 #else
 static uint32_t tft_fb[VT_WIDTH * VT_HEIGHT];
+static uint32_t sdl_present_fb[VT_WIDTH * VT_HEIGHT];
 #define VT_FB_PIXEL_SIZE    sizeof(uint32_t)
 #define VT_SDL_PIXEL_FORMAT SDL_PIXELFORMAT_ARGB8888
 #endif
 static volatile bool sdl_inited = false;
 static volatile bool sdl_refr_qry = false;
-static volatile bool sdl_refr_cpl = false;
 static volatile bool sdl_quit_qry = false;
+static bool sdl_window_visible = false;
+static bool sdl_has_presentable_frame = false;
 
 static bool sdl_mouse_left_down = false;
 static SDL_mutex *sdl_touch_mutex = NULL;
+static SDL_mutex *sdl_frame_mutex = NULL;
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 typedef struct sdl_touch_event
@@ -255,7 +259,46 @@ static void monitor_sdl_clean_up(void)
         SDL_DestroyMutex(sdl_touch_mutex);
         sdl_touch_mutex = NULL;
     }
+    if (sdl_frame_mutex != NULL)
+    {
+        SDL_DestroyMutex(sdl_frame_mutex);
+        sdl_frame_mutex = NULL;
+    }
     SDL_Quit();
+}
+
+static void sdl_frame_lock(void)
+{
+    if (sdl_frame_mutex != NULL)
+    {
+        SDL_LockMutex(sdl_frame_mutex);
+    }
+}
+
+static void sdl_frame_unlock(void)
+{
+    if (sdl_frame_mutex != NULL)
+    {
+        SDL_UnlockMutex(sdl_frame_mutex);
+    }
+}
+
+static void sdl_port_commit_frame(void)
+{
+    sdl_frame_lock();
+    memcpy(sdl_present_fb, tft_fb, sizeof(sdl_present_fb));
+    sdl_has_presentable_frame = true;
+    sdl_frame_unlock();
+}
+
+static void sdl_port_upload_committed_frame(void)
+{
+    sdl_frame_lock();
+    if (sdl_has_presentable_frame)
+    {
+        SDL_UpdateTexture(texture, NULL, sdl_present_fb, VT_WIDTH * VT_FB_PIXEL_SIZE);
+    }
+    sdl_frame_unlock();
 }
 
 static void monitor_sdl_init(void)
@@ -267,17 +310,17 @@ static void monitor_sdl_init(void)
     {
         sdl_touch_mutex = SDL_CreateMutex();
     }
+    if (sdl_frame_mutex == NULL)
+    {
+        sdl_frame_mutex = SDL_CreateMutex();
+    }
 
     SDL_SetEventFilter(quit_filter, NULL);
 
     char title[0x400];
     sprintf(title, "%s-%dx%d@%d", EGUI_APP, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, EGUI_CONFIG_COLOR_DEPTH);
 
-    uint32_t window_flags = 0;
-    if (g_sdl_headless)
-    {
-        window_flags |= SDL_WINDOW_HIDDEN;
-    }
+    uint32_t window_flags = SDL_WINDOW_HIDDEN;
 
     window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, VT_WIDTH, VT_HEIGHT,
                               window_flags); /*last param. SDL_WINDOW_BORDERLESS to hide borders*/
@@ -297,15 +340,23 @@ static void monitor_sdl_init(void)
 
     /*Initialize the frame buffer to gray (77 is an empirical value) */
     memset(tft_fb, 77, VT_WIDTH * VT_HEIGHT * VT_FB_PIXEL_SIZE);
-    SDL_UpdateTexture(texture, NULL, tft_fb, VT_WIDTH * VT_FB_PIXEL_SIZE);
+    memset(sdl_present_fb, 77, VT_WIDTH * VT_HEIGHT * VT_FB_PIXEL_SIZE);
+    SDL_UpdateTexture(texture, NULL, sdl_present_fb, VT_WIDTH * VT_FB_PIXEL_SIZE);
 
-    sdl_refr_cpl = true;
+    sdl_has_presentable_frame = false;
+    sdl_window_visible = false;
     sdl_refr_qry = false;
     sdl_inited = true;
 }
 
 static void sdl_port_present_frame(void)
 {
+    if (!g_sdl_headless && !sdl_window_visible && sdl_has_presentable_frame)
+    {
+        SDL_ShowWindow(window);
+        sdl_window_visible = true;
+    }
+
     SDL_RenderClear(renderer);
 
     /*Update the renderer with the texture containing the rendered image*/
@@ -322,12 +373,11 @@ void VT_sdl_refresh_task(void)
 {
     if (sdl_refr_qry != false)
     {
-        // printf("VT_sdl_refresh_task\n");
+        sdl_refr_qry = false;
+        if (sdl_has_presentable_frame)
         {
-            sdl_refr_qry = false;
-            SDL_UpdateTexture(texture, NULL, tft_fb, VT_WIDTH * VT_FB_PIXEL_SIZE);
+            sdl_port_upload_committed_frame();
             sdl_port_present_frame();
-            sdl_refr_cpl = true;
         }
     }
     SDL_Event event;
@@ -382,8 +432,11 @@ void VT_sdl_refresh_task(void)
             case SDL_WINDOWEVENT_TAKE_FOCUS:
 #endif
             case SDL_WINDOWEVENT_EXPOSED:
-                SDL_UpdateTexture(texture, NULL, tft_fb, VT_WIDTH * VT_FB_PIXEL_SIZE);
-                sdl_port_present_frame();
+                if (!g_sdl_headless && sdl_has_presentable_frame)
+                {
+                    sdl_port_upload_committed_frame();
+                    sdl_port_present_frame();
+                }
                 break;
             default:
                 break;
@@ -648,23 +701,16 @@ void VT_deinit(void)
 
 void VT_sdl_flush(int32_t nMS)
 {
+    EGUI_UNUSED(nMS);
 #ifdef __EMSCRIPTEN__
-    // Single-threaded: set flag and return, VT_sdl_refresh_task() handles rendering
+    sdl_port_commit_frame();
     sdl_port_request_refresh();
 #else
-    nMS = EGUI_MAX(1, nMS);
-    while (!sdl_refr_cpl)
-    {
-        if (sdl_quit_qry || !sdl_inited)
-        {
-            return;
-        }
-        SDL_Delay(nMS);
-    }
     if (sdl_quit_qry || !sdl_inited)
     {
         return;
     }
+    sdl_port_commit_frame();
     sdl_port_request_refresh();
 #endif
 }
@@ -675,7 +721,6 @@ void sdl_port_request_refresh(void)
     {
         return;
     }
-    sdl_refr_cpl = false;
     sdl_refr_qry = true;
 }
 
@@ -683,7 +728,6 @@ void VT_begin_shutdown(void)
 {
     sdl_quit_qry = true;
     sdl_refr_qry = false;
-    sdl_refr_cpl = true;
 }
 
 void sdl_port_sleep(uint32_t nMS)

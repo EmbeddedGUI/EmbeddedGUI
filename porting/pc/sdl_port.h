@@ -42,7 +42,6 @@ extern void VT_sdl_refresh_task(void);
 extern void sdl_port_request_refresh(void);
 
 extern uint32_t sdl_get_system_timestamp_ms(void);
-extern void VT_sdl_flush(int32_t nMS);
 extern void VT_Fill_Multiple_Colors(int32_t x1, int32_t y1, int32_t x2, int32_t y2, egui_color_int_t *color_p);
 extern void sdl_port_sleep(uint32_t nMS);
 extern void sdl_port_touch_read(uint8_t *pressed, int16_t *x, int16_t *y);
