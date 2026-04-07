@@ -154,6 +154,14 @@
             });
         }
 
+        function normalizeSearchText(value) {
+            return String(value || "")
+                .toLowerCase()
+                .replace(/[_\-\/]+/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
+        }
+
         function resolveFrameHeight(demo) {
             var configured = Number(demo && demo.height);
             if (Number.isFinite(configured) && configured > 0) {
@@ -310,7 +318,17 @@
                         item.className = "demo-item";
                         item.href = "#" + demo.name;
                         item.dataset.name = demo.name;
-                        item.dataset.search = (category + " " + demo.meta.widget + " " + demo.name).toLowerCase();
+                        item.dataset.search = normalizeSearchText(
+                            category +
+                            " " +
+                            demo.meta.widget +
+                            " " +
+                            demo.name +
+                            " " +
+                            formatCategory(category) +
+                            " " +
+                            formatWords(demo.meta.widget)
+                        );
                         item.innerHTML =
                             "<strong>" + formatWords(demo.meta.widget) + "</strong>" +
                             '<div class="demo-item-meta">' + formatCategory(category) + "</div>";
@@ -376,7 +394,7 @@
         }
 
         filterInput.addEventListener("input", function() {
-            var query = filterInput.value.trim().toLowerCase();
+            var query = normalizeSearchText(filterInput.value);
             document.querySelectorAll(".sidebar-section").forEach(function(section) {
                 var matches = 0;
                 section.querySelectorAll(".demo-item").forEach(function(item) {

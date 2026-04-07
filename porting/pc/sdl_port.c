@@ -322,6 +322,13 @@ static void monitor_sdl_init(void)
 
     uint32_t window_flags = SDL_WINDOW_HIDDEN;
 
+#ifdef __EMSCRIPTEN__
+    if (!g_sdl_headless)
+    {
+        window_flags = 0;
+    }
+#endif
+
     window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, VT_WIDTH, VT_HEIGHT,
                               window_flags); /*last param. SDL_WINDOW_BORDERLESS to hide borders*/
 
@@ -330,7 +337,7 @@ static void monitor_sdl_init(void)
         SDL_HideWindow(window);
     }
 
-#if VT_VIRTUAL_MACHINE
+#if VT_VIRTUAL_MACHINE || defined(__EMSCRIPTEN__)
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
 #else
     renderer = SDL_CreateRenderer(window, -1, 0);
@@ -344,7 +351,7 @@ static void monitor_sdl_init(void)
     SDL_UpdateTexture(texture, NULL, sdl_present_fb, VT_WIDTH * VT_FB_PIXEL_SIZE);
 
     sdl_has_presentable_frame = false;
-    sdl_window_visible = false;
+    sdl_window_visible = (window_flags & SDL_WINDOW_HIDDEN) == 0;
     sdl_refr_qry = false;
     sdl_inited = true;
 }

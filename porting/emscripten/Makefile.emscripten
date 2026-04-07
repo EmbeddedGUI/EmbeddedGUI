@@ -61,7 +61,8 @@ LDFLAGS += $(GC_LDFLAGS)
 LFLAGS ?=
 
 # Output directory
-OUTPUT_PATH := output
+OUTPUT_PATH ?= output
+OBJROOT_PATH ?= $(OUTPUT_PATH)
 
 # Source, include, lib directories
 SRC ?=
@@ -71,7 +72,7 @@ LIB ?=
 APP_OBJ_SUFFIX ?= $(if $(APP),$(APP),default)
 OUTPUT_TARGET := $(OUTPUT_PATH)/$(TARGET)
 BUILD_OBJ_SUFFIX := $(APP_OBJ_SUFFIX)$(if $(PORT),_$(PORT),)
-OBJDIR = $(OUTPUT_PATH)/obj/$(BUILD_OBJ_SUFFIX)
+OBJDIR = $(OBJROOT_PATH)/obj/$(BUILD_OBJ_SUFFIX)
 OBJLIST_FILE := $(OUTPUT_PATH)/$(BUILD_OBJ_SUFFIX)_objects.rsp
 
 # Configuration stamp - forces relink when APP changes.

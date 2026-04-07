@@ -5,7 +5,8 @@ Usage:
     python scripts/web/wasm_build_demos.py [--emsdk-path PATH] [--output-dir DIR] [--app APP] [--app-sub SUB]
 
 Optimization: per-app OBJDIR avoids recompiling shared core library.
-HelloBasic sub-apps share OBJDIR, so core is compiled once and reused.
+HelloBasic/HelloVirtual/HelloCustomWidgets sub-apps share OBJDIR by config hash,
+so common framework objects are compiled once and reused across compatible demos.
 
 Works on both Windows (local dev) and Linux (CI).
 """
@@ -166,7 +167,7 @@ def get_config_hash(root_dir, app, app_sub=None):
 
 def get_shared_obj_suffix(root_dir, app, app_sub=None):
     """Reuse one OBJDIR per config hash for expensive multi-demo families."""
-    if app not in ("HelloBasic", "HelloVirtual"):
+    if app not in ("HelloBasic", "HelloVirtual", "HelloCustomWidgets"):
         return None
     return f"{app}_cfg_{get_config_hash(root_dir, app, app_sub)}"
 
@@ -218,13 +219,132 @@ def get_auto_standalone_jobs(standalone_count):
     return max(1, min(standalone_count, 4, cpu_count // 8 or 1))
 
 
-def build_demo(root_dir, app, app_sub, emsdk_path, output_dir, make_jobs=1, app_obj_suffix=None):
+def get_auto_shared_obj_jobs(case_count):
+    """Choose a slightly higher default once common objects are already warmed."""
+    if case_count <= 1:
+        return 1
+    cpu_count = os.cpu_count() or 1
+    return max(1, min(case_count, 8, cpu_count // 4 or 1))
+
+
+def get_isolated_build_output_path(root_dir, demo_name):
+    """Return a per-demo build output directory used to isolate final artifacts."""
+    return str(Path(root_dir) / "output" / "wasm_tmp" / demo_name)
+
+
+def build_shared_family(group, family_name, root_dir, emsdk_path, output_dir, total, count, demos_built, failed, make_jobs, requested_jobs):
+    """Build a multi-demo family that can share objects but needs isolated final outputs."""
+    if not group:
+        return count
+
+    family_jobs = get_auto_shared_obj_jobs(len(group)) if requested_jobs <= 0 else max(1, min(requested_jobs, len(group)))
+    shared_objroot_path = str(Path(root_dir) / "output")
+    groups_by_suffix = {}
+    for app, sub, category in group:
+        suffix = get_shared_obj_suffix(root_dir, app, sub) or format_demo_name(app, sub)
+        groups_by_suffix.setdefault(suffix, []).append((app, sub, category))
+
+    mode = f"warmup + parallel x{family_jobs}" if family_jobs > 1 else "sequential"
+    print(f"\n--- {family_name} ({len(group)} demos, {mode}, make -j{make_jobs}) ---", flush=True)
+
+    if family_jobs <= 1:
+        for app, sub, category in group:
+            count += 1
+            name = format_demo_name(app, sub)
+            print(f"\n[{count}/{total}] {name}", flush=True)
+            result = build_demo(
+                root_dir,
+                app,
+                sub,
+                emsdk_path,
+                output_dir,
+                make_jobs,
+                get_shared_obj_suffix(root_dir, app, sub),
+            )
+            result["category"] = category
+            if "error" in result:
+                print(f"  FAILED: {result['error']}", flush=True)
+                failed.append(result["name"])
+            else:
+                print(f"  OK -> {os.path.join(output_dir, result['name'])}", flush=True)
+                demos_built.append(make_demo_entry(root_dir, result, category))
+        return count
+
+    parallel_tasks = []
+    for suffix in sorted(groups_by_suffix):
+        group_cases = groups_by_suffix[suffix]
+        seed_app, seed_sub, seed_category = group_cases[0]
+        count += 1
+        seed_name = format_demo_name(seed_app, seed_sub)
+        print(f"\n[{count}/{total}] {seed_name} (warmup)", flush=True)
+        result = build_demo(
+            root_dir,
+            seed_app,
+            seed_sub,
+            emsdk_path,
+            output_dir,
+            make_jobs,
+            suffix,
+            get_isolated_build_output_path(root_dir, seed_name),
+            shared_objroot_path,
+        )
+        result["category"] = seed_category
+        if "error" in result:
+            print(f"  FAILED: {result['error']}", flush=True)
+            failed.append(result["name"])
+            continue
+
+        print(f"  OK -> {os.path.join(output_dir, result['name'])}", flush=True)
+        demos_built.append(make_demo_entry(root_dir, result, seed_category))
+        for app, sub, category in group_cases[1:]:
+            parallel_tasks.append((app, sub, category, suffix))
+
+    if not parallel_tasks:
+        return count
+
+    with ProcessPoolExecutor(max_workers=min(family_jobs, len(parallel_tasks))) as executor:
+        future_map = {}
+        for app, sub, category, suffix in parallel_tasks:
+            demo_name = format_demo_name(app, sub)
+            future = executor.submit(
+                build_demo,
+                root_dir,
+                app,
+                sub,
+                emsdk_path,
+                output_dir,
+                make_jobs,
+                suffix,
+                get_isolated_build_output_path(root_dir, demo_name),
+                shared_objroot_path,
+            )
+            future_map[future] = (app, sub, category)
+
+        for future in as_completed(future_map):
+            app, sub, category = future_map[future]
+            count += 1
+            name = format_demo_name(app, sub)
+            result = future.result()
+            result["category"] = category
+            if "error" in result:
+                print(f"[{count}/{total}] {name} FAILED", flush=True)
+                failed.append(result["name"])
+            else:
+                print(f"[{count}/{total}] {name} OK", flush=True)
+                demos_built.append(make_demo_entry(root_dir, result, category))
+
+    return count
+
+
+def build_demo(root_dir, app, app_sub, emsdk_path, output_dir, make_jobs=1, app_obj_suffix=None, build_output_path=None, objroot_path=None):
     """Build a single demo and copy output to web/demos/.
 
     Uses per-app OBJDIR (set in Makefile) so no make clean is needed.
     """
     demo_name = format_demo_name(app, app_sub)
     make_extra = f"APP_SUB={app_sub}" if app_sub else ""
+    default_build_output = Path(root_dir) / "output"
+    effective_build_output = Path(build_output_path) if build_output_path else default_build_output
 
     if not app_sub:
         objdir = Path(root_dir) / "output" / "obj" / app
@@ -236,7 +356,9 @@ def build_demo(root_dir, app, app_sub, emsdk_path, output_dir, make_jobs=1, app_
     emsdk_arg = f"EMSDK_PATH={emsdk_path}" if emsdk_path else ""
     make_parallel_flag = f"-j{max(1, int(make_jobs))} " if make_jobs and int(make_jobs) > 1 else ""
     obj_suffix_arg = f"APP_OBJ_SUFFIX={app_obj_suffix}" if app_obj_suffix else ""
-    build_cmd = f"make {make_parallel_flag}all APP={app} {make_extra} PORT=emscripten {obj_suffix_arg} {emsdk_arg}".strip()
+    output_arg = f"OUTPUT_PATH={effective_build_output.as_posix()}"
+    objroot_arg = f"OBJROOT_PATH={Path(objroot_path).as_posix()}" if objroot_path else ""
+    build_cmd = f"make {make_parallel_flag}all APP={app} {make_extra} PORT=emscripten {obj_suffix_arg} {output_arg} {objroot_arg} {emsdk_arg}".strip()
     ok, stderr = run_cmd(build_cmd, cwd=root_dir)
     if not ok:
         err_lines = stderr.strip().split('\n')[-3:] if stderr else []
@@ -246,7 +368,7 @@ def build_demo(root_dir, app, app_sub, emsdk_path, output_dir, make_jobs=1, app_
     demo_dir = os.path.join(output_dir, demo_name)
     os.makedirs(demo_dir, exist_ok=True)
 
-    src_base = os.path.join(root_dir, "output", app)
+    src_base = str(effective_build_output / app)
     for ext in [".html", ".js", ".wasm", ".data"]:
         src = src_base + ext
         if os.path.exists(src):
@@ -265,6 +387,9 @@ def build_demo(root_dir, app, app_sub, emsdk_path, output_dir, make_jobs=1, app_
         shutil.copy2(readme_src, os.path.join(demo_dir, "README.md"))
         result["has_doc"] = True
         result["docPath"] = f"demos/{demo_name}/README.md"
+
+    if effective_build_output != default_build_output:
+        shutil.rmtree(effective_build_output, ignore_errors=True)
 
     return result
 
@@ -401,69 +526,47 @@ def main():
     count = 0
     sequential_make_jobs = args.make_jobs if args.make_jobs > 0 else get_auto_make_jobs(1)
 
-    # Build HelloBasic sub-apps sequentially (shared OBJDIR for incremental builds)
-    if basic_group:
-        print(f"\n--- HelloBasic sub-apps ({len(basic_group)} demos, sequential) ---", flush=True)
-        for app, sub, category in basic_group:
-            count += 1
-            name = format_demo_name(app, sub)
-            print(f"\n[{count}/{total}] {name}", flush=True)
-            result = build_demo(
-                root_dir,
-                app,
-                sub,
-                args.emsdk_path,
-                output_dir,
-                sequential_make_jobs,
-                get_shared_obj_suffix(root_dir, app, sub),
-            )
-            result["category"] = category
-            if "error" in result:
-                print(f"  FAILED: {result['error']}", flush=True)
-                failed.append(result["name"])
-            else:
-                print(f"  OK -> {os.path.join(output_dir, result['name'])}", flush=True)
-                demos_built.append(make_demo_entry(root_dir, result, category))
+    count = build_shared_family(
+        basic_group,
+        "HelloBasic sub-apps",
+        root_dir,
+        args.emsdk_path,
+        output_dir,
+        total,
+        count,
+        demos_built,
+        failed,
+        sequential_make_jobs,
+        args.jobs,
+    )
 
-    # Build HelloCustomWidgets sub-apps sequentially
-    if custom_group:
-        print(f"\n--- HelloCustomWidgets ({len(custom_group)} demos, sequential) ---", flush=True)
-        for app, sub, category in custom_group:
-            count += 1
-            name = format_demo_name(app, sub)
-            print(f"\n[{count}/{total}] {name}", flush=True)
-            result = build_demo(root_dir, app, sub, args.emsdk_path, output_dir, sequential_make_jobs)
-            result["category"] = category
-            if "error" in result:
-                print(f"  FAILED: {result['error']}", flush=True)
-                failed.append(result["name"])
-            else:
-                print(f"  OK -> {os.path.join(output_dir, result['name'])}", flush=True)
-                demos_built.append(make_demo_entry(root_dir, result, category))
+    count = build_shared_family(
+        custom_group,
+        "HelloCustomWidgets",
+        root_dir,
+        args.emsdk_path,
+        output_dir,
+        total,
+        count,
+        demos_built,
+        failed,
+        sequential_make_jobs,
+        args.jobs,
+    )
 
-    # Build HelloVirtual sub-apps sequentially (shared output/HelloVirtual.* artifacts)
-    if virtual_group:
-        print(f"\n--- HelloVirtual ({len(virtual_group)} demos, sequential) ---", flush=True)
-        for app, sub, category in virtual_group:
-            count += 1
-            name = format_demo_name(app, sub)
-            print(f"\n[{count}/{total}] {name}", flush=True)
-            result = build_demo(
-                root_dir,
-                app,
-                sub,
-                args.emsdk_path,
-                output_dir,
-                sequential_make_jobs,
-                get_shared_obj_suffix(root_dir, app, sub),
-            )
-            result["category"] = category
-            if "error" in result:
-                print(f"  FAILED: {result['error']}", flush=True)
-                failed.append(result["name"])
-            else:
-                print(f"  OK -> {os.path.join(output_dir, result['name'])}", flush=True)
-                demos_built.append(make_demo_entry(root_dir, result, category))
+    count = build_shared_family(
+        virtual_group,
+        "HelloVirtual",
+        root_dir,
+        args.emsdk_path,
+        output_dir,
+        total,
+        count,
+        demos_built,
+        failed,
+        sequential_make_jobs,
+        args.jobs,
+    )
 
     # Build standalone apps (can be parallel - each has its own OBJDIR)
     if standalone_list:
