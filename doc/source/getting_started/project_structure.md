@@ -216,7 +216,7 @@ doc/source/
 |-- resource/               # 资源管理
 |-- size/                   # 体积分析与配置模板
 |-- appendix/               # FAQ / Changelog / API 索引
-|-- ui_designer/            # UI Designer 迁移说明
+|-- ui_designer/            # UI Designer 入口页（演示 GIF + 跳转）
 |-- images/                 # 文档配图
 `-- conf.py                 # Sphinx 配置
 ```
