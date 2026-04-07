@@ -181,10 +181,18 @@ endif
 all: $(OUTPUT_PATH) $(ALL_OBJ_PATH) $(TARGET).elf
 
 $(OUTPUT_PATH):
+ifeq ($(HOST_OS),Windows)
+	$(PATHCHECK) $(Q)$(MKD) "$(call FIXPATH,$@)" >NUL 2>NUL || (if exist "$(call FIXPATH,$@)" exit /b 0 else exit /b 1)
+else
 	$(PATHCHECK) $(Q)$(MKD) $(call FIXPATH, $@)
+endif
 
 $(ALL_OBJ_PATH):
+ifeq ($(HOST_OS),Windows)
+	$(PATHCHECK) $(Q)$(MKD) "$(call FIXPATH,$@)" >NUL 2>NUL || (if exist "$(call FIXPATH,$@)" exit /b 0 else exit /b 1)
+else
 	$(PATHCHECK) $(Q)$(MKD) $(call FIXPATH, $@)
+endif
 
 $(APP_CONFIG_STAMP): | $(OUTPUT_PATH) $(ALL_OBJ_PATH)
 ifeq "$(HOST_OS)" "Windows"

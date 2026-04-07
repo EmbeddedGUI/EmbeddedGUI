@@ -68,6 +68,8 @@ LOCAL_BASIC_RENDER_SHARDS = 4
 LOCAL_BASIC_RENDER_MAKE_JOBS = 4
 LOCAL_VIRTUAL_RENDER_SHARDS = 3
 LOCAL_VIRTUAL_RENDER_MAKE_JOBS = 4
+LOCAL_RELEASE_RUNTIME_JOBS = 2
+LOCAL_RELEASE_SIZE_JOBS = 2
 
 
 def build_steps(args):
@@ -86,8 +88,8 @@ def build_steps(args):
         compile_cmd.append("--cmake")
     compile_cmd.append("--skip-icon-font-check")
 
-    runtime_cmd = [py, str(SCRIPT_DIR / "code_runtime_check.py"), "--full-check"]
-    if not args.runtime_include_custom_widgets:
+    runtime_cmd = [py, str(SCRIPT_DIR / "code_runtime_check.py"), "--full-check", "--jobs", str(LOCAL_RELEASE_RUNTIME_JOBS)]
+    if args.runtime_skip_custom_widgets:
         runtime_cmd.append("--skip-custom-widgets")
     dirty_anim_cmd = [py, str(SCRIPT_DIR / "checks" / "code_dirty_animation_check.py")]
     stage_parity_cmd = [py, str(SCRIPT_DIR / "checks" / "showcase_stage_parity_check.py"), "--timeout", "35", "--jobs", "2"]
@@ -133,7 +135,7 @@ def build_steps(args):
         ("stage_parity", STEP_DESCRIPTIONS["stage_parity"], stage_parity_cmd),
         ("basic_render", STEP_DESCRIPTIONS["basic_render"], basic_render_cmd),
         ("virtual_render", STEP_DESCRIPTIONS["virtual_render"], virtual_render_cmd),
-        ("size", STEP_DESCRIPTIONS["size"], [py, str(SCRIPT_DIR / "size_analysis" / "utils_analysis_elf_size.py"), "--case-set", "typical", "--doc"]),
+        ("size", STEP_DESCRIPTIONS["size"], [py, str(SCRIPT_DIR / "size_analysis" / "utils_analysis_elf_size.py"), "--case-set", "full", "--jobs", str(LOCAL_RELEASE_SIZE_JOBS), "--doc"]),
         ("perf", STEP_DESCRIPTIONS["perf"], perf_cmd),
         ("doc", STEP_DESCRIPTIONS["doc"], [py, "-m", "sphinx", "-M", "html", str(PROJECT_ROOT / "doc" / "source"), str(PROJECT_ROOT / "doc" / "build")]),
     ]
@@ -361,10 +363,10 @@ def parse_args():
         help="Disable 64-bit build flag.",
     )
     parser.add_argument(
-        "--runtime-include-custom-widgets",
+        "--runtime-skip-custom-widgets",
         action="store_true",
         default=False,
-        help="Include HelloCustomWidgets in the runtime step (default: skipped to keep release_check faster).",
+        help="Skip HelloCustomWidgets in the runtime step (default: included).",
     )
     return parser.parse_args()
 

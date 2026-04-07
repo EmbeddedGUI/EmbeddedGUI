@@ -819,7 +819,17 @@ def retry_failed_runtime_cases_serial(results, case_specs, bits64, explicit_time
                                       clock_scale=RECORDING_CLOCK_SCALE,
                                       snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
                                       snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
-    failed_indexes = [index for index, (_, success, _) in enumerate(results) if not success]
+    normalized_results = []
+    failed_indexes = []
+    for index, item in enumerate(results):
+        if item is None:
+            app, app_sub = case_specs[index]
+            item = (format_app_name(app, app_sub), False, "missing runtime result")
+        normalized_results.append(item)
+        if not item[1]:
+            failed_indexes.append(index)
+
+    results = normalized_results
     if not failed_indexes:
         return results
 
@@ -902,27 +912,11 @@ def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
             else:
                 grouped_indexes.setdefault("__direct__%d" % index, []).append(index)
 
+        direct_indexes = []
         for group_key in sorted(grouped_indexes):
             indexes = grouped_indexes[group_key]
             if group_key.startswith("__direct__"):
-                index = indexes[0]
-                case_info = case_infos[index]
-                future = executor.submit(
-                    run_runtime_case,
-                    case_info["app"],
-                    case_info["app_sub"],
-                    bits64,
-                    explicit_timeout,
-                    speed,
-                    snapshot_settle_ms,
-                    clock_scale,
-                    snapshot_stable_cycles,
-                    snapshot_max_wait_ms,
-                    make_jobs,
-                    None,
-                    None,
-                )
-                future_to_case[future] = index
+                direct_indexes.extend(indexes)
                 continue
 
             seed_index = indexes[0]
@@ -953,11 +947,11 @@ def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
                     results[index] = (case_info["name"], False, "skipped after warmup failure")
                 continue
 
-            for index in indexes[1:]:
-                case_info = case_infos[index]
-                future = executor.submit(
-                    run_runtime_case,
-                    case_info["app"],
+                for index in indexes[1:]:
+                    case_info = case_infos[index]
+                    future = executor.submit(
+                        run_runtime_case,
+                        case_info["app"],
                     case_info["app_sub"],
                     bits64,
                     explicit_timeout,
@@ -969,8 +963,27 @@ def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
                     make_jobs,
                     case_info["shared_obj_suffix"],
                     case_info["objroot_path"],
-                )
-                future_to_case[future] = index
+                    )
+                    future_to_case[future] = index
+
+        for index in direct_indexes:
+            case_info = case_infos[index]
+            future = executor.submit(
+                run_runtime_case,
+                case_info["app"],
+                case_info["app_sub"],
+                bits64,
+                explicit_timeout,
+                speed,
+                snapshot_settle_ms,
+                clock_scale,
+                snapshot_stable_cycles,
+                snapshot_max_wait_ms,
+                make_jobs,
+                None,
+                None,
+            )
+            future_to_case[future] = index
 
         for future in concurrent.futures.as_completed(future_to_case):
             index = future_to_case[future]
