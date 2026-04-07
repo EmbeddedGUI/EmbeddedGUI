@@ -1,14 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import concurrent.futures
 import json
 import multiprocessing
 import argparse
 import subprocess
+import shutil
 import time
 import sys
 from datetime import datetime
 from pathlib import Path
+
+from variant_parallel_support import (
+    get_variant_build_output_dir,
+    get_variant_obj_suffix,
+    normalize_user_cflags,
+    resolve_make_jobs,
+    resolve_parallel_jobs,
+)
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -23,6 +33,7 @@ PORT = "qemu"
 CPU_ARCH = "cortex-m0plus"
 MAKE_JOBS = max(1, multiprocessing.cpu_count())
 APP_OBJ_SUFFIX = "size_preset_validation"
+REPORT_KEY = "size_preset_validation_to_doc"
 
 PRESETS = [
     {
@@ -87,8 +98,8 @@ def run_make_with_fallback(cmd, timeout=300):
     return run_cmd(retry_cmd, timeout=timeout)
 
 
-def extract_template_body(text):
-    kept = []
+def extract_template_macros(text):
+    macros = []
     for line in text.splitlines():
         stripped = line.strip()
         if stripped in (
@@ -101,11 +112,17 @@ def extract_template_body(text):
             "}",
         ):
             continue
-        kept.append(line)
-    body = "\n".join(kept).strip()
-    if body:
-        return body + "\n"
-    return ""
+        if not stripped.startswith("#define "):
+            continue
+        token = stripped[len("#define "):].strip()
+        if not token:
+            continue
+        parts = token.split(None, 1)
+        if len(parts) == 1:
+            macros.append("-D%s" % parts[0])
+        else:
+            macros.append("-D%s=%s" % (parts[0], parts[1].strip()))
+    return macros
 
 
 def select_presets(all_presets, requested):
@@ -163,7 +180,10 @@ def parse_size_output(text):
 
 def build_preset(preset):
     template_content = (PROJECT_ROOT / preset["path"]).read_text(encoding="utf-8")
-    APP_OVERRIDE_PATH.write_text(extract_template_body(template_content), encoding="utf-8")
+    template_macros = extract_template_macros(template_content)
+    user_cflags = normalize_user_cflags(" ".join(template_macros))
+    build_output_dir = get_variant_build_output_dir(PROJECT_ROOT, REPORT_KEY, preset["name"], user_cflags=user_cflags)
+    app_obj_suffix = get_variant_obj_suffix(APP_OBJ_SUFFIX, preset["name"])
 
     build_cmd = [
         "make",
@@ -173,8 +193,12 @@ def build_preset(preset):
         "APP_SUB=%s" % APP_SUB,
         "PORT=%s" % PORT,
         "CPU_ARCH=%s" % CPU_ARCH,
-        "APP_OBJ_SUFFIX=%s" % APP_OBJ_SUFFIX,
+        "APP_OBJ_SUFFIX=%s" % app_obj_suffix,
+        "OUTPUT_PATH=%s" % build_output_dir.as_posix(),
+        "OBJROOT_PATH=%s" % OUTPUT_DIR.as_posix(),
     ]
+    if user_cflags:
+        build_cmd.append("USER_CFLAGS=%s" % user_cflags)
 
     build_result = run_make_with_fallback(build_cmd, timeout=300)
     success = build_result.returncode == 0
@@ -199,7 +223,7 @@ def build_preset(preset):
         entry["build_message"] = (build_result.stderr or build_result.stdout)[-4000:]
         return entry
 
-    elf_path = OUTPUT_DIR / "main.elf"
+    elf_path = build_output_dir / "main.elf"
     size_result = run_tool_with_retry(["llvm-size", "-A", str(elf_path)], timeout=30)
     if size_result.returncode != 0:
         entry["build_success"] = False
@@ -214,6 +238,7 @@ def build_preset(preset):
         "bss": sections.get(".bss", 0),
     }
     entry["rom_total"] = entry["sections"]["text"] + entry["sections"]["rodata"]
+    shutil.rmtree(build_output_dir, ignore_errors=True)
     return entry
 
 
@@ -292,10 +317,12 @@ def parse_args():
     parser.add_argument("--list-variants", action="store_true", help="List available presets and exit")
     parser.add_argument("--no-doc", action="store_true", help="Skip markdown report generation")
     parser.add_argument("--report-dir", help="Override output directory for generated JSON/Markdown reports")
+    parser.add_argument("--jobs", type=int, default=0, help="Parallel preset validation builds. 0=auto.")
     return parser.parse_args()
 
 
 def main():
+    global MAKE_JOBS
     args = parse_args()
 
     if args.list_variants:
@@ -318,11 +345,28 @@ def main():
 
     requested = args.variants.split(",") if args.variants else []
     presets = select_presets(PRESETS, requested)
+    parallel_jobs = resolve_parallel_jobs(args.jobs, len(presets))
+    MAKE_JOBS = resolve_make_jobs(parallel_jobs)
 
     entries = []
-    for preset in presets:
-        print("=== Validating %s ===" % preset["title"])
-        entries.append(build_preset(preset))
+    if parallel_jobs <= 1:
+        for preset in presets:
+            print("=== Validating %s ===" % preset["title"])
+            entries.append(build_preset(preset))
+    else:
+        print("Running %d presets with jobs=%d, make -j%d" % (len(presets), parallel_jobs, MAKE_JOBS))
+        with concurrent.futures.ProcessPoolExecutor(max_workers=parallel_jobs) as executor:
+            future_map = {executor.submit(build_preset, preset): index for index, preset in enumerate(presets)}
+            ordered_entries = [None] * len(presets)
+            completed = 0
+            for future in concurrent.futures.as_completed(future_map):
+                index = future_map[future]
+                entry = future.result()
+                ordered_entries[index] = entry
+                completed += 1
+                status = "PASS" if entry["build_success"] else "FAIL"
+                print("[%d/%d] %s %s" % (completed, len(presets), entry["title"], status))
+        entries = ordered_entries
 
     generate_report(entries, json_path, doc_path)
     print("JSON saved: %s" % json_path)

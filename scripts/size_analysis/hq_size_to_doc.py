@@ -1,14 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import concurrent.futures
 import json
 import multiprocessing
 import argparse
 import subprocess
+import shutil
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
+
+from variant_parallel_support import (
+    get_variant_build_output_dir,
+    get_variant_obj_suffix,
+    normalize_user_cflags,
+    resolve_make_jobs,
+    resolve_parallel_jobs,
+)
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -23,6 +33,7 @@ PORT = "qemu"
 CPU_ARCH = "cortex-m0plus"
 MAKE_JOBS = max(1, multiprocessing.cpu_count())
 APP_OBJ_SUFFIX = "size_hq"
+REPORT_KEY = "hq_size_to_doc"
 
 VARIANTS = [
     {
@@ -250,7 +261,9 @@ def parse_symbol_output(text, interested_symbols):
 
 
 def build_variant(variant):
-    write_probe_config(variant["cflags"])
+    user_cflags = normalize_user_cflags(" ".join(variant["cflags"]))
+    build_output_dir = get_variant_build_output_dir(PROJECT_ROOT, REPORT_KEY, variant["name"], user_cflags=user_cflags)
+    app_obj_suffix = get_variant_obj_suffix(APP_OBJ_SUFFIX, variant["suffix"])
 
     build_cmd = [
         "make",
@@ -260,14 +273,18 @@ def build_variant(variant):
         "APP_SUB=%s" % APP_SUB,
         "PORT=%s" % PORT,
         "CPU_ARCH=%s" % CPU_ARCH,
-        "APP_OBJ_SUFFIX=%s" % APP_OBJ_SUFFIX,
+        "APP_OBJ_SUFFIX=%s" % app_obj_suffix,
+        "OUTPUT_PATH=%s" % build_output_dir.as_posix(),
+        "OBJROOT_PATH=%s" % OUTPUT_DIR.as_posix(),
     ]
+    if user_cflags:
+        build_cmd.append("USER_CFLAGS=%s" % user_cflags)
 
     build_result = run_make_with_fallback(build_cmd, timeout=300)
     if build_result.returncode != 0:
         raise RuntimeError("build failed for %s\n%s" % (variant["name"], build_result.stderr or build_result.stdout))
 
-    elf_path = OUTPUT_DIR / "main.elf"
+    elf_path = build_output_dir / "main.elf"
     size_result = run_tool_with_retry(["llvm-size", "-A", str(elf_path)], timeout=30)
     if size_result.returncode != 0:
         raise RuntimeError("llvm-size failed for %s\n%s" % (variant["name"], size_result.stderr or size_result.stdout))
@@ -295,6 +312,7 @@ def build_variant(variant):
         "symbol_text_total": sum(item["size"] for item in symbols),
     }
     entry["rom_total"] = entry["sections"]["text"] + entry["sections"]["rodata"]
+    shutil.rmtree(build_output_dir, ignore_errors=True)
     return entry
 
 
@@ -446,10 +464,12 @@ def parse_args():
     parser.add_argument("--list-variants", action="store_true", help="List available variants and exit")
     parser.add_argument("--no-doc", action="store_true", help="Skip markdown report generation")
     parser.add_argument("--report-dir", help="Override output directory for generated JSON/Markdown reports")
+    parser.add_argument("--jobs", type=int, default=0, help="Parallel variant builds. 0=auto.")
     return parser.parse_args()
 
 
 def main():
+    global MAKE_JOBS
     args = parse_args()
 
     if args.list_variants:
@@ -472,12 +492,28 @@ def main():
 
     requested = args.variants.split(",") if args.variants else []
     variants = select_variants(VARIANTS, requested)
+    parallel_jobs = resolve_parallel_jobs(args.jobs, len(variants))
+    MAKE_JOBS = resolve_make_jobs(parallel_jobs)
 
     entries = []
-    for variant in variants:
-        print("=== Building %s ===" % variant["title"])
-        entry = build_variant(variant)
-        entries.append(entry)
+    if parallel_jobs <= 1:
+        for variant in variants:
+            print("=== Building %s ===" % variant["title"])
+            entry = build_variant(variant)
+            entries.append(entry)
+    else:
+        print("Running %d variants with jobs=%d, make -j%d" % (len(variants), parallel_jobs, MAKE_JOBS))
+        with concurrent.futures.ProcessPoolExecutor(max_workers=parallel_jobs) as executor:
+            future_map = {executor.submit(build_variant, variant): index for index, variant in enumerate(variants)}
+            ordered_entries = [None] * len(variants)
+            completed = 0
+            for future in concurrent.futures.as_completed(future_map):
+                index = future_map[future]
+                entry = future.result()
+                ordered_entries[index] = entry
+                completed += 1
+                print("[%d/%d] %s OK" % (completed, len(variants), entry["title"]))
+        entries = ordered_entries
 
     generate_report(entries, json_path, doc_path)
     print("JSON saved: %s" % json_path)

@@ -55,6 +55,7 @@ def parse_args():
     parser.add_argument("--list-steps", action="store_true", help="List available suite steps and exit")
     parser.add_argument("--no-doc", action="store_true", help="Skip markdown report generation in child scripts")
     parser.add_argument("--report-dir", help="Override output directory for generated JSON/Markdown reports")
+    parser.add_argument("--jobs", type=int, default=0, help="Parallel variant builds forwarded to child report scripts. 0=auto.")
     return parser.parse_args()
 
 
@@ -97,6 +98,8 @@ def main():
             cmd.append("--no-doc")
         if args.report_dir:
             cmd.extend(["--report-dir", args.report_dir])
+        if args.jobs is not None:
+            cmd.extend(["--jobs", str(args.jobs)])
 
         print("=== %s ===" % step["label"], flush=True)
         result = run_cmd(cmd)
