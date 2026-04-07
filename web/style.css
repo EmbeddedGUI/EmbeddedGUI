@@ -36,10 +36,25 @@ body {
     min-height: 100vh;
     color: var(--text);
     font-family: "Segoe UI Variable Text", "Aptos", "Segoe UI", sans-serif;
+    font-weight: 400;
     background:
         radial-gradient(circle at top left, rgba(95, 209, 255, 0.18), transparent 28%),
         radial-gradient(circle at top right, rgba(76, 141, 255, 0.22), transparent 30%),
         linear-gradient(180deg, #0a1424 0%, #09111f 48%, #050b15 100%);
+}
+
+h1,
+h2,
+h3 {
+    font-weight: 550;
+}
+
+h4,
+h5,
+h6,
+strong,
+b {
+    font-weight: 550;
 }
 
 body::before {
@@ -110,7 +125,7 @@ input {
     margin-bottom: 14px;
     color: var(--accent);
     font-size: 0.82rem;
-    font-weight: 700;
+    font-weight: 550;
     letter-spacing: 0.16em;
     text-transform: uppercase;
 }
@@ -126,6 +141,7 @@ input {
 
 .hero-copy h1 {
     font-size: clamp(2.4rem, 4.5vw, 4.2rem);
+    font-weight: 600;
     line-height: 0.98;
     letter-spacing: -0.045em;
 }
@@ -166,7 +182,7 @@ input {
     border-radius: 999px;
     border: 1px solid transparent;
     text-decoration: none;
-    font-weight: 600;
+    font-weight: 500;
     transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
@@ -217,7 +233,7 @@ input {
     background: transparent;
     color: var(--text-muted);
     font: inherit;
-    font-weight: 700;
+    font-weight: 550;
     cursor: pointer;
     transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
@@ -268,7 +284,7 @@ input {
 .stat-value {
     margin-top: 10px;
     font-size: 1.9rem;
-    font-weight: 700;
+    font-weight: 550;
 }
 
 .stat-detail {
@@ -292,6 +308,7 @@ input {
 
 .section-heading h2 {
     font-size: 1.4rem;
+    font-weight: 550;
     letter-spacing: -0.03em;
 }
 
@@ -336,6 +353,7 @@ input {
 .feature-card h3,
 .scenario-card h3 {
     font-size: 1.08rem;
+    font-weight: 550;
     letter-spacing: -0.02em;
 }
 
@@ -414,7 +432,7 @@ input {
 }
 
 .badge {
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .feature-card {
@@ -518,6 +536,7 @@ input {
 
 .sidebar-header h1 {
     font-size: 1.45rem;
+    font-weight: 550;
     letter-spacing: -0.03em;
 }
 
@@ -569,7 +588,7 @@ input {
     padding: 8px 10px;
     color: var(--text-soft);
     font-size: 0.78rem;
-    font-weight: 700;
+    font-weight: 550;
     letter-spacing: 0.12em;
     text-transform: uppercase;
 }
@@ -597,6 +616,7 @@ input {
 .demo-item strong {
     display: block;
     font-size: 0.96rem;
+    font-weight: 500;
 }
 
 .demo-item-meta {
@@ -633,6 +653,7 @@ input {
 
 .content-header h2 {
     font-size: 1.45rem;
+    font-weight: 550;
     letter-spacing: -0.03em;
 }
 
@@ -728,6 +749,7 @@ input {
 
 .placeholder-stack h3 {
     font-size: 1.2rem;
+    font-weight: 550;
 }
 
 .placeholder-stack p {
@@ -754,14 +776,17 @@ input {
 
 .doc-panel h1 {
     font-size: 1.2rem;
+    font-weight: 550;
 }
 
 .doc-panel h2 {
     font-size: 1.06rem;
+    font-weight: 550;
 }
 
 .doc-panel h3 {
     font-size: 0.98rem;
+    font-weight: 550;
 }
 
 .doc-panel p,
