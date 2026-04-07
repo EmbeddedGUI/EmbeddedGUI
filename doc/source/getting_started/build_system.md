@@ -26,7 +26,7 @@ make all APP=HelloStyleDemo
 | APP 值 | 说明 |
 |--------|------|
 | `HelloSimple` | 最简单的入门示例 |
-| `HelloBasic` | 基础控件演示集合（59 个子应用，需配合 `APP_SUB`） |
+| `HelloBasic` | 基础控件演示集合（60 个子应用，需配合 `APP_SUB`） |
 | `HelloVirtual` | Virtual / ListView / GridView / Stage 示例集合（19 个子应用，需配合 `APP_SUB`） |
 | `HelloCustomWidgets` | 自定义控件集合（使用 `category/widget` 两级 `APP_SUB`） |
 | `HelloActivity` | Activity 生命周期演示 |
@@ -50,7 +50,7 @@ make all APP=HelloStyleDemo
 
 `APP_SUB` 适用于 `HelloBasic`、`HelloVirtual`、`HelloCustomWidgets` 和 `HelloSizeAnalysis` 这类多子应用示例：
 
-- `HelloBasic`: 基础控件演示，当前包含 59 个子应用
+- `HelloBasic`: 基础控件演示，当前包含 60 个子应用
 - `HelloVirtual`: virtual/list/grid/stage 示例，当前包含 19 个子应用
 - `HelloCustomWidgets`: 自定义控件集合，使用 `category/widget` 两级子路径
 - `HelloSizeAnalysis`: probe / preset 目录集合，通常配合 `PORT=qemu`

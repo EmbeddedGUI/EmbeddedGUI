@@ -30,9 +30,21 @@ SCRIPTS_ROOT = SCRIPT_DIR.parent
 ROOT_DIR = SCRIPTS_ROOT.parent
 
 
-# Default full-site WASM publishing excludes test-only and long-running demo families.
-# They can still be built explicitly with --app/--app-sub when needed.
-WASM_SKIP_APPS = {"HelloUnitTest", "HelloCustomWidgets"}
+# Default full-site WASM publishing excludes test-only apps. HelloCustomWidgets
+# still supports explicit full builds, but the default site now publishes a
+# small curated subset to keep GitHub Pages useful without shipping all 94 demos.
+WASM_SKIP_APPS = {"HelloUnitTest"}
+WASM_PRUNE_APPS = {"HelloUnitTest", "HelloCustomWidgets"}
+DEFAULT_CUSTOM_WIDGET_DEMOS = (
+    "input/number_box",
+    "input/password_box",
+    "input/date_picker",
+    "input/time_picker",
+    "input/scroll_bar",
+    "navigation/tab_view",
+    "navigation/tree_view",
+    "feedback/teaching_tip",
+)
 APP_SUB_ROOTS = {
     "HelloBasic": "example/HelloBasic",
     "HelloVirtual": "example/HelloVirtual",
@@ -84,6 +96,17 @@ def get_custom_widgets_list():
             if os.path.isdir(widget_path) and os.path.exists(os.path.join(widget_path, 'test.c')):
                 result.append((cat, widget))
     return result
+
+
+def get_default_custom_widget_builds():
+    """Return curated HelloCustomWidgets demos used by default full-site builds."""
+    available = {f"{cat}/{widget}" for cat, widget in get_custom_widgets_list()}
+    missing = [app_sub for app_sub in DEFAULT_CUSTOM_WIDGET_DEMOS if app_sub not in available]
+    if missing:
+        missing_list = ", ".join(missing)
+        raise ValueError(f"Missing curated HelloCustomWidgets demos: {missing_list}")
+
+    return [("HelloCustomWidgets", app_sub, "HelloCustomWidgets") for app_sub in DEFAULT_CUSTOM_WIDGET_DEMOS]
 
 
 def format_demo_name(app, app_sub):
@@ -494,7 +517,7 @@ def main():
     # Default full-site builds should also prune demo families excluded from demos.json,
     # otherwise old directories remain in web/demos and get packaged accidentally.
     if not args.app and not args.app_sub:
-        prune_demo_dirs(output_dir, WASM_SKIP_APPS)
+        prune_demo_dirs(output_dir, WASM_PRUNE_APPS)
 
     # Build task list from directory scan
     build_list = []
@@ -505,6 +528,9 @@ def main():
         app_sets = get_example_list()
         for app in app_sets:
             if app in WASM_SKIP_APPS:
+                continue
+            if app == "HelloCustomWidgets":
+                build_list.extend(get_default_custom_widget_builds())
                 continue
             group_builds = get_group_build_list(app)
             if group_builds is not None:

@@ -17,7 +17,7 @@
         <div class="sidebar-header">
             <div class="eyebrow">HelloCustomWidgets</div>
             <h1>自定义控件目录</h1>
-            <p>按分类浏览可复用控件，直接查看 WebAssembly 实时预览和 README。</p>
+            <p>按分类浏览默认网页包中的精选控件，直接查看 WebAssembly 实时预览和 README。</p>
             <div class="hero-links">
                 <a class="button-link ghost" href="index.html">返回首页</a>
                 <a class="button-link ghost" href="basic.html">基础控件浏览</a>
@@ -35,7 +35,7 @@
             <div>
                 <div class="eyebrow" id="content-eyebrow">目录 + README</div>
                 <h2 id="content-title">选择一个自定义控件</h2>
-                <p id="content-description">这个页面只展示已经生成进网页包的 HelloCustomWidgets 示例。</p>
+                <p id="content-description">这个页面只展示已经生成进网页包的 HelloCustomWidgets 精选示例；如需全量目录，请显式构建 HelloCustomWidgets。</p>
                 <div class="meta-row" id="content-meta">
                     <span class="metric-chip" id="catalog-chip">按分类浏览</span>
                 </div>
@@ -47,7 +47,7 @@
             <div id="placeholder" class="empty-fill">
                 <div class="placeholder-stack">
                     <h3 id="placeholder-title">等待选择控件</h3>
-                    <p id="placeholder-description">左侧列表只使用 `demos.json` 中实际生成出来的 HelloCustomWidgets 条目，不再依赖额外元数据。</p>
+                    <p id="placeholder-description">左侧列表只使用 `demos.json` 中实际生成出来的 HelloCustomWidgets 精选条目；如需全量集合，请运行全量构建命令。</p>
                 </div>
             </div>
 
@@ -96,17 +96,17 @@
         var translations = {
             pageTitle: { "zh-CN": "EmbeddedGUI HelloCustomWidgets", "en": "EmbeddedGUI HelloCustomWidgets" },
             sidebarTitle: { "zh-CN": "自定义控件目录", "en": "Custom widget catalog" },
-            sidebarDescription: { "zh-CN": "按分类浏览可复用控件，直接查看 WebAssembly 实时预览和 README。", "en": "Browse reusable widgets by category and open the live WebAssembly demo with the README." },
+            sidebarDescription: { "zh-CN": "按分类浏览默认网页包中的精选控件，直接查看 WebAssembly 实时预览和 README。", "en": "Browse the curated widgets shipped in the default web bundle and open the live WebAssembly demo with the README." },
             backHome: { "zh-CN": "返回首页", "en": "Back to home" },
             coreWidgetBrowser: { "zh-CN": "基础控件浏览", "en": "Core widget browser" },
             otherExamples: { "zh-CN": "其他例程", "en": "Other examples" },
             filterPlaceholder: { "zh-CN": "筛选自定义控件", "en": "Filter custom widgets" },
             contentEyebrow: { "zh-CN": "目录 + README", "en": "Catalog + README" },
             defaultTitle: { "zh-CN": "选择一个自定义控件", "en": "Select a custom widget" },
-            defaultDescription: { "zh-CN": "这个页面只展示已经生成进网页包的 HelloCustomWidgets 示例。", "en": "This page only lists HelloCustomWidgets demos that were actually generated into the web bundle." },
+            defaultDescription: { "zh-CN": "这个页面只展示已经生成进网页包的 HelloCustomWidgets 精选示例；如需全量目录，请显式构建 HelloCustomWidgets。", "en": "This page only lists the curated HelloCustomWidgets demos generated into the default web bundle. Build HelloCustomWidgets explicitly if you need the full catalog." },
             categoryChip: { "zh-CN": "按分类浏览", "en": "Grouped by category" },
             placeholderTitle: { "zh-CN": "等待选择控件", "en": "Choose a widget" },
-            placeholderDescription: { "zh-CN": "左侧列表只使用 `demos.json` 中实际生成出来的 HelloCustomWidgets 条目，不再依赖额外元数据。", "en": "The sidebar only uses generated HelloCustomWidgets entries from `demos.json` and no longer depends on extra metadata." },
+            placeholderDescription: { "zh-CN": "左侧列表只使用 `demos.json` 中实际生成出来的 HelloCustomWidgets 精选条目；如需全量集合，请运行全量构建命令。", "en": "The sidebar only uses curated HelloCustomWidgets entries generated into `demos.json`. Run the full HelloCustomWidgets build if you need the complete set." },
             livePreview: { "zh-CN": "实时预览", "en": "Live preview" },
             readmeTitle: { "zh-CN": "README", "en": "README" },
             docBundled: { "zh-CN": "随网页示例一起生成", "en": "Bundled with the generated web demo" },
@@ -114,9 +114,9 @@
             openDemo: { "zh-CN": "打开示例", "en": "Open demo" },
             openReadme: { "zh-CN": "打开 README", "en": "Open README" },
             noEntriesTitle: { "zh-CN": "还没有生成自定义控件条目", "en": "No custom widget entries generated yet" },
-            noEntriesDescription: { "zh-CN": "请先运行 `python scripts/wasm_build_demos.py`。", "en": "Run `python scripts/wasm_build_demos.py` first." },
+            noEntriesDescription: { "zh-CN": "请先运行 `python scripts/web/wasm_build_demos.py`；若要全量生成，使用 `--app HelloCustomWidgets`。", "en": "Run `python scripts/web/wasm_build_demos.py` first. Use `--app HelloCustomWidgets` for the full catalog." },
             missingCatalogTitle: { "zh-CN": "缺少已生成的示例清单", "en": "Missing generated demo catalog" },
-            missingCatalogDescription: { "zh-CN": "这个页面依赖 `web/demos/demos.json`。请先生成网页示例。", "en": "This page needs `web/demos/demos.json`. Generate the web demos first." },
+            missingCatalogDescription: { "zh-CN": "这个页面依赖 `web/demos/demos.json`。请先运行 `python scripts/web/wasm_build_demos.py` 生成网页示例。", "en": "This page needs `web/demos/demos.json`. Generate the web demos with `python scripts/web/wasm_build_demos.py` first." },
             requestedMissingTitle: { "zh-CN": "请求的控件不在当前目录中", "en": "Requested widget is not in this catalog" },
             requestedMissingDescription: { "zh-CN": "当前生成目录里不包含 {demo}。", "en": "The generated catalog does not include {demo}." },
             demoFrameTitle: { "zh-CN": "HelloCustomWidgets 示例", "en": "HelloCustomWidgets demo" },

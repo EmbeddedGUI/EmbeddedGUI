@@ -47,7 +47,7 @@
                         <div class="stat-label">网页示例清单</div>
                         <div class="stat-value" id="total-demo-count">等待加载 demos.json</div>
                         <div class="stat-detail" id="catalog-note">
-                            运行 <span class="code-inline">python scripts/wasm_build_demos.py</span> 刷新网页示例包。
+                            运行 <span class="code-inline">python scripts/web/wasm_build_demos.py</span> 刷新网页示例包。
                         </div>
                     </div>
                     <div class="stat-card">
@@ -163,15 +163,15 @@
                     <div class="badge" id="custom-badge">自定义控件</div>
                     <h3>HelloCustomWidgets 目录</h3>
                     <p>
-                        按分类浏览可复用自定义控件，直接查看实时预览和同目录 README，不必手工翻仓库树。
+                        按分类浏览默认网页包中的精选自定义控件，直接查看实时预览和同目录 README，不必手工翻仓库树。
                     </p>
                     <div class="metric-row">
                         <span class="metric-chip" id="custom-count">0 个自定义控件示例</span>
-                        <span class="metric-chip" id="custom-chip">按分类浏览</span>
+                        <span class="metric-chip" id="custom-chip">默认发布精选</span>
                     </div>
                     <div class="hero-links">
                         <a class="button-link secondary" href="custom.html">打开自定义控件目录</a>
-                        <a class="button-link ghost" href="custom.html#HelloCustomWidgets_input_xy_pad">打开 XY Pad</a>
+                        <a class="button-link ghost" href="custom.html#HelloCustomWidgets_input_number_box">打开 NumberBox</a>
                     </div>
                 </article>
             </div>
@@ -333,28 +333,28 @@
                 "en": "HelloCustomWidgets catalog"
             },
             customCardDescription: {
-                "zh-CN": "按分类浏览可复用自定义控件，直接查看实时预览和同目录 README，不必手工翻仓库树。",
-                "en": "Browse reusable widgets by category, load the live demo, and open the bundled README without scanning the repository tree by hand."
+                "zh-CN": "按分类浏览默认网页包中的精选自定义控件，直接查看实时预览和同目录 README，不必手工翻仓库树。",
+                "en": "Browse the curated HelloCustomWidgets demos shipped in the default web bundle, load the live preview, and open the bundled README without scanning the repository tree by hand."
             },
             customChip: {
-                "zh-CN": "按分类浏览",
-                "en": "Category browsing"
+                "zh-CN": "默认发布精选",
+                "en": "Default curated set"
             },
             openCustomCatalog: {
                 "zh-CN": "打开自定义控件目录",
                 "en": "Open custom catalog"
             },
-            openXyPad: {
-                "zh-CN": "打开 XY Pad",
-                "en": "Open XY pad"
+            openNumberBox: {
+                "zh-CN": "打开 NumberBox",
+                "en": "Open NumberBox"
             },
             catalogWaiting: {
                 "zh-CN": "等待加载 demos.json",
                 "en": "Waiting for demos.json"
             },
             catalogNote: {
-                "zh-CN": "运行 <span class=\"code-inline\">python scripts/wasm_build_demos.py</span> 刷新网页示例包。",
-                "en": "Run <span class=\"code-inline\">python scripts/wasm_build_demos.py</span> to refresh the web bundle."
+                "zh-CN": "运行 <span class=\"code-inline\">python scripts/web/wasm_build_demos.py</span> 刷新网页示例包。",
+                "en": "Run <span class=\"code-inline\">python scripts/web/wasm_build_demos.py</span> to refresh the web bundle."
             },
             routeDetailWaiting: {
                 "zh-CN": "分类数量会从 <span class=\"code-inline\">web/demos/demos.json</span> 动态读取。",
@@ -385,8 +385,8 @@
                 "en": "Catalog unavailable"
             },
             catalogUnavailableNote: {
-                "zh-CN": "请先运行 python scripts/wasm_build_demos.py 生成网页示例，再刷新当前页面。",
-                "en": "Generate the web bundle with python scripts/wasm_build_demos.py and reload this page."
+                "zh-CN": "请先运行 python scripts/web/wasm_build_demos.py 生成网页示例，再刷新当前页面。",
+                "en": "Generate the web bundle with python scripts/web/wasm_build_demos.py and reload this page."
             },
             routeDetailUnavailable: {
                 "zh-CN": "在 demos.json 生成前，分类数量无法显示。",
@@ -460,7 +460,7 @@
             document.getElementById("custom-chip").textContent = t("customChip");
             var customLinks = cards[2].querySelectorAll(".hero-links a");
             customLinks[0].textContent = t("openCustomCatalog");
-            customLinks[1].textContent = t("openXyPad");
+            customLinks[1].textContent = t("openNumberBox");
         }
 
         function renderCatalogCounts(demos) {

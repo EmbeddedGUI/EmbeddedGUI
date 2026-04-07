@@ -175,13 +175,17 @@ python scripts/web/wasm_build_demos.py --output-dir web/demos
 # 只构建指定示例
 python scripts/web/wasm_build_demos.py --app HelloSimple
 
-# 显式构建 HelloCustomWidgets（默认整站构建会跳过）
+# 显式构建 HelloCustomWidgets（默认整站构建只发布精选子集）
 python scripts/web/wasm_build_demos.py --app HelloCustomWidgets
 ```
 
+默认整站构建当前只发布 8 个 `HelloCustomWidgets` 精选 demo：
+`input/number_box`、`input/password_box`、`input/date_picker`、`input/time_picker`、
+`input/scroll_bar`、`navigation/tab_view`、`navigation/tree_view`、`feedback/teaching_tip`
+
 ### 工作流程
 
-1. 扫描 `example/` 目录获取示例列表；默认整站构建会跳过 `HelloUnitTest` 和 `HelloCustomWidgets`
+1. 扫描 `example/` 目录获取示例列表；默认整站构建会跳过 `HelloUnitTest`，并为 `HelloCustomWidgets` 发布 8 个精选 demo
 2. 对每个示例：
    - 生成资源文件（`make resource`）
    - 使用 Emscripten 编译（`make all PORT=emscripten`）

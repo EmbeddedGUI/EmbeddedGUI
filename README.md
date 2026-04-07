@@ -133,7 +133,7 @@ make all APP=HelloStyleDemo && make run
 
 ---
 
-## 🧩 控件库（62 个）
+## 🧩 HelloBasic 控件库（60 个）
 
 **布局**：Group · LinearLayout · GridLayout · Scroll · ViewPage · ViewPageCache · TileView · Window · Card
 
@@ -300,7 +300,7 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 | HelloPerformance | 114624 | 303508 | 1164 | 2400 | 418132 |
 | HelloStyleDemo | 118308 | 105604 | 7368 | 9600 | 223912 |
 
-> 运行 `python scripts/size_analysis/utils_analysis_elf_size.py` 生成完整报告（含 HelloBasic 全部 62 个子应用和 HelloVirtual 全部 19 个子应用）。
+> 运行 `python scripts/size_analysis/utils_analysis_elf_size.py` 生成完整报告（含 HelloBasic 全部 60 个子应用和 HelloVirtual 全部 19 个子应用）。
 
 ---
 
@@ -311,7 +311,7 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 | `HelloSimple` | 最小 Hello World |
 | `HelloActivity` | Activity 生命周期演示 |
 | `HelloAPP` | 完整多页面应用 |
-| `HelloBasic` | **62 个独立控件演示** |
+| `HelloBasic` | **60 个独立控件演示** |
 | `HelloVirtual` | **19 个 Virtual 控件示例** |
 | `HelloCanvas` | 绘图图元展示 |
 | `HelloChart` | 图表控件演示 |

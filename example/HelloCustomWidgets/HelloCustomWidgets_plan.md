@@ -11,7 +11,7 @@
 
 ## 当前基线
 
-详细方案见：`.claude/2026-03-14-hcw-fluent-reference-plan.md`
+当前基线以 `.claude/workflow/widget_progress_tracker.md` 为准；本文件保留阶段性策略、参考体系和维护约束。
 
 ### 主参考体系
 
@@ -58,7 +58,7 @@ example/HelloCustomWidgets/<category>/<widget>/
 
 ### 2. 历史白名单（已完成基线）
 
-以下白名单用于说明当时的首批 Reference Track 基线来源，当前条目均已落地；后续选题应以 `.claude/2026-03-14-hcw-fluent-reference-plan.md` 和 `.claude/workflow/widget_progress_tracker.md` 的未完成项为准：
+以下白名单用于说明当时的首批 Reference Track 基线来源，当前条目均已落地；后续选题应以 `.claude/workflow/widget_progress_tracker.md` 中尚未落地的项和最新 acceptance 记录为准：
 
 - `feedback/message_bar`
 - `navigation/breadcrumb_bar`
@@ -118,8 +118,8 @@ python scripts/web/wasm_build_demos.py
 
 1. 先读 `.claude/workflow/widget_acceptance_workflow.md`
 2. 再读 `.claude/workflow/widget_progress_tracker.md`
-3. 再读 `.claude/2026-03-14-hcw-fluent-reference-plan.md`
-4. 优先从 `.claude/2026-03-14-hcw-fluent-reference-plan.md` 与 tracker 中尚未落地的项里选下一个控件
+3. 再回看本文件中的“主参考体系”和“存量控件约束”两节
+4. 优先从 `.claude/workflow/widget_progress_tracker.md` 中尚未落地的项里选下一个控件
 5. 在 `example/HelloCustomWidgets/<category>/<widget>/` 下完成实现、readme、iteration_log 和 runtime 验证
 6. 完成后更新 tracker，并单独提交一个 commit
 

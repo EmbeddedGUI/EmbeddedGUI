@@ -146,7 +146,7 @@ src/
 | 示例 | 说明 |
 |------|------|
 | `HelloSimple` | 最简单的入门示例 (标签 + 按钮) |
-| `HelloBasic` | 基础控件演示集合，当前包含 59 个子应用 |
+| `HelloBasic` | 基础控件演示集合，当前包含 60 个子应用 |
 | `HelloVirtual` | Virtual / ListView / GridView / Stage 示例集合，当前包含 19 个子应用 |
 | `HelloCustomWidgets` | 自定义控件集合，使用 `category/widget` 两级 `APP_SUB` |
 | `HelloActivity` | Activity 生命周期和页面管理 |
