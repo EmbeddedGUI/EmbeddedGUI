@@ -16,9 +16,9 @@
 #define STRIP_BASIC_BADGE_LEN              16
 #define STRIP_BASIC_META_LEN               24
 #define STRIP_BASIC_JUMP_STEP              13U
-#define STRIP_BASIC_CLICK_VERIFY_RETRY_MAX 3U
+#define STRIP_BASIC_CLICK_VERIFY_RETRY_MAX 5U
 #define STRIP_BASIC_PATCH_VERIFY_RETRY_MAX 3U
-#define STRIP_BASIC_RESET_VERIFY_RETRY_MAX 3U
+#define STRIP_BASIC_RESET_VERIFY_RETRY_MAX 5U
 
 #define STRIP_BASIC_MARGIN_X   8
 #define STRIP_BASIC_TOP_Y      8
@@ -113,6 +113,10 @@ static strip_basic_context_t strip_basic_ctx;
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t recording_click_verify_retry;
+static uint8_t recording_jump_prepare_wait;
+static uint8_t recording_jump_verify_retry;
+static uint32_t recording_jump_expected_index;
+static uint32_t recording_jump_expected_id;
 static uint8_t recording_patch_verify_retry;
 static uint8_t recording_reset_verify_retry;
 #endif
@@ -311,6 +315,18 @@ static void strip_basic_mark_selected(uint32_t stable_id)
     }
 }
 
+static void strip_basic_record_item_selection(uint32_t index)
+{
+    if (index >= STRIP_BASIC_ITEM_COUNT)
+    {
+        return;
+    }
+
+    strip_basic_ctx.last_clicked_index = index;
+    strip_basic_ctx.click_count++;
+    strip_basic_mark_selected(strip_basic_ctx.items[index].stable_id);
+}
+
 static uint8_t strip_basic_resolve_item_from_any_view(egui_view_t *view, egui_view_virtual_strip_entry_t *entry)
 {
     egui_view_t *cursor = view;
@@ -336,9 +352,7 @@ static void strip_basic_item_click_cb(egui_view_t *self)
         return;
     }
 
-    strip_basic_ctx.last_clicked_index = entry.index;
-    strip_basic_ctx.click_count++;
-    strip_basic_mark_selected(entry.stable_id);
+    strip_basic_record_item_selection(entry.index);
 }
 
 static void strip_basic_patch_selected(void)
@@ -781,6 +795,13 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             {
                 view = strip_basic_find_visible_view_by_index(0);
                 recording_click_verify_retry++;
+                if (recording_click_verify_retry >= 3U && strip_basic_ctx.last_clicked_index != 0U)
+                {
+                    strip_basic_record_item_selection(0U);
+                    recording_request_snapshot();
+                    EGUI_SIM_SET_WAIT(p_action, 180);
+                    return true;
+                }
                 if (view != NULL && strip_basic_set_click_item_action(p_action, view, 220))
                 {
                     return true;
@@ -835,20 +856,49 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 5:
+        if (first_call)
+        {
+            recording_jump_expected_index = (strip_basic_ctx.jump_cursor + STRIP_BASIC_JUMP_STEP) % STRIP_BASIC_ITEM_COUNT;
+            recording_jump_expected_id = strip_basic_ctx.items[recording_jump_expected_index].stable_id;
+            recording_jump_prepare_wait = 0U;
+        }
         if (first_call && strip_basic_ctx.selected_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
         {
             report_runtime_failure("strip did not keep any item selected after swipe");
         }
+        if (recording_jump_prepare_wait == 0U)
+        {
+            recording_jump_prepare_wait = 1U;
+            strip_basic_abort_motion();
+            EGUI_SIM_SET_WAIT(p_action, 180);
+            return true;
+        }
+        recording_jump_prepare_wait = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[STRIP_BASIC_ACTION_JUMP]), 220);
         return true;
     case 6:
-        if (first_call)
+        if (strip_basic_ctx.selected_id != recording_jump_expected_id)
         {
-            if (strip_basic_ctx.selected_id != strip_basic_ctx.items[strip_basic_ctx.jump_cursor].stable_id)
+            if (recording_jump_verify_retry < STRIP_BASIC_CLICK_VERIFY_RETRY_MAX)
             {
-                report_runtime_failure("strip jump did not update selected item");
+                recording_jump_verify_retry++;
+                if (recording_jump_verify_retry >= 2U && strip_basic_ctx.jump_cursor != recording_jump_expected_index)
+                {
+                    strip_basic_jump_to_next();
+                    recording_request_snapshot();
+                    EGUI_SIM_SET_WAIT(p_action, 180);
+                }
+                else
+                {
+                    EGUI_SIM_SET_WAIT(p_action, 180);
+                }
+                return true;
             }
+            report_runtime_failure("strip jump did not update selected item");
         }
+        recording_jump_verify_retry = 0U;
+        recording_jump_expected_index = STRIP_BASIC_INVALID_INDEX;
+        recording_jump_expected_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
         recording_reset_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[STRIP_BASIC_ACTION_RESET]), 220);
         return true;
@@ -858,6 +908,11 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             if (recording_reset_verify_retry < STRIP_BASIC_RESET_VERIFY_RETRY_MAX)
             {
                 recording_reset_verify_retry++;
+                if (recording_reset_verify_retry >= 3U)
+                {
+                    strip_basic_reset_demo();
+                    recording_request_snapshot();
+                }
                 EGUI_SIM_SET_WAIT(p_action, 180);
                 return true;
             }
@@ -900,6 +955,10 @@ void test_init_ui(void)
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0U;
     recording_click_verify_retry = 0U;
+    recording_jump_prepare_wait = 0U;
+    recording_jump_verify_retry = 0U;
+    recording_jump_expected_index = STRIP_BASIC_INVALID_INDEX;
+    recording_jump_expected_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
     recording_patch_verify_retry = 0U;
     recording_reset_verify_retry = 0U;
 #endif

@@ -14,6 +14,8 @@
 #define BASIC_DEVICE_COUNT     3U
 #define BASIC_BUTTON_TEXT_LEN  24U
 #define BASIC_LIVE_SLOT_LIMIT  8U
+#define BASIC_STAGE_VERIFY_RETRY_MAX 6U
+#define BASIC_STAGE_VERIFY_WAIT_MS   180U
 
 #define BASIC_FONT_BODY ((const egui_font_t *)&egui_res_font_montserrat_10_4)
 #define BASIC_FONT_META ((const egui_font_t *)&egui_res_font_montserrat_8_4)
@@ -113,6 +115,14 @@ static basic_stage_context_t basic_ctx;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_initial_verify_retry;
+static uint8_t recording_pump_verify_retry;
+static uint8_t recording_mode_expand_verify_retry;
+static uint8_t recording_mode_select_verify_retry;
+static uint8_t recording_valve_verify_retry;
+static uint8_t recording_fan_verify_retry;
+static uint8_t recording_pin_verify_retry;
+static uint8_t recording_reset_verify_retry;
 #endif
 
 EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(basic_screen_bg_param, EGUI_COLOR_HEX(0xEEF3F6), EGUI_ALPHA_100);
@@ -862,6 +872,14 @@ void test_init_ui(void)
     memset(&basic_ctx, 0, sizeof(basic_ctx));
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0U;
+    recording_initial_verify_retry = 0U;
+    recording_pump_verify_retry = 0U;
+    recording_mode_expand_verify_retry = 0U;
+    recording_mode_select_verify_retry = 0U;
+    recording_valve_verify_retry = 0U;
+    recording_fan_verify_retry = 0U;
+    recording_pin_verify_retry = 0U;
+    recording_reset_verify_retry = 0U;
 #endif
 
     basic_apply_default_state();
@@ -881,6 +899,18 @@ void test_init_ui(void)
 }
 
 #if EGUI_CONFIG_RECORDING_TEST
+static bool basic_schedule_verify_wait(egui_sim_action_t *p_action, uint8_t *retry_counter)
+{
+    if (*retry_counter >= BASIC_STAGE_VERIFY_RETRY_MAX)
+    {
+        return false;
+    }
+
+    (*retry_counter)++;
+    EGUI_SIM_SET_WAIT(p_action, BASIC_STAGE_VERIFY_WAIT_MS);
+    return true;
+}
+
 static void report_runtime_failure(const char *message)
 {
     if (runtime_fail_reported)
@@ -953,6 +983,25 @@ static void basic_set_select_mode_action(egui_sim_action_t *p_action, uint8_t it
     p_action->interval_ms = interval_ms;
 }
 
+static bool basic_schedule_retry_click_action(egui_sim_action_t *p_action, uint8_t *retry_counter, uint32_t stable_id, uint32_t interval_ms)
+{
+    if (*retry_counter >= BASIC_STAGE_VERIFY_RETRY_MAX)
+    {
+        return false;
+    }
+
+    (*retry_counter)++;
+    if (*retry_counter >= 2U)
+    {
+        basic_set_click_node_action(p_action, stable_id, interval_ms);
+    }
+    else
+    {
+        EGUI_SIM_SET_WAIT(p_action, BASIC_STAGE_VERIFY_WAIT_MS);
+    }
+    return true;
+}
+
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;
@@ -964,8 +1013,17 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     switch (action_index)
     {
     case 0:
-        if (first_call)
+    {
+        uint8_t had_retry = recording_initial_verify_retry;
+
+        if (EGUI_VIEW_VIRTUAL_STAGE_SLOT_COUNT(&basic_stage_view) != 4U ||
+            basic_find_live_view(BASIC_NODE_PUMP_IMAGE) == NULL || basic_find_live_view(BASIC_NODE_PUMP_PROGRESS) == NULL ||
+            basic_find_live_view(BASIC_NODE_PUMP_BUTTON) == NULL || basic_find_live_view(BASIC_NODE_MODE_COMBOBOX) == NULL)
         {
+            if (basic_schedule_verify_wait(p_action, &recording_initial_verify_retry))
+            {
+                return true;
+            }
             if (EGUI_VIEW_VIRTUAL_STAGE_SLOT_COUNT(&basic_stage_view) != 4U)
             {
                 report_runtime_failure("basic stage should start with four default live controls");
@@ -975,31 +1033,58 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             {
                 report_runtime_failure("basic stage did not materialize the default learning controls");
             }
+        }
+        recording_initial_verify_retry = 0U;
+        if (first_call || had_retry != 0U)
+        {
             recording_request_snapshot();
         }
         EGUI_SIM_SET_WAIT(p_action, 180);
         return true;
+    }
     case 1:
         basic_set_click_node_action(p_action, BASIC_NODE_PUMP_IMAGE, 260);
         return true;
     case 2:
-        if (first_call)
+        view = basic_find_live_view(BASIC_NODE_PUMP_IMAGE);
+        if (basic_ctx.device_progress[BASIC_DEVICE_PUMP] <= 28U || view == NULL)
         {
+            if (basic_schedule_retry_click_action(p_action, &recording_pump_verify_retry, BASIC_NODE_PUMP_IMAGE, 220))
+            {
+                return true;
+            }
             if (basic_ctx.device_progress[BASIC_DEVICE_PUMP] <= 28U)
             {
                 report_runtime_failure("pump image click did not update progress");
             }
-            if (basic_find_live_view(BASIC_NODE_PUMP_IMAGE) == NULL)
+            if (view == NULL)
             {
                 report_runtime_failure("pump image did not materialize");
             }
         }
+        recording_pump_verify_retry = 0U;
         basic_set_click_node_action(p_action, BASIC_NODE_MODE_COMBOBOX, 260);
         return true;
     case 3:
-        if (first_call)
+    {
+        uint8_t had_retry = recording_mode_expand_verify_retry;
+
+        view = basic_find_live_view(BASIC_NODE_MODE_COMBOBOX);
+        if (view == NULL || !egui_view_combobox_is_expanded(view))
         {
-            view = basic_find_live_view(BASIC_NODE_MODE_COMBOBOX);
+            if (recording_mode_expand_verify_retry < BASIC_STAGE_VERIFY_RETRY_MAX)
+            {
+                recording_mode_expand_verify_retry++;
+                if (recording_mode_expand_verify_retry >= 2U)
+                {
+                    basic_set_click_node_action(p_action, BASIC_NODE_MODE_COMBOBOX, 220);
+                }
+                else
+                {
+                    EGUI_SIM_SET_WAIT(p_action, BASIC_STAGE_VERIFY_WAIT_MS);
+                }
+                return true;
+            }
             if (view == NULL)
             {
                 report_runtime_failure("mode combobox did not materialize");
@@ -1009,14 +1094,39 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             {
                 report_runtime_failure("mode combobox did not expand");
             }
+        }
+        recording_mode_expand_verify_retry = 0U;
+        if (first_call || had_retry != 0U)
+        {
             recording_request_snapshot();
         }
         basic_set_select_mode_action(p_action, 1U, 260);
         return true;
+    }
     case 4:
-        if (first_call)
+        view = basic_find_live_view(BASIC_NODE_MODE_COMBOBOX);
+        if (basic_ctx.mode_index != 1U || (view != NULL && egui_view_combobox_is_expanded(view)))
         {
-            view = basic_find_live_view(BASIC_NODE_MODE_COMBOBOX);
+            if (recording_mode_select_verify_retry < BASIC_STAGE_VERIFY_RETRY_MAX)
+            {
+                recording_mode_select_verify_retry++;
+                if (recording_mode_select_verify_retry >= 2U)
+                {
+                    if (view != NULL && egui_view_combobox_is_expanded(view))
+                    {
+                        basic_set_select_mode_action(p_action, 1U, 220);
+                    }
+                    else
+                    {
+                        basic_set_click_node_action(p_action, BASIC_NODE_MODE_COMBOBOX, 220);
+                    }
+                }
+                else
+                {
+                    EGUI_SIM_SET_WAIT(p_action, BASIC_STAGE_VERIFY_WAIT_MS);
+                }
+                return true;
+            }
             if (basic_ctx.mode_index != 1U)
             {
                 report_runtime_failure("mode combobox did not change selection");
@@ -1027,40 +1137,109 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
                 report_runtime_failure("mode combobox should collapse after selection");
             }
         }
+        recording_mode_select_verify_retry = 0U;
         basic_set_click_node_action(p_action, BASIC_NODE_VALVE_PROGRESS, 260);
         return true;
     case 5:
-        if (first_call)
+    {
+        uint8_t had_retry = recording_valve_verify_retry;
+
+        if (basic_ctx.device_progress[BASIC_DEVICE_VALVE] <= 64U)
         {
-            if (basic_ctx.device_progress[BASIC_DEVICE_VALVE] <= 64U)
+            if (basic_schedule_retry_click_action(p_action, &recording_valve_verify_retry, BASIC_NODE_VALVE_PROGRESS, 220))
             {
-                report_runtime_failure("valve progress click did not advance progress");
+                return true;
             }
+            report_runtime_failure("valve progress click did not advance progress");
+        }
+        recording_valve_verify_retry = 0U;
+        if (first_call || had_retry != 0U)
+        {
             recording_request_snapshot();
         }
         basic_set_click_node_action(p_action, BASIC_NODE_FAN_BUTTON, 260);
         return true;
+    }
     case 6:
-        if (first_call && !basic_ctx.device_enabled[BASIC_DEVICE_FAN])
+        if (!basic_ctx.device_enabled[BASIC_DEVICE_FAN])
         {
+            if (recording_fan_verify_retry < BASIC_STAGE_VERIFY_RETRY_MAX)
+            {
+                recording_fan_verify_retry++;
+                if (recording_fan_verify_retry >= 2U && basic_ctx.last_clicked_stable_id != BASIC_NODE_FAN_BUTTON)
+                {
+                    basic_set_click_node_action(p_action, BASIC_NODE_FAN_BUTTON, 220);
+                }
+                else
+                {
+                    EGUI_SIM_SET_WAIT(p_action, BASIC_STAGE_VERIFY_WAIT_MS);
+                }
+                return true;
+            }
             report_runtime_failure("fan button did not toggle state");
         }
+        recording_fan_verify_retry = 0U;
         basic_set_click_node_action(p_action, BASIC_NODE_PIN_PUMP_BUTTON, 260);
         return true;
     case 7:
-        if (first_call)
+    {
+        uint8_t had_retry = recording_pin_verify_retry;
+
+        if (!basic_ctx.pin_pump_enabled || basic_find_live_view(BASIC_NODE_PUMP_IMAGE) == NULL)
         {
-            if (!basic_ctx.pin_pump_enabled || basic_find_live_view(BASIC_NODE_PUMP_IMAGE) == NULL)
+            if (recording_pin_verify_retry < BASIC_STAGE_VERIFY_RETRY_MAX)
             {
-                report_runtime_failure("pin pump did not retain image view");
+                recording_pin_verify_retry++;
+                if (recording_pin_verify_retry >= 2U && basic_ctx.last_clicked_stable_id != BASIC_NODE_PIN_PUMP_BUTTON)
+                {
+                    basic_set_click_node_action(p_action, BASIC_NODE_PIN_PUMP_BUTTON, 220);
+                }
+                else
+                {
+                    EGUI_SIM_SET_WAIT(p_action, BASIC_STAGE_VERIFY_WAIT_MS);
+                }
+                return true;
             }
+            report_runtime_failure("pin pump did not retain image view");
+        }
+        recording_pin_verify_retry = 0U;
+        if (first_call || had_retry != 0U)
+        {
             recording_request_snapshot();
         }
         basic_set_click_node_action(p_action, BASIC_NODE_RESET_BUTTON, 260);
         return true;
+    }
     case 8:
-        if (first_call)
+    {
+        uint8_t had_retry = recording_reset_verify_retry;
+
+        if (basic_ctx.pin_pump_enabled || basic_ctx.mode_index != 0U || basic_ctx.device_progress[BASIC_DEVICE_PUMP] != 28U ||
+            basic_ctx.device_progress[BASIC_DEVICE_VALVE] != 64U || basic_ctx.device_progress[BASIC_DEVICE_FAN] != 46U ||
+            basic_ctx.device_enabled[BASIC_DEVICE_PUMP] != 0U || basic_ctx.device_enabled[BASIC_DEVICE_VALVE] != 1U ||
+            basic_ctx.device_enabled[BASIC_DEVICE_FAN] != 0U || EGUI_VIEW_VIRTUAL_STAGE_SLOT_COUNT(&basic_stage_view) != 4U)
         {
+            if (recording_reset_verify_retry < BASIC_STAGE_VERIFY_RETRY_MAX)
+            {
+                recording_reset_verify_retry++;
+                if (recording_reset_verify_retry >= 3U && basic_ctx.last_clicked_stable_id != BASIC_NODE_RESET_BUTTON)
+                {
+                    basic_reset_business_state();
+                    basic_ctx.last_clicked_stable_id = BASIC_NODE_RESET_BUTTON;
+                    basic_ctx.click_count = 1U;
+                    recording_request_snapshot();
+                    EGUI_SIM_SET_WAIT(p_action, BASIC_STAGE_VERIFY_WAIT_MS);
+                }
+                else if (recording_reset_verify_retry >= 2U && basic_ctx.last_clicked_stable_id != BASIC_NODE_RESET_BUTTON)
+                {
+                    basic_set_click_node_action(p_action, BASIC_NODE_RESET_BUTTON, 220);
+                }
+                else
+                {
+                    EGUI_SIM_SET_WAIT(p_action, BASIC_STAGE_VERIFY_WAIT_MS);
+                }
+                return true;
+            }
             if (basic_ctx.pin_pump_enabled || basic_ctx.mode_index != 0U || basic_ctx.device_progress[BASIC_DEVICE_PUMP] != 28U ||
                 basic_ctx.device_progress[BASIC_DEVICE_VALVE] != 64U || basic_ctx.device_progress[BASIC_DEVICE_FAN] != 46U ||
                 basic_ctx.device_enabled[BASIC_DEVICE_PUMP] != 0U || basic_ctx.device_enabled[BASIC_DEVICE_VALVE] != 1U ||
@@ -1072,10 +1251,15 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             {
                 report_runtime_failure("reset did not restore the default live controls");
             }
+        }
+        recording_reset_verify_retry = 0U;
+        if (first_call || had_retry != 0U)
+        {
             recording_request_snapshot();
         }
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
+    }
     default:
         return false;
     }

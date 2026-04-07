@@ -12,6 +12,7 @@
 #define GRID_BASIC_ITEM_COUNT             120U
 #define GRID_BASIC_STABLE_BASE            5000U
 #define GRID_BASIC_INVALID_INDEX          0xFFFFFFFFUL
+#define GRID_BASIC_CLICK_VERIFY_RETRY_MAX 5U
 #define GRID_BASIC_PATCH_VERIFY_RETRY_MAX 3U
 #define GRID_BASIC_TITLE_LEN              28
 #define GRID_BASIC_BADGE_LEN              16
@@ -109,6 +110,7 @@ static grid_basic_context_t grid_basic_ctx;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_click_verify_retry;
 static uint8_t recording_patch_verify_retry;
 #endif
 
@@ -748,10 +750,24 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
         return true;
     case 2:
-        if (first_call && grid_basic_ctx.selected_id != grid_basic_ctx.items[0].stable_id)
+        if (grid_basic_ctx.selected_id != grid_basic_ctx.items[0].stable_id)
         {
+            if (recording_click_verify_retry < GRID_BASIC_CLICK_VERIFY_RETRY_MAX)
+            {
+                view = grid_basic_find_visible_view_by_index(0);
+                recording_click_verify_retry++;
+                if (view != NULL)
+                {
+                    EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+                    return true;
+                }
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
             report_runtime_failure("grid click did not update selected item");
         }
+        recording_click_verify_retry = 0U;
         recording_patch_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[GRID_BASIC_ACTION_PATCH]), 220);
         return true;
@@ -843,6 +859,7 @@ void test_init_ui(void)
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0U;
+    recording_click_verify_retry = 0U;
     recording_patch_verify_retry = 0U;
 #endif
 
