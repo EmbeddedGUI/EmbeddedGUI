@@ -12,15 +12,17 @@
 #include "shadow/egui_shadow.h"
 #endif
 
-static const egui_font_t *egui_view_checkbox_get_icon_font(egui_view_checkbox_t *local, egui_dim_t box_size)
+static const egui_font_t *egui_view_checkbox_get_text_font(const egui_view_checkbox_t *local)
 {
-    if (local->icon_font != NULL)
+    if (local->font != NULL)
     {
-        return local->icon_font;
+        return local->font;
     }
 
-    return egui_view_icon_font_get_auto(box_size, 18, 22);
+    return (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
 }
+
+extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_checkbox_t);
 
 static uint8_t egui_view_checkbox_get_indicator_dirty_region(egui_view_t *self, egui_view_checkbox_t *local, egui_region_t *dirty_region)
 {
@@ -53,7 +55,7 @@ static uint8_t egui_view_checkbox_get_indicator_dirty_region(egui_view_t *self, 
 
     box_x = region.location.x + (region.size.width - box_size) / 2;
     box_y = region.location.y + (region.size.height - box_size) / 2;
-    if (local->text != NULL)
+    if (EGUI_VIEW_TEXT_VALID(local->text))
     {
         box_x = region.location.x + 1;
     }
@@ -173,7 +175,7 @@ static int egui_view_checkbox_perform_click(egui_view_t *self)
 }
 #endif
 
-void egui_view_checkbox_on_draw(egui_view_t *self)
+static void egui_view_checkbox_draw_indicator(egui_view_t *self, uint8_t use_icon_mark)
 {
     EGUI_LOCAL_INIT(egui_view_checkbox_t);
 
@@ -188,7 +190,7 @@ void egui_view_checkbox_on_draw(egui_view_t *self)
     egui_dim_t box_x = region.location.x + (region.size.width - box_size) / 2;
     egui_dim_t box_y = region.location.y + (region.size.height - box_size) / 2;
 
-    if (local->text != NULL)
+    if (EGUI_VIEW_TEXT_VALID(local->text))
     {
         box_x = region.location.x + 1;
     }
@@ -239,11 +241,11 @@ void egui_view_checkbox_on_draw(egui_view_t *self)
         egui_canvas_draw_round_rectangle_fill(box_x, box_y, box_size, box_size, box_size / 6, fill_color, local->alpha);
 #endif
 
-        if (local->mark_style == EGUI_VIEW_CHECKBOX_MARK_STYLE_ICON)
+        if (use_icon_mark)
         {
             egui_region_t icon_region = {{box_x, box_y}, {box_size, box_size}};
-            const egui_font_t *icon_font = egui_view_checkbox_get_icon_font(local, box_size);
-            if (icon_font != NULL && local->mark_icon != NULL && local->mark_icon[0] != '\0')
+            const egui_font_t *icon_font = EGUI_VIEW_ICON_FONT_RESOLVE(local->icon_font, box_size, 18, 22);
+            if (icon_font != NULL && EGUI_VIEW_ICON_TEXT_VALID(local->mark_icon))
             {
                 egui_canvas_draw_text_in_rect(icon_font, local->mark_icon, &icon_region, EGUI_ALIGN_CENTER, check_color, local->alpha);
             }
@@ -280,22 +282,51 @@ void egui_view_checkbox_on_draw(egui_view_t *self)
     {
         // Draw subtle surface then outline for better shape definition
         egui_color_t surface_color = (style && (style->flags & EGUI_STYLE_PROP_BG_COLOR)) ? style->bg_color : EGUI_THEME_SURFACE;
-        egui_canvas_draw_round_rectangle_fill(box_x, box_y, box_size, box_size, box_size / 6, surface_color, local->alpha);
         egui_dim_t stroke = EGUI_MAX(EGUI_THEME_STROKE_WIDTH, 1);
-        egui_canvas_draw_round_rectangle(box_x, box_y, box_size, box_size, box_size / 6, stroke, box_color, local->alpha);
-    }
+        egui_dim_t radius = box_size / 6;
+        egui_dim_t inner_size = box_size - stroke * 2;
+        egui_dim_t inner_radius = radius - stroke;
 
-    if (local->text != NULL)
+        if (inner_radius < 0)
+        {
+            inner_radius = 0;
+        }
+
+        egui_canvas_draw_round_rectangle_fill(box_x, box_y, box_size, box_size, radius, box_color, local->alpha);
+        if (inner_size > 0)
+        {
+            egui_canvas_draw_round_rectangle_fill(box_x + stroke, box_y + stroke, inner_size, inner_size, inner_radius, surface_color, local->alpha);
+        }
+    }
+}
+
+void egui_view_checkbox_on_draw(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_checkbox_t);
+    egui_region_t region;
+    egui_dim_t box_size;
+    egui_dim_t box_x;
+
+    egui_view_checkbox_draw_indicator(self, local->mark_style == EGUI_VIEW_CHECKBOX_MARK_STYLE_ICON);
+
+    if (EGUI_VIEW_TEXT_VALID(local->text))
     {
-        const egui_font_t *font = local->font ? local->font : (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+        const egui_font_t *font = egui_view_checkbox_get_text_font(local);
         egui_color_t text_color = egui_view_get_enable(self) ? local->text_color : EGUI_THEME_DISABLED;
 
+        egui_view_get_work_region(self, &region);
+        box_size = region.size.height;
+        if (box_size > region.size.width)
+        {
+            box_size = region.size.width;
+        }
+        box_x = region.location.x + 1;
         egui_region_t text_region;
         text_region.location.x = box_x + box_size + local->text_gap;
         text_region.location.y = region.location.y;
         text_region.size.width = region.location.x + region.size.width - text_region.location.x;
         text_region.size.height = region.size.height;
-        if (text_region.size.width > 0)
+        if (text_region.size.width > 0 && font != NULL)
         {
             egui_canvas_draw_text_in_rect(font, local->text, &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color, local->alpha);
         }
@@ -337,7 +368,7 @@ void egui_view_checkbox_init(egui_view_t *self)
     local->check_color = EGUI_THEME_TEXT;
     local->box_fill_color = EGUI_THEME_PRIMARY;
     local->text = NULL;
-    local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    local->font = NULL;
     local->text_color = EGUI_THEME_TEXT;
     local->text_gap = 6;
     local->mark_style = EGUI_VIEW_CHECKBOX_MARK_STYLE_VECTOR;

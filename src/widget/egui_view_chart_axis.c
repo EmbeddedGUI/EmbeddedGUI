@@ -77,9 +77,9 @@ void egui_view_chart_axis_on_draw(egui_view_t *self)
     egui_canvas_calc_work_region(&self->region_screen);
 
     // 7. Draw legend
-    if (local->ab.legend_pos != EGUI_CHART_LEGEND_NONE)
+    if (local->ab.draw_legend_series != NULL)
     {
-        egui_chart_draw_legend_series(&local->ab, &region, &plot_area);
+        local->ab.draw_legend_series(&local->ab, &region, &plot_area);
     }
 }
 
@@ -177,6 +177,7 @@ void egui_view_chart_axis_set_axis_x_config(egui_view_t *self, const egui_chart_
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
     local->ab.axis_x = *config;
+    egui_chart_axis_base_set_axis_x_categorical(&local->ab, config->is_categorical);
 #if EGUI_CONFIG_FUNCTION_SUPPORT_MULTI_TOUCH
     local->ab.view_x_min = config->min_value;
     local->ab.view_x_max = config->max_value;
@@ -199,6 +200,7 @@ void egui_view_chart_axis_set_legend_pos(egui_view_t *self, uint8_t pos)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
     local->ab.legend_pos = pos;
+    local->ab.draw_legend_series = (pos == EGUI_CHART_LEGEND_NONE) ? NULL : egui_chart_draw_legend_series;
     egui_view_invalidate(self);
 }
 
@@ -215,7 +217,7 @@ void egui_view_chart_axis_set_colors(egui_view_t *self, egui_color_t bg, egui_co
 void egui_view_chart_axis_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_chart_axis_t);
-    local->ab.font = font;
+    egui_chart_axis_base_set_font(&local->ab, font);
     egui_view_invalidate(self);
 }
 

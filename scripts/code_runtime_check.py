@@ -10,11 +10,15 @@ import sys
 import subprocess
 import platform
 import argparse
-import shutil
+import concurrent.futures
+import hashlib
 import json
 import re
+import time
 from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = SCRIPT_DIR.parent
 SCREENSHOT_DIR = "runtime_check_output"
 DEFAULT_TIMEOUT = 15
 RECORDING_FPS = 2
@@ -37,6 +41,8 @@ SLOW_HOST_RETRY_TIMEOUT_MARGIN = 10
 COMPILE_FAST_FLAGS = ['COMPILE_DEBUG=', 'COMPILE_OPT_LEVEL=-O0']
 # Retry count for intermittent crashes (e.g., race conditions in PC simulator threading)
 RUN_RETRY_COUNT = 2
+COMPILE_RETRY_COUNT = 2
+COMPILE_RETRY_DELAY_S = 1.0
 RUNTIME_FAIL_MARKERS = ("[RUNTIME_CHECK_FAIL]",)
 FRAME_LABEL_PATTERN = re.compile(r"PERF_FRAME:(frame_\d+\.png):([A-Za-z0-9_.-]+)")
 FRAME_LABEL_MANIFEST = "recording_frame_labels.json"
@@ -51,7 +57,11 @@ SUB_APP_ROOTS = {
     "HelloBasic": "example/HelloBasic",
     "HelloVirtual": "example/HelloVirtual",
     "HelloCustomWidgets": "example/HelloCustomWidgets",
+    "HelloSizeAnalysis": "example/HelloSizeAnalysis",
 }
+SUB_APP_FAMILY_APPS = tuple(SUB_APP_ROOTS.keys())
+RUNTIME_BUILD_ROOT = Path("output") / "rt"
+LAST_BUILD_OUTPUT_DIR = None
 
 WINDOWS_RUNTIME_SKIP_SET = {
 }
@@ -237,14 +247,14 @@ def run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration
 
 def get_example_list():
     """Get list of all example applications"""
-    path = 'example'
+    path = ROOT_DIR / 'example'
     app_list = []
-    if not os.path.exists(path):
+    if not path.exists():
         return app_list
 
     for file in os.listdir(path):
-        file_path = os.path.join(path, file)
-        if os.path.isdir(file_path):
+        file_path = path / file
+        if file_path.is_dir() and (file_path / 'build.mk').exists():
             app_list.append(file)
 
     return sorted(app_list)
@@ -252,9 +262,12 @@ def get_example_list():
 
 def get_example_sub_list(app):
     """Get list of sub-applications for apps that use APP_SUB."""
-    path = SUB_APP_ROOTS.get(app)
+    root = SUB_APP_ROOTS.get(app)
     app_list = []
-    if not path or not os.path.exists(path):
+    if not root:
+        return app_list
+    path = ROOT_DIR / root
+    if not path.exists():
         return app_list
 
     if app == "HelloCustomWidgets":
@@ -263,7 +276,7 @@ def get_example_sub_list(app):
             if 'test.c' not in files:
                 continue
 
-            rel_path = os.path.relpath(root, path).replace('\\', '/')
+            rel_path = os.path.relpath(root, str(path)).replace('\\', '/')
             if rel_path == '.':
                 continue
             app_list.append(rel_path)
@@ -271,8 +284,8 @@ def get_example_sub_list(app):
         return sorted(app_list)
 
     for file in os.listdir(path):
-        file_path = os.path.join(path, file)
-        if os.path.isdir(file_path):
+        file_path = path / file
+        if file_path.is_dir() and (file_path / 'app_egui_config.h').exists():
             app_list.append(file)
 
     return sorted(app_list)
@@ -291,6 +304,55 @@ def filter_sub_apps(app, app_subs, category=None):
     return sorted([app_sub for app_sub in app_subs if app_sub.startswith(prefix + '/')])
 
 
+def build_sub_app_sets():
+    return {app: get_example_sub_list(app) for app in SUB_APP_ROOTS}
+
+
+def build_standard_app_list(app_sets, skipped_apps=None):
+    skipped = set(skipped_apps or [])
+    return [
+        app for app in app_sets
+        if app not in SKIP_LIST and app not in SUB_APP_FAMILY_APPS and app not in skipped
+    ]
+
+
+def expand_runtime_cases(app, sub_app_sets):
+    if app in SUB_APP_ROOTS:
+        return [(app, app_sub) for app_sub in sub_app_sets.get(app, [])]
+    return [(app, None)]
+
+
+def build_runtime_case_specs(scope, app_sets, sub_app_sets, skipped_apps=None):
+    skipped = set(skipped_apps or [])
+    if scope == "standard":
+        selected_apps = build_standard_app_list(app_sets, skipped)
+    elif scope == "basic":
+        selected_apps = ["HelloBasic"]
+    elif scope == "virtual":
+        selected_apps = ["HelloVirtual"]
+    elif scope == "size-analysis":
+        selected_apps = ["HelloSizeAnalysis"]
+    elif scope == "full":
+        selected_apps = [app for app in app_sets if app not in SKIP_LIST and app not in skipped]
+    else:
+        raise ValueError("unknown runtime scope: %s" % scope)
+
+    case_specs = []
+    for app in selected_apps:
+        case_specs.extend(expand_runtime_cases(app, sub_app_sets))
+    return case_specs
+
+
+def apply_case_shard(case_specs, shard_count, shard_index):
+    if shard_count <= 1:
+        return case_specs
+
+    if shard_index < 1 or shard_index > shard_count:
+        raise ValueError("--shard-index must be in [1, --shard-count]")
+
+    return [case for index, case in enumerate(case_specs) if index % shard_count == (shard_index - 1)]
+
+
 def format_app_name(app, app_sub=None):
     """Build a stable runtime output name for app/app_sub."""
     if not app_sub:
@@ -300,6 +362,105 @@ def format_app_name(app, app_sub=None):
     return "%s_%s" % (app, normalized_sub)
 
 
+def normalize_user_cflags(user_cflags):
+    return " ".join(user_cflags.split())
+
+
+def get_runtime_build_signature(app, app_sub=None, bits64=False, user_cflags="", recording_test=True):
+    """Return a short stable signature for one runtime build config."""
+    normalized_user_cflags = normalize_user_cflags(user_cflags)
+    signature_payload = {
+        "app": app,
+        "app_sub": app_sub or "",
+        "bits64": bool(bits64),
+        "recording_test": bool(recording_test),
+        "user_cflags": normalized_user_cflags,
+        "compile_fast_flags": COMPILE_FAST_FLAGS,
+    }
+    return hashlib.sha1(
+        json.dumps(signature_payload, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    ).hexdigest()[:10]
+
+
+def get_runtime_build_output_dir(app, app_sub=None, bits64=False, user_cflags="", recording_test=True):
+    """Return the short per-config OUTPUT_PATH used for runtime builds."""
+    signature = get_runtime_build_signature(
+        app,
+        app_sub=app_sub,
+        bits64=bits64,
+        user_cflags=user_cflags,
+        recording_test=recording_test,
+    )
+    return RUNTIME_BUILD_ROOT / signature
+
+
+def get_runtime_obj_suffix(app, app_sub=None, bits64=False, user_cflags="", recording_test=True):
+    signature = get_runtime_build_signature(
+        app,
+        app_sub=app_sub,
+        bits64=bits64,
+        user_cflags=user_cflags,
+        recording_test=recording_test,
+    )
+    return "rt_%s" % signature
+
+
+def register_runtime_build_output_dir(build_output_dir):
+    global LAST_BUILD_OUTPUT_DIR
+
+    build_output_path = Path(build_output_dir)
+    if not build_output_path.is_absolute():
+        build_output_path = ROOT_DIR / build_output_path
+    LAST_BUILD_OUTPUT_DIR = build_output_path
+
+
+def resolve_runtime_build_output_dir(build_output_dir=None):
+    if build_output_dir is not None:
+        build_output_path = Path(build_output_dir)
+        return build_output_path if build_output_path.is_absolute() else (ROOT_DIR / build_output_path)
+    if LAST_BUILD_OUTPUT_DIR is not None:
+        return LAST_BUILD_OUTPUT_DIR
+    return ROOT_DIR / "output"
+
+
+def get_runtime_executable_path(build_output_dir):
+    if platform.system() == 'Windows':
+        return build_output_dir / 'main.exe'
+    return build_output_dir / 'main'
+
+
+def get_runtime_resource_path(build_output_dir):
+    return build_output_dir / 'app_egui_resource_merge.bin'
+
+
+def get_auto_parallel_jobs():
+    cpu_count = os.cpu_count() or 1
+    if cpu_count <= 1:
+        return 1
+    return min(4, max(2, cpu_count // 2))
+
+
+def resolve_parallel_jobs(requested_jobs, total_cases):
+    if total_cases <= 1:
+        return 1
+    if requested_jobs is None or requested_jobs <= 0:
+        requested_jobs = get_auto_parallel_jobs()
+    return max(1, min(total_cases, requested_jobs))
+
+
+def resolve_make_job_count(parallel_jobs):
+    if parallel_jobs <= 1:
+        return None
+    cpu_count = os.cpu_count() or 1
+    return max(1, cpu_count // parallel_jobs)
+
+
+def get_make_job_arg(make_jobs):
+    if make_jobs is None:
+        return '-j'
+    return '-j%d' % make_jobs
+
+
 def get_runtime_skip_reason(app, app_sub=None):
     """Return a skip reason for known platform-specific runtime issues."""
     if platform.system() == 'Windows' and (app, app_sub) in WINDOWS_RUNTIME_SKIP_SET:
@@ -307,52 +468,68 @@ def get_runtime_skip_reason(app, app_sub=None):
     return None
 
 
-def compile_app(app, app_sub=None, bits64=False, user_cflags="", recording_test=True):
+def compile_app(app, app_sub=None, bits64=False, user_cflags="", recording_test=True,
+                build_output_dir=None, make_jobs=None):
     """Compile application with optional CFLAGS override.
-    Uses per-app OBJDIR (no make clean needed).
-    HelloBasic/HelloVirtual sub-apps use per-sub-app OBJDIR.
+    Uses a per-config OUTPUT_PATH so runtime sweeps can reuse build cache safely.
     Returns True on success, False on failure.
     """
-    # Clean before build to ensure fresh compilation with correct config.
-    # Different sub-apps have different app_egui_config.h, and recording
-    # needs a guaranteed correct executable.
-    subprocess.run(['make', 'clean'], capture_output=True)
+    if build_output_dir is None:
+        build_output_dir = get_runtime_build_output_dir(
+            app,
+            app_sub=app_sub,
+            bits64=bits64,
+            user_cflags=user_cflags,
+            recording_test=recording_test,
+        )
+    app_obj_suffix = get_runtime_obj_suffix(
+        app,
+        app_sub=app_sub,
+        bits64=bits64,
+        user_cflags=user_cflags,
+        recording_test=recording_test,
+    )
 
-    # Build — always inject RECORDING_TEST since make clean guarantees fresh compilation
+    # Always inject RECORDING_TEST into the build signature so cached outputs stay isolated.
     recording_flag = '-DEGUI_CONFIG_RECORDING_TEST=%d' % (1 if recording_test else 0)
     combined_cflags = ('%s %s' % (recording_flag, user_cflags)).strip()
-    cmd = ['make', '-j', 'APP=%s' % app, 'PORT=pc'] + COMPILE_FAST_FLAGS
+    cmd = ['make', get_make_job_arg(make_jobs), 'APP=%s' % app, 'PORT=pc'] + COMPILE_FAST_FLAGS
     if app_sub:
         cmd.append('APP_SUB=%s' % app_sub)
     if bits64:
         cmd.append('BITS=64')
     cmd.append('USER_CFLAGS=%s' % combined_cflags)
+    cmd.append('OUTPUT_PATH=%s' % Path(build_output_dir).as_posix())
+    cmd.append('APP_OBJ_SUFFIX=%s' % app_obj_suffix)
 
-    result = subprocess.run(cmd, capture_output=True)
-    return result.returncode == 0
+    for attempt in range(COMPILE_RETRY_COUNT):
+        result = subprocess.run(cmd, cwd=ROOT_DIR, capture_output=True, text=True)
+        if result.returncode == 0:
+            register_runtime_build_output_dir(build_output_dir)
+            return True
+
+        if attempt < COMPILE_RETRY_COUNT - 1:
+            print("(compile retry %d/%d: %s)" % (attempt + 1, COMPILE_RETRY_COUNT - 1, format_app_name(app, app_sub)), end=" ")
+            time.sleep(COMPILE_RETRY_DELAY_S)
+    return False
 
 
 def run_app(app_name, output_subdir, timeout=DEFAULT_TIMEOUT, duration=RECORDING_DURATION,
             speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
             clock_scale=RECORDING_CLOCK_SCALE,
             snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
-            snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
+            snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
+            build_output_dir=None):
     """Run app with recording mode, capture screenshot, verify exit.
     Retries on crash (access violation) since PC simulator has known
     race conditions between main thread and egui thread.
     Returns (success: bool, message: str).
     """
-    frames_dir = os.path.join(SCREENSHOT_DIR, app_name, output_subdir)
+    frames_dir = ROOT_DIR / SCREENSHOT_DIR / app_name / output_subdir
     os.makedirs(frames_dir, exist_ok=True)
-
-    root_dir = Path.cwd()
-
-    if platform.system() == 'Windows':
-        exe_path = root_dir / 'output' / 'main.exe'
-    else:
-        exe_path = root_dir / 'output' / 'main'
-
-    resource_path = root_dir / 'output' / 'app_egui_resource_merge.bin'
+    build_output_dir = resolve_runtime_build_output_dir(build_output_dir)
+    exe_path = get_runtime_executable_path(build_output_dir)
+    resource_path = get_runtime_resource_path(build_output_dir)
 
     if not exe_path.exists():
         return False, "executable not found"
@@ -366,7 +543,8 @@ def check_default_resolution(app, app_sub, bits64, explicit_timeout=None,
                              speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
                              clock_scale=RECORDING_CLOCK_SCALE,
                              snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
-                             snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
+                             snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
+                             make_jobs=None):
     """Test app at default resolution (no CFLAGS override).
     Apps auto-quit after all actions complete; RECORDING_DURATION is a safety timeout.
     Returns (success: bool, message: str).
@@ -377,8 +555,9 @@ def check_default_resolution(app, app_sub, bits64, explicit_timeout=None,
     if skip_reason:
         return True, "skipped: %s" % skip_reason
 
-    # Compile with default settings
-    if not compile_app(app, app_sub, bits64):
+    build_output_dir = get_runtime_build_output_dir(app, app_sub=app_sub, bits64=bits64)
+
+    if not compile_app(app, app_sub, bits64, build_output_dir=build_output_dir, make_jobs=make_jobs):
         return False, "compile failed"
 
     # Timeout must be >= recording duration + margin to allow auto-quit
@@ -387,7 +566,8 @@ def check_default_resolution(app, app_sub, bits64, explicit_timeout=None,
                    speed=speed, snapshot_settle_ms=snapshot_settle_ms,
                    clock_scale=clock_scale,
                    snapshot_stable_cycles=snapshot_stable_cycles,
-                   snapshot_max_wait_ms=snapshot_max_wait_ms)
+                   snapshot_max_wait_ms=snapshot_max_wait_ms,
+                   build_output_dir=build_output_dir)
 
 
 
@@ -395,7 +575,8 @@ def capture_animation_frames(app_name, output_dir, fps=10, duration=5,
                              speed=1, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
                              clock_scale=RECORDING_CLOCK_SCALE,
                              snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
-                             snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
+                             snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
+                             build_output_dir=None):
     """Capture animation frames at higher FPS for regression verification.
 
     This is the programmatic API used by the external Designer regression tooling.
@@ -412,15 +593,9 @@ def capture_animation_frames(app_name, output_dir, fps=10, duration=5,
         (success: bool, frames: list[str], message: str)
     """
     os.makedirs(output_dir, exist_ok=True)
-
-    root_dir = Path.cwd()
-
-    if platform.system() == 'Windows':
-        exe_path = root_dir / 'output' / 'main.exe'
-    else:
-        exe_path = root_dir / 'output' / 'main'
-
-    resource_path = root_dir / 'output' / 'app_egui_resource_merge.bin'
+    build_output_dir = resolve_runtime_build_output_dir(build_output_dir)
+    exe_path = get_runtime_executable_path(build_output_dir)
+    resource_path = get_runtime_resource_path(build_output_dir)
 
     if not exe_path.exists():
         return False, [], "executable not found"
@@ -480,102 +655,49 @@ def extract_keyframes(frame_files, keyframe_pcts=None):
     return result
 
 
-def run_full_check(bits64, speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
-                   clock_scale=RECORDING_CLOCK_SCALE,
-                   snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
-                   snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
-                   skip_custom_widgets=False):
-    """Run runtime check on all examples.
-    Returns list of (app_name, success, message) tuples.
-    """
-    results = []
-    app_sets = get_example_list()
-    sub_app_sets = {app: get_example_sub_list(app) for app in SUB_APP_ROOTS}
-    skipped_apps = set()
-
-    if skip_custom_widgets:
-        skipped_apps.add("HelloCustomWidgets")
-
-    print("Running with speed=%dx" % speed)
-
-    # Calculate total
-    total = 0
-    for app in app_sets:
-        if app in SKIP_LIST or app in skipped_apps:
-            continue
-        if app in SUB_APP_ROOTS:
-            total += len(sub_app_sets.get(app, []))
-        else:
-            total += 1
-
-    current = 0
-    for app in app_sets:
-        if app in SKIP_LIST:
-            print("\nSkipping: %s" % app)
-            continue
-        if app in skipped_apps:
-            print("\nSkipping: %s (%s)" % (app, FULL_CHECK_OPTIONAL_APPS[app]))
-            continue
-
-        if app in SUB_APP_ROOTS:
-            for app_sub in sub_app_sets.get(app, []):
-                current += 1
-                app_name = format_app_name(app, app_sub)
-                print("\n" + "=" * 60)
-                print("[%d/%d] %s" % (current, total, app_name))
-                print("=" * 60)
-
-                success, msg = check_default_resolution(
-                    app,
-                    app_sub,
-                    bits64,
-                    speed=speed,
-                    snapshot_settle_ms=snapshot_settle_ms,
-                    clock_scale=clock_scale,
-                    snapshot_stable_cycles=snapshot_stable_cycles,
-                    snapshot_max_wait_ms=snapshot_max_wait_ms,
-                )
-                status = "PASS" if success else "FAIL"
-                print("  %s (%s)" % (status, msg))
-                results.append((app_name, success, msg))
-        else:
-            current += 1
-            print("\n" + "=" * 60)
-            print("[%d/%d] %s" % (current, total, app))
-            print("=" * 60)
-
-            success, msg = check_default_resolution(
-                app,
-                None,
-                bits64,
-                speed=speed,
-                snapshot_settle_ms=snapshot_settle_ms,
-                clock_scale=clock_scale,
-                snapshot_stable_cycles=snapshot_stable_cycles,
-                snapshot_max_wait_ms=snapshot_max_wait_ms,
-            )
-            status = "PASS" if success else "FAIL"
-            print("  %s (%s)" % (status, msg))
-            results.append((app, success, msg))
-
-    return results
+def print_case_header(index, total, app_name, speed):
+    print("\n" + "=" * 60)
+    print("[%d/%d] %s (speed=%dx)" % (index, total, app_name, speed))
+    print("=" * 60)
 
 
-def run_sub_app_check(app, app_subs, bits64, explicit_timeout=None,
-                      speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
-                      clock_scale=RECORDING_CLOCK_SCALE,
-                      snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
-                      snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
-    """Run runtime check for a batch of APP_SUB examples under one app."""
-    results = []
-    total = len(app_subs)
-    for index, app_sub in enumerate(app_subs, start=1):
+def run_runtime_case(app, app_sub, bits64, explicit_timeout=None,
+                     speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
+                     clock_scale=RECORDING_CLOCK_SCALE,
+                     snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
+                     snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
+                     make_jobs=None):
+    app_name = format_app_name(app, app_sub)
+    success, msg = check_default_resolution(
+        app,
+        app_sub,
+        bits64,
+        explicit_timeout=explicit_timeout,
+        speed=speed,
+        snapshot_settle_ms=snapshot_settle_ms,
+        clock_scale=clock_scale,
+        snapshot_stable_cycles=snapshot_stable_cycles,
+        snapshot_max_wait_ms=snapshot_max_wait_ms,
+        make_jobs=make_jobs,
+    )
+    return app_name, success, msg
+
+
+def retry_failed_runtime_cases_serial(results, case_specs, bits64, explicit_timeout=None,
+                                      speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
+                                      clock_scale=RECORDING_CLOCK_SCALE,
+                                      snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
+                                      snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
+    failed_indexes = [index for index, (_, success, _) in enumerate(results) if not success]
+    if not failed_indexes:
+        return results
+
+    print("Retrying %d failed runtime cases serially for stability" % len(failed_indexes))
+    for retry_index, index in enumerate(failed_indexes, start=1):
+        app, app_sub = case_specs[index]
         app_name = format_app_name(app, app_sub)
-        print("\n" + "=" * 60)
-        print("[%d/%d] %s (speed=%dx)" % (index, total, app_name, speed))
-        print("=" * 60)
-
-        success, msg = check_default_resolution(
+        print_case_header(retry_index, len(failed_indexes), "%s [serial retry]" % app_name, speed)
+        _, success, msg = run_runtime_case(
             app,
             app_sub,
             bits64,
@@ -585,10 +707,184 @@ def run_sub_app_check(app, app_subs, bits64, explicit_timeout=None,
             clock_scale=clock_scale,
             snapshot_stable_cycles=snapshot_stable_cycles,
             snapshot_max_wait_ms=snapshot_max_wait_ms,
+            make_jobs=1,
         )
-        results.append((app_name, success, msg))
+        status = "PASS" if success else "FAIL"
+        print("  %s (%s)" % (status, msg))
+        results[index] = (app_name, success, msg)
 
     return results
+
+
+def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
+                           speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
+                           clock_scale=RECORDING_CLOCK_SCALE,
+                           snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
+                           snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS):
+    total = len(case_specs)
+    if total == 0:
+        return []
+
+    parallel_jobs = resolve_parallel_jobs(jobs, total)
+    make_jobs = resolve_make_job_count(parallel_jobs)
+
+    if parallel_jobs <= 1:
+        results = []
+        for index, (app, app_sub) in enumerate(case_specs, start=1):
+            app_name = format_app_name(app, app_sub)
+            print_case_header(index, total, app_name, speed)
+            _, success, msg = run_runtime_case(
+                app,
+                app_sub,
+                bits64,
+                explicit_timeout=explicit_timeout,
+                speed=speed,
+                snapshot_settle_ms=snapshot_settle_ms,
+                clock_scale=clock_scale,
+                snapshot_stable_cycles=snapshot_stable_cycles,
+                snapshot_max_wait_ms=snapshot_max_wait_ms,
+                make_jobs=make_jobs,
+            )
+            status = "PASS" if success else "FAIL"
+            print("  %s (%s)" % (status, msg))
+            results.append((app_name, success, msg))
+        return results
+
+    print("Running %d runtime cases with jobs=%d, make -j%d, speed=%dx" % (total, parallel_jobs, make_jobs, speed))
+    results = [None] * total
+    with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_jobs) as executor:
+        future_to_case = {}
+        for index, (app, app_sub) in enumerate(case_specs):
+            future = executor.submit(
+                run_runtime_case,
+                app,
+                app_sub,
+                bits64,
+                explicit_timeout,
+                speed,
+                snapshot_settle_ms,
+                clock_scale,
+                snapshot_stable_cycles,
+                snapshot_max_wait_ms,
+                make_jobs,
+            )
+            future_to_case[future] = index
+
+        completed = 0
+        for future in concurrent.futures.as_completed(future_to_case):
+            index = future_to_case[future]
+            app, app_sub = case_specs[index]
+            app_name = format_app_name(app, app_sub)
+            try:
+                _, success, msg = future.result()
+            except Exception as exc:
+                success = False
+                msg = "unexpected error: %s" % exc
+            results[index] = (app_name, success, msg)
+            completed += 1
+            status = "PASS" if success else "FAIL"
+            print("[%d/%d] %s %s (%s)" % (completed, total, app_name, status, msg))
+
+    return retry_failed_runtime_cases_serial(
+        results,
+        case_specs,
+        bits64,
+        explicit_timeout=explicit_timeout,
+        speed=speed,
+        snapshot_settle_ms=snapshot_settle_ms,
+        clock_scale=clock_scale,
+        snapshot_stable_cycles=snapshot_stable_cycles,
+        snapshot_max_wait_ms=snapshot_max_wait_ms,
+    )
+
+
+def run_full_check(bits64, speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
+                   clock_scale=RECORDING_CLOCK_SCALE,
+                   snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
+                   snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
+                   skip_custom_widgets=False, jobs=0):
+    """Run runtime check on all examples.
+    Returns list of (app_name, success, message) tuples.
+    """
+    app_sets = get_example_list()
+    sub_app_sets = build_sub_app_sets()
+    skipped_apps = set()
+
+    if skip_custom_widgets:
+        skipped_apps.add("HelloCustomWidgets")
+
+    print("Running with speed=%dx" % speed)
+    for app in app_sets:
+        if app in SKIP_LIST:
+            print("\nSkipping: %s" % app)
+        elif app in skipped_apps:
+            print("\nSkipping: %s (%s)" % (app, FULL_CHECK_OPTIONAL_APPS[app]))
+
+    case_specs = build_runtime_case_specs("full", app_sets, sub_app_sets, skipped_apps=skipped_apps)
+
+    return run_runtime_case_batch(
+        case_specs,
+        bits64,
+        jobs=jobs,
+        speed=speed,
+        snapshot_settle_ms=snapshot_settle_ms,
+        clock_scale=clock_scale,
+        snapshot_stable_cycles=snapshot_stable_cycles,
+        snapshot_max_wait_ms=snapshot_max_wait_ms,
+    )
+
+
+def run_scope_check(scope, bits64, explicit_timeout=None,
+                    speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
+                    clock_scale=RECORDING_CLOCK_SCALE,
+                    snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
+                    snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
+                    skip_custom_widgets=False, jobs=0, shard_count=1, shard_index=1):
+    app_sets = get_example_list()
+    sub_app_sets = build_sub_app_sets()
+    skipped_apps = set()
+    if skip_custom_widgets:
+        skipped_apps.add("HelloCustomWidgets")
+
+    case_specs = build_runtime_case_specs(scope, app_sets, sub_app_sets, skipped_apps=skipped_apps)
+    case_specs = apply_case_shard(case_specs, shard_count, shard_index)
+
+    print("=" * 60)
+    print("Runtime Check Scope: %s shard=%d/%d speed=%dx cases=%d" % (scope, shard_index, shard_count, speed, len(case_specs)))
+    print("=" * 60)
+
+    return run_runtime_case_batch(
+        case_specs,
+        bits64,
+        explicit_timeout=explicit_timeout,
+        jobs=jobs,
+        speed=speed,
+        snapshot_settle_ms=snapshot_settle_ms,
+        clock_scale=clock_scale,
+        snapshot_stable_cycles=snapshot_stable_cycles,
+        snapshot_max_wait_ms=snapshot_max_wait_ms,
+    )
+
+
+def run_sub_app_check(app, app_subs, bits64, explicit_timeout=None,
+                      speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
+                      clock_scale=RECORDING_CLOCK_SCALE,
+                      snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
+                      snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
+                      jobs=0):
+    """Run runtime check for a batch of APP_SUB examples under one app."""
+    case_specs = [(app, app_sub) for app_sub in app_subs]
+    return run_runtime_case_batch(
+        case_specs,
+        bits64,
+        explicit_timeout=explicit_timeout,
+        jobs=jobs,
+        speed=speed,
+        snapshot_settle_ms=snapshot_settle_ms,
+        clock_scale=clock_scale,
+        snapshot_stable_cycles=snapshot_stable_cycles,
+        snapshot_max_wait_ms=snapshot_max_wait_ms,
+    )
 
 
 def print_summary(results):
@@ -627,17 +923,20 @@ def main():
 Examples:
   %(prog)s --app HelloSimple                          Test single app
   %(prog)s --app HelloVirtual                        Test all HelloVirtual sub-apps
+  %(prog)s --app HelloSizeAnalysis                   Test all HelloSizeAnalysis sub-apps
   %(prog)s --app HelloBasic --app-sub button         Test one HelloBasic sub-app
   %(prog)s --app HelloVirtual --app-sub virtual_grid Test one HelloVirtual sub-app
   %(prog)s --app HelloCustomWidgets --category input Test HelloCustomWidgets category
+  %(prog)s --scope standard --jobs 2                 Test standard runtime examples only
+  %(prog)s --scope basic --shard-count 3 --shard-index 1 --jobs 2
   %(prog)s --full-check --skip-custom-widgets        Test all examples except HelloCustomWidgets
   %(prog)s --full-check                             Test all examples
         """
     )
     parser.add_argument('--app', type=str,
-                        help='Specific app to test. For HelloBasic/HelloVirtual/HelloCustomWidgets without --app-sub, tests all sub-apps.')
+                        help='Specific app to test. For HelloBasic/HelloVirtual/HelloCustomWidgets/HelloSizeAnalysis without --app-sub, tests all sub-apps.')
     parser.add_argument('--app-sub', type=str,
-                        help='Single sub-app for HelloBasic/HelloVirtual/HelloCustomWidgets. If omitted, all sub-apps are tested.')
+                        help='Single sub-app for HelloBasic/HelloVirtual/HelloCustomWidgets/HelloSizeAnalysis. If omitted, all sub-apps are tested.')
     parser.add_argument('--category', type=str, help='HelloCustomWidgets category filter (e.g. input)')
     parser.add_argument('--bits64', action='store_true', help='Build for 64-bit')
     parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
@@ -646,8 +945,16 @@ Examples:
                         help='Keep screenshot files after testing')
     parser.add_argument('--full-check', action='store_true',
                         help='Test all example applications')
+    parser.add_argument('--scope', choices=['standard', 'basic', 'virtual', 'size-analysis'],
+                        help='Run one runtime case family only, useful for CI sharding')
     parser.add_argument('--skip-custom-widgets', action='store_true',
                         help='Exclude HelloCustomWidgets from --full-check to keep CI/runtime sweeps shorter')
+    parser.add_argument('--jobs', type=int, default=0,
+                        help='Parallel runtime cases for batch/full checks (default: auto, 0=auto)')
+    parser.add_argument('--shard-count', type=int, default=1,
+                        help='Split scoped runtime cases into N shards')
+    parser.add_argument('--shard-index', type=int, default=1,
+                        help='1-based shard index used with --shard-count')
     parser.add_argument('--speed', type=int, default=RECORDING_SPEED,
                         help='Action speed multiplier (default: %d, 1=normal)' % RECORDING_SPEED)
     parser.add_argument('--clock-scale', type=int, default=RECORDING_CLOCK_SCALE,
@@ -668,6 +975,30 @@ Examples:
     snapshot_stable_cycles = args.snapshot_stable_cycles
     snapshot_max_wait_ms = args.snapshot_max_wait_ms
 
+    if args.full_check and args.scope:
+        print("Error: --full-check cannot be combined with --scope")
+        sys.exit(1)
+
+    if args.app and args.scope:
+        print("Error: --app cannot be combined with --scope")
+        sys.exit(1)
+
+    if args.scope is None and args.shard_count != 1:
+        print("Error: --shard-count requires --scope")
+        sys.exit(1)
+
+    if args.scope is None and args.shard_index != 1:
+        print("Error: --shard-index requires --scope")
+        sys.exit(1)
+
+    if args.scope is not None and args.shard_count < 1:
+        print("Error: --shard-count must be >= 1")
+        sys.exit(1)
+
+    if args.scope is not None and args.shard_count == 1 and args.shard_index != 1:
+        print("Error: --shard-index must be 1 when --shard-count is 1")
+        sys.exit(1)
+
     if args.full_check:
         results = run_full_check(
             args.bits64,
@@ -677,7 +1008,29 @@ Examples:
             snapshot_stable_cycles=snapshot_stable_cycles,
             snapshot_max_wait_ms=snapshot_max_wait_ms,
             skip_custom_widgets=args.skip_custom_widgets,
+            jobs=args.jobs,
         )
+        all_passed = print_summary(results)
+
+    elif args.scope:
+        try:
+            results = run_scope_check(
+                args.scope,
+                args.bits64,
+                explicit_timeout=args.timeout,
+                speed=speed,
+                clock_scale=clock_scale,
+                snapshot_settle_ms=snapshot_settle_ms,
+                snapshot_stable_cycles=snapshot_stable_cycles,
+                snapshot_max_wait_ms=snapshot_max_wait_ms,
+                skip_custom_widgets=args.skip_custom_widgets,
+                jobs=args.jobs,
+                shard_count=args.shard_count,
+                shard_index=args.shard_index,
+            )
+        except ValueError as exc:
+            print("Error: %s" % exc)
+            sys.exit(1)
         all_passed = print_summary(results)
 
     elif args.app:
@@ -706,6 +1059,7 @@ Examples:
                 sub_apps,
                 args.bits64,
                 explicit_timeout=args.timeout,
+                jobs=args.jobs,
                 speed=speed,
                 clock_scale=clock_scale,
                 snapshot_settle_ms=snapshot_settle_ms,
@@ -732,8 +1086,8 @@ Examples:
         # Print screenshot locations for AI visual verification
         print("\nScreenshot directories for visual verification:")
         for result_name, success, _ in results:
-            screenshot_base = os.path.join(SCREENSHOT_DIR, result_name)
-            if not success or not os.path.exists(screenshot_base):
+            screenshot_base = ROOT_DIR / SCREENSHOT_DIR / result_name
+            if not success or not screenshot_base.exists():
                 continue
             print("  %s" % screenshot_base)
 

@@ -1,173 +1,83 @@
-#include <stdio.h>
-#include <assert.h>
-
 #include "egui_view_circular_progress_bar.h"
 #include "core/egui_common.h"
-#include "font/egui_font_std.h"
 #include "resource/egui_resource.h"
-#include "utils/egui_sprintf.h"
 #include "egui_view_circle_dirty.h"
+#include "egui_view_ring_text_basic.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
 #include "core/egui_canvas_gradient.h"
 #endif
 
-static int egui_view_circular_progress_bar_get_font_code_index(const egui_font_std_info_t *font, uint32_t utf8_code)
+typedef uint8_t (*egui_view_circular_progress_bar_get_text_region_fn)(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
+                                                                      egui_dim_t inner_r, uint8_t process, egui_region_t *text_region);
+typedef void (*egui_view_circular_progress_bar_draw_text_fn)(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
+                                                             egui_dim_t inner_r);
+
+struct egui_view_circular_progress_bar_text_ops
 {
-    int first = 0;
-    int last;
-    int middle;
+    egui_view_circular_progress_bar_get_text_region_fn get_text_region;
+    egui_view_circular_progress_bar_draw_text_fn draw_text;
+};
 
-    if (font == NULL || font->count == 0)
-    {
-        return -1;
-    }
-
-    last = font->count - 1;
-    middle = (first + last) / 2;
-    while (first <= last)
-    {
-        if (font->code_array[middle].code < utf8_code)
-        {
-            first = middle + 1;
-        }
-        else if (font->code_array[middle].code == utf8_code)
-        {
-            return middle;
-        }
-        else
-        {
-            last = middle - 1;
-        }
-        middle = (first + last) / 2;
-    }
-
-    return -1;
-}
-
-static const egui_font_std_char_descriptor_t *egui_view_circular_progress_bar_get_font_desc(const egui_font_t *text_font, uint32_t utf8_code)
-{
-    const egui_font_std_info_t *font_info;
-    int code_index;
-
-    if (text_font == NULL || text_font->res == NULL)
-    {
-        return NULL;
-    }
-
-    font_info = (const egui_font_std_info_t *)text_font->res;
-    if (font_info->res_type != EGUI_RESOURCE_TYPE_INTERNAL || font_info->char_array == NULL || font_info->code_array == NULL)
-    {
-        return NULL;
-    }
-
-    code_index = egui_view_circular_progress_bar_get_font_code_index(font_info, utf8_code);
-    if (code_index < 0)
-    {
-        return NULL;
-    }
-
-    return &font_info->char_array[code_index];
-}
-
-static uint8_t egui_view_circular_progress_bar_measure_text(const egui_font_t *text_font, const char *text, egui_dim_t *text_w, egui_dim_t *text_h)
-{
-    const egui_font_std_info_t *font_info;
-    const egui_font_std_char_descriptor_t *char_desc;
-    const char *cursor;
-    uint32_t utf8_code;
-    int utf8_bytes;
-    egui_dim_t width;
-
-    if (text_w == NULL || text_h == NULL)
-    {
-        return 0;
-    }
-
-    *text_w = 0;
-    *text_h = 0;
-
-    if (text_font == NULL || text == NULL)
-    {
-        return 0;
-    }
-
-    if (text_font->api != NULL && text_font->api->get_str_size != NULL)
-    {
-        return (text_font->api->get_str_size(text_font, text, 0, 0, text_w, text_h) == 0) ? 1 : 0;
-    }
-
-    if (text_font->res == NULL)
-    {
-        return 0;
-    }
-
-    font_info = (const egui_font_std_info_t *)text_font->res;
-    width = 0;
-    cursor = text;
-    while (*cursor != '\0')
-    {
-        utf8_bytes = egui_font_get_utf8_code(cursor, &utf8_code);
-        if (utf8_bytes <= 0)
-        {
-            return 0;
-        }
-
-        char_desc = egui_view_circular_progress_bar_get_font_desc(text_font, utf8_code);
-        width += (char_desc != NULL) ? char_desc->adv : EGUI_MAX((egui_dim_t)1, (egui_dim_t)(font_info->height / 2));
-        cursor += utf8_bytes;
-    }
-
-    *text_w = width;
-    *text_h = font_info->height;
-    return (width > 0 && font_info->height > 0) ? 1 : 0;
-}
-
-static const egui_font_t *egui_view_circular_progress_bar_get_text_font(egui_view_circular_progress_bar_t *local, egui_dim_t inner_r)
+static const egui_font_t *egui_view_circular_progress_bar_get_text_font(const egui_view_circular_progress_bar_t *local)
 {
     if (local->font != NULL)
     {
         return local->font;
     }
 
-    if (inner_r >= 40)
-    {
-        return (const egui_font_t *)&egui_res_font_montserrat_14_4;
-    }
-    if (inner_r >= 28)
-    {
-        return (const egui_font_t *)&egui_res_font_montserrat_12_4;
-    }
-    if (inner_r >= 18)
-    {
-        return (const egui_font_t *)&egui_res_font_montserrat_8_4;
-    }
-    return NULL;
+    return (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
 }
 
-static void egui_view_circular_progress_bar_format_text(uint8_t process, char *buf, uint32_t buf_size)
+static uint8_t egui_view_circular_progress_bar_get_text_box_rich(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
+                                                                 egui_dim_t inner_r, const char *text, egui_region_t *text_box)
 {
-    int len = 0;
+    egui_dim_t text_w;
+    egui_dim_t text_h;
+    egui_dim_t box_width;
+    egui_dim_t box_height;
+    const egui_font_t *text_font = egui_view_circular_progress_bar_get_text_font(local);
 
-    if (buf == NULL || buf_size < 2)
+    if (text_box == NULL || text == NULL || text[0] == '\0')
     {
-        return;
+        return 0;
     }
 
-    egui_sprintf_int(buf, buf_size - 1, (int32_t)process);
-    while (buf[len] != '\0' && len < (int)(buf_size - 1))
+    box_width = inner_r * 2 - 4;
+    if (box_width <= 0)
     {
-        len++;
+        return 0;
     }
-    if (len < (int)(buf_size - 2))
+
+    box_height = box_width;
+    text_w = 0;
+    text_h = 0;
+    if (text_font != NULL && text_font->api != NULL && text_font->api->get_str_size != NULL)
     {
-        buf[len] = '%';
-        buf[len + 1] = '\0';
+        text_font->api->get_str_size(text_font, text, 0, 0, &text_w, &text_h);
+        if (text_h > 0)
+        {
+            box_height = EGUI_MIN(box_height, text_h + 4);
+        }
     }
+
+    text_box->location.x = center_x - box_width / 2;
+    text_box->location.y = center_y - box_height / 2;
+    text_box->size.width = box_width;
+    text_box->size.height = box_height;
+
+    return egui_region_is_empty(text_box) ? 0 : 1;
 }
 
-static uint8_t egui_view_circular_progress_bar_get_text_region(const egui_font_t *text_font, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t inner_r,
-                                                               uint8_t process, egui_region_t *text_region)
+static uint8_t egui_view_circular_progress_bar_get_text_region_basic(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
+                                                                     egui_dim_t inner_r, uint8_t process, egui_region_t *text_region)
+{
+    (void)local;
+    return egui_view_ring_text_get_region_basic(center_x, center_y, inner_r, 0, 1, process, 1, text_region);
+}
+
+static uint8_t egui_view_circular_progress_bar_get_text_region_rich(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
+                                                                    egui_dim_t inner_r, uint8_t process, egui_region_t *text_region)
 {
     egui_region_t text_box;
     egui_dim_t text_w;
@@ -175,23 +85,27 @@ static uint8_t egui_view_circular_progress_bar_get_text_region(const egui_font_t
     egui_dim_t offset_x;
     egui_dim_t offset_y;
     char text_buf[8];
+    const egui_font_t *text_font = egui_view_circular_progress_bar_get_text_font(local);
 
-    if (text_font == NULL || text_region == NULL)
+    if (text_region == NULL)
     {
         return 0;
     }
 
-    text_box.location.x = center_x - (inner_r * 2 - 4) / 2;
-    text_box.location.y = center_y - ((egui_dim_t)EGUI_FONT_STD_GET_FONT_HEIGHT(text_font) + 4) / 2;
-    text_box.size.width = inner_r * 2 - 4;
-    text_box.size.height = (egui_dim_t)EGUI_FONT_STD_GET_FONT_HEIGHT(text_font) + 4;
-    if (egui_region_is_empty(&text_box))
+    egui_view_ring_text_format_value(process, 1, text_buf, sizeof(text_buf));
+    if (!egui_view_circular_progress_bar_get_text_box_rich(local, center_x, center_y, inner_r, text_buf, &text_box))
     {
         return 0;
     }
 
-    egui_view_circular_progress_bar_format_text(process, text_buf, sizeof(text_buf));
-    if (!egui_view_circular_progress_bar_measure_text(text_font, text_buf, &text_w, &text_h) || text_w <= 0 || text_h <= 0)
+    if (text_font == NULL || text_font->api == NULL || text_font->api->get_str_size == NULL)
+    {
+        egui_region_copy(text_region, &text_box);
+        return 1;
+    }
+
+    text_font->api->get_str_size(text_font, text_buf, 0, 0, &text_w, &text_h);
+    if (text_w <= 0 || text_h <= 0)
     {
         egui_region_copy(text_region, &text_box);
         return 1;
@@ -229,13 +143,42 @@ static uint8_t egui_view_circular_progress_bar_get_text_region(const egui_font_t
     return egui_region_is_empty(text_region) ? 0 : 1;
 }
 
+static void egui_view_circular_progress_bar_draw_text_basic(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
+                                                            egui_dim_t inner_r)
+{
+    egui_view_ring_text_draw_basic(center_x, center_y, inner_r, 0, 1, local->process, 1, local->text_color, EGUI_ALPHA_100);
+}
+
+static void egui_view_circular_progress_bar_draw_text_rich(egui_view_circular_progress_bar_t *local, egui_dim_t center_x, egui_dim_t center_y,
+                                                           egui_dim_t inner_r)
+{
+    char val_buf[8];
+    egui_region_t text_rect;
+    const egui_font_t *text_font = egui_view_circular_progress_bar_get_text_font(local);
+
+    egui_view_ring_text_format_value(local->process, 1, val_buf, sizeof(val_buf));
+    if (text_font != NULL && egui_view_circular_progress_bar_get_text_box_rich(local, center_x, center_y, inner_r, val_buf, &text_rect))
+    {
+        egui_canvas_draw_text_in_rect(text_font, val_buf, &text_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
+    }
+}
+
+static const egui_view_circular_progress_bar_text_ops_t egui_view_circular_progress_bar_basic_text_ops = {
+        .get_text_region = egui_view_circular_progress_bar_get_text_region_basic,
+        .draw_text = egui_view_circular_progress_bar_draw_text_basic,
+};
+
+static const egui_view_circular_progress_bar_text_ops_t egui_view_circular_progress_bar_rich_text_ops = {
+        .get_text_region = egui_view_circular_progress_bar_get_text_region_rich,
+        .draw_text = egui_view_circular_progress_bar_draw_text_rich,
+};
+
 static void egui_view_circular_progress_bar_invalidate_process_change(egui_view_t *self, egui_view_circular_progress_bar_t *local, uint8_t old_process)
 {
     egui_region_t region;
     egui_region_t arc_region;
     egui_region_t text_region;
     egui_region_t text_dirty_region;
-    const egui_font_t *text_font;
     egui_dim_t center_x;
     egui_dim_t center_y;
     egui_dim_t radius;
@@ -292,18 +235,14 @@ static void egui_view_circular_progress_bar_invalidate_process_change(egui_view_
                                                   dirty_sweep, &arc_region);
     }
 
-    text_font = egui_view_circular_progress_bar_get_text_font(local, inner_r);
-    if (text_font != NULL)
+    if (local->text_ops != NULL && local->text_ops->get_text_region(local, center_x, center_y, inner_r, old_process, &text_region))
     {
-        if (egui_view_circular_progress_bar_get_text_region(text_font, center_x, center_y, inner_r, old_process, &text_region))
-        {
-            egui_view_circle_dirty_union_region(&text_dirty_region, &text_region);
-        }
-        if (old_process != local->process &&
-            egui_view_circular_progress_bar_get_text_region(text_font, center_x, center_y, inner_r, local->process, &text_region))
-        {
-            egui_view_circle_dirty_union_region(&text_dirty_region, &text_region);
-        }
+        egui_view_circle_dirty_union_region(&text_dirty_region, &text_region);
+    }
+    if (old_process != local->process && local->text_ops != NULL &&
+        local->text_ops->get_text_region(local, center_x, center_y, inner_r, local->process, &text_region))
+    {
+        egui_view_circle_dirty_union_region(&text_dirty_region, &text_region);
     }
 
     if (egui_region_is_empty(&arc_region) && egui_region_is_empty(&text_dirty_region))
@@ -384,6 +323,7 @@ void egui_view_circular_progress_bar_set_font(egui_view_t *self, const egui_font
 {
     EGUI_LOCAL_INIT(egui_view_circular_progress_bar_t);
     local->font = font;
+    local->text_ops = (font == NULL) ? &egui_view_circular_progress_bar_basic_text_ops : &egui_view_circular_progress_bar_rich_text_ops;
     egui_view_invalidate(self);
 }
 
@@ -453,22 +393,9 @@ void egui_view_circular_progress_bar_on_draw(egui_view_t *self)
     }
 
     // Center percentage text — auto-select font by inner_r
+    if (local->text_ops != NULL)
     {
-        const egui_font_t *text_font = egui_view_circular_progress_bar_get_text_font(local, inner_r);
-        if (text_font != NULL)
-        {
-            char val_buf[8];
-            egui_view_circular_progress_bar_format_text(local->process, val_buf, sizeof(val_buf));
-            egui_dim_t font_h = (egui_dim_t)EGUI_FONT_STD_GET_FONT_HEIGHT(text_font);
-            egui_dim_t lbl_w = inner_r * 2 - 4;
-            egui_dim_t lbl_h = font_h + 4;
-            egui_region_t text_rect;
-            text_rect.location.x = center_x - lbl_w / 2;
-            text_rect.location.y = center_y - lbl_h / 2;
-            text_rect.size.width = lbl_w;
-            text_rect.size.height = lbl_h;
-            egui_canvas_draw_text_in_rect(text_font, val_buf, &text_rect, EGUI_ALIGN_CENTER, local->text_color, EGUI_ALPHA_100);
-        }
+        local->text_ops->draw_text(local, center_x, center_y, inner_r);
     }
 }
 
@@ -505,7 +432,8 @@ void egui_view_circular_progress_bar_init(egui_view_t *self)
     local->bk_color = EGUI_THEME_TRACK_BG;
     local->progress_color = EGUI_THEME_PRIMARY;
     local->text_color = EGUI_THEME_TEXT_PRIMARY;
-    local->font = NULL; // NULL = auto-select based on inner_r
+    local->font = NULL;
+    local->text_ops = &egui_view_circular_progress_bar_basic_text_ops;
 
     egui_view_set_view_name(self, "egui_view_circular_progress_bar");
 }

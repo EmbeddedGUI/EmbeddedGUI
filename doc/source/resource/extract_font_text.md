@@ -137,13 +137,13 @@ make all APP=HelloShowcase
 {
     "font": [
         {
-            "file": "NotoSansSC-VF.ttf",
+            "file": "build_in/NotoSansSC-VF.ttf",
             "name": "notosanssc_14",
             "pixelsize": "14",
             "text": "cn_text_14.txt"
         },
         {
-            "file": "NotoSansSC-VF.ttf",
+            "file": "build_in/NotoSansSC-VF.ttf",
             "name": "notosanssc_20",
             "pixelsize": "20",
             "text": "cn_text_20.txt"

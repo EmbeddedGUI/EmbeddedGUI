@@ -429,7 +429,7 @@ def generate_report(entries, json_path, doc_path=None):
             "## Reproduce",
             "",
             "```bash",
-            "python scripts/size_analysis/hq_size_to_doc.py",
+            "python scripts/size_analysis/main.py hq-size-to-doc",
             "```",
             "",
             "The raw JSON is written to `output/hq_size_results.json`.",

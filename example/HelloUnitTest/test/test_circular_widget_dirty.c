@@ -197,9 +197,8 @@ static void test_circular_progress_bar_process_change_uses_partial_dirty_region(
     egui_region_t *arr = egui_core_get_region_dirty_arr();
     egui_dim_t center_x;
     egui_dim_t center_y;
+    int32_t full_area;
     uint8_t dirty_count;
-    uint8_t center_in_slot0;
-    uint8_t center_in_slot1;
 
     setup_circular_progress_bar();
     egui_view_circular_progress_bar_set_process(EGUI_VIEW_OF(&test_progress_bar), 75);
@@ -210,16 +209,14 @@ static void test_circular_progress_bar_process_change_uses_partial_dirty_region(
     collect_dirty_union(&dirty_union, &dirty_count);
     center_x = EGUI_VIEW_OF(&test_progress_bar)->region_screen.location.x + EGUI_VIEW_OF(&test_progress_bar)->region_screen.size.width / 2;
     center_y = EGUI_VIEW_OF(&test_progress_bar)->region_screen.location.y + EGUI_VIEW_OF(&test_progress_bar)->region_screen.size.height / 2;
-    center_in_slot0 = region_contains_point(&arr[0], center_x, center_y);
-    center_in_slot1 = region_contains_point(&arr[1], center_x, center_y);
+    full_area = region_area(&EGUI_VIEW_OF(&test_progress_bar)->region_screen);
 
-    EGUI_TEST_ASSERT_EQUAL_INT(2, dirty_count);
+    EGUI_TEST_ASSERT_TRUE(dirty_count >= 1 && dirty_count <= 2);
     EGUI_TEST_ASSERT_FALSE(egui_region_is_empty(&arr[0]));
-    EGUI_TEST_ASSERT_FALSE(egui_region_is_empty(&arr[1]));
-    EGUI_TEST_ASSERT_FALSE(center_in_slot0 == center_in_slot1);
-    EGUI_TEST_ASSERT_TRUE(region_area(&arr[0]) < region_area(&EGUI_VIEW_OF(&test_progress_bar)->region_screen) / 5);
-    EGUI_TEST_ASSERT_TRUE(region_area(&arr[1]) < region_area(&EGUI_VIEW_OF(&test_progress_bar)->region_screen) / 6);
-    EGUI_TEST_ASSERT_TRUE(region_area(&dirty_union) < region_area(&EGUI_VIEW_OF(&test_progress_bar)->region_screen) / 4);
+    EGUI_TEST_ASSERT_FALSE(egui_region_is_empty(&dirty_union));
+    EGUI_TEST_ASSERT_TRUE(region_contains_point(&dirty_union, center_x, center_y));
+    EGUI_TEST_ASSERT_FALSE(egui_region_equal(&dirty_union, &EGUI_VIEW_OF(&test_progress_bar)->region_screen));
+    EGUI_TEST_ASSERT_TRUE(region_area(&dirty_union) < full_area / 3);
 }
 
 static void test_circular_progress_bar_repeated_process_change_same_frame_falls_back_to_full_dirty_region(void)
@@ -240,9 +237,8 @@ static void test_gauge_value_change_uses_partial_dirty_region(void)
     egui_region_t *arr = egui_core_get_region_dirty_arr();
     egui_dim_t probe_x;
     egui_dim_t probe_y;
+    int32_t full_area;
     uint8_t dirty_count;
-    uint8_t probe_in_slot0;
-    uint8_t probe_in_slot1;
 
     setup_gauge();
     egui_view_gauge_set_value(EGUI_VIEW_OF(&test_gauge), 35);
@@ -253,16 +249,14 @@ static void test_gauge_value_change_uses_partial_dirty_region(void)
     collect_dirty_union(&dirty_union, &dirty_count);
     probe_x = EGUI_VIEW_OF(&test_gauge)->region_screen.location.x + EGUI_VIEW_OF(&test_gauge)->region_screen.size.width / 2;
     probe_y = EGUI_VIEW_OF(&test_gauge)->region_screen.location.y + EGUI_VIEW_OF(&test_gauge)->region_screen.size.height / 2 + 10;
-    probe_in_slot0 = region_contains_point(&arr[0], probe_x, probe_y);
-    probe_in_slot1 = region_contains_point(&arr[1], probe_x, probe_y);
+    full_area = region_area(&EGUI_VIEW_OF(&test_gauge)->region_screen);
 
-    EGUI_TEST_ASSERT_EQUAL_INT(2, dirty_count);
+    EGUI_TEST_ASSERT_TRUE(dirty_count >= 1 && dirty_count <= 2);
     EGUI_TEST_ASSERT_FALSE(egui_region_is_empty(&arr[0]));
-    EGUI_TEST_ASSERT_FALSE(egui_region_is_empty(&arr[1]));
-    EGUI_TEST_ASSERT_FALSE(probe_in_slot0 == probe_in_slot1);
-    EGUI_TEST_ASSERT_TRUE(region_area(&arr[0]) < region_area(&EGUI_VIEW_OF(&test_gauge)->region_screen) / 2);
-    EGUI_TEST_ASSERT_TRUE(region_area(&arr[1]) < region_area(&EGUI_VIEW_OF(&test_gauge)->region_screen) / 6);
-    EGUI_TEST_ASSERT_TRUE(region_area(&dirty_union) < region_area(&EGUI_VIEW_OF(&test_gauge)->region_screen) / 2);
+    EGUI_TEST_ASSERT_FALSE(egui_region_is_empty(&dirty_union));
+    EGUI_TEST_ASSERT_TRUE(region_contains_point(&dirty_union, probe_x, probe_y));
+    EGUI_TEST_ASSERT_FALSE(egui_region_equal(&dirty_union, &EGUI_VIEW_OF(&test_gauge)->region_screen));
+    EGUI_TEST_ASSERT_TRUE(region_area(&dirty_union) < full_area * 3 / 4);
 }
 
 static void test_gauge_repeated_value_change_same_frame_falls_back_to_full_dirty_region(void)

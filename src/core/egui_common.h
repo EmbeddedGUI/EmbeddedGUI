@@ -71,12 +71,6 @@ extern "C" {
 #define __EGUI_UNUSED_ATTR__
 #endif
 
-#if defined(__GNUC__) && !defined(__clang__)
-#define __EGUI_OPTIMIZE_SIZE__ __attribute__((optimize("Os")))
-#else
-#define __EGUI_OPTIMIZE_SIZE__
-#endif
-
 #define __EGUI_STATIC_INLINE__ static inline __EGUI_UNUSED_ATTR__
 
 /*---------------------- Graphic LCD color definitions -----------------------*/
@@ -186,18 +180,18 @@ enum
 #define EGUI_ALIGN_BOTTOM  0x40
 #define EGUI_ALIGN_VMASK   0xF0
 
-#define EGUI_ALIGN_CENTER (EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER)
-#define EGUI_ALIGN_TOP_LEFT (EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP)
-#define EGUI_ALIGN_TOP_MID (EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP)
-#define EGUI_ALIGN_TOP_RIGHT (EGUI_ALIGN_RIGHT | EGUI_ALIGN_TOP)
-#define EGUI_ALIGN_BOTTOM_LEFT (EGUI_ALIGN_LEFT | EGUI_ALIGN_BOTTOM)
-#define EGUI_ALIGN_BOTTOM_MID (EGUI_ALIGN_HCENTER | EGUI_ALIGN_BOTTOM)
+#define EGUI_ALIGN_CENTER       (EGUI_ALIGN_HCENTER | EGUI_ALIGN_VCENTER)
+#define EGUI_ALIGN_TOP_LEFT     (EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP)
+#define EGUI_ALIGN_TOP_MID      (EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP)
+#define EGUI_ALIGN_TOP_RIGHT    (EGUI_ALIGN_RIGHT | EGUI_ALIGN_TOP)
+#define EGUI_ALIGN_BOTTOM_LEFT  (EGUI_ALIGN_LEFT | EGUI_ALIGN_BOTTOM)
+#define EGUI_ALIGN_BOTTOM_MID   (EGUI_ALIGN_HCENTER | EGUI_ALIGN_BOTTOM)
 #define EGUI_ALIGN_BOTTOM_RIGHT (EGUI_ALIGN_RIGHT | EGUI_ALIGN_BOTTOM)
 
 #define EGUI_LAYOUT_VERTICAL   0
 #define EGUI_LAYOUT_HORIZONTAL 1
 
-typedef struct egui_mem_monitor
+struct egui_mem_monitor
 {
     size_t used_size;
     size_t total_size;
@@ -208,11 +202,12 @@ typedef struct egui_mem_monitor
     size_t max_used;
     uint8_t used_pct;
     uint8_t frag_pct;
-} egui_mem_monitor_t;
+};
 
 /*----------------------------------------------------------------------------*
  * Colour definitions                                                         *
- *----------------------------------------------------------------------------*/
+
+ * *----------------------------------------------------------------------------*/
 
 /*!
  * \brief the colour type for gray8 (8bit gray scale)
@@ -336,7 +331,7 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_alpha_make(int32_t percent)
 extern const uint8_t egui_alpha_change_table_2[4];
 extern const uint8_t egui_alpha_change_table_4[16];
 
-__EGUI_STATIC_INLINE__ egui_alpha_t egui_color_alpha_mix(egui_alpha_t alpha_0, egui_alpha_t alpha_1)
+static __attribute__((unused)) egui_alpha_t egui_color_alpha_mix(egui_alpha_t alpha_0, egui_alpha_t alpha_1)
 {
     if (alpha_0 == EGUI_ALPHA_100)
     {
@@ -353,7 +348,7 @@ __EGUI_STATIC_INLINE__ egui_alpha_t egui_color_alpha_mix(egui_alpha_t alpha_0, e
     }
 }
 
-__EGUI_STATIC_INLINE__ egui_color_t egui_rgb_mix(egui_color_t back_color, egui_color_t fore_color, egui_alpha_t fore_alpha)
+static __attribute__((unused)) egui_color_t egui_rgb_mix(egui_color_t back_color, egui_color_t fore_color, egui_alpha_t fore_alpha)
 {
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
     /* Early-out for fully opaque / fully transparent */
@@ -387,7 +382,7 @@ __EGUI_STATIC_INLINE__ egui_color_t egui_rgb_mix(egui_color_t back_color, egui_c
 #endif
 }
 
-__EGUI_STATIC_INLINE__ void egui_rgb_mix_ptr(egui_color_t *p_back_color, egui_color_t *p_fore_color, egui_color_t *p_out_color, egui_alpha_t fore_alpha)
+static __attribute__((unused)) void egui_rgb_mix_ptr(egui_color_t *p_back_color, egui_color_t *p_fore_color, egui_color_t *p_out_color, egui_alpha_t fore_alpha)
 {
 #if (EGUI_CONFIG_COLOR_DEPTH == 16)
     if (fore_alpha > 251)

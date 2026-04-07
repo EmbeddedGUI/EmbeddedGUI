@@ -37,7 +37,6 @@ static void sdl_lcd_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y,
     }
 
     VT_Fill_Multiple_Colors(x, y, x + w - 1, y + h - 1, (egui_color_int_t *)data);
-    sdl_port_request_refresh();
 }
 
 static void sdl_lcd_set_power(egui_hal_lcd_driver_t *self, uint8_t on)

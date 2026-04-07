@@ -342,13 +342,10 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE 0
 #endif
 
-/**
- * Maximum bytes per pixel for image decode buffers.
- * Keep at 4 for RGB32-capable apps. RGB565-only apps can set this to 2 to save RAM.
+/*
+ * Fast-path and codec/cache policy defaults now live in
+ * egui_config_fast_path_default.h. Keep only the shared buffer budgets here.
  */
-#ifndef EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE
-#define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE 2
-#endif
 
 /**
  * Decode row buffer width (pixels). Used by compressed image codecs
@@ -356,55 +353,6 @@ extern "C" {
  */
 #ifndef EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH
 #define EGUI_CONFIG_IMAGE_DECODE_ROW_BUF_WIDTH EGUI_CONFIG_SCEEN_WIDTH
-#endif
-
-/**
- * Enable row-band decode cache for compressed image codecs.
- * When enabled, the first PFB tile in a row band decodes all rows into
- * a cache; subsequent horizontal tiles blend from cache without re-decoding.
- * Eliminates N-1 redundant decode passes (N = screen_width / pfb_width).
- *
- * RAM cost: PFB_HEIGHT * DECODE_ROW_BUF_WIDTH * (4 + 1) bytes.
- * Example: PFB_H=30, W=240 → 30×240×5 = 36,000 bytes.
- * Only enable on platforms with sufficient RAM.
- */
-#ifndef EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE
-#define EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE 0
-#endif
-
-/**
- * Reuse the first compressed-image row-cache row as the temporary
- * "all opaque alpha" scratch buffer for masked RGB565 blend fallbacks.
- */
-#ifndef EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE
-#define EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE 0
-#endif
-
-/**
- * QOI decoder checkpoint count.
- * Each slot stores a full decoder state for restoring recent row bands.
- * Must be a power of two.
- */
-#ifndef EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT
-#define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT 2
-#endif
-
-/**
- * Optional persistent full-image cache for compressed image codecs.
- * Stores one fully decoded compressed image across refreshes and repeated draws.
- * Total RAM budget in bytes for pixel + alpha buffers; 0 disables the feature.
- */
-#ifndef EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES
-#define EGUI_CONFIG_IMAGE_CODEC_PERSISTENT_CACHE_MAX_BYTES 0
-#endif
-
-/**
- * Optional persistent full-image cache for external standard images.
- * Stores one external raw image in RAM across refreshes and repeated draws.
- * Total RAM budget in bytes for data + alpha buffers; 0 disables the feature.
- */
-#ifndef EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES
-#define EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES 0
 #endif
 
 /**
@@ -434,6 +382,8 @@ extern "C" {
 #ifndef EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE
 #define EGUI_CONFIG_REDUCE_IMAGE_CODE_SIZE 0
 #endif
+
+/* Std-image fast-path defaults now live in egui_config_fast_path_default.h. */
 
 /**
  * Reduce code size options.

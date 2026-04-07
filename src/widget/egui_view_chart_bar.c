@@ -139,7 +139,7 @@ void egui_view_chart_bar_init(egui_view_t *self)
     // bar chart defaults
     local->bar_gap = 2;
     local->axis_base.clip_margin = local->bar_gap + 2;
-    local->axis_base.ab.axis_x.is_categorical = 1;
+    egui_chart_axis_base_set_axis_x_categorical(&local->axis_base.ab, 1);
 
     egui_view_set_view_name(self, "egui_view_chart_bar");
 }

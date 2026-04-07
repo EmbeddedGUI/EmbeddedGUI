@@ -20,10 +20,16 @@ struct egui_view_button
 };
 
 // ============== Button Params (reuse Label) ==============
-#define EGUI_VIEW_BUTTON_PARAMS_INIT        EGUI_VIEW_LABEL_PARAMS_INIT
-#define EGUI_VIEW_BUTTON_PARAMS_INIT_SIMPLE EGUI_VIEW_LABEL_PARAMS_INIT_SIMPLE
-#define egui_view_button_apply_params       egui_view_label_apply_params
+#define EGUI_VIEW_BUTTON_PARAMS_INIT EGUI_VIEW_LABEL_PARAMS_INIT
+#define EGUI_VIEW_BUTTON_PARAMS_INIT_SIMPLE(_name, _x, _y, _w, _h, _text)                                                                                      \
+    static const egui_view_label_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}},                                                                     \
+                                                   .align_type = EGUI_ALIGN_CENTER,                                                                            \
+                                                   .text = (_text),                                                                                            \
+                                                   .font = NULL,                                                                                               \
+                                                   .color = EGUI_COLOR_WHITE,                                                                                  \
+                                                   .alpha = EGUI_ALPHA_100}
 
+void egui_view_button_apply_params(egui_view_t *self, const egui_view_label_params_t *params);
 void egui_view_button_init(egui_view_t *self);
 void egui_view_button_init_with_params(egui_view_t *self, const egui_view_label_params_t *params);
 void egui_view_button_set_icon(egui_view_t *self, const char *icon);

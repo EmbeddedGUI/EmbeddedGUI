@@ -71,19 +71,20 @@ HelloStyleDemo，一个常规的多页面应用。
 
 基于 QEMU 指令级模拟（`-icount shift=0`），同一代码在任何机器上得到**相同结果**，回归检测阈值 10%。
 
-![Performance Scenes](doc/source/performance/images/perf_scenes.png)
+<p align="center">
+  <img src="doc/source/images/readme_performance_summary.png" alt="QEMU Performance Snapshot" width="860" />
+</p>
 
 **关键数据**（Cortex-M3 profile）：
 
 | 场景 | 耗时 |
 |------|------|
-| TEXT | 0.904 ms |
-| CIRCLE_FILL | 1.648 ms |
-| GRADIENT_CIRCLE | 10.461 ms |
-| MASK_IMAGE_CIRCLE | 2.957 ms |
-| ANIMATION_TRANSLATE | 0.276 ms |
+| TEXT_RECT | 0.590 ms |
+| IMAGE_565 | 0.240 ms |
+| GRADIENT_CIRCLE | 3.151 ms |
+| SHADOW_ROUND | 1.797 ms |
 
-覆盖 **~100 个测试场景**，涵盖图形 / 文本 / 图片 / 遮罩 / 动画，支持 PFB Matrix / SPI Matrix 矩阵测试。
+覆盖 **200+ 个测试场景**，涵盖图形 / 文本 / 图片 / 遮罩 / 动画，支持 PFB Matrix / SPI Matrix 矩阵测试。
 
 ---
 
@@ -258,7 +259,7 @@ Figma / HTML / JSX ──→ XML ──→ C 源文件 (uicode.c / .h)
 
 - **当前仓库定位**：保留 SDK、运行时、资源生成、示例和文档
 - **Designer 仓库定位**：维护桌面设计器、设计稿导入、XML 编辑和预览打包
-- **迁移入口**：见 `doc/source/ui_designer/designer_repo_migration.md`
+- **Designer 入口**：见 `doc/source/ui_designer/index.rst`
 
 ![UI_Designer](doc/source/images/UI_Designer.gif)
 

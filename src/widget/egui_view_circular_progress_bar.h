@@ -11,6 +11,7 @@ extern "C" {
 #endif
 
 typedef struct egui_view_circular_progress_bar egui_view_circular_progress_bar_t;
+typedef struct egui_view_circular_progress_bar_text_ops egui_view_circular_progress_bar_text_ops_t;
 struct egui_view_circular_progress_bar
 {
     egui_view_t base;
@@ -23,7 +24,8 @@ struct egui_view_circular_progress_bar
     egui_color_t bk_color;
     egui_color_t progress_color;
     egui_color_t text_color;
-    const egui_font_t *font; // NULL = auto-select based on size
+    const egui_font_t *font; // NULL falls back to EGUI_CONFIG_FONT_DEFAULT
+    const egui_view_circular_progress_bar_text_ops_t *text_ops;
 };
 
 // ============== Circular Progress Bar Params ==============

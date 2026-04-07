@@ -29,6 +29,11 @@ static egui_display_driver_t port_display_driver = {
         .power_on = 1,
 };
 
+static void pc_display_flush(void)
+{
+    VT_sdl_flush(1);
+}
+
 // ============================================================================
 // Platform driver
 // ============================================================================
@@ -218,6 +223,7 @@ void egui_port_init(void)
     };
 
     egui_hal_sdl_lcd_setup(&s_pc_lcd_driver);
+    port_display_ops.flush = pc_display_flush;
     egui_hal_lcd_register(&port_display_driver, &s_pc_lcd_driver, &lcd_config);
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH

@@ -64,7 +64,7 @@
 
 .. toctree::
    :maxdepth: 2
-   :caption: Designer 迁移
+   :caption: UI Designer
 
    ui_designer/index
 

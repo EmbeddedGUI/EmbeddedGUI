@@ -32,9 +32,10 @@ extern "C" {
 // value that still preserves current coverage while trimming circle LUT/cache RAM.
 #define EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE 241
 
-// Keep the larger basic-circle fill fast path only in HelloPerformance.
-// Other apps keep the smaller legacy path by default to reduce code size.
-#define EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE 1
+// App-local perf override: keep the larger basic-circle fill fast path only in
+// HelloPerformance. Other apps stay on the smaller legacy path by default and
+// do not carry this switch in the shared fast-path default header anymore.
+#define EGUI_CONFIG_CIRCLE_FILL_BASIC 1
 
 #define EGUI_CONFIG_DEBUG_LOG_LEVEL EGUI_LOG_IMPL_LEVEL_INF
 
@@ -60,13 +61,52 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE 1
 #endif
 
-// HelloPerformance advances scenes through its timer/recording pipeline and
-// does not rely on touch interaction, so the touch dispatcher and motion queue
-// only consume persistent RAM in this app.
-#define EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH 0
+/*
+ * Optional size-first compatibility overrides.
+ *
+ * Keep this block disabled in the shipped HelloPerformance profile.
+ * As of `2026-04-06`, shared-default fast-path macros have been moved next to
+ * the implementation units that consume them, so apps do not carry a large
+ * shared public macro surface for duplicate switches.
+ *
+ * Keep the detailed evidence and historical A/B records in
+ * `fast_path_retention.md`. The block below only lists the one size-profile
+ * compatibility override that is still used by current in-repo configs.
+ *
+ * It remains supported for compatibility, but it is no longer part of the
+ * shared default fast-path macro surface.
+ */
+#if 0
+#define EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE                         0
+#endif
 
 /*
- * Optional low-RAM codec/decode policy overrides.
+ * Optional perf-first external image cache experiment.
+ *
+ * Keep this block disabled by default so HelloPerformance keeps the smaller
+ * no-persistent-cache baseline.
+ *
+ * Re-enabling a `5000B` external whole-image persistent cache budget adds
+ * about `948B` text and `40B` BSS on the current HelloPerformance build,
+ * keeps the full `239`-scene perf run free of any `>=10%` regressions, and
+ * mainly speeds up small external tiled scenes whose total raw data fits in
+ * that budget, such as `EXTERN_IMAGE_TILED_565_0` and
+ * `EXTERN_IMAGE_RESIZE_TILED_565_1/2/4`.
+ */
+#if 0
+#define EGUI_CONFIG_IMAGE_EXTERNAL_PERSISTENT_CACHE_MAX_BYTES 5000
+#endif
+
+// HelloPerformance advances scenes through its timer/recording pipeline and
+// does not rely on touch interaction, so the touch dispatcher and motion queue
+// only consume persistent RAM in this app by default. Keep this overridable so
+// perf/runtime rechecks can measure the true 1 vs 0 delta via USER_CFLAGS.
+#ifndef EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
+#define EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH 0
+#endif
+
+/*
+ * Optional low-RAM image/codec policy overrides.
  *
  * Keep this block disabled by default so HelloPerformance uses the framework
  * defaults, which favor maximum rendering throughput over RAM savings.
@@ -77,34 +117,26 @@ extern "C" {
 #if 0
 // Compressed image resources are RGB565-only, so decode scratch/cache buffers
 // only need 2 bytes per pixel instead of the default 4.
-#define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE                 2
-
-// Masked opaque fallback rows can borrow the codec row-cache alpha backing
-// store instead of reserving a dedicated 240B decode-row alpha buffer in BSS.
-#define EGUI_CONFIG_IMAGE_DECODE_OPAQUE_ALPHA_ROW_USE_ROW_CACHE 1
-
-// Disable QOI decoder checkpoints to remove their persistent heap allocation.
-#define EGUI_CONFIG_IMAGE_QOI_CHECKPOINT_COUNT                  0
+#define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE                          2
 
 // Low-RAM QOI row-cache mode: only cache the horizontal tail instead of the
 // full row-band. Saves about 1.5KB peak heap on 240px alpha-QOI scenes.
-#define EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE           1
+#define EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE                    1
 
-// External RLE read window: 64B instead of default 128B, saves 64B static RAM.
-#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE        64
-
-// Disable persistent "source alpha is fully opaque" metadata cache slots.
-#define EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS          0
+// Historical low-RAM experiment: shrink the external RLE read window from the
+// default 1024B to 64B. Current recheck saves about 1024B BSS for 96B extra
+// text, but external RLE hotspots regress by about +17.5%~+21.8%.
+#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE                 64
 
 // Text-transform layout: 16-bit indices shrink transient heap for the current
 // benchmark strings and font offsets.
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT     1
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT      1
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT              1
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT               1
 
 // Rotated-text scratch: keep layout/tile scratch on transient heap and cap the
 // visible alpha8 fast-path cache at the smaller low-RAM ceiling.
-#define EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE          1
-#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES     2560
+#define EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE                   1
+#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES              2560
 #endif
 
 /* Ends C function definitions when using C++ */

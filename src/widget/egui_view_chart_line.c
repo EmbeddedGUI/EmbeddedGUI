@@ -1,11 +1,5 @@
-#include <stdio.h>
-#include <assert.h>
-#include <string.h>
-
 #include "egui_view_chart_line.h"
 #include "core/egui_canvas_gradient.h"
-#include "font/egui_font_std.h"
-#include "resource/egui_resource.h"
 
 // ============== Line Drawing ==============
 
@@ -51,7 +45,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
             continue;
         }
 
-// Build coordinate array for polyline HQ (max 64 points to avoid large stack usage)
+// Build a bounded coordinate array to avoid large stack usage with long series.
 #define CHART_LINE_MAX_POLYLINE_POINTS 64
         uint8_t pt_count = series->point_count;
         if (pt_count > CHART_LINE_MAX_POLYLINE_POINTS)
@@ -64,9 +58,9 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
             coords[i * 2] = egui_chart_map_x(ab, series->points[i].x, plot_area->location.x, plot_area->size.width);
             coords[i * 2 + 1] = egui_chart_map_y(ab, series->points[i].y, plot_area->location.y, plot_area->size.height);
         }
-        egui_canvas_draw_polyline_hq(coords, pt_count, local->line_width, series->color, EGUI_ALPHA_100);
+        egui_canvas_draw_polyline(coords, pt_count, local->line_width, series->color, EGUI_ALPHA_100);
 
-        // If there are more points than the buffer can hold, draw remaining with individual HQ lines
+        // If there are more points than the buffer can hold, draw the tail incrementally.
         {
             egui_dim_t prev_x = coords[(pt_count - 1) * 2];
             egui_dim_t prev_y = coords[(pt_count - 1) * 2 + 1];
@@ -74,7 +68,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
             {
                 egui_dim_t x2 = egui_chart_map_x(ab, series->points[i].x, plot_area->location.x, plot_area->size.width);
                 egui_dim_t y2 = egui_chart_map_y(ab, series->points[i].y, plot_area->location.y, plot_area->size.height);
-                egui_canvas_draw_line_hq(prev_x, prev_y, x2, y2, local->line_width, series->color, EGUI_ALPHA_100);
+                egui_canvas_draw_line(prev_x, prev_y, x2, y2, local->line_width, series->color, EGUI_ALPHA_100);
                 prev_x = x2;
                 prev_y = y2;
             }

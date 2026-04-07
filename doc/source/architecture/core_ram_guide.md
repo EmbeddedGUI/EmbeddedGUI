@@ -63,7 +63,7 @@
 - QOI/RLE 解码状态已经从固定 `.bss` 挪到按帧 heap，而当前 shipped 的按场景 logical `96x8` walk 继续把 whole-run heap headline 压到 `5008B`。当前第一峰值 owner 是 `IMAGE_TILED_QOI_565_8`，已验证的热点梯队是 `IMAGE_TILED_QOI_565_8 5008B`、`IMAGE_TILED_RLE_565_8 4816B`、`IMAGE_RLE_565_8` / `EXTERN_IMAGE_RLE_565_8 3760B`，以及 `IMAGE_QOI_565_8` / `EXTERN_IMAGE_QOI_565_8` / `MASK_IMAGE_QOI_8_ROUND_RECT` / `EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT 3664B`。
 - `EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE`、`EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_TARGET_WIDTH` 和弱符号 `egui_core_get_logical_pfb_target_width_hint()` 仍主要用于手工 A/B；core 默认返回 `0`，而当前 shipped path 只是在 `HelloPerformance` 里额外覆写了一个按场景 hint：当前高 heap codec hotspot 返回 `96`，其他场景仍返回 `0`。`IMAGE_TILED_RLE_565_0` 由于会带来 `+13.10%` 回归，明确不进入这组 hint。
 - 2026-03-30 的 probe follow-up 还顺手清掉了 resize `src_x_map` heap 路径里遗留的 `count <= EGUI_CONFIG_PFB_WIDTH` 断言。这个断言会把逻辑 tile 宽于物理 `48px` 的 probe build 直接卡死，但对默认 shipped path 的 `48x16` 几何、RAM headline 和性能结果都没有任何变化。
-- 当前默认 `EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE=0`、`EGUI_CONFIG_MASK_CIRCLE_FRAME_ROW_CACHE_ENABLE=0`；这两个 `PFB_HEIGHT` 相关行缓存如果以后重新打开，仍然必须走 `heap`，不能回退为静态 RAM 或大栈数组。
+- 历史上的 `EGUI_CONFIG_IMAGE_STD_ROUND_RECT_FAST_ROW_CACHE_ENABLE`、`EGUI_CONFIG_MASK_CIRCLE_FRAME_ROW_CACHE_ENABLE` 已收回实现私有并保持默认关闭；这两个 `PFB_HEIGHT` 相关行缓存如果以后重新评估，也仍然必须走 `heap`，不能回退为静态 RAM 或大栈数组。
 - 当前默认 external raw-image shared row cache 也已收紧到 `2` 行上限：`EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES=960`、`EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES=480`。这不会改变压缩图主导的 whole-run headline，只是当前 headline 现在是 `5008B`；对应 `240px` 外部 RGB565+alpha 场景的 scene-local heap 从旧的 `2880B` 压到 `1440B`，resize 场景则是 `1536B`。
 
 ## 静态 RAM 分布
@@ -192,7 +192,7 @@
 | 全 codec `64x12` + `EGUI_CONFIG_IMAGE_RLE_CHECKPOINT_ENABLE=1` | `9568B -> 6736B` (`-2832B`) | RLE checkpoint 对这条实验线几乎没有恢复作用，整体结果与上一行基本相同 | 拒绝 |
 
 - `MASK_IMAGE_TEST_PERF_ROUND_RECT` 等局部圆角遮罩场景在更宽逻辑 tile 下确实更快，但 shipped default 必须看整套场景是否满足当前 RAM/perf 规则，不能因为单个热点收益就带进默认路径。
-- `python scripts/perf_analysis/code_perf_check.py` 的 `PASSED` 只表示当前跑通，不代表通过基线对比；这三组 probe 实验都是手工对照 `doc/source/performance/perf_report.md` 后判定拒绝。
+- `python scripts/perf_analysis/main.py` 的 `PASSED` 只表示当前跑通，不代表通过历史结果对比；这三组 probe 实验都是手工对照 `doc/source/performance/perf_report.md` 后判定拒绝。
 - 2026-03-30 的 follow-up 把 probe-only 的 resize 断言补齐后，`96x8 / 128x6 / 192x4` 这些更宽 shape 终于可以完整跑完；但它们依然没有一个能通过 shipped default 的全场景门线。
 
 | 实验 | Heap 变化 | 性能结果 | 结论 |
@@ -249,7 +249,7 @@
 - `Map` 交叉复核结果：`.su` 里的 `1200B`、`1112B`、`976B` 这三个大栈帧，在当前 HelloPerformance 镜像里都只出现在 `Discarded input sections`，并未进入最终链接结果。
 - 当前最终链接镜像里的最大单函数栈帧是 `432B`，由 `egui_canvas_draw_thick_line_scan` 持有；其后是 `egui_canvas_draw_circle_fill_gradient (424B)`、`egui_canvas_draw_rectangle_fill_gradient (416B)`、`egui_canvas_draw_polygon_fill_gradient (408B)`、`egui_canvas_draw_polygon_fill (408B)`、`egui_image_rle_draw_image (392B)`、`egui_canvas_draw_text_transform (368B)`、`egui_canvas_draw_image_transform (344B)` 和 `egui_canvas_draw_line_hq (288B)`，最终镜像中仍然没有 `>=1KB` 的链接热点。
 - logical PFB 相关路径也已经做过 `-fstack-usage` 复核：core 侧 `egui_core_get_logical_pfb_target_width_hint=4B`、`egui_core_get_logical_pfb_probe_width=32B`、`egui_core_apply_logical_pfb_probe_shape=32B`，而 `HelloPerformance` 新增的 app 侧 helper `egui_view_test_performance_uses_logical_pfb_96_hint=16B`、override `egui_core_get_logical_pfb_target_width_hint=8B`，都没有引入新的大栈对象。
-- HelloPerformance 现在使用 `__qemu_min_stack_size__=0x01b0`，即 `432B` QEMU 预留栈；当前口径已由最新 `.su`/`main.map` 交叉复核、runtime `223/223`、unit test `649/649` 和 `python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --threshold 10` 共同支撑。
+- HelloPerformance 现在使用 `__qemu_min_stack_size__=0x01b0`，即 `432B` QEMU 预留栈；当前口径已由最新 `.su`/`main.map` 交叉复核、runtime `223/223`、unit test `649/649` 和 `python scripts/perf_analysis/main.py --profile cortex-m3 --threshold 10` 共同支撑。
 - 这也说明当前 stack 方向已经接近收尾：后续如果只是把某一个 `432B` 或 `424B` 热点单独压下去，而没有一起带动 `416B/408B/392B` 这组 active linked frame 下移，就不会带来值得保留的静态 RAM headline 变化。
 
 ## 建议的裁剪顺序

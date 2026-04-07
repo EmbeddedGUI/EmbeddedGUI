@@ -7,6 +7,7 @@
 | 你的问题 | 先看 | 再看 |
 |---------|------|------|
 | 整个应用最终有多大 | `size_report.md` | `size_selection_guide.md` |
+| 想看 fast-path 相关配置现在还能调什么，以及各自的 `size/perf` 取舍 | `fast_path_config.md` | `size_selection_guide.md` |
 | 某条 HQ 路径值不值得保留 | `hq_size_report.md` | `size_selection_guide.md` |
 | 某条 canvas 渲染路径会引入多少代码 | `canvas_path_size_report.md` | `canvas_feature_size_report.md` |
 | 某类 canvas 能力整体打开后会增加多少 ROM | `canvas_feature_size_report.md` | `size_selection_guide.md` |
@@ -20,6 +21,7 @@
 | 文档 | 作用 | 适合谁看 |
 |------|------|---------|
 | `size_overview.md` | 说明 qemu size 口径、统计范围和生成方法 | 框架维护者 |
+| `fast_path_config.md` | 汇总当前仍建议用户关注的 fast-path 配置，以及对应的 `size/perf` 取舍 | 应用开发者、性能与裁剪负责人 |
 | `size_report.md` | 真实示例集合的整体 `ROM/RAM/heap/stack` 报告 | 平台、发布、性能负责人 |
 | `hq_size_report.md` | `line_hq / circle_hq / arc_hq` 的单独链接增量 | 渲染和框架维护者 |
 | `canvas_path_size_report.md` | 普通 canvas 细分场景的路径级增量 | 底层渲染开发者 |
@@ -132,10 +134,10 @@
 如果不想逐个记脚本入口，可以直接使用统一调度脚本：
 
 ```bash
-python scripts/size_analysis/run_size_suite.py --quick
-python scripts/size_analysis/run_size_suite.py --full
-python scripts/size_analysis/run_size_suite.py --only hq,widget
-python scripts/size_analysis/run_size_suite.py --list-steps
+python scripts/size_analysis/main.py run-size-suite --quick
+python scripts/size_analysis/main.py run-size-suite --full
+python scripts/size_analysis/main.py run-size-suite --only hq,widget
+python scripts/size_analysis/main.py run-size-suite --list-steps
 ```
 
 说明：

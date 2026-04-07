@@ -9,37 +9,42 @@
 #include "core/egui_canvas_gradient.h"
 #endif
 
-static const egui_font_t *egui_view_toggle_button_get_icon_font(egui_view_toggle_button_t *local, egui_dim_t area_size)
+extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_toggle_button_t);
+
+static const egui_font_t *egui_view_toggle_button_get_text_font(const egui_view_toggle_button_t *local)
 {
-    if (local->icon_font != NULL)
+    if (local->font != NULL)
     {
-        return local->icon_font;
+        return local->font;
     }
 
-    return egui_view_icon_font_get_auto(area_size, 20, 26);
+    return (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
 }
 
 static void egui_view_toggle_button_draw_content(egui_view_toggle_button_t *local, const egui_region_t *region, egui_color_t text_color)
 {
     const char *icon = local->icon;
     const char *text = local->text;
-    const egui_font_t *text_font = (local->font != NULL) ? local->font : (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    const egui_font_t *text_font = egui_view_toggle_button_get_text_font(local);
     egui_region_t draw_region = *region;
 
-    if ((icon == NULL || icon[0] == '\0') && (text == NULL || text[0] == '\0'))
+    if (!EGUI_VIEW_ICON_TEXT_VALID(icon) && !EGUI_VIEW_TEXT_VALID(text))
     {
         return;
     }
 
-    if (icon == NULL || icon[0] == '\0')
+    if (!EGUI_VIEW_ICON_TEXT_VALID(icon))
     {
-        egui_canvas_draw_text_in_rect(text_font, text, &draw_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
+        if (text_font != NULL)
+        {
+            egui_canvas_draw_text_in_rect(text_font, text, &draw_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
+        }
         return;
     }
 
-    if (text == NULL || text[0] == '\0')
+    if (!EGUI_VIEW_TEXT_VALID(text))
     {
-        const egui_font_t *icon_font = egui_view_toggle_button_get_icon_font(local, EGUI_MIN(region->size.width, region->size.height));
+        const egui_font_t *icon_font = EGUI_VIEW_ICON_FONT_RESOLVE(local->icon_font, EGUI_MIN(region->size.width, region->size.height), 20, 26);
         if (icon_font != NULL)
         {
             egui_canvas_draw_text_in_rect(icon_font, icon, &draw_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
@@ -48,13 +53,7 @@ static void egui_view_toggle_button_draw_content(egui_view_toggle_button_t *loca
     }
 
     {
-        const egui_font_t *icon_font = egui_view_toggle_button_get_icon_font(local, region->size.height);
-        if (icon_font == NULL)
-        {
-            egui_canvas_draw_text_in_rect(text_font, text, &draw_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
-            return;
-        }
-
+        const egui_font_t *icon_font = EGUI_VIEW_ICON_FONT_RESOLVE(local->icon_font, region->size.height, 20, 26);
         egui_dim_t icon_width = 0;
         egui_dim_t icon_height = 0;
         egui_dim_t text_width = 0;
@@ -65,7 +64,16 @@ static void egui_view_toggle_button_draw_content(egui_view_toggle_button_t *loca
         egui_region_t icon_region;
         egui_region_t text_region;
 
-        if (icon_font != NULL && icon_font->api != NULL && icon_font->api->get_str_size != NULL)
+        if (icon_font == NULL)
+        {
+            if (text_font != NULL)
+            {
+                egui_canvas_draw_text_in_rect(text_font, text, &draw_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
+            }
+            return;
+        }
+
+        if (icon_font->api != NULL && icon_font->api->get_str_size != NULL)
         {
             icon_font->api->get_str_size(icon_font, icon, 0, 0, &icon_width, &icon_height);
         }
@@ -112,11 +120,65 @@ static void egui_view_toggle_button_draw_content(egui_view_toggle_button_t *loca
         text_region.size.height = region->size.height;
 
         egui_canvas_draw_text_in_rect(icon_font, icon, &icon_region, EGUI_ALIGN_CENTER, text_color, EGUI_ALPHA_100);
-        if (text_region.size.width > 0)
+        if (text_region.size.width > 0 && text_width > 0 && text_font != NULL)
         {
             egui_canvas_draw_text_in_rect(text_font, text, &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color, EGUI_ALPHA_100);
         }
     }
+}
+
+static egui_color_t egui_view_toggle_button_draw_frame(egui_view_t *self, egui_view_toggle_button_t *local, egui_region_t *region)
+{
+    egui_color_t bg_color;
+
+    egui_view_get_work_region(self, region);
+
+    bg_color = local->is_toggled ? local->on_color : local->off_color;
+    if (!egui_view_get_enable(self))
+    {
+        bg_color = EGUI_THEME_DISABLED;
+    }
+
+    // Draw background rounded rectangle
+#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+    {
+        egui_color_t color_light = egui_rgb_mix(bg_color, EGUI_COLOR_WHITE, 80);
+        egui_gradient_stop_t tb_stops[2] = {
+                {.position = 0, .color = color_light},
+                {.position = 255, .color = bg_color},
+        };
+        egui_gradient_t tb_grad = {
+                .type = EGUI_GRADIENT_TYPE_LINEAR_VERTICAL,
+                .stop_count = 2,
+                .alpha = EGUI_ALPHA_100,
+                .stops = tb_stops,
+        };
+        egui_canvas_draw_round_rectangle_fill_gradient(region->location.x, region->location.y, region->size.width, region->size.height, local->corner_radius,
+                                                       &tb_grad);
+    }
+#else
+    egui_canvas_draw_round_rectangle_fill(region->location.x, region->location.y, region->size.width, region->size.height, local->corner_radius, bg_color,
+                                          EGUI_ALPHA_100);
+#endif
+
+    // Draw pressed overlay
+    if (self->is_pressed)
+    {
+        egui_canvas_draw_round_rectangle_fill(region->location.x, region->location.y, region->size.width, region->size.height, local->corner_radius,
+                                              EGUI_THEME_PRESS_OVERLAY, EGUI_THEME_PRESS_OVERLAY_ALPHA);
+    }
+
+    if (!egui_view_get_enable(self))
+    {
+        return EGUI_THEME_TEXT_SECONDARY;
+    }
+
+    if (local->is_toggled)
+    {
+        return local->text_color;
+    }
+
+    return EGUI_THEME_TEXT_PRIMARY;
 }
 
 void egui_view_toggle_button_set_on_toggled_listener(egui_view_t *self, egui_view_on_toggled_listener_t listener)
@@ -168,6 +230,10 @@ void egui_view_toggle_button_set_text(egui_view_t *self, const char *text)
 void egui_view_toggle_button_set_font(egui_view_t *self, const egui_font_t *font)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
+    if (local->font == font)
+    {
+        return;
+    }
     local->font = font;
     egui_view_invalidate(self);
 }
@@ -208,63 +274,10 @@ void egui_view_toggle_button_set_text_color(egui_view_t *self, egui_color_t colo
 void egui_view_toggle_button_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_toggle_button_t);
-
     egui_region_t region;
-    egui_view_get_work_region(self, &region);
+    egui_color_t text_color = egui_view_toggle_button_draw_frame(self, local, &region);
 
-    egui_color_t bg_color = local->is_toggled ? local->on_color : local->off_color;
-    if (!egui_view_get_enable(self))
-    {
-        bg_color = EGUI_THEME_DISABLED;
-    }
-
-    // Draw background rounded rectangle
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-    {
-        egui_color_t color_light = egui_rgb_mix(bg_color, EGUI_COLOR_WHITE, 80);
-        egui_gradient_stop_t tb_stops[2] = {
-                {.position = 0, .color = color_light},
-                {.position = 255, .color = bg_color},
-        };
-        egui_gradient_t tb_grad = {
-                .type = EGUI_GRADIENT_TYPE_LINEAR_VERTICAL,
-                .stop_count = 2,
-                .alpha = EGUI_ALPHA_100,
-                .stops = tb_stops,
-        };
-        egui_canvas_draw_round_rectangle_fill_gradient(region.location.x, region.location.y, region.size.width, region.size.height, local->corner_radius,
-                                                       &tb_grad);
-    }
-#else
-    egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, local->corner_radius, bg_color,
-                                          EGUI_ALPHA_100);
-#endif
-
-    // Draw pressed overlay
-    if (self->is_pressed)
-    {
-        egui_canvas_draw_round_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, local->corner_radius,
-                                              EGUI_THEME_PRESS_OVERLAY, EGUI_THEME_PRESS_OVERLAY_ALPHA);
-    }
-
-    if ((local->icon != NULL && local->icon[0] != '\0') || (local->text != NULL && local->text[0] != '\0'))
-    {
-        egui_color_t text_color;
-        if (!egui_view_get_enable(self))
-        {
-            text_color = EGUI_THEME_TEXT_SECONDARY;
-        }
-        else if (local->is_toggled)
-        {
-            text_color = local->text_color;
-        }
-        else
-        {
-            text_color = EGUI_THEME_TEXT_PRIMARY;
-        }
-
-        egui_view_toggle_button_draw_content(local, &region, text_color);
-    }
+    egui_view_toggle_button_draw_content(local, &region, text_color);
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
@@ -342,7 +355,6 @@ void egui_view_toggle_button_init(egui_view_t *self)
     EGUI_INIT_LOCAL(egui_view_toggle_button_t);
     // call super init.
     egui_view_init(self);
-    // update api.
     self->api = &EGUI_VIEW_API_TABLE_NAME(egui_view_toggle_button_t);
 
     // init local data.
@@ -350,7 +362,7 @@ void egui_view_toggle_button_init(egui_view_t *self)
     local->is_toggled = 0;
     local->icon = NULL;
     local->text = NULL;
-    local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    local->font = NULL;
     local->icon_font = NULL;
     local->text_color = EGUI_THEME_TEXT;
     local->on_color = EGUI_THEME_PRIMARY;

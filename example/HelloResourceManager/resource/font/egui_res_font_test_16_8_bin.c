@@ -10,8 +10,8 @@
 /**
  * Font size: 16
  * Font bit size: 8
- * TTF file: test.ttf
- * options: -i test.ttf -n test -p 16 -s 8 -ext 1 -t supported_text_test.txt
+ * TTF file: Montserrat-Medium.ttf
+ * options: -i Montserrat-Medium.ttf -n test -p 16 -s 8 -ext 1 -t supported_text_test.txt
  */
 
 

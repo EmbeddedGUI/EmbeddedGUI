@@ -107,13 +107,13 @@ qemu-system-arm \
 
 ```bash
 # 运行所有 CPU profile 的完整性能测试
-python scripts/perf_analysis/code_perf_check.py --full-check
+python scripts/perf_analysis/main.py --full-check
 
 # 指定单个 profile
-python scripts/perf_analysis/code_perf_check.py --profile cortex-m3
+python scripts/perf_analysis/main.py --profile cortex-m3
 
 # 自定义超时时间（秒）
-python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --timeout 600
+python scripts/perf_analysis/main.py --profile cortex-m3 --timeout 600
 ```
 
 ### PFB 矩阵测试
@@ -121,7 +121,7 @@ python scripts/perf_analysis/code_perf_check.py --profile cortex-m3 --timeout 60
 测试不同 PFB（局部帧缓冲）尺寸对性能的影响：
 
 ```bash
-python scripts/perf_analysis/code_perf_check.py --pfb-matrix
+python scripts/perf_analysis/main.py --pfb-matrix
 ```
 
 可用的 PFB 配置：
@@ -139,28 +139,29 @@ python scripts/perf_analysis/code_perf_check.py --pfb-matrix
 测试不同 SPI 速率和缓冲区配置对帧传输的影响：
 
 ```bash
-python scripts/perf_analysis/code_perf_check.py --spi-matrix
+python scripts/perf_analysis/main.py --spi-matrix
 ```
 
 ## 基线管理
 
-### 更新基线
+### 结果对比
 
-当性能优化被合入主分支后，需要更新基线：
+当前性能入口会输出最新 `perf_results.json`、`pfb_matrix_results.json`、`spi_matrix_results.json` 和对应 Markdown 报告。
+如需把当前结果与某份历史基线 JSON 做对比，可使用：
 
 ```bash
-python scripts/perf_analysis/code_perf_check.py --update-baseline
+python scripts/perf_analysis/main.py perf-compare perf_output/perf_baseline_999bb88.json perf_output/perf_results.json
 ```
 
-基线数据保存在 `perf_output/baseline.json`，包含每个测试项的参考耗时。
+`perf-compare` 会输出 Markdown 对比表，便于在评审或 CI 后处理阶段做人工复核。
 
 ### 回归检测
 
-框架默认使用 10% 作为回归检测阈值。当某个测试项的耗时相比基线增加超过 10% 时，标记为回归：
+框架文档默认使用 10% 作为回归判定阈值。运行性能脚本时可把当前采用的阈值写入报告：
 
 ```bash
 # 使用自定义阈值
-python scripts/perf_analysis/code_perf_check.py --threshold 15
+python scripts/perf_analysis/main.py --threshold 15
 ```
 
 回归检测公式：
@@ -176,18 +177,17 @@ regression = change_pct > threshold_percent
 
 | 文件 | 说明 |
 |------|------|
-| `perf_results.json` | 当前测试结果 + 基线对比 |
-| `baseline.json` | 基线数据 |
+| `perf_results.json` | 当前 CPU profile 的性能结果 |
 | `pfb_matrix_results.json` | PFB 尺寸矩阵测试结果 |
 | `spi_matrix_results.json` | SPI 配置矩阵测试结果 |
 | `perf_report.md` | 文本格式的简要报告 |
 
 ### 生成图表文档
 
-使用 `perf_to_doc.py` 将 JSON 数据转换为带图表的 Markdown 文档：
+使用统一入口把 JSON 数据转换为带图表的 Markdown 文档：
 
 ```bash
-python scripts/perf_analysis/perf_to_doc.py
+python scripts/perf_analysis/main.py perf-to-doc
 ```
 
 生成的文档位于 `doc/source/performance/` 目录，包含柱状图、热力图等可视化图表。
@@ -198,7 +198,7 @@ python scripts/perf_analysis/perf_to_doc.py
 
 ```bash
 # CI 中的典型用法
-python scripts/perf_analysis/code_perf_check.py --full-check --threshold 10
+python scripts/perf_analysis/main.py --full-check --threshold 10
 ```
 
-如果检测到回归（任何测试项超过阈值），脚本返回非零退出码，CI 流水线将失败。
+当前脚本会在构建、QEMU 运行或文档生成失败时返回非零退出码；如需把性能回归阈值纳入 CI 判定，建议在后续步骤中结合 `perf-compare` 或自定义基线脚本处理。

@@ -157,12 +157,10 @@ void egui_view_analog_clock_show_ticks(egui_view_t *self, uint8_t show)
 static void egui_view_analog_clock_draw_hand(egui_dim_t cx, egui_dim_t cy, int16_t angle_deg, egui_dim_t length, egui_dim_t width, egui_color_t color,
                                              uint8_t use_round_cap)
 {
-    egui_float_t angle_rad = EGUI_FLOAT_DIV(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(angle_deg), EGUI_FLOAT_PI), EGUI_FLOAT_VALUE_INT(180));
-    egui_float_t cos_val = EGUI_FLOAT_COS(angle_rad);
-    egui_float_t sin_val = EGUI_FLOAT_SIN(angle_rad);
+    egui_dim_t end_x;
+    egui_dim_t end_y;
 
-    egui_dim_t end_x = cx + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(length), cos_val));
-    egui_dim_t end_y = cy + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(length), sin_val));
+    egui_view_circle_dirty_get_circle_point(cx, cy, length, angle_deg, &end_x, &end_y);
 
     if (use_round_cap)
     {
@@ -202,11 +200,11 @@ void egui_view_analog_clock_on_draw(egui_view_t *self)
         for (i = 0; i < 60; i++)
         {
             int16_t angle_deg = i * 6 - 90;
-            egui_float_t angle_rad = EGUI_FLOAT_DIV(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(angle_deg), EGUI_FLOAT_PI), EGUI_FLOAT_VALUE_INT(180));
-            egui_float_t cos_val = EGUI_FLOAT_COS(angle_rad);
-            egui_float_t sin_val = EGUI_FLOAT_SIN(angle_rad);
-
             egui_dim_t inner_r, outer_r, tick_w;
+            egui_dim_t x1;
+            egui_dim_t y1;
+            egui_dim_t x2;
+            egui_dim_t y2;
             if (i % 5 == 0)
             {
                 inner_r = radius - 10;
@@ -220,10 +218,8 @@ void egui_view_analog_clock_on_draw(egui_view_t *self)
                 tick_w = 1;
             }
 
-            egui_dim_t x1 = cx + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(inner_r), cos_val));
-            egui_dim_t y1 = cy + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(inner_r), sin_val));
-            egui_dim_t x2 = cx + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(outer_r), cos_val));
-            egui_dim_t y2 = cy + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(outer_r), sin_val));
+            egui_view_circle_dirty_get_circle_point(cx, cy, inner_r, angle_deg, &x1, &y1);
+            egui_view_circle_dirty_get_circle_point(cx, cy, outer_r, angle_deg, &x2, &y2);
 
             egui_canvas_draw_line(x1, y1, x2, y2, tick_w, local->tick_color, EGUI_ALPHA_100);
         }

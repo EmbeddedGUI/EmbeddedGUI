@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  ci-check:
+  ci-compile-meta:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
@@ -23,24 +23,177 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Full compile check
-        run: python scripts\code_compile_check.py --full-check --actions --bits64
+      - name: Check touch release semantics
+        run: python scripts\checks\check_touch_release_semantics.py --scope all
 
-      - name: Runtime check (skip HelloCustomWidgets)
-        run: python scripts\code_runtime_check.py --full-check --skip-custom-widgets --bits64
+      - name: Check example icon fonts
+        run: python scripts\checks\check_example_icon_font.py
 
-      - name: Dirty animation check
-        run: python scripts\checks\code_dirty_animation_check.py --bits64
+      - name: Run unit tests
+        run: python scripts\code_compile_check.py --unit-tests-only --actions --bits64 --jobs 2
+
+  ci-compile-matrix:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - name: standard
+            args: --scope standard
+          - name: basic-1
+            args: --scope basic --shard-count 3 --shard-index 1
+          - name: basic-2
+            args: --scope basic --shard-count 3 --shard-index 2
+          - name: basic-3
+            args: --scope basic --shard-count 3 --shard-index 3
+          - name: virtual
+            args: --scope virtual
+          - name: size-analysis
+            args: --scope size-analysis
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: rlalik/setup-cpp-compiler@v1.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Compile shard ${{ matrix.name }}
+        run: python scripts\code_compile_check.py ${{ matrix.args }} --actions --bits64 --jobs 2
+
+  ci-runtime-matrix:
+    needs: [ci-compile-meta, ci-compile-matrix]
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - name: standard
+            args: --scope standard
+          - name: basic-1
+            args: --scope basic --shard-count 3 --shard-index 1
+          - name: basic-2
+            args: --scope basic --shard-count 3 --shard-index 2
+          - name: basic-3
+            args: --scope basic --shard-count 3 --shard-index 3
+          - name: virtual
+            args: --scope virtual
+          - name: size-analysis
+            args: --scope size-analysis
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: rlalik/setup-cpp-compiler@v1.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Runtime shard ${{ matrix.name }}
+        run: python scripts\code_runtime_check.py ${{ matrix.args }} --skip-custom-widgets --bits64 --jobs 2
+
+  ci-dirty-animation:
+    needs: [ci-compile-meta, ci-compile-matrix]
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - name: core
+            args: --scenario activity_ring --scenario analog_clock --scenario spinner
+          - name: showcase
+            args: --scenario animated_image --scenario showcase --scenario virtual_stage_showcase
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: rlalik/setup-cpp-compiler@v1.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Dirty animation check ${{ matrix.name }}
+        run: python scripts\checks\code_dirty_animation_check.py --bits64 ${{ matrix.args }}
+
+  ci-showcase-parity:
+    needs: [ci-compile-meta, ci-compile-matrix]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: rlalik/setup-cpp-compiler@v1.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
 
       - name: Virtual stage showcase parity check
-        run: python scripts\checks\showcase_stage_parity_check.py --timeout 35 --bits64
+        run: python scripts\checks\showcase_stage_parity_check.py --timeout 35 --bits64 --jobs 2
 
-      - name: HelloVirtual render workflow
-        run: python scripts\checks\hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --bits64
+  ci-virtual-render:
+    needs: [ci-compile-meta, ci-compile-matrix]
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - name: shard-1
+            args: --shard-count 3 --shard-index 1
+          - name: shard-2
+            args: --shard-count 3 --shard-index 2
+          - name: shard-3
+            args: --shard-count 3 --shard-index 3
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: rlalik/setup-cpp-compiler@v1.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: HelloVirtual render workflow ${{ matrix.name }}
+        run: python scripts\checks\hello_basic_render_workflow.py --app HelloVirtual --suite basic ${{ matrix.args }} --skip-unit-tests --bits64
+
+  ci-check:
+    needs: [ci-runtime-matrix, ci-dirty-animation, ci-showcase-parity, ci-virtual-render]
+    runs-on: windows-latest
+    steps:
+      - name: Aggregate CI Result
+        run: echo "All Windows CI validation jobs passed."
 
   build-wasm:
     needs: ci-check
@@ -57,6 +210,8 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt

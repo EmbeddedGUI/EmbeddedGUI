@@ -7,10 +7,10 @@ Reads JSON performance data from perf_output/ and generates Markdown reports
 with matplotlib charts into doc/source/performance/.
 
 Usage:
-    python scripts/perf_analysis/perf_to_doc.py
-    python scripts/perf_analysis/perf_to_doc.py --only perf        # only perf_report
-    python scripts/perf_analysis/perf_to_doc.py --only pfb         # only pfb_matrix_report
-    python scripts/perf_analysis/perf_to_doc.py --only spi         # only spi_matrix_report
+    python scripts/perf_analysis/main.py perf-to-doc
+    python scripts/perf_analysis/main.py perf-to-doc --only perf   # only perf_report
+    python scripts/perf_analysis/main.py perf-to-doc --only pfb    # only pfb_matrix_report
+    python scripts/perf_analysis/main.py perf-to-doc --only spi    # only spi_matrix_report
 """
 
 import os

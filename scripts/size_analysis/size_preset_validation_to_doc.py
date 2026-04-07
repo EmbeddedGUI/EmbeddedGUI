@@ -275,7 +275,7 @@ def generate_report(entries, json_path, doc_path=None):
             "## Reproduce",
             "",
             "```bash",
-            "python scripts/size_analysis/size_preset_validation_to_doc.py",
+            "python scripts/size_analysis/main.py size-preset-validation-to-doc",
             "```",
             "",
             "Raw JSON is written to `output/size_preset_validation_results.json`.",

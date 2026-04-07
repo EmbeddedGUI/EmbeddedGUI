@@ -52,7 +52,7 @@ python -m pip install -r requirements.txt
 
 1. 继续在当前仓库开发 SDK、运行时、示例和资源
 2. 需要 Designer 桌面端时，切换到 `EmbeddedGUI_Designer`
-3. 迁移入口见 `doc/source/ui_designer/designer_repo_migration.md`
+3. 入口见 `doc/source/ui_designer/index.rst`
 
 ---
 

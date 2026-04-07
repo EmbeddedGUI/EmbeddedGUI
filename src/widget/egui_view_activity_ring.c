@@ -2,82 +2,11 @@
 #include <assert.h>
 
 #include "egui_view_activity_ring.h"
-#include "utils/egui_fixmath.h"
+#include "egui_view_circle_dirty.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
 #include "core/egui_canvas_gradient.h"
 #endif
-
-#define EGUI_VIEW_ACTIVITY_RING_DIRTY_AA_PAD 2
-
-static int16_t egui_view_activity_ring_normalize_angle(int32_t angle)
-{
-    angle %= 360;
-    if (angle < 0)
-    {
-        angle += 360;
-    }
-    return (int16_t)angle;
-}
-
-static void egui_view_activity_ring_get_circle_point(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t angle_deg, egui_dim_t *x,
-                                                     egui_dim_t *y)
-{
-    egui_float_t angle_rad;
-    egui_float_t cos_val;
-    egui_float_t sin_val;
-
-    angle_rad = EGUI_FLOAT_DIV(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(angle_deg), EGUI_FLOAT_PI), EGUI_FLOAT_VALUE_INT(180));
-    cos_val = EGUI_FLOAT_COS(angle_rad);
-    sin_val = EGUI_FLOAT_SIN(angle_rad);
-
-    *x = center_x + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(radius), cos_val));
-    *y = center_y + (egui_dim_t)EGUI_FLOAT_INT_PART(EGUI_FLOAT_MULT(EGUI_FLOAT_VALUE_INT(radius), sin_val));
-}
-
-static void egui_view_activity_ring_expand_bounds(int *has_bounds, egui_dim_t x, egui_dim_t y, egui_dim_t *min_x, egui_dim_t *min_y, egui_dim_t *max_x,
-                                                  egui_dim_t *max_y)
-{
-    if (!(*has_bounds))
-    {
-        *min_x = x;
-        *min_y = y;
-        *max_x = x;
-        *max_y = y;
-        *has_bounds = 1;
-        return;
-    }
-
-    if (x < *min_x)
-    {
-        *min_x = x;
-    }
-    if (x > *max_x)
-    {
-        *max_x = x;
-    }
-    if (y < *min_y)
-    {
-        *min_y = y;
-    }
-    if (y > *max_y)
-    {
-        *max_y = y;
-    }
-}
-
-static uint8_t egui_view_activity_ring_is_angle_in_sweep(int16_t start_angle, uint16_t sweep, int16_t angle)
-{
-    uint16_t delta;
-
-    if (sweep >= 360U)
-    {
-        return 1;
-    }
-
-    delta = (uint16_t)egui_view_activity_ring_normalize_angle((int32_t)angle - start_angle);
-    return (delta <= sweep) ? 1 : 0;
-}
 
 static uint8_t egui_view_activity_ring_get_ring_geometry(egui_view_t *self, egui_view_activity_ring_t *local, uint8_t ring_index, egui_dim_t *center_x,
                                                          egui_dim_t *center_y, egui_dim_t *mid_radius, egui_dim_t *expand_radius)
@@ -115,7 +44,7 @@ static uint8_t egui_view_activity_ring_get_ring_geometry(egui_view_t *self, egui
     {
         *mid_radius = 0;
     }
-    *expand_radius = local->stroke_width / 2 + EGUI_VIEW_ACTIVITY_RING_DIRTY_AA_PAD;
+    *expand_radius = local->stroke_width / 2 + EGUI_VIEW_CIRCLE_DIRTY_AA_PAD;
 
     return 1;
 }
@@ -123,26 +52,14 @@ static uint8_t egui_view_activity_ring_get_ring_geometry(egui_view_t *self, egui
 static uint8_t egui_view_activity_ring_get_value_dirty_region(egui_view_t *self, egui_view_activity_ring_t *local, uint8_t ring_index, uint8_t old_value,
                                                               uint8_t new_value, egui_region_t *dirty_region)
 {
-    static const int16_t critical_angles[] = {0, 90, 180, 270};
-
     egui_dim_t center_x;
     egui_dim_t center_y;
     egui_dim_t mid_radius;
     egui_dim_t expand_radius;
-    egui_dim_t min_x;
-    egui_dim_t min_y;
-    egui_dim_t max_x;
-    egui_dim_t max_y;
-    egui_dim_t point_x;
-    egui_dim_t point_y;
     uint16_t old_sweep;
     uint16_t new_sweep;
     uint16_t sweep;
     int16_t dirty_start_angle;
-    int16_t dirty_start_norm;
-    int16_t dirty_end_angle;
-    uint8_t i;
-    int has_bounds;
 
     if (dirty_region == NULL)
     {
@@ -164,55 +81,9 @@ static uint8_t egui_view_activity_ring_get_value_dirty_region(egui_view_t *self,
     }
 
     dirty_start_angle = local->start_angle + (old_sweep < new_sweep ? (int16_t)old_sweep : (int16_t)new_sweep);
-    dirty_end_angle = local->start_angle + (old_sweep > new_sweep ? (int16_t)old_sweep : (int16_t)new_sweep);
-    sweep = (uint16_t)(dirty_end_angle - dirty_start_angle);
+    sweep = (uint16_t)EGUI_ABS((int32_t)new_sweep - (int32_t)old_sweep);
 
-    if (sweep >= 360U)
-    {
-        min_x = center_x - mid_radius - expand_radius;
-        min_y = center_y - mid_radius - expand_radius;
-        max_x = center_x + mid_radius + expand_radius;
-        max_y = center_y + mid_radius + expand_radius;
-    }
-    else
-    {
-        has_bounds = 0;
-        dirty_start_norm = egui_view_activity_ring_normalize_angle(dirty_start_angle);
-
-        egui_view_activity_ring_get_circle_point(center_x, center_y, mid_radius, dirty_start_norm, &point_x, &point_y);
-        egui_view_activity_ring_expand_bounds(&has_bounds, point_x, point_y, &min_x, &min_y, &max_x, &max_y);
-
-        egui_view_activity_ring_get_circle_point(center_x, center_y, mid_radius, egui_view_activity_ring_normalize_angle(dirty_end_angle), &point_x, &point_y);
-        egui_view_activity_ring_expand_bounds(&has_bounds, point_x, point_y, &min_x, &min_y, &max_x, &max_y);
-
-        for (i = 0; i < EGUI_ARRAY_SIZE(critical_angles); i++)
-        {
-            if (!egui_view_activity_ring_is_angle_in_sweep(dirty_start_norm, sweep, critical_angles[i]))
-            {
-                continue;
-            }
-
-            egui_view_activity_ring_get_circle_point(center_x, center_y, mid_radius, critical_angles[i], &point_x, &point_y);
-            egui_view_activity_ring_expand_bounds(&has_bounds, point_x, point_y, &min_x, &min_y, &max_x, &max_y);
-        }
-
-        if (!has_bounds)
-        {
-            return 0;
-        }
-
-        min_x -= expand_radius;
-        min_y -= expand_radius;
-        max_x += expand_radius;
-        max_y += expand_radius;
-    }
-
-    dirty_region->location.x = min_x;
-    dirty_region->location.y = min_y;
-    dirty_region->size.width = max_x - min_x + 1;
-    dirty_region->size.height = max_y - min_y + 1;
-
-    return egui_region_is_empty(dirty_region) ? 0 : 1;
+    return egui_view_circle_dirty_compute_arc_region(center_x, center_y, mid_radius, expand_radius, dirty_start_angle, sweep, dirty_region);
 }
 
 void egui_view_activity_ring_set_value(egui_view_t *self, uint8_t ring_index, uint8_t value)
@@ -369,7 +240,7 @@ void egui_view_activity_ring_on_draw(egui_view_t *self)
     for (i = 0; i < local->ring_count; i++)
     {
         egui_dim_t cur_radius = outer_radius - i * (local->stroke_width + local->ring_gap);
-        int16_t draw_start_angle = egui_view_activity_ring_normalize_angle(local->start_angle);
+        int16_t draw_start_angle = egui_view_circle_dirty_normalize_angle(local->start_angle);
         if (cur_radius <= 0)
         {
             break;

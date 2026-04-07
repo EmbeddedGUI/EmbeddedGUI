@@ -8,7 +8,7 @@ extern "C" {
 #include "size_analysis_app_config_override.h"
 
 #define EGUI_CONFIG_CIRCLE_SUPPORT_RADIUS_BASIC_RANGE 20
-#define EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE         0
+#define EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE           0
 #ifndef EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE
 #define EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE 1
 #endif

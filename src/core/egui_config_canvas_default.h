@@ -56,15 +56,7 @@ extern "C" {
 #define EGUI_CONFIG_CIRCLE_DEFAULT_ALGO_HQ 0
 #endif
 
-/**
- * Canvas draw options.
- * When 1, enable the larger direct-PFB / row-wise fast paths for basic circle fill.
- * This improves fill-heavy benchmark scenes, but noticeably increases code size.
- * Default: 0 (off). Enable only for performance-focused apps such as HelloPerformance.
- */
-#ifndef EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE
-#define EGUI_CONFIG_CIRCLE_FILL_BASIC_PERF_OPT_ENABLE 0
-#endif
+/* Canvas fast-path defaults now live in egui_config_fast_path_default.h. */
 
 /* ---- Enhanced widget drawing ---- */
 
@@ -141,42 +133,7 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_GRADIENT_DITHERING 1
 #endif
 
-/* ---- Image codec cache options ---- */
-
-/**
- * Image codec options.
- * Number of cache slots for alpha opaque detection results.
- * Caches whether an RGB565+alpha image has fully opaque alpha channel to skip per-row scanning.
- * Set to 0 to disable cache (saves ~33 B BSS but rescans every frame).
- * Default: 4 slots.
- */
-#ifndef EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS
-#define EGUI_CONFIG_IMAGE_STD_ALPHA_OPAQUE_CACHE_SLOTS 4
-#endif
-
-/**
- * Image codec options.
- * RLE external resource I/O window cache size in bytes.
- * Caches control bytes (opcodes + length fields) to reduce semihosting I/O calls.
- * Pixel literal rows larger than window size automatically use direct load.
- * Default: 1024 bytes. Low-RAM scenarios can use 64 bytes.
- */
-#ifndef EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE
-#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE 1024
-#endif
-
-/* ---- Font cache options ---- */
-
-/**
- * Font draw options.
- * When 1, enable the std font fast draw path.
- * This keeps the larger text rendering fast path code for text-heavy UIs.
- * When 0,
- * always use the generic draw path to reduce code size.
- */
-#ifndef EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE
-#define EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE 1
-#endif
+/* Image/font fast-path and cache-policy defaults now live in egui_config_fast_path_default.h. */
 
 /**
  * Font format options.
@@ -219,17 +176,6 @@ extern "C" {
 
 /**
  * Font cache options.
- * When 1, use compact uint8_t fields for ASCII code lookup cache (saves ~20 B BSS).
- * Only suitable for pure ASCII fonts (code <=
- * 255).
- * When 0, use uint16_t/uint32_t fields for full Unicode support.
- */
-#ifndef EGUI_CONFIG_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT
-#define EGUI_CONFIG_FONT_STD_CODE_LOOKUP_CACHE_ASCII_COMPACT 0
-#endif
-
-/**
- * Font cache options.
  * When 1, build ASCII (0~127) direct lookup table for O(1) glyph access.
  * Allocates ~140 B heap + 8 B BSS on first use, persists across frames.
  * When 0, all ASCII characters use optimized binary search with multi-level cache.
@@ -238,27 +184,6 @@ extern "C" {
  */
 #ifndef EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE
 #define EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE 0
-#endif
-
-/**
- * Font cache options.
- * When 1, use uint8_t for ASCII lookup index (max 255 glyphs, saves ~128 B heap).
- * When 0, use uint16_t (supports up to 65535 glyphs).
- * Only effective when EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE is 1.
- */
-#ifndef EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_INDEX_8BIT
-#define EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_INDEX_8BIT 0
-#endif
-
-/**
- * Font cache options.
- * When 1, cache multi-line text line split results to avoid rescanning '\n' on every draw.
- * Allocates ~164 B heap for recent string split cache.
- * When 0, rescan line breaks on every get_str_size or draw call.
- * Default: 0 (disabled) to save RAM. Enable for UI with multi-line labels.
- */
-#ifndef EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE
-#define EGUI_CONFIG_FONT_STD_LINE_CACHE_ENABLE 0
 #endif
 
 /**

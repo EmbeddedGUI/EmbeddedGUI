@@ -592,7 +592,7 @@ def generate_report(entries, json_path, doc_path=None):
             "## Reproduce",
             "",
             "```bash",
-            "python scripts/size_analysis/canvas_path_size_to_doc.py",
+            "python scripts/size_analysis/main.py canvas-path-size-to-doc",
             "```",
             "",
             "Raw JSON is written to `output/canvas_path_size_results.json`.",

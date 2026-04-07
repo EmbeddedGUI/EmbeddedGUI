@@ -24,11 +24,11 @@ struct egui_view_image_button
 };
 
 // ============== ImageButton Params (reuse Image) ==============
-#define EGUI_VIEW_IMAGE_BUTTON_PARAMS_INIT  EGUI_VIEW_IMAGE_PARAMS_INIT
-#define egui_view_image_button_apply_params egui_view_image_apply_params
+#define EGUI_VIEW_IMAGE_BUTTON_PARAMS_INIT EGUI_VIEW_IMAGE_PARAMS_INIT
 
 void egui_view_image_button_on_draw(egui_view_t *self);
 void egui_view_image_button_init(egui_view_t *self);
+void egui_view_image_button_apply_params(egui_view_t *self, const egui_view_image_params_t *params);
 void egui_view_image_button_init_with_params(egui_view_t *self, const egui_view_image_params_t *params);
 void egui_view_image_button_set_icon(egui_view_t *self, const char *icon);
 void egui_view_image_button_set_text(egui_view_t *self, const char *text);

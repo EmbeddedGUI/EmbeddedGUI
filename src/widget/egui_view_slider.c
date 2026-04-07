@@ -4,6 +4,7 @@
 #include "egui_view_slider.h"
 #include "egui_view_group.h"
 #include "egui_view_circle_dirty.h"
+#include "egui_view_linear_value_helper.h"
 #include "style/egui_theme.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
@@ -17,16 +18,11 @@ void egui_view_slider_set_on_value_changed_listener(egui_view_t *self, egui_view
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-static uint8_t egui_view_slider_get_thumb_metrics(egui_view_t *self, egui_view_slider_t *local, uint8_t value, egui_dim_t *out_thumb_x, egui_dim_t *out_thumb_y,
+static uint8_t egui_view_slider_get_thumb_metrics(egui_view_t *self, uint8_t value, egui_dim_t *out_thumb_x, egui_dim_t *out_thumb_y,
                                                   egui_dim_t *out_thumb_radius)
 {
     egui_region_t region;
-    egui_dim_t thumb_radius;
-    egui_dim_t thumb_margin;
-    egui_dim_t usable_width;
-    egui_dim_t start_x;
-
-    EGUI_UNUSED(local);
+    egui_view_linear_value_metrics_t metrics;
 
     if (self->region_screen.size.width <= 0 || self->region_screen.size.height <= 0)
     {
@@ -35,36 +31,22 @@ static uint8_t egui_view_slider_get_thumb_metrics(egui_view_t *self, egui_view_s
 
     egui_view_get_work_region(self, &region);
 
-    thumb_radius = (region.size.height / 2) - 1;
-    if (thumb_radius > EGUI_THEME_RADIUS_LG)
-    {
-        thumb_radius = EGUI_THEME_RADIUS_LG;
-    }
-    if (thumb_radius < EGUI_THEME_RADIUS_SM)
-    {
-        thumb_radius = EGUI_THEME_RADIUS_SM;
-    }
-
-    thumb_margin = thumb_radius + 1;
-    if (region.size.width <= 2 * thumb_margin)
+    if (!egui_view_linear_value_get_metrics(&region, 1, &metrics))
     {
         return 0;
     }
 
-    usable_width = region.size.width - 2 * thumb_margin;
-    start_x = region.location.x + thumb_margin;
-
     if (out_thumb_x != NULL)
     {
-        *out_thumb_x = start_x + (egui_dim_t)((uint32_t)usable_width * value / 100);
+        *out_thumb_x = egui_view_linear_value_get_x(&metrics, value);
     }
     if (out_thumb_y != NULL)
     {
-        *out_thumb_y = region.location.y + region.size.height / 2;
+        *out_thumb_y = metrics.center_y;
     }
     if (out_thumb_radius != NULL)
     {
-        *out_thumb_radius = thumb_radius;
+        *out_thumb_radius = metrics.knob_radius;
     }
 
     return 1;
@@ -83,7 +65,7 @@ static uint8_t egui_view_slider_get_thumb_dirty_region(egui_view_t *self, egui_v
         return 0;
     }
 
-    if (!egui_view_slider_get_thumb_metrics(self, local, value, &thumb_x, &thumb_y, &thumb_radius))
+    if (!egui_view_slider_get_thumb_metrics(self, value, &thumb_x, &thumb_y, &thumb_radius))
     {
         egui_region_init_empty(dirty_region);
         return 0;
@@ -99,16 +81,9 @@ static void egui_view_slider_invalidate_value_change(egui_view_t *self, egui_vie
 {
     egui_region_t region;
     egui_region_t dirty_region;
-    egui_dim_t track_height;
-    egui_dim_t track_y;
-    egui_dim_t track_radius;
-    egui_dim_t thumb_radius;
-    egui_dim_t thumb_margin;
-    egui_dim_t usable_width;
-    egui_dim_t start_x;
+    egui_view_linear_value_metrics_t metrics;
     egui_dim_t old_thumb_x;
     egui_dim_t new_thumb_x;
-    egui_dim_t thumb_y;
     egui_dim_t diff_x;
     egui_dim_t diff_w;
 
@@ -126,41 +101,23 @@ static void egui_view_slider_invalidate_value_change(egui_view_t *self, egui_vie
 
     egui_view_get_work_region(self, &region);
 
-    track_height = EGUI_THEME_TRACK_THICKNESS;
-    track_y = region.location.y + (region.size.height - track_height) / 2;
-    track_radius = track_height / 2;
-
-    thumb_radius = (region.size.height / 2) - 1;
-    if (thumb_radius > EGUI_THEME_RADIUS_LG)
-    {
-        thumb_radius = EGUI_THEME_RADIUS_LG;
-    }
-    if (thumb_radius < EGUI_THEME_RADIUS_SM)
-    {
-        thumb_radius = EGUI_THEME_RADIUS_SM;
-    }
-
-    thumb_margin = thumb_radius + 1;
-    if (region.size.width <= 2 * thumb_margin)
+    if (!egui_view_linear_value_get_metrics(&region, 1, &metrics))
     {
         egui_view_invalidate(self);
         return;
     }
 
-    usable_width = region.size.width - 2 * thumb_margin;
-    start_x = region.location.x + thumb_margin;
-    old_thumb_x = start_x + (egui_dim_t)((uint32_t)usable_width * old_value / 100);
-    new_thumb_x = start_x + (egui_dim_t)((uint32_t)usable_width * local->value / 100);
-    thumb_y = region.location.y + region.size.height / 2;
+    old_thumb_x = egui_view_linear_value_get_x(&metrics, old_value);
+    new_thumb_x = egui_view_linear_value_get_x(&metrics, local->value);
 
     egui_region_init_empty(&dirty_region);
 
-    diff_x = EGUI_MIN(old_thumb_x, new_thumb_x) - track_radius;
-    diff_w = EGUI_ABS(new_thumb_x - old_thumb_x) + track_radius * 2 + 1;
-    egui_view_circle_dirty_add_rect_region(&dirty_region, diff_x, track_y, diff_w, track_height, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD);
+    diff_x = EGUI_MIN(old_thumb_x, new_thumb_x) - metrics.track_radius;
+    diff_w = EGUI_ABS(new_thumb_x - old_thumb_x) + metrics.track_radius * 2 + 1;
+    egui_view_circle_dirty_add_rect_region(&dirty_region, diff_x, metrics.track_y, diff_w, metrics.track_height, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD);
 
-    egui_view_circle_dirty_add_circle_region(&dirty_region, old_thumb_x, thumb_y, thumb_radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD + 1);
-    egui_view_circle_dirty_add_circle_region(&dirty_region, new_thumb_x, thumb_y, thumb_radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD + 1);
+    egui_view_circle_dirty_add_circle_region(&dirty_region, old_thumb_x, metrics.center_y, metrics.knob_radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD + 1);
+    egui_view_circle_dirty_add_circle_region(&dirty_region, new_thumb_x, metrics.center_y, metrics.knob_radius, EGUI_VIEW_CIRCLE_DIRTY_AA_PAD + 1);
 
     if (egui_region_is_empty(&dirty_region))
     {
@@ -201,38 +158,17 @@ uint8_t egui_view_slider_get_value(egui_view_t *self)
 static void egui_view_slider_update_value_from_touch(egui_view_t *self, egui_dim_t touch_x)
 {
     EGUI_LOCAL_INIT(egui_view_slider_t);
+    egui_view_linear_value_metrics_t metrics;
 
     // Convert screen touch_x to local coordinates
     egui_dim_t local_x = touch_x - self->region_screen.location.x;
 
-    // Use consistent max thumb size logic
-    egui_dim_t thumb_radius = (self->region.size.height / 2) - 1;
-    if (thumb_radius > EGUI_THEME_RADIUS_LG)
-        thumb_radius = EGUI_THEME_RADIUS_LG;
-    if (thumb_radius < EGUI_THEME_RADIUS_SM)
-        thumb_radius = EGUI_THEME_RADIUS_SM;
-
-    egui_dim_t thumb_margin = thumb_radius + 1;
-    egui_dim_t usable_width = self->region.size.width - 2 * thumb_margin;
-
-    if (usable_width <= 0)
+    if (!egui_view_linear_value_get_metrics(&self->region, 1, &metrics))
     {
         return;
     }
 
-    // Clamp to valid range
-    egui_dim_t offset = local_x - thumb_margin;
-    if (offset < 0)
-    {
-        offset = 0;
-    }
-    if (offset > usable_width)
-    {
-        offset = usable_width;
-    }
-
-    // Map to 0-100
-    uint8_t new_value = (uint8_t)((uint32_t)offset * 100 / usable_width);
+    uint8_t new_value = egui_view_linear_value_get_value_from_local_x(&metrics, local_x);
     egui_view_slider_set_value(self, new_value);
 }
 #endif
@@ -240,38 +176,25 @@ static void egui_view_slider_update_value_from_touch(egui_view_t *self, egui_dim
 void egui_view_slider_on_draw(egui_view_t *self)
 {
     EGUI_LOCAL_INIT(egui_view_slider_t);
-
     egui_region_t region;
+    egui_view_linear_value_metrics_t metrics;
+    egui_dim_t thumb_x;
+    egui_dim_t thumb_y;
+    egui_dim_t track_draw_x;
+    egui_dim_t track_draw_width;
+    egui_dim_t active_width;
+
     egui_view_get_work_region(self, &region);
 
-    // Fixed thin track for modern look, centered vertically
-    egui_dim_t track_height = EGUI_THEME_TRACK_THICKNESS;
-    egui_dim_t track_y = region.location.y + (region.size.height - track_height) / 2;
-    egui_dim_t track_radius = track_height / 2;
-
-    // Thumb size based on height but limited to max radius
-    egui_dim_t thumb_radius = (region.size.height / 2) - 1;
-    if (thumb_radius > EGUI_THEME_RADIUS_LG)
-        thumb_radius = EGUI_THEME_RADIUS_LG;
-    if (thumb_radius < EGUI_THEME_RADIUS_SM)
-        thumb_radius = EGUI_THEME_RADIUS_SM;
-
-    // Add 1-pixel margin beyond thumb_radius to prevent circle edge clipping
-    egui_dim_t thumb_margin = thumb_radius + 1;
-
-    // Ensure we have enough width
-    if (region.size.width <= 2 * thumb_margin)
+    if (!egui_view_linear_value_get_metrics(&region, 1, &metrics))
     {
         return;
     }
 
-    egui_dim_t usable_width = region.size.width - 2 * thumb_margin;
-    egui_dim_t start_x = region.location.x + thumb_margin;
-    egui_dim_t thumb_x = start_x + (egui_dim_t)((uint32_t)usable_width * local->value / 100);
-    egui_dim_t thumb_y = region.location.y + region.size.height / 2;
-
-    egui_dim_t track_draw_x = region.location.x + thumb_margin;
-    egui_dim_t track_draw_width = usable_width;
+    thumb_x = egui_view_linear_value_get_x(&metrics, local->value);
+    thumb_y = metrics.center_y;
+    track_draw_x = metrics.start_x;
+    track_draw_width = metrics.usable_width;
 
     /* Query theme styles for 3 parts */
     const egui_widget_style_desc_t *desc = egui_current_theme ? egui_current_theme->slider : NULL;
@@ -288,33 +211,37 @@ void egui_view_slider_on_draw(egui_view_t *self)
     // Background (Grey)
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
     {
-        egui_canvas_draw_round_rectangle_fill(track_draw_x, track_y, track_draw_width, track_height, track_radius, track_color, EGUI_ALPHA_100);
+        egui_canvas_draw_round_rectangle_fill(track_draw_x, metrics.track_y, track_draw_width, metrics.track_height, metrics.track_radius, track_color,
+                                              EGUI_ALPHA_100);
     }
 #else
-    egui_canvas_draw_round_rectangle_fill(track_draw_x, track_y, track_draw_width, track_height, track_radius, track_color, EGUI_ALPHA_100);
+    egui_canvas_draw_round_rectangle_fill(track_draw_x, metrics.track_y, track_draw_width, metrics.track_height, metrics.track_radius, track_color,
+                                          EGUI_ALPHA_100);
 #endif
 
     // Active Track (Blue)
-    egui_dim_t active_width = thumb_x - track_draw_x;
+    active_width = thumb_x - track_draw_x;
     if (active_width > 0)
     {
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-        egui_canvas_draw_round_rectangle_fill(track_draw_x, track_y, active_width, track_height, track_radius, fill_color, EGUI_ALPHA_100);
+        egui_canvas_draw_round_rectangle_fill(track_draw_x, metrics.track_y, active_width, metrics.track_height, metrics.track_radius, fill_color,
+                                              EGUI_ALPHA_100);
 #else
-        egui_canvas_draw_round_rectangle_fill(track_draw_x, track_y, active_width, track_height, track_radius, fill_color, EGUI_ALPHA_100);
+        egui_canvas_draw_round_rectangle_fill(track_draw_x, metrics.track_y, active_width, metrics.track_height, metrics.track_radius, fill_color,
+                                              EGUI_ALPHA_100);
 #endif
     }
 
     // Draw thumb circle
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
     {
-        egui_canvas_draw_circle_fill_hq(thumb_x, thumb_y, thumb_radius, knob_color, EGUI_ALPHA_100);
+        egui_canvas_draw_circle_fill_hq(thumb_x, thumb_y, metrics.knob_radius, knob_color, EGUI_ALPHA_100);
         // Draw a subtle border around the knob for visibility on same-color backgrounds
-        egui_canvas_draw_circle(thumb_x, thumb_y, thumb_radius, 1, EGUI_THEME_BORDER, 80);
+        egui_canvas_draw_circle(thumb_x, thumb_y, metrics.knob_radius, 1, EGUI_THEME_BORDER, 80);
     }
 #else
-    egui_canvas_draw_circle_fill(thumb_x, thumb_y, thumb_radius, knob_color, EGUI_ALPHA_100);
-    egui_canvas_draw_circle(thumb_x, thumb_y, thumb_radius, 1, EGUI_THEME_BORDER, EGUI_ALPHA_100);
+    egui_canvas_draw_circle_fill_basic(thumb_x, thumb_y, metrics.knob_radius, knob_color, EGUI_ALPHA_100);
+    egui_canvas_draw_circle_basic(thumb_x, thumb_y, metrics.knob_radius, 1, EGUI_THEME_BORDER, EGUI_ALPHA_100);
 #endif
 }
 

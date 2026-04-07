@@ -7,15 +7,10 @@
 #include "image/egui_image_std.h"
 #include "font/egui_font.h"
 #include "font/egui_font_std.h"
+#include "egui_trig_lut.h"
 
-/* Q15 quarter sine table: sin_q15[i] = round(sin(i deg) * 32767), i = 0..90 */
-static const int16_t transform_sin_q15_lut[91] = {
-        0,     572,   1144,  1715,  2286,  2856,  3425,  3993,  4560,  5126,  5690,  6252,  6813,  7371,  7927,  8481,  9032,  9580,  10126,
-        10668, 11207, 11743, 12275, 12803, 13328, 13848, 14365, 14876, 15384, 15886, 16384, 16877, 17364, 17847, 18324, 18795, 19261, 19720,
-        20174, 20622, 21063, 21498, 21926, 22348, 22763, 23170, 23571, 23965, 24351, 24730, 25102, 25466, 25822, 26170, 26510, 26842, 27166,
-        27482, 27789, 28088, 28378, 28660, 28932, 29197, 29452, 29698, 29935, 30163, 30382, 30592, 30792, 30983, 31164, 31336, 31499, 31651,
-        31795, 31928, 32052, 32167, 32270, 32365, 32449, 32524, 32588, 32643, 32689, 32724, 32749, 32764, 32767,
-};
+/* Quarter sine table in egui_float_t, i = 0..90. */
+static const egui_float_t transform_sin_lut[91] = {EGUI_TRIG_SIN_LUT_VALUES};
 
 static int32_t transform_sin_q15(int32_t deg)
 {
@@ -30,7 +25,7 @@ static int32_t transform_sin_q15(int32_t deg)
     {
         deg = 180 - deg;
     }
-    return transform_sin_q15_lut[deg] * sign;
+    return egui_trig_float_to_q15(transform_sin_lut[deg]) * sign;
 }
 
 static int32_t transform_cos_q15(int32_t deg)
@@ -505,10 +500,6 @@ static int image_transform_get_alpha_row_bytes(int16_t w, uint8_t alpha_type)
 #define EGUI_IMAGE_TRANSFORM_EXTERNAL_DATA_CACHE_MAX_BYTES  EGUI_CONFIG_IMAGE_EXTERNAL_DATA_CACHE_MAX_BYTES
 #define EGUI_IMAGE_TRANSFORM_EXTERNAL_ALPHA_CACHE_MAX_BYTES EGUI_CONFIG_IMAGE_EXTERNAL_ALPHA_CACHE_MAX_BYTES
 
-#ifndef EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
-#define EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE 1
-#endif
-
 typedef struct
 {
     const egui_image_std_info_t *info;
@@ -536,16 +527,10 @@ typedef struct
     const egui_image_std_info_t *info;
     uint32_t data_row_bytes;
     uint32_t alpha_row_bytes;
-#if !EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
-    image_transform_external_data_row_slot_t *data_cache;
-    image_transform_external_alpha_row_slot_t *alpha_cache;
-#endif
 } image_transform_external_source_t;
 
-#if EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
 static image_transform_external_data_row_slot_t g_image_transform_external_data_row_cache = {0};
 static image_transform_external_alpha_row_slot_t g_image_transform_external_alpha_row_cache = {0};
-#endif
 
 static void image_transform_sync_external_row_cache_generation(uint32_t *shared_generation, int32_t *chunk_row_start, int32_t *chunk_row_count)
 {
@@ -579,30 +564,20 @@ static uint8_t *image_transform_get_external_alpha_cache_bytes(image_transform_e
 
 static image_transform_external_data_row_slot_t *image_transform_get_external_data_row_cache(const image_transform_external_source_t *source)
 {
-#if EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
     EGUI_UNUSED(source);
     return &g_image_transform_external_data_row_cache;
-#else
-    return source != NULL ? source->data_cache : NULL;
-#endif
 }
 
 static image_transform_external_alpha_row_slot_t *image_transform_get_external_alpha_row_cache(const image_transform_external_source_t *source)
 {
-#if EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
     EGUI_UNUSED(source);
     return &g_image_transform_external_alpha_row_cache;
-#else
-    return source != NULL ? source->alpha_cache : NULL;
-#endif
 }
 
 static void image_transform_release_external_row_cache(void)
 {
-#if EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
     egui_api_memset(&g_image_transform_external_data_row_cache, 0, sizeof(g_image_transform_external_data_row_cache));
     egui_api_memset(&g_image_transform_external_alpha_row_cache, 0, sizeof(g_image_transform_external_alpha_row_cache));
-#endif
 }
 
 static int image_transform_prepare_external_source(const egui_image_std_info_t *info, int source_is_opaque, image_transform_external_source_t *source)
@@ -1206,7 +1181,7 @@ __EGUI_STATIC_INLINE__ void transform_apply_mask_and_blend(egui_mask_t *mask, eg
  * @param angle_deg Rotation angle in degrees (0-360, counter-clockwise)
  * @param scale_q8  Scale factor in Q8 format (256 = 1.0x, 512 = 2.0x, 128 = 0.5x)
  */
-__EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8)
+void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8)
 {
     egui_canvas_t *canvas = &canvas_data;
     egui_image_std_info_t *info = (egui_image_std_info_t *)img->res;
@@ -1297,19 +1272,11 @@ __EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_image_transform(const egui_image_t 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     image_transform_external_source_t external_source_storage;
     const image_transform_external_source_t *external_source = NULL;
-#if !EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
-    image_transform_external_data_row_slot_t external_data_row_cache = {0};
-    image_transform_external_alpha_row_slot_t external_alpha_row_cache = {0};
-#endif
 #endif
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     if (info->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
     {
-#if !EGUI_CONFIG_IMAGE_TRANSFORM_EXTERNAL_ROW_PERSISTENT_CACHE_ENABLE
-        external_source_storage.data_cache = &external_data_row_cache;
-        external_source_storage.alpha_cache = &external_alpha_row_cache;
-#endif
         if (!image_transform_prepare_external_source(info, source_is_opaque, &external_source_storage))
         {
             return;
@@ -4021,8 +3988,8 @@ static int text_transform_try_draw_axis_aligned(const egui_font_t *font, const v
  * collectors use transient heap sized by the measured glyph and line count.
  * Text dimensions are cached (12 bytes static) to avoid per-tile string measurement.
  */
-__EGUI_OPTIMIZE_SIZE__ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg,
-                                                            int16_t scale_q8, egui_color_t color, egui_alpha_t alpha)
+void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8,
+                                     egui_color_t color, egui_alpha_t alpha)
 {
     if (!font || !string || !font->res)
     {

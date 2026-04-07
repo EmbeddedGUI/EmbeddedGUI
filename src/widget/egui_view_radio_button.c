@@ -10,15 +10,17 @@
 #include "core/egui_canvas_gradient.h"
 #endif
 
-static const egui_font_t *egui_view_radio_button_get_icon_font(egui_view_radio_button_t *local, egui_dim_t area_size)
+static const egui_font_t *egui_view_radio_button_get_text_font(const egui_view_radio_button_t *local)
 {
-    if (local->icon_font != NULL)
+    if (local->font != NULL)
     {
-        return local->icon_font;
+        return local->font;
     }
 
-    return egui_view_icon_font_get_auto(area_size, 18, 22);
+    return (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
 }
+
+extern const egui_view_api_t EGUI_VIEW_API_TABLE_NAME(egui_view_radio_button_t);
 
 static uint8_t egui_view_radio_button_get_indicator_dirty_region(egui_view_t *self, egui_view_radio_button_t *local, egui_region_t *dirty_region)
 {
@@ -49,7 +51,7 @@ static uint8_t egui_view_radio_button_get_indicator_dirty_region(egui_view_t *se
 
     center_x = region.location.x + size / 2;
     center_y = region.location.y + size / 2;
-    if (local->text != NULL)
+    if (EGUI_VIEW_TEXT_VALID(local->text))
     {
         center_x = region.location.x + size / 2 + 1;
     }
@@ -226,7 +228,7 @@ static int egui_view_radio_button_perform_click(egui_view_t *self)
 }
 #endif
 
-void egui_view_radio_button_on_draw(egui_view_t *self)
+static void egui_view_radio_button_draw_indicator(egui_view_t *self, uint8_t use_icon_mark)
 {
     EGUI_LOCAL_INIT(egui_view_radio_button_t);
 
@@ -240,7 +242,7 @@ void egui_view_radio_button_on_draw(egui_view_t *self)
     egui_dim_t outer_radius = size / 2 - 1;
     egui_dim_t stroke = 2;
 
-    if (local->text != NULL)
+    if (EGUI_VIEW_TEXT_VALID(local->text))
     {
         center_x = region.location.x + size / 2 + 1;
     }
@@ -249,12 +251,12 @@ void egui_view_radio_button_on_draw(egui_view_t *self)
     egui_color_t ring_color = egui_view_get_enable(self) ? outer_color : EGUI_THEME_DISABLED;
 
     // Draw outer circle (always)
-    egui_canvas_draw_circle(center_x, center_y, outer_radius, stroke, ring_color, local->alpha);
+    egui_canvas_draw_circle_basic(center_x, center_y, outer_radius, stroke, ring_color, local->alpha);
 
     if (local->is_checked)
     {
         egui_color_t fill_color = egui_view_get_enable(self) ? local->dot_color : EGUI_THEME_DISABLED;
-        if (local->mark_style == EGUI_VIEW_RADIO_BUTTON_MARK_STYLE_ICON && local->mark_icon != NULL)
+        if (use_icon_mark && EGUI_VIEW_ICON_TEXT_VALID(local->mark_icon))
         {
             egui_dim_t icon_size = size - 8;
             if (icon_size < 8)
@@ -266,8 +268,8 @@ void egui_view_radio_button_on_draw(egui_view_t *self)
                     {center_x - icon_size / 2, center_y - icon_size / 2},
                     {icon_size, icon_size},
             };
-            const egui_font_t *icon_font = egui_view_radio_button_get_icon_font(local, icon_size);
-            if (icon_font != NULL && local->mark_icon[0] != '\0')
+            const egui_font_t *icon_font = EGUI_VIEW_ICON_FONT_RESOLVE(local->icon_font, icon_size, 18, 22);
+            if (icon_font != NULL)
             {
                 egui_canvas_draw_text_in_rect(icon_font, local->mark_icon, &icon_region, EGUI_ALIGN_CENTER, fill_color, local->alpha);
             }
@@ -295,22 +297,37 @@ void egui_view_radio_button_on_draw(egui_view_t *self)
                 egui_canvas_draw_circle_fill_gradient(center_x, center_y, inner_radius, &dot_grad);
             }
 #else
-            egui_canvas_draw_circle_fill(center_x, center_y, inner_radius, fill_color, local->alpha);
+            egui_canvas_draw_circle_fill_basic(center_x, center_y, inner_radius, fill_color, local->alpha);
 #endif
         }
     }
+}
 
-    if (local->text != NULL)
+void egui_view_radio_button_on_draw(egui_view_t *self)
+{
+    EGUI_LOCAL_INIT(egui_view_radio_button_t);
+    egui_region_t region;
+    egui_dim_t size;
+    egui_dim_t center_x;
+    egui_dim_t outer_radius;
+
+    egui_view_radio_button_draw_indicator(self, local->mark_style == EGUI_VIEW_RADIO_BUTTON_MARK_STYLE_ICON);
+
+    if (EGUI_VIEW_TEXT_VALID(local->text))
     {
-        const egui_font_t *font = local->font ? local->font : (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+        const egui_font_t *font = egui_view_radio_button_get_text_font(local);
         egui_color_t text_color = egui_view_get_enable(self) ? local->text_color : EGUI_THEME_DISABLED;
 
+        egui_view_get_work_region(self, &region);
+        size = EGUI_MIN(region.size.width, region.size.height);
+        center_x = region.location.x + size / 2 + 1;
+        outer_radius = size / 2 - 1;
         egui_region_t text_region;
         text_region.location.x = center_x + outer_radius + local->text_gap;
         text_region.location.y = region.location.y;
         text_region.size.width = region.location.x + region.size.width - text_region.location.x;
         text_region.size.height = region.size.height;
-        if (text_region.size.width > 0)
+        if (text_region.size.width > 0 && font != NULL)
         {
             egui_canvas_draw_text_in_rect(font, local->text, &text_region, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, text_color, local->alpha);
         }
@@ -353,7 +370,7 @@ void egui_view_radio_button_init(egui_view_t *self)
     local->circle_color = EGUI_THEME_BORDER;
     local->dot_color = EGUI_THEME_PRIMARY;
     local->text = NULL;
-    local->font = (const egui_font_t *)EGUI_CONFIG_FONT_DEFAULT;
+    local->font = NULL;
     local->text_color = EGUI_THEME_TEXT;
     local->text_gap = 6;
     local->mark_style = EGUI_VIEW_RADIO_BUTTON_MARK_STYLE_DOT;

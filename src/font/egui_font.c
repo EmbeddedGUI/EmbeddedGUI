@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "egui_font.h"
-#include "egui_font_std.h"
 #include "core/egui_api.h"
 
 static const uint8_t s_utf8_length_table[256] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -110,11 +109,6 @@ static egui_dim_t egui_font_get_line_height(const egui_font_t *self)
     egui_dim_t x_size;
     egui_dim_t y_size;
 
-    if (egui_font_std_try_get_line_height(self, &y_size))
-    {
-        return y_size;
-    }
-
     self->api->get_str_size(self, "t", 0, 0, &x_size, &y_size);
     return y_size;
 }
@@ -124,11 +118,6 @@ void egui_font_draw_string_in_rect(const egui_font_t *self, const void *string, 
 {
     const char *s = (const char *)string;
     if (NULL == s)
-    {
-        return;
-    }
-
-    if (egui_font_std_try_draw_string_in_rect_fast(self, string, rect, align_type, line_space, color, alpha))
     {
         return;
     }

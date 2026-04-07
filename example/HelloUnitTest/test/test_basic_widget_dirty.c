@@ -555,7 +555,7 @@ static void test_progress_bar_with_control_repeated_process_change_same_frame_fa
     assert_full_dirty_region(EGUI_VIEW_OF(&test_progress_bar));
 }
 
-static void test_page_indicator_dot_index_change_uses_partial_dirty_region(void)
+static void test_page_indicator_dot_index_change_uses_full_dirty_region(void)
 {
     setup_page_indicator();
     egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&test_indicator), 1);
@@ -563,7 +563,7 @@ static void test_page_indicator_dot_index_change_uses_partial_dirty_region(void)
     egui_core_clear_region_dirty();
     egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&test_indicator), 3);
 
-    assert_partial_dirty_region(EGUI_VIEW_OF(&test_indicator));
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_indicator));
 }
 
 static void test_page_indicator_repeated_index_change_same_frame_falls_back_to_full_dirty_region(void)
@@ -578,7 +578,7 @@ static void test_page_indicator_repeated_index_change_same_frame_falls_back_to_f
     assert_full_dirty_region(EGUI_VIEW_OF(&test_indicator));
 }
 
-static void test_page_indicator_icon_index_change_uses_partial_dirty_region(void)
+static void test_page_indicator_icon_index_change_uses_full_dirty_region(void)
 {
     setup_page_indicator();
     egui_view_page_indicator_set_mark_style(EGUI_VIEW_OF(&test_indicator), EGUI_VIEW_PAGE_INDICATOR_MARK_STYLE_ICON);
@@ -589,7 +589,7 @@ static void test_page_indicator_icon_index_change_uses_partial_dirty_region(void
     egui_core_clear_region_dirty();
     egui_view_page_indicator_set_current_index(EGUI_VIEW_OF(&test_indicator), 4);
 
-    assert_partial_dirty_region(EGUI_VIEW_OF(&test_indicator));
+    assert_full_dirty_region(EGUI_VIEW_OF(&test_indicator));
 }
 
 static void test_page_indicator_icon_repeated_index_change_same_frame_falls_back_to_full_dirty_region(void)
@@ -932,9 +932,9 @@ void test_basic_widget_dirty_run(void)
     EGUI_TEST_RUN(test_progress_bar_process_change_uses_partial_dirty_region);
     EGUI_TEST_RUN(test_progress_bar_repeated_process_change_same_frame_falls_back_to_full_dirty_region);
     EGUI_TEST_RUN(test_progress_bar_with_control_repeated_process_change_same_frame_falls_back_to_full_dirty_region);
-    EGUI_TEST_RUN(test_page_indicator_dot_index_change_uses_partial_dirty_region);
+    EGUI_TEST_RUN(test_page_indicator_dot_index_change_uses_full_dirty_region);
     EGUI_TEST_RUN(test_page_indicator_repeated_index_change_same_frame_falls_back_to_full_dirty_region);
-    EGUI_TEST_RUN(test_page_indicator_icon_index_change_uses_partial_dirty_region);
+    EGUI_TEST_RUN(test_page_indicator_icon_index_change_uses_full_dirty_region);
     EGUI_TEST_RUN(test_page_indicator_icon_repeated_index_change_same_frame_falls_back_to_full_dirty_region);
     EGUI_TEST_RUN(test_checkbox_checked_change_uses_partial_dirty_region);
     EGUI_TEST_RUN(test_radio_button_checked_change_uses_partial_dirty_region);

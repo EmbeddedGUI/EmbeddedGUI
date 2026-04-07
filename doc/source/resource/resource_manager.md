@@ -129,7 +129,8 @@ static const egui_platform_ops_t mcu_platform_ops = {
     ],
     "font": [
         {
-            "file": "test.ttf",
+            "file": "build_in/Montserrat-Medium.ttf",
+            "name": "test",
             "text": "supported_text_test.txt",
             "external": "all",
             "pixelsize": "16",

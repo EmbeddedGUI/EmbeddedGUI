@@ -1,0 +1,611 @@
+{
+  "timestamp": "2026-04-05T08:31:12.386532",
+  "git_commit": "21b6890",
+  "app": "HelloSizeAnalysis",
+  "port": "qemu",
+  "cpu_arch": "cortex-m0plus",
+  "variants": [
+    {
+      "name": "baseline",
+      "title": "BASELINE",
+      "description": "No widget probe is force-linked.",
+      "cflags": [],
+      "items": [],
+      "sections": {
+        "text": 11660,
+        "rodata": 568,
+        "data": 24,
+        "bss": 6024
+      },
+      "rom_total": 12228,
+      "delta": {
+        "text": 0,
+        "rodata": 0,
+        "data": 0,
+        "bss": 0,
+        "rom_total": 0
+      }
+    },
+    {
+      "name": "slider_widget",
+      "title": "SLIDER",
+      "description": "Real slider widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_SLIDER=1"
+      ],
+      "items": [
+        "egui_view_slider"
+      ],
+      "sections": {
+        "text": 19104,
+        "rodata": 1384,
+        "data": 24,
+        "bss": 6100
+      },
+      "rom_total": 20488,
+      "delta": {
+        "text": 7444,
+        "rodata": 816,
+        "data": 0,
+        "bss": 76,
+        "rom_total": 8260
+      }
+    },
+    {
+      "name": "switch_widget",
+      "title": "SWITCH",
+      "description": "Real switch widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_SWITCH=1"
+      ],
+      "items": [
+        "egui_view_switch"
+      ],
+      "sections": {
+        "text": 18200,
+        "rodata": 1392,
+        "data": 24,
+        "bss": 6116
+      },
+      "rom_total": 19592,
+      "delta": {
+        "text": 6540,
+        "rodata": 824,
+        "data": 0,
+        "bss": 92,
+        "rom_total": 7364
+      }
+    },
+    {
+      "name": "page_indicator_widget",
+      "title": "PAGE_INDICATOR",
+      "description": "Real page indicator widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_PAGE_INDICATOR=1"
+      ],
+      "items": [
+        "egui_view_page_indicator"
+      ],
+      "sections": {
+        "text": 14780,
+        "rodata": 1388,
+        "data": 24,
+        "bss": 6104
+      },
+      "rom_total": 16168,
+      "delta": {
+        "text": 3120,
+        "rodata": 820,
+        "data": 0,
+        "bss": 80,
+        "rom_total": 3940
+      }
+    },
+    {
+      "name": "stepper_widget",
+      "title": "STEPPER",
+      "description": "Real stepper widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_STEPPER=1"
+      ],
+      "items": [
+        "egui_view_stepper"
+      ],
+      "sections": {
+        "text": 14928,
+        "rodata": 1460,
+        "data": 24,
+        "bss": 6120
+      },
+      "rom_total": 16388,
+      "delta": {
+        "text": 3268,
+        "rodata": 892,
+        "data": 0,
+        "bss": 96,
+        "rom_total": 4160
+      }
+    },
+    {
+      "name": "checkbox_widget",
+      "title": "CHECKBOX",
+      "description": "Real checkbox widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_CHECKBOX=1"
+      ],
+      "items": [
+        "egui_view_checkbox"
+      ],
+      "sections": {
+        "text": 18596,
+        "rodata": 1380,
+        "data": 24,
+        "bss": 6124
+      },
+      "rom_total": 19976,
+      "delta": {
+        "text": 6936,
+        "rodata": 812,
+        "data": 0,
+        "bss": 100,
+        "rom_total": 7748
+      }
+    },
+    {
+      "name": "radio_button_widget",
+      "title": "RADIO_BUTTON",
+      "description": "Real radio button widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_RADIO_BUTTON=1"
+      ],
+      "items": [
+        "egui_view_radio_button"
+      ],
+      "sections": {
+        "text": 17792,
+        "rodata": 1384,
+        "data": 24,
+        "bss": 6120
+      },
+      "rom_total": 19176,
+      "delta": {
+        "text": 6132,
+        "rodata": 816,
+        "data": 0,
+        "bss": 96,
+        "rom_total": 6948
+      }
+    },
+    {
+      "name": "progress_bar_widget",
+      "title": "PROGRESS_BAR",
+      "description": "Real progress bar widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_PROGRESS_BAR=1"
+      ],
+      "items": [
+        "egui_view_progress_bar"
+      ],
+      "sections": {
+        "text": 18632,
+        "rodata": 1388,
+        "data": 24,
+        "bss": 6100
+      },
+      "rom_total": 20020,
+      "delta": {
+        "text": 6972,
+        "rodata": 820,
+        "data": 0,
+        "bss": 76,
+        "rom_total": 7792
+      }
+    },
+    {
+      "name": "toggle_button_widget",
+      "title": "TOGGLE_BUTTON",
+      "description": "Real toggle button widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_TOGGLE_BUTTON=1"
+      ],
+      "items": [
+        "egui_view_toggle_button"
+      ],
+      "sections": {
+        "text": 16152,
+        "rodata": 1764,
+        "data": 24,
+        "bss": 6120
+      },
+      "rom_total": 17916,
+      "delta": {
+        "text": 4492,
+        "rodata": 1196,
+        "data": 0,
+        "bss": 96,
+        "rom_total": 5688
+      }
+    },
+    {
+      "name": "notification_badge_widget",
+      "title": "NOTIFICATION_BADGE",
+      "description": "Real notification badge widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_NOTIFICATION_BADGE=1"
+      ],
+      "items": [
+        "egui_view_notification_badge"
+      ],
+      "sections": {
+        "text": 16160,
+        "rodata": 1724,
+        "data": 24,
+        "bss": 6112
+      },
+      "rom_total": 17884,
+      "delta": {
+        "text": 4500,
+        "rodata": 1156,
+        "data": 0,
+        "bss": 88,
+        "rom_total": 5656
+      }
+    },
+    {
+      "name": "button_widget",
+      "title": "BUTTON",
+      "description": "Real button widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_BUTTON=1"
+      ],
+      "items": [
+        "egui_view_button"
+      ],
+      "sections": {
+        "text": 16356,
+        "rodata": 1760,
+        "data": 24,
+        "bss": 6116
+      },
+      "rom_total": 18116,
+      "delta": {
+        "text": 4696,
+        "rodata": 1192,
+        "data": 0,
+        "bss": 92,
+        "rom_total": 5888
+      }
+    },
+    {
+      "name": "image_button_widget",
+      "title": "IMAGE_BUTTON",
+      "description": "Real image button widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_IMAGE_BUTTON=1"
+      ],
+      "items": [
+        "egui_view_image_button"
+      ],
+      "sections": {
+        "text": 17552,
+        "rodata": 1756,
+        "data": 24,
+        "bss": 6120
+      },
+      "rom_total": 19308,
+      "delta": {
+        "text": 5892,
+        "rodata": 1188,
+        "data": 0,
+        "bss": 96,
+        "rom_total": 7080
+      }
+    },
+    {
+      "name": "cpb_widget",
+      "title": "CIRCULAR_PROGRESS_BAR",
+      "description": "Real circular progress bar widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_CPB=1"
+      ],
+      "items": [
+        "egui_view_circular_progress_bar"
+      ],
+      "sections": {
+        "text": 24868,
+        "rodata": 2292,
+        "data": 24,
+        "bss": 6104
+      },
+      "rom_total": 27160,
+      "delta": {
+        "text": 13208,
+        "rodata": 1724,
+        "data": 0,
+        "bss": 80,
+        "rom_total": 14932
+      }
+    },
+    {
+      "name": "gauge_widget",
+      "title": "GAUGE",
+      "description": "Real gauge widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_GAUGE=1"
+      ],
+      "items": [
+        "egui_view_gauge"
+      ],
+      "sections": {
+        "text": 28680,
+        "rodata": 2280,
+        "data": 24,
+        "bss": 6112
+      },
+      "rom_total": 30960,
+      "delta": {
+        "text": 17020,
+        "rodata": 1712,
+        "data": 0,
+        "bss": 88,
+        "rom_total": 18732
+      }
+    },
+    {
+      "name": "activity_ring_widget",
+      "title": "ACTIVITY_RING",
+      "description": "Real activity ring widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_ACTIVITY_RING=1"
+      ],
+      "items": [
+        "egui_view_activity_ring"
+      ],
+      "sections": {
+        "text": 23504,
+        "rodata": 1948,
+        "data": 24,
+        "bss": 6104
+      },
+      "rom_total": 25452,
+      "delta": {
+        "text": 11844,
+        "rodata": 1380,
+        "data": 0,
+        "bss": 80,
+        "rom_total": 13224
+      }
+    },
+    {
+      "name": "analog_clock_widget",
+      "title": "ANALOG_CLOCK",
+      "description": "Real analog clock widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_ANALOG_CLOCK=1"
+      ],
+      "items": [
+        "egui_view_analog_clock"
+      ],
+      "sections": {
+        "text": 20860,
+        "rodata": 1572,
+        "data": 24,
+        "bss": 6104
+      },
+      "rom_total": 22432,
+      "delta": {
+        "text": 9200,
+        "rodata": 1004,
+        "data": 0,
+        "bss": 80,
+        "rom_total": 10204
+      }
+    },
+    {
+      "name": "line_widget",
+      "title": "LINE_WIDGET",
+      "description": "Real line widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_LINE=1"
+      ],
+      "items": [
+        "egui_view_line"
+      ],
+      "sections": {
+        "text": 17632,
+        "rodata": 1388,
+        "data": 24,
+        "bss": 6096
+      },
+      "rom_total": 19020,
+      "delta": {
+        "text": 5972,
+        "rodata": 820,
+        "data": 0,
+        "bss": 72,
+        "rom_total": 6792
+      }
+    },
+    {
+      "name": "chart_line_widget",
+      "title": "CHART_LINE",
+      "description": "Real chart-line widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_CHART_LINE=1"
+      ],
+      "items": [
+        "egui_view_chart_line"
+      ],
+      "sections": {
+        "text": 20820,
+        "rodata": 1868,
+        "data": 24,
+        "bss": 6152
+      },
+      "rom_total": 22688,
+      "delta": {
+        "text": 9160,
+        "rodata": 1300,
+        "data": 0,
+        "bss": 128,
+        "rom_total": 10460
+      }
+    },
+    {
+      "name": "chart_pie_widget",
+      "title": "CHART_PIE",
+      "description": "Real chart-pie widget cost.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_CHART_PIE=1"
+      ],
+      "items": [
+        "egui_view_chart_pie"
+      ],
+      "sections": {
+        "text": 19040,
+        "rodata": 2144,
+        "data": 24,
+        "bss": 6104
+      },
+      "rom_total": 21184,
+      "delta": {
+        "text": 7380,
+        "rodata": 1576,
+        "data": 0,
+        "bss": 80,
+        "rom_total": 8956
+      }
+    },
+    {
+      "name": "indicator_widget_set",
+      "title": "INDICATOR_WIDGET_SET",
+      "description": "A common indicator widget set.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_SLIDER=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_SWITCH=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_PAGE_INDICATOR=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_STEPPER=1"
+      ],
+      "items": [
+        "slider",
+        "switch",
+        "page_indicator",
+        "stepper"
+      ],
+      "sections": {
+        "text": 20644,
+        "rodata": 1664,
+        "data": 24,
+        "bss": 6356
+      },
+      "rom_total": 22308,
+      "delta": {
+        "text": 8984,
+        "rodata": 1096,
+        "data": 0,
+        "bss": 332,
+        "rom_total": 10080
+      }
+    },
+    {
+      "name": "ring_widget_set",
+      "title": "RING_WIDGET_SET",
+      "description": "A ring and gauge widget set.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_CPB=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_GAUGE=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_ACTIVITY_RING=1"
+      ],
+      "items": [
+        "circular_progress_bar",
+        "gauge",
+        "activity_ring"
+      ],
+      "sections": {
+        "text": 30840,
+        "rodata": 2488,
+        "data": 24,
+        "bss": 6272
+      },
+      "rom_total": 33328,
+      "delta": {
+        "text": 19180,
+        "rodata": 1920,
+        "data": 0,
+        "bss": 248,
+        "rom_total": 21100
+      }
+    },
+    {
+      "name": "line_visual_widget_set",
+      "title": "LINE_VISUAL_WIDGET_SET",
+      "description": "A line, clock and data-visual widget set.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_LINE=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_CHART_LINE=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_ANALOG_CLOCK=1"
+      ],
+      "items": [
+        "line",
+        "chart_line",
+        "analog_clock"
+      ],
+      "sections": {
+        "text": 24972,
+        "rodata": 2244,
+        "data": 24,
+        "bss": 6296
+      },
+      "rom_total": 27216,
+      "delta": {
+        "text": 13312,
+        "rodata": 1676,
+        "data": 0,
+        "bss": 272,
+        "rom_total": 14988
+      }
+    },
+    {
+      "name": "all_widget_probes",
+      "title": "ALL_WIDGET_PROBES",
+      "description": "All widget probes enabled together.",
+      "cflags": [
+        "-DEGUI_SIZE_PROBE_WIDGET_SLIDER=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_SWITCH=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_PAGE_INDICATOR=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_STEPPER=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_CHECKBOX=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_RADIO_BUTTON=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_PROGRESS_BAR=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_TOGGLE_BUTTON=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_NOTIFICATION_BADGE=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_BUTTON=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_IMAGE_BUTTON=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_CPB=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_GAUGE=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_ACTIVITY_RING=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_ANALOG_CLOCK=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_LINE=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_CHART_LINE=1",
+        "-DEGUI_SIZE_PROBE_WIDGET_CHART_PIE=1"
+      ],
+      "items": [
+        "all widget probes"
+      ],
+      "sections": {
+        "text": 45648,
+        "rodata": 4156,
+        "data": 24,
+        "bss": 7556
+      },
+      "rom_total": 49804,
+      "delta": {
+        "text": 33988,
+        "rodata": 3588,
+        "data": 0,
+        "bss": 1532,
+        "rom_total": 37576
+      }
+    }
+  ]
+}

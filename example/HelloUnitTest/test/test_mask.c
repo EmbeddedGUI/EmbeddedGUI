@@ -121,8 +121,11 @@ static void test_image_mask_row_block_matches_row_segment(void)
     init_identity_image_mask(&block_mask);
     init_identity_image_mask(&segment_mask);
 
-    EGUI_TEST_ASSERT_TRUE(egui_mask_image_blend_rgb565_row_block(block_base, opaque_block_dst, block_width, src_pixels, block_width, block_height, block_width,
-                                                                 0, 0, EGUI_ALPHA_100));
+    {
+        int used_fast_path = egui_mask_image_blend_rgb565_row_block(block_base, opaque_block_dst, block_width, src_pixels, block_width, block_height,
+                                                                    block_width, 0, 0, EGUI_ALPHA_100);
+        EGUI_TEST_ASSERT_TRUE(used_fast_path);
+    }
     for (egui_dim_t y = 0; y < block_height; y++)
     {
         EGUI_TEST_ASSERT_TRUE(egui_mask_image_blend_rgb565_row_segment(segment_base, &opaque_segment_dst[y * block_width], &src_pixels[y * block_width],
@@ -132,8 +135,11 @@ static void test_image_mask_row_block_matches_row_segment(void)
 
     init_identity_image_mask(&block_mask);
     init_identity_image_mask(&segment_mask);
-    EGUI_TEST_ASSERT_TRUE(egui_mask_image_blend_rgb565_alpha8_row_block(block_base, alpha_block_dst, block_width, src_pixels, block_width, src_alpha,
-                                                                        block_width, block_height, block_width, 0, 0, 173));
+    {
+        int used_fast_path = egui_mask_image_blend_rgb565_alpha8_row_block(block_base, alpha_block_dst, block_width, src_pixels, block_width, src_alpha,
+                                                                           block_width, block_height, block_width, 0, 0, 173);
+        EGUI_TEST_ASSERT_TRUE(used_fast_path);
+    }
     for (egui_dim_t y = 0; y < block_height; y++)
     {
         EGUI_TEST_ASSERT_TRUE(egui_mask_image_blend_rgb565_alpha8_row_segment(segment_base, &alpha_segment_dst[y * block_width], &src_pixels[y * block_width],

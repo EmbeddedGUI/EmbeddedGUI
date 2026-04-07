@@ -447,7 +447,7 @@
     ],
     "font": [
         {
-            "file": "Montserrat-Medium.ttf",
+            "file": "build_in/Montserrat-Medium.ttf",
             "name": "montserrat_perf",
             "pixelsize": "26",
             "fontbitsize": "4",

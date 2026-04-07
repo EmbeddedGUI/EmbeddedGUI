@@ -194,8 +194,8 @@ src/
 | `platform/` | 平台/工程维护脚本（如 `keil_project_sync.py`） |
 | `web/` | Emscripten/WASM 构建脚本（如 `wasm_build_demos.py`、`emcc_wrapper.py`） |
 | `recording/` | 录制与 GIF 导出辅助脚本 |
-| `perf_analysis/code_perf_check.py` | 性能测试 |
-| `size_analysis/utils_analysis_elf_size.py` | ELF 二进制大小分析 |
+| `perf_analysis/main.py` | 性能测试统一入口 |
+| `size_analysis/main.py` | ELF 二进制大小分析统一入口 |
 | `tools/` | 本地工具与资源生成工具（如 w64devkit、ffmpeg） |
 
 ## doc/ -- 文档
@@ -216,7 +216,7 @@ doc/source/
 |-- resource/               # 资源管理
 |-- size/                   # 体积分析与配置模板
 |-- appendix/               # FAQ / Changelog / API 索引
-|-- ui_designer/            # UI Designer 迁移说明
+|-- ui_designer/            # UI Designer 入口页（演示 GIF + 跳转）
 |-- images/                 # 文档配图
 `-- conf.py                 # Sphinx 配置
 ```

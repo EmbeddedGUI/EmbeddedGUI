@@ -7,6 +7,10 @@ import ttf2c
 import img2c
 
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+BUILD_IN_DIR = os.path.join(SCRIPT_DIR, 'build_in')
+
+
 app_egui_resource_generate_h_string="""
 
 #ifndef _APP_EGUI_RESOURCE_GENERATE_H_
@@ -69,6 +73,23 @@ def format_file_name(file_name):
     return file_name
 
 
+def resolve_input_file_path(resource_src_path, file_name):
+    if os.path.isabs(file_name):
+        return os.path.normpath(file_name)
+
+    normalized_file_name = file_name.replace('\\', '/')
+    if normalized_file_name.startswith('build_in/'):
+        build_in_relative_path = normalized_file_name[len('build_in/'):]
+        return os.path.normpath(os.path.join(BUILD_IN_DIR, build_in_relative_path))
+
+    return os.path.normpath(os.path.join(resource_src_path, file_name))
+
+
+def make_report_link(resource_path, input_file_path):
+    relative_path = os.path.relpath(os.path.normpath(input_file_path), resource_path)
+    return relative_path.replace('\\', '/')
+
+
 def clear_last_resource(resource_path):
     if os.path.exists(resource_path):
         # delete old resource
@@ -78,6 +99,16 @@ def clear_last_resource(resource_path):
                 os.remove(file_path)
             else:
                 shutil.rmtree(file_path)
+
+
+def ensure_output_bin_file(output_bin_path):
+    if not output_bin_path:
+        return
+    output_dir = os.path.dirname(output_bin_path)
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+    with open(output_bin_path, 'wb'):
+        pass
 
 def load_config_info(config_file_path):
     if not os.path.exists(config_file_path):
@@ -229,7 +260,7 @@ def generate_font_resource(resource_src_path, font_res_output_path, config_info_
         # print(font_config_item)
         font_info = font_config_item[0]
         file_name = font_info.file_name
-        font_file_path = os.path.join(resource_src_path, file_name)
+        font_file_path = resolve_input_file_path(resource_src_path, file_name)
         c_file_name = format_file_name(file_name.split('.')[0])
 
         output_path = font_res_output_path
@@ -451,14 +482,14 @@ def _generate_mp4_frame_header(name, tools, header_path):
     print(f"Generated MP4 header: {header_path}")
 
 
-def generate_resource(resource_path, output_path, force):
+def generate_resource(resource_path, output_path, force, output_bin_path=None):
     # 解析app_resource_config.json文件
     resource_src_path = os.path.join(resource_path, 'src')
     img_res_output_path = os.path.join(resource_path, 'img')
     font_res_output_path = os.path.join(resource_path, 'font')
 
     resource_bin_merge_file = os.path.join(resource_path, 'app_egui_resource_merge.bin')
-    resource_bin_merge_file_output = os.path.join(output_path, 'app_egui_resource_merge.bin')
+    resource_bin_merge_file_output = output_bin_path or os.path.join(output_path, 'app_egui_resource_merge.bin')
     app_egui_resource_generate_h_file_path = os.path.join(resource_path, 'app_egui_resource_generate.h')
     app_egui_resource_generate_c_file_path = os.path.join(resource_path, 'app_egui_resource_generate.c')
 
@@ -469,6 +500,7 @@ def generate_resource(resource_path, output_path, force):
             return
 
         if os.path.exists(app_egui_resource_generate_h_file_path) and os.path.exists(app_egui_resource_generate_c_file_path):
+            ensure_output_bin_file(resource_bin_merge_file_output)
             return
 
     if os.path.exists(resource_bin_merge_file):
@@ -667,7 +699,8 @@ def generate_resource(resource_path, output_path, force):
             tmp_pixel_size = len(tool.pixel_buffer_bin_data)
             tmp_char_size = len(tool.char_desc_bin_data)
             font_total_size += tmp_pixel_size + tmp_char_size
-            font_file_string = f"[{tool.input_font_file_name}](src/{tool.input_font_file_name})"
+            font_report_path = make_report_link(resource_path, tool.input_font_file)
+            font_file_string = f"[{tool.input_font_file_name}]({font_report_path})"
 
             text_file_string = ""
             for file in tool.text_file:
@@ -726,6 +759,8 @@ def generate_resource(resource_path, output_path, force):
     # 拷贝bin文件到Output目录
     if os.path.exists(resource_bin_merge_file):
         shutil.copy(resource_bin_merge_file, resource_bin_merge_file_output)
+    else:
+        ensure_output_bin_file(resource_bin_merge_file_output)
     pass
 
 
@@ -734,10 +769,11 @@ def parse_args():
     parser.add_argument('-r', "--resource", nargs='?', type = str,  required=True, help="Resource path")
     parser.add_argument('-o', "--output", nargs='?', type = str,  required=True, help="Output path")
     parser.add_argument('-f', "--force", nargs='?', type = bool,  required=False, default=False, help="Force to generate resource files")
+    parser.add_argument("--output-bin-path", nargs='?', type=str, required=False, default=None, help="Override merged resource bin output path")
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = parse_args()
-    generate_resource(args.resource, args.output, args.force)
+    generate_resource(args.resource, args.output, args.force, args.output_bin_path)
 
 
