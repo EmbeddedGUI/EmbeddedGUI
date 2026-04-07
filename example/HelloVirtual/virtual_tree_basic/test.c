@@ -910,17 +910,22 @@ static egui_view_t *tree_basic_ds_create_node_view(void *context, uint16_t view_
         egui_view_group_add_child(EGUI_VIEW_OF(&view->root), EGUI_VIEW_OF(&view->card));
 
         tree_basic_init_label(&view->title, 12, 8, 120, 14, TREE_BASIC_FONT_TITLE, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, EGUI_COLOR_HEX(0x4A3A20));
+        egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->title), tree_basic_node_click_cb);
         egui_view_card_add_child(EGUI_VIEW_OF(&view->card), EGUI_VIEW_OF(&view->title));
         tree_basic_init_label(&view->body, 12, 24, 120, 12, TREE_BASIC_FONT_BODY, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, EGUI_COLOR_HEX(0x6E5A35));
+        egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->body), tree_basic_node_click_cb);
         egui_view_card_add_child(EGUI_VIEW_OF(&view->card), EGUI_VIEW_OF(&view->body));
         tree_basic_init_label(&view->meta, 12, 40, 140, 12, TREE_BASIC_FONT_BODY, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, EGUI_COLOR_HEX(0x7A6242));
+        egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->meta), tree_basic_node_click_cb);
         egui_view_card_add_child(EGUI_VIEW_OF(&view->card), EGUI_VIEW_OF(&view->meta));
         tree_basic_init_label(&view->badge, 150, 8, 40, 12, TREE_BASIC_FONT_BODY, EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER, EGUI_COLOR_HEX(0x86632A));
+        egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->badge), tree_basic_node_click_cb);
         egui_view_card_add_child(EGUI_VIEW_OF(&view->card), EGUI_VIEW_OF(&view->badge));
 
         egui_view_progress_bar_init(EGUI_VIEW_OF(&view->progress));
         egui_view_set_position(EGUI_VIEW_OF(&view->progress), 12, 40);
         egui_view_set_size(EGUI_VIEW_OF(&view->progress), 120, 7);
+        egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->progress), tree_basic_node_click_cb);
         egui_view_card_add_child(EGUI_VIEW_OF(&view->card), EGUI_VIEW_OF(&view->progress));
 
         return EGUI_VIEW_OF(&view->root);
@@ -950,10 +955,13 @@ static egui_view_t *tree_basic_ds_create_node_view(void *context, uint16_t view_
         egui_view_group_add_child(EGUI_VIEW_OF(&view->root), EGUI_VIEW_OF(&view->card));
 
         tree_basic_init_label(&view->title, 12, 8, 140, 14, TREE_BASIC_FONT_TITLE, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, EGUI_COLOR_HEX(0x26425A));
+        egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->title), tree_basic_node_click_cb);
         egui_view_card_add_child(EGUI_VIEW_OF(&view->card), EGUI_VIEW_OF(&view->title));
         tree_basic_init_label(&view->meta, 12, 26, 140, 12, TREE_BASIC_FONT_BODY, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER, EGUI_COLOR_HEX(0x5F7687));
+        egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->meta), tree_basic_node_click_cb);
         egui_view_card_add_child(EGUI_VIEW_OF(&view->card), EGUI_VIEW_OF(&view->meta));
         tree_basic_init_label(&view->badge, 156, 8, 40, 12, TREE_BASIC_FONT_BODY, EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER, EGUI_COLOR_HEX(0x5F7687));
+        egui_view_set_on_click_listener(EGUI_VIEW_OF(&view->badge), tree_basic_node_click_cb);
         egui_view_card_add_child(EGUI_VIEW_OF(&view->card), EGUI_VIEW_OF(&view->badge));
 
         return EGUI_VIEW_OF(&view->root);
@@ -1177,29 +1185,39 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         return true;
     case 5:
         view = tree_basic_find_visible_view_by_stable_id(tree_basic_ctx.jump_target_id);
-        if (tree_basic_ctx.jump_target_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID || tree_basic_ctx.selected_id != tree_basic_ctx.jump_target_id)
+        if (tree_basic_ctx.jump_target_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
         {
             if (recording_jump_verify_retry < TREE_BASIC_JUMP_VERIFY_RETRY_MAX)
             {
-                if (tree_basic_ctx.jump_target_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
+                recording_jump_verify_retry++;
+                if (recording_jump_verify_retry > 1U)
                 {
-                    tree_basic_abort_motion();
-                    egui_view_virtual_viewport_set_anchor(EGUI_VIEW_OF(&tree_view), tree_basic_ctx.jump_target_id, 0);
-                    egui_view_virtual_tree_scroll_to_node_by_stable_id(EGUI_VIEW_OF(&tree_view), tree_basic_ctx.jump_target_id, 0);
-                    (void)egui_view_virtual_tree_ensure_node_visible_by_stable_id(EGUI_VIEW_OF(&tree_view), tree_basic_ctx.jump_target_id, 0);
+                    EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[TREE_BASIC_ACTION_JUMP]), 220);
                 }
+                else
+                {
+                    recording_request_snapshot();
+                    EGUI_SIM_SET_WAIT(p_action, 180);
+                }
+                return true;
+            }
+            report_runtime_failure("jump action did not choose a target task");
+            EGUI_SIM_SET_WAIT(p_action, 220);
+            return true;
+        }
+        if (tree_basic_ctx.selected_id != tree_basic_ctx.jump_target_id)
+        {
+            if (recording_jump_verify_retry < TREE_BASIC_JUMP_VERIFY_RETRY_MAX)
+            {
+                tree_basic_abort_motion();
+                egui_view_virtual_viewport_set_anchor(EGUI_VIEW_OF(&tree_view), tree_basic_ctx.jump_target_id, 0);
+                egui_view_virtual_tree_scroll_to_node_by_stable_id(EGUI_VIEW_OF(&tree_view), tree_basic_ctx.jump_target_id, 0);
+                (void)egui_view_virtual_tree_ensure_node_visible_by_stable_id(EGUI_VIEW_OF(&tree_view), tree_basic_ctx.jump_target_id, 0);
                 recording_jump_verify_retry++;
                 EGUI_SIM_SET_WAIT(p_action, 180);
                 return true;
             }
-            if (tree_basic_ctx.jump_target_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
-            {
-                report_runtime_failure("jump action did not choose a target task");
-            }
-            else
-            {
-                report_runtime_failure("jump action did not select target task");
-            }
+            report_runtime_failure("jump action did not select target task");
             EGUI_SIM_SET_WAIT(p_action, 220);
             return true;
         }

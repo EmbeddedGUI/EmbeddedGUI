@@ -43,6 +43,9 @@ COMPILE_FAST_FLAGS = ['COMPILE_DEBUG=', 'COMPILE_OPT_LEVEL=-O0']
 RUN_RETRY_COUNT = 2
 COMPILE_RETRY_COUNT = 2
 COMPILE_RETRY_DELAY_S = 1.0
+RUN_EXCEPTION_RETRY_DELAY_S = 0.5
+FILE_OP_RETRY_COUNT = 20
+FILE_OP_RETRY_DELAY_S = 0.1
 RUNTIME_FAIL_MARKERS = ("[RUNTIME_CHECK_FAIL]",)
 FRAME_LABEL_PATTERN = re.compile(r"PERF_FRAME:(frame_\d+\.png):([A-Za-z0-9_.-]+)")
 FRAME_LABEL_MANIFEST = "recording_frame_labels.json"
@@ -169,6 +172,53 @@ def write_frame_label_manifest(frames_dir, capture_output):
         print("[runtime-check] PERF_FRAME markers referenced missing frames: %s" % ", ".join(sorted(set(missing_frames))))
 
 
+def unlink_with_retries(path):
+    last_error = None
+
+    for attempt in range(FILE_OP_RETRY_COUNT):
+        try:
+            path.unlink()
+            return
+        except FileNotFoundError:
+            return
+        except PermissionError as exc:
+            last_error = exc
+        except OSError as exc:
+            last_error = exc
+
+        if attempt < FILE_OP_RETRY_COUNT - 1:
+            time.sleep(FILE_OP_RETRY_DELAY_S)
+
+    if last_error is not None:
+        raise last_error
+
+
+def wait_for_file_ready(path):
+    path = Path(path)
+    last_size = -1
+    stable_count = 0
+
+    for attempt in range(FILE_OP_RETRY_COUNT):
+        try:
+            size = path.stat().st_size
+            if size > 0 and size == last_size:
+                stable_count += 1
+                if stable_count >= 1:
+                    return True
+            else:
+                stable_count = 0
+                last_size = size
+        except FileNotFoundError:
+            pass
+        except OSError:
+            pass
+
+        if attempt < FILE_OP_RETRY_COUNT - 1:
+            time.sleep(FILE_OP_RETRY_DELAY_S)
+
+    return False
+
+
 def run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration, speed,
                           snapshot_settle_ms, clock_scale, snapshot_stable_cycles,
                           snapshot_max_wait_ms):
@@ -195,9 +245,13 @@ def run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration
         )
 
         for old_frame in frames_dir.glob("frame_*.*"):
-            old_frame.unlink()
+            unlink_with_retries(old_frame)
         if manifest_path.exists():
-            manifest_path.unlink()
+            unlink_with_retries(manifest_path)
+
+        if not wait_for_file_ready(exe_path):
+            last_error = "executable not ready: %s" % exe_path
+            break
 
         for attempt in range(RUN_RETRY_COUNT):
             try:
@@ -214,6 +268,10 @@ def run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration
                 break
             except Exception as e:
                 last_error = "run error: %s" % str(e)
+                if attempt < RUN_RETRY_COUNT - 1:
+                    print("(retry %d/%d: %s)" % (attempt + 1, RUN_RETRY_COUNT - 1, last_error), end=" ")
+                    time.sleep(RUN_EXCEPTION_RETRY_DELAY_S)
+                    continue
                 break
 
             combined_output = "%s\n%s" % ((result.stdout or ""), (result.stderr or ""))
