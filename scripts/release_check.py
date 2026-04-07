@@ -36,6 +36,7 @@ ALL_STEP_NAMES = [
     "runtime",
     "dirty_anim",
     "stage_parity",
+    "basic_render",
     "virtual_render",
     "size",
     "perf",
@@ -51,6 +52,7 @@ STEP_DESCRIPTIONS = {
     "runtime": "Runtime verification (screenshots)",
     "dirty_anim": "Dirty-region animation verification",
     "stage_parity": "Virtual stage showcase parity verification",
+    "basic_render": "HelloBasic render and interaction workflow",
     "virtual_render": "HelloVirtual render and interaction workflow",
     "size": "Binary size analysis and documentation",
     "perf": "QEMU performance test and documentation",
@@ -62,6 +64,8 @@ LOCAL_DIRTY_SCENARIO_GROUPS = (
     ("showcase", ["animated_image", "showcase", "virtual_stage_showcase"]),
 )
 
+LOCAL_BASIC_RENDER_SHARDS = 4
+LOCAL_BASIC_RENDER_MAKE_JOBS = 4
 LOCAL_VIRTUAL_RENDER_SHARDS = 3
 LOCAL_VIRTUAL_RENDER_MAKE_JOBS = 4
 
@@ -87,6 +91,15 @@ def build_steps(args):
         runtime_cmd.append("--skip-custom-widgets")
     dirty_anim_cmd = [py, str(SCRIPT_DIR / "checks" / "code_dirty_animation_check.py")]
     stage_parity_cmd = [py, str(SCRIPT_DIR / "checks" / "showcase_stage_parity_check.py"), "--timeout", "35", "--jobs", "2"]
+    basic_render_cmd = [
+        py,
+        str(SCRIPT_DIR / "checks" / "hello_basic_render_workflow.py"),
+        "--app",
+        "HelloBasic",
+        "--suite",
+        "basic",
+        "--skip-unit-tests",
+    ]
     virtual_render_cmd = [
         py,
         str(SCRIPT_DIR / "checks" / "hello_basic_render_workflow.py"),
@@ -100,6 +113,7 @@ def build_steps(args):
         runtime_cmd.append("--bits64")
         dirty_anim_cmd.append("--bits64")
         stage_parity_cmd.append("--bits64")
+        basic_render_cmd.append("--bits64")
         virtual_render_cmd.append("--bits64")
 
     perf_cmd = [py, str(SCRIPT_DIR / "perf_analysis" / "code_perf_check.py"), "--full-check", "--doc"]
@@ -117,6 +131,7 @@ def build_steps(args):
         ("runtime", STEP_DESCRIPTIONS["runtime"], runtime_cmd),
         ("dirty_anim", STEP_DESCRIPTIONS["dirty_anim"], dirty_anim_cmd),
         ("stage_parity", STEP_DESCRIPTIONS["stage_parity"], stage_parity_cmd),
+        ("basic_render", STEP_DESCRIPTIONS["basic_render"], basic_render_cmd),
         ("virtual_render", STEP_DESCRIPTIONS["virtual_render"], virtual_render_cmd),
         ("size", STEP_DESCRIPTIONS["size"], [py, str(SCRIPT_DIR / "size_analysis" / "utils_analysis_elf_size.py"), "--case-set", "typical", "--doc"]),
         ("perf", STEP_DESCRIPTIONS["perf"], perf_cmd),
@@ -159,6 +174,29 @@ def build_parallel_step_commands(step_name, args):
                 str(shard_index),
                 "--make-jobs",
                 str(LOCAL_VIRTUAL_RENDER_MAKE_JOBS),
+            ]
+            if args.bits64:
+                cmd.append("--bits64")
+            commands.append((f"shard-{shard_index}", cmd))
+        return commands
+
+    if step_name == "basic_render":
+        commands = []
+        for shard_index in range(1, LOCAL_BASIC_RENDER_SHARDS + 1):
+            cmd = [
+                py,
+                str(SCRIPT_DIR / "checks" / "hello_basic_render_workflow.py"),
+                "--app",
+                "HelloBasic",
+                "--suite",
+                "basic",
+                "--skip-unit-tests",
+                "--shard-count",
+                str(LOCAL_BASIC_RENDER_SHARDS),
+                "--shard-index",
+                str(shard_index),
+                "--make-jobs",
+                str(LOCAL_BASIC_RENDER_MAKE_JOBS),
             ]
             if args.bits64:
                 cmd.append("--bits64")

@@ -5,6 +5,7 @@
 
 #include "egui.h"
 #include "egui_lcd.h"
+#include "port_api.h"
 
 /**
  * PC test port (headless): platform registration plus a no-op LCD HAL driver.
@@ -76,14 +77,80 @@ static void test_lcd_setup(egui_hal_lcd_driver_t *storage)
 // ============================================================================
 
 #if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
+typedef union test_alloc_header
+{
+    size_t payload_size;
+    uintptr_t align_uintptr;
+    long double align_long_double;
+} test_alloc_header_t;
+
+static egui_port_alloc_stats_t s_alloc_stats;
+
 static void *test_malloc(int size)
 {
-    return malloc((size_t)size);
+    test_alloc_header_t *header;
+    size_t payload_size;
+
+    if (size <= 0)
+    {
+        return NULL;
+    }
+
+    payload_size = (size_t)size;
+    if (payload_size > (size_t)-1 - sizeof(test_alloc_header_t))
+    {
+        return NULL;
+    }
+
+    header = (test_alloc_header_t *)malloc(sizeof(test_alloc_header_t) + payload_size);
+    if (header == NULL)
+    {
+        return NULL;
+    }
+
+    header->payload_size = payload_size;
+
+    s_alloc_stats.alloc_count++;
+    s_alloc_stats.live_alloc_count++;
+    s_alloc_stats.alloc_bytes += payload_size;
+    s_alloc_stats.live_bytes += payload_size;
+    if (s_alloc_stats.live_bytes > s_alloc_stats.peak_live_bytes)
+    {
+        s_alloc_stats.peak_live_bytes = s_alloc_stats.live_bytes;
+    }
+
+    return (void *)(header + 1);
 }
 
 static void test_free(void *ptr)
 {
-    free(ptr);
+    test_alloc_header_t *header;
+    size_t payload_size;
+
+    if (ptr == NULL)
+    {
+        return;
+    }
+
+    header = ((test_alloc_header_t *)ptr) - 1;
+    payload_size = header->payload_size;
+
+    s_alloc_stats.free_count++;
+    if (s_alloc_stats.live_alloc_count > 0U)
+    {
+        s_alloc_stats.live_alloc_count--;
+    }
+    s_alloc_stats.free_bytes += payload_size;
+    if (s_alloc_stats.live_bytes >= payload_size)
+    {
+        s_alloc_stats.live_bytes -= payload_size;
+    }
+    else
+    {
+        s_alloc_stats.live_bytes = 0U;
+    }
+
+    free((void *)header);
 }
 #endif
 
@@ -167,6 +234,27 @@ static const egui_platform_ops_t test_platform_ops = {
 static egui_platform_t test_platform = {
         .ops = &test_platform_ops,
 };
+
+void egui_port_reset_alloc_stats(void)
+{
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
+    memset(&s_alloc_stats, 0, sizeof(s_alloc_stats));
+#endif
+}
+
+void egui_port_get_alloc_stats(egui_port_alloc_stats_t *out_stats)
+{
+    if (out_stats == NULL)
+    {
+        return;
+    }
+
+#if EGUI_CONFIG_PLATFORM_CUSTOM_MALLOC
+    *out_stats = s_alloc_stats;
+#else
+    memset(out_stats, 0, sizeof(*out_stats));
+#endif
+}
 
 // ============================================================================
 // Port initialization

@@ -5,9 +5,9 @@
 ## 当前状态
 
 - `HelloCustomWidgets` 继续使用 `category/widget_name` 的两级 `APP_SUB` 结构
-- 仓库当前已保留 50 个已完成控件，覆盖 `chart`、`decoration`、`display`、`feedback`、`input`、`layout`、`media`、`navigation` 八个分类
-- 这 50 个控件整体视为 **Showcase Track**，保留用于 demo、实验和展示，不再默认作为后续标准控件模板
-- 从 `2026-03-14` 起，后续新增控件切换到 **Reference Track**，统一基于 `Fluent 2 + WPF UI`
+- 截至 `2026-04-07`，仓库中已落地 `94` 个控件目录，覆盖 `chart`、`decoration`、`display`、`feedback`、`input`、`layout`、`media`、`navigation` 八个分类
+- 其中前期已完成的 `50` 个控件继续视为 **Showcase Track** 历史基线，保留用于 demo、实验和展示，不再默认作为后续标准控件模板
+- 从 `2026-03-14` 起，后续新增控件切换到 **Reference Track**，统一基于 `Fluent 2 + WPF UI`；当前目录总数 `94` 已包含这部分后续落地项
 
 ## 当前基线
 
@@ -56,13 +56,13 @@ example/HelloCustomWidgets/<category>/<widget>/
 - 删除效果
 - EGUI 简化说明
 
-### 2. 默认只做白名单控件
+### 2. 历史白名单（已完成基线）
 
-当前默认白名单：
+以下白名单用于说明当时的首批 Reference Track 基线来源，当前条目均已落地；后续选题应以 `.claude/2026-03-14-hcw-fluent-reference-plan.md` 和 `.claude/workflow/widget_progress_tracker.md` 的未完成项为准：
 
 - `feedback/message_bar`
 - `navigation/breadcrumb_bar`
-- `feedback/skeleton`
+- `feedback/skeleton_loader`
 - `navigation/tab_strip`
 - `input/number_box`
 - `navigation/nav_panel`
@@ -119,7 +119,7 @@ python scripts/web/wasm_build_demos.py
 1. 先读 `.claude/workflow/widget_acceptance_workflow.md`
 2. 再读 `.claude/workflow/widget_progress_tracker.md`
 3. 再读 `.claude/2026-03-14-hcw-fluent-reference-plan.md`
-4. 只从白名单里选下一个控件
+4. 优先从 `.claude/2026-03-14-hcw-fluent-reference-plan.md` 与 tracker 中尚未落地的项里选下一个控件
 5. 在 `example/HelloCustomWidgets/<category>/<widget>/` 下完成实现、readme、iteration_log 和 runtime 验证
 6. 完成后更新 tracker，并单独提交一个 commit
 

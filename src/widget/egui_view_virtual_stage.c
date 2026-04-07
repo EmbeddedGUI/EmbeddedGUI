@@ -254,6 +254,42 @@ static void egui_view_virtual_stage_release_cache(egui_view_virtual_stage_t *loc
     local->cached_capacity = 0;
 }
 
+static uint8_t egui_view_virtual_stage_ensure_cache_capacity(egui_view_virtual_stage_t *local, uint32_t target_capacity)
+{
+    egui_view_virtual_stage_cached_node_t *nodes;
+    uint32_t *draw_order;
+
+    if (target_capacity == 0)
+    {
+        egui_view_virtual_stage_release_cache(local);
+        return 1;
+    }
+
+    if (local->node_cache != NULL && local->draw_order != NULL && target_capacity <= local->cached_capacity)
+    {
+        return 1;
+    }
+
+    nodes = (egui_view_virtual_stage_cached_node_t *)egui_malloc((int)(sizeof(*nodes) * target_capacity));
+    if (nodes == NULL)
+    {
+        return 0;
+    }
+
+    draw_order = (uint32_t *)egui_malloc((int)(sizeof(*draw_order) * target_capacity));
+    if (draw_order == NULL)
+    {
+        egui_free(nodes);
+        return 0;
+    }
+
+    egui_view_virtual_stage_release_cache(local);
+    local->node_cache = nodes;
+    local->draw_order = draw_order;
+    local->cached_capacity = target_capacity;
+    return 1;
+}
+
 static void egui_view_virtual_stage_release_pins(egui_view_virtual_stage_t *local)
 {
     if (local->pin_entries != NULL)
@@ -344,8 +380,8 @@ static void egui_view_virtual_stage_sort_draw_order(egui_view_virtual_stage_t *l
 static uint8_t egui_view_virtual_stage_reload_cache(egui_view_virtual_stage_t *local)
 {
     uint32_t count = egui_view_virtual_stage_get_node_count(local);
-    egui_view_virtual_stage_cached_node_t *new_nodes = NULL;
-    uint32_t *new_order = NULL;
+    egui_view_virtual_stage_cached_node_t *nodes;
+    uint32_t *draw_order;
     uint32_t write_count = 0;
     uint32_t index;
 
@@ -355,16 +391,15 @@ static uint8_t egui_view_virtual_stage_reload_cache(egui_view_virtual_stage_t *l
         return 1;
     }
 
-    new_nodes = (egui_view_virtual_stage_cached_node_t *)egui_malloc((int)(sizeof(egui_view_virtual_stage_cached_node_t) * count));
-    if (new_nodes == NULL)
+    if (!egui_view_virtual_stage_ensure_cache_capacity(local, count))
     {
         return 0;
     }
 
-    new_order = (uint32_t *)egui_malloc((int)(sizeof(uint32_t) * count));
-    if (new_order == NULL)
+    nodes = egui_view_virtual_stage_get_nodes(local);
+    draw_order = local->draw_order;
+    if (nodes == NULL || draw_order == NULL)
     {
-        egui_free(new_nodes);
         return 0;
     }
 
@@ -380,25 +415,19 @@ static uint8_t egui_view_virtual_stage_reload_cache(egui_view_virtual_stage_t *l
         {
             desc.stable_id = index;
         }
-        new_nodes[write_count].index = index;
-        new_nodes[write_count].desc = desc;
-        new_order[write_count] = write_count;
+        nodes[write_count].index = index;
+        nodes[write_count].desc = desc;
+        draw_order[write_count] = write_count;
         write_count++;
     }
 
-    egui_view_virtual_stage_release_cache(local);
-
     if (write_count == 0)
     {
-        egui_free(new_nodes);
-        egui_free(new_order);
+        egui_view_virtual_stage_release_cache(local);
         return 1;
     }
 
-    local->node_cache = new_nodes;
-    local->draw_order = new_order;
     local->cached_node_count = write_count;
-    local->cached_capacity = count;
     egui_view_virtual_stage_sort_draw_order(local);
     egui_view_virtual_stage_prune_pins_against_cache(local);
     return 1;

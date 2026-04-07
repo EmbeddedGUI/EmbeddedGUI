@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "egui.h"
+#include "port_api.h"
 
 #define TEST_VIRTUAL_STAGE_MAX_NODES 4
 
@@ -538,6 +539,20 @@ static void configure_spinner_node(uint32_t index, egui_dim_t x, egui_dim_t y, e
     node->desc.flags = flags;
 }
 
+static void configure_render_only_node(uint32_t index, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, uint32_t stable_id, int16_t z_order)
+{
+    test_virtual_stage_node_data_t *node = &test_context.nodes[index];
+
+    memset(node, 0, sizeof(*node));
+    node->desc.region.location.x = x;
+    node->desc.region.location.y = y;
+    node->desc.region.size.width = width;
+    node->desc.region.size.height = height;
+    node->desc.stable_id = stable_id;
+    node->desc.view_type = EGUI_VIEW_VIRTUAL_STAGE_VIEW_TYPE_NONE;
+    node->desc.z_order = z_order;
+}
+
 static void configure_array_button_node(uint32_t index, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, uint32_t stable_id, uint8_t flags,
                                         const char *label)
 {
@@ -838,6 +853,72 @@ static void test_virtual_stage_notify_data_changed_prunes_removed_pin_state(void
     EGUI_TEST_ASSERT_EQUAL_INT(1, egui_view_virtual_stage_get_slot_count(EGUI_VIEW_OF(&test_page)));
     EGUI_TEST_ASSERT_NULL(find_slot_by_stable_id(522));
     EGUI_TEST_ASSERT_NOT_NULL(find_slot_by_stable_id(523));
+}
+
+static void test_virtual_stage_notify_data_changed_reuses_cache_capacity_without_heap_churn(void)
+{
+    egui_port_alloc_stats_t stats;
+    void *node_cache_before;
+    uint32_t *draw_order_before;
+
+    reset_page(2);
+
+    test_context.node_count = 2;
+    configure_render_only_node(0, 8, 8, 40, 20, 5241, 0);
+    configure_render_only_node(1, 56, 8, 40, 20, 5242, 1);
+
+    egui_port_reset_alloc_stats();
+    layout_page();
+    egui_port_get_alloc_stats(&stats);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(2, stats.alloc_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, stats.free_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, test_page.cached_capacity);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, test_page.cached_node_count);
+
+    node_cache_before = test_page.node_cache;
+    draw_order_before = test_page.draw_order;
+
+    egui_port_reset_alloc_stats();
+    egui_view_virtual_stage_notify_data_changed(EGUI_VIEW_OF(&test_page));
+    EGUI_VIEW_OF(&test_page)->api->calculate_layout(EGUI_VIEW_OF(&test_page));
+    egui_port_get_alloc_stats(&stats);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(0, stats.alloc_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, stats.free_count);
+    EGUI_TEST_ASSERT_TRUE(test_page.node_cache == node_cache_before);
+    EGUI_TEST_ASSERT_TRUE(test_page.draw_order == draw_order_before);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, test_page.cached_capacity);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, test_page.cached_node_count);
+
+    test_context.node_count = 3;
+    configure_render_only_node(2, 104, 8, 40, 20, 5243, 2);
+
+    egui_port_reset_alloc_stats();
+    egui_view_virtual_stage_notify_data_changed(EGUI_VIEW_OF(&test_page));
+    EGUI_VIEW_OF(&test_page)->api->calculate_layout(EGUI_VIEW_OF(&test_page));
+    egui_port_get_alloc_stats(&stats);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(2, stats.alloc_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, stats.free_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(3, test_page.cached_capacity);
+    EGUI_TEST_ASSERT_EQUAL_INT(3, test_page.cached_node_count);
+
+    node_cache_before = test_page.node_cache;
+    draw_order_before = test_page.draw_order;
+
+    test_context.node_count = 2;
+    egui_port_reset_alloc_stats();
+    egui_view_virtual_stage_notify_data_changed(EGUI_VIEW_OF(&test_page));
+    EGUI_VIEW_OF(&test_page)->api->calculate_layout(EGUI_VIEW_OF(&test_page));
+    egui_port_get_alloc_stats(&stats);
+
+    EGUI_TEST_ASSERT_EQUAL_INT(0, stats.alloc_count);
+    EGUI_TEST_ASSERT_EQUAL_INT(0, stats.free_count);
+    EGUI_TEST_ASSERT_TRUE(test_page.node_cache == node_cache_before);
+    EGUI_TEST_ASSERT_TRUE(test_page.draw_order == draw_order_before);
+    EGUI_TEST_ASSERT_EQUAL_INT(3, test_page.cached_capacity);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, test_page.cached_node_count);
 }
 
 static void test_virtual_stage_reduce_live_slot_limit_trims_oldest_keepalive_slot(void)
@@ -1799,6 +1880,7 @@ void test_virtual_stage_run(void)
     EGUI_TEST_RUN(test_virtual_stage_over_limit_keep_alive_slots_do_not_thrash_on_idle_layout);
     EGUI_TEST_RUN(test_virtual_stage_notify_data_changed_releases_removed_slot_and_rebinds_remaining_node);
     EGUI_TEST_RUN(test_virtual_stage_notify_data_changed_prunes_removed_pin_state);
+    EGUI_TEST_RUN(test_virtual_stage_notify_data_changed_reuses_cache_capacity_without_heap_churn);
     EGUI_TEST_RUN(test_virtual_stage_reduce_live_slot_limit_trims_oldest_keepalive_slot);
     EGUI_TEST_RUN(test_virtual_stage_reduce_live_slot_limit_to_zero_releases_captured_keepalive_after_up);
     EGUI_TEST_RUN(test_virtual_stage_set_adapter_clears_old_slots_and_pin_state);

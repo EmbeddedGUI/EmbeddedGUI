@@ -188,8 +188,40 @@ jobs:
       - name: HelloVirtual render workflow ${{ matrix.name }}
         run: python scripts\checks\hello_basic_render_workflow.py --app HelloVirtual --suite basic ${{ matrix.args }} --skip-unit-tests --bits64
 
+  ci-basic-render:
+    needs: [ci-compile-meta, ci-compile-matrix]
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - name: shard-1
+            args: --shard-count 4 --shard-index 1
+          - name: shard-2
+            args: --shard-count 4 --shard-index 2
+          - name: shard-3
+            args: --shard-count 4 --shard-index 3
+          - name: shard-4
+            args: --shard-count 4 --shard-index 4
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: rlalik/setup-cpp-compiler@v1.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: HelloBasic render workflow ${{ matrix.name }}
+        run: python scripts\checks\hello_basic_render_workflow.py --app HelloBasic --suite basic ${{ matrix.args }} --skip-unit-tests --bits64 --make-jobs 2
+
   ci-check:
-    needs: [ci-runtime-matrix, ci-dirty-animation, ci-showcase-parity, ci-virtual-render]
+    needs: [ci-runtime-matrix, ci-dirty-animation, ci-showcase-parity, ci-virtual-render, ci-basic-render]
     runs-on: windows-latest
     steps:
       - name: Aggregate CI Result

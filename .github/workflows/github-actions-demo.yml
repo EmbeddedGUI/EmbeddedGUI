@@ -191,8 +191,42 @@ jobs:
       - name: Start HelloVirtual Render Workflow (${{ matrix.name }})
         run: python scripts\checks\hello_basic_render_workflow.py --app HelloVirtual --suite basic ${{ matrix.args }} --skip-unit-tests --bits64
 
+  basic_render_workflow:
+    needs: [compile_check_meta, compile_check_matrix]
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - name: shard-1
+            args: --shard-count 4 --shard-index 1
+          - name: shard-2
+            args: --shard-count 4 --shard-index 2
+          - name: shard-3
+            args: --shard-count 4 --shard-index 3
+          - name: shard-4
+            args: --shard-count 4 --shard-index 4
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6
+
+      - name: Setup C/C++ env
+        uses: rlalik/setup-cpp-compiler@v1.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Start HelloBasic Render Workflow (${{ matrix.name }})
+        run: python scripts\checks\hello_basic_render_workflow.py --app HelloBasic --suite basic ${{ matrix.args }} --skip-unit-tests --bits64 --make-jobs 2
+
   env_and_compile_check:
-    needs: [runtime_check_matrix, dirty_animation_check, showcase_stage_parity_check, virtual_render_workflow]
+    needs: [runtime_check_matrix, dirty_animation_check, showcase_stage_parity_check, virtual_render_workflow, basic_render_workflow]
     runs-on: windows-latest
     steps:
       - name: Aggregate CI Result

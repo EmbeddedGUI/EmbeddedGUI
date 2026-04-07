@@ -781,7 +781,7 @@ python scripts/perf_analysis/compare_virtual_showcase_heap_qemu.py --mode app-re
 
 为什么 `virtual_stage_showcase` 会有这部分 heap：
 
-- stage 节点缓存本身会分配 heap：`node_cache` 和 `draw_order` 在 `egui_view_virtual_stage_reload_cache()` 中通过 `egui_malloc()` 创建
+- stage 节点缓存本身会分配 heap：`node_cache` 和 `draw_order` 在 `egui_view_virtual_stage_reload_cache()` 首次装载或容量增长时通过 `egui_malloc()` 创建；同容量刷新会复用现有缓存，避免每次 reload 都重复 malloc/free
 - 正常模式下页面默认会保留少量 live widget，尤其 `List` 节点带 `KEEPALIVE`，所以 idle 阶段就会出现少量常驻 heap
 - 交互过程中，`Button`、`TextInput`、`Slider`、`Combobox`、`List` 等真实控件会在 `showcase_adapter_create_view()` 里按 `view_type` 动态 `egui_malloc()`，释放后再复用或销毁
 - 当前实测里 `virtual_stage_showcase` 的 idle 阶段有 `3` 次分配，交互阶段额外出现 `24` 次分配和 `24` 次释放，说明 heap 大头来自“少量常驻 slot + 交互时反复 materialize live widget”
