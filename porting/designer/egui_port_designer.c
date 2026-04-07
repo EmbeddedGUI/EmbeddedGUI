@@ -20,16 +20,48 @@
 static egui_color_int_t designer_fb[EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT];
 static uint8_t designer_rgb888[EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT * 3];
 
+static void designer_unpack_rgb888(egui_color_int_t color, uint8_t *r, uint8_t *g, uint8_t *b)
+{
+#if EGUI_CONFIG_COLOR_DEPTH == 8
+    uint8_t gray = (uint8_t)color;
+    *r = gray;
+    *g = gray;
+    *b = gray;
+#elif EGUI_CONFIG_COLOR_DEPTH == 16
+    uint16_t rgb565 = (uint16_t)color;
+#if EGUI_CONFIG_COLOR_16_SWAP == 1
+    rgb565 = (uint16_t)((rgb565 >> 8) | (rgb565 << 8));
+#endif
+    uint8_t r5 = (uint8_t)((rgb565 >> 11) & 0x1F);
+    uint8_t g6 = (uint8_t)((rgb565 >> 5) & 0x3F);
+    uint8_t b5 = (uint8_t)(rgb565 & 0x1F);
+    *r = (uint8_t)((r5 << 3) | (r5 >> 2));
+    *g = (uint8_t)((g6 << 2) | (g6 >> 4));
+    *b = (uint8_t)((b5 << 3) | (b5 >> 2));
+#elif EGUI_CONFIG_COLOR_DEPTH == 32
+    uint32_t c = (uint32_t)color;
+    *r = (uint8_t)((c >> 16) & 0xFF);
+    *g = (uint8_t)((c >> 8) & 0xFF);
+    *b = (uint8_t)(c & 0xFF);
+#else
+    *r = 0;
+    *g = 0;
+    *b = 0;
+#endif
+}
+
 void designer_fb_to_rgb888(void)
 {
     int total = EGUI_CONFIG_SCEEN_WIDTH * EGUI_CONFIG_SCEEN_HEIGHT;
     for (int i = 0; i < total; i++)
     {
-        /* 32-bit color: BGRA on little-endian (see egui_common.h) */
-        uint32_t c = designer_fb[i];
-        designer_rgb888[i * 3 + 0] = (c >> 16) & 0xFF; /* R */
-        designer_rgb888[i * 3 + 1] = (c >> 8) & 0xFF;  /* G */
-        designer_rgb888[i * 3 + 2] = c & 0xFF;         /* B */
+        uint8_t r;
+        uint8_t g;
+        uint8_t b;
+        designer_unpack_rgb888(designer_fb[i], &r, &g, &b);
+        designer_rgb888[i * 3 + 0] = r;
+        designer_rgb888[i * 3 + 1] = g;
+        designer_rgb888[i * 3 + 2] = b;
     }
 }
 
