@@ -1,11 +1,15 @@
 """Compile-check helper for EmbeddedGUI examples and widget demos."""
 
+import concurrent.futures
+import hashlib
+import json
 import os
 import sys
 import argparse
 import time
 import shutil
 import subprocess
+from pathlib import Path
 
 make_jobs = None
 
@@ -15,6 +19,7 @@ COMPILE_FAST_FLAGS = ' COMPILE_DEBUG= COMPILE_OPT_LEVEL=-O0'
 # Build system: 'make' or 'cmake'
 build_system = 'make'
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = Path(SCRIPT_DIR).parent
 APP_SUB_ROOTS = {
     "HelloBasic": "example/HelloBasic",
     "HelloVirtual": "example/HelloVirtual",
@@ -22,6 +27,7 @@ APP_SUB_ROOTS = {
 }
 SUB_APP_FAMILY_APPS = tuple(APP_SUB_ROOTS.keys())
 FULL_CHECK_SKIP_APPS = {"HelloCustomWidgets"}
+COMPILE_OUTPUT_ROOT = Path("output") / "cc"
 
 def get_example_list():
     path = 'example'
@@ -84,6 +90,65 @@ def get_custom_widgets_list(category=None):
     return result
 
 
+def normalize_user_cflags(user_cflags):
+    return " ".join((user_cflags or "").split())
+
+
+def get_config_paths(app, app_sub=None):
+    config_paths = []
+    if app_sub:
+        config_paths.append(ROOT_DIR / "example" / app / app_sub / "app_egui_config.h")
+    config_paths.append(ROOT_DIR / "example" / app / "app_egui_config.h")
+    return config_paths
+
+
+def get_config_path(app, app_sub=None):
+    for config_path in get_config_paths(app, app_sub):
+        if config_path.exists():
+            return config_path
+    return None
+
+
+def get_config_hash(app, app_sub=None):
+    config_path = get_config_path(app, app_sub)
+    if config_path is None:
+        return "default"
+    return hashlib.sha256(config_path.read_bytes()).hexdigest()[:12]
+
+
+def get_compile_output_signature(app, port, app_sub=None, bits64=False, user_cflags=""):
+    payload = {
+        "app": app,
+        "port": port,
+        "app_sub": app_sub or "",
+        "bits64": bool(bits64),
+        "user_cflags": normalize_user_cflags(user_cflags),
+        "build_system": build_system,
+    }
+    return hashlib.sha1(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()[:10]
+
+
+def get_compile_output_dir(app, port, app_sub=None, bits64=False, user_cflags=""):
+    return COMPILE_OUTPUT_ROOT / get_compile_output_signature(app, port, app_sub=app_sub, bits64=bits64, user_cflags=user_cflags)
+
+
+def get_compile_obj_suffix(app, port, app_sub=None, bits64=False, user_cflags=""):
+    scope_hash = hashlib.sha1(
+        json.dumps(
+            {
+                "port": port,
+                "bits64": bool(bits64),
+                "user_cflags": normalize_user_cflags(user_cflags),
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()[:8]
+    if app in SUB_APP_FAMILY_APPS or app == "HelloCustomWidgets":
+        return "cc_%s_cfg_%s_%s" % (app.lower(), get_config_hash(app, app_sub), scope_hash)
+    return "cc_%s_%s" % (app.lower(), get_compile_output_signature(app, port, app_sub=app_sub, bits64=bits64, user_cflags=user_cflags))
+
+
 def get_make_parallel_arg():
     if make_jobs is None:
         return "-j"
@@ -104,6 +169,23 @@ def resolve_make_jobs(actions, requested_jobs):
         return min(2, max(1, cpu_count))
 
     return None
+
+
+def get_auto_case_parallel_jobs(total_cases):
+    if total_cases <= 1:
+        return 1
+    cpu_count = os.cpu_count() or 1
+    return max(1, min(total_cases, 8, cpu_count // 4 or 1))
+
+
+def resolve_case_parallel_jobs(requested_jobs, total_cases):
+    if requested_jobs is not None and requested_jobs < 0:
+        raise ValueError("--case-jobs must be >= 0")
+    if total_cases <= 1:
+        return 1
+    if requested_jobs and requested_jobs > 0:
+        return max(1, min(total_cases, requested_jobs))
+    return get_auto_case_parallel_jobs(total_cases)
 
 
 def build_sub_app_sets():
@@ -159,7 +241,7 @@ def apply_case_shard(cases, shard_count, shard_index):
     shard_cases = [case for index, case in enumerate(cases) if index % shard_count == (shard_index - 1)]
     return shard_cases
 
-def compile_code(params):
+def compile_code(params, output_dir=None, objroot_dir=None, app_obj_suffix=None):
     """Compile code using per-app OBJDIR (no make clean needed).
 
     PC Makefile uses APP_OBJ_SUFFIX so each APP gets its own obj directory.
@@ -173,6 +255,12 @@ def compile_code(params):
     if parallel_arg:
         cmd += ' ' + parallel_arg
     cmd += params + COMPILE_FAST_FLAGS
+    if output_dir is not None:
+        cmd += ' OUTPUT_PATH=%s' % Path(output_dir).as_posix()
+    if objroot_dir is not None:
+        cmd += ' OBJROOT_PATH=%s' % Path(objroot_dir).as_posix()
+    if app_obj_suffix:
+        cmd += ' APP_OBJ_SUFFIX=%s' % app_obj_suffix
     print(cmd)
     res = os.system(cmd)
     if res != 0:
@@ -397,7 +485,12 @@ def parse_args():
     parser.add_argument("--jobs",
                         type=int,
                         default=0,
-                        help="Parallel build jobs. 0=auto (Actions defaults to 2, local preserves make -j).")
+                        help="Per-build make -j jobs. 0=auto (Actions defaults to 2, local keeps Make default unless case parallelism needs throttling).")
+
+    parser.add_argument("--case-jobs",
+                        type=int,
+                        default=0,
+                        help="Parallel compile cases. 0=auto.")
 
     parser.add_argument("--shard-count",
                         type=int,
@@ -425,6 +518,146 @@ def process_app(current_work_cnt, total_work_cnt, app, port, app_sub, params):
     res = compile_code(params_full)
     if(res != 0):
         sys.exit(res)
+
+
+def build_case_params(params, app, port, app_sub):
+    if app_sub is not None:
+        return params + (' APP=%s PORT=%s APP_SUB=%s') % (app, port, app_sub)
+    return params + (' APP=%s PORT=%s') % (app, port)
+
+
+def compile_case_worker(app, port, app_sub, params, bits64, user_cflags, output_dir, objroot_dir, app_obj_suffix):
+    params_full = build_case_params(params, app, port, app_sub)
+    res = compile_code(
+        params_full,
+        output_dir=output_dir,
+        objroot_dir=objroot_dir,
+        app_obj_suffix=app_obj_suffix,
+    )
+    return {
+        "name": format_app_name(app, app_sub),
+        "returncode": res,
+        "output_dir": str(output_dir) if output_dir is not None else "",
+    }
+
+
+def format_app_name(app, app_sub=None):
+    if not app_sub:
+        return app
+    return "%s_%s" % (app, app_sub.replace("\\", "_").replace("/", "_"))
+
+
+def run_compile_cases_parallel(cases, params, bits64=False, user_cflags="", case_jobs=0):
+    global make_jobs
+
+    total_work_cnt = len(cases)
+    if total_work_cnt == 0:
+        print("No compile cases selected.")
+        return
+
+    if build_system == 'cmake':
+        run_compile_cases(cases, params)
+        return
+
+    parallel_jobs = resolve_case_parallel_jobs(case_jobs, total_work_cnt)
+    if parallel_jobs <= 1:
+        run_compile_cases(cases, params)
+        return
+
+    cpu_count = os.cpu_count() or 1
+    if make_jobs is None:
+        effective_make_jobs = max(1, cpu_count // parallel_jobs)
+    else:
+        effective_make_jobs = make_jobs
+
+    previous_make_jobs = make_jobs
+    make_jobs = effective_make_jobs
+
+    try:
+        objroot_dir = Path("output")
+        grouped_cases = {}
+        direct_cases = []
+        for app, port, app_sub in cases:
+            output_dir = get_compile_output_dir(app, port, app_sub=app_sub, bits64=bits64, user_cflags=user_cflags)
+            obj_suffix = get_compile_obj_suffix(app, port, app_sub=app_sub, bits64=bits64, user_cflags=user_cflags)
+            case_info = {
+                "app": app,
+                "port": port,
+                "app_sub": app_sub,
+                "output_dir": output_dir,
+                "obj_suffix": obj_suffix,
+            }
+            if app in SUB_APP_FAMILY_APPS or app == "HelloCustomWidgets":
+                grouped_cases.setdefault(obj_suffix, []).append(case_info)
+            else:
+                direct_cases.append(case_info)
+
+        print("Running compile cases with jobs=%d, make -j%d" % (parallel_jobs, effective_make_jobs))
+        results = []
+        completed = 0
+
+        parallel_tasks = []
+        for obj_suffix in sorted(grouped_cases):
+            family_cases = grouped_cases[obj_suffix]
+            seed_case = family_cases[0]
+            completed += 1
+            seed_name = format_app_name(seed_case["app"], seed_case["app_sub"])
+            print("=================================================================================")
+            print("Total Work Cnt: %d, Current Cnt: %d, Process: %.2f%%" % (total_work_cnt, completed, completed * 100.0 / total_work_cnt))
+            print("=================================================================================")
+            print("%s (warmup)" % seed_name)
+            result = compile_case_worker(
+                seed_case["app"],
+                seed_case["port"],
+                seed_case["app_sub"],
+                params,
+                bits64,
+                user_cflags,
+                seed_case["output_dir"],
+                objroot_dir,
+                seed_case["obj_suffix"],
+            )
+            if result["returncode"] != 0:
+                sys.exit(result["returncode"])
+            shutil.rmtree(seed_case["output_dir"], ignore_errors=True)
+            for case_info in family_cases[1:]:
+                parallel_tasks.append(case_info)
+
+        parallel_tasks.extend(direct_cases)
+
+        if not parallel_tasks:
+            return
+
+        with concurrent.futures.ProcessPoolExecutor(max_workers=min(parallel_jobs, len(parallel_tasks))) as executor:
+            future_map = {}
+            for case_info in parallel_tasks:
+                future = executor.submit(
+                    compile_case_worker,
+                    case_info["app"],
+                    case_info["port"],
+                    case_info["app_sub"],
+                    params,
+                    bits64,
+                    user_cflags,
+                    case_info["output_dir"],
+                    objroot_dir,
+                    case_info["obj_suffix"],
+                )
+                future_map[future] = case_info
+
+            for future in concurrent.futures.as_completed(future_map):
+                case_info = future_map[future]
+                result = future.result()
+                completed += 1
+                name = result["name"]
+                if result["returncode"] != 0:
+                    print("[%d/%d] %s FAILED" % (completed, total_work_cnt, name))
+                    sys.exit(result["returncode"])
+                print("[%d/%d] %s OK" % (completed, total_work_cnt, name))
+                shutil.rmtree(case_info["output_dir"], ignore_errors=True)
+                results.append(result)
+    finally:
+        make_jobs = previous_make_jobs
 
 
 def run_compile_cases(cases, params):
@@ -478,6 +711,12 @@ if __name__ == '__main__':
         print("Error: %s" % exc)
         sys.exit(1)
 
+    try:
+        resolve_case_parallel_jobs(args.case_jobs, 2)
+    except ValueError as exc:
+        print("Error: %s" % exc)
+        sys.exit(1)
+
     # Select build system
     if args.cmake:
         build_system = 'cmake'
@@ -509,7 +748,7 @@ if __name__ == '__main__':
 
         custom_list = get_custom_widgets_list(args.category)
         custom_cases = [("HelloCustomWidgets", "pc", widget_sub) for widget_sub in custom_list]
-        run_compile_cases(custom_cases, params)
+        run_compile_cases_parallel(custom_cases, params, bits64=args.bits64, case_jobs=args.case_jobs)
 
         elapsed = time.time() - start_time
         print("=================================================================================")
@@ -534,7 +773,7 @@ if __name__ == '__main__':
             sys.exit(res)
 
         full_cases = build_compile_cases("full", app_sets, port_sets, sub_app_sets)
-        run_compile_cases(full_cases, params)
+        run_compile_cases_parallel(full_cases, params, bits64=args.bits64, case_jobs=args.case_jobs)
 
         if not args.skip_icon_font_check:
             res = run_example_icon_font_check()
@@ -564,7 +803,7 @@ if __name__ == '__main__':
             args.shard_count,
             len(scope_cases),
         ))
-        run_compile_cases(scope_cases, params)
+        run_compile_cases_parallel(scope_cases, params, bits64=args.bits64, case_jobs=args.case_jobs)
 
         elapsed = time.time() - start_time
         print("=================================================================================")

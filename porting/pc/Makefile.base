@@ -95,7 +95,8 @@ LDFLAGS	+= $(GC_LDFLAGS)
 LFLAGS ?= 
 
 # define output directory
-OUTPUT_PATH	:= output
+OUTPUT_PATH	?= output
+OBJROOT_PATH ?= $(OUTPUT_PATH)
 
 # define source directory
 SRC		?=
@@ -110,7 +111,7 @@ LIB		?=
 APP_OBJ_SUFFIX ?= $(if $(APP),$(APP),default)
 BUILD_OBJ_SUFFIX := $(APP_OBJ_SUFFIX)$(if $(PORT),_$(PORT),)
 OUTPUT_TARGET	:= $(OUTPUT_PATH)/$(TARGET)
-OBJDIR = $(OUTPUT_PATH)/obj/$(BUILD_OBJ_SUFFIX)
+OBJDIR = $(OBJROOT_PATH)/obj/$(BUILD_OBJ_SUFFIX)
 
 # Configuration stamp - forces relink when APP changes.
 # The stamp filename encodes the current APP; switching APP means the old

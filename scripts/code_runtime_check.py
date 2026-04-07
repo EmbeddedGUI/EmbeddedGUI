@@ -349,6 +349,28 @@ def get_example_sub_list(app):
     return sorted(app_list)
 
 
+def get_config_paths(app, app_sub=None):
+    config_paths = []
+    if app_sub:
+        config_paths.append(ROOT_DIR / "example" / app / app_sub / "app_egui_config.h")
+    config_paths.append(ROOT_DIR / "example" / app / "app_egui_config.h")
+    return config_paths
+
+
+def get_config_path(app, app_sub=None):
+    for config_path in get_config_paths(app, app_sub):
+        if config_path.exists():
+            return config_path
+    return None
+
+
+def get_config_hash(app, app_sub=None):
+    config_path = get_config_path(app, app_sub)
+    if config_path is None:
+        return "default"
+    return hashlib.sha256(config_path.read_bytes()).hexdigest()[:12]
+
+
 def filter_sub_apps(app, app_subs, category=None):
     """Filter sub-app list for app-specific grouping."""
     if not category or app != "HelloCustomWidgets":
@@ -452,6 +474,28 @@ def get_runtime_build_output_dir(app, app_sub=None, bits64=False, user_cflags=""
     return RUNTIME_BUILD_ROOT / signature
 
 
+def get_runtime_objroot_path():
+    return ROOT_DIR / "output"
+
+
+def get_runtime_shared_obj_suffix(app, app_sub=None, bits64=False, user_cflags="", recording_test=True):
+    if app not in SUB_APP_FAMILY_APPS:
+        return None
+
+    scope_signature = hashlib.sha1(
+        json.dumps(
+            {
+                "bits64": bool(bits64),
+                "recording_test": bool(recording_test),
+                "user_cflags": normalize_user_cflags(user_cflags),
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()[:8]
+    return "rt_%s_cfg_%s_%s" % (app.lower(), get_config_hash(app, app_sub), scope_signature)
+
+
 def get_runtime_obj_suffix(app, app_sub=None, bits64=False, user_cflags="", recording_test=True):
     signature = get_runtime_build_signature(
         app,
@@ -527,7 +571,7 @@ def get_runtime_skip_reason(app, app_sub=None):
 
 
 def compile_app(app, app_sub=None, bits64=False, user_cflags="", recording_test=True,
-                build_output_dir=None, make_jobs=None):
+                build_output_dir=None, make_jobs=None, app_obj_suffix=None, objroot_path=None):
     """Compile application with optional CFLAGS override.
     Uses a per-config OUTPUT_PATH so runtime sweeps can reuse build cache safely.
     Returns True on success, False on failure.
@@ -540,13 +584,14 @@ def compile_app(app, app_sub=None, bits64=False, user_cflags="", recording_test=
             user_cflags=user_cflags,
             recording_test=recording_test,
         )
-    app_obj_suffix = get_runtime_obj_suffix(
-        app,
-        app_sub=app_sub,
-        bits64=bits64,
-        user_cflags=user_cflags,
-        recording_test=recording_test,
-    )
+    if app_obj_suffix is None:
+        app_obj_suffix = get_runtime_obj_suffix(
+            app,
+            app_sub=app_sub,
+            bits64=bits64,
+            user_cflags=user_cflags,
+            recording_test=recording_test,
+        )
 
     # Always inject RECORDING_TEST into the build signature so cached outputs stay isolated.
     recording_flag = '-DEGUI_CONFIG_RECORDING_TEST=%d' % (1 if recording_test else 0)
@@ -559,6 +604,8 @@ def compile_app(app, app_sub=None, bits64=False, user_cflags="", recording_test=
     cmd.append('USER_CFLAGS=%s' % combined_cflags)
     cmd.append('OUTPUT_PATH=%s' % Path(build_output_dir).as_posix())
     cmd.append('APP_OBJ_SUFFIX=%s' % app_obj_suffix)
+    if objroot_path is not None:
+        cmd.append('OBJROOT_PATH=%s' % Path(objroot_path).as_posix())
 
     for attempt in range(COMPILE_RETRY_COUNT):
         result = subprocess.run(cmd, cwd=ROOT_DIR, capture_output=True, text=True)
@@ -602,7 +649,7 @@ def check_default_resolution(app, app_sub, bits64, explicit_timeout=None,
                              clock_scale=RECORDING_CLOCK_SCALE,
                              snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
                              snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
-                             make_jobs=None):
+                             make_jobs=None, app_obj_suffix=None, objroot_path=None):
     """Test app at default resolution (no CFLAGS override).
     Apps auto-quit after all actions complete; RECORDING_DURATION is a safety timeout.
     Returns (success: bool, message: str).
@@ -615,7 +662,15 @@ def check_default_resolution(app, app_sub, bits64, explicit_timeout=None,
 
     build_output_dir = get_runtime_build_output_dir(app, app_sub=app_sub, bits64=bits64)
 
-    if not compile_app(app, app_sub, bits64, build_output_dir=build_output_dir, make_jobs=make_jobs):
+    if not compile_app(
+        app,
+        app_sub,
+        bits64,
+        build_output_dir=build_output_dir,
+        make_jobs=make_jobs,
+        app_obj_suffix=app_obj_suffix,
+        objroot_path=objroot_path,
+    ):
         return False, "compile failed"
 
     # Timeout must be >= recording duration + margin to allow auto-quit
@@ -719,12 +774,28 @@ def print_case_header(index, total, app_name, speed):
     print("=" * 60)
 
 
+def build_runtime_case_info(app, app_sub, bits64, user_cflags="", recording_test=True):
+    return {
+        "app": app,
+        "app_sub": app_sub,
+        "name": format_app_name(app, app_sub),
+        "shared_obj_suffix": get_runtime_shared_obj_suffix(
+            app,
+            app_sub=app_sub,
+            bits64=bits64,
+            user_cflags=user_cflags,
+            recording_test=recording_test,
+        ),
+        "objroot_path": get_runtime_objroot_path(),
+    }
+
+
 def run_runtime_case(app, app_sub, bits64, explicit_timeout=None,
                      speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_SNAPSHOT_SETTLE_MS,
                      clock_scale=RECORDING_CLOCK_SCALE,
                      snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
                      snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
-                     make_jobs=None):
+                     make_jobs=None, app_obj_suffix=None, objroot_path=None):
     app_name = format_app_name(app, app_sub)
     success, msg = check_default_resolution(
         app,
@@ -737,6 +808,8 @@ def run_runtime_case(app, app_sub, bits64, explicit_timeout=None,
         snapshot_stable_cycles=snapshot_stable_cycles,
         snapshot_max_wait_ms=snapshot_max_wait_ms,
         make_jobs=make_jobs,
+        app_obj_suffix=app_obj_suffix,
+        objroot_path=objroot_path,
     )
     return app_name, success, msg
 
@@ -753,7 +826,8 @@ def retry_failed_runtime_cases_serial(results, case_specs, bits64, explicit_time
     print("Retrying %d failed runtime cases serially for stability" % len(failed_indexes))
     for retry_index, index in enumerate(failed_indexes, start=1):
         app, app_sub = case_specs[index]
-        app_name = format_app_name(app, app_sub)
+        case_info = build_runtime_case_info(app, app_sub, bits64)
+        app_name = case_info["name"]
         print_case_header(retry_index, len(failed_indexes), "%s [serial retry]" % app_name, speed)
         _, success, msg = run_runtime_case(
             app,
@@ -766,6 +840,8 @@ def retry_failed_runtime_cases_serial(results, case_specs, bits64, explicit_time
             snapshot_stable_cycles=snapshot_stable_cycles,
             snapshot_max_wait_ms=snapshot_max_wait_ms,
             make_jobs=1,
+            app_obj_suffix=case_info["shared_obj_suffix"],
+            objroot_path=case_info["objroot_path"] if case_info["shared_obj_suffix"] else None,
         )
         status = "PASS" if success else "FAIL"
         print("  %s (%s)" % (status, msg))
@@ -785,11 +861,14 @@ def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
 
     parallel_jobs = resolve_parallel_jobs(jobs, total)
     make_jobs = resolve_make_job_count(parallel_jobs)
+    case_infos = [build_runtime_case_info(app, app_sub, bits64) for app, app_sub in case_specs]
 
     if parallel_jobs <= 1:
         results = []
-        for index, (app, app_sub) in enumerate(case_specs, start=1):
-            app_name = format_app_name(app, app_sub)
+        for index, case_info in enumerate(case_infos, start=1):
+            app = case_info["app"]
+            app_sub = case_info["app_sub"]
+            app_name = case_info["name"]
             print_case_header(index, total, app_name, speed)
             _, success, msg = run_runtime_case(
                 app,
@@ -802,6 +881,8 @@ def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
                 snapshot_stable_cycles=snapshot_stable_cycles,
                 snapshot_max_wait_ms=snapshot_max_wait_ms,
                 make_jobs=make_jobs,
+                app_obj_suffix=case_info["shared_obj_suffix"],
+                objroot_path=case_info["objroot_path"] if case_info["shared_obj_suffix"] else None,
             )
             status = "PASS" if success else "FAIL"
             print("  %s (%s)" % (status, msg))
@@ -812,27 +893,89 @@ def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
     results = [None] * total
     with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_jobs) as executor:
         future_to_case = {}
-        for index, (app, app_sub) in enumerate(case_specs):
-            future = executor.submit(
-                run_runtime_case,
-                app,
-                app_sub,
-                bits64,
-                explicit_timeout,
-                speed,
-                snapshot_settle_ms,
-                clock_scale,
-                snapshot_stable_cycles,
-                snapshot_max_wait_ms,
-                make_jobs,
-            )
-            future_to_case[future] = index
-
         completed = 0
+        grouped_indexes = {}
+        for index, case_info in enumerate(case_infos):
+            shared_suffix = case_info["shared_obj_suffix"]
+            if shared_suffix:
+                grouped_indexes.setdefault(shared_suffix, []).append(index)
+            else:
+                grouped_indexes.setdefault("__direct__%d" % index, []).append(index)
+
+        for group_key in sorted(grouped_indexes):
+            indexes = grouped_indexes[group_key]
+            if group_key.startswith("__direct__"):
+                index = indexes[0]
+                case_info = case_infos[index]
+                future = executor.submit(
+                    run_runtime_case,
+                    case_info["app"],
+                    case_info["app_sub"],
+                    bits64,
+                    explicit_timeout,
+                    speed,
+                    snapshot_settle_ms,
+                    clock_scale,
+                    snapshot_stable_cycles,
+                    snapshot_max_wait_ms,
+                    make_jobs,
+                    None,
+                    None,
+                )
+                future_to_case[future] = index
+                continue
+
+            seed_index = indexes[0]
+            seed_case = case_infos[seed_index]
+            completed += 1
+            print("[%d/%d] %s WARMUP" % (completed, total, seed_case["name"]))
+            _, success, msg = run_runtime_case(
+                seed_case["app"],
+                seed_case["app_sub"],
+                bits64,
+                explicit_timeout=explicit_timeout,
+                speed=speed,
+                snapshot_settle_ms=snapshot_settle_ms,
+                clock_scale=clock_scale,
+                snapshot_stable_cycles=snapshot_stable_cycles,
+                snapshot_max_wait_ms=snapshot_max_wait_ms,
+                make_jobs=make_jobs,
+                app_obj_suffix=seed_case["shared_obj_suffix"],
+                objroot_path=seed_case["objroot_path"],
+            )
+            results[seed_index] = (seed_case["name"], success, msg)
+            status = "PASS" if success else "FAIL"
+            print("[%d/%d] %s %s (%s)" % (completed, total, seed_case["name"], status, msg))
+
+            if not success:
+                for index in indexes[1:]:
+                    case_info = case_infos[index]
+                    results[index] = (case_info["name"], False, "skipped after warmup failure")
+                continue
+
+            for index in indexes[1:]:
+                case_info = case_infos[index]
+                future = executor.submit(
+                    run_runtime_case,
+                    case_info["app"],
+                    case_info["app_sub"],
+                    bits64,
+                    explicit_timeout,
+                    speed,
+                    snapshot_settle_ms,
+                    clock_scale,
+                    snapshot_stable_cycles,
+                    snapshot_max_wait_ms,
+                    make_jobs,
+                    case_info["shared_obj_suffix"],
+                    case_info["objroot_path"],
+                )
+                future_to_case[future] = index
+
         for future in concurrent.futures.as_completed(future_to_case):
             index = future_to_case[future]
-            app, app_sub = case_specs[index]
-            app_name = format_app_name(app, app_sub)
+            case_info = case_infos[index]
+            app_name = case_info["name"]
             try:
                 _, success, msg = future.result()
             except Exception as exc:

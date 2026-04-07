@@ -1,4 +1,6 @@
 # coding=utf8
+import concurrent.futures
+import hashlib
 import json
 import os
 import platform
@@ -24,6 +26,7 @@ MAP_PATH = OUTPUT_DIR / "main.map"
 README_PATH = OUTPUT_DIR / "README.md"
 RESULT_JSON_PATH = OUTPUT_DIR / "size_results.json"
 RESOURCE_DST = OUTPUT_DIR / "app_egui_resource_merge.bin"
+CASE_BUILD_ROOT = Path("output") / "size_cases"
 
 BUILD_PORT = "qemu"
 BUILD_CPU_ARCH = "cortex-m0plus"
@@ -57,6 +60,32 @@ def create_case(app, app_sub=None):
     if app_sub:
         case["app_sub"] = app_sub
     return case
+
+
+def normalize_user_cflags(user_cflags):
+    return " ".join((user_cflags or "").split())
+
+
+def get_config_paths(app, app_sub=None):
+    config_paths = []
+    if app_sub:
+        config_paths.append(PROJECT_ROOT / "example" / app / app_sub / "app_egui_config.h")
+    config_paths.append(PROJECT_ROOT / "example" / app / "app_egui_config.h")
+    return config_paths
+
+
+def get_config_path(app, app_sub=None):
+    for config_path in get_config_paths(app, app_sub):
+        if config_path.exists():
+            return config_path
+    return None
+
+
+def get_config_hash(app, app_sub=None):
+    config_path = get_config_path(app, app_sub)
+    if config_path is None:
+        return "default"
+    return hashlib.sha256(config_path.read_bytes()).hexdigest()[:12]
 
 
 def utils_process_elf_file(filename):
@@ -230,7 +259,7 @@ def describe_scope(case_set):
 
 
 def describe_static_size_scope():
-    return "Map input sections from repo-side `src/` + `example/` objects only; exclude toolchain libraries, `driver/`, `porting/`; `ram_bytes` excludes `PFB`, and `pfb_bytes` still comes from `.bss.pfb_area`."
+    return "Map input sections from repo-side `src/` + `example/` objects only; exclude toolchain libraries, `driver/`, `porting/`; `ram_bytes` excludes `PFB`, and `pfb_bytes` still comes from each case-local `main.map` `.bss.pfb_area`."
 
 
 def get_case_resource_bin(case):
@@ -239,48 +268,77 @@ def get_case_resource_bin(case):
     return PROJECT_ROOT / "example" / case["app"] / "resource" / "app_egui_resource_merge.bin"
 
 
-def sync_runtime_resource(case):
-    if RESOURCE_DST.exists():
-        RESOURCE_DST.unlink()
+def sync_runtime_resource(case, build_output_dir):
+    resource_dst = Path(build_output_dir) / "app_egui_resource_merge.bin"
+    if resource_dst.exists():
+        resource_dst.unlink()
 
     resource_src = get_case_resource_bin(case)
     if resource_src.exists():
-        RESOURCE_DST.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(resource_src, RESOURCE_DST)
+        resource_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(resource_src, resource_dst)
 
-
-def get_case_obj_suffix(case, mode):
+def get_case_obj_suffix(case, mode, user_cflags="", share_objects=False):
     safe_name = []
     for ch in case["name"]:
         if ch.isalnum():
             safe_name.append(ch.lower())
         else:
             safe_name.append("_")
-    return "size_%s_%s" % ("".join(safe_name).strip("_"), mode)
+    if not share_objects or case["app"] not in ("HelloBasic", "HelloVirtual", "HelloCustomWidgets", "HelloSizeAnalysis"):
+        return "size_%s_%s" % ("".join(safe_name).strip("_"), mode)
+
+    scope_signature = hashlib.sha1(
+        json.dumps(
+            {
+                "mode": mode,
+                "user_cflags": normalize_user_cflags(user_cflags),
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()[:8]
+    return "size_%s_cfg_%s_%s" % (case["app"].lower(), get_config_hash(case["app"], case.get("app_sub")), scope_signature)
+
+
+def get_case_build_output_dir(case, mode, user_cflags=""):
+    payload = {
+        "name": case["name"],
+        "mode": mode,
+        "user_cflags": normalize_user_cflags(user_cflags),
+    }
+    signature = hashlib.sha1(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()[:10]
+    return CASE_BUILD_ROOT / signature
 
 
 def format_cmd(cmd):
     return " ".join(cmd)
 
 
-def run_cmd(cmd, timeout):
+def run_cmd(cmd, timeout, cwd=None):
     return subprocess.run(
         cmd,
-        cwd=PROJECT_ROOT,
+        cwd=cwd or PROJECT_ROOT,
         capture_output=True,
         text=True,
         timeout=timeout,
     )
 
 
-def remove_stale_build_outputs():
-    for path in [ELF_PATH, MAP_PATH, OUTPUT_DIR / "main.bin"]:
+def remove_stale_build_outputs(build_output_dir):
+    build_output_dir = Path(build_output_dir)
+    for path in [build_output_dir / "main.elf", build_output_dir / "main.map", build_output_dir / "main.bin"]:
         if path.exists():
             path.unlink()
 
 
-def build_case(case, mode, user_cflags=""):
-    remove_stale_build_outputs()
+def build_case(case, mode, user_cflags="", build_output_dir=None, app_obj_suffix=None, objroot_path=None, share_objects=False):
+    if build_output_dir is None:
+        build_output_dir = get_case_build_output_dir(case, mode, user_cflags=user_cflags)
+    if app_obj_suffix is None:
+        app_obj_suffix = get_case_obj_suffix(case, mode, user_cflags=user_cflags, share_objects=share_objects)
+
+    remove_stale_build_outputs(build_output_dir)
 
     # Use all CPU cores for parallel compilation
     import multiprocessing
@@ -293,8 +351,11 @@ def build_case(case, mode, user_cflags=""):
         "APP=%s" % case["app"],
         "PORT=%s" % BUILD_PORT,
         "CPU_ARCH=%s" % BUILD_CPU_ARCH,
-        "APP_OBJ_SUFFIX=%s" % get_case_obj_suffix(case, mode),
+        "APP_OBJ_SUFFIX=%s" % app_obj_suffix,
+        "OUTPUT_PATH=%s" % Path(build_output_dir).as_posix(),
     ]
+    if objroot_path is not None:
+        cmd.append("OBJROOT_PATH=%s" % Path(objroot_path).as_posix())
 
     if case.get("app_sub"):
         cmd.append("APP_SUB=%s" % case["app_sub"])
@@ -305,7 +366,8 @@ def build_case(case, mode, user_cflags=""):
     return cmd, result
 
 
-def run_qemu(timeout):
+def run_qemu(build_output_dir, timeout):
+    build_output_dir = Path(build_output_dir)
     qemu_cmd = [
         find_qemu_executable(),
         "-machine",
@@ -318,12 +380,12 @@ def run_qemu(timeout):
         "-icount",
         "shift=0",
         "-kernel",
-        str(ELF_PATH),
+        "main.elf",
     ]
 
     proc = subprocess.Popen(
         qemu_cmd,
-        cwd=PROJECT_ROOT,
+        cwd=build_output_dir,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -381,35 +443,177 @@ def make_failure(case, phase, message, command=None):
     return item
 
 
-def process_case(current_work_cnt, total_work_cnt, case, runtime_timeout):
-    print("=================================================================================")
-    print(
-        "Total Work Cnt: %d, Current Cnt: %d, Process: %.2f%%, Case: %s"
-        % (total_work_cnt, current_work_cnt, current_work_cnt * 100.0 / total_work_cnt, case["name"])
-    )
-    print("=================================================================================")
+def get_auto_parallel_jobs(total_cases):
+    if total_cases <= 1:
+        return 1
+    cpu_count = os.cpu_count() or 1
+    return max(1, min(total_cases, 4, cpu_count // 4 or 1))
+
+
+def resolve_parallel_jobs(requested_jobs, total_cases):
+    if requested_jobs < 0:
+        raise ValueError("--jobs must be >= 0")
+    if total_cases <= 1:
+        return 1
+    if requested_jobs > 0:
+        return max(1, min(total_cases, requested_jobs))
+    return get_auto_parallel_jobs(total_cases)
+
+
+def process_cases_parallel(cases, runtime_timeout, jobs):
+    total_work_cnt = len(cases)
+    if total_work_cnt == 0:
+        return [], []
+
+    parallel_jobs = resolve_parallel_jobs(jobs, total_work_cnt)
+    if parallel_jobs <= 1:
+        size_results = []
+        failures = []
+        for index, case in enumerate(cases, 1):
+            json_entry, failure = process_case(index, total_work_cnt, case, runtime_timeout)
+            if json_entry is not None:
+                size_results.append(json_entry)
+            if failure is not None:
+                failures.append(failure)
+        return size_results, failures
+
+    print("Running %d size-analysis cases with jobs=%d" % (total_work_cnt, parallel_jobs))
+    objroot_path = Path("output")
+    grouped = {}
+    direct_tasks = []
+    for case in cases:
+        shared_suffix = get_case_obj_suffix(case, "measure", QEMU_MEASURE_CFLAGS, share_objects=True)
+        case_info = {
+            "case": case,
+            "shared_suffix": shared_suffix,
+            "build_output_dir": get_case_build_output_dir(case, "measure", user_cflags=QEMU_MEASURE_CFLAGS),
+        }
+        if case["app"] in ("HelloBasic", "HelloVirtual", "HelloCustomWidgets", "HelloSizeAnalysis"):
+            grouped.setdefault(shared_suffix, []).append(case_info)
+        else:
+            direct_tasks.append(case_info)
+
+    size_results = []
+    failures = []
+    completed = 0
+    parallel_tasks = list(direct_tasks)
+
+    for shared_suffix in sorted(grouped):
+        family_cases = grouped[shared_suffix]
+        seed = family_cases[0]
+        completed += 1
+        json_entry, failure = process_case(
+            completed,
+            total_work_cnt,
+            seed["case"],
+            runtime_timeout,
+            user_cflags=QEMU_MEASURE_CFLAGS,
+            build_output_dir=seed["build_output_dir"],
+            app_obj_suffix=shared_suffix,
+            objroot_path=objroot_path,
+            share_objects=True,
+            verbose=True,
+        )
+        if json_entry is not None:
+            size_results.append(json_entry)
+        if failure is not None:
+            failures.append(failure)
+            for skipped in family_cases[1:]:
+                failures.append(make_failure(skipped["case"], "warmup", "skipped after warmup failure"))
+            continue
+
+        parallel_tasks.extend(family_cases[1:])
+
+    if not parallel_tasks:
+        return size_results, failures
+
+    with concurrent.futures.ProcessPoolExecutor(max_workers=min(parallel_jobs, len(parallel_tasks))) as executor:
+        future_map = {}
+        for item in parallel_tasks:
+            future = executor.submit(
+                process_case,
+                0,
+                total_work_cnt,
+                item["case"],
+                runtime_timeout,
+                QEMU_MEASURE_CFLAGS,
+                item["build_output_dir"],
+                item["shared_suffix"],
+                objroot_path if item["case"]["app"] in ("HelloBasic", "HelloVirtual", "HelloCustomWidgets", "HelloSizeAnalysis") else None,
+                item["case"]["app"] in ("HelloBasic", "HelloVirtual", "HelloCustomWidgets", "HelloSizeAnalysis"),
+                False,
+            )
+            future_map[future] = item["case"]
+
+        for future in concurrent.futures.as_completed(future_map):
+            case = future_map[future]
+            completed += 1
+            try:
+                json_entry, failure = future.result()
+            except Exception as exc:
+                json_entry = None
+                failure = make_failure(case, "unexpected", str(exc))
+            if json_entry is not None:
+                size_results.append(json_entry)
+                print("[%d/%d] %s OK" % (completed, total_work_cnt, case["name"]))
+            if failure is not None:
+                failures.append(failure)
+                print("[%d/%d] %s FAIL (%s)" % (completed, total_work_cnt, case["name"], failure["phase"]))
+
+    return size_results, failures
+
+
+def process_case(current_work_cnt, total_work_cnt, case, runtime_timeout, user_cflags="", build_output_dir=None,
+                 app_obj_suffix=None, objroot_path=None, share_objects=False, verbose=True):
+    if build_output_dir is None:
+        build_output_dir = get_case_build_output_dir(case, "measure", user_cflags=user_cflags)
+    if app_obj_suffix is None:
+        app_obj_suffix = get_case_obj_suffix(case, "measure", user_cflags=user_cflags, share_objects=share_objects)
+    resolved_build_output_dir = Path(build_output_dir)
+    if not resolved_build_output_dir.is_absolute():
+        resolved_build_output_dir = PROJECT_ROOT / resolved_build_output_dir
+
+    if verbose:
+        print("=================================================================================")
+        print(
+            "Total Work Cnt: %d, Current Cnt: %d, Process: %.2f%%, Case: %s"
+            % (total_work_cnt, current_work_cnt, current_work_cnt * 100.0 / total_work_cnt, case["name"])
+        )
+        print("=================================================================================")
 
     # Optimization: Build only once with measure flags (saves 50% compile time)
     # The measure flags add minimal code that doesn't significantly affect size metrics
-    measure_cmd, measure_result = build_case(case, "measure", QEMU_MEASURE_CFLAGS)
-    print(format_cmd(measure_cmd))
+    measure_cmd, measure_result = build_case(
+        case,
+        "measure",
+        QEMU_MEASURE_CFLAGS,
+        build_output_dir=build_output_dir,
+        app_obj_suffix=app_obj_suffix,
+        objroot_path=objroot_path,
+        share_objects=share_objects,
+    )
+    if verbose:
+        print(format_cmd(measure_cmd))
     if measure_result.returncode != 0:
         message = (measure_result.stderr or measure_result.stdout)[-4000:]
         return None, make_failure(case, "build_measure", message, format_cmd(measure_cmd))
 
-    if not ELF_PATH.exists():
+    elf_path = resolved_build_output_dir / "main.elf"
+    map_path = resolved_build_output_dir / "main.map"
+
+    if not elf_path.exists():
         return None, make_failure(case, "build_measure", "ELF not found after build", format_cmd(measure_cmd))
 
-    if not MAP_PATH.exists():
+    if not map_path.exists():
         return None, make_failure(case, "build_measure", "Map not found after build", format_cmd(measure_cmd))
 
     # Extract repo-only static size info from the final linker map.
-    elf_size_info = utils_process_map_file(str(MAP_PATH))
+    elf_size_info = utils_process_map_file(str(map_path))
 
-    sync_runtime_resource(case)
+    sync_runtime_resource(case, resolved_build_output_dir)
 
     try:
-        qemu_output = run_qemu(runtime_timeout)
+        qemu_output = run_qemu(resolved_build_output_dir, runtime_timeout)
         metrics = parse_measure_output(qemu_output)
     except Exception as exc:
         return None, make_failure(case, "run_measure", str(exc))
@@ -433,6 +637,7 @@ def process_case(current_work_cnt, total_work_cnt, case, runtime_timeout):
         "stack_peak_bytes": metrics["stack_peak_bytes"],
         "interaction_action_count": metrics["interaction_action_count"],
     }
+    shutil.rmtree(resolved_build_output_dir, ignore_errors=True)
     return json_entry, None
 
 
@@ -502,6 +707,12 @@ def main():
         default=None,
         help="Per-case QEMU runtime timeout in seconds. Default: 60 for typical, 180 for full.",
     )
+    parser.add_argument(
+        "--jobs",
+        type=int,
+        default=0,
+        help="Parallel size-analysis cases. 0=auto.",
+    )
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -512,14 +723,11 @@ def main():
     if runtime_timeout is None:
         runtime_timeout = DEFAULT_RUNTIME_TIMEOUT_TYPICAL if args.case_set == "typical" else DEFAULT_RUNTIME_TIMEOUT_FULL
 
-    size_results = []
-    failures = []
-    for index, case in enumerate(cases, 1):
-        json_entry, failure = process_case(index, total_work_cnt, case, runtime_timeout)
-        if json_entry is not None:
-            size_results.append(json_entry)
-        if failure is not None:
-            failures.append(failure)
+    try:
+        size_results, failures = process_cases_parallel(cases, runtime_timeout, args.jobs)
+    except ValueError as exc:
+        print(str(exc))
+        return 2
 
     README_PATH.write_text(build_readme(size_results, failures, args.case_set), encoding="utf-8")
     print("Markdown saved: %s" % README_PATH)
@@ -541,7 +749,7 @@ def main():
             "cases": [case["name"] for case in cases],
         },
         "static_size_scope": {
-            "source": "output/main.map",
+            "source": "per-case build output main.map",
             "description": describe_static_size_scope(),
         },
         "apps": size_results,

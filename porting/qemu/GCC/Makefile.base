@@ -24,12 +24,13 @@ endif
 COMPILE_PREFIX 	+= $(TOOLCHAIN_DIR)/bin/arm-none-eabi-
 
 # define output directory
-OUTPUT_PATH	:= output
+OUTPUT_PATH	?= output
+OBJROOT_PATH ?= $(OUTPUT_PATH)
 
 # define the C object files
 APP_OBJ_SUFFIX ?= $(if $(APP),$(APP),default)
 BUILD_OBJ_SUFFIX := $(APP_OBJ_SUFFIX)$(if $(PORT),_$(PORT),)
-OBJ_PATH 	:= $(OUTPUT_PATH)/obj/$(BUILD_OBJ_SUFFIX)
+OBJ_PATH 	:= $(OBJROOT_PATH)/obj/$(BUILD_OBJ_SUFFIX)
 
 # Configuration stamp - forces relink when APP changes.
 APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(BUILD_OBJ_SUFFIX)
@@ -97,6 +98,7 @@ nullstring=
 space=$(nullstring) # one space
 
 RM=rm -rf
+RM_FILE=rm -f
 ECHO=echo
 MKD = mkdir -p
 FIXPATH = $1
@@ -105,6 +107,8 @@ PATHCHECK =
 ifeq "$(HOST_OS)" "Windows"
 	SHELL:=$(WINCMD)
 	RM=del /q /s
+	PYTHON = python
+	RM_FILE = $(PYTHON) -c "import glob, os, sys; [os.remove(path) for pattern in sys.argv[1:] for path in glob.glob(pattern)]"
 	MKD = mkdir
 	FIXPATH = $(subst /,\,$1)
 	PATHCHECK = $(Q)if not exist "$@"
@@ -174,16 +178,19 @@ endif
 
 .PHONY: all clean qemu
 
-all: $(ALL_OBJ_PATH) $(TARGET).elf
+all: $(OUTPUT_PATH) $(ALL_OBJ_PATH) $(TARGET).elf
+
+$(OUTPUT_PATH):
+	$(PATHCHECK) $(Q)$(MKD) $(call FIXPATH, $@)
 
 $(ALL_OBJ_PATH):
 	$(PATHCHECK) $(Q)$(MKD) $(call FIXPATH, $@)
 
-$(APP_CONFIG_STAMP): | $(ALL_OBJ_PATH)
+$(APP_CONFIG_STAMP): | $(OUTPUT_PATH) $(ALL_OBJ_PATH)
 ifeq "$(HOST_OS)" "Windows"
-	-$(Q)$(RM) $(call FIXPATH, $(OUTPUT_PATH)/.app_stamp_*) >NUL 2>NUL
+	-$(Q)$(RM_FILE) $(call FIXPATH,$(OUTPUT_PATH)/.app_stamp_*)
 else
-	-$(Q)rm -f $(OUTPUT_PATH)/.app_stamp_*
+	-$(Q)$(RM_FILE) $(OUTPUT_PATH)/.app_stamp_*
 endif
 	$(Q)$(ECHO) stamp > $(call FIXPATH, $@)
 
