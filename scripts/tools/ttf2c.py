@@ -139,39 +139,65 @@ def unpack_packed_nibbles_4(data, width, height):
 
 
 def encode_rle4_nibbles(nibbles):
+    def get_repeat_run_len(values, start):
+        run_len = 1
+        count = len(values)
+
+        while start + run_len < count and run_len < 128 and values[start + run_len] == values[start]:
+            run_len += 1
+
+        return run_len
+
     out = bytearray()
-    index = 0
     count = len(nibbles)
 
-    while index < count:
-        repeat_len = 1
-        while index + repeat_len < count and repeat_len < 128 and nibbles[index + repeat_len] == nibbles[index]:
-            repeat_len += 1
+    if count == 0:
+        return out
 
-        if repeat_len >= 3:
-            out.append(0x80 | (repeat_len - 1))
+    # Use DP to choose the smallest byte stream instead of the previous greedy split.
+    best_cost = [0] * (count + 1)
+    best_mode = ["literal"] * count
+    best_len = [1] * count
+
+    for index in range(count - 1, -1, -1):
+        literal_limit = min(128, count - index)
+        best_local_cost = None
+        best_local_mode = "literal"
+        best_local_len = 1
+
+        for literal_len in range(1, literal_limit + 1):
+            literal_cost = 1 + ((literal_len + 1) >> 1) + best_cost[index + literal_len]
+            if best_local_cost is None or literal_cost < best_local_cost:
+                best_local_cost = literal_cost
+                best_local_mode = "literal"
+                best_local_len = literal_len
+
+        repeat_limit = get_repeat_run_len(nibbles, index)
+        for repeat_len in range(3, repeat_limit + 1):
+            repeat_cost = 2 + best_cost[index + repeat_len]
+            if repeat_cost < best_local_cost:
+                best_local_cost = repeat_cost
+                best_local_mode = "repeat"
+                best_local_len = repeat_len
+
+        best_cost[index] = best_local_cost
+        best_mode[index] = best_local_mode
+        best_len[index] = best_local_len
+
+    index = 0
+    while index < count:
+        run_len = best_len[index]
+
+        if best_mode[index] == "repeat":
+            out.append(0x80 | (run_len - 1))
             out.append(int(nibbles[index]) & 0x0F)
-            index += repeat_len
+            index += run_len
             continue
 
-        literal_start = index
-        literal_values = []
-        while index < count and len(literal_values) < 128:
-            repeat_len = 1
-            while index + repeat_len < count and repeat_len < 128 and nibbles[index + repeat_len] == nibbles[index]:
-                repeat_len += 1
-
-            if repeat_len >= 3:
-                break
-
-            literal_values.append(int(nibbles[index]) & 0x0F)
-            index += 1
-
-        out.append(len(literal_values) - 1)
+        literal_values = [int(value) & 0x0F for value in nibbles[index:index + run_len]]
+        out.append(run_len - 1)
         out.extend(pack_nibbles_4(literal_values))
-
-        if index == literal_start:
-            index += 1
+        index += run_len
 
     return out
 
