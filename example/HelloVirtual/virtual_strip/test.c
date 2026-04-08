@@ -34,6 +34,9 @@
 #define STRIP_BUTTON_H           20
 #define STRIP_CARD_SIDE_INSET    4
 #define STRIP_KEEP_VISIBLE_INSET 6
+#define STRIP_CLICK_VERIFY_RETRY_MAX    3U
+#define STRIP_MUTATION_VERIFY_RETRY_MAX 4U
+#define STRIP_SCENE_VERIFY_RETRY_MAX    4U
 
 #define STRIP_FONT_HEADER ((const egui_font_t *)&egui_res_font_montserrat_10_4)
 #define STRIP_FONT_TITLE  ((const egui_font_t *)&egui_res_font_montserrat_10_4)
@@ -164,6 +167,9 @@ static strip_demo_context_t strip_demo_ctx;
 
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
+static uint8_t recording_click_verify_retry;
+static uint8_t recording_mutation_verify_retry;
+static uint8_t recording_scene_verify_retry;
 static uint8_t recording_swipe_verify_retry;
 #endif
 
@@ -1672,6 +1678,9 @@ void test_init_ui(void)
 
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
+    recording_click_verify_retry = 0U;
+    recording_mutation_verify_retry = 0U;
+    recording_scene_verify_retry = 0U;
     recording_swipe_verify_retry = 0U;
 #endif
 
@@ -1841,6 +1850,30 @@ static egui_view_t *strip_demo_find_first_visible_view_after(uint32_t min_index)
     return egui_view_virtual_strip_find_first_visible_item_view(EGUI_VIEW_OF(&strip_view), strip_demo_match_visible_item, &ctx, NULL);
 }
 
+static uint8_t strip_demo_schedule_verify_retry(uint8_t *retry_counter, uint8_t retry_max, egui_sim_action_t *p_action)
+{
+    if (*retry_counter >= retry_max)
+    {
+        return 0U;
+    }
+
+    (*retry_counter)++;
+    recording_request_snapshot();
+    EGUI_SIM_SET_WAIT(p_action, 0);
+    return 1U;
+}
+
+static void strip_demo_set_swipe_action(egui_sim_action_t *p_action, uint32_t interval_ms)
+{
+    p_action->type = EGUI_SIM_ACTION_SWIPE;
+    p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 4 / 5;
+    p_action->y1 = STRIP_VIEW_Y + STRIP_VIEW_H / 2;
+    p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 3;
+    p_action->y2 = STRIP_VIEW_Y + STRIP_VIEW_H / 2;
+    p_action->steps = 5;
+    p_action->interval_ms = interval_ms;
+}
+
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;
@@ -1874,29 +1907,42 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         return true;
     case 1:
-        if (first_call && strip_demo_ctx.last_clicked_index != 1U)
+        if (strip_demo_ctx.last_clicked_index != 1U)
         {
+            if (recording_click_verify_retry < STRIP_CLICK_VERIFY_RETRY_MAX)
+            {
+                view = strip_demo_find_visible_view_by_index(1);
+                recording_click_verify_retry++;
+                if (view != NULL && strip_demo_set_click_item_action(p_action, view, 220))
+                {
+                    return true;
+                }
+                recording_request_snapshot();
+                EGUI_SIM_SET_WAIT(p_action, 180);
+                return true;
+            }
             report_runtime_failure("gallery item click did not update selected index");
         }
+        recording_click_verify_retry = 0U;
+        recording_mutation_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[STRIP_ACTION_PATCH]), 200);
         return true;
     case 2:
-        if (first_call && strip_demo_ctx.mutation_count < 1U)
+        if (strip_demo_ctx.mutation_count < 1U)
         {
+            if (strip_demo_schedule_verify_retry(&recording_mutation_verify_retry, STRIP_MUTATION_VERIFY_RETRY_MAX, p_action))
+            {
+                return true;
+            }
             report_runtime_failure("gallery patch did not mutate data");
         }
+        recording_mutation_verify_retry = 0U;
         if (first_call)
         {
             recording_swipe_verify_retry = 0U;
             recording_request_snapshot();
         }
-        p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 4 / 5;
-        p_action->y1 = STRIP_VIEW_Y + STRIP_VIEW_H / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 3;
-        p_action->y2 = STRIP_VIEW_Y + STRIP_VIEW_H / 2;
-        p_action->steps = 5;
-        p_action->interval_ms = 520;
+        strip_demo_set_swipe_action(p_action, 520);
         return true;
     case 3:
         if (egui_view_virtual_strip_get_scroll_x(EGUI_VIEW_OF(&strip_view)) <= 0)
@@ -1935,25 +1981,38 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[STRIP_ACTION_DEL]), 220);
         return true;
     case 7:
-        EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&scene_buttons[STRIP_SCENE_QUEUE]), 240);
+        if (strip_demo_ctx.mutation_count < 3U)
+        {
+            if (strip_demo_schedule_verify_retry(&recording_mutation_verify_retry, STRIP_MUTATION_VERIFY_RETRY_MAX, p_action))
+            {
+                return true;
+            }
+            report_runtime_failure("gallery add/del flow did not mutate data");
+        }
+        recording_mutation_verify_retry = 0U;
+        recording_scene_verify_retry = 0U;
+        if (strip_demo_ctx.scene != STRIP_SCENE_QUEUE)
+        {
+            strip_demo_switch_scene(STRIP_SCENE_QUEUE);
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 240);
         return true;
     case 8:
-        if (first_call && strip_demo_ctx.scene != STRIP_SCENE_QUEUE)
+        if (strip_demo_ctx.scene != STRIP_SCENE_QUEUE)
         {
+            if (strip_demo_schedule_verify_retry(&recording_scene_verify_retry, STRIP_SCENE_VERIFY_RETRY_MAX, p_action))
+            {
+                return true;
+            }
             report_runtime_failure("scene switch to queue failed");
         }
+        recording_scene_verify_retry = 0U;
         if (first_call)
         {
             recording_swipe_verify_retry = 0U;
-            recording_request_snapshot();
         }
-        p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 4 / 5;
-        p_action->y1 = STRIP_VIEW_Y + STRIP_VIEW_H / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 3;
-        p_action->y2 = STRIP_VIEW_Y + STRIP_VIEW_H / 2;
-        p_action->steps = 5;
-        p_action->interval_ms = 520;
+        strip_demo_set_swipe_action(p_action, 520);
         return true;
     case 9:
         if (egui_view_virtual_strip_get_scroll_x(EGUI_VIEW_OF(&strip_view)) <= 0)
@@ -1983,28 +2042,42 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 10:
+        recording_mutation_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[STRIP_ACTION_PATCH]), 220);
         return true;
     case 11:
-        EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&scene_buttons[STRIP_SCENE_TIMELINE]), 240);
+        if (strip_demo_ctx.mutation_count < 4U)
+        {
+            if (strip_demo_schedule_verify_retry(&recording_mutation_verify_retry, STRIP_MUTATION_VERIFY_RETRY_MAX, p_action))
+            {
+                return true;
+            }
+            report_runtime_failure("queue patch did not mutate data");
+        }
+        recording_mutation_verify_retry = 0U;
+        recording_scene_verify_retry = 0U;
+        if (strip_demo_ctx.scene != STRIP_SCENE_TIMELINE)
+        {
+            strip_demo_switch_scene(STRIP_SCENE_TIMELINE);
+            recording_request_snapshot();
+        }
+        EGUI_SIM_SET_WAIT(p_action, 240);
         return true;
     case 12:
-        if (first_call && strip_demo_ctx.scene != STRIP_SCENE_TIMELINE)
+        if (strip_demo_ctx.scene != STRIP_SCENE_TIMELINE)
         {
+            if (strip_demo_schedule_verify_retry(&recording_scene_verify_retry, STRIP_SCENE_VERIFY_RETRY_MAX, p_action))
+            {
+                return true;
+            }
             report_runtime_failure("scene switch to timeline failed");
         }
+        recording_scene_verify_retry = 0U;
         if (first_call)
         {
             recording_swipe_verify_retry = 0U;
-            recording_request_snapshot();
         }
-        p_action->type = EGUI_SIM_ACTION_SWIPE;
-        p_action->x1 = EGUI_CONFIG_SCEEN_WIDTH * 4 / 5;
-        p_action->y1 = STRIP_VIEW_Y + STRIP_VIEW_H / 2;
-        p_action->x2 = EGUI_CONFIG_SCEEN_WIDTH / 3;
-        p_action->y2 = STRIP_VIEW_Y + STRIP_VIEW_H / 2;
-        p_action->steps = 5;
-        p_action->interval_ms = 520;
+        strip_demo_set_swipe_action(p_action, 520);
         return true;
     case 13:
         if (egui_view_virtual_strip_get_scroll_x(EGUI_VIEW_OF(&strip_view)) <= 0)
@@ -2034,9 +2107,19 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         EGUI_SIM_SET_WAIT(p_action, 220);
         return true;
     case 14:
+        recording_mutation_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[STRIP_ACTION_PATCH]), 220);
         return true;
     case 15:
+        if (strip_demo_ctx.mutation_count < 5U)
+        {
+            if (strip_demo_schedule_verify_retry(&recording_mutation_verify_retry, STRIP_MUTATION_VERIFY_RETRY_MAX, p_action))
+            {
+                return true;
+            }
+            report_runtime_failure("timeline patch did not mutate data");
+        }
+        recording_mutation_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[STRIP_ACTION_JUMP]), 220);
         return true;
     case 16:
