@@ -7,7 +7,7 @@
  * so this header should stay stable in the repository.
  */
 #ifndef EGUI_CONFIG_FUNCTION_SUPPORT_MASK
-#define EGUI_CONFIG_FUNCTION_SUPPORT_MASK  0
+#define EGUI_CONFIG_FUNCTION_SUPPORT_MASK 0
 #endif
 
 #ifndef EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE

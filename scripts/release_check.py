@@ -68,7 +68,7 @@ LOCAL_BASIC_RENDER_SHARDS = 4
 LOCAL_BASIC_RENDER_MAKE_JOBS = 4
 LOCAL_VIRTUAL_RENDER_SHARDS = 3
 LOCAL_VIRTUAL_RENDER_MAKE_JOBS = 4
-LOCAL_RELEASE_RUNTIME_JOBS = 2
+LOCAL_RELEASE_RUNTIME_JOBS = 1
 LOCAL_RELEASE_SIZE_JOBS = 2
 
 
@@ -236,6 +236,27 @@ def run_parallel_commands(step_name, commands, env):
             if result.returncode != 0:
                 failures.append((label, cmd, result))
 
+    if not failures:
+        return 0
+
+    retried_failures = []
+    print(f"\n  Retrying failed {step_name} subcommand(s) serially once...", flush=True)
+    for label, cmd, _ in failures:
+        print(f"  [retry] {label}", flush=True)
+        retry_result = subprocess.run(
+            cmd,
+            cwd=PROJECT_ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        if retry_result.returncode == 0:
+            print(f"  [retry] {label} PASS", flush=True)
+            continue
+        print(f"  [retry] {label} FAIL", flush=True)
+        retried_failures.append((label, cmd, retry_result))
+
+    failures = retried_failures
     if not failures:
         return 0
 

@@ -1,0 +1,2544 @@
+
+========================================================================
+  [dirty_anim] Dirty-region animation verification
+========================================================================
+  Command: C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe D:\workspace\gitee\EmbeddedGUI\scripts\checks\code_dirty_animation_check.py --bits64
+
+  Parallel subcommands:
+    - [core] C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe D:\workspace\gitee\EmbeddedGUI\scripts\checks\code_dirty_animation_check.py --bits64 --scenario activity_ring --scenario analog_clock --scenario spinner
+    - [showcase] C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe D:\workspace\gitee\EmbeddedGUI\scripts\checks\code_dirty_animation_check.py --bits64 --scenario animated_image --scenario showcase --scenario virtual_stage_showcase
+  [1/2] core PASS
+  [2/2] showcase PASS
+
+========================================================================
+  [stage_parity] Virtual stage showcase parity verification
+========================================================================
+  Command: C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe D:\workspace\gitee\EmbeddedGUI\scripts\checks\showcase_stage_parity_check.py --timeout 35 --jobs 2 --bits64
+
+== Showcase Stage Parity Check ==
+[PASS] HelloShowcase: 5 frames captured -> D:\workspace\gitee\EmbeddedGUI\runtime_check_output\HelloShowcase\parity_showcase
+[PASS] HelloVirtual_virtual_stage_showcase: 5 frames captured -> D:\workspace\gitee\EmbeddedGUI\runtime_check_output\HelloVirtual_virtual_stage_showcase\parity_stage
+Showcase states: dark_initial=frame_0001.png, light_en=frame_0002.png, light_cn=frame_0003.png
+Stage states: dark_initial=frame_0001.png, light_en=frame_0002.png, light_cn=frame_0003.png
+[PASS] dark_initial: PASS showcase=frame_0001.png stage=frame_0001.png mean_abs=0.145 rms=4.656 hot_ratio=0.00142 compare=runtime_check_output\HelloVirtual_virtual_stage_showcase\parity_stage\compare_dark_initial.png
+[PASS] light_en: PASS showcase=frame_0002.png stage=frame_0002.png mean_abs=0.088 rms=3.481 hot_ratio=0.00133 compare=runtime_check_output\HelloVirtual_virtual_stage_showcase\parity_stage\compare_light_en.png
+[PASS] light_cn: PASS showcase=frame_0003.png stage=frame_0003.png mean_abs=0.088 rms=3.471 hot_ratio=0.00134 compare=runtime_check_output\HelloVirtual_virtual_stage_showcase\parity_stage\compare_light_cn.png
+Result: ALL PASSED
+
+========================================================================
+  [basic_render] HelloBasic render and interaction workflow
+========================================================================
+  Command: C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe D:\workspace\gitee\EmbeddedGUI\scripts\checks\hello_basic_render_workflow.py --app HelloBasic --suite basic --skip-unit-tests --bits64
+
+  Parallel subcommands:
+    - [shard-1] C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe D:\workspace\gitee\EmbeddedGUI\scripts\checks\hello_basic_render_workflow.py --app HelloBasic --suite basic --skip-unit-tests --shard-count 4 --shard-index 1 --make-jobs 4 --bits64
+    - [shard-2] C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe D:\workspace\gitee\EmbeddedGUI\scripts\checks\hello_basic_render_workflow.py --app HelloBasic --suite basic --skip-unit-tests --shard-count 4 --shard-index 2 --make-jobs 4 --bits64
+    - [shard-3] C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe D:\workspace\gitee\EmbeddedGUI\scripts\checks\hello_basic_render_workflow.py --app HelloBasic --suite basic --skip-unit-tests --shard-count 4 --shard-index 3 --make-jobs 4 --bits64
+    - [shard-4] C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe D:\workspace\gitee\EmbeddedGUI\scripts\checks\hello_basic_render_workflow.py --app HelloBasic --suite basic --skip-unit-tests --shard-count 4 --shard-index 4 --make-jobs 4 --bits64
+  [1/4] shard-2 PASS
+  [2/4] shard-4 PASS
+  [3/4] shard-1 PASS
+  [4/4] shard-3 PASS
+
+========================================================================
+  [virtual_render] HelloVirtual render and interaction workflow
+========================================================================
+  Command: C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe D:\workspace\gitee\EmbeddedGUI\scripts\checks\hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --bits64
+
+  Parallel subcommands:
+    - [shard-1] C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe D:\workspace\gitee\EmbeddedGUI\scripts\checks\hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --shard-count 3 --shard-index 1 --make-jobs 4 --bits64
+    - [shard-2] C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe D:\workspace\gitee\EmbeddedGUI\scripts\checks\hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --shard-count 3 --shard-index 2 --make-jobs 4 --bits64
+    - [shard-3] C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe D:\workspace\gitee\EmbeddedGUI\scripts\checks\hello_basic_render_workflow.py --app HelloVirtual --suite basic --skip-unit-tests --shard-count 3 --shard-index 3 --make-jobs 4 --bits64
+  [1/3] shard-3 PASS
+  [2/3] shard-1 PASS
+  [3/3] shard-2 PASS
+
+========================================================================
+  [size] Binary size analysis and documentation
+========================================================================
+  Command: C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe D:\workspace\gitee\EmbeddedGUI\scripts\size_analysis\utils_analysis_elf_size.py --case-set full --jobs 2 --doc
+
+Running 64 size-analysis cases with jobs=2
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 1, Process: 1.56%, Case: HelloBasic(compass)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_11d1d29950e7_506cdb51 OUTPUT_PATH=output/size_cases/fcebc6af2b OBJROOT_PATH=output APP_SUB=compass USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 2, Process: 3.12%, Case: HelloBasic(mp4)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_18c8b95e7430_506cdb51 OUTPUT_PATH=output/size_cases/6df08f477e OBJROOT_PATH=output APP_SUB=mp4 USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 3, Process: 4.69%, Case: HelloBasic(enhanced_widgets)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_23f0c6bf231d_506cdb51 OUTPUT_PATH=output/size_cases/a13df5374c OBJROOT_PATH=output APP_SUB=enhanced_widgets USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 4, Process: 6.25%, Case: HelloBasic(anim)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_2cd0b59bfcea_506cdb51 OUTPUT_PATH=output/size_cases/7ab7eb3287 OBJROOT_PATH=output APP_SUB=anim USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 5, Process: 7.81%, Case: HelloBasic(textblock)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_3e4f096baea5_506cdb51 OUTPUT_PATH=output/size_cases/01ada73bd2 OBJROOT_PATH=output APP_SUB=textblock USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 6, Process: 9.38%, Case: HelloBasic(image)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_42cf93885c6f_506cdb51 OUTPUT_PATH=output/size_cases/50f2ee8036 OBJROOT_PATH=output APP_SUB=image USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 7, Process: 10.94%, Case: HelloBasic(activity_ring)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_43d647a9e91a_506cdb51 OUTPUT_PATH=output/size_cases/5f9da7d44c OBJROOT_PATH=output APP_SUB=activity_ring USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 8, Process: 12.50%, Case: HelloBasic(gauge)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_5475a8def725_506cdb51 OUTPUT_PATH=output/size_cases/49f6c29d8e OBJROOT_PATH=output APP_SUB=gauge USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 9, Process: 14.06%, Case: HelloBasic(card)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_5ee1eb55c95f_506cdb51 OUTPUT_PATH=output/size_cases/8a93c9f23f OBJROOT_PATH=output APP_SUB=card USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 10, Process: 15.62%, Case: HelloBasic(combobox)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_60b8559da510_506cdb51 OUTPUT_PATH=output/size_cases/26cf04d43e OBJROOT_PATH=output APP_SUB=combobox USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 11, Process: 17.19%, Case: HelloBasic(mask)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_62deed6fa4fd_506cdb51 OUTPUT_PATH=output/size_cases/4a4231627a OBJROOT_PATH=output APP_SUB=mask USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 12, Process: 18.75%, Case: HelloBasic(animated_image)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_64a3c588454c_506cdb51 OUTPUT_PATH=output/size_cases/4095b775bb OBJROOT_PATH=output APP_SUB=animated_image USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 13, Process: 20.31%, Case: HelloBasic(textinput)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_980b0294c80b_506cdb51 OUTPUT_PATH=output/size_cases/3b0461f2bf OBJROOT_PATH=output APP_SUB=textinput USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 14, Process: 21.88%, Case: HelloBasic(lyric_scroller)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_a0a3c9193754_506cdb51 OUTPUT_PATH=output/size_cases/87d74343ca OBJROOT_PATH=output APP_SUB=lyric_scroller USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 15, Process: 23.44%, Case: HelloBasic(analog_clock)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_d8273c88582f_506cdb51 OUTPUT_PATH=output/size_cases/890db298c7 OBJROOT_PATH=output APP_SUB=analog_clock USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 16, Process: 25.00%, Case: HelloBasic(rotation)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_e7c1864d452c_506cdb51 OUTPUT_PATH=output/size_cases/250a276fd6 OBJROOT_PATH=output APP_SUB=rotation USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 17, Process: 26.56%, Case: HelloBasic(autocomplete)
+=================================================================================
+make all -j32 APP=HelloBasic PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellobasic_cfg_ed35fbb0747d_506cdb51 OUTPUT_PATH=output/size_cases/5c8f3aa6e6 OBJROOT_PATH=output APP_SUB=autocomplete USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+=================================================================================
+Total Work Cnt: 64, Current Cnt: 18, Process: 28.12%, Case: HelloVirtual(virtual_stage_showcase)
+=================================================================================
+make all -j32 APP=HelloVirtual PORT=qemu CPU_ARCH=cortex-m0plus APP_OBJ_SUFFIX=size_hellovirtual_cfg_f1d1275d1fbd_506cdb51 OUTPUT_PATH=output/size_cases/074c4bcb2c OBJROOT_PATH=output APP_SUB=virtual_stage_showcase USER_CFLAGS=-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1
+[19/64] HelloPerformance OK
+[20/64] HelloSimple OK
+[21/64] HelloStyleDemo OK
+[22/64] HelloShowcase OK
+[23/64] HelloBasic(button) OK
+[24/64] HelloBasic(arc_slider) OK
+[25/64] HelloBasic(button_matrix) OK
+[26/64] HelloBasic(digital_clock) OK
+[27/64] HelloBasic(checkbox) OK
+[28/64] HelloBasic(divider) OK
+[29/64] HelloBasic(heart_rate) OK
+[30/64] HelloBasic(gridlayout) OK
+[31/64] HelloBasic(label) OK
+[32/64] HelloBasic(image_button) OK
+[33/64] HelloBasic(led) OK
+[34/64] HelloBasic(line) OK
+[35/64] HelloBasic(linearlayout) OK
+[36/64] HelloBasic(menu) OK
+[37/64] HelloBasic(list) OK
+[38/64] HelloBasic(mini_calendar) OK
+[39/64] HelloBasic(notification_badge) OK
+[40/64] HelloBasic(number_picker) OK
+[41/64] HelloBasic(progress_bar) OK
+[42/64] HelloBasic(radio_button) OK
+[43/64] HelloBasic(page_indicator) OK
+[44/64] HelloBasic(scale) OK
+[45/64] HelloBasic(roller) OK
+[46/64] HelloBasic(scroll) OK
+[47/64] HelloBasic(spangroup) OK
+[48/64] HelloBasic(slider) OK
+[49/64] HelloBasic(spinner) OK
+[50/64] HelloBasic(stopwatch) OK
+[51/64] HelloBasic(switch) OK
+[52/64] HelloBasic(table) OK
+[53/64] HelloBasic(tab_bar) OK
+[54/64] HelloBasic(tileview) OK
+[55/64] HelloBasic(toggle_button) OK
+[56/64] HelloBasic(viewpage) OK
+[57/64] HelloBasic(window) OK
+[58/64] HelloBasic(viewpage_cache) OK
+[59/64] HelloBasic(circular_progress_bar) OK
+[60/64] HelloBasic(button_img) OK
+[61/64] HelloBasic(chips) OK
+[62/64] HelloBasic(pattern_lock) OK
+[63/64] HelloBasic(segmented_control) OK
+[64/64] HelloBasic(stepper) OK
+Markdown saved: D:\workspace\gitee\EmbeddedGUI\output\README.md
+JSON saved: D:\workspace\gitee\EmbeddedGUI\output\size_results.json
+
+=== Generating Documentation ===
+
+=== Generating Size Overview ===
+  Overview saved: D:\workspace\gitee\EmbeddedGUI\doc\source\size\size_overview.md
+
+=== Generating Size Report ===
+  Chart saved: D:\workspace\gitee\EmbeddedGUI\doc\source\size\images\size_report.png
+  Report saved: D:\workspace\gitee\EmbeddedGUI\doc\source\size\size_report.md
+
+Done.
+Documentation updated successfully
+
+========================================================================
+  [perf] QEMU performance test and documentation
+========================================================================
+  Command: C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe D:\workspace\gitee\EmbeddedGUI\scripts\perf_analysis\code_perf_check.py --full-check --doc
+
+
+[1/1] Profile: cortex-m3 - Cortex-M3 (e.g., STM32F1, STM32F2)
+
+============================================================
+Building for cortex-m3 (cpu_arch=cortex-m3)
+============================================================
+  Build OK
+  Running QEMU: machine=mps2-an385 cpu=cortex-m3
+    PERF_RESULT:LINE:0.535
+    PERF_RESULT:LINE_HQ:1.349
+    PERF_RESULT:RECTANGLE:0.182
+    PERF_RESULT:RECTANGLE_FILL:0.155
+    PERF_RESULT:CIRCLE:0.812
+    PERF_RESULT:CIRCLE_FILL:0.569
+    PERF_RESULT:CIRCLE_HQ:1.152
+    PERF_RESULT:CIRCLE_FILL_HQ:0.481
+    PERF_RESULT:ARC:1.084
+    PERF_RESULT:ARC_FILL:1.356
+    PERF_RESULT:ARC_HQ:1.087
+    PERF_RESULT:ARC_FILL_HQ:1.669
+    PERF_RESULT:ROUND_RECTANGLE:0.814
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS:0.820
+    PERF_RESULT:ROUND_RECTANGLE_FILL:0.573
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS_FILL:0.689
+    PERF_RESULT:TRIANGLE:0.666
+    PERF_RESULT:TRIANGLE_FILL:0.847
+    PERF_RESULT:ELLIPSE:0.878
+    PERF_RESULT:ELLIPSE_FILL:0.570
+    PERF_RESULT:POLYGON:0.505
+    PERF_RESULT:POLYGON_FILL:1.063
+    PERF_RESULT:BEZIER_QUAD:1.244
+    PERF_RESULT:BEZIER_CUBIC:1.147
+    PERF_RESULT:CIRCLE_FILL_QUARTER:0.257
+    PERF_RESULT:CIRCLE_FILL_DOUBLE:0.677
+    PERF_RESULT:ROUND_RECTANGLE_FILL_QUARTER:0.261
+    PERF_RESULT:ROUND_RECTANGLE_FILL_DOUBLE:0.681
+    PERF_RESULT:TRIANGLE_FILL_QUARTER:0.287
+    PERF_RESULT:TRIANGLE_FILL_DOUBLE:0.652
+    PERF_RESULT:TEXT:1.026
+    PERF_RESULT:TEXT_RECT:0.590
+    PERF_RESULT:EXTERN_TEXT:1.065
+    PERF_RESULT:EXTERN_TEXT_RECT:0.808
+    PERF_RESULT:TEXT_ROTATE_NONE:0.589
+    PERF_RESULT:TEXT_ROTATE:2.494
+    PERF_RESULT:TEXT_ROTATE_RESIZE:2.494
+    PERF_RESULT:TEXT_ROTATE_QUARTER:1.675
+    PERF_RESULT:TEXT_ROTATE_DOUBLE:2.950
+    PERF_RESULT:EXTERN_TEXT_ROTATE:2.698
+    PERF_RESULT:IMAGE_565:0.240
+    PERF_RESULT:IMAGE_565_1:0.408
+    PERF_RESULT:IMAGE_565_2:0.524
+    PERF_RESULT:IMAGE_565_4:0.720
+    PERF_RESULT:IMAGE_565_8:0.509
+    PERF_RESULT:IMAGE_565_QUARTER:0.132
+    PERF_RESULT:IMAGE_565_DOUBLE:0.240
+    PERF_RESULT:IMAGE_565_8_QUARTER:0.198
+    PERF_RESULT:IMAGE_565_8_DOUBLE:0.087
+    PERF_RESULT:EXTERN_IMAGE_565:0.414
+    PERF_RESULT:EXTERN_IMAGE_565_1:0.578
+    PERF_RESULT:EXTERN_IMAGE_565_2:0.693
+    PERF_RESULT:EXTERN_IMAGE_565_4:0.889
+    PERF_RESULT:EXTERN_IMAGE_565_8:0.678
+    PERF_RESULT:IMAGE_TILED_565_0:0.472
+    PERF_RESULT:IMAGE_TILED_565_1:0.810
+    PERF_RESULT:IMAGE_TILED_565_2:1.038
+    PERF_RESULT:IMAGE_TILED_565_4:1.271
+    PERF_RESULT:IMAGE_TILED_565_8:1.256
+    PERF_RESULT:IMAGE_TILED_STAR_565_0:0.472
+    PERF_RESULT:IMAGE_TILED_STAR_565_1:0.810
+    PERF_RESULT:IMAGE_TILED_STAR_565_2:1.038
+    PERF_RESULT:IMAGE_TILED_STAR_565_4:1.271
+    PERF_RESULT:IMAGE_TILED_STAR_565_8:1.256
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_0:0.840
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_1:0.974
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_2:1.201
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_4:1.434
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_8:1.419
+    PERF_RESULT:IMAGE_RESIZE_565:0.461
+    PERF_RESULT:IMAGE_RESIZE_565_1:0.611
+    PERF_RESULT:IMAGE_RESIZE_565_2:0.774
+    PERF_RESULT:IMAGE_RESIZE_565_4:0.788
+    PERF_RESULT:IMAGE_RESIZE_565_8:0.652
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565:0.506
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_1:0.678
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_2:0.840
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_4:0.854
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_8:0.711
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_1:0.611
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_2:0.774
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_4:0.788
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_8:0.652
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_0:0.499
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_1:0.430
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_2:0.537
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_4:0.568
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_8:1.112
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_0:0.499
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_1:0.430
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_2:0.537
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_4:0.568
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_8:1.112
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_0:0.528
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_1:1.070
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_2:1.387
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_4:1.520
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_8:1.136
+    PERF_RESULT:IMAGE_ROTATE_565:1.201
+    PERF_RESULT:IMAGE_ROTATE_565_1:1.525
+    PERF_RESULT:IMAGE_ROTATE_565_2:1.521
+    PERF_RESULT:IMAGE_ROTATE_565_4:1.502
+    PERF_RESULT:IMAGE_ROTATE_565_8:1.482
+    PERF_RESULT:IMAGE_ROTATE_565_RESIZE:1.202
+    PERF_RESULT:IMAGE_ROTATE_565_QUARTER:0.385
+    PERF_RESULT:IMAGE_ROTATE_565_DOUBLE:3.137
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565:4.741
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_1:5.930
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_2:6.143
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_4:6.509
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_8:7.150
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_1:1.525
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_2:1.521
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_4:1.502
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_8:1.482
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_0:1.474
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_1:1.929
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_2:1.966
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_4:1.979
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_8:1.949
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_0:1.474
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_1:1.928
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_2:1.967
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_4:1.980
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_8:1.949
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_0:4.284
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_1:5.939
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_2:6.044
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_4:6.349
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_8:6.719
+    PERF_RESULT:IMAGE_COLOR:0.870
+    PERF_RESULT:IMAGE_RESIZE_COLOR:0.751
+    PERF_RESULT:GRADIENT_RECT:0.389
+    PERF_RESULT:GRADIENT_ROUND_RECT:1.083
+    PERF_RESULT:GRADIENT_CIRCLE:3.151
+    PERF_RESULT:GRADIENT_TRIANGLE:0.954
+    PERF_RESULT:GRADIENT_ARC_RING:1.271
+    PERF_RESULT:GRADIENT_ARC_RING_ROUND_CAP:1.326
+    PERF_RESULT:GRADIENT_RADIAL:2.798
+    PERF_RESULT:GRADIENT_ANGULAR:2.660
+    PERF_RESULT:GRADIENT_ROUND_RECT_RING:0.770
+    PERF_RESULT:GRADIENT_LINE_CAPSULE:1.158
+    PERF_RESULT:GRADIENT_MULTI_STOP:0.394
+    PERF_RESULT:GRADIENT_ROUND_RECT_CORNERS:0.632
+    PERF_RESULT:IMAGE_GRADIENT_OVERLAY:0.923
+    PERF_RESULT:MASK_GRADIENT_RECT_FILL:0.362
+    PERF_RESULT:MASK_GRADIENT_IMAGE:1.528
+    PERF_RESULT:MASK_GRADIENT_IMAGE_ROTATE:1.689
+    PERF_RESULT:TEXT_GRADIENT:0.237
+    PERF_RESULT:TEXT_RECT_GRADIENT:0.850
+    PERF_RESULT:TEXT_ROTATE_GRADIENT:2.637
+    PERF_RESULT:SHADOW:1.244
+    PERF_RESULT:SHADOW_ROUND:1.797
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK:0.155
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT:0.324
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE:0.713
+    PERF_RESULT:MASK_RECT_FILL_IMAGE:0.284
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_QUARTER:0.112
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_DOUBLE:0.155
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_QUARTER:0.162
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_DOUBLE:0.322
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_QUARTER:0.275
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_DOUBLE:0.667
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_QUARTER:0.121
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_DOUBLE:0.176
+    PERF_RESULT:MASK_IMAGE_NO_MASK:0.651
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT:0.954
+    PERF_RESULT:MASK_IMAGE_CIRCLE:1.411
+    PERF_RESULT:MASK_IMAGE_IMAGE:0.297
+    PERF_RESULT:EXTERN_MASK_IMAGE_NO_MASK:0.711
+    PERF_RESULT:EXTERN_MASK_IMAGE_ROUND_RECT:1.015
+    PERF_RESULT:EXTERN_MASK_IMAGE_CIRCLE:1.470
+    PERF_RESULT:EXTERN_MASK_IMAGE_IMAGE:0.330
+    PERF_RESULT:MASK_IMAGE_NO_MASK_QUARTER:0.236
+    PERF_RESULT:MASK_IMAGE_NO_MASK_DOUBLE:0.887
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_QUARTER:0.324
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_DOUBLE:0.926
+    PERF_RESULT:MASK_IMAGE_CIRCLE_QUARTER:0.445
+    PERF_RESULT:MASK_IMAGE_CIRCLE_DOUBLE:1.296
+    PERF_RESULT:MASK_IMAGE_IMAGE_QUARTER:0.155
+    PERF_RESULT:MASK_IMAGE_IMAGE_DOUBLE:0.297
+    PERF_RESULT:MASK_ROUND_RECT_FILL_NO_MASK:0.248
+    PERF_RESULT:MASK_ROUND_RECT_FILL_WITH_MASK:0.324
+    PERF_RESULT:ANIMATION_TRANSLATE:0.127
+    PERF_RESULT:ANIMATION_ALPHA:0.124
+    PERF_RESULT:ANIMATION_SCALE:0.134
+    PERF_RESULT:ANIMATION_SET:0.143
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_NO_MASK:0.461
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_ROUND_RECT:0.586
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_CIRCLE:0.906
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_IMAGE:1.875
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_NO_MASK:0.506
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_ROUND_RECT:0.675
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_CIRCLE:1.284
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_IMAGE:1.094
+    PERF_RESULT:IMAGE_QOI_565:6.235
+    PERF_RESULT:IMAGE_QOI_565_8:2.129
+    PERF_RESULT:EXTERN_IMAGE_QOI_565:16.465
+    PERF_RESULT:EXTERN_IMAGE_QOI_565_8:2.685
+    PERF_RESULT:IMAGE_TILED_QOI_565_0:0.544
+    PERF_RESULT:IMAGE_TILED_QOI_565_8:1.229
+    PERF_RESULT:MASK_IMAGE_QOI_NO_MASK:6.235
+    PERF_RESULT:MASK_IMAGE_QOI_ROUND_RECT:6.464
+    PERF_RESULT:MASK_IMAGE_QOI_CIRCLE:6.610
+    PERF_RESULT:MASK_IMAGE_QOI_IMAGE:1.401
+    PERF_RESULT:MASK_IMAGE_QOI_8_NO_MASK:2.129
+    PERF_RESULT:MASK_IMAGE_QOI_8_ROUND_RECT:2.342
+    PERF_RESULT:MASK_IMAGE_QOI_8_CIRCLE:2.439
+    PERF_RESULT:MASK_IMAGE_QOI_8_IMAGE:0.688
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_NO_MASK:16.465
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_ROUND_RECT:16.694
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_CIRCLE:16.840
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_IMAGE:3.378
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_NO_MASK:2.685
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT:2.898
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_CIRCLE:2.994
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_IMAGE:0.843
+    PERF_RESULT:IMAGE_RLE_565:2.481
+    PERF_RESULT:IMAGE_RLE_565_8:1.398
+    PERF_RESULT:EXTERN_IMAGE_RLE_565:4.990
+    PERF_RESULT:EXTERN_IMAGE_RLE_565_8:2.191
+    PERF_RESULT:IMAGE_TILED_RLE_565_0:0.468
+    PERF_RESULT:IMAGE_TILED_RLE_565_8:1.235
+    PERF_RESULT:MASK_IMAGE_RLE_NO_MASK:2.481
+    PERF_RESULT:MASK_IMAGE_RLE_ROUND_RECT:2.710
+    PERF_RESULT:MASK_IMAGE_RLE_CIRCLE:2.856
+    PERF_RESULT:MASK_IMAGE_RLE_IMAGE:0.595
+    PERF_RESULT:MASK_IMAGE_RLE_8_NO_MASK:1.398
+    PERF_RESULT:MASK_IMAGE_RLE_8_ROUND_RECT:1.612
+    PERF_RESULT:MASK_IMAGE_RLE_8_CIRCLE:1.708
+    PERF_RESULT:MASK_IMAGE_RLE_8_IMAGE:0.532
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_NO_MASK:4.990
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_ROUND_RECT:5.219
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_CIRCLE:5.365
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_IMAGE:0.928
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_NO_MASK:2.191
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_ROUND_RECT:2.405
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_CIRCLE:2.502
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_IMAGE:0.775
+  Parsed 239 test results
+
+Results saved to: D:\workspace\gitee\EmbeddedGUI\perf_output\perf_results.json
+
+============================================================
+Scene Capture
+============================================================
+Building HelloPerformance capture app...
+Running scene capture...
+Scene EXTERN_MASK_IMAGE_RLE_8_IMAGE produced 2 labeled snapshots; using the first one.
+Using explicit PERF_FRAME markers for scene-to-frame mapping.
+Scene sheet saved: D:\workspace\gitee\EmbeddedGUI\perf_output\perf_scenes.png
+Scene index saved: D:\workspace\gitee\EmbeddedGUI\perf_output\perf_scenes_index.json
+Captured scenes: 239
+Report saved to: D:\workspace\gitee\EmbeddedGUI\perf_output\perf_report.md
+
+============================================================
+Performance Check Summary
+============================================================
+  Profiles tested: 1
+  Failed profiles: 0
+
+============================================================
+PFB Matrix Test
+============================================================
+PFB Matrix Test: profile=cortex-m3, 5 configs
+
+[1/5] PFB config: small (15x15) - Small (SCREEN_WIDTH/16 x SCREEN_HEIGHT/16, 15x15)
+
+============================================================
+Building for cortex-m3/small (cpu_arch=cortex-m3)
+============================================================
+  Build OK
+  Running QEMU: machine=mps2-an385 cpu=cortex-m3
+    PERF_RESULT:LINE:0.938
+    PERF_RESULT:LINE_HQ:1.767
+    PERF_RESULT:RECTANGLE:0.299
+    PERF_RESULT:RECTANGLE_FILL:0.268
+    PERF_RESULT:CIRCLE:1.905
+    PERF_RESULT:CIRCLE_FILL:1.249
+    PERF_RESULT:CIRCLE_HQ:1.520
+    PERF_RESULT:CIRCLE_FILL_HQ:1.200
+    PERF_RESULT:ARC:2.083
+    PERF_RESULT:ARC_FILL:2.433
+    PERF_RESULT:ARC_HQ:1.666
+    PERF_RESULT:ARC_FILL_HQ:2.349
+    PERF_RESULT:ROUND_RECTANGLE:1.917
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS:1.937
+    PERF_RESULT:ROUND_RECTANGLE_FILL:1.263
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS_FILL:1.308
+    PERF_RESULT:TRIANGLE:1.867
+    PERF_RESULT:TRIANGLE_FILL:1.876
+    PERF_RESULT:ELLIPSE:2.038
+    PERF_RESULT:ELLIPSE_FILL:1.253
+    PERF_RESULT:POLYGON:0.885
+    PERF_RESULT:POLYGON_FILL:2.611
+    PERF_RESULT:BEZIER_QUAD:1.824
+    PERF_RESULT:BEZIER_CUBIC:1.941
+    PERF_RESULT:CIRCLE_FILL_QUARTER:0.459
+    PERF_RESULT:CIRCLE_FILL_DOUBLE:1.540
+    PERF_RESULT:ROUND_RECTANGLE_FILL_QUARTER:0.472
+    PERF_RESULT:ROUND_RECTANGLE_FILL_DOUBLE:1.554
+    PERF_RESULT:TRIANGLE_FILL_QUARTER:0.585
+    PERF_RESULT:TRIANGLE_FILL_DOUBLE:1.636
+    PERF_RESULT:TEXT:3.223
+    PERF_RESULT:TEXT_RECT:1.157
+    PERF_RESULT:EXTERN_TEXT:3.329
+    PERF_RESULT:EXTERN_TEXT_RECT:1.794
+    PERF_RESULT:TEXT_ROTATE_NONE:1.174
+    PERF_RESULT:TEXT_ROTATE:3.019
+    PERF_RESULT:TEXT_ROTATE_RESIZE:3.021
+    PERF_RESULT:TEXT_ROTATE_QUARTER:1.788
+    PERF_RESULT:TEXT_ROTATE_DOUBLE:3.487
+    PERF_RESULT:EXTERN_TEXT_ROTATE:3.344
+    PERF_RESULT:IMAGE_565:0.545
+    PERF_RESULT:IMAGE_565_1:1.149
+    PERF_RESULT:IMAGE_565_2:1.140
+    PERF_RESULT:IMAGE_565_4:1.178
+    PERF_RESULT:IMAGE_565_8:0.981
+    PERF_RESULT:IMAGE_565_QUARTER:0.279
+    PERF_RESULT:IMAGE_565_DOUBLE:0.545
+    PERF_RESULT:IMAGE_565_8_QUARTER:0.381
+    PERF_RESULT:IMAGE_565_8_DOUBLE:0.175
+    PERF_RESULT:EXTERN_IMAGE_565:1.384
+    PERF_RESULT:EXTERN_IMAGE_565_1:1.714
+    PERF_RESULT:EXTERN_IMAGE_565_2:1.705
+    PERF_RESULT:EXTERN_IMAGE_565_4:1.743
+    PERF_RESULT:EXTERN_IMAGE_565_8:1.545
+    PERF_RESULT:IMAGE_TILED_565_0:1.161
+    PERF_RESULT:IMAGE_TILED_565_1:1.826
+    PERF_RESULT:IMAGE_TILED_565_2:1.962
+    PERF_RESULT:IMAGE_TILED_565_4:2.061
+    PERF_RESULT:IMAGE_TILED_565_8:2.040
+    PERF_RESULT:IMAGE_TILED_STAR_565_0:1.161
+    PERF_RESULT:IMAGE_TILED_STAR_565_1:1.826
+    PERF_RESULT:IMAGE_TILED_STAR_565_2:1.962
+    PERF_RESULT:IMAGE_TILED_STAR_565_4:2.061
+    PERF_RESULT:IMAGE_TILED_STAR_565_8:2.040
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_0:2.202
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_1:2.171
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_2:2.306
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_4:2.406
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_8:2.384
+    PERF_RESULT:IMAGE_RESIZE_565:0.708
+    PERF_RESULT:IMAGE_RESIZE_565_1:1.303
+    PERF_RESULT:IMAGE_RESIZE_565_2:1.561
+    PERF_RESULT:IMAGE_RESIZE_565_4:1.607
+    PERF_RESULT:IMAGE_RESIZE_565_8:1.278
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565:0.859
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_1:1.555
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_2:1.808
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_4:1.854
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_8:1.480
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_1:1.303
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_2:1.561
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_4:1.607
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_8:1.278
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_0:0.813
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_1:1.409
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_2:1.751
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_4:1.882
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_8:1.529
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_0:0.813
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_1:1.408
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_2:1.751
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_4:1.882
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_8:1.529
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_0:0.904
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_1:1.551
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_2:1.889
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_4:2.019
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_8:1.610
+    PERF_RESULT:IMAGE_ROTATE_565:1.532
+    PERF_RESULT:IMAGE_ROTATE_565_1:1.862
+    PERF_RESULT:IMAGE_ROTATE_565_2:1.860
+    PERF_RESULT:IMAGE_ROTATE_565_4:1.842
+    PERF_RESULT:IMAGE_ROTATE_565_8:1.823
+    PERF_RESULT:IMAGE_ROTATE_565_RESIZE:1.534
+    PERF_RESULT:IMAGE_ROTATE_565_QUARTER:0.569
+    PERF_RESULT:IMAGE_ROTATE_565_DOUBLE:3.655
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565:5.107
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_1:6.270
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_2:6.501
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_4:6.894
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_8:7.530
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_1:1.862
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_2:1.860
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_4:1.842
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_8:1.823
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_0:2.291
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_1:2.769
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_2:2.818
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_4:2.842
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_8:2.823
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_0:2.291
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_1:2.769
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_2:2.818
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_4:2.843
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_8:2.823
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_0:5.112
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_1:6.767
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_2:6.884
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_4:7.200
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_8:7.593
+    PERF_RESULT:IMAGE_COLOR:1.035
+    PERF_RESULT:IMAGE_RESIZE_COLOR:0.971
+    PERF_RESULT:GRADIENT_RECT:1.040
+    PERF_RESULT:GRADIENT_ROUND_RECT:2.050
+    PERF_RESULT:GRADIENT_CIRCLE:5.710
+    PERF_RESULT:GRADIENT_TRIANGLE:1.992
+    PERF_RESULT:GRADIENT_ARC_RING:2.228
+    PERF_RESULT:GRADIENT_ARC_RING_ROUND_CAP:2.383
+    PERF_RESULT:GRADIENT_RADIAL:4.830
+    PERF_RESULT:GRADIENT_ANGULAR:4.640
+    PERF_RESULT:GRADIENT_ROUND_RECT_RING:1.324
+    PERF_RESULT:GRADIENT_LINE_CAPSULE:1.280
+    PERF_RESULT:GRADIENT_MULTI_STOP:1.055
+    PERF_RESULT:GRADIENT_ROUND_RECT_CORNERS:1.330
+    PERF_RESULT:IMAGE_GRADIENT_OVERLAY:1.462
+    PERF_RESULT:MASK_GRADIENT_RECT_FILL:0.957
+    PERF_RESULT:MASK_GRADIENT_IMAGE:1.725
+    PERF_RESULT:MASK_GRADIENT_IMAGE_ROTATE:2.183
+    PERF_RESULT:TEXT_GRADIENT:0.484
+    PERF_RESULT:TEXT_RECT_GRADIENT:1.547
+    PERF_RESULT:TEXT_ROTATE_GRADIENT:3.440
+    PERF_RESULT:SHADOW:2.240
+    PERF_RESULT:SHADOW_ROUND:3.155
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK:0.268
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT:0.765
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE:1.838
+    PERF_RESULT:MASK_RECT_FILL_IMAGE:0.543
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_QUARTER:0.212
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_DOUBLE:0.268
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_QUARTER:0.351
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_DOUBLE:0.764
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_QUARTER:0.616
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_DOUBLE:1.818
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_QUARTER:0.283
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_DOUBLE:0.364
+    PERF_RESULT:MASK_IMAGE_NO_MASK:1.274
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT:1.421
+    PERF_RESULT:MASK_IMAGE_CIRCLE:2.643
+    PERF_RESULT:MASK_IMAGE_IMAGE:0.600
+    PERF_RESULT:EXTERN_MASK_IMAGE_NO_MASK:1.478
+    PERF_RESULT:EXTERN_MASK_IMAGE_ROUND_RECT:1.631
+    PERF_RESULT:EXTERN_MASK_IMAGE_CIRCLE:2.847
+    PERF_RESULT:EXTERN_MASK_IMAGE_IMAGE:0.694
+    PERF_RESULT:MASK_IMAGE_NO_MASK_QUARTER:0.462
+    PERF_RESULT:MASK_IMAGE_NO_MASK_DOUBLE:1.232
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_QUARTER:0.520
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_DOUBLE:1.381
+    PERF_RESULT:MASK_IMAGE_CIRCLE_QUARTER:0.809
+    PERF_RESULT:MASK_IMAGE_CIRCLE_DOUBLE:2.538
+    PERF_RESULT:MASK_IMAGE_IMAGE_QUARTER:0.375
+    PERF_RESULT:MASK_IMAGE_IMAGE_DOUBLE:0.600
+    PERF_RESULT:MASK_ROUND_RECT_FILL_NO_MASK:0.437
+    PERF_RESULT:MASK_ROUND_RECT_FILL_WITH_MASK:0.765
+    PERF_RESULT:ANIMATION_TRANSLATE:0.294
+    PERF_RESULT:ANIMATION_ALPHA:0.285
+    PERF_RESULT:ANIMATION_SCALE:0.329
+    PERF_RESULT:ANIMATION_SET:0.350
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_NO_MASK:0.707
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_ROUND_RECT:0.988
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_CIRCLE:2.002
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_IMAGE:3.168
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_NO_MASK:0.859
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_ROUND_RECT:1.291
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_CIRCLE:2.647
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_IMAGE:2.462
+    PERF_RESULT:IMAGE_QOI_565:8.524
+    PERF_RESULT:IMAGE_QOI_565_8:2.978
+    PERF_RESULT:EXTERN_IMAGE_QOI_565:22.165
+    PERF_RESULT:EXTERN_IMAGE_QOI_565_8:3.719
+    PERF_RESULT:IMAGE_TILED_QOI_565_0:1.342
+    PERF_RESULT:IMAGE_TILED_QOI_565_8:2.023
+    PERF_RESULT:MASK_IMAGE_QOI_NO_MASK:8.524
+    PERF_RESULT:MASK_IMAGE_QOI_ROUND_RECT:8.892
+    PERF_RESULT:MASK_IMAGE_QOI_CIRCLE:9.048
+    PERF_RESULT:MASK_IMAGE_QOI_IMAGE:1.632
+    PERF_RESULT:MASK_IMAGE_QOI_8_NO_MASK:2.978
+    PERF_RESULT:MASK_IMAGE_QOI_8_ROUND_RECT:3.305
+    PERF_RESULT:MASK_IMAGE_QOI_8_CIRCLE:3.426
+    PERF_RESULT:MASK_IMAGE_QOI_8_IMAGE:0.919
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_NO_MASK:22.165
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_ROUND_RECT:22.533
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_CIRCLE:22.688
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_IMAGE:3.608
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_NO_MASK:3.719
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT:4.046
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_CIRCLE:4.168
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_IMAGE:1.074
+    PERF_RESULT:IMAGE_RLE_565:3.426
+    PERF_RESULT:IMAGE_RLE_565_8:1.912
+    PERF_RESULT:EXTERN_IMAGE_RLE_565:6.780
+    PERF_RESULT:EXTERN_IMAGE_RLE_565_8:2.969
+    PERF_RESULT:IMAGE_TILED_RLE_565_0:1.204
+    PERF_RESULT:IMAGE_TILED_RLE_565_8:2.080
+    PERF_RESULT:MASK_IMAGE_RLE_NO_MASK:3.426
+    PERF_RESULT:MASK_IMAGE_RLE_ROUND_RECT:3.794
+    PERF_RESULT:MASK_IMAGE_RLE_CIRCLE:3.950
+    PERF_RESULT:MASK_IMAGE_RLE_IMAGE:0.807
+    PERF_RESULT:MASK_IMAGE_RLE_8_NO_MASK:1.912
+    PERF_RESULT:MASK_IMAGE_RLE_8_ROUND_RECT:2.239
+    PERF_RESULT:MASK_IMAGE_RLE_8_CIRCLE:2.361
+    PERF_RESULT:MASK_IMAGE_RLE_8_IMAGE:0.746
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_NO_MASK:6.781
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_ROUND_RECT:7.149
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_CIRCLE:7.305
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_IMAGE:1.141
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_NO_MASK:2.969
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_ROUND_RECT:3.297
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_CIRCLE:3.419
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_IMAGE:0.988
+  Parsed 239 test results
+
+[2/5] PFB config: middle (30x30) - Middle (SCREEN_WIDTH/8 x SCREEN_HEIGHT/8, 30x30)
+
+============================================================
+Building for cortex-m3/middle (cpu_arch=cortex-m3)
+============================================================
+  Build OK
+  Running QEMU: machine=mps2-an385 cpu=cortex-m3
+    PERF_RESULT:LINE:0.588
+    PERF_RESULT:LINE_HQ:1.393
+    PERF_RESULT:RECTANGLE:0.145
+    PERF_RESULT:RECTANGLE_FILL:0.149
+    PERF_RESULT:CIRCLE:0.930
+    PERF_RESULT:CIRCLE_FILL:0.548
+    PERF_RESULT:CIRCLE_HQ:1.216
+    PERF_RESULT:CIRCLE_FILL_HQ:0.643
+    PERF_RESULT:ARC:1.144
+    PERF_RESULT:ARC_FILL:1.441
+    PERF_RESULT:ARC_HQ:1.146
+    PERF_RESULT:ARC_FILL_HQ:1.751
+    PERF_RESULT:ROUND_RECTANGLE:0.933
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS:0.935
+    PERF_RESULT:ROUND_RECTANGLE_FILL:0.552
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS_FILL:0.573
+    PERF_RESULT:TRIANGLE:0.618
+    PERF_RESULT:TRIANGLE_FILL:1.066
+    PERF_RESULT:ELLIPSE:0.992
+    PERF_RESULT:ELLIPSE_FILL:0.550
+    PERF_RESULT:POLYGON:0.524
+    PERF_RESULT:POLYGON_FILL:1.402
+    PERF_RESULT:BEZIER_QUAD:1.231
+    PERF_RESULT:BEZIER_CUBIC:1.120
+    PERF_RESULT:CIRCLE_FILL_QUARTER:0.202
+    PERF_RESULT:CIRCLE_FILL_DOUBLE:0.610
+    PERF_RESULT:ROUND_RECTANGLE_FILL_QUARTER:0.205
+    PERF_RESULT:ROUND_RECTANGLE_FILL_DOUBLE:0.614
+    PERF_RESULT:TRIANGLE_FILL_QUARTER:0.314
+    PERF_RESULT:TRIANGLE_FILL_DOUBLE:0.856
+    PERF_RESULT:TEXT:0.896
+    PERF_RESULT:TEXT_RECT:0.585
+    PERF_RESULT:EXTERN_TEXT:0.934
+    PERF_RESULT:EXTERN_TEXT_RECT:0.812
+    PERF_RESULT:TEXT_ROTATE_NONE:0.585
+    PERF_RESULT:TEXT_ROTATE:2.491
+    PERF_RESULT:TEXT_ROTATE_RESIZE:2.492
+    PERF_RESULT:TEXT_ROTATE_QUARTER:1.655
+    PERF_RESULT:TEXT_ROTATE_DOUBLE:2.899
+    PERF_RESULT:EXTERN_TEXT_ROTATE:2.667
+    PERF_RESULT:IMAGE_565:0.304
+    PERF_RESULT:IMAGE_565_1:0.631
+    PERF_RESULT:IMAGE_565_2:0.678
+    PERF_RESULT:IMAGE_565_4:0.810
+    PERF_RESULT:IMAGE_565_8:0.611
+    PERF_RESULT:IMAGE_565_QUARTER:0.140
+    PERF_RESULT:IMAGE_565_DOUBLE:0.304
+    PERF_RESULT:IMAGE_565_8_QUARTER:0.211
+    PERF_RESULT:IMAGE_565_8_DOUBLE:0.082
+    PERF_RESULT:EXTERN_IMAGE_565:0.549
+    PERF_RESULT:EXTERN_IMAGE_565_1:0.898
+    PERF_RESULT:EXTERN_IMAGE_565_2:0.944
+    PERF_RESULT:EXTERN_IMAGE_565_4:1.077
+    PERF_RESULT:EXTERN_IMAGE_565_8:0.878
+    PERF_RESULT:IMAGE_TILED_565_0:0.515
+    PERF_RESULT:IMAGE_TILED_565_1:0.946
+    PERF_RESULT:IMAGE_TILED_565_2:1.108
+    PERF_RESULT:IMAGE_TILED_565_4:1.292
+    PERF_RESULT:IMAGE_TILED_565_8:1.286
+    PERF_RESULT:IMAGE_TILED_STAR_565_0:0.515
+    PERF_RESULT:IMAGE_TILED_STAR_565_1:0.946
+    PERF_RESULT:IMAGE_TILED_STAR_565_2:1.108
+    PERF_RESULT:IMAGE_TILED_STAR_565_4:1.292
+    PERF_RESULT:IMAGE_TILED_STAR_565_8:1.286
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_0:0.944
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_1:1.130
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_2:1.292
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_4:1.475
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_8:1.469
+    PERF_RESULT:IMAGE_RESIZE_565:0.465
+    PERF_RESULT:IMAGE_RESIZE_565_1:0.625
+    PERF_RESULT:IMAGE_RESIZE_565_2:0.791
+    PERF_RESULT:IMAGE_RESIZE_565_4:0.805
+    PERF_RESULT:IMAGE_RESIZE_565_8:0.681
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565:0.535
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_1:0.729
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_2:0.895
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_4:0.908
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_8:0.775
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_1:0.625
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_2:0.791
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_4:0.805
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_8:0.681
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_0:0.501
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_1:1.039
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_2:1.364
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_4:1.496
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_8:1.139
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_0:0.501
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_1:1.039
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_2:1.364
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_4:1.496
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_8:1.139
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_0:0.543
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_1:1.111
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_2:1.434
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_4:1.566
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_8:1.175
+    PERF_RESULT:IMAGE_ROTATE_565:1.226
+    PERF_RESULT:IMAGE_ROTATE_565_1:1.551
+    PERF_RESULT:IMAGE_ROTATE_565_2:1.547
+    PERF_RESULT:IMAGE_ROTATE_565_4:1.528
+    PERF_RESULT:IMAGE_ROTATE_565_8:1.507
+    PERF_RESULT:IMAGE_ROTATE_565_RESIZE:1.227
+    PERF_RESULT:IMAGE_ROTATE_565_QUARTER:0.382
+    PERF_RESULT:IMAGE_ROTATE_565_DOUBLE:3.232
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565:4.774
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_1:5.947
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_2:6.172
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_4:6.540
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_8:7.178
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_1:1.551
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_2:1.547
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_4:1.528
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_8:1.507
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_0:1.464
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_1:1.918
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_2:1.955
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_4:1.967
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_8:1.936
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_0:1.464
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_1:1.918
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_2:1.955
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_4:1.967
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_8:1.936
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_0:4.275
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_1:5.925
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_2:6.030
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_4:6.333
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_8:6.707
+    PERF_RESULT:IMAGE_COLOR:0.879
+    PERF_RESULT:IMAGE_RESIZE_COLOR:0.750
+    PERF_RESULT:GRADIENT_RECT:0.536
+    PERF_RESULT:GRADIENT_ROUND_RECT:1.302
+    PERF_RESULT:GRADIENT_CIRCLE:3.266
+    PERF_RESULT:GRADIENT_TRIANGLE:1.179
+    PERF_RESULT:GRADIENT_ARC_RING:1.484
+    PERF_RESULT:GRADIENT_ARC_RING_ROUND_CAP:1.541
+    PERF_RESULT:GRADIENT_RADIAL:2.765
+    PERF_RESULT:GRADIENT_ANGULAR:2.574
+    PERF_RESULT:GRADIENT_ROUND_RECT_RING:0.911
+    PERF_RESULT:GRADIENT_LINE_CAPSULE:1.155
+    PERF_RESULT:GRADIENT_MULTI_STOP:0.544
+    PERF_RESULT:GRADIENT_ROUND_RECT_CORNERS:0.781
+    PERF_RESULT:IMAGE_GRADIENT_OVERLAY:1.024
+    PERF_RESULT:MASK_GRADIENT_RECT_FILL:0.489
+    PERF_RESULT:MASK_GRADIENT_IMAGE:1.537
+    PERF_RESULT:MASK_GRADIENT_IMAGE_ROTATE:1.735
+    PERF_RESULT:TEXT_GRADIENT:0.219
+    PERF_RESULT:TEXT_RECT_GRADIENT:0.881
+    PERF_RESULT:TEXT_ROTATE_GRADIENT:2.726
+    PERF_RESULT:SHADOW:1.141
+    PERF_RESULT:SHADOW_ROUND:1.571
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK:0.149
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT:0.408
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE:0.980
+    PERF_RESULT:MASK_RECT_FILL_IMAGE:0.302
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_QUARTER:0.102
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_DOUBLE:0.148
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_QUARTER:0.170
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_DOUBLE:0.405
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_QUARTER:0.313
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_DOUBLE:0.941
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_QUARTER:0.116
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_DOUBLE:0.181
+    PERF_RESULT:MASK_IMAGE_NO_MASK:0.680
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT:1.003
+    PERF_RESULT:MASK_IMAGE_CIRCLE:1.674
+    PERF_RESULT:MASK_IMAGE_IMAGE:0.323
+    PERF_RESULT:EXTERN_MASK_IMAGE_NO_MASK:0.774
+    PERF_RESULT:EXTERN_MASK_IMAGE_ROUND_RECT:1.101
+    PERF_RESULT:EXTERN_MASK_IMAGE_CIRCLE:1.769
+    PERF_RESULT:EXTERN_MASK_IMAGE_IMAGE:0.368
+    PERF_RESULT:MASK_IMAGE_NO_MASK_QUARTER:0.233
+    PERF_RESULT:MASK_IMAGE_NO_MASK_DOUBLE:0.914
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_QUARTER:0.322
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_DOUBLE:0.970
+    PERF_RESULT:MASK_IMAGE_CIRCLE_QUARTER:0.477
+    PERF_RESULT:MASK_IMAGE_CIRCLE_DOUBLE:1.560
+    PERF_RESULT:MASK_IMAGE_IMAGE_QUARTER:0.157
+    PERF_RESULT:MASK_IMAGE_IMAGE_DOUBLE:0.323
+    PERF_RESULT:MASK_ROUND_RECT_FILL_NO_MASK:0.237
+    PERF_RESULT:MASK_ROUND_RECT_FILL_WITH_MASK:0.408
+    PERF_RESULT:ANIMATION_TRANSLATE:0.114
+    PERF_RESULT:ANIMATION_ALPHA:0.112
+    PERF_RESULT:ANIMATION_SCALE:0.124
+    PERF_RESULT:ANIMATION_SET:0.128
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_NO_MASK:0.465
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_ROUND_RECT:0.619
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_CIRCLE:1.135
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_IMAGE:2.092
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_NO_MASK:0.535
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_ROUND_RECT:0.770
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_CIRCLE:1.572
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_IMAGE:1.315
+    PERF_RESULT:IMAGE_QOI_565:6.221
+    PERF_RESULT:IMAGE_QOI_565_8:2.115
+    PERF_RESULT:EXTERN_IMAGE_QOI_565:16.451
+    PERF_RESULT:EXTERN_IMAGE_QOI_565_8:2.671
+    PERF_RESULT:IMAGE_TILED_QOI_565_0:0.488
+    PERF_RESULT:IMAGE_TILED_QOI_565_8:1.173
+    PERF_RESULT:MASK_IMAGE_QOI_NO_MASK:6.221
+    PERF_RESULT:MASK_IMAGE_QOI_ROUND_RECT:6.450
+    PERF_RESULT:MASK_IMAGE_QOI_CIRCLE:6.590
+    PERF_RESULT:MASK_IMAGE_QOI_IMAGE:1.387
+    PERF_RESULT:MASK_IMAGE_QOI_8_NO_MASK:2.115
+    PERF_RESULT:MASK_IMAGE_QOI_8_ROUND_RECT:2.329
+    PERF_RESULT:MASK_IMAGE_QOI_8_CIRCLE:2.424
+    PERF_RESULT:MASK_IMAGE_QOI_8_IMAGE:0.675
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_NO_MASK:16.451
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_ROUND_RECT:16.681
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_CIRCLE:16.821
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_IMAGE:3.364
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_NO_MASK:2.671
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT:2.886
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_CIRCLE:2.980
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_IMAGE:0.830
+    PERF_RESULT:IMAGE_RLE_565:2.475
+    PERF_RESULT:IMAGE_RLE_565_8:1.392
+    PERF_RESULT:EXTERN_IMAGE_RLE_565:4.983
+    PERF_RESULT:EXTERN_IMAGE_RLE_565_8:2.185
+    PERF_RESULT:IMAGE_TILED_RLE_565_0:0.462
+    PERF_RESULT:IMAGE_TILED_RLE_565_8:1.175
+    PERF_RESULT:MASK_IMAGE_RLE_NO_MASK:2.475
+    PERF_RESULT:MASK_IMAGE_RLE_ROUND_RECT:2.704
+    PERF_RESULT:MASK_IMAGE_RLE_CIRCLE:2.845
+    PERF_RESULT:MASK_IMAGE_RLE_IMAGE:0.584
+    PERF_RESULT:MASK_IMAGE_RLE_8_NO_MASK:1.392
+    PERF_RESULT:MASK_IMAGE_RLE_8_ROUND_RECT:1.607
+    PERF_RESULT:MASK_IMAGE_RLE_8_CIRCLE:1.701
+    PERF_RESULT:MASK_IMAGE_RLE_8_IMAGE:0.522
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_NO_MASK:4.983
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_ROUND_RECT:5.213
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_CIRCLE:5.353
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_IMAGE:0.918
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_NO_MASK:2.185
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_ROUND_RECT:2.400
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_CIRCLE:2.495
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_IMAGE:0.764
+  Parsed 239 test results
+
+[3/5] PFB config: fullwidth (240x1) - Full-width strip (SCREEN_WIDTH x 1, 240x1)
+
+============================================================
+Building for cortex-m3/fullwidth (cpu_arch=cortex-m3)
+============================================================
+  Build OK
+  Running QEMU: machine=mps2-an385 cpu=cortex-m3
+    PERF_RESULT:LINE:0.611
+    PERF_RESULT:LINE_HQ:1.472
+    PERF_RESULT:RECTANGLE:0.329
+    PERF_RESULT:RECTANGLE_FILL:0.264
+    PERF_RESULT:CIRCLE:0.950
+    PERF_RESULT:CIRCLE_FILL:0.381
+    PERF_RESULT:CIRCLE_HQ:1.165
+    PERF_RESULT:CIRCLE_FILL_HQ:0.365
+    PERF_RESULT:ARC:1.487
+    PERF_RESULT:ARC_FILL:1.727
+    PERF_RESULT:ARC_HQ:1.245
+    PERF_RESULT:ARC_FILL_HQ:1.803
+    PERF_RESULT:ROUND_RECTANGLE:0.962
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS:0.981
+    PERF_RESULT:ROUND_RECTANGLE_FILL:0.393
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS_FILL:4.168
+    PERF_RESULT:TRIANGLE:2.817
+    PERF_RESULT:TRIANGLE_FILL:0.716
+    PERF_RESULT:ELLIPSE:1.091
+    PERF_RESULT:ELLIPSE_FILL:0.385
+    PERF_RESULT:POLYGON:0.755
+    PERF_RESULT:POLYGON_FILL:0.826
+    PERF_RESULT:BEZIER_QUAD:1.964
+    PERF_RESULT:BEZIER_CUBIC:2.017
+    PERF_RESULT:CIRCLE_FILL_QUARTER:0.261
+    PERF_RESULT:CIRCLE_FILL_DOUBLE:0.360
+    PERF_RESULT:ROUND_RECTANGLE_FILL_QUARTER:0.273
+    PERF_RESULT:ROUND_RECTANGLE_FILL_DOUBLE:0.373
+    PERF_RESULT:TRIANGLE_FILL_QUARTER:0.364
+    PERF_RESULT:TRIANGLE_FILL_DOUBLE:0.551
+    PERF_RESULT:TEXT:3.085
+    PERF_RESULT:TEXT_RECT:1.157
+    PERF_RESULT:EXTERN_TEXT:3.218
+    PERF_RESULT:EXTERN_TEXT_RECT:1.773
+    PERF_RESULT:TEXT_ROTATE_NONE:1.171
+    PERF_RESULT:TEXT_ROTATE:22.530
+    PERF_RESULT:TEXT_ROTATE_RESIZE:22.532
+    PERF_RESULT:TEXT_ROTATE_QUARTER:2.586
+    PERF_RESULT:TEXT_ROTATE_DOUBLE:12.206
+    PERF_RESULT:EXTERN_TEXT_ROTATE:25.218
+    PERF_RESULT:IMAGE_565:0.306
+    PERF_RESULT:IMAGE_565_1:0.420
+    PERF_RESULT:IMAGE_565_2:0.530
+    PERF_RESULT:IMAGE_565_4:0.726
+    PERF_RESULT:IMAGE_565_8:0.525
+    PERF_RESULT:IMAGE_565_QUARTER:0.225
+    PERF_RESULT:IMAGE_565_DOUBLE:0.306
+    PERF_RESULT:IMAGE_565_8_QUARTER:0.284
+    PERF_RESULT:IMAGE_565_8_DOUBLE:0.173
+    PERF_RESULT:EXTERN_IMAGE_565:0.338
+    PERF_RESULT:EXTERN_IMAGE_565_1:0.472
+    PERF_RESULT:EXTERN_IMAGE_565_2:0.582
+    PERF_RESULT:EXTERN_IMAGE_565_4:0.777
+    PERF_RESULT:EXTERN_IMAGE_565_8:0.577
+    PERF_RESULT:IMAGE_TILED_565_0:1.013
+    PERF_RESULT:IMAGE_TILED_565_1:1.324
+    PERF_RESULT:IMAGE_TILED_565_2:1.545
+    PERF_RESULT:IMAGE_TILED_565_4:1.787
+    PERF_RESULT:IMAGE_TILED_565_8:1.782
+    PERF_RESULT:IMAGE_TILED_STAR_565_0:1.013
+    PERF_RESULT:IMAGE_TILED_STAR_565_1:1.324
+    PERF_RESULT:IMAGE_TILED_STAR_565_2:1.545
+    PERF_RESULT:IMAGE_TILED_STAR_565_4:1.787
+    PERF_RESULT:IMAGE_TILED_STAR_565_8:1.782
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_0:1.139
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_1:1.503
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_2:1.724
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_4:1.965
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_8:1.960
+    PERF_RESULT:IMAGE_RESIZE_565:0.856
+    PERF_RESULT:IMAGE_RESIZE_565_1:1.368
+    PERF_RESULT:IMAGE_RESIZE_565_2:1.594
+    PERF_RESULT:IMAGE_RESIZE_565_4:1.641
+    PERF_RESULT:IMAGE_RESIZE_565_8:1.287
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565:0.882
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_1:1.411
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_2:1.635
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_4:1.683
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_8:1.321
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_1:1.368
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_2:1.594
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_4:1.641
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_8:1.287
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_0:1.021
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_1:1.547
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_2:1.864
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_4:1.999
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_8:1.631
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_0:1.021
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_1:1.547
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_2:1.864
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_4:1.999
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_8:1.631
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_0:1.070
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_1:1.617
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_2:1.931
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_4:2.067
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_8:1.689
+    PERF_RESULT:IMAGE_ROTATE_565:1.176
+    PERF_RESULT:IMAGE_ROTATE_565_1:1.502
+    PERF_RESULT:IMAGE_ROTATE_565_2:1.499
+    PERF_RESULT:IMAGE_ROTATE_565_4:1.481
+    PERF_RESULT:IMAGE_ROTATE_565_8:1.461
+    PERF_RESULT:IMAGE_ROTATE_565_RESIZE:1.178
+    PERF_RESULT:IMAGE_ROTATE_565_QUARTER:0.494
+    PERF_RESULT:IMAGE_ROTATE_565_DOUBLE:3.133
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565:4.709
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_1:5.903
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_2:6.111
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_4:6.478
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_8:7.122
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_1:1.501
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_2:1.499
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_4:1.481
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_8:1.461
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_0:2.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_1:2.474
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_2:2.522
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_4:2.546
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_8:2.525
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_0:2.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_1:2.474
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_2:2.522
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_4:2.546
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_8:2.525
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_0:4.826
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_1:6.509
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_2:6.624
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_4:6.939
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_8:7.310
+    PERF_RESULT:IMAGE_COLOR:0.953
+    PERF_RESULT:IMAGE_RESIZE_COLOR:1.151
+    PERF_RESULT:GRADIENT_RECT:0.295
+    PERF_RESULT:GRADIENT_ROUND_RECT:0.903
+    PERF_RESULT:GRADIENT_CIRCLE:4.363
+    PERF_RESULT:GRADIENT_TRIANGLE:0.807
+    PERF_RESULT:GRADIENT_ARC_RING:1.111
+    PERF_RESULT:GRADIENT_ARC_RING_ROUND_CAP:1.252
+    PERF_RESULT:GRADIENT_RADIAL:4.230
+    PERF_RESULT:GRADIENT_ANGULAR:4.340
+    PERF_RESULT:GRADIENT_ROUND_RECT_RING:0.690
+    PERF_RESULT:GRADIENT_LINE_CAPSULE:1.259
+    PERF_RESULT:GRADIENT_MULTI_STOP:0.296
+    PERF_RESULT:GRADIENT_ROUND_RECT_CORNERS:0.541
+    PERF_RESULT:IMAGE_GRADIENT_OVERLAY:0.911
+    PERF_RESULT:MASK_GRADIENT_RECT_FILL:0.308
+    PERF_RESULT:MASK_GRADIENT_IMAGE:1.609
+    PERF_RESULT:MASK_GRADIENT_IMAGE_ROTATE:1.590
+    PERF_RESULT:TEXT_GRADIENT:0.529
+    PERF_RESULT:TEXT_RECT_GRADIENT:1.403
+    PERF_RESULT:TEXT_ROTATE_GRADIENT:22.577
+    PERF_RESULT:SHADOW:2.470
+    PERF_RESULT:SHADOW_ROUND:4.396
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK:0.264
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT:0.330
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE:0.466
+    PERF_RESULT:MASK_RECT_FILL_IMAGE:0.395
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_QUARTER:0.214
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_DOUBLE:0.264
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_QUARTER:0.248
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_DOUBLE:0.329
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_QUARTER:0.297
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_DOUBLE:0.416
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_QUARTER:0.262
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_DOUBLE:0.310
+    PERF_RESULT:MASK_IMAGE_NO_MASK:1.283
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT:1.332
+    PERF_RESULT:MASK_IMAGE_CIRCLE:1.475
+    PERF_RESULT:MASK_IMAGE_IMAGE:0.400
+    PERF_RESULT:EXTERN_MASK_IMAGE_NO_MASK:1.318
+    PERF_RESULT:EXTERN_MASK_IMAGE_ROUND_RECT:1.368
+    PERF_RESULT:EXTERN_MASK_IMAGE_CIRCLE:1.510
+    PERF_RESULT:EXTERN_MASK_IMAGE_IMAGE:0.420
+    PERF_RESULT:MASK_IMAGE_NO_MASK_QUARTER:0.491
+    PERF_RESULT:MASK_IMAGE_NO_MASK_DOUBLE:1.259
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_QUARTER:0.536
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_DOUBLE:1.310
+    PERF_RESULT:MASK_IMAGE_CIRCLE_QUARTER:0.574
+    PERF_RESULT:MASK_IMAGE_CIRCLE_DOUBLE:1.373
+    PERF_RESULT:MASK_IMAGE_IMAGE_QUARTER:0.284
+    PERF_RESULT:MASK_IMAGE_IMAGE_DOUBLE:0.400
+    PERF_RESULT:MASK_ROUND_RECT_FILL_NO_MASK:0.528
+    PERF_RESULT:MASK_ROUND_RECT_FILL_WITH_MASK:0.330
+    PERF_RESULT:ANIMATION_TRANSLATE:0.290
+    PERF_RESULT:ANIMATION_ALPHA:0.281
+    PERF_RESULT:ANIMATION_SCALE:0.321
+    PERF_RESULT:ANIMATION_SET:0.342
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_NO_MASK:0.856
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_ROUND_RECT:0.978
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_CIRCLE:1.001
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_IMAGE:1.572
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_NO_MASK:0.882
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_ROUND_RECT:0.976
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_CIRCLE:1.336
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_IMAGE:0.838
+    PERF_RESULT:IMAGE_QOI_565:2.362
+    PERF_RESULT:IMAGE_QOI_565_8:1.131
+    PERF_RESULT:EXTERN_IMAGE_QOI_565:5.772
+    PERF_RESULT:EXTERN_IMAGE_QOI_565_8:1.316
+    PERF_RESULT:IMAGE_TILED_QOI_565_0:4.163
+    PERF_RESULT:IMAGE_TILED_QOI_565_8:4.066
+    PERF_RESULT:MASK_IMAGE_QOI_NO_MASK:2.362
+    PERF_RESULT:MASK_IMAGE_QOI_ROUND_RECT:2.478
+    PERF_RESULT:MASK_IMAGE_QOI_CIRCLE:2.557
+    PERF_RESULT:MASK_IMAGE_QOI_IMAGE:0.985
+    PERF_RESULT:MASK_IMAGE_QOI_8_NO_MASK:1.131
+    PERF_RESULT:MASK_IMAGE_QOI_8_ROUND_RECT:1.235
+    PERF_RESULT:MASK_IMAGE_QOI_8_CIRCLE:1.262
+    PERF_RESULT:MASK_IMAGE_QOI_8_IMAGE:0.633
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_NO_MASK:5.772
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_ROUND_RECT:5.888
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_CIRCLE:5.967
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_IMAGE:1.973
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_NO_MASK:1.317
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT:1.420
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_CIRCLE:1.447
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_IMAGE:0.710
+    PERF_RESULT:IMAGE_RLE_565:1.060
+    PERF_RESULT:IMAGE_RLE_565_8:0.838
+    PERF_RESULT:EXTERN_IMAGE_RLE_565:1.895
+    PERF_RESULT:EXTERN_IMAGE_RLE_565_8:1.102
+    PERF_RESULT:IMAGE_TILED_RLE_565_0:1.672
+    PERF_RESULT:IMAGE_TILED_RLE_565_8:2.876
+    PERF_RESULT:MASK_IMAGE_RLE_NO_MASK:1.060
+    PERF_RESULT:MASK_IMAGE_RLE_ROUND_RECT:1.176
+    PERF_RESULT:MASK_IMAGE_RLE_CIRCLE:1.255
+    PERF_RESULT:MASK_IMAGE_RLE_IMAGE:0.556
+    PERF_RESULT:MASK_IMAGE_RLE_8_NO_MASK:0.838
+    PERF_RESULT:MASK_IMAGE_RLE_8_ROUND_RECT:0.942
+    PERF_RESULT:MASK_IMAGE_RLE_8_CIRCLE:0.970
+    PERF_RESULT:MASK_IMAGE_RLE_8_IMAGE:0.530
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_NO_MASK:1.895
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_ROUND_RECT:2.011
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_CIRCLE:2.091
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_IMAGE:0.723
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_NO_MASK:1.102
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_ROUND_RECT:1.207
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_CIRCLE:1.234
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_IMAGE:0.652
+  Parsed 239 test results
+
+[4/5] PFB config: fullheight (1x240) - Full-height strip (1 x SCREEN_HEIGHT, 1x240)
+
+============================================================
+Building for cortex-m3/fullheight (cpu_arch=cortex-m3)
+============================================================
+  Build OK
+  Running QEMU: machine=mps2-an385 cpu=cortex-m3
+    PERF_RESULT:LINE:5.666
+    PERF_RESULT:LINE_HQ:5.952
+    PERF_RESULT:RECTANGLE:0.296
+    PERF_RESULT:RECTANGLE_FILL:0.256
+    PERF_RESULT:CIRCLE:18.642
+    PERF_RESULT:CIRCLE_FILL:4.926
+    PERF_RESULT:CIRCLE_HQ:6.733
+    PERF_RESULT:CIRCLE_FILL_HQ:12.592
+    PERF_RESULT:ARC:15.133
+    PERF_RESULT:ARC_FILL:17.590
+    PERF_RESULT:ARC_HQ:8.391
+    PERF_RESULT:ARC_FILL_HQ:10.877
+    PERF_RESULT:ROUND_RECTANGLE:18.630
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS:18.240
+    PERF_RESULT:ROUND_RECTANGLE_FILL:4.939
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS_FILL:4.888
+    PERF_RESULT:TRIANGLE:2.305
+    PERF_RESULT:TRIANGLE_FILL:18.314
+    PERF_RESULT:ELLIPSE:20.069
+    PERF_RESULT:ELLIPSE_FILL:4.930
+    PERF_RESULT:POLYGON:4.352
+    PERF_RESULT:POLYGON_FILL:28.130
+    PERF_RESULT:BEZIER_QUAD:2.618
+    PERF_RESULT:BEZIER_CUBIC:2.527
+    PERF_RESULT:CIRCLE_FILL_QUARTER:1.407
+    PERF_RESULT:CIRCLE_FILL_DOUBLE:4.926
+    PERF_RESULT:ROUND_RECTANGLE_FILL_QUARTER:1.420
+    PERF_RESULT:ROUND_RECTANGLE_FILL_DOUBLE:4.938
+    PERF_RESULT:TRIANGLE_FILL_QUARTER:4.555
+    PERF_RESULT:TRIANGLE_FILL_DOUBLE:17.450
+    PERF_RESULT:TEXT:3.358
+    PERF_RESULT:TEXT_RECT:3.038
+    PERF_RESULT:EXTERN_TEXT:3.861
+    PERF_RESULT:EXTERN_TEXT_RECT:6.322
+    PERF_RESULT:TEXT_ROTATE_NONE:2.920
+    PERF_RESULT:TEXT_ROTATE:30.850
+    PERF_RESULT:TEXT_ROTATE_RESIZE:30.852
+    PERF_RESULT:TEXT_ROTATE_QUARTER:5.087
+    PERF_RESULT:TEXT_ROTATE_DOUBLE:19.913
+    PERF_RESULT:EXTERN_TEXT_ROTATE:33.508
+    PERF_RESULT:IMAGE_565:1.784
+    PERF_RESULT:IMAGE_565_1:5.849
+    PERF_RESULT:IMAGE_565_2:6.316
+    PERF_RESULT:IMAGE_565_4:5.908
+    PERF_RESULT:IMAGE_565_8:6.114
+    PERF_RESULT:IMAGE_565_QUARTER:0.586
+    PERF_RESULT:IMAGE_565_DOUBLE:1.785
+    PERF_RESULT:IMAGE_565_8_QUARTER:1.645
+    PERF_RESULT:IMAGE_565_8_DOUBLE:0.165
+    PERF_RESULT:EXTERN_IMAGE_565:8.741
+    PERF_RESULT:EXTERN_IMAGE_565_1:13.728
+    PERF_RESULT:EXTERN_IMAGE_565_2:14.196
+    PERF_RESULT:EXTERN_IMAGE_565_4:13.787
+    PERF_RESULT:EXTERN_IMAGE_565_8:13.993
+    PERF_RESULT:IMAGE_TILED_565_0:2.422
+    PERF_RESULT:IMAGE_TILED_565_1:6.503
+    PERF_RESULT:IMAGE_TILED_565_2:7.019
+    PERF_RESULT:IMAGE_TILED_565_4:6.657
+    PERF_RESULT:IMAGE_TILED_565_8:6.857
+    PERF_RESULT:IMAGE_TILED_STAR_565_0:2.422
+    PERF_RESULT:IMAGE_TILED_STAR_565_1:6.503
+    PERF_RESULT:IMAGE_TILED_STAR_565_2:7.019
+    PERF_RESULT:IMAGE_TILED_STAR_565_4:6.657
+    PERF_RESULT:IMAGE_TILED_STAR_565_8:6.857
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_0:5.313
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_1:10.110
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_2:10.626
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_4:10.264
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_8:10.463
+    PERF_RESULT:IMAGE_RESIZE_565:2.340
+    PERF_RESULT:IMAGE_RESIZE_565_1:4.146
+    PERF_RESULT:IMAGE_RESIZE_565_2:4.863
+    PERF_RESULT:IMAGE_RESIZE_565_4:4.895
+    PERF_RESULT:IMAGE_RESIZE_565_8:4.947
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565:4.285
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_1:7.429
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_2:8.088
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_4:8.119
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_8:7.561
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_1:4.146
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_2:4.863
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_4:4.895
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_8:4.947
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_0:2.497
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_1:4.277
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_2:5.049
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_4:5.133
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_8:5.013
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_0:2.497
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_1:4.276
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_2:5.049
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_4:5.133
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_8:5.013
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_0:3.553
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_1:6.028
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_2:6.743
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_4:6.826
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_8:5.936
+    PERF_RESULT:IMAGE_ROTATE_565:4.402
+    PERF_RESULT:IMAGE_ROTATE_565_1:4.811
+    PERF_RESULT:IMAGE_ROTATE_565_2:4.809
+    PERF_RESULT:IMAGE_ROTATE_565_4:4.790
+    PERF_RESULT:IMAGE_ROTATE_565_8:4.771
+    PERF_RESULT:IMAGE_ROTATE_565_RESIZE:4.404
+    PERF_RESULT:IMAGE_ROTATE_565_QUARTER:1.277
+    PERF_RESULT:IMAGE_ROTATE_565_DOUBLE:9.872
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565:7.504
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_1:8.949
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_2:9.098
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_4:9.362
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_8:9.790
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_1:4.811
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_2:4.808
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_4:4.790
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_8:4.771
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_0:5.059
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_1:5.609
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_2:5.657
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_4:5.681
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_8:5.659
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_0:5.059
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_1:5.609
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_2:5.657
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_4:5.681
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_8:5.659
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_0:7.753
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_1:9.560
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_2:9.669
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_4:9.938
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_8:10.222
+    PERF_RESULT:IMAGE_COLOR:2.207
+    PERF_RESULT:IMAGE_RESIZE_COLOR:2.146
+    PERF_RESULT:GRADIENT_RECT:10.910
+    PERF_RESULT:GRADIENT_ROUND_RECT:19.120
+    PERF_RESULT:GRADIENT_CIRCLE:23.465
+    PERF_RESULT:GRADIENT_TRIANGLE:18.477
+    PERF_RESULT:GRADIENT_ARC_RING:18.247
+    PERF_RESULT:GRADIENT_ARC_RING_ROUND_CAP:18.467
+    PERF_RESULT:GRADIENT_RADIAL:11.883
+    PERF_RESULT:GRADIENT_ANGULAR:6.569
+    PERF_RESULT:GRADIENT_ROUND_RECT_RING:10.359
+    PERF_RESULT:GRADIENT_LINE_CAPSULE:1.516
+    PERF_RESULT:GRADIENT_MULTI_STOP:11.141
+    PERF_RESULT:GRADIENT_ROUND_RECT_CORNERS:13.019
+    PERF_RESULT:IMAGE_GRADIENT_OVERLAY:9.580
+    PERF_RESULT:MASK_GRADIENT_RECT_FILL:9.375
+    PERF_RESULT:MASK_GRADIENT_IMAGE:3.614
+    PERF_RESULT:MASK_GRADIENT_IMAGE_ROTATE:8.475
+    PERF_RESULT:TEXT_GRADIENT:0.877
+    PERF_RESULT:TEXT_RECT_GRADIENT:5.794
+    PERF_RESULT:TEXT_ROTATE_GRADIENT:38.312
+    PERF_RESULT:SHADOW:3.381
+    PERF_RESULT:SHADOW_ROUND:5.430
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK:0.256
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT:6.016
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE:21.204
+    PERF_RESULT:MASK_RECT_FILL_IMAGE:2.390
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_QUARTER:0.205
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_DOUBLE:0.256
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_QUARTER:1.661
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_DOUBLE:5.999
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_QUARTER:5.480
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_DOUBLE:21.718
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_QUARTER:0.535
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_DOUBLE:1.032
+    PERF_RESULT:MASK_IMAGE_NO_MASK:4.944
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT:6.537
+    PERF_RESULT:MASK_IMAGE_CIRCLE:23.554
+    PERF_RESULT:MASK_IMAGE_IMAGE:3.315
+    PERF_RESULT:EXTERN_MASK_IMAGE_NO_MASK:7.559
+    PERF_RESULT:EXTERN_MASK_IMAGE_ROUND_RECT:9.239
+    PERF_RESULT:EXTERN_MASK_IMAGE_CIRCLE:26.170
+    PERF_RESULT:EXTERN_MASK_IMAGE_IMAGE:4.609
+    PERF_RESULT:MASK_IMAGE_NO_MASK_QUARTER:1.374
+    PERF_RESULT:MASK_IMAGE_NO_MASK_DOUBLE:4.678
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_QUARTER:1.773
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_DOUBLE:6.250
+    PERF_RESULT:MASK_IMAGE_CIRCLE_QUARTER:5.977
+    PERF_RESULT:MASK_IMAGE_CIRCLE_DOUBLE:23.700
+    PERF_RESULT:MASK_IMAGE_IMAGE_QUARTER:1.803
+    PERF_RESULT:MASK_IMAGE_IMAGE_DOUBLE:3.315
+    PERF_RESULT:MASK_ROUND_RECT_FILL_NO_MASK:0.494
+    PERF_RESULT:MASK_ROUND_RECT_FILL_WITH_MASK:6.016
+    PERF_RESULT:ANIMATION_TRANSLATE:0.280
+    PERF_RESULT:ANIMATION_ALPHA:0.272
+    PERF_RESULT:ANIMATION_SCALE:0.312
+    PERF_RESULT:ANIMATION_SET:0.333
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_NO_MASK:2.340
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_ROUND_RECT:4.916
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_CIRCLE:20.480
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_IMAGE:28.676
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_NO_MASK:4.285
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_ROUND_RECT:9.740
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_CIRCLE:27.123
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_IMAGE:29.628
+    PERF_RESULT:IMAGE_QOI_565:2.309
+    PERF_RESULT:IMAGE_QOI_565_8:1.095
+    PERF_RESULT:EXTERN_IMAGE_QOI_565:5.719
+    PERF_RESULT:EXTERN_IMAGE_QOI_565_8:1.281
+    PERF_RESULT:IMAGE_TILED_QOI_565_0:1.022
+    PERF_RESULT:IMAGE_TILED_QOI_565_8:1.700
+    PERF_RESULT:MASK_IMAGE_QOI_NO_MASK:2.309
+    PERF_RESULT:MASK_IMAGE_QOI_ROUND_RECT:2.548
+    PERF_RESULT:MASK_IMAGE_QOI_CIRCLE:2.698
+    PERF_RESULT:MASK_IMAGE_QOI_IMAGE:0.949
+    PERF_RESULT:MASK_IMAGE_QOI_8_NO_MASK:1.095
+    PERF_RESULT:MASK_IMAGE_QOI_8_ROUND_RECT:1.319
+    PERF_RESULT:MASK_IMAGE_QOI_8_CIRCLE:1.419
+    PERF_RESULT:MASK_IMAGE_QOI_8_IMAGE:0.598
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_NO_MASK:5.719
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_ROUND_RECT:5.958
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_CIRCLE:6.108
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_IMAGE:1.937
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_NO_MASK:1.281
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT:1.505
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_CIRCLE:1.604
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_IMAGE:0.676
+    PERF_RESULT:IMAGE_RLE_565:1.074
+    PERF_RESULT:IMAGE_RLE_565_8:0.872
+    PERF_RESULT:EXTERN_IMAGE_RLE_565:1.910
+    PERF_RESULT:EXTERN_IMAGE_RLE_565_8:1.136
+    PERF_RESULT:IMAGE_TILED_RLE_565_0:3.162
+    PERF_RESULT:IMAGE_TILED_RLE_565_8:1.739
+    PERF_RESULT:MASK_IMAGE_RLE_NO_MASK:1.074
+    PERF_RESULT:MASK_IMAGE_RLE_ROUND_RECT:1.313
+    PERF_RESULT:MASK_IMAGE_RLE_CIRCLE:1.463
+    PERF_RESULT:MASK_IMAGE_RLE_IMAGE:0.553
+    PERF_RESULT:MASK_IMAGE_RLE_8_NO_MASK:0.872
+    PERF_RESULT:MASK_IMAGE_RLE_8_ROUND_RECT:1.095
+    PERF_RESULT:MASK_IMAGE_RLE_8_CIRCLE:1.195
+    PERF_RESULT:MASK_IMAGE_RLE_8_IMAGE:0.529
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_NO_MASK:1.909
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_ROUND_RECT:2.148
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_CIRCLE:2.298
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_IMAGE:0.720
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_NO_MASK:1.136
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_ROUND_RECT:1.360
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_CIRCLE:1.460
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_IMAGE:0.651
+  Parsed 239 test results
+
+[5/5] PFB config: fullscreen (240x240) - Full-screen (SCREEN_WIDTH x SCREEN_HEIGHT, 240x240)
+
+============================================================
+Building for cortex-m3/fullscreen (cpu_arch=cortex-m3)
+============================================================
+  Build OK
+  Running QEMU: machine=mps2-an385 cpu=cortex-m3
+    PERF_RESULT:LINE:0.381
+    PERF_RESULT:LINE_HQ:1.188
+    PERF_RESULT:RECTANGLE:0.117
+    PERF_RESULT:RECTANGLE_FILL:0.109
+    PERF_RESULT:CIRCLE:0.349
+    PERF_RESULT:CIRCLE_FILL:0.228
+    PERF_RESULT:CIRCLE_HQ:1.013
+    PERF_RESULT:CIRCLE_FILL_HQ:0.216
+    PERF_RESULT:ARC:0.640
+    PERF_RESULT:ARC_FILL:0.895
+    PERF_RESULT:ARC_HQ:0.855
+    PERF_RESULT:ARC_FILL_HQ:1.394
+    PERF_RESULT:ROUND_RECTANGLE:0.348
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS:0.347
+    PERF_RESULT:ROUND_RECTANGLE_FILL:0.228
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS_FILL:0.244
+    PERF_RESULT:TRIANGLE:0.141
+    PERF_RESULT:TRIANGLE_FILL:0.459
+    PERF_RESULT:ELLIPSE:0.380
+    PERF_RESULT:ELLIPSE_FILL:0.228
+    PERF_RESULT:POLYGON:0.345
+    PERF_RESULT:POLYGON_FILL:0.486
+    PERF_RESULT:BEZIER_QUAD:1.011
+    PERF_RESULT:BEZIER_CUBIC:0.824
+    PERF_RESULT:CIRCLE_FILL_QUARTER:0.114
+    PERF_RESULT:CIRCLE_FILL_DOUBLE:0.207
+    PERF_RESULT:ROUND_RECTANGLE_FILL_QUARTER:0.114
+    PERF_RESULT:ROUND_RECTANGLE_FILL_DOUBLE:0.207
+    PERF_RESULT:TRIANGLE_FILL_QUARTER:0.167
+    PERF_RESULT:TRIANGLE_FILL_DOUBLE:0.290
+    PERF_RESULT:TEXT:0.124
+    PERF_RESULT:TEXT_RECT:0.340
+    PERF_RESULT:EXTERN_TEXT:0.128
+    PERF_RESULT:EXTERN_TEXT_RECT:0.360
+    PERF_RESULT:TEXT_ROTATE_NONE:0.340
+    PERF_RESULT:TEXT_ROTATE:1.590
+    PERF_RESULT:TEXT_ROTATE_RESIZE:1.590
+    PERF_RESULT:TEXT_ROTATE_QUARTER:1.798
+    PERF_RESULT:TEXT_ROTATE_DOUBLE:2.079
+    PERF_RESULT:EXTERN_TEXT_ROTATE:1.615
+    PERF_RESULT:IMAGE_565:0.149
+    PERF_RESULT:IMAGE_565_1:0.259
+    PERF_RESULT:IMAGE_565_2:0.368
+    PERF_RESULT:IMAGE_565_4:0.561
+    PERF_RESULT:IMAGE_565_8:0.361
+    PERF_RESULT:IMAGE_565_QUARTER:0.079
+    PERF_RESULT:IMAGE_565_DOUBLE:0.149
+    PERF_RESULT:IMAGE_565_8_QUARTER:0.134
+    PERF_RESULT:IMAGE_565_8_DOUBLE:0.051
+    PERF_RESULT:EXTERN_IMAGE_565:0.168
+    PERF_RESULT:EXTERN_IMAGE_565_1:0.292
+    PERF_RESULT:EXTERN_IMAGE_565_2:0.400
+    PERF_RESULT:EXTERN_IMAGE_565_4:0.594
+    PERF_RESULT:EXTERN_IMAGE_565_8:0.394
+    PERF_RESULT:IMAGE_TILED_565_0:0.209
+    PERF_RESULT:IMAGE_TILED_565_1:0.500
+    PERF_RESULT:IMAGE_TILED_565_2:0.712
+    PERF_RESULT:IMAGE_TILED_565_4:0.943
+    PERF_RESULT:IMAGE_TILED_565_8:0.939
+    PERF_RESULT:IMAGE_TILED_STAR_565_0:0.209
+    PERF_RESULT:IMAGE_TILED_STAR_565_1:0.500
+    PERF_RESULT:IMAGE_TILED_STAR_565_2:0.712
+    PERF_RESULT:IMAGE_TILED_STAR_565_4:0.943
+    PERF_RESULT:IMAGE_TILED_STAR_565_8:0.939
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_0:0.273
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_1:0.590
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_2:0.802
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_4:1.034
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_8:1.029
+    PERF_RESULT:IMAGE_RESIZE_565:0.348
+    PERF_RESULT:IMAGE_RESIZE_565_1:0.518
+    PERF_RESULT:IMAGE_RESIZE_565_2:0.675
+    PERF_RESULT:IMAGE_RESIZE_565_4:0.688
+    PERF_RESULT:IMAGE_RESIZE_565_8:0.500
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565:0.356
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_1:0.530
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_2:0.687
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_4:0.700
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_8:0.510
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_1:0.518
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_2:0.675
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_4:0.688
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_8:0.499
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_0:0.358
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_1:0.309
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_2:0.412
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_4:0.443
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_8:0.935
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_0:0.358
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_1:0.309
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_2:0.412
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_4:0.443
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_8:0.935
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_0:0.367
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_1:0.874
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_2:1.185
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_4:1.317
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_8:0.942
+    PERF_RESULT:IMAGE_ROTATE_565:0.957
+    PERF_RESULT:IMAGE_ROTATE_565_1:1.277
+    PERF_RESULT:IMAGE_ROTATE_565_2:1.273
+    PERF_RESULT:IMAGE_ROTATE_565_4:1.253
+    PERF_RESULT:IMAGE_ROTATE_565_8:1.232
+    PERF_RESULT:IMAGE_ROTATE_565_RESIZE:0.956
+    PERF_RESULT:IMAGE_ROTATE_565_QUARTER:0.282
+    PERF_RESULT:IMAGE_ROTATE_565_DOUBLE:2.904
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565:4.479
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_1:5.670
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_2:5.876
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_4:6.241
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_8:6.884
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_1:1.277
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_2:1.273
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_4:1.253
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_8:1.232
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_0:1.098
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_1:1.542
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_2:1.575
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_4:1.584
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_8:1.549
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_0:1.098
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_1:1.542
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_2:1.575
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_4:1.584
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_8:1.549
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_0:3.898
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_1:5.551
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_2:5.651
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_4:5.953
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_8:6.310
+    PERF_RESULT:IMAGE_COLOR:0.805
+    PERF_RESULT:IMAGE_RESIZE_COLOR:0.648
+    PERF_RESULT:GRADIENT_RECT:0.157
+    PERF_RESULT:GRADIENT_ROUND_RECT:0.725
+    PERF_RESULT:GRADIENT_CIRCLE:2.127
+    PERF_RESULT:GRADIENT_TRIANGLE:0.548
+    PERF_RESULT:GRADIENT_ARC_RING:0.914
+    PERF_RESULT:GRADIENT_ARC_RING_ROUND_CAP:0.932
+    PERF_RESULT:GRADIENT_RADIAL:1.973
+    PERF_RESULT:GRADIENT_ANGULAR:1.855
+    PERF_RESULT:GRADIENT_ROUND_RECT_RING:0.526
+    PERF_RESULT:GRADIENT_LINE_CAPSULE:1.109
+    PERF_RESULT:GRADIENT_MULTI_STOP:0.158
+    PERF_RESULT:GRADIENT_ROUND_RECT_CORNERS:0.372
+    PERF_RESULT:IMAGE_GRADIENT_OVERLAY:0.722
+    PERF_RESULT:MASK_GRADIENT_RECT_FILL:0.150
+    PERF_RESULT:MASK_GRADIENT_IMAGE:1.447
+    PERF_RESULT:MASK_GRADIENT_IMAGE_ROTATE:1.354
+    PERF_RESULT:TEXT_GRADIENT:0.122
+    PERF_RESULT:TEXT_RECT_GRADIENT:0.550
+    PERF_RESULT:TEXT_ROTATE_GRADIENT:1.621
+    PERF_RESULT:SHADOW:0.745
+    PERF_RESULT:SHADOW_ROUND:1.027
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK:0.109
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT:0.166
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE:0.297
+    PERF_RESULT:MASK_RECT_FILL_IMAGE:0.187
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_QUARTER:0.070
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_DOUBLE:0.109
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_QUARTER:0.087
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_DOUBLE:0.164
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_QUARTER:0.137
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_DOUBLE:0.247
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_QUARTER:0.056
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_DOUBLE:0.103
+    PERF_RESULT:MASK_IMAGE_NO_MASK:0.500
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT:0.528
+    PERF_RESULT:MASK_IMAGE_CIRCLE:0.919
+    PERF_RESULT:MASK_IMAGE_IMAGE:0.181
+    PERF_RESULT:EXTERN_MASK_IMAGE_NO_MASK:0.510
+    PERF_RESULT:EXTERN_MASK_IMAGE_ROUND_RECT:0.540
+    PERF_RESULT:EXTERN_MASK_IMAGE_CIRCLE:0.929
+    PERF_RESULT:EXTERN_MASK_IMAGE_IMAGE:0.191
+    PERF_RESULT:MASK_IMAGE_NO_MASK_QUARTER:0.165
+    PERF_RESULT:MASK_IMAGE_NO_MASK_DOUBLE:0.738
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_QUARTER:0.238
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_DOUBLE:0.736
+    PERF_RESULT:MASK_IMAGE_CIRCLE_QUARTER:0.290
+    PERF_RESULT:MASK_IMAGE_CIRCLE_DOUBLE:0.818
+    PERF_RESULT:MASK_IMAGE_IMAGE_QUARTER:0.065
+    PERF_RESULT:MASK_IMAGE_IMAGE_DOUBLE:0.180
+    PERF_RESULT:MASK_ROUND_RECT_FILL_NO_MASK:0.148
+    PERF_RESULT:MASK_ROUND_RECT_FILL_WITH_MASK:0.166
+    PERF_RESULT:ANIMATION_TRANSLATE:0.058
+    PERF_RESULT:ANIMATION_ALPHA:0.058
+    PERF_RESULT:ANIMATION_SCALE:0.054
+    PERF_RESULT:ANIMATION_SET:0.058
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_NO_MASK:0.348
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_ROUND_RECT:0.415
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_CIRCLE:0.464
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_IMAGE:1.355
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_NO_MASK:0.357
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_ROUND_RECT:0.428
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_CIRCLE:0.783
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_IMAGE:0.526
+    PERF_RESULT:IMAGE_QOI_565:2.113
+    PERF_RESULT:IMAGE_QOI_565_8:0.879
+    PERF_RESULT:EXTERN_IMAGE_QOI_565:5.523
+    PERF_RESULT:EXTERN_IMAGE_QOI_565_8:1.064
+    PERF_RESULT:IMAGE_TILED_QOI_565_0:0.233
+    PERF_RESULT:IMAGE_TILED_QOI_565_8:0.906
+    PERF_RESULT:MASK_IMAGE_QOI_NO_MASK:2.113
+    PERF_RESULT:MASK_IMAGE_QOI_ROUND_RECT:2.200
+    PERF_RESULT:MASK_IMAGE_QOI_CIRCLE:2.275
+    PERF_RESULT:MASK_IMAGE_QOI_IMAGE:0.712
+    PERF_RESULT:MASK_IMAGE_QOI_8_NO_MASK:0.879
+    PERF_RESULT:MASK_IMAGE_QOI_8_ROUND_RECT:0.953
+    PERF_RESULT:MASK_IMAGE_QOI_8_CIRCLE:0.976
+    PERF_RESULT:MASK_IMAGE_QOI_8_IMAGE:0.358
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_NO_MASK:5.523
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_ROUND_RECT:5.610
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_CIRCLE:5.685
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_IMAGE:1.700
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_NO_MASK:1.064
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT:1.138
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_CIRCLE:1.161
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_IMAGE:0.435
+    PERF_RESULT:IMAGE_RLE_565:0.874
+    PERF_RESULT:IMAGE_RLE_565_8:0.647
+    PERF_RESULT:EXTERN_IMAGE_RLE_565:1.710
+    PERF_RESULT:EXTERN_IMAGE_RLE_565_8:0.912
+    PERF_RESULT:IMAGE_TILED_RLE_565_0:0.182
+    PERF_RESULT:IMAGE_TILED_RLE_565_8:0.892
+    PERF_RESULT:MASK_IMAGE_RLE_NO_MASK:0.874
+    PERF_RESULT:MASK_IMAGE_RLE_ROUND_RECT:0.961
+    PERF_RESULT:MASK_IMAGE_RLE_CIRCLE:1.036
+    PERF_RESULT:MASK_IMAGE_RLE_IMAGE:0.314
+    PERF_RESULT:MASK_IMAGE_RLE_8_NO_MASK:0.648
+    PERF_RESULT:MASK_IMAGE_RLE_8_ROUND_RECT:0.721
+    PERF_RESULT:MASK_IMAGE_RLE_8_CIRCLE:0.745
+    PERF_RESULT:MASK_IMAGE_RLE_8_IMAGE:0.285
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_NO_MASK:1.710
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_ROUND_RECT:1.797
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_CIRCLE:1.872
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_IMAGE:0.481
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_NO_MASK:0.912
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_ROUND_RECT:0.986
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_CIRCLE:1.009
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_IMAGE:0.407
+  Parsed 239 test results
+  PFB matrix results saved to: D:\workspace\gitee\EmbeddedGUI\perf_output\pfb_matrix_results.json
+  PFB matrix report saved to: D:\workspace\gitee\EmbeddedGUI\perf_output\pfb_matrix_report.md
+  PFB Matrix: 5/5 configs succeeded
+
+============================================================
+SPI Matrix Test
+============================================================
+SPI Matrix Test: profile=cortex-m3, 3 configs
+
+[1/3] SPI config: no_spi - No SPI (CPU only)
+
+============================================================
+Building for cortex-m3/no_spi (cpu_arch=cortex-m3)
+============================================================
+  Build OK
+  Running QEMU: machine=mps2-an385 cpu=cortex-m3
+    PERF_RESULT:LINE:0.535
+    PERF_RESULT:LINE_HQ:1.349
+    PERF_RESULT:RECTANGLE:0.182
+    PERF_RESULT:RECTANGLE_FILL:0.155
+    PERF_RESULT:CIRCLE:0.812
+    PERF_RESULT:CIRCLE_FILL:0.569
+    PERF_RESULT:CIRCLE_HQ:1.152
+    PERF_RESULT:CIRCLE_FILL_HQ:0.481
+    PERF_RESULT:ARC:1.084
+    PERF_RESULT:ARC_FILL:1.356
+    PERF_RESULT:ARC_HQ:1.087
+    PERF_RESULT:ARC_FILL_HQ:1.669
+    PERF_RESULT:ROUND_RECTANGLE:0.814
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS:0.820
+    PERF_RESULT:ROUND_RECTANGLE_FILL:0.573
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS_FILL:0.689
+    PERF_RESULT:TRIANGLE:0.666
+    PERF_RESULT:TRIANGLE_FILL:0.847
+    PERF_RESULT:ELLIPSE:0.878
+    PERF_RESULT:ELLIPSE_FILL:0.570
+    PERF_RESULT:POLYGON:0.505
+    PERF_RESULT:POLYGON_FILL:1.063
+    PERF_RESULT:BEZIER_QUAD:1.244
+    PERF_RESULT:BEZIER_CUBIC:1.147
+    PERF_RESULT:CIRCLE_FILL_QUARTER:0.257
+    PERF_RESULT:CIRCLE_FILL_DOUBLE:0.677
+    PERF_RESULT:ROUND_RECTANGLE_FILL_QUARTER:0.261
+    PERF_RESULT:ROUND_RECTANGLE_FILL_DOUBLE:0.681
+    PERF_RESULT:TRIANGLE_FILL_QUARTER:0.287
+    PERF_RESULT:TRIANGLE_FILL_DOUBLE:0.652
+    PERF_RESULT:TEXT:1.026
+    PERF_RESULT:TEXT_RECT:0.590
+    PERF_RESULT:EXTERN_TEXT:1.065
+    PERF_RESULT:EXTERN_TEXT_RECT:0.808
+    PERF_RESULT:TEXT_ROTATE_NONE:0.589
+    PERF_RESULT:TEXT_ROTATE:2.494
+    PERF_RESULT:TEXT_ROTATE_RESIZE:2.494
+    PERF_RESULT:TEXT_ROTATE_QUARTER:1.675
+    PERF_RESULT:TEXT_ROTATE_DOUBLE:2.950
+    PERF_RESULT:EXTERN_TEXT_ROTATE:2.698
+    PERF_RESULT:IMAGE_565:0.240
+    PERF_RESULT:IMAGE_565_1:0.408
+    PERF_RESULT:IMAGE_565_2:0.524
+    PERF_RESULT:IMAGE_565_4:0.720
+    PERF_RESULT:IMAGE_565_8:0.509
+    PERF_RESULT:IMAGE_565_QUARTER:0.132
+    PERF_RESULT:IMAGE_565_DOUBLE:0.240
+    PERF_RESULT:IMAGE_565_8_QUARTER:0.198
+    PERF_RESULT:IMAGE_565_8_DOUBLE:0.087
+    PERF_RESULT:EXTERN_IMAGE_565:0.414
+    PERF_RESULT:EXTERN_IMAGE_565_1:0.578
+    PERF_RESULT:EXTERN_IMAGE_565_2:0.693
+    PERF_RESULT:EXTERN_IMAGE_565_4:0.889
+    PERF_RESULT:EXTERN_IMAGE_565_8:0.678
+    PERF_RESULT:IMAGE_TILED_565_0:0.472
+    PERF_RESULT:IMAGE_TILED_565_1:0.810
+    PERF_RESULT:IMAGE_TILED_565_2:1.038
+    PERF_RESULT:IMAGE_TILED_565_4:1.271
+    PERF_RESULT:IMAGE_TILED_565_8:1.256
+    PERF_RESULT:IMAGE_TILED_STAR_565_0:0.472
+    PERF_RESULT:IMAGE_TILED_STAR_565_1:0.810
+    PERF_RESULT:IMAGE_TILED_STAR_565_2:1.038
+    PERF_RESULT:IMAGE_TILED_STAR_565_4:1.271
+    PERF_RESULT:IMAGE_TILED_STAR_565_8:1.256
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_0:0.840
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_1:0.974
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_2:1.201
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_4:1.434
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_8:1.419
+    PERF_RESULT:IMAGE_RESIZE_565:0.461
+    PERF_RESULT:IMAGE_RESIZE_565_1:0.611
+    PERF_RESULT:IMAGE_RESIZE_565_2:0.774
+    PERF_RESULT:IMAGE_RESIZE_565_4:0.788
+    PERF_RESULT:IMAGE_RESIZE_565_8:0.652
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565:0.506
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_1:0.678
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_2:0.840
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_4:0.854
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_8:0.711
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_1:0.611
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_2:0.774
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_4:0.788
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_8:0.652
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_0:0.499
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_1:0.430
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_2:0.537
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_4:0.568
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_8:1.112
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_0:0.499
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_1:0.430
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_2:0.537
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_4:0.568
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_8:1.112
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_0:0.528
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_1:1.070
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_2:1.387
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_4:1.520
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_8:1.136
+    PERF_RESULT:IMAGE_ROTATE_565:1.201
+    PERF_RESULT:IMAGE_ROTATE_565_1:1.525
+    PERF_RESULT:IMAGE_ROTATE_565_2:1.521
+    PERF_RESULT:IMAGE_ROTATE_565_4:1.502
+    PERF_RESULT:IMAGE_ROTATE_565_8:1.482
+    PERF_RESULT:IMAGE_ROTATE_565_RESIZE:1.202
+    PERF_RESULT:IMAGE_ROTATE_565_QUARTER:0.385
+    PERF_RESULT:IMAGE_ROTATE_565_DOUBLE:3.137
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565:4.741
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_1:5.930
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_2:6.143
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_4:6.509
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_8:7.150
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_1:1.525
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_2:1.521
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_4:1.502
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_8:1.482
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_0:1.474
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_1:1.929
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_2:1.966
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_4:1.979
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_8:1.949
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_0:1.474
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_1:1.928
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_2:1.967
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_4:1.980
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_8:1.949
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_0:4.284
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_1:5.939
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_2:6.044
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_4:6.349
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_8:6.719
+    PERF_RESULT:IMAGE_COLOR:0.870
+    PERF_RESULT:IMAGE_RESIZE_COLOR:0.751
+    PERF_RESULT:GRADIENT_RECT:0.389
+    PERF_RESULT:GRADIENT_ROUND_RECT:1.083
+    PERF_RESULT:GRADIENT_CIRCLE:3.151
+    PERF_RESULT:GRADIENT_TRIANGLE:0.954
+    PERF_RESULT:GRADIENT_ARC_RING:1.271
+    PERF_RESULT:GRADIENT_ARC_RING_ROUND_CAP:1.326
+    PERF_RESULT:GRADIENT_RADIAL:2.798
+    PERF_RESULT:GRADIENT_ANGULAR:2.660
+    PERF_RESULT:GRADIENT_ROUND_RECT_RING:0.770
+    PERF_RESULT:GRADIENT_LINE_CAPSULE:1.158
+    PERF_RESULT:GRADIENT_MULTI_STOP:0.394
+    PERF_RESULT:GRADIENT_ROUND_RECT_CORNERS:0.632
+    PERF_RESULT:IMAGE_GRADIENT_OVERLAY:0.923
+    PERF_RESULT:MASK_GRADIENT_RECT_FILL:0.362
+    PERF_RESULT:MASK_GRADIENT_IMAGE:1.528
+    PERF_RESULT:MASK_GRADIENT_IMAGE_ROTATE:1.689
+    PERF_RESULT:TEXT_GRADIENT:0.237
+    PERF_RESULT:TEXT_RECT_GRADIENT:0.850
+    PERF_RESULT:TEXT_ROTATE_GRADIENT:2.637
+    PERF_RESULT:SHADOW:1.244
+    PERF_RESULT:SHADOW_ROUND:1.797
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK:0.155
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT:0.324
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE:0.713
+    PERF_RESULT:MASK_RECT_FILL_IMAGE:0.284
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_QUARTER:0.112
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_DOUBLE:0.155
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_QUARTER:0.162
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_DOUBLE:0.322
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_QUARTER:0.275
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_DOUBLE:0.667
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_QUARTER:0.121
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_DOUBLE:0.176
+    PERF_RESULT:MASK_IMAGE_NO_MASK:0.651
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT:0.954
+    PERF_RESULT:MASK_IMAGE_CIRCLE:1.411
+    PERF_RESULT:MASK_IMAGE_IMAGE:0.297
+    PERF_RESULT:EXTERN_MASK_IMAGE_NO_MASK:0.711
+    PERF_RESULT:EXTERN_MASK_IMAGE_ROUND_RECT:1.015
+    PERF_RESULT:EXTERN_MASK_IMAGE_CIRCLE:1.470
+    PERF_RESULT:EXTERN_MASK_IMAGE_IMAGE:0.330
+    PERF_RESULT:MASK_IMAGE_NO_MASK_QUARTER:0.236
+    PERF_RESULT:MASK_IMAGE_NO_MASK_DOUBLE:0.887
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_QUARTER:0.324
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_DOUBLE:0.926
+    PERF_RESULT:MASK_IMAGE_CIRCLE_QUARTER:0.445
+    PERF_RESULT:MASK_IMAGE_CIRCLE_DOUBLE:1.296
+    PERF_RESULT:MASK_IMAGE_IMAGE_QUARTER:0.155
+    PERF_RESULT:MASK_IMAGE_IMAGE_DOUBLE:0.297
+    PERF_RESULT:MASK_ROUND_RECT_FILL_NO_MASK:0.248
+    PERF_RESULT:MASK_ROUND_RECT_FILL_WITH_MASK:0.324
+    PERF_RESULT:ANIMATION_TRANSLATE:0.127
+    PERF_RESULT:ANIMATION_ALPHA:0.124
+    PERF_RESULT:ANIMATION_SCALE:0.134
+    PERF_RESULT:ANIMATION_SET:0.143
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_NO_MASK:0.461
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_ROUND_RECT:0.586
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_CIRCLE:0.906
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_IMAGE:1.875
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_NO_MASK:0.506
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_ROUND_RECT:0.675
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_CIRCLE:1.284
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_IMAGE:1.094
+    PERF_RESULT:IMAGE_QOI_565:6.235
+    PERF_RESULT:IMAGE_QOI_565_8:2.129
+    PERF_RESULT:EXTERN_IMAGE_QOI_565:16.465
+    PERF_RESULT:EXTERN_IMAGE_QOI_565_8:2.685
+    PERF_RESULT:IMAGE_TILED_QOI_565_0:0.544
+    PERF_RESULT:IMAGE_TILED_QOI_565_8:1.229
+    PERF_RESULT:MASK_IMAGE_QOI_NO_MASK:6.235
+    PERF_RESULT:MASK_IMAGE_QOI_ROUND_RECT:6.464
+    PERF_RESULT:MASK_IMAGE_QOI_CIRCLE:6.610
+    PERF_RESULT:MASK_IMAGE_QOI_IMAGE:1.401
+    PERF_RESULT:MASK_IMAGE_QOI_8_NO_MASK:2.129
+    PERF_RESULT:MASK_IMAGE_QOI_8_ROUND_RECT:2.342
+    PERF_RESULT:MASK_IMAGE_QOI_8_CIRCLE:2.439
+    PERF_RESULT:MASK_IMAGE_QOI_8_IMAGE:0.688
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_NO_MASK:16.465
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_ROUND_RECT:16.694
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_CIRCLE:16.840
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_IMAGE:3.378
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_NO_MASK:2.685
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT:2.898
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_CIRCLE:2.994
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_IMAGE:0.843
+    PERF_RESULT:IMAGE_RLE_565:2.481
+    PERF_RESULT:IMAGE_RLE_565_8:1.398
+    PERF_RESULT:EXTERN_IMAGE_RLE_565:4.990
+    PERF_RESULT:EXTERN_IMAGE_RLE_565_8:2.191
+    PERF_RESULT:IMAGE_TILED_RLE_565_0:0.468
+    PERF_RESULT:IMAGE_TILED_RLE_565_8:1.235
+    PERF_RESULT:MASK_IMAGE_RLE_NO_MASK:2.481
+    PERF_RESULT:MASK_IMAGE_RLE_ROUND_RECT:2.710
+    PERF_RESULT:MASK_IMAGE_RLE_CIRCLE:2.856
+    PERF_RESULT:MASK_IMAGE_RLE_IMAGE:0.595
+    PERF_RESULT:MASK_IMAGE_RLE_8_NO_MASK:1.398
+    PERF_RESULT:MASK_IMAGE_RLE_8_ROUND_RECT:1.612
+    PERF_RESULT:MASK_IMAGE_RLE_8_CIRCLE:1.708
+    PERF_RESULT:MASK_IMAGE_RLE_8_IMAGE:0.532
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_NO_MASK:4.990
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_ROUND_RECT:5.219
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_CIRCLE:5.365
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_IMAGE:0.928
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_NO_MASK:2.191
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_ROUND_RECT:2.405
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_CIRCLE:2.502
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_IMAGE:0.775
+  Parsed 239 test results
+
+[2/3] SPI config: spi16_buf2 - 16MHz SPI, dual buffer
+
+============================================================
+Building for cortex-m3/spi16_buf2 (cpu_arch=cortex-m3)
+============================================================
+  Build OK
+  Running QEMU: machine=mps2-an385 cpu=cortex-m3
+    PERF_RESULT:LINE:60.000
+    PERF_RESULT:LINE_HQ:60.000
+    PERF_RESULT:RECTANGLE:60.000
+    PERF_RESULT:RECTANGLE_FILL:60.000
+    PERF_RESULT:CIRCLE:60.000
+    PERF_RESULT:CIRCLE_FILL:60.000
+    PERF_RESULT:CIRCLE_HQ:60.000
+    PERF_RESULT:CIRCLE_FILL_HQ:60.000
+    PERF_RESULT:ARC:60.000
+    PERF_RESULT:ARC_FILL:60.000
+    PERF_RESULT:ARC_HQ:60.000
+    PERF_RESULT:ARC_FILL_HQ:60.000
+    PERF_RESULT:ROUND_RECTANGLE:60.000
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS:60.000
+    PERF_RESULT:ROUND_RECTANGLE_FILL:60.000
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS_FILL:60.000
+    PERF_RESULT:TRIANGLE:60.000
+    PERF_RESULT:TRIANGLE_FILL:60.000
+    PERF_RESULT:ELLIPSE:60.000
+    PERF_RESULT:ELLIPSE_FILL:60.000
+    PERF_RESULT:POLYGON:60.000
+    PERF_RESULT:POLYGON_FILL:60.000
+    PERF_RESULT:BEZIER_QUAD:60.000
+    PERF_RESULT:BEZIER_CUBIC:60.100
+    PERF_RESULT:CIRCLE_FILL_QUARTER:60.000
+    PERF_RESULT:CIRCLE_FILL_DOUBLE:60.000
+    PERF_RESULT:ROUND_RECTANGLE_FILL_QUARTER:60.000
+    PERF_RESULT:ROUND_RECTANGLE_FILL_DOUBLE:60.000
+    PERF_RESULT:TRIANGLE_FILL_QUARTER:60.000
+    PERF_RESULT:TRIANGLE_FILL_DOUBLE:60.000
+    PERF_RESULT:TEXT:60.000
+    PERF_RESULT:TEXT_RECT:60.000
+    PERF_RESULT:EXTERN_TEXT:60.000
+    PERF_RESULT:EXTERN_TEXT_RECT:60.000
+    PERF_RESULT:TEXT_ROTATE_NONE:60.000
+    PERF_RESULT:TEXT_ROTATE:60.000
+    PERF_RESULT:TEXT_ROTATE_RESIZE:60.000
+    PERF_RESULT:TEXT_ROTATE_QUARTER:60.400
+    PERF_RESULT:TEXT_ROTATE_DOUBLE:60.000
+    PERF_RESULT:EXTERN_TEXT_ROTATE:60.000
+    PERF_RESULT:IMAGE_565:60.000
+    PERF_RESULT:IMAGE_565_1:60.000
+    PERF_RESULT:IMAGE_565_2:60.000
+    PERF_RESULT:IMAGE_565_4:60.000
+    PERF_RESULT:IMAGE_565_8:60.000
+    PERF_RESULT:IMAGE_565_QUARTER:60.000
+    PERF_RESULT:IMAGE_565_DOUBLE:60.000
+    PERF_RESULT:IMAGE_565_8_QUARTER:60.000
+    PERF_RESULT:IMAGE_565_8_DOUBLE:60.000
+    PERF_RESULT:EXTERN_IMAGE_565:60.000
+    PERF_RESULT:EXTERN_IMAGE_565_1:60.000
+    PERF_RESULT:EXTERN_IMAGE_565_2:60.000
+    PERF_RESULT:EXTERN_IMAGE_565_4:60.000
+    PERF_RESULT:EXTERN_IMAGE_565_8:60.000
+    PERF_RESULT:IMAGE_TILED_565_0:60.000
+    PERF_RESULT:IMAGE_TILED_565_1:60.000
+    PERF_RESULT:IMAGE_TILED_565_2:60.000
+    PERF_RESULT:IMAGE_TILED_565_4:60.000
+    PERF_RESULT:IMAGE_TILED_565_8:60.000
+    PERF_RESULT:IMAGE_TILED_STAR_565_0:60.000
+    PERF_RESULT:IMAGE_TILED_STAR_565_1:60.000
+    PERF_RESULT:IMAGE_TILED_STAR_565_2:60.000
+    PERF_RESULT:IMAGE_TILED_STAR_565_4:60.000
+    PERF_RESULT:IMAGE_TILED_STAR_565_8:60.000
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_0:60.000
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_1:60.000
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_2:60.000
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_4:60.000
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_8:60.000
+    PERF_RESULT:IMAGE_RESIZE_565:60.000
+    PERF_RESULT:IMAGE_RESIZE_565_1:60.000
+    PERF_RESULT:IMAGE_RESIZE_565_2:60.000
+    PERF_RESULT:IMAGE_RESIZE_565_4:60.000
+    PERF_RESULT:IMAGE_RESIZE_565_8:60.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565:60.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_1:60.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_2:60.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_4:60.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_8:60.000
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_1:60.000
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_2:60.000
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_4:60.000
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_8:60.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_0:60.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_1:60.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_2:60.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_4:60.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_8:60.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_0:60.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_1:60.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_2:60.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_4:60.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_8:60.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_0:60.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_1:60.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_2:60.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_4:60.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_8:60.000
+    PERF_RESULT:IMAGE_ROTATE_565:60.000
+    PERF_RESULT:IMAGE_ROTATE_565_1:60.000
+    PERF_RESULT:IMAGE_ROTATE_565_2:60.000
+    PERF_RESULT:IMAGE_ROTATE_565_4:60.000
+    PERF_RESULT:IMAGE_ROTATE_565_8:60.000
+    PERF_RESULT:IMAGE_ROTATE_565_RESIZE:60.000
+    PERF_RESULT:IMAGE_ROTATE_565_QUARTER:60.000
+    PERF_RESULT:IMAGE_ROTATE_565_DOUBLE:60.000
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565:63.200
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_1:64.100
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_2:64.600
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_4:64.800
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_8:65.400
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_1:60.000
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_2:60.000
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_4:60.000
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_8:60.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_0:60.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_1:60.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_2:60.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_4:60.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_8:60.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_0:60.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_1:60.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_2:60.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_4:60.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_8:60.000
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_0:61.500
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_1:63.600
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_2:63.600
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_4:64.200
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_8:64.500
+    PERF_RESULT:IMAGE_COLOR:60.000
+    PERF_RESULT:IMAGE_RESIZE_COLOR:60.000
+    PERF_RESULT:GRADIENT_RECT:60.000
+    PERF_RESULT:GRADIENT_ROUND_RECT:60.000
+    PERF_RESULT:GRADIENT_CIRCLE:60.000
+    PERF_RESULT:GRADIENT_TRIANGLE:60.000
+    PERF_RESULT:GRADIENT_ARC_RING:60.000
+    PERF_RESULT:GRADIENT_ARC_RING_ROUND_CAP:60.000
+    PERF_RESULT:GRADIENT_RADIAL:60.000
+    PERF_RESULT:GRADIENT_ANGULAR:60.000
+    PERF_RESULT:GRADIENT_ROUND_RECT_RING:60.000
+    PERF_RESULT:GRADIENT_LINE_CAPSULE:60.200
+    PERF_RESULT:GRADIENT_MULTI_STOP:60.000
+    PERF_RESULT:GRADIENT_ROUND_RECT_CORNERS:60.000
+    PERF_RESULT:IMAGE_GRADIENT_OVERLAY:60.000
+    PERF_RESULT:MASK_GRADIENT_RECT_FILL:60.000
+    PERF_RESULT:MASK_GRADIENT_IMAGE:60.000
+    PERF_RESULT:MASK_GRADIENT_IMAGE_ROTATE:60.000
+    PERF_RESULT:TEXT_GRADIENT:60.000
+    PERF_RESULT:TEXT_RECT_GRADIENT:60.000
+    PERF_RESULT:TEXT_ROTATE_GRADIENT:60.000
+    PERF_RESULT:SHADOW:60.000
+    PERF_RESULT:SHADOW_ROUND:60.000
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK:60.000
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT:60.000
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE:60.000
+    PERF_RESULT:MASK_RECT_FILL_IMAGE:60.000
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_QUARTER:60.000
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_DOUBLE:60.000
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_QUARTER:60.000
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_DOUBLE:60.000
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_QUARTER:60.000
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_DOUBLE:60.000
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_QUARTER:60.000
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_DOUBLE:60.000
+    PERF_RESULT:MASK_IMAGE_NO_MASK:60.000
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT:60.000
+    PERF_RESULT:MASK_IMAGE_CIRCLE:60.000
+    PERF_RESULT:MASK_IMAGE_IMAGE:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_NO_MASK:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_ROUND_RECT:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_CIRCLE:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_IMAGE:60.000
+    PERF_RESULT:MASK_IMAGE_NO_MASK_QUARTER:60.000
+    PERF_RESULT:MASK_IMAGE_NO_MASK_DOUBLE:60.000
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_QUARTER:60.000
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_DOUBLE:60.000
+    PERF_RESULT:MASK_IMAGE_CIRCLE_QUARTER:60.000
+    PERF_RESULT:MASK_IMAGE_CIRCLE_DOUBLE:60.000
+    PERF_RESULT:MASK_IMAGE_IMAGE_QUARTER:60.000
+    PERF_RESULT:MASK_IMAGE_IMAGE_DOUBLE:60.000
+    PERF_RESULT:MASK_ROUND_RECT_FILL_NO_MASK:60.000
+    PERF_RESULT:MASK_ROUND_RECT_FILL_WITH_MASK:60.000
+    PERF_RESULT:ANIMATION_TRANSLATE:60.000
+    PERF_RESULT:ANIMATION_ALPHA:60.000
+    PERF_RESULT:ANIMATION_SCALE:60.000
+    PERF_RESULT:ANIMATION_SET:60.000
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_NO_MASK:60.000
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_ROUND_RECT:60.000
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_CIRCLE:60.000
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_IMAGE:60.100
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_NO_MASK:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_ROUND_RECT:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_CIRCLE:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_IMAGE:60.000
+    PERF_RESULT:IMAGE_QOI_565:60.000
+    PERF_RESULT:IMAGE_QOI_565_8:60.000
+    PERF_RESULT:EXTERN_IMAGE_QOI_565:71.100
+    PERF_RESULT:EXTERN_IMAGE_QOI_565_8:60.000
+    PERF_RESULT:IMAGE_TILED_QOI_565_0:60.000
+    PERF_RESULT:IMAGE_TILED_QOI_565_8:60.000
+    PERF_RESULT:MASK_IMAGE_QOI_NO_MASK:60.000
+    PERF_RESULT:MASK_IMAGE_QOI_ROUND_RECT:60.000
+    PERF_RESULT:MASK_IMAGE_QOI_CIRCLE:60.000
+    PERF_RESULT:MASK_IMAGE_QOI_IMAGE:60.000
+    PERF_RESULT:MASK_IMAGE_QOI_8_NO_MASK:60.000
+    PERF_RESULT:MASK_IMAGE_QOI_8_ROUND_RECT:60.000
+    PERF_RESULT:MASK_IMAGE_QOI_8_CIRCLE:60.000
+    PERF_RESULT:MASK_IMAGE_QOI_8_IMAGE:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_NO_MASK:71.100
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_ROUND_RECT:71.100
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_CIRCLE:71.300
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_IMAGE:62.100
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_NO_MASK:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_CIRCLE:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_IMAGE:60.000
+    PERF_RESULT:IMAGE_RLE_565:60.000
+    PERF_RESULT:IMAGE_RLE_565_8:60.000
+    PERF_RESULT:EXTERN_IMAGE_RLE_565:60.000
+    PERF_RESULT:EXTERN_IMAGE_RLE_565_8:60.000
+    PERF_RESULT:IMAGE_TILED_RLE_565_0:60.000
+    PERF_RESULT:IMAGE_TILED_RLE_565_8:60.000
+    PERF_RESULT:MASK_IMAGE_RLE_NO_MASK:60.000
+    PERF_RESULT:MASK_IMAGE_RLE_ROUND_RECT:60.000
+    PERF_RESULT:MASK_IMAGE_RLE_CIRCLE:60.000
+    PERF_RESULT:MASK_IMAGE_RLE_IMAGE:60.000
+    PERF_RESULT:MASK_IMAGE_RLE_8_NO_MASK:60.000
+    PERF_RESULT:MASK_IMAGE_RLE_8_ROUND_RECT:60.000
+    PERF_RESULT:MASK_IMAGE_RLE_8_CIRCLE:60.000
+    PERF_RESULT:MASK_IMAGE_RLE_8_IMAGE:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_NO_MASK:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_ROUND_RECT:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_CIRCLE:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_IMAGE:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_NO_MASK:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_ROUND_RECT:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_CIRCLE:60.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_IMAGE:60.000
+  Parsed 239 test results
+
+[3/3] SPI config: spi64_buf2 - 64MHz SPI, dual buffer
+
+============================================================
+Building for cortex-m3/spi64_buf2 (cpu_arch=cortex-m3)
+============================================================
+  Build OK
+  Running QEMU: machine=mps2-an385 cpu=cortex-m3
+    PERF_RESULT:LINE:15.000
+    PERF_RESULT:LINE_HQ:15.000
+    PERF_RESULT:RECTANGLE:15.000
+    PERF_RESULT:RECTANGLE_FILL:15.000
+    PERF_RESULT:CIRCLE:15.000
+    PERF_RESULT:CIRCLE_FILL:15.000
+    PERF_RESULT:CIRCLE_HQ:15.000
+    PERF_RESULT:CIRCLE_FILL_HQ:15.000
+    PERF_RESULT:ARC:15.000
+    PERF_RESULT:ARC_FILL:15.000
+    PERF_RESULT:ARC_HQ:15.000
+    PERF_RESULT:ARC_FILL_HQ:15.000
+    PERF_RESULT:ROUND_RECTANGLE:15.000
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS:15.000
+    PERF_RESULT:ROUND_RECTANGLE_FILL:15.000
+    PERF_RESULT:ROUND_RECTANGLE_CORNERS_FILL:15.000
+    PERF_RESULT:TRIANGLE:15.000
+    PERF_RESULT:TRIANGLE_FILL:15.000
+    PERF_RESULT:ELLIPSE:15.000
+    PERF_RESULT:ELLIPSE_FILL:15.000
+    PERF_RESULT:POLYGON:15.000
+    PERF_RESULT:POLYGON_FILL:15.000
+    PERF_RESULT:BEZIER_QUAD:15.000
+    PERF_RESULT:BEZIER_CUBIC:15.100
+    PERF_RESULT:CIRCLE_FILL_QUARTER:15.000
+    PERF_RESULT:CIRCLE_FILL_DOUBLE:15.000
+    PERF_RESULT:ROUND_RECTANGLE_FILL_QUARTER:15.000
+    PERF_RESULT:ROUND_RECTANGLE_FILL_DOUBLE:15.000
+    PERF_RESULT:TRIANGLE_FILL_QUARTER:15.000
+    PERF_RESULT:TRIANGLE_FILL_DOUBLE:15.000
+    PERF_RESULT:TEXT:15.000
+    PERF_RESULT:TEXT_RECT:15.000
+    PERF_RESULT:EXTERN_TEXT:15.000
+    PERF_RESULT:EXTERN_TEXT_RECT:15.000
+    PERF_RESULT:TEXT_ROTATE_NONE:15.000
+    PERF_RESULT:TEXT_ROTATE:15.000
+    PERF_RESULT:TEXT_ROTATE_RESIZE:15.000
+    PERF_RESULT:TEXT_ROTATE_QUARTER:15.400
+    PERF_RESULT:TEXT_ROTATE_DOUBLE:15.000
+    PERF_RESULT:EXTERN_TEXT_ROTATE:15.000
+    PERF_RESULT:IMAGE_565:15.000
+    PERF_RESULT:IMAGE_565_1:15.000
+    PERF_RESULT:IMAGE_565_2:15.000
+    PERF_RESULT:IMAGE_565_4:15.000
+    PERF_RESULT:IMAGE_565_8:15.000
+    PERF_RESULT:IMAGE_565_QUARTER:15.000
+    PERF_RESULT:IMAGE_565_DOUBLE:15.000
+    PERF_RESULT:IMAGE_565_8_QUARTER:15.000
+    PERF_RESULT:IMAGE_565_8_DOUBLE:15.000
+    PERF_RESULT:EXTERN_IMAGE_565:15.000
+    PERF_RESULT:EXTERN_IMAGE_565_1:15.000
+    PERF_RESULT:EXTERN_IMAGE_565_2:15.000
+    PERF_RESULT:EXTERN_IMAGE_565_4:15.000
+    PERF_RESULT:EXTERN_IMAGE_565_8:15.000
+    PERF_RESULT:IMAGE_TILED_565_0:15.000
+    PERF_RESULT:IMAGE_TILED_565_1:15.000
+    PERF_RESULT:IMAGE_TILED_565_2:15.000
+    PERF_RESULT:IMAGE_TILED_565_4:15.000
+    PERF_RESULT:IMAGE_TILED_565_8:15.000
+    PERF_RESULT:IMAGE_TILED_STAR_565_0:15.000
+    PERF_RESULT:IMAGE_TILED_STAR_565_1:15.000
+    PERF_RESULT:IMAGE_TILED_STAR_565_2:15.000
+    PERF_RESULT:IMAGE_TILED_STAR_565_4:15.000
+    PERF_RESULT:IMAGE_TILED_STAR_565_8:15.000
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_0:15.000
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_1:15.000
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_2:15.000
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_4:15.000
+    PERF_RESULT:EXTERN_IMAGE_TILED_565_8:15.000
+    PERF_RESULT:IMAGE_RESIZE_565:15.000
+    PERF_RESULT:IMAGE_RESIZE_565_1:15.000
+    PERF_RESULT:IMAGE_RESIZE_565_2:15.000
+    PERF_RESULT:IMAGE_RESIZE_565_4:15.000
+    PERF_RESULT:IMAGE_RESIZE_565_8:15.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565:15.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_1:15.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_2:15.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_4:15.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_565_8:15.000
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_1:15.000
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_2:15.000
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_4:15.000
+    PERF_RESULT:IMAGE_RESIZE_STAR_565_8:15.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_0:15.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_1:15.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_2:15.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_4:15.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_565_8:15.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_0:15.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_1:15.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_2:15.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_4:15.000
+    PERF_RESULT:IMAGE_RESIZE_TILED_STAR_565_8:15.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_0:15.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_1:15.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_2:15.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_4:15.000
+    PERF_RESULT:EXTERN_IMAGE_RESIZE_TILED_565_8:15.000
+    PERF_RESULT:IMAGE_ROTATE_565:15.000
+    PERF_RESULT:IMAGE_ROTATE_565_1:15.000
+    PERF_RESULT:IMAGE_ROTATE_565_2:15.000
+    PERF_RESULT:IMAGE_ROTATE_565_4:15.000
+    PERF_RESULT:IMAGE_ROTATE_565_8:15.000
+    PERF_RESULT:IMAGE_ROTATE_565_RESIZE:15.000
+    PERF_RESULT:IMAGE_ROTATE_565_QUARTER:15.000
+    PERF_RESULT:IMAGE_ROTATE_565_DOUBLE:15.000
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565:18.200
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_1:19.100
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_2:19.600
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_4:19.800
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_565_8:20.400
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_1:15.000
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_2:15.000
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_4:15.000
+    PERF_RESULT:IMAGE_ROTATE_STAR_565_8:15.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_0:15.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_1:15.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_2:15.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_4:15.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_565_8:15.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_0:15.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_1:15.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_2:15.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_4:15.000
+    PERF_RESULT:IMAGE_ROTATE_TILED_STAR_565_8:15.000
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_0:16.500
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_1:18.600
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_2:18.600
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_4:19.200
+    PERF_RESULT:EXTERN_IMAGE_ROTATE_TILED_565_8:19.500
+    PERF_RESULT:IMAGE_COLOR:15.000
+    PERF_RESULT:IMAGE_RESIZE_COLOR:15.000
+    PERF_RESULT:GRADIENT_RECT:15.000
+    PERF_RESULT:GRADIENT_ROUND_RECT:15.000
+    PERF_RESULT:GRADIENT_CIRCLE:15.000
+    PERF_RESULT:GRADIENT_TRIANGLE:15.000
+    PERF_RESULT:GRADIENT_ARC_RING:15.000
+    PERF_RESULT:GRADIENT_ARC_RING_ROUND_CAP:15.000
+    PERF_RESULT:GRADIENT_RADIAL:15.000
+    PERF_RESULT:GRADIENT_ANGULAR:15.000
+    PERF_RESULT:GRADIENT_ROUND_RECT_RING:15.000
+    PERF_RESULT:GRADIENT_LINE_CAPSULE:15.100
+    PERF_RESULT:GRADIENT_MULTI_STOP:15.000
+    PERF_RESULT:GRADIENT_ROUND_RECT_CORNERS:15.000
+    PERF_RESULT:IMAGE_GRADIENT_OVERLAY:15.000
+    PERF_RESULT:MASK_GRADIENT_RECT_FILL:15.000
+    PERF_RESULT:MASK_GRADIENT_IMAGE:15.000
+    PERF_RESULT:MASK_GRADIENT_IMAGE_ROTATE:15.000
+    PERF_RESULT:TEXT_GRADIENT:15.000
+    PERF_RESULT:TEXT_RECT_GRADIENT:15.000
+    PERF_RESULT:TEXT_ROTATE_GRADIENT:15.000
+    PERF_RESULT:SHADOW:15.000
+    PERF_RESULT:SHADOW_ROUND:15.000
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK:15.000
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT:15.000
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE:15.000
+    PERF_RESULT:MASK_RECT_FILL_IMAGE:15.000
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_QUARTER:15.000
+    PERF_RESULT:MASK_RECT_FILL_NO_MASK_DOUBLE:15.000
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_QUARTER:15.000
+    PERF_RESULT:MASK_RECT_FILL_ROUND_RECT_DOUBLE:15.000
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_QUARTER:15.000
+    PERF_RESULT:MASK_RECT_FILL_CIRCLE_DOUBLE:15.000
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_QUARTER:15.000
+    PERF_RESULT:MASK_RECT_FILL_IMAGE_DOUBLE:15.000
+    PERF_RESULT:MASK_IMAGE_NO_MASK:15.000
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT:15.000
+    PERF_RESULT:MASK_IMAGE_CIRCLE:15.000
+    PERF_RESULT:MASK_IMAGE_IMAGE:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_NO_MASK:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_ROUND_RECT:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_CIRCLE:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_IMAGE:15.000
+    PERF_RESULT:MASK_IMAGE_NO_MASK_QUARTER:15.000
+    PERF_RESULT:MASK_IMAGE_NO_MASK_DOUBLE:15.000
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_QUARTER:15.000
+    PERF_RESULT:MASK_IMAGE_ROUND_RECT_DOUBLE:15.000
+    PERF_RESULT:MASK_IMAGE_CIRCLE_QUARTER:15.000
+    PERF_RESULT:MASK_IMAGE_CIRCLE_DOUBLE:15.000
+    PERF_RESULT:MASK_IMAGE_IMAGE_QUARTER:15.000
+    PERF_RESULT:MASK_IMAGE_IMAGE_DOUBLE:15.000
+    PERF_RESULT:MASK_ROUND_RECT_FILL_NO_MASK:15.000
+    PERF_RESULT:MASK_ROUND_RECT_FILL_WITH_MASK:15.000
+    PERF_RESULT:ANIMATION_TRANSLATE:15.000
+    PERF_RESULT:ANIMATION_ALPHA:15.000
+    PERF_RESULT:ANIMATION_SCALE:15.000
+    PERF_RESULT:ANIMATION_SET:15.000
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_NO_MASK:15.000
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_ROUND_RECT:15.000
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_CIRCLE:15.000
+    PERF_RESULT:MASK_IMAGE_TEST_PERF_IMAGE:15.100
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_NO_MASK:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_ROUND_RECT:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_CIRCLE:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_TEST_PERF_IMAGE:15.000
+    PERF_RESULT:IMAGE_QOI_565:15.000
+    PERF_RESULT:IMAGE_QOI_565_8:15.000
+    PERF_RESULT:EXTERN_IMAGE_QOI_565:26.100
+    PERF_RESULT:EXTERN_IMAGE_QOI_565_8:15.000
+    PERF_RESULT:IMAGE_TILED_QOI_565_0:15.000
+    PERF_RESULT:IMAGE_TILED_QOI_565_8:15.000
+    PERF_RESULT:MASK_IMAGE_QOI_NO_MASK:15.000
+    PERF_RESULT:MASK_IMAGE_QOI_ROUND_RECT:15.000
+    PERF_RESULT:MASK_IMAGE_QOI_CIRCLE:15.000
+    PERF_RESULT:MASK_IMAGE_QOI_IMAGE:15.000
+    PERF_RESULT:MASK_IMAGE_QOI_8_NO_MASK:15.000
+    PERF_RESULT:MASK_IMAGE_QOI_8_ROUND_RECT:15.000
+    PERF_RESULT:MASK_IMAGE_QOI_8_CIRCLE:15.000
+    PERF_RESULT:MASK_IMAGE_QOI_8_IMAGE:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_NO_MASK:26.100
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_ROUND_RECT:26.100
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_CIRCLE:26.300
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_IMAGE:17.100
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_NO_MASK:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_ROUND_RECT:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_CIRCLE:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_QOI_8_IMAGE:15.000
+    PERF_RESULT:IMAGE_RLE_565:15.000
+    PERF_RESULT:IMAGE_RLE_565_8:15.000
+    PERF_RESULT:EXTERN_IMAGE_RLE_565:15.000
+    PERF_RESULT:EXTERN_IMAGE_RLE_565_8:15.000
+    PERF_RESULT:IMAGE_TILED_RLE_565_0:15.000
+    PERF_RESULT:IMAGE_TILED_RLE_565_8:15.000
+    PERF_RESULT:MASK_IMAGE_RLE_NO_MASK:15.000
+    PERF_RESULT:MASK_IMAGE_RLE_ROUND_RECT:15.000
+    PERF_RESULT:MASK_IMAGE_RLE_CIRCLE:15.000
+    PERF_RESULT:MASK_IMAGE_RLE_IMAGE:15.000
+    PERF_RESULT:MASK_IMAGE_RLE_8_NO_MASK:15.000
+    PERF_RESULT:MASK_IMAGE_RLE_8_ROUND_RECT:15.000
+    PERF_RESULT:MASK_IMAGE_RLE_8_CIRCLE:15.000
+    PERF_RESULT:MASK_IMAGE_RLE_8_IMAGE:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_NO_MASK:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_ROUND_RECT:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_CIRCLE:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_IMAGE:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_NO_MASK:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_ROUND_RECT:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_CIRCLE:15.000
+    PERF_RESULT:EXTERN_MASK_IMAGE_RLE_8_IMAGE:15.000
+  Parsed 239 test results
+  SPI matrix results saved to: D:\workspace\gitee\EmbeddedGUI\perf_output\spi_matrix_results.json
+  SPI matrix report saved to: D:\workspace\gitee\EmbeddedGUI\perf_output\spi_matrix_report.md
+  SPI Matrix: 3/3 configs succeeded
+
+============================================================
+Generating Documentation
+============================================================
+  Using CPU-only data from spi_matrix_results.json (no SPI overhead)
+  Chart saved: D:\workspace\gitee\EmbeddedGUI\doc\source\performance\images\perf_report.png
+  Report saved: D:\workspace\gitee\EmbeddedGUI\doc\source\performance\perf_report.md
+  Chart saved: D:\workspace\gitee\EmbeddedGUI\doc\source\performance\images\pfb_matrix_report.png
+  Report saved: D:\workspace\gitee\EmbeddedGUI\doc\source\performance\pfb_matrix_report.md
+  Chart saved: D:\workspace\gitee\EmbeddedGUI\doc\source\performance\images\spi_matrix_report.png
+  Report saved: D:\workspace\gitee\EmbeddedGUI\doc\source\performance\spi_matrix_report.md
+  Scene capture copied to: D:\workspace\gitee\EmbeddedGUI\doc\source\performance\images\perf_scenes.png
+Documentation updated successfully
+
+PASSED
+
+========================================================================
+  [doc] Sphinx documentation build
+========================================================================
+  Command: C:\Users\Lenovo\AppData\Local\Python\pythoncore-3.14-64\python.exe -m sphinx -M html D:\workspace\gitee\EmbeddedGUI\doc\source D:\workspace\gitee\EmbeddedGUI\doc\build
+
+[01mRunning Sphinx v9.1.0[39;49;00m
+[01mloading translations [zh]... [39;49;00mdone
+[01mloading pickled environment... [39;49;00mThe configuration has changed (1 option: 'pygments_dark_style')
+done
+[01mmyst v5.0.0:[39;49;00m MdParserConfig(commonmark_only=False, gfm_only=False, enable_extensions=set(), disable_syntax=[], all_links_external=False, links_external_new_tab=False, url_schemes=('http', 'https', 'mailto', 'ftp'), ref_domains=None, fence_as_directive=set(), number_code_blocks=[], title_to_header=False, heading_anchors=0, heading_slug_func=None, html_meta={}, footnote_sort=True, footnote_transition=True, words_per_minute=200, substitutions={}, linkify_fuzzy_links=True, dmath_allow_labels=True, dmath_allow_space=True, dmath_allow_digits=True, dmath_double_inline=False, update_mathjax=True, mathjax_classes='tex2jax_process|mathjax_process|math|output_area', enable_checkboxes=False, suppress_warnings=[], highlight_code_blocks=True)
+[01mbuilding [mo]: [39;49;00mtargets for 0 po files that are out of date
+[01mwriting output... [39;49;00m
+[01mbuilding [html]: [39;49;00mtargets for 5 source files that are out of date
+[01mupdating environment: [39;49;00m0 added, 7 changed, 0 removed
+[2K[01mreading sources... [39;49;00m[ 14%] [35marchitecture/pfb_design[39;49;00m[2K[01mreading sources... [39;49;00m[ 29%] [35mperformance/perf_report[39;49;00m[2K[01mreading sources... [39;49;00m[ 43%] [35mperformance/perf_tuning[39;49;00m[2K[01mreading sources... [39;49;00m[ 57%] [35mperformance/pfb_matrix_report[39;49;00m[2K[01mreading sources... [39;49;00m[ 71%] [35mperformance/spi_matrix_report[39;49;00m[2K[01mreading sources... [39;49;00m[ 86%] [35msize/size_overview[39;49;00m[2K[01mreading sources... [39;49;00m[100%] [35msize/size_report[39;49;00m
+[01mlooking for now-outdated files... [39;49;00mnone found
+[01mpickling environment... [39;49;00mdone
+[01mchecking consistency... [39;49;00mdone
+[01mpreparing documents... [39;49;00mdone
+[01mcopying assets... [39;49;00m
+[2K[01mcopying downloadable files... [39;49;00m[  4%] [33m../../../../src/image/egui_image_std.c[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[  9%] [33m../../../../src/core/egui_config_default.h[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 13%] [33m../../../../src/image/egui_image_decode_utils.h[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 17%] [33m../../../../src/image/egui_image_decode_utils.c[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 22%] [33m../../../../src/image/egui_image_qoi.c[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 26%] [33m../../../../src/image/egui_image_rle.c[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 30%] [33m../../../../src/core/egui_canvas_transform.c[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 35%] [33m../../../../src/font/egui_font_std.c[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 39%] [33m../../../../src/widget/egui_view_virtual_list.h[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 43%] [33m../../../../src/widget/egui_view_virtual_page.h[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 48%] [33m../../../../example/HelloVirtual/virtual_page/test.c[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 52%] [33m../../../../src/widget/egui_view_virtual_strip.h[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 57%] [33m../../../../example/HelloVirtual/virtual_strip_basic/test.c[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 61%] [33m../../../../example/HelloVirtual/virtual_strip/test.c[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 65%] [33m../../../../src/widget/egui_view_virtual_grid.h[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 70%] [33m../../../../example/HelloVirtual/virtual_grid_basic/test.c[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 74%] [33m../../../../example/HelloVirtual/virtual_grid/test.c[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 78%] [33m../../../../src/widget/egui_view_virtual_section_list.h[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 83%] [33m../../../../example/HelloVirtual/virtual_section_list_basic/test.c[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 87%] [33m../../../../example/HelloVirtual/virtual_section_list/test.c[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 91%] [33m../../../../src/widget/egui_view_virtual_tree.h[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[ 96%] [33m../../../../example/HelloVirtual/virtual_tree/test.c[39;49;00m[2K[01mcopying downloadable files... [39;49;00m[100%] [33m../../../../src/widget/egui_view_virtual_viewport.h[39;49;00m
+[01mcopying static files... [39;49;00m
+Writing evaluated template result to D:\workspace\gitee\EmbeddedGUI\doc\build\html\_static\basic.css
+Writing evaluated template result to D:\workspace\gitee\EmbeddedGUI\doc\build\html\_static\documentation_options.js
+Writing evaluated template result to D:\workspace\gitee\EmbeddedGUI\doc\build\html\_static\language_data.js
+[01mcopying static files: [39;49;00mdone
+[01mcopying extra files... [39;49;00m
+[01mcopying extra files: [39;49;00mdone
+[01mcopying assets: [39;49;00mdone
+[2K[01mwriting output... [39;49;00m[ 10%] [32marchitecture/index[39;49;00m[2K[01mwriting output... [39;49;00m[ 20%] [32marchitecture/pfb_design[39;49;00m[2K[01mwriting output... [39;49;00m[ 30%] [32mperformance/index[39;49;00m[2K[01mwriting output... [39;49;00m[ 40%] [32mperformance/perf_report[39;49;00m[2K[01mwriting output... [39;49;00m[ 50%] [32mperformance/perf_tuning[39;49;00m[2K[01mwriting output... [39;49;00m[ 60%] [32mperformance/pfb_matrix_report[39;49;00m[2K[01mwriting output... [39;49;00m[ 70%] [32mperformance/spi_matrix_report[39;49;00m[2K[01mwriting output... [39;49;00m[ 80%] [32msize/index[39;49;00m[2K[01mwriting output... [39;49;00m[ 90%] [32msize/size_overview[39;49;00m[2K[01mwriting output... [39;49;00m[100%] [32msize/size_report[39;49;00m
+[01mgenerating indices... [39;49;00mgenindex done
+[01mwriting additional pages... [39;49;00msearch done
+[2K[01mcopying images... [39;49;00m[ 20%] [33mperformance/images/pfb_matrix_report.png[39;49;00m[2K[01mcopying images... [39;49;00m[ 40%] [33mperformance/images/perf_report.png[39;49;00m[2K[01mcopying images... [39;49;00m[ 60%] [33mperformance/images/perf_scenes.png[39;49;00m[2K[01mcopying images... [39;49;00m[ 80%] [33mperformance/images/spi_matrix_report.png[39;49;00m[2K[01mcopying images... [39;49;00m[100%] [33msize/images/size_report.png[39;49;00m
+[01mdumping search index in Chinese (code: zh)... [39;49;00mdone
+[01mdumping object inventory... [39;49;00mdone
+[01mbuild succeeded.[39;49;00m
+
+The HTML pages are in doc\build\html.
+
+========================================================================
+  RELEASE CHECK SUMMARY
+========================================================================
+  [SKIP]  Code formatting (clang-format)                           -
+  [SKIP]  Example icon font explicitness check                     -
+  [SKIP]  Keil project file sync (src/ vs .uvprojx)                -
+  [SKIP]  Full compile check (all examples)                        -
+  [SKIP]  WASM demos build                                         -
+  [SKIP]  Runtime verification (screenshots)                       -
+  [PASS]  Dirty-region animation verification                  15.0s
+  [PASS]  Virtual stage showcase parity verification            8.8s
+  [PASS]  HelloBasic render and interaction workflow           53.9s
+  [PASS]  HelloVirtual render and interaction workflow         46.2s
+  [PASS]  Binary size analysis and documentation             13m 28s
+  [PASS]  QEMU performance test and documentation             9m 32s
+  [PASS]  Sphinx documentation build                            3.0s
+------------------------------------------------------------------------
+  Total time: 25m 7s
+  7 passed, 0 failed, 6 skipped
+
+  ** ALL CHECKS PASSED **
+========================================================================

@@ -77,7 +77,7 @@ extern "C" {
  * shared default fast-path macro surface.
  */
 #if 0
-#define EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE                         0
+#define EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE 0
 #endif
 
 /*
@@ -117,26 +117,26 @@ extern "C" {
 #if 0
 // Compressed image resources are RGB565-only, so decode scratch/cache buffers
 // only need 2 bytes per pixel instead of the default 4.
-#define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE                          2
+#define EGUI_CONFIG_IMAGE_DECODE_MAX_PIXEL_SIZE             2
 
 // Low-RAM QOI row-cache mode: only cache the horizontal tail instead of the
 // full row-band. Saves about 1.5KB peak heap on 240px alpha-QOI scenes.
-#define EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE                    1
+#define EGUI_CONFIG_IMAGE_CODEC_TAIL_ROW_CACHE_ENABLE       1
 
 // Historical low-RAM experiment: shrink the external RLE read window from the
 // default 1024B to 64B. Current recheck saves about 1024B BSS for 96B extra
 // text, but external RLE hotspots regress by about +17.5%~+21.8%.
-#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE                 64
+#define EGUI_CONFIG_IMAGE_RLE_EXTERNAL_CACHE_WINDOW_SIZE    64
 
 // Text-transform layout: 16-bit indices shrink transient heap for the current
 // benchmark strings and font offsets.
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT              1
-#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT               1
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_PIXEL_INDEX_16BIT 1
+#define EGUI_CONFIG_TEXT_TRANSFORM_LAYOUT_LINE_INDEX_16BIT  1
 
 // Rotated-text scratch: keep layout/tile scratch on transient heap and cap the
 // visible alpha8 fast-path cache at the smaller low-RAM ceiling.
-#define EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE                   1
-#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES              2560
+#define EGUI_CONFIG_TEXT_TRANSFORM_SCRATCH_HEAP_ENABLE      1
+#define EGUI_CONFIG_TEXT_TRANSFORM_VISIBLE_ALPHA8_MAX_BYTES 2560
 #endif
 
 /* Ends C function definitions when using C++ */

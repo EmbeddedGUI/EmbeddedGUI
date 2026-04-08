@@ -5244,7 +5244,7 @@ void egui_image_std_draw_image_resize(const egui_image_t *self, egui_dim_t x, eg
             }                                                                                                                                                  \
         }                                                                                                                                                      \
         /* Row-uniform overlay masks can skip per-point mask dispatch when enabled. */                                                                         \
-        else if (canvas->mask->api->mask_get_row_overlay != NULL)                            \
+        else if (canvas->mask->api->mask_get_row_overlay != NULL)                                                                                              \
         {                                                                                                                                                      \
             for (egui_dim_t y_ = y; y_ < y_total; y_++)                                                                                                        \
             {                                                                                                                                                  \
@@ -6058,8 +6058,7 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
             dst_row += pfb_width;
         }
     }
-    else if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK &&
-             (egui_canvas_get_canvas()->alpha == EGUI_ALPHA_100) && (egui_canvas_get_canvas()->mask != NULL) &&
+    else if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && (egui_canvas_get_canvas()->alpha == EGUI_ALPHA_100) && (egui_canvas_get_canvas()->mask != NULL) &&
              (egui_canvas_get_canvas()->mask->api->mask_get_row_overlay != NULL))
     {
         // Fast path: RGB565 image with row-level overlay (e.g. linear-vertical gradient overlay).
@@ -7045,15 +7044,14 @@ cleanup:
                         continue;                                                                                                                              \
                     }                                                                                                                                          \
                                                                                                                                                                \
-                    if (rr_res == EGUI_MASK_ROW_INSIDE && \
-                        1)                                                                         \
+                    if (rr_res == EGUI_MASK_ROW_INSIDE && 1)                                                                                                   \
                     {                                                                                                                                          \
                         egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x_start];                                                             \
                         _blend_row_func(dst_row, src_row, src_alpha_row, src_x_map, count, canvas_alpha);                                                      \
                     }                                                                                                                                          \
-                    else if (rr_res == EGUI_MASK_ROW_PARTIAL && \
-                             \
-                             1)                                                      \
+                    else if (rr_res == EGUI_MASK_ROW_PARTIAL &&                                                                                                \
+                                                                                                                                                               \
+                             1)                                                                                                                                \
                     {                                                                                                                                          \
                         egui_dim_t visible_x_start = screen_x_start;                                                                                           \
                         egui_dim_t visible_x_end = x_base + x_total;                                                                                           \
@@ -7584,8 +7582,7 @@ static void egui_image_std_set_image_resize_rgb565_external(const egui_image_t *
                 {                                                                                                                                              \
                     continue;                                                                                                                                  \
                 }                                                                                                                                              \
-                if (rr_res == EGUI_MASK_ROW_INSIDE && \
-                    1)                                                                             \
+                if (rr_res == EGUI_MASK_ROW_INSIDE && 1)                                                                                                       \
                 {                                                                                                                                              \
                     egui_color_int_t *dst_row = &canvas->pfb[dst_y * pfb_width + dst_x_start];                                                                 \
                     for (egui_dim_t i = 0; i < count; i++)                                                                                                     \
@@ -7595,8 +7592,7 @@ static void egui_image_std_set_image_resize_rgb565_external(const egui_image_t *
                         egui_image_std_blend_resize_pixel(&dst_row[i], color, alpha);                                                                          \
                     }                                                                                                                                          \
                 }                                                                                                                                              \
-                else if (rr_res == EGUI_MASK_ROW_PARTIAL && \
-                         1)                                                                       \
+                else if (rr_res == EGUI_MASK_ROW_PARTIAL && 1)                                                                                                 \
                 {                                                                                                                                              \
                     egui_dim_t visible_x_start = screen_x_start;                                                                                               \
                     egui_dim_t visible_x_end = x_base + x_total;                                                                                               \
@@ -7639,7 +7635,7 @@ static void egui_image_std_set_image_resize_rgb565_external(const egui_image_t *
             }                                                                                                                                                  \
         }                                                                                                                                                      \
         /* Row-uniform overlay masks can skip per-point mask dispatch when enabled. */                                                                         \
-        else if (canvas->mask->api->mask_get_row_overlay != NULL)                            \
+        else if (canvas->mask->api->mask_get_row_overlay != NULL)                                                                                              \
         {                                                                                                                                                      \
             for (egui_dim_t y_ = y; y_ < y_total; y_++)                                                                                                        \
             {                                                                                                                                                  \
@@ -7762,8 +7758,7 @@ void egui_image_std_set_image_resize_rgb565_1(const egui_image_t *self, egui_dim
     egui_image_std_set_image_resize_rgb565_1_common(self, x, y, x_total, y_total, x_base, y_base, width_radio, height_radio);
 }
 #endif // EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_1
-#if \
-        EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8
+#if EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8
 __EGUI_STATIC_INLINE__ int egui_image_std_set_image_resize_rgb565_8_round_rect_fast(const egui_image_std_info_t *image, const egui_dim_t *src_x_map,
                                                                                     egui_dim_t count, egui_dim_t x, egui_dim_t y, egui_dim_t x_total,
                                                                                     egui_dim_t y_total, egui_dim_t x_base, egui_dim_t y_base,

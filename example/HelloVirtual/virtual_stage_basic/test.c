@@ -10,10 +10,10 @@
 #include "app_egui_resource_generate.h"
 #include "uicode.h"
 
-#define BASIC_STAGE_NODE_COUNT 12U
-#define BASIC_DEVICE_COUNT     3U
-#define BASIC_BUTTON_TEXT_LEN  24U
-#define BASIC_LIVE_SLOT_LIMIT  8U
+#define BASIC_STAGE_NODE_COUNT       12U
+#define BASIC_DEVICE_COUNT           3U
+#define BASIC_BUTTON_TEXT_LEN        24U
+#define BASIC_LIVE_SLOT_LIMIT        8U
 #define BASIC_STAGE_VERIFY_RETRY_MAX 6U
 #define BASIC_STAGE_VERIFY_WAIT_MS   180U
 
@@ -1016,9 +1016,9 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
     {
         uint8_t had_retry = recording_initial_verify_retry;
 
-        if (EGUI_VIEW_VIRTUAL_STAGE_SLOT_COUNT(&basic_stage_view) != 4U ||
-            basic_find_live_view(BASIC_NODE_PUMP_IMAGE) == NULL || basic_find_live_view(BASIC_NODE_PUMP_PROGRESS) == NULL ||
-            basic_find_live_view(BASIC_NODE_PUMP_BUTTON) == NULL || basic_find_live_view(BASIC_NODE_MODE_COMBOBOX) == NULL)
+        if (EGUI_VIEW_VIRTUAL_STAGE_SLOT_COUNT(&basic_stage_view) != 4U || basic_find_live_view(BASIC_NODE_PUMP_IMAGE) == NULL ||
+            basic_find_live_view(BASIC_NODE_PUMP_PROGRESS) == NULL || basic_find_live_view(BASIC_NODE_PUMP_BUTTON) == NULL ||
+            basic_find_live_view(BASIC_NODE_MODE_COMBOBOX) == NULL)
         {
             if (basic_schedule_verify_wait(p_action, &recording_initial_verify_retry))
             {

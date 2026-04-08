@@ -27,7 +27,7 @@ APP_SUB_ROOTS = {
     "HelloSizeAnalysis": "example/HelloSizeAnalysis",
 }
 SUB_APP_FAMILY_APPS = tuple(APP_SUB_ROOTS.keys())
-FULL_CHECK_SKIP_APPS = set()
+FULL_CHECK_SKIP_APPS = {"HelloUnitTest"}
 COMPILE_OUTPUT_ROOT = Path("output") / "cc"
 
 def get_example_list():

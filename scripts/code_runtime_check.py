@@ -14,6 +14,7 @@ import concurrent.futures
 import hashlib
 import json
 import re
+import shutil
 import time
 from pathlib import Path
 
@@ -571,6 +572,13 @@ def compile_app(app, app_sub=None, bits64=False, user_cflags="", recording_test=
             user_cflags=user_cflags,
             recording_test=recording_test,
         )
+    isolated_obj_suffix = get_runtime_obj_suffix(
+        app,
+        app_sub=app_sub,
+        bits64=bits64,
+        user_cflags=user_cflags,
+        recording_test=recording_test,
+    )
 
     # Always inject RECORDING_TEST into the build signature so cached outputs stay isolated.
     recording_flag = '-DEGUI_CONFIG_RECORDING_TEST=%d' % (1 if recording_test else 0)
@@ -586,15 +594,45 @@ def compile_app(app, app_sub=None, bits64=False, user_cflags="", recording_test=
     if objroot_path is not None:
         cmd.append('OBJROOT_PATH=%s' % Path(objroot_path).as_posix())
 
+    last_result = None
     for attempt in range(COMPILE_RETRY_COUNT):
         result = subprocess.run(cmd, cwd=ROOT_DIR, capture_output=True, text=True)
+        last_result = result
         if result.returncode == 0:
             register_runtime_build_output_dir(build_output_dir)
             return True
 
         if attempt < COMPILE_RETRY_COUNT - 1:
+            shutil.rmtree(build_output_dir, ignore_errors=True)
             print("(compile retry %d/%d: %s)" % (attempt + 1, COMPILE_RETRY_COUNT - 1, format_app_name(app, app_sub)), end=" ")
             time.sleep(COMPILE_RETRY_DELAY_S)
+
+    # If a shared object-root build still fails, retry once with a fully isolated obj dir.
+    if objroot_path is not None or app_obj_suffix != isolated_obj_suffix:
+        fallback_cmd = ['make', get_make_job_arg(make_jobs), 'APP=%s' % app, 'PORT=pc'] + COMPILE_FAST_FLAGS
+        if app_sub:
+            fallback_cmd.append('APP_SUB=%s' % app_sub)
+        if bits64:
+            fallback_cmd.append('BITS=64')
+        fallback_cmd.append('USER_CFLAGS=%s' % combined_cflags)
+        fallback_cmd.append('OUTPUT_PATH=%s' % Path(build_output_dir).as_posix())
+        fallback_cmd.append('APP_OBJ_SUFFIX=%s' % isolated_obj_suffix)
+        shutil.rmtree(build_output_dir, ignore_errors=True)
+        print("(compile fallback isolated-obj: %s)" % format_app_name(app, app_sub), end=" ")
+        result = subprocess.run(fallback_cmd, cwd=ROOT_DIR, capture_output=True, text=True)
+        last_result = result
+        if result.returncode == 0:
+            register_runtime_build_output_dir(build_output_dir)
+            return True
+
+    if last_result is not None:
+        stderr_lines = (last_result.stderr or "").splitlines()[-10:]
+        stdout_lines = (last_result.stdout or "").splitlines()[-10:]
+        detail_lines = stderr_lines if stderr_lines else stdout_lines
+        if detail_lines:
+            print("\n[runtime-check] compile failure tail:")
+            for line in detail_lines:
+                print(line)
     return False
 
 

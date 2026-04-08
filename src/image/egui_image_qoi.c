@@ -45,8 +45,8 @@ typedef uint16_t egui_image_qoi_row_index_t;
 #define EGUI_IMAGE_QOI_INDEX_STATE_MEMBER                                                                                                                      \
     uint16_t index_rgb565[64];                                                                                                                                 \
     uint32_t index_rgba[64];
-#define EGUI_IMAGE_QOI_INDEX_PARAM   , uint16_t *index_rgb565, uint32_t *index_rgba
-#define EGUI_IMAGE_QOI_INDEX_ARG     , index_rgb565, index_rgba
+#define EGUI_IMAGE_QOI_INDEX_PARAM , uint16_t *index_rgb565, uint32_t *index_rgba
+#define EGUI_IMAGE_QOI_INDEX_ARG   , index_rgb565, index_rgba
 #define EGUI_IMAGE_QOI_INDEX_DECLARE                                                                                                                           \
     uint16_t *index_rgb565 = qoi_state.index_rgb565;                                                                                                           \
     uint32_t *index_rgba = qoi_state.index_rgba;
