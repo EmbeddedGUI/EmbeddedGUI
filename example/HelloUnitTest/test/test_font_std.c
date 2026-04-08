@@ -27,6 +27,10 @@ static const egui_font_std_char_descriptor_t test_font_char_array_rle4xor[] = {
         {.idx = 0, .size = 3, .box_w = 2, .box_h = 2, .adv = 2, .off_x = 0, .off_y = 0},
 };
 
+static const egui_font_std_char_descriptor_t test_font_char_array_invalid_offscreen[] = {
+        {.idx = 0, .size = 1, .box_w = 2, .box_h = 2, .adv = 2, .off_x = 32, .off_y = 0},
+};
+
 static const uint8_t test_font_pixel_buffer_raw[] = {
         0xFF, 0xFF,
 };
@@ -37,6 +41,10 @@ static const uint8_t test_font_pixel_buffer_rle4[] = {
 
 static const uint8_t test_font_pixel_buffer_rle4xor[] = {
         0x03, 0x0F, 0x0F,
+};
+
+static const uint8_t test_font_pixel_buffer_invalid[] = {
+        0x80,
 };
 
 static const egui_font_std_info_t test_font_info_raw = {
@@ -75,9 +83,22 @@ static const egui_font_std_info_t test_font_info_rle4xor = {
         .pixel_buffer = test_font_pixel_buffer_rle4xor,
 };
 
+static const egui_font_std_info_t test_font_info_invalid_offscreen = {
+        .font_size = 2,
+        .font_bit_mode = 4,
+        .height = 2,
+        .res_type = EGUI_RESOURCE_TYPE_INTERNAL,
+        .bitmap_codec = EGUI_FONT_STD_BITMAP_CODEC_RLE4,
+        .count = 1,
+        .code_array = test_font_code_array,
+        .char_array = test_font_char_array_invalid_offscreen,
+        .pixel_buffer = test_font_pixel_buffer_invalid,
+};
+
 EGUI_FONT_SUB_DEFINE_STATIC(egui_font_std_t, test_font_raw, &test_font_info_raw);
 EGUI_FONT_SUB_DEFINE_STATIC(egui_font_std_t, test_font_rle4, &test_font_info_rle4);
 EGUI_FONT_SUB_DEFINE_STATIC(egui_font_std_t, test_font_rle4xor, &test_font_info_rle4xor);
+EGUI_FONT_SUB_DEFINE_STATIC(egui_font_std_t, test_font_invalid_offscreen, &test_font_info_invalid_offscreen);
 
 static void test_font_setup_canvas(void)
 {
@@ -131,10 +152,19 @@ static void test_font_std_compressed_size_matches_raw(void)
     EGUI_TEST_ASSERT_EQUAL_INT((int)raw_h, (int)rle4xor_h);
 }
 
+static void test_font_std_offscreen_compressed_glyph_skips_decode(void)
+{
+    memset(expected_font_pfb, 0, sizeof(expected_font_pfb));
+    test_font_setup_canvas();
+    test_font_invalid_offscreen.base.api->draw_string((const egui_font_t *)&test_font_invalid_offscreen, "A", 0, 5, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+    EGUI_TEST_ASSERT_TRUE(memcmp(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb)) == 0);
+}
+
 void test_font_std_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(font_std);
     EGUI_TEST_RUN(test_font_std_compressed_draw_matches_raw);
     EGUI_TEST_RUN(test_font_std_compressed_size_matches_raw);
+    EGUI_TEST_RUN(test_font_std_offscreen_compressed_glyph_skips_decode);
     EGUI_TEST_SUITE_END();
 }

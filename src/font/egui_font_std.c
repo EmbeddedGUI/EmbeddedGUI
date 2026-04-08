@@ -275,6 +275,26 @@ static void egui_font_std_write_packed_nibble_4(uint8_t *buf, uint32_t nibble_in
     }
 }
 
+static int egui_font_std_is_glyph_outside_region(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const egui_region_t *region)
+{
+    egui_dim_t region_x1;
+    egui_dim_t region_y1;
+    egui_dim_t glyph_x1;
+    egui_dim_t glyph_y1;
+
+    if (region == NULL || width <= 0 || height <= 0)
+    {
+        return 0;
+    }
+
+    region_x1 = region->location.x + region->size.width;
+    region_y1 = region->location.y + region->size.height;
+    glyph_x1 = x + width;
+    glyph_y1 = y + height;
+
+    return x >= region_x1 || y >= region_y1 || glyph_x1 <= region->location.x || glyph_y1 <= region->location.y;
+}
+
 static int egui_font_std_decode_rle4_bitmap(const uint8_t *src, uint32_t src_size, uint8_t *dst, uint32_t dst_size, egui_dim_t width, egui_dim_t height,
                                             int use_row_xor)
 {
@@ -2502,6 +2522,10 @@ static int egui_font_std_draw_single_char_desc_external_stream(const egui_font_s
 
     draw_x = x + p_char_desc->off_x;
     draw_y = y + p_char_desc->off_y;
+    if (alpha == 0 || draw_alpha == 0 || egui_font_std_is_glyph_outside_region(draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, work_region))
+    {
+        return p_char_desc->adv;
+    }
 
     if (egui_font_std_bitmap_codec_is_raw(font) && font->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
     {
