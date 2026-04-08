@@ -41,6 +41,7 @@
 #define TREE_BASIC_TASK_DETAIL_H          74
 #define TREE_BASIC_CLICK_VERIFY_RETRY_MAX 3U
 #define TREE_BASIC_JUMP_VERIFY_RETRY_MAX  3U
+#define TREE_BASIC_PATCH_VERIFY_RETRY_MAX 3U
 
 #define TREE_BASIC_FONT_TITLE ((const egui_font_t *)&egui_res_font_montserrat_10_4)
 #define TREE_BASIC_FONT_BODY  ((const egui_font_t *)&egui_res_font_montserrat_8_4)
@@ -162,6 +163,10 @@ static tree_basic_context_t tree_basic_ctx;
 static uint8_t runtime_fail_reported;
 static uint8_t recording_click_verify_retry;
 static uint8_t recording_jump_verify_retry;
+static uint8_t recording_patch_verify_retry;
+static uint8_t recording_patch_expected_detail;
+static uint32_t recording_patch_target_id;
+static uint32_t recording_patch_expected_count;
 #endif
 
 EGUI_VIEW_CARD_PARAMS_INIT(tree_basic_toolbar_card_params, TREE_BASIC_MARGIN_X, TREE_BASIC_TOOLBAR_Y, TREE_BASIC_HEADER_W, TREE_BASIC_TOOLBAR_H, 12);
@@ -1102,6 +1107,19 @@ static uint32_t tree_basic_get_first_center_visible_id(void)
     return summary.has_first ? summary.first_visible_id : EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
 }
 
+static uint8_t tree_basic_recording_schedule_verify_retry(uint8_t *retry_counter, uint8_t retry_max, egui_sim_action_t *p_action)
+{
+    if (*retry_counter >= retry_max)
+    {
+        return 0U;
+    }
+
+    (*retry_counter)++;
+    recording_request_snapshot();
+    EGUI_SIM_SET_WAIT(p_action, 0);
+    return 1U;
+}
+
 bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_action)
 {
     static int last_action = -1;
@@ -1235,14 +1253,38 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             report_runtime_failure("target task was not selected correctly after jump");
         }
+        if (first_call)
+        {
+            node = tree_basic_get_node_by_stable_id(tree_basic_ctx.jump_target_id);
+            recording_patch_verify_retry = 0U;
+            recording_patch_target_id = tree_basic_ctx.jump_target_id;
+            recording_patch_expected_count = tree_basic_ctx.patch_count + 1U;
+            recording_patch_expected_detail = node != NULL ? (uint8_t)!node->detail : 0U;
+        }
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[TREE_BASIC_ACTION_PATCH]), 220);
         return true;
     case 7:
-        node = tree_basic_get_node_by_stable_id(tree_basic_ctx.jump_target_id);
-        if (first_call && (node == NULL || !node->detail))
+        node = tree_basic_get_node_by_stable_id(recording_patch_target_id);
+        if (node == NULL || tree_basic_ctx.patch_count < recording_patch_expected_count || node->detail != recording_patch_expected_detail)
         {
-            report_runtime_failure("patch action did not toggle task detail state");
+            if (tree_basic_recording_schedule_verify_retry(&recording_patch_verify_retry, TREE_BASIC_PATCH_VERIFY_RETRY_MAX, p_action))
+            {
+                return true;
+            }
+            if (node == NULL)
+            {
+                report_runtime_failure("patch target task was not available");
+            }
+            else if (tree_basic_ctx.patch_count < recording_patch_expected_count)
+            {
+                report_runtime_failure("patch action did not mutate target task");
+            }
+            else
+            {
+                report_runtime_failure("patch action did not toggle task detail state");
+            }
         }
+        recording_patch_verify_retry = 0U;
         if (first_call)
         {
             recording_request_snapshot();
@@ -1300,6 +1342,10 @@ void test_init_ui(void)
     runtime_fail_reported = 0U;
     recording_click_verify_retry = 0U;
     recording_jump_verify_retry = 0U;
+    recording_patch_verify_retry = 0U;
+    recording_patch_expected_detail = 0U;
+    recording_patch_target_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
+    recording_patch_expected_count = 0U;
 #endif
 
     egui_view_init(EGUI_VIEW_OF(&background_view));
