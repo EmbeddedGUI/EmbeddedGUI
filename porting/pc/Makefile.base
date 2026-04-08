@@ -193,9 +193,14 @@ LIBS		:= $(patsubst %,-L%, $(LIBDIRS:%/=%))
 # define the C source files
 SOURCES		:= $(sort $(wildcard $(patsubst %,%/*.c, $(SOURCEDIRS))) $(wildcard $(C_SRCS)))
 
+# Keep object files inside OBJDIR even when app sources live outside the SDK root
+# (for example ../../example/... in widget repos).
+sanitize_obj_rel = $(subst ../,__up__/,$(patsubst ./%,%,$(1)))
+src_to_obj = $(OBJDIR)/$(call sanitize_obj_rel,$(1:.c=.o))
+
 # define the C object files 
-OBJECTS			:= $(patsubst %, $(OBJDIR)/%, $(SOURCES:.c=.o))
-OBJ_MD			:= $(sort $(addprefix $(OBJDIR)/, $(SOURCEDIRS) $(patsubst %/,%,$(dir $(C_SRCS)))))
+OBJECTS			:= $(foreach src,$(SOURCES),$(call src_to_obj,$(src)))
+OBJ_MD			:= $(sort $(patsubst %/,%,$(dir $(OBJECTS))))
 
 
 
@@ -288,15 +293,18 @@ $(OUTPUT_MAIN): $(OBJECTS) $(APP_CONFIG_STAMP)
 $(MAIN): | $(OUTPUT_PATH) $(OBJDIR) $(OBJ_MD) $(USER_COMPILE_TARGETS) $(OUTPUT_MAIN)
 	@$(ECHO) Building   : "$(OUTPUT_MAIN)"
 
-# Static Pattern Rules [targets ...: target-pattern: prereq-patterns ...]
-$(OBJECTS): $(OBJDIR)/%.o : %.c $(COMMON_PREREQS) | $(OUTPUT_PATH) $(OBJDIR) $(OBJ_MD) $(USER_COMPILE_TARGETS)
-	@$(ECHO) Compiling  : "$<"
+define COMPILE_OBJECT_RULE
+$(call src_to_obj,$(1)): $(1) $(COMMON_PREREQS) | $(OUTPUT_PATH) $(OBJDIR) $(OBJ_MD) $(USER_COMPILE_TARGETS)
+	@$(ECHO) Compiling  : "$(1)"
 ifeq ($(OS),Windows_NT)
-	$(Q)$(MD) "$(call FIXPATH,$(patsubst %/,%,$(dir $@)))" >NUL 2>NUL || (if exist "$(call FIXPATH,$(patsubst %/,%,$(dir $@)))" exit /b 0 else exit /b 1)
+	$(Q)$(MD) "$(call FIXPATH,$$(@D))" >NUL 2>NUL || (if exist "$(call FIXPATH,$$(@D))" exit /b 0 else exit /b 1)
 else
-	$(Q)$(MD) "$(call FIXPATH,$(patsubst %/,%,$(dir $@)))"
+	$(Q)$(MD) "$(call FIXPATH,$$(@D))"
 endif
-	$(Q)$(CC) $(COMMON_FLAGS) $(INCLUDES) -c $<  -o $@
+	$(Q)$(CC) $(COMMON_FLAGS) $(INCLUDES) -c $(1)  -o $$@
+endef
+
+$(foreach src,$(SOURCES),$(eval $(call COMPILE_OBJECT_RULE,$(src))))
 
 
 clean:

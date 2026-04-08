@@ -117,9 +117,14 @@ SOURCES := $(filter-out porting/pc/main.c,$(ALL_SOURCES))
 # Also exclude PC's egui_port_pc.c (we use egui_port_emscripten.c)
 SOURCES := $(filter-out porting/pc/egui_port_pc.c,$(SOURCES))
 
+# Keep object files inside OBJDIR even when app sources live outside the SDK root
+# (for example ../../example/... in widget repos).
+sanitize_obj_rel = $(subst ../,__up__/,$(patsubst ./%,%,$(1)))
+src_to_obj = $(OBJDIR)/$(call sanitize_obj_rel,$(1:.c=.o))
+
 # Object files
-OBJECTS := $(patsubst %, $(OBJDIR)/%, $(SOURCES:.c=.o))
-OBJ_MD := $(sort $(addprefix $(OBJDIR)/, $(SOURCEDIRS) $(patsubst %/,%,$(dir $(C_SRCS)))))
+OBJECTS := $(foreach src,$(SOURCES),$(call src_to_obj,$(src)))
+OBJ_MD := $(sort $(patsubst %/,%,$(dir $(OBJECTS))))
 
 ALL_DEPS := $(OBJECTS:.o=.d)
 
@@ -177,10 +182,14 @@ endif
 $(MAIN): | $(OUTPUT_PATH) $(OBJDIR) $(OBJ_MD) $(OUTPUT_MAIN)
 	@$(ECHO) Building   : "$(OUTPUT_MAIN)"
 
-# Compile
-$(OBJECTS): $(OBJDIR)/%.o : %.c $(COMMON_PREREQS)
-	@$(ECHO) Compiling  : "$<"
-	$(Q)$(CC) $(COMMON_FLAGS) $(INCLUDES) -c $< -o $@
+define COMPILE_OBJECT_RULE
+$(call src_to_obj,$(1)): $(1) $(COMMON_PREREQS)
+	@$(ECHO) Compiling  : "$(1)"
+	$(Q)$(MD) $(call FIXPATH,$$(@D))
+	$(Q)$(CC) $(COMMON_FLAGS) $(INCLUDES) -c $(1) -o $$@
+endef
+
+$(foreach src,$(SOURCES),$(eval $(call COMPILE_OBJECT_RULE,$(src))))
 
 clean:
 	$(Q)$(RM) $(OUTPUT_PATH)
