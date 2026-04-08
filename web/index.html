@@ -26,7 +26,7 @@
                         <a class="button-link" href="#showcase">打开首页示例</a>
                         <a class="button-link secondary" href="basic.html">HelloBasic</a>
                         <a class="button-link secondary" href="examples.html">其他例程</a>
-                        <a class="button-link secondary" href="https://github.com/EmbeddedGUI/EmbeddedGUI_Widgets" target="_blank" rel="noreferrer">HelloCustomWidgets</a>
+                        <a class="button-link secondary" href="https://github.com/EmbeddedGUI/EmbeddedGUI_Widgets" target="_blank" rel="noreferrer">扩展控件仓库</a>
                     </div>
                     <div class="hero-links">
                         <a class="button-link ghost" href="https://github.com/EmbeddedGUI/EmbeddedGUI/blob/main/README.md" target="_blank" rel="noreferrer">打开 README</a>
@@ -52,7 +52,7 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">浏览入口</div>
-                        <div class="stat-value" id="route-summary">基础控件 / 其他例程 / 自定义控件</div>
+                        <div class="stat-value" id="route-summary">基础控件 / 其他例程 / 扩展控件仓库</div>
                         <div class="stat-detail" id="route-detail">
                             分类数量会从 <span class="code-inline">web/demos/demos.json</span> 动态读取。
                         </div>
@@ -161,7 +161,7 @@
 
                 <article class="entry-card">
                     <div class="badge" id="custom-badge">自定义控件</div>
-                    <h3>HelloCustomWidgets 已迁移</h3>
+                    <h3>扩展控件独立仓库</h3>
                     <p>
                         按分类浏览默认网页包中的精选自定义控件，直接查看实时预览和同目录 README，不必手工翻仓库树。
                     </p>
@@ -194,7 +194,7 @@
             },
             heroSummary: {
                 "zh-CN": "首页只保留一个完整示例和三个清晰入口：基础控件、其他例程、自定义控件。不再混入场景页、报价导航或额外包装层。",
-                "en": "The homepage now stays focused on one full example and three clear browsing routes: core widgets, standalone examples, and custom widgets. No scenario pages, no quote navigation, no extra layers."
+                "en": "The homepage now stays focused on one full example and three clear routes: core widgets, standalone examples, and the standalone extension-widgets repository. No scenario pages, no quote navigation, no extra layers."
             },
             openHomepageDemo: {
                 "zh-CN": "打开首页示例",
@@ -230,7 +230,7 @@
             },
             routeSummary: {
                 "zh-CN": "基础控件 / 其他例程 / 自定义控件",
-                "en": "Basic / Examples / Custom"
+                "en": "Basic / Examples / Widgets Repo"
             },
             showcaseHeading: {
                 "zh-CN": "首页直接展示 HelloShowcase",
@@ -329,8 +329,8 @@
                 "en": "Custom"
             },
             customCardTitle: {
-                "zh-CN": "HelloCustomWidgets 已迁移",
-                "en": "HelloCustomWidgets moved"
+                "zh-CN": "扩展控件独立仓库",
+                "en": "Extension widgets repository"
             },
             customCardDescription: {
                 "zh-CN": "按分类浏览默认网页包中的精选自定义控件，直接查看实时预览和同目录 README，不必手工翻仓库树。",
@@ -374,11 +374,11 @@
             },
             customDemoCount: {
                 "zh-CN": "已迁移到独立仓库",
-                "en": "Moved to standalone repository"
+                "en": "Maintained in standalone repo"
             },
             routeDetail: {
                 "zh-CN": "基础控件 {basic} / 其他例程 {examples} / 自定义控件见独立仓库",
-                "en": "{basic} basic / {examples} examples / custom widgets in standalone repo"
+                "en": "{basic} basic / {examples} examples / widgets in standalone repo"
             },
             catalogUnavailable: {
                 "zh-CN": "示例清单不可用",
@@ -470,7 +470,6 @@
                 examples: demos.filter(function(demo) {
                     return demo.category === "Standalone" && demo.name !== "HelloShowcase";
                 }).length,
-                custom: demos.filter(function(demo) { return demo.category === "HelloCustomWidgets"; }).length
             };
 
             document.getElementById("route-summary").textContent = t("routeSummary");
@@ -478,7 +477,7 @@
             document.getElementById("catalog-note").innerHTML = t("catalogNote");
             document.getElementById("basic-count").textContent = t("basicDemoCount", { count: counts.basic });
             document.getElementById("example-count").textContent = t("exampleDemoCount", { count: counts.examples });
-            document.getElementById("custom-count").textContent = t("customDemoCount", { count: counts.custom });
+            document.getElementById("custom-count").textContent = t("customDemoCount");
             document.getElementById("route-detail").textContent = t("routeDetail", counts);
 
             var showcase = demos.find(function(demo) { return demo.name === "HelloShowcase"; });

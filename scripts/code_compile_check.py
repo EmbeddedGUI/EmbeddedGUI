@@ -1,4 +1,4 @@
-"""Compile-check helper for EmbeddedGUI examples and widget demos."""
+"""Compile-check helper for EmbeddedGUI examples and unit tests."""
 
 import concurrent.futures
 import hashlib
@@ -27,7 +27,7 @@ APP_SUB_ROOTS = {
     "HelloSizeAnalysis": "example/HelloSizeAnalysis",
 }
 SUB_APP_FAMILY_APPS = tuple(APP_SUB_ROOTS.keys())
-FULL_CHECK_SKIP_APPS = {"HelloCustomWidgets"}
+FULL_CHECK_SKIP_APPS = set()
 COMPILE_OUTPUT_ROOT = Path("output") / "cc"
 
 def get_example_list():
@@ -69,27 +69,6 @@ def get_example_virtual_list():
 
 def get_example_size_analysis_list():
     return get_example_sub_list("HelloSizeAnalysis")
-
-def get_custom_widgets_list(category=None):
-    """Discover HelloCustomWidgets sub-apps (category/widget_name pairs)."""
-    base = 'example/HelloCustomWidgets'
-    if not os.path.isdir(base):
-        return []
-
-    result = []
-    categories = os.listdir(base)
-    for cat in sorted(categories):
-        cat_path = os.path.join(base, cat)
-        if not os.path.isdir(cat_path):
-            continue
-        if category and cat != category:
-            continue
-        for widget in sorted(os.listdir(cat_path)):
-            widget_path = os.path.join(cat_path, widget)
-            if os.path.isdir(widget_path) and os.path.exists(os.path.join(widget_path, 'test.c')):
-                result.append(f"{cat}/{widget}")
-    return result
-
 
 def normalize_user_cflags(user_cflags):
     return " ".join((user_cflags or "").split())
@@ -145,7 +124,7 @@ def get_compile_obj_suffix(app, port, app_sub=None, bits64=False, user_cflags=""
             separators=(",", ":"),
         ).encode("utf-8")
     ).hexdigest()[:8]
-    if app in SUB_APP_FAMILY_APPS or app == "HelloCustomWidgets":
+    if app in SUB_APP_FAMILY_APPS:
         return "cc_%s_cfg_%s_%s" % (app.lower(), get_config_hash(app, app_sub), scope_hash)
     return "cc_%s_%s" % (app.lower(), get_compile_output_signature(app, port, app_sub=app_sub, bits64=bits64, user_cflags=user_cflags))
 
@@ -402,8 +381,6 @@ def run_touch_release_semantics_check(scope='all', category=None):
     cmd = [sys.executable, os.path.join(SCRIPT_DIR, 'checks', 'check_touch_release_semantics.py')]
     if scope:
         cmd.extend(['--scope', scope])
-    if category:
-        cmd.extend(['--category', category])
     print(' '.join('"%s"' % part if ' ' in part else part for part in cmd))
     res = subprocess.call(cmd)
     if res != 0:
@@ -422,13 +399,12 @@ port_sets = ['pc'
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Compile EmbeddedGUI examples, optional custom widget demos, and unit tests.",
+        description="Compile EmbeddedGUI examples and unit tests.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
             "  python scripts/code_compile_check.py --full-check\n"
             "  python scripts/code_compile_check.py --full-check --cmake\n"
-            "  python scripts/code_compile_check.py --custom-widgets --category input\n"
             "  python scripts/code_compile_check.py --scope basic --shard-count 3 --shard-index 1 --actions --bits64\n"
             "  python scripts/code_compile_check.py --unit-tests-only --bits64\n"
         ),
@@ -466,7 +442,7 @@ def parse_args():
     parser.add_argument("--custom-widgets",
                         action="store_true",
                         default=False,
-                        help="Compile HelloCustomWidgets demos instead of standard example apps.")
+                        help=argparse.SUPPRESS)
 
     parser.add_argument("--unit-tests-only",
                         action="store_true",
@@ -481,7 +457,7 @@ def parse_args():
     parser.add_argument("--category",
                         type=str,
                         default=None,
-                        help="Only check specific category (e.g. input, display).")
+                        help=argparse.SUPPRESS)
 
     parser.add_argument("--jobs",
                         type=int,
@@ -588,7 +564,7 @@ def run_compile_cases_parallel(cases, params, bits64=False, user_cflags="", case
                 "output_dir": output_dir,
                 "obj_suffix": obj_suffix,
             }
-            if app in SUB_APP_FAMILY_APPS or app == "HelloCustomWidgets":
+            if app in SUB_APP_FAMILY_APPS:
                 grouped_cases.setdefault(obj_suffix, []).append(case_info)
             else:
                 direct_cases.append(case_info)
@@ -743,24 +719,9 @@ if __name__ == '__main__':
 
     # Custom widgets check mode
     if args.custom_widgets:
-        if not Path("example/HelloCustomWidgets").exists():
-            print("Error: HelloCustomWidgets has moved to the standalone repository:")
-            print("  %s" % CUSTOM_WIDGETS_REPO)
-            sys.exit(1)
-
-        res = run_touch_release_semantics_check(scope='custom', category=args.category)
-        if res != 0:
-            sys.exit(res)
-
-        custom_list = get_custom_widgets_list(args.category)
-        custom_cases = [("HelloCustomWidgets", "pc", widget_sub) for widget_sub in custom_list]
-        run_compile_cases_parallel(custom_cases, params, bits64=args.bits64, case_jobs=args.case_jobs)
-
-        elapsed = time.time() - start_time
-        print("=================================================================================")
-        print("Custom widgets check passed! Time: %.1fs" % elapsed)
-        print("=================================================================================")
-        sys.exit(0)
+        print("Error: HelloCustomWidgets has moved to the standalone repository:")
+        print("  %s" % CUSTOM_WIDGETS_REPO)
+        sys.exit(1)
 
     if args.unit_tests_only:
         res = run_unit_tests(params)

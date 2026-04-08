@@ -30,7 +30,6 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 ALL_STEP_NAMES = [
     "format",
     "icon_font",
-    "demo_catalog",
     "keil_sync",
     "compile",
     "wasm",
@@ -47,7 +46,6 @@ ALL_STEP_NAMES = [
 STEP_DESCRIPTIONS = {
     "format": "Code formatting (clang-format)",
     "icon_font": "Example icon font explicitness check",
-    "demo_catalog": "Demo/catalog consistency check",
     "keil_sync": "Keil project file sync (src/ vs .uvprojx)",
     "compile": "Full compile check (all examples)",
     "wasm": "WASM demos build",
@@ -91,8 +89,6 @@ def build_steps(args):
     compile_cmd.append("--skip-icon-font-check")
 
     runtime_cmd = [py, str(SCRIPT_DIR / "code_runtime_check.py"), "--full-check", "--jobs", str(LOCAL_RELEASE_RUNTIME_JOBS)]
-    if args.runtime_skip_custom_widgets:
-        runtime_cmd.append("--skip-custom-widgets")
     dirty_anim_cmd = [py, str(SCRIPT_DIR / "checks" / "code_dirty_animation_check.py")]
     stage_parity_cmd = [py, str(SCRIPT_DIR / "checks" / "showcase_stage_parity_check.py"), "--timeout", "35", "--jobs", "2"]
     basic_render_cmd = [
@@ -132,11 +128,6 @@ def build_steps(args):
         ("keil_sync", STEP_DESCRIPTIONS["keil_sync"], [py, str(SCRIPT_DIR / "platform" / "keil_project_sync.py")]),
         ("compile", STEP_DESCRIPTIONS["compile"], compile_cmd),
         ("wasm", STEP_DESCRIPTIONS["wasm"], wasm_cmd),
-        (
-            "demo_catalog",
-            STEP_DESCRIPTIONS["demo_catalog"],
-            [py, str(SCRIPT_DIR / "checks" / "check_demo_catalog_consistency.py"), "--require-generated-manifest"],
-        ),
         ("runtime", STEP_DESCRIPTIONS["runtime"], runtime_cmd),
         ("dirty_anim", STEP_DESCRIPTIONS["dirty_anim"], dirty_anim_cmd),
         ("stage_parity", STEP_DESCRIPTIONS["stage_parity"], stage_parity_cmd),
@@ -368,12 +359,6 @@ def parse_args():
         action="store_true",
         default=False,
         help="Disable 64-bit build flag.",
-    )
-    parser.add_argument(
-        "--runtime-skip-custom-widgets",
-        action="store_true",
-        default=False,
-        help="Skip HelloCustomWidgets in the runtime step (default: included).",
     )
     return parser.parse_args()
 

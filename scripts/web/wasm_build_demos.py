@@ -5,7 +5,7 @@ Usage:
     python scripts/web/wasm_build_demos.py [--emsdk-path PATH] [--output-dir DIR] [--app APP] [--app-sub SUB]
 
 Optimization: per-app OBJDIR avoids recompiling shared core library.
-HelloBasic/HelloVirtual/HelloCustomWidgets sub-apps share OBJDIR by config hash,
+HelloBasic/HelloVirtual sub-apps share OBJDIR by config hash,
 so common framework objects are compiled once and reused across compatible demos.
 
 Works on both Windows (local dev) and Linux (CI).
@@ -31,21 +31,8 @@ ROOT_DIR = SCRIPTS_ROOT.parent
 CUSTOM_WIDGETS_REPO = "https://github.com/EmbeddedGUI/EmbeddedGUI_Widgets"
 
 
-# Default full-site WASM publishing excludes test-only apps. HelloCustomWidgets
-# still supports explicit full builds, but the default site now publishes a
-# small curated subset to keep GitHub Pages useful without shipping all 94 demos.
 WASM_SKIP_APPS = {"HelloUnitTest"}
-WASM_PRUNE_APPS = {"HelloUnitTest", "HelloCustomWidgets"}
-DEFAULT_CUSTOM_WIDGET_DEMOS = (
-    "input/number_box",
-    "input/password_box",
-    "input/date_picker",
-    "input/time_picker",
-    "input/scroll_bar",
-    "navigation/tab_view",
-    "navigation/tree_view",
-    "feedback/teaching_tip",
-)
+WASM_PRUNE_APPS = {"HelloUnitTest"}
 APP_SUB_ROOTS = {
     "HelloBasic": "example/HelloBasic",
     "HelloVirtual": "example/HelloVirtual",
@@ -79,35 +66,6 @@ def get_example_basic_list():
 def get_example_virtual_list():
     """Scan example/HelloVirtual/ for sub-app names."""
     return get_example_sub_list("HelloVirtual")
-
-
-def get_custom_widgets_list():
-    """Discover HelloCustomWidgets sub-apps."""
-    base = 'example/HelloCustomWidgets'
-    if not os.path.isdir(base):
-        return []
-
-    result = []
-    for cat in sorted(os.listdir(base)):
-        cat_path = os.path.join(base, cat)
-        if not os.path.isdir(cat_path):
-            continue
-        for widget in sorted(os.listdir(cat_path)):
-            widget_path = os.path.join(cat_path, widget)
-            if os.path.isdir(widget_path) and os.path.exists(os.path.join(widget_path, 'test.c')):
-                result.append((cat, widget))
-    return result
-
-
-def get_default_custom_widget_builds():
-    """Return curated HelloCustomWidgets demos used by default full-site builds."""
-    available = {f"{cat}/{widget}" for cat, widget in get_custom_widgets_list()}
-    missing = [app_sub for app_sub in DEFAULT_CUSTOM_WIDGET_DEMOS if app_sub not in available]
-    if missing:
-        missing_list = ", ".join(missing)
-        raise ValueError(f"Missing curated HelloCustomWidgets demos: {missing_list}")
-
-    return [("HelloCustomWidgets", app_sub, "HelloCustomWidgets") for app_sub in DEFAULT_CUSTOM_WIDGET_DEMOS]
 
 
 def format_demo_name(app, app_sub):
@@ -191,7 +149,7 @@ def get_config_hash(root_dir, app, app_sub=None):
 
 def get_shared_obj_suffix(root_dir, app, app_sub=None):
     """Reuse one OBJDIR per config hash for expensive multi-demo families."""
-    if app not in ("HelloBasic", "HelloVirtual", "HelloCustomWidgets"):
+    if app not in ("HelloBasic", "HelloVirtual"):
         return None
     return f"{app}_cfg_{get_config_hash(root_dir, app, app_sub)}"
 
@@ -432,8 +390,6 @@ def get_group_build_list(app_name):
     """Expand grouped demos into build list entries."""
     if app_name == "HelloBasic":
         return [(app_name, sub, "HelloBasic") for sub in get_example_basic_list()]
-    if app_name == "HelloCustomWidgets":
-        return [(app_name, f"{cat}/{widget}", "HelloCustomWidgets") for cat, widget in get_custom_widgets_list()]
     if app_name == "HelloVirtual":
         return [(app_name, sub, "Standalone") for sub in get_example_virtual_list()]
     return None
@@ -442,8 +398,6 @@ def get_group_build_list(app_name):
 def resolve_requested_builds(app_name, app_sub):
     """Resolve command-line selection into build list entries."""
     if app_sub:
-        if app_name == "HelloCustomWidgets" or "/" in app_sub:
-            return [("HelloCustomWidgets", app_sub, "HelloCustomWidgets")]
         if app_name == "HelloVirtual":
             return [("HelloVirtual", app_sub, "Standalone")]
         if not app_name and app_sub in get_example_virtual_list():
@@ -462,12 +416,6 @@ def resolve_requested_builds(app_name, app_sub):
     if app_name.startswith("HelloBasic_"):
         sub = app_name[len("HelloBasic_"):]
         return [("HelloBasic", sub, "HelloBasic")]
-
-    if app_name.startswith("HelloCustomWidgets_"):
-        raw = app_name[len("HelloCustomWidgets_"):]
-        parts = raw.split("_", 1)
-        if len(parts) == 2:
-            return [("HelloCustomWidgets", parts[0] + "/" + parts[1], "HelloCustomWidgets")]
 
     if app_name.startswith("HelloVirtual_"):
         sub = app_name[len("HelloVirtual_"):]
@@ -490,7 +438,7 @@ def main():
     parser.add_argument("--output-dir", default="web/demos",
                         help="Output directory (default: web/demos)")
     parser.add_argument("--app", default=None,
-                        help="Build selected app/group (e.g. HelloSimple, HelloBasic_button, HelloVirtual, or HelloCustomWidgets_chart_radar_chart)")
+                        help="Build selected app/group (e.g. HelloSimple, HelloBasic_button, HelloVirtual)")
     parser.add_argument("--app-sub", default=None,
                         help="Build single sub-app (e.g. button, virtual_stage_showcase, or chart/radar_chart)")
     parser.add_argument("--clean", action="store_true",
@@ -504,11 +452,7 @@ def main():
     root_dir = str(ROOT_DIR)
     os.chdir(root_dir)
 
-    requests_custom_widgets = (
-        args.app == "HelloCustomWidgets"
-        or (args.app and args.app.startswith("HelloCustomWidgets_"))
-        or (args.app_sub and (args.app == "HelloCustomWidgets" or "/" in args.app_sub))
-    )
+    requests_custom_widgets = args.app == "HelloCustomWidgets" or (args.app and args.app.startswith("HelloCustomWidgets_"))
     if requests_custom_widgets and not os.path.isdir(os.path.join(root_dir, "example", "HelloCustomWidgets")):
         print("Error: HelloCustomWidgets has moved to the standalone repository:")
         print("  %s" % CUSTOM_WIDGETS_REPO)
@@ -540,9 +484,6 @@ def main():
         for app in app_sets:
             if app in WASM_SKIP_APPS:
                 continue
-            if app == "HelloCustomWidgets":
-                build_list.extend(get_default_custom_widget_builds())
-                continue
             group_builds = get_group_build_list(app)
             if group_builds is not None:
                 build_list.extend(group_builds)
@@ -554,9 +495,8 @@ def main():
 
     # Split into groups: multi-sub-app families stay sequential, standalone apps may go parallel
     basic_group = [(a, s, c) for a, s, c in build_list if a == "HelloBasic"]
-    custom_group = [(a, s, c) for a, s, c in build_list if a == "HelloCustomWidgets"]
     virtual_group = [(a, s, c) for a, s, c in build_list if a == "HelloVirtual"]
-    standalone_list = [(a, s, c) for a, s, c in build_list if a not in ("HelloBasic", "HelloCustomWidgets", "HelloVirtual")]
+    standalone_list = [(a, s, c) for a, s, c in build_list if a not in ("HelloBasic", "HelloVirtual")]
 
     demos_built = []
     failed = []
@@ -566,20 +506,6 @@ def main():
     count = build_shared_family(
         basic_group,
         "HelloBasic sub-apps",
-        root_dir,
-        args.emsdk_path,
-        output_dir,
-        total,
-        count,
-        demos_built,
-        failed,
-        sequential_make_jobs,
-        args.jobs,
-    )
-
-    count = build_shared_family(
-        custom_group,
-        "HelloCustomWidgets",
         root_dir,
         args.emsdk_path,
         output_dir,

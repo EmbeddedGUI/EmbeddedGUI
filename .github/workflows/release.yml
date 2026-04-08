@@ -107,7 +107,7 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Runtime shard ${{ matrix.name }}
-        run: python scripts\code_runtime_check.py ${{ matrix.args }} --skip-custom-widgets --bits64 --jobs 2
+        run: python scripts\code_runtime_check.py ${{ matrix.args }} --bits64 --jobs 2
 
   ci-dirty-animation:
     needs: [ci-compile-meta, ci-compile-matrix]

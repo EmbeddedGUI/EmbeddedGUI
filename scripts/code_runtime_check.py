@@ -50,9 +50,7 @@ RUNTIME_FAIL_MARKERS = ("[RUNTIME_CHECK_FAIL]",)
 FRAME_LABEL_PATTERN = re.compile(r"PERF_FRAME:(frame_\d+\.png):([A-Za-z0-9_.-]+)")
 FRAME_LABEL_MANIFEST = "recording_frame_labels.json"
 CUSTOM_WIDGETS_REPO = "https://github.com/EmbeddedGUI/EmbeddedGUI_Widgets"
-FULL_CHECK_OPTIONAL_APPS = {
-    "HelloCustomWidgets": "requested by --skip-custom-widgets",
-}
+FULL_CHECK_OPTIONAL_APPS = {}
 
 # Examples not suitable for runtime testing (headless/performance/test-only)
 SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformance", "HelloPerformance",
@@ -60,7 +58,6 @@ SKIP_LIST = ["HelloUnitTest", "HelloTest", "HelloPerformance", "HelloPerformance
 SUB_APP_ROOTS = {
     "HelloBasic": "example/HelloBasic",
     "HelloVirtual": "example/HelloVirtual",
-    "HelloCustomWidgets": "example/HelloCustomWidgets",
     "HelloSizeAnalysis": "example/HelloSizeAnalysis",
 }
 SUB_APP_FAMILY_APPS = tuple(SUB_APP_ROOTS.keys())
@@ -329,19 +326,6 @@ def get_example_sub_list(app):
     if not path.exists():
         return app_list
 
-    if app == "HelloCustomWidgets":
-        for root, dirs, files in os.walk(path):
-            dirs[:] = [name for name in dirs if not name.startswith('.') and not name.startswith('__')]
-            if 'test.c' not in files:
-                continue
-
-            rel_path = os.path.relpath(root, str(path)).replace('\\', '/')
-            if rel_path == '.':
-                continue
-            app_list.append(rel_path)
-
-        return sorted(app_list)
-
     for file in os.listdir(path):
         file_path = path / file
         if file_path.is_dir() and (file_path / 'app_egui_config.h').exists():
@@ -374,15 +358,9 @@ def get_config_hash(app, app_sub=None):
 
 def filter_sub_apps(app, app_subs, category=None):
     """Filter sub-app list for app-specific grouping."""
-    if not category or app != "HelloCustomWidgets":
-        return sorted(app_subs)
-
-    prefix = category.strip().strip('/\\')
-    if not prefix:
-        return sorted(app_subs)
-
-    prefix = prefix.replace('\\', '/')
-    return sorted([app_sub for app_sub in app_subs if app_sub.startswith(prefix + '/')])
+    EGUI_UNUSED = app  # compatibility placeholder
+    EGUI_UNUSED = category
+    return sorted(app_subs)
 
 
 def build_sub_app_sets():
@@ -1017,16 +995,13 @@ def run_full_check(bits64, speed=RECORDING_SPEED, snapshot_settle_ms=RECORDING_S
                    clock_scale=RECORDING_CLOCK_SCALE,
                    snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
                    snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
-                   skip_custom_widgets=False, jobs=0):
+                   jobs=0):
     """Run runtime check on all examples.
     Returns list of (app_name, success, message) tuples.
     """
     app_sets = get_example_list()
     sub_app_sets = build_sub_app_sets()
     skipped_apps = set()
-
-    if skip_custom_widgets:
-        skipped_apps.add("HelloCustomWidgets")
 
     print("Running with speed=%dx" % speed)
     for app in app_sets:
@@ -1054,12 +1029,10 @@ def run_scope_check(scope, bits64, explicit_timeout=None,
                     clock_scale=RECORDING_CLOCK_SCALE,
                     snapshot_stable_cycles=RECORDING_SNAPSHOT_STABLE_CYCLES,
                     snapshot_max_wait_ms=RECORDING_SNAPSHOT_MAX_WAIT_MS,
-                    skip_custom_widgets=False, jobs=0, shard_count=1, shard_index=1):
+                    jobs=0, shard_count=1, shard_index=1):
     app_sets = get_example_list()
     sub_app_sets = build_sub_app_sets()
     skipped_apps = set()
-    if skip_custom_widgets:
-        skipped_apps.add("HelloCustomWidgets")
 
     case_specs = build_runtime_case_specs(scope, app_sets, sub_app_sets, skipped_apps=skipped_apps)
     case_specs = apply_case_shard(case_specs, shard_count, shard_index)
@@ -1137,22 +1110,18 @@ def main():
         epilog="""
 Examples:
   %(prog)s --app HelloSimple                          Test single app
-  %(prog)s --app HelloVirtual                        Test all HelloVirtual sub-apps
-  %(prog)s --app HelloSizeAnalysis                   Test all HelloSizeAnalysis sub-apps
   %(prog)s --app HelloBasic --app-sub button         Test one HelloBasic sub-app
   %(prog)s --app HelloVirtual --app-sub virtual_grid Test one HelloVirtual sub-app
-  %(prog)s --app HelloCustomWidgets --category input Test HelloCustomWidgets category
   %(prog)s --scope standard --jobs 2                 Test standard runtime examples only
   %(prog)s --scope basic --shard-count 3 --shard-index 1 --jobs 2
-  %(prog)s --full-check --skip-custom-widgets        Test all examples except HelloCustomWidgets
   %(prog)s --full-check                             Test all examples
         """
     )
     parser.add_argument('--app', type=str,
-                        help='Specific app to test. For HelloBasic/HelloVirtual/HelloCustomWidgets/HelloSizeAnalysis without --app-sub, tests all sub-apps.')
+                        help='Specific app to test. For HelloBasic/HelloVirtual/HelloSizeAnalysis without --app-sub, tests all sub-apps.')
     parser.add_argument('--app-sub', type=str,
-                        help='Single sub-app for HelloBasic/HelloVirtual/HelloCustomWidgets/HelloSizeAnalysis. If omitted, all sub-apps are tested.')
-    parser.add_argument('--category', type=str, help='HelloCustomWidgets category filter (e.g. input)')
+                        help='Single sub-app for HelloBasic/HelloVirtual/HelloSizeAnalysis. If omitted, all sub-apps are tested.')
+    parser.add_argument('--category', type=str, help=argparse.SUPPRESS)
     parser.add_argument('--bits64', action='store_true', help='Build for 64-bit')
     parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
                         help='Run timeout in seconds (default: %d)' % DEFAULT_TIMEOUT)
@@ -1162,8 +1131,6 @@ Examples:
                         help='Test all example applications')
     parser.add_argument('--scope', choices=['standard', 'basic', 'virtual', 'size-analysis'],
                         help='Run one runtime case family only, useful for CI sharding')
-    parser.add_argument('--skip-custom-widgets', action='store_true',
-                        help='Exclude HelloCustomWidgets from --full-check to keep CI/runtime sweeps shorter')
     parser.add_argument('--jobs', type=int, default=0,
                         help='Parallel runtime cases for batch/full checks (default: auto, 0=auto)')
     parser.add_argument('--shard-count', type=int, default=1,
@@ -1222,7 +1189,6 @@ Examples:
             snapshot_settle_ms=snapshot_settle_ms,
             snapshot_stable_cycles=snapshot_stable_cycles,
             snapshot_max_wait_ms=snapshot_max_wait_ms,
-            skip_custom_widgets=args.skip_custom_widgets,
             jobs=args.jobs,
         )
         all_passed = print_summary(results)
@@ -1238,7 +1204,6 @@ Examples:
                 snapshot_settle_ms=snapshot_settle_ms,
                 snapshot_stable_cycles=snapshot_stable_cycles,
                 snapshot_max_wait_ms=snapshot_max_wait_ms,
-                skip_custom_widgets=args.skip_custom_widgets,
                 jobs=args.jobs,
                 shard_count=args.shard_count,
                 shard_index=args.shard_index,
@@ -1249,13 +1214,9 @@ Examples:
         all_passed = print_summary(results)
 
     elif args.app:
-        if args.app == "HelloCustomWidgets" and not (ROOT_DIR / "example" / "HelloCustomWidgets").exists():
+        if args.app == "HelloCustomWidgets" or args.category:
             print("Error: HelloCustomWidgets has moved to the standalone repository:")
             print("  %s" % CUSTOM_WIDGETS_REPO)
-            sys.exit(1)
-
-        if args.category and args.app != "HelloCustomWidgets":
-            print("Error: --category is only supported with --app HelloCustomWidgets")
             sys.exit(1)
 
         results = []
@@ -1263,15 +1224,11 @@ Examples:
         if run_all_sub_apps:
             sub_apps = filter_sub_apps(args.app, get_example_sub_list(args.app), args.category)
             if not sub_apps:
-                category_suffix = " (category=%s)" % args.category if args.category else ""
-                print("Error: no %s sub-apps found%s" % (args.app, category_suffix))
+                print("Error: no %s sub-apps found" % args.app)
                 sys.exit(1)
 
             print("=" * 60)
-            if args.category:
-                print("Runtime Check: %s category=%s (speed=%dx)" % (args.app, args.category, speed))
-            else:
-                print("Runtime Check: %s all sub-apps (speed=%dx)" % (args.app, speed))
+            print("Runtime Check: %s all sub-apps (speed=%dx)" % (args.app, speed))
             print("=" * 60)
 
             results = run_sub_app_check(

@@ -53,14 +53,12 @@ python scripts/code_runtime_check.py --app HelloVirtual --app-sub virtual_stage_
 
 ```bash
 python scripts/code_compile_check.py --full-check
-python scripts/code_compile_check.py --custom-widgets --category input
 ```
 
 适合场景：
 
 - 提交前做一次编译面回归。
 
-- 检查某一类 `HelloCustomWidgets` 是否都能编过去。
 
 ## `code_dirty_animation_check.py`
 
