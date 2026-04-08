@@ -575,12 +575,16 @@ int egui_view_group_on_touch_event(egui_view_t *self, egui_motion_event_t *event
         switch (event->type)
         {
         case EGUI_MOTION_EVENT_ACTION_UP:
-            if (self->is_pressed && is_inside)
+        {
+            int should_click = self->is_pressed && is_inside;
+
+            egui_view_set_pressed(self, false);
+            if (should_click)
             {
                 egui_view_perform_click(self);
             }
-            egui_view_set_pressed(self, false);
             break;
+        }
         case EGUI_MOTION_EVENT_ACTION_DOWN:
             egui_view_set_pressed(self, is_inside);
             break;

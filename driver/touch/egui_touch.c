@@ -13,6 +13,7 @@ static egui_hal_touch_driver_t *s_hal_touch = NULL;
 static egui_touch_driver_t s_core_touch;
 static egui_touch_driver_ops_t s_core_touch_ops;
 static uint8_t s_hal_touch_last_position_valid = 0;
+static uint8_t s_hal_touch_last_pressed = 0;
 static int16_t s_hal_touch_last_x = 0;
 static int16_t s_hal_touch_last_y = 0;
 
@@ -42,7 +43,7 @@ static void hal_touch_transform_point(const egui_hal_touch_config_t *cfg, egui_h
 
 static void hal_touch_read_ex(uint8_t *pressed, int16_t *x, int16_t *y, uint8_t *has_position)
 {
-    *pressed = 0;
+    *pressed = s_hal_touch_last_pressed;
     *x = s_hal_touch_last_x;
     *y = s_hal_touch_last_y;
     *has_position = s_hal_touch_last_position_valid;
@@ -52,11 +53,17 @@ static void hal_touch_read_ex(uint8_t *pressed, int16_t *x, int16_t *y, uint8_t 
         return;
     }
 
-    /* Skip read if INT pin available and no interrupt pending */
+    /*
+     * Some touch controllers expose INT as an event pulse rather than a
+     * level that stays asserted for the whole press. Only skip the read when
+     * there is no active touch state; otherwise keep reading until the
+     * controller explicitly reports release.
+     */
     if (s_hal_touch->get_int)
     {
-        if (!s_hal_touch->get_int())
+        if (!s_hal_touch->get_int() && !s_hal_touch_last_pressed)
         {
+            *pressed = 0;
             return;
         }
     }
@@ -92,7 +99,14 @@ static void hal_touch_read_ex(uint8_t *pressed, int16_t *x, int16_t *y, uint8_t 
             s_hal_touch_last_y = *y;
             s_hal_touch_last_position_valid = 1;
         }
+
+        if (data.point_count == 0)
+        {
+            *pressed = 0;
+        }
     }
+
+    s_hal_touch_last_pressed = *pressed;
 }
 
 static void hal_touch_read(uint8_t *pressed, int16_t *x, int16_t *y)
@@ -128,6 +142,7 @@ void egui_hal_touch_register(egui_hal_touch_driver_t *touch, const egui_hal_touc
 
     s_core_touch.ops = &s_core_touch_ops;
     s_hal_touch_last_position_valid = 0;
+    s_hal_touch_last_pressed = 0;
     s_hal_touch_last_x = 0;
     s_hal_touch_last_y = 0;
 

@@ -19,6 +19,7 @@ struct egui_view_slider
 
     uint8_t value;
     uint8_t is_dragging;
+    uint8_t max_value;
     egui_color_t track_color;
     egui_color_t active_color;
     egui_color_t thumb_color;

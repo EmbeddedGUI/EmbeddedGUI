@@ -13,6 +13,12 @@ static int spi_tx_param(egui_panel_io_t *io, int cmd, const void *param, size_t 
 {
     egui_panel_io_spi_t *self = (egui_panel_io_spi_t *)io;
     uint8_t cmd_byte = (uint8_t)cmd;
+    
+    // avoid last CS not released if previous transfer is async and caller forgot to call wait_tx_done
+    if (self->set_cs)
+    {
+        self->set_cs(1);
+    }
 
     /* Send command byte with DC=0 */
     if (self->set_dc)
@@ -121,25 +127,22 @@ static int spi_tx_color(egui_panel_io_t *io, int cmd, const void *color, size_t 
     if (cmd >= 0)
     {
         uint8_t cmd_byte = (uint8_t)cmd;
-        if (self->set_cs)
-        {
-            self->set_cs(0);
-        }
         if (self->set_dc)
         {
             self->set_dc(0);
+        }
+        if (self->set_cs)
+        {
+            self->set_cs(0);
         }
         self->spi->write(&cmd_byte, 1);
         if (self->spi->wait_complete)
         {
             self->spi->wait_complete();
         }
-    }
-    else
-    {
         if (self->set_cs)
         {
-            self->set_cs(0);
+            self->set_cs(1);
         }
     }
 
@@ -147,6 +150,10 @@ static int spi_tx_color(egui_panel_io_t *io, int cmd, const void *color, size_t 
     if (self->set_dc)
     {
         self->set_dc(1);
+    }
+    if (self->set_cs)
+    {
+        self->set_cs(0);
     }
     self->spi->write((const uint8_t *)color, color_size);
 

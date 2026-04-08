@@ -867,8 +867,8 @@ class img2c_tool:
                             data_type,
                             alpha_type,
                             channels,
-                            col,
-                            row
+                            row,
+                            col
                         ), file=o)
                     else:
                         # Output compressed data array
@@ -888,8 +888,8 @@ class img2c_tool:
                             data_type,
                             alpha_type,
                             channels,
-                            col,
-                            row
+                            row,
+                            col
                         ), file=o)
 
                     self.compressed_data_size = len(compressed_data)

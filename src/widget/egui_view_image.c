@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <assert.h>
 
 #include "egui_view_image.h"

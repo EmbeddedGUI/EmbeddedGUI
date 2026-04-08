@@ -11,6 +11,55 @@
 #include "core/egui_canvas_gradient.h"
 #endif
 
+static uint8_t egui_view_slider_get_max_value(const egui_view_slider_t *local)
+{
+    if (local == NULL || local->max_value == 0u)
+    {
+        return 100u;
+    }
+
+    return local->max_value;
+}
+
+static uint8_t egui_view_slider_clamp_value(const egui_view_slider_t *local, uint8_t value)
+{
+    uint8_t max_value = egui_view_slider_get_max_value(local);
+
+    return value > max_value ? max_value : value;
+}
+
+static uint8_t egui_view_slider_value_to_percent(const egui_view_slider_t *local, uint8_t value)
+{
+    uint8_t max_value = egui_view_slider_get_max_value(local);
+
+    value = egui_view_slider_clamp_value(local, value);
+    if (max_value >= 100u)
+    {
+        return value;
+    }
+
+    return (uint8_t)(((uint32_t)value * 100u + (uint32_t)max_value / 2u) / (uint32_t)max_value);
+}
+
+static uint8_t egui_view_slider_percent_to_value(const egui_view_slider_t *local, uint8_t percent)
+{
+    uint8_t max_value = egui_view_slider_get_max_value(local);
+    uint8_t value;
+
+    if (percent > 100u)
+    {
+        percent = 100u;
+    }
+
+    if (max_value >= 100u)
+    {
+        return percent;
+    }
+
+    value = (uint8_t)(((uint32_t)percent * (uint32_t)max_value + 50u) / 100u);
+    return egui_view_slider_clamp_value(local, value);
+}
+
 void egui_view_slider_set_on_value_changed_listener(egui_view_t *self, egui_view_on_value_changed_listener_t listener)
 {
     EGUI_LOCAL_INIT(egui_view_slider_t);
@@ -18,11 +67,13 @@ void egui_view_slider_set_on_value_changed_listener(egui_view_t *self, egui_view
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-static uint8_t egui_view_slider_get_thumb_metrics(egui_view_t *self, uint8_t value, egui_dim_t *out_thumb_x, egui_dim_t *out_thumb_y,
+static uint8_t egui_view_slider_get_thumb_metrics(egui_view_t *self, egui_view_slider_t *local, uint8_t value, egui_dim_t *out_thumb_x,
+                                                  egui_dim_t *out_thumb_y,
                                                   egui_dim_t *out_thumb_radius)
 {
     egui_region_t region;
     egui_view_linear_value_metrics_t metrics;
+    uint8_t percent;
 
     if (self->region_screen.size.width <= 0 || self->region_screen.size.height <= 0)
     {
@@ -36,9 +87,11 @@ static uint8_t egui_view_slider_get_thumb_metrics(egui_view_t *self, uint8_t val
         return 0;
     }
 
+    percent = egui_view_slider_value_to_percent(local, value);
+
     if (out_thumb_x != NULL)
     {
-        *out_thumb_x = egui_view_linear_value_get_x(&metrics, value);
+        *out_thumb_x = egui_view_linear_value_get_x(&metrics, percent);
     }
     if (out_thumb_y != NULL)
     {
@@ -65,7 +118,7 @@ static uint8_t egui_view_slider_get_thumb_dirty_region(egui_view_t *self, egui_v
         return 0;
     }
 
-    if (!egui_view_slider_get_thumb_metrics(self, value, &thumb_x, &thumb_y, &thumb_radius))
+    if (!egui_view_slider_get_thumb_metrics(self, local, value, &thumb_x, &thumb_y, &thumb_radius))
     {
         egui_region_init_empty(dirty_region);
         return 0;
@@ -86,6 +139,8 @@ static void egui_view_slider_invalidate_value_change(egui_view_t *self, egui_vie
     egui_dim_t new_thumb_x;
     egui_dim_t diff_x;
     egui_dim_t diff_w;
+    uint8_t old_percent;
+    uint8_t new_percent;
 
     if (self->region_screen.size.width <= 0 || self->region_screen.size.height <= 0)
     {
@@ -107,8 +162,10 @@ static void egui_view_slider_invalidate_value_change(egui_view_t *self, egui_vie
         return;
     }
 
-    old_thumb_x = egui_view_linear_value_get_x(&metrics, old_value);
-    new_thumb_x = egui_view_linear_value_get_x(&metrics, local->value);
+    old_percent = egui_view_slider_value_to_percent(local, old_value);
+    new_percent = egui_view_slider_value_to_percent(local, local->value);
+    old_thumb_x = egui_view_linear_value_get_x(&metrics, old_percent);
+    new_thumb_x = egui_view_linear_value_get_x(&metrics, new_percent);
 
     egui_region_init_empty(&dirty_region);
 
@@ -131,10 +188,8 @@ void egui_view_slider_set_value(egui_view_t *self, uint8_t value)
 {
     EGUI_LOCAL_INIT(egui_view_slider_t);
     uint8_t old_value;
-    if (value > 100)
-    {
-        value = 100;
-    }
+
+    value = egui_view_slider_clamp_value(local, value);
     if (value != local->value)
     {
         old_value = local->value;
@@ -159,6 +214,7 @@ static void egui_view_slider_update_value_from_touch(egui_view_t *self, egui_dim
 {
     EGUI_LOCAL_INIT(egui_view_slider_t);
     egui_view_linear_value_metrics_t metrics;
+    uint8_t percent;
 
     // Convert screen touch_x to local coordinates
     egui_dim_t local_x = touch_x - self->region_screen.location.x;
@@ -168,7 +224,8 @@ static void egui_view_slider_update_value_from_touch(egui_view_t *self, egui_dim
         return;
     }
 
-    uint8_t new_value = egui_view_linear_value_get_value_from_local_x(&metrics, local_x);
+    percent = egui_view_linear_value_get_value_from_local_x(&metrics, local_x);
+    uint8_t new_value = egui_view_slider_percent_to_value(local, percent);
     egui_view_slider_set_value(self, new_value);
 }
 #endif
@@ -183,6 +240,7 @@ void egui_view_slider_on_draw(egui_view_t *self)
     egui_dim_t track_draw_x;
     egui_dim_t track_draw_width;
     egui_dim_t active_width;
+    uint8_t percent;
 
     egui_view_get_work_region(self, &region);
 
@@ -191,7 +249,8 @@ void egui_view_slider_on_draw(egui_view_t *self)
         return;
     }
 
-    thumb_x = egui_view_linear_value_get_x(&metrics, local->value);
+    percent = egui_view_slider_value_to_percent(local, local->value);
+    thumb_x = egui_view_linear_value_get_x(&metrics, percent);
     thumb_y = metrics.center_y;
     track_draw_x = metrics.start_x;
     track_draw_width = metrics.usable_width;
@@ -346,6 +405,7 @@ void egui_view_slider_init(egui_view_t *self)
     local->on_value_changed = NULL;
     local->value = 0;
     local->is_dragging = 0;
+    local->max_value = 100u;
     local->track_color = EGUI_THEME_TRACK_BG;
     local->active_color = EGUI_THEME_PRIMARY;
     local->thumb_color = EGUI_THEME_THUMB;
@@ -359,7 +419,7 @@ void egui_view_slider_apply_params(egui_view_t *self, const egui_view_slider_par
 
     self->region = params->region;
 
-    local->value = params->value;
+    local->value = egui_view_slider_clamp_value(local, params->value);
 
     egui_view_invalidate(self);
 }
