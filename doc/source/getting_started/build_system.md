@@ -28,7 +28,7 @@ make all APP=HelloStyleDemo
 | `HelloSimple` | 最简单的入门示例 |
 | `HelloBasic` | 基础控件演示集合（60 个子应用，需配合 `APP_SUB`） |
 | `HelloVirtual` | Virtual / ListView / GridView / Stage 示例集合（19 个子应用，需配合 `APP_SUB`） |
-| `HelloCustomWidgets` | 自定义控件集合（使用 `category/widget` 两级 `APP_SUB`） |
+| `HelloCustomWidgets` | 已迁移到独立仓库 `EmbeddedGUI_Widgets`，主仓不再本地构建 |
 | `HelloActivity` | Activity 生命周期演示 |
 | `HelloAPP` | 多 Activity 应用 |
 | `HelloCanvas` | 画布绘图 API 演示 |
@@ -48,11 +48,10 @@ make all APP=HelloStyleDemo
 
 ### APP_SUB -- 选择带子应用的示例
 
-`APP_SUB` 适用于 `HelloBasic`、`HelloVirtual`、`HelloCustomWidgets` 和 `HelloSizeAnalysis` 这类多子应用示例：
+`APP_SUB` 适用于 `HelloBasic`、`HelloVirtual` 和 `HelloSizeAnalysis` 这类多子应用示例：
 
 - `HelloBasic`: 基础控件演示，当前包含 60 个子应用
 - `HelloVirtual`: virtual/list/grid/stage 示例，当前包含 19 个子应用
-- `HelloCustomWidgets`: 自定义控件集合，使用 `category/widget` 两级子路径
 - `HelloSizeAnalysis`: probe / preset 目录集合，通常配合 `PORT=qemu`
 
 ```bash
@@ -65,8 +64,8 @@ make all APP=HelloBasic APP_SUB=stepper
 # 编译 HelloVirtual basic stage 演示
 make all APP=HelloVirtual APP_SUB=virtual_stage_basic
 
-# 编译 HelloCustomWidgets 的 XY Pad
-make all APP=HelloCustomWidgets APP_SUB=input/xy_pad
+# HelloCustomWidgets 已迁移到独立仓库 EmbeddedGUI_Widgets
+# 请在该仓库中编译对应 widget
 
 # 编译 HelloSizeAnalysis 的 widget probe
 make all APP=HelloSizeAnalysis APP_SUB=widget_feature_probe PORT=qemu
@@ -76,7 +75,7 @@ make all APP=HelloSizeAnalysis APP_SUB=widget_feature_probe PORT=qemu
 
 常用 `HelloVirtual` 子应用: `virtual_viewport_basic`、`virtual_page_basic`、`virtual_grid_basic`、`list_view_basic`、`grid_view_basic`、`virtual_stage_basic`、`virtual_stage_showcase`、`virtual_stage` 等。
 
-常用 `HelloCustomWidgets` 子应用: `input/xy_pad`、`feedback/alert_banner`、`navigation/breadcrumb_trail` 等。
+`HelloCustomWidgets` 已迁移到独立仓库 `EmbeddedGUI_Widgets`。
 
 常用 `HelloSizeAnalysis` 子应用: `widget_feature_probe`、`canvas_path_probe`、`hq_path_probe`、`preset_validation`。
 
@@ -230,7 +229,7 @@ EGUI_CODE_INCLUDE += $(EGUI_APP_SUB_PATH)
 EGUI_CODE_INCLUDE += $(EGUI_APP_SUB_PATH)/resource
 ```
 
-`HelloBasic`、`HelloVirtual`、`HelloCustomWidgets` 和 `HelloSizeAnalysis` 这类多子应用示例都会设置独立的 `APP_OBJ_SUFFIX`，避免不同子应用复用错误的编译产物。
+`HelloBasic`、`HelloVirtual` 和 `HelloSizeAnalysis` 这类多子应用示例都会设置独立的 `APP_OBJ_SUFFIX`，避免不同子应用复用错误的编译产物。
 
 ### 示例: 核心库的 build.mk
 

@@ -175,24 +175,19 @@ python scripts/web/wasm_build_demos.py --output-dir web/demos
 # 只构建指定示例
 python scripts/web/wasm_build_demos.py --app HelloSimple
 
-# 显式构建 HelloCustomWidgets（默认整站构建只发布精选子集）
-python scripts/web/wasm_build_demos.py --app HelloCustomWidgets
+`HelloCustomWidgets` 的 WASM 构建与发布已迁移到独立仓库 `EmbeddedGUI_Widgets`。
 ```
-
-默认整站构建当前只发布 8 个 `HelloCustomWidgets` 精选 demo：
-`input/number_box`、`input/password_box`、`input/date_picker`、`input/time_picker`、
-`input/scroll_bar`、`navigation/tab_view`、`navigation/tree_view`、`feedback/teaching_tip`
 
 ### 工作流程
 
-1. 扫描 `example/` 目录获取示例列表；默认整站构建会跳过 `HelloUnitTest`，并为 `HelloCustomWidgets` 发布 8 个精选 demo
+1. 扫描 `example/` 目录获取示例列表；默认整站构建会跳过 `HelloUnitTest`
 2. 对每个示例：
    - 生成资源文件（`make resource`）
    - 使用 Emscripten 编译（`make all PORT=emscripten`）
    - 复制输出文件到部署目录
 3. 使用 per-app OBJDIR 优化构建产物复用
-4. `HelloBasic`、`HelloVirtual`、`HelloCustomWidgets` 这类多子应用示例会按家族顺序构建，共享中间产物或避免共享输出互相覆盖
-5. 在输出目录生成 `demos.json`，供 `web/index.html`、`basic.html`、`examples.html`、`custom.html` 读取
+4. `HelloBasic`、`HelloVirtual` 这类多子应用示例会按家族顺序构建，共享中间产物或避免共享输出互相覆盖
+5. 在输出目录生成 `demos.json`，供 `web/index.html`、`basic.html`、`examples.html` 读取
 
 ### 并行构建
 
@@ -209,7 +204,7 @@ web/
 ├── index.html          # 首页
 ├── basic.html          # HelloBasic 聚合页
 ├── examples.html       # 独立示例聚合页
-├── custom.html         # HelloCustomWidgets 聚合页
+├── widgets repo        # HelloCustomWidgets 已迁移到独立仓库 `EmbeddedGUI_Widgets`
 ├── doc-render.js       # README 渲染
 ├── i18n.js             # 多语言切换
 ├── style.css           # 页面样式

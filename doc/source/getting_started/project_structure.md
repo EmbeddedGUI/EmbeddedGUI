@@ -148,7 +148,7 @@ src/
 | `HelloSimple` | 最简单的入门示例 (标签 + 按钮) |
 | `HelloBasic` | 基础控件演示集合，当前包含 60 个子应用 |
 | `HelloVirtual` | Virtual / ListView / GridView / Stage 示例集合，当前包含 19 个子应用 |
-| `HelloCustomWidgets` | 自定义控件集合，使用 `category/widget` 两级 `APP_SUB` |
+| `HelloCustomWidgets` | 已迁移到独立仓库 `EmbeddedGUI_Widgets` |
 | `HelloActivity` | Activity 生命周期和页面管理 |
 | `HelloAPP` | 多 Activity 应用示例 |
 | `HelloCanvas` | 画布绘图 API 演示 |
@@ -166,7 +166,7 @@ src/
 | `HelloUnitTest` | 单元测试 |
 | `HelloViewPageAndScroll` | 分页和滚动组合 |
 
-其中 `HelloBasic`、`HelloVirtual`、`HelloCustomWidgets` 和 `HelloSizeAnalysis` 都通过 `APP_SUB` 选择不同子目录；`HelloCustomWidgets` 使用 `category/widget` 两级路径。
+其中 `HelloBasic`、`HelloVirtual` 和 `HelloSizeAnalysis` 都通过 `APP_SUB` 选择不同子目录；`HelloCustomWidgets` 已迁移到独立仓库 `EmbeddedGUI_Widgets`。
 
 ## porting/ -- 平台移植层
 
@@ -230,7 +230,7 @@ web/
 |-- index.html              # 演示首页（HelloShowcase）
 |-- basic.html              # HelloBasic 聚合页
 |-- examples.html           # 独立示例聚合页
-|-- custom.html             # HelloCustomWidgets 聚合页
+|-- widgets repo            # HelloCustomWidgets 已迁移到独立仓库 `EmbeddedGUI_Widgets`
 |-- doc-render.js           # README 渲染逻辑
 |-- i18n.js                 # 中英文本切换
 |-- lib/                    # JavaScript 依赖库

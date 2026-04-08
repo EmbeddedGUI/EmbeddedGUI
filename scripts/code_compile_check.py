@@ -15,6 +15,7 @@ make_jobs = None
 
 # Speed up compilation: disable debug symbols, use -O0 (same as ui_designer)
 COMPILE_FAST_FLAGS = ' COMPILE_DEBUG= COMPILE_OPT_LEVEL=-O0'
+CUSTOM_WIDGETS_REPO = "https://github.com/EmbeddedGUI/EmbeddedGUI_Widgets"
 
 # Build system: 'make' or 'cmake'
 build_system = 'make'
@@ -742,6 +743,11 @@ if __name__ == '__main__':
 
     # Custom widgets check mode
     if args.custom_widgets:
+        if not Path("example/HelloCustomWidgets").exists():
+            print("Error: HelloCustomWidgets has moved to the standalone repository:")
+            print("  %s" % CUSTOM_WIDGETS_REPO)
+            sys.exit(1)
+
         res = run_touch_release_semantics_check(scope='custom', category=args.category)
         if res != 0:
             sys.exit(res)

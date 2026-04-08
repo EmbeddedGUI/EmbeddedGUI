@@ -49,6 +49,7 @@ FILE_OP_RETRY_DELAY_S = 0.1
 RUNTIME_FAIL_MARKERS = ("[RUNTIME_CHECK_FAIL]",)
 FRAME_LABEL_PATTERN = re.compile(r"PERF_FRAME:(frame_\d+\.png):([A-Za-z0-9_.-]+)")
 FRAME_LABEL_MANIFEST = "recording_frame_labels.json"
+CUSTOM_WIDGETS_REPO = "https://github.com/EmbeddedGUI/EmbeddedGUI_Widgets"
 FULL_CHECK_OPTIONAL_APPS = {
     "HelloCustomWidgets": "requested by --skip-custom-widgets",
 }
@@ -947,11 +948,11 @@ def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
                     results[index] = (case_info["name"], False, "skipped after warmup failure")
                 continue
 
-                for index in indexes[1:]:
-                    case_info = case_infos[index]
-                    future = executor.submit(
-                        run_runtime_case,
-                        case_info["app"],
+            for index in indexes[1:]:
+                case_info = case_infos[index]
+                future = executor.submit(
+                    run_runtime_case,
+                    case_info["app"],
                     case_info["app_sub"],
                     bits64,
                     explicit_timeout,
@@ -963,8 +964,8 @@ def run_runtime_case_batch(case_specs, bits64, explicit_timeout=None, jobs=0,
                     make_jobs,
                     case_info["shared_obj_suffix"],
                     case_info["objroot_path"],
-                    )
-                    future_to_case[future] = index
+                )
+                future_to_case[future] = index
 
         for index in direct_indexes:
             case_info = case_infos[index]
@@ -1248,6 +1249,11 @@ Examples:
         all_passed = print_summary(results)
 
     elif args.app:
+        if args.app == "HelloCustomWidgets" and not (ROOT_DIR / "example" / "HelloCustomWidgets").exists():
+            print("Error: HelloCustomWidgets has moved to the standalone repository:")
+            print("  %s" % CUSTOM_WIDGETS_REPO)
+            sys.exit(1)
+
         if args.category and args.app != "HelloCustomWidgets":
             print("Error: --category is only supported with --app HelloCustomWidgets")
             sys.exit(1)

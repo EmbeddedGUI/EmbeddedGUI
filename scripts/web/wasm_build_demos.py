@@ -28,6 +28,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 SCRIPTS_ROOT = SCRIPT_DIR.parent
 ROOT_DIR = SCRIPTS_ROOT.parent
+CUSTOM_WIDGETS_REPO = "https://github.com/EmbeddedGUI/EmbeddedGUI_Widgets"
 
 
 # Default full-site WASM publishing excludes test-only apps. HelloCustomWidgets
@@ -502,6 +503,16 @@ def main():
 
     root_dir = str(ROOT_DIR)
     os.chdir(root_dir)
+
+    requests_custom_widgets = (
+        args.app == "HelloCustomWidgets"
+        or (args.app and args.app.startswith("HelloCustomWidgets_"))
+        or (args.app_sub and (args.app == "HelloCustomWidgets" or "/" in args.app_sub))
+    )
+    if requests_custom_widgets and not os.path.isdir(os.path.join(root_dir, "example", "HelloCustomWidgets")):
+        print("Error: HelloCustomWidgets has moved to the standalone repository:")
+        print("  %s" % CUSTOM_WIDGETS_REPO)
+        return 1
 
     output_dir = os.path.join(root_dir, args.output_dir)
 
