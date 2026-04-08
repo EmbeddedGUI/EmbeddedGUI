@@ -4037,6 +4037,11 @@ void egui_canvas_draw_text_transform(const egui_font_t *font, const void *string
     }
 
     egui_font_std_info_t *font_info = (egui_font_std_info_t *)font->res;
+    if (font_info->bitmap_codec != EGUI_FONT_STD_BITMAP_CODEC_RAW)
+    {
+        return;
+    }
+
     uint8_t bpp = font_info->font_bit_mode;
     const text_transform_layout_glyph_t *layout_glyphs = NULL;
     int layout_count = 0;

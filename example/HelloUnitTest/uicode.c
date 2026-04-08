@@ -13,6 +13,7 @@
 #include "test/test_dirty_region.h"
 #include "test/test_dlist.h"
 #include "test/test_fixmath.h"
+#include "test/test_font_std.h"
 #include "test/test_grid_view.h"
 #include "test/test_interpolator.h"
 #include "test/test_invalidate_region.h"
@@ -50,6 +51,7 @@ void uicode_create_ui(void)
     test_slist_run();
     test_ringbuffer_run();
     test_fixmath_run();
+    test_font_std_run();
     test_mask_run();
     test_common_run();
     test_view_run();

@@ -22,6 +22,10 @@ extern "C" {
 
 #define EGUI_FONT_STD_GET_FONT_HEIGHT(_font) (((egui_font_std_info_t *)(_font)->res)->height)
 
+#define EGUI_FONT_STD_BITMAP_CODEC_RAW 0
+#define EGUI_FONT_STD_BITMAP_CODEC_RLE4 1
+#define EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR 2
+
 typedef struct
 {
     uint32_t code; // only support 32bit utf8 code
@@ -44,6 +48,7 @@ typedef struct
     uint8_t font_bit_mode; // font bit size 1, 2, 4, 8
     uint8_t height;        // font height
     uint8_t res_type;      // EGUI_RESOURCE_TYPE_INTERNAL, EGUI_RESOURCE_TYPE_EXTERNAL
+    uint8_t bitmap_codec;  // EGUI_FONT_STD_BITMAP_CODEC_*
     uint16_t count;        // total char count, only support 65535
     const egui_font_std_code_descriptor_t *code_array;
     const egui_font_std_char_descriptor_t *char_array;

@@ -45,10 +45,11 @@ static const egui_font_std_info_t {0}_info = {{
     .font_bit_mode = {2},
     .height = {3},
     .res_type = {4},
-    .count = {5},
+    .bitmap_codec = {5},
+    .count = {6},
     .code_array = {0}_code_array,
-    .char_array = (void *){6},
-    .pixel_buffer = (void *){7},
+    .char_array = (void *){7},
+    .pixel_buffer = (void *){8},
 }};
 
 extern const egui_font_std_t {0};
@@ -62,6 +63,131 @@ c_tail_string="""
 // clang-format on
 
 """
+
+FONT_BITMAP_CODEC_SUFFIX = {
+    "none": "",
+    "rle4": "_rle4",
+    "rle4_xor": "_rle4xor",
+}
+
+FONT_BITMAP_CODEC_C_NAME = {
+    "none": "EGUI_FONT_STD_BITMAP_CODEC_RAW",
+    "rle4": "EGUI_FONT_STD_BITMAP_CODEC_RLE4",
+    "rle4_xor": "EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR",
+}
+
+
+def normalize_font_compress(compress):
+    if compress is None:
+        return "none"
+
+    compress = str(compress).strip().lower().replace("-", "_")
+    if compress in ("", "none", "raw"):
+        return "none"
+    if compress == "rle4xor":
+        return "rle4_xor"
+    if compress in ("rle4", "rle4_xor"):
+        return compress
+    raise ValueError(f"Unsupported font compress codec: {compress}")
+
+
+def apply_rle4_row_xor_filter(nibbles, width):
+    if width <= 0:
+        return list(nibbles)
+
+    out = []
+    for row_start in range(0, len(nibbles), width):
+        row = nibbles[row_start:row_start + width]
+        prev = 0
+        for value in row:
+            value = int(value) & 0x0F
+            out.append((value ^ prev) & 0x0F)
+            prev = value
+    return out
+
+
+def pack_nibbles_4(nibbles):
+    packed = bytearray()
+    index = 0
+
+    while index < len(nibbles):
+        value0 = int(nibbles[index]) & 0x0F
+        value1 = 0
+        if index + 1 < len(nibbles):
+            value1 = int(nibbles[index + 1]) & 0x0F
+        packed.append(value0 | (value1 << 4))
+        index += 2
+
+    return packed
+
+
+def unpack_packed_nibbles_4(data, width, height):
+    row_bytes = (width + 1) // 2
+    nibbles = []
+    data_bytes = bytes(data)
+
+    for row in range(height):
+        row_data = data_bytes[row * row_bytes:(row + 1) * row_bytes]
+        for col in range(width):
+            packed = row_data[col >> 1]
+            if (col & 1) == 0:
+                nibbles.append(packed & 0x0F)
+            else:
+                nibbles.append((packed >> 4) & 0x0F)
+
+    return nibbles
+
+
+def encode_rle4_nibbles(nibbles):
+    out = bytearray()
+    index = 0
+    count = len(nibbles)
+
+    while index < count:
+        repeat_len = 1
+        while index + repeat_len < count and repeat_len < 128 and nibbles[index + repeat_len] == nibbles[index]:
+            repeat_len += 1
+
+        if repeat_len >= 3:
+            out.append(0x80 | (repeat_len - 1))
+            out.append(int(nibbles[index]) & 0x0F)
+            index += repeat_len
+            continue
+
+        literal_start = index
+        literal_values = []
+        while index < count and len(literal_values) < 128:
+            repeat_len = 1
+            while index + repeat_len < count and repeat_len < 128 and nibbles[index + repeat_len] == nibbles[index]:
+                repeat_len += 1
+
+            if repeat_len >= 3:
+                break
+
+            literal_values.append(int(nibbles[index]) & 0x0F)
+            index += 1
+
+        out.append(len(literal_values) - 1)
+        out.extend(pack_nibbles_4(literal_values))
+
+        if index == literal_start:
+            index += 1
+
+    return out
+
+
+def compress_glyph_bitmap_4(data, width, height, compress):
+    codec = normalize_font_compress(compress)
+    raw = bytearray(data)
+
+    if codec == "none":
+        return raw
+
+    nibbles = unpack_packed_nibbles_4(raw, width, height)
+    if codec == "rle4_xor":
+        nibbles = apply_rle4_row_xor_filter(nibbles, width)
+
+    return encode_rle4_nibbles(nibbles)
 def parse_var_coords(var_coords):
     if var_coords is None:
         return None
@@ -303,11 +429,16 @@ def utf8_to_c_array(utf8_bytes):
 
 
 class ttf2c_tool:
-    def __init__(self, input_font_file, name, text_file, pixel_size, font_bit_size, external_type, output_path, weight=None, var_coords=None):
+    def __init__(self, input_font_file, name, text_file, pixel_size, font_bit_size, external_type, output_path, weight=None, var_coords=None, compress="none"):
         if output_path == None:
             output_path = os.path.dirname(input_font_file)
 
-        name_raw = f"egui_res_font_{name.lower()}_{pixel_size}_{font_bit_size}"
+        compress = normalize_font_compress(compress)
+        if compress != "none" and font_bit_size != 4:
+            print(f"[WARN] Font '{name}': compress={compress} only supports 4bpp, fallback to raw.")
+            compress = "none"
+
+        name_raw = f"egui_res_font_{name.lower()}_{pixel_size}_{font_bit_size}{FONT_BITMAP_CODEC_SUFFIX[compress]}"
         font_name = name_raw
 
         if external_type == 1:
@@ -332,6 +463,8 @@ class ttf2c_tool:
             options += f" -w {weight}"
         if var_coords is not None:
             options += f" --var-coords {var_coords}"
+        if compress != "none":
+            options += f" -c {compress}"
 
         index = 0
         support_text = ""
@@ -356,6 +489,8 @@ class ttf2c_tool:
         self.font_bit_size = font_bit_size
         self.external_type = external_type
         self.output_path = output_path
+        self.compress = compress
+        self.bitmap_codec_c_name = FONT_BITMAP_CODEC_C_NAME[compress]
 
         self.font_name = font_name
         self.pixel_buffer_bin_name = pixel_buffer_bin_name
@@ -373,6 +508,7 @@ class ttf2c_tool:
         self.var_coords = parse_var_coords(var_coords)
         self.pixel_buffer_bin_data = None
         self.char_desc_bin_data = None
+        self.pixel_buffer_raw_size = 0
 
     def write_c_file(self):
         with open(self.outfilename, "w", encoding="utf-8") as outputfile:
@@ -404,6 +540,8 @@ class ttf2c_tool:
         index = 0
         bin_pixel_buffer = []
         bin_char_desc = []
+        glyph_entries = []
+        self.pixel_buffer_raw_size = 0
 
         text = ''.join(char for char in self.support_text if not is_ignored_char(char))
         output_file = self.outfilename
@@ -417,6 +555,21 @@ class ttf2c_tool:
 
         res_type = "EGUI_RESOURCE_TYPE_INTERNAL"
 
+        for char, data, width, height, advance_width, offset_x, offset_y, utf8_encoding in glyphs_data:
+            raw_data = bytearray(data.tolist())
+            stored_data = compress_glyph_bitmap_4(raw_data, width, height, self.compress) if font_bit_size == 4 else raw_data
+            glyph_entries.append({
+                "char": char,
+                "data": bytearray(stored_data),
+                "width": width,
+                "height": height,
+                "advance_width": advance_width,
+                "offset_x": offset_x,
+                "offset_y": offset_y,
+                "utf8_value": int.from_bytes(utf8_encoding, byteorder='big'),
+            })
+            self.pixel_buffer_raw_size += len(raw_data)
+
         with open(output_file, "a", encoding="utf-8") as f:
             print("/**", file=f)
             print(" * Total character count: {0} Support Text: ".format(len(text)), file=f)
@@ -427,20 +580,13 @@ class ttf2c_tool:
                 res_type = "EGUI_RESOURCE_TYPE_EXTERNAL"
                 # pixel buffer
                 pixel_buffer_buf_name = self.pixel_buffer_bin_name_res_id
-                for char, data, width, height, advance_width, offset_x, offset_y, utf8_encoding in glyphs_data:
-                    utf8_value = int.from_bytes(utf8_encoding, byteorder='big')
-                    utf8_value_str = ("0x%08x" % utf8_value)
-                    utf8_c_array = utf8_to_c_array(utf8_encoding)
-                    bin_pixel_buffer += data.tolist()
-                    # print(data)
+                for entry in glyph_entries:
+                    bin_pixel_buffer += list(entry["data"])
 
                 # char buffer
                 char_desc_buf_name = self.char_desc_bin_name_res_id
-                for char, data, width, height, advance_width, offset_x, offset_y, utf8_encoding in glyphs_data:
-                    utf8_value = int.from_bytes(utf8_encoding, byteorder='big')
-                    utf8_value_str = ("0x%08x" % utf8_value)
-                    utf8_c_array = utf8_to_c_array(utf8_encoding)
-                    raw_data_size = len(data)
+                for entry in glyph_entries:
+                    stored_data_size = len(entry["data"])
 
                     # typedef struct
                     # {
@@ -455,30 +601,26 @@ class ttf2c_tool:
 
                     char_desc_data = bytearray()
                     char_desc_data.extend(struct.pack('I', index))
-                    char_desc_data.extend(struct.pack('H', raw_data_size))
-                    char_desc_data.extend(struct.pack('B', width))
-                    char_desc_data.extend(struct.pack('B', height))
-                    char_desc_data.extend(struct.pack('B', int(advance_width)))
-                    char_desc_data.extend(struct.pack('b', int(offset_x)))
-                    char_desc_data.extend(struct.pack('b', int(offset_y)))
+                    char_desc_data.extend(struct.pack('H', stored_data_size))
+                    char_desc_data.extend(struct.pack('B', entry["width"]))
+                    char_desc_data.extend(struct.pack('B', entry["height"]))
+                    char_desc_data.extend(struct.pack('B', int(entry["advance_width"])))
+                    char_desc_data.extend(struct.pack('b', int(entry["offset_x"])))
+                    char_desc_data.extend(struct.pack('b', int(entry["offset_y"])))
                     char_desc_data.extend(struct.pack('b', 0)) # align to 4 bytes
 
                     bin_char_desc += list(char_desc_data)
 
                     # update index
-                    index += raw_data_size
+                    index += stored_data_size
             else:
                 # pixel buffer
                 print("static const uint8_t {0}[] = {{\n".format(pixel_buffer_buf_name), file=f)
 
-                for char, data, width, height, advance_width, offset_x, offset_y, utf8_encoding in glyphs_data:
-                    utf8_value = int.from_bytes(utf8_encoding, byteorder='big')
-                    utf8_value_str = ("0x%08x" % utf8_value)
-                    utf8_c_array = utf8_to_c_array(utf8_encoding)
-                    bin_pixel_buffer += data.tolist()
-                    # print(("// Glyph for character - %s - %s" % (char, utf8_value_str)))
-                    f.write(("\n    /* Glyph for character \"%s\" %s */\n" % (char, utf8_value_str)))
-                    hex_str = binascii.hexlify(data).decode()
+                for entry in glyph_entries:
+                    bin_pixel_buffer += list(entry["data"])
+                    f.write(("\n    /* Glyph for character \"%s\" 0x%08x */\n" % (entry["char"], entry["utf8_value"])))
+                    hex_str = binascii.hexlify(entry["data"]).decode()
 
                     for i in range(0, len(hex_str), char_max_width*2):
                         line = hex_str[i:i+char_max_width*2]
@@ -492,12 +634,11 @@ class ttf2c_tool:
                 # char buffer
                 print("static const egui_font_std_char_descriptor_t {0}[] = {{\n".format(char_desc_buf_name), file=f)
 
-                for char, data, width, height, advance_width, offset_x, offset_y, utf8_encoding in glyphs_data:
-                    utf8_value = int.from_bytes(utf8_encoding, byteorder='big')
-                    utf8_value_str = ("0x%08x" % utf8_value)
-                    utf8_c_array = utf8_to_c_array(utf8_encoding)
-                    raw_data_size = len(data)
-                    f.write(("    {.idx=%6d, .size=%6d, .box_w=%3d, .box_h=%3d, .adv=%3d, .off_x=%3d, .off_y=%3d}, /* \"%s\" %s */\n" % (index, raw_data_size, width, height, advance_width, offset_x, offset_y, char, utf8_value_str)))
+                for entry in glyph_entries:
+                    stored_data_size = len(entry["data"])
+                    f.write(("    {.idx=%6d, .size=%6d, .box_w=%3d, .box_h=%3d, .adv=%3d, .off_x=%3d, .off_y=%3d}, /* \"%s\" 0x%08x */\n" %
+                             (index, stored_data_size, entry["width"], entry["height"], entry["advance_width"], entry["offset_x"], entry["offset_y"],
+                              entry["char"], entry["utf8_value"])))
                     
                     # typedef struct
                     # {
@@ -512,18 +653,18 @@ class ttf2c_tool:
 
                     char_desc_data = bytearray()
                     char_desc_data.extend(struct.pack('I', index))
-                    char_desc_data.extend(struct.pack('H', raw_data_size))
-                    char_desc_data.extend(struct.pack('B', width))
-                    char_desc_data.extend(struct.pack('B', height))
-                    char_desc_data.extend(struct.pack('B', int(advance_width)))
-                    char_desc_data.extend(struct.pack('b', int(offset_x)))
-                    char_desc_data.extend(struct.pack('b', int(offset_y)))
+                    char_desc_data.extend(struct.pack('H', stored_data_size))
+                    char_desc_data.extend(struct.pack('B', entry["width"]))
+                    char_desc_data.extend(struct.pack('B', entry["height"]))
+                    char_desc_data.extend(struct.pack('B', int(entry["advance_width"])))
+                    char_desc_data.extend(struct.pack('b', int(entry["offset_x"])))
+                    char_desc_data.extend(struct.pack('b', int(entry["offset_y"])))
                     char_desc_data.extend(struct.pack('b', 0)) # align to 4 bytes
 
                     bin_char_desc += list(char_desc_data)
                     
                     # update index
-                    index += raw_data_size
+                    index += stored_data_size
 
 
                 f.write("};\n")
@@ -532,14 +673,8 @@ class ttf2c_tool:
             # code buffer
             print("static const egui_font_std_code_descriptor_t {0}_code_array[] = {{\n".format(name), file=f)
 
-            for char, data, width, height, advance_width, offset_x, offset_y, utf8_encoding in glyphs_data:
-                utf8_value = int.from_bytes(utf8_encoding, byteorder='big')
-                utf8_value_str = ("0x%08x" % utf8_value)
-                utf8_c_array = utf8_to_c_array(utf8_encoding)
-                raw_data_size = len(data)
-                f.write(("    {.code=%s}, /* \"%s\" */\n" % (utf8_value_str, char)))
-                # update index
-                index += raw_data_size
+            for entry in glyph_entries:
+                f.write(("    {.code=0x%08x}, /* \"%s\" */\n" % (entry["utf8_value"], entry["char"])))
 
 
             f.write("};\n")
@@ -549,7 +684,8 @@ class ttf2c_tool:
                                         font_bit_size,
                                         char_max_height,
                                         res_type,
-                                        len(glyphs_data),
+                                        self.bitmap_codec_c_name,
+                                        len(glyph_entries),
                                         char_desc_buf_name,
                                         pixel_buffer_buf_name,
                                         ), file=f)
@@ -567,6 +703,7 @@ def main():
     parser.add_argument('-o', '--output', nargs='?',type = str, default="", required=False, help="Specify the output file name (default: input file name with.c extension)")
     parser.add_argument('-w', '--weight', nargs='?',type = int, default=None, required=False, help="Variable font weight axis value (e.g. 400=Regular, 500=Medium, 700=Bold)")
     parser.add_argument('--var-coords', type=str, default=None, required=False, help="Comma-separated variable font coordinates (e.g. 0,0,24,400)")
+    parser.add_argument('-c', '--compress', type=str, default='none', required=False, help="Font bitmap compression: none, rle4, rle4_xor")
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
@@ -574,7 +711,8 @@ def main():
 
     args = parser.parse_args()
     
-    tool = ttf2c_tool(args.input, args.name, args.text, args.pixelsize, args.fontbitsize, args.external, args.output, args.weight, args.var_coords)
+    tool = ttf2c_tool(args.input, args.name, args.text, args.pixelsize, args.fontbitsize, args.external, args.output, args.weight, args.var_coords,
+                      args.compress)
 
     tool.write_c_file()
 

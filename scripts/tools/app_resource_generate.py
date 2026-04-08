@@ -117,6 +117,25 @@ def load_config_info(config_file_path):
         return json5.load(f)
     return None
 
+
+def normalize_font_compress(compress, fontbitsize):
+    codec = ttf2c.normalize_font_compress(compress)
+    if codec != "none" and int(fontbitsize) != 4:
+        return "none"
+    return codec
+
+
+def format_font_compress_info(tool, total_size, char_desc_size):
+    if tool.compress == "none":
+        return ""
+
+    raw_total_size = tool.pixel_buffer_raw_size + char_desc_size
+    if raw_total_size <= 0:
+        return tool.compress.upper()
+
+    ratio = (1 - (total_size / raw_total_size)) * 100
+    return f"{tool.compress.upper()} (-{ratio:.0f}%, raw {raw_total_size})"
+
 class ImageResourceInfo:
     def __init__(self, config):
         self.file_name = config['file']
@@ -233,6 +252,10 @@ class FontResourceInfo:
         if config.get('weight'):
             self.weight = int(config['weight'])
 
+        self.compress = "none"
+        if config.get('compress'):
+            self.compress = config['compress']
+
 def generate_font_resource(resource_src_path, font_res_output_path, config_info_font):
     ttf2c_tool_list = []
     if not config_info_font:
@@ -244,17 +267,19 @@ def generate_font_resource(resource_src_path, font_res_output_path, config_info_
         font_info = FontResourceInfo(font_config)
         for pixelsize in font_info.pixelsize_list:
             for fontbitsize in font_info.fontbitsize_list:
+                compress = normalize_font_compress(font_info.compress, fontbitsize)
                 for external in font_info.external_list:
                     # print(f"{font_info.file_name} {pixelsize} {fontbitsize} {external}")
                     is_conflit = False
                     for font_config_item in font_config_list:
-                        if font_config_item[0].name == font_info.name and font_config_item[1] == pixelsize and font_config_item[2] == fontbitsize and font_config_item[3] == external:
+                        if (font_config_item[0].name == font_info.name and font_config_item[1] == pixelsize and font_config_item[2] == fontbitsize and
+                                font_config_item[3] == external and font_config_item[4] == compress):
                             is_conflit = True
                             font_config_item[0].text_file_list.append(font_info.text_file_name)
                             break
                     if is_conflit:
                         continue
-                    font_config_list.append([font_info, pixelsize, fontbitsize, external])
+                    font_config_list.append([font_info, pixelsize, fontbitsize, external, compress])
     
     for font_config_item in font_config_list:
         # print(font_config_item)
@@ -272,11 +297,12 @@ def generate_font_resource(resource_src_path, font_res_output_path, config_info_
         pixelsize = font_config_item[1]
         fontbitsize = font_config_item[2]
         external = font_config_item[3]
-        tool = ttf2c.ttf2c_tool(font_file_path, font_name, suported_text_list, pixelsize, fontbitsize, external, output_path, font_info.weight)
+        compress = font_config_item[4]
+        tool = ttf2c.ttf2c_tool(font_file_path, font_name, suported_text_list, pixelsize, fontbitsize, external, output_path, font_info.weight, None, compress)
 
         ttf2c_tool_list.append(tool)
 
-        print(f"Generating {tool.font_name} with {font_info.text_file_list}")
+        print(f"Generating {tool.font_name} with {font_info.text_file_list}, compress={tool.compress}")
 
         tool.write_c_file()
         # generate_resource_font(ttf_util_path, font_res_output_path, font_file_path, c_file_name, text_file_path, font_config_item[1], font_config_item[2], font_config_item[3])
@@ -691,39 +717,43 @@ def generate_resource(resource_path, output_path, force, output_bin_path=None):
         f.write("\n")
         f.write("# 字体\n")
         f.write("## 内部\n")
-        f.write("| 名称 | 总大小 | Font | Text |\n")
-        f.write("| ---- | ------ | ------ | ------ |\n")
+        f.write("| Name | Total | Compress | Font | Text |\n")
+        f.write("| ---- | ----- | -------- | ---- | ---- |\n")
         for tool in sorted(ttf2c_tool_list, key=lambda x: x.font_name):
             if tool.external_type:
                 continue
             tmp_pixel_size = len(tool.pixel_buffer_bin_data)
             tmp_char_size = len(tool.char_desc_bin_data)
-            font_total_size += tmp_pixel_size + tmp_char_size
+            total_size = tmp_pixel_size + tmp_char_size
+            font_total_size += total_size
             font_report_path = make_report_link(resource_path, tool.input_font_file)
             font_file_string = f"[{tool.input_font_file_name}]({font_report_path})"
+            compress_info = format_font_compress_info(tool, total_size, tmp_char_size)
 
             text_file_string = ""
             for file in tool.text_file:
                 text_file_name = os.path.basename(file)
                 text_file_string += f"[{text_file_name}](src/{text_file_name})"
                 text_file_string += " "
-            f.write(f"| {tool.font_name} | {tmp_pixel_size + tmp_char_size} | {font_file_string} | {text_file_string} |\n")
-        f.write(f"| 总计 | {font_total_size} |\n")
+            f.write(f"| {tool.font_name} | {total_size} | {compress_info} | {font_file_string} | {text_file_string} |\n")
+        f.write(f"| 总计 | {font_total_size} | | | |\n")
 
         f.write("\n")
         f.write("\n")
         f.write("\n")
         f.write("## 外部\n")
-        f.write("| 名称 | 总大小 |\n")
-        f.write("| ---- | ------ |\n")
+        f.write("| Name | Total | Compress |\n")
+        f.write("| ---- | ----- | -------- |\n")
         for tool in sorted(ttf2c_tool_list, key=lambda x: x.font_name):
             if not tool.external_type:
                 continue
             tmp_pixel_size = len(tool.pixel_buffer_bin_data)
             tmp_char_size = len(tool.char_desc_bin_data)
-            font_ext_total_size += tmp_pixel_size + tmp_char_size
-            f.write(f"| {tool.font_name} | {tmp_pixel_size + tmp_char_size} |\n")
-        f.write(f"| 总计 | {font_ext_total_size} |\n")
+            total_size = tmp_pixel_size + tmp_char_size
+            font_ext_total_size += total_size
+            compress_info = format_font_compress_info(tool, total_size, tmp_char_size)
+            f.write(f"| {tool.font_name} | {total_size} | {compress_info} |\n")
+        f.write(f"| 总计 | {font_ext_total_size} | |\n")
 
 
 
@@ -775,5 +805,4 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     generate_resource(args.resource, args.output, args.force, args.output_bin_path)
-
 
