@@ -125,16 +125,35 @@ def normalize_font_compress(compress, fontbitsize):
     return codec
 
 
-def format_font_compress_info(tool, total_size, char_desc_size):
-    if tool.compress == "none":
-        return ""
+def get_font_report_metrics(tool):
+    char_desc_size = len(tool.char_desc_bin_data) if tool.char_desc_bin_data else 0
+    pixel_buffer_size = len(tool.pixel_buffer_bin_data) if tool.pixel_buffer_bin_data else 0
+    raw_pixel_buffer_size = getattr(tool, 'pixel_buffer_raw_size', pixel_buffer_size)
 
-    raw_total_size = tool.pixel_buffer_raw_size + char_desc_size
-    if raw_total_size <= 0:
-        return tool.compress.upper()
+    raw_total_size = raw_pixel_buffer_size + char_desc_size
+    encoded_total_size = pixel_buffer_size + char_desc_size
+    saved_size = raw_total_size - encoded_total_size
+    saved_percent = 0.0
+    if raw_total_size > 0:
+        saved_percent = (saved_size / raw_total_size) * 100.0
 
-    ratio = (1 - (total_size / raw_total_size)) * 100
-    return f"{tool.compress.upper()} (-{ratio:.0f}%, raw {raw_total_size})"
+    codec = "RAW"
+    if tool.compress != "none":
+        codec = tool.compress.upper()
+
+    return {
+        "raw_total_size": raw_total_size,
+        "encoded_total_size": encoded_total_size,
+        "saved_size": saved_size,
+        "saved_percent": saved_percent,
+        "codec": codec,
+    }
+
+
+def format_saved_percent(saved_percent):
+    if abs(saved_percent) < 0.05:
+        saved_percent = 0.0
+    return f"{saved_percent:.1f}%"
 
 class ImageResourceInfo:
     def __init__(self, config):
@@ -717,43 +736,55 @@ def generate_resource(resource_path, output_path, force, output_bin_path=None):
         f.write("\n")
         f.write("# 字体\n")
         f.write("## 内部\n")
-        f.write("| Name | Total | Compress | Font | Text |\n")
-        f.write("| ---- | ----- | -------- | ---- | ---- |\n")
+        f.write("| Name | Raw Total | Encoded Total | Saved | Saved % | Codec | Font | Text |\n")
+        f.write("| ---- | --------- | ------------- | ----- | ------- | ----- | ---- | ---- |\n")
+        font_raw_total_size = 0
         for tool in sorted(ttf2c_tool_list, key=lambda x: x.font_name):
             if tool.external_type:
                 continue
-            tmp_pixel_size = len(tool.pixel_buffer_bin_data)
-            tmp_char_size = len(tool.char_desc_bin_data)
-            total_size = tmp_pixel_size + tmp_char_size
-            font_total_size += total_size
+            metrics = get_font_report_metrics(tool)
+            font_raw_total_size += metrics["raw_total_size"]
+            font_total_size += metrics["encoded_total_size"]
             font_report_path = make_report_link(resource_path, tool.input_font_file)
             font_file_string = f"[{tool.input_font_file_name}]({font_report_path})"
-            compress_info = format_font_compress_info(tool, total_size, tmp_char_size)
 
             text_file_string = ""
             for file in tool.text_file:
                 text_file_name = os.path.basename(file)
                 text_file_string += f"[{text_file_name}](src/{text_file_name})"
                 text_file_string += " "
-            f.write(f"| {tool.font_name} | {total_size} | {compress_info} | {font_file_string} | {text_file_string} |\n")
-        f.write(f"| 总计 | {font_total_size} | | | |\n")
+            f.write(f"| {tool.font_name} | {metrics['raw_total_size']} | {metrics['encoded_total_size']} | {metrics['saved_size']} | "
+                    f"{format_saved_percent(metrics['saved_percent'])} | {metrics['codec']} | {font_file_string} | {text_file_string} |\n")
+        font_saved_total_size = font_raw_total_size - font_total_size
+        font_saved_total_percent = 0.0 if font_raw_total_size <= 0 else (font_saved_total_size / font_raw_total_size) * 100.0
+        f.write(f"| 总计 | {font_raw_total_size} | {font_total_size} | {font_saved_total_size} | {format_saved_percent(font_saved_total_percent)} | | | |\n")
 
         f.write("\n")
         f.write("\n")
         f.write("\n")
         f.write("## 外部\n")
-        f.write("| Name | Total | Compress |\n")
-        f.write("| ---- | ----- | -------- |\n")
+        f.write("| Name | Raw Total | Encoded Total | Saved | Saved % | Codec | Font | Text |\n")
+        f.write("| ---- | --------- | ------------- | ----- | ------- | ----- | ---- | ---- |\n")
+        font_ext_raw_total_size = 0
         for tool in sorted(ttf2c_tool_list, key=lambda x: x.font_name):
             if not tool.external_type:
                 continue
-            tmp_pixel_size = len(tool.pixel_buffer_bin_data)
-            tmp_char_size = len(tool.char_desc_bin_data)
-            total_size = tmp_pixel_size + tmp_char_size
-            font_ext_total_size += total_size
-            compress_info = format_font_compress_info(tool, total_size, tmp_char_size)
-            f.write(f"| {tool.font_name} | {total_size} | {compress_info} |\n")
-        f.write(f"| 总计 | {font_ext_total_size} | |\n")
+            metrics = get_font_report_metrics(tool)
+            font_ext_raw_total_size += metrics["raw_total_size"]
+            font_ext_total_size += metrics["encoded_total_size"]
+            font_report_path = make_report_link(resource_path, tool.input_font_file)
+            font_file_string = f"[{tool.input_font_file_name}]({font_report_path})"
+
+            text_file_string = ""
+            for file in tool.text_file:
+                text_file_name = os.path.basename(file)
+                text_file_string += f"[{text_file_name}](src/{text_file_name})"
+                text_file_string += " "
+            f.write(f"| {tool.font_name} | {metrics['raw_total_size']} | {metrics['encoded_total_size']} | {metrics['saved_size']} | "
+                    f"{format_saved_percent(metrics['saved_percent'])} | {metrics['codec']} | {font_file_string} | {text_file_string} |\n")
+        font_ext_saved_total_size = font_ext_raw_total_size - font_ext_total_size
+        font_ext_saved_total_percent = 0.0 if font_ext_raw_total_size <= 0 else (font_ext_saved_total_size / font_ext_raw_total_size) * 100.0
+        f.write(f"| 总计 | {font_ext_raw_total_size} | {font_ext_total_size} | {font_ext_saved_total_size} | {format_saved_percent(font_ext_saved_total_percent)} | | | |\n")
 
 
 
@@ -805,4 +836,3 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     generate_resource(args.resource, args.output, args.force, args.output_bin_path)
-

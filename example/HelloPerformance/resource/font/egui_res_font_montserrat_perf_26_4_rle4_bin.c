@@ -11,7 +11,7 @@
  * Font size: 26
  * Font bit size: 4
  * TTF file: Montserrat-Medium.ttf
- * options: -i Montserrat-Medium.ttf -n montserrat_perf -p 26 -s 4 -ext 1 -t supported_text_perf.txt
+ * options: -i Montserrat-Medium.ttf -n montserrat_perf -p 26 -s 4 -ext 1 -c rle4 -t supported_text_perf.txt
  */
 
 
@@ -20,7 +20,7 @@
 ﻿0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ^&*()_+-=[]{}|;':",./<>? \\
  */
 
-static const egui_font_std_code_descriptor_t egui_res_font_montserrat_perf_26_4_bin_code_array[] = {
+static const egui_font_std_code_descriptor_t egui_res_font_montserrat_perf_26_4_rle4_bin_code_array[] = {
 
     {.code=0x00000020}, /* " " */
     {.code=0x00000022}, /* """ */
@@ -114,20 +114,20 @@ static const egui_font_std_code_descriptor_t egui_res_font_montserrat_perf_26_4_
 
 
 
-static const egui_font_std_info_t egui_res_font_montserrat_perf_26_4_bin_info = {
+static const egui_font_std_info_t egui_res_font_montserrat_perf_26_4_rle4_bin_info = {
     .font_size = 26,
     .font_bit_mode = 4,
     .height = 33,
     .res_type = EGUI_RESOURCE_TYPE_EXTERNAL,
-    .bitmap_codec = EGUI_FONT_STD_BITMAP_CODEC_RAW,
+    .bitmap_codec = EGUI_FONT_STD_BITMAP_CODEC_RLE4,
     .count = 88,
-    .code_array = egui_res_font_montserrat_perf_26_4_bin_code_array,
-    .char_array = (void *)EGUI_EXT_RES_ID_EGUI_RES_FONT_MONTSERRAT_PERF_26_4_CHAR_DESC,
-    .pixel_buffer = (void *)EGUI_EXT_RES_ID_EGUI_RES_FONT_MONTSERRAT_PERF_26_4_PIXEL_BUFFER,
+    .code_array = egui_res_font_montserrat_perf_26_4_rle4_bin_code_array,
+    .char_array = (void *)EGUI_EXT_RES_ID_EGUI_RES_FONT_MONTSERRAT_PERF_26_4_RLE4_CHAR_DESC,
+    .pixel_buffer = (void *)EGUI_EXT_RES_ID_EGUI_RES_FONT_MONTSERRAT_PERF_26_4_RLE4_PIXEL_BUFFER,
 };
 
-extern const egui_font_std_t egui_res_font_montserrat_perf_26_4_bin;
-EGUI_FONT_SUB_DEFINE_CONST(egui_font_std_t, egui_res_font_montserrat_perf_26_4_bin, &egui_res_font_montserrat_perf_26_4_bin_info);
+extern const egui_font_std_t egui_res_font_montserrat_perf_26_4_rle4_bin;
+EGUI_FONT_SUB_DEFINE_CONST(egui_font_std_t, egui_res_font_montserrat_perf_26_4_rle4_bin, &egui_res_font_montserrat_perf_26_4_rle4_bin_info);
 
 
 

@@ -298,9 +298,12 @@ static int egui_font_std_is_glyph_outside_region(egui_dim_t x, egui_dim_t y, egu
 static int egui_font_std_decode_rle4_bitmap(const uint8_t *src, uint32_t src_size, uint8_t *dst, uint32_t dst_size, egui_dim_t width, egui_dim_t height,
                                             int use_row_xor)
 {
-    uint32_t nibble_total;
+    uint32_t pixel_total;
     uint32_t src_offset = 0;
-    uint32_t nibble_offset = 0;
+    uint32_t row_stride;
+    uint32_t row_stride_nibbles;
+    uint32_t dst_nibble_offset = 0;
+    uint32_t row_index = 0;
     uint32_t row_pos = 0;
     uint8_t row_prev = 0;
 
@@ -309,15 +312,17 @@ static int egui_font_std_decode_rle4_bitmap(const uint8_t *src, uint32_t src_siz
         return 0;
     }
 
-    nibble_total = (uint32_t)width * (uint32_t)height;
-    if (dst_size != ((nibble_total + 1u) >> 1))
+    row_stride = (uint32_t)((width + 1) >> 1);
+    row_stride_nibbles = row_stride << 1;
+    pixel_total = (uint32_t)width * (uint32_t)height;
+    if (dst_size != row_stride * (uint32_t)height)
     {
         return 0;
     }
 
     egui_api_memset(dst, 0, dst_size);
 
-    while (nibble_offset < nibble_total)
+    while (row_index < (uint32_t)height)
     {
         uint8_t ctrl;
         uint32_t run;
@@ -332,7 +337,7 @@ static int egui_font_std_decode_rle4_bitmap(const uint8_t *src, uint32_t src_siz
 
         ctrl = src[src_offset++];
         run = (uint32_t)(ctrl & 0x7F) + 1u;
-        if (run > (nibble_total - nibble_offset))
+        if (run > (pixel_total - (row_index * (uint32_t)width + row_pos)))
         {
             return 0;
         }
@@ -373,12 +378,14 @@ static int egui_font_std_decode_rle4_bitmap(const uint8_t *src, uint32_t src_siz
                 row_prev = value;
             }
 
-            egui_font_std_write_packed_nibble_4(dst, nibble_offset++, value);
+            egui_font_std_write_packed_nibble_4(dst, dst_nibble_offset++, value);
             row_pos++;
             if (row_pos >= (uint32_t)width)
             {
+                row_index++;
                 row_pos = 0;
                 row_prev = 0;
+                dst_nibble_offset = row_index * row_stride_nibbles;
             }
         }
     }

@@ -233,16 +233,45 @@ static void egui_view_test_performance_test_text_rect(egui_view_t *self)
 }
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+static void egui_view_test_performance_draw_extern_text_with_font(const egui_font_t *font)
+{
+    egui_canvas_draw_text((egui_font_t *)font, test_str, 0, 0, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+}
+
+static void egui_view_test_performance_draw_extern_text_rect_with_font(const egui_font_t *font)
+{
+    EGUI_REGION_DEFINE(text_rect, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, 200);
+    egui_canvas_draw_text_in_rect((egui_font_t *)font, text_rect_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+}
+
 static void egui_view_test_performance_test_extern_text(egui_view_t *self)
 {
-    egui_canvas_draw_text((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin, test_str, 0, 0, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
+    egui_view_test_performance_draw_extern_text_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin);
 }
 
 static void egui_view_test_performance_test_extern_text_rect(egui_view_t *self)
 {
-    EGUI_REGION_DEFINE(text_rect, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, 200);
-    egui_canvas_draw_text_in_rect((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin, text_rect_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_GREEN,
-                                  EGUI_ALPHA_100);
+    egui_view_test_performance_draw_extern_text_rect_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin);
+}
+
+static void egui_view_test_performance_test_extern_text_rle4(egui_view_t *self)
+{
+    egui_view_test_performance_draw_extern_text_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4_bin);
+}
+
+static void egui_view_test_performance_test_extern_text_rect_rle4(egui_view_t *self)
+{
+    egui_view_test_performance_draw_extern_text_rect_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4_bin);
+}
+
+static void egui_view_test_performance_test_extern_text_rle4_xor(egui_view_t *self)
+{
+    egui_view_test_performance_draw_extern_text_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4xor_bin);
+}
+
+static void egui_view_test_performance_test_extern_text_rect_rle4_xor(egui_view_t *self)
+{
+    egui_view_test_performance_draw_extern_text_rect_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4xor_bin);
 }
 #endif
 
@@ -2351,6 +2380,26 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
         egui_view_test_performance_test_extern_text_rect(self);
 #endif
         break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_RLE4:
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+        egui_view_test_performance_test_extern_text_rle4(self);
+#endif
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_RECT_RLE4:
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+        egui_view_test_performance_test_extern_text_rect_rle4(self);
+#endif
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_RLE4_XOR:
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+        egui_view_test_performance_test_extern_text_rle4_xor(self);
+#endif
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_RECT_RLE4_XOR:
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+        egui_view_test_performance_test_extern_text_rect_rle4_xor(self);
+#endif
+        break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_RECTANGLE:
         egui_view_test_performance_test_rectangle(self);
         break;
@@ -3285,6 +3334,10 @@ int egui_view_test_performance_is_enabled(int test_mode)
     // Extern image tests: gate on external resource support, skip on QEMU (no semihosting file support)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_RECT:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_RLE4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_RECT_RLE4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_RLE4_XOR:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT_RECT_RLE4_XOR:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_565:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_565_1:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_565_2:
