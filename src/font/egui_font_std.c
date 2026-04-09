@@ -286,13 +286,31 @@ static uint32_t egui_font_std_get_packed_pixel_size(const egui_font_std_info_t *
     return (uint32_t)row_stride * (uint32_t)height;
 }
 
-static uint8_t egui_font_std_read_packed_nibble_4(const uint8_t *buf, uint32_t nibble_index)
+__EGUI_STATIC_INLINE__ uint8_t egui_font_std_read_packed_nibble_4(const uint8_t *buf, uint32_t nibble_index)
 {
     uint8_t packed = buf[nibble_index >> 1];
     return (nibble_index & 0x01) ? (uint8_t)((packed >> 4) & 0x0F) : (uint8_t)(packed & 0x0F);
 }
 
-static void egui_font_std_write_packed_nibble_4(uint8_t *buf, uint32_t nibble_index, uint8_t value)
+__EGUI_STATIC_INLINE__ uint8_t egui_font_std_read_packed_nibble_4_advance(const uint8_t *buf, uint32_t *byte_index, uint8_t *shift)
+{
+    uint8_t packed = buf[*byte_index];
+    uint8_t value = (uint8_t)((packed >> *shift) & 0x0F);
+
+    if (*shift == 0u)
+    {
+        *shift = 4u;
+    }
+    else
+    {
+        *shift = 0u;
+        (*byte_index)++;
+    }
+
+    return value;
+}
+
+__EGUI_STATIC_INLINE__ void egui_font_std_write_packed_nibble_4(uint8_t *buf, uint32_t nibble_index, uint8_t value)
 {
     uint8_t *packed = &buf[nibble_index >> 1];
 
@@ -332,11 +350,10 @@ static int egui_font_std_decode_rle4_bitmap(const uint8_t *src, uint32_t src_siz
     uint32_t pixel_total;
     uint32_t src_offset = 0;
     uint32_t row_stride;
-    uint32_t row_stride_nibbles;
-    uint32_t dst_nibble_offset = 0;
     uint32_t row_index = 0;
     uint32_t row_pos = 0;
     uint8_t row_prev = 0;
+    uint8_t *dst_row;
 
     if (src == NULL || dst == NULL || width <= 0 || height <= 0)
     {
@@ -344,7 +361,6 @@ static int egui_font_std_decode_rle4_bitmap(const uint8_t *src, uint32_t src_siz
     }
 
     row_stride = (uint32_t)((width + 1) >> 1);
-    row_stride_nibbles = row_stride << 1;
     pixel_total = (uint32_t)width * (uint32_t)height;
     if (dst_size != row_stride * (uint32_t)height)
     {
@@ -352,6 +368,7 @@ static int egui_font_std_decode_rle4_bitmap(const uint8_t *src, uint32_t src_siz
     }
 
     egui_api_memset(dst, 0, dst_size);
+    dst_row = dst;
 
     while (row_index < (uint32_t)height)
     {
@@ -394,29 +411,155 @@ static int egui_font_std_decode_rle4_bitmap(const uint8_t *src, uint32_t src_siz
             src_offset += literal_bytes;
         }
 
-        for (uint32_t i = 0; i < run; i++)
         {
-            uint8_t value = repeat_value;
+            uint32_t literal_nibble_index = 0;
 
-            if (literal_src != NULL)
+            while (run > 0)
             {
-                value = egui_font_std_read_packed_nibble_4(literal_src, i);
-            }
+                uint32_t chunk_pixels = (uint32_t)width - row_pos;
+                uint8_t *dst_byte;
 
-            if (use_row_xor)
-            {
-                value = (uint8_t)((value ^ row_prev) & 0x0F);
-                row_prev = value;
-            }
+                if (chunk_pixels > run)
+                {
+                    chunk_pixels = run;
+                }
 
-            egui_font_std_write_packed_nibble_4(dst, dst_nibble_offset++, value);
-            row_pos++;
-            if (row_pos >= (uint32_t)width)
-            {
-                row_index++;
-                row_pos = 0;
-                row_prev = 0;
-                dst_nibble_offset = row_index * row_stride_nibbles;
+                dst_byte = dst_row + (row_pos >> 1);
+
+                if (!use_row_xor && literal_src == NULL)
+                {
+                    uint32_t remaining = chunk_pixels;
+
+                    if ((row_pos & 0x01u) != 0u)
+                    {
+                        *dst_byte = (uint8_t)((*dst_byte & 0x0F) | ((repeat_value & 0x0F) << 4));
+                        dst_byte++;
+                        remaining--;
+                    }
+
+                    if (remaining >= 2u)
+                    {
+                        uint8_t packed_repeat = (uint8_t)((repeat_value & 0x0F) | ((repeat_value & 0x0F) << 4));
+                        uint32_t fill_bytes = remaining >> 1;
+
+                        egui_api_memset(dst_byte, packed_repeat, (int)fill_bytes);
+                        dst_byte += fill_bytes;
+                        remaining &= 0x01u;
+                    }
+
+                    if (remaining != 0u)
+                    {
+                        *dst_byte = (uint8_t)((*dst_byte & 0xF0) | (repeat_value & 0x0F));
+                    }
+                }
+                else if (!use_row_xor && literal_src != NULL && (row_pos & 0x01u) == 0u && (literal_nibble_index & 0x01u) == 0u)
+                {
+                    uint32_t copy_bytes = chunk_pixels >> 1;
+
+                    if (copy_bytes > 0u)
+                    {
+                        egui_api_memcpy(dst_byte, literal_src + (literal_nibble_index >> 1), (int)copy_bytes);
+                        dst_byte += copy_bytes;
+                        literal_nibble_index += copy_bytes << 1;
+                    }
+
+                    if ((chunk_pixels & 0x01u) != 0u)
+                    {
+                        uint8_t packed = literal_src[literal_nibble_index >> 1];
+
+                        *dst_byte = (uint8_t)((*dst_byte & 0xF0) | (packed & 0x0F));
+                        literal_nibble_index++;
+                    }
+                }
+                else
+                {
+                    uint32_t literal_byte_index = 0;
+                    uint8_t literal_shift = 0;
+                    uint32_t consumed = 0;
+
+                    if (literal_src != NULL)
+                    {
+                        literal_byte_index = literal_nibble_index >> 1;
+                        literal_shift = (uint8_t)(((literal_nibble_index & 0x01u) != 0u) ? 4u : 0u);
+                    }
+
+                    if ((row_pos & 0x01u) != 0u)
+                    {
+                        uint8_t value = repeat_value;
+
+                        if (literal_src != NULL)
+                        {
+                            value = egui_font_std_read_packed_nibble_4_advance(literal_src, &literal_byte_index, &literal_shift);
+                        }
+
+                        if (use_row_xor)
+                        {
+                            value = (uint8_t)((value ^ row_prev) & 0x0F);
+                            row_prev = value;
+                        }
+
+                        *dst_byte = (uint8_t)((*dst_byte & 0x0F) | (value << 4));
+                        dst_byte++;
+                        consumed++;
+                    }
+
+                    while ((consumed + 1u) < chunk_pixels)
+                    {
+                        uint8_t value0 = repeat_value;
+                        uint8_t value1 = repeat_value;
+
+                        if (literal_src != NULL)
+                        {
+                            value0 = egui_font_std_read_packed_nibble_4_advance(literal_src, &literal_byte_index, &literal_shift);
+                            value1 = egui_font_std_read_packed_nibble_4_advance(literal_src, &literal_byte_index, &literal_shift);
+                        }
+
+                        if (use_row_xor)
+                        {
+                            value0 = (uint8_t)((value0 ^ row_prev) & 0x0F);
+                            row_prev = value0;
+                            value1 = (uint8_t)((value1 ^ row_prev) & 0x0F);
+                            row_prev = value1;
+                        }
+
+                        *dst_byte++ = (uint8_t)(value0 | (value1 << 4));
+                        consumed += 2u;
+                    }
+
+                    if (consumed < chunk_pixels)
+                    {
+                        uint8_t value = repeat_value;
+
+                        if (literal_src != NULL)
+                        {
+                            value = egui_font_std_read_packed_nibble_4_advance(literal_src, &literal_byte_index, &literal_shift);
+                        }
+
+                        if (use_row_xor)
+                        {
+                            value = (uint8_t)((value ^ row_prev) & 0x0F);
+                            row_prev = value;
+                        }
+
+                        *dst_byte = (uint8_t)((*dst_byte & 0xF0) | value);
+                    }
+
+                    if (literal_src != NULL)
+                    {
+                        literal_nibble_index += chunk_pixels;
+                    }
+                }
+
+                row_pos += chunk_pixels;
+                run -= chunk_pixels;
+
+                if (row_pos >= (uint32_t)width)
+                {
+                    row_index++;
+                    row_pos = 0;
+                    row_prev = 0;
+                    dst_row += row_stride;
+                }
             }
         }
     }
