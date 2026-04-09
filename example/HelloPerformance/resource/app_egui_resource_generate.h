@@ -63,8 +63,11 @@ extern const egui_image_qoi_t egui_res_image_test_perf_40_qoi_rgb565_0;
 extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_0;
 extern const egui_image_rle_t egui_res_image_test_perf_40_rle_rgb565_0;
 extern const egui_image_std_t egui_res_image_test_perf_480_rgb565_0;
+extern const egui_font_std_t egui_res_font_montserrat_perf_26_4;
 extern const egui_font_std_t egui_res_font_montserrat_perf_26_4_bin;
+extern const egui_font_std_t egui_res_font_montserrat_perf_26_4_rle4;
 extern const egui_font_std_t egui_res_font_montserrat_perf_26_4_rle4_bin;
+extern const egui_font_std_t egui_res_font_montserrat_perf_26_4_rle4xor;
 extern const egui_font_std_t egui_res_font_montserrat_perf_26_4_rle4xor_bin;
 
 

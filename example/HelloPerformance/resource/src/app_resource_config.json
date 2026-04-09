@@ -451,6 +451,32 @@
             "name": "montserrat_perf",
             "pixelsize": "26",
             "fontbitsize": "4",
+            "external": "0",
+            "text": "supported_text_perf.txt"
+        },
+        {
+            "file": "build_in/Montserrat-Medium.ttf",
+            "name": "montserrat_perf",
+            "pixelsize": "26",
+            "fontbitsize": "4",
+            "external": "0",
+            "compress": "rle4",
+            "text": "supported_text_perf.txt"
+        },
+        {
+            "file": "build_in/Montserrat-Medium.ttf",
+            "name": "montserrat_perf",
+            "pixelsize": "26",
+            "fontbitsize": "4",
+            "external": "0",
+            "compress": "rle4_xor",
+            "text": "supported_text_perf.txt"
+        },
+        {
+            "file": "build_in/Montserrat-Medium.ttf",
+            "name": "montserrat_perf",
+            "pixelsize": "26",
+            "fontbitsize": "4",
             "external": "1",
             "text": "supported_text_perf.txt"
         },

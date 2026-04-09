@@ -29,9 +29,7 @@
 #include "anim/egui_animation_set.h"
 #include "anim/egui_interpolator_linear.h"
 
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 #include "app_egui_resource_generate.h"
-#endif
 
 // Large image tests (480px/240px) stay in the shipped benchmark set.
 
@@ -232,46 +230,76 @@ static void egui_view_test_performance_test_text_rect(egui_view_t *self)
     egui_canvas_draw_text_in_rect((egui_font_t *)&egui_res_font_montserrat_26_4, text_rect_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-static void egui_view_test_performance_draw_extern_text_with_font(const egui_font_t *font)
+static void egui_view_test_performance_draw_text_with_font(const egui_font_t *font)
 {
     egui_canvas_draw_text((egui_font_t *)font, test_str, 0, 0, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
-static void egui_view_test_performance_draw_extern_text_rect_with_font(const egui_font_t *font)
+static void egui_view_test_performance_draw_text_rect_with_font(const egui_font_t *font)
 {
     EGUI_REGION_DEFINE(text_rect, 0, 0, EGUI_CONFIG_SCEEN_WIDTH, 200);
     egui_canvas_draw_text_in_rect((egui_font_t *)font, text_rect_str, &text_rect, EGUI_ALIGN_LEFT, EGUI_COLOR_GREEN, EGUI_ALPHA_100);
 }
 
+static void egui_view_test_performance_test_internal_text(egui_view_t *self)
+{
+    egui_view_test_performance_draw_text_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4);
+}
+
+static void egui_view_test_performance_test_internal_text_rect(egui_view_t *self)
+{
+    egui_view_test_performance_draw_text_rect_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4);
+}
+
+static void egui_view_test_performance_test_internal_text_rle4(egui_view_t *self)
+{
+    egui_view_test_performance_draw_text_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4);
+}
+
+static void egui_view_test_performance_test_internal_text_rect_rle4(egui_view_t *self)
+{
+    egui_view_test_performance_draw_text_rect_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4);
+}
+
+static void egui_view_test_performance_test_internal_text_rle4_xor(egui_view_t *self)
+{
+    egui_view_test_performance_draw_text_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4xor);
+}
+
+static void egui_view_test_performance_test_internal_text_rect_rle4_xor(egui_view_t *self)
+{
+    egui_view_test_performance_draw_text_rect_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4xor);
+}
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
 static void egui_view_test_performance_test_extern_text(egui_view_t *self)
 {
-    egui_view_test_performance_draw_extern_text_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin);
+    egui_view_test_performance_draw_text_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin);
 }
 
 static void egui_view_test_performance_test_extern_text_rect(egui_view_t *self)
 {
-    egui_view_test_performance_draw_extern_text_rect_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin);
+    egui_view_test_performance_draw_text_rect_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_bin);
 }
 
 static void egui_view_test_performance_test_extern_text_rle4(egui_view_t *self)
 {
-    egui_view_test_performance_draw_extern_text_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4_bin);
+    egui_view_test_performance_draw_text_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4_bin);
 }
 
 static void egui_view_test_performance_test_extern_text_rect_rle4(egui_view_t *self)
 {
-    egui_view_test_performance_draw_extern_text_rect_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4_bin);
+    egui_view_test_performance_draw_text_rect_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4_bin);
 }
 
 static void egui_view_test_performance_test_extern_text_rle4_xor(egui_view_t *self)
 {
-    egui_view_test_performance_draw_extern_text_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4xor_bin);
+    egui_view_test_performance_draw_text_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4xor_bin);
 }
 
 static void egui_view_test_performance_test_extern_text_rect_rle4_xor(egui_view_t *self)
 {
-    egui_view_test_performance_draw_extern_text_rect_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4xor_bin);
+    egui_view_test_performance_draw_text_rect_with_font((egui_font_t *)&egui_res_font_montserrat_perf_26_4_rle4xor_bin);
 }
 #endif
 
@@ -2370,6 +2398,24 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_TEXT_RECT:
         egui_view_test_performance_test_text_rect(self);
         break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_INTERNAL_TEXT:
+        egui_view_test_performance_test_internal_text(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_INTERNAL_TEXT_RECT:
+        egui_view_test_performance_test_internal_text_rect(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_INTERNAL_TEXT_RLE4:
+        egui_view_test_performance_test_internal_text_rle4(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_INTERNAL_TEXT_RECT_RLE4:
+        egui_view_test_performance_test_internal_text_rect_rle4(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_INTERNAL_TEXT_RLE4_XOR:
+        egui_view_test_performance_test_internal_text_rle4_xor(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_INTERNAL_TEXT_RECT_RLE4_XOR:
+        egui_view_test_performance_test_internal_text_rect_rle4_xor(self);
+        break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_TEXT:
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         egui_view_test_performance_test_extern_text(self);
@@ -3329,6 +3375,14 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_8_QUARTER:
         return 1;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_565_8_DOUBLE:
+        return 1;
+
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_INTERNAL_TEXT:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_INTERNAL_TEXT_RECT:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_INTERNAL_TEXT_RLE4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_INTERNAL_TEXT_RECT_RLE4:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_INTERNAL_TEXT_RLE4_XOR:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_INTERNAL_TEXT_RECT_RLE4_XOR:
         return 1;
 
     // Extern image tests: gate on external resource support, skip on QEMU (no semihosting file support)
