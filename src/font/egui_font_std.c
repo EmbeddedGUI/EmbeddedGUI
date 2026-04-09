@@ -73,6 +73,10 @@ static egui_font_std_code_lookup_cache_t g_font_std_code_lookup_cache = {
 #ifndef EGUI_FONT_STD_LINE_CACHE_SLOTS
 #define EGUI_FONT_STD_LINE_CACHE_SLOTS 2
 #endif
+#ifndef EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS
+#define EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS 64
+#endif
+#define EGUI_FONT_STD_COMPRESSED_GLYPH_CACHE_ENABLED (EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS > 0)
 
 typedef uint16_t egui_font_std_ascii_index_t;
 #define EGUI_FONT_STD_ASCII_INDEX_INVALID UINT16_MAX
@@ -80,6 +84,7 @@ typedef uint16_t egui_font_std_ascii_index_t;
 typedef struct
 {
     uint32_t idx;
+    uint16_t size;
     int16_t x;
     int16_t box_x0;
     int16_t box_x1;
@@ -133,6 +138,21 @@ typedef struct
     egui_font_std_line_cache_t entries[EGUI_FONT_STD_LINE_CACHE_SLOTS];
 } egui_font_std_line_cache_storage_t;
 
+typedef struct
+{
+    const egui_font_std_info_t *font;
+    uint32_t glyph_idx;
+    uint16_t encoded_size;
+    uint16_t pixel_size;
+    uint8_t box_w;
+    uint8_t box_h;
+    uint8_t bitmap_codec;
+    uint8_t is_ready;
+    uint32_t stamp;
+    uint8_t *pixel_buf;
+    uint32_t capacity;
+} egui_font_std_compressed_glyph_cache_t;
+
 #if EGUI_CONFIG_FONT_STD_ASCII_LOOKUP_CACHE_ENABLE
 static egui_font_std_ascii_lookup_cache_t *g_font_std_ascii_lookup_cache = NULL;
 #endif
@@ -140,6 +160,11 @@ static egui_font_std_ascii_lookup_cache_t *g_font_std_ascii_lookup_cache = NULL;
 static egui_font_std_external_draw_scratch_t g_font_std_compressed_draw_scratch = {
         0,
 };
+
+#if EGUI_FONT_STD_COMPRESSED_GLYPH_CACHE_ENABLED
+static egui_font_std_compressed_glyph_cache_t g_font_std_compressed_glyph_cache[EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS];
+static uint32_t g_font_std_compressed_glyph_cache_stamp = 0;
+#endif
 
 #if EGUI_FONT_STD_DRAW_PREFIX_CACHE_ENABLED
 static egui_font_std_draw_prefix_cache_t g_font_std_draw_prefix_cache[EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS];
@@ -149,6 +174,7 @@ static uint32_t g_font_std_draw_prefix_cache_stamp = 0;
 __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_draw_fast(const egui_font_std_info_t *font, uint32_t utf8_code,
                                                                                                egui_font_std_char_descriptor_t *external_desc_scratch);
 static void egui_font_std_external_draw_scratch_release(egui_font_std_external_draw_scratch_t *scratch);
+static void egui_font_std_release_compressed_glyph_cache(void);
 
 __EGUI_STATIC_INLINE__ int egui_font_std_bitmap_codec_is_raw(const egui_font_std_info_t *font)
 {
@@ -535,11 +561,6 @@ static const egui_font_std_draw_prefix_cache_t *egui_font_std_prepare_draw_prefi
         return NULL;
     }
 
-    if (!egui_font_std_bitmap_codec_is_raw(font))
-    {
-        return NULL;
-    }
-
     for (int i = 0; i < EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS; i++)
     {
         egui_font_std_draw_prefix_cache_t *entry = &g_font_std_draw_prefix_cache[i];
@@ -630,6 +651,7 @@ static const egui_font_std_draw_prefix_cache_t *egui_font_std_prepare_draw_prefi
             egui_font_std_draw_prefix_glyph_t *glyph = &cache->glyphs[glyph_count];
 
             glyph->idx = p_char_desc->idx;
+            glyph->size = p_char_desc->size;
             glyph->x = (int16_t)cursor_x;
             glyph->box_x0 = (int16_t)(cursor_x + p_char_desc->off_x);
             glyph->box_x1 = (int16_t)(glyph->box_x0 + p_char_desc->box_w);
@@ -648,6 +670,7 @@ static const egui_font_std_draw_prefix_cache_t *egui_font_std_prepare_draw_prefi
             int16_t error_w = FONT_ERROR_FONT_SIZE(font->height);
 
             glyph->idx = 0;
+            glyph->size = 0;
             glyph->x = (int16_t)cursor_x;
             glyph->box_x0 = (int16_t)cursor_x;
             glyph->box_x1 = (int16_t)(cursor_x + error_w);
@@ -1059,6 +1082,7 @@ void egui_font_std_release_frame_cache(void)
 {
     egui_font_std_release_ascii_lookup_cache();
     egui_font_std_release_line_cache();
+    egui_font_std_release_compressed_glyph_cache();
     egui_font_std_external_draw_scratch_release(&g_font_std_compressed_draw_scratch);
 }
 
@@ -2425,6 +2449,150 @@ static void egui_font_std_external_draw_scratch_release(egui_font_std_external_d
         scratch->compressed_capacity = 0;
     }
 }
+
+static void egui_font_std_release_compressed_glyph_cache(void)
+{
+#if EGUI_FONT_STD_COMPRESSED_GLYPH_CACHE_ENABLED
+    for (int i = 0; i < EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS; i++)
+    {
+        egui_font_std_compressed_glyph_cache_t *entry = &g_font_std_compressed_glyph_cache[i];
+
+        if (entry->pixel_buf != NULL)
+        {
+            egui_free(entry->pixel_buf);
+            entry->pixel_buf = NULL;
+        }
+
+        entry->capacity = 0;
+        entry->is_ready = 0;
+        entry->stamp = 0;
+        entry->font = NULL;
+    }
+
+    g_font_std_compressed_glyph_cache_stamp = 0;
+#endif
+}
+
+static int egui_font_std_prepare_compressed_glyph_pixels(const egui_font_std_info_t *font, const egui_font_std_char_descriptor_t *p_char_desc,
+                                                         egui_font_std_external_draw_scratch_t *scratch, const uint8_t **pixel_buf)
+{
+#if !EGUI_FONT_STD_COMPRESSED_GLYPH_CACHE_ENABLED
+    (void)font;
+    (void)p_char_desc;
+    (void)scratch;
+    (void)pixel_buf;
+    return 0;
+#else
+    egui_font_std_compressed_glyph_cache_t *cache = NULL;
+    uint32_t pixel_size;
+    const uint8_t *src_buf;
+    uint8_t *dst_buf;
+
+    if (font == NULL || p_char_desc == NULL || pixel_buf == NULL || !egui_font_std_bitmap_codec_is_compressed(font))
+    {
+        return 0;
+    }
+
+    pixel_size = egui_font_std_get_packed_pixel_size(font, p_char_desc->box_w, p_char_desc->box_h);
+    if (pixel_size == 0)
+    {
+        return 0;
+    }
+
+    for (int i = 0; i < EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS; i++)
+    {
+        egui_font_std_compressed_glyph_cache_t *entry = &g_font_std_compressed_glyph_cache[i];
+
+        if (entry->is_ready && entry->font == font && entry->glyph_idx == p_char_desc->idx && entry->encoded_size == p_char_desc->size &&
+            entry->pixel_size == pixel_size && entry->box_w == p_char_desc->box_w && entry->box_h == p_char_desc->box_h &&
+            entry->bitmap_codec == font->bitmap_codec)
+        {
+            entry->stamp = ++g_font_std_compressed_glyph_cache_stamp;
+            *pixel_buf = entry->pixel_buf;
+            return 1;
+        }
+
+        if (!entry->is_ready)
+        {
+            cache = entry;
+            break;
+        }
+
+        if (cache == NULL || entry->stamp < cache->stamp)
+        {
+            cache = entry;
+        }
+    }
+
+    if (cache == NULL)
+    {
+        return 0;
+    }
+
+    cache->is_ready = 0;
+
+    if (!egui_font_std_draw_scratch_ensure_buffer(&cache->pixel_buf, &cache->capacity, pixel_size, &dst_buf))
+    {
+        return 0;
+    }
+
+    if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
+    {
+        src_buf = font->pixel_buffer + p_char_desc->idx;
+    }
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    else
+    {
+        uint8_t *compressed_buf = NULL;
+
+        if (!egui_font_std_external_draw_scratch_ensure_compressed(scratch, p_char_desc->size, &compressed_buf))
+        {
+            return 0;
+        }
+
+        egui_api_load_external_resource(compressed_buf, (egui_uintptr_t)font->pixel_buffer, p_char_desc->idx, p_char_desc->size);
+        src_buf = compressed_buf;
+    }
+#else
+    else
+    {
+        return 0;
+    }
+#endif
+
+    if (font->bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4)
+    {
+        if (!egui_font_std_decode_rle4_bitmap(src_buf, p_char_desc->size, dst_buf, pixel_size, p_char_desc->box_w, p_char_desc->box_h, 0))
+        {
+            return 0;
+        }
+    }
+    else if (font->bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR)
+    {
+        if (!egui_font_std_decode_rle4_bitmap(src_buf, p_char_desc->size, dst_buf, pixel_size, p_char_desc->box_w, p_char_desc->box_h, 1))
+        {
+            return 0;
+        }
+    }
+    else
+    {
+        return 0;
+    }
+
+    cache->font = font;
+    cache->glyph_idx = p_char_desc->idx;
+    cache->encoded_size = p_char_desc->size;
+    cache->pixel_size = (uint16_t)pixel_size;
+    cache->box_w = p_char_desc->box_w;
+    cache->box_h = p_char_desc->box_h;
+    cache->bitmap_codec = font->bitmap_codec;
+    cache->is_ready = 1;
+    cache->stamp = ++g_font_std_compressed_glyph_cache_stamp;
+
+    *pixel_buf = dst_buf;
+    return 1;
+#endif
+}
 static int egui_font_std_draw_loaded_glyph(const egui_font_std_info_t *font, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height,
                                            const uint8_t *pixel_buf, egui_color_t color, egui_alpha_t alpha, const egui_canvas_t *canvas,
                                            const egui_region_t *work_region, egui_alpha_t draw_alpha, const egui_font_std_blend_ctx_t *blend_ctx)
@@ -2534,21 +2702,6 @@ static int egui_font_std_draw_single_char_desc_external_stream(const egui_font_s
         return p_char_desc->adv;
     }
 
-    if (egui_font_std_bitmap_codec_is_raw(font) && font->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
-    {
-        src_buf = font->pixel_buffer + p_char_desc->idx;
-    }
-    else
-    {
-        if (!egui_font_std_external_draw_scratch_ensure(scratch, pixel_size, &pixel_buf))
-        {
-            EGUI_ASSERT(0);
-            return 0;
-        }
-
-        has_temp_pixel_buf = (scratch == NULL);
-    }
-
     if (egui_font_std_bitmap_codec_is_raw(font))
     {
         if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
@@ -2558,6 +2711,13 @@ static int egui_font_std_draw_single_char_desc_external_stream(const egui_font_s
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         else
         {
+            if (!egui_font_std_external_draw_scratch_ensure(scratch, pixel_size, &pixel_buf))
+            {
+                EGUI_ASSERT(0);
+                goto cleanup;
+            }
+
+            has_temp_pixel_buf = (scratch == NULL);
             egui_api_load_external_resource(pixel_buf, (egui_uintptr_t)font->pixel_buffer, p_char_desc->idx, pixel_size);
             src_buf = pixel_buf;
         }
@@ -2571,61 +2731,73 @@ static int egui_font_std_draw_single_char_desc_external_stream(const egui_font_s
     }
     else
     {
-        encoded_size = p_char_desc->size;
-        if (font->font_bit_mode != 4 || encoded_size == 0)
+        if (font->font_bit_mode != 4 || p_char_desc->size == 0)
         {
             EGUI_ASSERT(0);
             goto cleanup;
         }
 
-        if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
+        if (!egui_font_std_prepare_compressed_glyph_pixels(font, p_char_desc, scratch, &src_buf))
         {
-            src_buf = font->pixel_buffer + p_char_desc->idx;
-        }
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
-        else
-        {
-            if (!egui_font_std_external_draw_scratch_ensure_compressed(scratch, encoded_size, &compressed_buf))
+            encoded_size = p_char_desc->size;
+
+            if (!egui_font_std_external_draw_scratch_ensure(scratch, pixel_size, &pixel_buf))
             {
                 EGUI_ASSERT(0);
                 goto cleanup;
             }
 
-            has_temp_compressed_buf = (scratch == NULL);
-            egui_api_load_external_resource(compressed_buf, (egui_uintptr_t)font->pixel_buffer, p_char_desc->idx, encoded_size);
-            src_buf = compressed_buf;
-        }
+            has_temp_pixel_buf = (scratch == NULL);
+
+            if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
+            {
+                src_buf = font->pixel_buffer + p_char_desc->idx;
+            }
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+            else
+            {
+                if (!egui_font_std_external_draw_scratch_ensure_compressed(scratch, encoded_size, &compressed_buf))
+                {
+                    EGUI_ASSERT(0);
+                    goto cleanup;
+                }
+
+                has_temp_compressed_buf = (scratch == NULL);
+                egui_api_load_external_resource(compressed_buf, (egui_uintptr_t)font->pixel_buffer, p_char_desc->idx, encoded_size);
+                src_buf = compressed_buf;
+            }
 #else
-        else
-        {
-            EGUI_ASSERT(0);
-            goto cleanup;
-        }
+            else
+            {
+                EGUI_ASSERT(0);
+                goto cleanup;
+            }
 #endif
 
-        if (font->bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4)
-        {
-            if (!egui_font_std_decode_rle4_bitmap(src_buf, encoded_size, pixel_buf, pixel_size, p_char_desc->box_w, p_char_desc->box_h, 0))
+            if (font->bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4)
+            {
+                if (!egui_font_std_decode_rle4_bitmap(src_buf, encoded_size, pixel_buf, pixel_size, p_char_desc->box_w, p_char_desc->box_h, 0))
+                {
+                    EGUI_ASSERT(0);
+                    goto cleanup;
+                }
+            }
+            else if (font->bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR)
+            {
+                if (!egui_font_std_decode_rle4_bitmap(src_buf, encoded_size, pixel_buf, pixel_size, p_char_desc->box_w, p_char_desc->box_h, 1))
+                {
+                    EGUI_ASSERT(0);
+                    goto cleanup;
+                }
+            }
+            else
             {
                 EGUI_ASSERT(0);
                 goto cleanup;
             }
-        }
-        else if (font->bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR)
-        {
-            if (!egui_font_std_decode_rle4_bitmap(src_buf, encoded_size, pixel_buf, pixel_size, p_char_desc->box_w, p_char_desc->box_h, 1))
-            {
-                EGUI_ASSERT(0);
-                goto cleanup;
-            }
-        }
-        else
-        {
-            EGUI_ASSERT(0);
-            goto cleanup;
-        }
 
-        src_buf = pixel_buf;
+            src_buf = pixel_buf;
+        }
     }
 
     if (egui_font_std_draw_loaded_glyph(font, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, src_buf, color, alpha, canvas, work_region, draw_alpha,
@@ -2791,13 +2963,11 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
     const uint8_t *pixel_buffer = font->pixel_buffer;
     const egui_font_std_draw_prefix_cache_t *prefix_cache = egui_font_std_prepare_draw_prefix_cache(font_key, font, s);
     const egui_font_std_ascii_lookup_cache_t *ascii_cache = NULL;
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     egui_font_std_external_draw_scratch_t external_draw_scratch = {
             0,
     };
-#endif
 
-    if (font == NULL || !egui_font_std_bitmap_codec_is_raw(font))
+    if (font == NULL)
     {
         return 0;
     }
@@ -2835,7 +3005,7 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
 
                 if (vis_x0 < vis_x1 && vis_y0 < vis_y1)
                 {
-                    if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
+                    if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && egui_font_std_bitmap_codec_is_raw(font))
                     {
                         egui_dim_t pfb_x = vis_x0 - pfb_base_x;
                         egui_dim_t pfb_y = vis_y0 - pfb_base_y;
@@ -2844,12 +3014,11 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
                         egui_font_std_draw_fast_4_ctx(canvas, pfb_x, pfb_y, glyph->box_w, vis_x0 - draw_x, vis_y0 - draw_y, vis_x1 - vis_x0, vis_y1 - vis_y0,
                                                       p_pixer_buffer, draw_alpha, blend_ctx);
                     }
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
                     else
                     {
                         egui_font_std_char_descriptor_t glyph_desc = {
                                 .idx = glyph->idx,
-                                .size = 0,
+                                .size = glyph->size,
                                 .box_w = glyph->box_w,
                                 .box_h = glyph->box_h,
                                 .adv = glyph->adv,
@@ -2864,7 +3033,6 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
                             goto cleanup;
                         }
                     }
-#endif
                 }
             }
             else
@@ -2955,7 +3123,7 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
             continue;
         }
 
-        if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL)
+        if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && egui_font_std_bitmap_codec_is_raw(font))
         {
             egui_dim_t draw_x = offset + p_char_desc->off_x;
             egui_dim_t draw_y = y + p_char_desc->off_y;
@@ -2976,7 +3144,6 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
 
             offset += adv;
         }
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         else
         {
             int draw_adv = egui_font_std_draw_single_char_desc_external_stream(font, p_char_desc, offset, y, color, alpha, canvas, work_region, draw_alpha,
@@ -2990,15 +3157,12 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
 
             offset += draw_adv;
         }
-#endif
     }
 
     result = str_cnt;
 
 cleanup:
-#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
     egui_font_std_external_draw_scratch_release(&external_draw_scratch);
-#endif
     return result;
 }
 
@@ -3470,7 +3634,7 @@ int egui_font_std_draw_string(const egui_font_t *self, const void *string, egui_
     }
 
 #if (!defined(EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE) || EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE) && EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
-    if (p_blend_ctx != NULL && egui_font_std_bitmap_codec_is_raw(font))
+    if (p_blend_ctx != NULL && font->font_bit_mode == 4)
     {
         str_cnt = egui_font_std_draw_string_fast_4(self->res, font, s, x, y, color, alpha, canvas, base_region, draw_alpha, p_blend_ctx);
         return str_cnt;

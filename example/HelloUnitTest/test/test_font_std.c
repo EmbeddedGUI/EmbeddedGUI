@@ -112,6 +112,7 @@ static void test_font_setup_canvas(void)
     egui_region_t pfb_region;
     egui_region_t base_region;
 
+    egui_font_std_release_frame_cache();
     memset(test_font_pfb, 0, sizeof(test_font_pfb));
     egui_region_init(&pfb_region, 0, 0, TEST_FONT_CANVAS_W, TEST_FONT_CANVAS_H);
     egui_canvas_init(test_font_pfb, &pfb_region);
@@ -125,6 +126,15 @@ static void test_font_draw_and_capture_char(const egui_font_t *font, const char 
 
     test_font_setup_canvas();
     egui_region_init(&rect, 4, 5, 6, 4);
+    egui_canvas_draw_text_in_rect(font, text, &rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
+}
+
+static void test_font_draw_and_capture_repeat_in_rect(const egui_font_t *font, const char *text)
+{
+    egui_region_t rect;
+
+    test_font_setup_canvas();
+    egui_region_init(&rect, 1, 1, 12, 6);
     egui_canvas_draw_text_in_rect(font, text, &rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_TOP, EGUI_COLOR_WHITE, EGUI_ALPHA_100);
 }
 
@@ -179,6 +189,20 @@ static void test_font_std_offscreen_compressed_glyph_skips_decode(void)
     EGUI_TEST_ASSERT_TRUE(memcmp(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb)) == 0);
 }
 
+static void test_font_std_repeated_compressed_draw_in_rect_matches_raw(void)
+{
+    static const char repeat_text[] = "ABAB\nBABA";
+
+    test_font_draw_and_capture_repeat_in_rect((const egui_font_t *)&test_font_raw, repeat_text);
+    memcpy(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb));
+
+    test_font_draw_and_capture_repeat_in_rect((const egui_font_t *)&test_font_rle4, repeat_text);
+    EGUI_TEST_ASSERT_TRUE(memcmp(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb)) == 0);
+
+    test_font_draw_and_capture_repeat_in_rect((const egui_font_t *)&test_font_rle4xor, repeat_text);
+    EGUI_TEST_ASSERT_TRUE(memcmp(expected_font_pfb, test_font_pfb, sizeof(test_font_pfb)) == 0);
+}
+
 void test_font_std_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(font_std);
@@ -186,5 +210,6 @@ void test_font_std_run(void)
     EGUI_TEST_RUN(test_font_std_odd_width_compressed_draw_matches_raw);
     EGUI_TEST_RUN(test_font_std_compressed_size_matches_raw);
     EGUI_TEST_RUN(test_font_std_offscreen_compressed_glyph_skips_decode);
+    EGUI_TEST_RUN(test_font_std_repeated_compressed_draw_in_rect_matches_raw);
     EGUI_TEST_SUITE_END();
 }
