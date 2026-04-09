@@ -84,7 +84,9 @@ def has_matching_scene_sheet(commit: str, profile_name: str) -> bool:
     if not scene_index:
         return False
 
-    return scene_index.get("git_commit") == commit and scene_index.get("profile") == profile_name
+    capture_commit = scene_index.get("git_commit")
+    results_commit = scene_index.get("perf_results_commit", capture_commit)
+    return capture_commit == commit and results_commit == commit and scene_index.get("profile") == profile_name
 
 
 # ---------------------------------------------------------------------------

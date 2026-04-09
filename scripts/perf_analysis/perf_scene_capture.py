@@ -116,6 +116,20 @@ def read_perf_results(path: Path, profile_name: str, keyword_filter: str) -> tup
     return results, data.get("git_commit", "unknown"), selected_profile
 
 
+def get_git_commit() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except Exception:
+        return "unknown"
+    return (result.stdout or "").strip() or "unknown"
+
+
 def flatten_categories(available_tests: set[str]) -> tuple[list[str], dict[str, str]]:
     ordered_names: list[str] = []
     category_map: dict[str, str] = {}
@@ -296,10 +310,8 @@ def map_scenes(
     frame_map: dict[str, Path],
     perf_results: dict[str, dict],
     keyword_filter: str,
-) -> tuple[list[SceneEntry], list[str]]:
+) -> tuple[list[SceneEntry], list[str], list[str]]:
     available_tests = set(scene_names)
-    if perf_results:
-        available_tests &= set(perf_results.keys())
 
     if keyword_filter.strip():
         keywords = [item.strip().upper() for item in keyword_filter.split(",") if item.strip()]
@@ -326,7 +338,8 @@ def map_scenes(
     ]
 
     extra_names = [name for name in scene_names if name not in available_tests]
-    return entries, extra_names
+    missing_timing_names = [name for name in ordered_names if name not in perf_results]
+    return entries, extra_names, missing_timing_names
 
 
 def load_font(size: int, bold: bool = False) -> ImageFont.ImageFont:
@@ -387,7 +400,15 @@ def measure_multiline_height(draw: ImageDraw.ImageDraw, lines: list[str], font: 
     return bbox[3] - bbox[1]
 
 
-def build_contact_sheet(entries: list[SceneEntry], output_path: Path, git_commit: str, profile_name: str, columns: int, tile_width: int) -> None:
+def build_contact_sheet(
+    entries: list[SceneEntry],
+    output_path: Path,
+    git_commit: str,
+    perf_results_commit: str,
+    profile_name: str,
+    columns: int,
+    tile_width: int,
+) -> None:
     if not entries:
         raise RuntimeError("no scene entries to compose")
     if columns <= 0:
@@ -440,7 +461,15 @@ def build_contact_sheet(entries: list[SceneEntry], output_path: Path, git_commit
     draw = ImageDraw.Draw(sheet)
 
     draw.text((outer_margin, outer_margin), "HelloPerformance Scene Contact Sheet", fill=TITLE_COLOR, font=title_font)
-    subtitle = f"QEMU perf data commit {git_commit} | profile {profile_name} | generated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    if perf_results_commit == git_commit:
+        subtitle = f"capture/perf commit {git_commit} | profile {profile_name} | generated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    elif perf_results_commit != "unknown":
+        subtitle = (
+            f"capture commit {git_commit} | stale perf commit {perf_results_commit} "
+            f"(timings hidden) | profile {profile_name}"
+        )
+    else:
+        subtitle = f"capture commit {git_commit} | scene-only sheet | profile {profile_name}"
     draw.text((outer_margin, outer_margin + 40), subtitle, fill=SUBTITLE_COLOR, font=subtitle_font)
 
     y = outer_margin + title_height
@@ -492,14 +521,24 @@ def format_output_path(path: Path) -> str:
         return str(path)
 
 
-def write_index(index_path: Path, entries: list[SceneEntry], git_commit: str, profile_name: str, frames_dir: Path, sheet_path: Path) -> None:
+def write_index(
+    index_path: Path,
+    entries: list[SceneEntry],
+    git_commit: str,
+    perf_results_commit: str,
+    profile_name: str,
+    frames_dir: Path,
+    sheet_path: Path,
+) -> None:
     payload = {
         "timestamp": datetime.now().isoformat(),
         "git_commit": git_commit,
+        "perf_results_commit": perf_results_commit,
         "profile": profile_name,
         "frames_dir": format_output_path(frames_dir),
         "sheet_path": format_output_path(sheet_path),
         "scene_count": len(entries),
+        "timed_scene_count": sum(1 for entry in entries if entry.time_ms is not None),
         "scenes": [
             {
                 "name": entry.name,
@@ -521,22 +560,32 @@ def main() -> int:
     output_path = Path(args.output)
     index_path = Path(args.index)
 
-    perf_results, git_commit, profile_name = read_perf_results(results_path, args.profile, args.filter)
+    perf_results, perf_results_commit, profile_name = read_perf_results(results_path, args.profile, args.filter)
+    git_commit = get_git_commit()
+    if perf_results and perf_results_commit != git_commit:
+        print(
+            "Warning: perf_results.json commit "
+            f"{perf_results_commit} does not match current source commit {git_commit}; "
+            "captured scenes will be kept, but timing labels will be omitted."
+        )
+        perf_results = {}
 
     build_capture_app()
     scene_names, frame_map = run_capture(frames_dir, args)
-    entries, extra_names = map_scenes(scene_names, frame_map, perf_results, args.filter)
+    entries, extra_names, missing_timing_names = map_scenes(scene_names, frame_map, perf_results, args.filter)
     if not entries:
         raise RuntimeError("no matching scenes after applying filters")
 
-    build_contact_sheet(entries, output_path, git_commit, profile_name, args.columns, args.tile_width)
-    write_index(index_path, entries, git_commit, profile_name, frames_dir, output_path)
+    build_contact_sheet(entries, output_path, git_commit, perf_results_commit, profile_name, args.columns, args.tile_width)
+    write_index(index_path, entries, git_commit, perf_results_commit, profile_name, frames_dir, output_path)
 
     print(f"Scene sheet saved: {output_path}")
     print(f"Scene index saved: {index_path}")
     print(f"Captured scenes: {len(entries)}")
     if extra_names:
         print("Skipped scenes not present in the final sheet: " + ", ".join(extra_names))
+    if missing_timing_names:
+        print("Scenes without timing labels: " + ", ".join(missing_timing_names))
     return 0
 
 

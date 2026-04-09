@@ -225,6 +225,20 @@ def parse_perf_results(output):
     return results, complete, skipped
 
 
+def _scene_sheet_matches(commit, profile_name):
+    if not SCENE_SHEET_FILE.exists() or not SCENE_INDEX_FILE.exists():
+        return False
+
+    try:
+        scene_index = json.loads(SCENE_INDEX_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+
+    capture_commit = scene_index.get("git_commit")
+    results_commit = scene_index.get("perf_results_commit", capture_commit)
+    return capture_commit == commit and results_commit == commit and scene_index.get("profile") == profile_name
+
+
 def generate_markdown_report(all_results, threshold, git_commit, skipped=None):
     """Generate Markdown performance report grouped by category."""
     profiles = sorted(all_results.keys())
@@ -250,15 +264,13 @@ def generate_markdown_report(all_results, threshold, git_commit, skipped=None):
     lines.append("")
 
     try:
-        if SCENE_SHEET_FILE.exists() and SCENE_INDEX_FILE.exists():
-            scene_index = json.loads(SCENE_INDEX_FILE.read_text(encoding="utf-8"))
-            if scene_index.get("git_commit") == git_commit and scene_index.get("profile") == profile_name:
-                lines.append("## Scene Contact Sheet")
-                lines.append("")
-                lines.append("QEMU provides the timing data. The contact sheet below is rendered with the PC simulator for scene reference.")
-                lines.append("")
-                lines.append(f"![Performance Scenes]({SCENE_SHEET_FILE.name})")
-                lines.append("")
+        if _scene_sheet_matches(git_commit, profile_name):
+            lines.append("## Scene Contact Sheet")
+            lines.append("")
+            lines.append("QEMU provides the timing data. The contact sheet below is rendered with the PC simulator for scene reference.")
+            lines.append("")
+            lines.append(f"![Performance Scenes]({SCENE_SHEET_FILE.name})")
+            lines.append("")
     except Exception:
         pass
 
@@ -977,7 +989,8 @@ def main():
             doc_img_dir = PROJECT_ROOT / "doc" / "source" / "performance" / "images"
             doc_img_dir.mkdir(parents=True, exist_ok=True)
 
-            if SCENE_SHEET_FILE.exists():
+            first_profile_name = next(iter(all_results.keys()), "")
+            if first_profile_name and _scene_sheet_matches(git_commit, first_profile_name):
                 import shutil
                 dest_scene = doc_img_dir / "perf_scenes.png"
                 shutil.copy2(SCENE_SHEET_FILE, dest_scene)
