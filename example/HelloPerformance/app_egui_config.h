@@ -61,6 +61,17 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE 1
 #endif
 
+// Small, SRAM-bounded compressed-font cache for RLE4/RLE4_XOR scenes.
+// This keeps resident heap capped at 256B plus one metadata slot
+// (~32B BSS on 32-bit MCUs), and larger glyphs stay decode-on-use.
+#ifndef EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_MAX_BYTES
+#define EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_MAX_BYTES 256
+#endif
+
+#ifndef EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS
+#define EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS 1
+#endif
+
 /*
  * Optional size-first compatibility overrides.
  *

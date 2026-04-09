@@ -210,6 +210,31 @@ extern "C" {
 #define EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS 0
 #endif
 
+/**
+ * Font cache options.
+ * Maximum total heap bytes for compressed-glyph cache.
+ * The cache stores decompressed packed4 glyph bitmaps for RLE4/RLE4_XOR fonts
+ * so repeated draws can skip per-glyph decode work across frames.
+ * Default: 0 (disabled) to avoid persistent SRAM usage. Must be set together
+ * with SLOTS. Single glyphs larger than this budget are never cached.
+ * Example: Set to 1024 with SLOTS=4 to cap persistent heap at 1KB while
+ * caching a few hot glyphs. Metadata BSS is about 32B per slot on 32-bit MCUs.
+ */
+#ifndef EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_MAX_BYTES
+#define EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_MAX_BYTES 0
+#endif
+
+/**
+ * Font cache options.
+ * Number of metadata slots for compressed-glyph cache.
+ * Each slot caches one decompressed glyph bitmap within MAX_BYTES.
+ * Default: 0 (disabled). Must be set together with MAX_BYTES.
+ * Example: Set to 4 for a small hot-glyph cache.
+ */
+#ifndef EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS
+#define EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS 0
+#endif
+
 #ifdef __cplusplus
 }
 #endif
