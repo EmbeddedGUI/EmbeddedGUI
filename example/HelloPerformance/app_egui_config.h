@@ -55,6 +55,10 @@ extern "C" {
 #define EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE 1
 #define EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE 1
 
+// Keep font RLE benchmark coverage app-local. Shared defaults stay off.
+#define EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4     1
+#define EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4_XOR 1
+
 // Enable row-band decode cache: first PFB tile decodes to cache,
 // horizontal tile neighbors blend from cache without re-decoding.
 #ifndef EGUI_CONFIG_IMAGE_CODEC_ROW_CACHE_ENABLE

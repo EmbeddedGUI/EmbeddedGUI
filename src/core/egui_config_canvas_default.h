@@ -165,6 +165,24 @@ extern "C" {
 #endif
 
 /**
+ * Font codec options.
+ * Enable support for std-font RLE4 compressed packed4 bitmaps.
+ * Default: 0 (off). Enable only when the application really uses RLE4 fonts.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4
+#define EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4 0
+#endif
+
+/**
+ * Font codec options.
+ * Enable support for std-font RLE4_XOR compressed packed4 bitmaps.
+ * Default: 0 (off). Enable only when the application really uses RLE4_XOR fonts.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4_XOR
+#define EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4_XOR 0
+#endif
+
+/**
  * Font format options.
  * Enable support for 8-bit packed std font bitmaps.
  * Default: 0 (off). Enable only when the application really uses 8bpp fonts.

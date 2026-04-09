@@ -64,9 +64,18 @@ static egui_font_std_code_lookup_cache_t g_font_std_code_lookup_cache = {
 #ifndef EGUI_CONFIG_FUNCTION_FONT_FORMAT_8
 #define EGUI_CONFIG_FUNCTION_FONT_FORMAT_8 0
 #endif
+#ifndef EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4
+#define EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4 0
+#endif
+#ifndef EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4_XOR
+#define EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4_XOR 0
+#endif
 #define EGUI_FONT_STD_DRAW_PREFIX_CACHE_ENABLED ((EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS > 0) && (EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS > 0))
 #define EGUI_FONT_STD_DRAW_PREFIX_CACHE_GLYPH_STORAGE_MAX                                                                                                      \
     ((EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS > 0) ? EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS : 1)
+#define EGUI_FONT_STD_BITMAP_CODEC_RLE4_ENABLED (EGUI_CONFIG_FUNCTION_FONT_FORMAT_4 && EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4)
+#define EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR_ENABLED (EGUI_CONFIG_FUNCTION_FONT_FORMAT_4 && EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4_XOR)
+#define EGUI_FONT_STD_BITMAP_COMPRESSED_ENABLED (EGUI_FONT_STD_BITMAP_CODEC_RLE4_ENABLED || EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR_ENABLED)
 #ifndef EGUI_FONT_STD_LINE_CACHE_MAX_LINES
 #define EGUI_FONT_STD_LINE_CACHE_MAX_LINES 16
 #endif
@@ -80,7 +89,8 @@ static egui_font_std_code_lookup_cache_t g_font_std_code_lookup_cache = {
 #define EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS 0
 #endif
 #define EGUI_FONT_STD_COMPRESSED_GLYPH_CACHE_ENABLED                                                                                                           \
-    ((EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_MAX_BYTES > 0) && (EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS > 0))
+    (EGUI_FONT_STD_BITMAP_COMPRESSED_ENABLED && (EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_MAX_BYTES > 0) &&                                               \
+     (EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS > 0))
 
 typedef uint16_t egui_font_std_ascii_index_t;
 #define EGUI_FONT_STD_ASCII_INDEX_INVALID UINT16_MAX
@@ -161,9 +171,11 @@ typedef struct
 static egui_font_std_ascii_lookup_cache_t *g_font_std_ascii_lookup_cache = NULL;
 #endif
 
+#if EGUI_FONT_STD_BITMAP_COMPRESSED_ENABLED
 static egui_font_std_external_draw_scratch_t g_font_std_compressed_draw_scratch = {
         0,
 };
+#endif
 
 #if EGUI_FONT_STD_COMPRESSED_GLYPH_CACHE_ENABLED
 static egui_font_std_compressed_glyph_cache_t g_font_std_compressed_glyph_cache[EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS];
@@ -178,17 +190,36 @@ static uint32_t g_font_std_draw_prefix_cache_stamp = 0;
 
 __EGUI_STATIC_INLINE__ const egui_font_std_char_descriptor_t *egui_font_std_get_desc_draw_fast(const egui_font_std_info_t *font, uint32_t utf8_code,
                                                                                                egui_font_std_char_descriptor_t *external_desc_scratch);
-static void egui_font_std_external_draw_scratch_release(egui_font_std_external_draw_scratch_t *scratch);
+__EGUI_STATIC_INLINE__ void egui_font_std_external_draw_scratch_release(egui_font_std_external_draw_scratch_t *scratch);
 static void egui_font_std_release_compressed_glyph_cache(void);
+static int egui_font_std_decode_supported_compressed_bitmap(uint8_t bitmap_codec, const uint8_t *src, uint32_t src_size, uint8_t *dst, uint32_t dst_size,
+                                                            egui_dim_t width, egui_dim_t height);
 
 __EGUI_STATIC_INLINE__ int egui_font_std_bitmap_codec_is_raw(const egui_font_std_info_t *font)
 {
     return font == NULL || font->bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RAW;
 }
 
+__EGUI_STATIC_INLINE__ int egui_font_std_bitmap_codec_is_supported_compressed_value(uint8_t bitmap_codec)
+{
+#if EGUI_FONT_STD_BITMAP_CODEC_RLE4_ENABLED
+    if (bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4)
+    {
+        return 1;
+    }
+#endif
+#if EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR_ENABLED
+    if (bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR)
+    {
+        return 1;
+    }
+#endif
+    return 0;
+}
+
 __EGUI_STATIC_INLINE__ int egui_font_std_bitmap_codec_is_compressed(const egui_font_std_info_t *font)
 {
-    return !egui_font_std_bitmap_codec_is_raw(font);
+    return font != NULL && egui_font_std_bitmap_codec_is_supported_compressed_value(font->bitmap_codec);
 }
 
 __EGUI_STATIC_INLINE__ egui_font_std_code_lookup_count_t egui_font_std_code_lookup_cache_store_count(uint16_t count)
@@ -344,6 +375,7 @@ static int egui_font_std_is_glyph_outside_region(egui_dim_t x, egui_dim_t y, egu
     return x >= region_x1 || y >= region_y1 || glyph_x1 <= region->location.x || glyph_y1 <= region->location.y;
 }
 
+#if EGUI_FONT_STD_BITMAP_COMPRESSED_ENABLED
 static int egui_font_std_decode_rle4_bitmap(const uint8_t *src, uint32_t src_size, uint8_t *dst, uint32_t dst_size, egui_dim_t width, egui_dim_t height,
                                             int use_row_xor)
 {
@@ -566,6 +598,7 @@ static int egui_font_std_decode_rle4_bitmap(const uint8_t *src, uint32_t src_siz
 
     return src_offset == src_size;
 }
+#endif
 
 static void egui_font_std_release_ascii_lookup_cache(void)
 {
@@ -1231,7 +1264,9 @@ void egui_font_std_release_frame_cache(void)
     egui_font_std_release_ascii_lookup_cache();
     egui_font_std_release_line_cache();
     egui_font_std_release_compressed_glyph_cache();
+#if EGUI_FONT_STD_BITMAP_COMPRESSED_ENABLED
     egui_font_std_external_draw_scratch_release(&g_font_std_compressed_draw_scratch);
+#endif
 }
 
 void egui_font_std_release_access(egui_font_std_access_t *access)
@@ -1420,6 +1455,32 @@ __EGUI_STATIC_INLINE__ void egui_font_std_blend_pixel_ctx_partial(egui_color_int
 #else
     egui_font_std_blend_pixel(dst, ctx->color, alpha);
 #endif
+}
+
+static int egui_font_std_decode_supported_compressed_bitmap(uint8_t bitmap_codec, const uint8_t *src, uint32_t src_size, uint8_t *dst, uint32_t dst_size,
+                                                            egui_dim_t width, egui_dim_t height)
+{
+#if EGUI_FONT_STD_BITMAP_CODEC_RLE4_ENABLED
+    if (bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4)
+    {
+        return egui_font_std_decode_rle4_bitmap(src, src_size, dst, dst_size, width, height, 0);
+    }
+#endif
+#if EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR_ENABLED
+    if (bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR)
+    {
+        return egui_font_std_decode_rle4_bitmap(src, src_size, dst, dst_size, width, height, 1);
+    }
+#endif
+
+    (void)bitmap_codec;
+    (void)src;
+    (void)src_size;
+    (void)dst;
+    (void)dst_size;
+    (void)width;
+    (void)height;
+    return 0;
 }
 
 #if (!defined(EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE) || EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE) && EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
@@ -2576,7 +2637,7 @@ static int egui_font_std_external_draw_scratch_ensure_compressed(egui_font_std_e
 }
 #endif
 
-static void egui_font_std_external_draw_scratch_release(egui_font_std_external_draw_scratch_t *scratch)
+__EGUI_STATIC_INLINE__ void egui_font_std_external_draw_scratch_release(egui_font_std_external_draw_scratch_t *scratch)
 {
     if (scratch == NULL)
     {
@@ -2822,21 +2883,8 @@ static int egui_font_std_prepare_compressed_glyph_pixels(const egui_font_std_inf
     }
 #endif
 
-    if (font->bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4)
-    {
-        if (!egui_font_std_decode_rle4_bitmap(src_buf, p_char_desc->size, cache->pixel_buf, pixel_size, p_char_desc->box_w, p_char_desc->box_h, 0))
-        {
-            goto fail;
-        }
-    }
-    else if (font->bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR)
-    {
-        if (!egui_font_std_decode_rle4_bitmap(src_buf, p_char_desc->size, cache->pixel_buf, pixel_size, p_char_desc->box_w, p_char_desc->box_h, 1))
-        {
-            goto fail;
-        }
-    }
-    else
+    if (!egui_font_std_decode_supported_compressed_bitmap(font->bitmap_codec, src_buf, p_char_desc->size, cache->pixel_buf, pixel_size, p_char_desc->box_w,
+                                                          p_char_desc->box_h))
     {
         goto fail;
     }
@@ -3050,23 +3098,8 @@ static int egui_font_std_draw_single_char_desc_external_stream(const egui_font_s
             }
 #endif
 
-            if (font->bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4)
-            {
-                if (!egui_font_std_decode_rle4_bitmap(src_buf, encoded_size, pixel_buf, pixel_size, p_char_desc->box_w, p_char_desc->box_h, 0))
-                {
-                    EGUI_ASSERT(0);
-                    goto cleanup;
-                }
-            }
-            else if (font->bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR)
-            {
-                if (!egui_font_std_decode_rle4_bitmap(src_buf, encoded_size, pixel_buf, pixel_size, p_char_desc->box_w, p_char_desc->box_h, 1))
-                {
-                    EGUI_ASSERT(0);
-                    goto cleanup;
-                }
-            }
-            else
+            if (!egui_font_std_decode_supported_compressed_bitmap(font->bitmap_codec, src_buf, encoded_size, pixel_buf, pixel_size, p_char_desc->box_w,
+                                                                  p_char_desc->box_h))
             {
                 EGUI_ASSERT(0);
                 goto cleanup;
@@ -3120,10 +3153,12 @@ static int egui_font_std_draw_single_char_desc(const egui_font_std_info_t *font,
         {
             egui_font_std_external_draw_scratch_t *scratch = NULL;
 
+#if EGUI_FONT_STD_BITMAP_COMPRESSED_ENABLED
             if (font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && egui_font_std_bitmap_codec_is_compressed(font))
             {
                 scratch = &g_font_std_compressed_draw_scratch;
             }
+#endif
 
             return egui_font_std_draw_single_char_desc_external_stream(font, p_char_desc, x, y, color, alpha, canvas, work_region, draw_alpha, blend_ctx, scratch);
         }
@@ -3331,21 +3366,8 @@ static int egui_font_std_prepare_string_fast_4_pixels(const egui_font_std_info_t
     }
 #endif
 
-    if (font->bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4)
-    {
-        if (!egui_font_std_decode_rle4_bitmap(src_buf, p_char_desc->size, scratch_pixel_buf, pixel_size, p_char_desc->box_w, p_char_desc->box_h, 0))
-        {
-            return 0;
-        }
-    }
-    else if (font->bitmap_codec == EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR)
-    {
-        if (!egui_font_std_decode_rle4_bitmap(src_buf, p_char_desc->size, scratch_pixel_buf, pixel_size, p_char_desc->box_w, p_char_desc->box_h, 1))
-        {
-            return 0;
-        }
-    }
-    else
+    if (!egui_font_std_decode_supported_compressed_bitmap(font->bitmap_codec, src_buf, p_char_desc->size, scratch_pixel_buf, pixel_size, p_char_desc->box_w,
+                                                          p_char_desc->box_h))
     {
         return 0;
     }
