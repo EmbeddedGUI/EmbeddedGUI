@@ -1173,10 +1173,9 @@ static void egui_debug_perf_record_work_time(uint32_t render_time, uint32_t flus
 #endif
 
 #if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
-static void egui_debug_bytes_to_kb_tenth(size_t bytes, uint64_t *kb_int, uint64_t *kb_tenth)
+static void egui_debug_bytes_to_kb_tenth(uint32_t bytes, uint32_t *kb_int, uint32_t *kb_tenth)
 {
-    uint64_t bytes_u64 = (uint64_t)bytes;
-    uint64_t whole = bytes_u64 / 1024U;
+    uint32_t whole = bytes / 1024U;
 
     if (kb_int != NULL)
     {
@@ -1185,29 +1184,29 @@ static void egui_debug_bytes_to_kb_tenth(size_t bytes, uint64_t *kb_int, uint64_
 
     if (kb_tenth != NULL)
     {
-        *kb_tenth = (bytes_u64 - whole * 1024U) / 102U;
+        *kb_tenth = (bytes - whole * 1024U) / 102U;
     }
 }
 
 static uint8_t egui_debug_set_mem_text(const egui_mem_monitor_t *monitor)
 {
     char next_string[EGUI_DEBUG_MONITOR_TEXT_MAX_LEN];
-    size_t used_size = 0U;
-    uint64_t used_kb = 0U;
-    uint64_t used_kb_tenth = 0U;
-    uint64_t max_used_kb = 0U;
-    uint64_t max_used_kb_tenth = 0U;
+    uint32_t used_size = 0U;
+    uint32_t used_kb = 0U;
+    uint32_t used_kb_tenth = 0U;
+    uint32_t max_used_kb = 0U;
+    uint32_t max_used_kb_tenth = 0U;
 
     if (monitor != NULL)
     {
-        used_size = monitor->used_size;
+        used_size = (uint32_t)monitor->used_size;
     }
 
     egui_debug_bytes_to_kb_tenth(used_size, &used_kb, &used_kb_tenth);
-    egui_debug_bytes_to_kb_tenth(monitor != NULL ? monitor->max_used : 0U, &max_used_kb, &max_used_kb_tenth);
+    egui_debug_bytes_to_kb_tenth(monitor != NULL ? (uint32_t)monitor->max_used : 0U, &max_used_kb, &max_used_kb_tenth);
 
-    egui_api_sprintf(next_string, "%llu.%llu kB\n%llu.%llu kB max", (unsigned long long)used_kb, (unsigned long long)used_kb_tenth,
-                     (unsigned long long)max_used_kb, (unsigned long long)max_used_kb_tenth);
+    egui_api_sprintf(next_string, "%lu.%lu kB\n%lu.%lu kB max", (unsigned long)used_kb, (unsigned long)used_kb_tenth,
+                     (unsigned long)max_used_kb, (unsigned long)max_used_kb_tenth);
 
     return egui_debug_overlay_set_text(&debug_mem_overlay, next_string);
 }
