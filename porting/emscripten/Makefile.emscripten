@@ -134,7 +134,7 @@ endif
 
 OUTPUT_MAIN := $(OUTPUT_PATH)/$(MAIN)
 OUTPUT_MAIN_DATA := $(OUTPUT_PATH)/$(basename $(MAIN)).data
-APP_RESOURCE_CONFIG := $(wildcard $(EGUI_APP_RESOURCE_PATH)/src/app_resource_config.json)
+APP_RESOURCE_CONFIG := $(wildcard $(EGUI_APP_RESOURCE_PATH)/src/app_resource_config.json $(EGUI_APP_RESOURCE_PATH)/src/.designer/app_resource_config_designer.json $(EGUI_APP_RESOURCE_PATH)/src/app_resource_config_designer.json)
 OUTPUT_MAIN_RESOURCE :=
 RESOURCE_OUTPUT_ARG :=
 ifneq ($(strip $(APP_RESOURCE_CONFIG)),)

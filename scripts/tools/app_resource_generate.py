@@ -2,6 +2,7 @@ import os
 import shutil
 import argparse
 import subprocess
+import json
 import json5
 import ttf2c
 import img2c
@@ -9,6 +10,10 @@ import img2c
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BUILD_IN_DIR = os.path.join(SCRIPT_DIR, 'build_in')
+APP_RESOURCE_CONFIG_FILE_NAME = 'app_resource_config.json'
+APP_RESOURCE_CONFIG_DESIGNER_FILE_NAME = 'app_resource_config_designer.json'
+APP_RESOURCE_CONFIG_MERGED_FILE_NAME = '.app_resource_config_merged.json'
+DESIGNER_RESOURCE_DIR_NAME = '.designer'
 
 
 app_egui_resource_generate_h_string="""
@@ -316,6 +321,147 @@ def format_saved_percent(saved_percent):
     if abs(saved_percent) < 0.05:
         saved_percent = 0.0
     return f"{saved_percent:.1f}%"
+
+def designer_resource_dir(resource_src_path):
+    return os.path.join(resource_src_path, DESIGNER_RESOURCE_DIR_NAME)
+
+
+def designer_resource_config_path(resource_src_path):
+    return os.path.join(designer_resource_dir(resource_src_path), APP_RESOURCE_CONFIG_DESIGNER_FILE_NAME)
+
+
+def merged_resource_config_path(resource_src_path):
+    return os.path.join(designer_resource_dir(resource_src_path), APP_RESOURCE_CONFIG_MERGED_FILE_NAME)
+
+
+def _norm_resource_value(value):
+    return str(value or '').strip()
+
+
+def _resource_identity(section, entry):
+    if section == 'img':
+        return (
+            'img',
+            _norm_resource_value(entry.get('name')),
+            _norm_resource_value(entry.get('file')),
+            _norm_resource_value(entry.get('format', 'rgb565')),
+            _norm_resource_value(entry.get('alpha', '4')),
+            _norm_resource_value(entry.get('dim')),
+            _norm_resource_value(entry.get('rot')),
+        )
+    if section == 'font':
+        return (
+            'font',
+            _norm_resource_value(entry.get('name')),
+            _norm_resource_value(entry.get('file')),
+            _norm_resource_value(entry.get('pixelsize', '16')),
+            _norm_resource_value(entry.get('fontbitsize', '4')),
+            _norm_resource_value(entry.get('weight')),
+        )
+    if section == 'mp4':
+        return (
+            'mp4',
+            _norm_resource_value(entry.get('name')),
+            _norm_resource_value(entry.get('file')),
+            _norm_resource_value(entry.get('fps', '10')),
+            _norm_resource_value(entry.get('width', '0')),
+            _norm_resource_value(entry.get('height', '0')),
+            _norm_resource_value(entry.get('format', 'rgb565')),
+            _norm_resource_value(entry.get('alpha', '0')),
+        )
+    return (section, json.dumps(entry, sort_keys=True, ensure_ascii=False))
+
+
+def _merge_font_text_field(base_value, overlay_value):
+    merged = []
+    for raw in (base_value, overlay_value):
+        for item in str(raw or '').split(','):
+            normalized = item.strip()
+            if normalized and normalized not in merged:
+                merged.append(normalized)
+    return ','.join(merged)
+
+
+def _merge_resource_section(section, designer_entries, user_entries):
+    ordered = {}
+
+    for entry in designer_entries or []:
+        if not isinstance(entry, dict):
+            continue
+        ordered[_resource_identity(section, entry)] = dict(entry)
+
+    for entry in user_entries or []:
+        if not isinstance(entry, dict):
+            continue
+        identity = _resource_identity(section, entry)
+        if identity not in ordered:
+            ordered[identity] = dict(entry)
+            continue
+
+        merged = dict(ordered[identity])
+        for key, value in entry.items():
+            if section == 'font' and key == 'text':
+                merged['text'] = _merge_font_text_field(ordered[identity].get('text'), value)
+            else:
+                merged[key] = value
+        ordered[identity] = merged
+
+    return list(ordered.values())
+
+
+def merge_resource_configs(designer_config, user_config):
+    merged = {
+        'img': [],
+        'font': [],
+    }
+    designer_config = designer_config or {}
+    user_config = user_config or {}
+
+    for section in ('img', 'font', 'mp4'):
+        merged[section] = _merge_resource_section(
+            section,
+            designer_config.get(section, []),
+            user_config.get(section, []),
+        )
+
+    passthrough_keys = set(designer_config.keys()) | set(user_config.keys())
+    passthrough_keys -= {'img', 'font', 'mp4'}
+    for key in sorted(passthrough_keys):
+        if key in user_config:
+            merged[key] = user_config[key]
+        else:
+            merged[key] = designer_config[key]
+
+    return merged
+
+
+def load_effective_config_info(resource_src_path, config_file_path=None):
+    if config_file_path:
+        return load_config_info(config_file_path)
+
+    user_config_path = os.path.join(resource_src_path, APP_RESOURCE_CONFIG_FILE_NAME)
+    user_config = load_config_info(user_config_path)
+    designer_config = None
+    for path in (
+        designer_resource_config_path(resource_src_path),
+        os.path.join(resource_src_path, APP_RESOURCE_CONFIG_DESIGNER_FILE_NAME),
+    ):
+        designer_config = load_config_info(path)
+        if designer_config is not None:
+            break
+
+    if designer_config is None and user_config is None:
+        return None
+
+    if designer_config is None:
+        return user_config
+
+    effective_config = merge_resource_configs(designer_config, user_config)
+    merged_config_path = merged_resource_config_path(resource_src_path)
+    os.makedirs(os.path.dirname(merged_config_path), exist_ok=True)
+    with open(merged_config_path, 'w', encoding='utf-8') as f:
+        json.dump(effective_config, f, indent=4, ensure_ascii=False)
+    return effective_config
 
 class ImageResourceInfo:
     def __init__(self, config):
@@ -732,8 +878,8 @@ def _generate_mp4_frame_header(name, tools, header_path):
     print(f"Generated MP4 header: {header_path}")
 
 
-def generate_resource(resource_path, output_path, force, output_bin_path=None):
-    # 解析app_resource_config.json文件
+def generate_resource(resource_path, output_path, force, output_bin_path=None, config_file_path=None):
+    # Parse the effective resource config (user overlay + designer config).
     resource_src_path = os.path.join(resource_path, 'src')
     img_res_output_path = os.path.join(resource_path, 'img')
     font_res_output_path = os.path.join(resource_path, 'font')
@@ -759,10 +905,9 @@ def generate_resource(resource_path, output_path, force, output_bin_path=None):
     if os.path.exists(resource_bin_merge_file):
         os.remove(resource_bin_merge_file)
 
-    config_file_path = os.path.join(resource_src_path, 'app_resource_config.json')
-    config_info = load_config_info(config_file_path)
+    config_info = load_effective_config_info(resource_src_path, config_file_path)
     if config_info is None:
-        print("app_resource_config.json is not exist")
+        print(f"{APP_RESOURCE_CONFIG_FILE_NAME} / {APP_RESOURCE_CONFIG_DESIGNER_FILE_NAME} is not exist")
         return
 
     # 先清除上一次的资源
@@ -954,7 +1099,7 @@ def generate_resource(resource_path, output_path, force, output_bin_path=None):
 
             text_file_string = ""
             for file in tool.text_file:
-                text_file_name = os.path.basename(file)
+                text_file_name = os.path.relpath(file, resource_src_path).replace('\\', '/')
                 text_file_string += f"[{text_file_name}](src/{text_file_name})"
                 text_file_string += " "
             f.write(f"| {tool.font_name} | {metrics['raw_total_size']} | {metrics['encoded_total_size']} | {metrics['saved_size']} | "
@@ -1036,8 +1181,9 @@ def parse_args():
     parser.add_argument('-o', "--output", nargs='?', type = str,  required=True, help="Output path")
     parser.add_argument('-f', "--force", nargs='?', type = bool,  required=False, default=False, help="Force to generate resource files")
     parser.add_argument("--output-bin-path", nargs='?', type=str, required=False, default=None, help="Override merged resource bin output path")
+    parser.add_argument("--config", nargs='?', type=str, required=False, default=None, help="Override resource config path")
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = parse_args()
-    generate_resource(args.resource, args.output, args.force, args.output_bin_path)
+    generate_resource(args.resource, args.output, args.force, args.output_bin_path, args.config)

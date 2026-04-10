@@ -330,12 +330,9 @@ def detect_font_type(font_filename):
 # ---------------------------------------------------------------------------
 
 def load_resource_config(resource_src_dir):
-    config_path = os.path.join(resource_src_dir, 'app_resource_config.json')
-    if not os.path.exists(config_path):
-        return None
-    with open(config_path, encoding='utf-8') as f:
-        content = re.sub(r'//[^\n]*', '', f.read())  # strip json5 comments
-        return json.loads(content)
+    from app_resource_generate import load_effective_config_info
+
+    return load_effective_config_info(resource_src_dir)
 
 
 # ---------------------------------------------------------------------------
@@ -414,7 +411,7 @@ def main():
     # ------------------------------------------------------------------
     config = load_resource_config(resource_src_dir)
     if config is None:
-        print(f'ERROR: app_resource_config.json not found in {resource_src_dir}')
+        print(f'ERROR: resource config not found in {resource_src_dir}')
         sys.exit(1)
 
     font_entries = config.get('font', [])
@@ -472,8 +469,11 @@ def main():
         if not text_file_cfg:
             continue
 
-        # Use the first text file listed (comma-separated list supported by pipeline)
-        text_filename = text_file_cfg.split(',')[0].strip()
+        text_candidates = [item.strip() for item in text_file_cfg.split(',') if item.strip()]
+        if not text_candidates:
+            continue
+        user_text_candidates = [item for item in text_candidates if not item.replace('\\', '/').startswith('.designer/')]
+        text_filename = user_text_candidates[0] if user_text_candidates else text_candidates[0]
         output_path = os.path.join(resource_src_dir, text_filename)
 
         font_type = detect_font_type(font_file)
@@ -526,6 +526,7 @@ def main():
             print(f'  All strings already present, no changes needed.')
             continue
 
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
         with open(output_path, 'w', encoding='utf-8') as f:
             for line in out_lines:
                 f.write(line + '\n')
