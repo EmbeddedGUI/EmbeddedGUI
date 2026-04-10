@@ -33,6 +33,7 @@ typedef struct file_image_demo_card
     egui_view_label_t title;
     egui_view_image_t image;
     egui_view_label_t status;
+    char status_text[32];
 } file_image_demo_card_t;
 
 static egui_view_group_t root_group;
@@ -71,24 +72,71 @@ static void file_image_demo_init_label(egui_view_label_t *label, egui_dim_t x, e
     egui_view_label_set_font_color(EGUI_VIEW_OF(label), color, EGUI_ALPHA_100);
 }
 
-static const char *file_image_demo_get_status_text(const egui_image_file_t *image)
+static void file_image_demo_copy_text(char *dst, uint32_t dst_size, const char *src)
 {
-    egui_image_file_status_t status = egui_image_file_get_status(image);
-    const char *decoder_name = egui_image_file_get_decoder_name(image);
+    uint32_t i;
 
-    if (status == EGUI_IMAGE_FILE_STATUS_READY && decoder_name != NULL)
+    if (dst == NULL || dst_size == 0)
     {
-        return decoder_name;
+        return;
+    }
+    if (src == NULL)
+    {
+        dst[0] = '\0';
+        return;
     }
 
-    return egui_image_file_status_to_string(status);
+    for (i = 0; i + 1 < dst_size && src[i] != '\0'; i++)
+    {
+        dst[i] = src[i];
+    }
+    dst[i] = '\0';
+}
+
+static void file_image_demo_build_status_text(char *dst, uint32_t dst_size, const egui_image_file_t *image, const egui_image_file_t *placeholder_image)
+{
+    egui_image_file_status_t status;
+    const char *decoder_name;
+    const char *placeholder_text = NULL;
+
+    if (dst == NULL || dst_size == 0)
+    {
+        return;
+    }
+
+    status = egui_image_file_get_status(image);
+    decoder_name = egui_image_file_get_decoder_name(image);
+    if (status == EGUI_IMAGE_FILE_STATUS_READY && decoder_name != NULL)
+    {
+        file_image_demo_copy_text(dst, dst_size, decoder_name);
+        return;
+    }
+
+    if (placeholder_image != NULL)
+    {
+        placeholder_text = egui_image_file_get_decoder_name(placeholder_image);
+        if (placeholder_text == NULL)
+        {
+            placeholder_text = egui_image_file_status_to_string(egui_image_file_get_status(placeholder_image));
+        }
+    }
+
+    if (placeholder_text != NULL)
+    {
+        file_image_demo_copy_text(dst, dst_size, "ph:");
+        file_image_demo_copy_text(dst + 3, dst_size > 3 ? dst_size - 3 : 0, placeholder_text);
+        return;
+    }
+
+    file_image_demo_copy_text(dst, dst_size, egui_image_file_status_to_string(status));
 }
 
 static void file_image_demo_init_card(file_image_demo_card_t *card, egui_dim_t x, egui_dim_t y, const char *title, egui_image_file_t *image, int resize_mode,
-                                      egui_dim_t image_width, egui_dim_t image_height)
+                                      egui_dim_t image_width, egui_dim_t image_height, const egui_image_file_t *placeholder_image)
 {
-    const char *status_text = file_image_demo_get_status_text(image);
     egui_dim_t image_x = x + (CARD_W - image_width) / 2;
+
+    file_image_demo_build_status_text(card->status_text, sizeof(card->status_text), image, placeholder_image);
 
     egui_view_init(EGUI_VIEW_OF(&card->panel));
     egui_view_set_position(EGUI_VIEW_OF(&card->panel), x, y);
@@ -96,7 +144,7 @@ static void file_image_demo_init_card(file_image_demo_card_t *card, egui_dim_t x
     egui_view_set_background(EGUI_VIEW_OF(&card->panel), EGUI_BG_OF(&bg_card));
 
     file_image_demo_init_label(&card->title, x, y + 4, CARD_W, 14, title, EGUI_COLOR_HEX(0x0F172A));
-    file_image_demo_init_label(&card->status, x, y + CARD_STATUS_Y, CARD_W, CARD_STATUS_H, status_text, EGUI_COLOR_HEX(0x475569));
+    file_image_demo_init_label(&card->status, x, y + CARD_STATUS_Y, CARD_W, CARD_STATUS_H, card->status_text, EGUI_COLOR_HEX(0x475569));
 
     egui_view_image_init(EGUI_VIEW_OF(&card->image));
     egui_view_set_position(EGUI_VIEW_OF(&card->image), image_x, y + CARD_IMAGE_Y);
@@ -136,12 +184,12 @@ void test_init_ui(void)
     file_image_demo_prepare_image(&resize_image, FILE_IMAGE_JPG, NULL);
     file_image_demo_prepare_image(&missing_image, FILE_IMAGE_MISSING, (const egui_image_t *)&png_image);
 
-    file_image_demo_init_card(&jpg_card, CARD_LEFT_X, CARD_ROW0_Y, "JPG Stream", &jpg_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H);
-    file_image_demo_init_card(&png_card, CARD_RIGHT_X, CARD_ROW0_Y, "PNG Alpha", &png_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H);
-    file_image_demo_init_card(&bmp_card, CARD_LEFT_X, CARD_ROW1_Y, "BMP Stream", &bmp_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H);
-    file_image_demo_init_card(&resize_card, CARD_RIGHT_X, CARD_ROW1_Y, "JPG Stream Resize", &resize_image, EGUI_VIEW_IMAGE_TYPE_RESIZE, 96, 40);
+    file_image_demo_init_card(&jpg_card, CARD_LEFT_X, CARD_ROW0_Y, "JPG Stream", &jpg_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H, NULL);
+    file_image_demo_init_card(&png_card, CARD_RIGHT_X, CARD_ROW0_Y, "PNG Alpha", &png_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H, NULL);
+    file_image_demo_init_card(&bmp_card, CARD_LEFT_X, CARD_ROW1_Y, "BMP Stream", &bmp_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H, NULL);
+    file_image_demo_init_card(&resize_card, CARD_RIGHT_X, CARD_ROW1_Y, "JPG Stream Resize", &resize_image, EGUI_VIEW_IMAGE_TYPE_RESIZE, 96, 40, NULL);
     file_image_demo_init_card(&missing_card, CARD_LEFT_X, CARD_ROW2_Y, "Missing -> PNG", &missing_image, EGUI_VIEW_IMAGE_TYPE_RESIZE, CARD_IMAGE_W,
-                              CARD_IMAGE_H);
+                              CARD_IMAGE_H, &png_image);
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&root_group));
 }
