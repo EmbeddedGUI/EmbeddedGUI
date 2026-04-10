@@ -21,11 +21,10 @@
 #define CARD_IMAGE_Y  20
 #define CARD_STATUS_Y 78
 
-#define FILE_IMAGE_ASSET_DIR "example/HelloBasic/file_image/files/"
-#define FILE_IMAGE_JPG       FILE_IMAGE_ASSET_DIR "sample_landscape.jpg"
-#define FILE_IMAGE_PNG       FILE_IMAGE_ASSET_DIR "sample_overlay.png"
-#define FILE_IMAGE_BMP       FILE_IMAGE_ASSET_DIR "sample_badge.bmp"
-#define FILE_IMAGE_MISSING   FILE_IMAGE_ASSET_DIR "missing_file.png"
+#define FILE_IMAGE_JPG     "sample_landscape.jpg"
+#define FILE_IMAGE_PNG     "sample_overlay.png"
+#define FILE_IMAGE_BMP     "sample_badge.bmp"
+#define FILE_IMAGE_MISSING "missing_file.png"
 
 typedef struct file_image_demo_card
 {
@@ -43,6 +42,11 @@ static file_image_demo_card_t png_card;
 static file_image_demo_card_t bmp_card;
 static file_image_demo_card_t resize_card;
 static file_image_demo_card_t missing_card;
+
+static file_image_stdio_context_t file_image_stdio_ctx = {
+        .root_prefix = "example/HelloBasic/file_image/files/",
+};
+static egui_image_file_io_t file_image_io;
 
 static egui_image_file_t jpg_image;
 static egui_image_file_t png_image;
@@ -171,8 +175,9 @@ void test_init_ui(void)
     egui_view_group_init_with_params(EGUI_VIEW_OF(&root_group), &root_group_p);
     egui_view_set_background(EGUI_VIEW_OF(&root_group), EGUI_BG_OF(&bg_root));
 
-    /* Swap this to a FATFS/SD adapter on MCU targets. */
-    egui_image_file_set_default_io(&g_file_image_stdio_io);
+    /* Paths below stay as logical file names; swap only the IO adapter on MCU targets. */
+    file_image_stdio_io_init(&file_image_io, &file_image_stdio_ctx);
+    egui_image_file_set_default_io(&file_image_io);
     egui_image_file_clear_decoders();
     egui_image_file_register_decoder(&g_file_image_bmp_stream_decoder);
     /* Register a chip/vendor JPEG decoder here before TJpgDec on MCU targets. */

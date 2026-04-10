@@ -41,6 +41,6 @@ egui_image_file_set_default_io(&g_file_io);
 - 如果你的 app 直接传完整路径，也可以把 `root_prefix` 设为 `NULL` 或空字符串。
 
 落地建议：
-- 在 MCU 上把当前示例里的 `g_file_image_stdio_io` 替换成这个 `FatFs` 模板。
+- 在 MCU 上把当前示例里的 `stdio` root-prefix IO 初始化替换成这个 `FatFs` 模板。
 - decoder 仍然按芯片能力自行组合，例如 `BMP stream -> vendor JPEG -> TJpgDec -> stb_image`。
 - 如果需要缓存目录、做路径映射或多分区切换，可以在 `file_image_fatfs_context_t` 上继续扩展。
