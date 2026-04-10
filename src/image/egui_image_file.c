@@ -706,6 +706,16 @@ egui_image_file_status_t egui_image_file_get_status(const egui_image_file_t *sel
     return (egui_image_file_status_t)self->status;
 }
 
+const char *egui_image_file_get_decoder_name(const egui_image_file_t *self)
+{
+    if (self == NULL || self->decoder == NULL || self->decoder->name == NULL || self->decoder->name[0] == '\0')
+    {
+        return NULL;
+    }
+
+    return self->decoder->name;
+}
+
 const char *egui_image_file_status_to_string(egui_image_file_status_t status)
 {
     switch (status)

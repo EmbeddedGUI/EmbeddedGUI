@@ -98,6 +98,7 @@ void egui_image_file_set_placeholder(egui_image_file_t *self, const egui_image_t
 int egui_image_file_reload(egui_image_file_t *self);
 
 egui_image_file_status_t egui_image_file_get_status(const egui_image_file_t *self);
+const char *egui_image_file_get_decoder_name(const egui_image_file_t *self);
 const char *egui_image_file_status_to_string(egui_image_file_status_t status);
 
 #endif /* EGUI_CONFIG_FUNCTION_IMAGE_FILE */

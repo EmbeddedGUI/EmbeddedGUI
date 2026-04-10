@@ -71,10 +71,23 @@ static void file_image_demo_init_label(egui_view_label_t *label, egui_dim_t x, e
     egui_view_label_set_font_color(EGUI_VIEW_OF(label), color, EGUI_ALPHA_100);
 }
 
+static const char *file_image_demo_get_status_text(const egui_image_file_t *image)
+{
+    egui_image_file_status_t status = egui_image_file_get_status(image);
+    const char *decoder_name = egui_image_file_get_decoder_name(image);
+
+    if (status == EGUI_IMAGE_FILE_STATUS_READY && decoder_name != NULL)
+    {
+        return decoder_name;
+    }
+
+    return egui_image_file_status_to_string(status);
+}
+
 static void file_image_demo_init_card(file_image_demo_card_t *card, egui_dim_t x, egui_dim_t y, const char *title, egui_image_file_t *image, int resize_mode,
                                       egui_dim_t image_width, egui_dim_t image_height)
 {
-    const char *status_text = egui_image_file_status_to_string(egui_image_file_get_status(image));
+    const char *status_text = file_image_demo_get_status_text(image);
     egui_dim_t image_x = x + (CARD_W - image_width) / 2;
 
     egui_view_init(EGUI_VIEW_OF(&card->panel));
