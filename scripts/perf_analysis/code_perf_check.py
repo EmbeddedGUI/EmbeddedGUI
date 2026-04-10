@@ -323,16 +323,35 @@ def read_screen_size():
     """
     default_w = 240
     default_h = 320
-    try:
-        text = APP_CONFIG_PATH.read_text(encoding="utf-8")
-        w = h = None
+
+    def _read_macros(path):
+        text = path.read_text(encoding="utf-8")
+        width = height = None
         for line in text.splitlines():
             m = re.match(r"\s*#\s*define\s+EGUI_CONFIG_SCEEN_WIDTH\s+(\d+)", line)
             if m:
-                w = int(m.group(1))
+                width = int(m.group(1))
             m = re.match(r"\s*#\s*define\s+EGUI_CONFIG_SCEEN_HEIGHT\s+(\d+)", line)
             if m:
-                h = int(m.group(1))
+                height = int(m.group(1))
+        return text, width, height
+
+    try:
+        text, w, h = _read_macros(APP_CONFIG_PATH)
+        if w is None or h is None:
+            match = re.search(
+                r'^\s*#\s*include\s+"(?P<path>[^"]*app_egui_config_designer\.h)"\s*$',
+                text,
+                re.MULTILINE,
+            )
+            if match:
+                designer_path = (APP_CONFIG_PATH.parent / match.group("path")).resolve()
+                if designer_path.exists():
+                    _, designer_w, designer_h = _read_macros(designer_path)
+                    if w is None:
+                        w = designer_w
+                    if h is None:
+                        h = designer_h
         return (w if w is not None else default_w, h if h is not None else default_h)
     except Exception:
         pass

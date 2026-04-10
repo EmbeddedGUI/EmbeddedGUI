@@ -118,6 +118,25 @@ def parse_define_int(content, macro_name, default):
     return int(number_match.group(0))
 
 
+def get_designer_config_path(config_path):
+    """Resolve a local app_egui_config_designer.h include from one wrapper header."""
+    try:
+        content = config_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    match = re.search(
+        r'^\s*#\s*include\s+"(?P<path>[^"]*app_egui_config_designer\.h)"\s*$',
+        content,
+        re.MULTILINE,
+    )
+    if not match:
+        return None
+
+    designer_path = (config_path.parent / match.group("path")).resolve()
+    return designer_path if designer_path.exists() else None
+
+
 def get_config_paths(root_dir, app, app_sub=None):
     """Return candidate app config paths from most specific to least specific."""
     config_paths = []
@@ -125,6 +144,18 @@ def get_config_paths(root_dir, app, app_sub=None):
         config_paths.append(Path(root_dir) / "example" / app / app_sub / "app_egui_config.h")
     config_paths.append(Path(root_dir) / "example" / app / "app_egui_config.h")
     return config_paths
+
+
+def get_effective_config_paths(root_dir, app, app_sub=None):
+    """Return the wrapper config and its local designer include when present."""
+    config_path = get_config_path(root_dir, app, app_sub)
+    if config_path is None:
+        return []
+    paths = [config_path]
+    designer_path = get_designer_config_path(config_path)
+    if designer_path is not None:
+        paths.append(designer_path)
+    return paths
 
 
 @lru_cache(maxsize=None)
@@ -139,11 +170,14 @@ def get_config_path(root_dir, app, app_sub=None):
 @lru_cache(maxsize=None)
 def get_config_hash(root_dir, app, app_sub=None):
     """Hash the effective config so same-config demos can reuse object files."""
-    config_path = get_config_path(root_dir, app, app_sub)
-    if config_path is None:
+    config_paths = get_effective_config_paths(root_dir, app, app_sub)
+    if not config_paths:
         return "default"
 
-    digest = hashlib.sha256(config_path.read_bytes()).hexdigest()
+    digest = hashlib.sha256()
+    for path in config_paths:
+        digest.update(str(path).encode("utf-8"))
+        digest.update(path.read_bytes())
     return digest[:12]
 
 
@@ -156,14 +190,23 @@ def get_shared_obj_suffix(root_dir, app, app_sub=None):
 
 def get_screen_size(root_dir, app, app_sub=None):
     """Read app screen size from the most specific app_egui_config.h."""
-    config_path = get_config_path(root_dir, app, app_sub)
-    if config_path is not None:
+    width = None
+    height = None
+    for config_path in get_effective_config_paths(root_dir, app, app_sub):
         with open(config_path, "r", encoding="utf-8") as f:
             content = f.read()
+        if width is None:
+            width = parse_define_int(content, "EGUI_CONFIG_SCEEN_WIDTH", None)
+        if height is None:
+            height = parse_define_int(content, "EGUI_CONFIG_SCEEN_HEIGHT", None)
+        if width is not None and height is not None:
+            break
 
-        width = parse_define_int(content, "EGUI_CONFIG_SCEEN_WIDTH", 240)
-        height = parse_define_int(content, "EGUI_CONFIG_SCEEN_HEIGHT", 320)
-        return width, height
+    if width is not None or height is not None:
+        return (
+            width if width is not None else 240,
+            height if height is not None else 320,
+        )
 
     return 240, 320
 
