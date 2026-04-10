@@ -8,6 +8,7 @@ EGUI_CODE_INCLUDE	+= $(EGUI_APP_PATH)
 APP_SUB ?= button
 # APP_SUB ?= button_img
 # APP_SUB ?= image
+# APP_SUB ?= file_image
 # APP_SUB ?= label
 # APP_SUB ?= linearlayout
 # APP_SUB ?= mask

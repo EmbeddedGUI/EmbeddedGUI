@@ -3888,23 +3888,23 @@ void egui_canvas_draw_text_in_rect(const egui_font_t *font, const void *string, 
 
 void egui_canvas_draw_image(const egui_image_t *img, egui_dim_t x, egui_dim_t y)
 {
-    img->api->draw_image(img, x, y);
+    egui_image_draw_image(img, x, y);
 }
 
 void egui_canvas_draw_image_resize(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
-    img->api->draw_image_resize(img, x, y, width, height);
+    egui_image_draw_image_resize(img, x, y, width, height);
 }
 
 void egui_canvas_draw_image_color(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
 {
-    egui_image_std_draw_image_color(img, x, y, color, alpha);
+    egui_image_draw_image_color(img, x, y, color, alpha);
 }
 
 void egui_canvas_draw_image_resize_color(const egui_image_t *img, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t color,
                                          egui_alpha_t alpha)
 {
-    egui_image_std_draw_image_resize_color(img, x, y, width, height, color, alpha);
+    egui_image_draw_image_resize_color(img, x, y, width, height, color, alpha);
 }
 
 void egui_canvas_calc_work_region(egui_region_t *base_region)

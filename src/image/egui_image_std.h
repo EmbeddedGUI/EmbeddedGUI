@@ -27,6 +27,8 @@ struct egui_image_std
     egui_image_t base;
 };
 
+extern const egui_image_api_t egui_image_std_t_api_table;
+
 static inline void egui_image_std_blend_rgb565_src_pixel_fast(egui_color_int_t *dst, uint16_t src_pixel, egui_alpha_t alpha)
 {
     if (alpha == 0)

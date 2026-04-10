@@ -2149,7 +2149,29 @@ static void egui_image_rle_draw_image_resize(const egui_image_t *self, egui_dim_
     (void)height;
 }
 
+static int egui_image_rle_get_size(const egui_image_t *self, egui_dim_t *width, egui_dim_t *height)
+{
+    const egui_image_rle_info_t *info;
+
+    if (self == NULL || self->res == NULL)
+    {
+        return 0;
+    }
+
+    info = (const egui_image_rle_info_t *)self->res;
+    if (width != NULL)
+    {
+        *width = info->width;
+    }
+    if (height != NULL)
+    {
+        *height = info->height;
+    }
+    return info->width > 0 && info->height > 0;
+}
+
 const egui_image_api_t egui_image_rle_t_api_table = {
+        .get_size = egui_image_rle_get_size,
         .get_point = egui_image_rle_get_point,
         .get_point_resize = egui_image_rle_get_point_resize,
         .draw_image = egui_image_rle_draw_image,

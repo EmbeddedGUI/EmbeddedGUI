@@ -9027,10 +9027,24 @@ void egui_image_std_get_width_height(const egui_image_t *self, egui_dim_t *width
     *height = image->height;
 }
 
-const egui_image_api_t egui_image_std_t_api_table = {.get_point = egui_image_std_get_point,
+static int egui_image_std_get_size(const egui_image_t *self, egui_dim_t *width, egui_dim_t *height)
+{
+    if (self == NULL || self->res == NULL)
+    {
+        return 0;
+    }
+
+    egui_image_std_get_width_height(self, width, height);
+    return 1;
+}
+
+const egui_image_api_t egui_image_std_t_api_table = {.get_size = egui_image_std_get_size,
+                                                     .get_point = egui_image_std_get_point,
                                                      .get_point_resize = egui_image_std_get_point_resize,
                                                      .draw_image = egui_image_std_draw_image,
-                                                     .draw_image_resize = egui_image_std_draw_image_resize};
+                                                     .draw_image_resize = egui_image_std_draw_image_resize,
+                                                     .draw_image_color = egui_image_std_draw_image_color,
+                                                     .draw_image_resize_color = egui_image_std_draw_image_resize_color};
 
 void egui_image_std_init(egui_image_t *self, const void *res)
 {

@@ -66,6 +66,10 @@
 #include "image/egui_image.h"
 #include "image/egui_image_std.h"
 
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+#include "image/egui_image_file.h"
+#endif
+
 #if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
 #include "image/egui_image_rle.h"
 #endif

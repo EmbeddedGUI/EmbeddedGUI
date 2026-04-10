@@ -277,6 +277,21 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_RESOURCE_MANAGER 0
 #endif
 
+/**
+ * Function options.
+ * Select support runtime image files decoded by example-side decoders.
+ */
+#ifndef EGUI_CONFIG_FUNCTION_IMAGE_FILE
+#define EGUI_CONFIG_FUNCTION_IMAGE_FILE 0
+#endif
+
+/**
+ * Runtime file-image decoder registry capacity.
+ */
+#ifndef EGUI_CONFIG_IMAGE_FILE_DECODER_MAX_COUNT
+#define EGUI_CONFIG_IMAGE_FILE_DECODER_MAX_COUNT 4
+#endif
+
 /* ---- Image format switches ---- */
 
 /**

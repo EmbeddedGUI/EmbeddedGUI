@@ -37,7 +37,10 @@ void egui_view_mp4_on_draw(egui_view_t *self)
     }
     const egui_image_t *image = (const egui_image_t *)local->mp4_image_list[local->mp4_image_index];
 
-    egui_image_std_get_width_height(image, &child_width, &child_height);
+    if (!egui_image_get_size(image, &child_width, &child_height))
+    {
+        return;
+    }
 
     egui_common_align_get_x_y(parent_width, parent_height, child_width, child_height, align_type, &x, &y);
 

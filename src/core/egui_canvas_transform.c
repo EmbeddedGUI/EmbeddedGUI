@@ -121,28 +121,7 @@ static void transform_compute_center_from_anchor_pivot(egui_dim_t anchor_x, egui
 
 static int transform_get_image_size(const egui_image_t *img, egui_dim_t *width, egui_dim_t *height)
 {
-    const egui_image_std_info_t *info;
-
-    if (img == NULL || img->res == NULL)
-    {
-        return 0;
-    }
-
-    info = (const egui_image_std_info_t *)img->res;
-    if (info->width == 0 || info->height == 0)
-    {
-        return 0;
-    }
-
-    if (width != NULL)
-    {
-        *width = (egui_dim_t)info->width;
-    }
-    if (height != NULL)
-    {
-        *height = (egui_dim_t)info->height;
-    }
-    return 1;
+    return egui_image_get_size(img, width, height);
 }
 
 static int transform_measure_text_box(const egui_font_t *font, const void *string, egui_dim_t *width, egui_dim_t *height)
@@ -1184,7 +1163,18 @@ __EGUI_STATIC_INLINE__ void transform_apply_mask_and_blend(egui_mask_t *mask, eg
 void egui_canvas_draw_image_transform(const egui_image_t *img, egui_dim_t x, egui_dim_t y, int16_t angle_deg, int16_t scale_q8)
 {
     egui_canvas_t *canvas = &canvas_data;
-    egui_image_std_info_t *info = (egui_image_std_info_t *)img->res;
+    egui_image_std_info_t *info;
+
+    if (img == NULL || img->res == NULL || img->api != &egui_image_std_t_api_table)
+    {
+        return;
+    }
+
+    info = (egui_image_std_info_t *)img->res;
+    if (info->data_type != EGUI_IMAGE_DATA_TYPE_RGB565)
+    {
+        return;
+    }
 
     int source_is_opaque = egui_image_std_rgb565_is_opaque_source(info);
 
