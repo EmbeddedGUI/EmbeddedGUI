@@ -171,6 +171,7 @@ void test_init_ui(void)
     egui_view_group_init_with_params(EGUI_VIEW_OF(&root_group), &root_group_p);
     egui_view_set_background(EGUI_VIEW_OF(&root_group), EGUI_BG_OF(&bg_root));
 
+    /* Swap this to a FATFS/SD adapter on MCU targets. */
     egui_image_file_set_default_io(&g_file_image_stdio_io);
     egui_image_file_clear_decoders();
     egui_image_file_register_decoder(&g_file_image_bmp_stream_decoder);

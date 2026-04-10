@@ -9,6 +9,7 @@
 - JPG 额外提供了一个基于 `TJpgDec` 的流式 decoder 示例，演示低 RAM 的按带解码接入方式。
 - BMP 额外提供了一个流式 decoder 示例，演示 MCU 场景下如何只保留文件句柄并按行读取。
 - `vendor_jpeg_template/` 额外提供了一个“芯片厂商 JPEG / 硬件 JPEG 外设”接入模板，默认不参与 PC 编译，方便直接拷贝到目标 app 里改造。
+- `fatfs_template/` 额外提供了一个 `FATFS/SD` 文件 IO 接入模板，演示怎么把 `egui_image_file_io_t` 接到 `f_open / f_read / f_lseek / f_close`。
 - 例程里通过 `stdio` 模拟 SD 卡/文件系统访问，后续 MCU 可以替换成 FATFS、SPI Flash 或芯片厂商解码模块。
 - decoder 注册顺序为 `BMP stream -> TJpgDec -> stb_image`，因此常规 BMP/JPG 优先走流式路径，不支持的 JPG 再自动回退到 `stb_image`。
 
