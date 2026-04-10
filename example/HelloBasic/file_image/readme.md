@@ -10,8 +10,9 @@
 - BMP 额外提供了一个流式 decoder 示例，演示 MCU 场景下如何只保留文件句柄并按行读取。
 - `vendor_jpeg_template/` 额外提供了一个“芯片厂商 JPEG / 硬件 JPEG 外设”接入模板，默认不参与 PC 编译，方便直接拷贝到目标 app 里改造。
 - `fatfs_template/` 额外提供了一个 `FATFS/SD` 文件 IO 接入模板，演示怎么把 `egui_image_file_io_t` 接到 `f_open / f_read / f_lseek / f_close`。
+- `littlefs_template/` 额外提供了一个 `LittleFS` 文件 IO 接入模板，演示怎么把 `egui_image_file_io_t` 接到 `lfs_file_open / lfs_file_read / lfs_file_seek / lfs_file_close`。
 - `flash_map_template/` 额外提供了一个 `SPI/QSPI Flash` 地址表 IO 模板，演示怎么把逻辑文件名映射到外部 Flash 偏移，再通过板级 read 回调取数据。
-- 例程里通过 `stdio + root_prefix` 模拟 SD 卡/文件系统访问，因此图片 path 本身只保留逻辑文件名；后续 MCU 只需要替换成 FATFS、Flash 地址表或芯片厂商 IO 模块。
+- 例程里通过 `stdio + root_prefix` 模拟 SD 卡/文件系统访问，因此图片 path 本身只保留逻辑文件名；后续 MCU 只需要替换成 FATFS、LittleFS、Flash 地址表或芯片厂商 IO 模块。
 - decoder 注册顺序为 `BMP stream -> TJpgDec -> stb_image`，因此常规 BMP/JPG 优先走流式路径，不支持的 JPG 再自动回退到 `stb_image`。
 
 当前界面展示：
@@ -35,5 +36,5 @@
 
 - 参考 LVGL 的分层思路，但不把具体格式 decoder 固化到 `src/`。
 - `src/` 只保留文件图片对象、IO 协议、decoder 注册口和统一绘制分发。
-- `example/` 或应用侧按芯片能力接入 `TJpgDec`、`stb_image`、流式 BMP、硬件 JPEG、厂商 PNG、FATFS/SD 卡、SPI/QSPI Flash 地址表等实现。
+- `example/` 或应用侧按芯片能力接入 `TJpgDec`、`stb_image`、流式 BMP、硬件 JPEG、厂商 PNG、FATFS/SD 卡、LittleFS、SPI/QSPI Flash 地址表等实现。
 - 后续如果某个平台需要更低 RAM 的 JPG/PNG 方案，可以继续按 LVGL 的 `按块/按行解码` 思路实现 decoder，而不用改核心接口。
