@@ -1,6 +1,7 @@
 #include "egui.h"
 #include "uicode.h"
 
+#include "decoder_bmp_stream.h"
 #include "decoder_stb.h"
 #include "file_io_stdio.h"
 
@@ -110,6 +111,7 @@ void test_init_ui(void)
 
     egui_image_file_set_default_io(&g_file_image_stdio_io);
     egui_image_file_clear_decoders();
+    egui_image_file_register_decoder(&g_file_image_bmp_stream_decoder);
     egui_image_file_register_decoder(&g_file_image_stb_decoder);
 
     file_image_demo_prepare_image(&jpg_image, FILE_IMAGE_JPG, NULL);
@@ -120,7 +122,7 @@ void test_init_ui(void)
 
     file_image_demo_init_card(&jpg_card, CARD_LEFT_X, CARD_ROW0_Y, "JPG", &jpg_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H);
     file_image_demo_init_card(&png_card, CARD_RIGHT_X, CARD_ROW0_Y, "PNG Alpha", &png_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H);
-    file_image_demo_init_card(&bmp_card, CARD_LEFT_X, CARD_ROW1_Y, "BMP", &bmp_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H);
+    file_image_demo_init_card(&bmp_card, CARD_LEFT_X, CARD_ROW1_Y, "BMP Stream", &bmp_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H);
     file_image_demo_init_card(&resize_card, CARD_RIGHT_X, CARD_ROW1_Y, "JPG Resize", &resize_image, EGUI_VIEW_IMAGE_TYPE_RESIZE, 96, 40);
     file_image_demo_init_card(&missing_card, CARD_LEFT_X, CARD_ROW2_Y, "Missing -> PNG", &missing_image, EGUI_VIEW_IMAGE_TYPE_RESIZE, CARD_IMAGE_W,
                               CARD_IMAGE_H);
