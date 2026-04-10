@@ -6,12 +6,14 @@
 
 - 文件图片能力在 `src/` 只提供统一接口、文件 IO 协议、解码器注册和绘制逻辑。
 - 具体解码器放在例程中，这里使用 `stb_image` 做 PC 示例。
+- JPG 额外提供了一个基于 `TJpgDec` 的流式 decoder 示例，演示低 RAM 的按带解码接入方式。
 - BMP 额外提供了一个流式 decoder 示例，演示 MCU 场景下如何只保留文件句柄并按行读取。
 - 例程里通过 `stdio` 模拟 SD 卡/文件系统访问，后续 MCU 可以替换成 FATFS、SPI Flash 或芯片厂商解码模块。
+- decoder 注册顺序为 `BMP stream -> TJpgDec -> stb_image`，因此常规 BMP/JPG 优先走流式路径，不支持的 JPG 再自动回退到 `stb_image`。
 
 当前界面展示：
 
-- JPG 正常显示
+- JPG 通过流式 decoder 正常显示
 - PNG 透明图显示
 - BMP 通过流式 decoder 正常显示
 - 同一张 JPG 的缩放显示
@@ -28,5 +30,5 @@
 
 - 参考 LVGL 的分层思路，但不把具体格式 decoder 固化到 `src/`。
 - `src/` 只保留文件图片对象、IO 协议、decoder 注册口和统一绘制分发。
-- `example/` 或应用侧按芯片能力接入 `stb_image`、流式 BMP、硬件 JPEG、厂商 PNG、FATFS/SD 卡等实现。
+- `example/` 或应用侧按芯片能力接入 `TJpgDec`、`stb_image`、流式 BMP、硬件 JPEG、厂商 PNG、FATFS/SD 卡等实现。
 - 后续如果某个平台需要更低 RAM 的 JPG/PNG 方案，可以继续按 LVGL 的 `按块/按行解码` 思路实现 decoder，而不用改核心接口。
