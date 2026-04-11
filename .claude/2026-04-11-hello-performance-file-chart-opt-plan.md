@@ -23,6 +23,9 @@
 - `src/widget/egui_view_chart_line.c`
   - 恢复批量 polyline 路径，避免逐段 `draw_line` 回归。
   - 保留点标记裁剪。
+- `src/widget/egui_view_chart_common.c`
+  - 为 X/Y 轴标签、legend 色块、legend 文本增加 `base_view_work_region` 裁剪。
+  - 避免 PFB 场景里反复绘制 tile 外文本和 legend，且不增加额外 heap/RAM。
 - `example/HelloPerformance/uicode.c`
   - `CHART_PIE_DENSE` 使用 `logical96` 场景级 PFB hint。
 
@@ -55,15 +58,26 @@
 
 | 场景 | 基线(ms) | 当前(ms) | 变化 | 额外 heap |
 | --- | ---: | ---: | ---: | --- |
-| CHART_LINE_DENSE | 7.677 | 6.646 | -13.4% | 0 |
-| CHART_BAR_DENSE | 3.968 | 3.559 | -10.3% | 0 |
-| CHART_SCATTER_DENSE | 3.303 | 2.517 | -23.8% | 0 |
+| CHART_LINE_DENSE | 7.677 | 5.903 | -23.1% | 0 |
+| CHART_BAR_DENSE | 3.968 | 1.767 | -55.5% | 0 |
+| CHART_SCATTER_DENSE | 3.303 | 1.774 | -46.3% | 0 |
 | CHART_PIE_DENSE | 9.208 | 8.939 | -2.9% | 0 |
+
+### chart_common 增量 A/B
+
+基线为提交 `737d083` 上未包含 `src/widget/egui_view_chart_common.c` 本次改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_LINE_DENSE | 6.646 | 5.903 | -11.2% | 0 |
+| CHART_BAR_DENSE | 3.559 | 1.767 | -50.4% | 0 |
+| CHART_SCATTER_DENSE | 2.517 | 1.774 | -29.5% | 0 |
+| CHART_PIE_DENSE | 8.939 | 8.939 | 0.0% | 0 |
 
 ## 验证
 
 - `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
-  - 结果：`ALL PASSED`
+  - 结果：`ALL PASSED`，共 `258` 帧
 - `make all APP=HelloUnitTest PORT=pc_test`
 - `output\main.exe`
   - 结果：`357/357 passed`
@@ -77,6 +91,17 @@
 结论：
 - `jpg/png/bmp` 三个 file image 场景显示正常。
 - 没有看到缩放伪影、透明混合错误或黑屏问题。
+
+## chart 截图抽查
+
+- `runtime_check_output/HelloPerformance/default/frame_0253.png`
+- `runtime_check_output/HelloPerformance/default/frame_0254.png`
+- `runtime_check_output/HelloPerformance/default/frame_0255.png`
+- `runtime_check_output/HelloPerformance/default/frame_0256.png`
+
+结论：
+- `chart line/bar/scatter/pie` 主体内容、坐标轴和 legend 显示正常。
+- 没有看到因为工作区裁剪导致的文字缺失、legend 缺块或图形主体被误裁掉。
 
 ## 结论
 

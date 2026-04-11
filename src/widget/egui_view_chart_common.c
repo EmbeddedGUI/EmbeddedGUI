@@ -90,6 +90,26 @@ static void egui_chart_draw_axis_text(egui_chart_axis_base_t *ab, const char *te
     ab->text_ops->draw_text(ab, text, text_rect, align_type);
 }
 
+static int egui_chart_rect_intersects_work_region(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
+{
+    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_dim_t rect_x2;
+    egui_dim_t rect_y2;
+    egui_dim_t work_x2;
+    egui_dim_t work_y2;
+
+    if (work == NULL || width <= 0 || height <= 0 || egui_region_is_empty(work))
+    {
+        return 0;
+    }
+
+    rect_x2 = x + width;
+    rect_y2 = y + height;
+    work_x2 = work->location.x + work->size.width;
+    work_y2 = work->location.y + work->size.height;
+    return !(rect_x2 <= work->location.x || x >= work_x2 || rect_y2 <= work->location.y || y >= work_y2);
+}
+
 static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h, int16_t view_x_min, int16_t view_x_max)
 {
     (void)view_x_min;
@@ -123,7 +143,10 @@ static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_
         {
             egui_chart_int_to_str(ab->series[0].points[i].x, label_buf, sizeof(label_buf));
             EGUI_REGION_DEFINE(label_rect, slot_center - 12, plot_area->location.y + plot_area->size.height + 3, 24, font_h);
-            egui_chart_draw_axis_text(ab, label_buf, &label_rect, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP);
+            if (egui_chart_rect_intersects_work_region(label_rect.location.x, label_rect.location.y, label_rect.size.width, label_rect.size.height))
+            {
+                egui_chart_draw_axis_text(ab, label_buf, &label_rect, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP);
+            }
         }
     }
 }
@@ -171,7 +194,10 @@ static void egui_chart_draw_x_axis_continuous(egui_chart_axis_base_t *ab, egui_r
         {
             egui_chart_int_to_str(v, label_buf, sizeof(label_buf));
             EGUI_REGION_DEFINE(label_rect, px - 12, plot_area->location.y + plot_area->size.height + 3, 24, font_h);
-            egui_chart_draw_axis_text(ab, label_buf, &label_rect, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP);
+            if (egui_chart_rect_intersects_work_region(label_rect.location.x, label_rect.location.y, label_rect.size.width, label_rect.size.height))
+            {
+                egui_chart_draw_axis_text(ab, label_buf, &label_rect, EGUI_ALIGN_HCENTER | EGUI_ALIGN_TOP);
+            }
         }
     }
 }
@@ -547,7 +573,10 @@ void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egu
                     label_y = region->location.y + region->size.height - font_h;
                 }
                 EGUI_REGION_DEFINE(label_rect, plot_area->location.x - label_w - 4, label_y, label_w, font_h);
-                egui_chart_draw_axis_text(ab, label_buf, &label_rect, EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER);
+                if (egui_chart_rect_intersects_work_region(label_rect.location.x, label_rect.location.y, label_rect.size.width, label_rect.size.height))
+                {
+                    egui_chart_draw_axis_text(ab, label_buf, &label_rect, EGUI_ALIGN_RIGHT | EGUI_ALIGN_VCENTER);
+                }
             }
         }
     }
@@ -611,11 +640,17 @@ void egui_chart_draw_legend_series(egui_chart_axis_base_t *ab, egui_region_t *re
         }
 
         // Draw color swatch
-        egui_canvas_draw_rectangle_fill(lx, ly + 1, swatch_size, swatch_size, color, EGUI_ALPHA_100);
+        if (egui_chart_rect_intersects_work_region(lx, ly + 1, swatch_size, swatch_size))
+        {
+            egui_canvas_draw_rectangle_fill(lx, ly + 1, swatch_size, swatch_size, color, EGUI_ALPHA_100);
+        }
 
         // Draw name text
         EGUI_REGION_DEFINE(text_rect, lx + swatch_size + 2, ly, text_w, font_h);
-        egui_chart_draw_axis_text(ab, name, &text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
+        if (egui_chart_rect_intersects_work_region(text_rect.location.x, text_rect.location.y, text_rect.size.width, text_rect.size.height))
+        {
+            egui_chart_draw_axis_text(ab, name, &text_rect, EGUI_ALIGN_LEFT | EGUI_ALIGN_VCENTER);
+        }
 
         // Advance position
         if (ab->legend_pos == EGUI_CHART_LEGEND_RIGHT)
