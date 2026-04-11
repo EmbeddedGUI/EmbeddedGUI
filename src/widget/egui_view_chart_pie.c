@@ -6,10 +6,6 @@
 #include "egui_view_circle_dirty.h"
 #include "resource/egui_resource.h"
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-#include "core/egui_canvas_gradient.h"
-#endif
-
 typedef egui_dim_t (*egui_view_chart_pie_get_font_height_fn)(egui_view_chart_pie_t *local);
 typedef void (*egui_view_chart_pie_draw_legend_text_fn)(egui_view_chart_pie_t *local, const char *text, egui_region_t *text_rect);
 
@@ -36,7 +32,8 @@ typedef struct egui_view_chart_pie_work_region_info
     uint16_t angle_sweep;
 } egui_view_chart_pie_work_region_info_t;
 
-#define EGUI_VIEW_CHART_PIE_ANGLE_CULL_PAD_DEG 0
+#define EGUI_VIEW_CHART_PIE_ANGLE_CULL_PAD_DEG   0
+#define EGUI_VIEW_CHART_PIE_ANGLE_WINDOW_PAD_DEG 5
 
 static int egui_view_chart_pie_is_work_region_inside_solid_circle(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius);
 static int egui_view_chart_pie_work_region_intersects_outer_circle(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius);
@@ -244,6 +241,13 @@ static int egui_view_chart_pie_get_region_angle_window(const egui_region_t *work
 
     *out_start = angles[(gap_index + 1u) % count];
     *out_sweep = (uint16_t)(360 - max_gap);
+
+    if (*out_sweep < 360U && EGUI_VIEW_CHART_PIE_ANGLE_WINDOW_PAD_DEG > 0)
+    {
+        *out_start = egui_view_circle_dirty_normalize_angle((int32_t)(*out_start) - EGUI_VIEW_CHART_PIE_ANGLE_WINDOW_PAD_DEG);
+        *out_sweep = EGUI_MIN((uint16_t)360U, (uint16_t)(*out_sweep + (EGUI_VIEW_CHART_PIE_ANGLE_WINDOW_PAD_DEG * 2)));
+    }
+
     return 1;
 }
 
@@ -914,10 +918,11 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
         {
             window_end_ext = (int16_t)ext_end;
         }
+
     }
 
-    // Draw all slices as arcs with inner_r=1 to avoid center pixel artifact.
-    // Then fill center pixel with first slice color.
+    // Draw all slices as solid arcs so adjacent sectors share the same fill path.
+    // Then cover the center with the first slice color to avoid the tiny spoke artifact.
     // Use cumulative proportion to avoid rounding error accumulation.
     int16_t start_angle = 270;
     uint32_t cumulative_value = 0;
@@ -925,6 +930,9 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
     {
         cumulative_value += local->pie_slices[i].value;
         int16_t end_angle;
+        int16_t draw_end_angle;
+        int16_t cull_end_angle;
+        uint16_t cull_sweep;
         if (i == local->pie_slice_count - 1)
         {
             end_angle = 630; // ensure exact full circle
@@ -951,11 +959,24 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
             continue;
         }
 
+        draw_end_angle = end_angle;
+        if (i != local->pie_slice_count - 1 && draw_end_angle < 630)
+        {
+            draw_end_angle++;
+        }
+
+        cull_end_angle = end_angle;
+        if (i != local->pie_slice_count - 1 && cull_end_angle < 629)
+        {
+            cull_end_angle += 2;
+        }
+        cull_sweep = (uint16_t)(cull_end_angle - start_angle);
+
         if (use_angle_window_skip_path)
         {
             if (!window_wraps)
             {
-                if (end_angle < window_start_ext)
+                if (cull_end_angle < window_start_ext)
                 {
                     start_angle = end_angle;
                     continue;
@@ -971,31 +992,13 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
                 continue;
             }
         }
-        else if (!egui_view_chart_pie_slice_intersects_work_region(&work_info, center_x, center_y, radius, start_angle, (uint16_t)sweep))
+        else if (!egui_view_chart_pie_slice_intersects_work_region(&work_info, center_x, center_y, radius, start_angle, cull_sweep))
         {
             start_angle = end_angle;
             continue;
         }
 
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-        {
-            egui_color_t color_light = egui_rgb_mix(local->pie_slices[i].color, EGUI_COLOR_WHITE, 80);
-            egui_gradient_stop_t stops[2] = {
-                    {.position = 0, .color = color_light},
-                    {.position = 255, .color = local->pie_slices[i].color},
-            };
-            egui_gradient_t grad = {
-                    .type = EGUI_GRADIENT_TYPE_RADIAL,
-                    .stop_count = 2,
-                    .alpha = EGUI_ALPHA_100,
-                    .stops = stops,
-            };
-            egui_canvas_draw_arc_ring_fill_gradient(center_x, center_y, radius, 1, start_angle, end_angle, &grad);
-        }
-#else
-        egui_canvas_draw_arc_fill(center_x, center_y, radius, start_angle, end_angle, local->pie_slices[i].color, EGUI_ALPHA_100);
-#endif
-
+        egui_canvas_draw_arc_fill_basic(center_x, center_y, radius, start_angle, draw_end_angle, local->pie_slices[i].color, EGUI_ALPHA_100);
         start_angle = end_angle;
     }
 
@@ -1004,15 +1007,8 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
         return;
     }
 
-    // Fill center pixel with first slice gradient center color
-#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-    {
-        egui_color_t center_color = egui_rgb_mix(local->pie_slices[0].color, EGUI_COLOR_WHITE, 80);
-        egui_canvas_draw_rectangle_fill(center_x, center_y, 1, 1, center_color, EGUI_ALPHA_100);
-    }
-#else
-    egui_canvas_draw_rectangle_fill(center_x, center_y, 1, 1, local->pie_slices[0].color, EGUI_ALPHA_100);
-#endif
+    // Cover the center neighborhood so the per-slice AA edges do not leave a visible spoke.
+    egui_canvas_draw_circle_fill(center_x, center_y, 1, local->pie_slices[0].color, EGUI_ALPHA_100);
 }
 
 // ============== Pie Legend Drawing ==============
