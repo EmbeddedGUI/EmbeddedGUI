@@ -750,7 +750,7 @@ egui_dim_t egui_core_get_logical_pfb_target_width_hint(void)
 {
     /* Keep the default 48x16 walk for most scenes.
      * Codec-heavy scenes still prefer a 96x8 logical walk to shrink row-band cache.
-     * The current dense pie scene is now faster on the default 48x16 walk.
+     * The dense line and pie scenes currently prefer a 64x12 logical walk.
      * File-image full-screen stress scenes decode faster with a 192x4 walk,
      * which reduces repeated horizontal resample/decode work per frame. */
     return egui_view_test_performance_get_logical_pfb_width_hint(test_view.test_mode);
