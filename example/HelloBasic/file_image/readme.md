@@ -11,6 +11,7 @@
 - `vendor_jpeg_template/` 额外提供了一个“芯片厂商 JPEG / 硬件 JPEG 外设”接入模板，默认不参与 PC 编译，方便直接拷贝到目标 app 里改造。
 - `vendor_png_template/` 额外提供了一个“芯片厂商 PNG 库 / 第三方 PNG 库”接入模板，适合 MCU 侧把 PNG 整图解到 RAM/PSRAM 后按行回传。
 - `decoder_registry.c/.h` 提供了一个例程级 decoder 注册 helper，把推荐顺序固定成 `BMP stream -> vendor JPEG -> TJpgDec -> vendor PNG -> generic fallback`。
+- `integration_guide.md` 把 `fatfs/littlefs/flash_map + mount_router + decoder_registry` 串成一条 MCU 接线指南，适合从 PC 例程迁到量产 app 时照着落地。
 - `fatfs_template/` 额外提供了一个 `FATFS/SD` 文件 IO 接入模板，演示怎么把 `egui_image_file_io_t` 接到 `f_open / f_read / f_lseek / f_close`。
 - `littlefs_template/` 额外提供了一个 `LittleFS` 文件 IO 接入模板，演示怎么把 `egui_image_file_io_t` 接到 `lfs_file_open / lfs_file_read / lfs_file_seek / lfs_file_close`。
 - `flash_map_template/` 额外提供了一个 `SPI/QSPI Flash` 地址表 IO 模板，演示怎么把逻辑文件名映射到外部 Flash 偏移，再通过板级 read 回调取数据。
