@@ -7,6 +7,22 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
 {
     EGUI_LOCAL_INIT(egui_view_chart_line_t);
     egui_chart_axis_base_t *ab = &local->axis_base.ab;
+    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_dim_t clip_expand = local->point_radius > local->line_width ? local->point_radius : local->line_width;
+    egui_dim_t work_x1;
+    egui_dim_t work_y1;
+    egui_dim_t work_x2;
+    egui_dim_t work_y2;
+
+    if (work == NULL || egui_region_is_empty(work))
+    {
+        return;
+    }
+
+    work_x1 = work->location.x - clip_expand;
+    work_y1 = work->location.y - clip_expand;
+    work_x2 = work->location.x + work->size.width + clip_expand;
+    work_y2 = work->location.y + work->size.height + clip_expand;
 
     for (uint8_t s = 0; s < ab->series_count; s++)
     {
@@ -81,6 +97,12 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
             {
                 egui_dim_t px = egui_chart_map_x(ab, series->points[i].x, plot_area->location.x, plot_area->size.width);
                 egui_dim_t py = egui_chart_map_y(ab, series->points[i].y, plot_area->location.y, plot_area->size.height);
+
+                if (px + local->point_radius < work_x1 || px - local->point_radius > work_x2 || py + local->point_radius < work_y1 ||
+                    py - local->point_radius > work_y2)
+                {
+                    continue;
+                }
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
                 {
                     egui_color_t color_light = egui_rgb_mix(series->color, EGUI_COLOR_WHITE, 80);

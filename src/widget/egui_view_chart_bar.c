@@ -13,11 +13,25 @@ static void egui_view_chart_bar_draw_data(egui_view_t *self, const egui_region_t
 {
     EGUI_LOCAL_INIT(egui_view_chart_bar_t);
     egui_chart_axis_base_t *ab = &local->axis_base.ab;
+    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_dim_t work_x1;
+    egui_dim_t work_y1;
+    egui_dim_t work_x2;
+    egui_dim_t work_y2;
 
     if (ab->series_count == 0 || ab->series[0].point_count == 0)
     {
         return;
     }
+    if (work == NULL || egui_region_is_empty(work))
+    {
+        return;
+    }
+
+    work_x1 = work->location.x;
+    work_y1 = work->location.y;
+    work_x2 = work->location.x + work->size.width;
+    work_y2 = work->location.y + work->size.height;
 
     uint8_t n_points = ab->series[0].point_count;
     uint8_t n_series = ab->series_count;
@@ -52,6 +66,15 @@ static void egui_view_chart_bar_draw_data(egui_view_t *self, const egui_region_t
     {
         egui_dim_t group_x = plot_area->location.x + group_width * i;
 
+        if (group_x >= work_x2)
+        {
+            break;
+        }
+        if (group_x + group_width <= work_x1)
+        {
+            continue;
+        }
+
         for (uint8_t s = 0; s < n_series; s++)
         {
             if (i >= ab->series[s].point_count)
@@ -75,6 +98,10 @@ static void egui_view_chart_bar_draw_data(egui_view_t *self, const egui_region_t
             }
             // Bug #6 fix: skip zero-value bars instead of forcing height=1
             if (bar_h < 1)
+            {
+                continue;
+            }
+            if (bar_x >= work_x2 || bar_x + bar_width <= work_x1 || bar_top >= work_y2 || bar_top + bar_h <= work_y1)
             {
                 continue;
             }

@@ -26,6 +26,14 @@ static void egui_image_file_invalidate_row_cache(egui_image_file_t *self)
     self->row_cache_valid = 0;
 }
 
+static void egui_image_file_invalidate_resize_cache(egui_image_file_t *self)
+{
+    self->resize_x_map_width = 0;
+    self->resize_y_map_height = 0;
+    self->resize_x_map_src_width = 0;
+    self->resize_y_map_src_height = 0;
+}
+
 static void egui_image_file_reset_runtime(egui_image_file_t *self)
 {
     self->decoder = NULL;
@@ -36,6 +44,7 @@ static void egui_image_file_reset_runtime(egui_image_file_t *self)
     self->height = 0;
     self->has_alpha = 0;
     egui_image_file_invalidate_row_cache(self);
+    egui_image_file_invalidate_resize_cache(self);
 }
 
 static void egui_image_file_close_runtime(egui_image_file_t *self)
@@ -151,6 +160,98 @@ static int egui_image_file_prepare_row_buffers(egui_image_file_t *self)
         }
         self->row_alpha = new_alpha;
         self->alpha_capacity = width;
+    }
+
+    return 1;
+}
+
+static int egui_image_file_prepare_resize_map_storage(uint16_t **target, uint16_t *capacity, uint16_t required)
+{
+    uint16_t *new_map;
+
+    if (target == NULL || capacity == NULL)
+    {
+        return 0;
+    }
+    if (*capacity >= required)
+    {
+        return 1;
+    }
+
+    new_map = (uint16_t *)egui_malloc((int)((uint32_t)required * sizeof(uint16_t)));
+    if (new_map == NULL)
+    {
+        return 0;
+    }
+
+    if (*target != NULL)
+    {
+        egui_free(*target);
+    }
+
+    *target = new_map;
+    *capacity = required;
+    return 1;
+}
+
+static int egui_image_file_prepare_resize_maps(egui_image_file_t *self, egui_dim_t width, egui_dim_t height)
+{
+    uint16_t dest_width;
+    uint16_t dest_height;
+    uint16_t i;
+
+    if (self == NULL || width <= 0 || height <= 0 || self->width == 0 || self->height == 0)
+    {
+        return 0;
+    }
+
+    dest_width = (uint16_t)width;
+    dest_height = (uint16_t)height;
+
+    if (self->resize_x_map_width != dest_width || self->resize_x_map_src_width != self->width)
+    {
+        if (!egui_image_file_prepare_resize_map_storage(&self->resize_x_map, &self->resize_x_map_capacity, dest_width))
+        {
+            self->status = EGUI_IMAGE_FILE_STATUS_OOM;
+            return 0;
+        }
+
+        for (i = 0; i < dest_width; i++)
+        {
+            uint16_t src_x = (uint16_t)(((uint32_t)i * self->width) / dest_width);
+
+            if (src_x >= self->width)
+            {
+                src_x = self->width - 1;
+            }
+            self->resize_x_map[i] = src_x;
+        }
+
+        self->resize_x_map_width = dest_width;
+        self->resize_x_map_src_width = self->width;
+    }
+
+    if (self->resize_y_map_height != dest_height || self->resize_y_map_src_height != self->height)
+    {
+        if (!egui_image_file_prepare_resize_map_storage(&self->resize_y_map, &self->resize_y_map_capacity, dest_height))
+        {
+            self->status = EGUI_IMAGE_FILE_STATUS_OOM;
+            return 0;
+        }
+
+        for (i = 0; i < dest_height; i++)
+        {
+            uint16_t src_y = (uint16_t)(((uint32_t)i * self->height) / dest_height);
+
+            if (src_y >= self->height)
+            {
+                src_y = self->height - 1;
+            }
+            self->resize_y_map[i] = src_y;
+        }
+
+        self->resize_y_map_height = dest_height;
+        self->resize_y_map_src_height = self->height;
     }
 
     return 1;
@@ -498,34 +599,30 @@ static void egui_image_file_api_draw_image_resize(const egui_image_t *base, egui
     {
         return;
     }
+    if (!egui_image_file_prepare_resize_maps(self, width, height))
+    {
+        egui_image_file_draw_fallback(self, x, y, width, height, 1);
+        return;
+    }
 
     for (screen_y = screen_y_start; screen_y < screen_y_end; screen_y++)
     {
         egui_dim_t dest_y = screen_y - y;
-        uint16_t src_y = (uint16_t)(((int32_t)dest_y * self->height) / height);
+        uint16_t src_y = self->resize_y_map[dest_y];
         egui_dim_t screen_x;
+        const uint16_t *src_x_map = &self->resize_x_map[screen_x_start - x];
 
-        if (src_y >= self->height)
-        {
-            src_y = self->height - 1;
-        }
         if (!egui_image_file_load_row(self, src_y))
         {
             egui_image_file_draw_fallback(self, x, y, width, height, 1);
             return;
         }
 
-        for (screen_x = screen_x_start; screen_x < screen_x_end; screen_x++)
+        for (screen_x = screen_x_start; screen_x < screen_x_end; screen_x++, src_x_map++)
         {
-            egui_dim_t dest_x = screen_x - x;
-            egui_dim_t src_x = ((int32_t)dest_x * self->width) / width;
+            egui_dim_t src_x = *src_x_map;
             egui_color_t color;
             egui_alpha_t alpha = EGUI_ALPHA_100;
-
-            if (src_x >= self->width)
-            {
-                src_x = self->width - 1;
-            }
 
             color.full = EGUI_COLOR_RGB565_TRANS(self->row_pixels[src_x]);
             if (self->has_alpha)
@@ -572,8 +669,12 @@ void egui_image_file_init(egui_image_file_t *self)
     self->placeholder = NULL;
     self->row_pixels = NULL;
     self->row_alpha = NULL;
+    self->resize_x_map = NULL;
+    self->resize_y_map = NULL;
     self->row_capacity = 0;
     self->alpha_capacity = 0;
+    self->resize_x_map_capacity = 0;
+    self->resize_y_map_capacity = 0;
     self->status = EGUI_IMAGE_FILE_STATUS_IDLE;
     egui_image_file_reset_runtime(self);
 }
@@ -601,6 +702,18 @@ void egui_image_file_deinit(egui_image_file_t *self)
         egui_free(self->row_alpha);
         self->row_alpha = NULL;
     }
+    if (self->resize_x_map != NULL)
+    {
+        egui_free(self->resize_x_map);
+        self->resize_x_map = NULL;
+    }
+    if (self->resize_y_map != NULL)
+    {
+        egui_free(self->resize_y_map);
+        self->resize_y_map = NULL;
+    }
+    self->resize_x_map_capacity = 0;
+    self->resize_y_map_capacity = 0;
     self->row_capacity = 0;
     self->alpha_capacity = 0;
     self->status = EGUI_IMAGE_FILE_STATUS_IDLE;

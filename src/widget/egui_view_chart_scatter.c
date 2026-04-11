@@ -13,7 +13,21 @@ static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_regi
 {
     EGUI_LOCAL_INIT(egui_view_chart_scatter_t);
     egui_chart_axis_base_t *ab = &local->axis_base.ab;
+    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_dim_t work_x1;
+    egui_dim_t work_y1;
+    egui_dim_t work_x2;
+    egui_dim_t work_y2;
 
+    if (work == NULL || egui_region_is_empty(work))
+    {
+        return;
+    }
+
+    work_x1 = work->location.x;
+    work_y1 = work->location.y;
+    work_x2 = work->location.x + work->size.width;
+    work_y2 = work->location.y + work->size.height;
     for (uint8_t s = 0; s < ab->series_count; s++)
     {
         const egui_chart_series_t *series = &ab->series[s];
@@ -23,6 +37,11 @@ static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_regi
         {
             egui_dim_t px = egui_chart_map_x(ab, series->points[i].x, plot_area->location.x, plot_area->size.width);
             egui_dim_t py = egui_chart_map_y(ab, series->points[i].y, plot_area->location.y, plot_area->size.height);
+
+            if (px + r < work_x1 || px - r > work_x2 || py + r < work_y1 || py - r > work_y2)
+            {
+                continue;
+            }
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
             {
                 egui_color_t color_light = egui_rgb_mix(series->color, EGUI_COLOR_WHITE, 80);

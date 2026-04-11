@@ -688,6 +688,7 @@ static egui_dim_t egui_view_test_performance_get_logical_pfb_width_hint(int test
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:
         return 192;
 
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565_8:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_QOI_565:
@@ -741,7 +742,7 @@ static egui_dim_t egui_view_test_performance_get_logical_pfb_width_hint(int test
 egui_dim_t egui_core_get_logical_pfb_target_width_hint(void)
 {
     /* Keep the default 48x16 walk for most scenes.
-     * Codec-heavy scenes prefer a 96x8 logical walk to shrink row-band cache.
+     * Pie and codec-heavy scenes prefer a 96x8 logical walk to shrink row-band cache.
      * File-image full-screen stress scenes decode faster with a 192x4 walk,
      * which reduces repeated horizontal resample/decode work per frame. */
     return egui_view_test_performance_get_logical_pfb_width_hint(test_view.test_mode);
