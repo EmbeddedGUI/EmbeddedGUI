@@ -74,6 +74,10 @@ EGUI_CODE_SRC		+= $(EGUI_APP_SUB_PATH)/resource
 EGUI_CODE_SRC		+= $(EGUI_APP_SUB_PATH)/resource/img
 EGUI_CODE_SRC		+= $(EGUI_APP_SUB_PATH)/resource/font
 
+ifeq ($(APP_SUB),file_image)
+EGUI_CODE_SRC		+= $(EGUI_APP_SUB_PATH)/mount_router_template
+endif
+
 EGUI_CODE_INCLUDE	+= $(EGUI_APP_SUB_PATH)
 EGUI_CODE_INCLUDE	+= $(EGUI_APP_SUB_PATH)/resource
 

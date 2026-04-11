@@ -151,6 +151,8 @@ void app_file_image_stack_init(void)
 
 如果某张图没有前缀，例子里会回退到 `fallback_io = &g_lfs_io`。
 
+当前 `HelloBasic/file_image` 的 PC 例程已经按这个思路接线，只是为了避免额外维护三套 PC 文件目录，示例里把 `sd:` / `lfs:` / `flash:` 都路由到了不同的 `stdio` IO，再共同指向同一个 `files/` 目录。迁到 MCU 时，把这三个 IO 分别替换成真后端即可。
+
 ## 4. Decoder 顺序建议
 
 当前推荐顺序已经固定在 `decoder_registry_apply()` 里：

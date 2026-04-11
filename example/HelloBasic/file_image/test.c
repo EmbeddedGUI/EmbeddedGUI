@@ -6,6 +6,7 @@
 #include "decoder_stb.h"
 #include "decoder_tjpgd_stream.h"
 #include "file_io_stdio.h"
+#include "mount_router_template/file_io_mount_router_template.h"
 
 #define CARD_W        108
 #define CARD_H        92
@@ -22,10 +23,13 @@
 #define CARD_IMAGE_Y  20
 #define CARD_STATUS_Y 78
 
-#define FILE_IMAGE_JPG     "sample_landscape.jpg"
-#define FILE_IMAGE_PNG     "sample_overlay.png"
-#define FILE_IMAGE_BMP     "sample_badge.bmp"
-#define FILE_IMAGE_MISSING "missing_file.png"
+#define FILE_IMAGE_TITLE_FONT  ((const egui_font_t *)&egui_res_font_montserrat_12_4)
+#define FILE_IMAGE_STATUS_FONT ((const egui_font_t *)&egui_res_font_montserrat_10_4)
+
+#define FILE_IMAGE_JPG     "sd:sample_landscape.jpg"
+#define FILE_IMAGE_PNG     "lfs:sample_overlay.png"
+#define FILE_IMAGE_BMP     "flash:sample_badge.bmp"
+#define FILE_IMAGE_MISSING "flash:missing_file.png"
 
 typedef struct file_image_demo_card
 {
@@ -44,10 +48,29 @@ static file_image_demo_card_t bmp_card;
 static file_image_demo_card_t resize_card;
 static file_image_demo_card_t missing_card;
 
-static file_image_stdio_context_t file_image_stdio_ctx = {
+static file_image_stdio_context_t file_image_sd_ctx = {
         .root_prefix = "example/HelloBasic/file_image/files/",
 };
-static egui_image_file_io_t file_image_io;
+static file_image_stdio_context_t file_image_lfs_ctx = {
+        .root_prefix = "example/HelloBasic/file_image/files/",
+};
+static file_image_stdio_context_t file_image_flash_ctx = {
+        .root_prefix = "example/HelloBasic/file_image/files/",
+};
+static egui_image_file_io_t file_image_sd_io;
+static egui_image_file_io_t file_image_lfs_io;
+static egui_image_file_io_t file_image_flash_io;
+static egui_image_file_io_t file_image_router_io;
+static const file_image_mount_router_entry_t file_image_mount_entries[] = {
+        { "sd:", &file_image_sd_io, 1 },
+        { "lfs:", &file_image_lfs_io, 1 },
+        { "flash:", &file_image_flash_io, 1 },
+};
+static file_image_mount_router_context_t file_image_mount_router_ctx = {
+        .entries = file_image_mount_entries,
+        .entry_count = sizeof(file_image_mount_entries) / sizeof(file_image_mount_entries[0]),
+        .fallback_io = &file_image_lfs_io,
+};
 static const file_image_decoder_registry_config_t file_image_decoder_config = {
         .bmp_stream = &g_file_image_bmp_stream_decoder,
         .jpeg_vendor = NULL,
@@ -75,11 +98,12 @@ EGUI_BACKGROUND_PARAM_INIT(bg_card_params, &bg_card_param, &bg_card_param, &bg_c
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_card, &bg_card_params);
 
 static void file_image_demo_init_label(egui_view_label_t *label, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, const char *text,
-                                       egui_color_t color)
+                                       const egui_font_t *font, egui_color_t color)
 {
     egui_view_label_init(EGUI_VIEW_OF(label));
     egui_view_set_position(EGUI_VIEW_OF(label), x, y);
     egui_view_set_size(EGUI_VIEW_OF(label), width, height);
+    egui_view_label_set_font(EGUI_VIEW_OF(label), font);
     egui_view_label_set_text(EGUI_VIEW_OF(label), text);
     egui_view_label_set_align_type(EGUI_VIEW_OF(label), EGUI_ALIGN_CENTER);
     egui_view_label_set_font_color(EGUI_VIEW_OF(label), color, EGUI_ALPHA_100);
@@ -156,8 +180,8 @@ static void file_image_demo_init_card(file_image_demo_card_t *card, egui_dim_t x
     egui_view_set_size(EGUI_VIEW_OF(&card->panel), CARD_W, CARD_H);
     egui_view_set_background(EGUI_VIEW_OF(&card->panel), EGUI_BG_OF(&bg_card));
 
-    file_image_demo_init_label(&card->title, x, y + 4, CARD_W, 14, title, EGUI_COLOR_HEX(0x0F172A));
-    file_image_demo_init_label(&card->status, x, y + CARD_STATUS_Y, CARD_W, CARD_STATUS_H, card->status_text, EGUI_COLOR_HEX(0x475569));
+    file_image_demo_init_label(&card->title, x, y + 4, CARD_W, 14, title, FILE_IMAGE_TITLE_FONT, EGUI_COLOR_HEX(0x0F172A));
+    file_image_demo_init_label(&card->status, x, y + CARD_STATUS_Y, CARD_W, CARD_STATUS_H, card->status_text, FILE_IMAGE_STATUS_FONT, EGUI_COLOR_HEX(0x475569));
 
     egui_view_image_init(EGUI_VIEW_OF(&card->image));
     egui_view_set_position(EGUI_VIEW_OF(&card->image), image_x, y + CARD_IMAGE_Y);
@@ -184,9 +208,15 @@ void test_init_ui(void)
     egui_view_group_init_with_params(EGUI_VIEW_OF(&root_group), &root_group_p);
     egui_view_set_background(EGUI_VIEW_OF(&root_group), EGUI_BG_OF(&bg_root));
 
-    /* Paths below stay as logical file names; swap only the IO adapter on MCU targets. */
-    file_image_stdio_io_init(&file_image_io, &file_image_stdio_ctx);
-    egui_image_file_set_default_io(&file_image_io);
+    /*
+     * The PC demo uses three stdio-backed logical mounts to simulate sd:/ lfs:/ flash: routing.
+     * MCU targets can keep the same paths and replace only the IO adapters behind each mount.
+     */
+    file_image_stdio_io_init(&file_image_sd_io, &file_image_sd_ctx);
+    file_image_stdio_io_init(&file_image_lfs_io, &file_image_lfs_ctx);
+    file_image_stdio_io_init(&file_image_flash_io, &file_image_flash_ctx);
+    file_image_mount_router_io_init(&file_image_router_io, &file_image_mount_router_ctx);
+    egui_image_file_set_default_io(&file_image_router_io);
     /* On MCU targets, replace the NULL slots below with vendor JPEG / vendor PNG decoders. */
     file_image_decoder_registry_apply(&file_image_decoder_config);
 
@@ -196,11 +226,11 @@ void test_init_ui(void)
     file_image_demo_prepare_image(&resize_image, FILE_IMAGE_JPG, NULL);
     file_image_demo_prepare_image(&missing_image, FILE_IMAGE_MISSING, (const egui_image_t *)&png_image);
 
-    file_image_demo_init_card(&jpg_card, CARD_LEFT_X, CARD_ROW0_Y, "JPG Stream", &jpg_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H, NULL);
-    file_image_demo_init_card(&png_card, CARD_RIGHT_X, CARD_ROW0_Y, "PNG Alpha", &png_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H, NULL);
-    file_image_demo_init_card(&bmp_card, CARD_LEFT_X, CARD_ROW1_Y, "BMP Stream", &bmp_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H, NULL);
-    file_image_demo_init_card(&resize_card, CARD_RIGHT_X, CARD_ROW1_Y, "JPG Stream Resize", &resize_image, EGUI_VIEW_IMAGE_TYPE_RESIZE, 96, 40, NULL);
-    file_image_demo_init_card(&missing_card, CARD_LEFT_X, CARD_ROW2_Y, "Missing -> PNG", &missing_image, EGUI_VIEW_IMAGE_TYPE_RESIZE, CARD_IMAGE_W,
+    file_image_demo_init_card(&jpg_card, CARD_LEFT_X, CARD_ROW0_Y, "SD JPG", &jpg_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H, NULL);
+    file_image_demo_init_card(&png_card, CARD_RIGHT_X, CARD_ROW0_Y, "LFS PNG", &png_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H, NULL);
+    file_image_demo_init_card(&bmp_card, CARD_LEFT_X, CARD_ROW1_Y, "Flash BMP", &bmp_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H, NULL);
+    file_image_demo_init_card(&resize_card, CARD_RIGHT_X, CARD_ROW1_Y, "SD JPG Resize", &resize_image, EGUI_VIEW_IMAGE_TYPE_RESIZE, 96, 40, NULL);
+    file_image_demo_init_card(&missing_card, CARD_LEFT_X, CARD_ROW2_Y, "Missing -> LFS", &missing_image, EGUI_VIEW_IMAGE_TYPE_RESIZE, CARD_IMAGE_W,
                               CARD_IMAGE_H, &png_image);
 
     egui_core_add_user_root_view(EGUI_VIEW_OF(&root_group));

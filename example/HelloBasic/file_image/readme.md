@@ -16,18 +16,19 @@
 - `littlefs_template/` 额外提供了一个 `LittleFS` 文件 IO 接入模板，演示怎么把 `egui_image_file_io_t` 接到 `lfs_file_open / lfs_file_read / lfs_file_seek / lfs_file_close`。
 - `flash_map_template/` 额外提供了一个 `SPI/QSPI Flash` 地址表 IO 模板，演示怎么把逻辑文件名映射到外部 Flash 偏移，再通过板级 read 回调取数据。
 - `mount_router_template/` 额外提供了一个多挂载路由 IO 模板，演示怎么把 `sd:` / `lfs:` / `flash:` 这类路径前缀分流到不同存储后端。
-- 例程里通过 `stdio + root_prefix` 模拟 SD 卡/文件系统访问，因此图片 path 本身只保留逻辑文件名；后续 MCU 只需要替换成 FATFS、LittleFS、Flash 地址表或芯片厂商 IO 模块。
+- 当前 PC 例程已经把 `sd:` / `lfs:` / `flash:` 三个逻辑前缀接到了 `mount_router_template/`，只是为了方便演示，这三个后端目前都由不同的 `stdio` IO 模拟，并共同指向同一个 `files/` 目录。
+- 后续 MCU 只需要保留这些逻辑路径不变，把每个 mount 背后的 `stdio` 替换成 FATFS、LittleFS、Flash 地址表或芯片厂商 IO 模块。
 - PC 默认 decoder 注册顺序为 `BMP stream -> TJpgDec -> stb_image`，因此常规 BMP/JPG 优先走流式路径，不支持的 JPG/PNG/BMP 再自动回退到 `stb_image`。
 - MCU 推荐 decoder 注册顺序为 `BMP stream -> vendor JPEG -> TJpgDec -> vendor PNG -> stb_image`。
 - 如果不想在 app 里手写这个顺序，可以直接复用 `decoder_registry_apply()`，只把可选的 vendor decoder 指针填进去。
 
 当前界面展示：
 
-- JPG 通过流式 decoder 正常显示
-- PNG 透明图显示
-- BMP 通过流式 decoder 正常显示
-- 同一张 JPG 的缩放显示
-- 缺失路径时显示占位图，并通过状态标签暴露失败原因
+- `sd:sample_landscape.jpg`
+- `lfs:sample_overlay.png`
+- `flash:sample_badge.bmp`
+- 同一张 `sd:` JPG 的缩放显示
+- 缺失 `flash:` 路径时回退到 `lfs:` PNG 占位图，并通过状态标签暴露失败原因
 - 状态标签在加载成功时直接显示当前选中的 decoder 名称，方便确认运行路径
 - 缺失路径回退到占位图时，状态标签会显示占位图来源，例如 `ph:stb_image`
 
