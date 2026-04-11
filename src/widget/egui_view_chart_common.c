@@ -110,6 +110,22 @@ static int egui_chart_rect_intersects_work_region(egui_dim_t x, egui_dim_t y, eg
     return !(rect_x2 <= work->location.x || x >= work_x2 || rect_y2 <= work->location.y || y >= work_y2);
 }
 
+static int egui_chart_get_work_region_bounds(egui_dim_t *out_x1, egui_dim_t *out_y1, egui_dim_t *out_x2, egui_dim_t *out_y2)
+{
+    egui_region_t *work = egui_canvas_get_base_view_work_region();
+
+    if (out_x1 == NULL || out_y1 == NULL || out_x2 == NULL || out_y2 == NULL || work == NULL || egui_region_is_empty(work))
+    {
+        return 0;
+    }
+
+    *out_x1 = work->location.x;
+    *out_y1 = work->location.y;
+    *out_x2 = work->location.x + work->size.width;
+    *out_y2 = work->location.y + work->size.height;
+    return 1;
+}
+
 static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h, int16_t view_x_min, int16_t view_x_max)
 {
     (void)view_x_min;
@@ -123,12 +139,51 @@ static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_
     char label_buf[8];
     uint8_t n_cat = ab->series[0].point_count;
     egui_dim_t slot_w = plot_area->size.width / n_cat;
+    uint8_t start_i = 0;
+    uint8_t end_i = n_cat;
+    egui_dim_t work_x1;
+    egui_dim_t work_y1;
+    egui_dim_t work_x2;
+    egui_dim_t work_y2;
 
-    for (uint8_t i = 0; i < n_cat; i++)
+    if (slot_w <= 0)
+    {
+        slot_w = 1;
+    }
+
+    if (egui_chart_get_work_region_bounds(&work_x1, &work_y1, &work_x2, &work_y2))
+    {
+        int32_t visible_start = (int32_t)work_x1 - plot_area->location.x - 13;
+        int32_t visible_end = (int32_t)work_x2 - plot_area->location.x + 13;
+
+        if (visible_start > 0)
+        {
+            int32_t start_index = visible_start / slot_w;
+            if (start_index > 0)
+            {
+                start_index--;
+            }
+            if (start_index > 0)
+            {
+                start_i = (uint8_t)EGUI_MIN(start_index, n_cat);
+            }
+        }
+
+        if (visible_end < plot_area->size.width)
+        {
+            int32_t end_index = (visible_end + slot_w - 1) / slot_w + 1;
+            if (end_index < n_cat)
+            {
+                end_i = (uint8_t)end_index;
+            }
+        }
+    }
+
+    for (uint8_t i = start_i; i < end_i; i++)
     {
         egui_dim_t slot_center = plot_area->location.x + slot_w * i + slot_w / 2;
 
-        if (ab->axis_x.show_axis)
+        if (ab->axis_x.show_axis && egui_chart_rect_intersects_work_region(slot_center, plot_area->location.y + plot_area->size.height, 1, 3))
         {
             egui_canvas_draw_vline(slot_center, plot_area->location.y + plot_area->size.height, 3, ab->axis_color, EGUI_ALPHA_100);
         }
@@ -136,7 +191,10 @@ static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_
         if (ab->axis_x.show_grid && i > 0)
         {
             egui_dim_t boundary = plot_area->location.x + slot_w * i;
-            egui_canvas_draw_vline(boundary, plot_area->location.y, plot_area->size.height, ab->grid_color, EGUI_ALPHA_30);
+            if (egui_chart_rect_intersects_work_region(boundary, plot_area->location.y, 1, plot_area->size.height))
+            {
+                egui_canvas_draw_vline(boundary, plot_area->location.y, plot_area->size.height, ab->grid_color, EGUI_ALPHA_30);
+            }
         }
 
         if (ab->axis_x.show_labels)
@@ -154,6 +212,11 @@ static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_
 static void egui_chart_draw_x_axis_continuous(egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h, int16_t view_x_min, int16_t view_x_max)
 {
     char label_buf[8];
+    egui_dim_t work_x1;
+    egui_dim_t work_y1;
+    egui_dim_t work_x2;
+    egui_dim_t work_y2;
+    int has_work_bounds = egui_chart_get_work_region_bounds(&work_x1, &work_y1, &work_x2, &work_y2);
     int16_t step = ab->axis_x.tick_step;
     if (step <= 0)
     {
@@ -179,13 +242,14 @@ static void egui_chart_draw_x_axis_continuous(egui_chart_axis_base_t *ab, egui_r
     for (int16_t v = start_v; v <= view_x_max; v += step)
     {
         egui_dim_t px = egui_chart_map_x(ab, v, plot_area->location.x, plot_area->size.width);
+        int tick_visible = !has_work_bounds || egui_chart_rect_intersects_work_region(px, plot_area->location.y, 1, plot_area->size.height + 3 + font_h);
 
-        if (ab->axis_x.show_axis)
+        if (ab->axis_x.show_axis && tick_visible)
         {
             egui_canvas_draw_vline(px, plot_area->location.y + plot_area->size.height, 3, ab->axis_color, EGUI_ALPHA_100);
         }
 
-        if (ab->axis_x.show_grid)
+        if (ab->axis_x.show_grid && tick_visible)
         {
             egui_canvas_draw_vline(px, plot_area->location.y, plot_area->size.height, ab->grid_color, EGUI_ALPHA_30);
         }
@@ -488,6 +552,11 @@ void egui_chart_calc_plot_area(egui_chart_axis_base_t *ab, egui_region_t *region
 void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egui_region_t *plot_area)
 {
     egui_dim_t font_h = egui_chart_get_axis_font_height(ab);
+    egui_dim_t work_x1;
+    egui_dim_t work_y1;
+    egui_dim_t work_x2;
+    egui_dim_t work_y2;
+    int has_work_bounds = egui_chart_get_work_region_bounds(&work_x1, &work_y1, &work_x2, &work_y2);
 
     // Get viewport range for tick iteration
     int16_t view_x_min, view_x_max, view_y_min, view_y_max;
@@ -545,15 +614,16 @@ void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egu
         for (int16_t v = start_v; v <= view_y_max; v += step)
         {
             egui_dim_t py = egui_chart_map_y(ab, v, plot_area->location.y, plot_area->size.height);
+            int tick_visible = !has_work_bounds || (py >= work_y1 && py < work_y2);
 
             // Tick mark
-            if (ab->axis_y.show_axis)
+            if (ab->axis_y.show_axis && tick_visible)
             {
                 egui_canvas_draw_hline(plot_area->location.x - 3, py, 3, ab->axis_color, EGUI_ALPHA_100);
             }
 
             // Grid line
-            if (ab->axis_y.show_grid)
+            if (ab->axis_y.show_grid && tick_visible)
             {
                 egui_canvas_draw_hline(plot_area->location.x, py, plot_area->size.width, ab->grid_color, EGUI_ALPHA_30);
             }

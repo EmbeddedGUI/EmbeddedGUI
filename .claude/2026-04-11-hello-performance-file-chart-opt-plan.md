@@ -460,3 +460,44 @@
 - 截图抽查：
   - `runtime_check_output/HelloPerformance/default/frame_0253.png`
   - line 场景显示正常，没有看到 marker 缺失、折线断裂或 legend 异常。
+## 2026-04-11 补充：chart common 坐标轴按 tile 可见窗口裁剪
+
+- 保留改动：
+  - `src/widget/egui_view_chart_common.c`
+  - 对分类 X 轴按当前 `base_view_work_region` 反推可见 category index window，只遍历可见槽位附近。
+  - 对连续 X/Y 轴仅在 tick 或 grid 与当前 tile 相交时才绘制，减少 PFB 场景下离屏刻度线和网格线开销。
+  - 不增加额外 RAM/heap。
+
+### chart common 坐标轴裁剪增量 A/B
+
+基线为提交 `481a085`，即未包含本次 `src/widget/egui_view_chart_common.c` 改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_LINE_DENSE | 1.763 | 1.677 | -4.9% | 0 |
+| CHART_BAR_DENSE | 1.767 | 1.330 | -24.7% | 0 |
+| CHART_SCATTER_DENSE | 1.274 | 1.188 | -6.8% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_LINE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_LINE_DENSE`
+  - 结果：`CHART_LINE_DENSE = 1.677 ms`
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_BAR_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_BAR_DENSE`
+  - 结果：`CHART_BAR_DENSE = 1.330 ms`
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_SCATTER_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_SCATTER_DENSE`
+  - 结果：`CHART_SCATTER_DENSE = 1.188 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make clean`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0250.png`
+  - `runtime_check_output/HelloPerformance/default/frame_0251.png`
+  - `runtime_check_output/HelloPerformance/default/frame_0252.png`
+  - `runtime_check_output/HelloPerformance/default/frame_0253.png`
+  - `runtime_check_output/HelloPerformance/default/frame_0254.png`
+  - `runtime_check_output/HelloPerformance/default/frame_0255.png`
+  - `runtime_check_output/HelloPerformance/default/frame_0256.png`
+  - file image 与 chart 场景显示正常，未看到因 tile 裁剪引入的刻度缺失、网格线缺失、标签错位或图形主体被误裁掉。
