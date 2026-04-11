@@ -161,3 +161,42 @@
 - 本轮已经把不符合新规则的 file image heap 优化移除。
 - 当前保留的优化全部满足“零额外 heap”或“零额外 RAM”的约束。
 - 后续如果要继续在 file image 上加 cache，必须先证明目标场景收益至少达到 30%。
+
+## 2026-04-11 补充：chart pie 背景 overdraw
+
+- 保留改动：
+  - `src/widget/egui_view_chart_pie.c`
+  - 抽出 pie 的 `total` 与几何计算，避免背景路径重复推导。
+  - 当当前 `base_view_work_region` 完全落在 pie 的实心圆内部时，直接跳过背景填充，减少 PFB 场景下被 pie 完全覆盖 tile 的背景 overdraw。
+
+### chart_pie 背景 overdraw 增量 A/B
+
+基线为提交 `b8bdeb7` 上未包含本次 `src/widget/egui_view_chart_pie.c` 改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_PIE_DENSE | 8.406 | 8.389 | -0.2% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_PIE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE`
+  - 结果：`CHART_PIE_DENSE = 8.389 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0256.png`
+  - pie 场景显示正常，没有看到缺块、黑边或背景漏绘。
+
+### 本轮未保留实验
+
+- `CHART_PIE_DENSE` logical PFB width 改为 `48/64/128/192`
+  - QEMU 结果分别为 `8.599/8.486/8.497/8.873 ms`
+  - 均差于当前 `96x8` 逻辑 walk，已回退。
+- pie 背景改为“按行只绘制圆外区域”
+  - QEMU 结果为 `8.500 ms`
+  - draw call 增多导致变慢，已回退。
+- `circle_hq` 扇区 full-span 直写实验
+  - 对 `CHART_PIE_DENSE` 没有拿到额外收益，已回退。

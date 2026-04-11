@@ -19,6 +19,13 @@ struct egui_view_chart_pie_text_ops
     egui_view_chart_pie_draw_legend_text_fn draw_legend_text;
 };
 
+typedef struct egui_view_chart_pie_geometry
+{
+    egui_dim_t center_x;
+    egui_dim_t center_y;
+    egui_dim_t radius;
+} egui_view_chart_pie_geometry_t;
+
 static egui_dim_t egui_view_chart_pie_get_font_height_basic(egui_view_chart_pie_t *local)
 {
     (void)local;
@@ -119,33 +126,43 @@ static int egui_view_chart_pie_slice_intersects_work_region(egui_dim_t center_x,
     return egui_view_chart_pie_rect_intersects_work_region(slice_region.location.x, slice_region.location.y, slice_region.size.width, slice_region.size.height);
 }
 
-// ============== Pie Chart Drawing ==============
-
-static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_region_t *region)
+static uint32_t egui_view_chart_pie_get_total_value(egui_view_chart_pie_t *local)
 {
-    if (local->pie_slice_count == 0 || local->pie_slices == NULL)
+    uint32_t total = 0;
+    uint8_t i;
+
+    if (local == NULL || local->pie_slice_count == 0 || local->pie_slices == NULL)
     {
-        return;
+        return 0;
     }
 
-    // Calculate total value
-    uint32_t total = 0;
-    for (uint8_t i = 0; i < local->pie_slice_count; i++)
+    for (i = 0; i < local->pie_slice_count; i++)
     {
         total += local->pie_slices[i].value;
     }
-    if (total == 0)
+
+    return total;
+}
+
+static int egui_view_chart_pie_compute_geometry(egui_view_chart_pie_t *local, egui_region_t *region, egui_view_chart_pie_geometry_t *geometry)
+{
+    egui_dim_t font_h;
+    egui_dim_t avail_x;
+    egui_dim_t avail_y;
+    egui_dim_t avail_w;
+    egui_dim_t avail_h;
+
+    if (local == NULL || region == NULL || geometry == NULL)
     {
-        return;
+        return 0;
     }
 
-    // Calculate available space considering legend
-    egui_dim_t font_h = egui_view_chart_pie_get_font_height(local);
+    font_h = egui_view_chart_pie_get_font_height(local);
 
-    egui_dim_t avail_x = region->location.x;
-    egui_dim_t avail_y = region->location.y;
-    egui_dim_t avail_w = region->size.width;
-    egui_dim_t avail_h = region->size.height;
+    avail_x = region->location.x;
+    avail_y = region->location.y;
+    avail_w = region->size.width;
+    avail_h = region->size.height;
 
     if (local->legend_pos == EGUI_CHART_LEGEND_RIGHT)
     {
@@ -161,10 +178,54 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_regi
         avail_h -= font_h + 4;
     }
 
-    egui_dim_t center_x = avail_x + avail_w / 2;
-    egui_dim_t center_y = avail_y + avail_h / 2;
-    egui_dim_t radius = EGUI_MIN(avail_w, avail_h) / 2 - 2;
-    if (radius <= 0)
+    geometry->center_x = avail_x + avail_w / 2;
+    geometry->center_y = avail_y + avail_h / 2;
+    geometry->radius = EGUI_MIN(avail_w, avail_h) / 2 - 2;
+
+    return (geometry->radius > 0) ? 1 : 0;
+}
+
+static int egui_view_chart_pie_is_work_region_inside_solid_circle(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius)
+{
+    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_dim_t x0;
+    egui_dim_t y0;
+    egui_dim_t x1;
+    egui_dim_t y1;
+    int32_t solid_radius;
+    int32_t solid_radius_sq;
+
+    if (work == NULL || egui_region_is_empty(work))
+    {
+        return 0;
+    }
+
+    solid_radius = (radius > 1) ? (radius - 1) : radius;
+    if (solid_radius <= 0)
+    {
+        return 0;
+    }
+
+    x0 = work->location.x;
+    y0 = work->location.y;
+    x1 = x0 + work->size.width - 1;
+    y1 = y0 + work->size.height - 1;
+    solid_radius_sq = solid_radius * solid_radius;
+
+#define EGUI_VIEW_CHART_PIE_CORNER_INSIDE(_x, _y)                                                                                                             \
+    (((int32_t)(_x) - center_x) * ((int32_t)(_x) - center_x) + ((int32_t)(_y) - center_y) * ((int32_t)(_y) - center_y) <= solid_radius_sq)
+
+    return EGUI_VIEW_CHART_PIE_CORNER_INSIDE(x0, y0) && EGUI_VIEW_CHART_PIE_CORNER_INSIDE(x1, y0) && EGUI_VIEW_CHART_PIE_CORNER_INSIDE(x0, y1) &&
+           EGUI_VIEW_CHART_PIE_CORNER_INSIDE(x1, y1);
+
+#undef EGUI_VIEW_CHART_PIE_CORNER_INSIDE
+}
+
+// ============== Pie Chart Drawing ==============
+
+static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, uint32_t total)
+{
+    if (local->pie_slice_count == 0 || local->pie_slices == NULL || total == 0 || radius <= 0)
     {
         return;
     }
@@ -340,6 +401,9 @@ void egui_view_chart_pie_on_draw(egui_view_t *self)
     EGUI_LOCAL_INIT(egui_view_chart_pie_t);
 
     egui_region_t region;
+    egui_view_chart_pie_geometry_t geometry;
+    uint32_t total;
+    int has_geometry;
     egui_view_get_work_region(self, &region);
 
     if (region.size.width < 10 || region.size.height < 10)
@@ -347,11 +411,20 @@ void egui_view_chart_pie_on_draw(egui_view_t *self)
         return;
     }
 
-    // Draw background
-    egui_canvas_draw_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, local->bg_color, EGUI_ALPHA_100);
+    total = egui_view_chart_pie_get_total_value(local);
+    has_geometry = (total > 0) ? egui_view_chart_pie_compute_geometry(local, &region, &geometry) : 0;
+
+    if (!(has_geometry && egui_view_chart_pie_is_work_region_inside_solid_circle(geometry.center_x, geometry.center_y, geometry.radius)))
+    {
+        // Draw background only when the current tile is not fully covered by the pie.
+        egui_canvas_draw_rectangle_fill(region.location.x, region.location.y, region.size.width, region.size.height, local->bg_color, EGUI_ALPHA_100);
+    }
 
     // Draw pie
-    egui_view_chart_pie_draw_pie(local, &region);
+    if (has_geometry)
+    {
+        egui_view_chart_pie_draw_pie(local, geometry.center_x, geometry.center_y, geometry.radius, total);
+    }
 
     // Draw legend
     if (local->legend_pos != EGUI_CHART_LEGEND_NONE)
