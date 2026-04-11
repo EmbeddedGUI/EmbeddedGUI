@@ -21,6 +21,139 @@ static int egui_view_chart_line_series_is_monotonic_increasing(const egui_chart_
     return 1;
 }
 
+static uint8_t egui_view_chart_line_series_lower_bound_x(const egui_chart_series_t *series, int16_t target_x)
+{
+    uint8_t left = 0;
+    uint8_t right;
+
+    if (series == NULL)
+    {
+        return 0;
+    }
+
+    right = series->point_count;
+    while (left < right)
+    {
+        uint8_t mid = (uint8_t)(left + (uint8_t)((right - left) >> 1));
+        if (series->points[mid].x < target_x)
+        {
+            left = (uint8_t)(mid + 1);
+        }
+        else
+        {
+            right = mid;
+        }
+    }
+
+    return left;
+}
+
+static uint8_t egui_view_chart_line_series_upper_bound_x(const egui_chart_series_t *series, int16_t target_x)
+{
+    uint8_t left = 0;
+    uint8_t right;
+
+    if (series == NULL)
+    {
+        return 0;
+    }
+
+    right = series->point_count;
+    while (left < right)
+    {
+        uint8_t mid = (uint8_t)(left + (uint8_t)((right - left) >> 1));
+        if (series->points[mid].x <= target_x)
+        {
+            left = (uint8_t)(mid + 1);
+        }
+        else
+        {
+            right = mid;
+        }
+    }
+
+    return left;
+}
+
+static int egui_view_chart_line_get_visible_index_range(egui_chart_axis_base_t *ab, const egui_chart_series_t *series, const egui_region_t *plot_area,
+                                                        egui_dim_t work_x1, egui_dim_t work_x2, uint8_t *draw_start, uint8_t *draw_end, uint8_t *marker_start,
+                                                        uint8_t *marker_end)
+{
+    int16_t view_x_min;
+    int16_t view_x_max;
+    int32_t range;
+    int32_t rel_min_px;
+    int32_t rel_max_px;
+    int32_t data_min_x;
+    int32_t data_max_x;
+    uint8_t first_idx;
+    uint8_t last_exclusive;
+
+    if (ab == NULL || series == NULL || plot_area == NULL || draw_start == NULL || draw_end == NULL || marker_start == NULL || marker_end == NULL ||
+        series->point_count == 0)
+    {
+        return 0;
+    }
+
+    if (series->point_count == 1 || plot_area->size.width <= 1)
+    {
+        *draw_start = 0;
+        *draw_end = (uint8_t)(series->point_count - 1);
+        *marker_start = 0;
+        *marker_end = (uint8_t)(series->point_count - 1);
+        return 1;
+    }
+
+    egui_chart_get_view_x(ab, &view_x_min, &view_x_max);
+    range = (int32_t)view_x_max - (int32_t)view_x_min;
+    if (range <= 0)
+    {
+        *draw_start = 0;
+        *draw_end = (uint8_t)(series->point_count - 1);
+        *marker_start = 0;
+        *marker_end = (uint8_t)(series->point_count - 1);
+        return 1;
+    }
+
+    rel_min_px = (int32_t)work_x1 - (int32_t)plot_area->location.x;
+    rel_max_px = (int32_t)work_x2 - (int32_t)plot_area->location.x;
+    data_min_x = (int32_t)view_x_min + rel_min_px * range / (int32_t)(plot_area->size.width - 1) - 1;
+    data_max_x = (int32_t)view_x_min + rel_max_px * range / (int32_t)(plot_area->size.width - 1) + 1;
+
+    if (data_min_x < INT16_MIN)
+    {
+        data_min_x = INT16_MIN;
+    }
+    if (data_max_x > INT16_MAX)
+    {
+        data_max_x = INT16_MAX;
+    }
+
+    first_idx = egui_view_chart_line_series_lower_bound_x(series, (int16_t)data_min_x);
+    last_exclusive = egui_view_chart_line_series_upper_bound_x(series, (int16_t)data_max_x);
+
+    if (first_idx >= series->point_count || last_exclusive == 0)
+    {
+        return 0;
+    }
+
+    *draw_start = (first_idx > 0) ? (uint8_t)(first_idx - 1) : 0;
+    *draw_end = (last_exclusive < series->point_count) ? last_exclusive : (uint8_t)(series->point_count - 1);
+
+    if (first_idx < last_exclusive)
+    {
+        *marker_start = first_idx;
+        *marker_end = (uint8_t)(last_exclusive - 1);
+    }
+    else
+    {
+        *marker_start = 1;
+        *marker_end = 0;
+    }
+
+    return (*draw_start <= *draw_end) ? 1 : 0;
+}
+
 static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_t *plot_area)
 {
     EGUI_LOCAL_INIT(egui_view_chart_line_t);
@@ -46,6 +179,11 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
     {
         const egui_chart_series_t *series = &ab->series[s];
         int monotonic_increasing = egui_view_chart_line_series_is_monotonic_increasing(series);
+        uint8_t draw_start = 0;
+        uint8_t draw_end = 0;
+        uint8_t marker_start = 0;
+        uint8_t marker_end = 0;
+        uint8_t has_visible_range = 0;
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
         egui_color_t color_light = egui_rgb_mix(series->color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {
@@ -62,6 +200,16 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
         if (series->point_count < 1)
         {
             continue;
+        }
+
+        if (monotonic_increasing)
+        {
+            has_visible_range =
+                    (uint8_t)egui_view_chart_line_get_visible_index_range(ab, series, plot_area, work_x1, work_x2, &draw_start, &draw_end, &marker_start, &marker_end);
+            if (!has_visible_range)
+            {
+                continue;
+            }
         }
 
         // Handle single-point series: draw marker only
@@ -82,37 +230,59 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
 
 // Build a bounded coordinate array to avoid large stack usage with long series.
 #define CHART_LINE_MAX_POLYLINE_POINTS 64
-        uint8_t pt_count = series->point_count;
-        if (pt_count > CHART_LINE_MAX_POLYLINE_POINTS)
-        {
-            pt_count = CHART_LINE_MAX_POLYLINE_POINTS;
-        }
-        egui_dim_t coords[CHART_LINE_MAX_POLYLINE_POINTS * 2];
-        for (uint8_t i = 0; i < pt_count; i++)
-        {
-            coords[i * 2] = egui_chart_map_x(ab, series->points[i].x, plot_area->location.x, plot_area->size.width);
-            coords[i * 2 + 1] = egui_chart_map_y(ab, series->points[i].y, plot_area->location.y, plot_area->size.height);
-        }
-        egui_canvas_draw_polyline(coords, pt_count, local->line_width, series->color, EGUI_ALPHA_100);
+        uint8_t point_start = monotonic_increasing ? draw_start : 0;
+        uint8_t point_end = monotonic_increasing ? draw_end : (uint8_t)(series->point_count - 1);
+        uint8_t draw_point_count = (point_end >= point_start) ? (uint8_t)(point_end - point_start + 1) : 0;
+        uint8_t pt_count = draw_point_count;
 
-        // If there are more points than the buffer can hold, draw the tail incrementally.
+        if (draw_point_count >= 2)
         {
-            egui_dim_t prev_x = coords[(pt_count - 1) * 2];
-            egui_dim_t prev_y = coords[(pt_count - 1) * 2 + 1];
-            for (uint8_t i = pt_count; i < series->point_count; i++)
+            if (pt_count > CHART_LINE_MAX_POLYLINE_POINTS)
             {
-                egui_dim_t x2 = egui_chart_map_x(ab, series->points[i].x, plot_area->location.x, plot_area->size.width);
-                egui_dim_t y2 = egui_chart_map_y(ab, series->points[i].y, plot_area->location.y, plot_area->size.height);
-                egui_canvas_draw_line(prev_x, prev_y, x2, y2, local->line_width, series->color, EGUI_ALPHA_100);
-                prev_x = x2;
-                prev_y = y2;
+                pt_count = CHART_LINE_MAX_POLYLINE_POINTS;
+            }
+            egui_dim_t coords[CHART_LINE_MAX_POLYLINE_POINTS * 2];
+            for (uint8_t i = 0; i < pt_count; i++)
+            {
+                const egui_chart_point_t *point = &series->points[point_start + i];
+                coords[i * 2] = egui_chart_map_x(ab, point->x, plot_area->location.x, plot_area->size.width);
+                coords[i * 2 + 1] = egui_chart_map_y(ab, point->y, plot_area->location.y, plot_area->size.height);
+            }
+            egui_canvas_draw_polyline(coords, pt_count, local->line_width, series->color, EGUI_ALPHA_100);
+
+            // If there are more points than the buffer can hold, draw the tail incrementally.
+            {
+                egui_dim_t prev_x = coords[(pt_count - 1) * 2];
+                egui_dim_t prev_y = coords[(pt_count - 1) * 2 + 1];
+                for (uint8_t i = pt_count; i < draw_point_count; i++)
+                {
+                    const egui_chart_point_t *point = &series->points[point_start + i];
+                    egui_dim_t x2 = egui_chart_map_x(ab, point->x, plot_area->location.x, plot_area->size.width);
+                    egui_dim_t y2 = egui_chart_map_y(ab, point->y, plot_area->location.y, plot_area->size.height);
+                    egui_canvas_draw_line(prev_x, prev_y, x2, y2, local->line_width, series->color, EGUI_ALPHA_100);
+                    prev_x = x2;
+                    prev_y = y2;
+                }
             }
         }
 
         // Draw data point markers
         if (local->point_radius > 0)
         {
-            for (uint8_t i = 0; i < series->point_count; i++)
+            uint8_t marker_loop_start = 0;
+            uint8_t marker_loop_end = (uint8_t)(series->point_count - 1);
+
+            if (monotonic_increasing && has_visible_range)
+            {
+                if (marker_start > marker_end)
+                {
+                    continue;
+                }
+                marker_loop_start = marker_start;
+                marker_loop_end = marker_end;
+            }
+
+            for (uint16_t i = marker_loop_start; i <= marker_loop_end; i++)
             {
                 egui_dim_t px = egui_chart_map_x(ab, series->points[i].x, plot_area->location.x, plot_area->size.width);
 

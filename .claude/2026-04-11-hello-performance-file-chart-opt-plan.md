@@ -91,7 +91,7 @@
 
 | 场景 | 基线(ms) | 当前(ms) | 变化 | 额外 heap |
 | --- | ---: | ---: | ---: | --- |
-| CHART_LINE_DENSE | 7.677 | 5.556 | -27.6% | 0 |
+| CHART_LINE_DENSE | 7.677 | 1.935 | -74.8% | 0 |
 | CHART_BAR_DENSE | 3.968 | 1.767 | -55.5% | 0 |
 | CHART_SCATTER_DENSE | 3.303 | 1.553 | -53.0% | 0 |
 | CHART_PIE_DENSE | 9.208 | 8.406 | -8.7% | 0 |
@@ -113,7 +113,7 @@
 
 | 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
 | --- | ---: | ---: | ---: | --- |
-| CHART_LINE_DENSE | 5.903 | 5.556 | -5.9% | 0 |
+| CHART_LINE_DENSE | 5.903 | 1.935 | -67.2% | 0 |
 | CHART_SCATTER_DENSE | 1.774 | 1.553 | -12.5% | 0 |
 
 ### chart_pie 增量 A/B
@@ -181,6 +181,8 @@
 
 - `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_PIE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE`
   - 结果：`CHART_PIE_DENSE = 8.389 ms`
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_LINE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_LINE_DENSE`
+  - 结果：`CHART_LINE_DENSE = 1.935 ms`
 - `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
   - 结果：`ALL PASSED`
 - `make all APP=HelloUnitTest PORT=pc_test`
@@ -200,3 +202,19 @@
   - draw call 增多导致变慢，已回退。
 - `circle_hq` 扇区 full-span 直写实验
   - 对 `CHART_PIE_DENSE` 没有拿到额外收益，已回退。
+
+## 2026-04-11 补充：chart line 可见索引裁剪
+
+- 保留改动：
+  - `src/widget/egui_view_chart_line.c`
+  - 对单调递增 X 的 series，先按当前 tile 反推出可见 data-x 范围。
+  - 主折线仅映射并绘制可见点段及其首尾连接点，marker 也只遍历可见索引窗口。
+  - 这样能明显减少 PFB 场景里的离屏 `map_x/map_y`、`draw_line` 和 marker 绘制。
+
+### chart_line 可见索引裁剪增量 A/B
+
+基线为提交 `87bcd49` 上未包含本次 `src/widget/egui_view_chart_line.c` 改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_LINE_DENSE | 5.556 | 1.935 | -65.2% | 0 |
