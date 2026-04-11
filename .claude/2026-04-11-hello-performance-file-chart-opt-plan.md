@@ -431,6 +431,51 @@
 - 截图抽查：
   - `runtime_check_output/HelloPerformance/default/frame_0256.png`
   - pie 场景显示正常，没有看到扇区缺失、边缘误裁或中心漏绘。
+## 2026-04-11 补充：chart pie 取消 `96x8` 逻辑 PFB hint
+
+- 保留改动：
+  - `example/HelloPerformance/uicode.c`
+  - `CHART_PIE_DENSE` 不再强制使用 `96x8` 逻辑 PFB walk，改回默认 `48x16`。
+  - 这几轮 pie 的 tile 裁剪收紧后，更高的 tile 会减少当前 dense pie 场景里的逻辑 tile 数量和扇区重复绘制次数，因此默认 walk 反而更快。
+  - 不增加额外 RAM/heap。
+
+### chart pie 逻辑 PFB hint 回退增量 A/B
+
+基线为提交 `94c9e5b`，即保留 `96x8` pie hint 的当前已提交版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_PIE_DENSE | 2.948 | 2.787 | -5.5% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_PIE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE`
+  - 结果：`CHART_PIE_DENSE = 2.787 ms`
+- `python scripts/perf_analysis/main.py --profile cortex-m3`
+  - 结果：整套 `256` 个场景通过，`FILE_IMAGE_* / CHART_*` 当前关键结果为
+  - `FILE_IMAGE_JPG = 0.330 ms`
+  - `FILE_IMAGE_PNG = 0.330 ms`
+  - `FILE_IMAGE_BMP = 0.330 ms`
+  - `CHART_LINE_DENSE = 1.676 ms`
+  - `CHART_BAR_DENSE = 1.330 ms`
+  - `CHART_SCATTER_DENSE = 1.188 ms`
+  - `CHART_PIE_DENSE = 2.787 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make clean`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0256.png`
+  - pie 场景显示正常，没有看到扇区缺失、边缘误裁或中心漏绘。
+
+### 本轮未保留实验
+
+- `example/HelloPerformance/uicode.c`
+  - 尝试把 `CHART_PIE_DENSE` 改为 `64x12` 逻辑 walk
+  - 单场景结果：`CHART_PIE_DENSE = 2.792 ms`
+  - 虽然优于 `96x8`，但仍略慢于默认 `48x16` 的 `2.787 ms`，因此不保留。
 ## 2026-04-11 补充：chart pie 扩大 tile 角度窗口拒绝范围
 
 - 保留改动：
