@@ -156,16 +156,11 @@ static int egui_image_file_prepare_row_buffers(egui_image_file_t *self)
     return 1;
 }
 
-static void egui_image_file_resize_axis_begin(uint16_t src_extent, egui_dim_t dest_extent, egui_dim_t dest_pos, uint16_t *src_pos, uint16_t *src_error)
+static uint16_t egui_image_file_resize_axis_map(uint16_t src_extent, egui_dim_t dest_extent, egui_dim_t dest_pos)
 {
     uint32_t scaled_pos;
     uint16_t mapped_pos = 0;
-    uint16_t mapped_error = 0;
 
-    if (src_pos == NULL || src_error == NULL)
-    {
-        return;
-    }
     if (src_extent > 0 && dest_extent > 0 && dest_pos > 0)
     {
         scaled_pos = (uint32_t)dest_pos * (uint32_t)src_extent;
@@ -174,36 +169,23 @@ static void egui_image_file_resize_axis_begin(uint16_t src_extent, egui_dim_t de
         {
             mapped_pos = src_extent - 1;
         }
-        mapped_error = (uint16_t)(scaled_pos % (uint32_t)dest_extent);
     }
 
-    *src_pos = mapped_pos;
-    *src_error = mapped_error;
+    return mapped_pos;
 }
 
-static void egui_image_file_resize_axis_advance(uint16_t src_extent, egui_dim_t dest_extent, uint16_t *src_pos, uint16_t *src_error)
+static egui_dim_t egui_image_file_resize_axis_run_end(uint16_t src_extent, egui_dim_t dest_extent, uint16_t src_pos)
 {
-    uint32_t acc;
-    uint16_t mapped_pos;
-
-    if (src_extent == 0 || dest_extent <= 0 || src_pos == NULL || src_error == NULL)
+    if (src_extent == 0 || dest_extent <= 0)
     {
-        return;
+        return 0;
+    }
+    if ((uint16_t)(src_pos + 1u) >= src_extent)
+    {
+        return dest_extent;
     }
 
-    mapped_pos = *src_pos;
-    acc = (uint32_t)(*src_error) + (uint32_t)src_extent;
-    while (acc >= (uint32_t)dest_extent)
-    {
-        acc -= (uint32_t)dest_extent;
-        if ((uint16_t)(mapped_pos + 1u) < src_extent)
-        {
-            mapped_pos++;
-        }
-    }
-
-    *src_pos = mapped_pos;
-    *src_error = (uint16_t)acc;
+    return (egui_dim_t)(((uint32_t)(src_pos + 1u) * (uint32_t)dest_extent + (uint32_t)src_extent - 1u) / (uint32_t)src_extent);
 }
 
 static int egui_image_file_try_open(egui_image_file_t *self)
@@ -573,11 +555,6 @@ static void egui_image_file_api_draw_image_resize(const egui_image_t *base, egui
     egui_dim_t screen_x_end;
     egui_dim_t screen_y_end;
     egui_dim_t screen_y;
-    egui_mask_t *mask = egui_canvas_get_mask();
-    uint16_t src_y;
-    uint16_t src_y_error;
-    uint16_t src_x_start;
-    uint16_t src_x_error_start;
 
     if (self == NULL || !egui_image_file_try_open(self))
     {
@@ -589,129 +566,64 @@ static void egui_image_file_api_draw_image_resize(const egui_image_t *base, egui
         return;
     }
 
-    egui_image_file_resize_axis_begin(self->height, height, screen_y_start - y, &src_y, &src_y_error);
-    egui_image_file_resize_axis_begin(self->width, width, screen_x_start - x, &src_x_start, &src_x_error_start);
-
-    if (!self->has_alpha)
+    for (screen_y = screen_y_start; screen_y < screen_y_end;)
     {
-        if (mask == NULL)
+        egui_dim_t screen_y_next;
+        egui_dim_t run_height;
+        uint16_t src_y = egui_image_file_resize_axis_map(self->height, height, screen_y - y);
+
+        if (!egui_image_file_load_row(self, src_y))
         {
-            for (screen_y = screen_y_start; screen_y < screen_y_end; screen_y++)
-            {
-                egui_dim_t screen_x;
-                uint16_t src_x = src_x_start;
-                uint16_t src_x_error = src_x_error_start;
-
-                if (!egui_image_file_load_row(self, src_y))
-                {
-                    egui_image_file_draw_fallback(self, x, y, width, height, 1);
-                    return;
-                }
-
-                for (screen_x = screen_x_start; screen_x < screen_x_end; screen_x++)
-                {
-                    egui_color_t color;
-
-                    color.full = EGUI_COLOR_RGB565_TRANS(self->row_pixels[src_x]);
-                    egui_canvas_draw_point_limit_skip_mask(screen_x, screen_y, color, EGUI_ALPHA_100);
-                    egui_image_file_resize_axis_advance(self->width, width, &src_x, &src_x_error);
-                }
-
-                egui_image_file_resize_axis_advance(self->height, height, &src_y, &src_y_error);
-            }
+            egui_image_file_draw_fallback(self, x, y, width, height, 1);
+            return;
         }
-        else
+
+        screen_y_next = y + egui_image_file_resize_axis_run_end(self->height, height, src_y);
+        if (screen_y_next <= screen_y)
         {
-            for (screen_y = screen_y_start; screen_y < screen_y_end; screen_y++)
-            {
-                egui_dim_t screen_x;
-                uint16_t src_x = src_x_start;
-                uint16_t src_x_error = src_x_error_start;
-
-                if (!egui_image_file_load_row(self, src_y))
-                {
-                    egui_image_file_draw_fallback(self, x, y, width, height, 1);
-                    return;
-                }
-
-                for (screen_x = screen_x_start; screen_x < screen_x_end; screen_x++)
-                {
-                    egui_color_t color;
-
-                    color.full = EGUI_COLOR_RGB565_TRANS(self->row_pixels[src_x]);
-                    egui_canvas_draw_point_limit(screen_x, screen_y, color, EGUI_ALPHA_100);
-                    egui_image_file_resize_axis_advance(self->width, width, &src_x, &src_x_error);
-                }
-
-                egui_image_file_resize_axis_advance(self->height, height, &src_y, &src_y_error);
-            }
+            screen_y_next = screen_y + 1;
         }
-        return;
-    }
-
-    if (mask == NULL)
-    {
-        for (screen_y = screen_y_start; screen_y < screen_y_end; screen_y++)
+        if (screen_y_next > screen_y_end)
         {
-            egui_dim_t screen_x;
-            uint16_t src_x = src_x_start;
-            uint16_t src_x_error = src_x_error_start;
+            screen_y_next = screen_y_end;
+        }
+        run_height = screen_y_next - screen_y;
 
-            if (!egui_image_file_load_row(self, src_y))
+        for (egui_dim_t screen_x = screen_x_start; screen_x < screen_x_end;)
+        {
+            egui_dim_t screen_x_next;
+            egui_dim_t run_width;
+            uint16_t src_x = egui_image_file_resize_axis_map(self->width, width, screen_x - x);
+            egui_alpha_t alpha = EGUI_ALPHA_100;
+            egui_color_t color;
+
+            screen_x_next = x + egui_image_file_resize_axis_run_end(self->width, width, src_x);
+            if (screen_x_next <= screen_x)
             {
-                egui_image_file_draw_fallback(self, x, y, width, height, 1);
-                return;
+                screen_x_next = screen_x + 1;
             }
-
-            for (screen_x = screen_x_start; screen_x < screen_x_end; screen_x++)
+            if (screen_x_next > screen_x_end)
             {
-                egui_alpha_t alpha = self->row_alpha[src_x];
-                egui_color_t color;
+                screen_x_next = screen_x_end;
+            }
+            run_width = screen_x_next - screen_x;
 
+            if (self->has_alpha)
+            {
+                alpha = self->row_alpha[src_x];
                 if (alpha == 0)
                 {
-                    egui_image_file_resize_axis_advance(self->width, width, &src_x, &src_x_error);
+                    screen_x = screen_x_next;
                     continue;
                 }
-                color.full = EGUI_COLOR_RGB565_TRANS(self->row_pixels[src_x]);
-                egui_canvas_draw_point_limit_skip_mask(screen_x, screen_y, color, alpha);
-                egui_image_file_resize_axis_advance(self->width, width, &src_x, &src_x_error);
             }
 
-            egui_image_file_resize_axis_advance(self->height, height, &src_y, &src_y_error);
+            color.full = EGUI_COLOR_RGB565_TRANS(self->row_pixels[src_x]);
+            egui_canvas_draw_fillrect(screen_x, screen_y, run_width, run_height, color, alpha);
+            screen_x = screen_x_next;
         }
-    }
-    else
-    {
-        for (screen_y = screen_y_start; screen_y < screen_y_end; screen_y++)
-        {
-            egui_dim_t screen_x;
-            uint16_t src_x = src_x_start;
-            uint16_t src_x_error = src_x_error_start;
 
-            if (!egui_image_file_load_row(self, src_y))
-            {
-                egui_image_file_draw_fallback(self, x, y, width, height, 1);
-                return;
-            }
-
-            for (screen_x = screen_x_start; screen_x < screen_x_end; screen_x++)
-            {
-                egui_alpha_t alpha = self->row_alpha[src_x];
-                egui_color_t color;
-
-                if (alpha == 0)
-                {
-                    egui_image_file_resize_axis_advance(self->width, width, &src_x, &src_x_error);
-                    continue;
-                }
-                color.full = EGUI_COLOR_RGB565_TRANS(self->row_pixels[src_x]);
-                egui_canvas_draw_point_limit(screen_x, screen_y, color, alpha);
-                egui_image_file_resize_axis_advance(self->width, width, &src_x, &src_x_error);
-            }
-
-            egui_image_file_resize_axis_advance(self->height, height, &src_y, &src_y_error);
-        }
+        screen_y = screen_y_next;
     }
 }
 
