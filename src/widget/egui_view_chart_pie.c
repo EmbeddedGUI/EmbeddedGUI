@@ -629,9 +629,14 @@ static int egui_view_chart_pie_slice_intersects_work_region(const egui_view_char
             return 1;
         }
 
+        if (work_info->has_angle_window && !egui_view_chart_pie_arc_intersects_arc(start_angle, sweep, work_info->angle_start, work_info->angle_sweep))
+        {
+            return 0;
+        }
+
         if (work_info->inside_solid_circle && work_info->has_angle_window)
         {
-            return egui_view_chart_pie_arc_intersects_arc(start_angle, sweep, work_info->angle_start, work_info->angle_sweep);
+            return 1;
         }
     }
 
@@ -791,7 +796,7 @@ static void egui_view_chart_pie_get_work_region_info(egui_dim_t center_x, egui_d
 
     info->contains_center = egui_view_chart_pie_point_in_region(info->work, center_x, center_y);
     info->inside_solid_circle = egui_view_chart_pie_is_work_region_inside_solid_circle(center_x, center_y, radius);
-    if (!info->contains_center && info->inside_solid_circle)
+    if (!info->contains_center)
     {
         info->has_angle_window = egui_view_chart_pie_get_region_angle_window(info->work, center_x, center_y, &info->angle_start, &info->angle_sweep);
     }
@@ -804,7 +809,7 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
     egui_view_chart_pie_work_region_info_t work_info;
     uint32_t angle_scale_q7 = 0;
     int use_angle_scale_q7 = 0;
-    int use_inside_angle_window_fast_path = 0;
+    int use_angle_window_skip_path = 0;
     int window_wraps = 0;
     int16_t window_start_ext = 0;
     int16_t window_end_ext = 0;
@@ -826,11 +831,11 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
         angle_scale_q7 = ((uint32_t)360 << 7) / total;
         use_angle_scale_q7 = 1;
     }
-    if (!work_info.contains_center && work_info.inside_solid_circle && work_info.has_angle_window)
+    if (!work_info.contains_center && work_info.has_angle_window)
     {
         int32_t ext_end;
 
-        use_inside_angle_window_fast_path = 1;
+        use_angle_window_skip_path = 1;
         window_start_ext = work_info.angle_start;
         if (window_start_ext < 270)
         {
@@ -885,7 +890,7 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
             continue;
         }
 
-        if (use_inside_angle_window_fast_path)
+        if (use_angle_window_skip_path)
         {
             if (!window_wraps)
             {

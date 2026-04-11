@@ -431,6 +431,45 @@
 - 截图抽查：
   - `runtime_check_output/HelloPerformance/default/frame_0256.png`
   - pie 场景显示正常，没有看到扇区缺失、边缘误裁或中心漏绘。
+## 2026-04-11 补充：chart pie 扩大 tile 角度窗口拒绝范围
+
+- 保留改动：
+  - `src/widget/egui_view_chart_pie.c`
+  - 对所有“不包含圆心”的 tile 都预计算 `tile angle window`，而不是仅限于“完全落在实心圆内”的 tile。
+  - 在 `slice intersects work region` 判断里，先用角度窗口做常数时间早拒绝；命中后，仅对仍需几何判断的 tile 再继续做 bbox / 径向边 / 外圆边检测。
+  - 在逐 slice 遍历里，把基于角度窗口的 `continue` 跳过路径扩展到所有带角度窗口的非中心 tile，减少当前 tile 上与角度区间完全不相交 slice 的后续判断。
+  - 不增加额外 RAM/heap。
+
+### chart pie 扩大角度窗口拒绝增量 A/B
+
+基线为提交 `2de91ea`，即未包含本次 `src/widget/egui_view_chart_pie.c` 改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_PIE_DENSE | 3.491 | 2.948 | -15.5% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_PIE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE`
+  - 结果：`CHART_PIE_DENSE = 2.948 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make clean`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- `python scripts/perf_analysis/main.py --profile cortex-m3`
+  - 结果：整套 `256` 个场景通过，`FILE_IMAGE_* / CHART_*` 当前关键结果为
+  - `FILE_IMAGE_JPG = 0.330 ms`
+  - `FILE_IMAGE_PNG = 0.330 ms`
+  - `FILE_IMAGE_BMP = 0.330 ms`
+  - `CHART_LINE_DENSE = 1.676 ms`
+  - `CHART_BAR_DENSE = 1.330 ms`
+  - `CHART_SCATTER_DENSE = 1.188 ms`
+  - `CHART_PIE_DENSE = 2.948 ms`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0256.png`
+  - pie 场景显示正常，没有看到扇区缺失、边缘误裁或中心漏绘。
 ## 2026-04-11 补充：chart pie 按 tile 角度窗口做 slice 早停与中段跳过
 
 - 保留改动：
