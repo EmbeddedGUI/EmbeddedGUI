@@ -2192,8 +2192,8 @@ static void egui_canvas_arc_prepare_scan_state(egui_canvas_arc_scan_state_t *sca
     scan_state->x_arc_allow_max = EGUI_DIM_MAX;
 }
 
-int egui_canvas_get_arc_fill_basic_row_angle_opaque_range(egui_dim_t radius, egui_dim_t qy, int16_t start_angle, int16_t end_angle, egui_dim_t *qx_min,
-                                                          egui_dim_t *qx_max)
+__EGUI_STATIC_INLINE__ int egui_canvas_get_arc_fill_basic_row_angle_opaque_range_inline(egui_dim_t radius, egui_dim_t qy, int16_t start_angle,
+                                                                                         int16_t end_angle, egui_dim_t *qx_min, egui_dim_t *qx_max)
 {
     egui_dim_t local_min = 0;
     egui_dim_t local_max = radius;
@@ -2258,8 +2258,18 @@ int egui_canvas_get_arc_fill_basic_row_angle_opaque_range(egui_dim_t radius, egu
     return 1;
 }
 
+int egui_canvas_get_arc_fill_basic_row_angle_opaque_range(egui_dim_t radius, egui_dim_t qy, int16_t start_angle, int16_t end_angle, egui_dim_t *qx_min,
+                                                          egui_dim_t *qx_max)
+{
+    return egui_canvas_get_arc_fill_basic_row_angle_opaque_range_inline(radius, qy, start_angle, end_angle, qx_min, qx_max);
+}
+
 static egui_alpha_t arc_edge_smoothstep_alpha(int32_t signed_dist_q15)
 {
+    uint32_t t_q15;
+    uint32_t t_sq_q15;
+    uint32_t smooth_q15;
+
     // 1.5-pixel wide AA transition zone with smoothstep for smoother radial edges
     // half_transition = 0.75 in Q16.16 = 49152
 
@@ -2274,17 +2284,13 @@ static egui_alpha_t arc_edge_smoothstep_alpha(int32_t signed_dist_q15)
 
     // Smoothstep interpolation: map [-0.75, 0.75] to [0, 255]
     int32_t coverage_q15 = signed_dist_q15 + ARC_AA_HALF_TRANSITION;
-    int32_t t_q15 = (int32_t)(((int64_t)coverage_q15 * 21845) >> 15);
-    if (t_q15 < 0)
+    t_q15 = ((uint32_t)coverage_q15 * 21845U) >> 15;
+    if (t_q15 > (1U << 15))
     {
-        t_q15 = 0;
+        t_q15 = (1U << 15);
     }
-    else if (t_q15 > (1 << 15))
-    {
-        t_q15 = (1 << 15);
-    }
-    int32_t t_sq_q15 = (int32_t)(((int64_t)t_q15 * t_q15) >> 15);
-    int32_t smooth_q15 = (int32_t)(((int64_t)t_sq_q15 * ((3 << 15) - (t_q15 << 1))) >> 15);
+    t_sq_q15 = (t_q15 * t_q15) >> 15;
+    smooth_q15 = (t_sq_q15 * ((3U << 15) - (t_q15 << 1))) >> 15;
     egui_alpha_t alpha = (egui_alpha_t)((smooth_q15 * EGUI_ALPHA_100) >> 15);
     if (alpha > EGUI_ALPHA_100)
     {
@@ -2293,7 +2299,7 @@ static egui_alpha_t arc_edge_smoothstep_alpha(int32_t signed_dist_q15)
     return alpha;
 }
 
-static egui_alpha_t arc_get_point_alpha(egui_dim_t x, egui_dim_t y, const egui_canvas_arc_scan_state_t *scan_state)
+__EGUI_STATIC_INLINE__ egui_alpha_t arc_get_point_alpha(egui_dim_t x, egui_dim_t y, const egui_canvas_arc_scan_state_t *scan_state)
 {
     egui_alpha_t alpha_start = EGUI_ALPHA_100;
     egui_alpha_t alpha_end = EGUI_ALPHA_100;
@@ -2323,7 +2329,8 @@ static egui_alpha_t arc_get_point_alpha(egui_dim_t x, egui_dim_t y, const egui_c
     return egui_color_alpha_mix(alpha_start, alpha_end);
 }
 
-static int egui_canvas_arc_try_apply_edge_alpha(const egui_canvas_arc_scan_state_t *scan_state, egui_dim_t sel_x, egui_dim_t sel_y, egui_alpha_t *mix_alpha)
+__EGUI_STATIC_INLINE__ int egui_canvas_arc_try_apply_edge_alpha(const egui_canvas_arc_scan_state_t *scan_state, egui_dim_t sel_x, egui_dim_t sel_y,
+                                                                egui_alpha_t *mix_alpha)
 {
     egui_alpha_t point_alpha;
 
@@ -2532,7 +2539,7 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
                 }
             }
 
-            if (egui_canvas_get_arc_fill_basic_row_angle_opaque_range(radius, sel_y, start_angle, end_angle, &opaque_qx_min, &opaque_qx_max))
+            if (egui_canvas_get_arc_fill_basic_row_angle_opaque_range_inline(radius, sel_y, start_angle, end_angle, &opaque_qx_min, &opaque_qx_max))
             {
                 opaque_col_start = radius - opaque_qx_max;
                 opaque_col_end = radius - opaque_qx_min + 1;

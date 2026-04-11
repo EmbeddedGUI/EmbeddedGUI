@@ -431,6 +431,58 @@
 - 截图抽查：
   - `runtime_check_output/HelloPerformance/default/frame_0256.png`
   - pie 场景显示正常，没有看到扇区缺失、边缘误裁或中心漏绘。
+
+## 2026-04-11 补充：basic arc fill 热路径去掉多余 64 位乘法并内联热点 helper
+
+- 保留改动：
+  - `src/core/egui_canvas.c`
+  - `arc_edge_smoothstep_alpha()` 中把当前输入范围内原本不必要的 `int64_t` 乘法改为等价的 `uint32_t` 计算，减少 Cortex-M3 上的 AA 边缘代价。
+  - 将 `arc_get_point_alpha()` 与 `egui_canvas_arc_try_apply_edge_alpha()` 改为文件内热路径内联，减少 `arc fill` 行扫描里的函数跳转开销。
+  - 为 `egui_canvas_get_arc_fill_basic_row_angle_opaque_range()` 增加文件内 `inline` 实现，并保留外部包装函数，既保住 `HelloUnitTest` 对该符号的直接链接，又让 `arc fill` 热路径继续走内联版本。
+  - 不增加额外 RAM/heap。
+
+### basic arc fill 热路径内联增量 A/B
+
+基线为提交 `04dd821`，即当前未包含本次 `src/core/egui_canvas.c` 改动的已提交版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_PIE_DENSE | 2.477 | 2.273 | -8.2% | 0 |
+| ARC_FILL | 0.900 | 0.848 | -5.8% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_PIE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE`
+  - 结果：`CHART_PIE_DENSE = 2.273 ms`
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter ARC_FILL --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_ARC_FILL`
+  - 结果：`ARC_FILL = 0.848 ms`
+- `python scripts/perf_analysis/main.py --profile cortex-m3`
+  - 结果：整套 `256` 个场景通过，关键 file/chart 结果为
+  - `FILE_IMAGE_JPG = 0.330 ms`
+  - `FILE_IMAGE_PNG = 0.330 ms`
+  - `FILE_IMAGE_BMP = 0.330 ms`
+  - `CHART_LINE_DENSE = 1.418 ms`
+  - `CHART_BAR_DENSE = 1.330 ms`
+  - `CHART_SCATTER_DENSE = 1.188 ms`
+  - `CHART_PIE_DENSE = 2.272 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0253.png`
+  - `runtime_check_output/HelloPerformance/default/frame_0256.png`
+  - line 与 pie 场景显示正常，未看到折线断裂、marker 缺失、扇区缺失或边缘异常。
+
+### 本轮未保留实验
+
+- `src/core/egui_canvas.c`
+  - 尝试把角边界 alpha 改成“按行初始化、按列递增”的状态推进版本。
+  - 单场景结果先后为 `CHART_PIE_DENSE = 2.646 ms`、内联后 `2.490 ms`，都没有优于基线 `2.477 ms`，因此已回退。
+- `src/core/egui_canvas.c`
+  - 额外尝试把 `arc_edge_smoothstep_alpha()` 也强制内联。
+  - 单场景结果仍为 `CHART_PIE_DENSE = 2.350 ms`，对比当前保留版本没有额外收益，因此不保留。
 ## 2026-04-11 补充：chart line 使用 `64x12` 逻辑 PFB hint
 
 - 保留改动：
