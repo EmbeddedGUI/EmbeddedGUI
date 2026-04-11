@@ -218,3 +218,35 @@
 | 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
 | --- | ---: | ---: | ---: | --- |
 | CHART_LINE_DENSE | 5.556 | 1.935 | -65.2% | 0 |
+
+## 2026-04-11 补充：chart pie 精确 tile-slice 裁剪
+
+- 保留改动：
+  - `src/widget/egui_view_chart_pie.c`
+  - 保留原有基于 `egui_view_circle_dirty_compute_arc_region()` 的快速 bbox 预筛。
+  - 对命中 bbox 的 slice，再补一层常数时间的精确命中判定：
+    - tile 四角是否落在当前 pie slice 内
+    - slice 两条径向边是否穿过当前 tile
+    - 外圆弧是否与当前 tile 四条边相交
+  - 这样可以显著减少 `96x8` 逻辑 PFB 场景下 bbox 误判导致的离屏 `egui_canvas_draw_arc_fill()` 调用，而且不增加额外 heap/RAM。
+
+### chart_pie 精确 tile-slice 裁剪增量 A/B
+
+基线为提交 `28894d0` 上未包含本次 `src/widget/egui_view_chart_pie.c` 改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_PIE_DENSE | 8.389 | 6.589 | -21.5% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_PIE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE`
+  - 结果：`CHART_PIE_DENSE = 6.589 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0256.png`
+  - pie 场景显示正常，没有看到扇区缺失、边缘被误裁或中心漏绘。
