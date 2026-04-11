@@ -2504,6 +2504,7 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
             egui_dim_t py = center_y + sign_y * sel_y;
             egui_color_t *dst_row = (egui_color_t *)&self->pfb[(py - pfb_ofs_y) * pfb_width];
             egui_dim_t col_begin = EGUI_MAX(col_index, col_index_start);
+            egui_dim_t col_end = col_index_end;
             egui_dim_t opaque_qx_min = 0;
             egui_dim_t opaque_qx_max = 0;
             egui_dim_t opaque_col_start = 0;
@@ -2514,12 +2515,29 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
                                                            : (apply_draw_alpha ? alpha : EGUI_ALPHA_100);
             int has_opaque_span = 0;
 
+            if (scan_state.x_allow_min > 0 || scan_state.x_allow_max < radius)
+            {
+                egui_dim_t visible_qx_min = EGUI_MIN(scan_state.x_allow_min, radius);
+                egui_dim_t visible_qx_max = EGUI_MIN(scan_state.x_allow_max, radius);
+                egui_dim_t visible_col_start = radius - visible_qx_max;
+                egui_dim_t visible_col_end = radius - visible_qx_min + 1;
+
+                col_begin = EGUI_MAX(col_begin, visible_col_start);
+                col_end = EGUI_MIN(col_end, visible_col_end);
+                if (col_begin >= col_end)
+                {
+                    scan_state.last_start_x = scan_state.cur_start_x;
+                    scan_state.last_end_x = scan_state.cur_end_x;
+                    continue;
+                }
+            }
+
             if (egui_canvas_get_arc_fill_basic_row_angle_opaque_range(radius, sel_y, start_angle, end_angle, &opaque_qx_min, &opaque_qx_max))
             {
                 opaque_col_start = radius - opaque_qx_max;
                 opaque_col_end = radius - opaque_qx_min + 1;
                 opaque_col_start = EGUI_MAX(opaque_col_start, EGUI_MAX(circle_opaque, col_begin));
-                opaque_col_end = EGUI_MIN(opaque_col_end, col_index_end);
+                opaque_col_end = EGUI_MIN(opaque_col_end, col_end);
                 if (opaque_col_start < opaque_col_end)
                 {
                     egui_dim_t span_qx_max = radius - opaque_col_start;
@@ -2540,7 +2558,7 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
                 }
             }
 
-            for (col_index = col_begin; col_index < col_index_end; col_index++)
+            for (col_index = col_begin; col_index < col_end; col_index++)
             {
                 if (has_opaque_span && col_index == opaque_col_start)
                 {
@@ -2596,7 +2614,27 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
         }
         else
         {
-            for (col_index = EGUI_MAX(col_index, col_index_start); col_index < col_index_end; col_index++)
+            egui_dim_t col_begin = EGUI_MAX(col_index, col_index_start);
+            egui_dim_t col_end = col_index_end;
+
+            if (scan_state.x_allow_min > 0 || scan_state.x_allow_max < radius)
+            {
+                egui_dim_t visible_qx_min = EGUI_MIN(scan_state.x_allow_min, radius);
+                egui_dim_t visible_qx_max = EGUI_MIN(scan_state.x_allow_max, radius);
+                egui_dim_t visible_col_start = radius - visible_qx_max;
+                egui_dim_t visible_col_end = radius - visible_qx_min + 1;
+
+                col_begin = EGUI_MAX(col_begin, visible_col_start);
+                col_end = EGUI_MIN(col_end, visible_col_end);
+                if (col_begin >= col_end)
+                {
+                    scan_state.last_start_x = scan_state.cur_start_x;
+                    scan_state.last_end_x = scan_state.cur_end_x;
+                    continue;
+                }
+            }
+
+            for (col_index = col_begin; col_index < col_end; col_index++)
             {
                 sel_x = radius - col_index;
 
