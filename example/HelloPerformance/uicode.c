@@ -692,9 +692,9 @@ static egui_dim_t egui_view_test_performance_get_logical_pfb_width_hint(int test
         return 64;
 
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE:
-        /* The current pie tile-culling path is faster on the default 48x16 walk
-         * than on the older 96x8 logical hint. */
-        return 0;
+        /* With the outer-circle tile reject in place, a 64x12 logical walk
+         * is slightly faster than the default 48x16 walk on QEMU. */
+        return 64;
 
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_QOI_565_8:

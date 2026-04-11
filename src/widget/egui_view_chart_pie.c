@@ -39,6 +39,7 @@ typedef struct egui_view_chart_pie_work_region_info
 #define EGUI_VIEW_CHART_PIE_ANGLE_CULL_PAD_DEG 0
 
 static int egui_view_chart_pie_is_work_region_inside_solid_circle(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius);
+static int egui_view_chart_pie_work_region_intersects_outer_circle(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius);
 static int16_t egui_view_chart_pie_integer_atan2_deg(int32_t dy, int32_t dx);
 
 static egui_dim_t egui_view_chart_pie_get_font_height_basic(egui_view_chart_pie_t *local)
@@ -775,6 +776,61 @@ static int egui_view_chart_pie_is_work_region_inside_solid_circle(egui_dim_t cen
 #undef EGUI_VIEW_CHART_PIE_CORNER_INSIDE
 }
 
+static int egui_view_chart_pie_work_region_intersects_outer_circle(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius)
+{
+    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_dim_t x0;
+    egui_dim_t y0;
+    egui_dim_t x1;
+    egui_dim_t y1;
+    egui_dim_t nearest_x;
+    egui_dim_t nearest_y;
+    int32_t dx;
+    int32_t dy;
+    int32_t outer_radius;
+
+    if (work == NULL || egui_region_is_empty(work))
+    {
+        return 0;
+    }
+
+    x0 = work->location.x;
+    y0 = work->location.y;
+    x1 = x0 + work->size.width - 1;
+    y1 = y0 + work->size.height - 1;
+
+    if (center_x < x0)
+    {
+        nearest_x = x0;
+    }
+    else if (center_x > x1)
+    {
+        nearest_x = x1;
+    }
+    else
+    {
+        nearest_x = center_x;
+    }
+
+    if (center_y < y0)
+    {
+        nearest_y = y0;
+    }
+    else if (center_y > y1)
+    {
+        nearest_y = y1;
+    }
+    else
+    {
+        nearest_y = center_y;
+    }
+
+    dx = (int32_t)nearest_x - center_x;
+    dy = (int32_t)nearest_y - center_y;
+    outer_radius = radius + 1;
+    return dx * dx + dy * dy <= outer_radius * outer_radius;
+}
+
 static void egui_view_chart_pie_get_work_region_info(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_view_chart_pie_work_region_info_t *info)
 {
     if (info == NULL)
@@ -821,6 +877,11 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
     }
 
     if (!egui_view_chart_pie_rect_intersects_work_region(center_x - radius, center_y - radius, radius * 2 + 1, radius * 2 + 1))
+    {
+        return;
+    }
+
+    if (!egui_view_chart_pie_work_region_intersects_outer_circle(center_x, center_y, radius))
     {
         return;
     }
