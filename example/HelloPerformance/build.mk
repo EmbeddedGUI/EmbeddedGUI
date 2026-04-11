@@ -6,6 +6,15 @@ EGUI_CODE_SRC		+= $(EGUI_APP_PATH)/resource/font
 EGUI_CODE_INCLUDE	+= $(EGUI_APP_PATH)
 EGUI_CODE_INCLUDE	+= $(EGUI_APP_PATH)/resource
 
+EGUI_CODE_SRC_FILES += \
+	example/HelloBasic/file_image/decoder_bmp_stream.c \
+	example/HelloBasic/file_image/decoder_registry.c \
+	example/HelloBasic/file_image/decoder_stb.c \
+	example/HelloBasic/file_image/decoder_tjpgd_stream.c \
+	example/HelloBasic/file_image/file_image_stack.c \
+	example/HelloBasic/file_image/mount_router_template/file_io_mount_router_template.c \
+	example/HelloBasic/file_image/third_party_tjpgd.c
+
 ifeq ($(PORT),qemu)
 # HelloPerformance uses startup_qemu.s directly and exits through the
 # semihosting helper, so rdimon-crt0 only adds unused atexit/init state.

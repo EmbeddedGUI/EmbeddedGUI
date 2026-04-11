@@ -636,6 +636,20 @@ static const char *egui_view_test_performance_type_string(int test_mode)
         return "EXTERN_MASK_IMAGE_RLE_8_CIRCLE";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_8_IMAGE:
         return "EXTERN_MASK_IMAGE_RLE_8_IMAGE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_JPG:
+        return "FILE_IMAGE_JPG";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_PNG:
+        return "FILE_IMAGE_PNG";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:
+        return "FILE_IMAGE_BMP";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_LINE_DENSE:
+        return "CHART_LINE_DENSE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_BAR_DENSE:
+        return "CHART_BAR_DENSE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_SCATTER_DENSE:
+        return "CHART_SCATTER_DENSE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE:
+        return "CHART_PIE_DENSE";
 
     default:
         return "Unknown";

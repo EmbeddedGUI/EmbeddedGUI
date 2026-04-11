@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 
 #include "egui_view_test_performance.h"
 #include "egui.h"
@@ -30,6 +31,108 @@
 #include "anim/egui_interpolator_linear.h"
 
 #include "app_egui_resource_generate.h"
+
+#include "widget/egui_view_image.h"
+#include "widget/egui_view_chart_line.h"
+#include "widget/egui_view_chart_bar.h"
+#include "widget/egui_view_chart_scatter.h"
+#include "widget/egui_view_chart_pie.h"
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+#include "../HelloBasic/file_image/decoder_bmp_stream.h"
+#include "../HelloBasic/file_image/decoder_stb.h"
+#include "../HelloBasic/file_image/decoder_tjpgd_stream.h"
+#include "../HelloBasic/file_image/file_image_stack.h"
+#include "file_image_port_io.h"
+#endif
+
+#define PERF_WIDGET_BG_COLOR       EGUI_COLOR_HEX(0x0F172A)
+#define PERF_WIDGET_AXIS_COLOR     EGUI_COLOR_HEX(0x94A3B8)
+#define PERF_WIDGET_GRID_COLOR     EGUI_COLOR_HEX(0x334155)
+#define PERF_WIDGET_TEXT_COLOR     EGUI_COLOR_HEX(0xE2E8F0)
+#define PERF_FILE_IMAGE_BG_COLOR   EGUI_COLOR_HEX(0x111827)
+#define PERF_CHART_LINE_SERIES_CNT 2u
+#define PERF_CHART_BAR_SERIES_CNT  2u
+#define PERF_CHART_SCATTER_SERIES_CNT 2u
+#define PERF_CHART_LINE_POINT_COUNT    128u
+#define PERF_CHART_BAR_POINT_COUNT     32u
+#define PERF_CHART_SCATTER_POINT_COUNT 96u
+#define PERF_CHART_PIE_SLICE_COUNT     16u
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+#define PERF_FILE_IMAGE_JPG_PATH "sd:sample_landscape.jpg"
+#define PERF_FILE_IMAGE_PNG_PATH "lfs:sample_overlay.png"
+#define PERF_FILE_IMAGE_BMP_PATH "flash:sample_badge.bmp"
+#endif
+
+static egui_region_t s_perf_widget_dirty_backup[EGUI_CONFIG_DIRTY_AREA_COUNT];
+static uint8_t s_perf_chart_data_ready;
+
+static egui_view_chart_line_t s_perf_chart_line_view;
+static egui_view_chart_bar_t s_perf_chart_bar_view;
+static egui_view_chart_scatter_t s_perf_chart_scatter_view;
+static egui_view_chart_pie_t s_perf_chart_pie_view;
+
+static uint8_t s_perf_chart_line_ready;
+static uint8_t s_perf_chart_bar_ready;
+static uint8_t s_perf_chart_scatter_ready;
+static uint8_t s_perf_chart_pie_ready;
+
+static egui_chart_point_t s_perf_chart_line_points_a[PERF_CHART_LINE_POINT_COUNT];
+static egui_chart_point_t s_perf_chart_line_points_b[PERF_CHART_LINE_POINT_COUNT];
+static egui_chart_point_t s_perf_chart_bar_points_a[PERF_CHART_BAR_POINT_COUNT];
+static egui_chart_point_t s_perf_chart_bar_points_b[PERF_CHART_BAR_POINT_COUNT];
+static egui_chart_point_t s_perf_chart_scatter_points_a[PERF_CHART_SCATTER_POINT_COUNT];
+static egui_chart_point_t s_perf_chart_scatter_points_b[PERF_CHART_SCATTER_POINT_COUNT];
+static egui_chart_pie_slice_t s_perf_chart_pie_slices[PERF_CHART_PIE_SLICE_COUNT];
+
+static const egui_chart_series_t s_perf_chart_line_series[PERF_CHART_LINE_SERIES_CNT] = {
+        {.points = s_perf_chart_line_points_a, .point_count = (uint8_t)PERF_CHART_LINE_POINT_COUNT, .color = EGUI_COLOR_MAKE(96, 165, 250), .name = "A"},
+        {.points = s_perf_chart_line_points_b, .point_count = (uint8_t)PERF_CHART_LINE_POINT_COUNT, .color = EGUI_COLOR_MAKE(52, 211, 153), .name = "B"},
+};
+static const egui_chart_series_t s_perf_chart_bar_series[PERF_CHART_BAR_SERIES_CNT] = {
+        {.points = s_perf_chart_bar_points_a, .point_count = (uint8_t)PERF_CHART_BAR_POINT_COUNT, .color = EGUI_COLOR_MAKE(251, 191, 36), .name = "A"},
+        {.points = s_perf_chart_bar_points_b, .point_count = (uint8_t)PERF_CHART_BAR_POINT_COUNT, .color = EGUI_COLOR_MAKE(248, 113, 113), .name = "B"},
+};
+static const egui_chart_series_t s_perf_chart_scatter_series[PERF_CHART_SCATTER_SERIES_CNT] = {
+        {.points = s_perf_chart_scatter_points_a, .point_count = (uint8_t)PERF_CHART_SCATTER_POINT_COUNT, .color = EGUI_COLOR_MAKE(196, 181, 253), .name = "A"},
+        {.points = s_perf_chart_scatter_points_b, .point_count = (uint8_t)PERF_CHART_SCATTER_POINT_COUNT, .color = EGUI_COLOR_MAKE(125, 211, 252), .name = "B"},
+};
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+static egui_view_image_t s_perf_file_image_view;
+static egui_image_file_t s_perf_file_image;
+static file_image_port_context_t s_perf_file_image_mount_ctx = {
+        .root_prefix = "example/HelloPerformance/files/",
+        .alt_root_prefix = "../example/HelloPerformance/files/",
+};
+static egui_image_file_io_t s_perf_file_image_mount_io;
+static file_image_stack_state_t s_perf_file_image_stack_state;
+static uint8_t s_perf_file_image_stack_ready;
+static uint8_t s_perf_file_image_ready;
+static int s_perf_file_image_scene_mode = -1;
+
+static const file_image_mount_router_entry_t s_perf_file_image_mount_entries[] = {
+        {"sd:", &s_perf_file_image_mount_io, 1},
+        {"lfs:", &s_perf_file_image_mount_io, 1},
+        {"flash:", &s_perf_file_image_mount_io, 1},
+};
+static const file_image_decoder_registry_config_t s_perf_file_image_decoder_config = {
+        .bmp_stream = &g_file_image_bmp_stream_decoder,
+        .jpeg_vendor = NULL,
+        .jpeg_stream = &g_file_image_tjpgd_stream_decoder,
+        .png_vendor = NULL,
+        .generic_fallback = &g_file_image_stb_decoder,
+        .clear_first = 1,
+};
+static const file_image_stack_config_t s_perf_file_image_stack_config = {
+        .default_io = NULL,
+        .mount_entries = s_perf_file_image_mount_entries,
+        .mount_entry_count = sizeof(s_perf_file_image_mount_entries) / sizeof(s_perf_file_image_mount_entries[0]),
+        .fallback_io = &s_perf_file_image_mount_io,
+        .decoder_config = &s_perf_file_image_decoder_config,
+};
+#endif
 
 // Large image tests (480px/240px) stay in the shipped benchmark set.
 
@@ -836,6 +939,278 @@ static void ensure_perf_masks_initialized(void)
 {
     // Stack-local perf masks are prepared at each draw site.
 }
+
+static void perf_draw_widget(egui_view_t *view, const egui_view_t *host)
+{
+    egui_region_t *dirty_regions;
+    egui_location_t original_location;
+
+    if (view == NULL || view->api == NULL)
+    {
+        return;
+    }
+
+    dirty_regions = egui_core_get_region_dirty_arr();
+    memcpy(s_perf_widget_dirty_backup, dirty_regions, sizeof(s_perf_widget_dirty_backup));
+    original_location = view->region.location;
+
+    if (view->parent == NULL)
+    {
+        if (host != NULL)
+        {
+            view->region.location.x = (egui_dim_t)(original_location.x + host->region.location.x);
+            view->region.location.y = (egui_dim_t)(original_location.y + host->region.location.y);
+        }
+        egui_view_request_layout(view);
+    }
+
+    view->api->calculate_layout(view);
+    memcpy(dirty_regions, s_perf_widget_dirty_backup, sizeof(s_perf_widget_dirty_backup));
+    view->api->draw(view);
+
+    if (view->parent == NULL)
+    {
+        view->region.location = original_location;
+    }
+}
+
+static void perf_configure_axis_chart_view(egui_view_t *view)
+{
+    egui_view_set_position(view, 0, 0);
+    egui_view_set_size(view, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_chart_axis_set_colors(view, PERF_WIDGET_BG_COLOR, PERF_WIDGET_AXIS_COLOR, PERF_WIDGET_GRID_COLOR, PERF_WIDGET_TEXT_COLOR);
+}
+
+static void perf_ensure_chart_data_ready(void)
+{
+    static const uint8_t pie_colors[PERF_CHART_PIE_SLICE_COUNT][3] = {
+            {59, 130, 246},
+            {16, 185, 129},
+            {245, 158, 11},
+            {239, 68, 68},
+            {168, 85, 247},
+            {14, 165, 233},
+            {34, 197, 94},
+            {251, 146, 60},
+            {244, 114, 182},
+            {163, 230, 53},
+            {129, 140, 248},
+            {45, 212, 191},
+            {250, 204, 21},
+            {248, 113, 113},
+            {192, 132, 252},
+            {56, 189, 248},
+    };
+    uint16_t i;
+
+    if (s_perf_chart_data_ready)
+    {
+        return;
+    }
+
+    for (i = 0; i < PERF_CHART_LINE_POINT_COUNT; i++)
+    {
+        s_perf_chart_line_points_a[i].x = (int16_t)i;
+        s_perf_chart_line_points_a[i].y = (int16_t)(8 + ((i * 37u + (i % 9u) * 5u) % 86u));
+        s_perf_chart_line_points_b[i].x = (int16_t)i;
+        s_perf_chart_line_points_b[i].y = (int16_t)(10 + ((i * 53u + (i % 7u) * 3u) % 80u));
+    }
+
+    for (i = 0; i < PERF_CHART_BAR_POINT_COUNT; i++)
+    {
+        s_perf_chart_bar_points_a[i].x = (int16_t)i;
+        s_perf_chart_bar_points_a[i].y = (int16_t)(12 + ((i * 23u + (i % 4u) * 9u) % 78u));
+        s_perf_chart_bar_points_b[i].x = (int16_t)i;
+        s_perf_chart_bar_points_b[i].y = (int16_t)(10 + ((i * 31u + (i % 5u) * 7u) % 82u));
+    }
+
+    for (i = 0; i < PERF_CHART_SCATTER_POINT_COUNT; i++)
+    {
+        s_perf_chart_scatter_points_a[i].x = (int16_t)((i * 29u + (i % 6u) * 7u) % PERF_CHART_LINE_POINT_COUNT);
+        s_perf_chart_scatter_points_a[i].y = (int16_t)(6 + ((i * 41u + (i % 5u) * 11u) % 90u));
+        s_perf_chart_scatter_points_b[i].x = (int16_t)((i * 17u + (i % 8u) * 13u) % PERF_CHART_LINE_POINT_COUNT);
+        s_perf_chart_scatter_points_b[i].y = (int16_t)(4 + ((i * 47u + (i % 7u) * 9u) % 92u));
+    }
+
+    for (i = 0; i < PERF_CHART_PIE_SLICE_COUNT; i++)
+    {
+        s_perf_chart_pie_slices[i].value = (uint16_t)(8 + (i % 5u) * 3u + (i % 3u));
+        s_perf_chart_pie_slices[i].color = EGUI_COLOR_MAKE(pie_colors[i][0], pie_colors[i][1], pie_colors[i][2]);
+        s_perf_chart_pie_slices[i].name = NULL;
+    }
+
+    s_perf_chart_data_ready = 1U;
+}
+
+static void perf_init_chart_line_view(void)
+{
+    if (s_perf_chart_line_ready)
+    {
+        return;
+    }
+
+    perf_ensure_chart_data_ready();
+    egui_view_chart_line_init(EGUI_VIEW_OF(&s_perf_chart_line_view));
+    perf_configure_axis_chart_view(EGUI_VIEW_OF(&s_perf_chart_line_view));
+    egui_view_chart_line_set_axis_x(EGUI_VIEW_OF(&s_perf_chart_line_view), 0, (int16_t)(PERF_CHART_LINE_POINT_COUNT - 1), 16);
+    egui_view_chart_line_set_axis_y(EGUI_VIEW_OF(&s_perf_chart_line_view), 0, 100, 20);
+    egui_view_chart_line_set_series(EGUI_VIEW_OF(&s_perf_chart_line_view), s_perf_chart_line_series, (uint8_t)PERF_CHART_LINE_SERIES_CNT);
+    egui_view_chart_line_set_legend_pos(EGUI_VIEW_OF(&s_perf_chart_line_view), EGUI_CHART_LEGEND_BOTTOM);
+    egui_view_chart_line_set_line_width(EGUI_VIEW_OF(&s_perf_chart_line_view), 1);
+    egui_view_chart_line_set_point_radius(EGUI_VIEW_OF(&s_perf_chart_line_view), 1);
+    s_perf_chart_line_ready = 1U;
+}
+
+static void perf_init_chart_bar_view(void)
+{
+    if (s_perf_chart_bar_ready)
+    {
+        return;
+    }
+
+    perf_ensure_chart_data_ready();
+    egui_view_chart_bar_init(EGUI_VIEW_OF(&s_perf_chart_bar_view));
+    perf_configure_axis_chart_view(EGUI_VIEW_OF(&s_perf_chart_bar_view));
+    egui_view_chart_bar_set_axis_x(EGUI_VIEW_OF(&s_perf_chart_bar_view), 0, (int16_t)(PERF_CHART_BAR_POINT_COUNT - 1), 4);
+    egui_view_chart_bar_set_axis_y(EGUI_VIEW_OF(&s_perf_chart_bar_view), 0, 100, 20);
+    egui_view_chart_bar_set_series(EGUI_VIEW_OF(&s_perf_chart_bar_view), s_perf_chart_bar_series, (uint8_t)PERF_CHART_BAR_SERIES_CNT);
+    egui_view_chart_bar_set_legend_pos(EGUI_VIEW_OF(&s_perf_chart_bar_view), EGUI_CHART_LEGEND_BOTTOM);
+    egui_view_chart_bar_set_bar_gap(EGUI_VIEW_OF(&s_perf_chart_bar_view), 1);
+    s_perf_chart_bar_ready = 1U;
+}
+
+static void perf_init_chart_scatter_view(void)
+{
+    if (s_perf_chart_scatter_ready)
+    {
+        return;
+    }
+
+    perf_ensure_chart_data_ready();
+    egui_view_chart_scatter_init(EGUI_VIEW_OF(&s_perf_chart_scatter_view));
+    perf_configure_axis_chart_view(EGUI_VIEW_OF(&s_perf_chart_scatter_view));
+    egui_view_chart_scatter_set_axis_x(EGUI_VIEW_OF(&s_perf_chart_scatter_view), 0, (int16_t)(PERF_CHART_LINE_POINT_COUNT - 1), 16);
+    egui_view_chart_scatter_set_axis_y(EGUI_VIEW_OF(&s_perf_chart_scatter_view), 0, 100, 20);
+    egui_view_chart_scatter_set_series(EGUI_VIEW_OF(&s_perf_chart_scatter_view), s_perf_chart_scatter_series, (uint8_t)PERF_CHART_SCATTER_SERIES_CNT);
+    egui_view_chart_scatter_set_legend_pos(EGUI_VIEW_OF(&s_perf_chart_scatter_view), EGUI_CHART_LEGEND_BOTTOM);
+    egui_view_chart_scatter_set_point_radius(EGUI_VIEW_OF(&s_perf_chart_scatter_view), 2);
+    s_perf_chart_scatter_ready = 1U;
+}
+
+static void perf_init_chart_pie_view(void)
+{
+    if (s_perf_chart_pie_ready)
+    {
+        return;
+    }
+
+    perf_ensure_chart_data_ready();
+    egui_view_chart_pie_init(EGUI_VIEW_OF(&s_perf_chart_pie_view));
+    egui_view_set_position(EGUI_VIEW_OF(&s_perf_chart_pie_view), 0, 0);
+    egui_view_set_size(EGUI_VIEW_OF(&s_perf_chart_pie_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+    egui_view_chart_pie_set_slices(EGUI_VIEW_OF(&s_perf_chart_pie_view), s_perf_chart_pie_slices, (uint8_t)PERF_CHART_PIE_SLICE_COUNT);
+    egui_view_chart_pie_set_legend_pos(EGUI_VIEW_OF(&s_perf_chart_pie_view), EGUI_CHART_LEGEND_NONE);
+    egui_view_chart_pie_set_colors(EGUI_VIEW_OF(&s_perf_chart_pie_view), PERF_WIDGET_BG_COLOR, PERF_WIDGET_TEXT_COLOR);
+    s_perf_chart_pie_ready = 1U;
+}
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+static const char *perf_get_file_image_path(int test_mode)
+{
+    switch (test_mode)
+    {
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_JPG:
+        return PERF_FILE_IMAGE_JPG_PATH;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_PNG:
+        return PERF_FILE_IMAGE_PNG_PATH;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:
+        return PERF_FILE_IMAGE_BMP_PATH;
+    default:
+        return NULL;
+    }
+}
+
+static int perf_init_file_image_stack(void)
+{
+    if (s_perf_file_image_stack_ready)
+    {
+        return 1;
+    }
+
+    file_image_port_io_init(&s_perf_file_image_mount_io, &s_perf_file_image_mount_ctx);
+    if (!file_image_stack_apply(&s_perf_file_image_stack_state, &s_perf_file_image_stack_config))
+    {
+        return 0;
+    }
+
+    s_perf_file_image_stack_ready = 1U;
+    return 1;
+}
+
+static void perf_prepare_file_image_scene(int test_mode)
+{
+    const char *path = perf_get_file_image_path(test_mode);
+
+    if (path == NULL || !perf_init_file_image_stack())
+    {
+        return;
+    }
+
+    if (!s_perf_file_image_ready)
+    {
+        egui_image_file_init(&s_perf_file_image);
+        egui_view_image_init(EGUI_VIEW_OF(&s_perf_file_image_view));
+        egui_view_set_position(EGUI_VIEW_OF(&s_perf_file_image_view), 0, 0);
+        egui_view_set_size(EGUI_VIEW_OF(&s_perf_file_image_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+        egui_view_image_set_image(EGUI_VIEW_OF(&s_perf_file_image_view), (egui_image_t *)&s_perf_file_image);
+        egui_view_image_set_image_type(EGUI_VIEW_OF(&s_perf_file_image_view), EGUI_VIEW_IMAGE_TYPE_RESIZE);
+        s_perf_file_image_ready = 1U;
+    }
+
+    if (s_perf_file_image_scene_mode != test_mode)
+    {
+        egui_image_file_set_path(&s_perf_file_image, path);
+        egui_image_file_reload(&s_perf_file_image);
+        s_perf_file_image_scene_mode = test_mode;
+    }
+}
+#endif
+
+static void perf_draw_chart_line_scene(egui_view_t *self)
+{
+    perf_init_chart_line_view();
+    perf_draw_widget(EGUI_VIEW_OF(&s_perf_chart_line_view), self);
+}
+
+static void perf_draw_chart_bar_scene(egui_view_t *self)
+{
+    perf_init_chart_bar_view();
+    perf_draw_widget(EGUI_VIEW_OF(&s_perf_chart_bar_view), self);
+}
+
+static void perf_draw_chart_scatter_scene(egui_view_t *self)
+{
+    perf_init_chart_scatter_view();
+    perf_draw_widget(EGUI_VIEW_OF(&s_perf_chart_scatter_view), self);
+}
+
+static void perf_draw_chart_pie_scene(egui_view_t *self)
+{
+    perf_init_chart_pie_view();
+    perf_draw_widget(EGUI_VIEW_OF(&s_perf_chart_pie_view), self);
+}
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+static void perf_draw_file_image_scene(egui_view_t *self, int test_mode)
+{
+    perf_prepare_file_image_scene(test_mode);
+    egui_canvas_draw_rectangle_fill(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, PERF_FILE_IMAGE_BG_COLOR, EGUI_ALPHA_100);
+    if (s_perf_file_image_ready)
+    {
+        perf_draw_widget(EGUI_VIEW_OF(&s_perf_file_image_view), self);
+    }
+}
+#endif
 
 static void set_perf_round_rect_mask(egui_mask_round_rectangle_t *mask, uint16_t size, uint16_t radius)
 {
@@ -3280,6 +3655,34 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
 #endif
 #endif // EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
 
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_JPG:
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+        perf_draw_file_image_scene(self, view->test_mode);
+#endif
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_PNG:
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+        perf_draw_file_image_scene(self, view->test_mode);
+#endif
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+        perf_draw_file_image_scene(self, view->test_mode);
+#endif
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_LINE_DENSE:
+        perf_draw_chart_line_scene(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_BAR_DENSE:
+        perf_draw_chart_bar_scene(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_SCATTER_DENSE:
+        perf_draw_chart_scatter_scene(self);
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE:
+        perf_draw_chart_pie_scene(self);
+        break;
+
     default:
         break;
     }
@@ -3618,6 +4021,20 @@ int egui_view_test_performance_is_enabled(int test_mode)
 #else
         return 0;
 #endif
+
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_JPG:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_PNG:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+        return 1;
+#else
+        return 0;
+#endif
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_LINE_DENSE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_BAR_DENSE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_SCATTER_DENSE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE:
+        return 1;
 
     default:
         return 1;
