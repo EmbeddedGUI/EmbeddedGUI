@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "egui_view_chart_pie.h"
+#include "egui_view_circle_dirty.h"
 #include "resource/egui_resource.h"
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
@@ -79,6 +80,45 @@ static egui_dim_t egui_view_chart_pie_get_font_height(egui_view_chart_pie_t *loc
     return local->text_ops->get_font_height(local);
 }
 
+static int egui_view_chart_pie_rect_intersects_work_region(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
+{
+    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_dim_t rect_x2;
+    egui_dim_t rect_y2;
+    egui_dim_t work_x2;
+    egui_dim_t work_y2;
+
+    if (work == NULL || width <= 0 || height <= 0 || egui_region_is_empty(work))
+    {
+        return 0;
+    }
+
+    rect_x2 = x + width;
+    rect_y2 = y + height;
+    work_x2 = work->location.x + work->size.width;
+    work_y2 = work->location.y + work->size.height;
+    return !(rect_x2 <= work->location.x || x >= work_x2 || rect_y2 <= work->location.y || y >= work_y2);
+}
+
+static int egui_view_chart_pie_slice_intersects_work_region(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, uint16_t sweep)
+{
+    egui_region_t slice_region;
+    egui_dim_t mid_radius;
+
+    if (!egui_view_chart_pie_rect_intersects_work_region(center_x - radius, center_y - radius, radius * 2 + 1, radius * 2 + 1))
+    {
+        return 0;
+    }
+
+    mid_radius = (radius + 1) / 2;
+    if (!egui_view_circle_dirty_compute_arc_region(center_x, center_y, mid_radius, mid_radius, start_angle, sweep, &slice_region))
+    {
+        return 0;
+    }
+
+    return egui_view_chart_pie_rect_intersects_work_region(slice_region.location.x, slice_region.location.y, slice_region.size.width, slice_region.size.height);
+}
+
 // ============== Pie Chart Drawing ==============
 
 static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_region_t *region)
@@ -129,6 +169,11 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_regi
         return;
     }
 
+    if (!egui_view_chart_pie_rect_intersects_work_region(center_x - radius, center_y - radius, radius * 2 + 1, radius * 2 + 1))
+    {
+        return;
+    }
+
     // Draw all slices as arcs with inner_r=1 to avoid center pixel artifact.
     // Then fill center pixel with first slice color.
     // Use cumulative proportion to avoid rounding error accumulation.
@@ -151,9 +196,16 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_regi
         if (sweep < 1 && local->pie_slices[i].value > 0)
         {
             end_angle = start_angle + 1;
+            sweep = 1;
         }
 
         if (end_angle <= start_angle)
+        {
+            start_angle = end_angle;
+            continue;
+        }
+
+        if (!egui_view_chart_pie_slice_intersects_work_region(center_x, center_y, radius, start_angle, (uint16_t)sweep))
         {
             start_angle = end_angle;
             continue;
@@ -256,11 +308,15 @@ static void egui_view_chart_pie_draw_legend(egui_view_chart_pie_t *local, egui_r
         }
 
         // Draw color swatch
-        egui_canvas_draw_rectangle_fill(lx, ly + 1, swatch_size, swatch_size, color, EGUI_ALPHA_100);
+        if (egui_view_chart_pie_rect_intersects_work_region(lx, ly + 1, swatch_size, swatch_size))
+        {
+            egui_canvas_draw_rectangle_fill(lx, ly + 1, swatch_size, swatch_size, color, EGUI_ALPHA_100);
+        }
 
         // Draw name text
         EGUI_REGION_DEFINE(text_rect, lx + swatch_size + 2, ly, text_w, font_h);
-        if (local->text_ops != NULL && local->text_ops->draw_legend_text != NULL)
+        if (local->text_ops != NULL && local->text_ops->draw_legend_text != NULL &&
+            egui_view_chart_pie_rect_intersects_work_region(text_rect.location.x, text_rect.location.y, text_rect.size.width, text_rect.size.height))
         {
             local->text_ops->draw_legend_text(local, name, &text_rect);
         }

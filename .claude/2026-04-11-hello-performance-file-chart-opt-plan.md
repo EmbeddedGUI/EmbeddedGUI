@@ -26,6 +26,9 @@
 - `src/widget/egui_view_chart_common.c`
   - 为 X/Y 轴标签、legend 色块、legend 文本增加 `base_view_work_region` 裁剪。
   - 避免 PFB 场景里反复绘制 tile 外文本和 legend，且不增加额外 heap/RAM。
+- `src/widget/egui_view_chart_pie.c`
+  - 为整个圆盘和单个扇区增加 `base_view_work_region` 裁剪。
+  - 在 PFB 场景中跳过与当前 tile 不相交的 pie slice，并为 pie legend 补同类裁剪。
 - `example/HelloPerformance/uicode.c`
   - `CHART_PIE_DENSE` 使用 `logical96` 场景级 PFB hint。
 
@@ -61,7 +64,7 @@
 | CHART_LINE_DENSE | 7.677 | 5.903 | -23.1% | 0 |
 | CHART_BAR_DENSE | 3.968 | 1.767 | -55.5% | 0 |
 | CHART_SCATTER_DENSE | 3.303 | 1.774 | -46.3% | 0 |
-| CHART_PIE_DENSE | 9.208 | 8.939 | -2.9% | 0 |
+| CHART_PIE_DENSE | 9.208 | 8.406 | -8.7% | 0 |
 
 ### chart_common 增量 A/B
 
@@ -73,6 +76,14 @@
 | CHART_BAR_DENSE | 3.559 | 1.767 | -50.4% | 0 |
 | CHART_SCATTER_DENSE | 2.517 | 1.774 | -29.5% | 0 |
 | CHART_PIE_DENSE | 8.939 | 8.939 | 0.0% | 0 |
+
+### chart_pie 增量 A/B
+
+基线为提交 `1ae34ae` 上未包含 `src/widget/egui_view_chart_pie.c` 本次改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_PIE_DENSE | 8.939 | 8.406 | -6.0% | 0 |
 
 ## 验证
 
