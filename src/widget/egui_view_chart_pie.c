@@ -26,9 +26,20 @@ typedef struct egui_view_chart_pie_geometry
     egui_dim_t radius;
 } egui_view_chart_pie_geometry_t;
 
+typedef struct egui_view_chart_pie_work_region_info
+{
+    egui_region_t *work;
+    int contains_center;
+    int inside_solid_circle;
+    int has_angle_window;
+    int16_t angle_start;
+    uint16_t angle_sweep;
+} egui_view_chart_pie_work_region_info_t;
+
 #define EGUI_VIEW_CHART_PIE_ANGLE_CULL_PAD_DEG 0
 
 static int egui_view_chart_pie_is_work_region_inside_solid_circle(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius);
+static int16_t egui_view_chart_pie_integer_atan2_deg(int32_t dy, int32_t dx);
 
 static egui_dim_t egui_view_chart_pie_get_font_height_basic(egui_view_chart_pie_t *local)
 {
@@ -119,6 +130,146 @@ static int egui_view_chart_pie_sweep_contains_angle(int16_t start_angle, uint16_
     }
 
     return (uint16_t)egui_view_circle_dirty_normalize_angle((int32_t)angle - start_angle) <= sweep;
+}
+
+static void egui_view_chart_pie_sort_angles(int16_t *angles, uint8_t count)
+{
+    for (uint8_t i = 1; i < count; i++)
+    {
+        int16_t value = angles[i];
+        uint8_t j = i;
+
+        while (j > 0 && angles[j - 1] > value)
+        {
+            angles[j] = angles[j - 1];
+            j--;
+        }
+        angles[j] = value;
+    }
+}
+
+static void egui_view_chart_pie_add_angle_candidate(int16_t *angles, uint8_t *count, int16_t angle)
+{
+    uint8_t i;
+    int16_t normalized;
+
+    if (angles == NULL || count == NULL)
+    {
+        return;
+    }
+
+    normalized = egui_view_circle_dirty_normalize_angle(angle);
+    for (i = 0; i < *count; i++)
+    {
+        if (angles[i] == normalized)
+        {
+            return;
+        }
+    }
+
+    angles[*count] = normalized;
+    (*count)++;
+}
+
+static int egui_view_chart_pie_get_region_angle_window(const egui_region_t *work, egui_dim_t center_x, egui_dim_t center_y, int16_t *out_start, uint16_t *out_sweep)
+{
+    int16_t angles[8];
+    uint8_t count = 0;
+    egui_dim_t x0;
+    egui_dim_t y0;
+    egui_dim_t x1;
+    egui_dim_t y1;
+    int32_t max_gap = -1;
+    uint8_t gap_index = 0;
+
+    if (work == NULL || out_start == NULL || out_sweep == NULL || egui_region_is_empty((egui_region_t *)work))
+    {
+        return 0;
+    }
+
+    x0 = work->location.x;
+    y0 = work->location.y;
+    x1 = x0 + work->size.width - 1;
+    y1 = y0 + work->size.height - 1;
+
+    egui_view_chart_pie_add_angle_candidate(angles, &count, egui_view_chart_pie_integer_atan2_deg(y0 - center_y, x0 - center_x));
+    egui_view_chart_pie_add_angle_candidate(angles, &count, egui_view_chart_pie_integer_atan2_deg(y0 - center_y, x1 - center_x));
+    egui_view_chart_pie_add_angle_candidate(angles, &count, egui_view_chart_pie_integer_atan2_deg(y1 - center_y, x0 - center_x));
+    egui_view_chart_pie_add_angle_candidate(angles, &count, egui_view_chart_pie_integer_atan2_deg(y1 - center_y, x1 - center_x));
+
+    if (x0 <= center_x && center_x <= x1)
+    {
+        if (y0 <= center_y)
+        {
+            egui_view_chart_pie_add_angle_candidate(angles, &count, 270);
+        }
+        if (y1 >= center_y)
+        {
+            egui_view_chart_pie_add_angle_candidate(angles, &count, 90);
+        }
+    }
+
+    if (y0 <= center_y && center_y <= y1)
+    {
+        if (x0 <= center_x)
+        {
+            egui_view_chart_pie_add_angle_candidate(angles, &count, 180);
+        }
+        if (x1 >= center_x)
+        {
+            egui_view_chart_pie_add_angle_candidate(angles, &count, 0);
+        }
+    }
+
+    if (count == 0)
+    {
+        return 0;
+    }
+
+    egui_view_chart_pie_sort_angles(angles, count);
+
+    for (uint8_t i = 0; i < count; i++)
+    {
+        int32_t cur = angles[i];
+        int32_t next = (i + 1u < count) ? angles[i + 1u] : (angles[0] + 360);
+        int32_t gap = next - cur;
+
+        if (gap > max_gap)
+        {
+            max_gap = gap;
+            gap_index = i;
+        }
+    }
+
+    *out_start = angles[(gap_index + 1u) % count];
+    *out_sweep = (uint16_t)(360 - max_gap);
+    return 1;
+}
+
+static int egui_view_chart_pie_arc_intersects_arc(int16_t start_a, uint16_t sweep_a, int16_t start_b, uint16_t sweep_b)
+{
+    int16_t end_a;
+    int16_t end_b;
+
+    if (sweep_a >= 360U || sweep_b >= 360U)
+    {
+        return 1;
+    }
+
+    if (sweep_a == 0U)
+    {
+        return egui_view_chart_pie_sweep_contains_angle(start_b, sweep_b, start_a);
+    }
+
+    if (sweep_b == 0U)
+    {
+        return egui_view_chart_pie_sweep_contains_angle(start_a, sweep_a, start_b);
+    }
+
+    end_a = egui_view_circle_dirty_normalize_angle((int32_t)start_a + sweep_a);
+    end_b = egui_view_circle_dirty_normalize_angle((int32_t)start_b + sweep_b);
+    return egui_view_chart_pie_sweep_contains_angle(start_a, sweep_a, start_b) || egui_view_chart_pie_sweep_contains_angle(start_a, sweep_a, end_b) ||
+           egui_view_chart_pie_sweep_contains_angle(start_b, sweep_b, start_a) || egui_view_chart_pie_sweep_contains_angle(start_b, sweep_b, end_a);
 }
 
 static uint16_t egui_view_chart_pie_isqrt32(uint32_t n)
@@ -452,9 +603,10 @@ static int egui_view_chart_pie_slice_bbox_intersects_work_region(egui_dim_t cent
     return egui_view_chart_pie_rect_intersects_work_region(bbox_min_x - 1, bbox_min_y - 1, bbox_max_x - bbox_min_x + 3, bbox_max_y - bbox_min_y + 3);
 }
 
-static int egui_view_chart_pie_slice_intersects_work_region(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, uint16_t sweep)
+static int egui_view_chart_pie_slice_intersects_work_region(const egui_view_chart_pie_work_region_info_t *work_info, egui_dim_t center_x, egui_dim_t center_y,
+                                                            egui_dim_t radius, int16_t start_angle, uint16_t sweep)
 {
-    egui_region_t *work = egui_canvas_get_base_view_work_region();
+    egui_region_t *work = (work_info != NULL) ? work_info->work : egui_canvas_get_base_view_work_region();
     egui_dim_t start_x;
     egui_dim_t start_y;
     egui_dim_t end_x;
@@ -468,6 +620,19 @@ static int egui_view_chart_pie_slice_intersects_work_region(egui_dim_t center_x,
     if (sweep >= 360U)
     {
         return egui_view_chart_pie_rect_intersects_work_region(center_x - radius, center_y - radius, radius * 2 + 1, radius * 2 + 1);
+    }
+
+    if (work_info != NULL)
+    {
+        if (work_info->contains_center)
+        {
+            return 1;
+        }
+
+        if (work_info->inside_solid_circle && work_info->has_angle_window)
+        {
+            return egui_view_chart_pie_arc_intersects_arc(start_angle, sweep, work_info->angle_start, work_info->angle_sweep);
+        }
     }
 
     if (!egui_view_chart_pie_slice_bbox_intersects_work_region(center_x, center_y, radius, start_angle, sweep, &start_x, &start_y, &end_x, &end_y))
@@ -501,7 +666,8 @@ static int egui_view_chart_pie_slice_intersects_work_region(egui_dim_t center_x,
         return 1;
     }
 
-    if (sweep <= 180U && egui_view_chart_pie_is_work_region_inside_solid_circle(center_x, center_y, radius))
+    if ((work_info != NULL && work_info->inside_solid_circle && sweep <= 180U) ||
+        (work_info == NULL && sweep <= 180U && egui_view_chart_pie_is_work_region_inside_solid_circle(center_x, center_y, radius)))
     {
         return 0;
     }
@@ -604,10 +770,41 @@ static int egui_view_chart_pie_is_work_region_inside_solid_circle(egui_dim_t cen
 #undef EGUI_VIEW_CHART_PIE_CORNER_INSIDE
 }
 
+static void egui_view_chart_pie_get_work_region_info(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, egui_view_chart_pie_work_region_info_t *info)
+{
+    if (info == NULL)
+    {
+        return;
+    }
+
+    info->work = egui_canvas_get_base_view_work_region();
+    info->contains_center = 0;
+    info->inside_solid_circle = 0;
+    info->has_angle_window = 0;
+    info->angle_start = 0;
+    info->angle_sweep = 0;
+
+    if (info->work == NULL || egui_region_is_empty(info->work))
+    {
+        return;
+    }
+
+    info->contains_center = egui_view_chart_pie_point_in_region(info->work, center_x, center_y);
+    info->inside_solid_circle = egui_view_chart_pie_is_work_region_inside_solid_circle(center_x, center_y, radius);
+    if (!info->contains_center && info->inside_solid_circle)
+    {
+        info->has_angle_window = egui_view_chart_pie_get_region_angle_window(info->work, center_x, center_y, &info->angle_start, &info->angle_sweep);
+    }
+}
+
 // ============== Pie Chart Drawing ==============
 
 static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, uint32_t total)
 {
+    egui_view_chart_pie_work_region_info_t work_info;
+    uint32_t angle_scale_q7 = 0;
+    int use_angle_scale_q7 = 0;
+
     if (local->pie_slice_count == 0 || local->pie_slices == NULL || total == 0 || radius <= 0)
     {
         return;
@@ -616,6 +813,13 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
     if (!egui_view_chart_pie_rect_intersects_work_region(center_x - radius, center_y - radius, radius * 2 + 1, radius * 2 + 1))
     {
         return;
+    }
+
+    egui_view_chart_pie_get_work_region_info(center_x, center_y, radius, &work_info);
+    if (total <= 65535U)
+    {
+        angle_scale_q7 = ((uint32_t)360 << 7) / total;
+        use_angle_scale_q7 = 1;
     }
 
     // Draw all slices as arcs with inner_r=1 to avoid center pixel artifact.
@@ -630,6 +834,10 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
         if (i == local->pie_slice_count - 1)
         {
             end_angle = 630; // ensure exact full circle
+        }
+        else if (use_angle_scale_q7)
+        {
+            end_angle = 270 + (int16_t)(((cumulative_value * angle_scale_q7) + 64U) >> 7);
         }
         else
         {
@@ -649,7 +857,7 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
             continue;
         }
 
-        if (!egui_view_chart_pie_slice_intersects_work_region(center_x, center_y, radius, start_angle, (uint16_t)sweep))
+        if (!egui_view_chart_pie_slice_intersects_work_region(&work_info, center_x, center_y, radius, start_angle, (uint16_t)sweep))
         {
             start_angle = end_angle;
             continue;
