@@ -35,6 +35,13 @@ static const uint16_t arc_cot_q8_lut[91] = {
         98,  93,    88,   83,   78,   73,   69,   64,   59,   54,   50,   45,   41,   36,   31,   27,  22,  18,  13,  9,   4,   0,
 };
 
+static const uint16_t arc_transition_over_cos_q8_lut[91] = {
+        192, 192, 192, 192, 192, 193, 193, 193, 194, 194, 195, 196, 196, 197, 198, 199, 200, 201, 202, 203, 204, 206, 207,
+        209, 210, 212, 214, 215, 217, 220, 222, 224, 226, 229, 232, 234, 237, 240, 244, 247, 251, 254, 258, 263, 267, 272,
+        276, 282, 287, 293, 299, 305, 312, 319, 327, 335, 343, 353, 362, 373, 384, 396, 409, 423, 438, 454, 472, 491, 513,
+        536, 561, 590, 621, 657, 697, 742, 794, 854, 923, 1006, 1106, 1227, 1380, 1576, 1837, 2203, 2752, 3668, 5500, 10999, 0,
+};
+
 __EGUI_STATIC_INLINE__ uint16_t egui_canvas_arc_get_sin_q15(int16_t angle)
 {
     return (uint16_t)egui_trig_float_to_q15(arc_sin_lut[angle]);
@@ -82,9 +89,7 @@ __EGUI_STATIC_INLINE__ int egui_canvas_arc_mul_cot_q8_nonnegative(egui_dim_t val
 
 __EGUI_STATIC_INLINE__ int32_t egui_canvas_arc_get_transition_over_cos_q8(int16_t angle)
 {
-    uint16_t cos_q15 = egui_canvas_arc_get_cos_q15(angle);
-
-    return (int32_t)(((ARC_AA_HALF_TRANSITION_Q15 << ARC_INT_Q8_SHIFT) + (cos_q15 >> 1)) / cos_q15);
+    return arc_transition_over_cos_q8_lut[angle];
 }
 
 void egui_canvas_draw_point(egui_dim_t x, egui_dim_t y, egui_color_t color, egui_alpha_t alpha)
@@ -2192,26 +2197,11 @@ static void egui_canvas_arc_prepare_scan_state(egui_canvas_arc_scan_state_t *sca
     scan_state->x_arc_allow_max = EGUI_DIM_MAX;
 }
 
-__EGUI_STATIC_INLINE__ int egui_canvas_get_arc_fill_basic_row_angle_opaque_range_inline(egui_dim_t radius, egui_dim_t qy, int16_t start_angle,
-                                                                                         int16_t end_angle, egui_dim_t *qx_min, egui_dim_t *qx_max)
+__EGUI_STATIC_INLINE__ int egui_canvas_get_arc_fill_basic_row_angle_opaque_range_core(egui_dim_t radius, egui_dim_t qy, int16_t start_angle,
+                                                                                       int16_t end_angle, egui_dim_t *qx_min, egui_dim_t *qx_max)
 {
     egui_dim_t local_min = 0;
     egui_dim_t local_max = radius;
-
-    if (qx_min == NULL || qx_max == NULL)
-    {
-        return 0;
-    }
-
-    if (radius < 0 || qy < 0 || qy > radius)
-    {
-        return 0;
-    }
-
-    if (start_angle < 0 || end_angle > 90 || start_angle >= end_angle)
-    {
-        return 0;
-    }
 
     if (start_angle > 0)
     {
@@ -2261,7 +2251,22 @@ __EGUI_STATIC_INLINE__ int egui_canvas_get_arc_fill_basic_row_angle_opaque_range
 int egui_canvas_get_arc_fill_basic_row_angle_opaque_range(egui_dim_t radius, egui_dim_t qy, int16_t start_angle, int16_t end_angle, egui_dim_t *qx_min,
                                                           egui_dim_t *qx_max)
 {
-    return egui_canvas_get_arc_fill_basic_row_angle_opaque_range_inline(radius, qy, start_angle, end_angle, qx_min, qx_max);
+    if (qx_min == NULL || qx_max == NULL)
+    {
+        return 0;
+    }
+
+    if (radius < 0 || qy < 0 || qy > radius)
+    {
+        return 0;
+    }
+
+    if (start_angle < 0 || end_angle > 90 || start_angle >= end_angle)
+    {
+        return 0;
+    }
+
+    return egui_canvas_get_arc_fill_basic_row_angle_opaque_range_core(radius, qy, start_angle, end_angle, qx_min, qx_max);
 }
 
 static egui_alpha_t arc_edge_smoothstep_alpha(int32_t signed_dist_q15)
@@ -2539,7 +2544,7 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
                 }
             }
 
-            if (egui_canvas_get_arc_fill_basic_row_angle_opaque_range_inline(radius, sel_y, start_angle, end_angle, &opaque_qx_min, &opaque_qx_max))
+            if (egui_canvas_get_arc_fill_basic_row_angle_opaque_range_core(radius, sel_y, start_angle, end_angle, &opaque_qx_min, &opaque_qx_max))
             {
                 opaque_col_start = radius - opaque_qx_max;
                 opaque_col_end = radius - opaque_qx_min + 1;

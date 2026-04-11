@@ -432,6 +432,48 @@
   - `runtime_check_output/HelloPerformance/default/frame_0256.png`
   - pie 场景显示正常，没有看到扇区缺失、边缘误裁或中心漏绘。
 
+## 2026-04-11 补充：basic arc fill 行级不透明窗口去掉除法与重复校验
+
+- 保留改动：
+  - `src/core/egui_canvas.c`
+  - 为 `transition_over_cos_q8` 增加 `0..90` 角度查表，把 `egui_canvas_arc_get_transition_over_cos_q8()` 从逐行除法改为只读表读取。
+  - 将 `egui_canvas_get_arc_fill_basic_row_angle_opaque_range()` 拆成“对外校验包装 + 热路径无校验 core”，让 `arc fill` 渲染循环跳过已经由调用方保证成立的空指针与角度范围分支。
+  - 两步都只影响 `arc fill` 行级不透明跨度推导，不改变 AA 模型，不增加额外 RAM/heap；新增的是少量只读 LUT。
+
+### basic arc fill 行级不透明窗口快路径增量 A/B
+
+基线为提交 `46538f4`，即上一轮已完成 `arc fill` 热 helper 内联、但尚未包含本次 `src/core/egui_canvas.c` 改动的版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_PIE_DENSE | 2.272 | 2.213 | -2.6% | 0 |
+| ARC_FILL | 0.848 | 0.828 | -2.4% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_PIE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE`
+  - 结果：`CHART_PIE_DENSE = 2.214 ms`
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter ARC_FILL --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_ARC_FILL`
+  - 结果：`ARC_FILL = 0.828 ms`
+- `python scripts/perf_analysis/main.py --profile cortex-m3`
+  - 结果：整套 `256` 个场景通过，关键 file/chart 结果为
+  - `FILE_IMAGE_JPG = 0.331 ms`
+  - `FILE_IMAGE_PNG = 0.330 ms`
+  - `FILE_IMAGE_BMP = 0.330 ms`
+  - `CHART_LINE_DENSE = 1.418 ms`
+  - `CHART_BAR_DENSE = 1.330 ms`
+  - `CHART_SCATTER_DENSE = 1.188 ms`
+  - `CHART_PIE_DENSE = 2.213 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0253.png`
+  - `runtime_check_output/HelloPerformance/default/frame_0256.png`
+  - line 与 pie 场景显示正常，未看到折线断裂、marker 缺失、扇区缺失或边缘异常。
+
 ## 2026-04-11 补充：basic arc fill 热路径去掉多余 64 位乘法并内联热点 helper
 
 - 保留改动：
