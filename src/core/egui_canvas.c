@@ -2459,10 +2459,10 @@ void egui_canvas_draw_arc_corner_fill(egui_dim_t center_x, egui_dim_t center_y, 
             scan_state.next_end_x = egui_canvas_arc_mul_cot_limit((sel_y - 1), scan_state.end_angle);
         }
 
-        scan_state.x_allow_min = scan_state.next_end_x - 2;
-        scan_state.x_allow_max = scan_state.last_start_x + 2;
-        scan_state.x_arc_allow_min = scan_state.next_start_x - 2;
-        scan_state.x_arc_allow_max = scan_state.last_end_x + 2;
+        scan_state.x_allow_min = scan_state.next_end_x;
+        scan_state.x_allow_max = scan_state.last_start_x;
+        scan_state.x_arc_allow_min = scan_state.next_start_x;
+        scan_state.x_arc_allow_max = scan_state.last_end_x;
 
         while (outer_mirror_visible > 0 && row_index >= (egui_dim_t)items[outer_mirror_visible - 1].start_offset)
         {
@@ -3487,10 +3487,10 @@ void egui_canvas_draw_arc_corner(egui_dim_t center_x, egui_dim_t center_y, egui_
             scan_state.next_end_x = egui_canvas_arc_mul_cot_limit((sel_y - 1), scan_state.end_angle);
         }
 
-        scan_state.x_allow_min = scan_state.next_end_x - 2;
-        scan_state.x_allow_max = scan_state.last_start_x + 2;
-        scan_state.x_arc_allow_min = scan_state.next_start_x - 2;
-        scan_state.x_arc_allow_max = scan_state.last_end_x + 2;
+        scan_state.x_allow_min = scan_state.next_end_x;
+        scan_state.x_allow_max = scan_state.last_start_x;
+        scan_state.x_arc_allow_min = scan_state.next_start_x;
+        scan_state.x_arc_allow_max = scan_state.last_end_x;
 
         while (outer_mirror_visible > 0 && row_index >= (egui_dim_t)items[outer_mirror_visible - 1].start_offset)
         {
