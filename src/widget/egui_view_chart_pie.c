@@ -938,6 +938,11 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
         start_angle = end_angle;
     }
 
+    if (!work_info.contains_center)
+    {
+        return;
+    }
+
     // Fill center pixel with first slice gradient center color
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
     {

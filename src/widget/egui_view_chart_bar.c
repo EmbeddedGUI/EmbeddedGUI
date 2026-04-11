@@ -18,6 +18,8 @@ static void egui_view_chart_bar_draw_data(egui_view_t *self, const egui_region_t
     egui_dim_t work_y1;
     egui_dim_t work_x2;
     egui_dim_t work_y2;
+    uint8_t point_start = 0;
+    uint8_t point_end;
 
     if (ab->series_count == 0 || ab->series[0].point_count == 0)
     {
@@ -35,6 +37,7 @@ static void egui_view_chart_bar_draw_data(egui_view_t *self, const egui_region_t
 
     uint8_t n_points = ab->series[0].point_count;
     uint8_t n_series = ab->series_count;
+    point_end = n_points;
 
     // Calculate bar dimensions (Bug #5 fix: clamp effective gap)
     egui_dim_t group_width = plot_area->size.width / n_points;
@@ -62,7 +65,33 @@ static void egui_view_chart_bar_draw_data(egui_view_t *self, const egui_region_t
         baseline_y = plot_area->location.y + plot_area->size.height;
     }
 
-    for (uint8_t i = 0; i < n_points; i++)
+    if (group_width > 0)
+    {
+        int32_t rel_work_x1 = (int32_t)work_x1 - (int32_t)plot_area->location.x;
+        int32_t rel_work_x2 = (int32_t)work_x2 - (int32_t)plot_area->location.x;
+
+        if (rel_work_x2 <= 0 || rel_work_x1 >= plot_area->size.width)
+        {
+            return;
+        }
+
+        if (rel_work_x1 > 0)
+        {
+            uint32_t start_index = (uint32_t)rel_work_x1 / (uint32_t)group_width;
+            point_start = (start_index < n_points) ? (uint8_t)start_index : n_points;
+        }
+        if (rel_work_x2 < plot_area->size.width)
+        {
+            uint32_t end_index = ((uint32_t)rel_work_x2 + (uint32_t)group_width - 1U) / (uint32_t)group_width;
+            point_end = (end_index < n_points) ? (uint8_t)end_index : n_points;
+        }
+        if (point_start >= point_end)
+        {
+            return;
+        }
+    }
+
+    for (uint8_t i = point_start; i < point_end; i++)
     {
         egui_dim_t group_x = plot_area->location.x + group_width * i;
 
