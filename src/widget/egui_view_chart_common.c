@@ -126,6 +126,16 @@ static int egui_chart_get_work_region_bounds(egui_dim_t *out_x1, egui_dim_t *out
     return 1;
 }
 
+static int egui_chart_is_tick_value_aligned(int16_t value, int16_t base, int16_t step)
+{
+    if (step <= 1)
+    {
+        return 1;
+    }
+
+    return ((int32_t)value - (int32_t)base) % step == 0;
+}
+
 static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_region_t *plot_area, egui_dim_t font_h, int16_t view_x_min, int16_t view_x_max)
 {
     (void)view_x_min;
@@ -145,6 +155,7 @@ static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_
     egui_dim_t work_y1;
     egui_dim_t work_x2;
     egui_dim_t work_y2;
+    int16_t tick_step = ab->axis_x.tick_step;
     int can_draw_ticks = ab->axis_x.show_axis;
     int can_draw_grid = ab->axis_x.show_grid;
     int can_draw_labels = ab->axis_x.show_labels;
@@ -203,14 +214,15 @@ static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_
 
     for (uint8_t i = start_i; i < end_i; i++)
     {
+        int draw_tick = egui_chart_is_tick_value_aligned(ab->series[0].points[i].x, ab->axis_x.min_value, tick_step);
         egui_dim_t slot_center = plot_area->location.x + slot_w * i + slot_w / 2;
 
-        if (can_draw_ticks && egui_chart_rect_intersects_work_region(slot_center, plot_area->location.y + plot_area->size.height, 1, 3))
+        if (draw_tick && can_draw_ticks && egui_chart_rect_intersects_work_region(slot_center, plot_area->location.y + plot_area->size.height, 1, 3))
         {
             egui_canvas_draw_vline(slot_center, plot_area->location.y + plot_area->size.height, 3, ab->axis_color, EGUI_ALPHA_100);
         }
 
-        if (can_draw_grid && i > 0)
+        if (draw_tick && can_draw_grid && i > 0)
         {
             egui_dim_t boundary = plot_area->location.x + slot_w * i;
             if (egui_chart_rect_intersects_work_region(boundary, plot_area->location.y, 1, plot_area->size.height))
@@ -219,7 +231,7 @@ static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_
             }
         }
 
-        if (can_draw_labels)
+        if (draw_tick && can_draw_labels)
         {
             egui_chart_int_to_str(ab->series[0].points[i].x, label_buf, sizeof(label_buf));
             EGUI_REGION_DEFINE(label_rect, slot_center - 12, plot_area->location.y + plot_area->size.height + 3, 24, font_h);

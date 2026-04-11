@@ -9,6 +9,16 @@
 
 // ============== Bar Drawing (virtual) ==============
 
+__EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_bar_map_y_fast(int16_t data_y, egui_dim_t plot_y, int32_t plot_h_span, int16_t view_y_min, int32_t range_y)
+{
+    if (range_y <= 0 || plot_h_span <= 0)
+    {
+        return plot_y;
+    }
+
+    return plot_y + plot_h_span - (egui_dim_t)(((int32_t)data_y - (int32_t)view_y_min) * plot_h_span / range_y);
+}
+
 static void egui_view_chart_bar_draw_data(egui_view_t *self, const egui_region_t *plot_area)
 {
     EGUI_LOCAL_INIT(egui_view_chart_bar_t);
@@ -18,6 +28,11 @@ static void egui_view_chart_bar_draw_data(egui_view_t *self, const egui_region_t
     egui_dim_t work_y1;
     egui_dim_t work_x2;
     egui_dim_t work_y2;
+    egui_dim_t plot_y;
+    int32_t plot_h_span;
+    int16_t view_y_min;
+    int16_t view_y_max;
+    int32_t range_y;
     uint8_t point_start = 0;
     uint8_t point_end;
 
@@ -54,15 +69,20 @@ static void egui_view_chart_bar_draw_data(egui_view_t *self, const egui_region_t
         bar_width = 1;
     }
 
+    plot_y = plot_area->location.y;
+    plot_h_span = (int32_t)plot_area->size.height - 1;
+    egui_chart_get_view_y(ab, &view_y_min, &view_y_max);
+    range_y = (int32_t)view_y_max - (int32_t)view_y_min;
+
     // Baseline Y (where value == 0)
-    egui_dim_t baseline_y = egui_chart_map_y(ab, 0, plot_area->location.y, plot_area->size.height);
-    if (baseline_y < plot_area->location.y)
+    egui_dim_t baseline_y = egui_view_chart_bar_map_y_fast(0, plot_y, plot_h_span, view_y_min, range_y);
+    if (baseline_y < plot_y)
     {
-        baseline_y = plot_area->location.y;
+        baseline_y = plot_y;
     }
-    if (baseline_y > plot_area->location.y + plot_area->size.height)
+    if (baseline_y > plot_y + plot_area->size.height)
     {
-        baseline_y = plot_area->location.y + plot_area->size.height;
+        baseline_y = plot_y + plot_area->size.height;
     }
 
     if (group_width > 0)
@@ -91,30 +111,47 @@ static void egui_view_chart_bar_draw_data(egui_view_t *self, const egui_region_t
         }
     }
 
-    for (uint8_t i = point_start; i < point_end; i++)
+    for (uint8_t s = 0; s < n_series; s++)
     {
-        egui_dim_t group_x = plot_area->location.x + group_width * i;
+        const egui_chart_series_t *series = &ab->series[s];
+        egui_dim_t bar_x_offset = effective_gap + s * (bar_width + effective_gap);
+        egui_dim_t group_x = plot_area->location.x + group_width * point_start;
 
-        if (group_x >= work_x2)
-        {
-            break;
-        }
-        if (group_x + group_width <= work_x1)
+        if (point_start >= series->point_count)
         {
             continue;
         }
-
-        for (uint8_t s = 0; s < n_series; s++)
+#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+        egui_color_t color_light = egui_rgb_mix(series->color, EGUI_COLOR_WHITE, 80);
+        egui_gradient_stop_t stops[2] = {
+                {.position = 0, .color = color_light},
+                {.position = 255, .color = series->color},
+        };
+        egui_gradient_t grad = {
+                .type = EGUI_GRADIENT_TYPE_LINEAR_VERTICAL,
+                .stop_count = 2,
+                .alpha = EGUI_ALPHA_100,
+                .stops = stops,
+        };
+#endif
+        for (uint8_t i = point_start; i < point_end; i++, group_x += group_width)
         {
-            if (i >= ab->series[s].point_count)
+            egui_dim_t bar_x;
+            egui_dim_t val_y;
+            egui_dim_t bar_top;
+            egui_dim_t bar_h;
+
+            if (group_x >= work_x2)
+            {
+                break;
+            }
+            if (group_x + group_width <= work_x1 || i >= series->point_count)
             {
                 continue;
             }
 
-            egui_dim_t bar_x = group_x + effective_gap + s * (bar_width + effective_gap);
-            egui_dim_t val_y = egui_chart_map_y(ab, ab->series[s].points[i].y, plot_area->location.y, plot_area->size.height);
-
-            egui_dim_t bar_top, bar_h;
+            bar_x = group_x + bar_x_offset;
+            val_y = egui_view_chart_bar_map_y_fast(series->points[i].y, plot_y, plot_h_span, view_y_min, range_y);
             if (val_y < baseline_y)
             {
                 bar_top = val_y;
@@ -136,22 +173,9 @@ static void egui_view_chart_bar_draw_data(egui_view_t *self, const egui_region_t
             }
 
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-            {
-                egui_color_t color_light = egui_rgb_mix(ab->series[s].color, EGUI_COLOR_WHITE, 80);
-                egui_gradient_stop_t stops[2] = {
-                        {.position = 0, .color = color_light},
-                        {.position = 255, .color = ab->series[s].color},
-                };
-                egui_gradient_t grad = {
-                        .type = EGUI_GRADIENT_TYPE_LINEAR_VERTICAL,
-                        .stop_count = 2,
-                        .alpha = EGUI_ALPHA_100,
-                        .stops = stops,
-                };
-                egui_canvas_draw_rectangle_fill_gradient(bar_x, bar_top, bar_width, bar_h, &grad);
-            }
+            egui_canvas_draw_rectangle_fill_gradient(bar_x, bar_top, bar_width, bar_h, &grad);
 #else
-            egui_canvas_draw_rectangle_fill(bar_x, bar_top, bar_width, bar_h, ab->series[s].color, EGUI_ALPHA_100);
+            egui_canvas_draw_rectangle_fill(bar_x, bar_top, bar_width, bar_h, series->color, EGUI_ALPHA_100);
 #endif
         }
     }
