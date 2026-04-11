@@ -309,3 +309,61 @@
 - 截图抽查：
   - `runtime_check_output/HelloPerformance/default/frame_0256.png`
   - pie 场景显示正常，没有看到扇区缺失、边缘撕裂或中心漏绘。
+
+## 2026-04-11 补充：basic arc fill 行可见跨度裁剪
+
+- 保留改动：
+  - `src/core/egui_canvas.c`
+  - 在 `egui_canvas_draw_arc_corner_fill()` 的逐行扫描里，先用已有的 `scan_state.x_allow_min/x_allow_max` 把当前行不可能命中扇区的列范围提前裁掉。
+  - 这样可以避免进入逐像素循环后再做大量角度拒绝，继续减少窄扇区在 `96x8` 逻辑 PFB 场景下的无效列遍历。
+  - 不增加任何额外 RAM/heap。
+
+### basic arc fill 行可见跨度裁剪增量 A/B
+
+基线为提交 `3dc982e` 上未包含本次 `src/core/egui_canvas.c` 改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_PIE_DENSE | 4.303 | 3.751 | -12.8% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_PIE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE`
+  - 结果：`CHART_PIE_DENSE = 3.751 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0256.png`
+  - pie 场景显示正常，没有看到扇区缺失、边缘毛刺或中心漏绘。
+
+## 2026-04-11 补充：chart pie 小扇区内整圆 tile 快速跳过外圆边检测
+
+- 保留改动：
+  - `src/widget/egui_view_chart_pie.c`
+  - 在 pie slice 精确 tile 判定里，若 `sweep <= 180` 且当前 `work_region` 完全落在 pie 的实心圆内部，并且前面的角点/径向边检测都未命中，则直接跳过昂贵的 `circle_edge_hits_region()`。
+  - 这条几何 shortcut 只针对凸扇区成立，适合当前 dense pie 的大量小扇区场景。
+  - 不增加任何额外 RAM/heap。
+
+### chart pie 小扇区内整圆 tile 快速跳过外圆边检测增量 A/B
+
+基线为提交 `7e3b299` 上未包含本次 `src/widget/egui_view_chart_pie.c` 改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_PIE_DENSE | 3.751 | 3.733 | -0.5% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_PIE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE`
+  - 结果：`CHART_PIE_DENSE = 3.733 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0256.png`
+  - pie 场景显示正常，没有看到扇区丢失、边缘误裁或中心漏绘。
