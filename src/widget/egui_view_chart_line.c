@@ -3,6 +3,24 @@
 
 // ============== Line Drawing ==============
 
+static int egui_view_chart_line_series_is_monotonic_increasing(const egui_chart_series_t *series)
+{
+    if (series == NULL || series->point_count < 2)
+    {
+        return 1;
+    }
+
+    for (uint8_t i = 1; i < series->point_count; i++)
+    {
+        if (series->points[i].x < series->points[i - 1].x)
+        {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
 static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_t *plot_area)
 {
     EGUI_LOCAL_INIT(egui_view_chart_line_t);
@@ -27,6 +45,20 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
     for (uint8_t s = 0; s < ab->series_count; s++)
     {
         const egui_chart_series_t *series = &ab->series[s];
+        int monotonic_increasing = egui_view_chart_line_series_is_monotonic_increasing(series);
+#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+        egui_color_t color_light = egui_rgb_mix(series->color, EGUI_COLOR_WHITE, 80);
+        egui_gradient_stop_t stops[2] = {
+                {.position = 0, .color = color_light},
+                {.position = 255, .color = series->color},
+        };
+        egui_gradient_t grad = {
+                .type = EGUI_GRADIENT_TYPE_RADIAL,
+                .stop_count = 2,
+                .alpha = EGUI_ALPHA_100,
+                .stops = stops,
+        };
+#endif
         if (series->point_count < 1)
         {
             continue;
@@ -40,20 +72,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
                 egui_dim_t px = egui_chart_map_x(ab, series->points[0].x, plot_area->location.x, plot_area->size.width);
                 egui_dim_t py = egui_chart_map_y(ab, series->points[0].y, plot_area->location.y, plot_area->size.height);
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-                {
-                    egui_color_t color_light = egui_rgb_mix(series->color, EGUI_COLOR_WHITE, 80);
-                    egui_gradient_stop_t stops[2] = {
-                            {.position = 0, .color = color_light},
-                            {.position = 255, .color = series->color},
-                    };
-                    egui_gradient_t grad = {
-                            .type = EGUI_GRADIENT_TYPE_RADIAL,
-                            .stop_count = 2,
-                            .alpha = EGUI_ALPHA_100,
-                            .stops = stops,
-                    };
-                    egui_canvas_draw_circle_fill_gradient(px, py, local->point_radius, &grad);
-                }
+                egui_canvas_draw_circle_fill_gradient(px, py, local->point_radius, &grad);
 #else
                 egui_canvas_draw_circle_fill(px, py, local->point_radius, series->color, EGUI_ALPHA_100);
 #endif
@@ -96,6 +115,19 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
             for (uint8_t i = 0; i < series->point_count; i++)
             {
                 egui_dim_t px = egui_chart_map_x(ab, series->points[i].x, plot_area->location.x, plot_area->size.width);
+
+                if (monotonic_increasing)
+                {
+                    if (px + local->point_radius < work_x1)
+                    {
+                        continue;
+                    }
+                    if (px - local->point_radius > work_x2)
+                    {
+                        break;
+                    }
+                }
+
                 egui_dim_t py = egui_chart_map_y(ab, series->points[i].y, plot_area->location.y, plot_area->size.height);
 
                 if (px + local->point_radius < work_x1 || px - local->point_radius > work_x2 || py + local->point_radius < work_y1 ||
@@ -104,20 +136,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
                     continue;
                 }
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-                {
-                    egui_color_t color_light = egui_rgb_mix(series->color, EGUI_COLOR_WHITE, 80);
-                    egui_gradient_stop_t stops[2] = {
-                            {.position = 0, .color = color_light},
-                            {.position = 255, .color = series->color},
-                    };
-                    egui_gradient_t grad = {
-                            .type = EGUI_GRADIENT_TYPE_RADIAL,
-                            .stop_count = 2,
-                            .alpha = EGUI_ALPHA_100,
-                            .stops = stops,
-                    };
-                    egui_canvas_draw_circle_fill_gradient(px, py, local->point_radius, &grad);
-                }
+                egui_canvas_draw_circle_fill_gradient(px, py, local->point_radius, &grad);
 #else
                 egui_canvas_draw_circle_fill(px, py, local->point_radius, series->color, EGUI_ALPHA_100);
 #endif

@@ -23,12 +23,18 @@
 - `src/widget/egui_view_chart_line.c`
   - 恢复批量 polyline 路径，避免逐段 `draw_line` 回归。
   - 保留点标记裁剪。
+- `src/widget/egui_view_chart_line.c`
+  - 对单调递增 X 的 series，在 marker 热路径上增加 `continue/break`，避免 tile 外无效遍历。
+  - 将 marker gradient 参数提升到 series 级，减少每个点重复构造。
 - `src/widget/egui_view_chart_common.c`
   - 为 X/Y 轴标签、legend 色块、legend 文本增加 `base_view_work_region` 裁剪。
   - 避免 PFB 场景里反复绘制 tile 外文本和 legend，且不增加额外 heap/RAM。
 - `src/widget/egui_view_chart_pie.c`
   - 为整个圆盘和单个扇区增加 `base_view_work_region` 裁剪。
   - 在 PFB 场景中跳过与当前 tile 不相交的 pie slice，并为 pie legend 补同类裁剪。
+- `src/widget/egui_view_chart_scatter.c`
+  - 先按 X 工作区裁剪，再计算 Y 映射，减少 tile 外点的无效 `map_y`。
+  - 将点 gradient 参数提升到 series 级，减少每个点重复构造。
 - `example/HelloPerformance/uicode.c`
   - `CHART_PIE_DENSE` 使用 `logical96` 场景级 PFB hint。
 
@@ -61,9 +67,9 @@
 
 | 场景 | 基线(ms) | 当前(ms) | 变化 | 额外 heap |
 | --- | ---: | ---: | ---: | --- |
-| CHART_LINE_DENSE | 7.677 | 5.903 | -23.1% | 0 |
+| CHART_LINE_DENSE | 7.677 | 5.556 | -27.6% | 0 |
 | CHART_BAR_DENSE | 3.968 | 1.767 | -55.5% | 0 |
-| CHART_SCATTER_DENSE | 3.303 | 1.774 | -46.3% | 0 |
+| CHART_SCATTER_DENSE | 3.303 | 1.553 | -53.0% | 0 |
 | CHART_PIE_DENSE | 9.208 | 8.406 | -8.7% | 0 |
 
 ### chart_common 增量 A/B
@@ -76,6 +82,15 @@
 | CHART_BAR_DENSE | 3.559 | 1.767 | -50.4% | 0 |
 | CHART_SCATTER_DENSE | 2.517 | 1.774 | -29.5% | 0 |
 | CHART_PIE_DENSE | 8.939 | 8.939 | 0.0% | 0 |
+
+### chart_line/scatter 增量 A/B
+
+基线为提交 `04483d4` 上未包含本次 `src/widget/egui_view_chart_line.c` 与 `src/widget/egui_view_chart_scatter.c` 改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_LINE_DENSE | 5.903 | 5.556 | -5.9% | 0 |
+| CHART_SCATTER_DENSE | 1.774 | 1.553 | -12.5% | 0 |
 
 ### chart_pie 增量 A/B
 
@@ -113,6 +128,7 @@
 结论：
 - `chart line/bar/scatter/pie` 主体内容、坐标轴和 legend 显示正常。
 - 没有看到因为工作区裁剪导致的文字缺失、legend 缺块或图形主体被误裁掉。
+- `chart line` 当前版本与基线 `frame_0253.png` 的截图哈希一致，确认 marker 热路径优化没有引入可见回归。
 
 ## 结论
 

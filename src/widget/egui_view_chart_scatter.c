@@ -32,31 +32,37 @@ static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_regi
     {
         const egui_chart_series_t *series = &ab->series[s];
         uint8_t r = local->point_radius > 0 ? local->point_radius : 3;
+#if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
+        egui_color_t color_light = egui_rgb_mix(series->color, EGUI_COLOR_WHITE, 80);
+        egui_gradient_stop_t stops[2] = {
+                {.position = 0, .color = color_light},
+                {.position = 255, .color = series->color},
+        };
+        egui_gradient_t grad = {
+                .type = EGUI_GRADIENT_TYPE_RADIAL,
+                .stop_count = 2,
+                .alpha = EGUI_ALPHA_100,
+                .stops = stops,
+        };
+#endif
 
         for (uint8_t i = 0; i < series->point_count; i++)
         {
             egui_dim_t px = egui_chart_map_x(ab, series->points[i].x, plot_area->location.x, plot_area->size.width);
+
+            if (px + r < work_x1 || px - r > work_x2)
+            {
+                continue;
+            }
+
             egui_dim_t py = egui_chart_map_y(ab, series->points[i].y, plot_area->location.y, plot_area->size.height);
 
-            if (px + r < work_x1 || px - r > work_x2 || py + r < work_y1 || py - r > work_y2)
+            if (py + r < work_y1 || py - r > work_y2)
             {
                 continue;
             }
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
-            {
-                egui_color_t color_light = egui_rgb_mix(series->color, EGUI_COLOR_WHITE, 80);
-                egui_gradient_stop_t stops[2] = {
-                        {.position = 0, .color = color_light},
-                        {.position = 255, .color = series->color},
-                };
-                egui_gradient_t grad = {
-                        .type = EGUI_GRADIENT_TYPE_RADIAL,
-                        .stop_count = 2,
-                        .alpha = EGUI_ALPHA_100,
-                        .stops = stops,
-                };
-                egui_canvas_draw_circle_fill_gradient(px, py, r, &grad);
-            }
+            egui_canvas_draw_circle_fill_gradient(px, py, r, &grad);
 #else
             egui_canvas_draw_circle_fill(px, py, r, series->color, EGUI_ALPHA_100);
 #endif
