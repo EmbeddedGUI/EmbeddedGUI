@@ -42,6 +42,24 @@ static const uint16_t arc_transition_over_cos_q8_lut[91] = {
         536, 561, 590, 621, 657, 697, 742, 794, 854, 923, 1006, 1106, 1227, 1380, 1576, 1837, 2203, 2752, 3668, 5500, 10999, 0,
 };
 
+static const uint8_t arc_edge_smoothstep_alpha_lut[385] = {
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   1,   1,   1,   1,   1,   1,   2,   2,   2,   2,   3,
+        3,   3,   3,   4,   4,   4,   5,   5,   5,   5,   6,   6,   6,   7,   7,   8,   8,   8,   9,   9,   10,  10,  10,  11,  11,  12,
+        12,  13,  13,  14,  14,  15,  15,  16,  16,  17,  17,  18,  18,  19,  19,  20,  21,  21,  22,  22,  23,  24,  24,  25,  25,  26,
+        27,  27,  28,  29,  29,  30,  31,  31,  32,  33,  34,  34,  35,  36,  36,  37,  38,  39,  39,  40,  41,  42,  42,  43,  44,  45,
+        45,  46,  47,  48,  49,  49,  50,  51,  52,  53,  54,  54,  55,  56,  57,  58,  59,  59,  60,  61,  62,  63,  64,  65,  66,  66,
+        67,  68,  69,  70,  71,  72,  73,  74,  75,  76,  76,  77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91,
+        92,  93,  93,  94,  95,  96,  97,  98,  99,  100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116,
+        117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142,
+        143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 160, 161, 162, 163, 164, 165, 166, 167,
+        168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 187, 188, 189, 190, 191,
+        192, 193, 194, 194, 195, 196, 197, 198, 199, 200, 200, 201, 202, 203, 204, 205, 205, 206, 207, 208, 209, 209, 210, 211, 212, 212,
+        213, 214, 215, 215, 216, 217, 218, 218, 219, 220, 220, 221, 222, 223, 223, 224, 225, 225, 226, 227, 227, 228, 228, 229, 230, 230,
+        231, 232, 232, 233, 233, 234, 234, 235, 236, 236, 237, 237, 238, 238, 239, 239, 240, 240, 241, 241, 242, 242, 243, 243, 244, 244,
+        244, 245, 245, 246, 246, 246, 247, 247, 247, 248, 248, 249, 249, 249, 249, 250, 250, 250, 251, 251, 251, 251, 252, 252, 252, 252,
+        252, 253, 253, 253, 253, 253, 253, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 255,
+};
+
 __EGUI_STATIC_INLINE__ uint16_t egui_canvas_arc_get_sin_q15(int16_t angle)
 {
     return (uint16_t)egui_trig_float_to_q15(arc_sin_lut[angle]);
@@ -2271,10 +2289,6 @@ int egui_canvas_get_arc_fill_basic_row_angle_opaque_range(egui_dim_t radius, egu
 
 static egui_alpha_t arc_edge_smoothstep_alpha(int32_t signed_dist_q15)
 {
-    uint32_t t_q15;
-    uint32_t t_sq_q15;
-    uint32_t smooth_q15;
-
     // 1.5-pixel wide AA transition zone with smoothstep for smoother radial edges
     // half_transition = 0.75 in Q16.16 = 49152
 
@@ -2287,21 +2301,7 @@ static egui_alpha_t arc_edge_smoothstep_alpha(int32_t signed_dist_q15)
         return EGUI_ALPHA_0;
     }
 
-    // Smoothstep interpolation: map [-0.75, 0.75] to [0, 255]
-    int32_t coverage_q15 = signed_dist_q15 + ARC_AA_HALF_TRANSITION;
-    t_q15 = ((uint32_t)coverage_q15 * 21845U) >> 15;
-    if (t_q15 > (1U << 15))
-    {
-        t_q15 = (1U << 15);
-    }
-    t_sq_q15 = (t_q15 * t_q15) >> 15;
-    smooth_q15 = (t_sq_q15 * ((3U << 15) - (t_q15 << 1))) >> 15;
-    egui_alpha_t alpha = (egui_alpha_t)((smooth_q15 * EGUI_ALPHA_100) >> 15);
-    if (alpha > EGUI_ALPHA_100)
-    {
-        alpha = EGUI_ALPHA_100;
-    }
-    return alpha;
+    return arc_edge_smoothstep_alpha_lut[(uint32_t)(signed_dist_q15 + ARC_AA_HALF_TRANSITION + 64) >> 7];
 }
 
 __EGUI_STATIC_INLINE__ egui_alpha_t arc_get_point_alpha(egui_dim_t x, egui_dim_t y, const egui_canvas_arc_scan_state_t *scan_state)

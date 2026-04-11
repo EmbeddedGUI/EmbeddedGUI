@@ -474,6 +474,48 @@
   - `runtime_check_output/HelloPerformance/default/frame_0256.png`
   - line 与 pie 场景显示正常，未看到折线断裂、marker 缺失、扇区缺失或边缘异常。
 
+## 2026-04-11 补充：basic arc fill 边缘 smoothstep 改为只读 LUT
+
+- 保留改动：
+  - `src/core/egui_canvas.c`
+  - 为 `arc_edge_smoothstep_alpha()` 增加 `385` 项只读 LUT，把原来每像素的 smoothstep cubic 计算改成边界判断后直接查表。
+  - LUT 索引覆盖整个 `[-0.75px, +0.75px]` 过渡区，步进为 `Q15/128`；当前 runtime 与 unit test 都通过，未观察到 pie/arc 边缘可见退化。
+  - 不增加 RAM/heap；代价是增加少量 flash/rodata。
+
+### basic arc fill smoothstep LUT 增量 A/B
+
+基线为提交 `6353a9c`，即上一轮已完成 `arc fill` 不透明窗口快路径、但尚未包含本次 `src/core/egui_canvas.c` LUT 改动的版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_PIE_DENSE | 2.213 | 2.184 | -1.3% | 0 |
+| ARC_FILL | 0.828 | 0.825 | -0.4% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_PIE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE`
+  - 结果：`CHART_PIE_DENSE = 2.184 ms`
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter ARC_FILL --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_ARC_FILL`
+  - 结果：`ARC_FILL = 0.825 ms`
+- `python scripts/perf_analysis/main.py --profile cortex-m3`
+  - 结果：整套 `256` 个场景通过，关键 file/chart 结果为
+  - `FILE_IMAGE_JPG = 0.330 ms`
+  - `FILE_IMAGE_PNG = 0.330 ms`
+  - `FILE_IMAGE_BMP = 0.330 ms`
+  - `CHART_LINE_DENSE = 1.418 ms`
+  - `CHART_BAR_DENSE = 1.330 ms`
+  - `CHART_SCATTER_DENSE = 1.188 ms`
+  - `CHART_PIE_DENSE = 2.184 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0253.png`
+  - `runtime_check_output/HelloPerformance/default/frame_0256.png`
+  - line 与 pie 场景显示正常，未看到折线断裂、marker 缺失、扇区缺失或边缘异常。
+
 ## 2026-04-11 补充：basic arc fill 热路径去掉多余 64 位乘法并内联热点 helper
 
 - 保留改动：
