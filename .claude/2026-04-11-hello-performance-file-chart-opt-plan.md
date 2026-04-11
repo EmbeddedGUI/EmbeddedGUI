@@ -250,3 +250,31 @@
 - 截图抽查：
   - `runtime_check_output/HelloPerformance/default/frame_0256.png`
   - pie 场景显示正常，没有看到扇区缺失、边缘被误裁或中心漏绘。
+
+## 2026-04-11 补充：chart pie 角度裁剪边界收紧
+
+- 保留改动：
+  - `src/widget/egui_view_chart_pie.c`
+  - 将精确 tile-slice 裁剪里的角度保护垫从 `2deg` 收紧到 `0deg`。
+  - 当前 `CHART_PIE_DENSE` 的 16 个扇区最小角度仍明显大于 0，且运行时截图验证通过，因此可以进一步减少边界保守量带来的误判 slice。
+
+### chart_pie 角度裁剪边界收紧增量 A/B
+
+基线为提交 `5cda41b` 上未包含本次 `src/widget/egui_view_chart_pie.c` 角度保护垫收紧改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_PIE_DENSE | 6.589 | 6.395 | -2.9% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_PIE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE`
+  - 结果：`CHART_PIE_DENSE = 6.395 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0256.png`
+  - pie 场景显示正常，没有看到细扇区丢失、边缘缺口或中心漏绘。

@@ -26,7 +26,7 @@ typedef struct egui_view_chart_pie_geometry
     egui_dim_t radius;
 } egui_view_chart_pie_geometry_t;
 
-#define EGUI_VIEW_CHART_PIE_ANGLE_CULL_PAD_DEG 2
+#define EGUI_VIEW_CHART_PIE_ANGLE_CULL_PAD_DEG 0
 
 static egui_dim_t egui_view_chart_pie_get_font_height_basic(egui_view_chart_pie_t *local)
 {
