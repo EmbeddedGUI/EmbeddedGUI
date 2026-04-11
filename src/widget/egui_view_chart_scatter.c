@@ -9,6 +9,83 @@
 
 // ============== Scatter Drawing (virtual) ==============
 
+static int egui_view_chart_scatter_get_visible_data_range(egui_chart_axis_base_t *ab, const egui_region_t *plot_area, egui_dim_t work_x1, egui_dim_t work_y1,
+                                                          egui_dim_t work_x2, egui_dim_t work_y2, int16_t *out_x_min, int16_t *out_x_max, int16_t *out_y_min,
+                                                          int16_t *out_y_max)
+{
+    int16_t view_x_min;
+    int16_t view_x_max;
+    int16_t view_y_min;
+    int16_t view_y_max;
+    int32_t range_x;
+    int32_t range_y;
+    int32_t rel_x_min;
+    int32_t rel_x_max;
+    int32_t rel_y_min;
+    int32_t rel_y_max;
+    int32_t inv_y_min;
+    int32_t inv_y_max;
+    int32_t data_x_min;
+    int32_t data_x_max;
+    int32_t data_y_min;
+    int32_t data_y_max;
+
+    if (ab == NULL || plot_area == NULL || out_x_min == NULL || out_x_max == NULL || out_y_min == NULL || out_y_max == NULL || plot_area->size.width <= 1 ||
+        plot_area->size.height <= 1)
+    {
+        return 0;
+    }
+
+    egui_chart_get_view_x(ab, &view_x_min, &view_x_max);
+    egui_chart_get_view_y(ab, &view_y_min, &view_y_max);
+    range_x = (int32_t)view_x_max - (int32_t)view_x_min;
+    range_y = (int32_t)view_y_max - (int32_t)view_y_min;
+    if (range_x <= 0 || range_y <= 0)
+    {
+        return 0;
+    }
+
+    rel_x_min = EGUI_MAX((int32_t)work_x1 - (int32_t)plot_area->location.x, 0);
+    rel_x_max = EGUI_MIN((int32_t)work_x2 - (int32_t)plot_area->location.x, (int32_t)plot_area->size.width - 1);
+    rel_y_min = EGUI_MAX((int32_t)work_y1 - (int32_t)plot_area->location.y, 0);
+    rel_y_max = EGUI_MIN((int32_t)work_y2 - (int32_t)plot_area->location.y, (int32_t)plot_area->size.height - 1);
+    if (rel_x_min > rel_x_max || rel_y_min > rel_y_max)
+    {
+        return 0;
+    }
+
+    data_x_min = (int32_t)view_x_min + rel_x_min * range_x / ((int32_t)plot_area->size.width - 1) - 1;
+    data_x_max = (int32_t)view_x_min + rel_x_max * range_x / ((int32_t)plot_area->size.width - 1) + 1;
+
+    inv_y_min = ((int32_t)plot_area->size.height - 1) - rel_y_max;
+    inv_y_max = ((int32_t)plot_area->size.height - 1) - rel_y_min;
+    data_y_min = (int32_t)view_y_min + inv_y_min * range_y / ((int32_t)plot_area->size.height - 1) - 1;
+    data_y_max = (int32_t)view_y_min + inv_y_max * range_y / ((int32_t)plot_area->size.height - 1) + 1;
+
+    if (data_x_min < view_x_min)
+    {
+        data_x_min = view_x_min;
+    }
+    if (data_x_max > view_x_max)
+    {
+        data_x_max = view_x_max;
+    }
+    if (data_y_min < view_y_min)
+    {
+        data_y_min = view_y_min;
+    }
+    if (data_y_max > view_y_max)
+    {
+        data_y_max = view_y_max;
+    }
+
+    *out_x_min = (int16_t)data_x_min;
+    *out_x_max = (int16_t)data_x_max;
+    *out_y_min = (int16_t)data_y_min;
+    *out_y_max = (int16_t)data_y_max;
+    return 1;
+}
+
 static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_region_t *plot_area)
 {
     EGUI_LOCAL_INIT(egui_view_chart_scatter_t);
@@ -18,6 +95,16 @@ static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_regi
     egui_dim_t work_y1;
     egui_dim_t work_x2;
     egui_dim_t work_y2;
+    egui_dim_t expanded_work_x1;
+    egui_dim_t expanded_work_y1;
+    egui_dim_t expanded_work_x2;
+    egui_dim_t expanded_work_y2;
+    int16_t data_x_min = 0;
+    int16_t data_x_max = 0;
+    int16_t data_y_min = 0;
+    int16_t data_y_max = 0;
+    int has_visible_data_range;
+    uint8_t point_radius;
 
     if (work == NULL || egui_region_is_empty(work))
     {
@@ -28,10 +115,23 @@ static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_regi
     work_y1 = work->location.y;
     work_x2 = work->location.x + work->size.width;
     work_y2 = work->location.y + work->size.height;
+    point_radius = local->point_radius > 0 ? local->point_radius : 3;
+    expanded_work_x1 = work_x1 - point_radius;
+    expanded_work_y1 = work_y1 - point_radius;
+    expanded_work_x2 = work_x2 + point_radius;
+    expanded_work_y2 = work_y2 + point_radius;
+
+    has_visible_data_range = egui_view_chart_scatter_get_visible_data_range(ab, plot_area, expanded_work_x1, expanded_work_y1, expanded_work_x2,
+                                                                            expanded_work_y2, &data_x_min, &data_x_max, &data_y_min, &data_y_max);
+    if (!has_visible_data_range)
+    {
+        return;
+    }
+
     for (uint8_t s = 0; s < ab->series_count; s++)
     {
         const egui_chart_series_t *series = &ab->series[s];
-        uint8_t r = local->point_radius > 0 ? local->point_radius : 3;
+        uint8_t r = point_radius;
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
         egui_color_t color_light = egui_rgb_mix(series->color, EGUI_COLOR_WHITE, 80);
         egui_gradient_stop_t stops[2] = {
@@ -48,6 +148,11 @@ static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_regi
 
         for (uint8_t i = 0; i < series->point_count; i++)
         {
+            if (series->points[i].x < data_x_min || series->points[i].x > data_x_max || series->points[i].y < data_y_min || series->points[i].y > data_y_max)
+            {
+                continue;
+            }
+
             egui_dim_t px = egui_chart_map_x(ab, series->points[i].x, plot_area->location.x, plot_area->size.width);
 
             if (px + r < work_x1 || px - r > work_x2)

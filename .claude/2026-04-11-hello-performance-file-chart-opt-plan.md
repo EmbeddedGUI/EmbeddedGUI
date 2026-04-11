@@ -367,3 +367,38 @@
 - 截图抽查：
   - `runtime_check_output/HelloPerformance/default/frame_0256.png`
   - pie 场景显示正常，没有看到扇区丢失、边缘误裁或中心漏绘。
+
+## 2026-04-11 补充：chart scatter tile 反推 data 范围预筛
+
+- 保留改动：
+  - `src/widget/egui_view_chart_scatter.c`
+  - 在散点图逐点遍历前，先按当前 tile 和点半径反推出可见的 `data_x/data_y` 范围。
+  - 对明显落在当前 tile 数据窗口之外的点，直接跳过 `egui_chart_map_x()`、`egui_chart_map_y()` 和后续圆点绘制。
+  - 这一步不依赖额外 cache，也不增加任何 RAM/heap。
+
+### chart scatter tile 反推 data 范围预筛增量 A/B
+
+基线为提交 `5fbb465` 上未包含本次 `src/widget/egui_view_chart_scatter.c` 改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_SCATTER_DENSE | 1.553 | 1.274 | -18.0% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_SCATTER_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_SCATTER_DENSE`
+  - 结果：`CHART_SCATTER_DENSE = 1.274 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0255.png`
+  - scatter 场景显示正常，没有看到点缺失、越界裁剪或颜色异常。
+
+### 本轮未保留实验
+
+- `src/widget/egui_view_chart_bar.c`
+  - 尝试按 tile 反推 bar group/value 可见窗口，QEMU 结果 `CHART_BAR_DENSE = 1.744 ms`
+  - 相比基线 `1.767 ms` 仅 `-1.3%`，收益偏小，已回退。
