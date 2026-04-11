@@ -77,6 +77,10 @@ static uint8_t s_perf_chart_line_ready;
 static uint8_t s_perf_chart_bar_ready;
 static uint8_t s_perf_chart_scatter_ready;
 static uint8_t s_perf_chart_pie_ready;
+static uint8_t s_perf_chart_line_layout_ready;
+static uint8_t s_perf_chart_bar_layout_ready;
+static uint8_t s_perf_chart_scatter_layout_ready;
+static uint8_t s_perf_chart_pie_layout_ready;
 
 static egui_chart_point_t s_perf_chart_line_points_a[PERF_CHART_LINE_POINT_COUNT];
 static egui_chart_point_t s_perf_chart_line_points_b[PERF_CHART_LINE_POINT_COUNT];
@@ -110,6 +114,7 @@ static egui_image_file_io_t s_perf_file_image_mount_io;
 static file_image_stack_state_t s_perf_file_image_stack_state;
 static uint8_t s_perf_file_image_stack_ready;
 static uint8_t s_perf_file_image_ready;
+static uint8_t s_perf_file_image_layout_ready;
 static int s_perf_file_image_scene_mode = -1;
 
 static const file_image_mount_router_entry_t s_perf_file_image_mount_entries[] = {
@@ -940,38 +945,41 @@ static void ensure_perf_masks_initialized(void)
     // Stack-local perf masks are prepared at each draw site.
 }
 
-static void perf_draw_widget(egui_view_t *view, const egui_view_t *host)
+static void perf_prepare_widget_layout(egui_view_t *view, const egui_view_t *host, uint8_t *layout_ready)
 {
     egui_region_t *dirty_regions;
-    egui_location_t original_location;
 
-    if (view == NULL || view->api == NULL)
+    if (view == NULL || view->api == NULL || layout_ready == NULL || *layout_ready)
     {
         return;
     }
 
     dirty_regions = egui_core_get_region_dirty_arr();
     memcpy(s_perf_widget_dirty_backup, dirty_regions, sizeof(s_perf_widget_dirty_backup));
-    original_location = view->region.location;
 
     if (view->parent == NULL)
     {
         if (host != NULL)
         {
-            view->region.location.x = (egui_dim_t)(original_location.x + host->region.location.x);
-            view->region.location.y = (egui_dim_t)(original_location.y + host->region.location.y);
+            view->region.location.x = (egui_dim_t)(view->region.location.x + host->region.location.x);
+            view->region.location.y = (egui_dim_t)(view->region.location.y + host->region.location.y);
         }
         egui_view_request_layout(view);
     }
 
     view->api->calculate_layout(view);
     memcpy(dirty_regions, s_perf_widget_dirty_backup, sizeof(s_perf_widget_dirty_backup));
-    view->api->draw(view);
+    *layout_ready = 1U;
+}
 
-    if (view->parent == NULL)
+static void perf_draw_widget(egui_view_t *view)
+{
+    if (view == NULL || view->api == NULL)
     {
-        view->region.location = original_location;
+        return;
     }
+
+    view->api->draw(view);
 }
 
 static void perf_configure_axis_chart_view(egui_view_t *view)
@@ -1179,25 +1187,29 @@ static void perf_prepare_file_image_scene(int test_mode)
 static void perf_draw_chart_line_scene(egui_view_t *self)
 {
     perf_init_chart_line_view();
-    perf_draw_widget(EGUI_VIEW_OF(&s_perf_chart_line_view), self);
+    perf_prepare_widget_layout(EGUI_VIEW_OF(&s_perf_chart_line_view), self, &s_perf_chart_line_layout_ready);
+    perf_draw_widget(EGUI_VIEW_OF(&s_perf_chart_line_view));
 }
 
 static void perf_draw_chart_bar_scene(egui_view_t *self)
 {
     perf_init_chart_bar_view();
-    perf_draw_widget(EGUI_VIEW_OF(&s_perf_chart_bar_view), self);
+    perf_prepare_widget_layout(EGUI_VIEW_OF(&s_perf_chart_bar_view), self, &s_perf_chart_bar_layout_ready);
+    perf_draw_widget(EGUI_VIEW_OF(&s_perf_chart_bar_view));
 }
 
 static void perf_draw_chart_scatter_scene(egui_view_t *self)
 {
     perf_init_chart_scatter_view();
-    perf_draw_widget(EGUI_VIEW_OF(&s_perf_chart_scatter_view), self);
+    perf_prepare_widget_layout(EGUI_VIEW_OF(&s_perf_chart_scatter_view), self, &s_perf_chart_scatter_layout_ready);
+    perf_draw_widget(EGUI_VIEW_OF(&s_perf_chart_scatter_view));
 }
 
 static void perf_draw_chart_pie_scene(egui_view_t *self)
 {
     perf_init_chart_pie_view();
-    perf_draw_widget(EGUI_VIEW_OF(&s_perf_chart_pie_view), self);
+    perf_prepare_widget_layout(EGUI_VIEW_OF(&s_perf_chart_pie_view), self, &s_perf_chart_pie_layout_ready);
+    perf_draw_widget(EGUI_VIEW_OF(&s_perf_chart_pie_view));
 }
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FILE
@@ -1207,7 +1219,8 @@ static void perf_draw_file_image_scene(egui_view_t *self, int test_mode)
     egui_canvas_draw_rectangle_fill(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, PERF_FILE_IMAGE_BG_COLOR, EGUI_ALPHA_100);
     if (s_perf_file_image_ready)
     {
-        perf_draw_widget(EGUI_VIEW_OF(&s_perf_file_image_view), self);
+        perf_prepare_widget_layout(EGUI_VIEW_OF(&s_perf_file_image_view), self, &s_perf_file_image_layout_ready);
+        perf_draw_widget(EGUI_VIEW_OF(&s_perf_file_image_view));
     }
 }
 #endif
