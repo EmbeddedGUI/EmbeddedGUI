@@ -431,6 +431,56 @@
 - 截图抽查：
   - `runtime_check_output/HelloPerformance/default/frame_0256.png`
   - pie 场景显示正常，没有看到扇区缺失、边缘误裁或中心漏绘。
+## 2026-04-11 补充：chart line 使用 `64x12` 逻辑 PFB hint
+
+- 保留改动：
+  - `example/HelloPerformance/uicode.c`
+  - 为 `CHART_LINE_DENSE` 单独返回 `64` 的逻辑 PFB width hint，对应 `64x12` 逻辑 walk。
+  - 当前 dense line 场景在 `64x12` 下比默认 `48x16` 有更好的 X/Y tile 平衡，能减少 line/marker 在 PFB 场景里的重复遍历。
+  - 不增加额外 RAM/heap。
+
+### chart line 逻辑 PFB hint 增量 A/B
+
+基线为提交 `372adde`，即已收紧 arc 行级角度列裁剪、但尚未给 `CHART_LINE_DENSE` 增加 `64x12` hint 的版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_LINE_DENSE | 1.676 | 1.418 | -15.4% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_LINE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_LINE_DENSE`
+  - 结果：`CHART_LINE_DENSE = 1.418 ms`
+- `python scripts/perf_analysis/main.py --profile cortex-m3`
+  - 结果：整套 `256` 个场景通过，`FILE_IMAGE_* / CHART_*` 当前关键结果为
+  - `FILE_IMAGE_JPG = 0.330 ms`
+  - `FILE_IMAGE_PNG = 0.330 ms`
+  - `FILE_IMAGE_BMP = 0.330 ms`
+  - `CHART_LINE_DENSE = 1.418 ms`
+  - `CHART_BAR_DENSE = 1.330 ms`
+  - `CHART_SCATTER_DENSE = 1.188 ms`
+  - `CHART_PIE_DENSE = 2.477 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make clean`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0253.png`
+  - `runtime_check_output/HelloPerformance/default/frame_0256.png`
+  - line 与 pie 场景显示正常，未看到折线断裂、marker 缺失或 pie 误裁。
+
+### 本轮未保留实验
+
+- `example/HelloPerformance/uicode.c`
+  - 尝试把 `CHART_BAR_DENSE` 也改为 `64x12`
+  - 单场景结果：`CHART_BAR_DENSE = 1.459 ms`
+  - 相比当前 `1.330 ms` 明显回归，因此不保留。
+- `example/HelloPerformance/uicode.c`
+  - 尝试把 `CHART_SCATTER_DENSE` 也改为 `64x12`
+  - 单场景结果：`CHART_SCATTER_DENSE = 1.246 ms`
+  - 相比当前 `1.188 ms` 回归，因此不保留。
 ## 2026-04-11 补充：basic arc fill 行级角度列裁剪去掉额外像素 padding
 
 - 保留改动：

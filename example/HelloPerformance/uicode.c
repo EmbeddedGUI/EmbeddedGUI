@@ -688,6 +688,9 @@ static egui_dim_t egui_view_test_performance_get_logical_pfb_width_hint(int test
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:
         return 192;
 
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_LINE_DENSE:
+        return 64;
+
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE:
         /* The current pie tile-culling path is faster on the default 48x16 walk
          * than on the older 96x8 logical hint. */
