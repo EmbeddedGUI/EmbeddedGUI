@@ -431,6 +431,56 @@
 - 截图抽查：
   - `runtime_check_output/HelloPerformance/default/frame_0256.png`
   - pie 场景显示正常，没有看到扇区缺失、边缘误裁或中心漏绘。
+## 2026-04-11 补充：chart pie 按 tile 角度窗口做 slice 早停与中段跳过
+
+- 保留改动：
+  - `src/widget/egui_view_chart_pie.c`
+  - 当当前 tile 已确认完全落在 pie 实心圆内且不包含圆心时，把 tile 角度窗口映射到当前 `270..630` 的单调 slice 角度域。
+  - 对不可能命中的前段 slice 直接 `continue`，对已完全越过可见窗口的后段 slice 直接 `break`，wrap 情况下跳过中间整段不相交 slice。
+  - 这样可以减少当前 tile 中对 `egui_view_chart_pie_slice_intersects_work_region()` 的调用次数，以及后续无效 slice 的角度/几何判断。
+  - 不增加额外 RAM/heap。
+
+### chart pie slice 早停增量 A/B
+
+基线为提交 `dca4920`，即未包含本次 `src/widget/egui_view_chart_pie.c` 改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_PIE_DENSE | 3.528 | 3.491 | -1.0% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_PIE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE`
+  - 结果：`CHART_PIE_DENSE = 3.491 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make clean`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- `python scripts/perf_analysis/main.py --profile cortex-m3`
+  - 结果：整套 `256` 个场景通过，`FILE_IMAGE_* / CHART_*` 当前关键结果为
+  - `FILE_IMAGE_JPG = 0.330 ms`
+  - `FILE_IMAGE_PNG = 0.330 ms`
+  - `FILE_IMAGE_BMP = 0.330 ms`
+  - `CHART_LINE_DENSE = 1.676 ms`
+  - `CHART_BAR_DENSE = 1.330 ms`
+  - `CHART_SCATTER_DENSE = 1.188 ms`
+  - `CHART_PIE_DENSE = 3.491 ms`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0256.png`
+  - pie 场景显示正常，没有看到扇区缺失、边缘误裁或中心漏绘。
+
+### 本轮未保留实验
+
+- `src/widget/egui_view_chart_line.c`
+  - 试过按 tile 可见 `data_y` 连续段拆分 polyline，`CHART_LINE_DENSE = 6.443 ms`
+  - 相比当前基线 `1.676 ms` 明显回归，已回退。
+- chart 逻辑 tile 宽度 A/B
+  - `CHART_PIE_DENSE` 强制逻辑 `128x6`，结果 `3.985 ms`
+  - `CHART_LINE_DENSE` 强制逻辑 `96x8`，结果 `2.059 ms`
+  - `CHART_BAR_DENSE` 强制逻辑 `96x8`，结果 `1.667 ms`
+  - 都劣于当前 shipped hint，已不保留。
 
 ## 2026-04-11 补充：chart line marker 按 tile 反推 data_y 预筛
 

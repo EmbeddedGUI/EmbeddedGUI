@@ -804,6 +804,11 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
     egui_view_chart_pie_work_region_info_t work_info;
     uint32_t angle_scale_q7 = 0;
     int use_angle_scale_q7 = 0;
+    int use_inside_angle_window_fast_path = 0;
+    int window_wraps = 0;
+    int16_t window_start_ext = 0;
+    int16_t window_end_ext = 0;
+    int16_t window_wrap_end = 0;
 
     if (local->pie_slice_count == 0 || local->pie_slices == NULL || total == 0 || radius <= 0)
     {
@@ -820,6 +825,29 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
     {
         angle_scale_q7 = ((uint32_t)360 << 7) / total;
         use_angle_scale_q7 = 1;
+    }
+    if (!work_info.contains_center && work_info.inside_solid_circle && work_info.has_angle_window)
+    {
+        int32_t ext_end;
+
+        use_inside_angle_window_fast_path = 1;
+        window_start_ext = work_info.angle_start;
+        if (window_start_ext < 270)
+        {
+            window_start_ext += 360;
+        }
+
+        ext_end = (int32_t)window_start_ext + work_info.angle_sweep;
+        if (ext_end > 630)
+        {
+            window_wraps = 1;
+            window_end_ext = 630;
+            window_wrap_end = (int16_t)(ext_end - 360);
+        }
+        else
+        {
+            window_end_ext = (int16_t)ext_end;
+        }
     }
 
     // Draw all slices as arcs with inner_r=1 to avoid center pixel artifact.
@@ -857,7 +885,27 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
             continue;
         }
 
-        if (!egui_view_chart_pie_slice_intersects_work_region(&work_info, center_x, center_y, radius, start_angle, (uint16_t)sweep))
+        if (use_inside_angle_window_fast_path)
+        {
+            if (!window_wraps)
+            {
+                if (end_angle < window_start_ext)
+                {
+                    start_angle = end_angle;
+                    continue;
+                }
+                if (start_angle > window_end_ext)
+                {
+                    break;
+                }
+            }
+            else if (start_angle > window_wrap_end && end_angle < window_start_ext)
+            {
+                start_angle = end_angle;
+                continue;
+            }
+        }
+        else if (!egui_view_chart_pie_slice_intersects_work_region(&work_info, center_x, center_y, radius, start_angle, (uint16_t)sweep))
         {
             start_angle = end_angle;
             continue;
