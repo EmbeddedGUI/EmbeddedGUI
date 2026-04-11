@@ -180,7 +180,7 @@ void test_init_ui(void)
     egui_image_file_set_default_io(&file_image_io);
     egui_image_file_clear_decoders();
     egui_image_file_register_decoder(&g_file_image_bmp_stream_decoder);
-    /* Register a chip/vendor JPEG decoder here before TJpgDec on MCU targets. */
+    /* Register vendor JPEG before TJpgDec, and vendor PNG before stb_image, on MCU targets. */
     egui_image_file_register_decoder(&g_file_image_tjpgd_stream_decoder);
     egui_image_file_register_decoder(&g_file_image_stb_decoder);
 
