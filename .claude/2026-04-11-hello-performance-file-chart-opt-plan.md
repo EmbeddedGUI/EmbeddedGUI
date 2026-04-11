@@ -278,3 +278,34 @@
 - 截图抽查：
   - `runtime_check_output/HelloPerformance/default/frame_0256.png`
   - pie 场景显示正常，没有看到细扇区丢失、边缘缺口或中心漏绘。
+
+## 2026-04-11 补充：basic arc fill 行级角度列裁剪
+
+- 保留改动：
+  - `src/core/egui_canvas.c`
+  - 在 `egui_canvas_draw_arc_corner_fill()` 中，复用已有的 `scan_state.x_allow_min/x_allow_max`，把每一行不可能落入当前扇区角度范围的列在进入像素循环前直接裁掉。
+  - 这一步不会增加任何额外 RAM/heap，只减少当前 `basic arc fill` 在窄扇区场景里大量“逐像素检查后再丢弃”的无效循环。
+  - `chart pie` 直接受益，因为 `HelloPerformance` 的 pie 场景走的是 `egui_canvas_draw_arc_fill_basic()` 路径。
+
+### basic arc fill 行级角度列裁剪增量 A/B
+
+基线为提交 `204cc6f` 上未包含本次 `src/core/egui_canvas.c` 改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_PIE_DENSE | 6.395 | 4.303 | -32.7% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_PIE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE`
+  - 结果：`CHART_PIE_DENSE = 4.303 ms`
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter ARC_FILL --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_ARC_FILL`
+  - 结果：`ARC_FILL = 0.949 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0256.png`
+  - pie 场景显示正常，没有看到扇区缺失、边缘撕裂或中心漏绘。
