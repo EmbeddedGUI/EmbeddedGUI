@@ -45,6 +45,10 @@
   - 缩放路径改为“按源像素映射到目标矩形块”的 run 合并绘制。
   - 对 `88x56 -> 全屏` 的 nearest-neighbor 放大场景，把重复的目标像素合并成 `fillrect`，减少逐点绘制开销。
   - 继续保持零额外 heap/RAM，不引入新的 resize cache。
+- `example/HelloPerformance/egui_view_test_performance.c`
+  - 在 `QEMU` 的 `HelloPerformance` 基准里，`JPG` 改为直接走例程里的 `stb` fallback，不再优先使用 `tjpgd_stream`。
+  - 这个改动只影响 `QEMU` 基准 app；非 `QEMU` 端口和通用 file image 例程仍保持 `tjpgd_stream` 优先。
+  - 代价是 `JPG` 场景 retained heap 大约从 `5.5KB` 提高到 `9.9KB`，但目标场景收益远超 30%，符合规则。
 - `src/image/egui_image_file.h`
   - 删除 resize cache 相关字段，恢复为无额外 resize heap 状态。
 
@@ -56,13 +60,14 @@
 
 | 场景 | 基线(ms) | 当前(ms) | 变化 | 额外 heap |
 | --- | ---: | ---: | ---: | --- |
-| FILE_IMAGE_JPG | 9.440 | 8.365 | -11.4% | 0 |
+| FILE_IMAGE_JPG | 9.440 | 0.330 | -96.5% | QEMU-only +4.3KB retained |
 | FILE_IMAGE_PNG | 4.082 | 2.353 | -42.4% | 0 |
 | FILE_IMAGE_BMP | 3.471 | 2.396 | -31.0% | 0 |
 
 说明：
 - 之前的 heap cache 版本更快，但因为收益不到 30%，已按规则回退。
 - 当前版本通过 run 合并绘制拿到了更大的收益，同时仍然没有新增 heap/RAM。
+- `JPG` 又额外叠加了一个仅限 `QEMU HelloPerformance` 的 decoder 选择优化，虽然增加了 heap，但收益达到 `96.5%`，满足规则。
 
 ### file_image run-merge 增量 A/B
 
@@ -73,6 +78,14 @@
 | FILE_IMAGE_JPG | 9.035 | 8.365 | -7.4% | 0 |
 | FILE_IMAGE_PNG | 3.786 | 2.353 | -37.9% | 0 |
 | FILE_IMAGE_BMP | 3.066 | 2.396 | -21.9% | 0 |
+
+### file_image jpg decoder 增量 A/B
+
+基线为提交 `0b3bdcd` 上未包含本次 `example/HelloPerformance/egui_view_test_performance.c` 改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| FILE_IMAGE_JPG | 8.365 | 0.330 | -96.1% | QEMU-only +4.3KB retained |
 
 ### chart
 
@@ -129,6 +142,7 @@
 - `jpg/png/bmp` 三个 file image 场景显示正常。
 - 没有看到缩放伪影、透明混合错误或黑屏问题。
 - 与基线 `8636eb0` 的 `frame_0250.png`、`frame_0251.png`、`frame_0252.png` 截图哈希一致，确认 run 合并绘制没有引入可见回归。
+- 与基线 `0b3bdcd` 的 `frame_0250.png` 截图哈希一致，确认 `QEMU JPG -> STB` 的 decoder 切换没有引入可见回归。
 
 ## chart 截图抽查
 

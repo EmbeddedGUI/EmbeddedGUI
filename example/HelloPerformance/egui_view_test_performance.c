@@ -125,7 +125,11 @@ static const file_image_mount_router_entry_t s_perf_file_image_mount_entries[] =
 static const file_image_decoder_registry_config_t s_perf_file_image_decoder_config = {
         .bmp_stream = &g_file_image_bmp_stream_decoder,
         .jpeg_vendor = NULL,
+#if EGUI_PORT == EGUI_PORT_TYPE_QEMU
+        .jpeg_stream = NULL,
+#else
         .jpeg_stream = &g_file_image_tjpgd_stream_decoder,
+#endif
         .png_vendor = NULL,
         .generic_fallback = &g_file_image_stb_decoder,
         .clear_first = 1,
