@@ -75,12 +75,30 @@ static uint8_t egui_view_chart_line_series_upper_bound_x(const egui_chart_series
     return left;
 }
 
-static int egui_view_chart_line_get_visible_index_range(egui_chart_axis_base_t *ab, const egui_chart_series_t *series, const egui_region_t *plot_area,
-                                                        egui_dim_t work_x1, egui_dim_t work_x2, uint8_t *draw_start, uint8_t *draw_end, uint8_t *marker_start,
-                                                        uint8_t *marker_end)
+__EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_line_map_x_fast(int16_t data_x, egui_dim_t plot_x, int32_t plot_w_span, int16_t view_x_min, int32_t range_x)
 {
-    int16_t view_x_min;
-    int16_t view_x_max;
+    if (range_x <= 0 || plot_w_span <= 0)
+    {
+        return plot_x;
+    }
+
+    return plot_x + (egui_dim_t)(((int32_t)data_x - (int32_t)view_x_min) * plot_w_span / range_x);
+}
+
+__EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_line_map_y_fast(int16_t data_y, egui_dim_t plot_y, int32_t plot_h_span, int16_t view_y_min, int32_t range_y)
+{
+    if (range_y <= 0 || plot_h_span <= 0)
+    {
+        return plot_y;
+    }
+
+    return plot_y + plot_h_span - (egui_dim_t)(((int32_t)data_y - (int32_t)view_y_min) * plot_h_span / range_y);
+}
+
+static int egui_view_chart_line_get_visible_index_range(const egui_chart_series_t *series, const egui_region_t *plot_area, egui_dim_t work_x1,
+                                                        egui_dim_t work_x2, int16_t view_x_min, int16_t view_x_max, uint8_t *draw_start, uint8_t *draw_end,
+                                                        uint8_t *marker_start, uint8_t *marker_end)
+{
     int32_t range;
     int32_t rel_min_px;
     int32_t rel_max_px;
@@ -89,8 +107,7 @@ static int egui_view_chart_line_get_visible_index_range(egui_chart_axis_base_t *
     uint8_t first_idx;
     uint8_t last_exclusive;
 
-    if (ab == NULL || series == NULL || plot_area == NULL || draw_start == NULL || draw_end == NULL || marker_start == NULL || marker_end == NULL ||
-        series->point_count == 0)
+    if (series == NULL || plot_area == NULL || draw_start == NULL || draw_end == NULL || marker_start == NULL || marker_end == NULL || series->point_count == 0)
     {
         return 0;
     }
@@ -104,7 +121,6 @@ static int egui_view_chart_line_get_visible_index_range(egui_chart_axis_base_t *
         return 1;
     }
 
-    egui_chart_get_view_x(ab, &view_x_min, &view_x_max);
     range = (int32_t)view_x_max - (int32_t)view_x_min;
     if (range <= 0)
     {
@@ -154,11 +170,9 @@ static int egui_view_chart_line_get_visible_index_range(egui_chart_axis_base_t *
     return (*draw_start <= *draw_end) ? 1 : 0;
 }
 
-static int egui_view_chart_line_get_visible_data_y_range(egui_chart_axis_base_t *ab, const egui_region_t *plot_area, egui_dim_t work_y1, egui_dim_t work_y2,
-                                                         int16_t *out_min, int16_t *out_max)
+static int egui_view_chart_line_get_visible_data_y_range(const egui_region_t *plot_area, egui_dim_t work_y1, egui_dim_t work_y2, int16_t view_y_min,
+                                                         int16_t view_y_max, int16_t *out_min, int16_t *out_max)
 {
-    int16_t view_y_min;
-    int16_t view_y_max;
     int32_t range_y;
     int32_t rel_y_min;
     int32_t rel_y_max;
@@ -167,12 +181,11 @@ static int egui_view_chart_line_get_visible_data_y_range(egui_chart_axis_base_t 
     int32_t data_y_min;
     int32_t data_y_max;
 
-    if (ab == NULL || plot_area == NULL || out_min == NULL || out_max == NULL || plot_area->size.height <= 1)
+    if (plot_area == NULL || out_min == NULL || out_max == NULL || plot_area->size.height <= 1)
     {
         return 0;
     }
 
-    egui_chart_get_view_y(ab, &view_y_min, &view_y_max);
     range_y = (int32_t)view_y_max - (int32_t)view_y_min;
     if (range_y <= 0)
     {
@@ -215,6 +228,16 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
     egui_dim_t work_y1;
     egui_dim_t work_x2;
     egui_dim_t work_y2;
+    egui_dim_t plot_x;
+    egui_dim_t plot_y;
+    int32_t plot_w_span;
+    int32_t plot_h_span;
+    int16_t view_x_min;
+    int16_t view_x_max;
+    int16_t view_y_min;
+    int16_t view_y_max;
+    int32_t range_x;
+    int32_t range_y;
     int16_t visible_data_y_min = 0;
     int16_t visible_data_y_max = 0;
     int has_visible_data_y_range;
@@ -228,7 +251,16 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
     work_y1 = work->location.y - clip_expand;
     work_x2 = work->location.x + work->size.width + clip_expand;
     work_y2 = work->location.y + work->size.height + clip_expand;
-    has_visible_data_y_range = egui_view_chart_line_get_visible_data_y_range(ab, plot_area, work_y1, work_y2, &visible_data_y_min, &visible_data_y_max);
+    plot_x = plot_area->location.x;
+    plot_y = plot_area->location.y;
+    plot_w_span = (int32_t)plot_area->size.width - 1;
+    plot_h_span = (int32_t)plot_area->size.height - 1;
+    egui_chart_get_view_x(ab, &view_x_min, &view_x_max);
+    egui_chart_get_view_y(ab, &view_y_min, &view_y_max);
+    range_x = (int32_t)view_x_max - (int32_t)view_x_min;
+    range_y = (int32_t)view_y_max - (int32_t)view_y_min;
+    has_visible_data_y_range =
+            egui_view_chart_line_get_visible_data_y_range(plot_area, work_y1, work_y2, view_y_min, view_y_max, &visible_data_y_min, &visible_data_y_max);
 
     for (uint8_t s = 0; s < ab->series_count; s++)
     {
@@ -259,8 +291,8 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
 
         if (monotonic_increasing)
         {
-            has_visible_range =
-                    (uint8_t)egui_view_chart_line_get_visible_index_range(ab, series, plot_area, work_x1, work_x2, &draw_start, &draw_end, &marker_start, &marker_end);
+            has_visible_range = (uint8_t)egui_view_chart_line_get_visible_index_range(series, plot_area, work_x1, work_x2, view_x_min, view_x_max, &draw_start,
+                                                                                      &draw_end, &marker_start, &marker_end);
             if (!has_visible_range)
             {
                 continue;
@@ -272,8 +304,8 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
         {
             if (local->point_radius > 0)
             {
-                egui_dim_t px = egui_chart_map_x(ab, series->points[0].x, plot_area->location.x, plot_area->size.width);
-                egui_dim_t py = egui_chart_map_y(ab, series->points[0].y, plot_area->location.y, plot_area->size.height);
+                egui_dim_t px = egui_view_chart_line_map_x_fast(series->points[0].x, plot_x, plot_w_span, view_x_min, range_x);
+                egui_dim_t py = egui_view_chart_line_map_y_fast(series->points[0].y, plot_y, plot_h_span, view_y_min, range_y);
 #if EGUI_CONFIG_WIDGET_ENHANCED_DRAW
                 egui_canvas_draw_circle_fill_gradient(px, py, local->point_radius, &grad);
 #else
@@ -300,8 +332,8 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
             for (uint8_t i = 0; i < pt_count; i++)
             {
                 const egui_chart_point_t *point = &series->points[point_start + i];
-                coords[i * 2] = egui_chart_map_x(ab, point->x, plot_area->location.x, plot_area->size.width);
-                coords[i * 2 + 1] = egui_chart_map_y(ab, point->y, plot_area->location.y, plot_area->size.height);
+                coords[i * 2] = egui_view_chart_line_map_x_fast(point->x, plot_x, plot_w_span, view_x_min, range_x);
+                coords[i * 2 + 1] = egui_view_chart_line_map_y_fast(point->y, plot_y, plot_h_span, view_y_min, range_y);
             }
             egui_canvas_draw_polyline(coords, pt_count, local->line_width, series->color, EGUI_ALPHA_100);
 
@@ -312,8 +344,8 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
                 for (uint8_t i = pt_count; i < draw_point_count; i++)
                 {
                     const egui_chart_point_t *point = &series->points[point_start + i];
-                    egui_dim_t x2 = egui_chart_map_x(ab, point->x, plot_area->location.x, plot_area->size.width);
-                    egui_dim_t y2 = egui_chart_map_y(ab, point->y, plot_area->location.y, plot_area->size.height);
+                    egui_dim_t x2 = egui_view_chart_line_map_x_fast(point->x, plot_x, plot_w_span, view_x_min, range_x);
+                    egui_dim_t y2 = egui_view_chart_line_map_y_fast(point->y, plot_y, plot_h_span, view_y_min, range_y);
                     egui_canvas_draw_line(prev_x, prev_y, x2, y2, local->line_width, series->color, EGUI_ALPHA_100);
                     prev_x = x2;
                     prev_y = y2;
@@ -345,7 +377,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
                     continue;
                 }
 
-                egui_dim_t px = egui_chart_map_x(ab, series->points[i].x, plot_area->location.x, plot_area->size.width);
+                egui_dim_t px = egui_view_chart_line_map_x_fast(series->points[i].x, plot_x, plot_w_span, view_x_min, range_x);
 
                 if (monotonic_increasing)
                 {
@@ -359,7 +391,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
                     }
                 }
 
-                egui_dim_t py = egui_chart_map_y(ab, series->points[i].y, plot_area->location.y, plot_area->size.height);
+                egui_dim_t py = egui_view_chart_line_map_y_fast(series->points[i].y, plot_y, plot_h_span, view_y_min, range_y);
 
                 if (px + local->point_radius < work_x1 || px - local->point_radius > work_x2 || py + local->point_radius < work_y1 ||
                     py - local->point_radius > work_y2)
