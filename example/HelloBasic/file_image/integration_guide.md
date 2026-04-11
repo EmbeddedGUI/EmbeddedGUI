@@ -24,6 +24,14 @@
 5. 用 `decoder_registry_apply()` 注册 decoder 顺序
 6. 业务侧只保留逻辑路径，例如 `photo/cat.jpg` 或 `sd:photo/cat.jpg`
 
+如果不想在 app 初始化里分别手写：
+
+- `egui_image_file_set_default_io()`
+- `file_image_mount_router_io_init()`
+- `file_image_decoder_registry_apply()`
+
+可以直接复用 `file_image_stack.c/.h` 这层例程级 helper，把这些步骤收敛成一次 `file_image_stack_apply()`。
+
 ## 2. 单一存储后端：FatFs / SD
 
 如果产品只有一个 `FatFs/SD` 挂载点，最简单的接法就是：
@@ -153,6 +161,33 @@ void app_file_image_stack_init(void)
 
 当前 `HelloBasic/file_image` 的 PC 例程已经按这个思路接线，只是为了避免额外维护三套 PC 文件目录，示例里把 `sd:` / `lfs:` / `flash:` 都路由到了不同的 `stdio` IO，再共同指向同一个 `files/` 目录。迁到 MCU 时，把这三个 IO 分别替换成真后端即可。
 
+如果想把上面的三步压成一个 app 侧 helper，也可以改成：
+
+```c
+#include "file_image_stack.h"
+
+static file_image_stack_state_t g_file_stack_state;
+static const file_image_stack_config_t g_file_stack_cfg = {
+        .default_io = NULL,
+        .mount_entries = g_mounts,
+        .mount_entry_count = sizeof(g_mounts) / sizeof(g_mounts[0]),
+        .fallback_io = &g_lfs_io,
+        .decoder_config = &g_decoder_cfg,
+};
+
+void app_file_image_stack_init(void)
+{
+    file_image_fatfs_io_init(&g_sd_io, &g_sd_ctx);
+    file_image_littlefs_io_init(&g_lfs_io, &g_lfs_ctx);
+    file_image_flash_map_io_init(&g_flash_io, &g_flash_ctx);
+    file_image_stack_apply(&g_file_stack_state, &g_file_stack_cfg);
+}
+```
+
+这样产品 app 只需要准备好底层 IO 实例和 mount 表，剩下的“默认 IO 选择 + mount router 初始化 + decoder 注册”都交给 helper。
+
+注意：`file_image_stack_state_t` 不能放在初始化函数的栈上，因为 `egui_image_file_set_default_io()` 会长期持有其中 router IO 和 router context 的指针。请像上面的示例一样，把它放成 `static` 或其他生命周期足够长的对象。
+
 ## 4. Decoder 顺序建议
 
 当前推荐顺序已经固定在 `decoder_registry_apply()` 里：
@@ -208,9 +243,10 @@ void app_file_image_stack_init(void)
 如果你要把这套能力搬到产品 app，建议按这个顺序拷贝：
 
 1. 先拷 `decoder_registry.c/.h`
-2. 按存储类型拷一个或多个 `*_template/file_io_*.c/.h`
-3. 如果有多挂载点，再拷 `mount_router_template/`
-4. 按芯片能力拷 `vendor_jpeg_template/` 或 `vendor_png_template/`
-5. 最后在 app 初始化里把 `default_io + decoder_registry_apply()` 接起来
+2. 如果想少写初始化样板，再拷 `file_image_stack.c/.h`
+3. 按存储类型拷一个或多个 `*_template/file_io_*.c/.h`
+4. 如果有多挂载点，再拷 `mount_router_template/`
+5. 按芯片能力拷 `vendor_jpeg_template/` 或 `vendor_png_template/`
+6. 最后在 app 初始化里把底层 IO 准备好，再调用 `file_image_stack_apply()` 或手写 `default_io + decoder_registry_apply()`
 
 这样改动点都留在 app 侧，核心库接口可以保持不变。

@@ -11,6 +11,7 @@
 - `vendor_jpeg_template/` 额外提供了一个“芯片厂商 JPEG / 硬件 JPEG 外设”接入模板，默认不参与 PC 编译，方便直接拷贝到目标 app 里改造。
 - `vendor_png_template/` 额外提供了一个“芯片厂商 PNG 库 / 第三方 PNG 库”接入模板，适合 MCU 侧把 PNG 整图解到 RAM/PSRAM 后按行回传。
 - `decoder_registry.c/.h` 提供了一个例程级 decoder 注册 helper，把推荐顺序固定成 `BMP stream -> vendor JPEG -> TJpgDec -> vendor PNG -> generic fallback`。
+- `file_image_stack.c/.h` 在 `decoder_registry + mount_router` 之上再包一层 app 侧初始化 helper，用来收敛“默认 IO / 多 mount 路由 / decoder 注册”样板代码。
 - `integration_guide.md` 把 `fatfs/littlefs/flash_map + mount_router + decoder_registry` 串成一条 MCU 接线指南，适合从 PC 例程迁到量产 app 时照着落地。
 - `fatfs_template/` 额外提供了一个 `FATFS/SD` 文件 IO 接入模板，演示怎么把 `egui_image_file_io_t` 接到 `f_open / f_read / f_lseek / f_close`。
 - `littlefs_template/` 额外提供了一个 `LittleFS` 文件 IO 接入模板，演示怎么把 `egui_image_file_io_t` 接到 `lfs_file_open / lfs_file_read / lfs_file_seek / lfs_file_close`。
@@ -18,6 +19,8 @@
 - `mount_router_template/` 额外提供了一个多挂载路由 IO 模板，演示怎么把 `sd:` / `lfs:` / `flash:` 这类路径前缀分流到不同存储后端。
 - 当前 PC 例程已经把 `sd:` / `lfs:` / `flash:` 三个逻辑前缀接到了 `mount_router_template/`，只是为了方便演示，这三个后端目前都由不同的 `stdio` IO 模拟，并共同指向同一个 `files/` 目录。
 - 后续 MCU 只需要保留这些逻辑路径不变，把每个 mount 背后的 `stdio` 替换成 FATFS、LittleFS、Flash 地址表或芯片厂商 IO 模块。
+- 当前 demo 里已经改成通过 `file_image_stack_apply()` 完成 mount router 和 decoder 初始化，产品 app 里可以直接复用这一层，少写一段样板接线代码。
+- 复用 `file_image_stack_apply()` 时，`file_image_stack_state_t` 需要是 `static` 或其他长生命周期对象，不能放在初始化函数的临时栈上。
 - PC 默认 decoder 注册顺序为 `BMP stream -> TJpgDec -> stb_image`，因此常规 BMP/JPG 优先走流式路径，不支持的 JPG/PNG/BMP 再自动回退到 `stb_image`。
 - MCU 推荐 decoder 注册顺序为 `BMP stream -> vendor JPEG -> TJpgDec -> vendor PNG -> stb_image`。
 - 如果不想在 app 里手写这个顺序，可以直接复用 `decoder_registry_apply()`，只把可选的 vendor decoder 指针填进去。

@@ -2,11 +2,10 @@
 #include "uicode.h"
 
 #include "decoder_bmp_stream.h"
-#include "decoder_registry.h"
 #include "decoder_stb.h"
 #include "decoder_tjpgd_stream.h"
 #include "file_io_stdio.h"
-#include "mount_router_template/file_io_mount_router_template.h"
+#include "file_image_stack.h"
 
 #define CARD_W        108
 #define CARD_H        92
@@ -60,16 +59,11 @@ static file_image_stdio_context_t file_image_flash_ctx = {
 static egui_image_file_io_t file_image_sd_io;
 static egui_image_file_io_t file_image_lfs_io;
 static egui_image_file_io_t file_image_flash_io;
-static egui_image_file_io_t file_image_router_io;
+static file_image_stack_state_t file_image_stack_state;
 static const file_image_mount_router_entry_t file_image_mount_entries[] = {
         { "sd:", &file_image_sd_io, 1 },
         { "lfs:", &file_image_lfs_io, 1 },
         { "flash:", &file_image_flash_io, 1 },
-};
-static file_image_mount_router_context_t file_image_mount_router_ctx = {
-        .entries = file_image_mount_entries,
-        .entry_count = sizeof(file_image_mount_entries) / sizeof(file_image_mount_entries[0]),
-        .fallback_io = &file_image_lfs_io,
 };
 static const file_image_decoder_registry_config_t file_image_decoder_config = {
         .bmp_stream = &g_file_image_bmp_stream_decoder,
@@ -78,6 +72,13 @@ static const file_image_decoder_registry_config_t file_image_decoder_config = {
         .png_vendor = NULL,
         .generic_fallback = &g_file_image_stb_decoder,
         .clear_first = 1,
+};
+static const file_image_stack_config_t file_image_stack_config = {
+        .default_io = NULL,
+        .mount_entries = file_image_mount_entries,
+        .mount_entry_count = sizeof(file_image_mount_entries) / sizeof(file_image_mount_entries[0]),
+        .fallback_io = &file_image_lfs_io,
+        .decoder_config = &file_image_decoder_config,
 };
 
 static egui_image_file_t jpg_image;
@@ -215,10 +216,7 @@ void test_init_ui(void)
     file_image_stdio_io_init(&file_image_sd_io, &file_image_sd_ctx);
     file_image_stdio_io_init(&file_image_lfs_io, &file_image_lfs_ctx);
     file_image_stdio_io_init(&file_image_flash_io, &file_image_flash_ctx);
-    file_image_mount_router_io_init(&file_image_router_io, &file_image_mount_router_ctx);
-    egui_image_file_set_default_io(&file_image_router_io);
-    /* On MCU targets, replace the NULL slots below with vendor JPEG / vendor PNG decoders. */
-    file_image_decoder_registry_apply(&file_image_decoder_config);
+    EGUI_ASSERT(file_image_stack_apply(&file_image_stack_state, &file_image_stack_config));
 
     file_image_demo_prepare_image(&jpg_image, FILE_IMAGE_JPG, NULL);
     file_image_demo_prepare_image(&png_image, FILE_IMAGE_PNG, NULL);
