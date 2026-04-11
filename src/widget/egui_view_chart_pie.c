@@ -286,6 +286,10 @@ static int egui_view_chart_pie_segment_intersects_region(egui_dim_t x0, egui_dim
     egui_dim_t top;
     egui_dim_t right;
     egui_dim_t bottom;
+    egui_dim_t seg_min_x;
+    egui_dim_t seg_max_x;
+    egui_dim_t seg_min_y;
+    egui_dim_t seg_max_y;
 
     if (region == NULL || egui_region_is_empty((egui_region_t *)region))
     {
@@ -301,6 +305,15 @@ static int egui_view_chart_pie_segment_intersects_region(egui_dim_t x0, egui_dim
     top = region->location.y;
     right = left + region->size.width - 1;
     bottom = top + region->size.height - 1;
+    seg_min_x = EGUI_MIN(x0, x1);
+    seg_max_x = EGUI_MAX(x0, x1);
+    seg_min_y = EGUI_MIN(y0, y1);
+    seg_max_y = EGUI_MAX(y0, y1);
+
+    if (seg_max_x < left || seg_min_x > right || seg_max_y < top || seg_min_y > bottom)
+    {
+        return 0;
+    }
 
     return egui_view_chart_pie_segments_intersect(x0, y0, x1, y1, left, top, right, top) ||
            egui_view_chart_pie_segments_intersect(x0, y0, x1, y1, right, top, right, bottom) ||

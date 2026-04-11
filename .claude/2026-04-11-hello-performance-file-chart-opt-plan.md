@@ -402,3 +402,61 @@
 - `src/widget/egui_view_chart_bar.c`
   - 尝试按 tile 反推 bar group/value 可见窗口，QEMU 结果 `CHART_BAR_DENSE = 1.744 ms`
   - 相比基线 `1.767 ms` 仅 `-1.3%`，收益偏小，已回退。
+
+## 2026-04-11 补充：chart pie 径向边 tile 相交增加段 bbox 早退
+
+- 保留改动：
+  - `src/widget/egui_view_chart_pie.c`
+  - 在 pie slice 的径向边与当前 tile 相交判断里，先用线段 bbox 和 tile bbox 做早退。
+  - 对明显不可能命中的 tile，直接跳过后面的四条边通用线段相交判定。
+  - 不增加任何额外 RAM/heap。
+
+### chart pie 径向边 tile 相交增加段 bbox 早退增量 A/B
+
+基线为提交 `7da894f` 上未包含本次 `src/widget/egui_view_chart_pie.c` 改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_PIE_DENSE | 3.733 | 3.717 | -0.4% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_PIE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_PIE_DENSE`
+  - 结果：`CHART_PIE_DENSE = 3.717 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0256.png`
+  - pie 场景显示正常，没有看到扇区缺失、边缘误裁或中心漏绘。
+
+## 2026-04-11 补充：chart line marker 按 tile 反推 data_y 预筛
+
+- 保留改动：
+  - `src/widget/egui_view_chart_line.c`
+  - 在 marker 绘制前，先把当前 tile 反推成可见 `data_y` 范围。
+  - 对明显落在当前 tile 垂直窗口之外的点，直接跳过 `egui_chart_map_y()` 和 marker 绘制。
+  - 不影响折线主路径，也不增加任何额外 RAM/heap。
+
+### chart line marker 按 tile 反推 data_y 预筛增量 A/B
+
+基线为提交 `7da894f` 上未包含本次 `src/widget/egui_view_chart_line.c` 改动的工作树版本。
+
+| 场景 | 增量基线(ms) | 增量当前(ms) | 变化 | 额外 heap |
+| --- | ---: | ---: | ---: | --- |
+| CHART_LINE_DENSE | 1.935 | 1.762 | -8.9% | 0 |
+
+### 本轮验证
+
+- `python scripts/perf_analysis/code_perf_check.py --clean --profile cortex-m3 --threshold 1000 --timeout 180 --filter CHART_LINE_DENSE --extra-cflags=-DEGUI_TEST_CONFIG_SINGLE_TEST=EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_LINE_DENSE`
+  - 结果：`CHART_LINE_DENSE = 1.762 ms`
+- `python scripts/code_runtime_check.py --app HelloPerformance --timeout 10 --keep-screenshots`
+  - 结果：`ALL PASSED`
+- `make all APP=HelloUnitTest PORT=pc_test`
+- `output\main.exe`
+  - 结果：`357/357 passed`
+- 截图抽查：
+  - `runtime_check_output/HelloPerformance/default/frame_0253.png`
+  - line 场景显示正常，没有看到 marker 缺失、折线断裂或 legend 异常。

@@ -154,6 +154,57 @@ static int egui_view_chart_line_get_visible_index_range(egui_chart_axis_base_t *
     return (*draw_start <= *draw_end) ? 1 : 0;
 }
 
+static int egui_view_chart_line_get_visible_data_y_range(egui_chart_axis_base_t *ab, const egui_region_t *plot_area, egui_dim_t work_y1, egui_dim_t work_y2,
+                                                         int16_t *out_min, int16_t *out_max)
+{
+    int16_t view_y_min;
+    int16_t view_y_max;
+    int32_t range_y;
+    int32_t rel_y_min;
+    int32_t rel_y_max;
+    int32_t inv_y_min;
+    int32_t inv_y_max;
+    int32_t data_y_min;
+    int32_t data_y_max;
+
+    if (ab == NULL || plot_area == NULL || out_min == NULL || out_max == NULL || plot_area->size.height <= 1)
+    {
+        return 0;
+    }
+
+    egui_chart_get_view_y(ab, &view_y_min, &view_y_max);
+    range_y = (int32_t)view_y_max - (int32_t)view_y_min;
+    if (range_y <= 0)
+    {
+        return 0;
+    }
+
+    rel_y_min = EGUI_MAX((int32_t)work_y1 - (int32_t)plot_area->location.y, 0);
+    rel_y_max = EGUI_MIN((int32_t)work_y2 - (int32_t)plot_area->location.y, (int32_t)plot_area->size.height - 1);
+    if (rel_y_min > rel_y_max)
+    {
+        return 0;
+    }
+
+    inv_y_min = ((int32_t)plot_area->size.height - 1) - rel_y_max;
+    inv_y_max = ((int32_t)plot_area->size.height - 1) - rel_y_min;
+    data_y_min = (int32_t)view_y_min + inv_y_min * range_y / ((int32_t)plot_area->size.height - 1) - 1;
+    data_y_max = (int32_t)view_y_min + inv_y_max * range_y / ((int32_t)plot_area->size.height - 1) + 1;
+
+    if (data_y_min < view_y_min)
+    {
+        data_y_min = view_y_min;
+    }
+    if (data_y_max > view_y_max)
+    {
+        data_y_max = view_y_max;
+    }
+
+    *out_min = (int16_t)data_y_min;
+    *out_max = (int16_t)data_y_max;
+    return 1;
+}
+
 static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_t *plot_area)
 {
     EGUI_LOCAL_INIT(egui_view_chart_line_t);
@@ -164,6 +215,9 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
     egui_dim_t work_y1;
     egui_dim_t work_x2;
     egui_dim_t work_y2;
+    int16_t visible_data_y_min = 0;
+    int16_t visible_data_y_max = 0;
+    int has_visible_data_y_range;
 
     if (work == NULL || egui_region_is_empty(work))
     {
@@ -174,6 +228,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
     work_y1 = work->location.y - clip_expand;
     work_x2 = work->location.x + work->size.width + clip_expand;
     work_y2 = work->location.y + work->size.height + clip_expand;
+    has_visible_data_y_range = egui_view_chart_line_get_visible_data_y_range(ab, plot_area, work_y1, work_y2, &visible_data_y_min, &visible_data_y_max);
 
     for (uint8_t s = 0; s < ab->series_count; s++)
     {
@@ -284,6 +339,12 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
 
             for (uint16_t i = marker_loop_start; i <= marker_loop_end; i++)
             {
+                if (has_visible_data_y_range &&
+                    (series->points[i].y < visible_data_y_min || series->points[i].y > visible_data_y_max))
+                {
+                    continue;
+                }
+
                 egui_dim_t px = egui_chart_map_x(ab, series->points[i].x, plot_area->location.x, plot_area->size.width);
 
                 if (monotonic_increasing)
