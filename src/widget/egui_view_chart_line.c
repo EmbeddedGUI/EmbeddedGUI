@@ -320,36 +320,34 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
         uint8_t point_start = monotonic_increasing ? draw_start : 0;
         uint8_t point_end = monotonic_increasing ? draw_end : (uint8_t)(series->point_count - 1);
         uint8_t draw_point_count = (point_end >= point_start) ? (uint8_t)(point_end - point_start + 1) : 0;
-        uint8_t pt_count = draw_point_count;
 
         if (draw_point_count >= 2)
         {
-            if (pt_count > CHART_LINE_MAX_POLYLINE_POINTS)
-            {
-                pt_count = CHART_LINE_MAX_POLYLINE_POINTS;
-            }
             egui_dim_t coords[CHART_LINE_MAX_POLYLINE_POINTS * 2];
-            for (uint8_t i = 0; i < pt_count; i++)
-            {
-                const egui_chart_point_t *point = &series->points[point_start + i];
-                coords[i * 2] = egui_view_chart_line_map_x_fast(point->x, plot_x, plot_w_span, view_x_min, range_x);
-                coords[i * 2 + 1] = egui_view_chart_line_map_y_fast(point->y, plot_y, plot_h_span, view_y_min, range_y);
-            }
-            egui_canvas_draw_polyline(coords, pt_count, local->line_width, series->color, EGUI_ALPHA_100);
 
-            // If there are more points than the buffer can hold, draw the tail incrementally.
+            for (uint8_t chunk_start = 0; chunk_start < draw_point_count;)
             {
-                egui_dim_t prev_x = coords[(pt_count - 1) * 2];
-                egui_dim_t prev_y = coords[(pt_count - 1) * 2 + 1];
-                for (uint8_t i = pt_count; i < draw_point_count; i++)
+                uint8_t pt_count = (uint8_t)(draw_point_count - chunk_start);
+                if (pt_count > CHART_LINE_MAX_POLYLINE_POINTS)
                 {
-                    const egui_chart_point_t *point = &series->points[point_start + i];
-                    egui_dim_t x2 = egui_view_chart_line_map_x_fast(point->x, plot_x, plot_w_span, view_x_min, range_x);
-                    egui_dim_t y2 = egui_view_chart_line_map_y_fast(point->y, plot_y, plot_h_span, view_y_min, range_y);
-                    egui_canvas_draw_line(prev_x, prev_y, x2, y2, local->line_width, series->color, EGUI_ALPHA_100);
-                    prev_x = x2;
-                    prev_y = y2;
+                    pt_count = CHART_LINE_MAX_POLYLINE_POINTS;
                 }
+
+                for (uint8_t i = 0; i < pt_count; i++)
+                {
+                    const egui_chart_point_t *point = &series->points[point_start + chunk_start + i];
+                    coords[i * 2] = egui_view_chart_line_map_x_fast(point->x, plot_x, plot_w_span, view_x_min, range_x);
+                    coords[i * 2 + 1] = egui_view_chart_line_map_y_fast(point->y, plot_y, plot_h_span, view_y_min, range_y);
+                }
+
+                egui_canvas_draw_polyline(coords, pt_count, local->line_width, series->color, EGUI_ALPHA_100);
+
+                if ((uint8_t)(chunk_start + pt_count) >= draw_point_count)
+                {
+                    break;
+                }
+
+                chunk_start = (uint8_t)(chunk_start + pt_count - 1);
             }
         }
 
