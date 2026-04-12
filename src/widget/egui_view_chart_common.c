@@ -194,7 +194,8 @@ static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_
 
         if (can_draw_ticks)
         {
-            can_draw_ticks = egui_chart_rect_intersects_work_region(plot_area->location.x, plot_area->location.y + plot_area->size.height, plot_area->size.width, 3);
+            can_draw_ticks =
+                    egui_chart_rect_intersects_work_region(plot_area->location.x, plot_area->location.y + plot_area->size.height, plot_area->size.width, 3);
         }
         if (can_draw_grid)
         {
@@ -202,8 +203,8 @@ static void egui_chart_draw_x_axis_categorical(egui_chart_axis_base_t *ab, egui_
         }
         if (can_draw_labels)
         {
-            can_draw_labels =
-                    egui_chart_rect_intersects_work_region(plot_area->location.x - 12, plot_area->location.y + plot_area->size.height + 3, plot_area->size.width + 24, font_h);
+            can_draw_labels = egui_chart_rect_intersects_work_region(plot_area->location.x - 12, plot_area->location.y + plot_area->size.height + 3,
+                                                                     plot_area->size.width + 24, font_h);
         }
     }
 
@@ -260,7 +261,8 @@ static void egui_chart_draw_x_axis_continuous(egui_chart_axis_base_t *ab, egui_r
     {
         if (can_draw_ticks)
         {
-            can_draw_ticks = egui_chart_rect_intersects_work_region(plot_area->location.x, plot_area->location.y + plot_area->size.height, plot_area->size.width, 3);
+            can_draw_ticks =
+                    egui_chart_rect_intersects_work_region(plot_area->location.x, plot_area->location.y + plot_area->size.height, plot_area->size.width, 3);
         }
         if (can_draw_grid)
         {
@@ -268,8 +270,8 @@ static void egui_chart_draw_x_axis_continuous(egui_chart_axis_base_t *ab, egui_r
         }
         if (can_draw_labels)
         {
-            can_draw_labels =
-                    egui_chart_rect_intersects_work_region(plot_area->location.x - 12, plot_area->location.y + plot_area->size.height + 3, plot_area->size.width + 24, font_h);
+            can_draw_labels = egui_chart_rect_intersects_work_region(plot_area->location.x - 12, plot_area->location.y + plot_area->size.height + 3,
+                                                                     plot_area->size.width + 24, font_h);
         }
     }
 
@@ -302,8 +304,9 @@ static void egui_chart_draw_x_axis_continuous(egui_chart_axis_base_t *ab, egui_r
     for (int16_t v = start_v; v <= view_x_max; v += step)
     {
         egui_dim_t px = egui_chart_map_x(ab, v, plot_area->location.x, plot_area->size.width);
-        int tick_visible =
-                !has_work_bounds || egui_chart_rect_intersects_work_region(px, plot_area->location.y, 1, plot_area->size.height + (can_draw_ticks ? 3 : 0) + (can_draw_labels ? font_h + 3 : 0));
+        int tick_visible = !has_work_bounds ||
+                           egui_chart_rect_intersects_work_region(px, plot_area->location.y, 1,
+                                                                  plot_area->size.height + (can_draw_ticks ? 3 : 0) + (can_draw_labels ? font_h + 3 : 0));
 
         if (can_draw_ticks && tick_visible)
         {
@@ -647,12 +650,14 @@ void egui_chart_draw_axes(egui_chart_axis_base_t *ab, egui_region_t *region, egu
         }
         if (can_draw_y_grid)
         {
-            can_draw_y_grid = egui_chart_rect_intersects_work_region(plot_area->location.x, plot_area->location.y, plot_area->size.width, plot_area->size.height);
+            can_draw_y_grid =
+                    egui_chart_rect_intersects_work_region(plot_area->location.x, plot_area->location.y, plot_area->size.width, plot_area->size.height);
         }
         if (can_draw_y_labels)
         {
             y_label_w = egui_chart_get_y_label_width(ab, font_h);
-            can_draw_y_labels = egui_chart_rect_intersects_work_region(plot_area->location.x - y_label_w - 4, region->location.y, y_label_w, region->size.height);
+            can_draw_y_labels =
+                    egui_chart_rect_intersects_work_region(plot_area->location.x - y_label_w - 4, region->location.y, y_label_w, region->size.height);
         }
     }
     else if (can_draw_y_labels)

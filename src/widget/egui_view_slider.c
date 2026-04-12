@@ -67,8 +67,7 @@ void egui_view_slider_set_on_value_changed_listener(egui_view_t *self, egui_view
 }
 
 #if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
-static uint8_t egui_view_slider_get_thumb_metrics(egui_view_t *self, egui_view_slider_t *local, uint8_t value, egui_dim_t *out_thumb_x,
-                                                  egui_dim_t *out_thumb_y,
+static uint8_t egui_view_slider_get_thumb_metrics(egui_view_t *self, egui_view_slider_t *local, uint8_t value, egui_dim_t *out_thumb_x, egui_dim_t *out_thumb_y,
                                                   egui_dim_t *out_thumb_radius)
 {
     egui_region_t region;

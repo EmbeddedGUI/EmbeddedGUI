@@ -3758,9 +3758,10 @@ __EGUI_STATIC_INLINE__ int gradient_in_arc_sector(int32_t dx, int32_t dy, int32_
 
 /* Soft AA for the radial cut edges of an arc (distance from a radial line).
  * Returns alpha based on signed distance from the edge ray.
- * dir = (dx, dy) is the edge direction vector (scaled by 256).
- * pixel = (px, py) is the pixel offset from center.
- * Returns EGUI_ALPHA_100 if well inside, scaled alpha at edge, 0 if outside. */
+ * dir = (dx, dy) is
+ * the edge direction vector (scaled by 256).
+ * pixel = (px, py) is the pixel offset from center. Returns EGUI_ALPHA_100 if well inside, scaled alpha at edge,
+ * 0 if outside. */
 __EGUI_STATIC_INLINE__ egui_alpha_t gradient_arc_edge_alpha(int32_t px, int32_t py, int32_t dir_x, int32_t dir_y)
 {
     /* Perpendicular distance from the ray = cross(dir, P) / |dir|

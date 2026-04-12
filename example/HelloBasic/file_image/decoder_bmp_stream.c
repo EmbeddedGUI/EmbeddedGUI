@@ -121,7 +121,8 @@ static void file_image_bmp_stream_close(void *decoder_ctx)
     egui_free(ctx);
 }
 
-static int file_image_bmp_parse_headers(const egui_image_file_io_t *io, void *file_handle, file_image_bmp_stream_ctx_t *ctx, egui_image_file_open_result_t *out_info)
+static int file_image_bmp_parse_headers(const egui_image_file_io_t *io, void *file_handle, file_image_bmp_stream_ctx_t *ctx,
+                                        egui_image_file_open_result_t *out_info)
 {
     uint8_t file_header[14];
     uint8_t dib_header[56];

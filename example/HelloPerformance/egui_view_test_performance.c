@@ -46,14 +46,14 @@
 #include "file_image_port_io.h"
 #endif
 
-#define PERF_WIDGET_BG_COLOR       EGUI_COLOR_HEX(0x0F172A)
-#define PERF_WIDGET_AXIS_COLOR     EGUI_COLOR_HEX(0x94A3B8)
-#define PERF_WIDGET_GRID_COLOR     EGUI_COLOR_HEX(0x334155)
-#define PERF_WIDGET_TEXT_COLOR     EGUI_COLOR_HEX(0xE2E8F0)
-#define PERF_FILE_IMAGE_BG_COLOR   EGUI_COLOR_HEX(0x111827)
-#define PERF_CHART_LINE_SERIES_CNT 2u
-#define PERF_CHART_BAR_SERIES_CNT  2u
-#define PERF_CHART_SCATTER_SERIES_CNT 2u
+#define PERF_WIDGET_BG_COLOR           EGUI_COLOR_HEX(0x0F172A)
+#define PERF_WIDGET_AXIS_COLOR         EGUI_COLOR_HEX(0x94A3B8)
+#define PERF_WIDGET_GRID_COLOR         EGUI_COLOR_HEX(0x334155)
+#define PERF_WIDGET_TEXT_COLOR         EGUI_COLOR_HEX(0xE2E8F0)
+#define PERF_FILE_IMAGE_BG_COLOR       EGUI_COLOR_HEX(0x111827)
+#define PERF_CHART_LINE_SERIES_CNT     2u
+#define PERF_CHART_BAR_SERIES_CNT      2u
+#define PERF_CHART_SCATTER_SERIES_CNT  2u
 #define PERF_CHART_LINE_POINT_COUNT    128u
 #define PERF_CHART_BAR_POINT_COUNT     32u
 #define PERF_CHART_SCATTER_POINT_COUNT 96u
@@ -996,22 +996,8 @@ static void perf_configure_axis_chart_view(egui_view_t *view)
 static void perf_ensure_chart_data_ready(void)
 {
     static const uint8_t pie_colors[PERF_CHART_PIE_SLICE_COUNT][3] = {
-            {59, 130, 246},
-            {16, 185, 129},
-            {245, 158, 11},
-            {239, 68, 68},
-            {168, 85, 247},
-            {14, 165, 233},
-            {34, 197, 94},
-            {251, 146, 60},
-            {244, 114, 182},
-            {163, 230, 53},
-            {129, 140, 248},
-            {45, 212, 191},
-            {250, 204, 21},
-            {248, 113, 113},
-            {192, 132, 252},
-            {56, 189, 248},
+            {59, 130, 246},  {16, 185, 129}, {245, 158, 11},  {239, 68, 68},  {168, 85, 247}, {14, 165, 233},  {34, 197, 94},   {251, 146, 60},
+            {244, 114, 182}, {163, 230, 53}, {129, 140, 248}, {45, 212, 191}, {250, 204, 21}, {248, 113, 113}, {192, 132, 252}, {56, 189, 248},
     };
     uint16_t i;
 
@@ -1131,6 +1117,8 @@ static const char *perf_get_file_image_path(int test_mode)
 {
     switch (test_mode)
     {
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_NORMAL:
+        return PERF_FILE_IMAGE_BMP_PATH;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_JPG:
         return PERF_FILE_IMAGE_JPG_PATH;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_PNG:
@@ -1139,6 +1127,21 @@ static const char *perf_get_file_image_path(int test_mode)
         return PERF_FILE_IMAGE_BMP_PATH;
     default:
         return NULL;
+    }
+}
+
+static int perf_is_file_image_resize_mode(int test_mode)
+{
+    switch (test_mode)
+    {
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_NORMAL:
+        return 0;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_JPG:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_PNG:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:
+        return 1;
+    default:
+        return 0;
     }
 }
 
@@ -1175,12 +1178,20 @@ static void perf_prepare_file_image_scene(int test_mode)
         egui_view_set_position(EGUI_VIEW_OF(&s_perf_file_image_view), 0, 0);
         egui_view_set_size(EGUI_VIEW_OF(&s_perf_file_image_view), EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
         egui_view_image_set_image(EGUI_VIEW_OF(&s_perf_file_image_view), (egui_image_t *)&s_perf_file_image);
-        egui_view_image_set_image_type(EGUI_VIEW_OF(&s_perf_file_image_view), EGUI_VIEW_IMAGE_TYPE_RESIZE);
+        egui_view_image_set_image_type(EGUI_VIEW_OF(&s_perf_file_image_view), EGUI_VIEW_IMAGE_TYPE_NORMAL);
         s_perf_file_image_ready = 1U;
     }
 
     if (s_perf_file_image_scene_mode != test_mode)
     {
+        if (perf_is_file_image_resize_mode(test_mode))
+        {
+            egui_image_file_set_resize(&s_perf_file_image, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
+        }
+        else
+        {
+            egui_image_file_clear_resize(&s_perf_file_image);
+        }
         egui_image_file_set_path(&s_perf_file_image, path);
         egui_image_file_reload(&s_perf_file_image);
         s_perf_file_image_scene_mode = test_mode;
@@ -3672,6 +3683,11 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
 #endif
 #endif // EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
 
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_NORMAL:
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+        perf_draw_file_image_scene(self, view->test_mode);
+#endif
+        break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_JPG:
 #if EGUI_CONFIG_FUNCTION_IMAGE_FILE
         perf_draw_file_image_scene(self, view->test_mode);
@@ -4039,6 +4055,7 @@ int egui_view_test_performance_is_enabled(int test_mode)
         return 0;
 #endif
 
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_NORMAL:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_JPG:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_PNG:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:

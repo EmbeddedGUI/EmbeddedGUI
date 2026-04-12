@@ -1205,8 +1205,8 @@ static uint8_t egui_debug_set_mem_text(const egui_mem_monitor_t *monitor)
     egui_debug_bytes_to_kb_tenth(used_size, &used_kb, &used_kb_tenth);
     egui_debug_bytes_to_kb_tenth(monitor != NULL ? (uint32_t)monitor->max_used : 0U, &max_used_kb, &max_used_kb_tenth);
 
-    egui_api_sprintf(next_string, "%lu.%lu kB\n%lu.%lu kB max", (unsigned long)used_kb, (unsigned long)used_kb_tenth,
-                     (unsigned long)max_used_kb, (unsigned long)max_used_kb_tenth);
+    egui_api_sprintf(next_string, "%lu.%lu kB\n%lu.%lu kB max", (unsigned long)used_kb, (unsigned long)used_kb_tenth, (unsigned long)max_used_kb,
+                     (unsigned long)max_used_kb_tenth);
 
     return egui_debug_overlay_set_text(&debug_mem_overlay, next_string);
 }

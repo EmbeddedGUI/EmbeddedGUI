@@ -22,8 +22,8 @@ extern "C" {
 
 #define EGUI_FONT_STD_GET_FONT_HEIGHT(_font) (((egui_font_std_info_t *)(_font)->res)->height)
 
-#define EGUI_FONT_STD_BITMAP_CODEC_RAW 0
-#define EGUI_FONT_STD_BITMAP_CODEC_RLE4 1
+#define EGUI_FONT_STD_BITMAP_CODEC_RAW      0
+#define EGUI_FONT_STD_BITMAP_CODEC_RLE4     1
 #define EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR 2
 
 typedef struct

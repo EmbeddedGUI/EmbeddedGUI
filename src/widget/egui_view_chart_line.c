@@ -369,8 +369,7 @@ static void egui_view_chart_line_draw_data(egui_view_t *self, const egui_region_
 
             for (uint16_t i = marker_loop_start; i <= marker_loop_end; i++)
             {
-                if (has_visible_data_y_range &&
-                    (series->points[i].y < visible_data_y_min || series->points[i].y > visible_data_y_max))
+                if (has_visible_data_y_range && (series->points[i].y < visible_data_y_min || series->points[i].y > visible_data_y_max))
                 {
                     continue;
                 }

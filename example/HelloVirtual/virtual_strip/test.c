@@ -19,21 +19,21 @@
 #define STRIP_BADGE_TEXT_LEN  12
 #define STRIP_TAG_TEXT_LEN    12
 
-#define STRIP_MARGIN_X           8
-#define STRIP_TOP_Y              8
-#define STRIP_CONTENT_W          (EGUI_CONFIG_SCEEN_WIDTH - STRIP_MARGIN_X * 2)
-#define STRIP_HEADER_H           78
-#define STRIP_TOOLBAR_Y          (STRIP_TOP_Y + STRIP_HEADER_H + 6)
-#define STRIP_TOOLBAR_H          32
-#define STRIP_VIEW_Y             (STRIP_TOOLBAR_Y + STRIP_TOOLBAR_H + 6)
-#define STRIP_VIEW_H             (EGUI_CONFIG_SCEEN_HEIGHT - STRIP_VIEW_Y - 8)
-#define STRIP_SCENE_BUTTON_GAP   6
-#define STRIP_ACTION_BUTTON_GAP  4
-#define STRIP_SCENE_BUTTON_W     ((STRIP_CONTENT_W - 24 - STRIP_SCENE_BUTTON_GAP * 2) / 3)
-#define STRIP_ACTION_BUTTON_W    ((STRIP_CONTENT_W - 20 - STRIP_ACTION_BUTTON_GAP * 3) / 4)
-#define STRIP_BUTTON_H           20
-#define STRIP_CARD_SIDE_INSET    4
-#define STRIP_KEEP_VISIBLE_INSET 6
+#define STRIP_MARGIN_X                  8
+#define STRIP_TOP_Y                     8
+#define STRIP_CONTENT_W                 (EGUI_CONFIG_SCEEN_WIDTH - STRIP_MARGIN_X * 2)
+#define STRIP_HEADER_H                  78
+#define STRIP_TOOLBAR_Y                 (STRIP_TOP_Y + STRIP_HEADER_H + 6)
+#define STRIP_TOOLBAR_H                 32
+#define STRIP_VIEW_Y                    (STRIP_TOOLBAR_Y + STRIP_TOOLBAR_H + 6)
+#define STRIP_VIEW_H                    (EGUI_CONFIG_SCEEN_HEIGHT - STRIP_VIEW_Y - 8)
+#define STRIP_SCENE_BUTTON_GAP          6
+#define STRIP_ACTION_BUTTON_GAP         4
+#define STRIP_SCENE_BUTTON_W            ((STRIP_CONTENT_W - 24 - STRIP_SCENE_BUTTON_GAP * 2) / 3)
+#define STRIP_ACTION_BUTTON_W           ((STRIP_CONTENT_W - 20 - STRIP_ACTION_BUTTON_GAP * 3) / 4)
+#define STRIP_BUTTON_H                  20
+#define STRIP_CARD_SIDE_INSET           4
+#define STRIP_KEEP_VISIBLE_INSET        6
 #define STRIP_CLICK_VERIFY_RETRY_MAX    3U
 #define STRIP_MUTATION_VERIFY_RETRY_MAX 4U
 #define STRIP_SCENE_VERIFY_RETRY_MAX    4U

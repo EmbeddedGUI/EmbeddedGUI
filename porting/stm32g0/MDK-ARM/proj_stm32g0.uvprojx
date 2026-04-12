@@ -800,6 +800,11 @@
               <FilePath>..\..\..\src\image\egui_image_decode_utils.c</FilePath>
             </File>
             <File>
+              <FileName>egui_image_file.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\image\egui_image_file.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_image_qoi.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\image\egui_image_qoi.c</FilePath>

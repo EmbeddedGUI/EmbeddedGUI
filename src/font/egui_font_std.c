@@ -73,9 +73,9 @@ static egui_font_std_code_lookup_cache_t g_font_std_code_lookup_cache = {
 #define EGUI_FONT_STD_DRAW_PREFIX_CACHE_ENABLED ((EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_SLOTS > 0) && (EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS > 0))
 #define EGUI_FONT_STD_DRAW_PREFIX_CACHE_GLYPH_STORAGE_MAX                                                                                                      \
     ((EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS > 0) ? EGUI_CONFIG_FONT_STD_DRAW_PREFIX_CACHE_MAX_GLYPHS : 1)
-#define EGUI_FONT_STD_BITMAP_CODEC_RLE4_ENABLED (EGUI_CONFIG_FUNCTION_FONT_FORMAT_4 && EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4)
+#define EGUI_FONT_STD_BITMAP_CODEC_RLE4_ENABLED     (EGUI_CONFIG_FUNCTION_FONT_FORMAT_4 && EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4)
 #define EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR_ENABLED (EGUI_CONFIG_FUNCTION_FONT_FORMAT_4 && EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4_XOR)
-#define EGUI_FONT_STD_BITMAP_COMPRESSED_ENABLED (EGUI_FONT_STD_BITMAP_CODEC_RLE4_ENABLED || EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR_ENABLED)
+#define EGUI_FONT_STD_BITMAP_COMPRESSED_ENABLED     (EGUI_FONT_STD_BITMAP_CODEC_RLE4_ENABLED || EGUI_FONT_STD_BITMAP_CODEC_RLE4_XOR_ENABLED)
 #ifndef EGUI_FONT_STD_LINE_CACHE_MAX_LINES
 #define EGUI_FONT_STD_LINE_CACHE_MAX_LINES 16
 #endif
@@ -89,7 +89,7 @@ static egui_font_std_code_lookup_cache_t g_font_std_code_lookup_cache = {
 #define EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS 0
 #endif
 #define EGUI_FONT_STD_COMPRESSED_GLYPH_CACHE_ENABLED                                                                                                           \
-    (EGUI_FONT_STD_BITMAP_COMPRESSED_ENABLED && (EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_MAX_BYTES > 0) &&                                               \
+    (EGUI_FONT_STD_BITMAP_COMPRESSED_ENABLED && (EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_MAX_BYTES > 0) &&                                                 \
      (EGUI_CONFIG_FONT_STD_COMPRESSED_GLYPH_CACHE_SLOTS > 0))
 
 typedef uint16_t egui_font_std_ascii_index_t;
@@ -2704,8 +2704,7 @@ static void egui_font_std_compressed_glyph_cache_release_entry(egui_font_std_com
     egui_font_std_compressed_glyph_cache_reset_entry(entry);
 }
 
-static egui_font_std_compressed_glyph_cache_t *egui_font_std_compressed_glyph_cache_find_reclaim_entry(
-    egui_font_std_compressed_glyph_cache_t *reserved)
+static egui_font_std_compressed_glyph_cache_t *egui_font_std_compressed_glyph_cache_find_reclaim_entry(egui_font_std_compressed_glyph_cache_t *reserved)
 {
     egui_font_std_compressed_glyph_cache_t *victim = NULL;
     uint32_t victim_stamp = UINT32_MAX;
@@ -3160,7 +3159,8 @@ static int egui_font_std_draw_single_char_desc(const egui_font_std_info_t *font,
             }
 #endif
 
-            return egui_font_std_draw_single_char_desc_external_stream(font, p_char_desc, x, y, color, alpha, canvas, work_region, draw_alpha, blend_ctx, scratch);
+            return egui_font_std_draw_single_char_desc_external_stream(font, p_char_desc, x, y, color, alpha, canvas, work_region, draw_alpha, blend_ctx,
+                                                                       scratch);
         }
 
         egui_dim_t draw_x = x + p_char_desc->off_x;
@@ -3168,8 +3168,7 @@ static int egui_font_std_draw_single_char_desc(const egui_font_std_info_t *font,
 
 #if (!defined(EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE) || EGUI_CONFIG_FONT_STD_FAST_DRAW_ENABLE) && EGUI_CONFIG_FUNCTION_FONT_FORMAT_4
         if (font->font_bit_mode == 4 && font->res_type == EGUI_RESOURCE_TYPE_INTERNAL && egui_font_std_bitmap_codec_is_raw(font) && canvas != NULL &&
-            work_region != NULL && canvas->mask == NULL &&
-            blend_ctx != NULL)
+            work_region != NULL && canvas->mask == NULL && blend_ctx != NULL)
         {
             if (egui_font_std_draw_fast_4_prepared(canvas, work_region, draw_x, draw_y, p_char_desc->box_w, p_char_desc->box_h, p_pixer_buffer, draw_alpha,
                                                    blend_ctx))
@@ -3457,8 +3456,8 @@ static int egui_font_std_draw_string_fast_4(const void *font_key, const egui_fon
                             egui_font_std_draw_string_fast_4_visible_ctx(canvas, pfb_base_x, pfb_base_y, work_x0, work_y0, work_x1, work_y1, draw_x, draw_y,
                                                                          glyph->box_w, glyph->box_h, glyph_pixels, draw_alpha, blend_ctx);
                         }
-                        else if (egui_font_std_draw_single_char_desc_external_stream(font, &glyph_desc, offset, y, color, alpha, canvas, work_region, draw_alpha,
-                                                                                     blend_ctx, &external_draw_scratch) == 0)
+                        else if (egui_font_std_draw_single_char_desc_external_stream(font, &glyph_desc, offset, y, color, alpha, canvas, work_region,
+                                                                                     draw_alpha, blend_ctx, &external_draw_scratch) == 0)
                         {
                             result = 0;
                             goto cleanup;

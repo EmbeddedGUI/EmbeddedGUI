@@ -636,12 +636,14 @@ static const char *egui_view_test_performance_type_string(int test_mode)
         return "EXTERN_MASK_IMAGE_RLE_8_CIRCLE";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_MASK_IMAGE_RLE_8_IMAGE:
         return "EXTERN_MASK_IMAGE_RLE_8_IMAGE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_NORMAL:
+        return "FILE_IMAGE_BMP_NORMAL";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_JPG:
-        return "FILE_IMAGE_JPG";
+        return "FILE_IMAGE_JPG_RESIZE";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_PNG:
-        return "FILE_IMAGE_PNG";
+        return "FILE_IMAGE_PNG_RESIZE";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:
-        return "FILE_IMAGE_BMP";
+        return "FILE_IMAGE_BMP_RESIZE";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_LINE_DENSE:
         return "CHART_LINE_DENSE";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_BAR_DENSE:
@@ -683,6 +685,7 @@ static egui_dim_t egui_view_test_performance_get_logical_pfb_width_hint(int test
 {
     switch (test_mode)
     {
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_NORMAL:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_JPG:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_PNG:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:
@@ -750,9 +753,11 @@ egui_dim_t egui_core_get_logical_pfb_target_width_hint(void)
 {
     /* Keep the default 48x16 walk for most scenes.
      * Codec-heavy scenes still prefer a 96x8 logical walk to shrink row-band cache.
-     * The dense line and pie scenes currently prefer a 64x12 logical walk.
+     * The dense line
+     * and pie scenes currently prefer a 64x12 logical walk.
      * File-image full-screen stress scenes decode faster with a 192x4 walk,
-     * which reduces repeated horizontal resample/decode work per frame. */
+     * which reduces
+     * repeated horizontal resample/decode work per frame. */
     return egui_view_test_performance_get_logical_pfb_width_hint(test_view.test_mode);
 }
 

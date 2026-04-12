@@ -76,10 +76,13 @@ struct egui_image_file
     uint16_t row_capacity;
     uint16_t alpha_capacity;
     uint16_t cached_row;
+    uint16_t resize_width;
+    uint16_t resize_height;
 
     uint8_t has_alpha;
     uint8_t status;
     uint8_t row_cache_valid;
+    uint8_t resize_enabled;
 
     uint16_t *row_pixels;
     uint8_t *row_alpha;
@@ -95,6 +98,9 @@ void egui_image_file_clear_decoders(void);
 int egui_image_file_set_path(egui_image_file_t *self, const char *path);
 void egui_image_file_set_io(egui_image_file_t *self, const egui_image_file_io_t *io);
 void egui_image_file_set_placeholder(egui_image_file_t *self, const egui_image_t *placeholder);
+void egui_image_file_set_resize(egui_image_file_t *self, egui_dim_t width, egui_dim_t height);
+void egui_image_file_clear_resize(egui_image_file_t *self);
+int egui_image_file_get_resize(const egui_image_file_t *self, egui_dim_t *width, egui_dim_t *height);
 int egui_image_file_reload(egui_image_file_t *self);
 
 egui_image_file_status_t egui_image_file_get_status(const egui_image_file_t *self);

@@ -9,7 +9,8 @@
 
 // ============== Scatter Drawing (virtual) ==============
 
-__EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_scatter_map_x_fast(int16_t data_x, egui_dim_t plot_x, int32_t plot_w_span, int16_t view_x_min, int32_t range_x)
+__EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_scatter_map_x_fast(int16_t data_x, egui_dim_t plot_x, int32_t plot_w_span, int16_t view_x_min,
+                                                                     int32_t range_x)
 {
     if (range_x <= 0 || plot_w_span <= 0)
     {
@@ -19,7 +20,8 @@ __EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_scatter_map_x_fast(int16_t dat
     return plot_x + (egui_dim_t)(((int32_t)data_x - (int32_t)view_x_min) * plot_w_span / range_x);
 }
 
-__EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_scatter_map_y_fast(int16_t data_y, egui_dim_t plot_y, int32_t plot_h_span, int16_t view_y_min, int32_t range_y)
+__EGUI_STATIC_INLINE__ egui_dim_t egui_view_chart_scatter_map_y_fast(int16_t data_y, egui_dim_t plot_y, int32_t plot_h_span, int16_t view_y_min,
+                                                                     int32_t range_y)
 {
     if (range_y <= 0 || plot_h_span <= 0)
     {
@@ -153,9 +155,9 @@ static void egui_view_chart_scatter_draw_data(egui_view_t *self, const egui_regi
     range_x = (int32_t)view_x_max - (int32_t)view_x_min;
     range_y = (int32_t)view_y_max - (int32_t)view_y_min;
 
-    has_visible_data_range = egui_view_chart_scatter_get_visible_data_range(plot_area, expanded_work_x1, expanded_work_y1, expanded_work_x2, expanded_work_y2,
-                                                                            view_x_min, view_x_max, view_y_min, view_y_max, &data_x_min, &data_x_max,
-                                                                            &data_y_min, &data_y_max);
+    has_visible_data_range =
+            egui_view_chart_scatter_get_visible_data_range(plot_area, expanded_work_x1, expanded_work_y1, expanded_work_x2, expanded_work_y2, view_x_min,
+                                                           view_x_max, view_y_min, view_y_max, &data_x_min, &data_x_max, &data_y_min, &data_y_max);
     if (!has_visible_data_range)
     {
         return;

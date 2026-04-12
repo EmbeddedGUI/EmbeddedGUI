@@ -61,9 +61,9 @@ static egui_image_file_io_t file_image_lfs_io;
 static egui_image_file_io_t file_image_flash_io;
 static file_image_stack_state_t file_image_stack_state;
 static const file_image_mount_router_entry_t file_image_mount_entries[] = {
-        { "sd:", &file_image_sd_io, 1 },
-        { "lfs:", &file_image_lfs_io, 1 },
-        { "flash:", &file_image_flash_io, 1 },
+        {"sd:", &file_image_sd_io, 1},
+        {"lfs:", &file_image_lfs_io, 1},
+        {"flash:", &file_image_flash_io, 1},
 };
 static const file_image_decoder_registry_config_t file_image_decoder_config = {
         .bmp_stream = &g_file_image_bmp_stream_decoder,
@@ -222,12 +222,13 @@ void test_init_ui(void)
     file_image_demo_prepare_image(&png_image, FILE_IMAGE_PNG, NULL);
     file_image_demo_prepare_image(&bmp_image, FILE_IMAGE_BMP, NULL);
     file_image_demo_prepare_image(&resize_image, FILE_IMAGE_JPG, NULL);
+    egui_image_file_set_resize(&resize_image, 96, 40);
     file_image_demo_prepare_image(&missing_image, FILE_IMAGE_MISSING, (const egui_image_t *)&png_image);
 
     file_image_demo_init_card(&jpg_card, CARD_LEFT_X, CARD_ROW0_Y, "SD JPG", &jpg_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H, NULL);
     file_image_demo_init_card(&png_card, CARD_RIGHT_X, CARD_ROW0_Y, "LFS PNG", &png_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H, NULL);
     file_image_demo_init_card(&bmp_card, CARD_LEFT_X, CARD_ROW1_Y, "Flash BMP", &bmp_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, CARD_IMAGE_W, CARD_IMAGE_H, NULL);
-    file_image_demo_init_card(&resize_card, CARD_RIGHT_X, CARD_ROW1_Y, "SD JPG Resize", &resize_image, EGUI_VIEW_IMAGE_TYPE_RESIZE, 96, 40, NULL);
+    file_image_demo_init_card(&resize_card, CARD_RIGHT_X, CARD_ROW1_Y, "SD JPG Resize", &resize_image, EGUI_VIEW_IMAGE_TYPE_NORMAL, 96, 40, NULL);
     file_image_demo_init_card(&missing_card, CARD_LEFT_X, CARD_ROW2_Y, "Missing -> LFS", &missing_image, EGUI_VIEW_IMAGE_TYPE_RESIZE, CARD_IMAGE_W,
                               CARD_IMAGE_H, &png_image);
 

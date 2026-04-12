@@ -13,7 +13,7 @@ static int spi_tx_param(egui_panel_io_t *io, int cmd, const void *param, size_t 
 {
     egui_panel_io_spi_t *self = (egui_panel_io_spi_t *)io;
     uint8_t cmd_byte = (uint8_t)cmd;
-    
+
     // avoid last CS not released if previous transfer is async and caller forgot to call wait_tx_done
     if (self->set_cs)
     {

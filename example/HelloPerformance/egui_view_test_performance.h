@@ -367,6 +367,7 @@ enum
     // ========================================================================
     // Category 14: File image and heavy widgets
     // ========================================================================
+    EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_NORMAL,
     EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_JPG,
     EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_PNG,
     EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP,

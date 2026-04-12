@@ -169,7 +169,8 @@ static void egui_view_chart_pie_add_angle_candidate(int16_t *angles, uint8_t *co
     (*count)++;
 }
 
-static int egui_view_chart_pie_get_region_angle_window(const egui_region_t *work, egui_dim_t center_x, egui_dim_t center_y, int16_t *out_start, uint16_t *out_sweep)
+static int egui_view_chart_pie_get_region_angle_window(const egui_region_t *work, egui_dim_t center_x, egui_dim_t center_y, int16_t *out_start,
+                                                       uint16_t *out_sweep)
 {
     int16_t angles[8];
     uint8_t count = 0;
@@ -549,8 +550,8 @@ static int egui_view_chart_pie_slice_circle_edge_hits_region(const egui_region_t
     return 0;
 }
 
-static int egui_view_chart_pie_slice_bbox_intersects_work_region(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle, uint16_t sweep,
-                                                                 egui_dim_t *start_x, egui_dim_t *start_y, egui_dim_t *end_x, egui_dim_t *end_y)
+static int egui_view_chart_pie_slice_bbox_intersects_work_region(egui_dim_t center_x, egui_dim_t center_y, egui_dim_t radius, int16_t start_angle,
+                                                                 uint16_t sweep, egui_dim_t *start_x, egui_dim_t *start_y, egui_dim_t *end_x, egui_dim_t *end_y)
 {
     static const int16_t critical_angles[] = {0, 90, 180, 270};
     egui_dim_t edge_radius;
@@ -771,7 +772,7 @@ static int egui_view_chart_pie_is_work_region_inside_solid_circle(egui_dim_t cen
     y1 = y0 + work->size.height - 1;
     solid_radius_sq = solid_radius * solid_radius;
 
-#define EGUI_VIEW_CHART_PIE_CORNER_INSIDE(_x, _y)                                                                                                             \
+#define EGUI_VIEW_CHART_PIE_CORNER_INSIDE(_x, _y)                                                                                                              \
     (((int32_t)(_x) - center_x) * ((int32_t)(_x) - center_x) + ((int32_t)(_y) - center_y) * ((int32_t)(_y) - center_y) <= solid_radius_sq)
 
     return EGUI_VIEW_CHART_PIE_CORNER_INSIDE(x0, y0) && EGUI_VIEW_CHART_PIE_CORNER_INSIDE(x1, y0) && EGUI_VIEW_CHART_PIE_CORNER_INSIDE(x0, y1) &&
@@ -918,7 +919,6 @@ static void egui_view_chart_pie_draw_pie(egui_view_chart_pie_t *local, egui_dim_
         {
             window_end_ext = (int16_t)ext_end;
         }
-
     }
 
     // Draw all slices as solid arcs so adjacent sectors share the same fill path.
