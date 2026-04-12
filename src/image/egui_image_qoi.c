@@ -128,7 +128,9 @@ typedef struct
  * so horizontal tile neighbors and repeated small images at different Y offsets
  * can restore instead of re-decoding from the beginning.
  */
-static egui_image_qoi_checkpoint_t *qoi_checkpoints = NULL;
+/* Keep row-band checkpoints in static SRAM instead of permanent heap. */
+static egui_image_qoi_checkpoint_t qoi_checkpoints[EGUI_IMAGE_QOI_CHECKPOINT_COUNT];
+static uint8_t qoi_checkpoints_ready = 0;
 static uint8_t qoi_checkpoint_next = 0;
 
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
@@ -148,15 +150,10 @@ typedef struct
 
 static egui_image_qoi_checkpoint_t *egui_image_qoi_get_checkpoints(void)
 {
-    if (qoi_checkpoints == NULL)
+    if (!qoi_checkpoints_ready)
     {
-        qoi_checkpoints = (egui_image_qoi_checkpoint_t *)egui_malloc(sizeof(egui_image_qoi_checkpoint_t) * EGUI_IMAGE_QOI_CHECKPOINT_COUNT);
-        if (qoi_checkpoints == NULL)
-        {
-            return NULL;
-        }
-
         egui_api_memset(qoi_checkpoints, 0, sizeof(egui_image_qoi_checkpoint_t) * EGUI_IMAGE_QOI_CHECKPOINT_COUNT);
+        qoi_checkpoints_ready = 1;
         qoi_checkpoint_next = 0;
     }
 
@@ -165,12 +162,8 @@ static egui_image_qoi_checkpoint_t *egui_image_qoi_get_checkpoints(void)
 
 void egui_image_qoi_release_checkpoints(void)
 {
-    if (qoi_checkpoints != NULL)
-    {
-        egui_free(qoi_checkpoints);
-        qoi_checkpoints = NULL;
-    }
-
+    egui_api_memset(qoi_checkpoints, 0, sizeof(egui_image_qoi_checkpoint_t) * EGUI_IMAGE_QOI_CHECKPOINT_COUNT);
+    qoi_checkpoints_ready = 0;
     qoi_checkpoint_next = 0;
 }
 
@@ -326,12 +319,14 @@ static void egui_image_qoi_save_checkpoint(const egui_image_qoi_info_t *info, ui
 static int egui_image_qoi_restore_checkpoint(const egui_image_qoi_info_t *info, uint16_t target_row)
 {
     uint8_t i;
-    egui_image_qoi_checkpoint_t *checkpoints = qoi_checkpoints;
+    egui_image_qoi_checkpoint_t *checkpoints;
 
-    if (checkpoints == NULL)
+    if (!qoi_checkpoints_ready)
     {
         return 0;
     }
+
+    checkpoints = qoi_checkpoints;
 
     for (i = 0; i < EGUI_IMAGE_QOI_CHECKPOINT_COUNT; i++)
     {

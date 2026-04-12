@@ -56,10 +56,26 @@ extern "C" {
 
 /**
  * Debug options.
- * EGUI memory monitor (current/peak from egui_api_malloc).
+ * EGUI memory monitor (current/peak tracked bytes requested by egui_api_malloc).
  */
 #ifndef EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
 #define EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW 0
+#endif
+
+/**
+ * Debug options.
+ * Log egui_api_malloc/free events to stdout for heap tracing.
+ */
+#ifndef EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG
+#define EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG 0
+#endif
+
+/**
+ * Debug options.
+ * Minimum tracked allocation size that will be logged when heap tracing is enabled.
+ */
+#ifndef EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG_MIN_BYTES
+#define EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG_MIN_BYTES 0
 #endif
 
 /**
