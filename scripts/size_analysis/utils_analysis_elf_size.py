@@ -111,7 +111,7 @@ def normalize_map_object_ref(object_ref):
 
 def extract_repo_object_path(object_ref):
     object_ref = normalize_map_object_ref(object_ref)
-    match = re.search(r"(?:^|/)output/obj/[^/]+/(.+)$", object_ref)
+    match = re.search(r"(?:^|/)output(?:/[^/]+)*/obj/[^/]+/(.+)$", object_ref)
     if match is None:
         return None
     return match.group(1)

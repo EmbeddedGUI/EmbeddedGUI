@@ -6,7 +6,7 @@
 #include "uicode.h"
 #include "test/egui_test.h"
 
-static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
+EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
 
 int main(int argc, const char *argv[])
 {

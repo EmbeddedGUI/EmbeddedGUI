@@ -28,7 +28,7 @@ void app_set_gpio(uint8_t pin, uint8_t state)
 {
 }
 
-static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
+EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
 
 #define MAX_PATH 0x1000
 char input_file_path[MAX_PATH];

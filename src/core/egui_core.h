@@ -66,7 +66,7 @@ struct egui_core
  * Initialize EGUI with PFB buffer.
  *
  * @param pfb  2D PFB buffer array, declared as:
- *             egui_color_int_t pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT]
+ *             EGUI_CONFIG_PFB_BUFFER_DECLARE(pfb);
  *
  * egui_init() will automatically use all buffers based on EGUI_CONFIG_PFB_BUFFER_COUNT.
  */

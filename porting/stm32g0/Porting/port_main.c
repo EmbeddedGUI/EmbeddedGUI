@@ -1,8 +1,9 @@
+#include "port_main.h"
 
 #include <stdio.h>
+
 #include "egui.h"
 #include "uicode.h"
-#include "port_main.h"
 
 // Use GPIOD0-6 for test code use time.
 void app_set_gpio(uint8_t pin, uint8_t state)
@@ -23,7 +24,7 @@ void app_set_gpio(uint8_t pin, uint8_t state)
  * @retval None
  */
 extern void plaftorm_api_init(void);
-static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT] APP_EGUI_CONFIG_PFB_SECTION;
+EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
 
 extern void egui_port_init(void);
 

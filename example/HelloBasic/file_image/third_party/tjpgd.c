@@ -985,7 +985,7 @@ static JRESULT mcu_output(JDEC *jd,                                /* Pointer to
         /* Descale the MCU rectangular if needed */
         if (JD_USE_SCALE && jd->scale)
         {
-            unsigned int x, y, r, g, b, s, w, a;
+            unsigned int sample_x, sample_y, r, g, b, s, w, a;
             uint8_t *op;
 
             /* Get averaged RGB value of each square correcponds to a pixel */
@@ -999,9 +999,9 @@ static JRESULT mcu_output(JDEC *jd,                                /* Pointer to
                 {
                     pix = (uint8_t *)jd->workbuf + (iy * mx + ix) * (JD_FORMAT != 2 ? 3 : 1);
                     r = g = b = 0;
-                    for (y = 0; y < w; y++)
+                    for (sample_y = 0; sample_y < w; sample_y++)
                     { /* Accumulate RGB value in the square */
-                        for (x = 0; x < w; x++)
+                        for (sample_x = 0; sample_x < w; sample_x++)
                         {
                             r += *pix++; /* Accumulate R or Y (monochrome output) */
                             if (JD_FORMAT != 2)
@@ -1058,12 +1058,12 @@ static JRESULT mcu_output(JDEC *jd,                                /* Pointer to
     if (rx < mx)
     { /* Is the MCU spans rigit edge? */
         uint8_t *s, *d;
-        unsigned int x, y;
+        unsigned int copy_x, copy_y;
 
         s = d = (uint8_t *)jd->workbuf;
-        for (y = 0; y < ry; y++)
+        for (copy_y = 0; copy_y < ry; copy_y++)
         {
-            for (x = 0; x < rx; x++)
+            for (copy_x = 0; copy_x < rx; copy_x++)
             { /* Copy effective pixels */
                 *d++ = *s++;
                 if (JD_FORMAT != 2)

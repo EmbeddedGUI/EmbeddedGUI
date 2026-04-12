@@ -7,7 +7,7 @@
 #include "uicode.h"
 #include "sdl_port.h"
 
-static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
+EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
 
 void app_set_gpio(uint8_t pin, uint8_t state)
 {

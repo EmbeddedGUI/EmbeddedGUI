@@ -14,7 +14,7 @@ extern uint32_t designer_get_rgb888_size(void);
 extern void designer_touch_set_state(uint8_t pressed, int16_t x, int16_t y);
 #endif
 
-static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
+EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
 
 #define MAX_PATH_LEN 0x1000
 char input_file_path[MAX_PATH_LEN];

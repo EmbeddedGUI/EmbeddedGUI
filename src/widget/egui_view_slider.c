@@ -41,6 +41,13 @@ static uint8_t egui_view_slider_value_to_percent(const egui_view_slider_t *local
     return (uint8_t)(((uint32_t)value * 100u + (uint32_t)max_value / 2u) / (uint32_t)max_value);
 }
 
+void egui_view_slider_set_on_value_changed_listener(egui_view_t *self, egui_view_on_value_changed_listener_t listener)
+{
+    EGUI_LOCAL_INIT(egui_view_slider_t);
+    local->on_value_changed = listener;
+}
+
+#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static uint8_t egui_view_slider_percent_to_value(const egui_view_slider_t *local, uint8_t percent)
 {
     uint8_t max_value = egui_view_slider_get_max_value(local);
@@ -60,13 +67,6 @@ static uint8_t egui_view_slider_percent_to_value(const egui_view_slider_t *local
     return egui_view_slider_clamp_value(local, value);
 }
 
-void egui_view_slider_set_on_value_changed_listener(egui_view_t *self, egui_view_on_value_changed_listener_t listener)
-{
-    EGUI_LOCAL_INIT(egui_view_slider_t);
-    local->on_value_changed = listener;
-}
-
-#if EGUI_CONFIG_FUNCTION_SUPPORT_TOUCH
 static uint8_t egui_view_slider_get_thumb_metrics(egui_view_t *self, egui_view_slider_t *local, uint8_t value, egui_dim_t *out_thumb_x, egui_dim_t *out_thumb_y,
                                                   egui_dim_t *out_thumb_radius)
 {

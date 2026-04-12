@@ -202,9 +202,15 @@ static void my_lcd_draw_area(egui_hal_lcd_driver_t *self, int16_t x, int16_t y,
 示例：
 
 ```c
-static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
+EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
 
 egui_init(egui_pfb);
+```
+
+如果需要把 PFB 放到特定 RAM 段，可以在配置里覆盖：
+
+```c
+#define EGUI_CONFIG_PFB_BUFFER_SECTION_ATTR __attribute__((section(".bss.pfb_area")))
 ```
 
 ### 3.5 PC / emscripten 的特殊情况
@@ -496,7 +502,7 @@ void egui_port_init(void)
 ### 7.2 主循环
 
 ```c
-static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT];
+EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
 
 int main(void)
 {

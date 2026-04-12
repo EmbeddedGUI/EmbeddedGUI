@@ -1113,6 +1113,26 @@ static void perf_init_chart_pie_view(void)
 }
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+static const char *perf_get_file_image_path(int test_mode);
+
+static int perf_is_file_image_mode(int test_mode)
+{
+    return perf_get_file_image_path(test_mode) != NULL;
+}
+
+static void perf_release_file_image_scene(void)
+{
+    if (!s_perf_file_image_ready)
+    {
+        return;
+    }
+
+    egui_image_file_deinit(&s_perf_file_image);
+    s_perf_file_image_ready = 0U;
+    s_perf_file_image_layout_ready = 0U;
+    s_perf_file_image_scene_mode = -1;
+}
+
 static const char *perf_get_file_image_path(int test_mode)
 {
     switch (test_mode)
@@ -2759,6 +2779,13 @@ static void egui_view_test_performance_test_extern_mask_image_rle_8_image(egui_v
 void egui_view_test_performance_on_draw(egui_view_t *self)
 {
     egui_view_test_performance_t *view = (egui_view_test_performance_t *)self;
+
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+    if (!perf_is_file_image_mode(view->test_mode))
+    {
+        perf_release_file_image_scene();
+    }
+#endif
 
     switch (view->test_mode)
     {

@@ -55,6 +55,25 @@ extern "C" {
 #define EGUI_CONFIG_PFB_HEIGHT (EGUI_CONFIG_SCEEN_HEIGHT / 8)
 #endif
 
+/**
+ * Optional attribute suffix for the default PFB buffer declaration.
+ * Example:
+ *   #define EGUI_CONFIG_PFB_BUFFER_SECTION_ATTR __attribute__((section(".bss.pfb_area")))
+ */
+#ifndef EGUI_CONFIG_PFB_BUFFER_SECTION_ATTR
+#define EGUI_CONFIG_PFB_BUFFER_SECTION_ATTR
+#endif
+
+/**
+ * Default PFB buffer declaration.
+ * Users can override this macro for compiler-specific section placement or
+ * custom storage class requirements.
+ */
+#ifndef EGUI_CONFIG_PFB_BUFFER_DECLARE
+#define EGUI_CONFIG_PFB_BUFFER_DECLARE(_name)                                                                                                                   \
+    static egui_color_int_t _name[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT] EGUI_CONFIG_PFB_BUFFER_SECTION_ATTR
+#endif
+
 /* Default-off logical PFB probe for perf/RAM experiments. */
 #ifndef EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE
 #define EGUI_CONFIG_CORE_LOGICAL_PFB_PROBE_ENABLE 0
@@ -76,7 +95,7 @@ extern "C" {
  * More buffers smooth out CPU time variance at the cost of RAM.
  * Each buffer costs PFB_WIDTH * PFB_HEIGHT * COLOR_BYTES.
  * Port provides buffers by declaring:
- *   egui_color_int_t pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT]
+ *   EGUI_CONFIG_PFB_BUFFER_DECLARE(pfb);
  * and passing it to egui_init(pfb).
  *
  * Requires display driver to implement draw_area for count >= 2.

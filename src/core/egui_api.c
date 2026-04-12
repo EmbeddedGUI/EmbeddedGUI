@@ -1,7 +1,7 @@
+#include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <limits.h>
 
 #include "egui_api.h"
@@ -48,14 +48,10 @@ static void egui_api_platform_free(void *ptr)
 #endif
 }
 
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW || EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG
+#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
 typedef union egui_api_alloc_header
 {
-    struct
-    {
-        size_t payload_size;
-        size_t tracked_size;
-    } meta;
+    size_t tracked_size;
     uintptr_t align_uintptr;
     long double align_long_double;
 } egui_api_alloc_header_t;
@@ -88,28 +84,11 @@ static void egui_api_free_raw(void *ptr)
 {
     egui_api_platform_free(ptr);
 }
-
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG
-static void egui_api_mem_trace(const char *event_name, size_t payload_size, size_t tracked_size, size_t used_size, size_t peak_size)
-{
-    if (tracked_size < (size_t)EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG_MIN_BYTES)
-    {
-        return;
-    }
-
-    EGUI_LOG_INF("[EGUI_HEAP] %s payload=%lu tracked=%lu used=%lu peak=%lu\n",
-           event_name,
-           (unsigned long)payload_size,
-           (unsigned long)tracked_size,
-           (unsigned long)used_size,
-           (unsigned long)peak_size);
-}
-#endif
 #endif
 
 static void egui_api_log_alloc_fail(const char *reason, size_t payload_size, size_t tracked_size)
 {
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW || EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG
+#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
     EGUI_LOG_ERR("egui malloc %s: payload=%lu, tracked=%lu, used=%lu, peak=%lu\r\n",
                       reason,
                       (unsigned long)payload_size,
@@ -156,7 +135,7 @@ void egui_api_assert(const char *file, int line)
 
 void egui_api_free(void *ptr)
 {
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW || EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG
+#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
     egui_api_alloc_header_t *header;
     size_t tracked_size;
 
@@ -166,7 +145,7 @@ void egui_api_free(void *ptr)
     }
 
     header = ((egui_api_alloc_header_t *)ptr) - 1;
-    tracked_size = header->meta.tracked_size;
+    tracked_size = header->tracked_size;
     if (s_egui_api_mem_used_size >= tracked_size)
     {
         s_egui_api_mem_used_size -= tracked_size;
@@ -175,9 +154,6 @@ void egui_api_free(void *ptr)
     {
         s_egui_api_mem_used_size = 0U;
     }
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG
-    egui_api_mem_trace("free", header->meta.payload_size, tracked_size, s_egui_api_mem_used_size, s_egui_api_mem_peak_size);
-#endif
     egui_api_free_raw((void *)header);
 #else
     egui_api_platform_free(ptr);
@@ -191,20 +167,17 @@ void *egui_api_malloc(int size)
         return NULL;
     }
 
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW || EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG
+#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
     egui_api_alloc_header_t *header;
     size_t payload_size;
     size_t tracked_size;
 #endif
 
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW || EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG
+#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
     payload_size = (size_t)size;
     if (!egui_api_calc_tracked_size(payload_size, &tracked_size))
     {
         egui_api_log_alloc_fail("size_overflow", payload_size, 0U);
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG
-        egui_api_mem_trace("alloc_fail", payload_size, 0U, s_egui_api_mem_used_size, s_egui_api_mem_peak_size);
-#endif
         return NULL;
     }
 
@@ -212,22 +185,15 @@ void *egui_api_malloc(int size)
     if (header == NULL)
     {
         egui_api_log_alloc_fail("failed", payload_size, tracked_size);
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG
-        egui_api_mem_trace("alloc_fail", payload_size, tracked_size, s_egui_api_mem_used_size, s_egui_api_mem_peak_size);
-#endif
         return NULL;
     }
 
-    header->meta.payload_size = payload_size;
-    header->meta.tracked_size = tracked_size;
+    header->tracked_size = tracked_size;
     s_egui_api_mem_used_size += tracked_size;
     if (s_egui_api_mem_used_size > s_egui_api_mem_peak_size)
     {
         s_egui_api_mem_peak_size = s_egui_api_mem_used_size;
     }
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG
-    egui_api_mem_trace("alloc", payload_size, tracked_size, s_egui_api_mem_used_size, s_egui_api_mem_peak_size);
-#endif
     return (void *)(header + 1);
 #else
     void *ptr;
@@ -250,7 +216,7 @@ int egui_api_get_mem_monitor(egui_mem_monitor_t *monitor)
 
     memset(monitor, 0, sizeof(*monitor));
 
-#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW || EGUI_CONFIG_DEBUG_MEM_MONITOR_LOG
+#if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
     monitor->used_size = s_egui_api_mem_used_size;
     monitor->max_used = s_egui_api_mem_peak_size;
 #endif

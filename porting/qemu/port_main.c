@@ -1,3 +1,5 @@
+#define EGUI_CONFIG_PFB_BUFFER_SECTION_ATTR __attribute__((section(".bss.pfb_area")))
+
 #include <stdint.h>
 #include <string.h>
 
@@ -20,9 +22,7 @@ extern void qemu_log_write(const char *str);
 extern uint8_t _estack[];
 extern uint32_t _Min_Stack_Size;
 
-#define QEMU_PFB_SECTION __attribute__((section(".bss.pfb_area")))
-
-static egui_color_int_t egui_pfb[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT] QEMU_PFB_SECTION;
+EGUI_CONFIG_PFB_BUFFER_DECLARE(egui_pfb);
 
 #ifndef QEMU_HEAP_MEASURE
 #define QEMU_HEAP_MEASURE 0
