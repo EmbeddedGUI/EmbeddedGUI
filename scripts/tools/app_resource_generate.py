@@ -535,6 +535,9 @@ def generate_resource(resource_path, output_path, force, output_bin_path=None):
 
     resource_bin_merge_file = os.path.join(resource_path, 'app_egui_resource_merge.bin')
     resource_bin_merge_file_output = output_bin_path or os.path.join(output_path, 'app_egui_resource_merge.bin')
+    output_dir = os.path.dirname(os.path.abspath(resource_bin_merge_file_output))
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
     app_egui_resource_generate_h_file_path = os.path.join(resource_path, 'app_egui_resource_generate.h')
     app_egui_resource_generate_c_file_path = os.path.join(resource_path, 'app_egui_resource_generate.c')
 
