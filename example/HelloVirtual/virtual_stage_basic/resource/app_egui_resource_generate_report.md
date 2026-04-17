@@ -1,9 +1,9 @@
 # 图像
 ## 内部
-| 名称 | data大小 | alpha大小 | 总大小 | Image |
-| ---- | -------- | --------- | ------ | ------ |
-| egui_res_image_star_alpha_4 | 97461 | 0 | 97461 | ![egui_res_image_star_alpha_4](src/star.png) |
-| 总计 | 97461 | 0 | 97461 |
+| 名称 | data大小 | alpha大小 | 总大小 | 压缩 | Image |
+| ---- | -------- | --------- | ------ | ---- | ------ |
+| egui_res_image_star_alpha_4 | 97461 | 0 | 97461 |  | ![egui_res_image_star_alpha_4](src/star.png) |
+| 总计 | 97461 | 0 | 97461 | | |
 
 
 

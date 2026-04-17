@@ -4,10 +4,39 @@
 import sys
 from PIL import Image
 import numpy as np
-import time;
 import argparse
 import os
 from io import StringIO
+
+import svg2img
+
+
+RESAMPLE_LANCZOS = Image.Resampling.LANCZOS if hasattr(Image, "Resampling") else Image.LANCZOS
+
+
+def normalize_generated_text_file(file_path):
+    with open(file_path, "r", encoding="utf-8") as source_file:
+        lines = source_file.read().splitlines()
+
+    while lines and lines[-1] == "":
+        lines.pop()
+
+    normalized = "\n".join(line.rstrip() for line in lines)
+    if normalized:
+        normalized += "\n"
+
+    with open(file_path, "w", encoding="utf-8", newline="\n") as target_file:
+        target_file.write(normalized)
+
+
+def format_compression_delta(original_size, compressed_size):
+    if original_size <= 0:
+        return "0.0%"
+
+    ratio = (1 - compressed_size / max(original_size, 1)) * 100
+    if ratio >= 0:
+        return f"-{ratio:.1f}%"
+    return f"+{-ratio:.1f}%"
 
 
 c_head_string="""
@@ -203,21 +232,21 @@ c_tail_string="""
 
 class img2c_tool:
     def __init__(self, input_img_file, name, format, alpha, dim, rot, swap, external_type, output_path, bg=None, compress="none"):
-        if output_path == None:
+        if not output_path:
             output_path = os.path.dirname(input_img_file)
 
-        if format != 'rgb32' and \
-            format != 'rgb565' and \
-            format != 'gray8' and \
-            format != 'alpha':
-            print("Invalid format %s" % (format))
-            return
+        if format not in ('rgb32', 'rgb565', 'gray8', 'alpha'):
+            raise ValueError("Invalid format %s" % (format))
 
+        input_ext = os.path.splitext(input_img_file)[1].lower()
         try:
-            image = Image.open(input_img_file)
-        except FileNotFoundError:
-            print("Cannot open image file %s" % (input_img_file))
-            return
+            if input_ext == '.svg':
+                image = svg2img.render_svg_to_pil(input_img_file, dim)
+            else:
+                with Image.open(input_img_file) as opened_image:
+                    image = opened_image.copy()
+        except FileNotFoundError as exc:
+            raise FileNotFoundError("Cannot open image file %s" % (input_img_file)) from exc
 
         # just get file name.
         filename = os.path.basename(input_img_file)
@@ -251,9 +280,11 @@ class img2c_tool:
 
         # resizing
         resized = False
-        if dim != None:
-            image = image.resize((dim[0], dim[1]))
+        if dim != None and input_ext != '.svg':
+            image = image.resize((dim[0], dim[1]), RESAMPLE_LANCZOS)
             resized = True
+            options += f" -d {dim[0]} {dim[1]}"
+        elif dim != None:
             options += f" -d {dim[0]} {dim[1]}"
 
         name_raw = f"egui_res_image_{name.lower()}_{format}_{alpha}"
@@ -301,6 +332,8 @@ class img2c_tool:
 
         self.data_bin_data = None
         self.alpha_bin_data = None
+        self.original_data_size = 0
+        self.original_alpha_size = 0
         self.compressed_data_size = 0
         self.compressed_alpha_size = 0
     
@@ -759,10 +792,12 @@ class img2c_tool:
             
             # write data buffer to file
             self.data_bin_data = data_bin_data
+            self.original_data_size = len(data_bin_data)
+            self.original_alpha_size = len(alpha_bin_data)
             if self.compress != "none":
                 # === Compressed image output ===
-                original_data_size = len(data_bin_data)
-                original_alpha_size = len(alpha_bin_data)
+                original_data_size = self.original_data_size
+                original_alpha_size = self.original_alpha_size
 
                 if self.compress == "rle":
                     from img_codec_rle import rle_encode_image
@@ -840,8 +875,8 @@ class img2c_tool:
                     self.compressed_data_size = len(compressed_pixels)
                     self.compressed_alpha_size = len(compressed_alpha) if has_alpha_data else 0
 
-                    ratio = (1 - (len(compressed_pixels) + len(compressed_alpha)) / max(original_data_size + original_alpha_size, 1)) * 100
-                    print(f"[IMG] {self.filename}: {original_data_size + original_alpha_size}B -> {len(compressed_pixels) + len(compressed_alpha)}B (RLE, -{ratio:.1f}%)")
+                    ratio_info = format_compression_delta(original_data_size + original_alpha_size, len(compressed_pixels) + len(compressed_alpha))
+                    print(f"[IMG] {self.filename}: {original_data_size + original_alpha_size}B -> {len(compressed_pixels) + len(compressed_alpha)}B (RLE, {ratio_info})")
 
                 elif self.compress == "qoi":
                     from img_codec_qoi import qoi_encode_image
@@ -896,8 +931,8 @@ class img2c_tool:
                     self.compressed_alpha_size = 0  # QOI embeds alpha in the stream
 
                     total_orig = original_data_size + original_alpha_size
-                    ratio = (1 - len(compressed_data) / max(total_orig, 1)) * 100
-                    print(f"[IMG] {self.filename}: {total_orig}B -> {len(compressed_data)}B (QOI, -{ratio:.1f}%)")
+                    ratio_info = format_compression_delta(total_orig, len(compressed_data))
+                    print(f"[IMG] {self.filename}: {total_orig}B -> {len(compressed_data)}B (QOI, {ratio_info})")
 
             elif self.external_type == 1:
                 # print(data_bin_data)
@@ -932,12 +967,14 @@ class img2c_tool:
 
             print(c_tail_string, file=o)
 
+        normalize_generated_text_file(self.outfilename)
+
 
 def main(argv):
 
     parser = argparse.ArgumentParser(description='image to C array converter (v1.0.0)')
 
-    parser.add_argument('-i', "--input", nargs='?', type = str,  required=True, help="Input file (png, bmp, etc..)")
+    parser.add_argument('-i', "--input", nargs='?', type = str,  required=True, help="Input file (png, bmp, svg, etc..)")
     parser.add_argument('-n', "--name", nargs='?',type = str, required=True, help="The customized UTF8 image name")
     parser.add_argument('-f', '--format', nargs='?',type = str, default="rgb565", required=False, help="RGB Format (rgb32, rgb565, gray8, alpha)")
     parser.add_argument('-a', '--alpha', nargs='?',type = int, default=8, required=False, help="Alpha Format (0, 1, 2, 4, 8)")

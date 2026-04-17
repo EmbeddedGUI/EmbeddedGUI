@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect x="0" y="0" width="320" height="320" fill="#ffffff" /><svg width="320" height="320" viewBox="0 0 32 32" x="0" y="0">
+  <rect width="32" height="32" fill="#ffffff" />
+  <defs>
+    <symbol id="mix" viewBox="0 0 16 16">
+      <rect x="-4" y="4" width="24" height="8" fill="#51cf66" />
+      <line x1="8" y1="-4" x2="8" y2="20" stroke="#ff6b6b" stroke-width="4" stroke-linecap="butt" />
+    </symbol>
+  </defs>
+  <use href="#mix" x="8" y="8" width="16" height="16" />
+</svg></svg>

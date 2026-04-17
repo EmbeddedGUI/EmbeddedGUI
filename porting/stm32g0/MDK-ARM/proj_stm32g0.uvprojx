@@ -820,6 +820,11 @@
               <FilePath>..\..\..\src\image\egui_image_std.c</FilePath>
             </File>
             <File>
+              <FileName>egui_image_svg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\image\egui_image_svg.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_mask.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\mask\egui_mask.c</FilePath>

@@ -70,7 +70,7 @@ extern "C" {
  * custom storage class requirements.
  */
 #ifndef EGUI_CONFIG_PFB_BUFFER_DECLARE
-#define EGUI_CONFIG_PFB_BUFFER_DECLARE(_name)                                                                                                                   \
+#define EGUI_CONFIG_PFB_BUFFER_DECLARE(_name)                                                                                                                  \
     static egui_color_int_t _name[EGUI_CONFIG_PFB_BUFFER_COUNT][EGUI_CONFIG_PFB_WIDTH * EGUI_CONFIG_PFB_HEIGHT] EGUI_CONFIG_PFB_BUFFER_SECTION_ATTR
 #endif
 
@@ -374,6 +374,15 @@ extern "C" {
  */
 #ifndef EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
 #define EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE 0
+#endif
+
+/**
+ * Enable runtime SVG parsing and rendering.
+ * The runtime SVG path delegates parsing and rasterization to the
+ * vendored PlutoSVG/PlutoVG stack.
+ */
+#ifndef EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+#define EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE 0
 #endif
 
 /*

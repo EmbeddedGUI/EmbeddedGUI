@@ -8,6 +8,7 @@ extern "C" {
 
 #define EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE         1
 #define EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE         1
+#define EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE       1
 #define EGUI_CONFIG_FUNCTION_IMAGE_FORMAT_RGB565_8 1
 
 /* Ends C function definitions when using C++ */

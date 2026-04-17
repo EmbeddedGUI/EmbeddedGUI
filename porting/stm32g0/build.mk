@@ -27,6 +27,8 @@ COMMON_FLAGS += \
 # define lib directory
 LIB		+=
 
+STDCLIB_LDFLAGS += -lm
+
 
 
 

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect x="0" y="0" width="320" height="320" fill="#ffffff" /><svg width="320" height="320" viewBox="0 0 32 24" x="0" y="0">
+  <rect width="32" height="24" fill="#ffffff" />
+  <defs>
+    <g id="pair">
+      <rect x="0" y="0" width="10" height="8" fill="#ff922b" />
+      <rect x="12" y="0" width="8" height="8" fill="#7950f2" />
+    </g>
+  </defs>
+  <use href="#pair" x="6" y="8" />
+</svg></svg>

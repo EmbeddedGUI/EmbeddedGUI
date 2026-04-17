@@ -20,6 +20,7 @@
 #endif
 #include "font/egui_font_std.h"
 #include "image/egui_image_std.h"
+#include "image/egui_image_svg.h"
 #include "mask/egui_mask_circle.h"
 #include "resource/egui_resource.h"
 #include "widget/egui_view.h"
@@ -1337,8 +1338,10 @@ void egui_polling_refresh_display(void)
     /* Release per-frame heap caches after the full dirty-frame finishes.
      * They need to stay alive across PFB tiles within the same frame, but
      *
-     * should not remain resident once the frame is done. */
+
+     * * should not remain resident once the frame is done. */
     egui_image_std_release_frame_cache();
+    egui_image_svg_release_frame_cache();
     egui_canvas_transform_release_frame_cache();
     egui_mask_circle_release_frame_cache();
     egui_font_std_release_frame_cache();

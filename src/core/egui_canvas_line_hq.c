@@ -98,7 +98,8 @@ static uint16_t line_hq_isqrt32(uint32_t n)
 #define LINE_HQ_SAMPLE_FIRST_OFFSET (-3)
 #endif
 
-#define LINE_HQ_SAMPLE_STEP 2
+#define LINE_HQ_SAMPLE_STEP         2
+#define LINE_HQ_PIXEL_CENTER_OFFSET (LINE_HQ_SCALE / 2)
 
 typedef struct line_hq_sample_ctx_t
 {
@@ -201,8 +202,8 @@ __EGUI_STATIC_INLINE__ int32_t line_hq_fp16_to_int_trunc0(int64_t value)
  */
 static uint8_t line_hq_get_pixel_coverage(int32_t rel_x, int32_t rel_y, const line_hq_sample_ctx_t *ctx)
 {
-    int32_t spx = rel_x * LINE_HQ_SCALE + LINE_HQ_SAMPLE_FIRST_OFFSET;
-    int32_t spy = rel_y * LINE_HQ_SCALE + LINE_HQ_SAMPLE_FIRST_OFFSET;
+    int32_t spx = rel_x * LINE_HQ_SCALE + LINE_HQ_PIXEL_CENTER_OFFSET + LINE_HQ_SAMPLE_FIRST_OFFSET;
+    int32_t spy = rel_y * LINE_HQ_SCALE + LINE_HQ_PIXEL_CENTER_OFFSET + LINE_HQ_SAMPLE_FIRST_OFFSET;
     uint8_t count = 0;
     uint8_t sy;
 
@@ -242,8 +243,8 @@ static uint8_t line_hq_get_pixel_coverage(int32_t rel_x, int32_t rel_y, const li
  */
 static uint8_t line_hq_get_pixel_coverage_round_cap(int32_t rel_x, int32_t rel_y, const line_hq_sample_ctx_t *ctx, int32_t cap_start, int32_t cap_end)
 {
-    int32_t spx_row = rel_x * LINE_HQ_SCALE + LINE_HQ_SAMPLE_FIRST_OFFSET;
-    int32_t spy = rel_y * LINE_HQ_SCALE + LINE_HQ_SAMPLE_FIRST_OFFSET;
+    int32_t spx_row = rel_x * LINE_HQ_SCALE + LINE_HQ_PIXEL_CENTER_OFFSET + LINE_HQ_SAMPLE_FIRST_OFFSET;
+    int32_t spy = rel_y * LINE_HQ_SCALE + LINE_HQ_PIXEL_CENTER_OFFSET + LINE_HQ_SAMPLE_FIRST_OFFSET;
     uint8_t count = 0;
     uint8_t sy;
 
@@ -478,8 +479,36 @@ void egui_canvas_draw_line_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_
 void egui_canvas_draw_line_segment_hq(egui_dim_t x1, egui_dim_t y1, egui_dim_t x2, egui_dim_t y2, egui_dim_t stroke_width, egui_color_t color,
                                       egui_alpha_t alpha)
 {
-    // For HQ, line and line_segment use the same sub-pixel sampling
-    // which naturally handles butt caps via the dot product test
+    egui_dim_t deltax = EGUI_ABS(x2 - x1);
+    egui_dim_t deltay = EGUI_ABS(y2 - y1);
+
+    if (deltax == 0 && deltay == 0)
+    {
+        egui_canvas_draw_line_hq(x1, y1, x2, y2, stroke_width, color, alpha);
+        return;
+    }
+
+    /* Unlike generic canvas lines, SVG stroke segments use butt endpoints.
+     * Axis-aligned segment fast paths must therefore keep the end pixel exclusive.
+     */
+    if (deltax == 0)
+    {
+        egui_dim_t min_y = EGUI_MIN(y1, y2);
+        egui_dim_t half_w = stroke_width >> 1;
+
+        egui_canvas_draw_fillrect(x1 - half_w, min_y, stroke_width, deltay, color, alpha);
+        return;
+    }
+    if (deltay == 0)
+    {
+        egui_dim_t min_x = EGUI_MIN(x1, x2);
+        egui_dim_t half_w = stroke_width >> 1;
+
+        egui_canvas_draw_fillrect(min_x, y1 - half_w, deltax, stroke_width, color, alpha);
+        return;
+    }
+
+    // For non-axis-aligned segments, reuse the HQ path which already samples butt caps.
     egui_canvas_draw_line_hq(x1, y1, x2, y2, stroke_width, color, alpha);
 }
 

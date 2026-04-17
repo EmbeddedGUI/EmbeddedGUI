@@ -55,6 +55,153 @@ const uint32_t egui_ext_res_id_map[EGUI_EXT_RES_ID_MAX] = {{
 
 """
 
+
+svg_c_head_string="""
+
+#include "image/egui_image_svg.h"
+
+// clang-format off
+
+"""
+
+
+svg_c_head_string_bin="""
+
+#include "image/egui_image_svg.h"
+#include "app_egui_resource_generate.h"
+
+// clang-format off
+
+"""
+
+
+svg_c_head_debug_string="""
+/**
+ * SVG File : {0}
+ * Storage : {1}
+ * options: {2}
+ */
+
+"""
+
+
+svg_c_body_string="""
+
+extern const egui_svg_source_t {0};
+const egui_svg_source_t {0} = {{
+    .data_buf = (const void *){1},
+    .data_size = {2},
+    .res_type = {3},
+}};
+
+"""
+
+
+svg_c_tail_string="""
+
+// clang-format on
+
+"""
+
+
+class svg2c_tool:
+    def __init__(self, input_svg_file, name, external_type, output_path):
+        if not output_path:
+            output_path = os.path.dirname(input_svg_file)
+
+        if not input_svg_file.lower().endswith('.svg'):
+            raise ValueError("Invalid svg file %s" % (input_svg_file))
+
+        try:
+            with open(input_svg_file, "rb") as source_file:
+                svg_data = source_file.read()
+        except FileNotFoundError as exc:
+            raise FileNotFoundError("Cannot open svg file %s" % (input_svg_file)) from exc
+
+        if not svg_data:
+            raise ValueError("Empty svg file %s" % (input_svg_file))
+
+        filename = os.path.basename(input_svg_file)
+        options = f"-i {filename} -n {name} -ext {external_type}"
+
+        name_raw = f"egui_res_svg_{name.lower()}"
+        img_name = name_raw
+        if external_type == 1:
+            img_name += "_bin"
+
+        data_bin_name = f"{name_raw}_data"
+        data_bin_name_res_id = f"EGUI_EXT_RES_ID_{data_bin_name}".upper()
+
+        outfilename = os.path.join(output_path, f"{img_name}.c")
+        outfilename_data_bin = os.path.join(output_path, f"{data_bin_name}.bin")
+
+        self.input_img_file = input_svg_file
+        self.name = name
+        self.format = "svg"
+        self.alpha = 0
+        self.dim = None
+        self.rot = 0.0
+        self.swap = 0
+        self.external_type = external_type
+        self.output_path = output_path
+        self.compress = "none"
+        self.resource_kind = "svg"
+
+        self.options = options
+        self.image = None
+        self.filename = filename
+        self.resized = False
+        self.name_raw = name_raw
+        self.img_name = img_name
+        self.data_bin_name = data_bin_name
+        self.alpha_bin_name = None
+        self.data_bin_name_res_id = data_bin_name_res_id
+        self.alpha_bin_name_res_id = None
+        self.outfilename = outfilename
+        self.outfilename_data_bin = outfilename_data_bin
+        self.outfilename_alpha_bin = None
+
+        self.data_bin_data = bytearray(svg_data)
+        self.alpha_bin_data = None
+        self.original_data_size = len(self.data_bin_data)
+        self.original_alpha_size = 0
+        self.compressed_data_size = 0
+        self.compressed_alpha_size = 0
+
+    def write_c_file(self):
+        data_buf_name = f"{self.img_name}_data_buf"
+        data_ref = data_buf_name
+        res_type = "EGUI_RESOURCE_TYPE_INTERNAL"
+
+        with open(self.outfilename, "w", encoding="utf-8") as outputfile:
+            if self.external_type == 1:
+                print(svg_c_head_string_bin, file=outputfile)
+            else:
+                print(svg_c_head_string, file=outputfile)
+            print(svg_c_head_debug_string.format(self.filename, "external" if self.external_type == 1 else "internal", self.options), file=outputfile)
+
+            if self.external_type == 1:
+                data_ref = self.data_bin_name_res_id
+                res_type = "EGUI_RESOURCE_TYPE_EXTERNAL"
+            else:
+                print(f"static const uint8_t {data_buf_name}[{len(self.data_bin_data)}] = {{", file=outputfile)
+                for index, value in enumerate(self.data_bin_data):
+                    if index % 16 == 0:
+                        outputfile.write("    ")
+                    outputfile.write(f"0x{value:02X},")
+                    if index % 16 == 15 or index == len(self.data_bin_data) - 1:
+                        outputfile.write("\n")
+                    else:
+                        outputfile.write(" ")
+                print("};", file=outputfile)
+
+            print(svg_c_body_string.format(self.img_name, data_ref, len(self.data_bin_data), res_type), file=outputfile)
+            print(svg_c_tail_string, file=outputfile)
+
+        if self.external_type == 1:
+            with open(self.outfilename_data_bin, "wb+") as outputfile:
+                outputfile.write(self.data_bin_data)
+
 def format_file_name(file_name):
     file_name = file_name.replace('-', '_')
     file_name = file_name.replace('.', '_')
@@ -88,6 +235,21 @@ def resolve_input_file_path(resource_src_path, file_name):
 def make_report_link(resource_path, input_file_path):
     relative_path = os.path.relpath(os.path.normpath(input_file_path), resource_path)
     return relative_path.replace('\\', '/')
+
+
+def normalize_text_file(file_path):
+    with open(file_path, 'r', encoding='utf-8') as source_file:
+        lines = source_file.read().splitlines()
+
+    while lines and lines[-1] == "":
+        lines.pop()
+
+    normalized = "\n".join(line.rstrip() for line in lines)
+    if normalized:
+        normalized += "\n"
+
+    with open(file_path, 'w', encoding='utf-8', newline='\n') as target_file:
+        target_file.write(normalized)
 
 
 def clear_last_resource(resource_path):
@@ -165,47 +327,52 @@ class ImageResourceInfo:
             c_file_name = format_file_name(self.file_name.split('.')[0])
             self.name = c_file_name
 
-        self.rgb_info = 'all'
+        self.format_info = 'all'
         if config.get('format'):
-            self.rgb_info = config['format']
+            self.format_info = config['format']
+        self.is_raw_svg = self.format_info == 'svg'
 
+        self.rgb_info = 'all'
         self.alpha_info = 'all'
-        if config.get('alpha'):
-            self.alpha_info = config['alpha']
 
         self.rgb_list = []
-        if self.rgb_info == 'all':
-            self.rgb_list = ['rgb32', 'rgb565', 'gray8']
+        if self.is_raw_svg:
+            self.rgb_info = 'svg'
         else:
-            self.rgb_list.append(self.rgb_info)
-        
-        self.alpha_list = []
-        if self.alpha_info == 'all':
-            self.alpha_list = [0, 1, 2, 4, 8]
-        else:
-            self.alpha_list.append(int(self.alpha_info))
+            self.rgb_info = self.format_info
+            if self.rgb_info == 'all':
+                self.rgb_list = ['rgb32', 'rgb565', 'gray8']
+            else:
+                self.rgb_list.append(self.rgb_info)
 
-        
         self.alpha_list = []
-        if self.alpha_info == 'all':
-            self.alpha_list = [0, 1, 2, 4, 8]
+        if not self.is_raw_svg and config.get('alpha'):
+            self.alpha_info = config['alpha']
+        if self.is_raw_svg:
+            self.alpha_info = 'none'
         else:
-            self.alpha_list.append(int(self.alpha_info))
-        
-        
+            if self.alpha_info == 'all':
+                self.alpha_list = [0, 1, 2, 4, 8]
+            else:
+                self.alpha_list.append(int(self.alpha_info))
+
         self.external_info = 'all'
         if config.get('external'):
             self.external_info = config['external']
-            
+
         self.external_list = []
         if self.external_info == 'all':
             self.external_list = [0, 1]
         else:
             self.external_list.append(int(self.external_info))
-        
+
         self.dim = None
         if config.get('dim'):
             self.dim = [int(x) for x in config['dim'].split(',')]
+
+        self.swap = 0
+        if config.get('swap') is not None:
+            self.swap = int(config['swap'])
         
         
         self.rot = 0.0
@@ -219,6 +386,17 @@ class ImageResourceInfo:
         self.compress = "none"
         if config.get('compress'):
             self.compress = config['compress']
+
+
+def get_image_tool_c_type(tool):
+    if getattr(tool, 'resource_kind', '') == 'svg':
+        return "egui_svg_source_t"
+    if tool.compress == "rle":
+        return "egui_image_rle_t"
+    if tool.compress == "qoi":
+        return "egui_image_qoi_t"
+    return "egui_image_std_t"
+
 
 class FontResourceInfo:
     def __init__(self, config):
@@ -333,28 +511,53 @@ def generate_img_resource(resource_src_path, img_res_output_path, config_info_im
     if not config_info_img:
         return img2c_tool_list
 
+    qoi_unsupported_formats = {'gray8', 'alpha'}
     img_config_list = []
+    svg_config_list = []
     for img_config in config_info_img:
         img_info = ImageResourceInfo(img_config)
-        # Validate: GRAY8 + QOI is not supported (QOI encodes RGB/RGBA only)
+        if img_info.is_raw_svg:
+            if not img_info.file_name.lower().endswith('.svg'):
+                raise ValueError(f"SVG raw resource '{img_info.file_name}' must use an .svg file.")
+            if img_info.compress != 'none':
+                print(f"[WARN] SVG raw resource '{img_info.name}': compress={img_info.compress} is ignored.")
+            for external in img_info.external_list:
+                svg_config_list.append([img_info, external])
+            continue
+        if img_info.file_name.lower().endswith('.svg') and img_info.dim is None:
+            raise ValueError(f"SVG image '{img_info.file_name}' requires a dim field in app_resource_config.json.")
+
+        # Validate: QOI only supports RGB565/RGB32 inputs.
         if img_info.compress == 'qoi':
             for rgb in img_info.rgb_list:
-                if rgb == 'gray8':
-                    print(f"[WARN] Image '{img_info.name}': QOI does not support GRAY8 format, skipping QOI for gray8 variants.")
+                if rgb in qoi_unsupported_formats:
+                    print(f"[WARN] Image '{img_info.name}': QOI does not support {rgb} format, skipping QOI for that variant.")
         for rgb in img_info.rgb_list:
             for alpha in img_info.alpha_list:
                 for external in img_info.external_list:
                     compress = img_info.compress
-                    # Skip GRAY8 + QOI combination
-                    if compress == 'qoi' and rgb == 'gray8':
+                    if compress == 'qoi' and rgb in qoi_unsupported_formats:
                         compress = 'none'
-                    img_config_list.append([img_info, rgb, alpha, external, img_info.dim, img_info.rot, img_info.bg, compress])
-    
+                    img_config_list.append([img_info, rgb, alpha, external, img_info.dim, img_info.rot, img_info.swap, img_info.bg, compress])
+
+    for svg_config_item in svg_config_list:
+        img_info = svg_config_item[0]
+        svg_file_path = resolve_input_file_path(resource_src_path, img_info.file_name)
+        svg_name = img_info.name
+        external = svg_config_item[1]
+
+        tool = svg2c_tool(svg_file_path, svg_name, external, img_res_output_path)
+
+        img2c_tool_list.append(tool)
+
+        print(f"Generating {tool.img_name}")
+
+        tool.write_c_file()
+
     for img_config_item in img_config_list:
         img_info = img_config_item[0]
         file_name = img_info.file_name
-        img_file_path = os.path.join(resource_src_path, file_name)
-        c_file_name = format_file_name(file_name.split('.')[0])
+        img_file_path = resolve_input_file_path(resource_src_path, file_name)
 
         img_name = img_info.name
 
@@ -364,10 +567,11 @@ def generate_img_resource(resource_src_path, img_res_output_path, config_info_im
         external = img_config_item[3]
         dim = img_config_item[4]
         rot = img_config_item[5]
-        bg = img_config_item[6]
-        compress = img_config_item[7]
+        swap = img_config_item[6]
+        bg = img_config_item[7]
+        compress = img_config_item[8]
 
-        tool = img2c.img2c_tool(img_file_path, img_name, rgb, alpha, dim, rot, 0, external, output_path, bg, compress=compress)
+        tool = img2c.img2c_tool(img_file_path, img_name, rgb, alpha, dim, rot, swap, external, output_path, bg, compress=compress)
 
         img2c_tool_list.append(tool)
 
@@ -524,6 +728,7 @@ def _generate_mp4_frame_header(name, tools, header_path):
         f.write("};\n\n")
         f.write(f"#endif /* {guard} */\n")
 
+    normalize_text_file(header_path)
     print(f"Generated MP4 header: {header_path}")
 
 
@@ -572,8 +777,8 @@ def generate_resource(resource_path, output_path, force, output_bin_path=None):
 
     clear_last_resource(font_res_output_path)
 
-    img2c_tool_list = generate_img_resource(resource_src_path, img_res_output_path, config_info['img'])
-    ttf2c_tool_list = generate_font_resource(resource_src_path, font_res_output_path, config_info['font'])
+    img2c_tool_list = generate_img_resource(resource_src_path, img_res_output_path, config_info.get('img', []))
+    ttf2c_tool_list = generate_font_resource(resource_src_path, font_res_output_path, config_info.get('font', []))
 
     # Process MP4 entries (frame extraction + img resource generation + frame array headers)
     mp4_tool_list, mp4_groups = generate_mp4_resource(
@@ -588,12 +793,7 @@ def generate_resource(resource_path, output_path, force, output_bin_path=None):
     resource_id_map_string = ""
 
     for tool in sorted(img2c_tool_list, key=lambda x: x.img_name):
-        if tool.compress == "rle":
-            img_type = "egui_image_rle_t"
-        elif tool.compress == "qoi":
-            img_type = "egui_image_qoi_t"
-        else:
-            img_type = "egui_image_std_t"
+        img_type = get_image_tool_c_type(tool)
         resource_extern_string += f"extern const {img_type} {tool.img_name};\n"
         if tool.external_type:
             if tool.alpha_bin_data:
@@ -651,12 +851,14 @@ def generate_resource(resource_path, output_path, force, output_bin_path=None):
     print(f"Generating {app_egui_resource_generate_h_file_path}")
     with open(app_egui_resource_generate_h_file_path, 'w', encoding='utf-8') as f:
         f.write(app_egui_resource_generate_h_string.format(resource_extern_string, resource_id_string))
+    normalize_text_file(app_egui_resource_generate_h_file_path)
 
 
     # 生成app_egui_resource_generate.c文件
     print(f"Generating {app_egui_resource_generate_c_file_path}")
     with open(app_egui_resource_generate_c_file_path, 'w', encoding='utf-8') as f:
         f.write(app_egui_resource_generate_c_string.format(resource_id_map_string))
+    normalize_text_file(app_egui_resource_generate_c_file_path)
 
 
 
@@ -686,13 +888,12 @@ def generate_resource(resource_path, output_path, force, output_bin_path=None):
                 tmp_data_size = tool.compressed_data_size
                 tmp_alpha_size = tool.compressed_alpha_size
                 tmp_total = tmp_data_size + tmp_alpha_size
-                # Calculate original (uncompressed) size
-                orig_data = len(tool.data_bin_data) if tool.data_bin_data else 0
-                orig_alpha = len(tool.alpha_bin_data) if tool.alpha_bin_data else 0
+                orig_data = tool.original_data_size
+                orig_alpha = tool.original_alpha_size
                 orig_total = orig_data + orig_alpha
                 if orig_total > 0:
-                    ratio = (1 - tmp_total / orig_total) * 100
-                    compress_info = f"{tool.compress.upper()} (-{ratio:.0f}%, 原始{orig_total})"
+                    ratio_info = img2c.format_compression_delta(orig_total, tmp_total)
+                    compress_info = f"{tool.compress.upper()} ({ratio_info}, 原始{orig_total})"
                 else:
                     compress_info = tool.compress.upper()
             else:
@@ -814,6 +1015,7 @@ def generate_resource(resource_path, output_path, force, output_bin_path=None):
         total_report_info += f"{'Image'.center(10)} {'Font'.center(10)} {'Total'.center(10)}\n"
         total_report_info += f"{str(img_ext_total_size + img_total_size).center(10)} {str(font_ext_total_size + font_total_size).center(10)} {str(img_ext_total_size + font_ext_total_size + img_total_size + font_total_size).center(10)}\n"
         print(total_report_info)
+    normalize_text_file(app_egui_resource_generate_report_file_path)
 
 
 

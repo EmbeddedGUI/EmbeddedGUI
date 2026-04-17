@@ -277,6 +277,14 @@
       "min_case_count": 5,
       "require_runtime_marker": true
     },
+    "svg": {
+      "expected_actions": [
+        "swipe",
+        "wait"
+      ],
+      "min_case_count": 7,
+      "min_interaction_transitions": 2
+    },
     "stepper": {
       "expected_actions": [
         "click",

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect x="0" y="0" width="320" height="320" fill="#ffffff" /><svg width="320" height="320" viewBox="0 0 32 32" x="0" y="0">
+  <rect width="32" height="32" fill="#ffffff" />
+  <defs>
+    <symbol id="banner" viewBox="0 0 8 4" preserveAspectRatio="xMidYMid slice">
+      <rect x="4" y="0" width="4" height="4" fill="#00c853" />
+    </symbol>
+  </defs>
+  <use href="#banner" x="0.75" y="0.75" width="4.5" height="4.5" />
+</svg></svg>

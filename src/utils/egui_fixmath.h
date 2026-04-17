@@ -123,11 +123,6 @@ typedef int32_t egui_fixed_t;
  */
 #define EGUI_FX_FTOX(fval, frac) (int32_t)((float)(fval) * (float)(1UL << (frac)) + ((float)(fval) > 0 ? 0.5f : -0.5f))
 
-/**
- *  Double precision float to fixed-point conversion.
- */
-#define EGUI_FX_DTOX(dval, frac) (int32_t)((double)(dval) * (double)(1UL << (frac)) + ((double)(dval) > 0 ? 0.5 : -0.5))
-
 #if !EGUI_CONFIG_PERFORMANCE_USE_FLOAT
 #define EGUI_FLOAT_FRAC 16
 
@@ -166,9 +161,9 @@ typedef int32_t egui_fixed_t;
 #define EGUI_FLOAT_MULT(x1, x2) (x1) * (x2)
 #define EGUI_FLOAT_DIV(x1, x2)  (float)(x1) / (float)(x2)
 
-#define EGUI_FLOAT_POWER(x1, x2) pow(x1, x2)
-#define EGUI_FLOAT_SIN(x1)       sin(x1)
-#define EGUI_FLOAT_COS(x1)       cos(x1)
+#define EGUI_FLOAT_POWER(x1, x2) powf((float)(x1), (float)(x2))
+#define EGUI_FLOAT_SIN(x1)       sinf((float)(x1))
+#define EGUI_FLOAT_COS(x1)       cosf((float)(x1))
 
 #define EGUI_FLOAT_PI 3.14159265358979f
 

@@ -34,6 +34,7 @@ OBJ_PATH 	:= $(OBJROOT_PATH)/obj/$(BUILD_OBJ_SUFFIX)
 
 # Configuration stamp - forces relink when APP changes.
 APP_CONFIG_STAMP := $(OUTPUT_PATH)/.app_stamp_$(BUILD_OBJ_SUFFIX)
+LINK_OBJECTS_RSP := $(OUTPUT_PATH)/.link_objects_$(BUILD_OBJ_SUFFIX).rsp
 
 # define the target
 TARGET		  	?= $(OUTPUT_PATH)/main
@@ -203,8 +204,9 @@ endif
 	$(Q)$(ECHO) stamp > $(call FIXPATH, $@)
 
 $(TARGET).elf: $(ALL_OBJS) $(APP_CONFIG_STAMP)
+	$(file >$(LINK_OBJECTS_RSP),$(filter %.o,$^))
 	$(TRACE_LINK)
-	$(Q)$(CC) $(CFLAGS) $(ALL_OBJS) -o $@ $(LDFLAGS)
+	$(Q)$(CC) $(CFLAGS) @$(LINK_OBJECTS_RSP) -o $@ $(LDFLAGS)
 	$(Q)$(SIZE) $@
 
 $(ALL_ASM_OBJS): $(OBJ_PATH)/%.o: % $(COMMON_PREREQS)

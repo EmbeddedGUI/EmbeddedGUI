@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect x="0" y="0" width="320" height="320" fill="#ffffff" /><svg width="320" height="320" viewBox="0 0 32 32" x="0" y="0">
+  <rect width="32" height="32" fill="#ffffff" />
+  <defs>
+    <symbol id="chip" viewBox="0 0 8 8">
+      <rect width="8" height="8" fill="#008cff" />
+      <rect x="2" y="2" width="4" height="4" fill="#ffffff" />
+    </symbol>
+  </defs>
+  <use href="#chip" x="25%" y="25%" width="50%" height="50%" />
+</svg></svg>

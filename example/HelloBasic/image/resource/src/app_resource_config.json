@@ -1,0 +1,57 @@
+{
+    "img": [
+        {
+            "file": "test.png",
+            "name": "test",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0"
+        },
+        {
+            "file": "test.png",
+            "name": "test",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+            "compress": "qoi"
+        },
+        {
+            "file": "test.png",
+            "name": "test",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "0",
+            "compress": "rle"
+        },
+        {
+            "file": "star.png",
+            "name": "star",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "8"
+        },
+        {
+            "file": "star.png",
+            "name": "star",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "8",
+            "compress": "qoi"
+        },
+        {
+            "file": "star.png",
+            "name": "star",
+            "external": "0",
+            "format": "rgb565",
+            "alpha": "8",
+            "compress": "rle"
+        },
+        {
+            "file": "badge.svg",
+            "name": "badge",
+            "external": "0",
+            "format": "svg"
+        },
+    ],
+    "font": []
+}

@@ -27,4 +27,3 @@ extern const uint32_t egui_ext_res_id_map[EGUI_EXT_RES_ID_MAX];
 #endif
 
 #endif /* _APP_EGUI_RESOURCE_GENERATE_H_ */
-

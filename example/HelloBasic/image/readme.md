@@ -2,16 +2,22 @@
 
 ## 应用说明
 
-演示 Image 控件基本用法，展示静态图片显示。使用一张 80x80 像素的星形图片资源（egui_res_image_star_rgb565_8），图片类型设置为 NORMAL 模式。布局采用垂直居中排列。
+该示例包含 3 个分页：
+1. `test.png` 生成的 `RGB565 + alpha=0` 图片，展示 `STD / QOI / RLE`
+2. `star.png` 生成的 `RGB565 + alpha=8` 图片，展示 `STD / QOI / RLE`
+3. 运行时 SVG 示例，展示 `path / evenodd / group` 三类常见子集能力
 
-## 控件列表
+`HelloBasic/image` 不再比较 SVG 的编译期位图化实现，也不再展示 `SVG STD / SVG QOI / SVG RLE` 这类链路。
 
-| 变量名 | 控件类型 | 尺寸 (宽x高) | 图片资源 | 说明 |
-|--------|---------|-------------|---------|------|
-| image_1 | Image | 80x80 | egui_res_image_star_rgb565_8 | 星形图片，NORMAL 显示模式 |
+## 资源来源
+
+- 位图源文件位于 `example/HelloBasic/image/resource/src/`
+- 生成命令：`make resource_refresh APP=HelloBasic APP_SUB=image PORT=pc`
 
 ## 录制动作
 
-| 序号 | 动作类型 | 间隔 | 说明 |
-|------|---------|------|------|
-| 1 | WAIT | 1500ms | 等待展示静态图片显示效果 |
+录制模式会自动覆盖 3 个页面：
+
+1. 首屏等待
+2. 左滑到 PNG alpha=8 页
+3. 再左滑到运行时 SVG 页

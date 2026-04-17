@@ -16,6 +16,7 @@
 #include "test/test_font_std.h"
 #include "test/test_image_file.h"
 #include "test/test_grid_view.h"
+#include "test/test_image_svg.h"
 #include "test/test_interpolator.h"
 #include "test/test_invalidate_region.h"
 #include "test/test_linearlayout.h"
@@ -73,6 +74,7 @@ void uicode_create_ui(void)
     test_view_layer_run();
     test_compact_text_run();
     test_grid_view_run();
+    test_image_svg_run();
     test_lyric_scroller_run();
     test_menu_run();
     test_mini_calendar_run();

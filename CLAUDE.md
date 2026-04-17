@@ -50,7 +50,7 @@ python scripts/code_compile_check.py --cmake --full-check
 
 **可用示例：** HelloActivity, HelloAPP, HelloBasic, HelloCanvas, HelloChart, HelloEasyPage, HelloGradient, HelloLayer, HelloPerformance, HelloPFB, HelloResourceManager, HelloShowcase, HelloSimple, HelloStyleDemo, HelloTest, HelloUnitTest, HelloViewPageAndScroll
 
-**HelloBasic 子应用：** activity_ring, analog_clock, anim, animated_image, arc_slider, button, button_img, button_matrix, card, checkbox, circular_progress_bar, combobox, compass, digital_clock, divider, enhanced_widgets, gauge, gridlayout, heart_rate, image, image_button, label, led, line, linearlayout, list, mask, menu, mini_calendar, mp4, notification_badge, number_picker, page_indicator, progress_bar, radio_button, roller, rotation, scale, scroll, slider, spangroup, spinner, stopwatch, switch, table, tab_bar, textblock, textinput, tileview, toggle_button, viewpage, viewpage_cache, window
+**HelloBasic 子应用：** activity_ring, analog_clock, anim, animated_image, arc_slider, button, button_img, button_matrix, card, checkbox, circular_progress_bar, combobox, compass, digital_clock, divider, enhanced_widgets, gauge, gridlayout, heart_rate, image, image_button, label, led, line, linearlayout, list, mask, menu, mini_calendar, mp4, notification_badge, number_picker, page_indicator, progress_bar, radio_button, roller, rotation, scale, scroll, slider, spangroup, spinner, stopwatch, svg, switch, table, tab_bar, textblock, textinput, tileview, toggle_button, viewpage, viewpage_cache, window
 
 ## 架构说明
 

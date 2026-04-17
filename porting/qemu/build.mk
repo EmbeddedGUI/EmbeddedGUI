@@ -26,6 +26,7 @@ STDCLIB_LDFLAGS = --specs=rdimon.specs -nostartfiles -lc -lrdimon -lgcc
 else
 STDCLIB_LDFLAGS = --specs=rdimon.specs -lc -lrdimon -lgcc
 endif
+STDCLIB_LDFLAGS += -lm
 
 # QEMU uses semihosting for log/sprintf and a custom heap allocator,
 # so these platform callbacks must go through the registered ops.

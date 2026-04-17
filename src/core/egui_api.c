@@ -89,12 +89,8 @@ static void egui_api_free_raw(void *ptr)
 static void egui_api_log_alloc_fail(const char *reason, size_t payload_size, size_t tracked_size)
 {
 #if EGUI_CONFIG_DEBUG_MEM_MONITOR_SHOW
-    EGUI_LOG_ERR("egui malloc %s: payload=%lu, tracked=%lu, used=%lu, peak=%lu\r\n",
-                      reason,
-                      (unsigned long)payload_size,
-                      (unsigned long)tracked_size,
-                      (unsigned long)s_egui_api_mem_used_size,
-                      (unsigned long)s_egui_api_mem_peak_size);
+    EGUI_LOG_ERR("egui malloc %s: payload=%lu, tracked=%lu, used=%lu, peak=%lu\r\n", reason, (unsigned long)payload_size, (unsigned long)tracked_size,
+                 (unsigned long)s_egui_api_mem_used_size, (unsigned long)s_egui_api_mem_peak_size);
 #else
     EGUI_LOG_ERR("egui malloc %s: payload=%lu, tracked=%lu\r\n", reason, (unsigned long)payload_size, (unsigned long)tracked_size);
 #endif

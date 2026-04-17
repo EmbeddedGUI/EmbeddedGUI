@@ -25,6 +25,8 @@ typedef struct egui_test_state
     int current_test_failed;
     const char *current_suite_name;
     const char *current_test_name;
+    const char *suite_filter;
+    uint8_t current_suite_enabled;
 } egui_test_state_t;
 
 extern egui_test_state_t g_egui_test_state;
@@ -48,9 +50,12 @@ extern egui_test_state_t g_egui_test_state;
 #define EGUI_TEST_RUN(_test_func)                                                                                                                              \
     do                                                                                                                                                         \
     {                                                                                                                                                          \
-        egui_test_case_begin(#_test_func);                                                                                                                     \
-        _test_func();                                                                                                                                          \
-        egui_test_case_end();                                                                                                                                  \
+        if (egui_test_is_current_suite_enabled())                                                                                                              \
+        {                                                                                                                                                      \
+            egui_test_case_begin(#_test_func);                                                                                                                 \
+            _test_func();                                                                                                                                      \
+            egui_test_case_end();                                                                                                                              \
+        }                                                                                                                                                      \
     } while (0)
 
 // ============================================================================
@@ -124,10 +129,12 @@ extern egui_test_state_t g_egui_test_state;
 // Framework Functions (called by macros, not directly by test code)
 // ============================================================================
 void egui_test_init(void);
+void egui_test_set_suite_filter(const char *filter);
 void egui_test_suite_begin(const char *name);
 void egui_test_suite_end(void);
 void egui_test_case_begin(const char *name);
 void egui_test_case_end(void);
+int egui_test_is_current_suite_enabled(void);
 void egui_test_fail(const char *file, int line, const char *expr, const char *msg);
 void egui_test_fail_int(const char *file, int line, const char *expr, int expected, int actual);
 

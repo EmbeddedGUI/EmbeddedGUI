@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect x="0" y="0" width="320" height="320" fill="#ffffff" /><svg width="320" height="320" viewBox="0 0 36 24" x="0" y="0">
+  <rect width="36" height="24" fill="#ffffff" />
+  <defs>
+    <rect id="seed" width="8" height="8" fill="#ffaa00" />
+    <use id="seed_copy" href="#seed" x="10" y="4" />
+  </defs>
+  <use href="#seed_copy" x="12" y="8" />
+</svg></svg>

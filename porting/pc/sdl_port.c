@@ -26,13 +26,41 @@
 
 #define monochrome_2_RGB888(color) (color ? 0x000000 : 0xffffff)
 #define GRAY8_2_RGB888(color)      (((color & 0xFF) << 16) + ((color & 0xFF) << 8) + ((color & 0xFF)))
+static inline uint8_t rgb565_expand5(uint8_t value)
+{
+    return (uint8_t)((value << 3) | (value >> 2));
+}
+
+static inline uint8_t rgb565_expand6(uint8_t value)
+{
+    return (uint8_t)((value << 2) | (value >> 4));
+}
+
+static inline uint32_t rgb888_pack(uint8_t red, uint8_t green, uint8_t blue)
+{
+    return ((uint32_t)red << 16) | ((uint32_t)green << 8) | (uint32_t)blue;
+}
+
+static inline uint32_t rgb565_to_rgb888(uint16_t color)
+{
+#if EGUI_CONFIG_COLOR_16_SWAP == 1
+    uint8_t red = rgb565_expand5((uint8_t)((color >> 3) & 0x1FU));
+    uint8_t green = rgb565_expand6((uint8_t)((((color & 0x7U) << 3) | ((color >> 13) & 0x7U)) & 0x3FU));
+    uint8_t blue = rgb565_expand5((uint8_t)((color >> 8) & 0x1FU));
+#else
+    uint8_t red = rgb565_expand5((uint8_t)((color >> 11) & 0x1FU));
+    uint8_t green = rgb565_expand6((uint8_t)((color >> 5) & 0x3FU));
+    uint8_t blue = rgb565_expand5((uint8_t)(color & 0x1FU));
+#endif
+    return rgb888_pack(red, green, blue);
+}
+
 #if EGUI_CONFIG_COLOR_16_SWAP == 0
-#define RGB565_2_RGB888(color) (((color & 0xF800) << 8) + ((color & 0x7E0) << 5) + ((color & 0x1F) << 3))
+#define RGB565_2_RGB888(color) rgb565_to_rgb888((uint16_t)(color))
 #else
 // After bulk swap at flush, tft_fb stores byte-swapped RGB565:
 // bits[7:3]=R5, bits[12:8]=B5, bits[2:0]=G_high3, bits[15:13]=G_low3
-#define RGB565_2_RGB888(_c)                                                                                                                                    \
-    ((((uint32_t)(_c) >> 3) & 0x1FU) << 19 | ((((uint32_t)(_c) & 0x7U) << 3 | ((uint32_t)(_c) >> 13)) & 0x3FU) << 10 | (((uint32_t)(_c) >> 8) & 0x1FU) << 3)
+#define RGB565_2_RGB888(color) rgb565_to_rgb888((uint16_t)(color))
 #endif
 
 #define RGB888_2_monochrome(color) ((color) ? 0 : 1)
@@ -931,18 +959,10 @@ void snap_shot(const char *file_name)
 #if VT_SDL_NATIVE_RGB565
     for (int i = 0; i < VT_WIDTH * VT_HEIGHT; i++)
     {
-#if EGUI_CONFIG_COLOR_16_SWAP == 1
-        uint16_t v = tft_fb[i];
-        rgb_data[i * 3 + 0] = (uint8_t)(((v >> 3) & 0x1FU) << 3);
-        rgb_data[i * 3 + 1] = (uint8_t)((((v & 0x7U) << 3) | ((v >> 13) & 0x7U)) << 2);
-        rgb_data[i * 3 + 2] = (uint8_t)(((v >> 8) & 0x1FU) << 3);
-#else
-        egui_color_rgb565_t c;
-        c.full = tft_fb[i];
-        rgb_data[i * 3 + 0] = c.color.red << 3;
-        rgb_data[i * 3 + 1] = c.color.green << 2;
-        rgb_data[i * 3 + 2] = c.color.blue << 3;
-#endif
+        uint32_t rgb888 = rgb565_to_rgb888(tft_fb[i]);
+        rgb_data[i * 3 + 0] = (uint8_t)((rgb888 >> 16) & 0xFFU);
+        rgb_data[i * 3 + 1] = (uint8_t)((rgb888 >> 8) & 0xFFU);
+        rgb_data[i * 3 + 2] = (uint8_t)(rgb888 & 0xFFU);
     }
 #else
     unsigned int *p_raw_data = (unsigned int *)tft_fb;

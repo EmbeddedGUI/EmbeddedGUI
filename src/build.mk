@@ -13,4 +13,23 @@ EGUI_CODE_SRC		+= $(EGUI_PATH)/resource
 EGUI_CODE_SRC		+= $(EGUI_PATH)/utils
 EGUI_CODE_SRC		+= $(EGUI_PATH)/utils/simple_ringbuffer
 
+EGUI_CODE_SRC_FILES += \
+    third_party/plutosvg/source/plutosvg.c \
+    third_party/plutovg/source/plutovg-blend.c \
+    third_party/plutovg/source/plutovg-canvas.c \
+    third_party/plutovg/source/plutovg-font.c \
+    third_party/plutovg/source/plutovg-ft-math.c \
+    third_party/plutovg/source/plutovg-ft-raster.c \
+    third_party/plutovg/source/plutovg-ft-stroker.c \
+    third_party/plutovg/source/plutovg-matrix.c \
+    third_party/plutovg/source/plutovg-paint.c \
+    third_party/plutovg/source/plutovg-path.c \
+    third_party/plutovg/source/plutovg-rasterize.c \
+    third_party/plutovg/source/plutovg-surface.c
+
+EGUI_CODE_INCLUDE	+= third_party/plutosvg/source
+EGUI_CODE_INCLUDE	+= third_party/plutovg/include
+
+COMMON_FLAGS += -DPLUTOSVG_BUILD_STATIC -DPLUTOVG_BUILD_STATIC
+
 EGUI_CODE_INCLUDE	+= $(EGUI_PATH)

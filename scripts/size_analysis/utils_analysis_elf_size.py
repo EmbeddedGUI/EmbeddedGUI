@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -34,6 +35,8 @@ RUNTIME_MACHINE = "mps2-an385"
 RUNTIME_CPU = "cortex-m3"
 DEFAULT_RUNTIME_TIMEOUT_FULL = 180
 DEFAULT_RUNTIME_TIMEOUT_TYPICAL = 60
+BUILD_MEASURE_RETRY_COUNT = 2
+BUILD_MEASURE_RETRY_DELAY_S = 1.0
 
 QEMU_MEASURE_CFLAGS = "-DQEMU_HEAP_MEASURE=1 -DQEMU_HEAP_ACTIONS_APP_RECORDING=1 -DEGUI_CONFIG_RECORDING_TEST=1"
 
@@ -332,7 +335,8 @@ def remove_stale_build_outputs(build_output_dir):
             path.unlink()
 
 
-def build_case(case, mode, user_cflags="", build_output_dir=None, app_obj_suffix=None, objroot_path=None, share_objects=False):
+def build_case(case, mode, user_cflags="", build_output_dir=None, app_obj_suffix=None, objroot_path=None,
+               share_objects=False, make_jobs=None):
     if build_output_dir is None:
         build_output_dir = get_case_build_output_dir(case, mode, user_cflags=user_cflags)
     if app_obj_suffix is None:
@@ -340,14 +344,19 @@ def build_case(case, mode, user_cflags="", build_output_dir=None, app_obj_suffix
 
     remove_stale_build_outputs(build_output_dir)
 
-    # Use all CPU cores for parallel compilation
+    # Use all CPU cores by default, but cap nested parallel builds to avoid
+    # Windows toolchain CreateProcess failures when multiple cases compile at once.
     import multiprocessing
     num_cores = multiprocessing.cpu_count()
+    if make_jobs is None:
+        make_jobs = num_cores
+    else:
+        make_jobs = max(1, int(make_jobs))
 
     cmd = [
         "make",
         "all",
-        "-j%d" % num_cores,
+        "-j%d" % make_jobs,
         "APP=%s" % case["app"],
         "PORT=%s" % BUILD_PORT,
         "CPU_ARCH=%s" % BUILD_CPU_ARCH,
@@ -460,6 +469,13 @@ def resolve_parallel_jobs(requested_jobs, total_cases):
     return get_auto_parallel_jobs(total_cases)
 
 
+def resolve_make_job_count(parallel_jobs):
+    if parallel_jobs <= 1:
+        return None
+    cpu_count = os.cpu_count() or 1
+    return max(1, cpu_count // parallel_jobs)
+
+
 def process_cases_parallel(cases, runtime_timeout, jobs):
     total_work_cnt = len(cases)
     if total_work_cnt == 0:
@@ -479,6 +495,7 @@ def process_cases_parallel(cases, runtime_timeout, jobs):
 
     print("Running %d size-analysis cases with jobs=%d" % (total_work_cnt, parallel_jobs))
     objroot_path = Path("output")
+    worker_make_jobs = resolve_make_job_count(parallel_jobs)
     grouped = {}
     direct_tasks = []
     for case in cases:
@@ -541,6 +558,7 @@ def process_cases_parallel(cases, runtime_timeout, jobs):
                 item["shared_suffix"],
                 objroot_path if item["case"]["app"] in ("HelloBasic", "HelloVirtual", "HelloCustomWidgets", "HelloSizeAnalysis") else None,
                 item["case"]["app"] in ("HelloBasic", "HelloVirtual", "HelloCustomWidgets", "HelloSizeAnalysis"),
+                worker_make_jobs,
                 False,
             )
             future_map[future] = item["case"]
@@ -564,11 +582,13 @@ def process_cases_parallel(cases, runtime_timeout, jobs):
 
 
 def process_case(current_work_cnt, total_work_cnt, case, runtime_timeout, user_cflags="", build_output_dir=None,
-                 app_obj_suffix=None, objroot_path=None, share_objects=False, verbose=True):
+                 app_obj_suffix=None, objroot_path=None, share_objects=False, make_jobs=None, verbose=True):
     if build_output_dir is None:
         build_output_dir = get_case_build_output_dir(case, "measure", user_cflags=user_cflags)
     if app_obj_suffix is None:
         app_obj_suffix = get_case_obj_suffix(case, "measure", user_cflags=user_cflags, share_objects=share_objects)
+    if objroot_path is None:
+        objroot_path = Path("output")
     resolved_build_output_dir = Path(build_output_dir)
     if not resolved_build_output_dir.is_absolute():
         resolved_build_output_dir = PROJECT_ROOT / resolved_build_output_dir
@@ -583,29 +603,44 @@ def process_case(current_work_cnt, total_work_cnt, case, runtime_timeout, user_c
 
     # Optimization: Build only once with measure flags (saves 50% compile time)
     # The measure flags add minimal code that doesn't significantly affect size metrics
-    measure_cmd, measure_result = build_case(
-        case,
-        "measure",
-        QEMU_MEASURE_CFLAGS,
-        build_output_dir=build_output_dir,
-        app_obj_suffix=app_obj_suffix,
-        objroot_path=objroot_path,
-        share_objects=share_objects,
-    )
-    if verbose:
-        print(format_cmd(measure_cmd))
-    if measure_result.returncode != 0:
-        message = (measure_result.stderr or measure_result.stdout)[-4000:]
-        return None, make_failure(case, "build_measure", message, format_cmd(measure_cmd))
-
     elf_path = resolved_build_output_dir / "main.elf"
     map_path = resolved_build_output_dir / "main.map"
+    measure_cmd = None
+    build_failure_message = None
+    retry_make_jobs = make_jobs
+    for attempt in range(BUILD_MEASURE_RETRY_COUNT):
+        measure_cmd, measure_result = build_case(
+            case,
+            "measure",
+            QEMU_MEASURE_CFLAGS,
+            build_output_dir=build_output_dir,
+            app_obj_suffix=app_obj_suffix,
+            objroot_path=objroot_path,
+            share_objects=share_objects,
+            make_jobs=retry_make_jobs,
+        )
+        if verbose and attempt == 0:
+            print(format_cmd(measure_cmd))
 
-    if not elf_path.exists():
-        return None, make_failure(case, "build_measure", "ELF not found after build", format_cmd(measure_cmd))
+        if measure_result.returncode != 0:
+            build_failure_message = (measure_result.stderr or measure_result.stdout)[-4000:]
+        elif not elf_path.exists():
+            build_failure_message = "ELF not found after build"
+        elif not map_path.exists():
+            build_failure_message = "Map not found after build"
+        else:
+            build_failure_message = None
+            break
 
-    if not map_path.exists():
-        return None, make_failure(case, "build_measure", "Map not found after build", format_cmd(measure_cmd))
+        if attempt < BUILD_MEASURE_RETRY_COUNT - 1:
+            if build_failure_message and "collect2.exe': CreateProcess" in build_failure_message:
+                retry_make_jobs = 1
+            if verbose:
+                print("(build retry %d/%d: %s)" % (attempt + 1, BUILD_MEASURE_RETRY_COUNT - 1, case["name"]))
+            time.sleep(BUILD_MEASURE_RETRY_DELAY_S)
+
+    if build_failure_message is not None:
+        return None, make_failure(case, "build_measure", build_failure_message, format_cmd(measure_cmd))
 
     # Extract repo-only static size info from the final linker map.
     elf_size_info = utils_process_map_file(str(map_path))

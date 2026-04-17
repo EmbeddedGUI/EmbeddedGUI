@@ -20,6 +20,7 @@ COMMON_FLAGS += -DEGUI_CONFIG_PLATFORM_CUSTOM_PRINTF=1
 
 # define lib directory
 LIB		+=
+LFLAGS += -lm
 
 ifeq ($(OS),Windows_NT)
 	LFLAGS  += -lpthread

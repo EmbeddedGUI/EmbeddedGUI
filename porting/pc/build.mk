@@ -19,7 +19,7 @@ OUTPUT_PATH ?= output
 ifeq ($(OS),Windows_NT)
 	INCLUDE  += porting/pc/sdl2/$(BITS)/include
 	LIB  += porting/pc/sdl2/$(BITS)/lib
-	LFLAGS  += -lSDL2main -lSDL2 -lpthread
+	LFLAGS  += -lSDL2main -lSDL2 -lpthread -lm
 	LDFLAGS  +=  -Wl,--warn-common
 	GCC_BIN_DIR := $(dir $(firstword $(shell where gcc 2>NUL)))
 	LIBWINPTHREAD_DLL := $(wildcard $(GCC_BIN_DIR)libwinpthread-1.dll)
@@ -40,13 +40,13 @@ else ifeq ($(shell uname), Darwin)
 # COMMON_FLAGS  += -DSDL_DISABLE_ARM_NEON_H -D_THREAD_SAFE
 # INCLUDE  += /opt/homebrew/include
 # LIB  += /opt/homebrew/lib
-	LFLAGS  += -lSDL2 -lSDL2main
+	LFLAGS  += -lSDL2 -lSDL2main -lm
 
 	NOGC := 1
 else
 
 	COMMON_FLAGS  +=  
-	LFLAGS  += -lSDL2
+	LFLAGS  += -lSDL2 -lm
 	LDFLAGS  +=  -Wl,--warn-common
 	LDFLAGS  +=  -Wl,--gc-sections
 endif

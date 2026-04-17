@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.w3.org/1999/xlink" width="320" height="320" viewBox="0 0 320 320"><rect x="0" y="0" width="320" height="320" fill="#ffffff" /><svg width="320" height="320" viewBox="0 0 18 8" x="0" y="0">
+  <rect width="18" height="8" fill="#ffffff" />
+  <defs>
+    <g id="pair">
+      <rect width="8" height="8" fill="#00ff00" />
+      <rect x="10" width="8" height="8" fill="#0000ff" />
+    </g>
+  </defs>
+  <use ns1:href="#pair" />
+</svg></svg>
