@@ -17,6 +17,7 @@
 | SDL2 | PC 模拟器显示和输入 | 必需（Windows 版本已内置） |
 | Python 3.8+ | 资源生成与脚本工具 | 必需 |
 | FFmpeg | MP4 转序列帧、GIF 录制等媒体处理 | 默认检查，Windows 缺失时自动下载 |
+| Cairo runtime | `cairosvg` / `cairocffi` 的 Windows 本地 SVG 光栅化运行库 | SVG 光栅化场景需要 |
 | ARM GCC | STM32 / QEMU 交叉编译 | 可选 |
 | QEMU | ARM 仿真与性能测试 | 可选 |
 | Emscripten | WASM 构建 | 可选 |
@@ -63,6 +64,8 @@ python scripts\setup_env.py --python-mode full
 7. 检查 `ffmpeg`
 8. 在缺失时自动安装 `tools/ffmpeg`
 9. 默认编译一次 `HelloSimple` 做验证
+
+如果是在 Windows 下处理需要光栅化的 SVG 资源，`setup_env.py` 的 Summary 还会额外报告 `Cairo runtime` 是否可用。
 
 ### 常用参数
 
@@ -137,6 +140,32 @@ tools/ffmpeg/bin
 - `scripts/recording/gif_recorder.py` 的高质量 GIF 导出流程
 
 如果你不需要这些媒体处理能力，可以显式传入 `--skip-ffmpeg`。
+
+### 关于 Windows 下的 Cairo runtime
+
+`cairosvg` 在 Windows 下除了 Python 包，还需要本地 `libcairo-2.dll` 及其配套依赖。当前仓库的 SVG 资源链路会优先按以下方式查找：
+
+- `CAIROCFFI_DLL_DIRECTORIES`
+- `MSYS2_LOCATION`
+- 默认的 `C:\msys64\mingw64\bin` / `ucrt64\bin` / `clang64\bin`
+
+推荐做法是安装 MSYS2，然后执行：
+
+```bash
+pacman -S --needed mingw-w64-x86_64-cairo
+```
+
+如果 MSYS2 安装在默认路径 `C:\msys64`，仓库脚本通常无需再改 `PATH`；如果你使用自定义安装位置，可以设置：
+
+```text
+MSYS2_LOCATION=<msys2_root>
+```
+
+或直接设置：
+
+```text
+CAIROCFFI_DLL_DIRECTORIES=<msys2_root>\mingw64\bin
+```
 
 ## Linux / macOS 环境搭建
 
@@ -246,6 +275,16 @@ Linux / macOS 通过系统包管理器安装后，可用以下命令确认：
 ```bash
 ffmpeg -version
 ```
+
+### 5. 准备 Windows 下的 Cairo runtime（仅 SVG 光栅化需要）
+
+如果你的资源生成、SVG 校验或 CI 会用到 `cairosvg`，建议在 Windows 上安装 MSYS2 并补齐 Cairo：
+
+```bash
+pacman -S --needed mingw-w64-x86_64-cairo
+```
+
+默认安装到 `C:\msys64` 时，仓库内脚本会自动尝试发现该运行库；如果不是默认位置，请设置 `MSYS2_LOCATION` 或 `CAIROCFFI_DLL_DIRECTORIES`。
 
 ## 验证安装
 

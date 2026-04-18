@@ -15,6 +15,11 @@ import tempfile
 import urllib.request
 import zipfile
 
+try:
+    import cairo_runtime
+except ImportError:
+    from . import cairo_runtime
+
 
 MIN_PYTHON_VERSION = (3, 8)
 DEFAULT_VENV_DIR = ".venv"
@@ -189,6 +194,7 @@ def print_manual_python_help(venv_python: Path, profile: str, venv_dir: Path) ->
 
 
 def build_python_verify_script(profile: str, root_dir: Path) -> str:
+    scripts_dir = root_dir / "scripts"
     imports = [
         "import json5",
         "import numpy",
@@ -196,7 +202,46 @@ def build_python_verify_script(profile: str, root_dir: Path) -> str:
         "import freetype",
         "from elftools.elf.elffile import ELFFile",
     ]
-    return "import os, sys\n" + "\n".join(imports) + "\nprint('ok')\n"
+    lines = [
+        "import os, sys",
+        f"sys.path.insert(0, {str(scripts_dir)!r})",
+        "import cairo_runtime",
+        "cairo_runtime.prepare_cairo_runtime()",
+        *imports,
+        "svg_raster_status = 'ready'",
+        "svg_raster_detail = ''",
+        "try:",
+        "    import cairosvg",
+        "except Exception as exc:",
+        "    svg_raster_status = 'unavailable'",
+        "    svg_raster_detail = f'{type(exc).__name__}: {exc}'",
+        "print(f'svg_raster_status={svg_raster_status}')",
+        "if svg_raster_detail:",
+        "    print(f'svg_raster_detail={svg_raster_detail}')",
+        "print('ok')",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def parse_optional_svg_raster_probe(output: str) -> tuple[str | None, str | None]:
+    status = None
+    detail = None
+    for raw_line in output.splitlines():
+        line = raw_line.strip()
+        if line.startswith("svg_raster_status="):
+            status = line.split("=", 1)[1].strip()
+        elif line.startswith("svg_raster_detail="):
+            detail = line.split("=", 1)[1].strip()
+    return status, detail
+
+
+def format_optional_svg_raster_warning(output: str) -> str | None:
+    status, detail = parse_optional_svg_raster_probe(output)
+    if status != "unavailable":
+        return None
+    if detail:
+        return f"optional SVG rasterization unavailable ({detail})"
+    return "optional SVG rasterization unavailable"
 
 
 def verify_python_environment(venv_python: Path, profile: str, root_dir: Path) -> bool:
@@ -204,6 +249,9 @@ def verify_python_environment(venv_python: Path, profile: str, root_dir: Path) -
     result = run([str(venv_python), "-c", script], capture_output=True)
     if result.returncode == 0:
         print("[OK] Python dependency verification passed.")
+        svg_warning = format_optional_svg_raster_warning(result.stdout)
+        if svg_warning:
+            print(f"[WARN] {svg_warning}")
         return True
 
     print("[!!] Python dependency verification failed.")
@@ -646,8 +694,21 @@ def probe_python_dependencies(venv_python: Path | None, profile: str, root_dir: 
     script = build_python_verify_script(profile, root_dir)
     result = run([str(venv_python), "-c", script], capture_output=True)
     if result.returncode == 0:
+        svg_warning = format_optional_svg_raster_warning(result.stdout)
+        if svg_warning:
+            return f"ready ({profile}; {svg_warning})"
         return f"ready ({profile})"
     return f"not ready ({summarize_process_error(result)})"
+
+
+def probe_cairo_runtime_status(root_dir: Path, env: dict[str, str] | None = None) -> str:
+    if not is_windows():
+        return "not required"
+
+    cairo_bin_dir = cairo_runtime.find_windows_cairo_bin_dir(root_dir, env)
+    if cairo_bin_dir is None:
+        return "optional missing (required for SVG rasterization on Windows)"
+    return f"ready ({display_path(cairo_bin_dir / 'libcairo-2.dll', root_dir)})"
 
 
 def probe_command_status(command_names: list[str], env: dict[str, str], root_dir: Path, version_args: list[str] | None = None) -> str:
@@ -1028,6 +1089,8 @@ def print_summary(root_dir: Path, venv_dir: Path, profile: str, env: dict[str, s
     print_status_line("Python mode", profile)
     print_status_line("Virtual env", venv_status)
     print_status_line("Python deps", probe_python_dependencies(venv_python, profile, root_dir))
+    if is_windows():
+        print_status_line("Cairo runtime", probe_cairo_runtime_status(root_dir, summary_env))
     print_status_line("make", probe_command_status(["make.exe", "make"], summary_env, root_dir))
     print_status_line("gcc", probe_command_status(["gcc.exe", "gcc"], summary_env, root_dir))
     if is_windows():

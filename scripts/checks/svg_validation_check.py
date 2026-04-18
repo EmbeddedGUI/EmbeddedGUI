@@ -21,12 +21,6 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageFont
 
-try:
-    import cairosvg
-except ImportError:
-    cairosvg = None
-
-
 SCRIPT_DIR = Path(__file__).resolve().parent
 SCRIPTS_ROOT = SCRIPT_DIR.parent
 ROOT_DIR = SCRIPTS_ROOT.parent
@@ -34,6 +28,18 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
+
+import cairo_runtime
+
+cairo_runtime.prepare_cairo_runtime(ROOT_DIR)
+
+try:
+    import cairosvg
+except (ImportError, OSError) as exc:
+    cairosvg = None
+    CAIROSVG_IMPORT_ERROR = exc
+else:
+    CAIROSVG_IMPORT_ERROR = None
 
 import code_runtime_check as runtime_check
 
@@ -102,6 +108,18 @@ REFERENCE_ENGINE_OVERRIDE_ALLOWED_ENGINES = (
     REFERENCE_ENGINE_CAIROSVG,
     REFERENCE_ENGINE_EDGE,
 )
+
+
+def describe_cairosvg_unavailable() -> str:
+    if CAIROSVG_IMPORT_ERROR is None:
+        return "cairosvg is not installed"
+
+    detail = str(CAIROSVG_IMPORT_ERROR).strip()
+    if detail:
+        return f"cairosvg is unavailable because its native Cairo runtime could not be loaded: {detail}"
+    return "cairosvg is unavailable because its native Cairo runtime could not be loaded"
+
+
 REFERENCE_ENGINE_OVERRIDE_ALLOWED_KEYS = frozenset(
     (
         "fuzzy_max_difference",
@@ -3459,12 +3477,15 @@ def resolve_reference_backend(requested_engine: str, explicit_edge_path: str | N
                 return REFERENCE_ENGINE_CAIROSVG, "auto fallback: Edge/Chrome large-viewport SVG capture unavailable"
             return REFERENCE_ENGINE_CAIROSVG, "cairosvg"
         if edge_path is not None:
-            raise RuntimeError("Edge/Chrome is available but cannot capture large-viewport SVG references, and cairosvg is not installed")
-        raise RuntimeError("could not resolve reference renderer: neither Edge/Chrome nor cairosvg is available")
+            raise RuntimeError(
+                "Edge/Chrome is available but cannot capture large-viewport SVG references, and "
+                f"{describe_cairosvg_unavailable()}"
+            )
+        raise RuntimeError(f"could not resolve reference renderer: neither Edge/Chrome nor {describe_cairosvg_unavailable()}")
 
     if requested_engine == REFERENCE_ENGINE_CAIROSVG:
         if cairosvg is None:
-            raise RuntimeError("cairosvg is not installed")
+            raise RuntimeError(describe_cairosvg_unavailable())
         return REFERENCE_ENGINE_CAIROSVG, "cairosvg"
 
     edge_path = resolve_edge_path(explicit_edge_path)
@@ -3923,7 +3944,7 @@ def render_edge_reference(case: dict[str, object], edge_path: Path, reference_di
 
 def render_cairosvg_reference(case: dict[str, object], reference_dir: Path) -> Path:
     if cairosvg is None:
-        raise RuntimeError("cairosvg is not installed")
+        raise RuntimeError(describe_cairosvg_unavailable())
 
     case_id = str(case["id"])
     reference_svg_path, reference_svg_text = materialize_reference_fixture_svg(case, reference_dir)

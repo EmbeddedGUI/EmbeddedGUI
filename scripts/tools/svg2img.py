@@ -3,17 +3,45 @@
 
 import io
 import os
+import sys
+from pathlib import Path
 
 from PIL import Image
 
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPTS_ROOT = SCRIPT_DIR.parent
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
+
+import cairo_runtime
+
+cairo_runtime.prepare_cairo_runtime()
+
 try:
     import cairosvg
-except ImportError:
+except (ImportError, OSError) as exc:
     cairosvg = None
+    CAIROSVG_IMPORT_ERROR = exc
+else:
+    CAIROSVG_IMPORT_ERROR = None
 
 
 class SvgError(ValueError):
     pass
+
+
+def describe_cairosvg_unavailable():
+    if CAIROSVG_IMPORT_ERROR is None:
+        return "CairoSVG is required to rasterize SVG resources. Install it with `pip install cairosvg`."
+
+    detail = str(CAIROSVG_IMPORT_ERROR).strip()
+    if detail:
+        return (
+            "CairoSVG is required to rasterize SVG resources, but its native Cairo runtime is unavailable: "
+            f"{detail}"
+        )
+    return "CairoSVG is required to rasterize SVG resources, but its native Cairo runtime is unavailable."
 
 
 def render_svg_to_pil(svg_path, dim):
@@ -26,7 +54,7 @@ def render_svg_to_pil(svg_path, dim):
         raise SvgError(f"SVG resource '{os.path.basename(svg_path)}' requires a positive dim value.")
 
     if cairosvg is None:
-        raise SvgError("CairoSVG is required to rasterize SVG resources. Install it with `pip install cairosvg`.")
+        raise SvgError(describe_cairosvg_unavailable())
 
     if not os.path.exists(svg_path):
         raise FileNotFoundError(f"Cannot open image file {svg_path}")

@@ -19,6 +19,9 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
+      - name: Setup Cairo runtime
+        uses: ./.github/actions/setup-cairo-runtime
+
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
 
@@ -62,6 +65,9 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
+      - name: Setup Cairo runtime
+        uses: ./.github/actions/setup-cairo-runtime
+
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
 
@@ -100,6 +106,9 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
+      - name: Setup Cairo runtime
+        uses: ./.github/actions/setup-cairo-runtime
+
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
 
@@ -130,6 +139,9 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
+      - name: Setup Cairo runtime
+        uses: ./.github/actions/setup-cairo-runtime
+
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
 
@@ -152,6 +164,9 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
           cache-dependency-path: requirements.txt
+
+      - name: Setup Cairo runtime
+        uses: ./.github/actions/setup-cairo-runtime
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
@@ -184,6 +199,9 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
           cache-dependency-path: requirements.txt
+
+      - name: Setup Cairo runtime
+        uses: ./.github/actions/setup-cairo-runtime
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
@@ -218,6 +236,9 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
           cache-dependency-path: requirements.txt
+
+      - name: Setup Cairo runtime
+        uses: ./.github/actions/setup-cairo-runtime
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt

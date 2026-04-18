@@ -1,0 +1,23 @@
+name: Setup Cairo Runtime
+description: Install the Windows Cairo runtime for cairocffi/CairoSVG without overriding the active GCC toolchain.
+
+runs:
+  using: composite
+  steps:
+    - name: Install MSYS2 Cairo runtime
+      id: msys2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        release: false
+        update: true
+        install: >-
+          mingw-w64-x86_64-cairo
+
+    - name: Export Cairo runtime hints
+      shell: powershell
+      run: |
+        $msys2Root = '${{ steps.msys2.outputs.msys2-location }}'
+        $cairoBin = Join-Path $msys2Root 'mingw64\bin'
+        "MSYS2_LOCATION=$msys2Root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "CAIROCFFI_DLL_DIRECTORIES=$cairoBin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
