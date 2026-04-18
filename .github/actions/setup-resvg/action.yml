@@ -1,0 +1,13 @@
+name: Setup resvg
+description: Install the official resvg CLI into the repo-local tools directory.
+
+runs:
+  using: composite
+  steps:
+    - name: Install resvg
+      shell: powershell
+      run: |
+        $resvgPath = python "${{ github.workspace }}\scripts\setup_resvg.py" --install --print-path
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        "RESVG=$resvgPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        Split-Path -Parent $resvgPath | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append

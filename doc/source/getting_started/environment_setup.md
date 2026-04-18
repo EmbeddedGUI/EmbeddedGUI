@@ -17,7 +17,7 @@
 | SDL2 | PC 模拟器显示和输入 | 必需（Windows 版本已内置） |
 | Python 3.8+ | 资源生成与脚本工具 | 必需 |
 | FFmpeg | MP4 转序列帧、GIF 录制等媒体处理 | 默认检查，Windows 缺失时自动下载 |
-| Cairo runtime | `cairosvg` / `cairocffi` 的 Windows 本地 SVG 光栅化运行库 | SVG 光栅化场景需要 |
+| resvg CLI | SVG 资源光栅化与 SVG 参考渲染 | 默认检查，缺失时自动下载 |
 | ARM GCC | STM32 / QEMU 交叉编译 | 可选 |
 | QEMU | ARM 仿真与性能测试 | 可选 |
 | Emscripten | WASM 构建 | 可选 |
@@ -59,23 +59,27 @@ python scripts\setup_env.py --python-mode full
 2. 升级 `pip`
 3. 安装 `requirements.txt`
 4. 校验 `json5`、`numpy`、`Pillow`、`freetype_py`、`pyelftools`
-5. 检查本地或系统中的 `make` / `gcc`
-6. 在缺失时自动安装 `tools/w64devkit`
-7. 检查 `ffmpeg`
-8. 在缺失时自动安装 `tools/ffmpeg`
-9. 默认编译一次 `HelloSimple` 做验证
+5. 检查 `resvg`
+6. 在缺失时自动安装到 `tools/resvg/<version>/<platform>/`
+7. 检查本地或系统中的 `make` / `gcc`
+8. 在缺失时自动安装 `tools/w64devkit`
+9. 检查 `ffmpeg`
+10. 在缺失时自动安装 `tools/ffmpeg`
+11. 默认编译一次 `HelloSimple` 做验证
 
-如果是在 Windows 下处理需要光栅化的 SVG 资源，`setup_env.py` 的 Summary 还会额外报告 `Cairo runtime` 是否可用。
+`setup_env.py` 的 Summary 会额外报告当前 `resvg` 是否可用。
 
 ### 常用参数
 
 ```bat
 setup.bat --python-mode basic
 setup.bat --python-mode none
+setup.bat --skip-resvg
 setup.bat --skip-toolchain
 setup.bat --skip-ffmpeg
 setup.bat --skip-build-check
 setup.bat --venv-dir .venv_custom
+setup.bat --install-resvg
 setup.bat --install-toolchain
 setup.bat --install-ffmpeg
 ```
@@ -88,6 +92,8 @@ setup.bat --install-ffmpeg
   安装 `requirements.txt` 中的基础依赖。
 - `--python-mode none`
   跳过 Python 依赖安装，仅做工具链检查。
+- `--skip-resvg`
+  跳过 `resvg` 检查和自动安装。仅在本次不涉及 SVG 资源生成或 SVG 校验时使用。
 - `--skip-toolchain`
   跳过 `make` / `gcc` 检查和 `w64devkit` 自动安装。
 - `--skip-ffmpeg`
@@ -96,6 +102,8 @@ setup.bat --install-ffmpeg
   跳过 `HelloSimple` 编译验证。
 - `--venv-dir`
   指定虚拟环境目录。
+- `--install-resvg`
+  仅安装仓库内的 `resvg` 并退出。
 - `--install-toolchain`
   仅安装 Windows 工具链并退出。
 - `--install-ffmpeg`
@@ -141,30 +149,26 @@ tools/ffmpeg/bin
 
 如果你不需要这些媒体处理能力，可以显式传入 `--skip-ffmpeg`。
 
-### 关于 Windows 下的 Cairo runtime
+### 关于 `resvg`
 
-`cairosvg` 在 Windows 下除了 Python 包，还需要本地 `libcairo-2.dll` 及其配套依赖。当前仓库的 SVG 资源链路会优先按以下方式查找：
+仓库已经不再依赖旧的 Python SVG 渲染链路或额外本地运行库。
 
-- `CAIROCFFI_DLL_DIRECTORIES`
-- `MSYS2_LOCATION`
-- 默认的 `C:\msys64\mingw64\bin` / `ucrt64\bin` / `clang64\bin`
+当前 SVG 资源生成和 `HelloSVGSpec` 参考渲染统一使用官方 `resvg` CLI，默认会优先按以下顺序查找：
 
-推荐做法是安装 MSYS2，然后执行：
+- 环境变量 `RESVG`
+- 仓库内自动下载的 `tools/resvg/<version>/<platform>/resvg(.exe)`
+- 系统 `PATH` 中已有的 `resvg`
+
+如果缺失，`setup_env.py` 会自动下载官方预编译包；也可以手动执行：
 
 ```bash
-pacman -S --needed mingw-w64-x86_64-cairo
+python scripts/setup_resvg.py --install
 ```
 
-如果 MSYS2 安装在默认路径 `C:\msys64`，仓库脚本通常无需再改 `PATH`；如果你使用自定义安装位置，可以设置：
+如果你已经有现成的 `resvg`，也可以手动指定：
 
 ```text
-MSYS2_LOCATION=<msys2_root>
-```
-
-或直接设置：
-
-```text
-CAIROCFFI_DLL_DIRECTORIES=<msys2_root>\mingw64\bin
+RESVG=<path-to-resvg>
 ```
 
 ## Linux / macOS 环境搭建
@@ -184,9 +188,11 @@ CAIROCFFI_DLL_DIRECTORIES=<msys2_root>\mingw64\bin
 ```bash
 ./setup.sh --python-mode basic
 ./setup.sh --python-mode none
+./setup.sh --skip-resvg
 ./setup.sh --skip-ffmpeg
 ./setup.sh --skip-build-check
 ./setup.sh --venv-dir .venv_custom
+./setup.sh --install-resvg
 ```
 
 ### 先安装系统依赖
@@ -276,15 +282,22 @@ Linux / macOS 通过系统包管理器安装后，可用以下命令确认：
 ffmpeg -version
 ```
 
-### 5. 准备 Windows 下的 Cairo runtime（仅 SVG 光栅化需要）
+### 5. 准备 `resvg`（SVG 光栅化需要）
 
-如果你的资源生成、SVG 校验或 CI 会用到 `cairosvg`，建议在 Windows 上安装 MSYS2 并补齐 Cairo：
+推荐直接执行：
 
 ```bash
-pacman -S --needed mingw-w64-x86_64-cairo
+python scripts/setup_resvg.py --install
 ```
 
-默认安装到 `C:\msys64` 时，仓库内脚本会自动尝试发现该运行库；如果不是默认位置，请设置 `MSYS2_LOCATION` 或 `CAIROCFFI_DLL_DIRECTORIES`。
+也可以通过 setup 入口：
+
+```bash
+setup.bat --install-resvg
+./setup.sh --install-resvg
+```
+
+安装完成后，脚本会把官方 `resvg` 二进制放到仓库内的 `tools/resvg/<version>/<platform>/`。
 
 ## 验证安装
 
@@ -370,6 +383,23 @@ call tools\emsdk\emsdk_env.bat
 ### `ffmpeg` 未找到
 
 Windows 下重新运行 `setup.bat` 即可触发自动安装。Linux / macOS 请先通过系统包管理器安装，或在不需要相关流程时传入 `--skip-ffmpeg`。
+
+### `resvg` 未找到
+
+优先运行：
+
+```bash
+python scripts/setup_resvg.py --install
+```
+
+或者直接重新执行：
+
+```bash
+setup.bat
+./setup.sh
+```
+
+如果你想使用系统里现有的 `resvg`，设置 `RESVG` 或确保它在 `PATH` 中即可。
 
 ### `emcc` 未找到或版本不对
 

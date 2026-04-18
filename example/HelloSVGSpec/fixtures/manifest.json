@@ -443,9 +443,9 @@
       "fuzzy_max_diff_pixels": 8,
       "fuzzy_override_reason": "percentage rgba() parsing has stayed visually aligned and within a 99-channel delta across at most 8 boundary pixels in repeated Edge parity runs",
       "reference_engine_overrides": {
-        "cairosvg": {
+        "resvg": {
           "review_skip": true,
-          "review_skip_reason": "CairoSVG fallback diverges from Edge/Chrome on percentage rgba() review compositing; strict parity stays covered by the default browser reference engine"
+          "review_skip_reason": "resvg fallback diverges from Edge/Chrome on percentage rgba() review compositing; strict parity stays covered by the default browser reference engine"
         }
       }
     },
@@ -566,9 +566,9 @@
       "fuzzy_max_diff_pixels": 2,
       "fuzzy_override_reason": "after letting subpixel two-point hairline strokes survive the tiny canonical capture path, the percentage-endpoint diagonal now matches Edge geometry and only keeps a small RGB565 endpoint color delta across two pixels",
       "reference_engine_overrides": {
-        "cairosvg": {
+        "resvg": {
           "review_skip": true,
-          "review_skip_reason": "CairoSVG fallback diverges from Edge/Chrome on percentage hairline endpoint review rasterization; strict parity stays covered by the default browser reference engine"
+          "review_skip_reason": "resvg fallback diverges from Edge/Chrome on percentage hairline endpoint review rasterization; strict parity stays covered by the default browser reference engine"
         }
       }
     },
@@ -625,7 +625,7 @@
       "render_height": 36,
       "fuzzy_max_difference": 8,
       "fuzzy_max_diff_pixels": 36,
-      "fuzzy_override_reason": "the fractional butt linecap preserves the review endpoint geometry, but Cairo still leaves low-amplitude 8-channel perimeter deltas across 36 antialiased pixels on the canonical parity render"
+      "fuzzy_override_reason": "the fractional butt linecap preserves the review endpoint geometry, but resvg still leaves low-amplitude 8-channel perimeter deltas across 36 antialiased pixels on the canonical parity render"
     },
     {
       "id": "stroke_linecap_round",
@@ -669,7 +669,7 @@
       "render_height": 36,
       "fuzzy_max_difference": 9,
       "fuzzy_max_diff_pixels": 80,
-      "fuzzy_override_reason": "the fractional square linecaps preserve the review endpoint geometry, but Cairo still leaves low-amplitude 9-channel perimeter deltas across 80 antialiased pixels on the canonical parity render"
+      "fuzzy_override_reason": "the fractional square linecaps preserve the review endpoint geometry, but resvg still leaves low-amplitude 9-channel perimeter deltas across 80 antialiased pixels on the canonical parity render"
     },
     {
       "id": "polyline_stroke_basic",
@@ -988,7 +988,7 @@
       "render_height": 6,
       "fuzzy_max_difference": 148,
       "fuzzy_max_diff_pixels": 6,
-      "fuzzy_override_reason": "the inset skewY companion keeps the transformed quad away from the review crop edge, while Cairo still leaves a 148-channel canonical edge delta across 6 compact boundary pixels"
+      "fuzzy_override_reason": "the inset skewY companion keeps the transformed quad away from the review crop edge, while resvg still leaves a 148-channel canonical edge delta across 6 compact boundary pixels"
     },
     {
       "id": "group_scale_transform_fill",
@@ -1307,7 +1307,7 @@
       "render_height": 6,
       "fuzzy_max_difference": 74,
       "fuzzy_max_diff_pixels": 6,
-      "fuzzy_override_reason": "the inset symbol viewBox min-offset companion keeps the visible square away from the review crop edge, while Cairo still leaves a 74-channel canonical edge delta across 6 compact boundary pixels"
+      "fuzzy_override_reason": "the inset symbol viewBox min-offset companion keeps the visible square away from the review crop edge, while resvg still leaves a 74-channel canonical edge delta across 6 compact boundary pixels"
     },
     {
       "id": "use_symbol_slice_clip",
@@ -1340,7 +1340,7 @@
       "render_height": 6,
       "fuzzy_max_difference": 83,
       "fuzzy_max_diff_pixels": 1,
-      "fuzzy_override_reason": "the fractional symbol slice-clip companion keeps review geometry available with only a one-edge-pixel bbox shift, while Cairo still leaves a single 83-channel canonical boundary pixel"
+      "fuzzy_override_reason": "the fractional symbol slice-clip companion keeps review geometry available with only a one-edge-pixel bbox shift, while resvg still leaves a single 83-channel canonical boundary pixel"
     },
     {
       "id": "use_symbol_aspect_meet",
@@ -1427,7 +1427,7 @@
       "render_height": 18,
       "fuzzy_max_difference": 49,
       "fuzzy_max_diff_pixels": 36,
-      "fuzzy_override_reason": "the fractional clipped symbol stroke keeps the review clip edge aligned, but Cairo still leaves a 49-channel canonical edge delta across 36 antialiased pixels on the canonical parity render"
+      "fuzzy_override_reason": "the fractional clipped symbol stroke keeps the review clip edge aligned, but resvg still leaves a 49-channel canonical edge delta across 36 antialiased pixels on the canonical parity render"
     },
     {
       "id": "use_symbol_stroke_visible",
@@ -1449,7 +1449,7 @@
       "render_height": 18,
       "fuzzy_max_difference": 66,
       "fuzzy_max_diff_pixels": 72,
-      "fuzzy_override_reason": "the fractional visible symbol stroke preserves the review spill geometry, but Cairo still leaves a 66-channel canonical edge delta across 72 antialiased pixels on the canonical parity render"
+      "fuzzy_override_reason": "the fractional visible symbol stroke preserves the review spill geometry, but resvg still leaves a 66-channel canonical edge delta across 72 antialiased pixels on the canonical parity render"
     },
     {
       "id": "use_xlink_href",
@@ -1504,7 +1504,7 @@
       "render_height": 6,
       "fuzzy_max_difference": 99,
       "fuzzy_max_diff_pixels": 6,
-      "fuzzy_override_reason": "the inset use-reference xy companion keeps the translated square away from the review crop edge, while Cairo still leaves a 99-channel canonical edge delta across 6 compact boundary pixels"
+      "fuzzy_override_reason": "the inset use-reference xy companion keeps the translated square away from the review crop edge, while resvg still leaves a 99-channel canonical edge delta across 6 compact boundary pixels"
     },
     {
       "id": "use_svg_ref_xy_viewbox",
@@ -1559,7 +1559,7 @@
       "render_height": 6,
       "fuzzy_max_difference": 66,
       "fuzzy_max_diff_pixels": 6,
-      "fuzzy_override_reason": "the inset svg viewBox min-offset companion keeps the visible square away from the review crop edge, while Cairo still leaves a 66-channel canonical edge delta across 6 compact boundary pixels"
+      "fuzzy_override_reason": "the inset svg viewBox min-offset companion keeps the visible square away from the review crop edge, while resvg still leaves a 66-channel canonical edge delta across 6 compact boundary pixels"
     },
     {
       "id": "use_svg_overflow_clip",
@@ -1608,7 +1608,7 @@
       "render_height": 18,
       "fuzzy_max_difference": 49,
       "fuzzy_max_diff_pixels": 36,
-      "fuzzy_override_reason": "the fractional clipped nested-svg stroke keeps the review clip edge aligned, but Cairo still leaves a 49-channel canonical edge delta across 36 antialiased pixels on the canonical parity render"
+      "fuzzy_override_reason": "the fractional clipped nested-svg stroke keeps the review clip edge aligned, but resvg still leaves a 49-channel canonical edge delta across 36 antialiased pixels on the canonical parity render"
     },
     {
       "id": "use_svg_overflow_visible",
@@ -1657,7 +1657,7 @@
       "render_height": 6,
       "fuzzy_max_difference": 159,
       "fuzzy_max_diff_pixels": 5,
-      "fuzzy_override_reason": "the inset svg-use slice-clip companion makes review geometry available with only a one-edge-pixel bbox shift, while Cairo still leaves a 155-channel canonical boundary delta across 5 pixels"
+      "fuzzy_override_reason": "the inset svg-use slice-clip companion makes review geometry available with only a one-edge-pixel bbox shift, while resvg still leaves a 155-channel canonical boundary delta across 5 pixels"
     },
     {
       "id": "nested_svg_overflow_hidden",
@@ -1752,7 +1752,7 @@
       "render_height": 18,
       "fuzzy_max_difference": 49,
       "fuzzy_max_diff_pixels": 36,
-      "fuzzy_override_reason": "the fractional clipped nested-svg stroke keeps the review clip edge aligned, but Cairo still leaves a 49-channel canonical edge delta across 36 antialiased pixels on the canonical parity render"
+      "fuzzy_override_reason": "the fractional clipped nested-svg stroke keeps the review clip edge aligned, but resvg still leaves a 49-channel canonical edge delta across 36 antialiased pixels on the canonical parity render"
     },
     {
       "id": "rounded_rect_default_fill_black",
@@ -1996,9 +1996,9 @@
       "fuzzy_max_diff_pixels": 4,
       "fuzzy_override_reason": "the compact default black negative-radii arc normalizes to the same ellipse branch, but Edge still peaks at a 132-channel canonical edge delta across 4 compact boundary pixels",
       "reference_engine_overrides": {
-        "cairosvg": {
+        "resvg": {
           "review_skip": true,
-          "review_skip_reason": "CairoSVG fallback diverges from Edge/Chrome when negative arc radii are normalized on the review render; strict parity stays covered by the default browser reference engine"
+          "review_skip_reason": "resvg fallback diverges from Edge/Chrome when negative arc radii are normalized on the review render; strict parity stays covered by the default browser reference engine"
         }
       }
     },
@@ -2024,9 +2024,9 @@
       "fuzzy_max_diff_pixels": 4,
       "fuzzy_override_reason": "the compact negative-radii arc has stayed visually aligned and within a 107-channel delta across at most 4 pixels in repeated Edge parity runs",
       "reference_engine_overrides": {
-        "cairosvg": {
+        "resvg": {
           "review_skip": true,
-          "review_skip_reason": "CairoSVG fallback diverges from Edge/Chrome when negative arc radii are normalized on the review render; strict parity stays covered by the default browser reference engine"
+          "review_skip_reason": "resvg fallback diverges from Edge/Chrome when negative arc radii are normalized on the review render; strict parity stays covered by the default browser reference engine"
         }
       }
     },
@@ -2039,7 +2039,7 @@
       "render_height": 6,
       "fuzzy_max_difference": 99,
       "fuzzy_max_diff_pixels": 8,
-      "fuzzy_override_reason": "the fractional negative-radii arc keeps review bbox drift to a single edge pixel, but Cairo still leaves a 91-channel canonical antialiased delta across 8 pixels"
+      "fuzzy_override_reason": "the fractional negative-radii arc keeps review bbox drift to a single edge pixel, but resvg still leaves a 91-channel canonical antialiased delta across 8 pixels"
     },
     {
       "id": "path_arc_relative_default_fill_black",
@@ -2361,9 +2361,9 @@
       "fuzzy_max_diff_pixels": 2,
       "fuzzy_override_reason": "percentage geometry on the tiny 6x3 rect keeps the same footprint, but Edge still leaves two compact boundary pixels that peak at a 99-channel delta",
       "reference_engine_overrides": {
-        "cairosvg": {
+        "resvg": {
           "review_skip": true,
-          "review_skip_reason": "CairoSVG fallback diverges from Edge/Chrome on percentage geometry review viewport alignment; strict parity stays covered by the default browser reference engine"
+          "review_skip_reason": "resvg fallback diverges from Edge/Chrome on percentage geometry review viewport alignment; strict parity stays covered by the default browser reference engine"
         }
       }
     },
@@ -2810,9 +2810,9 @@
       "fuzzy_max_diff_pixels": 87,
       "fuzzy_override_reason": "the miter tip cutoff has stayed visually aligned and within a 91-channel peak across at most 87 changed pixels in repeated Edge parity runs",
       "reference_engine_overrides": {
-        "cairosvg": {
+        "resvg": {
           "review_skip": true,
-          "review_skip_reason": "CairoSVG fallback diverges from Edge/Chrome on miterlimit cutoff review rasterization; strict parity stays covered by the default browser reference engine"
+          "review_skip_reason": "resvg fallback diverges from Edge/Chrome on miterlimit cutoff review rasterization; strict parity stays covered by the default browser reference engine"
         }
       }
     },
@@ -2825,7 +2825,7 @@
       "render_height": 6,
       "fuzzy_max_difference": 74,
       "fuzzy_max_diff_pixels": 15,
-      "fuzzy_override_reason": "the fractional miterlimit companion locks the review geometry exactly, while Cairo still leaves a 74-channel canonical edge delta across 15 compact join pixels"
+      "fuzzy_override_reason": "the fractional miterlimit companion locks the review geometry exactly, while resvg still leaves a 74-channel canonical edge delta across 15 compact join pixels"
     },
     {
       "id": "path_quad_default_fill_black",
@@ -2946,7 +2946,7 @@
       "render_height": 6,
       "fuzzy_max_difference": 123,
       "fuzzy_max_diff_pixels": 15,
-      "fuzzy_override_reason": "the fractional nested default viewport keeps the review bbox locked, but Cairo still leaves a 123-channel canonical edge delta across 15 antialiased perimeter pixels"
+      "fuzzy_override_reason": "the fractional nested default viewport keeps the review bbox locked, but resvg still leaves a 123-channel canonical edge delta across 15 antialiased perimeter pixels"
     },
     {
       "id": "nested_svg_percentage_viewport",
@@ -2967,9 +2967,9 @@
       "render_width": 6,
       "render_height": 3,
       "reference_engine_overrides": {
-        "cairosvg": {
+        "resvg": {
           "review_skip": true,
-          "review_skip_reason": "CairoSVG fallback diverges from Edge/Chrome on nested SVG parent viewBox unit review viewport alignment; strict parity stays covered by the default browser reference engine"
+          "review_skip_reason": "resvg fallback diverges from Edge/Chrome on nested SVG parent viewBox unit review viewport alignment; strict parity stays covered by the default browser reference engine"
         }
       }
     },
@@ -3028,9 +3028,9 @@
       "fuzzy_max_diff_pixels": 1,
       "fuzzy_override_reason": "the nested default symbol viewport fractional companion keeps review geometry available, but Edge still leaves a single 140-channel canonical boundary pixel",
       "reference_engine_overrides": {
-        "cairosvg": {
+        "resvg": {
           "review_skip": true,
-          "review_skip_reason": "CairoSVG fallback diverges from Edge/Chrome on nested default symbol viewport review bbox coverage, while companion viewport cases already cover the family"
+          "review_skip_reason": "resvg fallback diverges from Edge/Chrome on nested default symbol viewport review bbox coverage, while companion viewport cases already cover the family"
         }
       }
     },

@@ -1,5 +1,4 @@
 freetype_py
-cairosvg
 json5
 matplotlib
 numpy

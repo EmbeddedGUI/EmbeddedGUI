@@ -50,13 +50,13 @@
 支持的参考后端：
 
 - `auto`
-  优先使用本机 `Edge/Chrome`，但只有在当前环境确实支持 large-viewport SVG capture 时才会选它；否则自动回退到 `CairoSVG`
+  优先使用本机 `Edge/Chrome`，但只有在当前环境确实支持 large-viewport SVG capture 时才会选它；否则自动回退到 `resvg`
 - `edge`
   显式强制使用本机 `Edge/Chrome`
-- `cairosvg`
-  显式强制使用 `CairoSVG`
+- `resvg`
+  显式强制使用仓库内或系统里的 `resvg` CLI
 
-在当前 Windows headless Edge 环境里，如果浏览器无法稳定输出 large-viewport SVG 截图，`auto` 会自动降级到 `CairoSVG`，避免默认流程走一条会产出白图的链路。
+在当前 Windows headless Edge 环境里，如果浏览器无法稳定输出 large-viewport SVG 截图，`auto` 会自动降级到 `resvg`，避免默认流程走一条会产出白图的链路。
 
 ## 主判定
 
@@ -109,7 +109,7 @@ python scripts/checks/svg_validation_check.py --with-unit --case path_smooth_qua
 
 ```bash
 python scripts/checks/svg_validation_check.py --reference-engine edge
-python scripts/checks/svg_validation_check.py --reference-engine cairosvg
+python scripts/checks/svg_validation_check.py --reference-engine resvg
 ```
 
 对单个 case 临时试验 image box：

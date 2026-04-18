@@ -26,8 +26,8 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
-      - name: Setup Cairo runtime
-        uses: ./.github/actions/setup-cairo-runtime
+      - name: Setup resvg
+        uses: ./.github/actions/setup-resvg
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
@@ -70,8 +70,8 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
-      - name: Setup Cairo runtime
-        uses: ./.github/actions/setup-cairo-runtime
+      - name: Setup resvg
+        uses: ./.github/actions/setup-resvg
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
@@ -109,8 +109,8 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
-      - name: Setup Cairo runtime
-        uses: ./.github/actions/setup-cairo-runtime
+      - name: Setup resvg
+        uses: ./.github/actions/setup-resvg
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
@@ -140,8 +140,8 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
-      - name: Setup Cairo runtime
-        uses: ./.github/actions/setup-cairo-runtime
+      - name: Setup resvg
+        uses: ./.github/actions/setup-resvg
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
@@ -164,8 +164,8 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
-      - name: Setup Cairo runtime
-        uses: ./.github/actions/setup-cairo-runtime
+      - name: Setup resvg
+        uses: ./.github/actions/setup-resvg
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
@@ -197,8 +197,8 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
-      - name: Setup Cairo runtime
-        uses: ./.github/actions/setup-cairo-runtime
+      - name: Setup resvg
+        uses: ./.github/actions/setup-resvg
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
@@ -232,8 +232,8 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
-      - name: Setup Cairo runtime
-        uses: ./.github/actions/setup-cairo-runtime
+      - name: Setup resvg
+        uses: ./.github/actions/setup-resvg
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt

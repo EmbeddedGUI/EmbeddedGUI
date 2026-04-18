@@ -29,17 +29,7 @@ if str(SCRIPT_DIR) not in sys.path:
 if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
-import cairo_runtime
-
-cairo_runtime.prepare_cairo_runtime(ROOT_DIR)
-
-try:
-    import cairosvg
-except (ImportError, OSError) as exc:
-    cairosvg = None
-    CAIROSVG_IMPORT_ERROR = exc
-else:
-    CAIROSVG_IMPORT_ERROR = None
+import resvg_tool
 
 import code_runtime_check as runtime_check
 
@@ -97,27 +87,21 @@ REVIEW_PFB_HEIGHT = 80
 REVIEW_MIN_EDGE = 80
 REVIEW_MARGIN = 0
 REFERENCE_ENGINE_AUTO = "auto"
-REFERENCE_ENGINE_CAIROSVG = "cairosvg"
+REFERENCE_ENGINE_RESVG = "resvg"
 REFERENCE_ENGINE_EDGE = "edge"
 REFERENCE_ENGINE_OPTIONS = (
     REFERENCE_ENGINE_AUTO,
-    REFERENCE_ENGINE_CAIROSVG,
+    REFERENCE_ENGINE_RESVG,
     REFERENCE_ENGINE_EDGE,
 )
 REFERENCE_ENGINE_OVERRIDE_ALLOWED_ENGINES = (
-    REFERENCE_ENGINE_CAIROSVG,
+    REFERENCE_ENGINE_RESVG,
     REFERENCE_ENGINE_EDGE,
 )
 
 
-def describe_cairosvg_unavailable() -> str:
-    if CAIROSVG_IMPORT_ERROR is None:
-        return "cairosvg is not installed"
-
-    detail = str(CAIROSVG_IMPORT_ERROR).strip()
-    if detail:
-        return f"cairosvg is unavailable because its native Cairo runtime could not be loaded: {detail}"
-    return "cairosvg is unavailable because its native Cairo runtime could not be loaded"
+def describe_resvg_unavailable() -> str:
+    return resvg_tool.describe_resvg_missing(ROOT_DIR)
 
 
 REFERENCE_ENGINE_OVERRIDE_ALLOWED_KEYS = frozenset(
@@ -3472,21 +3456,23 @@ def resolve_reference_backend(requested_engine: str, explicit_edge_path: str | N
             edge_path = None
         if edge_path is not None and probe_edge_large_viewport_capture(edge_path):
             return REFERENCE_ENGINE_EDGE, str(edge_path)
-        if cairosvg is not None:
+        resvg_path = resvg_tool.find_resvg_binary(ROOT_DIR)
+        if resvg_path is not None:
             if edge_path is not None:
-                return REFERENCE_ENGINE_CAIROSVG, "auto fallback: Edge/Chrome large-viewport SVG capture unavailable"
-            return REFERENCE_ENGINE_CAIROSVG, "cairosvg"
+                return REFERENCE_ENGINE_RESVG, "auto fallback: Edge/Chrome large-viewport SVG capture unavailable"
+            return REFERENCE_ENGINE_RESVG, str(resvg_path)
         if edge_path is not None:
             raise RuntimeError(
                 "Edge/Chrome is available but cannot capture large-viewport SVG references, and "
-                f"{describe_cairosvg_unavailable()}"
+                f"{describe_resvg_unavailable()}"
             )
-        raise RuntimeError(f"could not resolve reference renderer: neither Edge/Chrome nor {describe_cairosvg_unavailable()}")
+        raise RuntimeError(f"could not resolve reference renderer: neither Edge/Chrome nor {describe_resvg_unavailable()}")
 
-    if requested_engine == REFERENCE_ENGINE_CAIROSVG:
-        if cairosvg is None:
-            raise RuntimeError(describe_cairosvg_unavailable())
-        return REFERENCE_ENGINE_CAIROSVG, "cairosvg"
+    if requested_engine == REFERENCE_ENGINE_RESVG:
+        resvg_path = resvg_tool.find_resvg_binary(ROOT_DIR)
+        if resvg_path is None:
+            raise RuntimeError(describe_resvg_unavailable())
+        return REFERENCE_ENGINE_RESVG, str(resvg_path)
 
     edge_path = resolve_edge_path(explicit_edge_path)
     if not probe_edge_large_viewport_capture(edge_path):
@@ -3908,7 +3894,7 @@ def probe_edge_large_viewport_capture(edge_path: Path) -> bool:
 def render_edge_reference(case: dict[str, object], edge_path: Path, reference_dir: Path) -> Path:
     case_id = str(case["id"])
     if not case_uses_full_page_reference_render(case):
-        raise RuntimeError("Edge/Chrome reference rendering only supports the default full-page large-viewport box; use cairosvg for --trial-render-box")
+        raise RuntimeError("Edge/Chrome reference rendering only supports the default full-page large-viewport box; use resvg for --trial-render-box")
 
     reference_svg_path, _ = materialize_reference_fixture_svg(case, reference_dir)
     capture_path = reference_dir / ("%s_capture.png" % case_id)
@@ -3942,12 +3928,9 @@ def render_edge_reference(case: dict[str, object], edge_path: Path, reference_di
     return output_path
 
 
-def render_cairosvg_reference(case: dict[str, object], reference_dir: Path) -> Path:
-    if cairosvg is None:
-        raise RuntimeError(describe_cairosvg_unavailable())
-
+def render_resvg_reference(case: dict[str, object], reference_dir: Path) -> Path:
     case_id = str(case["id"])
-    reference_svg_path, reference_svg_text = materialize_reference_fixture_svg(case, reference_dir)
+    reference_svg_path, _ = materialize_reference_fixture_svg(case, reference_dir)
     raw_output_path = reference_dir / ("%s_raw.png" % case_id)
     output_path = reference_dir / ("%s.png" % case_id)
     for path in (raw_output_path, output_path):
@@ -3955,21 +3938,19 @@ def render_cairosvg_reference(case: dict[str, object], reference_dir: Path) -> P
             path.unlink()
 
     if case_uses_full_page_reference_render(case):
-        cairosvg.svg2png(
-            bytestring=reference_svg_text.encode("utf-8"),
-            write_to=str(output_path),
-            url=str(reference_svg_path),
-            output_width=REVIEW_CANVAS_WIDTH,
-            output_height=REVIEW_CANVAS_HEIGHT,
-        )
+        resvg_tool.render_svg_to_png(reference_svg_path, raw_output_path, REVIEW_CANVAS_WIDTH, REVIEW_CANVAS_HEIGHT, ROOT_DIR)
+        canvas = Image.new("RGBA", (REVIEW_CANVAS_WIDTH, REVIEW_CANVAS_HEIGHT), (255, 255, 255, 255))
+        rendered = Image.open(raw_output_path).convert("RGBA")
+        canvas.alpha_composite(rendered, (0, 0))
+        canvas.convert("RGB").save(output_path)
         return output_path
 
-    cairosvg.svg2png(
-        bytestring=reference_svg_text.encode("utf-8"),
-        write_to=str(raw_output_path),
-        url=str(reference_svg_path),
-        output_width=int(case["render_width"]),
-        output_height=int(case["render_height"]),
+    resvg_tool.render_svg_to_png(
+        reference_svg_path,
+        raw_output_path,
+        int(case["render_width"]),
+        int(case["render_height"]),
+        ROOT_DIR,
     )
     canvas = Image.new("RGBA", (REVIEW_CANVAS_WIDTH, REVIEW_CANVAS_HEIGHT), (255, 255, 255, 255))
     rendered = Image.open(raw_output_path).convert("RGBA")
@@ -3984,8 +3965,8 @@ def render_reference_image(
     reference_detail: str,
     reference_dir: Path,
 ) -> Path:
-    if reference_engine == REFERENCE_ENGINE_CAIROSVG:
-        return render_cairosvg_reference(case, reference_dir)
+    if reference_engine == REFERENCE_ENGINE_RESVG:
+        return render_resvg_reference(case, reference_dir)
     return render_edge_reference(case, Path(reference_detail), reference_dir)
 
 
@@ -4514,7 +4495,7 @@ def parse_args() -> argparse.Namespace:
         "--reference-engine",
         choices=list(REFERENCE_ENGINE_OPTIONS),
         default=REFERENCE_ENGINE_AUTO,
-        help="Reference renderer backend (default: auto, prefer Edge/Chrome only when large-viewport SVG capture works, otherwise cairosvg)",
+        help="Reference renderer backend (default: auto, prefer Edge/Chrome only when large-viewport SVG capture works, otherwise resvg)",
     )
     parser.add_argument("--output-subdir", default=OUTPUT_SUBDIR, help="Runtime output subdir under runtime_check_output/HelloSVGSpec")
     parser.add_argument(

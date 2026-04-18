@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import io
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 from PIL import Image
@@ -14,34 +14,15 @@ SCRIPTS_ROOT = SCRIPT_DIR.parent
 if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
-import cairo_runtime
-
-cairo_runtime.prepare_cairo_runtime()
-
-try:
-    import cairosvg
-except (ImportError, OSError) as exc:
-    cairosvg = None
-    CAIROSVG_IMPORT_ERROR = exc
-else:
-    CAIROSVG_IMPORT_ERROR = None
+import resvg_tool
 
 
 class SvgError(ValueError):
     pass
 
 
-def describe_cairosvg_unavailable():
-    if CAIROSVG_IMPORT_ERROR is None:
-        return "CairoSVG is required to rasterize SVG resources. Install it with `pip install cairosvg`."
-
-    detail = str(CAIROSVG_IMPORT_ERROR).strip()
-    if detail:
-        return (
-            "CairoSVG is required to rasterize SVG resources, but its native Cairo runtime is unavailable: "
-            f"{detail}"
-        )
-    return "CairoSVG is required to rasterize SVG resources, but its native Cairo runtime is unavailable."
+def describe_svg_rasterizer_unavailable():
+    return resvg_tool.describe_resvg_missing()
 
 
 def render_svg_to_pil(svg_path, dim):
@@ -53,16 +34,18 @@ def render_svg_to_pil(svg_path, dim):
     if width_px <= 0 or height_px <= 0:
         raise SvgError(f"SVG resource '{os.path.basename(svg_path)}' requires a positive dim value.")
 
-    if cairosvg is None:
-        raise SvgError(describe_cairosvg_unavailable())
-
     if not os.path.exists(svg_path):
         raise FileNotFoundError(f"Cannot open image file {svg_path}")
 
+    if resvg_tool.find_resvg_binary() is None:
+        raise SvgError(describe_svg_rasterizer_unavailable())
+
     try:
-        png_bytes = cairosvg.svg2png(url=os.path.abspath(svg_path), output_width=width_px, output_height=height_px)
+        with tempfile.TemporaryDirectory(prefix="svg2img_") as temp_dir_name:
+            temp_dir = Path(temp_dir_name)
+            output_png_path = temp_dir / "render.png"
+            resvg_tool.render_svg_to_png(Path(svg_path), output_png_path, width_px, height_px)
+            with Image.open(output_png_path) as image:
+                return image.convert("RGBA")
     except Exception as exc:
         raise SvgError(f"Failed to rasterize SVG resource '{os.path.basename(svg_path)}': {exc}") from exc
-
-    with Image.open(io.BytesIO(png_bytes)) as image:
-        return image.convert("RGBA")

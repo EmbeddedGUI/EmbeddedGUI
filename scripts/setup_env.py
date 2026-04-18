@@ -16,9 +16,9 @@ import urllib.request
 import zipfile
 
 try:
-    import cairo_runtime
+    import resvg_tool
 except ImportError:
-    from . import cairo_runtime
+    from . import resvg_tool
 
 
 MIN_PYTHON_VERSION = (3, 8)
@@ -194,7 +194,6 @@ def print_manual_python_help(venv_python: Path, profile: str, venv_dir: Path) ->
 
 
 def build_python_verify_script(profile: str, root_dir: Path) -> str:
-    scripts_dir = root_dir / "scripts"
     imports = [
         "import json5",
         "import numpy",
@@ -202,46 +201,7 @@ def build_python_verify_script(profile: str, root_dir: Path) -> str:
         "import freetype",
         "from elftools.elf.elffile import ELFFile",
     ]
-    lines = [
-        "import os, sys",
-        f"sys.path.insert(0, {str(scripts_dir)!r})",
-        "import cairo_runtime",
-        "cairo_runtime.prepare_cairo_runtime()",
-        *imports,
-        "svg_raster_status = 'ready'",
-        "svg_raster_detail = ''",
-        "try:",
-        "    import cairosvg",
-        "except Exception as exc:",
-        "    svg_raster_status = 'unavailable'",
-        "    svg_raster_detail = f'{type(exc).__name__}: {exc}'",
-        "print(f'svg_raster_status={svg_raster_status}')",
-        "if svg_raster_detail:",
-        "    print(f'svg_raster_detail={svg_raster_detail}')",
-        "print('ok')",
-    ]
-    return "\n".join(lines) + "\n"
-
-
-def parse_optional_svg_raster_probe(output: str) -> tuple[str | None, str | None]:
-    status = None
-    detail = None
-    for raw_line in output.splitlines():
-        line = raw_line.strip()
-        if line.startswith("svg_raster_status="):
-            status = line.split("=", 1)[1].strip()
-        elif line.startswith("svg_raster_detail="):
-            detail = line.split("=", 1)[1].strip()
-    return status, detail
-
-
-def format_optional_svg_raster_warning(output: str) -> str | None:
-    status, detail = parse_optional_svg_raster_probe(output)
-    if status != "unavailable":
-        return None
-    if detail:
-        return f"optional SVG rasterization unavailable ({detail})"
-    return "optional SVG rasterization unavailable"
+    return "import os, sys\n" + "\n".join(imports) + "\nprint('ok')\n"
 
 
 def verify_python_environment(venv_python: Path, profile: str, root_dir: Path) -> bool:
@@ -249,9 +209,6 @@ def verify_python_environment(venv_python: Path, profile: str, root_dir: Path) -
     result = run([str(venv_python), "-c", script], capture_output=True)
     if result.returncode == 0:
         print("[OK] Python dependency verification passed.")
-        svg_warning = format_optional_svg_raster_warning(result.stdout)
-        if svg_warning:
-            print(f"[WARN] {svg_warning}")
         return True
 
     print("[!!] Python dependency verification failed.")
@@ -416,6 +373,40 @@ def local_emsdk_dir(root_dir: Path) -> Path:
     return root_dir / "tools" / "emsdk"
 
 
+def local_resvg_path(root_dir: Path) -> Path | None:
+    try:
+        return resvg_tool.local_resvg_path(root_dir)
+    except RuntimeError:
+        return None
+
+
+def use_resvg_binary(env: dict[str, str], resvg_path: Path) -> dict[str, str]:
+    updated = prepend_path(env, resvg_path.parent)
+    updated["RESVG"] = str(resvg_path)
+    return updated
+
+
+def validate_resvg(resvg_path: Path, env: dict[str, str]) -> tuple[bool, str]:
+    try:
+        result = run([str(resvg_path), "--version"], env=env, capture_output=True)
+    except OSError as exc:
+        return False, str(exc)
+    if result.returncode != 0:
+        return False, summarize_process_error(result)
+    version_line = first_non_empty_line(result.stdout) or first_non_empty_line(result.stderr) or "ok"
+    return True, version_line
+
+
+def print_manual_resvg_help(root_dir: Path) -> None:
+    expected_path = local_resvg_path(root_dir)
+    print("Manual recovery steps:")
+    print("  1. Run: python scripts/setup_resvg.py --install")
+    if expected_path is not None:
+        print(f"  2. Or place the official resvg binary here: {display_path(expected_path, root_dir)}")
+    print("  3. Or install resvg elsewhere and expose it via RESVG or PATH.")
+    print("  Use --skip-resvg if you do not need build-time SVG rasterization.")
+
+
 def print_manual_ffmpeg_help(root_dir: Path) -> None:
     ffmpeg_dir = root_dir / "tools" / "ffmpeg"
     print("Manual recovery steps:")
@@ -511,6 +502,46 @@ def download_ffmpeg_windows(root_dir: Path) -> bool:
 
     print(f"[OK] Installed FFmpeg to: {ffmpeg_dir}")
     return True
+
+
+def ensure_resvg(root_dir: Path, env: dict[str, str], auto_install: bool) -> tuple[dict[str, str], bool]:
+    log_header("SVG Rasterizer")
+    resvg_path = resvg_tool.find_resvg_binary(root_dir, env)
+    if resvg_path is not None:
+        runtime_env = use_resvg_binary(env, resvg_path)
+        ready, detail = validate_resvg(resvg_path, runtime_env)
+        if ready:
+            print(f"[OK] resvg: {display_path(resvg_path, root_dir)}")
+            if local_resvg_path(root_dir) == resvg_path:
+                print(f"[OK] Local resvg available: {display_path(resvg_path.parent, root_dir)}")
+            return runtime_env, True
+
+        print(f"[!!] Found resvg at {display_path(resvg_path, root_dir)}, but it failed to run: {detail}")
+        print_manual_resvg_help(root_dir)
+        return env, False
+
+    print("[!!] resvg not found.")
+    if not auto_install:
+        print_manual_resvg_help(root_dir)
+        return env, False
+
+    try:
+        resvg_path = resvg_tool.install_resvg(root_dir)
+    except Exception as exc:
+        print(f"[!!] Failed to install resvg: {exc}")
+        print_manual_resvg_help(root_dir)
+        return env, False
+
+    runtime_env = use_resvg_binary(env, resvg_path)
+    ready, detail = validate_resvg(resvg_path, runtime_env)
+    if ready:
+        print(f"[OK] resvg: {display_path(resvg_path, root_dir)}")
+        print(f"[OK] Add this to PATH if needed: {display_path(resvg_path.parent, root_dir)}")
+        return runtime_env, True
+
+    print(f"[!!] resvg was installed, but it is still unavailable: {detail}")
+    print_manual_resvg_help(root_dir)
+    return env, False
 
 
 def ensure_ffmpeg(root_dir: Path, env: dict[str, str], auto_install: bool) -> tuple[dict[str, str], bool]:
@@ -694,21 +725,20 @@ def probe_python_dependencies(venv_python: Path | None, profile: str, root_dir: 
     script = build_python_verify_script(profile, root_dir)
     result = run([str(venv_python), "-c", script], capture_output=True)
     if result.returncode == 0:
-        svg_warning = format_optional_svg_raster_warning(result.stdout)
-        if svg_warning:
-            return f"ready ({profile}; {svg_warning})"
         return f"ready ({profile})"
     return f"not ready ({summarize_process_error(result)})"
 
 
-def probe_cairo_runtime_status(root_dir: Path, env: dict[str, str] | None = None) -> str:
-    if not is_windows():
-        return "not required"
-
-    cairo_bin_dir = cairo_runtime.find_windows_cairo_bin_dir(root_dir, env)
-    if cairo_bin_dir is None:
-        return "optional missing (required for SVG rasterization on Windows)"
-    return f"ready ({display_path(cairo_bin_dir / 'libcairo-2.dll', root_dir)})"
+def probe_resvg_status(root_dir: Path, env: dict[str, str] | None = None) -> str:
+    probe_env = (env or os.environ.copy()).copy()
+    resvg_path = resvg_tool.find_resvg_binary(root_dir, probe_env)
+    if resvg_path is None:
+        return "optional missing (required for build-time SVG rasterization)"
+    probe_env = use_resvg_binary(probe_env, resvg_path)
+    ready, detail = validate_resvg(resvg_path, probe_env)
+    if not ready:
+        return f"broken ({display_path(resvg_path, root_dir)}; {detail})"
+    return f"ready ({display_path(resvg_path, root_dir)}; {detail})"
 
 
 def probe_command_status(command_names: list[str], env: dict[str, str], root_dir: Path, version_args: list[str] | None = None) -> str:
@@ -1008,10 +1038,13 @@ def build_summary_env(root_dir: Path, env: dict[str, str] | None = None) -> dict
     summary_env = (env or os.environ.copy()).copy()
     local_toolchain = local_w64devkit_bin(root_dir)
     local_media = local_ffmpeg_bin(root_dir)
+    local_resvg = local_resvg_path(root_dir)
     if local_toolchain.exists():
         summary_env = prepend_path(summary_env, local_toolchain)
     if local_media.exists():
         summary_env = prepend_path(summary_env, local_media)
+    if local_resvg is not None and local_resvg.exists():
+        summary_env = use_resvg_binary(summary_env, local_resvg)
     summary_env = build_emsdk_runtime_env(root_dir, summary_env)
     return summary_env
 
@@ -1089,8 +1122,7 @@ def print_summary(root_dir: Path, venv_dir: Path, profile: str, env: dict[str, s
     print_status_line("Python mode", profile)
     print_status_line("Virtual env", venv_status)
     print_status_line("Python deps", probe_python_dependencies(venv_python, profile, root_dir))
-    if is_windows():
-        print_status_line("Cairo runtime", probe_cairo_runtime_status(root_dir, summary_env))
+    print_status_line("resvg", probe_resvg_status(root_dir, summary_env))
     print_status_line("make", probe_command_status(["make.exe", "make"], summary_env, root_dir))
     print_status_line("gcc", probe_command_status(["gcc.exe", "gcc"], summary_env, root_dir))
     if is_windows():
@@ -1163,6 +1195,16 @@ def parse_args() -> argparse.Namespace:
         help="Install the Windows w64devkit toolchain and exit.",
     )
     parser.add_argument(
+        "--skip-resvg",
+        action="store_true",
+        help="Skip resvg validation or installation for build-time SVG rasterization.",
+    )
+    parser.add_argument(
+        "--install-resvg",
+        action="store_true",
+        help="Install the repo-local resvg bundle and exit.",
+    )
+    parser.add_argument(
         "--skip-ffmpeg",
         action="store_true",
         help="Skip FFmpeg validation or installation for MP4 and GIF workflows.",
@@ -1206,9 +1248,9 @@ def main() -> int:
 
     os.chdir(root_dir)
 
-    install_only_flags = [args.install_toolchain, args.install_ffmpeg, args.install_emsdk]
+    install_only_flags = [args.install_toolchain, args.install_resvg, args.install_ffmpeg, args.install_emsdk]
     if sum(1 for flag in install_only_flags if flag) > 1:
-        print("[!!] Use only one of --install-toolchain, --install-ffmpeg, or --install-emsdk.")
+        print("[!!] Use only one of --install-toolchain, --install-resvg, --install-ffmpeg, or --install-emsdk.")
         return 1
 
     if args.install_toolchain:
@@ -1217,6 +1259,13 @@ def main() -> int:
             return 1
         summary_env, ready = ensure_windows_toolchain(root_dir, auto_install=True)
         build_status = "skipped (--install-toolchain)"
+        exit_code = 0 if ready else 1
+        print_summary(root_dir, venv_dir, python_mode, summary_env, build_status)
+        return exit_code
+
+    if args.install_resvg:
+        summary_env, ready = ensure_resvg(root_dir, os.environ.copy(), auto_install=True)
+        build_status = "skipped (--install-resvg)"
         exit_code = 0 if ready else 1
         print_summary(root_dir, venv_dir, python_mode, summary_env, build_status)
         return exit_code
@@ -1246,8 +1295,14 @@ def main() -> int:
     else:
         print("Skipping Python dependency installation.")
 
-    if args.skip_toolchain:
+    if args.skip_resvg:
         toolchain_env = summary_env.copy()
+        resvg_ready = True
+        print("Skipping resvg setup by request.")
+    else:
+        toolchain_env, resvg_ready = ensure_resvg(root_dir, summary_env.copy(), auto_install=True)
+
+    if args.skip_toolchain:
         toolchain_ready = True
         print("Skipping toolchain setup by request.")
     else:
@@ -1282,6 +1337,8 @@ def main() -> int:
         exit_code = 1
 
     print_summary(root_dir, venv_dir, python_mode, summary_env, build_status)
+    if not args.skip_resvg and not resvg_ready:
+        return 1
     if not args.skip_toolchain and not toolchain_ready:
         return 1
     if not args.skip_ffmpeg and not ffmpeg_ready:
