@@ -230,8 +230,19 @@ c_tail_string="""
 
 """
 
+def normalize_resize_resample(resample):
+    if not resample:
+        return "default"
+
+    normalized = str(resample).strip().lower()
+    if normalized in ("default", "lanczos"):
+        return normalized
+
+    raise ValueError(f"Invalid resize resample {resample}")
+
+
 class img2c_tool:
-    def __init__(self, input_img_file, name, format, alpha, dim, rot, swap, external_type, output_path, bg=None, compress="none"):
+    def __init__(self, input_img_file, name, format, alpha, dim, rot, swap, external_type, output_path, bg=None, compress="none", resize_resample=None):
         if not output_path:
             output_path = os.path.dirname(input_img_file)
 
@@ -239,6 +250,7 @@ class img2c_tool:
             raise ValueError("Invalid format %s" % (format))
 
         input_ext = os.path.splitext(input_img_file)[1].lower()
+        resize_resample = normalize_resize_resample(resize_resample)
         try:
             if input_ext == '.svg':
                 image = svg2img.render_svg_to_pil(input_img_file, dim)
@@ -281,7 +293,11 @@ class img2c_tool:
         # resizing
         resized = False
         if dim != None and input_ext != '.svg':
-            image = image.resize((dim[0], dim[1]), RESAMPLE_LANCZOS)
+            if resize_resample == "lanczos":
+                image = image.resize((dim[0], dim[1]), RESAMPLE_LANCZOS)
+                options += " -resample lanczos"
+            else:
+                image = image.resize((dim[0], dim[1]))
             resized = True
             options += f" -d {dim[0]} {dim[1]}"
         elif dim != None:
@@ -315,6 +331,7 @@ class img2c_tool:
         self.external_type = external_type
         self.output_path = output_path
         self.compress = compress if compress else "none"
+        self.resize_resample = resize_resample
 
         self.options = options
         self.image = image

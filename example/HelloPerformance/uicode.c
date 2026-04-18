@@ -22,6 +22,30 @@
 #define EGUI_TEST_CONFIG_SINGLE_TEST -1
 #endif
 
+#ifndef EGUI_PERF_IMAGE_SVG_PFB_TILED_HINT
+/*
+ * With the 100x100 orbit bbox anchored at x=80,y=70, the non-resize tiled
+ * SVG scene reaches the same best QEMU timing once the logical walk drops
+ * into the 16~56px band. Keep a conservative 48px hint so the scene stays
+ * on that fast plateau without changing physical PFB bytes.
+ */
+#define EGUI_PERF_IMAGE_SVG_PFB_TILED_HINT 48
+#endif
+
+#ifndef EGUI_PERF_IMAGE_SVG_PFB_TILED_RESIZE_HINT
+/*
+ * On the 100x100 orbit bbox with the current x=80,y=70 anchor, the resize
+ * tiled SVG scene enters a flat optimum once the logical walk drops below
+ * 56px. Keep a conservative 48px hint so both internal and extern resize
+ * scenes stay on the fast plateau without changing physical PFB bytes.
+ */
+#define EGUI_PERF_IMAGE_SVG_PFB_TILED_RESIZE_HINT 48
+#endif
+
+#ifndef EGUI_PERF_FILE_IMAGE_PFB_TILED_HINT
+#define EGUI_PERF_FILE_IMAGE_PFB_TILED_HINT 192
+#endif
+
 // views in test_view_group_1
 static egui_view_test_performance_t test_view;
 
@@ -101,6 +125,31 @@ static void user_manu_refresh_screen(void)
 
 static const char *egui_view_test_performance_type_string(int test_mode)
 {
+    if (test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_PFB_TILED)
+    {
+        return "FILE_IMAGE_BMP_PFB_TILED";
+    }
+    if (test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_PFB_TILED_RESIZE)
+    {
+        return "FILE_IMAGE_BMP_PFB_TILED_RESIZE";
+    }
+    if (test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED)
+    {
+        return "IMAGE_SVG_PFB_TILED";
+    }
+    if (test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED_RESIZE)
+    {
+        return "IMAGE_SVG_PFB_TILED_RESIZE";
+    }
+    if (test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED)
+    {
+        return "EXTERN_IMAGE_SVG_PFB_TILED";
+    }
+    if (test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED_RESIZE)
+    {
+        return "EXTERN_IMAGE_SVG_PFB_TILED_RESIZE";
+    }
+
     switch (test_mode)
     {
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_LINE:
@@ -644,6 +693,18 @@ static const char *egui_view_test_performance_type_string(int test_mode)
         return "FILE_IMAGE_PNG_RESIZE";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:
         return "FILE_IMAGE_BMP_RESIZE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_PFB_TILED:
+        return "FILE_IMAGE_BMP_PFB_TILED";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_PFB_TILED_RESIZE:
+        return "FILE_IMAGE_BMP_PFB_TILED_RESIZE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED:
+        return "IMAGE_SVG_PFB_TILED";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED_RESIZE:
+        return "IMAGE_SVG_PFB_TILED_RESIZE";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED:
+        return "EXTERN_IMAGE_SVG_PFB_TILED";
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED_RESIZE:
+        return "EXTERN_IMAGE_SVG_PFB_TILED_RESIZE";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_LINE_DENSE:
         return "CHART_LINE_DENSE";
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_BAR_DENSE:
@@ -690,6 +751,14 @@ static egui_dim_t egui_view_test_performance_get_logical_pfb_width_hint(int test
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_PNG:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:
         return 192;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_PFB_TILED:
+        return EGUI_PERF_FILE_IMAGE_PFB_TILED_HINT;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED:
+        return EGUI_PERF_IMAGE_SVG_PFB_TILED_HINT;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED_RESIZE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED_RESIZE:
+        return EGUI_PERF_IMAGE_SVG_PFB_TILED_RESIZE_HINT;
 
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_LINE_DENSE:
         return 64;

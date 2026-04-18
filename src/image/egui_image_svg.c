@@ -1,9 +1,133 @@
 #include "egui_image_svg.h"
+#include "egui_image_svg_alloc.h"
 #include "egui_image_std.h"
 #include "core/egui_api.h"
 
 #include <limits.h>
 #include <string.h>
+
+typedef struct egui_svg_alloc_header
+{
+    size_t size;
+} egui_svg_alloc_header_t;
+
+typedef struct
+{
+    uint16_t visible_start;
+    uint16_t visible_end;
+    uint16_t opaque_start;
+    uint16_t opaque_end;
+    uint8_t all_opaque;
+} egui_svg_raster_row_meta_t;
+
+#ifndef EGUI_SVG_ROW_META_MIN_OPAQUE_SPAN
+#define EGUI_SVG_ROW_META_MIN_OPAQUE_SPAN 8
+#endif
+
+#ifndef EGUI_SVG_ROW_META_MAX_BYTES
+#define EGUI_SVG_ROW_META_MAX_BYTES 1024
+#endif
+
+static egui_svg_alloc_header_t *egui_svg_alloc_header_from_ptr(void *ptr)
+{
+    if (ptr == NULL)
+    {
+        return NULL;
+    }
+    return ((egui_svg_alloc_header_t *)ptr) - 1;
+}
+
+void *egui_svg_alloc_malloc(size_t size)
+{
+    egui_svg_alloc_header_t *header;
+    size_t total;
+
+    if (size == 0 || size > (size_t)INT_MAX)
+    {
+        return NULL;
+    }
+
+    total = sizeof(*header) + size;
+    if (total < size || total > (size_t)INT_MAX)
+    {
+        return NULL;
+    }
+
+    header = (egui_svg_alloc_header_t *)egui_malloc((int)total);
+    if (header == NULL)
+    {
+        return NULL;
+    }
+
+    header->size = size;
+    return (void *)(header + 1);
+}
+
+void *egui_svg_alloc_calloc(size_t count, size_t size)
+{
+    size_t total;
+    void *ptr;
+
+    if (count == 0 || size == 0)
+    {
+        return NULL;
+    }
+    if (count > (SIZE_MAX / size))
+    {
+        return NULL;
+    }
+
+    total = count * size;
+    ptr = egui_svg_alloc_malloc(total);
+    if (ptr != NULL)
+    {
+        memset(ptr, 0, total);
+    }
+    return ptr;
+}
+
+void *egui_svg_alloc_realloc(void *ptr, size_t size)
+{
+    egui_svg_alloc_header_t *header;
+    void *new_ptr;
+    size_t copy_size;
+
+    if (ptr == NULL)
+    {
+        return egui_svg_alloc_malloc(size);
+    }
+    if (size == 0)
+    {
+        egui_svg_alloc_free(ptr);
+        return NULL;
+    }
+
+    header = egui_svg_alloc_header_from_ptr(ptr);
+    new_ptr = egui_svg_alloc_malloc(size);
+    if (new_ptr == NULL)
+    {
+        return NULL;
+    }
+
+    copy_size = header->size;
+    if (copy_size > size)
+    {
+        copy_size = size;
+    }
+    memcpy(new_ptr, ptr, copy_size);
+    egui_svg_alloc_free(ptr);
+    return new_ptr;
+}
+
+void egui_svg_alloc_free(void *ptr)
+{
+    egui_svg_alloc_header_t *header = egui_svg_alloc_header_from_ptr(ptr);
+
+    if (header != NULL)
+    {
+        egui_free(header);
+    }
+}
 
 #if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
 
@@ -17,10 +141,17 @@ typedef struct egui_svg_doc
 {
     plutosvg_document_t *document;
     egui_image_std_info_t raster_info;
+    egui_image_std_t raster_image;
     uint16_t *data_buf;
     uint8_t *alpha_buf;
+    egui_svg_raster_row_meta_t *row_meta;
+    uint8_t row_meta_fast_path_enabled;
     egui_dim_t natural_width;
     egui_dim_t natural_height;
+    egui_dim_t cache_width;
+    egui_dim_t cache_height;
+    egui_dim_t cache_offset_x;
+    egui_dim_t cache_offset_y;
 } egui_svg_doc_t;
 
 extern const egui_image_api_t egui_image_svg_t_api_table;
@@ -73,9 +204,9 @@ static __attribute__((unused)) int32_t egui_svg_dim_for_log(float value)
     return rounded;
 }
 
-static int egui_svg_cache_matches(const egui_svg_doc_t *doc, egui_dim_t width, egui_dim_t height)
+__EGUI_STATIC_INLINE__ int egui_svg_cache_matches(const egui_svg_doc_t *doc, egui_dim_t width, egui_dim_t height)
 {
-    return doc != NULL && doc->raster_info.data_buf != NULL && doc->raster_info.width == (uint16_t)width && doc->raster_info.height == (uint16_t)height;
+    return doc != NULL && doc->raster_info.data_buf != NULL && doc->cache_width == width && doc->cache_height == height;
 }
 
 static void egui_svg_release_raster(egui_svg_doc_t *doc)
@@ -95,11 +226,22 @@ static void egui_svg_release_raster(egui_svg_doc_t *doc)
         egui_free(doc->alpha_buf);
         doc->alpha_buf = NULL;
     }
+    if (doc->row_meta != NULL)
+    {
+        egui_free(doc->row_meta);
+        doc->row_meta = NULL;
+    }
 
     doc->raster_info.data_buf = NULL;
     doc->raster_info.alpha_buf = NULL;
     doc->raster_info.width = 0;
     doc->raster_info.height = 0;
+    doc->raster_image.base.res = NULL;
+    doc->cache_width = 0;
+    doc->cache_height = 0;
+    doc->cache_offset_x = 0;
+    doc->cache_offset_y = 0;
+    doc->row_meta_fast_path_enabled = 0;
 }
 
 static void egui_svg_doc_destroy(egui_svg_doc_t *doc)
@@ -118,25 +260,94 @@ static void egui_svg_doc_destroy(egui_svg_doc_t *doc)
     egui_free(doc);
 }
 
-static int egui_svg_build_raster_from_rgba(int width, int height, int stride, const unsigned char *surface_data, uint16_t **out_data_buf,
-                                           uint8_t **out_alpha_buf, egui_image_std_info_t *out_info)
+static int egui_svg_build_raster_from_argb32(int width, int height, int stride, const unsigned char *surface_data, uint16_t **out_data_buf,
+                                             uint8_t **out_alpha_buf, egui_svg_raster_row_meta_t **out_row_meta, egui_image_std_info_t *out_info,
+                                             uint8_t *out_row_meta_fast_path_enabled, egui_dim_t *out_offset_x, egui_dim_t *out_offset_y)
 {
     size_t pixel_count;
+    size_t nonzero_pixel_count = 0u;
     size_t data_bytes;
     size_t alpha_bytes;
+    size_t row_meta_bytes;
     uint16_t *data_buf;
     uint8_t *alpha_buf;
+    egui_svg_raster_row_meta_t *row_meta;
+    int enable_row_meta;
+    uint8_t has_partial_alpha = 0u;
+    uint8_t crop_is_opaque = 0u;
+    uint8_t row_meta_fast_path_enabled = 0u;
+    int crop_x_min = width;
+    int crop_y_min = height;
+    int crop_x_max = -1;
+    int crop_y_max = -1;
+    int crop_width;
+    int crop_height;
     int y;
 
-    if (out_data_buf == NULL || out_alpha_buf == NULL || out_info == NULL || surface_data == NULL || width <= 0 || height <= 0 || stride < width * 4)
+    if (out_data_buf == NULL || out_alpha_buf == NULL || out_row_meta == NULL || out_info == NULL || out_row_meta_fast_path_enabled == NULL ||
+        out_offset_x == NULL || out_offset_y == NULL || surface_data == NULL || width <= 0 || height <= 0 || stride < width * 4)
     {
         return 0;
     }
 
-    pixel_count = (size_t)width * (size_t)height;
+    for (y = 0; y < height; y++)
+    {
+        const uint32_t *src_row = (const uint32_t *)(surface_data + (size_t)y * (size_t)stride);
+        int x;
+
+        for (x = 0; x < width; x++)
+        {
+            uint8_t alpha = (uint8_t)(src_row[x] >> 24);
+
+            if (alpha == 0u)
+            {
+                continue;
+            }
+
+            nonzero_pixel_count++;
+            if (alpha != EGUI_ALPHA_100)
+            {
+                has_partial_alpha = 1u;
+            }
+
+            if (x < crop_x_min)
+            {
+                crop_x_min = x;
+            }
+            if (x > crop_x_max)
+            {
+                crop_x_max = x;
+            }
+            if (y < crop_y_min)
+            {
+                crop_y_min = y;
+            }
+            if (y > crop_y_max)
+            {
+                crop_y_max = y;
+            }
+        }
+    }
+
+    if (crop_x_max < crop_x_min || crop_y_max < crop_y_min)
+    {
+        crop_x_min = 0;
+        crop_y_min = 0;
+        crop_width = 1;
+        crop_height = 1;
+    }
+    else
+    {
+        crop_width = crop_x_max - crop_x_min + 1;
+        crop_height = crop_y_max - crop_y_min + 1;
+    }
+
+    pixel_count = (size_t)crop_width * (size_t)crop_height;
+    crop_is_opaque = (uint8_t)(!has_partial_alpha && nonzero_pixel_count == pixel_count);
     data_bytes = pixel_count * sizeof(uint16_t);
-    alpha_bytes = pixel_count * sizeof(uint8_t);
-    if (data_bytes > (size_t)INT_MAX || alpha_bytes > (size_t)INT_MAX)
+    alpha_bytes = crop_is_opaque ? 0u : pixel_count * sizeof(uint8_t);
+    row_meta_bytes = crop_is_opaque ? 0u : (size_t)crop_height * sizeof(*row_meta);
+    if (data_bytes > (size_t)INT_MAX || alpha_bytes > (size_t)INT_MAX || row_meta_bytes > (size_t)INT_MAX)
     {
         return 0;
     }
@@ -146,29 +357,152 @@ static int egui_svg_build_raster_from_rgba(int width, int height, int stride, co
     {
         return 0;
     }
-    alpha_buf = (uint8_t *)egui_malloc((int)alpha_bytes);
-    if (alpha_buf == NULL)
+    alpha_buf = NULL;
+    if (!crop_is_opaque)
     {
-        egui_free(data_buf);
-        return 0;
+        alpha_buf = (uint8_t *)egui_malloc((int)alpha_bytes);
+        if (alpha_buf == NULL)
+        {
+            egui_free(data_buf);
+            return 0;
+        }
+    }
+    enable_row_meta = !crop_is_opaque && row_meta_bytes <= (size_t)EGUI_SVG_ROW_META_MAX_BYTES;
+    row_meta = NULL;
+    if (enable_row_meta)
+    {
+        row_meta = (egui_svg_raster_row_meta_t *)egui_malloc((int)row_meta_bytes);
+        if (row_meta == NULL)
+        {
+            egui_free(alpha_buf);
+            egui_free(data_buf);
+            return 0;
+        }
     }
 
-    for (y = 0; y < height; y++)
+    if (crop_x_max < crop_x_min || crop_y_max < crop_y_min)
     {
-        const unsigned char *src_row = surface_data + (size_t)y * (size_t)stride;
-        uint16_t *dst_data_row = data_buf + (size_t)y * (size_t)width;
-        uint8_t *dst_alpha_row = alpha_buf + (size_t)y * (size_t)width;
+        data_buf[0] = 0u;
+        alpha_buf[0] = 0u;
+        if (row_meta != NULL)
+        {
+            row_meta[0].visible_start = 0u;
+            row_meta[0].visible_end = 0u;
+            row_meta[0].opaque_start = 0u;
+            row_meta[0].opaque_end = 0u;
+            row_meta[0].all_opaque = 0u;
+        }
+    }
+
+    for (y = 0; y < crop_height; y++)
+    {
+        const uint32_t *src_row = (const uint32_t *)(surface_data + (size_t)(crop_y_min + y) * (size_t)stride) + crop_x_min;
+        uint16_t *dst_data_row = data_buf + (size_t)y * (size_t)crop_width;
+        uint8_t *dst_alpha_row = (alpha_buf != NULL) ? (alpha_buf + (size_t)y * (size_t)crop_width) : NULL;
+        egui_svg_raster_row_meta_t *row = row_meta != NULL ? &row_meta[y] : NULL;
+        int row_visible_start = 0;
+        int row_visible_end = 0;
+        int row_opaque_start = 0;
+        int row_opaque_end = 0;
+        int opaque_run_start = 0;
+        uint8_t row_all_opaque = 0u;
         int x;
 
-        for (x = 0; x < width; x++)
+        if (row != NULL)
         {
-            const unsigned char *rgba = src_row + (size_t)x * 4u;
-            uint8_t r = rgba[0];
-            uint8_t g = rgba[1];
-            uint8_t b = rgba[2];
+            row_visible_start = -1;
+            row_opaque_start = -1;
+            opaque_run_start = -1;
+            row_all_opaque = 1u;
+        }
+
+        for (x = 0; x < crop_width; x++)
+        {
+            uint32_t pixel = src_row[x];
+            uint32_t a = (pixel >> 24) & 0xFFu;
+            uint32_t r = (pixel >> 16) & 0xFFu;
+            uint32_t g = (pixel >> 8) & 0xFFu;
+            uint32_t b = pixel & 0xFFu;
+
+            if (a != 0u && a != 0xFFu)
+            {
+                r = (r * 255u) / a;
+                g = (g * 255u) / a;
+                b = (b * 255u) / a;
+            }
 
             dst_data_row[x] = (uint16_t)(((uint16_t)(r & 0xF8u) << 8) | ((uint16_t)(g & 0xFCu) << 3) | ((uint16_t)b >> 3));
-            dst_alpha_row[x] = rgba[3];
+            if (dst_alpha_row != NULL)
+            {
+                dst_alpha_row[x] = (uint8_t)a;
+            }
+
+            if (row == NULL)
+            {
+                continue;
+            }
+
+            if (a == 0u)
+            {
+                if (opaque_run_start >= 0 && x - opaque_run_start > row_opaque_end - row_opaque_start)
+                {
+                    row_opaque_start = opaque_run_start;
+                    row_opaque_end = x;
+                }
+                opaque_run_start = -1;
+                continue;
+            }
+
+            if (row_visible_start < 0)
+            {
+                row_visible_start = x;
+            }
+            row_visible_end = x + 1;
+            if (a != EGUI_ALPHA_100)
+            {
+                row_all_opaque = 0u;
+                if (opaque_run_start >= 0 && x - opaque_run_start > row_opaque_end - row_opaque_start)
+                {
+                    row_opaque_start = opaque_run_start;
+                    row_opaque_end = x;
+                }
+                opaque_run_start = -1;
+            }
+            else if (opaque_run_start < 0)
+            {
+                opaque_run_start = x;
+            }
+        }
+        if (row != NULL)
+        {
+            if (opaque_run_start >= 0 && crop_width - opaque_run_start > row_opaque_end - row_opaque_start)
+            {
+                row_opaque_start = opaque_run_start;
+                row_opaque_end = crop_width;
+            }
+
+            if (row_visible_start < 0)
+            {
+                row->visible_start = 0u;
+                row->visible_end = 0u;
+                row->opaque_start = 0u;
+                row->opaque_end = 0u;
+                row->all_opaque = 0u;
+                row_meta_fast_path_enabled = 1u;
+            }
+            else
+            {
+                row->visible_start = (uint16_t)row_visible_start;
+                row->visible_end = (uint16_t)row_visible_end;
+                row->opaque_start = (row_opaque_start >= 0) ? (uint16_t)row_opaque_start : 0u;
+                row->opaque_end = (row_opaque_start >= 0) ? (uint16_t)row_opaque_end : 0u;
+                row->all_opaque = row_all_opaque;
+                if (row_all_opaque || row_visible_start > 0 || row_visible_end < crop_width ||
+                    row_opaque_end - row_opaque_start >= EGUI_SVG_ROW_META_MIN_OPAQUE_SPAN)
+                {
+                    row_meta_fast_path_enabled = 1u;
+                }
+            }
         }
     }
 
@@ -178,10 +512,14 @@ static int egui_svg_build_raster_from_rgba(int width, int height, int stride, co
     out_info->data_type = EGUI_IMAGE_DATA_TYPE_RGB565;
     out_info->alpha_type = EGUI_IMAGE_ALPHA_TYPE_8;
     out_info->res_type = EGUI_RESOURCE_TYPE_INTERNAL;
-    out_info->width = (uint16_t)width;
-    out_info->height = (uint16_t)height;
+    out_info->width = (uint16_t)crop_width;
+    out_info->height = (uint16_t)crop_height;
+    *out_offset_x = (egui_dim_t)crop_x_min;
+    *out_offset_y = (egui_dim_t)crop_y_min;
     *out_data_buf = data_buf;
     *out_alpha_buf = alpha_buf;
+    *out_row_meta = row_meta;
+    *out_row_meta_fast_path_enabled = row_meta_fast_path_enabled;
     return 1;
 }
 
@@ -194,7 +532,11 @@ static int egui_svg_render_cache(egui_svg_doc_t *doc, egui_dim_t width, egui_dim
     int stride;
     uint16_t *new_data_buf;
     uint8_t *new_alpha_buf;
+    egui_svg_raster_row_meta_t *new_row_meta;
+    uint8_t new_row_meta_fast_path_enabled;
     egui_image_std_info_t new_info;
+    egui_dim_t new_offset_x;
+    egui_dim_t new_offset_y;
 
     if (doc == NULL || doc->document == NULL || width <= 0 || height <= 0)
     {
@@ -224,8 +566,8 @@ static int egui_svg_render_cache(egui_svg_doc_t *doc, egui_dim_t width, egui_dim
         return 0;
     }
 
-    plutovg_convert_argb_to_rgba(surface_data, surface_data, actual_width, actual_height, stride);
-    if (!egui_svg_build_raster_from_rgba(actual_width, actual_height, stride, surface_data, &new_data_buf, &new_alpha_buf, &new_info))
+    if (!egui_svg_build_raster_from_argb32(actual_width, actual_height, stride, surface_data, &new_data_buf, &new_alpha_buf, &new_row_meta, &new_info,
+                                           &new_row_meta_fast_path_enabled, &new_offset_x, &new_offset_y))
     {
         EGUI_LOG_WRN("PlutoSVG raster cache allocate failed for %d x %d.\n", actual_width, actual_height);
         plutovg_surface_destroy(surface);
@@ -236,8 +578,337 @@ static int egui_svg_render_cache(egui_svg_doc_t *doc, egui_dim_t width, egui_dim
     egui_svg_release_raster(doc);
     doc->data_buf = new_data_buf;
     doc->alpha_buf = new_alpha_buf;
+    doc->row_meta = new_row_meta;
     doc->raster_info = new_info;
+    doc->cache_width = width;
+    doc->cache_height = height;
+    doc->cache_offset_x = new_offset_x;
+    doc->cache_offset_y = new_offset_y;
+    doc->row_meta_fast_path_enabled = new_row_meta_fast_path_enabled;
+    egui_image_std_init(&doc->raster_image.base, &doc->raster_info);
     return 1;
+}
+
+__EGUI_STATIC_INLINE__ int egui_svg_ensure_cache(egui_svg_doc_t *doc, egui_dim_t width, egui_dim_t height)
+{
+    if (doc == NULL || width <= 0 || height <= 0)
+    {
+        return 0;
+    }
+
+    if (egui_svg_cache_matches(doc, width, height))
+    {
+        return 1;
+    }
+
+    return egui_svg_render_cache(doc, width, height);
+}
+
+static int egui_svg_cached_raster_query_pixel(const egui_svg_doc_t *doc, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
+{
+    if (doc == NULL || doc->raster_info.data_buf == NULL)
+    {
+        return 0;
+    }
+    if (x < doc->cache_offset_x || y < doc->cache_offset_y)
+    {
+        return 0;
+    }
+
+    x -= doc->cache_offset_x;
+    y -= doc->cache_offset_y;
+    if (x < 0 || y < 0 || x >= doc->raster_info.width || y >= doc->raster_info.height)
+    {
+        return 0;
+    }
+
+    return doc->raster_image.base.api->get_point(&doc->raster_image.base, x, y, color, alpha);
+}
+
+static int egui_svg_cached_raster_draw_fast(const egui_svg_doc_t *doc, egui_dim_t x, egui_dim_t y)
+{
+    egui_canvas_t *canvas;
+    egui_region_t *work_region;
+    egui_dim_t screen_x;
+    egui_dim_t screen_y;
+    egui_dim_t screen_x_start;
+    egui_dim_t screen_y_start;
+    egui_dim_t screen_x_end;
+    egui_dim_t screen_y_end;
+    egui_dim_t src_x_start;
+    egui_dim_t src_y_start;
+    egui_dim_t src_x_end;
+    egui_dim_t visible_width;
+    egui_dim_t visible_height;
+    egui_dim_t dst_x_start;
+    egui_dim_t dst_y_start;
+    egui_dim_t dst_stride;
+    egui_color_int_t *dst_row;
+    const uint16_t *src_row;
+    const uint8_t *src_alpha_row = NULL;
+    const egui_svg_raster_row_meta_t *row_meta;
+    egui_dim_t src_stride;
+
+    if (doc == NULL || doc->raster_info.data_buf == NULL || doc->raster_info.width <= 0 || doc->raster_info.height <= 0)
+    {
+        return 0;
+    }
+
+    canvas = egui_canvas_get_canvas();
+    work_region = egui_canvas_get_base_view_work_region();
+    if (canvas == NULL || canvas->pfb == NULL || work_region == NULL || egui_region_is_empty(work_region))
+    {
+        return 0;
+    }
+
+    screen_x = x + doc->cache_offset_x;
+    screen_y = y + doc->cache_offset_y;
+    screen_x_start = EGUI_MAX(screen_x, work_region->location.x);
+    screen_y_start = EGUI_MAX(screen_y, work_region->location.y);
+    screen_x_end = EGUI_MIN(screen_x + doc->raster_info.width, work_region->location.x + work_region->size.width);
+    screen_y_end = EGUI_MIN(screen_y + doc->raster_info.height, work_region->location.y + work_region->size.height);
+
+    screen_x_start = EGUI_MAX(screen_x_start, canvas->pfb_location_in_base_view.x);
+    screen_y_start = EGUI_MAX(screen_y_start, canvas->pfb_location_in_base_view.y);
+    screen_x_end = EGUI_MIN(screen_x_end, canvas->pfb_location_in_base_view.x + canvas->pfb_region.size.width);
+    screen_y_end = EGUI_MIN(screen_y_end, canvas->pfb_location_in_base_view.y + canvas->pfb_region.size.height);
+
+    if (screen_x_start >= screen_x_end || screen_y_start >= screen_y_end)
+    {
+        return 1;
+    }
+
+    src_x_start = screen_x_start - screen_x;
+    src_y_start = screen_y_start - screen_y;
+    src_x_end = src_x_start + (screen_x_end - screen_x_start);
+    visible_width = screen_x_end - screen_x_start;
+    visible_height = screen_y_end - screen_y_start;
+    dst_x_start = screen_x_start - canvas->pfb_location_in_base_view.x;
+    dst_y_start = screen_y_start - canvas->pfb_location_in_base_view.y;
+    dst_stride = canvas->pfb_region.size.width;
+    src_stride = doc->raster_info.width;
+    dst_row = &canvas->pfb[dst_y_start * dst_stride + dst_x_start];
+    src_row = ((const uint16_t *)doc->raster_info.data_buf) + src_y_start * src_stride + src_x_start;
+    if (doc->raster_info.alpha_buf != NULL)
+    {
+        src_alpha_row = ((const uint8_t *)doc->raster_info.alpha_buf) + src_y_start * src_stride + src_x_start;
+    }
+
+    if (canvas->mask == NULL && src_alpha_row == NULL)
+    {
+        if (canvas->alpha == EGUI_ALPHA_100)
+        {
+            egui_image_std_copy_rgb565_row_block_fast(dst_row, dst_stride, src_row, src_stride, visible_height, visible_width);
+        }
+        else
+        {
+            egui_image_std_blend_rgb565_row_block_fast(dst_row, dst_stride, src_row, src_stride, visible_height, visible_width, canvas->alpha);
+        }
+        return 1;
+    }
+
+    if (canvas->mask != NULL)
+    {
+        if (src_alpha_row == NULL)
+        {
+            return 0;
+        }
+        return egui_image_std_blend_rgb565_alpha8_masked_row_block(canvas, dst_row, dst_stride, src_row, src_stride, src_alpha_row, src_stride, visible_height,
+                                                                   visible_width, screen_x_start, screen_y_start, canvas->alpha);
+    }
+    row_meta = (doc->row_meta != NULL && doc->row_meta_fast_path_enabled) ? doc->row_meta + src_y_start : NULL;
+
+    if (canvas->alpha == EGUI_ALPHA_100)
+    {
+        for (egui_dim_t row = 0; row < visible_height; row++)
+        {
+            if (row_meta != NULL)
+            {
+                egui_dim_t row_visible_start = (egui_dim_t)row_meta->visible_start;
+                egui_dim_t row_visible_end = (egui_dim_t)row_meta->visible_end;
+                egui_dim_t row_opaque_start = (egui_dim_t)row_meta->opaque_start;
+                egui_dim_t row_opaque_end = (egui_dim_t)row_meta->opaque_end;
+                egui_dim_t draw_start = EGUI_MAX(src_x_start, row_visible_start);
+                egui_dim_t draw_end = EGUI_MIN(src_x_end, row_visible_end);
+                int has_opaque_span = (row_opaque_end - row_opaque_start >= EGUI_SVG_ROW_META_MIN_OPAQUE_SPAN);
+
+                if (draw_start >= draw_end)
+                {
+                    /* This cropped row is fully transparent in the current visible span. */
+                }
+                else if (row_meta->all_opaque || (row_opaque_start <= draw_start && row_opaque_end >= draw_end))
+                {
+                    egui_dim_t draw_offset = draw_start - src_x_start;
+                    egui_dim_t draw_width = draw_end - draw_start;
+
+                    egui_image_std_copy_rgb565_row_fast(dst_row + draw_offset, src_row + draw_offset, draw_width);
+                }
+                else if (has_opaque_span)
+                {
+                    egui_dim_t opaque_draw_start = EGUI_MAX(draw_start, row_opaque_start);
+                    egui_dim_t opaque_draw_end = EGUI_MIN(draw_end, row_opaque_end);
+
+                    if (opaque_draw_start >= opaque_draw_end)
+                    {
+                        egui_dim_t draw_offset = draw_start - src_x_start;
+                        egui_dim_t draw_width = draw_end - draw_start;
+
+                        egui_image_std_blend_rgb565_alpha8_row_full_alpha_fast(dst_row + draw_offset, src_row + draw_offset, src_alpha_row + draw_offset,
+                                                                               draw_width);
+                    }
+                    else
+                    {
+                        if (draw_start < opaque_draw_start)
+                        {
+                            egui_dim_t edge_offset = draw_start - src_x_start;
+                            egui_dim_t edge_width = opaque_draw_start - draw_start;
+
+                            egui_image_std_blend_rgb565_alpha8_row_full_alpha_fast(dst_row + edge_offset, src_row + edge_offset, src_alpha_row + edge_offset,
+                                                                                   edge_width);
+                        }
+
+                        {
+                            egui_dim_t opaque_offset = opaque_draw_start - src_x_start;
+                            egui_dim_t opaque_width = opaque_draw_end - opaque_draw_start;
+
+                            egui_image_std_copy_rgb565_row_fast(dst_row + opaque_offset, src_row + opaque_offset, opaque_width);
+                        }
+
+                        if (opaque_draw_end < draw_end)
+                        {
+                            egui_dim_t edge_offset = opaque_draw_end - src_x_start;
+                            egui_dim_t edge_width = draw_end - opaque_draw_end;
+
+                            egui_image_std_blend_rgb565_alpha8_row_full_alpha_fast(dst_row + edge_offset, src_row + edge_offset, src_alpha_row + edge_offset,
+                                                                                   edge_width);
+                        }
+                    }
+                }
+                else
+                {
+                    egui_dim_t draw_offset = draw_start - src_x_start;
+                    egui_dim_t draw_width = draw_end - draw_start;
+
+                    egui_image_std_blend_rgb565_alpha8_row_full_alpha_fast(dst_row + draw_offset, src_row + draw_offset, src_alpha_row + draw_offset,
+                                                                           draw_width);
+                }
+
+                row_meta++;
+            }
+            else
+            {
+                egui_image_std_blend_rgb565_alpha8_row_full_alpha_fast(dst_row, src_row, src_alpha_row, visible_width);
+            }
+
+            dst_row += dst_stride;
+            src_row += src_stride;
+            src_alpha_row += src_stride;
+        }
+
+        return 1;
+    }
+
+    for (egui_dim_t row = 0; row < visible_height; row++)
+    {
+        if (row_meta != NULL)
+        {
+            egui_dim_t row_visible_start = (egui_dim_t)row_meta->visible_start;
+            egui_dim_t row_visible_end = (egui_dim_t)row_meta->visible_end;
+            egui_dim_t row_opaque_start = (egui_dim_t)row_meta->opaque_start;
+            egui_dim_t row_opaque_end = (egui_dim_t)row_meta->opaque_end;
+            egui_dim_t draw_start = EGUI_MAX(src_x_start, row_visible_start);
+            egui_dim_t draw_end = EGUI_MIN(src_x_end, row_visible_end);
+            int has_opaque_span = (row_opaque_end - row_opaque_start >= EGUI_SVG_ROW_META_MIN_OPAQUE_SPAN);
+
+            if (draw_start >= draw_end)
+            {
+                /* This cropped row is fully transparent in the current visible span. */
+            }
+            else if (row_meta->all_opaque || (row_opaque_start <= draw_start && row_opaque_end >= draw_end))
+            {
+                egui_dim_t draw_offset = draw_start - src_x_start;
+                egui_dim_t draw_width = draw_end - draw_start;
+
+                egui_image_std_blend_rgb565_row_fast(dst_row + draw_offset, src_row + draw_offset, draw_width, canvas->alpha);
+            }
+            else if (has_opaque_span)
+            {
+                egui_dim_t opaque_draw_start = EGUI_MAX(draw_start, row_opaque_start);
+                egui_dim_t opaque_draw_end = EGUI_MIN(draw_end, row_opaque_end);
+
+                if (opaque_draw_start >= opaque_draw_end)
+                {
+                    egui_dim_t draw_offset = draw_start - src_x_start;
+                    egui_dim_t draw_width = draw_end - draw_start;
+
+                    egui_image_std_blend_rgb565_alpha8_row_fast(dst_row + draw_offset, src_row + draw_offset, src_alpha_row + draw_offset, draw_width,
+                                                                canvas->alpha);
+                }
+                else
+                {
+                    if (draw_start < opaque_draw_start)
+                    {
+                        egui_dim_t edge_offset = draw_start - src_x_start;
+                        egui_dim_t edge_width = opaque_draw_start - draw_start;
+
+                        egui_image_std_blend_rgb565_alpha8_row_fast(dst_row + edge_offset, src_row + edge_offset, src_alpha_row + edge_offset, edge_width,
+                                                                    canvas->alpha);
+                    }
+
+                    {
+                        egui_dim_t opaque_offset = opaque_draw_start - src_x_start;
+                        egui_dim_t opaque_width = opaque_draw_end - opaque_draw_start;
+
+                        egui_image_std_blend_rgb565_row_fast(dst_row + opaque_offset, src_row + opaque_offset, opaque_width, canvas->alpha);
+                    }
+
+                    if (opaque_draw_end < draw_end)
+                    {
+                        egui_dim_t edge_offset = opaque_draw_end - src_x_start;
+                        egui_dim_t edge_width = draw_end - opaque_draw_end;
+
+                        egui_image_std_blend_rgb565_alpha8_row_fast(dst_row + edge_offset, src_row + edge_offset, src_alpha_row + edge_offset, edge_width,
+                                                                    canvas->alpha);
+                    }
+                }
+            }
+            else
+            {
+                egui_dim_t draw_offset = draw_start - src_x_start;
+                egui_dim_t draw_width = draw_end - draw_start;
+
+                egui_image_std_blend_rgb565_alpha8_row_fast(dst_row + draw_offset, src_row + draw_offset, src_alpha_row + draw_offset, draw_width,
+                                                            canvas->alpha);
+            }
+
+            row_meta++;
+        }
+        else
+        {
+            egui_image_std_blend_rgb565_alpha8_row_fast(dst_row, src_row, src_alpha_row, visible_width, canvas->alpha);
+        }
+
+        dst_row += dst_stride;
+        src_row += src_stride;
+        src_alpha_row += src_stride;
+    }
+
+    return 1;
+}
+
+static void egui_svg_cached_raster_draw(const egui_svg_doc_t *doc, egui_dim_t x, egui_dim_t y)
+{
+    if (doc == NULL || doc->raster_info.data_buf == NULL)
+    {
+        return;
+    }
+
+    if (egui_svg_cached_raster_draw_fast(doc, x, y))
+    {
+        return;
+    }
+
+    doc->raster_image.base.api->draw_image(&doc->raster_image.base, x + doc->cache_offset_x, y + doc->cache_offset_y);
 }
 
 static void egui_image_svg_release_owned_data(egui_image_svg_t *self)
@@ -281,7 +952,7 @@ static int egui_image_svg_finish_load(egui_image_svg_t *self, uint8_t *owned_dat
     }
 
     self->base.api = &egui_image_svg_t_api_table;
-    document = plutosvg_document_load_from_data((const char *)owned_data_buf, (int)svg_len, -1.0f, -1.0f, NULL, NULL);
+    document = plutosvg_document_load_from_data((const char *)owned_data_buf, -1, -1.0f, -1.0f, NULL, NULL);
     if (document == NULL)
     {
         EGUI_LOG_WRN("PlutoSVG parse failed.\n");
@@ -328,23 +999,32 @@ static int egui_image_svg_finish_load(egui_image_svg_t *self, uint8_t *owned_dat
     return 1;
 }
 
+static int egui_image_svg_get_size(const egui_image_t *self, egui_dim_t *width, egui_dim_t *height)
+{
+    const egui_image_svg_t *svg = (const egui_image_svg_t *)self;
+    const egui_svg_doc_t *doc = (const egui_svg_doc_t *)svg->doc;
+
+    if (width != NULL)
+    {
+        *width = (doc != NULL) ? doc->natural_width : 0;
+    }
+    if (height != NULL)
+    {
+        *height = (doc != NULL) ? doc->natural_height : 0;
+    }
+    return doc != NULL;
+}
+
 static int egui_image_svg_get_point(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_color_t *color, egui_alpha_t *alpha)
 {
     egui_image_svg_t *svg = (egui_image_svg_t *)self;
     egui_svg_doc_t *doc = (egui_svg_doc_t *)svg->doc;
-    egui_image_std_t raster_image;
 
-    if (doc == NULL || !egui_svg_render_cache(doc, doc->natural_width, doc->natural_height))
+    if (!egui_svg_ensure_cache(doc, doc->natural_width, doc->natural_height))
     {
         return 0;
     }
-
-    egui_image_std_init(&raster_image.base, &doc->raster_info);
-    if (egui_svg_cache_matches(doc, doc->natural_width, doc->natural_height))
-    {
-        return raster_image.base.api->get_point(&raster_image.base, x, y, color, alpha);
-    }
-    return raster_image.base.api->get_point_resize(&raster_image.base, x, y, doc->natural_width, doc->natural_height, color, alpha);
+    return egui_svg_cached_raster_query_pixel(doc, x, y, color, alpha);
 }
 
 static int egui_image_svg_get_point_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height, egui_color_t *color,
@@ -352,66 +1032,40 @@ static int egui_image_svg_get_point_resize(const egui_image_t *self, egui_dim_t 
 {
     egui_image_svg_t *svg = (egui_image_svg_t *)self;
     egui_svg_doc_t *doc = (egui_svg_doc_t *)svg->doc;
-    egui_image_std_t raster_image;
 
-    if (doc == NULL || width <= 0 || height <= 0 || !egui_svg_render_cache(doc, width, height))
+    if (!egui_svg_ensure_cache(doc, width, height))
     {
         return 0;
     }
-
-    egui_image_std_init(&raster_image.base, &doc->raster_info);
-    if (egui_svg_cache_matches(doc, width, height))
-    {
-        return raster_image.base.api->get_point(&raster_image.base, x, y, color, alpha);
-    }
-    return raster_image.base.api->get_point_resize(&raster_image.base, x, y, width, height, color, alpha);
+    return egui_svg_cached_raster_query_pixel(doc, x, y, color, alpha);
 }
 
 static void egui_image_svg_draw_image(const egui_image_t *self, egui_dim_t x, egui_dim_t y)
 {
     egui_image_svg_t *svg = (egui_image_svg_t *)self;
     egui_svg_doc_t *doc = (egui_svg_doc_t *)svg->doc;
-    egui_image_std_t raster_image;
 
-    if (doc == NULL || !egui_svg_render_cache(doc, doc->natural_width, doc->natural_height))
+    if (!egui_svg_ensure_cache(doc, doc->natural_width, doc->natural_height))
     {
         return;
     }
-
-    egui_image_std_init(&raster_image.base, &doc->raster_info);
-    if (egui_svg_cache_matches(doc, doc->natural_width, doc->natural_height))
-    {
-        raster_image.base.api->draw_image(&raster_image.base, x, y);
-    }
-    else
-    {
-        raster_image.base.api->draw_image_resize(&raster_image.base, x, y, doc->natural_width, doc->natural_height);
-    }
+    egui_svg_cached_raster_draw(doc, x, y);
 }
 
 static void egui_image_svg_draw_image_resize(const egui_image_t *self, egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
 {
     egui_image_svg_t *svg = (egui_image_svg_t *)self;
     egui_svg_doc_t *doc = (egui_svg_doc_t *)svg->doc;
-    egui_image_std_t raster_image;
 
-    if (doc == NULL || width <= 0 || height <= 0 || !egui_svg_render_cache(doc, width, height))
+    if (!egui_svg_ensure_cache(doc, width, height))
     {
         return;
     }
-
-    egui_image_std_init(&raster_image.base, &doc->raster_info);
-    if (egui_svg_cache_matches(doc, width, height))
-    {
-        raster_image.base.api->draw_image(&raster_image.base, x, y);
-    }
-    else
-    {
-        raster_image.base.api->draw_image_resize(&raster_image.base, x, y, width, height);
-    }
+    egui_svg_cached_raster_draw(doc, x, y);
 }
 
 const egui_image_api_t egui_image_svg_t_api_table = {
+        .get_size = egui_image_svg_get_size,
         .get_point = egui_image_svg_get_point,
         .get_point_resize = egui_image_svg_get_point_resize,
         .draw_image = egui_image_svg_draw_image,

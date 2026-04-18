@@ -76,6 +76,22 @@ static void test_image_svg_rect_fill_resize_basic(void)
     egui_image_svg_deinit(&image);
 }
 
+static void test_image_svg_get_size_api_reports_natural_size(void)
+{
+    static const char svg_text[] = "<svg width='16' height='12' viewBox='0 0 16 12'><rect x='4' y='3' width='6' height='4' fill='#ff0000'/></svg>";
+    egui_image_svg_t image;
+    egui_dim_t width = 0;
+    egui_dim_t height = 0;
+
+    egui_image_svg_init(&image);
+    EGUI_TEST_ASSERT_TRUE(egui_image_svg_load_memory(&image, svg_text));
+    EGUI_TEST_ASSERT_TRUE(egui_image_get_size((const egui_image_t *)&image, &width, &height));
+    EGUI_TEST_ASSERT_EQUAL_INT(16, width);
+    EGUI_TEST_ASSERT_EQUAL_INT(12, height);
+
+    egui_image_svg_deinit(&image);
+}
+
 static void test_image_svg_evenodd_path_hole(void)
 {
     static const char svg_text[] = "<svg viewBox='0 0 20 20'>"
@@ -2769,6 +2785,7 @@ void test_image_svg_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(image_svg);
     EGUI_TEST_RUN(test_image_svg_rect_fill_resize_basic);
+    EGUI_TEST_RUN(test_image_svg_get_size_api_reports_natural_size);
     EGUI_TEST_RUN(test_image_svg_evenodd_path_hole);
     EGUI_TEST_RUN(test_image_svg_preserve_aspect_ratio_slice_clips_to_image_bounds);
     EGUI_TEST_RUN(test_image_svg_rect_percentage_geometry_uses_viewport_axes);

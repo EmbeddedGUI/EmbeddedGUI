@@ -597,5 +597,3 @@ EGUI_IMAGE_SUB_DEFINE_CONST(egui_image_qoi_t, egui_res_image_star_240_qoi_rgb565
 
 
 // clang-format on
-
-

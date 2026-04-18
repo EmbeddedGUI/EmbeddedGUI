@@ -84,6 +84,13 @@ typedef ptrdiff_t PVG_FT_PtrDist;
 #include <stdlib.h>
 #include <limits.h>
 
+#include "image/egui_image_svg_alloc.h"
+
+#define malloc(size)        egui_svg_alloc_malloc(size)
+#define calloc(count, size) egui_svg_alloc_calloc((count), (size))
+#define realloc(ptr, size)  egui_svg_alloc_realloc((ptr), (size))
+#define free(ptr)           egui_svg_alloc_free(ptr)
+
 #define PVG_FT_MINIMUM_POOL_SIZE 8192
 
 #define RAS_ARG  PWorker worker

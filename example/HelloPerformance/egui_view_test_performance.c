@@ -23,6 +23,9 @@
 #if EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE
 #include "image/egui_image_rle.h"
 #endif
+#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+#include "image/egui_image_svg.h"
+#endif
 
 #include "anim/egui_animation_translate.h"
 #include "anim/egui_animation_alpha.h"
@@ -51,6 +54,7 @@
 #define PERF_WIDGET_GRID_COLOR         EGUI_COLOR_HEX(0x334155)
 #define PERF_WIDGET_TEXT_COLOR         EGUI_COLOR_HEX(0xE2E8F0)
 #define PERF_FILE_IMAGE_BG_COLOR       EGUI_COLOR_HEX(0x111827)
+#define PERF_SVG_TILE_BG_COLOR         EGUI_COLOR_HEX(0x09111F)
 #define PERF_CHART_LINE_SERIES_CNT     2u
 #define PERF_CHART_BAR_SERIES_CNT      2u
 #define PERF_CHART_SCATTER_SERIES_CNT  2u
@@ -63,6 +67,19 @@
 #define PERF_FILE_IMAGE_JPG_PATH "sd:sample_landscape.jpg"
 #define PERF_FILE_IMAGE_PNG_PATH "lfs:sample_overlay.png"
 #define PERF_FILE_IMAGE_BMP_PATH "flash:sample_badge.bmp"
+#ifndef PERF_FILE_IMAGE_PFB_TILED_RESIZE_STEP
+#define PERF_FILE_IMAGE_PFB_TILED_RESIZE_STEP 96
+#endif
+#endif
+
+#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+#ifndef PERF_SVG_PFB_TILED_RESIZE_STEP
+#define PERF_SVG_PFB_TILED_RESIZE_STEP 96
+#endif
+#define EGUI_TEST_PERFORMANCE_SVG_NAME egui_res_svg_perf_screen_orbit
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+#define EGUI_TEST_PERFORMANCE_EXTERN_SVG_NAME egui_res_svg_perf_screen_orbit_bin
+#endif
 #endif
 
 static egui_region_t s_perf_widget_dirty_backup[EGUI_CONFIG_DIRTY_AREA_COUNT];
@@ -141,6 +158,18 @@ static const file_image_stack_config_t s_perf_file_image_stack_config = {
         .fallback_io = &s_perf_file_image_mount_io,
         .decoder_config = &s_perf_file_image_decoder_config,
 };
+#endif
+
+#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+typedef enum
+{
+    PERF_SVG_SOURCE_KIND_INTERNAL = 0,
+    PERF_SVG_SOURCE_KIND_EXTERNAL = 1,
+} perf_svg_source_kind_t;
+
+static egui_image_svg_t s_perf_svg_image;
+static uint8_t s_perf_svg_ready;
+static int s_perf_svg_source_kind = -1;
 #endif
 
 // Large image tests (480px/240px) stay in the shipped benchmark set.
@@ -1115,6 +1144,34 @@ static void perf_init_chart_pie_view(void)
 #if EGUI_CONFIG_FUNCTION_IMAGE_FILE
 static const char *perf_get_file_image_path(int test_mode);
 
+typedef enum perf_file_image_scene_kind
+{
+    PERF_FILE_IMAGE_SCENE_NONE = 0,
+    PERF_FILE_IMAGE_SCENE_WIDGET_NORMAL,
+    PERF_FILE_IMAGE_SCENE_WIDGET_RESIZE,
+    PERF_FILE_IMAGE_SCENE_DIRECT_TILED,
+    PERF_FILE_IMAGE_SCENE_DIRECT_TILED_RESIZE,
+} perf_file_image_scene_kind_t;
+
+static perf_file_image_scene_kind_t perf_get_file_image_scene_kind(int test_mode)
+{
+    switch (test_mode)
+    {
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_NORMAL:
+        return PERF_FILE_IMAGE_SCENE_WIDGET_NORMAL;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_JPG:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_PNG:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:
+        return PERF_FILE_IMAGE_SCENE_WIDGET_RESIZE;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_PFB_TILED:
+        return PERF_FILE_IMAGE_SCENE_DIRECT_TILED;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_PFB_TILED_RESIZE:
+        return PERF_FILE_IMAGE_SCENE_DIRECT_TILED_RESIZE;
+    default:
+        return PERF_FILE_IMAGE_SCENE_NONE;
+    }
+}
+
 static int perf_is_file_image_mode(int test_mode)
 {
     return perf_get_file_image_path(test_mode) != NULL;
@@ -1144,25 +1201,19 @@ static const char *perf_get_file_image_path(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_PNG:
         return PERF_FILE_IMAGE_PNG_PATH;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_PFB_TILED:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_PFB_TILED_RESIZE:
         return PERF_FILE_IMAGE_BMP_PATH;
     default:
         return NULL;
     }
 }
 
-static int perf_is_file_image_resize_mode(int test_mode)
+static int perf_is_file_image_widget_mode(int test_mode)
 {
-    switch (test_mode)
-    {
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_NORMAL:
-        return 0;
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_JPG:
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_PNG:
-    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:
-        return 1;
-    default:
-        return 0;
-    }
+    perf_file_image_scene_kind_t kind = perf_get_file_image_scene_kind(test_mode);
+
+    return kind == PERF_FILE_IMAGE_SCENE_WIDGET_NORMAL || kind == PERF_FILE_IMAGE_SCENE_WIDGET_RESIZE;
 }
 
 static int perf_init_file_image_stack(void)
@@ -1185,6 +1236,7 @@ static int perf_init_file_image_stack(void)
 static void perf_prepare_file_image_scene(int test_mode)
 {
     const char *path = perf_get_file_image_path(test_mode);
+    perf_file_image_scene_kind_t kind = perf_get_file_image_scene_kind(test_mode);
 
     if (path == NULL || !perf_init_file_image_stack())
     {
@@ -1204,7 +1256,7 @@ static void perf_prepare_file_image_scene(int test_mode)
 
     if (s_perf_file_image_scene_mode != test_mode)
     {
-        if (perf_is_file_image_resize_mode(test_mode))
+        if (kind == PERF_FILE_IMAGE_SCENE_WIDGET_RESIZE)
         {
             egui_image_file_set_resize(&s_perf_file_image, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT);
         }
@@ -1215,6 +1267,198 @@ static void perf_prepare_file_image_scene(int test_mode)
         egui_image_file_set_path(&s_perf_file_image, path);
         egui_image_file_reload(&s_perf_file_image);
         s_perf_file_image_scene_mode = test_mode;
+    }
+}
+#endif
+
+#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+static int perf_is_svg_mode(int test_mode)
+{
+    switch (test_mode)
+    {
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED_RESIZE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED_RESIZE:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+static const egui_svg_source_t *perf_get_svg_source(int test_mode, int *source_kind)
+{
+    if (source_kind != NULL)
+    {
+        *source_kind = PERF_SVG_SOURCE_KIND_INTERNAL;
+    }
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+    if (test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED ||
+        test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED_RESIZE)
+    {
+        if (source_kind != NULL)
+        {
+            *source_kind = PERF_SVG_SOURCE_KIND_EXTERNAL;
+        }
+        return &EGUI_TEST_PERFORMANCE_EXTERN_SVG_NAME;
+    }
+#endif
+
+    if (test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED || test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED_RESIZE)
+    {
+        return &EGUI_TEST_PERFORMANCE_SVG_NAME;
+    }
+
+    return NULL;
+}
+
+static void perf_release_svg_scene(void)
+{
+    if (!s_perf_svg_ready)
+    {
+        return;
+    }
+
+    egui_image_svg_deinit(&s_perf_svg_image);
+    s_perf_svg_ready = 0U;
+    s_perf_svg_source_kind = -1;
+}
+
+static int perf_prepare_svg_scene(int test_mode)
+{
+    const egui_svg_source_t *svg_source;
+    int source_kind;
+
+    svg_source = perf_get_svg_source(test_mode, &source_kind);
+    if (svg_source == NULL)
+    {
+        return 0;
+    }
+
+    if (s_perf_svg_ready && s_perf_svg_source_kind == source_kind)
+    {
+        return 1;
+    }
+
+    perf_release_svg_scene();
+    egui_image_svg_init(&s_perf_svg_image);
+    if (!egui_image_svg_load_resource(&s_perf_svg_image, svg_source))
+    {
+        egui_image_svg_deinit(&s_perf_svg_image);
+        return 0;
+    }
+
+    s_perf_svg_ready = 1U;
+    s_perf_svg_source_kind = source_kind;
+    return 1;
+}
+
+static void perf_draw_svg_tiled_direct(egui_view_t *self, egui_dim_t tile_width, egui_dim_t tile_height, int resize_draw)
+{
+    const egui_image_t *image = (const egui_image_t *)&s_perf_svg_image;
+    egui_region_t *work_region = egui_canvas_get_base_view_work_region();
+    egui_dim_t draw_width = tile_width;
+    egui_dim_t draw_height = tile_height;
+    egui_dim_t draw_x_start;
+    egui_dim_t draw_y_start;
+    egui_dim_t draw_x_end;
+    egui_dim_t draw_y_end;
+
+    if (!s_perf_svg_ready)
+    {
+        return;
+    }
+
+    if (draw_width <= 0 || draw_height <= 0)
+    {
+        if (!egui_image_get_size(image, &draw_width, &draw_height) || draw_width <= 0 || draw_height <= 0)
+        {
+            return;
+        }
+    }
+
+    if (work_region == NULL || egui_region_is_empty(work_region))
+    {
+        return;
+    }
+
+    draw_x_start = work_region->location.x - self->region.location.x;
+    draw_y_start = work_region->location.y - self->region.location.y;
+    draw_x_end = draw_x_start + work_region->size.width;
+    draw_y_end = draw_y_start + work_region->size.height;
+
+    if (draw_x_end <= 0 || draw_y_end <= 0 || draw_x_start >= self->region.size.width || draw_y_start >= self->region.size.height)
+    {
+        return;
+    }
+
+    if (draw_x_start < 0)
+    {
+        draw_x_start = 0;
+    }
+    if (draw_y_start < 0)
+    {
+        draw_y_start = 0;
+    }
+    if (draw_x_end > self->region.size.width)
+    {
+        draw_x_end = self->region.size.width;
+    }
+    if (draw_y_end > self->region.size.height)
+    {
+        draw_y_end = self->region.size.height;
+    }
+
+    draw_x_start = (draw_x_start / draw_width) * draw_width;
+    draw_y_start = (draw_y_start / draw_height) * draw_height;
+    draw_x_end = ((draw_x_end + draw_width - 1) / draw_width) * draw_width;
+    draw_y_end = ((draw_y_end + draw_height - 1) / draw_height) * draw_height;
+
+    if (draw_x_end > self->region.size.width)
+    {
+        draw_x_end = self->region.size.width;
+    }
+    if (draw_y_end > self->region.size.height)
+    {
+        draw_y_end = self->region.size.height;
+    }
+
+    for (egui_dim_t y = draw_y_start; y < draw_y_end; y += draw_height)
+    {
+        for (egui_dim_t x = draw_x_start; x < draw_x_end; x += draw_width)
+        {
+            if (resize_draw)
+            {
+                egui_canvas_draw_image_resize(image, x, y, draw_width, draw_height);
+            }
+            else
+            {
+                egui_canvas_draw_image(image, x, y);
+            }
+        }
+    }
+}
+
+static void perf_draw_svg_scene(egui_view_t *self, int test_mode)
+{
+    if (!perf_prepare_svg_scene(test_mode))
+    {
+        return;
+    }
+
+    egui_canvas_draw_rectangle_fill(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, PERF_SVG_TILE_BG_COLOR, EGUI_ALPHA_100);
+
+    if (test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED || test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED)
+    {
+        perf_draw_svg_tiled_direct(self, 0, 0, 0);
+        return;
+    }
+
+    if (test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED_RESIZE ||
+        test_mode == EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED_RESIZE)
+    {
+        perf_draw_svg_tiled_direct(self, PERF_SVG_PFB_TILED_RESIZE_STEP, PERF_SVG_PFB_TILED_RESIZE_STEP, 1);
     }
 }
 #endif
@@ -1248,14 +1492,120 @@ static void perf_draw_chart_pie_scene(egui_view_t *self)
 }
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+static void perf_draw_file_image_tiled_direct(egui_view_t *self, egui_dim_t tile_width, egui_dim_t tile_height, int resize_draw)
+{
+    egui_dim_t draw_width = tile_width;
+    egui_dim_t draw_height = tile_height;
+    const egui_image_t *image = (const egui_image_t *)&s_perf_file_image;
+    egui_region_t *work_region = egui_canvas_get_base_view_work_region();
+    egui_dim_t draw_x_start;
+    egui_dim_t draw_y_start;
+    egui_dim_t draw_x_end;
+    egui_dim_t draw_y_end;
+
+    if (!s_perf_file_image_ready)
+    {
+        return;
+    }
+
+    if (draw_width <= 0 || draw_height <= 0)
+    {
+        if (!egui_image_get_size(image, &draw_width, &draw_height) || draw_width <= 0 || draw_height <= 0)
+        {
+            return;
+        }
+    }
+
+    if (work_region == NULL || egui_region_is_empty(work_region))
+    {
+        return;
+    }
+
+    draw_x_start = work_region->location.x - self->region.location.x;
+    draw_y_start = work_region->location.y - self->region.location.y;
+    draw_x_end = draw_x_start + work_region->size.width;
+    draw_y_end = draw_y_start + work_region->size.height;
+
+    if (draw_x_end <= 0 || draw_y_end <= 0 || draw_x_start >= self->region.size.width || draw_y_start >= self->region.size.height)
+    {
+        return;
+    }
+
+    if (draw_x_start < 0)
+    {
+        draw_x_start = 0;
+    }
+    if (draw_y_start < 0)
+    {
+        draw_y_start = 0;
+    }
+    if (draw_x_end > self->region.size.width)
+    {
+        draw_x_end = self->region.size.width;
+    }
+    if (draw_y_end > self->region.size.height)
+    {
+        draw_y_end = self->region.size.height;
+    }
+
+    draw_x_start = (draw_x_start / draw_width) * draw_width;
+    draw_y_start = (draw_y_start / draw_height) * draw_height;
+    draw_x_end = ((draw_x_end + draw_width - 1) / draw_width) * draw_width;
+    draw_y_end = ((draw_y_end + draw_height - 1) / draw_height) * draw_height;
+
+    if (draw_x_end > self->region.size.width)
+    {
+        draw_x_end = self->region.size.width;
+    }
+    if (draw_y_end > self->region.size.height)
+    {
+        draw_y_end = self->region.size.height;
+    }
+
+    for (egui_dim_t y = draw_y_start; y < draw_y_end; y += draw_height)
+    {
+        for (egui_dim_t x = draw_x_start; x < draw_x_end; x += draw_width)
+        {
+            if (resize_draw)
+            {
+                egui_canvas_draw_image_resize(image, x, y, draw_width, draw_height);
+            }
+            else
+            {
+                egui_canvas_draw_image(image, x, y);
+            }
+        }
+    }
+}
+
 static void perf_draw_file_image_scene(egui_view_t *self, int test_mode)
 {
+    perf_file_image_scene_kind_t kind = perf_get_file_image_scene_kind(test_mode);
+
     perf_prepare_file_image_scene(test_mode);
     egui_canvas_draw_rectangle_fill(0, 0, EGUI_CONFIG_SCEEN_WIDTH, EGUI_CONFIG_SCEEN_HEIGHT, PERF_FILE_IMAGE_BG_COLOR, EGUI_ALPHA_100);
-    if (s_perf_file_image_ready)
+
+    if (!s_perf_file_image_ready)
+    {
+        return;
+    }
+
+    if (perf_is_file_image_widget_mode(test_mode))
     {
         perf_prepare_widget_layout(EGUI_VIEW_OF(&s_perf_file_image_view), self, &s_perf_file_image_layout_ready);
         perf_draw_widget(EGUI_VIEW_OF(&s_perf_file_image_view));
+        return;
+    }
+
+    if (kind == PERF_FILE_IMAGE_SCENE_DIRECT_TILED)
+    {
+        perf_draw_file_image_tiled_direct(self, 0, 0, 0);
+        return;
+    }
+
+    if (kind == PERF_FILE_IMAGE_SCENE_DIRECT_TILED_RESIZE)
+    {
+        perf_draw_file_image_tiled_direct(self, PERF_FILE_IMAGE_PFB_TILED_RESIZE_STEP, PERF_FILE_IMAGE_PFB_TILED_RESIZE_STEP, 1);
     }
 }
 #endif
@@ -2786,6 +3136,12 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
         perf_release_file_image_scene();
     }
 #endif
+#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+    if (!perf_is_svg_mode(view->test_mode))
+    {
+        perf_release_svg_scene();
+    }
+#endif
 
     switch (view->test_mode)
     {
@@ -3730,6 +4086,28 @@ void egui_view_test_performance_on_draw(egui_view_t *self)
         perf_draw_file_image_scene(self, view->test_mode);
 #endif
         break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_PFB_TILED:
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+        perf_draw_file_image_scene(self, view->test_mode);
+#endif
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_PFB_TILED_RESIZE:
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+        perf_draw_file_image_scene(self, view->test_mode);
+#endif
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED:
+#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+        perf_draw_svg_scene(self, view->test_mode);
+#endif
+        break;
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED_RESIZE:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED_RESIZE:
+#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+        perf_draw_svg_scene(self, view->test_mode);
+#endif
+        break;
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_CHART_LINE_DENSE:
         perf_draw_chart_line_scene(self);
         break;
@@ -4086,7 +4464,23 @@ int egui_view_test_performance_is_enabled(int test_mode)
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_JPG:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_PNG:
     case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_PFB_TILED:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_FILE_IMAGE_BMP_PFB_TILED_RESIZE:
 #if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+        return 1;
+#else
+        return 0;
+#endif
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_IMAGE_SVG_PFB_TILED_RESIZE:
+#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE
+        return 1;
+#else
+        return 0;
+#endif
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED:
+    case EGUI_VIEW_TEST_PERFORMANCE_TYPE_EXTERN_IMAGE_SVG_PFB_TILED_RESIZE:
+#if EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE && EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
         return 1;
 #else
         return 0;

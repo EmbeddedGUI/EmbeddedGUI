@@ -443,6 +443,12 @@
             "alpha": "8",
             "compress": "rle",
             "dim": "120,120"
+        },
+        {
+            "file": "perf_screen_orbit.svg",
+            "name": "perf_screen_orbit",
+            "external": "all",
+            "format": "svg"
         }
     ],
     "font": [

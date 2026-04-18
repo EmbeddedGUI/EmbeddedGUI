@@ -1098,6 +1098,85 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_mapped_row(egui_color_in
     }
 }
 
+__EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_repeat2_row(egui_color_int_t *dst_row, const uint16_t *src_row, egui_dim_t src_x_start,
+                                                                    egui_dim_t src_count, egui_alpha_t canvas_alpha)
+{
+    if (canvas_alpha == 0 || src_count <= 0)
+    {
+        return;
+    }
+
+    if (canvas_alpha == EGUI_ALPHA_100)
+    {
+        for (egui_dim_t i = 0; i < src_count; i++)
+        {
+            egui_color_int_t pixel = EGUI_COLOR_RGB565_TRANS(src_row[src_x_start + i]);
+            egui_dim_t dst_x = i << 1;
+
+            dst_row[dst_x] = pixel;
+            dst_row[dst_x + 1] = pixel;
+        }
+        return;
+    }
+
+    for (egui_dim_t i = 0; i < src_count; i++)
+    {
+        uint16_t src_pixel = src_row[src_x_start + i];
+        egui_dim_t dst_x = i << 1;
+
+        egui_image_std_blend_rgb565_src_pixel(&dst_row[dst_x], src_pixel, canvas_alpha);
+        egui_image_std_blend_rgb565_src_pixel(&dst_row[dst_x + 1], src_pixel, canvas_alpha);
+    }
+}
+
+__EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_repeat2_pair(egui_color_int_t *dst_row, egui_dim_t dst_x, egui_color_int_t pixel, egui_alpha_t alpha)
+{
+    if (alpha == EGUI_ALPHA_100)
+    {
+        dst_row[dst_x] = pixel;
+        dst_row[dst_x + 1] = pixel;
+        return;
+    }
+
+    egui_image_std_blend_rgb565_src_pixel(&dst_row[dst_x], pixel, alpha);
+    egui_image_std_blend_rgb565_src_pixel(&dst_row[dst_x + 1], pixel, alpha);
+}
+
+__EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_repeat4_row(egui_color_int_t *dst_row, const uint16_t *src_row, egui_dim_t src_x_start,
+                                                                    egui_dim_t src_count, egui_alpha_t canvas_alpha)
+{
+    if (canvas_alpha == 0 || src_count <= 0)
+    {
+        return;
+    }
+
+    if (canvas_alpha == EGUI_ALPHA_100)
+    {
+        for (egui_dim_t i = 0; i < src_count; i++)
+        {
+            egui_color_int_t pixel = EGUI_COLOR_RGB565_TRANS(src_row[src_x_start + i]);
+            egui_dim_t dst_x = i << 2;
+
+            dst_row[dst_x] = pixel;
+            dst_row[dst_x + 1] = pixel;
+            dst_row[dst_x + 2] = pixel;
+            dst_row[dst_x + 3] = pixel;
+        }
+        return;
+    }
+
+    for (egui_dim_t i = 0; i < src_count; i++)
+    {
+        uint16_t src_pixel = src_row[src_x_start + i];
+        egui_dim_t dst_x = i << 2;
+
+        egui_image_std_blend_rgb565_src_pixel(&dst_row[dst_x], src_pixel, canvas_alpha);
+        egui_image_std_blend_rgb565_src_pixel(&dst_row[dst_x + 1], src_pixel, canvas_alpha);
+        egui_image_std_blend_rgb565_src_pixel(&dst_row[dst_x + 2], src_pixel, canvas_alpha);
+        egui_image_std_blend_rgb565_src_pixel(&dst_row[dst_x + 3], src_pixel, canvas_alpha);
+    }
+}
+
 #define EGUI_IMAGE_STD_BLEND_RGB565_PACKED_ALPHA_REPEAT2_ROW_DEFINE(_func_name, _get_alpha_func)                                                               \
     __EGUI_STATIC_INLINE__ void _func_name(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row, egui_dim_t src_x_start,           \
                                            egui_dim_t src_count, egui_alpha_t canvas_alpha)                                                                    \
@@ -4273,7 +4352,88 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha4_row(egui_color_in
     }
 }
 
-EGUI_IMAGE_STD_BLEND_RGB565_PACKED_ALPHA_REPEAT2_ROW_DEFINE(egui_image_std_blend_rgb565_alpha4_repeat2_row, egui_image_std_get_alpha_rgb565_4_row)
+__EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha4_repeat2_row(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
+                                                                           egui_dim_t src_x_start, egui_dim_t src_count, egui_alpha_t canvas_alpha)
+{
+    egui_dim_t end_col = src_x_start + src_count;
+    egui_dim_t col = src_x_start;
+    egui_dim_t dst_i = 0;
+
+    if (canvas_alpha == 0 || src_count <= 0)
+    {
+        return;
+    }
+
+    if ((col & 1) && col < end_col)
+    {
+        egui_alpha_t src_alpha = egui_image_std_get_alpha_rgb565_4_row(src_alpha_row, col);
+        egui_alpha_t alpha = (src_alpha == EGUI_ALPHA_100) ? canvas_alpha : egui_color_alpha_mix(canvas_alpha, src_alpha);
+
+        if (alpha != 0)
+        {
+            egui_color_int_t pixel = EGUI_COLOR_RGB565_TRANS(src_row[col]);
+            egui_image_std_blend_rgb565_repeat2_pair(dst_row, dst_i, pixel, alpha);
+        }
+
+        col++;
+        dst_i += 2;
+    }
+
+    while (col + 2 <= end_col)
+    {
+        uint8_t packed_alpha = src_alpha_row[col >> 1];
+
+        if (packed_alpha == 0xFF)
+        {
+            egui_dim_t run_start_col = col;
+            egui_dim_t run_start_dst = dst_i;
+
+            do
+            {
+                col += 2;
+                dst_i += 4;
+            } while (col + 2 <= end_col && src_alpha_row[col >> 1] == 0xFF);
+
+            egui_image_std_blend_rgb565_repeat2_row(&dst_row[run_start_dst], src_row, run_start_col, col - run_start_col, canvas_alpha);
+            continue;
+        }
+
+        if (packed_alpha == 0x00)
+        {
+            col += 2;
+            dst_i += 4;
+            continue;
+        }
+
+        for (int p = 0; p < 2; p++)
+        {
+            egui_alpha_t src_alpha = egui_image_std_get_alpha_rgb565_4_row(src_alpha_row, col);
+            egui_alpha_t alpha = (src_alpha == EGUI_ALPHA_100) ? canvas_alpha : egui_color_alpha_mix(canvas_alpha, src_alpha);
+
+            if (alpha != 0)
+            {
+                egui_color_int_t pixel = EGUI_COLOR_RGB565_TRANS(src_row[col]);
+                egui_image_std_blend_rgb565_repeat2_pair(dst_row, dst_i, pixel, alpha);
+            }
+
+            col++;
+            dst_i += 2;
+        }
+    }
+
+    if (col < end_col)
+    {
+        egui_alpha_t src_alpha = egui_image_std_get_alpha_rgb565_4_row(src_alpha_row, col);
+        egui_alpha_t alpha = (src_alpha == EGUI_ALPHA_100) ? canvas_alpha : egui_color_alpha_mix(canvas_alpha, src_alpha);
+
+        if (alpha != 0)
+        {
+            egui_color_int_t pixel = EGUI_COLOR_RGB565_TRANS(src_row[col]);
+            egui_image_std_blend_rgb565_repeat2_pair(dst_row, dst_i, pixel, alpha);
+        }
+    }
+}
+
 EGUI_IMAGE_STD_BLEND_RGB565_PACKED_ALPHA_REPEAT4_ROW_DEFINE(egui_image_std_blend_rgb565_alpha4_repeat4_row, egui_image_std_get_alpha_rgb565_4_row)
 #endif
 
@@ -4543,7 +4703,91 @@ __EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha2_row(egui_color_in
     }
 }
 
-EGUI_IMAGE_STD_BLEND_RGB565_PACKED_ALPHA_REPEAT2_ROW_DEFINE(egui_image_std_blend_rgb565_alpha2_repeat2_row, egui_image_std_get_alpha_rgb565_2_row)
+__EGUI_STATIC_INLINE__ void egui_image_std_blend_rgb565_alpha2_repeat2_row(egui_color_int_t *dst_row, const uint16_t *src_row, const uint8_t *src_alpha_row,
+                                                                           egui_dim_t src_x_start, egui_dim_t src_count, egui_alpha_t canvas_alpha)
+{
+    egui_dim_t end_col = src_x_start + src_count;
+    egui_dim_t col = src_x_start;
+    egui_dim_t dst_i = 0;
+
+    if (canvas_alpha == 0 || src_count <= 0)
+    {
+        return;
+    }
+
+    while (col < end_col && (col & 3))
+    {
+        egui_alpha_t src_alpha = egui_image_std_get_alpha_rgb565_2_row(src_alpha_row, col);
+        egui_alpha_t alpha = (src_alpha == EGUI_ALPHA_100) ? canvas_alpha : egui_color_alpha_mix(canvas_alpha, src_alpha);
+
+        if (alpha != 0)
+        {
+            egui_color_int_t pixel = EGUI_COLOR_RGB565_TRANS(src_row[col]);
+            egui_image_std_blend_rgb565_repeat2_pair(dst_row, dst_i, pixel, alpha);
+        }
+
+        col++;
+        dst_i += 2;
+    }
+
+    while (col + 4 <= end_col)
+    {
+        uint8_t packed_alpha = src_alpha_row[col >> 2];
+
+        if (packed_alpha == 0xFF)
+        {
+            egui_dim_t run_start_col = col;
+            egui_dim_t run_start_dst = dst_i;
+
+            do
+            {
+                col += 4;
+                dst_i += 8;
+            } while (col + 4 <= end_col && src_alpha_row[col >> 2] == 0xFF);
+
+            egui_image_std_blend_rgb565_repeat2_row(&dst_row[run_start_dst], src_row, run_start_col, col - run_start_col, canvas_alpha);
+            continue;
+        }
+
+        if (packed_alpha == 0x00)
+        {
+            col += 4;
+            dst_i += 8;
+            continue;
+        }
+
+        for (int p = 0; p < 4; p++)
+        {
+            egui_alpha_t src_alpha = egui_image_std_get_alpha_rgb565_2_row(src_alpha_row, col);
+            egui_alpha_t alpha = (src_alpha == EGUI_ALPHA_100) ? canvas_alpha : egui_color_alpha_mix(canvas_alpha, src_alpha);
+
+            if (alpha != 0)
+            {
+                egui_color_int_t pixel = EGUI_COLOR_RGB565_TRANS(src_row[col]);
+                egui_image_std_blend_rgb565_repeat2_pair(dst_row, dst_i, pixel, alpha);
+            }
+
+            col++;
+            dst_i += 2;
+        }
+    }
+
+    while (col < end_col)
+    {
+        egui_alpha_t src_alpha = egui_image_std_get_alpha_rgb565_2_row(src_alpha_row, col);
+        egui_alpha_t alpha = (src_alpha == EGUI_ALPHA_100) ? canvas_alpha : egui_color_alpha_mix(canvas_alpha, src_alpha);
+
+        if (alpha != 0)
+        {
+            egui_color_int_t pixel = EGUI_COLOR_RGB565_TRANS(src_row[col]);
+            egui_image_std_blend_rgb565_repeat2_pair(dst_row, dst_i, pixel, alpha);
+        }
+
+        col++;
+        dst_i += 2;
+    }
+}
+
 EGUI_IMAGE_STD_BLEND_RGB565_PACKED_ALPHA_REPEAT4_ROW_DEFINE(egui_image_std_blend_rgb565_alpha2_repeat4_row, egui_image_std_get_alpha_rgb565_2_row)
 #endif
 
@@ -6033,30 +6277,46 @@ void egui_image_std_set_image_rgb565(const egui_image_t *self, egui_dim_t x, egu
             src_row = (const uint16_t *)image->data_buf + (y * img_width) + x;
         }
 
-        for (egui_dim_t y_ = y; y_ < y_total; y_++)
-        {
-            const uint16_t *src = NULL;
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+        if (image->res_type != EGUI_RESOURCE_TYPE_EXTERNAL)
+#endif
+        {
+            egui_image_std_copy_rgb565_row_block_fast(dst_row, pfb_width, src_row, img_width, y_total - y, count);
+            return;
+        }
+
+#if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
+        for (egui_dim_t y_ = y; y_ < y_total;)
+        {
             if (image->res_type == EGUI_RESOURCE_TYPE_EXTERNAL)
             {
+                egui_dim_t rows_available;
+                egui_dim_t rows_to_copy;
+                const uint16_t *src_chunk;
+
                 if (!egui_image_std_load_external_data_row_persistent_cache(row_cache, y_))
                 {
+                    y_++;
+                    dst_row += pfb_width;
                     continue;
                 }
-                src = egui_image_std_get_external_data_row_persistent_data(row_cache, y_);
-            }
-            else
-#endif
-            {
-                src = src_row;
-                src_row += img_width;
-            }
 
-            egui_image_std_copy_rgb565_row(dst_row, src, count);
+                rows_available = row_cache->chunk_row_count - (y_ - row_cache->chunk_row_start);
+                rows_to_copy = y_total - y_;
+                if (rows_to_copy > rows_available)
+                {
+                    rows_to_copy = rows_available;
+                }
 
-            // Advance to next row using addition (no multiply)
-            dst_row += pfb_width;
+                src_chunk = egui_image_std_get_external_data_row_persistent_data(row_cache, y_);
+                egui_image_std_copy_rgb565_row_block_fast(dst_row, pfb_width, src_chunk, count, rows_to_copy, count);
+
+                dst_row += pfb_width * rows_to_copy;
+                y_ += rows_to_copy;
+                continue;
+            }
         }
+#endif
     }
     else if (EGUI_CONFIG_FUNCTION_SUPPORT_MASK && (egui_canvas_get_canvas()->alpha == EGUI_ALPHA_100) && (egui_canvas_get_canvas()->mask != NULL) &&
              (egui_canvas_get_canvas()->mask->api->mask_get_row_overlay != NULL))
@@ -6601,7 +6861,7 @@ static void egui_image_std_set_image_resize_rgb565_8_common(const egui_image_t *
     const uint16_t *src_row = NULL;
     const uint8_t *src_alpha_row = NULL;
     int cached_src_y = -1;
-    int use_repeat4_fast = 0;
+    int use_repeat4_fast = egui_image_std_can_use_resize_repeat4_fast_path(x, y, x_total, y_total, width_radio, height_radio);
     int use_repeat2_fast = egui_image_std_can_use_resize_repeat2_fast_path(x, y, x_total, y_total, width_radio, height_radio);
     int use_mask_inside_repeat_fast = 0;
 #if EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE
@@ -7162,7 +7422,8 @@ static void egui_image_std_draw_image_resize_external_alpha(const egui_image_t *
                                                             egui_dim_t x_base, egui_dim_t y_base, egui_float_t width_radio, egui_float_t height_radio,
                                                             uint32_t alpha_row_size, egui_image_std_get_col_pixel_with_alpha *get_col_pixel,
                                                             egui_image_std_blend_mapped_row_func *blend_row_func,
-                                                            egui_image_std_blend_repeat2_row_func *blend_repeat2_row_func)
+                                                            egui_image_std_blend_repeat2_row_func *blend_repeat2_row_func,
+                                                            egui_image_std_blend_repeat2_row_func *blend_repeat4_row_func)
 {
     egui_image_std_info_t *image = (egui_image_std_info_t *)self->res;
     egui_color_t color;
@@ -7183,6 +7444,42 @@ static void egui_image_std_draw_image_resize_external_alpha(const egui_image_t *
     if (!egui_image_std_prepare_external_alpha_row_persistent_cache_min_rows(row_cache, image, data_row_size, alpha_row_size,
                                                                              EGUI_MIN(EGUI_CONFIG_PFB_HEIGHT, image->height)))
     {
+        return;
+    }
+
+    if (canvas->mask == NULL && blend_repeat4_row_func != NULL &&
+        egui_image_std_can_use_resize_repeat4_fast_path(x, y, x_total, y_total, width_radio, height_radio))
+    {
+        egui_dim_t src_x_start = x >> 2;
+        egui_dim_t src_count = (x_total - x) >> 2;
+
+        for (egui_dim_t y_ = y; y_ < y_total; y_ += 4)
+        {
+            egui_dim_t dst_y = (y_base + y_) - canvas->pfb_location_in_base_view.y;
+            egui_color_int_t *dst_row0 = &canvas->pfb[dst_y * pfb_width + dst_x_start];
+            egui_color_int_t *dst_row1 = &canvas->pfb[(dst_y + 1) * pfb_width + dst_x_start];
+            egui_color_int_t *dst_row2 = &canvas->pfb[(dst_y + 2) * pfb_width + dst_x_start];
+            egui_color_int_t *dst_row3 = &canvas->pfb[(dst_y + 3) * pfb_width + dst_x_start];
+
+            src_y = y_ >> 2;
+            if (cached_src_y != src_y)
+            {
+                if (!egui_image_std_load_external_alpha_row_persistent_cache(row_cache, src_y))
+                {
+                    continue;
+                }
+                cached_src_y = src_y;
+            }
+
+            const uint16_t *src_row = egui_image_std_get_external_alpha_row_persistent_data(row_cache, src_y);
+            const uint8_t *src_alpha_row = egui_image_std_get_external_alpha_row_persistent_alpha(row_cache, src_y);
+
+            blend_repeat4_row_func(dst_row0, src_row, src_alpha_row, src_x_start, src_count, canvas_alpha);
+            blend_repeat4_row_func(dst_row1, src_row, src_alpha_row, src_x_start, src_count, canvas_alpha);
+            blend_repeat4_row_func(dst_row2, src_row, src_alpha_row, src_x_start, src_count, canvas_alpha);
+            blend_repeat4_row_func(dst_row3, src_row, src_alpha_row, src_x_start, src_count, canvas_alpha);
+        }
+
         return;
     }
 
@@ -7374,6 +7671,70 @@ static void egui_image_std_set_image_resize_rgb565_external(const egui_image_t *
 
     if (!egui_image_std_prepare_external_data_row_persistent_cache_min_rows(row_cache, image, data_row_size, EGUI_MIN(EGUI_CONFIG_PFB_HEIGHT, image->height)))
     {
+        return;
+    }
+
+    if (canvas->mask == NULL && egui_image_std_can_use_resize_repeat4_fast_path(x, y, x_total, y_total, width_radio, height_radio))
+    {
+        egui_dim_t src_x_start = x >> 2;
+        egui_dim_t src_count = (x_total - x) >> 2;
+
+        for (egui_dim_t y_ = y; y_ < y_total; y_ += 4)
+        {
+            egui_dim_t dst_y = (y_base + y_) - canvas->pfb_location_in_base_view.y;
+            egui_color_int_t *dst_row0 = &canvas->pfb[dst_y * pfb_width + dst_x_start];
+            egui_color_int_t *dst_row1 = &canvas->pfb[(dst_y + 1) * pfb_width + dst_x_start];
+            egui_color_int_t *dst_row2 = &canvas->pfb[(dst_y + 2) * pfb_width + dst_x_start];
+            egui_color_int_t *dst_row3 = &canvas->pfb[(dst_y + 3) * pfb_width + dst_x_start];
+            const uint16_t *src_row;
+
+            src_y = y_ >> 2;
+            if (cached_src_y != src_y)
+            {
+                if (!egui_image_std_load_external_data_row_persistent_cache(row_cache, src_y))
+                {
+                    continue;
+                }
+                cached_src_y = src_y;
+            }
+
+            src_row = egui_image_std_get_external_data_row_persistent_data(row_cache, src_y);
+            egui_image_std_blend_rgb565_repeat4_row(dst_row0, src_row, src_x_start, src_count, canvas_alpha);
+            egui_image_std_blend_rgb565_repeat4_row(dst_row1, src_row, src_x_start, src_count, canvas_alpha);
+            egui_image_std_blend_rgb565_repeat4_row(dst_row2, src_row, src_x_start, src_count, canvas_alpha);
+            egui_image_std_blend_rgb565_repeat4_row(dst_row3, src_row, src_x_start, src_count, canvas_alpha);
+        }
+
+        return;
+    }
+
+    if (canvas->mask == NULL && egui_image_std_can_use_resize_repeat2_fast_path(x, y, x_total, y_total, width_radio, height_radio))
+    {
+        egui_dim_t src_x_start = x >> 1;
+        egui_dim_t src_count = (x_total - x) >> 1;
+
+        for (egui_dim_t y_ = y; y_ < y_total; y_ += 2)
+        {
+            egui_dim_t dst_y = (y_base + y_) - canvas->pfb_location_in_base_view.y;
+            egui_color_int_t *dst_row0 = &canvas->pfb[dst_y * pfb_width + dst_x_start];
+            egui_color_int_t *dst_row1 = &canvas->pfb[(dst_y + 1) * pfb_width + dst_x_start];
+            const uint16_t *src_row;
+
+            src_y = y_ >> 1;
+            if (cached_src_y != src_y)
+            {
+                if (!egui_image_std_load_external_data_row_persistent_cache(row_cache, src_y))
+                {
+                    continue;
+                }
+                cached_src_y = src_y;
+            }
+
+            src_row = egui_image_std_get_external_data_row_persistent_data(row_cache, src_y);
+            egui_image_std_blend_rgb565_repeat2_row(dst_row0, src_row, src_x_start, src_count, canvas_alpha);
+            egui_image_std_blend_rgb565_repeat2_row(dst_row1, src_row, src_x_start, src_count, canvas_alpha);
+        }
+
         return;
     }
 
@@ -7717,7 +8078,7 @@ void egui_image_std_set_image_resize_rgb565_4(const egui_image_t *self, egui_dim
     {
         egui_image_std_draw_image_resize_external_alpha(self, x, y, x_total, y_total, x_base, y_base, width_radio, height_radio, (image_info->width + 1) >> 1,
                                                         egui_image_std_get_col_pixel_rgb565_4, egui_image_std_blend_rgb565_alpha4_mapped_row,
-                                                        egui_image_std_blend_rgb565_alpha4_repeat2_row);
+                                                        egui_image_std_blend_rgb565_alpha4_repeat2_row, egui_image_std_blend_rgb565_alpha4_repeat4_row);
         return;
     }
 #endif
@@ -7734,7 +8095,7 @@ void egui_image_std_set_image_resize_rgb565_2(const egui_image_t *self, egui_dim
     {
         egui_image_std_draw_image_resize_external_alpha(self, x, y, x_total, y_total, x_base, y_base, width_radio, height_radio, (image_info->width + 3) >> 2,
                                                         egui_image_std_get_col_pixel_rgb565_2, egui_image_std_blend_rgb565_alpha2_mapped_row,
-                                                        egui_image_std_blend_rgb565_alpha2_repeat2_row);
+                                                        egui_image_std_blend_rgb565_alpha2_repeat2_row, egui_image_std_blend_rgb565_alpha2_repeat4_row);
         return;
     }
 #endif
@@ -7751,7 +8112,7 @@ void egui_image_std_set_image_resize_rgb565_1(const egui_image_t *self, egui_dim
     {
         egui_image_std_draw_image_resize_external_alpha(self, x, y, x_total, y_total, x_base, y_base, width_radio, height_radio, (image_info->width + 7) >> 3,
                                                         egui_image_std_get_col_pixel_rgb565_1, egui_image_std_blend_rgb565_alpha1_mapped_row,
-                                                        egui_image_std_blend_rgb565_alpha1_repeat2_row);
+                                                        egui_image_std_blend_rgb565_alpha1_repeat2_row, egui_image_std_blend_rgb565_alpha1_repeat4_row);
         return;
     }
 #endif
@@ -8053,6 +8414,48 @@ void egui_image_std_set_image_resize_rgb565(const egui_image_t *self, egui_dim_t
     egui_dim_t count = x_total - x;
     egui_dim_t *src_x_map = NULL;
     const uint16_t *src_pixels = image->data_buf;
+
+    if (canvas->mask == NULL && egui_image_std_can_use_resize_repeat4_fast_path(x, y, x_total, y_total, width_radio, height_radio))
+    {
+        egui_dim_t src_x_start = x >> 2;
+        egui_dim_t src_count = (x_total - x) >> 2;
+
+        for (egui_dim_t y_ = y; y_ < y_total; y_ += 4)
+        {
+            egui_dim_t dst_y = (y_base + y_) - canvas->pfb_location_in_base_view.y;
+            egui_color_int_t *dst_row0 = &canvas->pfb[dst_y * pfb_width + dst_x_start];
+            egui_color_int_t *dst_row1 = &canvas->pfb[(dst_y + 1) * pfb_width + dst_x_start];
+            egui_color_int_t *dst_row2 = &canvas->pfb[(dst_y + 2) * pfb_width + dst_x_start];
+            egui_color_int_t *dst_row3 = &canvas->pfb[(dst_y + 3) * pfb_width + dst_x_start];
+            const uint16_t *src_row = &src_pixels[(y_ >> 2) * image->width];
+
+            egui_image_std_blend_rgb565_repeat4_row(dst_row0, src_row, src_x_start, src_count, canvas_alpha);
+            egui_image_std_blend_rgb565_repeat4_row(dst_row1, src_row, src_x_start, src_count, canvas_alpha);
+            egui_image_std_blend_rgb565_repeat4_row(dst_row2, src_row, src_x_start, src_count, canvas_alpha);
+            egui_image_std_blend_rgb565_repeat4_row(dst_row3, src_row, src_x_start, src_count, canvas_alpha);
+        }
+
+        return;
+    }
+
+    if (canvas->mask == NULL && egui_image_std_can_use_resize_repeat2_fast_path(x, y, x_total, y_total, width_radio, height_radio))
+    {
+        egui_dim_t src_x_start = x >> 1;
+        egui_dim_t src_count = (x_total - x) >> 1;
+
+        for (egui_dim_t y_ = y; y_ < y_total; y_ += 2)
+        {
+            egui_dim_t dst_y = (y_base + y_) - canvas->pfb_location_in_base_view.y;
+            egui_color_int_t *dst_row0 = &canvas->pfb[dst_y * pfb_width + dst_x_start];
+            egui_color_int_t *dst_row1 = &canvas->pfb[(dst_y + 1) * pfb_width + dst_x_start];
+            const uint16_t *src_row = &src_pixels[(y_ >> 1) * image->width];
+
+            egui_image_std_blend_rgb565_repeat2_row(dst_row0, src_row, src_x_start, src_count, canvas_alpha);
+            egui_image_std_blend_rgb565_repeat2_row(dst_row1, src_row, src_x_start, src_count, canvas_alpha);
+        }
+
+        return;
+    }
 
     src_x_map = egui_image_std_prepare_resize_src_x_map_heap(x, x_total, width_radio, &count);
     if (src_x_map == NULL)

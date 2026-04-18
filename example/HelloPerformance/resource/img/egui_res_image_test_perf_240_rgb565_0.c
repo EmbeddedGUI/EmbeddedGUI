@@ -4120,5 +4120,3 @@ EGUI_IMAGE_SUB_DEFINE_CONST(egui_image_std_t, egui_res_image_test_perf_240_rgb56
 
 
 // clang-format on
-
-

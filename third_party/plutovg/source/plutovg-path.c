@@ -3,6 +3,13 @@
 
 #include <assert.h>
 
+#include "image/egui_image_svg_alloc.h"
+
+#define malloc(size)        egui_svg_alloc_malloc(size)
+#define calloc(count, size) egui_svg_alloc_calloc((count), (size))
+#define realloc(ptr, size)  egui_svg_alloc_realloc((ptr), (size))
+#define free(ptr)           egui_svg_alloc_free(ptr)
+
 void plutovg_path_iterator_init(plutovg_path_iterator_t *it, const plutovg_path_t *path)
 {
     it->elements = path->elements.data;

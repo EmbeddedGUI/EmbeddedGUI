@@ -1946,5 +1946,3 @@ EGUI_IMAGE_SUB_DEFINE_CONST(egui_image_qoi_t, egui_res_image_test_perf_120_qoi_r
 
 
 // clang-format on
-
-

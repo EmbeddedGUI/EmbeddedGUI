@@ -63,6 +63,8 @@ extern const egui_image_qoi_t egui_res_image_test_perf_40_qoi_rgb565_0;
 extern const egui_image_std_t egui_res_image_test_perf_40_rgb565_0;
 extern const egui_image_rle_t egui_res_image_test_perf_40_rle_rgb565_0;
 extern const egui_image_std_t egui_res_image_test_perf_480_rgb565_0;
+extern const egui_svg_source_t egui_res_svg_perf_screen_orbit;
+extern const egui_svg_source_t egui_res_svg_perf_screen_orbit_bin;
 extern const egui_font_std_t egui_res_font_montserrat_perf_26_4;
 extern const egui_font_std_t egui_res_font_montserrat_perf_26_4_bin;
 extern const egui_font_std_t egui_res_font_montserrat_perf_26_4_rle4;
@@ -110,6 +112,7 @@ EGUI_EXT_RES_ID_EGUI_RES_IMAGE_TEST_PERF_240_EXT_QOI_RGB565_0_DATA,
 EGUI_EXT_RES_ID_EGUI_RES_IMAGE_TEST_PERF_240_EXT_RGB565_0_DATA,
 EGUI_EXT_RES_ID_EGUI_RES_IMAGE_TEST_PERF_240_EXT_RLE_RGB565_0_DATA,
 EGUI_EXT_RES_ID_EGUI_RES_IMAGE_TEST_PERF_40_EXT_RGB565_0_DATA,
+EGUI_EXT_RES_ID_EGUI_RES_SVG_PERF_SCREEN_ORBIT_DATA,
 EGUI_EXT_RES_ID_EGUI_RES_FONT_MONTSERRAT_PERF_26_4_PIXEL_BUFFER,
 EGUI_EXT_RES_ID_EGUI_RES_FONT_MONTSERRAT_PERF_26_4_CHAR_DESC,
 EGUI_EXT_RES_ID_EGUI_RES_FONT_MONTSERRAT_PERF_26_4_RLE4_PIXEL_BUFFER,
@@ -128,4 +131,3 @@ extern const uint32_t egui_ext_res_id_map[EGUI_EXT_RES_ID_MAX];
 #endif
 
 #endif /* _APP_EGUI_RESOURCE_GENERATE_H_ */
-

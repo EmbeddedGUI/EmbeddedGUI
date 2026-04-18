@@ -119,7 +119,7 @@ class svg2c_tool:
 
         try:
             with open(input_svg_file, "rb") as source_file:
-                svg_data = source_file.read()
+                svg_data = normalize_svg_source_data(source_file.read())
         except FileNotFoundError as exc:
             raise FileNotFoundError("Cannot open svg file %s" % (input_svg_file)) from exc
 
@@ -255,6 +255,10 @@ def normalize_text_file(file_path):
 
     with open(file_path, 'w', encoding='utf-8', newline='\n') as target_file:
         target_file.write(normalized)
+
+
+def normalize_svg_source_data(svg_data):
+    return svg_data.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
 
 
 def clear_last_resource(resource_path):
@@ -533,6 +537,10 @@ class ImageResourceInfo:
         if config.get('compress'):
             self.compress = config['compress']
 
+        self.resize_resample = "default"
+        if config.get('resize_resample'):
+            self.resize_resample = str(config['resize_resample']).strip().lower()
+
 
 def get_image_tool_c_type(tool):
     if getattr(tool, 'resource_kind', '') == 'svg':
@@ -684,7 +692,7 @@ def generate_img_resource(resource_src_path, img_res_output_path, config_info_im
                     compress = img_info.compress
                     if compress == 'qoi' and rgb in qoi_unsupported_formats:
                         compress = 'none'
-                    img_config_list.append([img_info, rgb, alpha, external, img_info.dim, img_info.rot, img_info.swap, img_info.bg, compress])
+                    img_config_list.append([img_info, rgb, alpha, external, img_info.dim, img_info.rot, img_info.swap, img_info.bg, compress, img_info.resize_resample])
 
     for svg_config_item in svg_config_list:
         img_info = svg_config_item[0]
@@ -716,8 +724,22 @@ def generate_img_resource(resource_src_path, img_res_output_path, config_info_im
         swap = img_config_item[6]
         bg = img_config_item[7]
         compress = img_config_item[8]
+        resize_resample = img_config_item[9]
 
-        tool = img2c.img2c_tool(img_file_path, img_name, rgb, alpha, dim, rot, swap, external, output_path, bg, compress=compress)
+        tool = img2c.img2c_tool(
+            img_file_path,
+            img_name,
+            rgb,
+            alpha,
+            dim,
+            rot,
+            swap,
+            external,
+            output_path,
+            bg,
+            compress=compress,
+            resize_resample=resize_resample,
+        )
 
         img2c_tool_list.append(tool)
 

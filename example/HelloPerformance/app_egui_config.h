@@ -53,8 +53,9 @@ extern "C" {
 #define EGUI_CONFIG_FUNCTION_EXTERNAL_RESOURCE 1
 
 // Enable image compression codecs for performance testing
-#define EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE 1
-#define EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE 1
+#define EGUI_CONFIG_IMAGE_CODEC_QOI_ENABLE   1
+#define EGUI_CONFIG_IMAGE_CODEC_RLE_ENABLE   1
+#define EGUI_CONFIG_IMAGE_RUNTIME_SVG_ENABLE 1
 
 // Keep font RLE benchmark coverage app-local. Shared defaults stay off.
 #define EGUI_CONFIG_FUNCTION_FONT_STD_BITMAP_CODEC_RLE4     1

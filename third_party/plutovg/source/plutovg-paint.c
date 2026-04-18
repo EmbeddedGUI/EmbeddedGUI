@@ -3,6 +3,13 @@
 
 #include <ctype.h>
 
+#include "image/egui_image_svg_alloc.h"
+
+#define malloc(size)        egui_svg_alloc_malloc(size)
+#define calloc(count, size) egui_svg_alloc_calloc((count), (size))
+#define realloc(ptr, size)  egui_svg_alloc_realloc((ptr), (size))
+#define free(ptr)           egui_svg_alloc_free(ptr)
+
 void plutovg_color_init_rgb(plutovg_color_t *color, float r, float g, float b)
 {
     plutovg_color_init_rgba(color, r, g, b, 1.f);

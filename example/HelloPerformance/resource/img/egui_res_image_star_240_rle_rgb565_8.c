@@ -761,5 +761,3 @@ EGUI_IMAGE_SUB_DEFINE_CONST(egui_image_rle_t, egui_res_image_star_240_rle_rgb565
 
 
 // clang-format on
-
-

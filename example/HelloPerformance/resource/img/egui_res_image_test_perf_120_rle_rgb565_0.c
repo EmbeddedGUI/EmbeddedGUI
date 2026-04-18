@@ -1717,5 +1717,3 @@ EGUI_IMAGE_SUB_DEFINE_CONST(egui_image_rle_t, egui_res_image_test_perf_120_rle_r
 
 
 // clang-format on
-
-

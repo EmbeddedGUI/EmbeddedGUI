@@ -6,6 +6,9 @@
 
 #if EGUI_CONFIG_FUNCTION_IMAGE_FILE
 
+#define TEST_IMAGE_FILE_CANVAS_W 8
+#define TEST_IMAGE_FILE_CANVAS_H 4
+
 typedef struct test_image_file_decoder_ctx
 {
     int dummy;
@@ -21,6 +24,7 @@ static int s_test_image_file_decoder_open_count;
 static int s_test_image_file_decoder_close_count;
 static int s_test_image_file_read_row_count;
 static test_image_file_decoder_ctx_t s_test_image_file_decoder_ctx;
+static egui_color_int_t s_test_image_file_pfb[TEST_IMAGE_FILE_CANVAS_W * TEST_IMAGE_FILE_CANVAS_H];
 
 static void test_image_file_reset_counters(void)
 {
@@ -144,6 +148,18 @@ static void test_image_file_teardown(egui_image_file_t *image)
     egui_image_file_clear_decoders();
 }
 
+static void test_image_file_setup_canvas_clip(egui_dim_t x, egui_dim_t y, egui_dim_t width, egui_dim_t height)
+{
+    egui_region_t pfb_region;
+    egui_region_t base_region;
+
+    memset(s_test_image_file_pfb, 0, sizeof(s_test_image_file_pfb));
+    egui_region_init(&pfb_region, x, y, width, height);
+    egui_canvas_init(s_test_image_file_pfb, &pfb_region);
+    egui_region_init(&base_region, x, y, width, height);
+    egui_canvas_calc_work_region(&base_region);
+}
+
 static void test_image_file_resize_get_size_uses_intrinsic_dimensions(void)
 {
     egui_image_file_t image;
@@ -210,6 +226,44 @@ static void test_image_file_get_point_resize_uses_call_dimensions(void)
     test_image_file_teardown(&image);
 }
 
+static void test_image_file_draw_adjacent_tiles_reuses_stream_band_rows(void)
+{
+    egui_image_file_t image;
+    const egui_image_t *base = (const egui_image_t *)&image;
+
+    test_image_file_reset_counters();
+    test_image_file_setup(&image);
+
+    test_image_file_setup_canvas_clip(0, 0, 2, 2);
+    base->api->draw_image(base, 0, 0);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, s_test_image_file_read_row_count);
+
+    test_image_file_setup_canvas_clip(2, 0, 2, 2);
+    base->api->draw_image(base, 0, 0);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, s_test_image_file_read_row_count);
+
+    test_image_file_teardown(&image);
+}
+
+static void test_image_file_draw_resize_adjacent_tiles_reuses_stream_band_rows(void)
+{
+    egui_image_file_t image;
+    const egui_image_t *base = (const egui_image_t *)&image;
+
+    test_image_file_reset_counters();
+    test_image_file_setup(&image);
+
+    test_image_file_setup_canvas_clip(0, 0, 4, 4);
+    base->api->draw_image_resize(base, 0, 0, 8, 4);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, s_test_image_file_read_row_count);
+
+    test_image_file_setup_canvas_clip(4, 0, 4, 4);
+    base->api->draw_image_resize(base, 0, 0, 8, 4);
+    EGUI_TEST_ASSERT_EQUAL_INT(2, s_test_image_file_read_row_count);
+
+    test_image_file_teardown(&image);
+}
+
 void test_image_file_run(void)
 {
     EGUI_TEST_SUITE_BEGIN(image_file);
@@ -217,6 +271,8 @@ void test_image_file_run(void)
     EGUI_TEST_RUN(test_image_file_resize_get_size_uses_intrinsic_dimensions);
     EGUI_TEST_RUN(test_image_file_resize_get_point_maps_to_source);
     EGUI_TEST_RUN(test_image_file_get_point_resize_uses_call_dimensions);
+    EGUI_TEST_RUN(test_image_file_draw_adjacent_tiles_reuses_stream_band_rows);
+    EGUI_TEST_RUN(test_image_file_draw_resize_adjacent_tiles_reuses_stream_band_rows);
 
     EGUI_TEST_SUITE_END();
 }
