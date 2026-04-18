@@ -11,9 +11,16 @@
 #define realloc(ptr, size)  egui_svg_alloc_realloc((ptr), (size))
 #define free(ptr)           egui_svg_alloc_free(ptr)
 
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "plutovg-stb-truetype.h"
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 static int plutovg_text_iterator_length(const void *data, plutovg_text_encoding_t encoding)
 {

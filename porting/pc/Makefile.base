@@ -244,7 +244,7 @@ size:
 
 .PHONY: all
 ifneq ($(wildcard $(EGUI_APP_RESOURCE_PATH)),)
-all: | info $(OUTPUT_MAIN_RESOURCE) $(MAIN)
+all: | info $(MAIN)
 else
 all: | info $(MAIN)
 endif
@@ -286,7 +286,11 @@ else
 endif
 	$(Q)$(ECHO) stamp > $(call FIXPATH, $@)
 
+ifneq ($(wildcard $(EGUI_APP_RESOURCE_PATH)),)
+$(OUTPUT_MAIN): $(OBJECTS) $(APP_CONFIG_STAMP) $(OUTPUT_MAIN_RESOURCE)
+else
 $(OUTPUT_MAIN): $(OBJECTS) $(APP_CONFIG_STAMP)
+endif
 	@$(ECHO) Linking    : "$@"
 	$(Q)$(CC) $(COMMON_FLAGS) $(LDFLAGS) $(INCLUDES) -o $(OUTPUT_MAIN) $(OBJECTS) $(LFLAGS) $(LIBS) $(OUTPUT_BT_LIB)
 

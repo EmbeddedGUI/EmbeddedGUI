@@ -243,7 +243,7 @@ size:
 	$(Q)@$(SIZE) --format=berkeley $(OUTPUT_MAIN)
 
 .PHONY: all
-all: | info $(OUTPUT_MAIN_RESOURCE) $(MAIN)
+all: | info $(MAIN)
 	@$(ECHO) Executing 'all' complete!
 
 # @$(ECHO) Print Size
@@ -271,7 +271,11 @@ $(APP_CONFIG_STAMP): | $(OUTPUT_PATH)
 	-$(Q)$(RM) $(call FIXPATH,$(OUTPUT_PATH)/.app_stamp_*)
 	$(Q)$(ECHO) stamp > $(call FIXPATH,$@)
 
+ifneq ($(wildcard $(EGUI_APP_PATH)/resource),)
+$(OUTPUT_MAIN): $(APP_OBJECTS) $(OUTPUT_LIB) $(APP_CONFIG_STAMP) $(OUTPUT_MAIN_RESOURCE)
+else
 $(OUTPUT_MAIN): $(APP_OBJECTS) $(OUTPUT_LIB) $(APP_CONFIG_STAMP)
+endif
 	@$(ECHO) Linking    : "$@"
 	$(Q)$(CC) $(COMMON_FLAGS) $(LDFLAGS) $(INCLUDES) -o $(OUTPUT_MAIN) $(APP_OBJECTS) $(OUTPUT_LIB) $(LFLAGS) $(LIBS) $(OUTPUT_BT_LIB)
 

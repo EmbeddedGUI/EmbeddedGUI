@@ -66,7 +66,7 @@ eq_debug_*.txt
 ref
 build_switch.log
 
-image
+/image
 !src/image/
 example/HelloBasic/thermostat
 /.claude/comparison_report
