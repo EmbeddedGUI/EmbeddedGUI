@@ -10,6 +10,7 @@
 #include "test/test_combobox.h"
 #include "test/test_common.h"
 #include "test/test_compact_text.h"
+#include "test/test_deferred_image.h"
 #include "test/test_dirty_region.h"
 #include "test/test_dlist.h"
 #include "test/test_fixmath.h"
@@ -55,6 +56,7 @@ void uicode_create_ui(void)
     test_fixmath_run();
     test_font_std_run();
     test_image_file_run();
+    test_deferred_image_run();
     test_mask_run();
     test_common_run();
     test_view_run();

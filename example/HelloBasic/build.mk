@@ -10,6 +10,7 @@ APP_SUB ?= button
 # APP_SUB ?= image
 # APP_SUB ?= svg
 # APP_SUB ?= file_image
+# APP_SUB ?= deferred_image
 # APP_SUB ?= label
 # APP_SUB ?= linearlayout
 # APP_SUB ?= mask
@@ -77,6 +78,13 @@ EGUI_CODE_SRC		+= $(EGUI_APP_SUB_PATH)/resource/font
 
 ifeq ($(APP_SUB),file_image)
 EGUI_CODE_SRC		+= $(EGUI_APP_SUB_PATH)/mount_router_template
+endif
+
+ifeq ($(APP_SUB),deferred_image)
+EGUI_CODE_SRC_FILES += \
+	$(EGUI_APP_PATH)/file_image/file_io_stdio.c \
+	$(EGUI_APP_PATH)/file_image/decoder_bmp_stream.c
+EGUI_CODE_INCLUDE	+= $(EGUI_APP_PATH)/file_image
 endif
 
 EGUI_CODE_INCLUDE	+= $(EGUI_APP_SUB_PATH)

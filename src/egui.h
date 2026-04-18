@@ -107,6 +107,9 @@
 #include "widget/egui_view_mp4.h"
 #include "widget/egui_view_progress_bar.h"
 #include "widget/egui_view_image.h"
+#if EGUI_CONFIG_FUNCTION_IMAGE_FILE
+#include "widget/egui_view_deferred_image.h"
+#endif
 #include "widget/egui_view_animated_image.h"
 #include "widget/egui_view_scroll.h"
 #include "widget/egui_view_virtual_list.h"
