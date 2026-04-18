@@ -178,7 +178,7 @@ def get_config_hash(root_dir, app, app_sub=None):
     for path in config_paths:
         digest.update(str(path).encode("utf-8"))
         digest.update(path.read_bytes())
-    return digest[:12]
+    return digest.hexdigest()[:12]
 
 
 def get_shared_obj_suffix(root_dir, app, app_sub=None):
