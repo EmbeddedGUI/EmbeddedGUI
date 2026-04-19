@@ -690,14 +690,59 @@
               <FilePath>..\..\..\src\core\egui_common.c</FilePath>
             </File>
             <File>
-              <FileName>egui_core.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\src\core\egui_core.c</FilePath>
-            </File>
-            <File>
               <FileName>egui_core_activity.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_core_activity.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_activity_anim.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_activity_anim.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_activity_force.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_activity_force.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_activity_stack.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_activity_stack.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_animation.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_animation.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_debug.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_debug.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_debug_mem.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_debug_mem.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_debug_overlay_draw.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_debug_overlay_draw.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_debug_overlay_region.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_debug_overlay_region.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_debug_overlay_state.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_debug_overlay_state.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_debug_perf.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_debug_perf.c</FilePath>
             </File>
             <File>
               <FileName>egui_core_dialog.c</FileName>
@@ -705,9 +750,164 @@
               <FilePath>..\..\..\src\core\egui_core_dialog.c</FilePath>
             </File>
             <File>
+              <FileName>egui_core_dirty_debug.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_dirty_debug.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_dirty_refresh.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_dirty_refresh.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_dirty_state.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_dirty_state.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_dirty_update.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_dirty_update.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_display_size.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_display_size.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_frame.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_frame.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_init_display.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_init_display.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_init_primary.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_init_primary.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_init_scene.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_init_scene.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_key.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_key.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_need_refresh.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_need_refresh.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_pfb.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_pfb.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_pfb_probe.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_pfb_probe.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_pfb_scan.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_pfb_scan.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_pfb_state.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_pfb_state.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_refresh_pre_work.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_refresh_pre_work.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_refresh_screen.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_refresh_screen.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_refresh_timer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_refresh_timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_render.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_render.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_render_debug.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_render_debug.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_root_view.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_root_view.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_runtime.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_runtime.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_screen_clear.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_screen_clear.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_screen_lifecycle.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_screen_lifecycle.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_setup_display.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_setup_display.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_setup_display_start.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_setup_display_start.c</FilePath>
+            </File>
+            <File>
               <FileName>egui_core_toast.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_core_toast.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_touch.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_touch.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_touch_init.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_touch_init.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_touch_trace_draw.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_touch_trace_draw.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_touch_trace_record.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_touch_trace_record.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_core_user_root.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_core_user_root.c</FilePath>
             </File>
             <File>
               <FileName>egui_display_driver.c</FileName>
@@ -768,6 +968,11 @@
               <FileName>egui_touch_driver.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\core\egui_touch_driver.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_trig_lut.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\core\egui_trig_lut.c</FilePath>
             </File>
             <File>
               <FileName>egui_velocity_tracker.c</FileName>
@@ -1148,6 +1353,11 @@
               <FileName>egui_view_compass.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\src\widget\egui_view_compass.c</FilePath>
+            </File>
+            <File>
+              <FileName>egui_view_deferred_image.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\src\widget\egui_view_deferred_image.c</FilePath>
             </File>
             <File>
               <FileName>egui_view_digital_clock.c</FileName>

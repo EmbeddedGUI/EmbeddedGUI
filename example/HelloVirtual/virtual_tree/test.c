@@ -22,26 +22,26 @@
 #define TREE_DEMO_BADGE_TEXT_LEN     12
 #define TREE_DEMO_STATE_CACHE_COUNT  96U
 
-#define TREE_DEMO_MARGIN_X     8
-#define TREE_DEMO_TOP_Y        8
-#define TREE_DEMO_HEADER_W     (EGUI_CONFIG_SCEEN_WIDTH - TREE_DEMO_MARGIN_X * 2)
-#define TREE_DEMO_HEADER_H     68
-#define TREE_DEMO_TOOLBAR_Y    (TREE_DEMO_TOP_Y + TREE_DEMO_HEADER_H + 6)
-#define TREE_DEMO_TOOLBAR_H    32
-#define TREE_DEMO_VIEW_Y       (TREE_DEMO_TOOLBAR_Y + TREE_DEMO_TOOLBAR_H + 6)
-#define TREE_DEMO_VIEW_W       TREE_DEMO_HEADER_W
-#define TREE_DEMO_VIEW_H       (EGUI_CONFIG_SCEEN_HEIGHT - TREE_DEMO_VIEW_Y - 8)
-#define TREE_DEMO_BUTTON_GAP   4
-#define TREE_DEMO_BUTTON_W     ((TREE_DEMO_HEADER_W - 20 - TREE_DEMO_BUTTON_GAP * 3) / 4)
-#define TREE_DEMO_BUTTON_H     20
-#define TREE_DEMO_NODE_GAP_Y   4
-#define TREE_DEMO_NODE_INSET_X 6
-#define TREE_DEMO_NODE_PAD_X   8
-#define TREE_DEMO_INDENT_STEP  20
-#define TREE_DEMO_BADGE_W      38
-#define TREE_DEMO_BADGE_H      18
-#define TREE_DEMO_PROGRESS_H   5
-#define TREE_DEMO_LABEL_H      14
+#define TREE_DEMO_MARGIN_X                  8
+#define TREE_DEMO_TOP_Y                     8
+#define TREE_DEMO_HEADER_W                  (EGUI_CONFIG_SCEEN_WIDTH - TREE_DEMO_MARGIN_X * 2)
+#define TREE_DEMO_HEADER_H                  68
+#define TREE_DEMO_TOOLBAR_Y                 (TREE_DEMO_TOP_Y + TREE_DEMO_HEADER_H + 6)
+#define TREE_DEMO_TOOLBAR_H                 32
+#define TREE_DEMO_VIEW_Y                    (TREE_DEMO_TOOLBAR_Y + TREE_DEMO_TOOLBAR_H + 6)
+#define TREE_DEMO_VIEW_W                    TREE_DEMO_HEADER_W
+#define TREE_DEMO_VIEW_H                    (EGUI_CONFIG_SCEEN_HEIGHT - TREE_DEMO_VIEW_Y - 8)
+#define TREE_DEMO_BUTTON_GAP                4
+#define TREE_DEMO_BUTTON_W                  ((TREE_DEMO_HEADER_W - 20 - TREE_DEMO_BUTTON_GAP * 3) / 4)
+#define TREE_DEMO_BUTTON_H                  20
+#define TREE_DEMO_NODE_GAP_Y                4
+#define TREE_DEMO_NODE_INSET_X              6
+#define TREE_DEMO_NODE_PAD_X                8
+#define TREE_DEMO_INDENT_STEP               20
+#define TREE_DEMO_BADGE_W                   38
+#define TREE_DEMO_BADGE_H                   18
+#define TREE_DEMO_PROGRESS_H                5
+#define TREE_DEMO_LABEL_H                   14
 #define TREE_DEMO_CLICK_VERIFY_RETRY_MAX    5U
 #define TREE_DEMO_COLLAPSE_VERIFY_RETRY_MAX 5U
 
@@ -2030,36 +2030,36 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         return true;
     case 2:
-        {
-            tree_demo_node_t *collapsed_node = tree_demo_get_node_by_stable_id(runtime_collapse_target_id);
-            uint8_t branch_still_expanded = 0U;
-            uint8_t visible_count_ok = 0U;
+    {
+        tree_demo_node_t *collapsed_node = tree_demo_get_node_by_stable_id(runtime_collapse_target_id);
+        uint8_t branch_still_expanded = 0U;
+        uint8_t visible_count_ok = 0U;
 
-            if (collapsed_node == NULL || !tree_demo_is_branch(collapsed_node))
+        if (collapsed_node == NULL || !tree_demo_is_branch(collapsed_node))
+        {
+            report_runtime_failure("branch collapse target was not tracked");
+        }
+        else
+        {
+            branch_still_expanded = collapsed_node->expanded ? 1U : 0U;
+            visible_count_ok = tree_demo_get_visible_count() < visible_before_collapse ? 1U : 0U;
+            if (branch_still_expanded || !visible_count_ok)
             {
-                report_runtime_failure("branch collapse target was not tracked");
-            }
-            else
-            {
-                branch_still_expanded = collapsed_node->expanded ? 1U : 0U;
-                visible_count_ok = tree_demo_get_visible_count() < visible_before_collapse ? 1U : 0U;
-                if (branch_still_expanded || !visible_count_ok)
+                if (tree_demo_schedule_collapse_verify_retry(p_action, branch_still_expanded, runtime_collapse_target_id, 220))
                 {
-                    if (tree_demo_schedule_collapse_verify_retry(p_action, branch_still_expanded, runtime_collapse_target_id, 220))
-                    {
-                        return true;
-                    }
-                    if (branch_still_expanded)
-                    {
-                        report_runtime_failure("branch click did not collapse expanded branch");
-                    }
-                    if (!visible_count_ok)
-                    {
-                        report_runtime_failure("branch collapse did not reduce visible nodes");
-                    }
+                    return true;
+                }
+                if (branch_still_expanded)
+                {
+                    report_runtime_failure("branch click did not collapse expanded branch");
+                }
+                if (!visible_count_ok)
+                {
+                    report_runtime_failure("branch collapse did not reduce visible nodes");
                 }
             }
         }
+    }
         recording_collapse_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[TREE_DEMO_ACTION_PATCH]), 220);
         return true;

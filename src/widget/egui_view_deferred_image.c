@@ -235,7 +235,8 @@ static void egui_view_deferred_image_draw_default_placeholder(const egui_region_
         radius = EGUI_THEME_RADIUS_LG;
     }
 
-    egui_canvas_draw_round_rectangle_fill(region->location.x, region->location.y, region->size.width, region->size.height, radius, EGUI_THEME_BORDER, EGUI_ALPHA_100);
+    egui_canvas_draw_round_rectangle_fill(region->location.x, region->location.y, region->size.width, region->size.height, radius, EGUI_THEME_BORDER,
+                                          EGUI_ALPHA_100);
     if (region->size.width > 2 && region->size.height > 2)
     {
         egui_dim_t inner_radius = radius - 1;

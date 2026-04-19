@@ -12,19 +12,19 @@
 #define DEMO_CARD_TITLE_FONT ((const egui_font_t *)&egui_res_font_montserrat_12_4)
 #define DEMO_CARD_BODY_FONT  ((const egui_font_t *)&egui_res_font_montserrat_10_4)
 
-#define CARD_X          8
-#define CARD_W          224
-#define CARD_H          72
-#define CARD_GAP        8
-#define CARD_IMAGE_X    16
-#define CARD_IMAGE_Y    7
-#define CARD_IMAGE_W    72
-#define CARD_IMAGE_H    58
-#define CARD_TEXT_X     100
-#define CARD_TEXT_W     116
-#define CARD0_Y         72
-#define CARD1_Y         (CARD0_Y + CARD_H + CARD_GAP)
-#define CARD2_Y         (CARD1_Y + CARD_H + CARD_GAP)
+#define CARD_X       8
+#define CARD_W       224
+#define CARD_H       72
+#define CARD_GAP     8
+#define CARD_IMAGE_X 16
+#define CARD_IMAGE_Y 7
+#define CARD_IMAGE_W 72
+#define CARD_IMAGE_H 58
+#define CARD_TEXT_X  100
+#define CARD_TEXT_W  116
+#define CARD0_Y      72
+#define CARD1_Y      (CARD0_Y + CARD_H + CARD_GAP)
+#define CARD2_Y      (CARD1_Y + CARD_H + CARD_GAP)
 
 #define DEFERRED_IMAGE_CACHE_BADGE "sample_badge.bmp"
 #define DEFERRED_IMAGE_SOURCE_FAST "mock://badge-fast"
@@ -67,7 +67,8 @@ EGUI_BACKGROUND_COLOR_PARAM_INIT_SOLID(bg_root_param, EGUI_COLOR_HEX(0x0F172A), 
 EGUI_BACKGROUND_PARAM_INIT(bg_root_params, &bg_root_param, &bg_root_param, &bg_root_param);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_root, &bg_root_params);
 
-EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(bg_card_param, EGUI_COLOR_HEX(0xF8FAFC), EGUI_ALPHA_100, 10, 1, EGUI_COLOR_HEX(0xCBD5E1), EGUI_ALPHA_100);
+EGUI_BACKGROUND_COLOR_PARAM_INIT_ROUND_RECTANGLE_STROKE(bg_card_param, EGUI_COLOR_HEX(0xF8FAFC), EGUI_ALPHA_100, 10, 1, EGUI_COLOR_HEX(0xCBD5E1),
+                                                        EGUI_ALPHA_100);
 EGUI_BACKGROUND_PARAM_INIT(bg_card_params, &bg_card_param, &bg_card_param, &bg_card_param);
 EGUI_BACKGROUND_COLOR_STATIC_CONST_INIT(bg_card, &bg_card_params);
 
@@ -257,8 +258,8 @@ void test_init_ui(void)
 
     deferred_image_demo_init_label(&title_label, 8, 12, 224, 20, "Deferred Image", DEMO_TITLE_FONT, EGUI_COLOR_HEX(0xF8FAFC),
                                    EGUI_ALIGN_CENTER | EGUI_ALIGN_VCENTER);
-    deferred_image_demo_init_label(&subtitle_label, 12, 38, 216, 20, "Text first. Images join later.", DEMO_SUBTITLE_FONT,
-                                   EGUI_COLOR_HEX(0xCBD5E1), EGUI_ALIGN_CENTER | EGUI_ALIGN_VCENTER);
+    deferred_image_demo_init_label(&subtitle_label, 12, 38, 216, 20, "Text first. Images join later.", DEMO_SUBTITLE_FONT, EGUI_COLOR_HEX(0xCBD5E1),
+                                   EGUI_ALIGN_CENTER | EGUI_ALIGN_VCENTER);
 
     egui_view_group_add_child(EGUI_VIEW_OF(&root_group), EGUI_VIEW_OF(&title_label));
     egui_view_group_add_child(EGUI_VIEW_OF(&root_group), EGUI_VIEW_OF(&subtitle_label));

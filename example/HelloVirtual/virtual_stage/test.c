@@ -5136,49 +5136,49 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         demo_set_click_node_action(p_action, DEMO_ZONE_BASE_ID, 220);
         return true;
     case 17:
+    {
+        uint8_t had_retry = recording_zone_verify_retry;
+        uint8_t zone_enabled;
+        uint8_t slots_ok;
+        uint8_t log_ok;
+
+        if (demo_find_live_view(DEMO_SEARCH_INPUT_ID) != NULL)
         {
-            uint8_t had_retry = recording_zone_verify_retry;
-            uint8_t zone_enabled;
-            uint8_t slots_ok;
-            uint8_t log_ok;
-
-            if (demo_find_live_view(DEMO_SEARCH_INPUT_ID) != NULL)
-            {
 #if EGUI_CONFIG_FUNCTION_SUPPORT_FOCUS
-                egui_focus_manager_clear_focus();
+            egui_focus_manager_clear_focus();
 #endif
-                EGUI_VIEW_VIRTUAL_STAGE_CALCULATE_LAYOUT(&virtual_stage);
-            }
+            EGUI_VIEW_VIRTUAL_STAGE_CALCULATE_LAYOUT(&virtual_stage);
+        }
 
-            zone_enabled = demo_context.zone_enabled[0];
-            slots_ok = (uint8_t)(EGUI_VIEW_VIRTUAL_STAGE_SLOT_COUNT(&virtual_stage) == 1U);
-            log_ok = (uint8_t)(strstr(demo_get_recent_log_text(0U), "Zone A") != NULL);
-            if (!zone_enabled || !slots_ok || !log_ok)
+        zone_enabled = demo_context.zone_enabled[0];
+        slots_ok = (uint8_t)(EGUI_VIEW_VIRTUAL_STAGE_SLOT_COUNT(&virtual_stage) == 1U);
+        log_ok = (uint8_t)(strstr(demo_get_recent_log_text(0U), "Zone A") != NULL);
+        if (!zone_enabled || !slots_ok || !log_ok)
+        {
+            if (demo_schedule_recording_verify_retry(&recording_zone_verify_retry, DEMO_RECORDING_VERIFY_RETRY_MAX, p_action))
             {
-                if (demo_schedule_recording_verify_retry(&recording_zone_verify_retry, DEMO_RECORDING_VERIFY_RETRY_MAX, p_action))
-                {
-                    return true;
-                }
-                if (!zone_enabled)
-                {
-                    report_runtime_failure("zone click did not persist enabled state");
-                }
-                if (!slots_ok)
-                {
-                    report_runtime_failure("zone interaction should not increase retained slots");
-                }
-                if (!log_ok)
-                {
-                    report_runtime_failure("zone interaction did not update activity feed");
-                }
+                return true;
             }
-
-            recording_zone_verify_retry = 0U;
-            if (first_call || had_retry != 0U)
+            if (!zone_enabled)
             {
-                recording_request_snapshot();
+                report_runtime_failure("zone click did not persist enabled state");
+            }
+            if (!slots_ok)
+            {
+                report_runtime_failure("zone interaction should not increase retained slots");
+            }
+            if (!log_ok)
+            {
+                report_runtime_failure("zone interaction did not update activity feed");
             }
         }
+
+        recording_zone_verify_retry = 0U;
+        if (first_call || had_retry != 0U)
+        {
+            recording_request_snapshot();
+        }
+    }
         demo_set_click_node_pos_action(p_action, DEMO_COMBO_LINE_ID, 0.84f, 0.5f, 420);
         return true;
     case 18:

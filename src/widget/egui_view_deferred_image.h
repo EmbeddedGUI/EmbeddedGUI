@@ -71,7 +71,7 @@ struct egui_view_deferred_image_params
     egui_region_t region;
 };
 
-#define EGUI_VIEW_DEFERRED_IMAGE_PARAMS_INIT(_name, _x, _y, _w, _h)                                                                                           \
+#define EGUI_VIEW_DEFERRED_IMAGE_PARAMS_INIT(_name, _x, _y, _w, _h)                                                                                            \
     static const egui_view_deferred_image_params_t _name = {.region = {{(_x), (_y)}, {(_w), (_h)}}}
 
 void egui_view_deferred_image_apply_params(egui_view_t *self, const egui_view_deferred_image_params_t *params);
