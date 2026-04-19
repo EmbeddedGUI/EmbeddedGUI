@@ -40,6 +40,9 @@ SLOW_HOST_RETRY_SNAPSHOT_SETTLE_MS = 120
 SLOW_HOST_RETRY_SNAPSHOT_STABLE_CYCLES = 2
 SLOW_HOST_RETRY_SNAPSHOT_MAX_WAIT_MS = 3000
 SLOW_HOST_RETRY_TIMEOUT_MARGIN = 10
+HELLO_VIRTUAL_SNAPSHOT_SETTLE_MS = SLOW_HOST_RETRY_SNAPSHOT_SETTLE_MS
+HELLO_VIRTUAL_SNAPSHOT_STABLE_CYCLES = SLOW_HOST_RETRY_SNAPSHOT_STABLE_CYCLES
+HELLO_VIRTUAL_SNAPSHOT_MAX_WAIT_MS = SLOW_HOST_RETRY_SNAPSHOT_MAX_WAIT_MS
 # Speed up compilation: disable debug symbols, use -O0 (same as ui_designer)
 COMPILE_FAST_FLAGS = ['COMPILE_DEBUG=', 'COMPILE_OPT_LEVEL=-O0']
 # Retry count for intermittent crashes (e.g., race conditions in PC simulator threading)
@@ -205,6 +208,17 @@ def build_recording_profiles(timeout, duration, speed, snapshot_settle_ms, clock
         return [default_profile]
 
     return [default_profile, conservative_profile]
+
+
+def tune_recording_params_for_app(app_name, snapshot_settle_ms, snapshot_stable_cycles, snapshot_max_wait_ms):
+    if not app_name.startswith("HelloVirtual"):
+        return snapshot_settle_ms, snapshot_stable_cycles, snapshot_max_wait_ms
+
+    return (
+        max(snapshot_settle_ms, HELLO_VIRTUAL_SNAPSHOT_SETTLE_MS),
+        max(snapshot_stable_cycles, HELLO_VIRTUAL_SNAPSHOT_STABLE_CYCLES),
+        max(snapshot_max_wait_ms, HELLO_VIRTUAL_SNAPSHOT_MAX_WAIT_MS),
+    )
 
 
 def validate_recording_frames(frames_dir):
@@ -733,6 +747,9 @@ def run_app(app_name, output_subdir, timeout=DEFAULT_TIMEOUT, duration=RECORDING
     if not exe_path.exists():
         return False, "executable not found"
 
+    snapshot_settle_ms, snapshot_stable_cycles, snapshot_max_wait_ms = tune_recording_params_for_app(
+        app_name, snapshot_settle_ms, snapshot_stable_cycles, snapshot_max_wait_ms
+    )
     return run_recording_capture(exe_path, resource_path, frames_dir, timeout, duration,
                                  speed, snapshot_settle_ms, clock_scale,
                                  snapshot_stable_cycles, snapshot_max_wait_ms)

@@ -676,6 +676,29 @@ static void report_runtime_failure(const char *message)
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
 }
 
+static uint8_t grid_basic_set_click_item_action(egui_sim_action_t *p_action, egui_view_t *view, uint32_t interval_ms)
+{
+    return (uint8_t)egui_sim_set_click_view_clipped(p_action, view, &EGUI_VIEW_OF(&grid_view)->region_screen, (int)interval_ms);
+}
+
+static uint8_t grid_basic_schedule_click_verify_retry(egui_sim_action_t *p_action, egui_view_t *view, uint32_t interval_ms)
+{
+    if (recording_click_verify_retry >= GRID_BASIC_CLICK_VERIFY_RETRY_MAX)
+    {
+        return 0U;
+    }
+
+    recording_click_verify_retry++;
+    if (recording_click_verify_retry >= 2U && view != NULL && grid_basic_set_click_item_action(p_action, view, interval_ms))
+    {
+        return 1U;
+    }
+
+    recording_request_snapshot();
+    EGUI_SIM_SET_WAIT(p_action, 0);
+    return 1U;
+}
+
 static egui_view_t *grid_basic_find_visible_view_by_index(uint32_t index)
 {
     uint32_t stable_id;
@@ -747,22 +770,18 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             EGUI_SIM_SET_WAIT(p_action, 220);
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        if (!grid_basic_set_click_item_action(p_action, view, 220))
+        {
+            report_runtime_failure("first grid tile click point was not clickable");
+            EGUI_SIM_SET_WAIT(p_action, 220);
+            return true;
+        }
         return true;
     case 2:
         if (grid_basic_ctx.selected_id != grid_basic_ctx.items[0].stable_id)
         {
-            if (recording_click_verify_retry < GRID_BASIC_CLICK_VERIFY_RETRY_MAX)
+            if (grid_basic_schedule_click_verify_retry(p_action, grid_basic_find_visible_view_by_index(0), 220))
             {
-                view = grid_basic_find_visible_view_by_index(0);
-                recording_click_verify_retry++;
-                if (view != NULL)
-                {
-                    EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
-                    return true;
-                }
-                recording_request_snapshot();
-                EGUI_SIM_SET_WAIT(p_action, 180);
                 return true;
             }
             report_runtime_failure("grid click did not update selected item");
