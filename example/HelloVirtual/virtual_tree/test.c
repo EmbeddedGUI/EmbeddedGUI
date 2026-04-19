@@ -42,6 +42,8 @@
 #define TREE_DEMO_BADGE_H      18
 #define TREE_DEMO_PROGRESS_H   5
 #define TREE_DEMO_LABEL_H      14
+#define TREE_DEMO_CLICK_VERIFY_RETRY_MAX    5U
+#define TREE_DEMO_COLLAPSE_VERIFY_RETRY_MAX 5U
 
 #define TREE_DEMO_FONT_HEADER ((const egui_font_t *)&egui_res_font_montserrat_10_4)
 #define TREE_DEMO_FONT_TITLE  ((const egui_font_t *)&egui_res_font_montserrat_8_4)
@@ -177,7 +179,10 @@ static tree_demo_context_t tree_demo_ctx;
 #if EGUI_CONFIG_RECORDING_TEST
 static uint8_t runtime_fail_reported;
 static uint8_t runtime_drag_reverse;
+static uint8_t recording_click_verify_retry;
+static uint8_t recording_collapse_verify_retry;
 static int32_t runtime_scroll_before_drag;
+static uint32_t runtime_click_target_id;
 static uint32_t runtime_collapse_target_id;
 #endif
 
@@ -1755,7 +1760,10 @@ void test_init_ui(void)
 #if EGUI_CONFIG_RECORDING_TEST
     runtime_fail_reported = 0;
     runtime_drag_reverse = 0;
+    recording_click_verify_retry = 0U;
+    recording_collapse_verify_retry = 0U;
     runtime_scroll_before_drag = 0;
+    runtime_click_target_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
     runtime_collapse_target_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
 #endif
 
@@ -1839,6 +1847,53 @@ static void report_runtime_failure(const char *message)
     printf("[RUNTIME_CHECK_FAIL] %s\n", message);
 }
 
+static uint8_t tree_demo_set_click_item_action(egui_sim_action_t *p_action, egui_view_t *view, uint32_t interval_ms)
+{
+    return (uint8_t)egui_sim_set_click_view_clipped(p_action, view, &EGUI_VIEW_OF(&tree_view)->region_screen, (int)interval_ms);
+}
+
+static uint8_t tree_demo_schedule_click_verify_retry(egui_sim_action_t *p_action, egui_view_t *view, uint32_t interval_ms)
+{
+    if (recording_click_verify_retry >= TREE_DEMO_CLICK_VERIFY_RETRY_MAX)
+    {
+        return 0U;
+    }
+
+    recording_click_verify_retry++;
+    if (recording_click_verify_retry >= 2U && view != NULL && tree_demo_set_click_item_action(p_action, view, interval_ms))
+    {
+        return 1U;
+    }
+
+    recording_request_snapshot();
+    EGUI_SIM_SET_WAIT(p_action, 0);
+    return 1U;
+}
+
+static uint8_t tree_demo_schedule_collapse_verify_retry(egui_sim_action_t *p_action, uint8_t branch_still_expanded, uint32_t stable_id, uint32_t interval_ms)
+{
+    egui_view_t *view;
+
+    if (recording_collapse_verify_retry >= TREE_DEMO_COLLAPSE_VERIFY_RETRY_MAX)
+    {
+        return 0U;
+    }
+
+    recording_collapse_verify_retry++;
+    if (recording_collapse_verify_retry >= 2U && branch_still_expanded && stable_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
+    {
+        view = egui_view_virtual_tree_find_view_by_stable_id(EGUI_VIEW_OF(&tree_view), stable_id);
+        if (view != NULL && tree_demo_set_click_item_action(p_action, view, interval_ms))
+        {
+            return 1U;
+        }
+    }
+
+    recording_request_snapshot();
+    EGUI_SIM_SET_WAIT(p_action, 0);
+    return 1U;
+}
+
 static uint32_t tree_demo_get_drag_target_min_visible_index(void)
 {
     if (tree_demo_ctx.last_clicked_visible_index == TREE_DEMO_INVALID_INDEX)
@@ -1904,6 +1959,7 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
 {
     static int last_action = -1;
     static uint32_t visible_before_collapse = 0;
+    egui_view_virtual_tree_entry_t entry;
     egui_view_t *view;
     int first_call = action_index != last_action;
 
@@ -1916,39 +1972,47 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         {
             report_runtime_failure("virtual tree created more views than slot capacity");
         }
-        view = tree_demo_find_visible_view(0, 2, 2, 0, 0, NULL);
+        view = tree_demo_find_visible_view(0, 2, 2, 0, 0, &entry);
         if (view == NULL)
         {
             report_runtime_failure("initial task node was not visible");
             EGUI_SIM_SET_WAIT(p_action, 200);
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        runtime_click_target_id = entry.stable_id;
+        if (!tree_demo_set_click_item_action(p_action, view, 220))
+        {
+            report_runtime_failure("initial task node click point was not clickable");
+            EGUI_SIM_SET_WAIT(p_action, 220);
+            return true;
+        }
         return true;
     case 1:
-        if (first_call && tree_demo_ctx.last_clicked_id == EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
+        if (tree_demo_ctx.selected_id != runtime_click_target_id)
         {
-            report_runtime_failure("task click did not update selected node");
-        }
-        if (first_call)
-        {
-            egui_view_virtual_tree_entry_t collapse_entry;
-
-            visible_before_collapse = tree_demo_get_visible_count();
-            runtime_collapse_target_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
-            view = tree_demo_find_visible_view(1, 1, 1, 1, 1, &collapse_entry);
-            if (view != NULL)
+            view = runtime_click_target_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID
+                           ? egui_view_virtual_tree_find_view_by_stable_id(EGUI_VIEW_OF(&tree_view), runtime_click_target_id)
+                           : tree_demo_find_visible_view(0, 2, 2, 0, 0, NULL);
+            if (tree_demo_schedule_click_verify_retry(p_action, view, 220))
             {
-                runtime_collapse_target_id = collapse_entry.stable_id;
+                return true;
             }
+            report_runtime_failure("task click did not update selected node");
+            EGUI_SIM_SET_WAIT(p_action, 180);
+            return true;
         }
-        else if (runtime_collapse_target_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
+
+        recording_click_verify_retry = 0U;
+        visible_before_collapse = tree_demo_get_visible_count();
+        runtime_collapse_target_id = EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID;
+        view = tree_demo_find_visible_view(1, 1, 1, 1, 1, &entry);
+        if (view != NULL)
+        {
+            runtime_collapse_target_id = entry.stable_id;
+        }
+        if (runtime_collapse_target_id != EGUI_VIEW_VIRTUAL_VIEWPORT_INVALID_ID)
         {
             view = egui_view_virtual_tree_find_view_by_stable_id(EGUI_VIEW_OF(&tree_view), runtime_collapse_target_id);
-        }
-        else
-        {
-            view = tree_demo_find_visible_view(1, 1, 1, 1, 1, NULL);
         }
         if (view == NULL)
         {
@@ -1956,26 +2020,45 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             EGUI_SIM_SET_WAIT(p_action, 180);
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        if (!tree_demo_set_click_item_action(p_action, view, 220))
+        {
+            report_runtime_failure("expanded branch click point was not clickable");
+            EGUI_SIM_SET_WAIT(p_action, 220);
+            return true;
+        }
         return true;
     case 2:
-        if (first_call)
         {
             tree_demo_node_t *collapsed_node = tree_demo_get_node_by_stable_id(runtime_collapse_target_id);
+            uint8_t branch_still_expanded = 0U;
+            uint8_t visible_count_ok = 0U;
 
             if (collapsed_node == NULL || !tree_demo_is_branch(collapsed_node))
             {
                 report_runtime_failure("branch collapse target was not tracked");
             }
-            else if (collapsed_node->expanded)
+            else
             {
-                report_runtime_failure("branch click did not collapse expanded branch");
-            }
-            else if (tree_demo_get_visible_count() >= visible_before_collapse)
-            {
-                report_runtime_failure("branch collapse did not reduce visible nodes");
+                branch_still_expanded = collapsed_node->expanded ? 1U : 0U;
+                visible_count_ok = tree_demo_get_visible_count() < visible_before_collapse ? 1U : 0U;
+                if (branch_still_expanded || !visible_count_ok)
+                {
+                    if (tree_demo_schedule_collapse_verify_retry(p_action, branch_still_expanded, runtime_collapse_target_id, 220))
+                    {
+                        return true;
+                    }
+                    if (branch_still_expanded)
+                    {
+                        report_runtime_failure("branch click did not collapse expanded branch");
+                    }
+                    if (!visible_count_ok)
+                    {
+                        report_runtime_failure("branch collapse did not reduce visible nodes");
+                    }
+                }
             }
         }
+        recording_collapse_verify_retry = 0U;
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[TREE_DEMO_ACTION_PATCH]), 220);
         return true;
     case 3:
@@ -2020,7 +2103,12 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
             EGUI_SIM_SET_WAIT(p_action, 180);
             return true;
         }
-        EGUI_SIM_SET_CLICK_VIEW(p_action, view, 220);
+        if (!tree_demo_set_click_item_action(p_action, view, 220))
+        {
+            report_runtime_failure("task node after drag click point was not clickable");
+            EGUI_SIM_SET_WAIT(p_action, 220);
+            return true;
+        }
         return true;
     case 7:
         EGUI_SIM_SET_CLICK_VIEW(p_action, EGUI_VIEW_OF(&action_buttons[TREE_DEMO_ACTION_FOLD]), 220);

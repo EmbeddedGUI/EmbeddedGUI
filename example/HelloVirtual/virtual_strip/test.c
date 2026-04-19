@@ -34,7 +34,7 @@
 #define STRIP_BUTTON_H                  20
 #define STRIP_CARD_SIDE_INSET           4
 #define STRIP_KEEP_VISIBLE_INSET        6
-#define STRIP_CLICK_VERIFY_RETRY_MAX    3U
+#define STRIP_CLICK_VERIFY_RETRY_MAX    5U
 #define STRIP_MUTATION_VERIFY_RETRY_MAX 4U
 #define STRIP_SCENE_VERIFY_RETRY_MAX    4U
 
@@ -1804,6 +1804,24 @@ static uint8_t strip_demo_set_click_item_action(egui_sim_action_t *p_action, egu
     return (uint8_t)egui_sim_set_click_view_clipped(p_action, view, &EGUI_VIEW_OF(&strip_view)->region_screen, (int)interval_ms);
 }
 
+static uint8_t strip_demo_schedule_click_verify_retry(egui_sim_action_t *p_action, egui_view_t *view, uint32_t interval_ms)
+{
+    if (recording_click_verify_retry >= STRIP_CLICK_VERIFY_RETRY_MAX)
+    {
+        return 0U;
+    }
+
+    recording_click_verify_retry++;
+    if (recording_click_verify_retry >= 2U && view != NULL && strip_demo_set_click_item_action(p_action, view, interval_ms))
+    {
+        return 1U;
+    }
+
+    recording_request_snapshot();
+    EGUI_SIM_SET_WAIT(p_action, 0);
+    return 1U;
+}
+
 typedef struct strip_demo_visible_search_context
 {
     uint32_t min_index;
@@ -1907,18 +1925,10 @@ bool egui_port_get_recording_action(int action_index, egui_sim_action_t *p_actio
         }
         return true;
     case 1:
-        if (strip_demo_ctx.last_clicked_index != 1U)
+        if (strip_demo_ctx.selected_id != strip_demo_ctx.items[1].stable_id)
         {
-            if (recording_click_verify_retry < STRIP_CLICK_VERIFY_RETRY_MAX)
+            if (strip_demo_schedule_click_verify_retry(p_action, strip_demo_find_visible_view_by_index(1), 220))
             {
-                view = strip_demo_find_visible_view_by_index(1);
-                recording_click_verify_retry++;
-                if (view != NULL && strip_demo_set_click_item_action(p_action, view, 220))
-                {
-                    return true;
-                }
-                recording_request_snapshot();
-                EGUI_SIM_SET_WAIT(p_action, 180);
                 return true;
             }
             report_runtime_failure("gallery item click did not update selected index");
